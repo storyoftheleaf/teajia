@@ -3,7 +3,7 @@ import { deriveThreads } from './threads';
 import { TeabagIcon, BowlIcon, TeapotIcon, GaiwanIcon, YixingIcon } from './VesselIcons';
 
 /* ───────────────────────────────────────────────────────────────────────────
-   Tea Discovery — the five screens. Data-driven so the flow is one map and
+   Tea Discovery, the five screens. Data-driven so the flow is one map and
    future edits are config, not new components. Each option carries lightweight
    tags (level / effect) used today to derive a level + disposition, and stored
    on the profile for Phase 2 matching + the taster integration.

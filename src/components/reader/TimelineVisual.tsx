@@ -13,7 +13,7 @@ interface TimelineVisualProps {
 }
 
 /**
- * TimelineVisual — Horizontal scrollable event timeline.
+ * TimelineVisual: Horizontal scrollable event timeline.
  * CSS scroll-snap-type: x mandatory. Each event snaps.
  * Gold dots and connecting line. Scroll-hint gradient fades on right edge.
  */

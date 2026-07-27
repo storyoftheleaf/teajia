@@ -54,7 +54,7 @@ export const SampleOrderModal: React.FC<SampleOrderModalProps> = ({
     const ref = `SAM-${Date.now().toString(36).toUpperCase().slice(-6)}`;
     setRefNumber(ref);
 
-    // Open WhatsApp immediately — primary action on this platform
+    // Open WhatsApp immediately, primary action on this platform
     const phone = import.meta.env.VITE_WHATSAPP_NUMBER || '';
     const message = buildOrderMessage({
       type: 'inquiry',

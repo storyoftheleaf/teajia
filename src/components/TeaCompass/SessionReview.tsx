@@ -11,7 +11,7 @@ import type { TeaCompassEntry, CompassVerdict } from './types';
 import { DecisionControl } from './DecisionControl';
 
 interface SessionReviewProps {
-  /** The teas to sort through — typically "tasted but not yet given a verdict". */
+  /** The teas to sort through, typically "tasted but not yet given a verdict". */
   entries: TeaCompassEntry[];
   onClose: () => void;
 }
@@ -33,7 +33,7 @@ function scoreOf(e: TeaCompassEntry): number {
 export const SessionReview: React.FC<SessionReviewProps> = ({ entries, onClose }) => {
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   // Freeze the working set on open so rows don't vanish mid-triage as verdicts
-  // are assigned — the user keeps full control until they close the screen.
+  // are assigned, the user keeps full control until they close the screen.
   const [workingIds] = useState(() => entries.map((e) => e.id));
   const allEntries = useTeaCompassStore((s) => s.entries);
 
@@ -68,7 +68,7 @@ export const SessionReview: React.FC<SessionReviewProps> = ({ entries, onClose }
           paddingTop: 'env(safe-area-inset-top, 0px)',
         }}
       >
-        {/* Header — close X on the left per panel rule, title + progress on the right */}
+        {/* Header, close X on the left per panel rule, title + progress on the right */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-tea-border shrink-0">
           <button
             type="button"
@@ -86,7 +86,7 @@ export const SessionReview: React.FC<SessionReviewProps> = ({ entries, onClose }
           </div>
         </div>
 
-        {/* Scrollable list — pb clears the sticky footer + bottom nav */}
+        {/* Scrollable list, pb clears the sticky footer + bottom nav */}
         <div className="flex-1 min-h-0 overflow-y-auto px-3 pt-3 pb-nav-gap">
           <div className="space-y-2">
             <AnimatePresence initial={false}>
@@ -192,7 +192,7 @@ export const SessionReview: React.FC<SessionReviewProps> = ({ entries, onClose }
           </div>
         </div>
 
-        {/* Sticky footer — review never infers sourcing intent from a verdict. */}
+        {/* Sticky footer, review never infers sourcing intent from a verdict. */}
         {rows.length > 0 && (
           <div className="shrink-0 border-t border-tea-border bg-tea-bg px-4 pt-3 pb-nav-gap">
             <div className="flex items-center justify-between gap-3">

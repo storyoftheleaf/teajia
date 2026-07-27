@@ -12,7 +12,7 @@ interface TastingNotesFormProps {
   className?: string;
   /** Event ID to cross-link tastings into the personal journal */
   eventId?: string;
-  /** URL slug for the event — used for journal navigation */
+  /** URL slug for the event, used for journal navigation */
   eventSlug?: string;
   /** Event title shown as context in the journal */
   eventTitle?: string;

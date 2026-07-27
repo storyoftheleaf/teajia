@@ -17,10 +17,10 @@ export type Season = 'Spring' | 'Summer' | 'Fall' | 'Winter';
 export type Storage = 'Dry' | 'Wet/Traditional' | 'HK' | 'Malaysian' | 'Natural';
 export type TeawareCategory = 'Pot' | 'Cup' | 'Gaiwan' | 'Fair Cup' | 'Tray' | 'Storage' | 'Tool' | 'Other';
 // 'Zhuni' | 'Zisha' | 'Duanni' | 'Hongni' kept in the union for backward compatibility
-// with entries created before Yixing-as-material refactor — picker no longer offers them
+// with entries created before Yixing-as-material refactor, picker no longer offers them
 // as top-level materials; they're surfaced as clay subtypes under Yixing.
 export type TeawareMaterial = 'Yixing' | 'Zhuni' | 'Zisha' | 'Duanni' | 'Hongni' | 'Porcelain' | 'Celadon' | 'Wood-fired' | 'Glass' | 'Clay' | 'Ceramic' | 'Wood' | 'Metal' | 'Stone' | 'Silver' | 'Other' | 'Unknown';
-// Yixing clay subtypes — picked by colour and name inside the Material picker
+// Yixing clay subtypes, picked by colour and name inside the Material picker
 export type YixingClayType = 'Zhuni' | 'Zisha' | 'Duanni' | 'Hongni' | 'Lvni' | 'Heini' | 'Unknown';
 // Era is now a free-form string so user-added eras (e.g. "Song Dynasty") are first-class.
 // Standard values are listed in TEAWARE_ERAS for the picker.
@@ -29,9 +29,9 @@ export type TeawareEra = string;
 export type BrowseGrouping = 'date' | 'vendor';
 export type BrowseFilter = 'all' | 'to_taste' | 'selected';
 export type BrowseSort = 'recent' | 'score' | 'price' | 'name';
-// Library layout — list rows, or a grid of the capture photos (bag shots)
+// Library layout, list rows, or a grid of the capture photos (bag shots)
 export type BrowseLayout = 'list' | 'photos';
-// Post-tasting verdict — the single organizing signal used by the triage
+// Post-tasting verdict, the single organizing signal used by the triage
 // review. Generalizes the sample-only sampleVerdict (kept as a read fallback).
 export type CompassVerdict = 'love' | 'like' | 'neutral' | 'pass';
 export type CompassDecision = 'considering' | 'selected' | 'passed_on';
@@ -133,7 +133,7 @@ export interface TeaCompassEntry {
   vendorId?: string;
   vendorName?: string;
   vendorDetails?: VendorDetails;
-  /** Customer record ID for the vendor — links compass entry to a customer profile */
+  /** Customer record ID for the vendor, links compass entry to a customer profile */
   linkedCustomerId?: string;
 
   // Content
@@ -148,26 +148,26 @@ export interface TeaCompassEntry {
   buyQuantityUnits?: number;
   buyTotal?: number;
 
-  // Panel sharing — normalised identity key, shared across accounts so reviews pool
+  // Panel sharing, normalised identity key, shared across accounts so reviews pool
   teaKey?: string;
   // Shared/incoming entries point back to the source compass card.
   sourceEntryId?: string;
 
-  // Post-tasting verdict — first-class organizing signal (synced, migration 082).
+  // Post-tasting verdict, first-class organizing signal (synced, migration 082).
   // Drives the triage review and the "Loved" lens. Reads fall back to
   // sampleVerdict for legacy sample entries that predate this field.
   verdict?: CompassVerdict;
   // Deliberate sourcing choice. Independent from tasting verdict, stock status,
   // and storefront publication; never inferred from those fields.
   decision?: CompassDecision | null;
-  // Capture session — entries created in one capture run share this id, so a
+  // Capture session, entries created in one capture run share this id, so a
   // batch review can group "the teas I just tasted". Column reserved by 071.
   sessionId?: string;
   /** Optional sourcing context; independent from the six-hour capture session. */
   journeyId?: string | null;
   visitId?: string | null;
 
-  // Sample flag — tea entries can be marked as samples (small tasting portions)
+  // Sample flag, tea entries can be marked as samples (small tasting portions)
   isSample?: boolean;
   /** Explicit sample lifecycle. Never inferred from logistics or tasting data. */
   sampleState?: CompassSampleState | null;
@@ -176,13 +176,13 @@ export interface TeaCompassEntry {
   sampleVerdict?: 'love' | 'like' | 'neutral' | 'pass';
   sampleWouldBuy?: boolean;
 
-  // Tasting queue — timestamp set when entry is explicitly prioritised; higher = sooner
+  // Tasting queue, timestamp set when entry is explicitly prioritised; higher = sooner
   tasteOrder?: number;
 
-  // Retaste timeline — each tasting session appended; current tasting is also in .tasting
+  // Retaste timeline, each tasting session appended; current tasting is also in .tasting
   tastingHistory?: Array<{ data: TastingData; date: string; note?: string }>;
 
-  // Pipeline — internal, set automatically when ledger purchase is confirmed
+  // Pipeline, internal, set automatically when ledger purchase is confirmed
   draftProductId?: string;
 
   // Meta
@@ -234,7 +234,7 @@ export const STORAGE_OPTIONS: Storage[] = [...WISDOM_STORAGE_STYLES];
 // Teaware categories
 export const TEAWARE_CATEGORIES: TeawareCategory[] = ['Pot', 'Cup', 'Gaiwan', 'Fair Cup', 'Tray', 'Storage', 'Tool', 'Other'];
 
-// Teaware materials by category — Yixing rolls up the four classic clay subtypes
+// Teaware materials by category: Yixing rolls up the four classic clay subtypes
 // (Zhuni / Zisha / Duanni / Hongni); a sub-picker on Yixing surfaces them.
 export const TEAWARE_MATERIALS: Record<string, TeawareMaterial[]> = {
   Pot: ['Yixing', 'Porcelain', 'Silver', 'Glass', 'Other', 'Unknown'],
@@ -243,9 +243,9 @@ export const TEAWARE_MATERIALS: Record<string, TeawareMaterial[]> = {
   default: ['Clay', 'Porcelain', 'Glass', 'Ceramic', 'Wood', 'Metal', 'Stone', 'Other', 'Unknown'],
 };
 
-// Yixing clay subtypes — picked by colour swatch + name. Hex colours are
+// Yixing clay subtypes, picked by colour swatch + name. Hex colours are
 // physical-material references, not theme tokens, so they live inline.
-// `imageUrl` is optional — when set, the full-screen clay picker shows a
+// `imageUrl` is optional, when set, the full-screen clay picker shows a
 // photographic swatch instead of the flat colour disk.
 export interface YixingClayInfo {
   name: YixingClayType;
@@ -255,7 +255,7 @@ export interface YixingClayInfo {
   swatch: string;
   /** One-line description shown in the full-screen picker */
   hint?: string;
-  /** Optional photographic swatch URL — replaces the flat colour disk */
+  /** Optional photographic swatch URL, replaces the flat colour disk */
   imageUrl?: string;
 }
 export const YIXING_CLAY_TYPES: YixingClayInfo[] = [
@@ -268,11 +268,11 @@ export const YIXING_CLAY_TYPES: YixingClayInfo[] = [
   { name: 'Unknown', label: 'Unknown', swatch: '#8a8275', hint: 'Not sure yet' },
 ];
 
-// Teaware eras — standard list shown first in the picker; user-added eras
+// Teaware eras, standard list shown first in the picker; user-added eras
 // (e.g. "Song Dynasty") are appended via the compass store's customEras.
 export const TEAWARE_ERAS: TeawareEra[] = ['Modern', '90s', '80s', '70s', 'Pre-70s', 'Republic', 'Qing', 'Unknown'];
 
-/** Origin auto-fill rules keyed by material — applied when the field is empty. */
+/** Origin auto-fill rules keyed by material, applied when the field is empty. */
 export const MATERIAL_ORIGIN_DEFAULT: Partial<Record<TeawareMaterial, string>> = {
   Yixing: 'Yixing, China',
 };
@@ -321,7 +321,7 @@ export function compassShareMetadata(entry: TeaCompassEntry): Record<string, unk
 
 /**
  * Maps a Tea Compass entry to a product draft payload matching the API's expected format.
- * INTERNAL — called only by LedgerView.handleConfirm when a purchase is confirmed.
+ * INTERNAL, called only by LedgerView.handleConfirm when a purchase is confirmed.
  * Do not call from UI components directly.
  */
 export function compassEntryToProductDraft(entry: TeaCompassEntry): Record<string, any> {
@@ -424,7 +424,7 @@ export function resolveVerdict(entry: Pick<TeaCompassEntry, 'verdict' | 'sampleV
   return q >= 8 ? 'love' : q >= 6 ? 'like' : q >= 4 ? 'neutral' : 'pass';
 }
 
-/** An entry is "tasted but not yet sorted" — the triage review's working set. */
+/** An entry is "tasted but not yet sorted", the triage review's working set. */
 export function isUntriaged(entry: Pick<TeaCompassEntry, 'verdict' | 'sampleVerdict' | 'tasting' | 'status'>): boolean {
   return entryHasTasting(entry) && !entry.verdict && !entry.sampleVerdict && entry.status !== 'pass';
 }

@@ -94,7 +94,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
         onClick={onClose}
       />
 
-      {/* Sheet — bottom-docked on mobile but the parent flex container
+      {/* Sheet, bottom-docked on mobile but the parent flex container
           carries pb-nav, so the sheet sits ABOVE the BottomTabBar
           rather than rendering behind it. On sm+ the modal centers
           normally. */}

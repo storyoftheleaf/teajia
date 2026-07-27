@@ -227,7 +227,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
           <div className="w-10 h-1 bg-tea-border rounded-full" />
         </div>
 
-        {/* Header — close X top-LEFT for sheet/drawer (§15) */}
+        {/* Header, close X top-LEFT for sheet/drawer (§15) */}
         <div className="flex items-center gap-3 px-5 py-4 border-b border-tea-border shrink-0">
           <button
             onClick={onClose}
@@ -398,7 +398,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                 />
               </div>
 
-              {/* Contact Method — hidden if signed-in user already has contact saved */}
+              {/* Contact Method, hidden if signed-in user already has contact saved */}
               {isAuthenticated && (user?.phone || user?.email) && !overrideContact ? (
                 <div className="flex items-center justify-between gap-2 px-3 py-2.5 bg-tea-bg border border-tea-border rounded-md">
                   <span className="text-ui-12 text-tea-text-sec truncate">
@@ -422,7 +422,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                     <span aria-hidden="true" className="text-tea-gold"> *</span>
                     <span className="sr-only"> (required)</span>
                   </label>
-                  {/* Method toggle — underline tabs */}
+                  {/* Method toggle, underline tabs */}
                   <div className="flex gap-6 border-b border-tea-border mb-3">
                     {(['whatsapp', 'email'] as ContactMethod[]).map((m) => {
                       const isActive = formData.contactMethod === m;
@@ -604,7 +604,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                 </div>
               )}
 
-              {/* Footer — Cancel-left, primary-right */}
+              {/* Footer: Cancel-left, primary-right */}
               <div className="flex justify-between items-center gap-3 pt-2">
                 <button
                   type="button"

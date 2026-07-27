@@ -3,7 +3,7 @@
  * Rationale, and the conditions on this exception, in read/immersive.tsx.
  */
 /**
- * EditablePhoto — a photo frame for the hand-built Read story pages.
+ * EditablePhoto, a photo frame for the hand-built Read story pages.
  *
  * Reads/writes through the shared story-edit draft (see storyEdit.tsx), so a
  * photo change joins the same draft -> publish -> undo flow as text edits.
@@ -201,7 +201,7 @@ const EditablePhoto: React.FC<Props> = ({
           </div>
         )}
 
-        {/* Focal dot — drag OR tap the photo to set the crop center. Bigger
+        {/* Focal dot, drag OR tap the photo to set the crop center. Bigger
             touch grab area; the visible ring stays small. */}
         {liveEdit && photo && (
           <div

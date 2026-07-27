@@ -15,7 +15,7 @@ const CARD_APPROX_HEIGHT = 180;
 const SCREEN_MARGIN = 12;
 
 /**
- * FootnoteCard — Floating tea glossary definition card.
+ * FootnoteCard: Floating tea glossary definition card.
  * Appears at tap position, clamped to screen edges.
  * Dismisses on outside tap, scroll, or ESC key.
  * Gold accent border-top. Framer Motion spring entrance.

@@ -12,7 +12,7 @@ interface PullToRefreshIndicatorProps {
  * Pull-to-refresh in the SAME loading language as everything else: the brand
  * emblem, breathing (EmblemLoader's fade + gentle scale), not a spinner.
  *
- * The previous version here was a leftover from before the loader redesign —
+ * The previous version here was a leftover from before the loader redesign,
  * a gold progress ring with a tea leaf in a circular chip. It read as "old
  * circle spinner" next to the pulsing emblem used for every other wait, so it
  * looked like the stuck-spinner bug had returned. One loading identity now:

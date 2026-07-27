@@ -221,7 +221,7 @@ export default function SessionPage() {
                   <span
                     className={[
                       'flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-colors',
-                      tasted ? 'bg-tea-gold text-tea-bg' : 'border border-tea-border',
+                      tasted ? 'cta-solid' : 'border border-tea-border',
                     ].join(' ')}
                     aria-label={tasted ? 'Tasted' : 'Not yet'}
                   >
@@ -243,7 +243,7 @@ export default function SessionPage() {
           <button
             type="button"
             onClick={handleSendPicks}
-            className="w-full rounded-full bg-tea-gold text-tea-bg py-3 text-ui-15 tracking-wide flex items-center justify-center gap-2"
+            className="w-full rounded-full cta-solid py-3 text-ui-15 tracking-wide flex items-center justify-center gap-2"
           >
             <Send className="w-4 h-4" />
             Send my picks

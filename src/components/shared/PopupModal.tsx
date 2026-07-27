@@ -305,7 +305,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
         style={{ transform: isVisible ? `translateY(${sheetDragY}px)` : 'translateY(100%)', bottom: 0, maxHeight: 'calc(100dvh - 44px - env(safe-area-inset-bottom, 0px))' }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Image area — peek above sheet */}
+        {/* Image area, peek above sheet */}
         <div
           className="relative w-full overflow-hidden transition-transform duration-100"
           style={{ transform: `translateX(${swipeOffset * 0.5}px)`, maxHeight: '40vh' }}

@@ -5,9 +5,9 @@ import { Volume2, VolumeX } from 'lucide-react';
  * Audio files should be placed at /public/audio/:
  *   rain.mp3, forest.mp3, teahouse.mp3
  *
- * SoundscapePlayer — Ambient audio toggle component.
+ * SoundscapePlayer: Ambient audio toggle component.
  * Cycles through: off -> track1 -> track2 -> ... -> off
- * Does NOT autoplay — user must opt in.
+ * Does NOT autoplay, user must opt in.
  * Saves preference to localStorage under `soundscape_pref`.
  * Volume is fixed at 15% (0.15). Loop is enabled.
  * Renders null if the Audio API is not supported.
@@ -76,7 +76,7 @@ const SoundscapePlayer: React.FC<SoundscapePlayerProps> = ({
     audioRef.current = audio;
 
     audio.play().catch(() => {
-      // Autoplay blocked — user interaction already happened, this is a fallback
+      // Autoplay blocked, user interaction already happened, this is a fallback
     });
 
     localStorage.setItem(STORAGE_KEY, track.src);

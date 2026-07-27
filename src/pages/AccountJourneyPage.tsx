@@ -173,7 +173,7 @@ const MilestoneMarks: React.FC<{ milestones: string[] }> = ({ milestones }) => {
   );
 };
 
-// ── At Home — Sample thread ───────────────────────────────────────────────────
+// ── At Home: Sample thread ───────────────────────────────────────────────────
 
 const VERDICT_STYLES: Record<string, string> = {
   love: 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40',
@@ -233,7 +233,7 @@ const SampleThread: React.FC<{ samples: SampleEntry[] }> = ({ samples }) => {
   );
 };
 
-// ── Your Collection — Compass thread ─────────────────────────────────────────
+// ── Your Collection: Compass thread ─────────────────────────────────────────
 
 const STATUS_LABEL: Record<string, string> = {
   logged: 'in collection',
@@ -315,7 +315,7 @@ const SealModal: React.FC<{ seal: JourneySeal; onClose: () => void }> = ({ seal,
       <p className="text-ui-13 text-tea-text-sec">
         {new Date(seal.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
       </p>
-      {/* Cancel-left, confirm/link-right — matches Cancel/Back/Close rules */}
+      {/* Cancel-left, confirm/link-right, matches Cancel/Back/Close rules */}
       <div className="mt-5 flex items-center justify-between gap-4">
         <button onClick={onClose} className="px-2 py-1 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors">Close</button>
         {seal.slug ? (
@@ -362,7 +362,7 @@ const SampleRequestPrompt: React.FC<{ waNumber: string }> = ({ waNumber }) => {
       {waNumber ? (
         <button
           onClick={handleSend}
-          className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+          className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
         >
           <Send size={13} />
           {sent ? 'Sent via WhatsApp' : 'Request via WhatsApp'}
@@ -450,7 +450,7 @@ const AccountJourneyPage: React.FC = () => {
 
           {!hasSomething && (
             <div className="mt-10 flex gap-3">
-              <button onClick={() => navigate('/events')} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors">
+              <button onClick={() => navigate('/events')} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors">
                 <Leaf size={13} />
                 Browse sessions
               </button>

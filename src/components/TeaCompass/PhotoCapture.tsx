@@ -77,7 +77,7 @@ function parseExtractResult(r: Record<string, any>): ExtractedTeaData {
   if (r.region || r.originRegion || r.origin_region || r.originCountry || r.origin_country)
     data.region = r.region || r.originRegion || r.origin_region || r.originCountry || r.origin_country;
   // Price: the worker/Gemini contract returns `costAmount`; earlier keys kept for compat.
-  // Guard against 0 — the model emits 0 when no price is visible, which must not auto-fill.
+  // Guard against 0: the model emits 0 when no price is visible, which must not auto-fill.
   const priceRaw = r.price ?? r.priceAmount ?? r.price_amount ?? r.costAmount ?? r.cost_amount;
   if (priceRaw !== undefined && priceRaw !== null && priceRaw !== '' && priceRaw !== 0) {
     data.price = typeof priceRaw === 'number' ? priceRaw : parseFloat(priceRaw) || undefined;
@@ -128,7 +128,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   // Index of the photo whose action menu (Enlarge / Edit / Delete) is open.
   // Mutually exclusive across photos so only one menu shows at a time.
   const [menuPhotoIndex, setMenuPhotoIndex] = useState<number | null>(null);
-  // URL of the photo currently open in the SquareCropModal — when set, the
+  // URL of the photo currently open in the SquareCropModal, when set, the
   // editor swaps the user's crop back via api.uploadImage + onPhotoReplaced.
   const [editingPhotoUrl, setEditingPhotoUrl] = useState<string | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
@@ -258,7 +258,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
     }
   }, []);
 
-  // Ref callback — fires the instant the <video> element mounts into the portal DOM
+  // Ref callback, fires the instant the <video> element mounts into the portal DOM
   const videoRefCallback = useCallback((el: HTMLVideoElement | null) => {
     videoElRef.current = el;
     if (el) startCamera(el);
@@ -322,7 +322,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
     if (videoElRef.current) startCamera(videoElRef.current);
   };
 
-  // Upload failed at scan time but we still hold the frame as a data URL —
+  // Upload failed at scan time but we still hold the frame as a data URL, so
   // re-upload in the background and attach the photo when it lands. Previously
   // "Apply to form" filled the fields and silently dropped the photo whenever
   // the upload leg lost the race against a flaky connection.
@@ -333,7 +333,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         const file = new File([blob], 'capture.jpg', { type: 'image/jpeg' });
         const url = await api.uploadImage(file);
         if (url) onPhotoTaken(url);
-      } catch { /* connection still down — fields are applied, photo lost this round */ }
+      } catch { /* connection still down, fields are applied, photo lost this round */ }
     })();
   };
 
@@ -347,7 +347,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
 
   // Keep the photo even when the label couldn't be read (or was read wrong).
   // The frame already uploaded as `capturedImageUrl`, so a source photo of the
-  // bag + leaves is a complete-enough capture on its own — no name required.
+  // bag + leaves is a complete-enough capture on its own, no name required.
   const handleUsePhotoOnly = () => {
     if (capturedImageUrl) {
       onPhotoTaken(capturedImageUrl);
@@ -368,7 +368,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
     setPendingPreviews((prev) => [...prev, { localUrl, uploading: true, failed: false }]);
 
     try {
-      // Initial capture stays large — 1600px / quality 0.7 — so the in-app
+      // Initial capture stays large, 1600px / quality 0.7, so the in-app
       // editor has plenty of pixels to work with for crop, rotation and
       // future adjustments. Once the user commits an edit the editor saves
       // back at 800px square, but we want the unedited source generous.
@@ -397,7 +397,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
           }
         });
       } else {
-        // Upload failed — never persist a blob: URL into the entry (it dies on
+        // Upload failed, never persist a blob: URL into the entry (it dies on
         // refresh and syncs a broken link). Surface a retry/dismiss instead.
         markPreviewFailed(localUrl);
       }
@@ -442,7 +442,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
       {/* Camera / captured frame area */}
       <div className="relative flex-1 min-h-0 overflow-hidden bg-black">
 
-        {/* Live video — ref callback starts camera when this element mounts */}
+        {/* Live video, ref callback starts camera when this element mounts */}
         {scanStep === 'camera' && (
           <video
             ref={videoRefCallback}
@@ -520,7 +520,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         )}
       </div>
 
-      {/* Result sheet — slides up */}
+      {/* Result sheet, slides up */}
       <AnimatePresence>
         {scanStep === 'result' && extractedPreview && (
           <motion.div
@@ -572,7 +572,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                 Apply to form
               </button>
             </div>
-            {/* Escape hatch — wrong read shouldn't force a retake. Keep the
+            {/* Escape hatch, wrong read shouldn't force a retake. Keep the
                 photo, drop the extracted fields. */}
             {capturedImageUrl && (
               <button
@@ -616,7 +616,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                 <RefreshCw size={13} />
                 {capturedImageUrl ? 'Retake' : 'Try again'}
               </button>
-              {/* Uploaded — or still local with a background retry — either way
+              {/* Uploaded, or still local with a background retry, either way
                   a photo-only capture can stand. */}
               {(capturedImageUrl || capturedDataUrl) && (
                 <button
@@ -913,7 +913,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
     <>
       <div className={`flex w-full min-w-0 items-center ${stripGap}`}>
         <div className={`flex min-w-0 flex-1 flex-row justify-end ${btnGap}`}>
-          {/* Sparkles = AI label scanner. Quiet at rest (gold-scarcity) —
+          {/* Sparkles = AI label scanner. Quiet at rest (gold-scarcity):
               gold only lights up on the just-scanned success tick. */}
           <button
             type="button"
@@ -1073,7 +1073,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
       {scannerModal}
       {lightbox}
 
-      {/* In-app photo editor — wraps react-easy-crop via SquareCropModal.
+      {/* In-app photo editor, wraps react-easy-crop via SquareCropModal.
           Output goes back through api.uploadImage and replaces the original
           via onPhotoReplaced so callers don't need to know the new URL. */}
       <SquareCropModal

@@ -279,7 +279,15 @@ INLINE_STYLE_HITS=$(find "$SRC_DIR" \( -name '*.tsx' -o -name '*.ts' \) -print0 
 # own scoped palette. Blocking the directory does not touch those files. It
 # means the next file added to it has to make the same claim on purpose instead
 # of inheriting the exception by being in the right folder.
-INLINE_STYLE_ENFORCED='^src/components/shop/|^src/components/tasting/|^src/components/wisdom/|^src/components/shared/|^src/components/reader/|^src/pages/read/|^src/pages/ProductPage\.tsx|^src/components/Shop\.tsx|^src/components/TeaInventory\.tsx'
+#
+# Round ten added `src/admin/`. Two of its files are claims rather than fixes:
+# InvoicePdf and PurchaseOrderPdf carry `@color-literals` because
+# @react-pdf/renderer has no browser, so a custom property there does not
+# adapt badly, it does not resolve at all. The rest were converted, including a
+# vendor avatar whose gradient put parchment initials on a light bronze stop at
+# 2.00:1 in light mode, and a swatch that painted a flat grey when the taxonomy
+# had no liquor colour, drawing a measurement nobody had made.
+INLINE_STYLE_ENFORCED='^src/components/shop/|^src/components/tasting/|^src/components/wisdom/|^src/components/shared/|^src/components/reader/|^src/pages/read/|^src/admin/|^src/pages/ProductPage\.tsx|^src/components/Shop\.tsx|^src/components/TeaInventory\.tsx'
 
 INLINE_STYLE_BLOCKING=$(printf '%s\n' "$INLINE_STYLE_HITS" | grep -E "$INLINE_STYLE_ENFORCED" || true)
 INLINE_STYLE_REST=$(printf '%s\n' "$INLINE_STYLE_HITS" | grep -vE "$INLINE_STYLE_ENFORCED" | grep -v '^$' || true)
@@ -314,8 +322,19 @@ fi
 #     button. A string that names both tokens as whole classes is the defect.
 #
 #     Same ratchet as rule 10: blocking on the paths that are clean, a notice
-#     with a count everywhere else. The remainder is almost all src/admin and
-#     src/pages, which round nine did not own.
+#     with a count everywhere else. Round ten cleared src/admin, all 123 of the
+#     remaining 171, and added it to the enforced list. The same round cleared
+#     src/pages, 44 more across 22 files, so the whole public tree is enforced
+#     now. Four of those 44 were not buttons but selected-state chips
+#     (`tasted ? 'bg-tea-gold text-tea-bg' : ...`); they take the same class,
+#     because it carries colour only and a chip composes it exactly as a button
+#     does. What is left is a handful in src/samples, which nobody owned.
+#
+#     Converting is mechanical but not blind. `bg-tea-gold text-tea-bg` becomes
+#     `cta-solid` and any `hover:bg-tea-gold/90` or `active:bg-tea-gold/80`
+#     alongside it is deleted rather than kept: the class already owns its hover
+#     via --tea-gold-solid-hover, and a leftover Tailwind hover would have put
+#     the 4.10:1 pairing back exactly while the pointer was on the button.
 CTA_PAIR_SCANNER='
 {
   line = $0
@@ -330,7 +349,7 @@ CTA_PAIR_SCANNER='
 CTA_PAIR_HITS=$(find "$SRC_DIR" \( -name '*.tsx' -o -name '*.ts' \) -print0 \
   | xargs -0 awk "$CTA_PAIR_SCANNER" 2>/dev/null || true)
 
-CTA_PAIR_ENFORCED='^src/components/|^src/pages/ProductPage\.tsx'
+CTA_PAIR_ENFORCED='^src/components/|^src/admin/|^src/pages/|^src/App\.tsx'
 CTA_PAIR_BLOCKING=$(printf '%s\n' "$CTA_PAIR_HITS" | grep -E "$CTA_PAIR_ENFORCED" || true)
 CTA_PAIR_REST=$(printf '%s\n' "$CTA_PAIR_HITS" | grep -vE "$CTA_PAIR_ENFORCED" | grep -v '^$' || true)
 
@@ -354,8 +373,14 @@ fi
 #     stylesheet accumulated 111 of them in its own comments and this script
 #     accumulated 20, eight of those inside the error strings it prints at
 #     whoever it is correcting. Both files are clear and both are blocking.
-#     `src/components/` still holds roughly 510, nearly all in comments, and it
-#     is a notice until someone sweeps it.
+#
+#     Round ten swept the public and shared tree: 1,326 lines rewritten by rule
+#     plus 25 by hand across src/pages, src/components, src/lib, src/utils,
+#     src/hooks, designTokens.ts and App.tsx, and those paths are blocking now.
+#     The rule that did the work is the one COLOR_RULES.md states: a colon
+#     before a capital, a comma otherwise, and a rewrite where the dash carried
+#     a real pause. Most of it was comments; the rest was editorial prose in the
+#     Read section, where a parenthetical pair became a pair of commas.
 #
 #     Applies to comments as well as strings: the rule is about how this project
 #     writes, and a code comment is writing.
@@ -371,10 +396,47 @@ if [ -n "$EMDASH_BLOCKING" ]; then
   ERRORS=$((ERRORS + 1))
 fi
 
-EMDASH_REST=$(grep -rnF --include='*.tsx' --include='*.ts' "$EMDASH" "$SRC_DIR" 2>/dev/null || true)
+EMDASH_ALL=$(grep -rnF --include='*.tsx' --include='*.ts' "$EMDASH" "$SRC_DIR" 2>/dev/null || true)
+
+# The paths that are clear. Extend as each area is swept; do not widen it to a
+# directory you have not read line by line, because the judgement per line is
+# the whole job and a regex cannot make it.
+EMDASH_ENFORCED_PATHS='^src/admin/|^src/pages/|^src/components/|^src/lib/|^src/utils/|^src/hooks/|^src/designTokens\.ts|^src/App\.tsx'
+
+# The three documented non-prose uses, matched by the shape they actually take
+# rather than waved through by directory:
+#
+#   1. The empty-value glyph. The whole string, or the whole text node, is the
+#      character: `value || '-'`, `<span>-</span>`. That is typography standing
+#      in for a missing datum, not writing.
+#   2. The character inside a bracket expression, which is a regex class
+#      (`/[\s,.;:--]+$/`, `split(/[---]/)`), not a sentence.
+#   3. The two parsers whose tests pin the token: the timeline splitter in
+#      SinglePageRenderer, and the Curate import evidence joiner with its spec.
+#      Named by path, and in SinglePageRenderer's case only on a split/join
+#      line, so prose in the same file is still caught.
+#
+# Anything else on an enforced path fails. A new exception means adding a shape
+# here and saying what it is, which is the point: it should cost a sentence.
+EMDASH_ALLOWED_SHAPES="[\"'\`]${EMDASH}[\"'\`]|>${EMDASH}<|\[[^]]{0,16}${EMDASH}[^]]{0,16}\]"
+EMDASH_ALLOWED_PARSERS='^src/components/SinglePageRenderer\.tsx:[0-9]+:.*(split|join)\(|^src/components/TeaCompass/import/importEvidence(\.test)?\.ts:'
+
+EMDASH_PATH_BLOCKING=$(printf '%s\n' "$EMDASH_ALL" \
+  | grep -E "$EMDASH_ENFORCED_PATHS" \
+  | grep -vE "$EMDASH_ALLOWED_SHAPES" \
+  | grep -vE "$EMDASH_ALLOWED_PARSERS" \
+  | grep -v '^$' || true)
+if [ -n "$EMDASH_PATH_BLOCKING" ]; then
+  echo ""
+  echo "COPY RULE VIOLATION: em-dash on an enforced path. Use a colon before a capital, a comma otherwise, or rewrite the line. Applies to comments too. See COLOR_RULES.md Rule 13."
+  echo "$EMDASH_PATH_BLOCKING"
+  ERRORS=$((ERRORS + 1))
+fi
+
+EMDASH_REST=$(printf '%s\n' "$EMDASH_ALL" | grep -vE "$EMDASH_ENFORCED_PATHS" | grep -v '^$' || true)
 if [ -n "$EMDASH_REST" ]; then
   echo ""
-  echo "NOTICE: $(printf '%s\n' "$EMDASH_REST" | wc -l | tr -d ' ') em-dash(es) in src/ (non-blocking). Top offenders:"
+  echo "NOTICE: $(printf '%s\n' "$EMDASH_REST" | wc -l | tr -d ' ') em-dash(es) outside the enforced paths (non-blocking). Top offenders:"
   printf '%s\n' "$EMDASH_REST" | cut -d: -f1 | sort | uniq -c | sort -rn | head -8
   NOTICES=$((NOTICES + 1))
 fi

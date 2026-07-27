@@ -47,7 +47,7 @@ export const LearnHub: React.FC<LearnHubProps> = ({
   cartItemCount = 0,
   onNavigateToAdvise,
 }) => {
-  // URL-synced sub-view navigation — browser back works properly
+  // URL-synced sub-view navigation, browser back works properly
   const { currentView, navigateTo, navigateBack, isSubView } = useSubViewNavigation<LearnView>('v', 'overview');
 
   // Restore scroll position when returning to the overview
@@ -59,7 +59,7 @@ export const LearnHub: React.FC<LearnHubProps> = ({
 
   const reducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // Crossfade transition when view changes — no blank flash
+  // Crossfade transition when view changes, no blank flash
   useEffect(() => {
     if (prevView.current !== currentView) {
       if (!reducedMotion) {

@@ -61,7 +61,7 @@ interface CaptureCardProps {
   onReturnToLibrary?: () => void;
   /** Start in collapsed (thin) mode */
   initialCollapsed?: boolean;
-  /** Ref populated with action callbacks — used by parent to render pinned action bar */
+  /** Ref populated with action callbacks, used by parent to render pinned action bar */
   actionRef?: React.MutableRefObject<CaptureCardActions | null>;
   /** Optional Share action rendered in the capture context/header cluster. */
   onShare?: () => void;
@@ -166,14 +166,14 @@ function getTypeChipStyle(type: TeaType): { bg: string; text: string } {
   return { bg: `${color}20`, text: color };
 }
 
-/** Quiet section eyebrow — replaces the retired gold hairline SectionDivider.
+/** Quiet section eyebrow, replaces the retired gold hairline SectionDivider.
  *  Groups content by whitespace, not by a gold rule; used sparingly (Notes
  *  always; Profile only when tasting data exists) so gold stays scarce. */
 const QuietEyebrow: React.FC<{ label: string }> = ({ label }) => (
   <h2 className="curate-section-title">{label}</h2>
 );
 
-/** Field label — sits directly above a typed input in the capture form.
+/** Field label, sits directly above a typed input in the capture form.
  *  Sentence case (not micro-caps) and text-tea-text-sec so it reads distinct
  *  from the QuietEyebrow zone headers above it: dim uppercase groups the zone,
  *  sec sentence-case names the field. Keeps a filled form legible after the
@@ -209,7 +209,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   // The note thread (NoteThread) stores notes in the notes store, not on the
   // entry. Subscribe to the count for this entry so the Done button's readiness
   // (entryHasContent, which reads that store) re-evaluates the moment a note is
-  // added or removed — otherwise the button would stay disabled until some
+  // added or removed, otherwise the button would stay disabled until some
   // other re-render happened.
   const threadNoteCount = useNotesStore(
     (s) => s.notes.filter((n) => !n.deleted && n.compassEntryId === entryId).length
@@ -294,24 +294,24 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const dismissedDuplicateRef = useRef<string | null>(null);
 
   // Popover state for inline chip selectors
-  // Tea-side Type picker — opens as a Vaul bottom sheet. Form picker has
+  // Tea-side Type picker, opens as a Vaul bottom sheet. Form picker has
   // moved into PriceGrams which now manages its own sheet state.
   const [typePopoverOpen, setTypePopoverOpen] = useState(false);
-  // Teaware pickers — open as Vaul bottom sheets. State names kept from
+  // Teaware pickers, open as Vaul bottom sheets. State names kept from
   // the previous popover implementation to minimise churn elsewhere.
   const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false);
   const [materialPopoverOpen, setMaterialPopoverOpen] = useState(false);
-  // Clay subtype picker — opens as a separate full-screen sheet after the
+  // Clay subtype picker, opens as a separate full-screen sheet after the
   // user picks Clay or Yixing in the Material sheet.
   const [claySheetOpen, setClaySheetOpen] = useState(false);
-  // Era picker — opens as a Vaul bottom sheet next to the Origin field.
+  // Era picker, opens as a Vaul bottom sheet next to the Origin field.
   const [eraSheetOpen, setEraSheetOpen] = useState(false);
   // Inside the era sheet: shows the "+ Add era" input row
   const [eraInputOpen, setEraInputOpen] = useState(false);
   const [eraInputValue, setEraInputValue] = useState('');
   const eraInputRef = useRef<HTMLInputElement>(null);
 
-  // Products from database — for autocomplete suggestions
+  // Products from database, for autocomplete suggestions
   const productsRef = useRef<any[]>([]);
   const [productNames, setProductNames] = useState<string[]>([]);
   const [productNameMap, setProductNameMap] = useState<Record<string, any>>({});
@@ -371,7 +371,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     return buildVarietyDataMap(entry?.type as Exclude<TeaType, 'Teaware'> | undefined);
   }, [entry?.category, entry?.type]);
 
-  // Hint suggestions shown on empty focus — first 8 primary variety names for selected type
+  // Hint suggestions shown on empty focus, first 8 primary variety names for selected type
   const hintSuggestions = useMemo(() => {
     if (entry?.category !== 'tea' || !entry?.type || entry?.type === 'Teaware') return [];
     return getTeaVarietyNames(entry.type as Exclude<TeaType, 'Teaware'>).slice(0, 8);
@@ -404,10 +404,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     [entryId, updateEntry]
   );
 
-  // (No outside-click handlers needed — every popover in this component
+  // (No outside-click handlers needed, every popover in this component
   // is now a Vaul bottom sheet which manages its own dismissal.)
 
-  // Debounced input parser — runs when name changes
+  // Debounced input parser, runs when name changes
   useEffect(() => {
     if (!entry) return;
     // Only re-parse when the name actually changed (not from other field updates)
@@ -493,7 +493,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     };
   }, [entry?.name]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Debounced duplicate detection — runs on name changes
+  // Debounced duplicate detection, runs on name changes
   useEffect(() => {
     if (!entry) return;
     if (duplicateDebounceRef.current) clearTimeout(duplicateDebounceRef.current);
@@ -531,7 +531,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     };
   }, [entry?.name, entry?.vendorName, fuseIndex, allEntries.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Handle photo extraction results — auto-fill empty fields only
+  // Handle photo extraction results, auto-fill empty fields only
   const handleExtracted = useCallback(
     (data: ExtractedTeaData) => {
       if (!entry) return;
@@ -609,9 +609,9 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const handlePhotoReplaced = useCallback(
     (oldUrl: string, newUrl: string) => {
       // Two callers feed this:
-      //   1) Initial capture finishes — oldUrl is a transient blob: URL that
+      //   1) Initial capture finishes, oldUrl is a transient blob: URL that
       //      never made it into entry.photos, so map() is a safe no-op.
-      //   2) In-app crop/rotate edit — oldUrl IS a real entry photo URL and
+      //   2) In-app crop/rotate edit, oldUrl IS a real entry photo URL and
       //      we must swap it for newUrl so the thumbnail re-renders. Without
       //      this, the user sees their edits "save" but the strip keeps
       //      showing the stale image.
@@ -694,7 +694,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const handleCommit = useCallback(() => {
     commitEntry(entryId);
     if (onReturnToLibrary) {
-      // Came from Library — return there rather than starting a new capture
+      // Came from Library, return there rather than starting a new capture
       onReturnToLibrary();
     } else {
       // The owning Curate shell alone chooses whether to resume another
@@ -718,7 +718,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const tallFieldClass = 'curate-field field-recessed px-3 py-2.5';
   const nameHeadlineClass = 'curate-primary min-h-11 rounded-none border-0 border-b border-tea-border bg-transparent px-1 py-2 font-medium placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none';
 
-  // ── Tasting overlay opener — hoisted so actionRef can reference it ──────
+  // ── Tasting overlay opener, hoisted so actionRef can reference it ──────
   const openTastingOverlay = () => {
     setLocalTasting(entry.tasting || EMPTY_TASTING);
     setTastingOverlayOpen(true);
@@ -932,7 +932,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       const cn = (res as { chineseName?: string })?.chineseName?.trim();
       if (cn) update({ chineseName: cn });
     } catch {
-      // Offline or no provider — leave the field as-is; the operator can retry.
+      // Offline or no provider, leave the field as-is; the operator can retry.
     } finally {
       setGeneratingChinese(false);
     }
@@ -1187,7 +1187,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     const handleClayPick = (clay: YixingClayType) => {
       const sameClay = effectiveClayType === clay;
       // Preserve the parent material the user chose (Yixing vs generic Clay)
-      // — if entry.material is anything else, default to Yixing for the
+      //, if entry.material is anything else, default to Yixing for the
       // legacy rollup behaviour.
       const parentMaterial: TeawareMaterial = entry.material === 'Clay' ? 'Clay' : 'Yixing';
       const updates: Record<string, unknown> = {
@@ -1365,7 +1365,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           {/* Category, material, clay and era sheets remain specialist
               subflows; the working canvas only carries their selected values. */}
 
-          {/* Category — opens as a bottom sheet (Vaul) so the picker has
+          {/* Category, opens as a bottom sheet (Vaul) so the picker has
               full thumb access at the bottom of the screen and never clips
               against narrow viewports the way the old anchored popover did. */}
           <BottomSheet
@@ -1394,7 +1394,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             </div>
           </BottomSheet>
 
-          {/* Era — bottom sheet. Includes "+ Add new era" affordance at the
+          {/* Era, bottom sheet. Includes "+ Add new era" affordance at the
               bottom for user-defined entries (Song Dynasty, etc.). */}
           <BottomSheet
             open={eraSheetOpen}
@@ -1452,7 +1452,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             </div>
           </BottomSheet>
 
-          {/* Material — bottom sheet. Yixing and Clay both display a chevron
+          {/* Material, bottom sheet. Yixing and Clay both display a chevron
               and drill into the full-screen Clay sheet rendered below. */}
           <BottomSheet
             open={materialPopoverOpen}
@@ -1477,7 +1477,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             </div>
           </BottomSheet>
 
-          {/* Clay subtype — full-height sheet with photographic swatches.
+          {/* Clay subtype, full-height sheet with photographic swatches.
               Falls back to a colour disk when no imageUrl is set yet. */}
           <BottomSheet
             open={claySheetOpen}
@@ -1510,7 +1510,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                         : undefined
                     }
                   >
-                    {/* Swatch — image when provided, else a richly-shaded
+                    {/* Swatch, image when provided, else a richly-shaded
                         circular disk with a soft inner highlight so the colour
                         reads as a fired clay surface, not a flat dot. */}
                     <div
@@ -1614,13 +1614,13 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   // filled field never looks like a heading. Pickers (Type, Form, Storage)
   // stay chips, so "picked" reads differently from "typed" (the wayfinding
   // contrast the redesign relies on).
-  // Tea name — the hero. Large display serif, still just a bottom hairline.
-  // This is the ONE serif element in the capture form — everything else
+  // Tea name, the hero. Large display serif, still just a bottom hairline.
+  // This is the ONE serif element in the capture form, everything else
   // below is font-sans so the form reads as one typographic system.
   // ── Tea card layout ────────────────────────
   return (
     <div className={mobileShellClass} data-curate-source data-visual-layout="continuous-sheet">
-      {/* ← Library back link — shown when navigated from Library */}
+      {/* ← Library back link, shown when navigated from Library */}
       {onReturnToLibrary && (
         <button
           type="button"
@@ -1802,7 +1802,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         </BottomSheet>
       </section>
 
-      {/* ─── Pricing zone — cost, unit, retail preview tucked close beneath. ─── */}
+      {/* ─── Pricing zone, cost, unit, retail preview tucked close beneath. ─── */}
       <section className="curate-cluster curate-zone-purchase space-y-1.5" data-testid="curate-cluster-buying" data-zone="purchase">
         <QuietEyebrow label="Purchase" />
         <div className="space-y-2">
@@ -1820,7 +1820,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             }}
           />
 
-          {/* Retail price preview — only for tea with cost + grams entered */}
+          {/* Retail price preview, only for tea with cost + grams entered */}
           {entry.category === 'tea' && entry.priceAmount && entry.pricePerUnitGrams && !unitBased && (
             <RetailPricePreview
               costAmount={entry.priceAmount}
@@ -1869,7 +1869,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       </AnimatePresence>
 
 
-      {/* These sections render inline, always visible — Adrian uses them
+      {/* These sections render inline, always visible: Adrian uses them
           regularly (tasting profile, notes, intent, storage, sell price) and
           asked that they never sit behind a second tap. ─── */}
 
@@ -1888,7 +1888,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           )}
           {hasTasting && entry.tasting && (
             <>
-          {/* Quality 1–10 — same segment toggle as TastingSession */}
+          {/* Quality 1–10, same segment toggle as TastingSession */}
           <div>
             <div className="flex items-center gap-2 mb-1.5">
               <span className="curate-support text-tea-text-sec" style={{ letterSpacing: '0.04em' }}>Quality</span>
@@ -1984,7 +1984,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       </section>}
 
 
-      {/* ─── Buy picker / ledger — shown below content when Buy is tapped ─── */}
+      {/* ─── Buy picker / ledger, shown below content when Buy is tapped ─── */}
       <section id={purchasePickerId} className={`${showBuyPicker || justAddedToLedger || isInLedger ? 'curate-section' : 'hidden'} space-y-2`}>
         <QuietEyebrow label="Buy" />
         <div className="flex flex-wrap items-center justify-end gap-2">
@@ -2001,7 +2001,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         )}
         </div>
 
-        {/* Buy quantity picker — expands upward from the sticky bar */}
+        {/* Buy quantity picker, expands upward from the sticky bar */}
         <AnimatePresence>
           {showBuyPicker && !justAddedToLedger && (
             <motion.div

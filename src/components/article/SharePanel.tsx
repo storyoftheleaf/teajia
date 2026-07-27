@@ -25,7 +25,7 @@ const labelStyle: React.CSSProperties = {
   letterSpacing: '0.22em', textTransform: 'uppercase', color: T.textSec,
 };
 
-// Mirror of the Page union from ArticlePage.tsx — duplicated locally to keep
+// Mirror of the Page union from ArticlePage.tsx, duplicated locally to keep
 // the share module independent. Only the kinds the composer cares about need
 // fields; everything else falls through to the cover composition.
 export type SharePage =

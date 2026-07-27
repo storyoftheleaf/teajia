@@ -212,7 +212,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
       // Link vendor to customers table if selected (optional)
       let vendorId = selectedCustomerId;
       if (!vendorId && customerName.trim() && allCustomers.length > 0) {
-        // Check for existing vendor by exact name match — don't force creation
+        // Check for existing vendor by exact name match, don't force creation
         const exactMatch = allCustomers.find(c => c.name.toLowerCase() === customerName.toLowerCase());
         if (exactMatch) vendorId = exactMatch.id;
       }
@@ -240,7 +240,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
         });
         if (po?.id) poId = po.id;
       } catch {
-        // Non-critical — PO text was already generated
+        // Non-critical: PO text was already generated
       }
 
       setLastInvoice({
@@ -602,7 +602,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto relative custom-scrollbar px-6 py-4">
-        {/* Vendor / Customer name — prominent at top */}
+        {/* Vendor / Customer name, prominent at top */}
         <div className="space-y-2 mb-4">
           <div className="relative">
             <input
@@ -747,7 +747,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                       {formatCurrency(item.quantity * item.priceAtSale, displayCurrency, rates)}
                     </span>
                   </div>
-                  {/* Stock availability — only relevant for sales */}
+                  {/* Stock availability, only relevant for sales */}
                   {!isPurchase && (
                     <div className="flex items-center justify-between mt-1">
                       <span className={`text-ui-9 num ${item.quantity > item.product.stockGrams ? 'text-tea-gold' : 'text-tea-text-sec/50'}`}>

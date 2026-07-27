@@ -2,7 +2,7 @@ import type { TeaDiscoveryProfile } from './types';
 import type { ObservedPalate } from './evolution';
 
 /* ───────────────────────────────────────────────────────────────────────────
-   Recommendations — turn the profile into a few tailored next steps with a
+   Recommendations, turn the profile into a few tailored next steps with a
    plain "why this" line. v1 routes to the section surfaces (/craft, /shop,
    journal) with personalized framing matched to level + flavor + brewing;
    per-article and per-product deep links can slot in later behind the same
@@ -29,11 +29,11 @@ export function recommend(profile: TeaDiscoveryProfile, observed?: ObservedPalat
   const brew = (profile.answers.brew as string) || '';
 
   // Once there's real signal, lead with what they actually drink, not what they
-  // first guessed — this is the evolution loop reaching the recommendations.
+  // first guessed, this is the evolution loop reaching the recommendations.
   const fromBehavior = !!(observed?.hasEnoughSignal && observed.flavorLean);
   const flavor = fromBehavior ? (observed!.flavorLean as string) : statedFlavor;
 
-  // 1. Learn — matched to where they are in the practice.
+  // 1. Learn, matched to where they are in the practice.
   if (profile.level === 'curious') {
     recs.push({
       kind: 'learn',
@@ -57,7 +57,7 @@ export function recommend(profile: TeaDiscoveryProfile, observed?: ObservedPalat
     });
   }
 
-  // 2. Shop — matched to their flavor leaning (observed if we have it, else stated).
+  // 2. Shop, matched to their flavor leaning (observed if we have it, else stated).
   const family = FLAVOR_FAMILY[flavor] ?? FLAVOR_FAMILY.unsure;
   recs.push({
     kind: 'shop',
@@ -70,7 +70,7 @@ export function recommend(profile: TeaDiscoveryProfile, observed?: ObservedPalat
     to: '/shop',
   });
 
-  // 3. Practice — ties into the deepening loop; framed by how they brew today.
+  // 3. Practice, ties into the deepening loop; framed by how they brew today.
   recs.push({
     kind: 'practice',
     title: 'Begin a tasting journal',

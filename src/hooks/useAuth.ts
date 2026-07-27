@@ -45,7 +45,7 @@ function resetSessionBootstrap() {
 
 // Hydrate auth user from local JWT claims once, on module load. This runs
 // before any component mounts, so every `useAuth()` call sees the same
-// initial state — fixes the per-component useState hydration race that
+// initial state, fixes the per-component useState hydration race that
 // hid the admin sidebar nav on first render after login.
 (() => {
   const store = useAppStore.getState();
@@ -69,7 +69,7 @@ interface UseAuthReturn {
   isAuthenticated: boolean;
   isAdmin: boolean;
   isLoading: boolean;
-  /** True once the on-mount session check (api.auth.me) has completed — or immediately
+  /** True once the on-mount session check (api.auth.me) has completed, or immediately
    *  if there was no token to check. Use this to gate sync hooks so they don't fire
    *  authenticated API calls before the server has validated the stored token. */
   isSessionReady: boolean;
@@ -83,7 +83,7 @@ interface UseAuthReturn {
 }
 
 export function useAuth(): UseAuthReturn {
-  // Shared via Zustand — every component sees the same user/session state.
+  // Shared via Zustand, every component sees the same user/session state.
   // Selectors (not destructure of getState) so updates trigger re-renders.
   const user = useAppStore(s => s.authUser);
   const isSessionReady = useAppStore(s => s.isSessionReady);
@@ -104,7 +104,7 @@ export function useAuth(): UseAuthReturn {
     } catch (err: any) {
       // Only clear the session when the server explicitly rejected the token.
       // Transient issues (offline, CORS hiccup, timeout, 5xx) used to boot
-      // the user out here — now we keep the local session and let
+      // the user out here, now we keep the local session and let
       // handleResponse's silent-refresh flow decide. The SESSION_EXPIRED
       // event is what actually triggers clearing, centrally.
       const msg = typeof err?.message === 'string' ? err.message : '';
@@ -113,7 +113,7 @@ export function useAuth(): UseAuthReturn {
         clearToken();
         setUser(null);
       }
-      // Otherwise keep the current user — the token is still there and
+      // Otherwise keep the current user, the token is still there and
       // another sync/api call may succeed once the network recovers.
     } finally {
       setIsLoading(false);
@@ -153,7 +153,7 @@ export function useAuth(): UseAuthReturn {
   }, []);
 
   // When the tab returns from background, check the session. Mobile browsers
-  // pause JS for long periods — this catches tokens that rolled through the
+  // pause JS for long periods, this catches tokens that rolled through the
   // refresh window while the tab was asleep so the user never sees a 401.
   // Also handles the edge case where the token crossed its exp boundary while
   // the tab was hidden (shouldProactivelyRefreshToken returns false once exp

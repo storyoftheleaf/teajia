@@ -3,14 +3,14 @@
  * Rationale, and the conditions on this exception, in read/immersive.tsx.
  */
 /**
- * The Art of Tea — Read-section index.
- * "The Reading Room" — magazine layout ported from the Claude Design mockup
+ * The Art of Tea: Read-section index.
+ * "The Reading Room", magazine layout ported from the Claude Design mockup
  * (saved at docs/_design-import/tea-article-redesign/).
  *
  * Two-column layout: LEFT = curated 14-piece contents index (4 themed groups);
  * RIGHT = sticky cover rail (lead cover + 2 secondary covers).
  * OWNER-ONLY: Templates Room section (dashed border, grid background, 4 draft
- * placeholder cards) — gated by real login, never a demo toggle.
+ * placeholder cards), gated by real login, never a demo toggle.
  */
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -51,7 +51,7 @@ function numberWord(n: number): string {
 // Hrefs repointed to real /read/* routes (all design-file refs removed).
 // `live` is the publish gate. A visitor sees only `live: true` pieces; the
 // owner sees every piece (drafts dimmed + tagged). Flip a piece live by adding
-// `live: true` to its row below — that one change publishes it. Nothing else.
+// `live: true` to its row below, that one change publishes it. Nothing else.
 type IndexItem = { n: string; rubric: string; title: string; dek: string; href: string; live?: boolean };
 type IndexGroup = { label: string; glyph: string; items: IndexItem[] };
 
@@ -303,7 +303,7 @@ const ROOM_RESPONSIVE_STYLE = `
 const ReadIndex: React.FC = () => {
   useImmersiveChrome(ACCENTS[0]);
 
-  // Owner login gate — real auth, never a toggle. Read the signed-in role
+  // Owner login gate, real auth, never a toggle. Read the signed-in role
   // straight from the stored token's claims: this works on the standalone Read
   // page (which doesn't run the admin login flow, so the store's platformRole
   // isn't populated here) and has no hydration-timing race. The dev-admin
@@ -329,7 +329,7 @@ const ReadIndex: React.FC = () => {
     );
   }, [isDevAdmin]);
 
-  // Published articles from the DB — machinery kept from original ReadIndex.
+  // Published articles from the DB, machinery kept from original ReadIndex.
   // The primary content surface is now the curated 14-piece index, but the
   // query is retained so published articles remain available if needed.
   const { data: published } = useQuery<DbArticle[]>({
@@ -341,7 +341,7 @@ const ReadIndex: React.FC = () => {
     },
   });
 
-  // Suppress unused-variable warning — the query is kept for future use.
+  // Suppress unused-variable warning, the query is kept for future use.
   void published;
   void isRealArticle;
 
@@ -365,7 +365,7 @@ const ReadIndex: React.FC = () => {
       {/* Responsive rule for two-column → one-column room collapse */}
       <style>{ROOM_RESPONSIVE_STYLE}</style>
 
-      {/* NAV — index variant: no back arrow, no owner toggle */}
+      {/* NAV, index variant: no back arrow, no owner toggle */}
       <nav style={{ position: 'sticky', top: 0, zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '13px clamp(18px,4vw,44px)', background: 'rgba(20,16,11,0.72)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', borderBottom: '1px solid rgba(168,135,77,0.12)' }}>
         <span style={{ fontFamily: F.display, fontWeight: 600, fontSize: 18, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.ink }}>Teajia</span>
         <span style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim, whiteSpace: 'nowrap' }}>Read · The Art of Tea</span>
@@ -415,7 +415,7 @@ const ReadIndex: React.FC = () => {
             {INDEX_GROUPS.map((group) => (
               <GroupBlock key={group.label} group={group} isAdmin={isAdmin} />
             ))}
-            {/* Public empty state — only when a visitor has no live pieces yet. */}
+            {/* Public empty state, only when a visitor has no live pieces yet. */}
             {!isAdmin && liveCount === 0 && (
               <p style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 18, lineHeight: 1.55, color: C.dim, margin: '38px 2px 0', maxWidth: 460 }}>
                 The first pieces are being set in type. Come back soon, the kettle is on.
@@ -476,7 +476,7 @@ const ReadIndex: React.FC = () => {
           </aside>
         </div>
 
-        {/* TEMPLATES ROOM — owner only, real login gate */}
+        {/* TEMPLATES ROOM, owner only, real login gate */}
         {isAdmin && (
           <section style={{ position: 'relative', borderTop: '1px dashed rgba(168,135,77,0.4)', background: '#100d09', backgroundImage: 'linear-gradient(rgba(168,135,77,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(168,135,77,0.04) 1px, transparent 1px)', backgroundSize: '26px 26px' }}>
             <div style={{ maxWidth: 1240, margin: '0 auto', padding: 'clamp(40px,6vw,72px) clamp(24px,5vw,56px) clamp(48px,7vw,88px)' }}>
@@ -501,7 +501,7 @@ const ReadIndex: React.FC = () => {
           </section>
         )}
 
-        {/* Footer is rendered globally by App.tsx for all browse pages — no
+        {/* Footer is rendered globally by App.tsx for all browse pages, no
             page-local footer here, or it double-renders. */}
 
       </article>

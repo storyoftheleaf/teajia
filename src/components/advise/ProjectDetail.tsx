@@ -11,7 +11,7 @@ import { api } from '../../lib/api';
 import { ProjectPlaceholder } from './ProjectPlaceholder';
 
 /**
- * "Vessels and teas in this space" — editorial provenance block
+ * "Vessels and teas in this space", editorial provenance block
  * linking a Advise project to the teas and teaware it featured.
  * Uses the project_products xref (no fallback). Renders nothing if
  * no products are linked.
@@ -162,7 +162,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
         </p>
       </div>
 
-      {/* Image gallery — only renders when the project has populated gallery URLs */}
+      {/* Image gallery, only renders when the project has populated gallery URLs */}
       {gallery.length > 0 && (
         <div className={SECTION_GAP_LG}>
           {/* Mobile: horizontal swipeable */}
@@ -225,7 +225,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
         </p>
       </div>
 
-      {/* Provenance — teas and vessels featured in this project.
+      {/* Provenance, teas and vessels featured in this project.
           Renders only if the project_products xref has rows. */}
       <ProjectProvenance projectId={project.id} />
 

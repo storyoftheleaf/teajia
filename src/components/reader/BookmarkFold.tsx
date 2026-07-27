@@ -9,7 +9,7 @@ interface BookmarkFoldProps {
 }
 
 /**
- * BookmarkFold — Visual dog-ear bookmark on the page corner.
+ * BookmarkFold: Visual dog-ear bookmark on the page corner.
  * Displays a CSS triangle in the top-right corner.
  * Gold when bookmarked, subtle outline when not.
  * Persists to localStorage under `bookmarks_${storyId}`.

@@ -8,7 +8,7 @@ interface SquareCropModalProps {
   source: File | Blob | string | null;
   title?: string;
   confirmLabel?: string;
-  /** Output square edge in pixels. Default 1600 — keep that for product
+  /** Output square edge in pixels. Default 1600, keep that for product
    *  photos; tea entry thumbnails can pass 800 for tighter storage. */
   outputSize?: number;
   /** JPEG quality 0–1. Default 0.88. */
@@ -39,7 +39,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
   // Resolve source whenever the modal opens with a new source. For string
   // URLs we now pass straight through (see fileOrUrlToObjectUrl); for
   // File/Blob we still need an object URL so the Cropper has something to
-  // load. Only blob: URLs we created here get revoked on cleanup — strings
+  // load. Only blob: URLs we created here get revoked on cleanup, strings
   // we received as input are someone else's lifetime to manage.
   useEffect(() => {
     let cancelled = false;
@@ -119,7 +119,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200">
       <div className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-lg shadow-2xl relative flex flex-col max-h-[90vh]">
-        {/* Header — close on the left per project Cancel/Close rules.
+        {/* Header, close on the left per project Cancel/Close rules.
             Just one icon-button on the right (Rotate) so the toolbar reads
             clearly; Reset moved to the slider row where it belongs. */}
         <div className="flex items-center gap-3 px-5 py-3 border-b border-tea-border">
@@ -144,11 +144,11 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
           </button>
         </div>
 
-        {/* Cropper viewport — square aspect ratio enforced. The image area
+        {/* Cropper viewport, square aspect ratio enforced. The image area
             shows three layered states:
-              1. error  — text on top of dim viewport
-              2. loading— spinner until the underlying <img> reports onLoad
-              3. ready  — Cropper with full image
+              1. error: text on top of dim viewport
+              2. loading: spinner until the underlying <img> reports onLoad
+              3. ready: Cropper with full image
             Layering means a transient load failure (CORS, 404) can't leave
             the user staring at a blank square. */}
         <div className="relative w-full aspect-square bg-black/60 overflow-hidden">
@@ -170,7 +170,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
               onMediaLoaded={() => setImageLoaded(true)}
             />
           )}
-          {/* Hidden probe — confirms the image actually fetches. If the
+          {/* Hidden probe, confirms the image actually fetches. If the
               Cropper's internal img can't load (CORS / 404), our onerror
               fires here and we surface a real error rather than a black
               square. */}
@@ -194,7 +194,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
           )}
         </div>
 
-        {/* Zoom + Reset row — terse help, no run-on legalese */}
+        {/* Zoom + Reset row, terse help, no run-on legalese */}
         <div className="px-5 py-3 border-t border-tea-border">
           <div className="flex items-center gap-3">
             <span className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-sec w-10 shrink-0">Zoom</span>
@@ -224,7 +224,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
           </p>
         </div>
 
-        {/* Footer — Cancel left, Save right (project rule) */}
+        {/* Footer: Cancel left, Save right (project rule) */}
         <div className="flex items-center justify-between gap-3 px-5 py-3 border-t border-tea-border">
           <button
             type="button"

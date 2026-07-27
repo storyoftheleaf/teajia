@@ -319,6 +319,16 @@ Every file in that directory carries `@color-literals`, and `immersive.tsx` carr
 
 The rule **blocks** on `src/components/shop/`, `src/components/tasting/`, `src/components/wisdom/`, `src/components/shared/`, `src/components/reader/`, `src/pages/read/`, `ProductPage.tsx`, `Shop.tsx`, `TeaInventory.tsx`. Everywhere else it prints a **notice** with a count (505 at the start of round nine, 79 after it). Extend `INLINE_STYLE_ENFORCED` in `scripts/lint-colors.sh` as each area is cleared. Do not widen it to a directory you have not cleared or claimed.
 
+Round ten added `src/admin/`. Eighteen lines, and only two of them were fixed rather than converted:
+
+- `InvoicePdf.tsx` and `PurchaseOrderPdf.tsx` earn exception 2 and now say so in their headers. `@react-pdf/renderer` is not a browser, so a `var(--tea-text)` there does not adapt badly, it does not resolve at all. Both carry a document palette (white stock, near-black body, grey meta) chosen to survive a monochrome printer at a supplier's office, and that is the right palette for a file that leaves the app.
+- `SourcesView`'s vendor avatar was a three-stop radial gradient with the initials in `text-tea-bg/90` over it. The highlight stop was `#c6a473`, and parchment on that is **2.00:1**, so in light mode the initials were very nearly gone. It reads fine to whoever built it because the same stop is 6.94:1 on espresso. It is now the flat `--tea-gold-solid` at **4.85:1** light and **4.83:1** dark. A gradient means the worst stop sets the contrast, which is a reason to stop reaching for one on a 40px disc.
+- The same file painted `LIQUOR_COLORS[c] || '#888'`. A term the taxonomy has no colour for now gets no swatch, per the rule above: never invent a grey to stand in for a measurement nobody made.
+- `InventoryActionRail`'s left hairline was a hand-mixed gold at the border token's alpha but never the palette's gold in either mode. It is `var(--tea-border)` now.
+- Two drop shadows moved from inline `style` objects to arbitrary `shadow-[...]` classes, which is the documented Rule 2 carve-out. A shadow is the absence of light; it does not invert with the theme, which is why every entry in `designTokens` `SHADOWS` is also black-based.
+
+A false positive worth knowing about: the scanner reads `&#9679;`, the HTML entity for a bullet, as a hex literal, because `#9679` matches. Two admin tables tripped it, for a colour that was not in the style object at all. Writing the character as `{'●'}` is both clearer and quiet.
+
 One thing round nine found while clearing `src/components/reader/`, worth repeating because it is invisible: seven components wrote `var(--color-tea-gold, #c9a84c)`. There is no `--color-tea-gold`. The palette declares `--tea-gold`. Twelve declarations across eight files had therefore been painting their hex fallbacks in both themes since they were written. If you see a `var(--x, #hex)` pair, check that `--x` exists before assuming the fallback is a fallback.
 
 ---
@@ -351,7 +361,11 @@ className="cta-solid rounded-xl"
 
 For an outline button that fills on hover, use `.cta-solid-hover` rather than writing `hover:bg-tea-gold hover:text-tea-bg`.
 
-**Ratchet:** blocking on `src/components/**` and `ProductPage.tsx` (101 sites cleared in round nine). A notice with a count elsewhere, currently 171, nearly all `src/admin/` and `src/pages/`.
+**Ratchet:** blocking on `src/components/**`, `src/admin/**`, `src/pages/**` and `src/App.tsx`. Round nine cleared 101 sites in `src/components`; round ten cleared the remaining 171, of which 44 were in `src/pages` across 22 files. Three sites are left, in `src/samples/**` and `src/AboutPage.tsx`, which nobody has owned yet; they are a notice with a count.
+
+Four of the `src/pages` sites were not buttons at all but selected-state chips (`tasted ? 'bg-tea-gold text-tea-bg' : 'border border-tea-border'`). They take the same class: it carries colour only, so a chip composes it exactly as a button does.
+
+Converting is mechanical but not blind. Delete any `hover:bg-tea-gold/90` or `active:bg-tea-gold/80` sitting alongside the pair rather than keeping it. `.cta-solid` already owns its hover through `--tea-gold-solid-hover`, and a leftover Tailwind hover puts the 4.10:1 pairing back at exactly the moment the pointer is on the button.
 
 ---
 
@@ -361,10 +375,32 @@ The project bans the em-dash in all copy and all comments. Use a period, a comma
 
 This had never been checked, which is how `card-utilities.css` accumulated 111 in its own comments and `lint-colors.sh` accumulated 20, eight of those inside the error strings it prints at whoever it is correcting.
 
-**Ratchet:** blocking on `scripts/lint-colors.sh` and `src/styles/*.css`, which are clear. A notice with a count on `src/**`, currently around 2,100, the large majority in comments.
+**Ratchet:** blocking on `scripts/lint-colors.sh`, `src/styles/*.css`, and, from round ten, `src/admin/**`, `src/pages/**`, `src/components/**`, `src/lib/**`, `src/utils/**`, `src/hooks/**`, `src/designTokens.ts` and `src/App.tsx`. A notice with a count everywhere else, currently around 170, mostly `src/data/**`, `src/types.ts` and `src/AboutPage.tsx`.
 
-A note for whoever sweeps the rest: three uses are not prose and must not be replaced blindly.
+`src/admin/**` was 563, of which 73 were the empty-value glyph and 490 were writing. It went in the same pass and by the same rule, with one addition worth stating, because the mechanical answer produced it 63 times: **when the gloss after the dash is itself a list, the separator has to be a colon, not a comma.** `{/* Operations — staff, admin, owner */}` becomes `Operations: staff, admin, owner`, never `Operations, staff, admin, owner`, where the separator and the list items read at the same rank and the label stops being a label. The same test settles the aligned key/value comment blocks, where the answer is neither: `//   /admin/network/wholesale/new — new draft` wants a run of spaces, since the column is already doing the separating.
 
-- `'—'` as the empty-value glyph in a table cell (`value || '—'`). That is a typographic placeholder, not writing.
-- `split('—')` / `join(' — ')` in `SinglePageRenderer` and `TeaCompass/import/importEvidence`. Those are parser tokens with tests pinned to them.
-- Attribution dashes under a quote. Round nine removed these instead, since the gold rule above the attribution already carries the signal.
+Round ten swept 1,351 lines out of the public and shared tree: 1,326 by the rule below and 25 by hand where the mechanical answer read badly. The rule is:
+
+- **A colon before a capital.** `MOVEMENT II — Slowness` becomes `MOVEMENT II: Slowness`. Almost every comment label and every `<title>` took this branch.
+- **A comma otherwise.** `two leaves and a bud — the only part that is taken` becomes `…a bud, the only part that is taken`.
+- **A pair of dashes becomes a pair of commas**, because a parenthetical is what it was: `and — when the browser reports itself offline — wait` becomes `and, when the browser reports itself offline, wait`.
+- **Rewrite where the dash carried a real pause**, which in practice means a dash at the end of a wrapped comment line, where a comma leaves the next line starting mid-thought. Those took `, so` or `:` or a reflow.
+
+### How the check knows what is not prose
+
+Three uses are not writing, and the check recognises them by shape rather than waving whole directories through. A new exception costs a sentence in `lint-colors.sh`, which is the point.
+
+- `'—'` as the empty-value glyph (`value || '—'`, `<span>—</span>`). Typography standing in for a missing datum. Matched as a quoted string or text node containing nothing else.
+- The character inside a bracket expression, which is a regex class (`/[\s,.;:—-]+$/`, `split(/[-—]/)`), not a sentence.
+- The two parsers whose tests pin the token: the timeline splitter in `SinglePageRenderer` and the Curate import evidence joiner with its spec. Named by path, and for `SinglePageRenderer` only on a `split(`/`join(` line, so prose elsewhere in that file is still caught.
+
+A fourth use exists and is **not** exempt: attribution dashes under a quote. Round nine removed these rather than converting them, since the gold rule above the attribution already carries the signal, and round ten removed the last two: `ArticlePage`'s page attribution, and the quote-block preview in the admin `ArticleEditorModal`. The second was also a bug independent of the dash. `PullQuote` in `components/immersive/sections.tsx` renders the attribution with no dash, so the editor was previewing a mark the published page does not have.
+
+When the glyph is real but the shape does not match, write it as a unicode escape rather than arguing with the rule. `StockMovementPanel` prints a resulting balance as `` `${current}${unit} → —` ``: the em-dash there is the empty-value glyph, but the string has other content in it, so it is not the exempt shape. `\u2014` in the source keeps the output identical and leaves nothing for a reader (or a sweeper) to misread as prose. This is the same trick `lint-colors.sh` uses on its own em-dash so it does not report its own source line.
+
+### What to watch when sweeping a new area
+
+The mechanical rule is safe on comments and reasonable on prose, but two things need eyes:
+
+- **Tests that pin a token.** `importEvidence.test.ts` asserts on `'Moonlight White — 18 — 50g'`. A blind sweep rewrites the expectation and the test still passes, which is worse than a failure. Check test files by hand.
+- **Wrapped JSX text.** A line that begins `{' '}—` or ends `—{' '}` is one sentence split across two lines; the separator has to move to whichever side reads.

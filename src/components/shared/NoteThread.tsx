@@ -1,5 +1,5 @@
 /**
- * NoteThread — unified note thread component.
+ * NoteThread, unified note thread component.
  *
  * Renders anywhere a tea appears: compass capture, compass ledger,
  * product page, tasting journal. Always shows the same thread.
@@ -8,8 +8,8 @@
  *   Input row (always at top)
  *   ↓
  *   Thread (chronological, oldest at top)
- *     • Manual / voice notes — editable if you authored them
- *     • Tasting artifacts — read-only summary cards
+ *     • Manual / voice notes, editable if you authored them
+ *     • Tasting artifacts, read-only summary cards
  *     • Attribution shown only when >1 unique author
  */
 
@@ -186,7 +186,7 @@ const NoteCard: React.FC<{
       }`} />
 
       <div className="flex-1 min-w-0">
-        {/* Author + timestamp — only when multiple authors */}
+        {/* Author + timestamp, only when multiple authors */}
         {showAuthor && (
           <div className="flex items-center gap-1.5 mb-1">
             <span className="text-ui-10 font-medium text-tea-text-dim uppercase tracking-[0.08em]">
@@ -229,7 +229,7 @@ const NoteCard: React.FC<{
           </p>
         )}
 
-        {/* Timestamp — only visible while editing */}
+        {/* Timestamp, only visible while editing */}
         {editing && (
           <div className="text-ui-10 text-tea-text-dim mt-1">
             {new Date(note.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
@@ -255,7 +255,7 @@ const NoteCard: React.FC<{
         {converted && (
           <span className="text-ui-9 text-tea-gold/60 px-1">saved</span>
         )}
-        {/* Remove — own non-tasting notes only */}
+        {/* Remove, own non-tasting notes only */}
         {isOwn && !isTasting && (
           <button
             type="button"
@@ -274,21 +274,21 @@ const NoteCard: React.FC<{
 // ── Main component ────────────────────────────────────────────────────────────
 
 interface NoteThreadProps {
-  /** Anchor — pass one */
+  /** Anchor, pass one */
   teaKey?: string;
   compassEntryId?: string;
   /** Default visibility for new notes */
   defaultVisibility?: NoteVisibility;
-  /** Compact mode — used inside capture cards */
+  /** Compact mode, used inside capture cards */
   compact?: boolean;
-  /** Hide the mic button — when recording is handled externally (e.g. bottom bar) */
+  /** Hide the mic button, when recording is handled externally (e.g. bottom bar) */
   hideMic?: boolean;
-  /** Suppress tasting artifact cards — use when TastingProfileStrip already shows the same data */
+  /** Suppress tasting artifact cards, use when TastingProfileStrip already shows the same data */
   hideTastingArtifacts?: boolean;
-  /** Bigger textarea + mic — used in teaware capture where the notes field
+  /** Bigger textarea + mic, used in teaware capture where the notes field
    *  was reported as too cramped to engage with on mobile. */
   larger?: boolean;
-  /** Render note text in the sans UI face instead of the body serif — used
+  /** Render note text in the sans UI face instead of the body serif, used
    *  on the capture card so the notes field matches the form's sans system
    *  (elsewhere, e.g. tasting sessions, notes stay in the prose serif). */
   sans?: boolean;
@@ -347,7 +347,7 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
   const authorId = activeAccountId ?? 'guest';
   const authorName = activeAccount?.name ?? 'You';
 
-  // Notes for this anchor — OR logic so compassEntryId notes + teaKey notes merge into one thread
+  // Notes for this anchor: OR logic so compassEntryId notes + teaKey notes merge into one thread
   const notes = useMemo(() => {
     const seen = new Set<string>();
     return allNotes.filter(n => {
@@ -477,7 +477,7 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
         </div>
       )}
 
-      {/* ── Input row — textarea always visible, mic on the right ── */}
+      {/* ── Input row, textarea always visible, mic on the right ── */}
       <div className="tasting-voice-field">
         {recState === 'idle' || recState === 'transcribing' ? (
           <textarea

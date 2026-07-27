@@ -1,5 +1,5 @@
 /**
- * GuestInviteClaimPage — +guest claims their invite link
+ * GuestInviteClaimPage, +guest claims their invite link
  * Route: /invite/:token
  *
  * Shows who invited them, event info, form to claim with name + contact.
@@ -118,7 +118,7 @@ const GuestInviteClaimPage: React.FC = () => {
 
         {expiredEvent?.slug && (
           <p className="text-ui-13 text-tea-text-sec text-center leading-relaxed mb-6">
-            You can still request a spot directly —{' '}
+            You can still request a spot directly:{' '}
             <a
               href={`/events/${expiredEvent.slug}`}
               className="link-text hover:opacity-80 transition-opacity"
@@ -214,7 +214,7 @@ const GuestInviteClaimPage: React.FC = () => {
               onClick={() => setMethod('whatsapp')}
               className={`flex-1 py-2 rounded-md text-ui-12 font-medium border transition-colors ${
                 method === 'whatsapp'
-                  ? 'bg-tea-gold text-tea-bg border-tea-gold'
+                  ? 'cta-solid border-tea-gold'
                   : 'bg-tea-surface text-tea-text-sec border-tea-border hover:text-tea-text'
               }`}
             >
@@ -225,7 +225,7 @@ const GuestInviteClaimPage: React.FC = () => {
               onClick={() => setMethod('email')}
               className={`flex-1 py-2 rounded-md text-ui-12 font-medium border transition-colors ${
                 method === 'email'
-                  ? 'bg-tea-gold text-tea-bg border-tea-gold'
+                  ? 'cta-solid border-tea-gold'
                   : 'bg-tea-surface text-tea-text-sec border-tea-border hover:text-tea-text'
               }`}
             >
@@ -267,7 +267,7 @@ const GuestInviteClaimPage: React.FC = () => {
           type="button"
           disabled={!isValid || claimMutation.isPending}
           onClick={() => claimMutation.mutate()}
-          className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {claimMutation.isPending ? (
             <span className="inline-block w-4 h-4 border-2 border-tea-bg/30 border-t-tea-bg rounded-full animate-spin" />

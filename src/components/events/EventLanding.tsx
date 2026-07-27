@@ -110,7 +110,7 @@ const EventLanding: React.FC = () => {
     enabled: !!slug,
   });
 
-  // Attempt to fetch public tea menu — may return empty if not exposed publicly.
+  // Attempt to fetch public tea menu, may return empty if not exposed publicly.
   const { data: publicTeaMenu = [] } = useQuery<TeaMenuItem[]>({
     queryKey: ['event-public-tea-menu', slug],
     queryFn: async () => {
@@ -145,7 +145,7 @@ const EventLanding: React.FC = () => {
   const [guidelinesExpanded, setGuidelinesExpanded] = useState(false);
   const [loadingTooLong, setLoadingTooLong] = useState(false);
 
-  // 10s loading timeout — gives the user something to do if the worker is
+  // 10s loading timeout, gives the user something to do if the worker is
   // cold-starting and React Query's silent retries haven't completed yet.
   useEffect(() => {
     if (!isLoading) { setLoadingTooLong(false); return; }
@@ -311,7 +311,7 @@ const EventLanding: React.FC = () => {
 
   return (
     <div className={`min-h-screen bg-tea-bg ${reducedMotion ? '' : 'animate-[fadeIn_0.5s_ease-out]'}`}>
-      {/* Hero — flyer image or gradient fallback */}
+      {/* Hero, flyer image or gradient fallback */}
       <div ref={heroRef} className="relative w-full pb-6">
         {flyerImageUrl ? (
           <div className="w-full overflow-hidden" style={{ maxHeight: '70vh' }}>
@@ -347,7 +347,7 @@ const EventLanding: React.FC = () => {
           </div>
         )}
 
-        {/* Back button — top-left, text-tea-text-sec hover floor (§15) */}
+        {/* Back button, top-left, text-tea-text-sec hover floor (§15) */}
         <button
           onClick={() => {
             if (window.history.length > 1) navigate(-1);
@@ -377,7 +377,7 @@ const EventLanding: React.FC = () => {
         </div>
       </div>
 
-      {/* Content — editorial reader chrome */}
+      {/* Content, editorial reader chrome */}
       <div className="max-w-2xl mx-auto px-4 md:px-6 pt-12 pb-nav-gap">
         {/* Title block */}
         <div className="text-center mb-10">
@@ -393,19 +393,19 @@ const EventLanding: React.FC = () => {
             {formattedDay} · {formattedDate}
           </p>
 
-          {/* Title — .h1 hero */}
+          {/* Title, .h1 hero */}
           <h1 className="h1 mb-3">
             {event.title}
           </h1>
 
-          {/* Descriptor — italic subtitle */}
+          {/* Descriptor, italic subtitle */}
           {event.subtitle && (
             <p className="subtitle mb-5">
               {event.subtitle}
             </p>
           )}
 
-          {/* Gathering type / format — .label-caps */}
+          {/* Gathering type / format, .label-caps */}
           {(eventFormat || gatheringType) && (
             <div className="flex items-center justify-center gap-2 mb-4">
               {eventFormat && (
@@ -432,7 +432,7 @@ const EventLanding: React.FC = () => {
             {formattedTime}
           </p>
 
-          {/* Area hint (not full address) or location name — .label-caps */}
+          {/* Area hint (not full address) or location name, .label-caps */}
           <div className="flex items-center justify-center gap-1.5 mb-5">
             <MapPin className="w-[11px] h-[11px] shrink-0 text-tea-text-dim" />
             <span className="label-caps text-tea-text-sec">
@@ -472,7 +472,7 @@ const EventLanding: React.FC = () => {
           {/* CTA block */}
           {canRSVP && (
             myAttendee ? (
-              // Already registered — show attendee actions
+              // Already registered, show attendee actions
               <div className="space-y-3">
                 <div className="flex items-center justify-center gap-2 mb-1">
                   <UserCheck size={14} className="text-tea-gold" />
@@ -533,7 +533,7 @@ const EventLanding: React.FC = () => {
                 )}
               </div>
             ) : (
-              // Default CTA — canonical primary button
+              // Default CTA, canonical primary button
               <div className="space-y-2.5">
                 <button
                   onClick={() => setShowRSVP(true)}
@@ -580,10 +580,10 @@ const EventLanding: React.FC = () => {
             </div>
           )}
 
-          {/* Closed / archived — recap link + interest capture */}
+          {/* Closed / archived, recap link + interest capture */}
           {showInterestOnly && (
             <div className="max-w-xs mx-auto space-y-5">
-              {/* Recap link — shown for completed events */}
+              {/* Recap link, shown for completed events */}
               {isCompleted && slug && (
                 <button
                   onClick={() => navigate(`/event/${slug}/recap`)}
@@ -604,7 +604,7 @@ const EventLanding: React.FC = () => {
         {/* Divider */}
         <div className="w-8 h-px bg-tea-border mx-auto mb-8" />
 
-        {/* Description — body-prose */}
+        {/* Description, body-prose */}
         {event.description && (
           <div className="mb-10">
             <p className="body-prose whitespace-pre-line">
@@ -613,7 +613,7 @@ const EventLanding: React.FC = () => {
           </div>
         )}
 
-        {/* Mood hints — serif italic dots */}
+        {/* Mood hints, serif italic dots */}
         {moodHints && moodHints.length > 0 && (
           <div className="mb-10 flex flex-wrap gap-0 justify-center">
             {moodHints.map((hint, i) => (
@@ -625,7 +625,7 @@ const EventLanding: React.FC = () => {
           </div>
         )}
 
-        {/* Venue Photos — from the linked venue record */}
+        {/* Venue Photos, from the linked venue record */}
         {(() => {
           const raw = ev.venue_photos ?? (ev as any).venuePhotos;
           const photos: string[] = Array.isArray(raw) ? raw : [];
@@ -670,7 +670,7 @@ const EventLanding: React.FC = () => {
           </div>
         )}
 
-        {/* Venue guide — only show for confirmed guests, not on public page */}
+        {/* Venue guide, only show for confirmed guests, not on public page */}
         {/* (Venue guide hidden here; full address shown after approval in GuestManagement) */}
 
         {/* Footer */}

@@ -160,7 +160,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
         </div>
       </header>
 
-      {/* Tab nav — bottom-border underline (§6) */}
+      {/* Tab nav, bottom-border underline (§6) */}
       <nav
         className="sticky top-0 z-sticky bg-tea-bg/90 backdrop-blur-md border-b border-tea-border"
         aria-label="Storefront sections"

@@ -60,7 +60,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Back button — top-left, matches Cancel/Back/Close rules
+  // Back button, top-left, matches Cancel/Back/Close rules
   const BackButton = (
     <button
       onClick={onBack}
@@ -72,7 +72,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
     </button>
   );
 
-  // Empty state — §19 pattern: 28px Lucide icon, font-display headline,
+  // Empty state, §19 pattern: 28px Lucide icon, font-display headline,
   // text-ui-12 body. No decorative illustrations.
   if (favoriteItems.length === 0) {
     return (
@@ -93,7 +93,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
     <div className="animate-[fadeIn_0.3s_ease-out]">
       {BackButton}
 
-      {/* Header — narrow form chrome, title left, share right */}
+      {/* Header, narrow form chrome, title left, share right */}
       <div className="flex items-end justify-between mb-5 gap-3">
         <div className="min-w-0">
           <h3 className="h3">My Collection</h3>
@@ -119,7 +119,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
         </button>
       </div>
 
-      {/* Copy link bar — quiet utility row */}
+      {/* Copy link bar, quiet utility row */}
       <button
         onClick={handleCopyLink}
         className="w-full flex items-center gap-3 px-3 py-3 mb-4 bg-tea-surface border border-tea-border rounded-md hover:bg-tea-accent-sub transition-colors group"
@@ -142,7 +142,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
         )}
       </AnimatePresence>
 
-      {/* Tea list — canonical §19 ListShell/ListRow.
+      {/* Tea list, canonical §19 ListShell/ListRow.
           We use `as="div"` because each row has inline action buttons
           (tasting + favorite); nesting buttons inside a button is invalid HTML. */}
       <ListShell>

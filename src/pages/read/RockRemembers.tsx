@@ -3,7 +3,7 @@
  * Rationale, and the conditions on this exception, in read/immersive.tsx.
  */
 /**
- * The Rock Remembers — Conversations over Tea, N°02
+ * The Rock Remembers: Conversations over Tea, N°02
  * A Wuyi rock-tea roaster on fire, patience and lineage.
  * Ported pixel-faithfully from the tea-article-redesign mockup.
  */
@@ -26,14 +26,14 @@ const pBody: React.CSSProperties = { fontFamily: F.body, fontSize: 'clamp(16px,2
 const qStyle: React.CSSProperties = { fontFamily: F.display, fontStyle: 'italic', fontWeight: 500, fontSize: 'clamp(21px,2.6vw,26px)', lineHeight: 1.34, color: C.warm, margin: '0 0 18px', paddingLeft: 20, borderLeft: `2px solid ${C.gold}` };
 
 const movementI = [
-  qa('People speak of “rock rhyme” — yán yùn — as if it were something mystical. What is it, really?', (
+  qa('People speak of “rock rhyme”, yán yùn, as if it were something mystical. What is it, really?', (
     <>
-      <p style={pBody}>It is not mystical. It is the mountain, tasted. The bushes here grow from cracks in the cliff, in soil that is more stone than earth. The root works for everything it gets — and you drink that work. A coolness at the back of the throat, like wet rock after rain.</p>
+      <p style={pBody}>It is not mystical. It is the mountain, tasted. The bushes here grow from cracks in the cliff, in soil that is more stone than earth. The root works for everything it gets, and you drink that work. A coolness at the back of the throat, like wet rock after rain.</p>
       <p style={{ ...pBody, margin: 0 }}>If a tea has it, you do not need to be told. Your body knows before your mind does.</p>
     </>
   )),
-  qa('For someone who has never climbed Wuyi — describe it.', (
-    <p style={{ ...pBody, margin: 0 }}>Narrow gorges. Red cliffs. Mist that does not lift until midday. Tea bushes growing where no sensible plant would dare. It is beautiful, but it is not gentle — and the best teas never come from gentle places.</p>
+  qa('For someone who has never climbed Wuyi, describe it.', (
+    <p style={{ ...pBody, margin: 0 }}>Narrow gorges. Red cliffs. Mist that does not lift until midday. Tea bushes growing where no sensible plant would dare. It is beautiful, but it is not gentle, and the best teas never come from gentle places.</p>
   )),
   qa('Does the place make the tea, or the maker?', (
     <p style={{ ...pBody, margin: 0 }}><span style={{ color: C.dim, fontStyle: 'italic' }}>(he laughs)</span> That is like asking whether the river or the bank makes the water move. The mountain gives. My work is only to not waste what it gives.</p>
@@ -41,20 +41,20 @@ const movementI = [
 ];
 
 const movementII = [
-  qa('Your roasting is famous — and slow. Why charcoal, when machines are easier?', (
+  qa('Your roasting is famous, and slow. Why charcoal, when machines are easier?', (
     <>
       <p style={pBody}>Because the fire must breathe. Charcoal gives a living heat; it rises and falls, and I rise and fall with it. A machine holds one temperature, and the tea learns nothing.</p>
       <p style={{ ...pBody, margin: 0 }}>Over charcoal, the leaf is persuaded. Some of my roasts take three passes across many weeks.</p>
     </>
   )),
   qa('Weeks?', (
-    <p style={{ ...pBody, margin: 0 }}>Tea is in no hurry. Why should I be? I roast, then I let the tea rest and remember. Then I taste, and roast again only if it asks. The hardest skill is knowing when to stop — and then stopping.</p>
+    <p style={{ ...pBody, margin: 0 }}>Tea is in no hurry. Why should I be? I roast, then I let the tea rest and remember. Then I taste, and roast again only if it asks. The hardest skill is knowing when to stop, and then stopping.</p>
   )),
   qa('How do you know when it is right?', (
     <p style={{ ...pBody, margin: 0 }}>When the smoke and the flower meet, and neither one is louder. You cannot measure it. You can only sit with enough tea, for enough years, until the leaf will tell you itself.</p>
   )),
   qa('Does anything still surprise you about the fire?', (
-    <p style={{ ...pBody, margin: 0 }}>Every year. The same charcoal, the same leaf — and still the tea finds a way to teach me something. The day it stops surprising me is the day I should put down the basket.</p>
+    <p style={{ ...pBody, margin: 0 }}>Every year. The same charcoal, the same leaf, and still the tea finds a way to teach me something. The day it stops surprising me is the day I should put down the basket.</p>
   )),
 ];
 
@@ -104,7 +104,7 @@ const RockRemembers: React.FC = () => {
               The Rock<br /><span style={{ fontStyle: 'italic', color: C.gold }}>Remembers</span>
             </h1>
             <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(16px,2vw,20px)', lineHeight: 1.5, color: C.taupe, margin: '26px 0 0', maxWidth: 440 }}>
-              High in the Wuyi cliffs, a fourth-generation roaster tends a fire that never quite goes out — and listens for the moment his tea is ready to speak.
+              High in the Wuyi cliffs, a fourth-generation roaster tends a fire that never quite goes out, and listens for the moment his tea is ready to speak.
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 'clamp(30px,5vw,46px)', paddingTop: 24, borderTop: '1px solid rgba(168,135,77,0.16)' }}>
               <div>
@@ -119,7 +119,7 @@ const RockRemembers: React.FC = () => {
             <div aria-hidden="true" style={{ position: 'absolute', top: '52%', left: '50%', transform: 'translate(-50%,-50%)', fontFamily: F.cn, fontWeight: 200, fontSize: 'min(38vw,300px)', lineHeight: 1, color: 'rgba(168,135,77,0.07)' }}>陈</div>
             <div aria-hidden="true" style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '46%', aspectRatio: '3/4', borderRadius: '50% 50% 0 0 / 64% 64% 0 0', border: '1px solid rgba(168,135,77,0.34)', borderBottom: 'none', background: 'linear-gradient(180deg, rgba(168,135,77,0.07), transparent 70%)' }} />
             <div aria-hidden="true" style={{ position: 'absolute', bottom: '14%', left: '50%', transform: 'translate(-50%,0)', width: '20%', aspectRatio: '1/1', borderRadius: '50%', border: '1px solid rgba(168,135,77,0.4)', background: 'radial-gradient(circle, rgba(168,135,77,0.12), transparent 70%)' }} />
-            <div style={{ position: 'absolute', left: 'clamp(18px,3vw,28px)', bottom: 'clamp(18px,3vw,26px)', fontFamily: F.mono, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim }}>Portrait — in his roasting room</div>
+            <div style={{ position: 'absolute', left: 'clamp(18px,3vw,28px)', bottom: 'clamp(18px,3vw,26px)', fontFamily: F.mono, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim }}>Portrait, in his roasting room</div>
           </div>
         </header>
 
@@ -127,7 +127,7 @@ const RockRemembers: React.FC = () => {
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(56px,9vw,116px) 24px clamp(20px,4vw,44px)' }}>
           <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: C.ink, margin: 0 }}>
             <span style={{ float: 'left', fontFamily: F.display, fontWeight: 600, fontSize: '5em', lineHeight: 0.78, color: C.gold, margin: '8px 16px -4px 0' }}>T</span>
-            o reach Chén Wǔ you climb. Past the last teahouse, past the tour groups, up a path slick with morning mist, to a low stone room where a century of charcoal has soaked into the walls. He is sixty-one, narrow as a bamboo cane, and he does not stop tending the fire as we speak. Below us, the Wuyi cliffs fall away into cloud. This is where rock tea is made — and, he insists, where it must be made.
+            o reach Chén Wǔ you climb. Past the last teahouse, past the tour groups, up a path slick with morning mist, to a low stone room where a century of charcoal has soaked into the walls. He is sixty-one, narrow as a bamboo cane, and he does not stop tending the fire as we speak. Below us, the Wuyi cliffs fall away into cloud. This is where rock tea is made, and, he insists, where it must be made.
           </p>
         </section>
 
@@ -144,7 +144,7 @@ const RockRemembers: React.FC = () => {
         {/* PHOTO ESSAY */}
         <section data-reveal style={{ padding: 'clamp(20px,4vw,40px) clamp(20px,5vw,56px) clamp(40px,6vw,72px)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,240px),1fr))', gap: 'clamp(14px,2.4vw,26px)', maxWidth: 1180, margin: '0 auto' }}>
-            {/* Plate I — cliffs */}
+            {/* Plate I: cliffs */}
             <figure style={{ margin: 0 }}>
               <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgba(168,135,77,0.2)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(160deg,#241d14,#120e09)' }}>
                 <div aria-hidden="true" style={grainCss('0.8', 120)} />
@@ -158,7 +158,7 @@ const RockRemembers: React.FC = () => {
               </div>
               <figcaption style={cap}>The red cliffs above Zhengyan, where the oldest bushes grow.</figcaption>
             </figure>
-            {/* Plate II — charcoal glow */}
+            {/* Plate II: charcoal glow */}
             <figure style={{ margin: 0 }}>
               <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgba(168,135,77,0.2)', borderRadius: 3, overflow: 'hidden', background: 'radial-gradient(ellipse 60% 50% at 50% 70%, rgba(180,90,40,0.18), transparent 65%), #1a1610' }}>
                 <div aria-hidden="true" style={grainCss('0.85', 120)} />
@@ -168,7 +168,7 @@ const RockRemembers: React.FC = () => {
               </div>
               <figcaption style={cap}>Charcoal baskets, mid-roast. The fire is never left alone.</figcaption>
             </figure>
-            {/* Plate III — hands */}
+            {/* Plate III: hands */}
             <figure style={{ margin: 0 }}>
               <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgba(168,135,77,0.2)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(160deg,#241d14,#120e09)' }}>
                 <div aria-hidden="true" style={grainCss('0.8', 120)} />
@@ -181,7 +181,7 @@ const RockRemembers: React.FC = () => {
                 </svg>
                 <div style={plateLabel}>Plate III</div>
               </div>
-              <figcaption style={cap}>His hands — fifty years at the fire.</figcaption>
+              <figcaption style={cap}>His hands, fifty years at the fire.</figcaption>
             </figure>
           </div>
         </section>
@@ -192,7 +192,7 @@ const RockRemembers: React.FC = () => {
         <section data-reveal style={{ maxWidth: 1040, margin: '0 auto', padding: 'clamp(30px,5vw,56px) 24px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,280px),1fr))', gap: 'clamp(28px,5vw,56px)', alignItems: 'center' }}>
             <blockquote style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(26px,3.6vw,42px)', lineHeight: 1.2, color: C.cream, margin: 0 }}>
-              “The hardest skill is knowing when to stop — and then stopping.”
+              “The hardest skill is knowing when to stop, and then stopping.”
             </blockquote>
             <div style={{ border: '1px solid rgba(168,135,77,0.2)', borderRadius: 4, background: 'linear-gradient(160deg,#1d1810,#15110b)', padding: 'clamp(24px,3vw,34px)' }}>
               <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 600, letterSpacing: '0.22em', textTransform: 'uppercase', color: C.gold, marginBottom: 20 }}>In Brief</div>
@@ -224,7 +224,7 @@ const RockRemembers: React.FC = () => {
                 <div style={{ fontFamily: F.cn, fontSize: 24, color: C.taupe, marginBottom: 6 }}>肉桂</div>
                 <h3 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 30, color: C.cream, margin: '0 0 14px' }}>Rou Gui</h3>
                 <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 15, lineHeight: 1.6, color: C.taupe, margin: 0 }}>
-                  Roast cinnamon and orchid over warm stone, with the long mineral finish the Wuyi cliffs call <em style={{ color: C.gold }}>yán yùn</em> — rock rhyme.
+                  Roast cinnamon and orchid over warm stone, with the long mineral finish the Wuyi cliffs call <em style={{ color: C.gold }}>yán yùn</em>, rock rhyme.
                 </p>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16, justifyContent: 'center' }}>

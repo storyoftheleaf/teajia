@@ -247,7 +247,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
 
              return (
                  <div key={module.id} className={`group ${isExpanded ? 'col-span-1 md:col-span-2' : 'col-span-1'}`}>
-                     {/* Module Header Card — editorial card style */}
+                     {/* Module Header Card, editorial card style */}
                      <article
                         className={`relative cursor-pointer overflow-hidden rounded-xl bg-tea-surface transition-colors duration-150
                           ${isExpanded ? 'bg-tea-elevated' : 'hover:bg-tea-elevated'}`}
@@ -356,7 +356,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
                              })}
                          </div>
 
-                         {/* End-of-module product exploration —
+                         {/* End-of-module product exploration,
                              driven by module_products xref (curated in admin → Content Links).
                              Renders nothing until products are linked. */}
                          <ModuleExplore moduleId={module.id} />

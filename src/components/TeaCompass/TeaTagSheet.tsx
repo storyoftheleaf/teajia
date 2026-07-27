@@ -85,7 +85,7 @@ export const TeaTagSheet: React.FC<TeaTagSheetProps> = ({ transaction, entries, 
         }
       `}</style>
 
-      {/* bg-white kept literal — this sheet is designed for printing tea tags; the screen view mirrors the print output */}
+      {/* bg-white kept literal, this sheet is designed for printing tea tags; the screen view mirrors the print output */}
       <div
         id="tea-tag-sheet-root"
         className="fixed inset-0 z-50 bg-white flex flex-col"
@@ -117,7 +117,7 @@ export const TeaTagSheet: React.FC<TeaTagSheetProps> = ({ transaction, entries, 
           </div>
         </div>
 
-        {/* Tag grid — scrollable preview */}
+        {/* Tag grid, scrollable preview */}
         <div className="flex-1 overflow-auto bg-gray-50 p-8">
           <div
             style={{

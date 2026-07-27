@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { MarkdownView } from '../components/shared/MarkdownView';
 
 /**
- * DeveloperDocsPage — owner-only in-app reader for the project's development
+ * DeveloperDocsPage, owner-only in-app reader for the project's development
  * documentation. Every markdown doc under docs/ (plus the load-bearing root
  * docs) is bundled at build time via import.meta.glob as raw text, so the
  * reader is always current with the repo and needs no upload step. This page
@@ -13,7 +13,7 @@ import { MarkdownView } from '../components/shared/MarkdownView';
  * down the main bundle.
  *
  * Gating: platform owners / admins only. Product cards (products/**) and agent
- * skill files (.agents/**) are deliberately excluded — this is "what we built,"
+ * skill files (.agents/**) are deliberately excluded, this is "what we built,"
  * not the catalog or the tooling.
  */
 

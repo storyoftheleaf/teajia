@@ -198,7 +198,7 @@ const JourneyCard: React.FC<{
       style={{ WebkitTapHighlightColor: 'transparent' }}
     >
       <div className="flex items-start gap-3.5">
-        {/* Circular emblem — mirrors the avatar */}
+        {/* Circular emblem, mirrors the avatar */}
         <div className="w-10 h-10 rounded-full bg-tea-gold/10 border border-tea-border flex items-center justify-center shrink-0 group-hover:border-tea-gold/40 transition-colors">
           <span className="font-serif text-ui-17 text-tea-gold/80 group-hover:text-tea-gold transition-colors leading-none">茶</span>
         </div>
@@ -437,7 +437,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     return null;
   }, []);
 
-  // Tea Discovery — the threads that draw them, joined ("Stillness · Quality").
+  // Tea Discovery, the threads that draw them, joined ("Stillness · Quality").
   const dispositionName = teaDiscoveryProfile
     ? profileThreads(teaDiscoveryProfile)
         .map((id) => THREADS[id]?.name)
@@ -1008,7 +1008,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
         onClick={onClose}
       />
 
-      {/* Panel — full-screen at all sizes (launchpad, not side drawer).
+      {/* Panel, full-screen at all sizes (launchpad, not side drawer).
           Was md:w-[400px] right-anchored drawer; now fills the viewport so
           the tile grid has stage. The bottom bar gets covered while open;
           X (top-left), Escape, and backdrop-click all close. */}
@@ -1030,9 +1030,9 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
           onChange={handleAvatarFile}
         />
 
-        {/* Header — Close + Back cluster top-left; title absolutely centered; theme toggle demoted right */}
+        {/* Header: Close + Back cluster top-left; title absolutely centered; theme toggle demoted right */}
         <div className="relative flex items-center px-4 py-2.5 border-b border-tea-border bg-tea-surface">
-          {/* Left cluster — Close, then Back (when in a sub-view) */}
+          {/* Left cluster: Close, then Back (when in a sub-view) */}
           <div className="flex items-center gap-1 shrink-0 relative z-10">
             <button
               onClick={onClose}
@@ -1052,7 +1052,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
             )}
           </div>
 
-          {/* Centered title — absolutely positioned so it ignores sibling width */}
+          {/* Centered title, absolutely positioned so it ignores sibling width */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[60%] text-center">
             <h2 className="h3 truncate">{headerTitle}</h2>
             {!isSubView && (
@@ -1062,7 +1062,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
             )}
           </div>
 
-          {/* Right — theme toggle, demoted */}
+          {/* Right, theme toggle, demoted */}
           <button
             onClick={(e) => toggleTheme(e)}
             className="ml-auto min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5 text-tea-text-dim hover:text-tea-text-sec active:scale-95 transition-[color,transform] duration-150 shrink-0 relative z-10"
@@ -1077,7 +1077,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
 
         {/* Content */}
         <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain relative pb-nav-gap surface-warm">
-          {/* Account-switcher chip — only when user has multiple memberships
+          {/* Account-switcher chip, only when user has multiple memberships
               and we're on the main panel view (any role: Operator/Member/Reader/Staff). */}
           {panelView === 'main' && memberships.length > 1 && (
             <div className="px-4 pt-3 pb-1 relative z-20">
@@ -1281,7 +1281,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
             )}
 
             {/* ══════════════════════════════════════════════════════════════
-                EVENTS VIEW — inline sessions listing
+                EVENTS VIEW, inline sessions listing
             ══════════════════════════════════════════════════════════════ */}
             {panelView === 'events' && (
               <div className="px-6 pt-6 pb-6 animate-[fadeIn_0.25s_ease-out] space-y-1">
@@ -1374,7 +1374,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                               </div>
                             </div>
                           </button>
-                          {/* RSVP button — only for upcoming events with seats available */}
+                          {/* RSVP button, only for upcoming events with seats available */}
                           {!isPast && !isFull && (
                             <div className="mt-3 ml-[calc(3rem+0.875rem)]">
                               <a
@@ -1461,9 +1461,9 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
             )}
 
             {/* ══════════════════════════════════════════════════════════════
-                MAIN VIEW — three zones
+                MAIN VIEW, three zones
             ══════════════════════════════════════════════════════════════ */}
-            {/* MAIN — Launchpad for any authenticated tier (member, staff, owner).
+            {/* MAIN: Launchpad for any authenticated tier (member, staff, owner).
                 Tier gates which tiles appear inside LaunchpadView. ReaderView
                 still handles the signed-out case below. */}
             {panelView === 'main' && auth.isAuthenticated && (

@@ -49,7 +49,7 @@ function describeArc(
 }
 
 /**
- * InfographicCircle — Pure SVG radial/pie chart.
+ * InfographicCircle: Pure SVG radial/pie chart.
  * Segments sweep in sequentially on mount.
  * Tea-themed colors used if not specified.
  * Responsive via viewBox. Center shows title or largest segment.

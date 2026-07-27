@@ -31,10 +31,14 @@ export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
     items={items}
     onClose={onClose}
     onItemChange={onItemChange}
-    // A teapot has no `alcove-title-*` heading the tea card's identity header
-    // owns, so this dialog is named directly. Preserved from the hand-written
-    // shell rather than unified; see the shell's note.
-    ariaLabel={item?.name}
+    // Named the same way the tea carousel is. The old comment here said a
+    // teapot has no `alcove-title-*` heading to point at, which stopped being
+    // true when `TeawareAlcoveCard` was ported onto `AlcoveIdentityHeader`:
+    // that header renders `<h1 id="alcove-title-{item.id}">` for both cards.
+    // Two dialogs rendering one title element had no reason to name themselves
+    // by two different mechanisms, and `aria-labelledby` is the better of the
+    // two because the accessible name then tracks the heading a reader sees.
+    ariaLabelledBy={item ? `alcove-title-${item.id}` : undefined}
     backdropLayerClassName="z-modal"
     backdropScrimClassName="bg-black/95"
     arrowClassName="border border-tea-border bg-tea-gold/10 hover:bg-tea-gold/25 text-tea-gold"

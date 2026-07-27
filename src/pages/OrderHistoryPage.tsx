@@ -5,7 +5,7 @@ import { api, hasToken } from '../lib/api';
 import { Icons } from '../components/Icons';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 
-// Currency formatter — falls back to a plain prefix when Intl rejects the code
+// Currency formatter, falls back to a plain prefix when Intl rejects the code
 // (D1 stores legacy values like "NT" or "Yuan" that aren't ISO 4217).
 function formatTotal(amountUsd: number, currency: string): string {
   const safe = Number.isFinite(amountUsd) ? amountUsd : 0;
@@ -66,7 +66,7 @@ export default function OrderHistoryPage() {
       <header className="mb-8">
         <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text mb-2`}>Order History</h1>
         <p className="text-ui-14 text-tea-text-sec">
-          Every order starts a conversation — check WhatsApp for live updates.
+          Every order starts a conversation, check WhatsApp for live updates.
         </p>
       </header>
 

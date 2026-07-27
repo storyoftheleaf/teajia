@@ -33,7 +33,7 @@ export const CardGridItem: React.FC<CardGridItemProps> = ({
       className="group relative break-inside-avoid md:transition-all md:duration-300"
     >
       <CardContainer className="p-2 md:p-3">
-        {/* Image Container — clicking opens detail */}
+        {/* Image Container, clicking opens detail */}
         <div
           className="relative w-full overflow-hidden aspect-square bg-tea-elevated/90 mb-3 cursor-pointer"
           onClick={(e) => onCardClick(item, e)}
@@ -43,7 +43,7 @@ export const CardGridItem: React.FC<CardGridItemProps> = ({
           <div className="hidden lg:block absolute inset-0 bg-tea-text/0 group-hover:bg-tea-text/10 transition-all duration-300 pointer-events-none" />
         </div>
 
-        {/* Info Section — clicking opens detail */}
+        {/* Info Section, clicking opens detail */}
         <div className="px-1 cursor-pointer" onClick={(e) => onCardClick(item, e)}>
           {/* Title and Price Row */}
           <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-1 mb-1.5">
@@ -58,7 +58,7 @@ export const CardGridItem: React.FC<CardGridItemProps> = ({
           {descriptionComponent && descriptionComponent}
         </div>
 
-        {/* Slider strip — always visible below card content */}
+        {/* Slider strip, always visible below card content */}
         {sliderComponent && (
           <div className="px-1 pt-2 mt-1 border-t border-tea-border" onClick={(e) => e.stopPropagation()}>
             {sliderComponent}

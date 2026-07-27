@@ -116,7 +116,7 @@ const ConfirmedView: React.FC<ConfirmedViewProps> = ({
           <CalendarDownload event={event} />
         </div>
 
-        {/* Guest invite links — divide-y list rows with identity miniatures */}
+        {/* Guest invite links, divide-y list rows with identity miniatures */}
         {approvedGuests.length > 0 && (
           <div className="mb-10 bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
             <p className="label-caps px-5 pt-5 pb-3">
@@ -169,7 +169,7 @@ const ConfirmedView: React.FC<ConfirmedViewProps> = ({
           </Suspense>
         )}
 
-        {/* Venue photos — only shown to confirmed attendees */}
+        {/* Venue photos, only shown to confirmed attendees */}
         {event.venuePhotos && event.venuePhotos.length > 0 && (
           <div className="mb-10">
             <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec mb-4">The Space</p>

@@ -391,7 +391,7 @@ const TransactionCard: React.FC<{
         });
         setPoSaved(true);
       } catch {
-        // Non-critical — PO exists locally in ledger store
+        // Non-critical: PO exists locally in ledger store
       }
     }
 
@@ -423,7 +423,7 @@ const TransactionCard: React.FC<{
         }
         setPoSaved(true);
       } catch {
-        // Non-critical — sale exists locally in ledger store
+        // Non-critical, sale exists locally in ledger store
       }
     }
   }, [tx, confirmTransaction]);
@@ -436,7 +436,7 @@ const TransactionCard: React.FC<{
 
   return (
     <div className="bg-tea-surface rounded-xl overflow-hidden transition-colors">
-      {/* Header — always visible */}
+      {/* Header, always visible */}
       <button
         type="button"
         onClick={onToggle}
@@ -543,7 +543,7 @@ const TransactionCard: React.FC<{
                   </AnimatePresence>
                 )}
 
-                {/* Print Tags — for purchase transactions with compass-linked items */}
+                {/* Print Tags, for purchase transactions with compass-linked items */}
                 {isPurchase && tx.items.some((i) => i.compassEntryId) && (
                   <button
                     type="button"

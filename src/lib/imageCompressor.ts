@@ -2,7 +2,7 @@
  * Client-side image compression via canvas API.
  * Resizes to fit within maxDimension and converts to JPEG.
  *
- * Pass `square: true` to center-crop the input to a square before resizing —
+ * Pass `square: true` to center-crop the input to a square before resizing:
  * useful for entry photos that always render in square thumbnails so we don't
  * waste DB bytes on letterboxed pixels nobody ever sees.
  */
@@ -19,7 +19,7 @@ export async function compressImage(
     img.onload = () => {
       URL.revokeObjectURL(objectUrl);
 
-      // Source rect — center-cropped to a square if requested
+      // Source rect, center-cropped to a square if requested
       let srcX = 0;
       let srcY = 0;
       let srcW = img.width;
@@ -32,7 +32,7 @@ export async function compressImage(
         srcH = side;
       }
 
-      // Destination rect — scaled to fit within maxDimension while preserving
+      // Destination rect, scaled to fit within maxDimension while preserving
       // the (possibly cropped) source aspect ratio
       let dstW = srcW;
       let dstH = srcH;

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Search } from 'lucide-react';
 import { api } from '../lib/api';
-import { fmtShopPrice } from '../utils/formatNumber';
+import { useShopPrice } from '../components/shop/shopPrice';
 
 const inputClass =
   'w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
@@ -22,6 +22,12 @@ const OrderStatusPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [lookupRef, setLookupRef] = useState('');
+
+  // Above the loading early return, as every hook in this app must be. The
+  // basket that produced this order was quoted in the reader's currency, so the
+  // receipt for it has to be too: calling the raw dollar formatter here meant a
+  // reader who checked out in Rupiah came back to a dollar total.
+  const shopPrice = useShopPrice();
 
   useEffect(() => {
     if (!ref) {
@@ -102,7 +108,7 @@ const OrderStatusPage: React.FC = () => {
           />
           <button
             type="submit"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors whitespace-nowrap"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors whitespace-nowrap"
           >
             <Search size={14} />
             Look up
@@ -125,7 +131,7 @@ const OrderStatusPage: React.FC = () => {
           <div className="mt-4">
             <Link
               to="/shop"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
             >
               Browse shop
             </Link>
@@ -133,7 +139,7 @@ const OrderStatusPage: React.FC = () => {
         </div>
       )}
 
-      {/* Invoice block — §21 */}
+      {/* Invoice block, §21 */}
       {inquiry && !notFound && (
         <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
           <div className="flex items-baseline justify-between mb-3 flex-wrap gap-2">
@@ -176,7 +182,7 @@ const OrderStatusPage: React.FC = () => {
                   {item.category === 'tea' ? `${item.quantityGrams}g` : `×${item.quantityGrams}`}
                 </span>
                 <span className="font-mono tabular-nums w-20 text-right">
-                  {fmtShopPrice(item.totalPrice)}
+                  {shopPrice.total(item.totalPrice)}
                 </span>
               </div>
             ))}
@@ -186,7 +192,7 @@ const OrderStatusPage: React.FC = () => {
           <div className="flex justify-between items-baseline pt-3 mt-2 border-t border-tea-border">
             <span className="font-display text-ui-17 font-medium text-tea-text">Estimate</span>
             <span className="font-mono text-ui-17 text-tea-text tabular-nums">
-              {fmtShopPrice(inquiry?.total_estimate_usd || 0)}
+              {shopPrice.total(inquiry?.total_estimate_usd || 0)}
             </span>
           </div>
 

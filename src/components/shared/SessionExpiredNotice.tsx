@@ -5,7 +5,7 @@ import { SESSION_EXPIRED_EVENT } from '../../lib/api';
 /**
  * Non-blocking notification shown when a 401 response indicates
  * the JWT session has expired. Slides down from the top and auto-dismisses.
- * Does not redirect — just informs the user.
+ * Does not redirect, just informs the user.
  */
 export const SessionExpiredNotice = () => {
   const [visible, setVisible] = useState(false);

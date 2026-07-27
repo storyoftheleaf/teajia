@@ -3,7 +3,7 @@
  * Rationale, and the conditions on this exception, in read/immersive.tsx.
  */
 /**
- * Before the Mist Burns Away — Field Notes, N°04
+ * Before the Mist Burns Away: Field Notes, N°04
  * A photo-essay from a Yunnan spring harvest, from first grey light to first cup.
  * Ported pixel-faithfully from the tea-article-redesign mockup.
  */
@@ -38,7 +38,7 @@ const BeforeTheMist: React.FC = () => {
       <AccentSwatches accent={accent} setAccent={setAccent} />
 
       <article style={{ position: 'relative', zIndex: 1 }}>
-        {/* COVER — full-bleed */}
+        {/* COVER, full-bleed */}
         <header style={{ position: 'relative', minHeight: '96vh', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden' }}>
           <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,#2c2a24 0%,#1c1812 46%,#14100b 100%)' }} />
           <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 44% at 64% 30%, rgba(214,196,150,0.22), transparent 60%)' }} />
@@ -56,12 +56,12 @@ const BeforeTheMist: React.FC = () => {
           </svg>
           <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(20,16,11,0.7), transparent 45%), linear-gradient(0deg, rgba(20,16,11,0.85), transparent 40%)' }} />
           <div style={{ position: 'relative', zIndex: 1, padding: '0 clamp(24px,6vw,84px) clamp(48px,9vw,110px)', maxWidth: 1000 }}>
-            <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.36em', textTransform: 'uppercase', color: C.gold, marginBottom: 26 }}>Field Notes — A spring harvest, Yunnan</div>
+            <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.36em', textTransform: 'uppercase', color: C.gold, marginBottom: 26 }}>Field Notes: A spring harvest, Yunnan</div>
             <h1 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(50px,9vw,116px)', lineHeight: 0.98, letterSpacing: '-0.015em', color: C.cream, margin: 0 }}>
               Before the<br /><span style={{ fontStyle: 'italic', color: C.gold }}>Mist Burns Away</span>
             </h1>
             <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(16px,2.1vw,21px)', lineHeight: 1.5, color: C.taupe, margin: '26px 0 0', maxWidth: 520 }}>
-              One morning on a tea mountain, from the first grey light to the first cup — told in pictures, and very few words.
+              One morning on a tea mountain, from the first grey light to the first cup, told in pictures, and very few words.
             </p>
           </div>
           <div aria-hidden="true" style={{ position: 'absolute', bottom: 30, left: '50%', transform: 'translate(-50%,0)', animation: 'tjFloatX 3.4s ease-in-out infinite' }}>
@@ -111,7 +111,7 @@ const BeforeTheMist: React.FC = () => {
                 </svg>
                 <div style={plateLabel}>Plate I</div>
               </div>
-              <figcaption style={cap}>Two leaves and a bud — the only part that is taken.</figcaption>
+              <figcaption style={cap}>Two leaves and a bud, the only part that is taken.</figcaption>
             </figure>
             <figure style={{ margin: 0 }}>
               <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgba(168,135,77,0.18)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(160deg,#241d14,#120e09)' }}>
@@ -182,7 +182,7 @@ const BeforeTheMist: React.FC = () => {
             <div aria-hidden="true" style={{ position: 'absolute', left: '50%', top: '16%', width: 2, height: '18%', background: 'linear-gradient(transparent,rgba(168,135,77,0.5))', transform: 'translateX(-50%)', animation: 'tjFloat 3s ease-in-out infinite' }} />
           </div>
           <p style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(22px,3.6vw,36px)', lineHeight: 1.32, color: C.ink, margin: 0 }}>
-            All of it — the climb, the cool, the careful hands — so that months from now, a single cup might taste of this exact morning.
+            All of it, the climb, the cool, the careful hands, so that months from now, a single cup might taste of this exact morning.
           </p>
           <div style={{ marginTop: 42, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>
             Pictures &amp; words by Teajia &nbsp;·&nbsp; Field Notes &nbsp;·&nbsp; N°04

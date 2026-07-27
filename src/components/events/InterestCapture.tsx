@@ -51,7 +51,7 @@ const InterestCapture: React.FC<InterestCaptureProps> = ({ slug, className = '' 
 
   return (
     <form onSubmit={handleSubmit} className={`space-y-3 ${className}`}>
-      {/* Method toggle — bottom-border underline style */}
+      {/* Method toggle, bottom-border underline style */}
       <div className="flex gap-6 border-b border-tea-border">
         {(['whatsapp', 'email'] as ContactMethod[]).map((m) => {
           const isActive = method === m;

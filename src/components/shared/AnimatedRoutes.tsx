@@ -29,7 +29,7 @@ export const AnimatedRoutes: React.FC<AnimatedRoutesProps> = ({ children }) => {
     return <>{children}</>;
   }
 
-  // Keyed motion.div without AnimatePresence — when the key changes React
+  // Keyed motion.div without AnimatePresence, when the key changes React
   // unmounts/remounts and `animate` runs from `initial`. AnimatePresence with
   // mode="wait" was getting stuck when leaving pages with heavy internal
   // animations (the homepage scroll reveal), leaving the new page at opacity 0.

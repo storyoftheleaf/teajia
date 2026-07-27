@@ -13,7 +13,7 @@ interface StackedCardsProps {
 }
 
 /**
- * StackedCards — Swipeable micro-card stack.
+ * StackedCards: Swipeable micro-card stack.
  * Cards are stacked with perspective depth (scale + translateY).
  * Swipe left/right > 50px or tap to advance to next card.
  * Card count indicator. Framer Motion AnimatePresence transitions.

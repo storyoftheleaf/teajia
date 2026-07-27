@@ -29,7 +29,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
   return (
     <div className="group relative pt-5 pb-5 first:pt-0 border-b border-tea-border last:border-0">
       <div className="flex gap-4">
-        {/* Thumbnail — 48px, monogram fallback (varies per item) */}
+        {/* Thumbnail, 48px, monogram fallback (varies per item) */}
         <div className="w-12 h-12 bg-tea-elevated flex items-center justify-center overflow-hidden rounded-md shrink-0">
           {item.image ? (
             <img src={item.image} className="w-full h-full object-cover" alt={item.name} loading="eager" />
@@ -39,20 +39,20 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
         </div>
 
         <div className="flex-1 min-w-0">
-          {/* Title row — name on the left, price as the row anchor on the right */}
+          {/* Title row, name on the left, price as the row anchor on the right */}
           <div className="flex justify-between items-baseline gap-3">
             <h3 className="font-serif text-tea-text text-lg leading-tight truncate">{item.name}</h3>
             <span className="num text-base text-tea-text shrink-0">{displayPrice(item.totalPrice)}</span>
           </div>
 
-          {/* Variant — only when it adds information */}
+          {/* Variant, only when it adds information */}
           {showVariant && (
             <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mt-1">
               {item.variant}
             </p>
           )}
 
-          {/* Quantity — inline editorial reading: − 100g + */}
+          {/* Quantity, inline editorial reading: − 100g + */}
           <div className={`flex items-center ${showVariant ? 'mt-3' : 'mt-2'}`}>
             <button
               onClick={() => onUpdateQuantity(item.id, Math.max(1, item.quantityGrams - step))}
@@ -85,7 +85,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
               aria-label="Increase quantity"
             >+</button>
 
-            {/* Quick presets — same row as qty, demoted weight; matching value is hidden */}
+            {/* Quick presets, same row as qty, demoted weight; matching value is hidden */}
             {isTea && (
               <div className="ml-4 flex items-center gap-3 overflow-x-auto">
                 {presets
@@ -105,7 +105,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
         </div>
       </div>
 
-      {/* Remove — ghost icon, top-right, fades in on hover/focus only; always visible on touch */}
+      {/* Remove, ghost icon, top-right, fades in on hover/focus only; always visible on touch */}
       <button
         onClick={() => onRemove(item.id)}
         className="absolute top-4 right-0 w-8 h-8 flex items-center justify-center rounded-md text-tea-text-sec hover:text-tea-error transition-opacity duration-200 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 focus-visible:opacity-100"

@@ -16,7 +16,7 @@ interface TeaCompassState {
   deletedIdsByAccount: Record<string, string[]>;
   pendingPromotionsByAccount: Record<string, string[]>;
   switchAccount: (accountId: string | null) => void;
-  // Pending entries — created but not yet committed (NOT persisted, lost on refresh)
+  // Pending entries, created but not yet committed (NOT persisted, lost on refresh)
   pendingEntries: TeaCompassEntry[];
 
   // Session
@@ -44,13 +44,13 @@ interface TeaCompassState {
   browseLayout: BrowseLayout;
   libraryFilters: LibraryFilters;
 
-  // Capture session — entries created in one contiguous run share this id.
+  // Capture session, entries created in one contiguous run share this id.
   // A fresh id is minted when a capture starts after SESSION_GAP_MS of idle,
   // so a "review the batch I just tasted" surface can group a sitting.
   currentSessionId: string | null;
   lastCaptureAt: number | null;
 
-  // Sync health — true when the most recent server write (entry sync OR delete)
+  // Sync health, true when the most recent server write (entry sync OR delete)
   // failed to reach D1. Lets the UI say "couldn't save, check connection" instead
   // of silently pretending a local-only change persisted (the China/offline trap).
   syncError: boolean;
@@ -58,20 +58,20 @@ interface TeaCompassState {
   hydrationStatus: 'idle' | 'loading' | 'ready' | 'error';
   setHydrationStatus: (status: 'idle' | 'loading' | 'ready' | 'error') => void;
 
-  // Tombstones — ids deleted locally whose server delete hasn't been confirmed.
+  // Tombstones, ids deleted locally whose server delete hasn't been confirmed.
   // Hydrate filters these out so a still-on-server row can't reappear before the
   // delete lands (the "I deleted it and it came back" bug), and retries the delete.
   deletedIds: string[];
 
   // Entries whose promote-to-draft call failed (offline/timeout at commit time).
-  // The sync heartbeat retries these until the draft exists — previously a
+  // The sync heartbeat retries these until the draft exists, previously a
   // failed promotion was silent and the tea just never appeared in
   // /admin/capture. Persisted so a page reload doesn't lose the intent.
   pendingPromotions: string[];
   addPendingPromotion: (id: string) => void;
   removePendingPromotion: (id: string) => void;
 
-  // Pricing formula — shipping rate used in retail preview (same currency as entry cost)
+  // Pricing formula, shipping rate used in retail preview (same currency as entry cost)
   shippingRatePerKg: number;
   setShippingRatePerKg: (rate: number) => void;
 
@@ -160,7 +160,7 @@ export function entryHasDeliberateInput(entry: TeaCompassEntry): boolean {
   ) return true;
 
   // Notes typed in the NoteThread are stored in the notes store keyed by the
-  // entry id (and/or its teaKey), NOT on entry.notes — so an entry whose only
+  // entry id (and/or its teaKey), NOT on entry.notes, so an entry whose only
   // content is thread notes must still count as having content, or committing
   // it would discard the entry and orphan those notes.
   const ns = useNotesStore.getState();
@@ -384,7 +384,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
             : state.deletedIds,
         }));
         // ...then delete it on the server. Without this the row reappears from
-        // D1 on the next sync/refresh — the bug that made "Clean up" and the
+        // D1 on the next sync/refresh, the bug that made "Clean up" and the
         // per-card delete look broken. Fired unconditionally for any committed
         // entry: a row that never reached D1 just no-ops the DELETE (the
         // worker's WHERE clause matches nothing), which is harmless.
@@ -411,7 +411,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
               if (current.accountScopeId === accountId && current.accountScopeRevision === accountRevision) {
                 set({ syncError: true });
               }
-            }); // keep the tombstone — hydrate retries
+            }); // keep the tombstone, hydrate retries
         }
       },
 
@@ -437,7 +437,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
         const context = state.encounterContextByAccount[entry.draftAccountId];
         entry.journeyId = context?.journeyId ?? null;
         entry.visitId = context?.visitId ?? null;
-        // Add to pendingEntries (NOT entries) — won't appear in Library until committed
+        // Add to pendingEntries (NOT entries), won't appear in Library until committed
         set((s) => ({
           pendingEntries: [entry, ...s.pendingEntries],
           activeEntryId: entry.id,
@@ -465,7 +465,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
               activeEntryId: s.activeEntryId === id ? null : s.activeEntryId,
             }));
           } else {
-            // Discard — no content worth saving
+            // Discard, no content worth saving
             set((s) => ({
               pendingEntries: s.pendingEntries.filter((e) => e.id !== id),
               sessionEntryIds: s.sessionEntryIds.filter((sid) => sid !== id),
@@ -473,7 +473,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
             }));
           }
         } else {
-          // Already committed entry (e.g., editing from Library) — just remove from session
+          // Already committed entry (e.g., editing from Library), just remove from session
           set((state) => ({
             sessionEntryIds: state.sessionEntryIds.filter((sid) => sid !== id),
             activeEntryId: state.activeEntryId === id ? null : state.activeEntryId,
@@ -491,7 +491,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
             activeEntryId: s.activeEntryId === id ? null : s.activeEntryId,
           }));
         } else {
-          // Committed entry being re-edited — exit session without deleting
+          // Committed entry being re-edited, exit session without deleting
           set((s) => ({
             sessionEntryIds: s.sessionEntryIds.filter((sid) => sid !== id),
             activeEntryId: s.activeEntryId === id ? null : s.activeEntryId,

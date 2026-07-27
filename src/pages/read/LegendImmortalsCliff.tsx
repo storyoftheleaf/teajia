@@ -3,7 +3,7 @@
  * Rationale, and the conditions on this exception, in read/immersive.tsx.
  */
 /**
- * The Immortals' Cliff — Legend · N°13
+ * The Immortals' Cliff: Legend · N°13
  * The Da Hong Pao mother trees of Wuyi: six bushes, a red robe, and a retirement.
  * Ported pixel-faithfully from the tea-article-redesign mockup.
  */
@@ -125,7 +125,7 @@ const LegendImmortalsCliff: React.FC = () => {
           {/* hero text */}
           <div style={{ position: 'relative', zIndex: 1, padding: '0 clamp(24px,6vw,84px) clamp(48px,9vw,110px)', maxWidth: 1000 }}>
             <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.36em', textTransform: 'uppercase', color: C.gold, marginBottom: 24 }}>
-              A Legend — Jiulongke, the Wuyi cliffs
+              A Legend: Jiulongke, the Wuyi cliffs
             </div>
             <h1 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(46px,8.4vw,112px)', lineHeight: 0.98, letterSpacing: '-0.015em', color: C.cream, margin: 0 }}>
               The Immortals'{' '}
@@ -153,15 +153,15 @@ const LegendImmortalsCliff: React.FC = () => {
             <span style={{ float: 'left', fontFamily: F.display, fontWeight: 600, fontSize: '5em', lineHeight: 0.78, color: C.gold, margin: '8px 16px -4px 0' }}>H</span>
             igh on a sheer face in the Wuyi mountains, reached by a narrow path and a great deal of nerve, grows the most famous tea in China:{' '}
             <span style={{ fontFamily: F.cn, color: C.taupe }}>大红袍</span>
-            , Dà Hóng Páo — "Big Red Robe." Not a garden of it. Not a hillside. Six individual bushes, more than three hundred and fifty years old, growing from a crack watered by a thread of mineral spring. Every Big Red Robe on earth descends from these six. They are, in the most literal sense, the mother trees.
+            , Dà Hóng Páo, "Big Red Robe." Not a garden of it. Not a hillside. Six individual bushes, more than three hundred and fifty years old, growing from a crack watered by a thread of mineral spring. Every Big Red Robe on earth descends from these six. They are, in the most literal sense, the mother trees.
           </p>
         </section>
 
-        {/* ── I — THE RED ROBE ──────────────────────────────────────────── */}
+        {/* ── I: THE RED ROBE ──────────────────────────────────────────── */}
         <section style={{ maxWidth: 1100, margin: '0 auto', padding: 'clamp(20px,4vw,40px) clamp(20px,5vw,40px)' }}>
           <SectionDivider numeral="I" label="The red robe" wideContainer />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,300px),1fr))', gap: 'clamp(24px,4vw,52px)', alignItems: 'center' }}>
-            {/* Plate I — mother bushes */}
+            {/* Plate I: mother bushes */}
             <figure data-reveal style={{ margin: 0, order: 2 }}>
               <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgba(168,135,77,0.2)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(160deg,#33201a,#14100b 82%)' }}>
                 <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 44% at 54% 30%, rgba(190,96,52,0.28), transparent 60%)' }} />
@@ -180,15 +180,15 @@ const LegendImmortalsCliff: React.FC = () => {
                     <ellipse cx="216" cy="190" rx="28" ry="15" />
                   </g>
                 </svg>
-                <div style={plateLabel}>Plate I — the mother bushes</div>
+                <div style={plateLabel}>Plate I, the mother bushes</div>
               </div>
-              <figcaption style={cap}>The original bushes on their ledge at Jiulongke — the Nine Dragons' Nest.</figcaption>
+              <figcaption style={cap}>The original bushes on their ledge at Jiulongke, the Nine Dragons' Nest.</figcaption>
             </figure>
 
             {/* prose */}
             <div data-reveal style={{ order: 1 }}>
               <p style={pBody}>
-                The legend is the kind a tea this famous demands. A Ming-dynasty scholar, travelling to sit the imperial examinations, falls gravely ill at the foot of the mountain. A monk brews him tea from the bushes on the cliff; he recovers, goes on, and places first in the empire. Returning to give thanks, he climbs to the bushes and drapes his scholar's red robe over them — and the name has stuck for four centuries.
+                The legend is the kind a tea this famous demands. A Ming-dynasty scholar, travelling to sit the imperial examinations, falls gravely ill at the foot of the mountain. A monk brews him tea from the bushes on the cliff; he recovers, goes on, and places first in the empire. Returning to give thanks, he climbs to the bushes and drapes his scholar's red robe over them, and the name has stuck for four centuries.
               </p>
               <p style={{ ...pBody, margin: 0 }}>
                 Whether or not it happened, it tells the truth that matters: this tea was treated, from the start, as something closer to medicine and miracle than to a drink.
@@ -205,7 +205,7 @@ const LegendImmortalsCliff: React.FC = () => {
           <div aria-hidden="true" style={{ width: 40, height: 1, background: C.gold, opacity: 0.5, margin: '34px auto 0' }} />
         </section>
 
-        {/* ── II — THE LAST HARVEST ─────────────────────────────────────── */}
+        {/* ── II: THE LAST HARVEST ─────────────────────────────────────── */}
         <section style={{ maxWidth: 680, margin: '0 auto', padding: '0 24px' }}>
           <div data-reveal style={{ display: 'flex', alignItems: 'center', gap: 18, margin: 'clamp(20px,4vw,40px) 0 clamp(28px,4vw,40px)' }}>
             <span style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 30, color: C.gold, lineHeight: 1 }}>II</span>
@@ -213,12 +213,12 @@ const LegendImmortalsCliff: React.FC = () => {
             <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim }}>The last harvest</span>
           </div>
           <p data-reveal style={{ ...pBody, marginBottom: 22 }}>
-            For centuries the cliff's yield was counted in hundreds of grams, reserved for emperors and, later, for heads of state — a few leaves given as the rarest of gifts. As prices climbed into the absurd, so did the danger to the trees: the picking, the climbing, the relentless attention. In 2006 the authorities made a startling decision. They{' '}
+            For centuries the cliff's yield was counted in hundreds of grams, reserved for emperors and, later, for heads of state, a few leaves given as the rarest of gifts. As prices climbed into the absurd, so did the danger to the trees: the picking, the climbing, the relentless attention. In 2006 the authorities made a startling decision. They{' '}
             <em style={{ fontStyle: 'italic', color: C.ink }}>retired</em>
             {' '}the mother bushes.
           </p>
           <p data-reveal style={{ ...pBody, margin: 0 }}>
-            The last official harvest was taken in 2005 — twenty grams of it later placed, ceremonially, in the National Museum. Since then no leaf has been picked. The six bushes are watched, insured, and left, finally, to simply grow old in peace on their ledge.
+            The last official harvest was taken in 2005, twenty grams of it later placed, ceremonially, in the National Museum. Since then no leaf has been picked. The six bushes are watched, insured, and left, finally, to simply grow old in peace on their ledge.
           </p>
         </section>
 
@@ -226,7 +226,7 @@ const LegendImmortalsCliff: React.FC = () => {
         <section data-reveal style={{ maxWidth: 1040, margin: '0 auto', padding: 'clamp(40px,6vw,80px) 24px' }}>
           <div style={{ border: '1px solid rgba(168,135,77,0.2)', borderRadius: 4, background: 'linear-gradient(160deg,#211710,#15110b)', padding: 'clamp(24px,4vw,40px)' }}>
             <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 600, letterSpacing: '0.22em', textTransform: 'uppercase', color: C.gold, marginBottom: 24 }}>
-              The mother trees — on the record
+              The mother trees, on the record
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,200px),1fr))', gap: '22px 36px' }}>
               <FactRow label="Where" value="Jiulongke, Wuyishan" />
@@ -239,7 +239,7 @@ const LegendImmortalsCliff: React.FC = () => {
           </div>
         </section>
 
-        {/* ── III — SIX BUSHES, TEN THOUSAND CHILDREN ───────────────────── */}
+        {/* ── III: SIX BUSHES, TEN THOUSAND CHILDREN ───────────────────── */}
         <section style={{ maxWidth: 1100, margin: '0 auto', padding: '0 clamp(20px,5vw,40px)' }}>
           <div data-reveal style={{ display: 'flex', alignItems: 'center', gap: 18, margin: 'clamp(20px,4vw,40px) 0 clamp(28px,4vw,40px)', maxWidth: 680, marginLeft: 'auto', marginRight: 'auto' }}>
             <span style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 30, color: C.gold, lineHeight: 1 }}>III</span>
@@ -250,14 +250,14 @@ const LegendImmortalsCliff: React.FC = () => {
             {/* prose */}
             <div data-reveal>
               <p style={pBody}>
-                Here is the quiet miracle: the tea did not die with its retirement. Tea bushes can be cloned exactly, by cutting — and for decades, masters had been taking cuttings from these very bushes. Every "Big Red Robe" sold today is grown from that lineage, genetically identical to the mothers, raised in gardens across the Wuyi range.
+                Here is the quiet miracle: the tea did not die with its retirement. Tea bushes can be cloned exactly, by cutting, and for decades, masters had been taking cuttings from these very bushes. Every "Big Red Robe" sold today is grown from that lineage, genetically identical to the mothers, raised in gardens across the Wuyi range.
               </p>
               <p style={{ ...pBody, margin: 0 }}>
-                So you can, in fact, taste them — not the originals, but their true children: the same plant, rooted in the same red rock, carrying the same mineral "rock rhyme." The mothers rest. Their tea goes on being poured.
+                So you can, in fact, taste them, not the originals, but their true children: the same plant, rooted in the same red rock, carrying the same mineral "rock rhyme." The mothers rest. Their tea goes on being poured.
               </p>
             </div>
 
-            {/* Plate II — the children */}
+            {/* Plate II: the children */}
             <figure data-reveal style={{ margin: 0 }}>
               <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgba(168,135,77,0.2)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(160deg,#2a1d12,#14100b 82%)' }}>
                 <div aria-hidden="true" style={{ ...grainCss('0.8', 120), opacity: 0.07 }} />
@@ -272,7 +272,7 @@ const LegendImmortalsCliff: React.FC = () => {
                     <path d="M30 348 C 130 336, 210 336, 300 348" />
                   </g>
                 </svg>
-                <div style={plateLabel}>Plate II — the children</div>
+                <div style={plateLabel}>Plate II, the children</div>
               </div>
               <figcaption style={cap}>Cuttings of the mother bushes, grown on across the Wuyi cliffs.</figcaption>
             </figure>
@@ -282,7 +282,7 @@ const LegendImmortalsCliff: React.FC = () => {
         {/* ── CLOSING ───────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(40px,6vw,80px) 24px clamp(40px,6vw,72px)' }}>
           <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(17px,2.1vw,20px)', lineHeight: 1.72, color: C.taupe, margin: 0 }}>
-            There is something fitting in a culture that decided its most precious tea was worth more left unpicked than sold — that the bushes themselves, ancient and stubborn on their ledge, mattered more than the cup. The immortals keep their cliff. We make do, very happily, with their descendants.
+            There is something fitting in a culture that decided its most precious tea was worth more left unpicked than sold, that the bushes themselves, ancient and stubborn on their ledge, mattered more than the cup. The immortals keep their cliff. We make do, very happily, with their descendants.
           </p>
           <div style={{ marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>
             A Legend, retold by Teajia &nbsp;·&nbsp; N°13

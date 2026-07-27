@@ -3,7 +3,7 @@ import { Drawer } from 'vaul';
 import { Check, ChevronRight, X } from 'lucide-react';
 
 /**
- * BottomSheet — a Vaul-backed sheet that slides up from the bottom of the
+ * BottomSheet, a Vaul-backed sheet that slides up from the bottom of the
  * viewport with native iOS feel: drag handle, drag-to-dismiss, glass
  * surface, and the page behind subtly scales down so the sheet reads as a
  * lifted plane. Used app-wide for picker UIs (Material, Era, Category…)
@@ -46,13 +46,13 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
               '0 -10px 40px -8px rgb(var(--tea-bg-rgb) / 0.7), inset 0 1px 0 rgb(var(--tea-gold-rgb) / 0.08)',
           }}
         >
-          {/* Drag handle — Vaul listens to drag gestures on the entire
+          {/* Drag handle: Vaul listens to drag gestures on the entire
               Content; the visible bar is purely an affordance. */}
           <div className="flex justify-center pt-2 pb-1 shrink-0" aria-hidden>
             <div className="w-10 h-1 rounded-full bg-tea-text-sec/40" />
           </div>
 
-          {/* Title row — Cancel on the left per project Cancel/Close rules */}
+          {/* Title row: Cancel on the left per project Cancel/Close rules */}
           <div className="flex items-center gap-3 px-4 pt-2 pb-3 shrink-0">
             <button
               type="button"
@@ -82,7 +82,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             </div>
           </div>
 
-          {/* Body — scrollable list/grid lives here. The bottom padding
+          {/* Body, scrollable list/grid lives here. The bottom padding
               clears the BottomTabBar (52px + safe area) so the last option
               isn't occluded by it. On lg+ the nav is hidden and pb-nav-gap
               automatically collapses to pb-4. */}
@@ -96,14 +96,14 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
 };
 
 /**
- * SheetOption — the canonical list-row inside a BottomSheet. Big enough to
+ * SheetOption, the canonical list-row inside a BottomSheet. Big enough to
  * tap with a thumb (56px), serif label, optional leading visual, optional
  * trailing chevron when picking opens a sub-sheet. Selected state is a
  * gold tint plus a check, not a coloured chip.
  */
 interface SheetOptionProps {
   label: string;
-  /** Small line under the label — e.g. tea name in Chinese, era hint */
+  /** Small line under the label, e.g. tea name in Chinese, era hint */
   hint?: string;
   /** Left-side icon, swatch, or thumbnail */
   leading?: React.ReactNode;

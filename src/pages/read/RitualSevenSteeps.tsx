@@ -3,15 +3,15 @@
  * Rationale, and the conditions on this exception, in read/immersive.tsx.
  */
 /**
- * Seven Steeps — The Ritual of Tea, N°05
+ * Seven Steeps: The Ritual of Tea, N°05
  * Gongfu cha scrollytelling: a single handful of leaves brewed again and again.
  * Ported pixel-faithfully from the tea-article-redesign mockup.
  *
  * Bespoke effects carried verbatim from the design's DCLogic controller:
- *   1. Canvas steam animation  — requestAnimationFrame particle loop
- *   2. Scroll-pinned cup       — scroll → discrete active steep + card highlight
- *   3. Liquor-colour morph     — continuous lerp between steep colours on scroll
- *   4. Recap strip builder     — innerHTML build of colour swatches + CN numerals
+ *   1. Canvas steam animation , requestAnimationFrame particle loop
+ *   2. Scroll-pinned cup      , scroll → discrete active steep + card highlight
+ *   3. Liquor-colour morph    , continuous lerp between steep colours on scroll
+ *   4. Recap strip builder    , innerHTML build of colour swatches + CN numerals
  */
 import React, { useEffect, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
@@ -42,9 +42,9 @@ const TEA_SETS: Record<TeaKey, TeaData> = {
     times:  [5,10,12,15,20,30,45,70],
     notes: [
       'A quick rinse to wake the leaf; this first water is poured away.',
-      'Aroma at its highest — orchid and warm stone, light on the tongue.',
+      'Aroma at its highest, orchid and warm stone, light on the tongue.',
       'The body arrives; sweetness and texture fill the mouth.',
-      'The peak. Everything in balance — this is the cup to share.',
+      'The peak. Everything in balance, this is the cup to share.',
       'Fruit deepens and the rock-rhyme finish lengthens.',
       'Softening now; the edges round into honey over minerals.',
       'Pale and unhurried, the leaf giving up its last brightness.',
@@ -57,13 +57,13 @@ const TEA_SETS: Record<TeaKey, TeaData> = {
     times:  [10,12,15,20,25,35,55,90],
     notes: [
       'A double rinse to loosen the compressed leaf and rinse off the years.',
-      'Dark and clean — wet earth, old wood, a whisper of camphor.',
+      'Dark and clean, wet earth, old wood, a whisper of camphor.',
       'Thick and round; the soup coats the mouth like broth.',
-      'The heart of the session — sweet bark, dates, deep calm.',
+      'The heart of the session, sweet bark, dates, deep calm.',
       'Settling into pure sweetness; the woodiness recedes.',
       'Soft, warming, almost medicinal in the best sense.',
       'Mellow and clear, the colour of dark amber.',
-      'Still giving — an aged cake could run far past seven.',
+      'Still giving, an aged cake could run far past seven.',
     ],
   },
   green: {
@@ -71,14 +71,14 @@ const TEA_SETS: Record<TeaKey, TeaData> = {
     temps:  [85,80,80,78,78,75,75,72],
     times:  [3,8,10,12,15,20,30,45],
     notes: [
-      'Cooler water, a brief rinse — green leaf scorches if you rush it.',
+      'Cooler water, a brief rinse, green leaf scorches if you rush it.',
       'Fresh-cut grass and snap peas; bright, vivid, alive.',
       'Sweet corn and chestnut arrive under the green.',
-      'Full and smooth — a green tea\'s short, lovely peak.',
+      'Full and smooth, a green tea\'s short, lovely peak.',
       'Vegetal sweetness, clean and quenching.',
       'Gently fading; tender and a little buttery.',
       'Light and sweet, the green nearly spent.',
-      'A pale, clean finish — green tea keeps few secrets back.',
+      'A pale, clean finish, green tea keeps few secrets back.',
     ],
   },
 };
@@ -117,7 +117,7 @@ const RitualSevenSteeps: React.FC = () => {
   const activeRef         = useRef<number>(-1);
   const steamRAFRef       = useRef<number>(0);
 
-  // Reading progress — also drives the updatePour on scroll
+  // Reading progress, also drives the updatePour on scroll
   const progress = useReadingProgress();
 
   // ── buildRecap ──────────────────────────────────────────────────────────────
@@ -277,7 +277,7 @@ const RitualSevenSteeps: React.FC = () => {
 
   return (
     <ImmersiveRoot rootRef={rootRef}>
-      {/* tjSpin keyframe — not in useImmersiveChrome's set */}
+      {/* tjSpin keyframe, not in useImmersiveChrome's set */}
       <style>{`@keyframes tjSpin{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }`}</style>
 
       <Helmet><title>Seven Steeps · Teajia</title></Helmet>
@@ -297,7 +297,7 @@ const RitualSevenSteeps: React.FC = () => {
             </h1>
             <div aria-hidden="true" style={{ width: 54, height: 1, background: C.gold, opacity: 0.6, margin: '34px auto' }} />
             <p style={{ fontFamily: F.body, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(17px,2.4vw,22px)', lineHeight: 1.5, color: C.taupe, margin: '0 auto', maxWidth: 540 }}>
-              A single handful of leaves, brewed again and again in the gongfu way — and how each pour gives you a different tea than the last.
+              A single handful of leaves, brewed again and again in the gongfu way, and how each pour gives you a different tea than the last.
             </p>
           </div>
           <div style={{ position: 'absolute', bottom: 38, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, animation: 'tjFloat 3.4s ease-in-out infinite' }}>
@@ -312,7 +312,7 @@ const RitualSevenSteeps: React.FC = () => {
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(48px,8vw,104px) 24px clamp(20px,4vw,44px)' }}>
           <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: C.ink, margin: 0 }}>
             <span style={{ float: 'left', fontFamily: F.display, fontWeight: 600, fontSize: '5em', lineHeight: 0.78, color: C.gold, margin: '8px 16px -4px 0' }}>G</span>
-            ongfu cha — "tea made with skill" — turns brewing into a conversation. A small pot is packed generously with leaf, then filled and emptied in seconds, over and over. The Western mug asks one long question and accepts one answer. The gongfu table asks the same leaves seven questions, and listens to seven different replies. Pour with us.
+            ongfu cha, "tea made with skill", turns brewing into a conversation. A small pot is packed generously with leaf, then filled and emptied in seconds, over and over. The Western mug asks one long question and accepts one answer. The gongfu table asks the same leaves seven questions, and listens to seven different replies. Pour with us.
           </p>
         </section>
 
@@ -362,12 +362,12 @@ const RitualSevenSteeps: React.FC = () => {
 
           {/* scrolling panels */}
           <div>
-            {/* steep 0 — starts active */}
+            {/* steep 0, starts active */}
             <div data-steep="0" style={{ minHeight: '84vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '8px 0' }}>
               <div data-steep-card style={{ borderLeft: '2px solid var(--tj-gold,#a8874d)', padding: '6px 0 6px 24px', transition: 'opacity 500ms, border-color 500ms' }}>
                 <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, marginBottom: 14 }}>醒茶 · The Awakening</div>
                 <h2 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(28px,4.2vw,42px)', lineHeight: 1.08, color: C.cream, margin: '0 0 18px' }}>First, we wake the leaf</h2>
-                <p style={{ fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.78, color: C.taupe, margin: 0 }}>Boiling water is poured over the dry leaf and tipped away almost at once. It rinses, it warms the pot and cups, and — most of all — it coaxes tightly-rolled leaves to begin to open. We do not drink this water. We simply let the tea know it is time.</p>
+                <p style={{ fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.78, color: C.taupe, margin: 0 }}>Boiling water is poured over the dry leaf and tipped away almost at once. It rinses, it warms the pot and cups, and, most of all, it coaxes tightly-rolled leaves to begin to open. We do not drink this water. We simply let the tea know it is time.</p>
               </div>
             </div>
             {/* steep 1 */}
@@ -375,7 +375,7 @@ const RitualSevenSteeps: React.FC = () => {
               <div data-steep-card style={{ borderLeft: '2px solid rgba(168,135,77,0.18)', padding: '6px 0 6px 24px', opacity: 0.4, transition: 'opacity 500ms, border-color 500ms' }}>
                 <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, marginBottom: 14 }}>第一泡 · First Infusion</div>
                 <h2 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(28px,4.2vw,42px)', lineHeight: 1.08, color: C.cream, margin: '0 0 18px' }}>The first true cup</h2>
-                <p style={{ fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.78, color: C.taupe, margin: 0 }}>Ten seconds, no more. The leaf has barely unclenched, and what it gives is all top-notes — the high, volatile aromatics that will never be this loud again. Light in the mouth, but the nose is already full. Drink it quickly; the second cup is already waiting.</p>
+                <p style={{ fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.78, color: C.taupe, margin: 0 }}>Ten seconds, no more. The leaf has barely unclenched, and what it gives is all top-notes, the high, volatile aromatics that will never be this loud again. Light in the mouth, but the nose is already full. Drink it quickly; the second cup is already waiting.</p>
               </div>
             </div>
             {/* steep 2 */}
@@ -391,15 +391,15 @@ const RitualSevenSteeps: React.FC = () => {
               <div data-steep-card style={{ borderLeft: '2px solid rgba(168,135,77,0.18)', padding: '6px 0 6px 24px', opacity: 0.4, transition: 'opacity 500ms, border-color 500ms' }}>
                 <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, marginBottom: 14 }}>第三泡 · Third Infusion</div>
                 <h2 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(28px,4.2vw,42px)', lineHeight: 1.08, color: C.cream, margin: '0 0 18px' }}>The peak</h2>
-                <p style={{ fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.78, color: C.taupe, margin: 0 }}>Aroma and body meet in the middle and hold hands. Brewers speak of the third and fourth steeps as the heart of a session — nothing is rushing in, nothing is fading yet. If you are sharing this tea with someone, this is the cup you give them.</p>
+                <p style={{ fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.78, color: C.taupe, margin: 0 }}>Aroma and body meet in the middle and hold hands. Brewers speak of the third and fourth steeps as the heart of a session, nothing is rushing in, nothing is fading yet. If you are sharing this tea with someone, this is the cup you give them.</p>
               </div>
             </div>
-            {/* steep 4 — contains <em> */}
+            {/* steep 4, contains <em> */}
             <div data-steep="4" style={{ minHeight: '84vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '8px 0' }}>
               <div data-steep-card style={{ borderLeft: '2px solid rgba(168,135,77,0.18)', padding: '6px 0 6px 24px', opacity: 0.4, transition: 'opacity 500ms, border-color 500ms' }}>
                 <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, marginBottom: 14 }}>第四泡 · Fourth Infusion</div>
                 <h2 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(28px,4.2vw,42px)', lineHeight: 1.08, color: C.cream, margin: '0 0 18px' }}>The finish lengthens</h2>
-                <p style={{ fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.78, color: C.taupe, margin: 0 }}>We add a few seconds to the steep now, asking the leaf for a little more. The front of the cup quietens, but the <em style={{ fontStyle: 'italic', color: C.ink }}>finish</em> opens out — that long after-taste the Chinese call huí gān, the "returning sweetness" that climbs back up the throat once the cup is empty.</p>
+                <p style={{ fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.78, color: C.taupe, margin: 0 }}>We add a few seconds to the steep now, asking the leaf for a little more. The front of the cup quietens, but the <em style={{ fontStyle: 'italic', color: C.ink }}>finish</em> opens out, that long after-taste the Chinese call huí gān, the "returning sweetness" that climbs back up the throat once the cup is empty.</p>
               </div>
             </div>
             {/* steep 5 */}
@@ -407,7 +407,7 @@ const RitualSevenSteeps: React.FC = () => {
               <div data-steep-card style={{ borderLeft: '2px solid rgba(168,135,77,0.18)', padding: '6px 0 6px 24px', opacity: 0.4, transition: 'opacity 500ms, border-color 500ms' }}>
                 <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, marginBottom: 14 }}>第五泡 · Fifth Infusion</div>
                 <h2 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(28px,4.2vw,42px)', lineHeight: 1.08, color: C.cream, margin: '0 0 18px' }}>Softening</h2>
-                <p style={{ fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.78, color: C.taupe, margin: 0 }}>The edges round off. What was bright is now mellow; what was structured is now gentle. A good tea does not fall off a cliff here — it descends a long, easy staircase, giving honey and warm minerals where it once gave fire.</p>
+                <p style={{ fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.78, color: C.taupe, margin: 0 }}>The edges round off. What was bright is now mellow; what was structured is now gentle. A good tea does not fall off a cliff here, it descends a long, easy staircase, giving honey and warm minerals where it once gave fire.</p>
               </div>
             </div>
             {/* steep 6 */}
@@ -415,7 +415,7 @@ const RitualSevenSteeps: React.FC = () => {
               <div data-steep-card style={{ borderLeft: '2px solid rgba(168,135,77,0.18)', padding: '6px 0 6px 24px', opacity: 0.4, transition: 'opacity 500ms, border-color 500ms' }}>
                 <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, marginBottom: 14 }}>第六泡 · Sixth Infusion</div>
                 <h2 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(28px,4.2vw,42px)', lineHeight: 1.08, color: C.cream, margin: '0 0 18px' }}>Quiet sweetness</h2>
-                <p style={{ fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.78, color: C.taupe, margin: 0 }}>We steep longer to draw out what remains. The tea is pale now, and unhurried, and quietly sweet — the kind of cup you drink without talking. The leaf has given almost everything it carried down from the mountain.</p>
+                <p style={{ fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.78, color: C.taupe, margin: 0 }}>We steep longer to draw out what remains. The tea is pale now, and unhurried, and quietly sweet, the kind of cup you drink without talking. The leaf has given almost everything it carried down from the mountain.</p>
               </div>
             </div>
             {/* steep 7 */}
@@ -423,7 +423,7 @@ const RitualSevenSteeps: React.FC = () => {
               <div data-steep-card style={{ borderLeft: '2px solid rgba(168,135,77,0.18)', padding: '6px 0 6px 24px', opacity: 0.4, transition: 'opacity 500ms, border-color 500ms' }}>
                 <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, marginBottom: 14 }}>第七泡 · Seventh Infusion</div>
                 <h2 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(28px,4.2vw,42px)', lineHeight: 1.08, color: C.cream, margin: '0 0 18px' }}>A gentle goodbye</h2>
-                <p style={{ fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.78, color: C.taupe, margin: 0 }}>A minute or more in the water for one last, faint cup — clear, soft, almost a memory of tea. A fine leaf could be pushed further still; we choose to stop here, while the ending is sweet. To know when a tea is finished is its own small skill.</p>
+                <p style={{ fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.78, color: C.taupe, margin: 0 }}>A minute or more in the water for one last, faint cup, clear, soft, almost a memory of tea. A fine leaf could be pushed further still; we choose to stop here, while the ending is sweet. To know when a tea is finished is its own small skill.</p>
               </div>
             </div>
           </div>

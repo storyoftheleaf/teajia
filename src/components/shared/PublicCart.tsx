@@ -90,7 +90,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
     }
     const sessionCart = sessionStorage.getItem('teajia_cartState');
     if (sessionCart && isOpen && cart.length === 0) setRecoveredCart(true);
-    // Use a media query (no resize storm) — re-evaluated only when crossing the breakpoint
+    // Use a media query (no resize storm), re-evaluated only when crossing the breakpoint
     const mql = window.matchMedia('(min-width: 768px)');
     const apply = () => setPreferredChannel(mql.matches ? 'email' : 'whatsapp');
     apply();
@@ -198,7 +198,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
   };
 
   const showSuccess = (type: 'whatsapp' | 'email' | 'copy') => {
-    // Persistent success message — user dismisses manually or it stays
+    // Persistent success message, user dismisses manually or it stays
     setSuccessMessage({ show: true, type });
   };
 
@@ -215,14 +215,14 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
         source,
       });
     } catch {
-      // Non-critical — inquiry still sent via WhatsApp/email
+      // Non-critical, inquiry still sent via WhatsApp/email
     }
   };
 
   const handleWhatsApp = () => {
     // Validate the resolved phone before opening WhatsApp. buildWhatsAppUrl
     // silently falls back to a recipient-less wa.me link when digits < 7,
-    // which sends nothing — surface a clear error and offer email instead.
+    // which sends nothing, surface a clear error and offer email instead.
     if (!contactChannels.whatsapp) {
       setCheckoutError("This store doesn't have WhatsApp ordering set up. Please use Email or Copy text below to send your order.");
       return;
@@ -269,7 +269,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
 
   return (
     <>
-      {/* Step indicator + currency selector — hairline rules, single bronze for active step */}
+      {/* Step indicator + currency selector, hairline rules, single bronze for active step */}
       <div className="flex-shrink-0 bg-tea-surface border-b border-tea-border">
         <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-tea-border">
           <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -310,7 +310,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
             </select>
           )}
         </div>
-        {/* Exchange rate info — shown when non-USD currency is selected */}
+        {/* Exchange rate info, shown when non-USD currency is selected */}
         {rates.length > 0 && currency !== 'USD' && (
           <div className="px-4 py-2 text-right text-ui-10 text-tea-text-sec">
             <div className="flex items-center justify-end gap-2">
@@ -496,7 +496,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                 <p className="text-xs text-tea-text-sec">Please review before sending.</p>
               </div>
 
-              {/* Single editorial block — top + bottom hairline rules, internal sections divided by rules only */}
+              {/* Single editorial block, top + bottom hairline rules, internal sections divided by rules only */}
               <div className="border-y border-tea-border divide-y divide-tea-border">
                 {/* Customer details */}
                 <dl className="py-4 space-y-2.5">
@@ -546,7 +546,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
 
               <p className="text-ui-11 text-tea-text-sec text-center font-mono">{orderRef}</p>
 
-              {/* Persistent success message — editorial confirmation, no green */}
+              {/* Persistent success message, editorial confirmation, no green */}
               {successMessage?.show && (
                 <div className="cart-fade-in border border-tea-border rounded-md px-4 py-4 space-y-3">
                   <div className="flex items-start justify-between gap-2">
@@ -601,7 +601,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                 </div>
               )}
 
-              {/* Send actions — WhatsApp is the intentional primary channel; alternatives step down to text links */}
+              {/* Send actions: WhatsApp is the intentional primary channel; alternatives step down to text links */}
               <div className="flex flex-col gap-3">
                 {contactChannels.whatsapp && <Button
                   onClick={handleWhatsApp}

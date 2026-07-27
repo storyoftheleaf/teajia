@@ -14,7 +14,7 @@ interface ComparisonSliderProps {
 }
 
 /**
- * ComparisonSlider — Drag-to-compare two images.
+ * ComparisonSlider: Drag-to-compare two images.
  * Image A clips on the left portion; Image B is fully visible underneath.
  * Supports mouse and touch drag. Labels fade in near the handle.
  */
@@ -93,7 +93,7 @@ const ComparisonSlider: React.FC<ComparisonSliderProps> = ({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* Image B — base layer (full) */}
+      {/* Image B, base layer (full) */}
       <img
         src={imageB}
         alt={labelB ?? 'After'}
@@ -101,7 +101,7 @@ const ComparisonSlider: React.FC<ComparisonSliderProps> = ({
         draggable={false}
       />
 
-      {/* Image A — clipped overlay */}
+      {/* Image A, clipped overlay */}
       <div
         className="absolute inset-0 overflow-hidden"
         style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}

@@ -121,7 +121,7 @@ export const Shop: React.FC<ShopProps> = ({
     }
   }, [urlStore]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // URL param support: ?product=<id> — switch to the tab matching the product's
+  // URL param support: ?product=<id>, switch to the tab matching the product's
   // category so the active tab's useProductUrl hook can pick it up and open the
   // modal. Entry points: GlobalSearch results, shared links, page reloads.
   const urlProduct = searchParams.get('product');
@@ -506,7 +506,7 @@ export const Shop: React.FC<ShopProps> = ({
 
         {!isError && activeTab === 'sets' && renderSets()}
 
-        {/* #34 — Recently Viewed */}
+        {/* #34: Recently Viewed */}
         {!isError && recentlyViewed.length > 0 && (() => {
           const recentItems = recentlyViewed
             .map(id => allInventory.find(item => item.id === id))
@@ -571,7 +571,7 @@ export const Shop: React.FC<ShopProps> = ({
         </ToastProvider>
       )}
 
-      {/* Admin: Edit Product — same sidebar panel used in the inventory view */}
+      {/* Admin: Edit Product, same sidebar panel used in the inventory view */}
       {editingProduct && (
         <ToastProvider>
           <Suspense fallback={null}>

@@ -3,7 +3,7 @@
  * Rationale, and the conditions on this exception, in read/immersive.tsx.
  */
 /**
- * Field Study — The Water Before the Leaf · N°12
+ * Field Study: The Water Before the Leaf · N°12
  * Lu Yu's forgotten half: water hardness, temperature, and the classical
  * ranking of sources.
  * Ported pixel-faithfully from the tea-article-redesign mockup.
@@ -148,7 +148,7 @@ const FieldStudyWaterBeforeLeaf: React.FC = () => {
           {/* hero text */}
           <div style={{ position: 'relative', zIndex: 1, padding: '0 clamp(24px,6vw,84px) clamp(48px,9vw,110px)', maxWidth: 1000 }}>
             <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.36em', textTransform: 'uppercase', color: C.gold, marginBottom: 24 }}>
-              A Field Study — the other half of the cup
+              A Field Study, the other half of the cup
             </div>
             <h1 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(46px,8.4vw,112px)', lineHeight: 0.98, letterSpacing: '-0.015em', color: C.cream, margin: 0 }}>
               The Water <span style={{ fontStyle: 'italic', color: C.gold }}>Before the Leaf</span>
@@ -171,11 +171,11 @@ const FieldStudyWaterBeforeLeaf: React.FC = () => {
           <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: C.ink, margin: 0 }}>
             <span style={{ float: 'left', fontFamily: F.display, fontWeight: 600, fontSize: '5em', lineHeight: 0.78, color: C.gold, margin: '8px 16px -4px 0' }}>L</span>
             ù Yù, who wrote the first book on tea twelve centuries ago, devoted an entire chapter not to leaves but to{' '}
-            <em style={{ fontStyle: 'italic', color: C.cream }}>water</em>. He ranked the rivers of China by name. He sent men to fetch from particular bends of particular streams. To him the leaf was only half the craft; the water was the other, quieter half — the half that does the actual carrying. We have mostly forgotten this. The tap, we assume, is the tap. It is not.
+            <em style={{ fontStyle: 'italic', color: C.cream }}>water</em>. He ranked the rivers of China by name. He sent men to fetch from particular bends of particular streams. To him the leaf was only half the craft; the water was the other, quieter half, the half that does the actual carrying. We have mostly forgotten this. The tap, we assume, is the tap. It is not.
           </p>
         </section>
 
-        {/* ── SECTION I — The forgotten ingredient ─────────────────────── */}
+        {/* ── SECTION I: The forgotten ingredient ─────────────────────── */}
         <section style={{ maxWidth: 1100, margin: '0 auto', padding: 'clamp(20px,4vw,40px) clamp(20px,5vw,40px)' }}>
           <div data-reveal style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 'clamp(28px,4vw,40px)', maxWidth: 680, marginLeft: 'auto', marginRight: 'auto' }}>
             <span style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 30, color: C.gold, lineHeight: 1 }}>I</span>
@@ -185,7 +185,7 @@ const FieldStudyWaterBeforeLeaf: React.FC = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,300px),1fr))', gap: 'clamp(24px,4vw,52px)', alignItems: 'center' }}>
             <div data-reveal>
               <p style={pBody}>
-                Water is not a neutral vehicle. It arrives carrying its own dissolved cargo — calcium, magnesium, chlorine, the faint sweetness or flatness of where it has been. Brew the same leaf in two waters and you will not get the same tea twice. A bright spring green can turn dull and grey in hard tap water; a delicate white can be flattened to nothing by chlorine.
+                Water is not a neutral vehicle. It arrives carrying its own dissolved cargo, calcium, magnesium, chlorine, the faint sweetness or flatness of where it has been. Brew the same leaf in two waters and you will not get the same tea twice. A bright spring green can turn dull and grey in hard tap water; a delicate white can be flattened to nothing by chlorine.
               </p>
               <p style={{ ...pBody, margin: 0 }}>
                 The old masters understood the water as a frame, and the tea as the picture. The wrong frame ruins even a masterpiece.
@@ -206,9 +206,9 @@ const FieldStudyWaterBeforeLeaf: React.FC = () => {
                     <path d="M40 362 C 130 348, 200 348, 290 362" />
                   </g>
                 </svg>
-                <div style={{ ...plateLabel }}>Plate I — the source</div>
+                <div style={{ ...plateLabel }}>Plate I, the source</div>
               </div>
-              <figcaption style={cap}>A mountain spring — for Lu Yu, the finest water of all, soft and alive.</figcaption>
+              <figcaption style={cap}>A mountain spring, for Lu Yu, the finest water of all, soft and alive.</figcaption>
             </figure>
           </div>
         </section>
@@ -223,11 +223,11 @@ const FieldStudyWaterBeforeLeaf: React.FC = () => {
           </p>
         </section>
 
-        {/* ── SECTION II — A ranking of waters ─────────────────────────── */}
+        {/* ── SECTION II: A ranking of waters ─────────────────────────── */}
         <section style={{ maxWidth: 680, margin: '0 auto', padding: '0 24px' }}>
           <SectionDivider numeral="II" label="A ranking of waters" />
           <p data-reveal style={{ ...pBody, marginBottom: 30 }}>
-            The classical hierarchy is simple, and surprisingly close to what modern chemistry would tell you. Soft, living water from high ground — low in minerals, high in oxygen — lets a tea speak. Heavy, still, mineral-laden water muffles it.
+            The classical hierarchy is simple, and surprisingly close to what modern chemistry would tell you. Soft, living water from high ground, low in minerals, high in oxygen, lets a tea speak. Heavy, still, mineral-laden water muffles it.
           </p>
           <div data-reveal style={{ display: 'flex', flexDirection: 'column', gap: 0, marginBottom: 'clamp(20px,4vw,40px)' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, padding: '18px 0', borderTop: '1px solid rgba(168,135,77,0.18)' }}>
@@ -243,25 +243,25 @@ const FieldStudyWaterBeforeLeaf: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, padding: '18px 0', borderTop: '1px solid rgba(168,135,77,0.1)', borderBottom: '1px solid rgba(168,135,77,0.18)' }}>
               <span style={{ fontFamily: F.mono, fontSize: 12, color: C.gold, width: 28, flexShrink: 0 }}>03</span>
               <span style={{ fontFamily: F.display, fontSize: 24, color: C.ink, width: 'clamp(120px,30%,180px)', flexShrink: 0 }}>Well water</span>
-              <span style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 14, lineHeight: 1.5, color: C.dim }}>Still and hard — usable, but the last resort.</span>
+              <span style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 14, lineHeight: 1.5, color: C.dim }}>Still and hard, usable, but the last resort.</span>
             </div>
           </div>
           <p data-reveal style={{ ...pBody, margin: 0 }}>
-            Few of us live beside a mountain spring. But the principle survives the move to the kitchen: a soft, low-mineral water — filtered, or a gentle bottled spring — will almost always pour you a better cup than the tap.
+            Few of us live beside a mountain spring. But the principle survives the move to the kitchen: a soft, low-mineral water, filtered, or a gentle bottled spring, will almost always pour you a better cup than the tap.
           </p>
         </section>
 
-        {/* ── FULL-BLEED — THE BOIL ─────────────────────────────────────── */}
+        {/* ── FULL-BLEED: THE BOIL ─────────────────────────────────────── */}
         <section style={{ padding: 'clamp(40px,7vw,90px) 0' }}>
           <figure data-reveal style={{ margin: 0 }}>
             <div style={{ position: 'relative', padding: 'clamp(40px,6vw,80px) clamp(20px,5vw,56px)', borderTop: '1px solid rgba(168,135,77,0.16)', borderBottom: '1px solid rgba(168,135,77,0.16)', background: 'linear-gradient(180deg,#181d1c,#14100b)' }}>
               <div style={{ maxWidth: 1080, margin: '0 auto' }}>
-                <div style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.22em', textTransform: 'uppercase', color: C.gold, marginBottom: 10 }}>Plate II — reading the boil</div>
+                <div style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.22em', textTransform: 'uppercase', color: C.gold, marginBottom: 10 }}>Plate II, reading the boil</div>
                 <h2 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(28px,4.6vw,48px)', lineHeight: 1.06, color: C.cream, margin: '0 0 12px' }}>The four stages of boiling water</h2>
                 <p style={{ fontFamily: F.body, fontSize: 'clamp(15px,1.9vw,17px)', lineHeight: 1.7, color: C.taupe, margin: '0 0 clamp(34px,5vw,52px)', maxWidth: 660 }}>
                   Long before thermometers, tea masters read temperature by the{' '}
                   <em style={{ fontStyle: 'italic', color: C.ink }}>look</em>{' '}
-                  of the water — naming each stage of the boil for the bubbles it threw. The names are still the most useful guide there is.
+                  of the water, naming each stage of the boil for the bubbles it threw. The names are still the most useful guide there is.
                 </p>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,160px),1fr))', gap: 'clamp(16px,2.4vw,28px)' }}>
                   <BoilStage
@@ -342,25 +342,25 @@ const FieldStudyWaterBeforeLeaf: React.FC = () => {
                   />
                 </div>
                 <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 13.5, lineHeight: 1.6, color: C.dim, margin: 'clamp(28px,4vw,40px) 0 0', maxWidth: 680 }}>
-                  Lu Yu warned against the "old man's water" — water boiled too long and too hard, gone flat and lifeless. Bring it just to the stage your tea wants, and no further.
+                  Lu Yu warned against the "old man's water", water boiled too long and too hard, gone flat and lifeless. Bring it just to the stage your tea wants, and no further.
                 </p>
               </div>
             </div>
           </figure>
         </section>
 
-        {/* ── SECTION III — Hard, soft & the minerals between ───────────── */}
+        {/* ── SECTION III: Hard, soft & the minerals between ───────────── */}
         <section style={{ maxWidth: 680, margin: '0 auto', padding: '0 24px' }}>
           <SectionDivider numeral="III" label="Hard, soft & the minerals between" />
           <p data-reveal style={{ ...pBody, marginBottom: 22 }}>
-            "Hardness" is mostly dissolved calcium and magnesium. A little is good — pure distilled water tastes hollow, and brews a strangely empty tea, because some minerals are needed to pull flavour from the leaf. Too much, and the calcium binds with the tea's compounds, dulling the colour and throwing that grey scum across the surface of a cup of black tea.
+            "Hardness" is mostly dissolved calcium and magnesium. A little is good, pure distilled water tastes hollow, and brews a strangely empty tea, because some minerals are needed to pull flavour from the leaf. Too much, and the calcium binds with the tea's compounds, dulling the colour and throwing that grey scum across the surface of a cup of black tea.
           </p>
           <p data-reveal style={{ ...pBody, margin: 0 }}>
-            The sweet spot is a soft-to-medium water — enough minerals to carry, not enough to smother. Chlorine, meanwhile, has no business near good tea: let tap water stand uncovered overnight, or filter it, and the worst of it leaves.
+            The sweet spot is a soft-to-medium water, enough minerals to carry, not enough to smother. Chlorine, meanwhile, has no business near good tea: let tap water stand uncovered overnight, or filter it, and the worst of it leaves.
           </p>
         </section>
 
-        {/* ── SECTION IV — Temperature table ───────────────────────────── */}
+        {/* ── SECTION IV: Temperature table ───────────────────────────── */}
         <section data-reveal style={{ maxWidth: 760, margin: '0 auto', padding: 'clamp(40px,6vw,72px) 24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', paddingBottom: 16, borderBottom: '1px solid rgba(168,135,77,0.18)', marginBottom: 4 }}>
             <h2 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(24px,3vw,34px)', color: C.cream, margin: 0 }}>Water, by tea</h2>
@@ -386,7 +386,7 @@ const FieldStudyWaterBeforeLeaf: React.FC = () => {
         {/* ── CLOSING ───────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(30px,5vw,56px) 24px clamp(40px,6vw,72px)' }}>
           <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(17px,2.1vw,20px)', lineHeight: 1.72, color: C.taupe, margin: 0 }}>
-            Change your water before you change your tea. It is the cheapest and most dramatic improvement a drinker can make — and the one almost no one thinks to try. The leaf gets all the attention. The water does most of the work.
+            Change your water before you change your tea. It is the cheapest and most dramatic improvement a drinker can make, and the one almost no one thinks to try. The leaf gets all the attention. The water does most of the work.
           </p>
           <div style={{ marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>
             A Field Study by Teajia &nbsp;·&nbsp; N°12

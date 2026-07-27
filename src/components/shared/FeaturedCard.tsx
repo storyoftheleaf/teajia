@@ -52,7 +52,7 @@ export const FeaturedCard: React.FC<FeaturedCardProps> = ({
           </button>
         </div>
 
-        {/* Decorative area — visible on all screens */}
+        {/* Decorative area, visible on all screens */}
         {decorativeElement && (
           <div className="flex items-center justify-center p-4 md:p-6 md:w-2/5" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 1px 0 0 var(--tea-accent-sub)' }}>
             {decorativeElement}

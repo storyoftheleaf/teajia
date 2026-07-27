@@ -3,7 +3,7 @@
  * Rationale, and the conditions on this exception, in read/immersive.tsx.
  */
 /**
- * PlateRow — the photo-essay row of a hand-built Read story.
+ * PlateRow, the photo-essay row of a hand-built Read story.
  *
  * The set + order of plates lives in the story-edit draft (`plates`), defaulting
  * to the coded initial plates. In edit mode the owner can drag a plate to

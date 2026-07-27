@@ -88,7 +88,7 @@ const PostEventView: React.FC<PostEventViewProps> = ({
           <p className="text-sm text-tea-text-sec">Session Complete</p>
         </div>
 
-        {/* Session Recap — only for attendees who were present */}
+        {/* Session Recap, only for attendees who were present */}
         {didAttend && (
           <div className="mb-10">
             {hasPostSessionData ? (

@@ -1,5 +1,5 @@
 /**
- * notesSync — push unsynced notes and sessions to the server.
+ * notesSync, push unsynced notes and sessions to the server.
  * Mirrors the pattern used by teaCompassSync.ts.
  */
 
@@ -51,7 +51,7 @@ export async function syncNotes(): Promise<void> {
       await api.notes.syncSessions(unsyncedSessions.map(sessionToPayload), BACKGROUND_REQUEST);
       store.markSessionSynced(unsyncedSessions.map(s => s.id));
     } catch {
-      // Silent — retry next time
+      // Silent, retry next time
     }
   }
 
@@ -63,7 +63,7 @@ export async function syncNotes(): Promise<void> {
     await api.notes.sync(unsyncedNotes.map(noteToPayload), BACKGROUND_REQUEST);
     store.markSynced(unsyncedNotes.map(n => n.id));
   } catch {
-    // Silent — stays unsynced for retry
+    // Silent, stays unsynced for retry
   }
 }
 
@@ -102,6 +102,6 @@ export async function hydrateNotes(): Promise<void> {
 
     useNotesStore.setState({ notes: merged });
   } catch {
-    // Offline or error — local state stands
+    // Offline or error, local state stands
   }
 }

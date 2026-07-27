@@ -12,10 +12,10 @@ import { observePalate, noteRichness, suggestEvolution, type FlavorFamily } from
 import type { DiscoveryLevel, TeaDiscoveryProfile } from './types';
 
 const DAYS = 86_400_000;
-/** The dimension behaviour can't observe — re-asked, never inferred. */
+/** The dimension behaviour can't observe, re-asked, never inferred. */
 const TEMPERAMENT_Q = QUESTIONS.find((q) => q.id === 'temperament')!;
 
-/** Human label for a flavor family — matches the quiz's swatch wording. */
+/** Human label for a flavor family, matches the quiz's swatch wording. */
 const FAMILY_LABEL: Record<FlavorFamily, string> = {
   light: 'lighter, fresher teas',
   roasted: 'roasted, fuller teas',
@@ -43,11 +43,11 @@ const SUMMARY_KEYS: Record<string, string> = {
 export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRetake, onAdopt, onReanswer }) => {
   const authUser = useAppStore((s) => s.authUser);
   const tastingJournal = useAppStore((s) => s.tastingJournal);
-  // Axis 1 — the threads that draw them, strongest first. Lead thread + resonances.
+  // Axis 1: the threads that draw them, strongest first. Lead thread + resonances.
   const threadIds = profileThreads(profile);
   const threads = threadIds.map((id) => THREADS[id]).filter(Boolean);
 
-  // Group sessions attended — observed temperament signal (Route A). Members only.
+  // Group sessions attended, observed temperament signal (Route A). Members only.
   const [sessionsAttended, setSessionsAttended] = useState(0);
   useEffect(() => {
     if (!authUser) return;
@@ -58,7 +58,7 @@ export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRet
     return () => { alive = false; };
   }, [authUser]);
 
-  // Evolution loop — observe what they actually drink/do and let it refine the
+  // Evolution loop, observe what they actually drink/do and let it refine the
   // recommendations + suggest growth. The chosen disposition is never overwritten.
   const observed = observePalate(tastingJournal);
   const recommendations = recommend(profile, observed);
@@ -87,7 +87,7 @@ export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRet
     statedFlavor !== 'unsure' &&
     statedFlavor !== observed.flavorLean;
 
-  // "Still true?" — periodically re-ask the one thing behaviour can't observe
+  // "Still true?", periodically re-ask the one thing behaviour can't observe
   // (temperament). Shown when the profile is a couple of weeks old and no
   // stronger evolution prompt is up. Answering refreshes completedAt, so it
   // settles for another fortnight.
@@ -104,7 +104,7 @@ export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRet
 
   return (
     <div className="mx-auto w-full max-w-xl">
-      {/* Hero — the mirror. Lead thread, then the others that resonate. */}
+      {/* Hero, the mirror. Lead thread, then the others that resonate. */}
       <div className="flex flex-col items-center pt-8 pb-2 text-center">
         <LogoEmblem size={44} color="var(--tea-gold)" className="mb-6 opacity-70" />
         <p className="font-sans text-ui-11 uppercase tracking-[1.4px] text-tea-text-dim">
@@ -151,7 +151,7 @@ export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRet
         ))}
       </dl>
 
-      {/* Evolution — the seed becomes real once there's practice to read. */}
+      {/* Evolution, the seed becomes real once there's practice to read. */}
       {observed.hasEnoughSignal ? (
         <div className="mt-7 rounded-xl border border-tea-border bg-tea-elevated px-5 py-4">
           <p className="font-sans text-ui-11 uppercase tracking-[1.4px] text-tea-text-dim mb-2">
@@ -217,7 +217,7 @@ export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRet
         </div>
       )}
 
-      {/* "Still true?" — re-ask the one dimension behaviour can't observe. */}
+      {/* "Still true?", re-ask the one dimension behaviour can't observe. */}
       {showReask && (
         <div className="mt-4 rounded-xl border border-tea-border bg-tea-surface px-5 py-4">
           <p className="font-sans text-ui-11 uppercase tracking-[1.4px] text-tea-text-dim mb-2">
@@ -246,7 +246,7 @@ export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRet
         </div>
       )}
 
-      {/* Recommendations — tailored to level, flavor leaning, and how they brew */}
+      {/* Recommendations, tailored to level, flavor leaning, and how they brew */}
       <div className="mt-8">
         <p className="font-sans text-ui-11 uppercase tracking-[1.4px] text-tea-text-dim mb-3">
           Where to begin
@@ -270,7 +270,7 @@ export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRet
         </div>
       </div>
 
-      {/* Sign-in nudge (signed-out only) — keep your profile across devices */}
+      {/* Sign-in nudge (signed-out only), keep your profile across devices */}
       {!authUser && (
         <p className="mt-7 text-center font-body text-ui-13 leading-relaxed text-tea-text-sec">
           Your profile is saved on this device.{' '}

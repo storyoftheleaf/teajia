@@ -38,7 +38,7 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
 
   const focusTrapRef = useFocusTrap<HTMLDivElement>(isOpen);
 
-  // Visibility state — drives opacity-only fade matching AccountPanel
+  // Visibility state, drives opacity-only fade matching AccountPanel
   const [mounted, setMounted] = useState(isOpen);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -101,14 +101,14 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
 
   return createPortal(
     <>
-      {/* Backdrop — same pattern as AccountPanel */}
+      {/* Backdrop, same pattern as AccountPanel */}
       <div
         className={`fixed inset-0 z-drawer bg-black/80 backdrop-blur-sm ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         style={{ transition: isVisible ? 'opacity 300ms ease' : 'opacity 150ms ease' }}
         onClick={onClose}
       />
 
-      {/* Panel — docks right, opacity fade, viewport-attached via portal */}
+      {/* Panel, docks right, opacity fade, viewport-attached via portal */}
       <div
         ref={focusTrapRef}
         className="fixed top-0 right-0 h-full w-full md:w-[400px] bg-tea-bg z-modal shadow-2xl flex flex-col border-l border-tea-border pb-[env(safe-area-inset-bottom,0px)]"
@@ -140,12 +140,12 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
           </Suspense>
         ) : props.mode === 'public' ? (
           <div className="flex flex-col flex-1 min-h-0">
-            {/* Drag handle — mobile only */}
+            {/* Drag handle, mobile only */}
             <div data-drag-handle className="md:hidden flex justify-center py-3 cursor-grab active:cursor-grabbing touch-pan-x shrink-0">
               <div className={`h-1 rounded-full transition-all duration-150 ${isDragging ? 'bg-tea-gold w-16' : 'bg-tea-text-sec/30 w-10'}`} />
             </div>
 
-            {/* Header — Close top-left, matching AccountPanel rule */}
+            {/* Header: Close top-left, matching AccountPanel rule */}
             <div className="flex items-center px-4 py-2.5 border-b border-tea-border bg-tea-surface shrink-0">
               <button
                 onClick={onClose}

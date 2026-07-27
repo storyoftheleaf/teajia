@@ -1,6 +1,6 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════╗
- * ║  TEAJIA DESIGN SYSTEM — "Espresso + Gold"                      ║
+ * ║  TEAJIA DESIGN SYSTEM, "Espresso + Gold"                      ║
  * ║  Single source of truth for all visual decisions.               ║
  * ║                                                                 ║
  * ║  Typography:  Cormorant Garamond · Lora · Plus Jakarta Sans · IBM Plex Mono║
@@ -19,23 +19,23 @@ import { normalizeTeaType, NON_TEA_TYPES, type TeaType as WisdomTeaType } from '
 /**
  * Font Roles:
  *
- *   DISPLAY    — Cormorant Garamond 400
+ *   DISPLAY   : Cormorant Garamond 400
  *                Article titles, page headings, hero text, card titles.
  *                Old Style serif with warmth and gravitas.
  *
- *   BODY       — Lora 400 (reading), 300 italic (subtitles)
+ *   BODY      : Lora 400 (reading), 300 italic (subtitles)
  *                Long-form articles, descriptions, editorial prose.
  *                Calligraphic serif optimized for screen reading.
  *
- *   UI / SANS  — Plus Jakarta Sans 300–600
+ *   UI / SANS : Plus Jakarta Sans 300–600
  *                Labels, navigation, tags, buttons, metadata.
- *                Geometric but soft — warmer than Inter, better at small sizes.
+ *                Geometric but soft, warmer than Inter, better at small sizes.
  *
- *   MONO       — IBM Plex Mono 400
+ *   MONO      : IBM Plex Mono 400
  *                Prices, weights, hex codes, technical metadata.
  *                Wider and more readable at small sizes than JetBrains Mono.
  *
- *   CHINESE    — Noto Serif SC (body), Ma Shan Zheng (calligraphy)
+ *   CHINESE   : Noto Serif SC (body), Ma Shan Zheng (calligraphy)
  *                Chinese product names and tea card watermarks.
  */
 
@@ -45,7 +45,7 @@ export const FONT_STACKS = {
   caption: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
   sans:    ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
   // Mono rebound: Plus Jakarta Sans 500 with tabular-nums.
-  // Clean geometric numerals — no dotted zero. The `.num` helper and
+  // Clean geometric numerals, no dotted zero. The `.num` helper and
   // `font-mono` utility both resolve to this stack; numerics get
   // weight 500 + tabular-nums via the .num class in card-utilities.css.
   mono:    ['Plus Jakarta Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'],
@@ -54,7 +54,7 @@ export const FONT_STACKS = {
 } as const;
 
 export const TYPE_SCALE = {
-  /** Page titles, hero headings — Cormorant Garamond 400 (300 hairline strokes broke up in sunlight) */
+  /** Page titles, hero headings: Cormorant Garamond 400 (300 hairline strokes broke up in sunlight) */
   display: {
     fontFamily: 'display',
     fontWeight: 400,
@@ -63,7 +63,7 @@ export const TYPE_SCALE = {
     letterSpacing: '0.01em',
   },
 
-  /** Section headings — Cormorant Garamond 500 (weight contrast against h1 creates hierarchy) */
+  /** Section headings: Cormorant Garamond 500 (weight contrast against h1 creates hierarchy) */
   h2: {
     fontFamily: 'display',
     fontWeight: 500,
@@ -72,7 +72,7 @@ export const TYPE_SCALE = {
     letterSpacing: '0.01em',
   },
 
-  /** Card titles, drawer headings — Cormorant Garamond 400 (bridges h2→body gap) */
+  /** Card titles, drawer headings: Cormorant Garamond 400 (bridges h2→body gap) */
   h3: {
     fontFamily: 'display',
     fontWeight: 400,
@@ -81,7 +81,7 @@ export const TYPE_SCALE = {
     letterSpacing: '0.01em',
   },
 
-  /** Descriptive subtitles, poetic text — Lora 400 italic (300 was too thin on non-retina) */
+  /** Descriptive subtitles, poetic text: Lora 400 italic (300 was too thin on non-retina) */
   subtitle: {
     fontFamily: 'body',
     fontWeight: 400,
@@ -90,7 +90,7 @@ export const TYPE_SCALE = {
     lineHeight: 1.4,
   },
 
-  /** Article text, long-form reading — Lora 400 (tighter leading: 1.7 reduces float) */
+  /** Article text, long-form reading: Lora 400 (tighter leading: 1.7 reduces float) */
   body: {
     fontFamily: 'body',
     fontWeight: 400,
@@ -98,7 +98,7 @@ export const TYPE_SCALE = {
     lineHeight: 1.7,
   },
 
-  /** Captions, secondary text — Lora 400 (300 was too thin on non-retina / outdoors) */
+  /** Captions, secondary text: Lora 400 (300 was too thin on non-retina / outdoors) */
   bodyLight: {
     fontFamily: 'body',
     fontWeight: 400,
@@ -106,7 +106,7 @@ export const TYPE_SCALE = {
     lineHeight: 1.65,
   },
 
-  /** Tags, categories, metadata — Plus Jakarta Sans 400 uppercase (11px, tighter tracking) */
+  /** Tags, categories, metadata: Plus Jakarta Sans 400 uppercase (11px, tighter tracking) */
   label: {
     fontFamily: 'sans',
     fontWeight: 400,
@@ -116,7 +116,7 @@ export const TYPE_SCALE = {
     textTransform: 'uppercase' as const,
   },
 
-  /** Nav items, section headers — Plus Jakarta Sans 400 uppercase */
+  /** Nav items, section headers: Plus Jakarta Sans 400 uppercase */
   nav: {
     fontFamily: 'sans',
     fontWeight: 400,
@@ -126,7 +126,7 @@ export const TYPE_SCALE = {
     textTransform: 'uppercase' as const,
   },
 
-  /** Interactive text, buttons — Plus Jakarta Sans 400 */
+  /** Interactive text, buttons: Plus Jakarta Sans 400 */
   link: {
     fontFamily: 'sans',
     fontWeight: 400,
@@ -134,7 +134,7 @@ export const TYPE_SCALE = {
     letterSpacing: '0.2px',
   },
 
-  /** Prices, hex codes, specs — IBM Plex Mono 400 (11px, wider and more readable) */
+  /** Prices, hex codes, specs: IBM Plex Mono 400 (11px, wider and more readable) */
   mono: {
     fontFamily: 'mono',
     fontWeight: 400,
@@ -154,7 +154,7 @@ export const TYPOGRAPHY_CLASSES = {
   nav:       'font-sans text-ui-12 font-normal uppercase tracking-[1px] leading-[1.4]',
   link:      'font-sans text-ui-14 font-normal tracking-[0.2px]',
   mono:      'font-mono text-ui-11 font-normal',
-  // Sidebar nav — Adrian feedback: 15/13 was too small, lifted to 17/15.
+  // Sidebar nav: Adrian feedback: 15/13 was too small, lifted to 17/15.
   // Group labels (BROWSE / MANAGE / CURATE micro-caps) are sans 10 semibold.
   navSidebar:      'font-display text-ui-17 font-medium tracking-[0.04em] leading-[1.3]',
   navSidebarChild: 'font-display text-ui-15 font-normal tracking-[0.04em] leading-[1.3]',
@@ -175,7 +175,7 @@ export const FONT_SIZES = {
 } as const;
 
 /**
- * UI text scale — named pixel stops for high-frequency UI sizes.
+ * UI text scale, named pixel stops for high-frequency UI sizes.
  * Each stop maps directly to its pixel value, producing utility classes
  * like `text-ui-10` → font-size: 10px. Use these instead of arbitrary
  * `text-[Npx]` for any value that has a defined stop.
@@ -268,7 +268,7 @@ export const Z_INDEX = {
 
 
 // ─────────────────────────────────────────────────────────────
-// 2. COLOR PALETTE — "Espresso + Gold"
+// 2. COLOR PALETTE, "Espresso + Gold"
 // ─────────────────────────────────────────────────────────────
 
 /**
@@ -284,30 +284,30 @@ export const Z_INDEX = {
 
 export const COLORS = {
   dark: {
-    bg:        '#1a1714',                  // Cooler espresso — reduced yellow undertone
-    surface:   '#2a2622',                  // Primary surface — cards, panels
-    elevated:  '#3a3530',                  // Elevated surfaces — modals, popovers
-    text:      '#ede4d4',                  // Primary text — cream white
-    textSec:   '#cdc0a8',                  // Secondary text — RAISED floor for outdoor legibility (was #b5a892)
-    textDim:   '#80735f',                  // Dimmed text — labels, captions
-    gold:      '#a8874d',                  // Structural accent — primary buttons, active borders, focus rings
-    goldLt:    '#bfa06a',                  // Light gold — hover states, highlights
-    readGold:  '#a8874d',                  // Reading gold — pinned for text (type token names, eyebrow markers, inline code, hover links)
-    border:    'rgba(168,135,77,0.08)',    // Subtle gold borders — derived from tea-gold-rgb @ 8%
-    accentSub: 'rgba(168,135,77,0.10)',    // Subtle gold backgrounds — derived from tea-gold-rgb @ 10%
-    error:     '#c46a5a',                  // Warm terracotta — reds that read on espresso (was #8a3a32 oxblood)
-    leaf:      '#5a6e5a',                  // Success only — never decorative
+    bg:        '#1a1714',                  // Cooler espresso, reduced yellow undertone
+    surface:   '#2a2622',                  // Primary surface, cards, panels
+    elevated:  '#3a3530',                  // Elevated surfaces, modals, popovers
+    text:      '#ede4d4',                  // Primary text, cream white
+    textSec:   '#cdc0a8',                  // Secondary text: RAISED floor for outdoor legibility (was #b5a892)
+    textDim:   '#80735f',                  // Dimmed text, labels, captions
+    gold:      '#a8874d',                  // Structural accent, primary buttons, active borders, focus rings
+    goldLt:    '#bfa06a',                  // Light gold, hover states, highlights
+    readGold:  '#a8874d',                  // Reading gold, pinned for text (type token names, eyebrow markers, inline code, hover links)
+    border:    'rgba(168,135,77,0.08)',    // Subtle gold borders, derived from tea-gold-rgb @ 8%
+    accentSub: 'rgba(168,135,77,0.10)',    // Subtle gold backgrounds, derived from tea-gold-rgb @ 10%
+    error:     '#c46a5a',                  // Warm terracotta, reds that read on espresso (was #8a3a32 oxblood)
+    leaf:      '#5a6e5a',                  // Success only, never decorative
   },
   light: {
-    bg:        '#f4ece0',                  // Warm parchment — page background
-    surface:   '#e6dbcc',                  // Tinted surface — cards, panels
+    bg:        '#f4ece0',                  // Warm parchment, page background
+    surface:   '#e6dbcc',                  // Tinted surface, cards, panels
     elevated:  '#d5c8b4',                  // Elevated surfaces
     text:      '#18130e',                  // Dark espresso text
-    textSec:   '#443a2c',                  // Secondary text — RAISED floor (was #5e5342)
+    textSec:   '#443a2c',                  // Secondary text: RAISED floor (was #5e5342)
     textDim:   '#9a8c78',                  // Dimmed text
     gold:      '#8e6d2e',                  // Darker gold for light backgrounds
     goldLt:    '#a88340',                  // Light gold variant
-    readGold:  '#8e6d2e',                  // Reading gold — pinned for text
+    readGold:  '#8e6d2e',                  // Reading gold, pinned for text
     border:    'rgba(142,109,46,0.1)',     // Warm borders
     accentSub: 'rgba(142,109,46,0.07)',    // Subtle accent backgrounds
     error:     '#732a23',                  // Muted oxblood (works on parchment)
@@ -315,7 +315,7 @@ export const COLORS = {
   },
 } as const;
 
-/** Utility color aliases — not for component className use */
+/** Utility color aliases, not for component className use */
 export const UTIL_COLORS = {
   'tea-green':    '#5A6E5A',
   'tea-moss':     '#2A3430',
@@ -336,7 +336,7 @@ export const UTIL_COLORS = {
 type ColorSet = { card: string; vivid: string };
 
 // Typed against the wisdom base's TeaType so a missing or extra key is a compile
-// error. 'Teaware' and 'Misc' are the wisdom base's NON_TEA_TYPES — not teas,
+// error. 'Teaware' and 'Misc' are the wisdom base's NON_TEA_TYPES, not teas,
 // but the same product records carry them.
 export const TEA_TYPE_COLORS: Record<WisdomTeaType | typeof NON_TEA_TYPES[number], ColorSet> = {
   Green:   { card: '#859F85', vivid: '#86efac' },
@@ -354,7 +354,7 @@ export const TEA_TYPE_COLORS: Record<WisdomTeaType | typeof NON_TEA_TYPES[number
 
 export type TeaType = keyof typeof TEA_TYPE_COLORS;
 
-// Kept for reference/back-compat call sites that pass a raw stored value —
+// Kept for reference/back-compat call sites that pass a raw stored value:
 // dialects (e.g. 'Black') resolve to their canonical wisdom type before lookup.
 const resolveColorKey = (type: string): TeaType => (normalizeTeaType(type) ?? type) as TeaType;
 
@@ -373,7 +373,7 @@ export const getTeaVividColor = (type: string): string =>
 
 /**
  * The Alcove card is the premium product display component.
- * It uses the main Espresso+Gold palette — NOT its own color system.
+ * It uses the main Espresso+Gold palette: NOT its own color system.
  * The textures, gradients, and processing are Alcove-specific,
  * but the base colors come from the shared palette.
  *
@@ -402,13 +402,13 @@ export const GRADIENTS = {
   /** Subtle top warmth for card surfaces */
   cardWarmth: 'radial-gradient(ellipse 100% 80% at 50% 0%, rgba(184, 146, 78, 0.03) 0%, transparent 60%)',
 
-  /** Inset panel highlight — recessed alcove feel */
+  /** Inset panel highlight, recessed alcove feel */
   insetHighlight: 'radial-gradient(ellipse 80% 40% at 70% 0%, rgba(200, 170, 120, 0.04), transparent)',
 
   /** Light mode inset variant */
   insetHighlightLight: 'radial-gradient(ellipse 80% 40% at 70% 0%, rgba(142, 109, 46, 0.03), transparent)',
 
-  /** Warm section divider — replaces flat border-top */
+  /** Warm section divider, replaces flat border-top */
   divider: 'linear-gradient(90deg, transparent, rgba(184, 146, 78, 0.2) 20%, rgba(184, 146, 78, 0.3) 50%, rgba(184, 146, 78, 0.2) 80%, transparent)',
 
   /** Sidebar background */
@@ -420,11 +420,11 @@ export const GRADIENTS = {
   /** Image overlays for photo essays and cards */
   imageSheen: 'linear-gradient(90deg, transparent, rgba(200,170,120,0.08), transparent)',
 
-  /** Alcove card top warmth — the signature glow */
+  /** Alcove card top warmth, the signature glow */
   alcoveWarmth: 'radial-gradient(ellipse 70% 50% at 85% 8%, rgba(180,120,40,0.09), transparent)',
   alcoveWarmthSecondary: 'radial-gradient(ellipse 50% 40% at 90% 0%, rgba(200,140,50,0.05), transparent)',
 
-  /** Alcove photo mask — horizontal and vertical fades */
+  /** Alcove photo mask, horizontal and vertical fades */
   alcovePhotoMaskH: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.02) 15%, rgba(0,0,0,0.08) 30%, rgba(0,0,0,0.25) 50%, rgba(0,0,0,0.5) 70%, black 90%)',
   alcovePhotoMaskV: 'linear-gradient(to bottom, black 85%, transparent 100%)',
 
@@ -449,19 +449,19 @@ export const GRADIENTS = {
  */
 
 export const TEXTURES = {
-  /** Full-page noise overlay — fractalNoise 0.65, 4 octaves, opacity 0.06 */
+  /** Full-page noise overlay, fractalNoise 0.65, 4 octaves, opacity 0.06 */
   grainOverlay: `url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
 
-  /** Denser grain for surfaces — fractalNoise 0.55, 5 octaves, multiply blend */
+  /** Denser grain for surfaces, fractalNoise 0.55, 5 octaves, multiply blend */
   surfaceGrain: `url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.55' numOctaves='5' stitchTiles='stitch' seed='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)'/%3E%3C/svg%3E")`,
 
-  /** Fine grain for Alcove card inset panels — 0.85 base, 4 octaves, 120px tile */
+  /** Fine grain for Alcove card inset panels, 0.85 base, 4 octaves, 120px tile */
   alcoveGrain: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
 
-  /** Paper weave — crossing horizontal and vertical fine lines */
+  /** Paper weave, crossing horizontal and vertical fine lines */
   paperTexture: `repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(180, 165, 140, 0.03) 1px, rgba(180, 165, 140, 0.03) 2px), repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(180, 165, 140, 0.02) 2px, rgba(180, 165, 140, 0.02) 3px)`,
 
-  /** Fabric / linen weave — warm thread pattern */
+  /** Fabric / linen weave, warm thread pattern */
   fabricTexture: `repeating-linear-gradient(90deg, rgba(200,170,120,0.03) 0px, rgba(200,170,120,0.03) 1px, transparent 1px, transparent 4px), repeating-linear-gradient(0deg, rgba(200,170,120,0.03) 0px, rgba(200,170,120,0.03) 1px, transparent 1px, transparent 4px)`,
 } as const;
 
@@ -491,7 +491,7 @@ export const SHADOWS = {
   /** Card grid item hover */
   cardHover: '0 6px 16px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.2), inset 0 1px 0 rgba(184,146,78,0.08)',
 
-  /** Inset panel — alcove-inspired recessed surface */
+  /** Inset panel, alcove-inspired recessed surface */
   insetPanel: 'inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.03), 0 -1px 0 rgba(200,170,120,0.05)',
 
   /** Light mode inset panel */
@@ -526,13 +526,13 @@ export const SPACING = {
 
 export const BORDER_RADIUS = {
   none: '0px',
-  sm:   '0.125rem',   // 2px  — subtle rounding
+  sm:   '0.125rem',   // 2px , subtle rounding
   base: '0.25rem',    // 4px
-  md:   '0.375rem',   // 6px  — inset panels
+  md:   '0.375rem',   // 6px , inset panels
   lg:   '0.5rem',     // 8px
   xl:   '0.75rem',    // 12px
-  '2xl': '0.875rem',  // 14px — cards
-  '3xl': '1.125rem',  // 18px — large panels, modals
+  '2xl': '0.875rem',  // 14px, cards
+  '3xl': '1.125rem',  // 18px, large panels, modals
   full: '9999px',     // pills, tags, avatars
 } as const;
 
@@ -608,7 +608,7 @@ export const ANIMATIONS = {
  * Icon library: lucide-react (both public and admin)
  *
  * Style rules:
- *   - Stroke weight:  1.5 (default lucide) — clean but not hairline
+ *   - Stroke weight:  1.5 (default lucide), clean but not hairline
  *   - Navigation:     18–22px
  *   - Inline w/ text: 14–16px
  *   - Aesthetic:      Geometric and minimal. No rounded/playful/heavy styles.
@@ -626,7 +626,7 @@ export const ICON_SIZES = {
 
 
 // ─────────────────────────────────────────────────────────────
-// 12. SURFACE TREATMENTS — "The Alcove System"
+// 12. SURFACE TREATMENTS, "The Alcove System"
 // ─────────────────────────────────────────────────────────────
 
 /**
@@ -635,17 +635,17 @@ export const ICON_SIZES = {
  *
  * It consists of layered effects applied via CSS classes (see card-utilities.css):
  *
- *   .surface-warm        — Primary panel surface
+ *   .surface-warm       : Primary panel surface
  *                           Layers: radial warmth gradient + grain noise overlay
  *                           Use on: drawers, sidebars, full-panel backgrounds
  *
- *   .surface-warm-inset  — Recessed content area within a .surface-warm panel
+ *   .surface-warm-inset : Recessed content area within a .surface-warm panel
  *                           Layers: darkened bg + edge-lit inset shadows +
  *                                   denser grain + ambient top-glow
  *                           Use on: content areas, scrollable regions, form sections
  *
  * The system creates tactile, editorial depth without relying on borders or
- * heavy shadows. Everything is warm-toned — never white, never cold.
+ * heavy shadows. Everything is warm-toned, never white, never cold.
  *
  * Example structure:
  *   <div class="surface-warm">           ← Drawer/panel shell
@@ -658,7 +658,7 @@ export const ICON_SIZES = {
  */
 
 /* =====================================================
-   §12 — SURFACE_TREATMENTS
+   §12: SURFACE_TREATMENTS
    The full Alcove texture system.
    Canonical values for both dark and light modes.
    Source of truth: src/components/shop/AlcoveCard.tsx
@@ -680,7 +680,7 @@ export const SURFACE_TREATMENTS = {
   },
 
   /** Warm bronze palette used for all transparency-based treatments.
-   *  Base RGB: 200,170,120 — the single source for dividers, glows, borders. */
+   *  Base RGB: 200,170,120, the single source for dividers, glows, borders. */
   warmBronze: {
     rgb: '200,170,120',
     divider:    'rgba(200,170,120,0.08)',
@@ -691,7 +691,7 @@ export const SURFACE_TREATMENTS = {
     tagBg:      'rgba(200,170,120,0.03)',
   },
 
-  /** Card frame — outermost wrapper */
+  /** Card frame, outermost wrapper */
   cardFrame: {
     background: 'var(--tea-surface)',
     border: '1px solid var(--tea-border)',
@@ -699,7 +699,7 @@ export const SURFACE_TREATMENTS = {
     boxShadow: '0 2px 8px rgba(0,0,0,0.15), 0 0 0 1px rgba(200,170,120,0.06)',
   } as React.CSSProperties,
 
-  /** Recessed panel — darkened inset used for content sections
+  /** Recessed panel, darkened inset used for content sections
    *  (The Process, Offerings table, story text area) */
   recessedPanel: {
     background: 'rgba(0,0,0,0.25)',
@@ -707,12 +707,12 @@ export const SURFACE_TREATMENTS = {
     borderRadius: 6,
   } as React.CSSProperties,
 
-  /** Image inset — recessed treatment for hero/product photos */
+  /** Image inset, recessed treatment for hero/product photos */
   imageInset: {
     boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.3), inset 0 -1px 0 rgba(200,170,120,0.06)',
   } as React.CSSProperties,
 
-  /** Radial warmth — ambient light overlay placed behind content.
+  /** Radial warmth, ambient light overlay placed behind content.
    *  Two radial ellipses at top-right create a soft glow. */
   radialWarmth: {
     position: 'absolute' as const,
@@ -724,7 +724,7 @@ export const SURFACE_TREATMENTS = {
     `,
   } as React.CSSProperties,
 
-  /** Fine grain texture — SVG fractal noise overlay.
+  /** Fine grain texture: SVG fractal noise overlay.
    *  Applied at card-level and panel-level with different opacities. */
   grainTexture: {
     card: {
@@ -745,7 +745,7 @@ export const SURFACE_TREATMENTS = {
     } as React.CSSProperties,
   },
 
-  /** Ambient top glow — radial gradient at top of recessed panels */
+  /** Ambient top glow, radial gradient at top of recessed panels */
   ambientGlow: {
     position: 'absolute' as const,
     top: 0,
@@ -756,7 +756,7 @@ export const SURFACE_TREATMENTS = {
     background: 'radial-gradient(ellipse 80% 30% at 70% 0%, rgba(200,170,120,0.04), transparent)',
   } as React.CSSProperties,
 
-  /** Scroll fade gradients — mask content overflow at edges */
+  /** Scroll fade gradients, mask content overflow at edges */
   scrollFade: {
     top: {
       position: 'absolute' as const,
@@ -777,7 +777,7 @@ export const SURFACE_TREATMENTS = {
     } as React.CSSProperties,
   },
 
-  /** Commerce section — pinned bottom area */
+  /** Commerce section, pinned bottom area */
   commerceBar: {
     borderTop: '1px solid rgba(200,170,120,0.06)',
     background: 'var(--alcove-bg, #1c1b19)',
@@ -795,7 +795,7 @@ export const SURFACE_TREATMENTS = {
     borderRadius: 3,
   } as React.CSSProperties,
 
-  /** Image mask — dual-layer gradient for hero photo fade-in */
+  /** Image mask, dual-layer gradient for hero photo fade-in */
   imageMask: {
     WebkitMaskImage: "linear-gradient(to right, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.12) 25%, rgba(0,0,0,0.3) 45%, rgba(0,0,0,0.55) 60%, black 85%, black 100%), linear-gradient(to bottom, black 85%, transparent 100%)",
     WebkitMaskComposite: 'destination-in' as const,
@@ -811,13 +811,13 @@ export const SURFACE_TREATMENTS = {
 
 /**
  * Common component styling patterns for reference.
- * Not used programmatically — documentation for consistency.
+ * Not used programmatically, documentation for consistency.
  *
  * IMPORTANT: Never use white (#fff, rgba(255,255,255,*)) for borders,
  * rings, glows, or backgrounds. Use warm palette tones instead:
  *   - Borders/rings: --tea-border or --tea-text-dim at low opacity
  *   - Backgrounds: --tea-surface or --tea-elevated
- *   - Glows: rgba(200,170,120,0.1) — the warm accent glow
+ *   - Glows: rgba(200,170,120,0.1), the warm accent glow
  *   - Spinners: border-t color should be --tea-text-sec, not white
  *
  * CARDS (card-grid-item):
@@ -830,7 +830,7 @@ export const SURFACE_TREATMENTS = {
  *   - Price: .num class (IBM Plex Mono, tabular-nums)
  *
  * SURFACE TREATMENTS (see §12):
- *   - .surface-warm: Radial warmth gradient + grain noise — use on all panels/drawers
+ *   - .surface-warm: Radial warmth gradient + grain noise, use on all panels/drawers
  *   - .surface-warm-inset: Recessed content area with edge lighting + denser grain
  *   - These classes replace ad-hoc texture layering throughout the site
  *

@@ -15,31 +15,31 @@ import {
 } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────────────────
-// Constants — color tokens, type samples, scales, navigation, accents
+// Constants, color tokens, type samples, scales, navigation, accents
 // ─────────────────────────────────────────────────────────────────────────
 
 const DARK_TOKENS: [string, string, string][] = [
-  ['--tea-bg', '#18130e', 'Page background — rich espresso'],
+  ['--tea-bg', '#18130e', 'Page background, rich espresso'],
   ['--tea-surface', '#28211a', 'Cards, panels, table surfaces'],
   ['--tea-elevated', '#3a3126', 'Popovers, modal interior, hover lifts'],
-  ['--tea-text', '#ede4d4', 'Primary text — cream white'],
-  ['--tea-text-sec', '#cdc0a8', 'Secondary text — raised floor for legibility'],
+  ['--tea-text', '#ede4d4', 'Primary text, cream white'],
+  ['--tea-text-sec', '#cdc0a8', 'Secondary text, raised floor for legibility'],
   ['--tea-text-dim', '#80735f', 'Eyebrow labels, helper, meta'],
-  ['--tea-gold', '#a8874d', 'Structural accent — buttons, active, focus rings'],
+  ['--tea-gold', '#a8874d', 'Structural accent, buttons, active, focus rings'],
   ['--tea-gold-lt', '#bfa06a', 'Hover only'],
-  ['--tea-readgold', '#a8874d', 'Reading gold — pinned for text'],
+  ['--tea-readgold', '#a8874d', 'Reading gold, pinned for text'],
   ['--tea-border', 'rgba(168,135,77,0.08)', 'Divider lines'],
   ['--tea-accent-sub', 'rgba(168,135,77,0.10)', 'Pill bg, focus glow'],
-  ['--tea-green', '#5a6e5a', 'Success only — never decorative'],
-  ['--tea-error', '#c46a5a', 'Warm terracotta — reads on espresso'],
+  ['--tea-green', '#5a6e5a', 'Success only, never decorative'],
+  ['--tea-error', '#c46a5a', 'Warm terracotta, reads on espresso'],
 ];
 
 const LIGHT_TOKENS: [string, string, string][] = [
-  ['--tea-bg', '#f4ece0', 'Page background — warm parchment'],
+  ['--tea-bg', '#f4ece0', 'Page background, warm parchment'],
   ['--tea-surface', '#e4ddd3', 'Cards, panels, table surfaces'],
   ['--tea-elevated', '#d5c8b4', 'Popovers, modal interior'],
   ['--tea-text', '#18130e', 'Primary text'],
-  ['--tea-text-sec', '#443a2c', 'Secondary text — raised floor'],
+  ['--tea-text-sec', '#443a2c', 'Secondary text, raised floor'],
   ['--tea-text-dim', '#9a8c78', 'Eyebrow labels, helper, meta'],
   ['--tea-gold', '#6b4f28', 'Structural accent'],
   ['--tea-gold-lt', '#7a5c2e', 'Hover only'],
@@ -52,8 +52,8 @@ const LIGHT_TOKENS: [string, string, string][] = [
 type TypeSample = { name: string; spec: string; use: string; sample: React.ReactNode };
 
 const TYPE_SAMPLES: TypeSample[] = [
-  { name: 'h1', spec: 'Cormorant Garamond 300 · clamp(32→48) · lh 1.12 · tracking 0.01em', use: 'Hero / landing only — one per page max', sample: <span className="h1">The Quiet Roast</span> },
-  { name: 'h2', spec: 'Cormorant Garamond 500 · clamp(24→32) · lh 1.2 · tracking 0.01em', use: 'Page titles — canonical', sample: <span className="h2">Inventory</span> },
+  { name: 'h1', spec: 'Cormorant Garamond 300 · clamp(32→48) · lh 1.12 · tracking 0.01em', use: 'Hero / landing only, one per page max', sample: <span className="h1">The Quiet Roast</span> },
+  { name: 'h2', spec: 'Cormorant Garamond 500 · clamp(24→32) · lh 1.2 · tracking 0.01em', use: 'Page titles, canonical', sample: <span className="h2">Inventory</span> },
   { name: 'h3', spec: 'Cormorant Garamond 400 · 19px · lh 1.3', use: 'Section / card titles', sample: <span className="h3">Spring 2026 Roast</span> },
   { name: 'subtitle', spec: 'Lora 400 italic · 17px · lh 1.4', use: 'Page subtitles when descriptive', sample: <span className="subtitle">Aki hojicha · 2026 vintage</span> },
   { name: 'body', spec: 'Lora 400 · 17px · lh 1.7', use: 'Article prose', sample: <span className="body-prose">The leaves are roasted slowly in iron pans set over banked oak coals, and the room takes on the smell of autumn weeks before harvest.</span> },
@@ -88,7 +88,7 @@ const TRACKING_SCALE: [string, string, string][] = [
   ['wide', '0.01em', 'Headings'],
   ['wider', '0.04em', 'Sidebar nav'],
   ['widest', '0.10em', 'Loose uppercase labels'],
-  ['caps', '0.15em', 'Eyebrow labels — canonical'],
+  ['caps', '0.15em', 'Eyebrow labels, canonical'],
   ['display', '0.20em', 'Spaced caps for editorial display'],
 ];
 
@@ -97,7 +97,7 @@ const GAP_SCALE: [string, number, string][] = [
   ['gap-2', 8, 'Icon + label inside buttons; chip rows'],
   ['gap-3', 12, 'Form rows; card internal sections'],
   ['gap-4', 16, 'Card → card in a stack'],
-  ['gap-5', 20, '(uncommon — favor 4 or 6)'],
+  ['gap-5', 20, '(uncommon, favor 4 or 6)'],
   ['gap-6', 24, 'Section → section'],
   ['gap-8', 32, 'Major section → major section'],
 ];
@@ -114,7 +114,7 @@ const Z_TOKENS: [string, number, string][] = [
   ['z-priority', 60, 'Skip links, accessibility'],
   ['z-panel-backdrop', 65, 'Account-style panel backdrop'],
   ['z-panel-modal', 70, 'Account-style panel content'],
-  ['z-nav', 75, 'Reserved — skip nav'],
+  ['z-nav', 75, 'Reserved, skip nav'],
 ];
 
 const SECTIONS = [
@@ -198,7 +198,7 @@ const PrimaryButton: React.FC<{ children: React.ReactNode; loading?: boolean; di
   <button
     onClick={onClick}
     disabled={disabled}
-    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg"
+    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg"
   >
     {loading ? <Loader2 size={13} className="animate-spin" /> : (IconCmp ? <IconCmp size={13} /> : null)}
     <span>{children}</span>
@@ -294,7 +294,7 @@ function Overview() {
         {[
           ['12+', 'Token sections'],
           ['22', 'Components catalogued'],
-          ['2', 'Modes — dark & light'],
+          ['2', 'Modes, dark & light'],
           ['1', 'Visual language'],
         ].map(([n, l]) => (
           <div key={l} className="bg-tea-surface border border-tea-border rounded-xl px-4 py-4">
@@ -342,14 +342,14 @@ const Swatch: React.FC<{ token: string; hex: string; role: string; isDark: boole
 function ColorsSection() {
   return (
     <section id="sec-colors" className="mb-20 scroll-mt-24">
-      <SectionHeader num="2" eyebrow="Color · Tokens" title="Color tokens" lede="Components reference the semantic name, not the hex. Modes share the same names — values switch." />
+      <SectionHeader num="2" eyebrow="Color · Tokens" title="Color tokens" lede="Components reference the semantic name, not the hex. Modes share the same names, values switch." />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
               <div className="label-caps text-tea-text-dim">Mode · Default</div>
-              <div className="h3 mt-1">Dark — espresso</div>
+              <div className="h3 mt-1">Dark, espresso</div>
             </div>
             <div className="flex items-center gap-1.5 text-tea-text-sec">
               <Moon size={14} />
@@ -365,7 +365,7 @@ function ColorsSection() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <div className="label-caps text-tea-text-dim">Mode · Companion</div>
-              <div className="h3 mt-1">Light — parchment</div>
+              <div className="h3 mt-1">Light, parchment</div>
             </div>
             <div className="flex items-center gap-1.5 text-tea-text-sec">
               <Sun size={14} />
@@ -384,8 +384,8 @@ function ColorsSection() {
           {[
             { ok: true, code: 'bg-tea-gold/5 · /6 · /8 · /10 · /15', note: 'Hover, active rows' },
             { ok: true, code: 'border-tea-gold/40 · /60', note: 'Focus rings, active pills' },
-            { ok: false, code: 'text-tea-text-sec/40', note: 'Banned — use the token' },
-            { ok: false, code: 'border-tea-border/50', note: 'Banned — already low-alpha' },
+            { ok: false, code: 'text-tea-text-sec/40', note: 'Banned, use the token' },
+            { ok: false, code: 'border-tea-border/50', note: 'Banned, already low-alpha' },
           ].map((r) => (
             <li key={r.code} className="flex items-center justify-between gap-3 py-2 px-3 bg-tea-bg rounded-md">
               <code className={`font-mono text-ui-12 ${r.ok ? 'text-tea-text' : 'text-tea-error line-through opacity-70'}`}>{r.code}</code>
@@ -639,7 +639,7 @@ function TabStripSection() {
         <Demo label="Canonical · underline tabs (interactive)">
           <TabStrip tabs={['All', 'Drafts (3)', 'Published', 'Archived']} active={active} onChange={setActive} />
           <div className="pt-5 pb-1 text-ui-12 text-tea-text-dim">
-            Active tab: <span className="text-tea-text">{active}</span> — click any tab to switch.
+            Active tab: <span className="text-tea-text">{active}</span>, click any tab to switch.
           </div>
         </Demo>
 
@@ -661,7 +661,7 @@ function TabStripSection() {
           </Demo>
         </div>
 
-        <Demo banned label="The segmented pill" caption="OS-control aesthetic — fights editorial type">
+        <Demo banned label="The segmented pill" caption="OS-control aesthetic, fights editorial type">
           <div className="inline-flex bg-tea-elevated rounded-xl border border-tea-border p-0.5">
             {['All', 'Drafts', 'Published'].map((t, i) => (
               <span key={t} className={`px-3 py-1.5 text-ui-12 rounded-md ${i === 1 ? 'bg-tea-bg text-tea-text ' : 'text-tea-text-sec'}`}>
@@ -670,7 +670,7 @@ function TabStripSection() {
             ))}
           </div>
           <p className="text-ui-11 text-tea-error mt-3">
-            Banned: <code className="font-mono">bg-tea-bg </code> on the active tab — see §22.
+            Banned: <code className="font-mono">bg-tea-bg </code> on the active tab, see §22.
           </p>
         </Demo>
       </div>
@@ -781,7 +781,7 @@ function SurfacesSection() {
 
   return (
     <section id="sec-surfaces" className="mb-20 scroll-mt-24">
-      <SectionHeader num="8" eyebrow="Surface · Containers" title="Surfaces — card, rows, table" lede="Borders carry shape. No shadows on cards. No zebra striping on tables." />
+      <SectionHeader num="8" eyebrow="Surface · Containers" title="Surfaces, card, rows, table" lede="Borders carry shape. No shadows on cards. No zebra striping on tables." />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Demo label="Card · feature">
@@ -882,7 +882,7 @@ function ZIndexSection() {
             <div className="absolute inset-x-10 top-12 h-10 rounded bg-tea-elevated border border-tea-border z-dropdown flex items-center px-3 text-ui-11 text-tea-text-sec">z-dropdown · 10</div>
             <div className="absolute inset-x-14 top-20 h-10 rounded bg-tea-gold/15 border border-tea-gold/40 z-sticky flex items-center px-3 text-ui-11 text-tea-text">z-sticky · 20</div>
             <div className="absolute inset-x-16 top-28 h-10 rounded bg-tea-gold/20 border border-tea-gold/40 z-modal flex items-center px-3 text-ui-11 text-tea-text">z-modal · 40</div>
-            <div className="absolute inset-x-20 top-36 h-10 rounded bg-tea-gold border border-tea-gold-lt z-toast flex items-center px-3 text-ui-11 text-tea-bg font-semibold">z-toast · 50</div>
+            <div className="absolute inset-x-20 top-36 h-10 rounded cta-solid border border-tea-gold-lt z-toast flex items-center px-3 text-ui-11 font-semibold">z-toast · 50</div>
           </div>
         </div>
       </div>
@@ -955,7 +955,7 @@ function ElevationSection() {
       <div className="mt-6">
         <Demo label="Allowed exception · gold CTA at modal-footer scale">
           <div className="flex items-center gap-4 flex-wrap">
-            <button className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-md bg-tea-gold text-tea-bg text-ui-13 font-semibold shadow-gold-cta hover:bg-tea-gold/90 transition-colors">
+            <button className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-md cta-solid text-ui-13 font-semibold shadow-gold-cta transition-colors">
               <Check size={13} />
               <span>Save changes</span>
             </button>
@@ -992,7 +992,7 @@ function FormsSection() {
 
   return (
     <section id="sec-forms" className="mb-20 scroll-mt-24">
-      <SectionHeader num="12" eyebrow="Input · Forms" title="Forms & inputs" lede="Two input patterns — boxed for fields, underline for toolbars. Pick one per surface." />
+      <SectionHeader num="12" eyebrow="Input · Forms" title="Forms & inputs" lede="Two input patterns, boxed for fields, underline for toolbars. Pick one per surface." />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Demo label="Boxed input · rest + focus + error">
@@ -1014,7 +1014,7 @@ function FormsSection() {
                 className="w-full bg-tea-bg border border-tea-gold ring-2 ring-tea-gold/30 rounded-md px-3 py-2 text-ui-14 text-tea-text focus:outline-none"
                 readOnly
               />
-              <p className="text-ui-12 text-tea-text-dim mt-1">Gold focus ring — keep finger here.</p>
+              <p className="text-ui-12 text-tea-text-dim mt-1">Gold focus ring, keep finger here.</p>
             </div>
           </div>
         </Demo>
@@ -1030,7 +1030,7 @@ function FormsSection() {
                 placeholder="Search teas…"
                 className="w-full bg-transparent border-0 border-b border-tea-border rounded-none px-0 py-2 text-ui-14 font-serif text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none transition-colors"
               />
-              <p className="text-ui-12 text-tea-text-dim mt-1">Use in toolbars — boxed would feel heavy here.</p>
+              <p className="text-ui-12 text-tea-text-dim mt-1">Use in toolbars, boxed would feel heavy here.</p>
             </div>
             <div>
               <div className="label-caps text-tea-text-sec mb-1.5">Always-focused (demo)</div>
@@ -1184,7 +1184,7 @@ function SidebarNavSection() {
             {[
               'Parent rows are clickable only if they have a direct view; otherwise they expand.',
               'Child rows: 24px left indent, no extra leading icon.',
-              <span key="active-leaf">Active leaf: left border 1px gold, <code className="font-mono text-tea-readgold">text-tea-text</code> — never a filled background.</span>,
+              <span key="active-leaf">Active leaf: left border 1px gold, <code className="font-mono text-tea-readgold">text-tea-text</code>, never a filled background.</span>,
               <span key="md"><code className="font-mono">md</code> collapse: icons-only column, 64px wide, labels in tooltip.</span>,
               'No badges or counters in nav. Counts live on the destination page.',
               <span key="active-val">Active: <span className="text-tea-text">{active}</span></span>,
@@ -1321,7 +1321,7 @@ function AnimationSection() {
 function EmptyStatesSection() {
   return (
     <section id="sec-empty" className="mb-20 scroll-mt-24">
-      <SectionHeader num="17" eyebrow="Edge · Empty & error" title="Empty & error states" lede="Quiet. Centered. One line of guidance and one primary action — no decorative illustrations." />
+      <SectionHeader num="17" eyebrow="Edge · Empty & error" title="Empty & error states" lede="Quiet. Centered. One line of guidance and one primary action, no decorative illustrations." />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Demo label="Empty">
@@ -1643,9 +1643,9 @@ function OrderTimelineSection() {
     ['Sample Set (3)', '1 × $12.00', 12.00],
   ];
   const events = [
-    { date: 'Mar 12 · 2:14 PM', body: 'Placed order — $124.00', system: false },
+    { date: 'Mar 12 · 2:14 PM', body: 'Placed order, $124.00', system: false },
     { date: 'Mar 11 · 4:02 PM', body: 'Sent invoice INV-0042', system: false },
-    { date: 'Mar 11 · 3:58 PM', body: 'Created order — 3 items', system: false },
+    { date: 'Mar 11 · 3:58 PM', body: 'Created order, 3 items', system: false },
     { date: 'Mar 10 · 9:00 AM', body: 'Tag "VIP" added by automation', system: true },
   ];
 
@@ -1765,7 +1765,7 @@ function AntiPatternsSection() {
           </div>
         </Demo>
 
-        <Demo banned label="Cards with white surfaces" caption="Surfaces are warm — never #fff in dark mode">
+        <Demo banned label="Cards with white surfaces" caption="Surfaces are warm, never #fff in dark mode">
           <div className="bg-white border border-gray-200 rounded-xl p-4 text-gray-900">
             <div className="font-sans text-sm font-semibold">White card on warm bg</div>
             <p className="text-xs text-gray-600 mt-1">Reads as a popup, not a surface.</p>
@@ -1814,7 +1814,7 @@ function ShowcaseHeader({ mode, setMode }: { mode: 'dark' | 'light'; setMode: (m
               The design language
             </h1>
             <p className="subtitle mt-3 max-w-2xl">
-              Tokens, primitives, recipes. The whole system in one document — colors and chrome through anti-patterns.
+              Tokens, primitives, recipes. The whole system in one document, colors and chrome through anti-patterns.
             </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -1899,7 +1899,7 @@ function ShowcaseFooter() {
         <div className="md:col-span-2">
           <div className="font-display text-ui-20 text-tea-text">Universal rules. Concrete recipes. One visual language.</div>
           <p className="text-ui-13 text-tea-text-sec mt-2 max-w-md">
-            Components reference the semantic token, not the hex. Modes share names — values switch. Surfaces do not lift.
+            Components reference the semantic token, not the hex. Modes share names, values switch. Surfaces do not lift.
           </p>
         </div>
         <div>
@@ -1922,7 +1922,7 @@ function ShowcaseFooter() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Tweaks panel — mode toggle, accent palette, type scale
+// Tweaks panel, mode toggle, accent palette, type scale
 // ─────────────────────────────────────────────────────────────────────────
 
 function TweaksPanel({
@@ -2036,7 +2036,7 @@ function TweaksPanel({
 // ─────────────────────────────────────────────────────────────────────────
 
 export default function DesignSystemShowcase() {
-  // Local mode state — bridges between the production .light class and the showcase's mode toggle.
+  // Local mode state, bridges between the production .light class and the showcase's mode toggle.
   const [mode, setMode] = useState<'dark' | 'light'>(() => (typeof document !== 'undefined' && document.documentElement.classList.contains('light') ? 'light' : 'dark'));
   const [accent, setAccent] = useState<string>('Aged brass');
   const [fontScale, setFontScale] = useState<number>(1);

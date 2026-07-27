@@ -3,13 +3,13 @@
  * Rationale, and the conditions on this exception, in read/immersive.tsx.
  */
 /**
- * Ten Thousand Mornings — A History of Tea, N°07
+ * Ten Thousand Mornings: A History of Tea, N°07
  * Five thousand years of tea history, told along a horizontal ink spine
  * that draws as you scroll through the six eras.
  * Ported pixel-faithfully from the tea-article-redesign mockup
  * (History - Ten Thousand Mornings.dc.html).
  *
- * BESPOKE EFFECT — Horizontal Ink Spine + Era Rail:
+ * BESPOKE EFFECT: Horizontal Ink Spine + Era Rail:
  *   The horizontal timeline (#tj-rail / #tj-track) is a side-scrolling
  *   strip independent from the page's vertical scroll. The gold spine line
  *   (#tj-spinefill) draws rightward as the user drags/swipes through eras.
@@ -67,12 +67,12 @@ const ERA_DATA: Era[] = [
     body: (
       <p style={pEra}>
         The legend says the herbalist-emperor Shénnóng was boiling water beneath a wild tree when a few
-        leaves drifted into his pot. He drank, felt clear and revived — and tea entered the world as a
+        leaves drifted into his pot. He drank, felt clear and revived, and tea entered the world as a
         happy accident, and a medicine.
       </p>
     ),
     dot: { background: 'var(--tj-gold,#a8874d)', boxShadow: '0 0 0 4px rgba(168,135,77,0.16)' },
-    dotLabel: '∞ — the beginning',
+    dotLabel: '∞, the beginning',
   },
   {
     index: 1,
@@ -83,13 +83,13 @@ const ERA_DATA: Era[] = [
     body: (
       <p style={pEra}>
         In a golden age, the scholar Lù Yù writes the{' '}
-        <em style={{ fontStyle: 'italic', color: C.ink }}>Chá Jīng</em> — the Classic of Tea, the first
+        <em style={{ fontStyle: 'italic', color: C.ink }}>Chá Jīng</em>, the Classic of Tea, the first
         book ever devoted to it. Tea is pressed into cakes, roasted, ground fine, and simmered with care.
         A drink becomes a discipline.
       </p>
     ),
     dot: { background: 'var(--tj-gold,#a8874d)', boxShadow: '0 0 0 4px rgba(168,135,77,0.16)' },
-    dotLabel: 'c. 760 — the Classic of Tea',
+    dotLabel: 'c. 760, the Classic of Tea',
   },
   {
     index: 2,
@@ -99,7 +99,7 @@ const ERA_DATA: Era[] = [
     title: 'The whisked cup',
     body: (
       <p style={pEra}>
-        At court, tea is ground to powder and whisked to a snowy froth —{' '}
+        At court, tea is ground to powder and whisked to a snowy froth:{' '}
         <em style={{ fontStyle: 'italic', color: C.ink }}>diǎnchá</em>. Connoisseurs hold tea-battles,
         judging the foam's colour and how long it clings. This refined powdered art will cross the sea
         and become Japan's matcha.
@@ -117,12 +117,12 @@ const ERA_DATA: Era[] = [
     body: (
       <p style={pEra}>
         In 1391 the Hongwu Emperor abolishes the labour-heavy compressed tribute cakes. Whole loose
-        leaves, simply steeped in hot water, take their place — and the teapot is born. This, in essence,
+        leaves, simply steeped in hot water, take their place, and the teapot is born. This, in essence,
         is the tea we still drink today.
       </p>
     ),
     dot: { background: 'var(--tj-gold,#a8874d)', boxShadow: '0 0 0 4px rgba(168,135,77,0.16)' },
-    dotLabel: '1391 — loose leaf & the teapot',
+    dotLabel: '1391, loose leaf & the teapot',
   },
   {
     index: 4,
@@ -132,7 +132,7 @@ const ERA_DATA: Era[] = [
     title: 'Tea sets sail',
     body: (
       <p style={pEra}>
-        Through the port of Canton, tea floods the world — it fills English cups, funds empires, helps
+        Through the port of Canton, tea floods the world, it fills English cups, funds empires, helps
         spark a revolt in a Boston harbour, and sends clippers racing home with the season's first crop.
         Oolong and refined red teas come of age. The leaf becomes the world's drink.
       </p>
@@ -157,7 +157,7 @@ const ERA_DATA: Era[] = [
       background: 'var(--tj-gold-lt,#c6a667)',
       boxShadow: '0 0 0 4px rgba(168,135,77,0.2), 0 0 14px rgba(168,135,77,0.5)',
     },
-    dotLabel: 'today — your cup',
+    dotLabel: 'today, your cup',
   },
 ];
 
@@ -175,7 +175,7 @@ const EraPanel: React.FC<{ era: Era; charRef: React.Ref<HTMLDivElement> }> = ({ 
       overflow: 'hidden',
     }}
   >
-    {/* Large background character — parallaxed by the bespoke effect */}
+    {/* Large background character, parallaxed by the bespoke effect */}
     <div
       ref={charRef}
       aria-hidden="true"
@@ -243,7 +243,7 @@ const EraPanel: React.FC<{ era: Era; charRef: React.Ref<HTMLDivElement> }> = ({ 
 
 // ─── Bespoke rail hook ────────────────────────────────────────────────────────
 // Ports the entire setupRail() + updateRail() from the design's DCLogic class.
-// Uses refs instead of getElementById — same logic, same constants.
+// Uses refs instead of getElementById, same logic, same constants.
 function useTimelineRail(
   railRef: React.RefObject<HTMLDivElement | null>,
   trackRef: React.RefObject<HTMLDivElement | null>,
@@ -414,7 +414,7 @@ const HistoryTenThousandMornings: React.FC = () => {
   useImmersiveChrome(accent);
   const rootRef = useReveals([]);
 
-  // Inject @keyframes tjNudge locally — not provided by useImmersiveChrome
+  // Inject @keyframes tjNudge locally, not provided by useImmersiveChrome
   useEffect(() => {
     const style = document.createElement('style');
     style.setAttribute('data-tj-nudge', '');
@@ -425,7 +425,7 @@ const HistoryTenThousandMornings: React.FC = () => {
     return () => { style.remove(); };
   }, []);
 
-  // Reading progress — no extra onScroll needed
+  // Reading progress, no extra onScroll needed
   const progress = useReadingProgress();
 
   // Refs for the bespoke rail effect
@@ -511,7 +511,7 @@ const HistoryTenThousandMornings: React.FC = () => {
               margin: '0 auto',
               maxWidth: 560,
             }}>
-              From an accident under a tree to the cup in your hand — nearly five thousand years of tea,
+              From an accident under a tree to the cup in your hand, nearly five thousand years of tea,
               told along a single line. Travel it from left to right.
             </p>
           </div>
@@ -523,7 +523,7 @@ const HistoryTenThousandMornings: React.FC = () => {
             <span style={{ float: 'left', fontFamily: F.display, fontWeight: 600, fontSize: '5em', lineHeight: 0.78, color: C.gold, margin: '8px 16px -4px 0' }}>N</span>
             o other drink has been with us so long, or changed its costume so often. Tea has been medicine,
             currency, a court's obsession, an empire's habit, and the cause of more than one revolution. Yet
-            the leaf never changed — only the way each age chose to meet it. Here is that long morning, hour
+            the leaf never changed, only the way each age chose to meet it. Here is that long morning, hour
             by hour.
           </p>
         </section>
@@ -594,7 +594,7 @@ const HistoryTenThousandMornings: React.FC = () => {
                 msOverflowStyle: 'none',
               } as React.CSSProperties}
             >
-              {/* Track — flex row of era panels */}
+              {/* Track, flex row of era panels */}
               <div
                 ref={trackRef}
                 style={{
@@ -616,7 +616,7 @@ const HistoryTenThousandMornings: React.FC = () => {
                   height: 1,
                   background: 'rgba(168,135,77,0.18)',
                 }} />
-                {/* Gold ink fill — drawn rightward as the user scrolls */}
+                {/* Gold ink fill, drawn rightward as the user scrolls */}
                 <div
                   ref={spinefillRef}
                   aria-hidden="true"
@@ -642,7 +642,7 @@ const HistoryTenThousandMornings: React.FC = () => {
               </div>
             </div>
 
-            {/* Prev arrow — positioned at the spine line */}
+            {/* Prev arrow, positioned at the spine line */}
             <button
               ref={prevRef}
               aria-label="Earlier"
@@ -671,7 +671,7 @@ const HistoryTenThousandMornings: React.FC = () => {
               </svg>
             </button>
 
-            {/* Next arrow — animated with tjNudge (injected locally) */}
+            {/* Next arrow, animated with tjNudge (injected locally) */}
             <button
               ref={nextRef}
               aria-label="Later"
@@ -720,7 +720,7 @@ const HistoryTenThousandMornings: React.FC = () => {
             margin: '0 auto',
             maxWidth: 860,
           }}>
-            "Every age believed it had found the right way to drink tea. Every age was right — for its morning."
+            "Every age believed it had found the right way to drink tea. Every age was right, for its morning."
           </blockquote>
           <div aria-hidden="true" style={{ width: 40, height: 1, background: C.gold, opacity: 0.5, margin: '34px auto 0' }} />
         </section>
@@ -737,9 +737,9 @@ const HistoryTenThousandMornings: React.FC = () => {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,240px),1fr))', gap: 'clamp(18px,3vw,28px)' }}>
             {[
-              { char: '煮', title: 'Boiled · Tang',    body: 'Cakes roasted, ground, and simmered — sometimes with salt. Tea as a warm, savoury brew.' },
+              { char: '煮', title: 'Boiled · Tang',    body: 'Cakes roasted, ground, and simmered, sometimes with salt. Tea as a warm, savoury brew.' },
               { char: '點', title: 'Whisked · Song',   body: 'Powder beaten with water to a bright froth. The ancestor of matcha, lost in China, kept in Japan.' },
-              { char: '泡', title: 'Steeped · Ming → now', body: 'Whole leaves loose in hot water. The simplest method — and the one that finally conquered the world.' },
+              { char: '泡', title: 'Steeped · Ming → now', body: 'Whole leaves loose in hot water. The simplest method, and the one that finally conquered the world.' },
             ].map(({ char, title, body }) => (
               <div key={char} data-reveal style={{
                 border: '1px solid rgba(168,135,77,0.16)',
@@ -758,7 +758,7 @@ const HistoryTenThousandMornings: React.FC = () => {
         {/* ── CLOSING ────────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(20px,4vw,40px) 24px clamp(40px,6vw,72px)' }}>
           <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(17px,2.1vw,20px)', lineHeight: 1.72, color: C.taupe, margin: 0 }}>
-            The line runs on past us, of course — some future age will find its own way to meet the leaf.
+            The line runs on past us, of course, some future age will find its own way to meet the leaf.
             But this much has held for fifty centuries: someone heats water, waits, and is, for a moment,
             restored. Tea is the oldest morning we still keep.
           </p>

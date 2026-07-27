@@ -4,7 +4,7 @@ import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { syncCompassEntries } from '../../lib/teaCompassSync';
 
 /**
- * SyncIndicator — surfaces only when something actually needs the user's
+ * SyncIndicator, surfaces only when something actually needs the user's
  * attention. The previous tiny gold dot read as decoration; users had no
  * way to tell it from an empty bullet point. The new version:
  *
@@ -35,7 +35,7 @@ export const SyncIndicator: React.FC = () => {
 
   const isPending = unsyncedCount > 0;
 
-  // Quiet path — fully synced, no error, and not flashing the just-saved confirmation.
+  // Quiet path, fully synced, no error, and not flashing the just-saved confirmation.
   if (!isPending && !syncing && !showSavedFlash && !syncError) return null;
 
   if (syncing) {
@@ -62,7 +62,7 @@ export const SyncIndicator: React.FC = () => {
     );
   }
 
-  // Couldn't reach the server — say so plainly and offer a retry. Takes priority
+  // Couldn't reach the server, say so plainly and offer a retry. Takes priority
   // over the neutral "unsaved" count so the user knows it's a connection problem,
   // not just work pending. This is the signal that was missing when changes
   // silently failed to save (e.g. on a blocked network).

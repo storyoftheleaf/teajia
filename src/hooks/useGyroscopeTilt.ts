@@ -26,7 +26,7 @@ export function useGyroscopeTilt(): TiltValues {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const DOE = DeviceOrientationEvent as any;
     if (typeof DOE.requestPermission === 'function') {
-      // iOS 13+ — silently try on first user interaction
+      // iOS 13+, silently try on first user interaction
       const tryPermission = async () => {
         try {
           const result = await DOE.requestPermission();

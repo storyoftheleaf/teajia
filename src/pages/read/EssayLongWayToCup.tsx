@@ -3,9 +3,9 @@
  * Rationale, and the conditions on this exception, in read/immersive.tsx.
  */
 /**
- * The Long Way to the Cup — Essay · First Person, N°10
+ * The Long Way to the Cup: Essay · First Person, N°10
  * A personal essay on growing up surrounded by tea without ever tasting it,
- * and the journey — literally to Bali — that finally brought it home.
+ * and the journey, literally to Bali, that finally brought it home.
  * Ported pixel-faithfully from the tea-article-redesign mockup.
  */
 import React, { useState } from 'react';
@@ -153,50 +153,50 @@ const EssayLongWayToCup: React.FC = () => {
             <span style={{ float: 'left', fontFamily: F.display, fontWeight: 600, fontSize: '5em', lineHeight: 0.78, color: C.gold, margin: '8px 16px -4px 0' }}>T</span>
             here is a Chinese word for the sweetness that arrives{' '}
             <em style={{ fontStyle: 'italic', color: C.cream }}>after</em>{' '}
-            a sip — once the cup is down and you think the taste is gone.{' '}
+            a sip, once the cup is down and you think the taste is gone.{' '}
             <span style={{ fontFamily: F.cn, color: C.taupe }}>回甘</span>
-            , huí gān: the returning sweetness. I have come to think my whole life with tea has been one long huí gān — a flavour I only learned to notice long after I'd swallowed it.
+            , huí gān: the returning sweetness. I have come to think my whole life with tea has been one long huí gān, a flavour I only learned to notice long after I'd swallowed it.
           </p>
         </section>
 
-        {/* ── I — A mainland kitchen, age seven ─────────────────────────── */}
+        {/* ── I: A mainland kitchen, age seven ─────────────────────────── */}
         <section style={{ maxWidth: 660, margin: '0 auto', padding: '0 24px' }}>
           <SectionDivider numeral="七歲" label="A mainland kitchen, age seven" marginTop="clamp(40px,6vw,72px)" />
           <p data-reveal style={pBody}>
-            I left the mainland when I was seven. The last morning, my grandmother poured tea the way she always did — from a dented metal pot into small cups with no handles, the leaves left loose to swim. I drank mine too fast, the way children do, already thinking about the aeroplane. I did not know it was the last cup at that table. I did not know a cup could be a last anything.
+            I left the mainland when I was seven. The last morning, my grandmother poured tea the way she always did, from a dented metal pot into small cups with no handles, the leaves left loose to swim. I drank mine too fast, the way children do, already thinking about the aeroplane. I did not know it was the last cup at that table. I did not know a cup could be a last anything.
           </p>
           <p data-reveal style={{ ...pBody, margin: 0 }}>
-            For years I remembered nothing about the tea itself — not the type, not the taste. Only the steam on the cold window, and her hands. It would take me three decades to understand that the tea had been the whole point, and I had swallowed it without looking.
+            For years I remembered nothing about the tea itself, not the type, not the taste. Only the steam on the cold window, and her hands. It would take me three decades to understand that the tea had been the whole point, and I had swallowed it without looking.
           </p>
         </section>
 
         {/* ── PULL QUOTE 1 ──────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 900, margin: '0 auto', padding: 'clamp(48px,8vw,100px) 24px', textAlign: 'center' }}>
           <blockquote style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(26px,4.4vw,50px)', lineHeight: 1.2, color: C.cream, margin: '0 auto', maxWidth: 820 }}>
-            "I was raised in tea the way a fish is raised in water — so surrounded by it I never once saw it."
+            "I was raised in tea the way a fish is raised in water, so surrounded by it I never once saw it."
           </blockquote>
           <div aria-hidden="true" style={{ width: 40, height: 1, background: C.gold, opacity: 0.5, margin: '34px auto 0' }} />
         </section>
 
-        {/* ── II — Hong Kong, the in-between years ──────────────────────── */}
+        {/* ── II: Hong Kong, the in-between years ──────────────────────── */}
         <section style={{ maxWidth: 660, margin: '0 auto', padding: '0 24px' }}>
           <SectionDivider numeral="香港" label="Hong Kong, the in-between years" marginTop="clamp(20px,4vw,40px)" />
           <p data-reveal style={pBody}>
-            Hong Kong runs on tea the way other cities run on traffic. Milk tea the colour of teak, pulled through a cloth sock in the cha chaan teng downstairs. Bottomless pots of bo lei at dim sum, slammed down and forgotten. Gongfu sets that came out only when an uncle wanted to show off. Tea was everywhere, and so it was nowhere — it was just the weather of being alive there.
+            Hong Kong runs on tea the way other cities run on traffic. Milk tea the colour of teak, pulled through a cloth sock in the cha chaan teng downstairs. Bottomless pots of bo lei at dim sum, slammed down and forgotten. Gongfu sets that came out only when an uncle wanted to show off. Tea was everywhere, and so it was nowhere, it was just the weather of being alive there.
           </p>
           <p data-reveal style={{ ...pBody, margin: 0 }}>
             I drank litres of it and tasted none of it. If you had asked me then whether I liked tea, I would have laughed. It was like being asked whether I liked air.
           </p>
         </section>
 
-        {/* ── III — Bali: The room that slowed down ─────────────────────── */}
+        {/* ── III: Bali: The room that slowed down ─────────────────────── */}
         <section style={{ maxWidth: 660, margin: '0 auto', padding: '0 24px' }}>
           <SectionDivider numeral="Bali" label="The room that slowed down" marginTop="clamp(40px,6vw,72px)" />
           <p data-reveal style={pBody}>
-            I went to Bali to get away from everything, including, I thought, my own past. Instead I found a low room of dark jackfruit wood, where a man I'd never met sat me down and brewed, without hurry, for an hour. Tiny cup after tiny cup. He barely spoke. He just kept pouring, and waiting, and watching my face — the way, I realised much later, my grandmother had watched mine.
+            I went to Bali to get away from everything, including, I thought, my own past. Instead I found a low room of dark jackfruit wood, where a man I'd never met sat me down and brewed, without hurry, for an hour. Tiny cup after tiny cup. He barely spoke. He just kept pouring, and waiting, and watching my face, the way, I realised much later, my grandmother had watched mine.
           </p>
           <p data-reveal style={pBody}>
-            Somewhere around the fourth steep, something in me went quiet that had not been quiet in years. I tasted it — actually tasted it, the orchid and the warm stone and the long sweet finish climbing back up — and I started, embarrassingly, to cry. I was thirty-one years old and I was tasting tea, on purpose, for the first time.
+            Somewhere around the fourth steep, something in me went quiet that had not been quiet in years. I tasted it, actually tasted it, the orchid and the warm stone and the long sweet finish climbing back up, and I started, embarrassingly, to cry. I was thirty-one years old and I was tasting tea, on purpose, for the first time.
           </p>
           <p data-reveal style={{ ...pBody, margin: 0 }}>
             It was not the tea that undid me. It was the slowness. No one had ever given me an hour to taste anything.
@@ -211,14 +211,14 @@ const EssayLongWayToCup: React.FC = () => {
           <div aria-hidden="true" style={{ width: 40, height: 1, background: C.gold, opacity: 0.5, margin: '34px auto 0' }} />
         </section>
 
-        {/* ── IV — Now, a beginner again ────────────────────────────────── */}
+        {/* ── IV: Now, a beginner again ────────────────────────────────── */}
         <section style={{ maxWidth: 660, margin: '0 auto', padding: '0 24px' }}>
           <SectionDivider numeral="現在" label="Now, a beginner again" marginTop="clamp(20px,4vw,40px)" />
           <p data-reveal style={pBody}>
-            These days I am learning my own inheritance backwards, from the outside in. I can finally name what I'm drinking — the rock teas, the spring greens, the aged dark cakes that taste of forest floor. I am learning the words I should have grown up with: huí gān, yán yùn, the patience to wait for the third steep. I am, at thirty-something, a complete beginner. It is the happiest I have been.
+            These days I am learning my own inheritance backwards, from the outside in. I can finally name what I'm drinking, the rock teas, the spring greens, the aged dark cakes that taste of forest floor. I am learning the words I should have grown up with: huí gān, yán yùn, the patience to wait for the third steep. I am, at thirty-something, a complete beginner. It is the happiest I have been.
           </p>
           <p data-reveal style={{ ...pBody, margin: 0 }}>
-            I think often of my grandmother's dented pot. I understand now that she wasn't making a drink. She was making a moment, and handing it to a child too young to keep it. I have spent my adult life learning to receive it — and lately, in a quiet room I am building far from where any of this began, learning to hand it on.
+            I think often of my grandmother's dented pot. I understand now that she wasn't making a drink. She was making a moment, and handing it to a child too young to keep it. I have spent my adult life learning to receive it, and lately, in a quiet room I am building far from where any of this began, learning to hand it on.
           </p>
         </section>
 

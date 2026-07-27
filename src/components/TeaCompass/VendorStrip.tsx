@@ -14,7 +14,7 @@ import type { VendorDetails } from './types';
 /* ── Location parsing ───────────────────────────────────────
  * Pull WGS-84 coordinates out of a pasted map link OR a plain "lat, lng"
  * string. Lets a shop's location be recorded by pasting from whatever map
- * app works locally — Google Maps is blocked in mainland China, so we can't
+ * app works locally: Google Maps is blocked in mainland China, so we can't
  * assume it. Handles Google / Apple / OSM / Amap links and bare pairs. */
 export function parseLatLng(raw: string): { lat: number; lng: number } | null {
   if (!raw) return null;
@@ -24,7 +24,7 @@ export function parseLatLng(raw: string): { lat: number; lng: number } | null {
     Number.isFinite(lat) && Number.isFinite(lng) &&
     Math.abs(lat) <= 90 && Math.abs(lng) <= 180 && !(lat === 0 && lng === 0);
 
-  // Amap puts longitude first: position=LNG,LAT — check before generic lat,lng.
+  // Amap puts longitude first: position=LNG,LAT, check before generic lat,lng.
   const amap = s.match(/position=(-?\d+\.\d+),(-?\d+\.\d+)/i);
   if (amap) { const lng = parseFloat(amap[1]), lat = parseFloat(amap[2]); if (ok(lat, lng)) return { lat, lng }; }
 
@@ -64,7 +64,7 @@ interface VendorStripProps {
   onDetailsChange: (details: VendorDetails) => void;
   linkedCustomerId?: string;
   onLinkedCustomerChange?: (customerId: string | undefined) => void;
-  /** Hide the contact icon — use when onDetailsChange is a no-op and would silently drop edits */
+  /** Hide the contact icon, use when onDetailsChange is a no-op and would silently drop edits */
   showContactMenu?: boolean;
 }
 
@@ -98,7 +98,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
   const [geoState, setGeoState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
   const [locInput, setLocInput] = useState('');
   const [locError, setLocError] = useState(false);
-  // Photo upload feedback — which photo is uploading, and whether the last try failed.
+  // Photo upload feedback, which photo is uploading, and whether the last try failed.
   const [photoUploading, setPhotoUploading] = useState<null | 'businessCardUrl' | 'storefrontUrl'>(null);
   const [photoError, setPhotoError] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -202,7 +202,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
             onDetailsChange({ ...loaded, ...vendorDetails });
           }
         }
-      } catch { /* offline or no record — fine */ }
+      } catch { /* offline or no record, fine */ }
     }
   };
 
@@ -210,7 +210,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
     const trimmed = newName.trim();
     if (!trimmed) return;
     setNewName('');
-    // Create a real customer record NOW, tagged vendor — without an id the
+    // Create a real customer record NOW, tagged vendor, without an id the
     // debounced details save below is guarded off, so a vendor typed fresh at
     // a fair had NO server home: their storefront photo/location lived only in
     // client-only entry state. Selection happens immediately (capture never
@@ -224,7 +224,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
         onVendorSelect(id, trimmed);
       }
     } catch {
-      // Offline — vendor stays name-only. Details are preserved on the entry
+      // Offline, vendor stays name-only. Details are preserved on the entry
       // (client-only fields survive hydrate) and can be re-linked later.
     }
   };
@@ -246,7 +246,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
     if (detailsLoadedForRef.current === vendorId) return;
     detailsLoadedForRef.current = vendorId;
     const hasAny = vendorDetails && Object.values(vendorDetails).some((v) => v != null);
-    if (hasAny) return; // local details win — don't clobber unsaved edits
+    if (hasAny) return; // local details win, don't clobber unsaved edits
     api.customers.get(vendorId).then((customer: any) => {
       if (!customer) return;
       const loaded: VendorDetails = {};
@@ -261,13 +261,13 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
       if (Object.values(loaded).some((v) => v != null)) {
         onDetailsChange({ ...loaded, ...vendorDetails });
       }
-    }).catch(() => { /* offline — local state stands */ });
+    }).catch(() => { /* offline, local state stands */ });
   }, [vendorId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Debounced save of vendor details to customers API
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Latest pending save + dirty flag, so unmount can FLUSH instead of dropping
-  // it — typing a location and closing the card within 2s used to discard the
+  // it, typing a location and closing the card within 2s used to discard the
   // save silently.
   const pendingSaveRef = useRef<(() => void) | null>(null);
   const saveDirtyRef = useRef(false);
@@ -305,7 +305,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
     };
   }, [vendorId, vendorDetails]);
 
-  // Unmount flush — fire any still-pending save instead of dropping it.
+  // Unmount flush, fire any still-pending save instead of dropping it.
   useEffect(() => () => {
     if (saveDirtyRef.current && pendingSaveRef.current) pendingSaveRef.current();
   }, []);
@@ -386,7 +386,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
       const compressedFile = new File([compressed], 'vendor-photo.jpg', { type: 'image/jpeg' });
       const imageUrl = await api.uploadImage(compressedFile);
       if (!imageUrl) throw new Error('upload returned no url');
-      // Save the photo FIRST, always — never gate it behind the GPS lookup.
+      // Save the photo FIRST, always, never gate it behind the GPS lookup.
       // (The old code awaited getCurrentPosition, so a slow/denied/ignored
       //  location prompt swallowed the photo and it "never showed".)
       updateDetail(key, imageUrl);
@@ -395,12 +395,12 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
       if (key === 'storefrontUrl' && vendorDetails?.lat == null && navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (pos) => onDetailsChange({ ...vendorDetails, [key]: imageUrl, lat: pos.coords.latitude, lng: pos.coords.longitude }),
-          () => { /* GPS denied/slow — photo already saved, no-op */ },
+          () => { /* GPS denied/slow, photo already saved, no-op */ },
           { enableHighAccuracy: true, timeout: 10000 }
         );
       }
     } catch {
-      // No longer silent — the user needs to know the photo didn't save (the China
+      // No longer silent, the user needs to know the photo didn't save (the China
       // network trap was masking exactly this). Menu stays open so they can retry.
       setPhotoError(true);
     } finally {
@@ -416,7 +416,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
 
   return (
     <div className="space-y-0">
-      {/* Hidden storefront file input — mounted at top level so the inline
+      {/* Hidden storefront file input, mounted at top level so the inline
           thumbnail can trigger it whether or not the contact menu is open.
           No camera lock: the shop photo can come from gallery or camera. */}
       <input ref={storefrontRef} type="file" accept="image/*" className="hidden"
@@ -492,7 +492,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
             )}
           </AnimatePresence>
         </div>}
-        {/* Storefront photo — shown inline so it's actually visible once added,
+        {/* Storefront photo, shown inline so it's actually visible once added,
             not hidden inside the contact menu. Tap to update. */}
         {vendorDetails?.storefrontUrl && (
           <button
@@ -556,7 +556,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                   className="absolute top-full left-0 right-0 z-30 mt-1 bg-tea-surface rounded-xl shadow-lg border border-tea-border overflow-hidden"
                   style={{ minWidth: '200px' }}
                 >
-                  {/* New vendor — always first */}
+                  {/* New vendor, always first */}
                   <button
                     type="button"
                     onMouseDown={(e) => {
@@ -666,7 +666,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
         )}
       </AnimatePresence>
 
-      {/* ── Supplier link — single row, three mutually exclusive states ── */}
+      {/* ── Supplier link, single row, three mutually exclusive states ── */}
       {onLinkedCustomerChange && (
         <AnimatePresence mode="wait">
           {linkedCustomerId ? (
@@ -761,7 +761,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                       <img src={mediaUrl(vendorDetails.storefrontUrl)} alt="Storefront" className="w-10 h-10 rounded object-cover" loading="lazy" />
                     )}
                     {vendorDetails?.lat != null && vendorDetails?.lng != null && (
-                      // OpenStreetMap rather than Google Maps — Google is blocked in
+                      // OpenStreetMap rather than Google Maps: Google is blocked in
                       // mainland China, so its link is dead exactly where this gets used.
                       <a
                         href={`https://www.openstreetmap.org/?mlat=${vendorDetails.lat}&mlon=${vendorDetails.lng}#map=16/${vendorDetails.lat}/${vendorDetails.lng}`}
@@ -777,7 +777,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                   </div>
                 )}
 
-                {/* Tappable contact links — open the vendor in WhatsApp / phone /
+                {/* Tappable contact links, open the vendor in WhatsApp / phone /
                     LINE, or copy the WeChat ID (WeChat has no reliable web link).
                     This is what "link to contact" means: one tap to reach them. */}
                 {(vendorDetails?.whatsapp || vendorDetails?.wechat || vendorDetails?.line || vendorDetails?.phone) && (
@@ -823,7 +823,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
 
                 {/* Contact fields */}
                 <div className="space-y-1.5">
-                  {/* Location — paste a map link or coordinates from any maps app.
+                  {/* Location, paste a map link or coordinates from any maps app.
                       Works without Google Maps (blocked in China); the GPS pin
                       button elsewhere remains the at-the-shop shortcut. */}
                   <div className="flex items-center gap-2">

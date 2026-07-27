@@ -27,7 +27,7 @@ export function useOfflineSync(isAuthenticated: boolean): void {
     return cleanup;
   }, [isAuthenticated]);
 
-  // Watch favorites changes — if offline, enqueue for later sync
+  // Watch favorites changes, if offline, enqueue for later sync
   useEffect(() => {
     if (!isAuthenticated) return;
 

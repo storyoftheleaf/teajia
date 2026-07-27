@@ -41,6 +41,15 @@
  *      fails the commit rather than shipping dollars to someone reading in
  *      Rupiah.
  *
+ * Round nine left one hole in that: `fmtDollars` survived as a deprecated alias
+ * for `fmtRecordDollars`, because the six call sites that still used it were in
+ * the admin tree and out of scope. An alias undoes point 1 by itself. Whoever
+ * reaches for a name that reads like the default way to print a total is not
+ * making the decision the rename exists to force, and a deprecation comment is
+ * not a guard any more than the original comment was. Round ten moved the six
+ * (four in admin/DashboardView, one each in the two admin-overlay files) and
+ * deleted the alias.
+ *
  * If you are writing a price a customer will read, use `useShopPrice` from
  * components/shop/shopPrice. If you are writing a price into markup, a ledger
  * or an invoice, use these.
@@ -98,11 +107,3 @@ export function fmtPct(value: number, decimals = 1): string {
 export function fmtRecordDollars(amount: number): string {
   return '$' + fmtNum(amount, 0);
 }
-
-/**
- * @deprecated Renamed to `fmtRecordDollars`. This alias exists only because the
- * admin dashboard and the admin overlay still import the old name and are
- * outside the round-nine edit scope. Delete it, and the six call sites in
- * src/admin and src/components/admin-overlay, in the next admin pass.
- */
-export const fmtDollars = fmtRecordDollars;

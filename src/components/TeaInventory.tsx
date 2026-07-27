@@ -41,13 +41,13 @@ interface TeaInventoryProps {
   onAdminEdit?: (itemId: string) => void;
 }
 
-// Preferred display order for tea types — any types not listed here appear at the end.
+// Preferred display order for tea types, any types not listed here appear at the end.
 // Sourced from the wisdom base; the old local list additionally carried a 'Black'
-// entry alongside 'Red' (they are the same canonical type — hong cha is Red, not
+// entry alongside 'Red' (they are the same canonical type, hong cha is Red, not
 // Black), which merged into the single 'Red' entry below.
 const TYPE_ORDER: string[] = [...WISDOM_TEA_TYPES];
 
-// Canonical filter/group key for a stored item type — resolves historical
+// Canonical filter/group key for a stored item type, resolves historical
 // dialects (e.g. a record saved with type 'Black') to the wisdom base's
 // canonical type, so 'Red' and 'Black' records land in the same filter pill
 // and section rather than splitting into two. Falls back to the raw stored
@@ -71,7 +71,7 @@ const regionKey = (origin: string | null | undefined): string | null => {
 /** What to call an active region filter in the chip that clears it. */
 const regionLabel = (key: string): string => findRegion(key)?.name ?? key;
 
-// Sort options for the shop toolbar — rendered as inline pills matching Type/Feeling
+// Sort options for the shop toolbar, rendered as inline pills matching Type/Feeling
 const SORT_OPTIONS: { id: 'featured' | 'price_asc' | 'price_desc' | 'recent' | 'tasted'; label: string }[] = [
   { id: 'featured', label: 'Featured' },
   { id: 'price_asc', label: 'Price ↑' },
@@ -210,12 +210,12 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
     return ALL_FLAVOR_TAG_TERMS.filter(t => present.has(t.id));
   }, [inventory]);
 
-  // User Interaction State — persisted via Zustand store
+  // User Interaction State, persisted via Zustand store
   const { favoriteTeas, toggleFavoriteTea, compareItems, recentlyViewed, addRecentlyViewed, shopPriceWeight, setShopPriceWeight, shopSort, setShopSort, shopSavedOnly, setShopSavedOnly } = useAppStore();
   const userFavorites = useMemo(() => new Set(favoriteTeas), [favoriteTeas]);
   const [showCompare, setShowCompare] = useState(false);
 
-  // Tasting journal — count how many times user has tasted each tea
+  // Tasting journal, count how many times user has tasted each tea
   const tastingCounts = useTastingCounts();
 
   // Tasting term filter (cross-reference from AlcoveCard)
@@ -665,7 +665,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
              </button>
            </div>
 
-           {/* Inline-expanding options — flush below the toolbar, pushes content down */}
+           {/* Inline-expanding options, flush below the toolbar, pushes content down */}
            {openFilter === 'type' && (
               <div className="flex flex-wrap gap-1.5 pb-3 animate-[fadeIn_0.15s_ease-out]">
                  <button
@@ -764,7 +764,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
             );
          })()}
 
-         {/* Mood and flavor tag filter — collapsible, editorial chip rows */}
+         {/* Mood and flavor tag filter, collapsible, editorial chip rows */}
          {(availableMoodTagTerms.length > 0 || availableFlavorTagTerms.length > 0) && (
            <div className="mb-4 border-b border-tea-border pb-3">
              <div className="flex flex-col gap-0.5">
@@ -931,7 +931,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
             </div>
          ) : null}
 
-         {/* LIST VIEW — tap opens AlcoveCard */}
+         {/* LIST VIEW, tap opens AlcoveCard */}
          {filteredInventory.length > 0 && (
             <div className="flex flex-col px-0 animate-[fadeIn_0.5s_ease-out]">
                {groupedInventory.map((group) => (

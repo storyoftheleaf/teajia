@@ -89,7 +89,7 @@ const StoryCardsBriefing: React.FC<StoryCardsBriefingProps> = ({
       aria-modal="true"
       aria-label="Event briefing"
     >
-      {/* Tap zone — advancing happens here, not on the root, so the Skip
+      {/* Tap zone, advancing happens here, not on the root, so the Skip
           control, dots, and CTA are naturally exempt without stopPropagation. */}
       <button
         type="button"
@@ -98,7 +98,7 @@ const StoryCardsBriefing: React.FC<StoryCardsBriefingProps> = ({
         className="absolute inset-0 z-0 cursor-pointer focus-visible:outline-none"
       />
 
-      {/* Persistent skip — always available, no need to reach the last card */}
+      {/* Persistent skip, always available, no need to reach the last card */}
       {!isLast && (
         <button
           type="button"

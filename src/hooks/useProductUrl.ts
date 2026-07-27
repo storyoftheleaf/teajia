@@ -42,10 +42,10 @@ export function useProductUrl(
         const url = new URL(window.location.href);
         url.searchParams.set('product', viewItem.id);
         if (isModalNavRef.current) {
-          // Navigating within modal (arrows/swipe) — replace so back closes
+          // Navigating within modal (arrows/swipe), replace so back closes
           window.history.replaceState({ productModal: viewItem.id }, '', url.toString());
         } else {
-          // Opening a card fresh — push so back button can close
+          // Opening a card fresh, push so back button can close
           window.history.pushState({ productModal: viewItem.id }, '', url.toString());
         }
         isModalNavRef.current = false;
@@ -67,7 +67,7 @@ export function useProductUrl(
           setViewItem(null);
         }
       } else {
-        // No product param — close modal
+        // No product param, close modal
         if (viewItem) {
           setViewItem(null);
         }
@@ -88,7 +88,7 @@ export function useProductUrl(
     }
   }, [setViewItem]);
 
-  // Navigate within modal — replaces history instead of pushing
+  // Navigate within modal, replaces history instead of pushing
   const navigateWithinModal = useCallback((item: InventoryItem) => {
     isModalNavRef.current = true;
     setViewItem(item);

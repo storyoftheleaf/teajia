@@ -130,7 +130,7 @@ export const NeedsAttention: React.FC<{ items: AttentionItem[] }> = ({ items }) 
 // Built from the same hairline-border + warm surface vocabulary used
 // elsewhere in the app, so it reads as instrument-typeset-into-page rather
 // than dropped-on-top app chrome. `urgent` promotes a single tile to the
-// bronze-fill state — only one tile per grid should ever be urgent.
+// bronze-fill state, only one tile per grid should ever be urgent.
 
 interface InstrumentProps {
   value: number | string | null;
@@ -236,9 +236,9 @@ export const ConsoleGrid: React.FC<{ children: React.ReactNode }> = ({ children 
 // ── Primary verb (single bronze CTA, state-driven) ────────────────────────
 // One verb per screen. Filled bronze when there's an urgent action,
 // bordered bronze when the action is the daily default. Never two
-// bronze fills on the same screen — the urgent Instrument tile and the
+// bronze fills on the same screen, the urgent Instrument tile and the
 // PrimaryVerb fill must not both be bronze at once. The component itself
-// can't enforce that — call sites must.
+// can't enforce that, call sites must.
 
 interface PrimaryVerbProps {
   label: string;

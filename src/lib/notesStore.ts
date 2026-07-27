@@ -1,14 +1,14 @@
 /**
- * notesStore — local-first unified note thread.
+ * notesStore, local-first unified note thread.
  *
  * Notes are anchored by tea_key (resolved products) or compass_entry_id (draft entries).
  * They sync to the server when online, exactly like compass entries.
  *
  * source_type:
- *   'manual'  — typed by user
- *   'voice'   — transcribed from mic
- *   'tasting' — injected artifact when a tasting session is saved
- *   'vendor'  — attributed to vendor in the capture flow
+ *   'manual' , typed by user
+ *   'voice'  , transcribed from mic
+ *   'tasting', injected artifact when a tasting session is saved
+ *   'vendor' , attributed to vendor in the capture flow
  */
 
 import { create } from 'zustand';
@@ -106,7 +106,7 @@ export const useNotesStore = create<NotesState>()(
 
       removeNote: (id) => {
         set(s => ({
-          // Soft-delete for sync — server needs to know about removals
+          // Soft-delete for sync, server needs to know about removals
           notes: s.notes.map(n =>
             n.id === id ? { ...n, deleted: true, synced: false } : n
           ),

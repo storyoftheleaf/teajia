@@ -42,7 +42,7 @@ export const SessionStack: React.FC<SessionStackProps> = ({
               className="flex items-center gap-1.5 rounded-md bg-tea-surface/50 overflow-hidden"
               style={typeColor ? { borderLeft: `2px solid ${typeColor}50` } : { borderLeft: '2px solid transparent' }}
             >
-              {/* Tap area — switches active entry */}
+              {/* Tap area, switches active entry */}
               <button
                 type="button"
                 onClick={() => onSelectEntry(entry.id)}

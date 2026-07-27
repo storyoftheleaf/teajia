@@ -3,7 +3,7 @@
  * Rationale, and the conditions on this exception, in read/immersive.tsx.
  */
 /**
- * StoryEditorBar — the floating owner toolbar for a hand-built Read story.
+ * StoryEditorBar, the floating owner toolbar for a hand-built Read story.
  *
  * Shown only to the owner. One switch turns edit mode on (every editable zone
  * lights up). While editing: a live saved/saving indicator, a "view as visitor"

@@ -142,7 +142,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
           <div className="w-10 h-1 bg-tea-border rounded-full" />
         </div>
 
-        {/* Header — close X top-LEFT (§15) */}
+        {/* Header, close X top-LEFT (§15) */}
         <div className="flex items-center gap-3 px-5 py-4 border-b border-tea-border">
           <button
             onClick={onClose}
@@ -197,7 +197,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
                 </p>
               )}
 
-              {/* Footer — Cancel-left, primary-right */}
+              {/* Footer: Cancel-left, primary-right */}
               <div className="flex justify-between items-center gap-3 pt-2 pb-nav-gap">
                 <button
                   type="button"
@@ -288,7 +288,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
                 </div>
               )}
 
-              {/* Footer — Cancel-left, primary-right */}
+              {/* Footer: Cancel-left, primary-right */}
               <div className="flex justify-between items-center gap-3 pt-2 pb-nav-gap">
                 <button
                   type="button"

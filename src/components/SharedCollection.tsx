@@ -70,7 +70,7 @@ export const SharedCollection: React.FC = () => {
         </p>
       </div>
 
-      {/* Tea card grid — §20 */}
+      {/* Tea card grid, §20 */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {collectionItems.map((item) => (
           <button

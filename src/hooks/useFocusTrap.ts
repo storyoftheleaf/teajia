@@ -25,9 +25,9 @@ const IGNORED_SUBTREES = '[hidden], [inert], [aria-hidden="true"]';
 interface FocusTrapOptions {
   /**
    * Which element to focus when the trap activates.
-   * - 'first' (default) — the first focusable descendant.
-   * - 'container' — the container itself (must have tabIndex={-1}).
-   * - a selector — the first matching focusable descendant; falls back to 'first'.
+   * - 'first' (default), the first focusable descendant.
+   * - 'container', the container itself (must have tabIndex={-1}).
+   * - a selector, the first matching focusable descendant; falls back to 'first'.
    */
   initialFocus?: 'first' | 'container' | string;
 }

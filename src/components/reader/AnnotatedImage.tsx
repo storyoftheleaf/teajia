@@ -15,7 +15,7 @@ interface AnnotatedImageProps {
 }
 
 /**
- * AnnotatedImage — Image with numbered callout markers and legend below.
+ * AnnotatedImage: Image with numbered callout markers and legend below.
  * Markers are 24x24px gold circles with white number text.
  * Tap/hover a marker to expand it and show a tooltip.
  * Legend lists all annotations below the image.

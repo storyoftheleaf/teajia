@@ -114,7 +114,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
 
   // Mode: sourcing (editing an entry), library (browse past captures), or buying (ledger).
-  // Tasting (the Tasting Journal) is its own surface at /account/journal — not a Compass mode.
+  // Tasting (the Tasting Journal) is its own surface at /account/journal, not a Compass mode.
   const [mode, setMode] = useState<CompassMode>(initialMode || 'sourcing');
   const [developmentStarted, setDevelopmentStarted] = useState(false);
 
@@ -192,7 +192,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   // Track whether the user navigated to Capture from the Library (to show back link)
   const [fromLibrary, setFromLibrary] = useState(false);
 
-  // Batch entry mode — rapid-fire name + type row for vendor table sessions
+  // Batch entry mode, rapid-fire name + type row for vendor table sessions
   const [batchMode, setBatchMode] = useState(false);
   const [sampleOrderOpen, setSampleOrderOpen] = useState(initialSampleOrder != null);
   const [sampleOrderManaging, setSampleOrderManaging] = useState(initialSampleOrder === 'manage');
@@ -490,7 +490,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   );
 
   const handleCommitEntry = useCallback(() => {
-    // Always clear fromLibrary when committing — the new entry shouldn't inherit it
+    // Always clear fromLibrary when committing, the new entry shouldn't inherit it
     setFromLibrary(false);
 
     // Capture committed entry info before it's removed from session
@@ -656,7 +656,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const showCaptureActionBar = mode === 'sourcing'
     && !!activeEntryId && activeEntry?.category !== 'teaware';
 
-  // Tab-level search — shared across all tabs; cleared on tab switch
+  // Tab-level search, shared across all tabs; cleared on tab switch
   const [tabSearchQuery, setTabSearchQuery] = useState('');
   const mobileSearchInputRef = useRef<HTMLInputElement>(null);
   const desktopSearchInputRef = useRef<HTMLInputElement>(null);
@@ -699,7 +699,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   ];
   const currentTab = tabs.find((t) => t.id === mode);
 
-  // Inline mic — shown in the Compass header on the sourcing tab for
+  // Inline mic, shown in the Compass header on the sourcing tab for
   // privileged accounts. Previously hijacked the global nav's center
   // logo slot via useBottomBarMic; that broke the home affordance, so
   // voice capture lives contextually here in the panel instead.
@@ -730,7 +730,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
         }`}
         style={{ position: 'relative', zIndex: 5 }}
       >
-        {/* Row 1 — Screen segmented control (Source / Library / Ledger).
+        {/* Row 1: Screen segmented control (Source / Library / Ledger).
             Always visible, one tap between screens. The capture-type
             sub-tabs (Tea / Teaware / Samples) moved to Row 2 so this row
             stays single-purpose: which screen am I on. */}
@@ -744,7 +744,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             <ArrowLeft size={18} strokeWidth={1.75} />
           </button>
 
-          {/* Segmented control — the three Curate screens as peers. The
+          {/* Segmented control, the three Curate screens as peers. The
               active segment carries a gold-tinted fill + gold hairline so
               it reads at a glance; inactive segments stay quiet. */}
           <div className="flex min-w-0 flex-1 items-center lg:flex-none">
@@ -820,10 +820,10 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           </div>
         )}
 
-        {/* Row 2 — capture method. Only relevant
+        {/* Row 2: capture method. Only relevant
             inside Source, so it appears only there; Library and Ledger
             collapse to the single Row 1, keeping their header clean. The
-            session draft strip is NOT here — it scrolls with the page
+            session draft strip is NOT here, it scrolls with the page
             content below, so the header holds at two sticky rows. */}
         {mode === 'sourcing' && (
           <div className="flex h-10 items-center gap-1 border-b border-tea-border px-2 sm:px-4">
@@ -900,11 +900,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       <div className="flex-1 min-h-0 flex flex-col">
 
         {/* ══════════════════════════════════════════════
-            MOBILE PATH — hidden on lg+, original layout
+            MOBILE PATH, hidden on lg+, original layout
             ══════════════════════════════════════════════ */}
         <div className="flex flex-col flex-1 min-h-0 lg:hidden">
 
-          {/* Search bar — hidden on sourcing (chips strip takes that role) */}
+          {/* Search bar, hidden on sourcing (chips strip takes that role) */}
           {mode !== 'sourcing' && (
             <div className="shrink-0 px-4 pt-2.5 pb-1">
               <div className="relative">
@@ -954,7 +954,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   transition={{ duration: 0.2 }}
                 >
                   {/* Tea / Teaware / Samples sub-tabs moved up into the
-                      header row in pass 6 — no duplicate segmented
+                      header row in pass 6, no duplicate segmented
                       control here. */}
                   <>
                       {initialDevelopmentProduct && !developmentStarted && (
@@ -972,7 +972,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                           folded into the Run chip at the top of the capture
                           card; the SyncIndicator moved there with it. */}
 
-                      {/* Batch mode row — rapid-fire entry for vendor tables */}
+                      {/* Batch mode row, rapid-fire entry for vendor tables */}
                       {(!initialDevelopmentProduct || developmentStarted) && batchMode && (
                         <BatchCaptureRow />
                       )}
@@ -1022,7 +1022,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   exit={{ opacity: 0, x: 20 }}
                   transition={{ duration: 0.2 }}
                 >
-                  {/* Pending incoming shares — require explicit accept/decline */}
+                  {/* Pending incoming shares, require explicit accept/decline */}
                   {visibleShares.length > 0 && (
                     <div className="mb-4 space-y-2">
                       {/* Header row: count + bulk actions */}
@@ -1068,7 +1068,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                             key={share.id}
                             className="rounded-xl bg-tea-surface border border-tea-border px-3 py-2.5 space-y-2"
                           >
-                            {/* Card header — always visible */}
+                            {/* Card header, always visible */}
                             <div className="flex items-start justify-between gap-2">
                               <div className="min-w-0 flex-1">
                                 <p className="text-ui-11 text-tea-text-sec mb-0.5">From {from}</p>
@@ -1101,7 +1101,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                               </div>
                             </div>
 
-                            {/* Inline preview — expanded accordion */}
+                            {/* Inline preview, expanded accordion */}
                             <AnimatePresence initial={false}>
                               {isExpanded && (
                                 <motion.div
@@ -1153,7 +1153,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                               )}
                             </AnimatePresence>
 
-                            {/* Accept / Decline — always visible */}
+                            {/* Accept / Decline, always visible */}
                             <div className="flex gap-2">
                               <button
                                 type="button"
@@ -1216,7 +1216,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           </div>
 
 
-          {/* Voice error toast — floats just above the merged BottomTabBar.
+          {/* Voice error toast, floats just above the merged BottomTabBar.
               The mobile action bar moved into CaptureCard's footer (along
               with the Done button), so we no longer stack two fixed bars. */}
           <AnimatePresence>
@@ -1246,11 +1246,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
         {/* END MOBILE */}
 
         {/* ══════════════════════════════════════════════════
-            DESKTOP PATH — hidden on mobile, two-column split
+            DESKTOP PATH, hidden on mobile, two-column split
             ══════════════════════════════════════════════════ */}
         <div className="hidden lg:flex flex-row flex-1 min-h-0 overflow-hidden">
 
-          {/* ── LEFT COLUMN (list rail) — widens at larger breakpoints so the
+          {/* ── LEFT COLUMN (list rail), widens at larger breakpoints so the
               cards breathe and the empty detail panel doesn't read as dead
               space on wide monitors. In Library with nothing selected it
               expands to fill the whole pane as a grid (libraryGrid). ── */}
@@ -1427,7 +1427,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                               key={share.id}
                               className="rounded-xl bg-tea-surface border border-tea-border px-3 py-2.5 space-y-2"
                             >
-                              {/* Card header — always visible */}
+                              {/* Card header, always visible */}
                               <div className="flex items-start justify-between gap-2">
                                 <div className="min-w-0 flex-1">
                                   <p className="text-ui-11 text-tea-text-sec mb-0.5">From {from}</p>
@@ -1459,7 +1459,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                                 </div>
                               </div>
 
-                              {/* Inline preview — expanded accordion */}
+                              {/* Inline preview, expanded accordion */}
                               <AnimatePresence initial={false}>
                                 {isExpanded && (
                                   <motion.div
@@ -1511,7 +1511,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                                 )}
                               </AnimatePresence>
 
-                              {/* Accept / Decline — always visible */}
+                              {/* Accept / Decline, always visible */}
                               <div className="flex gap-2">
                                 <button
                                   type="button"
@@ -1580,7 +1580,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               </AnimatePresence>
             </div>
 
-            {/* Left column desktop FAB footer — Tasting + Buying only */}
+            {/* Left column desktop FAB footer: Tasting + Buying only */}
             {mode !== 'sourcing' && (
               <div className="shrink-0 px-4 pb-4 pt-2 border-t border-tea-border">
                 <button
@@ -1597,7 +1597,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           </div>
           {/* END LEFT COLUMN */}
 
-          {/* ── RIGHT COLUMN (flex-1) — hidden in Library grid mode, where the
+          {/* ── RIGHT COLUMN (flex-1), hidden in Library grid mode, where the
               left column owns the full width until an entry is selected. ── */}
           <div className={`flex-col flex-1 min-w-0 overflow-hidden ${libraryGrid ? 'hidden' : 'flex'}`}>
 
@@ -1708,7 +1708,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               </AnimatePresence>
             </div>
 
-            {/* Right column sticky action bar — Sourcing only, single compact row */}
+            {/* Right column sticky action bar: Sourcing only, single compact row */}
             {mode === 'sourcing' && (
               <div className="shrink-0 border-t border-tea-border">
                 <AnimatePresence>
@@ -1746,7 +1746,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       </div>
       {/* END BODY */}
 
-      {/* Share modal — global, unchanged */}
+      {/* Share modal, global, unchanged */}
       <AnimatePresence>
         {shareModalOpen && activeEntryId && (() => {
           const entry = getEntry(activeEntryId);

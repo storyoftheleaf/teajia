@@ -42,7 +42,7 @@
  */
 /**
  * ╔══════════════════════════════════════════════════════════════════╗
- * ║  IMMERSIVE READER — shared primitives                             ║
+ * ║  IMMERSIVE READER, shared primitives                             ║
  * ║                                                                   ║
  * ║  The espresso-and-gold scrolling article system for the Read      ║
  * ║  section. Ported pixel-faithfully from the Claude Design mockups  ║
@@ -52,7 +52,7 @@
  * ║  can shift to copper / jade / claret.                             ║
  * ║                                                                   ║
  * ║  Distinct from the 4:5 paginated carousel at /article/:slug.      ║
- * ║  Imagery is elegant typographic / SVG plates — built to be        ║
+ * ║  Imagery is elegant typographic / SVG plates, built to be        ║
  * ║  swapped for real photography later.                              ║
  * ╚══════════════════════════════════════════════════════════════════╝
  */
@@ -248,7 +248,7 @@ export const ImmersiveRoot: React.FC<{ children: React.ReactNode; rootRef?: Reac
       color: C.ink,
       fontFamily: F.body,
       // `clip` (not `hidden`) contains horizontal overflow WITHOUT making this a
-      // scroll container — `overflow-x: hidden` silently kills `position: sticky`
+      // scroll container, `overflow-x: hidden` silently kills `position: sticky`
       // for every descendant (e.g. the Reading Room's cover rail). Same visual.
       overflowX: 'clip',
       minHeight: '100vh',

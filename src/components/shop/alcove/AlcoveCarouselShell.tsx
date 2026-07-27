@@ -40,8 +40,8 @@ import type { InventoryItem } from '../../../types';
  *
  * Every optional prop defaults to `AlcoveModal`'s value, following the
  * convention `AlcoveShell` set: the dominant call site says nothing, and the
- * variant states only its differences. `TeawareAlcoveModal` states eight, and
- * they are worth naming because two of them are not cosmetic:
+ * variant states only its differences. `TeawareAlcoveModal` states seven, and
+ * one of them is not cosmetic:
  *
  *   Cosmetic:  peekHeight 820 rather than 780, peekOpacity 0.35 rather than
  *              0.2, peekBlur 1px rather than 8px, the arrow treatment, the two
@@ -49,11 +49,19 @@ import type { InventoryItem } from '../../../types';
  *              which only the teaware carousel shows.
  *   Not:       the backdrop is `z-modal` (40) with a flat `bg-black/95`, where
  *              the tea modal is `z-panel-modal` (70) with a blurred
- *              `bg-black/85`; and the dialog is named by `aria-label` rather
- *              than `aria-labelledby`. Both are preserved exactly rather than
- *              unified, because a z-layer change is a stacking bug waiting to
- *              happen and neither is this refactor's business. They are the
- *              first two things to look at in a follow-up.
+ *              `bg-black/85`. Preserved exactly rather than unified, because a
+ *              z-layer change is a stacking bug waiting to happen and it is
+ *              not this file's business to guess which layer is right. See the
+ *              note under `backdropLayerClassName`.
+ *
+ * The eighth difference is gone. The teaware dialog used to name itself with
+ * `aria-label={item.name}` while the tea dialog pointed at its heading with
+ * `aria-labelledby`, on the reasoning that a teapot had no heading to point at.
+ * That stopped being true when `TeawareAlcoveCard` was ported onto
+ * `AlcoveIdentityHeader`, which renders `<h1 id="alcove-title-{item.id}">` for
+ * both cards. Both now use `aria-labelledby`, so the accessible name is the
+ * heading a sighted reader is looking at rather than a second string that can
+ * drift from it.
  *
  * One thing was dropped rather than made a prop, and it is worth saying so the
  * next reader does not go looking for it. `AlcoveModal` kept a `slideDirection`
@@ -76,11 +84,26 @@ export interface AlcoveCarouselShellProps {
   /** A neighbour, rendered blurred and inert on both sides. */
   renderPeek: (item: InventoryItem) => React.ReactNode;
 
-  /** Exactly one of these names the dialog. */
-  ariaLabel?: string;
+  /**
+   * The id of the heading that names the dialog. Both carousels pass the
+   * `alcove-title-*` id `AlcoveIdentityHeader` puts on the product name, which
+   * is why there is no `ariaLabel` escape hatch here: a second, hand-written
+   * name is a string that can drift from the heading under it.
+   */
   ariaLabelledBy?: string;
 
-  /** Stacking layer for the whole dialog. Default is the tea modal's. */
+  /**
+   * Stacking layer for the whole dialog. Default is the tea modal's.
+   *
+   * The two carousels disagree here and the disagreement is deliberate rather
+   * than settled: tea opens at `z-panel-modal` (70), teaware at `z-modal` (40).
+   * 40 is the layer AccountPanel and its backdrop also occupy, and the app
+   * relies on DOM order to break that tie, so raising or lowering either one is
+   * a stacking change with consequences outside this component. Whoever picks
+   * this up should decide which layer a product carousel belongs on and move
+   * both, with the overlays that share the layer in view. Do not unify it by
+   * deleting one of the two values.
+   */
   backdropLayerClassName?: string;
   /** The visible scrim, applied once the dialog has faded in. */
   backdropScrimClassName?: string;
@@ -114,7 +137,6 @@ export const AlcoveCarouselShell: React.FC<AlcoveCarouselShellProps> = ({
   onItemChange,
   renderCard,
   renderPeek,
-  ariaLabel,
   ariaLabelledBy,
   backdropLayerClassName = 'z-panel-modal',
   backdropScrimClassName = 'bg-black/85 backdrop-blur-sm',
@@ -349,7 +371,6 @@ export const AlcoveCarouselShell: React.FC<AlcoveCarouselShellProps> = ({
       ref={dialogRef}
       role="dialog"
       aria-modal="true"
-      aria-label={ariaLabel}
       aria-labelledby={ariaLabelledBy}
       className={`fixed inset-0 transition-all duration-300 ${backdropLayerClassName} ${isVisible ? backdropScrimClassName : 'bg-black/0 pointer-events-none'}`}
       onClick={handleBackdropClick}

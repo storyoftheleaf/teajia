@@ -99,7 +99,7 @@ export const TeaDiscoveryFlow: React.FC<TeaDiscoveryFlowProps> = ({
 
   return (
     <div className="mx-auto flex min-h-[72vh] w-full max-w-xl flex-col">
-      {/* Top bar — Back (left) + step counter */}
+      {/* Top bar: Back (left) + step counter */}
       <div className="flex items-center justify-between pt-2 pb-4">
         <button
           type="button"

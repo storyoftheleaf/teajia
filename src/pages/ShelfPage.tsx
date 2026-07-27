@@ -4,10 +4,10 @@ import { useQuery } from '@tanstack/react-query';
 import { Loader2, Package } from 'lucide-react';
 import { api, type PublicShelfItem } from '../lib/api';
 
-// Stock spine step 5 — the standalone public shelf at /u/<slug>. A person's
+// Stock spine step 5: the standalone public shelf at /u/<slug>. A person's
 // private cellar, published with Adrian's permission. Shelf-first: the seller's
 // tea + a direct WhatsApp order, nothing else. Teajia does not take the order
-// or hold the money — the buyer deals with the seller directly.
+// or hold the money, the buyer deals with the seller directly.
 
 function waLink(whatsapp: string | null, item: PublicShelfItem, sellerName: string | null): string {
   const digits = (whatsapp || '').replace(/[^\d]/g, '');
@@ -50,12 +50,12 @@ const ShelfPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-tea-bg">
       <div className="max-w-2xl mx-auto px-5 py-10 pb-nav-gap">
-        {/* Header — shelf-first, no bio. */}
+        {/* Header, shelf-first, no bio. */}
         <header className="mb-8">
           <p className="text-ui-11 text-tea-text-dim uppercase tracking-[0.14em] mb-1">A personal shelf</p>
           <h1 className="font-display text-2xl text-tea-text">{heading}</h1>
           <p className="text-ui-13 text-tea-text-sec mt-2">
-            Order directly with the seller over WhatsApp — they fulfil and are paid themselves.
+            Order directly with the seller over WhatsApp, they fulfil and are paid themselves.
           </p>
         </header>
 
@@ -64,7 +64,7 @@ const ShelfPage: React.FC = () => {
             {data.seller_name ? `${data.seller_name} is` : 'This shelf is'} setting the shelf. Check back soon.
           </p>
         ) : (
-          /* One section per tea — an editorial spread, not a card list.
+          /* One section per tea, an editorial spread, not a card list.
              Full-width letterbox photo on top, prose below, hairline between. */
           <div>
             {data.items.map((item, i) => (

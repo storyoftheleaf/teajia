@@ -9,7 +9,7 @@ import type { Currency } from '../../admin/types';
 interface StatusActionsProps {
   status: CompassStatus;
   onStatusChange: (status: CompassStatus) => void;
-  /** The full entry — needed to build the ledger line item */
+  /** The full entry, needed to build the ledger line item */
   entry?: TeaCompassEntry;
   /** Called after item is added to ledger, to switch to ledger tab */
   onAddedToLedger?: () => void;
@@ -182,7 +182,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Incoming — ordered but not yet arrived */}
+      {/* Incoming, ordered but not yet arrived */}
       <AnimatePresence>
         {(status === 'want' || status === 'noted' || status === 'incoming') && (
           <motion.button
@@ -203,7 +203,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Quantity picker — slides in when Buy is tapped */}
+      {/* Quantity picker, slides in when Buy is tapped */}
       <AnimatePresence>
         {showQtyPicker && !justAdded && (
           <motion.div
