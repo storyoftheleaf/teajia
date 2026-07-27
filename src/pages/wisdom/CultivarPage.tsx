@@ -7,18 +7,20 @@
  * as a Taxon so an agent reading this page gets the same lineage a person does.
  */
 import React, { useMemo } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { ArrowLeft } from 'lucide-react';
 import { findCultivarById } from '../../wisdom';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import {
   AuthorshipNote,
+  BackLink,
   EYEBROW,
+  Fact,
+  HoldingNotFound,
   Invitation,
   ProseSkeleton,
-  QUIET_LINK,
   SectionHead,
+  WisdomSubNav,
   growingPlace,
   useCultivarStory,
 } from './wisdomShared';
@@ -26,17 +28,6 @@ import { LineageTree, isCultivar, nameOf, readLineage } from './LineageTree';
 
 const titleCase = (value: string) =>
   value.replace(/\b[a-z]/g, letter => letter.toUpperCase()).replace(/\bAnd\b/g, 'and');
-
-/** A labelled line. Used for every fact that is a phrase rather than a paragraph. */
-const Fact: React.FC<{ label: string; children?: React.ReactNode }> = ({ label, children }) => {
-  if (!children) return null;
-  return (
-    <div className="py-3 border-t border-tea-border flex flex-wrap gap-x-8 gap-y-1 justify-between">
-      <span className={`${EYEBROW} shrink-0`}>{label}</span>
-      <span className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text max-w-[54ch] sm:text-right`}>{children}</span>
-    </div>
-  );
-};
 
 /** A paragraph of the drafted record, under its own quiet heading. */
 const Passage: React.FC<{ label: string; text?: string | null }> = ({ label, text }) => {
@@ -48,16 +39,6 @@ const Passage: React.FC<{ label: string; text?: string | null }> = ({ label, tex
     </div>
   );
 };
-
-const BackLink: React.FC = () => (
-  <Link
-    to="/wisdom"
-    className="inline-flex items-center gap-2 min-h-[44px] text-tea-text-sec hover:text-tea-text transition-colors"
-  >
-    <ArrowLeft size={16} strokeWidth={1.5} aria-hidden />
-    <span className={TYPOGRAPHY_CLASSES.label}>All tea plants</span>
-  </Link>
-);
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
@@ -119,13 +100,13 @@ const CultivarPage: React.FC = () => {
           name: `${cultivar.name} · Tea plant reference`,
           inLanguage: 'en',
           about: { '@id': `${pageUrl}#taxon` },
-          isPartOf: { '@type': 'CollectionPage', name: 'The Tea Plants', url: `${origin}/wisdom` },
+          isPartOf: { '@type': 'CollectionPage', name: 'The Tea Plants', url: `${origin}/wisdom/cultivars` },
           creditText: 'Drafted by AI from research, published by Teajia, corrected by hand.',
         },
         {
           '@type': 'BreadcrumbList',
           itemListElement: [
-            { '@type': 'ListItem', position: 1, name: 'The Tea Plants', item: `${origin}/wisdom` },
+            { '@type': 'ListItem', position: 1, name: 'The Tea Plants', item: `${origin}/wisdom/cultivars` },
             { '@type': 'ListItem', position: 2, name: cultivar.name, item: pageUrl },
           ],
         },
@@ -135,21 +116,12 @@ const CultivarPage: React.FC = () => {
 
   if (!cultivar) {
     return (
-      <article className="w-full max-w-3xl mx-auto pt-10 pb-nav">
-        <Helmet>
-          <title>Plant not found · Teajia</title>
-        </Helmet>
-        <BackLink />
-        <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text mt-8`}>Not a plant we hold</h1>
-        <p className={`${TYPOGRAPHY_CLASSES.body} text-tea-text-sec mt-4 max-w-[56ch]`}>
-          Nothing in the reference answers to that name yet.{' '}
-          <Link to="/wisdom" className={QUIET_LINK}>
-            Browse the plants
-          </Link>
-          , or send the one you were looking for.
-        </p>
-        <Invitation subject="A plant that is missing" />
-      </article>
+      <HoldingNotFound
+        heading="Not a plant we hold"
+        backTo="/wisdom/cultivars"
+        backLabel="All tea plants"
+        subject="A plant that is missing"
+      />
     );
   }
 
@@ -172,7 +144,9 @@ const CultivarPage: React.FC = () => {
         {structuredData && <script type="application/ld+json">{JSON.stringify(structuredData)}</script>}
       </Helmet>
 
-      <BackLink />
+      <WisdomSubNav active="cultivars" />
+
+      <BackLink to="/wisdom/cultivars" label="All tea plants" />
 
       <header className="mt-6">
         <p className={EYEBROW}>The wisdom base · Cultivar</p>
@@ -315,7 +289,7 @@ const CultivarPage: React.FC = () => {
       )}
 
       <div className="mt-16 pt-8 border-t border-tea-border">
-        <AuthorshipNote className="max-w-[60ch]" />
+        <AuthorshipNote id={cultivar.id} className="max-w-[60ch]" />
         <p className={`${EYEBROW} mt-2`}>
           Nothing on this page is account scoped. It is true of the plant, not of any shop.
         </p>

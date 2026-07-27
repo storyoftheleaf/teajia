@@ -6,6 +6,9 @@
  * Everything here is either presentation or a read helper over `src/wisdom`.
  */
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
+import { ArrowLeft, Search } from 'lucide-react';
 import {
   CULTIVARS,
   REGIONS,
@@ -17,6 +20,7 @@ import {
   type Region,
   type TeaType,
 } from '../../wisdom';
+import { authorshipLine } from '../../wisdom/authorship';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
 /** The one address corrections arrive at. Governance is one editor with an inbox. */
@@ -49,10 +53,14 @@ export const SectionHead: React.FC<{ glyph: string; label: string; count?: numbe
  * The rung this entry sits on, said plainly. Most of the corpus was AI-drafted
  * from research and published before a human read it line by line. That is
  * stated, not hidden and not apologised for.
+ *
+ * Pass an entity `id` on a detail page to report that entity's own rung via
+ * `authorshipLine`. Omitted on an index page, where no single id applies and
+ * the rung defaults to "drafted", true of nearly everything in the base today.
  */
-export const AuthorshipNote: React.FC<{ className?: string }> = ({ className = '' }) => (
+export const AuthorshipNote: React.FC<{ id?: string | null; className?: string }> = ({ id = null, className = '' }) => (
   <p className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-dim leading-relaxed ${className}`}>
-    Drafted by AI from research, not yet read line by line. Corrections are applied by hand and credited.
+    {authorshipLine(id)} Corrections are applied by hand and credited.
   </p>
 );
 
@@ -71,6 +79,167 @@ export const Invitation: React.FC<{ subject?: string }> = ({ subject }) => (
     <p className={`${EYEBROW} mt-4`}>One address, one editor, every correction credited in the entry</p>
   </aside>
 );
+
+// ─── Navigation ──────────────────────────────────────────────────────────────
+
+/** The one back-link device every reference page uses, above the fold, top-left. */
+export const BackLink: React.FC<{ to: string; label: string }> = ({ to, label }) => (
+  <Link
+    to={to}
+    className="inline-flex items-center gap-2 min-h-[44px] text-tea-text-sec hover:text-tea-text transition-colors"
+  >
+    <ArrowLeft size={16} strokeWidth={1.5} aria-hidden />
+    <span className={TYPOGRAPHY_CLASSES.label}>{label}</span>
+  </Link>
+);
+
+/**
+ * Every holding the reference covers, in the order the front door lists them.
+ * The one place this list is written, so the sub-nav and the front door cannot
+ * drift out of step with each other.
+ */
+export interface WisdomSection {
+  id: string;
+  label: string;
+  path: string;
+}
+
+export const WISDOM_SECTIONS: WisdomSection[] = [
+  { id: 'overview', label: 'Overview', path: '/wisdom' },
+  { id: 'cultivars', label: 'Plants', path: '/wisdom/cultivars' },
+  { id: 'producers', label: 'Producers', path: '/wisdom/producers' },
+  { id: 'marks', label: 'Marks', path: '/wisdom/marks' },
+  { id: 'styles', label: 'Styles', path: '/wisdom/styles' },
+  { id: 'named', label: 'Named', path: '/wisdom/named' },
+];
+
+/**
+ * The persistent way around. Every page in the reference carries this strip so
+ * a reader can move between holdings without returning to the front door
+ * first. Same tab treatment the admin Wisdom view uses (serif, gold when
+ * active), so the public reference reads with the same density.
+ */
+export const WisdomSubNav: React.FC<{ active: WisdomSection['id'] }> = ({ active }) => (
+  <nav
+    aria-label="The wisdom base"
+    className="flex flex-wrap items-baseline gap-x-6 gap-y-2 border-b border-tea-border pb-3 mb-8"
+  >
+    {WISDOM_SECTIONS.map(section => {
+      const isActive = section.id === active;
+      return (
+        <Link
+          key={section.id}
+          to={section.path}
+          aria-current={isActive ? 'page' : undefined}
+          className={`min-h-[44px] inline-flex items-center font-display text-ui-16 tracking-[0.02em] transition-colors ${
+            isActive ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
+          }`}
+        >
+          {section.label}
+        </Link>
+      );
+    })}
+  </nav>
+);
+
+// ─── Finding a holding ───────────────────────────────────────────────────────
+
+/** A real search field, restyled from the admin's SearchBox to the public palette. */
+export const WisdomSearchBox: React.FC<{ value: string; onChange: (value: string) => void; placeholder: string }> = ({
+  value,
+  onChange,
+  placeholder,
+}) => (
+  <div className="relative mt-6">
+    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim" aria-hidden />
+    <input
+      type="search"
+      value={value}
+      onChange={event => onChange(event.target.value)}
+      placeholder={placeholder}
+      aria-label={placeholder}
+      className="w-full bg-tea-surface border border-tea-border rounded-md text-tea-text pl-9 pr-3 py-2.5 min-h-[44px] font-body text-ui-14 placeholder:text-tea-text-dim focus:outline-none focus:border-tea-gold/40"
+    />
+  </div>
+);
+
+/** How much of a holding a filter is showing, updated live. */
+export const CountLine: React.FC<{ visible: number; total: number; noun: string }> = ({ visible, total, noun }) => (
+  <p className={`${EYEBROW} mt-3 mb-1`}>
+    {visible} of {total} {noun}
+  </p>
+);
+
+// ─── One row of a holding ────────────────────────────────────────────────────
+
+/**
+ * The tight, two-axis row density the admin browsers use: serif name (plus a
+ * Chinese name when recorded) on the lead line, a dim second fact beneath it,
+ * and one fact right-aligned so the eye can track a second column down the
+ * list. 52 to 64px tall, not the much taller card the reference used before.
+ */
+export const HoldingRow: React.FC<{
+  to: string;
+  name: string;
+  chineseName?: string;
+  meta?: string;
+  aside?: string;
+}> = ({ to, name, chineseName, meta, aside }) => (
+  <li className="border-t border-tea-border first:border-t-0">
+    <Link
+      to={to}
+      className="group flex items-center justify-between gap-3 py-3 min-h-[52px] hover:bg-tea-gold/6 transition-colors -mx-2 px-2 rounded-md"
+    >
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <span className="font-display text-ui-17 leading-snug text-tea-text group-hover:text-tea-gold-lt transition-colors truncate">
+            {name}
+          </span>
+          {chineseName && <span className="font-display text-ui-13 text-tea-text-dim shrink-0">{chineseName}</span>}
+        </div>
+        {meta && <p className={`${EYEBROW} mt-0.5 truncate`}>{meta}</p>}
+      </div>
+      {aside && <span className={`${EYEBROW} shrink-0 text-right`}>{aside}</span>}
+    </Link>
+  </li>
+);
+
+/** A holding's id did not resolve. Same shape on every detail page in the reference. */
+export const HoldingNotFound: React.FC<{
+  heading: string;
+  backTo: string;
+  backLabel: string;
+  subject: string;
+}> = ({ heading, backTo, backLabel, subject }) => (
+  <article className="w-full max-w-3xl mx-auto pt-10 pb-nav">
+    <Helmet>
+      <title>Not found · Teajia</title>
+    </Helmet>
+    <BackLink to={backTo} label={backLabel} />
+    <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text mt-8`}>{heading}</h1>
+    <p className={`${TYPOGRAPHY_CLASSES.body} text-tea-text-sec mt-4 max-w-[56ch]`}>
+      Nothing in the reference answers to that name yet.{' '}
+      <Link to={backTo} className={QUIET_LINK}>
+        {backLabel}
+      </Link>
+      , or send the one you were looking for.
+    </p>
+    <Invitation subject={subject} />
+  </article>
+);
+
+// ─── Facts ───────────────────────────────────────────────────────────────────
+
+/** A labelled line. Used for every fact that is a phrase rather than a paragraph. */
+export const Fact: React.FC<{ label: string; children?: React.ReactNode }> = ({ label, children }) => {
+  if (!children) return null;
+  return (
+    <div className="py-3 border-t border-tea-border flex flex-wrap gap-x-8 gap-y-1 justify-between">
+      <span className={`${EYEBROW} shrink-0`}>{label}</span>
+      <span className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text max-w-[54ch] sm:text-right`}>{children}</span>
+    </div>
+  );
+};
 
 // ─── Skeleton ────────────────────────────────────────────────────────────────
 
