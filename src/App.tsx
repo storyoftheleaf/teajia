@@ -144,6 +144,9 @@ const ContributorProfilePage = lazy(() => import('./pages/ContributorProfilePage
 const ContributorsIndexPage = lazy(() => import('./pages/ContributorsIndexPage'));
 const StoreLaunchPlaybookPage = lazy(() => import('./pages/StoreLaunchPlaybookPage'));
 const McpPage = lazy(() => import('./pages/McpPage'));
+// The public tea reference — a page per cultivar, read out of src/wisdom.
+const CultivarIndexPage = lazy(() => import('./pages/wisdom/CultivarIndexPage'));
+const CultivarPage = lazy(() => import('./pages/wisdom/CultivarPage'));
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchStore } from './lib/storefrontApi';
@@ -964,6 +967,16 @@ const AppContent = () => {
                       <SharedCollection />
                     </Suspense>
                   </ErrorBoundary>
+                } />
+                {/* The public tea reference. /wisdom is the index; each plant has its own page. */}
+                <Route path="/wisdom" element={
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><CultivarIndexPage /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/wisdom/cultivars" element={
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><CultivarIndexPage /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/wisdom/cultivar/:id" element={
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><CultivarPage /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/about" element={<ErrorBoundary><AboutPage /></ErrorBoundary>} />
                 <Route path="/mcp" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><McpPage /></Suspense></ErrorBoundary>} />
