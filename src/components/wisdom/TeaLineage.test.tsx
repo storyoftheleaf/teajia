@@ -1,5 +1,15 @@
+import React from 'react';
 import { describe, expect, it } from 'vitest';
-import { lineageFacts, openingLine, resolveLineage, type TeaLineageProduct } from './TeaLineage';
+import { renderToString } from 'react-dom/server';
+import { MemoryRouter } from 'react-router-dom';
+import {
+  TeaLineage,
+  cultivarPath,
+  lineageFacts,
+  openingLine,
+  resolveLineage,
+  type TeaLineageProduct,
+} from './TeaLineage';
 import { findCultivarById, findRegion, type Cultivar } from '../../wisdom';
 
 const product = (overrides: Partial<TeaLineageProduct> = {}): TeaLineageProduct => ({
@@ -116,5 +126,37 @@ describe('lineageFacts', () => {
   it('omits every field the record does not carry', () => {
     const facts = lineageFacts(cultivar({ developedYear: 1981 }), null);
     expect(facts).toEqual([{ label: 'Developed', value: '1981' }]);
+  });
+});
+
+const render = (input: TeaLineageProduct) =>
+  renderToString(
+    <MemoryRouter>
+      <TeaLineage product={input} />
+    </MemoryRouter>,
+  );
+
+describe('the lineage block on a product page', () => {
+  it('sends the plant name to the plant s own public page', () => {
+    const html = render(product({ name: '2019 Rou Gui Yancha' }));
+    expect(html).toContain(`href="${cultivarPath('rou-gui')}"`);
+    expect(html).toContain('Rou Gui');
+  });
+
+  it('names the plant in both scripts, each unbreakable, so 390px wraps between them', () => {
+    const html = render(product({ name: 'House oolong', chineseName: '肉桂' }));
+    expect(html).toContain('肉桂');
+    // Two nowrap spans, not one: the Chinese name can never break against the
+    // Latin name, and neither is wide enough on its own to overflow 358px.
+    expect((html.match(/whitespace-nowrap/g) ?? []).length).toBe(2);
+  });
+
+  it('renders nothing at all when the plant cannot be resolved', () => {
+    expect(render(product({ name: 'Unlabelled bag from the market' }))).toBe('');
+  });
+
+  it('never nests the link inside a control, so both stay operable', () => {
+    const html = render(product({ name: '2019 Rou Gui Yancha' }));
+    expect(/<button[^>]*>[\s\S]*<a\s/.test(html)).toBe(false);
   });
 });

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
 import {
   findCultivarById,
@@ -10,7 +11,8 @@ import {
   type Region,
 } from '../../wisdom';
 import { authorshipLine } from '../../wisdom/authorship';
-import { TYPOGRAPHY_CLASSES } from '../../designTokens';
+import { FactGrid, orderFacts, type Fact } from './FactGrid';
+import { BODY, HEADING, LABEL, LABEL_GAP, SECTION } from './typeRoles';
 
 /**
  * The subset of a product's own fields needed to resolve the plant and place
@@ -32,32 +34,13 @@ export interface TeaLineageResolution {
 }
 
 /** One label/value pair in the expanded reference grid. */
-export interface LineageFact {
-  label: string;
-  value: string;
-}
+export type LineageFact = Fact;
 
-/**
- * Values at or under this length share a row on a wide screen; longer ones take
- * the full width so a bred-from sentence never sets itself in a 190px gutter.
- */
-const SHORT_FACT_CHARS = 32;
-
-/**
- * Four type roles, and only four. Reference sits beneath the shop's own voice,
- * so nothing here is gold and nothing here is a sentence in capitals.
- *
- *   LABEL      section marker and field labels
- *   SUMMARY    the plant's name, the one thing read at a glance
- *   META       the place, and the authorship note
- *   REFERENCE  field values and the opening line of the story
- */
-const LABEL = 'font-sans text-ui-11 uppercase tracking-[0.08em] text-tea-text-dim';
-const META = 'font-sans text-ui-13 text-tea-text-sec';
-const REFERENCE = 'text-ui-14 text-tea-text-sec leading-relaxed';
+/** The public address of a plant. One place, so the link and the JSON-LD agree. */
+export const cultivarPath = (id: string) => `/wisdom/cultivar/${id}`;
 
 /** Shared geometry for the summary row, so the static and disclosure forms are identical. */
-const SUMMARY_ROW = 'w-full flex items-center justify-between gap-3 min-h-[44px] py-1 text-left';
+const SUMMARY_ROW = 'flex items-start justify-between gap-3';
 
 /**
  * Resolves the plant and place a product is made from, without guessing.
@@ -109,9 +92,8 @@ export function openingLine(text: string | undefined | null): string {
 /**
  * What the base can say about this plant beyond its name and home.
  *
- * Short values are listed before long ones so the two-column grid pairs cleanly
- * instead of leaving a hole beside a spanning sentence. The sort is stable, so
- * declaration order (which is importance order) survives inside each group.
+ * Declaration order is importance order; `orderFacts` then floats the short
+ * values ahead of the long ones so the grid pairs without a hole.
  */
 export function lineageFacts(cultivar: Cultivar | null, region: Region | null): LineageFact[] {
   if (!cultivar) return [];
@@ -121,8 +103,7 @@ export function lineageFacts(cultivar: Cultivar | null, region: Region | null): 
   if (region?.altitude) facts.push({ label: 'Altitude', value: region.altitude });
   if (region?.climate) facts.push({ label: 'Where it grows', value: region.climate });
   if (cultivar.altNames.length) facts.push({ label: 'Also called', value: cultivar.altNames.join(', ') });
-  const isLong = (fact: LineageFact) => Number(fact.value.length > SHORT_FACT_CHARS);
-  return facts.sort((left, right) => isLong(left) - isLong(right));
+  return orderFacts(facts);
 }
 
 /**
@@ -131,10 +112,13 @@ export function lineageFacts(cultivar: Cultivar | null, region: Region | null): 
  * base and improved everywhere the day it is corrected. Renders nothing when
  * the plant cannot be resolved, a blank is correct here.
  *
- * Two states, one geometry. The summary row is the same height and the same
- * width whether or not there is anything to expand, and the chevron sits in a
- * slot that is reserved even when empty, so the row never moves when the story
- * finishes loading and the disclosure appears.
+ * The plant's name is a link to its own public page, so background is a
+ * doorway rather than a dead end. The disclosure is a separate control beside
+ * it, because a link inside a button is neither a link nor a button.
+ *
+ * Two states, one geometry. The summary row is the same height whether or not
+ * there is anything to expand, and the chevron sits in a slot that is reserved
+ * even when empty, so the row never moves when the story finishes loading.
  */
 export const TeaLineage: React.FC<{ product: TeaLineageProduct }> = ({ product }) => {
   const { cultivar, region } = resolveLineage(product);
@@ -174,70 +158,66 @@ export const TeaLineage: React.FC<{ product: TeaLineageProduct }> = ({ product }
   // chevron worth the tap, so the row is simply a line of reference and stops.
   const hasDetail = storySettled && (facts.length > 0 || Boolean(storyLine));
 
-  const summary = (
-    <>
-      {/* Spans, not divs and paragraphs: this whole fragment is also the content
-          of a <button>, whose content model is phrasing only. */}
-      <span className="block min-w-0 flex-1">
-        {/* Wrapping happens between whole names, never inside one, so the Chinese
-            name cannot break against the Latin name at a narrow width. */}
-        <span className={`${TYPOGRAPHY_CLASSES.bodyLight} flex flex-wrap items-baseline gap-x-2 text-tea-text`}>
-          <span className="whitespace-nowrap">{cultivar.name}</span>
-          {cultivar.chineseName && (
-            <span className="whitespace-nowrap text-tea-text-sec">{cultivar.chineseName}</span>
+  return (
+    <section aria-labelledby={headingId} className={SECTION}>
+      <h2 id={headingId} className={`${LABEL} ${LABEL_GAP} text-tea-text-dim`}>
+        Lineage
+      </h2>
+
+      <div className={SUMMARY_ROW}>
+        <Link
+          to={cultivarPath(cultivar.id)}
+          className="group flex min-h-[44px] min-w-0 flex-1 flex-col justify-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50"
+        >
+          {/* Wrapping happens between whole names, never inside one, so the
+              Chinese name cannot break against the Latin name at 390px. */}
+          <span className={`${HEADING} flex flex-wrap items-baseline gap-x-2 text-tea-text transition-colors group-hover:text-tea-gold`}>
+            {/* Underlined at rest, on the page's one link setting: on a phone
+                nothing hovers, so a link that only announces itself to a mouse
+                is not a link at all. */}
+            <span className="whitespace-nowrap underline decoration-1 decoration-tea-text-dim underline-offset-4 transition-colors group-hover:decoration-tea-gold">
+              {cultivar.name}
+            </span>
+            {cultivar.chineseName && (
+              <span className="whitespace-nowrap text-tea-text-sec transition-colors group-hover:text-tea-gold">
+                {cultivar.chineseName}
+              </span>
+            )}
+          </span>
+          {plantOrigin && <span className={`${BODY} mt-0.5 block text-tea-text-dim`}>{plantOrigin}</span>}
+        </Link>
+
+        {/* Reserved slot: present at the same width whether or not it holds a
+            control, so the name never shifts when the story settles. */}
+        <span className="flex min-h-[44px] w-11 flex-shrink-0 items-center justify-center">
+          {hasDetail && (
+            <button
+              type="button"
+              onClick={() => setExpanded(open => !open)}
+              aria-expanded={expanded}
+              // Only points at the panel while the panel is in the DOM.
+              aria-controls={expanded ? panelId : undefined}
+              aria-label={expanded ? `Hide what is recorded about ${cultivar.name}` : `Show what is recorded about ${cultivar.name}`}
+              className="tap-target rounded-md text-tea-text-dim hover:text-tea-text-sec focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50"
+            >
+              <ChevronDown
+                className={`h-4 w-4 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+              />
+            </button>
           )}
         </span>
-        {plantOrigin && <span className={`${META} mt-0.5 block`}>{plantOrigin}</span>}
-      </span>
-      <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center" aria-hidden>
-        {hasDetail && (
-          <ChevronDown
-            className={`h-4 w-4 text-tea-text-dim transition-transform duration-200 group-hover:text-tea-text-sec ${expanded ? 'rotate-180' : ''}`}
-          />
-        )}
-      </span>
-    </>
-  );
-
-  return (
-    <section aria-labelledby={headingId} className="mb-5 border-t border-tea-border pt-4">
-      <h3 id={headingId} className={`${LABEL} font-medium mb-1.5`}>
-        Lineage
-      </h3>
-
-      {hasDetail ? (
-        <button
-          type="button"
-          onClick={() => setExpanded(open => !open)}
-          aria-expanded={expanded}
-          // Only points at the panel while the panel is in the DOM.
-          aria-controls={expanded ? panelId : undefined}
-          className={`${SUMMARY_ROW} group rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50`}
-        >
-          {summary}
-        </button>
-      ) : (
-        <div className={SUMMARY_ROW}>{summary}</div>
-      )}
+      </div>
 
       {hasDetail && expanded && (
         <div id={panelId} className="mt-3 space-y-3 animate-fadeIn">
-          {facts.length > 0 && (
-            <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
-              {facts.map(fact => (
-                <div key={fact.label} className={fact.value.length > SHORT_FACT_CHARS ? 'sm:col-span-2' : undefined}>
-                  <dt className={`${LABEL} mb-0.5`}>{fact.label}</dt>
-                  <dd className={REFERENCE}>{fact.value}</dd>
-                </div>
-              ))}
-            </dl>
-          )}
+          <FactGrid facts={facts} />
 
-          {storyLine && <p className={REFERENCE}>{storyLine}</p>}
+          {storyLine && <p className={`${BODY} text-tea-text-sec`}>{storyLine}</p>}
 
-          {/* The line that earns trust for everything above it. A readable
-              sentence, never fine print. */}
-          <p className={`${META} pt-1`}>{authorshipLine(cultivar.id)}</p>
+          {/* The line that earns trust for everything above it. Readable, never
+              fine print, and one tone quieter than on the reference page: here
+              it describes a block of background, not the page you came for. */}
+          <p className={`${BODY} pt-1 text-tea-text-dim`}>{authorshipLine(cultivar.id)}</p>
         </div>
       )}
     </section>
