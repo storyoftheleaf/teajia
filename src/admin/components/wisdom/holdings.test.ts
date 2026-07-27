@@ -13,6 +13,7 @@ import {
   readFold,
   readGapAccount,
   readWisdomShape,
+  readWisdomShapeReport,
   recogniseQuery,
   settleLoan,
   toggleFold,
@@ -22,7 +23,9 @@ import {
   wisdomMatches,
   wisdomQueryTokens,
   wisdomShapeToken,
+  wisdomShown,
   wisdomStartsWith,
+  withInventoryPanel,
   type WisdomPrefs,
 } from './config';
 import { WISDOM_HOLDINGS } from './holdings';
@@ -141,9 +144,9 @@ describe('wisdom holdings', () => {
 
   // Two declarations of one field cost nothing the day they are written and
   // drift on every day after it. A part that IS a column's value is the
-  // duplicate; an alias that merely contains one is not, which is why the
-  // declaration is parts rather than one joined string.
-  it('declares only what the columns do not already show', () => {
+  // duplicate; an alias that merely contains one is not, which is why what a
+  // holding searches beyond its columns is parts rather than one joined string.
+  it('searches beyond the columns only for what the columns do not show', () => {
     // Compared as written rather than folded, because the base holds aliases
     // that differ from the name only in spacing ("Long Jing" for "Longjing").
     // Those are two records of a real thing; a restated column is not.
@@ -162,16 +165,16 @@ describe('wisdom holdings', () => {
         });
         if (held.length < 3) continue;
         const restated = held.filter(row =>
-          holding.declaredText(row).filter(Boolean).some(part => same(part, column.value(row))));
+          holding.beyondColumns(row).filter(Boolean).some(part => same(part, column.value(row))));
         const label = `${holding.id}.${column.key} is declared twice on ${restated.length} of ${held.length} rows`;
         expect(restated.length * 2, label).toBeLessThan(held.length);
       }
     }
-    // And every holding still declares something: a holding whose parts are all
-    // columns has nothing left to say and should say nothing.
+    // And every holding still carries something beyond its columns: a holding
+    // whose parts are all columns has nothing left to say and should say nothing.
     for (const holding of WISDOM_HOLDINGS) {
-      const declares = holding.rows.some(row => holding.declaredText(row).some(Boolean));
-      expect(declares, `${holding.id} declares nothing beyond its columns`).toBe(true);
+      const carries = holding.rows.some(row => holding.beyondColumns(row).some(Boolean));
+      expect(carries, `${holding.id} searches nothing beyond its columns`).toBe(true);
     }
   });
 
@@ -585,6 +588,37 @@ describe('the wisdom address', () => {
     const unsortable = marks.columns.find(column => column.sortable === false)!;
     expect(readWisdomShape(`s${unsortable.key}`, marks).sort).toEqual(defaultPrefs(marks).sort);
   });
+
+  // Falling back was right and doing it in silence was not: a link that half
+  // fits left the reader looking at a list that was not the one it named, with
+  // nothing on screen saying which half had been refused.
+  it('says what it refused, and says it in whole sentences', () => {
+    const marks = holdingBy('marks');
+    const { prefs, refused } = readWisdomShapeReport('gnonsense~s-nonsense~fChina', marks);
+    expect(prefs).toEqual(defaultPrefs(marks));
+    // One sentence per thing refused: the grouping, the sort, and the fold that
+    // was left with no grouping to belong to.
+    expect(refused.length).toBe(3);
+    for (const sentence of refused) {
+      expect(sentence.trim().endsWith('.'), sentence).toBe(true);
+      // Every one of them says what happened INSTEAD, not just what was denied.
+      expect(sentence, sentence).toMatch(/, so /);
+    }
+    expect(refused[0]).toContain('"nonsense" is not a grouping Marks has');
+    expect(refused[1]).toContain('sorted by Mark');
+
+    // A gap filter on a holding that counts no hole, and a loan with no gap.
+    expect(readWisdomShapeReport('x', holdingBy('producers')).refused[0]).toContain('counts no hole');
+    expect(readWisdomShapeReport('gproducer~bera', marks).refused[0]).toContain('nothing is on loan');
+    // A tag from some later version of this screen is skipped, and said.
+    expect(readWisdomShapeReport('zsomething~gproducer', marks).refused[0])
+      .toContain('"zsomething" is not a part of the shape this screen knows');
+    // And a shape a holding can honour is refused nothing at all, which is what
+    // nearly every link is.
+    expect(readWisdomShapeReport('gproducer~x', marks).refused).toEqual([]);
+    expect(readWisdomShapeReport('', marks).refused).toEqual([]);
+    expect(readWisdomShapeReport(null, marks).refused).toEqual([]);
+  });
 });
 
 // A loan is a promise about a press. It cannot outlive the screen that press was
@@ -767,6 +801,39 @@ describe('the crossing between wisdom and the inventory', () => {
     expect(scope.ids.size).toBe(0);
   });
 
+  // The chip is a promise made by this screen, not by the one that honours it:
+  // a link written before a holding changed its columns named a sort that no
+  // longer exists, and the chip offered a return to a list that cannot be built.
+  it('checks the shape it carries back rather than passing it through', () => {
+    const marks = holdingBy('marks');
+    const stale = new URLSearchParams(
+      wisdomInventoryHref('marks', '7572', { shape: 'gnonsense~s-nonsense~x', query: 'menghai' }).split('?')[1],
+    ).get('wisdom');
+
+    const scope = readWisdomScope(stale, undefined)!;
+    const back = new URLSearchParams(scope.href.split('?')[1]);
+    // What the holding can honour survives; what it cannot is gone from the
+    // link rather than carried and dropped on arrival.
+    expect(back.get('shape')).toBe('x');
+    expect(back.get('q')).toBe('menghai');
+    expect(readWisdomShape(back.get('shape'), marks)).toEqual({ ...defaultPrefs(marks), gapOnly: true });
+    // A shape with nothing honourable in it leaves no key behind at all.
+    const empty = readWisdomScope('marks:7572:gnonsense', undefined)!;
+    expect(new URLSearchParams(empty.href.split('?')[1]).get('shape')).toBe(null);
+  });
+
+  // Two links in one row reached the same inventory and only one came back.
+  it('sends one product through the same crossing as all of them', () => {
+    const href = wisdomInventoryHref('cultivars', 'rou-gui', { shape: 'gcountry' });
+    const one = withInventoryPanel(href, 'prod-1');
+    const params = new URLSearchParams(one.split('?')[1]);
+    // The filter, the entry and the way back all still ride with it.
+    expect(params.get('wisdom')).toBe('cultivars:rou-gui:gcountry');
+    expect(params.get('panel')).toBe('prod-1');
+    // And an id with a character worth escaping stays whole.
+    expect(new URLSearchParams(withInventoryPanel(href, 'a b&c').split('?')[1]).get('panel')).toBe('a b&c');
+  });
+
   it('keeps a typed query whole, colons and all', () => {
     const out = wisdomInventoryHref('marks', '7572', { query: 'menghai: 7572' });
     const carried = new URLSearchParams(out.split('?')[1]).get('wisdom')!;
@@ -788,6 +855,33 @@ describe('editDistance', () => {
     expect(editDistance('rougui', 'rougui', 2)).toBe(0);
     expect(editDistance('rougi', 'rougui', 2)).toBe(1);
     expect(editDistance('rougui', 'dahongpao', 2)).toBe(3);
+  });
+});
+
+// The jump axis reads what the cell prints; the find field reads what was
+// recorded. They differ on exactly one kind of row, and that row used to answer
+// to neither of them.
+describe('wisdomShown', () => {
+  it('gives a row with nothing recorded the word its cell prints', () => {
+    const marks = holdingBy('marks');
+    const applies = marks.columns.find(column => column.key === 'applies')!;
+    const bare = marks.rows.find(row => applies.value(row) === null)!;
+    expect(bare).toBeDefined();
+    expect(applies.fallback).toBe('Any tea');
+    // Typing the word on screen now lands on the row showing it.
+    expect(wisdomShown(applies, bare)).toBe(applies.fallback);
+    expect(wisdomStartsWith(wisdomShown(applies, bare), 'any')).toBe(true);
+    // While the find field still cannot match it, which is the point of holding
+    // the two apart rather than folding the default into the haystack.
+    expect(wisdomMatches(marks.searchText(bare), wisdomQueryTokens('any tea'))).toBe(false);
+
+    // A recorded value is untouched, and a column with no default still says
+    // nothing where nothing was recorded.
+    const stated = marks.rows.find(row => applies.value(row) !== null)!;
+    expect(wisdomShown(applies, stated)).toBe(applies.value(stated));
+    const era = marks.columns.find(column => column.key === 'era')!;
+    const undated = marks.rows.find(row => era.value(row) === null);
+    if (undated) expect(wisdomShown(era, undated)).toBe(null);
   });
 });
 

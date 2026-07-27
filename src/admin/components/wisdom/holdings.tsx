@@ -137,17 +137,30 @@ const regionChip = (written: string | null | undefined, ctx?: WisdomLinkCtx) => 
   );
 };
 
-const listOf = (values: readonly string[] | undefined, fallback: string) =>
+/**
+ * ONE WORD FOR ONE ABSENCE, said once.
+ *
+ * A mark or a style that names no types applies to every tea, and that is what
+ * the cell, the panel fact and the grouping heading each have to say. It was
+ * declared in three places and in two different words: the column carried
+ * `fallback: 'Any'` while the panel and the grouping wrote 'Any tea' by hand
+ * beside it, so the same row read as "Any" in the list and "Any tea" in the
+ * panel, and a fourth caller would have invented a third word. The column
+ * declaration was the right design; what was missing was one string behind it.
+ */
+const ANY_TYPE = 'Any tea';
+
+const listOf = (values: readonly string[] | undefined, fallback: string = ANY_TYPE) =>
   values && values.length > 0 ? values.join(', ') : fallback;
 
 /**
  * The same list as a COLUMN value: what was recorded, or nothing.
  *
  * A column's value is the text the find field reads, so a rendered default may
- * not appear in it. "Any" is what a cell says about a mark that names no types;
- * it is not a word anybody wrote on that mark, and a search for it was returning
- * the mark as though somebody had. The default rides in `fallback` instead,
- * which the cell shows and the haystack never sees.
+ * not appear in it. "Any tea" is what a cell says about a mark that names no
+ * types; it is not a word anybody wrote on that mark, and a search for it was
+ * returning the mark as though somebody had. The default rides in `fallback`
+ * instead, which the cell shows and the haystack never sees.
  */
 const recorded = (values: readonly string[] | undefined) =>
   values && values.length > 0 ? values.join(', ') : null;
@@ -278,7 +291,7 @@ const cultivars = defineHolding<Cultivar>({
   placeholder: 'Search cultivars by name, Chinese name, or alias',
   // The name, the region and the country are columns, so `defineHolding` folds
   // them in. What is left is what the row carries and the list does not show.
-  declaredText: row => [row.chineseName, ...row.altNames],
+  beyondColumns: row => [row.chineseName, ...row.altNames],
   matchEntity: query => matchCultivar(query),
   reach: 'Read by the lineage block on every shop product page, by the import editor when it identifies a tea, and by the public reference at /wisdom/cultivars.',
   publicRef: { index: '/wisdom/cultivars', entry: row => `/wisdom/cultivar/${row.id}` },
@@ -367,7 +380,7 @@ const regions = defineHolding<Region>({
   placeholder: 'Search regions by name, country, or province',
   // Name, country and province are columns. The climate is prose the panel
   // shows and the list does not, so it is the only thing left to declare.
-  declaredText: row => [row.climate],
+  beyondColumns: row => [row.climate],
   matchEntity: query => findRegion(query),
   reach: 'Offers the region suggestions on the capture card and the import editor, answers the country a record leaves blank everywhere resolveTea runs, and backs the public reference at /wisdom/regions.',
   publicRef: { index: '/wisdom/regions', entry: row => `/wisdom/region/${row.id}` },
@@ -486,7 +499,7 @@ const varieties = defineHolding<FlatVariety>({
   idOf: row => row.id,
   placeholder: 'Search varieties by name, Chinese name, type, or region',
   // Name, type and region are columns. The names the importer matches on are not.
-  declaredText: row => [row.chineseName, ...(row.altNames ?? [])],
+  beyondColumns: row => [row.chineseName, ...(row.altNames ?? [])],
   // The alias index the importer itself uses, so a query the import editor would
   // recognise is pinned here too rather than landing wherever a substring hits.
   matchEntity: query => {
@@ -556,7 +569,7 @@ const producers = defineHolding<Producer>({
   placeholder: 'Search producers by name, Chinese name, or mark',
   // Name, kind, region and country are columns; the region column carries the
   // country with it. The marks a producer is known for are only in the panel.
-  declaredText: row => [row.chineseName, ...row.altNames, ...row.notableMarks],
+  beyondColumns: row => [row.chineseName, ...row.altNames, ...row.notableMarks],
   matchEntity: query => matchProducer(query),
   reach: 'Answers who made a tea wherever one is identified, at import and in the shop, and backs the public reference at /wisdom/producers.',
   publicRef: { index: '/wisdom/producers', entry: row => `/wisdom/producer/${row.id}` },
@@ -627,7 +640,7 @@ const marks = defineHolding<Mark>({
   idOf: row => row.id,
   placeholder: 'Search marks by number, name, or producer',
   // Name, era and producer are columns. The wrapper names are not.
-  declaredText: row => [row.chineseName, ...row.altNames],
+  beyondColumns: row => [row.chineseName, ...row.altNames],
   matchEntity: query => matchMark(query),
   reach: 'Turns a recipe number on a wrapper into a producer and an era at import, and backs the public reference at /wisdom/marks.',
   publicRef: { index: '/wisdom/marks', entry: row => `/wisdom/mark/${row.id}` },
@@ -654,7 +667,7 @@ const marks = defineHolding<Mark>({
       label: 'Applies to',
       sortable: false,
       value: row => recorded(row.appliesToTypes),
-      fallback: 'Any',
+      fallback: ANY_TYPE,
     }),
   ],
   groups: [
@@ -685,7 +698,7 @@ const marks = defineHolding<Mark>({
             : null,
         },
         { label: 'Era', value: row.era },
-        { label: 'Applies to', value: listOf(row.appliesToTypes, 'Any tea') },
+        { label: 'Applies to', value: listOf(row.appliesToTypes) },
       ],
       prose: row.description,
     };
@@ -702,7 +715,7 @@ const styles = defineHolding<Style>({
   idOf: row => row.id,
   placeholder: 'Search styles by name, Chinese name, or region',
   // Name, applies-to and region are columns. The alternate names are not.
-  declaredText: row => [row.chineseName, ...row.altNames],
+  beyondColumns: row => [row.chineseName, ...row.altNames],
   matchEntity: query => matchStyle(query),
   reach: 'Names how a tea was made or pressed when that is not simply its form, wherever a tea is identified, and backs /wisdom/styles.',
   publicRef: { index: '/wisdom/styles', entry: row => `/wisdom/style/${row.id}` },
@@ -721,11 +734,11 @@ const styles = defineHolding<Style>({
       label: 'Applies to',
       sortable: false,
       value: row => recorded(row.appliesToTypes),
-      fallback: 'Any',
+      fallback: ANY_TYPE,
     }),
     slot('place', { key: 'region', label: 'Region', value: row => row.region ?? null }),
   ],
-  groups: [{ key: 'applies', label: 'Applies to', of: row => listOf(row.appliesToTypes, 'Any tea') }],
+  groups: [{ key: 'applies', label: 'Applies to', of: row => listOf(row.appliesToTypes) }],
   gap: {
     test: row => unheldPlace(row.region),
     sentence: (missing, total) =>
@@ -739,7 +752,7 @@ const styles = defineHolding<Style>({
     chineseName: row.chineseName,
     altNames: row.altNames,
     facts: [
-      { label: 'Applies to', value: listOf(row.appliesToTypes, 'Any tea') },
+      { label: 'Applies to', value: listOf(row.appliesToTypes) },
       { label: 'Region', value: row.region },
     ],
     prose: row.description,
@@ -763,7 +776,7 @@ const namedTeas = defineHolding<NamedTea>({
   placeholder: 'Search named teas by name, Chinese name, or collection',
   // Name, type, region and provenance are columns; the region column carries the
   // country. Where a named tea came from and what it belongs to are not columns.
-  declaredText: row => [row.chineseName, ...row.altNames, row.collection, row.vendor, row.tradition],
+  beyondColumns: row => [row.chineseName, ...row.altNames, row.collection, row.vendor, row.tradition],
   matchEntity: query => matchNamedTea(query),
   reach: 'Lets a tea that arrived already named resolve at import instead of falling through, and backs the public reference at /wisdom/named.',
   publicRef: { index: '/wisdom/named', entry: row => `/wisdom/named/${row.id}` },

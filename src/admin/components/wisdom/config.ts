@@ -333,12 +333,12 @@ export interface WisdomHolding<T> {
   /**
    * The searchable text of one row: everything the find field reads, joined.
    *
-   * Built by `defineHolding` out of the holding's own declared parts and every
-   * column's value. A holding never writes this; it writes the parts.
+   * Built by `defineHolding` out of every column's value and whatever the row
+   * carries beyond them. A holding never writes this; it writes the parts.
    */
   searchText: (row: T) => string;
   /**
-   * What a search should look inside, BEYOND the columns, as separate parts.
+   * What a search should look inside BEYOND the columns, as separate parts.
    *
    * Every column is folded in for free, so this holds only what the row carries
    * and the list does not show: Chinese names, aliases, the prose behind a
@@ -346,12 +346,15 @@ export interface WisdomHolding<T> {
    * declaration of the same field that nothing keeps in step with the first, and
    * the day a column's value changes shape the two disagree in silence.
    *
-   * Parts rather than one joined string, so the redundancy is testable: a part
-   * that IS a column's value is a duplicate, while an alias that merely contains
-   * one ("Bei Dou Yi Hao" holding "Bei Dou") is not, and a joined haystack
-   * cannot tell those apart. `holdings.test.ts` holds every holding to it.
+   * It was called `declaredText`, which named the test rather than the thing: a
+   * holding does not think in declarations, it thinks in what the list shows and
+   * what it does not. Parts rather than one joined string, so the redundancy
+   * stays testable: a part that IS a column's value is a duplicate, while an
+   * alias that merely contains one ("Bei Dou Yi Hao" holding "Bei Dou") is not,
+   * and a joined haystack cannot tell those apart. `holdings.test.ts` holds
+   * every holding to it.
    */
-  declaredText: (row: T) => WisdomSearchParts;
+  beyondColumns: (row: T) => WisdomSearchParts;
   placeholder: string;
   columns: ReadonlyArray<WisdomColumn<T>>;
   groups?: ReadonlyArray<WisdomGroup<T>>;
@@ -701,6 +704,20 @@ export const wisdomInventoryHref = (holding: string, entry: string, from: Wisdom
 };
 
 /**
+ * The same crossing, opening one product's panel on arrival.
+ *
+ * Two links in the blast radius reached the same inventory and only one came
+ * back: "Open all 12" carried the entry and the list the operator was reading,
+ * while each named product carried a bare `panel=`, which arrives with no chip,
+ * no filter and no way back to the entry it was read from. Half the chips in one
+ * row were round trips and half were one-way doors, for no reason a reader could
+ * see. One product is a narrowing of the same crossing, not a different one, so
+ * it is written by adding the panel to it.
+ */
+export const withInventoryPanel = (href: string, productId: string): string =>
+  `${href}${href.includes('?') ? '&' : '?'}panel=${encodeURIComponent(productId)}`;
+
+/**
  * The way back. A crossing built only one way: the panel handed the inventory a
  * filter and the inventory could not name the entry that had filtered it, let
  * alone return to it.
@@ -779,6 +796,25 @@ export function wisdomShapeToken(prefs: WisdomPrefs, holding: AnyWisdomHolding):
 }
 
 /**
+ * The shape token read back, and what the holding refused of it.
+ *
+ * Everything else on this screen says itself in words: the count, the sort, the
+ * gap, the run, the loan. The token was the one thing that did not. A link
+ * shared from a tab that has since changed its columns, or one a person edited
+ * by hand, half fits: the grouping lands and the sort silently becomes the
+ * default, and the reader is looking at a list that is not the one the link
+ * named with nothing on screen saying which half was refused.
+ *
+ * So refusal is a result, not a silence. Each one is a whole sentence naming
+ * what was asked, why it could not be honoured and what is on screen instead.
+ */
+export interface WisdomShapeReading {
+  prefs: WisdomPrefs;
+  /** What the token asked for and did not get, in sentences, in token order. */
+  refused: readonly string[];
+}
+
+/**
  * And back again, checked against the holding rather than trusted.
  *
  * A hand-edited token, or one shared from a tab that has since changed its
@@ -786,11 +822,12 @@ export function wisdomShapeToken(prefs: WisdomPrefs, holding: AnyWisdomHolding):
  * back to the default instead of leaving the list ordered by nothing. A tag this
  * version does not know is ignored rather than obeyed, for the same reason.
  */
-export function readWisdomShape(
+export function readWisdomShapeReport(
   token: string | null | undefined,
   holding: AnyWisdomHolding,
-): WisdomPrefs {
+): WisdomShapeReading {
   const fallback = defaultPrefs(holding);
+  const refused: string[] = [];
 
   let askedGroup = '';
   let askedSort = '';
@@ -809,32 +846,65 @@ export function readWisdomShape(
       case SHAPE_TAG.gap: askedGap = true; break;
       case SHAPE_TAG.borrow: askedBorrow = value; break;
       case SHAPE_TAG.borrowFold: if (value) askedBorrowFold.push(value); break;
-      default: break;
+      default:
+        refused.push(`"${part}" is not a part of the shape this screen knows, so it was skipped.`);
+        break;
     }
   }
 
-  const groupKey = holding.groups?.some(group => group.key === askedGroup) ? askedGroup : fallback.groupKey;
+  let groupKey = fallback.groupKey;
+  if (askedGroup) {
+    if (holding.groups?.some(group => group.key === askedGroup)) groupKey = askedGroup;
+    else refused.push(`"${askedGroup}" is not a grouping ${holding.label} has, so the list is ungrouped.`);
+  }
 
   const direction: SortDirection = askedSort.startsWith('-') ? 'desc' : 'asc';
   const sortKey = askedSort.replace(/^-/, '');
-  const sort = holding.columns.some(column => column.key === sortKey && column.sortable !== false)
-    ? { key: sortKey, direction }
-    : fallback.sort;
+  let sort = fallback.sort;
+  if (sortKey) {
+    if (holding.columns.some(column => column.key === sortKey && column.sortable !== false)) {
+      sort = { key: sortKey, direction };
+    } else {
+      refused.push(
+        `"${sortKey}" is not a column ${holding.label} can be sorted by, so it is sorted by ${holding.columns[0].label}.`,
+      );
+    }
+  }
 
   const gapOnly = Boolean(holding.gap) && askedGap;
+  if (askedGap && !holding.gap) {
+    refused.push(`${holding.label} counts no hole, so the gap filter the link asked for shows every row.`);
+  }
 
   // A loan only exists while the gap filter that took it is on, and only ever
   // names a grouping this holding has. Anything else arrived hand-edited and is
   // dropped rather than promising to give back something that does not exist.
   let borrowed: WisdomBorrowed | null = null;
-  if (gapOnly && askedBorrow !== null) {
-    if (askedBorrow === '' || holding.groups?.some(group => group.key === askedBorrow)) {
+  if (askedBorrow !== null) {
+    if (!gapOnly) {
+      refused.push('A grouping was marked as borrowed with no gap filter to have borrowed it, so nothing is on loan.');
+    } else if (askedBorrow === '' || holding.groups?.some(group => group.key === askedBorrow)) {
       borrowed = { groupKey: askedBorrow, collapsed: askedBorrow ? askedBorrowFold : [] };
+    } else {
+      refused.push(`"${askedBorrow}" is not a grouping ${holding.label} could give back, so nothing is on loan.`);
     }
   }
 
-  return { sort, groupKey, collapsed: groupKey ? askedFold : [], gapOnly, borrowed };
+  if (askedFold.length > 0 && !groupKey) {
+    refused.push('Folded sections were asked for with no grouping to hold them, so nothing is folded.');
+  }
+
+  return {
+    prefs: { sort, groupKey, collapsed: groupKey ? askedFold : [], gapOnly, borrowed },
+    refused,
+  };
 }
+
+/** The shape alone, for the callers that only have to honour it. */
+export const readWisdomShape = (
+  token: string | null | undefined,
+  holding: AnyWisdomHolding,
+): WisdomPrefs => readWisdomShapeReport(token, holding).prefs;
 
 /**
  * Holdings are stored together and rendered one at a time, so the collection is
@@ -863,7 +933,7 @@ export const defineHolding = <T,>(
 ): AnyWisdomHolding => ({
   ...holding,
   searchText: row =>
-    haystack(...holding.declaredText(row), ...holding.columns.map(column => column.value(row))),
+    haystack(...holding.beyondColumns(row), ...holding.columns.map(column => column.value(row))),
 });
 
 export type SortDirection = 'asc' | 'desc';
@@ -938,6 +1008,19 @@ export const wisdomMatches = (searchText: string, tokens: readonly string[]): bo
   const candidate = wisdomKey(searchText);
   return tokens.every(token => containsWholeToken(candidate, token));
 };
+
+/**
+ * What a column SHOWS on a row, which is not what was recorded on it.
+ *
+ * The two are the same everywhere except a row with nothing recorded in a column
+ * that has a `fallback`, and that row is exactly where they used to be confused:
+ * type-ahead jumped by the recorded value, so a mark printing "Any tea" down the
+ * column answered to nothing at all when a reader typed it. The jump axis reads
+ * this; the find field deliberately does not, because a default is not a word
+ * anybody wrote on the row.
+ */
+export const wisdomShown = <T,>(column: WisdomColumn<T>, row: T): string | number | null =>
+  column.value(row) ?? column.fallback ?? null;
 
 /**
  * Type-ahead, folded the same way find is folded, so a list that answers to

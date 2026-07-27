@@ -6,6 +6,7 @@ import { TYPOGRAPHY_CLASSES } from '../../../designTokens';
 import { authorshipLine } from '../../../wisdom/authorship';
 import {
   WISDOM_TYPE,
+  withInventoryPanel,
   type WisdomDetail,
   type WisdomEntryUsage,
   type WisdomFact,
@@ -304,10 +305,15 @@ export const UsageProducts: React.FC<{ usage?: WisdomEntryUsage }> = ({ usage })
     <div className="mt-3" data-testid="wisdom-usage-products">
       <p className={`${WISDOM_TYPE.label} mb-1.5`}>What moves</p>
       <WisdomRoving className="flex flex-wrap items-baseline gap-1.5">
+        {/* One product is the same crossing as all of them, narrowed to one
+            panel. It used to be a different one: a bare `panel=`, which arrived
+            with no chip naming the entry, no filter and no way back, while the
+            link at the end of the same row carried all three. Half the chips in
+            one row were round trips and half were one-way doors. */}
         {shown.map(product => (
           <Link
             key={product.id}
-            to={`/admin/inventory?panel=${encodeURIComponent(product.id)}`}
+            to={withInventoryPanel(usage.href, product.id)}
             className="tap-target rounded-md bg-tea-accent-sub px-2 py-1 text-ui-12 text-tea-gold transition-colors hover:text-tea-gold-lt"
           >
             {product.name}

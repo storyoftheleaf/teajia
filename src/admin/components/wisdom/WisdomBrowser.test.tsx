@@ -18,7 +18,7 @@ vi.mock('../../../components/shared/Modal', () => ({
   ),
 }));
 
-const { WisdomBrowser } = await import('./WisdomBrowser');
+const { WisdomBrowser, dwellFor } = await import('./WisdomBrowser');
 const { WISDOM_HOLDINGS } = await import('./holdings');
 const { ALL_FOLDED, OPEN_MARK, WISDOM_SEAT } = await import('./config');
 type WisdomUsage = import('./usage').WisdomUsage;
@@ -27,6 +27,8 @@ type WisdomBorrowed = import('./config').WisdomBorrowed;
 const cultivars = WISDOM_HOLDINGS[0];
 
 interface RenderOptions {
+  /** What the shape token asked for and the holding refused, as the view reads it. */
+  shapeRefused?: string[];
   groupKey?: string;
   collapsed?: string[];
   gapOnly?: boolean;
@@ -52,6 +54,7 @@ const render = (holding = cultivars, options: RenderOptions = {}) =>
       siblings={options.siblings}
       initialQuery={options.query}
       usage={options.usage}
+      shapeRefused={options.shapeRefused}
       prefs={{
         sort: { key: holding.columns[0].key, direction: 'asc' },
         groupKey: options.groupKey ?? '',
@@ -282,8 +285,19 @@ describe('WisdomBrowser', () => {
   // arrived with nothing marked as borrowed and Show all kept it for good.
   it('marks a borrowed grouping as borrowed when it arrives in a link', () => {
     const marks = WISDOM_HOLDINGS.find(holding => holding.id === 'marks')!;
+    // A settled loan is still a grouping the gap filter is holding the list in,
+    // so it still says why. What ends is the promise, not the explanation: the
+    // sentence used to leave with the loan, and the grouping outlived it in
+    // silence. Sorting or typing settles the debt, which is exactly the moment
+    // that used to happen.
     const plain = render(marks, { gapOnly: true, groupKey: 'producer' });
-    expect(plain).not.toContain('data-testid="wisdom-gap-grouped"');
+    expect(plain).toContain('data-testid="wisdom-gap-grouped"');
+    expect(plain).toContain('Grouped by producer to show them');
+    expect(plain).toContain('That grouping is yours now');
+    expect(plain).not.toContain('Show all gives back');
+    // A grouping the gap filter did not ask for explains nothing about the gap.
+    const elsewhere = render(marks, { gapOnly: true, groupKey: 'era' });
+    expect(elsewhere).not.toContain('data-testid="wisdom-gap-grouped"');
 
     const onLoan = render(marks, {
       gapOnly: true,
@@ -428,6 +442,36 @@ describe('WisdomBrowser', () => {
     expect(html).toContain('data-testid="wisdom-usage-inventory"');
     expect(html).toContain('Open all 12 in the inventory');
     expect(html).toContain(`href="/admin/inventory?wisdom=${encodeURIComponent('cultivars:rou-gui')}"`);
+    // And one product goes the same way as all of them. It used to go a
+    // different way: a bare panel link, which arrives with no chip naming the
+    // entry, no filter and no way back, beside a link that carries all three.
+    expect(html).toContain(`href="/admin/inventory?wisdom=${encodeURIComponent('cultivars:rou-gui')}&amp;panel=p0"`);
+    expect(html).not.toContain('href="/admin/inventory?panel=');
+  });
+
+  // Eight seconds was a number nobody chose: no relationship to reading speed or
+  // to the length of what it held on screen.
+  it('sizes a line that shows itself and goes from what it says', () => {
+    const short = 'Counted against all 4 products in this account, so this number is settled.';
+    const long = `Counted against all 12345 products in this account, so this number is settled.`;
+    expect(dwellFor(long)).toBeGreaterThan(dwellFor(short));
+    // A beat to notice it, then reading speed. Both ends stay humane.
+    expect(dwellFor('')).toBeGreaterThanOrEqual(1000);
+    expect(dwellFor(short)).toBeGreaterThan(4000);
+    expect(dwellFor(short)).toBeLessThan(8000);
+  });
+
+  // The token was the only thing on this screen that did not say itself: a link
+  // that half fits fell back in silence and the reader was never told which half.
+  it('says what a link asked for that this holding refused', () => {
+    const refused = ['"nonsense" is not a grouping Cultivars has, so the list is ungrouped.'];
+    const html = render(cultivars, { shapeRefused: refused });
+    expect(html).toContain('data-testid="wisdom-shape-refused"');
+    expect(html).toContain('is not something Cultivars can do');
+    expect(html).toContain('is not a grouping Cultivars has, so the list is ungrouped.');
+    // Nearly every link fits, and a screen with nothing to report says nothing.
+    expect(render(cultivars)).not.toContain('data-testid="wisdom-shape-refused"');
+    expect(render(cultivars, { shapeRefused: [] })).not.toContain('data-testid="wisdom-shape-refused"');
   });
 
   // The panel's position is a position IN something, and three controls narrow

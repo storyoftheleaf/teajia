@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { resolveTea } from '../../../wisdom';
 import type { Product } from '../../types';
 import { ALL_VARIETIES, findHolding } from './holdings';
-import { wisdomEntryHref, type WisdomUsageProduct } from './config';
+import { readWisdomShape, wisdomEntryHref, wisdomShapeToken, type WisdomUsageProduct } from './config';
 
 /**
  * The blast radius of an edit, counted rather than described.
@@ -193,10 +193,22 @@ export function readWisdomScope(
   // the panel says "Cultivar". A hand-edited address naming an entry the base
   // does not hold falls back to the holding's label rather than to nothing.
   const kind = row ? holding.detail(row).kind : holding.label;
-  // The way back to the entry AND to the list it was read in. The shape is not
-  // checked here; it is checked on arrival, against the holding, by the screen
-  // that has to honour it.
-  const href = wisdomEntryHref(holding.id, entryId, { shape, query });
+  /**
+   * The way back to the entry AND to the list it was read in, checked against
+   * the holding before it is offered.
+   *
+   * The shape used to be passed straight through on the argument that whoever
+   * honours it validates it. That is true of the list and false of the chip: the
+   * chip is a promise, made here, that pressing it returns the operator to the
+   * list they crossed from, and a link written before this holding changed its
+   * columns names a sort or a grouping that no longer exists. Reading it and
+   * writing it back drops exactly the parts that cannot be honoured, so the chip
+   * promises the list the reader will actually land on and nothing more.
+   */
+  const href = wisdomEntryHref(holding.id, entryId, {
+    shape: wisdomShapeToken(readWisdomShape(shape, holding), holding),
+    query,
+  });
   // An empty set while the products are still loading, so the grid shows nothing
   // rather than everything. The batch filter above it behaves the same way.
   if (!products || products.length === 0) return { ids: new Set<string>(), label, kind, href };

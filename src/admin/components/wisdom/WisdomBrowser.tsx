@@ -29,6 +29,7 @@ import {
   wisdomMatches,
   wisdomQueryTokens,
   wisdomShapeToken,
+  wisdomShown,
   wisdomStartsWith,
   type AnyWisdomHolding,
   type WisdomColumn,
@@ -59,8 +60,54 @@ import {
 /** How many rows enter the DOM at once. Varieties is 316 and still growing. */
 const PAGE = 150;
 
-/** How long a type-ahead burst stays one word before the next key starts over. */
-const TYPE_AHEAD_MS = 900;
+/* ─────────────────────────────── the beats ────────────────────────────────────
+ *
+ * THREE DURATIONS, TWO IDEAS, and they used to be three unrelated numbers sitting
+ * in a column: 900, 250 and 8000. The first two measure a hand on a keyboard and
+ * the third measured nothing at all. Eight seconds was a number nobody chose,
+ * with no relationship to reading speed or to the length of the sentence it was
+ * holding on screen, and it sat beside a quarter second as though the two were
+ * the same kind of quantity.
+ *
+ * They are not. A TYPING beat is the rhythm of a hand: the gap inside a burst of
+ * keys against the pause between two deliberate ones. A READING beat is a length
+ * of text against a reading speed. Each is now derived from the thing it is
+ * actually about, and neither is a round number picked because it felt right.
+ */
+
+/**
+ * How long a type-ahead burst stays one word before the next key starts over.
+ * The long end of the typing beat: above it, a key is a new question.
+ */
+const TYPE_BURST_MS = 900;
+
+/**
+ * The short end: how still the find field must be before the base is scanned for
+ * the entries a query nearly asked for.
+ *
+ * The scan is bounded edit distance over every name the base holds, and it fires
+ * exactly when the list is empty, which is exactly when a reader is deleting
+ * characters back towards a match. Unthrottled that was one full scan per
+ * keystroke for the whole of that gesture. Comfortably below the pause between
+ * two deliberate keys and comfortably above the gap inside a burst, so a reader
+ * pays for one scan per burst instead of one per character.
+ */
+const TYPING_PAUSE_MS = Math.round(TYPE_BURST_MS / 3.6);
+
+/**
+ * Reading speed, in milliseconds per character, and the beat before reading
+ * starts at all.
+ *
+ * 200 words a minute over an average of five characters and a space is about 55
+ * milliseconds a character; the notice is the time it takes to see that a new
+ * line has appeared beside a number and look at it. A line that shows itself and
+ * then goes is sized from what it says, so a longer sentence stays longer and
+ * nobody has to pick a number again.
+ */
+const READING_MS_PER_CHAR = 55;
+const NOTICE_MS = 1200;
+
+export const dwellFor = (text: string) => NOTICE_MS + text.length * READING_MS_PER_CHAR;
 
 /**
  * How far the reader has to travel before the chrome gives its room back.
@@ -70,31 +117,6 @@ const TYPE_AHEAD_MS = 900;
  * sentinel back into view and start the whole thing oscillating.
  */
 const CONDENSE_AT = 48;
-
-/**
- * How long the find field must be still before the base is scanned for the
- * entries a query nearly asked for.
- *
- * The scan is bounded edit distance over every name the base holds, and it fires
- * exactly when the list is empty, which is exactly when a reader is deleting
- * characters back towards a match. Unthrottled that was one full scan per
- * keystroke for the whole of that gesture. A quarter second is below the pause
- * between two deliberate keys and above the gap inside a burst, so a reader
- * pays for one scan per burst instead of one per character.
- */
-const NEAR_MISS_SETTLE_MS = 250;
-
-/**
- * How long a count that has just stopped being provisional says so.
- *
- * The reader was told the region count could only fall until the account's
- * products were read. When they are read, that is an answer to a question they
- * were asked, and it is due. What it is not is a standing fact: said on arrival,
- * on every visit, forever, it is a line of furniture above the list telling a
- * reader something has settled that they never saw move. Long enough to be read
- * beside the number it is about, and then gone.
- */
-const GAP_SETTLED_MS = 8000;
 
 /**
  * What the keyboard does, said once where the keyboard is.
@@ -170,6 +192,13 @@ interface Props {
   onQueryChange?: (query: string) => void;
   /** How many products resolve through each entry. Absent until they load. */
   usage?: WisdomUsage;
+  /**
+   * What the shape token in the address asked for and this holding refused, in
+   * sentences. Read by `readWisdomShapeReport`, said out loud here, because a
+   * link that half fits is the one thing on this screen that used to degrade in
+   * silence. Empty for every link that fits, which is nearly all of them.
+   */
+  shapeRefused?: readonly string[];
 }
 
 interface Section {
@@ -195,7 +224,7 @@ const joinDots = (parts: React.ReactNode[]): React.ReactNode =>
 
 export const WisdomBrowser: React.FC<Props> = ({
   holding, tabs, selectedId, onSelect, onJump, siblings, prefs, onPrefsChange,
-  initialQuery = '', onQueryChange, usage,
+  initialQuery = '', onQueryChange, usage, shapeRefused,
 }) => {
   const [query, setQuery] = useState(initialQuery);
   const nameColumn = holding.columns[0];
@@ -270,6 +299,15 @@ export const WisdomBrowser: React.FC<Props> = ({
   const [typed, setTyped] = useState('');
   /** True when that burst starts no row on the jump axis, which is worth saying. */
   const [typeMiss, setTypeMiss] = useState(false);
+  /**
+   * True when the burst landed on a row that records nothing on this axis, so
+   * what it matched was the word the cell prints instead of a value.
+   *
+   * That is the one place the two searches genuinely disagree and must: the jump
+   * reads what is on screen, and the find field deliberately does not read a
+   * default, because a default is not something anybody wrote on the row.
+   */
+  const [typeOnDefault, setTypeOnDefault] = useState(false);
   /** True once the reader is past the top and the chrome should give room back. */
   const [condensed, setCondensed] = useState(false);
 
@@ -332,6 +370,16 @@ export const WisdomBrowser: React.FC<Props> = ({
    */
   const gapAccount = readGapAccount(holding.gap?.needsAccount, usage);
 
+  /**
+   * The settled line, built once so its dwell can be measured from it.
+   *
+   * The line and the number of milliseconds it stays are one decision, not two,
+   * and holding them apart is how the dwell became a number nobody chose.
+   */
+  const gapSettledLine = `Counted against all ${usage?.total ?? 0} products in this account, so this number is settled.`;
+  const settledLine = useRef(gapSettledLine);
+  settledLine.current = gapSettledLine;
+
   const [settledFresh, setSettledFresh] = useState(false);
   const sawWaiting = useRef(false);
   useEffect(() => {
@@ -342,7 +390,7 @@ export const WisdomBrowser: React.FC<Props> = ({
     if (gapAccount !== 'settled' || !sawWaiting.current) return;
     sawWaiting.current = false;
     setSettledFresh(true);
-    const handle = setTimeout(() => setSettledFresh(false), GAP_SETTLED_MS);
+    const handle = setTimeout(() => setSettledFresh(false), dwellFor(settledLine.current));
     return () => clearTimeout(handle);
   }, [gapAccount]);
 
@@ -401,7 +449,7 @@ export const WisdomBrowser: React.FC<Props> = ({
   const [settledQuery, setSettledQuery] = useState(query);
   useEffect(() => {
     if (query === settledQuery) return;
-    const handle = setTimeout(() => setSettledQuery(query), NEAR_MISS_SETTLE_MS);
+    const handle = setTimeout(() => setSettledQuery(query), TYPING_PAUSE_MS);
     return () => clearTimeout(handle);
   }, [query, settledQuery]);
 
@@ -414,7 +462,7 @@ export const WisdomBrowser: React.FC<Props> = ({
   );
 
   /**
-   * The quarter second between emptying the list and knowing what was nearly
+   * The typing pause between emptying the list and knowing what was nearly
    * asked for.
    *
    * The settle was added so a reader deleting characters back towards a match
@@ -732,12 +780,31 @@ export const WisdomBrowser: React.FC<Props> = ({
    * grouped by producer and the reader was plainly looking at "Menghai". The
    * grouping wins where there is one, because it is the coarsest thing on
    * screen; failing that the sort column; failing that the name.
+   *
+   * `value` is WHAT THE READER CAN SEE on that axis, which is not the same as
+   * what was recorded on it. A mark that states no types shows "Any tea" in the
+   * cell and "Not recorded" as a heading, and typing at either of those answered
+   * to nothing at all: the axis read the raw value, which for exactly those rows
+   * is null, so a word plainly on screen jumped nowhere. `recorded` is the raw
+   * value beside it, kept apart rather than conflated, because the find field
+   * deliberately cannot match a default and the status line has to be able to
+   * say so.
    */
   const jumpBy = useMemo(() => {
-    if (group) return { label: group.label, value: (row: unknown) => group.of(row) };
+    if (group) {
+      return {
+        label: group.label,
+        value: (row: unknown) => group.of(row) || UNGROUPED,
+        recorded: (row: unknown) => group.of(row) || null,
+      };
+    }
     const column = holding.columns.find(entry => entry.key === sort.key);
-    if (column && column.key !== nameColumn.key) return { label: column.label, value: column.value };
-    return { label: nameColumn.label, value: nameColumn.value };
+    const axis = column && column.key !== nameColumn.key ? column : nameColumn;
+    return {
+      label: axis.label,
+      value: (row: unknown) => wisdomShown(axis, row),
+      recorded: (row: unknown) => axis.value(row) ?? null,
+    };
   }, [group, holding, nameColumn, sort.key]);
 
   /**
@@ -761,9 +828,18 @@ export const WisdomBrowser: React.FC<Props> = ({
     // because the offer beside it is to run that word through the find field.
     if (at < 0) word = extended;
     if (typeTimer.current) clearTimeout(typeTimer.current);
-    typeTimer.current = setTimeout(() => { setTyped(''); setTypeMiss(false); }, TYPE_AHEAD_MS);
+    typeTimer.current = setTimeout(() => {
+      setTyped('');
+      setTypeMiss(false);
+      setTypeOnDefault(false);
+    }, TYPE_BURST_MS);
     setTyped(word);
     setTypeMiss(at < 0);
+    // Landed on a row that records nothing on this axis, which is to say on the
+    // word the cell prints in place of one. Read from the row itself rather than
+    // guessed from the typed word, so a burst that matches both a real value and
+    // the default reports whichever it actually reached.
+    setTypeOnDefault(at >= 0 && jumpBy.recorded(ordered[at]) === null);
     if (at >= 0) moveFocus(at);
   }, [jumpBy, moveFocus, ordered, typed]);
 
@@ -780,6 +856,7 @@ export const WisdomBrowser: React.FC<Props> = ({
     const word = typed;
     setTyped('');
     setTypeMiss(false);
+    setTypeOnDefault(false);
     changeQuery(word);
   };
 
@@ -801,26 +878,43 @@ export const WisdomBrowser: React.FC<Props> = ({
    * exactly one of them visible at any width, stated once in config so an edit
    * to one seat cannot quietly print the sentence twice.
    */
-  const typedStatus = () =>
-    typeMiss ? (
+  const typedStatus = () => {
+    if (typeMiss) {
       // The one moment the two searches visibly disagree, said in words with the
       // other one offered rather than left to be guessed at.
-      <span data-testid="wisdom-type-miss">
-        No {jumpBy.label.toLowerCase()} starts with{' '}
-        <span className="font-mono text-tea-text-sec">{typed}</span>.{' '}
-        <button
-          type="button"
-          onClick={findTypedInstead}
-          className="text-tea-gold transition-colors hover:text-tea-gold-lt"
-        >
-          Find it in every column
-        </button>
-      </span>
-    ) : (
+      // It read "No applies to starts with any", which blamed the word the
+      // reader had typed while "Any tea" was printed down the column in front of
+      // them. The sentence is about this list on this axis now, and the case it
+      // used to be wrong about is a jump that lands rather than a miss.
+      return (
+        <span data-testid="wisdom-type-miss">
+          No {jumpBy.label.toLowerCase()} on this list starts with{' '}
+          <span className="font-mono text-tea-text-sec">{typed}</span>.{' '}
+          <button
+            type="button"
+            onClick={findTypedInstead}
+            className="text-tea-gold transition-colors hover:text-tea-gold-lt"
+          >
+            Find it in every column
+          </button>
+        </span>
+      );
+    }
+    const jumping = (
       <span className="font-mono text-tea-gold">
         Jumping to {typed} by {jumpBy.label.toLowerCase()}
       </span>
     );
+    // The jump reads what the cell shows; the find field cannot, because a
+    // default is not a value anybody recorded. Said at the moment the reader is
+    // standing on one, rather than left for them to discover by searching for a
+    // word they can see and being told the base does not hold it.
+    return typeOnDefault ? (
+      <span data-testid="wisdom-type-default">
+        {jumping}. These rows record nothing there, so Find will not match it.
+      </span>
+    ) : jumping;
+  };
 
   const onListKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     // Only a row drives the cursor. A group header lives in this container too,
@@ -1234,20 +1328,23 @@ export const WisdomBrowser: React.FC<Props> = ({
           a clean record and the other is an unasked question, and they looked
           identical. Each of the three states says which it is. */}
       {(holding.gap || holding.unmeasured) && (
-        <div
-          className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-tea-border px-3 py-1.5 md:px-4"
-          data-testid="wisdom-gap"
-        >
+        <div className="border-b border-tea-border px-3 py-1.5 md:px-4" data-testid="wisdom-gap">
+          {/* ONE PARAGRAPH, not four stacked blocks.
+              Each statement used to be its own `<p>` in a wrapping flex row, so
+              every one of them rounded up to a whole line and the toggle spent a
+              whole line saying two words. At 390px that is five lines of chrome
+              above a 36px row, at exactly the width where rows are scarcest, for
+              a work queue four sentences long. As one paragraph a sentence starts
+              where the last one ended and only the last line is short: the same
+              five lines become four, and the common case of a count and its
+              toggle becomes two instead of three. */}
           {holding.gap ? (
-            <>
-              <p
-                className="min-w-0 text-ui-11 leading-[1.5] text-tea-text-dim"
-                data-testid={gapRows.length > 0 ? 'wisdom-gap-count' : 'wisdom-gap-whole'}
-              >
+            <p className="text-ui-11 leading-[1.5] text-tea-text-dim">
+              <span data-testid={gapRows.length > 0 ? 'wisdom-gap-count' : 'wisdom-gap-whole'}>
                 {gapRows.length > 0
                   ? holding.gap.sentence(gapRows.length, holding.rows.length)
                   : holding.gap.whole(holding.rows.length)}
-              </p>
+              </span>{' '}
               {/* A number that moves on its own reads as a fault. This one is
                   an over-count until the account's own products are read, and
                   it says so rather than quietly narrowing a beat after arrival.
@@ -1258,58 +1355,89 @@ export const WisdomBrowser: React.FC<Props> = ({
                   and used to wear the first one forever, waiting on a reading
                   that had already happened and had nothing to say. */}
               {gapAccount === 'waiting' && gapRows.length > 0 && (
-                <p className="min-w-0 text-ui-11 text-tea-text-dim" data-testid="wisdom-gap-provisional">
-                  Counted from the base alone until the products in this account are read, so it can only fall.
-                </p>
+                <>
+                  <span data-testid="wisdom-gap-provisional">
+                    Counted from the base alone until the products in this account are read, so it can only fall.
+                  </span>{' '}
+                </>
               )}
               {gapAccount === 'none' && gapRows.length > 0 && (
-                <p className="min-w-0 text-ui-11 text-tea-text-dim" data-testid="wisdom-gap-base-only">
-                  This account holds no products, so the count is the base alone. It will fall when stock arrives.
-                </p>
+                <>
+                  <span data-testid="wisdom-gap-base-only">
+                    This account holds no products, so the count is the base alone. It will fall when stock arrives.
+                  </span>{' '}
+                </>
               )}
               {/* Due at the transition, and quiet afterwards. A reader who
                   watched the number narrow is owed the word that it has stopped;
                   a reader who arrived to a counted answer was never told it was
-                  in doubt and is owed nothing. */}
+                  in doubt and is owed nothing. It stays for as long as it takes
+                  to read what it says, which is where its dwell comes from. */}
               {gapAccount === 'settled' && settledFresh && gapRows.length > 0 && (
-                <p
-                  className="min-w-0 text-ui-11 text-tea-text-dim"
-                  data-testid="wisdom-gap-settled"
-                  aria-live="polite"
-                >
-                  Counted against all {usage!.total} products in this account, so this number is settled.
-                </p>
-              )}
-              {(gapRows.length > 0 || gapOnly) && (
-                <button
-                  type="button"
-                  onClick={toggleGapOnly}
-                  aria-pressed={gapOnly}
-                  className="shrink-0 text-ui-11 text-tea-gold transition-colors hover:text-tea-gold-lt"
-                >
-                  {gapOnly ? 'Show all' : 'Show only these'}
-                </button>
+                <>
+                  <span data-testid="wisdom-gap-settled" aria-live="polite">{gapSettledLine}</span>{' '}
+                </>
               )}
               {/* Said, not done silently. The reader pressed one control and up
                   to three things moved, and a grouping that changes without a
                   word is the kind of thing that reads as a bug the first time it
                   happens. The folded shape was the one that moved unannounced:
                   sixteen sections unfolded to make room for headings the reader
-                  had not asked for. Both are named, both come back. */}
-              {gapOnly && borrowedGiveBack && group && (
-                <p className="min-w-0 text-ui-11 text-tea-text-dim" data-testid="wisdom-gap-grouped">
-                  Grouped by {group.label.toLowerCase()} to show them. Show all gives back {borrowedGiveBack}.
-                </p>
+                  had not asked for. Both are named, both come back.
+
+                  And the sentence used to leave with the loan. Sorting or typing
+                  settles the debt, which adopted the borrowed grouping and
+                  deleted the only line that said why the list was grouped that
+                  way: the grouping outlived its own explanation, and a reader who
+                  then wondered where the headings came from had nothing to read.
+                  The explanation is owed for as long as the gap filter is holding
+                  the list in that shape. Only the promise ends. */}
+              {gapOnly && group && (Boolean(borrowedGiveBack) || holding.gap.revealBy === group.key) && (
+                <>
+                  <span data-testid="wisdom-gap-grouped">
+                    Grouped by {group.label.toLowerCase()} to show them.{' '}
+                    {borrowedGiveBack
+                      ? `Show all gives back ${borrowedGiveBack}.`
+                      : 'That grouping is yours now, and Show all leaves it as it is.'}
+                  </span>{' '}
+                </>
               )}
-            </>
+              {(gapRows.length > 0 || gapOnly) && (
+                <button
+                  type="button"
+                  onClick={toggleGapOnly}
+                  aria-pressed={gapOnly}
+                  className="whitespace-nowrap text-tea-gold transition-colors hover:text-tea-gold-lt"
+                >
+                  {gapOnly ? 'Show all' : 'Show only these'}
+                </button>
+              )}
+            </p>
           ) : (
-            <p
-              className="min-w-0 text-ui-11 leading-[1.5] text-tea-text-dim"
-              data-testid="wisdom-unmeasured"
-            >
+            <p className="text-ui-11 leading-[1.5] text-tea-text-dim" data-testid="wisdom-unmeasured">
               {holding.unmeasured}
             </p>
           )}
+        </div>
+      )}
+
+      {/* A link whose shape this holding could not honour, said out loud.
+          Everything else on this screen explains itself; the token was the one
+          thing that degraded quietly, so an operator following a colleague's
+          link to "marks grouped by producer, sorted by era" could arrive at a
+          list sorted by name with nothing anywhere saying which half had been
+          refused. It clears itself: the moment the reader shapes the list, the
+          address is rewritten from what is actually on screen. */}
+      {shapeRefused && shapeRefused.length > 0 && (
+        <div
+          className="border-b border-tea-border px-3 py-1.5 md:px-4"
+          data-testid="wisdom-shape-refused"
+          aria-live="polite"
+        >
+          <p className="text-ui-11 leading-[1.5] text-tea-text-dim">
+            Part of the shape this link asked for is not something {holding.label} can do, so it was
+            refused rather than obeyed. {shapeRefused.join(' ')}
+          </p>
         </div>
       )}
 

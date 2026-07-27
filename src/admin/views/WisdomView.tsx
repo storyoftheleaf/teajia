@@ -8,7 +8,7 @@ import {
   WISDOM_PARAM,
   WISDOM_TYPE,
   defaultPrefs,
-  readWisdomShape,
+  readWisdomShapeReport,
   wisdomShapeToken,
   type AnyWisdomHolding,
   type WisdomLink,
@@ -113,7 +113,14 @@ export const WisdomView: React.FC = () => {
    * say; the shape is one key, so it takes one.
    */
   const shape = searchParams.get(WISDOM_PARAM.shape);
-  const prefs = useMemo(() => readWisdomShape(shape, active), [shape, active]);
+  /**
+   * The reading carries what was refused as well as what was honoured, because a
+   * token that half fits used to fall back in silence: the grouping landed, the
+   * sort quietly became the default, and the reader was looking at a list that
+   * was not the one the link named with nothing on screen saying so.
+   */
+  const reading = useMemo(() => readWisdomShapeReport(shape, active), [shape, active]);
+  const prefs = reading.prefs;
 
   /**
    * How the OTHER holdings were last shaped.
@@ -352,6 +359,7 @@ export const WisdomView: React.FC = () => {
         initialQuery={query}
         onQueryChange={changeQuery}
         usage={usage}
+        shapeRefused={reading.refused}
       />
     </div>
   );

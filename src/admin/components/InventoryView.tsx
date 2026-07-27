@@ -1895,13 +1895,27 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           </div>
                           {crowded && (
                             <div className="shrink-0 lg:hidden" data-testid="inventory-context-folded">
+                              {/* The KINDS, not a count. Folded, the control said
+                                  "2 FILTERS", which is the one thing the operator
+                                  already knew: the list is short. What the chips
+                                  carried and the fold dropped was the word that
+                                  said WHY, and getting it back meant opening a
+                                  menu. Two kinds are two short words and fit in
+                                  less room than the two chips they stand for; a
+                                  third would not, so the third and any after it
+                                  are counted. */}
                               <AnchoredMenu
                                 align="right"
                                 width={248}
                                 trigger={(props) => (
-                                  <button {...props} className="tap-target inline-flex items-baseline gap-1 font-mono" aria-label={`${contextChips.length} filters on this list: ${contextChips.map(chip => `${chip.kind} ${chip.label}`).join(', ')}`}>
-                                    <span className="text-ui-11 text-tea-gold">{contextChips.length}</span>
-                                    <span className="text-ui-10 uppercase tracking-[0.08em] text-tea-text-dim">Filters</span>
+                                  <button {...props} className="tap-target inline-flex items-baseline gap-1 font-mono text-ui-10 uppercase tracking-[0.08em]" aria-label={`${contextChips.length} filters on this list: ${contextChips.map(chip => `${chip.kind} ${chip.label}`).join(', ')}`}>
+                                    {contextChips.slice(0, 2).map((chip, index) => (
+                                      <React.Fragment key={chip.key}>
+                                        {index > 0 && <span className="text-tea-border" aria-hidden="true">·</span>}
+                                        <span className="text-tea-gold">{chip.kind}</span>
+                                      </React.Fragment>
+                                    ))}
+                                    {contextChips.length > 2 && <span className="text-tea-text-dim">+{contextChips.length - 2}</span>}
                                   </button>
                                 )}
                               >
