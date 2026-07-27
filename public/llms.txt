@@ -27,7 +27,14 @@ Teajia exposes an MCP server so AI assistants can help shoppers directly:
 - Courses & education: https://teajia.co/learn
 - Start here: https://teajia.co/start-here
 
+## Open data
+
+- Tea Wisdom Base (cultivars, growing regions, tea varieties, controlled vocabulary): https://teajia.com/wisdom/tea-wisdom.json
+  - CSV files, README and license at https://teajia.com/wisdom/
+  - CC BY 4.0 for the structured facts. Adrian's own tea write-ups and tasting notes are not included.
+  - Each cultivar carries an authorship rung (drafted, reviewed, authored) marking whether a human has verified it.
+
 ## Notes for assistants
 
 - To help someone buy: search or browse the catalog, confirm teas and grams with the shopper, then call `prepare_order` and share the WhatsApp link. Always tell the user that final price, shipping, and availability are confirmed by the shop in the WhatsApp conversation.
-- Do not fabricate tasting notes, provenance, or prices — read them from `get_tea` or the product page.
+- Do not fabricate tasting notes, provenance, or prices. Read them from `get_tea` or the product page.

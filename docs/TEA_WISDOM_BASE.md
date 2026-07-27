@@ -115,3 +115,15 @@ The standard is stated as a direction, not a claim:
 ## Migration path for the remaining dialects
 
 Fourteen local tea-type lists still exist. Each retires the same way: import from `src/wisdom`, wrap any stored value in `normalizeTeaType`, delete the local array. Records already written in an old dialect keep resolving, so the retirement can happen one screen at a time rather than in one pass.
+
+## The open dataset
+
+The wisdom base is exported as a downloadable public good, separate from the app that reads it. `node scripts/export-wisdom-dataset.mjs` reads `src/wisdom` and `src/data/teaVarieties.ts` directly (the same modules the app reads, nothing is invented) and writes a versioned bundle to `public/wisdom/`:
+
+- `tea-wisdom.json`: cultivars (with prose), growing regions, tea varieties and the controlled vocabulary, each with a stable id, plus a `meta` block carrying the version, a record count per entity, and the generation date.
+- `tea-wisdom-cultivars.csv`, `tea-wisdom-regions.csv`, `tea-wisdom-varieties.csv`, `tea-wisdom-vocabulary.csv`: flat, one per entity type.
+- `README.md`, `LICENSE.txt`: CC BY 4.0 for the structured facts, with a carve-out that Adrian's own tea write-ups and tasting notes are not included and remain his.
+
+Served as static files at `teajia.com/wisdom/`. Re-run the script after the source changes; pass a fixed date (`node scripts/export-wisdom-dataset.mjs 2026-07-27` or `WISDOM_EXPORT_DATE=2026-07-27`) for a reproducible build.
+
+Each cultivar record carries an `authorshipRung` (`drafted`, `reviewed`, or `authored`) from `src/wisdom/authorship.ts`, keyed by entity id and defaulting to `drafted` for anything not yet listed there, because that is the truth: it was AI-drafted from research and nobody has read it yet. `authorshipLine(id)` returns the one quiet line a page should show for an entity, in Adrian's register, neither hiding the AI origin nor apologising for it.
