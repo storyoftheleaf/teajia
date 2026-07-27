@@ -806,11 +806,26 @@ input[type="number"]::-webkit-outer-spin-button {
 
 /* --- Toggle Pill (on/off switches) --- */
 /* Use on: sidebar toggle buttons, filter chips, boolean flags */
+/*
+   The 44px floor lives here, in the primitive, not in each caller.
+   A pill is 11px type with 4px of padding, which stands 23px tall. Every one of
+   them therefore needed the caller to remember `tap-target`, and round five
+   found eleven shop controls where the caller had not: a floor that depends on
+   memory is not a floor. `.tap-target` sets the same `min-height: 44px`, so a
+   pill that still carries it is unchanged, and a pill that never did now clears
+   WCAG 2.5.5 without its author having to know the rule exists.
+
+   A pseudo-element hit area (see HIT_AREA in typeRoles.ts) was the alternative,
+   and it is the right tool for a word inside a heading. It is the wrong tool
+   here: pills come in wrapping rows, and invisible boxes stacked one row apart
+   overlap and steal each other's taps, which is worse than a small target.
+*/
 .pill {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   padding: 4px 10px;
+  min-height: 44px;
   border-radius: 6px;
   border: none;
   font-size: 11px;
@@ -880,6 +895,9 @@ input[type="number"]::-webkit-outer-spin-button {
   align-items: center;
   gap: 4px;
   padding: 4px 9px;
+  /* Declares the shape from scratch rather than extending .pill, so the floor
+     has to be stated twice. Same 44px, same reason. */
+  min-height: 44px;
   border-radius: 6px;
   border: none;
   /* Matches the Curate support tier (text-ui-12 uppercase tracking-[1.2px])
@@ -2152,15 +2170,20 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* Quantity preset row (Sample / 50g / 100g / Custom).
-   Quieter than the previous border+fill chip — uses underline-only active. */
+   Quieter than the previous border+fill chip: underline-only active.
+
+   No font-size, no family, no tracking. This block set mono at 10px and the
+   order button set sans at 12px, two sizes the four type roles do not have,
+   declared in a stylesheet that loads after Tailwind and therefore beat any
+   class the component tried to set on itself. That is the same trap that hid a
+   bronze-on-bronze term row in round four, sitting in the 300px a customer
+   actually transacts in. The roles are applied by the component now (LABEL for
+   the words, LABEL-sized numeral face for the figures), and this block carries
+   only shape, colour and state. */
 .alcove-qty-btn {
   flex: 1;
   min-height: 44px;
   padding: 6px 0;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 0.05em;
   background: transparent;
   border: none;
   color: var(--tea-text-dim);
@@ -2179,16 +2202,11 @@ input[type="number"]::-webkit-outer-spin-button {
   box-shadow: inset 0 -1px 0 var(--tea-gold);
 }
 
-/* Teaware preset (50g / 100g / 250g) — same family but full active fill since
-   it also serves as the price-target indicator for non-tea categories. */
+/* Teaware preset (50g / 100g / 250g): same family, same silence about type. */
 .alcove-preset-btn {
   flex: 1;
   min-height: 44px;
   padding: 6px 0;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 0.04em;
   border: none;
   background: transparent;
   color: var(--tea-text-sec);
@@ -2203,16 +2221,13 @@ input[type="number"]::-webkit-outer-spin-button {
   box-shadow: inset 0 -1px 0 var(--tea-gold);
 }
 
-/* Primary order button — softened from weight 700 to 500. */
+/* Primary order button. Bronze fill is one of the four places bronze is
+   allowed, and this is the buy button. */
 .alcove-order-btn {
   flex: 1;
   min-height: 44px;
   padding: 0 14px;
-  font-family: var(--font-sans);
-  font-size: 12px;
   font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: var(--tea-bg);
   background: var(--tea-gold);
   border: 1px solid transparent;
@@ -2222,7 +2237,16 @@ input[type="number"]::-webkit-outer-spin-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  /* Wraps rather than clips. The word, the total and the per-gram used to sit
+     on one unbreakable line, which was survivable while every price was a
+     three-character dollar figure and is not now that the total is quoted in
+     the reader's own currency: "Rp1.375.000" and "Rp27.500/g" together are
+     wider than the button gets on a 390px card. min-height, not height, so the
+     button grows to a second line instead of spilling its contents. */
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  padding-top: 4px;
+  padding-bottom: 4px;
 }
 .alcove-order-btn:hover:not(:disabled) { background: var(--tea-gold-lt); }
 .alcove-order-btn:active:not(:disabled) { transform: translateY(1px); }
@@ -2346,6 +2370,365 @@ input[type="number"]::-webkit-outer-spin-button {
 .alcove-event-btn:hover {
   background: var(--tea-surface);
   border-color: var(--tea-border);
+}
+
+/* ============================================
+   Alcove Card: surfaces lifted out of inline styles.
+
+   The alcove painted roughly forty inline style blocks, and `lint:colors`
+   reads className strings only. The one surface in the shop carrying the most
+   colour was therefore the one surface with no colour coverage at all, and two
+   of the values it painted (a stock red and a stock amber) had drifted off the
+   theme entirely without anything catching it. Everything below is a colour, a
+   border or a surface the lint can now see. Only pure numbers (opacities, a
+   grid track) are still allowed through as inline style.
+   ============================================ */
+
+/* The container the alcove's TITLE role measures itself against. Declared on
+   the identity header rather than on the shell: `container-type` also makes an
+   element the containing block for fixed-position descendants, and the shell
+   holds the card's full-screen modals. */
+.alcove-measure {
+  container-type: inline-size;
+}
+
+.alcove-shell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--alcove-bg, var(--tea-bg));
+}
+
+.alcove-warmth {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 50% at 85% 8%, rgb(var(--tea-gold-rgb) / var(--alcove-warmth-inner, 0.055)) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 90% 0%, rgb(var(--tea-gold-rgb) / var(--alcove-warmth-outer, 0.025)) 0%, transparent 50%);
+}
+
+.alcove-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--alcove-grain, 0.05);
+  background-size: 120px;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.alcove-watermark {
+  position: absolute;
+  right: 16px;
+  bottom: 90px;
+  z-index: 4;
+  writing-mode: vertical-rl;
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: 92px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.18em;
+  white-space: nowrap;
+  user-select: none;
+  pointer-events: none;
+  opacity: 0.045;
+  color: var(--tea-text-dim);
+}
+
+.alcove-scroll {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.alcove-fade-anchor {
+  position: relative;
+  flex-shrink: 0;
+  height: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.alcove-fade {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 14px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  background: linear-gradient(
+    to top,
+    var(--alcove-bg, var(--tea-bg)) 0%,
+    var(--alcove-bg, var(--tea-bg)) 30%,
+    transparent 100%
+  );
+}
+.alcove-fade[data-visible="true"] { opacity: 0.7; }
+
+.alcove-gallery {
+  animation: panelReveal 0.5s ease-out;
+}
+
+/* Identity header. */
+.alcove-header {
+  position: relative;
+  padding: 16px 20px 0;
+}
+
+/* The type / origin / year caption, ruled top and bottom, bleeding to the
+   card's edges. */
+.alcove-caption {
+  padding: 6px 0 5px;
+  margin: 8px -20px 0;
+  border-top: 1px solid var(--tea-border);
+  border-bottom: 1px solid var(--tea-border);
+}
+.alcove-caption[data-tight="true"] { margin-top: 6px; }
+
+/* A body section: prose, terroir, processing, events. */
+.alcove-body-section {
+  padding: 0 20px;
+}
+
+/* The page's one separator, inside the card. */
+.alcove-hairline {
+  height: 1px;
+  margin-bottom: 14px;
+  background: var(--tea-border);
+}
+
+/* Loading skeletons for the events block. */
+.alcove-skeleton-label {
+  width: 120px;
+  height: 10px;
+  margin-bottom: 10px;
+  border-radius: 3px;
+  background: var(--tea-accent-sub);
+}
+.alcove-skeleton-row {
+  height: 40px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  background: var(--tea-accent-sub);
+  opacity: 0.8;
+  animation: pulse 1.8s ease-in-out infinite;
+}
+.alcove-skeleton-row[data-second="true"] { opacity: 0.6; }
+
+.alcove-event-thumb {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  object-fit: cover;
+}
+.alcove-event-thumb-empty {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background: var(--tea-surface);
+  border: 1px solid var(--tea-border);
+  color: var(--tea-text-dim);
+}
+
+/* Sensory grid. */
+.alcove-sensory {
+  margin-top: 24px;
+  padding: 4px 16px;
+  background: rgb(var(--tea-text-rgb) / 0.08);
+  border-top: 1px solid var(--tea-border);
+  border-bottom: 1px solid var(--tea-border);
+}
+.alcove-note-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.alcove-note-btn[data-col="left"] { border-right: 1px solid var(--tea-border); }
+.alcove-note-btn[data-rule="true"] { border-bottom: 1px solid var(--tea-border); }
+.alcove-note-swatch {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid var(--tea-border);
+}
+.alcove-tasted {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 44px;
+  padding: 2px 6px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+  color: var(--tea-text-dim);
+  transition: color 200ms ease;
+}
+.alcove-tasted:hover { color: var(--tea-text-sec); }
+
+/* Commerce footer. */
+.alcove-commerce {
+  position: relative;
+  z-index: 3;
+  flex-shrink: 0;
+  padding: 14px 14px 10px;
+  border-top: 1px solid var(--tea-border);
+  background: var(--alcove-bg, var(--tea-bg));
+}
+.alcove-icon-cluster {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 8px;
+  border: 1px solid var(--tea-border);
+  border-radius: 3px;
+}
+.alcove-icon-divider {
+  width: 1px;
+  height: 10px;
+  flex-shrink: 0;
+  background: var(--tea-border);
+}
+
+/* Modals. One backdrop, one panel, so a third modal cannot invent a fourth
+   shade of black. */
+.alcove-modal-backdrop {
+  background: rgb(0 0 0 / 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.alcove-modal-panel {
+  position: relative;
+  width: 100%;
+  padding: 24px;
+  border-radius: 8px;
+  background: var(--tea-surface);
+  border: 1px solid var(--tea-border);
+}
+.alcove-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--tea-text-sec);
+}
+.alcove-size-btn {
+  flex: 1;
+  min-height: 44px;
+  padding: 8px 4px;
+  border-radius: 4px;
+  border: 1px solid var(--tea-border);
+  background: var(--tea-bg);
+  color: var(--tea-text);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease;
+}
+.alcove-size-btn[data-active="true"] {
+  border-color: var(--tea-gold);
+  background: var(--tea-accent-sub);
+  color: var(--tea-gold);
+}
+.alcove-note-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--tea-border);
+  background: var(--tea-bg);
+  color: var(--tea-text);
+  outline: none;
+  resize: none;
+}
+.alcove-amount-input {
+  flex: 1;
+  height: 44px;
+  padding: 0 10px;
+  border-radius: 4px;
+  border: 1px solid var(--tea-gold);
+  background: var(--tea-bg);
+  color: var(--tea-text);
+  outline: none;
+}
+.alcove-modal-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 4px;
+  background: var(--tea-gold);
+  color: var(--tea-bg);
+  cursor: pointer;
+  transition: background-color 200ms ease;
+}
+.alcove-modal-primary:hover:not(:disabled) { background: var(--tea-gold-lt); }
+.alcove-modal-primary:disabled { opacity: 0.7; cursor: not-allowed; }
+.alcove-modal-cancel {
+  flex: 1;
+  min-height: 44px;
+  border-radius: 4px;
+  border: 1px solid var(--tea-border);
+  background: none;
+  color: var(--tea-text-sec);
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+.alcove-modal-cancel:hover { color: var(--tea-text); }
+
+/* Image viewer. */
+.alcove-viewer {
+  background: var(--tea-bg);
+  cursor: pointer;
+  animation: panelReveal 0.3s ease-out;
+}
+.alcove-viewer-img {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 4px;
+  cursor: default;
+}
+.alcove-viewer-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--tea-border);
+  background: var(--tea-accent-sub);
+  color: var(--tea-text-sec);
+  cursor: pointer;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+.alcove-viewer-close:hover {
+  background: var(--tea-surface);
+  color: var(--tea-text);
 }
 
 /* ============================================

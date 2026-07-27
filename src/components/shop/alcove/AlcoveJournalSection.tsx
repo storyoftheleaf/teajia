@@ -12,6 +12,11 @@ interface AlcoveJournalSectionProps {
 /**
  * Editorial links related to the product. A single section avoids competing
  * "From the journal" affordances with different click behavior.
+ *
+ * The hover colour used to be applied by reaching into the DOM on mouseenter
+ * and writing `style.color` on a child span, which is a colour the lint cannot
+ * see, cannot be reached by a keyboard, and does not exist on a phone. It is a
+ * `group-hover` now, so hover and focus say the same thing.
  */
 export const AlcoveJournalSection: React.FC<AlcoveJournalSectionProps> = ({
   relatedArticles,
@@ -19,86 +24,44 @@ export const AlcoveJournalSection: React.FC<AlcoveJournalSectionProps> = ({
 }) => {
   const navigate = useNavigate();
 
-  return (
-    <>
-      {(relatedArticles.length > 0 || item.category === 'tea') && (
-        <div style={{
-          marginTop: "28px",
-          padding: "0 20px 20px",
-        }}>
-          <div className="border-t border-tea-border pt-3">
-            {relatedArticles.length > 0 && (
-              <>
-                <p className={`${LABEL} text-tea-text-dim`} style={{ margin: "0 0 6px 0" }}>
-                  From the journal
-                </p>
-                {relatedArticles.map(article => (
-                  <button
-                    key={article.id}
-                    onClick={() => {
-                      window.dispatchEvent(new CustomEvent('openArticle', { detail: { story: article } }));
-                    }}
-                    style={{
-                      display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-                      gap: "8px",
-                      background: "none", border: "none",
-                      padding: "5px 0", cursor: "pointer",
-                      width: "100%", textAlign: "left",
-                    }}
-                    onMouseEnter={e => {
-                      const span = e.currentTarget.querySelector('.article-title') as HTMLElement;
-                      if (span) span.style.color = "var(--tea-gold)";
-                    }}
-                    onMouseLeave={e => {
-                      const span = e.currentTarget.querySelector('.article-title') as HTMLElement;
-                      if (span) span.style.color = "var(--tea-text)";
-                    }}
-                  >
-                    <span className={`article-title ${BODY}`} style={{
-                      color: "var(--tea-text)",
-                      transition: "color 0.2s",
-                    }}>
-                      {article.title}
-                    </span>
-                    <span className={`${BODY} text-tea-text-dim`} style={{ flexShrink: 0 }}>
-                      &rarr;
-                    </span>
-                  </button>
-                ))}
-              </>
-            )}
+  if (relatedArticles.length === 0 && item.category !== 'tea') return null;
 
-            {item.category === 'tea' && (
+  return (
+    <div className="alcove-body-section mt-7 pb-5">
+      <div className="border-t border-tea-border pt-3">
+        {relatedArticles.length > 0 && (
+          <>
+            <p className={`${LABEL} mb-1.5 mt-0 text-tea-text-dim`}>From the journal</p>
+            {relatedArticles.map(article => (
               <button
-                onClick={() => navigate('/craft')}
-                className="alcove-learn-link"
-                style={{
-                  display: "flex", alignItems: "center", gap: "6px",
-                  background: "none", border: "none",
-                  padding: relatedArticles.length > 0 ? "7px 0 0" : "3px 0 0",
-                  cursor: "pointer",
-                  width: "100%", textAlign: "left",
+                key={article.id}
+                type="button"
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('openArticle', { detail: { story: article } }));
                 }}
-                onMouseEnter={e => {
-                  const span = e.currentTarget.querySelector('.learn-label') as HTMLElement;
-                  if (span) span.style.color = "var(--tea-gold)";
-                }}
-                onMouseLeave={e => {
-                  const span = e.currentTarget.querySelector('.learn-label') as HTMLElement;
-                  if (span) span.style.color = "var(--tea-text-sec)";
-                }}
+                className="group flex w-full min-h-[44px] items-start justify-between gap-2 border-none bg-transparent py-1.5 text-left"
               >
-                <span className={`learn-label ${BODY}`} style={{
-                  color: "var(--tea-text-sec)",
-                  transition: "color 0.2s",
-                }}>
-                  Learn about {item.type ? item.type.toLowerCase() : ''} tea →
+                <span className={`${BODY} text-tea-text transition-colors group-hover:text-tea-gold group-focus-visible:text-tea-gold`}>
+                  {article.title}
                 </span>
+                <span className={`${BODY} shrink-0 text-tea-text-dim`}>&rarr;</span>
               </button>
-            )}
-          </div>
-        </div>
-      )}
-    </>
+            ))}
+          </>
+        )}
+
+        {item.category === 'tea' && (
+          <button
+            type="button"
+            onClick={() => navigate('/craft')}
+            className={`alcove-learn-link group flex w-full items-center gap-1.5 border-none bg-transparent text-left ${relatedArticles.length > 0 ? 'pt-2' : 'pt-1'}`}
+          >
+            <span className={`${BODY} text-tea-text-sec transition-colors group-hover:text-tea-gold group-focus-visible:text-tea-gold`}>
+              Learn about {item.type ? item.type.toLowerCase() : ''} tea &rarr;
+            </span>
+          </button>
+        )}
+      </div>
+    </div>
   );
 };

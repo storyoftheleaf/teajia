@@ -218,6 +218,24 @@ export interface WisdomGap<T> {
   /** The whole statement, built from the counts. A sentence, never micro-caps. */
   sentence: (missing: number, total: number) => string;
   /**
+   * The same statement when the count comes out at zero.
+   *
+   * A holding with no hole used to render nothing at all, which is exactly what
+   * a holding that measures no hole renders. Two opposite facts, identical on
+   * screen. A clean holding now says it is clean, and one that measures nothing
+   * says that instead, in `WisdomHolding.unmeasured`.
+   */
+  whole: (total: number) => string;
+  /**
+   * True when this test cannot be answered by the base alone.
+   *
+   * Regions is the case: a place is a hole when nothing names it, and the
+   * account's own products are part of "nothing". Until they are counted the
+   * number is an over-count, and a number that falls a beat after arrival with
+   * no word about it reads as a fault rather than as a narrowing.
+   */
+  needsAccount?: boolean;
+  /**
    * The grouping that shows this same fact in the shape of the list.
    *
    * Marks said it twice and connected the two nowhere: the gap line counted the
@@ -259,6 +277,15 @@ export interface WisdomHolding<T> {
   /** A counted hole in this holding's data, stated in aggregate above the list. */
   gap?: WisdomGap<T>;
   /**
+   * Said instead, when this holding counts no hole at all.
+   *
+   * Silence used to carry two opposite meanings: a holding whose gap came out at
+   * zero and a holding that never measured one both rendered nothing. One of
+   * those is a clean record and the other is an unasked question, and a reader
+   * had no way to tell them apart. Every holding now says which it is.
+   */
+  unmeasured?: string;
+  /**
    * The wisdom base's own matcher for this holding, where it has one. When a
    * query resolves to a held entity, that entity is pinned to the top of the
    * results: typing a mark number lands on the mark rather than on whatever else
@@ -294,6 +321,8 @@ export interface WisdomPanelCtx {
   nav?: React.ReactNode;
   /** Which grouped section the open entry sits in, when the list is grouped. */
   section?: WisdomSection;
+  /** What run prev and next are walking, when it is narrower than the holding. */
+  runNote?: string;
   /** The public page for this entry, when the holding publishes one. */
   publicHref?: string;
   /** How many products resolve through this entry right now. */
@@ -319,6 +348,15 @@ export interface WisdomEntryUsage {
    * question there, which is exactly the moment an operator most needs them.
    */
   products: readonly WisdomUsageProduct[];
+  /**
+   * The inventory, filtered to exactly these products.
+   *
+   * Naming them in the panel answered "which ones" and left "and now work on
+   * them" unanswered: sixty chips is a list to read, not a list to act on. The
+   * inventory takes the entry as an address filter now, so the tail links out
+   * to the real tool instead of growing the panel to sixty rows tall.
+   */
+  href: string;
 }
 
 /** One product riding on an entry, and the way back to it in the inventory. */
@@ -353,14 +391,26 @@ export interface WisdomPrefs {
    * shape is exactly as much a standing choice as the grouping that produced it:
    * folding Regions to its sixteen countries, reading Marks, and coming back to
    * sixteen open sections undid the one press that gave the list its shape.
+   *
+   * Read it through `readFold` rather than as a plain set: the sentinel and its
+   * exceptions are a small language, not a list of keys.
    */
   collapsed: readonly string[];
+  /**
+   * Showing only the rows that are missing the thing the gap line names.
+   *
+   * A preference rather than component state, and therefore in the address: the
+   * one link an operator most wants to send is "the seven marks with no held
+   * producer", and until this moved here that link arrived showing all fifteen.
+   */
+  gapOnly: boolean;
 }
 
 export const defaultPrefs = (holding: AnyWisdomHolding): WisdomPrefs => ({
   sort: { key: holding.columns[0].key, direction: 'asc' },
   groupKey: '',
   collapsed: [],
+  gapOnly: false,
 });
 
 /**
@@ -372,6 +422,83 @@ export const defaultPrefs = (holding: AnyWisdomHolding): WisdomPrefs => ({
  * sixteen separate headings, and a section that appears later is folded too.
  */
 export const ALL_FOLDED = '*';
+
+/**
+ * An exception to the sentinel: this one heading is open, everything else folded.
+ *
+ * The sentinel alone could say "all" and "none" and nothing in between, so
+ * opening a single country out of a folded shape had to abandon it and spell out
+ * the other fifteen instead. One press took the address from three characters to
+ * about a hundred and twenty. "All but these" is the shape a reader actually
+ * makes, so it gets a way to be written: `*~!China` is folded-all-except-China.
+ *
+ * Section keys are country, producer and type names, none of which begin with a
+ * bang, so the mark can never be mistaken for a key.
+ */
+export const OPEN_MARK = '!';
+
+/**
+ * The folded shape, read out of its wire form.
+ *
+ * `all` is the sentinel. `keys` means the opposite thing in each mode, which is
+ * the whole point: without the sentinel it is the set of folded headings, with
+ * it the set of headings held open against it.
+ */
+export interface WisdomFoldShape {
+  all: boolean;
+  keys: ReadonlySet<string>;
+}
+
+export function readFold(collapsed: readonly string[]): WisdomFoldShape {
+  const all = collapsed.includes(ALL_FOLDED);
+  const keys = new Set<string>();
+  for (const item of collapsed) {
+    if (item === ALL_FOLDED) continue;
+    const isException = item.startsWith(OPEN_MARK);
+    if (all) {
+      if (isException) keys.add(item.slice(OPEN_MARK.length));
+    } else if (!isException) {
+      keys.add(item);
+    }
+  }
+  return { all, keys };
+}
+
+export const isSectionFolded = (shape: WisdomFoldShape, key: string): boolean =>
+  shape.all ? !shape.keys.has(key) : shape.keys.has(key);
+
+/**
+ * One heading opened or folded, written back in whichever form is shorter.
+ *
+ * `every` is the current headings, used only to normalise: a shape whose
+ * exceptions cover every section is simply "none folded", and one whose folded
+ * keys cover every section is the sentinel. Without that the address would drift
+ * to the long form as a reader worked through the list, which is the same
+ * hundred and twenty characters arriving by a slower road.
+ */
+export function toggleFold(
+  collapsed: readonly string[],
+  key: string,
+  every: readonly string[] = [],
+): string[] {
+  const shape = readFold(collapsed);
+  const next = new Set(shape.keys);
+  if (next.has(key)) next.delete(key);
+  else next.add(key);
+
+  // Only worth collapsing to a sentinel when there is genuinely a shape to
+  // collapse. With one section on screen (a query has narrowed the list to a
+  // single heading) "all of them" would quietly mean far more than the reader
+  // just pressed, and would still mean it after the query was cleared.
+  const coversAll = every.length > 1 && every.every(entry => next.has(entry));
+  if (shape.all) {
+    // Exceptions to "fold everything". All of them excepted is nothing folded.
+    if (coversAll) return [];
+    return [ALL_FOLDED, ...[...next].map(entry => `${OPEN_MARK}${entry}`)];
+  }
+  if (coversAll) return [ALL_FOLDED];
+  return [...next];
+}
 
 /* ─────────────────────────────── the address ──────────────────────────────── */
 
@@ -386,7 +513,18 @@ export const WISDOM_PARAM = {
   group: 'group',
   sort: 'sort',
   fold: 'fold',
+  gap: 'gap',
 } as const;
+
+/**
+ * Where the inventory takes a wisdom entry as a filter, and the address that
+ * says so. Held here rather than in the inventory because this screen is the one
+ * that builds the link; the inventory only reads the key.
+ */
+export const INVENTORY_WISDOM_PARAM = 'wisdom';
+
+export const wisdomInventoryHref = (holding: string, entry: string): string =>
+  `/admin/inventory?${INVENTORY_WISDOM_PARAM}=${encodeURIComponent(`${holding}:${entry}`)}`;
 
 /** Section keys are country and producer names, so the separator must not be one. */
 const FOLD_SEPARATOR = '~';
@@ -409,6 +547,9 @@ export function wisdomPrefsToParams(prefs: WisdomPrefs, holding: AnyWisdomHoldin
   if (prefs.groupKey && prefs.collapsed.length > 0) {
     out[WISDOM_PARAM.fold] = prefs.collapsed.join(FOLD_SEPARATOR);
   }
+  // A gap filter on a holding that counts no gap is not a state that exists, so
+  // the caller checks that before writing it, exactly as fold checks grouping.
+  if (prefs.gapOnly && holding.gap) out[WISDOM_PARAM.gap] = '1';
   return out;
 }
 
@@ -438,7 +579,9 @@ export function wisdomPrefsFromParams(
   const askedFold = read(WISDOM_PARAM.fold) ?? '';
   const collapsed = askedFold ? askedFold.split(FOLD_SEPARATOR).filter(Boolean) : fallback.collapsed;
 
-  return { sort, groupKey, collapsed: groupKey ? collapsed : [] };
+  const gapOnly = Boolean(holding.gap) && read(WISDOM_PARAM.gap) === '1';
+
+  return { sort, groupKey, collapsed: groupKey ? collapsed : [], gapOnly };
 }
 
 /**

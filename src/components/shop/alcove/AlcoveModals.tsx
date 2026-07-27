@@ -1,7 +1,28 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import type { InventoryItem } from '../../../types';
 import { X, Loader2 } from 'lucide-react';
-import { fmtShopPrice } from '../../../utils/formatNumber';
+import { useFocusTrap } from '../../../hooks/useFocusTrap';
+import { BODY, HEADING, LABEL, LABEL_NUMERAL, NUMERAL } from '../../shared/typeRoles';
+
+/**
+ * Escape closes, and the browser's own focus does not leak out of an open
+ * dialog. `useFocusTrap` already does both, and `AlcoveModal` twenty lines away
+ * in the same folder already used the same pattern by hand, so the three
+ * dialogs here were the only modals in the shop a keyboard reader could open
+ * and then be stranded inside.
+ */
+function useDialog(open: boolean, onClose: () => void) {
+  const ref = useFocusTrap<HTMLDivElement>(open);
+  useEffect(() => {
+    if (!open) return;
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [open, onClose]);
+  return ref;
+}
 
 // ─── Sample Request Modal ─────────────────────────────────────────────────────
 
@@ -19,7 +40,8 @@ interface SampleModalProps {
   onSubmit: () => void;
   isLoggedIn: boolean;
   pricePerGram: number;
-  formatPrice?: (pricePerGram: number, grams: number) => string;
+  /** Formats a total in the currency the reader chose. */
+  formatTotal: (usd: number) => string;
 }
 
 export const SampleModal: React.FC<SampleModalProps> = ({
@@ -36,85 +58,49 @@ export const SampleModal: React.FC<SampleModalProps> = ({
   onSubmit,
   isLoggedIn,
   pricePerGram,
-  formatPrice,
+  formatTotal,
 }) => {
+  const dialogRef = useDialog(open, () => { if (!sampleSubmitting) onClose(); });
   if (!open) return null;
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-label={`Request a sample of ${item.name}`}
       onClick={() => { if (!sampleSubmitting) onClose(); }}
-      className="fixed inset-0 z-priority flex items-center justify-center p-4"
-      style={{ background: "rgb(0 0 0 / 0.6)", backdropFilter: "blur(4px)" }}
+      className="alcove-modal-backdrop fixed inset-0 z-priority flex items-center justify-center p-4"
     >
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{
-          background: "var(--tea-surface)",
-          border: "1px solid var(--tea-border)",
-          borderRadius: "8px",
-          width: "100%", maxWidth: "360px",
-          padding: "24px",
-          position: "relative",
-        }}
-      >
-        {/* Close */}
+      <div onClick={e => e.stopPropagation()} className="alcove-modal-panel max-w-[360px]">
+        {/* Close X, top-right of a centred overlay modal, per the app's rule. */}
         <button
+          type="button"
           onClick={onClose}
-          style={{
-            position: "absolute", top: "12px", right: "12px",
-            background: "none", border: "none", cursor: "pointer",
-            color: "var(--tea-text-sec)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}
-          className="tap-target focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
+          className="alcove-modal-close tap-target focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
           aria-label="Close sample request"
         >
           <X size={16} />
         </button>
 
         {sampleDone ? (
-          <div style={{ textAlign: "center", padding: "8px 0" }}>
-            <p style={{ fontFamily: "var(--font-display)", fontSize: "18px", color: "var(--tea-text)", marginBottom: "8px" }}>
-              Sample requested.
-            </p>
-            <p style={{ fontFamily: "var(--font-body)", fontSize: "14px", color: "var(--tea-text-sec)", lineHeight: 1.6 }}>
-              We'll be in touch to arrange delivery.
-            </p>
-            <button
-              onClick={onClose}
-              style={{
-                marginTop: "16px",
-                background: "var(--tea-gold)", color: "var(--tea-bg)",
-                border: "none", borderRadius: "4px",
-                padding: "8px 20px", cursor: "pointer",
-                fontFamily: "var(--font-sans)", fontSize: "12px",
-                fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase",
-              }}
-            >
+          <div className="py-2 text-center">
+            <p className={`${HEADING} mb-2 text-tea-text`}>Sample requested.</p>
+            <p className={`${BODY} text-tea-text-sec`}>We'll be in touch to arrange delivery.</p>
+            <button type="button" onClick={onClose} className={`alcove-modal-primary ${LABEL} mt-4 w-full`}>
               Done
             </button>
           </div>
         ) : !isLoggedIn ? (
-          <div style={{ textAlign: "center", padding: "8px 0" }}>
-            <p style={{ fontFamily: "var(--font-display)", fontSize: "16px", color: "var(--tea-text)", marginBottom: "8px" }}>
-              Create an account to request samples
-            </p>
-            <p style={{ fontFamily: "var(--font-body)", fontSize: "13px", color: "var(--tea-text-sec)", lineHeight: 1.6, marginBottom: "16px" }}>
+          <div className="py-2 text-center">
+            <p className={`${HEADING} mb-2 text-tea-text`}>Create an account to request samples</p>
+            <p className={`${BODY} mb-4 text-tea-text-sec`}>
               Sign in or create a free account to request a sample of {item.name}.
             </p>
             <button
+              type="button"
               onClick={() => { onClose(); window.dispatchEvent(new CustomEvent('openAccountPanel', { detail: { view: 'signup' } })); }}
-              style={{
-                background: "var(--tea-gold)", color: "var(--tea-bg)",
-                border: "none", borderRadius: "4px",
-                padding: "10px 20px", cursor: "pointer",
-                fontFamily: "var(--font-sans)", fontSize: "12px",
-                fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase",
-                width: "100%",
-              }}
+              className={`alcove-modal-primary ${LABEL} w-full`}
             >
               Sign In / Create Account
             </button>
@@ -122,97 +108,59 @@ export const SampleModal: React.FC<SampleModalProps> = ({
         ) : (
           <div>
             {/* Product info */}
-            <div style={{ display: "flex", gap: "12px", marginBottom: "20px", alignItems: "center" }}>
+            <div className="mb-5 flex items-center gap-3">
               {item.image && (
-                <img
-                  src={item.image}
-                  alt=""
-                  style={{ width: "48px", height: "48px", borderRadius: "4px", objectFit: "cover", flexShrink: 0 }}
-                />
+                <img src={item.image} alt="" className="h-12 w-12 shrink-0 rounded-md object-cover" />
               )}
-              <div style={{ minWidth: 0 }}>
-                <p style={{ fontFamily: "var(--font-display)", fontSize: "15px", color: "var(--tea-text)", margin: 0 }}>
-                  {item.name}
-                </p>
-                {item.origin && (
-                  <p style={{ fontFamily: "var(--font-body)", fontSize: "12px", color: "var(--tea-text-sec)", margin: "2px 0 0" }}>
-                    {item.origin}
-                  </p>
-                )}
+              <div className="min-w-0">
+                <p className={`${BODY} m-0 font-display text-tea-text`}>{item.name}</p>
+                {item.origin && <p className={`${BODY} mb-0 mt-0.5 text-tea-text-sec`}>{item.origin}</p>}
               </div>
             </div>
 
             {/* Size selector */}
-            <div style={{ marginBottom: "16px" }}>
-              <p style={{ fontFamily: "var(--font-sans)", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.15em", color: "var(--tea-text-sec)", marginBottom: "8px" }}>
-                Sample size
-              </p>
-              <div style={{ display: "flex", gap: "6px" }}>
-                {([5, 10, 15] as const).map(g => {
-                  const cost = pricePerGram * g;
-                  const costDisplay = formatPrice ? formatPrice(pricePerGram, g) : fmtShopPrice(cost);
-                  return (
-                    <button
-                      key={g}
-                      onClick={() => setSampleGrams(g)}
-                      style={{
-                        flex: 1, padding: "8px 4px",
-                        borderRadius: "4px",
-                        border: sampleGrams === g ? "1px solid var(--tea-gold)" : "1px solid var(--tea-border)",
-                        background: sampleGrams === g ? "var(--tea-accent-sub)" : "var(--tea-bg)",
-                        cursor: "pointer", textAlign: "center",
-                      }}
-                    >
-                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "13px", fontWeight: 600, color: sampleGrams === g ? "var(--tea-gold)" : "var(--tea-text)" }}>
-                        {g}g
-                      </div>
-                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", color: "var(--tea-text-sec)", marginTop: "2px" }}>
-                        {costDisplay}
-                      </div>
-                    </button>
-                  );
-                })}
+            <div className="mb-4">
+              <p className={`${LABEL} mb-2 text-tea-text-sec`}>Sample size</p>
+              <div className="flex gap-1.5">
+                {([5, 10, 15] as const).map(g => (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => setSampleGrams(g)}
+                    aria-pressed={sampleGrams === g}
+                    className="alcove-size-btn"
+                    data-active={sampleGrams === g}
+                  >
+                    <span className={`${BODY} ${NUMERAL} block`}>{g}g</span>
+                    <span className={`${LABEL_NUMERAL} mt-0.5 block text-tea-text-sec`}>
+                      {formatTotal(pricePerGram * g)}
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
 
             {/* Note */}
-            <div style={{ marginBottom: "16px" }}>
-              <p style={{ fontFamily: "var(--font-sans)", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.15em", color: "var(--tea-text-sec)", marginBottom: "6px" }}>
-                Note (optional)
-              </p>
+            <div className="mb-4">
+              <p className={`${LABEL} mb-1.5 text-tea-text-sec`}>Note (optional)</p>
               <textarea
                 value={sampleNote}
                 onChange={e => setSampleNote(e.target.value)}
                 placeholder="Anything you'd like us to know?"
                 rows={2}
-                style={{
-                  width: "100%", boxSizing: "border-box",
-                  background: "var(--tea-bg)", border: "1px solid var(--tea-border)",
-                  borderRadius: "4px", padding: "8px 10px",
-                  fontFamily: "var(--font-body)", fontSize: "13px", color: "var(--tea-text)",
-                  outline: "none", resize: "none",
-                }}
+                className={`alcove-note-input ${BODY}`}
               />
             </div>
 
-            {sampleError && (
-              <p style={{ fontSize: "12px", color: "var(--tea-text-sec)", marginBottom: "12px" }}>{sampleError}</p>
-            )}
+            {sampleError && <p className={`${BODY} mb-3 text-tea-text-sec`}>{sampleError}</p>}
 
             <button
+              type="button"
               onClick={onSubmit}
               disabled={sampleSubmitting}
-              style={{
-                width: "100%", padding: "10px",
-                background: "var(--tea-gold)", color: "var(--tea-bg)",
-                border: "none", borderRadius: "4px", cursor: sampleSubmitting ? "not-allowed" : "pointer",
-                fontFamily: "var(--font-sans)", fontSize: "12px",
-                fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
-                opacity: sampleSubmitting ? 0.7 : 1,
-              }}
+              className={`alcove-modal-primary ${LABEL} w-full`}
             >
-              {sampleSubmitting && <Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} />}
+              {sampleSubmitting && <Loader2 size={13} className="animate-spin" />}
               Request sample
             </button>
           </div>
@@ -241,36 +189,21 @@ export const CustomAmountModal: React.FC<CustomAmountModalProps> = ({
   setCustomInput,
   setGrams,
 }) => {
+  const dialogRef = useDialog(open, onClose);
   if (!open) return null;
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-label="Custom amount"
       onClick={onClose}
-      className="fixed inset-0 z-priority flex items-center justify-center p-4"
-      style={{ background: "rgb(0 0 0 / 0.55)", backdropFilter: "blur(4px)" }}
+      className="alcove-modal-backdrop fixed inset-0 z-priority flex items-center justify-center p-4"
     >
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{
-          background: "var(--tea-surface)",
-          border: "1px solid var(--tea-border)",
-          borderRadius: "6px",
-          width: "100%", maxWidth: "320px",
-          padding: "24px",
-        }}
-      >
-        <p style={{
-          fontFamily: "var(--font-display)",
-          fontSize: "15px", fontWeight: 400,
-          color: "var(--tea-text)",
-          margin: "0 0 16px 0",
-        }}>
-          Custom amount
-        </p>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "20px" }}>
+      <div onClick={e => e.stopPropagation()} className="alcove-modal-panel max-w-[320px]">
+        <p className={`${HEADING} m-0 mb-4 text-tea-text`}>Custom amount</p>
+        <div className="mb-5 flex items-center gap-2">
           <input
             type="number"
             min={5}
@@ -283,37 +216,19 @@ export const CustomAmountModal: React.FC<CustomAmountModalProps> = ({
               if (!isNaN(v) && v >= 5) setGrams(Math.min(v, sliderMax));
             }}
             placeholder="e.g. 200"
+            aria-label="Amount in grams"
             autoFocus
-            style={{
-              flex: 1, height: "36px",
-              background: 'var(--tea-bg)',
-              border: '1px solid var(--tea-gold)',
-              borderRadius: '4px', padding: '0 10px',
-              fontFamily: 'var(--font-mono)', fontSize: '14px',
-              color: 'var(--tea-text)', outline: 'none',
-            }}
+            className={`alcove-amount-input ${BODY} ${NUMERAL}`}
           />
-          <span style={{
-            fontFamily: 'var(--font-mono)', fontSize: '13px',
-            color: 'var(--tea-text-sec)',
-          }}>g</span>
+          <span className={`${BODY} ${NUMERAL} text-tea-text-sec`}>g</span>
         </div>
-        <div style={{ display: "flex", gap: "8px" }}>
-          <button
-            onClick={onClose}
-            style={{
-              flex: 1, padding: "9px",
-              background: "none",
-              border: "1px solid var(--tea-border)",
-              borderRadius: "4px", cursor: "pointer",
-              fontFamily: "var(--font-sans)", fontSize: "12px",
-              color: "var(--tea-text-sec)",
-              letterSpacing: "0.08em", textTransform: "uppercase",
-            }}
-          >
+        {/* Cancel left, commit right. */}
+        <div className="flex gap-2">
+          <button type="button" onClick={onClose} className={`alcove-modal-cancel ${LABEL}`}>
             Cancel
           </button>
           <button
+            type="button"
             onClick={() => {
               const v = parseInt(customInput);
               if (!isNaN(v) && v >= 5) {
@@ -321,13 +236,7 @@ export const CustomAmountModal: React.FC<CustomAmountModalProps> = ({
                 onClose();
               }
             }}
-            style={{
-              flex: 1, padding: "9px",
-              background: "var(--tea-gold)", color: "var(--tea-bg)",
-              border: "none", borderRadius: "4px", cursor: "pointer",
-              fontFamily: "var(--font-sans)", fontSize: "12px",
-              fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase",
-            }}
+            className={`alcove-modal-primary ${LABEL} flex-1`}
           >
             Confirm
           </button>
@@ -352,47 +261,32 @@ export const ImageOverlayModal: React.FC<ImageOverlayModalProps> = ({
   itemName,
   onClose,
 }) => {
-  if (!open || !expandedImageUrl) return null;
+  const isOpen = open && Boolean(expandedImageUrl);
+  const dialogRef = useDialog(isOpen, onClose);
+  if (!isOpen || !expandedImageUrl) return null;
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-label={`Image of ${itemName}`}
       onClick={onClose}
-      className="fixed inset-0 z-priority flex items-center justify-center"
-      style={{ background: "var(--tea-bg)", cursor: "pointer", animation: "panelReveal 0.3s ease-out" }}
+      className="alcove-viewer fixed inset-0 z-priority flex items-center justify-center"
     >
       <img
         src={expandedImageUrl}
         alt={itemName}
-        style={{
-          maxWidth: "90vw", maxHeight: "90vh",
-          objectFit: "contain",
-          borderRadius: "4px",
-        }}
+        onClick={e => e.stopPropagation()}
+        className="alcove-viewer-img"
       />
       <button
         type="button"
+        onClick={onClose}
         aria-label="Close image"
-        style={{
-          position: "absolute", top: "14px", right: "14px",
-          background: "rgb(0 0 0 / 0.25)", backdropFilter: "blur(8px)",
-          WebkitBackdropFilter: "blur(8px)",
-          border: "1px solid var(--tea-border)", borderRadius: "50%",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          cursor: "pointer",
-          transition: "background 0.2s ease",
-        }}
-        className="tap-target focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
-        onMouseEnter={(e) => { e.currentTarget.style.background = "rgb(0 0 0 / 0.4)"; }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = "rgb(0 0 0 / 0.25)"; }}
+        className="alcove-viewer-close tap-target focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-          stroke="var(--tea-text-sec)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
+        <X size={16} strokeWidth={2} />
       </button>
     </div>
   );

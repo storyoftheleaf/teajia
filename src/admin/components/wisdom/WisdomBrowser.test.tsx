@@ -1,5 +1,6 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
 // AnchoredMenu portals to document.body, which the server renderer cannot do.
@@ -9,9 +10,17 @@ vi.mock('../../../components/shared/AnchoredMenu', () => ({
     <>{trigger({})}</>,
 }));
 
+// The detail panel portals for the same reason. Its overlay behaviour is the
+// Modal's business and is tested there; what this file reads is its contents.
+vi.mock('../../../components/shared/Modal', () => ({
+  Modal: ({ children, headerActions }: { children: React.ReactNode; headerActions?: React.ReactNode }) => (
+    <div data-testid="wisdom-panel">{headerActions}{children}</div>
+  ),
+}));
+
 const { WisdomBrowser } = await import('./WisdomBrowser');
 const { WISDOM_HOLDINGS } = await import('./holdings');
-const { ALL_FOLDED } = await import('./config');
+const { ALL_FOLDED, OPEN_MARK } = await import('./config');
 type WisdomUsage = import('./usage').WisdomUsage;
 
 const cultivars = WISDOM_HOLDINGS[0];
@@ -19,7 +28,9 @@ const cultivars = WISDOM_HOLDINGS[0];
 interface RenderOptions {
   groupKey?: string;
   collapsed?: string[];
+  gapOnly?: boolean;
   query?: string;
+  selectedId?: string;
   usage?: WisdomUsage;
   /** The rest of the base, which is what makes a cross-holding answer possible. */
   siblings?: typeof WISDOM_HOLDINGS;
@@ -27,10 +38,12 @@ interface RenderOptions {
 
 const render = (holding = cultivars, options: RenderOptions = {}) =>
   renderToStaticMarkup(
+    // A router, because a blast radius chip is a link into the inventory.
+    <MemoryRouter>
     <WisdomBrowser
       holding={holding}
       tabs={condensed => (condensed ? <nav data-testid="condensed" /> : <nav data-testid="full" />)}
-      selectedId={null}
+      selectedId={options.selectedId ?? null}
       onSelect={() => {}}
       onJump={() => {}}
       siblings={options.siblings}
@@ -40,9 +53,11 @@ const render = (holding = cultivars, options: RenderOptions = {}) =>
         sort: { key: holding.columns[0].key, direction: 'asc' },
         groupKey: options.groupKey ?? '',
         collapsed: options.collapsed ?? [],
+        gapOnly: options.gapOnly ?? false,
       }}
       onPrefsChange={() => {}}
-    />,
+    />
+    </MemoryRouter>,
   );
 
 /** Rows carry the admin density class; counting it counts mounted rows. */
@@ -163,6 +178,22 @@ describe('WisdomBrowser', () => {
     expect(rowCount(render(regions, { collapsed: [ALL_FOLDED] }))).toBeGreaterThan(0);
   });
 
+  // The sentinel could say "all" and "none" and nothing between them, so opening
+  // one heading out of a folded shape had to spell out the other fifteen.
+  it('holds one heading open against the sentinel instead of spelling out the rest', () => {
+    const regions = WISDOM_HOLDINGS.find(holding => holding.id === 'regions')!;
+    const china = regions.rows.filter(row => row.country === 'China').length;
+    expect(china).toBeGreaterThan(0);
+    const html = render(regions, { groupKey: 'country', collapsed: [ALL_FOLDED, `${OPEN_MARK}China`] });
+    expect(rowCount(html)).toBe(Math.min(china, PAGE));
+    // One heading open, every other one folded.
+    expect((html.match(/aria-expanded="true"/g) ?? []).length).toBe(1);
+    expect((html.match(/aria-expanded="false"/g) ?? []).length).toBeGreaterThan(1);
+    // Not every section is folded any more, so the one press on offer is the
+    // one that folds the last of them.
+    expect(html).toContain('Collapse all');
+  });
+
   it('states the current sort in words, because a phone hides the arrow', () => {
     // At 390px every sortable column except the name is hidden, so the header
     // arrow is not a way to read the sort. The status band says it instead.
@@ -172,15 +203,58 @@ describe('WisdomBrowser', () => {
 
   it('counts a hole in the data instead of leaving it to be met one row at a time', () => {
     const html = render();
-    expect(html).toContain('data-testid="wisdom-gap"');
+    expect(html).toContain('data-testid="wisdom-gap-count"');
     const cultivarGap = cultivars.rows.filter(row => cultivars.gap!.test(row)).length;
     expect(cultivarGap).toBeGreaterThan(0);
     expect(html).toContain(cultivars.gap!.sentence(cultivarGap, cultivars.rows.length));
     expect(html).toContain('Show only these');
-    // A holding whose gap is currently empty says nothing at all.
-    const varieties = WISDOM_HOLDINGS.find(holding => holding.id === 'varieties')!;
-    const varietyGap = varieties.rows.filter(row => varieties.gap!.test(row)).length;
-    if (varietyGap === 0) expect(render(varieties)).not.toContain('data-testid="wisdom-gap"');
+  });
+
+  // Silence used to mean two opposite things: a holding with no hole left, and a
+  // holding whose hole was never measured. They rendered identically.
+  it('tells a clean holding apart from an unmeasured one', () => {
+    for (const holding of WISDOM_HOLDINGS) {
+      const html = render(holding);
+      expect(html, `${holding.id} says nothing about its record`).toContain('data-testid="wisdom-gap"');
+      if (!holding.gap) {
+        expect(html, holding.id).toContain('data-testid="wisdom-unmeasured"');
+        expect(html, holding.id).toContain('No hole is counted');
+        continue;
+      }
+      const missing = holding.rows.filter(row => holding.gap!.test(row)).length;
+      const which = missing > 0 ? 'wisdom-gap-count' : 'wisdom-gap-whole';
+      expect(html, holding.id).toContain(`data-testid="${which}"`);
+    }
+    // Both of the two silent holdings now say why they are silent.
+    const silent = WISDOM_HOLDINGS.filter(holding => !holding.gap);
+    expect(silent.map(holding => holding.id)).toEqual(['producers', 'named-teas']);
+    expect(silent.every(holding => Boolean(holding.unmeasured))).toBe(true);
+  });
+
+  // A number that falls a beat after arrival, with nothing said, reads as a
+  // fault rather than as a narrowing.
+  it('says the region count is provisional until the account is read', () => {
+    const regions = WISDOM_HOLDINGS.find(holding => holding.id === 'regions')!;
+    expect(regions.gap!.needsAccount).toBe(true);
+    expect(render(regions)).toContain('data-testid="wisdom-gap-provisional"');
+    // With the products counted, the qualification leaves with the guess.
+    const usage: WisdomUsage = { total: 3, byHolding: new Map(), byHoldingTotal: new Map() };
+    expect(render(regions, { usage })).not.toContain('data-testid="wisdom-gap-provisional"');
+    // And a holding whose gap the base can answer alone never says it.
+    expect(render(cultivars)).not.toContain('data-testid="wisdom-gap-provisional"');
+  });
+
+  // The one link an operator most wants to send, and until now the only part of
+  // the shape that did not survive being sent.
+  it('takes the gap filter from the preferences the address carries', () => {
+    const marks = WISDOM_HOLDINGS.find(holding => holding.id === 'marks')!;
+    const gapped = marks.rows.filter(row => marks.gap!.test(row)).length;
+    expect(gapped).toBeGreaterThan(0);
+    const html = render(marks, { gapOnly: true, groupKey: 'producer' });
+    expect(rowCount(html)).toBe(gapped);
+    expect(rowCount(html)).toBeLessThan(rowCount(render(marks, { groupKey: 'producer' })));
+    expect(html).toContain('gaps only');
+    expect(html).toContain('Show all');
   });
 
   // Regions was the last holding stating no hole of its own, which read as a
@@ -257,6 +331,51 @@ describe('WisdomBrowser', () => {
     // And a region carrying products is no longer counted as a place nothing
     // names, which is the gap that arrived this round.
     expect(regions.gap!.test({ id: 'yiwu' }, { used: id => (id === 'yiwu' ? 2 : 0) })).toBe(false);
+  });
+
+  // Sixty chips is a list to read. The inventory filtered to the same sixty is
+  // a list to act on, and the panel now hands the operator that instead of
+  // growing to sixty rows tall with no way back.
+  it('hands the blast radius to the inventory, and can be folded back up', () => {
+    const products = Array.from({ length: 12 }, (_, index) => ({
+      id: `p${index}`,
+      name: `Tea ${index}`,
+    }));
+    const usage: WisdomUsage = {
+      total: 40,
+      byHolding: new Map([['cultivars', new Map([['rou-gui', { count: 12, products }]])]]),
+      byHoldingTotal: new Map([['cultivars', 12]]),
+    };
+    const html = render(cultivars, { usage, selectedId: 'rou-gui' });
+    expect(html).toContain('data-testid="wisdom-usage-products"');
+    expect(html).toContain('and 4 more');
+    expect(html).toContain('data-testid="wisdom-usage-inventory"');
+    expect(html).toContain('Open all 12 in the inventory');
+    expect(html).toContain(`href="/admin/inventory?wisdom=${encodeURIComponent('cultivars:rou-gui')}"`);
+  });
+
+  // The panel's position is a position IN something, and three controls narrow
+  // that something. One of them re-tests on its own when the products land.
+  it('names the run prev and next are walking, when it is not the whole holding', () => {
+    const marks = WISDOM_HOLDINGS.find(holding => holding.id === 'marks')!;
+    const gapped = marks.rows.filter(row => marks.gap!.test(row));
+    expect(gapped.length).toBeGreaterThan(0);
+    const open = render(marks, { gapOnly: true, selectedId: marks.idOf(gapped[0]) });
+    expect(open).toContain('data-testid="wisdom-run-note"');
+    expect(open).toContain(`walk ${gapped.length} of the ${marks.rows.length} marks: gaps only`);
+    // Walking the whole holding needs no note; there is nothing to say.
+    expect(render(marks, { selectedId: marks.idOf(marks.rows[0]) })).not.toContain('data-testid="wisdom-run-note"');
+  });
+
+  // Two searches on one screen. The field intersects every word across every
+  // field; typing at the list is a prefix on the axis the list is ordered by.
+  it('states both searches side by side, so the difference is not a surprise', () => {
+    const html = render();
+    expect(html).toContain('Type → Cultivar');
+    expect(html).toContain('Find → every field');
+    // The intersection says itself the moment it is doing something.
+    expect(render(cultivars, { query: 'da hong' })).toContain('every word must match');
+    expect(render(cultivars, { query: 'dahong' })).not.toContain('every word must match');
   });
 
   it('makes the public address in the reach line the way to reach it', () => {

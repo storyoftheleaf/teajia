@@ -3,12 +3,17 @@ import { AUTHORSHIP } from '../../../wisdom/authorship';
 import {
   ALL_FOLDED,
   NEAR_MISS_LIMIT,
+  OPEN_MARK,
   WISDOM_SLOT,
   compareWisdom,
   defaultPrefs,
   editDistance,
+  isSectionFolded,
   nearestWisdom,
+  readFold,
   recogniseQuery,
+  toggleFold,
+  wisdomInventoryHref,
   wisdomMatches,
   wisdomPrefsFromParams,
   wisdomPrefsToParams,
@@ -369,19 +374,55 @@ describe('the wisdom address', () => {
       sort: { key: 'altitude', direction: 'desc' },
       groupKey: 'country',
       collapsed: ['China', 'Japan'],
+      gapOnly: false,
     };
     const params = wisdomPrefsToParams(shaped, regions);
     expect(params).toEqual({ group: 'country', sort: '-altitude', fold: 'China~Japan' });
     expect(wisdomPrefsFromParams(key => params[key] ?? null, regions)).toEqual(shaped);
   });
 
+  // Grouping, sort and the folded shape all survived being sent. The gap filter
+  // did not, and it is the one link an operator most wants to send.
+  it('carries the gap filter too, and refuses it where no gap is counted', () => {
+    const marks = holdingBy('marks');
+    const gapped: WisdomPrefs = { ...defaultPrefs(marks), groupKey: 'producer', gapOnly: true };
+    const params = wisdomPrefsToParams(gapped, marks);
+    expect(params).toEqual({ group: 'producer', gap: '1' });
+    expect(wisdomPrefsFromParams(key => params[key] ?? null, marks)).toEqual(gapped);
+
+    // A holding that counts no hole cannot be filtered to it, however addressed.
+    const producers = holdingBy('producers');
+    expect(wisdomPrefsToParams({ ...defaultPrefs(producers), gapOnly: true }, producers)).toEqual({});
+    expect(wisdomPrefsFromParams(key => (key === 'gap' ? '1' : null), producers).gapOnly).toBe(false);
+  });
+
   // Folding 182 regions to sixteen headings must not spend 120 characters of
   // address saying "all of them".
   it('says a wholly folded shape in one token', () => {
-    const folded: WisdomPrefs = { sort: defaultPrefs(regions).sort, groupKey: 'country', collapsed: [ALL_FOLDED] };
+    const folded: WisdomPrefs = {
+      sort: defaultPrefs(regions).sort,
+      groupKey: 'country',
+      collapsed: [ALL_FOLDED],
+      gapOnly: false,
+    };
     const params = wisdomPrefsToParams(folded, regions);
     expect(params).toEqual({ group: 'country', fold: ALL_FOLDED });
     expect(wisdomPrefsFromParams(key => params[key] ?? null, regions)).toEqual(folded);
+  });
+
+  // And "all but one" in two, rather than abandoning the sentinel and spelling
+  // out the other fifteen the moment one heading is opened.
+  it('says all but one without listing the rest', () => {
+    const shaped: WisdomPrefs = {
+      sort: defaultPrefs(regions).sort,
+      groupKey: 'country',
+      collapsed: [ALL_FOLDED, `${OPEN_MARK}China`],
+      gapOnly: false,
+    };
+    const params = wisdomPrefsToParams(shaped, regions);
+    expect(params.fold).toBe(`${ALL_FOLDED}~${OPEN_MARK}China`);
+    expect(params.fold.length).toBeLessThan(12);
+    expect(wisdomPrefsFromParams(key => params[key] ?? null, regions)).toEqual(shaped);
   });
 
   it('falls back rather than obeying an address the holding cannot honour', () => {
@@ -401,6 +442,80 @@ describe('the wisdom address', () => {
     const unsortable = marks.columns.find(column => column.sortable === false)!;
     const asked: Record<string, string> = { sort: unsortable.key };
     expect(wisdomPrefsFromParams(key => asked[key] ?? null, marks).sort).toEqual(defaultPrefs(marks).sort);
+  });
+});
+
+describe('the folded shape', () => {
+  const every = ['China', 'India', 'Japan', 'Taiwan'];
+
+  it('reads a plain list of folded headings', () => {
+    const shape = readFold(['China', 'Japan']);
+    expect(shape.all).toBe(false);
+    expect(isSectionFolded(shape, 'China')).toBe(true);
+    expect(isSectionFolded(shape, 'India')).toBe(false);
+  });
+
+  it('reads the sentinel with headings held open against it', () => {
+    const shape = readFold([ALL_FOLDED, `${OPEN_MARK}China`]);
+    expect(shape.all).toBe(true);
+    expect(isSectionFolded(shape, 'China')).toBe(false);
+    expect(isSectionFolded(shape, 'India')).toBe(true);
+    // A heading that did not exist when the link was made is folded, which is
+    // what the sentinel means and why it is worth keeping.
+    expect(isSectionFolded(shape, 'Vietnam')).toBe(true);
+  });
+
+  // One press must stay one press in the address, in both directions.
+  it('opens one heading out of a folded shape without spelling out the rest', () => {
+    const opened = toggleFold([ALL_FOLDED], 'China', every);
+    expect(opened).toEqual([ALL_FOLDED, `${OPEN_MARK}China`]);
+    expect(opened.join('~').length).toBeLessThan(12);
+    // And folding it again returns to the bare sentinel.
+    expect(toggleFold(opened, 'China', every)).toEqual([ALL_FOLDED]);
+  });
+
+  it('normalises rather than drifting to the long form', () => {
+    // Every heading excepted is nothing folded at all.
+    const allOpen = every.reduce((held, key) => toggleFold(held, key, every), [ALL_FOLDED] as string[]);
+    expect(allOpen).toEqual([]);
+    // And every heading folded one at a time is the sentinel, not a list of four.
+    const allFolded = every.reduce((held, key) => toggleFold(held, key, every), [] as string[]);
+    expect(allFolded).toEqual([ALL_FOLDED]);
+  });
+});
+
+describe('the state of each record', () => {
+  // Silence carried two opposite meanings until every holding said which.
+  it('either counts a hole or says it counts none', () => {
+    for (const holding of WISDOM_HOLDINGS) {
+      const stated = Boolean(holding.gap) || Boolean(holding.unmeasured);
+      expect(stated, `${holding.id} says nothing about its own record`).toBe(true);
+      if (!holding.gap) {
+        expect(holding.unmeasured!.trim().endsWith('.'), `${holding.id} unmeasured`).toBe(true);
+        expect(holding.unmeasured!.length).toBeGreaterThan(20);
+        continue;
+      }
+      // The clean case is a sentence too, not an absence of one.
+      const whole = holding.gap.whole(holding.rows.length);
+      expect(whole.trim().endsWith('.'), `${holding.id} whole`).toBe(true);
+      expect(whole).toContain(String(holding.rows.length));
+    }
+  });
+
+  // Only the holding whose answer depends on the account declares it, and it is
+  // the only one whose count moves after the screen has been read.
+  it('declares the one gap the base cannot answer alone', () => {
+    const needy = WISDOM_HOLDINGS.filter(holding => holding.gap?.needsAccount).map(holding => holding.id);
+    expect(needy).toEqual(['regions']);
+  });
+});
+
+describe('wisdomInventoryHref', () => {
+  it('addresses the inventory by the entry, not by a list of product ids', () => {
+    const href = wisdomInventoryHref('cultivars', 'rou-gui');
+    expect(href).toBe('/admin/inventory?wisdom=cultivars%3Arou-gui');
+    // Short whatever the blast radius is: sixty ids would be a kilobyte.
+    expect(href.length).toBeLessThan(60);
   });
 });
 

@@ -18,6 +18,8 @@ interface Props {
   nav?: React.ReactNode;
   /** Which grouped section this cultivar sits in, when the list is grouped. */
   section?: WisdomSection;
+  /** What run prev and next walk, when it is narrower than the whole holding. */
+  runNote?: string;
   /** This cultivar's page on the public reference. */
   publicHref?: string;
   /** How many products resolve through this cultivar right now. */
@@ -36,7 +38,7 @@ interface Props {
  * a reading measure, because only prose gets harder to read as it gets wider.
  */
 export const CultivarDetailPanel: React.FC<Props> = ({
-  cultivar, onClose, onSelectCultivar, jump, nav, section, publicHref, usage,
+  cultivar, onClose, onSelectCultivar, jump, nav, section, runNote, publicHref, usage,
 }) => {
   const [story, setStory] = useState<CultivarStory | null>(null);
   const [loadingStory, setLoadingStory] = useState(true);
@@ -82,6 +84,7 @@ export const CultivarDetailPanel: React.FC<Props> = ({
             }}
             id={cultivar.id}
             section={section}
+            runNote={runNote}
             publicHref={publicHref}
             usage={usage}
           />

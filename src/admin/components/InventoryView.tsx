@@ -57,6 +57,8 @@ import { isFeaturedButHidden } from './inventory/helpers';
 import { InventoryRow } from './inventory/InventoryRow';
 import { QuickEditInlineRow } from './inventory/QuickEditInlineRow';
 import { InventoryActionRail, INVENTORY_ACTION_RAIL_WIDTH } from './inventory/InventoryActionRail';
+import { INVENTORY_WISDOM_PARAM } from './wisdom/config';
+import { readWisdomScope } from './wisdom/usage';
 import { useInventoryProducts } from './inventory/useInventoryProducts';
 import { InventoryConfirmations } from './inventory/InventoryConfirmations';
 import { InventoryBulkToolbar } from './inventory/InventoryBulkToolbar';
@@ -174,6 +176,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const vendorFilter = searchParams.get('vendor') || '';
   const batchFilter = searchParams.get('batch') || '';
   const panelParam = searchParams.get('panel') || '';
+  // A wisdom entry as a filter, in the same shape as vendor and batch: the
+  // address names it, the list narrows to it, one chip clears it. Wisdom's
+  // blast radius writes this link so "sixty products resolve through this
+  // cultivar" arrives here as sixty rows instead of sixty chips in a panel.
+  const wisdomFilter = searchParams.get(INVENTORY_WISDOM_PARAM) || '';
   const navigate = useNavigate();
   const compassEntries = useTeaCompassStore((s) => s.entries);
   const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
@@ -266,8 +273,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   const activeBatch = batches.find(b => b.id === batchFilter) || null;
 
+  // Which products resolve through the named wisdom entry, answered by the same
+  // resolveTea pass the wisdom screen counts with, and cached against the
+  // product list itself, so this costs nothing when no wisdom link was followed.
+  const wisdomScope = useMemo(() => readWisdomScope(wisdomFilter, products), [wisdomFilter, products]);
+
   // Initialize/Sync Local Products for Optimistic Updates
-  // Vendor filter narrows to one source; batch filter narrows to one shipment.
+  // Vendor filter narrows to one source; batch filter narrows to one shipment;
+  // wisdom filter narrows to one entry in the base.
   useEffect(() => {
     let list = products;
     if (vendorFilter) {
@@ -277,8 +290,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     if (batchFilter && batchProductIds) {
       list = list.filter(p => batchProductIds.has(p.id));
     }
+    if (wisdomScope) {
+      list = list.filter(p => wisdomScope.ids.has(p.id));
+    }
     setLocalProducts(list);
-  }, [products, vendorFilter, batchFilter, batchProductIds]);
+  }, [products, vendorFilter, batchFilter, batchProductIds, wisdomScope]);
 
   // Feature 2: Column Show/Hide popover
   const [showColumnsPopover, setShowColumnsPopover] = useState(false);
@@ -1782,7 +1798,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <span className="font-mono text-ui-11 text-tea-text-dim" title={activeAccountName}>{activeAccountName.replace(/^Teajia\s+/i, '') || 'Bali'}</span>
                     <span className="text-tea-border" aria-hidden="true">·</span>
                     <select value={currency} onChange={(event) => setCurrency(event.target.value as typeof currency)} aria-label="Select currency" className="tap-target shrink-0 appearance-none bg-transparent font-mono text-ui-11 text-tea-text-sec outline-none">{rates.map(rate => <option key={rate.currency} value={rate.currency}>{rate.currency}</option>)}</select>
-                    {(vendorFilter || batchFilter) && <button type="button" onClick={() => setSearchParams({})} aria-label="Clear inventory context" className="tap-target max-w-[96px] truncate font-mono text-ui-11 text-tea-gold">{vendorFilter || activeBatch?.label || 'Batch'} ×</button>}
+                    {(vendorFilter || batchFilter || wisdomFilter) && <button type="button" onClick={() => setSearchParams({})} aria-label="Clear inventory context" className="tap-target max-w-[96px] truncate font-mono text-ui-11 text-tea-gold">{vendorFilter || wisdomScope?.label || activeBatch?.label || 'Batch'} ×</button>}
 
                     {/* find — mobile icon (desktop uses the field above; md:!hidden beats .tap-target) */}
                     <button type="button" onClick={() => setMobileSearchExpanded(true)} aria-label="Search inventory" className="tap-target md:!hidden text-tea-text-sec hover:text-tea-text"><Search size={18} /></button>

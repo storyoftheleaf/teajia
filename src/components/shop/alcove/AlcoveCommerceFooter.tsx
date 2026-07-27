@@ -1,38 +1,26 @@
 import React from 'react';
 import type { InventoryItem } from '../../../types';
 import { Heart, Pencil, QrCode } from 'lucide-react';
-import { fmtShopPrice } from '../../../utils/formatNumber';
-import { LABEL, NUMERAL } from '../../shared/typeRoles';
+import { LABEL, LABEL_NUMERAL } from '../../shared/typeRoles';
+import type { StockStatus } from '../stockStatus';
 
 /**
- * The commerce row's numerals take the LABEL role's size and nothing else.
+ * The commerce row is set in the four roles, like everything else.
  *
- * This footer ran sans at 9 and 10 and mono at 10 and 12, four private steps
- * in the densest 300px on the card. They collapse to one, at the smallest
- * declared role size, because BODY at 15px does not fit a price, a per-gram
- * and four presets across a 303px row without wrapping or scrolling sideways,
- * and sideways is banned. The face is the numeral face for the same reason it
- * is on the product page: a proportional figure reflows the total as the
- * amount changes.
+ * It ran sans at 9 and 10 and mono at 10 and 12, four private steps in the
+ * densest 300px on the card. Two of those four survived round five because they
+ * were declared in card-utilities.css, which loads after Tailwind and therefore
+ * beat every class the component put on the element: the quantity row was
+ * pinned at 10px and the order button at 12px no matter what the JSX said. That
+ * is the same trap that hid a bronze-on-bronze term row in round four, and it
+ * was sitting on the one control a customer presses to spend money.
+ *
+ * The stylesheet no longer states a size. Words take LABEL, figures take
+ * LABEL_NUMERAL, and that is the whole scale down here.
  */
-const FOOTER_NUMERAL = `text-ui-11 ${NUMERAL}`;
-
-interface StockStatus {
-  label: string;
-  color: string;
-  level: 'out' | 'low' | 'ok';
-}
 
 interface AlcoveCommerceFooterProps {
   item: InventoryItem;
-  alcoveBg: string;
-  alcoveColors: {
-    bg: string;
-    body: string;
-    muted: string;
-    subtitle: string;
-    success: string;
-  };
   accent: string;
   stockStatus: StockStatus;
   isSoldOut: boolean;
@@ -47,6 +35,7 @@ interface AlcoveCommerceFooterProps {
   pricePerGram: number;
   perGramDisplay: string;
   total: string;
+  sampleTotal: string;
   added: boolean;
   shareCopied: boolean;
   favorited: boolean;
@@ -54,30 +43,29 @@ interface AlcoveCommerceFooterProps {
   isAdmin?: boolean;
   onEdit?: (item: InventoryItem) => void;
   onTaste?: (item: InventoryItem) => void;
-  onAddToCart?: (item: InventoryItem, qty: number, total: number) => void;
   toggleFavoriteTea: (id: string) => void;
   toggleSampleCart: (e: React.MouseEvent) => void;
   handleShare: () => void;
   handleAdd: () => void;
-  formatPrice?: (pricePerGram: number, grams: number) => string;
 }
 
-const STOCK_DOT: React.CSSProperties = {
-  width: 5,
-  height: 5,
-  borderRadius: '50%',
-  flexShrink: 0,
-};
-
-const DIVIDER: React.CSSProperties = {
-  width: 1,
-  height: 10,
-  background: 'var(--tea-border)',
-};
+/**
+ * The stock line, when there is something to say.
+ *
+ * No dot. A coloured dot sitting a gap away from the words "Low Stock", in the
+ * colour of those words, encodes exactly what the words already say, and the
+ * two colours it was drawn in were literal hex values invisible to the colour
+ * lint. The label carries the colour, so the signal survives and the ornament
+ * does not. Same reading the product page settled on in round five.
+ */
+const StockLine: React.FC<{ status: StockStatus }> = ({ status }) => (
+  <div className="mb-1.5">
+    <span className={`${LABEL} ${status.colorClass}`}>{status.label}</span>
+  </div>
+);
 
 export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
   item,
-  alcoveColors,
   accent,
   stockStatus,
   isSoldOut,
@@ -92,6 +80,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
   pricePerGram,
   perGramDisplay,
   total,
+  sampleTotal,
   added,
   shareCopied,
   favorited,
@@ -103,30 +92,15 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
   toggleSampleCart,
   handleShare,
   handleAdd,
-  formatPrice,
 }) => {
   return (
-    <div
-      style={{
-        position: 'relative',
-        zIndex: 3,
-        flexShrink: 0,
-        padding: '14px 14px 10px',
-        borderTop: '1px solid var(--tea-border)',
-        background: alcoveColors.bg,
-      }}
-    >
+    <div className="alcove-commerce">
       {/* Row 1: Amount selector */}
       {isSoldOut ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-          <div style={{ ...STOCK_DOT, background: stockStatus.color }} />
-          <span className={LABEL} style={{ color: stockStatus.color }}>
-            {stockStatus.label}
-          </span>
-        </div>
+        <StockLine status={stockStatus} />
       ) : item.category === 'tea' ? (
         <>
-          <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
+          <div className="mb-1.5 flex gap-1">
             {[
               { key: 'sample', label: 'Sample', sub: '10g' },
               ...(50 <= sliderMax ? [{ key: '50', label: '50g', sub: '' }] : []),
@@ -143,7 +117,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
                 <button
                   key={opt.key}
                   type="button"
-                  className="alcove-qty-btn"
+                  className={`alcove-qty-btn ${LABEL}`}
                   data-active={isActive}
                   aria-pressed={isActive}
                   onClick={() => {
@@ -162,53 +136,38 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
                   }}
                 >
                   <span>{opt.label}</span>
-                  {opt.sub && <span className={`${FOOTER_NUMERAL} text-tea-text-dim`}>{opt.sub}</span>}
+                  {opt.sub && <span className={`${LABEL_NUMERAL} text-tea-text-dim`}>{opt.sub}</span>}
                 </button>
               );
             })}
           </div>
 
-          {stockStatus.level !== 'ok' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-              <div style={{ ...STOCK_DOT, background: stockStatus.color }} />
-              <span className={LABEL} style={{ color: stockStatus.color }}>
-                {stockStatus.label}
-              </span>
-            </div>
-          )}
+          {stockStatus.level !== 'ok' && <StockLine status={stockStatus} />}
         </>
       ) : (
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 6 }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              marginRight: 4,
-              flexShrink: 0,
-            }}
-          >
-            <div style={{ ...STOCK_DOT, background: stockStatus.color }} />
-            <span className={FOOTER_NUMERAL} style={{ color: alcoveColors.body }}>
-              {formatPrice ? perGramDisplay : `$${perGramDisplay}`}/g
+        <>
+          {stockStatus.level !== 'ok' && <StockLine status={stockStatus} />}
+          <div className="mb-1.5 flex items-center gap-1">
+            <span className={`${LABEL_NUMERAL} mr-1 shrink-0 text-tea-text-sec`}>
+              {perGramDisplay}
             </span>
+            {presets.map((p) => (
+              <button
+                key={p}
+                type="button"
+                className={`alcove-preset-btn ${LABEL_NUMERAL}`}
+                data-active={grams === p}
+                aria-pressed={grams === p}
+                onClick={() => {
+                  setGrams(p);
+                  if (navigator.vibrate) navigator.vibrate(8);
+                }}
+              >
+                {p}g
+              </button>
+            ))}
           </div>
-          {presets.map((p) => (
-            <button
-              key={p}
-              type="button"
-              className="alcove-preset-btn"
-              data-active={grams === p}
-              aria-pressed={grams === p}
-              onClick={() => {
-                setGrams(p);
-                if (navigator.vibrate) navigator.vibrate(8);
-              }}
-            >
-              {p}g
-            </button>
-          ))}
-        </div>
+        </>
       )}
 
       {/* Session reserve soft warning */}
@@ -223,21 +182,9 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
           </div>
         )}
 
-      {/* Row 2: Save/Share(/Edit) + Add button */}
-      <div style={{ display: 'flex', gap: 6 }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-            minHeight: 44,
-            border: '1px solid var(--tea-border)',
-            borderRadius: 3,
-            flexShrink: 0,
-            padding: '0 8px',
-          }}
-        >
+      {/* Row 2: Save/Share(/Edit) + Order button */}
+      <div className="flex gap-1.5">
+        <div className="alcove-icon-cluster">
           <button
             type="button"
             className="alcove-icon-btn"
@@ -255,7 +202,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
           </button>
           {isAdmin && (
             <>
-              <div style={DIVIDER} />
+              <div className="alcove-icon-divider" />
               <button
                 type="button"
                 className="alcove-icon-btn"
@@ -269,20 +216,20 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
               </button>
             </>
           )}
-          <div style={DIVIDER} />
+          <div className="alcove-icon-divider" />
           <button
             type="button"
             className="alcove-icon-btn"
             onClick={handleShare}
             aria-label="Share"
           >
-            <span className={LABEL} style={{ color: shareCopied ? alcoveColors.success : 'currentColor' }}>
+            <span className={`${LABEL} ${shareCopied ? 'text-tea-green' : ''}`}>
               {shareCopied ? 'Copied' : 'Share'}
             </span>
           </button>
           {onTaste && (
             <>
-              <div style={DIVIDER} />
+              <div className="alcove-icon-divider" />
               <button
                 type="button"
                 className="alcove-icon-btn"
@@ -292,15 +239,13 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
                 }}
                 aria-label="Start tasting session"
               >
-                <span className={LABEL}>
-                  Taste
-                </span>
+                <span className={LABEL}>Taste</span>
               </button>
             </>
           )}
           {isAdmin && onEdit && (
             <>
-              <div style={DIVIDER} />
+              <div className="alcove-icon-divider" />
               <button
                 type="button"
                 className="alcove-icon-btn"
@@ -315,7 +260,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
 
         <button
           type="button"
-          className="alcove-order-btn"
+          className={`alcove-order-btn ${LABEL}`}
           onClick={handleAdd}
           disabled={isSoldOut}
           data-state={added ? 'added' : isSoldOut ? 'sold-out' : 'default'}
@@ -326,23 +271,19 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
             <span>Added</span>
           ) : sampleMode ? (
             <>
-              <span>Sample. 10g</span>
-              {pricePerGram > 0 && (
-                <span className={FOOTER_NUMERAL}>
-                  {formatPrice ? formatPrice(pricePerGram, 10) : fmtShopPrice(pricePerGram * 10)}
-                </span>
-              )}
+              <span>Sample</span>
+              {/* The quantity was inside the word ("Sample. 10g"), which put a
+                  unit symbol in the button's capitals and set it as "10G". A
+                  figure is a figure. */}
+              <span className={LABEL_NUMERAL}>10g</span>
+              {pricePerGram > 0 && <span className={LABEL_NUMERAL}>{sampleTotal}</span>}
             </>
           ) : (
             <>
               <span>Order</span>
-              <span className={FOOTER_NUMERAL}>
-                {formatPrice ? total : `$${total}`}
-              </span>
+              <span className={LABEL_NUMERAL}>{total}</span>
               {pricePerGram > 0 && (
-                <span className={`${FOOTER_NUMERAL} text-tea-bg/70`}>
-                  {formatPrice ? perGramDisplay : `$${perGramDisplay}`}/g
-                </span>
+                <span className={`${LABEL_NUMERAL} text-tea-bg/70`}>{perGramDisplay}</span>
               )}
             </>
           )}

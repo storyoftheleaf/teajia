@@ -294,6 +294,7 @@ const cultivars = defineHolding<Cultivar>({
     test: row => unheldPlace(row.originRegion),
     sentence: (missing, total) =>
       `${missing} of the ${total} cultivars name an origin the base does not hold as a region, so their place cannot be opened or read back.`,
+    whole: total => `All ${total} cultivars name an origin the base holds as a region. Nothing to chase here.`,
   },
   detail: (row, ctx) => ({
     kind: 'Cultivar',
@@ -315,6 +316,7 @@ const cultivars = defineHolding<Cultivar>({
       jump={ctx.jump}
       nav={ctx.nav}
       section={ctx.section}
+      runNote={ctx.runNote}
       publicHref={ctx.publicHref}
       usage={ctx.usage}
     />
@@ -387,6 +389,11 @@ const regions = defineHolding<Region>({
     test: (row, ctx) => namesNothing(row.id) && (ctx?.used(row.id) ?? 0) === 0,
     sentence: (missing, total) =>
       `${missing} of the ${total} regions are named by no cultivar, no variety and no product in this account, so they are held and never read.`,
+    whole: total =>
+      `All ${total} regions are named by a cultivar, a variety or a product in this account. Nothing is held and never read.`,
+    // The half the base cannot answer alone. Stated as provisional until the
+    // products land, rather than shown as a number that quietly falls.
+    needsAccount: true,
   },
   detail: (row, ctx) => ({
     kind: 'Region',
@@ -495,6 +502,8 @@ const varieties = defineHolding<FlatVariety>({
     test: row => unheldPlace(row.region),
     sentence: (missing, total) =>
       `${missing} of the ${total} varieties name a place the base does not hold as a region, so the type resolves at import and the place does not.`,
+    whole: total =>
+      `Every one of the ${total} varieties that names a place names one the base holds as a region. Type and place both resolve at import.`,
   },
   detail: (row, ctx) => ({
     kind: 'Variety',
@@ -533,6 +542,12 @@ const producers = defineHolding<Producer>({
   matchEntity: query => matchProducer(query),
   reach: 'Answers who made a tea wherever one is identified, at import and in the shop, and backs the public reference at /wisdom/producers.',
   publicRef: { index: '/wisdom/producers', entry: row => `/wisdom/producer/${row.id}` },
+  // Not "no hole": no hole COUNTED. A producer whose notable marks the base does
+  // not hold as marks is the same shape of absence as every other gap on this
+  // screen, and nobody has measured it yet. Saying so is the difference between
+  // a clean record and an unasked question, which used to look identical.
+  unmeasured:
+    'No hole is counted for producers yet. A producer naming marks the base does not hold is the same shape of absence the other holdings count, and it has not been measured here.',
   columns: [
     {
       key: 'name',
@@ -631,6 +646,7 @@ const marks = defineHolding<Mark>({
     test: row => !findProducerById(row.producerId),
     sentence: (missing, total) =>
       `${missing} of the ${total} marks name no producer the base holds, so a wrapper carrying one resolves to a recipe and stops there.`,
+    whole: total => `All ${total} marks name a producer the base holds, so every wrapper resolves the whole way.`,
     // Grouping by producer piles these exact rows under one heading, which is
     // the same fact the count states. The toggle sets it, so the two agree.
     revealBy: 'producer',
@@ -693,6 +709,8 @@ const styles = defineHolding<Style>({
     test: row => unheldPlace(row.region),
     sentence: (missing, total) =>
       `${missing} of the ${total} styles name a place the base does not hold as a region, so the style resolves at import and the place does not.`,
+    whole: total =>
+      `Every one of the ${total} styles that names a place names one the base holds as a region. Style and place both resolve at import.`,
   },
   detail: row => ({
     kind: 'Style',
@@ -727,6 +745,11 @@ const namedTeas = defineHolding<NamedTea>({
   matchEntity: query => matchNamedTea(query),
   reach: 'Lets a tea that arrived already named resolve at import instead of falling through, and backs the public reference at /wisdom/named.',
   publicRef: { index: '/wisdom/named', entry: row => `/wisdom/named/${row.id}` },
+  // The one holding where absence is the record rather than a hole in it: a
+  // named tea is whatever a vendor called it, and an undisclosed provenance is
+  // the fact being stated, not a fact that is missing.
+  unmeasured:
+    'No hole is counted for named teas. A named tea is whatever it arrived called, so an undisclosed provenance or an unstated region is the record itself rather than a gap in it.',
   columns: [
     {
       key: 'name',

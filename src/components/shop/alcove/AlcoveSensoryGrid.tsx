@@ -10,11 +10,6 @@ import { useNavigate } from 'react-router-dom';
 import { Leaf, ChevronRight } from 'lucide-react';
 import { LABEL } from '../../shared/typeRoles';
 
-/** Converts a string to Title Case */
-function toTitleCase(str: string): string {
-  return str.replace(/\b\w/g, c => c.toUpperCase());
-}
-
 interface AlcoveSensoryGridProps {
   item: InventoryItem;
   notes: string[];
@@ -48,13 +43,9 @@ export const AlcoveSensoryGrid: React.FC<AlcoveSensoryGridProps> = ({
   const sensoryNotes = hasTasting ? customerFacingTerms : [];
   const legacyNotes = !hasTasting ? notes : [];
   const hasAnySensory = sensoryNotes.length > 0 || legacyNotes.length > 0;
-  // Legacy `mood` header (e.g. "Gentle Patience") is no longer rendered
-  // on the card — the feeling of the tea is now carried by the
-  // structured `feeling` chips in the grid below.
-  const hasMood = false;
   void moodTags;
 
-  if (!hasAnySensory && !hasMood && !(isAdmin && onEditProductTasting) && tastingCount === 0) return null;
+  if (!hasAnySensory && !(isAdmin && onEditProductTasting) && tastingCount === 0) return null;
 
   // Collect note items for the grid
   const noteItems = sensoryNotes.map((termId) => {
@@ -66,35 +57,34 @@ export const AlcoveSensoryGrid: React.FC<AlcoveSensoryGridProps> = ({
     return { key: termId, label, termId, icon: Icon, swatchColor, categoryId: termInfo?.categoryId || 'flavor' };
   });
 
-  // Legacy notes as fallback
+  /**
+   * A term nobody has typed stays in the case it was written in.
+   *
+   * This grid Title Cased them. Round five removed exactly that from the
+   * product page, one folder over, on the reasoning that a Title Cased string
+   * is the shop pretending an untyped word is a proper term. The two surfaces
+   * then disagreed about the same field on the same tea: "Stone Fruit" here,
+   * "stone fruit" on the page, with no fact behind the difference. The page's
+   * reading wins, so the card follows it.
+   */
   const legacyItems = legacyNotes.map((note) => {
-    const termId = note.toLowerCase().replace(/\s+/g, '-');
+    const label = note.trim().toLowerCase();
+    const termId = label.replace(/\s+/g, '-');
     const Icon = resolveTermIcon(termId);
-    return { key: `legacy-${note}`, label: toTitleCase(note), termId, icon: Icon, swatchColor: null as string | null, categoryId: 'flavor' };
+    return { key: `legacy-${note}`, label, termId, icon: Icon, swatchColor: null as string | null, categoryId: 'flavor' };
   });
 
   const allNotes = [...noteItems, ...legacyItems];
   const noteTotalRows = Math.ceil(allNotes.length / 2);
 
   return (
-    <div style={{
-      marginTop: "24px",
-      background: "rgb(var(--tea-text-rgb) / 0.08)",
-      borderTop: "1px solid var(--tea-border)",
-      borderBottom: "1px solid var(--tea-border)",
-      padding: "4px 16px",
-    }}>
+    <div className="alcove-sensory">
       {isAdmin && onEditProductTasting && (
-        <div style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          paddingTop: "6px",
-        }}>
+        <div className="flex justify-end pt-1.5">
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onEditProductTasting(item); }}
-            className={`${LABEL} text-tea-text-dim hover:text-tea-gold transition-colors`}
-            style={{ display: "inline-flex", alignItems: "center", gap: "4px", minHeight: 44 }}
+            className={`${LABEL} inline-flex min-h-[44px] items-center gap-1 text-tea-text-dim transition-colors hover:text-tea-gold`}
             aria-label="Edit product tasting"
           >
             Edit tasting
@@ -102,53 +92,9 @@ export const AlcoveSensoryGrid: React.FC<AlcoveSensoryGridProps> = ({
         </div>
       )}
 
-      {/* Mood tags — centered single column with dashed dividers */}
-      {hasMood && (
-        <div style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          padding: "6px 0",
-          borderBottom: hasAnySensory ? "1px solid var(--tea-border)" : "none",
-        }}>
-          {moodTags.map((tag, i) => {
-            const Tag = onTermClick ? 'button' : 'span';
-            return (
-              <React.Fragment key={`mood-${tag}`}>
-                {i > 0 && (
-                  <div style={{
-                    width: "40px",
-                    borderTop: "1px dashed var(--tea-border)",
-                    margin: "2px 0",
-                  }} />
-                )}
-                <Tag
-                  type={onTermClick ? 'button' : undefined}
-                  onClick={onTermClick ? () => onTermClick(tag.toLowerCase().trim(), 'mood') : undefined}
-                  className="alcove-note-btn"
-                  data-readonly={!onTermClick}
-                  style={{
-                    fontStyle: "italic",
-                    letterSpacing: "0.06em",
-                    color: "var(--tea-text-sec)",
-                    justifyContent: 'center',
-                    textAlign: 'center',
-                  }}
-                >
-                  {toTitleCase(tag)}
-                </Tag>
-              </React.Fragment>
-            );
-          })}
-        </div>
-      )}
-
       {/* Tasting notes grid */}
       {allNotes.length > 0 && (
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-        }}>
+        <div className="alcove-note-grid">
           {allNotes.map((noteItem, idx) => {
             const isLeftCol = idx % 2 === 0;
             const rowIdx = Math.floor(idx / 2);
@@ -162,24 +108,18 @@ export const AlcoveSensoryGrid: React.FC<AlcoveSensoryGridProps> = ({
                 key={noteItem.key}
                 type={onTermClick ? 'button' : undefined}
                 onClick={onTermClick ? () => onTermClick(noteItem.termId, noteItem.categoryId || 'flavor') : undefined}
-                className="alcove-note-btn"
+                className={`alcove-note-btn ${isOddLast ? 'col-span-2' : ''}`}
                 data-readonly={!onTermClick}
-                style={{
-                  color: typeColor,
-                  ...(isOddLast ? { gridColumn: "1 / -1" } : {}),
-                  borderRight: (isLeftCol && !isOddLast) ? "1px solid var(--tea-border)" : "none",
-                  borderBottom: isLastRow ? "none" : "1px solid var(--tea-border)",
-                }}
+                data-col={isLeftCol && !isOddLast ? 'left' : 'right'}
+                data-rule={!isLastRow}
+                // The type's own hue is data, not decoration: it is resolved
+                // per tea by getTeaColor, so it cannot become a class.
+                style={{ color: typeColor }}
               >
                 {noteItem.swatchColor ? (
-                  <span style={{
-                    width: "16px", height: "16px", borderRadius: "50%",
-                    background: noteItem.swatchColor,
-                    border: "1px solid var(--tea-border)",
-                    flexShrink: 0,
-                  }} />
+                  <span className="alcove-note-swatch" style={{ background: noteItem.swatchColor }} />
                 ) : NoteIcon ? (
-                  <NoteIcon size={16} style={{ opacity: 0.72, flexShrink: 0, color: "currentColor" }} />
+                  <NoteIcon size={16} className="shrink-0 opacity-70" />
                 ) : null}
                 <span>{noteItem.label}</span>
               </Tag>
@@ -188,32 +128,19 @@ export const AlcoveSensoryGrid: React.FC<AlcoveSensoryGridProps> = ({
         </div>
       )}
 
-      {/* Tasting count — personal journal link, scoped to the tasting context */}
+      {/* Tasting count: personal journal link, scoped to the tasting context */}
       {tastingCount > 0 && (
-        <div style={{
-          display: "flex",
-          justifyContent: "center",
-          paddingTop: "10px",
-          paddingBottom: "2px",
-          borderTop: (hasAnySensory || hasMood) ? "1px solid var(--tea-border)" : "none",
-          marginTop: (hasAnySensory || hasMood) ? "10px" : "0",
-        }}>
+        <div className={`flex justify-center pb-0.5 pt-2.5 ${hasAnySensory ? 'mt-2.5 border-t border-tea-border' : ''}`}>
           <button
+            type="button"
             onClick={() => navigate('/account?tab=journal')}
-            style={{
-              display: "flex", alignItems: "center", gap: "5px",
-              background: "none", border: "none", cursor: "pointer",
-              padding: "2px 6px", borderRadius: "4px",
-              transition: "opacity 0.2s",
-            }}
-            onMouseEnter={e => { e.currentTarget.style.opacity = '0.75'; }}
-            onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
+            className="alcove-tasted"
           >
-            <Leaf size={12} style={{ color: '#5A6E5A', opacity: 0.75 }} />
-            <span className={`${LABEL} text-tea-text-dim`}>
+            <Leaf size={12} className="shrink-0 text-tea-green" />
+            <span className={LABEL}>
               Tasted {tastingCount} {tastingCount === 1 ? 'time' : 'times'}
             </span>
-            <ChevronRight size={10} style={{ color: "var(--tea-text-dim)", opacity: 0.6, marginLeft: "1px" }} />
+            <ChevronRight size={10} className="ml-px shrink-0" />
           </button>
         </div>
       )}

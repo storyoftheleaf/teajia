@@ -264,6 +264,9 @@ const FIRST_PRODUCTS = 8;
  */
 export const UsageProducts: React.FC<{ usage?: WisdomEntryUsage }> = ({ usage }) => {
   const [all, setAll] = useState(false);
+  // A sixty-product entry that has been opened once must not stay sixty chips
+  // tall for the rest of the panel's life; a new entry is a new question.
+  useEffect(() => { setAll(false); }, [usage?.href]);
   if (!usage || usage.count === 0 || usage.products.length === 0) return null;
 
   const shown = all ? usage.products : usage.products.slice(0, FIRST_PRODUCTS);
@@ -282,6 +285,12 @@ export const UsageProducts: React.FC<{ usage?: WisdomEntryUsage }> = ({ usage })
             {product.name}
           </Link>
         ))}
+        {/* Expanding in place was the only way to see the rest, and it was a one
+            way door: sixty chips, open forever. The way back is the same press
+            reversed, and the way FORWARD is now the inventory itself, filtered
+            to exactly these products, which is where the work would happen
+            anyway. Naming sixty teas in a panel is a list to read; the same
+            sixty in the inventory is a list to act on. */}
         {rest > 0 && (
           <button
             type="button"
@@ -291,6 +300,23 @@ export const UsageProducts: React.FC<{ usage?: WisdomEntryUsage }> = ({ usage })
             and {rest} more
           </button>
         )}
+        {all && usage.products.length > FIRST_PRODUCTS && (
+          <button
+            type="button"
+            onClick={() => setAll(false)}
+            data-testid="wisdom-usage-fewer"
+            className="tap-target self-center rounded-md px-2 py-1 text-ui-12 text-tea-text-sec transition-colors hover:text-tea-text"
+          >
+            Show fewer
+          </button>
+        )}
+        <Link
+          to={usage.href}
+          data-testid="wisdom-usage-inventory"
+          className="tap-target self-center rounded-md px-2 py-1 text-ui-12 text-tea-gold transition-colors hover:text-tea-gold-lt"
+        >
+          Open all {usage.count} in the inventory
+        </Link>
       </WisdomRoving>
     </div>
   );
@@ -305,6 +331,8 @@ interface Props {
   nav?: React.ReactNode;
   /** Which grouped section this entry sits in, when the list behind is grouped. */
   section?: WisdomSection;
+  /** What run prev and next walk, when it is narrower than the whole holding. */
+  runNote?: string;
   /** This entry's page on the public reference, when it has one. */
   publicHref?: string;
   /** How many products resolve through this entry right now. */
@@ -312,12 +340,19 @@ interface Props {
 }
 
 export const WisdomDetailPanel: React.FC<Props> = ({
-  detail, id, onClose, nav, section, publicHref, usage,
+  detail, id, onClose, nav, section, runNote, publicHref, usage,
 }) => (
   <Modal isOpen onClose={onClose} variant="panel" ariaLabel={detail.name} headerActions={nav}>
     <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-2 pb-nav-gap sm:px-6">
       <div className="mx-auto max-w-5xl pb-8">
-        <WisdomDetailHeader detail={detail} id={id} section={section} publicHref={publicHref} usage={usage} />
+        <WisdomDetailHeader
+          detail={detail}
+          id={id}
+          section={section}
+          runNote={runNote}
+          publicHref={publicHref}
+          usage={usage}
+        />
         <FactGrid facts={detail.facts} className="mt-5 border-t border-tea-border pt-5" />
         {detail.prose && (
           <p className={`${TYPOGRAPHY_CLASSES.body} text-tea-text mt-6 max-w-2xl`}>{detail.prose}</p>
@@ -333,9 +368,10 @@ export const WisdomDetailHeader: React.FC<{
   detail: WisdomDetail;
   id: string;
   section?: WisdomSection;
+  runNote?: string;
   publicHref?: string;
   usage?: WisdomEntryUsage;
-}> = ({ detail, id, section, publicHref, usage }) => (
+}> = ({ detail, id, section, runNote, publicHref, usage }) => (
   <header>
     {/* The eyebrow says what this is, and, when prev/next is walking a grouped
         holding, which heading it is currently under. Crossing from the last
@@ -364,6 +400,17 @@ export const WisdomDetailHeader: React.FC<{
     {/* Provenance, load and public face on one line: who wrote it, what would
         move if it changed, and where a customer meets it. Wraps rather than
         truncates, because all three are sentences. */}
+    {/* What the toolbar's position is a position IN.
+        Prev and next walk the list behind this panel, and three things narrow
+        that list: the gap filter, the find field and a folded section. The gap
+        one re-tests on its own, the moment the account's products resolve, so
+        "3 of 15" could become "3 of 9" with the panel open and nothing said.
+        The run says what it is, and changes when it changes. */}
+    {runNote && (
+      <p className="mt-2 text-ui-12 text-tea-text-dim" data-testid="wisdom-run-note" aria-live="polite">
+        {runNote}
+      </p>
+    )}
     <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-ui-12">
       <p className="text-tea-text-dim">{authorshipLine(id)}</p>
       <UsageLine usage={usage} />

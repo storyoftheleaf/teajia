@@ -1,19 +1,37 @@
 import React from 'react';
 
 interface AlcoveShellProps {
-  alcoveBg: string;
+  /**
+   * The card's own surface colour, as a token reference.
+   *
+   * Kept as a prop because the teaware card asks for a different one, but it is
+   * handed to CSS as a custom property rather than painted inline, so the value
+   * that actually lands is declared in card-utilities.css where the colour lint
+   * can read it.
+   */
+  alcoveBg?: string;
   chineseCharacters: string;
   scrollRef: React.RefObject<HTMLDivElement | null>;
   showFade: boolean;
   children: React.ReactNode;
   commerceFooter: React.ReactNode;
   modals: React.ReactNode;
-  /** Override grain layer opacity (default: 0.06) */
+  /** Override grain layer opacity (default: 0.05) */
   grainOpacity?: number;
-  /** Override the two radial warmth opacities [inner, outer] (defaults: [0.09, 0.05]) */
+  /** Override the two radial warmth opacities [inner, outer] (defaults: [0.055, 0.025]) */
   warmthOpacities?: [number, number];
 }
 
+/**
+ * The card's frame: surface, warmth, grain, watermark, scroll, fade.
+ *
+ * Every colour here used to be an inline style, and two of them were literal
+ * rgba triples that no longer matched any token. `npm run lint:colors` reads
+ * className strings, so the surface carrying the most colour in the shop was
+ * the one surface the colour rules could not see at all. The layers are now
+ * classes; only the two opacity numbers stay inline, because a number is not a
+ * colour and the lint has no opinion about it.
+ */
 export const AlcoveShell: React.FC<AlcoveShellProps> = ({
   alcoveBg,
   chineseCharacters,
@@ -26,75 +44,34 @@ export const AlcoveShell: React.FC<AlcoveShellProps> = ({
   warmthOpacities = [0.055, 0.025],
 }) => {
   return (
-    <div style={{
-      width: "100%",
-      height: "100%",
-      maxHeight: "100%",
-      background: alcoveBg,
-      position: "relative",
-      overflow: "hidden",
-      borderRadius: "3px",
-      display: "flex",
-      flexDirection: "column",
-    }}>
+    <div
+      className="alcove-shell"
+      style={{
+        ...(alcoveBg ? { ['--alcove-bg' as string]: alcoveBg } : {}),
+        ['--alcove-grain' as string]: grainOpacity,
+        ['--alcove-warmth-inner' as string]: warmthOpacities[0],
+        ['--alcove-warmth-outer' as string]: warmthOpacities[1],
+      }}
+    >
+      {/* Layer 1: multi-stop radial warmth. Layer 2: fine noise grain. */}
+      <div className="alcove-warmth" />
+      <div className="alcove-grain" />
 
-      {/* Layer 1: Multi-stop radial warmth */}
-      <div style={{
-        position: "absolute", inset: 0, pointerEvents: "none",
-        background: `
-          radial-gradient(ellipse 70% 50% at 85% 8%, rgba(180,120,40,${warmthOpacities[0]}) 0%, transparent 60%),
-          radial-gradient(ellipse 50% 40% at 90% 0%, rgba(200,140,50,${warmthOpacities[1]}) 0%, transparent 50%)
-        `,
-      }} />
-
-      {/* Layer 2: Fine noise grain */}
-      <div style={{
-        position: "absolute", inset: 0, pointerEvents: "none", opacity: grainOpacity,
-        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-        backgroundSize: "120px",
-      }} />
-
-      {/* Vertical calligraphy watermark — top-right, flowing down like a hanging scroll */}
+      {/* Vertical calligraphy watermark, top-right, flowing down like a hanging scroll. */}
       {chineseCharacters && (
-        <div style={{
-          position: "absolute", right: "16px", bottom: "90px",
-          writingMode: "vertical-rl",
-          fontFamily: "'Ma Shan Zheng', cursive",
-          fontSize: "92px", fontWeight: 400, lineHeight: 1,
-          color: "var(--tea-text-dim)",
-          letterSpacing: "0.18em",
-          userSelect: "none", pointerEvents: "none",
-          whiteSpace: "nowrap",
-          opacity: 0.045,
-          zIndex: 4,
-        }}>
-          {chineseCharacters}
-        </div>
+        <div className="alcove-watermark">{chineseCharacters}</div>
       )}
 
-      {/* === SCROLLABLE MIDDLE === */}
-      <div ref={scrollRef} className="tea-card-scroll" style={{
-        position: "relative", zIndex: 1,
-        flex: 1,
-        overflowY: "auto",
-        minHeight: 0,
-      }}>
+      {/* Scrollable middle. */}
+      <div ref={scrollRef} className="tea-card-scroll alcove-scroll">
         {children}
       </div>
 
       {commerceFooter}
 
-      {/* Fade indicator at bottom of scrollable area, above pinned commerce */}
-      <div style={{
-        position: "relative", flexShrink: 0, height: 0,
-        pointerEvents: "none", zIndex: 2,
-      }}>
-        <div style={{
-          position: "absolute", bottom: 0, left: 0, right: 0, height: "14px",
-          background: `linear-gradient(to top, ${alcoveBg} 0%, ${alcoveBg} 30%, transparent 100%)`,
-          opacity: showFade ? 0.7 : 0,
-          transition: "opacity 0.3s ease",
-        }} />
+      {/* Fade indicator at the bottom of the scrollable area, above pinned commerce. */}
+      <div className="alcove-fade-anchor">
+        <div className="alcove-fade" data-visible={showFade} />
       </div>
 
       {modals}

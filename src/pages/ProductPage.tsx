@@ -8,7 +8,7 @@ import { useAppStore } from '../lib/store';
 import { Icons } from '../components/Icons';
 import { TeaPlaceholder } from '../components/shop/TeaPlaceholder';
 import { HapticSlider } from '../components/shared/HapticSlider';
-import { fmtPricePerGram, fmtShopPrice, fmtShopPricePerGram } from '../utils/formatNumber';
+import { fmtPricePerGram, fmtShopPrice } from '../utils/formatNumber';
 import type { InventoryItem, TastingData } from '../types';
 import { buildWhatsAppUrl, buildOrderMessage } from '../lib/whatsapp';
 import { api } from '../lib/api';
@@ -22,6 +22,9 @@ import { useAuth } from '../hooks/useAuth';
 import { TastingEditorModal } from '../admin/components/TastingEditorModal';
 import type { Product } from '../admin/types';
 import { ProductImpressions, type ProductImpression } from '../components/shop/ProductImpressions';
+import { getStockStatus } from '../components/shop/stockStatus';
+import { useShopPrice } from '../components/shop/shopPrice';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 import { cultivarPath, resolveLineage } from '../components/wisdom/TeaLineage';
 import { TeaReference, type TeaReferenceProduct } from '../components/wisdom/TeaReference';
 import { FactGrid } from '../components/wisdom/FactGrid';
@@ -159,26 +162,18 @@ const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '';
 /**
  * Three states, because there are three things worth saying.
  *
- * There were four. "Available" (100g to 300g) and "In Stock" (300g up) both
- * lost their colour when bronze was pulled back to the one state that asks the
- * reader to act, and two labels rendered in the same tone at the same size are
- * one label written twice. The 300g boundary was invented by the page, not by
- * the shop: nothing behind it changes at 300g, no reader knows where the line
- * is, and giving it a second colour would have spent a signal on a distinction
- * that means nothing. So the boundary is gone rather than decorated.
+ * The function itself moved to components/shop/stockStatus.ts in round six. It
+ * had a twin on the shop card: same name, same three states, and two literal
+ * hex values instead of tokens, so the same fact about the same tea followed
+ * the theme on this page and did not follow it in the quick view. Two
+ * vocabularies for one fact is one vocabulary too many, and the surviving one
+ * is the one written in tokens.
  *
- * There is no dot either. A coloured dot sitting a gap away from the words
- * "Low Stock", in the same colour as those words, encodes exactly what the
- * words already say: it is the 300g boundary again, drawn instead of written.
- * The label carries the colour, so the signal survives and the ornament does
- * not.
+ * There were four states before round five. "Available" (100g to 300g) and "In
+ * Stock" (300g up) both lost their colour when bronze was pulled back to the
+ * one state that asks the reader to act, and two labels rendered in the same
+ * tone at the same size are one label written twice.
  */
-function getStockStatus(stockG: number) {
-  if (stockG <= 0) return { label: 'Sold Out', colorClass: 'text-tea-text-dim', level: 'out' as const };
-  // Bronze is reserved for the one stock state that asks the reader to act.
-  if (stockG < 100) return { label: 'Low Stock', colorClass: 'text-tea-gold', level: 'low' as const };
-  return { label: 'In Stock', colorClass: 'text-tea-text-sec', level: 'ok' as const };
-}
 
 interface ProductPageProps {
   onAddToCart?: (item: InventoryItem, qty: number, total: number) => void;
@@ -230,6 +225,29 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
   // and leave is a lightbox; a viewer you can move through is the gallery.
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [stickyVisible, setStickyVisible] = useState(false);
+
+  /**
+   * The viewer keeps a keyboard reader inside it, and hands focus back.
+   *
+   * It had neither, while `AlcoveModal` in components/shop already had both by
+   * hand. A reader who tabbed to a thumbnail, pressed it, and then pressed Tab
+   * again was moved into the page behind an opaque full-screen overlay, with no
+   * way to reach the close button and no visible cursor. `useFocusTrap` moves
+   * focus in, cycles it, and restores it to the thumbnail on close.
+   */
+  const viewerRef = useFocusTrap<HTMLDivElement>(expandedIndex !== null);
+
+  /**
+   * Prices, in the currency the reader chose.
+   *
+   * Round five wrote the promise down: the published markup stays fixed in USD
+   * (see PUBLISHED_CURRENCY below) while "localising the visible number is the
+   * visible page's job". The page could not do that job, because every shop
+   * formatter prefixes a literal dollar sign, so the currency selector in the
+   * cart changed the cart and nothing a customer saw on a product. It can now.
+   * The structured data below is deliberately untouched.
+   */
+  const shopPrice = useShopPrice();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -831,10 +849,10 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
             </span>
             <div className="text-right">
               <span className={`${BODY} ${NUMERAL} block text-tea-text-sec`}>
-                {fmtShopPricePerGram(pricePerGram)}
+                {shopPrice.perGram(pricePerGram)}
               </span>
               <span className={`${BODY} ${NUMERAL} text-tea-text-dim`}>
-                from {fmtShopPrice(pricePerGram * 25)} / 25g
+                from {shopPrice.total(pricePerGram * 25)} / 25g
               </span>
             </div>
           </div>
@@ -871,7 +889,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
                   run 20px against the price's 15px, which said the weight
                   outranked the money. Nothing behind the control says that. */}
               <div className="flex items-baseline justify-between mb-1 px-0.5">
-                <span className={`${BODY} ${NUMERAL} text-tea-text`}>{fmtShopPrice(total)}</span>
+                <span className={`${BODY} ${NUMERAL} text-tea-text`}>{shopPrice.total(total)}</span>
                 <div className="flex items-baseline gap-0.5">
                   <span className={`${BODY} ${NUMERAL} text-tea-text`}>{grams}</span>
                   <span className={`${LABEL} text-tea-text-dim`}>g</span>
@@ -922,7 +940,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
                   <span className="w-px h-3 bg-tea-bg/20" />
                   {/* No size of its own: it inherits the button's LABEL and
                       changes only the face. */}
-                  <span className={NUMERAL}>{fmtShopPrice(total)}</span>
+                  <span className={NUMERAL}>{shopPrice.total(total)}</span>
                 </>
               )}
             </button>
@@ -1023,7 +1041,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
                         numbers you are about to transact on. A related tea's
                         price is a stated fact like every other one here. */}
                     <p className={`${BODY} mt-0.5 text-tea-text-sec`}>
-                      {fmtShopPricePerGram(parseFloat(related.price_per_gram || '0'))}
+                      {shopPrice.perGram(parseFloat(related.price_per_gram || '0'))}
                     </p>
                   </Link>
                 ))}
@@ -1041,12 +1059,12 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
           a single-image product rather than shown dead. */}
       {expandedIndex !== null && galleryImages[expandedIndex] && (
         <div
+          ref={viewerRef}
           onClick={() => setExpandedIndex(null)}
           role="dialog"
           aria-modal="true"
           aria-label={`Image ${expandedIndex + 1} of ${galleryImages.length} of ${item.name}`}
-          className="fixed inset-0 z-priority flex items-center justify-center animate-[fadeIn_0.3s_ease-out] outline-none"
-          style={{ background: 'var(--tea-bg)' }}
+          className="fixed inset-0 z-priority flex items-center justify-center bg-tea-bg animate-[fadeIn_0.3s_ease-out] outline-none"
         >
           <img
             src={galleryImages[expandedIndex]}
@@ -1107,7 +1125,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
           <div className="pointer-events-auto bg-tea-bg/95 backdrop-blur-sm border border-tea-border rounded-xl p-3 flex items-center gap-3 shadow-lg">
             <div className="flex-1 min-w-0">
               <p className={`${HEADING} truncate text-tea-text`}>{item.name}</p>
-              <p className={`${BODY} ${NUMERAL} text-tea-text-sec`}>{grams}g · {fmtShopPrice(total)}</p>
+              <p className={`${BODY} ${NUMERAL} text-tea-text-sec`}>{grams}g · {shopPrice.total(total)}</p>
             </div>
             <button
               onClick={handleAdd}

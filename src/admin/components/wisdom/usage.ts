@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { resolveTea } from '../../../wisdom';
 import type { Product } from '../../types';
-import { ALL_VARIETIES } from './holdings';
+import { ALL_VARIETIES, findHolding } from './holdings';
 import type { WisdomUsageProduct } from './config';
 
 /**
@@ -123,6 +123,47 @@ export function wisdomUsageFor(products: readonly Product[]): WisdomUsage {
   const built = countWisdomUsage(products);
   answered.set(products, built);
   return built;
+}
+
+/* ────────────────── the same answer, read from the inventory ──────────────── */
+
+/**
+ * The inventory narrowed to one wisdom entry: which products, and what to call
+ * the filter in the chip that clears it.
+ *
+ * This is the return leg of the blast radius. The panel could say WHICH sixty
+ * products resolve through a cultivar, and then the only way to work on them was
+ * to leave for the inventory and rebuild the question by hand. The inventory
+ * takes the entry in its address instead, exactly as it already takes a vendor
+ * and a batch, and the same `resolveTea` answer decides the set, so the two
+ * screens can never disagree about it.
+ */
+export interface WisdomInventoryScope {
+  ids: ReadonlySet<string>;
+  /** The entry's own name, for the chip that offers to clear the filter. */
+  label: string;
+}
+
+/** `holding:entry`, the form `wisdomInventoryHref` writes. */
+export function readWisdomScope(
+  param: string | null | undefined,
+  products: readonly Product[] | undefined,
+): WisdomInventoryScope | null {
+  if (!param) return null;
+  const at = param.indexOf(':');
+  if (at <= 0) return null;
+  const holding = findHolding(param.slice(0, at));
+  const entryId = param.slice(at + 1);
+  if (!holding || !entryId) return null;
+
+  const row = holding.rows.find(entry => holding.idOf(entry) === entryId);
+  const label = row ? String(holding.columns[0].value(row) ?? entryId) : entryId;
+  // An empty set while the products are still loading, so the grid shows nothing
+  // rather than everything. The batch filter above it behaves the same way.
+  if (!products || products.length === 0) return { ids: new Set<string>(), label };
+
+  const bucket = wisdomUsageFor(products).byHolding.get(holding.id)?.get(entryId);
+  return { ids: new Set((bucket?.products ?? []).map(product => product.id)), label };
 }
 
 type IdleWindow = Window & {

@@ -35,10 +35,12 @@ import { useWisdomUsage } from '../components/wisdom/usage';
  * as it is typed, and the shape the list has been given.
  *   /admin/wisdom?tab=cultivars&entry=rou-gui
  *   /admin/wisdom?tab=varieties&q=Yiwu
- *   /admin/wisdom?tab=regions&group=country&sort=-altitude&fold=*
- * so an operator can send a colleague to one cultivar, to a narrowed list, or to
- * 182 regions folded to their sixteen countries, and a refresh returns them to
- * it. Writes are `replace`, because reading through a holding with the arrow
+ *   /admin/wisdom?tab=regions&group=country&sort=-altitude&fold=*~!China
+ *   /admin/wisdom?tab=marks&group=producer&gap=1
+ * so an operator can send a colleague to one cultivar, to a narrowed list, to
+ * 182 regions folded to their sixteen countries with China left open, or to the
+ * seven marks that name no producer the base holds, and a refresh returns them
+ * to it. Writes are `replace`, because reading through a holding with the arrow
  * keys would otherwise leave one history entry per row.
  *
  * Two things were wrong before and are the reason this is now the whole screen.
@@ -89,14 +91,16 @@ export const WisdomView: React.FC = () => {
   const grouping = searchParams.get(WISDOM_PARAM.group);
   const ordering = searchParams.get(WISDOM_PARAM.sort);
   const folding = searchParams.get(WISDOM_PARAM.fold);
+  const gapping = searchParams.get(WISDOM_PARAM.gap);
   const prefs = useMemo(
     () =>
       wisdomPrefsFromParams(key => {
         if (key === WISDOM_PARAM.group) return grouping;
         if (key === WISDOM_PARAM.sort) return ordering;
+        if (key === WISDOM_PARAM.gap) return gapping;
         return key === WISDOM_PARAM.fold ? folding : null;
       }, active),
-    [grouping, ordering, folding, active],
+    [grouping, ordering, folding, gapping, active],
   );
 
   /**

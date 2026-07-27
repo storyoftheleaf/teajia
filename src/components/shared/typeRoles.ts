@@ -24,8 +24,29 @@
  */
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
-/** The page title. Cormorant, 32px at 390 and 48px on a wide screen. */
-export const TITLE = TYPOGRAPHY_CLASSES.h1;
+/**
+ * The title. Cormorant, 32px in a narrow column and 48px in a wide one.
+ *
+ * Measured against its container, not against the window. `h1` clamps on `vw`,
+ * which is right for a page that fills the window and wrong everywhere else:
+ * the quick view is a 480px card, and on a 1600px screen `4.8vw` is 77px, so
+ * the clamp pinned every tea's name in that card to the full 48px page-title
+ * size. A title set to the same size in a 480px card and on a 900px page is not
+ * a scale, it is a coincidence, and it read as a headline shouting inside a
+ * postcard.
+ *
+ * `cqi` is one percent of the nearest query container's inline size. Where no
+ * ancestor declares `container-type` the unit falls back to the small viewport,
+ * which is exactly the previous behaviour, so the product page is untouched at
+ * every width. The alcove card declares the container (`.alcove-measure` in
+ * card-utilities.css), so 4.8cqi of 480px is 23px and the clamp holds the title
+ * at its 32px floor.
+ *
+ * Deliberately written here rather than in designTokens: `h1` is a page-title
+ * class used by pages that are their own container, and this is the shop's
+ * reading of it.
+ */
+export const TITLE = 'font-display text-[clamp(32px,4.8cqi,48px)] font-normal leading-[1.12] tracking-[0.01em]';
 
 /** A named thing. Cormorant 20px, one scale stop, no clamp. */
 export const HEADING = 'font-display text-ui-20 leading-[1.3] tracking-[0.01em]';
@@ -61,6 +82,25 @@ export const LABEL = 'font-sans text-ui-11 uppercase tracking-[0.08em]';
  * Written as a modifier (`${BODY} ${NUMERAL}`), never on its own.
  */
 export const NUMERAL = 'font-mono tabular-nums';
+
+/**
+ * LABEL's size, in the numeral face, in its own case.
+ *
+ * Deliberately not written as `${LABEL} ${NUMERAL}`. LABEL carries `font-sans`,
+ * and in the built stylesheet Tailwind emits `.font-sans` after `.font-mono`,
+ * so that combination silently renders in the sans face and the tabular figures
+ * are lost. Two utilities in one class attribute are resolved by their order in
+ * the sheet, never by their order in the string. Measured, not assumed.
+ *
+ * `normal-case` because these live inside controls that carry LABEL's capitals,
+ * and text-transform inherits: without it a per-gram price set "$0.85/g" as
+ * "$0.85/G" and a ten gram sample as "10G". A unit symbol is not a label.
+ *
+ * This is not a fifth size. It is LABEL's 11px, which is the smallest declared
+ * role, used where BODY at 15px cannot fit a price, a per-gram and four presets
+ * across a 303px row without wrapping or scrolling sideways.
+ */
+export const LABEL_NUMERAL = `text-ui-11 normal-case ${NUMERAL}`;
 
 /**
  * A 44px hit area around a control too small to be one, without the layout
