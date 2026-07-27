@@ -18,7 +18,7 @@ import {
 } from './importReviewDomain';
 import { ImportMatchPicker } from './ImportMatchPicker';
 import { enrichImportIdentity, IMPORT_TEA_FORMS, IMPORT_TEA_TYPES, vocabularyOptions } from './importIdentityEnrichment';
-import { CULTIVARS, findCultivarById, matchCultivar } from '../../../wisdom';
+import { CULTIVARS, findCultivarById, findRegion, matchCultivar, REGION_NAMES } from '../../../wisdom';
 
 export interface ImportIdentityOption extends ImportMatchOption { category: 'tea' | 'teaware' }
 export interface ImportHoldingOption extends ImportMatchOption { category: 'tea' | 'teaware'; compassEntryId: string | null; purpose: string | null }
@@ -238,6 +238,16 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({
        cultivarEntry.developedYear ? `bred ${cultivarEntry.developedYear}` : null,
        cultivarEntry.parentage ? `from ${cultivarEntry.parentage}` : null].filter(Boolean).join(' · ')
     : undefined;
+  // What the wisdom base knows about the named place, shown the same quiet way
+  // as the Cultivar helper above.
+  const originRegionEntry = draft.origin.trim() ? findRegion(draft.origin.trim()) : null;
+  const originHelper = originRegionEntry
+    ? [originRegionEntry.country, originRegionEntry.altitude ? `${originRegionEntry.altitude} altitude` : null].filter(Boolean).join(' · ')
+    : undefined;
+  const currentYear = new Date().getFullYear();
+  const yearNumber = draft.year.trim() ? Number(draft.year) : null;
+  const yearOutOfRange = yearNumber != null && Number.isFinite(yearNumber) && (yearNumber < 1950 || yearNumber > currentYear + 1);
+  const yearHelper = yearOutOfRange ? `Expected between 1950 and ${currentYear + 1}` : undefined;
   const draftEquation = importDraftQuantityCostEquation({
     packWeight: draft.pack_weight,
     weightUnit: draft.weight_unit,
@@ -261,12 +271,13 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({
     </div>}
     {(show('type', blocked) || show('year', blocked)) && <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       {show('type', blocked) && <CurateField label="Tea type" status={field('type')}><select aria-label="Tea type" value={draft.tea_type} onChange={event => set('tea_type', event.target.value)}><option value="">Choose type</option>{vocabularyOptions(IMPORT_TEA_TYPES, draft.tea_type).map(type => <option key={type} value={type}>{type}</option>)}</select></CurateField>}
-      {show('year', blocked) && <CurateField label="Year" status={field('year')}><input aria-label="Year" inputMode="numeric" value={draft.year} onChange={event => set('year', event.target.value)} /></CurateField>}
+      {show('year', blocked) && <CurateField label="Year" status={field('year')} helper={yearHelper}><input aria-label="Year" inputMode="numeric" value={draft.year} onChange={event => set('year', event.target.value)} /></CurateField>}
     </div>}
     {(show('originCountry', blocked) || show('originRegion', blocked)) && <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       {show('originCountry', blocked) && <CurateField label="Origin country" status={field('originCountry')}><input aria-label="Origin country" value={draft.origin_country} onChange={event => set('origin_country', event.target.value)} /></CurateField>}
-      {show('originRegion', blocked) && <CurateField label="Origin region" status={field('originRegion')}><input aria-label="Origin region" value={draft.origin} onChange={event => set('origin', event.target.value)} /></CurateField>}
+      {show('originRegion', blocked) && <CurateField label="Origin region" status={field('originRegion')} helper={originHelper}><input aria-label="Origin region" value={draft.origin} onChange={event => set('origin', event.target.value)} list={`regions-${item.id}`} /></CurateField>}
     </div>}
+    {show('originRegion', blocked) && <datalist id={`regions-${item.id}`}>{REGION_NAMES.map(name => <option key={name} value={name} />)}</datalist>}
     {show('cultivar', blocked) && <CurateField label="Cultivar" status={field('cultivar')} helper={cultivarHelper}><input aria-label="Cultivar" value={draft.cultivar} onChange={event => set('cultivar', event.target.value)} list={`cultivars-${item.id}`} /></CurateField>}
     {show('cultivar', blocked) && <datalist id={`cultivars-${item.id}`}>{CULTIVARS.map(entry => <option key={entry.id} value={entry.name}>{entry.chineseName || entry.originRegion || ''}</option>)}</datalist>}
     {show('classification', blocked) && <CurateField label="Production or classification" status={field('classification')}><input aria-label="Production or classification" value={draft.classification} onChange={event => set('classification', event.target.value)} /></CurateField>}

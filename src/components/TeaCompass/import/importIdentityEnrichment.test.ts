@@ -60,6 +60,19 @@ describe('enrichImportIdentity', () => {
       .toEqual({ origin_country: 'Taiwan' });
   });
 
+  it('derives the country from a region the operator types before the tea has a name', () => {
+    expect(enrichImportIdentity(blankDraft({ origin: 'Alishan' }), 'tea')).toEqual({ origin_country: 'Taiwan' });
+  });
+
+  it('leaves the region-derived country alone once the operator has set one', () => {
+    const fills = enrichImportIdentity(blankDraft({ origin: 'Alishan', origin_country: 'Some other place' }), 'tea');
+    expect(fills.origin_country).toBeUndefined();
+  });
+
+  it('returns nothing when the draft has neither a name nor a region', () => {
+    expect(enrichImportIdentity(blankDraft(), 'tea')).toEqual({});
+  });
+
   it('leaves teaware alone', () => {
     expect(enrichImportIdentity(blankDraft({ english_name: 'Aged Liu Bao Tea' }), 'teaware')).toEqual({});
   });

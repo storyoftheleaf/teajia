@@ -28,7 +28,10 @@ export function enrichImportIdentity(
 ): Partial<ImportIdentityFields> {
   if (category !== 'tea') return {};
   const names = [draft.english_name, draft.original_name, draft.chinese_name];
-  if (!names.filter(Boolean).join(' ').trim()) return {};
+  const hasNames = Boolean(names.filter(Boolean).join(' ').trim());
+  // A region alone is enough to look up its country, even before the tea has
+  // a name at all, so an operator can fill Origin first without losing the fill.
+  if (!hasNames && !draft.origin.trim()) return {};
 
   const blank = (value: string) => !value.trim();
   const resolved = resolveTea({
