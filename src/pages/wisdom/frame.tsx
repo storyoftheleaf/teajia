@@ -199,14 +199,18 @@ const WisdomCompactNav: React.FC<{ active: WisdomSection['id'] }> = ({ active })
         </span>
       </button>
 
+      {/* The open panel takes the surface tone. Closed, this is a line of the
+          page; open, it is a contents list sitting on top of one, and a reader
+          should be able to tell which of those two states they are looking at
+          without reading a word of it. */}
       {open && (
-        <ul id="wisdom-holdings" className="list-none m-0 p-0 pb-2">
+        <ul id="wisdom-holdings" className="list-none m-0 p-0 pb-1 mb-2 bg-tea-surface rounded-b-xl">
           {WISDOM_SECTIONS.filter(section => section.id !== active).map(section => (
-            <li key={section.id} className="border-t border-tea-border">
+            <li key={section.id} className="border-t border-tea-border first:border-t-0">
               <Link
                 to={section.path}
                 onClick={() => setOpen(false)}
-                className={`flex items-center min-h-[44px] ${NAME_CLASS} text-tea-text-sec hover:text-tea-text transition-colors`}
+                className={`flex items-center min-h-[44px] px-3 ${NAME_CLASS} text-tea-text-sec hover:text-tea-text transition-colors`}
               >
                 {section.label}
               </Link>

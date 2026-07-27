@@ -11,15 +11,16 @@ import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { REGIONS, findRegion } from '../../wisdom';
 import {
-  CELL,
   EntryAuthorship,
   FACT_CLASS,
   Fact,
   HoldingNotFound,
   HoldingRow,
+  IndexPanel,
   IndexTable,
   Invitation,
   PageHead,
+  Panel,
   Passage,
   SectionHead,
   WisdomSubNav,
@@ -27,10 +28,15 @@ import {
   type IndexColumns,
 } from './wisdomShared';
 
+/**
+ * No origin column. Every plant in this list is here precisely because its
+ * recorded origin walks back to this place, so the column printed the page's
+ * own title down forty rows. The section head says it once.
+ */
 const PLANT_COLUMNS: IndexColumns = {
-  template: 'minmax(0,1fr) 196px 72px',
+  template: 'minmax(0,1fr) 7rem',
   nameLabel: 'Plant',
-  labels: ['Recorded origin', 'Developed'],
+  labels: ['Developed'],
 };
 
 const RegionPage: React.FC = () => {
@@ -111,51 +117,59 @@ const RegionPage: React.FC = () => {
 
       <WisdomSubNav active="regions" />
 
+      {/* No dateline under the title. It printed the province and the country,
+          which are the first two rows of the panel below it: the same two facts
+          twice, eight pixels apart. */}
       <div className="mt-4">
         <PageHead title={region.name} rungFor={region.id} />
-        <p className={`${CELL} mt-2`}>{[region.province, region.country].filter(Boolean).join(' · ')}</p>
       </div>
 
-      <div className="mt-6">
-        <Fact label="Country">{region.country}</Fact>
-        <Fact label="Province">{region.province}</Fact>
-        <Fact label="Altitude">{region.altitude}</Fact>
-      </div>
+      <Panel className="mt-6">
+        <div>
+          <Fact label="Country">{region.country}</Fact>
+          <Fact label="Province">{region.province}</Fact>
+          <Fact label="Altitude">{region.altitude}</Fact>
+        </div>
 
-      {/* Climate is the one field here that is research prose, not a fact:
-          the longest runs to 239 characters, four lines of body type. Inside
-          the 152px label track it read as a paragraph stuffed into a field and
-          broke the axis the three facts above it form. It gets the full
-          measure and its label above it instead. */}
-      <Passage label="Climate" text={region.climate} className="mt-8" />
+        {/* Climate is the one field here that is research prose, not a fact:
+            the longest runs to 239 characters, four lines of body type. Inside
+            the 152px label track it read as a paragraph stuffed into a field
+            and broke the axis the three facts above it form. It gets the full
+            measure and its label above it instead. */}
+        <Passage label="Climate" text={region.climate} className="mt-7" />
 
-      {!region.altitude && !region.climate && (
-        <p className={`${FACT_CLASS} text-tea-text-dim mt-6 max-w-[64ch]`}>
-          Only the name and the country are held for this place. Altitude and climate have not been researched yet.
-        </p>
-      )}
+        {!region.altitude && !region.climate && (
+          <p className={`${FACT_CLASS} text-tea-text-dim max-w-[64ch]`}>
+            Only the name and the country are held for this place. Altitude and climate have not been researched yet.
+          </p>
+        )}
+      </Panel>
 
-      <section className="mt-12">
+      <section className="mt-14">
         <SectionHead glyph="◇" label="Plants from here" count={plants.length || undefined} />
         {plants.length === 0 ? (
-          <p className={`${FACT_CLASS} text-tea-text-dim max-w-[64ch]`}>
-            No plant in the reference records this place as its origin yet. That is a gap in the plant records, not a
-            claim that nothing grows here.
-          </p>
+          <Panel>
+            <p className={`${FACT_CLASS} text-tea-text-dim max-w-[64ch]`}>
+              No plant in the reference records this place as its origin yet. That is a gap in the plant records, not a
+              claim that nothing grows here.
+            </p>
+          </Panel>
         ) : (
-          <IndexTable columns={PLANT_COLUMNS}>
-            <ul className="list-none m-0 p-0">
-              {plants.map(plant => (
-                <HoldingRow
-                  key={plant.id}
-                  to={`/wisdom/cultivar/${plant.id}`}
-                  name={plant.name}
-                  chineseName={plant.chineseName}
-                  cells={[plant.originRegion, plant.developedYear ? String(plant.developedYear) : undefined]}
-                />
-              ))}
-            </ul>
-          </IndexTable>
+          <IndexPanel>
+            <IndexTable columns={PLANT_COLUMNS}>
+              <ul className="list-none m-0 p-0">
+                {plants.map(plant => (
+                  <HoldingRow
+                    key={plant.id}
+                    to={`/wisdom/cultivar/${plant.id}`}
+                    name={plant.name}
+                    chineseName={plant.chineseName}
+                    cells={[plant.developedYear ? String(plant.developedYear) : undefined]}
+                  />
+                ))}
+              </ul>
+            </IndexTable>
+          </IndexPanel>
         )}
       </section>
 

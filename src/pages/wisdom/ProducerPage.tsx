@@ -13,10 +13,12 @@ import {
   EntryAuthorship,
   FACT_CLASS,
   Fact,
+  FactPanel,
   HoldingNotFound,
   Invitation,
   LABEL,
   PageHead,
+  Panel,
   QUIET_LINK,
   WisdomSubNav,
 } from './wisdomShared';
@@ -99,38 +101,45 @@ const ProducerPage: React.FC = () => {
         />
       </div>
 
-      <div className="mt-6">
+      <FactPanel className="mt-6">
         <Fact label="Kind">{KIND_LABEL[producer.kind]}</Fact>
         <Fact label="Operates in">{[producer.region, producer.country].filter(Boolean).join(', ') || null}</Fact>
         <Fact label="Founded">{producer.founded ? String(producer.founded) : null}</Fact>
-      </div>
+      </FactPanel>
 
       {producer.description && (
         <section className="mt-10">
-          <p className={`${LABEL} mb-1.5`}>Record</p>
-          <p className={`${FACT_CLASS} text-tea-text max-w-[68ch]`}>{producer.description}</p>
+          <Panel>
+            <p className={`${LABEL} mb-2`}>Record</p>
+            <p className={`${FACT_CLASS} text-tea-text max-w-[68ch]`}>{producer.description}</p>
+          </Panel>
         </section>
       )}
 
       {markNames.length > 0 && (
         <section className="mt-10">
-          <p className={`${LABEL} mb-1.5`}>Known for</p>
-          <ul className="list-none m-0 p-0">
-            {markNames.map(name => {
-              const held = heldByName.get(name);
-              return (
-                <li key={name} className="py-2.5 border-t border-tea-border first:border-t-0 min-h-[44px] flex items-center">
-                  {held ? (
-                    <Link to={`/wisdom/mark/${held.id}`} className={`${FACT_CLASS} ${QUIET_LINK}`}>
-                      {name}
-                    </Link>
-                  ) : (
-                    <span className={`${FACT_CLASS} text-tea-text`}>{name}</span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+          <p className={`${LABEL} mb-2`}>Known for</p>
+          <Panel className="py-1 sm:py-1">
+            <ul className="list-none m-0 p-0">
+              {markNames.map(name => {
+                const held = heldByName.get(name);
+                return (
+                  <li
+                    key={name}
+                    className="py-2.5 border-t border-tea-border first:border-t-0 min-h-[44px] flex items-center"
+                  >
+                    {held ? (
+                      <Link to={`/wisdom/mark/${held.id}`} className={`${FACT_CLASS} ${QUIET_LINK}`}>
+                        {name}
+                      </Link>
+                    ) : (
+                      <span className={`${FACT_CLASS} text-tea-text`}>{name}</span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </Panel>
         </section>
       )}
 

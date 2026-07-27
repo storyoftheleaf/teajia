@@ -22,10 +22,12 @@ import {
   GroupJump,
   HoldingAuthorship,
   HoldingRow,
+  IndexPanel,
   IndexTable,
   Invitation,
   NoMatch,
   PageHead,
+  SearchEverywhere,
   ViewSwitch,
   WisdomSubNav,
   WisdomToolbar,
@@ -39,9 +41,13 @@ const VIEWS: Array<{ id: View; label: string }> = [
   { id: 'alphabetical', label: 'A to Z' },
 ];
 
-/** A province name runs to about 18 characters; an altitude never past "1000-2300m". */
+/**
+ * A province name runs to about 18 characters; an altitude never past
+ * "1000-2300m". Both take a share of the measure rather than a pixel width, so
+ * the three columns spread across the row instead of crowding its right edge.
+ */
 const COLUMNS: IndexColumns = {
-  template: 'minmax(0,1fr) 148px 96px',
+  template: 'minmax(0,1.5fr) minmax(0,1fr) 7rem',
   nameLabel: 'Place',
   labels: ['Province', 'Altitude'],
 };
@@ -222,42 +228,45 @@ const RegionIndexPage: React.FC = () => {
         <PageHead title="Growing Regions" note="The ground itself: how high, how wet, and what grows there." />
       </div>
 
-      <WisdomToolbar
-        query={query}
-        onQueryChange={setQuery}
-        placeholder="Search places"
-        searchLabel="Search growing places by name, province or country"
-        visible={visible.length}
-        total={REGIONS.length}
-        noun="places"
-        everywhere
-      >
-        <ViewSwitch options={VIEWS} value={view} onChange={next => setView(next)} label="Browse the places" />
-        <GroupJump groups={jumpTo} rows={visible.length} label="Jump to a group of places" />
-      </WisdomToolbar>
-
-      {/* What a bare row means, said once. This replaces 99 dim "Not recorded"
-          cells with one dim line, and it sits above the list so a reader meets
-          the rule before they meet the first empty column. */}
+      {/* What a bare row means, said once, and now the only dim line standing
+          between the toolbar and the first place. The cross-holding escape line
+          used to print above it, so a reader met two footnotes before they met
+          a single record; that one moved to the foot. This one stays, because
+          it is about the columns directly beneath it. */}
       {visible.length > 0 && (
-        <p className={`${FOOTNOTE} mt-2`}>
+        <p className={`${FOOTNOTE} mt-4 max-w-[68ch]`}>
           An altitude is recorded for {RECORDED_ALTITUDE} of these places and a province for {RECORDED_PROVINCE}. The
           others are working-list names, held as a vendor writes them, and an empty column here means not researched
           rather than not applicable.
         </p>
       )}
 
-      {visible.length === 0 && <NoMatch noun="place" query={query} />}
+      <IndexPanel className="mt-3">
+        <WisdomToolbar
+          query={query}
+          onQueryChange={setQuery}
+          placeholder="Search places"
+          searchLabel="Search growing places by name, province or country"
+          visible={visible.length}
+          total={REGIONS.length}
+          noun="places"
+        >
+          <ViewSwitch options={VIEWS} value={view} onChange={next => setView(next)} label="Browse the places" />
+          <GroupJump groups={jumpTo} rows={visible.length} label="Jump to a group of places" />
+        </WisdomToolbar>
 
-      {visible.length > 0 && (
-        <IndexTable columns={COLUMNS} className="mt-3">
-          {groups.map(group => (
-            <GroupSection key={group.id} group={group} />
-          ))}
-        </IndexTable>
-      )}
+        {visible.length === 0 && <NoMatch noun="place" query={query} />}
 
-      <div className="mt-12 pt-8 border-t border-tea-border">
+        {visible.length > 0 && (
+          <IndexTable columns={COLUMNS}>
+            {groups.map(group => (
+              <GroupSection key={group.id} group={group} />
+            ))}
+          </IndexTable>
+        )}
+      </IndexPanel>
+
+      <div className="mt-14">
         <p className={`${FACT} max-w-[68ch]`}>
           Two lists merged here. The researched origins name a county and carry altitude and climate; the working list
           names the area a vendor actually writes on an invoice, and carries neither. Both are kept, because a record
@@ -265,6 +274,7 @@ const RegionIndexPage: React.FC = () => {
           collapsing one into the other would quietly change what a grower wrote.
         </p>
         <HoldingAuthorship noun="places" className="max-w-[64ch] mt-6" />
+        <SearchEverywhere query={query} className="mt-2" />
       </div>
 
       <Invitation subject="A growing place that is missing" />

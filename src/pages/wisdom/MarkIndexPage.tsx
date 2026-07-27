@@ -18,10 +18,12 @@ import {
   GroupHead,
   HoldingAuthorship,
   HoldingRow,
+  IndexPanel,
   IndexTable,
   Invitation,
   NoMatch,
   PageHead,
+  SearchEverywhere,
   ViewSwitch,
   WisdomSubNav,
   WisdomToolbar,
@@ -35,8 +37,9 @@ const VIEWS: Array<{ id: View; label: string }> = [
   { id: 'alphabetical', label: 'A to Z' },
 ];
 
+/** Shares of the measure, so the three columns spread rather than crowd right. */
 const COLUMNS: IndexColumns = {
-  template: 'minmax(0,1fr) 88px 200px',
+  template: 'minmax(0,1.3fr) 6rem minmax(0,1.3fr)',
   nameLabel: 'Mark',
   labels: ['Era', 'Producer'],
 };
@@ -137,35 +140,36 @@ const MarkIndexPage: React.FC = () => {
         <PageHead title="Marks" note="Recipe numbers, seals and labels a product line carries." />
       </div>
 
-      <WisdomToolbar
-        query={query}
-        onQueryChange={setQuery}
-        placeholder="Search marks"
-        searchLabel="Search marks by name, Chinese name or era"
-        visible={visible.length}
-        total={MARKS.length}
-        noun="marks"
-        everywhere
-      >
-        <ViewSwitch options={VIEWS} value={view} onChange={next => setView(next)} label="Browse the marks" />
-      </WisdomToolbar>
+      <IndexPanel className="mt-5">
+        <WisdomToolbar
+          query={query}
+          onQueryChange={setQuery}
+          placeholder="Search marks"
+          searchLabel="Search marks by name, Chinese name or era"
+          visible={visible.length}
+          total={MARKS.length}
+          noun="marks"
+        >
+          <ViewSwitch options={VIEWS} value={view} onChange={next => setView(next)} label="Browse the marks" />
+        </WisdomToolbar>
 
-      {visible.length === 0 && <NoMatch noun="mark" query={query} />}
+        {visible.length === 0 && <NoMatch noun="mark" query={query} />}
 
-      {visible.length > 0 && (
-        <IndexTable columns={COLUMNS} className="mt-3">
-          {view === 'alphabetical' && <MarkRows rows={visible} />}
-          {view === 'producer' &&
-            byProducer.map(([producer, rows]) => (
-              <section key={producer}>
-                <GroupHead label={producer} count={rows.length} />
-                <MarkRows rows={rows} />
-              </section>
-            ))}
-        </IndexTable>
-      )}
+        {visible.length > 0 && (
+          <IndexTable columns={COLUMNS}>
+            {view === 'alphabetical' && <MarkRows rows={visible} />}
+            {view === 'producer' &&
+              byProducer.map(([producer, rows]) => (
+                <section key={producer}>
+                  <GroupHead label={producer} count={rows.length} />
+                  <MarkRows rows={rows} />
+                </section>
+              ))}
+          </IndexTable>
+        )}
+      </IndexPanel>
 
-      <div className="mt-12 pt-8 border-t border-tea-border">
+      <div className="mt-14">
         <p className={`${FACT} max-w-[68ch]`}>
           A mark is a recipe number, seal or label rather than a plant or a place: 7572 is Menghai Tea Factory&rsquo;s
           benchmark shou recipe, encoded in its own digits. Eight of these are tied to a producer we hold. The rest are
@@ -173,6 +177,7 @@ const MarkIndexPage: React.FC = () => {
           is why their producer reads as not recorded rather than as blank.
         </p>
         <HoldingAuthorship noun="marks" className="max-w-[64ch] mt-6" />
+        <SearchEverywhere query={query} className="mt-2" />
       </div>
 
       <Invitation subject="A mark that is missing" />

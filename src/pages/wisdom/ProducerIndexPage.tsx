@@ -29,10 +29,12 @@ import {
   GroupHead,
   HoldingAuthorship,
   HoldingRow,
+  IndexPanel,
   IndexTable,
   Invitation,
   NoMatch,
   PageHead,
+  SearchEverywhere,
   ViewSwitch,
   WisdomSubNav,
   WisdomToolbar,
@@ -56,7 +58,7 @@ const KIND_LABEL: Record<Producer['kind'], string> = {
 
 /** "Marks held", not "Marks": the count is what the base holds, not what the factory ever made. */
 const COLUMNS: IndexColumns = {
-  template: 'minmax(0,1fr) 172px 96px 76px',
+  template: 'minmax(0,1.4fr) minmax(0,1.1fr) 6rem 5rem',
   nameLabel: 'Producer',
   labels: ['Operates in', 'Kind', 'Marks held'],
 };
@@ -149,41 +151,43 @@ const ProducerIndexPage: React.FC = () => {
         <PageHead title="Producers" note="Who made the tea, not who a shop bought it from." />
       </div>
 
-      <WisdomToolbar
-        query={query}
-        onQueryChange={setQuery}
-        placeholder="Search producers"
-        searchLabel="Search producers by name, Chinese name or alias"
-        visible={visible.length}
-        total={PRODUCERS.length}
-        noun="producers"
-        everywhere
-      >
-        <ViewSwitch options={VIEWS} value={view} onChange={next => setView(next)} label="Browse the producers" />
-      </WisdomToolbar>
+      <IndexPanel className="mt-5">
+        <WisdomToolbar
+          query={query}
+          onQueryChange={setQuery}
+          placeholder="Search producers"
+          searchLabel="Search producers by name, Chinese name or alias"
+          visible={visible.length}
+          total={PRODUCERS.length}
+          noun="producers"
+        >
+          <ViewSwitch options={VIEWS} value={view} onChange={next => setView(next)} label="Browse the producers" />
+        </WisdomToolbar>
 
-      {visible.length === 0 && <NoMatch noun="producer" query={query} />}
+        {visible.length === 0 && <NoMatch noun="producer" query={query} />}
 
-      {visible.length > 0 && (
-        <IndexTable columns={COLUMNS} className="mt-3">
-          {view === 'alphabetical' && <ProducerRows rows={visible} />}
-          {view === 'kind' &&
-            byKind.map(([kind, rows]) => (
-              <section key={kind}>
-                <GroupHead label={kind} count={rows.length} />
-                <ProducerRows rows={rows} />
-              </section>
-            ))}
-        </IndexTable>
-      )}
+        {visible.length > 0 && (
+          <IndexTable columns={COLUMNS}>
+            {view === 'alphabetical' && <ProducerRows rows={visible} />}
+            {view === 'kind' &&
+              byKind.map(([kind, rows]) => (
+                <section key={kind}>
+                  <GroupHead label={kind} count={rows.length} />
+                  <ProducerRows rows={rows} />
+                </section>
+              ))}
+          </IndexTable>
+        )}
+      </IndexPanel>
 
-      <div className="mt-12 pt-8 border-t border-tea-border">
+      <div className="mt-14">
         <p className={`${FACT} max-w-[68ch]`}>
           A house (号) is a pre-1950 family firm. A factory (茶厂) is state or industrial. Neither is the vendor a shop
           bought from, which is account-scoped and stays in the shop&rsquo;s own records. A producer is true for
           everyone: a 7572 was made by Menghai Tea Factory no matter whose shelf it sits on.
         </p>
         <HoldingAuthorship noun="producers" className="max-w-[64ch] mt-6" />
+        <SearchEverywhere query={query} className="mt-2" />
       </div>
 
       <Invitation subject="A producer that is missing" />

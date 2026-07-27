@@ -17,10 +17,12 @@ import {
   GroupHead,
   HoldingAuthorship,
   HoldingRow,
+  IndexPanel,
   IndexTable,
   Invitation,
   NoMatch,
   PageHead,
+  SearchEverywhere,
   ViewSwitch,
   WisdomSubNav,
   WisdomToolbar,
@@ -35,7 +37,7 @@ const VIEWS: Array<{ id: View; label: string }> = [
 ];
 
 const COLUMNS: IndexColumns = {
-  template: 'minmax(0,1fr) 132px 168px',
+  template: 'minmax(0,1.4fr) minmax(0,1fr) minmax(0,1.1fr)',
   nameLabel: 'Style',
   labels: ['Applies to', 'Region'],
 };
@@ -123,41 +125,43 @@ const StyleIndexPage: React.FC = () => {
         <PageHead title="Styles" note="Ways of making or pressing that are neither plant nor form." />
       </div>
 
-      <WisdomToolbar
-        query={query}
-        onQueryChange={setQuery}
-        placeholder="Search styles"
-        searchLabel="Search styles by name, Chinese name or region"
-        visible={visible.length}
-        total={STYLES.length}
-        noun="styles"
-        everywhere
-      >
-        <ViewSwitch options={VIEWS} value={view} onChange={next => setView(next)} label="Browse the styles" />
-      </WisdomToolbar>
+      <IndexPanel className="mt-5">
+        <WisdomToolbar
+          query={query}
+          onQueryChange={setQuery}
+          placeholder="Search styles"
+          searchLabel="Search styles by name, Chinese name or region"
+          visible={visible.length}
+          total={STYLES.length}
+          noun="styles"
+        >
+          <ViewSwitch options={VIEWS} value={view} onChange={next => setView(next)} label="Browse the styles" />
+        </WisdomToolbar>
 
-      {visible.length === 0 && <NoMatch noun="style" query={query} />}
+        {visible.length === 0 && <NoMatch noun="style" query={query} />}
 
-      {visible.length > 0 && (
-        <IndexTable columns={COLUMNS} className="mt-3">
-          {view === 'alphabetical' && <StyleRows rows={visible} />}
-          {view === 'type' &&
-            byType.map(([type, rows]) => (
-              <section key={type}>
-                <GroupHead label={type} count={rows.length} />
-                <StyleRows rows={rows} />
-              </section>
-            ))}
-        </IndexTable>
-      )}
+        {visible.length > 0 && (
+          <IndexTable columns={COLUMNS}>
+            {view === 'alphabetical' && <StyleRows rows={visible} />}
+            {view === 'type' &&
+              byType.map(([type, rows]) => (
+                <section key={type}>
+                  <GroupHead label={type} count={rows.length} />
+                  <StyleRows rows={rows} />
+                </section>
+              ))}
+          </IndexTable>
+        )}
+      </IndexPanel>
 
-      <div className="mt-12 pt-8 border-t border-tea-border">
+      <div className="mt-14">
         <p className={`${FACT} max-w-[68ch]`}>
           A style is neither the plant nor the basic form a tea is pressed into. It is a recognised way of making or
           pressing, the kind of fact a write-up states about a tea without it being a place, a plant, or a maker. One
           style can apply to more than one type, so a name can appear under two headings above.
         </p>
         <HoldingAuthorship noun="styles" className="max-w-[64ch] mt-6" />
+        <SearchEverywhere query={query} className="mt-2" />
       </div>
 
       <Invitation subject="A style that is missing" />

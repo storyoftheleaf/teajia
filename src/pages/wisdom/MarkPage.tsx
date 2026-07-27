@@ -12,10 +12,12 @@ import {
   EntryAuthorship,
   FACT_CLASS,
   Fact,
+  FactPanel,
   HoldingNotFound,
   Invitation,
   LABEL,
   PageHead,
+  Panel,
   QUIET_LINK,
   WisdomSubNav,
 } from './wisdomShared';
@@ -86,7 +88,7 @@ const MarkPage: React.FC = () => {
         />
       </div>
 
-      <div className="mt-6">
+      <FactPanel className="mt-6">
         <Fact label="Era">{mark.era}</Fact>
         <Fact label="Applies to">{mark.appliesToTypes.join(', ') || null}</Fact>
         {/* A producer the base holds is somewhere to go. One the record does
@@ -101,12 +103,14 @@ const MarkPage: React.FC = () => {
             <span className="text-tea-text-sec">Not recorded</span>
           )}
         </Fact>
-      </div>
+      </FactPanel>
 
       {mark.description && (
         <section className="mt-10">
-          <p className={`${LABEL} mb-1.5`}>Record</p>
-          <p className={`${FACT_CLASS} text-tea-text max-w-[68ch]`}>{mark.description}</p>
+          <Panel>
+            <p className={`${LABEL} mb-2`}>Record</p>
+            <p className={`${FACT_CLASS} text-tea-text max-w-[68ch]`}>{mark.description}</p>
+          </Panel>
         </section>
       )}
 

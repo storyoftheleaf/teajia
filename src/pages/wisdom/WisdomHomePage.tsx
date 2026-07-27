@@ -21,11 +21,13 @@ import {
   FOOTNOTE,
   HoldingAuthorship,
   HoldingRow,
+  IndexPanel,
   IndexTable,
   Invitation,
   LABEL,
   NoMatch,
   PageHead,
+  Panel,
   QUIET_LINK,
   ScopeNote,
   WisdomSubNav,
@@ -42,14 +44,14 @@ interface Holding {
 }
 
 const HOLDING_COLUMNS: IndexColumns = {
-  template: 'minmax(0,1fr) 88px',
+  template: 'minmax(0,1fr) 6rem',
   nameLabel: 'Holding',
   labels: ['Entries'],
 };
 
 /** A hit needs to say what it is before it says where it is from. */
 const HIT_COLUMNS: IndexColumns = {
-  template: 'minmax(0,1fr) 104px 148px',
+  template: 'minmax(0,1.5fr) minmax(0,1fr) minmax(0,1.2fr)',
   nameLabel: 'Name',
   labels: ['Holding', 'Where'],
 };
@@ -159,37 +161,37 @@ const WisdomHomePage: React.FC = () => {
         />
       </div>
 
-      <WisdomToolbar
-        query={query}
-        onQueryChange={setQuery}
-        placeholder="Search every holding"
-        searchLabel="Search every holding by name, Chinese name, alias, or the place and maker a record names"
-        visible={searching ? hits.length : TOTAL_ENTRIES}
-        total={TOTAL_ENTRIES}
-        noun="entries"
-      />
+      <IndexPanel className="mt-5">
+        <WisdomToolbar
+          query={query}
+          onQueryChange={setQuery}
+          placeholder="Search every holding"
+          searchLabel="Search every holding by name, Chinese name, alias, or the place and maker a record names"
+          visible={searching ? hits.length : TOTAL_ENTRIES}
+          total={TOTAL_ENTRIES}
+          noun="entries"
+        />
 
-      {!searching && (
-        <IndexTable columns={HOLDING_COLUMNS} className="mt-3">
-          <ul className="list-none m-0 p-0">
-            {HOLDINGS.map(holding => (
-              <HoldingRow
-                key={holding.to}
-                to={holding.to}
-                name={holding.label}
-                cells={[String(holding.count)]}
-                note={holding.description}
-              />
-            ))}
-          </ul>
-        </IndexTable>
-      )}
+        {!searching && (
+          <IndexTable columns={HOLDING_COLUMNS}>
+            <ul className="list-none m-0 p-0">
+              {HOLDINGS.map(holding => (
+                <HoldingRow
+                  key={holding.to}
+                  to={holding.to}
+                  name={holding.label}
+                  cells={[String(holding.count)]}
+                  note={holding.description}
+                />
+              ))}
+            </ul>
+          </IndexTable>
+        )}
 
-      {searching && hits.length === 0 && <NoMatch noun="entry" query={query} />}
+        {searching && hits.length === 0 && <NoMatch noun="entry" query={query} />}
 
-      {searching && hits.length > 0 && (
-        <>
-          <IndexTable columns={HIT_COLUMNS} className="mt-3">
+        {searching && hits.length > 0 && (
+          <IndexTable columns={HIT_COLUMNS}>
             <ul className="list-none m-0 p-0">
               {hits.map(hit => (
                 <HoldingRow
@@ -202,15 +204,19 @@ const WisdomHomePage: React.FC = () => {
               ))}
             </ul>
           </IndexTable>
-          {hits.length === HIT_LIMIT && (
-            <p className={`${FOOTNOTE} mt-4`}>
-              The closest {HIT_LIMIT} records. Narrow the search, or open the holding itself.
-            </p>
-          )}
-        </>
+        )}
+      </IndexPanel>
+
+      {searching && hits.length === HIT_LIMIT && (
+        <p className={`${FOOTNOTE} mt-4`}>
+          The closest {HIT_LIMIT} records. Narrow the search, or open the holding itself.
+        </p>
       )}
 
-      <div className="mt-12 pt-8 border-t border-tea-border">
+      {/* The download is a thing rather than a passage about one, so it gets a
+          shape of its own instead of a rule and eight paragraphs' worth of
+          margin. */}
+      <Panel className="mt-12">
         <p className={LABEL}>The open dataset</p>
         <p className={`${FACT} mt-2 max-w-[68ch]`}>
           Everything above is also exported as a downloadable public good: a single{' '}
@@ -239,9 +245,9 @@ const WisdomHomePage: React.FC = () => {
           data only. Cite it as: Teajia Tea Wisdom Base (teajia.com), version {DATASET_VERSION},{' '}
           {readableDate(DATASET_BUILT)}, CC BY 4.0.
         </p>
-      </div>
+      </Panel>
 
-      <div className="mt-8 pt-8 border-t border-tea-border">
+      <div className="mt-12">
         <HoldingAuthorship noun="entries" className="max-w-[64ch]" />
         <ScopeNote className="max-w-[64ch] mt-1" />
       </div>

@@ -9,10 +9,12 @@ import {
   EntryAuthorship,
   FACT_CLASS,
   Fact,
+  FactPanel,
   HoldingNotFound,
   Invitation,
   LABEL,
   PageHead,
+  Panel,
   WisdomSubNav,
 } from './wisdomShared';
 
@@ -81,15 +83,17 @@ const StylePage: React.FC = () => {
         />
       </div>
 
-      <div className="mt-6">
+      <FactPanel className="mt-6">
         <Fact label="Applies to">{style.appliesToTypes.join(', ') || null}</Fact>
         <Fact label="Region">{style.region}</Fact>
-      </div>
+      </FactPanel>
 
       {style.description && (
         <section className="mt-10">
-          <p className={`${LABEL} mb-1.5`}>Record</p>
-          <p className={`${FACT_CLASS} text-tea-text max-w-[68ch]`}>{style.description}</p>
+          <Panel>
+            <p className={`${LABEL} mb-2`}>Record</p>
+            <p className={`${FACT_CLASS} text-tea-text max-w-[68ch]`}>{style.description}</p>
+          </Panel>
         </section>
       )}
 

@@ -12,14 +12,15 @@ import { Helmet } from 'react-helmet-async';
 import { NAMED_TEAS, NAMING_TRADITIONS, namedTeasInTradition, type NamedTea } from '../../wisdom';
 import {
   FACT,
-  FOOTNOTE,
   GroupHead,
   HoldingAuthorship,
   HoldingRow,
+  IndexPanel,
   IndexTable,
   Invitation,
   NoMatch,
   PageHead,
+  SearchEverywhere,
   ViewSwitch,
   WisdomSubNav,
   WisdomToolbar,
@@ -27,7 +28,7 @@ import {
 } from './wisdomShared';
 
 const COLUMNS: IndexColumns = {
-  template: 'minmax(0,1fr) 104px 132px',
+  template: 'minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr)',
   nameLabel: 'Tea',
   labels: ['Type', 'Form'],
 };
@@ -167,56 +168,62 @@ const NamedTeaIndexPage: React.FC = () => {
         <PageHead title="Named Teas" note="Where the composition was never disclosed." />
       </div>
 
-      <WisdomToolbar
-        query={query}
-        onQueryChange={setQuery}
-        placeholder="Search named teas"
-        searchLabel="Search named teas by name, Chinese name, type or tradition"
-        visible={visibleCount}
-        total={NAMED_TEAS.length}
-        noun="named teas"
-        everywhere
-      >
-        <ViewSwitch options={VIEWS} value={view} onChange={next => setView(next)} label="Browse the named teas" />
-      </WisdomToolbar>
+      <IndexPanel className="mt-5">
+        <WisdomToolbar
+          query={query}
+          onQueryChange={setQuery}
+          placeholder="Search named teas"
+          searchLabel="Search named teas by name, Chinese name, type or tradition"
+          visible={visibleCount}
+          total={NAMED_TEAS.length}
+          noun="named teas"
+        >
+          <ViewSwitch options={VIEWS} value={view} onChange={next => setView(next)} label="Browse the named teas" />
+        </WisdomToolbar>
 
-      {visibleCount === 0 && <NoMatch noun="named tea" query={query} />}
+        {visibleCount === 0 && <NoMatch noun="named tea" query={query} />}
 
-      {/* The one line the group heads no longer have to carry. Said here once,
-          in place of a naming tradition written out in full above every group. */}
-      {visibleCount > 0 && view === 'tradition' && (
-        <p className={`${FOOTNOTE} mt-3`}>
-          Grouped by how the tea came by its name. Each entry states its tradition in full.
-        </p>
-      )}
+        {visibleCount > 0 && (
+          <IndexTable columns={COLUMNS}>
+            {view === 'tradition' &&
+              groups.map(([tradition, rows]) => (
+                <section key={tradition}>
+                  <GroupHead label={traditionLabel(tradition)} count={rows.length} />
+                  <NamedTeaRows rows={rows} />
+                </section>
+              ))}
+            {view === 'type' &&
+              byType.map(([type, rows]) => (
+                <section key={type}>
+                  <GroupHead label={type} count={rows.length} />
+                  <NamedTeaRows rows={rows} />
+                </section>
+              ))}
+            {view === 'alphabetical' && <NamedTeaRows rows={alphabetical} />}
+          </IndexTable>
+        )}
+      </IndexPanel>
 
-      {visibleCount > 0 && (
-        <IndexTable columns={COLUMNS} className="mt-1">
-          {view === 'tradition' &&
-            groups.map(([tradition, rows]) => (
-              <section key={tradition}>
-                <GroupHead label={traditionLabel(tradition)} count={rows.length} />
-                <NamedTeaRows rows={rows} />
-              </section>
-            ))}
-          {view === 'type' &&
-            byType.map(([type, rows]) => (
-              <section key={type}>
-                <GroupHead label={type} count={rows.length} />
-                <NamedTeaRows rows={rows} />
-              </section>
-            ))}
-          {view === 'alphabetical' && <NamedTeaRows rows={alphabetical} />}
-        </IndexTable>
-      )}
-
-      <div className="mt-12 pt-8 border-t border-tea-border">
+      <div className="mt-14">
         <p className={`${FACT} max-w-[68ch]`}>
           A collector stores a sheng for years and names it Courage. The mountain is rarely recorded and the vintage
           often is not either, and the tea moves on carrying only that word. That is not a gap in the record. It is the
           nature of the record, and holding it plainly beats not holding it at all.
         </p>
+        {/* The line about the grouping used to print between the toolbar and
+            the first tea, directly under a second dim line reaching the
+            cross-holding search: two footnotes before a single record. The view
+            switch above already says "By tradition", so what is left worth
+            saying is where the full sentence lives, and it says it here with
+            the rest of the notes about the holding. */}
+        {view === 'tradition' && (
+          <p className={`${FACT} max-w-[68ch] mt-4`}>
+            The groups above are how each tea came by its name. Every entry states its tradition in full on its own
+            page.
+          </p>
+        )}
         <HoldingAuthorship noun="teas" className="max-w-[64ch] mt-6" />
+        <SearchEverywhere query={query} className="mt-2" />
       </div>
 
       <Invitation subject="A named tea that is missing" />

@@ -17,10 +17,12 @@ import {
   GroupJump,
   HoldingAuthorship,
   HoldingRow,
+  IndexPanel,
   IndexTable,
   Invitation,
   NoMatch,
   PageHead,
+  SearchEverywhere,
   ViewSwitch,
   WisdomSubNav,
   WisdomToolbar,
@@ -36,9 +38,19 @@ const VIEWS: Array<{ id: View; label: string }> = [
   { id: 'alphabetical', label: 'A to Z' },
 ];
 
-/** Origin runs to 32 characters ("High Mountains (Lishan, Alishan)"); the year never exceeds four. */
+/**
+ * Fractional tracks, not pixel ones.
+ *
+ * The pixel version put a 196px column and a 72px column hard against the right
+ * edge of a 768px row and gave every remaining pixel to the name, so a
+ * nine-character plant name sat in a 400px track and the two facts huddled in
+ * the last third with a void between. Fractions spread the same three columns
+ * across the whole measure, which is what the axis was for. The last track is
+ * still fixed, because a year is four characters and does not want a share of
+ * anything.
+ */
 const COLUMNS: IndexColumns = {
-  template: 'minmax(0,1fr) 196px 72px',
+  template: 'minmax(0,1.5fr) minmax(0,1.2fr) 5rem',
   nameLabel: 'Plant',
   labels: ['Origin', 'Developed'],
 };
@@ -167,39 +179,40 @@ const CultivarIndexPage: React.FC = () => {
         <PageHead title="The Tea Plants" note="Their breeding, and the ground they came from." />
       </div>
 
-      <WisdomToolbar
-        query={query}
-        onQueryChange={setQuery}
-        placeholder="Search plants"
-        searchLabel="Search plants by name, Chinese name, region or country"
-        visible={visible.length}
-        total={CULTIVARS.length}
-        noun="cultivars"
-        everywhere
-      >
-        <ViewSwitch options={VIEWS} value={view} onChange={next => setView(next)} label="Browse the plants" />
-        {/* Silent at 79 plants: the threshold lives in GroupJump, so this
-            appears on its own the day the holding outgrows a plain scroll. */}
-        <GroupJump
-          groups={jumpFrom(view === 'origin' ? byCountry : view === 'type' ? byType : byLetter)}
-          rows={visible.length}
-          label="Jump to a group of plants"
-        />
-      </WisdomToolbar>
+      <IndexPanel className="mt-5">
+        <WisdomToolbar
+          query={query}
+          onQueryChange={setQuery}
+          placeholder="Search plants"
+          searchLabel="Search plants by name, Chinese name, region or country"
+          visible={visible.length}
+          total={CULTIVARS.length}
+          noun="cultivars"
+        >
+          <ViewSwitch options={VIEWS} value={view} onChange={next => setView(next)} label="Browse the plants" />
+          {/* Silent at 79 plants: the threshold lives in GroupJump, so this
+              appears on its own the day the holding outgrows a plain scroll. */}
+          <GroupJump
+            groups={jumpFrom(view === 'origin' ? byCountry : view === 'type' ? byType : byLetter)}
+            rows={visible.length}
+            label="Jump to a group of plants"
+          />
+        </WisdomToolbar>
 
-      {visible.length === 0 && <NoMatch noun="plant" query={query} />}
+        {visible.length === 0 && <NoMatch noun="plant" query={query} />}
 
-      {visible.length > 0 && (
-        <IndexTable columns={COLUMNS} className="mt-3">
-          {view === 'origin' && byCountry.map(([country, rows]) => <Group key={country} label={country} rows={rows} />)}
+        {visible.length > 0 && (
+          <IndexTable columns={COLUMNS}>
+            {view === 'origin' && byCountry.map(([country, rows]) => <Group key={country} label={country} rows={rows} />)}
 
-          {view === 'alphabetical' && byLetter.map(([letter, rows]) => <Group key={letter} label={letter} rows={rows} />)}
+            {view === 'alphabetical' && byLetter.map(([letter, rows]) => <Group key={letter} label={letter} rows={rows} />)}
 
-          {view === 'type' && typesLoading && <p className={`${FACT} py-14 text-center`}>Reading the record.</p>}
+            {view === 'type' && typesLoading && <p className={`${FACT} py-14 text-center`}>Reading the record.</p>}
 
-          {view === 'type' && !typesLoading && byType.map(([type, rows]) => <Group key={type} label={type} rows={rows} />)}
-        </IndexTable>
-      )}
+            {view === 'type' && !typesLoading && byType.map(([type, rows]) => <Group key={type} label={type} rows={rows} />)}
+          </IndexTable>
+        )}
+      </IndexPanel>
 
       {view === 'type' && !typesLoading && (
         <p className={`${FACT} mt-8 max-w-[64ch]`}>
@@ -208,7 +221,7 @@ const CultivarIndexPage: React.FC = () => {
         </p>
       )}
 
-      <div className="mt-12 pt-8 border-t border-tea-border">
+      <div className="mt-14">
         <p className={`${FACT} max-w-[68ch]`}>
           A cultivar is a tea plant someone chose and kept. One bush behaved differently on one hillside, a cutting was
           taken, and a whole garden ended up carrying its habits. It is the half of a tea nobody prints on the label,
@@ -216,6 +229,7 @@ const CultivarIndexPage: React.FC = () => {
           record as we hold it, with the crosses named where they are known and left blank where they are not.
         </p>
         <HoldingAuthorship noun="plants" className="max-w-[64ch] mt-6" />
+        <SearchEverywhere query={query} className="mt-2" />
       </div>
 
       <Invitation subject="Tea plants" />

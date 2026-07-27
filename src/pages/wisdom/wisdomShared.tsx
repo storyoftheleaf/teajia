@@ -217,9 +217,18 @@ export const ScopeNote: React.FC<{ className?: string }> = ({ className = '' }) 
 
 // ─── The invitation ──────────────────────────────────────────────────────────
 
-/** Adrian's standard, stated as a direction rather than a claim. */
+/**
+ * Adrian's standard, stated as a direction rather than a claim.
+ *
+ * It takes the surface tone rather than a hairline, because it is the one block
+ * on a reference page that is not the reference: it is an address, standing at
+ * the foot of every page, asking for something back. A rule above it made it
+ * read as one more paragraph of the entry.
+ */
 export const Invitation: React.FC<{ subject?: string }> = ({ subject }) => (
-  <aside className="mt-14 pt-8 border-t border-tea-border">
+  /* The panel's shape, written out rather than composed, so this stays an
+     <aside> and keeps its landmark. */
+  <aside className="mt-14 bg-tea-surface border border-tea-border rounded-xl px-4 sm:px-5 py-4 sm:py-5">
     <p className={`${FACT_CLASS} text-tea-text max-w-[52ch]`}>
       This is not everything. The goal is to be everything. If you know something that isn&rsquo;t here,{' '}
       <a href={mailtoWisdom(subject)} className={QUIET_LINK}>
@@ -247,7 +256,10 @@ export const ViewSwitch = <T extends string>({
   onChange: (id: T) => void;
   label: string;
 }): React.ReactElement => (
-  <div role="group" aria-label={label} className="flex items-center gap-x-5 min-w-0">
+  /* flex-wrap, because the panel's own inset costs the toolbar 32px of line.
+     At 320px "By country", "A to Z" and the jump control together want more
+     than is left, and a switch that does not wrap takes the page sideways. */
+  <div role="group" aria-label={label} className="flex flex-wrap items-center gap-x-5 min-w-0">
     {options.map(option => {
       const active = option.id === value;
       return (
@@ -271,8 +283,13 @@ export const ViewSwitch = <T extends string>({
  * The search that reaches every holding at once lived only on the front door,
  * so a reader who typed "Menghai" into Plants was told no plant answers to it
  * and left to work out for themselves that the reference does hold the name,
- * one holding over. One line, under the toolbar of every index, carries the
- * typed words across.
+ * one holding over. One line carries the typed words across.
+ *
+ * That line used to print directly under the toolbar, which on two holdings put
+ * it immediately above a second dim 11px line, so a reader met a stack of
+ * footnotes before they met a single record. It prints at the foot now, with
+ * the other notes about the holding, where an escape hatch belongs: a reader
+ * looks for one after the list has failed them, not before they have read it.
  */
 export const everywhereTo = (query: string): string =>
   query.trim() ? `/wisdom?q=${encodeURIComponent(query.trim())}` : '/wisdom';
@@ -300,12 +317,41 @@ export const SearchEverywhere: React.FC<{ query: string; className?: string }> =
 );
 
 /**
- * One row carrying everything functional: how the list is ordered on the left,
- * the search field and the live count on the right. The reference used to spend
- * a 68px band on the field alone and another on the count line beneath it.
+ * The one container an index puts everything in.
  *
- * `everywhere` adds the one line that reaches the cross-holding search. The
- * front door is the only index that leaves it off, being the search itself.
+ * The reference used to be text on the page background with no panel and no
+ * edge: a toolbar floating above a rule, a rule floating above a list, nothing
+ * telling a reader where the holding started or stopped. Tone alone did not fix
+ * that, and tone applied to the headings alone made it worse, because a filled
+ * heading band is what a spreadsheet looks like.
+ *
+ * So the holding gets a shape. The toolbar is its head, the column labels its
+ * second line, the list its body. Everything inside shares one horizontal
+ * inset, which is what makes the search field, the count, the column labels and
+ * every row line up down a single pair of edges. The page title, the section
+ * prose and the closing note stay outside it, on the page's own background,
+ * because they are about the holding rather than in it.
+ */
+export const IndexPanel: React.FC<{ children: React.ReactNode; className?: string }> = ({
+  children,
+  className = '',
+}) => (
+  <div className={`bg-tea-surface border border-tea-border rounded-xl px-4 sm:px-5 pt-1 pb-2 ${className}`.trimEnd()}>{children}</div>
+);
+
+/**
+ * The head of the panel: how the list is ordered on the left, the search field
+ * and the live count on the right.
+ *
+ * It sits inside `IndexPanel` and bleeds to the panel's own padding, so its
+ * bottom rule runs the full width of the container and its two ends align with
+ * the first and last column beneath it. Floating on the page it was three
+ * alignments on a 24px line with nothing under them to agree with.
+ *
+ * The cross-holding escape line used to print here, directly above a second
+ * dim line on some holdings, so a reader met two footnotes before they met one
+ * tea. It now prints once, at the foot, with the rest of the notes about the
+ * holding. See `SearchEverywhere`.
  */
 export const WisdomToolbar: React.FC<{
   query: string;
@@ -316,31 +362,31 @@ export const WisdomToolbar: React.FC<{
   visible: number;
   total: number;
   noun: string;
-  everywhere?: boolean;
   children?: React.ReactNode;
-}> = ({ query, onQueryChange, placeholder, searchLabel, visible, total, noun, everywhere = false, children }) => (
-  <>
-    <div className="flex flex-wrap items-center gap-x-6 border-b border-tea-border">
-      {children}
-      <div className="w-full sm:w-auto sm:ml-auto flex items-center gap-x-4 min-w-0">
-        <div className="relative flex-1 sm:flex-none sm:w-[188px] min-w-0">
-          <Search size={14} aria-hidden className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 text-tea-text-dim" />
-          <input
-            type="search"
-            value={query}
-            onChange={event => onQueryChange(event.target.value)}
-            placeholder={placeholder}
-            aria-label={searchLabel}
-            className={`${CELL_CLASS} w-full h-11 bg-transparent pl-5 pr-1 rounded-md text-tea-text placeholder:text-tea-text-dim focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50`}
-          />
-        </div>
-        <span className={`${LABEL} shrink-0 tabular-nums whitespace-nowrap`}>
-          {visible === total ? `${total} ${noun}` : `${visible} / ${total}`}
-        </span>
+}> = ({ query, onQueryChange, placeholder, searchLabel, visible, total, noun, children }) => (
+  <div className="-mx-4 sm:-mx-5 px-4 sm:px-5 py-2 flex flex-wrap items-center gap-x-6 gap-y-1 border-b border-tea-border">
+    {children}
+    <div className="w-full sm:w-auto sm:ml-auto flex items-center gap-x-4 min-w-0">
+      <div className="relative flex-1 sm:flex-none sm:w-[188px] min-w-0">
+        <Search size={14} aria-hidden className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim" />
+        <input
+          type="search"
+          value={query}
+          onChange={event => onQueryChange(event.target.value)}
+          placeholder={placeholder}
+          aria-label={searchLabel}
+          /* The placeholder sits at tea-text-sec, not tea-text-dim: dim on the
+             elevated fill measures 4.26:1, which is under AA at 11px. On the
+             page's own background it was 6.55:1 and fine. A tone costs a
+             contrast recheck every time. */
+          className={`${CELL_CLASS} w-full h-11 bg-tea-elevated pl-8 pr-3 rounded-md text-tea-text placeholder:text-tea-text-sec focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50`}
+        />
       </div>
+      <span className={`${LABEL} shrink-0 tabular-nums whitespace-nowrap`}>
+        {visible === total ? `${total} ${noun}` : `${visible} / ${total}`}
+      </span>
     </div>
-    {everywhere && <SearchEverywhere query={query} className="mt-2" />}
-  </>
+  </div>
 );
 
 /**
@@ -388,18 +434,19 @@ export const GroupJump: React.FC<{
         onChange={event => {
           document.getElementById(event.target.value)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }}
-        /* bg-tea-bg, not transparent: the closed control reads as flat against
-           the page, and a browser that draws its popup from the select's own
-           background gets an opaque one to draw the options on. */
-        className={`${CELL_CLASS} appearance-none w-full min-h-[44px] min-w-0 bg-tea-bg text-tea-text-sec hover:text-tea-text cursor-pointer rounded-md pl-0 pr-5 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50`}
+        /* bg-tea-elevated, the same fill the search field takes: the two
+           controls on this line are one kind of thing and now look like it,
+           and a browser that draws its popup from the select's own background
+           still gets an opaque colour to draw the options on. */
+        className={`${CELL_CLASS} appearance-none w-full min-h-[44px] min-w-0 bg-tea-elevated text-tea-text-sec hover:text-tea-text cursor-pointer rounded-md pl-3 pr-7 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50`}
       >
         {/* The placeholder is the label. A separate micro-caps "Jump to" beside
             it said the same word twice and cost 60px of a 358px line. */}
-        <option value="" className="bg-tea-bg text-tea-text-dim">
+        <option value="" className="bg-tea-elevated text-tea-text-sec">
           Jump to
         </option>
         {groups.map(group => (
-          <option key={group.id} value={group.id} className="bg-tea-bg text-tea-text">
+          <option key={group.id} value={group.id} className="bg-tea-elevated text-tea-text">
             {group.label} ({group.count})
           </option>
         ))}
@@ -407,7 +454,7 @@ export const GroupJump: React.FC<{
       <ChevronDown
         size={13}
         aria-hidden
-        className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-dim"
+        className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-tea-text-dim"
       />
     </div>
   );
@@ -457,9 +504,14 @@ export const IndexTable: React.FC<{ columns: IndexColumns; children: React.React
 }) => (
   <IndexColumnsContext.Provider value={columns}>
     <div className={className} style={columnStyle(columns)}>
+      {/* No fill. Inside the panel the column labels are a line of the page's
+          furniture, not a grey bar: a filled header strip over a ruled list is
+          the exact shape of a spreadsheet, which is the one thing the reference
+          is not. It bleeds to the panel's padding so its rule agrees with the
+          toolbar's above it. */}
       <div
         aria-hidden
-        className="hidden sm:grid sm:grid-cols-[var(--wisdom-cols)] items-baseline gap-x-4 pb-1.5 border-b border-tea-border"
+        className="hidden sm:grid sm:grid-cols-[var(--wisdom-cols)] items-baseline gap-x-4 -mx-4 sm:-mx-5 px-4 sm:px-5 pt-3.5 pb-2 border-b border-tea-border"
       >
         <span className={LABEL}>{columns.nameLabel}</span>
         {columns.labels.map(label => (
@@ -494,6 +546,14 @@ export const IndexTable: React.FC<{ columns: IndexColumns; children: React.React
  * looking for. It costs nothing when the head is not stuck, because the first
  * row of a group carries no top border of its own (`first:border-t-0`), so this
  * is the same single rule that was always between a head and its list.
+ *
+ * It carries the panel's own fill and no other, which is the point. A tone of
+ * its own would make it a filled band over a ruled list, and that is a table
+ * header, which is the one thing a reader must not think they are looking at.
+ * What separates a group from the rows above it is air: `pt-7` against the
+ * `py-2.5` of a row, so the break is felt before it is read. The three bands
+ * that used to run twenty pixels apart (labels, head, first row) now have a
+ * clear parent and child.
  */
 export const GroupHead: React.FC<{ label: string; count: number; id?: string; sub?: boolean }> = ({
   label,
@@ -503,13 +563,21 @@ export const GroupHead: React.FC<{ label: string; count: number; id?: string; su
 }) => (
   <div
     id={id}
-    /* 40px is the head above it: pt-5, an 11px line at 1.4, pb-1 and the rule.
-       It seats the sub head flush under the country head rather than leaving a
-       hairline gap for a scrolling row to show through. */
-    className={`sticky ${sub ? 'top-[40px] pl-3' : 'top-0'} z-10 bg-tea-bg border-b border-tea-border flex items-baseline gap-2 pt-5 pb-1`}
+    /* 50px is the head above it: pt-7 (28), an 11px line at 1.4 (15.4), pb-1.5
+       (6) and the rule (1). It seats the sub head flush under the country head
+       rather than leaving a hairline gap for a scrolling row to show through.
+
+       The sub head indents with pl-8/pl-9 rather than pl-3, because Tailwind
+       emits pl-* after px-*: a bare pl-3 alongside px-4 sm:px-5 would have set
+       the left padding to the panel's own padding on a phone (no indent at all)
+       and to less than it from sm up (an outdent). */
+    className={`sticky ${sub ? 'top-[50px] pl-8 sm:pl-9 pt-4' : 'top-0 pt-7'} z-10 bg-tea-surface border-b border-tea-border flex items-baseline gap-2.5 -mx-4 sm:-mx-5 px-4 sm:px-5 pb-1.5`}
   >
     <span className={isMicroCapsLabel(label) ? LABEL : `${CELL_CLASS} text-tea-text-dim`}>{label}</span>
-    <span className={`${CELL_CLASS} text-tea-text-dim tabular-nums`}>{count}</span>
+    {/* The count sits a step brighter than the label. A group of eleven and a
+        group of one used to read as identical weight, and the only thing that
+        told them apart was the number nobody could see. */}
+    <span className={`${CELL_CLASS} text-tea-text-sec tabular-nums`}>{count}</span>
   </div>
 );
 
@@ -574,11 +642,17 @@ export const HoldingRow: React.FC<{
   const columns = useContext(IndexColumnsContext);
   return (
     <li className="border-t border-tea-border first:border-t-0">
+      {/* The hover band bleeds to the panel's own padding rather than stopping
+          8px short of it. Inset, it read as a floating pill; full width it reads
+          as the row being lit. */}
       <div
-        className={`group relative ${ROW_LAYOUT} ${ROW_HOVER} min-h-[44px] py-2.5 -mx-2 px-2 rounded-md transition-colors`}
+        className={`group relative ${ROW_LAYOUT} ${ROW_HOVER} min-h-[44px] py-2.5 -mx-4 sm:-mx-5 px-4 sm:px-5 transition-colors`}
         style={columns ? columnStyle(columns) : undefined}
       >
-        <span className="basis-full sm:basis-auto min-w-0 inline-flex items-baseline gap-2 flex-wrap">
+        {/* gap-3, not gap-2. Two scripts set side by side need more air between
+            them than two words of one script do, and this pair had the least on
+            the page at the moment it needed the most. */}
+        <span className="basis-full sm:basis-auto min-w-0 inline-flex items-baseline gap-3 flex-wrap">
           <Link
             to={to}
             className={`${NAME_CLASS} text-tea-text group-hover:text-tea-gold-lt transition-colors break-words after:absolute after:inset-0 after:content-['']`}
@@ -626,7 +700,11 @@ export const HoldingRow: React.FC<{
  * the toolbar reading zero is not an answer.
  */
 export const NoMatch: React.FC<{ noun: string; query?: string }> = ({ noun, query }) => (
-  <div className="py-10">
+  /* No tone of its own: this renders inside the index panel, which already
+     holds it. Left on the page's own background it was a hole where the list
+     had been, which read as the page having failed rather than as the
+     reference having answered. */
+  <div className="py-12">
     <p className={`${FACT} text-center max-w-[46ch] mx-auto`}>
       {query?.trim() ? (
         <>
@@ -674,14 +752,45 @@ export const HoldingNotFound: React.FC<{
 // ─── Facts ───────────────────────────────────────────────────────────────────
 
 /**
+ * One section of a detail page, as one object.
+ *
+ * A detail page used to be nine sections down a single flat wall, each of them
+ * a marker, a hairline and some text, with nothing but a 48px margin telling
+ * one from the next. The repair is the same one the index panel makes: the
+ * heading stays outside on the page, and what the section actually holds sits
+ * in a shape with edges and real internal padding.
+ *
+ * Surface and not elevated, for the measured reason `GroupHead` gives: `LABEL`
+ * is `tea-text-dim`, which is 5.40:1 on surface and 4.26:1 on elevated, and the
+ * label track is the axis the whole section is read down.
+ *
+ * `FactPanel` is the same shape with the vertical padding taken off, because a
+ * run of `Fact` rows brings its own: each carries `py-2.5` and its own rule.
+ */
+export const Panel: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
+  <div className={`bg-tea-surface border border-tea-border rounded-xl px-4 sm:px-5 py-4 sm:py-5 ${className}`.trimEnd()}>
+    {children}
+  </div>
+);
+
+export const FactPanel: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
+  <div className={`bg-tea-surface border border-tea-border rounded-xl px-4 sm:px-5 py-1 ${className}`.trimEnd()}>{children}</div>
+);
+
+/**
  * A labelled line on a detail page. The label sits in a fixed track so every
  * value starts at the same x down the page, the same reason the index columns
  * are fixed rather than right aligned.
+ *
+ * `first:border-t-0` because inside a `FactPanel` the panel's own top edge is
+ * already the boundary, and a rule drawn on it reads as a seam. A `Fact` with
+ * no value renders nothing at all, so the first rule lands on whichever fact
+ * the record actually carries.
  */
 export const Fact: React.FC<{ label: string; children?: React.ReactNode }> = ({ label, children }) => {
   if (!children) return null;
   return (
-    <div className="py-2.5 border-t border-tea-border sm:grid sm:grid-cols-[152px_minmax(0,1fr)] sm:gap-x-6">
+    <div className="py-2.5 border-t border-tea-border first:border-t-0 sm:grid sm:grid-cols-[152px_minmax(0,1fr)] sm:gap-x-6">
       <span className={`${LABEL} block sm:pt-1`}>{label}</span>
       <span className={`${FACT_CLASS} text-tea-text max-w-[60ch] block min-w-0 break-words`}>{children}</span>
     </div>

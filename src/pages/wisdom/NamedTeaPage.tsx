@@ -15,10 +15,12 @@ import {
   FACT,
   FACT_CLASS,
   Fact,
+  FactPanel,
   HoldingNotFound,
   Invitation,
   LABEL,
   PageHead,
+  Panel,
   Passage,
   WisdomSubNav,
 } from './wisdomShared';
@@ -100,14 +102,14 @@ const NamedTeaPage: React.FC = () => {
         />
       </div>
 
-      <div className="mt-6">
+      <FactPanel className="mt-6">
         <Fact label="Type">{tea.type}</Fact>
         <Fact label="Form">{tea.form}</Fact>
         <Fact label="Country">{tea.country}</Fact>
         <Fact label="Province">{tea.region}</Fact>
         <Fact label="Collection">{tea.collection}</Fact>
         <Fact label="Source">{tea.vendor}</Fact>
-      </div>
+      </FactPanel>
 
       {/* The tradition is a sixteen-word sentence, and it used to run at CELL:
           11px, the label size, directly under the title. It was the last full
@@ -117,14 +119,17 @@ const NamedTeaPage: React.FC = () => {
           15px, its label above it rather than beside it. Below the facts, not
           above them, because a reader wants to know what type of tea it is
           before they want to know how its name was arrived at. */}
-      <Passage label="Naming tradition" text={tea.tradition} className="mt-8" />
-
-      <p className={`${FACT_CLASS} text-tea-text mt-6 max-w-[68ch]`}>{provenanceStatement(tea.provenance)}</p>
+      <Panel className="mt-8">
+        <Passage label="Naming tradition" text={tea.tradition} />
+        <p className={`${FACT_CLASS} text-tea-text mt-6 max-w-[68ch]`}>{provenanceStatement(tea.provenance)}</p>
+      </Panel>
 
       {tea.description && (
         <section className="mt-10">
-          <p className={`${LABEL} mb-1.5`}>Record</p>
-          <p className={`${FACT} max-w-[68ch]`}>{tea.description}</p>
+          <Panel>
+            <p className={`${LABEL} mb-2`}>Record</p>
+            <p className={`${FACT} max-w-[68ch]`}>{tea.description}</p>
+          </Panel>
         </section>
       )}
 

@@ -168,6 +168,19 @@ describe('reaching the cross-holding search from inside a holding', () => {
     }
   });
 
+  it('prints it once, at the foot, and never stacked under a second dim line', () => {
+    // Two 11px lines used to run between the toolbar and the first record on
+    // the places and named-teas indexes. A reader met both before they met a
+    // single entry.
+    for (const path of INDEX_PAGES) {
+      const html = render(path);
+      const before = html.slice(0, html.indexOf('Search every holding at once'));
+      expect(before).toContain('aria-label="Browse the');
+      // The escape line now sits after the list, with the holding's own notes.
+      expect(before).toContain('was drafted from research');
+    }
+  });
+
   it('is not offered on the search itself', () => {
     expect(render('/wisdom')).not.toContain('Search every holding at once');
   });
@@ -214,7 +227,7 @@ describe('growing regions', () => {
     expect(html).toContain('Province not recorded');
     expect(html).toMatch(/<select[^>]*aria-label="Jump to a group of places"/);
     // A heading that leaves with the first screenful is no heading at all.
-    expect(html).toMatch(/class="sticky top-0[^"]*"/);
+    expect(html).toMatch(/class="sticky top-0 pt-7[^"]*"/);
   });
 
   it('names the plants recorded from a place, and says so when there are none', () => {
@@ -308,9 +321,9 @@ describe('group heads', () => {
     expect(traditionLabel('undocumented export or trade-route naming')).toBe('Export or trade-route');
   });
 
-  it('explains the axis once, above the list', () => {
+  it('explains the axis once, with the notes at the foot rather than above the list', () => {
     const html = render('/wisdom/named');
-    expect(html).toContain('Grouped by how the tea came by its name');
+    expect(html).toContain('The groups above are how each tea came by its name');
     expect(html).not.toContain('named for the feeling of origin rather than a technical specification');
   });
 });
@@ -374,9 +387,31 @@ describe('a column that is empty on half its rows', () => {
 });
 
 describe('a sticky group head', () => {
-  it('carries a bottom edge, so a row passing behind it is not a clipping fault', () => {
+  it('carries an opaque fill and a bottom edge, so a row passing behind it is not a clipping fault', () => {
     const html = render('/wisdom/regions');
-    expect(html).toMatch(/class="sticky top-0 z-10 bg-tea-bg border-b border-tea-border/);
+    // The fill is the panel's own, not a tone of its own: a filled heading band
+    // over a ruled list is a table header, which is the one thing this is not.
+    expect(html).toMatch(/class="sticky top-0 pt-7 z-10 bg-tea-surface border-b border-tea-border/);
+  });
+
+  it('is a heading with air above it rather than a band pressed against the row', () => {
+    // Labels, head and first row used to run twenty pixels apart with nothing
+    // saying which was the parent of which.
+    expect(render('/wisdom/regions')).toContain('pt-7');
+  });
+});
+
+describe('the container a holding sits in', () => {
+  it('gives every index one panel, so the list has an edge and an inset', () => {
+    for (const path of ['/wisdom', ...INDEX_PAGES]) {
+      expect(render(path)).toContain('bg-tea-surface border border-tea-border rounded-xl');
+    }
+  });
+
+  it('gives every detail page the same shape for its record', () => {
+    for (const path of [...DETAIL_PAGES, '/wisdom/style/xiao-qing-gan']) {
+      expect(render(path)).toContain('bg-tea-surface border border-tea-border rounded-xl');
+    }
   });
 });
 
@@ -450,13 +485,18 @@ describe('the lineage rail at a narrow width', () => {
     expect(html).toMatch(/whitespace-nowrap[^>]*>not held here</);
   });
 
-  it('keeps two generations on the page', () => {
-    // Chin Hsin's parent Cui Yu is itself a cross, so its parents appear a
-    // generation further back at the fact size.
-    const html = render('/wisdom/cultivar/chin-hsin');
+  it('keeps two generations reachable without a second rail', () => {
+    // Chin Hsin's parent Cui Yu is itself a cross, so its parents are still on
+    // the page, folded onto Cui Yu's own line rather than opening a nested list
+    // with a spine and an indent of its own.
+    const html = render('/wisdom/cultivar/chin-hsin').replace(/<!-- -->/g, '');
     expect(html).toContain('/wisdom/cultivar/cui-yu');
     expect(html).toContain('TRES-2022');
     expect(html).toContain('Tainung #80');
+    // Said for a screen reader, so the folded line is not a bare "from".
+    expect(html).toContain('Parents of Cui Yu');
+    // One spine. The nested list that carried the second one is gone.
+    expect(html).not.toContain('m-0 mt-2 p-0');
   });
 
   it('closes a bracket a split left dangling instead of printing half a name', () => {

@@ -10,7 +10,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { childrenOf, parentsOf, type Cultivar } from '../../wisdom';
-import { CELL, CELL_CLASS, FACT, FACT_CLASS, LABEL, NAME_CLASS, SectionHead } from './wisdomShared';
+import { CELL, CELL_CLASS, FACT, FACT_CLASS, LABEL, NAME_CLASS, Panel, QUIET_LINK, SectionHead } from './wisdomShared';
 
 // ─── Reading the record ──────────────────────────────────────────────────────
 
@@ -88,22 +88,14 @@ const RAIL_CLASS: Record<Rail, string> = {
   none: 'hidden',
 };
 
-const SMALL_RAIL_CLASS: Record<Rail, string> = {
-  full: 'top-0 bottom-0',
-  'from-tick': 'top-[13px] bottom-0',
-  'to-tick': 'top-0 h-[13px]',
-  none: 'hidden',
-};
-
 interface NodeRowProps {
   node: Cultivar | string;
   tone: Tone;
   rail: Rail;
-  small?: boolean;
   children?: React.ReactNode;
 }
 
-const NodeRow: React.FC<NodeRowProps> = ({ node, tone, rail, small = false, children }) => {
+const NodeRow: React.FC<NodeRowProps> = ({ node, tone, rail, children }) => {
   const held = isCultivar(node);
   const marker =
     tone === 'subject'
@@ -112,14 +104,8 @@ const NodeRow: React.FC<NodeRowProps> = ({ node, tone, rail, small = false, chil
         ? 'w-[7px] h-[7px] bg-tea-bg border border-tea-gold/50'
         : 'w-[7px] h-[7px] bg-tea-bg border border-tea-border';
 
-  const markerTop = small ? 'top-[10px]' : tone === 'subject' ? 'top-[13px]' : 'top-[14px]';
-  const tickTop = small ? 'top-[13px]' : 'top-[17px]';
+  const markerTop = tone === 'subject' ? 'top-[13px]' : 'top-[14px]';
   const markerLeft = tone === 'subject' ? 'left-[-1px]' : 'left-0';
-
-  // A grandparent drops to the fact size, still in the display family: the
-  // reference runs on four sizes and a generation further back does not earn
-  // a fifth one.
-  const nameClass = small ? 'font-display text-ui-15 leading-[1.35]' : NAME_CLASS;
 
   // At 390px the deepest rail leaves 306px of line. A 35-character unheld name
   // ("C. formosensis (Taiwanese Wild Tea)") plus the tag does not fit on one
@@ -128,25 +114,25 @@ const NodeRow: React.FC<NodeRowProps> = ({ node, tone, rail, small = false, chil
   const title = held ? (
     <Link
       to={`/wisdom/cultivar/${node.id}`}
-      className="group inline-flex items-baseline gap-2 flex-wrap min-w-0 min-h-[44px]"
+      className="group inline-flex items-baseline gap-3 flex-wrap min-w-0 min-h-[44px]"
     >
-      <span className={`${nameClass} text-tea-text group-hover:text-tea-gold-lt transition-colors break-words`}>
+      <span className={`${NAME_CLASS} text-tea-text group-hover:text-tea-gold-lt transition-colors break-words`}>
         {node.name}
       </span>
       {node.chineseName && <span className="font-display text-ui-15 text-tea-text-dim">{node.chineseName}</span>}
     </Link>
   ) : (
-    <span className="inline-flex items-baseline gap-2 flex-wrap min-w-0">
-      <span className={`${nameClass} text-tea-text-sec break-words`}>{tidyName(node)}</span>
+    <span className="inline-flex items-baseline gap-3 flex-wrap min-w-0">
+      <span className={`${NAME_CLASS} text-tea-text-sec break-words`}>{tidyName(node)}</span>
       <span className={`${LABEL} whitespace-nowrap`}>not held here</span>
     </span>
   );
 
   return (
     <li className="relative">
-      <div className={`relative ${small ? 'pl-6 py-1.5' : 'pl-7 py-2'}`}>
-        <span aria-hidden className={`absolute left-[3px] w-px bg-tea-border ${(small ? SMALL_RAIL_CLASS : RAIL_CLASS)[rail]}`} />
-        <span aria-hidden className={`absolute left-[3px] ${tickTop} h-px ${small ? 'w-3' : 'w-4'} bg-tea-border`} />
+      <div className="relative pl-7 py-2">
+        <span aria-hidden className={`absolute left-[3px] w-px bg-tea-border ${RAIL_CLASS[rail]}`} />
+        <span aria-hidden className="absolute left-[3px] top-[17px] h-px w-4 bg-tea-border" />
         <span aria-hidden className={`absolute ${markerLeft} ${markerTop} rounded-full ${marker}`} />
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 justify-between min-w-0">
           {title}
@@ -157,6 +143,49 @@ const NodeRow: React.FC<NodeRowProps> = ({ node, tone, rail, small = false, chil
         {children}
       </div>
     </li>
+  );
+};
+
+/**
+ * A node's own recorded parentage, folded onto the node's own line.
+ *
+ * This replaces a second rail. Grandparents used to open a nested list with an
+ * indent and a spine of their own, set at the same weight as the parents, and
+ * the result was that a reader could not tell whether a row was a sibling of
+ * the row above it or a child of it. Two spines fighting is worse than one
+ * spine and a footnote, and the parents are the structure here: a grandparent
+ * is a thing you follow, not a thing you scan.
+ *
+ * So it is one dim line under the name, inside the parent's own text block, at
+ * no extra indent. Both generations are still reachable, because a grandparent
+ * the reference holds is still a link. Held against not held reads exactly as
+ * it does everywhere else on this page, and the legend under the tree already
+ * says so: a name you can open is held, a name in plain type is not.
+ */
+const FoldedParents: React.FC<{ of: string; parents: Array<Cultivar | string> }> = ({ of, parents }) => {
+  if (parents.length === 0) return null;
+  return (
+    <p className={`${CELL_CLASS} text-tea-text-dim leading-relaxed mt-0.5 max-w-[60ch]`}>
+      <span className="sr-only">Parents of {of}: </span>
+      <span aria-hidden>from </span>
+      {parents.map((parent, index) => (
+        <React.Fragment key={`${nameOf(parent)}-${index}`}>
+          {index > 0 && (
+            <>
+              <span aria-hidden> × </span>
+              <span className="sr-only"> and </span>
+            </>
+          )}
+          {isCultivar(parent) ? (
+            <Link to={`/wisdom/cultivar/${parent.id}`} className={`py-2 ${QUIET_LINK}`}>
+              {parent.name}
+            </Link>
+          ) : (
+            <span className="text-tea-text-sec">{tidyName(parent)}</span>
+          )}
+        </React.Fragment>
+      ))}
+    </p>
   );
 };
 
@@ -184,78 +213,70 @@ export const LineageTree: React.FC<{ cultivar: Cultivar }> = ({ cultivar }) => {
         Lineage of {cultivar.name}
       </h2>
 
-      {lineage.raw && lineage.kind === 'cross' && (
-        <p className="mb-4 flex flex-wrap items-baseline gap-x-2">
-          <span className={`${LABEL} whitespace-nowrap`}>Recorded as</span>
-          <span className={`${CELL} min-w-0 break-words tabular-nums`}>{lineage.raw}</span>
-        </p>
-      )}
+      <Panel>
+        {/* The record itself, verbatim, before anything is read out of it. It
+            heads the panel, above a rule, because the tree below is a reading
+            of this line and a reader is entitled to check the reading against
+            it. Stacked rather than inline: at 390px a label and a 40-character
+            cross on one line wrapped into a shape that read as two facts. */}
+        {lineage.raw && lineage.kind === 'cross' && (
+          <div className="-mx-4 sm:-mx-5 px-4 sm:px-5 pb-4 mb-2 border-b border-tea-border">
+            <p className={`${LABEL} mb-1`}>Recorded as</p>
+            <p className={`${CELL} min-w-0 break-words tabular-nums`}>{lineage.raw}</p>
+          </div>
+        )}
 
-      <ul className="list-none m-0 p-0">
-        {hasParents && <Generation label={parents.length === 1 ? 'Parent' : 'Parents'} opensTheRail />}
+        <ul className="list-none m-0 p-0">
+          {hasParents && <Generation label={parents.length === 1 ? 'Parent' : 'Parents'} opensTheRail />}
 
-        {hasParents &&
-          parents.map((parent, index) => {
-            const grandparents = isCultivar(parent) ? grandparentsOf(parent) : [];
-            return (
+          {hasParents &&
+            parents.map((parent, index) => (
               <NodeRow key={`${nameOf(parent)}-${index}`} node={parent} tone="ancestor" rail="full">
-                {grandparents.length > 0 && (
-                  <ul className="list-none m-0 mt-2 p-0">
-                    <li className="relative">
-                      <div className="relative pl-6 pb-0.5">
-                        <span aria-hidden className="absolute left-[3px] top-0 bottom-0 w-px bg-tea-border" />
-                        <span className={LABEL}>from</span>
-                      </div>
-                    </li>
-                    {grandparents.map((grandparent, grandIndex) => (
-                      <NodeRow
-                        key={`${nameOf(grandparent)}-${grandIndex}`}
-                        node={grandparent}
-                        tone="ancestor"
-                        rail={grandIndex === grandparents.length - 1 ? 'to-tick' : 'full'}
-                        small
-                      />
-                    ))}
-                  </ul>
-                )}
+                {isCultivar(parent) && <FoldedParents of={parent.name} parents={grandparentsOf(parent)} />}
               </NodeRow>
-            );
-          })}
+            ))}
 
-        <NodeRow
-          node={cultivar}
-          tone="subject"
-          rail={hasParents ? (children.length ? 'full' : 'to-tick') : children.length ? 'from-tick' : 'none'}
-        />
-
-        {children.length > 0 && <Generation label={children.length === 1 ? 'Descendant' : 'Descendants'} />}
-
-        {children.map((child, index) => (
           <NodeRow
-            key={child.id}
-            node={child}
-            tone="descendant"
-            rail={index === children.length - 1 ? 'to-tick' : 'full'}
-          >
-            {child.parentage && (
-              <p className={`${FACT_CLASS} text-tea-text-dim mt-1 max-w-[60ch]`}>{child.parentage}</p>
-            )}
-          </NodeRow>
-        ))}
-      </ul>
+            node={cultivar}
+            tone="subject"
+            rail={hasParents ? (children.length ? 'full' : 'to-tick') : children.length ? 'from-tick' : 'none'}
+          />
 
-      {lineage.kind === 'note' && lineage.raw && (
-        <div className="mt-5 pl-7">
-          <p className={`${LABEL} mb-1.5`}>Recorded origin</p>
-          <p className={`${FACT} max-w-[60ch]`}>{lineage.raw}</p>
-        </div>
-      )}
+          {children.length > 0 && <Generation label={children.length === 1 ? 'Descendant' : 'Descendants'} />}
 
-      {lineage.kind === 'none' && (
-        <p className={`${FACT_CLASS} text-tea-text-dim mt-5 pl-7 max-w-[60ch]`}>
-          No breeding record is held for this plant yet. That is a gap, not a claim that none exists.
-        </p>
-      )}
+          {children.map((child, index) => (
+            <NodeRow
+              key={child.id}
+              node={child}
+              tone="descendant"
+              rail={index === children.length - 1 ? 'to-tick' : 'full'}
+            >
+              {/* A descendant's own parentage is the same kind of thing as a
+                  parent's folded line, so it is set at the same weight. It ran
+                  at the body size, which put a generation's footnote at the
+                  size of the page's prose. */}
+              {child.parentage && (
+                <p className={`${CELL_CLASS} text-tea-text-dim leading-relaxed mt-0.5 max-w-[60ch]`}>
+                  {child.parentage}
+                </p>
+              )}
+            </NodeRow>
+          ))}
+        </ul>
+
+        {lineage.kind === 'note' && lineage.raw && (
+          <div className="mt-5 pl-7">
+            <p className={`${LABEL} mb-1.5`}>Recorded origin</p>
+            <p className={`${FACT} max-w-[60ch]`}>{lineage.raw}</p>
+          </div>
+        )}
+
+        {lineage.kind === 'none' && (
+          <p className={`${FACT_CLASS} text-tea-text-dim mt-5 pl-7 max-w-[60ch]`}>
+            No breeding record is held for this plant yet. That is a gap, not a claim that none exists.
+          </p>
+        )}
+      </Panel>
 
       <p className={`${CELL_CLASS} text-tea-text-dim leading-relaxed mt-6 max-w-[64ch]`}>
         A name you can open is a plant held in this reference. A name in plain type was written into the record but is
