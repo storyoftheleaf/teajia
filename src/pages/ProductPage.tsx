@@ -20,12 +20,13 @@ import { ProductTastingEditorial } from '../components/tasting/ProductTastingEdi
 import { useProductTasting } from '../hooks/useProductTasting';
 import { useAuth } from '../hooks/useAuth';
 import { TastingEditorModal } from '../admin/components/TastingEditorModal';
-import type { Product } from '../admin/types';
+import { useRates } from '../admin/hooks/useAdminData';
+import type { Currency, Product } from '../admin/types';
 import { ProductImpressions, type ProductImpression } from '../components/shop/ProductImpressions';
 import { cultivarPath, resolveLineage } from '../components/wisdom/TeaLineage';
 import { TeaReference, type TeaReferenceProduct } from '../components/wisdom/TeaReference';
 import { FactGrid } from '../components/wisdom/FactGrid';
-import { BODY, HEADING, LABEL, LABEL_GAP, SECTION, TITLE } from '../components/wisdom/typeRoles';
+import { BODY, HEADING, LABEL, LABEL_GAP, LINK, SECTION, TITLE } from '../components/shared/typeRoles';
 
 // ── Feature 4: Public tea reviews section ────────────────────────────────────
 
@@ -77,9 +78,12 @@ const PublicReviewsSection: React.FC<{ productId: string; teaKey?: string }> = (
     <div className="mt-6 pt-6 border-t border-tea-border">
       <ProductImpressions impressions={impressions} />
       {networkReviews.length > 0 && <>
-        <h2 className={`${LABEL} ${LABEL_GAP} text-tea-text-dim`}>
-          Reviews <span className="normal-case tracking-normal">({networkReviews.length})</span>
-        </h2>
+        {/* One word, one case. The count used to ride inside the label in
+            normal case, which made this the only label on the page setting two
+            cases in one line, and it was counting entries that are listed
+            directly beneath it in full. A number a reader can see is not a
+            fact the heading has to carry. */}
+        <h2 className={`${LABEL} ${LABEL_GAP} text-tea-text-dim`}>Reviews</h2>
         {/* Flat entries, separated by the same hairline every other section on
             this page is separated by. This was the last bordered, filled card
             left standing after the brewing card dissolved into a fact grid, and
@@ -163,12 +167,18 @@ function toTitleCase(str: string): string {
  * the shop: nothing behind it changes at 300g, no reader knows where the line
  * is, and giving it a second colour would have spent a signal on a distinction
  * that means nothing. So the boundary is gone rather than decorated.
+ *
+ * There is no dot either. A coloured dot sitting a gap away from the words
+ * "Low Stock", in the same colour as those words, encodes exactly what the
+ * words already say: it is the 300g boundary again, drawn instead of written.
+ * The label carries the colour, so the signal survives and the ornament does
+ * not.
  */
 function getStockStatus(stockG: number) {
-  if (stockG <= 0) return { label: 'Sold Out', colorClass: 'text-tea-text-dim', dotClass: 'bg-tea-text-dim', level: 'out' as const };
+  if (stockG <= 0) return { label: 'Sold Out', colorClass: 'text-tea-text-dim', level: 'out' as const };
   // Bronze is reserved for the one stock state that asks the reader to act.
-  if (stockG < 100) return { label: 'Low Stock', colorClass: 'text-tea-gold', dotClass: 'bg-tea-gold', level: 'low' as const };
-  return { label: 'In Stock', colorClass: 'text-tea-text-sec', dotClass: 'bg-tea-text-sec', level: 'ok' as const };
+  if (stockG < 100) return { label: 'Low Stock', colorClass: 'text-tea-gold', level: 'low' as const };
+  return { label: 'In Stock', colorClass: 'text-tea-text-sec', level: 'ok' as const };
 }
 
 interface ProductPageProps {
@@ -188,10 +198,24 @@ const RELATION_LABEL: Record<Relation, string> = {
   type: 'Same type',
 };
 
+/**
+ * The currency the page prices in, as a code a machine can settle.
+ *
+ * The store carries a few shop-floor names ("NT", "Yuan") that are not ISO
+ * 4217, plus one honest unknown. Same mapping the cart's formatter uses, so a
+ * reader browsing in New Taiwan dollars and a crawler reading the same page
+ * agree on what the number means.
+ */
+const ISO_CURRENCY: Partial<Record<Currency, string>> = { NT: 'TWD', Yuan: 'CNY', UNK: 'USD' };
+const isoCurrency = (currency: Currency): string => ISO_CURRENCY[currency] ?? currency;
+
 export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
   const { id } = useParams<{ id: string }>();
   const { inventory, refetch: refetchInventory } = useInventory();
-  const { favoriteTeas, toggleFavoriteTea } = useAppStore();
+  const { favoriteTeas, toggleFavoriteTea, currency } = useAppStore();
+  // The same rate table the cart prices from, so the structured data below
+  // quotes what this reader would actually be asked to pay.
+  const { data: rates = [] } = useRates();
 
   const item = useMemo(() => inventory.find(i => i.id === id), [inventory, id]);
 
@@ -354,7 +378,95 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
   // The crumb between the shop and this tea. Its own type, resolved through the
   // same vocabulary the rest of the page reads, so a record saved as "Red" and
   // one saved as "Black" land on one crumb rather than two.
-  const crumbType = item.category === 'ware' ? 'Teaware' : normalizeTeaType(item.type) ?? item.type;
+  //
+  // Teaware has no crumb: the shop's teaware tab does not read a type from the
+  // address, and a crumb that lands nowhere is worse than no crumb.
+  const crumbType = item.category === 'ware' ? null : normalizeTeaType(item.type) ?? item.type;
+
+  // Where a stated fact sends a reader. Round four gave the shop the two
+  // filters it lacked (?type= and ?region=), which is what turns the type and
+  // the origin on this page from print into doors, and lets the "Same place"
+  // heading over the related teas be the thing it describes.
+  const typeHref = crumbType ? `/shop?type=${encodeURIComponent(crumbType)}` : null;
+  const regionHref = item.origin
+    ? `/shop?region=${encodeURIComponent(lineageRegion?.id ?? item.origin)}`
+    : null;
+  const groupHref = (relation: Relation): string | null => {
+    if (relation === 'plant') return lineageCultivar ? cultivarPath(lineageCultivar.id) : null;
+    if (relation === 'place') return regionHref;
+    return typeHref;
+  };
+
+  /**
+   * Type, origin and year, in the order a label is read.
+   *
+   * Not a label. A label is one to three words, and this line runs to five or
+   * six ("OOLONG · WUYI MOUNTAINS · 2019"), which in micro-caps at 0.08em is
+   * fine print wearing structure's clothes. It is a caption of three facts, so
+   * it is set as body, dim, on the page's one separator.
+   *
+   * The type is written the way the shop groups it, not the way the record
+   * happens to spell it, so the word a reader taps and the shelf it lands on
+   * are the same word.
+   */
+  const captionFacts: Array<{ key: string; text: string; to: string | null }> = [
+    ...(item.type ? [{ key: 'type', text: crumbType ?? item.type, to: typeHref }] : []),
+    ...(item.origin ? [{ key: 'origin', text: item.origin, to: regionHref }] : []),
+    ...(item.year ? [{ key: 'year', text: String(item.year), to: null }] : []),
+  ];
+
+  /**
+   * One sensory line, not two.
+   *
+   * The freeform tags and the resolved tasting profile were two italic lists of
+   * overlapping words stacked in the same voice. The tasting profile earns the
+   * place: its terms come from the shared taxonomy, every one links to a shop
+   * filter that exists, and it is signed with where it came from. The tags are
+   * untyped strings a reader cannot follow, so they are what a product falls
+   * back to when nothing resolves rather than a second line beside it.
+   */
+  const sensoryFallback = (
+    item.tags && item.tags.length > 0
+      ? item.tags
+      : item.mood
+        ? (item.mood.includes(',') ? item.mood.split(',') : [item.mood])
+        : []
+  )
+    .map(term => toTitleCase(term.trim()))
+    .filter(Boolean)
+    .join(' · ');
+
+  /**
+   * What this tea actually costs, in the currency this page is priced in.
+   *
+   * The offer used to state one hardcoded USD price for a fifty gram serving.
+   * Neither half was true. The page has never had a 50g control except as one
+   * of four presets, so the single quoted price was a serving nobody could
+   * buy, and the currency ignored the store the cart reads from, so a reader
+   * shopping in New Taiwan dollars was shown a page in one currency and
+   * described to machines in another.
+   *
+   * Now: one offer per quantity the page will actually sell, each carrying the
+   * grams it is priced for, wrapped in an aggregate so a crawler that wants a
+   * single number gets an honest range instead of an invented midpoint.
+   */
+  const offerCurrency = isoCurrency(currency);
+  const rateToDisplay = rates.find(rate => rate.currency === currency)?.rateToUSD ?? 1;
+  const offerPrice = (usd: number) => (usd * rateToDisplay).toFixed(2);
+  const availability = isSoldOut ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock';
+  const quantityOffers = presets.map(gramsOffered => ({
+    '@type': 'Offer',
+    '@id': `${productUrl}#offer-${gramsOffered}g`,
+    price: offerPrice(pricePerGram * gramsOffered),
+    priceCurrency: offerCurrency,
+    // GRM is the UN/CEFACT code for a gram, which is the unit every control on
+    // this page is denominated in.
+    eligibleQuantity: { '@type': 'QuantitativeValue', value: gramsOffered, unitCode: 'GRM' },
+    availability,
+    seller: { '@type': 'Organization', name: 'Teajia' },
+    url: productUrl,
+  }));
+  const smallestOfferPrice = offerPrice(pricePerGram * presets[0]);
 
   // JSON-LD structured data for SEO. A graph, not a single node: the product,
   // and the plant it is made from, addressed so the plant can be followed.
@@ -398,16 +510,17 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
         // made of this plant. It is the one property on Product whose range
         // accepts the plant's address without bending the vocabulary.
         ...(cultivarUrl && { material: cultivarUrl }),
-        offers: {
-          '@type': 'Offer',
-          price: (pricePerGram * 50).toFixed(2), // Price per 50g serving
-          priceCurrency: 'USD',
-          availability: isSoldOut
-            ? 'https://schema.org/OutOfStock'
-            : 'https://schema.org/InStock',
-          seller: { '@type': 'Organization', name: 'Teajia' },
-          url: productUrl,
-        },
+        offers: quantityOffers.length > 1
+          ? {
+              '@type': 'AggregateOffer',
+              priceCurrency: offerCurrency,
+              lowPrice: smallestOfferPrice,
+              highPrice: offerPrice(pricePerGram * presets[presets.length - 1]),
+              offerCount: quantityOffers.length,
+              availability,
+              offers: quantityOffers,
+            }
+          : quantityOffers[0],
       },
       ...(lineageCultivar && cultivarUrl
         ? [{
@@ -437,13 +550,8 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
         '@id': `${productUrl}#breadcrumb`,
         itemListElement: [
           { '@type': 'ListItem', position: 1, name: 'Shop', item: `${siteOrigin}/shop` },
-          ...(crumbType
-            ? [{
-                '@type': 'ListItem',
-                position: 2,
-                name: crumbType,
-                item: `${siteOrigin}/shop?type=${encodeURIComponent(crumbType)}`,
-              }]
+          ...(crumbType && typeHref
+            ? [{ '@type': 'ListItem', position: 2, name: crumbType, item: `${siteOrigin}${typeHref}` }]
             : []),
           { '@type': 'ListItem', position: crumbType ? 3 : 2, name: item.name, item: productUrl },
         ],
@@ -460,8 +568,10 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
         <meta property="og:description" content={(introduction || mainStory || '').slice(0, 160)} />
         {item.image && <meta property="og:image" content={item.image} />}
         <meta property="og:type" content="product" />
-        <meta property="product:price:amount" content={(pricePerGram * 50).toFixed(2)} />
-        <meta property="product:price:currency" content="USD" />
+        {/* The smallest quantity the page will actually sell, in the currency
+            the page is priced in. */}
+        <meta property="product:price:amount" content={smallestOfferPrice} />
+        <meta property="product:price:currency" content={offerCurrency} />
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
 
@@ -488,12 +598,25 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
                     <TeaPlaceholder type={item.type} style={{ width: '60%', height: '60%', opacity: 0.3 }} />
                   </div>
                 )}
-                <img
-                  src={item.image}
-                  alt={item.name}
-                  className={`w-full h-full object-cover transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-                  onLoad={() => setImageLoaded(true)}
-                />
+                {/* Round three wired the 64px thumbnails to the lightbox and
+                    left the hero, the one image on the page big enough to show
+                    a leaf, as the only one that could not be opened. Backwards:
+                    a customer buying loose leaf is buying what the largest
+                    picture shows. The whole square is the control, so it clears
+                    the 44px floor many times over. */}
+                <button
+                  type="button"
+                  onClick={() => setExpandedImageUrl(item.image!)}
+                  aria-label={`Enlarge image of ${item.name}`}
+                  className="block h-full w-full cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50"
+                >
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    className={`w-full h-full object-cover transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                    onLoad={() => setImageLoaded(true)}
+                  />
+                </button>
               </>
             ) : (
               <div
@@ -564,21 +687,25 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
             </p>
           )}
 
-          {/* Type, origin, year. Read as a caption, not as pills: the shop has
-              no filter to send these to, and a chip that cannot be tapped is a
-              promise the page does not keep. */}
-          <p className={`${LABEL} ${SECTION} text-tea-text-dim`}>
-            {[item.type, item.origin, item.year].filter(Boolean).join(' · ')}
+          {/* Type, origin, year. A caption of three facts, not a label: see
+              captionFacts above. Two of the three are now doors, on the page's
+              one link setting, which rests at zero bronze. */}
+          <p className={`${BODY} ${SECTION} text-tea-text-dim`}>
+            {captionFacts.map((fact, idx) => (
+              <React.Fragment key={fact.key}>
+                {idx > 0 && <span className="select-none"> · </span>}
+                {fact.to ? (
+                  <Link to={fact.to} className={LINK}>{fact.text}</Link>
+                ) : (
+                  fact.text
+                )}
+              </React.Fragment>
+            ))}
           </p>
 
-          {/* Tasting notes: the sensory line, in the tea's own colour */}
-          {item.tags && item.tags.length > 0 && (
-            <p className={`${HEADING} ${SECTION} italic`} style={{ color: typeColor }}>
-              {item.tags.map(t => toTitleCase(t)).join(' · ')}
-            </p>
-          )}
-
-          {/* Tasting description: flavour and energy, linked through to the shop filters. */}
+          {/* The one sensory line. Flavour and energy, linked through to the
+              shop filters; the freeform tags are the fallback beneath it, never
+              a second list beside it. */}
           {resolvedTasting ? (
             <ProductTastingEditorial
               tasting={resolvedTasting.tasting}
@@ -594,12 +721,8 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
               <Pencil size={12} strokeWidth={1.5} />
               <span>Add tasting profile</span>
             </button>
-          ) : item.mood ? (
-            <p className={`${BODY} ${SECTION} italic text-tea-text-sec`}>
-              {(item.mood.includes(',') ? item.mood.split(',').map(t => t.trim()).filter(Boolean) : [item.mood])
-                .map(tag => toTitleCase(tag))
-                .join(' · ')}
-            </p>
+          ) : sensoryFallback ? (
+            <p className={`${BODY} ${SECTION} italic text-tea-text-sec`}>{sensoryFallback}</p>
           ) : null}
 
           {/* About: character and description. */}
@@ -676,12 +799,9 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
 
           {/* Pricing and stock */}
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${stockStatus.dotClass}`} />
-              <span className={`${LABEL} ${stockStatus.colorClass}`}>
-                {stockStatus.label}
-              </span>
-            </div>
+            <span className={`${LABEL} ${stockStatus.colorClass}`}>
+              {stockStatus.label}
+            </span>
             <div className="text-right">
               <span className="font-mono text-ui-15 text-tea-text-sec block">
                 {fmtShopPricePerGram(pricePerGram)}
@@ -817,10 +937,22 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
           a suggestion, and the grid wraps rather than scrolling sideways. */}
       {relatedGroups.length > 0 && (
         <div className="mt-6 pt-6 border-t border-tea-border">
-          {relatedGroups.map(group => (
+          {relatedGroups.map(group => {
+            // The fact a group is headed by is now somewhere a reader can go:
+            // the plant to its own reference page, the place and the type to
+            // the shop filters round four added. Three teas under "Same place"
+            // is a sample of that place, and the heading is the rest of it.
+            const href = groupHref(group.relation);
+            return (
             <section key={group.relation} className={SECTION}>
               <h2 className={`${LABEL} ${LABEL_GAP} text-tea-text-dim`}>
-                {RELATION_LABEL[group.relation]}
+                {href ? (
+                  <Link to={href} className={`${LINK} inline-flex min-h-[44px] items-center`}>
+                    {RELATION_LABEL[group.relation]}
+                  </Link>
+                ) : (
+                  RELATION_LABEL[group.relation]
+                )}
               </h2>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                 {group.teas.map(related => (
@@ -846,14 +978,20 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
                     <h3 className={`${HEADING} mt-2 line-clamp-2 text-tea-text transition-colors duration-150 group-hover:text-tea-gold`}>
                       {related.name}
                     </h3>
-                    <p className="font-mono text-ui-11 text-tea-text-sec mt-0.5">
+                    {/* Body, not mono at eleven. This was the last fifth step
+                        surviving inside the four roles: a size the page uses
+                        nowhere else, in a face the page uses only for the
+                        numbers you are about to transact on. A related tea's
+                        price is a stated fact like every other one here. */}
+                    <p className={`${BODY} mt-0.5 text-tea-text-sec`}>
                       {fmtShopPricePerGram(parseFloat(related.price_per_gram || '0'))}
                     </p>
                   </Link>
                 ))}
               </div>
             </section>
-          ))}
+            );
+          })}
         </div>
       )}
 

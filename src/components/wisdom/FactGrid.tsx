@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { BODY, FIELD_GAP, LABEL, LINK } from './typeRoles';
+import { BODY, FIELD_GAP, LABEL, LINK } from '../shared/typeRoles';
 
 /** One label/value pair. */
 export interface Fact {

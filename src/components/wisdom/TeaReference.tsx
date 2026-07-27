@@ -2,7 +2,7 @@ import React from 'react';
 import { resolveTea, type NamedTea, type TeaResolution } from '../../wisdom';
 import { FactGrid, type Fact } from './FactGrid';
 import { TeaLineage, resolveLineage, type TeaLineageProduct } from './TeaLineage';
-import { BODY, LABEL, LABEL_GAP, SECTION } from './typeRoles';
+import { BODY, LABEL, LABEL_GAP, SECTION } from '../shared/typeRoles';
 
 /**
  * Everything the wisdom base can say about a product, in one band.

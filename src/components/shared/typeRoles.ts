@@ -14,6 +14,13 @@
  * Four sizes: 32/48, 20, 15, 11. Nothing between them. Inside a block the
  * hierarchy is carried by colour rather than by another size step, which is
  * why none of these roles carries a colour of its own.
+ *
+ * This file lived under components/wisdom until round four. It never belonged
+ * there: the wisdom folder holds the reference band, and by round three the
+ * same scale was governing the shop's own sections and the tasting blocks, so
+ * two folders were importing a page scale out of a third folder's namespace to
+ * get it. A scale that three folders share is shared code, and shared code
+ * lives in shared.
  */
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
@@ -35,7 +42,8 @@ export const BODY = TYPOGRAPHY_CLASSES.bodyLight;
  * same setting, applied to the page.
  *
  * A label is one to three words. Nothing longer, and no sentence, is ever set
- * in capitals.
+ * in capitals. A run of facts joined by interpuncts is a sentence wearing a
+ * label's clothes, so it is set as BODY.
  */
 export const LABEL = 'font-sans text-ui-11 uppercase tracking-[0.08em]';
 

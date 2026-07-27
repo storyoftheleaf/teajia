@@ -1,5 +1,5 @@
 import React from 'react';
-import { BODY, LABEL, LABEL_GAP, SECTION } from '../wisdom/typeRoles';
+import { BODY, LABEL, LABEL_GAP, SECTION } from '../shared/typeRoles';
 
 export interface ProductImpression {
   id: string;

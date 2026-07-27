@@ -4,7 +4,7 @@ import { Pencil } from 'lucide-react';
 import { resolveTermLabel } from '../../data/tastingTaxonomy';
 import type { TastingData } from '../../types';
 import type { ResolvedTastingSource } from '../../hooks/useProductTasting';
-import { BODY, LINK, SECTION } from '../wisdom/typeRoles';
+import { BODY, LINK, SECTION } from '../shared/typeRoles';
 import { TastingProfileStrip } from './TastingProfileStrip';
 
 interface ProductTastingEditorialProps {

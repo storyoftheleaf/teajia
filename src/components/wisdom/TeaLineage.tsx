@@ -12,7 +12,7 @@ import {
 } from '../../wisdom';
 import { authorshipLine } from '../../wisdom/authorship';
 import { FactGrid, orderFacts, type Fact } from './FactGrid';
-import { BODY, HEADING, LABEL, LABEL_GAP, SECTION } from './typeRoles';
+import { BODY, HEADING, LABEL, LABEL_GAP, SECTION } from '../shared/typeRoles';
 
 /**
  * The subset of a product's own fields needed to resolve the plant and place

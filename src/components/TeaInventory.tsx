@@ -14,7 +14,7 @@ import { PageHeaderTabs } from './shared/PageHeaderTabs';
 import { fmtShopPrice } from '../utils/formatNumber';
 import { TEA_TYPE_COLORS } from '../designTokens';
 import { InventoryItem } from '../types';
-import { TEA_TYPES as WISDOM_TEA_TYPES, normalizeTeaType } from '../wisdom';
+import { TEA_TYPES as WISDOM_TEA_TYPES, findRegion, normalizeTeaType } from '../wisdom';
 import { SALE_ITEM_IDS } from '../data/curatedCollections';
 import { useAppStore } from '../lib/store';
 import { useProductUrl } from '../hooks/useProductUrl';
@@ -53,6 +53,23 @@ const TYPE_ORDER: string[] = [...WISDOM_TEA_TYPES];
 // and section rather than splitting into two. Falls back to the raw stored
 // value when it isn't a recognized tea-type dialect (e.g. teaware categories).
 const displayType = (type: string): string => normalizeTeaType(type) ?? type;
+
+/**
+ * Canonical filter key for where an item was grown.
+ *
+ * Resolved through the same wisdom base the product page reads, so a record
+ * written "Wuyi Mountains" and one written "Wuyishan" land on one filter rather
+ * than two. Origins the base does not hold fall back to the written string,
+ * lowercased, so an unrecognised place still filters to itself.
+ */
+const regionKey = (origin: string | null | undefined): string | null => {
+  const written = origin?.trim();
+  if (!written) return null;
+  return findRegion(written)?.id ?? written.toLowerCase();
+};
+
+/** What to call an active region filter in the chip that clears it. */
+const regionLabel = (key: string): string => findRegion(key)?.name ?? key;
 
 // Sort options for the shop toolbar — rendered as inline pills matching Type/Feeling
 const SORT_OPTIONS: { id: 'featured' | 'price_asc' | 'price_desc' | 'recent' | 'tasted'; label: string }[] = [
@@ -104,6 +121,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   // Filter State
   const [activeType, setActiveType] = useState<string>('All');
   const [activeFeeling, setActiveFeeling] = useState<string | null>(null); // feeling term ID from taxonomy
+  const [activeRegion, setActiveRegion] = useState<string | null>(null); // region ID from the wisdom base, or a written origin
   const [specialFilter, setSpecialFilter] = useState<'None' | 'Curated' | 'Sale' | 'Liked' | 'Tasted'>('None');
   const [openFilter, setOpenFilter] = useState<'type' | 'feeling' | 'sort' | null>(null);
   const [searchText, setSearchText] = useState<string>('');
@@ -170,9 +188,14 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   // Tasting term filter (cross-reference from AlcoveCard)
   const [tastingFilter, setTastingFilter] = useState<{ termId: string; categoryId: string } | null>(null);
 
-  // URL ↔ filter round-trip. ?flavor=<termId> and ?feel=<termId> are shareable
-  // entry points from product pages; clearing filters in the UI also clears
-  // the URL so history behaves as expected.
+  // URL ↔ filter round-trip. ?type=, ?region=, ?flavor=<termId> and
+  // ?feel=<termId> are shareable entry points from product pages; clearing
+  // filters in the UI also clears the URL so history behaves as expected.
+  //
+  // Type and region joined the set in round four. Until then the product page
+  // wrote a breadcrumb pointing at ?type= and a "Same place" heading with
+  // nowhere to send a reader, because the shop read four of its six facts out
+  // of the address and silently dropped the two the product page had.
   const [searchParams, setSearchParams] = useSearchParams();
   const didHydrateFromUrl = useRef(false);
 
@@ -180,10 +203,14 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   useEffect(() => {
     if (didHydrateFromUrl.current) return;
     didHydrateFromUrl.current = true;
+    const type = searchParams.get('type');
+    const region = searchParams.get('region');
     const flavor = searchParams.get('flavor');
     const feel = searchParams.get('feel');
     const mood = searchParams.get('mood');
     const flavorTag = searchParams.get('flavorTag');
+    if (type) setActiveType(displayType(type));
+    if (region) setActiveRegion(regionKey(region));
     if (flavor) setTastingFilter({ termId: flavor, categoryId: 'flavor' });
     if (feel) setActiveFeeling(feel);
     if (mood) {
@@ -208,6 +235,10 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
     if (!didHydrateFromUrl.current) return;
     const next = new URLSearchParams(searchParams);
     const flavorTerm = tastingFilter?.categoryId === 'flavor' ? tastingFilter.termId : null;
+    if (activeType !== 'All') next.set('type', activeType);
+    else next.delete('type');
+    if (activeRegion) next.set('region', activeRegion);
+    else next.delete('region');
     if (flavorTerm) next.set('flavor', flavorTerm);
     else next.delete('flavor');
     if (activeFeeling) next.set('feel', activeFeeling);
@@ -220,7 +251,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       setSearchParams(next, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeFeeling, tastingFilter, activeMoodTags, activeFlavorTags]);
+  }, [activeType, activeRegion, activeFeeling, tastingFilter, activeMoodTags, activeFlavorTags]);
 
   const handleTermClick = useCallback((termId: string, categoryId: string) => {
     setTastingFilter({ termId, categoryId });
@@ -318,6 +349,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       // 1. Basic Filter (Type/Feeling)
       const matchType = activeType === 'All' || displayType(item.type) === activeType;
       const matchFeeling = !activeFeeling || resolvedIncludes(item, 'feeling', activeFeeling);
+      const matchRegion = !activeRegion || regionKey(item.origin) === activeRegion;
 
       // 2. Special Filter (Curated/Sale/Liked)
       let matchSpecial = true;
@@ -356,9 +388,9 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       // 5. Saved-only shop toggle
       const matchSaved = !shopSavedOnly || userFavorites.has(item.id);
 
-      return matchSearch && matchType && matchFeeling && matchSpecial && matchTasting && matchMoodTags && matchFlavorTags && matchSaved;
+      return matchSearch && matchType && matchFeeling && matchRegion && matchSpecial && matchTasting && matchMoodTags && matchFlavorTags && matchSaved;
     });
-  }, [inventory, searchText, activeType, activeFeeling, specialFilter, userFavorites, tastingFilter, shopSavedOnly, activeMoodTags, activeFlavorTags]);
+  }, [inventory, searchText, activeType, activeFeeling, activeRegion, specialFilter, userFavorites, tastingFilter, shopSavedOnly, activeMoodTags, activeFlavorTags]);
 
   // Grouping & Sorting Logic
   const groupedInventory = useMemo(() => {
@@ -424,6 +456,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   const clearFilters = () => {
     setActiveType('All');
     setActiveFeeling(null);
+    setActiveRegion(null);
     setSpecialFilter('None');
     setTastingFilter(null);
     setSearchText('');
@@ -637,6 +670,23 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
               </div>
            )}
          </div>
+
+         {/* Active region filter chip. A region has no pill row in the toolbar
+             because it arrives from a product page rather than from browsing,
+             so this chip is the only place it is visible and the only place it
+             is cleared. Same chip the tasting cross-reference uses. */}
+         {activeRegion && (
+            <div className="flex items-center gap-2 mb-3">
+               <button
+                  onClick={() => setActiveRegion(null)}
+                  aria-label={`Clear the ${regionLabel(activeRegion)} filter`}
+                  className="tag tap-target cursor-pointer hover:opacity-80 transition-opacity"
+               >
+                  <span>{regionLabel(activeRegion)}</span>
+                  <X size={11} />
+               </button>
+            </div>
+         )}
 
          {/* Active tasting filter chip (from AlcoveCard cross-reference) */}
          {tastingFilter && (() => {
