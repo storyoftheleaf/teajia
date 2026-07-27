@@ -10,6 +10,10 @@
       "cultivars": 79,
       "regions": 182,
       "teaVarieties": 316,
+      "producers": 10,
+      "styles": 10,
+      "marks": 15,
+      "namedTeas": 17,
       "vocabulary": 25
     }
   },
@@ -7238,6 +7242,729 @@
         "Ju Pu"
       ],
       "region": null
+    }
+  ],
+  "producers": [
+    {
+      "id": "china-national-tea-corporation",
+      "name": "China National Tea Corporation",
+      "chineseName": "中国茶叶公司",
+      "altNames": [
+        "CNNP",
+        "Zhong Cha",
+        "中茶",
+        "Zhongcha",
+        "China Tea Corporation"
+      ],
+      "kind": "brand",
+      "country": "China",
+      "region": "Yunnan",
+      "notableMarks": [
+        "Zhong Cha trademark (中茶牌)",
+        "Red Seal (紅印)",
+        "Blue Seal Green Label (蓝印绿标)"
+      ],
+      "description": "State tea trading corporation whose Zhong Cha trademark, the eight-pointed 'zhong' character in a red circle, appeared on pu-erh produced by multiple state-run and later privatized Yunnan factories across decades. The colored-seal classifications (Red Seal, Blue Seal) it used to grade production batches are among the most collected designations in pu-erh history."
+    },
+    {
+      "id": "hengfengyuan",
+      "name": "Hengfengyuan",
+      "chineseName": "恒丰源",
+      "altNames": [],
+      "kind": "unknown",
+      "country": "China",
+      "region": "Yunnan",
+      "notableMarks": [
+        "Golden Bull (金牛)"
+      ],
+      "description": "Named only in one sample product's title (Golden Bull Hengfengyuan Shou Cha). That product carries no prose body, so nothing beyond the name and its Golden Bull grade mark is confirmed by the source material."
+    },
+    {
+      "id": "kunming-tea-factory",
+      "name": "Kunming Tea Factory",
+      "chineseName": "昆明茶厂",
+      "altNames": [],
+      "kind": "factory",
+      "country": "China",
+      "region": "Yunnan",
+      "notableMarks": [],
+      "description": "State-run Yunnan factory credited, per this collection's own write-up, with developing wo dui (wet-piling) fermentation for shou pu-erh in 1973. Referenced as historical context in one product's write-up rather than confirmed as that product's own producer."
+    },
+    {
+      "id": "liao-fu",
+      "name": "Liao Fu",
+      "chineseName": "廖福",
+      "altNames": [],
+      "kind": "unknown",
+      "country": "China",
+      "region": "Cangwu",
+      "notableMarks": [
+        "Jia Ji (甲级)",
+        "Wan Yan AAA (万言AAA)"
+      ],
+      "description": "A recognized name in Cangwu, Guangxi dark tea production, appearing across grades from standard loose leaf up to a premium Wan Yan AAA classification. Whether Liao Fu is a factory, house, or family producer is not stated in the source write-ups."
+    },
+    {
+      "id": "menghai-tea-factory",
+      "name": "Menghai Tea Factory",
+      "chineseName": "勐海茶厂",
+      "altNames": [
+        "Menghai",
+        "Dayi",
+        "Taetea",
+        "大益"
+      ],
+      "kind": "factory",
+      "country": "China",
+      "region": "Xishuangbanna Prefecture",
+      "founded": 1940,
+      "notableMarks": [
+        "7572"
+      ],
+      "description": "State-founded pu-erh factory in Menghai county, Xishuangbanna, Yunnan, drawing leaf from gardens across the region since the 1940s. Now privatized and sold under the Dayi/Taetea brand. The 7572 shou recipe (1975 formula, grade 7 leaf, factory number 2) is its benchmark product."
+    },
+    {
+      "id": "qiaorui",
+      "name": "Qiaorui",
+      "chineseName": "乔瑞",
+      "altNames": [],
+      "kind": "unknown",
+      "country": "China",
+      "region": "Yunnan",
+      "notableMarks": [
+        "Gong Jin (贡金)"
+      ],
+      "description": "Named in one product's title (Qiaorui Gong Jin), paired with a tribute-grade 'gong jin' (gold brick) designation. The product's prose describes the grade classification generically without confirming Qiaorui's own identity as factory, house, or brand."
+    },
+    {
+      "id": "tongqinghao",
+      "name": "Tongqinghao",
+      "chineseName": "同慶號",
+      "altNames": [
+        "Tong Qing Hao",
+        "同庆号"
+      ],
+      "kind": "house",
+      "country": "China",
+      "region": "Yunnan",
+      "notableMarks": [],
+      "description": "One of the oldest known pu'erh houses, with origins traced to the late Qing dynasty in Yiwu. Original antique Tongqinghao cakes from the early 1900s are among the most expensive teas ever sold at auction. Whether this 1980 production maintains the original Yiwu sourcing is uncertain."
+    },
+    {
+      "id": "wuzhou-tea-factory",
+      "name": "Wuzhou Tea Factory",
+      "chineseName": "梧州茶厂",
+      "altNames": [
+        "San He",
+        "Three Cranes",
+        "三鹤"
+      ],
+      "kind": "factory",
+      "country": "China",
+      "region": "Wuzhou",
+      "founded": 1953,
+      "notableMarks": [
+        "San He (Three Cranes",
+        "三鹤)"
+      ],
+      "description": "Guangxi factory producing liu bao dark tea since 1953, sited along the Xijiang river in Wuzhou. Its San He (Three Cranes) brand is the most recognized name in liu bao and is known for a cleaner, more refined fermentation profile than village-produced liu bao."
+    },
+    {
+      "id": "xiaguan-tea-factory",
+      "name": "Xiaguan Tea Factory",
+      "chineseName": "下关茶厂",
+      "altNames": [
+        "Xiaguan",
+        "下關茶廠"
+      ],
+      "kind": "factory",
+      "country": "China",
+      "region": "Dali",
+      "founded": 1941,
+      "notableMarks": [],
+      "description": "One of Yunnan's oldest and most important tea factories, based in Dali. Known primarily for tuo cha and tightly compressed iron cakes, with a house style favoring firm compression and an assertive, smoke-tinged character that starts aggressive and opens up with age."
+    },
+    {
+      "id": "xinghai-tea-factory",
+      "name": "Xinghai Tea Factory",
+      "chineseName": "兴海茶厂",
+      "altNames": [
+        "Xinghai",
+        "兴海"
+      ],
+      "kind": "factory",
+      "country": "China",
+      "region": "Yunnan",
+      "notableMarks": [],
+      "description": "Named only in one product's title (Xinghai Aged Sheng Cha). That product's write-up body is empty, so nothing beyond the name is confirmed by Adrian's own source material."
+    }
+  ],
+  "styles": [
+    {
+      "id": "bai-liang-hua-juan",
+      "name": "Bai Liang",
+      "chineseName": "花卷茶",
+      "altNames": [
+        "Hua Juan",
+        "Hundred Liang Tea"
+      ],
+      "appliesToTypes": [
+        "Dark"
+      ],
+      "region": "Anhua, Hunan",
+      "description": "A monumental Anhua dark tea traditionally wrapped in patterned bamboo bark and pressed into cylindrical columns of over three kilograms, originally produced for the tea-horse trade routes. The hua juan (花卷) name refers to the pattern of the bamboo wrapping."
+    },
+    {
+      "id": "bamboo-tube",
+      "name": "Bamboo Tube",
+      "chineseName": "竹筒茶",
+      "altNames": [
+        "Zhu Tong Cha"
+      ],
+      "appliesToTypes": [],
+      "region": "Xishuangbanna, Yunnan",
+      "description": "Tea packed into fresh-cut bamboo segments and roasted or dried, a traditional preparation among the Dai, Hani and other ethnic minorities of Xishuangbanna, Yunnan. The bamboo imparts its own fragrance into the tea, becoming part of its identity over time."
+    },
+    {
+      "id": "basket-tea",
+      "name": "Basket Tea",
+      "chineseName": "篮茶",
+      "altNames": [
+        "Basket-Aged"
+      ],
+      "appliesToTypes": [
+        "Dark"
+      ],
+      "description": "Dark tea packed loose into bamboo baskets lined with bamboo leaves and sealed for long-term aging, historically used for Liu An (Anhui) and Liu Bao (Guangxi). The bamboo lining creates a micro-environment that slowly flavors the tea over decades, distinct from cedar or camphor storage."
+    },
+    {
+      "id": "camphor-stored",
+      "name": "Camphor-Stored",
+      "chineseName": "樟香",
+      "altNames": [
+        "Zhang Xiang",
+        "Camphor Fragrance"
+      ],
+      "appliesToTypes": [
+        "Sheng",
+        "Shou"
+      ],
+      "description": "Aging pu-erh in proximity to camphor wood, whether camphor-lined warehouses or nearby camphor trees, a traditional Chinese storage method. Imparts a cool, aromatic quality into the tea that persists regardless of later re-storage."
+    },
+    {
+      "id": "gaba-oolong",
+      "name": "GABA Oolong",
+      "chineseName": "GABA乌龙",
+      "altNames": [],
+      "appliesToTypes": [
+        "Oolong"
+      ],
+      "description": "Oolong finished with an anaerobic step: withered leaf is sealed in a nitrogen-rich, oxygen-free chamber before a light roast. The anaerobic oxidation converts glutamic acid into gamma-aminobutyric acid (GABA), a compound associated with relaxation. First developed by Japanese researchers in 1987."
+    },
+    {
+      "id": "kang-brick",
+      "name": "Kang Brick",
+      "chineseName": "康磚",
+      "altNames": [
+        "Kang Zhuan",
+        "Ya'an Kang Brick",
+        "Border Tea",
+        "Zang Cha"
+      ],
+      "appliesToTypes": [
+        "Dark"
+      ],
+      "region": "Ya'an, Sichuan",
+      "description": "A traditional Tibetan border tea (藏茶) pressed for centuries in Ya'an, Sichuan, as tea for the Tea Horse Road trade to Tibet. Made from mature, coarse leaf and stems, heavily fermented and compressed into a dense brick built to survive transport by yak caravan."
+    },
+    {
+      "id": "qi-zi-bing",
+      "name": "Qi Zi Bing",
+      "chineseName": "七子饼",
+      "altNames": [
+        "Seven Sons Cake Tea",
+        "Seven-Son Cake"
+      ],
+      "appliesToTypes": [
+        "Sheng",
+        "Shou"
+      ],
+      "region": "Yunnan",
+      "description": "The standard 357-gram pu-erh cake format pressed for over a century, named for the traditional practice of wrapping seven cakes together into one bamboo tong (basket) for trade and transport."
+    },
+    {
+      "id": "tie-bing",
+      "name": "Tie Bing",
+      "chineseName": "铁饼",
+      "altNames": [
+        "Iron Cake"
+      ],
+      "appliesToTypes": [
+        "Sheng",
+        "Shou"
+      ],
+      "description": "A pu-erh cake pressed hydraulically to extreme density rather than with a traditional stone mold. The heavier compression slows aging and concentrates flavor, and can create distinct flavor zones between a cake's interior and exterior."
+    },
+    {
+      "id": "wet-stored",
+      "name": "Wet-Stored",
+      "chineseName": "湿仓",
+      "altNames": [
+        "Shi Cang",
+        "Wet Storage"
+      ],
+      "appliesToTypes": [
+        "Sheng"
+      ],
+      "description": "A deliberate pu-erh aging technique where cakes are kept in high-humidity environments to accelerate post-fermentation transformation, common in Hong Kong and Southeast Asian tea culture. Considered controversial among purists; the result depends entirely on the skill of the storage."
+    },
+    {
+      "id": "xiao-qing-gan",
+      "name": "Xiao Qing Gan",
+      "chineseName": "小青柑",
+      "altNames": [
+        "Green Mandarin Puerh"
+      ],
+      "appliesToTypes": [
+        "Shou"
+      ],
+      "region": "Xinhui, Guangdong",
+      "description": "Ripe (shou) pu-erh packed inside a hollowed, unripe green mandarin orange, then dried together so the citrus oil infuses the tea. A traditional Cantonese preparation with roots in Chinese herbal medicine; the mandarins come from Xinhui district in Jiangmen, Guangdong, while the pu-erh comes from Yunnan."
+    }
+  ],
+  "marks": [
+    {
+      "id": "7572",
+      "name": "7572",
+      "chineseName": "7572",
+      "altNames": [],
+      "producerId": "menghai-tea-factory",
+      "era": "1975",
+      "appliesToTypes": [
+        "Shou"
+      ],
+      "description": "Menghai Tea Factory's benchmark shou pu-erh recipe number. The digits encode its identity: 1975 formula, grade 7 leaf, factory number 2."
+    },
+    {
+      "id": "aaa-grade",
+      "name": "AAA",
+      "altNames": [
+        "Triple-A"
+      ],
+      "appliesToTypes": [],
+      "description": "A letter-grade quality designation indicating premium leaf selection and processing, part of a broader letter-grading convention used across Chinese tea classification. In this collection it appears on the Liao Fu Wan Yan product line."
+    },
+    {
+      "id": "blue-seal-green-label",
+      "name": "Blue Seal Green Label",
+      "chineseName": "蓝印绿标",
+      "altNames": [],
+      "producerId": "china-national-tea-corporation",
+      "appliesToTypes": [
+        "Sheng"
+      ],
+      "description": "A colored seal and label designation used by the China National Tea Corporation to classify pu-erh production batches during the era of state-controlled production."
+    },
+    {
+      "id": "golden-bull",
+      "name": "Golden Bull",
+      "chineseName": "金牛",
+      "altNames": [
+        "Jin Niu"
+      ],
+      "producerId": "hengfengyuan",
+      "appliesToTypes": [
+        "Shou"
+      ],
+      "description": "A named product line under the Hengfengyuan producer. The source product carries no prose body, so nothing beyond the name itself is confirmed."
+    },
+    {
+      "id": "gong-jin",
+      "name": "Gong Jin",
+      "chineseName": "贡金",
+      "altNames": [
+        "Tribute Gold"
+      ],
+      "producerId": "qiaorui",
+      "appliesToTypes": [
+        "Shou"
+      ],
+      "description": "A tribute-grade classification ('gong', historically tea produced for imperial tribute) combined with a gold-brick ('jin zhuan') designation emphasizing prestige, used on a brick-pressed shou pu-erh."
+    },
+    {
+      "id": "gong-ting",
+      "name": "Gong Ting",
+      "chineseName": "宫廷",
+      "altNames": [
+        "Gongting",
+        "Palace Grade"
+      ],
+      "appliesToTypes": [
+        "Oolong",
+        "Shou"
+      ],
+      "description": "A 'palace' or 'imperial court' designation for the highest grade classification within a tea's production, indicating the finest bud or tip material. Seen on shou pu-erh (finest bud material) and on aged Taiwanese oolong (finest buds and leaves)."
+    },
+    {
+      "id": "gongjian",
+      "name": "Gongjian",
+      "chineseName": "贡尖",
+      "altNames": [
+        "Tribute Tip"
+      ],
+      "appliesToTypes": [
+        "Dark"
+      ],
+      "description": "One of the three traditional grades of loose Anhua dark tea, made from the finest, most tender tips picked in early spring. The other two grades, named alongside it in the source write-up, are Tianjian and Shengjian (neither has its own product in this collection)."
+    },
+    {
+      "id": "jia-ji",
+      "name": "Jia Ji",
+      "chineseName": "甲级",
+      "altNames": [
+        "Grade A"
+      ],
+      "appliesToTypes": [
+        "Dark"
+      ],
+      "description": "A first/A-grade leaf classification indicating higher-quality selection than standard production. Appears in this collection under more than one producer (Menghai, Liao Fu), so it is a shared grading term rather than one producer's exclusive mark."
+    },
+    {
+      "id": "red-seal",
+      "name": "Red Seal",
+      "chineseName": "紅印",
+      "altNames": [
+        "Hongyin",
+        "Hong Yin"
+      ],
+      "producerId": "china-national-tea-corporation",
+      "appliesToTypes": [
+        "Sheng"
+      ],
+      "description": "One of the most revered designations in pu-erh history, originally referring to cakes marked with a red seal on the wrapper by the China National Tea Corporation. The name persisted for high-grade productions after the original Red Seal era passed."
+    },
+    {
+      "id": "three-cranes",
+      "name": "Three Cranes",
+      "chineseName": "三鹤",
+      "altNames": [
+        "San He"
+      ],
+      "producerId": "wuzhou-tea-factory",
+      "era": "1953-",
+      "appliesToTypes": [
+        "Dark"
+      ],
+      "description": "The most recognized liu bao brand, produced by the Wuzhou Tea Factory in Guangxi since 1953. Known for a cleaner, more refined fermentation profile than village-produced liu bao."
+    },
+    {
+      "id": "wan-yan",
+      "name": "Wan Yan",
+      "chineseName": "万言",
+      "altNames": [
+        "Ten Thousand Words"
+      ],
+      "producerId": "liao-fu",
+      "appliesToTypes": [
+        "Dark"
+      ],
+      "description": "A named premium product line ('Ten Thousand Words') within the Liao Fu dark tea lineage, produced at AAA grade."
+    },
+    {
+      "id": "yellow-label",
+      "name": "Yellow Label",
+      "chineseName": "黄标",
+      "altNames": [
+        "Huang Biao"
+      ],
+      "appliesToTypes": [
+        "Shou"
+      ],
+      "description": "A yellow label marking a specific factory batch or grade designation on compressed pu-erh, seen here on an iron cake (tie bing) from the 1990s. The specific factory of origin is not stated."
+    },
+    {
+      "id": "yi-ji",
+      "name": "Yi Ji",
+      "chineseName": "一级",
+      "altNames": [
+        "First Grade"
+      ],
+      "appliesToTypes": [
+        "Dark"
+      ],
+      "description": "A first-grade classification referring to leaf size and quality, indicating the finest, most tender material, typically from spring harvests."
+    },
+    {
+      "id": "zhen-pin",
+      "name": "Zhen Pin",
+      "chineseName": "珍品",
+      "altNames": [
+        "Precious Grade",
+        "Treasure Grade"
+      ],
+      "appliesToTypes": [
+        "Oolong"
+      ],
+      "description": "A premium grading term meaning 'precious item' or 'treasure grade,' indicating the finest leaf selection and most careful processing within a tea's classification. Seen on Tie Guan Yin."
+    },
+    {
+      "id": "zhong-cha-pai",
+      "name": "Zhong Cha Pai",
+      "chineseName": "中茶牌",
+      "altNames": [
+        "Zhongcha",
+        "Zhong Cha"
+      ],
+      "producerId": "china-national-tea-corporation",
+      "appliesToTypes": [
+        "Shou"
+      ],
+      "description": "The iconic brand of the China National Tea Corporation, marked by an eight-pointed 'zhong' character surrounded by a red circle. Appears on teas from multiple state-run and later privatized factories across decades."
+    }
+  ],
+  "namedTeas": [
+    {
+      "id": "courage",
+      "name": "Courage",
+      "chineseName": "勇气",
+      "altNames": [],
+      "type": "Sheng",
+      "form": "Loose",
+      "region": "Yunnan",
+      "country": "China",
+      "vendor": "HangJia",
+      "provenance": "undisclosed",
+      "tradition": "Chinese private-collection naming",
+      "description": "This tea arrived already named by the private mainland-China collection that stored it. The province is known but the mountain, village and vintage are unrecorded; the name marks what the tea meant to the collector who kept it, not a growing origin."
+    },
+    {
+      "id": "french-brick",
+      "name": "French Brick",
+      "chineseName": "法国砖",
+      "altNames": [],
+      "type": "Sheng",
+      "form": "Brick",
+      "region": "Yunnan",
+      "country": "China",
+      "vendor": "HangJia",
+      "provenance": "undisclosed",
+      "tradition": "undocumented export or trade-route naming",
+      "description": "Named for a possible French-market, French Indochina export, or French storage history that is not documented. Production is placed in Yunnan, but the route the tea traveled, its mountain, village and vintage are unrecorded."
+    },
+    {
+      "id": "galaxy",
+      "name": "Galaxy",
+      "chineseName": "银河",
+      "altNames": [
+        "Silver River"
+      ],
+      "type": "Oolong",
+      "form": "Loose",
+      "country": "China",
+      "vendor": "HangJia",
+      "provenance": "undisclosed",
+      "tradition": "Chinese private-collection naming",
+      "description": "Galaxy (Yin He) means silver river, the Chinese name for the Milky Way, a cosmic name given to an oolong whose terroir and vintage are unrecorded; only the country of production is stated."
+    },
+    {
+      "id": "inspiration",
+      "name": "Inspiration",
+      "chineseName": "灵感",
+      "altNames": [],
+      "type": "Sheng",
+      "form": "Loose",
+      "region": "Yunnan",
+      "country": "China",
+      "vendor": "HangJia",
+      "provenance": "undisclosed",
+      "tradition": "Chinese private-collection naming",
+      "description": "Named for a quality the collector found in the cup beyond ordinary flavor. Mountain, village and vintage are unrecorded."
+    },
+    {
+      "id": "mercy",
+      "name": "Mercy",
+      "chineseName": "慈悲",
+      "altNames": [],
+      "type": "Sheng",
+      "form": "Loose",
+      "region": "Yunnan",
+      "country": "China",
+      "vendor": "HangJia",
+      "provenance": "undisclosed",
+      "tradition": "Chinese private-collection naming",
+      "description": "Carries a Buddhist-resonant name chosen by whoever stored it. Mountain, village and vintage are unrecorded."
+    },
+    {
+      "id": "miracle-fate",
+      "name": "Miracle Fate",
+      "chineseName": "奇缘",
+      "altNames": [
+        "Qi Yuan"
+      ],
+      "type": "Shou",
+      "form": "Loose",
+      "region": "Yunnan",
+      "country": "China",
+      "vendor": "HangJia",
+      "provenance": "undisclosed",
+      "tradition": "Chinese private-collection naming",
+      "description": "Qi yuan carries the sense of a destined, unexpected encounter. The collector who stored it named it for the circumstance of finding it, not for its origin, which is unrecorded beyond the Yunnan province."
+    },
+    {
+      "id": "new-rainbow",
+      "name": "New Rainbow",
+      "chineseName": "新彩虹",
+      "altNames": [],
+      "type": "Sheng",
+      "form": "Loose",
+      "region": "Yunnan",
+      "country": "China",
+      "vendor": "HangJia",
+      "provenance": "undisclosed",
+      "tradition": "Chinese private-collection naming, paired naming",
+      "description": "The younger half of a paired new and old naming with Old Rainbow, from the same undocumented source. Mountain, village and vintage are unrecorded."
+    },
+    {
+      "id": "old-rainbow",
+      "name": "Old Rainbow",
+      "chineseName": "旧彩虹",
+      "altNames": [],
+      "type": "Sheng",
+      "form": "Loose",
+      "region": "Yunnan",
+      "country": "China",
+      "vendor": "HangJia",
+      "provenance": "undisclosed",
+      "tradition": "Chinese private-collection naming, paired naming",
+      "description": "The aged half of the Rainbow pair, from the same source as New Rainbow. Mountain, village and vintage are unrecorded."
+    },
+    {
+      "id": "orange-master-box",
+      "name": "Orange Master Box",
+      "altNames": [],
+      "type": "Oolong",
+      "form": "Loose",
+      "country": "China",
+      "vendor": "HangJia",
+      "provenance": "undisclosed",
+      "tradition": "anonymous or packaging-only naming",
+      "description": "Known only by the orange box it arrived in. No Chinese name, cultivar, origin or vintage is recorded; the tea's sole identity is its container and the word master printed on it."
+    },
+    {
+      "id": "passion",
+      "name": "Passion",
+      "chineseName": "热情",
+      "altNames": [],
+      "type": "Sheng",
+      "form": "Loose",
+      "region": "Yunnan",
+      "country": "China",
+      "vendor": "HangJia",
+      "provenance": "undisclosed",
+      "tradition": "Chinese private-collection naming",
+      "description": "A bold personal name within the same private collection as Courage, Wisdom and Mercy. Mountain, village and vintage are unrecorded."
+    },
+    {
+      "id": "tea-masters-cake",
+      "name": "Tea Masters Cake",
+      "chineseName": "茶师饼",
+      "altNames": [],
+      "type": "Shou",
+      "form": "Cake",
+      "region": "Yunnan",
+      "country": "China",
+      "vendor": "HangJia",
+      "provenance": "undisclosed",
+      "tradition": "Chinese private-collection naming",
+      "description": "Whether the name refers to a brand, a maker's tribute, or a quality grade is undocumented. Mountain, village and vintage are unrecorded beyond the Yunnan province."
+    },
+    {
+      "id": "true-love",
+      "name": "True Love",
+      "chineseName": "真爱",
+      "altNames": [],
+      "type": "Sheng",
+      "form": "Loose",
+      "region": "Yunnan",
+      "country": "China",
+      "vendor": "HangJia",
+      "provenance": "undisclosed",
+      "tradition": "Chinese private-collection naming",
+      "description": "The most direct of the personal names in this private collection, given by whoever stored and kept this sheng. Mountain, village and vintage are unrecorded."
+    },
+    {
+      "id": "true-love-new",
+      "name": "True Love New",
+      "chineseName": "真爱新茶",
+      "altNames": [],
+      "type": "Shou",
+      "form": "Loose",
+      "region": "Yunnan",
+      "country": "China",
+      "vendor": "HangJia",
+      "provenance": "undisclosed",
+      "tradition": "Chinese private-collection naming",
+      "description": "Carries the True Love name as a younger shou companion to the sheng of the same name. The write-up treats the two as likely connected in source, but that link, along with mountain, village and vintage, is undocumented."
+    },
+    {
+      "id": "universe",
+      "name": "Universe",
+      "chineseName": "宇宙",
+      "altNames": [],
+      "type": "Oolong",
+      "form": "Loose",
+      "country": "China",
+      "vendor": "HangJia",
+      "provenance": "undisclosed",
+      "tradition": "Chinese private-collection naming",
+      "description": "An oolong named for the impression it made on whoever kept it. Terroir, cultivar and vintage are entirely unrecorded; only the country of production is stated."
+    },
+    {
+      "id": "wisdom",
+      "name": "Wisdom",
+      "chineseName": "智慧",
+      "altNames": [],
+      "type": "Sheng",
+      "form": "Loose",
+      "region": "Yunnan",
+      "country": "China",
+      "vendor": "HangJia",
+      "provenance": "undisclosed",
+      "tradition": "Chinese private-collection naming",
+      "description": "Named by the collector who stored it for a quality the tea seemed to carry beyond flavor. Origin beyond the Yunnan province and vintage are unrecorded."
+    },
+    {
+      "id": "yue-chen-yue-xiang",
+      "name": "Yue Chen Yue Xiang",
+      "chineseName": "越陈越香",
+      "altNames": [
+        "The Older",
+        "The More Fragrant"
+      ],
+      "type": "White",
+      "form": "Cake",
+      "region": "Yunnan",
+      "country": "China",
+      "vendor": "Yunan Fam",
+      "provenance": "partial",
+      "tradition": "Chinese proverbial tea-naming (an aging-potential aphorism used across pu-erh and white tea culture)",
+      "description": "A phrase used across Chinese tea culture meaning the older, the more fragrant, applied here as the tea's name to signal it was made and stored with long aging in mind. The exact garden and vintage are unrecorded."
+    },
+    {
+      "id": "yun-shen-chu",
+      "name": "Yun Shen Chu",
+      "chineseName": "云深处",
+      "altNames": [
+        "Deep in the Clouds"
+      ],
+      "type": "White",
+      "form": "Cake",
+      "region": "Yunnan",
+      "country": "China",
+      "vendor": "Yunan Fam",
+      "provenance": "partial",
+      "tradition": "Chinese poetic tea-naming (named for the feeling of origin rather than a technical specification)",
+      "description": "Named for the high-altitude, mist-shrouded forests it evokes rather than a specific garden. The write-up describes this as the Chinese tradition of naming a tea for the feeling of its origin; the exact garden and vintage are unrecorded."
     }
   ]
 }

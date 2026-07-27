@@ -103,3 +103,34 @@ export interface Mark {
   appliesToTypes: string[];
   description?: string;
 }
+
+/**
+ * A tea whose identity is the name it was given, where the composition is not
+ * disclosed.
+ *
+ * These arrive already named, usually from Chinese private collections where
+ * naming a stored tea is common practice among serious collectors. The mountain,
+ * the village and often the vintage are never recorded, and that is the nature
+ * of the record rather than a gap in it. Holding the name and saying plainly
+ * what is not known beats refusing to hold it at all.
+ */
+export interface NamedTea {
+  id: string;
+  name: string;
+  chineseName?: string;
+  altNames: string[];
+  /** Canonical tea type, from the record itself. */
+  type?: string;
+  form?: string;
+  region?: string;
+  country?: string;
+  /** The collection it came from, when a write-up names one. */
+  collection?: string;
+  /** The thread back to where it was obtained. */
+  vendor?: string;
+  /** How much of the composition the record actually states. */
+  provenance: 'undisclosed' | 'partial' | 'stated';
+  /** The naming practice this belongs to. */
+  tradition?: string;
+  description?: string;
+}

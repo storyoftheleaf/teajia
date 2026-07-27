@@ -48,6 +48,8 @@ mkdirSync(outDir, { recursive: true });
 
 const { CULTIVARS } = await loadModule(join(root, 'src/wisdom/cultivars.ts'), 'cultivars.mjs');
 const { REGIONS } = await loadModule(join(root, 'src/wisdom/regions.ts'), 'regions.mjs');
+const { PRODUCERS, STYLES, MARKS } = await loadModule(join(root, 'src/wisdom/producers.ts'), 'producers.mjs');
+const { NAMED_TEAS } = await loadModule(join(root, 'src/wisdom/namedTeas.ts'), 'namedTeas.mjs');
 const { TEA_TYPES, TEA_FORMS, SEASONS, STORAGE_STYLES } = await loadModule(join(root, 'src/wisdom/vocabulary.ts'), 'vocabulary.mjs');
 const { TEA_VARIETIES } = await loadModule(join(root, 'src/data/teaVarieties.ts'), 'teaVarieties.mjs');
 const { getAuthorship } = await loadModule(join(root, 'src/wisdom/authorship.ts'), 'authorship.mjs');
@@ -137,13 +139,17 @@ const meta = {
     cultivars: cultivars.length,
     regions: regions.length,
     teaVarieties: teaVarieties.length,
+    producers: PRODUCERS.length,
+    styles: STYLES.length,
+    marks: MARKS.length,
+    namedTeas: NAMED_TEAS.length,
     vocabulary: vocabulary.length,
   },
 };
 
 writeFileSync(
   join(outDir, 'tea-wisdom.json'),
-  `${JSON.stringify({ meta, vocabulary, regions, cultivars, teaVarieties }, null, 2)}\n`
+  `${JSON.stringify({ meta, vocabulary, regions, cultivars, teaVarieties, producers: PRODUCERS, styles: STYLES, marks: MARKS, namedTeas: NAMED_TEAS }, null, 2)}\n`
 );
 
 // ------------------------------------------------------------------------ csv
@@ -170,6 +176,26 @@ writeFileSync(
 writeFileSync(
   join(outDir, 'tea-wisdom-regions.csv'),
   toCsv(regions, ['id', 'name', 'country', 'province', 'altitude', 'climate'])
+);
+
+writeFileSync(
+  join(outDir, 'tea-wisdom-producers.csv'),
+  toCsv(PRODUCERS, ['id', 'name', 'chineseName', 'altNames', 'kind', 'country', 'region', 'founded', 'notableMarks', 'description'])
+);
+
+writeFileSync(
+  join(outDir, 'tea-wisdom-marks.csv'),
+  toCsv(MARKS, ['id', 'name', 'chineseName', 'altNames', 'producerId', 'era', 'appliesToTypes', 'description'])
+);
+
+writeFileSync(
+  join(outDir, 'tea-wisdom-styles.csv'),
+  toCsv(STYLES, ['id', 'name', 'chineseName', 'altNames', 'appliesToTypes', 'region', 'description'])
+);
+
+writeFileSync(
+  join(outDir, 'tea-wisdom-named-teas.csv'),
+  toCsv(NAMED_TEAS, ['id', 'name', 'chineseName', 'type', 'form', 'region', 'country', 'collection', 'provenance', 'tradition', 'description'])
 );
 
 writeFileSync(
@@ -218,6 +244,8 @@ writeFileSync(
 
 A public export of Teajia's tea wisdom base: ${cultivars.length} cultivars with
 breeding lineage and descriptions, ${regions.length} growing regions,
+${PRODUCERS.length} producers, ${MARKS.length} marks, ${STYLES.length} styles,
+${NAMED_TEAS.length} teas known only by the name they were given,
 ${teaVarieties.length} tea varieties, and the controlled vocabulary that ties
 them together (${vocabulary.length} terms across type, form, season and
 storage). This is the account-agnostic layer behind teajia.com, true

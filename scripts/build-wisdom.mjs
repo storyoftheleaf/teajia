@@ -189,6 +189,28 @@ const marks = optional('marks.csv')
   })
   .sort((left, right) => left.name.localeCompare(right.name));
 
+const PROVENANCE = new Set(['undisclosed', 'partial', 'stated']);
+
+const namedTeas = optional('named-teas.csv')
+  .filter(row => row.name)
+  .map(row => ({
+    id: row.id || slug(row.name),
+    name: row.name,
+    chineseName: row.chinese_name || undefined,
+    altNames: list(row.alt_names || ''),
+    type: row.type || undefined,
+    form: row.form || undefined,
+    region: row.region || undefined,
+    country: row.country || undefined,
+    collection: row.collection || undefined,
+    vendor: row.vendor || undefined,
+    // An unstated provenance is undisclosed, which is the honest default here.
+    provenance: PROVENANCE.has(row.provenance) ? row.provenance : 'undisclosed',
+    tradition: row.tradition || undefined,
+    description: row.description || undefined,
+  }))
+  .sort((left, right) => left.name.localeCompare(right.name));
+
 // ------------------------------------------------------------------- output
 
 mkdirSync(generated, { recursive: true });
@@ -214,6 +236,9 @@ writeFileSync(join(generated, 'styles.ts'),
 writeFileSync(join(generated, 'marks.ts'),
   `${banner(marks.length, 'marks')}import type { Mark } from '../types';\n\nexport const MARKS: Mark[] = ${JSON.stringify(marks, null, 2)};\n`);
 
+writeFileSync(join(generated, 'namedTeas.ts'),
+  `${banner(namedTeas.length, 'named teas')}import type { NamedTea } from '../types';\n\nexport const NAMED_TEAS: NamedTea[] = ${JSON.stringify(namedTeas, null, 2)};\n`);
+
 writeFileSync(join(stories, 'cultivars.json'),
   `${JSON.stringify(Object.fromEntries(cultivars.map(entry => [entry.id, entry.story])), null, 2)}\n`);
 
@@ -222,5 +247,6 @@ console.log(`cultivars       ${cultivars.length}  (${filled('description')} desc
 console.log(`regions         ${regions.length}`);
 console.log(`producers       ${producers.length}  (${producers.filter(entry => entry.founded).length} with a founding year)`);
 console.log(`styles          ${styles.length}`);
+console.log(`named teas      ${namedTeas.length}  (${namedTeas.filter(entry => entry.provenance === 'undisclosed').length} with undisclosed provenance)`);
 console.log(`marks           ${marks.length}  (${marks.filter(entry => entry.producerId).length} linked to a producer we hold)`);
 console.log(`story payload   ${(JSON.stringify(cultivars.map(c => c.story)).length / 1024).toFixed(0)} KB, loaded on demand`);

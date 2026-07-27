@@ -7,16 +7,18 @@
  */
 import { matchTeaVariety, type TeaVarietyMatch } from '../data/teaVarieties';
 import { matchCultivar } from './cultivars';
+import { matchNamedTea } from './namedTeas';
 import { matchMark, matchProducer, matchStyle } from './producers';
 import { countryForRegion, findRegion } from './regions';
 import { normalizeTeaForm, normalizeTeaType, type TeaForm, type TeaType } from './vocabulary';
-import type { Cultivar, Mark, Producer, Region, Style } from './types';
+import type { Cultivar, Mark, NamedTea, Producer, Region, Style } from './types';
 
 export * from './vocabulary';
 export * from './regions';
 export * from './cultivars';
 export * from './producers';
-export type { Cultivar, Region, CultivarStory, Producer, Style, Mark } from './types';
+export * from './namedTeas';
+export type { Cultivar, Region, CultivarStory, Producer, Style, Mark, NamedTea } from './types';
 
 /** What the wisdom base knows about a tea, and where each part came from. */
 export interface TeaResolution {
@@ -30,6 +32,8 @@ export interface TeaResolution {
   style: Style | null;
   /** The recipe number, seal or label it carries. */
   mark: Mark | null;
+  /** A tea known by the name it was given, where composition is undisclosed. */
+  namedTea: NamedTea | null;
   region: Region | null;
   country: string | null;
   year: number | null;
@@ -84,6 +88,7 @@ export function resolveTea({ names, known = {} }: TeaQuery): TeaResolution {
   const producer = matchProducer(...names);
   const style = matchStyle(...names);
   const mark = matchMark(...names);
+  const namedTea = matchNamedTea(...names);
 
   const knownType = normalizeTeaType(known.type);
   const type = knownType ?? noteDerived('type', variety ? normalizeTeaType(variety.type) : null);
@@ -105,11 +110,12 @@ export function resolveTea({ names, known = {} }: TeaQuery): TeaResolution {
   if (producer) derived.push('producer');
   if (style) derived.push('style');
   if (mark) derived.push('mark');
+  if (namedTea) derived.push('namedTea');
 
   return {
-    type, form, variety, cultivar, producer, style, mark,
+    type, form, variety, cultivar, producer, style, mark, namedTea,
     region, country: country || null, year, derived,
     // Parsing a year out of a name is not knowledge. Matching a known entity is.
-    recognized: Boolean(variety || cultivar || producer || style || mark || region),
+    recognized: Boolean(variety || cultivar || producer || style || mark || namedTea || region),
   };
 }

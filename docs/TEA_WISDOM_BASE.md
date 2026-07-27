@@ -68,10 +68,30 @@ Returns the type, form, variety, cultivar, region, country and year it can estab
 | Tea varieties | 316 | Hand-built, powers capture autocomplete |
 | Cultivars | 79 | Research corpus, all with description, 65 with breeding lineage |
 | Growing regions | 98 researched + working list, 182 merged | Research corpus, grown from Adrian's own write-ups |
+| Producers | 10 | Factories, houses and brands read out of Adrian's write-ups |
+| Marks | 15 | Recipe numbers, seals and labels; 8 linked to a producer we hold |
+| Styles | 10 | Ways of making or pressing that are neither plant nor form |
+| Named teas | 17 | Arrived already named, composition undisclosed |
 | Glossary terms | 47 | Existing, not yet joined in |
 | Sensory terms | 136 | Existing, already single-sourced |
 
-Coverage against Adrian's own 303 write-ups, measured by `node scripts/audit-wisdom-coverage.mjs`: every origin he has written resolves (34 of 34), but only 75 of 185 teas resolve to a known identity. The base does not yet know 110 of his teas. Full findings in [_notes/wisdom-gap-report.md](_notes/wisdom-gap-report.md).
+### Recognition is reported in tiers
+
+One number would lie. Every tea resolves to something, but "it comes from Yunnan" is true of nearly everything, so counting that as recognition is arithmetic dressed as knowledge. `node scripts/audit-wisdom-coverage.mjs` reports, strongest first:
+
+- **Identified**, the base knows the tea itself: a variety, a cultivar, or a named tea.
+- **Attributed**, it knows the maker: a producer, a style or a mark, but not the plant.
+- **Placed**, it knows only where it grew.
+
+### On teas that arrive already named
+
+A collector in mainland China stores a sheng for years and names it Courage. The mountain is never recorded, the vintage often is not either, and the tea moves on carrying only that word. This is not a gap in the record; it is the nature of the record.
+
+The base holds these, states the province when the province is stated, and says plainly that the mountain and vintage are unrecorded. Refusing to hold them and calling that rigour would be the actual failure. They match on the whole name only, never on containment, because these are ordinary words and a tea described as taking courage to drink is not this tea.
+
+Distinguish this from the shop's own poetic overlay on an already-identified tea, which lives in a record's `givenName` and is account-scoped. That never enters the base.
+
+Coverage against Adrian's own 303 write-ups, measured by `node scripts/audit-wisdom-coverage.mjs`: every origin he has written resolves (34 of 34), and 91 of 185 teas are identified outright, 34 more attributed to a maker, style or line. Full findings in [_notes/wisdom-gap-report.md](_notes/wisdom-gap-report.md).
 
 Deliberately discarded from the research corpus: a 7,161-row cultivar-by-type matrix that was 91% empty with the rest a default rating and paired Da Hong Pao with Matcha, and a tea-types export belonging to a different product.
 

@@ -46,6 +46,7 @@ async function loadModule(entryPath, tmpName) {
 mkdirSync(tmpDir, { recursive: true });
 const { matchCultivar } = await loadModule(join(root, 'src/wisdom/cultivars.ts'), 'cultivars.mjs');
 const { matchProducer, matchStyle, matchMark } = await loadModule(join(root, 'src/wisdom/producers.ts'), 'producers.mjs');
+const { matchNamedTea } = await loadModule(join(root, 'src/wisdom/namedTeas.ts'), 'namedTeas.mjs');
 const { findRegion } = await loadModule(join(root, 'src/wisdom/regions.ts'), 'regions.mjs');
 const { normalizeTeaType, normalizeTeaForm, NON_TEA_TYPES } = await loadModule(join(root, 'src/wisdom/vocabulary.ts'), 'vocabulary.mjs');
 const { matchTeaVariety } = await loadModule(join(root, 'src/data/teaVarieties.ts'), 'teaVarieties.mjs');
@@ -140,6 +141,7 @@ for (const file of files) {
   const producer = matchProducer(...names);
   const style = matchStyle(...names);
   const mark = matchMark(...names);
+  const namedTea = matchNamedTea(...names);
   const typeNormalized = normalizeTeaType(meta.type);
   const isNonTea = NON_TEA_TYPES.includes(meta.type);
   const formNormalized = normalizeTeaForm(meta.form);
@@ -149,7 +151,7 @@ for (const file of files) {
     file: file.slice(root.length + 1),
     productName: meta.productName ?? null,
     chineseName: meta.chineseName ?? null,
-    producer, style, mark,
+    producer, style, mark, namedTea,
     type: meta.type ?? null,
     form: meta.form ?? null,
     origin: meta.origin ?? null,
@@ -216,10 +218,10 @@ console.log('');
 // and should not. But "recognized" has to mean something, and "it comes from
 // Yunnan" is true of nearly everything, so recognition is reported in tiers
 // from strongest to weakest rather than as one flattering number.
-const identified = teaResults.filter(r => r.variety || r.cultivar);
-const attributed = teaResults.filter(r => !r.variety && !r.cultivar && (r.producer || r.style || r.mark));
-const placed = teaResults.filter(r => !r.variety && !r.cultivar && !r.producer && !r.style && !r.mark && r.regionMatch);
-const unknown = teaResults.filter(r => !r.variety && !r.cultivar && !r.producer && !r.style && !r.mark && !r.regionMatch);
+const identified = teaResults.filter(r => r.variety || r.cultivar || r.namedTea);
+const attributed = teaResults.filter(r => !r.variety && !r.cultivar && !r.namedTea && (r.producer || r.style || r.mark));
+const placed = teaResults.filter(r => !r.variety && !r.cultivar && !r.namedTea && !r.producer && !r.style && !r.mark && r.regionMatch);
+const unknown = teaResults.filter(r => !r.variety && !r.cultivar && !r.namedTea && !r.producer && !r.style && !r.mark && !r.regionMatch);
 const pct = n => `${Math.round((n / teaResults.length) * 100)}%`;
 console.log('RECOGNITION, strongest first');
 console.log(`  identified (plant):    ${identified.length}  ${pct(identified.length)}   the base knows the tea itself`);
@@ -227,6 +229,7 @@ console.log(`  attributed (maker):    ${attributed.length}  ${pct(attributed.len
 console.log(`    names a producer:    ${teaResults.filter(r => r.producer).length}`);
 console.log(`    names a style:       ${teaResults.filter(r => r.style).length}`);
 console.log(`    names a mark:        ${teaResults.filter(r => r.mark).length}`);
+console.log(`  of identified, named:  ${teaResults.filter(r => r.namedTea).length}   arrived already named, composition undisclosed`);
 console.log(`  placed (origin only):  ${placed.length}  ${pct(placed.length)}   only where it grew`);
 console.log(`  nothing at all:        ${unknown.length}  ${pct(unknown.length)}`);
 console.log('');
