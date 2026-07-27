@@ -259,3 +259,38 @@ Any interactive icon or button under 44×44 must add the `tap-target` utility cl
 - The element is inside a larger interactive parent (e.g. a row button) where the parent IS the click target with ample padding.
 - The element is purely decorative (no `onClick`).
 - Inline icons inside a parent button (only the parent button needs `tap-target`).
+
+---
+
+## Rule 11: No Color Literals Inside Inline Styles
+
+Rule 2 has always said this. What changed is that `lint:colors` can now *see* it: the check reads inside `style={{ … }}` objects, tracking brace depth, instead of only matching `className` strings. Two separate rounds each fixed one component by hand because the same defect passed the lint one attribute over.
+
+```tsx
+// ❌ Blocked: the lint reads inside the style object now
+style={{ color: '#a65d4e' }}
+style={{ boxShadow: 'inset 0 0 0 2px rgba(255,255,255,0.95)' }}
+
+// ✅ Tokens resolve in both themes
+style={{ color: 'var(--tea-text-sec)' }}
+style={{ boxShadow: 'inset 0 0 0 2px rgb(var(--tea-gold-rgb) / 0.4)' }}
+```
+
+`var(--token)` and `rgb(var(--token-rgb) / a)` are never flagged.
+
+### The two exceptions, and how to claim them
+
+**1. The colour is data about the item, not styling applied to it.** The liquor colour of a tea is what the liquid looks like in the cup; it no more adapts to a theme than a photograph does. Mark the line with `color-data` in a comment, saying what the datum is:
+
+```tsx
+const hex = LIQUOR_COLORS[term.id];        // color-data: liquor colour from the taxonomy
+style={{ background: hex }}                // color-data: liquor colour, see above
+```
+
+A term the taxonomy has no colour for gets no swatch. Never invent a grey to stand in for a measurement nobody made.
+
+**2. The file renders an artifact that leaves the app.** A PNG export or a PDF has no theme to adapt to, and the rasteriser reads computed inline values, so a custom property would bake in whichever theme the sender happened to be using. Put `@color-literals` in the file's header comment with the reason. See `src/components/tasting/TastingCard.tsx`.
+
+### Enforcement is a ratchet
+
+The rule **blocks** on `src/components/shop/`, `src/components/tasting/`, `src/components/wisdom/`, `ProductPage.tsx`, `Shop.tsx`, `TeaInventory.tsx`. These are clean. Everywhere else it prints a **notice** with a count (505 lines across ~70 files at the time of writing, mostly decorative art direction in `src/pages/read/`). Extend `INLINE_STYLE_ENFORCED` in `scripts/lint-colors.sh` as each area is cleared. Do not widen it to a directory you have not cleared.

@@ -65,7 +65,7 @@ interface TastingSessionProps {
   /**
    * ADMIN ONLY: bypasses the journal entirely and writes to the product record.
    * When provided with adminMode=true, the journal is never touched.
-   * Supports async saves — errors are caught and surface in saveState.
+   * Supports async saves. Errors are caught and surface in saveState.
    */
   onSave?: (data: TastingData, verdict?: Verdict, wouldBuy?: boolean) => void | Promise<void>;
   /**
@@ -74,7 +74,7 @@ interface TastingSessionProps {
    * Receives verdict + wouldBuy when set (sourcing flows).
    */
   onAfterSave?: (data: TastingData, verdict?: Verdict, wouldBuy?: boolean) => void;
-  /** When true, onSave is the only write — no journal entry is created */
+  /** When true, onSave is the only write, and no journal entry is created */
   adminMode?: boolean;
   /** Pre-populate with existing tasting data (admin edit flows) */
   initialData?: TastingData;
@@ -142,7 +142,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     !!(initialData?.brewingVessel || initialData?.brewingTemp || initialData?.brewingTime)
   );
 
-  // Live draft review (admin + teaKey only) — Mode 3 async collaborative tasting
+  // Live draft review (admin + teaKey only): Mode 3 async collaborative tasting
   const draftReviewIdRef = useRef<string | null>(null);
   const isCreatingDraftRef = useRef(false);
   const draftDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -219,7 +219,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     };
   }, []);
 
-  // Draft-aware onChange — writes live state to tea_reviews when adminMode (or writeDraftReview) + teaKey
+  // Draft-aware onChange: writes live state to tea_reviews when adminMode (or writeDraftReview) + teaKey
   const handleTastingChange = useCallback((data: TastingData) => {
     setTastingData(data);
     if ((!adminMode && !writeDraftReview) || !item.teaKey) return;
@@ -550,7 +550,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               </div>
             )}
 
-            {/* Brewing context strip — admin mode only */}
+            {/* Brewing context strip: admin mode only */}
             {adminMode && (
               <div className="shrink-0 border-b border-tea-border">
                 <button
@@ -637,7 +637,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               </div>
             )}
 
-            {/* Sourcing verdict — shown before save when showVerdict + customer mode */}
+            {/* Sourcing verdict: shown before save when showVerdict + customer mode */}
             {showVerdict && !adminMode && (
               <div className="shrink-0 px-4 py-2.5 border-b border-tea-border bg-tea-surface/40">
                 <div
@@ -670,7 +670,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               </div>
             )}
 
-            {/* Structured sections — or the Notes workspace when the NOTE tab is active */}
+            {/* Structured sections, or the Notes workspace when the NOTE tab is active */}
             <div className="flex-1 min-h-0 overflow-hidden relative">
               <div
                 className="absolute bottom-0 left-0 right-0 h-6 pointer-events-none z-10"
@@ -695,7 +695,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               )}
             </div>
 
-            {/* Bottom bar — a flat word taskbar. One crisp hairline separates it
+            {/* Bottom bar: a flat word taskbar. One crisp hairline separates it
                 from the content above; no upward shadow haze (that read as smudged
                 shading). Active state is a bronze word + a sliding underline rule,
                 not a filled box, so it speaks the same language as the global nav
@@ -706,7 +706,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                 paddingBottom: 'env(safe-area-inset-bottom, 0px)',
               }}
             >
-              {/* Section tabs + mic — NOTE tab supports tap-to-open and hold-to-record */}
+              {/* Section tabs + mic: the NOTE tab supports tap-to-open and hold-to-record */}
               <LayoutGroup>
                 <div className="flex">
                   {ALL_SECTIONS.map((section) => {
@@ -728,7 +728,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                         }}
                       >
                         {/* Active = the word turns bronze + bold. No underline, no
-                            box — the color/weight shift alone marks it, matching how
+                            box. The color/weight shift alone marks it, matching how
                             the global capsule below signals its active item. */}
                         <span className="relative z-[1] inline-flex items-baseline gap-1">
                           {section.label}
@@ -751,17 +751,17 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                     );
                   })}
 
-                  {/* Hairline divider — separates the four senses (rate) from
+                  {/* Hairline divider: separates the four senses (rate) from
                       Note (capture), so Note stops reading as a 5th sense. */}
                   <div className="w-px my-3 bg-tea-border shrink-0" aria-hidden />
 
-                  {/* Note — capture cell. Word + inline mic, matching the sense
+                  {/* Note, the capture cell. Word + inline mic, matching the sense
                       tabs' weight. Tap to open panel; press-and-hold to silently
                       capture voice. */}
                   <button
                     type="button"
                     aria-pressed={showNote}
-                    aria-label="Notes — tap to open, hold to record"
+                    aria-label="Notes: tap to open, hold to record"
                     onPointerDown={(e) => {
                       e.preventDefault();
                       // If already recording (e.g. from a previous hold that
@@ -789,7 +789,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                         noteTabHoldTimerRef.current = null;
                       }
                       if (noteTabRecordingStartedRef.current) {
-                        // Release-to-stop — the natural hold gesture's end.
+                        // Release-to-stop: the natural hold gesture's end.
                         silentVoice.stop();
                       } else {
                         setShowNote(v => !v);
@@ -812,7 +812,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                         clearTimeout(noteTabHoldTimerRef.current);
                         noteTabHoldTimerRef.current = null;
                       }
-                      // Keep recording if finger/cursor leaves — user may still be holding.
+                      // Keep recording if finger/cursor leaves, since the user may still be holding.
                     }}
                     className={`relative flex-1 flex items-center justify-center py-3.5 transition-colors duration-200 select-none touch-none ${
                       silentVoice.state === 'recording'
@@ -831,7 +831,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                       textTransform: 'uppercase',
                     }}
                   >
-                    {/* Active/recording = bronze + bold word, no underline —
+                    {/* Active/recording = bronze + bold word, no underline.
                         same bronze-word language as the sense tabs. */}
                     <span className="relative z-[1] inline-flex items-center gap-1.5">
                       {silentVoice.state === 'transcribing' ? (
@@ -854,7 +854,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                 </div>
               </LayoutGroup>
 
-              {/* Completeness signal — admin only */}
+              {/* Completeness signal: admin only */}
               {adminMode && isComplete && (
                 <motion.div
                   initial={{ opacity: 0, y: 4 }}
@@ -983,7 +983,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               </div>
             )}
 
-            {/* Account nudge — shown to guests after 3+ tastings */}
+            {/* Account nudge: shown to guests after 3+ tastings */}
             {isGuest && !adminMode && tastingJournal.length >= 3 && (
               <motion.div
                 initial={{ opacity: 0, y: 8 }}
@@ -1007,7 +1007,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               </motion.div>
             )}
 
-            {/* Verdict — sourcing flows (post-save, only if not yet selected pre-save) */}
+            {/* Verdict: sourcing flows (post-save, only if not yet selected pre-save) */}
             {showVerdict && !adminMode && verdict === null && (
               <motion.div
                 initial={{ opacity: 0, y: 8 }}

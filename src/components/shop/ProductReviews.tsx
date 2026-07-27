@@ -1,9 +1,11 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { resolveTermLabel, flattenTastingNotes } from '../../data/tastingTaxonomy';
 import type { TastingData } from '../../types';
-import { BODY, LABEL, LABEL_GAP, NUMERAL } from '../shared/typeRoles';
+import { shopTermHref } from './termFilter';
+import { BODY, LABEL, LABEL_GAP, LINK, NUMERAL } from '../shared/typeRoles';
 
 /**
  * What other people found in this tea, on both surfaces that describe it.
@@ -120,12 +122,26 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({
                 </span>
               </div>
 
-              {/* Terms a reader cannot tap are a caption, not a row of pills.
-                  The metadata under the title stopped pretending to be links in
-                  round two; these were the same promise, still unkept. */}
+              {/* Still a caption, not a row of pills: the shape was right and
+                  stays. What was wrong is that every term in it was set plain
+                  while the tasting block twenty rows up set the identical term
+                  as a link. One page, one word, two promises. A term the shop
+                  can filter on is a link here too; body, finish and liquor
+                  colour cannot be filtered on and stay plain in both blocks.
+                  `shopTermHref` decides, once, for both. */}
               {flavorTerms.length > 0 && (
                 <p className={`${BODY} text-tea-text-dim`}>
-                  {flavorTerms.slice(0, 6).map(termId => resolveTermLabel(termId)).join(' · ')}
+                  {flavorTerms.slice(0, 6).map((termId, idx) => {
+                    const href = shopTermHref(termId);
+                    return (
+                      <React.Fragment key={termId}>
+                        {idx > 0 && <span className="select-none"> · </span>}
+                        {href
+                          ? <Link to={href} className={LINK}>{resolveTermLabel(termId)}</Link>
+                          : resolveTermLabel(termId)}
+                      </React.Fragment>
+                    );
+                  })}
                 </p>
               )}
 

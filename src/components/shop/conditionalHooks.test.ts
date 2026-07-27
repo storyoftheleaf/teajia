@@ -106,11 +106,16 @@ describe('the product page regression this test was written for', () => {
     expect(notFoundReturn).toBeGreaterThan(-1);
   });
 
-  it.each(['useProductTasting', 'useAuth', 'useState', 'useMemo', 'useQuery', 'useShopPrice'])(
+  // `useQuery` was on this list until the impressions query moved into
+  // `useProductImpressions`, which both this page and the quick view now read.
+  // The hook being pinned is the one the page actually calls: pinning the
+  // library call would have started failing the day the query was shared, which
+  // is a refactor the rule has no opinion about.
+  it.each(['useProductTasting', 'useAuth', 'useState', 'useMemo', 'useProductImpressions', 'useShopPrice'])(
     'calls %s above it',
     (hook) => {
-      // `useQuery<ProductImpression[]>({…})` carries a type argument, so the
-      // call parenthesis is not the next character after the name.
+      // A hook may carry a type argument (`useFocusTrap<HTMLDivElement>(…)`), so
+      // the call parenthesis is not always the next character after the name.
       const first = component.search(new RegExp(`\\b${hook}\\s*(?:<[^>(]*>)?\\s*\\(`));
       expect(first).toBeGreaterThan(-1);
       expect(first).toBeLessThan(notFoundReturn);

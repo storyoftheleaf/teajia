@@ -10,13 +10,32 @@ import { useAppStore } from '../../lib/store';
 import type { InventoryItem } from '../../types';
 import { useShopPrice } from './shopPrice';
 import { AddToSampleButton } from '../samples/AddToSampleButton';
+import { BODY, HEADING, LABEL, NUMERAL } from '../shared/typeRoles';
 
 interface CollectionTabProps {
   inventory: InventoryItem[];
   onAddToCart: (item: InventoryItem, qty: number, total: number) => void;
 }
 
-/** Shared card component for both saved and recommended items */
+/**
+ * The saved / picks card, on the page's four type roles.
+ *
+ * The last card in the shop still running a private scale. It set six sizes
+ * (`text-2xl`, `text-base`, `text-sm`, `text-xs`, `text-ui-10` and the browser
+ * default) against the four roles the rest of the shop settled on in round one,
+ * and it carried the hierarchy in *opacity*: `text-tea-text/40` on the metadata,
+ * `/50` on the variant, `/70` on the lore, plus an inline `opacity: 1 - i*0.18`
+ * ramp on the tasting notes. The readability floor bans a text opacity modifier
+ * outright, for a reason this card demonstrates: `/40` on the dim end of the
+ * scale is a metadata line that disappears in daylight.
+ *
+ * The ramp was worse than illegible. Notes were printed at falling width and
+ * falling opacity by array index, which is a ranking drawn on data that carries
+ * no rank: the first tag a curator happened to type read as the strongest note
+ * in the tea. Same mark for each of them now, and the hierarchy inside the card
+ * is carried by colour, which is how every other block on these surfaces does
+ * it.
+ */
 const ItemCard: React.FC<{
   item: InventoryItem;
   onView: (item: InventoryItem) => void;
@@ -33,7 +52,6 @@ const ItemCard: React.FC<{
   const isTea = item.category === 'tea';
   const isSoldOut = item.stock_g <= 0;
   const notes = item.tags || [];
-  const accent = 'var(--tea-gold)';
 
   return (
     <div
@@ -56,12 +74,14 @@ const ItemCard: React.FC<{
           {/* Save/unsave button overlay */}
           {onToggleSave && (
             <button
+              type="button"
               onClick={(e) => { e.stopPropagation(); onToggleSave(item.id); }}
-              className="absolute top-3 right-3 w-8 h-8 rounded-full bg-tea-bg/60 backdrop-blur-sm flex items-center justify-center transition-all hover:bg-tea-bg/80"
-              title={isSaved ? 'Remove from saved' : 'Save for later'}
+              className="tap-target absolute top-3 right-3 w-8 h-8 rounded-full bg-tea-bg/60 backdrop-blur-sm flex items-center justify-center transition-all hover:bg-tea-bg/80"
+              aria-label={isSaved ? `Remove ${item.name} from saved` : `Save ${item.name} for later`}
+              aria-pressed={Boolean(isSaved)}
             >
               <Icons.Heart
-                className={`w-4 h-4 transition-colors ${isSaved ? 'text-tea-gold fill-tea-gold' : 'text-tea-text/60'}`}
+                className={`w-4 h-4 transition-colors ${isSaved ? 'text-tea-gold fill-tea-gold' : 'text-tea-text-sec'}`}
               />
             </button>
           )}
@@ -69,59 +89,41 @@ const ItemCard: React.FC<{
 
         {/* Details */}
         <div className="flex-1 p-5 md:p-8 flex flex-col">
-          {/* Type · Origin · Year */}
-          <p className="font-serif text-xs italic text-tea-text/40 mb-2">
-            {item.type}
-            {item.origin && <><span className="mx-2 opacity-40">·</span>{item.origin}</>}
-            {item.year && <><span className="mx-2 opacity-40">·</span>{item.year}</>}
+          {/* A run of facts joined by interpuncts is a sentence, not a label,
+              so it is set as body and coloured dim rather than shrunk. */}
+          <p className={`${BODY} mb-2 italic text-tea-text-dim`}>
+            {[item.type, item.origin, item.year].filter(Boolean).join(' \u00b7 ')}
           </p>
 
-          <h3 className="font-serif text-2xl text-tea-text mb-1 group-hover:text-tea-gold transition-colors">
+          <h3 className={`${HEADING} mb-1 text-tea-text transition-colors group-hover:text-tea-gold`}>
             {item.name}
           </h3>
           {item.variant && item.variant !== item.name && (
-            <p className="font-serif italic text-sm text-tea-text/50 mb-3">
+            <p className={`${BODY} mb-3 italic text-tea-text-dim`}>
               {item.variant}
             </p>
           )}
 
           {/* Lore / Description */}
           {(item.lore || item.description) && (
-            <p className="font-serif text-sm text-tea-text/70 leading-relaxed mb-4 line-clamp-3">
+            <p className={`${BODY} mb-4 line-clamp-3 text-tea-text-sec`}>
               {item.lore || item.description}
             </p>
           )}
 
-          {/* Tasting notes */}
+          {/* Tasting notes. One mark each, one colour each. */}
           {(item.mood || notes.length > 0) && (
             <div className="flex flex-col gap-1.5 mb-4">
               {item.mood && (
                 <div className="flex items-center gap-2.5">
-                  <div
-                    className="w-[18px] h-[2px] rounded-xl shrink-0"
-                    style={{ background: accent, opacity: 0.7 }}
-                  />
-                  <span className="font-serif italic text-xs text-tea-text/70">
-                    {item.mood}
-                  </span>
+                  <span className="h-px w-4 shrink-0 bg-tea-border" aria-hidden="true" />
+                  <span className={`${BODY} italic text-tea-text-sec`}>{item.mood}</span>
                 </div>
               )}
-              {notes.slice(0, 3).map((note, i) => (
+              {notes.slice(0, 3).map(note => (
                 <div key={note} className="flex items-center gap-2.5">
-                  <div
-                    className="h-[2px] rounded-xl shrink-0"
-                    style={{
-                      width: `${16 - i * 2}px`,
-                      background: accent,
-                      opacity: 0.5 - i * 0.15,
-                    }}
-                  />
-                  <span
-                    className="font-serif italic text-xs"
-                    style={{ color: 'var(--tea-text-sec)', opacity: 1 - i * 0.18 }}
-                  >
-                    {note}
-                  </span>
+                  <span className="h-px w-4 shrink-0 bg-tea-border" aria-hidden="true" />
+                  <span className={`${BODY} italic text-tea-text-sec`}>{note}</span>
                 </div>
               ))}
             </div>
@@ -130,17 +132,10 @@ const ItemCard: React.FC<{
           {/* Price + Quick Add */}
           <div className="mt-auto flex items-center gap-3">
             <div>
-              {isTea ? (
-                <>
-                  <span className="num text-sm text-tea-gold">{shopPrice.total(pricePerGram * 50)}</span>
-                  <span className="text-tea-text-sec text-xs ml-1">/ 50g</span>
-                </>
-              ) : (
-                <>
-                  <span className="num text-sm text-tea-gold">{shopPrice.total(priceUnit)}</span>
-                  <span className="text-tea-text-sec text-xs ml-1">each</span>
-                </>
-              )}
+              <span className={`${BODY} ${NUMERAL} text-tea-gold`}>
+                {isTea ? shopPrice.total(pricePerGram * 50) : shopPrice.total(priceUnit)}
+              </span>
+              <span className={`${BODY} ml-1 text-tea-text-sec`}>{isTea ? '/ 50g' : 'each'}</span>
             </div>
             <div className="ml-auto flex items-center gap-2">
               {isTea && (
@@ -157,7 +152,11 @@ const ItemCard: React.FC<{
                   size={15}
                 />
               )}
+              {/* The buy button reads the one measured solid-CTA treatment
+                  (.cta-solid) rather than writing `bg-tea-gold text-tea-bg`
+                  again: that pairing is 4.1:1 in light mode. */}
               <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   if (isSoldOut) return;
@@ -168,10 +167,10 @@ const ItemCard: React.FC<{
                   }
                 }}
                 disabled={isSoldOut}
-                className={`text-ui-10 uppercase tracking-[0.12em] font-medium py-2 px-4 rounded-md transition-all min-h-[44px] ${
+                className={`${LABEL} min-h-[44px] rounded-md px-4 py-2 font-medium transition-all ${
                   isSoldOut
-                    ? 'bg-tea-accent-sub text-tea-text-sec cursor-not-allowed opacity-60'
-                    : 'bg-tea-gold hover:bg-tea-gold-lt text-tea-bg active:scale-95'
+                    ? 'cursor-not-allowed bg-tea-accent-sub text-tea-text-sec'
+                    : 'cta-solid active:scale-95'
                 }`}
               >
                 {isSoldOut ? 'Sold Out' : isTea ? 'Add 50g' : 'Add to Cart'}
@@ -264,24 +263,24 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
       {/* Page intro */}
       <div className="mb-8">
         <div className="w-12 h-[1px] bg-tea-gold mb-4" />
-        <h2 className="font-serif text-2xl md:text-3xl text-tea-text mb-2">
+        <h2 className={`${HEADING} mb-2 text-tea-text`}>
           For You
         </h2>
-        <p className="text-sm text-tea-text-sec leading-relaxed max-w-lg">
+        <p className={`${BODY} max-w-lg text-tea-text-sec`}>
           Teas you've saved and teas we think you'll love. Tap the heart on any tea across the shop to add it here. Your own shortlist for when you're ready to order.
         </p>
       </div>
 
       {/* Empty state */}
       {isEmpty && (
-        <div className="flex flex-col items-center justify-center py-24 opacity-50">
-          <div className="w-16 h-16 border border-tea-text/20 rounded-full flex items-center justify-center mb-4">
-            <Icons.Heart className="w-6 h-6 text-tea-text/40" />
+        <div className="flex flex-col items-center justify-center py-24">
+          <div className="w-16 h-16 border border-tea-border rounded-full flex items-center justify-center mb-4">
+            <Icons.Heart className="w-6 h-6 text-tea-text-dim" />
           </div>
-          <p className="font-serif italic text-base text-tea-text/60 text-center mb-1">
+          <p className={`${BODY} mb-1 text-center italic text-tea-text-sec`}>
             Nothing saved yet.
           </p>
-          <p className="text-xs text-tea-text/40 text-center max-w-xs">
+          <p className={`${BODY} max-w-xs text-center text-tea-text-dim`}>
             Browse the Tea or Teaware tabs and tap the heart icon on anything that catches your eye.
           </p>
         </div>

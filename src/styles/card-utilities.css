@@ -137,10 +137,51 @@
 :root {
   --tea-vignette-color: rgba(24, 19, 14, 0.12);
   --teajia-sidebar-w: 14rem; /* default expanded — overwritten by LeftSidebar JS */
+
+  /* The two state hues the pill block needed and the palette did not have.
+
+     `--tea-error` already existed and is theme-aware, so the destructive pill
+     reads it directly. There was no warning token at all, which is why the
+     amber pill carried a raw `#fbbf24` (a Tailwind stock amber, picked for a
+     dark background and never rechecked against parchment) through two rounds
+     of token work. Declared here rather than in tailwind.css because these are
+     component-state colours used by this stylesheet, not palette entries a
+     component should be reaching for with a `text-` class.
+
+     Both are measured against their own page background, not eyeballed:
+     #e0a63f on #22201c is 7.5:1, #8a5510 on #f4ece0 is 5.3:1. */
+  --tea-warn: #e0a63f;
+  --tea-warn-rgb: 224 166 63;
+
+  /* The solid-CTA background. Identical to --tea-gold in dark mode, deliberately
+     darker than it in light. See the .alcove-order-btn note for the measurement.
+
+     The hover moves *away* from the page in both modes, which is why it needs a
+     token of its own rather than `--tea-gold-lt`: lightening a bronze fill is
+     the right hover on espresso (6.6:1) and the wrong one on parchment, where
+     `--tea-gold-lt` under cream text measures 3.0:1, so the button became
+     unreadable exactly while the cursor was on it. */
+  --tea-gold-solid: var(--tea-gold);
+  --tea-gold-solid-hover: var(--tea-gold-lt);
 }
 
 [data-theme="light"], .light-mode, .light {
   --tea-vignette-color: rgba(240, 235, 228, 0.10);
+  --tea-warn: #8a5510;
+  --tea-warn-rgb: 138 85 16;
+  --tea-gold-solid: #806229;
+  --tea-gold-solid-hover: #6e5323;
+}
+
+/* The one solid buy-button treatment, so a surface cannot opt out of the
+   measurement by writing `bg-tea-gold text-tea-bg` by hand. Compose it with
+   whatever shape and type role the surface needs; this carries colour only. */
+.cta-solid {
+  background: var(--tea-gold-solid);
+  color: var(--tea-bg);
+}
+.cta-solid:hover:not(:disabled) {
+  background: var(--tea-gold-solid-hover);
 }
 
 /* ============================================
@@ -896,27 +937,38 @@ input[type="number"]::-webkit-outer-spin-button {
   font-size: 12px;
 }
 
-/* Amber variant (warnings, stock alerts) */
+/* Amber variant (warnings, stock alerts).
+
+   Four raw literals lived in this block and its destructive sibling, on the
+   two variants that survived the round that brought the rest of the pills onto
+   tokens: `#fbbf24` here, `#f87171` and `#fca5a5` below, and the `white` that
+   `.pill-primary:hover` mixed into the gold. Every one of them was picked for
+   a dark background. In light mode `#fbbf24` is a 1.6:1 amber on parchment,
+   which is a warning nobody can read, and `white` is banned outright.
+
+   The state hues are tokens now (`--tea-warn`, `--tea-error`), so a warning
+   reads on espresso and on parchment, and the hover mixes toward the light gold
+   the palette already declares instead of toward a colour the palette forbids. */
 .pill-active-amber {
   background: transparent;
-  color: #fbbf24;
+  color: var(--tea-warn);
   font-weight: 600;
-  box-shadow: inset 0 -1px 0 #fbbf24;
+  box-shadow: inset 0 -1px 0 var(--tea-warn);
 }
 
 .pill-active-amber:hover {
-  background: rgba(251, 191, 36, 0.06);
+  background: rgb(var(--tea-warn-rgb) / 0.06);
 }
 
 /* Primary solid — reserve for ONE commit action per surface */
 .pill-primary {
-  background: var(--tea-gold);
+  background: var(--tea-gold-solid);
   color: var(--tea-bg);
   font-weight: 600;
 }
 
 .pill-primary:hover {
-  background: color-mix(in srgb, var(--tea-gold) 88%, white);
+  background: var(--tea-gold-solid-hover);
 }
 
 .pill-primary:disabled {
@@ -962,25 +1014,28 @@ input[type="number"]::-webkit-outer-spin-button {
   font-weight: 500;
 }
 
-/* Destructive — subtle red tint, used for confirm step of suspend/delete */
+/* Destructive — subtle red tint, used for confirm step of suspend/delete.
+   `--tea-error` is the palette's own red and is warmed per theme (terracotta on
+   espresso, oxblood on parchment), which is what the two Tailwind stock reds
+   this block used to carry were standing in for. */
 .pill-destructive {
-  color: #f87171;
+  color: var(--tea-error);
 }
 
 .pill-destructive:hover {
-  background: rgba(248, 113, 113, 0.08);
-  color: #fca5a5;
+  background: rgb(var(--tea-error-rgb) / 0.08);
+  color: var(--tea-error);
 }
 
 .pill-destructive-confirm {
-  background: rgba(248, 113, 113, 0.12);
-  color: #fca5a5;
+  background: rgb(var(--tea-error-rgb) / 0.12);
+  color: var(--tea-error);
   font-weight: 600;
-  box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.3);
+  box-shadow: inset 0 0 0 1px rgb(var(--tea-error-rgb) / 0.3);
 }
 
 .pill-destructive-confirm:hover {
-  background: rgba(248, 113, 113, 0.18);
+  background: rgb(var(--tea-error-rgb) / 0.18);
 }
 
 /* --- Status Badge (read-only labels) --- */
@@ -2261,14 +2316,31 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* Primary order button. Bronze fill is one of the four places bronze is
-   allowed, and this is the buy button. */
+   allowed, and this is the buy button.
+
+   The fill is `--tea-gold-solid`, not `--tea-gold`, and only in light mode are
+   they different. The pairing here is cream text on bronze, which is the
+   mirror of the pairing the colour rules block outright (Rule 6 forbids
+   pairing two tokens that resolve close together), and it passed the lint
+   because the lint only reads the gold-on-gold form. Measured rather than
+   argued: in dark mode `#ede4d4`-adjacent cream on `#a8874d` is 4.84:1 and
+   clears AA. In light mode the same rule resolves to `#f4ece0` on `#8e6d2e`,
+   which is 4.10:1 on 11px type: below the 4.5:1 floor, on the one control in
+   the shop that spends money, in the mode a customer is most likely reading it
+   in outdoors. Light gold darkens to `#806229`, which is 4.91:1 with the same
+   cream and is still visibly bronze rather than brown. Dark mode is untouched.
+
+   The alternative was lifting the text off `--tea-bg`, and it is worse: cream
+   text is the only thing on this button that already reads in both modes, and
+   `--tea-text` on bronze measures 2.67:1 in dark mode. The background is the
+   half of the pair that can move. */
 .alcove-order-btn {
   flex: 1;
   min-height: 44px;
   padding: 0 14px;
   font-weight: 500;
   color: var(--tea-bg);
-  background: var(--tea-gold);
+  background: var(--tea-gold-solid);
   border: 1px solid transparent;
   border-radius: 4px;
   cursor: pointer;
@@ -2287,7 +2359,7 @@ input[type="number"]::-webkit-outer-spin-button {
   padding-top: 4px;
   padding-bottom: 4px;
 }
-.alcove-order-btn:hover:not(:disabled) { background: var(--tea-gold-lt); }
+.alcove-order-btn:hover:not(:disabled) { background: var(--tea-gold-solid-hover); }
 .alcove-order-btn:active:not(:disabled) { transform: translateY(1px); }
 .alcove-order-btn[data-state="added"] {
   background: var(--tea-leaf);

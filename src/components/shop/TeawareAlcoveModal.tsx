@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { TeawareAlcoveCard } from './TeawareAlcoveCard';
 import { useScrollLock } from '../../hooks/useScrollLock';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { useAppStore } from '../../lib/store';
 import type { InventoryItem } from '../../types';
 
@@ -41,6 +42,26 @@ export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
   const cardRef = useRef<HTMLDivElement>(null);
   const justNavigatedRef = useRef(false);
 
+  /**
+   * The same trap, and the same announcement, as the tea modal twenty lines
+   * away in the same folder.
+   *
+   * `AlcoveModal` is a labelled `role="dialog"` with `aria-modal` and a focus
+   * trap; this one was a bare `div` over an opaque black scrim. A keyboard
+   * reader who opened a teapot could Tab straight out of it into the shop grid
+   * behind the overlay, with no visible cursor and no way back to a close
+   * button, and a screen reader was never told a dialog had opened at all: it
+   * kept reading the page underneath as if nothing had happened. Round seven
+   * rebuilt this card's *contents* onto the shared system and left its shell
+   * carrying the one defect the sibling had already fixed.
+   *
+   * The peeking preview cards are marked `aria-hidden` and made `inert` for the
+   * same reason they are in the tea modal: the trap skips those subtrees, so a
+   * Tab cycle cannot land on a blurred teapot nobody can see, and a pointer
+   * cannot reach into one either.
+   */
+  const dialogRef = useFocusTrap<HTMLDivElement>(isOpen, { initialFocus: '[data-alcove-close]' });
+
   const currentIndex = item ? items.findIndex(i => i.id === item.id) : -1;
   const isFirst = currentIndex <= 0;
   const isLast = currentIndex >= items.length - 1;
@@ -68,10 +89,15 @@ export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
   useEffect(() => {
     if (item) {
       requestAnimationFrame(() => setIsVisible(true));
+      requestAnimationFrame(() => {
+        dialogRef.current?.querySelectorAll<HTMLElement>('[data-alcove-preview]').forEach((el) => {
+          (el as HTMLElement & { inert: boolean }).inert = true;
+        });
+      });
     } else {
       setIsVisible(false);
     }
-  }, [item]);
+  }, [item, dialogRef]);
 
   useEffect(() => {
     if (!item) return;
@@ -144,10 +170,24 @@ export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
   const hasNavigation = items.length > 1 && onItemChange;
   const peekGap = 40;
 
+  // Escape and the arrow keys are already listened for on the window; this
+  // stops a keypress inside the trapped dialog bubbling out to anything behind
+  // it as well. Tab is `useFocusTrap`'s business.
+  const handleDialogKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Escape') { e.stopPropagation(); onClose(); return; }
+    if (e.key === 'ArrowLeft') { e.stopPropagation(); goPrev(); return; }
+    if (e.key === 'ArrowRight') { e.stopPropagation(); goNext(); }
+  };
+
   return (
     <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={item.name}
       className={`fixed inset-0 z-modal transition-all duration-300 ${isVisible ? 'bg-black/95' : 'bg-black/0 pointer-events-none'}`}
       onClick={handleBackdropClick}
+      onKeyDown={handleDialogKeyDown}
     >
       <div
         className="relative flex items-center justify-center w-full h-full overflow-hidden"
@@ -158,6 +198,8 @@ export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
         {/* Previous card (peeking from left) */}
         {hasNavigation && prevItem && (
           <div
+            data-alcove-preview
+            aria-hidden="true"
             className="absolute hidden md:block pointer-events-auto cursor-pointer"
             style={{
               zIndex: 1,
@@ -179,6 +221,8 @@ export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
         {/* Mobile: previous card peek */}
         {hasNavigation && prevItem && (
           <div
+            data-alcove-preview
+            aria-hidden="true"
             className="absolute md:hidden pointer-events-none"
             style={{
               zIndex: 1,
@@ -223,13 +267,21 @@ export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
               onAddToCart={handleAddToCart}
               onClose={onClose}
             />
+            {/* Top-left, icon only, secondary text colour: the panel/drawer
+                close rule the rest of the app follows and the tea modal's own
+                close button already followed. This one sat top-right on a
+                filled bronze-on-scrim puck, which is the centred-overlay rule
+                applied to a panel, and it was the trap's natural first stop, so
+                fixing the trap without fixing the button would have opened
+                every teapot with focus on a control in the wrong corner. */}
             <button
-              className="absolute top-2 right-2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-tea-text/30 hover:bg-tea-text/50 transition-colors"
+              data-alcove-close
+              className="tap-target absolute top-2 left-2 z-10 flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
               onClick={onClose}
               aria-label="Close"
             >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
-                stroke="var(--tea-gold)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
@@ -249,6 +301,8 @@ export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
         {/* Next card (peeking from right) */}
         {hasNavigation && nextItem && (
           <div
+            data-alcove-preview
+            aria-hidden="true"
             className="absolute hidden md:block pointer-events-auto cursor-pointer"
             style={{
               zIndex: 1,
@@ -270,6 +324,8 @@ export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
         {/* Mobile: next card peek */}
         {hasNavigation && nextItem && (
           <div
+            data-alcove-preview
+            aria-hidden="true"
             className="absolute md:hidden pointer-events-none"
             style={{
               zIndex: 1,

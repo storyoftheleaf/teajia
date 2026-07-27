@@ -19,6 +19,27 @@ export interface WhatsAppMessageOptions {
   subtotal: string;
   shipping?: string;
   total: string;
+  /**
+   * The currency code the figures above are quoted in, e.g. `IDR`.
+   *
+   * Every price in this message is a pre-formatted string, so the builder
+   * cannot tell Rupiah from dollars by looking. Three call sites knew, and all
+   * three hand-appended the same sentence into `notes`: the product page, the
+   * teaware card and the public cart, one of them joining it to the customer's
+   * own note with a blank line and two of them overwriting `notes` outright.
+   * That is the shared bag this loop already pulled out of the tea card, in
+   * message form: a field with a meaning, carried as free text by whoever
+   * remembered.
+   *
+   * Naming it makes it a field of the order rather than a paragraph in it, and
+   * the line lands in the same place in all three messages, below the total and
+   * above the customer's own words, which is where an operator reading a
+   * WhatsApp thread expects a currency to be stated.
+   *
+   * Omitted, or 'USD', prints nothing: the shop's books are in dollars and a
+   * message that says so is stating the default back at the reader.
+   */
+  currency?: string;
   /** Admin draft prefill URL, appended to inquiry messages so the operator can tap it to open a pre-filled invoice form. */
   adminDraftUrl?: string;
 }
@@ -57,6 +78,11 @@ export function buildOrderMessage(opts: WhatsAppMessageOptions): string {
   const date = opts.date || new Date().toLocaleDateString();
   const lines: string[] = [];
 
+  /** One sentence, written once, for whichever message needs it. */
+  const currencyLine = opts.currency && opts.currency !== 'USD'
+    ? `Prices as shown on the site, in ${opts.currency}.`
+    : null;
+
   if (opts.type === 'inquiry') {
     lines.push("Hello, I'd like to order:", '');
     opts.items.forEach(item => {
@@ -65,6 +91,7 @@ export function buildOrderMessage(opts: WhatsAppMessageOptions): string {
     });
     lines.push('');
     lines.push(`Total: ${opts.total}`);
+    if (currencyLine) lines.push(currencyLine);
     lines.push('');
     if (opts.customerName) lines.push(`Name: ${opts.customerName}`);
     if (opts.customerContact) lines.push(`Contact: ${opts.customerContact}`);
@@ -85,6 +112,7 @@ export function buildOrderMessage(opts: WhatsAppMessageOptions): string {
     lines.push(`Subtotal: ${opts.subtotal}`);
     if (opts.shipping) lines.push(`Shipping: ${opts.shipping}`);
     lines.push(`Total: ${opts.total}`);
+    if (currencyLine) lines.push(currencyLine);
   } else if (opts.type === 'purchase') {
     lines.push('Teajia Purchase Order');
     lines.push(`Date: ${date}`);
@@ -96,6 +124,7 @@ export function buildOrderMessage(opts: WhatsAppMessageOptions): string {
     });
     lines.push('');
     lines.push(`Total: ${opts.total}`);
+    if (currencyLine) lines.push(currencyLine);
     lines.push('', 'Please confirm availability and pricing.');
   }
 

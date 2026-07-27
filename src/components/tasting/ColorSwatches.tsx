@@ -55,7 +55,9 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow, compact = fals
 
   if (compact) {
     const selectedId = selected[0] ?? null;
-    const selectedHex = selectedId ? (LIQUOR_COLORS[selectedId] || '#888') : null;
+    // color-data: the liquor's own colour, from the taxonomy. No invented
+    // grey stands in for a term the base has no colour for.
+    const selectedHex = selectedId ? (LIQUOR_COLORS[selectedId] ?? null) : null;
     const n = colorTerms.length;
 
     return (
@@ -93,7 +95,7 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow, compact = fals
           )}
         </div>
 
-        {/* Segmented color bar — pointer events for drag + tap */}
+        {/* Segmented color bar: pointer events for drag + tap */}
         <div
           className="relative flex cursor-pointer select-none outline-none"
           style={{
@@ -101,7 +103,9 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow, compact = fals
             borderRadius: 8,
             overflow: 'hidden',
             touchAction: 'none',
-            background: '#1a1a1a',
+            // Only ever seen through the segment seams, so it is the surface
+            // token rather than a near-black picked to sit under one theme.
+            background: 'var(--tea-surface)',
           }}
           onPointerDown={(e) => {
             isDragging.current = true;
@@ -118,15 +122,25 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow, compact = fals
         >
           {colorTerms.map((term, i) => {
             const isSelected = term.id === selectedId;
-            const hex = LIQUOR_COLORS[term.id] || '#888';
+            // color-data: what the liquor looks like in the cup, read from the
+            // taxonomy and painted as given. A term the base has no colour for
+            // is skipped rather than filled with an invented grey, which is the
+            // rule the profile strip already follows for the same values.
+            const hex = LIQUOR_COLORS[term.id];
+            if (!hex) return null;
             return (
               <div
                 key={term.id}
                 style={{
                   flex: 1,
-                  background: hex,
-                  borderRight: i < n - 1 ? '1.5px solid rgba(0,0,0,0.2)' : undefined,
-                  boxShadow: isSelected ? 'inset 0 0 0 2.5px rgba(255,255,255,0.95)' : undefined,
+                  background: hex, // color-data: liquor colour, see above
+                  // The seam and the selection ring are chrome, not data, so
+                  // they are tokens. The ring was a 95% white inset, which the
+                  // project bans and which vanished on a pale liquor in light
+                  // mode; the text token inverts with the theme and so keeps
+                  // its contrast against the swatch it is drawn on.
+                  borderRight: i < n - 1 ? '1.5px solid var(--tea-bg)' : undefined,
+                  boxShadow: isSelected ? 'inset 0 0 0 2.5px var(--tea-text)' : undefined,
                   transition: 'box-shadow 0.1s ease',
                 }}
               />
@@ -171,7 +185,8 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow, compact = fals
       <div className="grid grid-cols-5 gap-3">
         {colorTerms.map(term => {
           const isSelected = selected.includes(term.id);
-          const hex = LIQUOR_COLORS[term.id] || '#888';
+          const hex = LIQUOR_COLORS[term.id]; // color-data: liquor colour from the taxonomy
+          if (!hex) return null;
           return (
             <motion.button
               key={term.id}
@@ -192,7 +207,7 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow, compact = fals
                 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 20 }}
                 className="rounded-full"
-                style={{ width: 44, height: 44, borderRadius: '50%', background: hex }}
+                style={{ width: 44, height: 44, borderRadius: '50%', background: hex }} // color-data: liquor colour
               />
               <span
                 className={`text-ui-11 leading-tight text-center transition-colors duration-150 ${

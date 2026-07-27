@@ -44,7 +44,7 @@ function getColor(type: string): string {
 
 // --- Individual tea type illustrations ---
 
-// A curled leaf — fresh, vegetal
+// A curled leaf: fresh, vegetal
 function GreenLeaf({ color }: { color: string }) {
   return (
     <g>
@@ -56,7 +56,7 @@ function GreenLeaf({ color }: { color: string }) {
   );
 }
 
-// A small bud with fine hairs — delicate, golden
+// A small bud with fine hairs: delicate, golden
 function YellowBud({ color }: { color: string }) {
   return (
     <g>
@@ -69,7 +69,7 @@ function YellowBud({ color }: { color: string }) {
   );
 }
 
-// Silver needle — minimal, ethereal
+// Silver needle: minimal, ethereal
 function WhiteNeedle({ color }: { color: string }) {
   return (
     <g>
@@ -83,7 +83,7 @@ function WhiteNeedle({ color }: { color: string }) {
   );
 }
 
-// A partially rolled leaf — complex, in-between
+// A partially rolled leaf: complex, in-between
 function OolongRoll({ color }: { color: string }) {
   return (
     <g>
@@ -94,7 +94,7 @@ function OolongRoll({ color }: { color: string }) {
   );
 }
 
-// An oxidized leaf — warm, full
+// An oxidized leaf: warm, full
 function RedLeaf({ color }: { color: string }) {
   return (
     <g>
@@ -105,7 +105,7 @@ function RedLeaf({ color }: { color: string }) {
   );
 }
 
-// A compressed brick/cake shape — aged, dense
+// A compressed brick/cake shape: aged, dense
 function DarkBrick({ color }: { color: string }) {
   return (
     <g>
@@ -119,7 +119,7 @@ function DarkBrick({ color }: { color: string }) {
   );
 }
 
-// A pu-erh cake — round, compressed, dark
+// A pu-erh cake: round, compressed, dark
 function ShouCake({ color }: { color: string }) {
   return (
     <g>
@@ -132,7 +132,7 @@ function ShouCake({ color }: { color: string }) {
   );
 }
 
-// A wild leaf — raw, living
+// A wild leaf: raw, living
 function ShengLeaf({ color }: { color: string }) {
   return (
     <g>
@@ -158,7 +158,7 @@ function HerbalScatter({ color }: { color: string }) {
   );
 }
 
-// A vessel — gaiwan/teapot silhouette
+// A vessel: gaiwan/teapot silhouette
 function TeawareVessel({ color }: { color: string }) {
   return (
     <g>
@@ -174,7 +174,7 @@ function TeawareVessel({ color }: { color: string }) {
   );
 }
 
-// A simple circle — neutral
+// A simple circle: neutral
 function MiscCircle({ color }: { color: string }) {
   return (
     <g>

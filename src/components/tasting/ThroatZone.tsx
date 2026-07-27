@@ -19,9 +19,9 @@ const FINISH_DURATIONS = [
 ] as const;
 
 const FINISH_CHARACTER = [
-  { id: 'finish-dry',     label: 'Dry',     hint: 'A drying sensation at the back of the mouth — like strong black tea or unripe fruit.' },
+  { id: 'finish-dry',     label: 'Dry',     hint: 'A drying sensation at the back of the mouth, like strong black tea or unripe fruit.' },
   { id: 'finish-bitter',  label: 'Bitter',  hint: 'A distinct bitterness that settles in the throat after swallowing.' },
-  { id: 'finish-cooling', label: 'Cooling', hint: 'A minty or camphor coolness — common in aged puer and high-mountain oolongs.' },
+  { id: 'finish-cooling', label: 'Cooling', hint: 'A minty or camphor coolness, common in aged puer and high-mountain oolongs.' },
   { id: 'finish-warming', label: 'Warming', hint: 'A gentle heat that spreads from the throat down into the chest.' },
 ] as const;
 
@@ -33,7 +33,7 @@ const THROAT_TERMS: { id: string; label: string; sub: string; icon: React.Compon
 
 const SELECTED_BG = 'radial-gradient(ellipse 100% 100% at 50% 50%, rgb(var(--tea-gold-rgb) / 0.28) 0%, rgb(var(--tea-gold-rgb) / 0.10) 70%)';
 
-/* ── Chinese concept toggle — single tap row ── */
+/* ── Chinese concept toggle: single tap row ── */
 
 interface ChineseConceptToggleProps {
   character: string;
@@ -249,7 +249,7 @@ const ThroatZoneInner: React.FC<ThroatZoneProps> = ({ flow, value, onChange, sim
             Passage
           </div>
           <p className="text-ui-11 text-tea-text-sec mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
-            How does the tea feel going down the throat — smooth or scratchy?
+            How does the tea feel going down the throat, smooth or scratchy?
           </p>
         </div>
         <div className="tasting-segment-toggle" role="radiogroup" aria-label="Passage quality">
@@ -356,28 +356,28 @@ const ThroatZoneInner: React.FC<ThroatZoneProps> = ({ flow, value, onChange, sim
           <ChineseConceptToggle
             character="回甘"
             pinyin="Huí Gān"
-            english="a returning sweetness that rises in the throat minutes after swallowing — the mark of a high-quality tea"
+            english="a returning sweetness that rises in the throat minutes after swallowing, the mark of a high-quality tea"
             active={!!value.huiGan}
             onToggle={() => onChange({ ...value, huiGan: !value.huiGan })}
           />
           <ChineseConceptToggle
             character="汤感"
             pinyin="Tāng Gǎn"
-            english="the weight and presence of the liquor itself — how the tea 'fills' the mouth as a substance, distinct from flavor"
+            english="the weight and presence of the liquor itself, how the tea 'fills' the mouth as a substance, distinct from flavor"
             active={!!value.tangGan}
             onToggle={() => onChange({ ...value, tangGan: !value.tangGan })}
           />
           <ChineseConceptToggle
             character="气"
             pinyin="Qì"
-            english="a warmth or aliveness felt in the chest, back, or shoulders after swallowing — the tea's energy moving through the body"
+            english="a warmth or aliveness felt in the chest, back, or shoulders after swallowing, the tea's energy moving through the body"
             active={!!value.qi}
             onToggle={() => onChange({ ...value, qi: !value.qi })}
           />
           <ChineseConceptToggle
             character="韵"
             pinyin="Yùn"
-            english="the tea's character that keeps unfolding — each sip reveals something new and the finish lingers long after you swallow"
+            english="the tea's character that keeps unfolding, so each sip reveals something new and the finish lingers long after you swallow"
             active={!!value.yun}
             onToggle={() => onChange({ ...value, yun: !value.yun })}
           />

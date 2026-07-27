@@ -157,9 +157,8 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
     customerName: details.name,
     customerContact: details.contact,
     customerLocation: details.location,
-    notes: [details.notes, `Prices as shown on the site, in ${shopPrice.code}.`]
-      .filter(Boolean)
-      .join('\n\n'),
+    notes: details.notes,
+    currency: shopPrice.code,
     items: cart.map(item => ({
       name: item.name,
       variant: item.variant,

@@ -11,7 +11,7 @@ import { getCommonTastingForType } from '../data/commonTastingByStyle';
 import { TeaPlaceholder } from './shop/TeaPlaceholder';
 import { PageHeader } from './shared/PageHeader';
 import { PageHeaderTabs } from './shared/PageHeaderTabs';
-import { fmtShopPrice } from '../utils/formatNumber';
+import { useShopPrice } from './shop/shopPrice';
 import { TEA_TYPE_COLORS } from '../designTokens';
 import { InventoryItem } from '../types';
 import { TEA_TYPES as WISDOM_TEA_TYPES, findRegion, normalizeTeaType } from '../wisdom';
@@ -118,6 +118,19 @@ function resolvedIncludes(item: TeaItem, categoryId: TastingCategoryId, termId: 
 }
 
 export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCart, onCartClick, onAccountClick, cartItemCount = 0, hideHeader = false, isAdmin = false, adminProductMap, onAdminEdit, initialProductId }) => {
+  /**
+   * The grid price, in the currency the reader chose.
+   *
+   * This row is the first price anyone sees on the site, and it was the last
+   * one still quoting dollars. Round six localised the product page and the
+   * quick view, round seven swept the compare, saved, collection and sample
+   * surfaces, and this list stayed on `fmtShopPrice` through both, so a reader
+   * set to Rupiah browsed a wall of dollars and then watched every one of them
+   * change the moment they tapped a tea. The conversion is not re-derived here:
+   * it is the same hook the cart, the card and the page already read.
+   */
+  const shopPrice = useShopPrice();
+
   // Filter State
   const [activeType, setActiveType] = useState<string>('All');
   const [activeFeeling, setActiveFeeling] = useState<string | null>(null); // feeling term ID from taxonomy
@@ -1044,8 +1057,8 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                         </div>
                                         {/* Divider between actions and price */}
                                         <div className="w-px h-5 bg-tea-border ml-2.5 mr-3" />
-                                        <div className="text-right num text-sm text-tea-gold font-medium tabular-nums min-w-[44px]">
-                                            {fmtShopPrice(priceAtWeight)}
+                                        <div className="text-right num text-sm text-tea-gold font-medium tabular-nums min-w-[44px] whitespace-nowrap">
+                                            {shopPrice.total(priceAtWeight)}
                                         </div>
                                     </div>
                                 </div>

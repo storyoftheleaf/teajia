@@ -2,7 +2,6 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { ChevronLeft, ChevronRight, MessageCircle, Pencil } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
 import { useInventory } from '../context/InventoryContext';
 import { useAppStore } from '../lib/store';
 import { Icons } from '../components/Icons';
@@ -19,7 +18,7 @@ import { useProductTasting } from '../hooks/useProductTasting';
 import { useAuth } from '../hooks/useAuth';
 import { TastingEditorModal } from '../admin/components/TastingEditorModal';
 import type { Product } from '../admin/types';
-import { ProductImpressions, type ProductImpression } from '../components/shop/ProductImpressions';
+import { ProductImpressions, useProductImpressions } from '../components/shop/ProductImpressions';
 import { ProductReviews } from '../components/shop/ProductReviews';
 import { getStockStatus } from '../components/shop/stockStatus';
 import { useShopPrice } from '../components/shop/shopPrice';
@@ -129,13 +128,9 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
 
   // Keyed on the id from the address rather than on the resolved item, so this
   // is one hook call on every render including the one where inventory has not
-  // arrived yet. See the note above the "Not found" return.
-  const { data: pageImpressions = [] } = useQuery<ProductImpression[]>({
-    queryKey: ['product-impressions', id],
-    queryFn: () => api.productImpressions.list(id!),
-    enabled: Boolean(id),
-    staleTime: 60_000,
-  });
+  // arrived yet. See the note above the "Not found" return. The query itself is
+  // the quick view's query: see useProductImpressions for why it is written once.
+  const { data: pageImpressions = [] } = useProductImpressions(id);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -878,7 +873,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
                     }],
                     subtotal: shopPrice.total(total),
                     total: shopPrice.total(total),
-                    notes: `Prices as shown on the site, in ${shopPrice.code}.`,
+                    currency: shopPrice.code,
                   });
                   window.open(buildWhatsAppUrl(WHATSAPP_NUMBER, message), '_blank');
                 }}

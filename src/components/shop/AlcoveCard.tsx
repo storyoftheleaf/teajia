@@ -1,5 +1,4 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { useScrollFade } from './alcove/hooks/useScrollFade';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../lib/store';
@@ -21,7 +20,7 @@ import { AlcoveSensoryGrid } from './alcove/AlcoveSensoryGrid';
 import { AlcoveJournalSection } from './alcove/AlcoveJournalSection';
 import { AlcoveCommerceFooter } from './alcove/AlcoveCommerceFooter';
 import { SampleModal, CustomAmountModal, ImageOverlayModal } from './alcove/AlcoveModals';
-import { ProductImpressions, type ProductImpression } from './ProductImpressions';
+import { ProductImpressions, useProductImpressions } from './ProductImpressions';
 import { ProductReviews } from './ProductReviews';
 import { TeaReference, type TeaReferenceProduct } from '../wisdom/TeaReference';
 import { FactGrid } from '../wisdom/FactGrid';
@@ -172,11 +171,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
   // Fetch events that featured this product
   const { data: productEvents, isLoading: eventsLoading } = useProductEvents(item.id);
-  const { data: impressions = [] } = useQuery<ProductImpression[]>({
-    queryKey: ['product-impressions', item.id],
-    queryFn: () => api.productImpressions.list(item.id),
-    staleTime: 60_000,
-  });
+  const { data: impressions = [] } = useProductImpressions(item.id);
 
   // Related journal articles (stories with matching teaId, published articles only)
   const { stories } = useStories();

@@ -11,7 +11,6 @@ import { TeawareCatalog } from './TeawareCatalog';
 import { PageHeader } from './shared/PageHeader';
 import { PageHeaderTabs } from './shared/PageHeaderTabs';
 import { Icons } from './Icons';
-import { fmtShopPrice, fmtShopPricePerGram } from '../utils/formatNumber';
 import { STARTER_TEA_SETS, STARTER_TEAWARE_SETS } from '../constants';
 import { CardImage } from './shared/CardImage';
 import { AnchoredMenu } from './shared/AnchoredMenu';
@@ -19,6 +18,7 @@ import { SectionDivider } from './shared/SectionDivider';
 import { SectionSkeleton } from './shared/SectionSkeleton';
 import { LogoEmblem } from './Logos/LogoEmblem';
 import { getSetCoverVariant } from './shop/setCover';
+import { useShopPrice } from './shop/shopPrice';
 import { useAdminOverlay } from '../hooks/useAdminOverlay';
 import { useScrollRestoration } from '../hooks/useScrollRestoration';
 import { useRates } from '../admin/hooks/useAdminData';
@@ -147,6 +147,16 @@ export const Shop: React.FC<ShopProps> = ({
 
   const activeStore = networkStores.find(s => s.slug === shopStoreSlug) || networkStores[0];
   const activeStoreLabel = activeStore?.location_city || activeStore?.name || 'Bali';
+
+  /**
+   * The recently-viewed strip quotes what the grid above it quotes.
+   *
+   * Round seven left two dollar-only surfaces behind, and both were in this
+   * file's blast radius: the tea grid's price column and this strip. A reader
+   * set to Rupiah saw the same tea priced in two currencies within one scroll,
+   * which reads as a bug about the tea rather than a gap in the sweep.
+   */
+  const shopPrice = useShopPrice();
 
   // Admin overlay state
   const { isAdmin, productMap, refetchProducts } = useAdminOverlay();
@@ -531,8 +541,8 @@ export const Shop: React.FC<ShopProps> = ({
                       <p className="font-display text-ui-13 text-tea-text leading-snug line-clamp-2">{item.name}</p>
                       <p className="text-ui-10 text-tea-text-sec mt-0.5 font-mono tabular-nums">
                         {isTea
-                          ? fmtShopPricePerGram(unitPrice)
-                          : `${fmtShopPrice(unitPrice)} each`}
+                          ? shopPrice.perGram(unitPrice)
+                          : `${shopPrice.total(unitPrice)} each`}
                       </p>
                     </button>
                   );

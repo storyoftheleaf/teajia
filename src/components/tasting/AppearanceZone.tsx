@@ -71,7 +71,7 @@ const AppearanceZoneInner: React.FC<AppearanceZoneProps> = ({ flow, value, onCha
 
       <div className="divider-warm mb-4" />
 
-      {/* Vessel — primary brewing field */}
+      {/* Vessel: primary brewing field */}
       <div>
         <div
           className="text-ui-13 text-tea-text font-medium mb-2"
@@ -103,7 +103,7 @@ const AppearanceZoneInner: React.FC<AppearanceZoneProps> = ({ flow, value, onCha
               </button>
             );
           })}
-          {/* Custom vessel — show only if current value isn't one of the presets */}
+          {/* Custom vessel: shown only if the current value isn't one of the presets */}
           {value.brewingVessel && !VESSEL_OPTIONS.find(o => o.id === value.brewingVessel) && (
             <button
               type="button"

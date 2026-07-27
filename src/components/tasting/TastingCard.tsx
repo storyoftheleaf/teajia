@@ -1,10 +1,22 @@
 /**
- * TastingCard — a beautiful shareable image generated from a journal entry.
+ * TastingCard: a shareable image generated from a journal entry.
  *
  * The component renders an off-screen card via a ref, then html-to-image
  * captures it as a PNG for download or Web Share API.
  *
  * All styles are inline so html-to-image resolves them correctly.
+ *
+ * @color-literals The card below the sheet is not a surface, it is an artifact.
+ * It is rasterised to a PNG that leaves the app and lands in someone else's
+ * camera roll and someone else's Instagram, where there is no theme to adapt
+ * to and no CSS custom property to resolve: `html-to-image` reads computed
+ * inline values, and a `var(--tea-bg)` in a captured node resolves to whichever
+ * theme the sender happened to be in, so the same tasting would export in two
+ * different palettes depending on a setting the recipient never sees. The card
+ * is therefore pinned to one fixed palette on purpose, and the preview shell
+ * beside it uses the same values because it is a preview *of that file*. The
+ * sheet, the buttons and the scrim around it are ordinary app chrome and stay
+ * on tokens.
  */
 
 import React, { useRef, useState, useCallback } from 'react';
@@ -306,8 +318,7 @@ export const TastingCardModal: React.FC<TastingCardModalProps> = ({ entry, onClo
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-toast flex flex-col items-center justify-end"
-      style={{ background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(4px)' }}
+      className="fixed inset-0 z-toast flex flex-col items-center justify-end bg-black/70 backdrop-blur-sm"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       {/* Off-screen card (captured by html-to-image) */}
@@ -341,7 +352,7 @@ export const TastingCardModal: React.FC<TastingCardModalProps> = ({ entry, onClo
           </button>
         </div>
 
-        {/* Card preview — visible to user */}
+        {/* Card preview: visible to the user */}
         <div className="px-5 mb-5 overflow-hidden rounded-xl" style={{ maxHeight: 360, overflowY: 'auto' }}>
           <div
             className="rounded-xl overflow-hidden"

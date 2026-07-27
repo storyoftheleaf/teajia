@@ -1,4 +1,6 @@
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../../lib/api';
 import { BODY, LABEL, LABEL_GAP, SECTION } from '../shared/typeRoles';
 
 export interface ProductImpression {
@@ -8,6 +10,33 @@ export interface ProductImpression {
   attributionName: string;
   attributionDetail: string | null;
   publishedAt: string;
+}
+
+/**
+ * One reader of this endpoint, for both surfaces that show it.
+ *
+ * The quick view and the product page each wrote their own `useQuery` against
+ * `['product-impressions', id]`, in two files, with the key, the fetcher and
+ * the sixty-second staleTime spelled out twice. That is not a duplicated
+ * component, it is a duplicated *contract*: the two calls only collapse into
+ * one request because React Query happens to dedupe by key, and nothing in
+ * either file says so. Change the key in one place, or the staleTime, and the
+ * page quietly starts issuing a second request for data it already holds, or
+ * shows a different vintage of it than the card that opened it.
+ *
+ * The hook sits beside the component that renders the data rather than in
+ * hooks/, for the same reason `stockStatus` and `shopPrice` sit beside the
+ * shop: the shape and the reader belong together. `enabled` handles the product
+ * page's case, where the id comes from the address and the first render may not
+ * have one yet, which is also why this must stay callable unconditionally.
+ */
+export function useProductImpressions(productId: string | undefined) {
+  return useQuery<ProductImpression[]>({
+    queryKey: ['product-impressions', productId],
+    queryFn: () => api.productImpressions.list(productId!),
+    enabled: Boolean(productId),
+    staleTime: 60_000,
+  });
 }
 
 /**

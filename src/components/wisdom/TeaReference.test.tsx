@@ -80,7 +80,7 @@ describe('a tea that arrived already named', () => {
   it('never uses an em dash, in any of its three forms', () => {
     const tea = findNamedTeaById('courage')!;
     for (const provenance of ['undisclosed', 'partial', 'stated'] as const) {
-      expect(namedTeaLine({ ...tea, provenance })).not.toContain('—');
+      expect(namedTeaLine({ ...tea, provenance })).not.toContain('\u2014');
     }
   });
 });

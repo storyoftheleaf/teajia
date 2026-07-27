@@ -11,6 +11,7 @@ import {
 } from '../../data/tastingTaxonomy';
 import type { TastingData } from '../../types';
 import type { TastingCategoryId } from '../../data/tastingTaxonomy';
+import { shopTermHref } from '../shop/termFilter';
 import { BODY, LABEL } from '../shared/typeRoles';
 
 export type TastingStripLinkMode = 'remove' | 'shop-filter';
@@ -22,16 +23,20 @@ interface TastingProfileStripProps {
   variant?: string | 'cloud';
   /**
    * Interaction mode for individual term chips.
-   * - 'remove' (default): clicking fires onRemove — for editing contexts.
+   * - 'remove' (default): clicking fires onRemove, for editing contexts.
    * - 'shop-filter': chips become <Link>s to /shop?flavor=<id> or /shop?feel=<id>.
    */
   linkMode?: TastingStripLinkMode;
 }
 
-function shopFilterHref(categoryId: string, termId: string): string | null {
-  if (categoryId === 'flavor') return `/shop?flavor=${encodeURIComponent(termId)}`;
-  if (categoryId === 'feeling') return `/shop?feel=${encodeURIComponent(termId)}`;
-  return null;
+/**
+ * Kept as a one-line wrapper so the category this component already knows is
+ * not thrown away and re-derived. The rule itself lives in one place now, in
+ * shop/termFilter, because a review block on the same page prints the same
+ * terms and has to reach the same answer.
+ */
+function shopFilterHref(_categoryId: string, termId: string): string | null {
+  return shopTermHref(termId);
 }
 
 /**
@@ -141,7 +146,7 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, t
 
     return (
       <div className="space-y-2">
-        {/* Legend row — non-color categories only */}
+        {/* Legend row: non-color categories only */}
         {activeCats.length > 1 && (
           <div className="flex flex-wrap gap-x-3 gap-y-1">
             {activeCats.map(group => {
@@ -156,7 +161,7 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, t
           </div>
         )}
 
-        {/* Tag cloud — all non-color terms */}
+        {/* Tag cloud: all non-color terms */}
         <div className="flex flex-wrap gap-1.5">
           {nonColorGroups.map(group =>
             group.terms.map(termId => {
@@ -179,7 +184,7 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, t
             })
           )}
 
-          {/* Liquor-color swatches — rendered as color circles, not text pills */}
+          {/* Liquor-color swatches: rendered as color circles, not text pills */}
           {colorGroup?.terms.map(termId => {
             // The liquor's own colour is the one colour on this component that
             // is data rather than styling: it is what the tea looks like in the
@@ -445,7 +450,7 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, t
         })}
       </AnimatePresence>
 
-      {/* Expand toggle — only shown when NOT expanded */}
+      {/* Expand toggle: only shown when NOT expanded */}
       {!expanded && totalTerms > MAX_VISIBLE && (
         <button
           type="button"

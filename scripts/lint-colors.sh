@@ -191,6 +191,100 @@ check_pattern_ere 'rounded(-(t|b|l|r))?-(sm|lg|2xl)([[:space:]"'"'"'`]|$)' \
 check_pattern_ere 'pill-(primary|destructive)' \
   "pill-* action class — use the <Button> component for actions. See UI_CONSISTENCY.md."
 
+# 10. Colour literals inside a JSX inline style object.
+#
+#     Every rule above this one reads className strings, so an inline style has
+#     been the standing blind spot: `style={{ color: '#a65d4e' }}` renders the
+#     same defect the lint blocks one attribute over, and passes. Rounds six and
+#     seven each closed one component by hand for exactly this reason (the shop
+#     card's stock colours, the profile strip's eight category hexes). Closing
+#     the components one at a time does not close the class, so the check reads
+#     inside the style object now.
+#
+#     Line-based grep cannot do this: a style object spans lines and `background`
+#     is an ordinary word elsewhere. The scanner below tracks brace depth from
+#     each `style={{` and only inspects what is inside one, which is why it is
+#     awk rather than another check_pattern call.
+#
+#     What is exempt, and how to claim it:
+#
+#       * `var(--token)` and `rgb(var(--token-rgb) / a)` are the correct forms
+#         and are never flagged.
+#       * A colour that IS data about the item, rather than styling applied to
+#         it, is a genuine exception: the liquor colour of a tea is what the
+#         liquid looks like in the cup, and it does not adapt to a theme any
+#         more than a photograph does. Mark those lines `color-data` in a
+#         comment on the same line, saying what the datum is.
+#       * A whole file that renders an artifact leaving the app (a PNG export, a
+#         PDF) has no theme to adapt to and cannot resolve custom properties at
+#         rasterisation time. Put `@color-literals` in the file's header comment
+#         with the reason. See components/tasting/TastingCard.tsx.
+#
+#     BLOCKING on the shop surfaces, which are the ones this rule was built out
+#     of and which are clean. A NOTICE everywhere else: 505 lines across ~70
+#     files predate the rule, most of them decorative art direction in
+#     src/pages/read/*, and silently widening the blast radius of a new rule to
+#     force a sweep nobody scheduled is how a lint gets disabled. The blocking
+#     path list is the ratchet: extend it as each area is cleared.
+INLINE_STYLE_SCANNER='
+function scan(seg, file, ln) {
+  if (seg ~ /color-data/) return
+  if (fileExempt) return
+  gsub(/(rgba?|hsla?)\([^()]*var\([^()]*\)[^()]*\)/, "", seg)
+  gsub(/var\(--[a-zA-Z0-9_-]+\)/, "", seg)
+  if (seg ~ /#[0-9a-fA-F]{3}/ || seg ~ /rgba?\(/ || seg ~ /hsla?\(/)
+    printf "%s:%d:%s\n", file, ln, seg
+}
+FNR == 1 { instyle = 0; fileExempt = 0 }
+/@color-literals/ { fileExempt = 1 }
+{
+  line = $0
+  if (instyle > 0) {
+    seg = line
+    n = gsub(/\{/, "{", line); m = gsub(/\}/, "}", line)
+    scan(seg, FILENAME, FNR)
+    instyle += n - m
+    if (instyle < 0) instyle = 0
+    next
+  }
+  idx = index(line, "style={{")
+  if (idx > 0) {
+    rest = substr(line, idx + 7)
+    seg = rest
+    n = gsub(/\{/, "{", rest); m = gsub(/\}/, "}", rest)
+    scan(seg, FILENAME, FNR)
+    instyle = n - m
+    if (instyle < 0) instyle = 0
+  }
+}'
+
+# `@color-literals` is read on any line, but awk sees a file top to bottom, so a
+# marker in a header comment only exempts what follows it. That is the intended
+# reading: the marker documents the file, and every file that uses it puts it in
+# the header.
+INLINE_STYLE_HITS=$(find "$SRC_DIR" \( -name '*.tsx' -o -name '*.ts' \) -print0 \
+  | xargs -0 awk "$INLINE_STYLE_SCANNER" 2>/dev/null || true)
+
+# The ratchet. Paths listed here fail the build; everything else reports.
+INLINE_STYLE_ENFORCED='^src/components/shop/|^src/components/tasting/|^src/components/wisdom/|^src/pages/ProductPage\.tsx|^src/components/Shop\.tsx|^src/components/TeaInventory\.tsx'
+
+INLINE_STYLE_BLOCKING=$(printf '%s\n' "$INLINE_STYLE_HITS" | grep -E "$INLINE_STYLE_ENFORCED" || true)
+INLINE_STYLE_REST=$(printf '%s\n' "$INLINE_STYLE_HITS" | grep -vE "$INLINE_STYLE_ENFORCED" | grep -v '^$' || true)
+
+if [ -n "$INLINE_STYLE_BLOCKING" ]; then
+  echo ""
+  echo "COLOR RULE VIOLATION: Hardcoded color inside an inline style. Use a token, or mark it 'color-data' / '@color-literals' with a reason. See COLOR_RULES.md Rule 11."
+  echo "$INLINE_STYLE_BLOCKING"
+  ERRORS=$((ERRORS + 1))
+fi
+
+if [ -n "$INLINE_STYLE_REST" ]; then
+  echo ""
+  echo "NOTICE: $(printf '%s\n' "$INLINE_STYLE_REST" | wc -l | tr -d ' ') hardcoded color(s) inside inline styles outside the enforced paths (non-blocking). Top offenders:"
+  printf '%s\n' "$INLINE_STYLE_REST" | cut -d: -f1 | sort | uniq -c | sort -rn | head -8
+  NOTICES=$((NOTICES + 1))
+fi
+
 if [ "$ERRORS" -gt 0 ]; then
   echo ""
   echo "=== $ERRORS color rule violation(s) found ==="

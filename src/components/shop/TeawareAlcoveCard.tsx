@@ -128,7 +128,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
       }],
       subtotal: shopPrice.total(totalUsd),
       total: shopPrice.total(totalUsd),
-      notes: `Prices as shown on the site, in ${shopPrice.code}.`,
+      currency: shopPrice.code,
     });
     window.open(buildWhatsAppUrl(whatsappNumber, message), '_blank');
   };
