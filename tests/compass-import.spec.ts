@@ -17,7 +17,7 @@ const workerImportParsedDataKeys = new Set([
   'sourceItemId', 'category', 'originalName', 'englishName', 'packWeight', 'weightUnit', 'packCount',
   'priceAmount', 'priceAmountExact', 'currency', 'priceBasis', 'confidence', 'uncertainty', 'evidenceRefs', 'acquired',
   'duplicateResolution', 'proposedCompassEntryId', 'proposedProductId', 'chineseName', 'type', 'form',
-  'year', 'originCountry', 'originRegion', 'classification', 'description', 'inventoryPurpose', 'disposition',
+  'year', 'originCountry', 'originRegion', 'classification', 'cultivar', 'description', 'inventoryPurpose', 'disposition',
   'sourceId', 'sourceExcerpt', 'sourceLanguage', 'provenance', 'fieldProvenance', 'vendorResolution', 'identityResolution', 'holdingResolution',
 ]);
 const evidenceOrdinalByPage = new WeakMap<Page, { ordinal: number; injectSecondFailure: boolean }>();

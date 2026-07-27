@@ -14,7 +14,7 @@ export type CurateImportInventoryPurpose = 'working' | 'sample' | 'personal';
 export type CurateImportProvenanceState = 'source_fact' | 'canonical_match' | 'ai_interpretation' | 'user_edit' | 'not_present' | 'uncertain';
 export type CurateImportValidationState = 'source_fact' | 'ai_interpretation' | 'canonical_match' | 'validated' | 'not_present' | 'uncertain';
 export type CurateImportCanonicalField =
-  | 'originalName' | 'englishName' | 'chineseName' | 'category' | 'type' | 'classification' | 'form' | 'year'
+  | 'originalName' | 'englishName' | 'chineseName' | 'category' | 'type' | 'classification' | 'cultivar' | 'form' | 'year'
   | 'originCountry' | 'originRegion' | 'description' | 'packWeight' | 'weightUnit' | 'packCount' | 'priceAmountExact'
   | 'currency' | 'priceBasis' | 'lineCostExact' | 'unitCostExact' | 'totalQuantityGrams' | 'totalUnits'
   | 'disposition' | 'inventoryPurpose' | 'vendorResolution' | 'identityResolution' | 'holdingResolution';
@@ -28,7 +28,7 @@ export type CurateImportHoldingResolution = { kind: 'existing'; productId: strin
 export interface CurateImportCanonicalRecord {
   sourceId?: string | null; sourceItemId?: string | null; evidenceRefs?: string[]; sourceExcerpt?: string | null; sourceLanguage?: string | null;
   englishName?: string | null; originalName?: string | null; chineseName?: string | null; category?: 'tea' | 'teaware';
-  type?: string | null; classification?: string | null; form?: string | null; year?: number | null;
+  type?: string | null; classification?: string | null; cultivar?: string | null; form?: string | null; year?: number | null;
   originCountry?: string | null; originRegion?: string | null; description?: string | null;
   packWeight?: number | null; weightUnit?: 'g' | 'kg' | 'count' | null; packCount?: number | null;
   priceAmount?: number | string | null; priceAmountExact?: string | null; currency?: string | null;

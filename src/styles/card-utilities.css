@@ -2765,6 +2765,22 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] {
   padding-top: 0.875rem;
   padding-bottom: 0.125rem;
 }
+
+/* The floating label sits at left: 0.75rem, so the value must start there too
+   or every field reads as two misaligned columns. Its own class rather than
+   part of .curate-field-with-label, because callers that hand-tune their inline
+   padding (adornment buttons, centred numerics) must keep winning. */
+.curate-field-inset {
+  padding-inline: 0.75rem;
+}
+
+/* Selects drop native chrome; CurateField draws the chevron on the value line
+   so it cannot collide with the status marker in the top-right corner. */
+.curate-field-select {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 2rem;
+}
 .curate-action:hover { color: var(--tea-text); }
 .curate-action:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--tea-gold) 50%, transparent);

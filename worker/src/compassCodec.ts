@@ -9,7 +9,7 @@ export const COMPASS_DECISIONS = new Set(['considering', 'selected', 'passed_on'
 export const COMPASS_SAMPLE_STATES = new Set(['requested', 'received', 'tasted']);
 export const COMPASS_COLUMNS = [
   'name', 'chinese_name', 'type', 'form', 'year', 'season', 'storage',
-  'origin_country', 'origin_region', 'classification', 'description',
+  'origin_country', 'origin_region', 'classification', 'cultivar', 'description',
   'tea_key', 'price_amount', 'price_currency', 'price_per_unit_grams',
   'category', 'teaware_category', 'material', 'capacity_ml', 'quantity', 'era',
   'vendor_id', 'vendor_name', 'linked_customer_id', 'notes', 'tasting', 'photos', 'audio_clips',

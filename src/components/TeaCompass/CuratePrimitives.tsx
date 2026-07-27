@@ -47,6 +47,9 @@ export const CurateField: React.FC<{
   const statusId = status ? `${controlId}-status` : undefined;
   const helperId = helper ? `${controlId}-helper` : undefined;
   const describedBy = [child.props['aria-describedby'], statusId, helperId].filter(Boolean).join(' ') || undefined;
+  // Native select chrome collides with the status marker in the same corner, so
+  // selects get house chrome: arrow suppressed, chevron drawn on the value line.
+  const isSelect = child.type === 'select';
 
   return (
     <div className={`space-y-1 ${className}`}>
@@ -61,9 +64,12 @@ export const CurateField: React.FC<{
         )}
         {React.cloneElement(child, {
           id: controlId,
-          className: `curate-field curate-field-with-label w-full ${child.props.className || ''}`,
+          className: `curate-field curate-field-with-label curate-field-inset w-full ${isSelect ? 'curate-field-select' : ''} ${child.props.className || ''}`,
           'aria-describedby': describedBy,
         })}
+        {isSelect && (
+          <ChevronDown size={14} aria-hidden="true" className="pointer-events-none absolute bottom-2 right-3 text-tea-text-sec" />
+        )}
       </div>
       {helper && (
         <div id={helperId} className="curate-support text-tea-text-dim">
