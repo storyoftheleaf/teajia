@@ -3,9 +3,10 @@
  * Gongfu cha parameters unless otherwise noted.
  * All temperatures in Celsius.
  */
+import { normalizeTeaType, type TeaType } from '../wisdom';
 
 export type BrewingProfile = {
-  type: string;
+  type: TeaType;
   waterTemp: string;     // e.g. "85–90°C"
   steepTime: string;     // e.g. "45–60s (gongfu)"
   leafRatio: string;     // e.g. "5g per 100ml"
@@ -14,7 +15,9 @@ export type BrewingProfile = {
   notes?: string;
 };
 
-export const BREWING_PROFILES: Record<string, BrewingProfile> = {
+// Typed against the wisdom base's TeaType so a missing or extra key is a
+// compile error.
+export const BREWING_PROFILES: Record<TeaType, BrewingProfile> = {
   Green: {
     type: 'Green',
     waterTemp: '75–80°C',
@@ -113,7 +116,16 @@ export const BREWING_PROFILES: Record<string, BrewingProfile> = {
  */
 export function getBrewingProfile(type: string): BrewingProfile | undefined {
   if (!type) return undefined;
-  // Normalise: "sheng puerh", "shou puerh", "raw puerh", "ripe puerh" etc.
+
+  // Try the shared wisdom vocabulary first — it already resolves the common
+  // dialects (e.g. a stored "Black" value) to their canonical type.
+  const canonical = normalizeTeaType(type);
+  if (canonical) return BREWING_PROFILES[canonical];
+
+  // Fallback for dialects the shared vocabulary doesn't yet resolve (e.g. a
+  // stored "sheng puerh" / "shou puerh" value with a space — bare "puerh" is
+  // deliberately unresolvable there without a human). Kept permissive rather
+  // than folded into src/wisdom/vocabulary.ts, which is outside this file's scope.
   const t = type.trim();
   const lower = t.toLowerCase();
 
@@ -127,6 +139,6 @@ export function getBrewingProfile(type: string): BrewingProfile | undefined {
   if (lower.includes('red') || lower.includes('black')) return BREWING_PROFILES['Red'];
   if (lower.includes('herbal') || lower.includes('floral') || lower.includes('blend')) return BREWING_PROFILES['Herbal'];
 
-  // Exact match fallback
-  return BREWING_PROFILES[t];
+  // Exact match fallback (case-sensitive) against the canonical keys
+  return (BREWING_PROFILES as Record<string, BrewingProfile>)[t];
 }

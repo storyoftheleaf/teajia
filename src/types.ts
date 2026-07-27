@@ -1,4 +1,10 @@
 
+// Tea type vocabulary lives in the shared wisdom base (src/wisdom) — re-exported
+// here so existing consumers (e.g. admin-panel/InventoryEditor.tsx) keep working
+// without importing from ../wisdom directly. Do not redeclare this list.
+import { NON_TEA_TYPES, type TeaType } from './wisdom';
+export { TEA_TYPES, type TeaType, NON_TEA_TYPES } from './wisdom';
+
 /**
  * A single captured note within a tasting session. May originate from a voice
  * transcription, typed entry, or promoted community entry. Starred notes are
@@ -540,7 +546,7 @@ export interface InventoryItem {
 }
 
 // Public-safe product type (no cost/vendor fields)
-export type PublicProductType = 'Green' | 'Yellow' | 'White' | 'Oolong' | 'Red' | 'Dark' | 'Sheng' | 'Shou' | 'Herbal' | 'Teaware' | 'Misc';
+export type PublicProductType = TeaType | typeof NON_TEA_TYPES[number];
 
 export interface PublicProduct {
   id: string;
@@ -579,9 +585,6 @@ export interface PublicProduct {
   moodTags?: string[];
   flavorTags?: string[];
 }
-
-export const TEA_TYPES = ['Green', 'White', 'Oolong', 'Black', 'Puerh', 'Yellow'] as const;
-export type TeaType = typeof TEA_TYPES[number];
 
 export interface StarterSet {
   id: string;

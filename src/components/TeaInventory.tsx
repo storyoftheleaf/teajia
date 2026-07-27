@@ -14,6 +14,7 @@ import { PageHeaderTabs } from './shared/PageHeaderTabs';
 import { fmtShopPrice } from '../utils/formatNumber';
 import { TEA_TYPE_COLORS } from '../designTokens';
 import { InventoryItem } from '../types';
+import { TEA_TYPES as WISDOM_TEA_TYPES, normalizeTeaType } from '../wisdom';
 import { SALE_ITEM_IDS } from '../data/curatedCollections';
 import { useAppStore } from '../lib/store';
 import { useProductUrl } from '../hooks/useProductUrl';
@@ -40,8 +41,18 @@ interface TeaInventoryProps {
   onAdminEdit?: (itemId: string) => void;
 }
 
-// Preferred display order for tea types — any types not listed here appear at the end
-const TYPE_ORDER = ['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Black', 'Dark', 'Sheng', 'Shou', 'Herbal'];
+// Preferred display order for tea types — any types not listed here appear at the end.
+// Sourced from the wisdom base; the old local list additionally carried a 'Black'
+// entry alongside 'Red' (they are the same canonical type — hong cha is Red, not
+// Black), which merged into the single 'Red' entry below.
+const TYPE_ORDER: string[] = [...WISDOM_TEA_TYPES];
+
+// Canonical filter/group key for a stored item type — resolves historical
+// dialects (e.g. a record saved with type 'Black') to the wisdom base's
+// canonical type, so 'Red' and 'Black' records land in the same filter pill
+// and section rather than splitting into two. Falls back to the raw stored
+// value when it isn't a recognized tea-type dialect (e.g. teaware categories).
+const displayType = (type: string): string => normalizeTeaType(type) ?? type;
 
 // Sort options for the shop toolbar — rendered as inline pills matching Type/Feeling
 const SORT_OPTIONS: { id: 'featured' | 'price_asc' | 'price_desc' | 'recent' | 'tasted'; label: string }[] = [
@@ -103,7 +114,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
   // Derive tea types from actual inventory (ordered by TYPE_ORDER, then alphabetically)
   const teaTypes = useMemo(() => {
-    const types = new Set(inventory.map(item => item.type));
+    const types = new Set(inventory.map(item => displayType(item.type)));
     const ordered = TYPE_ORDER.filter(t => types.has(t));
     const remaining = [...types].filter(t => !TYPE_ORDER.includes(t)).sort();
     return [...ordered, ...remaining];
@@ -305,7 +316,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       const matchSearch = !searchLower || item.name.toLowerCase().includes(searchLower);
 
       // 1. Basic Filter (Type/Feeling)
-      const matchType = activeType === 'All' || item.type === activeType;
+      const matchType = activeType === 'All' || displayType(item.type) === activeType;
       const matchFeeling = !activeFeeling || resolvedIncludes(item, 'feeling', activeFeeling);
 
       // 2. Special Filter (Curated/Sale/Liked)
@@ -354,10 +365,11 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
     const groups: Record<string, TeaItem[]> = {};
     
     filteredInventory.forEach(item => {
-        if (!groups[item.type]) {
-            groups[item.type] = [];
+        const key = displayType(item.type);
+        if (!groups[key]) {
+            groups[key] = [];
         }
-        groups[item.type].push(item);
+        groups[key].push(item);
     });
 
     // Return groups in specific order, or just the active one if filtered

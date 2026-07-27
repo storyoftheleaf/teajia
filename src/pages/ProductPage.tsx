@@ -16,6 +16,7 @@ import { api } from '../lib/api';
 import { resolveTermLabel, flattenTastingNotes } from '../data/tastingTaxonomy';
 import { getBrewingProfile } from '../data/brewing-profiles';
 import { getTeaColor } from '../designTokens';
+import { normalizeTeaType } from '../wisdom';
 import { ProductTastingEditorial } from '../components/tasting/ProductTastingEditorial';
 import { useProductTasting } from '../hooks/useProductTasting';
 import { useAuth } from '../hooks/useAuth';
@@ -188,11 +189,14 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Related teas: same type, exclude current, max 4
+  // Related teas: same type, exclude current, max 4. Type compared via
+  // normalizeTeaType so records saved under a historical dialect (e.g. one
+  // item stored as 'Black', another as 'Red') still match as the same type.
   const relatedTeas = useMemo(() => {
     if (!item) return [];
+    const itemType = normalizeTeaType(item.type) ?? item.type;
     return inventory
-      .filter(i => i.id !== item.id && i.type === item.type && i.category === item.category)
+      .filter(i => i.id !== item.id && (normalizeTeaType(i.type) ?? i.type) === itemType && i.category === item.category)
       .slice(0, 4);
   }, [inventory, item]);
 

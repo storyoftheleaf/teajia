@@ -10,6 +10,8 @@
  * ╚══════════════════════════════════════════════════════════════════╝
  */
 
+import { normalizeTeaType, NON_TEA_TYPES, type TeaType as WisdomTeaType } from './wisdom';
+
 // ─────────────────────────────────────────────────────────────
 // 1. TYPOGRAPHY
 // ─────────────────────────────────────────────────────────────
@@ -331,7 +333,12 @@ export const UTIL_COLORS = {
  *   - vivid: Brighter values for SVG illustrations and light-background contexts
  */
 
-export const TEA_TYPE_COLORS = {
+type ColorSet = { card: string; vivid: string };
+
+// Typed against the wisdom base's TeaType so a missing or extra key is a compile
+// error. 'Teaware' and 'Misc' are the wisdom base's NON_TEA_TYPES — not teas,
+// but the same product records carry them.
+export const TEA_TYPE_COLORS: Record<WisdomTeaType | typeof NON_TEA_TYPES[number], ColorSet> = {
   Green:   { card: '#859F85', vivid: '#86efac' },
   Yellow:  { card: '#D4C586', vivid: '#fde047' },
   White:   { card: '#D6D3CD', vivid: '#e5e5e5' },
@@ -343,17 +350,21 @@ export const TEA_TYPE_COLORS = {
   Herbal:  { card: '#BFA09E', vivid: '#f9a8d4' },
   Teaware: { card: '#C4A484', vivid: '#fdba74' },
   Misc:    { card: '#737373', vivid: '#a3a3a3' },
-} as const;
+};
 
 export type TeaType = keyof typeof TEA_TYPE_COLORS;
 
-/** Get the card-appropriate color for a tea type */
-export const getTeaColor = (type: string): string =>
-  TEA_TYPE_COLORS[type as TeaType]?.card ?? '#737373';
+// Kept for reference/back-compat call sites that pass a raw stored value —
+// dialects (e.g. 'Black') resolve to their canonical wisdom type before lookup.
+const resolveColorKey = (type: string): TeaType => (normalizeTeaType(type) ?? type) as TeaType;
 
-/** Get the vivid/illustration color for a tea type */
+/** Get the card-appropriate color for a tea type. Accepts any historical dialect. */
+export const getTeaColor = (type: string): string =>
+  TEA_TYPE_COLORS[resolveColorKey(type)]?.card ?? '#737373';
+
+/** Get the vivid/illustration color for a tea type. Accepts any historical dialect. */
 export const getTeaVividColor = (type: string): string =>
-  TEA_TYPE_COLORS[type as TeaType]?.vivid ?? '#a3a3a3';
+  TEA_TYPE_COLORS[resolveColorKey(type)]?.vivid ?? '#a3a3a3';
 
 
 // ─────────────────────────────────────────────────────────────

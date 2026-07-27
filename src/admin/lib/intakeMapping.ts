@@ -177,9 +177,11 @@ const VALID_TYPES: string[] = [...TEA_TYPES, ...NON_TEA_TYPES];
 export function normalizeType(raw: unknown): string {
   const v = String(raw ?? '').toLowerCase().trim();
   if (!v) return 'Misc';
-  if (['matcha', 'flower'].includes(v)) return 'Herbal';
   const m = VALID_TYPES.find((t) => t.toLowerCase() === v);
-  return m || 'Misc';
+  if (m) return m;
+  // Fall back to the shared alias table, which knows matcha is a Green tea and
+  // hong cha is Red. This file used to file matcha under Herbal.
+  return normalizeTeaType(v) || 'Misc';
 }
 
 const VALID_FORMS = ['Loose', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other'];

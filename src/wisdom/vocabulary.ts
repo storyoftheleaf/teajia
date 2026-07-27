@@ -37,8 +37,11 @@ const TYPE_ALIASES: Record<string, TeaType> = {
   oolong: 'Oolong', wulong: 'Oolong', yancha: 'Oolong', rockoolong: 'Oolong', dancong: 'Oolong',
   red: 'Red', black: 'Red', hongcha: 'Red',
   dark: 'Dark', heicha: 'Dark', hei: 'Dark', liubao: 'Dark', darktea: 'Dark',
-  sheng: 'Sheng', raw: 'Sheng', shengpu: 'Sheng', shengpuer: 'Sheng', rawpuerh: 'Sheng', sheng_pu: 'Sheng',
-  shou: 'Shou', shu: 'Shou', ripe: 'Shou', shoupu: 'Shou', shupuer: 'Shou', ripepuerh: 'Shou', cooked: 'Shou',
+  sheng: 'Sheng', raw: 'Sheng', shengpu: 'Sheng', shengpuer: 'Sheng', shengpuerh: 'Sheng',
+  rawpuer: 'Sheng', rawpuerh: 'Sheng', rawpu: 'Sheng', shengcha: 'Sheng',
+  shou: 'Shou', shu: 'Shou', ripe: 'Shou', shoupu: 'Shou', shoupuer: 'Shou', shoupuerh: 'Shou',
+  shupu: 'Shou', shupuer: 'Shou', shupuerh: 'Shou', ripepuer: 'Shou', ripepuerh: 'Shou',
+  cooked: 'Shou', shoucha: 'Shou',
   herbal: 'Herbal', tisane: 'Herbal', flower: 'Herbal', floral: 'Herbal',
 };
 

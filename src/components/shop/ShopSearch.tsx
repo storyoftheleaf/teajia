@@ -3,8 +3,10 @@ import { Search, X } from 'lucide-react';
 import Fuse from 'fuse.js';
 import type { InventoryItem } from '../../types';
 import { TeaPlaceholder } from './TeaPlaceholder';
+import { TEA_TYPES as WISDOM_TEA_TYPES } from '../../wisdom';
 
-const TEA_TYPES = ['All', 'Green', 'White', 'Yellow', 'Oolong', 'Red', 'Sheng', 'Shou', 'Dark', 'Herbal'];
+// 'All' is a UI sentinel, not a tea type — kept alongside the shared vocabulary.
+const TEA_TYPES = ['All', ...WISDOM_TEA_TYPES];
 
 interface ShopSearchProps {
   searchQuery: string;

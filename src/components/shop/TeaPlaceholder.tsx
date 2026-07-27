@@ -1,4 +1,5 @@
 import React from 'react';
+import { normalizeTeaType, NON_TEA_TYPES, type TeaType } from '../../wisdom';
 
 /**
  * Minimal SVG placeholder illustrations for each tea category.
@@ -14,7 +15,9 @@ interface TeaPlaceholderProps {
   size?: number;
 }
 
-const teaColors: Record<string, string> = {
+// Typed against the wisdom base's TeaType so a missing or extra key is a
+// compile error. 'Teaware' and 'Misc' are the wisdom base's NON_TEA_TYPES.
+const teaColors: Record<TeaType | typeof NON_TEA_TYPES[number], string> = {
   Green:   '#859F85',
   Yellow:  '#D4C586',
   White:   '#D6D3CD',
@@ -28,8 +31,15 @@ const teaColors: Record<string, string> = {
   Misc:    '#737373',
 };
 
+// Resolves any historical dialect (e.g. a stored 'Black' value) to its
+// canonical wisdom type before lookup, so old records still get the right
+// illustration instead of silently falling back to the Misc circle.
+function resolveTypeKey(type: string): keyof typeof teaColors {
+  return (normalizeTeaType(type) ?? type) as keyof typeof teaColors;
+}
+
 function getColor(type: string): string {
-  return teaColors[type] || teaColors.Misc;
+  return teaColors[resolveTypeKey(type)] || teaColors.Misc;
 }
 
 // --- Individual tea type illustrations ---
@@ -176,7 +186,7 @@ function MiscCircle({ color }: { color: string }) {
 }
 
 function getIllustration(type: string, color: string) {
-  switch (type) {
+  switch (resolveTypeKey(type)) {
     case 'Green':   return <GreenLeaf color={color} />;
     case 'Yellow':  return <YellowBud color={color} />;
     case 'White':   return <WhiteNeedle color={color} />;
