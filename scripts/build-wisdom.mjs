@@ -15,7 +15,7 @@
  *
  * Run: node scripts/build-wisdom.mjs
  */
-import { readFileSync, writeFileSync, readdirSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -123,6 +123,72 @@ const regions = parseCsv(readFileSync(join(source, 'origins.csv'), 'utf8'))
   }))
   .sort((left, right) => left.name.localeCompare(right.name));
 
+// ------------------------------------------------- producers, styles, marks
+// These arrived later than the cultivar corpus and are extracted from Adrian's
+// own write-ups rather than a research export, so each file is optional: the
+// build must still work before one has been written.
+
+const optional = name => {
+  const path = join(source, name);
+  return existsSync(path) ? parseCsv(readFileSync(path, 'utf8')) : [];
+};
+
+const number = value => {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isInteger(parsed) ? parsed : undefined;
+};
+
+const PRODUCER_KINDS = new Set(['factory', 'house', 'brand', 'cooperative', 'unknown']);
+
+const producers = optional('producers.csv')
+  .filter(row => row.name)
+  .map(row => ({
+    id: row.id || slug(row.name),
+    name: row.name,
+    chineseName: row.chinese_name || undefined,
+    altNames: list(row.alt_names || ''),
+    kind: PRODUCER_KINDS.has(row.kind) ? row.kind : 'unknown',
+    country: row.country || undefined,
+    region: row.region || undefined,
+    founded: number(row.founded),
+    notableMarks: list(row.notable_marks || ''),
+    description: row.description || undefined,
+  }))
+  .sort((left, right) => left.name.localeCompare(right.name));
+
+const styles = optional('styles.csv')
+  .filter(row => row.name)
+  .map(row => ({
+    id: row.id || slug(row.name),
+    name: row.name,
+    chineseName: row.chinese_name || undefined,
+    altNames: list(row.alt_names || ''),
+    appliesToTypes: list(row.applies_to_types || ''),
+    region: row.region || undefined,
+    description: row.description || undefined,
+  }))
+  .sort((left, right) => left.name.localeCompare(right.name));
+
+const producerIds = new Set(producers.map(entry => entry.id));
+const marks = optional('marks.csv')
+  .filter(row => row.name)
+  .map(row => {
+    // A mark names its producer in prose. Only keep the link when that producer
+    // is one we actually hold, so a page can never point at a missing entry.
+    const producerId = row.producer ? slug(row.producer) : '';
+    return {
+      id: row.id || slug(row.name),
+      name: row.name,
+      chineseName: row.chinese_name || undefined,
+      altNames: list(row.alt_names || ''),
+      producerId: producerIds.has(producerId) ? producerId : undefined,
+      era: row.era || undefined,
+      appliesToTypes: list(row.applies_to_types || ''),
+      description: row.description || undefined,
+    };
+  })
+  .sort((left, right) => left.name.localeCompare(right.name));
+
 // ------------------------------------------------------------------- output
 
 mkdirSync(generated, { recursive: true });
@@ -139,10 +205,22 @@ writeFileSync(join(generated, 'cultivars.ts'),
 writeFileSync(join(generated, 'regions.ts'),
   `${banner(regions.length, 'growing regions')}import type { Region } from '../types';\n\nexport const RESEARCH_REGIONS: Region[] = ${JSON.stringify(regions, null, 2)};\n`);
 
+writeFileSync(join(generated, 'producers.ts'),
+  `${banner(producers.length, 'producers')}import type { Producer } from '../types';\n\nexport const PRODUCERS: Producer[] = ${JSON.stringify(producers, null, 2)};\n`);
+
+writeFileSync(join(generated, 'styles.ts'),
+  `${banner(styles.length, 'styles')}import type { Style } from '../types';\n\nexport const STYLES: Style[] = ${JSON.stringify(styles, null, 2)};\n`);
+
+writeFileSync(join(generated, 'marks.ts'),
+  `${banner(marks.length, 'marks')}import type { Mark } from '../types';\n\nexport const MARKS: Mark[] = ${JSON.stringify(marks, null, 2)};\n`);
+
 writeFileSync(join(stories, 'cultivars.json'),
   `${JSON.stringify(Object.fromEntries(cultivars.map(entry => [entry.id, entry.story])), null, 2)}\n`);
 
 const filled = field => cultivars.filter(entry => entry.story[field]).length;
 console.log(`cultivars       ${cultivars.length}  (${filled('description')} described, ${filled('parentage') || cultivars.filter(c => c.parentage).length} with parentage)`);
 console.log(`regions         ${regions.length}`);
+console.log(`producers       ${producers.length}  (${producers.filter(entry => entry.founded).length} with a founding year)`);
+console.log(`styles          ${styles.length}`);
+console.log(`marks           ${marks.length}  (${marks.filter(entry => entry.producerId).length} linked to a producer we hold)`);
 console.log(`story payload   ${(JSON.stringify(cultivars.map(c => c.story)).length / 1024).toFixed(0)} KB, loaded on demand`);

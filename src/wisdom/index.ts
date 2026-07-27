@@ -7,14 +7,16 @@
  */
 import { matchTeaVariety, type TeaVarietyMatch } from '../data/teaVarieties';
 import { matchCultivar } from './cultivars';
+import { matchMark, matchProducer, matchStyle } from './producers';
 import { countryForRegion, findRegion } from './regions';
 import { normalizeTeaForm, normalizeTeaType, type TeaForm, type TeaType } from './vocabulary';
-import type { Cultivar, Region } from './types';
+import type { Cultivar, Mark, Producer, Region, Style } from './types';
 
 export * from './vocabulary';
 export * from './regions';
 export * from './cultivars';
-export type { Cultivar, Region, CultivarStory } from './types';
+export * from './producers';
+export type { Cultivar, Region, CultivarStory, Producer, Style, Mark } from './types';
 
 /** What the wisdom base knows about a tea, and where each part came from. */
 export interface TeaResolution {
@@ -22,11 +24,24 @@ export interface TeaResolution {
   form: TeaForm | null;
   variety: TeaVarietyMatch | null;
   cultivar: Cultivar | null;
+  /** Who made it. Not the vendor a shop bought from. */
+  producer: Producer | null;
+  /** How it was made or pressed, when that is not just a form. */
+  style: Style | null;
+  /** The recipe number, seal or label it carries. */
+  mark: Mark | null;
   region: Region | null;
   country: string | null;
   year: number | null;
   /** Which fields were answered by the wisdom base rather than the record. */
   derived: string[];
+  /**
+   * True when the base can say at least one thing about this tea that the
+   * record did not already carry. A shop's own name for a tea ("Courage") is
+   * never going to resolve to a shared entry, and should not, but its maker,
+   * style, plant or place still can.
+   */
+  recognized: boolean;
 }
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -62,28 +77,39 @@ export interface TeaQuery {
 export function resolveTea({ names, known = {} }: TeaQuery): TeaResolution {
   const text = names.filter(Boolean).join(' ');
   const derived: string[] = [];
-  const mark = <T>(field: string, value: T): T => { if (value != null) derived.push(field); return value; };
+  const noteDerived = <T>(field: string, value: T): T => { if (value != null) derived.push(field); return value; };
 
   const variety = matchTeaVariety(...names);
   const cultivar = matchCultivar(...names);
+  const producer = matchProducer(...names);
+  const style = matchStyle(...names);
+  const mark = matchMark(...names);
 
   const knownType = normalizeTeaType(known.type);
-  const type = knownType ?? mark('type', variety ? normalizeTeaType(variety.type) : null);
+  const type = knownType ?? noteDerived('type', variety ? normalizeTeaType(variety.type) : null);
 
   const knownForm = normalizeTeaForm(known.form);
-  const form = knownForm ?? mark('form', FORM_HINTS.find(([pattern]) => pattern.test(text))?.[1] ?? null);
+  const form = knownForm ?? noteDerived('form', FORM_HINTS.find(([pattern]) => pattern.test(text))?.[1] ?? null);
 
   const knownRegion = findRegion(known.region);
   const region = knownRegion
-    ?? mark('region', findRegion(variety?.region) ?? (cultivar?.originRegion ? findRegion(cultivar.originRegion) : null));
+    ?? noteDerived('region', findRegion(variety?.region) ?? (cultivar?.originRegion ? findRegion(cultivar.originRegion) : null));
 
   const country = known.country?.trim()
-    || mark('country', region?.country ?? countryForRegion(variety?.region) ?? cultivar?.originCountry ?? null);
+    || noteDerived('country', region?.country ?? countryForRegion(variety?.region) ?? cultivar?.originCountry ?? null);
 
   const knownYear = known.year == null || known.year === '' ? null : Number(known.year);
-  const year = Number.isFinite(knownYear) && knownYear ? knownYear : mark('year', yearFrom(text));
+  const year = Number.isFinite(knownYear) && knownYear ? knownYear : noteDerived('year', yearFrom(text));
 
   if (cultivar && !known.type) derived.push('cultivar');
+  if (producer) derived.push('producer');
+  if (style) derived.push('style');
+  if (mark) derived.push('mark');
 
-  return { type, form, variety, cultivar, region, country: country || null, year, derived };
+  return {
+    type, form, variety, cultivar, producer, style, mark,
+    region, country: country || null, year, derived,
+    // Parsing a year out of a name is not knowledge. Matching a known entity is.
+    recognized: Boolean(variety || cultivar || producer || style || mark || region),
+  };
 }
