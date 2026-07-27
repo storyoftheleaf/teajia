@@ -21,7 +21,7 @@ import { RESEARCH_REGIONS } from '../../../wisdom/generated/regions';
 import type { Cultivar, Mark, NamedTea, Producer, Region, Style } from '../../../wisdom';
 import { getThemeTextColor } from '../../themeUtils';
 import { CultivarDetailPanel } from './CultivarDetailPanel';
-import { WisdomChip } from './WisdomDetailPanel';
+import { WisdomChip, WisdomRoving } from './WisdomDetailPanel';
 import {
   WISDOM_SLOT,
   WISDOM_TYPE,
@@ -106,7 +106,14 @@ const linkChip = (label: string, link: WisdomLink, ctx?: WisdomLinkCtx) => (
   <WisdomChip key={label} label={label} onClick={ctx ? () => ctx.jump(link) : undefined} />
 );
 
-const chipRow = (children: React.ReactNode) => <div className="flex flex-wrap gap-1.5">{children}</div>;
+/**
+ * A row of chips is one keyboard stop, not six. `WisdomRoving` gives the group
+ * the same arrow-key contract the list itself uses, so a panel reached by
+ * keyboard can be read by keyboard.
+ */
+const chipRow = (children: React.ReactNode) => (
+  <WisdomRoving className="flex flex-wrap gap-1.5">{children}</WisdomRoving>
+);
 
 /**
  * A written place rendered as somewhere to go.
@@ -182,9 +189,19 @@ const regionRelations = () =>
 /** How many relations a fact grid cell will name before it starts counting. */
 const MAX_RELATION_CHIPS = 10;
 
+/**
+ * The relation, chipped, with the tail counted rather than listed.
+ *
+ * The count used to be a dead end: a place naming forty varieties showed ten and
+ * said "and 30 more" with no way to reach them. It is now the way there, which
+ * is why a link may carry a query as well as an entry: there is no single entry
+ * to open, the answer is the holding narrowed to this place.
+ */
 const relationChips = (
   entries: RegionRelation[] | undefined,
   holdingId: string,
+  /** What to search the other holding for, when the tail has to be opened. */
+  query: string,
   ctx?: WisdomLinkCtx,
 ): React.ReactNode => {
   if (!entries || entries.length === 0) return null;
@@ -193,7 +210,18 @@ const relationChips = (
   return chipRow(
     <>
       {shown.map(entry => linkChip(entry.name, { holding: holdingId, entry: entry.id }, ctx))}
-      {rest > 0 && <span className="self-center text-ui-12 text-tea-text-dim">and {rest} more</span>}
+      {rest > 0 &&
+        (ctx ? (
+          <button
+            type="button"
+            onClick={() => ctx.jump({ holding: holdingId, query })}
+            className="tap-target self-center rounded-md px-2 py-1 text-ui-12 text-tea-gold transition-colors hover:text-tea-gold-lt"
+          >
+            and {rest} more
+          </button>
+        ) : (
+          <span className="self-center text-ui-12 text-tea-text-dim">and {rest} more</span>
+        ))}
     </>,
   );
 };
@@ -203,6 +231,17 @@ const joined = (...parts: Array<string | number | null | undefined>) =>
 
 /** Grouping never leaves a row homeless; an empty answer collects at the end. */
 const orUnknown = (value: string | null | undefined) => value?.trim() || '';
+
+/**
+ * A row that names a place in words the base cannot resolve to a region.
+ *
+ * This is the shape of the commonest gap in the base, and it is invisible one
+ * row at a time: the place is written, it reads perfectly well, and the only
+ * tell is that it did not turn into a link. Counted per holding it becomes a
+ * work queue, which is what the gap line above the list is for.
+ */
+const unheldPlace = (written: string | null | undefined): boolean =>
+  Boolean(written?.trim()) && !findRegion(written);
 
 // ── cultivars ─────────────────────────────────────────────────────────────────
 
@@ -238,6 +277,11 @@ const cultivars = defineHolding<Cultivar>({
   // shape. Decade was tried and dropped, because 18 headings over 79 rows is not
   // a grouping, it is a second scroll.
   groups: [{ key: 'country', label: 'Country', of: row => orUnknown(row.originCountry) }],
+  gap: {
+    test: row => unheldPlace(row.originRegion),
+    sentence: (missing, total) =>
+      `${missing} of the ${total} cultivars name an origin the base does not hold as a region, so their place cannot be opened or read back.`,
+  },
   detail: (row, ctx) => ({
     kind: 'Cultivar',
     name: row.name,
@@ -259,6 +303,7 @@ const cultivars = defineHolding<Cultivar>({
       nav={ctx.nav}
       section={ctx.section}
       publicHref={ctx.publicHref}
+      usage={ctx.usage}
     />
   ),
 });
@@ -324,8 +369,8 @@ const regions = defineHolding<Region>({
       // The relation read backwards. What grows here is the reason a place is
       // worth opening, and it is the return leg of the link a cultivar and a
       // variety now carry into this holding.
-      { label: 'Cultivars', value: relationChips(regionRelations().cultivars.get(row.id), 'cultivars', ctx) },
-      { label: 'Varieties', value: relationChips(regionRelations().varieties.get(row.id), 'varieties', ctx) },
+      { label: 'Cultivars', value: relationChips(regionRelations().cultivars.get(row.id), 'cultivars', row.name, ctx) },
+      { label: 'Varieties', value: relationChips(regionRelations().varieties.get(row.id), 'varieties', row.name, ctx) },
     ],
     prose: row.climate,
   }),
@@ -415,6 +460,11 @@ const varieties = defineHolding<FlatVariety>({
   // Type is the one that earns it: nine headings over 316 rows. Region was tried
   // and dropped at 85 headings, which is not a grouping.
   groups: [{ key: 'type', label: 'Type', of: row => orUnknown(row.type) }],
+  gap: {
+    test: row => unheldPlace(row.region),
+    sentence: (missing, total) =>
+      `${missing} of the ${total} varieties name a place the base does not hold as a region, so the type resolves at import and the place does not.`,
+  },
   detail: (row, ctx) => ({
     kind: 'Variety',
     name: row.name,
@@ -546,6 +596,11 @@ const marks = defineHolding<Mark>({
     { key: 'producer', label: 'Producer', of: row => orUnknown(findProducerById(row.producerId)?.name) },
     { key: 'era', label: 'Era', of: row => orUnknown(row.era) },
   ],
+  gap: {
+    test: row => !findProducerById(row.producerId),
+    sentence: (missing, total) =>
+      `${missing} of the ${total} marks name no producer the base holds, so a wrapper carrying one resolves to a recipe and stops there.`,
+  },
   detail: (row, ctx) => {
     const producer = findProducerById(row.producerId);
     return {
@@ -600,6 +655,11 @@ const styles = defineHolding<Style>({
     slot('place', { key: 'region', label: 'Region', value: row => row.region ?? null }),
   ],
   groups: [{ key: 'applies', label: 'Applies to', of: row => listOf(row.appliesToTypes, 'Any tea') }],
+  gap: {
+    test: row => unheldPlace(row.region),
+    sentence: (missing, total) =>
+      `${missing} of the ${total} styles name a place the base does not hold as a region, so the style resolves at import and the place does not.`,
+  },
   detail: row => ({
     kind: 'Style',
     name: row.name,

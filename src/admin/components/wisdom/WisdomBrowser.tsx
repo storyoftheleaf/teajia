@@ -4,6 +4,7 @@ import { AnchoredMenu } from '../../../components/shared/AnchoredMenu';
 import { RungTag, rungSummary } from './Rung';
 import { SearchBox } from './SearchBox';
 import { PublicLink, WisdomDetailPanel, WisdomPanelNav } from './WisdomDetailPanel';
+import type { WisdomUsage } from './usage';
 import {
   AT_BLOCK,
   AT_FLEX,
@@ -14,12 +15,14 @@ import {
   WISDOM_TYPE,
   compareWisdom,
   defaultPrefs,
+  nearestWisdom,
   recogniseQuery,
   wisdomMatches,
   wisdomQueryTokens,
   wisdomStartsWith,
   type AnyWisdomHolding,
   type WisdomColumn,
+  type WisdomEntryUsage,
   type WisdomLink,
   type WisdomLinkCtx,
   type WisdomPrefs,
@@ -48,13 +51,24 @@ const PAGE = 150;
 const TYPE_AHEAD_MS = 900;
 
 /**
+ * How far the reader has to travel before the chrome gives its room back.
+ *
+ * A band rather than a line, so the state has hysteresis: the strip does not
+ * flicker on a one-pixel scroll, and shrinking the chrome can never pull the
+ * sentinel back into view and start the whole thing oscillating.
+ */
+const CONDENSE_AT = 48;
+
+/**
  * What the keyboard does, said once where the keyboard is.
  *
  * Same shape as the product edit panel's hint bar, deliberately: quiet, one
  * line, micro-caps, dot separated. A second pattern for the same job would be a
- * second thing to learn.
+ * second thing to learn. The last hint names the axis the keys jump by, because
+ * that axis follows the sort and the grouping and is no longer always the name.
  */
-const KEY_HINTS = ['↑ ↓ move', 'Home End jump', 'Enter open', 'Type to jump'] as const;
+const keyHints = (jumpLabel: string) =>
+  ['↑ ↓ move', 'Home End jump', 'Enter open', `Type → ${jumpLabel}`] as const;
 
 interface Props {
   holding: AnyWisdomHolding;
@@ -64,8 +78,12 @@ interface Props {
    * line and the column header stick as one unit at one offset. A wrapping tab
    * strip has no fixed height, so a second sticky element below it could not
    * know what offset to use.
+   *
+   * Called with `condensed`, which is true once the reader has scrolled past the
+   * top: the strip is expected to answer with a single-line switcher then, which
+   * this component seats inside the toolbar row instead of above it.
    */
-  tabs: React.ReactNode;
+  tabs: (condensed: boolean) => React.ReactNode;
   /** The open entry. Owned by the address, so an entry can be linked to. */
   selectedId: string | null;
   onSelect: (id: string | null) => void;
@@ -77,12 +95,21 @@ interface Props {
    */
   siblings?: readonly AnyWisdomHolding[];
   /**
-   * Sort and grouping, owned by the view so they survive a tab change. Search
-   * is not here, and must not be: it stays local and resets on every switch.
-   * Optional, so the engine still works with no one holding its preferences.
+   * Sort, grouping and folded sections, owned by the view so they survive a tab
+   * change. Search is not here, and must not be: it stays local and resets on
+   * every switch. Optional, so the engine still works with no one holding its
+   * preferences.
    */
   prefs?: WisdomPrefs;
   onPrefsChange?: (prefs: WisdomPrefs) => void;
+  /**
+   * A query carried in by a link, which is how a count in another holding's
+   * panel ("and 30 more") becomes somewhere to go. Read on arrival only; what
+   * the reader types afterwards is theirs.
+   */
+  initialQuery?: string;
+  /** How many products resolve through each entry. Absent until they load. */
+  usage?: WisdomUsage;
 }
 
 interface Section {
@@ -95,23 +122,57 @@ interface Section {
 const textAlign = (column: WisdomColumn<unknown>) => (column.align === 'right' ? 'text-right' : 'text-left');
 const justify = (column: WisdomColumn<unknown>) => (column.align === 'right' ? 'justify-end' : 'justify-start');
 
+/** The chrome's one connective: a dot between statements, never a word. */
+const joinDots = (parts: React.ReactNode[]): React.ReactNode =>
+  parts
+    .filter(part => part !== null && part !== false && part !== undefined)
+    .map((part, index) => (
+      <React.Fragment key={index}>
+        {index > 0 && <span className="px-1.5 text-tea-border" aria-hidden="true">·</span>}
+        {part}
+      </React.Fragment>
+    ));
+
 export const WisdomBrowser: React.FC<Props> = ({
-  holding, tabs, selectedId, onSelect, onJump, siblings, prefs, onPrefsChange,
+  holding, tabs, selectedId, onSelect, onJump, siblings, prefs, onPrefsChange, initialQuery = '', usage,
 }) => {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery);
   const nameColumn = holding.columns[0];
+
+  /**
+   * A linked query seeds the field once and then lets go. Watching it forever
+   * would fight the reader: the address keeps the query that opened the screen,
+   * while the field keeps whatever has been typed since.
+   */
+  const seeded = useRef(initialQuery);
+  useEffect(() => {
+    if (initialQuery === seeded.current) return;
+    seeded.current = initialQuery;
+    setQuery(initialQuery);
+  }, [initialQuery]);
 
   // Preferences live with whoever holds them across tab changes; when nobody
   // does, the engine keeps its own copy so it still runs on its own.
   const [ownPrefs, setOwnPrefs] = useState<WisdomPrefs>(() => defaultPrefs(holding));
-  const { sort, groupKey } = prefs ?? ownPrefs;
+  const held = prefs ?? ownPrefs;
+  const { sort, groupKey } = held;
   const setPrefs = onPrefsChange ?? setOwnPrefs;
 
-  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
+  /** Folded sections travel as an array and are used as a set. */
+  const collapsed = useMemo(() => new Set(held.collapsed), [held.collapsed]);
+  const setCollapsed = useCallback(
+    (next: ReadonlySet<string>) => setPrefs({ sort, groupKey, collapsed: [...next] }),
+    [groupKey, setPrefs, sort],
+  );
+
+  /** Showing only the rows that are missing the thing the gap line names. */
+  const [gapOnly, setGapOnly] = useState(false);
   const [limit, setLimit] = useState(PAGE);
   const [focusIndex, setFocusIndex] = useState(0);
   /** What has been typed at the list, shown back so the jump is not a mystery. */
   const [typed, setTyped] = useState('');
+  /** True once the reader is past the top and the chrome should give room back. */
+  const [condensed, setCondensed] = useState(false);
 
   const rowNodes = useRef(new Map<string, HTMLDivElement>());
   const wantFocus = useRef(false);
@@ -138,10 +199,17 @@ export const WisdomBrowser: React.FC<Props> = ({
     [query, holding, siblings],
   );
 
+  /** The rows the gap line is counting. Computed once, and it is also the filter. */
+  const gapRows = useMemo(
+    () => (holding.gap ? holding.rows.filter(row => holding.gap!.test(row)) : []),
+    [holding],
+  );
+
   const filtered = useMemo(() => {
+    const base = gapOnly ? gapRows : holding.rows;
     const rows = tokens.length
-      ? holding.rows.filter(row => wisdomMatches(holding.searchText(row), tokens))
-      : [...holding.rows];
+      ? base.filter(row => wisdomMatches(holding.searchText(row), tokens))
+      : [...base];
 
     const column = holding.columns.find(entry => entry.key === sort.key) ?? nameColumn;
     rows.sort((left, right) => {
@@ -152,16 +220,28 @@ export const WisdomBrowser: React.FC<Props> = ({
 
     // When the base itself recognises the query as one of its entries, that
     // entry leads. Typing a recipe mark should land on the mark, not on the
-    // fourth row that happens to mention it.
+    // fourth row that happens to mention it. It is never pinned into a filtered
+    // view it does not belong to: a gap list that grew a row without the gap
+    // would be a lie about the count above it.
     const recognised = recognition?.own ? recognition.row : null;
     if (recognised) {
       const id = holding.idOf(recognised);
       const at = rows.findIndex(row => holding.idOf(row) === id);
       if (at > 0) rows.unshift(...rows.splice(at, 1));
-      else if (at < 0) rows.unshift(recognised);
+      else if (at < 0 && !gapOnly) rows.unshift(recognised);
     }
     return rows;
-  }, [holding, nameColumn, recognition, sort, tokens]);
+  }, [gapOnly, gapRows, holding, nameColumn, recognition, sort, tokens]);
+
+  /**
+   * The entry the query nearly asked for. Only ever computed on an empty list,
+   * which is the one moment a matcher earns its keep and the screen would
+   * otherwise say nothing at all.
+   */
+  const nearMiss = useMemo(
+    () => (filtered.length === 0 && !recognition ? nearestWisdom(query, holding, siblings) : null),
+    [filtered.length, holding, query, recognition, siblings],
+  );
 
   const group = useMemo(
     () => holding.groups?.find(entry => entry.key === groupKey) ?? null,
@@ -230,13 +310,40 @@ export const WisdomBrowser: React.FC<Props> = ({
 
   useEffect(() => () => growObserver.current?.disconnect(), []);
 
+  /**
+   * The same trick, pointed the other way, to answer one question: has the
+   * reader left the top of the list?
+   *
+   * A 48px band pinned to the very top of the content, absolutely positioned so
+   * it occupies no space of its own. While any of it is in view the chrome shows
+   * everything; once it is gone the tab strip collapses to its active label and
+   * the keyboard hint band steps out, which is 53px of desktop and 76px of phone
+   * handed back to the rows. Root is the viewport again, and the admin scroll
+   * container clips it exactly as it clips the paging sentinel.
+   */
+  const topObserver = useRef<IntersectionObserver | null>(null);
+
+  const topNode = useCallback((node: HTMLDivElement | null) => {
+    topObserver.current?.disconnect();
+    topObserver.current = null;
+    if (!node || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(entries => {
+      const entry = entries[entries.length - 1];
+      if (entry) setCondensed(!entry.isIntersecting);
+    });
+    observer.observe(node);
+    topObserver.current = observer;
+  }, []);
+
+  useEffect(() => () => topObserver.current?.disconnect(), []);
+
   // A new question deserves a fresh first page and a fresh cursor. Depends on
   // the primitives, not on the sort object: `prefs` arrives as a prop now, and
   // an identity change on every render would silently undo every page grown.
   useEffect(() => {
     setLimit(PAGE);
     setFocusIndex(0);
-  }, [query, sort.key, sort.direction, groupKey]);
+  }, [query, sort.key, sort.direction, groupKey, gapOnly]);
 
   const summary = useMemo(() => rungSummary(holding.rows.map(row => holding.idOf(row))), [holding]);
   const selected = selectedId ? holding.rows.find(row => holding.idOf(row) === selectedId) ?? null : null;
@@ -253,6 +360,12 @@ export const WisdomBrowser: React.FC<Props> = ({
     return section?.label ? { group: group.label, name: section.label } : undefined;
   }, [group, sections, selectedId, holding]);
 
+  /** What an edit to one entry would move, in products, right now. */
+  const entryUsage = (id: string): WisdomEntryUsage | undefined =>
+    usage && usage.total > 0
+      ? { count: usage.byHolding.get(holding.id)?.get(id) ?? 0, total: usage.total }
+      : undefined;
+
   const toggleSort = (key: string) =>
     setPrefs({
       sort:
@@ -260,6 +373,7 @@ export const WisdomBrowser: React.FC<Props> = ({
           ? { key, direction: sort.direction === 'asc' ? 'desc' : 'asc' }
           : { key, direction: 'asc' },
       groupKey,
+      collapsed: held.collapsed,
     });
 
   /** Moves the cursor, growing the page when it walks off the end of it. */
@@ -285,6 +399,10 @@ export const WisdomBrowser: React.FC<Props> = ({
    * With the panel open the arrows read THROUGH the holding, the way they move
    * the product panel through the inventory. Left and right do the same thing as
    * up and down, because the panel's own toolbar is a left/right pair.
+   *
+   * Inside a chip group they do not: `data-wisdom-roving` marks a group that
+   * owns its own arrows, so lineage links and fact chips can be walked without
+   * the whole panel changing subject underneath them.
    */
   const step = useCallback((delta: number) => {
     if (selectedIndex < 0) return;
@@ -304,12 +422,29 @@ export const WisdomBrowser: React.FC<Props> = ({
       const target = event.target as HTMLElement | null;
       const typing = !!target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
       if (typing) return;
+      if (target?.closest('[data-wisdom-roving]')) return;
       if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') { step(-1); event.preventDefault(); }
       else if (event.key === 'ArrowDown' || event.key === 'ArrowRight') { step(1); event.preventDefault(); }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [selected, step]);
+
+  /**
+   * The axis the list is currently ordered on, which is what type-ahead has to
+   * jump by.
+   *
+   * Pressing M in Marks used to jump by mark number even when the screen was
+   * grouped by producer and the reader was plainly looking at "Menghai". The
+   * grouping wins where there is one, because it is the coarsest thing on
+   * screen; failing that the sort column; failing that the name.
+   */
+  const jumpBy = useMemo(() => {
+    if (group) return { label: group.label, value: (row: unknown) => group.of(row) };
+    const column = holding.columns.find(entry => entry.key === sort.key);
+    if (column && column.key !== nameColumn.key) return { label: column.label, value: column.value };
+    return { label: nameColumn.label, value: nameColumn.value };
+  }, [group, holding, nameColumn, sort.key]);
 
   /**
    * Type-ahead, the way a native list does it: press L and land on the first L.
@@ -322,7 +457,7 @@ export const WisdomBrowser: React.FC<Props> = ({
    */
   const typeAhead = useCallback((key: string) => {
     const first = (typed_: string) =>
-      ordered.findIndex(row => wisdomStartsWith(nameColumn.value(row), typed_));
+      ordered.findIndex(row => wisdomStartsWith(jumpBy.value(row), typed_));
     const extended = typed + key;
     let word = extended;
     let at = first(extended);
@@ -331,7 +466,7 @@ export const WisdomBrowser: React.FC<Props> = ({
     typeTimer.current = setTimeout(() => setTyped(''), TYPE_AHEAD_MS);
     setTyped(word);
     if (at >= 0) moveFocus(at);
-  }, [moveFocus, nameColumn, ordered, typed]);
+  }, [jumpBy, moveFocus, ordered, typed]);
 
   useEffect(() => () => { if (typeTimer.current) clearTimeout(typeTimer.current); }, []);
 
@@ -355,6 +490,10 @@ export const WisdomBrowser: React.FC<Props> = ({
   };
 
   const sortable = holding.columns.filter(column => column.sortable !== false);
+
+  const sortColumn = holding.columns.find(column => column.key === sort.key) ?? nameColumn;
+  /** The current sort, in words. The header arrow is not readable on a phone. */
+  const sortText = `sorted by ${sortColumn.label} ${sort.direction === 'asc' ? '↑' : '↓'}`;
 
   const sortMenu = (
     <AnchoredMenu
@@ -421,8 +560,9 @@ export const WisdomBrowser: React.FC<Props> = ({
               role="option"
               aria-selected={isCurrent}
               onClick={() => {
-                setPrefs({ sort, groupKey: option.key });
-                setCollapsed(new Set());
+                // A new grouping produces new headings, so the folded set from
+                // the old one means nothing and is dropped rather than kept.
+                setPrefs({ sort, groupKey: option.key, collapsed: [] });
                 close();
               }}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-ui-12 ${
@@ -443,7 +583,9 @@ export const WisdomBrowser: React.FC<Props> = ({
    *
    * Sixteen country sections is sixteen presses to see the shape of the list,
    * which is the whole reason to group it. Only appears with a grouping on,
-   * because with none there is one nameless section and nothing to fold.
+   * because with none there is one nameless section and nothing to fold. The
+   * word shortens on a phone, where the toolbar has 366px to seat four controls
+   * and "Collapse all" is a third of it.
    */
   const allCollapsed = sections.length > 0 && sections.every(section => collapsed.has(section.key));
 
@@ -452,31 +594,31 @@ export const WisdomBrowser: React.FC<Props> = ({
       type="button"
       onClick={() => setCollapsed(allCollapsed ? new Set() : new Set(sections.map(section => section.key)))}
       className={WISDOM_CHROME_BTN}
+      aria-label={allCollapsed ? `Expand all ${holding.noun}` : `Collapse all ${holding.noun}`}
     >
-      {allCollapsed ? 'Expand all' : 'Collapse all'}
+      <span className="hidden md:inline">{allCollapsed ? 'Expand all' : 'Collapse all'}</span>
+      <span className="md:hidden">{allCollapsed ? 'Open' : 'Fold'}</span>
     </button>
   );
 
   /**
-   * The count, and the shape of the authorship rungs, said once. This is what
-   * replaces a column that read "DRAFTED" on all 79 rows. It is a sentence, so
-   * it never wears micro-caps.
+   * The count, the sort, the shape of the grouping and the shape of the
+   * authorship rungs. This is what replaces a column that read "DRAFTED" on all
+   * 79 rows. It is a sentence, so it never wears micro-caps.
+   *
+   * The rung summary is the one part a phone drops. Everything before it changes
+   * with what the reader just did; the rungs are the same all day.
    */
-  const countLine = (
-    <>
-      {filtered.length === holding.rows.length
+  const statusLine = (withRung: boolean) =>
+    joinDots([
+      filtered.length === holding.rows.length
         ? `${holding.rows.length} ${holding.noun}`
-        : `${filtered.length} of ${holding.rows.length} ${holding.noun}`}
-      {group && (
-        <>
-          <span className="px-1.5 text-tea-border" aria-hidden="true">·</span>
-          {`${sections.length} by ${group.label.toLowerCase()}`}
-        </>
-      )}
-      <span className="px-1.5 text-tea-border" aria-hidden="true">·</span>
-      {summary}
-    </>
-  );
+        : `${filtered.length} of ${holding.rows.length} ${holding.noun}`,
+      gapOnly ? 'gaps only' : null,
+      sortText,
+      group ? `${sections.length} by ${group.label.toLowerCase()}` : null,
+      withRung ? summary : null,
+    ]);
 
   /**
    * The reach sentence with its public address turned into the link it was
@@ -497,6 +639,12 @@ export const WisdomBrowser: React.FC<Props> = ({
       </>
     );
   }, [holding]);
+
+  /**
+   * The load on the whole holding, under the sentence that says where it is
+   * read. Reach is the wiring; this is the traffic on it.
+   */
+  const holdingUsage = usage && usage.total > 0 ? (usage.byHoldingTotal.get(holding.id) ?? 0) : null;
 
   const renderRow = (row: unknown, index: number) => {
     const id = holding.idOf(row);
@@ -549,40 +697,80 @@ export const WisdomBrowser: React.FC<Props> = ({
   let cursor = 0;
 
   return (
-    <div>
+    <div className="relative">
+      {/* Occupies no space and answers one question: is the reader still at the
+          top? Absolutely positioned so measuring the scroll costs no layout, and
+          transparent to the pointer so it can never swallow a press meant for
+          the chrome it sits under. */}
+      <div
+        ref={topNode}
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0"
+        style={{ height: CONDENSE_AT }}
+      />
+
       {/* All chrome sticks as one block: tabs, toolbar, the count-or-keys band,
-          column header. About 129px before the first entry, and the same 129px
-          on a phone as on a desktop, because the band those two sizes need is
-          one band carrying a different thing at each. */}
+          column header.
+          At the top of the list that is 57 + 44 + 24 + 23 = 148px on a desktop,
+          and on a 390px phone the seven tabs wrap to three 44px tap targets, so
+          153 + 44 + 24 + 23 = 244px, which is nearly six rows of furniture.
+          Once the reader has moved it is 44 + 23 = 67px on a desktop and
+          44 + 24 + 23 = 91px on a phone: the tab strip becomes its active label
+          seated in the toolbar, and the keyboard hints step out. The phone keeps
+          its band, because that is where the count and the sort direction are
+          legible and a phone has no column arrow it can read.
+          Nothing is skipped when it happens. The height comes out of the flow
+          ABOVE the rows at the same moment it comes off the sticky block, so the
+          first row under the chrome stays exactly where it was and the list
+          simply grows upward into the room. */}
       <div className="sticky top-0 z-sticky bg-tea-bg">
-        {tabs}
+        {!condensed && tabs(false)}
 
         {/* Toolbar: find on the left, utilities as micro-caps on the right.
             From md the count rides here in the space the toolbar was wasting,
-            which buys the whole screen a line back. */}
-        <div className="flex h-10 items-center gap-4 px-3 md:px-4">
+            which buys the whole screen a line back.
+            It wraps rather than scrolls, per the project rule. In practice it
+            will not need to: the find field is the only elastic thing in the row
+            and it shrinks, so at 390px the row seats the condensed switcher, the
+            field and three 44px tap targets on one line with about 100px of
+            field left. The wrap is there for the phone narrower than any we
+            support, where a second row is right and a sideways scroll never is.
+            `min-h-[40px]` rather than `h-10`: the utilities carry `tap-target`,
+            which is a 44px floor, and a fixed 40px row was quietly letting them
+            overflow it by two pixels at each end. */}
+        <div className="flex min-h-[40px] flex-wrap items-center gap-x-3 gap-y-1 px-3 md:gap-x-4 md:px-4">
+          {condensed && <div className="shrink-0">{tabs(true)}</div>}
           <SearchBox value={query} onChange={setQuery} placeholder={holding.placeholder} />
-          <p className="hidden shrink-0 text-ui-11 text-tea-text-dim md:block">{countLine}</p>
+          <p className="hidden min-w-0 shrink truncate text-ui-11 text-tea-text-dim md:block">
+            {typed ? (
+              <span className="font-mono text-tea-gold">
+                Jumping to {typed} by {jumpBy.label.toLowerCase()}
+              </span>
+            ) : (
+              statusLine(true)
+            )}
+          </p>
           <div className="flex shrink-0 items-center gap-3">{foldAll}{sortMenu}{groupMenu}</div>
         </div>
 
         {/* One band, two jobs at two sizes. A phone has no keyboard to hint at
-            and does need the count; a desktop carries the count up in the
-            toolbar and has the room here for what the keys do. So the chrome
-            costs the same 24px on both, instead of one more line on desktop. */}
-        <div className="flex h-6 items-center gap-3 px-3 md:px-4">
-          <p className="min-w-0 truncate text-ui-11 text-tea-text-dim md:hidden">{countLine}</p>
+            and does need the count and the sort; a desktop carries both up in
+            the toolbar and has the room here for what the keys do. Once the
+            reader has scrolled, the desktop half steps out entirely: the hints
+            have been read by then, and 24px of permanent furniture above a 36px
+            row is a line of the list. */}
+        <div
+          className={`flex h-6 items-center gap-3 px-3 md:px-4 ${condensed ? 'md:hidden' : ''}`}
+          data-testid="wisdom-status-band"
+        >
+          <p className="min-w-0 truncate text-ui-11 text-tea-text-dim md:hidden">{statusLine(false)}</p>
           <div className="hidden min-w-0 items-center gap-3 md:flex" data-testid="wisdom-key-hints">
-            {typed ? (
-              <span className="font-mono text-ui-11 text-tea-gold">Jumping to {typed}</span>
-            ) : (
-              KEY_HINTS.map((hint, index) => (
-                <React.Fragment key={hint}>
-                  {index > 0 && <span className="text-ui-10 text-tea-border" aria-hidden="true">·</span>}
-                  <span className={WISDOM_TYPE.label}>{hint}</span>
-                </React.Fragment>
-              ))
-            )}
+            {keyHints(jumpBy.label).map((hint, index) => (
+              <React.Fragment key={hint}>
+                {index > 0 && <span className="text-ui-10 text-tea-border" aria-hidden="true">·</span>}
+                <span className={WISDOM_TYPE.label}>{hint}</span>
+              </React.Fragment>
+            ))}
           </div>
         </div>
 
@@ -632,6 +820,29 @@ export const WisdomBrowser: React.FC<Props> = ({
         </div>
       </div>
 
+      {/* A hole in the data, counted. Forty-five cultivars naming a place the
+          base does not hold is a work queue; the same forty-five met one row at
+          a time is a shrug. Stated only when there is something to state, and
+          the count is also the way to see exactly those rows. */}
+      {holding.gap && gapRows.length > 0 && (
+        <div
+          className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-tea-border px-3 py-1.5 md:px-4"
+          data-testid="wisdom-gap"
+        >
+          <p className="min-w-0 text-ui-11 leading-[1.5] text-tea-text-dim">
+            {holding.gap.sentence(gapRows.length, holding.rows.length)}
+          </p>
+          <button
+            type="button"
+            onClick={() => setGapOnly(current => !current)}
+            aria-pressed={gapOnly}
+            className="shrink-0 text-ui-11 text-tea-gold transition-colors hover:text-tea-gold-lt"
+          >
+            {gapOnly ? 'Show all' : 'Show only these'}
+          </button>
+        </div>
+      )}
+
       {/* Why the first row is the first row. A recognised entry has been pinned
           there since round two, and it looked identical to a lucky substring
           hit. It says so now, in one line, naming the holding it belongs to,
@@ -673,14 +884,12 @@ export const WisdomBrowser: React.FC<Props> = ({
             {section.label !== null && (
               <button
                 type="button"
-                onClick={() =>
-                  setCollapsed(current => {
-                    const next = new Set(current);
-                    if (next.has(section.key)) next.delete(section.key);
-                    else next.add(section.key);
-                    return next;
-                  })
-                }
+                onClick={() => {
+                  const next = new Set(collapsed);
+                  if (next.has(section.key)) next.delete(section.key);
+                  else next.add(section.key);
+                  setCollapsed(next);
+                }}
                 aria-expanded={!collapsed.has(section.key)}
                 className="flex w-full items-center gap-2 border-y border-tea-border bg-tea-accent-sub px-3 py-1.5 text-left transition-colors hover:bg-tea-gold/6 md:px-4"
               >
@@ -697,10 +906,36 @@ export const WisdomBrowser: React.FC<Props> = ({
           </div>
         ))}
 
+        {/* An empty result is the one moment a base that holds a matcher should
+            prove it. A query one character off a held entry used to return
+            nothing and say nothing, which reads as "not held" when the finger
+            simply slipped. */}
         {filtered.length === 0 && (
-          <p className="py-8 text-center text-ui-13 text-tea-text-dim">
-            No {holding.noun} match &quot;{query}&quot;.
-          </p>
+          <div className="px-3 py-8 text-center md:px-4" data-testid="wisdom-empty">
+            <p className="text-ui-13 text-tea-text-dim">
+              No {holding.noun} match &quot;{query}&quot;.
+            </p>
+            {nearMiss && (
+              <p className="mt-2 flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1 text-ui-12 text-tea-text-sec">
+                <span>
+                  The nearest entry the base holds is {nearMiss.name}
+                  {nearMiss.own ? '.' : `, kept under ${nearMiss.holding.label}.`}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onJump({
+                      holding: nearMiss.holding.id,
+                      entry: nearMiss.holding.idOf(nearMiss.row),
+                    })
+                  }
+                  className="text-tea-gold transition-colors hover:text-tea-gold-lt"
+                >
+                  Open it
+                </button>
+              </p>
+            )}
+          </div>
         )}
       </div>
 
@@ -727,12 +962,21 @@ export const WisdomBrowser: React.FC<Props> = ({
         </div>
       )}
 
-      {/* Where this holding is read, and the fact that it is read only. Kept
-          under the content rather than in front of it. The public address
-          inside the sentence is the link to it: an operator checking how a
-          correction reads to a customer was retyping it by hand. */}
+      {/* Where this holding is read, what is currently riding on it, and the
+          fact that it is read only. Kept under the content rather than in front
+          of it. The public address inside the sentence is the link to it: an
+          operator checking how a correction reads to a customer was retyping it
+          by hand. */}
       <p className="max-w-3xl px-3 pb-6 pt-3 text-ui-11 leading-[1.6] text-tea-text-dim md:px-4">
-        {reachLine} Read only. Entries change by re-running the build from the source data.
+        {reachLine}{' '}
+        {holdingUsage !== null && (
+          <span data-testid="wisdom-holding-usage">
+            {holdingUsage === 0
+              ? `None of the ${usage!.total} products in this account resolve through it today.`
+              : `${holdingUsage} of the ${usage!.total} products in this account resolve through it today.`}{' '}
+          </span>
+        )}
+        Read only. Entries change by re-running the build from the source data.
       </p>
 
       {selected && (() => {
@@ -745,6 +989,7 @@ export const WisdomBrowser: React.FC<Props> = ({
           />
         ) : undefined;
         const publicHref = holding.publicRef?.entry?.(selected);
+        const entryLoad = entryUsage(holding.idOf(selected));
         return holding.renderDetail
           ? holding.renderDetail(selected, {
               onClose: () => onSelect(null),
@@ -753,6 +998,7 @@ export const WisdomBrowser: React.FC<Props> = ({
               nav,
               section: selectedSection,
               publicHref,
+              usage: entryLoad,
             })
           : (
             <WisdomDetailPanel
@@ -762,6 +1008,7 @@ export const WisdomBrowser: React.FC<Props> = ({
               nav={nav}
               section={selectedSection}
               publicHref={publicHref}
+              usage={entryLoad}
             />
           );
       })()}

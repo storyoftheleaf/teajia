@@ -100,10 +100,20 @@ export const AT_BLOCK: Record<WisdomBreakpoint, string> = {
   md: 'hidden md:block',
 };
 
-/** Where a cross-holding link points: which tab, and which entry inside it. */
+/**
+ * Where a cross-holding link points: which tab, and what to do on arrival.
+ *
+ * Either half is optional, and the two answer different questions. An entry
+ * opens one record ("this mark's producer"). A query opens the holding narrowed
+ * to a subject ("the forty varieties this place names"), which is what a count
+ * standing in for a list has to be able to do; without it "and 30 more" is a
+ * dead end that names a number and offers no way to reach it.
+ */
 export interface WisdomLink {
   holding: string;
-  entry: string;
+  entry?: string;
+  /** Seeds the find field on arrival. Plain text: it rides in the address. */
+  query?: string;
 }
 
 /**
@@ -181,6 +191,22 @@ export interface WisdomGroup<T> {
 export const UNGROUPED = 'Not recorded';
 
 /**
+ * A known hole in the data, counted rather than met one row at a time.
+ *
+ * Forty-five of the seventy-nine cultivars name an origin the base does not
+ * hold. Discovered a row at a time that is an anecdote: a link that did not turn
+ * gold. Counted and stated above the list, with the way to see exactly those
+ * rows, it is a work queue. A holding whose gap is currently empty says nothing
+ * at all, so the line only ever appears when there is something to do.
+ */
+export interface WisdomGap<T> {
+  /** True when this row is missing the thing the gap is about. */
+  test: (row: T) => boolean;
+  /** The whole statement, built from the counts. A sentence, never micro-caps. */
+  sentence: (missing: number, total: number) => string;
+}
+
+/**
  * Where a holding is published for the public to read.
  *
  * An operator correcting a row usually wants to know how the correction reads
@@ -208,6 +234,8 @@ export interface WisdomHolding<T> {
   placeholder: string;
   columns: ReadonlyArray<WisdomColumn<T>>;
   groups?: ReadonlyArray<WisdomGroup<T>>;
+  /** A counted hole in this holding's data, stated in aggregate above the list. */
+  gap?: WisdomGap<T>;
   /**
    * The wisdom base's own matcher for this holding, where it has one. When a
    * query resolves to a held entity, that entity is pinned to the top of the
@@ -246,6 +274,21 @@ export interface WisdomPanelCtx {
   section?: WisdomSection;
   /** The public page for this entry, when the holding publishes one. */
   publicHref?: string;
+  /** How many products resolve through this entry right now. */
+  usage?: WisdomEntryUsage;
+}
+
+/**
+ * What changing this entry would move: the count of products in the account
+ * that resolve through it today, against the number scanned.
+ *
+ * The reach line says a holding is read by the import editor and the shop.
+ * That is the wiring. This is the load on it, and it is the number that decides
+ * whether an operator edits a record confidently or carefully.
+ */
+export interface WisdomEntryUsage {
+  count: number;
+  total: number;
 }
 
 /**
@@ -268,11 +311,20 @@ export interface WisdomSection {
 export interface WisdomPrefs {
   sort: WisdomSort;
   groupKey: string;
+  /**
+   * Which section headings are folded. An array rather than a Set, because it
+   * travels between renders and holdings as plain data, and because a folded
+   * shape is exactly as much a standing choice as the grouping that produced it:
+   * folding Regions to its sixteen countries, reading Marks, and coming back to
+   * sixteen open sections undid the one press that gave the list its shape.
+   */
+  collapsed: readonly string[];
 }
 
 export const defaultPrefs = (holding: AnyWisdomHolding): WisdomPrefs => ({
   sort: { key: holding.columns[0].key, direction: 'asc' },
   groupKey: '',
+  collapsed: [],
 });
 
 /**
@@ -397,4 +449,90 @@ export function recogniseQuery(
     if (row) return { holding: other, row, own: false };
   }
   return null;
+}
+
+/* ─────────────────────────────── the near miss ────────────────────────────── */
+
+/**
+ * Edit distance, abandoned the moment it is certain to exceed `max`.
+ *
+ * Bounded because this runs over every name the base holds, and because a
+ * distance of nine is not a near miss and there is nothing to learn from
+ * computing it exactly. The band check on the outer loop is the usual one: a row
+ * whose best remaining cell already exceeds the budget cannot recover.
+ */
+export function editDistance(left: string, right: string, max: number): number {
+  if (Math.abs(left.length - right.length) > max) return max + 1;
+  let previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+  for (let row = 1; row <= left.length; row += 1) {
+    const current = [row];
+    let best = row;
+    for (let column = 1; column <= right.length; column += 1) {
+      const cost = left[row - 1] === right[column - 1] ? 0 : 1;
+      const value = Math.min(previous[column] + 1, current[column - 1] + 1, previous[column - 1] + cost);
+      current.push(value);
+      if (value < best) best = value;
+    }
+    if (best > max) return max + 1;
+    previous = current;
+  }
+  const distance = previous[right.length];
+  return distance > max ? max + 1 : distance;
+}
+
+/** The closest held entry to a query that found nothing, and where it is kept. */
+export interface WisdomNearMiss {
+  holding: AnyWisdomHolding;
+  row: unknown;
+  name: string;
+  own: boolean;
+}
+
+/**
+ * The entry a query nearly asked for.
+ *
+ * Exact recognition is the easy half. A query one character off a held entry is
+ * precisely where holding a matcher should earn its keep, and until now it
+ * returned an empty list and said nothing, which reads as "the base does not
+ * have this" when the base has it and the finger slipped. Only ever called when
+ * the find field has emptied the list, so the cost is paid once, on the screen
+ * that would otherwise be blank.
+ *
+ * The open holding is searched first and wins ties, because a reader looking at
+ * cultivars means a cultivar. A one-character miss stops the scan: nothing is
+ * going to beat it and there is no reason to keep reading.
+ */
+export function nearestWisdom(
+  query: string,
+  holding: AnyWisdomHolding,
+  siblings: readonly AnyWisdomHolding[] = [],
+): WisdomNearMiss | null {
+  const key = wisdomKey(query);
+  // Under four characters everything is one edit from everything else.
+  if (key.length < 4) return null;
+  const max = key.length <= 6 ? 1 : 2;
+
+  let best: WisdomNearMiss | null = null;
+  let bestDistance = max + 1;
+
+  const scan = (candidate: AnyWisdomHolding, own: boolean): boolean => {
+    const nameOf = candidate.columns[0].value;
+    for (const row of candidate.rows) {
+      const name = String(nameOf(row) ?? '');
+      const distance = editDistance(key, wisdomKey(name), max);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = { holding: candidate, row, name, own };
+        if (distance <= 1) return true;
+      }
+    }
+    return false;
+  };
+
+  if (scan(holding, true)) return best;
+  for (const other of siblings) {
+    if (other.id === holding.id) continue;
+    if (scan(other, false)) return best;
+  }
+  return best;
 }

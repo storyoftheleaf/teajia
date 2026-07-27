@@ -4,8 +4,8 @@ import { Modal } from '../../../components/shared/Modal';
 import { TYPOGRAPHY_CLASSES } from '../../../designTokens';
 import { childrenOf, findRegion, loadCultivarStory, parentsOf } from '../../../wisdom';
 import type { Cultivar, CultivarStory } from '../../../wisdom';
-import { WISDOM_TYPE, type WisdomLink, type WisdomSection } from './config';
-import { FactGrid, LabelledBlock, WisdomChip, WisdomDetailHeader } from './WisdomDetailPanel';
+import { WISDOM_TYPE, type WisdomEntryUsage, type WisdomLink, type WisdomSection } from './config';
+import { FactGrid, LabelledBlock, WisdomChip, WisdomDetailHeader, WisdomRoving } from './WisdomDetailPanel';
 
 interface Props {
   cultivar: Cultivar;
@@ -20,6 +20,8 @@ interface Props {
   section?: WisdomSection;
   /** This cultivar's page on the public reference. */
   publicHref?: string;
+  /** How many products resolve through this cultivar right now. */
+  usage?: WisdomEntryUsage;
 }
 
 /**
@@ -34,7 +36,7 @@ interface Props {
  * a reading measure, because only prose gets harder to read as it gets wider.
  */
 export const CultivarDetailPanel: React.FC<Props> = ({
-  cultivar, onClose, onSelectCultivar, jump, nav, section, publicHref,
+  cultivar, onClose, onSelectCultivar, jump, nav, section, publicHref, usage,
 }) => {
   const [story, setStory] = useState<CultivarStory | null>(null);
   const [loadingStory, setLoadingStory] = useState(true);
@@ -81,6 +83,7 @@ export const CultivarDetailPanel: React.FC<Props> = ({
             id={cultivar.id}
             section={section}
             publicHref={publicHref}
+            usage={usage}
           />
 
           <FactGrid
@@ -89,10 +92,12 @@ export const CultivarDetailPanel: React.FC<Props> = ({
               {
                 label: 'Region',
                 value: cultivar.originRegion && (
-                  <WisdomChip
-                    label={cultivar.originRegion}
-                    onClick={region ? () => jump({ holding: 'regions', entry: region.id }) : undefined}
-                  />
+                  <WisdomRoving className="flex flex-wrap gap-1.5">
+                    <WisdomChip
+                      label={cultivar.originRegion}
+                      onClick={region ? () => jump({ holding: 'regions', entry: region.id }) : undefined}
+                    />
+                  </WisdomRoving>
                 ),
               },
               { label: 'Country', value: cultivar.originCountry },
@@ -105,7 +110,7 @@ export const CultivarDetailPanel: React.FC<Props> = ({
             <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
               {parents.length > 0 && (
                 <LabelledBlock label="Parents">
-                  <div className="flex flex-wrap gap-1.5">
+                  <WisdomRoving className="flex flex-wrap gap-1.5">
                     {parents.map((parent, index) =>
                       typeof parent === 'string' ? (
                         <span key={index} className={`${lineageChip} text-tea-text-sec bg-tea-surface`}>
@@ -122,12 +127,12 @@ export const CultivarDetailPanel: React.FC<Props> = ({
                         </button>
                       ),
                     )}
-                  </div>
+                  </WisdomRoving>
                 </LabelledBlock>
               )}
               {children.length > 0 && (
                 <LabelledBlock label="Children">
-                  <div className="flex flex-wrap gap-1.5">
+                  <WisdomRoving className="flex flex-wrap gap-1.5">
                     {children.map(child => (
                       <button
                         key={child.id}
@@ -138,7 +143,7 @@ export const CultivarDetailPanel: React.FC<Props> = ({
                         {child.name}
                       </button>
                     ))}
-                  </div>
+                  </WisdomRoving>
                 </LabelledBlock>
               )}
             </div>

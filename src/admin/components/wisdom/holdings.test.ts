@@ -3,6 +3,8 @@ import { AUTHORSHIP } from '../../../wisdom/authorship';
 import {
   WISDOM_SLOT,
   compareWisdom,
+  editDistance,
+  nearestWisdom,
   recogniseQuery,
   wisdomMatches,
   wisdomQueryTokens,
@@ -189,6 +191,46 @@ describe('wisdom holdings', () => {
     expect(facts.find(fact => fact.label === 'Cultivars')?.value).toBeTruthy();
   });
 
+  // A gap is a work queue, so it is stated as a sentence and counted, never
+  // worn as a micro-caps label and never left to be met one row at a time.
+  it('counts its own holes rather than describing them', () => {
+    const gapped = WISDOM_HOLDINGS.filter(holding => holding.gap);
+    expect(gapped.length, 'no holding admits to a gap').toBeGreaterThan(0);
+    for (const holding of gapped) {
+      const missing = holding.rows.filter(row => holding.gap!.test(row)).length;
+      expect(missing, `${holding.id} gap counts more than it holds`).toBeLessThanOrEqual(holding.rows.length);
+      const sentence = holding.gap!.sentence(missing, holding.rows.length);
+      expect(sentence.trim().endsWith('.'), `${holding.id} gap sentence`).toBe(true);
+      expect(sentence).toContain(String(missing));
+    }
+    // The one that prompted the whole thing: most cultivars name a place the
+    // base cannot resolve, and until it was counted that was an anecdote.
+    const cultivars = holdingBy('cultivars');
+    const unheld = cultivars.rows.filter(row => cultivars.gap!.test(row)).length;
+    expect(unheld).toBeGreaterThan(cultivars.rows.length / 3);
+  });
+
+  // A count standing in for a list has to be a way to reach the list.
+  it('makes the counted tail of a relation somewhere to go', () => {
+    const regions = holdingBy('regions');
+    const varieties = holdingBy('varieties');
+    const links: Array<{ holding: string; entry?: string; query?: string }> = [];
+    const ctx = { jump: (link: { holding: string; entry?: string; query?: string }) => links.push(link) };
+
+    // A place naming more varieties than a fact grid will list.
+    const crowded = regions.rows.find(row => {
+      const value = regions.detail(row, ctx).facts.find(fact => fact.label === 'Varieties')?.value;
+      return Boolean(value);
+    })!;
+    expect(crowded).toBeDefined();
+
+    // And the query such a link would carry finds them: a variety related to a
+    // region always says that region somewhere in its own search text.
+    const named = varieties.rows.filter(row =>
+      wisdomMatches(varieties.searchText(row), wisdomQueryTokens(crowded.name)));
+    expect(named.length).toBeGreaterThan(0);
+  });
+
   it('says what a variety entry is, because it is the shallowest record held', () => {
     const varieties = holdingBy('varieties');
     for (const row of varieties.rows) {
@@ -220,6 +262,38 @@ describe('recogniseQuery', () => {
   it('stays silent when the base makes nothing of the query', () => {
     expect(recogniseQuery('zzzznothing', marks, WISDOM_HOLDINGS)).toBe(null);
     expect(recogniseQuery('   ', marks, WISDOM_HOLDINGS)).toBe(null);
+  });
+});
+
+describe('nearestWisdom', () => {
+  const cultivars = holdingBy('cultivars');
+  const marks = holdingBy('marks');
+
+  it('offers the entry a query was one character away from', () => {
+    const near = nearestWisdom('rougi', cultivars, WISDOM_HOLDINGS)!;
+    expect(near).not.toBe(null);
+    expect(near.own).toBe(true);
+    expect(near.name).toBe('Rou Gui');
+  });
+
+  it('reads the open holding first, then the rest of the base', () => {
+    const near = nearestWisdom('rou gu', marks, WISDOM_HOLDINGS);
+    expect(near?.holding.id).toBe('cultivars');
+    expect(near?.own).toBe(false);
+  });
+
+  it('stays silent on a query nothing is near, and on a stub too short to judge', () => {
+    expect(nearestWisdom('zzzzqqqqxxxx', cultivars, WISDOM_HOLDINGS)).toBe(null);
+    // Under four characters everything is one edit from everything else.
+    expect(nearestWisdom('rou', cultivars, WISDOM_HOLDINGS)).toBe(null);
+  });
+});
+
+describe('editDistance', () => {
+  it('counts an edit, and gives up rather than counting a stranger exactly', () => {
+    expect(editDistance('rougui', 'rougui', 2)).toBe(0);
+    expect(editDistance('rougi', 'rougui', 2)).toBe(1);
+    expect(editDistance('rougui', 'dahongpao', 2)).toBe(3);
   });
 });
 

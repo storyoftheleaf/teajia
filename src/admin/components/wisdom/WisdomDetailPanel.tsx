@@ -1,9 +1,15 @@
-import React from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
 import { Modal } from '../../../components/shared/Modal';
 import { TYPOGRAPHY_CLASSES } from '../../../designTokens';
 import { authorshipLine } from '../../../wisdom/authorship';
-import { WISDOM_TYPE, type WisdomDetail, type WisdomFact, type WisdomSection } from './config';
+import {
+  WISDOM_TYPE,
+  type WisdomDetail,
+  type WisdomEntryUsage,
+  type WisdomFact,
+  type WisdomSection,
+} from './config';
 
 /**
  * One detail panel for every holding.
@@ -32,6 +38,76 @@ export const FactGrid: React.FC<{ facts: WisdomFact[]; className?: string }> = (
         </div>
       ))}
     </dl>
+  );
+};
+
+/**
+ * One keyboard stop for a row of chips, with the arrows owning movement inside
+ * it. The same contract the list itself uses, for the same reason.
+ *
+ * The panel used to be a keyboard cul-de-sac: prev and next worked, and then the
+ * lineage links and fact chips inside it were a flat tab walk of up to twenty
+ * stops, so arriving by keyboard meant leaving by mouse. Roving makes a group of
+ * chips cost one Tab and read with the arrows.
+ *
+ * `data-wisdom-roving` is also what tells the browser's panel-level arrow
+ * handler to keep its hands off: inside a chip group the arrows move between
+ * chips, everywhere else in the panel they step to the next entry.
+ */
+export const WisdomRoving: React.FC<{ children: React.ReactNode; className?: string }> = ({
+  children, className = '',
+}) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(0);
+
+  const items = useCallback(
+    (): HTMLElement[] =>
+      Array.from(ref.current?.querySelectorAll<HTMLElement>('button:not([disabled]), a[href]') ?? []),
+    [],
+  );
+
+  // Only one member of the group is ever tabbable. Re-applied on every render
+  // because the members themselves are supplied by whoever built the chips.
+  useEffect(() => {
+    const list = items();
+    if (list.length === 0) return;
+    const at = Math.min(active, list.length - 1);
+    list.forEach((node, index) => { node.tabIndex = index === at ? 0 : -1; });
+  });
+
+  const move = (next: number) => {
+    const list = items();
+    if (list.length === 0) return;
+    const at = (next + list.length) % list.length;
+    setActive(at);
+    list[at].focus();
+  };
+
+  return (
+    <div
+      ref={ref}
+      data-wisdom-roving=""
+      role="group"
+      className={className}
+      onFocus={event => {
+        const at = items().indexOf(event.target as HTMLElement);
+        if (at >= 0) setActive(at);
+      }}
+      onKeyDown={event => {
+        const list = items();
+        const at = list.indexOf(event.target as HTMLElement);
+        if (at < 0) return;
+        if (event.key === 'ArrowRight' || event.key === 'ArrowDown') move(at + 1);
+        else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') move(at - 1);
+        else if (event.key === 'Home') move(0);
+        else if (event.key === 'End') move(list.length - 1);
+        else return;
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+    >
+      {children}
+    </div>
   );
 };
 
@@ -123,6 +199,23 @@ export const WisdomPanelNav: React.FC<NavProps> = ({ position, total, onPrev, on
   </div>
 );
 
+/**
+ * What an edit here would move, said in products.
+ *
+ * Silent while the account's products are still loading, because a confident
+ * "no products" that later turns into eleven is worse than saying nothing.
+ */
+export const UsageLine: React.FC<{ usage?: WisdomEntryUsage }> = ({ usage }) => {
+  if (!usage || usage.total === 0) return null;
+  return (
+    <p className={usage.count > 0 ? 'text-tea-text-sec' : 'text-tea-text-dim'}>
+      {usage.count === 0
+        ? `No product resolves through this entry yet, of ${usage.total} in the account.`
+        : `${usage.count} of ${usage.total} products resolve through this entry today.`}
+    </p>
+  );
+};
+
 interface Props {
   detail: WisdomDetail;
   /** The entity id, for the authorship line. */
@@ -134,13 +227,17 @@ interface Props {
   section?: WisdomSection;
   /** This entry's page on the public reference, when it has one. */
   publicHref?: string;
+  /** How many products resolve through this entry right now. */
+  usage?: WisdomEntryUsage;
 }
 
-export const WisdomDetailPanel: React.FC<Props> = ({ detail, id, onClose, nav, section, publicHref }) => (
+export const WisdomDetailPanel: React.FC<Props> = ({
+  detail, id, onClose, nav, section, publicHref, usage,
+}) => (
   <Modal isOpen onClose={onClose} variant="panel" ariaLabel={detail.name} headerActions={nav}>
     <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-2 pb-nav-gap sm:px-6">
       <div className="mx-auto max-w-5xl pb-8">
-        <WisdomDetailHeader detail={detail} id={id} section={section} publicHref={publicHref} />
+        <WisdomDetailHeader detail={detail} id={id} section={section} publicHref={publicHref} usage={usage} />
         <FactGrid facts={detail.facts} className="mt-5 border-t border-tea-border pt-5" />
         {detail.prose && (
           <p className={`${TYPOGRAPHY_CLASSES.body} text-tea-text mt-6 max-w-2xl`}>{detail.prose}</p>
@@ -157,7 +254,8 @@ export const WisdomDetailHeader: React.FC<{
   id: string;
   section?: WisdomSection;
   publicHref?: string;
-}> = ({ detail, id, section, publicHref }) => (
+  usage?: WisdomEntryUsage;
+}> = ({ detail, id, section, publicHref, usage }) => (
   <header>
     {/* The eyebrow says what this is, and, when prev/next is walking a grouped
         holding, which heading it is currently under. Crossing from the last
@@ -183,8 +281,12 @@ export const WisdomDetailHeader: React.FC<{
     {/* Says what kind of entry this is BEFORE the facts, so a short panel reads
         as a short record rather than as a screen that failed to load. */}
     {detail.note && <p className="mt-3 max-w-2xl text-ui-12 text-tea-text-sec leading-[1.6]">{detail.note}</p>}
+    {/* Provenance, load and public face on one line: who wrote it, what would
+        move if it changed, and where a customer meets it. Wraps rather than
+        truncates, because all three are sentences. */}
     <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-ui-12">
       <p className="text-tea-text-dim">{authorshipLine(id)}</p>
+      <UsageLine usage={usage} />
       {publicHref && <PublicLink href={publicHref}>How this reads in public</PublicLink>}
     </div>
   </header>

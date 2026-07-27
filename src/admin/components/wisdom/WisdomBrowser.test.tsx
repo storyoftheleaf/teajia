@@ -13,15 +13,29 @@ const { WisdomBrowser } = await import('./WisdomBrowser');
 const { WISDOM_HOLDINGS } = await import('./holdings');
 
 const cultivars = WISDOM_HOLDINGS[0];
-const render = (holding = cultivars, groupKey = '') =>
+
+interface RenderOptions {
+  groupKey?: string;
+  collapsed?: string[];
+  query?: string;
+  usage?: { total: number; byHolding: Map<string, Map<string, number>>; byHoldingTotal: Map<string, number> };
+}
+
+const render = (holding = cultivars, options: RenderOptions = {}) =>
   renderToStaticMarkup(
     <WisdomBrowser
       holding={holding}
-      tabs={<nav />}
+      tabs={condensed => (condensed ? <nav data-testid="condensed" /> : <nav data-testid="full" />)}
       selectedId={null}
       onSelect={() => {}}
       onJump={() => {}}
-      prefs={{ sort: { key: holding.columns[0].key, direction: 'asc' }, groupKey }}
+      initialQuery={options.query}
+      usage={options.usage}
+      prefs={{
+        sort: { key: holding.columns[0].key, direction: 'asc' },
+        groupKey: options.groupKey ?? '',
+        collapsed: options.collapsed ?? [],
+      }}
       onPrefsChange={() => {}}
     />,
   );
@@ -97,15 +111,86 @@ describe('WisdomBrowser', () => {
   it('says what the keyboard does, where the keyboard is', () => {
     const html = render();
     expect(html).toContain('data-testid="wisdom-key-hints"');
-    for (const hint of ['move', 'Home End jump', 'Enter open', 'Type to jump']) {
+    for (const hint of ['move', 'Home End jump', 'Enter open']) {
       expect(html).toContain(hint);
     }
+    // The last hint names the axis the keys jump by, which follows the sort.
+    expect(html).toContain('Type → Cultivar');
+    const regions = WISDOM_HOLDINGS.find(holding => holding.id === 'regions')!;
+    expect(render(regions, { groupKey: 'country' })).toContain('Type → Country');
   });
 
   it('offers one press to fold a grouped holding, and none when ungrouped', () => {
     const regions = WISDOM_HOLDINGS.find(holding => holding.id === 'regions')!;
-    expect(render(regions, 'country')).toContain('Collapse all');
-    expect(render(regions, '')).not.toContain('Collapse all');
+    expect(render(regions, { groupKey: 'country' })).toContain('Collapse all');
+    expect(render(regions, { groupKey: '' })).not.toContain('Collapse all');
+  });
+
+  // Folding is as much a standing choice as the grouping that produced it, so
+  // it arrives as a preference rather than as state the remount throws away.
+  it('takes its folded sections from the preferences it was handed', () => {
+    const regions = WISDOM_HOLDINGS.find(holding => holding.id === 'regions')!;
+    const open = render(regions, { groupKey: 'country' });
+    const folded = render(regions, { groupKey: 'country', collapsed: ['China'] });
+    expect(rowCount(folded)).toBeLessThan(rowCount(open));
+    expect(folded).toContain('aria-expanded="false"');
+    // Every section folded is the state the one press produces, and it reads
+    // back as the offer to undo it.
+    const countries = [...new Set(regions.rows.map(row => row.country).filter(Boolean))] as string[];
+    const all = render(regions, { groupKey: 'country', collapsed: countries });
+    expect(rowCount(all)).toBe(0);
+    expect(all).toContain('Expand all');
+  });
+
+  it('states the current sort in words, because a phone hides the arrow', () => {
+    // At 390px every sortable column except the name is hidden, so the header
+    // arrow is not a way to read the sort. The status band says it instead.
+    expect(render()).toContain('sorted by Cultivar ↑');
+    expect(render()).toContain('data-testid="wisdom-status-band"');
+  });
+
+  it('counts a hole in the data instead of leaving it to be met one row at a time', () => {
+    const html = render();
+    expect(html).toContain('data-testid="wisdom-gap"');
+    const cultivarGap = cultivars.rows.filter(row => cultivars.gap!.test(row)).length;
+    expect(cultivarGap).toBeGreaterThan(0);
+    expect(html).toContain(cultivars.gap!.sentence(cultivarGap, cultivars.rows.length));
+    expect(html).toContain('Show only these');
+    // A holding whose gap is currently empty says nothing at all.
+    const varieties = WISDOM_HOLDINGS.find(holding => holding.id === 'varieties')!;
+    const varietyGap = varieties.rows.filter(row => varieties.gap!.test(row)).length;
+    if (varietyGap === 0) expect(render(varieties)).not.toContain('data-testid="wisdom-gap"');
+  });
+
+  it('seeds the find field from a query a link arrived with', () => {
+    const varieties = WISDOM_HOLDINGS.find(holding => holding.id === 'varieties')!;
+    const html = render(varieties, { query: 'Yiwu' });
+    expect(html).toContain('value="Yiwu"');
+    const shown = rowCount(html);
+    expect(shown).toBeGreaterThan(0);
+    expect(shown).toBeLessThan(rowCount(render(varieties)));
+  });
+
+  it('offers the near miss when the find field empties the list', () => {
+    // One character off Rou Gui: a slip, not a question about a tea the base
+    // does not hold. The exact matcher has nothing to say here, which is
+    // precisely where holding a matcher should earn its keep.
+    const html = render(cultivars, { query: 'rougux' });
+    expect(html).toContain('data-testid="wisdom-empty"');
+    expect(html).toContain('The nearest entry the base holds is Rou Gui');
+    expect(html).toContain('Open it');
+  });
+
+  it('says what is currently riding on the holding, not just who reads it', () => {
+    const usage = {
+      total: 139,
+      byHolding: new Map([['cultivars', new Map([['rou-gui', 4]])]]),
+      byHoldingTotal: new Map([['cultivars', 4]]),
+    };
+    const html = render(cultivars, { usage });
+    expect(html).toContain('4 of the 139 products in this account resolve through it today.');
+    // Silent until the products are actually loaded.
+    expect(render(cultivars)).not.toContain('data-testid="wisdom-holding-usage"');
   });
 
   it('makes the public address in the reach line the way to reach it', () => {
