@@ -171,7 +171,7 @@ See `docs/CONSOLIDATED_DIRECTION.md` (single directional list) and `docs/tracks/
 - Sidebar uses micro-caps section labels (`BROWSE`, `MANAGE`, `CURATE`) via `TYPOGRAPHY_CLASSES.navSidebarGroup` in `text-tea-text-dim`. Labels — not dividers — carry grouping; the earlier dividers-only attempt failed legibility in sun.
 - Sidebar nav labels are Cormorant Garamond display serif (`TYPOGRAPHY_CLASSES.navSidebar` = `font-display text-ui-15 font-medium`). The serif carries the editorial-tea-brand feel — the sans-serif experiment lost soul. Outdoor-sun legibility is a real tradeoff accepted for this surface.
 - Inactive sidebar icons use `text-tea-text-sec`, NEVER `text-tea-gold/55` — gold is reserved for the active state, brand, and badges, so the eye can find the active row without competing brass tint on every icon.
-- Hover state on sidebar items: `hover:bg-tea-gold/6`, active: `bg-tea-gold/8`.
+- Hover state on sidebar items: `hover:bg-tea-gold/6`, active: `bg-tea-gold/8`. Both steps are added by `tailwind.config.ts` (`opacity: { 6, 8 }`); Tailwind's own scale jumps 5 to 10, so removing them silently deletes every faint wash in the app.
 - Browse rows are `min-h-[44px]` (customer-facing breathing room); admin rows are tighter at `min-h-[36px]` with `text-ui-12` (tool palette density). Same height for both flattens the hierarchy.
 - Sidebar background is flat `#13100a` in dark mode (no gradient) and `var(--tea-surface)` in light. Gradients on a 56–224px wide column read as banding.
 - Collapse toggle: icon only (ChevronsLeft/Right), no text label.

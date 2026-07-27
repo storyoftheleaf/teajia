@@ -7,8 +7,24 @@
 import React, { useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { STYLES, type Style } from '../../wisdom';
-import { TYPOGRAPHY_CLASSES } from '../../designTokens';
-import { AuthorshipNote, CountLine, EYEBROW, HoldingRow, Invitation, WisdomSearchBox, WisdomSubNav } from './wisdomShared';
+import {
+  AuthorshipNote,
+  FACT,
+  HoldingRow,
+  IndexTable,
+  Invitation,
+  NoMatch,
+  PageHead,
+  WisdomSubNav,
+  WisdomToolbar,
+  type IndexColumns,
+} from './wisdomShared';
+
+const COLUMNS: IndexColumns = {
+  template: 'minmax(0,1fr) 132px 168px',
+  nameLabel: 'Style',
+  labels: ['Applies to', 'Region'],
+};
 
 const matchKey = (value: string) => value.normalize('NFKD').toLowerCase();
 
@@ -46,7 +62,7 @@ const StyleIndexPage: React.FC = () => {
   };
 
   return (
-    <article className="w-full max-w-3xl mx-auto pt-10 pb-nav">
+    <article className="w-full max-w-3xl mx-auto pt-4 pb-nav">
       <Helmet>
         <title>Tea Styles · The Wisdom Base · Teajia</title>
         <meta
@@ -58,45 +74,44 @@ const StyleIndexPage: React.FC = () => {
 
       <WisdomSubNav active="styles" />
 
-      <header>
-        <p className={EYEBROW}>The wisdom base · Styles</p>
-        <h1 className={`${TYPOGRAPHY_CLASSES.h1} text-tea-text mt-3`}>Styles</h1>
-        <p className={`${TYPOGRAPHY_CLASSES.subtitle} text-tea-text-sec mt-4 max-w-[56ch]`}>
-          Ways of making or pressing that are neither plant nor form.
-        </p>
-      </header>
+      <div className="mt-4 mb-2">
+        <PageHead title="Styles" note="Ways of making or pressing that are neither plant nor form." />
+      </div>
 
-      <WisdomSearchBox value={query} onChange={setQuery} placeholder="Search by name, Chinese name or region" />
-      <CountLine visible={visible.length} total={STYLES.length} noun="styles" />
+      <WisdomToolbar
+        query={query}
+        onQueryChange={setQuery}
+        placeholder="Search styles"
+        searchLabel="Search styles by name, Chinese name or region"
+        visible={visible.length}
+        total={STYLES.length}
+        noun="styles"
+      />
 
-      <ul className="list-none m-0 p-0 mt-2">
-        {visible.map(style => (
-          <HoldingRow
-            key={style.id}
-            to={`/wisdom/style/${style.id}`}
-            name={style.name}
-            chineseName={style.chineseName}
-            meta={style.appliesToTypes.join(', ') || undefined}
-            aside={style.region}
-          />
-        ))}
-      </ul>
+      {visible.length === 0 && <NoMatch noun="style" />}
 
-      {visible.length === 0 && (
-        <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec py-16 text-center`}>
-          No style here answers to that name. If it should, send it and it will be added.
-        </p>
+      {visible.length > 0 && (
+        <IndexTable columns={COLUMNS} className="mt-3">
+          <ul className="list-none m-0 p-0">
+            {visible.map(style => (
+              <HoldingRow
+                key={style.id}
+                to={`/wisdom/style/${style.id}`}
+                name={style.name}
+                chineseName={style.chineseName}
+                cells={[style.appliesToTypes.join(', ') || undefined, style.region]}
+              />
+            ))}
+          </ul>
+        </IndexTable>
       )}
 
-      <div className="mt-14 pt-8 border-t border-tea-border">
-        <p className={`${TYPOGRAPHY_CLASSES.body} text-tea-text-sec max-w-[64ch]`}>
+      <div className="mt-12 pt-8 border-t border-tea-border">
+        <p className={`${FACT} max-w-[68ch]`}>
           A style is neither the plant nor the basic form a tea is pressed into. It is a recognised way of making or
           pressing, the kind of fact a write-up states about a tea without it being a place, a plant, or a maker.
         </p>
-      </div>
-
-      <div className="mt-10 pt-8 border-t border-tea-border">
-        <AuthorshipNote className="max-w-[60ch]" />
+        <AuthorshipNote className="max-w-[64ch] mt-6" />
       </div>
 
       <Invitation subject="A style that is missing" />

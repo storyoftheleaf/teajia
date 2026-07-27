@@ -4,8 +4,13 @@
  * The reference reads the wisdom base and nothing else. It holds no copy of a
  * tea-type list, no local region table, and no prose of its own about a plant.
  * Everything here is either presentation or a read helper over `src/wisdom`.
+ *
+ * Presentation follows the admin inventory browser's restraint: no page title
+ * block competing with the content, a labelled column header row, utilities on
+ * one toolbar line, and serif reserved for the primary switcher. It is not a
+ * spreadsheet. It is a contents page that knows what its columns are.
  */
-import React, { useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { ArrowLeft, Search } from 'lucide-react';
@@ -21,7 +26,6 @@ import {
   type TeaType,
 } from '../../wisdom';
 import { authorshipLine } from '../../wisdom/authorship';
-import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
 /** The one address corrections arrive at. Governance is one editor with an inbox. */
 export const WISDOM_INBOX = 'hello@teajia.com';
@@ -29,22 +33,79 @@ export const WISDOM_INBOX = 'hello@teajia.com';
 export const mailtoWisdom = (subject?: string): string =>
   `mailto:${WISDOM_INBOX}${subject ? `?subject=${encodeURIComponent(subject)}` : ''}`;
 
-/** Reused class strings, so the two pages cannot drift apart. */
-export const EYEBROW = `${TYPOGRAPHY_CLASSES.label} text-tea-text-dim`;
-export const META = `${TYPOGRAPHY_CLASSES.label} text-tea-text-sec`;
+// ─── The four type roles ─────────────────────────────────────────────────────
+
+/**
+ * Four roles, four sizes, and nothing else on any page of the reference.
+ *
+ *   TITLE  28px display  the one heading a page carries
+ *   NAME   17px display  a row name, an entry name, the section switcher
+ *   FACT   15px body     running prose, and any fact written as a phrase
+ *   LABEL  11px sans     micro-caps, and ONLY for a label of three words or fewer
+ *
+ * CELL is the LABEL size and family with the caps taken off. It is what a value
+ * inside a column is set in, because caps at 11px is unreadable for a place
+ * name or a sentence. Case and colour, not size, tell a header from its values.
+ *
+ * That is the whole scale. Nothing on a wisdom page may introduce a fifth step.
+ */
+export const TITLE_CLASS = 'font-display text-ui-28 font-normal leading-[1.15] tracking-[0.01em]';
+export const NAME_CLASS = 'font-display text-ui-17 font-normal leading-[1.35] tracking-[0.02em]';
+export const FACT_CLASS = 'font-body text-ui-15 font-normal leading-[1.65]';
+export const LABEL_CLASS = 'font-sans text-ui-11 font-normal uppercase tracking-[1.2px] leading-[1.4]';
+export const CELL_CLASS = 'font-sans text-ui-11 font-normal tracking-[0.02em] leading-[1.4]';
+
+/** A micro-caps label. Dim, always subordinate to what it labels. */
+export const LABEL = `${LABEL_CLASS} text-tea-text-dim`;
+/** A value in a column, or any short piece of metadata. Never caps. */
+export const CELL = `${CELL_CLASS} text-tea-text-sec`;
+/** A footnote: a sentence that must not compete with the record above it. */
+export const FOOTNOTE = `${CELL_CLASS} text-tea-text-dim leading-relaxed`;
+/** Running prose. */
+export const FACT = `${FACT_CLASS} text-tea-text-sec`;
+
 export const QUIET_LINK =
   'text-tea-readgold underline underline-offset-4 decoration-tea-gold/40 hover:decoration-tea-gold transition-colors';
 
+/**
+ * The caps rule, enforced rather than remembered. A label of three words or
+ * fewer is set in micro-caps; anything longer is a phrase, and a phrase set in
+ * caps at 11px cannot be read. Group labels come out of the data (a naming
+ * tradition can run to a dozen words), so the decision cannot live at the call
+ * site.
+ */
+export const isMicroCapsLabel = (text: string): boolean => text.trim().split(/\s+/).length <= 3;
+
 // ─── Section head ────────────────────────────────────────────────────────────
 
-/** A marker, a hairline, a name. The one section device this reference uses. */
+/** A marker, a hairline, a name. The section device the detail pages use. */
 export const SectionHead: React.FC<{ glyph: string; label: string; count?: number }> = ({ glyph, label, count }) => (
-  <div className="flex items-center gap-4 mb-6">
-    <span className="font-display italic text-ui-20 text-tea-readgold leading-none">{glyph}</span>
-    <span className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-sec whitespace-nowrap`}>{label}</span>
+  <div className="flex items-center gap-3 mb-4">
+    <span className="font-display italic text-ui-17 text-tea-readgold leading-none">{glyph}</span>
+    <span className={`${LABEL} whitespace-nowrap`}>{label}</span>
     <span aria-hidden className="flex-1 h-px bg-tea-border" />
-    {count != null && <span className="font-mono text-ui-11 tabular-nums text-tea-text-dim">{count}</span>}
+    {count != null && <span className={`${CELL_CLASS} text-tea-text-dim tabular-nums`}>{count}</span>}
   </div>
+);
+
+// ─── The page head ───────────────────────────────────────────────────────────
+
+/**
+ * One line of heading, and no eyebrow. The sub-nav strip above already says
+ * which holding a reader is in, so repeating it cost 60px and told nobody
+ * anything. Where a page carries a deck it sits inline with the title rather
+ * than owning a line of its own.
+ */
+export const PageHead: React.FC<{ title: string; chineseName?: string; note?: string }> = ({
+  title,
+  chineseName,
+  note,
+}) => (
+  <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+    <h1 className={`${TITLE_CLASS} text-tea-text`}>{title}</h1>
+    {chineseName && <span className={`${NAME_CLASS} text-tea-text-sec`}>{chineseName}</span>}
+    {note && <p className={`${FACT} max-w-[56ch]`}>{note}</p>}
+  </header>
 );
 
 // ─── Authorship ──────────────────────────────────────────────────────────────
@@ -59,24 +120,27 @@ export const SectionHead: React.FC<{ glyph: string; label: string; count?: numbe
  * the rung defaults to "drafted", true of nearly everything in the base today.
  */
 export const AuthorshipNote: React.FC<{ id?: string | null; className?: string }> = ({ id = null, className = '' }) => (
-  <p className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-dim leading-relaxed ${className}`}>
-    {authorshipLine(id)} Corrections are applied by hand and credited.
-  </p>
+  <p className={`${FOOTNOTE} ${className}`}>{authorshipLine(id)} Corrections are applied by hand and credited.</p>
+);
+
+/** The scope footnote every detail page closes with. Nothing here is a shop's. */
+export const ScopeNote: React.FC<{ noun: string }> = ({ noun }) => (
+  <p className={`${FOOTNOTE} mt-2`}>Nothing on this page is account scoped. It is true of the {noun}, not of any shop.</p>
 );
 
 // ─── The invitation ──────────────────────────────────────────────────────────
 
 /** Adrian's standard, stated as a direction rather than a claim. */
 export const Invitation: React.FC<{ subject?: string }> = ({ subject }) => (
-  <aside className="mt-16 pt-8 border-t border-tea-border">
-    <p className={`${TYPOGRAPHY_CLASSES.subtitle} text-tea-text max-w-[52ch]`}>
+  <aside className="mt-14 pt-8 border-t border-tea-border">
+    <p className={`${FACT_CLASS} text-tea-text max-w-[52ch]`}>
       This is not everything. The goal is to be everything. If you know something that isn&rsquo;t here,{' '}
       <a href={mailtoWisdom(subject)} className={QUIET_LINK}>
         send it
       </a>
       .
     </p>
-    <p className={`${EYEBROW} mt-4`}>One address, one editor, every correction credited in the entry</p>
+    <p className={`${FOOTNOTE} mt-3`}>One address, one editor, every correction credited in the entry.</p>
   </aside>
 );
 
@@ -89,7 +153,7 @@ export const BackLink: React.FC<{ to: string; label: string }> = ({ to, label })
     className="inline-flex items-center gap-2 min-h-[44px] text-tea-text-sec hover:text-tea-text transition-colors"
   >
     <ArrowLeft size={16} strokeWidth={1.5} aria-hidden />
-    <span className={TYPOGRAPHY_CLASSES.label}>{label}</span>
+    <span className={LABEL_CLASS}>{label}</span>
   </Link>
 );
 
@@ -114,15 +178,24 @@ export const WISDOM_SECTIONS: WisdomSection[] = [
 ];
 
 /**
- * The persistent way around. Every page in the reference carries this strip so
- * a reader can move between holdings without returning to the front door
- * first. Same tab treatment the admin Wisdom view uses (serif, gold when
- * active), so the public reference reads with the same density.
+ * The mark the inventory's lens rail uses: gold text plus a 2px gold bar seated
+ * on the strip's own rule. Colour alone was not enough to find at a glance,
+ * especially outdoors where the bronze reads close to the secondary text.
+ */
+const switchMark = (active: boolean): string =>
+  active
+    ? 'text-tea-gold after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-tea-gold after:rounded-full'
+    : 'text-tea-text-sec hover:text-tea-text';
+
+/**
+ * The persistent way around, and the only serif switcher on the page. Wraps at
+ * narrow widths rather than scrolling sideways: a nav you have to discover by
+ * swiping is a nav half the readers never see.
  */
 export const WisdomSubNav: React.FC<{ active: WisdomSection['id'] }> = ({ active }) => (
   <nav
     aria-label="The wisdom base"
-    className="flex flex-wrap items-baseline gap-x-6 gap-y-2 border-b border-tea-border pb-3 mb-8"
+    className="flex flex-wrap items-center gap-x-5 sm:gap-x-6 border-b border-tea-border"
   >
     {WISDOM_SECTIONS.map(section => {
       const isActive = section.id === active;
@@ -131,9 +204,7 @@ export const WisdomSubNav: React.FC<{ active: WisdomSection['id'] }> = ({ active
           key={section.id}
           to={section.path}
           aria-current={isActive ? 'page' : undefined}
-          className={`min-h-[44px] inline-flex items-center font-display text-ui-16 tracking-[0.02em] transition-colors ${
-            isActive ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
-          }`}
+          className={`relative inline-flex items-center min-h-[44px] ${NAME_CLASS} transition-colors ${switchMark(isActive)}`}
         >
           {section.label}
         </Link>
@@ -142,66 +213,196 @@ export const WisdomSubNav: React.FC<{ active: WisdomSection['id'] }> = ({ active
   </nav>
 );
 
-// ─── Finding a holding ───────────────────────────────────────────────────────
+// ─── The toolbar ─────────────────────────────────────────────────────────────
 
-/** A real search field, restyled from the admin's SearchBox to the public palette. */
-export const WisdomSearchBox: React.FC<{ value: string; onChange: (value: string) => void; placeholder: string }> = ({
+/**
+ * How a list is ordered. Sans micro-caps, not serif: the sub-nav above is the
+ * primary switcher and only one switcher on a page gets to be display type.
+ */
+export const ViewSwitch = <T extends string>({
+  options,
   value,
   onChange,
-  placeholder,
-}) => (
-  <div className="relative mt-6">
-    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim" aria-hidden />
-    <input
-      type="search"
-      value={value}
-      onChange={event => onChange(event.target.value)}
-      placeholder={placeholder}
-      aria-label={placeholder}
-      className="w-full bg-tea-surface border border-tea-border rounded-md text-tea-text pl-9 pr-3 py-2.5 min-h-[44px] font-body text-ui-14 placeholder:text-tea-text-dim focus:outline-none focus:border-tea-gold/40"
-    />
+  label,
+}: {
+  options: Array<{ id: T; label: string }>;
+  value: T;
+  onChange: (id: T) => void;
+  label: string;
+}): React.ReactElement => (
+  <div role="group" aria-label={label} className="flex items-center gap-x-5 min-w-0">
+    {options.map(option => {
+      const active = option.id === value;
+      return (
+        <button
+          key={option.id}
+          type="button"
+          aria-pressed={active}
+          onClick={() => onChange(option.id)}
+          className={`relative inline-flex items-center min-h-[44px] ${LABEL_CLASS} transition-colors ${switchMark(active)}`}
+        >
+          {option.label}
+        </button>
+      );
+    })}
   </div>
 );
 
-/** How much of a holding a filter is showing, updated live. */
-export const CountLine: React.FC<{ visible: number; total: number; noun: string }> = ({ visible, total, noun }) => (
-  <p className={`${EYEBROW} mt-3 mb-1`}>
-    {visible} of {total} {noun}
-  </p>
+/**
+ * One row carrying everything functional: how the list is ordered on the left,
+ * the search field and the live count on the right. The reference used to spend
+ * a 68px band on the field alone and another on the count line beneath it.
+ */
+export const WisdomToolbar: React.FC<{
+  query: string;
+  onQueryChange: (value: string) => void;
+  /** Short enough to read inside the field. The full sentence goes on the label. */
+  placeholder: string;
+  searchLabel: string;
+  visible: number;
+  total: number;
+  noun: string;
+  children?: React.ReactNode;
+}> = ({ query, onQueryChange, placeholder, searchLabel, visible, total, noun, children }) => (
+  <div className="flex flex-wrap items-center gap-x-6 border-b border-tea-border">
+    {children}
+    <div className="w-full sm:w-auto sm:ml-auto flex items-center gap-x-4 min-w-0">
+      <div className="relative flex-1 sm:flex-none sm:w-[188px] min-w-0">
+        <Search size={14} aria-hidden className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 text-tea-text-dim" />
+        <input
+          type="search"
+          value={query}
+          onChange={event => onQueryChange(event.target.value)}
+          placeholder={placeholder}
+          aria-label={searchLabel}
+          className={`${CELL_CLASS} w-full h-11 bg-transparent pl-5 pr-1 rounded-md text-tea-text placeholder:text-tea-text-dim focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50`}
+        />
+      </div>
+      <span className={`${LABEL} shrink-0 tabular-nums whitespace-nowrap`}>
+        {visible === total ? `${total} ${noun}` : `${visible} / ${total}`}
+      </span>
+    </div>
+  </div>
 );
 
-// ─── One row of a holding ────────────────────────────────────────────────────
+// ─── One holding, as a list with real columns ────────────────────────────────
 
 /**
- * The tight, two-axis row density the admin browsers use: serif name (plus a
- * Chinese name when recorded) on the lead line, a dim second fact beneath it,
- * and one fact right-aligned so the eye can track a second column down the
- * list. 52 to 64px tall, not the much taller card the reference used before.
+ * The columns a holding's index reads down. Fixed widths, left aligned, so the
+ * second and third facts form an axis the eye can track instead of ragging off
+ * the right edge at whatever length the string happened to be.
+ */
+export interface IndexColumns {
+  /** grid-template-columns, applied at sm and up. First track is the name. */
+  template: string;
+  /** Header for the name column. Three words or fewer. */
+  nameLabel: string;
+  /** Headers for the data columns, in order. Three words or fewer each. */
+  labels: string[];
+}
+
+const IndexColumnsContext = createContext<IndexColumns | null>(null);
+
+const columnStyle = (columns: IndexColumns): React.CSSProperties =>
+  ({ '--wisdom-cols': columns.template }) as React.CSSProperties;
+
+/**
+ * Below sm there is no room for three tracks without either a horizontal
+ * scroll or a column of two-character fragments, so the grid drops to a wrap:
+ * the name takes the first line and the facts sit under it on the second,
+ * still in reading order. The header row goes with the columns it labels.
+ */
+const ROW_LAYOUT =
+  'flex flex-wrap items-baseline gap-x-4 gap-y-0.5 sm:grid sm:gap-y-0 sm:grid-cols-[var(--wisdom-cols)]';
+
+/**
+ * tea-accent-sub, not tea-gold/6. Tailwind's opacity scale has no 6 step, so
+ * `bg-tea-gold/6` compiles to nothing: every row that used it had no hover at
+ * all. tea-accent-sub is the token COLOR_RULES names for exactly this.
+ */
+const ROW_HOVER = 'hover:bg-tea-accent-sub';
+
+export const IndexTable: React.FC<{ columns: IndexColumns; children: React.ReactNode; className?: string }> = ({
+  columns,
+  children,
+  className = '',
+}) => (
+  <IndexColumnsContext.Provider value={columns}>
+    <div className={className} style={columnStyle(columns)}>
+      <div
+        aria-hidden
+        className="hidden sm:grid sm:grid-cols-[var(--wisdom-cols)] items-baseline gap-x-4 pb-1.5 border-b border-tea-border"
+      >
+        <span className={LABEL}>{columns.nameLabel}</span>
+        {columns.labels.map(label => (
+          <span key={label} className={LABEL}>
+            {label}
+          </span>
+        ))}
+      </div>
+      {children}
+    </div>
+  </IndexColumnsContext.Provider>
+);
+
+/**
+ * A group inside an index. A quiet label and a count, no rule and no glyph:
+ * the old head was a full-width hairline with a serif marker, which read louder
+ * than the plant names underneath it.
+ */
+export const GroupHead: React.FC<{ label: string; count: number }> = ({ label, count }) => (
+  <div className="flex items-baseline gap-2 pt-5 pb-1">
+    <span className={isMicroCapsLabel(label) ? LABEL : `${CELL_CLASS} text-tea-text-dim`}>{label}</span>
+    <span className={`${CELL_CLASS} text-tea-text-dim tabular-nums`}>{count}</span>
+  </div>
+);
+
+/**
+ * One line of record. A serif name (plus the Chinese name when the record has
+ * one), then one value per column. No description line: a 90-character sentence
+ * under every row triples the ink and halves how many rows reach the screen,
+ * and everything it said is on the entry's own page one click away.
+ *
+ * `note` exists for the front door only, where five rows each need a sentence
+ * saying what the holding is. It is set as prose, in sentence case, never caps.
  */
 export const HoldingRow: React.FC<{
   to: string;
   name: string;
   chineseName?: string;
-  meta?: string;
-  aside?: string;
-}> = ({ to, name, chineseName, meta, aside }) => (
-  <li className="border-t border-tea-border first:border-t-0">
-    <Link
-      to={to}
-      className="group flex items-center justify-between gap-3 py-3 min-h-[52px] hover:bg-tea-gold/6 transition-colors -mx-2 px-2 rounded-md"
-    >
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline gap-2 flex-wrap">
-          <span className="font-display text-ui-17 leading-snug text-tea-text group-hover:text-tea-gold-lt transition-colors truncate">
-            {name}
+  cells?: Array<string | undefined>;
+  note?: string;
+}> = ({ to, name, chineseName, cells = [], note }) => {
+  const columns = useContext(IndexColumnsContext);
+  return (
+    <li className="border-t border-tea-border first:border-t-0">
+      <Link
+        to={to}
+        className={`group ${ROW_LAYOUT} ${ROW_HOVER} min-h-[44px] py-2.5 -mx-2 px-2 rounded-md transition-colors`}
+        style={columns ? columnStyle(columns) : undefined}
+      >
+        <span className="basis-full sm:basis-auto min-w-0 inline-flex items-baseline gap-2 flex-wrap">
+          <span className={`${NAME_CLASS} text-tea-text group-hover:text-tea-gold-lt transition-colors`}>{name}</span>
+          {chineseName && <span className="font-display text-ui-15 text-tea-text-dim">{chineseName}</span>}
+        </span>
+        {cells.map((cell, index) => (
+          <span key={index} className={`${CELL} min-w-0 truncate tabular-nums`}>
+            {cell ?? ''}
           </span>
-          {chineseName && <span className="font-display text-ui-13 text-tea-text-dim shrink-0">{chineseName}</span>}
-        </div>
-        {meta && <p className={`${EYEBROW} mt-0.5 truncate`}>{meta}</p>}
-      </div>
-      {aside && <span className={`${EYEBROW} shrink-0 text-right`}>{aside}</span>}
-    </Link>
-  </li>
+        ))}
+        {note && (
+          <span className={`${FACT} basis-full sm:col-span-full sm:mt-1 max-w-[68ch]`}>{note}</span>
+        )}
+      </Link>
+    </li>
+  );
+};
+
+/** Nothing matched the filter. Same sentence shape on every index. */
+export const NoMatch: React.FC<{ noun: string }> = ({ noun }) => (
+  <p className={`${FACT} py-14 text-center`}>
+    No {noun} here answers to that name. If it should, send it and it will be added.
+  </p>
 );
 
 /** A holding's id did not resolve. Same shape on every detail page in the reference. */
@@ -211,13 +412,13 @@ export const HoldingNotFound: React.FC<{
   backLabel: string;
   subject: string;
 }> = ({ heading, backTo, backLabel, subject }) => (
-  <article className="w-full max-w-3xl mx-auto pt-10 pb-nav">
+  <article className="w-full max-w-3xl mx-auto pt-4 pb-nav">
     <Helmet>
       <title>Not found · Teajia</title>
     </Helmet>
     <BackLink to={backTo} label={backLabel} />
-    <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text mt-8`}>{heading}</h1>
-    <p className={`${TYPOGRAPHY_CLASSES.body} text-tea-text-sec mt-4 max-w-[56ch]`}>
+    <h1 className={`${TITLE_CLASS} text-tea-text mt-4`}>{heading}</h1>
+    <p className={`${FACT} mt-3 max-w-[56ch]`}>
       Nothing in the reference answers to that name yet.{' '}
       <Link to={backTo} className={QUIET_LINK}>
         {backLabel}
@@ -230,13 +431,17 @@ export const HoldingNotFound: React.FC<{
 
 // ─── Facts ───────────────────────────────────────────────────────────────────
 
-/** A labelled line. Used for every fact that is a phrase rather than a paragraph. */
+/**
+ * A labelled line on a detail page. The label sits in a fixed track so every
+ * value starts at the same x down the page, the same reason the index columns
+ * are fixed rather than right aligned.
+ */
 export const Fact: React.FC<{ label: string; children?: React.ReactNode }> = ({ label, children }) => {
   if (!children) return null;
   return (
-    <div className="py-3 border-t border-tea-border flex flex-wrap gap-x-8 gap-y-1 justify-between">
-      <span className={`${EYEBROW} shrink-0`}>{label}</span>
-      <span className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text max-w-[54ch] sm:text-right`}>{children}</span>
+    <div className="py-2.5 border-t border-tea-border sm:grid sm:grid-cols-[152px_minmax(0,1fr)] sm:gap-x-6">
+      <span className={`${LABEL} block sm:pt-1`}>{label}</span>
+      <span className={`${FACT_CLASS} text-tea-text max-w-[60ch] block`}>{children}</span>
     </div>
   );
 };

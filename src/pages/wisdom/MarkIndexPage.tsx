@@ -4,8 +4,24 @@
 import React, { useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { MARKS, findProducerById, type Mark } from '../../wisdom';
-import { TYPOGRAPHY_CLASSES } from '../../designTokens';
-import { AuthorshipNote, CountLine, EYEBROW, HoldingRow, Invitation, WisdomSearchBox, WisdomSubNav } from './wisdomShared';
+import {
+  AuthorshipNote,
+  FACT,
+  HoldingRow,
+  IndexTable,
+  Invitation,
+  NoMatch,
+  PageHead,
+  WisdomSubNav,
+  WisdomToolbar,
+  type IndexColumns,
+} from './wisdomShared';
+
+const COLUMNS: IndexColumns = {
+  template: 'minmax(0,1fr) 88px 200px',
+  nameLabel: 'Mark',
+  labels: ['Era', 'Producer'],
+};
 
 const matchKey = (value: string) => value.normalize('NFKD').toLowerCase();
 
@@ -43,7 +59,7 @@ const MarkIndexPage: React.FC = () => {
   };
 
   return (
-    <article className="w-full max-w-3xl mx-auto pt-10 pb-nav">
+    <article className="w-full max-w-3xl mx-auto pt-4 pb-nav">
       <Helmet>
         <title>Tea Marks · The Wisdom Base · Teajia</title>
         <meta
@@ -55,49 +71,45 @@ const MarkIndexPage: React.FC = () => {
 
       <WisdomSubNav active="marks" />
 
-      <header>
-        <p className={EYEBROW}>The wisdom base · Marks</p>
-        <h1 className={`${TYPOGRAPHY_CLASSES.h1} text-tea-text mt-3`}>Marks</h1>
-        <p className={`${TYPOGRAPHY_CLASSES.subtitle} text-tea-text-sec mt-4 max-w-[56ch]`}>
-          Recipe numbers, seals and labels a product line carries.
-        </p>
-      </header>
-
-      <WisdomSearchBox value={query} onChange={setQuery} placeholder="Search by name, Chinese name or era" />
-      <CountLine visible={visible.length} total={MARKS.length} noun="marks" />
-
-      <ul className="list-none m-0 p-0 mt-2">
-        {visible.map(mark => {
-          const producer = findProducerById(mark.producerId);
-          return (
-            <HoldingRow
-              key={mark.id}
-              to={`/wisdom/mark/${mark.id}`}
-              name={mark.name}
-              chineseName={mark.chineseName}
-              meta={mark.appliesToTypes.join(', ') || undefined}
-              aside={[mark.era, producer?.name].filter(Boolean).join(' · ') || undefined}
-            />
-          );
-        })}
-      </ul>
-
-      {visible.length === 0 && (
-        <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec py-16 text-center`}>
-          No mark here answers to that name. If it should, send it and it will be added.
-        </p>
-      )}
-
-      <div className="mt-14 pt-8 border-t border-tea-border">
-        <p className={`${TYPOGRAPHY_CLASSES.body} text-tea-text-sec max-w-[64ch]`}>
-          A mark is a recipe number, seal or label rather than a plant or a place: 7572 is Menghai Tea Factory&rsquo;s
-          benchmark shou recipe, encoded in its own digits. Eight of these are tied to a producer we hold; the rest
-          are named in a producer&rsquo;s own record without a page of their own yet.
-        </p>
+      <div className="mt-4 mb-2">
+        <PageHead title="Marks" note="Recipe numbers, seals and labels a product line carries." />
       </div>
 
-      <div className="mt-10 pt-8 border-t border-tea-border">
-        <AuthorshipNote className="max-w-[60ch]" />
+      <WisdomToolbar
+        query={query}
+        onQueryChange={setQuery}
+        placeholder="Search marks"
+        searchLabel="Search marks by name, Chinese name or era"
+        visible={visible.length}
+        total={MARKS.length}
+        noun="marks"
+      />
+
+      {visible.length === 0 && <NoMatch noun="mark" />}
+
+      {visible.length > 0 && (
+        <IndexTable columns={COLUMNS} className="mt-3">
+          <ul className="list-none m-0 p-0">
+            {visible.map(mark => (
+              <HoldingRow
+                key={mark.id}
+                to={`/wisdom/mark/${mark.id}`}
+                name={mark.name}
+                chineseName={mark.chineseName}
+                cells={[mark.era, findProducerById(mark.producerId)?.name]}
+              />
+            ))}
+          </ul>
+        </IndexTable>
+      )}
+
+      <div className="mt-12 pt-8 border-t border-tea-border">
+        <p className={`${FACT} max-w-[68ch]`}>
+          A mark is a recipe number, seal or label rather than a plant or a place: 7572 is Menghai Tea Factory&rsquo;s
+          benchmark shou recipe, encoded in its own digits. Eight of these are tied to a producer we hold; the rest are
+          named in a producer&rsquo;s own record without a page of their own yet.
+        </p>
+        <AuthorshipNote className="max-w-[64ch] mt-6" />
       </div>
 
       <Invitation subject="A mark that is missing" />

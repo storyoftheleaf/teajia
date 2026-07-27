@@ -10,8 +10,20 @@ import React, { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { findNamedTeaById } from '../../wisdom';
-import { TYPOGRAPHY_CLASSES } from '../../designTokens';
-import { AuthorshipNote, BackLink, EYEBROW, Fact, HoldingNotFound, Invitation, WisdomSubNav } from './wisdomShared';
+import {
+  AuthorshipNote,
+  BackLink,
+  CELL,
+  FACT,
+  FACT_CLASS,
+  Fact,
+  HoldingNotFound,
+  Invitation,
+  LABEL,
+  PageHead,
+  ScopeNote,
+  WisdomSubNav,
+} from './wisdomShared';
 
 function provenanceStatement(provenance: 'undisclosed' | 'partial' | 'stated'): string {
   switch (provenance) {
@@ -68,7 +80,7 @@ const NamedTeaPage: React.FC = () => {
   }
 
   return (
-    <article className="w-full max-w-3xl mx-auto pt-10 pb-nav">
+    <article className="w-full max-w-3xl mx-auto pt-4 pb-nav">
       <Helmet>
         <title>{`${tea.name} · Named Teas · Teajia`}</title>
         <meta
@@ -82,23 +94,16 @@ const NamedTeaPage: React.FC = () => {
 
       <BackLink to="/wisdom/named" label="All named teas" />
 
-      <header className="mt-6">
-        <p className={EYEBROW}>The wisdom base · Named tea</p>
-        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-2 mt-3">
-          <h1 className={`${TYPOGRAPHY_CLASSES.h1} text-tea-text`}>{tea.name}</h1>
-          {tea.chineseName && (
-            <span className="font-display text-[clamp(22px,3vw,30px)] text-tea-text-sec">{tea.chineseName}</span>
-          )}
-        </div>
-        {tea.altNames.length > 0 && (
-          <p className={`${TYPOGRAPHY_CLASSES.subtitle} text-tea-text-sec mt-3 max-w-[56ch]`}>
-            Also written {tea.altNames.join(', ')}
-          </p>
-        )}
-        {tea.tradition && <p className={`${EYEBROW} mt-4`}>{tea.tradition}</p>}
-      </header>
+      <div className="mt-2">
+        <PageHead
+          title={tea.name}
+          chineseName={tea.chineseName}
+          note={tea.altNames.length > 0 ? `Also written ${tea.altNames.join(', ')}` : undefined}
+        />
+        {tea.tradition && <p className={`${CELL} mt-2 max-w-[56ch]`}>{tea.tradition}</p>}
+      </div>
 
-      <div className="mt-10">
+      <div className="mt-6">
         <Fact label="Type">{tea.type}</Fact>
         <Fact label="Form">{tea.form}</Fact>
         <Fact label="Country">{tea.country}</Fact>
@@ -107,22 +112,18 @@ const NamedTeaPage: React.FC = () => {
         <Fact label="Source">{tea.vendor}</Fact>
       </div>
 
-      <p className={`${TYPOGRAPHY_CLASSES.body} text-tea-text mt-8 max-w-[64ch]`}>
-        {provenanceStatement(tea.provenance)}
-      </p>
+      <p className={`${FACT_CLASS} text-tea-text mt-6 max-w-[68ch]`}>{provenanceStatement(tea.provenance)}</p>
 
       {tea.description && (
-        <section className="mt-12">
-          <p className={`${EYEBROW} mb-2`}>Record</p>
-          <p className={`${TYPOGRAPHY_CLASSES.body} text-tea-text-sec max-w-[64ch]`}>{tea.description}</p>
+        <section className="mt-10">
+          <p className={`${LABEL} mb-1.5`}>Record</p>
+          <p className={`${FACT} max-w-[68ch]`}>{tea.description}</p>
         </section>
       )}
 
-      <div className="mt-16 pt-8 border-t border-tea-border">
-        <AuthorshipNote id={tea.id} className="max-w-[60ch]" />
-        <p className={`${EYEBROW} mt-2`}>
-          Nothing on this page is account scoped. It is true of the tea as named, not of any shop.
-        </p>
+      <div className="mt-12 pt-8 border-t border-tea-border">
+        <AuthorshipNote id={tea.id} className="max-w-[64ch]" />
+        <ScopeNote noun="tea as named" />
       </div>
 
       <Invitation subject={`Named tea: ${tea.name}`} />

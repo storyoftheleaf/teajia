@@ -10,15 +10,20 @@ import React, { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { findCultivarById } from '../../wisdom';
-import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import {
   AuthorshipNote,
   BackLink,
-  EYEBROW,
+  CELL,
+  FACT,
+  FACT_CLASS,
   Fact,
   HoldingNotFound,
   Invitation,
+  LABEL,
+  NAME_CLASS,
+  PageHead,
   ProseSkeleton,
+  ScopeNote,
   SectionHead,
   WisdomSubNav,
   growingPlace,
@@ -33,9 +38,9 @@ const titleCase = (value: string) =>
 const Passage: React.FC<{ label: string; text?: string | null }> = ({ label, text }) => {
   if (!text) return null;
   return (
-    <div className="mt-7 first:mt-0">
-      <p className={`${EYEBROW} mb-2`}>{label}</p>
-      <p className={`${TYPOGRAPHY_CLASSES.body} text-tea-text-sec max-w-[64ch]`}>{text}</p>
+    <div className="mt-6 first:mt-0">
+      <p className={`${LABEL} mb-1.5`}>{label}</p>
+      <p className={`${FACT} max-w-[68ch]`}>{text}</p>
     </div>
   );
 };
@@ -129,7 +134,7 @@ const CultivarPage: React.FC = () => {
   const expressions = story?.expressions ? Object.entries(story.expressions) : [];
 
   return (
-    <article className="w-full max-w-3xl mx-auto pt-10 pb-nav">
+    <article className="w-full max-w-3xl mx-auto pt-4 pb-nav">
       <Helmet>
         <title>{`${cultivar.name} · The Tea Plants · Teajia`}</title>
         <meta
@@ -148,20 +153,13 @@ const CultivarPage: React.FC = () => {
 
       <BackLink to="/wisdom/cultivars" label="All tea plants" />
 
-      <header className="mt-6">
-        <p className={EYEBROW}>The wisdom base · Cultivar</p>
-        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-2 mt-3">
-          <h1 className={`${TYPOGRAPHY_CLASSES.h1} text-tea-text`}>{cultivar.name}</h1>
-          {cultivar.chineseName && (
-            <span className="font-display text-[clamp(22px,3vw,30px)] text-tea-text-sec">{cultivar.chineseName}</span>
-          )}
-        </div>
-        {cultivar.altNames.length > 0 && (
-          <p className={`${TYPOGRAPHY_CLASSES.subtitle} text-tea-text-sec mt-3 max-w-[56ch]`}>
-            Also written {cultivar.altNames.join(', ')}
-          </p>
-        )}
-        <p className={`${EYEBROW} mt-4`}>
+      <div className="mt-2">
+        <PageHead
+          title={cultivar.name}
+          chineseName={cultivar.chineseName}
+          note={cultivar.altNames.length > 0 ? `Also written ${cultivar.altNames.join(', ')}` : undefined}
+        />
+        <p className={`${CELL} mt-2`}>
           {[
             cultivar.originCountry,
             cultivar.originRegion,
@@ -170,25 +168,25 @@ const CultivarPage: React.FC = () => {
             .filter(Boolean)
             .join(' · ')}
         </p>
-      </header>
+      </div>
 
-      <div className="mt-12">
+      <div className="mt-10">
         <LineageTree cultivar={cultivar} />
       </div>
 
       {/* The account. Prose, so it waits for the corpus. */}
-      <section className="mt-16">
+      <section className="mt-12">
         <SectionHead glyph="¶" label="The plant" />
         {loading && <ProseSkeleton lines={4} />}
         {!loading && !story && (
-          <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-dim max-w-[60ch]`}>
+          <p className={`${FACT_CLASS} text-tea-text-dim max-w-[64ch]`}>
             No written account is held for this plant yet.
           </p>
         )}
         {story && (
           <>
-            <p className={`${TYPOGRAPHY_CLASSES.body} text-tea-text max-w-[64ch]`}>{story.description}</p>
-            <div className="mt-8">
+            <p className={`${FACT_CLASS} text-tea-text max-w-[68ch]`}>{story.description}</p>
+            <div className="mt-6">
               <Fact label="Habit">{story.plantType}</Fact>
               <Fact label="Versatility">{story.versatility}</Fact>
             </div>
@@ -197,7 +195,7 @@ const CultivarPage: React.FC = () => {
       </section>
 
       {/* Where it grows. Region comes from the lean index, altitude from the researched place. */}
-      <section className="mt-16">
+      <section className="mt-12">
         <SectionHead glyph="◇" label="Where it grows" />
         <div>
           <Fact label="Recorded origin">{cultivar.originRegion || cultivar.originCountry}</Fact>
@@ -208,38 +206,37 @@ const CultivarPage: React.FC = () => {
         </div>
 
         {loading && (
-          <div className="mt-8">
+          <div className="mt-6">
             <ProseSkeleton lines={2} />
           </div>
         )}
 
         {distribution.length > 0 && (
-          <div className="mt-8">
-            <p className={`${EYEBROW} mb-3`}>Grown in</p>
+          <div className="mt-6">
+            <p className={`${LABEL} mb-2`}>Grown in</p>
             <ul className="list-none m-0 p-0">
               {distribution.map(([country, areas]) => (
-                <li key={country} className="py-3 border-t border-tea-border flex flex-wrap gap-x-8 gap-y-1 justify-between">
-                  <span className={`${EYEBROW} shrink-0`}>{titleCase(country)}</span>
-                  <span className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text max-w-[54ch] sm:text-right`}>
-                    {areas.join(', ')}
-                  </span>
+                <li
+                  key={country}
+                  className="py-2.5 border-t border-tea-border sm:grid sm:grid-cols-[152px_minmax(0,1fr)] sm:gap-x-6"
+                >
+                  <span className={`${LABEL} block sm:pt-1`}>{titleCase(country)}</span>
+                  <span className={`${FACT_CLASS} text-tea-text max-w-[60ch] block`}>{areas.join(', ')}</span>
                 </li>
               ))}
             </ul>
           </div>
         )}
 
-        {story?.environment && (
-          <p className={`${TYPOGRAPHY_CLASSES.body} text-tea-text-sec mt-8 max-w-[64ch]`}>{story.environment}</p>
-        )}
+        {story?.environment && <p className={`${FACT} mt-6 max-w-[68ch]`}>{story.environment}</p>}
       </section>
 
       {/* The sensory footprint. */}
-      <section className="mt-16">
+      <section className="mt-12">
         <SectionHead glyph="◈" label="In the cup" />
         {loading && <ProseSkeleton lines={3} />}
         {!loading && !story?.sensory && (
-          <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-dim max-w-[60ch]`}>
+          <p className={`${FACT_CLASS} text-tea-text-dim max-w-[64ch]`}>
             No sensory record is held for this plant yet.
           </p>
         )}
@@ -252,19 +249,20 @@ const CultivarPage: React.FC = () => {
         )}
       </section>
 
-      {/* The named teas made from this plant. */}
+      {/* The named teas made from this plant. An expression family is a proper
+          name of four or five words, so it is set as a name, never as caps. */}
       {(loading || expressions.length > 0) && (
-        <section className="mt-16">
-          <SectionHead glyph="◊" label="Teas made from this plant" />
+        <section className="mt-12">
+          <SectionHead glyph="◊" label="The teas" />
           {loading && <ProseSkeleton lines={3} />}
           {expressions.map(([family, teas]) => (
-            <div key={family} className="mt-8 first:mt-0">
-              <p className={`${EYEBROW} mb-3`}>{family}</p>
+            <div key={family} className="mt-7 first:mt-0">
+              <p className={`${NAME_CLASS} italic text-tea-text-sec mb-1`}>{family}</p>
               <ul className="list-none m-0 p-0">
                 {Object.entries(teas).map(([tea, note]) => (
-                  <li key={tea} className="py-4 border-t border-tea-border">
-                    <p className="font-display text-ui-20 text-tea-text">{tea}</p>
-                    <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec mt-1 max-w-[64ch]`}>{note}</p>
+                  <li key={tea} className="py-3 border-t border-tea-border">
+                    <p className={`${NAME_CLASS} text-tea-text`}>{tea}</p>
+                    <p className={`${FACT} mt-0.5 max-w-[68ch]`}>{note}</p>
                   </li>
                 ))}
               </ul>
@@ -275,7 +273,7 @@ const CultivarPage: React.FC = () => {
 
       {/* Growing and making. */}
       {(loading || story) && (
-        <section className="mt-16">
+        <section className="mt-12">
           <SectionHead glyph="∞" label="Grown and made" />
           {loading && <ProseSkeleton lines={5} />}
           {story && (
@@ -288,11 +286,9 @@ const CultivarPage: React.FC = () => {
         </section>
       )}
 
-      <div className="mt-16 pt-8 border-t border-tea-border">
-        <AuthorshipNote id={cultivar.id} className="max-w-[60ch]" />
-        <p className={`${EYEBROW} mt-2`}>
-          Nothing on this page is account scoped. It is true of the plant, not of any shop.
-        </p>
+      <div className="mt-12 pt-8 border-t border-tea-border">
+        <AuthorshipNote id={cultivar.id} className="max-w-[64ch]" />
+        <ScopeNote noun="plant" />
       </div>
 
       <Invitation subject={`Cultivar: ${cultivar.name}`} />

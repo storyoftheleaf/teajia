@@ -9,8 +9,19 @@ import React, { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { findProducerById, marksOf, markNamesOf, type Producer } from '../../wisdom';
-import { TYPOGRAPHY_CLASSES } from '../../designTokens';
-import { AuthorshipNote, BackLink, EYEBROW, Fact, HoldingNotFound, Invitation, QUIET_LINK, WisdomSubNav } from './wisdomShared';
+import {
+  AuthorshipNote,
+  BackLink,
+  FACT_CLASS,
+  Fact,
+  HoldingNotFound,
+  Invitation,
+  LABEL,
+  PageHead,
+  QUIET_LINK,
+  ScopeNote,
+  WisdomSubNav,
+} from './wisdomShared';
 
 const KIND_LABEL: Record<Producer['kind'], string> = {
   factory: 'Factory',
@@ -68,7 +79,7 @@ const ProducerPage: React.FC = () => {
   }
 
   return (
-    <article className="w-full max-w-3xl mx-auto pt-10 pb-nav">
+    <article className="w-full max-w-3xl mx-auto pt-4 pb-nav">
       <Helmet>
         <title>{`${producer.name} · Producers · Teajia`}</title>
         <meta
@@ -82,51 +93,41 @@ const ProducerPage: React.FC = () => {
 
       <BackLink to="/wisdom/producers" label="All producers" />
 
-      <header className="mt-6">
-        <p className={EYEBROW}>The wisdom base · Producer</p>
-        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-2 mt-3">
-          <h1 className={`${TYPOGRAPHY_CLASSES.h1} text-tea-text`}>{producer.name}</h1>
-          {producer.chineseName && (
-            <span className="font-display text-[clamp(22px,3vw,30px)] text-tea-text-sec">{producer.chineseName}</span>
-          )}
-        </div>
-        {producer.altNames.length > 0 && (
-          <p className={`${TYPOGRAPHY_CLASSES.subtitle} text-tea-text-sec mt-3 max-w-[56ch]`}>
-            Also written {producer.altNames.join(', ')}
-          </p>
-        )}
-      </header>
+      <div className="mt-2">
+        <PageHead
+          title={producer.name}
+          chineseName={producer.chineseName}
+          note={producer.altNames.length > 0 ? `Also written ${producer.altNames.join(', ')}` : undefined}
+        />
+      </div>
 
-      <div className="mt-10">
+      <div className="mt-6">
         <Fact label="Kind">{KIND_LABEL[producer.kind]}</Fact>
         <Fact label="Operates in">{[producer.region, producer.country].filter(Boolean).join(', ') || null}</Fact>
         <Fact label="Founded">{producer.founded ? String(producer.founded) : null}</Fact>
       </div>
 
       {producer.description && (
-        <section className="mt-12">
-          <p className={`${EYEBROW} mb-2`}>Record</p>
-          <p className={`${TYPOGRAPHY_CLASSES.body} text-tea-text max-w-[64ch]`}>{producer.description}</p>
+        <section className="mt-10">
+          <p className={`${LABEL} mb-1.5`}>Record</p>
+          <p className={`${FACT_CLASS} text-tea-text max-w-[68ch]`}>{producer.description}</p>
         </section>
       )}
 
       {markNames.length > 0 && (
-        <section className="mt-12">
-          <p className={`${EYEBROW} mb-3`}>Known for</p>
+        <section className="mt-10">
+          <p className={`${LABEL} mb-1.5`}>Known for</p>
           <ul className="list-none m-0 p-0">
             {markNames.map(name => {
               const held = heldByName.get(name);
               return (
-                <li key={name} className="py-3 border-t border-tea-border first:border-t-0 min-h-[44px] flex items-center">
+                <li key={name} className="py-2.5 border-t border-tea-border first:border-t-0 min-h-[44px] flex items-center">
                   {held ? (
-                    <Link
-                      to={`/wisdom/mark/${held.id}`}
-                      className={`${TYPOGRAPHY_CLASSES.bodyLight} ${QUIET_LINK}`}
-                    >
+                    <Link to={`/wisdom/mark/${held.id}`} className={`${FACT_CLASS} ${QUIET_LINK}`}>
                       {name}
                     </Link>
                   ) : (
-                    <span className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text`}>{name}</span>
+                    <span className={`${FACT_CLASS} text-tea-text`}>{name}</span>
                   )}
                 </li>
               );
@@ -135,11 +136,9 @@ const ProducerPage: React.FC = () => {
         </section>
       )}
 
-      <div className="mt-16 pt-8 border-t border-tea-border">
-        <AuthorshipNote id={producer.id} className="max-w-[60ch]" />
-        <p className={`${EYEBROW} mt-2`}>
-          Nothing on this page is account scoped. It is true of the producer, not of any shop.
-        </p>
+      <div className="mt-12 pt-8 border-t border-tea-border">
+        <AuthorshipNote id={producer.id} className="max-w-[64ch]" />
+        <ScopeNote noun="producer" />
       </div>
 
       <Invitation subject={`Producer: ${producer.name}`} />

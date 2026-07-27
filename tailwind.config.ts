@@ -9,6 +9,12 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      // Tailwind's opacity scale jumps 5, 10, 20. The house style reaches for 6
+      // and 8 for the faintest washes (sidebar hover and active, documented in
+      // CLAUDE.md), and without these two steps those classes compile to
+      // nothing at all: the sidebar had no hover or active background for as
+      // long as they have been written.
+      opacity: { 6: '0.06', 8: '0.08' },
       colors: {
         // CSS variable-driven tokens (switch with dark/light mode)
         'tea-bg': 'rgb(var(--tea-bg-rgb) / <alpha-value>)',

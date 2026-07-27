@@ -2358,6 +2358,14 @@ input[type="number"]::-webkit-outer-spin-button {
   min-height: 44px;
   display: inline-flex;
   align-items: center;
+}
+
+/* Centring is only the right default for an icon-sized control. This class also
+   lands on full-width rows that lay themselves out with justify-between, and at
+   equal specificity, loading after Tailwind, it was quietly winning and pulling
+   their contents to the middle. Zero specificity so any caller's own alignment
+   takes precedence, while an unaligned icon button still centres. */
+:where(.tap-target) {
   justify-content: center;
 }
 

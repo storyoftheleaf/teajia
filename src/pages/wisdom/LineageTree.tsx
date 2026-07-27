@@ -10,8 +10,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { childrenOf, parentsOf, type Cultivar } from '../../wisdom';
-import { TYPOGRAPHY_CLASSES } from '../../designTokens';
-import { EYEBROW, SectionHead } from './wisdomShared';
+import { CELL, CELL_CLASS, FACT, FACT_CLASS, LABEL, NAME_CLASS, SectionHead } from './wisdomShared';
 
 // ─── Reading the record ──────────────────────────────────────────────────────
 
@@ -105,22 +104,23 @@ const NodeRow: React.FC<NodeRowProps> = ({ node, tone, rail, small = false, chil
   const tickTop = small ? 'top-[13px]' : 'top-[17px]';
   const markerLeft = tone === 'subject' ? 'left-[-1px]' : 'left-0';
 
+  // A grandparent drops to the fact size, still in the display family: the
+  // reference runs on four sizes and a generation further back does not earn
+  // a fifth one.
+  const nameClass = small ? 'font-display text-ui-15 leading-[1.35]' : NAME_CLASS;
+
   const title = held ? (
     <Link
       to={`/wisdom/cultivar/${node.id}`}
       className="group inline-flex items-baseline gap-2 flex-wrap min-h-[44px]"
     >
-      <span
-        className={`font-display ${small ? 'text-ui-16' : 'text-ui-20'} text-tea-text group-hover:text-tea-gold-lt transition-colors`}
-      >
-        {node.name}
-      </span>
-      {node.chineseName && <span className="font-display text-ui-13 text-tea-text-dim">{node.chineseName}</span>}
+      <span className={`${nameClass} text-tea-text group-hover:text-tea-gold-lt transition-colors`}>{node.name}</span>
+      {node.chineseName && <span className="font-display text-ui-15 text-tea-text-dim">{node.chineseName}</span>}
     </Link>
   ) : (
     <span className="inline-flex items-baseline gap-2 flex-wrap">
-      <span className={`font-display ${small ? 'text-ui-16' : 'text-ui-20'} text-tea-text-sec`}>{tidyName(node)}</span>
-      <span className={EYEBROW}>not held here</span>
+      <span className={`${nameClass} text-tea-text-sec`}>{tidyName(node)}</span>
+      <span className={LABEL}>not held here</span>
     </span>
   );
 
@@ -133,7 +133,7 @@ const NodeRow: React.FC<NodeRowProps> = ({ node, tone, rail, small = false, chil
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 justify-between">
           {title}
           {held && placeAndYear(node) && (
-            <span className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-dim`}>{placeAndYear(node)}</span>
+            <span className={`${CELL_CLASS} text-tea-text-dim`}>{placeAndYear(node)}</span>
           )}
         </div>
         {children}
@@ -147,7 +147,7 @@ const Generation: React.FC<{ label: string; opensTheRail?: boolean }> = ({ label
   <li className="relative">
     <div className="relative pl-7 pt-4 pb-1">
       <span aria-hidden className={`absolute left-[3px] w-px bg-tea-border ${opensTheRail ? 'top-4' : 'top-0'} bottom-0`} />
-      <span className={EYEBROW}>{label}</span>
+      <span className={LABEL}>{label}</span>
     </div>
   </li>
 );
@@ -167,8 +167,9 @@ export const LineageTree: React.FC<{ cultivar: Cultivar }> = ({ cultivar }) => {
       </h2>
 
       {lineage.raw && lineage.kind === 'cross' && (
-        <p className={`${EYEBROW} mb-5`}>
-          Recorded as <span className="font-mono text-ui-11 text-tea-text-sec normal-case tracking-normal">{lineage.raw}</span>
+        <p className="mb-4 flex flex-wrap items-baseline gap-x-2">
+          <span className={LABEL}>Recorded as</span>
+          <span className={`${CELL} tabular-nums`}>{lineage.raw}</span>
         </p>
       )}
 
@@ -185,7 +186,7 @@ export const LineageTree: React.FC<{ cultivar: Cultivar }> = ({ cultivar }) => {
                     <li className="relative">
                       <div className="relative pl-6 pb-0.5">
                         <span aria-hidden className="absolute left-[3px] top-0 bottom-0 w-px bg-tea-border" />
-                        <span className={EYEBROW}>from</span>
+                        <span className={LABEL}>from</span>
                       </div>
                     </li>
                     {grandparents.map((grandparent, grandIndex) => (
@@ -219,26 +220,26 @@ export const LineageTree: React.FC<{ cultivar: Cultivar }> = ({ cultivar }) => {
             rail={index === children.length - 1 ? 'to-tick' : 'full'}
           >
             {child.parentage && (
-              <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-dim mt-1 max-w-[56ch]`}>{child.parentage}</p>
+              <p className={`${FACT_CLASS} text-tea-text-dim mt-1 max-w-[60ch]`}>{child.parentage}</p>
             )}
           </NodeRow>
         ))}
       </ul>
 
       {lineage.kind === 'note' && lineage.raw && (
-        <div className="mt-6 pl-7">
-          <p className={`${EYEBROW} mb-2`}>Recorded origin</p>
-          <p className={`${TYPOGRAPHY_CLASSES.subtitle} text-tea-text-sec max-w-[56ch]`}>{lineage.raw}</p>
+        <div className="mt-5 pl-7">
+          <p className={`${LABEL} mb-1.5`}>Recorded origin</p>
+          <p className={`${FACT} max-w-[60ch]`}>{lineage.raw}</p>
         </div>
       )}
 
       {lineage.kind === 'none' && (
-        <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-dim mt-6 pl-7 max-w-[56ch]`}>
+        <p className={`${FACT_CLASS} text-tea-text-dim mt-5 pl-7 max-w-[60ch]`}>
           No breeding record is held for this plant yet. That is a gap, not a claim that none exists.
         </p>
       )}
 
-      <p className={`${EYEBROW} mt-8 leading-relaxed max-w-[60ch]`}>
+      <p className={`${CELL_CLASS} text-tea-text-dim leading-relaxed mt-6 max-w-[64ch]`}>
         A name you can open is a plant held in this reference. A name in plain type was written into the record but is
         not held yet.
       </p>

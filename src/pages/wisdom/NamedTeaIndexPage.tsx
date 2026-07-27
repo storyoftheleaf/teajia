@@ -4,15 +4,31 @@
  * Grouped by tradition, per docs/TEA_WISDOM_BASE.md "On teas that arrive
  * already named": a collector stores a sheng for years and names it Courage,
  * the mountain and often the vintage never recorded, and that is the nature
- * of the record rather than a gap in it. The index leads with that framing so
- * a thin entry reads as the record it is, not as a broken one, then gets out
- * of the way for the list.
+ * of the record rather than a gap in it. The framing sits under the list, not
+ * above it, so the list itself is what the first screen carries.
  */
 import React, { useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { NAMED_TEAS, NAMING_TRADITIONS, namedTeasInTradition, type NamedTea } from '../../wisdom';
-import { TYPOGRAPHY_CLASSES } from '../../designTokens';
-import { AuthorshipNote, CountLine, EYEBROW, HoldingRow, Invitation, SectionHead, WisdomSearchBox, WisdomSubNav } from './wisdomShared';
+import {
+  AuthorshipNote,
+  FACT,
+  GroupHead,
+  HoldingRow,
+  IndexTable,
+  Invitation,
+  NoMatch,
+  PageHead,
+  WisdomSubNav,
+  WisdomToolbar,
+  type IndexColumns,
+} from './wisdomShared';
+
+const COLUMNS: IndexColumns = {
+  template: 'minmax(0,1fr) 104px 132px',
+  nameLabel: 'Tea',
+  labels: ['Type', 'Form'],
+};
 
 const matchKey = (value: string) => value.normalize('NFKD').toLowerCase();
 
@@ -58,7 +74,7 @@ const NamedTeaIndexPage: React.FC = () => {
   };
 
   return (
-    <article className="w-full max-w-3xl mx-auto pt-10 pb-nav">
+    <article className="w-full max-w-3xl mx-auto pt-4 pb-nav">
       <Helmet>
         <title>Named Teas · The Wisdom Base · Teajia</title>
         <meta
@@ -70,51 +86,50 @@ const NamedTeaIndexPage: React.FC = () => {
 
       <WisdomSubNav active="named" />
 
-      <header>
-        <p className={EYEBROW}>The wisdom base · Named teas</p>
-        <h1 className={`${TYPOGRAPHY_CLASSES.h1} text-tea-text mt-3`}>Named Teas</h1>
-        <p className={`${TYPOGRAPHY_CLASSES.subtitle} text-tea-text-sec mt-4 max-w-[56ch]`}>
-          Teas that arrived already named, where the composition was never disclosed.
-        </p>
-      </header>
-
-      <p className={`${TYPOGRAPHY_CLASSES.body} text-tea-text-sec mt-6 max-w-[64ch]`}>
-        A collector stores a sheng for years and names it Courage. The mountain is rarely recorded and the vintage
-        often is not either, and the tea moves on carrying only that word. That is not a gap in the record. It is the
-        nature of the record, and holding it plainly beats not holding it at all.
-      </p>
-
-      <WisdomSearchBox value={query} onChange={setQuery} placeholder="Search by name, Chinese name, type or tradition" />
-      <CountLine visible={visibleCount} total={NAMED_TEAS.length} noun="named teas" />
-
-      <div className="mt-2">
-        {groups.map(([tradition, rows]) => (
-          <section key={tradition} className="mt-12 first:mt-6">
-            <SectionHead glyph="◊" label={tradition} count={rows.length} />
-            <ul className="list-none m-0 p-0">
-              {rows.map(tea => (
-                <HoldingRow
-                  key={tea.id}
-                  to={`/wisdom/named/${tea.id}`}
-                  name={tea.name}
-                  chineseName={tea.chineseName}
-                  meta={tea.region}
-                  aside={tea.type}
-                />
-              ))}
-            </ul>
-          </section>
-        ))}
+      <div className="mt-4 mb-2">
+        <PageHead title="Named Teas" note="Where the composition was never disclosed." />
       </div>
 
-      {visibleCount === 0 && (
-        <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec py-16 text-center`}>
-          No named tea here answers to that name. If it should, send it and it will be added.
-        </p>
+      <WisdomToolbar
+        query={query}
+        onQueryChange={setQuery}
+        placeholder="Search named teas"
+        searchLabel="Search named teas by name, Chinese name, type or tradition"
+        visible={visibleCount}
+        total={NAMED_TEAS.length}
+        noun="named teas"
+      />
+
+      {visibleCount === 0 && <NoMatch noun="named tea" />}
+
+      {visibleCount > 0 && (
+        <IndexTable columns={COLUMNS} className="mt-3">
+          {groups.map(([tradition, rows]) => (
+            <section key={tradition}>
+              <GroupHead label={tradition} count={rows.length} />
+              <ul className="list-none m-0 p-0">
+                {rows.map(tea => (
+                  <HoldingRow
+                    key={tea.id}
+                    to={`/wisdom/named/${tea.id}`}
+                    name={tea.name}
+                    chineseName={tea.chineseName}
+                    cells={[tea.type, tea.form]}
+                  />
+                ))}
+              </ul>
+            </section>
+          ))}
+        </IndexTable>
       )}
 
-      <div className="mt-10 pt-8 border-t border-tea-border">
-        <AuthorshipNote className="max-w-[60ch]" />
+      <div className="mt-12 pt-8 border-t border-tea-border">
+        <p className={`${FACT} max-w-[68ch]`}>
+          A collector stores a sheng for years and names it Courage. The mountain is rarely recorded and the vintage
+          often is not either, and the tea moves on carrying only that word. That is not a gap in the record. It is the
+          nature of the record, and holding it plainly beats not holding it at all.
+        </p>
+        <AuthorshipNote className="max-w-[64ch] mt-6" />
       </div>
 
       <Invitation subject="A named tea that is missing" />

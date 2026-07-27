@@ -3,8 +3,9 @@ import { Loader2 } from 'lucide-react';
 import { Modal } from '../../../components/shared/Modal';
 import { TYPOGRAPHY_CLASSES } from '../../../designTokens';
 import { childrenOf, loadCultivarStory, parentsOf } from '../../../wisdom';
-import { authorshipLine } from '../../../wisdom/authorship';
 import type { Cultivar, CultivarStory } from '../../../wisdom';
+import { WISDOM_TYPE } from './config';
+import { FactGrid, LabelledBlock, WisdomDetailHeader } from './WisdomDetailPanel';
 
 interface Props {
   cultivar: Cultivar;
@@ -13,20 +14,16 @@ interface Props {
   onSelectCultivar: (id: string) => void;
 }
 
-const Field: React.FC<{ label: string; value?: string }> = ({ label, value }) => {
-  if (!value) return null;
-  return (
-    <div>
-      <p className="text-ui-11 text-tea-text-dim uppercase tracking-[0.1em] mb-1">{label}</p>
-      <p className="text-ui-13 text-tea-text-sec leading-[1.6]">{value}</p>
-    </div>
-  );
-};
-
 /**
- * Full detail for one cultivar: everything the lean index holds, plus the
- * prose fetched on demand from stories/cultivars.json, plus its resolved
- * lineage. Read-only, per the wisdom base's current phase.
+ * Full detail for one cultivar: the lean index, the prose fetched on demand
+ * from stories/cultivars.json, and its resolved lineage. Read-only.
+ *
+ * The one holding whose panel is not generic, because lineage links jump the
+ * panel to another entry. Everything else here is the shared vocabulary: the
+ * same head, the same fact grid, the same micro-caps labels.
+ *
+ * Facts and story sections lay out ACROSS the panel. Only the description keeps
+ * a reading measure, because only prose gets harder to read as it gets wider.
  */
 export const CultivarDetailPanel: React.FC<Props> = ({ cultivar, onClose, onSelectCultivar }) => {
   const [story, setStory] = useState<CultivarStory | null>(null);
@@ -47,51 +44,40 @@ export const CultivarDetailPanel: React.FC<Props> = ({ cultivar, onClose, onSele
 
   const parents = parentsOf(cultivar);
   const children = childrenOf(cultivar);
+  const lineageChip = 'text-ui-12 rounded-md px-2 py-1';
 
   return (
     <Modal isOpen onClose={onClose} variant="panel" ariaLabel={cultivar.name}>
       <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-2 pb-nav-gap sm:px-6">
-        <div className="max-w-2xl mx-auto">
-          <p className="text-ui-11 text-tea-text-dim uppercase tracking-[0.1em] mb-2">Cultivar</p>
-          <h2 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>{cultivar.name}</h2>
-          {cultivar.chineseName && <p className="text-ui-15 text-tea-text-sec mt-1">{cultivar.chineseName}</p>}
-          {cultivar.altNames.length > 0 && (
-            <p className="text-ui-12 text-tea-text-dim mt-1">Also known as {cultivar.altNames.join(', ')}</p>
-          )}
+        <div className="mx-auto max-w-5xl pb-8">
+          <WisdomDetailHeader
+            detail={{
+              kind: 'Cultivar',
+              name: cultivar.name,
+              chineseName: cultivar.chineseName,
+              altNames: cultivar.altNames,
+              facts: [],
+            }}
+            id={cultivar.id}
+          />
 
-          <p className="text-ui-12 text-tea-text-dim italic mt-3">{authorshipLine(cultivar.id)}</p>
-
-          <div className="flex flex-wrap gap-x-6 gap-y-2 mt-5 pt-5 border-t border-tea-border text-ui-13">
-            {(cultivar.originRegion || cultivar.originCountry) && (
-              <div>
-                <span className="text-tea-text-dim">Origin: </span>
-                <span className="text-tea-text">{[cultivar.originRegion, cultivar.originCountry].filter(Boolean).join(', ')}</span>
-              </div>
-            )}
-            {cultivar.developedYear && (
-              <div>
-                <span className="text-tea-text-dim">Developed: </span>
-                <span className="text-tea-text">{cultivar.developedYear}</span>
-              </div>
-            )}
-          </div>
-
-          {cultivar.parentage && (
-            <div className="mt-4">
-              <p className="text-ui-11 text-tea-text-dim uppercase tracking-[0.1em] mb-1">Parentage</p>
-              <p className="text-ui-13 text-tea-text-sec leading-[1.6]">{cultivar.parentage}</p>
-            </div>
-          )}
+          <FactGrid
+            className="mt-5 border-t border-tea-border pt-5"
+            facts={[
+              { label: 'Origin', value: [cultivar.originRegion, cultivar.originCountry].filter(Boolean).join(', ') },
+              { label: 'Developed', value: cultivar.developedYear },
+              { label: 'Parentage', value: cultivar.parentage },
+            ]}
+          />
 
           {(parents.length > 0 || children.length > 0) && (
-            <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
               {parents.length > 0 && (
-                <div>
-                  <p className="text-ui-11 text-tea-text-dim uppercase tracking-[0.1em] mb-2">Parents</p>
+                <LabelledBlock label="Parents">
                   <div className="flex flex-wrap gap-1.5">
-                    {parents.map((parent, index) => (
+                    {parents.map((parent, index) =>
                       typeof parent === 'string' ? (
-                        <span key={index} className="text-ui-12 text-tea-text-sec bg-tea-surface border border-tea-border px-2 py-1 rounded-md">
+                        <span key={index} className={`${lineageChip} text-tea-text-sec bg-tea-surface`}>
                           {parent}
                         </span>
                       ) : (
@@ -99,87 +85,96 @@ export const CultivarDetailPanel: React.FC<Props> = ({ cultivar, onClose, onSele
                           key={parent.id}
                           type="button"
                           onClick={() => onSelectCultivar(parent.id)}
-                          className="tap-target text-ui-12 text-tea-gold hover:text-tea-gold-lt bg-tea-accent-sub px-2 py-1 rounded-md transition-colors"
+                          className={`tap-target ${lineageChip} text-tea-gold hover:text-tea-gold-lt bg-tea-accent-sub transition-colors`}
                         >
                           {parent.name}
                         </button>
-                      )
-                    ))}
+                      ),
+                    )}
                   </div>
-                </div>
+                </LabelledBlock>
               )}
               {children.length > 0 && (
-                <div>
-                  <p className="text-ui-11 text-tea-text-dim uppercase tracking-[0.1em] mb-2">Children</p>
+                <LabelledBlock label="Children">
                   <div className="flex flex-wrap gap-1.5">
                     {children.map(child => (
                       <button
                         key={child.id}
                         type="button"
                         onClick={() => onSelectCultivar(child.id)}
-                        className="tap-target text-ui-12 text-tea-gold hover:text-tea-gold-lt bg-tea-accent-sub px-2 py-1 rounded-md transition-colors"
+                        className={`tap-target ${lineageChip} text-tea-gold hover:text-tea-gold-lt bg-tea-accent-sub transition-colors`}
                       >
                         {child.name}
                       </button>
                     ))}
                   </div>
-                </div>
+                </LabelledBlock>
               )}
             </div>
           )}
 
-          <div className="mt-8 pt-6 border-t border-tea-border pb-6">
+          <div className="mt-8 border-t border-tea-border pt-6">
             {loadingStory ? (
-              <div className="flex items-center gap-2 text-tea-text-dim py-6">
+              <div className="flex items-center gap-2 py-6 text-tea-text-dim">
                 <Loader2 size={16} className="animate-spin" />
                 <span className="text-ui-13">Loading story...</span>
               </div>
             ) : !story ? (
-              <p className="text-ui-13 text-tea-text-dim italic py-6">No prose recorded for this cultivar yet.</p>
+              <p className="py-6 text-ui-13 text-tea-text-dim">No prose recorded for this cultivar yet.</p>
             ) : (
-              <div className="space-y-6">
-                <p className={`${TYPOGRAPHY_CLASSES.body} text-tea-text`}>{story.description}</p>
+              <div className="space-y-8">
+                <p className={`${TYPOGRAPHY_CLASSES.body} text-tea-text max-w-2xl`}>{story.description}</p>
 
-                <Field label="Plant" value={story.plantType} />
-                <Field label="Environment" value={story.environment} />
-                <Field label="Processing" value={story.processing} />
-                <Field label="Oxidation" value={story.oxidation} />
-                <Field label="Roasting" value={story.roasting} />
-                <Field label="Versatility" value={story.versatility} />
+                <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
+                  {([
+                    ['Plant', story.plantType],
+                    ['Environment', story.environment],
+                    ['Processing', story.processing],
+                    ['Oxidation', story.oxidation],
+                    ['Roasting', story.roasting],
+                    ['Versatility', story.versatility],
+                  ] as const)
+                    .filter(([, value]) => Boolean(value))
+                    .map(([label, value]) => (
+                      <LabelledBlock key={label} label={label}>
+                        <p className="text-ui-13 text-tea-text-sec leading-[1.6]">{value}</p>
+                      </LabelledBlock>
+                    ))}
+                </div>
 
-                {story.sensory && (
-                  <div>
-                    <p className="text-ui-11 text-tea-text-dim uppercase tracking-[0.1em] mb-2">Sensory</p>
-                    <div className="space-y-1.5 text-ui-13 text-tea-text-sec leading-[1.6]">
-                      {story.sensory.aroma && <p><span className="text-tea-text-dim">Aroma: </span>{story.sensory.aroma}</p>}
-                      {story.sensory.flavor && <p><span className="text-tea-text-dim">Flavor: </span>{story.sensory.flavor}</p>}
-                      {story.sensory.mouthfeel_liquor && <p><span className="text-tea-text-dim">Mouthfeel: </span>{story.sensory.mouthfeel_liquor}</p>}
-                    </div>
-                  </div>
-                )}
-
-                {story.distribution && (
-                  <div>
-                    <p className="text-ui-11 text-tea-text-dim uppercase tracking-[0.1em] mb-2">Distribution</p>
-                    <div className="space-y-2">
-                      {Object.entries(story.distribution).map(([country, areas]) => (
-                        <p key={country} className="text-ui-13 leading-[1.6]">
-                          <span className="text-tea-text capitalize">{country}</span>
-                          <span className="text-tea-text-sec">: {areas.join(', ')}</span>
-                        </p>
-                      ))}
-                    </div>
+                {(story.sensory || story.distribution) && (
+                  <div className="grid grid-cols-1 gap-x-8 gap-y-5 lg:grid-cols-2">
+                    {story.sensory && (
+                      <LabelledBlock label="Sensory">
+                        <div className="space-y-1.5 text-ui-13 text-tea-text-sec leading-[1.6]">
+                          {story.sensory.aroma && <p><span className="text-tea-text-dim">Aroma: </span>{story.sensory.aroma}</p>}
+                          {story.sensory.flavor && <p><span className="text-tea-text-dim">Flavor: </span>{story.sensory.flavor}</p>}
+                          {story.sensory.mouthfeel_liquor && <p><span className="text-tea-text-dim">Mouthfeel: </span>{story.sensory.mouthfeel_liquor}</p>}
+                        </div>
+                      </LabelledBlock>
+                    )}
+                    {story.distribution && (
+                      <LabelledBlock label="Distribution">
+                        <div className="space-y-2">
+                          {Object.entries(story.distribution).map(([country, areas]) => (
+                            <p key={country} className="text-ui-13 leading-[1.6]">
+                              <span className="text-tea-text capitalize">{country}</span>
+                              <span className="text-tea-text-sec">: {areas.join(', ')}</span>
+                            </p>
+                          ))}
+                        </div>
+                      </LabelledBlock>
+                    )}
                   </div>
                 )}
 
                 {story.expressions && (
-                  <div>
-                    <p className="text-ui-11 text-tea-text-dim uppercase tracking-[0.1em] mb-2">Expressions</p>
-                    <div className="space-y-4">
+                  <LabelledBlock label="Expressions">
+                    <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
                       {Object.entries(story.expressions).map(([family, named]) => (
-                        <div key={family}>
-                          <p className="text-ui-13 text-tea-text font-medium mb-1.5">{family}</p>
-                          <div className="space-y-1.5 pl-3 border-l border-tea-border">
+                        <div key={family} className="min-w-0">
+                          <p className={`${WISDOM_TYPE.rowName} mb-1.5`}>{family}</p>
+                          <div className="space-y-1.5 border-l border-tea-border pl-3">
                             {Object.entries(named).map(([name, text]) => (
                               <p key={name} className="text-ui-12 text-tea-text-sec leading-[1.6]">
                                 <span className="text-tea-text">{name}</span>: {text}
@@ -189,7 +184,7 @@ export const CultivarDetailPanel: React.FC<Props> = ({ cultivar, onClose, onSele
                         </div>
                       ))}
                     </div>
-                  </div>
+                  </LabelledBlock>
                 )}
               </div>
             )}

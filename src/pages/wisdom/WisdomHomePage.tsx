@@ -4,12 +4,26 @@
  * Names every holding the wisdom base carries, with a count and a link. The
  * cultivar-specific intro ("what is a cultivar") stays on /wisdom/cultivars;
  * this page only says what the reference as a whole is.
+ *
+ * This is the one index whose rows carry a sentence, because five rows each
+ * need saying what they hold. It is set as prose in sentence case, not as the
+ * 10px caps the reference used to run under every row on every page.
  */
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import { CULTIVARS, MARKS, NAMED_TEAS, PRODUCERS, STYLES } from '../../wisdom';
-import { TYPOGRAPHY_CLASSES } from '../../designTokens';
-import { AuthorshipNote, EYEBROW, HoldingRow, Invitation, QUIET_LINK, WisdomSubNav } from './wisdomShared';
+import {
+  AuthorshipNote,
+  FACT,
+  HoldingRow,
+  IndexTable,
+  Invitation,
+  LABEL,
+  PageHead,
+  QUIET_LINK,
+  WisdomSubNav,
+  type IndexColumns,
+} from './wisdomShared';
 
 interface Holding {
   label: string;
@@ -17,6 +31,12 @@ interface Holding {
   count: number;
   description: string;
 }
+
+const COLUMNS: IndexColumns = {
+  template: 'minmax(0,1fr) 88px',
+  nameLabel: 'Holding',
+  labels: ['Entries'],
+};
 
 const HOLDINGS: Holding[] = [
   {
@@ -67,7 +87,7 @@ const WisdomHomePage: React.FC = () => {
   };
 
   return (
-    <article className="w-full max-w-3xl mx-auto pt-10 pb-nav">
+    <article className="w-full max-w-3xl mx-auto pt-4 pb-nav">
       <Helmet>
         <title>The Tea Wisdom Base · Teajia</title>
         <meta
@@ -84,41 +104,42 @@ const WisdomHomePage: React.FC = () => {
 
       <WisdomSubNav active="overview" />
 
-      <header>
-        <p className={EYEBROW}>The wisdom base</p>
-        <h1 className={`${TYPOGRAPHY_CLASSES.h1} text-tea-text mt-3`}>The Tea Wisdom Base</h1>
-        <p className={`${TYPOGRAPHY_CLASSES.subtitle} text-tea-text-sec mt-4 max-w-[56ch]`}>
-          What a tea is, held once, true regardless of who stocks it. Not a product catalog.
-        </p>
-      </header>
+      <div className="mt-4">
+        <PageHead
+          title="The Tea Wisdom Base"
+          note="What a tea is, held once, true regardless of who stocks it. Not a product catalog."
+        />
+      </div>
 
-      <ul className="list-none m-0 p-0 mt-10">
-        {HOLDINGS.map(holding => (
-          <HoldingRow
-            key={holding.to}
-            to={holding.to}
-            name={holding.label}
-            meta={holding.description}
-            aside={String(holding.count)}
-          />
-        ))}
-      </ul>
+      <IndexTable columns={COLUMNS} className="mt-5">
+        <ul className="list-none m-0 p-0">
+          {HOLDINGS.map(holding => (
+            <HoldingRow
+              key={holding.to}
+              to={holding.to}
+              name={holding.label}
+              cells={[String(holding.count)]}
+              note={holding.description}
+            />
+          ))}
+        </ul>
+      </IndexTable>
 
-      <div className="mt-14 pt-8 border-t border-tea-border">
-        <p className={EYEBROW}>The open dataset</p>
-        <p className={`${TYPOGRAPHY_CLASSES.body} text-tea-text-sec mt-3 max-w-[64ch]`}>
+      <div className="mt-12 pt-8 border-t border-tea-border">
+        <p className={LABEL}>The open dataset</p>
+        <p className={`${FACT} mt-2 max-w-[68ch]`}>
           Everything above is also exported as a downloadable public good: a single{' '}
           <a href="/wisdom/tea-wisdom.json" className={QUIET_LINK}>
             tea-wisdom.json
           </a>{' '}
           carrying every holding, flat CSVs per entity, a README and a licence, all served from the{' '}
-          <code className="text-tea-text-sec">/wisdom/</code> folder. CC BY 4.0, minus Adrian&rsquo;s own tea
-          write-ups and tasting notes, which remain his.
+          <code className="text-tea-text-sec">/wisdom/</code> folder. CC BY 4.0, minus Adrian&rsquo;s own tea write-ups
+          and tasting notes, which remain his.
         </p>
       </div>
 
-      <div className="mt-10 pt-8 border-t border-tea-border">
-        <AuthorshipNote className="max-w-[60ch]" />
+      <div className="mt-8 pt-8 border-t border-tea-border">
+        <AuthorshipNote className="max-w-[64ch]" />
       </div>
 
       <Invitation subject="The wisdom base" />
