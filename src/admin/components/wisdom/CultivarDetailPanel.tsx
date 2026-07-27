@@ -2,16 +2,24 @@ import React, { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Modal } from '../../../components/shared/Modal';
 import { TYPOGRAPHY_CLASSES } from '../../../designTokens';
-import { childrenOf, loadCultivarStory, parentsOf } from '../../../wisdom';
+import { childrenOf, findRegion, loadCultivarStory, parentsOf } from '../../../wisdom';
 import type { Cultivar, CultivarStory } from '../../../wisdom';
-import { WISDOM_TYPE } from './config';
-import { FactGrid, LabelledBlock, WisdomDetailHeader } from './WisdomDetailPanel';
+import { WISDOM_TYPE, type WisdomLink, type WisdomSection } from './config';
+import { FactGrid, LabelledBlock, WisdomChip, WisdomDetailHeader } from './WisdomDetailPanel';
 
 interface Props {
   cultivar: Cultivar;
   onClose: () => void;
   /** Jump the panel to a resolved parent/child without leaving the overlay. */
   onSelectCultivar: (id: string) => void;
+  /** Walk a held relation out of this holding: the origin region. */
+  jump: (link: WisdomLink) => void;
+  /** The prev/next toolbar, supplied by the browser that owns the list. */
+  nav?: React.ReactNode;
+  /** Which grouped section this cultivar sits in, when the list is grouped. */
+  section?: WisdomSection;
+  /** This cultivar's page on the public reference. */
+  publicHref?: string;
 }
 
 /**
@@ -25,7 +33,9 @@ interface Props {
  * Facts and story sections lay out ACROSS the panel. Only the description keeps
  * a reading measure, because only prose gets harder to read as it gets wider.
  */
-export const CultivarDetailPanel: React.FC<Props> = ({ cultivar, onClose, onSelectCultivar }) => {
+export const CultivarDetailPanel: React.FC<Props> = ({
+  cultivar, onClose, onSelectCultivar, jump, nav, section, publicHref,
+}) => {
   const [story, setStory] = useState<CultivarStory | null>(null);
   const [loadingStory, setLoadingStory] = useState(true);
 
@@ -46,8 +56,18 @@ export const CultivarDetailPanel: React.FC<Props> = ({ cultivar, onClose, onSele
   const children = childrenOf(cultivar);
   const lineageChip = 'text-ui-12 rounded-md px-2 py-1';
 
+  /**
+   * The origin, split so the region can be walked into.
+   *
+   * It used to be one joined string, which meant a plant named a place the base
+   * holds and offered no way to reach it, while its parents and children were
+   * one press away. `findRegion` is the same call resolveTea makes, so a written
+   * origin resolves here exactly as it does at import.
+   */
+  const region = findRegion(cultivar.originRegion);
+
   return (
-    <Modal isOpen onClose={onClose} variant="panel" ariaLabel={cultivar.name}>
+    <Modal isOpen onClose={onClose} variant="panel" ariaLabel={cultivar.name} headerActions={nav}>
       <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-2 pb-nav-gap sm:px-6">
         <div className="mx-auto max-w-5xl pb-8">
           <WisdomDetailHeader
@@ -59,12 +79,23 @@ export const CultivarDetailPanel: React.FC<Props> = ({ cultivar, onClose, onSele
               facts: [],
             }}
             id={cultivar.id}
+            section={section}
+            publicHref={publicHref}
           />
 
           <FactGrid
             className="mt-5 border-t border-tea-border pt-5"
             facts={[
-              { label: 'Origin', value: [cultivar.originRegion, cultivar.originCountry].filter(Boolean).join(', ') },
+              {
+                label: 'Region',
+                value: cultivar.originRegion && (
+                  <WisdomChip
+                    label={cultivar.originRegion}
+                    onClick={region ? () => jump({ holding: 'regions', entry: region.id }) : undefined}
+                  />
+                ),
+              },
+              { label: 'Country', value: cultivar.originCountry },
               { label: 'Developed', value: cultivar.developedYear },
               { label: 'Parentage', value: cultivar.parentage },
             ]}

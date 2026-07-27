@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { WisdomBrowser } from '../components/wisdom/WisdomBrowser';
-import { WISDOM_TYPE } from '../components/wisdom/config';
+import { WISDOM_TYPE, defaultPrefs, type WisdomLink, type WisdomPrefs } from '../components/wisdom/config';
 import { WISDOM_HOLDINGS } from '../components/wisdom/holdings';
 
 /**
@@ -16,6 +16,12 @@ import { WISDOM_HOLDINGS } from '../components/wisdom/holdings';
  * screen's corpus switcher is: seven serif labels each carrying its count, so
  * the shape of the base is legible before a single click.
  *
+ * THE ADDRESS CARRIES BOTH the open tab and the open entry:
+ *   /admin/wisdom?tab=cultivars&entry=rou-gui
+ * so an operator can send a colleague to one cultivar, and a refresh returns
+ * them to it. Writes are `replace`, because reading through a holding with the
+ * arrow keys would otherwise leave one history entry per row.
+ *
  * SCROLLING: this view deliberately does NOT own a scroll container. The admin
  * routes wrapper (AdminApp.tsx, around line 478) is `flex-1 min-h-0
  * overflow-y-auto` for every non-inventory route and already carries the mobile
@@ -29,6 +35,49 @@ export const WisdomView: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const rawTab = searchParams.get('tab');
   const active = WISDOM_HOLDINGS.find(holding => holding.id === rawTab) ?? WISDOM_HOLDINGS[0];
+  const entry = searchParams.get('entry');
+
+  /**
+   * How each holding was last sorted and grouped, kept per holding and here
+   * rather than in the browser, because the browser is remounted on every tab
+   * change. Search is deliberately NOT here: a query for a cultivar means
+   * nothing against the list of marks, so it resets with the remount, while
+   * "regions by country" is a standing choice and re-picking it every visit was
+   * a tax on the one control that gives a long list its shape.
+   *
+   * Memoised so the object handed down keeps its identity between renders; the
+   * browser resets its page count when the sort changes, and a fresh object on
+   * every render would undo every page the reader had grown.
+   */
+  const [prefsByHolding, setPrefsByHolding] = useState<Record<string, WisdomPrefs>>({});
+  const prefs = useMemo(
+    () => prefsByHolding[active.id] ?? defaultPrefs(active),
+    [prefsByHolding, active],
+  );
+  const setPrefs = useCallback(
+    (next: WisdomPrefs) => setPrefsByHolding(current => ({ ...current, [active.id]: next })),
+    [active.id],
+  );
+
+  const openEntry = useCallback(
+    (id: string | null) => {
+      setSearchParams(
+        id ? { tab: active.id, entry: id } : { tab: active.id },
+        { replace: true },
+      );
+    },
+    [active.id, setSearchParams],
+  );
+
+  /**
+   * Walks a held relation into another holding: a mark's producer, a producer's
+   * marks. Both the tab and the entry move together, so the jump is a place the
+   * reader can be sent back to.
+   */
+  const jump = useCallback(
+    (link: WisdomLink) => setSearchParams({ tab: link.holding, entry: link.entry }, { replace: true }),
+    [setSearchParams],
+  );
 
   // Wraps rather than scrolls. At 390px the seven tabs fall onto two or three
   // lines; a sideways-scrolling strip would hide the holdings a reader has not
@@ -69,9 +118,21 @@ export const WisdomView: React.FC = () => {
   return (
     <div className="min-h-full bg-tea-bg">
       <h1 className="sr-only">Wisdom</h1>
-      {/* Remounting on tab change resets search and sort, which is right: a
-          query for a cultivar means nothing against the list of marks. */}
-      <WisdomBrowser key={active.id} holding={active} tabs={tabs} />
+      {/* Remounting on tab change resets the find field, which is right: a query
+          for a cultivar means nothing against the list of marks. Sort and
+          grouping survive it, because they live above the remount. The open
+          entry survives it too, because it lives in the address. */}
+      <WisdomBrowser
+        key={active.id}
+        holding={active}
+        siblings={WISDOM_HOLDINGS}
+        tabs={tabs}
+        selectedId={entry}
+        onSelect={openEntry}
+        onJump={jump}
+        prefs={prefs}
+        onPrefsChange={setPrefs}
+      />
     </div>
   );
 };
