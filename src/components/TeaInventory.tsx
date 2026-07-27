@@ -123,7 +123,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   const [activeFeeling, setActiveFeeling] = useState<string | null>(null); // feeling term ID from taxonomy
   const [activeRegion, setActiveRegion] = useState<string | null>(null); // region ID from the wisdom base, or a written origin
   const [specialFilter, setSpecialFilter] = useState<'None' | 'Curated' | 'Sale' | 'Liked' | 'Tasted'>('None');
-  const [openFilter, setOpenFilter] = useState<'type' | 'feeling' | 'sort' | null>(null);
+  const [openFilter, setOpenFilter] = useState<'type' | 'place' | 'feeling' | 'sort' | null>(null);
   const [searchText, setSearchText] = useState<string>('');
   // Profile-level mood/flavor tag filters (URL params: ?mood=id,id2 and ?flavorTag=id,id2)
   const [activeMoodTags, setActiveMoodTags] = useState<string[]>([]);
@@ -136,6 +136,26 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
     const ordered = TYPE_ORDER.filter(t => types.has(t));
     const remaining = [...types].filter(t => !TYPE_ORDER.includes(t)).sort();
     return [...ordered, ...remaining];
+  }, [inventory]);
+
+  /**
+   * The places this shop actually sells from, resolved and de-duplicated.
+   *
+   * Round four gave the region filter a URL and a chip, and left it with no
+   * door: the only way to browse by place was to open a product page first and
+   * follow the origin out of it. Place is one of the three facts the shop
+   * groups by, so it gets a pill row beside Type, built from the inventory the
+   * same way the type row is, and it disappears when there is only one place.
+   */
+  const availableRegions = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const item of inventory) {
+      const key = regionKey(item.origin);
+      if (key && !seen.has(key)) seen.set(key, regionLabel(key));
+    }
+    return [...seen.entries()]
+      .map(([key, label]) => ({ key, label }))
+      .sort((left, right) => left.label.localeCompare(right.label));
   }, [inventory]);
 
   // Derive which feeling terms are actually present in the inventory.
@@ -568,7 +588,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                <button
                  type="button"
                  onClick={() => setOpenFilter(prev => prev === 'type' ? null : 'type')}
-                 className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1 shrink-0 transition-colors ${
+                 className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] min-h-[44px] shrink-0 transition-colors ${
                    activeType !== 'All' ? 'text-tea-gold' : openFilter === 'type' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
                  }`}
                >
@@ -576,11 +596,24 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                  <Icons.ChevronDown className={`w-3 h-3 transition-transform ${openFilter === 'type' ? 'rotate-180' : ''}`} aria-hidden="true" />
                </button>
 
+               {(availableRegions.length > 1 || activeRegion) && (
+                 <button
+                   type="button"
+                   onClick={() => setOpenFilter(prev => prev === 'place' ? null : 'place')}
+                   className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] min-h-[44px] shrink-0 transition-colors ${
+                     activeRegion ? 'text-tea-gold' : openFilter === 'place' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
+                   }`}
+                 >
+                   <span>{activeRegion ? regionLabel(activeRegion) : 'Place'}</span>
+                   <Icons.ChevronDown className={`w-3 h-3 transition-transform ${openFilter === 'place' ? 'rotate-180' : ''}`} aria-hidden="true" />
+                 </button>
+               )}
+
                {availableFeelings.length > 0 && (
                  <button
                    type="button"
                    onClick={() => setOpenFilter(prev => prev === 'feeling' ? null : 'feeling')}
-                   className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1 shrink-0 transition-colors ${
+                   className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] min-h-[44px] shrink-0 transition-colors ${
                      activeFeeling ? 'text-tea-gold' : openFilter === 'feeling' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
                    }`}
                  >
@@ -592,7 +625,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                <button
                  type="button"
                  onClick={() => setOpenFilter(prev => prev === 'sort' ? null : 'sort')}
-                 className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1 shrink-0 transition-colors ${
+                 className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] min-h-[44px] shrink-0 transition-colors ${
                    shopSort !== 'featured' ? 'text-tea-gold' : openFilter === 'sort' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
                  }`}
                >
@@ -607,7 +640,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                onClick={() => setShopSavedOnly(!shopSavedOnly)}
                aria-pressed={shopSavedOnly}
                aria-label="Show only liked teas"
-               className={`ml-auto text-ui-10 uppercase tracking-[0.15em] py-1 shrink-0 transition-colors ${
+               className={`ml-auto text-ui-10 uppercase tracking-[0.15em] min-h-[44px] shrink-0 transition-colors ${
                  shopSavedOnly ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
                }`}
              >
@@ -620,7 +653,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
               <div className="flex flex-wrap gap-1.5 pb-3 animate-[fadeIn_0.15s_ease-out]">
                  <button
                     onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveType('All'); setOpenFilter(null); }}
-                    className={`pill ${activeType === 'All' ? 'pill-active' : ''}`}
+                    className={`pill tap-target ${activeType === 'All' ? 'pill-active' : ''}`}
                  >
                     All
                  </button>
@@ -628,9 +661,28 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                     <button
                        key={t}
                        onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveType(prev => prev === t ? 'All' : t); setOpenFilter(null); }}
-                       className={`pill ${activeType === t ? 'pill-active' : ''}`}
+                       className={`pill tap-target ${activeType === t ? 'pill-active' : ''}`}
                     >
                        {t}
+                    </button>
+                 ))}
+              </div>
+           )}
+           {openFilter === 'place' && (
+              <div className="flex flex-wrap gap-1.5 pb-3 animate-[fadeIn_0.15s_ease-out]">
+                 <button
+                    onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveRegion(null); setOpenFilter(null); }}
+                    className={`pill tap-target ${activeRegion === null ? 'pill-active' : ''}`}
+                 >
+                    All
+                 </button>
+                 {availableRegions.map(region => (
+                    <button
+                       key={region.key}
+                       onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveRegion(prev => prev === region.key ? null : region.key); setOpenFilter(null); }}
+                       className={`pill tap-target ${activeRegion === region.key ? 'pill-active' : ''}`}
+                    >
+                       {region.label}
                     </button>
                  ))}
               </div>
@@ -640,7 +692,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                  {activeFeeling && (
                     <button
                        onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveFeeling(null); setOpenFilter(null); }}
-                       className="pill"
+                       className="pill tap-target"
                     >
                        Clear
                     </button>
@@ -649,7 +701,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                     <button
                        key={f.id}
                        onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveFeeling(prev => prev === f.id ? null : f.id); setOpenFilter(null); }}
-                       className={`pill ${activeFeeling === f.id ? 'pill-active' : ''}`}
+                       className={`pill tap-target ${activeFeeling === f.id ? 'pill-active' : ''}`}
                     >
                        {f.label}
                     </button>
@@ -662,7 +714,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                     <button
                        key={o.id}
                        onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setShopSort(o.id); setOpenFilter(null); }}
-                       className={`pill ${shopSort === o.id ? 'pill-active' : ''}`}
+                       className={`pill tap-target ${shopSort === o.id ? 'pill-active' : ''}`}
                     >
                        {o.label}
                     </button>
@@ -671,22 +723,12 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
            )}
          </div>
 
-         {/* Active region filter chip. A region has no pill row in the toolbar
-             because it arrives from a product page rather than from browsing,
-             so this chip is the only place it is visible and the only place it
-             is cleared. Same chip the tasting cross-reference uses. */}
-         {activeRegion && (
-            <div className="flex items-center gap-2 mb-3">
-               <button
-                  onClick={() => setActiveRegion(null)}
-                  aria-label={`Clear the ${regionLabel(activeRegion)} filter`}
-                  className="tag tap-target cursor-pointer hover:opacity-80 transition-opacity"
-               >
-                  <span>{regionLabel(activeRegion)}</span>
-                  <X size={11} />
-               </button>
-            </div>
-         )}
+         {/* The region's own chip is gone. It existed because a region could
+             only arrive from a product page and had no control of its own, so
+             the chip had to be both the announcement and the clear. Now that
+             Place is a filter beside Type, the toolbar states the active place
+             by name and clears it, and a second control for one filter is one
+             control too many. */}
 
          {/* Active tasting filter chip (from AlcoveCard cross-reference) */}
          {tastingFilter && (() => {
@@ -712,7 +754,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                <button
                  type="button"
                  onClick={() => setMoodFlavorOpen(p => !p)}
-                 className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1 transition-colors w-fit ${
+                 className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] min-h-[44px] transition-colors w-fit ${
                    (activeMoodTags.length > 0 || activeFlavorTags.length > 0)
                      ? 'text-tea-gold'
                      : moodFlavorOpen

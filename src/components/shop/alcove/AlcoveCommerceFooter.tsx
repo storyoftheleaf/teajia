@@ -2,6 +2,20 @@ import React from 'react';
 import type { InventoryItem } from '../../../types';
 import { Heart, Pencil, QrCode } from 'lucide-react';
 import { fmtShopPrice } from '../../../utils/formatNumber';
+import { LABEL, NUMERAL } from '../../shared/typeRoles';
+
+/**
+ * The commerce row's numerals take the LABEL role's size and nothing else.
+ *
+ * This footer ran sans at 9 and 10 and mono at 10 and 12, four private steps
+ * in the densest 300px on the card. They collapse to one, at the smallest
+ * declared role size, because BODY at 15px does not fit a price, a per-gram
+ * and four presets across a 303px row without wrapping or scrolling sideways,
+ * and sideways is banned. The face is the numeral face for the same reason it
+ * is on the product page: a proportional figure reflows the total as the
+ * amount changes.
+ */
+const FOOTER_NUMERAL = `text-ui-11 ${NUMERAL}`;
 
 interface StockStatus {
   label: string;
@@ -106,16 +120,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
       {isSoldOut ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
           <div style={{ ...STOCK_DOT, background: stockStatus.color }} />
-          <span
-            style={{
-              fontFamily: 'var(--font-sans)',
-              fontSize: 10,
-              fontWeight: 400,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              color: stockStatus.color,
-            }}
-          >
+          <span className={LABEL} style={{ color: stockStatus.color }}>
             {stockStatus.label}
           </span>
         </div>
@@ -157,7 +162,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
                   }}
                 >
                   <span>{opt.label}</span>
-                  {opt.sub && <span style={{ fontSize: 9, opacity: 0.6 }}>{opt.sub}</span>}
+                  {opt.sub && <span className={`${FOOTER_NUMERAL} text-tea-text-dim`}>{opt.sub}</span>}
                 </button>
               );
             })}
@@ -166,15 +171,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
           {stockStatus.level !== 'ok' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
               <div style={{ ...STOCK_DOT, background: stockStatus.color }} />
-              <span
-                style={{
-                  fontFamily: 'var(--font-sans)',
-                  fontSize: 10,
-                  color: stockStatus.color,
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                }}
-              >
+              <span className={LABEL} style={{ color: stockStatus.color }}>
                 {stockStatus.label}
               </span>
             </div>
@@ -192,15 +189,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
             }}
           >
             <div style={{ ...STOCK_DOT, background: stockStatus.color }} />
-            <span
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 10,
-                fontWeight: 400,
-                color: alcoveColors.body,
-                fontVariantNumeric: 'tabular-nums lining-nums',
-              }}
-            >
+            <span className={FOOTER_NUMERAL} style={{ color: alcoveColors.body }}>
               {formatPrice ? perGramDisplay : `$${perGramDisplay}`}/g
             </span>
           </div>
@@ -228,7 +217,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
         item.stock_g <= item.sessionReserveGrams &&
         !isSoldOut && (
           <div className="mb-1">
-            <span className="text-tea-gold text-xs">
+            <span className="text-tea-gold text-ui-11">
               Last ~{item.stock_g}g available. We'll confirm quantity before dispatching.
             </span>
           </div>
@@ -287,16 +276,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
             onClick={handleShare}
             aria-label="Share"
           >
-            <span
-              style={{
-                fontFamily: 'var(--font-sans)',
-                fontSize: 10,
-                fontWeight: 400,
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                color: shareCopied ? alcoveColors.success : 'currentColor',
-              }}
-            >
+            <span className={LABEL} style={{ color: shareCopied ? alcoveColors.success : 'currentColor' }}>
               {shareCopied ? 'Copied' : 'Share'}
             </span>
           </button>
@@ -312,15 +292,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
                 }}
                 aria-label="Start tasting session"
               >
-                <span
-                  style={{
-                    fontFamily: 'var(--font-sans)',
-                    fontSize: 10,
-                    fontWeight: 400,
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                  }}
-                >
+                <span className={LABEL}>
                   Taste
                 </span>
               </button>
@@ -356,13 +328,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
             <>
               <span>Sample. 10g</span>
               {pricePerGram > 0 && (
-                <span
-                  style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontWeight: 500,
-                    fontSize: 12,
-                  }}
-                >
+                <span className={FOOTER_NUMERAL}>
                   {formatPrice ? formatPrice(pricePerGram, 10) : fmtShopPrice(pricePerGram * 10)}
                 </span>
               )}
@@ -370,18 +336,11 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
           ) : (
             <>
               <span>Order</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 500, fontSize: 12 }}>
+              <span className={FOOTER_NUMERAL}>
                 {formatPrice ? total : `$${total}`}
               </span>
               {pricePerGram > 0 && (
-                <span
-                  style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontWeight: 400,
-                    fontSize: 10,
-                    opacity: 0.6,
-                  }}
-                >
+                <span className={`${FOOTER_NUMERAL} text-tea-bg/70`}>
                   {formatPrice ? perGramDisplay : `$${perGramDisplay}`}/g
                 </span>
               )}

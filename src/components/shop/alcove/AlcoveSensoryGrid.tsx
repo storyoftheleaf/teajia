@@ -8,6 +8,7 @@ import {
 } from '../../../data/tastingTaxonomy';
 import { useNavigate } from 'react-router-dom';
 import { Leaf, ChevronRight } from 'lucide-react';
+import { LABEL } from '../../shared/typeRoles';
 
 /** Converts a string to Title Case */
 function toTitleCase(str: string): string {
@@ -92,8 +93,8 @@ export const AlcoveSensoryGrid: React.FC<AlcoveSensoryGridProps> = ({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onEditProductTasting(item); }}
-            className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim hover:text-tea-gold transition-colors"
-            style={{ fontFamily: "var(--font-display)", display: "inline-flex", alignItems: "center", gap: "4px" }}
+            className={`${LABEL} text-tea-text-dim hover:text-tea-gold transition-colors`}
+            style={{ display: "inline-flex", alignItems: "center", gap: "4px", minHeight: 44 }}
             aria-label="Edit product tasting"
           >
             Edit tasting
@@ -209,13 +210,7 @@ export const AlcoveSensoryGrid: React.FC<AlcoveSensoryGridProps> = ({
             onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
           >
             <Leaf size={12} style={{ color: '#5A6E5A', opacity: 0.75 }} />
-            <span style={{
-              fontFamily: "var(--font-display)",
-              fontSize: "10px", fontWeight: 400,
-              color: "var(--tea-text-dim)",
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-            }}>
+            <span className={`${LABEL} text-tea-text-dim`}>
               Tasted {tastingCount} {tastingCount === 1 ? 'time' : 'times'}
             </span>
             <ChevronRight size={10} style={{ color: "var(--tea-text-dim)", opacity: 0.6, marginLeft: "1px" }} />

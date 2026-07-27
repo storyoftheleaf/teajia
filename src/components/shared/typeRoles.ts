@@ -48,6 +48,43 @@ export const BODY = TYPOGRAPHY_CLASSES.bodyLight;
 export const LABEL = 'font-sans text-ui-11 uppercase tracking-[0.08em]';
 
 /**
+ * The numeral face. Deliberately not a fifth size.
+ *
+ * Round four's buy cluster ran mono at 11, 15 and 20, none of which was
+ * declared anywhere, so the one part of the page a customer transacts on had a
+ * private scale. Numerals do need their own *face*: a proportional figure
+ * reflows the price as the slider drags, which makes a number that is not
+ * changing look like it is. That is an argument about the face, not about the
+ * size, so this class carries only the face and the tabular figures, and every
+ * numeral on the page takes its size from one of the four roles.
+ *
+ * Written as a modifier (`${BODY} ${NUMERAL}`), never on its own.
+ */
+export const NUMERAL = 'font-mono tabular-nums';
+
+/**
+ * A 44px hit area around a control too small to be one, without the layout
+ * height that making the box 44px tall would add.
+ *
+ * `tap-target` in card-utilities.css sets `min-height: 44px` on the element
+ * itself. That is right for an icon sitting alone, and wrong for a word set
+ * inside a heading: round four made a linked group heading a 44px control, and
+ * the gap beneath "Same place" became visually double the gap beneath "About",
+ * which broke round two's single rhythm value in the one place round four
+ * touched. This expands the pressable area with a pseudo-element instead, so
+ * the heading keeps its own line box and the rhythm holds.
+ *
+ * Deliberately lopsided: 24px up, 8px down. Up is SECTION's own gap and is
+ * always empty, so the hit area fills it and stops at the section boundary.
+ * Down is only LABEL_GAP, so the area stops exactly where the section's
+ * content begins rather than swallowing the top of the first thing under it.
+ * An 11px label sets a 13px line box at worst, so the floor is 13 + 24 + 8 =
+ * 45px, and the pseudo-element inherits the label's own width, which for one
+ * to three words is always past 44 as well.
+ */
+export const HIT_AREA = "relative after:absolute after:content-[''] after:inset-x-0 after:-top-6 after:-bottom-2";
+
+/**
  * The one link setting for text inside a sentence or a field value.
  *
  * A resting underline, because half this page is read on a phone where nothing

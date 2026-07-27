@@ -1,6 +1,7 @@
 import React from 'react';
 import type { InventoryItem } from '../../../types';
 import { starredNotes } from '../../../lib/noteEntries';
+import { BODY, HEADING, LABEL, TITLE } from '../../shared/typeRoles';
 
 interface AlcoveIdentityHeaderProps {
   item: InventoryItem;
@@ -35,43 +36,34 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
       padding: "16px 20px 0",
       position: "relative",
     }}>
-      {/* === Identity (scrolls with content) === */}
-      <h1 id={`alcove-title-${item.id}`} style={{
-        fontFamily: "var(--font-display)",
-        fontSize: "26px", fontWeight: 340, color: alcoveColors.title,
-        margin: 0, lineHeight: 1.1, letterSpacing: "-0.01em",
-        textShadow: "0 0 20px rgba(0,0,0,0.3)",
-        textAlign: "center",
-      }}>
+      {/* === Identity (scrolls with content) ===
+          The four type roles do not stop at the page boundary. This card ran
+          its own scale, 26 / 16 / 13, so a customer who opened a tea from the
+          grid read it in one type system and the same tea from its own page in
+          another. Same product, same roles: TITLE for the name, HEADING for
+          the given name, BODY for the caption of facts. The text-shadow went
+          with them, a hardcoded rgba that only ever softened the title against
+          a background this card no longer has. */}
+      <h1 id={`alcove-title-${item.id}`} className={`${TITLE} text-center`} style={{ color: alcoveColors.title, margin: 0 }}>
         {productName}
       </h1>
       {givenName && (
-        <p style={{
-          fontFamily: "var(--font-display)",
-          fontSize: "16px", fontStyle: "italic", fontWeight: 300,
-          lineHeight: 1.3,
-          color: alcoveColors.subtitle, margin: "5px 0 0",
-          textAlign: "center",
-        }}>
+        <p className={`${HEADING} text-center italic`} style={{ color: alcoveColors.subtitle, margin: "5px 0 0" }}>
           {givenName}
         </p>
       )}
-      {/* Tea type · origin · year — descriptive bar */}
+      {/* Tea type · origin · year — a caption of three facts, on the same
+          separator the product page joins the same three facts with. */}
       <div style={{
         padding: "6px 0 5px",
         borderTop: "1px solid var(--tea-border)",
         borderBottom: "1px solid var(--tea-border)",
         margin: givenName ? "6px -20px 0" : "8px -20px 0",
       }}>
-        <p style={{
-          fontFamily: "var(--font-display)",
-          fontSize: "13px", fontWeight: 300, fontStyle: "italic",
-          color: alcoveColors.subtitle, margin: 0,
-          textAlign: "center",
-        }}>
+        <p className={`${BODY} text-center text-tea-text-dim`} style={{ margin: 0 }}>
           {teaType}
-          {origin && <><span style={{ margin: "0 8px", opacity: 0.4 }}>·</span>{origin}</>}
-          {vintage && <><span style={{ margin: "0 8px", opacity: 0.4 }}>·</span>{vintage}</>}
+          {origin && <><span className="select-none"> · </span>{origin}</>}
+          {vintage && <><span className="select-none"> · </span>{vintage}</>}
         </p>
       </div>
       {/* Vendor / Source — admin-only link to source profile */}
@@ -123,12 +115,7 @@ export const AlcoveStorySection: React.FC<AlcoveStorySectionProps> = ({
         const fullStory = storyParts.join('\n\n');
         if (!fullStory) return null;
 
-        const storyStyle = {
-          fontFamily: "var(--font-body)",
-          fontSize: "15px", fontWeight: 300 as const, lineHeight: 1.65,
-          color: alcoveColors.body, margin: 0,
-          whiteSpace: "pre-line" as const,
-        };
+        const storyStyle = { color: alcoveColors.body, margin: 0, whiteSpace: "pre-line" as const };
 
         return (
           <div style={{
@@ -136,7 +123,7 @@ export const AlcoveStorySection: React.FC<AlcoveStorySectionProps> = ({
             marginTop: allImages.length > 0 ? "20px" : "16px",
           }}>
             {magazineUrl ? (
-              <p style={storyStyle}>
+              <p className={BODY} style={storyStyle}>
                 <a
                   href={magazineUrl}
                   target="_blank"
@@ -148,7 +135,7 @@ export const AlcoveStorySection: React.FC<AlcoveStorySectionProps> = ({
                 </a>
               </p>
             ) : (
-              <p style={storyStyle}>
+              <p className={BODY} style={storyStyle}>
                 {fullStory}
               </p>
             )}
@@ -167,47 +154,27 @@ export const AlcoveStorySection: React.FC<AlcoveStorySectionProps> = ({
             padding: "22px 24px 6px",
             marginTop: "8px",
           }}>
-            {/* Eyebrow — bronze used once; hairline removed to keep bronze rare. */}
+            {/* Section label, on the page's one caps setting. It was 10px
+                display caps at 0.18em in bronze: the widest tracking anywhere
+                in the shop, and bronze at rest on a card that opens above the
+                fold, where bronze is reserved for warnings, active states and
+                the buy button. */}
             <div className="mb-3">
-              <span style={{
-                fontFamily: "var(--font-display)",
-                fontSize: "10px",
-                letterSpacing: "0.18em",
-                textTransform: "uppercase",
-                color: "var(--tea-gold)",
-                whiteSpace: "nowrap",
-              }}>
-                In Adrian's words
+              <span className={`${LABEL} whitespace-nowrap text-tea-text-dim`}>
+                In Adrian&apos;s words
               </span>
             </div>
 
             {starred.map((note, i) => (
               <p
                 key={note.id}
-                style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: "17px",
-                  fontStyle: "italic",
-                  lineHeight: 1.6,
-                  color: "var(--tea-text)",
-                  marginTop: i === 0 ? 0 : 14,
-                  marginBottom: 0,
-                }}
+                className={`${BODY} italic text-tea-text`}
+                style={{ marginTop: i === 0 ? 0 : 14, marginBottom: 0 }}
               >
                 {note.text}
                 {note.sourceAuthor && (
-                  <span
-                    style={{
-                      display: "block",
-                      marginTop: 6,
-                      fontSize: "10px",
-                      fontStyle: "normal",
-                      letterSpacing: "0.12em",
-                      textTransform: "uppercase",
-                      color: "var(--tea-text-dim)",
-                    }}
-                  >
-                    — {note.sourceAuthor.initial || note.sourceAuthor.accountName || 'Community'}
+                  <span className={`${LABEL} block not-italic text-tea-text-dim`} style={{ marginTop: 6 }}>
+                    {note.sourceAuthor.initial || note.sourceAuthor.accountName || 'Community'}
                   </span>
                 )}
               </p>

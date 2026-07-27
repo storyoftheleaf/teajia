@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { MessageCircle, Pencil } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MessageCircle, Pencil } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useInventory } from '../context/InventoryContext';
 import { useAppStore } from '../lib/store';
@@ -20,13 +20,12 @@ import { ProductTastingEditorial } from '../components/tasting/ProductTastingEdi
 import { useProductTasting } from '../hooks/useProductTasting';
 import { useAuth } from '../hooks/useAuth';
 import { TastingEditorModal } from '../admin/components/TastingEditorModal';
-import { useRates } from '../admin/hooks/useAdminData';
-import type { Currency, Product } from '../admin/types';
+import type { Product } from '../admin/types';
 import { ProductImpressions, type ProductImpression } from '../components/shop/ProductImpressions';
 import { cultivarPath, resolveLineage } from '../components/wisdom/TeaLineage';
 import { TeaReference, type TeaReferenceProduct } from '../components/wisdom/TeaReference';
 import { FactGrid } from '../components/wisdom/FactGrid';
-import { BODY, HEADING, LABEL, LABEL_GAP, LINK, SECTION, TITLE } from '../components/shared/typeRoles';
+import { BODY, HEADING, HIT_AREA, LABEL, LABEL_GAP, LINK, NUMERAL, SECTION, TITLE } from '../components/shared/typeRoles';
 
 // ── Feature 4: Public tea reviews section ────────────────────────────────────
 
@@ -35,7 +34,13 @@ interface PublicTeaReview {
   tea_key: string;
   author_name?: string;
   author_account_name?: string;
-  rating?: number;
+  // The API also returns `rating`, a number out of ten. It is deliberately not
+  // read here. Scoring is banned outright on this site, and a number rating a
+  // tea is not a fact about the tea: it is one person's compression of a
+  // session into a digit, printed in the face reserved for the numbers a
+  // customer transacts on, which lent it the authority of a price. The verdict
+  // and the note below say the same thing in the taster's own words, which is
+  // what a reader can actually weigh.
   notes?: string;
   voice_notes?: string[];
   tasting?: TastingData;
@@ -105,9 +110,8 @@ const PublicReviewsSection: React.FC<{ productId: string; teaKey?: string }> = (
                   {r.author_name ? r.author_name.charAt(0) + '.' : 'Anonymous'}
                 </span>
                 {r.author_account_name && <span>· {r.author_account_name}</span>}
-                {r.rating != null && <span className="font-mono text-tea-text-sec">{r.rating}/10</span>}
-                {r.verdict && <span className="capitalize">{r.verdict}</span>}
-                <span className="ml-auto tabular-nums">
+                {r.verdict && <span className="capitalize text-tea-text-sec">{r.verdict}</span>}
+                <span className={`${NUMERAL} ml-auto`}>
                   {(r.session_date || r.created_at).slice(0, 10)}
                 </span>
               </div>
@@ -152,11 +156,6 @@ const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '';
  * Shows hero image, tea info, description, tasting notes, pricing, and related teas.
  */
 
-/** Converts a string to Title Case */
-function toTitleCase(str: string): string {
-  return str.replace(/\b\w/g, c => c.toUpperCase());
-}
-
 /**
  * Three states, because there are three things worth saying.
  *
@@ -199,30 +198,37 @@ const RELATION_LABEL: Record<Relation, string> = {
 };
 
 /**
- * The currency the page prices in, as a code a machine can settle.
+ * The one currency this page publishes in, for machines.
  *
- * The store carries a few shop-floor names ("NT", "Yuan") that are not ISO
- * 4217, plus one honest unknown. Same mapping the cart's formatter uses, so a
- * reader browsing in New Taiwan dollars and a crawler reading the same page
- * agree on what the number means.
+ * Round four read the currency out of the client store and converted the offer
+ * through the live rate table. That made the markup a per-visitor document: a
+ * crawler with no storage always saw one currency, a returning reader saw
+ * another, and neither could tell which was the shop's actual quote. Markup
+ * that varies per visitor is worse than markup that is honestly fixed.
+ *
+ * The prices in the record are USD (`fmtPrice` and every shop formatter print
+ * a dollar sign unconditionally), so USD is what is published, unconverted, to
+ * every reader and every crawler. Localising the visible number is the visible
+ * page's job, and when it gains that ability the markup does not have to move.
  */
-const ISO_CURRENCY: Partial<Record<Currency, string>> = { NT: 'TWD', Yuan: 'CNY', UNK: 'USD' };
-const isoCurrency = (currency: Currency): string => ISO_CURRENCY[currency] ?? currency;
+const PUBLISHED_CURRENCY = 'USD';
 
 export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
   const { id } = useParams<{ id: string }>();
   const { inventory, refetch: refetchInventory } = useInventory();
-  const { favoriteTeas, toggleFavoriteTea, currency } = useAppStore();
-  // The same rate table the cart prices from, so the structured data below
-  // quotes what this reader would actually be asked to pay.
-  const { data: rates = [] } = useRates();
+  const { favoriteTeas, toggleFavoriteTea } = useAppStore();
 
   const item = useMemo(() => inventory.find(i => i.id === id), [inventory, id]);
 
   const [grams, setGrams] = useState(25);
   const [added, setAdded] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [expandedImageUrl, setExpandedImageUrl] = useState<string | null>(null);
+  // The viewer holds a position in the gallery, not a URL. Round three opened
+  // one image and round four opened the hero as well, but either way the only
+  // way to the second photograph was to close, find a 64px thumbnail and tap
+  // it, on a product carrying up to five images. A viewer you can only enter
+  // and leave is a lightbox; a viewer you can move through is the gallery.
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [stickyVisible, setStickyVisible] = useState(false);
 
   useEffect(() => {
@@ -234,17 +240,28 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Escape closes the enlarged image. Listened for on the window rather than on
-  // the overlay: the overlay only ever received the key when it happened to
-  // hold focus, which after a tap on a thumbnail it does not.
+  // Every photograph of this tea, in the order it is shown, hero first. One
+  // list, so the thumbnails under the hero and the viewer over it are two
+  // views of the same sequence rather than two lists that agree by accident.
+  const galleryImages = useMemo(
+    () => [item?.image, ...(item?.additionalImages ?? [])].filter((url): url is string => Boolean(url)).slice(0, 5),
+    [item],
+  );
+
+  // Escape closes the viewer, the arrow keys move through it. Listened for on
+  // the window rather than on the overlay: the overlay only ever received the
+  // key when it happened to hold focus, which after a tap on a thumbnail it
+  // does not.
   useEffect(() => {
-    if (!expandedImageUrl) return;
+    if (expandedIndex === null) return;
     const handleKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setExpandedImageUrl(null);
+      if (event.key === 'Escape') setExpandedIndex(null);
+      if (event.key === 'ArrowRight') setExpandedIndex(i => (i === null ? i : (i + 1) % galleryImages.length));
+      if (event.key === 'ArrowLeft') setExpandedIndex(i => (i === null ? i : (i - 1 + galleryImages.length) % galleryImages.length));
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [expandedImageUrl]);
+  }, [expandedIndex, galleryImages.length]);
 
   // Related teas: stated facts, in strength order, never a recommendation.
   //
@@ -416,43 +433,40 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
   ];
 
   /**
-   * One sensory line, not two.
+   * One sensory slot, one voice.
    *
-   * The freeform tags and the resolved tasting profile were two italic lists of
-   * overlapping words stacked in the same voice. The tasting profile earns the
-   * place: its terms come from the shared taxonomy, every one links to a shop
-   * filter that exists, and it is signed with where it came from. The tags are
-   * untyped strings a reader cannot follow, so they are what a product falls
-   * back to when nothing resolves rather than a second line beside it.
+   * The tasting profile earns the place when it resolves: its terms come from
+   * the shared taxonomy, every one links to a shop filter that exists, and it
+   * is signed with where it came from. When nothing resolves, the product's
+   * own freeform tags fall into the same slot, through the same component,
+   * signed with their own provenance, rather than appearing in a second
+   * register the reader has no way to account for.
    */
-  const sensoryFallback = (
+  const writtenSensoryTerms = (
     item.tags && item.tags.length > 0
       ? item.tags
       : item.mood
         ? (item.mood.includes(',') ? item.mood.split(',') : [item.mood])
         : []
   )
-    .map(term => toTitleCase(term.trim()))
-    .filter(Boolean)
-    .join(' · ');
+    .map(term => term.trim())
+    .filter(Boolean);
 
   /**
    * What this tea actually costs, in the currency this page is priced in.
    *
-   * The offer used to state one hardcoded USD price for a fifty gram serving.
-   * Neither half was true. The page has never had a 50g control except as one
-   * of four presets, so the single quoted price was a serving nobody could
-   * buy, and the currency ignored the store the cart reads from, so a reader
-   * shopping in New Taiwan dollars was shown a page in one currency and
-   * described to machines in another.
+   * The offer used to state one hardcoded price for a fifty gram serving. The
+   * page has never had a 50g control except as one of four presets, so the
+   * single quoted price was a serving nobody could buy.
    *
    * Now: one offer per quantity the page will actually sell, each carrying the
    * grams it is priced for, wrapped in an aggregate so a crawler that wants a
-   * single number gets an honest range instead of an invented midpoint.
+   * single number gets an honest range instead of an invented midpoint. Every
+   * one of them is quoted in the shop's own currency (see PUBLISHED_CURRENCY),
+   * so two readers of the same product read the same document.
    */
-  const offerCurrency = isoCurrency(currency);
-  const rateToDisplay = rates.find(rate => rate.currency === currency)?.rateToUSD ?? 1;
-  const offerPrice = (usd: number) => (usd * rateToDisplay).toFixed(2);
+  const offerCurrency = PUBLISHED_CURRENCY;
+  const offerPrice = (usd: number) => usd.toFixed(2);
   const availability = isSoldOut ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock';
   const quantityOffers = presets.map(gramsOffered => ({
     '@type': 'Offer',
@@ -606,7 +620,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
                     the 44px floor many times over. */}
                 <button
                   type="button"
-                  onClick={() => setExpandedImageUrl(item.image!)}
+                  onClick={() => setExpandedIndex(0)}
                   aria-label={`Enlarge image of ${item.name}`}
                   className="block h-full w-full cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50"
                 >
@@ -645,17 +659,19 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
             )}
           </div>
 
-          {/* Additional images. Wired to the lightbox rather than deleted with
-              it: a 64px square of leaf is not a photograph anyone can read, so
-              the enlargement is the whole reason a second image is on the page.
-              64px is already past the 44px floor, so no tap-target is needed. */}
-          {item.additionalImages && item.additionalImages.length > 0 && (
+          {/* Additional images. A 64px square of leaf is not a photograph
+              anyone can read, so the enlargement is the whole reason a second
+              image is on the page. They open the viewer at their own position
+              now rather than at their own URL, which is what lets a reader
+              arrive on the third photograph and keep going. 64px is already
+              past the 44px floor, so no tap-target is needed. */}
+          {galleryImages.length > 1 && (
             <div className="flex flex-wrap gap-2 mt-3">
-              {item.additionalImages.slice(0, 4).map((img, i) => (
+              {galleryImages.slice(1).map((img, i) => (
                 <button
-                  key={i}
+                  key={img}
                   type="button"
-                  onClick={() => setExpandedImageUrl(img)}
+                  onClick={() => setExpandedIndex(i + 1)}
                   aria-label={`Enlarge image ${i + 2} of ${item.name}`}
                   className="w-16 h-16 rounded-md overflow-hidden bg-tea-surface border border-tea-border flex-shrink-0 transition-colors hover:border-tea-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
                 >
@@ -672,12 +688,15 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
           <h1 className={`${TITLE} mb-1 text-tea-text`}>
             {item.variant || item.name}
           </h1>
-          {/* Given name. Always reserves space. */}
-          <p className={`${HEADING} mb-1 min-h-[26px] italic text-tea-text-sec ${
-            item.variant && item.variant !== item.name ? 'visible' : 'invisible'
-          }`}>
-            {item.variant && item.variant !== item.name ? item.name : '\u00A0'}
-          </p>
+          {/* Given name, when the tea has one. Reserving a 26px band on every
+              product for a line most records do not carry put a permanent hole
+              between the title and the calligraphic name, and a hole is not
+              rhythm: it is one product's spacing charged to all of them. The
+              block below already has its own gap, so nothing moves when this
+              is absent. */}
+          {item.variant && item.variant !== item.name && (
+            <p className={`${HEADING} mb-1 italic text-tea-text-sec`}>{item.name}</p>
+          )}
           {item.chineseName && (
             // The calligraphic name is not a step on the Latin scale: it is a
             // different face, set at 26px so it sits optically level with a
@@ -703,13 +722,19 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
             ))}
           </p>
 
-          {/* The one sensory line. Flavour and energy, linked through to the
-              shop filters; the freeform tags are the fallback beneath it, never
-              a second list beside it. */}
+          {/* The one sensory slot. Flavour and energy when they resolve, the
+              product's own written terms when they do not, and one attribution
+              line under either so the reader knows which they are reading. */}
           {resolvedTasting ? (
             <ProductTastingEditorial
               tasting={resolvedTasting.tasting}
               source={resolvedTasting.source}
+              onEdit={isAdmin ? () => setTastingEditorOpen(true) : undefined}
+            />
+          ) : writtenSensoryTerms.length > 0 ? (
+            <ProductTastingEditorial
+              freeform={writtenSensoryTerms}
+              source="record"
               onEdit={isAdmin ? () => setTastingEditorOpen(true) : undefined}
             />
           ) : isAdmin ? (
@@ -721,8 +746,6 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
               <Pencil size={12} strokeWidth={1.5} />
               <span>Add tasting profile</span>
             </button>
-          ) : sensoryFallback ? (
-            <p className={`${BODY} ${SECTION} italic text-tea-text-sec`}>{sensoryFallback}</p>
           ) : null}
 
           {/* About: character and description. */}
@@ -797,16 +820,20 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
               both a hardcoded rgba and a fourth bronze element in one column. */}
           <div className={`${SECTION} border-t border-tea-border`} />
 
-          {/* Pricing and stock */}
+          {/* Pricing and stock. Both numbers are BODY sized; the difference
+              between them is carried by colour, which is the same rule the
+              rest of the page follows inside a block. The second line used to
+              be a step smaller as well as a step dimmer, which is the fifth
+              size the four roles do not have. */}
           <div className="flex items-center justify-between mb-3">
             <span className={`${LABEL} ${stockStatus.colorClass}`}>
               {stockStatus.label}
             </span>
             <div className="text-right">
-              <span className="font-mono text-ui-15 text-tea-text-sec block">
+              <span className={`${BODY} ${NUMERAL} block text-tea-text-sec`}>
                 {fmtShopPricePerGram(pricePerGram)}
               </span>
-              <span className="font-mono text-ui-11 text-tea-text-dim">
+              <span className={`${BODY} ${NUMERAL} text-tea-text-dim`}>
                 from {fmtShopPrice(pricePerGram * 25)} / 25g
               </span>
             </div>
@@ -824,7 +851,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
                   key={p}
                   onClick={() => setGrams(p)}
                   aria-pressed={grams === p}
-                  className={`flex-1 min-h-[44px] font-mono text-ui-11 rounded-md border transition-all duration-150 ${
+                  className={`${BODY} ${NUMERAL} flex-1 min-h-[44px] rounded-md border transition-all duration-150 ${
                     grams === p
                       ? 'bg-tea-accent-sub text-tea-gold border-tea-gold'
                       : 'bg-transparent text-tea-text-sec border-tea-border hover:border-tea-gold/30'
@@ -839,11 +866,15 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
           {/* Slider */}
           {!isSoldOut && (
             <div className="mb-4">
-              <div className="flex items-end justify-between mb-1 px-0.5">
-                <span className="font-mono text-ui-15 text-tea-text">{fmtShopPrice(total)}</span>
+              {/* What it costs and how much you get: two halves of one
+                  statement, so they are set the same. The grams half used to
+                  run 20px against the price's 15px, which said the weight
+                  outranked the money. Nothing behind the control says that. */}
+              <div className="flex items-baseline justify-between mb-1 px-0.5">
+                <span className={`${BODY} ${NUMERAL} text-tea-text`}>{fmtShopPrice(total)}</span>
                 <div className="flex items-baseline gap-0.5">
-                  <span className="font-mono text-ui-20 text-tea-text leading-none">{grams}</span>
-                  <span className="font-sans text-ui-11 text-tea-text-dim">g</span>
+                  <span className={`${BODY} ${NUMERAL} text-tea-text`}>{grams}</span>
+                  <span className={`${LABEL} text-tea-text-dim`}>g</span>
                 </div>
               </div>
               <HapticSlider
@@ -889,7 +920,9 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
               {!isSoldOut && !added && (
                 <>
                   <span className="w-px h-3 bg-tea-bg/20" />
-                  <span className="font-mono">{fmtShopPrice(total)}</span>
+                  {/* No size of its own: it inherits the button's LABEL and
+                      changes only the face. */}
+                  <span className={NUMERAL}>{fmtShopPrice(total)}</span>
                 </>
               )}
             </button>
@@ -945,9 +978,15 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
             const href = groupHref(group.relation);
             return (
             <section key={group.relation} className={SECTION}>
+              {/* The heading is a heading first and a control second. Giving
+                  the link a 44px box made this the one section label on the
+                  page three times taller than the rest, so the gap under
+                  "Same place" read as double the gap under "About" or
+                  "Brewing". HIT_AREA presses out past 44px with a
+                  pseudo-element and leaves the line box alone. */}
               <h2 className={`${LABEL} ${LABEL_GAP} text-tea-text-dim`}>
                 {href ? (
-                  <Link to={href} className={`${LINK} inline-flex min-h-[44px] items-center`}>
+                  <Link to={href} className={`${LINK} ${HIT_AREA} inline-block`}>
                     {RELATION_LABEL[group.relation]}
                   </Link>
                 ) : (
@@ -995,26 +1034,30 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
         </div>
       )}
 
-      {/* Image lightbox */}
-      {expandedImageUrl && (
+      {/* Image viewer. Enter from the hero or any thumbnail, then move through
+          the whole sequence without leaving: arrows on screen, arrow keys on a
+          keyboard, and the position stated so a reader knows how many are
+          left. The controls are 44px squares, and they are hidden entirely on
+          a single-image product rather than shown dead. */}
+      {expandedIndex !== null && galleryImages[expandedIndex] && (
         <div
-          onClick={() => setExpandedImageUrl(null)}
+          onClick={() => setExpandedIndex(null)}
           role="dialog"
           aria-modal="true"
-          aria-label="Product image"
+          aria-label={`Image ${expandedIndex + 1} of ${galleryImages.length} of ${item.name}`}
           className="fixed inset-0 z-priority flex items-center justify-center animate-[fadeIn_0.3s_ease-out] outline-none"
           style={{ background: 'var(--tea-bg)' }}
         >
           <img
-            src={expandedImageUrl}
+            src={galleryImages[expandedIndex]}
             alt={item.name}
             onClick={(e) => e.stopPropagation()}
             className="max-w-[90vw] max-h-[90vh] object-contain rounded cursor-default"
           />
           <button
-            onClick={() => setExpandedImageUrl(null)}
+            onClick={() => setExpandedIndex(null)}
             aria-label="Close image"
-            className="tap-target absolute top-4 right-4 w-9 h-9 rounded-full bg-tea-accent-sub flex items-center justify-center cursor-pointer hover:bg-tea-surface transition-colors"
+            className="tap-target absolute top-4 right-4 w-11 h-11 rounded-full bg-tea-accent-sub flex items-center justify-center cursor-pointer hover:bg-tea-surface transition-colors"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
               stroke="var(--tea-text-sec)" strokeLinecap="round" strokeLinejoin="round">
@@ -1022,6 +1065,34 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
+
+          {galleryImages.length > 1 && (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExpandedIndex(i => (i === null ? i : (i - 1 + galleryImages.length) % galleryImages.length));
+                }}
+                aria-label="Previous image"
+                className="absolute left-2 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-tea-accent-sub flex items-center justify-center text-tea-text-sec transition-colors hover:bg-tea-surface hover:text-tea-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
+              >
+                <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExpandedIndex(i => (i === null ? i : (i + 1) % galleryImages.length));
+                }}
+                aria-label="Next image"
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-tea-accent-sub flex items-center justify-center text-tea-text-sec transition-colors hover:bg-tea-surface hover:text-tea-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
+              >
+                <ChevronRight className="w-5 h-5" strokeWidth={1.5} />
+              </button>
+              <p className={`${BODY} ${NUMERAL} absolute bottom-6 left-1/2 -translate-x-1/2 text-tea-text-dim`}>
+                {expandedIndex + 1} / {galleryImages.length}
+              </p>
+            </>
+          )}
         </div>
       )}
 
@@ -1036,7 +1107,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
           <div className="pointer-events-auto bg-tea-bg/95 backdrop-blur-sm border border-tea-border rounded-xl p-3 flex items-center gap-3 shadow-lg">
             <div className="flex-1 min-w-0">
               <p className={`${HEADING} truncate text-tea-text`}>{item.name}</p>
-              <p className="font-mono text-ui-11 text-tea-text-sec">{grams}g · {fmtShopPrice(total)}</p>
+              <p className={`${BODY} ${NUMERAL} text-tea-text-sec`}>{grams}g · {fmtShopPrice(total)}</p>
             </div>
             <button
               onClick={handleAdd}

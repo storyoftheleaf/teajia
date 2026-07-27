@@ -2,6 +2,7 @@ import React from 'react';
 import type { Story } from '../../../types';
 import { useNavigate } from 'react-router-dom';
 import type { InventoryItem } from '../../../types';
+import { BODY, LABEL } from '../../shared/typeRoles';
 
 interface AlcoveJournalSectionProps {
   relatedArticles: Story[];
@@ -28,13 +29,7 @@ export const AlcoveJournalSection: React.FC<AlcoveJournalSectionProps> = ({
           <div className="border-t border-tea-border pt-3">
             {relatedArticles.length > 0 && (
               <>
-                <p style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: "10px", fontWeight: 400,
-                  textTransform: "uppercase", letterSpacing: "0.12em",
-                  color: "var(--tea-text-dim)",
-                  margin: "0 0 6px 0",
-                }}>
+                <p className={`${LABEL} text-tea-text-dim`} style={{ margin: "0 0 6px 0" }}>
                   From the journal
                 </p>
                 {relatedArticles.map(article => (
@@ -59,22 +54,14 @@ export const AlcoveJournalSection: React.FC<AlcoveJournalSectionProps> = ({
                       if (span) span.style.color = "var(--tea-text)";
                     }}
                   >
-                    <span className="article-title" style={{
-                      fontFamily: "var(--font-body)",
-                      fontSize: "14px", fontWeight: 300, lineHeight: 1.45,
+                    <span className={`article-title ${BODY}`} style={{
                       color: "var(--tea-text)",
                       transition: "color 0.2s",
                     }}>
                       {article.title}
                     </span>
-                    <span style={{
-                      fontFamily: "var(--font-sans)",
-                      fontSize: "12px",
-                      color: "var(--tea-text-dim)",
-                      flexShrink: 0,
-                      paddingTop: "2px",
-                    }}>
-                      →
+                    <span className={`${BODY} text-tea-text-dim`} style={{ flexShrink: 0 }}>
+                      &rarr;
                     </span>
                   </button>
                 ))}
@@ -101,10 +88,7 @@ export const AlcoveJournalSection: React.FC<AlcoveJournalSectionProps> = ({
                   if (span) span.style.color = "var(--tea-text-sec)";
                 }}
               >
-                <span className="learn-label" style={{
-                  fontFamily: "var(--font-sans)",
-                  fontSize: "12px", fontWeight: 400,
-                  letterSpacing: "0.02em",
+                <span className={`learn-label ${BODY}`} style={{
                   color: "var(--tea-text-sec)",
                   transition: "color 0.2s",
                 }}>

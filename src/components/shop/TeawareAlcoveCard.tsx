@@ -5,6 +5,7 @@ import { AlcoveShell } from './alcove/AlcoveShell';
 import type { InventoryItem } from '../../types';
 import { useAppStore } from '../../lib/store';
 import { fmtNum } from '../../utils/formatNumber';
+import { buildOrderMessage, buildWhatsAppUrl } from '../../lib/whatsapp';
 import { TeaPlaceholder } from './TeaPlaceholder';
 
 interface TeawareAlcoveCardProps {
@@ -54,12 +55,22 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
     }
   };
 
+  // The one checkout handoff. This used to hand-roll its own wa.me string and
+  // its own number cleaning, which is how a shop ends up with two rules for
+  // what a valid recipient is: buildWhatsAppUrl drops to a recipient-less link
+  // below seven digits, and this did not, so a half-entered number opened a
+  // chat with nobody. The message goes through buildOrderMessage for the same
+  // reason: one order arrives at Adrian in one shape.
   const whatsappNumber = activeAccount?.whatsapp_number;
   const handleSampleRequest = () => {
     if (!whatsappNumber) return;
-    const msg = `Hi, I'd like to request a sample of ${item.name} (${item.type}). Is that possible?`;
-    const phone = whatsappNumber.replace(/\D/g, '').replace(/^0+/, '');
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+    const message = buildOrderMessage({
+      type: 'inquiry',
+      items: [{ name: item.name, variant: item.type, quantity: 1, unit: ' sample', price: 'to confirm', total: 'to confirm' }],
+      subtotal: 'to confirm',
+      total: 'to confirm',
+    });
+    window.open(buildWhatsAppUrl(whatsappNumber, message), '_blank');
   };
 
   // Build gallery: primary image + additional images

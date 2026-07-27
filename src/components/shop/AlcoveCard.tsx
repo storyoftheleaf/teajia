@@ -22,6 +22,7 @@ import { AlcoveJournalSection } from './alcove/AlcoveJournalSection';
 import { AlcoveCommerceFooter } from './alcove/AlcoveCommerceFooter';
 import { SampleModal, CustomAmountModal, ImageOverlayModal } from './alcove/AlcoveModals';
 import { ProductImpressions, type ProductImpression } from './ProductImpressions';
+import { BODY, LABEL } from '../shared/typeRoles';
 
 interface AlcoveCardProps {
   item: InventoryItem;
@@ -421,21 +422,10 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         }}>
           {terroir && (
             <div>
-              <h3 style={{
-                fontFamily: "var(--font-display)",
-                fontSize: "10px", fontWeight: 400,
-                textTransform: "uppercase", letterSpacing: "0.12em",
-                color: "var(--tea-text-dim)",
-                margin: "0 0 6px 0",
-              }}>
+              <h3 className={`${LABEL} text-tea-text-dim`} style={{ margin: "0 0 6px 0" }}>
                 Terroir
               </h3>
-              <p style={{
-                fontFamily: "var(--font-body)",
-                fontSize: "15px", fontWeight: 300, lineHeight: 1.75,
-                color: alcoveColors.body, margin: 0,
-                whiteSpace: "pre-line",
-              }}>
+              <p className={BODY} style={{ color: alcoveColors.body, margin: 0, whiteSpace: "pre-line" }}>
                 {terroir}
               </p>
             </div>
@@ -448,21 +438,10 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   background: "var(--tea-border)",
                 }} />
               )}
-              <h3 style={{
-                fontFamily: "var(--font-display)",
-                fontSize: "10px", fontWeight: 400,
-                textTransform: "uppercase", letterSpacing: "0.12em",
-                color: "var(--tea-text-dim)",
-                margin: "0 0 6px 0",
-              }}>
+              <h3 className={`${LABEL} text-tea-text-dim`} style={{ margin: "0 0 6px 0" }}>
                 Processing
               </h3>
-              <p style={{
-                fontFamily: "var(--font-body)",
-                fontSize: "15px", fontWeight: 300, lineHeight: 1.75,
-                color: alcoveColors.body, margin: 0,
-                whiteSpace: "pre-line",
-              }}>
+              <p className={BODY} style={{ color: alcoveColors.body, margin: 0, whiteSpace: "pre-line" }}>
                 {processing}
               </p>
             </div>
@@ -499,14 +478,11 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           marginTop: "28px",
           padding: "0 20px 8px",
         }}>
-          <h3 style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "10px", fontWeight: 400,
-            textTransform: "uppercase", letterSpacing: "0.12em",
-            color: "var(--tea-text-dim)",
-            margin: "0 0 10px 0",
-          }}>
-            Featured in {productEvents.length} {productEvents.length === 1 ? 'event' : 'events'}
+          {/* Three words, so it stays a label. The count moved out of it:
+              the events are listed directly beneath, and a number a reader can
+              see is not a fact the heading has to carry. */}
+          <h3 className={`${LABEL} text-tea-text-dim`} style={{ margin: "0 0 10px 0" }}>
+            Featured in
           </h3>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {productEvents.map(evt => {
@@ -550,20 +526,10 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                     </div>
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{
-                      fontFamily: "var(--font-body)",
-                      fontSize: "13px", fontWeight: 400,
-                      color: "var(--tea-text)",
-                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                    }}>
+                    <div className={`${BODY} truncate text-tea-text`}>
                       {evt.title}
                     </div>
-                    <div style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "10px", fontWeight: 400,
-                      color: "var(--tea-text-dim)",
-                      marginTop: "2px",
-                    }}>
+                    <div className={`${BODY} text-tea-text-dim`} style={{ marginTop: "2px" }}>
                       {formattedDate}
                       {evt.location_name ? ` · ${evt.location_name}` : ''}
                     </div>
