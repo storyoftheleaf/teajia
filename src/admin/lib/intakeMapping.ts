@@ -7,7 +7,8 @@
 // Order/logistics fields feed a purchase_orders record (money + shipment trail)
 // and are intentionally kept OUT of the product object.
 
-import { TEA_TYPES, NON_TEA_TYPES, normalizeTeaType, normalizeTeaForm, type TeaType, type TeaForm as WisdomTeaForm } from '../../wisdom';
+import { TEA_TYPES, NON_TEA_TYPES, normalizeTeaType, type TeaType, type TeaForm as WisdomTeaForm } from '../../wisdom';
+import { recognizeForm, recognizeType } from '../../wisdom/recognition';
 
 export type TargetGroup = 'item' | 'order' | 'ignore';
 
@@ -272,53 +273,33 @@ export function detectTeaware(...names: string[]): string {
   return '';
 }
 
-// Guess a tea type from the name when the sheet has no Type column. Order is
-// significant: ripe/raw pu'er win before generic, cultivars resolve to oolong,
-// etc. Generic "pu'er" with no raw/ripe marker stays unguessed (returns '').
-// `type` is typed against the wisdom vocabulary so a rule can't drift onto a
-// dialect spelling the rest of the app doesn't recognise.
-const TEA_TYPE_RULES: { type: TeaType; kw: string[] }[] = [
-  { type: 'Shou', kw: ['shou', 'ripe pu', 'cooked pu', 'ripe puer', 'shu pu', '熟普', '熟茶', '熟饼', '熟餅'] },
-  { type: 'Sheng', kw: ['sheng', 'raw pu', 'raw puer', 'raw pu-erh', 'uncooked', '生普', '生茶', '生饼', '生餅'] },
-  { type: 'Oolong', kw: ['oolong', 'wulong', 'wu long', 'tie guan yin', 'tieguanyin', 'tiekuanyin', 'da hong pao', 'dahongpao', 'rou gui', 'rougui', 'shui xian', 'shuixian', 'dan cong', 'dancong', 'dong ding', 'dongding', 'alishan', 'ali shan', 'jin xuan', 'jinxuan', 'gaba', 'milk oolong', 'high mountain', 'gao shan', '乌龙', '烏龍', '岩茶', '铁观音', '鐵觀音', '凤凰', '鳳凰', '单丛', '單欉'] },
-  { type: 'Red', kw: ['black tea', 'red tea', 'hong cha', 'hongcha', 'dian hong', 'dianhong', 'lapsang', 'zheng shan', 'jin jun mei', 'jinjunmei', 'keemun', 'qimen', '红茶', '紅茶', '正山', '金骏眉', '金駿眉'] },
-  { type: 'White', kw: ['white tea', 'bai cha', 'silver needle', 'bai hao', 'baihao', 'bai mu dan', 'baimudan', 'shou mei', 'shoumei', 'gong mei', 'gongmei', '白茶', '白毫', '白牡丹', '寿眉', '壽眉'] },
-  { type: 'Green', kw: ['green tea', 'lu cha', 'long jing', 'longjing', 'dragon well', 'bi luo chun', 'biluochun', 'mao feng', 'maofeng', 'gunpowder', 'gua pian', 'anji', '绿茶', '綠茶', '龙井', '龍井', '碧螺春', '毛峰'] },
-  { type: 'Yellow', kw: ['yellow tea', 'huang cha', 'jun shan', 'junshan', 'huang ya', '黄茶', '黃茶', '君山', '黄芽'] },
-  { type: 'Dark', kw: ['dark tea', 'hei cha', 'heicha', 'liu bao', 'liubao', 'fu zhuan', 'fu brick', 'an hua', 'anhua', 'golden flower', '黑茶', '六堡', '茯砖', '茯磚', '安化'] },
-];
+// Guess a tea type from the name when the sheet has no Type column. Reads the
+// shared wisdom recognition index (src/wisdom/recognition.ts), which layers
+// the same curated bilingual keyword knowledge this file used to hold locally
+// (ripe/raw pu'er, cultivars resolving to oolong, etc.) on top of an automatic
+// derivation from the 316 tea varieties in the wisdom base, so a variety not
+// in the curated list still resolves. Generic "pu'er" with no raw/ripe marker
+// stays unguessed (returns ''), same as before.
 export function detectTeaType(...names: string[]): TeaType | '' {
-  const hay = names.filter(Boolean).join(' ').toLowerCase();
-  if (!hay) return '';
-  for (const { type, kw } of TEA_TYPE_RULES) {
-    // Routed through normalizeTeaType so this can never emit anything the
-    // rest of the app doesn't already recognise as canonical.
-    if (kw.some((k) => hay.includes(k))) return normalizeTeaType(type) ?? type;
-  }
-  return '';
+  const hay = names.filter(Boolean).join(' ');
+  return recognizeType(hay) ?? '';
 }
 
 // Guess a physical form from the name (cake, tuo, brick, ball…) when absent.
-// `form` is typed against the wisdom form vocabulary, with 'Rolled' and
-// 'Powder' composed on top because intake tracks a couple of physical forms
-// the shared vocabulary doesn't carry.
-const FORM_RULES: { form: WisdomTeaForm | 'Rolled' | 'Powder'; kw: string[] }[] = [
-  { form: 'Cake', kw: ['cake', 'bing', 'disc', 'beeng', '饼', '餅'] },
-  { form: 'Tuo', kw: ['tuo', 'tuocha', 'nest', 'bowl-shaped', '沱'] },
-  { form: 'Brick', kw: ['brick', 'zhuan', '砖', '磚'] },
-  { form: 'Ball', kw: ['dragon ball', 'ball', 'long zhu', 'pearl', '龙珠', '龍珠'] },
+// Reads the same shared recognition index as detectTeaType. 'Rolled' and
+// 'Powder' are composed on top locally because intake tracks a couple of
+// physical forms the shared vocabulary doesn't carry.
+const EXTRA_FORM_RULES: { form: 'Rolled' | 'Powder'; kw: string[] }[] = [
   { form: 'Rolled', kw: ['rolled', 'curled'] },
   { form: 'Powder', kw: ['powder', 'matcha', 'ground'] },
-  { form: 'Bag', kw: ['tea bag', 'teabag', 'sachet'] },
-  { form: 'Loose', kw: ['loose leaf', 'loose-leaf', 'maocha', 'mao cha'] },
 ];
 export function detectForm(...names: string[]): WisdomTeaForm | 'Rolled' | 'Powder' | '' {
-  const hay = names.filter(Boolean).join(' ').toLowerCase();
-  if (!hay) return '';
-  for (const { form, kw } of FORM_RULES) {
-    // Normalized where the wisdom base recognises the word; 'Rolled'/'Powder'
-    // fall outside that vocabulary so they pass through unchanged.
-    if (kw.some((k) => hay.includes(k))) return normalizeTeaForm(form) ?? form;
+  const hay = names.filter(Boolean).join(' ');
+  const form = recognizeForm(hay);
+  if (form) return form;
+  const lower = hay.toLowerCase();
+  for (const { form: extraForm, kw } of EXTRA_FORM_RULES) {
+    if (kw.some((k) => lower.includes(k))) return extraForm;
   }
   return '';
 }

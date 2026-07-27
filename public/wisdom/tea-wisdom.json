@@ -10,7 +10,7 @@
       "cultivars": 79,
       "regions": 182,
       "teaVarieties": 316,
-      "vocabulary": 24
+      "vocabulary": 25
     }
   },
   "vocabulary": [
@@ -53,6 +53,10 @@
     {
       "axis": "Form",
       "value": "Loose"
+    },
+    {
+      "axis": "Form",
+      "value": "Rolled"
     },
     {
       "axis": "Form",

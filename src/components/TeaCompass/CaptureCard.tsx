@@ -9,9 +9,10 @@ import type { Currency } from '../../admin/types';
 import type { CurateReceiptProposal, InventoryPurposeValue, ReceiptAcquisitionKind, TastingData } from '../../types';
 import type { TastingCategoryId } from '../../data/tastingTaxonomy';
 import { buildVarietyDataMap, getTeaVarietyNames, getTeaVarietySuggestions } from '../../data/teaVarieties';
+import { TEA_TYPES, TEA_FORMS, STORAGE_STYLES, REGION_NAMES, countryForRegion } from '../../wisdom';
 import type { TeaType, TeaForm, TeawareCategory, TeawareMaterial, TeawareEra, YixingClayType, VendorDetails, TeaCompassEntry } from './types';
 import { entryIsSample } from './types';
-import { DEFAULT_GRAMS, TEA_TYPES, TEA_FORMS, STORAGE_OPTIONS, TEAWARE_CATEGORIES, TEAWARE_MATERIALS, TEAWARE_ERAS, YIXING_CLAY_TYPES, MATERIAL_ORIGIN_DEFAULT, COMMON_REGIONS, generateTeaKey } from './types';
+import { DEFAULT_GRAMS, TEAWARE_CATEGORIES, TEAWARE_MATERIALS, TEAWARE_ERAS, YIXING_CLAY_TYPES, MATERIAL_ORIGIN_DEFAULT, generateTeaKey } from './types';
 import { hasToken } from '../../lib/api';
 import { AutocompleteInput } from './AutocompleteInput';
 import { api } from '../../lib/api';
@@ -78,6 +79,16 @@ const EMPTY_TASTING: TastingData = {};
 const CURRENCY_SYMBOLS: Record<string, string> = {
   NT: 'NT$', USD: '$', Yuan: 'CN¥', MYR: 'RM', IDR: 'Rp', JPY: 'JP¥', HKD: 'HK$', UNK: '?',
 };
+
+/** Fills `originCountry` into `updates` from a chosen region via the wisdom
+ *  base's `countryForRegion`, but only when the entry doesn't already carry
+ *  one. Never overwrites a value already present, matching the "never
+ *  overwrite a field the user tapped" pattern used elsewhere in this file. */
+function fillOriginCountry(region: string | undefined, currentCountry: string | undefined, updates: Record<string, unknown>): void {
+  if (!region || currentCountry) return;
+  const country = countryForRegion(region);
+  if (country) updates.originCountry = country;
+}
 
 /** Retail price preview: shows cost/g and projected retail/g using 3× formula */
 function RetailPricePreview({
@@ -304,7 +315,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const productsRef = useRef<any[]>([]);
   const [productNames, setProductNames] = useState<string[]>([]);
   const [productNameMap, setProductNameMap] = useState<Record<string, any>>({});
-  const [availableRegions, setAvailableRegions] = useState<string[]>(COMMON_REGIONS);
+  const [availableRegions, setAvailableRegions] = useState<string[]>(REGION_NAMES);
 
   useEffect(() => {
     let cancelled = false;
@@ -335,14 +346,14 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         setProductNames(names);
         setProductNameMap(nameMap);
 
-        // Build region list: COMMON_REGIONS + DB regions, deduplicated
+        // Build region list: the wisdom base's 167 known places + DB regions, deduplicated
         const dbRegions = products
           .map((p: any) => p.origin_region || p.originRegion || '')
           .filter(Boolean);
-        const allRegions = [...new Set([...COMMON_REGIONS, ...dbRegions])];
+        const allRegions = [...new Set([...REGION_NAMES, ...dbRegions])];
         setAvailableRegions(allRegions);
       } catch {
-        // Offline or error — no DB suggestions, use COMMON_REGIONS only
+        // Offline or error: no DB suggestions, use the wisdom base's regions only
       }
     })();
     return () => { cancelled = true; };
@@ -465,6 +476,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         if (!entry.originRegion && !userTapped.current.has('region')) {
           updates.originRegion = result.region;
           tokens.region = result.region;
+          fillOriginCountry(result.region, entry.originCountry, updates);
         } else if (entry.originRegion === result.region) {
           tokens.region = result.region;
         }
@@ -559,6 +571,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       if (data.region && !entry.originRegion && !userTapped.current.has('region')) {
         updates.originRegion = data.region;
         summaryParts.push(data.region);
+        fillOriginCountry(data.region, entry.originCountry, updates);
       }
       if (data.price != null && !entry.priceAmount) {
         updates.priceAmount = data.price;
@@ -1686,7 +1699,12 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             <span className="curate-floating-label">Origin</span>
             <AutocompleteInput
               value={entry.originRegion || ''}
-              onChange={(val) => { userTapped.current.add('region'); update({ originRegion: val || undefined }); }}
+              onChange={(val) => {
+                userTapped.current.add('region');
+                const updates: Record<string, unknown> = { originRegion: val || undefined };
+                if (val) fillOriginCountry(val, entry.originCountry, updates);
+                update(updates);
+              }}
               suggestions={availableRegions}
               placeholder="e.g. Yiwu"
               className={`curate-field-with-label w-full ${fieldClass}`}
@@ -1951,7 +1969,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       {(entry.type === 'Sheng' || entry.type === 'Shou' || entry.type === 'Dark') && <section className="curate-section space-y-2">
           <QuietEyebrow label="Storage" />
           <div className="flex gap-1.5 flex-wrap">
-            {STORAGE_OPTIONS.map((st) => (
+            {STORAGE_STYLES.map((st) => (
               <button
                 key={st}
                 type="button"

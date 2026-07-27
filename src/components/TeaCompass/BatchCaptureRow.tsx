@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
-import { TEA_TYPES, type TeaType } from './types';
+import { TEA_TYPES } from '../../wisdom';
+import type { TeaType } from './types';
 import { getTeaColor } from '../../designTokens';
 
 interface BatchCaptureRowProps {

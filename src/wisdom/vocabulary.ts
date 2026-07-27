@@ -11,7 +11,10 @@
 export const TEA_TYPES = ['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal'] as const;
 export type TeaType = typeof TEA_TYPES[number];
 
-export const TEA_FORMS = ['Loose', 'Cake', 'Brick', 'Tuo', 'Ball', 'Bag'] as const;
+// Rolled is a real, distinct form: 23 of Adrian's own teas are ball-rolled
+// oolong, which is not the same object as loose leaf. It was the single
+// largest gap the coverage audit found.
+export const TEA_FORMS = ['Loose', 'Rolled', 'Cake', 'Brick', 'Tuo', 'Ball', 'Bag'] as const;
 export type TeaForm = typeof TEA_FORMS[number];
 
 export const SEASONS = ['Spring', 'Summer', 'Fall', 'Winter'] as const;
@@ -47,6 +50,7 @@ const TYPE_ALIASES: Record<string, TeaType> = {
 
 const FORM_ALIASES: Record<string, TeaForm> = {
   loose: 'Loose', looseleaf: 'Loose', maocha: 'Loose', leaf: 'Loose',
+  rolled: 'Rolled', ballrolled: 'Rolled', ballrolledoolong: 'Rolled', semiball: 'Rolled',
   cake: 'Cake', bing: 'Cake', beeng: 'Cake', disc: 'Cake', bingcha: 'Cake',
   brick: 'Brick', zhuan: 'Brick', zhuancha: 'Brick',
   tuo: 'Tuo', tuocha: 'Tuo', nest: 'Tuo',

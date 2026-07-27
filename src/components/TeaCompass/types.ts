@@ -1,8 +1,16 @@
 import type { TastingData } from '../../types';
 import type { Currency } from '../../admin/types';
+import {
+  TEA_TYPES as WISDOM_TEA_TYPES,
+  TEA_FORMS as WISDOM_TEA_FORMS,
+  SEASONS as WISDOM_SEASONS,
+  STORAGE_STYLES as WISDOM_STORAGE_STYLES,
+  REGION_NAMES,
+} from '../../wisdom';
 
 export type TeaType = 'Green' | 'White' | 'Yellow' | 'Oolong' | 'Red' | 'Dark' | 'Sheng' | 'Shou' | 'Herbal' | 'Teaware';
-export type TeaForm = 'Loose' | 'Cake' | 'Brick' | 'Tuo' | 'Ball' | 'Bag';
+export type { TeaForm } from '../../wisdom';
+import type { TeaForm } from '../../wisdom';
 export type CompassStatus = 'noted' | 'want' | 'pass' | 'buying' | 'incoming' | 'in_stock' | 'depleted' | 'available_to_taste';
 export type CompassCategory = 'tea' | 'teaware';
 export type Season = 'Spring' | 'Summer' | 'Fall' | 'Winter';
@@ -97,6 +105,9 @@ export interface TeaCompassEntry {
   season?: Season;
   storage?: Storage;
   originRegion?: string;
+  /** Filled from `originRegion` via the wisdom base's `countryForRegion` when
+   *  blank; never overwrites a value already present. */
+  originCountry?: string;
 
   // Pricing
   priceAmount?: number;        // Cost price (what you paid)
@@ -189,6 +200,7 @@ export function entryIsSample(entry: Pick<TeaCompassEntry, 'sampleState' | 'isSa
 // Gram presets by form
 export const GRAM_PRESETS: Record<TeaForm, number[]> = {
   Loose: [50, 75, 100, 150, 300, 600],
+  Rolled: [50, 75, 100, 150, 300, 600],
   Cake: [100, 200, 357, 400],
   Brick: [250, 500, 1000],
   Tuo: [100, 250, 500],
@@ -199,6 +211,7 @@ export const GRAM_PRESETS: Record<TeaForm, number[]> = {
 // Default gram for each form
 export const DEFAULT_GRAMS: Record<TeaForm, number> = {
   Loose: 100,
+  Rolled: 100,
   Cake: 357,
   Brick: 250,
   Tuo: 100,
@@ -206,17 +219,17 @@ export const DEFAULT_GRAMS: Record<TeaForm, number> = {
   Bag: 100,
 };
 
-// Tea types array for the grid (tea only — Teaware is a separate tab now)
-export const TEA_TYPES: TeaType[] = ['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal'];
+// Tea vocabulary, read from the shared wisdom base (src/wisdom) rather than
+// declared here, so this file and every other surface agree on what a value
+// means. Re-exported under these names so the many existing consumers of
+// this module keep working. See docs/TEA_WISDOM_BASE.md.
+export const TEA_TYPES: TeaType[] = [...WISDOM_TEA_TYPES];
 
-// Form options
-export const TEA_FORMS: TeaForm[] = ['Loose', 'Cake', 'Brick', 'Tuo', 'Ball', 'Bag'];
+export const TEA_FORMS: TeaForm[] = [...WISDOM_TEA_FORMS];
 
-// Season options
-export const SEASONS: Season[] = ['Spring', 'Summer', 'Fall', 'Winter'];
+export const SEASONS: Season[] = [...WISDOM_SEASONS];
 
-// Storage options
-export const STORAGE_OPTIONS: Storage[] = ['Dry', 'Wet/Traditional', 'HK', 'Malaysian', 'Natural'];
+export const STORAGE_OPTIONS: Storage[] = [...WISDOM_STORAGE_STYLES];
 
 // Teaware categories
 export const TEAWARE_CATEGORIES: TeawareCategory[] = ['Pot', 'Cup', 'Gaiwan', 'Fair Cup', 'Tray', 'Storage', 'Tool', 'Other'];
@@ -264,12 +277,9 @@ export const MATERIAL_ORIGIN_DEFAULT: Partial<Record<TeawareMaterial, string>> =
   Yixing: 'Yixing, China',
 };
 
-// Common regions
-export const COMMON_REGIONS = [
-  'Alishan', 'Yiwu', 'Wuyi', 'Lugu', 'Jingmai', 'Anxi',
-  'Menghai', 'Lincang', 'Phoenix', 'Dong Ding', 'Nantou',
-  'Darjeeling', 'Assam', 'Uji', 'Shizuoka',
-];
+// Growing regions, read from the wisdom base's 167 known places rather than
+// a short local list, kept under this name for existing consumers.
+export const COMMON_REGIONS: string[] = REGION_NAMES;
 
 /**
  * Derives a normalised tea_key from identity fields.
@@ -353,7 +363,7 @@ export function compassEntryToProductDraft(entry: TeaCompassEntry): Record<strin
     chinese_name: entry.chineseName || '',
     product_name: entry.name || '',
     year: entry.year || null,
-    origin_country: '',
+    origin_country: entry.originCountry || '',
     origin_region: entry.originRegion || '',
     stock_grams: stockGrams,
     quantity_purchased: quantityPurchased,

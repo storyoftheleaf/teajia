@@ -49,6 +49,25 @@ function buildRegions(): Region[] {
 
 export const REGIONS: Region[] = buildRegions();
 
+/**
+ * Short forms operators actually write, mapped to the canonical entry. Retiring
+ * the old working list cost a few of these: a Dan Cong invoice says "Phoenix",
+ * not "Phoenix Mountain", and losing that silently stopped resolving a real
+ * place.
+ */
+const REGION_ALIASES: Record<string, string> = {
+  phoenix: 'Phoenix Mountain', fenghuang: 'Phoenix Mountain', chaozhou: 'Phoenix Mountain',
+  wudong: 'Phoenix Mountain',
+  wuyishan: 'Wuyi', wuyimountain: 'Wuyi', wuyimountains: 'Wuyi',
+  dongding: 'Dong Ding', tungting: 'Dong Ding',
+  lishan: 'Li Shan', dayuling: 'Da Yu Ling',
+  yiwushan: 'Yiwu', yiwumountain: 'Yiwu',
+  xishuangbanna: 'Menghai', banna: 'Menghai',
+  puercity: "Pu'er", simao: "Pu'er",
+  emeishan: 'Emei Mountain', huangshanmountain: 'Huangshan',
+  jingmaishan: 'Jingmai', jingmaimountain: 'Jingmai',
+};
+
 const REGION_INDEX = new Map<string, Region>();
 for (const region of REGIONS) {
   REGION_INDEX.set(lookupKey(region.name), region);
@@ -61,7 +80,11 @@ for (const region of REGIONS) {
 /** Resolves a written region to a known place, or null when it is not one we hold. */
 export function findRegion(value: string | null | undefined): Region | null {
   if (!value?.trim()) return null;
-  return REGION_INDEX.get(lookupKey(value)) ?? null;
+  const key = lookupKey(value);
+  const direct = REGION_INDEX.get(key);
+  if (direct) return direct;
+  const alias = REGION_ALIASES[key];
+  return alias ? REGION_INDEX.get(lookupKey(alias)) ?? null : null;
 }
 
 /** The country a region sits in, for records that name only the region. */

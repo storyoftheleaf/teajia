@@ -5,7 +5,7 @@
 A public export of Teajia's tea wisdom base: 79 cultivars with
 breeding lineage and descriptions, 182 growing regions,
 316 tea varieties, and the controlled vocabulary that ties
-them together (24 terms across type, form, season and
+them together (25 terms across type, form, season and
 storage). This is the account-agnostic layer behind teajia.com, true
 regardless of who stocks or sells a tea. It is not a product catalog, a shop
 export, or Adrian's own tasting notes.
