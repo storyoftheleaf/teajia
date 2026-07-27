@@ -11,19 +11,22 @@ import {
   isSectionFolded,
   nearestWisdom,
   readFold,
+  readGapAccount,
+  readWisdomShape,
   recogniseQuery,
+  settleLoan,
   toggleFold,
   wisdomEntryHref,
   wisdomInventoryHref,
   wisdomKey,
   wisdomMatches,
-  wisdomPrefsFromParams,
-  wisdomPrefsToParams,
   wisdomQueryTokens,
+  wisdomShapeToken,
   wisdomStartsWith,
   type WisdomPrefs,
 } from './config';
 import { WISDOM_HOLDINGS } from './holdings';
+import { readWisdomScope } from './usage';
 import { rungSummary } from './Rung';
 
 const wordCount = (label: string) => label.trim().split(/\s+/).length;
@@ -113,6 +116,63 @@ describe('wisdom holdings', () => {
     const provenance = namedTeas.columns.find(column => column.key === 'provenance')!;
     const named = namedTeas.rows[0];
     expect(find(namedTeas, named, String(provenance.value(named)))).toBe(true);
+  });
+
+  // Folding every column into the haystack also folded in the words the cells
+  // render when there is nothing to render: "Any" is what a column says about a
+  // mark that states no types, not a word anyone wrote on that mark.
+  it('keeps a rendered default out of the text find reads', () => {
+    const withFallback = WISDOM_HOLDINGS.flatMap(holding =>
+      holding.columns.filter(column => column.fallback).map(column => ({ holding, column })));
+    // Two columns declare one, and both are the same absence: applies to nothing
+    // in particular. If a third appears it is held to the same rule.
+    expect(withFallback.map(entry => `${entry.holding.id}.${entry.column.key}`))
+      .toEqual(['marks.applies', 'styles.applies']);
+
+    for (const { holding, column } of withFallback) {
+      const tokens = wisdomQueryTokens(column.fallback!);
+      for (const row of holding.rows) {
+        if (column.value(row) !== null && column.value(row) !== undefined) continue;
+        const label = `${holding.id}.${column.key} on ${holding.idOf(row)}`;
+        expect(wisdomMatches(holding.searchText(row), tokens), label).toBe(false);
+      }
+    }
+  });
+
+  // Two declarations of one field cost nothing the day they are written and
+  // drift on every day after it. A part that IS a column's value is the
+  // duplicate; an alias that merely contains one is not, which is why the
+  // declaration is parts rather than one joined string.
+  it('declares only what the columns do not already show', () => {
+    // Compared as written rather than folded, because the base holds aliases
+    // that differ from the name only in spacing ("Long Jing" for "Longjing").
+    // Those are two records of a real thing; a restated column is not.
+    const same = (left: unknown, right: unknown) =>
+      String(left).trim().toLowerCase() === String(right).trim().toLowerCase();
+
+    // Counted across the holding rather than asserted row by row, because a
+    // record here and there genuinely coincides: a Keemun is known as "Qimen"
+    // and grows in Qimen. A restated column is not a coincidence, it is every
+    // row, so the test is that a column is never restated by the majority.
+    for (const holding of WISDOM_HOLDINGS) {
+      for (const column of holding.columns) {
+        const held = holding.rows.filter(row => {
+          const value = column.value(row);
+          return value !== null && value !== undefined && value !== '';
+        });
+        if (held.length < 3) continue;
+        const restated = held.filter(row =>
+          holding.declaredText(row).filter(Boolean).some(part => same(part, column.value(row))));
+        const label = `${holding.id}.${column.key} is declared twice on ${restated.length} of ${held.length} rows`;
+        expect(restated.length * 2, label).toBeLessThan(held.length);
+      }
+    }
+    // And every holding still declares something: a holding whose parts are all
+    // columns has nothing left to say and should say nothing.
+    for (const holding of WISDOM_HOLDINGS) {
+      const declares = holding.rows.some(row => holding.declaredText(row).some(Boolean));
+      expect(declares, `${holding.id} declares nothing beyond its columns`).toBe(true);
+    }
   });
 
   it('searches names, Chinese names and aliases', () => {
@@ -409,12 +469,18 @@ describe('nearestWisdom', () => {
 
 describe('the wisdom address', () => {
   const regions = holdingBy('regions');
+  /** Written and read back, which is the only property that actually matters. */
+  const roundTrip = (prefs: WisdomPrefs, holding: ReturnType<typeof holdingBy>) =>
+    readWisdomShape(wisdomShapeToken(prefs, holding), holding);
 
   it('writes nothing for a holding that has not been shaped', () => {
-    expect(wisdomPrefsToParams(defaultPrefs(regions), regions)).toEqual({});
+    expect(wisdomShapeToken(defaultPrefs(regions), regions)).toBe('');
+    expect(readWisdomShape('', regions)).toEqual(defaultPrefs(regions));
+    expect(readWisdomShape(null, regions)).toEqual(defaultPrefs(regions));
   });
 
-  it('carries the grouping, the sort and the folded shape, and reads them back', () => {
+  // Six keys said this, and at six the address was a form rather than a link.
+  it('carries the grouping, the sort and the folded shape in ONE token', () => {
     const shaped: WisdomPrefs = {
       sort: { key: 'altitude', direction: 'desc' },
       groupKey: 'country',
@@ -422,9 +488,8 @@ describe('the wisdom address', () => {
       gapOnly: false,
       borrowed: null,
     };
-    const params = wisdomPrefsToParams(shaped, regions);
-    expect(params).toEqual({ group: 'country', sort: '-altitude', fold: 'China~Japan' });
-    expect(wisdomPrefsFromParams(key => params[key] ?? null, regions)).toEqual(shaped);
+    expect(wisdomShapeToken(shaped, regions)).toBe('gcountry~s-altitude~fChina~fJapan');
+    expect(roundTrip(shaped, regions)).toEqual(shaped);
   });
 
   // Grouping, sort and the folded shape all survived being sent. The gap filter
@@ -432,14 +497,13 @@ describe('the wisdom address', () => {
   it('carries the gap filter too, and refuses it where no gap is counted', () => {
     const marks = holdingBy('marks');
     const gapped: WisdomPrefs = { ...defaultPrefs(marks), groupKey: 'producer', gapOnly: true };
-    const params = wisdomPrefsToParams(gapped, marks);
-    expect(params).toEqual({ group: 'producer', gap: '1' });
-    expect(wisdomPrefsFromParams(key => params[key] ?? null, marks)).toEqual(gapped);
+    expect(wisdomShapeToken(gapped, marks)).toBe('gproducer~x');
+    expect(roundTrip(gapped, marks)).toEqual(gapped);
 
     // A holding that counts no hole cannot be filtered to it, however addressed.
     const producers = holdingBy('producers');
-    expect(wisdomPrefsToParams({ ...defaultPrefs(producers), gapOnly: true }, producers)).toEqual({});
-    expect(wisdomPrefsFromParams(key => (key === 'gap' ? '1' : null), producers).gapOnly).toBe(false);
+    expect(wisdomShapeToken({ ...defaultPrefs(producers), gapOnly: true }, producers)).toBe('');
+    expect(readWisdomShape('x', producers).gapOnly).toBe(false);
   });
 
   // Folding 182 regions to sixteen headings must not spend 120 characters of
@@ -452,13 +516,12 @@ describe('the wisdom address', () => {
       gapOnly: false,
       borrowed: null,
     };
-    const params = wisdomPrefsToParams(folded, regions);
-    expect(params).toEqual({ group: 'country', fold: ALL_FOLDED });
-    expect(wisdomPrefsFromParams(key => params[key] ?? null, regions)).toEqual(folded);
+    expect(wisdomShapeToken(folded, regions)).toBe(`gcountry~f${ALL_FOLDED}`);
+    expect(roundTrip(folded, regions)).toEqual(folded);
   });
 
-  // And "all but one" in two, rather than abandoning the sentinel and spelling
-  // out the other fifteen the moment one heading is opened.
+  // And "all but one" without abandoning the sentinel and spelling out the other
+  // fifteen the moment one heading is opened.
   it('says all but one without listing the rest', () => {
     const shaped: WisdomPrefs = {
       sort: defaultPrefs(regions).sort,
@@ -467,10 +530,11 @@ describe('the wisdom address', () => {
       gapOnly: false,
       borrowed: null,
     };
-    const params = wisdomPrefsToParams(shaped, regions);
-    expect(params.fold).toBe(`${ALL_FOLDED}~${OPEN_MARK}China`);
-    expect(params.fold.length).toBeLessThan(12);
-    expect(wisdomPrefsFromParams(key => params[key] ?? null, regions)).toEqual(shaped);
+    const token = wisdomShapeToken(shaped, regions);
+    expect(token).toBe(`gcountry~f${ALL_FOLDED}~f${OPEN_MARK}China`);
+    // The whole shape of 182 regions, in a token a person can still read.
+    expect(token.length).toBeLessThan(32);
+    expect(roundTrip(shaped, regions)).toEqual(shaped);
   });
 
   // A grouping the gap filter took on loan is a debt, and a debt that lives in a
@@ -483,9 +547,8 @@ describe('the wisdom address', () => {
       gapOnly: true,
       borrowed: { groupKey: 'era', collapsed: [ALL_FOLDED] },
     };
-    const params = wisdomPrefsToParams(onLoan, marks);
-    expect(params).toEqual({ group: 'producer', gap: '1', borrow: 'era', borrowfold: ALL_FOLDED });
-    expect(wisdomPrefsFromParams(key => params[key] ?? null, marks)).toEqual(onLoan);
+    expect(wisdomShapeToken(onLoan, marks)).toBe(`gproducer~x~bera~F${ALL_FOLDED}`);
+    expect(roundTrip(onLoan, marks)).toEqual(onLoan);
 
     // "No grouping at all" is a real thing to hand back, and says so in one char.
     const fromNone: WisdomPrefs = {
@@ -494,39 +557,72 @@ describe('the wisdom address', () => {
       gapOnly: true,
       borrowed: { groupKey: '', collapsed: [] },
     };
-    const bare = wisdomPrefsToParams(fromNone, marks);
-    expect(bare.borrow).toBe('-');
-    expect(bare.borrowfold).toBeUndefined();
-    expect(wisdomPrefsFromParams(key => bare[key] ?? null, marks)).toEqual(fromNone);
+    expect(wisdomShapeToken(fromNone, marks)).toBe('gproducer~x~b');
+    expect(roundTrip(fromNone, marks)).toEqual(fromNone);
   });
 
   it('refuses a loan with no gap filter to belong to, or a grouping it cannot repay', () => {
     const marks = holdingBy('marks');
     // Nothing is on loan when the gap filter is off, however addressed.
-    const orphan: Record<string, string> = { group: 'producer', borrow: 'era' };
-    expect(wisdomPrefsFromParams(key => orphan[key] ?? null, marks).borrowed).toBe(null);
+    expect(readWisdomShape('gproducer~bera', marks).borrowed).toBe(null);
     // And a grouping this holding does not have is not a promise worth keeping.
-    const nonsense: Record<string, string> = { gap: '1', group: 'producer', borrow: 'nonsense' };
-    expect(wisdomPrefsFromParams(key => nonsense[key] ?? null, marks).borrowed).toBe(null);
+    expect(readWisdomShape('x~gproducer~bnonsense', marks).borrowed).toBe(null);
   });
 
-  it('falls back rather than obeying an address the holding cannot honour', () => {
-    const bad: Record<string, string> = { group: 'nonsense', sort: '-nonsense', fold: 'China' };
-    const read = wisdomPrefsFromParams(key => bad[key] ?? null, regions);
-    expect(read).toEqual(defaultPrefs(regions));
+  it('falls back rather than obeying a token the holding cannot honour', () => {
+    expect(readWisdomShape('gnonsense~s-nonsense~fChina', regions)).toEqual(defaultPrefs(regions));
+    // A tag from some later version of this screen is ignored, not obeyed.
+    expect(readWisdomShape('zsomething~gcountry', regions).groupKey).toBe('country');
   });
 
   // A folded shape belongs to the grouping that produced it.
   it('drops a folded shape that has no grouping to belong to', () => {
-    const orphan: Record<string, string> = { fold: 'China~Japan' };
-    expect(wisdomPrefsFromParams(key => orphan[key] ?? null, regions).collapsed).toEqual([]);
+    expect(readWisdomShape('fChina~fJapan', regions).collapsed).toEqual([]);
   });
 
   it('refuses to sort by a column the holding says is not sortable', () => {
     const marks = holdingBy('marks');
     const unsortable = marks.columns.find(column => column.sortable === false)!;
-    const asked: Record<string, string> = { sort: unsortable.key };
-    expect(wisdomPrefsFromParams(key => asked[key] ?? null, marks).sort).toEqual(defaultPrefs(marks).sort);
+    expect(readWisdomShape(`s${unsortable.key}`, marks).sort).toEqual(defaultPrefs(marks).sort);
+  });
+});
+
+// A loan is a promise about a press. It cannot outlive the screen that press was
+// made on, and it used to outlive it by the whole visit.
+describe('the borrowed grouping', () => {
+  const marks = holdingBy('marks');
+  const onLoan: WisdomPrefs = {
+    ...defaultPrefs(marks),
+    groupKey: 'producer',
+    gapOnly: true,
+    borrowed: { groupKey: 'era', collapsed: [ALL_FOLDED] },
+  };
+
+  it('is settled by a gesture that reshapes the list', () => {
+    expect(settleLoan(onLoan).borrowed).toBe(null);
+    // And nothing else moves with it: the grouping the gap filter set is the
+    // grouping the reader has been reading, so it stays.
+    expect(settleLoan(onLoan).groupKey).toBe('producer');
+    expect(settleLoan(onLoan).gapOnly).toBe(true);
+  });
+
+  it('leaves a screen with no loan on it exactly as it stands', () => {
+    const plain: WisdomPrefs = { ...defaultPrefs(marks), groupKey: 'producer', gapOnly: true };
+    expect(settleLoan(plain)).toBe(plain);
+  });
+});
+
+// Three states, and the third used to be indistinguishable from the first.
+describe('readGapAccount', () => {
+  it('tells an unread account from an empty one from a counted one', () => {
+    expect(readGapAccount(true, undefined)).toBe('waiting');
+    expect(readGapAccount(true, { total: 0 })).toBe('none');
+    expect(readGapAccount(true, { total: 139 })).toBe('settled');
+  });
+
+  it('says nothing at all about a gap the base can answer on its own', () => {
+    expect(readGapAccount(false, undefined)).toBe(null);
+    expect(readGapAccount(undefined, { total: 139 })).toBe(null);
   });
 });
 
@@ -614,6 +710,76 @@ describe('the crossing between wisdom and the inventory', () => {
       expect(back.get('tab')).toBe(holding.id);
       expect(back.get('entry')).toBe(holding.idOf(row));
     }
+  });
+
+  // And then the return leg landed on the entry and nothing else: the grouping,
+  // the sort, the gap filter and the query the operator was reading were all
+  // dropped by a crossing that was supposed to be a round trip.
+  it('carries the list the operator was reading, both ways', () => {
+    const marks = holdingBy('marks');
+    const shaped: WisdomPrefs = {
+      ...defaultPrefs(marks),
+      groupKey: 'producer',
+      sort: { key: 'era', direction: 'desc' },
+      gapOnly: true,
+    };
+    const shape = wisdomShapeToken(shaped, marks);
+    const out = wisdomInventoryHref('marks', '7572', { shape, query: 'menghai' });
+
+    // The inventory reads the first two fields and carries the rest untouched.
+    const carried = new URLSearchParams(out.split('?')[1]).get('wisdom')!;
+    const [holdingId, entryId, sent = '', ...rest] = carried.split(':');
+    expect([holdingId, entryId]).toEqual(['marks', '7572']);
+    expect(sent).toBe(shape);
+
+    const back = new URLSearchParams(
+      wisdomEntryHref(holdingId, entryId, { shape: sent, query: rest.join(':') }).split('?')[1],
+    );
+    expect(back.get('tab')).toBe('marks');
+    expect(back.get('entry')).toBe('7572');
+    expect(back.get('q')).toBe('menghai');
+    // The shape arrives as the shape that left, and is validated on arrival.
+    expect(readWisdomShape(back.get('shape'), marks)).toEqual(shaped);
+  });
+
+  // The inventory's own reader, against the writer, so the two cannot drift into
+  // two different grammars for one param.
+  it('reads back what it wrote, all the way to the chip', () => {
+    const cultivars = holdingBy('cultivars');
+    const row = cultivars.rows.find(entry => entry.id === 'rou-gui') ?? cultivars.rows[0];
+    const shaped: WisdomPrefs = { ...defaultPrefs(cultivars), groupKey: 'country' };
+    const shape = wisdomShapeToken(shaped, cultivars);
+    const param = new URLSearchParams(
+      wisdomInventoryHref('cultivars', cultivars.idOf(row), { shape, query: 'wuyi' }).split('?')[1],
+    ).get('wisdom');
+
+    const scope = readWisdomScope(param, undefined)!;
+    expect(scope).toBeTruthy();
+    // The chip says what kind of thing filtered the list, in the holding's word.
+    expect(scope.kind).toBe(cultivars.detail(row).kind);
+    expect(scope.label).toBe(String(cultivars.columns[0].value(row)));
+    // And the way back carries the list, not just the entry.
+    const back = new URLSearchParams(scope.href.split('?')[1]);
+    expect(back.get('entry')).toBe(cultivars.idOf(row));
+    expect(back.get('q')).toBe('wuyi');
+    expect(readWisdomShape(back.get('shape'), cultivars)).toEqual(shaped);
+    // Nothing is loaded yet, so the grid shows nothing rather than everything.
+    expect(scope.ids.size).toBe(0);
+  });
+
+  it('keeps a typed query whole, colons and all', () => {
+    const out = wisdomInventoryHref('marks', '7572', { query: 'menghai: 7572' });
+    const carried = new URLSearchParams(out.split('?')[1]).get('wisdom')!;
+    const [, , , ...rest] = carried.split(':');
+    expect(rest.join(':')).toBe('menghai: 7572');
+    // The whole query survives when the shape travels with it, which is the
+    // shape of every link the panel actually writes.
+    const both = new URLSearchParams(
+      wisdomInventoryHref('marks', '7572', { shape: 'gproducer', query: 'menghai: 7572' }).split('?')[1],
+    ).get('wisdom')!;
+    const [, , shape, ...tail] = both.split(':');
+    expect(shape).toBe('gproducer');
+    expect(tail.join(':')).toBe('menghai: 7572');
   });
 });
 

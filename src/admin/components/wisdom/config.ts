@@ -101,6 +101,23 @@ export const AT_BLOCK: Record<WisdomBreakpoint, string> = {
 };
 
 /**
+ * ONE SLOT, TWO SEATS. The toolbar carries the status line from md up; below
+ * that the band under it carries it instead. They are the two halves of a single
+ * slot, and exactly one of them is ever on screen.
+ *
+ * Stated here rather than written out at each seat, because the pair only works
+ * while the two classes are complements: the moment one of them is edited on its
+ * own, the same sentence is either printed twice or not at all. The type-ahead
+ * miss is the sentence that made this bite. It was seated twice under two
+ * different test ids, which promised two different statements, so nothing could
+ * hold the pair to being one.
+ */
+export const WISDOM_SEAT = {
+  wide: 'hidden md:block',
+  narrow: 'md:hidden',
+} as const;
+
+/**
  * Where a cross-holding link points: which tab, and what to do on arrival.
  *
  * Either half is optional, and the two answer different questions. An entry
@@ -133,9 +150,23 @@ export interface WisdomColumn<T> {
   key: string;
   /** Micro-caps header. Three words or fewer, always. */
   label: string;
-  /** The sortable value. Null and undefined always sink to the end. */
+  /**
+   * The recorded value, and only ever that. Null and undefined sink to the end
+   * of a sort and stay OUT of the text find reads. What a cell shows when there
+   * is no recorded value belongs in `fallback`, never here.
+   */
   value: (row: T) => string | number | null | undefined;
-  /** Cell contents. Defaults to the value rendered as plain text. */
+  /**
+   * What the cell shows when nothing was recorded: "Any", "Not recorded".
+   *
+   * It exists because folding every column into the haystack made the rendered
+   * defaults findable along with the data, and a default is not a value that was
+   * recorded. A mark that states no types it applies to was answering to a
+   * search for "any" as though a person had written the word on it. Held apart
+   * from `value` so the cell can say it and the find field cannot match it.
+   */
+  fallback?: string;
+  /** Cell contents. Defaults to the value, or to `fallback` when there is none. */
   render?: (row: T, ctx?: WisdomLinkCtx) => React.ReactNode;
   /**
    * Width class. The first column is the name column and is always
@@ -247,6 +278,33 @@ export interface WisdomGap<T> {
 }
 
 /**
+ * How far a gap that needs the account has got.
+ *
+ *   waiting   the products have not been read yet, so the count can only fall
+ *   none      they were read and the account holds none, so it cannot fall yet
+ *   settled   they were read, and this is the count against all of them
+ *   null      this gap never needed the account, so none of it applies
+ *
+ * A pure reading of two facts, held here rather than inline in the browser so
+ * the three states can be tested without a screen. What the browser adds is
+ * WHEN each is worth saying: `settled` is an answer to a question the reader was
+ * asked while the count was provisional, so it is due at the transition and
+ * quiet afterwards. Said on every visit forever it is furniture, and it was: an
+ * account whose products were already counted arrived being told its number had
+ * settled, having never been told it was in doubt.
+ */
+export type WisdomGapAccount = 'waiting' | 'none' | 'settled' | null;
+
+export const readGapAccount = (
+  needsAccount: boolean | undefined,
+  usage: { total: number } | undefined,
+): WisdomGapAccount => {
+  if (!needsAccount) return null;
+  if (usage === undefined) return 'waiting';
+  return usage.total === 0 ? 'none' : 'settled';
+};
+
+/**
  * Where a holding is published for the public to read.
  *
  * An operator correcting a row usually wants to know how the correction reads
@@ -261,6 +319,9 @@ export interface WisdomPublicRef<T> {
   entry?: (row: T) => string;
 }
 
+/** The fields of a row that the columns do not show, each one on its own. */
+export type WisdomSearchParts = ReadonlyArray<string | number | null | undefined>;
+
 export interface WisdomHolding<T> {
   id: string;
   /** Tab label. Doubles as the heading, since the tab strip IS the heading. */
@@ -270,14 +331,27 @@ export interface WisdomHolding<T> {
   rows: readonly T[];
   idOf: (row: T) => string;
   /**
-   * What a search should look inside, BEYOND the columns.
+   * The searchable text of one row: everything the find field reads, joined.
    *
-   * Every column is folded in for free by `defineHolding`, so this holds only
-   * what the row carries and the list does not show: Chinese names, aliases, the
-   * country behind a region. Writing a column in here as well is harmless and
-   * redundant.
+   * Built by `defineHolding` out of the holding's own declared parts and every
+   * column's value. A holding never writes this; it writes the parts.
    */
   searchText: (row: T) => string;
+  /**
+   * What a search should look inside, BEYOND the columns, as separate parts.
+   *
+   * Every column is folded in for free, so this holds only what the row carries
+   * and the list does not show: Chinese names, aliases, the prose behind a
+   * region. Naming a column in here as well is not harmless. It is a second
+   * declaration of the same field that nothing keeps in step with the first, and
+   * the day a column's value changes shape the two disagree in silence.
+   *
+   * Parts rather than one joined string, so the redundancy is testable: a part
+   * that IS a column's value is a duplicate, while an alias that merely contains
+   * one ("Bei Dou Yi Hao" holding "Bei Dou") is not, and a joined haystack
+   * cannot tell those apart. `holdings.test.ts` holds every holding to it.
+   */
+  declaredText: (row: T) => WisdomSearchParts;
   placeholder: string;
   columns: ReadonlyArray<WisdomColumn<T>>;
   groups?: ReadonlyArray<WisdomGroup<T>>;
@@ -450,6 +524,25 @@ export interface WisdomBorrowed {
   collapsed: readonly string[];
 }
 
+/**
+ * A loan is settled the moment the reader reshapes the list themselves.
+ *
+ * Showing a gap borrows the grouping that reveals it and promises to hand it
+ * back. That promise is worth making for as long as the screen is the screen the
+ * loan was made on. It used to stand for the rest of the visit: change the sort,
+ * type a query, read for another minute, and the same sentence was still
+ * promising, with undiminished confidence, to undo a press the reader had long
+ * since built on top of. Handing a grouping back after all that is not a
+ * courtesy, it is a second surprise.
+ *
+ * So a gesture that reshapes the list adopts the borrowed grouping and the
+ * sentence stops making the promise. Called from exactly two places, the sort
+ * and the find field, because those are the two gestures that are neither the
+ * gap toggle nor the grouping menu, both of which already settle it themselves.
+ */
+export const settleLoan = (prefs: WisdomPrefs): WisdomPrefs =>
+  prefs.borrowed ? { ...prefs, borrowed: null } : prefs;
+
 export const defaultPrefs = (holding: AnyWisdomHolding): WisdomPrefs => ({
   sort: { key: holding.columns[0].key, direction: 'asc' },
   groupKey: '',
@@ -550,124 +643,197 @@ export function toggleFold(
 /**
  * The keys the Wisdom address uses, in one place so the view, the browser and
  * the tests cannot disagree about them.
+ *
+ * FOUR KEYS, and the fourth carries the whole shape.
+ *
+ * There were nine. Each was right on its own: the grouping, the sort, the folded
+ * shape, the gap filter, and then the two the loan needed. Together they were an
+ * address no human could read, and the last two were the point it stopped being
+ * one thing a person parses and started being a form to fill in:
+ *
+ *   ?tab=marks&group=producer&sort=-era&fold=*~!Menghai&gap=1&borrow=era&borrowfold=*
+ *
+ * The three that name what is on screen stay their own keys, because those are
+ * the three a person hand-edits and the three a colleague reads off a link: the
+ * tab, the open entry, the query. Everything about the SHAPE of the list is one
+ * token, in one key, read and validated in one place:
+ *
+ *   ?tab=marks&shape=gproducer~s-era~f*~f!Menghai~x~bera~F*
+ *
+ * Nothing is lost. The token is still plain text, still copy-pasteable, still
+ * checked against the holding on arrival rather than obeyed.
  */
 export const WISDOM_PARAM = {
   tab: 'tab',
   entry: 'entry',
   query: 'q',
-  group: 'group',
-  sort: 'sort',
-  fold: 'fold',
-  gap: 'gap',
-  borrow: 'borrow',
-  borrowFold: 'borrowfold',
+  shape: 'shape',
 } as const;
-
-/** A borrowed grouping of "none". Group keys are words, so a dash cannot be one. */
-const NO_GROUP = '-';
 
 /**
  * Where the inventory takes a wisdom entry as a filter, and the address that
  * says so. Held here rather than in the inventory because this screen is the one
  * that builds the link; the inventory only reads the key.
+ *
+ *   wisdom=<holding>:<entry>[:<shape>[:<query>]]
+ *
+ * The first two fields are the filter. The rest is the return leg, which the
+ * inventory carries and never reads: the chip that names the entry is also the
+ * way back to it, and the way back has to land on the list the operator was
+ * actually reading, not on the holding as it comes. The query is last because it
+ * is the only field a person types, so it is the only one that can hold a colon.
  */
 export const INVENTORY_WISDOM_PARAM = 'wisdom';
 
-export const wisdomInventoryHref = (holding: string, entry: string): string =>
-  `/admin/inventory?${INVENTORY_WISDOM_PARAM}=${encodeURIComponent(`${holding}:${entry}`)}`;
+/** The list an operator was reading when they crossed, so they can come back to it. */
+export interface WisdomReturn {
+  /** The shape token, exactly as the address carries it. */
+  shape?: string;
+  query?: string;
+}
+
+export const wisdomInventoryHref = (holding: string, entry: string, from: WisdomReturn = {}): string => {
+  const fields = [holding, entry];
+  // Trailing empties are dropped, so the commonest link is the short one it was.
+  if (from.shape || from.query) fields.push(from.shape ?? '');
+  if (from.query) fields.push(from.query);
+  return `/admin/inventory?${INVENTORY_WISDOM_PARAM}=${encodeURIComponent(fields.join(':'))}`;
+};
 
 /**
  * The way back. A crossing built only one way: the panel handed the inventory a
  * filter and the inventory could not name the entry that had filtered it, let
- * alone return to it. The chip carries this now, so the two screens are a round
- * trip rather than a one-way door.
+ * alone return to it.
+ *
+ * And then it could return, to the entry and to nothing else. An operator
+ * reading the seven marks with no held producer, grouped and sorted and narrowed
+ * to a query, crossed to work on the products and came back to all fifteen marks
+ * in the default order. The shape travels both ways now, so the crossing is a
+ * round trip rather than two one-way doors.
  */
-export const wisdomEntryHref = (holding: string, entry: string): string =>
-  `/admin/wisdom?${WISDOM_PARAM.tab}=${encodeURIComponent(holding)}&${WISDOM_PARAM.entry}=${encodeURIComponent(entry)}`;
-
-/** Section keys are country and producer names, so the separator must not be one. */
-const FOLD_SEPARATOR = '~';
+export const wisdomEntryHref = (holding: string, entry: string, from: WisdomReturn = {}): string => {
+  const parts = [
+    `${WISDOM_PARAM.tab}=${encodeURIComponent(holding)}`,
+    `${WISDOM_PARAM.entry}=${encodeURIComponent(entry)}`,
+  ];
+  if (from.query) parts.push(`${WISDOM_PARAM.query}=${encodeURIComponent(from.query)}`);
+  if (from.shape) parts.push(`${WISDOM_PARAM.shape}=${encodeURIComponent(from.shape)}`);
+  return `/admin/wisdom?${parts.join('&')}`;
+};
 
 /**
- * The shape of the list, written into the address.
+ * THE SHAPE TOKEN.
  *
- * Only what differs from the default is written: an address that says nothing
- * means the holding as it comes, which is what a fresh link should mean. A
- * folded shape without a grouping is not a state that exists, so it is dropped
- * rather than carried as a lie.
+ * Segments joined by `~`, each one a single-character tag and its value. The
+ * separator is the one the folded shape already used, for the reason it already
+ * used it: section keys are country, producer, type and era names, and none of
+ * them is a tilde.
+ *
+ *   g<key>   grouped by
+ *   s<key>   sorted by, a leading dash for descending
+ *   f<item>  one folded item, in the fold language: `f*`, `f!China`, `fChina`
+ *   x        gaps only
+ *   b<key>   the grouping the gap filter borrowed; bare `b` is "no grouping"
+ *   F<item>  one item of the folded shape it borrowed
+ *
+ * Only what differs from the default is written, so an empty token means the
+ * holding as it comes, which is what a fresh link should mean. A fold with no
+ * grouping to belong to, or a loan with no gap filter to belong to, is not a
+ * state that exists and is dropped rather than carried as a lie.
  */
-export function wisdomPrefsToParams(prefs: WisdomPrefs, holding: AnyWisdomHolding): Record<string, string> {
+const SHAPE_SEPARATOR = '~';
+
+const SHAPE_TAG = {
+  group: 'g',
+  sort: 's',
+  fold: 'f',
+  gap: 'x',
+  borrow: 'b',
+  borrowFold: 'F',
+} as const;
+
+export function wisdomShapeToken(prefs: WisdomPrefs, holding: AnyWisdomHolding): string {
   const fallback = defaultPrefs(holding);
-  const out: Record<string, string> = {};
-  if (prefs.groupKey) out[WISDOM_PARAM.group] = prefs.groupKey;
+  const parts: string[] = [];
+  if (prefs.groupKey) parts.push(SHAPE_TAG.group + prefs.groupKey);
   if (prefs.sort.key !== fallback.sort.key || prefs.sort.direction !== fallback.sort.direction) {
-    out[WISDOM_PARAM.sort] = `${prefs.sort.direction === 'desc' ? '-' : ''}${prefs.sort.key}`;
+    parts.push(`${SHAPE_TAG.sort}${prefs.sort.direction === 'desc' ? '-' : ''}${prefs.sort.key}`);
   }
-  if (prefs.groupKey && prefs.collapsed.length > 0) {
-    out[WISDOM_PARAM.fold] = prefs.collapsed.join(FOLD_SEPARATOR);
+  if (prefs.groupKey) {
+    for (const item of prefs.collapsed) parts.push(SHAPE_TAG.fold + item);
   }
-  // A gap filter on a holding that counts no gap is not a state that exists, so
-  // the caller checks that before writing it, exactly as fold checks grouping.
+  // A gap filter on a holding that counts no gap is not a state that exists.
   if (prefs.gapOnly && holding.gap) {
-    out[WISDOM_PARAM.gap] = '1';
+    parts.push(SHAPE_TAG.gap);
     // What the gap filter took on loan travels with it, because "Show all gives
     // your grouping back" is a promise only the session that made the loan could
-    // keep. A shared link now carries the debt as well as the state.
+    // keep. A shared link carries the debt as well as the state.
     if (prefs.borrowed) {
-      out[WISDOM_PARAM.borrow] = prefs.borrowed.groupKey || NO_GROUP;
-      if (prefs.borrowed.groupKey && prefs.borrowed.collapsed.length > 0) {
-        out[WISDOM_PARAM.borrowFold] = prefs.borrowed.collapsed.join(FOLD_SEPARATOR);
+      parts.push(SHAPE_TAG.borrow + prefs.borrowed.groupKey);
+      if (prefs.borrowed.groupKey) {
+        for (const item of prefs.borrowed.collapsed) parts.push(SHAPE_TAG.borrowFold + item);
       }
     }
   }
-  return out;
+  return parts.join(SHAPE_SEPARATOR);
 }
 
 /**
  * And back again, checked against the holding rather than trusted.
  *
- * A hand-edited address, or one shared from a tab that has since changed its
+ * A hand-edited token, or one shared from a tab that has since changed its
  * columns, names a sort or a grouping this holding does not have. That falls
- * back to the default instead of leaving the list ordered by nothing.
+ * back to the default instead of leaving the list ordered by nothing. A tag this
+ * version does not know is ignored rather than obeyed, for the same reason.
  */
-export function wisdomPrefsFromParams(
-  read: (key: string) => string | null,
+export function readWisdomShape(
+  token: string | null | undefined,
   holding: AnyWisdomHolding,
 ): WisdomPrefs {
   const fallback = defaultPrefs(holding);
 
-  const askedGroup = read(WISDOM_PARAM.group) ?? '';
+  let askedGroup = '';
+  let askedSort = '';
+  let askedGap = false;
+  let askedBorrow: string | null = null;
+  const askedFold: string[] = [];
+  const askedBorrowFold: string[] = [];
+
+  for (const part of (token ?? '').split(SHAPE_SEPARATOR)) {
+    if (!part) continue;
+    const value = part.slice(1);
+    switch (part[0]) {
+      case SHAPE_TAG.group: askedGroup = value; break;
+      case SHAPE_TAG.sort: askedSort = value; break;
+      case SHAPE_TAG.fold: if (value) askedFold.push(value); break;
+      case SHAPE_TAG.gap: askedGap = true; break;
+      case SHAPE_TAG.borrow: askedBorrow = value; break;
+      case SHAPE_TAG.borrowFold: if (value) askedBorrowFold.push(value); break;
+      default: break;
+    }
+  }
+
   const groupKey = holding.groups?.some(group => group.key === askedGroup) ? askedGroup : fallback.groupKey;
 
-  const askedSort = read(WISDOM_PARAM.sort) ?? '';
   const direction: SortDirection = askedSort.startsWith('-') ? 'desc' : 'asc';
   const sortKey = askedSort.replace(/^-/, '');
   const sort = holding.columns.some(column => column.key === sortKey && column.sortable !== false)
     ? { key: sortKey, direction }
     : fallback.sort;
 
-  const askedFold = read(WISDOM_PARAM.fold) ?? '';
-  const collapsed = askedFold ? askedFold.split(FOLD_SEPARATOR).filter(Boolean) : fallback.collapsed;
-
-  const gapOnly = Boolean(holding.gap) && read(WISDOM_PARAM.gap) === '1';
+  const gapOnly = Boolean(holding.gap) && askedGap;
 
   // A loan only exists while the gap filter that took it is on, and only ever
   // names a grouping this holding has. Anything else arrived hand-edited and is
   // dropped rather than promising to give back something that does not exist.
   let borrowed: WisdomBorrowed | null = null;
-  const askedBorrow = gapOnly ? read(WISDOM_PARAM.borrow) : null;
-  if (askedBorrow !== null) {
-    const key = askedBorrow === NO_GROUP ? '' : askedBorrow;
-    if (key === '' || holding.groups?.some(group => group.key === key)) {
-      const askedBorrowFold = key ? read(WISDOM_PARAM.borrowFold) ?? '' : '';
-      borrowed = {
-        groupKey: key,
-        collapsed: askedBorrowFold ? askedBorrowFold.split(FOLD_SEPARATOR).filter(Boolean) : [],
-      };
+  if (gapOnly && askedBorrow !== null) {
+    if (askedBorrow === '' || holding.groups?.some(group => group.key === askedBorrow)) {
+      borrowed = { groupKey: askedBorrow, collapsed: askedBorrow ? askedBorrowFold : [] };
     }
   }
 
-  return { sort, groupKey, collapsed: groupKey ? collapsed : [], gapOnly, borrowed };
+  return { sort, groupKey, collapsed: groupKey ? askedFold : [], gapOnly, borrowed };
 }
 
 /**
@@ -692,9 +858,12 @@ export type AnyWisdomHolding = WisdomHolding<any>;
  * holding's `searchText` is then only for what the row carries and the list does
  * not show: Chinese names, aliases, the country behind a region.
  */
-export const defineHolding = <T,>(holding: WisdomHolding<T>): AnyWisdomHolding => ({
+export const defineHolding = <T,>(
+  holding: Omit<WisdomHolding<T>, 'searchText'>,
+): AnyWisdomHolding => ({
   ...holding,
-  searchText: row => haystack(holding.searchText(row), ...holding.columns.map(column => column.value(row))),
+  searchText: row =>
+    haystack(...holding.declaredText(row), ...holding.columns.map(column => column.value(row))),
 });
 
 export type SortDirection = 'asc' | 'desc';

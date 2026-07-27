@@ -53,7 +53,7 @@ import {
   VIEW_ICON_MAP,
 } from './inventory/config';
 import type { InventoryCategory, ColDef } from './inventory/types';
-import { isFeaturedButHidden } from './inventory/helpers';
+import { isFeaturedButHidden, withParam } from './inventory/helpers';
 import { InventoryRow } from './inventory/InventoryRow';
 import { QuickEditInlineRow } from './inventory/QuickEditInlineRow';
 import { InventoryActionRail, INVENTORY_ACTION_RAIL_WIDTH } from './inventory/InventoryActionRail';
@@ -279,15 +279,23 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const wisdomScope = useMemo(() => readWisdomScope(wisdomFilter, products), [wisdomFilter, products]);
 
   /**
-   * Clearing ONE filter clears that filter.
+   * Setting ONE filter sets that filter. Clearing one clears that one.
    *
    * The chip used to reset the whole address, which is three other contexts it
    * never named: the open product panel, the incoming shipment view and the
    * receipt being read all live in these same params, and all three were dropped
-   * by a control whose label was a vendor name.
+   * by a control whose label was a vendor name. The setters had the identical
+   * bug: choosing a vendor wrote a new address with one key in it, dropping the
+   * panel, the receipt and the wisdom filter the operator had crossed from.
+   * Both go through `withParam` now, which is the whole rule in one place.
    */
   const clearFilter = useCallback(
-    (key: string) => setSearchParams(prev => { prev.delete(key); return prev; }, { replace: true }),
+    (key: string) => setSearchParams(prev => withParam(prev, key, null), { replace: true }),
+    [setSearchParams],
+  );
+
+  const setFilter = useCallback(
+    (key: string, value: string) => setSearchParams(prev => withParam(prev, key, value), { replace: true }),
     [setSearchParams],
   );
 
@@ -1761,9 +1769,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   const vendorMenu = (
     <AnchoredMenu align="right" width={208} open={showVendorDropdown} onOpenChange={setShowVendorDropdown} trigger={(props) => <button {...props} className={chromeBtn} aria-label="Filter by vendor">Vendor</button>}>
-      {/* "All vendors" clears the vendor, and only the vendor. It used to reset
-          the whole address, taking the open panel and the receipt with it. */}
-      {(close) => <><button role="menuitem" onClick={() => { clearFilter('vendor'); close(); }} className="w-full px-3 py-2 text-left text-ui-11 text-tea-text-sec">All vendors</button>{[...new Set(localProducts.map(p => p.vendor).filter(Boolean))].sort().map(vendor => <button key={vendor} role="menuitem" onClick={() => { setSearchParams({ vendor: vendor! }); close(); }} className="w-full px-3 py-2 text-left text-ui-11 text-tea-text-sec">{vendor}</button>)}</>}
+      {/* "All vendors" clears the vendor, and only the vendor. Choosing one sets
+          the vendor, and only the vendor. Both used to rewrite the whole
+          address, taking the open panel, the receipt and the wisdom filter. */}
+      {(close) => <><button role="menuitem" onClick={() => { clearFilter('vendor'); close(); }} className="w-full px-3 py-2 text-left text-ui-11 text-tea-text-sec">All vendors</button>{[...new Set(localProducts.map(p => p.vendor).filter(Boolean))].sort().map(vendor => <button key={vendor} role="menuitem" onClick={() => { setFilter('vendor', vendor!); close(); }} className="w-full px-3 py-2 text-left text-ui-11 text-tea-text-sec">{vendor}</button>)}</>}
     </AnchoredMenu>
   );
 
@@ -1826,7 +1835,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   {matchingVendorSuggestions.length > 0 && (
                     <div className="absolute left-0 right-0 top-full z-popover mt-2 rounded-md border border-tea-border bg-tea-elevated py-1 shadow-xl" aria-label="Source suggestions">
                       {matchingVendorSuggestions.map(vendor => (
-                        <button key={vendor.name} type="button" onClick={() => { onSearchQueryChange?.(''); setMobileSearchExpanded(false); setSearchParams({ vendor: vendor.name }); }} className="flex w-full items-center gap-2 px-3 py-2 text-left text-ui-12 text-tea-text-sec hover:bg-tea-accent-sub" aria-label={`${vendor.name}, ${vendor.count} teas`}><MapPin size={12} aria-hidden="true" /><span>{vendor.name}</span><span className="ml-auto font-mono text-tea-text-dim">{vendor.count}</span></button>
+                        <button key={vendor.name} type="button" onClick={() => { onSearchQueryChange?.(''); setMobileSearchExpanded(false); setFilter('vendor', vendor.name); }} className="flex w-full items-center gap-2 px-3 py-2 text-left text-ui-12 text-tea-text-sec hover:bg-tea-accent-sub" aria-label={`${vendor.name}, ${vendor.count} teas`}><MapPin size={12} aria-hidden="true" /><span>{vendor.name}</span><span className="ml-auto font-mono text-tea-text-dim">{vendor.count}</span></button>
                       ))}
                     </div>
                   )}
@@ -1845,23 +1854,74 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         only itself. A wisdom chip is also the way back to the
                         entry that filtered the list. The whole group shrinks
                         before the row does, so the labels truncate rather than
-                        pushing the actions off a 390px screen. */}
-                    {contextChips.map(chip => {
-                      const body = (
+                        pushing the actions off a 390px screen.
+
+                        A chip has a floor it cannot shrink past: its kind, which
+                        must not truncate or it stops saying what it is, and a
+                        44px clear. That floor is about 100px, so three of them
+                        is 300px of a 390px header, and the header also carries
+                        two corpus words, the account, the currency and three
+                        44px actions. Three chips simply cannot be seated on a
+                        phone, and until the setters were fixed above, three
+                        filters at once was not reachable, so nothing had ever
+                        had to seat them.
+
+                        So below lg a second filter folds the group into one
+                        control that says how many there are and opens them. Each
+                        one still names its kind, still clears only itself, and a
+                        wisdom filter still carries its way back. A single filter
+                        is never folded: one chip fits, and a chip that names
+                        itself beats a chip that says "1 filter". */}
+                    {(() => {
+                      if (contextChips.length === 0) return null;
+                      const chipBody = (chip: typeof contextChips[number]) => (
                         <>
                           <span className="shrink-0 font-mono text-ui-10 uppercase tracking-[0.08em] text-tea-text-dim">{chip.kind}</span>
                           <span className="min-w-0 max-w-[104px] truncate font-mono text-ui-11 text-tea-gold group-hover:text-tea-gold-lt">{chip.label}</span>
                         </>
                       );
+                      const crowded = contextChips.length > 1;
                       return (
-                        <span key={chip.key} data-testid={`inventory-context-${chip.key}`} className="flex min-w-0 shrink items-center gap-1">
-                          {chip.back
-                            ? <Link to={chip.back} aria-label={`Back to ${chip.label} in Wisdom`} className="tap-target group flex min-w-0 items-baseline gap-1 hover:underline underline-offset-2">{body}</Link>
-                            : <span className="flex min-w-0 items-baseline gap-1">{body}</span>}
-                          <button type="button" onClick={() => clearFilter(chip.key)} aria-label={`Clear the ${chip.kind.toLowerCase()} filter ${chip.label}`} className="tap-target shrink-0 justify-center font-mono text-ui-11 text-tea-gold hover:text-tea-gold-lt">×</button>
-                        </span>
+                        <>
+                          <div className={`${crowded ? 'hidden lg:flex' : 'flex'} min-w-0 shrink items-center gap-2 md:gap-3`}>
+                            {contextChips.map(chip => (
+                              <span key={chip.key} data-testid={`inventory-context-${chip.key}`} className="flex min-w-0 shrink items-center gap-1">
+                                {chip.back
+                                  ? <Link to={chip.back} aria-label={`Back to ${chip.label} in Wisdom`} className="tap-target group flex min-w-0 items-baseline gap-1 hover:underline underline-offset-2">{chipBody(chip)}</Link>
+                                  : <span className="flex min-w-0 items-baseline gap-1">{chipBody(chip)}</span>}
+                                <button type="button" onClick={() => clearFilter(chip.key)} aria-label={`Clear the ${chip.kind.toLowerCase()} filter ${chip.label}`} className="tap-target shrink-0 justify-center font-mono text-ui-11 text-tea-gold hover:text-tea-gold-lt">×</button>
+                              </span>
+                            ))}
+                          </div>
+                          {crowded && (
+                            <div className="shrink-0 lg:hidden" data-testid="inventory-context-folded">
+                              <AnchoredMenu
+                                align="right"
+                                width={248}
+                                trigger={(props) => (
+                                  <button {...props} className="tap-target inline-flex items-baseline gap-1 font-mono" aria-label={`${contextChips.length} filters on this list: ${contextChips.map(chip => `${chip.kind} ${chip.label}`).join(', ')}`}>
+                                    <span className="text-ui-11 text-tea-gold">{contextChips.length}</span>
+                                    <span className="text-ui-10 uppercase tracking-[0.08em] text-tea-text-dim">Filters</span>
+                                  </button>
+                                )}
+                              >
+                                {(close) => contextChips.map(chip => (
+                                  <div key={chip.key} className="flex items-center gap-2 px-3 py-2">
+                                    <span className="min-w-0 flex-1">
+                                      <span className="block font-mono text-ui-10 uppercase tracking-[0.08em] text-tea-text-dim">{chip.kind}</span>
+                                      {chip.back
+                                        ? <Link role="menuitem" to={chip.back} onClick={close} aria-label={`Back to ${chip.label} in Wisdom`} className="block truncate font-mono text-ui-12 text-tea-gold hover:text-tea-gold-lt">{chip.label}</Link>
+                                        : <span className="block truncate font-mono text-ui-12 text-tea-text">{chip.label}</span>}
+                                    </span>
+                                    <button role="menuitem" type="button" onClick={() => { clearFilter(chip.key); close(); }} aria-label={`Clear the ${chip.kind.toLowerCase()} filter ${chip.label}`} className="tap-target shrink-0 font-mono text-ui-11 text-tea-text-sec hover:text-tea-text">Clear</button>
+                                  </div>
+                                ))}
+                              </AnchoredMenu>
+                            </div>
+                          )}
+                        </>
                       );
-                    })}
+                    })()}
 
                     {/* find — mobile icon (desktop uses the field above; md:!hidden beats .tap-target) */}
                     <button type="button" onClick={() => setMobileSearchExpanded(true)} aria-label="Search inventory" className="tap-target md:!hidden text-tea-text-sec hover:text-tea-text"><Search size={18} /></button>

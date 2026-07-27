@@ -9,6 +9,7 @@ import {
   isMovementDirectionValid,
   legacyPurposeConflict,
 } from './domain';
+import { withParam } from './helpers';
 
 const product = (overrides: Partial<Product> = {}): Product => ({
   id: 'tea-1',
@@ -132,5 +133,38 @@ describe('movement reasons', () => {
     expect(isMovementDirectionValid('transfer', 'increase')).toBe(true);
     expect(isMovementDirectionValid('transfer', 'decrease')).toBe(true);
     expect(isMovementDirectionValid('receipt', 'decrease')).toBe(false);
+  });
+});
+
+// The inventory address is not one filter. It carries the vendor, the intake
+// batch, a wisdom entry, the open product panel, the incoming view and the
+// receipt being read, and any of them can be true at once.
+describe('one key of the address', () => {
+  const address = (query: string) => new URLSearchParams(query);
+  const read = (params: URLSearchParams) => Object.fromEntries(params.entries());
+
+  it('sets one filter without touching the rest of the screen', () => {
+    // The vendor menu used to write a brand new address holding one key, so
+    // choosing a source closed the open panel, dropped the receipt behind it,
+    // and silently cleared the wisdom entry the operator had crossed from.
+    const before = address('panel=tea-1&receipt=r-9&wisdom=cultivars%3Arou-gui&vendor=Old');
+    expect(read(withParam(before, 'vendor', 'Yunnan Sourcing'))).toEqual({
+      panel: 'tea-1',
+      receipt: 'r-9',
+      wisdom: 'cultivars:rou-gui',
+      vendor: 'Yunnan Sourcing',
+    });
+  });
+
+  it('clears one filter without touching the rest of the screen', () => {
+    const before = address('panel=tea-1&vendor=Old&batch=b-2');
+    expect(read(withParam(before, 'vendor', null))).toEqual({ panel: 'tea-1', batch: 'b-2' });
+  });
+
+  it('never edits the address it was handed', () => {
+    const before = address('vendor=Old');
+    withParam(before, 'vendor', 'New');
+    withParam(before, 'vendor', null);
+    expect(before.get('vendor')).toBe('Old');
   });
 });

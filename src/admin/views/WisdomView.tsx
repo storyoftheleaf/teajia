@@ -8,8 +8,8 @@ import {
   WISDOM_PARAM,
   WISDOM_TYPE,
   defaultPrefs,
-  wisdomPrefsFromParams,
-  wisdomPrefsToParams,
+  readWisdomShape,
+  wisdomShapeToken,
   type AnyWisdomHolding,
   type WisdomLink,
   type WisdomPrefs,
@@ -35,15 +35,29 @@ import { useWisdomUsage } from '../components/wisdom/usage';
  * as it is typed, and the shape the list has been given.
  *   /admin/wisdom?tab=cultivars&entry=rou-gui
  *   /admin/wisdom?tab=varieties&q=Yiwu
- *   /admin/wisdom?tab=regions&group=country&sort=-altitude&fold=*~!China
- *   /admin/wisdom?tab=marks&group=producer&gap=1&borrow=era
+ *   /admin/wisdom?tab=regions&shape=gcountry~s-altitude~f*~f!China
+ *   /admin/wisdom?tab=marks&shape=gproducer~x~bera
  * so an operator can send a colleague to one cultivar, to a narrowed list, to
  * 182 regions folded to their sixteen countries with China left open, or to the
  * seven marks that name no producer the base holds, and a refresh returns them
- * to it. The last of those carries `borrow`, which says the grouping is one the
- * gap filter took rather than one the reader chose, so Show all can hand it back
- * on a screen that never made the loan. Writes are `replace`, because reading through a holding with the arrow
+ * to it. Writes are `replace`, because reading through a holding with the arrow
  * keys would otherwise leave one history entry per row.
+ *
+ * THREE KEYS NAME WHAT IS ON SCREEN AND ONE CARRIES THE SHAPE. The tab, the
+ * entry and the query are the three a person hand-edits and the three a
+ * colleague reads off a link, so they stay their own keys and their own words.
+ * The grouping, the sort, the folded shape, the gap filter and the two halves of
+ * a borrowed grouping were six more, and at six the address stopped being a
+ * thing anyone could read: it was a form. They are one `shape` token now, whose
+ * grammar and validation live together in config.ts. Nothing was lost by it. The
+ * token is still text, still copy-pasteable, and still checked against the
+ * holding on arrival rather than obeyed.
+ *
+ * EVERY WRITE IS A PATCH, never a rebuild. Two of them can land in one gesture:
+ * typing into the find field also settles a grouping the gap filter had on loan.
+ * A writer that rebuilt the address from props would have the second write carry
+ * the first one's stale half and quietly undo it, which is the same bug the
+ * inventory's vendor menu had pointed the other way.
  *
  * Two things were wrong before and are the reason this is now the whole screen.
  * The find field did not write back, so the address and the field disagreed from
@@ -62,15 +76,22 @@ import { useWisdomUsage } from '../components/wisdom/usage';
  * measures nothing and owns no scroll of its own.
  */
 
+/** Everything the address says, in the order it says it. */
+interface WisdomAddress {
+  holding: AnyWisdomHolding;
+  entry: string | null;
+  query: string;
+  prefs: WisdomPrefs;
+}
+
 /** One address, built in one place, so no caller can forget half of it. */
-const wisdomAddress = (
-  holding: AnyWisdomHolding,
-  state: { entry?: string | null; query?: string; prefs: WisdomPrefs },
-): Record<string, string> => {
-  const next: Record<string, string> = { [WISDOM_PARAM.tab]: holding.id };
+const wisdomAddress = (state: WisdomAddress): Record<string, string> => {
+  const next: Record<string, string> = { [WISDOM_PARAM.tab]: state.holding.id };
   if (state.query) next[WISDOM_PARAM.query] = state.query;
   if (state.entry) next[WISDOM_PARAM.entry] = state.entry;
-  return { ...next, ...wisdomPrefsToParams(state.prefs, holding) };
+  const shape = wisdomShapeToken(state.prefs, state.holding);
+  if (shape) next[WISDOM_PARAM.shape] = shape;
+  return next;
 };
 
 export const WisdomView: React.FC = () => {
@@ -85,33 +106,14 @@ export const WisdomView: React.FC = () => {
    * the holding, so a stale or hand-edited link degrades to the default rather
    * than ordering the list by a column that no longer exists.
    *
-   * Memoised on the three raw values rather than on `searchParams`, which now
-   * changes on every keystroke: the browser rebuilds its sections and its folded
-   * set from this object's identity, and typing must not make it re-bucket 316
-   * rows it has not been asked to re-bucket.
+   * Memoised on the raw token rather than on `searchParams`, which now changes
+   * on every keystroke: the browser rebuilds its sections and its folded set
+   * from this object's identity, and typing must not make it re-bucket 316 rows
+   * it has not been asked to re-bucket. That used to take six dependencies to
+   * say; the shape is one key, so it takes one.
    */
-  const grouping = searchParams.get(WISDOM_PARAM.group);
-  const ordering = searchParams.get(WISDOM_PARAM.sort);
-  const folding = searchParams.get(WISDOM_PARAM.fold);
-  const gapping = searchParams.get(WISDOM_PARAM.gap);
-  // What the gap filter took on loan. It used to live in a ref inside the
-  // browser, so a link carrying "the seven marks with no held producer" arrived
-  // grouped by producer with nothing marked as borrowed, and Show all kept a
-  // grouping the reader had never chosen.
-  const borrowing = searchParams.get(WISDOM_PARAM.borrow);
-  const borrowedFolding = searchParams.get(WISDOM_PARAM.borrowFold);
-  const prefs = useMemo(
-    () =>
-      wisdomPrefsFromParams(key => {
-        if (key === WISDOM_PARAM.group) return grouping;
-        if (key === WISDOM_PARAM.sort) return ordering;
-        if (key === WISDOM_PARAM.gap) return gapping;
-        if (key === WISDOM_PARAM.borrow) return borrowing;
-        if (key === WISDOM_PARAM.borrowFold) return borrowedFolding;
-        return key === WISDOM_PARAM.fold ? folding : null;
-      }, active),
-    [grouping, ordering, folding, gapping, borrowing, borrowedFolding, active],
-  );
+  const shape = searchParams.get(WISDOM_PARAM.shape);
+  const prefs = useMemo(() => readWisdomShape(shape, active), [shape, active]);
 
   /**
    * How the OTHER holdings were last shaped.
@@ -130,12 +132,37 @@ export const WisdomView: React.FC = () => {
     [prefsByHolding],
   );
 
+  /**
+   * The address as it stands, written down where a handler can reach it.
+   *
+   * Every setter used to rebuild the whole address out of its own closure, which
+   * is correct exactly as long as no two of them fire in one gesture. Two of
+   * them do: typing into the find field also settles a grouping the gap filter
+   * had on loan, and the second write carried the first one's stale half and
+   * undid it. This is the same bug the inventory's vendor menu had, pointed the
+   * other way: there a setter replaced an address it should have patched.
+   *
+   * So every write is a patch against the last one, whether or not React has
+   * re-rendered in between.
+   */
+  const standing = useRef<WisdomAddress>({ holding: active, entry, query, prefs });
+  standing.current = { holding: active, entry, query, prefs };
+
+  const write = useCallback(
+    (patch: Partial<WisdomAddress>) => {
+      const next = { ...standing.current, ...patch };
+      standing.current = next;
+      setSearchParams(wisdomAddress(next), { replace: true });
+    },
+    [setSearchParams],
+  );
+
   const setPrefs = useCallback(
     (next: WisdomPrefs) => {
       setPrefsByHolding(current => ({ ...current, [active.id]: next }));
-      setSearchParams(wisdomAddress(active, { entry, query, prefs: next }), { replace: true });
+      write({ prefs: next });
     },
-    [active, entry, query, setSearchParams],
+    [active.id, write],
   );
 
   // A shape that arrived in a shared link is a shape this session has been
@@ -166,29 +193,24 @@ export const WisdomView: React.FC = () => {
   const usage = useWisdomUsage(products);
 
   const openEntry = useCallback(
-    (id: string | null) => {
-      // The query survives opening a row: the narrowed list is the context the
-      // entry was found in, and losing it on a click would remount the browser
-      // and throw the reader back to the whole holding.
-      setSearchParams(wisdomAddress(active, { entry: id, query, prefs }), { replace: true });
-    },
-    [active, prefs, query, setSearchParams],
+    // The query survives opening a row: the narrowed list is the context the
+    // entry was found in, and losing it on a click would remount the browser
+    // and throw the reader back to the whole holding.
+    (id: string | null) => write({ entry: id }),
+    [write],
   );
 
   /** Every keystroke, straight into the address, so a copied link is never stale. */
-  const changeQuery = useCallback(
-    (next: string) => {
-      setSearchParams(wisdomAddress(active, { entry, query: next, prefs }), { replace: true });
-    },
-    [active, entry, prefs, setSearchParams],
-  );
+  const changeQuery = useCallback((next: string) => write({ query: next }), [write]);
 
   const openTab = useCallback(
     (id: string) => {
       const holding = findHolding(id) ?? active;
-      setSearchParams(wisdomAddress(holding, { prefs: shapeOf(holding) }), { replace: true });
+      // A new holding is a new question: the entry and the query go, the shape
+      // this reader last gave that holding comes back.
+      write({ holding, entry: null, query: '', prefs: shapeOf(holding) });
     },
-    [active, setSearchParams, shapeOf],
+    [active, write, shapeOf],
   );
 
   /**
@@ -199,12 +221,14 @@ export const WisdomView: React.FC = () => {
   const jump = useCallback(
     (link: WisdomLink) => {
       const holding = findHolding(link.holding) ?? active;
-      setSearchParams(
-        wisdomAddress(holding, { entry: link.entry, query: link.query, prefs: shapeOf(holding) }),
-        { replace: true },
-      );
+      write({
+        holding,
+        entry: link.entry ?? null,
+        query: link.query ?? '',
+        prefs: shapeOf(holding),
+      });
     },
-    [active, setSearchParams, shapeOf],
+    [active, write, shapeOf],
   );
 
   // Wraps rather than scrolls. At 390px the seven tabs fall onto three lines; a

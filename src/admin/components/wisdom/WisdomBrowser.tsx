@@ -13,6 +13,7 @@ import {
   WISDOM_CHROME_BTN,
   WISDOM_HEADER_ROW,
   WISDOM_ROW,
+  WISDOM_SEAT,
   WISDOM_TYPE,
   compareWisdom,
   defaultPrefs,
@@ -20,11 +21,14 @@ import {
   mayNearMiss,
   nearestWisdom,
   readFold,
+  readGapAccount,
   recogniseQuery,
+  settleLoan,
   toggleFold,
   wisdomInventoryHref,
   wisdomMatches,
   wisdomQueryTokens,
+  wisdomShapeToken,
   wisdomStartsWith,
   type AnyWisdomHolding,
   type WisdomColumn,
@@ -79,6 +83,18 @@ const CONDENSE_AT = 48;
  * pays for one scan per burst instead of one per character.
  */
 const NEAR_MISS_SETTLE_MS = 250;
+
+/**
+ * How long a count that has just stopped being provisional says so.
+ *
+ * The reader was told the region count could only fall until the account's
+ * products were read. When they are read, that is an answer to a question they
+ * were asked, and it is due. What it is not is a standing fact: said on arrival,
+ * on every visit, forever, it is a line of furniture above the list telling a
+ * reader something has settled that they never saw move. Long enough to be read
+ * beside the number it is about, and then gone.
+ */
+const GAP_SETTLED_MS = 8000;
 
 /**
  * What the keyboard does, said once where the keyboard is.
@@ -198,18 +214,23 @@ export const WisdomBrowser: React.FC<Props> = ({
     setQuery(initialQuery);
   }, [initialQuery]);
 
-  const changeQuery = useCallback((next: string) => {
-    seeded.current = next;
-    setQuery(next);
-    onQueryChange?.(next);
-  }, [onQueryChange]);
-
   // Preferences live with whoever holds them across tab changes; when nobody
   // does, the engine keeps its own copy so it still runs on its own.
   const [ownPrefs, setOwnPrefs] = useState<WisdomPrefs>(() => defaultPrefs(holding));
   const held = prefs ?? ownPrefs;
   const { sort, groupKey } = held;
   const setPrefs = onPrefsChange ?? setOwnPrefs;
+
+  const changeQuery = useCallback((next: string) => {
+    seeded.current = next;
+    setQuery(next);
+    onQueryChange?.(next);
+    // Typing is reshaping the list, so a grouping the gap filter borrowed is
+    // adopted rather than kept on loan for the rest of the visit. Both writes
+    // land: the view patches its address rather than rebuilding it, so the query
+    // and the settled loan compose instead of overwriting one another.
+    if (held.borrowed) setPrefs(settleLoan(held));
+  }, [held, onQueryChange, setPrefs]);
 
   /**
    * Folded sections travel as an array and are read through `readFold`, which
@@ -293,27 +314,37 @@ export const WisdomBrowser: React.FC<Props> = ({
 
   /**
    * How far a gap that needs the account has got, in three states rather than
-   * two.
+   * two. The reading itself is `readGapAccount`; what is decided here is when
+   * each of the three is worth saying.
    *
    * Regions counted ninety three on arrival and narrowed a beat later, once the
    * products resolved. Both numbers were correct and nothing said so, and a
    * count that moves on its own reads as a fault, so it was stated as
-   * provisional. But the statement then VANISHED rather than resolving: the
-   * reader was told a number was conditional and never told it had settled, and
-   * an account holding no products at all sat under "until the products are
-   * read" forever, waiting on a reading that had already happened.
+   * provisional. The statement then vanished rather than resolving, so a reader
+   * told a number was conditional was never told it had settled.
    *
-   *   waiting   the products have not been read yet, so the count can only fall
-   *   none      they were read and the account holds none, so it cannot fall yet
-   *   settled   they were read, and this is the count against all of them
+   * And then the resolution never left. "This number is settled" was printed on
+   * arrival, on every visit, to a reader who had not seen the number move and
+   * had never been told it was in doubt: an answer with no question in front of
+   * it, holding a line above the list all day. A resolution is due at the
+   * transition and quiet afterwards, so it is announced when the count actually
+   * stops being provisional in front of the reader, and only then.
    */
-  const gapAccount: 'waiting' | 'none' | 'settled' | null = !holding.gap?.needsAccount
-    ? null
-    : usage === undefined
-      ? 'waiting'
-      : usage.total === 0
-        ? 'none'
-        : 'settled';
+  const gapAccount = readGapAccount(holding.gap?.needsAccount, usage);
+
+  const [settledFresh, setSettledFresh] = useState(false);
+  const sawWaiting = useRef(false);
+  useEffect(() => {
+    if (gapAccount === 'waiting') { sawWaiting.current = true; return; }
+    // Nothing was in doubt on this screen, so nothing has been resolved on it.
+    // A second visit reads the counted answer straight out of the cache and is
+    // owed no announcement at all.
+    if (gapAccount !== 'settled' || !sawWaiting.current) return;
+    sawWaiting.current = false;
+    setSettledFresh(true);
+    const handle = setTimeout(() => setSettledFresh(false), GAP_SETTLED_MS);
+    return () => clearTimeout(handle);
+  }, [gapAccount]);
 
   /** The rows the gap line is counting. Computed once, and it is also the filter. */
   const gapRows = useMemo(
@@ -525,7 +556,10 @@ export const WisdomBrowser: React.FC<Props> = ({
       count: bucket?.count ?? 0,
       total: usage.total,
       products: bucket?.products ?? [],
-      href: wisdomInventoryHref(holding.id, id),
+      // The crossing carries the list the operator was reading, not just the
+      // entry, so the chip in the inventory is a way back to THIS screen: the
+      // grouping, the sort, the gap filter and the query, exactly as they stand.
+      href: wisdomInventoryHref(holding.id, id, { shape: wisdomShapeToken(held, holding), query }),
     };
   };
 
@@ -625,9 +659,11 @@ export const WisdomBrowser: React.FC<Props> = ({
     return parts.join(' and ');
   }, [borrowed, holding]);
 
+  // Re-ordering the list is reshaping it, so the loan is settled here too: the
+  // borrowed grouping becomes the reader's own and the promise stops being made.
   const toggleSort = (key: string) =>
     setPrefs({
-      ...held,
+      ...settleLoan(held),
       sort:
         sort.key === key
           ? { key, direction: sort.direction === 'asc' ? 'desc' : 'asc' }
@@ -757,12 +793,19 @@ export const WisdomBrowser: React.FC<Props> = ({
    * columns are off screen, and the axis being jumped by is a thing they cannot
    * see. The band under the toolbar is the phone's half of the same slot, so it
    * takes the same statement and the same offer.
+   *
+   * ONE statement, therefore ONE name for it. The two seats were labelled
+   * `wisdom-type-miss` and `wisdom-type-miss-sm`, which promised two different
+   * things and let nothing hold them to being the same one. They share the id
+   * now, and `WISDOM_SEAT` is the pair of complementary classes that makes
+   * exactly one of them visible at any width, stated once in config so an edit
+   * to one seat cannot quietly print the sentence twice.
    */
-  const typedStatus = (testId: string) =>
+  const typedStatus = () =>
     typeMiss ? (
       // The one moment the two searches visibly disagree, said in words with the
       // other one offered rather than left to be guessed at.
-      <span data-testid={testId}>
+      <span data-testid="wisdom-type-miss">
         No {jumpBy.label.toLowerCase()} starts with{' '}
         <span className="font-mono text-tea-text-sec">{typed}</span>.{' '}
         <button
@@ -998,7 +1041,12 @@ export const WisdomBrowser: React.FC<Props> = ({
         }`}
       >
         {holding.columns.map((column, columnIndex) => {
-          const content = column.render ? column.render(row, linkCtx) : (column.value(row) ?? null);
+          // What was recorded, or what the column says instead when nothing was.
+          // The fallback is a rendering, never a value: it reaches the cell and
+          // it never reaches the text the find field reads.
+          const content = column.render
+            ? column.render(row, linkCtx)
+            : (column.value(row) ?? column.fallback ?? null);
           if (columnIndex === 0) {
             return (
               <span key={column.key} className="flex min-w-0 flex-1 items-baseline gap-2 text-left">
@@ -1067,8 +1115,11 @@ export const WisdomBrowser: React.FC<Props> = ({
         <div className="flex min-h-[40px] flex-wrap items-center gap-x-3 gap-y-1 px-3 md:gap-x-4 md:px-4">
           {condensed && <div className="shrink-0">{tabs(true)}</div>}
           <SearchBox value={query} onChange={changeQuery} placeholder={holding.placeholder} />
-          <p className="hidden min-w-0 shrink truncate text-ui-11 text-tea-text-dim md:block">
-            {typed ? typedStatus('wisdom-type-miss') : statusLine(true, !condensed)}
+          <p
+            className={`${WISDOM_SEAT.wide} min-w-0 shrink truncate text-ui-11 text-tea-text-dim`}
+            data-testid="wisdom-seat-wide"
+          >
+            {typed ? typedStatus() : statusLine(true, !condensed)}
           </p>
           <div className="flex shrink-0 items-center gap-3">{foldAll}{sortMenu}{groupMenu}</div>
         </div>
@@ -1087,8 +1138,11 @@ export const WisdomBrowser: React.FC<Props> = ({
               says so here, in the same words and with the same offer, rather
               than being answered with the count line as though nothing had been
               typed at all. */}
-          <p className="min-w-0 truncate text-ui-11 text-tea-text-dim md:hidden">
-            {typed ? typedStatus('wisdom-type-miss-sm') : statusLine(false)}
+          <p
+            className={`${WISDOM_SEAT.narrow} min-w-0 truncate text-ui-11 text-tea-text-dim`}
+            data-testid="wisdom-seat-narrow"
+          >
+            {typed ? typedStatus() : statusLine(false)}
           </p>
           <div className="hidden min-w-0 items-center gap-3 md:flex" data-testid="wisdom-key-hints">
             {keyHints(jumpBy.label).map((hint, index) => (
@@ -1213,8 +1267,16 @@ export const WisdomBrowser: React.FC<Props> = ({
                   This account holds no products, so the count is the base alone. It will fall when stock arrives.
                 </p>
               )}
-              {gapAccount === 'settled' && gapRows.length > 0 && (
-                <p className="min-w-0 text-ui-11 text-tea-text-dim" data-testid="wisdom-gap-settled">
+              {/* Due at the transition, and quiet afterwards. A reader who
+                  watched the number narrow is owed the word that it has stopped;
+                  a reader who arrived to a counted answer was never told it was
+                  in doubt and is owed nothing. */}
+              {gapAccount === 'settled' && settledFresh && gapRows.length > 0 && (
+                <p
+                  className="min-w-0 text-ui-11 text-tea-text-dim"
+                  data-testid="wisdom-gap-settled"
+                  aria-live="polite"
+                >
                   Counted against all {usage!.total} products in this account, so this number is settled.
                 </p>
               )}
@@ -1324,12 +1386,23 @@ export const WisdomBrowser: React.FC<Props> = ({
             <p className="text-ui-13 text-tea-text-dim">
               No {holding.noun} match &quot;{query}&quot;.
             </p>
+            {/* ONE live region, mounted for as long as the empty state is, and
+                it holds both halves of the answer.
+                `aria-live` used to sit on the settling line, which exists only
+                while the scan is running and is removed at the exact moment the
+                result arrives. So a screen reader was told "looking for what the
+                base holds near that" and then never told what was found: the
+                question was announced and the answer was not, which is worse
+                than announcing neither. A region has to outlive the sentence it
+                carries, so it is the container that is live now, and each of the
+                three states speaks through it in turn. */}
+            <div aria-live="polite" data-testid="wisdom-near-live">
             {/* The beat before the near miss, spent saying so. An empty screen
                 that grows a suggestion a quarter second later reads as a
                 correction to a finished answer; the same beat announced reads as
                 a search still running. */}
             {nearMissSettling && (
-              <p className="mt-2 text-ui-12 text-tea-text-dim" data-testid="wisdom-near-settling" aria-live="polite">
+              <p className="mt-2 text-ui-12 text-tea-text-dim" data-testid="wisdom-near-settling">
                 Looking for what the base holds near that.
               </p>
             )}
@@ -1377,6 +1450,7 @@ export const WisdomBrowser: React.FC<Props> = ({
                 </WisdomRoving>
               </div>
             )}
+            </div>
           </div>
         )}
       </div>

@@ -20,7 +20,7 @@ vi.mock('../../../components/shared/Modal', () => ({
 
 const { WisdomBrowser } = await import('./WisdomBrowser');
 const { WISDOM_HOLDINGS } = await import('./holdings');
-const { ALL_FOLDED, OPEN_MARK } = await import('./config');
+const { ALL_FOLDED, OPEN_MARK, WISDOM_SEAT } = await import('./config');
 type WisdomUsage = import('./usage').WisdomUsage;
 type WisdomBorrowed = import('./config').WisdomBorrowed;
 
@@ -249,16 +249,23 @@ describe('WisdomBrowser', () => {
   });
 
   // A qualification that vanishes leaves a reader who was told a number was
-  // conditional never told it had settled.
-  it('resolves the provisional count instead of letting it disappear', () => {
+  // conditional never told it had settled. A resolution that never leaves is the
+  // opposite fault: an answer standing above the list all day, on every visit,
+  // to a question this reader was never asked.
+  it('says a count has settled at the transition, and not on arrival', () => {
     const regions = WISDOM_HOLDINGS.find(holding => holding.id === 'regions')!;
     const counted: WisdomUsage = { total: 139, byHolding: new Map(), byHoldingTotal: new Map() };
-    const settled = render(regions, { usage: counted });
-    expect(settled).toContain('data-testid="wisdom-gap-settled"');
-    expect(settled).toContain('Counted against all 139 products in this account');
+    // A second visit reads the counted answer out of the cache: nothing was ever
+    // in doubt on this screen, so nothing is resolved on it.
+    const arrived = render(regions, { usage: counted });
+    expect(arrived).not.toContain('data-testid="wisdom-gap-settled"');
+    expect(arrived).not.toContain('data-testid="wisdom-gap-provisional"');
+    // The three states themselves are read by `readGapAccount`, which
+    // holdings.test.ts holds to; what this file holds is when each is due.
 
     // An account holding no products is a third state, and it used to wear the
-    // first one forever: waiting on a reading that had already happened.
+    // first one forever: waiting on a reading that had already happened. That
+    // one IS a standing fact, so it keeps its line.
     const none: WisdomUsage = { total: 0, byHolding: new Map(), byHoldingTotal: new Map() };
     const empty = render(regions, { usage: none });
     expect(empty).toContain('data-testid="wisdom-gap-base-only"');
@@ -466,6 +473,53 @@ describe('WisdomBrowser', () => {
     // The intersection says itself the moment it is doing something.
     expect(render(cultivars, { query: 'da hong' })).toContain('every word must match');
     expect(render(cultivars, { query: 'dahong' })).not.toContain('every word must match');
+  });
+
+  // The live region used to sit on the settling line, which is removed at the
+  // exact moment the result arrives: a screen reader heard the question and
+  // never the answer.
+  it('keeps one live region mounted across both halves of the answer', () => {
+    const looking = render(cultivars, { query: 'rougux' });
+    const live = looking.indexOf('data-testid="wisdom-near-live"');
+    expect(live).toBeGreaterThan(-1);
+    // The region is the container, not the sentence, so it outlives each state.
+    expect(looking.slice(live)).toContain('The nearest entry the base holds is Rou Gui');
+    expect(looking).toContain('aria-live="polite"');
+    // And the sentence it used to carry no longer claims to be its own region.
+    expect(looking).not.toMatch(/data-testid="wisdom-near-settling"[^>]*aria-live/);
+  });
+
+  // Two seats, one statement. They carried two ids, which promised two different
+  // things and let nothing hold the pair to being complements.
+  it('seats the type-ahead miss once under one name, at both widths', () => {
+    const html = render();
+    // Both seats exist, and neither is named as though it were a second fact.
+    expect(html).toContain('data-testid="wisdom-seat-wide"');
+    expect(html).toContain('data-testid="wisdom-seat-narrow"');
+    expect(html).not.toContain('wisdom-type-miss-sm');
+    // The pair is complementary by construction: one is hidden until md, the
+    // other hidden from md, so exactly one of them is ever on screen.
+    expect(WISDOM_SEAT.wide).toBe('hidden md:block');
+    expect(WISDOM_SEAT.narrow).toBe('md:hidden');
+    for (const seat of ['wide', 'narrow'] as const) {
+      const at = html.indexOf(`data-testid="wisdom-seat-${seat}"`);
+      const tag = html.slice(html.lastIndexOf('<p', at), at);
+      expect(tag, `${seat} seat`).toContain(WISDOM_SEAT[seat]);
+    }
+  });
+
+  // A default is not a value that was recorded, and making every column findable
+  // made the rendered defaults findable with the data.
+  it('shows a column default in the cell and keeps it out of the find field', () => {
+    const marks = WISDOM_HOLDINGS.find(holding => holding.id === 'marks')!;
+    const applies = marks.columns.find(column => column.key === 'applies')!;
+    const bare = marks.rows.find(row => applies.value(row) === null)!;
+    expect(bare).toBeDefined();
+    // The cell still says what it always said.
+    expect(render(marks)).toContain(applies.fallback!);
+    // And the word it says is not a way to find that row.
+    const searched = render(marks, { query: applies.fallback! });
+    expect(searched).not.toContain(`data-wisdom-id="${marks.idOf(bare)}"`);
   });
 
   it('makes the public address in the reach line the way to reach it', () => {

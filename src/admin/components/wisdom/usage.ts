@@ -162,20 +162,29 @@ export interface WisdomInventoryScope {
    * the holding's own panel eyebrow, so the two screens use one word for it.
    */
   kind: string;
-  /** The way back to the entry that filtered the list. */
+  /** The way back to the entry that filtered the list, and to the list itself. */
   href: string;
 }
 
-/** `holding:entry`, the form `wisdomInventoryHref` writes. */
+/**
+ * `holding:entry[:shape[:query]]`, the form `wisdomInventoryHref` writes.
+ *
+ * The first two fields are the filter. The last two are the list the operator
+ * was reading when they crossed, which this screen carries and never reads: the
+ * chip's way back used to land on the entry and nothing else, so an operator
+ * working through the seven marks with no held producer, grouped and sorted and
+ * narrowed to a query, came back to all fifteen in the default order. The query
+ * is last because it is the only field a person types, so it is the only one
+ * that can hold a colon, and taking it as the remainder keeps it whole.
+ */
 export function readWisdomScope(
   param: string | null | undefined,
   products: readonly Product[] | undefined,
 ): WisdomInventoryScope | null {
   if (!param) return null;
-  const at = param.indexOf(':');
-  if (at <= 0) return null;
-  const holding = findHolding(param.slice(0, at));
-  const entryId = param.slice(at + 1);
+  const [holdingId, entryId, shape = '', ...rest] = param.split(':');
+  const query = rest.join(':');
+  const holding = findHolding(holdingId);
   if (!holding || !entryId) return null;
 
   const row = holding.rows.find(entry => holding.idOf(entry) === entryId);
@@ -184,7 +193,10 @@ export function readWisdomScope(
   // the panel says "Cultivar". A hand-edited address naming an entry the base
   // does not hold falls back to the holding's label rather than to nothing.
   const kind = row ? holding.detail(row).kind : holding.label;
-  const href = wisdomEntryHref(holding.id, entryId);
+  // The way back to the entry AND to the list it was read in. The shape is not
+  // checked here; it is checked on arrival, against the holding, by the screen
+  // that has to honour it.
+  const href = wisdomEntryHref(holding.id, entryId, { shape, query });
   // An empty set while the products are still loading, so the grid shows nothing
   // rather than everything. The batch filter above it behaves the same way.
   if (!products || products.length === 0) return { ids: new Set<string>(), label, kind, href };
