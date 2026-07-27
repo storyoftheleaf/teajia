@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { X, Save, Layers, Edit, Loader2, UserCheck, RefreshCw, Tag, Globe, FileText, Image as ImageIcon, Upload, Trash2, Star, ChevronDown, Compass, ExternalLink } from 'lucide-react';
 import { api } from '../../lib/api';
 import { Currency, Product, ExchangeRate, ProductType } from '../types';
+import { TEA_TYPES, NON_TEA_TYPES } from '../../wisdom';
 import type { TastingData } from '../../types';
 import { calculatePricing } from '../utils';
 import { TeaIllustration } from './TeaIllustration';
@@ -896,7 +897,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                 name="type" value={formData.type} onChange={handleChange}
                 className={selectStyle}
               >
-                {['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Teaware', 'Misc'].map(t => <option key={t} value={t} className="bg-tea-surface text-tea-text">{t}</option>)}
+                {[...TEA_TYPES, ...NON_TEA_TYPES].map(t => <option key={t} value={t} className="bg-tea-surface text-tea-text">{t}</option>)}
               </select>
             </div>
 

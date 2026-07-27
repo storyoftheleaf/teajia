@@ -5,6 +5,7 @@ import { api } from '../../lib/api';
 import { useToast } from './Toast';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { BatchPicker } from './BatchPicker';
+import { TEA_TYPES, NON_TEA_TYPES } from '../../wisdom';
 
 interface StagingRow {
   id: string;
@@ -295,7 +296,8 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
     // Sanitize and Prepare Data
     const preparedRows = rowsToInsert.map(r => {
         // 1. Handle Types
-        const validTypes = ['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Teaware', 'Misc'];
+        // Teaware/Misc composed on top of the shared wisdom vocabulary. See docs/TEA_WISDOM_BASE.md.
+        const validTypes: string[] = [...TEA_TYPES, ...NON_TEA_TYPES];
         // Remap retired types to Herbal
         const retiredToHerbal = ['matcha', 'flower'];
         let typeToSave = retiredToHerbal.includes((r.type || '').toLowerCase()) ? 'Herbal' : r.type;

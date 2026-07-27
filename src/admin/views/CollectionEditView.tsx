@@ -8,6 +8,7 @@ import {
   CheckCircle2, MessageCircle, GripVertical, Link as LinkIcon,
 } from 'lucide-react';
 import { api, collectionShareUrl } from '../../lib/api';
+import { TEA_TYPES } from '../../wisdom';
 import { buildWhatsAppUrl } from '../../lib/whatsapp';
 import { useAppStore } from '../../lib/store';
 import { useToast } from '../components/Toast';
@@ -831,7 +832,9 @@ const PublicationRow: React.FC<{
 };
 
 // ── Add products sheet ──
-const TEA_TYPE_FILTERS = ['Sheng', 'Shou', 'Oolong', 'Red', 'Green', 'White', 'Yellow', 'Dark', 'Herbal', 'Misc'] as const;
+// 'Misc' is composed on top of the shared wisdom vocabulary rather than
+// redeclared. See docs/TEA_WISDOM_BASE.md.
+const TEA_TYPE_FILTERS = [...TEA_TYPES, 'Misc'] as const;
 type TopFilter = 'all' | 'tea' | 'teaware';
 
 const AddProductsSheet: React.FC<{

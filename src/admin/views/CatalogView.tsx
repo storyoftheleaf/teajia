@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
 import { api } from '../../lib/api';
+import { TEA_TYPES } from '../../wisdom';
 
 type CatalogProduct = {
   id: string;
@@ -18,9 +19,9 @@ type CatalogProduct = {
   catalogVisible?: boolean;
 };
 
-const TYPE_FILTERS = [
-  'All', 'Green', 'Oolong', 'Sheng', 'Shou', 'Red', 'Dark', 'White', 'Yellow', 'Herbal', 'Teaware',
-] as const;
+// 'All' and 'Teaware' are composed on top of the shared wisdom vocabulary
+// rather than redeclared. See docs/TEA_WISDOM_BASE.md.
+const TYPE_FILTERS = ['All', ...TEA_TYPES, 'Teaware'] as const;
 
 export const CatalogView: React.FC = () => {
   const [products, setProducts] = useState<CatalogProduct[]>([]);

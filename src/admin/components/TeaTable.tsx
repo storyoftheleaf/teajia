@@ -3,6 +3,7 @@ import { Search, Loader2, AlertCircle, Plus, ArrowUpDown, ArrowUp, ArrowDown, Ey
 import { motion } from 'framer-motion';
 import Fuse from 'fuse.js';
 import { Product, Currency, ExchangeRate, ProductType } from '../types';
+import { TEA_TYPES } from '../../wisdom';
 import { formatCurrency } from '../utils';
 import { getThemeColor } from '../themeUtils';
 import { TeaDetailsModal } from './TeaDetailsModal';
@@ -38,7 +39,8 @@ export const TeaTable: React.FC<TeaTableProps> = ({
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [sortConfig, setSortConfig] = useState<{ key: keyof Product; direction: 'asc' | 'desc' }>({ key: 'productName', direction: 'asc' });
 
-  const teaTypes: ProductType[] = ['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Sheng', 'Shou', 'Dark', 'Herbal', 'Misc'];
+  // 'Misc' composed on top of the shared wisdom vocabulary. See docs/TEA_WISDOM_BASE.md.
+  const teaTypes: ProductType[] = [...TEA_TYPES, 'Misc'];
 
   const activeProducts = useMemo(() => {
     if (showAll) return products;

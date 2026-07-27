@@ -1,6 +1,13 @@
-export type ProductType = 'Green' | 'Yellow' | 'White' | 'Oolong' | 'Red' | 'Dark' | 'Sheng' | 'Shou' | 'Herbal' | 'Teaware' | 'Misc' | 'MISSING_TYPE';
+import type { TeaType, TeaForm as WisdomTeaForm } from '../wisdom';
 
-export type TeaForm = 'Loose' | 'Cake' | 'Tuo' | 'Brick' | 'Rolled' | 'Ball' | 'Powder' | 'Bag' | 'Other';
+// Non-tea categories (Teaware, Misc) plus the "type not yet set" sentinel are
+// composed on top of the wisdom vocabulary rather than redeclared. See
+// docs/TEA_WISDOM_BASE.md.
+export type ProductType = TeaType | 'Teaware' | 'Misc' | 'MISSING_TYPE';
+
+// Admin inventory tracks a few physical forms the shared wisdom vocabulary
+// doesn't (Rolled, Powder, Other) — composed on top rather than redeclared.
+export type TeaForm = WisdomTeaForm | 'Rolled' | 'Powder' | 'Other';
 
 export type Currency = 'USD' | 'NT' | 'Yuan' | 'IDR' | 'JPY' | 'MYR' | 'HKD' | 'AUD' | 'UNK';
 
