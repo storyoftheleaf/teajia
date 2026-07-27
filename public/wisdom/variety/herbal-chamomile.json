@@ -1,0 +1,11 @@
+{
+  "id": "herbal-chamomile",
+  "type": "Herbal",
+  "name": "Chamomile",
+  "chineseName": "洋甘菊",
+  "altNames": [],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

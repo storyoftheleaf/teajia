@@ -1,0 +1,11 @@
+{
+  "id": "pu-er",
+  "name": "Pu'er",
+  "country": "China",
+  "province": null,
+  "altitude": null,
+  "climate": null,
+  "holding": "regions",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "nara-prefecture",
+  "name": "Nara Prefecture",
+  "country": "Japan",
+  "province": "Nara",
+  "altitude": "200-800m",
+  "climate": "Historic region with traditional tea cultivation",
+  "holding": "regions",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

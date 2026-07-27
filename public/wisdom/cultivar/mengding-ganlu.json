@@ -1,0 +1,38 @@
+{
+  "id": "mengding-ganlu",
+  "name": "Mengding Ganlu",
+  "chineseName": "蒙顶甘露",
+  "altNames": [
+    "Sweet Dew"
+  ],
+  "originCountry": "China",
+  "originRegion": "Mengding Mountain, Sichuan",
+  "developedYear": 0,
+  "parentage": "Traditionally a local heirloom population; modern production often uses clones like 'Mengshan #9'.",
+  "description": "'Mengding Sweet Dew'. An ancient and celebrated green tea from Mengding Mountain in Sichuan, often cited as one of the oldest forms of tribute tea in China. It is known for its delicate, tightly rolled leaves covered in fine down, and a fresh, complex flavor profile that balances umami, sweetness, and a lasting floral aroma.",
+  "plantType": "Small-leaf, downy-bud cultivar, adapted to high-altitude growth (Camellia sinensis var. sinensis).",
+  "environment": "Grows on the perennially misty and rainy slopes of Mengding Mountain, where the constant cloud cover and rich soil create very tender and flavorful leaves.",
+  "processing": "Processing involves a sequence of pan-firing to kill-green, followed by multiple stages of intricate hand-rolling and drying. This complex rolling technique is what creates the tightly twisted shape and develops the tea's deep flavor.",
+  "oxidation": "Zero oxidation. The leaves are quickly pan-fired after harvest to halt all oxidation.",
+  "roasting": "No roasting. The tea is dried using the heat from the pan-firing and subsequent drying steps. The focus is on shape and preserving fresh flavor, not on a baked or roasted character.",
+  "versatility": "Highly specialized. The cultivar is intrinsically linked to the Mengding Ganlu style of processed green tea.",
+  "distribution": {
+    "china": [
+      "Sichuan Province (Ya'an - Mengding Mountain)"
+    ]
+  },
+  "expressions": {
+    "Green Tea": {
+      "Mengding Ganlu": "A very fine green tea made from tender buds and leaves. The processing involves a three-stage rolling and drying process to create its twisted, downy appearance and lock in its aroma."
+    }
+  },
+  "sensory": {
+    "aroma": "Toasted nuts, sweet florals, fresh vegetal notes",
+    "flavor": "Lasting sweetness, distinct umami, and a clean, refreshing aftertaste.",
+    "mouthfeel_liquor": "Smooth, mellow, and thick, with a rich texture from the abundant leaf hairs. The liquor is a clear, bright yellow-green."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

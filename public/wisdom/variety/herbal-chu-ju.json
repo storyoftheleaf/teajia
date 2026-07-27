@@ -1,0 +1,13 @@
+{
+  "id": "herbal-chu-ju",
+  "type": "Herbal",
+  "name": "Chu Ju",
+  "chineseName": "滁菊",
+  "altNames": [
+    "Chu Chrysanthemum"
+  ],
+  "region": "Chuzhou",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

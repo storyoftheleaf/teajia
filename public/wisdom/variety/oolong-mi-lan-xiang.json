@@ -1,0 +1,13 @@
+{
+  "id": "oolong-mi-lan-xiang",
+  "type": "Oolong",
+  "name": "Mi Lan Xiang",
+  "chineseName": "蜜兰香",
+  "altNames": [
+    "Honey Orchid Dan Cong"
+  ],
+  "region": "Phoenix Mountain",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "herbal-jin-yin-hua",
+  "type": "Herbal",
+  "name": "Jin Yin Hua",
+  "chineseName": "金银花",
+  "altNames": [
+    "Honeysuckle Flower"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

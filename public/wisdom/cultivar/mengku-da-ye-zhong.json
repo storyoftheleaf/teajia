@@ -1,0 +1,38 @@
+{
+  "id": "mengku-da-ye-zhong",
+  "name": "Mengku Da Ye Zhong",
+  "chineseName": "勐库大叶种",
+  "altNames": [
+    "Mengku Broad Leaf"
+  ],
+  "originCountry": "China",
+  "originRegion": "Lincang (Mengku), Yunnan",
+  "developedYear": 0,
+  "parentage": "A distinct local heirloom population of C. sinensis var. assamica.",
+  "description": "'Mengku Big Leaf Variety'. A highly sought-after sub-variety of the Da Ye (Assamica) varietal, native to the Mengku region of Lincang, Yunnan. It is celebrated for its 'dual characteristics' of strong bitterness and powerful aroma, combined with a thick texture and an exceptionally fast and intense returning sweetness ('huigan').",
+  "plantType": "Large, robust arbor tree with large, leathery leaves that have prominent veins (Camellia sinensis var. assamica).",
+  "environment": "Grows in the high-altitude, mountainous region of Mengku, particularly around Bingdao (Ice Island), which is famous for this cultivar.",
+  "processing": "Processing is identical to other Sheng Pu'er teas: pan-firing to kill-green, rolling to shape, and crucially, sun-drying to preserve the enzymes necessary for long-term aging and fermentation.",
+  "oxidation": "Minimal oxidation (<5%) from processing, just like other Sheng Pu'er. The true transformation happens over years of aging.",
+  "roasting": "No roasting. Sun-drying is the defining and required final step before the tea is steamed and compressed into cakes.",
+  "versatility": "Extremely specialized. The Mengku Da Ye cultivar is one of the most prized materials for high-end, single-origin Sheng Pu'er.",
+  "distribution": {
+    "china": [
+      "Yunnan Province (Lincang Prefecture, specifically Mengku Township)"
+    ]
+  },
+  "expressions": {
+    "Sheng (Raw) Pu'er": {
+      "Mengku Pu'er": "Its exclusive expression. A powerful raw Pu'er prized for its strong character, excellent aging potential, and perfect balance of bitterness and sweetness."
+    }
+  },
+  "sensory": {
+    "aroma": "Powerful and penetrating floral and honey fragrance",
+    "flavor": "Initially strong and bitter, but it rapidly transforms into an intense, profound, and long-lasting sweetness (huigan).",
+    "mouthfeel_liquor": "Thick, viscous, and powerful, with a strong energetic sensation ('cha qi'). The liquor is a bright, clear golden-yellow."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

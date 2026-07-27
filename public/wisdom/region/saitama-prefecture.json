@@ -1,0 +1,11 @@
+{
+  "id": "saitama-prefecture",
+  "name": "Saitama Prefecture",
+  "country": "Japan",
+  "province": "Saitama",
+  "altitude": "100-400m",
+  "climate": "Temperate region near Tokyo with tea cultivation",
+  "holding": "regions",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

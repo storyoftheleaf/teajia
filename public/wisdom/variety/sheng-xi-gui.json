@@ -1,0 +1,14 @@
+{
+  "id": "sheng-xi-gui",
+  "type": "Sheng",
+  "name": "Xi Gui",
+  "chineseName": "昔归",
+  "altNames": [
+    "Xige",
+    "Xigu"
+  ],
+  "region": "Lincang",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

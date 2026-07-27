@@ -1,0 +1,19 @@
+{
+  "id": "kang-brick",
+  "name": "Kang Brick",
+  "chineseName": "康磚",
+  "altNames": [
+    "Kang Zhuan",
+    "Ya'an Kang Brick",
+    "Border Tea",
+    "Zang Cha"
+  ],
+  "appliesToTypes": [
+    "Dark"
+  ],
+  "region": "Ya'an, Sichuan",
+  "description": "A traditional Tibetan border tea (藏茶) pressed for centuries in Ya'an, Sichuan, as tea for the Tea Horse Road trade to Tibet. Made from mature, coarse leaf and stems, heavily fermented and compressed into a dense brick built to survive transport by yak caravan.",
+  "holding": "styles",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

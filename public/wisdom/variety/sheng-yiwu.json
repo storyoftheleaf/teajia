@@ -1,0 +1,11 @@
+{
+  "id": "sheng-yiwu",
+  "type": "Sheng",
+  "name": "Yiwu",
+  "chineseName": "易武",
+  "altNames": [],
+  "region": "Yiwu",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

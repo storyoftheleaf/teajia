@@ -1,0 +1,14 @@
+{
+  "id": "red-ruby-18",
+  "type": "Red",
+  "name": "Ruby 18",
+  "chineseName": "红玉",
+  "altNames": [
+    "Hong Yu",
+    "Red Jade"
+  ],
+  "region": "Sun Moon Lake",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

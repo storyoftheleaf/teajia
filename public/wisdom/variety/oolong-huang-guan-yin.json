@@ -1,0 +1,13 @@
+{
+  "id": "oolong-huang-guan-yin",
+  "type": "Oolong",
+  "name": "Huang Guan Yin",
+  "chineseName": "黄观音",
+  "altNames": [
+    "Yellow Guan Yin"
+  ],
+  "region": "Wuyi",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "oolong-jiang-hua-xiang",
+  "type": "Oolong",
+  "name": "Jiang Hua Xiang",
+  "chineseName": "姜花香",
+  "altNames": [
+    "Ginger Flower Dan Cong"
+  ],
+  "region": "Phoenix Mountain",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

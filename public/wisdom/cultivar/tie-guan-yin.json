@@ -1,0 +1,59 @@
+{
+  "id": "tie-guan-yin",
+  "name": "Tie Guan Yin",
+  "chineseName": "铁观音",
+  "altNames": [
+    "Iron Goddess of Mercy",
+    "TGY",
+    "Ti Kuan Yin",
+    "Hong Xin Wai Wei Tao (technical name)"
+  ],
+  "originCountry": "China",
+  "originRegion": "Anxi (Fujian)",
+  "developedYear": 18,
+  "parentage": "N/A (Selected from the native Anxi heirloom population)",
+  "description": "'Iron Goddess of Mercy'. A legendary oolong from Anxi, China, celebrated for its complex floral aroma and lingering sweet aftertaste, known as 'Guan Yin Yun'. Its robust leaves can withstand intricate processing, yielding two distinct styles: a modern, vibrantly floral green style and a traditional, deeply roasted style with notes of fruit and caramel.",
+  "plantType": "Semi-upright arbor type with strong, reddish branches (Camellia sinensis var. sinensis). Known for its resilience.",
+  "environment": "Prefers the acidic, iron-rich red soil and misty, humid climate of Anxi's mid-level mountains (300-1,000m).",
+  "processing": "The cultivar's thick, durable leaves are its greatest asset, able to withstand the repeated bruising, shaking, and rolling required to develop its complex aromatics without breaking. This makes it ideal for both light and heavy processing.",
+  "oxidation": "For the modern green style, oxidation is kept low (15-25%). For the traditional baked style, oxidation is higher (30-50%), which develops a fruity base that can stand up to the heavy roasting.",
+  "roasting": "The green style is unroasted or given a very light drying bake. The traditional style is defined by its 'hong bei' (烘焙) charcoal roasting, which can take place over many hours at low temperatures to build deep, complex flavors.",
+  "versatility": "Highly versatile within the oolong category. Its two primary styles are worlds apart. It can also be processed into a unique, floral black tea, though this is less common.",
+  "distribution": {
+    "china": [
+      "Fujian Province (Anxi - its home region)",
+      "Fujian Province (other areas)",
+      "Guangdong Province"
+    ],
+    "taiwan": [
+      "Taipei City (Muzha district)",
+      "Nantou County"
+    ],
+    "thailand": [
+      "Chiang Rai Province"
+    ],
+    "vietnam": [
+      "Lam Dong Province"
+    ]
+  },
+  "expressions": {
+    "Modern Green Style Oolong": {
+      "Anxi Tie Guan Yin": "Lightly oxidized and unroasted, emphasizing a vibrant, creamy, and intensely floral character like fresh lilac and orchid."
+    },
+    "Traditional Baked Style Oolong": {
+      "Anxi Tie Guan Yin (Nong Xiang)": "Medium oxidized and subjected to multiple, slow charcoal roasts, creating deep notes of roasted nuts, apricot, and a warming mineral finish."
+    },
+    "Taiwanese Style Oolong": {
+      "Muzha Tie Guan Yin": "A heavily oxidized and roasted style with a distinct ripe fruit acidity and robust character."
+    }
+  },
+  "sensory": {
+    "aroma": "Intense Orchid, Lilac, Osmanthus, Toasted Grains (if roasted)",
+    "flavor": "Creamy, Buttery, sweet vegetal notes (green style), or Ripe Apricot, Caramel, Mineral (baked style)",
+    "mouthfeel_liquor": "Thick, smooth, and full-bodied with a signature long, sweet, and cooling finish (Guan Yin Yun). Liquor is pale jade to golden amber."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

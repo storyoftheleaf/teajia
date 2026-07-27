@@ -1,0 +1,14 @@
+{
+  "id": "red-turkish-black",
+  "type": "Red",
+  "name": "Turkish Black",
+  "chineseName": null,
+  "altNames": [
+    "Rize Cay",
+    "Turkish Cay"
+  ],
+  "region": "Rize",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

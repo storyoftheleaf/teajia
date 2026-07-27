@@ -1,0 +1,11 @@
+{
+  "id": "red-sikkim",
+  "type": "Red",
+  "name": "Sikkim",
+  "chineseName": null,
+  "altNames": [],
+  "region": "Sikkim",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

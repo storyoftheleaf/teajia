@@ -1,0 +1,14 @@
+{
+  "id": "green-kukicha",
+  "type": "Green",
+  "name": "Kukicha",
+  "chineseName": "茎茶",
+  "altNames": [
+    "Twig Tea",
+    "Bocha"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

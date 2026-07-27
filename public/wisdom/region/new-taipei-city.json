@@ -1,0 +1,11 @@
+{
+  "id": "new-taipei-city",
+  "name": "New Taipei City",
+  "country": "Taiwan",
+  "province": "New Taipei",
+  "altitude": "100-800m",
+  "climate": "Northern Taiwan with suitable climate for green tea and oolong",
+  "holding": "regions",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

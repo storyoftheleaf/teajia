@@ -1,0 +1,38 @@
+{
+  "id": "yiwu-da-ye-zhong",
+  "name": "Yiwu Da Ye Zhong",
+  "chineseName": "易武大叶种",
+  "altNames": [
+    "Yiwu Broad Leaf"
+  ],
+  "originCountry": "China",
+  "originRegion": "Xishuangbanna (Yiwu), Yunnan",
+  "developedYear": 0,
+  "parentage": "A distinct local heirloom population of C. sinensis var. assamica.",
+  "description": "'Yiwu Big Leaf Variety'. A famous sub-variety of the Da Ye (Assamica) varietal from the historic Yiwu mountains, one of the original Six Great Tea Mountains. In contrast to the power of Mengku, Yiwu teas are prized for their exceptional softness, elegance, and 'rou' (柔) character. They are known for having very low bitterness, a thick, soupy texture, and a prominent floral fragrance.",
+  "plantType": "Large arbor trees, often with a more sprawling growth habit and very large leaves (Camellia sinensis var. assamica).",
+  "environment": "Grows in the protected, high-humidity, and biodiverse forests of the Yiwu mountain range, which contributes to its elegant and gentle nature.",
+  "processing": "Processing follows the traditional Sheng Pu'er method (pan-fire, roll, sun-dry). The skill lies in preserving the tea's inherent softness and aromatic delicacy throughout the process.",
+  "oxidation": "Minimal oxidation (<5%) from processing. The focus is on preserving the gentle, floral nature of the fresh leaves for aging.",
+  "roasting": "No roasting. Sun-drying is the essential final step that defines Pu'er and allows the tea to age gracefully over decades.",
+  "versatility": "Extremely specialized. Yiwu Da Ye is a prized 'terroir-specific' cultivar used exclusively for making soft, elegant, and highly sought-after Sheng Pu'er.",
+  "distribution": {
+    "china": [
+      "Yunnan Province (Xishuangbanna Prefecture, specifically Yiwu Township)"
+    ]
+  },
+  "expressions": {
+    "Sheng (Raw) Pu'er": {
+      "Yiwu Pu'er": "Its only expression. An elegant, soft, and highly aromatic raw Pu'er celebrated for its smooth texture and incredible aging potential into a very refined tea."
+    }
+  },
+  "sensory": {
+    "aroma": "Elegant, high-pitched floral notes (wild orchid), honey, rock sugar",
+    "flavor": "Very soft, gentle, and sweet with minimal bitterness and a long, cooling, sweet aftertaste.",
+    "mouthfeel_liquor": "Exceptionally thick, smooth, and soupy ('tang gan'). Coats the mouth and throat. The liquor is a clear, bright golden-yellow."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

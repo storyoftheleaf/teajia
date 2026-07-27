@@ -1,0 +1,14 @@
+{
+  "id": "sheng-bing-dao",
+  "type": "Sheng",
+  "name": "Bing Dao",
+  "chineseName": "冰岛",
+  "altNames": [
+    "Bingdao",
+    "Ice Island"
+  ],
+  "region": "Lincang",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

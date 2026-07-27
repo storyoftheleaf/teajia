@@ -1,0 +1,11 @@
+{
+  "id": "miaoli-county",
+  "name": "Miaoli County",
+  "country": "Taiwan",
+  "province": "Miaoli",
+  "altitude": "300-1000m",
+  "climate": "Central Taiwan hills suitable for various tea types",
+  "holding": "regions",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

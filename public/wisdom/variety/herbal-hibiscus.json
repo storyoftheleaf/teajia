@@ -1,0 +1,14 @@
+{
+  "id": "herbal-hibiscus",
+  "type": "Herbal",
+  "name": "Hibiscus",
+  "chineseName": "洛神花",
+  "altNames": [
+    "Luo Shen Hua",
+    "Roselle"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

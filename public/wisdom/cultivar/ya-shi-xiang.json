@@ -1,0 +1,39 @@
+{
+  "id": "ya-shi-xiang",
+  "name": "Ya Shi Xiang",
+  "chineseName": "鸭屎香",
+  "altNames": [
+    "Duck Shit Dan Cong",
+    "Yin Hua Xiang (Honeysuckle Fragrance - a modern marketing name)"
+  ],
+  "originCountry": "China",
+  "originRegion": "Phoenix Mountains (Guangdong)",
+  "developedYear": 1801,
+  "parentage": "Selected from the local Phoenix Mountain heirloom population.",
+  "description": "'Duck Shit Fragrance'. A Phoenix Dan Cong oolong with a famously off-putting name that conceals a sublimely beautiful tea. It is celebrated for its uniquely creamy mouthfeel and an intense, intoxicating floral aroma of gardenia and honeysuckle, which is completely at odds with its rustic name.",
+  "plantType": "Upright, vigorous arbor with dark, slightly larger leaves (Camellia sinensis var. sinensis).",
+  "environment": "Grows in the high-altitude terroir of the Phoenix Mountains. Its unique creamy character is said to come from the specific soil of its home village.",
+  "processing": "The processing of Ya Shi Xiang is meticulous, with a strong focus on the withering and bruising stages to develop not only the high floral notes but also the compounds that contribute to its exceptionally creamy mouthfeel.",
+  "oxidation": "Oxidation is typically in the medium range (30-45%). This level is crucial for transforming the leaf's potential into the rich, complex, and layered floral-creamy profile it is famous for.",
+  "roasting": "Usually receives a light charcoal roast. The goal is to dry the tea thoroughly and enhance its creamy texture and sweetness without diminishing the high-pitched gardenia and honeysuckle aromatics.",
+  "versatility": "Completely specialized for the Dan Cong oolong style. Its legendary status is entirely built on its unique aroma and texture when processed in this traditional manner.",
+  "distribution": {
+    "china": [
+      "Guangdong Province (Chaozhou - Phoenix Mountains)"
+    ]
+  },
+  "expressions": {
+    "Dan Cong Oolong": {
+      "Ya Shi Xiang Dan Cong": "Its only expression is a medium-oxidized and lightly roasted oolong, with processing focused on developing its signature creamy texture alongside its intense floral aroma."
+    }
+  },
+  "sensory": {
+    "aroma": "Intense Gardenia, Honeysuckle, Jasmine, Cream, Almond Milk",
+    "flavor": "Richly floral, sweet, with a distinct creamy or milky undertone that softens the entire profile.",
+    "mouthfeel_liquor": "Uniquely thick, creamy, and velvety smooth. Coats the mouth with a long, sweet, floral aftertaste. The liquor is a rich golden color."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

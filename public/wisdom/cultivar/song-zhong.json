@@ -1,0 +1,39 @@
+{
+  "id": "song-zhong",
+  "name": "Song Zhong",
+  "chineseName": "宋种",
+  "altNames": [
+    "Song Dynasty Cultivar",
+    "Song Species"
+  ],
+  "originCountry": "China",
+  "originRegion": "Phoenix Mountains (Guangdong)",
+  "developedYear": 960,
+  "parentage": "The original mother tree of all Dan Congs, said to have been growing since the Song Dynasty.",
+  "description": "'Song Dynasty Cultivar'. The apex predator of Phoenix Dan Cong oolongs, Song Zhong refers to teas made from the direct descendants of the oldest known tea tree on Wudong Mountain (reputed to be over 600 years old). It is an incredibly powerful, deep, and complex tea, known for its profound 'cha qi' (tea energy) and a layered flavor profile that can only be achieved through great age and perfect terroir.",
+  "plantType": "Old, gnarled, and often moss-covered arbor trees with highly variable leaf shapes (Camellia sinensis var. sinensis).",
+  "environment": "Grows exclusively on Wudong Mountain, the highest peak in the Phoenix range, in mineral-rich, yellowish-brown soil at very high altitudes (>1100m).",
+  "processing": "Processing tea from such old trees is an immense responsibility. The tea master must use all their skill to translate the raw potential of the leaves into a finished tea that is worthy of its lineage. The process is slow, careful, and traditional.",
+  "oxidation": "Undergoes a deep and complex oxidation process (can be 40-60% or more) that is carefully monitored to develop its multi-layered aromatic profile.",
+  "roasting": "The roasting is deep, slow, and done in multiple stages over charcoal. This complex roasting process is essential for integrating the tea's powerful flavors, smoothing its texture, and creating a tea that will continue to age and improve for years.",
+  "versatility": "The ultimate specialist. Song Zhong represents the highest achievement of the Dan Cong oolong style and is never made in any other way.",
+  "distribution": {
+    "china": [
+      "Guangdong Province (Chaozhou - only from Wudong Mountain)"
+    ]
+  },
+  "expressions": {
+    "Dan Cong Oolong (Grand Cru)": {
+      "Song Zhong Dan Cong": "The pinnacle of Dan Cong. A deeply oxidized and carefully roasted tea that expresses immense complexity, depth, and power. It is not about a single fragrance, but a symphony of aromas."
+    }
+  },
+  "sensory": {
+    "aroma": "Deep and complex; layers of tropical fruit, honey, wild flowers, incense, and wet stone",
+    "flavor": "Profoundly complex, with a powerful mineral backbone, incredible sweetness, and an endless, evolving finish.",
+    "mouthfeel_liquor": "Extremely thick, viscous, and soupy with a powerful warming and energetic sensation ('cha qi'). The liquor is a deep, radiant orange-amber."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

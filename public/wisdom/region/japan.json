@@ -1,0 +1,11 @@
+{
+  "id": "japan",
+  "name": "Japan",
+  "country": "Japan",
+  "province": "Various Prefectures",
+  "altitude": "50-800m",
+  "climate": "Temperate climate with four distinct seasons, ideal for green tea",
+  "holding": "regions",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

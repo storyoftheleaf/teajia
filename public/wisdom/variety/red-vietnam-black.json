@@ -1,0 +1,11 @@
+{
+  "id": "red-vietnam-black",
+  "type": "Red",
+  "name": "Vietnam Black",
+  "chineseName": null,
+  "altNames": [],
+  "region": "Vietnam",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

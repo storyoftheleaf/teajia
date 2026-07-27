@@ -1,0 +1,39 @@
+{
+  "id": "chin-hsin",
+  "name": "Chin Hsin",
+  "chineseName": "沁心",
+  "altNames": [
+    "Soothing Heart",
+    "TRES #22"
+  ],
+  "originCountry": "Taiwan",
+  "originRegion": "Nantou",
+  "developedYear": 2016,
+  "parentage": "(Jin Xuan x Qing Xin) x Cui Yu",
+  "description": "'Soothing Heart'. One of the newest cultivars released by TRES (2016), it was bred for broad appeal, combining the creamy texture of Jin Xuan with the elegant floral notes of Qing Xin. It is a modern, well-rounded cultivar designed for producing high-quality light oolongs.",
+  "plantType": "Upright, vigorous bush with good yield.",
+  "environment": "Adaptable to the mid-altitude oolong-producing regions of Taiwan.",
+  "processing": "Processing aims to capture the best of both its parents, requiring careful withering to develop both the creamy and floral notes simultaneously.",
+  "oxidation": "Undergoes light oxidation (15-30%) to maintain a fresh, aromatic profile.",
+  "roasting": "Unroasted, to preserve the delicate balance of its creamy and floral characteristics.",
+  "versatility": "Specialized for light oolongs. It was bred to be a high-quality, modern oolong and is not intended for other styles.",
+  "distribution": {
+    "taiwan": [
+      "Nantou County"
+    ]
+  },
+  "expressions": {
+    "Oolong Tea (Light Style)": {
+      "Modern Light Oolong": "Designed to be made into a lightly oxidized, unroasted, ball-rolled oolong that is both creamy and floral."
+    }
+  },
+  "sensory": {
+    "aroma": "Creamy, Floral, Buttery",
+    "flavor": "A good balance of Jin Xuan's creaminess and Qing Xin's floral elegance.",
+    "mouthfeel_liquor": "Smooth, full, and creamy. The liquor is a bright, pale gold."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

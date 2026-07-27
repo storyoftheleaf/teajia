@@ -1,0 +1,13 @@
+{
+  "id": "dark-malaysian-stored-dark",
+  "type": "Dark",
+  "name": "Malaysian Stored Dark",
+  "chineseName": null,
+  "altNames": [
+    "Malaysia-stored Heicha"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "gongjian",
+  "name": "Gongjian",
+  "chineseName": "贡尖",
+  "altNames": [
+    "Tribute Tip"
+  ],
+  "appliesToTypes": [
+    "Dark"
+  ],
+  "description": "One of the three traditional grades of loose Anhua dark tea, made from the finest, most tender tips picked in early spring. The other two grades, named alongside it in the source write-up, are Tianjian and Shengjian (neither has its own product in this collection).",
+  "holding": "marks",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

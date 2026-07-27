@@ -1,0 +1,14 @@
+{
+  "id": "oolong-taiwan-honey-black",
+  "type": "Oolong",
+  "name": "Taiwan Honey Black",
+  "chineseName": "蜜香红茶",
+  "altNames": [
+    "Honey Oolong",
+    "Bug-bitten Oolong"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

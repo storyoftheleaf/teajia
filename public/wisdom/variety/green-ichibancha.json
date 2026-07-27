@@ -1,0 +1,13 @@
+{
+  "id": "green-ichibancha",
+  "type": "Green",
+  "name": "Ichibancha",
+  "chineseName": "一番茶",
+  "altNames": [
+    "First Harvest Sencha"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

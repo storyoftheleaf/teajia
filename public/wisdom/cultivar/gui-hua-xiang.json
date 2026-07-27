@@ -1,0 +1,34 @@
+{
+  "id": "gui-hua-xiang",
+  "name": "Gui Hua Xiang",
+  "chineseName": "桂花香",
+  "altNames": [
+    "Osmanthus Dan Cong"
+  ],
+  "originCountry": "China",
+  "originRegion": "Phoenix Mountains (Guangdong)",
+  "developedYear": 1644,
+  "parentage": "One of the ten traditional fragrance types, selected from the native Phoenix Mountain population.",
+  "description": "'Osmanthus Fragrance'. A classic and beloved Phoenix Dan Cong oolong fragrance type. It is celebrated for its delicate, elegant, and very clear aroma of sweet osmanthus flowers. It is less overwhelmingly powerful than Mi Lan Xiang, offering a more refined and purely floral experience.",
+  "plantType": "Medium-sized Dan Cong arbor (Camellia sinensis var. sinensis).",
+  "environment": "Grows in the high-altitude, misty environment of the Phoenix Mountains, which allows for the slow development of its delicate aromatic compounds.",
+  "processing": "delicate fragrance without introducing any heavier",
+  "oxidation": "distracting notes. The withering and bruising steps are carefully managed to hit the perfect aromatic peak.,Undergoes a light-to-medium oxidation (25-35%) to develop its floral character while maintaining a fresh and clean profile.,Receives a very light",
+  "roasting": "low-temperature finishing roast. This is done to stabilize the tea and enhance its sweetness without adding any baked or roasted flavors that would mask the osmanthus scent.,Highly specialized. This is a classic fragrance profile within the Dan Cong oolong family and is not made in any other style.\nJu Duo Zai,锯朵仔,'Saw-leaf'. A rare",
+  "versatility": "old-grove Dan Cong varietal from the Phoenix Mountains",
+  "distribution": {
+    "china": [
+      "Guangdong Province (Chaozhou - Phoenix Mountains)"
+    ]
+  },
+  "expressions": {
+    "Dan Cong Oolong": {
+      "Gui Hua Xiang Dan Cong": "A medium-oxidized and lightly roasted Dan Cong, with processing focused on preserving its pure, singular osmanthus flower aroma."
+    }
+  },
+  "sensory": null,
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

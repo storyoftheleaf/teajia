@@ -1,0 +1,16 @@
+{
+  "id": "golden-bull",
+  "name": "Golden Bull",
+  "chineseName": "金牛",
+  "altNames": [
+    "Jin Niu"
+  ],
+  "producerId": "hengfengyuan",
+  "appliesToTypes": [
+    "Shou"
+  ],
+  "description": "A named product line under the Hengfengyuan producer. The source product carries no prose body, so nothing beyond the name itself is confirmed.",
+  "holding": "marks",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

@@ -1,0 +1,22 @@
+{
+  "id": "wuzhou-tea-factory",
+  "name": "Wuzhou Tea Factory",
+  "chineseName": "梧州茶厂",
+  "altNames": [
+    "San He",
+    "Three Cranes",
+    "三鹤"
+  ],
+  "kind": "factory",
+  "country": "China",
+  "region": "Wuzhou",
+  "founded": 1953,
+  "notableMarks": [
+    "San He (Three Cranes",
+    "三鹤)"
+  ],
+  "description": "Guangxi factory producing liu bao dark tea since 1953, sited along the Xijiang river in Wuzhou. Its San He (Three Cranes) brand is the most recognized name in liu bao and is known for a cleaner, more refined fermentation profile than village-produced liu bao.",
+  "holding": "producers",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

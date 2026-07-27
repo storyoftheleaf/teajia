@@ -1,0 +1,11 @@
+{
+  "id": "dark-yunnan-dark",
+  "type": "Dark",
+  "name": "Yunnan Dark",
+  "chineseName": "云南黑茶",
+  "altNames": [],
+  "region": "Yunnan",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

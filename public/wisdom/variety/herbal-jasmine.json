@@ -1,0 +1,13 @@
+{
+  "id": "herbal-jasmine",
+  "type": "Herbal",
+  "name": "Jasmine",
+  "chineseName": "茉莉花",
+  "altNames": [
+    "Mo Li Hua"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

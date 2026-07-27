@@ -1,0 +1,14 @@
+{
+  "id": "herbal-schisandra",
+  "type": "Herbal",
+  "name": "Schisandra",
+  "chineseName": "五味子",
+  "altNames": [
+    "Wu Wei Zi",
+    "Five Flavor Berry"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

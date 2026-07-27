@@ -1,0 +1,14 @@
+{
+  "id": "kunming-tea-factory",
+  "name": "Kunming Tea Factory",
+  "chineseName": "昆明茶厂",
+  "altNames": [],
+  "kind": "factory",
+  "country": "China",
+  "region": "Yunnan",
+  "notableMarks": [],
+  "description": "State-run Yunnan factory credited, per this collection's own write-up, with developing wo dui (wet-piling) fermentation for shou pu-erh in 1973. Referenced as historical context in one product's write-up rather than confirmed as that product's own producer.",
+  "holding": "producers",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

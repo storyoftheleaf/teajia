@@ -1,0 +1,35 @@
+{
+  "id": "takachiho",
+  "name": "Takachiho",
+  "chineseName": "高千穂",
+  "altNames": [
+    "N/A"
+  ],
+  "originCountry": "Japan",
+  "originRegion": "Miyazaki",
+  "developedYear": 1960,
+  "parentage": "Selected from a native Zairai population.",
+  "description": "A classic cultivar specific to the regions in Kyushu that specialize in 'Kamairicha' or pan-fired green tea. It is prized for its ability to withstand the high heat of pan-firing, producing a green tea with a beautiful nutty and roasted aroma ('kama-ka') that is very different from the vegetal notes of steamed Sencha.",
+  "plantType": "Medium-sized, robust bush adapted to pan-firing (Camellia sinensis var. sinensis).",
+  "environment": "Thrives in the warm climate of southern Kyushu, particularly Miyazaki, the heart of Kamairicha production.",
+  "processing": "the leaves are fired in a hot iron pan or rotating drum",
+  "oxidation": "a technique originally from China. This high",
+  "roasting": "dry heat creates the characteristic nutty aroma.,Zero oxidation. The pan-firing immediately halts all enzymatic activity.,No roasting in the traditional sense. The pan-firing process itself serves to dry the tea and create its signature roasted flavor profile.,Extremely specialized. Takachiho is a cornerstone cultivar for the unique",
+  "versatility": "non-steamed Kamairicha style of Japanese green tea.\nBenifuki,べにふうき,'Red Riches'. Japan's most famous and important black tea cultivar. It is a powerful hybrid of Assamica varieties",
+  "distribution": {
+    "japan": [
+      "Miyazaki",
+      "Kumamoto"
+    ]
+  },
+  "expressions": {
+    "Kamairicha (Pan-Fired Green Tea)": {
+      "Classic Kamairicha": "Its premier expression. A pan-fired green tea with a signature nutty, roasted corn aroma and a refreshing, non-astringent flavor."
+    }
+  },
+  "sensory": null,
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

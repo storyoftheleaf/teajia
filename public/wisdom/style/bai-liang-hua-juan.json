@@ -1,0 +1,17 @@
+{
+  "id": "bai-liang-hua-juan",
+  "name": "Bai Liang",
+  "chineseName": "花卷茶",
+  "altNames": [
+    "Hua Juan",
+    "Hundred Liang Tea"
+  ],
+  "appliesToTypes": [
+    "Dark"
+  ],
+  "region": "Anhua, Hunan",
+  "description": "A monumental Anhua dark tea traditionally wrapped in patterned bamboo bark and pressed into cylindrical columns of over three kilograms, originally produced for the tea-horse trade routes. The hua juan (花卷) name refers to the pattern of the bamboo wrapping.",
+  "holding": "styles",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

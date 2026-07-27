@@ -1,0 +1,38 @@
+{
+  "id": "ju-duo-zai",
+  "name": "Ju Duo Zai",
+  "chineseName": "锯朵仔",
+  "altNames": [
+    "Saw-leaf Dan Cong"
+  ],
+  "originCountry": "China",
+  "originRegion": "Phoenix Mountains (Guangdong)",
+  "developedYear": 0,
+  "parentage": "An old, native Phoenix Mountain varietal.",
+  "description": "'Saw-leaf'. A rare, old-grove Dan Cong varietal from the Phoenix Mountains, named for the sharply serrated, saw-like edges of its leaves. It is a rustic and powerful tea, known for its wild, herbal, and stone fruit character, representing an older, less-manicured style of Dan Cong.",
+  "plantType": "Medium-sized Dan Cong arbor with distinctive, sharply serrated leaves (Camellia sinensis var. sinensis).",
+  "environment": "Grows in the old tea gardens of the Phoenix Mountains, often from trees that are quite old. The specific terroir contributes to its rustic and deep flavor.",
+  "processing": "Processing this old-grove varietal follows traditional methods. The tea master aims to capture the full, complex character of the leaves rather than targeting a single, narrow fragrance profile.",
+  "oxidation": "Undergoes a medium-to-heavy oxidation (40-55%) to develop its deep fruit notes and complex, rustic flavor base.",
+  "roasting": "Typically receives a medium charcoal roast to integrate its powerful flavors, add depth, and ensure the tea will age well.",
+  "versatility": "Highly specialized. Ju Duo Zai is a specific, old-style Dan Cong oolong appreciated for its rustic power and complexity.",
+  "distribution": {
+    "china": [
+      "Guangdong Province (Chaozhou - Phoenix Mountains)"
+    ]
+  },
+  "expressions": {
+    "Dan Cong Oolong": {
+      "Ju Duo Zai Dan Cong": "A traditionally processed Dan Cong oolong where the processing aims to express its wild, deep, and untamed character."
+    }
+  },
+  "sensory": {
+    "aroma": "Wild herbs, stone fruit (apricot), honey, wet stone",
+    "flavor": "Rustic, deep, and mineralic with a complex, slightly wild sweetness and a powerful finish.",
+    "mouthfeel_liquor": "Thick, full-bodied, and powerful, often with a noticeable energetic character. The liquor is a deep golden-amber."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

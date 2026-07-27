@@ -1,0 +1,43 @@
+{
+  "id": "da-yeh-oolong",
+  "name": "Da Yeh Oolong",
+  "chineseName": "大葉烏龍",
+  "altNames": [
+    "Big Leaf Oolong"
+  ],
+  "originCountry": "Taiwan",
+  "originRegion": "Hualien, Yilan",
+  "developedYear": 1901,
+  "parentage": "Derived from Camellia sinensis var. assamica, brought from India.",
+  "description": "'Big Leaf Oolong'. This refers to a large-leaf Assamica varietal that has been cultivated in Taiwan for over a century. While not as famous for oolong as the small-leaf sinensis varieties, it can be crafted into a unique, full-bodied oolong. Its most important role, however, was as the genetic foundation for Taiwan's modern black tea breeding programs, including being a parent of Hong Yu #18.",
+  "plantType": "Large, robust bush or tree with large, drooping leaves (Camellia sinensis var. assamica).",
+  "environment": "Thrives in the hot, humid, and sunny low-altitude regions of eastern Taiwan.",
+  "processing": "As an Assamica varietal, its leaves are rich in polyphenols, making them ideal for full oxidation. They are robust and can withstand heavy rolling to break down cell walls and encourage a strong, malty flavor.",
+  "oxidation": "When made into black tea, it undergoes full oxidation (100%). When made into oolong, it requires heavy oxidation (50-70%) to tame its natural astringency.",
+  "roasting": "No roasting. The tea is typically dried with hot air.",
+  "versatility": "Primarily used for black tea. While it can be made into a niche oolong, its chemical composition and leaf structure are perfectly suited for producing strong, malty black tea.",
+  "distribution": {
+    "taiwan": [
+      "Hualien County",
+      "Yilan County",
+      "Nantou County (as breeding stock)"
+    ]
+  },
+  "expressions": {
+    "Oolong Tea (Niche)": {
+      "Da Yeh Oolong": "A rare style of oolong with a unique, robust, and often fruity character."
+    },
+    "Black Tea": {
+      "Taiwanese Assam": "Its primary use, creating a classic, robust black tea with a malty and sweet flavor, similar to Indian Assam."
+    }
+  },
+  "sensory": {
+    "aroma": "Malty, fruity, honey (as black tea); ripe fruit, woody (as oolong)",
+    "flavor": "Strong, robust, and sweet with a malty character.",
+    "mouthfeel_liquor": "Very full-bodied and thick with a strong presence. The liquor is a deep red (black tea) or dark amber (oolong)."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

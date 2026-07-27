@@ -1,0 +1,17 @@
+{
+  "id": "red-seal",
+  "name": "Red Seal",
+  "chineseName": "紅印",
+  "altNames": [
+    "Hongyin",
+    "Hong Yin"
+  ],
+  "producerId": "china-national-tea-corporation",
+  "appliesToTypes": [
+    "Sheng"
+  ],
+  "description": "One of the most revered designations in pu-erh history, originally referring to cakes marked with a red seal on the wrapper by the China National Tea Corporation. The name persisted for high-grade productions after the original Red Seal era passed.",
+  "holding": "marks",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

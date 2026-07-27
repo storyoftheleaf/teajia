@@ -1,0 +1,13 @@
+{
+  "id": "herbal-dandelion",
+  "type": "Herbal",
+  "name": "Dandelion",
+  "chineseName": "蒲公英",
+  "altNames": [
+    "Pu Gong Ying"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

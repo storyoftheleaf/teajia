@@ -1,0 +1,14 @@
+{
+  "id": "dark-tian-jian",
+  "type": "Dark",
+  "name": "Tian Jian",
+  "chineseName": "天尖",
+  "altNames": [
+    "Sky Tip",
+    "Heaven Tip"
+  ],
+  "region": "Hunan",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

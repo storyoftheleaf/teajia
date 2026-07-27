@@ -1,0 +1,13 @@
+{
+  "id": "dark-liu-an-basket-tea",
+  "type": "Dark",
+  "name": "Liu An Basket Tea",
+  "chineseName": "六安篓茶",
+  "altNames": [
+    "Liu An Heicha"
+  ],
+  "region": "Anhui",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

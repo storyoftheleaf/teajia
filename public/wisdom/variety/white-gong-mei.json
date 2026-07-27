@@ -1,0 +1,13 @@
+{
+  "id": "white-gong-mei",
+  "type": "White",
+  "name": "Gong Mei",
+  "chineseName": "贡眉",
+  "altNames": [
+    "Tribute Eyebrow"
+  ],
+  "region": "Fujian",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

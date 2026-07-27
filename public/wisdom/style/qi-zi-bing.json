@@ -1,0 +1,18 @@
+{
+  "id": "qi-zi-bing",
+  "name": "Qi Zi Bing",
+  "chineseName": "七子饼",
+  "altNames": [
+    "Seven Sons Cake Tea",
+    "Seven-Son Cake"
+  ],
+  "appliesToTypes": [
+    "Sheng",
+    "Shou"
+  ],
+  "region": "Yunnan",
+  "description": "The standard 357-gram pu-erh cake format pressed for over a century, named for the traditional practice of wrapping seven cakes together into one bamboo tong (basket) for trade and transport.",
+  "holding": "styles",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

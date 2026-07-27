@@ -1,0 +1,14 @@
+{
+  "id": "dark-fu-zhuan",
+  "type": "Dark",
+  "name": "Fu Zhuan",
+  "chineseName": "茯砖",
+  "altNames": [
+    "Fu Brick",
+    "Fermented Brick"
+  ],
+  "region": "Hunan",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

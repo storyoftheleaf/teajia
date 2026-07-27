@@ -1,0 +1,13 @@
+{
+  "id": "oolong-tie-luo-han",
+  "type": "Oolong",
+  "name": "Tie Luo Han",
+  "chineseName": "铁罗汉",
+  "altNames": [
+    "Iron Arhat"
+  ],
+  "region": "Wuyi",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

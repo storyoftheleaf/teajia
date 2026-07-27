@@ -1,0 +1,38 @@
+{
+  "id": "bi-luo-chun-qunti",
+  "name": "Bi Luo Chun Qunti",
+  "chineseName": "碧螺春群体",
+  "altNames": [
+    "Dongting Bi Luo Chun"
+  ],
+  "originCountry": "China",
+  "originRegion": "Dongting, Jiangsu",
+  "developedYear": 0,
+  "parentage": "The native, seed-propagated heirloom population of the Dongting mountains.",
+  "description": "'Bi Luo Chun Population'. The original, small-leaf heirloom population from the Dongting mountains, famous for producing one of China's top ten green teas. The bushes are traditionally interplanted with fruit trees (like apricot, plum, and loquat), and the tea is said to absorb their fragrance. The finished tea consists of tiny, downy buds that are hand-rolled into a distinctive spiral shape.",
+  "plantType": "Small, sprawling bushes with a less upright habit (Camellia sinensis var. sinensis).",
+  "environment": "Grows in the unique microclimate of the Dongting peninsula on Lake Tai, where the lake effect moderates temperatures and the soil is ideal. Intercropping with fruit trees is key to the traditional terroir.",
+  "processing": "The processing is incredibly laborious. The tiny, tender buds are pan-fired in a wok and simultaneously hand-rolled into their characteristic tight spiral shape. This requires immense skill to do without crushing the delicate buds.",
+  "oxidation": "Zero oxidation. The tea is pan-fired immediately after being picked to preserve its fresh, vibrant character.",
+  "roasting": "No roasting. The pan-firing process serves to both kill-green and dry the tea.",
+  "versatility": "Completely specialized. This heirloom cultivar is inextricably linked to the unique hand-processing and terroir of Dongting Bi Luo Chun.",
+  "distribution": {
+    "china": [
+      "Jiangsu Province (Suzhou - Dongting East and West mountains)"
+    ]
+  },
+  "expressions": {
+    "Green Tea": {
+      "Dongting Bi Luo Chun": "A very early spring green tea made from tiny, tender, and extremely downy buds. It is pan-fired and hand-rolled into tight spirals."
+    }
+  },
+  "sensory": {
+    "aroma": "Intensely fruity and floral, savory, with a distinct 'xia sha xiang' (frighteningly intense aroma)",
+    "flavor": "Strong umami, sweet, with complex fruity and vegetal notes and a long, refreshing finish.",
+    "mouthfeel_liquor": "Thick, brothy, and very smooth. The abundant white down on the buds creates a rich, soupy texture. The liquor is a bright yellow-green."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

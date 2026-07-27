@@ -1,0 +1,17 @@
+{
+  "id": "gong-ting",
+  "name": "Gong Ting",
+  "chineseName": "宫廷",
+  "altNames": [
+    "Gongting",
+    "Palace Grade"
+  ],
+  "appliesToTypes": [
+    "Oolong",
+    "Shou"
+  ],
+  "description": "A 'palace' or 'imperial court' designation for the highest grade classification within a tea's production, indicating the finest bud or tip material. Seen on shou pu-erh (finest bud material) and on aged Taiwanese oolong (finest buds and leaves).",
+  "holding": "marks",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

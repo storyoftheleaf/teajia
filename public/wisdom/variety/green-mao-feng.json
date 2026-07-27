@@ -1,0 +1,13 @@
+{
+  "id": "green-mao-feng",
+  "type": "Green",
+  "name": "Mao Feng",
+  "chineseName": "毛峰",
+  "altNames": [
+    "Fur Peak"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

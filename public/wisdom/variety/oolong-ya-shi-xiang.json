@@ -1,0 +1,14 @@
+{
+  "id": "oolong-ya-shi-xiang",
+  "type": "Oolong",
+  "name": "Ya Shi Xiang",
+  "chineseName": "鸭屎香",
+  "altNames": [
+    "Duck Shit Aroma",
+    "Ya Shi"
+  ],
+  "region": "Phoenix Mountain",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

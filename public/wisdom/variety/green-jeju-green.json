@@ -1,0 +1,11 @@
+{
+  "id": "green-jeju-green",
+  "type": "Green",
+  "name": "Jeju Green",
+  "chineseName": null,
+  "altNames": [],
+  "region": "Jeju",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

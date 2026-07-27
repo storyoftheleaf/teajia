@@ -1,0 +1,14 @@
+{
+  "id": "white-bai-mu-dan",
+  "type": "White",
+  "name": "Bai Mu Dan",
+  "chineseName": "白牡丹",
+  "altNames": [
+    "White Peony",
+    "Pai Mu Tan"
+  ],
+  "region": "Fujian",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

@@ -1,0 +1,41 @@
+{
+  "id": "inzatsu-131",
+  "name": "Inzatsu 131",
+  "chineseName": "印雑131",
+  "altNames": [
+    "N/A"
+  ],
+  "originCountry": "Japan",
+  "originRegion": "Shizuoka",
+  "developedYear": 1960,
+  "parentage": "Assamica varietal x a native Shizuoka Zairai",
+  "description": "An old and unique Japanese cultivar that is a hybrid of an Assamica variety and a native Zairai. It is known for its exotic, almost foreign aroma that is highly floral and sometimes spicy, reminiscent of teas from Darjeeling or Taiwan. It is a rare cultivar, prized by connoisseurs for its unique character.",
+  "plantType": "Vigorous, semi-upright bush (Camellia sinensis hybrid).",
+  "environment": "Well-suited to the climate of Shizuoka where it was developed.",
+  "processing": "Processing Inzatsu 131 aims to highlight its unique, non-Japanese aroma. The method can be adapted to push it towards a greener or a more oxidized style depending on the tea maker's goal.",
+  "oxidation": "Oxidation can vary. As a Sencha, it is unoxidized. However, it is often allowed a slight oxidation (like an oolong) to further develop its exotic floral and spicy notes.",
+  "roasting": "Roasting is typically light to preserve its unique aroma.",
+  "versatility": "Highly versatile. Its unique hybrid genetics make it a rare cultivar that can be successfully crafted into a wide range of styles, from a unique green tea to a fragrant oolong or black tea.",
+  "distribution": {
+    "japan": [
+      "Shizuoka (very rare)"
+    ]
+  },
+  "expressions": {
+    "Sencha": {
+      "Exotic Sencha": "When made as a green tea, it has a powerful, exotic floral aroma unlike any other Sencha."
+    },
+    "Japanese Black/Oolong": {
+      "Aromatic Teas": "Its Assamica lineage makes it an excellent candidate for producing highly aromatic, lightly oxidized oolongs or even full black teas."
+    }
+  },
+  "sensory": {
+    "aroma": "Exotic flowers, spicy, muscatel, sometimes a hint of citrus",
+    "flavor": "Aromatic, slightly spicy, with a unique floral sweetness.",
+    "mouthfeel_liquor": "Smooth and medium-bodied with a very fragrant and lasting finish. The liquor is often a deeper golden-yellow."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

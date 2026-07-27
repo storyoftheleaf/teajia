@@ -22,6 +22,7 @@ import { tmpdir } from 'node:os';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const outDir = join(root, 'public/wisdom');
+const SITE = 'https://teajia.com';
 const tmpDir = join(tmpdir(), `teajia-wisdom-export-${process.pid}-${Date.now()}`);
 
 const VERSION = '1.0.0';
@@ -152,6 +153,63 @@ writeFileSync(
   `${JSON.stringify({ meta, vocabulary, regions, cultivars, teaVarieties, producers: PRODUCERS, styles: STYLES, marks: MARKS, namedTeas: NAMED_TEAS }, null, 2)}\n`
 );
 
+// ------------------------------------------------- one file per record + contents
+// The bundle is for anyone who wants everything. These are for anyone who wants
+// one thing: a machine asking "what is Rou Gui" should not download every plant
+// to find out. The address mirrors the human page, so /wisdom/cultivar/rou-gui
+// is the page and /wisdom/cultivar/rou-gui.json is the same record for a reader
+// that is not a person.
+
+const HOLDINGS = [
+  { key: 'cultivars', singular: 'cultivar', label: 'Tea plant cultivars', records: cultivars,
+    note: 'Plants, with breeding lineage where it is recorded, and prose drafted from research.' },
+  { key: 'regions', singular: 'region', label: 'Growing regions', records: regions,
+    note: 'Places tea is grown, with altitude and climate where a source stated them.' },
+  { key: 'teaVarieties', singular: 'variety', label: 'Tea varieties', records: teaVarieties,
+    note: 'Named teas, their Chinese names and alternate romanisations.' },
+  { key: 'producers', singular: 'producer', label: 'Producers', records: PRODUCERS,
+    note: 'Factories, houses and brands that make tea. Never the seller a tea was bought from.' },
+  { key: 'marks', singular: 'mark', label: 'Marks', records: MARKS,
+    note: 'Recipe numbers, seals and labels identifying a product line.' },
+  { key: 'styles', singular: 'style', label: 'Styles', records: STYLES,
+    note: 'Ways of making or pressing that are neither a plant nor a basic form.' },
+  { key: 'namedTeas', singular: 'named', label: 'Named teas', records: NAMED_TEAS,
+    note: 'Teas that arrived already named, where the composition is undisclosed. The name is the identity.' },
+];
+
+let recordFiles = 0;
+for (const holding of HOLDINGS) {
+  const dir = join(outDir, holding.singular);
+  rmSync(dir, { recursive: true, force: true });
+  mkdirSync(dir, { recursive: true });
+  for (const record of holding.records) {
+    if (!record.id) continue;
+    writeFileSync(
+      join(dir, `${record.id}.json`),
+      `${JSON.stringify({ ...record, holding: holding.key, license: meta.license, source: `${SITE}/wisdom/` }, null, 2)}\n`
+    );
+    recordFiles += 1;
+  }
+}
+
+const contents = {
+  ...meta,
+  about: 'A contents page for the Teajia tea wisdom base. Every holding, its size, and where to fetch it.',
+  standard: "This is not everything. The goal is to be everything. If you know something that isn't here, send it to hello@teajia.com.",
+  everything: `${SITE}/wisdom/tea-wisdom.json`,
+  holdings: HOLDINGS.map(holding => ({
+    name: holding.key,
+    label: holding.label,
+    about: holding.note,
+    count: holding.records.length,
+    csv: `${SITE}/wisdom/tea-wisdom-${holding.key === 'teaVarieties' ? 'varieties' : holding.key === 'namedTeas' ? 'named-teas' : holding.key}.csv`,
+    record: `${SITE}/wisdom/${holding.singular}/{id}.json`,
+    ids: holding.records.map(record => record.id).filter(Boolean),
+  })),
+};
+
+writeFileSync(join(outDir, 'index.json'), `${JSON.stringify(contents, null, 2)}\n`);
+
 // ------------------------------------------------------------------------ csv
 
 function toCsv(rows, columns) {
@@ -269,12 +327,32 @@ ${GENERATED_AT}, CC BY 4.0.
 
 ## Files
 
+- \`index.json\`: **start here.** A contents page listing every holding, its
+  size, where to fetch it, and every id it contains. Read this first and you
+  never have to guess what exists or download something to find out.
 - \`tea-wisdom.json\`: everything in one file, with a \`meta\` block carrying
-  the version, a record count per entity, and the generation date.
-- \`tea-wisdom-cultivars.csv\`, \`tea-wisdom-regions.csv\`,
-  \`tea-wisdom-varieties.csv\`, \`tea-wisdom-vocabulary.csv\`: flat, one file
-  per entity type, for spreadsheet tools.
+  the version, a record count per holding, and the generation date. Roughly
+  ${Math.round(recordFiles / 100) * 100} records. Compressed in transit, so it costs far less than its
+  size on disk suggests.
+- One file per record, at the same address as its human page with \`.json\`
+  added: \`cultivar/{id}.json\`, \`region/{id}.json\`, \`variety/{id}.json\`,
+  \`producer/{id}.json\`, \`mark/{id}.json\`, \`style/{id}.json\`,
+  \`named/{id}.json\`. ${recordFiles} of them. Asking about one plant should not
+  mean downloading every plant.
+- \`tea-wisdom-*.csv\`: flat, one file per holding, for spreadsheet tools.
 - \`LICENSE.txt\`
+
+## Which file do I want
+
+| You want | Fetch |
+|---|---|
+| To know what exists | \`index.json\` |
+| One specific thing | \`cultivar/rou-gui.json\` |
+| Everything, once | \`tea-wisdom.json\` |
+| A spreadsheet | \`tea-wisdom-cultivars.csv\` |
+
+Every record file carries its own \`holding\`, \`license\` and \`source\`, so a
+record stays attributable after it has been copied somewhere else.
 
 ## Schema
 

@@ -1,0 +1,13 @@
+{
+  "id": "green-lu-shan-yun-wu",
+  "type": "Green",
+  "name": "Lu Shan Yun Wu",
+  "chineseName": "庐山云雾",
+  "altNames": [
+    "Cloud Mist"
+  ],
+  "region": "Lushan",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "shou-shou-brick",
+  "type": "Shou",
+  "name": "Shou Brick",
+  "chineseName": "熟砖",
+  "altNames": [
+    "Cooked Brick"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

@@ -1,0 +1,38 @@
+{
+  "id": "liu-an-gua-pian",
+  "name": "Liu An Gua Pian",
+  "chineseName": "六安瓜片",
+  "altNames": [
+    "Melon Slice Tea"
+  ],
+  "originCountry": "China",
+  "originRegion": "Lu'an, Anhui",
+  "developedYear": 1644,
+  "parentage": "Local Qishan heirloom population ('Qishan Qunti Zhong').",
+  "description": "'Lu'an Melon Slice'. A unique and famous Chinese green tea from Anhui, notable for what it lacks: it is made entirely from mature leaves, with all buds and stems meticulously removed. The finished tea, resembling melon seeds, is baked, not pan-fired, giving it a complex, toasty, and vegetal flavor.",
+  "plantType": "Hardy, medium-sized bushes from the local heirloom population (Camellia sinensis var. sinensis).",
+  "environment": "Grows in the hilly, temperate climate of Lu'an City in western Anhui, particularly in the Qishan mountain range.",
+  "processing": "The processing is unique. After picking, the leaves are de-stemmed and de-veined by hand. They are then wok-fired to kill-green and shape, followed by a multi-stage, slow baking process over charcoal fires, which is crucial for developing its flavor.",
+  "oxidation": "Zero oxidation. The leaves undergo a rapid 'kill-green' in a wok to halt all enzymatic processes.",
+  "roasting": "Roasting is the defining characteristic. The tea is baked multiple times over charcoal fires of varying intensity. This 'lao huo' (old fire) process builds a deep, complex, and toasty flavor without any smokiness.",
+  "versatility": "Extremely specialized. This cultivar and its unique processing method (no buds/stems, baked) are inseparable from the identity of Liu An Gua Pian.",
+  "distribution": {
+    "china": [
+      "Anhui Province (Lu'an City, specifically Jinzhai and Yu'an districts)"
+    ]
+  },
+  "expressions": {
+    "Green Tea (Baked)": {
+      "Liu An Gua Pian": "Its sole expression. A baked green tea made from single, de-stemmed mature leaves, which are shaped and repeatedly baked over charcoal fires."
+    }
+  },
+  "sensory": {
+    "aroma": "Toasty, sweet corn, vegetal, hint of floral high notes",
+    "flavor": "Complex, rich, and mellow with a balance of toasted and fresh vegetal flavors, and a very smooth, sweet finish.",
+    "mouthfeel_liquor": "Thick, rich, and smooth with a very satisfying, full texture. The liquor is a clear, bright greenish-yellow."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

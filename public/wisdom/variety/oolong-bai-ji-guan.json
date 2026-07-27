@@ -1,0 +1,13 @@
+{
+  "id": "oolong-bai-ji-guan",
+  "type": "Oolong",
+  "name": "Bai Ji Guan",
+  "chineseName": "白鸡冠",
+  "altNames": [
+    "White Cockscomb"
+  ],
+  "region": "Wuyi",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

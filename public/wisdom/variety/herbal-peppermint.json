@@ -1,0 +1,13 @@
+{
+  "id": "herbal-peppermint",
+  "type": "Herbal",
+  "name": "Peppermint",
+  "chineseName": "薄荷",
+  "altNames": [
+    "Bo He"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

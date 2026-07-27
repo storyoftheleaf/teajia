@@ -1,0 +1,41 @@
+{
+  "id": "zhenghe-da-bai",
+  "name": "Zhenghe Da Bai",
+  "chineseName": "政和大白",
+  "altNames": [
+    "Hua Cha #2 (technical name)"
+  ],
+  "originCountry": "China",
+  "originRegion": "Zhenghe (Fujian)",
+  "developedYear": 1890,
+  "parentage": "Selected from the native Zhenghe heirloom population.",
+  "description": "'Zhenghe Big White'. A close cousin to Fuding Da Bai, this cultivar is the foundation of white tea from the inland Zhenghe region. It is known for producing white teas that are fuller-bodied, darker in color, and deeper in flavor compared to those from Fuding, often with notes of dried fruit and wood. It is also a key cultivar for some Fujian black teas.",
+  "plantType": "Vigorous, semi-arbor type with a later budding time than Fuding Da Bai (Camellia sinensis var. sinensis).",
+  "environment": "Thrives in the cooler, high-altitude, and foggy inland environment of Zhenghe County. The longer growing cycle contributes to its deeper flavor accumulation.",
+  "processing": "The processing for Zhenghe white tea is similar to Fuding (long withering, gentle drying), but the later-budding, slower-growing nature of the cultivar results in a different final product. The leaves accumulate different compounds, leading to a deeper flavor.",
+  "oxidation": "Undergoes a slightly higher degree of natural oxidation during its longer withering process compared to Fuding teas, which contributes to its darker color and deeper flavor profile.",
+  "roasting": "Like other white teas, it is not roasted. The final step is a thorough, low-temperature drying.",
+  "versatility": "Quite versatile. It is a star performer for a distinct style of white tea and is also one of the classic, foundational cultivars for traditional Fujian black tea (Congou/Gongfu style).",
+  "distribution": {
+    "china": [
+      "Fujian Province (Zhenghe County and surrounding inland areas)"
+    ]
+  },
+  "expressions": {
+    "White Tea": {
+      "Zhenghe Silver Needle & White Peony": "These teas are known for being deeper, often with notes of dark fruit, hay, and a fuller, rounder mouthfeel than their Fuding counterparts."
+    },
+    "Black Tea": {
+      "Panyong Congou": "This cultivar is traditionally used to make this classic Fujian black tea, known for its smooth, sweet profile."
+    }
+  },
+  "sensory": {
+    "aroma": "Dried date, autumn leaves, subtle woodiness, hay",
+    "flavor": "Deeper natural sweetness, hints of dark fruit (fig, date), and a slightly earthy undertone.",
+    "mouthfeel_liquor": "Fuller-bodied and rounder than Fuding white teas, with a smooth, lasting finish. The liquor is a deeper golden-amber color."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

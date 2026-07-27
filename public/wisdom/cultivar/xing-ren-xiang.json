@@ -1,0 +1,38 @@
+{
+  "id": "xing-ren-xiang",
+  "name": "Xing Ren Xiang",
+  "chineseName": "杏仁香",
+  "altNames": [
+    "Almond Dan Cong"
+  ],
+  "originCountry": "China",
+  "originRegion": "Phoenix Mountains (Guangdong)",
+  "developedYear": 1644,
+  "parentage": "One of the ten traditional fragrance types, selected from the native Phoenix Mountain population.",
+  "description": "'Almond Fragrance'. A classic and distinct Phoenix Dan Cong oolong fragrance type. It is prized for its clear, focused, and unmistakable aroma and flavor of bitter almond, marzipan, and apricot kernel. It offers a unique, nutty departure from the more common floral or fruity Dan Cong profiles.",
+  "plantType": "Medium-sized arbor with ovate, dark green leaves (Camellia sinensis var. sinensis).",
+  "environment": "Grows in the high-altitude, mineral-rich soils of the Phoenix Mountains, which provide the base texture and sweetness for its nutty profile to emerge.",
+  "processing": "The key to producing Xing Ren Xiang is identifying the specific trees that carry this genetic trait and then processing them in a way that highlights it. The bruising and oxidation must be managed to favor the development of these specific nutty aromatic compounds.",
+  "oxidation": "Undergoes a standard medium oxidation (30-45%) for Dan Cong, which provides the necessary foundation for its unique flavor profile to develop fully.",
+  "roasting": "The roast for Xing Ren Xiang is often a bit heavier than for very floral Dan Congs. A medium roast helps to enhance the nutty, toasted character and integrate it with the tea's natural sweetness and minerality.",
+  "versatility": "Highly specialized. This is a classic, specific fragrance profile within the Dan Cong oolong family and is not made in any other style.",
+  "distribution": {
+    "china": [
+      "Guangdong Province (Chaozhou - Phoenix Mountains)"
+    ]
+  },
+  "expressions": {
+    "Dan Cong Oolong": {
+      "Xing Ren Xiang Dan Cong": "A medium-oxidized and roasted Dan Cong where the processing is carefully controlled to bring out the specific almond-like aromatic compounds."
+    }
+  },
+  "sensory": {
+    "aroma": "Clear and focused Bitter Almond, Marzipan, Apricot Kernel",
+    "flavor": "Nutty, sweet, with a distinct almond-like character and a clean, pleasant bitterness in the finish.",
+    "mouthfeel_liquor": "Smooth, medium-to-full-bodied with a unique, slightly astringent finish that enhances its nutty character. The liquor is a bright golden-amber."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

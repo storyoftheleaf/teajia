@@ -29,12 +29,32 @@ Teajia Tea Wisdom Base (teajia.com), version 1.0.0, generated
 
 ## Files
 
+- `index.json`: **start here.** A contents page listing every holding, its
+  size, where to fetch it, and every id it contains. Read this first and you
+  never have to guess what exists or download something to find out.
 - `tea-wisdom.json`: everything in one file, with a `meta` block carrying
-  the version, a record count per entity, and the generation date.
-- `tea-wisdom-cultivars.csv`, `tea-wisdom-regions.csv`,
-  `tea-wisdom-varieties.csv`, `tea-wisdom-vocabulary.csv`: flat, one file
-  per entity type, for spreadsheet tools.
+  the version, a record count per holding, and the generation date. Roughly
+  600 records. Compressed in transit, so it costs far less than its
+  size on disk suggests.
+- One file per record, at the same address as its human page with `.json`
+  added: `cultivar/{id}.json`, `region/{id}.json`, `variety/{id}.json`,
+  `producer/{id}.json`, `mark/{id}.json`, `style/{id}.json`,
+  `named/{id}.json`. 629 of them. Asking about one plant should not
+  mean downloading every plant.
+- `tea-wisdom-*.csv`: flat, one file per holding, for spreadsheet tools.
 - `LICENSE.txt`
+
+## Which file do I want
+
+| You want | Fetch |
+|---|---|
+| To know what exists | `index.json` |
+| One specific thing | `cultivar/rou-gui.json` |
+| Everything, once | `tea-wisdom.json` |
+| A spreadsheet | `tea-wisdom-cultivars.csv` |
+
+Every record file carries its own `holding`, `license` and `source`, so a
+record stays attributable after it has been copied somewhere else.
 
 ## Schema
 

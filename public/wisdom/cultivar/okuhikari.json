@@ -1,0 +1,39 @@
+{
+  "id": "okuhikari",
+  "name": "Okuhikari",
+  "chineseName": "おくひかり",
+  "altNames": [
+    "Late Light"
+  ],
+  "originCountry": "Japan",
+  "originRegion": "Shizuoka",
+  "developedYear": 1978,
+  "parentage": "Yabukita x a native Shizuoka Zairai",
+  "description": "'Late Light'. A late-budding cultivar with a refreshing, brisk mouthfeel and a distinct floral and woody character that sets it apart from the more common vegetal or umami-driven Senchas. It is a versatile and reliable cultivar for farmers.",
+  "plantType": "Vigorous, late-budding bush (Camellia sinensis var. sinensis).",
+  "environment": "Its late budding makes it a useful cultivar for extending the spring harvest season and avoiding frost. It is adaptable to various climates.",
+  "processing": "Okuhikari is typically processed as a standard Sencha (Chumushi) to maintain the balance of its unique flavor profile.",
+  "oxidation": "Zero oxidation. The leaves are steamed immediately after harvest.",
+  "roasting": "A standard light final drying roast is applied to stabilize the tea and round out its flavors.",
+  "versatility": "Specialized for Sencha. It offers a unique flavor profile that adds diversity to the world of Sencha.",
+  "distribution": {
+    "japan": [
+      "Shizuoka",
+      "other regions"
+    ]
+  },
+  "expressions": {
+    "Sencha": {
+      "Refreshing Sencha": "Its primary use is to produce a Sencha with a unique, brisk, and slightly woody-floral character."
+    }
+  },
+  "sensory": {
+    "aroma": "Floral, woody, fresh, slightly herbaceous",
+    "flavor": "Brisk, clean, and refreshing with a pleasant sweetness and a distinct character.",
+    "mouthfeel_liquor": "Smooth, light-to-medium-bodied with a very clean and uplifting finish. The liquor is a clear, bright green-yellow."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

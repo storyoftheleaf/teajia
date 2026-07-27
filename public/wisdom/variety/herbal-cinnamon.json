@@ -1,0 +1,13 @@
+{
+  "id": "herbal-cinnamon",
+  "type": "Herbal",
+  "name": "Cinnamon",
+  "chineseName": "肉桂",
+  "altNames": [
+    "Rou Gui Bark"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

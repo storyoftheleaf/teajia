@@ -1,0 +1,18 @@
+{
+  "id": "galaxy",
+  "name": "Galaxy",
+  "chineseName": "银河",
+  "altNames": [
+    "Silver River"
+  ],
+  "type": "Oolong",
+  "form": "Loose",
+  "country": "China",
+  "vendor": "HangJia",
+  "provenance": "undisclosed",
+  "tradition": "Chinese private-collection naming",
+  "description": "Galaxy (Yin He) means silver river, the Chinese name for the Milky Way, a cosmic name given to an oolong whose terroir and vintage are unrecorded; only the country of production is stated.",
+  "holding": "namedTeas",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

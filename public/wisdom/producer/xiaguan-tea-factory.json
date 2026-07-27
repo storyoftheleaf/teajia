@@ -1,0 +1,18 @@
+{
+  "id": "xiaguan-tea-factory",
+  "name": "Xiaguan Tea Factory",
+  "chineseName": "下关茶厂",
+  "altNames": [
+    "Xiaguan",
+    "下關茶廠"
+  ],
+  "kind": "factory",
+  "country": "China",
+  "region": "Dali",
+  "founded": 1941,
+  "notableMarks": [],
+  "description": "One of Yunnan's oldest and most important tea factories, based in Dali. Known primarily for tuo cha and tightly compressed iron cakes, with a house style favoring firm compression and an assertive, smoke-tinged character that starts aggressive and opens up with age.",
+  "holding": "producers",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

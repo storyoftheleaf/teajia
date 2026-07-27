@@ -1,0 +1,11 @@
+{
+  "id": "hualien-county",
+  "name": "Hualien County",
+  "country": "Taiwan",
+  "province": "Hualien",
+  "altitude": "300-1500m",
+  "climate": "Eastern Taiwan with mountainous terrain",
+  "holding": "regions",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

@@ -1,0 +1,38 @@
+{
+  "id": "huangshan-qunti-zhong",
+  "name": "Huangshan Qunti Zhong",
+  "chineseName": "黄山群体种",
+  "altNames": [
+    "Huangshan Maofeng"
+  ],
+  "originCountry": "China",
+  "originRegion": "Huangshan, Anhui",
+  "developedYear": 0,
+  "parentage": "The native, seed-propagated heirloom population of the Huangshan scenic area.",
+  "description": "'Huangshan Population'. The local, genetically diverse heirloom population of tea plants from the famous Huangshan (Yellow Mountain) scenic area. This is the authentic material for creating Huangshan Maofeng, a beloved green tea known for its light, sweet, and refreshingly floral character, often with notes of magnolia.",
+  "plantType": "Variable growth habits due to genetic diversity; typically medium-sized bushes (Camellia sinensis var. sinensis).",
+  "environment": "Grows at high altitudes (700-800m) in the cloudy, misty, and cool environment of Huangshan. The rich soil and constant cloud cover create a very sweet and tender leaf.",
+  "processing": "The processing of Huangshan Maofeng is simpler than many famous teas. After a short withering, the leaves undergo a 'kill-green' and shaping process in a large pan, followed by a careful baking process to dry.",
+  "oxidation": "Zero oxidation. The 'kill-green' step is done quickly after harvest to lock in the fresh, vegetal and floral notes of the leaf.",
+  "roasting": "The key step is a low-temperature bake ('hong bei'). Unlike the high heat of pan-firing, this gentle baking process slowly removes moisture while preserving the tea's delicate floral aroma and natural sweetness.",
+  "versatility": "Completely specialized. This heirloom population is used exclusively to make the sweet, floral green tea known as Huangshan Maofeng.",
+  "distribution": {
+    "china": [
+      "Anhui Province (Huangshan - particularly the areas around Taohua Feng (Peach Blossom Peak))"
+    ]
+  },
+  "expressions": {
+    "Green Tea": {
+      "Huangshan Maofeng": "Its sole expression. A gently processed green tea consisting of a bud and one or two leaves. It is lightly baked rather than pan-fired, preserving a fresh, floral character."
+    }
+  },
+  "sensory": {
+    "aroma": "Fresh cut grass, elegant floral notes like Magnolia and Orchid",
+    "flavor": "Naturally sweet, light, and refreshing with no bitterness and a clean, long-lasting floral aftertaste.",
+    "mouthfeel_liquor": "Smooth, light, and mellow with a very clean texture. The liquor is a clear, pale apricot color."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

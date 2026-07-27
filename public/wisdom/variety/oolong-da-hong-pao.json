@@ -1,0 +1,13 @@
+{
+  "id": "oolong-da-hong-pao",
+  "type": "Oolong",
+  "name": "Da Hong Pao",
+  "chineseName": "大红袍",
+  "altNames": [
+    "Big Red Robe"
+  ],
+  "region": "Wuyi",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

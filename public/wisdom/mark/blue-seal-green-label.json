@@ -1,0 +1,14 @@
+{
+  "id": "blue-seal-green-label",
+  "name": "Blue Seal Green Label",
+  "chineseName": "蓝印绿标",
+  "altNames": [],
+  "producerId": "china-national-tea-corporation",
+  "appliesToTypes": [
+    "Sheng"
+  ],
+  "description": "A colored seal and label designation used by the China National Tea Corporation to classify pu-erh production batches during the era of state-controlled production.",
+  "holding": "marks",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}
