@@ -3,9 +3,10 @@ import { ArrowDown, ArrowUp, ArrowUpDown, Check, ChevronDown, ChevronRight } fro
 import { AnchoredMenu } from '../../../components/shared/AnchoredMenu';
 import { RungTag, rungSummary } from './Rung';
 import { SearchBox } from './SearchBox';
-import { PublicLink, WisdomDetailPanel, WisdomPanelNav } from './WisdomDetailPanel';
+import { PublicLink, WisdomDetailPanel, WisdomPanelNav, WisdomRoving } from './WisdomDetailPanel';
 import type { WisdomUsage } from './usage';
 import {
+  ALL_FOLDED,
   AT_BLOCK,
   AT_FLEX,
   UNGROUPED,
@@ -23,6 +24,7 @@ import {
   type AnyWisdomHolding,
   type WisdomColumn,
   type WisdomEntryUsage,
+  type WisdomGapCtx,
   type WisdomLink,
   type WisdomLinkCtx,
   type WisdomPrefs,
@@ -108,6 +110,18 @@ interface Props {
    * the reader types afterwards is theirs.
    */
   initialQuery?: string;
+  /**
+   * Reports every keystroke back to whoever owns the address.
+   *
+   * Without this the address and the field disagreed from the first character
+   * typed: the address still carried the query the screen was opened with, the
+   * field carried what had been typed since, and a link copied at that moment
+   * sent a colleague to a different list than the one on screen. That is a wrong
+   * answer, not a missing feature, so the field writes back.
+   *
+   * Optional, because the engine still runs standalone with nobody listening.
+   */
+  onQueryChange?: (query: string) => void;
   /** How many products resolve through each entry. Absent until they load. */
   usage?: WisdomUsage;
 }
@@ -134,15 +148,18 @@ const joinDots = (parts: React.ReactNode[]): React.ReactNode =>
     ));
 
 export const WisdomBrowser: React.FC<Props> = ({
-  holding, tabs, selectedId, onSelect, onJump, siblings, prefs, onPrefsChange, initialQuery = '', usage,
+  holding, tabs, selectedId, onSelect, onJump, siblings, prefs, onPrefsChange,
+  initialQuery = '', onQueryChange, usage,
 }) => {
   const [query, setQuery] = useState(initialQuery);
   const nameColumn = holding.columns[0];
 
   /**
-   * A linked query seeds the field once and then lets go. Watching it forever
-   * would fight the reader: the address keeps the query that opened the screen,
-   * while the field keeps whatever has been typed since.
+   * The field is held here and mirrored into the address, rather than read out
+   * of it, so a keystroke never waits on a router round trip. `seeded` is what
+   * the address last said: an arriving query that differs from it is a link
+   * being followed and takes the field; one that matches is the echo of what was
+   * just typed and is ignored.
    */
   const seeded = useRef(initialQuery);
   useEffect(() => {
@@ -151,6 +168,12 @@ export const WisdomBrowser: React.FC<Props> = ({
     setQuery(initialQuery);
   }, [initialQuery]);
 
+  const changeQuery = useCallback((next: string) => {
+    seeded.current = next;
+    setQuery(next);
+    onQueryChange?.(next);
+  }, [onQueryChange]);
+
   // Preferences live with whoever holds them across tab changes; when nobody
   // does, the engine keeps its own copy so it still runs on its own.
   const [ownPrefs, setOwnPrefs] = useState<WisdomPrefs>(() => defaultPrefs(holding));
@@ -158,10 +181,26 @@ export const WisdomBrowser: React.FC<Props> = ({
   const { sort, groupKey } = held;
   const setPrefs = onPrefsChange ?? setOwnPrefs;
 
-  /** Folded sections travel as an array and are used as a set. */
+  /**
+   * Folded sections travel as an array and are used as a set, with one
+   * sentinel: `ALL_FOLDED` means the whole shape, whatever it currently is.
+   * That is both what the reader pressed and three characters in the address
+   * instead of the sixteen country names it would otherwise have to list.
+   */
+  const foldedAll = held.collapsed.length === 1 && held.collapsed[0] === ALL_FOLDED;
   const collapsed = useMemo(() => new Set(held.collapsed), [held.collapsed]);
+  /**
+   * Takes the section rather than its key, because the ungrouped case is one
+   * nameless section holding every row, and "fold the whole shape" must never
+   * mean "hide the list". Absence of a heading is absence of a thing to fold.
+   */
+  const isFolded = useCallback(
+    (section: { key: string; label: string | null }) =>
+      section.label !== null && (foldedAll || collapsed.has(section.key)),
+    [foldedAll, collapsed],
+  );
   const setCollapsed = useCallback(
-    (next: ReadonlySet<string>) => setPrefs({ sort, groupKey, collapsed: [...next] }),
+    (next: readonly string[]) => setPrefs({ sort, groupKey, collapsed: next }),
     [groupKey, setPrefs, sort],
   );
 
@@ -199,10 +238,24 @@ export const WisdomBrowser: React.FC<Props> = ({
     [query, holding, siblings],
   );
 
+  /**
+   * What a gap test may ask about the account, as opposed to about the base.
+   *
+   * Regions is the holding that needs it: a place is a hole when nothing names
+   * it, and the account's own products are part of "nothing". Absent until they
+   * load, which every gap test handles by answering from the base alone, so the
+   * count starts as an over-count and narrows rather than jumping.
+   */
+  const gapCtx = useMemo<WisdomGapCtx | undefined>(() => {
+    if (!usage || usage.total === 0) return undefined;
+    const bucket = usage.byHolding.get(holding.id);
+    return { used: (id: string) => bucket?.get(id)?.count ?? 0 };
+  }, [usage, holding]);
+
   /** The rows the gap line is counting. Computed once, and it is also the filter. */
   const gapRows = useMemo(
-    () => (holding.gap ? holding.rows.filter(row => holding.gap!.test(row)) : []),
-    [holding],
+    () => (holding.gap ? holding.rows.filter(row => holding.gap!.test(row, gapCtx)) : []),
+    [holding, gapCtx],
   );
 
   const filtered = useMemo(() => {
@@ -234,12 +287,17 @@ export const WisdomBrowser: React.FC<Props> = ({
   }, [gapOnly, gapRows, holding, nameColumn, recognition, sort, tokens]);
 
   /**
-   * The entry the query nearly asked for. Only ever computed on an empty list,
+   * The entries the query nearly asked for. Only ever computed on an empty list,
    * which is the one moment a matcher earns its keep and the screen would
    * otherwise say nothing at all.
+   *
+   * A list, not a winner. One candidate chosen silently is right only when there
+   * is one, and a query sitting two edits from three different entries is
+   * exactly the case where the reader, not the edit distance, knows which word
+   * they meant.
    */
-  const nearMiss = useMemo(
-    () => (filtered.length === 0 && !recognition ? nearestWisdom(query, holding, siblings) : null),
+  const nearMisses = useMemo(
+    () => (filtered.length === 0 && !recognition ? nearestWisdom(query, holding, siblings) : []),
     [filtered.length, holding, query, recognition, siblings],
   );
 
@@ -266,20 +324,20 @@ export const WisdomBrowser: React.FC<Props> = ({
 
   /** Every row a reader can currently reach, in the order it appears. */
   const ordered = useMemo(
-    () => sections.filter(section => !collapsed.has(section.key)).flatMap(section => section.rows),
-    [sections, collapsed],
+    () => sections.filter(section => !isFolded(section)).flatMap(section => section.rows),
+    [sections, isFolded],
   );
 
   /** The rows actually mounted: one page at a time, spent across the sections. */
   const paged = useMemo(() => {
     let budget = limit;
     return sections.map(section => {
-      if (collapsed.has(section.key)) return { ...section, shown: [] as unknown[] };
+      if (isFolded(section)) return { ...section, shown: [] as unknown[] };
       const shown = section.rows.slice(0, Math.max(0, budget));
       budget -= shown.length;
       return { ...section, shown };
     });
-  }, [sections, collapsed, limit]);
+  }, [sections, isFolded, limit]);
 
   const shownCount = Math.min(limit, ordered.length);
 
@@ -360,11 +418,40 @@ export const WisdomBrowser: React.FC<Props> = ({
     return section?.label ? { group: group.label, name: section.label } : undefined;
   }, [group, sections, selectedId, holding]);
 
-  /** What an edit to one entry would move, in products, right now. */
-  const entryUsage = (id: string): WisdomEntryUsage | undefined =>
-    usage && usage.total > 0
-      ? { count: usage.byHolding.get(holding.id)?.get(id) ?? 0, total: usage.total }
-      : undefined;
+  /** What an edit to one entry would move, in products, right now, and which ones. */
+  const entryUsage = (id: string): WisdomEntryUsage | undefined => {
+    if (!usage || usage.total === 0) return undefined;
+    const held = usage.byHolding.get(holding.id)?.get(id);
+    return { count: held?.count ?? 0, total: usage.total, products: held?.products ?? [] };
+  };
+
+  /**
+   * The gap and the grouping, made one gesture.
+   *
+   * Marks stated the same fact twice and joined them nowhere: the line counted
+   * the marks naming no held producer, and grouping by producer piled those
+   * exact rows under one heading. A reader had to know both controls and think
+   * to use them together. Showing the gap now sets the grouping that reveals it,
+   * so the heading names the reason the rows are here; putting the gap away
+   * gives the reader back the grouping they had, because the grouping was
+   * borrowed, not chosen.
+   */
+  const borrowedGroup = useRef<string | null>(null);
+
+  const toggleGapOnly = () => {
+    const next = !gapOnly;
+    setGapOnly(next);
+    const reveal = holding.gap?.revealBy;
+    if (!reveal || !holding.groups?.some(option => option.key === reveal)) return;
+    if (next) {
+      if (groupKey === reveal) return;
+      borrowedGroup.current = groupKey;
+      setPrefs({ sort, groupKey: reveal, collapsed: [] });
+    } else if (borrowedGroup.current !== null) {
+      setPrefs({ sort, groupKey: borrowedGroup.current, collapsed: [] });
+      borrowedGroup.current = null;
+    }
+  };
 
   const toggleSort = (key: string) =>
     setPrefs({
@@ -562,6 +649,9 @@ export const WisdomBrowser: React.FC<Props> = ({
               onClick={() => {
                 // A new grouping produces new headings, so the folded set from
                 // the old one means nothing and is dropped rather than kept.
+                // It is also a grouping the reader chose, so the gap toggle no
+                // longer has one on loan to give back.
+                borrowedGroup.current = null;
                 setPrefs({ sort, groupKey: option.key, collapsed: [] });
                 close();
               }}
@@ -587,12 +677,12 @@ export const WisdomBrowser: React.FC<Props> = ({
    * word shortens on a phone, where the toolbar has 366px to seat four controls
    * and "Collapse all" is a third of it.
    */
-  const allCollapsed = sections.length > 0 && sections.every(section => collapsed.has(section.key));
+  const allCollapsed = foldedAll || (sections.length > 0 && sections.every(section => collapsed.has(section.key)));
 
   const foldAll = group && (
     <button
       type="button"
-      onClick={() => setCollapsed(allCollapsed ? new Set() : new Set(sections.map(section => section.key)))}
+      onClick={() => setCollapsed(allCollapsed ? [] : [ALL_FOLDED])}
       className={WISDOM_CHROME_BTN}
       aria-label={allCollapsed ? `Expand all ${holding.noun}` : `Collapse all ${holding.noun}`}
     >
@@ -740,7 +830,7 @@ export const WisdomBrowser: React.FC<Props> = ({
             overflow it by two pixels at each end. */}
         <div className="flex min-h-[40px] flex-wrap items-center gap-x-3 gap-y-1 px-3 md:gap-x-4 md:px-4">
           {condensed && <div className="shrink-0">{tabs(true)}</div>}
-          <SearchBox value={query} onChange={setQuery} placeholder={holding.placeholder} />
+          <SearchBox value={query} onChange={changeQuery} placeholder={holding.placeholder} />
           <p className="hidden min-w-0 shrink truncate text-ui-11 text-tea-text-dim md:block">
             {typed ? (
               <span className="font-mono text-tea-gold">
@@ -820,6 +910,30 @@ export const WisdomBrowser: React.FC<Props> = ({
         </div>
       </div>
 
+      {/* Where this holding is read, what is currently riding on it, and the
+          fact that it is read only.
+          It used to sit under the rows, which on Varieties is under 316 of them
+          and is the one place on the screen nobody arrives at. It is orientation:
+          what this holding answers for, and what an edit to it would move. That
+          is worth reading BEFORE the rows and worthless after them, so it reads
+          first and then scrolls away for good. It sits outside the sticky block
+          on purpose, so it costs the list nothing but its first 55 pixels.
+          The public address inside the sentence is the link to it: an operator
+          checking how a correction reads to a customer was retyping it by hand. */}
+      <div className="border-b border-tea-border px-3 py-1.5 md:px-4" data-testid="wisdom-reach">
+        <p className="max-w-3xl text-ui-11 leading-[1.6] text-tea-text-dim">
+          {reachLine}{' '}
+          {holdingUsage !== null && (
+            <span data-testid="wisdom-holding-usage">
+              {holdingUsage === 0
+                ? `None of the ${usage!.total} products in this account resolve through it today.`
+                : `${holdingUsage} of the ${usage!.total} products in this account resolve through it today.`}{' '}
+            </span>
+          )}
+          Read only. Entries change by re-running the build from the source data.
+        </p>
+      </div>
+
       {/* A hole in the data, counted. Forty-five cultivars naming a place the
           base does not hold is a work queue; the same forty-five met one row at
           a time is a shrug. Stated only when there is something to state, and
@@ -834,12 +948,20 @@ export const WisdomBrowser: React.FC<Props> = ({
           </p>
           <button
             type="button"
-            onClick={() => setGapOnly(current => !current)}
+            onClick={toggleGapOnly}
             aria-pressed={gapOnly}
             className="shrink-0 text-ui-11 text-tea-gold transition-colors hover:text-tea-gold-lt"
           >
             {gapOnly ? 'Show all' : 'Show only these'}
           </button>
+          {/* Said, not done silently. The reader pressed one control and two
+              things moved, and a grouping that changes without a word is the
+              kind of thing that reads as a bug the first time it happens. */}
+          {gapOnly && borrowedGroup.current !== null && group && (
+            <p className="min-w-0 text-ui-11 text-tea-text-dim" data-testid="wisdom-gap-grouped">
+              Grouped by {group.label.toLowerCase()} to show them. Show all gives your grouping back.
+            </p>
+          )}
         </div>
       )}
 
@@ -885,15 +1007,17 @@ export const WisdomBrowser: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={() => {
-                  const next = new Set(collapsed);
+                  // Opening one heading out of a wholly folded shape has to spell
+                  // the shape out first: the sentinel cannot express "all but one".
+                  const next = new Set(foldedAll ? sections.map(entry => entry.key) : collapsed);
                   if (next.has(section.key)) next.delete(section.key);
                   else next.add(section.key);
-                  setCollapsed(next);
+                  setCollapsed([...next]);
                 }}
-                aria-expanded={!collapsed.has(section.key)}
+                aria-expanded={!isFolded(section)}
                 className="flex w-full items-center gap-2 border-y border-tea-border bg-tea-accent-sub px-3 py-1.5 text-left transition-colors hover:bg-tea-gold/6 md:px-4"
               >
-                {collapsed.has(section.key)
+                {isFolded(section)
                   ? <ChevronRight size={13} className="shrink-0 text-tea-text-sec" aria-hidden="true" />
                   : <ChevronDown size={13} className="shrink-0 text-tea-text-sec" aria-hidden="true" />}
                 <span className={`${WISDOM_TYPE.rowName} min-w-0 truncate`}>{section.label}</span>
@@ -915,18 +1039,22 @@ export const WisdomBrowser: React.FC<Props> = ({
             <p className="text-ui-13 text-tea-text-dim">
               No {holding.noun} match &quot;{query}&quot;.
             </p>
-            {nearMiss && (
+            {/* One candidate is a statement; several are a choice, and only the
+                reader can make it. A query two edits from three held entries used
+                to be answered with one of them, picked by edit distance and
+                offered as though it were the answer. */}
+            {nearMisses.length === 1 && (
               <p className="mt-2 flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1 text-ui-12 text-tea-text-sec">
                 <span>
-                  The nearest entry the base holds is {nearMiss.name}
-                  {nearMiss.own ? '.' : `, kept under ${nearMiss.holding.label}.`}
+                  The nearest entry the base holds is {nearMisses[0].name}
+                  {nearMisses[0].own ? '.' : `, kept under ${nearMisses[0].holding.label}.`}
                 </span>
                 <button
                   type="button"
                   onClick={() =>
                     onJump({
-                      holding: nearMiss.holding.id,
-                      entry: nearMiss.holding.idOf(nearMiss.row),
+                      holding: nearMisses[0].holding.id,
+                      entry: nearMisses[0].holding.idOf(nearMisses[0].row),
                     })
                   }
                   className="text-tea-gold transition-colors hover:text-tea-gold-lt"
@@ -934,6 +1062,26 @@ export const WisdomBrowser: React.FC<Props> = ({
                   Open it
                 </button>
               </p>
+            )}
+            {nearMisses.length > 1 && (
+              <div className="mt-2" data-testid="wisdom-near-misses">
+                <p className="text-ui-12 text-tea-text-sec">
+                  The base holds {nearMisses.length} entries within an edit or two of that.
+                </p>
+                <WisdomRoving className="mt-2 flex flex-wrap items-baseline justify-center gap-1.5">
+                  {nearMisses.map(miss => (
+                    <button
+                      key={`${miss.holding.id}:${miss.holding.idOf(miss.row)}`}
+                      type="button"
+                      onClick={() => onJump({ holding: miss.holding.id, entry: miss.holding.idOf(miss.row) })}
+                      className="tap-target rounded-md bg-tea-accent-sub px-2 py-1 text-ui-12 text-tea-gold transition-colors hover:text-tea-gold-lt"
+                    >
+                      {miss.name}
+                      {!miss.own && <span className="text-tea-text-dim"> in {miss.holding.label}</span>}
+                    </button>
+                  ))}
+                </WisdomRoving>
+              </div>
             )}
           </div>
         )}
@@ -962,22 +1110,9 @@ export const WisdomBrowser: React.FC<Props> = ({
         </div>
       )}
 
-      {/* Where this holding is read, what is currently riding on it, and the
-          fact that it is read only. Kept under the content rather than in front
-          of it. The public address inside the sentence is the link to it: an
-          operator checking how a correction reads to a customer was retyping it
-          by hand. */}
-      <p className="max-w-3xl px-3 pb-6 pt-3 text-ui-11 leading-[1.6] text-tea-text-dim md:px-4">
-        {reachLine}{' '}
-        {holdingUsage !== null && (
-          <span data-testid="wisdom-holding-usage">
-            {holdingUsage === 0
-              ? `None of the ${usage!.total} products in this account resolve through it today.`
-              : `${holdingUsage} of the ${usage!.total} products in this account resolve through it today.`}{' '}
-          </span>
-        )}
-        Read only. Entries change by re-running the build from the source data.
-      </p>
+      {/* The list ends where the rows end. What used to live down here now reads
+          above them, where it is met rather than scrolled past. */}
+      <div className="pb-6" />
 
       {selected && (() => {
         const nav = selectedIndex >= 0 ? (

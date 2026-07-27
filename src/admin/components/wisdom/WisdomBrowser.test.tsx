@@ -11,6 +11,8 @@ vi.mock('../../../components/shared/AnchoredMenu', () => ({
 
 const { WisdomBrowser } = await import('./WisdomBrowser');
 const { WISDOM_HOLDINGS } = await import('./holdings');
+const { ALL_FOLDED } = await import('./config');
+type WisdomUsage = import('./usage').WisdomUsage;
 
 const cultivars = WISDOM_HOLDINGS[0];
 
@@ -18,7 +20,9 @@ interface RenderOptions {
   groupKey?: string;
   collapsed?: string[];
   query?: string;
-  usage?: { total: number; byHolding: Map<string, Map<string, number>>; byHoldingTotal: Map<string, number> };
+  usage?: WisdomUsage;
+  /** The rest of the base, which is what makes a cross-holding answer possible. */
+  siblings?: typeof WISDOM_HOLDINGS;
 }
 
 const render = (holding = cultivars, options: RenderOptions = {}) =>
@@ -29,6 +33,7 @@ const render = (holding = cultivars, options: RenderOptions = {}) =>
       selectedId={null}
       onSelect={() => {}}
       onJump={() => {}}
+      siblings={options.siblings}
       initialQuery={options.query}
       usage={options.usage}
       prefs={{
@@ -98,10 +103,14 @@ describe('WisdomBrowser', () => {
     }
   });
 
-  it('keeps the read-only note and the reach line under the content', () => {
+  // It used to sit under the rows, which on Varieties is under 316 of them and
+  // is the one place on the screen nobody arrives at.
+  it('reads where a holding is read BEFORE the rows, not under them', () => {
     const html = render();
-    const note = html.indexOf('Read only.');
-    expect(note).toBeGreaterThan(html.indexOf('wisdom-column-row'));
+    const reach = html.indexOf('data-testid="wisdom-reach"');
+    expect(reach).toBeGreaterThan(html.indexOf('wisdom-column-row'));
+    expect(reach).toBeLessThan(html.indexOf('data-testid="wisdom-rows"'));
+    expect(html.indexOf('Read only.')).toBeLessThan(html.indexOf('data-testid="wisdom-rows"'));
     // Every holding says where it is read, once.
     for (const holding of WISDOM_HOLDINGS) {
       expect(render(holding), holding.id).toContain(holding.reach.slice(0, 40));
@@ -142,6 +151,18 @@ describe('WisdomBrowser', () => {
     expect(all).toContain('Expand all');
   });
 
+  // Listing sixteen country names to say "all of them" is 120 characters of
+  // address for one press, so the whole shape has a token of its own.
+  it('folds the whole shape from one sentinel, not a list of every heading', () => {
+    const regions = WISDOM_HOLDINGS.find(holding => holding.id === 'regions')!;
+    const folded = render(regions, { groupKey: 'country', collapsed: [ALL_FOLDED] });
+    expect(rowCount(folded)).toBe(0);
+    expect(folded).toContain('Expand all');
+    expect(folded).not.toContain('aria-expanded="true"');
+    // Ungrouped there is one nameless section, so the sentinel folds nothing.
+    expect(rowCount(render(regions, { collapsed: [ALL_FOLDED] }))).toBeGreaterThan(0);
+  });
+
   it('states the current sort in words, because a phone hides the arrow', () => {
     // At 390px every sortable column except the name is hidden, so the header
     // arrow is not a way to read the sort. The status band says it instead.
@@ -160,6 +181,18 @@ describe('WisdomBrowser', () => {
     const varieties = WISDOM_HOLDINGS.find(holding => holding.id === 'varieties')!;
     const varietyGap = varieties.rows.filter(row => varieties.gap!.test(row)).length;
     if (varietyGap === 0) expect(render(varieties)).not.toContain('data-testid="wisdom-gap"');
+  });
+
+  // Regions was the last holding stating no hole of its own, which read as a
+  // complete record next to six holdings that admit to theirs.
+  it('states a gap for regions too, in the shape the holding actually has', () => {
+    const regions = WISDOM_HOLDINGS.find(holding => holding.id === 'regions')!;
+    const html = render(regions);
+    expect(html).toContain('data-testid="wisdom-gap"');
+    expect(html).toContain('named by no cultivar, no variety and no product');
+    // No holding is left without one now except those that genuinely have none.
+    const silent = WISDOM_HOLDINGS.filter(holding => !holding.gap).map(holding => holding.id);
+    expect(silent).toEqual(['producers', 'named-teas']);
   });
 
   it('seeds the find field from a query a link arrived with', () => {
@@ -181,16 +214,49 @@ describe('WisdomBrowser', () => {
     expect(html).toContain('Open it');
   });
 
+  // With the whole base to read, one candidate is usually not the whole answer,
+  // and choosing between them silently hides that a choice was made at all.
+  it('offers every near candidate, not one picked for the reader', () => {
+    const html = render(cultivars, { query: 'rougux', siblings: WISDOM_HOLDINGS });
+    expect(html).toContain('data-testid="wisdom-near-misses"');
+    expect(html).toMatch(/The base holds \d entries within an edit or two of that/);
+    // The one held elsewhere says where it is kept, so opening it is not a
+    // surprise change of subject.
+    expect(html).toContain('in Varieties');
+    // And a query with exactly one candidate still reads as a statement.
+    expect(render(cultivars, { query: 'rougux' })).not.toContain('data-testid="wisdom-near-misses"');
+  });
+
   it('says what is currently riding on the holding, not just who reads it', () => {
-    const usage = {
+    const usage: WisdomUsage = {
       total: 139,
-      byHolding: new Map([['cultivars', new Map([['rou-gui', 4]])]]),
+      byHolding: new Map([
+        ['cultivars', new Map([['rou-gui', { count: 4, products: [{ id: 'p1', name: 'Rou Gui 2019' }] }]])],
+      ]),
       byHoldingTotal: new Map([['cultivars', 4]]),
     };
     const html = render(cultivars, { usage });
     expect(html).toContain('4 of the 139 products in this account resolve through it today.');
     // Silent until the products are actually loaded.
     expect(render(cultivars)).not.toContain('data-testid="wisdom-holding-usage"');
+  });
+
+  // A count nobody can act on is the same as no count. Every product riding on
+  // an entry is now named, and every name is the way back to it.
+  it('carries the products themselves, not just how many there are', () => {
+    const usage: WisdomUsage = {
+      total: 2,
+      byHolding: new Map([
+        ['regions', new Map([['yiwu', { count: 2, products: [{ id: 'p1', name: 'A' }, { id: 'p2', name: 'B' }] }]])],
+      ]),
+      byHoldingTotal: new Map([['regions', 2]]),
+    };
+    const regions = WISDOM_HOLDINGS.find(holding => holding.id === 'regions')!;
+    const held = usage.byHolding.get('regions')!.get('yiwu')!;
+    expect(held.products.map(product => product.id)).toEqual(['p1', 'p2']);
+    // And a region carrying products is no longer counted as a place nothing
+    // names, which is the gap that arrived this round.
+    expect(regions.gap!.test({ id: 'yiwu' }, { used: id => (id === 'yiwu' ? 2 : 0) })).toBe(false);
   });
 
   it('makes the public address in the reach line the way to reach it', () => {

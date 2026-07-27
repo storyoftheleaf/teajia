@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Modal } from '../../../components/shared/Modal';
 import { TYPOGRAPHY_CLASSES } from '../../../designTokens';
 import { authorshipLine } from '../../../wisdom/authorship';
@@ -59,6 +60,8 @@ export const WisdomRoving: React.FC<{ children: React.ReactNode; className?: str
 }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
+  /** True while the keyboard is inside this group, which is when the hint is due. */
+  const [reading, setReading] = useState(false);
 
   const items = useCallback(
     (): HTMLElement[] =>
@@ -66,10 +69,14 @@ export const WisdomRoving: React.FC<{ children: React.ReactNode; className?: str
     [],
   );
 
+  /** How many chips are actually in the group. Only known after a render. */
+  const [size, setSize] = useState(0);
+
   // Only one member of the group is ever tabbable. Re-applied on every render
   // because the members themselves are supplied by whoever built the chips.
   useEffect(() => {
     const list = items();
+    setSize(list.length);
     if (list.length === 0) return;
     const at = Math.min(active, list.length - 1);
     list.forEach((node, index) => { node.tabIndex = index === at ? 0 : -1; });
@@ -88,10 +95,17 @@ export const WisdomRoving: React.FC<{ children: React.ReactNode; className?: str
       ref={ref}
       data-wisdom-roving=""
       role="group"
+      aria-keyshortcuts="ArrowLeft ArrowRight Home End"
       className={className}
       onFocus={event => {
         const at = items().indexOf(event.target as HTMLElement);
         if (at >= 0) setActive(at);
+        setReading(true);
+      }}
+      onBlur={event => {
+        // Only when the keyboard has actually left the group. Moving between two
+        // chips fires blur on the first before focus on the second.
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setReading(false);
       }}
       onKeyDown={event => {
         const list = items();
@@ -107,6 +121,24 @@ export const WisdomRoving: React.FC<{ children: React.ReactNode; className?: str
       }}
     >
       {children}
+      {/* The list says what its keys do in a permanent band; the panel could not
+          afford one per chip group and so said nothing at all, which made the
+          keyboard discoverable in one half of the screen and not the other.
+          It is due at exactly one moment: when the keyboard is in the group and
+          the reader is about to press something. Not reserved when it is not,
+          because a fact grid cell is a quarter of the panel wide and a line held
+          empty in every one of them all day is a worse tax than a reflow the one
+          time a keyboard arrives. Nothing above it moves when it appears; the
+          chips are earlier in the wrap. */}
+      {size > 1 && reading && (
+        <span
+          data-testid="wisdom-roving-hint"
+          className={`${WISDOM_TYPE.label} self-center whitespace-nowrap`}
+          aria-hidden="true"
+        >
+          ← → move
+        </span>
+      )}
     </div>
   );
 };
@@ -216,6 +248,54 @@ export const UsageLine: React.FC<{ usage?: WisdomEntryUsage }> = ({ usage }) => 
   );
 };
 
+/** How many products a blast radius names before it offers to name the rest. */
+const FIRST_PRODUCTS = 8;
+
+/**
+ * Which products, not just how many.
+ *
+ * The count above this was a number an operator could not act on: reading
+ * "eleven products resolve through this entry" and then having to leave for the
+ * inventory and rebuild the question there, at exactly the moment they were
+ * deciding whether to touch the record. The eleven are named here, each one the
+ * way back to it, and the tail opens in place rather than sending anyone away.
+ *
+ * One keyboard stop, like every other chip group on this screen.
+ */
+export const UsageProducts: React.FC<{ usage?: WisdomEntryUsage }> = ({ usage }) => {
+  const [all, setAll] = useState(false);
+  if (!usage || usage.count === 0 || usage.products.length === 0) return null;
+
+  const shown = all ? usage.products : usage.products.slice(0, FIRST_PRODUCTS);
+  const rest = usage.products.length - shown.length;
+
+  return (
+    <div className="mt-3" data-testid="wisdom-usage-products">
+      <p className={`${WISDOM_TYPE.label} mb-1.5`}>What moves</p>
+      <WisdomRoving className="flex flex-wrap items-baseline gap-1.5">
+        {shown.map(product => (
+          <Link
+            key={product.id}
+            to={`/admin/inventory?panel=${encodeURIComponent(product.id)}`}
+            className="tap-target rounded-md bg-tea-accent-sub px-2 py-1 text-ui-12 text-tea-gold transition-colors hover:text-tea-gold-lt"
+          >
+            {product.name}
+          </Link>
+        ))}
+        {rest > 0 && (
+          <button
+            type="button"
+            onClick={() => setAll(true)}
+            className="tap-target self-center rounded-md px-2 py-1 text-ui-12 text-tea-gold transition-colors hover:text-tea-gold-lt"
+          >
+            and {rest} more
+          </button>
+        )}
+      </WisdomRoving>
+    </div>
+  );
+};
+
 interface Props {
   detail: WisdomDetail;
   /** The entity id, for the authorship line. */
@@ -289,5 +369,8 @@ export const WisdomDetailHeader: React.FC<{
       <UsageLine usage={usage} />
       {publicHref && <PublicLink href={publicHref}>How this reads in public</PublicLink>}
     </div>
+    {/* And which products they are. Under the count, because the count is the
+        decision and the list is the work that follows from it. */}
+    <UsageProducts usage={usage} />
   </header>
 );

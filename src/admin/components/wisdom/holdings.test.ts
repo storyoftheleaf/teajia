@@ -1,14 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { AUTHORSHIP } from '../../../wisdom/authorship';
 import {
+  ALL_FOLDED,
+  NEAR_MISS_LIMIT,
   WISDOM_SLOT,
   compareWisdom,
+  defaultPrefs,
   editDistance,
   nearestWisdom,
   recogniseQuery,
   wisdomMatches,
+  wisdomPrefsFromParams,
+  wisdomPrefsToParams,
   wisdomQueryTokens,
   wisdomStartsWith,
+  type WisdomPrefs,
 } from './config';
 import { WISDOM_HOLDINGS } from './holdings';
 import { rungSummary } from './Rung';
@@ -210,6 +216,50 @@ describe('wisdom holdings', () => {
     expect(unheld).toBeGreaterThan(cultivars.rows.length / 3);
   });
 
+  // Regions was the only holding counting no hole of its own, which read as a
+  // complete record and is not.
+  it('counts the places nothing names, which is the region-shaped hole', () => {
+    const regions = holdingBy('regions');
+    expect(regions.gap, 'regions admits to no gap').toBeDefined();
+    const unread = regions.rows.filter(row => regions.gap!.test(row));
+    expect(unread.length).toBeGreaterThan(0);
+    expect(unread.length).toBeLessThan(regions.rows.length);
+    // A place a cultivar names is never in it, in either direction.
+    const cultivars = holdingBy('cultivars');
+    const placed = cultivars.rows.find(row => row.originRegion && regions.matchEntity!(row.originRegion))!;
+    const named = regions.matchEntity!(placed.originRegion)!;
+    expect(regions.gap!.test(named)).toBe(false);
+  });
+
+  // The account's own products are half the answer, and the base cannot see
+  // them, so they arrive as context and the count narrows rather than jumping.
+  it('lets a product rescue a region the base alone would call unread', () => {
+    const regions = holdingBy('regions');
+    const unread = regions.rows.find(row => regions.gap!.test(row))!;
+    expect(unread).toBeDefined();
+    const withProduct = { used: (id: string) => (id === unread.id ? 3 : 0) };
+    expect(regions.gap!.test(unread, withProduct)).toBe(false);
+  });
+
+  // Two devices, one fact: the count and the grouping that shows it in shape.
+  it('names the grouping that reveals a gap, where one exists', () => {
+    const marks = holdingBy('marks');
+    const reveal = marks.gap!.revealBy!;
+    expect(reveal).toBe('producer');
+    expect(marks.groups!.some(group => group.key === reveal)).toBe(true);
+    // And the grouping really does pile the gap rows under one heading.
+    const grouping = marks.groups!.find(group => group.key === reveal)!;
+    const gapped = marks.rows.filter(row => marks.gap!.test(row));
+    expect(gapped.length).toBeGreaterThan(0);
+    expect(new Set(gapped.map(row => grouping.of(row)))).toEqual(new Set(['']));
+    // Every holding that names one names a grouping it actually has.
+    for (const holding of WISDOM_HOLDINGS) {
+      const named = holding.gap?.revealBy;
+      if (!named) continue;
+      expect(holding.groups?.some(group => group.key === named), `${holding.id} reveals by ${named}`).toBe(true);
+    }
+  });
+
   // A count standing in for a list has to be a way to reach the list.
   it('makes the counted tail of a relation somewhere to go', () => {
     const regions = holdingBy('regions');
@@ -270,22 +320,87 @@ describe('nearestWisdom', () => {
   const marks = holdingBy('marks');
 
   it('offers the entry a query was one character away from', () => {
-    const near = nearestWisdom('rougi', cultivars, WISDOM_HOLDINGS)!;
-    expect(near).not.toBe(null);
+    const [near] = nearestWisdom('rougi', cultivars, WISDOM_HOLDINGS);
+    expect(near).toBeDefined();
     expect(near.own).toBe(true);
     expect(near.name).toBe('Rou Gui');
   });
 
   it('reads the open holding first, then the rest of the base', () => {
-    const near = nearestWisdom('rou gu', marks, WISDOM_HOLDINGS);
+    const [near] = nearestWisdom('rou gu', marks, WISDOM_HOLDINGS);
     expect(near?.holding.id).toBe('cultivars');
     expect(near?.own).toBe(false);
   });
 
   it('stays silent on a query nothing is near, and on a stub too short to judge', () => {
-    expect(nearestWisdom('zzzzqqqqxxxx', cultivars, WISDOM_HOLDINGS)).toBe(null);
+    expect(nearestWisdom('zzzzqqqqxxxx', cultivars, WISDOM_HOLDINGS)).toEqual([]);
     // Under four characters everything is one edit from everything else.
-    expect(nearestWisdom('rou', cultivars, WISDOM_HOLDINGS)).toBe(null);
+    expect(nearestWisdom('rou', cultivars, WISDOM_HOLDINGS)).toEqual([]);
+  });
+
+  // A silently chosen winner is only ever right when there is one candidate.
+  it('offers every close entry, nearest first, and never more than a choice', () => {
+    const many = nearestWisdom('rou gux', cultivars, WISDOM_HOLDINGS);
+    expect(many.length).toBeGreaterThan(0);
+    expect(many.length).toBeLessThanOrEqual(NEAR_MISS_LIMIT);
+    // Whatever the base is asked, it never answers with a duplicate entry.
+    const seen = many.map(miss => `${miss.holding.id}:${miss.holding.idOf(miss.row)}`);
+    expect(new Set(seen).size).toBe(seen.length);
+    // The open holding leads: a reader looking at cultivars means a cultivar.
+    expect(many[0].own).toBe(true);
+  });
+
+  it('puts a nearer entry before a further one', () => {
+    const found = nearestWisdom('dahonpao', cultivars, WISDOM_HOLDINGS);
+    expect(found.length).toBeGreaterThan(1);
+    expect(found[0].name).toBe('Da Hong Pao');
+  });
+});
+
+describe('the wisdom address', () => {
+  const regions = holdingBy('regions');
+
+  it('writes nothing for a holding that has not been shaped', () => {
+    expect(wisdomPrefsToParams(defaultPrefs(regions), regions)).toEqual({});
+  });
+
+  it('carries the grouping, the sort and the folded shape, and reads them back', () => {
+    const shaped: WisdomPrefs = {
+      sort: { key: 'altitude', direction: 'desc' },
+      groupKey: 'country',
+      collapsed: ['China', 'Japan'],
+    };
+    const params = wisdomPrefsToParams(shaped, regions);
+    expect(params).toEqual({ group: 'country', sort: '-altitude', fold: 'China~Japan' });
+    expect(wisdomPrefsFromParams(key => params[key] ?? null, regions)).toEqual(shaped);
+  });
+
+  // Folding 182 regions to sixteen headings must not spend 120 characters of
+  // address saying "all of them".
+  it('says a wholly folded shape in one token', () => {
+    const folded: WisdomPrefs = { sort: defaultPrefs(regions).sort, groupKey: 'country', collapsed: [ALL_FOLDED] };
+    const params = wisdomPrefsToParams(folded, regions);
+    expect(params).toEqual({ group: 'country', fold: ALL_FOLDED });
+    expect(wisdomPrefsFromParams(key => params[key] ?? null, regions)).toEqual(folded);
+  });
+
+  it('falls back rather than obeying an address the holding cannot honour', () => {
+    const bad: Record<string, string> = { group: 'nonsense', sort: '-nonsense', fold: 'China' };
+    const read = wisdomPrefsFromParams(key => bad[key] ?? null, regions);
+    expect(read).toEqual(defaultPrefs(regions));
+  });
+
+  // A folded shape belongs to the grouping that produced it.
+  it('drops a folded shape that has no grouping to belong to', () => {
+    const orphan: Record<string, string> = { fold: 'China~Japan' };
+    expect(wisdomPrefsFromParams(key => orphan[key] ?? null, regions).collapsed).toEqual([]);
+  });
+
+  it('refuses to sort by a column the holding says is not sortable', () => {
+    const marks = holdingBy('marks');
+    const unsortable = marks.columns.find(column => column.sortable === false)!;
+    const asked: Record<string, string> = { sort: unsortable.key };
+    expect(wisdomPrefsFromParams(key => asked[key] ?? null, marks).sort).toEqual(defaultPrefs(marks).sort);
   });
 });
 

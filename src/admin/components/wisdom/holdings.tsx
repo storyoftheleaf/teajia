@@ -243,6 +243,19 @@ const orUnknown = (value: string | null | undefined) => value?.trim() || '';
 const unheldPlace = (written: string | null | undefined): boolean =>
   Boolean(written?.trim()) && !findRegion(written);
 
+/**
+ * The same absence as `unheldPlace`, read from the other end: a region that no
+ * cultivar and no variety points at.
+ *
+ * Half the answer. The other half is the account's own products, which the base
+ * cannot see, so the region gap takes those as context and this only reports
+ * what the base knows on its own.
+ */
+const namesNothing = (regionId: string): boolean => {
+  const relations = regionRelations();
+  return !relations.cultivars.get(regionId) && !relations.varieties.get(regionId);
+};
+
 // ── cultivars ─────────────────────────────────────────────────────────────────
 
 const cultivars = defineHolding<Cultivar>({
@@ -357,6 +370,24 @@ const regions = defineHolding<Region>({
     { key: 'country', label: 'Country', of: row => orUnknown(row.country) },
     { key: 'entry', label: 'Entry', of: row => (isResearched(row) ? 'Researched origin' : 'Working entry') },
   ],
+  /**
+   * The gap every other holding had and this one did not.
+   *
+   * Regions was the only holding counting no hole of its own, which read as a
+   * complete record and is not: a place that no plant, no variety and no product
+   * names is held and never read, exactly as much a hole as a cultivar naming an
+   * origin the base cannot resolve. It is the same shape of absence, pointed the
+   * other way, and until now it was counted nowhere.
+   *
+   * The products are the half the base cannot answer alone, so they arrive as
+   * context. Before they load the count is what the base knows on its own, which
+   * can only ever be an over-count, and it narrows rather than jumping.
+   */
+  gap: {
+    test: (row, ctx) => namesNothing(row.id) && (ctx?.used(row.id) ?? 0) === 0,
+    sentence: (missing, total) =>
+      `${missing} of the ${total} regions are named by no cultivar, no variety and no product in this account, so they are held and never read.`,
+  },
   detail: (row, ctx) => ({
     kind: 'Region',
     name: row.name,
@@ -600,6 +631,9 @@ const marks = defineHolding<Mark>({
     test: row => !findProducerById(row.producerId),
     sentence: (missing, total) =>
       `${missing} of the ${total} marks name no producer the base holds, so a wrapper carrying one resolves to a recipe and stops there.`,
+    // Grouping by producer piles these exact rows under one heading, which is
+    // the same fact the count states. The toggle sets it, so the two agree.
+    revealBy: 'producer',
   },
   detail: (row, ctx) => {
     const producer = findProducerById(row.producerId);

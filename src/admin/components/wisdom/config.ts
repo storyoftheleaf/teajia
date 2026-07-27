@@ -191,6 +191,19 @@ export interface WisdomGroup<T> {
 export const UNGROUPED = 'Not recorded';
 
 /**
+ * What a gap test may ask about the world outside the base.
+ *
+ * Regions are the case that needs it: a place is a hole when nothing names it,
+ * and "nothing" includes the account's own products, which the base cannot see.
+ * Absent while the products are still loading, so a gap that depends on them
+ * falls back to what the base alone can answer rather than guessing.
+ */
+export interface WisdomGapCtx {
+  /** How many products in this account resolve through the entry today. */
+  used: (id: string) => number;
+}
+
+/**
  * A known hole in the data, counted rather than met one row at a time.
  *
  * Forty-five of the seventy-nine cultivars name an origin the base does not
@@ -201,9 +214,18 @@ export const UNGROUPED = 'Not recorded';
  */
 export interface WisdomGap<T> {
   /** True when this row is missing the thing the gap is about. */
-  test: (row: T) => boolean;
+  test: (row: T, ctx?: WisdomGapCtx) => boolean;
   /** The whole statement, built from the counts. A sentence, never micro-caps. */
   sentence: (missing: number, total: number) => string;
+  /**
+   * The grouping that shows this same fact in the shape of the list.
+   *
+   * Marks said it twice and connected the two nowhere: the gap line counted the
+   * marks naming no held producer, and grouping by producer piled those exact
+   * rows under one heading. Naming the grouping here lets the gap toggle set it,
+   * so the count and the shape are one gesture instead of two.
+   */
+  revealBy?: string;
 }
 
 /**
@@ -289,6 +311,20 @@ export interface WisdomPanelCtx {
 export interface WisdomEntryUsage {
   count: number;
   total: number;
+  /**
+   * Which products they are, so the number is a list and not a errand.
+   *
+   * "Eleven products resolve through this entry" was true and unactionable: the
+   * only way to see the eleven was to leave for the inventory and rebuild the
+   * question there, which is exactly the moment an operator most needs them.
+   */
+  products: readonly WisdomUsageProduct[];
+}
+
+/** One product riding on an entry, and the way back to it in the inventory. */
+export interface WisdomUsageProduct {
+  id: string;
+  name: string;
 }
 
 /**
@@ -326,6 +362,84 @@ export const defaultPrefs = (holding: AnyWisdomHolding): WisdomPrefs => ({
   groupKey: '',
   collapsed: [],
 });
+
+/**
+ * Every section folded, in one token.
+ *
+ * Folding 182 regions to sixteen headings and then listing all sixteen in the
+ * address would spend 120 characters saying "all of them". The sentinel says it
+ * in one, and it is also more truthful: the reader pressed Collapse all, not
+ * sixteen separate headings, and a section that appears later is folded too.
+ */
+export const ALL_FOLDED = '*';
+
+/* ─────────────────────────────── the address ──────────────────────────────── */
+
+/**
+ * The keys the Wisdom address uses, in one place so the view, the browser and
+ * the tests cannot disagree about them.
+ */
+export const WISDOM_PARAM = {
+  tab: 'tab',
+  entry: 'entry',
+  query: 'q',
+  group: 'group',
+  sort: 'sort',
+  fold: 'fold',
+} as const;
+
+/** Section keys are country and producer names, so the separator must not be one. */
+const FOLD_SEPARATOR = '~';
+
+/**
+ * The shape of the list, written into the address.
+ *
+ * Only what differs from the default is written: an address that says nothing
+ * means the holding as it comes, which is what a fresh link should mean. A
+ * folded shape without a grouping is not a state that exists, so it is dropped
+ * rather than carried as a lie.
+ */
+export function wisdomPrefsToParams(prefs: WisdomPrefs, holding: AnyWisdomHolding): Record<string, string> {
+  const fallback = defaultPrefs(holding);
+  const out: Record<string, string> = {};
+  if (prefs.groupKey) out[WISDOM_PARAM.group] = prefs.groupKey;
+  if (prefs.sort.key !== fallback.sort.key || prefs.sort.direction !== fallback.sort.direction) {
+    out[WISDOM_PARAM.sort] = `${prefs.sort.direction === 'desc' ? '-' : ''}${prefs.sort.key}`;
+  }
+  if (prefs.groupKey && prefs.collapsed.length > 0) {
+    out[WISDOM_PARAM.fold] = prefs.collapsed.join(FOLD_SEPARATOR);
+  }
+  return out;
+}
+
+/**
+ * And back again, checked against the holding rather than trusted.
+ *
+ * A hand-edited address, or one shared from a tab that has since changed its
+ * columns, names a sort or a grouping this holding does not have. That falls
+ * back to the default instead of leaving the list ordered by nothing.
+ */
+export function wisdomPrefsFromParams(
+  read: (key: string) => string | null,
+  holding: AnyWisdomHolding,
+): WisdomPrefs {
+  const fallback = defaultPrefs(holding);
+
+  const askedGroup = read(WISDOM_PARAM.group) ?? '';
+  const groupKey = holding.groups?.some(group => group.key === askedGroup) ? askedGroup : fallback.groupKey;
+
+  const askedSort = read(WISDOM_PARAM.sort) ?? '';
+  const direction: SortDirection = askedSort.startsWith('-') ? 'desc' : 'asc';
+  const sortKey = askedSort.replace(/^-/, '');
+  const sort = holding.columns.some(column => column.key === sortKey && column.sortable !== false)
+    ? { key: sortKey, direction }
+    : fallback.sort;
+
+  const askedFold = read(WISDOM_PARAM.fold) ?? '';
+  const collapsed = askedFold ? askedFold.split(FOLD_SEPARATOR).filter(Boolean) : fallback.collapsed;
+
+  return { sort, groupKey, collapsed: groupKey ? collapsed : [] };
+}
 
 /**
  * Holdings are stored together and rendered one at a time, so the collection is
@@ -489,50 +603,63 @@ export interface WisdomNearMiss {
 }
 
 /**
- * The entry a query nearly asked for.
+ * How many near misses are worth offering. Three is a choice the reader makes;
+ * four is a list they have to read.
+ */
+export const NEAR_MISS_LIMIT = 3;
+
+/**
+ * The entries a query nearly asked for, nearest first.
  *
  * Exact recognition is the easy half. A query one character off a held entry is
- * precisely where holding a matcher should earn its keep, and until now it
+ * precisely where holding a matcher should earn its keep, and until round two it
  * returned an empty list and said nothing, which reads as "the base does not
- * have this" when the base has it and the finger slipped. Only ever called when
- * the find field has emptied the list, so the cost is paid once, on the screen
- * that would otherwise be blank.
+ * have this" when the base has it and the finger slipped.
  *
- * The open holding is searched first and wins ties, because a reader looking at
- * cultivars means a cultivar. A one-character miss stops the scan: nothing is
- * going to beat it and there is no reason to keep reading.
+ * It used to answer with exactly one candidate, silently chosen, which is wrong
+ * whenever a query sits two edits from several entries: "dahonpao" is one edit
+ * from Da Hong Pao and two from three other things, and picking one of them for
+ * the reader hides the fact that a choice was made at all. It now returns the
+ * nearest few and lets the reader recognise their own word.
+ *
+ * The open holding is read first and wins ties, because a reader looking at
+ * cultivars means a cultivar. Only ever called when the find field has emptied
+ * the list, so the full scan is paid once, on the screen that would otherwise be
+ * blank; `editDistance` abandons a row the moment it cannot come in under the
+ * budget, so most of the base costs a length comparison.
  */
 export function nearestWisdom(
   query: string,
   holding: AnyWisdomHolding,
   siblings: readonly AnyWisdomHolding[] = [],
-): WisdomNearMiss | null {
+): WisdomNearMiss[] {
   const key = wisdomKey(query);
   // Under four characters everything is one edit from everything else.
-  if (key.length < 4) return null;
+  if (key.length < 4) return [];
   const max = key.length <= 6 ? 1 : 2;
 
-  let best: WisdomNearMiss | null = null;
-  let bestDistance = max + 1;
+  const found: Array<WisdomNearMiss & { distance: number }> = [];
 
-  const scan = (candidate: AnyWisdomHolding, own: boolean): boolean => {
+  const scan = (candidate: AnyWisdomHolding, own: boolean) => {
     const nameOf = candidate.columns[0].value;
     for (const row of candidate.rows) {
       const name = String(nameOf(row) ?? '');
       const distance = editDistance(key, wisdomKey(name), max);
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        best = { holding: candidate, row, name, own };
-        if (distance <= 1) return true;
-      }
+      if (distance <= max) found.push({ holding: candidate, row, name, own, distance });
     }
-    return false;
   };
 
-  if (scan(holding, true)) return best;
+  scan(holding, true);
   for (const other of siblings) {
-    if (other.id === holding.id) continue;
-    if (scan(other, false)) return best;
+    if (other.id !== holding.id) scan(other, false);
   }
-  return best;
+
+  found.sort(
+    (left, right) =>
+      left.distance - right.distance ||
+      Number(right.own) - Number(left.own) ||
+      left.name.localeCompare(right.name),
+  );
+
+  return found.slice(0, NEAR_MISS_LIMIT).map(({ holding: at, row, name, own }) => ({ holding: at, row, name, own }));
 }
