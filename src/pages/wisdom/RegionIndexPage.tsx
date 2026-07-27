@@ -17,6 +17,7 @@ import { Helmet } from 'react-helmet-async';
 import { REGIONS, type Region } from '../../wisdom';
 import {
   FACT,
+  FOOTNOTE,
   GroupHead,
   GroupJump,
   HoldingAuthorship,
@@ -44,6 +45,29 @@ const COLUMNS: IndexColumns = {
   nameLabel: 'Place',
   labels: ['Province', 'Altitude'],
 };
+
+/**
+ * What the two right-hand columns are actually reporting.
+ *
+ * Ninety-four of the 182 places carry no altitude and eighty-four no province,
+ * because they are not that kind of record: the working list holds the area a
+ * vendor writes on an invoice, a name and a country and nothing else, by
+ * construction. The device this reference uses for a missing value ("Not
+ * recorded", in the dim tone) is right for a scarce absence and wrong here.
+ * Ninety-four repetitions of a phrase is not absence made legible, it is a
+ * column of the word "not", and it would be the loudest thing on the page.
+ *
+ * So a researched place is marked by carrying the values, a working-list place
+ * shows neither, and the difference between a full row and a bare one is stated
+ * once, in a line above the list, instead of ninety-four times inside it.
+ * Nothing is hidden: the entry page for a bare place already says in a sentence
+ * that only its name and country are held.
+ *
+ * Both figures are counted, never typed. The day a place is researched the line
+ * above the list moves on its own.
+ */
+const RECORDED_ALTITUDE = REGIONS.filter(region => region.altitude).length;
+const RECORDED_PROVINCE = REGIONS.filter(region => region.province).length;
 
 /**
  * Above this many rows a country stops being a group and becomes a list again.
@@ -211,6 +235,17 @@ const RegionIndexPage: React.FC = () => {
         <ViewSwitch options={VIEWS} value={view} onChange={next => setView(next)} label="Browse the places" />
         <GroupJump groups={jumpTo} rows={visible.length} label="Jump to a group of places" />
       </WisdomToolbar>
+
+      {/* What a bare row means, said once. This replaces 99 dim "Not recorded"
+          cells with one dim line, and it sits above the list so a reader meets
+          the rule before they meet the first empty column. */}
+      {visible.length > 0 && (
+        <p className={`${FOOTNOTE} mt-2`}>
+          An altitude is recorded for {RECORDED_ALTITUDE} of these places and a province for {RECORDED_PROVINCE}. The
+          others are working-list names, held as a vendor writes them, and an empty column here means not researched
+          rather than not applicable.
+        </p>
+      )}
 
       {visible.length === 0 && <NoMatch noun="place" query={query} />}
 

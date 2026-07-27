@@ -5,6 +5,10 @@
  * fact worth ordering by: it is the difference between a mark that belongs to
  * one factory and a grading term half the trade uses. Era would have been the
  * obvious second axis and is not one, because only two records carry it.
+ *
+ * This holding and Producers describe one relation from its two ends, and the
+ * reason they use different devices for it is written out once, at the top of
+ * ProducerIndexPage. Both open grouped; neither groups by the other.
  */
 import React, { useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';

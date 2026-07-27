@@ -17,7 +17,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { Search } from 'lucide-react';
+import { ChevronDown, Search } from 'lucide-react';
 import {
   CULTIVARS,
   MARKS,
@@ -34,7 +34,7 @@ import {
   type Region,
   type TeaType,
 } from '../../wisdom';
-import { AUTHORSHIP, authorshipLine, getAuthorship } from '../../wisdom/authorship';
+import { AUTHORSHIP, authorshipLine, getAuthorship, type AuthorshipRung } from '../../wisdom/authorship';
 import {
   CELL,
   CELL_CLASS,
@@ -76,15 +76,52 @@ export const SectionHead: React.FC<{ glyph: string; label: string; count?: numbe
 // ─── The page head ───────────────────────────────────────────────────────────
 
 /**
+ * The rung an entry sits on, in one word, in its header.
+ *
+ * A reader walking the reference meets the authorship sentence on the index
+ * they came through, which is why it is not repeated three hundred times at the
+ * foot. A reader arriving cold on a single entry from a search engine walks
+ * through no index at all, and used to be shown no rung anywhere on the page.
+ *
+ * One micro-caps word is the whole repair. It costs nothing on a line the
+ * header already occupies, it is honest on a cold arrival, and it is not the
+ * four-line footnote block this loop removed.
+ *
+ * The word carries no tooltip. A `title` holding the full sentence would put
+ * "Drafted from research. Not yet read by a human." back into the markup of all
+ * three hundred entries, which is the thing that was removed, and it would be
+ * invisible on the phone most of these are read on. The sentence lives on the
+ * holding's index and on the front door, and every record in the download
+ * carries the same value as `authorshipRung`. Here it is one word, with its
+ * subject said before it for a screen reader.
+ */
+const RUNG_WORD: Record<AuthorshipRung, string> = {
+  drafted: 'Drafted',
+  reviewed: 'Reviewed',
+  authored: 'Authored',
+};
+
+export const RungMark: React.FC<{ id: string }> = ({ id }) => (
+  <span className={`${LABEL} shrink-0`}>
+    <span className="sr-only">Authorship: </span>
+    {RUNG_WORD[getAuthorship(id).rung]}
+  </span>
+);
+
+/**
  * One line of heading, and no eyebrow. The sub-nav strip above already says
  * which holding a reader is in, so repeating it cost 60px and told nobody
  * anything. Where a page carries a deck it sits inline with the title rather
  * than owning a line of its own.
+ *
+ * `rungFor` is an entry id. An index passes nothing, because a holding states
+ * its rung once for all of its entries at the foot of the list.
  */
-export const PageHead: React.FC<{ title: string; chineseName?: string; note?: string }> = ({
+export const PageHead: React.FC<{ title: string; chineseName?: string; note?: string; rungFor?: string }> = ({
   title,
   chineseName,
   note,
+  rungFor,
 }) => (
   <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
     {/* min-w-0 and break-words together: a flex item's default min-width is its
@@ -93,6 +130,7 @@ export const PageHead: React.FC<{ title: string; chineseName?: string; note?: st
         wrap. Every long string in the head is treated the same way. */}
     <h1 className={`${TITLE_CLASS} text-tea-text min-w-0 break-words`}>{title}</h1>
     {chineseName && <span className={`${NAME_CLASS} text-tea-text-sec min-w-0 break-words`}>{chineseName}</span>}
+    {rungFor && <RungMark id={rungFor} />}
     {note && <p className={`${FACT} min-w-0 break-words max-w-[56ch]`}>{note}</p>}
   </header>
 );
@@ -310,9 +348,21 @@ export const WisdomToolbar: React.FC<{
  *
  * The places index runs 182 rows, 98 of them under China, and the only way to
  * reach the bottom of it was the scroll bar. A rail of chips would have cost
- * three wrapped rows on a phone to save scrolling on one; a native select costs
- * one control on a line the toolbar was already spending, and opens as the
+ * three wrapped rows on a phone to save scrolling on one; a select costs one
+ * control on a line the toolbar was already spending, and opens as the
  * platform's own list, over everything, at any width.
+ *
+ * The open list stays the platform's, because a hand-built popup over 182 rows
+ * is a scroll trap on a phone and the OS one is not. The closed control is
+ * ours: `appearance-none` takes the browser's chrome off, the chevron is drawn
+ * here in the same lucide glyph the compact nav uses, and the type is CELL like
+ * every other value in the toolbar. Left native it inherited the platform's
+ * font, its border and its arrow, and matched the toolbar in neither theme.
+ *
+ * The options carry the page's own tokens too. A browser that honours colour on
+ * an option (Chromium, and Firefox on Windows) then draws its popup in the
+ * theme the reader is actually in; one that ignores it falls back to the
+ * platform default, which is the pre-existing behaviour and still legible.
  */
 export const GroupJump: React.FC<{
   groups: Array<{ id: string; label: string; count: number }>;
@@ -327,27 +377,39 @@ export const GroupJump: React.FC<{
   // else, so a holding that grows into needing this gets it on its own.
   if (groups.length < 4 || rows < 100) return null;
   return (
-    <select
-      aria-label={label}
-      value=""
-      onChange={event => {
-        document.getElementById(event.target.value)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }}
-      /* bg-tea-bg, not transparent: the closed control reads as flat against
-         the page, and the browser's own popup gets an opaque background to
-         draw its options on. The width is capped so a long group name cannot
-         push the toolbar onto a second row at 390px. */
-      className={`${CELL_CLASS} min-h-[44px] min-w-0 max-w-[136px] bg-tea-bg text-tea-text-sec hover:text-tea-text rounded-md pr-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50`}
-    >
-      {/* The placeholder is the label. A separate micro-caps "Jump to" beside
-          it said the same word twice and cost 60px of a 358px line. */}
-      <option value="">Jump to</option>
-      {groups.map(group => (
-        <option key={group.id} value={group.id}>
-          {group.label} ({group.count})
+    /* The width is capped so a long group name cannot push the toolbar onto a
+       second row at 390px. The chevron sits inside that cap, in the pr-5 the
+       select leaves for it, and is pointer-events-none so the whole control is
+       still one hit. */
+    <div className="relative inline-flex items-center shrink-0 min-w-0 max-w-[136px]">
+      <select
+        aria-label={label}
+        value=""
+        onChange={event => {
+          document.getElementById(event.target.value)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }}
+        /* bg-tea-bg, not transparent: the closed control reads as flat against
+           the page, and a browser that draws its popup from the select's own
+           background gets an opaque one to draw the options on. */
+        className={`${CELL_CLASS} appearance-none w-full min-h-[44px] min-w-0 bg-tea-bg text-tea-text-sec hover:text-tea-text cursor-pointer rounded-md pl-0 pr-5 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50`}
+      >
+        {/* The placeholder is the label. A separate micro-caps "Jump to" beside
+            it said the same word twice and cost 60px of a 358px line. */}
+        <option value="" className="bg-tea-bg text-tea-text-dim">
+          Jump to
         </option>
-      ))}
-    </select>
+        {groups.map(group => (
+          <option key={group.id} value={group.id} className="bg-tea-bg text-tea-text">
+            {group.label} ({group.count})
+          </option>
+        ))}
+      </select>
+      <ChevronDown
+        size={13}
+        aria-hidden
+        className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-dim"
+      />
+    </div>
   );
 };
 
@@ -424,6 +486,14 @@ export const IndexTable: React.FC<{ columns: IndexColumns; children: React.React
  *
  * `sub` is a group inside a group: same device, indented and dimmer, and it
  * sticks below the head above it rather than replacing it.
+ *
+ * The hairline under it is not decoration. Stuck to the top of the viewport the
+ * head has an opaque background and rows pass behind it, so at scrolling speed
+ * a name half-eaten by an invisible boundary reads as a clipping fault rather
+ * than as a fixed heading. `border-b` draws the boundary the eye was already
+ * looking for. It costs nothing when the head is not stuck, because the first
+ * row of a group carries no top border of its own (`first:border-t-0`), so this
+ * is the same single rule that was always between a head and its list.
  */
 export const GroupHead: React.FC<{ label: string; count: number; id?: string; sub?: boolean }> = ({
   label,
@@ -433,7 +503,10 @@ export const GroupHead: React.FC<{ label: string; count: number; id?: string; su
 }) => (
   <div
     id={id}
-    className={`sticky ${sub ? 'top-[38px] pl-3' : 'top-0'} z-10 bg-tea-bg flex items-baseline gap-2 pt-5 pb-1`}
+    /* 40px is the head above it: pt-5, an 11px line at 1.4, pb-1 and the rule.
+       It seats the sub head flush under the country head rather than leaving a
+       hairline gap for a scrolling row to show through. */
+    className={`sticky ${sub ? 'top-[40px] pl-3' : 'top-0'} z-10 bg-tea-bg border-b border-tea-border flex items-baseline gap-2 pt-5 pb-1`}
   >
     <span className={isMicroCapsLabel(label) ? LABEL : `${CELL_CLASS} text-tea-text-dim`}>{label}</span>
     <span className={`${CELL_CLASS} text-tea-text-dim tabular-nums`}>{count}</span>
@@ -457,6 +530,14 @@ export interface CellLink {
  * always said "Not recorded" in that position, so the row says it too, in the
  * dim tone the value would not have used, which keeps absence from reading as
  * a fact at a glance.
+ *
+ * This is for a scarce absence, not a structural one. Seven of fifteen is worth
+ * naming; ninety-nine of a hundred and eighty-two is not, because at that
+ * density the words stop being information and become the column. Where a whole
+ * class of record simply has no such field (the working-list places carry
+ * neither a province nor an altitude, by construction), the cell is left
+ * genuinely empty and the reason is stated once above the list. See
+ * RegionIndexPage.
  */
 export interface CellAbsent {
   absent: string;
@@ -507,7 +588,14 @@ export const HoldingRow: React.FC<{
           {chineseName && <span className="font-display text-ui-15 text-tea-text-dim">{chineseName}</span>}
         </span>
         {cells.map((cell, index) =>
-          isLink(cell) ? (
+          // An empty cell keeps its grid track at sm and up, because the column
+          // it sits in is an axis the eye runs down and a missing track would
+          // shift every value after it. Below sm the row is a flex wrap with no
+          // columns to hold, so an empty cell renders nothing at all rather
+          // than a stray 16px gap after the name.
+          !isLink(cell) && !isAbsent(cell) && !cellText(cell) ? (
+            <span key={index} aria-hidden className="hidden sm:block" />
+          ) : isLink(cell) ? (
             <span key={index} className={`${CELL} min-w-0 break-words`}>
               {/* `relative` lifts it above the name link's stretched ::after so
                   the cell is its own destination. `py-2` grows the hit box on an
@@ -654,11 +742,46 @@ const sectionLabel = (id: string): string => WISDOM_SECTIONS.find(section => sec
 const sectionOrder = (label: string): number => WISDOM_SECTIONS.findIndex(section => section.label === label);
 
 /**
- * Names only, across every holding. Deliberately not a full-text search: the
- * base carries paragraphs of climate and description, and matching inside them
- * would answer "Fujian" with a hundred rows and bury the plant someone asked
- * for. An exact name sorts above a leading match, which sorts above a partial.
+ * Names first, then the short fields that place a record.
+ *
+ * It was names only, and that was too narrow to be honest. A reader who types
+ * "Fujian" into Plants is told no plant answers to it and sent here, where the
+ * base answered with the province itself and nothing else, as if it held one
+ * fact about Fujian instead of the thirty-odd records that name it. The
+ * reference looked smaller than it is at the one moment a reader was asking it
+ * to be bigger.
+ *
+ * What is searched is still deliberately not everything. Prose is excluded, and
+ * has to stay excluded: climate and description run to paragraphs, and matching
+ * inside them would answer a place name with a hundred essays and bury the
+ * plant somebody asked for. What is searched instead is exactly the handful of
+ * short fields that say where a record belongs, all of which are already
+ * printed in the `Where` column of the results, so a hit that matched on
+ * context shows the reader why it is there.
+ *
+ * Ranking keeps the widening from costing anything. Every name match, of any
+ * kind, sorts above every context match, so "Wuyi" still opens with the place
+ * called Wuyi and the plants grown there follow it rather than displace it.
+ *
+ *   0  exact name       1  name starts with      2  name contains
+ *   4  exact context    5  context starts with   6  context contains
  */
+const NAME_RANKS = [0, 1, 2] as const;
+const CONTEXT_RANKS = [4, 5, 6] as const;
+const MISS = 9;
+
+const rankAgainst = (fields: Array<string | undefined>, needle: string, ranks: readonly number[]): number => {
+  let rank = MISS;
+  for (const field of fields) {
+    if (!field) continue;
+    const key = searchKey(field);
+    if (key === needle) rank = Math.min(rank, ranks[0]);
+    else if (key.startsWith(needle)) rank = Math.min(rank, ranks[1]);
+    else if (key.includes(needle)) rank = Math.min(rank, ranks[2]);
+  }
+  return rank;
+};
+
 export function searchHoldings(query: string, limit = 40): HoldingHit[] {
   const needle = searchKey(query.trim());
   if (!needle) return [];
@@ -670,17 +793,15 @@ export function searchHoldings(query: string, limit = 40): HoldingHit[] {
     name: string,
     chineseName: string | undefined,
     altNames: Array<string | undefined>,
+    /** Short fields that place the record. Never prose. */
+    context: Array<string | undefined>,
     where?: string,
   ) => {
-    let rank = 3;
-    for (const field of [name, chineseName, ...altNames]) {
-      if (!field) continue;
-      const key = searchKey(field);
-      if (key === needle) rank = Math.min(rank, 0);
-      else if (key.startsWith(needle)) rank = Math.min(rank, 1);
-      else if (key.includes(needle)) rank = Math.min(rank, 2);
-    }
-    if (rank < 3) hits.push({ name, chineseName, holding, to, where, rank });
+    const rank = Math.min(
+      rankAgainst([name, chineseName, ...altNames], needle, NAME_RANKS),
+      rankAgainst(context, needle, CONTEXT_RANKS),
+    );
+    if (rank < MISS) hits.push({ name, chineseName, holding, to, where, rank });
   };
 
   for (const cultivar of CULTIVARS) {
@@ -690,11 +811,20 @@ export function searchHoldings(query: string, limit = 40): HoldingHit[] {
       cultivar.name,
       cultivar.chineseName,
       cultivar.altNames,
+      [cultivar.originRegion, cultivar.originCountry],
       cultivar.originRegion || cultivar.originCountry,
     );
   }
   for (const region of REGIONS) {
-    consider(sectionLabel('regions'), `/wisdom/region/${region.id}`, region.name, undefined, [], region.country);
+    consider(
+      sectionLabel('regions'),
+      `/wisdom/region/${region.id}`,
+      region.name,
+      undefined,
+      [],
+      [region.province, region.country],
+      [region.province, region.country].filter(Boolean).join(', ') || undefined,
+    );
   }
   for (const producer of PRODUCERS) {
     consider(
@@ -703,17 +833,45 @@ export function searchHoldings(query: string, limit = 40): HoldingHit[] {
       producer.name,
       producer.chineseName,
       producer.altNames,
+      [producer.region, producer.country],
       [producer.region, producer.country].filter(Boolean).join(', ') || undefined,
     );
   }
   for (const mark of MARKS) {
-    consider(sectionLabel('marks'), `/wisdom/mark/${mark.id}`, mark.name, mark.chineseName, mark.altNames, mark.era);
+    // A mark's producer is a relation the base holds, so "Menghai" reaches the
+    // marks that factory made and not only the factory itself.
+    const producer = PRODUCERS.find(entry => entry.id === mark.producerId);
+    consider(
+      sectionLabel('marks'),
+      `/wisdom/mark/${mark.id}`,
+      mark.name,
+      mark.chineseName,
+      mark.altNames,
+      [mark.era, producer?.name, producer?.chineseName, ...mark.appliesToTypes],
+      mark.era || producer?.name,
+    );
   }
   for (const style of STYLES) {
-    consider(sectionLabel('styles'), `/wisdom/style/${style.id}`, style.name, style.chineseName, style.altNames, style.region);
+    consider(
+      sectionLabel('styles'),
+      `/wisdom/style/${style.id}`,
+      style.name,
+      style.chineseName,
+      style.altNames,
+      [style.region, ...style.appliesToTypes],
+      style.region,
+    );
   }
   for (const tea of NAMED_TEAS) {
-    consider(sectionLabel('named'), `/wisdom/named/${tea.id}`, tea.name, tea.chineseName, tea.altNames, tea.type);
+    consider(
+      sectionLabel('named'),
+      `/wisdom/named/${tea.id}`,
+      tea.name,
+      tea.chineseName,
+      tea.altNames,
+      [tea.type, tea.form, tea.region, tea.country],
+      tea.region || tea.type,
+    );
   }
 
   return hits

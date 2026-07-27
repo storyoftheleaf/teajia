@@ -149,6 +149,31 @@ const WisdomStrip: React.FC<{ active: WisdomSection['id'] }> = ({ active }) => (
  * sideways, and the closed state still names where you are. The panel pushes
  * the page down rather than floating over it: this is a contents list, not a
  * menu that has to clear the app chrome.
+ *
+ * REFERENCE ONLY. DO NOT COPY THIS PATTERN INTO THE REST OF THE APP.
+ *
+ * Nothing else on Teajia collapses a nav this way, and that is deliberate
+ * rather than an oversight nobody got to. The app's navigation is the sidebar
+ * on desktop and the bottom tab bar on a phone, both of which are permanent,
+ * both of which carry four items, and neither of which is ever allowed to
+ * change without asking (see CLAUDE.md, "NEVER change without explicit
+ * confirmation"). This is a seventh-level contents list inside one section of
+ * one page, not app navigation, and it collapses because seven serif labels
+ * genuinely do not fit on a 358px line.
+ *
+ * Three things have to be true before this earns promotion to a shared
+ * primitive in src/components:
+ *
+ *   1. A second surface needs it. One caller is not a pattern, and a primitive
+ *      built for one caller is a worse version of the caller.
+ *   2. The second caller is also a contents list, not app navigation. The tab
+ *      bar and the sidebar are locked surfaces and must not adopt this.
+ *   3. The open state is still a push, not an overlay. A menu that floats has
+ *      to clear the app chrome and obey the AnchoredMenu rules; this one does
+ *      not float, which is what keeps it this small.
+ *
+ * Until all three hold, the right move for a new surface is to make its labels
+ * fit, not to collapse them.
  */
 const WisdomCompactNav: React.FC<{ active: WisdomSection['id'] }> = ({ active }) => {
   const [open, setOpen] = useState(false);

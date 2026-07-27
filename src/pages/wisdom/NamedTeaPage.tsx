@@ -12,7 +12,6 @@ import { Helmet } from 'react-helmet-async';
 import { findNamedTeaById } from '../../wisdom';
 import {
   EntryAuthorship,
-  CELL,
   FACT,
   FACT_CLASS,
   Fact,
@@ -20,6 +19,7 @@ import {
   Invitation,
   LABEL,
   PageHead,
+  Passage,
   WisdomSubNav,
 } from './wisdomShared';
 
@@ -96,8 +96,8 @@ const NamedTeaPage: React.FC = () => {
           title={tea.name}
           chineseName={tea.chineseName}
           note={tea.altNames.length > 0 ? `Also written ${tea.altNames.join(', ')}` : undefined}
+          rungFor={tea.id}
         />
-        {tea.tradition && <p className={`${CELL} mt-2 max-w-[56ch]`}>{tea.tradition}</p>}
       </div>
 
       <div className="mt-6">
@@ -108,6 +108,16 @@ const NamedTeaPage: React.FC = () => {
         <Fact label="Collection">{tea.collection}</Fact>
         <Fact label="Source">{tea.vendor}</Fact>
       </div>
+
+      {/* The tradition is a sixteen-word sentence, and it used to run at CELL:
+          11px, the label size, directly under the title. It was the last full
+          sentence in the reference set at label size, which is the fine-print
+          defect this pass has been taking out everywhere else. It is prose, so
+          it takes the device the reference already has for prose: full measure,
+          15px, its label above it rather than beside it. Below the facts, not
+          above them, because a reader wants to know what type of tea it is
+          before they want to know how its name was arrived at. */}
+      <Passage label="Naming tradition" text={tea.tradition} className="mt-8" />
 
       <p className={`${FACT_CLASS} text-tea-text mt-6 max-w-[68ch]`}>{provenanceStatement(tea.provenance)}</p>
 

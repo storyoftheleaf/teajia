@@ -17,14 +17,16 @@ import CultivarPage from './CultivarPage';
 import MarkIndexPage from './MarkIndexPage';
 import MarkPage from './MarkPage';
 import NamedTeaIndexPage, { traditionLabel } from './NamedTeaIndexPage';
+import NamedTeaPage from './NamedTeaPage';
+import StylePage from './StylePage';
 import ProducerIndexPage from './ProducerIndexPage';
 import ProducerPage from './ProducerPage';
 import RegionIndexPage from './RegionIndexPage';
 import RegionPage from './RegionPage';
 import StyleIndexPage from './StyleIndexPage';
-import WisdomHomePage, { readableDate } from './WisdomHomePage';
+import WisdomHomePage, { TOTAL_ENTRIES, readableDate } from './WisdomHomePage';
 import { WISDOM_SECTIONS, isMicroCapsLabel, searchHoldings } from './wisdomShared';
-import { DATASET_BUILT, DATASET_VERSION } from './datasetStamp';
+import { DATASET_BUILT, DATASET_PAGES, DATASET_RECORDS, DATASET_VERSION } from './datasetStamp';
 import { tidyName } from './LineageTree';
 import { AUTHORSHIP } from '../../wisdom/authorship';
 import { NAMING_TRADITIONS, REGIONS } from '../../wisdom';
@@ -45,6 +47,8 @@ const render = (path: string) =>
           <Route path="/wisdom/producer/:id" element={<ProducerPage />} />
           <Route path="/wisdom/styles" element={<StyleIndexPage />} />
           <Route path="/wisdom/named" element={<NamedTeaIndexPage />} />
+          <Route path="/wisdom/named/:id" element={<NamedTeaPage />} />
+          <Route path="/wisdom/style/:id" element={<StylePage />} />
         </Routes>
       </MemoryRouter>
     </HelmetProvider>,
@@ -64,6 +68,7 @@ const DETAIL_PAGES = [
   '/wisdom/mark/7572',
   '/wisdom/producer/menghai-tea-factory',
   '/wisdom/region/wuyi-mountains-fujian',
+  '/wisdom/named/courage',
 ];
 
 describe('wayfinding', () => {
@@ -307,6 +312,135 @@ describe('group heads', () => {
     const html = render('/wisdom/named');
     expect(html).toContain('Grouped by how the tea came by its name');
     expect(html).not.toContain('named for the feeling of origin rather than a technical specification');
+  });
+});
+
+describe('a cold arrival on one entry', () => {
+  it('states the rung in the header, in one word, on every detail page', () => {
+    for (const path of [...DETAIL_PAGES, '/wisdom/style/xiao-qing-gan']) {
+      const html = render(path);
+      // Somebody arriving from a search engine walks through no index, so the
+      // holding's authorship sentence never reaches them. One micro-caps word
+      // in the header is the whole repair.
+      expect(html).toContain('Authorship: ');
+      expect(html).toMatch(/>Drafted</);
+      // Not the four-line footnote block that used to sit on all 300 entries.
+      expect(html).not.toContain('Drafted from research. Not yet read by a human.<');
+    }
+  });
+
+  it('leaves the word off an index, which says the sentence in full instead', () => {
+    for (const path of INDEX_PAGES) {
+      expect(render(path)).not.toContain('Authorship: ');
+    }
+  });
+});
+
+describe('two counts on the front door', () => {
+  it('names what each one counts instead of printing them side by side', () => {
+    const html = render('/wisdom').replace(/<!-- -->/g, '');
+    expect(html).toContain(`${DATASET_RECORDS} records in all`);
+    expect(html).toContain(`${DATASET_PAGES} entries with a page above`);
+    expect(html).toContain(`${DATASET_RECORDS - DATASET_PAGES} tea variety names carried as data only`);
+  });
+
+  it('keeps the page count and the holding totals from drifting apart', () => {
+    // The table above the stamp sums to TOTAL_ENTRIES; the export counts the
+    // same records as DATASET_PAGES. If a holding is added to one and not the
+    // other, the front door starts contradicting itself again in public.
+    expect(DATASET_PAGES).toBe(TOTAL_ENTRIES);
+    expect(DATASET_RECORDS).toBeGreaterThan(DATASET_PAGES);
+  });
+});
+
+describe('a column that is empty on half its rows', () => {
+  it('says why once, above the list, rather than on every bare row', () => {
+    const html = render('/wisdom/regions');
+    expect(html).toContain('working-list names');
+    expect(html).toContain('not researched rather than not applicable');
+    // 94 of the 182 places carry no altitude. The absent-cell device is for a
+    // scarce absence; at this density it would be the loudest thing on screen.
+    const notRecorded = html.match(/Not recorded/g) ?? [];
+    expect(notRecorded.length).toBeLessThan(5);
+  });
+
+  it('counts what is recorded rather than printing a number that rots', () => {
+    const altitude = REGIONS.filter(region => region.altitude).length;
+    const province = REGIONS.filter(region => region.province).length;
+    expect(altitude).toBeLessThan(REGIONS.length);
+    const html = render('/wisdom/regions').replace(/<!-- -->/g, '');
+    expect(html).toContain(`An altitude is recorded for ${altitude} of these places and a province for ${province}`);
+  });
+});
+
+describe('a sticky group head', () => {
+  it('carries a bottom edge, so a row passing behind it is not a clipping fault', () => {
+    const html = render('/wisdom/regions');
+    expect(html).toMatch(/class="sticky top-0 z-10 bg-tea-bg border-b border-tea-border/);
+  });
+});
+
+describe('the jump control', () => {
+  it('wears house chrome rather than the browser default', () => {
+    const html = render('/wisdom/regions');
+    expect(html).toMatch(/<select[^>]*class="[^"]*appearance-none/);
+    // Its own chevron, drawn in the same glyph the compact nav uses.
+    expect(html).toMatch(/<select[\s\S]{0,4000}?lucide-chevron-down/);
+  });
+});
+
+describe('the pair of holdings that describe one relation', () => {
+  it('opens both grouped, each by its own axis', () => {
+    // Marks fall into producer piles; producers fall into kind piles. Neither
+    // opens flat while the other opens grouped.
+    expect(render('/wisdom/marks')).toContain('Menghai Tea Factory');
+    const producers = render('/wisdom/producers');
+    expect(producers).toContain('Factory');
+    expect(producers).toContain('Marks held');
+  });
+});
+
+describe('the tradition of a named tea', () => {
+  it('is set as prose, not at label size', () => {
+    const html = render('/wisdom/named/courage');
+    expect(html).toContain('Naming tradition');
+    // The sentence used to run at 11px, the label size, which is the fine-print
+    // defect this loop removed everywhere else.
+    const sentence = 'Chinese private-collection naming';
+    const at11px = new RegExp(`text-ui-11[^"]*"[^>]*>${sentence}`);
+    expect(html).not.toMatch(at11px);
+    expect(html).toMatch(new RegExp(`text-ui-15[^"]*"[^>]*>${sentence}`));
+  });
+});
+
+describe('searching wider than a name', () => {
+  it('answers a place name with the records that name it, not only the place', () => {
+    const hits = searchHoldings('Fujian');
+    const holdings = new Set(hits.map(hit => hit.holding));
+    expect(hits.length).toBeGreaterThan(3);
+    // A search that answered "Fujian" with region rows alone made the base look
+    // smaller than it is at the one moment a reader asked it to be bigger.
+    expect(holdings.size).toBeGreaterThan(1);
+  });
+
+  it('reaches the marks a factory made, not only the factory', () => {
+    const hits = searchHoldings('Menghai');
+    expect(hits.some(hit => hit.holding === 'Marks')).toBe(true);
+  });
+
+  it('never lets a context match outrank a name match', () => {
+    // The place itself still opens the list. The records that merely name it
+    // follow, rather than displacing the thing the reader typed.
+    for (const place of ['Wuyi', 'Fujian', 'Yunnan']) {
+      expect(searchHoldings(place)[0].name.toLowerCase()).toBe(place.toLowerCase());
+    }
+  });
+
+  it('still searches no prose', () => {
+    // A word that appears only inside a description or a climate paragraph must
+    // not match, or one query returns a hundred paragraphs.
+    expect(searchHoldings('benchmark')).toEqual([]);
+    expect(searchHoldings('monsoon')).toEqual([]);
   });
 });
 

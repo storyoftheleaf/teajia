@@ -9,5 +9,13 @@ export const DATASET_VERSION = '1.0.0';
 /** ISO date the export last ran. */
 export const DATASET_BUILT = '2026-07-27';
 
-/** One file per record, across every holding. */
+/** One file per record, across every holding. Everything the download carries. */
 export const DATASET_RECORDS = 629;
+
+/**
+ * The subset with a page in the reference. Every holding except the tea
+ * varieties, which are names and romanisations only and are exported as data.
+ * This must equal the sum of the holding counts on the front door; a wisdom
+ * test asserts it, so the two numbers cannot drift apart in public again.
+ */
+export const DATASET_PAGES = 313;

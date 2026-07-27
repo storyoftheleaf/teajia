@@ -3,4 +3,16 @@ Allow: /
 Disallow: /admin
 Disallow: /api
 
-Sitemap: https://teajia.co/sitemap.xml
+# Two sitemaps, because they are maintained by different hands. The first is
+# written here and lists the handful of top-level pages. The second is written
+# by scripts/export-wisdom-dataset.mjs from the wisdom base itself and lists
+# every one of the 313 reference entries, which is more URLs than belong in a
+# file a person edits.
+#
+# Two Sitemap lines rather than a sitemap index: this site is served as static
+# files from Cloudflare Pages with no rewrite layer, so an index would mean a
+# third file existing only to name two others, and every crawler that matters
+# reads repeated Sitemap directives here. Both must be on the same host as this
+# file, which is teajia.com (see the canonical link in index.html).
+Sitemap: https://teajia.com/sitemap.xml
+Sitemap: https://teajia.com/wisdom/sitemap.xml

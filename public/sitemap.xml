@@ -1,70 +1,77 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://teajia.co/</loc>
+    <loc>https://teajia.com/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://teajia.co/magazine</loc>
+    <loc>https://teajia.com/magazine</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://teajia.co/learn</loc>
+    <loc>https://teajia.com/learn</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://teajia.co/shop</loc>
+    <loc>https://teajia.com/shop</loc>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://teajia.co/consult</loc>
+    <loc>https://teajia.com/consult</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://teajia.co/about</loc>
+    <loc>https://teajia.com/about</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <!-- The public tea reference. The seven holding indexes are listed here; all
        313 entry pages are listed in https://teajia.com/wisdom/sitemap.xml,
-       which scripts/export-wisdom-dataset.mjs writes from the base itself. -->
+       which scripts/export-wisdom-dataset.mjs writes from the base itself.
+       Both files are named on their own Sitemap line in robots.txt, so the
+       reference's own sitemap is discoverable without reading index.json.
+
+       Every loc here is on teajia.com, matching the canonical link in
+       index.html and the host the reference's sitemap already used. It read
+       teajia.co until now, which is a different host from the one this file is
+       served on, and a sitemap whose URLs are off-host is discarded whole. -->
   <url>
-    <loc>https://teajia.co/wisdom</loc>
+    <loc>https://teajia.com/wisdom</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://teajia.co/wisdom/cultivars</loc>
+    <loc>https://teajia.com/wisdom/cultivars</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://teajia.co/wisdom/regions</loc>
+    <loc>https://teajia.com/wisdom/regions</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://teajia.co/wisdom/producers</loc>
+    <loc>https://teajia.com/wisdom/producers</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://teajia.co/wisdom/marks</loc>
+    <loc>https://teajia.com/wisdom/marks</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://teajia.co/wisdom/styles</loc>
+    <loc>https://teajia.com/wisdom/styles</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://teajia.co/wisdom/named</loc>
+    <loc>https://teajia.com/wisdom/named</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>

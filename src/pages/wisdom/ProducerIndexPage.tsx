@@ -4,6 +4,22 @@
  * Ten factories, houses and brands. Small enough to hold in one list; a search
  * field and a count still apply, because a name written in Chinese or an alias
  * is still a name a reader might type.
+ *
+ * On this holding and Marks, which describe the same relation from both ends.
+ *
+ * A mark has exactly one producer, so the Marks index groups by it: fifteen
+ * rows fall into eight named piles and the pile heading is worth more than the
+ * cell would be. A producer has many marks, so this index cannot group by them
+ * at all, and carries the count instead, with the marks themselves listed and
+ * linked on the producer's own page.
+ *
+ * That much is forced by the shape of the relation. What was not forced, and
+ * read as carelessness, was that this index opened flat while Marks opened
+ * grouped: the pair looked like one holding had been finished and the other had
+ * not. So both now open grouped, each by the axis that actually separates its
+ * own rows. Marks by producer, producers by kind. Neither is grouped by the
+ * relation to the other, because the relation only groups in one direction, and
+ * pretending otherwise would be a device with nothing under it.
  */
 import React, { useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
@@ -38,10 +54,11 @@ const KIND_LABEL: Record<Producer['kind'], string> = {
   unknown: 'Not recorded',
 };
 
+/** "Marks held", not "Marks": the count is what the base holds, not what the factory ever made. */
 const COLUMNS: IndexColumns = {
-  template: 'minmax(0,1fr) 172px 96px 60px',
+  template: 'minmax(0,1fr) 172px 96px 76px',
   nameLabel: 'Producer',
-  labels: ['Operates in', 'Kind', 'Marks'],
+  labels: ['Operates in', 'Kind', 'Marks held'],
 };
 
 const matchKey = (value: string) => value.normalize('NFKD').toLowerCase();
@@ -81,7 +98,8 @@ const ProducerRows: React.FC<{ rows: Producer[] }> = ({ rows }) => (
 );
 
 const ProducerIndexPage: React.FC = () => {
-  const [view, setView] = useState<View>('alphabetical');
+  // Grouped by default, the same as Marks. See the note at the top of the file.
+  const [view, setView] = useState<View>('kind');
   const [query, setQuery] = useState('');
   const visible = useMemo(() => PRODUCERS.filter(producer => matches(producer, query)).sort(byName), [query]);
 

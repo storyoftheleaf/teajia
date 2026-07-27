@@ -146,6 +146,7 @@ const CultivarPage: React.FC = () => {
           title={cultivar.name}
           chineseName={cultivar.chineseName}
           note={cultivar.altNames.length > 0 ? `Also written ${cultivar.altNames.join(', ')}` : undefined}
+          rungFor={cultivar.id}
         />
         <p className={`${CELL} mt-2`}>
           {[

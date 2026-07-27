@@ -188,7 +188,13 @@ const HOLDINGS = [
     note: 'Teas that arrived already named, where the composition is undisclosed. The name is the identity.' },
 ];
 
+// Two counts, and they are not the same count. `recordFiles` is everything the
+// download carries. `pageRecords` is the subset that has a reader-facing page
+// in the reference, which is every holding except the tea varieties. The front
+// door prints both and has to name what each one counts, because it prints them
+// beside each other and they disagree by 316.
 let recordFiles = 0;
+let pageRecords = 0;
 for (const holding of HOLDINGS) {
   const dir = join(outDir, holding.singular);
   rmSync(dir, { recursive: true, force: true });
@@ -200,6 +206,7 @@ for (const holding of HOLDINGS) {
       `${JSON.stringify({ ...record, holding: holding.key, license: meta.license, source: `${SITE}/wisdom/` }, null, 2)}\n`
     );
     recordFiles += 1;
+    if (holding.index) pageRecords += 1;
   }
 }
 
@@ -273,8 +280,16 @@ export const DATASET_VERSION = '${VERSION}';
 /** ISO date the export last ran. */
 export const DATASET_BUILT = '${GENERATED_AT}';
 
-/** One file per record, across every holding. */
+/** One file per record, across every holding. Everything the download carries. */
 export const DATASET_RECORDS = ${recordFiles};
+
+/**
+ * The subset with a page in the reference. Every holding except the tea
+ * varieties, which are names and romanisations only and are exported as data.
+ * This must equal the sum of the holding counts on the front door; a wisdom
+ * test asserts it, so the two numbers cannot drift apart in public again.
+ */
+export const DATASET_PAGES = ${pageRecords};
 `
 );
 

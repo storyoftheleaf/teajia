@@ -95,6 +95,7 @@ const ProducerPage: React.FC = () => {
           title={producer.name}
           chineseName={producer.chineseName}
           note={producer.altNames.length > 0 ? `Also written ${producer.altNames.join(', ')}` : undefined}
+          rungFor={producer.id}
         />
       </div>
 

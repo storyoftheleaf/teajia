@@ -77,6 +77,7 @@ const StylePage: React.FC = () => {
           title={style.name}
           chineseName={style.chineseName}
           note={style.altNames.length > 0 ? `Also written ${style.altNames.join(', ')}` : undefined}
+          rungFor={style.id}
         />
       </div>
 

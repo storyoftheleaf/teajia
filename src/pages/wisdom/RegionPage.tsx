@@ -112,7 +112,7 @@ const RegionPage: React.FC = () => {
       <WisdomSubNav active="regions" />
 
       <div className="mt-4">
-        <PageHead title={region.name} />
+        <PageHead title={region.name} rungFor={region.id} />
         <p className={`${CELL} mt-2`}>{[region.province, region.country].filter(Boolean).join(' · ')}</p>
       </div>
 

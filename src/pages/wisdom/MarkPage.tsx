@@ -82,6 +82,7 @@ const MarkPage: React.FC = () => {
           title={mark.name}
           chineseName={mark.chineseName}
           note={mark.altNames.length > 0 ? `Also written ${mark.altNames.join(', ')}` : undefined}
+          rungFor={mark.id}
         />
       </div>
 

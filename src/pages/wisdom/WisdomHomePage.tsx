@@ -15,7 +15,7 @@ import React, { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { CULTIVARS, MARKS, NAMED_TEAS, PRODUCERS, REGIONS, STYLES } from '../../wisdom';
-import { DATASET_BUILT, DATASET_RECORDS, DATASET_VERSION } from './datasetStamp';
+import { DATASET_BUILT, DATASET_PAGES, DATASET_RECORDS, DATASET_VERSION } from './datasetStamp';
 import {
   FACT,
   FOOTNOTE,
@@ -93,9 +93,14 @@ const HOLDINGS: Holding[] = [
   },
 ];
 
-const TOTAL_ENTRIES = HOLDINGS.reduce((sum, holding) => sum + holding.count, 0);
+/**
+ * The entries that have a page here. Exported so a test can hold it against
+ * DATASET_PAGES: the two are printed within a few lines of each other on this
+ * page, and they must never again be allowed to say different things.
+ */
+export const TOTAL_ENTRIES = HOLDINGS.reduce((sum, holding) => sum + holding.count, 0);
 
-/** Enough to answer a name, short enough that the list is still readable. */
+/** Enough to answer a name and the records around it, short enough that the list is still readable. */
 const HIT_LIMIT = 40;
 
 /** "2026-07-27" as "27 July 2026". Parsed by hand: `new Date` on a bare date reads it as UTC. */
@@ -158,7 +163,7 @@ const WisdomHomePage: React.FC = () => {
         query={query}
         onQueryChange={setQuery}
         placeholder="Search every holding"
-        searchLabel="Search every holding by name, Chinese name or alias"
+        searchLabel="Search every holding by name, Chinese name, alias, or the place and maker a record names"
         visible={searching ? hits.length : TOTAL_ENTRIES}
         total={TOTAL_ENTRIES}
         noun="entries"
@@ -199,7 +204,7 @@ const WisdomHomePage: React.FC = () => {
           </IndexTable>
           {hits.length === HIT_LIMIT && (
             <p className={`${FOOTNOTE} mt-4`}>
-              The closest {HIT_LIMIT} names. Narrow the search, or open the holding itself.
+              The closest {HIT_LIMIT} records. Narrow the search, or open the holding itself.
             </p>
           )}
         </>
@@ -218,10 +223,21 @@ const WisdomHomePage: React.FC = () => {
         </p>
         {/* What it is, as of when. A reference that asks to be cited has to be
             able to be cited: a version, a date, and a count, read from the
-            export itself rather than typed here and left to rot. */}
+            export itself rather than typed here and left to rot.
+
+            Two counts, and they used to sit beside each other unnamed. The
+            table above totals 313, the download totals 629, and a reader was
+            left to decide which of the two the reference was lying about. They
+            are both true and they count different things: the download also
+            carries 316 tea variety names, which are romanisations and nothing
+            more and have never had a page. So each number now says what it
+            counts, in the same sentence, and the difference between them is
+            stated rather than left as an apparent contradiction. */}
         <p className={`${FOOTNOTE} mt-3 max-w-[68ch]`}>
-          Version {DATASET_VERSION}, built {readableDate(DATASET_BUILT)}, {DATASET_RECORDS} records. Cite it as: Teajia
-          Tea Wisdom Base (teajia.com), version {DATASET_VERSION}, {readableDate(DATASET_BUILT)}, CC BY 4.0.
+          Version {DATASET_VERSION}, built {readableDate(DATASET_BUILT)}. {DATASET_RECORDS} records in all:{' '}
+          {DATASET_PAGES} entries with a page above, plus {DATASET_RECORDS - DATASET_PAGES} tea variety names carried as
+          data only. Cite it as: Teajia Tea Wisdom Base (teajia.com), version {DATASET_VERSION},{' '}
+          {readableDate(DATASET_BUILT)}, CC BY 4.0.
         </p>
       </div>
 
