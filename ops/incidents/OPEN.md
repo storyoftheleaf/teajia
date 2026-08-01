@@ -59,6 +59,11 @@
   Normalized error: `http_500`
   Evidence: [server-post-api-tasting-journal-sync-500-http-500-c6566bdc.json](evidence/server-post-api-tasting-journal-sync-500-http-500-c6566bdc.json)
 
+- [ ] `network_get_api_products_public_none_timeout` — **medium**
+  2 occurrences · first 2026-07-31T11:29:23Z · last 2026-07-31T11:29:23Z
+  Normalized error: `timeout`
+  Evidence: [network-get-api-products-public-none-timeout-d036fd27.json](evidence/network-get-api-products-public-none-timeout-d036fd27.json)
+
 - [ ] `network_put_api_user_favorites_none_timeout` — **medium**
   1 occurrence · first 2026-07-27T06:42:19Z · last 2026-07-27T06:42:19Z
   Normalized error: `timeout`
