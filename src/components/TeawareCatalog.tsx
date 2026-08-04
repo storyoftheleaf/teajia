@@ -92,6 +92,8 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
           if (onAddToCart) onAddToCart(item, quantity, total);
           closeProduct();
         }}
+        isAdmin={isAdmin}
+        onEdit={onAdminEdit ? (item) => onAdminEdit(item.id) : undefined}
       />
 
       {/* --- HEADER --- */}

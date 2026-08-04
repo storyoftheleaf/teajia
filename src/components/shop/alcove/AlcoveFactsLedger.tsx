@@ -6,9 +6,15 @@ interface AlcoveFactsLedgerProps {
   harvest?: string | number;
   /** First liquor-color term id from item.tasting — row renders only when present. */
   liquorTermId?: string;
+  /**
+   * Caller-supplied rows rendered verbatim in the same ledger grammar,
+   * replacing the tea-specific derivation above. Used by the teaware card
+   * (Origin / Material / Capacity / …).
+   */
+  rows?: LedgerRow[];
 }
 
-interface LedgerRow {
+export interface LedgerRow {
   key: string;
   label: string;
   value: React.ReactNode;
@@ -24,14 +30,15 @@ export const AlcoveFactsLedger: React.FC<AlcoveFactsLedgerProps> = ({
   origin,
   harvest,
   liquorTermId,
+  rows: rowsProp,
 }) => {
-  const rows: LedgerRow[] = [];
+  const rows: LedgerRow[] = rowsProp ? [...rowsProp] : [];
 
-  if (origin) rows.push({ key: 'origin', label: 'Origin', value: origin });
-  if (harvest) rows.push({ key: 'harvest', label: 'Harvest', value: String(harvest) });
+  if (!rowsProp && origin) rows.push({ key: 'origin', label: 'Origin', value: origin });
+  if (!rowsProp && harvest) rows.push({ key: 'harvest', label: 'Harvest', value: String(harvest) });
 
   const liquorHex = liquorTermId ? LIQUOR_COLORS[liquorTermId] : undefined;
-  if (liquorTermId && liquorHex) {
+  if (!rowsProp && liquorTermId && liquorHex) {
     rows.push({
       key: 'liquor',
       label: 'Liquor',

@@ -142,11 +142,11 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
     },
   ];
 
-  // Teaware / non-tea presets keep their per-unit logic but adopt the same
+  // Teaware / non-tea presets are whole units ("pieces"), not grams — same
   // segmented visual grammar, with the price as each cell's sub-line.
   const teawareCells: SegCell[] = presets.map(p => ({
     key: String(p),
-    label: `${p} g`,
+    label: p === 1 ? '1 piece' : `${p} pieces`,
     sub: formatPrice ? formatPrice(pricePerGram, p) : fmtShopPrice(pricePerGram * p),
     active: grams === p,
     onSelect: () => setGrams(p),
@@ -233,7 +233,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
               strokeWidth={1.6}
             />
           </button>
-          {isAdmin && (
+          {isAdmin && isTea && (
             <>
               {DIVIDER}
               <button
@@ -317,8 +317,11 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
               <span className="alcove-order-verb">Add to order</span>
               <span className="alcove-order-amt">
                 {formatPrice ? total : `$${total}`}
-                {pricePerGram > 0 && (
+                {isTea && pricePerGram > 0 && (
                   <> · {formatPrice ? perGramDisplay : `$${perGramDisplay}`}/g</>
+                )}
+                {!isTea && grams > 1 && pricePerGram > 0 && (
+                  <> · {formatPrice ? perGramDisplay : `$${perGramDisplay}`} each</>
                 )}
               </span>
             </>

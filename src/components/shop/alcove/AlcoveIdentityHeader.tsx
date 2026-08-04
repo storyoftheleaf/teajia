@@ -10,6 +10,12 @@ interface AlcoveIdentityHeaderProps {
   chineseCharacters: string;
   /** Type-color dot from getTeaColor(item.type). */
   typeColor: string;
+  /**
+   * Verbatim type label for the sub-line. When omitted, the tea default is
+   * derived from teaType ("Green" → "Green tea"). Teaware passes its raw type
+   * ("Gaiwan") so no " tea" suffix is appended.
+   */
+  typeLabel?: string;
   isAdmin?: boolean;
   onNavigateSource: () => void;
 }
@@ -26,12 +32,13 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
   teaType,
   chineseCharacters,
   typeColor,
+  typeLabel: typeLabelProp,
   isAdmin,
   onNavigateSource,
 }) => {
-  const typeLabel = teaType
+  const typeLabel = typeLabelProp ?? (teaType
     ? /tea/i.test(teaType) ? teaType : `${teaType} tea`
-    : '';
+    : '');
   const subLine = [givenName, typeLabel].filter(Boolean).join(' · ');
 
   return (

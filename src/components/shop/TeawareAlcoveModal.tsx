@@ -11,6 +11,10 @@ interface TeawareAlcoveModalProps {
   onClose: () => void;
   onAddToCart?: (item: InventoryItem, qty: number, total: number) => void;
   onItemChange?: (item: InventoryItem) => void;
+  /** Admin mode — shows edit button on the card */
+  isAdmin?: boolean;
+  /** Called when admin clicks edit */
+  onEdit?: (item: InventoryItem) => void;
 }
 
 export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
@@ -19,6 +23,8 @@ export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
   onClose,
   onAddToCart,
   onItemChange,
+  isAdmin,
+  onEdit,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const isOpen = !!item;
@@ -39,6 +45,9 @@ export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
 
   const slideTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const cardRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
   const justNavigatedRef = useRef(false);
 
   const currentIndex = item ? items.findIndex(i => i.id === item.id) : -1;
@@ -65,14 +74,25 @@ export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
     onItemChange(items[currentIndex - 1]);
   }, [item, onItemChange, items, currentIndex, isFirst]);
 
+  // Focus management: capture focus on open, mark peek cards inert so they
+  // can't be tabbed or read, restore focus to the opener on close.
   useEffect(() => {
     if (item) {
+      previouslyFocusedRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       requestAnimationFrame(() => setIsVisible(true));
+      requestAnimationFrame(() => {
+        dialogRef.current?.querySelectorAll<HTMLElement>('[data-alcove-preview]').forEach((el) => {
+          (el as HTMLElement & { inert: boolean }).inert = true;
+        });
+        closeButtonRef.current?.focus();
+      });
     } else {
       setIsVisible(false);
+      previouslyFocusedRef.current?.focus();
     }
   }, [item]);
 
+  // Keyboard navigation (Escape + arrow keys)
   useEffect(() => {
     if (!item) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -144,10 +164,57 @@ export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
   const hasNavigation = items.length > 1 && onItemChange;
   const peekGap = 40;
 
+  // Focus trap (Tab wrap) + dialog-level Escape/arrow handling
+  const handleDialogKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      onClose();
+      return;
+    }
+    if (e.key === 'ArrowLeft') {
+      e.stopPropagation();
+      goPrev();
+      return;
+    }
+    if (e.key === 'ArrowRight') {
+      e.stopPropagation();
+      goNext();
+      return;
+    }
+    if (e.key !== 'Tab') return;
+
+    const focusable = Array.from(
+      dialogRef.current?.querySelectorAll<HTMLElement>(
+        'a[href], button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex="-1"])'
+      ) ?? []
+    ).filter(el => !el.closest('[aria-hidden="true"]') && el.offsetParent !== null);
+
+    if (focusable.length === 0) {
+      e.preventDefault();
+      closeButtonRef.current?.focus();
+      return;
+    }
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
+
   return (
     <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={`alcove-title-${item.id}`}
       className={`fixed inset-0 z-modal transition-all duration-300 ${isVisible ? 'bg-black/95' : 'bg-black/0 pointer-events-none'}`}
       onClick={handleBackdropClick}
+      onKeyDown={handleDialogKeyDown}
     >
       <div
         className="relative flex items-center justify-center w-full h-full overflow-hidden"
@@ -158,6 +225,8 @@ export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
         {/* Previous card (peeking from left) */}
         {hasNavigation && prevItem && (
           <div
+            data-alcove-preview
+            aria-hidden="true"
             className="absolute hidden md:block pointer-events-auto cursor-pointer"
             style={{
               zIndex: 1,
@@ -179,6 +248,8 @@ export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
         {/* Mobile: previous card peek */}
         {hasNavigation && prevItem && (
           <div
+            data-alcove-preview
+            aria-hidden="true"
             className="absolute md:hidden pointer-events-none"
             style={{
               zIndex: 1,
@@ -222,14 +293,18 @@ export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
               item={item}
               onAddToCart={handleAddToCart}
               onClose={onClose}
+              isAdmin={isAdmin}
+              onEdit={onEdit}
             />
+            {/* Close button — top-left of the card per CLAUDE.md panel header rule */}
             <button
-              className="absolute top-2 right-2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-tea-text/30 hover:bg-tea-text/50 transition-colors"
+              ref={closeButtonRef}
+              className="tap-target absolute top-2 left-2 z-10 flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
               onClick={onClose}
               aria-label="Close"
             >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
-                stroke="var(--tea-gold)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
@@ -249,6 +324,8 @@ export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
         {/* Next card (peeking from right) */}
         {hasNavigation && nextItem && (
           <div
+            data-alcove-preview
+            aria-hidden="true"
             className="absolute hidden md:block pointer-events-auto cursor-pointer"
             style={{
               zIndex: 1,
@@ -270,6 +347,8 @@ export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
         {/* Mobile: next card peek */}
         {hasNavigation && nextItem && (
           <div
+            data-alcove-preview
+            aria-hidden="true"
             className="absolute md:hidden pointer-events-none"
             style={{
               zIndex: 1,
