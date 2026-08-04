@@ -12,6 +12,11 @@ interface AlcoveShellProps {
   grainOpacity?: number;
   /** Override the two radial warmth opacities [inner, outer] (defaults: [0.09, 0.05]) */
   warmthOpacities?: [number, number];
+  /**
+   * Optional "r,g,b" string to tint the two radial warmth gradients from
+   * (e.g. the tea's liquor color). Same opacities as the bronze defaults.
+   */
+  warmthRGB?: string;
 }
 
 export const AlcoveShell: React.FC<AlcoveShellProps> = ({
@@ -24,7 +29,10 @@ export const AlcoveShell: React.FC<AlcoveShellProps> = ({
   modals,
   grainOpacity = 0.05,
   warmthOpacities = [0.055, 0.025],
+  warmthRGB,
 }) => {
+  const innerWarmth = warmthRGB ? `rgba(${warmthRGB},${warmthOpacities[0]})` : `rgba(180,120,40,${warmthOpacities[0]})`;
+  const outerWarmth = warmthRGB ? `rgba(${warmthRGB},${warmthOpacities[1]})` : `rgba(200,140,50,${warmthOpacities[1]})`;
   return (
     <div style={{
       width: "100%",
@@ -42,8 +50,8 @@ export const AlcoveShell: React.FC<AlcoveShellProps> = ({
       <div style={{
         position: "absolute", inset: 0, pointerEvents: "none",
         background: `
-          radial-gradient(ellipse 70% 50% at 85% 8%, rgba(180,120,40,${warmthOpacities[0]}) 0%, transparent 60%),
-          radial-gradient(ellipse 50% 40% at 90% 0%, rgba(200,140,50,${warmthOpacities[1]}) 0%, transparent 50%)
+          radial-gradient(ellipse 70% 50% at 85% 8%, ${innerWarmth} 0%, transparent 60%),
+          radial-gradient(ellipse 50% 40% at 90% 0%, ${outerWarmth} 0%, transparent 50%)
         `,
       }} />
 

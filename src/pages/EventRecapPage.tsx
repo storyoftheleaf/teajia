@@ -90,7 +90,7 @@ const TeaLedgerSection: React.FC<TeaLedgerSectionProps> = ({ items }) => {
               </div>
               {item.productId && (
                 <a
-                  href={`/shop?product=${encodeURIComponent(item.productId)}`}
+                  href={`/shop/product/${encodeURIComponent(item.productId)}`}
                   className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-ui-12 font-semibold text-tea-text-sec hover:border-tea-gold/40 hover:text-tea-text transition-colors group"
                   aria-label={`Buy ${item.customName || item.productName}`}
                 >

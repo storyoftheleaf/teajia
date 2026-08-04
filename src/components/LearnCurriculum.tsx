@@ -33,7 +33,7 @@ const PATH_ICONS: Record<string, React.ReactNode> = {
 // Per-module "Explore in the collection" block. Driven exclusively
 // by the `module_products` xref table (curated via admin Content Links).
 // Renders nothing when no xref rows exist for this module.
-// Links use the /shop?product=<id> modal convention.
+// Links go to the real product page at /shop/product/<id>.
 // ----------------------------------------------------------------
 const ModuleExplore: React.FC<{ moduleId: string }> = ({ moduleId }) => {
   const navigate = useNavigate();
@@ -54,7 +54,7 @@ const ModuleExplore: React.FC<{ moduleId: string }> = ({ moduleId }) => {
         {products.map(product => (
           <button
             key={product.id}
-            onClick={() => navigate(`/shop?product=${encodeURIComponent(product.id)}`)}
+            onClick={() => navigate(`/shop/product/${encodeURIComponent(product.id)}`)}
             className="flex items-center gap-2 text-left w-full py-1 group/explore"
           >
             {product.image && (

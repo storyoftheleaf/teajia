@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
-import { Routes, Route, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useNavigate, useParams, type Location } from 'react-router-dom';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 
 // Retry a failed chunk load in place. A transient fetch failure is common on a
@@ -36,24 +36,9 @@ const Reader = lazy(() => import('./components/Reader').then(m => ({ default: m.
 // Legacy MagazinePageReader removed; articles render through the unified
 // 4:5 reader at /article/:slug. See docs/ARCHITECTURE.md.
 const Shop = lazyWithRetry(() => import('./components/Shop').then(m => ({ default: m.Shop })));
-
-// Reads :id from the URL and passes it to Shop so the AlcoveModal opens for
-// that product. Defined at module level so React treats it as a stable type.
-const ShopProductLoader: React.FC<{
-  teaInventory: InventoryItem[];
-  teawareInventory: InventoryItem[];
-  onAddToCart: (item: InventoryItem, qty: number, total: number) => void;
-  cartItemCount?: number;
-  onCartClick?: () => void;
-  onAccountClick?: () => void;
-  isLoading?: boolean;
-  isError?: boolean;
-  error?: Error | null;
-  onRetry?: () => void;
-}> = (props) => {
-  const { id } = useParams<{ id: string }>();
-  return <Shop {...props} initialProductId={id} />;
-};
+// The real product page for cold loads of /shop/product/:id. Grid taps open
+// the same URL as a modal over the shop instead (background-location routing).
+const ProductPage = lazy(() => import('./pages/ProductPage'));
 
 // Branches /article/:slug by render mode. Both readers fetch by slug with the
 // SAME query key ['article', slug], so the chosen reader reuses the cached
@@ -270,6 +255,15 @@ const AppContent = () => {
   const navigate = useNavigate();
   const activeSection = pathToSection(location.pathname);
 
+  // One URL, two containers (the Instagram pattern): grid taps navigate to
+  // /shop/product/:id with { state: { background: location } }. While that
+  // background location is present the route table renders against it — the
+  // shop stays mounted underneath (scroll + filters intact) and the grid
+  // component floats the AlcoveModal above it. Cold loads (shared links,
+  // reloads without state) have no background and render the real ProductPage.
+  const backgroundLocation = (location.state as { background?: Location } | null)?.background;
+  const displayLocation = backgroundLocation ?? location;
+
   // Detect active storefront from pathname to route checkout to that store's
   // WhatsApp number. Shares the react-query cache with <Storefront /> itself.
   const storefrontSlug = useMemo(() => {
@@ -315,13 +309,21 @@ const AppContent = () => {
   // Reset scroll on any pathname change. The activeSection effect above only
   // fires for Section-tracked routes; pages like /signin, /signup, /account/*
   // are not in that enum, so without this they inherit the previous scrollY.
+  //
+  // Product-modal navigations are exempt: opening/swiping (new location has a
+  // background) and closing (previous one had a background) keep the shop
+  // mounted underneath, so its scroll position must survive untouched.
   const lastPathname = useRef(location.pathname);
+  const lastHadBackground = useRef(!!backgroundLocation);
   useEffect(() => {
     if (lastPathname.current !== location.pathname) {
       lastPathname.current = location.pathname;
-      window.scrollTo(0, 0);
+      if (!backgroundLocation && !lastHadBackground.current) {
+        window.scrollTo(0, 0);
+      }
     }
-  }, [location.pathname]);
+    lastHadBackground.current = !!backgroundLocation;
+  }, [location.pathname, backgroundLocation]);
 
   // Update document title on section change
   useEffect(() => {
@@ -794,8 +796,8 @@ const AppContent = () => {
       <main id="main-content" className={`${isFocusedShareRoute || isImmersiveRead ? 'px-0 pb-0' : 'px-4 md:px-6 lg:px-10 pb-nav-gap-lg lg:pb-8'} pt-0 lg:pt-0 min-h-screen w-full flex-1 transition-opacity duration-300`}>
           <AnimatePresence mode="wait">
           {viewState === 'BROWSE' && (
-            <AnimatedRoutes>
-            <Routes>
+            <AnimatedRoutes location={displayLocation}>
+            <Routes location={displayLocation}>
                 <Route path="/" element={
                   hostStoreSlug ? (
                     <ErrorBoundary>
@@ -906,12 +908,12 @@ const AppContent = () => {
                     </Suspense>
                   </ErrorBoundary>
                 } />
+                {/* Cold loads only — grid taps carry a background location, so
+                    this route stays on the shop and the modal opens instead. */}
                 <Route path="/shop/product/:id" element={
                   <ErrorBoundary>
                     <Suspense fallback={<EmblemLoader />}>
-                      <div className="w-full animate-[fadeIn_0.5s_ease-out]">
-                        <ShopProductLoader teaInventory={teaInventory} teawareInventory={teawareInventory} onAddToCart={handleAddToCart} cartItemCount={cart.length} onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} isLoading={inventoryLoading} isError={inventoryError} error={inventoryErrorObj} onRetry={refetchInventory} />
-                      </div>
+                      <ProductPage onAddToCart={handleAddToCart} />
                     </Suspense>
                   </ErrorBoundary>
                 } />

@@ -5,7 +5,7 @@ import { TeaPlaceholder } from './TeaPlaceholder';
 import { TastingSession, type TastingItem } from '../tasting/TastingSession';
 import { Icons } from '../Icons';
 import { SectionDivider } from '../shared/SectionDivider';
-import { useProductUrl } from '../../hooks/useProductUrl';
+import { useProductModalRoute } from '../../hooks/useProductModalRoute';
 import { useAppStore } from '../../lib/store';
 import type { InventoryItem } from '../../types';
 import { fmtPrice, fmtShopPrice } from '../../utils/formatNumber';
@@ -182,33 +182,24 @@ const ItemCard: React.FC<{
 };
 
 export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddToCart }) => {
-  const [viewItem, setViewItem] = useState<InventoryItem | null>(null);
   const [tastingItem, setTastingItem] = useState<InventoryItem | null>(null);
-  const { closeWithHistory, navigateWithinModal } = useProductUrl(inventory, viewItem, setViewItem);
+  // Alcove modal driven by the URL (/shop/product/:id + background state).
+  const { viewItem, openProduct, navigateWithinModal, closeProduct } = useProductModalRoute(inventory);
 
   const favoriteTeas = useAppStore(state => state.favoriteTeas);
   const toggleFavoriteTea = useAppStore(state => state.toggleFavoriteTea);
 
   const handleTaste = useCallback((item: InventoryItem) => {
-    // Clear Alcove URL state so useProductUrl does not re-open the modal
-    // behind the tasting session.
-    if (window.location.pathname.startsWith('/shop/product/')) {
-      window.history.replaceState(null, '', '/shop');
-    } else {
-      const url = new URL(window.location.href);
-      if (url.searchParams.has('product')) {
-        url.searchParams.delete('product');
-        window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
-      }
-    }
-    setViewItem(null);
+    // Close the AlcoveModal via history so it cannot re-open behind the
+    // tasting session.
+    closeProduct();
     setTastingItem(item);
-  }, []);
+  }, [closeProduct]);
 
   const handleOrderFromTasting = useCallback((item: TastingItem) => {
     setTastingItem(null);
-    setViewItem(item as InventoryItem); // item is always a full InventoryItem at runtime
-  }, []);
+    openProduct(item as InventoryItem); // item is always a full InventoryItem at runtime
+  }, [openProduct]);
 
   // Saved items — resolved from favorite IDs
   const savedItems = useMemo(
@@ -239,11 +230,11 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
       <AlcoveModal
         item={viewItem}
         items={allDisplayItems}
-        onClose={closeWithHistory}
+        onClose={closeProduct}
         onItemChange={navigateWithinModal}
         onAddToCart={(item, qty, total) => {
           onAddToCart(item, qty, total);
-          closeWithHistory();
+          closeProduct();
         }}
         onTaste={handleTaste}
       />
@@ -293,7 +284,7 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
               <ItemCard
                 key={item.id}
                 item={item}
-                onView={setViewItem}
+                onView={openProduct}
                 onAddToCart={onAddToCart}
                 isSaved={true}
                 onToggleSave={toggleFavoriteTea}
@@ -315,7 +306,7 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
               <ItemCard
                 key={item.id}
                 item={item}
-                onView={setViewItem}
+                onView={openProduct}
                 onAddToCart={onAddToCart}
                 isSaved={false}
                 onToggleSave={toggleFavoriteTea}

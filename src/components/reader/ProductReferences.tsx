@@ -12,7 +12,7 @@ import { InventoryItem } from '../../types';
  * Editorial, not promotional:
  * - No buy buttons, no price, no CTAs
  * - Italic tea name, descriptor, small eyebrow label
- * - Single click into the /shop?product=<id> modal flow
+ * - Single click into the /shop/product/<id> product page
  *
  * Two shapes:
  * - Hook `useProductReferences(...)` — headless, returns resolved
@@ -107,7 +107,7 @@ export const ProductReferences: React.FC<ProductReferencesProps> = ({
           return (
             <li key={product.id}>
               <a
-                href={`/shop?product=${encodeURIComponent(product.id)}`}
+                href={`/shop/product/${encodeURIComponent(product.id)}`}
                 onClick={e => e.stopPropagation()}
                 className="group inline-flex flex-wrap items-baseline gap-x-2 font-serif text-ui-13 leading-snug text-tea-text hover:text-tea-gold transition-colors"
               >
