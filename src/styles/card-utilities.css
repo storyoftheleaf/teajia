@@ -2220,13 +2220,16 @@ input[type="number"]::-webkit-outer-spin-button {
 .alcove-seg-btn {
   flex: 1;
   min-width: 0;
-  min-height: 44px;
-  padding: 8px 2px 7px;
+  /* Visibly compact (the bar is pinned — every px is permanent screen tax);
+     the ::after overlay extends the touch area back to the 44px WCAG floor. */
+  min-height: 34px;
+  padding: 4px 2px 3px;
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 1px;
   font-family: var(--font-sans);
   font-size: 10px;
   font-weight: 400;
@@ -2240,6 +2243,11 @@ input[type="number"]::-webkit-outer-spin-button {
   transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
 }
 .alcove-seg-btn:first-child { border-left: none; }
+.alcove-seg-btn::after {
+  content: '';
+  position: absolute;
+  inset: -5px 0;
+}
 .alcove-seg-btn small {
   display: block;
   font-size: 8px;

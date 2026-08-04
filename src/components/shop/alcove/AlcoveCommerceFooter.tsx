@@ -159,7 +159,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
       className={
         isRail
           ? 'relative px-3.5 pb-3 pt-3.5'
-          : 'relative z-[3] flex-shrink-0 border-t border-tea-border px-[18px] pb-2.5 pt-3.5'
+          : 'relative z-[3] flex-shrink-0 border-t border-tea-border px-3.5 pb-2 pt-2.5'
       }
       style={isRail ? undefined : { background: alcoveBg }}
     >
@@ -192,7 +192,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
         <div
           role="group"
           aria-label="Amount"
-          className="mb-2 flex border border-tea-border"
+          className="mb-1.5 flex border border-tea-border"
         >
           {cells.map(cell => (
             <button
