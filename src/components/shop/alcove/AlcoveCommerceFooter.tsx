@@ -12,14 +12,6 @@ interface StockStatus {
 interface AlcoveCommerceFooterProps {
   item: InventoryItem;
   alcoveBg: string;
-  alcoveColors: {
-    bg: string;
-    body: string;
-    muted: string;
-    subtitle: string;
-    success: string;
-  };
-  accent: string;
   stockStatus: StockStatus;
   isSoldOut: boolean;
   grams: number;
@@ -40,13 +32,15 @@ interface AlcoveCommerceFooterProps {
   isAdmin?: boolean;
   onEdit?: (item: InventoryItem) => void;
   onTaste?: (item: InventoryItem) => void;
-  onAddToCart?: (item: InventoryItem, qty: number, total: number) => void;
   toggleFavoriteTea: (id: string) => void;
   toggleSampleCart: (e: React.MouseEvent) => void;
   handleShare: () => void;
   handleAdd: () => void;
   formatPrice?: (pricePerGram: number, grams: number) => string;
 }
+
+/** Sessions from grams — a session is ~5 g of leaf. */
+const sessionsFor = (grams: number) => Math.round(grams / 5);
 
 const STOCK_DOT: React.CSSProperties = {
   width: 5,
@@ -55,16 +49,25 @@ const STOCK_DOT: React.CSSProperties = {
   flexShrink: 0,
 };
 
-const DIVIDER: React.CSSProperties = {
-  width: 1,
-  height: 10,
-  background: 'var(--tea-border)',
-};
+const DIVIDER = <span aria-hidden="true" className="h-3 w-px shrink-0 bg-tea-border" />;
 
+interface SegCell {
+  key: string;
+  label: string;
+  sub: string;
+  active: boolean;
+  ariaLabel?: string;
+  onSelect: () => void;
+}
+
+/**
+ * Aman-style commerce footer: quiet centered stock line, one segmented
+ * quantity strip with a gold inner keyline on the active cell, a bordered
+ * action cluster, and exactly one solid element — the gold order button.
+ */
 export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
   item,
-  alcoveColors,
-  accent,
+  alcoveBg,
   stockStatus,
   isSoldOut,
   grams,
@@ -91,164 +94,113 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
   handleAdd,
   formatPrice,
 }) => {
+  const isTea = item.category === 'tea';
+
+  const selectWeight = (g: number) => {
+    setGrams(g);
+    setSampleMode(false);
+    setCustomMode(false);
+  };
+
+  // The custom cell stays lit after the modal commits an off-preset amount,
+  // so the chosen quantity always has a visible home in the strip.
+  const gramPresetKeys = [50, 100].filter(p => p <= sliderMax);
+  const customActive =
+    customMode || (!sampleMode && isTea && !gramPresetKeys.includes(grams));
+
+  const teaCells: SegCell[] = [
+    {
+      key: 'sample',
+      label: 'Sample',
+      sub: '10 g',
+      active: sampleMode,
+      onSelect: () => { setSampleMode(true); setCustomMode(false); },
+    },
+    ...gramPresetKeys.map((p, i) => ({
+      key: String(p),
+      label: `${p} g`,
+      sub: `≈ ${sessionsFor(p)}${i === 0 ? ' sessions' : ''}`,
+      active: !sampleMode && !customActive && grams === p,
+      onSelect: () => selectWeight(p),
+    })),
+    {
+      key: 'custom',
+      label: 'Custom',
+      sub: customActive && !customMode ? `${grams} g` : ' ',
+      active: customActive,
+      ariaLabel: 'Custom amount',
+      onSelect: () => { setCustomMode(true); setSampleMode(false); },
+    },
+  ];
+
+  // Teaware / non-tea presets keep their per-unit logic but adopt the same
+  // segmented visual grammar, with the price as each cell's sub-line.
+  const teawareCells: SegCell[] = presets.map(p => ({
+    key: String(p),
+    label: `${p} g`,
+    sub: formatPrice ? formatPrice(pricePerGram, p) : fmtShopPrice(pricePerGram * p),
+    active: grams === p,
+    onSelect: () => setGrams(p),
+  }));
+
+  const cells = isTea ? teaCells : teawareCells;
+
   return (
     <div
-      style={{
-        position: 'relative',
-        zIndex: 3,
-        flexShrink: 0,
-        padding: '14px 14px 10px',
-        borderTop: '1px solid var(--tea-border)',
-        background: alcoveColors.bg,
-      }}
+      className="relative z-[3] flex-shrink-0 border-t border-tea-border px-[18px] pb-2.5 pt-3.5"
+      style={{ background: alcoveBg }}
     >
-      {/* Row 1: Amount selector */}
-      {isSoldOut ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-          <div style={{ ...STOCK_DOT, background: stockStatus.color }} />
-          <span
-            style={{
-              fontFamily: 'var(--font-sans)',
-              fontSize: 10,
-              fontWeight: 400,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              color: stockStatus.color,
-            }}
-          >
-            {stockStatus.label}
-          </span>
-        </div>
-      ) : item.category === 'tea' ? (
-        <>
-          <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
-            {[
-              { key: 'sample', label: 'Sample', sub: '10g' },
-              ...(50 <= sliderMax ? [{ key: '50', label: '50g', sub: '' }] : []),
-              ...(100 <= sliderMax ? [{ key: '100', label: '100g', sub: '' }] : []),
-              { key: 'custom', label: 'Custom', sub: '' },
-            ].map((opt) => {
-              const isActive =
-                opt.key === 'sample'
-                  ? sampleMode
-                  : opt.key === 'custom'
-                    ? customMode
-                    : !sampleMode && !customMode && grams === parseInt(opt.key);
-              return (
-                <button
-                  key={opt.key}
-                  type="button"
-                  className="alcove-qty-btn"
-                  data-active={isActive}
-                  aria-pressed={isActive}
-                  onClick={() => {
-                    if (navigator.vibrate) navigator.vibrate(8);
-                    if (opt.key === 'sample') {
-                      setSampleMode(true);
-                      setCustomMode(false);
-                    } else if (opt.key === 'custom') {
-                      setCustomMode(true);
-                      setSampleMode(false);
-                    } else {
-                      setGrams(parseInt(opt.key));
-                      setSampleMode(false);
-                      setCustomMode(false);
-                    }
-                  }}
-                >
-                  <span>{opt.label}</span>
-                  {opt.sub && <span style={{ fontSize: 9, opacity: 0.6 }}>{opt.sub}</span>}
-                </button>
-              );
-            })}
-          </div>
-
-          {stockStatus.level !== 'ok' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-              <div style={{ ...STOCK_DOT, background: stockStatus.color }} />
-              <span
-                style={{
-                  fontFamily: 'var(--font-sans)',
-                  fontSize: 10,
-                  color: stockStatus.color,
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                }}
-              >
-                {stockStatus.label}
-              </span>
-            </div>
-          )}
-        </>
-      ) : (
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 6 }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              marginRight: 4,
-              flexShrink: 0,
-            }}
-          >
-            <div style={{ ...STOCK_DOT, background: stockStatus.color }} />
-            <span
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 10,
-                fontWeight: 400,
-                color: alcoveColors.body,
-                fontVariantNumeric: 'tabular-nums lining-nums',
-              }}
-            >
-              {formatPrice ? perGramDisplay : `$${perGramDisplay}`}/g
-            </span>
-          </div>
-          {presets.map((p) => (
-            <button
-              key={p}
-              type="button"
-              className="alcove-preset-btn"
-              data-active={grams === p}
-              aria-pressed={grams === p}
-              onClick={() => {
-                setGrams(p);
-                if (navigator.vibrate) navigator.vibrate(8);
-              }}
-            >
-              {p}g
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Stock line — quiet centered caps with 5px dot */}
+      <div className="mb-2.5 flex items-center justify-center gap-[7px]">
+        <span aria-hidden="true" style={{ ...STOCK_DOT, background: stockStatus.color }} />
+        <span
+          className="font-sans text-ui-9 uppercase tracking-[0.16em]"
+          style={{ color: stockStatus.color }}
+        >
+          {stockStatus.label}
+        </span>
+      </div>
 
       {/* Session reserve soft warning */}
       {item.sessionReserveGrams != null &&
         item.sessionReserveGrams > 0 &&
         item.stock_g <= item.sessionReserveGrams &&
         !isSoldOut && (
-          <div className="mb-1">
-            <span className="text-tea-gold text-xs">
-              Last ~{item.stock_g}g available. We'll confirm quantity before dispatching.
-            </span>
-          </div>
+          <p className="m-0 mb-2 text-center font-sans text-ui-10 tracking-[0.04em] text-tea-gold">
+            Last ~{item.stock_g}g available. We&rsquo;ll confirm quantity before dispatching.
+          </p>
         )}
 
-      {/* Row 2: Save/Share(/Edit) + Add button */}
-      <div style={{ display: 'flex', gap: 6 }}>
+      {/* Segmented quantity strip */}
+      {!isSoldOut && cells.length > 0 && (
         <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-            minHeight: 44,
-            border: '1px solid var(--tea-border)',
-            borderRadius: 3,
-            flexShrink: 0,
-            padding: '0 8px',
-          }}
+          role="group"
+          aria-label="Amount"
+          className="mb-2 flex border border-tea-border"
         >
+          {cells.map(cell => (
+            <button
+              key={cell.key}
+              type="button"
+              className="alcove-seg-btn"
+              data-active={cell.active}
+              aria-pressed={cell.active}
+              aria-label={cell.ariaLabel}
+              onClick={() => {
+                if (navigator.vibrate) navigator.vibrate(8);
+                cell.onSelect();
+              }}
+            >
+              <span>{cell.label}</span>
+              <small>{cell.sub}</small>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Action row: bordered cluster + the one solid gold button */}
+      <div className="flex gap-2">
+        <div className="flex min-h-[44px] shrink-0 items-center justify-center border border-tea-border px-1.5">
           <button
             type="button"
             className="alcove-icon-btn"
@@ -258,15 +210,15 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
             aria-pressed={favorited}
           >
             <Heart
-              size={14}
-              color={favorited ? accent : 'currentColor'}
-              fill={favorited ? accent : 'none'}
-              strokeWidth={1.5}
+              size={13}
+              color="currentColor"
+              fill={favorited ? 'currentColor' : 'none'}
+              strokeWidth={1.6}
             />
           </button>
           {isAdmin && (
             <>
-              <div style={DIVIDER} />
+              {DIVIDER}
               <button
                 type="button"
                 className="alcove-icon-btn"
@@ -276,66 +228,47 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
                 aria-pressed={inSampleCart}
                 title={inSampleCart ? 'In sample pack' : 'Add to sample pack'}
               >
-                <QrCode size={14} />
+                <QrCode size={13} />
               </button>
             </>
           )}
-          <div style={DIVIDER} />
+          {DIVIDER}
           <button
             type="button"
             className="alcove-icon-btn"
             onClick={handleShare}
             aria-label="Share"
           >
-            <span
-              style={{
-                fontFamily: 'var(--font-sans)',
-                fontSize: 10,
-                fontWeight: 400,
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                color: shareCopied ? alcoveColors.success : 'currentColor',
-              }}
-            >
+            <span style={shareCopied ? { color: 'var(--tea-leaf)' } : undefined}>
               {shareCopied ? 'Copied' : 'Share'}
             </span>
           </button>
           {onTaste && (
             <>
-              <div style={DIVIDER} />
+              {DIVIDER}
               <button
                 type="button"
                 className="alcove-icon-btn"
-                onClick={(e) => {
+                onClick={e => {
                   e.stopPropagation();
                   onTaste(item);
                 }}
                 aria-label="Start tasting session"
               >
-                <span
-                  style={{
-                    fontFamily: 'var(--font-sans)',
-                    fontSize: 10,
-                    fontWeight: 400,
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  Taste
-                </span>
+                <span>Taste</span>
               </button>
             </>
           )}
           {isAdmin && onEdit && (
             <>
-              <div style={DIVIDER} />
+              {DIVIDER}
               <button
                 type="button"
                 className="alcove-icon-btn"
                 onClick={() => onEdit(item)}
                 aria-label="Edit Product"
               >
-                <Pencil size={14} />
+                <Pencil size={13} />
               </button>
             </>
           )}
@@ -349,46 +282,39 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
           data-state={added ? 'added' : isSoldOut ? 'sold-out' : 'default'}
         >
           {isSoldOut ? (
-            <span>Sold Out</span>
+            <span className="alcove-order-verb">Sold Out</span>
           ) : added ? (
-            <span>Added</span>
+            <span className="alcove-order-verb">Added ✓</span>
           ) : sampleMode ? (
             <>
-              <span>Sample. 10g</span>
+              <span className="alcove-order-verb">Add to order</span>
               {pricePerGram > 0 && (
-                <span
-                  style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontWeight: 500,
-                    fontSize: 12,
-                  }}
-                >
+                <span className="alcove-order-amt">
                   {formatPrice ? formatPrice(pricePerGram, 10) : fmtShopPrice(pricePerGram * 10)}
+                  {' · 10 g'}
                 </span>
               )}
             </>
           ) : (
             <>
-              <span>Order</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 500, fontSize: 12 }}>
+              <span className="alcove-order-verb">Add to order</span>
+              <span className="alcove-order-amt">
                 {formatPrice ? total : `$${total}`}
+                {pricePerGram > 0 && (
+                  <> · {formatPrice ? perGramDisplay : `$${perGramDisplay}`}/g</>
+                )}
               </span>
-              {pricePerGram > 0 && (
-                <span
-                  style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontWeight: 400,
-                    fontSize: 10,
-                    opacity: 0.6,
-                  }}
-                >
-                  {formatPrice ? perGramDisplay : `$${perGramDisplay}`}/g
-                </span>
-              )}
             </>
           )}
         </button>
       </div>
+
+      {/* How ordering works */}
+      {!isSoldOut && (
+        <p className="m-0 mt-2.5 text-center font-sans text-ui-10 tracking-[0.04em] text-tea-text-dim">
+          Ordered over WhatsApp — Adrian confirms within a day
+        </p>
+      )}
     </div>
   );
 };

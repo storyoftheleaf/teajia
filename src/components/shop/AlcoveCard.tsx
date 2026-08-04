@@ -10,18 +10,21 @@ import { useProductEvents } from '../../hooks/useProductEvents';
 import { useStories } from '../../context/StoryContext';
 import { useAuth } from '../../hooks/useAuth';
 import { getTeaColor } from '../../designTokens';
+import { LIQUOR_COLORS } from '../../data/tastingTaxonomy';
 import { useSampleCartStore } from '../../samples/sampleCartStore';
 import type { InventoryItem, Story } from '../../types';
 import { ContentType } from '../../types';
 
 import { AlcoveShell } from './alcove/AlcoveShell';
 import { AlcoveGallery } from './alcove/AlcoveGallery';
-import { AlcoveIdentityHeader, AlcoveStorySection } from './alcove/AlcoveIdentityHeader';
-import { AlcoveSensoryGrid } from './alcove/AlcoveSensoryGrid';
-import { AlcoveJournalSection } from './alcove/AlcoveJournalSection';
+import { AlcoveIdentityHeader } from './alcove/AlcoveIdentityHeader';
+import { AlcoveFactsLedger } from './alcove/AlcoveFactsLedger';
+import { AlcoveCharacterBand } from './alcove/AlcoveCharacterBand';
+import { AlcoveAboutSection } from './alcove/AlcoveAboutSection';
+import { AlcoveTableSection } from './alcove/AlcoveTableSection';
 import { AlcoveCommerceFooter } from './alcove/AlcoveCommerceFooter';
 import { SampleModal, CustomAmountModal, ImageOverlayModal } from './alcove/AlcoveModals';
-import { ProductImpressions, type ProductImpression } from './ProductImpressions';
+import type { ProductImpression } from './ProductImpressions';
 
 interface AlcoveCardProps {
   item: InventoryItem;
@@ -41,11 +44,6 @@ interface AlcoveCardProps {
   onEditProductTasting?: (item: InventoryItem) => void;
 }
 
-/** Converts a string to Title Case */
-function toTitleCase(str: string): string {
-  return str.replace(/\b\w/g, c => c.toUpperCase());
-}
-
 /** Returns stock status info for display */
 function getStockStatus(stockG: number, status?: string) {
   if (status === 'Sold Out' || stockG <= 0) {
@@ -55,6 +53,14 @@ function getStockStatus(stockG: number, status?: string) {
     return { label: 'Low Stock', color: '#c09a51', level: 'low' as const };
   }
   return { label: 'In Stock', color: 'var(--tea-leaf)', level: 'ok' as const };
+}
+
+/** Converts "#rrggbb" to an "r,g,b" string for rgba() interpolation. */
+function hexToRgbString(hex: string): string | undefined {
+  const match = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!match) return undefined;
+  const int = parseInt(match[1], 16);
+  return `${(int >> 16) & 255},${(int >> 8) & 255},${int & 255}`;
 }
 
 export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting }) => {
@@ -134,7 +140,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const showFade = useScrollFade(scrollRef as React.RefObject<HTMLElement>);
 
   // Fetch events that featured this product
-  const { data: productEvents, isLoading: eventsLoading } = useProductEvents(item.id);
+  const { data: productEvents } = useProductEvents(item.id);
   const { data: impressions = [] } = useQuery<ProductImpression[]>({
     queryKey: ['product-impressions', item.id],
     queryFn: () => api.productImpressions.list(item.id),
@@ -152,66 +158,19 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
   const sliderMin = 5;
   const sliderMax = Math.max(sliderMin, Math.floor(item.stock_g || 0));
-  const sliderStep = 5;
-  const snapPoints = [25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500].filter(p => p <= sliderMax);
-  const total = formatPrice ? formatPrice(pricePerGram, grams) : fmtNum(Math.ceil(pricePerGram * grams), 0);
+  // Numeric total (base currency) — passed to onAddToCart. Display strings
+  // are formatted separately; never parse a formatted string back to a number.
+  const numericTotal = Math.ceil(pricePerGram * grams);
+  const total = formatPrice ? formatPrice(pricePerGram, grams) : fmtNum(numericTotal, 0);
   const perGramDisplay = formatPrice ? formatPrice(pricePerGram, 1) : fmtNum(pricePerGram);
-  const sliderPercentage = sliderMax > sliderMin ? ((grams - sliderMin) / (sliderMax - sliderMin)) * 100 : 0;
 
   const stockStatus = getStockStatus(item.stock_g);
   const isSoldOut = stockStatus.level === 'out';
 
   const presets = [25, 50, 100, 250].filter(p => p <= sliderMax);
 
-  // Snap to nearest marked point on release
-  const snapToNearest = (val: number) => {
-    const snapThreshold = 10;
-    for (const sp of snapPoints) {
-      if (Math.abs(val - sp) <= snapThreshold) return sp;
-    }
-    return val;
-  };
-
-  // Move in 5g increments, with magnetic snap near marked points
-  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = parseInt(e.target.value);
-    // Round to nearest 5
-    const rounded = Math.round(raw / 5) * 5;
-    const clamped = Math.max(sliderMin, Math.min(sliderMax, rounded));
-    // Magnetic snap to marked points during drag
-    const magnetThreshold = 6;
-    for (const sp of snapPoints) {
-      if (Math.abs(clamped - sp) <= magnetThreshold) {
-        if (sp !== grams) {
-          setGrams(sp);
-          if (navigator.vibrate) navigator.vibrate(8);
-        }
-        return;
-      }
-    }
-    if (clamped !== grams) {
-      setGrams(clamped);
-    }
-  };
-
-  const noteOpacities = [1, 0.82, 0.65, 0.5];
-  const markerOpacities = [0.7, 0.5, 0.35, 0.2];
-  const markerWidths = [18, 16, 14, 12];
-
   // Alcove uses the main Espresso+Gold palette — see designTokens.ts
-  const alcoveColors = {
-    bg: 'var(--tea-bg)',
-    title: 'var(--tea-text)',
-    subtitle: 'var(--tea-text-sec)',
-    body: 'var(--tea-text-sec)',
-    bodyHighlight: 'var(--tea-text)',
-    note: 'var(--tea-text-sec)',
-    accent: 'var(--tea-gold)',
-    muted: 'var(--tea-text-sec)',
-    mutedDark: 'var(--tea-text-sec)',
-    success: 'var(--tea-leaf)',
-  };
-  const accent = alcoveColors.accent;
+  const alcoveBg = 'var(--tea-bg)';
   const typeColor = getTeaColor(item.type);
 
   // Derive display values from InventoryItem
@@ -220,29 +179,21 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   // Strip numbers and latin characters — only show actual CJK characters
   const chineseCharacters = (item.chineseName || '').replace(/[0-9A-Za-z\s]/g, '');
   const teaType = item.type;
-  const origin = item.origin;
-  const vintage = item.year;
   const mainStory = item.lore || '';
   const introduction = item.description || '';
   const terroir = item.terroir || '';
   const processing = item.processingNotes || '';
   const notes = item.tags || [];
-  const feeling = item.mood || '';
-  const feelingDescription = item.experience || '';
   const photoUrl = item.image;
   const magazineUrl = item.magazineUrl;
 
+  // Liquor color (first liquor-color term) — ledger row + shell warmth tint
+  const liquorTermId = item.tasting?.['liquor-color']?.[0];
+  const liquorHex = liquorTermId ? LIQUOR_COLORS[liquorTermId] : undefined;
+  const warmthRGB = liquorHex ? hexToRgbString(liquorHex) : undefined;
+
   // Collect all available images (main + additional), max 3
   const allImages = [photoUrl, ...(item.additionalImages || [])].filter(Boolean).slice(0, 3);
-
-  // Parse mood into individual tags (comma-separated or single phrase)
-  const moodTags = feeling
-    ? feeling.includes(',')
-      ? feeling.split(',').map(t => t.trim()).filter(Boolean)
-      : [feeling]
-    : [];
-
-  // Scroll overflow detection — handled by useScrollFade(scrollRef)
 
   const handleAdd = () => {
     if (isSoldOut) return;
@@ -253,13 +204,13 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
     if (onAddToCart) {
-      onAddToCart(item, grams, parseFloat(total));
+      onAddToCart(item, grams, numericTotal);
     }
   };
 
   // Share handler — uses Web Share API with clipboard fallback.
   const handleShare = async () => {
-    const shareText = `${item.name} — ${origin} ${teaType} from Teajia`;
+    const shareText = `${item.name} — ${item.origin || ''} ${teaType} from Teajia`;
     const shareUrl = `${window.location.origin}/shop/product/${item.id}`;
 
     if (navigator.share) {
@@ -284,28 +235,19 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     }
   };
 
-  // Suppress unused-variable warnings for items kept for completeness
-  void sliderStep;
-  void sliderPercentage;
-  void noteOpacities;
-  void markerOpacities;
-  void markerWidths;
-  void snapToNearest;
-  void handleSliderChange;
   void onClose;
 
   return (
     <AlcoveShell
-      alcoveBg={alcoveColors.bg}
-      chineseCharacters={chineseCharacters}
+      alcoveBg={alcoveBg}
+      chineseCharacters=""
+      warmthRGB={warmthRGB}
       scrollRef={scrollRef}
       showFade={showFade}
       commerceFooter={
         <AlcoveCommerceFooter
           item={item}
-          alcoveBg={alcoveColors.bg}
-          alcoveColors={alcoveColors}
-          accent={accent}
+          alcoveBg={alcoveBg}
           stockStatus={stockStatus}
           isSoldOut={isSoldOut}
           grams={grams}
@@ -368,219 +310,62 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         </>
       }
     >
-      {/* Identity header: title, meta bar, vendor link, story prose, impressions */}
+      {/* 1. Identity — centered serif header, hanzi as real text */}
       <AlcoveIdentityHeader
         item={item}
         productName={productName}
         givenName={givenName}
         teaType={teaType}
-        origin={origin || ''}
-        vintage={vintage}
-        alcoveColors={alcoveColors}
+        chineseCharacters={chineseCharacters}
+        typeColor={typeColor}
         isAdmin={isAdmin}
         onNavigateSource={() => navigate(`/admin/people?tab=sources&search=${encodeURIComponent(item.supplier!)}`)}
       />
 
-      <ProductImpressions impressions={impressions} />
+      {/* 2. Facts ledger — Origin / Harvest / Liquor */}
+      <AlcoveFactsLedger
+        origin={item.origin}
+        harvest={item.year}
+        liquorTermId={liquorTermId}
+      />
 
-      {/* Gallery: product image anchor before long editorial prose */}
+      {/* 3. Gallery band */}
       <AlcoveGallery
         allImages={allImages}
         itemName={item.name}
         onExpandImage={(url) => { setExpandedImageUrl(url); setImageExpanded(true); }}
       />
 
-      <AlcoveStorySection
+      {/* 4. Character — taste, feel, and starred notes in one tonal band */}
+      <AlcoveCharacterBand
         item={item}
-        allImages={allImages}
-        magazineUrl={magazineUrl}
-        mainStory={mainStory}
-        introduction={introduction}
-        feelingDescription={feelingDescription}
-        alcoveColors={alcoveColors}
-      />
-
-      {/* Sensory grid: tasting notes, mood tags, tasted count */}
-      <AlcoveSensoryGrid
-        item={item}
-        notes={notes}
-        moodTags={moodTags}
-        typeColor={typeColor}
+        legacyNotes={notes}
         isAdmin={isAdmin}
         onEditProductTasting={onEditProductTasting}
         onTermClick={onTermClick}
+      />
+
+      {/* 5. About this tea — story + terroir + craft as one reading chapter */}
+      <AlcoveAboutSection
+        item={item}
+        magazineUrl={magazineUrl}
+        mainStory={mainStory}
+        introduction={introduction}
+        feelingDescription={item.experience || ''}
+        terroir={terroir}
+        processing={processing}
+      />
+
+      {/* 6. From the table — impression, events, journal, tasting count */}
+      <AlcoveTableSection
+        impressions={impressions}
+        events={productEvents ?? []}
+        relatedArticles={relatedArticles}
         tastingCount={tastingCount}
       />
 
-      {/* === TERROIR & PROCESSING — quiet appendix === */}
-      {(terroir || processing) && (
-        <div style={{
-          padding: "0 20px",
-          marginTop: "28px",
-          marginBottom: "8px",
-        }}>
-          {terroir && (
-            <div>
-              <h3 style={{
-                fontFamily: "var(--font-display)",
-                fontSize: "10px", fontWeight: 400,
-                textTransform: "uppercase", letterSpacing: "0.12em",
-                color: "var(--tea-text-dim)",
-                margin: "0 0 6px 0",
-              }}>
-                Terroir
-              </h3>
-              <p style={{
-                fontFamily: "var(--font-body)",
-                fontSize: "15px", fontWeight: 300, lineHeight: 1.75,
-                color: alcoveColors.body, margin: 0,
-                whiteSpace: "pre-line",
-              }}>
-                {terroir}
-              </p>
-            </div>
-          )}
-          {processing && (
-            <div style={{ marginTop: terroir ? "20px" : 0 }}>
-              {terroir && (
-                <div style={{
-                  height: "1px", marginBottom: "14px",
-                  background: "var(--tea-border)",
-                }} />
-              )}
-              <h3 style={{
-                fontFamily: "var(--font-display)",
-                fontSize: "10px", fontWeight: 400,
-                textTransform: "uppercase", letterSpacing: "0.12em",
-                color: "var(--tea-text-dim)",
-                margin: "0 0 6px 0",
-              }}>
-                Processing
-              </h3>
-              <p style={{
-                fontFamily: "var(--font-body)",
-                fontSize: "15px", fontWeight: 300, lineHeight: 1.75,
-                color: alcoveColors.body, margin: 0,
-                whiteSpace: "pre-line",
-              }}>
-                {processing}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* === FEATURED IN EVENTS === */}
-      {eventsLoading && (
-        <div style={{
-          marginTop: "28px",
-          padding: "0 20px 8px",
-        }}>
-          <div style={{
-            width: "120px", height: "10px",
-            background: "var(--tea-accent-sub)",
-            borderRadius: "3px",
-            marginBottom: "10px",
-          }} />
-          {[0, 1].map(i => (
-            <div key={i} style={{
-              height: "40px",
-              background: "var(--tea-accent-sub)",
-              borderRadius: "6px",
-              marginBottom: "8px",
-              animation: "pulse 1.8s ease-in-out infinite",
-              opacity: i === 1 ? 0.6 : 0.8,
-            }} />
-          ))}
-        </div>
-      )}
-      {productEvents && productEvents.length > 0 && (
-        <div style={{
-          marginTop: "28px",
-          padding: "0 20px 8px",
-        }}>
-          <h3 style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "10px", fontWeight: 400,
-            textTransform: "uppercase", letterSpacing: "0.12em",
-            color: "var(--tea-text-dim)",
-            margin: "0 0 10px 0",
-          }}>
-            Featured in {productEvents.length} {productEvents.length === 1 ? 'event' : 'events'}
-          </h3>
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {productEvents.map(evt => {
-              const eventDate = new Date(evt.event_date);
-              const formattedDate = eventDate.toLocaleDateString('en-US', {
-                month: 'short', day: 'numeric', year: 'numeric',
-              });
-              return (
-                <button
-                  key={evt.id}
-                  type="button"
-                  className="alcove-event-btn"
-                  onClick={() => navigate(`/event/${evt.slug}`)}
-                >
-                  {evt.flyer_image_url ? (
-                    <img
-                      src={evt.flyer_image_url}
-                      alt=""
-                      style={{
-                        width: "36px", height: "36px",
-                        borderRadius: "4px", objectFit: "cover",
-                        flexShrink: 0,
-                      }}
-                    />
-                  ) : (
-                    <div style={{
-                      width: "36px", height: "36px",
-                      borderRadius: "4px",
-                      background: "var(--tea-surface)",
-                      border: "1px solid var(--tea-border)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      flexShrink: 0,
-                    }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="var(--tea-text-dim)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                        <line x1="16" y1="2" x2="16" y2="6" />
-                        <line x1="8" y1="2" x2="8" y2="6" />
-                        <line x1="3" y1="10" x2="21" y2="10" />
-                      </svg>
-                    </div>
-                  )}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{
-                      fontFamily: "var(--font-body)",
-                      fontSize: "13px", fontWeight: 400,
-                      color: "var(--tea-text)",
-                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                    }}>
-                      {evt.title}
-                    </div>
-                    <div style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "10px", fontWeight: 400,
-                      color: "var(--tea-text-dim)",
-                      marginTop: "2px",
-                    }}>
-                      {formattedDate}
-                      {evt.location_name ? ` · ${evt.location_name}` : ''}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Journal: "From the journal" (card style) + editorial links (both instances) */}
-      <AlcoveJournalSection
-        relatedArticles={relatedArticles}
-        item={item}
-      />
-
+      {/* Breathing room above the pinned commerce footer */}
+      <div aria-hidden="true" className="h-6" />
     </AlcoveShell>
   );
 };
