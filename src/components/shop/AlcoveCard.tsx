@@ -364,6 +364,12 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         tastingCount={tastingCount}
       />
 
+      {/* How ordering works — lives in the scroll, not the pinned bar, so the
+          sticky footer stays as short as possible. */}
+      <p className="m-0 mt-6 px-6 text-center font-sans text-ui-10 tracking-[0.04em] text-tea-text-dim">
+        Ordered over WhatsApp — Adrian confirms within a day
+      </p>
+
       {/* Breathing room above the pinned commerce footer */}
       <div aria-hidden="true" className="h-6" />
     </AlcoveShell>

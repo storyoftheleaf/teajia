@@ -150,16 +150,19 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
       className="relative z-[3] flex-shrink-0 border-t border-tea-border px-[18px] pb-2.5 pt-3.5"
       style={{ background: alcoveBg }}
     >
-      {/* Stock line — quiet centered caps with 5px dot */}
-      <div className="mb-2.5 flex items-center justify-center gap-[7px]">
-        <span aria-hidden="true" style={{ ...STOCK_DOT, background: stockStatus.color }} />
-        <span
-          className="font-sans text-ui-9 uppercase tracking-[0.16em]"
-          style={{ color: stockStatus.color }}
-        >
-          {stockStatus.label}
-        </span>
-      </div>
+      {/* Stock line — only when it carries a warning. "In stock" is implied by
+          an enabled order button, and the pinned bar pays for every row. */}
+      {stockStatus.level !== 'ok' && (
+        <div className="mb-2.5 flex items-center justify-center gap-[7px]">
+          <span aria-hidden="true" style={{ ...STOCK_DOT, background: stockStatus.color }} />
+          <span
+            className="font-sans text-ui-9 uppercase tracking-[0.16em]"
+            style={{ color: stockStatus.color }}
+          >
+            {stockStatus.label}
+          </span>
+        </div>
+      )}
 
       {/* Session reserve soft warning */}
       {item.sessionReserveGrams != null &&
@@ -308,13 +311,6 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
           )}
         </button>
       </div>
-
-      {/* How ordering works */}
-      {!isSoldOut && (
-        <p className="m-0 mt-2.5 text-center font-sans text-ui-10 tracking-[0.04em] text-tea-text-dim">
-          Ordered over WhatsApp — Adrian confirms within a day
-        </p>
-      )}
     </div>
   );
 };
