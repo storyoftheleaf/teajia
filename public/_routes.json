@@ -5,7 +5,9 @@
     "/media/*",
     "/read",
     "/read/*",
-    "/article/*"
+    "/article/*",
+    "/shop/product/*",
+    "/sitemap-products.xml"
   ],
   "exclude": []
 }

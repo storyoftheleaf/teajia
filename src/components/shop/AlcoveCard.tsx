@@ -42,6 +42,14 @@ interface AlcoveCardProps {
   onTaste?: (item: InventoryItem) => void;
   /** Admin-only: called to open the product tasting editor (writes to the product's own tasting field). */
   onEditProductTasting?: (item: InventoryItem) => void;
+  /**
+   * 'card' (default) — the modal quiet card inside AlcoveShell (internal
+   * scroll, pinned commerce bar). 'page' — the standalone product-page
+   * composition: identity + facts + order module as a 340px left rail on lg+,
+   * reading content right, single column with a fixed commerce bar below lg.
+   * Both layouts share the exact same state, handlers, and section blocks.
+   */
+  layout?: 'card' | 'page';
 }
 
 /** Returns stock status info for display */
@@ -63,7 +71,7 @@ function hexToRgbString(hex: string): string | undefined {
   return `${(int >> 16) & 255},${(int >> 8) & 255},${int & 255}`;
 }
 
-export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting }) => {
+export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting, layout = 'card' }) => {
   const navigate = useNavigate();
   const { favoriteTeas, toggleFavoriteTea, activeAccountId } = useAppStore();
 
@@ -237,6 +245,189 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
   void onClose;
 
+  // ── Shared blocks — one composition, two layouts ──────────────────────────
+
+  const commerceFooter = (variant: 'pinned' | 'rail') => (
+    <AlcoveCommerceFooter
+      item={item}
+      alcoveBg={alcoveBg}
+      stockStatus={stockStatus}
+      isSoldOut={isSoldOut}
+      grams={grams}
+      setGrams={setGrams}
+      sampleMode={sampleMode}
+      setSampleMode={setSampleMode}
+      customMode={customMode}
+      setCustomMode={setCustomMode}
+      sliderMax={sliderMax}
+      presets={presets}
+      pricePerGram={pricePerGram}
+      perGramDisplay={perGramDisplay}
+      total={total}
+      added={added}
+      shareCopied={shareCopied}
+      favorited={favorited}
+      inSampleCart={inSampleCart}
+      isAdmin={isAdmin}
+      onEdit={onEdit}
+      onTaste={onTaste}
+      toggleFavoriteTea={toggleFavoriteTea}
+      toggleSampleCart={toggleSampleCart}
+      handleShare={handleShare}
+      handleAdd={handleAdd}
+      formatPrice={formatPrice}
+      variant={variant}
+    />
+  );
+
+  const modals = (
+    <>
+      <SampleModal
+        item={item}
+        open={sampleModalOpen}
+        onClose={() => { if (!sampleSubmitting) setSampleModalOpen(false); }}
+        sampleGrams={sampleGrams}
+        setSampleGrams={setSampleGrams}
+        sampleNote={sampleNote}
+        setSampleNote={setSampleNote}
+        sampleSubmitting={sampleSubmitting}
+        sampleDone={sampleDone}
+        sampleError={sampleError}
+        onSubmit={handleSampleSubmit}
+        isLoggedIn={isLoggedIn}
+        pricePerGram={pricePerGram}
+        formatPrice={formatPrice}
+      />
+      <CustomAmountModal
+        open={customMode}
+        onClose={() => setCustomMode(false)}
+        sliderMax={sliderMax}
+        customInput={customInput}
+        setCustomInput={setCustomInput}
+        setGrams={setGrams}
+      />
+      <ImageOverlayModal
+        open={imageExpanded}
+        expandedImageUrl={expandedImageUrl}
+        itemName={item.name}
+        onClose={() => { setImageExpanded(false); setExpandedImageUrl(null); }}
+      />
+    </>
+  );
+
+  // 1. Identity — centered serif header, hanzi as real text
+  const identityHeader = (
+    <AlcoveIdentityHeader
+      item={item}
+      productName={productName}
+      givenName={givenName}
+      teaType={teaType}
+      chineseCharacters={chineseCharacters}
+      typeColor={typeColor}
+      isAdmin={isAdmin}
+      onNavigateSource={() => navigate(`/admin/people?tab=sources&search=${encodeURIComponent(item.supplier!)}`)}
+    />
+  );
+
+  // 2. Facts ledger — Origin / Harvest / Liquor
+  const factsLedger = (
+    <AlcoveFactsLedger
+      origin={item.origin}
+      harvest={item.year}
+      liquorTermId={liquorTermId}
+    />
+  );
+
+  // 3. Gallery band
+  const gallery = (
+    <AlcoveGallery
+      allImages={allImages}
+      itemName={item.name}
+      onExpandImage={(url) => { setExpandedImageUrl(url); setImageExpanded(true); }}
+    />
+  );
+
+  // 4. Character — taste, feel, and starred notes in one tonal band
+  const characterBand = (
+    <AlcoveCharacterBand
+      item={item}
+      legacyNotes={notes}
+      isAdmin={isAdmin}
+      onEditProductTasting={onEditProductTasting}
+      onTermClick={onTermClick}
+    />
+  );
+
+  // 5. About this tea — story + terroir + craft as one reading chapter
+  const aboutSection = (
+    <AlcoveAboutSection
+      item={item}
+      magazineUrl={magazineUrl}
+      mainStory={mainStory}
+      introduction={introduction}
+      feelingDescription={item.experience || ''}
+      terroir={terroir}
+      processing={processing}
+    />
+  );
+
+  // 6. From the table — impression, events, journal, tasting count
+  const tableSection = (
+    <AlcoveTableSection
+      impressions={impressions}
+      events={productEvents ?? []}
+      relatedArticles={relatedArticles}
+      tastingCount={tastingCount}
+    />
+  );
+
+  const whatsAppNote = (
+    <p className="m-0 mt-6 px-6 text-center font-sans text-ui-10 tracking-[0.04em] text-tea-text-dim">
+      Ordered over WhatsApp — Adrian confirms within a day
+    </p>
+  );
+
+  // ── Page layout — the "quiet page" at /shop/product/:id on cold loads ─────
+  if (layout === 'page') {
+    return (
+      <article className="mx-auto w-full max-w-[1080px]">
+        <div className="lg:grid lg:grid-cols-[340px_minmax(0,1fr)]">
+          {/* Left rail — identity, facts, and the order module */}
+          <div className="lg:border-r lg:border-tea-border lg:pb-8">
+            {identityHeader}
+            {factsLedger}
+            {/* Desktop order rail — hairline box; the commerce module stacks
+                vertically inside it (order button full width). */}
+            <div className="mx-6 mt-6 hidden border border-tea-border lg:block">
+              {commerceFooter('rail')}
+            </div>
+          </div>
+
+          {/* Right column — the reading content */}
+          <div className="lg:pt-3">
+            {gallery}
+            {characterBand}
+            {aboutSection}
+            {tableSection}
+            {whatsAppNote}
+          </div>
+        </div>
+
+        {/* Below lg the commerce module is a fixed bar sitting just above the
+            mobile bottom nav (bottom-nav utility — never inline calc). */}
+        <div className="fixed inset-x-0 bottom-nav z-sticky border-b border-tea-border lg:hidden">
+          {commerceFooter('pinned')}
+        </div>
+        {/* Clearance for the fixed bar's own height; the bottom nav clearance
+            itself comes from the app shell's pb-nav-gap-lg on <main>. */}
+        <div aria-hidden="true" className="h-40 lg:hidden" />
+
+        {modals}
+      </article>
+    );
+  }
+
+  // ── Card layout — the modal quiet card ────────────────────────────────────
   return (
     <AlcoveShell
       alcoveBg={alcoveBg}
@@ -244,131 +435,18 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       warmthRGB={warmthRGB}
       scrollRef={scrollRef}
       showFade={showFade}
-      commerceFooter={
-        <AlcoveCommerceFooter
-          item={item}
-          alcoveBg={alcoveBg}
-          stockStatus={stockStatus}
-          isSoldOut={isSoldOut}
-          grams={grams}
-          setGrams={setGrams}
-          sampleMode={sampleMode}
-          setSampleMode={setSampleMode}
-          customMode={customMode}
-          setCustomMode={setCustomMode}
-          sliderMax={sliderMax}
-          presets={presets}
-          pricePerGram={pricePerGram}
-          perGramDisplay={perGramDisplay}
-          total={total}
-          added={added}
-          shareCopied={shareCopied}
-          favorited={favorited}
-          inSampleCart={inSampleCart}
-          isAdmin={isAdmin}
-          onEdit={onEdit}
-          onTaste={onTaste}
-          toggleFavoriteTea={toggleFavoriteTea}
-          toggleSampleCart={toggleSampleCart}
-          handleShare={handleShare}
-          handleAdd={handleAdd}
-          formatPrice={formatPrice}
-        />
-      }
-      modals={
-        <>
-          <SampleModal
-            item={item}
-            open={sampleModalOpen}
-            onClose={() => { if (!sampleSubmitting) setSampleModalOpen(false); }}
-            sampleGrams={sampleGrams}
-            setSampleGrams={setSampleGrams}
-            sampleNote={sampleNote}
-            setSampleNote={setSampleNote}
-            sampleSubmitting={sampleSubmitting}
-            sampleDone={sampleDone}
-            sampleError={sampleError}
-            onSubmit={handleSampleSubmit}
-            isLoggedIn={isLoggedIn}
-            pricePerGram={pricePerGram}
-            formatPrice={formatPrice}
-          />
-          <CustomAmountModal
-            open={customMode}
-            onClose={() => setCustomMode(false)}
-            sliderMax={sliderMax}
-            customInput={customInput}
-            setCustomInput={setCustomInput}
-            setGrams={setGrams}
-          />
-          <ImageOverlayModal
-            open={imageExpanded}
-            expandedImageUrl={expandedImageUrl}
-            itemName={item.name}
-            onClose={() => { setImageExpanded(false); setExpandedImageUrl(null); }}
-          />
-        </>
-      }
+      commerceFooter={commerceFooter('pinned')}
+      modals={modals}
     >
-      {/* 1. Identity — centered serif header, hanzi as real text */}
-      <AlcoveIdentityHeader
-        item={item}
-        productName={productName}
-        givenName={givenName}
-        teaType={teaType}
-        chineseCharacters={chineseCharacters}
-        typeColor={typeColor}
-        isAdmin={isAdmin}
-        onNavigateSource={() => navigate(`/admin/people?tab=sources&search=${encodeURIComponent(item.supplier!)}`)}
-      />
-
-      {/* 2. Facts ledger — Origin / Harvest / Liquor */}
-      <AlcoveFactsLedger
-        origin={item.origin}
-        harvest={item.year}
-        liquorTermId={liquorTermId}
-      />
-
-      {/* 3. Gallery band */}
-      <AlcoveGallery
-        allImages={allImages}
-        itemName={item.name}
-        onExpandImage={(url) => { setExpandedImageUrl(url); setImageExpanded(true); }}
-      />
-
-      {/* 4. Character — taste, feel, and starred notes in one tonal band */}
-      <AlcoveCharacterBand
-        item={item}
-        legacyNotes={notes}
-        isAdmin={isAdmin}
-        onEditProductTasting={onEditProductTasting}
-        onTermClick={onTermClick}
-      />
-
-      {/* 5. About this tea — story + terroir + craft as one reading chapter */}
-      <AlcoveAboutSection
-        item={item}
-        magazineUrl={magazineUrl}
-        mainStory={mainStory}
-        introduction={introduction}
-        feelingDescription={item.experience || ''}
-        terroir={terroir}
-        processing={processing}
-      />
-
-      {/* 6. From the table — impression, events, journal, tasting count */}
-      <AlcoveTableSection
-        impressions={impressions}
-        events={productEvents ?? []}
-        relatedArticles={relatedArticles}
-        tastingCount={tastingCount}
-      />
-
+      {identityHeader}
+      {factsLedger}
+      {gallery}
+      {characterBand}
+      {aboutSection}
+      {tableSection}
       {/* How ordering works — lives in the scroll, not the pinned bar, so the
           sticky footer stays as short as possible. */}
-      <p className="m-0 mt-6 px-6 text-center font-sans text-ui-10 tracking-[0.04em] text-tea-text-dim">
-        Ordered over WhatsApp — Adrian confirms within a day
-      </p>
+      {whatsAppNote}
 
       {/* Breathing room above the pinned commerce footer */}
       <div aria-hidden="true" className="h-6" />

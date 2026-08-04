@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { Icons } from './Icons';
 import { X, Leaf } from 'lucide-react';
 import { AddToSampleButton } from './samples/AddToSampleButton';
@@ -16,7 +16,7 @@ import { TEA_TYPE_COLORS } from '../designTokens';
 import { InventoryItem } from '../types';
 import { SALE_ITEM_IDS } from '../data/curatedCollections';
 import { useAppStore } from '../lib/store';
-import { useProductUrl } from '../hooks/useProductUrl';
+import { useProductModalRoute, PRODUCT_PATH_RE } from '../hooks/useProductModalRoute';
 import { CompareView } from './shop/CompareView';
 import { useTastingCounts } from '../hooks/useTastingCount';
 import { TastingSession, type TastingItem } from './tasting/TastingSession';
@@ -28,7 +28,6 @@ import type { Product } from '../admin/types';
 export type TeaItem = InventoryItem;
 
 interface TeaInventoryProps {
-  initialProductId?: string;
   inventory: TeaItem[];
   onAddToCart?: (item: TeaItem, qty: number, total: number) => void;
   onCartClick?: () => void;
@@ -89,7 +88,7 @@ function resolvedIncludes(item: TeaItem, categoryId: TastingCategoryId, termId: 
   return Boolean(common?.[categoryId]?.includes(termId));
 }
 
-export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCart, onCartClick, onAccountClick, cartItemCount = 0, hideHeader = false, isAdmin = false, adminProductMap, onAdminEdit, initialProductId }) => {
+export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCart, onCartClick, onAccountClick, cartItemCount = 0, hideHeader = false, isAdmin = false, adminProductMap, onAdminEdit }) => {
   // Filter State
   const [activeType, setActiveType] = useState<string>('All');
   const [activeFeeling, setActiveFeeling] = useState<string | null>(null); // feeling term ID from taxonomy
@@ -162,6 +161,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   // URL ↔ filter round-trip. ?flavor=<termId> and ?feel=<termId> are shareable
   // entry points from product pages; clearing filters in the UI also clears
   // the URL so history behaves as expected.
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const didHydrateFromUrl = useRef(false);
 
@@ -193,8 +193,12 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   }, []);
 
   // Reverse direction: whenever state changes after hydration, update the URL.
+  // Skipped while the product modal route is displayed — writing search params
+  // there would replace the modal entry and drop its background state; the
+  // location.pathname dep re-runs the sync once the modal closes back to /shop.
   useEffect(() => {
     if (!didHydrateFromUrl.current) return;
+    if (PRODUCT_PATH_RE.test(location.pathname)) return;
     const next = new URLSearchParams(searchParams);
     const flavorTerm = tastingFilter?.categoryId === 'flavor' ? tastingFilter.termId : null;
     if (flavorTerm) next.set('flavor', flavorTerm);
@@ -209,37 +213,26 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       setSearchParams(next, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeFeeling, tastingFilter, activeMoodTags, activeFlavorTags]);
+  }, [activeFeeling, tastingFilter, activeMoodTags, activeFlavorTags, location.pathname]);
+
+  // Alcove modal — driven by the URL. A card tap pushes /shop/product/:id with
+  // the current location as background state; viewItem is derived from that
+  // URL, so it is always fresh after an inventory refetch and back/forward can
+  // never desync from the modal. See useProductModalRoute.
+  const { viewItem, openProduct, navigateWithinModal, closeProduct } = useProductModalRoute(inventory);
+
+  // Track recently viewed whenever a product opens (modal or swipe).
+  useEffect(() => {
+    if (viewItem) addRecentlyViewed(viewItem.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewItem?.id]);
 
   const handleTermClick = useCallback((termId: string, categoryId: string) => {
     setTastingFilter({ termId, categoryId });
-    setViewItem(null); // close the modal
-  }, []);
+    closeProduct(); // close the modal
+  }, [closeProduct]);
 
   const clearTastingFilter = useCallback(() => setTastingFilter(null), []);
-
-  // Image Modal State
-  const [viewItem, setViewItemRaw] = useState<TeaItem | null>(null);
-  const setViewItem = useCallback((item: TeaItem | null) => {
-    setViewItemRaw(item);
-    if (item) addRecentlyViewed(item.id);
-  }, [addRecentlyViewed]);
-
-  useEffect(() => {
-    if (!initialProductId || viewItem) return;
-    const item = inventory.find(candidate => candidate.id === initialProductId);
-    if (item) setViewItem(item);
-  }, [initialProductId, inventory, viewItem, setViewItem]);
-
-  // Keep the open card's data fresh. When React Query refetches inventory
-  // (e.g. after an admin tasting save), re-derive viewItem from the new
-  // inventory array so the card visually updates instead of holding the
-  // stale snapshot captured when it was first opened.
-  useEffect(() => {
-    if (!viewItem) return;
-    const fresh = inventory.find(i => i.id === viewItem.id);
-    if (fresh && fresh !== viewItem) setViewItemRaw(fresh);
-  }, [inventory, viewItem]);
 
   // Recently viewed items resolved from inventory
   const recentlyViewedItems = useMemo(() => {
@@ -256,17 +249,6 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
     setAdminTastingItem(item);
   }, []);
   const handleTaste = useCallback((item: TeaItem) => {
-    // Clear Alcove URL state so useProductUrl does not re-open the modal
-    // behind the tasting session.
-    if (window.location.pathname.startsWith('/shop/product/')) {
-      window.history.replaceState(null, '', '/shop');
-    } else {
-      const url = new URL(window.location.href);
-      if (url.searchParams.has('product')) {
-        url.searchParams.delete('product');
-        window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
-      }
-    }
     // Admins editing their own shop almost always want to update the product's
     // tasting profile, not file a personal journal entry. Route them into the
     // admin editor instead. Customers still get the journaling flow.
@@ -274,13 +256,15 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       setAdminTastingItem(item);
       return;
     }
-    setViewItem(null); // close AlcoveModal
+    // Close the AlcoveModal via history — the product entry pops, so the
+    // modal cannot re-open behind the tasting session.
+    closeProduct();
     setTastingItem(item);
-  }, [isAdmin, setViewItem]);
+  }, [isAdmin, closeProduct]);
   const handleOrderFromTasting = useCallback((item: TastingItem) => {
     setTastingItem(null);
-    setViewItem(item as TeaItem); // item is always a full TeaItem at runtime
-  }, [setViewItem]);
+    openProduct(item as TeaItem); // item is always a full TeaItem at runtime
+  }, [openProduct]);
   const adminTastingProductShim: Product | null = useMemo(() => {
     if (!adminTastingItem) return null;
     return {
@@ -292,10 +276,6 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       tasting: adminTastingItem.tasting,
     } as Product;
   }, [adminTastingItem]);
-
-  // Sync modal state with URL (/shop/product/<id>) for shareability and back-button support
-  const { closeWithHistory, navigateWithinModal } = useProductUrl(inventory, viewItem, setViewItem);
-
 
   // Filter Logic
   const filteredInventory = useMemo(() => {
@@ -426,11 +406,11 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       <AlcoveModal
         item={viewItem}
         items={filteredInventory}
-        onClose={closeWithHistory}
+        onClose={closeProduct}
         onItemChange={navigateWithinModal}
         onAddToCart={(item, quantity, total) => {
           if (onAddToCart) onAddToCart(item, quantity, total);
-          closeWithHistory();
+          closeProduct();
         }}
         onTermClick={handleTermClick}
         onTaste={handleTaste}
@@ -856,11 +836,11 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                 tabIndex={0}
                                 aria-label={`View ${item.name}`}
                                 className="border-b border-tea-border hover:bg-tea-surface/40 transition-colors cursor-pointer focus:outline-none focus-visible:bg-tea-surface/60 focus-visible:ring-1 focus-visible:ring-tea-gold/30"
-                                onClick={() => setViewItem(item)}
+                                onClick={() => openProduct(item)}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter' || e.key === ' ') {
                                     e.preventDefault();
-                                    setViewItem(item);
+                                    openProduct(item);
                                   }
                                 }}
                             >
@@ -963,7 +943,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
             {recentlyViewedItems.map(item => (
               <button
                 key={item.id}
-                onClick={() => setViewItem(item)}
+                onClick={() => openProduct(item)}
                 className="flex flex-col items-center shrink-0 group"
                 style={{ width: '72px' }}
               >

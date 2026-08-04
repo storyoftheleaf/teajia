@@ -37,7 +37,7 @@ const ProjectProvenance: React.FC<{ projectId: string }> = ({ projectId }) => {
           return (
             <li key={product.id}>
               <a
-                href={`/shop?product=${encodeURIComponent(product.id)}`}
+                href={`/shop/product/${encodeURIComponent(product.id)}`}
                 className="group inline-flex flex-wrap items-baseline gap-x-2 font-serif text-ui-14 leading-snug text-tea-text hover:text-tea-gold transition-colors"
               >
                 <span className="italic">{product.name}</span>

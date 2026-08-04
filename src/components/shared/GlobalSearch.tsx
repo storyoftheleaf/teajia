@@ -212,9 +212,8 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
         subtitle: [item.variant, item.type, item.origin].filter(Boolean).join(' · '),
         category: item.category === 'ware' ? 'Teaware' : item.type,
         image: item.image,
-        // Open the specific product via Shop's ?product=<id> modal flow
-        // (handled by useProductUrl in TeaInventory/TeawareCatalog/CollectionTab).
-        action: () => navigateAndClose(`/shop?product=${encodeURIComponent(item.id)}`),
+        // Plain navigation to the real product page (cold load — no modal).
+        action: () => navigateAndClose(`/shop/product/${encodeURIComponent(item.id)}`),
       };
     });
 

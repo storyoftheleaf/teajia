@@ -2312,6 +2312,39 @@ const handleGetPublicProducts: Handler = async (_request, env) => {
   return cachedJson(products, 60);
 };
 
+// GET /api/products/public/:id — a single public product (PUBLIC_FIELDS only).
+// Used by the Pages crawler middleware to inject og:* meta + Product JSON-LD
+// on /shop/product/:id without pulling the whole catalog.
+const handleGetPublicProduct: Handler = async (_request, env, params) => {
+  const products = await fetchPublicProductsForAccount(env, BALI_ACCOUNT_ID, params.id);
+  if (products.length === 0) return json({ error: 'Product not found' }, 404);
+  return cachedJson(products[0], 60);
+};
+
+// GET /sitemap-products.xml — product URLs from D1 (public products only).
+// Proxied through the Pages middleware so it serves from the site origin;
+// referenced from public/robots.txt alongside the static /sitemap.xml.
+const handleProductSitemap: Handler = async (_request, env) => {
+  const appOrigin = (env.APP_URL || 'https://www.teajia.com').replace(/\/$/, '');
+  const { results } = await env.DB.prepare(
+    `SELECT id, updated_at FROM products
+     WHERE is_public = 1 AND shown_in_shop = 1 AND status = 'Active' AND account_id = ?
+     ORDER BY created_at DESC`
+  ).bind(BALI_ACCOUNT_ID).all();
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const urls = (results as { id: string; updated_at?: string }[]).map(p => {
+    const lastmod = p.updated_at ? `<lastmod>${esc(String(p.updated_at).slice(0, 10))}</lastmod>` : '';
+    return `  <url><loc>${appOrigin}/shop/product/${esc(encodeURIComponent(p.id))}</loc>${lastmod}<changefreq>weekly</changefreq></url>`;
+  }).join('\n');
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
+  return new Response(xml, {
+    headers: {
+      'Content-Type': 'application/xml; charset=utf-8',
+      'Cache-Control': 'public, max-age=3600',
+    },
+  });
+};
+
 // GET /api/venues/public — publicly readable tea spaces for SpacesPage
 const handleGetPublicVenues: Handler = async (_request, env) => {
   try {
@@ -14768,8 +14801,10 @@ const handleGetPublicAccount: Handler = async (_request, env, params) => {
 // whitelist used by the legacy /api/products/public endpoint).
 async function fetchPublicProductsForAccount(
   env: Env,
-  accountId: string
+  accountId: string,
+  productId?: string
 ): Promise<Record<string, unknown>[]> {
+  const productFilter = productId ? ' AND p.id = ?2' : '';
   const [ratesResult, result] = await env.DB.batch([
     env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates'),
     env.DB.prepare(
@@ -14788,9 +14823,9 @@ async function fetchPublicProductsForAccount(
                   AND cp.target_type = 'shop'
                   AND cp.unpublished_at IS NULL) AS is_featured
        FROM products p
-       WHERE p.is_public = 1 AND p.shown_in_shop = 1 AND p.status = 'Active' AND p.account_id = ?
+       WHERE p.is_public = 1 AND p.shown_in_shop = 1 AND p.status = 'Active' AND p.account_id = ?1${productFilter}
        ORDER BY p.created_at DESC`
-    ).bind(accountId),
+    ).bind(...(productId ? [accountId, productId] : [accountId])),
   ]);
   const rates = new Map<string, number>();
   for (const r of ratesResult.results as any[]) {
@@ -20570,6 +20605,8 @@ const routes: [string, string, Handler][] = [
 
   // Products
   ['GET', '/api/products/public', handleGetPublicProducts],
+  ['GET', '/api/products/public/:id', handleGetPublicProduct],
+  ['GET', '/sitemap-products.xml', handleProductSitemap],
   ['GET', '/api/products', handleGetProducts],
   ['POST', '/api/products', handleCreateProduct],
   ['POST', '/api/products/bulk', handleBulkCreateProducts],

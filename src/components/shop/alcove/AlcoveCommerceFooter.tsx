@@ -37,6 +37,13 @@ interface AlcoveCommerceFooterProps {
   handleShare: () => void;
   handleAdd: () => void;
   formatPrice?: (pricePerGram: number, grams: number) => string;
+  /**
+   * 'pinned' (default) — the card's bottom bar: top hairline + solid card bg.
+   * 'rail' — the product page's desktop order module: the enclosing box owns
+   * the border, the background stays transparent, and the action row stacks
+   * vertically with a full-width order button.
+   */
+  variant?: 'pinned' | 'rail';
 }
 
 /** Sessions from grams — a session is ~5 g of leaf. */
@@ -93,8 +100,10 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
   handleShare,
   handleAdd,
   formatPrice,
+  variant = 'pinned',
 }) => {
   const isTea = item.category === 'tea';
+  const isRail = variant === 'rail';
 
   const selectWeight = (g: number) => {
     setGrams(g);
@@ -147,8 +156,12 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
 
   return (
     <div
-      className="relative z-[3] flex-shrink-0 border-t border-tea-border px-[18px] pb-2.5 pt-3.5"
-      style={{ background: alcoveBg }}
+      className={
+        isRail
+          ? 'relative px-3.5 pb-3 pt-3.5'
+          : 'relative z-[3] flex-shrink-0 border-t border-tea-border px-[18px] pb-2.5 pt-3.5'
+      }
+      style={isRail ? undefined : { background: alcoveBg }}
     >
       {/* Stock line — only when it carries a warning. "In stock" is implied by
           an enabled order button, and the pinned bar pays for every row. */}
@@ -201,8 +214,9 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
         </div>
       )}
 
-      {/* Action row: bordered cluster + the one solid gold button */}
-      <div className="flex gap-2">
+      {/* Action row: bordered cluster + the one solid gold button.
+          Rail variant stacks vertically so the order button spans the rail. */}
+      <div className={isRail ? 'flex flex-col gap-2' : 'flex gap-2'}>
         <div className="flex min-h-[44px] shrink-0 items-center justify-center border border-tea-border px-1.5">
           <button
             type="button"

@@ -5,10 +5,10 @@ describe('Pages protocol proxy', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('matches only MCP, OAuth, and the supported discovery endpoints', () => {
-    for (const path of ['/mcp', '/mcp/public', '/oauth/token', '/oauth/authorize/request/abc', '/.well-known/oauth-protected-resource/mcp', '/.well-known/oauth-authorization-server', '/.well-known/openid-configuration']) {
+    for (const path of ['/mcp', '/mcp/public', '/oauth/token', '/oauth/authorize/request/abc', '/.well-known/oauth-protected-resource/mcp', '/.well-known/oauth-authorization-server', '/.well-known/openid-configuration', '/sitemap-products.xml']) {
       expect(isWorkerProxyPath(path), path).toBe(true);
     }
-    for (const path of ['/api/products', '/media/x.jpg', '/oauth', '/.well-known/security.txt', '/read']) {
+    for (const path of ['/api/products', '/media/x.jpg', '/oauth', '/.well-known/security.txt', '/read', '/sitemap.xml', '/shop/product/abc']) {
       expect(isWorkerProxyPath(path), path).toBe(false);
     }
   });

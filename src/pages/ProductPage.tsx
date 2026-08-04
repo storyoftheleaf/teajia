@@ -1,200 +1,82 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { MessageCircle, Pencil } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { AnimatePresence } from 'framer-motion';
 import { useInventory } from '../context/InventoryContext';
-import { useAppStore } from '../lib/store';
-import { Icons } from '../components/Icons';
-import { TeaPlaceholder } from '../components/shop/TeaPlaceholder';
-import { HapticSlider } from '../components/shared/HapticSlider';
-import { fmtPrice, fmtPricePerGram, fmtNum, fmtShopPrice, fmtShopPricePerGram } from '../utils/formatNumber';
-import { CardImage } from '../components/shared/CardImage';
-import type { InventoryItem, TastingData } from '../types';
-import { buildWhatsAppUrl, buildOrderMessage } from '../lib/whatsapp';
-import { api } from '../lib/api';
-import { resolveTermLabel, flattenTastingNotes } from '../data/tastingTaxonomy';
-import { getBrewingProfile } from '../data/brewing-profiles';
-import { getTeaColor } from '../designTokens';
-import { ProductTastingEditorial } from '../components/tasting/ProductTastingEditorial';
-import { useProductTasting } from '../hooks/useProductTasting';
 import { useAuth } from '../hooks/useAuth';
+import { Icons } from '../components/Icons';
+import { AlcoveCard } from '../components/shop/AlcoveCard';
+import { TastingSession, type TastingItem } from '../components/tasting/TastingSession';
 import { TastingEditorModal } from '../admin/components/TastingEditorModal';
+import { EmblemLoader } from '../components/shared/EmblemLoader';
+import type { InventoryItem } from '../types';
 import type { Product } from '../admin/types';
-import { ProductImpressions, type ProductImpression } from '../components/shop/ProductImpressions';
-
-// ── Feature 4: Public tea reviews section ────────────────────────────────────
-
-interface PublicTeaReview {
-  id: string;
-  tea_key: string;
-  author_name?: string;
-  author_account_name?: string;
-  rating?: number;
-  notes?: string;
-  voice_notes?: string[];
-  tasting?: TastingData;
-  verdict?: string;
-  session_date?: string;
-  created_at: string;
-  visibility: string;
-}
-
-const PublicReviewsSection: React.FC<{ productId: string; teaKey?: string }> = ({ productId, teaKey }) => {
-  const { data: reviews = [], isLoading } = useQuery<PublicTeaReview[]>({
-    queryKey: ['public-tea-reviews', productId, teaKey],
-    queryFn: () => api.teaReviews.list({
-      product_id: productId,
-      ...(teaKey ? { tea_key: teaKey } : {}),
-      visibility: 'network',
-    }),
-    staleTime: 60_000,
-  });
-
-  const networkReviews = reviews.filter(r => r.visibility === 'network');
-  const { data: impressions = [] } = useQuery<ProductImpression[]>({
-    queryKey: ['product-impressions', productId],
-    queryFn: () => api.productImpressions.list(productId),
-    staleTime: 60_000,
-  });
-
-  if (isLoading) return null;
-
-  if (networkReviews.length === 0 && impressions.length === 0) {
-    return (
-      <div className="mt-10 pt-6 border-t border-tea-border">
-        <h3 className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec mb-3">Reviews</h3>
-        <p className="text-xs text-tea-text-dim italic">No reviews yet.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mt-10 pt-6 border-t border-tea-border">
-      <ProductImpressions impressions={impressions} />
-      {networkReviews.length > 0 && <>
-        <h3 className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec mb-4">
-          Reviews <span className="text-tea-text-dim font-sans normal-case tracking-normal">({networkReviews.length})</span>
-        </h3>
-        <div className="space-y-4">
-        {networkReviews.map(r => {
-          const flavorTerms = r.tasting ? flattenTastingNotes(r.tasting) : [];
-          return (
-            <div key={r.id} className="border border-tea-border rounded-md p-4 space-y-2 bg-tea-surface">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-medium text-tea-text">
-                  {r.author_name ? r.author_name.charAt(0) + '.' : 'Anonymous'}
-                </span>
-                {r.author_account_name && (
-                  <span className="text-ui-10 text-tea-text-dim">· {r.author_account_name}</span>
-                )}
-                {r.rating != null && (
-                  <span className="font-mono text-ui-11 text-tea-gold">{r.rating}/10</span>
-                )}
-                {r.verdict && (
-                  <span className="text-ui-10 text-tea-text-dim capitalize">{r.verdict}</span>
-                )}
-                <span className="ml-auto text-ui-10 text-tea-text-dim">
-                  {(r.session_date || r.created_at).slice(0, 10)}
-                </span>
-              </div>
-
-              {flavorTerms.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {flavorTerms.slice(0, 6).map(termId => (
-                    <span
-                      key={termId}
-                      className="text-ui-10 px-2 py-0.5 rounded-full bg-tea-accent-sub text-tea-text-sec"
-                    >
-                      {resolveTermLabel(termId)}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {r.notes && (
-                <p className="text-xs text-tea-text-sec italic leading-relaxed">{r.notes}</p>
-              )}
-
-              {r.voice_notes && r.voice_notes.length > 0 && (
-                <div className="space-y-1">
-                  {r.voice_notes.map((n, i) => (
-                    <p key={i} className="text-xs text-tea-text-sec italic leading-relaxed">"{n}"</p>
-                  ))}
-                </div>
-              )}
-
-              {r.tasting?.brewingTemp && (
-                <p className="text-ui-10 text-tea-text-dim">
-                  Brewed at {r.tasting.brewingTemp}°C
-                  {r.tasting.brewingTime ? ` · ${r.tasting.brewingTime}` : ''}
-                  {r.tasting.brewingVessel ? ` · ${r.tasting.brewingVessel}` : ''}
-                </p>
-              )}
-            </div>
-          );
-        })}
-        </div>
-      </>}
-    </div>
-  );
-};
-
-// ── End Feature 4 ────────────────────────────────────────────────────────────
-
-const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '';
-
-/**
- * Full product detail page at /shop/product/:id
- * Shows hero image, tea info, description, tasting notes, pricing, and related teas.
- */
-
-/** Converts a string to Title Case */
-function toTitleCase(str: string): string {
-  return str.replace(/\b\w/g, c => c.toUpperCase());
-}
-
-function getStockStatus(stockG: number) {
-  if (stockG <= 0) return { label: 'Sold Out', colorClass: 'text-tea-text-dim', dotClass: 'bg-tea-text-dim', level: 'out' as const };
-  if (stockG < 100) return { label: 'Low Stock', colorClass: 'text-tea-gold', dotClass: 'bg-tea-gold', level: 'low' as const };
-  if (stockG < 300) return { label: 'Available', colorClass: 'text-tea-gold-lt', dotClass: 'bg-tea-gold-lt', level: 'medium' as const };
-  return { label: 'In Stock', colorClass: 'text-tea-text-sec', dotClass: 'bg-tea-text-sec', level: 'ok' as const };
-}
 
 interface ProductPageProps {
   onAddToCart?: (item: InventoryItem, qty: number, total: number) => void;
 }
 
+/**
+ * The real product page at /shop/product/:id — the cold-load container of the
+ * one-URL/two-containers pattern. Grid taps inside the shop open the same URL
+ * as the AlcoveModal over the still-mounted grid (background-location routing
+ * in App.tsx); shared links, reloads, and search results land here.
+ *
+ * The page is composed from the SAME alcove blocks as the modal card —
+ * AlcoveCard with layout="page" — so behaviors (sample request, custom amount,
+ * favorite, share, taste, add-to-cart, sold-out states) are shared, never
+ * duplicated. On lg+ identity/facts/order form a 340px left rail with the
+ * reading content on the right; below lg it is a single column with the
+ * commerce bar fixed above the bottom nav.
+ */
 export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { inventory, refetch: refetchInventory } = useInventory();
-  const { favoriteTeas, toggleFavoriteTea } = useAppStore();
+  const { inventory, isLoading, refetch: refetchInventory } = useInventory();
+  const { isAdmin } = useAuth();
 
   const item = useMemo(() => inventory.find(i => i.id === id), [inventory, id]);
 
-  const [grams, setGrams] = useState(25);
-  const [added, setAdded] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [expandedImageUrl, setExpandedImageUrl] = useState<string | null>(null);
-  const [stickyVisible, setStickyVisible] = useState(false);
+  // Tasting session (customers) / product tasting editor (admins) — same
+  // behaviors the shop grids attach to the modal card.
+  const [tastingItem, setTastingItem] = useState<InventoryItem | null>(null);
+  const [adminTastingItem, setAdminTastingItem] = useState<InventoryItem | null>(null);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollY = window.scrollY;
-      setStickyVisible(scrollY > 200);
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  const handleTaste = useCallback((tasteItem: InventoryItem) => {
+    if (isAdmin) {
+      setAdminTastingItem(tasteItem);
+      return;
+    }
+    setTastingItem(tasteItem);
+  }, [isAdmin]);
 
-  // Related teas: same type, exclude current, max 4
-  const relatedTeas = useMemo(() => {
-    if (!item) return [];
-    return inventory
-      .filter(i => i.id !== item.id && i.type === item.type && i.category === item.category)
-      .slice(0, 4);
-  }, [inventory, item]);
+  // Tasting-term cross-reference — send the reader into the filtered shop.
+  const handleTermClick = useCallback((termId: string, categoryId: string) => {
+    const param = categoryId === 'feeling' ? 'feel' : 'flavor';
+    navigate(`/shop?${param}=${encodeURIComponent(termId)}`);
+  }, [navigate]);
+
+  // Minimal Product shape TastingEditorModal needs, mapped from InventoryItem.
+  const adminTastingProductShim: Product | null = useMemo(() => {
+    if (!adminTastingItem) return null;
+    return {
+      id: adminTastingItem.id,
+      givenName: adminTastingItem.name,
+      productName: adminTastingItem.variant || adminTastingItem.name,
+      type: adminTastingItem.type as Product['type'],
+      imageUrl: adminTastingItem.image || '',
+      tasting: adminTastingItem.tasting,
+    } as Product;
+  }, [adminTastingItem]);
+
+  // Inventory still loading on a cold load — hold the frame, don't 404 early.
+  if (!item && isLoading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <EmblemLoader />
+      </div>
+    );
+  }
 
   if (!item) {
     return (
@@ -213,45 +95,11 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
     );
   }
 
-  const typeColor = getTeaColor(item.type);
   const pricePerGram = parseFloat(item.price_per_gram || '0');
-  const sliderMax = Math.max(25, Math.floor(item.stock_g || 500));
-  const total = pricePerGram * grams;
-  const stockStatus = getStockStatus(item.stock_g);
-  const isSoldOut = stockStatus.level === 'out';
-  const isFavorited = favoriteTeas.includes(item.id);
-  const presets = [25, 50, 100, 250].filter(p => p <= sliderMax);
-
-  const mainStory = item.lore || '';
+  const isSoldOut = (item.stock_g ?? 0) <= 0;
   const introduction = item.description || '';
-  const terroir = item.terroir || '';
-  const processing = item.processingNotes || '';
-  const brewingProfile = item.category === 'tea' ? getBrewingProfile(item.type) : undefined;
-  const resolvedTasting = useProductTasting(item);
-  const { isAdmin } = useAuth();
-  const [tastingEditorOpen, setTastingEditorOpen] = useState(false);
-
-  // Minimal Product shape TastingEditorModal needs; mapped from the public InventoryItem.
-  const adminProductShim: Product | null = useMemo(() => {
-    if (!item) return null;
-    return {
-      id: item.id,
-      givenName: item.name,
-      productName: item.variant || item.name,
-      type: item.type as Product['type'],
-      imageUrl: item.image || '',
-      tasting: item.tasting,
-    } as Product;
-  }, [item]);
-
-  const handleAdd = () => {
-    if (isSoldOut) return;
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1800);
-    if (onAddToCart) {
-      onAddToCart(item, grams, Math.round(total * 100) / 100);
-    }
-  };
+  const mainStory = item.lore || '';
+  const metaDescription = (introduction || mainStory || `${item.type} tea from ${item.origin}`).slice(0, 160);
 
   // JSON-LD structured data for SEO (Product + Offer schema)
   const structuredData = {
@@ -276,10 +124,10 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto animate-[fadeIn_0.5s_ease-out]">
+    <div className="w-full animate-[fadeIn_0.5s_ease-out]">
       <Helmet>
         <title>{item.name} — Teajia</title>
-        <meta name="description" content={(introduction || mainStory || `${item.type} tea from ${item.origin}`).slice(0, 160)} />
+        <meta name="description" content={metaDescription} />
         <meta property="og:title" content={`${item.name} — Teajia`} />
         <meta property="og:description" content={(introduction || mainStory || '').slice(0, 160)} />
         {item.image && <meta property="og:image" content={item.image} />}
@@ -289,8 +137,8 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
 
-      {/* Back link */}
-      <div className="mb-6">
+      {/* Back — page nav, top-left */}
+      <div className="mx-auto w-full max-w-[1080px] pt-4 pb-2">
         <Link
           to="/shop"
           className="inline-flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors text-sm"
@@ -300,460 +148,41 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
         </Link>
       </div>
 
-      {/* Main content: two-column on desktop */}
-      <div className="flex flex-col md:flex-row gap-8 md:gap-12">
-        {/* Left: Hero image */}
-        <div className="md:w-1/2 flex-shrink-0">
-          <div className="relative aspect-square rounded-md overflow-hidden bg-tea-surface border border-tea-border">
-            {item.image ? (
-              <>
-                {!imageLoaded && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <TeaPlaceholder type={item.type} style={{ width: '60%', height: '60%', opacity: 0.3 }} />
-                  </div>
-                )}
-                <img
-                  src={item.image}
-                  alt={item.name}
-                  className={`w-full h-full object-cover transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-                  onLoad={() => setImageLoaded(true)}
-                />
-              </>
-            ) : (
-              <div
-                className="w-full h-full flex flex-col items-center justify-center gap-3"
-                style={{
-                  background: `radial-gradient(ellipse 80% 60% at 50% 40%, ${typeColor}18 0%, transparent 70%)`,
-                }}
-              >
-                {item.chineseName ? (
-                  <p
-                    className="select-none pointer-events-none text-center leading-none"
-                    style={{ fontFamily: "'Ma Shan Zheng', cursive", fontSize: '5rem', color: typeColor, opacity: 0.35 }}
-                  >
-                    {item.chineseName}
-                  </p>
-                ) : (
-                  <TeaPlaceholder type={item.type} style={{ width: '32%', height: '32%', opacity: 0.2 }} />
-                )}
-                <span
-                  className="font-sans text-ui-10 uppercase tracking-[0.2em]"
-                  style={{ color: typeColor, opacity: 0.4 }}
-                >
-                  {item.origin || item.type}
-                </span>
-              </div>
-            )}
-          </div>
+      {/* The quiet page — same blocks and behaviors as the modal card */}
+      <AlcoveCard
+        item={item}
+        layout="page"
+        onAddToCart={onAddToCart}
+        onTermClick={handleTermClick}
+        onTaste={handleTaste}
+        isAdmin={isAdmin}
+        onEditProductTasting={isAdmin ? (editItem) => setAdminTastingItem(editItem) : undefined}
+      />
 
-          {/* Additional images */}
-          {item.additionalImages && item.additionalImages.length > 0 && (
-            <div className="flex gap-2 mt-3">
-              {item.additionalImages.slice(0, 4).map((img, i) => (
-                <div key={i} className="w-16 h-16 rounded-md overflow-hidden bg-tea-surface border border-tea-border flex-shrink-0">
-                  <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Right: Product info */}
-        <div className="md:w-1/2 flex flex-col">
-          {/* Product name */}
-          <h1 className="font-serif text-3xl md:text-4xl text-tea-text leading-snug mb-1">
-            {item.variant || item.name}
-          </h1>
-          {/* Given name — always reserves space */}
-          <p className={`font-serif text-lg italic text-tea-text-sec mb-1 min-h-[28px] ${
-            item.variant && item.variant !== item.name ? 'visible' : 'invisible'
-          }`}>
-            {item.variant && item.variant !== item.name ? item.name : '\u00A0'}
-          </p>
-          {item.chineseName && (
-            <p className="mb-2 text-tea-text-sec/50" style={{ fontFamily: "'Ma Shan Zheng', cursive", fontSize: '1.65rem' /* ~1px bump over text-2xl=1.5rem for Noto Serif SC optical correction */ }}>
-              {item.chineseName}
-            </p>
-          )}
-
-          {/* Tea type · origin · year — filterable metadata pills */}
-          <div className="flex flex-wrap items-center gap-2 mb-4">
-            <span className="font-sans text-ui-10 uppercase tracking-widest text-tea-text-sec bg-tea-accent-sub px-2.5 py-1 rounded-md">
-              {item.type}
-            </span>
-            {item.origin && (
-              <span className="font-sans text-ui-10 uppercase tracking-widest text-tea-text-sec bg-tea-accent-sub px-2.5 py-1 rounded-md">
-                {item.origin}
-              </span>
-            )}
-            {item.year && (
-              <span className="font-sans text-ui-10 uppercase tracking-widest text-tea-text-sec bg-tea-accent-sub px-2.5 py-1 rounded-md">
-                {item.year}
-              </span>
-            )}
-          </div>
-
-
-          {/* Tasting notes — prominent sensory headline with tea type color */}
-          {item.tags && item.tags.length > 0 && (
-            <div className="mb-5">
-              <p className="font-body text-base italic leading-relaxed" style={{ color: typeColor }}>
-                {item.tags.map(t => toTitleCase(t)).join(' · ')}
-              </p>
-            </div>
-          )}
-
-          {/* Tasting description — flavor + energy, linked through to /shop filters */}
-          {resolvedTasting ? (
-            <ProductTastingEditorial
-              tasting={resolvedTasting.tasting}
-              source={resolvedTasting.source}
-              onEdit={isAdmin ? () => setTastingEditorOpen(true) : undefined}
-            />
-          ) : isAdmin ? (
-            <button
-              type="button"
-              onClick={() => setTastingEditorOpen(true)}
-              className="mb-6 flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.18em] text-tea-text-dim hover:text-tea-gold transition-colors"
-              style={{ fontFamily: 'var(--font-display)' }}
-            >
-              <Pencil size={11} strokeWidth={1.5} />
-              <span>Add tasting profile</span>
-            </button>
-          ) : item.mood ? (
-            <div className="mb-4">
-              <div className="flex flex-wrap gap-1.5 justify-start">
-                {(item.mood.includes(',') ? item.mood.split(',').map(t => t.trim()).filter(Boolean) : [item.mood]).map((tag, i) => (
-                  <span
-                    key={i}
-                    className="font-serif text-xs italic px-2.5 py-1 rounded-md bg-tea-accent-sub text-tea-text-sec tracking-wide"
-                  >
-                    {toTitleCase(tag)}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          {/* About — character and description */}
-          {(item.experience || introduction) && (
-            <div className="mb-5">
-              <span className="font-sans text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim block mb-2">About</span>
-              {item.experience && (
-                <p className="text-sm text-tea-text-sec leading-relaxed whitespace-pre-line mb-2">
-                  {item.experience}
-                </p>
-              )}
-              {introduction && (
-                <p className="text-sm text-tea-text-sec leading-relaxed whitespace-pre-line">
-                  {introduction}
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Story — historical/cultural context */}
-          {mainStory && (
-            <div className="mb-5">
-              <span className="font-sans text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim block mb-2">History</span>
-              <p className="text-sm text-tea-text-sec leading-relaxed whitespace-pre-line">
-                {mainStory}
-              </p>
-            </div>
-          )}
-          {terroir && (
-            <div className="mb-5">
-              <h3 className="text-ui-11 uppercase tracking-[0.12em] text-tea-gold mb-1.5">Terroir</h3>
-              <p className="text-sm text-tea-text-sec leading-relaxed whitespace-pre-line">{terroir}</p>
-            </div>
-          )}
-          {processing && (
-            <div className="mb-5">
-              <h3 className="text-ui-11 uppercase tracking-[0.12em] text-tea-gold mb-1.5">Processing</h3>
-              <p className="text-sm text-tea-text-sec leading-relaxed whitespace-pre-line">{processing}</p>
-            </div>
-          )}
-
-          {brewingProfile && (
-            <div className="mb-5 rounded-md border border-tea-border bg-tea-surface p-4">
-              <div className="flex items-center gap-1.5 mb-3">
-                <Icons.Leaf className="w-3.5 h-3.5 text-tea-gold" />
-                <h3 className="text-ui-11 uppercase tracking-[0.12em] text-tea-gold">Brewing Guide</h3>
-              </div>
-              <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5">
-                <div>
-                  <dt className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mb-0.5">Water</dt>
-                  <dd className="text-sm text-tea-text-sec leading-snug">{brewingProfile.waterTemp}</dd>
-                </div>
-                <div>
-                  <dt className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mb-0.5">Steep</dt>
-                  <dd className="text-sm text-tea-text-sec leading-snug">{brewingProfile.steepTime}</dd>
-                </div>
-                <div>
-                  <dt className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mb-0.5">Leaf</dt>
-                  <dd className="text-sm text-tea-text-sec leading-snug">{brewingProfile.leafRatio}</dd>
-                </div>
-                <div>
-                  <dt className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mb-0.5">Vessel</dt>
-                  <dd className="text-sm text-tea-text-sec leading-snug">{brewingProfile.vessel}</dd>
-                </div>
-                <div className="col-span-2">
-                  <dt className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mb-0.5">Infusions</dt>
-                  <dd className="text-sm text-tea-text-sec leading-snug">{brewingProfile.infusions}</dd>
-                </div>
-              </dl>
-              {brewingProfile.notes && (
-                <p className="mt-3 pt-3 border-t border-tea-border font-body text-sm italic text-tea-text-sec leading-relaxed">
-                  {brewingProfile.notes}
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Zone break — story → action */}
-          <div className="my-6" style={{ height: '1px', background: 'linear-gradient(90deg, transparent, rgba(184,146,78,0.25) 20%, rgba(184,146,78,0.35) 50%, rgba(184,146,78,0.25) 80%, transparent)' }} />
-
-          {/* Pricing and stock */}
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${stockStatus.dotClass}`} />
-              <span className={`text-ui-11 uppercase tracking-[0.08em] ${stockStatus.colorClass}`}>
-                {stockStatus.label}
-              </span>
-            </div>
-            <div className="text-right">
-              <span className="font-mono text-sm text-tea-text-sec block">
-                {fmtShopPricePerGram(pricePerGram)}
-              </span>
-              <span className="font-mono text-ui-11 text-tea-text-dim">
-                from {fmtShopPrice(pricePerGram * 25)} / 25g
-              </span>
-            </div>
-          </div>
-
-          {/* Quantity presets */}
-          {!isSoldOut && presets.length > 1 && (
-            <div className="flex gap-2 mb-3">
-              {presets.map(p => (
-                <button
-                  key={p}
-                  onClick={() => setGrams(p)}
-                  aria-pressed={grams === p}
-                  className={`flex-1 py-1.5 text-xs font-mono rounded-md border transition-all duration-150 ${
-                    grams === p
-                      ? 'bg-tea-accent-sub text-tea-gold border-tea-gold'
-                      : 'bg-transparent text-tea-text-sec border-tea-border hover:border-tea-gold/30'
-                  }`}
-                >
-                  {p}g
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Slider */}
-          {!isSoldOut && (
-            <div className="mb-4">
-              <div className="flex items-end justify-between mb-1 px-0.5">
-                <span className="font-mono text-sm text-tea-text">{fmtShopPrice(total)}</span>
-                <div className="flex items-baseline gap-0.5">
-                  <span className="font-mono text-2xl text-tea-text leading-none">{grams}</span>
-                  <span className="font-sans text-xs text-tea-text-dim">g</span>
-                </div>
-              </div>
-              <HapticSlider
-                min={25}
-                max={sliderMax}
-                step={5}
-                value={grams}
-                onChange={setGrams}
-                snapPoints={[25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500]}
-                size="sm"
-              />
-            </div>
-          )}
-
-          {/* Action buttons */}
-          <div className="flex gap-3">
-            <button
-              onClick={() => toggleFavoriteTea(item.id)}
-              className={`flex items-center justify-center gap-2 px-4 py-3 border rounded-md transition-all ${
-                isFavorited
-                  ? 'border-tea-gold text-tea-gold'
-                  : 'border-tea-border text-tea-text-sec hover:border-tea-gold/30 hover:text-tea-text-sec'
-              }`}
-            >
-              <Icons.Heart filled={isFavorited} className="w-4 h-4" />
-              <span className="text-ui-11 uppercase tracking-[0.08em]">
-                {isFavorited ? 'Saved' : 'Save'}
-              </span>
-            </button>
-
-            <button
-              onClick={handleAdd}
-              disabled={isSoldOut}
-              className={`flex-1 flex items-center justify-center gap-3 py-3 rounded-md text-xs uppercase tracking-[0.1em] font-medium transition-all active:scale-[0.98] ${
-                isSoldOut
-                  ? 'bg-tea-accent-sub text-tea-text-sec border border-tea-border cursor-not-allowed opacity-60'
-                  : added
-                    ? 'bg-tea-green text-tea-bg border border-tea-green'
-                    : 'bg-tea-gold text-tea-bg hover:bg-tea-gold-lt border border-tea-gold'
-              }`}
-            >
-              <span>{isSoldOut ? 'Sold Out' : added ? 'Added!' : 'Add to Cart'}</span>
-              {!isSoldOut && !added && (
-                <>
-                  <span className="w-px h-3 bg-tea-bg/20" />
-                  <span className="font-mono">{fmtShopPrice(total)}</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* WhatsApp checkout handoff */}
-          {!isSoldOut && (
-            <div className="pt-4 mt-2">
-              <button
-                onClick={() => {
-                  const message = buildOrderMessage({
-                    type: 'inquiry',
-                    items: [{
-                      name: item.variant || item.name,
-                      quantity: grams,
-                      unit: 'g',
-                      price: fmtPricePerGram(pricePerGram),
-                      total: fmtShopPrice(total),
-                    }],
-                    subtotal: fmtShopPrice(total),
-                    total: fmtShopPrice(total),
-                  });
-                  window.open(buildWhatsAppUrl(WHATSAPP_NUMBER, message), '_blank');
-                }}
-                className="w-full flex items-center justify-center gap-2.5 py-3 px-4 border border-tea-border bg-transparent text-tea-text-sec font-sans text-sm tracking-wide rounded-md hover:border-tea-gold/40 hover:text-tea-text transition-colors duration-150 active:scale-[0.98]"
-              >
-                <MessageCircle className="w-4 h-4" strokeWidth={1.5} />
-                Order via WhatsApp
-              </button>
-              <p className="font-body text-ui-11 text-tea-text-dim text-center leading-relaxed mt-2.5">
-                Personal conversation · Adrian confirms within 24 hours
-              </p>
-            </div>
-          )}
-
-        </div>
-      </div>
-
-      {/* Feature 4: Public tea reviews */}
-      {item.category === 'tea' && (
-        <PublicReviewsSection productId={item.id} teaKey={(item as InventoryItem & { tea_key?: string }).tea_key} />
-      )}
-
-      {/* Related Teas — horizontal scroll strip */}
-      {relatedTeas.length > 0 && (
-        <div className="mt-16 mb-8">
-          <div className="border-t border-tea-border pt-8 mb-4">
-            <p className="font-sans text-ui-10 uppercase tracking-widest text-tea-text-dim mb-3">
-              You might also like
-            </p>
-          </div>
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-            {relatedTeas.map(related => (
-              <Link
-                key={related.id}
-                to={`/shop/product/${related.id}`}
-                className="group block w-36 flex-shrink-0"
-              >
-                <div className="aspect-square w-full rounded overflow-hidden bg-tea-surface">
-                  {related.image ? (
-                    <img
-                      src={related.image}
-                      alt={related.name}
-                      className="w-full h-full object-cover transition-transform duration-300"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-tea-accent-sub">
-                      <TeaPlaceholder type={related.type} style={{ width: '40%', height: '40%' }} />
-                    </div>
-                  )}
-                </div>
-                <h4 className="font-display text-sm text-tea-text leading-snug line-clamp-2 mt-2 group-hover:text-tea-gold transition-colors duration-150">
-                  {related.name}
-                </h4>
-                <p className="font-mono text-xs text-tea-text-sec mt-0.5">
-                  {fmtShopPricePerGram(parseFloat(related.price_per_gram || '0'))}
-                </p>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Image lightbox */}
-      {expandedImageUrl && (
-        <div
-          onClick={() => setExpandedImageUrl(null)}
-          onKeyDown={(e) => { if (e.key === 'Escape') setExpandedImageUrl(null); }}
-          tabIndex={-1}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Product image"
-          className="fixed inset-0 z-priority flex items-center justify-center animate-[fadeIn_0.3s_ease-out] outline-none"
-          style={{ background: 'var(--tea-bg)' }}
-        >
-          <img
-            src={expandedImageUrl}
-            alt={item.name}
-            onClick={(e) => e.stopPropagation()}
-            className="max-w-[90vw] max-h-[90vh] object-contain rounded cursor-default"
+      {/* Tasting session (customers) */}
+      <AnimatePresence>
+        {tastingItem && (
+          <TastingSession
+            item={tastingItem}
+            onClose={() => setTastingItem(null)}
+            onOrderTea={(ordered: TastingItem) => {
+              // Already on this product's page — just close the session.
+              setTastingItem(null);
+              if (ordered.id !== item.id) {
+                navigate(`/shop/product/${encodeURIComponent(ordered.id)}`);
+              }
+            }}
           />
-          <button
-            onClick={() => setExpandedImageUrl(null)}
-            aria-label="Close image"
-            className="absolute top-4 right-4 w-9 h-9 rounded-full bg-tea-accent-sub flex items-center justify-center cursor-pointer hover:bg-tea-surface transition-colors"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-              stroke="var(--tea-text-sec)" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
-      {/* Sticky mobile add-to-cart bar */}
-      {!isSoldOut && (
-        <div
-          className="fixed left-0 right-0 bottom-nav md:hidden z-sticky px-4 pb-2 pointer-events-none transition-transform duration-300 ease-in-out"
-          style={{
-            transform: stickyVisible ? 'translateY(0)' : 'translateY(calc(100% + 16px))',
-          }}
-        >
-          <div className="pointer-events-auto bg-tea-bg/95 backdrop-blur-sm border border-tea-border rounded-xl p-3 flex items-center gap-3 shadow-lg">
-            <div className="flex-1 min-w-0">
-              <p className="font-serif text-sm text-tea-text truncate">{item.name}</p>
-              <p className="font-mono text-xs text-tea-text-sec">{grams}g · {fmtShopPrice(total)}</p>
-            </div>
-            <button
-              onClick={handleAdd}
-              className={`px-5 py-2.5 rounded-md text-xs uppercase tracking-[0.1em] font-medium transition-all active:scale-[0.98] flex-shrink-0 ${
-                added
-                  ? 'bg-tea-green text-tea-bg'
-                  : 'bg-tea-gold text-tea-bg hover:bg-tea-gold-lt'
-              }`}
-            >
-              {added ? 'Added!' : 'Add'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Admin: inline tasting editor — same modal used from the admin panel. */}
-      {tastingEditorOpen && adminProductShim && (
+      {/* Admin: product tasting editor — same modal used from the admin panel */}
+      {adminTastingItem && adminTastingProductShim && (
         <TastingEditorModal
-          product={adminProductShim}
-          onClose={() => setTastingEditorOpen(false)}
+          product={adminTastingProductShim}
+          onClose={() => setAdminTastingItem(null)}
           onSaved={() => {
-            setTastingEditorOpen(false);
+            setAdminTastingItem(null);
             refetchInventory();
           }}
         />

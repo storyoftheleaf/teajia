@@ -10,7 +10,7 @@ import { ShopGridLayout } from './shared/ShopGridLayout';
 import { TeaItem } from './TeaInventory';
 import { TeaPlaceholder } from './shop/TeaPlaceholder';
 import { fmtShopPrice } from '../utils/formatNumber';
-import { useProductUrl } from '../hooks/useProductUrl';
+import { useProductModalRoute } from '../hooks/useProductModalRoute';
 import { useAppStore } from '../lib/store';
 import type { Product } from '../admin/types';
 
@@ -34,11 +34,10 @@ const CATEGORIES_META = [
 
 export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, externalInventory = [], hideHeader = false, isAdmin = false, adminProductMap, onAdminEdit }) => {
   const [activeCategory, setActiveCategory] = useState<string>('All');
-  const [viewItem, setViewItem] = useState<TeaItem | null>(null);
   const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('LIST');
 
-  // Sync modal state with URL (?product=ID)
-  const { closeWithHistory, navigateWithinModal } = useProductUrl(externalInventory, viewItem, setViewItem);
+  // Alcove modal driven by the URL (/shop/product/:id + background state).
+  const { viewItem, openProduct, navigateWithinModal, closeProduct } = useProductModalRoute(externalInventory);
 
   // Persisted favorites via Zustand store (same as tea section)
   const { favoriteTeas, toggleFavoriteTea } = useAppStore();
@@ -87,11 +86,11 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
       <TeawareAlcoveModal
         item={viewItem}
         items={externalInventory}
-        onClose={closeWithHistory}
+        onClose={closeProduct}
         onItemChange={navigateWithinModal}
         onAddToCart={(item, quantity, total) => {
           if (onAddToCart) onAddToCart(item, quantity, total);
-          closeWithHistory();
+          closeProduct();
         }}
       />
 
@@ -196,7 +195,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                           key={item.id}
                           item={item}
                           title={item.name}
-                          onCardClick={(item, e) => { e.stopPropagation(); setViewItem(item); }}
+                          onCardClick={(item, e) => { e.stopPropagation(); openProduct(item); }}
                           imageComponent={
                             <CardImage
                               src={item.image}
@@ -231,7 +230,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                     key={item.id}
                     item={item}
                     title={item.name}
-                    onCardClick={(item, e) => { e.stopPropagation(); setViewItem(item); }}
+                    onCardClick={(item, e) => { e.stopPropagation(); openProduct(item); }}
                     imageComponent={
                       <CardImage
                         src={item.image}
@@ -280,7 +279,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                       <div
                         key={item.id}
                         className="border-b border-tea-border hover:bg-tea-accent-sub/50 transition-colors cursor-pointer"
-                        onClick={() => setViewItem(item)}
+                        onClick={() => openProduct(item)}
                       >
                         <div className="flex items-center py-3 lg:py-4 px-2 gap-3">
                           {/* Thumbnail */}

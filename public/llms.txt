@@ -19,7 +19,8 @@ Teajia exposes an MCP server so AI assistants can help shoppers directly:
 
 - Shop: https://teajia.co/shop
 - Individual products: https://teajia.co/shop/product/<id> (each carries Product + Offer JSON-LD)
-- Sitemap: https://teajia.co/sitemap.xml
+- Sitemap (pages): https://teajia.co/sitemap.xml
+- Sitemap (all products, generated from live inventory): https://teajia.co/sitemap-products.xml
 
 ## Reading & learning
 

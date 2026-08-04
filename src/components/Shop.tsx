@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
+import { PRODUCT_PATH_RE } from '../hooks/useProductModalRoute';
 import { useQuery } from '@tanstack/react-query';
 
 import { Check, Loader2, ChevronDown } from 'lucide-react';
@@ -76,7 +77,6 @@ interface ShopProps {
   isError?: boolean;
   error?: Error | null;
   onRetry?: () => void;
-  initialProductId?: string;
 }
 
 const TABS = [
@@ -97,7 +97,6 @@ export const Shop: React.FC<ShopProps> = ({
   isError,
   error,
   onRetry,
-  initialProductId,
 }) => {
   const [activeTab, setActiveTab] = useState<ShopTab>('tea');
   const [isAddingToCart, setIsAddingToCart] = useState<Record<string, boolean>>({});
@@ -121,22 +120,28 @@ export const Shop: React.FC<ShopProps> = ({
     }
   }, [urlStore]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // URL param support: ?product=<id> — switch to the tab matching the product's
-  // category so the active tab's useProductUrl hook can pick it up and open the
-  // modal. Entry points: GlobalSearch results, shared links, page reloads.
-  const urlProduct = searchParams.get('product');
+  // Product URLs are handled by real routing now: grid taps push
+  // /shop/product/:id with background state (modal over this component) and
+  // cold loads render the standalone ProductPage — no ?product= param anymore.
+  // One reload edge remains: history state survives a reload, so this
+  // component can mount while a product modal route is active. Make sure the
+  // tab that owns the product is the one mounted, or the modal cannot open.
+  const { pathname } = useLocation();
   useEffect(() => {
-    if (!urlProduct) return;
-    // Only switch tabs if the user is on a tab that can't show this product.
-    if (activeTab !== 'tea' && activeTab !== 'teaware') return;
-    const inTea = teaInventory.some(i => i.id === urlProduct);
-    const inWare = teawareInventory.some(i => i.id === urlProduct);
-    if (inTea && activeTab !== 'tea') {
-      setActiveTab('tea');
-    } else if (inWare && activeTab !== 'teaware') {
-      setActiveTab('teaware');
-    }
-  }, [urlProduct, teaInventory, teawareInventory]); // eslint-disable-line react-hooks/exhaustive-deps
+    const match = PRODUCT_PATH_RE.exec(pathname);
+    if (!match) return;
+    const productId = decodeURIComponent(match[1]);
+    const inTea = teaInventory.some(i => i.id === productId);
+    const inWare = teawareInventory.some(i => i.id === productId);
+    const tabShowsIt =
+      activeTab === 'collection' ? (inTea || inWare)
+        : activeTab === 'tea' ? inTea
+          : activeTab === 'teaware' ? inWare
+            : false;
+    if (tabShowsIt) return;
+    if (inTea) setActiveTab('tea');
+    else if (inWare) setActiveTab('teaware');
+  }, [pathname, teaInventory, teawareInventory]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch available stores
   const { data: networkStores = [] } = useQuery<Account[]>({
@@ -479,7 +484,6 @@ export const Shop: React.FC<ShopProps> = ({
             isAdmin={isAdmin}
             adminProductMap={productMap}
             onAdminEdit={handleAdminEdit}
-            initialProductId={initialProductId}
           />
         )}
 

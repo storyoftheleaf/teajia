@@ -27,15 +27,10 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
   const showFade = useScrollFade(scrollRef as React.RefObject<HTMLElement>);
   const galleryTouchStart = useRef<number | null>(null);
 
-  // Share handler — builds ?product=<id> URL, uses Web Share API with clipboard fallback
+  // Share handler — canonical product page URL, Web Share API with clipboard fallback
   const handleShare = async () => {
     const shareText = `${item.name} — ${item.type} from Teajia`;
-    const url = new URL(window.location.href);
-    url.searchParams.set('product', item.id);
-    if (!url.pathname.includes('/shop') && !url.pathname.includes('/store')) {
-      url.pathname = '/shop';
-    }
-    const shareUrl = url.toString();
+    const shareUrl = `${window.location.origin}/shop/product/${encodeURIComponent(item.id)}`;
 
     if (navigator.share) {
       try {

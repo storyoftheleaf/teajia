@@ -1,9 +1,16 @@
 import React from 'react';
 import { motion, AnimatePresence, type Transition } from 'framer-motion';
-import { useLocation } from 'react-router-dom';
+import { useLocation, type Location } from 'react-router-dom';
 
 interface AnimatedRoutesProps {
   children: React.ReactNode;
+  /**
+   * The location the inner <Routes> actually render (defaults to the router
+   * location). App.tsx passes the background location while a product modal
+   * is open so the crossfade keys off the page underneath — otherwise opening
+   * the modal would remount the shop and destroy its scroll/filter state.
+   */
+  location?: Location;
 }
 
 const pageVariants = {
@@ -18,8 +25,9 @@ const pageTransition: Transition = {
 };
 
 /** Crossfades route content on path change. */
-export const AnimatedRoutes: React.FC<AnimatedRoutesProps> = ({ children }) => {
-  const location = useLocation();
+export const AnimatedRoutes: React.FC<AnimatedRoutesProps> = ({ children, location: locationProp }) => {
+  const routerLocation = useLocation();
+  const location = locationProp ?? routerLocation;
 
   const prefersReducedMotion =
     typeof window !== 'undefined' &&
