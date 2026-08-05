@@ -1,5 +1,9 @@
 /**
- * A Tea House — Quiet Hours · N°09
+ * @color-literals. The Read section is one always-dark editorial surface.
+ * Rationale, and the conditions on this exception, in read/immersive.tsx.
+ */
+/**
+ * A Tea House: Quiet Hours · N°09
  * How a homesick cup and a stack of reclaimed timber became a tea house at the
  * far end of the world. Told by Mei and Tom Hale, Brunswick, Melbourne.
  * Ported pixel-faithfully from the tea-article-redesign mockup.
@@ -127,7 +131,7 @@ const TeaHouseQuietHours: React.FC = () => {
               Quiet <span style={{ fontStyle: 'italic', color: C.gold }}>Hours</span>
             </h1>
             <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(16px,2vw,20px)', lineHeight: 1.5, color: C.taupe, margin: '24px 0 0', maxWidth: 460 }}>
-              How a homesick cup and a stack of reclaimed timber became a tea house at the far end of the world — told by the two people who made it.
+              How a homesick cup and a stack of reclaimed timber became a tea house at the far end of the world, told by the two people who made it.
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '26px 40px', marginTop: 'clamp(30px,5vw,46px)', paddingTop: 24, borderTop: '1px solid rgba(168,135,77,0.16)' }}>
               {/* Mei */}
@@ -187,27 +191,27 @@ const TeaHouseQuietHours: React.FC = () => {
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(56px,9vw,116px) 24px clamp(20px,4vw,44px)' }}>
           <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: C.ink, margin: 0 }}>
             <span style={{ float: 'left', fontFamily: F.display, fontWeight: 600, fontSize: '5em', lineHeight: 0.78, color: C.gold, margin: '8px 16px -4px 0' }}>O</span>
-            n a wide grey street in Brunswick, between a tyre shop and a bakery, there is a doorway most people walk straight past. Inside, the noise of Melbourne falls away. This is Quiet Hours — a tea house that began, improbably, with a homesick woman, a year in Bali, and a builder who had never finished a pot of tea in his life. I came to ask how a room gets made. It turns out it takes two very different people, talking past each other in the most productive way.
+            n a wide grey street in Brunswick, between a tyre shop and a bakery, there is a doorway most people walk straight past. Inside, the noise of Melbourne falls away. This is Quiet Hours, a tea house that began, improbably, with a homesick woman, a year in Bali, and a builder who had never finished a pot of tea in his life. I came to ask how a room gets made. It turns out it takes two very different people, talking past each other in the most productive way.
           </p>
         </section>
 
-        {/* ── MOVEMENT I — The Idea ─────────────────────────────────────── */}
+        {/* ── MOVEMENT I: The Idea ─────────────────────────────────────── */}
         <section style={{ maxWidth: 760, margin: '0 auto', padding: '0 24px' }}>
           <MovementHeader numeral="I" label="The Idea" />
           <div data-reveal style={{ maxWidth: 660, margin: '0 auto' }}>
             <p style={{ ...pBody, marginBottom: 28 }}>
-              Mei left southern China as a child and grew up in Hong Kong, where tea was simply the water the day was made of — always there, rarely noticed. It took moving to the other side of the world, and a long stretch in Bali, for her to fall in love with it on purpose. She came back to Melbourne wanting to build the room she had been looking for and never found.
+              Mei left southern China as a child and grew up in Hong Kong, where tea was simply the water the day was made of, always there, rarely noticed. It took moving to the other side of the world, and a long stretch in Bali, for her to fall in love with it on purpose. She came back to Melbourne wanting to build the room she had been looking for and never found.
             </p>
           </div>
           <DuetPair
             left={{
               borderColor: C.gold,
-              quote: <>&#x201C;I didn&#x2019;t want a café. I wanted a room that makes you exhale the second you step in — somewhere the city has to wait outside.&#x201D;</>,
+              quote: <>&#x201C;I didn&#x2019;t want a café. I wanted a room that makes you exhale the second you step in, somewhere the city has to wait outside.&#x201D;</>,
               speaker: 'Mei · Founder',
             }}
             right={{
               borderColor: '#8f9aa0',
-              quote: <>&#x201C;She never gave me a brief. She gave me a feeling and a single word — <em>slow</em> — and then trusted me to find it in the timber.&#x201D;</>,
+              quote: <>&#x201C;She never gave me a brief. She gave me a feeling and a single word, <em>slow</em>, and then trusted me to find it in the timber.&#x201D;</>,
               speaker: 'Tom · Builder',
             }}
           />
@@ -221,15 +225,15 @@ const TeaHouseQuietHours: React.FC = () => {
           <div aria-hidden="true" style={{ width: 40, height: 1, background: C.gold, opacity: 0.5, margin: '34px auto 0' }} />
         </section>
 
-        {/* ── MOVEMENT II — The Build ───────────────────────────────────── */}
+        {/* ── MOVEMENT II: The Build ───────────────────────────────────── */}
         <section style={{ maxWidth: 760, margin: '0 auto', padding: '0 24px' }}>
           <MovementHeader numeral="II" label="The Build" />
           <div data-reveal style={{ maxWidth: 660, margin: '0 auto' }}>
             <p style={pBody}>
-              The shell was a former mechanic&#x2019;s garage — oil-stained concrete, a roller door, fluorescent tubes. Tom spent the first month doing nothing but watching how the light moved across it through the day. Then he began, slowly, in reclaimed spotted gum and messmate pulled from a demolished woolshed.
+              The shell was a former mechanic&#x2019;s garage, oil-stained concrete, a roller door, fluorescent tubes. Tom spent the first month doing nothing but watching how the light moved across it through the day. Then he began, slowly, in reclaimed spotted gum and messmate pulled from a demolished woolshed.
             </p>
             <p style={{ ...pBody, marginBottom: 28 }}>
-              The tea bar is a single nine-foot plank, hand-planed so the grain catches the low afternoon sun. There is a charcoal brazier at one end — Mei&#x2019;s insistence — and almost nothing on the walls. The two of them argued, gently, for months about how empty a room was allowed to be.
+              The tea bar is a single nine-foot plank, hand-planed so the grain catches the low afternoon sun. There is a charcoal brazier at one end, Mei&#x2019;s insistence, and almost nothing on the walls. The two of them argued, gently, for months about how empty a room was allowed to be.
             </p>
           </div>
           <DuetPair
@@ -240,7 +244,7 @@ const TeaHouseQuietHours: React.FC = () => {
             }}
             right={{
               borderColor: C.gold,
-              quote: <>&#x201C;I watched him plane that bar for three days. I realised the room was already being brewed — just out of wood instead of leaves.&#x201D;</>,
+              quote: <>&#x201C;I watched him plane that bar for three days. I realised the room was already being brewed, just out of wood instead of leaves.&#x201D;</>,
               speaker: 'Mei · Founder',
             }}
           />
@@ -250,7 +254,7 @@ const TeaHouseQuietHours: React.FC = () => {
         <section data-reveal style={{ maxWidth: 1040, margin: '0 auto', padding: 'clamp(40px,6vw,80px) 24px' }}>
           <div style={{ border: '1px solid rgba(168,135,77,0.2)', borderRadius: 4, background: 'linear-gradient(160deg,#1d1810,#15110b)', padding: 'clamp(24px,4vw,40px)' }}>
             <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 600, letterSpacing: '0.22em', textTransform: 'uppercase', color: C.gold, marginBottom: 24 }}>
-              Quiet Hours — in brief
+              Quiet Hours, in brief
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,200px),1fr))', gap: '22px 36px' }}>
               <FactRow label="Where" value="Brunswick, Melbourne" />
@@ -263,7 +267,7 @@ const TeaHouseQuietHours: React.FC = () => {
           </div>
         </section>
 
-        {/* ── MOVEMENT III — The Same Question ─────────────────────────── */}
+        {/* ── MOVEMENT III: The Same Question ─────────────────────────── */}
         <section style={{ maxWidth: 760, margin: '0 auto', padding: '0 24px' }}>
           <MovementHeader numeral="III" label="The Same Question" margin="clamp(20px,4vw,40px) 0 clamp(28px,4vw,40px)" />
           <div data-reveal style={{ maxWidth: 660, margin: '0 auto' }}>
@@ -281,7 +285,7 @@ const TeaHouseQuietHours: React.FC = () => {
             }}
             right={{
               borderColor: '#8f9aa0',
-              quote: <>&#x201C;For the wood to be touched. A bench no one sits on is just lumber. People finish the room — every day.&#x201D;</>,
+              quote: <>&#x201C;For the wood to be touched. A bench no one sits on is just lumber. People finish the room, every day.&#x201D;</>,
               speaker: 'Tom · Builder',
             }}
           />

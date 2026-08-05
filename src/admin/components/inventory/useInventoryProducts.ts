@@ -22,7 +22,7 @@ type UseInventoryProductsArgs = {
   /**
    * While edit mode is active, the visible row ORDER is frozen so an inline
    * rename (or any value edit that would change the sort) doesn't make the row
-   * jump under the cursor — which previously read as "a new product appeared."
+   * jump under the cursor, which previously read as "a new product appeared."
    * Filtering/search still run live; only the final sort step is pinned to the
    * order captured when edit mode turned on.
    */
@@ -150,7 +150,7 @@ export function useInventoryProducts({
       return 0;
     });
 
-    // Edit mode freeze — pin the visible order so an inline rename / value edit
+    // Edit mode freeze: pin the visible order so an inline rename / value edit
     // doesn't re-sort the row out from under the cursor. Capture the snapshot on
     // the first edit-mode render, then sort every subsequent render by it.
     if (isEditMode) {
@@ -186,7 +186,7 @@ export function useInventoryProducts({
     const groups: Record<string, { items: Product[]; totalStock: number; totalRetail: number }> = {};
     for (const p of processedProducts) {
       // Stock spine step 2: a null owner means the row is owned by the location
-      // itself (house stock), not an individual seller — label it as such rather
+      // itself (house stock), not an individual seller, label it as such rather
       // than the generic "Unknown" bucket.
       const key = inventoryGroupBy === 'ownerUserId'
         ? (p.ownerUserId ? `Seller · ${p.ownerUserId.slice(0, 8)}` : 'House stock')

@@ -1,0 +1,14 @@
+{
+  "id": "green-biluochun",
+  "type": "Green",
+  "name": "Biluochun",
+  "chineseName": "碧螺春",
+  "altNames": [
+    "Pi Lo Chun",
+    "Bi Luo Chun"
+  ],
+  "region": "Suzhou",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

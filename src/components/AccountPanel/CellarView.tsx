@@ -4,10 +4,10 @@ import { Package, Plus, Trash2, MapPin, X, Loader2, Store, ExternalLink, Pencil,
 import { api, type CellarItem } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
 
-// Stock spine step 4 — the personal cellar surface. A logged-in user records
+// Stock spine step 4: the personal cellar surface. A logged-in user records
 // tea they personally own with a quantity, private by default, synced to their
 // account (not localStorage). An item can optionally be REQUESTED for placement
-// at a location the user belongs to — a curated, human-approved move, never a
+// at a location the user belongs to, a curated, human-approved move, never a
 // silent write. Selling is step 5; nothing here is for sale.
 
 interface CellarViewProps {
@@ -43,7 +43,7 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
   });
   const items = data?.items ?? [];
 
-  // Step 5 — shelf grant + identity. Only present once Adrian grants the shelf.
+  // Step 5: shelf grant + identity. Only present once Adrian grants the shelf.
   const { data: shelf } = useQuery({
     queryKey: ['cellar-shelf'],
     queryFn: () => api.cellar.getShelf(),
@@ -119,11 +119,11 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
   return (
     <div className={embedded ? 'py-6 space-y-5' : 'px-6 pt-6 pb-6 space-y-5'}>
       <p className="text-ui-13 text-tea-text-sec leading-relaxed">
-        Tea you personally own, kept private. Add what's on your shelf with a weight —
+        Tea you personally own, kept private. Add what's on your shelf with a weight,
         only you can see it.
       </p>
 
-      {/* Step 5 — public shelf. Appears only once Adrian grants it. */}
+      {/* Step 5: public shelf. Appears only once Adrian grants it. */}
       {shelfEnabled && shelf?.slug && (
         <div className="bg-tea-surface border border-tea-border rounded-xl p-4 space-y-3">
           <div className="flex items-center gap-2">
@@ -201,7 +201,7 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
             <button
               onClick={submitAdd}
               disabled={!name.trim() || createMut.isPending}
-              className="inline-flex items-center gap-1.5 bg-tea-gold text-tea-bg rounded-md px-3 py-1.5 text-ui-13 font-medium disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 cta-solid rounded-md px-3 py-1.5 text-ui-13 font-medium disabled:opacity-50"
             >
               {createMut.isPending ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
               Add to cellar
@@ -269,7 +269,7 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
                     <button
                       onClick={() => submitEdit(item.id)}
                       disabled={!editName.trim() || updateMut.isPending}
-                      className="inline-flex items-center gap-1 bg-tea-gold text-tea-bg rounded-md px-3 py-1.5 text-ui-13 font-medium disabled:opacity-50"
+                      className="inline-flex items-center gap-1 cta-solid rounded-md px-3 py-1.5 text-ui-13 font-medium disabled:opacity-50"
                     >
                       {updateMut.isPending ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />} Save
                     </button>
@@ -307,7 +307,7 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
               </div>
               )}
 
-              {/* Placement (the move) — hidden while editing this item */}
+              {/* Placement (the move), hidden while editing this item */}
               {editingId !== item.id && (
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <span
@@ -361,7 +361,7 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
                   </button>
                 )}
 
-                {/* Step 5 — shelf toggle, only for private items once granted. */}
+                {/* Step 5: shelf toggle, only for private items once granted. */}
                 {shelfEnabled && item.placementStatus === 'private' && (
                   <button
                     onClick={() => shelfToggleMut.mutate({ id: item.id, on: !item.shelfPublished })}

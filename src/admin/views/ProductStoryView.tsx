@@ -1,12 +1,12 @@
 /**
- * ProductStoryView — /admin/products/:id/story
+ * ProductStoryView, /admin/products/:id/story
  *
  * A read-only, top-to-bottom editorial view of a single product's life:
- *   1. Origin — compass entry / sourcing data
- *   2. Arrival — stock ledger timeline
- *   3. First session — earliest event this tea was served at
- *   4. Guest reactions — tasting notes + key flavor words
- *   5. Available now — current stock status + add-to-invoice action
+ *   1. Origin: compass entry / sourcing data
+ *   2. Arrival, stock ledger timeline
+ *   3. First session, earliest event this tea was served at
+ *   4. Guest reactions, tasting notes + key flavor words
+ *   5. Available now, current stock status + add-to-invoice action
  *
  * This is not an edit form.  It should read like an essay.
  */
@@ -144,7 +144,7 @@ function buildNarrative(params: {
   // Arrival
   if (firstLedger) {
     const kg = (firstLedger.change_g / 1000).toFixed(2);
-    parts.push(`It arrived in ${formatMonthYear(firstLedger.created_at)} — ${kg} kg in the first delivery.`);
+    parts.push(`It arrived in ${formatMonthYear(firstLedger.created_at)}, ${kg} kg in the first delivery.`);
   }
 
   // First session
@@ -481,7 +481,7 @@ export const ProductStoryView: React.FC = () => {
           </section>
         )}
 
-        {/* 2. Arrival — stock ledger timeline */}
+        {/* 2. Arrival, stock ledger timeline */}
         {ledger.length > 0 && (
           <>
             <Divider />
@@ -626,7 +626,7 @@ export const ProductStoryView: React.FC = () => {
                 onClick={() => {
                   openPurchaseOrder();
                 }}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-tea-gold text-tea-bg text-ui-12 rounded-md hover:bg-tea-gold-lt transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40"
+                className="inline-flex items-center gap-2 px-5 py-2.5 cta-solid text-ui-12 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40"
               >
                 <ShoppingBag size={13} />
                 Add to invoice

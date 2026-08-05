@@ -98,7 +98,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
     [stories]
   );
 
-  // Pull live data sources from React Query — these reuse the cache populated
+  // Pull live data sources from React Query, these reuse the cache populated
   // by Magazine + Events pages, so opening search doesn't trigger duplicate
   // network requests on warm caches.
   const { data: dbArticlesRaw } = useQuery({
@@ -212,7 +212,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
         subtitle: [item.variant, item.type, item.origin].filter(Boolean).join(' · '),
         category: item.category === 'ware' ? 'Teaware' : item.type,
         image: item.image,
-        // Plain navigation to the real product page (cold load — no modal).
+        // Plain navigation to the real product page (cold load, no modal).
         action: () => navigateAndClose(`/shop/product/${encodeURIComponent(item.id)}`),
       };
     });
@@ -231,7 +231,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
         category: story.type === ContentType.Article ? 'Article' : story.type === ContentType.PhotoEssay ? 'Photo Essay' : story.type,
         image: story.thumbnailUrl,
         // Navigate to /magazine to set section context, then dispatch the
-        // existing openArticle CustomEvent that App.tsx listens for — same
+        // existing openArticle CustomEvent that App.tsx listens for, same
         // contract used by AlcoveCard's "From the journal" links.
         action: () => {
           navigate('/read');
@@ -367,7 +367,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
           {query.trim() !== '' && results.length === 0 && (
             <div className="px-4 py-10 text-center">
               <p className="text-sm text-tea-text-sec">
-                Nothing matched — try different words.
+                Nothing matched. Try different words.
               </p>
             </div>
           )}

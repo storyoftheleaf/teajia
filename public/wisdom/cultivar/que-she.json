@@ -1,0 +1,38 @@
+{
+  "id": "que-she",
+  "name": "Que She",
+  "chineseName": "雀舌",
+  "altNames": [
+    "Sparrow's Tongue"
+  ],
+  "originCountry": "China",
+  "originRegion": "Wuyi Mountains (Fujian)",
+  "developedYear": 1644,
+  "parentage": "A prized selection from the native Wuyi heirloom population.",
+  "description": "'Sparrow's Tongue'. A rare and highly sought-after Wuyi Rock Oolong named for its small, pointed leaves. It is celebrated for its exceptionally refined and elegant character, a high, sharp floral fragrance, and a very clean, mineral-driven taste. It is often processed with a lighter roast to preserve its delicate nature.",
+  "plantType": "Small-leaf, slow-growing, semi-upright bush (Camellia sinensis var. sinensis).",
+  "environment": "Grows in specific, protected microclimates within the Wuyi Mountains. It is less common due to its lower yield and more demanding growing conditions.",
+  "processing": "Processing Que She requires great finesse. The goal is to highlight its delicate, high-pitched aroma. The leaves, while small, are robust enough for Yancha processing but shine when handled with a lighter touch.",
+  "oxidation": "Undergoes a standard medium oxidation (30-50%) to develop a base of flavor that supports, rather than overwhelms, its high-note aromatics.",
+  "roasting": "Roasting is typically lighter than for other top-tier Yancha. A careful, low-temperature bake is used to bring out the mineral notes and add smoothness while preserving the vibrant floral fragrance.",
+  "versatility": "Highly specialized. Que She is an expression of a more elegant and aromatic style of Wuyi Rock Oolong.",
+  "distribution": {
+    "china": [
+      "Fujian Province (Wuyi Mountains)"
+    ]
+  },
+  "expressions": {
+    "Wuyi Rock Oolong (Yancha)": {
+      "Que She Yancha": "A highly refined and aromatic rock oolong, often with a lighter roast to preserve its delicate and penetrating floral notes."
+    }
+  },
+  "sensory": {
+    "aroma": "High, sharp, and lingering white flowers (gardenia, jasmine), very clean",
+    "flavor": "Elegant, sweet, mineral-driven, and exceptionally clean with a vibrant finish.",
+    "mouthfeel_liquor": "Silky, medium-bodied, and bright with a very pure texture. The liquor is a luminous golden-amber."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

@@ -1,0 +1,38 @@
+{
+  "id": "shizu-7132",
+  "name": "Shizu-7132",
+  "chineseName": "静岡7132",
+  "altNames": [
+    "Sakura Kaori (Cherry Blossom Aroma)"
+  ],
+  "originCountry": "Japan",
+  "originRegion": "Shizuoka",
+  "developedYear": 1971,
+  "parentage": "Natural mutation of Yabukita.",
+  "description": "A famous un-registered cultivar from Shizuoka, renowned for its intense and unmistakable aroma of 'sakura-mochi'—a sweet, cherry blossom and glutinous rice scent. It is a natural mutation of Yabukita and offers a very popular and distinct aromatic experience.",
+  "plantType": "Vigorous, mid-budding bush (Camellia sinensis var. sinensis).",
+  "environment": "Grows well in Shizuoka and is prized by farmers who specialize in aromatic teas.",
+  "processing": "Processing for 7132 is all about preserving its signature coumarin compound, which is responsible for the sakura aroma. This requires careful handling and specific steaming and drying parameters.",
+  "oxidation": "Zero oxidation. The leaves are steamed immediately after harvest.",
+  "roasting": "A careful final drying roast is applied to enhance and fix the sweet, sakura-like aroma without creating any burnt notes.",
+  "versatility": "Specialized for Sencha. Its entire value is based on its singular and highly sought-after cherry blossom aroma, so it is not used for other tea styles.",
+  "distribution": {
+    "japan": [
+      "Shizuoka"
+    ]
+  },
+  "expressions": {
+    "Sencha": {
+      "Sakura Aroma Sencha": "Its sole expression. A green tea processed to maximize its unique sweet cherry blossom and rice cake aroma."
+    }
+  },
+  "sensory": {
+    "aroma": "Intense sweet cherry blossom (sakura), steamed rice, salty cherry leaf",
+    "flavor": "Sweet, floral, with a unique cherry-like flavor and a smooth finish.",
+    "mouthfeel_liquor": "Smooth, medium-bodied, and very aromatic. The liquor is a bright green-yellow."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

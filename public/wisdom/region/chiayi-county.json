@@ -1,0 +1,11 @@
+{
+  "id": "chiayi-county",
+  "name": "Chiayi County",
+  "country": "Taiwan",
+  "province": "Chiayi",
+  "altitude": "200-2000m",
+  "climate": "Includes Alishan mountain area for high-altitude teas",
+  "holding": "regions",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

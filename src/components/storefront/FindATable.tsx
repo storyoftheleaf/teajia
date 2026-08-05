@@ -94,7 +94,7 @@ export const FindATable: React.FC = () => {
           Find a table
         </h1>
         <p className="subtitle">
-          Teajia is a lineage of tea houses — each independent, each with its own voice.
+          Teajia is a lineage of tea houses, each independent, each with its own voice.
           Choose a table.
         </p>
       </header>
@@ -202,7 +202,7 @@ export const FindATable: React.FC = () => {
 
         {!isLoading && !isError && stores.length === 0 && (
           <p className="text-center subtitle py-12">
-            No public tables yet — the first are being set.
+            No public tables yet. The first are being set.
           </p>
         )}
 

@@ -1,0 +1,13 @@
+{
+  "id": "yellow-huo-shan-huang-ya",
+  "type": "Yellow",
+  "name": "Huo Shan Huang Ya",
+  "chineseName": "霍山黄芽",
+  "altNames": [
+    "Huoshan Yellow Bud"
+  ],
+  "region": "Huoshan",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

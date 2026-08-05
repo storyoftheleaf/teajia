@@ -1,0 +1,14 @@
+{
+  "id": "sheng-mao-cha",
+  "type": "Sheng",
+  "name": "Mao Cha",
+  "chineseName": "毛茶",
+  "altNames": [
+    "Rough Tea",
+    "Unprocessed Puerh"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

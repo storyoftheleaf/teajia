@@ -1,0 +1,11 @@
+{
+  "id": "herbal-lavender",
+  "type": "Herbal",
+  "name": "Lavender",
+  "chineseName": "薰衣草",
+  "altNames": [],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

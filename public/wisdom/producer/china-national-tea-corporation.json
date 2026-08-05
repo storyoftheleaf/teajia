@@ -1,0 +1,24 @@
+{
+  "id": "china-national-tea-corporation",
+  "name": "China National Tea Corporation",
+  "chineseName": "中国茶叶公司",
+  "altNames": [
+    "CNNP",
+    "Zhong Cha",
+    "中茶",
+    "Zhongcha",
+    "China Tea Corporation"
+  ],
+  "kind": "brand",
+  "country": "China",
+  "region": "Yunnan",
+  "notableMarks": [
+    "Zhong Cha trademark (中茶牌)",
+    "Red Seal (紅印)",
+    "Blue Seal Green Label (蓝印绿标)"
+  ],
+  "description": "State tea trading corporation whose Zhong Cha trademark, the eight-pointed 'zhong' character in a red circle, appeared on pu-erh produced by multiple state-run and later privatized Yunnan factories across decades. The colored-seal classifications (Red Seal, Blue Seal) it used to grade production batches are among the most collected designations in pu-erh history.",
+  "holding": "producers",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

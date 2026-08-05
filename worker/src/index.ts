@@ -2303,6 +2303,12 @@ const PUBLIC_FIELDS = [
   'image_url', 'additional_images', 'status', 'is_personal', 'can_reorder', 'is_featured', 'is_curated',
   'lore', 'show_wisdom', 'processing_notes', 'terroir', 'mood', 'experience',
   'material', 'capacity_ml', 'teaware_category', 'quantity_units', 'tasting', 'tasting_source',
+  // The plant. Public because it is a pointer into the open wisdom base rather
+  // than a fact about the business: the shop stores the cultivar's written name
+  // and the base resolves it to a page. No cost, supply or margin travels with
+  // it. The maker is deliberately absent, because the base resolves that from
+  // the tea's own name and the shop does not store it.
+  'cultivar',
 ] as const;
 
 // Legacy alias: resolves to Adrian's Bali store. New callers should use
@@ -14816,6 +14822,7 @@ async function fetchPublicProductsForAccount(
               cost_amount, cost_currency, quantity_purchased,
               shipping_rate_per_kg, fixed_retail_price_usd,
               material, capacity_ml, teaware_category, quantity_units, tasting, tasting_source,
+              cultivar,
               (SELECT COUNT(*) > 0 FROM collection_items ci
                  JOIN collections c ON c.id = ci.collection_id
                  JOIN collection_publications cp ON cp.collection_id = c.id

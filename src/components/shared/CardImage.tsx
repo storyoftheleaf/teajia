@@ -10,7 +10,7 @@ interface CardImageProps {
   onClick?: () => void;
   priority?: boolean;
   teaType?: string;
-  /** Cloudinary transform preset — only applied to Cloudinary-hosted images */
+  /** Cloudinary transform preset, only applied to Cloudinary-hosted images */
   cldPreset?: CldPreset;
 }
 

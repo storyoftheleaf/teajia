@@ -1,0 +1,13 @@
+{
+  "id": "dark-bai-liang-cha",
+  "type": "Dark",
+  "name": "Bai Liang Cha",
+  "chineseName": "百两茶",
+  "altNames": [
+    "Hundred Tael Tea"
+  ],
+  "region": "Hunan",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

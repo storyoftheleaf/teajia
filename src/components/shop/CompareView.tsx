@@ -2,7 +2,7 @@ import React from 'react';
 import { X } from 'lucide-react';
 import { useAppStore } from '../../lib/store';
 import { InventoryItem } from '../../types';
-import { fmtPricePerGram } from '../../utils/formatNumber';
+import { useShopPrice } from './shopPrice';
 
 interface CompareViewProps {
   items: InventoryItem[];
@@ -11,6 +11,12 @@ interface CompareViewProps {
 
 export const CompareView: React.FC<CompareViewProps> = ({ items, onClose }) => {
   const { removeCompareItem, clearCompare } = useAppStore();
+  // Comparing two teas is comparing two prices, so the prices have to be in one
+  // currency, and it has to be the one the reader has been shopping in. This
+  // row called the raw dollar formatter, so a reader browsing in Rupiah met
+  // dollars in the one view whose entire purpose is holding numbers side by
+  // side.
+  const shopPrice = useShopPrice();
 
   if (items.length === 0) return null;
 
@@ -39,7 +45,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ items, onClose }) => {
         const ppg = parseFloat(item.price_per_gram || '0');
         return (
           <span className="num text-sm text-tea-gold font-medium">
-            {ppg > 0 ? fmtPricePerGram(ppg) : '\u2014'}
+            {ppg > 0 ? shopPrice.perGram(ppg) : '\u2014'}
           </span>
         );
       },

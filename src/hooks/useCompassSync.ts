@@ -132,7 +132,7 @@ export function useCompassSync(isAuthenticated: boolean) {
     return () => window.removeEventListener('online', handleOnline);
   }, [activeAccountId, isAuthenticated]);
 
-  // Retry heartbeat — the 'online' event never fires on a GFW-style connection
+  // Retry heartbeat, the 'online' event never fires on a GFW-style connection
   // that stays "up" but times out, so a failed save/delete used to sit pending
   // until the user happened to edit something else. While ANY work is pending
   // (unsynced entries or unconfirmed deletes), retry every 30s and immediately

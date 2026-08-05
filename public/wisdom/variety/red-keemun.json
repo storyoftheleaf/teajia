@@ -1,0 +1,14 @@
+{
+  "id": "red-keemun",
+  "type": "Red",
+  "name": "Keemun",
+  "chineseName": "祁门红茶",
+  "altNames": [
+    "Qi Men Hong Cha",
+    "Qimen"
+  ],
+  "region": "Qimen",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

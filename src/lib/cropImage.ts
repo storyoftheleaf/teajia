@@ -33,7 +33,7 @@ export async function cropToSquareBlob(
   const image = await loadImage(imageSrc);
 
   // When a rotation is applied, react-easy-crop reports pixelCrop relative
-  // to the rotated image bounding box — so we have to rotate the source
+  // to the rotated image bounding box, so we have to rotate the source
   // into a working canvas first, then crop from that.
   let source: CanvasImageSource = image;
   if (rotation % 360 !== 0) {

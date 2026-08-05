@@ -1,0 +1,16 @@
+{
+  "id": "wet-stored",
+  "name": "Wet-Stored",
+  "chineseName": "湿仓",
+  "altNames": [
+    "Shi Cang",
+    "Wet Storage"
+  ],
+  "appliesToTypes": [
+    "Sheng"
+  ],
+  "description": "A deliberate pu-erh aging technique where cakes are kept in high-humidity environments to accelerate post-fermentation transformation, common in Hong Kong and Southeast Asian tea culture. Considered controversial among purists; the result depends entirely on the skill of the storage.",
+  "holding": "styles",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
 /**
- * AnchoredMenu — the one dropdown primitive for the whole site.
+ * AnchoredMenu, the one dropdown primitive for the whole site.
  *
  * SITE RULE (locked): menus ALWAYS render over the bars. There is no case on
  * this site where a menu should sit behind toolbars, table headers, or any
@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
  * document.body (escaping every backdrop-blur / transform / z-index stacking
  * context an ancestor might create) and painting at the top z-layer.
  *
- * Never hand-roll a dropdown with `absolute` + `z-popover` again — those get
+ * Never hand-roll a dropdown with `absolute` + `z-popover` again, those get
  * trapped in their parent's stacking context and paint behind the chrome.
  * Use this instead.
  *

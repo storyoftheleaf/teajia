@@ -1,0 +1,13 @@
+{
+  "id": "red-yunnan-wild-arbor-red",
+  "type": "Red",
+  "name": "Yunnan Wild Arbor Red",
+  "chineseName": "云南古树红茶",
+  "altNames": [
+    "Ancient Tree Red"
+  ],
+  "region": "Yunnan",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

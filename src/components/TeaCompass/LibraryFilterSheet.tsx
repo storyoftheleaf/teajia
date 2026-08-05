@@ -60,7 +60,7 @@ export const LibraryFilterSheet: React.FC<{
         </section>)}
         <div className="flex justify-between border-t border-tea-border pt-3">
           <button type="button" onClick={() => setDraft({})} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text">Clear</button>
-          <button type="button" onClick={() => { onApply(draft); onOpenChange(false); }} className="tap-target min-h-11 rounded-md bg-tea-gold px-5 text-ui-12 font-semibold text-tea-bg">Apply filters</button>
+          <button type="button" onClick={() => { onApply(draft); onOpenChange(false); }} className="tap-target min-h-11 rounded-md cta-solid px-5 text-ui-12 font-semibold">Apply filters</button>
         </div>
       </div>
     </BottomSheet>

@@ -1,0 +1,14 @@
+{
+  "id": "shou-gong-ting",
+  "type": "Shou",
+  "name": "Gong Ting",
+  "chineseName": "宫廷普洱",
+  "altNames": [
+    "Palace Grade",
+    "Imperial Grade"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

@@ -1,0 +1,42 @@
+{
+  "id": "qing-xin-da-mao",
+  "name": "Qing Xin Da Mao",
+  "chineseName": "青心大冇",
+  "altNames": [
+    "Green Heart Big Hairy",
+    "Oriental Beauty Cultivar",
+    "Bai Hao Oolong Cultivar"
+  ],
+  "originCountry": "Taiwan",
+  "originRegion": "Hsinchu, Miaoli",
+  "developedYear": 1885,
+  "parentage": "Selected from native Chinese heirloom population.",
+  "description": "'Green Heart Big Hairy'. The indispensable cultivar for creating Taiwan's famous Oriental Beauty oolong. This tea's unique honey and muscat grape flavor is not from the leaf itself, but from its reaction to the bites of a tiny insect, the tea leafhopper. The cultivar's specific chemistry is perfectly suited to this remarkable transformation.",
+  "plantType": "Sprawling, semi-upright bush, can be unruly (Camellia sinensis var. sinensis).",
+  "environment": "Thrives in the hot, humid, and lower-altitude (100-400m) environments of northwestern Taiwan where the tea leafhopper (Jacobiasca formosana) is abundant.",
+  "processing": "The entire process relies on nature; the tea must be bitten by the leafhopper. Processing then aims to highlight the resulting aromatic compounds. The leaves are handled gently to preserve their unique character.",
+  "oxidation": "Undergoes heavy oxidation (60-70%), which is crucial for developing the complex honey and ripe fruit flavors that are created in response to the insect bites.",
+  "roasting": "Completely unroasted. The rich, deep flavors are a result of oxidation, not heat. A finishing bake is used for drying only.",
+  "versatility": "Extremely specialized. This cultivar's identity and value are entirely dependent on the presence of the tea leafhopper and the specific processing of Oriental Beauty oolong.",
+  "distribution": {
+    "taiwan": [
+      "Hsinchu County",
+      "Miaoli County",
+      "Taipei (Pinglin)"
+    ]
+  },
+  "expressions": {
+    "Oriental Beauty Oolong (Dong Fang Mei Ren)": {
+      "Bai Hao Oolong": "Its sole, famous expression. A heavily oxidized, unroasted, multi-colored leaf oolong with a profound honey-fruit character derived from insect bites."
+    }
+  },
+  "sensory": {
+    "aroma": "Intoxicating Muscat Grape, Ripe Peach, Wild Honey, Cinnamon",
+    "flavor": "Sweet, complex, multi-layered fruit with a smooth, honeyed finish.",
+    "mouthfeel_liquor": "Full-bodied, smooth, and sweet with no bitterness. The liquor is a beautiful, bright reddish-orange."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

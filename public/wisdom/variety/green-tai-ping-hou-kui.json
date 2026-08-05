@@ -1,0 +1,13 @@
+{
+  "id": "green-tai-ping-hou-kui",
+  "type": "Green",
+  "name": "Tai Ping Hou Kui",
+  "chineseName": "太平猴魁",
+  "altNames": [
+    "Monkey King"
+  ],
+  "region": "Taiping",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

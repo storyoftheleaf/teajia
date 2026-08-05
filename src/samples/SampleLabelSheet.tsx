@@ -66,7 +66,7 @@ export const SampleLabelSheet: React.FC<SampleLabelSheetProps> = ({
   columns: initialColumns = 3,
   labelSize: initialSize = 'medium',
   showSetName,
-  qrBaseUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://teajia.co'}/s/`,
+  qrBaseUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://teajia.com'}/s/`,
 }) => {
   const [columns, setColumns] = useState<2 | 3>(initialColumns ?? 3);
   const [labelSize, setLabelSize] = useState(initialSize);
@@ -326,7 +326,7 @@ export const SampleLabelSheet: React.FC<SampleLabelSheetProps> = ({
             )}
           </div>
           <p className="text-ui-10 text-tea-text-dim mt-1 leading-relaxed">
-            QR links to <span className="font-mono text-tea-text-sec">teajia.co/s/</span>
+            QR links to <span className="font-mono text-tea-text-sec">teajia.com/s/</span>
             {' · '}Format: <span className="text-tea-text-sec">Avery 5160</span> · 8.5 × 11in, 30 per sheet
           </p>
         </div>

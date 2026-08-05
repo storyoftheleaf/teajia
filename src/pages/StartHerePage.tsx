@@ -53,8 +53,8 @@ export const StartHerePage: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col items-center pb-nav-gap-lg">
       <Helmet>
-        <title>Start Here — Teajia</title>
-        <meta name="description" content="Find your path into Teajia — whether you're new to tea, building a practice, or running a business." />
+        <title>Start Here · Teajia</title>
+        <meta name="description" content="Find your path into Teajia, whether you're new to tea, building a practice, or running a business." />
       </Helmet>
 
       {/* Header */}
@@ -69,7 +69,7 @@ export const StartHerePage: React.FC = () => {
           Where would you like to begin?
         </h1>
         <p className="subtitle">
-          Six paths into the practice — choose the one that meets you where you are.
+          Six paths into the practice, choose the one that meets you where you are.
         </p>
       </div>
 

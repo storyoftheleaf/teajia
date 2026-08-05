@@ -227,7 +227,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
           <div className="w-10 h-1 bg-tea-border rounded-full" />
         </div>
 
-        {/* Header — close X top-LEFT for sheet/drawer (§15) */}
+        {/* Header, close X top-LEFT for sheet/drawer (§15) */}
         <div className="flex items-center gap-3 px-5 py-4 border-b border-tea-border shrink-0">
           <button
             onClick={onClose}
@@ -279,7 +279,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                   queryClient.invalidateQueries({ queryKey: ['event-public', slug] });
                   onClose();
                 }}
-                className="w-full max-w-xs inline-flex items-center justify-center px-4 py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+                className="w-full max-w-xs inline-flex items-center justify-center px-4 py-3 rounded-md cta-solid text-xs font-semibold transition-colors"
               >
                 Done
               </button>
@@ -339,7 +339,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                       type="button"
                       onClick={handleInlineLogin}
                       disabled={loginPending || !loginIdentifier || !loginPassword}
-                      className="inline-flex items-center justify-center px-4 py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold disabled:opacity-50 transition-colors hover:bg-tea-gold/90"
+                      className="inline-flex items-center justify-center px-4 py-2 rounded-md cta-solid text-xs font-semibold disabled:opacity-50 transition-colors"
                     >
                       {loginPending ? 'Signing in…' : 'Sign in'}
                     </button>
@@ -398,7 +398,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                 />
               </div>
 
-              {/* Contact Method — hidden if signed-in user already has contact saved */}
+              {/* Contact Method, hidden if signed-in user already has contact saved */}
               {isAuthenticated && (user?.phone || user?.email) && !overrideContact ? (
                 <div className="flex items-center justify-between gap-2 px-3 py-2.5 bg-tea-bg border border-tea-border rounded-md">
                   <span className="text-ui-12 text-tea-text-sec truncate">
@@ -422,7 +422,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                     <span aria-hidden="true" className="text-tea-gold"> *</span>
                     <span className="sr-only"> (required)</span>
                   </label>
-                  {/* Method toggle — underline tabs */}
+                  {/* Method toggle, underline tabs */}
                   <div className="flex gap-6 border-b border-tea-border mb-3">
                     {(['whatsapp', 'email'] as ContactMethod[]).map((m) => {
                       const isActive = formData.contactMethod === m;
@@ -604,7 +604,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                 </div>
               )}
 
-              {/* Footer — Cancel-left, primary-right */}
+              {/* Footer: Cancel-left, primary-right */}
               <div className="flex justify-between items-center gap-3 pt-2">
                 <button
                   type="button"
@@ -616,7 +616,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                 <button
                   type="submit"
                   disabled={!isValid || submitMutation.isPending}
-                  className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-w-[180px]"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-md cta-solid text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-w-[180px]"
                 >
                   {submitMutation.isPending ? (
                     <span className="inline-block w-4 h-4 border-2 border-tea-bg/40 border-t-tea-bg rounded-full animate-spin" />

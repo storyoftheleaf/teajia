@@ -18,7 +18,7 @@ interface AlcoveAboutSectionProps {
 }
 
 /**
- * "About this tea" — the one reading chapter. Description, terroir, and craft
+ * "About this tea": the one reading chapter. Description, terroir, and craft
  * merge into continuous Lora prose, with the brewing profile as the practical
  * closing ledger row. Renders only when there is something to read.
  */
@@ -33,8 +33,8 @@ export const AlcoveAboutSection: React.FC<AlcoveAboutSectionProps> = ({
 }) => {
   // When Adrian has starred voice notes, his impressions take over as the
   // sensory description (they render in the Character band). Suppress the
-  // AI-leaning experience and introduction prose so they don't duplicate —
-  // keep the historical lore, which is distinct cultural context.
+  // AI-leaning experience and introduction prose so they don't duplicate.
+  // Keep the historical lore, which is distinct cultural context.
   const hasImpressions = starredNotes(item.tasting).length > 0;
   const storyParts: string[] = [];
   if (!hasImpressions && feelingDescription) storyParts.push(feelingDescription);

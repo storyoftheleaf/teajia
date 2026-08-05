@@ -9,7 +9,7 @@ interface CartIndicatorProps {
 }
 
 /**
- * Subtle floating cart pill — appears when items are in cart.
+ * Subtle floating cart pill, appears when items are in cart.
  * On mobile, sits just above the bottom nav bar. On desktop, floats at bottom-right.
  * Tapping opens the cart drawer.
  */

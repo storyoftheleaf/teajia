@@ -12,7 +12,7 @@ interface PullToRefreshIndicatorProps {
  * Pull-to-refresh in the SAME loading language as everything else: the brand
  * emblem, breathing (EmblemLoader's fade + gentle scale), not a spinner.
  *
- * The previous version here was a leftover from before the loader redesign —
+ * The previous version here was a leftover from before the loader redesign,
  * a gold progress ring with a tea leaf in a circular chip. It read as "old
  * circle spinner" next to the pulsing emblem used for every other wait, so it
  * looked like the stuck-spinner bug had returned. One loading identity now:
@@ -35,7 +35,7 @@ export const PullToRefreshIndicator: React.FC<PullToRefreshIndicatorProps> = ({
         transform: `translateY(${pullDistance}px)`,
         opacity: Math.min(progress * 1.6, 1),
         // Soft shadow for legibility when the emblem floats over content.
-        filter: 'drop-shadow(0 4px 14px rgba(0,0,0,0.45))',
+        filter: 'drop-shadow(0 4px 14px rgb(var(--tea-shadow-rgb) / 0.45))',
       }}
     >
       {isRefreshing ? (

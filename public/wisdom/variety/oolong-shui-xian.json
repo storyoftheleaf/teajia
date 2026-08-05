@@ -1,0 +1,14 @@
+{
+  "id": "oolong-shui-xian",
+  "type": "Oolong",
+  "name": "Shui Xian",
+  "chineseName": "水仙",
+  "altNames": [
+    "Water Fairy",
+    "Narcissus"
+  ],
+  "region": "Wuyi",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

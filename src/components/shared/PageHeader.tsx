@@ -43,7 +43,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
     prevCountRef.current = cartItemCount;
   }, [cartItemCount]);
 
-  // Static title — no longer collapses on scroll since header flows with page
+  // Static title, no longer collapses on scroll since header flows with page
   const titleSize = 'text-2xl lg:text-3xl';
   const titlePadding = `${onBack ? 'pt-2' : 'pt-3'} pb-2 px-4 md:px-6 lg:pt-0 lg:pb-0 lg:h-16 lg:px-10`;
 
@@ -54,7 +54,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
       className={`sticky top-[env(safe-area-inset-top)] z-dropdown -mx-4 md:-mx-6 lg:-mx-10 transition-all duration-500 ease-out bg-tea-bg/90 backdrop-blur-md rounded-none border-b border-tea-border ${className}`}
     >
       <div className="w-full">
-        {/* Back navigation — inside the glass */}
+        {/* Back navigation, inside the glass */}
         {onBack && (
           <div className="px-4 pt-3 md:px-6 lg:px-10">
             <button
@@ -69,7 +69,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           </div>
         )}
 
-        {/* Header Title Row — collapses on scroll (mobile), stays expanded (desktop) */}
+        {/* Header Title Row, collapses on scroll (mobile), stays expanded (desktop) */}
         {(title || hasUtilityButtons) && (
           <div className={`flex items-center justify-between transition-all duration-500 ease-out ${titlePadding}`}>
             {title && (
@@ -88,7 +88,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
               )}
               {hasUtilityButtons && (
                 <div className="flex items-center gap-1.5 lg:hidden">
-                  {/* Search trigger — mobile */}
+                  {/* Search trigger, mobile */}
                   <button
                     onClick={() => {
                       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }));
@@ -106,7 +106,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                     >
                       <Icons.Bag className="w-5 h-5 text-tea-text/60" />
                       {cartItemCount > 0 && (
-                        <div className={`absolute -top-0.5 -right-0.5 w-4 h-4 bg-tea-gold text-tea-bg text-ui-9 font-bold rounded-full flex items-center justify-center ${badgeAnimating ? 'cart-badge-pulse' : ''}`}>
+                        <div className={`absolute -top-0.5 -right-0.5 w-4 h-4 cta-solid text-ui-9 font-bold rounded-full flex items-center justify-center ${badgeAnimating ? 'cart-badge-pulse' : ''}`}>
                           {cartItemCount > 9 ? '9+' : cartItemCount}
                         </div>
                       )}
@@ -130,7 +130,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         {/* Children Content (Tabs, Subtitle, etc.) */}
         {children}
 
-        {/* Toolbar row — below tabs, inside the glass */}
+        {/* Toolbar row, below tabs, inside the glass */}
         {toolbar && (
           <div className="px-4 py-2 md:px-6 lg:px-10" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
             {toolbar}

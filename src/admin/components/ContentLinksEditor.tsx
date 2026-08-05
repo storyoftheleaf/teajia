@@ -8,7 +8,7 @@ import { adviseProjects } from '../../data/adviseProjects';
 import { Product } from '../types';
 
 /**
- * ContentLinksEditor — admin panel for curating article/module/project → product
+ * ContentLinksEditor, admin panel for curating article/module/project → product
  * xref rows. Pick an entity type, pick the entity from a dropdown, then add or
  * remove linked products. Uses the authenticated api.xref.* endpoints.
  */
@@ -175,7 +175,7 @@ export const ContentLinksEditor: React.FC<ContentLinksEditorProps> = ({ products
               onChange={e => { setEntityId(e.target.value); setAdding(false); setPickerQuery(''); }}
               className="w-full appearance-none bg-tea-elevated border border-tea-border rounded px-3 py-2 text-sm text-tea-text pr-8 focus:outline-none focus:ring-1 focus:ring-tea-gold/40"
             >
-              <option value="">— choose —</option>
+              <option value="">Choose one</option>
               {entityOptions.map(o => (
                 <option key={o.id} value={o.id}>{o.label}</option>
               ))}

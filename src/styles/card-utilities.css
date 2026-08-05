@@ -1,5 +1,5 @@
 /* ============================================
-   Typography helpers — match TYPOGRAPHY_CLASSES in src/designTokens.ts
+   Typography helpers, match TYPOGRAPHY_CLASSES in src/designTokens.ts
    Use `<h2 className="h2">` etc. instead of long Tailwind chains.
    Source of truth: docs/DESIGN_SYSTEM.md §3
    ============================================ */
@@ -94,7 +94,7 @@
   color: rgb(var(--tea-text-sec-rgb));
 }
 
-/* Bronze CTA glow — only allowed at modal-footer scale (see §11) */
+/* Bronze CTA glow, only allowed at modal-footer scale (see §11) */
 .shadow-gold-cta {
   box-shadow: 0 6px 18px -8px rgb(var(--tea-gold-rgb) / 0.45);
 }
@@ -131,16 +131,93 @@
 }
 
 /* ============================================
-   CSS Custom Properties — Theme-adaptive values
+   CSS Custom Properties: Theme-adaptive values
    ============================================ */
 
 :root {
   --tea-vignette-color: rgba(24, 19, 14, 0.12);
-  --teajia-sidebar-w: 14rem; /* default expanded — overwritten by LeftSidebar JS */
+  --teajia-sidebar-w: 14rem; /* default expanded, overwritten by LeftSidebar JS */
+
+  /* The two state hues the pill block needed and the palette did not have.
+
+     `--tea-error` already existed and is theme-aware, so the destructive pill
+     reads it directly. There was no warning token at all, which is why the
+     amber pill carried a raw `#fbbf24` (a Tailwind stock amber, picked for a
+     dark background and never rechecked against parchment) through two rounds
+     of token work. Declared here rather than in tailwind.css because these are
+     component-state colours used by this stylesheet, not palette entries a
+     component should be reaching for with a `text-` class.
+
+     Both are measured against their own page background, not eyeballed:
+     #e0a63f on #22201c is 7.5:1, #8a5510 on #f4ece0 is 5.3:1. */
+  --tea-warn: #e0a63f;
+  --tea-warn-rgb: 224 166 63;
+
+  /* The solid-CTA background. Identical to --tea-gold in dark mode, deliberately
+     darker than it in light. See the .alcove-order-btn note for the measurement.
+
+     The hover moves *away* from the page in both modes, which is why it needs a
+     token of its own rather than `--tea-gold-lt`: lightening a bronze fill is
+     the right hover on espresso (6.6:1) and the wrong one on parchment, where
+     `--tea-gold-lt` under cream text measures 3.0:1, so the button became
+     unreadable exactly while the cursor was on it. */
+  --tea-gold-solid: var(--tea-gold);
+  --tea-gold-solid-hover: var(--tea-gold-lt);
+
+  /* Shadow ink. Depth, not colour, which is why it is an rgb triplet and the
+     alpha stays with the caller: an inset or drop shadow is always some alpha
+     of this. Pure black is right on espresso and wrong on parchment, where a
+     black inset reads as grime rather than depth, so light mode uses the warm
+     espresso the light theme already spends on text (#18130e). Callers write
+     `rgb(var(--tea-shadow-rgb) / 0.2)`. */
+  --tea-shadow-rgb: 0 0 0;
+
+  /* The colophon footer band, which is deliberately darker than the page in
+     both themes so the site closes on a dark rule rather than fading out. It
+     is a surface, not an accent, so it is declared once here rather than being
+     retyped as a hex in the component.
+
+     Measured against it, not against --tea-bg: the taupe on this band is
+     10.6:1 and the link rest colour is 7.6:1. The previous rest colour was
+     #80735f, which measured 4.09:1 at 11px uppercase mono and was under the
+     floor on every page of the site at once. */
+  --tea-footer-band: #14100b;
+  --tea-footer-ink: #cdc0a8;
+  --tea-footer-ink-dim: #b3a283;
 }
 
 [data-theme="light"], .light-mode, .light {
   --tea-vignette-color: rgba(240, 235, 228, 0.10);
+  --tea-warn: #8a5510;
+  --tea-warn-rgb: 138 85 16;
+  --tea-gold-solid: #806229;
+  --tea-gold-solid-hover: #6e5323;
+  --tea-shadow-rgb: 24 19 14;
+}
+
+/* The one solid buy-button treatment, so a surface cannot opt out of the
+   measurement by writing the gold fill and the cream text out by hand. Compose
+   it with whatever shape and type role the surface needs; this carries colour
+   only.
+
+   Round nine pointed the shared `<Button variant="primary">` at this class and
+   swept 101 hand-written spellings out of src/components. lint-colors.sh
+   rule 12 blocks the pair from being written again on those paths. */
+.cta-solid {
+  background: var(--tea-gold-solid);
+  color: var(--tea-bg);
+}
+.cta-solid:hover:not(:disabled) {
+  background: var(--tea-gold-solid-hover);
+}
+
+/* Outline button that fills on hover. Same measured pair, applied on hover
+   only, so an outline CTA does not have to spell the fill and the text out and
+   reintroduce the 4.10:1 light-mode pairing at the exact moment the pointer is
+   on it. */
+.cta-solid-hover:hover:not(:disabled) {
+  background: var(--tea-gold-solid);
+  color: var(--tea-bg);
 }
 
 /* ============================================
@@ -160,7 +237,7 @@
 }
 
 /* ============================================
-   Numeric Display — consistent across entire site
+   Numeric Display, consistent across entire site
    Uses IBM Plex Mono with tabular (equal-width),
    lining (uniform-height) figures for clean alignment.
    ============================================ */
@@ -246,7 +323,7 @@ input[type="number"]::-webkit-outer-spin-button {
   .card-grid-item {
     padding: 1rem;
   }
-  /* clamp() handles fluid sizing — no fixed override needed at 1024px */
+  /* clamp() handles fluid sizing, no fixed override needed at 1024px */
 }
 
 .card-grid-title {
@@ -350,13 +427,13 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* ============================================
-   Surface Treatments — "The Alcove System"
+   Surface Treatments, "The Alcove System"
    Standard warm texture treatment for panels, drawers,
    modals, and any container needing atmospheric depth.
    See designTokens.ts §12 for full documentation.
    ============================================ */
 
-/* Primary warm surface — radial warmth gradient + grain noise.
+/* Primary warm surface, radial warmth gradient + grain noise.
    Use on: drawers, sidebars, full-panel backgrounds, modals. */
 .surface-warm {
   position: relative;
@@ -395,7 +472,7 @@ input[type="number"]::-webkit-outer-spin-button {
   opacity: 0.04;
 }
 
-/* Recessed inset content area — darker bg, edge-lit shadows, denser grain, ambient glow.
+/* Recessed inset content area, darker bg, edge-lit shadows, denser grain, ambient glow.
    Use on: content areas within .surface-warm, scrollable regions, form sections. */
 .surface-warm-inset {
   position: relative;
@@ -451,7 +528,7 @@ input[type="number"]::-webkit-outer-spin-button {
   background: radial-gradient(ellipse 80% 30% at 70% 0%, rgba(142, 109, 46, 0.03), transparent);
 }
 
-/* Glass grain overlay — adds paper texture to frosted glass surfaces.
+/* Glass grain overlay, adds paper texture to frosted glass surfaces.
    Apply to elements using backdrop-blur (cart panels, search modals, floating CTAs). */
 .glass-grain {
   position: relative;
@@ -468,7 +545,7 @@ input[type="number"]::-webkit-outer-spin-button {
   background-size: 120px;
 }
 
-/* Warm shimmer for skeleton loaders — matches the grain palette */
+/* Warm shimmer for skeleton loaders, matches the grain palette */
 .shimmer-warm {
   position: relative;
   overflow: hidden;
@@ -485,13 +562,13 @@ input[type="number"]::-webkit-outer-spin-button {
   background-size: 120px;
 }
 
-/* Warm section divider — replaces flat border-t with a gradient fade */
+/* Warm section divider, replaces flat border-t with a gradient fade */
 .divider-warm {
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(184, 146, 78, 0.2) 20%, rgba(184, 146, 78, 0.3) 50%, rgba(184, 146, 78, 0.2) 80%, transparent);
 }
 
-/* Section divider — standard spacing utility.
+/* Section divider, standard spacing utility.
    Ensures intentional vertical breathing room above and below any divider.
    Use on the wrapper element that contains the divider line. */
 
@@ -499,7 +576,7 @@ input[type="number"]::-webkit-outer-spin-button {
    Light Mode Support
    ============================================ */
 
-/* Light mode — colors handled automatically via CSS variable switching on :root.
+/* Light mode, colors handled automatically via CSS variable switching on :root.
    These overrides only adjust structural differences (borders, backgrounds). */
 
 .light .card-grid-item {
@@ -581,7 +658,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* ============================================
-   Skeleton Loader — Editorial Fade Pulse
+   Skeleton Loader: Editorial Fade Pulse
    Replaced left-to-right shimmer sweep with a
    gentle opacity pulse. Reads as "considered" rather
    than "tech product" loading.
@@ -592,7 +669,7 @@ input[type="number"]::-webkit-outer-spin-button {
   50% { opacity: 0.3; }
 }
 
-/* Legacy alias kept for backward compat — also uses pulse now */
+/* Legacy alias kept for backward compat, also uses pulse now */
 @keyframes shimmer {
   0%, 100% { opacity: 0.6; }
   50% { opacity: 0.3; }
@@ -603,10 +680,10 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* ============================================
-   Nav Controls — circular close / prev / next buttons
+   Nav Controls, circular close / prev / next buttons
    Single source of truth for modal navigation UI.
 
-   STYLE: "Gold whisper" — faint gold border, no harsh lines.
+   STYLE: "Gold whisper", faint gold border, no harsh lines.
    To switch styles, change the border + background values below.
 
    Alternatives (swap in as needed):
@@ -623,7 +700,7 @@ input[type="number"]::-webkit-outer-spin-button {
      hover background: rgba(0, 0, 0, 0.35);
    ============================================ */
 
-/* Small nav control — mobile prev/next arrows, close buttons */
+/* Small nav control, mobile prev/next arrows, close buttons */
 .nav-control {
   display: flex;
   align-items: center;
@@ -647,13 +724,13 @@ input[type="number"]::-webkit-outer-spin-button {
   cursor: default;
 }
 
-/* Small size (mobile arrows) — 32×32 */
+/* Small size (mobile arrows): 32×32 */
 .nav-control-sm {
   width: 2rem;
   height: 2rem;
 }
 
-/* Close button variant — 24×24, positioned in card corner */
+/* Close button variant: 24×24, positioned in card corner */
 .nav-control-close {
   width: 1.5rem;
   height: 1.5rem;
@@ -665,7 +742,7 @@ input[type="number"]::-webkit-outer-spin-button {
   border-color: rgba(184, 146, 78, 0.3);
 }
 
-/* Large size (desktop arrows) — padding-based for icon flexibility */
+/* Large size (desktop arrows), padding-based for icon flexibility */
 
 /* ── Panel Sidebar ── */
 .panel-sidebar {
@@ -698,7 +775,7 @@ input[type="number"]::-webkit-outer-spin-button {
   }
 }
 
-/* Public collection card popup — scrim fade + card slide-up */
+/* Public collection card popup, scrim fade + card slide-up */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -715,7 +792,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* ============================================
-   Pills, Badges & Tags — Global Style System
+   Pills, Badges & Tags: Global Style System
    Single source of truth for all interactive
    pill/chip/badge/tag elements across the site.
 
@@ -746,7 +823,7 @@ input[type="number"]::-webkit-outer-spin-button {
   background-color: rgb(var(--tea-gold-rgb) / 0.03);
 }
 
-/* --- Canonical Form Field — input-field + label-field + focus ring --- */
+/* --- Canonical Form Field, input-field + label-field + focus ring --- */
 /* Single source of truth for all new form inputs and labels.
    Focus: 2px offset gap (var(--tea-bg)) + 2px ring at tea-gold/50.
    Equivalent to Tailwind: focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2. */
@@ -769,10 +846,10 @@ input[type="number"]::-webkit-outer-spin-button {
 .input-field:focus-visible {
   border-color: rgb(var(--tea-gold-rgb) / 0.4);
   box-shadow: 0 0 0 2px var(--tea-bg), 0 0 0 4px rgb(var(--tea-gold-rgb) / 0.5);
-  animation: none; /* suppress global focusRingPulse — border + ring already signal focus */
+  animation: none; /* suppress global focusRingPulse, border + ring already signal focus */
 }
 
-/* Canonical form label — uppercase meta label above every field */
+/* Canonical form label, uppercase meta label above every field */
 .label-field {
   display: block;
   font-size: 11px;
@@ -783,7 +860,7 @@ input[type="number"]::-webkit-outer-spin-button {
   margin-bottom: 0.375rem;
 }
 
-/* Recessed field depth — a whisper-quiet warm inset bevel so inputs read as
+/* Recessed field depth, a whisper-quiet warm inset bevel so inputs read as
    pressed into the surface, not floating boxes. Matches the insetPanel idiom
    (bronze edge-light, never white). Compose with the field bg/border classes;
    this only adds the inner shadow. The brand's closest move to letterpress. */
@@ -806,11 +883,39 @@ input[type="number"]::-webkit-outer-spin-button {
 
 /* --- Toggle Pill (on/off switches) --- */
 /* Use on: sidebar toggle buttons, filter chips, boolean flags */
+/*
+   The 44px floor lives here, in the primitive, not in each caller.
+   A pill is 11px type with 4px of padding, which stands 23px tall. Every one of
+   them therefore needed the caller to remember `tap-target`, and round five
+   found eleven shop controls where the caller had not: a floor that depends on
+   memory is not a floor. `.tap-target` sets the same `min-height: 44px`, so a
+   pill that still carries it is unchanged, and a pill that never did now clears
+   WCAG 2.5.5 without its author having to know the rule exists.
+
+   A pseudo-element hit area (see HIT_AREA in typeRoles.ts) was the alternative,
+   and it is the right tool for a word inside a heading. It is the wrong tool
+   here: pills come in wrapping rows, and invisible boxes stacked one row apart
+   overlap and steal each other's taps, which is worse than a small target.
+*/
+/* The floor is stated here, once.
+
+   Round six put `min-height: 44px` on this class and, separately, `tap-target
+   min-h-11` on twenty-four call sites, so the same rule was written twice for
+   the same button and neither copy knew about the other. That is not merely
+   redundant: `tap-target` also carries `min-width: 44px` and centres its
+   contents, and it loads after Tailwind, so a pill inside a `justify-between`
+   row was silently pulled to the middle of it and a two-character filter chip
+   was inflated to a 44px square it did not need to be. The width floor belongs
+   with the height floor, so it is here now and the call sites carry neither.
+
+   `:where()` for the alignment so any caller's own `justify-*` still wins. */
 .pill {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   padding: 4px 10px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 6px;
   border: none;
   font-size: 11px;
@@ -822,14 +927,38 @@ input[type="number"]::-webkit-outer-spin-button {
   color: var(--tea-text-dim);
 }
 
+:where(.pill, .pill-quiet, .pill-dense) {
+  justify-content: center;
+}
+
 .pill:hover {
   background: rgb(var(--tea-gold-rgb) / 0.07);
   color: var(--tea-text-sec);
 }
 
+/* Dense pill: the deliberate exception to the 44px floor.
+
+   Some rows are not toolbars. A one-line notice that says "Logged 'Bai Ji Guan'
+   from Wuyi Origins, 3 May" and offers Same / Different / dismiss is a sentence
+   with two words in it you can press, and giving those two words a 44px square
+   each turned a 26px strip into a 47px band that pushed the capture form it was
+   warning about below the fold. WCAG 2.5.5 is the AAA target; 2.5.8 sets the AA
+   floor at 24px, which this clears, and every one of these rows is a
+   pointer-driven operator surface behind an admin login rather than something a
+   customer meets on a phone.
+
+   Not a general-purpose escape hatch. Using it obliges the call site to say, in
+   a comment, which row it is in and why that row cannot afford 44px. A customer
+   surface never qualifies. */
+.pill-dense {
+  min-width: 0;
+  min-height: 28px;
+  padding: 3px 8px;
+}
+
 .pill-active {
-  /* Unified with InventoryView's active filter chip — ring pattern, no
-     underline shadow — so People and Inventory feel like one surface. */
+  /* Unified with InventoryView's active filter chip, ring pattern, no
+     underline shadow, so People and Inventory feel like one surface. */
   background: rgb(var(--tea-gold-rgb) / 0.10);
   color: rgb(var(--tea-text-rgb));
   font-weight: 500;
@@ -844,27 +973,38 @@ input[type="number"]::-webkit-outer-spin-button {
   font-size: 12px;
 }
 
-/* Amber variant (warnings, stock alerts) */
+/* Amber variant (warnings, stock alerts).
+
+   Four raw literals lived in this block and its destructive sibling, on the
+   two variants that survived the round that brought the rest of the pills onto
+   tokens: `#fbbf24` here, `#f87171` and `#fca5a5` below, and the `white` that
+   `.pill-primary:hover` mixed into the gold. Every one of them was picked for
+   a dark background. In light mode `#fbbf24` is a 1.6:1 amber on parchment,
+   which is a warning nobody can read, and `white` is banned outright.
+
+   The state hues are tokens now (`--tea-warn`, `--tea-error`), so a warning
+   reads on espresso and on parchment, and the hover mixes toward the light gold
+   the palette already declares instead of toward a colour the palette forbids. */
 .pill-active-amber {
   background: transparent;
-  color: #fbbf24;
+  color: var(--tea-warn);
   font-weight: 600;
-  box-shadow: inset 0 -1px 0 #fbbf24;
+  box-shadow: inset 0 -1px 0 var(--tea-warn);
 }
 
 .pill-active-amber:hover {
-  background: rgba(251, 191, 36, 0.06);
+  background: rgb(var(--tea-warn-rgb) / 0.06);
 }
 
-/* Primary solid — reserve for ONE commit action per surface */
+/* Primary solid, reserve for ONE commit action per surface */
 .pill-primary {
-  background: var(--tea-gold);
+  background: var(--tea-gold-solid);
   color: var(--tea-bg);
   font-weight: 600;
 }
 
 .pill-primary:hover {
-  background: color-mix(in srgb, var(--tea-gold) 88%, white);
+  background: var(--tea-gold-solid-hover);
 }
 
 .pill-primary:disabled {
@@ -880,6 +1020,11 @@ input[type="number"]::-webkit-outer-spin-button {
   align-items: center;
   gap: 4px;
   padding: 4px 9px;
+  /* Declares the shape from scratch rather than extending .pill, so the floor
+     has to be stated twice. Same 44px, same reason, and the same width floor,
+     without it the call sites had to reach for `tap-target` to get one. */
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 6px;
   border: none;
   /* Matches the Curate support tier (text-ui-12 uppercase tracking-[1.2px])
@@ -905,25 +1050,28 @@ input[type="number"]::-webkit-outer-spin-button {
   font-weight: 500;
 }
 
-/* Destructive — subtle red tint, used for confirm step of suspend/delete */
+/* Destructive, subtle red tint, used for confirm step of suspend/delete.
+   `--tea-error` is the palette's own red and is warmed per theme (terracotta on
+   espresso, oxblood on parchment), which is what the two Tailwind stock reds
+   this block used to carry were standing in for. */
 .pill-destructive {
-  color: #f87171;
+  color: var(--tea-error);
 }
 
 .pill-destructive:hover {
-  background: rgba(248, 113, 113, 0.08);
-  color: #fca5a5;
+  background: rgb(var(--tea-error-rgb) / 0.08);
+  color: var(--tea-error);
 }
 
 .pill-destructive-confirm {
-  background: rgba(248, 113, 113, 0.12);
-  color: #fca5a5;
+  background: rgb(var(--tea-error-rgb) / 0.12);
+  color: var(--tea-error);
   font-weight: 600;
-  box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.3);
+  box-shadow: inset 0 0 0 1px rgb(var(--tea-error-rgb) / 0.3);
 }
 
 .pill-destructive-confirm:hover {
-  background: rgba(248, 113, 113, 0.18);
+  background: rgb(var(--tea-error-rgb) / 0.18);
 }
 
 /* --- Status Badge (read-only labels) --- */
@@ -1018,104 +1166,128 @@ input[type="number"]::-webkit-outer-spin-button {
   font-weight: 500;
 }
 
+/* The format-badge hues, declared once and measured.
+ *
+ * This block was a second colour system: ten hues, each spelled twice as raw
+ * Tailwind-stock literals, none of them tokens and none of them measured
+ * against anything. Six of the ten failed AA in light mode on the surface they
+ * actually sit on, at 11px, because every light ink was a Tailwind 700 shade
+ * picked to sit on white and never rechecked against parchment: green 3.50,
+ * orange 3.54, amber 3.63, teal 3.77, pink 4.04, red 4.30.
+ *
+ * The tint is one token per hue, so the hue exists in one place. The ink is a
+ * literal inside the rule that owns it, because the two inks are not the same
+ * colour at different alphas, they are two chosen colours. Both are measured
+ * against the composited badge background (the tint over `--tea-surface`,
+ * which is the darker of the two surfaces a badge lands on in light mode and
+ * so the harder case), and the number is written on the line.
+ *
+ * `tea-green` is gone. It was declared, never referenced, and its dark ink was
+ * a copy of `green`'s, so it was a tenth hue that rendered as the ninth.
+ *
+ * Adding a hue means adding a triplet here and measuring both inks. It does
+ * not mean typing a hex into a component.
+ */
+:root {
+  --badge-amber-rgb: 251 191 36;
+  --badge-violet-rgb: 139 92 246;
+  --badge-pink-rgb: 236 72 153;
+  --badge-blue-rgb: 59 130 246;
+  --badge-purple-rgb: 168 85 247;
+  --badge-teal-rgb: 20 184 166;
+  --badge-green-rgb: 34 197 94;
+  --badge-red-rgb: 239 68 68;
+  --badge-orange-rgb: 249 115 22;
+}
+
 .badge-format-amber {
-  background: rgba(251, 191, 36, 0.10);
-  color: #b45309;
+  background: rgb(var(--badge-amber-rgb) / 0.10);
+  color: #92400e;  /* 5.12:1 on the tint over --tea-surface */
 }
 .dark .badge-format-amber,
 :root:not(.light) .badge-format-amber {
-  background: rgba(251, 191, 36, 0.15);
-  color: #fcd34d;
+  background: rgb(var(--badge-amber-rgb) / 0.15);
+  color: #fcd34d;  /* 6.62:1 on the tint over --tea-surface */
 }
 
 .badge-format-violet {
-  background: rgba(139, 92, 246, 0.10);
-  color: #6d28d9;
+  background: rgb(var(--badge-violet-rgb) / 0.10);
+  color: #5b21b6;  /* 5.99:1 on the tint over --tea-surface */
 }
 .dark .badge-format-violet,
 :root:not(.light) .badge-format-violet {
-  background: rgba(139, 92, 246, 0.15);
-  color: #c4b5fd;
+  background: rgb(var(--badge-violet-rgb) / 0.15);
+  color: #c4b5fd;  /* 6.27:1 on the tint over --tea-surface */
 }
 
 .badge-format-pink {
-  background: rgba(236, 72, 153, 0.10);
-  color: #be185d;
+  background: rgb(var(--badge-pink-rgb) / 0.10);
+  color: #9d174d;  /* 5.27:1 on the tint over --tea-surface */
 }
 .dark .badge-format-pink,
 :root:not(.light) .badge-format-pink {
-  background: rgba(236, 72, 153, 0.15);
-  color: #f9a8d4;
+  background: rgb(var(--badge-pink-rgb) / 0.15);
+  color: #f9a8d4;  /* 6.29:1 on the tint over --tea-surface */
 }
 
 .badge-format-blue {
-  background: rgba(59, 130, 246, 0.10);
-  color: #1d4ed8;
+  background: rgb(var(--badge-blue-rgb) / 0.10);
+  color: #1e40af;  /* 5.88:1 on the tint over --tea-surface */
 }
 .dark .badge-format-blue,
 :root:not(.light) .badge-format-blue {
-  background: rgba(59, 130, 246, 0.15);
-  color: #93c5fd;
+  background: rgb(var(--badge-blue-rgb) / 0.15);
+  color: #93c5fd;  /* 6.26:1 on the tint over --tea-surface */
 }
 
 .badge-format-purple {
-  background: rgba(168, 85, 247, 0.10);
-  color: #7e22ce;
+  background: rgb(var(--badge-purple-rgb) / 0.10);
+  color: #6b21a8;  /* 5.82:1 on the tint over --tea-surface */
 }
 .dark .badge-format-purple,
 :root:not(.light) .badge-format-purple {
-  background: rgba(168, 85, 247, 0.15);
-  color: #d8b4fe;
+  background: rgb(var(--badge-purple-rgb) / 0.15);
+  color: #d8b4fe;  /* 6.49:1 on the tint over --tea-surface */
 }
 
 .badge-format-teal {
-  background: rgba(20, 184, 166, 0.10);
-  color: #0f766e;
+  background: rgb(var(--badge-teal-rgb) / 0.10);
+  color: #115e59;  /* 5.23:1 on the tint over --tea-surface */
 }
 .dark .badge-format-teal,
 :root:not(.light) .badge-format-teal {
-  background: rgba(20, 184, 166, 0.15);
-  color: #5eead4;
+  background: rgb(var(--badge-teal-rgb) / 0.15);
+  color: #5eead4;  /* 7.15:1 on the tint over --tea-surface */
 }
 
 .badge-format-green {
-  background: rgba(34, 197, 94, 0.10);
-  color: #15803d;
+  background: rgb(var(--badge-green-rgb) / 0.10);
+  color: #166534;  /* 4.98:1 on the tint over --tea-surface */
 }
 .dark .badge-format-green,
 :root:not(.light) .badge-format-green {
-  background: rgba(34, 197, 94, 0.15);
-  color: #86efac;
+  background: rgb(var(--badge-green-rgb) / 0.15);
+  color: #86efac;  /* 7.40:1 on the tint over --tea-surface */
 }
 
 .badge-format-red {
-  background: rgba(239, 68, 68, 0.10);
-  color: #b91c1c;
+  background: rgb(var(--badge-red-rgb) / 0.10);
+  color: #991b1b;  /* 5.53:1 on the tint over --tea-surface */
 }
 .dark .badge-format-red,
 :root:not(.light) .badge-format-red {
-  background: rgba(239, 68, 68, 0.15);
-  color: #fca5a5;
+  background: rgb(var(--badge-red-rgb) / 0.15);
+  color: #fca5a5;  /* 6.14:1 on the tint over --tea-surface */
 }
 
 .badge-format-orange {
-  background: rgba(249, 115, 22, 0.10);
-  color: #c2410c;
+  background: rgb(var(--badge-orange-rgb) / 0.10);
+  color: #9a3412;  /* 5.70:1 on the tint over --tea-surface */
 }
 .dark .badge-format-orange,
 :root:not(.light) .badge-format-orange {
-  background: rgba(249, 115, 22, 0.15);
-  color: #fdba74;
-}
-
-.badge-format-tea-green {
-  background: rgba(90, 110, 90, 0.10);
-  color: #5A6E5A;
-}
-.dark .badge-format-tea-green,
-:root:not(.light) .badge-format-tea-green {
-  background: rgba(90, 110, 90, 0.15);
-  color: #86efac;
+  background: rgb(var(--badge-orange-rgb) / 0.15);
+  color: #fdba74;  /* 6.44:1 on the tint over --tea-surface */
 }
 
 /* --- Role Badge (user roles: owner, admin, user) --- */
@@ -1286,7 +1458,7 @@ input[type="number"]::-webkit-outer-spin-button {
   background: linear-gradient(90deg, transparent, rgba(142, 109, 46, 0.2) 20%, rgba(142, 109, 46, 0.35) 50%, rgba(142, 109, 46, 0.2) 80%, transparent);
 }
 
-/* Ornament variant — centered dot accent */
+/* Ornament variant, centered dot accent */
 .divider-ornament {
   position: relative;
 }
@@ -1427,16 +1599,16 @@ input[type="number"]::-webkit-outer-spin-button {
 
 /* ============================================
    Truncation Gradient Fade Utilities (#38)
-   Surface variant — gradient matches the surface background.
+   Surface variant, gradient matches the surface background.
    ============================================ */
 
-/* Surface variant — the gradient matches the surface background */
+/* Surface variant, the gradient matches the surface background */
 .surface-clamp-fade::after {
   background: linear-gradient(to bottom, transparent, var(--tea-surface));
 }
 
 /* ============================================
-   Mobile Inventory — Expanded Detail Panel
+   Mobile Inventory: Expanded Detail Panel
    Warm inset panel for product detail on expand.
    ============================================ */
 
@@ -1461,11 +1633,11 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* ============================================
-   Mobile Inventory — Stock Status Indicators
+   Mobile Inventory: Stock Status Indicators
    ============================================ */
 
 /* ============================================
-   Mobile Inventory — Row Type Accent Strip
+   Mobile Inventory: Row Type Accent Strip
    Subtle left-edge color derived from tea type.
    ============================================ */
 
@@ -1492,22 +1664,22 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* ============================================
-   Article Card — Editorial Magazine Styling
+   Article Card: Editorial Magazine Styling
    Premium visual treatment for magazine article cards.
    ============================================ */
 
-/* Reading time — bottom-right metadata */
+/* Reading time, bottom-right metadata */
 
-/* Gold accent line — grows from center on hover */
+/* Gold accent line, grows from center on hover */
 
-/* Vignette overlay — editorial depth */
+/* Vignette overlay, editorial depth */
 
-/* Featured hero card — spans full width in grid */
+/* Featured hero card, spans full width in grid */
 
 /* Light mode */
 
 /* ============================================
-   Reader — Chapter Number & Image Reveal
+   Reader: Chapter Number & Image Reveal
    Overrides for chapterNumberReveal keyframe:
    final opacity raised to 0.07, blur-to-sharp transition added.
    ============================================ */
@@ -1526,7 +1698,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* ============================================
-   Reader — Enhanced Progress Indicator
+   Reader: Enhanced Progress Indicator
    ============================================ */
 
 .reader-progress-track {
@@ -1568,7 +1740,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* ============================================
-   Reader — New Animation Keyframes
+   Reader: New Animation Keyframes
    Used by Reader.tsx and reader-animations.css.
    ============================================ */
 
@@ -1631,9 +1803,9 @@ input[type="number"]::-webkit-outer-spin-button {
    Animated underlines, CJK accents, typewriter.
    ============================================ */
 
-/* Animated underline for key terms — draws in when page activates */
+/* Animated underline for key terms, draws in when page activates */
 
-/* Vertical CJK accent strip — decorative, non-interactive */
+/* Vertical CJK accent strip, decorative, non-interactive */
 .vertical-cjk {
   writing-mode: vertical-rl;
   text-orientation: mixed;
@@ -1651,7 +1823,7 @@ input[type="number"]::-webkit-outer-spin-button {
   51%, 100% { border-color: transparent; }
 }
 
-/* Typewriter line — use on text nodes that reveal character-by-character */
+/* Typewriter line, use on text nodes that reveal character-by-character */
 .typewriter-line {
   overflow: hidden;
   white-space: nowrap;
@@ -1666,7 +1838,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* ============================================
-   Drop Cap — Gold Treatment
+   Drop Cap: Gold Treatment
    Apply .drop-cap-gold to the article container.
    Apply .drop-cap to opening paragraph of long-form prose
    (Magazine, ContributorProfilePage). See DESIGN_SYSTEM.md §33.
@@ -1724,7 +1896,7 @@ input[type="number"]::-webkit-outer-spin-button {
     animation: none !important;
   }
 
-  /* Reader page fade-in — skip translateY, just show at full opacity */
+  /* Reader page fade-in, skip translateY, just show at full opacity */
   [data-page-active="true"] p,
   [data-page-active="true"] [data-animate],
   .reader-fade-in {
@@ -1733,35 +1905,35 @@ input[type="number"]::-webkit-outer-spin-button {
     transform: none !important;
   }
 
-  /* Image reveal (clip-path circle expansion) — skip to final state */
+  /* Image reveal (clip-path circle expansion), skip to final state */
   [data-page-active="true"] .reader-image-reveal,
   .reader-image-reveal {
     animation: none !important;
     clip-path: circle(75% at 50% 50%) !important;
   }
 
-  /* parallaxBgShift — no translate */
+  /* parallaxBgShift, no translate */
   .parallax-bg,
   [style*="parallaxBgShift"] {
     animation: none !important;
     transform: none !important;
   }
 
-  /* inkWashSweep — skip to fully revealed */
+  /* inkWashSweep, skip to fully revealed */
   [style*="inkWashSweep"],
   .ink-wash-sweep {
     animation: none !important;
     clip-path: inset(0 0% 0 0) !important;
   }
 
-  /* horizontalBlindsReveal — skip to full height */
+  /* horizontalBlindsReveal, skip to full height */
   [style*="horizontalBlindsReveal"],
   .horizontal-blinds {
     animation: none !important;
     transform: scaleY(1) !important;
   }
 
-  /* crossfadeScaleIn — skip to full opacity, no scale */
+  /* crossfadeScaleIn, skip to full opacity, no scale */
   [style*="crossfadeScaleIn"],
   .crossfade-in {
     animation: none !important;
@@ -1769,7 +1941,7 @@ input[type="number"]::-webkit-outer-spin-button {
     transform: scale(1) !important;
   }
 
-  /* crossfadeScaleOut — skip to hidden, no scale */
+  /* crossfadeScaleOut, skip to hidden, no scale */
   [style*="crossfadeScaleOut"],
   .crossfade-out {
     animation: none !important;
@@ -1777,14 +1949,14 @@ input[type="number"]::-webkit-outer-spin-button {
     transform: scale(1) !important;
   }
 
-  /* Steam rise — remove entirely (purely decorative) */
+  /* Steam rise, remove entirely (purely decorative) */
   [style*="steamRise"],
   .steam-rise {
     animation: none !important;
     opacity: 0 !important;
   }
 
-  /* Stagger grid — already handled above, but reinforce */
+  /* Stagger grid, already handled above, but reinforce */
   .stagger-grid > * {
     animation: none !important;
     opacity: 1 !important;
@@ -1798,13 +1970,13 @@ input[type="number"]::-webkit-outer-spin-button {
     transform: none !important;
   }
 
-  /* Typewriter cursor — stop blinking */
+  /* Typewriter cursor, stop blinking */
   .typewriter-line {
     animation: none !important;
     border-right-color: transparent !important;
   }
 
-  /* Key term underline — show immediately, no transition */
+  /* Key term underline, show immediately, no transition */
 
   /* Aurora background shift */
 
@@ -1837,7 +2009,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* ============================================
-   Reader — Image Reveal Animation
+   Reader: Image Reveal Animation
    Subtle scale-down entrance for full-bleed
    images. Used in IMG_FULL_BLEED and similar.
    ============================================ */
@@ -1855,7 +2027,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* ============================================
-   Tasting Flow — UI Classes
+   Tasting Flow: UI Classes
    ============================================ */
 
 /* ── Flavor group card ── */
@@ -1863,7 +2035,7 @@ input[type="number"]::-webkit-outer-spin-button {
 
 /* ── Suggested terms row ── */
 
-/* Vertical divider between segment toggle items — uses absolute rgba so it persists against any selection background */
+/* Vertical divider between segment toggle items, uses absolute rgba so it persists against any selection background */
 .weight-seg-div {
   border-right: 1px solid rgba(0, 0, 0, 0.18);
 }
@@ -1872,7 +2044,7 @@ input[type="number"]::-webkit-outer-spin-button {
   border-right: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-/* ── Segment toggle (weight/finish) — warm recessed track ── */
+/* ── Segment toggle (weight/finish), warm recessed track ── */
 .tasting-segment-toggle {
   display: flex;
   border-radius: 8px;
@@ -1946,10 +2118,10 @@ input[type="number"]::-webkit-outer-spin-button {
   background: rgb(var(--tea-gold-rgb) / 0.04);
 }
 
-/* Mouthfeel weight toggle — no inline borders */
+/* Mouthfeel weight toggle, no inline borders */
 
 /* ============================================
-   Set Card — Full-Width Editorial Layout
+   Set Card: Full-Width Editorial Layout
    Used in Shop > Sets tab for starter sets.
    ============================================ */
 
@@ -2000,7 +2172,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* ============================================
-   Tasting Capture — Single-page tasting flow
+   Tasting Capture: Single-page tasting flow
    ============================================ */
 
 /* ── Step-node quality scale ── */
@@ -2009,7 +2181,7 @@ input[type="number"]::-webkit-outer-spin-button {
 
 /* Filled portion of the line */
 
-/* Each node — number lives inside */
+/* Each node, number lives inside */
 
 /* ── Legacy slider (kept for any remaining references) ── */
 
@@ -2038,7 +2210,7 @@ input[type="number"]::-webkit-outer-spin-button {
   box-shadow: 0 0 0 2px rgb(var(--tea-gold-rgb) / 0.12);
 }
 
-/* ── Tasting scroll area — hide scrollbar on all platforms ── */
+/* ── Tasting scroll area, hide scrollbar on all platforms ── */
 .tasting-scroll {
   scrollbar-width: none;        /* Firefox */
   -ms-overflow-style: none;     /* IE / Edge legacy */
@@ -2069,7 +2241,7 @@ input[type="number"]::-webkit-outer-spin-button {
   color: var(--tea-gold);
 }
 
-/* Larger mic affordance — used by the teaware capture card where reaching the
+/* Larger mic affordance, used by the teaware capture card where reaching the
    tiny mic at the corner of the notes field was reported as too hard. */
 .tasting-voice-btn-large {
   width: 56px;
@@ -2083,22 +2255,22 @@ input[type="number"]::-webkit-outer-spin-button {
 /* ── Sub-terms expansion ── */
 
 /* ============================================
-   Magazine Card — Elevated Cover Page
+   Magazine Card: Elevated Cover Page
    ============================================ */
 
 /* Hero card variant */
 
 /* ============================================
-   Page Header Tabs — Navigation Tab System
+   Page Header Tabs: Navigation Tab System
    Used by PageHeaderTabs component (Shop, Magazine,
    TeaInventory, ResourcesPage, ForYourPractice).
    Inactive tabs are dimmed to maximize contrast
    with the active gold-underlined tab.
    ============================================ */
 
-/* Inactive tab — intentionally dim to contrast with active */
+/* Inactive tab, intentionally dim to contrast with active */
 
-/* Active tab — gold underline bar, full text color */
+/* Active tab, gold underline bar, full text color */
 
 /* ── Magazine Page Reader ───────────────────────────────── */
 @keyframes breath {
@@ -2110,7 +2282,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* ============================================
-   Alcove Card — Shared Styles
+   Alcove Card: Shared Styles
    Used by AlcoveCard and its subcomponents.
    Replaces inline-style hover handlers and
    provides 44×44 hit areas on touch devices.
@@ -2159,14 +2331,14 @@ input[type="number"]::-webkit-outer-spin-button {
   outline-offset: -2px;
 }
 
-/* Faint tonal band — the quiet card's only differentiation device. */
+/* Faint tonal band: the quiet card's only differentiation device. */
 .alcove-band {
   background: rgb(var(--tea-text-rgb) / 0.04);
   border-top: 1px solid var(--tea-border);
   border-bottom: 1px solid var(--tea-border);
 }
 
-/* Character-band term — inline serif text button. Hit area extended
+/* Character-band term: inline serif text button. Hit area extended
    vertically via padding + negative margin without moving the line. */
 .alcove-term-btn {
   display: inline-block;
@@ -2183,7 +2355,7 @@ input[type="number"]::-webkit-outer-spin-button {
 .alcove-term-btn:hover { color: var(--tea-gold-lt); }
 .alcove-term-btn:active { color: var(--tea-gold); }
 
-/* "From the table" row — hairline-separated text row with a gold arrow. */
+/* "From the table" row: hairline-separated text row with a gold arrow. */
 .alcove-row-btn {
   display: flex;
   align-items: center;
@@ -2214,13 +2386,13 @@ input[type="number"]::-webkit-outer-spin-button {
   .alcove-row-btn:hover .alcove-row-go { transform: none; }
 }
 
-/* Segmented quantity cell (Sample / 50 g / 100 g / Custom) — cells sit inside
+/* Segmented quantity cell (Sample / 50 g / 100 g / Custom): cells sit inside
    one hairline-bordered strip; the active cell gets a gold inner keyline,
    a 7% gold wash, and gold-lt text. Inactive cells carry no fill. */
 .alcove-seg-btn {
   flex: 1;
   min-width: 0;
-  /* Visibly compact (the bar is pinned — every px is permanent screen tax);
+  /* Visibly compact (the bar is pinned; every px is permanent screen tax);
      the ::after overlay extends the touch area back to the 44px WCAG floor. */
   min-height: 34px;
   padding: 4px 2px 3px;
@@ -2267,7 +2439,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 .alcove-seg-btn[data-active="true"] small { color: var(--tea-gold-lt); }
 
-/* Primary order button — the footer's single solid element. Flat gold,
+/* Primary order button: the footer's single solid element. Flat gold,
    square corners, tracked caps with fixed dark text (readable on gold in
    both themes). Hover lightens; no opacity or transform tricks. */
 .alcove-order-btn {
@@ -2315,7 +2487,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 .alcove-order-btn:disabled .alcove-order-verb { color: var(--tea-text-sec); }
 
-/* Gallery thumb wrapper — replaces div onClick. */
+/* Gallery thumb wrapper, replaces div onClick. */
 .alcove-thumb-btn {
   background: none;
   border: none;
@@ -2354,7 +2526,7 @@ input[type="number"]::-webkit-outer-spin-button {
   display: block;
 }
 
-/* Source link — admin vendor button in identity header. */
+/* Source link, admin vendor button in identity header. */
 .alcove-source-link {
   background: none;
   border: none;
@@ -2371,7 +2543,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 .alcove-source-link:hover { opacity: 1; }
 
-/* Magazine prose link — keeps semantic <a> but as plain text with hover shift. */
+/* Magazine prose link, keeps semantic <a> but as plain text with hover shift. */
 .alcove-magazine-link {
   text-decoration: none;
   color: inherit;
@@ -2381,7 +2553,476 @@ input[type="number"]::-webkit-outer-spin-button {
 .alcove-magazine-link:hover { color: var(--tea-text); }
 
 /* ============================================
-   Tap target floor — 44×44 minimum per WCAG 2.5.5 / Apple HIG / Material Design.
+   Alcove Card: surfaces lifted out of inline styles.
+
+   The alcove painted roughly forty inline style blocks, and `lint:colors`
+   reads className strings only. The one surface in the shop carrying the most
+   colour was therefore the one surface with no colour coverage at all, and two
+   of the values it painted (a stock red and a stock amber) had drifted off the
+   theme entirely without anything catching it. Everything below is a colour, a
+   border or a surface the lint can now see. Only pure numbers (opacities, a
+   grid track) are still allowed through as inline style.
+   ============================================ */
+
+/* The container the alcove's TITLE role measures itself against. Declared on
+   the identity header rather than on the shell: `container-type` also makes an
+   element the containing block for fixed-position descendants, and the shell
+   holds the card's full-screen modals. */
+.alcove-measure {
+  container-type: inline-size;
+}
+
+.alcove-shell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--alcove-bg, var(--tea-bg));
+}
+
+.alcove-warmth {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* Bronze by default. A tea card overrides --alcove-warmth-rgb with the
+     liquor colour so the frame warms to what is in the cup; see AlcoveShell. */
+  background:
+    radial-gradient(ellipse 70% 50% at 85% 8%, rgb(var(--alcove-warmth-rgb, var(--tea-gold-rgb)) / var(--alcove-warmth-inner, 0.055)) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 90% 0%, rgb(var(--alcove-warmth-rgb, var(--tea-gold-rgb)) / var(--alcove-warmth-outer, 0.025)) 0%, transparent 50%);
+}
+
+.alcove-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--alcove-grain, 0.05);
+  background-size: 120px;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.alcove-watermark {
+  position: absolute;
+  right: 16px;
+  bottom: 90px;
+  z-index: 4;
+  writing-mode: vertical-rl;
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: 92px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.18em;
+  white-space: nowrap;
+  user-select: none;
+  pointer-events: none;
+  opacity: 0.045;
+  color: var(--tea-text-dim);
+}
+
+.alcove-scroll {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.alcove-fade-anchor {
+  position: relative;
+  flex-shrink: 0;
+  height: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.alcove-fade {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 14px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  background: linear-gradient(
+    to top,
+    var(--alcove-bg, var(--tea-bg)) 0%,
+    var(--alcove-bg, var(--tea-bg)) 30%,
+    transparent 100%
+  );
+}
+.alcove-fade[data-visible="true"] { opacity: 0.7; }
+
+.alcove-gallery {
+  animation: panelReveal 0.5s ease-out;
+}
+
+/* Identity header. */
+.alcove-header {
+  position: relative;
+  padding: 16px 20px 0;
+}
+
+/* The type / origin / year caption, ruled top and bottom, bleeding to the
+   card's edges. */
+.alcove-caption {
+  padding: 6px 0 5px;
+  margin: 8px -20px 0;
+  border-top: 1px solid var(--tea-border);
+  border-bottom: 1px solid var(--tea-border);
+}
+.alcove-caption[data-tight="true"] { margin-top: 6px; }
+
+/* A body section: prose, terroir, processing, events. */
+.alcove-body-section {
+  padding: 0 20px;
+}
+
+/* The page's one separator, inside the card. */
+.alcove-hairline {
+  height: 1px;
+  margin-bottom: 14px;
+  background: var(--tea-border);
+}
+
+/* Loading skeletons for the events block. */
+.alcove-skeleton-label {
+  width: 120px;
+  height: 10px;
+  margin-bottom: 10px;
+  border-radius: 3px;
+  background: var(--tea-accent-sub);
+}
+.alcove-skeleton-row {
+  height: 40px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  background: var(--tea-accent-sub);
+  opacity: 0.8;
+  animation: pulse 1.8s ease-in-out infinite;
+}
+.alcove-skeleton-row[data-second="true"] { opacity: 0.6; }
+
+.alcove-event-thumb {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  object-fit: cover;
+}
+.alcove-event-thumb-empty {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background: var(--tea-surface);
+  border: 1px solid var(--tea-border);
+  color: var(--tea-text-dim);
+}
+
+/* Sensory grid. */
+.alcove-sensory {
+  margin-top: 24px;
+  padding: 4px 16px;
+  background: rgb(var(--tea-text-rgb) / 0.08);
+  border-top: 1px solid var(--tea-border);
+  border-bottom: 1px solid var(--tea-border);
+}
+.alcove-note-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.alcove-note-btn[data-col="left"] { border-right: 1px solid var(--tea-border); }
+.alcove-note-btn[data-rule="true"] { border-bottom: 1px solid var(--tea-border); }
+.alcove-note-swatch {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid var(--tea-border);
+}
+.alcove-tasted {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 44px;
+  padding: 2px 6px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+  color: var(--tea-text-dim);
+  transition: color 200ms ease;
+}
+.alcove-tasted:hover { color: var(--tea-text-sec); }
+
+/* Commerce footer. */
+.alcove-commerce {
+  position: relative;
+  z-index: 3;
+  flex-shrink: 0;
+  padding: 14px 14px 10px;
+  border-top: 1px solid var(--tea-border);
+  background: var(--alcove-bg, var(--tea-bg));
+}
+.alcove-icon-cluster {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 8px;
+  border: 1px solid var(--tea-border);
+  border-radius: 3px;
+}
+.alcove-icon-divider {
+  width: 1px;
+  height: 10px;
+  flex-shrink: 0;
+  background: var(--tea-border);
+}
+
+/* Unit stepper (teaware buys by the piece, not by the gram).
+
+   The teaware card drew this with sixty lines of inline style and two 32px
+   buttons, which is a control a finger misses. Same 44px floor as every other
+   control in this footer, and the colours are tokens the lint can read. No
+   font-size: the component sets the roles. */
+.alcove-stepper {
+  display: inline-flex;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid var(--tea-border);
+  border-radius: 3px;
+}
+.alcove-stepper-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border: none;
+  background: none;
+  color: var(--tea-text-sec);
+  cursor: pointer;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+.alcove-stepper-btn:hover:not(:disabled) {
+  background: var(--tea-accent-sub);
+  color: var(--tea-text);
+}
+.alcove-stepper-btn:disabled {
+  color: var(--tea-text-dim);
+  cursor: default;
+}
+.alcove-stepper-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  padding: 0 4px;
+  color: var(--tea-text);
+  box-shadow: inset 1px 0 0 var(--tea-border), inset -1px 0 0 var(--tea-border);
+}
+
+/* Teaware hero. A pot is bought by looking at it, so it keeps a full square
+   above the fold where a tea keeps a thumbnail strip. Everything below was an
+   inline style, including a gradient built from a JavaScript colour bag. */
+.alcove-hero {
+  position: relative;
+  flex-shrink: 0;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: var(--tea-surface);
+  border: none;
+  padding: 0;
+  cursor: zoom-in;
+  display: block;
+}
+.alcove-hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: fadeIn 0.3s ease-out;
+}
+.alcove-hero-fade {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 40%;
+  pointer-events: none;
+  background: linear-gradient(to top, var(--alcove-bg, var(--tea-bg)), transparent);
+}
+.alcove-hero-dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+/* The dot is the mark; the button around it is the 44px a finger needs. */
+.alcove-hero-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+.alcove-hero-dot::before {
+  content: '';
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--tea-text-dim);
+  transition: width 200ms ease, background-color 200ms ease;
+}
+.alcove-hero-dot[data-active="true"]::before {
+  width: 16px;
+  background: var(--tea-gold);
+}
+
+/* Modals. One backdrop, one panel, so a third modal cannot invent a fourth
+   shade of black. */
+.alcove-modal-backdrop {
+  background: rgb(0 0 0 / 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.alcove-modal-panel {
+  position: relative;
+  width: 100%;
+  padding: 24px;
+  border-radius: 8px;
+  background: var(--tea-surface);
+  border: 1px solid var(--tea-border);
+}
+.alcove-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--tea-text-sec);
+}
+.alcove-size-btn {
+  flex: 1;
+  min-height: 44px;
+  padding: 8px 4px;
+  border-radius: 4px;
+  border: 1px solid var(--tea-border);
+  background: var(--tea-bg);
+  color: var(--tea-text);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease;
+}
+.alcove-size-btn[data-active="true"] {
+  border-color: var(--tea-gold);
+  background: var(--tea-accent-sub);
+  color: var(--tea-gold);
+}
+.alcove-note-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--tea-border);
+  background: var(--tea-bg);
+  color: var(--tea-text);
+  outline: none;
+  resize: none;
+}
+.alcove-amount-input {
+  flex: 1;
+  height: 44px;
+  padding: 0 10px;
+  border-radius: 4px;
+  border: 1px solid var(--tea-gold);
+  background: var(--tea-bg);
+  color: var(--tea-text);
+  outline: none;
+}
+.alcove-modal-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 4px;
+  background: var(--tea-gold);
+  color: var(--tea-bg);
+  cursor: pointer;
+  transition: background-color 200ms ease;
+}
+.alcove-modal-primary:hover:not(:disabled) { background: var(--tea-gold-lt); }
+.alcove-modal-primary:disabled { opacity: 0.7; cursor: not-allowed; }
+.alcove-modal-cancel {
+  flex: 1;
+  min-height: 44px;
+  border-radius: 4px;
+  border: 1px solid var(--tea-border);
+  background: none;
+  color: var(--tea-text-sec);
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+.alcove-modal-cancel:hover { color: var(--tea-text); }
+
+/* Image viewer. */
+.alcove-viewer {
+  background: var(--tea-bg);
+  cursor: pointer;
+  animation: panelReveal 0.3s ease-out;
+}
+.alcove-viewer-img {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 4px;
+  cursor: default;
+}
+.alcove-viewer-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--tea-border);
+  background: var(--tea-accent-sub);
+  color: var(--tea-text-sec);
+  cursor: pointer;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+.alcove-viewer-close:hover {
+  background: var(--tea-surface);
+  color: var(--tea-text);
+}
+
+/* ============================================
+   Tap target floor: 44×44 minimum per WCAG 2.5.5 / Apple HIG / Material Design.
    Apply to any interactive button or icon-only control. Doesn't change visual
    size of the element's content; just adds invisible padding around the click area.
    ============================================ */
@@ -2390,11 +3031,19 @@ input[type="number"]::-webkit-outer-spin-button {
   min-height: 44px;
   display: inline-flex;
   align-items: center;
+}
+
+/* Centring is only the right default for an icon-sized control. This class also
+   lands on full-width rows that lay themselves out with justify-between, and at
+   equal specificity, loading after Tailwind, it was quietly winning and pulling
+   their contents to the middle. Zero specificity so any caller's own alignment
+   takes precedence, while an unaligned icon button still centres. */
+:where(.tap-target) {
   justify-content: center;
 }
 
 /* ============================================
-   Gram Slider — a precision gauge for the Curate capture form (reused by the
+   Gram Slider, a precision gauge for the Curate capture form (reused by the
    quick-sale sheet). Continuous value with soft magnetic snap to presets; see
    src/components/TeaCompass/GramSlider.tsx for interaction logic.
 
@@ -2417,7 +3066,7 @@ input[type="number"]::-webkit-outer-spin-button {
   height: 100%;
   width: 100%;
 }
-/* Rail — a fine engraved groove in the upper band. */
+/* Rail, a fine engraved groove in the upper band. */
 .gram-slider-rail {
   position: absolute;
   top: 14px;
@@ -2428,7 +3077,7 @@ input[type="number"]::-webkit-outer-spin-button {
   background: rgb(var(--tea-text-rgb) / 0.10);
   box-shadow: inset 0 1px 1.5px rgb(0 0 0 / 0.28);
 }
-/* Filled portion — aged bronze, a warm gradient with a soft glow. */
+/* Filled portion, aged bronze, a warm gradient with a soft glow. */
 .gram-slider-rail-fill {
   position: absolute;
   inset-block: 0;
@@ -2451,7 +3100,7 @@ input[type="number"]::-webkit-outer-spin-button {
   background: rgb(var(--tea-text-rgb) / 0.16);
   pointer-events: none;
 }
-/* Knob — a polished bronze dial sitting above the rail. */
+/* Knob, a polished bronze dial sitting above the rail. */
 .gram-slider-knob {
   position: absolute;
   top: 16px;
@@ -2488,7 +3137,7 @@ input[type="number"]::-webkit-outer-spin-button {
 .gram-slider:focus-visible .gram-slider-knob {
   box-shadow: 0 0 0 3px rgb(var(--tea-gold-rgb) / 0.4), 0 2px 5px rgb(0 0 0 / 0.45);
 }
-/* Live value bubble — appears above the knob while dragging. */
+/* Live value bubble, appears above the knob while dragging. */
 .gram-slider-bubble {
   position: absolute;
   top: -2px;
@@ -2525,6 +3174,40 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* ============================================
+   Setting utilities: the details of fine typesetting
+
+   Three properties that have to be set on the element rather than composed out
+   of Tailwind classes, and that are reusable anywhere text is being set rather
+   than laid out. Written for the public reference at /wisdom, which is the
+   first surface in the app set like a book rather than like a screen.
+   ============================================ */
+
+/* Punctuation hangs into the margin so the text edge stays optically flush.
+   `hanging-punctuation` is the real property for this, and the only honest way
+   to reach it: a per-character hack applied to some quotes and not others reads
+   worse than no hanging at all. A browser without support sets flush by
+   bounding box, which is what every page already did. Inherited, so one class
+   on a page root covers every paragraph under it. */
+.hang-punct { hanging-punctuation: first allow-end last; }
+
+/* Optical left alignment for a large display serif. Cormorant Garamond carries
+   a side bearing of roughly a fortieth of an em, so a headword set flush by its
+   bounding box reads as indented against the labels and rules beneath it, which
+   have almost none. The negative margin pulls the letterform, not the box, onto
+   the axis. It is in em, so it scales: about 1px at 44px, and nothing worth
+   seeing at 17px. */
+.optical-left { margin-left: -0.025em; }
+
+/* Tabular LINING figures. Tailwind's `tabular-nums` sets equal advance widths
+   but leaves figure style alone, so a face whose default figures are old style
+   still columns ascenders against descenders. Altitudes, years, counts and
+   catalogue numbers need both before a numeric column actually columns. */
+.figures-tab {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+}
+
+/* ============================================
    Bottom Nav Clearance Utilities
    The mobile bottom nav is a floating capsule:
    52px tall, lifted 12px above safe-area-inset-bottom, with 16px side margins.
@@ -2536,15 +3219,15 @@ input[type="number"]::-webkit-outer-spin-button {
 /* Mobile nav clearance = 52px bar + 12px gap below + 16px breathing room
    above so interactive elements never land under the bar or its shadow. */
 
-/* Padding clearance — clears the bar's top edge with 16px breathing room */
+/* Padding clearance, clears the bar's top edge with 16px breathing room */
 .pb-nav        { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
 @media (min-width: 1024px) { .pb-nav { padding-bottom: 0; } }
 
-/* Padding clearance — with 1rem extra breathing room above bar */
+/* Padding clearance, with 1rem extra breathing room above bar */
 .pb-nav-gap    { padding-bottom: calc(1rem + 80px + env(safe-area-inset-bottom, 0px)); }
 @media (min-width: 1024px) { .pb-nav-gap { padding-bottom: 1rem; } }
 
-/* Padding clearance — with 2rem extra breathing room above bar */
+/* Padding clearance, with 2rem extra breathing room above bar */
 .pb-nav-gap-lg { padding-bottom: calc(2rem + 80px + env(safe-area-inset-bottom, 0px)); }
 @media (min-width: 1024px) { .pb-nav-gap-lg { padding-bottom: 2rem; } }
 
@@ -2553,21 +3236,21 @@ input[type="number"]::-webkit-outer-spin-button {
 .scroll-pb-nav-gap-lg { scroll-padding-bottom: calc(2rem + 80px + env(safe-area-inset-bottom, 0px)); }
 @media (min-width: 1024px) { .scroll-pb-nav-gap-lg { scroll-padding-bottom: 2rem; } }
 
-/* Padding clearance — for pages that ALSO show the fixed capture verdict
+/* Padding clearance, for pages that ALSO show the fixed capture verdict
    row (30px of row height on top of the bar's 80px). Same lg reset. */
 .pb-nav-verdict { padding-bottom: calc(2rem + 80px + 30px + env(safe-area-inset-bottom, 0px)); }
 @media (min-width: 1024px) { .pb-nav-verdict { padding-bottom: 2rem; } }
 
-/* bottom: offset — positions fixed elements clear above the bar */
+/* bottom: offset, positions fixed elements clear above the bar */
 .bottom-nav    { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
 @media (min-width: 1024px) { .bottom-nav { bottom: 0; } }
 
-/* bottom: offset — positions fixed elements 1rem above that clearance */
+/* bottom: offset, positions fixed elements 1rem above that clearance */
 .bottom-nav-gap { bottom: calc(1rem + 80px + env(safe-area-inset-bottom, 0px)); }
 @media (min-width: 1024px) { .bottom-nav-gap { bottom: 1rem; } }
 
 /* ============================================
-   Page chrome — canonical wide / narrow wrappers
+   Page chrome, canonical wide / narrow wrappers
    Per DESIGN_SYSTEM.md §4 "Promote both to named utilities".
    Wide pages (tables/hubs/dashboards): .admin-page  → px-4 md:px-6 lg:px-10, max-w-7xl
    Narrow pages (forms/settings/reading): .admin-page-narrow → px-4 md:px-6, max-w-3xl
@@ -2771,13 +3454,17 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] {
 [data-curate-source].surface-warm::before { opacity: 0.3; }
 [data-curate-source].surface-warm::after { opacity: 0.025; }
 
+/* Micro-caps are for labels of three words or fewer. At 10px against a 16px
+   value the label recedes to a caption and the value reads first, instead of
+   12px and 16px competing inside the same 44px box. */
 .curate-inline-label {
   color: var(--tea-text-dim);
   font-family: var(--font-sans);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
-  line-height: 1.35;
-  letter-spacing: 0.02em;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .curate-floating-label {
@@ -2787,15 +3474,130 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] {
   z-index: 1;
   color: var(--tea-text-dim);
   font-family: var(--font-sans);
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 600;
-  line-height: 1;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   pointer-events: none;
 }
 
+/* One lane above the value carries everything that is not the value: the label
+   and its state on the left, where labels live; provenance on the right. */
+.curate-field-lane {
+  position: absolute;
+  top: 0.25rem;
+  left: 0.75rem;
+  right: 0.75rem;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.curate-field-lane .curate-floating-label {
+  position: static;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Confirm is a state, not a button. It wears the label type, sits beside the
+   label rather than in the top-right corner where actions live, and carries a
+   bronze dot so it reads as "unresolved" instead of "press me". */
+.curate-field-flag {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--tea-gold);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.curate-field-flag::before {
+  content: "";
+  width: 4px;
+  height: 4px;
+  flex: none;
+  border-radius: 9999px;
+  background: currentColor;
+}
+
+/* Where a value came from, and what a field can offer. Dim and never bronze,
+   so provenance cannot be confused with something the operator must resolve. */
+.curate-field-marks {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+  padding-left: 0.5rem;
+  color: var(--tea-text-dim);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* The two jobs the slot under a field can have, told apart at a glance:
+   a derived fact is dim and unmarked, a warning is bronze and carries a mark. */
+.curate-field-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  padding-left: 0.75rem;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.curate-field-note-derived { color: var(--tea-text-dim); }
+.curate-field-note-warning {
+  color: var(--tea-gold);
+  font-weight: 500;
+}
+
 .curate-field-with-label {
-  padding-top: 0.875rem;
+  padding-top: 0.9375rem;
   padding-bottom: 0.125rem;
+}
+
+/* The floating label sits at left: 0.75rem, so the value must start there too
+   or every field reads as two misaligned columns. Its own class rather than
+   part of .curate-field-with-label, because callers that hand-tune their inline
+   padding (adornment buttons, centred numerics) must keep winning. */
+.curate-field-inset {
+  padding-inline: 0.75rem;
+}
+
+/* Selects drop native chrome; CurateField draws the chevron on the value line
+   so it cannot collide with the status marker in the top-right corner. */
+.curate-field-select {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 2rem;
+}
+
+/* A field still waiting on the operator carries a bronze gutter and a breath of
+   accent wash, so a blocked field and a settled one stop looking identical
+   without touching a single border colour. Declared after the base focus rule
+   so the gutter survives focus. */
+.curate-field-attention {
+  background: color-mix(in srgb, var(--tea-surface) 92%, var(--tea-gold));
+  box-shadow: inset 2px 0 0 var(--tea-gold);
+}
+.curate-field-attention:focus,
+.curate-field-attention:focus-visible {
+  box-shadow: inset 2px 0 0 var(--tea-gold), 0 0 0 2px var(--tea-accent-sub);
 }
 .curate-action:hover { color: var(--tea-text); }
 .curate-action:focus-visible {
@@ -2831,7 +3633,7 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] {
 
    Lightness steps are deliberately small (~6-8 points) so cards sit
    on each other via the inset-top highlight, not via aggressive
-   background contrast. Borders are barely perceptible — they define
+   background contrast. Borders are barely perceptible, they define
    the edge without pulling focus.
 
    Brand gold is preserved as the *single* interactive accent (focus
@@ -2842,7 +3644,7 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] {
 .dark {
   /* HARMONIZED with the site-wide tea-* tokens (src/styles/tailwind.css).
      The admin-card structural system (bg → surface → input each lighter,
-     gold as the sole accent, AA-contrast text floors) is preserved — only
+     gold as the sole accent, AA-contrast text floors) is preserved, only
      the colour values now point at the exact tea palette so the admin
      panels read as the same material as the rest of the site, not a
      darker near-miss cousin. Update these in lockstep with the tea dark
@@ -2860,7 +3662,7 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] {
 }
 
 .light {
-  /* Light-mode admin palette — mirrors the tea light tokens. Previously
+  /* Light-mode admin palette, mirrors the tea light tokens. Previously
      the admin-* block defined dark values under :root/.light/.dark, so the
      panel stayed dark in light mode. These map onto --tea light values. */
   --admin-bg:           #f4ece0;  /* = --tea-bg light */
@@ -2871,18 +3673,18 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] {
   --admin-border-hover: rgb(168 135 77 / 0.28);
   --admin-text:         #18130e;  /* = --tea-text light */
   --admin-text-sec:     #332b20;  /* = --tea-text-sec light */
-  --admin-text-dim:     #5c5040;  /* muted warm — labels (AA on light surface) */
+  --admin-text-dim:     #5c5040;  /* muted warm, labels (AA on light surface) */
   --admin-text-faint:   #8a7c66;
 }
 
-/* Card surface — three concurrent moves create the "milled object" feel:
-   1. Background gradient (subtle 2.5% white fade at top) — ambient lift
-   2. Inset 0 1px 0 white highlight — sharp top bevel that defines the edge
-   3. Outer drop shadow — separates the card from the page beneath it
+/* Card surface, three concurrent moves create the "milled object" feel:
+   1. Background gradient (subtle 2.5% white fade at top), ambient lift
+   2. Inset 0 1px 0 white highlight, sharp top bevel that defines the edge
+   3. Outer drop shadow, separates the card from the page beneath it
    Each move is barely-there individually; together they make the card
    sit *above* the panel surface instead of being painted onto it. */
 /* Sharper text on admin surfaces. Intentionally NO text-rendering:
-   optimizeLegibility — it causes layout thrashing on dense pages
+   optimizeLegibility, it causes layout thrashing on dense pages
    (the inventory table) in Chrome. font-smoothing is cheap. */
 .admin-card,
 .admin-input {
@@ -2891,10 +3693,10 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] {
 }
 
 .admin-card {
-  /* Flat surface — no gradient. Card is defined by:
+  /* Flat surface, no gradient. Card is defined by:
      1. Solid bg color (one notch lighter than page bg)
-     2. Inset 0 1px 0 white highlight — sharp top bevel
-     3. Drop shadow — gentle separation from the page */
+     2. Inset 0 1px 0 white highlight, sharp top bevel
+     3. Drop shadow, gentle separation from the page */
   background: var(--admin-surface);
   border: 1px solid var(--admin-border);
   border-radius: 8px;
@@ -2916,14 +3718,14 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] {
     0 1px 0 rgba(0, 0, 0, 0.35);
 }
 
-/* Interactive card hover — bg shift, border lift, no scale. */
+/* Interactive card hover, bg shift, border lift, no scale. */
 .admin-card-interactive { cursor: pointer; transition: background-color 120ms ease, border-color 120ms ease; }
 .admin-card-interactive:hover {
   background: var(--admin-elevated);
   border-color: var(--admin-border-hover);
 }
 
-/* Input surface — sits inside cards. Darker than card on purpose so the
+/* Input surface, sits inside cards. Darker than card on purpose so the
    input reads as recessed. Border is the same ghosted line. Focus uses
    the brand gold ring as the single interactive accent. */
 .admin-input {
@@ -2943,7 +3745,7 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] {
   box-shadow: 0 0 0 2px rgba(255, 244, 228, 0.10);
 }
 
-/* Quiet pill (inside admin) — ghosted by default, gold-tinted when on. */
+/* Quiet pill (inside admin), ghosted by default, gold-tinted when on. */
 .admin-pill {
   display: inline-flex;
   align-items: center;
@@ -2967,7 +3769,7 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] {
 /* Subtle divider line for in-card lists. Same line weight as borders. */
 .admin-divider { background: var(--admin-border); }
 
-/* Mobile inventory swipe table — tighten cell padding so columns nest hard to
+/* Mobile inventory swipe table, tighten cell padding so columns nest hard to
    the left and read as a dense block. Overrides the per-cell px-3 (12px) down to
    6px each side. Applied via the `inv-tight` class on the mobile <table> only, so
    desktop spacing is untouched. */

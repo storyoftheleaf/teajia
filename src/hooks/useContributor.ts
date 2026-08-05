@@ -6,7 +6,7 @@ import type {
   ContributorLink,
 } from '../types';
 
-// useContributor(slug) — public profile for /people/:slug.
+// useContributor(slug), public profile for /people/:slug.
 // Returns the contributor row joined with articles by, pull-quotes about,
 // host account, products attributed, and the seasonal stamp.
 //
@@ -71,7 +71,7 @@ export const useContributor = (slug: string | undefined) => {
   });
 };
 
-// useContributors() — directory list for /people.
+// useContributors(), directory list for /people.
 // Lighter shape; only the fields needed to render the typeset directory.
 
 export const useContributors = () => {

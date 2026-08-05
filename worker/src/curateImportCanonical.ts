@@ -25,7 +25,7 @@ export type CanonicalHoldingResolution =
 
 export const CANONICAL_IMPORT_FIELDS = [
   'sourceId', 'sourceItemId', 'evidenceRefs', 'sourceExcerpt', 'sourceLanguage',
-  'englishName', 'originalName', 'chineseName', 'category', 'type', 'classification',
+  'englishName', 'originalName', 'chineseName', 'category', 'type', 'classification', 'cultivar', 'producer',
   'form', 'year', 'originCountry', 'originRegion', 'description',
   'packWeight', 'weightUnit', 'packCount', 'priceAmountExact', 'currency', 'priceBasis',
   'lineCostExact', 'unitCostExact', 'totalQuantityGrams', 'totalUnits',
@@ -44,6 +44,10 @@ export interface CanonicalImportRecord {
   category: CanonicalImportCategory;
   type: string | null;
   classification: string | null;
+  /** The plant the tea is made from, resolved against the wisdom base. */
+  cultivar: string | null;
+  /** The factory, house or brand that made it. Not the vendor it was bought from. */
+  producer: string | null;
   form: string | null;
   year: number | null;
   originCountry: string | null;
@@ -67,7 +71,7 @@ export interface CanonicalImportRecord {
 }
 
 export type CanonicalProductValues = Partial<Record<
-  | 'product_name' | 'given_name' | 'chinese_name' | 'type' | 'classification' | 'form'
+  | 'product_name' | 'given_name' | 'chinese_name' | 'type' | 'classification' | 'cultivar' | 'producer' | 'form'
   | 'year' | 'origin_country' | 'origin_region' | 'description' | 'vendor_id' | 'vendor'
   | 'inventory_purpose',
   string
@@ -264,6 +268,8 @@ export function normalizeCanonicalImportRecord(value: Record<string, unknown>): 
     category: value.category === 'teaware' ? 'teaware' : 'tea',
     type: text(value.type),
     classification: text(value.classification),
+    cultivar: text(value.cultivar),
+    producer: text(value.producer),
     form: text(value.form),
     year: year(value.year),
     originCountry: text(value.originCountry ?? value.origin_country),
@@ -306,6 +312,8 @@ export function canonicalImportToCompassValues(record: CanonicalImportRecord): P
     category: record.category,
     type: record.type,
     classification: record.classification,
+    cultivar: record.cultivar,
+    producer: record.producer,
     form: record.form,
     year: record.year,
     origin_country: record.originCountry,
@@ -331,6 +339,8 @@ export function canonicalImportToProductValues(record: CanonicalImportRecord): C
     chinese_name: record.chineseName ?? record.originalName,
     type: record.type,
     classification: record.classification,
+    cultivar: record.cultivar,
+    producer: record.producer,
     form: record.form,
     year: record.year == null ? null : String(record.year),
     origin_country: record.originCountry,

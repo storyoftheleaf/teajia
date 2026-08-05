@@ -15,7 +15,7 @@ const CARD_APPROX_HEIGHT = 180;
 const SCREEN_MARGIN = 12;
 
 /**
- * FootnoteCard — Floating tea glossary definition card.
+ * FootnoteCard: Floating tea glossary definition card.
  * Appears at tap position, clamped to screen edges.
  * Dismisses on outside tap, scroll, or ESC key.
  * Gold accent border-top. Framer Motion spring entrance.
@@ -88,7 +88,7 @@ const FootnoteCard: React.FC<FootnoteCardProps> = ({
         width: CARD_WIDTH,
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        borderTop: '3px solid var(--color-tea-gold, #c9a84c)',
+        borderTop: '3px solid var(--tea-gold)',
       }}
       onClick={(e) => e.stopPropagation()}
     >

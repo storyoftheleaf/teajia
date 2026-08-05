@@ -1,0 +1,11 @@
+{
+  "id": "shou-kunming-shou",
+  "type": "Shou",
+  "name": "Kunming Shou",
+  "chineseName": "昆明熟普",
+  "altNames": [],
+  "region": "Kunming",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

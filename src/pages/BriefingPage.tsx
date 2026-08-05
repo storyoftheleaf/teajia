@@ -6,8 +6,8 @@ import { api, getApiOrigin } from '../lib/api';
 import { useWalkthrough } from '../lib/walkthroughStore';
 
 /**
- * BriefingPage — the owner's walk-through guide. Not a map of pages (those are
- * reachable from normal nav); this holds the *flows* — the cross-feature chains
+ * BriefingPage, the owner's walk-through guide. Not a map of pages (those are
+ * reachable from normal nav); this holds the *flows*, the cross-feature chains
  * and the how-to that only lived in Adrian's head. Each walk-through is a real
  * procedure: numbered steps, a "try it here" button on the steps that have a
  * place to go, and a per-step check so he can run the flow, see what breaks or
@@ -35,33 +35,33 @@ type Walkthrough = {
 };
 
 // The five user types Your Table renders, and what the platform brings each.
-// Descriptive (not impersonation) — manage the real grants in Members & Access.
+// Descriptive (not impersonation), manage the real grants in Members & Access.
 type Role = { id: string; name: string; gets: string; can: string };
 const ROLES: Role[] = [
   {
     id: 'reader', name: 'Reader',
-    gets: 'The public, signed-in experience — the writing and the shop, made personal.',
-    can: 'Read the magazine, browse and inquire on teas, save favorites, follow the learning tracks. No inventory, no admin. The lightest tier — someone who loves the tea but doesn\'t run anything.',
+    gets: 'The public, signed-in experience, the writing and the shop, made personal.',
+    can: 'Read the magazine, browse and inquire on teas, save favorites, follow the learning tracks. No inventory, no admin. The lightest tier, someone who loves the tea but doesn\'t run anything.',
   },
   {
     id: 'member', name: 'Member',
-    gets: 'A practitioner\'s own space — their tasting practice lives here.',
-    can: 'Everything a Reader can, plus their own tasting journal (synced across devices) and the collections shared with them. This is the heart of the "manage your own collection" idea — a member treats Teajia as their personal tea record, not just a shop.',
+    gets: 'A practitioner\'s own space, their tasting practice lives here.',
+    can: 'Everything a Reader can, plus their own tasting journal (synced across devices) and the collections shared with them. This is the heart of the "manage your own collection" idea, a member treats Teajia as their personal tea record, not just a shop.',
   },
   {
     id: 'operator', name: 'Operator',
-    gets: 'The keys to run a shop — the back-office, scoped to what they\'re granted.',
-    can: 'Whatever capability bundles you give them: Catalog, Stock, Publish, Gather, Sell, Members — each unlocks that part of admin. An Operator with Stock+Sell runs inventory and orders but can\'t touch members; one with Publish curates and writes. You compose their power bundle by bundle.',
+    gets: 'The keys to run a shop, the back-office, scoped to what they\'re granted.',
+    can: 'Whatever capability bundles you give them: Catalog, Stock, Publish, Gather, Sell, Members, each unlocks that part of admin. An Operator with Stock+Sell runs inventory and orders but can\'t touch members; one with Publish curates and writes. You compose their power bundle by bundle.',
   },
   {
     id: 'staff', name: 'Staff',
-    gets: 'A trusted hand inside one shop — broad access without ownership.',
+    gets: 'A trusted hand inside one shop, broad access without ownership.',
     can: 'The admin tools their bundles allow, working on behalf of the shop, but not the owner-only controls (pricing that crosses accounts, the exchange rate, deleting members). The person who works the counter and the inventory, not the one who sets the strategy.',
   },
   {
     id: 'owner', name: 'Owner',
-    gets: 'The whole platform — every shop they own, and the cross-account controls.',
-    can: 'Everything: all admin, all bundles, the exchange rate, multi-store network, the audit log, and (as platform owner) acting across accounts. The full picture — what you have right now.',
+    gets: 'The whole platform, every shop they own, and the cross-account controls.',
+    can: 'Everything: all admin, all bundles, the exchange rate, multi-store network, the audit log, and (as platform owner) acting across accounts. The full picture, what you have right now.',
   },
 ];
 
@@ -69,11 +69,11 @@ const WALKTHROUGHS: Walkthrough[] = [
   {
     id: 'wt:onboard',
     title: 'Onboard a team member',
-    intent: 'Add someone and give them exactly the access they need — no more.',
+    intent: 'Add someone and give them exactly the access they need, no more.',
     steps: [
       { text: 'Open Members & Access and invite or add the person.', to: '/admin/access', goLabel: 'Members & Access' },
       { text: 'Pick their tier (Guest → Member → Staff → Manager → Owner) and grant only the capability bundles they need (Catalog, Stock, Publish, Gather, Sell, Members).' },
-      { text: 'Sign in as them (or have them sign in) and confirm they see only what you granted — wrong tiles here means the bundle is off.', to: '/account', goLabel: 'Your Table' },
+      { text: 'Sign in as them (or have them sign in) and confirm they see only what you granted, wrong tiles here means the bundle is off.', to: '/account', goLabel: 'Your Table' },
     ],
   },
   {
@@ -81,10 +81,10 @@ const WALKTHROUGHS: Walkthrough[] = [
     title: 'Connect & test the assistant (MCP)',
     intent: 'Get a voice or AI assistant controlling the shop, and prove it works before trusting it.',
     steps: [
-      { text: 'Mint a token in MCP Tokens (it shows once — copy it then).', to: '/admin/mcp-tokens', goLabel: 'MCP Tokens' },
+      { text: 'Mint a token in MCP Tokens (it shows once, copy it then).', to: '/admin/mcp-tokens', goLabel: 'MCP Tokens' },
       { text: `Point your assistant at the endpoint ${API}/mcp and paste the token.` },
-      { text: 'Ask it "what\'s low on stock" — it should list your reorder teas. Compare against the real screen.', to: '/admin/stock', goLabel: 'Stock' },
-      { text: 'Ask it to record a small sale — it should preview first, then confirm. Watch that the stock actually moves.', to: '/admin/orders', goLabel: 'Orders' },
+      { text: 'Ask it "what\'s low on stock", it should list your reorder teas. Compare against the real screen.', to: '/admin/stock', goLabel: 'Stock' },
+      { text: 'Ask it to record a small sale, it should preview first, then confirm. Watch that the stock actually moves.', to: '/admin/orders', goLabel: 'Orders' },
     ],
   },
   {
@@ -102,7 +102,7 @@ const WALKTHROUGHS: Walkthrough[] = [
     title: 'A new tea, start to finish',
     intent: 'From "I have a new tea" to it being live and shoppable.',
     steps: [
-      { text: 'Create the product in Catalog — name, type, year, conditional fields.', to: '/admin/catalog', goLabel: 'Catalog' },
+      { text: 'Create the product in Catalog, name, type, year, conditional fields.', to: '/admin/catalog', goLabel: 'Catalog' },
       { text: 'Add its opening stock in Stock (writes a purchase-receipt to the ledger).', to: '/admin/stock', goLabel: 'Stock' },
       { text: 'Write its description, lore, and tasting notes so the product page reads well.', to: '/admin/catalog', goLabel: 'Catalog' },
       { text: 'Open the live shop and check the tea page looks right to a customer.', to: '/shop', goLabel: 'Shop' },
@@ -125,7 +125,7 @@ const WALKTHROUGHS: Walkthrough[] = [
     steps: [
       { text: 'Build the sample set (pick the teas, the amounts).', to: '/admin/samples', goLabel: 'Samples' },
       { text: 'Generate the label sheet and check each label reads right.' },
-      { text: 'Generate the QR on a sample and scan it with your phone — confirm it lands where a customer expects.' },
+      { text: 'Generate the QR on a sample and scan it with your phone, confirm it lands where a customer expects.' },
     ],
   },
   {
@@ -135,7 +135,7 @@ const WALKTHROUGHS: Walkthrough[] = [
     steps: [
       { text: 'Open a tea in Stock and generate its brewing QR card.', to: '/admin/stock', goLabel: 'Stock' },
       { text: 'Share it to WhatsApp (or download) and check it looks right.' },
-      { text: 'Scan the QR with your phone — confirm the brewing guide it opens is correct for that tea.' },
+      { text: 'Scan the QR with your phone, confirm the brewing guide it opens is correct for that tea.' },
     ],
   },
   {
@@ -143,10 +143,10 @@ const WALKTHROUGHS: Walkthrough[] = [
     title: 'Run an event end to end',
     intent: 'From creating a gathering to the post-session recap.',
     steps: [
-      { text: 'Create the event — date, capacity, tea menu.', to: '/admin/events', goLabel: 'Events' },
+      { text: 'Create the event, date, capacity, tea menu.', to: '/admin/events', goLabel: 'Events' },
       { text: 'Check the public event page and that RSVP + capacity behave.', to: '/events', goLabel: 'Public events' },
       { text: 'Run the session (mark attendance, the tea menu).', to: '/admin/events', goLabel: 'Events' },
-      { text: 'Write the recap — teas served, notes, purchase links — and confirm it shows on the public recap.' },
+      { text: 'Write the recap, teas served, notes, purchase links, and confirm it shows on the public recap.' },
     ],
   },
   {
@@ -175,7 +175,7 @@ const WALKTHROUGHS: Walkthrough[] = [
     intent: 'Drop a supplier PDF and have the order parsed out.',
     status: 'not_built',
     steps: [
-      { text: 'Not built yet. Today, bulk import is CSV-only (see "Bring in opening stock by CSV"); PDF is output-only. This is here so the gap is visible — say the word to scope building it.' },
+      { text: 'Not built yet. Today, bulk import is CSV-only (see "Bring in opening stock by CSV"); PDF is output-only. This is here so the gap is visible, say the word to scope building it.' },
     ],
   },
 ];
@@ -183,7 +183,7 @@ const WALKTHROUGHS: Walkthrough[] = [
 /** A problem flagged during a walk-through, read back from D1 for the rollup. */
 type Finding = { stepId: string; walkTitle: string; stepText: string; works: string; note: string };
 
-// stepId is `${walkthroughId}#${index}` — resolve it back to a human walk + step.
+// stepId is `${walkthroughId}#${index}`, resolve it back to a human walk + step.
 function resolveFinding(stepId: string, works: string, note: string): Finding | null {
   const [walkId, idxStr] = stepId.split('#');
   const wt = WALKTHROUGHS.find((w) => w.id === walkId);
@@ -338,7 +338,7 @@ export default function BriefingPage() {
                   {!notBuilt && (
                     <button
                       onClick={() => startWalk(wt.id, wt.title, wt.steps.map((s) => ({ text: s.text, to: s.to, goLabel: s.goLabel })))}
-                      className="mt-3 inline-flex items-center gap-1.5 font-sans text-ui-13 font-medium text-tea-bg bg-tea-gold rounded-full px-3.5 py-1.5 hover:bg-tea-gold-lt tap-target"
+                      className="mt-3 inline-flex items-center gap-1.5 font-sans text-ui-13 font-medium cta-solid rounded-full px-3.5 py-1.5 tap-target"
                     >
                       {activeWalkId === wt.id ? 'Walking…' : 'Walk it with me'}
                       <ArrowRight className="w-3.5 h-3.5" weight="bold" />

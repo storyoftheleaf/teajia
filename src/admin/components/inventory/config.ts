@@ -11,6 +11,7 @@ import {
   PackageX,
 } from 'lucide-react';
 import type { BulkEditField, ColDef, InventoryViewConfig } from './types';
+import { TEA_TYPES, NON_TEA_TYPES } from '../../../wisdom';
 
 export const VIEW_ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
   AlertTriangle,
@@ -84,7 +85,7 @@ export const GROUPBY_OPTIONS = [
   { value: 'vendor', label: 'Vendor' },
   { value: 'status', label: 'Status' },
   { value: 'originCountry', label: 'Origin Country' },
-  { value: 'ownerUserId', label: 'Owner' }, // stock spine step 2 — group by whose stock it is
+  { value: 'ownerUserId', label: 'Owner' }, // stock spine step 2, group by whose stock it is
 ] as const;
 
 export const DEFAULT_TEA_VIEWS: InventoryViewConfig[] = [
@@ -297,7 +298,9 @@ export const DEFAULT_TEAWARE_VIEWS: InventoryViewConfig[] = [
   },
 ];
 
-export const TYPE_OPTIONS = ['Green', 'Yellow', 'White', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Teaware', 'Misc'] as const;
+// Teaware/Misc are not tea types, so they're composed on top of the shared
+// wisdom vocabulary rather than redeclared. See docs/TEA_WISDOM_BASE.md.
+export const TYPE_OPTIONS = [...TEA_TYPES, ...NON_TEA_TYPES] as const;
 
 export const BULK_EDIT_FIELDS: readonly BulkEditField[] = [
   { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Archived', 'Sold Out', 'Draft'] },

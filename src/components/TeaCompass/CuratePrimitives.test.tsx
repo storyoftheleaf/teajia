@@ -25,6 +25,66 @@ describe('Curate presentation primitives', () => {
     expect(html).toContain('Use the supplier wording when known.');
   });
 
+  it('keeps Confirm in the label lane as a state, and marks the field as still waiting', () => {
+    const html = renderToStaticMarkup(
+      <CurateField label="Tea type" status="Confirm">
+        <select aria-label="Tea type" value="" onChange={() => undefined}><option value="">Choose type</option></select>
+      </CurateField>,
+    );
+
+    // Confirm sits inside the label lane, not in the top-right action corner.
+    const lane = html.match(/<div class="curate-field-lane">[\s\S]*?<\/div>/)?.[0] || '';
+    expect(lane).toContain('curate-field-flag');
+    expect(lane).toContain('Confirm');
+    expect(html).not.toContain('absolute right-3 top-1');
+    // The control itself shows it is unresolved, so blocked and settled differ.
+    expect(html).toContain('curate-field-attention');
+  });
+
+  it('leaves a settled field without the attention treatment', () => {
+    const html = renderToStaticMarkup(
+      <CurateField label="Tea type">
+        <select aria-label="Tea type" value="Oolong" onChange={() => undefined}><option value="Oolong">Oolong</option></select>
+      </CurateField>,
+    );
+
+    expect(html).not.toContain('curate-field-attention');
+    expect(html).not.toContain('curate-field-flag');
+  });
+
+  it('tells a derived fact apart from a warning in the same helper slot', () => {
+    const derived = renderToStaticMarkup(
+      <CurateField label="Cultivar" helper="肉桂 · Wuyi Mountains (Fujian), China">
+        <input aria-label="Cultivar" value="Rou Gui" readOnly />
+      </CurateField>,
+    );
+    const warning = renderToStaticMarkup(
+      <CurateField label="Year" helper="Expected between 1950 and 2027" helperTone="warning">
+        <input aria-label="Year" value="1492" readOnly />
+      </CurateField>,
+    );
+
+    expect(derived).toContain('curate-field-note-derived');
+    expect(derived).not.toContain('curate-field-note-warning');
+    expect(derived).not.toContain('<svg');
+    expect(warning).toContain('curate-field-note-warning');
+    expect(warning).not.toContain('curate-field-note-derived');
+    expect(warning).toContain('<svg');
+  });
+
+  it('marks a derived value and an attached suggestion list, and describes both', () => {
+    const html = renderToStaticMarkup(
+      <CurateField label="Cultivar" derived suggestions="79 cultivars">
+        <input id="cultivar" aria-label="Cultivar" value="Rou Gui" readOnly />
+      </CurateField>,
+    );
+
+    expect(html).toContain('curate-field-marks');
+    expect(html).toContain('From base');
+    expect(html).toContain('79 cultivars');
+    expect(html).toContain('aria-describedby="cultivar-suggestions cultivar-derived"');
+  });
+
   it('exposes a controlled disclosure relationship and hides closed content', () => {
     const closed = renderToStaticMarkup(
       <CurateDisclosure id="details" label="More tea details" open={false} onToggle={() => undefined}>

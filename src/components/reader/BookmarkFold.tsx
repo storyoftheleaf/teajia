@@ -9,7 +9,7 @@ interface BookmarkFoldProps {
 }
 
 /**
- * BookmarkFold — Visual dog-ear bookmark on the page corner.
+ * BookmarkFold: Visual dog-ear bookmark on the page corner.
  * Displays a CSS triangle in the top-right corner.
  * Gold when bookmarked, subtle outline when not.
  * Persists to localStorage under `bookmarks_${storyId}`.
@@ -70,12 +70,14 @@ const BookmarkFold: React.FC<BookmarkFoldProps> = ({
             borderStyle: 'solid',
             borderWidth: '0 48px 48px 0',
             borderColor: isBookmarked
-              ? 'transparent var(--color-tea-gold, #c9a84c) transparent transparent'
-              : 'transparent rgba(201,168,76,0.25) transparent transparent',
+              ? 'transparent var(--tea-gold) transparent transparent'
+              : 'transparent rgb(var(--tea-gold-rgb) / 0.25) transparent transparent',
             transition: 'border-color 0.25s ease',
           }}
         />
-        {/* Small shadow fold line */}
+        {/* Small shadow fold line. The fold reads as a shadow on the page it
+            sits on, so it takes the page background rather than a fixed black:
+            on parchment a black wedge is a smudge, not a fold. */}
         <div
           className="absolute top-0 right-0 opacity-20"
           style={{
@@ -83,7 +85,7 @@ const BookmarkFold: React.FC<BookmarkFoldProps> = ({
             height: 0,
             borderStyle: 'solid',
             borderWidth: '0 48px 48px 0',
-            borderColor: 'transparent #000 transparent transparent',
+            borderColor: 'transparent var(--tea-text) transparent transparent',
             clipPath: 'polygon(100% 0, 100% 20%, 80% 0)',
           }}
         />

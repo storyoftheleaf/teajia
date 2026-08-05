@@ -6,7 +6,7 @@ import { BottomSheet } from '../shared/BottomSheet';
 import { GramSlider } from './GramSlider';
 
 /**
- * PricingRow — the shared "what does this cost and how much of it"
+ * PricingRow, the shared "what does this cost and how much of it"
  * control. Both the tea form (grams) and the teaware form (count) used
  * to render their own bespoke price/quantity layouts; this consolidates
  * them so the only thing that changes between the two is the unit chip
@@ -18,7 +18,7 @@ import { GramSlider } from './GramSlider';
  *
  * In `'grams'` mode we additionally render the Form chip + preset chips
  * (50g / 75g / 100g …) below the main row so the gram input has fast
- * shortcuts. In `'count'` mode there's no such row — count is just an
+ * shortcuts. In `'count'` mode there's no such row, count is just an
  * integer.
  */
 
@@ -43,7 +43,7 @@ export type PricingRowUnit =
       mode: 'grams';
       pricePerUnitGrams?: number;
       onGramsChange: (grams: number | undefined) => void;
-      /** Tea form (Loose / Cake / …) — drives which gram presets render. */
+      /** Tea form (Loose / Cake / …), drives which gram presets render. */
       form?: TeaForm;
       onFormChange?: (form: TeaForm) => void;
     }
@@ -69,7 +69,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
   unit,
 }) => {
   const [formSheetOpen, setFormSheetOpen] = useState(false);
-  // Underline shell — matches the identity fields above (CaptureCard's
+  // Underline shell, matches the identity fields above (CaptureCard's
   // underlineFieldClass): bottom hairline only, no fill, warms to gold on
   // focus. focus-within so the hairline lights up whether the currency
   // <select> or the price <input> inside it has focus.
@@ -86,11 +86,11 @@ export const PricingRow: React.FC<PricingRowProps> = ({
   return (
     <div className="space-y-2">
       {/* Top row.
-          - grams mode: [Currency + Price] [Grams · g] [Form ▾]
-            — all three flex-1 / equal sizes so the row reads as one
+          - grams mode: [Currency + Price] [Grams · g] [Form ▾].
+            All three flex-1 / equal sizes so the row reads as one
             grouped pricing unit instead of "primary input + sidekick".
-          - count mode: [Currency + Price flex-1] [− qty + ct]
-            — counter stays a compact pill on the right since there's
+          - count mode: [Currency + Price flex-1] [− qty + ct].
+            The counter stays a compact pill on the right since there's
             no form picker to balance it. */}
       <div className="flex items-stretch gap-4">
         <div className={`min-h-11 flex-1 min-w-0 flex items-center ${underlineShellClass}`}>
@@ -117,7 +117,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
           />
         </div>
 
-        {/* Unit — grams + form picker in grams mode (both flex-1, equal
+        {/* Unit, grams + form picker in grams mode (both flex-1, equal
             sizes); +/- counter pill in count mode. */}
         {unit.mode === 'grams' ? (
           <>
@@ -212,7 +212,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
         );
       })()}
 
-      {/* Form picker — compact 2-column grid, name only. */}
+      {/* Form picker, compact 2-column grid, name only. */}
       {unit.mode === 'grams' && unit.onFormChange && (
         <BottomSheet
           open={formSheetOpen}

@@ -24,7 +24,7 @@ export const ImmersivePreview: React.FC<{ blocks: ArticleBlock[] }> = ({ blocks 
 
   return (
     <div className="flex flex-col h-full bg-tea-bg">
-      {/* Width toggle — text labels per brand law (no icons) */}
+      {/* Width toggle, text labels per brand law (no icons) */}
       <div className="flex items-center gap-1 px-4 py-2.5 border-b border-tea-border shrink-0">
         <span className="text-ui-10 uppercase tracking-[0.18em] text-tea-text-dim mr-2">View</span>
         {(Object.keys(FRAME) as PreviewWidth[]).map(key => (
@@ -34,7 +34,7 @@ export const ImmersivePreview: React.FC<{ blocks: ArticleBlock[] }> = ({ blocks 
             onClick={() => setWidth(key)}
             className={`px-3 py-1 rounded-full text-ui-11 tracking-[0.06em] transition-colors ${
               width === key
-                ? 'bg-tea-gold text-tea-bg'
+                ? 'cta-solid'
                 : 'text-tea-text-sec hover:text-tea-text bg-tea-elevated'
             }`}
           >

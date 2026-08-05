@@ -1,11 +1,11 @@
 import React, { useMemo } from 'react';
 
 /**
- * MarkdownView — a compact, dependency-free markdown renderer scoped to the
+ * MarkdownView, a compact, dependency-free markdown renderer scoped to the
  * subset of markdown the Teajia development docs actually use: headings,
  * paragraphs, ordered/unordered lists, GFM tables, fenced + inline code,
  * blockquotes, horizontal rules, bold/italic, and links. It is intentionally
- * NOT a full CommonMark implementation — it exists so the in-app Developer
+ * NOT a full CommonMark implementation, it exists so the in-app Developer
  * Docs reader can render the repo's docs without pulling the react-markdown /
  * remark / rehype tree into the bundle.
  *
@@ -123,7 +123,7 @@ function parseBlocks(src: string): Block[] {
       continue;
     }
 
-    // Paragraph — gather until blank line or a block starter
+    // Paragraph, gather until blank line or a block starter
     const buf: string[] = [];
     while (
       i < lines.length &&
@@ -175,7 +175,7 @@ function renderInline(text: string, keyBase: string): React.ReactNode[] {
               {lm[1]}
             </a>
           ) : (
-            // Internal repo path — render as plain emphasized text, not a dead link.
+            // Internal repo path, render as plain emphasized text, not a dead link.
             <span key={key} className="text-tea-text-sec italic">{lm[1]}</span>
           ),
         );

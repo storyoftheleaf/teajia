@@ -21,10 +21,7 @@ export const AlcoveGallery: React.FC<AlcoveGalleryProps> = ({
         : '';
 
   return (
-    <div
-      style={{ animation: 'panelReveal 0.5s ease-out' }}
-      className="px-3 pt-3 flex-shrink-0"
-    >
+    <div className="alcove-gallery px-3 pt-3 flex-shrink-0">
       {allImages.length === 1 ? (
         <button
           type="button"
@@ -40,11 +37,7 @@ export const AlcoveGallery: React.FC<AlcoveGalleryProps> = ({
           />
         </button>
       ) : (
-        <div
-          role="group"
-          aria-label="Product gallery"
-          style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'center' }}
-        >
+        <div role="group" aria-label="Product gallery" className="flex flex-wrap justify-center gap-1">
           {allImages.map((img, i) => (
             <button
               key={i}

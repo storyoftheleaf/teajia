@@ -7,7 +7,7 @@ interface AnimatedRoutesProps {
   /**
    * The location the inner <Routes> actually render (defaults to the router
    * location). App.tsx passes the background location while a product modal
-   * is open so the crossfade keys off the page underneath — otherwise opening
+   * is open so the crossfade keys off the page underneath. Otherwise opening
    * the modal would remount the shop and destroy its scroll/filter state.
    */
   location?: Location;
@@ -37,7 +37,7 @@ export const AnimatedRoutes: React.FC<AnimatedRoutesProps> = ({ children, locati
     return <>{children}</>;
   }
 
-  // Keyed motion.div without AnimatePresence — when the key changes React
+  // Keyed motion.div without AnimatePresence, when the key changes React
   // unmounts/remounts and `animate` runs from `initial`. AnimatePresence with
   // mode="wait" was getting stuck when leaving pages with heavy internal
   // animations (the homepage scroll reveal), leaving the new page at opacity 0.

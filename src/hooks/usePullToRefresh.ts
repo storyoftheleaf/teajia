@@ -21,7 +21,7 @@ interface PullToRefreshOptions {
 }
 
 /** Walk up from the touch target to the element that will actually consume a
- *  downward drag. The old check looked ONLY at window.scrollY — but the admin
+ *  downward drag. The old check looked ONLY at window.scrollY, but the admin
  *  shell is a fixed-height layout (`h-screen overflow-hidden`) where the
  *  document NEVER scrolls, so window.scrollY was always 0 and every drag
  *  inside an internal list (Compass Library, inventory, …) armed the pull

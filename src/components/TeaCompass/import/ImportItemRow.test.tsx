@@ -99,6 +99,49 @@ describe('ImportItemRow', () => {
     expect(markup).toContain('aria-label="Production or classification"');
   });
 
+  it('separates the blocked group from More tea details, and counts what is waiting', () => {
+    const markup = renderToStaticMarkup(<ImportItemRow
+      item={{ ...item, blocking_fields: ['english_name', 'price_basis'] }}
+      blockingFields={['english_name', 'price_basis']}
+      open
+      busy={false}
+      identityLookup={{ status: 'empty', options: [], error: null }}
+      holdingLookup={{ status: 'empty', options: [], error: null }}
+      onRetryIdentities={() => undefined}
+      onRetryHoldings={() => undefined}
+      onUpdate={async () => true}
+    />);
+
+    // Blocked sections wear the accent wash and say how many fields are waiting.
+    expect(markup).toContain('bg-tea-accent-sub');
+    expect(markup.match(/>1 to confirm</g)).toHaveLength(2);
+    expect(markup).toContain('curate-field-attention');
+    // Every blocked section title is bronze; there is no dim one while collapsed.
+    expect(markup).not.toContain('tracking-[1.2px] text-tea-text-dim');
+  });
+
+  it('marks values the wisdom base supplied and the suggestion lists behind a field', () => {
+    const markup = renderToStaticMarkup(<ImportItemRow
+      item={item}
+      blockingFields={[]}
+      open
+      busy={false}
+      identityLookup={{ status: 'empty', options: [], error: null }}
+      holdingLookup={{ status: 'empty', options: [], error: null }}
+      onRetryIdentities={() => undefined}
+      onRetryHoldings={() => undefined}
+      onUpdate={async () => true}
+    />);
+
+    // 陈年六堡茶 resolves to a Dark tea from Guangxi, so those arrive derived.
+    expect(markup).toContain('>From base<');
+    expect(markup).toContain('curate-field-marks');
+    // The datalists are invisible on their own, so the field says what is behind them.
+    expect(markup).toContain('cultivars<');
+    expect(markup).toContain('regions<');
+    expect(markup).toContain('placeholder="Type to search"');
+  });
+
   it('never falls back to raw excerpts, UUIDs, or evidence ranges in review', () => {
     const uuid = 'be8f2e98-f44e-4c2d-a927-e788e6ed9c70';
     const markup = renderToStaticMarkup(<ImportItemRow

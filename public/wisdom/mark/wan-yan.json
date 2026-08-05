@@ -1,0 +1,16 @@
+{
+  "id": "wan-yan",
+  "name": "Wan Yan",
+  "chineseName": "万言",
+  "altNames": [
+    "Ten Thousand Words"
+  ],
+  "producerId": "liao-fu",
+  "appliesToTypes": [
+    "Dark"
+  ],
+  "description": "A named premium product line ('Ten Thousand Words') within the Liao Fu dark tea lineage, produced at AAA grade.",
+  "holding": "marks",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

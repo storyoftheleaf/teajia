@@ -1,0 +1,13 @@
+{
+  "id": "dark-hong-kong-stored-dark",
+  "type": "Dark",
+  "name": "Hong Kong Stored Dark",
+  "chineseName": null,
+  "altNames": [
+    "HK-stored Heicha"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

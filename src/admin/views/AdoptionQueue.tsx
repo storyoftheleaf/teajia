@@ -1,4 +1,4 @@
-// AdoptionQueue — Platform-tier review of partner-suggested profiles.
+// AdoptionQueue: Platform-tier review of partner-suggested profiles.
 // Step 6 of the Network Rollout. Per docs/NETWORK_UI_BRIEF.md shared
 // vocabulary (no toasts, no chrome, editorial register, bronze rare).
 //
@@ -221,7 +221,7 @@ const AdoptionRow: React.FC<AdoptionRowProps> = ({ entry, onChange }) => {
         </div>
       )}
 
-      {/* Pending — actions */}
+      {/* Pending, actions */}
       {isPending && !showDecline && (
         <div className="flex items-center gap-5 text-ui-13">
           <button
@@ -243,7 +243,7 @@ const AdoptionRow: React.FC<AdoptionRowProps> = ({ entry, onChange }) => {
         </div>
       )}
 
-      {/* Pending — decline form */}
+      {/* Pending, decline form */}
       {isPending && showDecline && (
         <div className="space-y-3">
           <textarea

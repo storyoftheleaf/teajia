@@ -1,0 +1,13 @@
+{
+  "id": "oolong-ben-shan",
+  "type": "Oolong",
+  "name": "Ben Shan",
+  "chineseName": "本山",
+  "altNames": [
+    "Original Mountain"
+  ],
+  "region": "Anxi",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

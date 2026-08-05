@@ -9,15 +9,15 @@ const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '';
 
 /** Standard transformation presets */
 export const CLD_PRESETS = {
-  /** Product card thumbnail — 400w, auto quality */
+  /** Product card thumbnail, 400w, auto quality */
   thumb: 'w_400,c_fill,q_auto,f_auto',
-  /** Product card — 600w */
+  /** Product card, 600w */
   card: 'w_600,c_fill,q_auto,f_auto',
-  /** Full-width hero / feature — 1200w */
+  /** Full-width hero / feature, 1200w */
   hero: 'w_1200,c_fill,q_auto,f_auto',
-  /** Gallery / lightbox — 1600w, high quality */
+  /** Gallery / lightbox, 1600w, high quality */
   gallery: 'w_1600,c_limit,q_auto:best,f_auto',
-  /** Tiny placeholder for blur-up — 30w, low quality */
+  /** Tiny placeholder for blur-up, 30w, low quality */
   placeholder: 'w_30,q_auto:low,f_auto,e_blur:800',
 } as const;
 
@@ -36,7 +36,7 @@ export function cldUrl(
 ): string {
   if (!publicId) return '';
 
-  // Already a full URL — check if it's a Cloudinary URL we can transform
+  // Already a full URL, check if it's a Cloudinary URL we can transform
   if (publicId.startsWith('http')) {
     return transformCloudinaryUrl(publicId, preset);
   }

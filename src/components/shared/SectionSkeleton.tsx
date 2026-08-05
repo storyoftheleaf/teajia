@@ -24,7 +24,7 @@ const SkeletonCard: React.FC = () => (
   </div>
 );
 
-/** Shop product card skeleton — matches the list accordion layout */
+/** Shop product card skeleton, matches the list accordion layout */
 const ShopCardSkeleton: React.FC = () => (
   <div className="flex items-center py-3 px-2 gap-3 border-b border-tea-border animate-pulse">
     <div className="flex-1 min-w-0 flex flex-col gap-1.5">
@@ -41,7 +41,7 @@ const ShopCardSkeleton: React.FC = () => (
   </div>
 );
 
-/** Magazine article card skeleton — matches the 2-column grid card layout */
+/** Magazine article card skeleton, matches the 2-column grid card layout */
 const MagazineCardSkeleton: React.FC = () => (
   <div className="flex flex-col gap-2 animate-pulse">
     <ShimmerBar className="aspect-[3/4] w-full rounded-md" />

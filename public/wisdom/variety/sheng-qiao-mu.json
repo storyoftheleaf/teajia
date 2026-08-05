@@ -1,0 +1,14 @@
+{
+  "id": "sheng-qiao-mu",
+  "type": "Sheng",
+  "name": "Qiao Mu",
+  "chineseName": "乔木",
+  "altNames": [
+    "Wild Arbor",
+    "Tall Tree"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

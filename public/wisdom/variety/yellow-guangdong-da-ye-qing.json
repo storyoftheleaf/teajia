@@ -1,0 +1,13 @@
+{
+  "id": "yellow-guangdong-da-ye-qing",
+  "type": "Yellow",
+  "name": "Guangdong Da Ye Qing",
+  "chineseName": "广东大叶青",
+  "altNames": [
+    "Large Leaf Green"
+  ],
+  "region": "Guangdong",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

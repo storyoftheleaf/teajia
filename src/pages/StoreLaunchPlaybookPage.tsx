@@ -5,7 +5,7 @@ import { StoreLaunchPlaybook } from '../components/storeLaunch/StoreLaunchPlaybo
 const StoreLaunchPlaybookPage: React.FC = () => (
   <>
     <Helmet>
-      <title>Store Launch Playbook — Teajia</title>
+      <title>Store Launch Playbook · Teajia</title>
       <meta
         name="description"
         content="A practical store-opening page for Teajia operators: profile, people, opening stock, storefront, first sale, and first event."

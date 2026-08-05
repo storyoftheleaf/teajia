@@ -209,7 +209,7 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
           <div className="flex flex-wrap justify-end gap-2">
             {!isNew && persistedContributor?.is_published === 1 && <button type="button" onClick={unpublish} disabled={saving} className="tap-target px-3 py-2 text-ui-13 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Unpublish</button>}
             <button type="button" onClick={() => persist(false)} disabled={saving} className="tap-target rounded-md border border-tea-border px-3 py-2 text-ui-13 text-tea-text hover:bg-tea-accent-sub disabled:opacity-50">{saving ? 'Saving…' : 'Save changes'}</button>
-            {(isNew || persistedContributor?.is_published !== 1) && <button type="button" onClick={() => persist(true)} disabled={saving} className="tap-target inline-flex items-center gap-2 rounded-md bg-tea-gold px-3 py-2 text-ui-13 font-medium text-tea-bg hover:bg-tea-gold-lt disabled:opacity-50">{saving && <Loader2 size={14} className="animate-spin" />} Publish contributor</button>}
+            {(isNew || persistedContributor?.is_published !== 1) && <button type="button" onClick={() => persist(true)} disabled={saving} className="tap-target inline-flex items-center gap-2 rounded-md cta-solid px-3 py-2 text-ui-13 font-medium disabled:opacity-50">{saving && <Loader2 size={14} className="animate-spin" />} Publish contributor</button>}
           </div>
         </footer>
       </aside>

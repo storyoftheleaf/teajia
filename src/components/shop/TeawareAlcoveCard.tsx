@@ -19,14 +19,14 @@ interface TeawareAlcoveCardProps {
   item: InventoryItem;
   onAddToCart?: (item: InventoryItem, qty: number, total: number) => void;
   onClose?: () => void;
-  /** Admin mode — shows edit button in the commerce footer */
+  /** Admin mode: shows edit button in the commerce footer */
   isAdmin?: boolean;
   /** Called when admin clicks edit */
   onEdit?: (item: InventoryItem) => void;
 }
 
 /**
- * Stock status for unit-counted teaware — stock_g holds whole units here,
+ * Stock status for unit-counted teaware: stock_g holds whole units here,
  * so the tea gram thresholds don't apply.
  */
 function getWareStockStatus(units: number) {
@@ -44,7 +44,7 @@ function getWareStockStatus(units: number) {
 }
 
 /**
- * Teaware alcove — the teaware fork of the quiet card. Reuses the shared
+ * Teaware alcove: the teaware fork of the quiet card. Reuses the shared
  * alcove chapter components (identity header, facts ledger, gallery, section
  * heading, commerce footer) with teaware-appropriate data: unit quantities
  * instead of grams, Material/Capacity ledger rows, and an "About this piece"
@@ -62,7 +62,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({
   const favorited = favoriteTeas.includes(item.id);
 
   const [quantity, setQuantity] = useState(1);
-  // Footer plumbing — teaware has no sample/custom cells, but the shared
+  // Footer plumbing: teaware has no sample/custom cells, but the shared
   // footer contract expects the state pair.
   const [sampleMode, setSampleMode] = useState(false);
   const [customMode, setCustomMode] = useState(false);
@@ -73,16 +73,16 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({
   const scrollRef = useRef<HTMLDivElement>(null);
   const showFade = useScrollFade(scrollRef as React.RefObject<HTMLElement>);
 
-  // Share handler — canonical product page URL, Web Share API with clipboard fallback
+  // Share handler: canonical product page URL, Web Share API with clipboard fallback
   const handleShare = async () => {
-    const shareText = `${item.name} — ${item.type} from Teajia`;
+    const shareText = `${item.name}, ${item.type} from Teajia`;
     const shareUrl = `${window.location.origin}/shop/product/${encodeURIComponent(item.id)}`;
 
     if (navigator.share) {
       try {
         await navigator.share({ title: item.name, text: shareText, url: shareUrl });
       } catch {
-        // User cancelled — silent
+        // User cancelled: silent
       }
     } else {
       try {
@@ -112,7 +112,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({
 
   // price_50g is per-unit price for teaware (legacy field name)
   const unitPrice = parseFloat(item.price_50g || '0');
-  // Numeric total (base currency) — passed to onAddToCart. Display strings
+  // Numeric total (base currency), passed to onAddToCart. Display strings
   // are formatted separately; never parse a formatted string back to a number.
   const numericTotal = Math.ceil(unitPrice * quantity);
   const total = fmtNum(numericTotal, 0);
@@ -127,10 +127,10 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({
   // Derive display values
   const productName = item.variant || item.name;
   const givenName = item.variant !== item.name ? item.name : '';
-  // Strip numbers and latin characters — only show actual CJK characters
+  // Strip numbers and latin characters: only show actual CJK characters
   const chineseCharacters = (item.chineseName || '').replace(/[0-9A-Za-z\s]/g, '');
 
-  // Facts ledger — rows skip when empty; price stays in the commerce footer.
+  // Facts ledger: rows skip when empty; price stays in the commerce footer.
   const ledgerRows: LedgerRow[] = [];
   const origin = item.terroir || item.origin || '';
   if (origin) ledgerRows.push({ key: 'origin', label: 'Origin', value: origin });
@@ -144,7 +144,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({
     ledgerRows.push({ key: 'edition', label: 'Edition', value: 'One of a kind' });
   }
 
-  // "About this piece" — description-led reading chapter; each populated
+  // "About this piece": description-led reading chapter; each populated
   // field becomes one paragraph, deduplicated.
   const aboutParagraphs = [
     item.description || '',
@@ -212,7 +212,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({
         />
       }
     >
-      {/* 1. Identity — centered serif header, hanzi as real text */}
+      {/* 1. Identity: centered serif header, hanzi as real text */}
       <AlcoveIdentityHeader
         item={item}
         productName={productName}
@@ -225,10 +225,10 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({
         onNavigateSource={() => navigate(`/admin/people?tab=sources&search=${encodeURIComponent(item.supplier!)}`)}
       />
 
-      {/* 2. Facts ledger — Origin / Material / Capacity / … */}
+      {/* 2. Facts ledger: Origin / Material / Capacity / … */}
       <AlcoveFactsLedger rows={ledgerRows} />
 
-      {/* 3. Gallery band — TeaPlaceholder stands in when the piece has no photo */}
+      {/* 3. Gallery band: TeaPlaceholder stands in when the piece has no photo */}
       {allImages.length > 0 ? (
         <AlcoveGallery
           allImages={allImages}
@@ -241,7 +241,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({
         </div>
       )}
 
-      {/* 4. About this piece — the one reading chapter */}
+      {/* 4. About this piece: the one reading chapter */}
       {aboutParagraphs.length > 0 && (
         <section aria-label="About this piece">
           <AlcoveSectionHeading label="About this piece" className="mx-6 mb-3 mt-[22px]" />
@@ -253,7 +253,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({
         </section>
       )}
 
-      {/* Sample request — the human WhatsApp conversation closes it */}
+      {/* Sample request: the human WhatsApp conversation closes it */}
       {whatsappNumber && (
         <p className="m-0 mt-6 px-6 text-center">
           <button

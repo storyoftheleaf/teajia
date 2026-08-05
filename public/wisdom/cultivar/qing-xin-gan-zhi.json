@@ -1,0 +1,39 @@
+{
+  "id": "qing-xin-gan-zhi",
+  "name": "Qing Xin Gan Zhi",
+  "chineseName": "青心柑仔",
+  "altNames": [
+    "Green Heart Orange"
+  ],
+  "originCountry": "Taiwan",
+  "originRegion": "Taipei",
+  "developedYear": 1850,
+  "parentage": "Selected from native Chinese heirloom population.",
+  "description": "'Green Heart Orange'. An older, traditional Taiwanese oolong cultivar that was more prominent before the widespread adoption of Qing Xin Oolong. It is known for producing a clean, fragrant, and slightly more vegetal Baozhong oolong and is a parent of the famous Si Ji Chun cultivar.",
+  "plantType": "Semi-upright bush, considered a more 'rustic' cultivar (Camellia sinensis var. sinensis).",
+  "environment": "Well-suited to the lower-altitude, humid basin environments like those found around Taipei.",
+  "processing": "Processing is straightforward, following the traditional twisted-leaf Baozhong style. The goal is to preserve a fresh, green character.",
+  "oxidation": "Undergoes very light oxidation (10-20%) to maintain its fresh, green, and floral notes.",
+  "roasting": "Unroasted, aside from a final drying bake. Its delicate character is not suited for roasting.",
+  "versatility": "Low versatility. It is a specialist for producing a classic, traditional style of Baozhong oolong.",
+  "distribution": {
+    "taiwan": [
+      "Taipei (Pinglin, Nangang)",
+      "Nantou"
+    ]
+  },
+  "expressions": {
+    "Baozhong Oolong": {
+      "Traditional Baozhong": "Its classic expression. A twisted-leaf, lightly oxidized oolong with a very clean, fresh, and vegetal-floral profile."
+    }
+  },
+  "sensory": {
+    "aroma": "Fresh green florals, cut grass, vegetal notes",
+    "flavor": "Clean, brisk, and refreshing with a light sweetness.",
+    "mouthfeel_liquor": "Lighter-bodied and more brisk than Qing Xin Oolong, with a clean finish. The liquor is a clear, pale green-yellow."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

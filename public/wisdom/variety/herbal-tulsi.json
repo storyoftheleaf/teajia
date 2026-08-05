@@ -1,0 +1,14 @@
+{
+  "id": "herbal-tulsi",
+  "type": "Herbal",
+  "name": "Tulsi",
+  "chineseName": null,
+  "altNames": [
+    "Holy Basil",
+    "Sacred Basil"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

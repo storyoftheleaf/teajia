@@ -1,0 +1,11 @@
+{
+  "id": "wazuka-town-kyoto",
+  "name": "Wazuka Town, Kyoto",
+  "country": "Japan",
+  "province": "Kyoto",
+  "altitude": "200-500m",
+  "climate": "Mountain area known for traditional tea cultivation",
+  "holding": "regions",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

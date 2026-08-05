@@ -1,0 +1,44 @@
+{
+  "id": "zi-juan",
+  "name": "Zi Juan",
+  "chineseName": "紫娟",
+  "altNames": [
+    "Purple Beauty"
+  ],
+  "originCountry": "China",
+  "originRegion": "Yunnan",
+  "developedYear": 1990,
+  "parentage": "A clonal selection from a natural purple-leaf mutation of C. sinensis var. assamica.",
+  "description": "'Purple Juan'. A unique and modern Yunnan cultivar developed from a natural purple-leaf mutation of the Da Ye (Assamica) varietal. Its most striking feature is its deep purple leaves, buds, and stems, a result of a very high concentration of anthocyanins. The finished tea has a distinct flavor profile, often with berry-like and slightly medicinal notes.",
+  "plantType": "Upright, medium-sized bush with a striking purple coloration throughout the plant (Camellia sinensis var. assamica).",
+  "environment": "Grown in the high-altitude tea regions of Yunnan, where strong sunlight is thought to enhance its purple pigmentation.",
+  "processing": "Processing Zi Juan requires care to manage its higher-than-average astringency and bitterness. The processing method (green, black, or Pu'er) dramatically changes its final flavor profile.",
+  "oxidation": "Oxidation levels can vary from none (green/Pu'er) to full (black tea). Full oxidation can help to mellow some of its natural astringency.",
+  "roasting": "No roasting is typically applied. Like Pu'er, it is often sun-dried for green tea styles, or oven-dried for black tea styles.",
+  "versatility": "Moderately versatile. It can be crafted into several different types of tea, but its unique and assertive flavor profile means it will always be a niche, specialty product rather than a mainstream tea.",
+  "distribution": {
+    "china": [
+      "Yunnan Province (various regions, often as a specialty crop)"
+    ]
+  },
+  "expressions": {
+    "Green Tea": {
+      "Purple Needle": "A sun-dried green tea (similar to Sheng Pu'er processing) that highlights its unique briskness and color."
+    },
+    "Black Tea": {
+      "Purple Black": "A fully oxidized tea that has a unique reddish-purple liquor and a fruity, slightly astringent flavor."
+    },
+    "Pu'er Tea": {
+      "Purple Pu'er": "Can be pressed into cakes like traditional Sheng Pu'er, valued for its unique character and appearance."
+    }
+  },
+  "sensory": {
+    "aroma": "Berry-like, herbal, slightly floral",
+    "flavor": "Noticeably astringent and sometimes bitter, with fruity notes reminiscent of purple berries and a slightly medicinal finish.",
+    "mouthfeel_liquor": "Brisk and astringent with a unique mouthfeel. The liquor has a fascinating color, often greenish with purple or reddish hues."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

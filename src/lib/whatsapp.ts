@@ -19,7 +19,28 @@ export interface WhatsAppMessageOptions {
   subtotal: string;
   shipping?: string;
   total: string;
-  /** Admin draft prefill URL — appended to inquiry messages so the operator can tap it to open a pre-filled invoice form. */
+  /**
+   * The currency code the figures above are quoted in, e.g. `IDR`.
+   *
+   * Every price in this message is a pre-formatted string, so the builder
+   * cannot tell Rupiah from dollars by looking. Three call sites knew, and all
+   * three hand-appended the same sentence into `notes`: the product page, the
+   * teaware card and the public cart, one of them joining it to the customer's
+   * own note with a blank line and two of them overwriting `notes` outright.
+   * That is the shared bag this loop already pulled out of the tea card, in
+   * message form: a field with a meaning, carried as free text by whoever
+   * remembered.
+   *
+   * Naming it makes it a field of the order rather than a paragraph in it, and
+   * the line lands in the same place in all three messages, below the total and
+   * above the customer's own words, which is where an operator reading a
+   * WhatsApp thread expects a currency to be stated.
+   *
+   * Omitted, or 'USD', prints nothing: the shop's books are in dollars and a
+   * message that says so is stating the default back at the reader.
+   */
+  currency?: string;
+  /** Admin draft prefill URL, appended to inquiry messages so the operator can tap it to open a pre-filled invoice form. */
   adminDraftUrl?: string;
 }
 
@@ -42,49 +63,68 @@ export function buildQuickInvoiceDraftParam(data: {
   return encodeBase64UrlJson(data);
 }
 
+/**
+ * The one separator these messages use, everywhere: a colon.
+ *
+ * Every line here was joined by an em-dash, which the project bans in all copy.
+ * This is not internal copy: it is the text that lands in a customer's WhatsApp
+ * thread, quoted back at them for as long as the conversation lasts, which made
+ * it the most-read instance of the banned mark in the whole product.
+ *
+ * A colon is also the honest mark for what these lines are. "Total: $84" is a
+ * label and its value. An em-dash sets an aside, and none of these is an aside.
+ */
 export function buildOrderMessage(opts: WhatsAppMessageOptions): string {
   const date = opts.date || new Date().toLocaleDateString();
   const lines: string[] = [];
+
+  /** One sentence, written once, for whichever message needs it. */
+  const currencyLine = opts.currency && opts.currency !== 'USD'
+    ? `Prices as shown on the site, in ${opts.currency}.`
+    : null;
 
   if (opts.type === 'inquiry') {
     lines.push("Hello, I'd like to order:", '');
     opts.items.forEach(item => {
       const variant = item.variant ? ` (${item.variant})` : '';
-      lines.push(`${item.name}${variant} — ${item.quantity}${item.unit} × ${item.price}`);
+      lines.push(`${item.name}${variant}: ${item.quantity}${item.unit} × ${item.price}`);
     });
     lines.push('');
-    lines.push(`Total — ${opts.total}`);
+    lines.push(`Total: ${opts.total}`);
+    if (currencyLine) lines.push(currencyLine);
     lines.push('');
-    if (opts.customerName) lines.push(`Name — ${opts.customerName}`);
-    if (opts.customerContact) lines.push(`Contact — ${opts.customerContact}`);
-    if (opts.customerLocation) lines.push(`Shipping to — ${opts.customerLocation}`);
+    if (opts.customerName) lines.push(`Name: ${opts.customerName}`);
+    if (opts.customerContact) lines.push(`Contact: ${opts.customerContact}`);
+    if (opts.customerLocation) lines.push(`Shipping to: ${opts.customerLocation}`);
     if (opts.notes) lines.push('', opts.notes);
     if (opts.ref) lines.push('', `Ref: ${opts.ref}`);
-    if (opts.adminDraftUrl) lines.push('', `Draft invoice — ${opts.adminDraftUrl}`);
+    if (opts.adminDraftUrl) lines.push('', `Draft invoice: ${opts.adminDraftUrl}`);
   } else if (opts.type === 'invoice') {
     lines.push('Teajia Order', '');
-    if (opts.ref) lines.push(`Invoice — ${opts.ref}`);
-    if (opts.customerName) lines.push(`Customer — ${opts.customerName}`);
-    lines.push(`Date — ${date}`, '');
+    if (opts.ref) lines.push(`Invoice: ${opts.ref}`);
+    if (opts.customerName) lines.push(`Customer: ${opts.customerName}`);
+    lines.push(`Date: ${date}`, '');
     opts.items.forEach(item => {
       const qty = `${item.quantity}${item.unit}`;
-      lines.push(`${item.name} — ${qty} × ${item.price} = ${item.total}`);
+      lines.push(`${item.name}: ${qty} × ${item.price} = ${item.total}`);
     });
     lines.push('');
-    lines.push(`Subtotal — ${opts.subtotal}`);
-    if (opts.shipping) lines.push(`Shipping — ${opts.shipping}`);
-    lines.push(`Total — ${opts.total}`);
+    lines.push(`Subtotal: ${opts.subtotal}`);
+    if (opts.shipping) lines.push(`Shipping: ${opts.shipping}`);
+    lines.push(`Total: ${opts.total}`);
+    if (currencyLine) lines.push(currencyLine);
   } else if (opts.type === 'purchase') {
-    lines.push('Purchase Order — Teajia');
-    lines.push(`Date — ${date}`);
-    if (opts.customerName) lines.push(`Vendor — ${opts.customerName}`);
+    lines.push('Teajia Purchase Order');
+    lines.push(`Date: ${date}`);
+    if (opts.customerName) lines.push(`Vendor: ${opts.customerName}`);
     lines.push('');
     opts.items.forEach(item => {
       const variant = item.variant ? ` (${item.variant})` : '';
-      lines.push(`${item.name}${variant} — ${item.quantity}${item.unit} × ${item.total}`);
+      lines.push(`${item.name}${variant}: ${item.quantity}${item.unit} × ${item.total}`);
     });
     lines.push('');
-    lines.push(`Total — ${opts.total}`);
+    lines.push(`Total: ${opts.total}`);
+    if (currencyLine) lines.push(currencyLine);
     lines.push('', 'Please confirm availability and pricing.');
   }
 
@@ -109,18 +149,18 @@ export function buildStatusMessage(opts: {
     cancelled: 'Your order has been cancelled',
   };
 
-  lines.push('Teajia — Order Update', '');
+  lines.push('Teajia Order Update', '');
   if (opts.customerName) lines.push(`Hi ${opts.customerName},`);
   lines.push(statusText[opts.status] + '.');
-  if (opts.ref) lines.push(`Ref — ${opts.ref}`);
+  if (opts.ref) lines.push(`Ref: ${opts.ref}`);
 
   if (opts.items && opts.items.length > 0) {
     lines.push('');
     opts.items.forEach(item => {
-      lines.push(`${item.name} — ${item.quantity}${item.unit}`);
+      lines.push(`${item.name}: ${item.quantity}${item.unit}`);
     });
   }
-  if (opts.total) lines.push('', `Total — ${opts.total}`);
+  if (opts.total) lines.push('', `Total: ${opts.total}`);
   if (opts.note) lines.push('', opts.note);
   lines.push('', 'Thank you for choosing Teajia.');
 
@@ -162,7 +202,7 @@ export function buildCollectionBasketMessage(opts: {
   for (const item of opts.items) {
     const noteStr = item.note ? ` (${item.note})` : '';
     const priceStr = (item.priceUsd !== null && item.priceUsd !== undefined)
-      ? ` — $${item.priceUsd}`
+      ? ` ($${item.priceUsd})`
       : '';
     if (item.priceUsd !== null && item.priceUsd !== undefined) {
       total += Number(item.priceUsd);

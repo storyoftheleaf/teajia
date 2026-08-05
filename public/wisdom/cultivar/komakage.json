@@ -1,0 +1,39 @@
+{
+  "id": "komakage",
+  "name": "Komakage",
+  "chineseName": "こまかげ",
+  "altNames": [
+    "N/A"
+  ],
+  "originCountry": "Japan",
+  "originRegion": "Aichi",
+  "developedYear": 1970,
+  "parentage": "Selected from a native Zairai population.",
+  "description": "An excellent shading cultivar from Aichi prefecture, known for its strong, upright growth and resistance to cold. It produces a high-quality Tencha for Matcha with a good balance of umami and a unique, slightly savory, almost spicy character that distinguishes it from the classic Uji cultivars.",
+  "plantType": "Vigorous, upright bush with strong cold resistance (Camellia sinensis var. sinensis).",
+  "environment": "Very well-suited to the climate of Aichi and other regions that experience colder winters than southern Japan.",
+  "processing": "Komakage is well-suited for shaded cultivation. Its robust nature makes it a reliable choice for farmers. It is processed into Tencha for Matcha production.",
+  "oxidation": "Zero oxidation. The leaves are steamed promptly after being harvested from the shaded plants.",
+  "roasting": "No roasting. As Tencha, the leaves are dried flat in a special oven without being rolled to prepare them for stone-milling.",
+  "versatility": "Highly specialized for Matcha. It is a key cultivar for Matcha production outside of the Uji region, particularly in Aichi.",
+  "distribution": {
+    "japan": [
+      "Aichi (Nishio - a major Matcha center)",
+      "Mie"
+    ]
+  },
+  "expressions": {
+    "Matcha & Tencha": {
+      "Nishio Matcha": "It is a cornerstone cultivar for Matcha from the Nishio region, prized for its unique flavor profile and reliability."
+    }
+  },
+  "sensory": {
+    "aroma": "Savory greens, hint of spice",
+    "flavor": "Good umami with a unique, slightly spicy or savory character and a clean finish.",
+    "mouthfeel_liquor": "Smooth and full-bodied, creating a satisfying bowl of Matcha. The liquor is a deep, strong green."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

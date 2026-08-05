@@ -89,7 +89,7 @@ const StoryCardsBriefing: React.FC<StoryCardsBriefingProps> = ({
       aria-modal="true"
       aria-label="Event briefing"
     >
-      {/* Tap zone — advancing happens here, not on the root, so the Skip
+      {/* Tap zone, advancing happens here, not on the root, so the Skip
           control, dots, and CTA are naturally exempt without stopPropagation. */}
       <button
         type="button"
@@ -98,7 +98,7 @@ const StoryCardsBriefing: React.FC<StoryCardsBriefingProps> = ({
         className="absolute inset-0 z-0 cursor-pointer focus-visible:outline-none"
       />
 
-      {/* Persistent skip — always available, no need to reach the last card */}
+      {/* Persistent skip, always available, no need to reach the last card */}
       {!isLast && (
         <button
           type="button"
@@ -153,7 +153,7 @@ const StoryCardsBriefing: React.FC<StoryCardsBriefingProps> = ({
               <button
                 type="button"
                 onClick={onComplete}
-                className="tap-target pointer-events-auto mt-10 flex items-center gap-2 px-6 py-3 border border-tea-gold text-tea-gold text-ui-12 uppercase tracking-[0.2em] hover:bg-tea-gold hover:text-tea-bg transition-colors duration-300"
+                className="tap-target cta-solid-hover pointer-events-auto mt-10 flex items-center gap-2 px-6 py-3 border border-tea-gold text-tea-gold text-ui-12 uppercase tracking-[0.2em] transition-colors duration-300"
               >
                 View Your Ticket
                 <ArrowRight className="w-3.5 h-3.5" />

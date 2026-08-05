@@ -110,7 +110,7 @@ const SamplePage: React.FC = () => {
     }
   }, [sample?.id]);
 
-  // Called by TastingSession — first on "Save to Journal", then optionally with verdict
+  // Called by TastingSession, first on "Save to Journal", then optionally with verdict
   const handleTastingSave = useCallback(async (
     tastingData: TastingData,
     verdict?: TastingVerdict,
@@ -151,7 +151,7 @@ const SamplePage: React.FC = () => {
         tasterName: tasting.tasterName,
       });
     } catch {
-      console.warn('Sample tasting failed to sync — saved locally');
+      console.warn('Sample tasting failed to sync, saved locally');
     }
 
     setSample((prev) => prev ? {
@@ -177,7 +177,7 @@ const SamplePage: React.FC = () => {
       updateStatus(sample.id, prevStatus);
       if (sample.compassEntryId) updateCompassEntry(sample.compassEntryId, { sampleState: previousCompassState ?? null });
       setSample((prev) => prev ? { ...prev, status: prevStatus } : prev);
-      showError('Status update failed — please try again');
+      showError('Status update failed, please try again');
     });
   }, [sample, updateStatus, showError, updateCompassEntry]);
 
@@ -191,7 +191,7 @@ const SamplePage: React.FC = () => {
     api.samples.update(sample.id, { name: editName, notes: editNotes }).catch(() => {
       updateSample(sample.id, { name: prevName, notes: prevNotes });
       setSample((prev) => prev ? { ...prev, name: prevName, notes: prevNotes } : prev);
-      showError('Edit failed to save — please try again');
+      showError('Edit failed to save, please try again');
     });
   }, [sample, editName, editNotes, updateSample, showError]);
 
@@ -227,7 +227,7 @@ const SamplePage: React.FC = () => {
           </p>
           <button
             onClick={() => navigate('/')}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors mt-6"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors mt-6"
           >
             Go home
           </button>
@@ -370,7 +370,7 @@ const SamplePage: React.FC = () => {
           >
             <button
               onClick={handleOrderInquiry}
-              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
             >
               <ShoppingCart size={14} />
               Add to cart
@@ -579,7 +579,7 @@ const SamplePage: React.FC = () => {
           >
             <button
               onClick={() => navigate(`/admin/compass?tab=sourcing&fromSample=${sample.id}`)}
-              className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+              className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-3 rounded-md cta-solid text-xs font-semibold transition-colors"
             >
               <ExternalLink size={14} />
               Promote to Curate
@@ -597,7 +597,7 @@ const SamplePage: React.FC = () => {
         teaType={sample.type}
       />
 
-      {/* Admin: purchase order modal — prefilled with sample vendor + item */}
+      {/* Admin: purchase order modal, prefilled with sample vendor + item */}
       {isAdmin && (
         <QuickInvoiceModal
           isOpen={showPOModal}

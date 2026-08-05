@@ -17,7 +17,7 @@ interface TermRef {
 
 interface AlcoveCharacterBandProps {
   item: InventoryItem;
-  /** Legacy free-text tags (item.tags) — taste-line fallback when no structured flavor terms exist. */
+  /** Legacy free-text tags (item.tags): taste-line fallback when no structured flavor terms exist. */
   legacyNotes: string[];
   isAdmin?: boolean;
   onEditProductTasting?: (item: InventoryItem) => void;
@@ -60,7 +60,7 @@ const TermLine: React.FC<{
 );
 
 /**
- * "Character" — the one chapter that gathers everything sensory: the taste
+ * "Character": the one chapter that gathers everything sensory: the taste
  * line, the feel line, and Adrian's starred notes together in a faint tonal
  * band. Renders only when there are customer-facing tasting terms or starred
  * notes (or, for admins, so the tasting editor stays reachable).
@@ -75,7 +75,7 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
   const tasting = item.tasting;
 
   // Shopper-facing terms: flavor → TASTE, feeling → FEEL. Body / finish /
-  // liquor-color are journaling data — noisy on a product page.
+  // liquor-color are journaling data, noisy on a product page.
   const flavorTerms: TermRef[] = (tasting?.flavor ?? []).map(termId => ({
     termId,
     label: resolveTermLabel(termId),
@@ -101,7 +101,7 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
   const hasTerms = tasteTerms.length > 0 || feelingTerms.length > 0;
   const hasAny = hasTerms || starred.length > 0;
 
-  // No sensory data and no admin editor — no band, no empty heading.
+  // No sensory data and no admin editor: no band, no empty heading.
   if (!hasAny && !(isAdmin && onEditProductTasting)) return null;
 
   return (

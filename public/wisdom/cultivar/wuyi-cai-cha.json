@@ -1,0 +1,41 @@
+{
+  "id": "wuyi-cai-cha",
+  "name": "Wuyi Cai Cha",
+  "chineseName": "武夷菜茶",
+  "altNames": [
+    "Vegetable Tea",
+    "Lapsang Souchong cultivar",
+    "Tongmu Xiaozhong"
+  ],
+  "originCountry": "China",
+  "originRegion": "Wuyi Mountains (Fujian)",
+  "developedYear": 0,
+  "parentage": "The native, seed-propagated heirloom population of the Wuyi Mountains.",
+  "description": "'Wuyi Vegetable Tea'. This is not a single clonal cultivar, but the original, genetically diverse heirloom 'population' of small-leaf tea bushes native to the Wuyi region. It is the authentic, historical cultivar used to create the world's first black tea, Lapsang Souchong. Unsmoked, it produces a black tea of incredible elegance and sweetness.",
+  "plantType": "Variable, typically small, hardy bushes that have adapted over centuries (Camellia sinensis var. sinensis).",
+  "environment": "Grows wild and cultivated in the high-altitude, protected ecosystem of the Tongmu Nature Preserve within the Wuyi Mountains, the birthplace of black tea.",
+  "processing": "For unsmoked Lapsang, the processing is a classic black tea method (withering, rolling, full oxidation, drying). For the smoked version, the key final step is drying the tea on racks above smoldering, resinous pine wood fires.",
+  "oxidation": "Undergoes full oxidation (100%) to be classified as a black tea. The small leaves oxidize relatively quickly, creating a refined rather than a robustly malty flavor.",
+  "roasting": "The unsmoked version is dried with clean, hot air. The smoked version's 'roast' is a low-temperature smoke-drying process that infuses the leaves with a powerful pine aroma.",
+  "versatility": "Highly specialized for black tea. Its entire history and identity are tied to being the original Lapsang Souchong cultivar, whether smoked or unsmoked.",
+  "distribution": {
+    "china": [
+      "Fujian Province (Wuyi Mountains, specifically Tongmu Village)"
+    ]
+  },
+  "expressions": {
+    "Black Tea": {
+      "Unsmoked Lapsang Souchong (Zheng Shan Xiao Zhong)": "Its highest expression. An elegant, smooth black tea with natural notes of longan fruit and sweet potato.",
+      "Smoked Lapsang Souchong": "The famous export version, which is dried over pine wood fires, imparting a strong, smoky, campfire aroma."
+    }
+  },
+  "sensory": {
+    "aroma": "Longan fruit, sweet potato, honey (unsmoked); or Pine smoke, campfire, leather (smoked)",
+    "flavor": "Naturally sweet, clean, and elegant with a smooth, fruity character (unsmoked).",
+    "mouthfeel_liquor": "Silky, smooth, and medium-bodied with a very clean and sweet aftertaste. The liquor is a bright, clear reddish-orange."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

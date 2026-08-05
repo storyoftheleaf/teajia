@@ -24,9 +24,9 @@ const RowText: React.FC<{ title: string; meta: string }> = ({ title, meta }) => 
 );
 
 /**
- * "From the table" — what has already happened around this tea: a first
+ * "From the table" gathers what has already happened around this tea: a first
  * impression quote, event rows, journal rows, and the personal tasting-count
- * line. Renders only when any of that exists. No thumbnails — text rows only.
+ * line. Renders only when any of that exists. No thumbnails, text rows only.
  */
 export const AlcoveTableSection: React.FC<AlcoveTableSectionProps> = ({
   impressions,
@@ -95,7 +95,7 @@ export const AlcoveTableSection: React.FC<AlcoveTableSectionProps> = ({
         </div>
       )}
 
-      {/* Personal tasting count — quiet centered line linking to the journal */}
+      {/* Personal tasting count: quiet centered line linking to the journal */}
       {tastingCount > 0 && (
         <div className={`flex justify-center ${impression || hasRows ? 'mt-2' : ''}`}>
           <button

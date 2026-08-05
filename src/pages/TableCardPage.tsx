@@ -80,7 +80,7 @@ const TableCardPage: React.FC = () => {
         setSelectedVerdict(verdict);
         queryClient.invalidateQueries({ queryKey: ['table-card', token] });
       } catch {
-        // silent — verdict counts will refresh on next poll
+        // silent, verdict counts will refresh on next poll
       } finally {
         setSubmitting(false);
       }
@@ -235,7 +235,7 @@ const TableCardPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Notes — shown only after voting */}
+          {/* Notes, shown only after voting */}
           {selectedVerdict && (
             <div className="space-y-3">
               <label className="block text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec">

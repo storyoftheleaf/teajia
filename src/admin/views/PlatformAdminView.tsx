@@ -22,8 +22,8 @@ const KNOWN_FEATURES: { id: string; label: string; description: string; planDefa
 
 const TRUST_TIERS: { value: 'basic' | 'verified' | 'partner'; label: string; description: string }[] = [
   { value: 'basic',    label: 'Basic',    description: 'New account, default access' },
-  { value: 'verified', label: 'Verified', description: 'Identity confirmed — Curate enabled' },
-  { value: 'partner',  label: 'Partner',  description: 'Full partner — all features available' },
+  { value: 'verified', label: 'Verified', description: 'Identity confirmed: Curate enabled' },
+  { value: 'partner',  label: 'Partner',  description: 'Full partner, all features available' },
 ];
 
 const CURRENCIES = ['USD', 'AUD', 'NT', 'Yuan', 'MYR', 'IDR', 'JPY', 'HKD'];
@@ -77,7 +77,7 @@ const PlatformRoleBadge: React.FC<{ role: PlatformRole }> = ({ role }) => {
 };
 
 /**
- * ConfirmButton — two-stage inline confirm.
+ * ConfirmButton, two-stage inline confirm.
  * First click arms the button; second click (within timeout) fires.
  * Prevents one-click suspension/grant mistakes without interrupting flow.
  */
@@ -151,7 +151,7 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
     } finally { setBusy(null); }
   };
 
-  // Stock spine step 5 — grant or revoke a user's public shelf.
+  // Stock spine step 5, grant or revoke a user's public shelf.
   const handleToggleShelf = async (user: PlatformUser) => {
     setBusy(`shelf-${user.id}`);
     try {
@@ -161,11 +161,11 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
         showToast(`Shelf revoked from ${user.email}`, 'success');
       } else {
         const suggested = user.username || (user.email.split('@')[0] ?? '');
-        const slug = window.prompt('Shelf link — /u/<slug>', suggested);
+        const slug = window.prompt('Shelf link: /u/<slug>', suggested);
         if (!slug) { setBusy(null); return; }
         const res = await api.platform.grantShelf(user.id, { enabled: true, slug });
         setUsers(prev => prev.map(u => u.id === user.id ? { ...u, shelf_enabled: true, shelf_slug: res.slug } : u));
-        showToast(`Shelf granted — /u/${res.slug}`, 'success');
+        showToast(`Shelf granted: /u/${res.slug}`, 'success');
       }
     } catch (err: any) {
       showToast(err?.message || 'Failed to update shelf', 'error');
@@ -199,7 +199,7 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
     <div className="space-y-2">
       {inviteResult && (
         <div className="inset-panel p-3 space-y-2">
-          <p className="text-ui-12 text-tea-text-sec">Invite link — email not configured, copy manually:</p>
+          <p className="text-ui-12 text-tea-text-sec">Invite link. Email not configured, copy manually:</p>
           <div className="flex gap-2">
             <code className="flex-1 text-ui-11 font-mono bg-tea-bg border border-tea-border rounded px-2 py-1.5 text-tea-text-sec truncate">{inviteResult.link}</code>
             <button type="button" onClick={copyInvite} className="pill flex items-center gap-1 shrink-0">
@@ -248,14 +248,14 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
                     idleLabel={<><Shield size={10} />Make Admin</>}
                     confirmLabel={<>Grant platform-wide access?</>}
                     confirmVariant="primary"
-                    title="Grants platform-wide admin access — not account-level"
+                    title="Grants platform-wide admin access, not account-level"
                   />
                 )
               )}
               {isPlatformOwner && (
                 <button type="button" onClick={() => handleToggleShelf(user)} disabled={busy === `shelf-${user.id}`}
                   className={`${user.shelf_enabled ? 'pill pill-active' : 'pill'} flex items-center gap-1`}
-                  title={user.shelf_enabled ? `Public shelf at /u/${user.shelf_slug} — click to revoke` : 'Grant a public shelf'}>
+                  title={user.shelf_enabled ? `Public shelf at /u/${user.shelf_slug}, click to revoke` : 'Grant a public shelf'}>
                   {busy === `shelf-${user.id}` ? <Loader2 size={10} className="animate-spin" /> : <Store size={10} />}
                   Shelf
                 </button>
@@ -482,7 +482,7 @@ const AccountsPanel: React.FC = () => {
                   })}
                 </div>
 
-                {/* Suspend / reactivate — with confirm step */}
+                {/* Suspend / reactivate, with confirm step */}
                 {!account.is_platform_owner && (
                   <div className="pt-3 border-t border-tea-border">
                     {isSuspended ? (
@@ -750,7 +750,7 @@ const NewAccountPanel: React.FC<{ onCreated: () => void }> = ({ onCreated }) => 
       </label>
 
       <button type="submit" disabled={busy || !form.name || !form.slug || !form.invoice_prefix}
-        className="w-full py-3 bg-tea-gold text-tea-bg text-ui-11 font-semibold uppercase tracking-[0.08em] rounded-xl disabled:opacity-40 flex items-center justify-center gap-2 hover:bg-tea-gold-lt transition-colors">
+        className="w-full py-3 cta-solid text-ui-11 font-semibold uppercase tracking-[0.08em] rounded-xl disabled:opacity-40 flex items-center justify-center gap-2 transition-colors">
         {busy ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
         Create Account
       </button>

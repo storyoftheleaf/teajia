@@ -6,6 +6,9 @@ import { useInventory } from '../context/InventoryContext';
 import { useAuth } from '../hooks/useAuth';
 import { Icons } from '../components/Icons';
 import { AlcoveCard } from '../components/shop/AlcoveCard';
+import { normalizeTeaType } from '../wisdom';
+import { cultivarPath, resolveLineage } from '../components/wisdom/TeaLineage';
+import type { TeaReferenceProduct } from '../components/wisdom/TeaReference';
 import { TastingSession, type TastingItem } from '../components/tasting/TastingSession';
 import { TastingEditorModal } from '../admin/components/TastingEditorModal';
 import { EmblemLoader } from '../components/shared/EmblemLoader';
@@ -17,15 +20,29 @@ interface ProductPageProps {
 }
 
 /**
- * The real product page at /shop/product/:id — the cold-load container of the
+ * The one currency this page publishes in, for machines.
+ *
+ * Reading the currency out of the client store made the markup a per-visitor
+ * document: a crawler with no storage always saw one currency, a returning
+ * reader saw another, and neither could tell which was the shop's actual quote.
+ * Markup that varies per visitor is worse than markup that is honestly fixed.
+ *
+ * The prices in the record are USD, so USD is what is published, unconverted,
+ * to every reader and every crawler. Localising the visible number is the
+ * visible page's job, and when it gains that ability the markup does not move.
+ */
+const PUBLISHED_CURRENCY = 'USD';
+
+/**
+ * The real product page at /shop/product/:id: the cold-load container of the
  * one-URL/two-containers pattern. Grid taps inside the shop open the same URL
  * as the AlcoveModal over the still-mounted grid (background-location routing
  * in App.tsx); shared links, reloads, and search results land here.
  *
- * The page is composed from the SAME alcove blocks as the modal card —
- * AlcoveCard with layout="page" — so behaviors (sample request, custom amount,
- * favorite, share, taste, add-to-cart, sold-out states) are shared, never
- * duplicated. On lg+ identity/facts/order form a 340px left rail with the
+ * The page is composed from the SAME alcove blocks as the modal card
+ * (AlcoveCard with layout="page"), so behaviors (sample request, custom
+ * amount, favorite, share, taste, add-to-cart, sold-out states) are shared,
+ * never duplicated. On lg+ identity/facts/order form a 340px left rail with the
  * reading content on the right; below lg it is a single column with the
  * commerce bar fixed above the bottom nav.
  */
@@ -37,7 +54,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
 
   const item = useMemo(() => inventory.find(i => i.id === id), [inventory, id]);
 
-  // Tasting session (customers) / product tasting editor (admins) — same
+  // Tasting session (customers) / product tasting editor (admins): same
   // behaviors the shop grids attach to the modal card.
   const [tastingItem, setTastingItem] = useState<InventoryItem | null>(null);
   const [adminTastingItem, setAdminTastingItem] = useState<InventoryItem | null>(null);
@@ -50,7 +67,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
     setTastingItem(tasteItem);
   }, [isAdmin]);
 
-  // Tasting-term cross-reference — send the reader into the filtered shop.
+  // Tasting-term cross-reference: send the reader into the filtered shop.
   const handleTermClick = useCallback((termId: string, categoryId: string) => {
     const param = categoryId === 'feeling' ? 'feel' : 'flavor';
     navigate(`/shop?${param}=${encodeURIComponent(termId)}`);
@@ -69,7 +86,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
     } as Product;
   }, [adminTastingItem]);
 
-  // Inventory still loading on a cold load — hold the frame, don't 404 early.
+  // Inventory still loading on a cold load: hold the frame, don't 404 early.
   if (!item && isLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -87,7 +104,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
         </p>
         <Link
           to="/shop"
-          className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors"
+          className="cta-solid px-8 py-3 text-xs uppercase tracking-[0.2em] transition-colors"
         >
           Back to Shop
         </Link>
@@ -101,43 +118,175 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
   const mainStory = item.lore || '';
   const metaDescription = (introduction || mainStory || `${item.type} tea from ${item.origin}`).slice(0, 160);
 
-  // JSON-LD structured data for SEO (Product + Offer schema)
+  // One shape for everything the wisdom base is asked about this product, built
+  // exactly the way AlcoveCard builds it, so the page body and the structured
+  // data below resolve from the same fields rather than two similar subsets.
+  const referenceProduct: TeaReferenceProduct = {
+    name: item.name,
+    variant: item.variant,
+    chineseName: item.chineseName,
+    origin: item.origin,
+    cultivar: item.cultivar,
+    type: item.type,
+    year: item.year,
+  };
+  const { cultivar: lineageCultivar, region: lineageRegion } = resolveLineage(referenceProduct);
+
+  // The plant's public page. One address, so a machine and a reader follow the
+  // same door. `#taxon` matches the id CultivarPage publishes for the same
+  // plant, so the two documents describe one entity, not two look-alikes.
+  const siteOrigin = typeof window === 'undefined' ? '' : window.location.origin;
+  const cultivarUrl = lineageCultivar ? `${siteOrigin}${cultivarPath(lineageCultivar.id)}` : null;
+  const productUrl = `${siteOrigin}/shop/product/${item.id}`;
+
+  // The crumb between the shop and this tea, resolved through the same
+  // vocabulary the rest of the shop reads, so a record saved as "Red" and one
+  // saved as "Black" land on one crumb rather than two. Teaware has no crumb:
+  // the teaware tab does not read a type from the address, and a crumb that
+  // lands nowhere is worse than no crumb.
+  const crumbType = item.category === 'ware' ? null : normalizeTeaType(item.type) ?? item.type;
+  const typeHref = crumbType ? `/shop?type=${encodeURIComponent(crumbType)}` : null;
+
+  /**
+   * What this tea actually costs, in the currency this page is priced in.
+   *
+   * The offer used to state one hardcoded price for a fifty gram serving, but
+   * 50g exists only as one of four presets, so the single quoted price was a
+   * serving nobody could buy. Now: one offer per quantity the page will
+   * actually sell, each carrying the grams it is priced for, wrapped in an
+   * aggregate so a crawler that wants a single number gets an honest range
+   * instead of an invented midpoint. The presets mirror AlcoveCard's, which is
+   * what the reader is given controls for.
+   */
+  const sliderMax = Math.max(5, Math.floor(item.stock_g || 0));
+  const presets = [25, 50, 100, 250].filter(p => p <= sliderMax);
+  const offerCurrency = PUBLISHED_CURRENCY;
+  const offerPrice = (usd: number) => usd.toFixed(2);
+  const availability = isSoldOut ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock';
+  const quantityOffers = presets.map(gramsOffered => ({
+    '@type': 'Offer',
+    '@id': `${productUrl}#offer-${gramsOffered}g`,
+    price: offerPrice(pricePerGram * gramsOffered),
+    priceCurrency: offerCurrency,
+    // GRM is the UN/CEFACT code for a gram, the unit every control on this
+    // page is denominated in.
+    eligibleQuantity: { '@type': 'QuantitativeValue', value: gramsOffered, unitCode: 'GRM' },
+    availability,
+    seller: { '@type': 'Organization', name: 'Teajia' },
+    url: productUrl,
+  }));
+  // Sold out or stocked under the smallest preset, there is no quantity to
+  // quote, so the page states a price for one gram rather than for nothing.
+  const smallestOfferPrice = offerPrice(pricePerGram * (presets[0] ?? 1));
+
+  // JSON-LD structured data for SEO. A graph, not a single node: the product,
+  // and the plant it is made from, addressed so the plant can be followed.
   const structuredData = {
     '@context': 'https://schema.org',
-    '@type': 'Product',
-    name: item.name,
-    description: introduction || mainStory || `${item.type} tea from ${item.origin}`,
-    image: item.image || undefined,
-    brand: { '@type': 'Brand', name: 'Teajia' },
-    category: item.category === 'ware' ? 'Teaware' : `${item.type} Tea`,
-    ...(item.origin && { countryOfOrigin: { '@type': 'Country', name: item.origin } }),
-    offers: {
-      '@type': 'Offer',
-      price: (pricePerGram * 50).toFixed(2), // Price per 50g serving
-      priceCurrency: 'USD',
-      availability: isSoldOut
-        ? 'https://schema.org/OutOfStock'
-        : 'https://schema.org/InStock',
-      seller: { '@type': 'Organization', name: 'Teajia' },
-      url: `${window.location.origin}/shop/product/${item.id}`,
-    },
+    '@graph': [
+      {
+        '@type': 'Product',
+        '@id': `${productUrl}#product`,
+        name: item.name,
+        description: introduction || mainStory || `${item.type} tea from ${item.origin}`,
+        image: item.image || undefined,
+        brand: { '@type': 'Brand', name: 'Teajia' },
+        category: item.category === 'ware' ? 'Teaware' : `${item.type} Tea`,
+        ...(item.origin && { countryOfOrigin: { '@type': 'Country', name: item.origin } }),
+        ...((lineageCultivar || lineageRegion) && {
+          additionalProperty: [
+            ...(lineageCultivar
+              ? [{
+                  '@type': 'PropertyValue',
+                  name: 'Cultivar',
+                  value: lineageCultivar.name,
+                  ...(cultivarUrl ? { url: cultivarUrl } : {}),
+                }]
+              : []),
+            ...(lineageCultivar?.chineseName
+              ? [{ '@type': 'PropertyValue', name: 'Cultivar (Chinese)', value: lineageCultivar.chineseName }]
+              : []),
+            ...(lineageCultivar?.originRegion || lineageCultivar?.originCountry
+              ? [{
+                  '@type': 'PropertyValue',
+                  name: 'Cultivar Origin',
+                  value: [lineageCultivar?.originRegion, lineageCultivar?.originCountry].filter(Boolean).join(', '),
+                }]
+              : []),
+            ...(lineageRegion?.altitude ? [{ '@type': 'PropertyValue', name: 'Growing Altitude', value: lineageRegion.altitude }] : []),
+            ...(lineageRegion?.climate ? [{ '@type': 'PropertyValue', name: 'Growing Climate', value: lineageRegion.climate }] : []),
+          ],
+        }),
+        // `material` takes a URL in schema.org, and a tea is quite literally
+        // made of this plant. It is the one property on Product whose range
+        // accepts the plant's address without bending the vocabulary.
+        ...(cultivarUrl && { material: cultivarUrl }),
+        offers: quantityOffers.length > 1
+          ? {
+              '@type': 'AggregateOffer',
+              priceCurrency: offerCurrency,
+              lowPrice: smallestOfferPrice,
+              highPrice: offerPrice(pricePerGram * presets[presets.length - 1]),
+              offerCount: quantityOffers.length,
+              availability,
+              offers: quantityOffers,
+            }
+          : quantityOffers[0],
+      },
+      ...(lineageCultivar && cultivarUrl
+        ? [{
+            '@type': 'Taxon',
+            '@id': `${cultivarUrl}#taxon`,
+            name: lineageCultivar.name,
+            taxonRank: 'cultivar',
+            url: cultivarUrl,
+            alternateName: [lineageCultivar.chineseName, ...lineageCultivar.altNames].filter(Boolean),
+          }]
+        : []),
+      // The page itself, so the crumbs have something to hang off. Same three
+      // nodes the cultivar page publishes (the thing, the page, the trail),
+      // which is what lets a crawler read the shop and the reference as one
+      // graph instead of two documents that happen to share a name.
+      {
+        '@type': 'WebPage',
+        '@id': productUrl,
+        url: productUrl,
+        name: `${item.name} · Teajia`,
+        inLanguage: 'en',
+        about: { '@id': `${productUrl}#product` },
+        breadcrumb: { '@id': `${productUrl}#breadcrumb` },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        '@id': `${productUrl}#breadcrumb`,
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Shop', item: `${siteOrigin}/shop` },
+          ...(crumbType && typeHref
+            ? [{ '@type': 'ListItem', position: 2, name: crumbType, item: `${siteOrigin}${typeHref}` }]
+            : []),
+          { '@type': 'ListItem', position: crumbType ? 3 : 2, name: item.name, item: productUrl },
+        ],
+      },
+    ],
   };
 
   return (
     <div className="w-full animate-[fadeIn_0.5s_ease-out]">
       <Helmet>
-        <title>{item.name} — Teajia</title>
+        <title>{item.name} · Teajia</title>
         <meta name="description" content={metaDescription} />
-        <meta property="og:title" content={`${item.name} — Teajia`} />
+        <meta property="og:title" content={`${item.name} · Teajia`} />
         <meta property="og:description" content={(introduction || mainStory || '').slice(0, 160)} />
         {item.image && <meta property="og:image" content={item.image} />}
         <meta property="og:type" content="product" />
-        <meta property="product:price:amount" content={(pricePerGram * 50).toFixed(2)} />
-        <meta property="product:price:currency" content="USD" />
+        {/* The smallest quantity the page will actually sell, in the currency
+            the page is priced in. */}
+        <meta property="product:price:amount" content={smallestOfferPrice} />
+        <meta property="product:price:currency" content={offerCurrency} />
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
 
-      {/* Back — page nav, top-left */}
+      {/* Back: page nav, top-left */}
       <div className="mx-auto w-full max-w-[1080px] pt-4 pb-2">
         <Link
           to="/shop"
@@ -148,7 +297,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
         </Link>
       </div>
 
-      {/* The quiet page — same blocks and behaviors as the modal card */}
+      {/* The quiet page: same blocks and behaviors as the modal card */}
       <AlcoveCard
         item={item}
         layout="page"
@@ -166,7 +315,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
             item={tastingItem}
             onClose={() => setTastingItem(null)}
             onOrderTea={(ordered: TastingItem) => {
-              // Already on this product's page — just close the session.
+              // Already on this product's page: just close the session.
               setTastingItem(null);
               if (ordered.id !== item.id) {
                 navigate(`/shop/product/${encodeURIComponent(ordered.id)}`);
@@ -176,7 +325,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
         )}
       </AnimatePresence>
 
-      {/* Admin: product tasting editor — same modal used from the admin panel */}
+      {/* Admin: product tasting editor, same modal used from the admin panel */}
       {adminTastingItem && adminTastingProductShim && (
         <TastingEditorModal
           product={adminTastingProductShim}

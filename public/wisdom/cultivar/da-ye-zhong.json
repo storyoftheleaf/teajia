@@ -1,0 +1,43 @@
+{
+  "id": "da-ye-zhong",
+  "name": "Da Ye Zhong",
+  "chineseName": "大叶种",
+  "altNames": [
+    "Yunnan Big Leaf"
+  ],
+  "originCountry": "China",
+  "originRegion": "Yunnan",
+  "developedYear": 0,
+  "parentage": "The native, ancient tea varietal of Yunnan Province.",
+  "description": "'Big Leaf Variety'. This is not a single cultivar, but the broad-leaf botanical varietal, Camellia sinensis var. assamica, native to Yunnan. It is the genetic mother of all Yunnan tea and is known for its robustness, powerful flavor, and suitability for fermentation and aging. It is the raw material for both Pu'er and Dian Hong black tea.",
+  "plantType": "Can grow into a large, ancient tree (gushu) or be cultivated as a bush (Camellia sinensis var. assamica).",
+  "environment": "Thrives in the subtropical, mountainous, and biodiverse environment of Yunnan Province, with many distinct regional terroirs (e.g., Yiwu, Bulang, Lincang).",
+  "processing": "This varietal's large, robust leaves are rich in polyphenols, making them ideal for the microbial fermentation of Pu'er tea and for creating complex, malty black teas. They can withstand significant processing.",
+  "oxidation": "Oxidation varies dramatically by style. Sheng Pu'er is essentially an unoxidized (0%) sun-dried green tea. Dian Hong and Shu Pu'er are fully oxidized (100%).",
+  "roasting": "Roasting is generally not a feature. Sheng Pu'er is sun-dried. Dian Hong is dried with hot air. Shu Pu'er is dried after its fermentation pile is complete.",
+  "versatility": "Extremely versatile. As a foundational varietal, it is the basis for Yunnan's most famous and diverse tea styles, from green (Pu'er) to black (Dian Hong).",
+  "distribution": {
+    "china": [
+      "Yunnan Province (all tea regions)",
+      "Also found in neighboring Myanmar, Laos, Vietnam, and Thailand"
+    ]
+  },
+  "expressions": {
+    "Pu'er Tea": {
+      "Sheng (Raw) Pu'er": "Sun-dried green tea pressed into cakes for aging. Young, it's floral and astringent; aged, it's deep, woody, and complex.",
+      "Shu (Ripe) Pu'er": "Artificially fermented to mimic aging, resulting in a dark, earthy, and smooth tea."
+    },
+    "Black Tea": {
+      "Dian Hong": "A fully oxidized black tea known for its malty, sweet potato, and chocolate notes, often with beautiful golden tips."
+    }
+  },
+  "sensory": {
+    "aroma": "Highly variable: floral, fruity, hay (Sheng Pu'er); earthy, loamy, dark chocolate (Shu Pu'er); malty, cacao, sweet potato (Dian Hong)",
+    "flavor": "Robust, complex, often with a pleasant bitterness that transforms into sweetness (huigan).",
+    "mouthfeel_liquor": "Generally thick, full-bodied, and powerful. The liquor can be pale gold (young Sheng) to opaque black (Shu)."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

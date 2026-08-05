@@ -1,0 +1,38 @@
+{
+  "id": "ben-shan",
+  "name": "Ben Shan",
+  "chineseName": "本山",
+  "altNames": [
+    "Origin Mountain"
+  ],
+  "originCountry": "China",
+  "originRegion": "Anxi (Fujian)",
+  "developedYear": null,
+  "parentage": "Close genetic relative of Tie Guan Yin, selected from the same Anxi heirloom population.",
+  "description": "'Original Mountain'. A close genetic relative of Tie Guan Yin from the neighboring mountains of Anxi. Ben Shan is known for producing a lighter-bodied oolong with a very clear, high-pitched floral aroma, often described as being more straightforward and less complex than its famous cousin. It is a popular and more affordable daily-drinker oolong.",
+  "plantType": "Upright bush type, similar in appearance to Tie Guan Yin but slightly less robust (Camellia sinensis var. sinensis).",
+  "environment": "Grows in similar conditions to Tie Guan Yin but is often found in slightly different microclimates within the greater Anxi region.",
+  "processing": "Ben Shan's leaves are thinner and more delicate than Tie Guan Yin's, making them best suited for light-handed processing. They develop their floral aroma quickly but cannot withstand heavy oxidation or roasting.",
+  "oxidation": "Oxidation is kept very low (10-20%) to preserve its fresh, delicate, and high-pitched floral notes. The goal is to maximize the upfront aroma.",
+  "roasting": "Almost never roasted, other than a final, low-temperature drying bake. Its delicate character would be completely overwhelmed by any significant roasting.",
+  "versatility": "Not very versatile. It excels at one thing: being a light, fresh, and aromatic green-style oolong. It lacks the substance for traditional processing or for making other tea types.",
+  "distribution": {
+    "china": [
+      "Fujian Province (Anxi, specifically the Daping and Changkeng areas)"
+    ]
+  },
+  "expressions": {
+    "Oolong Tea (Classic Expression)": {
+      "Anxi Oolong (Light Style)": "Almost exclusively made in the modern 'green' style to showcase its bright, fresh floral aroma. It is rarely roasted."
+    }
+  },
+  "sensory": {
+    "aroma": "Fresh, clean floral notes (less complex than TGY), cut grass, hint of gardenia",
+    "flavor": "Crisp, light, sweet, and slightly vegetal. Lacks the deep creaminess of TGY.",
+    "mouthfeel_liquor": "Lighter-bodied and thinner than Tie Guan Yin, with a clean and brisk texture. The liquor is a very pale, clear yellow-green."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

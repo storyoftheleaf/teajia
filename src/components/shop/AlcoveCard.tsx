@@ -5,7 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../lib/store';
 import { api } from '../../lib/api';
 import { useTastingCount } from '../../hooks/useTastingCount';
-import { fmtNum } from '../../utils/formatNumber';
+import { useShopPrice } from './shopPrice';
+import { getBrewingProfile } from '../../data/brewing-profiles';
 import { useProductEvents } from '../../hooks/useProductEvents';
 import { useStories } from '../../context/StoryContext';
 import { useAuth } from '../../hooks/useAuth';
@@ -24,13 +25,16 @@ import { AlcoveAboutSection } from './alcove/AlcoveAboutSection';
 import { AlcoveTableSection } from './alcove/AlcoveTableSection';
 import { AlcoveCommerceFooter } from './alcove/AlcoveCommerceFooter';
 import { SampleModal, CustomAmountModal, ImageOverlayModal } from './alcove/AlcoveModals';
+import { TeaReference, type TeaReferenceProduct } from '../wisdom/TeaReference';
+import { FactGrid } from '../wisdom/FactGrid';
+import { LABEL } from '../shared/typeRoles';
 import type { ProductImpression } from './ProductImpressions';
 
 interface AlcoveCardProps {
   item: InventoryItem;
   onAddToCart?: (item: InventoryItem, qty: number, total: number) => void;
   onClose?: () => void;
-  /** Admin mode — shows edit button */
+  /** Admin mode: shows edit button */
   isAdmin?: boolean;
   /** Called when admin clicks edit */
   onEdit?: (item: InventoryItem) => void;
@@ -43,8 +47,8 @@ interface AlcoveCardProps {
   /** Admin-only: called to open the product tasting editor (writes to the product's own tasting field). */
   onEditProductTasting?: (item: InventoryItem) => void;
   /**
-   * 'card' (default) — the modal quiet card inside AlcoveShell (internal
-   * scroll, pinned commerce bar). 'page' — the standalone product-page
+   * 'card' (default) is the modal quiet card inside AlcoveShell (internal
+   * scroll, pinned commerce bar). 'page' is the standalone product-page
    * composition: identity + facts + order module as a 340px left rail on lg+,
    * reading content right, single column with a fixed commerce bar below lg.
    * Both layouts share the exact same state, handlers, and section blocks.
@@ -63,12 +67,18 @@ function getStockStatus(stockG: number, status?: string) {
   return { label: 'In Stock', color: 'var(--tea-leaf)', level: 'ok' as const };
 }
 
-/** Converts "#rrggbb" to an "r,g,b" string for rgba() interpolation. */
+/**
+ * Converts "#rrggbb" to an "r g b" string for CSS custom properties.
+ *
+ * Space-separated to match `--tea-gold-rgb`, because the value lands inside
+ * `rgb(<channels> / <alpha>)` in card-utilities.css. A comma form parses as a
+ * legacy three-argument rgb() and silently kills the whole declaration.
+ */
 function hexToRgbString(hex: string): string | undefined {
   const match = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
   if (!match) return undefined;
   const int = parseInt(match[1], 16);
-  return `${(int >> 16) & 255},${(int >> 8) & 255},${int & 255}`;
+  return `${(int >> 16) & 255} ${(int >> 8) & 255} ${int & 255}`;
 }
 
 export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting, layout = 'card' }) => {
@@ -166,25 +176,40 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
   const sliderMin = 5;
   const sliderMax = Math.max(sliderMin, Math.floor(item.stock_g || 0));
-  // Numeric total (base currency) — passed to onAddToCart. Display strings
+  // Numeric total (base currency), passed to onAddToCart. Display strings
   // are formatted separately; never parse a formatted string back to a number.
   const numericTotal = Math.ceil(pricePerGram * grams);
-  const total = formatPrice ? formatPrice(pricePerGram, grams) : fmtNum(numericTotal, 0);
-  const perGramDisplay = formatPrice ? formatPrice(pricePerGram, 1) : fmtNum(pricePerGram);
+
+  /**
+   * Every figure on this card, in the currency the reader chose.
+   *
+   * The card quoted dollars unconditionally while the cart had honoured the
+   * currency selector for a long time, so a reader set to Rupiah met dollars on
+   * the card and Rupiah the moment they added the tea. `formatPrice` stays the
+   * override the admin surfaces pass (they format against their own rate
+   * table); when nobody overrides it, the shared shop hook fills the gap
+   * instead of a bare `$`. Downstream blocks read `resolvedFormatPrice` and so
+   * no longer carry a dollar-only fallback branch of their own.
+   */
+  const shopPrice = useShopPrice();
+  const resolvedFormatPrice = formatPrice ?? ((usdPerGram: number, g: number) => shopPrice.total(usdPerGram * g));
+  const total = resolvedFormatPrice(pricePerGram, grams);
+  // No unit here: the commerce footer appends its own "/g" after this string.
+  const perGramDisplay = resolvedFormatPrice(pricePerGram, 1);
 
   const stockStatus = getStockStatus(item.stock_g);
   const isSoldOut = stockStatus.level === 'out';
 
   const presets = [25, 50, 100, 250].filter(p => p <= sliderMax);
 
-  // Alcove uses the main Espresso+Gold palette — see designTokens.ts
+  // Alcove uses the main Espresso+Gold palette (see designTokens.ts)
   const alcoveBg = 'var(--tea-bg)';
   const typeColor = getTeaColor(item.type);
 
   // Derive display values from InventoryItem
   const productName = item.variant || item.name;
   const givenName = item.variant !== item.name ? item.name : '';
-  // Strip numbers and latin characters — only show actual CJK characters
+  // Strip numbers and latin characters: only show actual CJK characters
   const chineseCharacters = (item.chineseName || '').replace(/[0-9A-Za-z\s]/g, '');
   const teaType = item.type;
   const mainStory = item.lore || '';
@@ -195,7 +220,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const photoUrl = item.image;
   const magazineUrl = item.magazineUrl;
 
-  // Liquor color (first liquor-color term) — ledger row + shell warmth tint
+  // Liquor color (first liquor-color term): ledger row + shell warmth tint
   const liquorTermId = item.tasting?.['liquor-color']?.[0];
   const liquorHex = liquorTermId ? LIQUOR_COLORS[liquorTermId] : undefined;
   const warmthRGB = liquorHex ? hexToRgbString(liquorHex) : undefined;
@@ -216,9 +241,9 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     }
   };
 
-  // Share handler — uses Web Share API with clipboard fallback.
+  // Share handler: uses Web Share API with clipboard fallback.
   const handleShare = async () => {
-    const shareText = `${item.name} — ${item.origin || ''} ${teaType} from Teajia`;
+    const shareText = `${item.name}, ${item.origin || ''} ${teaType} from Teajia`;
     const shareUrl = `${window.location.origin}/shop/product/${item.id}`;
 
     if (navigator.share) {
@@ -229,7 +254,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           url: shareUrl,
         });
       } catch (err) {
-        // User cancelled or error — silent
+        // User cancelled or error: silent
       }
     } else {
       // Fallback: copy to clipboard
@@ -245,7 +270,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
   void onClose;
 
-  // ── Shared blocks — one composition, two layouts ──────────────────────────
+  // ── Shared blocks: one composition, two layouts ──────────────────────────
 
   const commerceFooter = (variant: 'pinned' | 'rail') => (
     <AlcoveCommerceFooter
@@ -275,7 +300,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       toggleSampleCart={toggleSampleCart}
       handleShare={handleShare}
       handleAdd={handleAdd}
-      formatPrice={formatPrice}
+      formatPrice={resolvedFormatPrice}
       variant={variant}
     />
   );
@@ -296,7 +321,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         onSubmit={handleSampleSubmit}
         isLoggedIn={isLoggedIn}
         pricePerGram={pricePerGram}
-        formatPrice={formatPrice}
+        formatTotal={(usd) => resolvedFormatPrice(usd, 1)}
       />
       <CustomAmountModal
         open={customMode}
@@ -315,7 +340,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     </>
   );
 
-  // 1. Identity — centered serif header, hanzi as real text
+  // 1. Identity: centered serif header, hanzi as real text
   const identityHeader = (
     <AlcoveIdentityHeader
       item={item}
@@ -329,7 +354,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     />
   );
 
-  // 2. Facts ledger — Origin / Harvest / Liquor
+  // 2. Facts ledger: Origin / Harvest / Liquor
   const factsLedger = (
     <AlcoveFactsLedger
       origin={item.origin}
@@ -347,7 +372,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     />
   );
 
-  // 4. Character — taste, feel, and starred notes in one tonal band
+  // 4. Character: taste, feel, and starred notes in one tonal band
   const characterBand = (
     <AlcoveCharacterBand
       item={item}
@@ -358,7 +383,19 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     />
   );
 
-  // 5. About this tea — story + terroir + craft as one reading chapter
+  // What the wisdom base can resolve from this product's own fields.
+  const referenceProduct: TeaReferenceProduct = {
+    name: item.name,
+    variant: item.variant,
+    chineseName: item.chineseName,
+    origin: item.origin,
+    cultivar: item.cultivar,
+    type: item.type,
+    year: item.year,
+  };
+  const brewingProfile = item.category === 'tea' ? getBrewingProfile(item.type) : undefined;
+
+  // 5. About this tea: story + terroir + craft as one reading chapter
   const aboutSection = (
     <AlcoveAboutSection
       item={item}
@@ -371,7 +408,40 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     />
   );
 
-  // 6. From the table — impression, events, journal, tasting count
+  /**
+   * 6. The plant, the maker, the brew: what the wisdom base knows.
+   *
+   * Not the shop's voice. Every fact here is written once in the wisdom base
+   * and improves on every product the day it is corrected, which is why it sits
+   * apart from Adrian's own words in the About chapter above.
+   *
+   * The card and the page render the same block, because a quick view that
+   * omits the plant is not a quicker view of the page, it is a poorer document
+   * about the same tea. Both render nothing when the base knows nothing, which
+   * is the common case for a garden tea sold under the shop's own name and is
+   * correct.
+   */
+  const referenceSection = (
+    <div className="alcove-body-section mt-7">
+      <TeaReference product={referenceProduct} />
+      {brewingProfile && (
+        <div className="mb-6">
+          <h3 className={`${LABEL} mb-2 mt-0 text-tea-text-dim`}>Brewing</h3>
+          <FactGrid
+            facts={[
+              { label: 'Water', value: brewingProfile.waterTemp },
+              { label: 'Steep', value: brewingProfile.steepTime },
+              { label: 'Leaf', value: brewingProfile.leafRatio },
+              { label: 'Vessel', value: brewingProfile.vessel },
+              { label: 'Infusions', value: brewingProfile.infusions },
+            ].filter(fact => Boolean(fact.value))}
+          />
+        </div>
+      )}
+    </div>
+  );
+
+  // 7. From the table: impression, events, journal, tasting count
   const tableSection = (
     <AlcoveTableSection
       impressions={impressions}
@@ -383,38 +453,39 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
   const whatsAppNote = (
     <p className="m-0 mt-6 px-6 text-center font-sans text-ui-10 tracking-[0.04em] text-tea-text-dim">
-      Ordered over WhatsApp — Adrian confirms within a day
+      Ordered over WhatsApp, Adrian confirms within a day
     </p>
   );
 
-  // ── Page layout — the "quiet page" at /shop/product/:id on cold loads ─────
+  // ── Page layout: the "quiet page" at /shop/product/:id on cold loads ─────
   if (layout === 'page') {
     return (
       <article className="mx-auto w-full max-w-[1080px]">
         <div className="lg:grid lg:grid-cols-[340px_minmax(0,1fr)]">
-          {/* Left rail — identity, facts, and the order module */}
+          {/* Left rail: identity, facts, and the order module */}
           <div className="lg:border-r lg:border-tea-border lg:pb-8">
             {identityHeader}
             {factsLedger}
-            {/* Desktop order rail — hairline box; the commerce module stacks
+            {/* Desktop order rail: hairline box; the commerce module stacks
                 vertically inside it (order button full width). */}
             <div className="mx-6 mt-6 hidden border border-tea-border lg:block">
               {commerceFooter('rail')}
             </div>
           </div>
 
-          {/* Right column — the reading content */}
+          {/* Right column: the reading content */}
           <div className="lg:pt-3">
             {gallery}
             {characterBand}
             {aboutSection}
+            {referenceSection}
             {tableSection}
             {whatsAppNote}
           </div>
         </div>
 
         {/* Below lg the commerce module is a fixed bar sitting just above the
-            mobile bottom nav (bottom-nav utility — never inline calc). */}
+            mobile bottom nav (bottom-nav utility, never inline calc). */}
         <div className="fixed inset-x-0 bottom-nav z-sticky border-b border-tea-border lg:hidden">
           {commerceFooter('pinned')}
         </div>
@@ -427,7 +498,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     );
   }
 
-  // ── Card layout — the modal quiet card ────────────────────────────────────
+  // ── Card layout: the modal quiet card ────────────────────────────────────
   return (
     <AlcoveShell
       alcoveBg={alcoveBg}
@@ -443,8 +514,9 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       {gallery}
       {characterBand}
       {aboutSection}
+      {referenceSection}
       {tableSection}
-      {/* How ordering works — lives in the scroll, not the pinned bar, so the
+      {/* How ordering works: lives in the scroll, not the pinned bar, so the
           sticky footer stays as short as possible. */}
       {whatsAppNote}
 

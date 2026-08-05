@@ -1,0 +1,41 @@
+{
+  "id": "fo-shou",
+  "name": "Fo Shou",
+  "chineseName": "佛手",
+  "altNames": [
+    "Buddha's Hand"
+  ],
+  "originCountry": "Taiwan",
+  "originRegion": "Muzha, Taipei",
+  "developedYear": 1644,
+  "parentage": "Brought from Yongchun, Fujian, China.",
+  "description": "'Buddha's Hand'. A large-leaf cultivar with origins in Yongchun, Fujian, that is also cultivated in Taiwan. It is named for its unusually large leaves, which resemble a Buddha's hand citron. In Taiwan, it is most famously used to create a distinct style of traditionally crafted, heavily roasted oolong in the Muzha area.",
+  "plantType": "Large, sprawling bush with very large, broad, and dark green leaves (Camellia sinensis var. sinensis).",
+  "environment": "Grows well in the mid-elevation, humid environments of northern and central Taiwan.",
+  "processing": "The large leaves of Fo Shou contain a lot of water and require a long, slow withering process. Their size and substance make them ideal for withstanding the stress of heavy oxidation and deep, slow roasting.",
+  "oxidation": "Undergoes heavy oxidation (50-60%) to develop a deep, fruity, and honey-like flavor base that serves as the perfect canvas for roasting.",
+  "roasting": "Very well-suited to heavy roasting. The traditional Muzha style involves multiple, slow bakes over charcoal, which builds immense depth, removes all astringency, and creates a signature caramel-like sweetness.",
+  "versatility": "Specialized for traditional, heavily roasted oolongs. Its large leaf structure is not well-suited for light, 'green' oolong styles.",
+  "distribution": {
+    "taiwan": [
+      "Taipei (Muzha)",
+      "Nantou County",
+      "Pinglin District"
+    ]
+  },
+  "expressions": {
+    "Traditional Oolong": {
+      "Muzha Fo Shou": "Its most famous Taiwanese expression. A heavily oxidized and deeply roasted oolong with a unique fruity, honeyed, and roasted character.",
+      "Yongchun Fo Shou (Anxi)": "The original mainland China style, known for its strong ripe fruit notes."
+    }
+  },
+  "sensory": {
+    "aroma": "Ripe Quince, Pear, Honey, Caramel, gentle roast",
+    "flavor": "Thick, fruity, and sweet with a distinct, comforting roasted depth.",
+    "mouthfeel_liquor": "Exceptionally thick, viscous, and soupy with a very smooth, comforting texture. The liquor is a deep, dark amber."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

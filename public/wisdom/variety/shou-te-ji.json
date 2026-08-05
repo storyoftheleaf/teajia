@@ -1,0 +1,13 @@
+{
+  "id": "shou-te-ji",
+  "type": "Shou",
+  "name": "Te Ji",
+  "chineseName": "特级熟普",
+  "altNames": [
+    "Special Grade"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

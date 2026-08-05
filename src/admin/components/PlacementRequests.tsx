@@ -5,11 +5,11 @@ import { api } from '../../lib/api';
 import { useToast } from './Toast';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
-// Stock spine step 4 — location-owner placement review (the owner-facing half
+// Stock spine step 4, location-owner placement review (the owner-facing half
 // of "the move"). A member requested that their personal, location-less tea be
-// placed into THIS location's shop. The owner approves — landing it as held
+// placed into THIS location's shop. The owner approves, landing it as held
 // stock owned by the member (is_public=0, shown_in_shop=0), which the owner
-// then lists and shows via the normal step-2 controls — or declines, returning
+// then lists and shows via the normal step-2 controls: or declines, returning
 // it to the member's private cellar. Human-approved, never a silent write.
 //
 // Renders nothing when there are no pending requests, so it stays out of the
@@ -28,18 +28,18 @@ export const PlacementRequests: React.FC<{ accountId: string }> = ({ accountId }
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['cellar-placements'] });
-    // Approve creates a held product in this account — refresh the inventory.
+    // Approve creates a held product in this account, refresh the inventory.
     qc.invalidateQueries({ queryKey: ['products'] });
   };
 
   const approveMut = useMutation({
     mutationFn: (id: string) => api.cellar.approvePlacement(id),
-    onSuccess: () => { showToast('Placed — now held stock you can list and show.', 'success'); invalidate(); },
+    onSuccess: () => { showToast('Placed, now held stock you can list and show.', 'success'); invalidate(); },
     onError: (e: any) => showToast(e?.message || 'Failed to approve placement', 'error'),
   });
   const declineMut = useMutation({
     mutationFn: (id: string) => api.cellar.declinePlacement(id),
-    onSuccess: () => { showToast("Declined — returned to the member's cellar.", 'success'); invalidate(); },
+    onSuccess: () => { showToast("Declined, returned to the member's cellar.", 'success'); invalidate(); },
     onError: (e: any) => showToast(e?.message || 'Failed to decline placement', 'error'),
   });
 
@@ -55,7 +55,7 @@ export const PlacementRequests: React.FC<{ accountId: string }> = ({ accountId }
       <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text mb-1`}>Placement requests</h2>
       <p className="text-tea-text-sec text-ui-13 mb-4 leading-[1.5]">
         A member asked to place their own tea in this shop. Approving lands it as held
-        stock owned by them — you then list and show it like any other tea.
+        stock owned by them, you then list and show it like any other tea.
       </p>
       <ul className="divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
         {requests.map(r => {
@@ -86,7 +86,7 @@ export const PlacementRequests: React.FC<{ accountId: string }> = ({ accountId }
                   type="button"
                   onClick={() => approveMut.mutate(r.id)}
                   disabled={busy}
-                  className="inline-flex items-center gap-1.5 bg-tea-gold text-tea-bg rounded-md px-3 py-1.5 text-ui-13 font-medium disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 cta-solid rounded-md px-3 py-1.5 text-ui-13 font-medium disabled:opacity-50"
                 >
                   {busy ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />} Approve
                 </button>

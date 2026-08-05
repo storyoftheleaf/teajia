@@ -49,7 +49,7 @@ export function InventorySourcePanel({ product, products, onClose }: InventorySo
     <motion.aside
       role="dialog"
       aria-modal="true"
-      aria-label={`Source — ${sourceName}`}
+      aria-label={`Source: ${sourceName}`}
       initial={{ x: '100%' }}
       animate={{ x: 0 }}
       exit={{ x: '100%' }}

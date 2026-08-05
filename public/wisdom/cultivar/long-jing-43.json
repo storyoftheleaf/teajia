@@ -1,0 +1,42 @@
+{
+  "id": "long-jing-43",
+  "name": "Long Jing #43",
+  "chineseName": "龙井43号",
+  "altNames": [
+    "Dragon Well #43"
+  ],
+  "originCountry": "China",
+  "originRegion": "Hangzhou (Zhejiang)",
+  "developedYear": 1970,
+  "parentage": "Selected and cloned from the native Long Jing Qunti Zhong population.",
+  "description": "'Long Jing No. 43'. The most widespread and commercially important modern cultivar for producing West Lake Long Jing tea. It was developed for its high yield, beautiful appearance, and early budding time, allowing for the prized pre-Qingming harvest. It produces the classic, beloved nutty and sweet soybean flavor of Long Jing.",
+  "plantType": "Compact, early-sprouting bush with high productivity (Camellia sinensis var. sinensis).",
+  "environment": "Thrives in the temperate climate and sandy loam soil of the hills surrounding Hangzhou's West Lake, though it is highly adaptable and grown elsewhere.",
+  "processing": "Processing is defined by the pan-firing ('chao qing') step. The tender leaves are skillfully pressed against the hot surface of a wok to stop oxidation, dry the leaves, and shape them into their iconic flat form.",
+  "oxidation": "Zero oxidation. As a green tea, the leaves are heated (in this case, pan-fired) almost immediately after harvesting to deactivate the enzymes responsible for oxidation.",
+  "roasting": "No roasting. The 'roasty' notes in Long Jing come directly from the pan-firing process itself, not from a separate roasting step.",
+  "versatility": "Specialized for pan-fired green tea. Its entire set of desirable traits—early budding, tender leaves, beautiful shape—is geared towards producing high-quality Long Jing.",
+  "distribution": {
+    "china": [
+      "Zhejiang Province (Hangzhou - its home)",
+      "Other green tea regions across China"
+    ]
+  },
+  "expressions": {
+    "Green Tea": {
+      "West Lake Long Jing": "This is its premier expression. The leaves are pan-fired in a wok to halt oxidation and create their signature flat shape and toasted flavor."
+    },
+    "Other Green Teas": {
+      "Various pan-fired styles": "Its reliability makes it a choice for producing other flat-style green teas outside of Hangzhou."
+    }
+  },
+  "sensory": {
+    "aroma": "Toasted Chestnut, Sweet Soybean, Fresh Grass",
+    "flavor": "Nutty, mellow, savory (umami), and subtly sweet with no bitterness.",
+    "mouthfeel_liquor": "Smooth, mellow, and soft with a clean, refreshing finish. The liquor is a bright, clear yellow-green."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

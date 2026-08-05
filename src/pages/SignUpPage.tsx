@@ -147,7 +147,7 @@ export default function SignUpPage() {
           <button
             type="submit"
             disabled={loading || verificationCode.length !== 6 || verificationExpired || verificationFailures >= 3}
-            className="w-full inline-flex items-center justify-center px-3 py-2.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-50"
+            className="w-full inline-flex items-center justify-center px-3 py-2.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-50"
           >
             {loading ? 'Verifying…' : 'Verify email'}
           </button>
@@ -189,7 +189,7 @@ export default function SignUpPage() {
         </button>
         {whatOpen && (
           <p className="mt-2 max-w-xs mx-auto text-ui-12 text-tea-text-sec leading-relaxed font-body italic">
-            A curated tea platform — sourcing, education, and private sessions. Every order is a personal conversation; every cup has a story.
+            A curated tea platform, sourcing, education, and private sessions. Every order is a personal conversation; every cup has a story.
           </p>
         )}
       </div>
@@ -344,7 +344,7 @@ export default function SignUpPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-50"
+          className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-50"
         >
           {loading ? (
             <div className="w-4 h-4 border-2 border-tea-bg/30 border-t-tea-bg rounded-full animate-spin" />

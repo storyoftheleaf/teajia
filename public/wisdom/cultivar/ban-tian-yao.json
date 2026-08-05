@@ -1,0 +1,39 @@
+{
+  "id": "ban-tian-yao",
+  "name": "Ban Tian Yao",
+  "chineseName": "半天腰",
+  "altNames": [
+    "Mid-level",
+    "Half-way to Heaven"
+  ],
+  "originCountry": "China",
+  "originRegion": "Wuyi Mountains (Fujian)",
+  "developedYear": 1644,
+  "parentage": "Selected from the native Wuyi heirloom population.",
+  "description": "'Half-way to the Sky'. A classic Wuyi Rock Oolong named for the legend of its original bush growing halfway up a cliff. It is celebrated for its perfect balance and elegance, often described as the ideal middle-ground Yancha—lacking the sharp spice of Rou Gui or the deep woodiness of Shui Xian, it instead offers a clear, sweet, and floral profile.",
+  "plantType": "Upright, medium-sized arbor type, well-adapted to rocky growth (Camellia sinensis var. sinensis).",
+  "environment": "Best expresses itself in the core 'Zhengyan' region of the Wuyi Mountains, where the mineral-rich terroir contributes to its balanced flavor.",
+  "processing": "The processing of Ban Tian Yao is a balancing act itself. The goal is not to impart extreme flavors but to reveal the cultivar's natural elegance. Its leaves are robust enough for traditional Yancha processing but shine when not pushed to extremes.",
+  "oxidation": "Undergoes a standard medium-to-heavy oxidation for Yancha (40-60%) to develop a solid foundation of flavor that enhances its floral and fruity notes.",
+  "roasting": "Typically receives a medium charcoal roast. This is enough to create the desired 'rock rhyme' and smoothness but light enough to preserve its delicate floral top notes, which could be lost with a heavier bake.",
+  "versatility": "Highly specialized. Ban Tian Yao is a pure expression of the traditional Wuyi Rock Oolong style and is not used for other types of tea.",
+  "distribution": {
+    "china": [
+      "Fujian Province (Wuyi Mountains)"
+    ]
+  },
+  "expressions": {
+    "Wuyi Rock Oolong (Yancha)": {
+      "Ban Tian Yao Yancha": "Its sole expression is a traditionally crafted rock oolong, where processing aims to highlight its inherent balance and elegant floral character."
+    }
+  },
+  "sensory": {
+    "aroma": "Delicate Orchid, Stone Fruit, Toasted Grain, faint sweetness",
+    "flavor": "Clean, sweet, with a very clear and pure mineral note. Well-balanced without any single dominant flavor.",
+    "mouthfeel_liquor": "Smooth, medium-bodied, and elegant with a pleasant, lingering sweet finish. The liquor is a clear, bright amber."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

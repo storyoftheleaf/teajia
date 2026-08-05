@@ -9,8 +9,8 @@ export default function AboutPage() {
   return (
     <div className="animate-[fadeIn_0.6s_ease-out] max-w-3xl mx-auto px-4 md:px-6 pt-12 pb-24 pb-nav-gap-lg">
       <Helmet>
-        <title>About — Teajia</title>
-        <meta name="description" content="The story behind Teajia — twenty years of tea culture, sourcing, and design practice rooted in Taiwan and mainland China." />
+        <title>About · Teajia</title>
+        <meta name="description" content="The story behind Teajia: twenty years of tea culture, sourcing, and design practice rooted in Taiwan and mainland China." />
       </Helmet>
       {/* Header */}
       <header className="mb-12 md:mb-16 text-center">

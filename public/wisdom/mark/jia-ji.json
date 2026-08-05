@@ -1,0 +1,15 @@
+{
+  "id": "jia-ji",
+  "name": "Jia Ji",
+  "chineseName": "甲级",
+  "altNames": [
+    "Grade A"
+  ],
+  "appliesToTypes": [
+    "Dark"
+  ],
+  "description": "A first/A-grade leaf classification indicating higher-quality selection than standard production. Appears in this collection under more than one producer (Menghai, Liao Fu), so it is a shared grading term rather than one producer's exclusive mark.",
+  "holding": "marks",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

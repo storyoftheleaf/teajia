@@ -13,7 +13,7 @@ interface TimelineVisualProps {
 }
 
 /**
- * TimelineVisual — Horizontal scrollable event timeline.
+ * TimelineVisual: Horizontal scrollable event timeline.
  * CSS scroll-snap-type: x mandatory. Each event snaps.
  * Gold dots and connecting line. Scroll-hint gradient fades on right edge.
  */
@@ -87,7 +87,7 @@ const TimelineVisual: React.FC<TimelineVisualProps> = ({ events, title }) => {
                 {/* Dot */}
                 <div
                   className="relative z-10 mx-auto w-3 h-3 rounded-full bg-tea-gold flex-shrink-0"
-                  style={{ boxShadow: '0 0 0 3px var(--color-tea-bg, #faf6ef)' }}
+                  style={{ boxShadow: '0 0 0 3px var(--tea-bg)' }}
                 />
               </div>
 
@@ -124,7 +124,7 @@ const TimelineVisual: React.FC<TimelineVisualProps> = ({ events, title }) => {
           <div
             className="absolute left-0 top-0 bottom-4 w-8 pointer-events-none"
             style={{
-              background: 'linear-gradient(to right, var(--color-tea-bg, #faf6ef), transparent)',
+              background: 'linear-gradient(to right, var(--tea-bg), transparent)',
             }}
           />
         )}
@@ -134,7 +134,7 @@ const TimelineVisual: React.FC<TimelineVisualProps> = ({ events, title }) => {
           <div
             className="absolute right-0 top-0 bottom-4 w-12 pointer-events-none"
             style={{
-              background: 'linear-gradient(to left, var(--color-tea-bg, #faf6ef), transparent)',
+              background: 'linear-gradient(to left, var(--tea-bg), transparent)',
             }}
           />
         )}

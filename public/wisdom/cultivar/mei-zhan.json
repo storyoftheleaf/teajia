@@ -1,0 +1,45 @@
+{
+  "id": "mei-zhan",
+  "name": "Mei Zhan",
+  "chineseName": "梅占",
+  "altNames": [
+    "N/A"
+  ],
+  "originCountry": "China",
+  "originRegion": "Wuyi, Anxi",
+  "developedYear": 1801,
+  "parentage": "Originated in Anxi, Fujian.",
+  "description": "A highly versatile Fujian cultivar, originally from Anxi. While it can be made into a pleasant oolong, it has gained modern fame as one of the primary cultivars used to produce Jin Jun Mei, an elite, bud-only black tea from the Wuyi region. Its inherent sweetness and fruity notes make it an excellent base for high-end black teas.",
+  "plantType": "Vigorous, semi-arbor type with good adaptability (Camellia sinensis var. sinensis).",
+  "environment": "Highly adaptable to different terroirs within Fujian, which has contributed to its widespread use.",
+  "processing": "Mei Zhan's versatility is due to its balanced chemical composition. Its buds are particularly well-suited for black tea processing, as they are rich in compounds that create sweetness and a thick texture when fully oxidized.",
+  "oxidation": "Oxidation is typically full (100%) for its most famous black tea expression. When made as an oolong, it undergoes medium oxidation (30-40%).",
+  "roasting": "Roasting is not a key feature. Black tea expressions are simply dried. Oolong expressions may receive a light bake.",
+  "versatility": "Extremely versatile. It is a rare cultivar that can be skillfully crafted into high-quality oolong, black, and even white tea, though its modern fame is overwhelmingly tied to black tea.",
+  "distribution": {
+    "china": [
+      "Fujian Province (Wuyi Mountains, Anxi)",
+      "Other provinces like Zhejiang and Sichuan"
+    ]
+  },
+  "expressions": {
+    "Black Tea": {
+      "Jin Jun Mei": "Its most prestigious modern use. The tender buds are crafted into a high-end black tea with notes of honey, fruit, and sweet potato."
+    },
+    "Oolong Tea": {
+      "Mei Zhan Oolong": "Can be made into a fragrant Anxi-style or Wuyi-style oolong, though this is less common now."
+    },
+    "White Tea": {
+      "Mei Zhan Buds": "Its downy buds can be processed into a sweet, fruity white tea."
+    }
+  },
+  "sensory": {
+    "aroma": "Honey, sweet potato, fruity (as black tea); Floral, fruity (as oolong)",
+    "flavor": "Very sweet, mellow, and complex with a smooth finish and no astringency.",
+    "mouthfeel_liquor": "Smooth, full, and often thick and syrupy, especially as Jin Jun Mei. The liquor is a beautiful golden-orange."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

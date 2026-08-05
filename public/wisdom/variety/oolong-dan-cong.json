@@ -1,0 +1,13 @@
+{
+  "id": "oolong-dan-cong",
+  "type": "Oolong",
+  "name": "Dan Cong",
+  "chineseName": "单枞",
+  "altNames": [
+    "Phoenix Dan Cong"
+  ],
+  "region": "Phoenix Mountain",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

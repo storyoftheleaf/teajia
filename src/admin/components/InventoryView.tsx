@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallba
 import { mediaUrl } from '../../lib/mediaUrl';
 import { AnchoredMenu } from '../../components/shared/AnchoredMenu';
 import { BottomSheet, SheetOption } from '../../components/shared/BottomSheet';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import {
   Loader2, FileSpreadsheet, Plus, Download,
   AlertTriangle, Archive, ArrowUpDown, ArrowUp, ArrowDown, Layers, MoreHorizontal, Check, X as XIcon, Star, Sparkles, RefreshCw, ChevronDown, ChevronRight, MapPin, Search, Leaf, Image as ImageIcon, History, SlidersHorizontal
@@ -53,10 +53,12 @@ import {
   VIEW_ICON_MAP,
 } from './inventory/config';
 import type { InventoryCategory, ColDef } from './inventory/types';
-import { isFeaturedButHidden } from './inventory/helpers';
+import { isFeaturedButHidden, withParam } from './inventory/helpers';
 import { InventoryRow } from './inventory/InventoryRow';
 import { QuickEditInlineRow } from './inventory/QuickEditInlineRow';
 import { InventoryActionRail, INVENTORY_ACTION_RAIL_WIDTH } from './inventory/InventoryActionRail';
+import { INVENTORY_WISDOM_PARAM } from './wisdom/config';
+import { readWisdomScope } from './wisdom/usage';
 import { useInventoryProducts } from './inventory/useInventoryProducts';
 import { InventoryConfirmations } from './inventory/InventoryConfirmations';
 import { InventoryBulkToolbar } from './inventory/InventoryBulkToolbar';
@@ -94,7 +96,7 @@ function isInventoryToastType(type: string): type is 'success' | 'error' | 'info
 import { GhostInput, GhostTextarea, GhostAutocompleteInput, GhostSelect, VendorPicker, ImageManager, ProductEditPanel, CollapsibleSection, buildProductUpdatePayload } from './ProductEditPanel';
 
 /**
- * SavedPill — micro feedback for successful inline edits
+ * SavedPill, micro feedback for successful inline edits
  * Renders "✓ Saved" with fade-in animation, pointer-events-none
  */
 const SavedPill: React.FC<{ isVisible: boolean }> = ({ isVisible }) => {
@@ -174,6 +176,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const vendorFilter = searchParams.get('vendor') || '';
   const batchFilter = searchParams.get('batch') || '';
   const panelParam = searchParams.get('panel') || '';
+  // A wisdom entry as a filter, in the same shape as vendor and batch: the
+  // address names it, the list narrows to it, one chip clears it. Wisdom's
+  // blast radius writes this link so "sixty products resolve through this
+  // cultivar" arrives here as sixty rows instead of sixty chips in a panel.
+  const wisdomFilter = searchParams.get(INVENTORY_WISDOM_PARAM) || '';
   const navigate = useNavigate();
   const compassEntries = useTeaCompassStore((s) => s.entries);
   const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
@@ -266,8 +273,63 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   const activeBatch = batches.find(b => b.id === batchFilter) || null;
 
+  // Which products resolve through the named wisdom entry, answered by the same
+  // resolveTea pass the wisdom screen counts with, and cached against the
+  // product list itself, so this costs nothing when no wisdom link was followed.
+  const wisdomScope = useMemo(() => readWisdomScope(wisdomFilter, products), [wisdomFilter, products]);
+
+  /**
+   * Setting ONE filter sets that filter. Clearing one clears that one.
+   *
+   * The chip used to reset the whole address, which is three other contexts it
+   * never named: the open product panel, the incoming shipment view and the
+   * receipt being read all live in these same params, and all three were dropped
+   * by a control whose label was a vendor name. The setters had the identical
+   * bug: choosing a vendor wrote a new address with one key in it, dropping the
+   * panel, the receipt and the wisdom filter the operator had crossed from.
+   * Both go through `withParam` now, which is the whole rule in one place.
+   */
+  const clearFilter = useCallback(
+    (key: string) => setSearchParams(prev => withParam(prev, key, null), { replace: true }),
+    [setSearchParams],
+  );
+
+  const setFilter = useCallback(
+    (key: string, value: string) => setSearchParams(prev => withParam(prev, key, value), { replace: true }),
+    [setSearchParams],
+  );
+
+  /**
+   * The active filters, each one saying WHAT KIND of filter it is.
+   *
+   * A vendor, a batch and a wisdom entry reached the header as one truncating
+   * gold label, so a cultivar named the same as a supplier was indistinguishable
+   * from it and there was no way to tell which of the three a press would clear.
+   * The kind is a word from the thing itself: the vendor column's own header,
+   * the batch, or the wisdom holding's panel eyebrow.
+   *
+   * A wisdom chip also carries the way back. The crossing was built one way
+   * only: the panel could hand the inventory a filter and the inventory could
+   * not return to the entry that had filtered it.
+   */
+  const contextChips = useMemo(() => {
+    const chips: Array<{ key: string; kind: string; label: string; back?: string }> = [];
+    if (vendorFilter) chips.push({ key: 'vendor', kind: 'Source', label: vendorFilter });
+    if (batchFilter) chips.push({ key: 'batch', kind: 'Batch', label: activeBatch?.label || 'Batch' });
+    if (wisdomFilter) {
+      chips.push({
+        key: INVENTORY_WISDOM_PARAM,
+        kind: wisdomScope?.kind || 'Wisdom',
+        label: wisdomScope?.label || wisdomFilter,
+        back: wisdomScope?.href,
+      });
+    }
+    return chips;
+  }, [vendorFilter, batchFilter, activeBatch, wisdomFilter, wisdomScope]);
+
   // Initialize/Sync Local Products for Optimistic Updates
-  // Vendor filter narrows to one source; batch filter narrows to one shipment.
+  // Vendor filter narrows to one source; batch filter narrows to one shipment;
+  // wisdom filter narrows to one entry in the base.
   useEffect(() => {
     let list = products;
     if (vendorFilter) {
@@ -277,8 +339,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     if (batchFilter && batchProductIds) {
       list = list.filter(p => batchProductIds.has(p.id));
     }
+    if (wisdomScope) {
+      list = list.filter(p => wisdomScope.ids.has(p.id));
+    }
     setLocalProducts(list);
-  }, [products, vendorFilter, batchFilter, batchProductIds]);
+  }, [products, vendorFilter, batchFilter, batchProductIds, wisdomScope]);
 
   // Feature 2: Column Show/Hide popover
   const [showColumnsPopover, setShowColumnsPopover] = useState(false);
@@ -287,7 +352,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // Feature 3: Row Grouping collapsed state
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
-  // Feature 4: Saved Views — initialize defaults + sync names/icons/sortConfig from defaults
+  // Feature 4: Saved Views, initialize defaults + sync names/icons/sortConfig from defaults
   useEffect(() => {
     // Migration: remove retired default-drafts view
     if (savedViews.some(v => v.id === 'default-drafts')) {
@@ -344,7 +409,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // Feature 5: Record Panel
   const [panelProduct, setPanelProduct] = useState<Product | null>(null);
   const [sourcePanelProduct, setSourcePanelProduct] = useState<Product | null>(null);
-  // Inline quick-edit — opened by a long-press on a row. Holds the id of the one
+  // Inline quick-edit, opened by a long-press on a row. Holds the id of the one
   // row that is currently expanded; the panel slides down directly under it.
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
 
@@ -491,7 +556,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const scrollRAFRef = useRef<number | null>(null);
   const [containerHeight, setContainerHeight] = useState(600);
 
-  // The desktop table wrapper — kept for layout queries (the old floating drawer
+  // The desktop table wrapper, kept for layout queries (the old floating drawer
   // anchored to it; the action rail replaced the drawer but the ref is harmless).
   const tableWrapperRef = useRef<HTMLDivElement>(null);
 
@@ -526,7 +591,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [recentlySavedCells, setRecentlySavedCells] = useState<Set<string>>(new Set());
   const timeoutRefsMap = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
-  // Edit-mode save status — drives the persistent "Saving… / All changes saved"
+  // Edit-mode save status: drives the persistent "Saving… / All changes saved"
   // indicator in the edit toolbar so inline auto-save is visible at all times
   // (the old per-cell pill alone was too easy to miss). `savingCount` tracks
   // in-flight writes; `lastSavedAt` flips the idle state to "saved" once one
@@ -689,7 +754,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   const splitColWidth = (key: string): string => {
     if (key === 'productName') return '';
-    // Stock must always show its full gram value (e.g. 12,345), never clip — the
+    // Stock must always show its full gram value (e.g. 12,345), never clip, the
     // cell also carries the history + recount-flag buttons, so it needs real room.
     if (key === 'stockGrams') return 'w-[88px]';
     if (key === 'quantityUnits') return 'w-[60px]';
@@ -751,7 +816,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       return () => { clearTimeout(t); ro.disconnect(); };
   }, []);
 
-  // Action rail derived state — the rail replaces the old floating selection
+  // Action rail derived state, the rail replaces the old floating selection
   // drawer + the per-row action cluster. It slides in whenever rows are selected.
   // Exactly one selected unlocks the Edit door to the full ProductEditPanel.
   const railOpen = selectedIds.size > 0 && !isEditMode;
@@ -784,7 +849,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   // ── STABLE HANDLER INFRASTRUCTURE ──────────────────────────────────────────
   // Refs keep reactive values accessible in useCallback without listing them as
-  // deps — so the callback reference stays stable across renders.
+  // deps, so the callback reference stays stable across renders.
   const selectedIdsRef = useRef(selectedIds);
   const processedProductsRef = useRef(processedProducts);
   const productIndexMapRef = useRef(productIndexMap);
@@ -798,7 +863,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   useLayoutEffect(() => { isEditModeRef.current = isEditMode; }, [isEditMode]);
   useLayoutEffect(() => { panelProductRef.current = panelProduct; }, [panelProduct]);
 
-  // Stable open-panel — row passes the product object directly.
+  // Stable open-panel, row passes the product object directly.
   // stableRowClick and stableLongPressSelect are declared after toggleSelectId below.
   const stableOpenPanel = useCallback((product: Product) => {
     setSourcePanelProduct(null);
@@ -815,7 +880,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     setRowDropdownId(productId);
   }, []);
 
-  // Stable stock history — row has id + name.
+  // Stable stock history, row has id + name.
   const stableStockHistory = useCallback((id: string, name: string) => {
     setStockHistoryProduct({ id, name });
   }, []);
@@ -852,7 +917,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       chineseName: product.chineseName || undefined,
       type: product.type,
       status: 'want',
-      notes: `Restock from inventory — ${product.productName}`,
+      notes: `Restock from inventory: ${product.productName}`,
     };
     if (product.vendor) updates.vendorName = product.vendor;
     if (product.costCurrency) updates.priceCurrency = product.costCurrency;
@@ -866,7 +931,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   }, [startNewCapture, updateCompassEntry, navigate]);
 
   const handleProductUpdate = useCallback(async (id: string, field: keyof Product, value: any, options?: { throwOnError?: boolean }) => {
-    // 1. Optimistic Update — single setState call handles both the field change and any
+    // 1. Optimistic Update, single setState call handles both the field change and any
     //    derived retail recalculation to avoid a double re-render.
     const pricingFieldsSet = new Set<keyof Product>(['costAmount', 'quantityPurchased', 'shippingRatePerKg', 'costCurrency']);
     const needsRetailCalc = pricingFieldsSet.has(field);
@@ -967,7 +1032,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     }
   }, [setLocalProducts, setPanelDirty, showToast, onRefresh]);
 
-  // Permanent delete — only reachable through the typed-"delete" confirmation.
+  // Permanent delete, only reachable through the typed-"delete" confirmation.
   // Optimistically drops the row, then refetches to reconcile with the server.
   const handleConfirmDelete = useCallback(async () => {
     if (!deleteTarget) return;
@@ -1096,7 +1161,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       setLocalProducts(prev => prev.map(p => ({ ...p, stockVerifiedAt: null })));
       setShowVerificationResetConfirm(false);
       onRefresh();
-      showToast('Verification reset — ready for a new stock check', 'success');
+      showToast('Verification reset, ready for a new stock check', 'success');
     } catch (err: any) {
       showToast(`Reset failed: ${err.message}`, 'error');
     }
@@ -1207,7 +1272,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           originRegion: data.originRegion || product.originRegion || '',
         }
       }));
-      showToast("Regenerated — review the new content", 'success');
+      showToast("Regenerated, review the new content", 'success');
     } catch (err: any) {
       showToast(`Regeneration failed: ${err.message}`, 'error');
     } finally {
@@ -1216,7 +1281,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   };
 
   // --- COMPONENTS ---
-  // Canonical column header — font-serif text-ui-11 uppercase tracking-display text-tea-text-sec.
+  // Canonical column header, font-serif text-ui-11 uppercase tracking-display text-tea-text-sec.
   // Numeric columns (grams, retail/g, cost, capacity, units) right-align; everything else left.
   const RIGHT_ALIGN_KEYS = new Set([
     'stockGrams', 'pricePerGramUSD', 'costAmount', 'costPerGramUSD', 'capacityMl', 'quantityUnits',
@@ -1318,7 +1383,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     if (!panelProduct) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { setPanelProduct(null); e.preventDefault(); return; }
-      // Never steal arrow keys while the user is typing in a field — they need
+      // Never steal arrow keys while the user is typing in a field, they need
       // them to move the text cursor (e.g. editing a stock value in the panel).
       const t = e.target as HTMLElement | null;
       const typing = !!t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
@@ -1425,7 +1490,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   };
 
   // Declared after toggleSelectId so useCallback deps resolve correctly.
-  // The row body SELECTS — it never opens the edit panel (that door is the rail's
+  // The row body SELECTS, it never opens the edit panel (that door is the rail's
   // Edit button now). Plain click = single-select, replacing any prior selection;
   // clicking the already-single-selected row deselects it. Cmd/Ctrl-click and
   // shift-click ADD to the selection (toggle / range). Long-press on mobile adds
@@ -1442,7 +1507,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       toggleSelectId(productId, globalIdx, true);
       return;
     }
-    // Plain click — single-select replace. Close the panel if it was open.
+    // Plain click, single-select replace. Close the panel if it was open.
     if (panelProductRef.current) setPanelProduct(null);
     const isOnlySelected = selectedIdsRef.current.size === 1 && selectedIdsRef.current.has(productId);
     if (isOnlySelected) {
@@ -1508,7 +1573,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     }
   };
 
-  // Rail Star action — toggle isFeatured across the selection. Reads the current
+  // Rail Star action, toggle isFeatured across the selection. Reads the current
   // selection's prevailing state and flips it: if every selected row is already
   // featured, un-feature them all; otherwise feature them all.
   const handleBulkFeature = async () => {
@@ -1536,7 +1601,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     }
   };
 
-  // Rail Archive action — set status to Archived across the selection.
+  // Rail Archive action, set status to Archived across the selection.
   const handleBulkArchive = async () => {
     const ids = [...selectedIds];
     if (ids.length === 0) return;
@@ -1560,7 +1625,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     }
   };
 
-  // Rail Edit action — open the full ProductEditPanel for the single selected row.
+  // Rail Edit action, open the full ProductEditPanel for the single selected row.
   // Edit toggles the full panel: press once to open, again to close it down.
   const handleRailEdit = () => {
     if (selectedIds.size !== 1) return;
@@ -1596,7 +1661,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     const selected = localProducts.filter(p => selectedIds.has(p.id));
     if (selected.length === 0) return;
     const newSet = createEmptySampleSet({ purpose: 'sourcing' });
-    newSet.name = `Inventory — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    newSet.name = `Inventory: ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
     const newSamples = selected.map(p => ({
       ...createEmptySample(newSet.id),
       name: p.productName || p.givenName,
@@ -1704,12 +1769,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   const vendorMenu = (
     <AnchoredMenu align="right" width={208} open={showVendorDropdown} onOpenChange={setShowVendorDropdown} trigger={(props) => <button {...props} className={chromeBtn} aria-label="Filter by vendor">Vendor</button>}>
-      {(close) => <><button role="menuitem" onClick={() => { setSearchParams({}); close(); }} className="w-full px-3 py-2 text-left text-ui-11 text-tea-text-sec">All vendors</button>{[...new Set(localProducts.map(p => p.vendor).filter(Boolean))].sort().map(vendor => <button key={vendor} role="menuitem" onClick={() => { setSearchParams({ vendor: vendor! }); close(); }} className="w-full px-3 py-2 text-left text-ui-11 text-tea-text-sec">{vendor}</button>)}</>}
+      {/* "All vendors" clears the vendor, and only the vendor. Choosing one sets
+          the vendor, and only the vendor. Both used to rewrite the whole
+          address, taking the open panel, the receipt and the wisdom filter. */}
+      {(close) => <><button role="menuitem" onClick={() => { clearFilter('vendor'); close(); }} className="w-full px-3 py-2 text-left text-ui-11 text-tea-text-sec">All vendors</button>{[...new Set(localProducts.map(p => p.vendor).filter(Boolean))].sort().map(vendor => <button key={vendor} role="menuitem" onClick={() => { setFilter('vendor', vendor!); close(); }} className="w-full px-3 py-2 text-left text-ui-11 text-tea-text-sec">{vendor}</button>)}</>}
     </AnchoredMenu>
   );
 
   // Mobile: price, grouping, and sort fold behind a single Adjust icon that
-  // opens a bottom sheet — thumb-reachable, and it can't overflow the viewport
+  // opens a bottom sheet: thumb-reachable, and it can't overflow the viewport
   // the way a top-anchored dropdown of ~17 rows did.
   const adjustMenu = (
     <>
@@ -1741,7 +1809,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   const unifiedHeaderRows = (
           <div className="bg-tea-bg">
-            {/* Tier 1 — corpus, find, scope, actions */}
+            {/* Tier 1: corpus, find, scope, actions */}
             <div
               data-testid="inventory-primary-row"
               data-inventory-header-row
@@ -1767,7 +1835,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   {matchingVendorSuggestions.length > 0 && (
                     <div className="absolute left-0 right-0 top-full z-popover mt-2 rounded-md border border-tea-border bg-tea-elevated py-1 shadow-xl" aria-label="Source suggestions">
                       {matchingVendorSuggestions.map(vendor => (
-                        <button key={vendor.name} type="button" onClick={() => { onSearchQueryChange?.(''); setMobileSearchExpanded(false); setSearchParams({ vendor: vendor.name }); }} className="flex w-full items-center gap-2 px-3 py-2 text-left text-ui-12 text-tea-text-sec hover:bg-tea-accent-sub" aria-label={`${vendor.name}, ${vendor.count} teas`}><MapPin size={12} aria-hidden="true" /><span>{vendor.name}</span><span className="ml-auto font-mono text-tea-text-dim">{vendor.count}</span></button>
+                        <button key={vendor.name} type="button" onClick={() => { onSearchQueryChange?.(''); setMobileSearchExpanded(false); setFilter('vendor', vendor.name); }} className="flex w-full items-center gap-2 px-3 py-2 text-left text-ui-12 text-tea-text-sec hover:bg-tea-accent-sub" aria-label={`${vendor.name}, ${vendor.count} teas`}><MapPin size={12} aria-hidden="true" /><span>{vendor.name}</span><span className="ml-auto font-mono text-tea-text-dim">{vendor.count}</span></button>
                       ))}
                     </div>
                   )}
@@ -1778,13 +1846,99 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   <button ref={mobileSearchTriggerRef} type="button" onClick={() => setMobileSearchExpanded(true)} aria-label="Search inventory" className="tap-target !hidden md:!flex flex-1 min-w-0 items-center gap-2 border-b border-tea-border py-1.5 text-tea-text-dim hover:text-tea-text-sec"><Search size={15} className="shrink-0" /><span className="font-mono text-ui-12">Search…</span></button>
 
                   <div className="ml-auto flex items-center gap-2 md:gap-3">
-                    {/* scope — quiet mono metadata */}
+                    {/* scope, quiet mono metadata */}
                     <span className="font-mono text-ui-11 text-tea-text-dim" title={activeAccountName}>{activeAccountName.replace(/^Teajia\s+/i, '') || 'Bali'}</span>
                     <span className="text-tea-border" aria-hidden="true">·</span>
                     <select value={currency} onChange={(event) => setCurrency(event.target.value as typeof currency)} aria-label="Select currency" className="tap-target shrink-0 appearance-none bg-transparent font-mono text-ui-11 text-tea-text-sec outline-none">{rates.map(rate => <option key={rate.currency} value={rate.currency}>{rate.currency}</option>)}</select>
-                    {(vendorFilter || batchFilter) && <button type="button" onClick={() => setSearchParams({})} aria-label="Clear inventory context" className="tap-target max-w-[96px] truncate font-mono text-ui-11 text-tea-gold">{vendorFilter || activeBatch?.label || 'Batch'} ×</button>}
+                    {/* One chip per filter, each naming its kind and clearing
+                        only itself. A wisdom chip is also the way back to the
+                        entry that filtered the list. The whole group shrinks
+                        before the row does, so the labels truncate rather than
+                        pushing the actions off a 390px screen.
 
-                    {/* find — mobile icon (desktop uses the field above; md:!hidden beats .tap-target) */}
+                        A chip has a floor it cannot shrink past: its kind, which
+                        must not truncate or it stops saying what it is, and a
+                        44px clear. That floor is about 100px, so three of them
+                        is 300px of a 390px header, and the header also carries
+                        two corpus words, the account, the currency and three
+                        44px actions. Three chips simply cannot be seated on a
+                        phone, and until the setters were fixed above, three
+                        filters at once was not reachable, so nothing had ever
+                        had to seat them.
+
+                        So below lg a second filter folds the group into one
+                        control that says how many there are and opens them. Each
+                        one still names its kind, still clears only itself, and a
+                        wisdom filter still carries its way back. A single filter
+                        is never folded: one chip fits, and a chip that names
+                        itself beats a chip that says "1 filter". */}
+                    {(() => {
+                      if (contextChips.length === 0) return null;
+                      const chipBody = (chip: typeof contextChips[number]) => (
+                        <>
+                          <span className="shrink-0 font-mono text-ui-10 uppercase tracking-[0.08em] text-tea-text-dim">{chip.kind}</span>
+                          <span className="min-w-0 max-w-[104px] truncate font-mono text-ui-11 text-tea-gold group-hover:text-tea-gold-lt">{chip.label}</span>
+                        </>
+                      );
+                      const crowded = contextChips.length > 1;
+                      return (
+                        <>
+                          <div className={`${crowded ? 'hidden lg:flex' : 'flex'} min-w-0 shrink items-center gap-2 md:gap-3`}>
+                            {contextChips.map(chip => (
+                              <span key={chip.key} data-testid={`inventory-context-${chip.key}`} className="flex min-w-0 shrink items-center gap-1">
+                                {chip.back
+                                  ? <Link to={chip.back} aria-label={`Back to ${chip.label} in Wisdom`} className="tap-target group flex min-w-0 items-baseline gap-1 hover:underline underline-offset-2">{chipBody(chip)}</Link>
+                                  : <span className="flex min-w-0 items-baseline gap-1">{chipBody(chip)}</span>}
+                                <button type="button" onClick={() => clearFilter(chip.key)} aria-label={`Clear the ${chip.kind.toLowerCase()} filter ${chip.label}`} className="tap-target shrink-0 justify-center font-mono text-ui-11 text-tea-gold hover:text-tea-gold-lt">×</button>
+                              </span>
+                            ))}
+                          </div>
+                          {crowded && (
+                            <div className="shrink-0 lg:hidden" data-testid="inventory-context-folded">
+                              {/* THE SAME READING AT BOTH WIDTHS. Folded, the
+                                  control said "2 FILTERS", which is the one thing
+                                  the operator already knew: the list is short.
+                                  Naming the KINDS instead got back the word that
+                                  says why, and swapped one mismatch for another:
+                                  a chip is a kind in dim micro-caps beside a value
+                                  in gold, and the fold was kinds in gold and no
+                                  value at all, so gold meant the value on one side
+                                  of the breakpoint and the kind on the other and
+                                  neither control read as the other's shorthand.
+                                  It is one chip now, in the chip's own two
+                                  treatments, with the rest counted after it. That
+                                  is more than the two kinds said and it fits in
+                                  the room a single unfolded chip already fits in,
+                                  because it IS one, minus the clear. */}
+                              <AnchoredMenu
+                                align="right"
+                                width={248}
+                                trigger={(props) => (
+                                  <button {...props} className="tap-target group inline-flex min-w-0 items-baseline gap-1" aria-label={`${contextChips.length} filters on this list: ${contextChips.map(chip => `${chip.kind} ${chip.label}`).join(', ')}`}>
+                                    {chipBody(contextChips[0])}
+                                    <span className="shrink-0 font-mono text-ui-10 uppercase tracking-[0.08em] text-tea-text-dim">+{contextChips.length - 1}</span>
+                                  </button>
+                                )}
+                              >
+                                {(close) => contextChips.map(chip => (
+                                  <div key={chip.key} className="flex items-center gap-2 px-3 py-2">
+                                    <span className="min-w-0 flex-1">
+                                      <span className="block font-mono text-ui-10 uppercase tracking-[0.08em] text-tea-text-dim">{chip.kind}</span>
+                                      {chip.back
+                                        ? <Link role="menuitem" to={chip.back} onClick={close} aria-label={`Back to ${chip.label} in Wisdom`} className="block truncate font-mono text-ui-12 text-tea-gold hover:text-tea-gold-lt">{chip.label}</Link>
+                                        : <span className="block truncate font-mono text-ui-12 text-tea-text">{chip.label}</span>}
+                                    </span>
+                                    <button role="menuitem" type="button" onClick={() => { clearFilter(chip.key); close(); }} aria-label={`Clear the ${chip.kind.toLowerCase()} filter ${chip.label}`} className="tap-target shrink-0 font-mono text-ui-11 text-tea-text-sec hover:text-tea-text">Clear</button>
+                                  </div>
+                                ))}
+                              </AnchoredMenu>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+
+                    {/* find, mobile icon (desktop uses the field above; md:!hidden beats .tap-target) */}
                     <button type="button" onClick={() => setMobileSearchExpanded(true)} aria-label="Search inventory" className="tap-target md:!hidden text-tea-text-sec hover:text-tea-text"><Search size={18} /></button>
 
                     {/* desktop chrome */}
@@ -1795,7 +1949,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       {isEditMode && <button data-testid="inventory-done" type="button" onClick={() => setIsEditMode(false)} aria-pressed={true} className={chromeBtn}>Done</button>}
                     </div>
 
-                    {/* add — every width */}
+                    {/* add, every width */}
                     <button type="button" onClick={onAddClick} aria-label="Add new tea" className="tap-target inline-flex items-center gap-1 text-tea-gold hover:text-tea-gold-lt"><Plus size={18} /><span className="hidden md:inline font-mono text-ui-11 uppercase tracking-[0.08em]">Add</span></button>
 
                     {/* overflow */}
@@ -1805,7 +1959,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               )}
             </div>
 
-            {/* Tier 2 — lens rail + shape controls */}
+            {/* Tier 2, lens rail + shape controls */}
             {(() => {
               const allViews = savedViews.length > 0 ? savedViews.filter(v => inventoryCategory === 'teaware' ? v.id.includes('teaware') : !v.id.includes('teaware')) : activeDefaultViews;
               const purposeNames = ['All', 'Working', 'Samples', 'Personal'];
@@ -1820,7 +1974,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     {purposeViews.map(view => <button key={view.id} type="button" onClick={() => selectView(view)} aria-pressed={activeViewId === view.id} className={lensBtn(activeViewId === view.id)}>{view.name || VIEW_FILTER_LABELS[view.filterType] || view.filterType}</button>)}
                   </div>
 
-                  {/* Flagged — pinned right, always visible */}
+                  {/* Flagged: pinned right, always visible */}
                   <div className="relative shrink-0">
                     <button type="button" onClick={() => setViewTabsExpanded(!viewTabsExpanded)} aria-expanded={viewTabsExpanded} aria-label={viewTabsExpanded ? 'Hide flagged views' : 'Show flagged views'} className="tap-target inline-flex items-center gap-1.5 font-display text-ui-16 font-medium leading-none text-tea-text-sec hover:text-tea-text">
                       <span>Flagged</span>
@@ -1831,7 +1985,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
                   <span className="shrink-0 w-px h-4 bg-tea-border" aria-hidden="true" />
 
-                  {/* shape controls — folded on mobile, inline on desktop */}
+                  {/* shape controls: folded on mobile, inline on desktop */}
                   {isMobile ? adjustMenu : (
                     <div className="flex items-center gap-3 shrink-0">
                       {sortMenu}{groupMenu}{colsMenu}{priceToggle}
@@ -1922,7 +2076,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           <Loader2 size={13} className="animate-spin text-tea-gold flex-shrink-0" />
           <div className="flex-1">
             <div className="text-ui-10 text-tea-text-sec uppercase tracking-[0.2em] mb-1.5">
-              Generating &lsquo;{enrichProgress.currentName}&rsquo; — {enrichProgress.current} of {enrichProgress.total}
+              Generating &lsquo;{enrichProgress.currentName}&rsquo;, {enrichProgress.current} of {enrichProgress.total}
             </div>
             <div className="h-0.5 bg-tea-border rounded-full overflow-hidden">
               <div
@@ -1942,7 +2096,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       {/* --- SCROLL CONTAINER ---
           The right margin (room for the action rail / edit panel) lives HERE,
-          on the scrolling table only — not on the outer container — so the
+          on the scrolling table only, not on the outer container, so the
           sticky toolbar above keeps its full width and its right-side action
           cluster never slides under the rail when a row is selected. */}
       <div
@@ -1957,7 +2111,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           scrollRAFRef.current = requestAnimationFrame(() => setScrollTop(top));
         }}
       >
-        {/* Active filter label was here — removed; count + label now live inside
+        {/* Active filter label was here, removed; count + label now live inside
             the bordered table card's top strip (canonical §20). */}
 
         {/* STOCK VERIFICATION BANNER */}
@@ -2007,7 +2161,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleApproveAll}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-tea-gold text-tea-bg text-ui-10 font-bold uppercase tracking-[0.2em] rounded-xl hover:bg-tea-gold/90 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 cta-solid text-ui-10 font-bold uppercase tracking-[0.2em] rounded-xl transition-colors"
                 >
                   <Check size={11} /> Approve All
                 </button>
@@ -2020,7 +2174,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               </div>
             </div>
 
-            {/* Review cards — limited to pendingLimit to avoid mounting 400+ complex editors at once */}
+            {/* Review cards, limited to pendingLimit to avoid mounting 400+ complex editors at once */}
             {processedProducts.slice(0, pendingLimit).map(product => {
               const draft = reviewDrafts[product.id] || {};
               const isApproving = approvingIds.has(product.id);
@@ -2119,7 +2273,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       <button
                         onClick={() => handleApproveOne(product)}
                         disabled={isApproving}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         {isApproving ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
                         Approve
@@ -2148,7 +2302,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           </div>
         )}
 
-        {/* GLOSSARY MODE — card grid for browsing */}
+        {/* GLOSSARY MODE, card grid for browsing */}
         {glossaryMode && filterType !== 'Pending' && (
           <div className="pb-24 px-3 md:px-6 pt-3">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-3 gap-y-5">
@@ -2207,7 +2361,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           </div>
         )}
 
-        {/* INVENTORY TABLE — canonical §20 inventory table from /design/system:
+        {/* INVENTORY TABLE, canonical §20 inventory table from /design/system:
             bordered card containing top strip → headers → rows → bottom strip.
             Renders at all widths now; on mobile, long-press a row to select and open
             the right-edge InventoryActionRail (same as desktop). */}
@@ -2225,11 +2379,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             className={mobileHScroll ? 'overflow-x-auto overscroll-x-none hide-scrollbar-always' : ''}
           >
           {filterType !== 'Pending' && !glossaryMode && <>
-          {/* Top strip — the orienting line: which view + how many (left), with
+          {/* Top strip, the orienting line: which view + how many (left), with
               stock-history demoted to a quiet trailing link (right) rather than a
               loud leading verb. It lives INSIDE the scroll box (above the table)
               so it scrolls UP and away as the list scrolls, leaving only the
-              column header row pinned — this is the single statement of "what am
+              column header row pinned, this is the single statement of "what am
               I looking at," so the count is not repeated in the controls band. */}
           {processedProducts.length > 0 && (
             <div className="hidden">
@@ -2264,7 +2418,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           {/* --- GROUPED VIEW --- */}
           {groupedProducts ? (
             <div>
-              {/* Table header (sticky) — canonical font-serif uppercase tracking-display */}
+              {/* Table header (sticky), canonical font-serif uppercase tracking-display */}
               <table className="w-full table-fixed border-collapse inv-tight" style={mobileTableStyle}>
                 <colgroup>
                   {renderCols.map(renderColEl)}
@@ -2375,7 +2529,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     )}
                 </colgroup>
 
-                {/* Canonical header — auto-aligned: numerics right, others left. */}
+                {/* Canonical header, auto-aligned: numerics right, others left. */}
                 <thead data-testid="inventory-column-row" data-inventory-header-row className="bg-tea-surface md:bg-tea-bg">
                     <tr>
                         {splitView ? (
@@ -2445,7 +2599,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             </table>
           )}
 
-          {/* Canonical bottom strip — counter + (placeholder for) load-more. The data
+          {/* Canonical bottom strip, counter + (placeholder for) load-more. The data
               source is already virtualized, so we simply restate the total. Lives
               INSIDE the scroll box so it travels with the list. */}
           {processedProducts.length > 0 && (
@@ -2460,7 +2614,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           )}
 
           {/* Mobile: the bottom nav floats OVER this box, so add its clearance
-              inside the scroller — the last rows scroll out from behind the nav
+              inside the scroller, the last rows scroll out from behind the nav
               instead of being trapped underneath it. Resets to 0 on desktop. */}
           </>}
           </div>

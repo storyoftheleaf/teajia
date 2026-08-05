@@ -1,0 +1,12 @@
+{
+  "id": "aaa-grade",
+  "name": "AAA",
+  "altNames": [
+    "Triple-A"
+  ],
+  "appliesToTypes": [],
+  "description": "A letter-grade quality designation indicating premium leaf selection and processing, part of a broader letter-grading convention used across Chinese tea classification. In this collection it appears on the Liao Fu Wan Yan product line.",
+  "holding": "marks",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

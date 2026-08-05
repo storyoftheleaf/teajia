@@ -141,7 +141,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
           {/* ── Left column: details ── */}
           <div className="divide-y divide-tea-border">
 
-            {/* Identity — Title always visible */}
+            {/* Identity: Title always visible */}
             <section className="space-y-5 pb-8">
               <h3 className="label-caps text-tea-text-sec">Event Details</h3>
               <Field label="Title" required>
@@ -159,7 +159,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
               </Field>
             </section>
 
-            {/* Scheduling — Date + Seats always visible */}
+            {/* Scheduling: Date + Seats always visible */}
             <section className="space-y-5 py-8">
               <h3 className="label-caps text-tea-text-sec">Scheduling</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -187,7 +187,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
               </div>
             </section>
 
-            {/* Format — Gathering Type always visible */}
+            {/* Format: Gathering Type always visible */}
             <section className="space-y-5 py-8">
               <h3 className="label-caps text-tea-text-sec">Format</h3>
               <Field label="Gathering Type">
@@ -213,7 +213,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
               </Field>
             </section>
 
-            {/* Location — always visible */}
+            {/* Location, always visible */}
             <section className="space-y-4 pt-8">
               <h3 className="label-caps text-tea-text-sec">Location</h3>
 
@@ -254,7 +254,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                     )}
                   </Field>
 
-                  {/* Space picker — shown once a venue is selected */}
+                  {/* Space picker, shown once a venue is selected */}
                   {selectedVenue && selectedVenue.spaces.length > 0 && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
@@ -576,7 +576,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
         <button
           type="submit"
           disabled={saving || uploading}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed tap-target"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed tap-target"
         >
           {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
           Create Event
@@ -584,7 +584,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
       </div>
     </form>
 
-    {/* Inline Venue Manager overlay — slides over form without losing state */}
+    {/* Inline Venue Manager overlay, slides over form without losing state */}
     {isVenueManagerOpen && (
       <div className="absolute inset-0 bg-tea-bg z-toast flex flex-col">
         <div className="flex-shrink-0 flex items-center gap-3 px-6 py-4 border-b border-tea-border">

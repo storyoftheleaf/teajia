@@ -147,7 +147,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
             onClick={() => { setViewMode('courses'); setSelectedPath(null); }}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
               viewMode === 'courses'
-                ? 'bg-tea-gold text-tea-bg'
+                ? 'cta-solid'
                 : 'text-tea-text/60 hover:text-tea-text'
             }`}
           >
@@ -157,7 +157,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
             onClick={() => setViewMode('paths')}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
               viewMode === 'paths'
-                ? 'bg-tea-gold text-tea-bg'
+                ? 'cta-solid'
                 : 'text-tea-text/60 hover:text-tea-text'
             }`}
           >
@@ -247,7 +247,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
 
              return (
                  <div key={module.id} className={`group ${isExpanded ? 'col-span-1 md:col-span-2' : 'col-span-1'}`}>
-                     {/* Module Header Card — editorial card style */}
+                     {/* Module Header Card, editorial card style */}
                      <article
                         className={`relative cursor-pointer overflow-hidden rounded-xl bg-tea-surface transition-colors duration-150
                           ${isExpanded ? 'bg-tea-elevated' : 'hover:bg-tea-elevated'}`}
@@ -356,7 +356,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
                              })}
                          </div>
 
-                         {/* End-of-module product exploration —
+                         {/* End-of-module product exploration,
                              driven by module_products xref (curated in admin → Content Links).
                              Renders nothing until products are linked. */}
                          <ModuleExplore moduleId={module.id} />

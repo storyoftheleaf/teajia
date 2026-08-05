@@ -17,7 +17,7 @@ const initialsForName = (raw: string): string => {
 const TIER_CHIP_ACTIVE = 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40';
 const TIER_CHIP_INACTIVE = 'bg-tea-elevated text-tea-text-sec';
 
-// Platform tier — Members & Access at /admin/access/platform.
+// Platform tier: Members & Access at /admin/access/platform.
 // Per docs/ARCHITECTURE.md.
 // Two registers in one component: this is the platform-tier register
 // showing the union of all accounts. Adrian acts on the network from here.
@@ -91,7 +91,7 @@ export const PlatformAccessView: React.FC = () => {
 
   return (
     <div className="px-4 md:px-6 pt-6 pb-nav-gap max-w-4xl mx-auto">
-      {/* Header — three quiet counts as type, not KPI cards */}
+      {/* Header: three quiet counts as type, not KPI cards */}
       <header className="mb-8">
         <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>The network</h1>
         <p className="label-caps text-tea-text-dim mt-1">Platform tier · accounts and operators</p>
@@ -104,7 +104,7 @@ export const PlatformAccessView: React.FC = () => {
         </div>
       </header>
 
-      {/* Tab strip — bottom-border underline */}
+      {/* Tab strip, bottom-border underline */}
       <nav className="flex items-center gap-6 mb-8 border-b border-tea-border">
         <TabButton active={tab === 'accounts'} onClick={() => setTab('accounts')}>
           Accounts
@@ -156,7 +156,7 @@ const TabButton: React.FC<{ active: boolean; onClick: () => void; children: Reac
   </button>
 );
 
-// ── Accounts register — pending → locations → masters ──────────────────────
+// ── Accounts register, pending → locations → masters ──────────────────────
 
 interface AccountsRegisterProps {
   accounts: PlatformAccount[] | null;
@@ -175,7 +175,7 @@ const AccountsRegister: React.FC<AccountsRegisterProps> = ({ accounts, applicati
 
   return (
     <div>
-      {/* Pending — only if non-empty (per brief: "omitted entirely when empty") */}
+      {/* Pending, only if non-empty (per brief: "omitted entirely when empty") */}
       {pending.length > 0 && (
         <section className="mb-12">
           <SectionLabel>Pending applications</SectionLabel>
@@ -332,7 +332,7 @@ const AccountRow: React.FC<{ account: PlatformAccount; onChange: () => Promise<v
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors disabled:opacity-40 ${
                 confirming === 'suspend'
                   ? 'bg-tea-error text-tea-bg hover:bg-tea-error/90'
-                  : 'bg-tea-gold text-tea-bg hover:bg-tea-gold/90'
+                  : 'cta-solid'
               }`}
             >
               {busy ? `${confirming === 'suspend' ? 'Suspending' : 'Reactivating'}…` : `Confirm ${confirming === 'suspend' ? 'Suspend' : 'Reactivate'}`}
@@ -413,7 +413,7 @@ const PendingRow: React.FC<{ application: AccountApplication; onChange: () => Pr
             type="button"
             onClick={() => { setMode('approve'); setError(null); }}
             disabled={busy !== null}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40"
           >
             Approve
           </button>
@@ -462,7 +462,7 @@ const PendingRow: React.FC<{ application: AccountApplication; onChange: () => Pr
               type="button"
               onClick={handleApprove}
               disabled={busy !== null}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40"
             >
               {busy === 'approve' ? 'Approving…' : 'Confirm Approval'}
             </button>
@@ -511,7 +511,7 @@ const PendingRow: React.FC<{ application: AccountApplication; onChange: () => Pr
   );
 };
 
-// ── Platform register — invite Tea Master + audit log peek ──────────────
+// ── Platform register, invite Tea Master + audit log peek ──────────────
 
 const PlatformRegister: React.FC<{ onChange: () => Promise<void> | void }> = ({ onChange }) => {
   const [inviting, setInviting] = useState(false);
@@ -560,7 +560,7 @@ const PlatformRegister: React.FC<{ onChange: () => Promise<void> | void }> = ({ 
           <button
             type="button"
             onClick={() => { setInviting(true); setResult(null); }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
           >
             Invite Tea Master
           </button>
@@ -609,7 +609,7 @@ const PlatformRegister: React.FC<{ onChange: () => Promise<void> | void }> = ({ 
                 type="button"
                 onClick={handleInvite}
                 disabled={!email.includes('@') || busy}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {busy ? 'Sending…' : 'Send Invite'}
               </button>

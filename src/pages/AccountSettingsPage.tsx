@@ -25,7 +25,7 @@ function PrimarySubmit({ label, loading }: { label: string; loading: boolean }) 
     <button
       type="submit"
       disabled={loading}
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
     >
       {loading ? <Loader2 size={13} className="animate-spin" /> : null}
       {label}
@@ -52,7 +52,7 @@ export default function AccountSettingsPage() {
   const [passwordError, setPasswordError] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordSaved, setPasswordSaved] = useState(false);
-  // Google-linked accounts have no password yet — the form becomes "Set
+  // Google-linked accounts have no password yet, the form becomes "Set
   // password" (no current-password field). Default true so an existing
   // password is never changeable without the current one while /me loads.
   const [hasPassword, setHasPassword] = useState(true);
@@ -146,7 +146,7 @@ export default function AccountSettingsPage() {
           <p className="text-ui-13 text-tea-text-sec mb-4">You need to be signed in to access account settings.</p>
           <button
             onClick={() => navigate('/signin')}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
           >
             Sign in
           </button>
@@ -289,7 +289,7 @@ export default function AccountSettingsPage() {
               onClick={(e) => { if (theme !== 'light') toggleTheme(e); }}
               className={`tap-target flex items-center justify-center gap-2 py-2.5 rounded text-sm font-sans transition-colors duration-150 ${
                 theme === 'light'
-                  ? 'bg-tea-gold text-tea-bg'
+                  ? 'cta-solid'
                   : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/5'
               }`}
             >
@@ -303,7 +303,7 @@ export default function AccountSettingsPage() {
               onClick={(e) => { if (theme !== 'dark') toggleTheme(e); }}
               className={`tap-target flex items-center justify-center gap-2 py-2.5 rounded text-sm font-sans transition-colors duration-150 ${
                 theme === 'dark'
-                  ? 'bg-tea-gold text-tea-bg'
+                  ? 'cta-solid'
                   : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/5'
               }`}
             >
@@ -324,7 +324,7 @@ export default function AccountSettingsPage() {
           <p className="text-ui-12 text-tea-text-dim mt-1">
             {hasPassword
               ? 'Update your account password.'
-              : 'Your account signs in with Google. Set a password to also sign in with email — useful where Google is unreachable.'}
+              : 'Your account signs in with Google. Set a password to also sign in with email, useful where Google is unreachable.'}
           </p>
         </div>
         <form onSubmit={handleChangePassword} className="space-y-3">
@@ -362,7 +362,7 @@ export default function AccountSettingsPage() {
             />
           </div>
           <FormError error={passwordError} />
-          {passwordSaved && <p className="text-ui-13 text-tea-green">{hasPassword ? 'Password updated.' : 'Password set — you can now sign in with email + password.'}</p>}
+          {passwordSaved && <p className="text-ui-13 text-tea-green">{hasPassword ? 'Password updated.' : 'Password set, you can now sign in with email + password.'}</p>}
           <div className="flex justify-between pt-2">
             <button
               type="button"

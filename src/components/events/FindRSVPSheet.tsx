@@ -112,7 +112,7 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
           <div className="w-10 h-1 bg-tea-border rounded-full" />
         </div>
 
-        {/* Header — close X top-LEFT (§15) */}
+        {/* Header, close X top-LEFT (§15) */}
         <div className="flex items-center gap-3 px-5 py-4 border-b border-tea-border">
           <button
             onClick={onClose}
@@ -126,7 +126,7 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
 
         {/* Content */}
         <div className="px-5 py-5">
-          {/* Method tabs — underline style */}
+          {/* Method tabs, underline style */}
           {methods.length > 1 && (
             <div className="flex gap-6 border-b border-tea-border mb-5">
               {methods.map(({ id, label }) => {
@@ -187,7 +187,7 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
               );
             })()}
 
-            {/* Footer — Cancel-left, primary-right */}
+            {/* Footer: Cancel-left, primary-right */}
             <div className="flex justify-between items-center gap-3 pt-2">
               <button
                 type="button"
@@ -199,7 +199,7 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
               <button
                 type="submit"
                 disabled={!canSubmit || findMutation.isPending}
-                className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-md cta-solid text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {findMutation.isPending ? (
                   <span className="inline-block w-4 h-4 border-2 border-tea-bg/40 border-t-tea-bg rounded-full animate-spin" />

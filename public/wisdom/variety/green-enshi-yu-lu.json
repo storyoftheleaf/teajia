@@ -1,0 +1,13 @@
+{
+  "id": "green-enshi-yu-lu",
+  "type": "Green",
+  "name": "Enshi Yu Lu",
+  "chineseName": "恩施玉露",
+  "altNames": [
+    "Jade Dew"
+  ],
+  "region": "Enshi",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

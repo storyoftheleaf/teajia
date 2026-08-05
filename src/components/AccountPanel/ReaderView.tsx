@@ -13,7 +13,7 @@ interface ReaderViewProps {
 const ICON_PROPS = { size: 14, strokeWidth: 1.5 } as const;
 
 // Small text-link cluster, matches the footer pattern used across the
-// panel views — no chevrons, no row grammar.
+// panel views, no chevrons, no row grammar.
 const LinkCluster: React.FC<{
   hint: string;
   icon?: React.ReactNode;
@@ -53,7 +53,7 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
 
   return (
     <div>
-      {/* ── Hero — the invitation ───────────────────────────────────── */}
+      {/* ── Hero, the invitation ───────────────────────────────────── */}
       <div className="px-6 pt-8 pb-6">
         <p className="label-caps text-tea-text-dim mb-3">Teajia</p>
         <h2 className="h2">
@@ -68,7 +68,7 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
       <div className="px-6 pb-6 space-y-2">
         <button
           onClick={onOpenSignIn}
-          className="inline-flex w-full items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors"
+          className="inline-flex w-full items-center justify-center gap-1.5 px-3 py-2 rounded-md cta-solid text-xs font-semibold transition-colors"
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           Sign in
@@ -82,7 +82,7 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
         </button>
       </div>
 
-      {/* ── What's inside — text-link cluster, not rows ─────────────── */}
+      {/* ── What's inside, text-link cluster, not rows ─────────────── */}
       <LinkCluster
         hint="What's inside"
         icon={<Sparkles {...ICON_PROPS} />}

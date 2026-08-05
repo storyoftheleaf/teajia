@@ -1,6 +1,19 @@
 import React, { useId } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronDown } from 'lucide-react';
+import { AlertCircle, ChevronDown } from 'lucide-react';
+
+/**
+ * Four type roles on the Curate working surface, and only four:
+ *   row heading      font-display text-ui-20
+ *   field value      16px (.curate-field / .curate-primary). Never smaller, or iOS zooms.
+ *   secondary fact   text-ui-12 (.curate-support) for sentences, facts and equations
+ *   micro-caps label text-ui-10 uppercase (.curate-floating-label, .curate-inline-label,
+ *                    .curate-field-flag, .curate-field-marks)
+ *
+ * One caps rule: micro-caps are for LABELS of three words or fewer. Sentences,
+ * derived facts, warnings and values stay in sentence case. CurateField owns the
+ * label lane so the rule holds for every field without each caller restating it.
+ */
 
 type CurateActionButtonProps = Omit<
   React.ButtonHTMLAttributes<HTMLButtonElement>,
@@ -34,40 +47,68 @@ interface CurateFieldControlProps extends React.HTMLAttributes<HTMLElement> {
   'aria-describedby'?: string;
 }
 
+/**
+ * 'note' is a fact the wisdom base derived and there is nothing to do about it.
+ * 'warning' is something the operator has to correct.
+ */
+export type CurateFieldHelperTone = 'note' | 'warning';
+
 export const CurateField: React.FC<{
   label: string;
   status?: string;
   helper?: React.ReactNode;
+  helperTone?: CurateFieldHelperTone;
+  /** The value arrived from the wisdom base, not from the vendor record. */
+  derived?: boolean;
+  /** Short count telling the operator a suggestion list is attached, e.g. "79 cultivars". */
+  suggestions?: string;
   className?: string;
   children: React.ReactElement;
-}> = ({ label, status, helper, className = '', children }) => {
+}> = ({ label, status, helper, helperTone = 'note', derived = false, suggestions, className = '', children }) => {
   const generatedId = useId().replace(/:/g, '');
   const child = children as React.ReactElement<CurateFieldControlProps>;
   const controlId = child.props.id || `curate-field-${generatedId}`;
   const statusId = status ? `${controlId}-status` : undefined;
+  const suggestionsId = suggestions ? `${controlId}-suggestions` : undefined;
+  const derivedId = derived ? `${controlId}-derived` : undefined;
   const helperId = helper ? `${controlId}-helper` : undefined;
-  const describedBy = [child.props['aria-describedby'], statusId, helperId].filter(Boolean).join(' ') || undefined;
+  const describedBy = [child.props['aria-describedby'], statusId, suggestionsId, derivedId, helperId].filter(Boolean).join(' ') || undefined;
+  // Native select chrome collides with the chevron, so selects get house chrome:
+  // arrow suppressed, chevron drawn at the end of the value line.
+  const isSelect = child.type === 'select';
 
   return (
-    <div className={`space-y-1 ${className}`}>
+    <div className={`min-w-0 space-y-1 ${className}`}>
       <div className="relative">
-        <label htmlFor={controlId} className="curate-floating-label">
-          {label}
-        </label>
-        {status && (
-          <span id={statusId} role="status" className="curate-inline-label pointer-events-none absolute right-3 top-1 text-tea-gold">
-            {status}
-          </span>
-        )}
+        {/* The label lane. Label and Confirm sit left in the label register so
+            neither can be mistaken for an action; provenance sits right, dim. */}
+        <div className="curate-field-lane">
+          <label htmlFor={controlId} className="curate-floating-label">
+            {label}
+          </label>
+          {status && (
+            <span id={statusId} role="status" className="curate-field-flag">{status}</span>
+          )}
+          {(suggestions || derived) && (
+            <span className="curate-field-marks">
+              {suggestions && <span id={suggestionsId}>{suggestions}</span>}
+              {derived && <span id={derivedId}>From base</span>}
+            </span>
+          )}
+        </div>
         {React.cloneElement(child, {
           id: controlId,
-          className: `curate-field curate-field-with-label w-full ${child.props.className || ''}`,
+          className: `curate-field curate-field-with-label curate-field-inset w-full ${status ? 'curate-field-attention ' : ''}${isSelect ? 'curate-field-select' : ''} ${child.props.className || ''}`,
           'aria-describedby': describedBy,
         })}
+        {isSelect && (
+          <ChevronDown size={14} aria-hidden="true" className="pointer-events-none absolute bottom-2 right-3 text-tea-text-sec" />
+        )}
       </div>
       {helper && (
-        <div id={helperId} className="curate-support text-tea-text-dim">
-          {helper}
+        <div id={helperId} className={`curate-field-note ${helperTone === 'warning' ? 'curate-field-note-warning' : 'curate-field-note-derived'}`}>
+          {helperTone === 'warning' && <AlertCircle size={12} aria-hidden="true" className="mt-[2px] shrink-0" />}
+          <span className="min-w-0 break-words">{helper}</span>
         </div>
       )}
     </div>
@@ -129,7 +170,7 @@ const ActionButton: React.FC<{ action: CurateActionSpec; primary?: boolean }> = 
   const chromeClass = primary
     ? unavailable && !action.busy
       ? 'border-tea-border bg-tea-surface text-tea-text-sec'
-      : 'border-tea-gold bg-tea-gold text-tea-bg hover:bg-tea-gold-lt'
+      : 'border-tea-gold cta-solid'
     : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text';
 
   return (

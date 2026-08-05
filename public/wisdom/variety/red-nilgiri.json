@@ -1,0 +1,11 @@
+{
+  "id": "red-nilgiri",
+  "type": "Red",
+  "name": "Nilgiri",
+  "chineseName": null,
+  "altNames": [],
+  "region": "Nilgiri",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

@@ -1,0 +1,34 @@
+{
+  "id": "qi-men-zhong",
+  "name": "Qi Men Zhong",
+  "chineseName": "祁门种",
+  "altNames": [
+    "Keemun"
+  ],
+  "originCountry": "China",
+  "originRegion": "Qimen (Anhui)",
+  "developedYear": 1875,
+  "parentage": "The native, local heirloom population of Qimen county.",
+  "description": "'Qimen Species'. This is not a single clone, but the local heirloom population of small-leaf tea bushes from Qimen county, Anhui. It is the one and only material used for making Keemun black tea. When processed into black tea, it produces a famously complex aroma with notes of wine, rose, pine, and dried fruit, earning it the title 'the Burgundy of tea'.",
+  "plantType": "Small-leaf, genetically diverse bushes adapted to the local terroir (Camellia sinensis var. sinensis).",
+  "environment": "Grows in the mild, humid, and often foggy climate of Qimen county in southern Anhui, where the soil and environment are perfect for developing its complex aromatics.",
+  "processing": "carefully controlled withering and oxidation process. This allows the full range of aromatic compounds within the Qi Men Zhong leaves to develop.,Undergoes full oxidation (100%). The oxidation process is meticulous and often takes longer than for other black teas",
+  "oxidation": "which is crucial for building its signature layered aroma.,A final",
+  "roasting": "gentle drying bake is applied to stabilize the tea and halt oxidation. It is not roasted in a way that would impart a toasty flavor.,Completely specialized. The Qi Men Zhong population is only used to produce Keemun black tea. Its global fame is entirely dependent on this one style.\nQing Xin,青心,'Green Heart'. The undisputed king of Taiwanese oolongs",
+  "versatility": "Qing Xin is celebrated for its ability to perfectly express the unique terroir of Taiwan's high mountains. It produces a tea with an ethereal",
+  "distribution": {
+    "china": [
+      "Anhui Province (Qimen county and surrounding areas)"
+    ]
+  },
+  "expressions": {
+    "Black Tea": {
+      "Keemun (Qimen Hongcha)": "Its only expression. A world-famous black tea known for its incredible aromatic complexity. Different grades exist, like Hao Ya (downy buds) and Mao Feng (pointed leaves)."
+    }
+  },
+  "sensory": null,
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

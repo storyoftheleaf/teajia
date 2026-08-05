@@ -33,7 +33,7 @@ interface FlavorSplitProps {
 }
 
 /**
- * Split-pane flavor selector — always side-by-side, mobile and desktop.
+ * Split-pane flavor selector, always side-by-side on mobile and desktop.
  *
  * Left (~88px): vertical list of 10 family names. Tap to switch.
  * Right: sub-terms for the active family, plain text, tap to select.
@@ -204,7 +204,7 @@ const FlavorSplitInner: React.FC<FlavorSplitProps> = ({ selected, onToggle, teaT
   );
 };
 
-/* ─── Sub-term button — plain text, full tap target ─── */
+/* ─── Sub-term button: plain text, full tap target ─── */
 
 interface SubTermButtonProps {
   termId: string;

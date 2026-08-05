@@ -1,0 +1,13 @@
+{
+  "id": "oolong-huang-mei-gui",
+  "type": "Oolong",
+  "name": "Huang Mei Gui",
+  "chineseName": "黄玫瑰",
+  "altNames": [
+    "Yellow Rose"
+  ],
+  "region": "Wuyi",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

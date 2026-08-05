@@ -1,0 +1,13 @@
+{
+  "id": "herbal-chrysanthemum-puerh",
+  "type": "Herbal",
+  "name": "Chrysanthemum Puerh",
+  "chineseName": "菊普",
+  "altNames": [
+    "Ju Pu"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

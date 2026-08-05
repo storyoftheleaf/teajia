@@ -3,7 +3,7 @@ import type { DiscoveryLevel, TeaDiscoveryProfile } from './types';
 import { deriveThreads, profileThreads } from './threads';
 
 /* ───────────────────────────────────────────────────────────────────────────
-   Evolution loop — the profile deepens from observed behaviour, not points.
+   Evolution loop, the profile deepens from observed behaviour, not points.
    The disposition someone *chose* (the quiz) is their stated identity and never
    gets overwritten. This derives a parallel *observed palate* from the synced
    tasting journal that (a) shows growth, (b) sharpens recommendations, and
@@ -61,7 +61,7 @@ export function observePalate(journal: CustomerTasting[]): ObservedPalate {
   };
 }
 
-/** How many tastings carry real substance — a personal note or flavor terms. */
+/** How many tastings carry real substance, a personal note or flavor terms. */
 export function noteRichness(journal: CustomerTasting[]): number {
   return journal.filter((e) => {
     if (e.archived) return false;
@@ -73,12 +73,12 @@ export function noteRichness(journal: CustomerTasting[]): number {
 }
 
 /* ───────────────────────────────────────────────────────────────────────────
-   Learned threads — behaviour SUGGESTS, it never silently rewrites.
+   Learned threads, behaviour SUGGESTS, it never silently rewrites.
    Practice can surface a thread someone didn't name at the start (lots of group
    sessions → Connection; lots of real tasting notes → Quality), offered as an
    opt-in. Two hard rules keep this from becoming a points game:
      1. Behaviour can lift the level at most to `practicing`. `devoted` is
-        CONFERRED (Adrian knows them / they contribute) — never reached by a
+        CONFERRED (Adrian knows them / they contribute), never reached by a
         tasting counter, or it's just a gamified badge in disguise.
      2. Threads are only ever ADDED as a suggestion, never removed by the system.
    Temperament we can't observe is left to the "still true?" re-ask.
@@ -87,7 +87,7 @@ export function noteRichness(journal: CustomerTasting[]): number {
 const LEVEL_ORDER: Record<DiscoveryLevel, number> = { curious: 0, practicing: 1, devoted: 2 };
 
 /**
- * Map tasting volume to the level it would imply — capped at `practicing`.
+ * Map tasting volume to the level it would imply, capped at `practicing`.
  * Volume never implies `devoted`: that standing is conferred, not counted.
  */
 function levelFromVolume(count: number): DiscoveryLevel {
@@ -103,9 +103,9 @@ export interface EvolutionSuggestion {
 
 /** Behaviour we can honestly observe elsewhere in Teajia, beyond the journal. */
 export interface EvolutionSignals {
-  /** Group sessions attended (api.me.journey) — evidence of a social temperament. */
+  /** Group sessions attended (api.me.journey), evidence of a social temperament. */
   sessionsAttended?: number;
-  /** Tastings with real notes — evidence of a flavor & craft motivation. */
+  /** Tastings with real notes, evidence of a flavor & craft motivation. */
   noteRichness?: number;
 }
 
@@ -117,7 +117,7 @@ function joinWithAnd(parts: string[]): string {
 
 /**
  * Returns a suggested (level, threads) when accumulated practice has clearly
- * grown past the stated profile — or null when nothing meaningful has changed.
+ * grown past the stated profile, or null when nothing meaningful has changed.
  * Caller surfaces it as an opt-in ("Adopt this"); it is never auto-applied.
  *
  * Only re-derives from dimensions we can honestly observe:

@@ -1,0 +1,14 @@
+{
+  "id": "herbal-longan",
+  "type": "Herbal",
+  "name": "Longan",
+  "chineseName": "龙眼",
+  "altNames": [
+    "Long Yan",
+    "Dragon Eye"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

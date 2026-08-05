@@ -50,6 +50,7 @@ import { PlatformAccessView } from './views/PlatformAccessView';
 import { CurrencyRatesView } from './views/CurrencyRatesView';
 import { MCPTokensView } from './views/MCPTokensView';
 import { OAuthConsentView } from './views/OAuthConsentView';
+import { WisdomView } from './views/WisdomView';
 import { EventsManager } from './components/EventsManager';
 import { EventDetail } from './components/EventDetail';
 import { TastingEventsList } from './components/tasting/TastingEventsList';
@@ -60,7 +61,7 @@ import { PeopleView } from './components/PeopleView';
 import { CustomerProfilePage } from './components/CustomerProfilePage';
 import { ActivityView } from './components/ActivityView';
 // DraftsView (capture route) statically imports InventoryView, so it must also
-// be lazy — otherwise InventoryView is pulled back into the shell chunk through
+// be lazy, otherwise InventoryView is pulled back into the shell chunk through
 // it. Both then share a single on-demand InventoryView chunk.
 const DraftsView = lazy(() => import('./components/DraftsView').then((m) => ({ default: m.DraftsView })));
 import { IntakeWorkspace } from './views/IntakeWorkspace';
@@ -110,8 +111,8 @@ const CompassWithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     tab === 'buying' ? 'buying' : tab === 'ledger' ? 'buying' :
     tab === 'sourcing' ? 'sourcing' : tab === 'capture' ? 'sourcing' :
     tab === 'samples' ? 'sourcing' :
-    // 'tasting' kept as a back-compat alias for the old query param —
-    // internal name is now 'library' since this view is the Library of
+    // 'tasting' kept as a back-compat alias for the old query param.
+    // The internal name is now 'library' since this view is the Library of
     // past compass captures, not the Tasting surface (that lives at
     // /account/journal).
     tab === 'tasting' ? 'library' : tab === 'browse' ? 'library' :
@@ -144,7 +145,7 @@ const CompassWithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   );
 };
 
-// Suspense fallback for lazy route views. MUST carry `h-full` — it sits inside
+// Suspense fallback for lazy route views. MUST carry `h-full`, it sits inside
 // the InventoryView height chain (CLAUDE.md), and a fallback without a definite
 // height collapses the inventory scroll container to 0px during the load frame.
 const ViewFallback = () => (
@@ -203,11 +204,11 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
     }
     return hasToken();
   });
-  // currencyOpen state removed — currency selector moved to InventoryView options menu
+  // currencyOpen state removed, currency selector moved to InventoryView options menu
 
   const claims = getTokenClaims();
   const userRole = claims?.role || (isDevAdmin ? 'owner' : null);
-  // Role tiers — each tier is a superset of the one below
+  // Role tiers, each tier is a superset of the one below
   const isMember = (isAuthenticated && !!userRole) || isDevAdmin;
   const isStaff  = (isAuthenticated && (userRole === 'staff' || userRole === 'admin' || userRole === 'owner')) || isDevAdmin;
   const isAdmin  = (isAuthenticated && (userRole === 'admin' || userRole === 'owner')) || isDevAdmin;
@@ -291,7 +292,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
       if (isTokenExpired() || shouldProactivelyRefreshToken()) {
         const refreshResult = await ensureTokenRefreshed();
         if (refreshResult === 'rejected' && isTokenExpired()) {
-          // Truly dead — clear and prompt login. This is the graceful
+          // Truly dead, clear and prompt login. This is the graceful
           // fallback for someone who hasn't opened the app in over a month.
           clearToken();
           clearAccountState();
@@ -340,12 +341,12 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
   const isOnIntake = location.pathname.includes('/admin/intake');
   const isOnHome = location.pathname === '/admin/' || location.pathname === '/admin/compass';
 
-  // React Query Hooks — only fetch when authenticated to avoid 401 errors on initial load
+  // React Query Hooks, only fetch when authenticated to avoid 401 errors on initial load
   const isLoggedIn = isAuthenticated || isDevAdmin;
   const { data: products = [], isLoading: productsLoading, isError: productsError, error: productsErrorObj, refetch: refetchProducts } = useProducts({ enabled: isLoggedIn });
   const { data: rates = [], refetch: refetchRates } = useRates();
 
-  // Incoming compass shares — poll every 60s for badge count
+  // Incoming compass shares, poll every 60s for badge count
   const { data: incomingSharesData } = useQuery({
     queryKey: ['compass-incoming'],
     queryFn: () => api.compass.getIncoming(),
@@ -383,7 +384,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
     setIsCartOpen(false);
   }, [location.pathname]);
 
-  // Gate: authenticated user with no memberships yet — show waiting screen
+  // Gate: authenticated user with no memberships yet, show waiting screen
   const isPlatformTier = platformRole === 'platform_owner' || platformRole === 'platform_admin';
   const needsMembershipGate = shouldShowNoMembershipGate({
     isAuthenticated, isDevAdmin, platformRole, membershipCount: memberships.length,
@@ -409,7 +410,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                 <p>2. Find <span className="text-tea-gold">VITE_API_URL</span></p>
                 <p>3. Set it to your Worker API URL</p>
             </div>
-            <button onClick={() => window.location.reload()} className="bg-tea-gold text-tea-bg px-6 py-3 rounded-xl text-sm font-medium hover:bg-tea-gold/90 transition-colors w-full">
+            <button onClick={() => window.location.reload()} className="cta-solid px-6 py-3 rounded-xl text-sm font-medium transition-colors w-full">
                 I've Updated It, Reload App
             </button>
         </div>
@@ -469,7 +470,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
       <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />
 
       {/* Account / location switching lives inside Your Table (AccountPanel),
-          not in a sticky admin bar — see AccountSwitcherChip there. The old
+          not in a sticky admin bar. See AccountSwitcherChip there. The old
           top switcher bar was removed so no admin screen carries it. */}
 
       <main className="flex-1 relative flex flex-col min-w-0 overflow-hidden">
@@ -479,7 +480,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="/" element={<Navigate to="compass" replace />} />
               <Route path="home" element={<Navigate to="../compass" replace />} />
 
-              {/* Member tools — all authenticated members */}
+              {/* Member tools, all authenticated members */}
               <Route path="compass" element={
                 <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={isLoginOpen || !isLoggedIn}>
                   <PageTransition>
@@ -516,7 +517,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                 </ProtectedRoute>
               } />
 
-              {/* Member tools — events + samples open to all members */}
+              {/* Member tools, events + samples open to all members */}
               <Route path="events" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><EventsManager /></PageTransition></ProtectedRoute>} />
               <Route path="events/:id" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><EventDetail /></PageTransition></ProtectedRoute>} />
               <Route path="tasting-events" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><TastingEventsList /></PageTransition></ProtectedRoute>} />
@@ -526,14 +527,14 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="venues" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><VenueManager /></PageTransition></ProtectedRoute>} />
               <Route path="samples" element={<Navigate to={`/admin/compass?sampleOrder=manage${location.search ? `&${location.search.slice(1)}` : ''}`} replace />} />
 
-              {/* Operations — staff, admin, owner */}
+              {/* Operations: staff, admin, owner */}
               <Route path="activity" element={<ProtectedRoute hasAccess={hasSellBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ActivityView products={products} /></PageTransition></ProtectedRoute>} />
               <Route path="activity-logs" element={<Navigate to="/admin/activity?tab=log" replace />} />
               <Route path="people" element={<ProtectedRoute hasAccess={canUsePeople} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PeopleView userRole={userRole || 'user'} /></PageTransition></ProtectedRoute>} />
               <Route path="people/:customerId" element={<ProtectedRoute hasAccess={canUsePeople} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CustomerProfilePage /></PageTransition></ProtectedRoute>} />
               <Route path="contact-tags" element={<ProtectedRoute hasAccess={isStaff} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ContactTagsView /></PageTransition></ProtectedRoute>} />
 
-              {/* Management — admin, owner. Canonical route is /admin/stock;
+              {/* Management: admin, owner. Canonical route is /admin/stock;
                   /admin/inventory redirects to it (query string preserved for ?panel= deep links). */}
               <Route path="stock" element={
                 <ProtectedRoute hasAccess={canManageInventory} isLoggingIn={isLoginOpen || !isLoggedIn}>
@@ -570,7 +571,8 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="mcp-tokens" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><MCPTokensView /></PageTransition></ProtectedRoute>} />
               <Route path="oauth-consent" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><OAuthConsentView /></PageTransition></ProtectedRoute>} />
               <Route path="oauth-consent/:requestId" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><OAuthConsentView /></PageTransition></ProtectedRoute>} />
-              {/* Network hub — single page with tabbed surfaces */}
+              <Route path="wisdom" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><WisdomView /></PageTransition></ProtectedRoute>} />
+              {/* Network hub, single page with tabbed surfaces */}
               <Route path="network" element={<ProtectedRoute hasAccess={canUseNetwork} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><NetworkLanding /></PageTransition></ProtectedRoute>} />
               {/* Legacy destination routes redirect into the hub with their tab */}
               <Route path="network/catalog" element={<Navigate to="/admin/network?tab=catalog" replace />} />
@@ -594,7 +596,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="collections/inbound/:pubId" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><InboundCollectionView /></PageTransition></ProtectedRoute>} />
               <Route path="collections/:id" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CollectionEditView /></PageTransition></ProtectedRoute>} />
 
-              {/* Legacy routes — redirect to new unified views */}
+              {/* Legacy routes, redirect to new unified views */}
               <Route path="catalog" element={
                 activeMembership?.is_platform_account
                   ? <Navigate to="/admin/stock" replace />

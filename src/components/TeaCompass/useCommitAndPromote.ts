@@ -6,7 +6,7 @@ import { api, hasToken, isTransientApiError } from '../../lib/api';
 export interface CommitResult {
   promoted: boolean;
   productId?: string;
-  /** Set when a promotion attempt failed — caller can surface it. */
+  /** Set when a promotion attempt failed, caller can surface it. */
   promotionError?: string;
   retryQueued?: boolean;
 }

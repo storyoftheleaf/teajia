@@ -1,0 +1,39 @@
+{
+  "id": "shi-da-cha",
+  "name": "Shi Da Cha",
+  "chineseName": "柿大茶",
+  "altNames": [
+    "Persimmon Big Tea",
+    "Tai Ping Hou Kui cultivar"
+  ],
+  "originCountry": "China",
+  "originRegion": "Taiping, Anhui",
+  "developedYear": 1901,
+  "parentage": "A local, large-leaf mutation of C. sinensis var. sinensis.",
+  "description": "'Persimmon Big Tea'. A truly unique and visually stunning cultivar from Taiping county in Anhui. It is defined by its massive leaves, which can be much larger than a person's hand. It is used exclusively to make Tai Ping Hou Kui, a green tea where the leaves are painstakingly pressed by hand, resulting in a long, flat, and beautiful finished product.",
+  "plantType": "Large, robust bush with very strong branches to support its massive leaves (Camellia sinensis var. sinensis).",
+  "environment": "Grows in the misty, mountainous region of the former Taiping prefecture (now Huangshan district), where the specific microclimate allows these large leaves to grow tenderly.",
+  "processing": "The processing is highly specialized and laborious. After kill-green, each individual leaf is placed between layers of cloth and hand-pressed with rollers to create its flat, uniform shape. This requires immense patience and skill.",
+  "oxidation": "Zero oxidation. The massive leaves are quickly pan-fired to halt enzymatic activity and preserve their vibrant green color and fresh aroma.",
+  "roasting": "A gentle baking process follows the hand-pressing to slowly and evenly dry the large, thick leaves without scorching them or creating a roasted flavor.",
+  "versatility": "Completely specialized. This unique, giant-leaf cultivar exists only to be made into the singular and iconic Tai Ping Hou Kui.",
+  "distribution": {
+    "china": [
+      "Anhui Province (Huangshan City - former Taiping County area)"
+    ]
+  },
+  "expressions": {
+    "Green Tea": {
+      "Tai Ping Hou Kui ('Peaceful Monkey Leader')": "Its only expression. A green tea where individual, massive leaves are pan-fired and then pressed flat between layers of cloth, creating a visually unique tea with a powerful orchid aroma."
+    }
+  },
+  "sensory": {
+    "aroma": "Powerful and lingering Orchid fragrance, fresh, clean, and slightly vegetal",
+    "flavor": "Mellow, sweet, and smooth with a deep, lasting floral sweetness and no bitterness.",
+    "mouthfeel_liquor": "Thick, soupy, and incredibly smooth with a very refreshing character. The liquor is a clear, bright green-yellow."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

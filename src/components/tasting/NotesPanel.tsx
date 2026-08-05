@@ -10,7 +10,7 @@ interface NotesPanelProps {
 }
 
 /**
- * Dedicated notes workspace — opens when the NOTE tab is tapped during a
+ * Dedicated notes workspace. Opens when the NOTE tab is tapped during a
  * tasting session. Replaces the previous inline notes list with a
  * full-bleed editor: scrollable cards with inline edit, star toggle, and
  * delete. Also supports adding new notes here (tap mic to record, or type).
@@ -87,7 +87,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ notes, onChange }) => {
 
   return (
     <div className="flex flex-col min-h-0 flex-1">
-      {/* Header — intent */}
+      {/* Header: intent */}
       <div className="px-4 pt-4 pb-3">
         <h3
           className="text-ui-11 uppercase tracking-[0.18em] text-tea-gold"
@@ -100,7 +100,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ notes, onChange }) => {
         </p>
       </div>
 
-      {/* Note list — scrollable */}
+      {/* Note list: scrollable */}
       <div className="flex-1 min-h-0 overflow-y-auto px-3 space-y-2 pb-2">
         <AnimatePresence initial={false}>
           {notes.length === 0 ? (
@@ -143,7 +143,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ notes, onChange }) => {
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={(e) => { e.stopPropagation(); toggleStar(note.id); }}
                       aria-pressed={starred}
-                      aria-label={starred ? 'Unstar — retract from product' : 'Star — publish to product'}
+                      aria-label={starred ? 'Unstar: retract from product' : 'Star: publish to product'}
                       className={`p-1.5 transition-colors ${starred ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
                     >
                       <Star size={13} fill={starred ? 'currentColor' : 'none'} strokeWidth={1.5} />
@@ -156,11 +156,15 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ notes, onChange }) => {
         </AnimatePresence>
       </div>
 
-      {/* Input row — permanently anchored at the bottom of the panel */}
+      {/* Input row: permanently anchored at the bottom of the panel */}
       <div
         className="shrink-0 border-t border-tea-border bg-tea-bg"
+        // The lift under the anchored row, drawn in the page's own background
+        // rather than in a hardcoded espresso: on parchment a 20%-black haze
+        // reads as a smudge under a light bar, which is the effect this shadow
+        // exists to avoid on espresso.
         style={{
-          boxShadow: '0 -4px 12px rgba(24,19,14,0.2)',
+          boxShadow: '0 -4px 12px rgb(var(--tea-bg-rgb) / 0.5)',
         }}
       >
         <div className="tasting-voice-field">

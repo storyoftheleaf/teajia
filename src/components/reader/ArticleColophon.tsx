@@ -8,7 +8,7 @@ interface ArticleColophonProps {
 }
 
 /**
- * Article colophon — lists teas referenced by a Magazine article.
+ * Article colophon, lists teas referenced by a Magazine article.
  * Thin wrapper over `ProductReferences` so the Magazine, Learn, and
  * Advise colophons all share the same primitive.
  */

@@ -3,6 +3,7 @@ import { Search, Loader2, AlertCircle, Plus, ArrowUpDown, ArrowUp, ArrowDown, Ey
 import { motion } from 'framer-motion';
 import Fuse from 'fuse.js';
 import { Product, Currency, ExchangeRate, ProductType } from '../types';
+import { TEA_TYPES } from '../../wisdom';
 import { formatCurrency } from '../utils';
 import { getThemeColor } from '../themeUtils';
 import { TeaDetailsModal } from './TeaDetailsModal';
@@ -20,13 +21,13 @@ interface TeaTableProps {
   error?: Error | null;
   onEdit?: (product: Product) => void;
   onRefresh?: () => void;
-  /** Skip default Active/non-Teaware/non-Personal filter — show all passed products */
+  /** Skip default Active/non-Teaware/non-Personal filter, show all passed products */
   showAll?: boolean;
   /** Override header title */
   title?: string;
   /** Render custom content above the filter bar */
   headerSlot?: React.ReactNode;
-  /** Inline mode — auto height instead of full viewport */
+  /** Inline mode, auto height instead of full viewport */
   inline?: boolean;
 }
 
@@ -38,7 +39,8 @@ export const TeaTable: React.FC<TeaTableProps> = ({
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [sortConfig, setSortConfig] = useState<{ key: keyof Product; direction: 'asc' | 'desc' }>({ key: 'productName', direction: 'asc' });
 
-  const teaTypes: ProductType[] = ['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Sheng', 'Shou', 'Dark', 'Herbal', 'Misc'];
+  // 'Misc' composed on top of the shared wisdom vocabulary. See docs/TEA_WISDOM_BASE.md.
+  const teaTypes: ProductType[] = [...TEA_TYPES, 'Misc'];
 
   const activeProducts = useMemo(() => {
     if (showAll) return products;
@@ -164,7 +166,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                 {title || 'Tea Glossary'}
               </h2>
               <span className="text-tea-text-sec text-xs tracking-wide">
-                — {sortedProducts.length} items
+                · {sortedProducts.length} items
               </span>
             </div>
           )}
@@ -346,7 +348,11 @@ export const TeaTable: React.FC<TeaTableProps> = ({
 
                                     <td className="px-4 align-middle overflow-hidden">
                                         <span className="flex items-center gap-2 text-xs font-medium tracking-wide text-tea-text-sec truncate">
-                                            <span style={{ color: dotColor, fontSize: '10px' }}>&#9679;</span> {product.type}
+                                            {/* The bullet is written as a unicode escape rather than the
+                                                HTML entity &#9679;. The entity reads as a hex literal to the
+                                                colour lint, which flags this style object for a colour that
+                                                is not in it. */}
+                                            <span className="text-ui-10" style={{ color: dotColor }}>{'\u25CF'}</span> {product.type}
                                         </span>
                                     </td>
 

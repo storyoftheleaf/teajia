@@ -57,7 +57,7 @@ export const CartToast: React.FC<CartToastProps> = ({
               <p className="text-sm font-serif text-tea-text truncate">{itemName}</p>
             </div>
 
-            {/* View Cart — typographic, no bronze fill */}
+            {/* View Cart, typographic, no bronze fill */}
             <button
               onClick={(e) => {
                 e.stopPropagation();

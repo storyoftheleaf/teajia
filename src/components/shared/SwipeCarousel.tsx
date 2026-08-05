@@ -19,7 +19,7 @@ interface SwipeCarouselProps {
  * SwipeCarousel - Native scroll-snap carousel
  *
  * Relies on CSS scroll-snap for smooth, hardware-accelerated scrolling.
- * No per-item transforms — items stay at scale(1) always to avoid layout thrashing.
+ * No per-item transforms, items stay at scale(1) always to avoid layout thrashing.
  * Uses proximity snap to avoid fighting with momentum scrolling.
  */
 export const SwipeCarousel: React.FC<SwipeCarouselProps> = ({
@@ -50,7 +50,7 @@ export const SwipeCarousel: React.FC<SwipeCarouselProps> = ({
     container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
   }, [peek]);
 
-  // Throttled scroll handler via rAF — no state updates during scroll momentum
+  // Throttled scroll handler via rAF, no state updates during scroll momentum
   const handleScroll = useCallback(() => {
     if (scrollRafRef.current) return;
     scrollRafRef.current = requestAnimationFrame(() => {
@@ -100,7 +100,7 @@ export const SwipeCarousel: React.FC<SwipeCarouselProps> = ({
     scrollToIndex(newIndex);
   }, [activeIndex, children.length, scrollToIndex]);
 
-  // Keyboard support — only when carousel is focused or hovered
+  // Keyboard support, only when carousel is focused or hovered
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'ArrowLeft') { e.preventDefault(); goToPrev(); }
     if (e.key === 'ArrowRight') { e.preventDefault(); goToNext(); }
@@ -140,7 +140,7 @@ export const SwipeCarousel: React.FC<SwipeCarouselProps> = ({
         </>
       )}
 
-      {/* Scroll container — proximity snap avoids fighting with momentum */}
+      {/* Scroll container, proximity snap avoids fighting with momentum */}
       <div
         ref={containerRef}
         onScroll={handleScroll}

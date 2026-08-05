@@ -1,0 +1,13 @@
+{
+  "id": "oolong-shui-jin-gui",
+  "type": "Oolong",
+  "name": "Shui Jin Gui",
+  "chineseName": "水金龟",
+  "altNames": [
+    "Golden Water Turtle"
+  ],
+  "region": "Wuyi",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

@@ -1,0 +1,45 @@
+{
+  "id": "shui-xian",
+  "name": "Shui Xian",
+  "chineseName": "水仙",
+  "altNames": [
+    "Water Sprite",
+    "Narcissus",
+    "Lao Cong Shui Xian (for old grove)"
+  ],
+  "originCountry": "China",
+  "originRegion": "Wuyi Mountains (Fujian)",
+  "developedYear": 1870,
+  "parentage": "Selected from native Fujian heirloom population, likely originating in Jian'ou.",
+  "description": "'Water Sprite' or 'Narcissus'. A foundational Fujian oolong cultivar, famous for its versatility and profound transformation with age and processing. Young or lightly roasted Shui Xian is floral and bright, while heavily roasted or aged 'Lao Cong' (Old Grove) versions reveal deep, complex notes of aged wood, moss, and a resonant sweetness.",
+  "plantType": "Versatile arbor type that can be a bush or a small tree (Camellia sinensis var. sinensis). Known for its large leaves.",
+  "environment": "Highly adaptable. Thrives in the rocky terroir of Wuyi but also grows well in the clay soils of Southern Fujian. Old groves are in protected, high-humidity environments.",
+  "processing": "Its large, robust leaves are highly forgiving and can withstand significant processing, whether it be the bruising of oolong production or the heavy oxidation of black tea. They are particularly well-suited to absorbing the character of a charcoal roast.",
+  "oxidation": "Oxidation is highly variable, from a medium 30% for more floral styles to a heavy 60-70% for darker, more robust Yancha expressions that are destined for aging or heavy roasting.",
+  "roasting": "Extremely responsive to roasting. This is the key variable that defines its style. Light roasting preserves its delicate floral notes, while multiple, heavy roasts build immense depth, complexity, and a smooth, woody character.",
+  "versatility": "Highly versatile. Shui Xian is a master of transformation, capable of producing a wide spectrum of oolong styles from light and floral to dark and brooding. It also makes a respectable black tea.",
+  "distribution": {
+    "china": [
+      "Fujian Province (Wuyi Mountains, Jian'ou, Zhao'an)",
+      "Guangdong Province (as a base for Dan Cong)"
+    ]
+  },
+  "expressions": {
+    "Wuyi Rock Oolong (Yancha)": {
+      "Shui Xian Yancha": "Can be lightly roasted for a floral, narcissus-like profile, or heavily roasted for a deep, woody, and smooth character.",
+      "Lao Cong Shui Xian": "The most prized expression, from trees over 60 years old, yielding a uniquely thick, mossy, and complex tea."
+    },
+    "Black Tea": {
+      "Fujian Black Tea": "Its large leaves can be processed into a sweet, mellow black tea."
+    }
+  },
+  "sensory": {
+    "aroma": "Narcissus flower, aged wood, moss, damp forest floor (roasted/aged)",
+    "flavor": "Smooth, resonant, deep, with a lingering sweetness. Can be bright and floral or dark and woody.",
+    "mouthfeel_liquor": "Exceptionally full, smooth, and viscous, especially from old groves. The liquor ranges from golden yellow to deep reddish-brown."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

@@ -69,7 +69,7 @@ export const ImportInput: React.FC<ImportInputProps> = ({ draft, onChange, onSub
       {batchSizeLimitExceeded && <p role="alert" className="text-ui-12 text-tea-gold">Record content totals more than 20 MB. Shorten the pasted text or remove or replace files before starting the import.</p>}
       <p className="text-ui-12 leading-relaxed text-tea-text-sec">Original records remain private in Teajia. Bounded record content is sent to configured AI providers for analysis, and uncertain readings stay marked for review.</p>
       <p className="text-ui-12 leading-relaxed text-tea-text-sec">Review reuses or creates a Library identity. Received records add stock, in-transit records wait for receipt, and Library-only records create no holding. Nothing is saved until you confirm the batch.</p>
-      <button ref={submitRef} type="button" disabled={busy || !canSubmit} onClick={() => { if (!busy) onSubmit(); }} className="tap-target ml-auto flex min-h-11 items-center justify-center rounded-md bg-tea-gold px-5 text-ui-13 font-medium text-tea-bg disabled:cursor-not-allowed disabled:opacity-50">
+      <button ref={submitRef} type="button" disabled={busy || !canSubmit} onClick={() => { if (!busy) onSubmit(); }} className="tap-target ml-auto flex min-h-11 items-center justify-center rounded-md cta-solid px-5 text-ui-13 font-medium disabled:cursor-not-allowed disabled:opacity-50">
         Start import
       </button>
     </div>

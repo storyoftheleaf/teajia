@@ -1,0 +1,19 @@
+{
+  "id": "yun-shen-chu",
+  "name": "Yun Shen Chu",
+  "chineseName": "云深处",
+  "altNames": [
+    "Deep in the Clouds"
+  ],
+  "type": "White",
+  "form": "Cake",
+  "region": "Yunnan",
+  "country": "China",
+  "vendor": "Yunan Fam",
+  "provenance": "partial",
+  "tradition": "Chinese poetic tea-naming (named for the feeling of origin rather than a technical specification)",
+  "description": "Named for the high-altitude, mist-shrouded forests it evokes rather than a specific garden. The write-up describes this as the Chinese tradition of naming a tea for the feeling of its origin; the exact garden and vintage are unrecorded.",
+  "holding": "namedTeas",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

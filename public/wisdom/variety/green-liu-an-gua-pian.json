@@ -1,0 +1,13 @@
+{
+  "id": "green-liu-an-gua-pian",
+  "type": "Green",
+  "name": "Liu An Gua Pian",
+  "chineseName": "六安瓜片",
+  "altNames": [
+    "Melon Seed Tea"
+  ],
+  "region": "Lu'an",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

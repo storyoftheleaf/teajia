@@ -36,7 +36,7 @@ const CancelConfirmModal: React.FC<CancelConfirmModalProps> = ({
           </p>
         </div>
 
-        {/* Footer — Cancel-left ghost, primary-right destructive */}
+        {/* Footer: Cancel-left ghost, primary-right destructive */}
         <div className="flex justify-between items-center gap-3">
           <button
             type="button"

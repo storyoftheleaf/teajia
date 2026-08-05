@@ -18,7 +18,7 @@ export const useProducts = (options?: { enabled?: boolean }) => {
   const { accountScope, userScope } = useAccountQueryScope();
   return useQuery({
     queryKey: ['products', accountScope, userScope],
-    staleTime: 1000 * 60 * 5,   // 5 min — prevents background refetch from overwriting inline edits
+    staleTime: 1000 * 60 * 5,   // 5 min, prevents background refetch from overwriting inline edits
     refetchOnWindowFocus: false, // window focus should not clobber optimistic updates
     enabled: options?.enabled ?? true,
     queryFn: async () => {
@@ -121,7 +121,7 @@ export const useRates = () => {
 
       return Array.from(rateMap.values()) as ExchangeRate[];
     },
-    staleTime: 1000 * 60 * 60 * 6, // 6-hour TTL — rates don't change frequently
+    staleTime: 1000 * 60 * 60 * 6, // 6-hour TTL, rates don't change frequently
     initialData: INITIAL_RATES
   });
 };
@@ -131,7 +131,7 @@ export const useCustomers = () => {
   const { accountScope, userScope } = useAccountQueryScope();
   return useQuery({
     queryKey: ['customers', accountScope, userScope],
-    staleTime: 1000 * 60 * 5,   // 5 min — same as products
+    staleTime: 1000 * 60 * 5,   // 5 min, same as products
     refetchOnWindowFocus: false,
     queryFn: async () => {
       const data = await api.customers.list();
@@ -181,7 +181,7 @@ export const useActivityLogs = (params?: { limit?: number; offset?: number; acti
   });
 };
 
-// Fetch Stock Ledger — global or per-product
+// Fetch Stock Ledger, global or per-product
 export const useStockLedger = (productId: string | null | undefined, limit = 50, offset = 0) => {
   const { accountScope, userScope } = useAccountQueryScope();
   return useQuery({

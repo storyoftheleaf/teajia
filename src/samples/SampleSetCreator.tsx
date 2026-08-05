@@ -292,7 +292,7 @@ function QuickAddSheet({ setId, sourceName, sourceId, onClose }: QuickAddSheetPr
               {SAMPLE_GRAM_PRESETS.map((g) => (
                 <button
                   key={g}
-                  className={`tap-target min-h-11 pill num ${grams === g ? 'pill-active' : ''}`}
+                  className={`pill num ${grams === g ? 'pill-active' : ''}`}
                   onClick={() => setGrams(g)}
                 >
                   {g}g
@@ -608,7 +608,7 @@ function CompassImportModal({ setId, onClose, defaultVendorId, defaultVendorName
           {defaultVendorId && (
             <button
               onClick={() => setVendorOnly(!vendorOnly)}
-              className={`tap-target min-h-11 pill text-ui-12 ${vendorOnly ? 'pill-active' : ''}`}
+              className={`pill text-ui-12 ${vendorOnly ? 'pill-active' : ''}`}
             >
               {vendorOnly ? 'From this vendor' : 'All entries'}
             </button>
@@ -654,7 +654,7 @@ function CompassImportModal({ setId, onClose, defaultVendorId, defaultVendorName
           <button
             onClick={handleImport}
             disabled={selected.size === 0}
-            className="tap-target min-h-11 pill pill-active disabled:opacity-30"
+            className="pill pill-active disabled:opacity-30"
           >
             Import {selected.size > 0 ? selected.size : ''} samples
           </button>
@@ -986,7 +986,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
           </span>
           <button
             onClick={() => { navigate('/admin/compass?tab=buying'); setLedgerPromptName(null); }}
-            className="tap-target min-h-11 pill pill-active text-ui-12 shrink-0"
+            className="pill pill-active text-ui-12 shrink-0"
           >
             Open Ledger
           </button>
@@ -1098,11 +1098,11 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
             <div className="w-px h-4 bg-tea-border mx-0.5" />
             <button
               onClick={() => { setBulkMode(!bulkMode); setSelectedIds(new Set()); }}
-              className={`tap-target min-h-11 pill text-ui-12 ${bulkMode ? 'pill-active' : ''}`}
+              className={`pill text-ui-12 ${bulkMode ? 'pill-active' : ''}`}
             >
               {bulkMode ? 'Cancel' : 'Select'}
             </button>
-            <button onClick={() => setShowQuickAdd(true)} className="tap-target min-h-11 pill pill-active flex items-center gap-1 text-ui-12">
+            <button onClick={() => setShowQuickAdd(true)} className="pill pill-active flex items-center gap-1 text-ui-12">
               <Plus size={11} />
               Add
             </button>
@@ -1117,7 +1117,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
             </span>
             <button
               onClick={() => { navigate('/admin/compass?tab=buying'); setLedgerPromptName(null); }}
-              className="tap-target min-h-11 pill pill-active text-ui-12 shrink-0"
+              className="pill pill-active text-ui-12 shrink-0"
             >
               Open Ledger
             </button>
@@ -1166,7 +1166,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
                     {PURPOSE_OPTIONS.map((p) => (
                       <button
                         key={p.value}
-                        className={`tap-target min-h-11 pill ${activeSet.purpose === p.value ? 'pill-active' : ''}`}
+                        className={`pill ${activeSet.purpose === p.value ? 'pill-active' : ''}`}
                         onClick={() => updateSampleSet(activeSet.id, { purpose: p.value })}
                       >
                         {p.label}
@@ -1323,7 +1323,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}
-                className={`tap-target min-h-11 pill text-ui-12 ${statusFilter === s ? 'pill-active' : ''}`}
+                className={`pill text-ui-12 ${statusFilter === s ? 'pill-active' : ''}`}
               >
                 {s === 'all' ? 'All' : SAMPLE_STATUS_CONFIG[s].label}
               </button>
@@ -1401,7 +1401,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
-              className={`tap-target min-h-11 pill text-ui-12 ${statusFilter === s ? 'pill-active' : ''}`}
+              className={`pill text-ui-12 ${statusFilter === s ? 'pill-active' : ''}`}
             >
               {s === 'all' ? 'All' : SAMPLE_STATUS_CONFIG[s].label}
             </button>
@@ -1468,7 +1468,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
                 setSelectedIds(new Set());
                 setBulkMode(false);
               }}
-              className="tap-target min-h-11 pill text-ui-12"
+              className="pill text-ui-12"
             >
               → {SAMPLE_STATUS_CONFIG[s].label}
             </button>
@@ -1744,7 +1744,7 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
               {TEA_TYPES.map((t) => (
                 <button
                   key={t}
-                  className={`tap-target min-h-11 pill text-ui-12 ${sample.type === t ? 'pill-active' : ''}`}
+                  className={`pill text-ui-12 ${sample.type === t ? 'pill-active' : ''}`}
                   onClick={() => updateSample(sampleId, { type: sample.type === t ? undefined : t })}
                 >
                   {t}
@@ -1770,7 +1770,7 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
                 {SAMPLE_GRAM_PRESETS.map((g) => (
                   <button
                     key={g}
-                    className={`tap-target min-h-11 pill text-ui-12 num ${sample.grams === g ? 'pill-active' : ''}`}
+                    className={`pill text-ui-12 num ${sample.grams === g ? 'pill-active' : ''}`}
                     onClick={() => updateSample(sampleId, { grams: g })}
                   >
                     {g}
@@ -1820,7 +1820,7 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
                 return (
                   <button
                     key={status}
-                    className={`tap-target min-h-11 pill text-ui-12 ${sample.status === status ? 'pill-active' : ''}`}
+                    className={`pill text-ui-12 ${sample.status === status ? 'pill-active' : ''}`}
                     onClick={() => updateSample(sampleId, { status })}
                   >
                     {cfg.label}

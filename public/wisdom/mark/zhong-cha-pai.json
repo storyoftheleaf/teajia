@@ -1,0 +1,17 @@
+{
+  "id": "zhong-cha-pai",
+  "name": "Zhong Cha Pai",
+  "chineseName": "中茶牌",
+  "altNames": [
+    "Zhongcha",
+    "Zhong Cha"
+  ],
+  "producerId": "china-national-tea-corporation",
+  "appliesToTypes": [
+    "Shou"
+  ],
+  "description": "The iconic brand of the China National Tea Corporation, marked by an eight-pointed 'zhong' character surrounded by a red circle. Appears on teas from multiple state-run and later privatized factories across decades.",
+  "holding": "marks",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

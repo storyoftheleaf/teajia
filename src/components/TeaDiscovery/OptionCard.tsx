@@ -52,7 +52,7 @@ export const OptionCard: React.FC<OptionCardProps> = ({ option, display, selecte
         </span>
         <span
           className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border transition-colors ${
-            selected ? 'border-tea-gold bg-tea-gold text-tea-bg' : 'border-tea-border text-transparent'
+            selected ? 'border-tea-gold cta-solid' : 'border-tea-border text-transparent'
           }`}
           aria-hidden="true"
         >

@@ -1,0 +1,14 @@
+{
+  "id": "herbal-butterfly-pea-flower",
+  "type": "Herbal",
+  "name": "Butterfly Pea Flower",
+  "chineseName": "蝶豆花",
+  "altNames": [
+    "Blue Pea",
+    "Clitoria"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

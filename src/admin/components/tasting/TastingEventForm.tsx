@@ -93,7 +93,7 @@ export function TastingEventForm() {
           <button
             type="submit"
             disabled={submitting || picked.length === 0}
-            className="tap-target rounded-full bg-tea-gold text-tea-bg px-6 py-2 text-ui-13 tracking-wide disabled:opacity-40"
+            className="tap-target rounded-full cta-solid px-6 py-2 text-ui-13 tracking-wide disabled:opacity-40"
           >
             {submitting ? 'Creating…' : 'Create event'}
           </button>

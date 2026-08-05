@@ -1,0 +1,11 @@
+{
+  "id": "green-vietnam-green",
+  "type": "Green",
+  "name": "Vietnam Green",
+  "chineseName": null,
+  "altNames": [],
+  "region": "Vietnam",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

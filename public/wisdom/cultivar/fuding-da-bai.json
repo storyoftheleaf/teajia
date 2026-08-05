@@ -1,0 +1,44 @@
+{
+  "id": "fuding-da-bai",
+  "name": "Fuding Da Bai",
+  "chineseName": "福鼎大白",
+  "altNames": [
+    "Fuding Big White",
+    "Hua Cha #1 (technical name)"
+  ],
+  "originCountry": "China",
+  "originRegion": "Fuding (Fujian)",
+  "developedYear": 1885,
+  "parentage": "Selected from the native Fuding heirloom population for its large buds.",
+  "description": "'Fuding Big White'. The premier cultivar of Chinese white tea, Fuding Da Bai is the genetic backbone of the world's most famous white teas, including Silver Needle. It is celebrated for its large, fleshy buds that are covered in a thick layer of silvery-white down, which produce a tea that is exceptionally delicate, sweet, and clean.",
+  "plantType": "Vigorous, large, early-sprouting bush with good cold resistance (Camellia sinensis var. sinensis).",
+  "environment": "Prefers the mild, humid, and foggy coastal climate of Fuding, where the sea breezes and misty conditions are ideal for the slow withering process of white tea.",
+  "processing": "The entire philosophy of processing this cultivar is minimalism. The goal is to preserve the natural state of the leaf with as little human intervention as possible. The thick, downy buds are key to its character.",
+  "oxidation": "Oxidation is natural and very minimal (<5%), occurring slowly during the extended withering phase. There is no 'kill-green' step, allowing for a slight enzymatic change that develops its sweetness.",
+  "roasting": "No roasting is involved. The tea is simply withered (in the sun or indoors depending on weather) and then gently dried at a low temperature to remove the final moisture.",
+  "versatility": "Primarily specialized for white tea, where it is the undisputed champion. While it can be made into a simple black tea, its structure and flavor are best expressed through the gentle processing of white tea.",
+  "distribution": {
+    "china": [
+      "Fujian Province (Fuding, and surrounding areas like Xiapu, Fu'an)",
+      "Other provinces have tried to plant it, but Fuding is its authentic home."
+    ]
+  },
+  "expressions": {
+    "White Tea": {
+      "Silver Needle (Bai Hao Yin Zhen)": "The highest grade, made exclusively from the unopened buds of this cultivar, yielding a very delicate and sweet tea.",
+      "White Peony (Bai Mu Dan)": "Made from the bud and top two leaves, resulting in a fuller-bodied tea with more complexity."
+    },
+    "Black Tea": {
+      "Fuding Black Tea": "Can be processed into a sweet and mellow black tea, though this is less common."
+    }
+  },
+  "sensory": {
+    "aroma": "Delicate notes of hay, fresh melon, apricot, and a subtle floral sweetness",
+    "flavor": "Clean, mellow, and naturally sweet with very low bitterness or astringency.",
+    "mouthfeel_liquor": "Smooth, light, and refreshing with a clean, soft texture. The liquor is a very pale, silvery-yellow."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

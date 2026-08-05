@@ -1,0 +1,13 @@
+{
+  "id": "herbal-bo-ju",
+  "type": "Herbal",
+  "name": "Bo Ju",
+  "chineseName": "亳菊",
+  "altNames": [
+    "Bo Chrysanthemum"
+  ],
+  "region": "Bozhou",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

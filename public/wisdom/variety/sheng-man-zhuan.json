@@ -1,0 +1,14 @@
+{
+  "id": "sheng-man-zhuan",
+  "type": "Sheng",
+  "name": "Man Zhuan",
+  "chineseName": "曼砖",
+  "altNames": [
+    "Man Sa",
+    "Mansa"
+  ],
+  "region": "Yiwu",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

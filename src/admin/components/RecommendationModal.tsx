@@ -62,7 +62,7 @@ export const RecommendationModal: React.FC<RecommendationModalProps> = ({
     for (const p of selectedData) {
       const name = p.givenName || p.productName;
       const detail = [p.type, p.originRegion].filter(Boolean).join(', ');
-      lines.push(`• ${name}${detail ? ` — ${detail}` : ''}`);
+      lines.push(`• ${name}${detail ? ` · ${detail}` : ''}`);
       if (p.tastingNotes?.length) {
         lines.push(`  ${p.tastingNotes.slice(0, 2).join(', ')}`);
       }
@@ -151,7 +151,7 @@ export const RecommendationModal: React.FC<RecommendationModalProps> = ({
                       {isTried && <p className="text-ui-10 text-tea-text-dim">already tried</p>}
                     </div>
                     <div className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                      isSelected ? 'bg-tea-gold border-tea-gold text-tea-bg' : 'border-tea-border'
+                      isSelected ? 'cta-solid border-tea-gold' : 'border-tea-border'
                     }`}>
                       {isSelected && <Check size={10} />}
                     </div>

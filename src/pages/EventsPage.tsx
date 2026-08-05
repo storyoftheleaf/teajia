@@ -18,7 +18,7 @@ function formatDate(dateStr: string) {
   };
 }
 
-// ── List row card (§8 — divide-y list rows) ──────────────────────────────────
+// ── List row card (§8, divide-y list rows) ──────────────────────────────────
 interface EventRowProps {
   event: TeaEvent & { seatsRemaining?: number; confirmedCount?: number };
   isPast: boolean;
@@ -104,7 +104,7 @@ const EventRowSkeleton: React.FC = () => (
   </div>
 );
 
-// ── Filter tabs (§6 — bottom-border underline) ──────────────────────────────
+// ── Filter tabs (§6, bottom-border underline) ──────────────────────────────
 type Filter = 'upcoming' | 'past';
 
 interface FilterTabsProps {
@@ -163,7 +163,7 @@ const EventsPage: React.FC = () => {
 
   const events: TeaEvent[] = useMemo(() => {
     return rawEvents.map((ev) => {
-      // Worker may return snake_case keys — cast to index signature for the shim
+      // Worker may return snake_case keys, cast to index signature for the shim
       const raw = ev as unknown as Record<string, unknown>;
       return {
         ...ev,

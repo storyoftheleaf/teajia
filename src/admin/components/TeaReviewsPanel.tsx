@@ -62,7 +62,7 @@ function buildSynthesisPrompt(reviews: TeaReview[], productName: string, product
   for (const r of submitted) {
     const taster = [r.author_name, r.author_account_name].filter(Boolean).join(' · ');
     const date = r.session_date || r.created_at.slice(0, 10);
-    lines.push(`${taster} — tasted ${date}:`);
+    lines.push(`${taster}, tasted ${date}:`);
 
     if (r.tasting) {
       const terms = flattenTastingNotes(r.tasting);
@@ -137,7 +137,7 @@ export const TeaReviewsPanel: React.FC<TeaReviewsPanelProps> = ({
         <TastingNoteReviewQueue />
       </section>
 
-      {/* TastingSession — opens full-screen when adding a review */}
+      {/* TastingSession, opens full-screen when adding a review */}
       {tastingOpen && (
         <TastingSession
           item={{

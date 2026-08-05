@@ -44,7 +44,7 @@ function composeInviteMessage(name: string, event: TeaEvent): string {
   const lines = [
     `Hi ${name}! 🍵`,
     ``,
-    `You've been approved for *${event.title}* — we're looking forward to having you.`,
+    `You've been approved for *${event.title}*, we're looking forward to having you.`,
     ``,
     `📅 ${date}`,
     `🕐 ${time}`,
@@ -149,7 +149,7 @@ const SendConfirmModal: React.FC<SendConfirmModalProps> = ({
           <button
             onClick={onConfirm}
             disabled={isSending}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
           >
             {isSending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
             {isSending ? 'Sending…' : 'Send Now'}
@@ -214,7 +214,7 @@ const InviteStatusBlock: React.FC<InviteStatusBlockProps> = ({
           <button
             onClick={onSend}
             disabled={approvedCount === 0}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Send size={13} />
             Send Invites
@@ -345,7 +345,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId, e
           <button
             onClick={handleGenerate}
             disabled={generating}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {generating ? <Loader2 size={13} className="animate-spin" /> : <Bell size={13} />}
             Generate Reminders

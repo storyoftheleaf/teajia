@@ -114,7 +114,7 @@ export const EventsManager: React.FC = () => {
 
   return (
     <>
-    {/* Sticky header — title + subtitle counts */}
+    {/* Sticky header, title + subtitle counts */}
     <div className="sticky top-0 z-dropdown bg-tea-bg/90 backdrop-blur-md border-b border-tea-border flex-shrink-0">
       <div className="px-4 md:px-6 lg:px-10 max-w-5xl mx-auto pt-4 pb-3 flex items-end justify-between gap-4">
         <div className="min-w-0 flex-1">
@@ -136,7 +136,7 @@ export const EventsManager: React.FC = () => {
           </button>
           <button
             onClick={() => setIsFormOpen(true)}
-            className="tap-target inline-flex items-center gap-1.5 px-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors"
+            className="tap-target inline-flex items-center gap-1.5 px-3 rounded-md cta-solid text-xs font-semibold transition-colors"
           >
             <Plus size={13} />
             <span>New Event</span>
@@ -144,7 +144,7 @@ export const EventsManager: React.FC = () => {
         </div>
       </div>
 
-      {/* Filter tabs — bottom-border underline */}
+      {/* Filter tabs, bottom-border underline */}
       <div className="px-4 md:px-6 lg:px-10 max-w-5xl mx-auto flex items-center gap-6 overflow-x-auto hide-scrollbar border-b border-tea-border">
         {([
           { key: 'upcoming', label: 'Upcoming', count: upcomingCount },
@@ -217,7 +217,7 @@ export const EventsManager: React.FC = () => {
           <p className="font-serif italic text-sm text-tea-text-sec mb-6">No gatherings yet.</p>
           <button
             onClick={() => setIsFormOpen(true)}
-            className="tap-target inline-flex items-center gap-1.5 px-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+            className="tap-target inline-flex items-center gap-1.5 px-3 rounded-md cta-solid text-xs font-semibold transition-colors"
           >
             <Plus size={13} />
             Create First Event
@@ -253,7 +253,7 @@ export const EventsManager: React.FC = () => {
                 transition={{ delay: Math.min(index, 12) * 0.04 }}
                 className="relative group flex items-center"
               >
-                {/* Row body — single real button for navigation. The pending/
+                {/* Row body, single real button for navigation. The pending/
                     interest links live in the action cluster as siblings, never
                     nested inside this button. */}
                 <button
@@ -350,7 +350,7 @@ export const EventsManager: React.FC = () => {
             </div>
             <div className="flex justify-between gap-2 px-6 py-4 border-t border-tea-border">
               <button type="button" onClick={() => setDuplicateDialog(null)} className="tap-target px-2 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
-              <button type="button" onClick={handleConfirmDuplicate} disabled={!duplicateDialog.slug.trim()} className="tap-target inline-flex items-center gap-1.5 px-3 rounded-md bg-tea-gold text-tea-bg text-ui-12 font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Duplicate</button>
+              <button type="button" onClick={handleConfirmDuplicate} disabled={!duplicateDialog.slug.trim()} className="tap-target inline-flex items-center gap-1.5 px-3 rounded-md cta-solid text-ui-12 font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Duplicate</button>
             </div>
           </>
         )}

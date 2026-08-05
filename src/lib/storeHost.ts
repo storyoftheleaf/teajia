@@ -1,4 +1,4 @@
-// storeHost.ts — maps a hostname to a store slug so a dedicated subdomain
+// storeHost.ts, maps a hostname to a store slug so a dedicated subdomain
 // (e.g. au.teajia.com) opens straight onto that store's shop at the root URL,
 // with no /store/<slug> in the address bar.
 //

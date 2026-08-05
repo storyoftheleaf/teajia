@@ -4,7 +4,7 @@ import { useAppStore, selectHasBundle } from '../../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import type { ProfileSuggestion, ProfileSuggestionDecision, ProfileSuggestionFieldStatus } from '../../types';
 
-// ── Suggestions Inbox — Surface 6 per docs/NETWORK_UI_BRIEF.md ───────────────
+// ── Suggestions Inbox: Surface 6 per docs/NETWORK_UI_BRIEF.md ───────────────
 //
 // Adrian reviews incoming canonical-edit bundles from partners.
 // Each bundle expands inline (no modal, no drawer). Per-field accept/reject.
@@ -92,7 +92,7 @@ interface FieldDecisionState {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FieldRow — one canonical field within an expanded bundle
+// FieldRow, one canonical field within an expanded bundle
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface FieldRowProps {
@@ -282,7 +282,7 @@ const FieldRow: React.FC<FieldRowProps> = ({
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BundleRow — one suggestion bundle in the list
+// BundleRow, one suggestion bundle in the list
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface BundleRowProps {
@@ -325,7 +325,7 @@ const BundleRow: React.FC<BundleRowProps> = ({ suggestion, onRefetch }) => {
   const handleSubmit = async () => {
     if (submitting) return;
 
-    // Build decision payload — only fields that have a local decision
+    // Build decision payload, only fields that have a local decision
     const payload: ProfileSuggestionDecision[] = pendingFields
       .filter(f => decisions[f.id]?.status !== 'pending')
       .map(f => {
@@ -372,7 +372,7 @@ const BundleRow: React.FC<BundleRowProps> = ({ suggestion, onRefetch }) => {
         setSubmitError('This bundle was withdrawn.');
         onRefetch();
       } else {
-        setSubmitError("Couldn't reach the server. Your decisions are held — try Submit again.");
+        setSubmitError("Couldn't reach the server. Your decisions are held, try Submit again.");
       }
     } finally {
       setSubmitting(false);
@@ -565,7 +565,7 @@ export const SuggestionsInbox: React.FC<SuggestionsInboxProps> = ({ embedded = f
         ) : null}
       </header>
 
-      {/* Filter line — text-link tabs, no chrome */}
+      {/* Filter line: text-link tabs, no chrome */}
       <div className="flex items-baseline gap-3 mb-8 text-ui-14">
         <FilterTab active={filter === 'default'} onClick={() => setFilter('default')}>
           Pending

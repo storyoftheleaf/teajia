@@ -5,12 +5,12 @@ import { useAppStore, selectHasBundle } from '../../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import type { WholesaleOrderStatus, WholesaleOrderSummary } from '../../types';
 
-// ── WholesaleOrdersList — Surface 9 (index) per docs/NETWORK_UI_BRIEF.md ─────
+// ── WholesaleOrdersList: Surface 9 (index) per docs/NETWORK_UI_BRIEF.md ─────
 //
 // /admin/network/wholesale
 // All orders where the caller is buyer or supplier.
 // Two filter dimensions: role (all / buyer / supplier) + state (open / closed).
-// Wine-list rhythm rows. No pills, no status badges — type and space only.
+// Wine-list rhythm rows. No pills, no status badges, type and space only.
 // Sell bundle required.
 
 // ─────────────────────────────────────────────────────────────────────────────

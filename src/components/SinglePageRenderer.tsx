@@ -40,26 +40,26 @@ interface SinglePageRendererProps {
 // TYPOGRAPHY SYSTEM
 // Canvas: 800×1000 (4:5 ratio, ~47% scale on 375px phones)
 // Three voices: Cormorant Garamond (display), Lora (body), Plus Jakarta Sans (captions/UI)
-// Scale ratio ≈ 1:2:4 — body 25px (~12px on mobile), headline 40px, display 84px
+// Scale ratio ≈ 1:2:4, body 25px (~12px on mobile), headline 40px, display 84px
 // ────────────────────────────────────────────────────────────
 const TYPE = {
   displayFont: '"Cormorant Garamond", "Georgia", serif',
   bodyFont: '"Lora", "Palatino Linotype", serif',
   sansFont: '"Plus Jakarta Sans", system-ui, sans-serif',
-  // Display — Cormorant Garamond, high contrast, light weight at large sizes
+  // Display: Cormorant Garamond, high contrast, light weight at large sizes
   display: 'text-[84px] font-display leading-[0.92] tracking-[-0.02em] font-light',
   displaySm: 'text-[64px] font-display leading-[0.95] tracking-[-0.01em] font-light',
-  // Headlines — Cormorant Garamond, medium weight
+  // Headlines: Cormorant Garamond, medium weight
   headline: 'text-[40px] font-display leading-[1.15] font-normal',
   subtitle: 'text-[30px] font-display leading-[1.25] font-normal italic',
   headlineSm: 'text-ui-28 font-display leading-[1.3] font-normal',
-  // Body — Lora, optimized for reading (sizes increased for ~47% mobile scale)
+  // Body: Lora, optimized for reading (sizes increased for ~47% mobile scale)
   subhead: 'text-ui-26 font-body leading-[1.4]',
   bodyLarge: 'text-[27px] font-body leading-[1.6]',
   body: 'text-[25px] font-body leading-[1.65]',         // was 21px → renders ~12px on mobile
   bodySm: 'text-[23px] font-body leading-[1.55]',
   bodyDense: 'text-[24px] font-body leading-[36px]',    // Multi-column, locked leading
-  // Captions — Plus Jakarta Sans, small-caps, letterspaced (increased for legibility)
+  // Captions: Plus Jakarta Sans, small-caps, letterspaced (increased for legibility)
   caption: 'text-ui-15 font-caption leading-[1.4] tracking-[0.12em]',
   folio: 'text-ui-13 font-caption leading-[1.3] tracking-[0.18em]',
   micro: 'text-ui-12 font-caption leading-[1.2]',
@@ -75,7 +75,7 @@ const LH = {
 
 // --- Padding Variants (8px grid) ---
 const PAD = {
-  text: 'px-[64px] py-[52px]',          // Text pages — wide margins, narrow measure
+  text: 'px-[64px] py-[52px]',          // Text pages, wide margins, narrow measure
   textWide: 'px-[88px] py-[52px]',      // Centered narrow-measure text
   image: 'p-0',                          // Full-bleed images
   spacious: 'px-[72px] py-[52px]',      // Covers, quotes, chapters
@@ -117,7 +117,7 @@ const ANIMATION_STYLES = `
   }
   /* Hanging punctuation for quotes */
   .hang-punct { text-indent: -0.4em; }
-  /* Column rules — subtle 1px */
+  /* Column rules, subtle 1px */
   .col-rule { column-rule: 1px solid var(--tea-border); }
   /* Highlight effect */
   .text-highlight mark { background: linear-gradient(to bottom, transparent 55%, var(--tea-gold-lt, rgba(184,146,78,0.15)) 55%); padding: 0 2px; }
@@ -372,7 +372,7 @@ const EditableImage = ({ src, index, onImageUpdate, className = "", readOnly = f
     }
   };
 
-  // Theme-aware filter class — defined in card-utilities.css
+  // Theme-aware filter class, defined in card-utilities.css
   const filterClass = theme === 'dark' ? 'img-filter-dark' : 'img-filter-light';
 
   return (
@@ -629,7 +629,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
     // Strict overflow hidden to prevent scrollbars
     const paperBase = `w-full h-full ${theme.bg} ${theme.text} overflow-hidden relative font-body transition-colors duration-300 ${readOnly ? 'pointer-events-none' : ''}`;
 
-    // Legacy alias — use PAD.text / PAD.spacious / PAD.image instead
+    // Legacy alias, use PAD.text / PAD.spacious / PAD.image instead
     const STD_PAD = PAD.spacious; 
 
     return (
@@ -649,11 +649,11 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                     <div className={`${paperBase} flex flex-col ${PAD.spacious}`}>
                         <div className="absolute inset-0 z-0"><SafeImage index={0} className="w-full h-full" /></div>
                         <div className="absolute inset-0 bg-gradient-to-t from-tea-bg/50 via-transparent to-transparent z-10 pointer-events-none"></div>
-                        {/* Masthead — top left, small caps */}
+                        {/* Masthead, top left, small caps */}
                         <div className="relative z-20">
                             <span className={`${TYPE.folio} uppercase tracking-[0.3em] text-tea-text/70`}>Teajia</span>
                         </div>
-                        {/* Title block — lower third */}
+                        {/* Title block, lower third */}
                         <div className="relative z-20 mt-auto pb-8" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.5), 0 1px 3px rgba(0,0,0,0.3)' }}>
                             <EditableText value={storyTitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('title', val) : undefined} className={`${TYPE.display} font-display font-light tracking-[-0.02em] leading-[0.88] mb-5 text-tea-text`} placeholder="Title" tag="h1" readOnly={readOnly} />
                             <EditableText value={storySubtitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('subtitle', val) : undefined} className={`${TYPE.caption} font-caption tracking-[0.12em] text-tea-text/75`} placeholder="Subtitle" tag="p" readOnly={readOnly} />
@@ -675,11 +675,11 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
             case LayoutVariant.COVER_MINIMAL:
                 return (
                     <div className={`${paperBase} flex flex-col items-center justify-center ${PAD.spacious} text-center`}>
-                        {/* Masthead — small caps at top */}
+                        {/* Masthead, small caps at top */}
                         <span className={`${TYPE.folio} uppercase tracking-[0.35em] opacity-30 mb-16`}>Teajia Journal</span>
-                        {/* Thin horizontal rule — 40% width */}
+                        {/* Thin horizontal rule, 40% width */}
                         <div className="w-[40%] h-[0.5px] bg-current opacity-15 mb-16"></div>
-                        {/* Title — display italic */}
+                        {/* Title, display italic */}
                         <EditableText value={storyTitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('title', val) : undefined} className={`${TYPE.displaySm} font-display italic font-light mb-12 tracking-wide leading-tight`} placeholder="Title" tag="h1" readOnly={readOnly} />
                         <EditableText value={storySubtitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('subtitle', val) : undefined} className={`${TYPE.caption} uppercase tracking-[0.25em] ${theme.subtext}`} placeholder="Subtitle" tag="p" readOnly={readOnly} />
                     </div>
@@ -881,11 +881,11 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                             <span className="text-ui-20 font-display tracking-[0.4em] opacity-[0.08]">{chineseName || '茶茶茶茶茶'}</span>
                         </div>
                         <div className="relative z-10">
-                            {/* Chapter number — display font, light weight */}
+                            {/* Chapter number, display font, light weight */}
                             <EditableText value={chNum || ''} onChange={isEditable ? (v) => updateContent(v + '|' + (chTitle2 || '')) : undefined} className={`${TYPE.displaySm} font-display font-light mb-4 leading-none`} placeholder="01" tag="h1" readOnly={readOnly} />
                             {/* Thin gold rule */}
                             <div className="w-[60px] h-[0.5px] bg-tea-gold opacity-50 mb-6"></div>
-                            {/* Chapter title — letterspaced */}
+                            {/* Chapter title, letterspaced */}
                             {chTitle2 && <EditableText value={chTitle2} onChange={isEditable ? (v) => updateContent((chNum || '') + '|' + v) : undefined} className={`${TYPE.headlineSm} font-display tracking-[0.08em]`} placeholder="Title" tag="p" readOnly={readOnly} />}
                         </div>
                     </div>
@@ -921,7 +921,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         {/* Gradient overlay for caption readability */}
                         {/* z-[5]: caption gradient above z-0 image, below z-10 caption (local stack) */}
                         <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-tea-bg/30 to-transparent z-[5] pointer-events-none"></div>
-                        {/* Caption — bottom-left, no bg container, sits over gradient */}
+                        {/* Caption, bottom-left, no bg container, sits over gradient */}
                         <div className="absolute bottom-0 left-0 px-6 py-4 z-10 pointer-events-none">
                             <div className={readOnly ? "" : "pointer-events-auto"}><EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${CAPTION_CLASS} text-tea-text/80`} placeholder="Caption" tag="span" readOnly={readOnly} /></div>
                         </div>
@@ -1184,7 +1184,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                             <span className={`${FOLIO_CLASS}`}>Issue 03</span>
                         </div>
 
-                        {/* Legacy "Mentioned in this piece" removed — the
+                        {/* Legacy "Mentioned in this piece" removed, the
                             ArticleColophon component in Reader.tsx now handles
                             teas-in-this-piece via the article_products xref. */}
 
@@ -1698,7 +1698,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 const [clNum, clTitle] = content.split('|');
                 return (
                     <div className={`${paperBase} ${PAD.spacious} flex items-center relative`}>
-                        {/* Large number — left edge, clear grid layout */}
+                        {/* Large number, left edge, clear grid layout */}
                         <div className="flex items-center gap-10 w-full">
                             <span className="text-[200px] font-display font-light leading-none select-none opacity-[0.12] shrink-0">{clNum || '01'}</span>
                             <div className="relative z-10">
@@ -1744,7 +1744,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                     <div className={`${paperBase} ${PAD.spacious} flex items-center`} data-page-type="text" style={OPENTYPE}>
                         <div className="ml-[25%] w-[60%]">
                             <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.headlineSm} font-display font-light ${LH.loose} whitespace-pre-wrap opacity-85`} placeholder="Each line / on its own..." tag="p" readOnly={readOnly} />
-                            <div className={`${TYPE.caption} font-caption text-right mt-12 opacity-30`}>— Author</div>
+                            <div className={`${TYPE.caption} font-caption text-right mt-12 opacity-30`}>Author</div>
                         </div>
                     </div>
                 );
@@ -1789,7 +1789,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                             ))}
                         </div>
                         <div className="absolute bottom-16">
-                            <span className={`${TYPE.micro} font-caption opacity-20`}>— kigo</span>
+                            <span className={`${TYPE.micro} font-caption opacity-20`}>kigo</span>
                         </div>
                     </div>
                 );
@@ -1806,7 +1806,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                                     <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.headline} font-display tracking-wide font-light italic text-tea-text leading-[1.3] mb-8 hang-punct`} placeholder="Quote..." tag="p" readOnly={readOnly} />
                                 </div>
                             </div>
-                            <span className={`${TYPE.caption} font-caption text-tea-text/50`}>— Attribution</span>
+                            <span className={`${TYPE.caption} font-caption text-tea-text/50`}>Attribution</span>
                         </div>
                     </div>
                 );
@@ -2001,7 +2001,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         <div className="w-16 h-16 bg-current opacity-8 rounded-md flex items-center justify-center mb-8">
                             <span className="text-[40px] font-display font-light opacity-30">T</span>
                         </div>
-                        <span className={`${TYPE.caption} font-caption mb-2`}>Teajia Journal — Issue 03</span>
+                        <span className={`${TYPE.caption} font-caption mb-2`}>Teajia Journal · Issue 03</span>
                         <span className={`${TYPE.micro} opacity-15 font-caption`}>2024</span>
                     </div>
                 );
@@ -2087,7 +2087,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                             {/* Annotation circles */}
                             {annotations.map((ann, i) => (
                                 <div key={i} className="absolute z-20 pointer-events-none" style={{ left: `${ann.x}%`, top: `${ann.y}%`, transform: 'translate(-50%, -50%)' }}>
-                                    <div className="w-8 h-8 rounded-full bg-tea-gold text-tea-bg flex items-center justify-center text-ui-14 font-bold shadow-lg border-2 border-tea-bg">
+                                    <div className="w-8 h-8 rounded-full cta-solid flex items-center justify-center text-ui-14 font-bold shadow-lg border-2 border-tea-bg">
                                         {i + 1}
                                     </div>
                                 </div>
@@ -2149,7 +2149,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
             }
 
             case LayoutVariant.TIMELINE_VISUAL: {
-                // Parse: date—event pairs, pipe separated
+                // Parse: "date, then event" pairs joined by an em-dash, pipe separated
                 const tlEvents = content.split('|').filter(Boolean);
                 return (
                     <div className={`${paperBase} ${PAD.text} pt-16`} data-page-type="mixed" style={OPENTYPE}>

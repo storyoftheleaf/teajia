@@ -1,0 +1,38 @@
+{
+  "id": "bai-ji-guan",
+  "name": "Bai Ji Guan",
+  "chineseName": "白鸡冠",
+  "altNames": [
+    "White Cockscomb"
+  ],
+  "originCountry": "China",
+  "originRegion": "Wuyi Mountains (Fujian)",
+  "developedYear": 1368,
+  "parentage": "One of the four original, legendary Wuyi cultivars, named for its unique appearance.",
+  "description": "'White Cockscomb'. A rare and unique member of the 'Si Da Ming Cong', Bai Ji Guan stands apart from all other Wuyi oolongs. It is named for its peculiar pale, yellowish-green leaves and is processed with a much lighter hand, resulting in a creamy, sweet, and custardy flavor profile that contrasts sharply with the dark, roasty character of its famous brethren.",
+  "plantType": "Small, slow-growing, semi-upright bush with delicate branches (Camellia sinensis var. sinensis).",
+  "environment": "Requires a specific microclimate within the Wuyi Mountains. It is less hardy than other Yancha cultivars and requires great care.",
+  "processing": "Processing Bai Ji Guan requires immense skill and a light touch. The leaves are more fragile than other Wuyi cultivars, so the bruising and oxidation steps must be gentle to avoid bitterness and preserve its delicate aromatics.",
+  "oxidation": "Oxidation is kept very light for a Yancha (20-30%). This preserves the leaf's natural pale color and its sweet, creamy, and corn-like flavor notes.",
+  "roasting": "Roasting is minimal and done at a very low temperature. It is more of a final drying bake than a flavor-altering roast. The goal is to stabilize the tea while allowing its inherent sweetness and unique flavor to shine.",
+  "versatility": "Extremely specialized. Bai Ji Guan represents a unique, almost historical style of light Yancha. It is not versatile and can only be made in this specific way.",
+  "distribution": {
+    "china": [
+      "Fujian Province (Wuyi Mountains - very small production area)"
+    ]
+  },
+  "expressions": {
+    "Wuyi Rock Oolong (Yancha - Light Style)": {
+      "Bai Ji Guan Yancha": "Its only expression is a lightly oxidized and lightly roasted oolong, a style designed to preserve its delicate, sweet, and creamy nature."
+    }
+  },
+  "sensory": {
+    "aroma": "Delicate floral notes, sweet corn, cream, buttery pastry",
+    "flavor": "Custardy, sweet, with notes of yellow summer fruits (like pawpaw or melon) and a subtle mineral finish.",
+    "mouthfeel_liquor": "Creamy, smooth, and surprisingly thick with very low astringency. The liquor is a pale, bright golden-yellow."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

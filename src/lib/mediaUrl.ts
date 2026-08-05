@@ -1,5 +1,5 @@
 /**
- * Same-origin media URLs — mainland-China reachability + no external bucket domain.
+ * Same-origin media URLs, mainland-China reachability + no external bucket domain.
  *
  * Uploaded photos/audio are stored in D1 as canonical `https://media.teajia.co/<key>`
  * URLs, but that bucket hostname no longer resolves (the R2 custom domain was

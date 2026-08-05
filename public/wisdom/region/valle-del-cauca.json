@@ -1,0 +1,11 @@
+{
+  "id": "valle-del-cauca",
+  "name": "Valle del Cauca",
+  "country": "Colombia",
+  "province": "Valle del Cauca",
+  "altitude": "1200-1800m",
+  "climate": "High altitude valley suitable for tea cultivation",
+  "holding": "regions",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

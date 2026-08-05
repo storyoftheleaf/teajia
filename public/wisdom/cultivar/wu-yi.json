@@ -1,0 +1,39 @@
+{
+  "id": "wu-yi",
+  "name": "Wu Yi",
+  "chineseName": "武夷",
+  "altNames": [
+    "Wuyi Oolong"
+  ],
+  "originCountry": "Taiwan",
+  "originRegion": "Nantou",
+  "developedYear": 1801,
+  "parentage": "Brought from Wuyi Mountains, Fujian; likely a Shui Xian type.",
+  "description": "'Wuyi'. This refers to tea plants that were originally brought to Taiwan from the Wuyi Mountains in Fujian, likely a Shui Xian type. In Taiwan, this cultivar is used to create a medium-oxidized and medium-roast oolong that pays homage to its Yancha roots. It produces a tea with a characteristic balance of woody, fruity, and mineral notes.",
+  "plantType": "Sturdy, semi-arbor bush (Camellia sinensis var. sinensis).",
+  "environment": "Grows well in the mid-elevation regions of central Taiwan, such as Lugu in Nantou County.",
+  "processing": "Processing follows the traditional Dong Ding method. The leaves are moderately bruised and oxidized to develop a solid flavor base, and then skillfully roasted to add depth and complexity.",
+  "oxidation": "Undergoes medium oxidation (30-40%) to create a balance between retaining some floral notes and developing a fruity, substantive character that is ideal for roasting.",
+  "roasting": "Perfectly suited for a medium charcoal roast. The roasting enhances its nutty and woody notes, creates a caramel-like sweetness, and gives the tea a comforting, smooth character.",
+  "versatility": "Specialized for the traditional roasted oolong style. It is a key cultivar in the history of Dong Ding oolong and is not used for light, green styles.",
+  "distribution": {
+    "taiwan": [
+      "Nantou County (Lugu)",
+      "Other historic tea areas"
+    ]
+  },
+  "expressions": {
+    "Traditional Oolong": {
+      "Taiwanese Wuyi Oolong": "A medium-oxidized and medium-roast oolong, often made in the style of traditional Dong Ding. It bridges the gap between fragrant high mountain oolongs and heavily roasted teas."
+    }
+  },
+  "sensory": {
+    "aroma": "Woody, floral, with notes of roasted nuts and dried fruit",
+    "flavor": "A balanced profile of fruit, wood, and a subtle minerality with a pleasant roasted sweetness.",
+    "mouthfeel_liquor": "Medium-to-full-bodied, smooth, and satisfying with a warming finish. The liquor is a classic amber color."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

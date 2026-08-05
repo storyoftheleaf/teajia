@@ -1,0 +1,13 @@
+{
+  "id": "herbal-hawthorn",
+  "type": "Herbal",
+  "name": "Hawthorn",
+  "chineseName": "山楂",
+  "altNames": [
+    "Shan Zha"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

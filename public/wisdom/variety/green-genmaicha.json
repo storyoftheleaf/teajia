@@ -1,0 +1,13 @@
+{
+  "id": "green-genmaicha",
+  "type": "Green",
+  "name": "Genmaicha",
+  "chineseName": "玄米茶",
+  "altNames": [
+    "Brown Rice Tea"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

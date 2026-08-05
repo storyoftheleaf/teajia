@@ -1,0 +1,45 @@
+{
+  "id": "yabukita",
+  "name": "Yabukita",
+  "chineseName": "やぶきた",
+  "altNames": [
+    "N/A"
+  ],
+  "originCountry": "Japan",
+  "originRegion": "Shizuoka",
+  "developedYear": 1908,
+  "parentage": "Selected from a native Zairai population by Sugiyama Hikosaburo.",
+  "description": "'North of the Bamboo Grove'. The undisputed king of Japanese tea, accounting for over 75% of all tea production in Japan. Discovered in 1908, it became the national standard due to its hardiness, high yield, and a perfectly balanced flavor profile of umami and refreshing astringency. It is the benchmark against which all other Japanese green teas are measured.",
+  "plantType": "Hardy, vigorous, and highly adaptable mid-budding bush (Camellia sinensis var. sinensis).",
+  "environment": "Extremely adaptable to a wide range of climates and altitudes, from the cool mountains of Shizuoka to the warm plains of Kagoshima.",
+  "processing": "from light steaming (Asamushi) to deep steaming (Fukamushi).,Zero oxidation. The leaves are steamed immediately after harvest to halt all enzymatic activity. The steaming time (30-120 seconds) determines the style (Asamushi",
+  "oxidation": "Chumushi",
+  "roasting": "or Fukamushi).,Receives a final drying roast ('hi-ire') to stabilize the tea and enhance its aroma. This is typically a light bake",
+  "versatility": "not a heavy roast.,Extremely versatile. It is the workhorse of the Japanese tea industry and can be skillfully crafted into almost any type of Japanese tea",
+  "distribution": {
+    "japan": [
+      "Shizuoka",
+      "Kagoshima",
+      "Mie",
+      "Kyoto",
+      "Fukuoka",
+      "virtually all tea regions"
+    ]
+  },
+  "expressions": {
+    "Sencha": {
+      "Classic Sencha": "Its most iconic expression. A perfectly balanced steamed green tea with classic umami and vegetal notes."
+    },
+    "Fukamushi Sencha": {
+      "Deep-Steamed Sencha": "Its flavor holds up well to deep-steaming, creating a bolder, greener, and less astringent tea."
+    },
+    "Gyokuro & Matcha": {
+      "Shaded Teas": "While not an elite shading cultivar, it is widely used to produce reliable and good quality Gyokuro and Matcha."
+    }
+  },
+  "sensory": null,
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

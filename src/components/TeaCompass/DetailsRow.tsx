@@ -1,13 +1,7 @@
 import React, { useId, useState } from 'react';
 import { Droplets } from 'lucide-react';
-import {
-  SEASONS,
-  STORAGE_OPTIONS,
-  COMMON_REGIONS,
-  type Season,
-  type Storage,
-  type TeaType,
-} from './types';
+import { STORAGE_STYLES, REGION_NAMES } from '../../wisdom';
+import type { Season, Storage, TeaType } from './types';
 import type { TastingData } from '../../types';
 import type { TastingCategoryId } from '../../data/tastingTaxonomy';
 import { TastingProfileStrip } from '../tasting/TastingProfileStrip';
@@ -44,7 +38,7 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
   chineseName,
   tasting,
   hasTasting,
-  availableRegions = COMMON_REGIONS,
+  availableRegions = REGION_NAMES,
   onSeasonChange,
   onStorageChange,
   onRegionChange,
@@ -73,7 +67,7 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
               Storage
             </label>
             <div className="flex gap-1.5 flex-wrap">
-              {STORAGE_OPTIONS.map((st) => (
+              {STORAGE_STYLES.map((st) => (
                 <button
                   key={st}
                   type="button"

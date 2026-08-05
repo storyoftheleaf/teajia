@@ -14,7 +14,7 @@ interface CollectionShareSheetProps {
   open: boolean;
   productIds: string[];
   onClose: () => void;
-  /** Called once the user clicks Done on the success card — InventoryView uses
+  /** Called once the user clicks Done on the success card: InventoryView uses
    *  this to clear selection. Toast is no longer fired from here; the success
    *  card replaces it. */
   onSuccess: (args: { collectionId: string; collectionTitle: string; addedCount: number; publicationSlug?: string }) => void;
@@ -484,7 +484,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
 
           <div>
             <label className="block text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim mb-1">
-              Note <span className="text-tea-text-dim/70 normal-case tracking-normal">(optional — shown above the list)</span>
+              Note <span className="text-tea-text-dim/70 normal-case tracking-normal">(optional, shown above the list)</span>
             </label>
             <textarea
               value={note}
@@ -695,7 +695,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
           type="button"
           onClick={onSubmitNew}
           disabled={!canSubmitNew || submitting}
-          className="flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-xl text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 px-4 py-2 cta-solid rounded-xl text-xs font-semibold tracking-wide transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {submitting
             ? <><Loader2 size={12} className="animate-spin" /> Publishing…</>
@@ -707,7 +707,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
           type="button"
           onClick={onSubmitExisting}
           disabled={!canSubmitExisting || submitting}
-          className="flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-xl text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 px-4 py-2 cta-solid rounded-xl text-xs font-semibold tracking-wide transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {submitting
             ? <><Loader2 size={12} className="animate-spin" /> Adding…</>
@@ -719,7 +719,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
           type="button"
           onClick={onSubmitTeaHouse}
           disabled={!canSubmitTeaHouse || submitting}
-          className="flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-xl text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 px-4 py-2 cta-solid rounded-xl text-xs font-semibold tracking-wide transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {submitting
             ? <><Loader2 size={12} className="animate-spin" /> Sending…</>
@@ -747,14 +747,14 @@ const SuccessPhase: React.FC<{ success: SuccessState; onDone: () => void }> = ({
       await navigator.clipboard.writeText(url);
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
-    } catch { /* clipboard blocked — silent */ }
+    } catch { /* clipboard blocked, silent */ }
   };
 
   const recipientsWithPhone = success.recipients.filter(r => r.phone && r.phone.trim());
   const recipientsWithoutPhone = success.recipients.filter(r => !r.phone || !r.phone.trim());
 
   const buildRecipientMessage = (r: CollectionRecipient) => {
-    const greeting = r.name ? `Hi ${r.name.split(' ')[0]} — ` : 'Hi — ';
+    const greeting = r.name ? `Hi ${r.name.split(' ')[0]}, ` : 'Hi, ';
     const intro = success.collectionNote
       ? `I made a small collection for you: ${success.collectionTitle}.`
       : `I made a small collection for you: ${success.collectionTitle}.`;
@@ -811,7 +811,7 @@ const SuccessPhase: React.FC<{ success: SuccessState; onDone: () => void }> = ({
           <button
             type="button"
             onClick={onDone}
-            className="px-4 py-2 bg-tea-gold text-tea-bg rounded-xl text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors"
+            className="px-4 py-2 cta-solid rounded-xl text-xs font-semibold tracking-wide transition-colors"
           >
             Done
           </button>
@@ -944,7 +944,7 @@ const SuccessPhase: React.FC<{ success: SuccessState; onDone: () => void }> = ({
         <button
           type="button"
           onClick={onDone}
-          className="px-4 py-2 bg-tea-gold text-tea-bg rounded-xl text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors"
+          className="px-4 py-2 cta-solid rounded-xl text-xs font-semibold tracking-wide transition-colors"
         >
           Done
         </button>

@@ -1,0 +1,14 @@
+{
+  "id": "oolong-rou-gui",
+  "type": "Oolong",
+  "name": "Rou Gui",
+  "chineseName": "肉桂",
+  "altNames": [
+    "Cassia",
+    "Cinnamon Oolong"
+  ],
+  "region": "Wuyi",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

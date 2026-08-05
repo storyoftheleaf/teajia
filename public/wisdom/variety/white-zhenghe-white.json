@@ -1,0 +1,13 @@
+{
+  "id": "white-zhenghe-white",
+  "type": "White",
+  "name": "Zhenghe White",
+  "chineseName": "政和白茶",
+  "altNames": [
+    "Zhenghe Bai Cha"
+  ],
+  "region": "Zhenghe",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

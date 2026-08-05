@@ -484,6 +484,98 @@ export const TEA_VARIETIES: Record<Exclude<TeaType, 'Teaware'>, TeaVariety[]> = 
 };
 
 /**
+ * Growing region → origin country. Covers every `region` used above so a
+ * variety match can fill both origin fields, not just the region.
+ */
+export const REGION_COUNTRY: Record<string, string> = {
+  // China
+  'Ailao Mountain': 'China', Anhui: 'China', Anji: 'China', Anxi: 'China', Bozhou: 'China',
+  Chuzhou: 'China', Dehong: 'China', 'Emei Mountain': 'China', Enshi: 'China', Fuding: 'China',
+  Fujian: 'China', Guangdong: 'China', Guangxi: 'China', Guizhou: 'China', Hangzhou: 'China',
+  Huangshan: 'China', Hunan: 'China', Huoshan: 'China', Jinggu: 'China', Jingmai: 'China',
+  Junshan: 'China', Kunming: 'China', Lincang: 'China', "Lu'an": 'China', Lushan: 'China',
+  Menghai: 'China', Mengla: 'China', Nanjing: 'China', 'Phoenix Mountain': 'China', Pingyang: 'China',
+  "Pu'er": 'China', Qimen: 'China', Sichuan: 'China', Suzhou: 'China', Taiping: 'China',
+  Tongxiang: 'China', 'Wuliang Mountain': 'China', Wuyi: 'China', Xiaguan: 'China', Xinyang: 'China',
+  "Ya'an": 'China', Yingde: 'China', Yiwu: 'China', "Yuan'an": 'China', Yunnan: 'China',
+  Zhejiang: 'China', Zhenghe: 'China',
+  // Taiwan
+  Alishan: 'Taiwan', 'Da Yu Ling': 'Taiwan', Hsinchu: 'Taiwan', 'Li Shan': 'Taiwan', Lugu: 'Taiwan',
+  Nantou: 'Taiwan', 'Dong Ding': 'Taiwan', 'Sun Moon Lake': 'Taiwan', Taipei: 'Taiwan',
+  Taitung: 'Taiwan', Taiwan: 'Taiwan', Wenshan: 'Taiwan',
+  // Japan
+  Shizuoka: 'Japan', Uji: 'Japan', Wazuka: 'Japan', Yame: 'Japan',
+  // Korea
+  Boseong: 'South Korea', Hadong: 'South Korea', Jeju: 'South Korea',
+  // India / Nepal
+  Assam: 'India', Darjeeling: 'India', Doke: 'India', Meghalaya: 'India', Nilgiri: 'India',
+  Sikkim: 'India', Nepal: 'Nepal',
+  // Sri Lanka
+  Dimbula: 'Sri Lanka', Kandy: 'Sri Lanka', 'Nuwara Eliya': 'Sri Lanka', 'Sri Lanka': 'Sri Lanka', Uva: 'Sri Lanka',
+  // Rest of world
+  'Bao Loc': 'Vietnam', Vietnam: 'Vietnam',
+  'Chiang Rai': 'Thailand', 'Doi Mae Salong': 'Thailand',
+  Java: 'Indonesia', Ethiopia: 'Ethiopia', Georgia: 'Georgia', Kenya: 'Kenya', Rize: 'Turkey',
+};
+
+export interface TeaVarietyMatch {
+  /** Primary display name of the matched variety */
+  name: string;
+  type: Exclude<TeaType, 'Teaware'>;
+  region?: string;
+  country?: string;
+  chineseName?: string;
+  /** The alias that actually matched, so callers can explain the fill */
+  matchedOn: string;
+}
+
+/** Strips punctuation, spacing and case so "Aged Liu Bao Tea" reaches "Aged Liu Bao". */
+const varietyKey = (value: string) => value.normalize('NFKC').toLowerCase().replace(/[^a-z0-9\u3400-\u9fff]+/g, '');
+/** Latin aliases need real length before a containment match is trustworthy; CJK does not. */
+const longEnough = (key: string) => (/[\u3400-\u9fff]/.test(key) ? key.length >= 2 : key.length >= 5);
+
+interface VarietyAlias { key: string; alias: string; variety: TeaVariety; type: Exclude<TeaType, 'Teaware'> }
+
+let varietyAliasIndex: VarietyAlias[] | null = null;
+function varietyAliases(): VarietyAlias[] {
+  if (varietyAliasIndex) return varietyAliasIndex;
+  const aliases: VarietyAlias[] = [];
+  for (const [type, entries] of Object.entries(TEA_VARIETIES) as [Exclude<TeaType, 'Teaware'>, TeaVariety[]][]) {
+    for (const variety of entries) {
+      for (const alias of [variety.name, variety.chineseName, ...(variety.altNames ?? [])]) {
+        if (!alias) continue;
+        const key = varietyKey(alias);
+        if (longEnough(key)) aliases.push({ key, alias, variety, type });
+      }
+    }
+  }
+  varietyAliasIndex = aliases.sort((left, right) => right.key.length - left.key.length);
+  return varietyAliasIndex;
+}
+
+/**
+ * Resolves a free-text tea name (English, romanised or Chinese) to a known
+ * variety. Prefers the longest matching alias so "Aged Liu Bao" wins over
+ * "Liu Bao", and returns null rather than guessing when nothing matches.
+ */
+export function matchTeaVariety(...names: Array<string | null | undefined>): TeaVarietyMatch | null {
+  const keys = names.map(name => (name ? varietyKey(name) : '')).filter(Boolean);
+  if (!keys.length) return null;
+  for (const { key, alias, variety, type } of varietyAliases()) {
+    if (!keys.some(candidate => candidate.includes(key))) continue;
+    return {
+      name: variety.name,
+      type,
+      region: variety.region,
+      country: variety.region ? REGION_COUNTRY[variety.region] : undefined,
+      chineseName: variety.chineseName,
+      matchedOn: alias,
+    };
+  }
+  return null;
+}
+
+/**
  * Returns a flat list of suggestion strings for the given tea category.
  * Includes all alt names so typing any form surfaces the suggestion.
  * Falls back to all varieties if no type given.

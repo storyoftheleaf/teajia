@@ -38,7 +38,7 @@ export function InventoryBulkToolbar({
           exit={{ y: 80, opacity: 0 }}
           className={`fixed bottom-nav-gap left-0 mx-auto w-fit z-50 bg-tea-surface border border-tea-border shadow-2xl rounded-xl px-5 py-3 flex items-center gap-4 ${splitView ? 'right-0 md:right-[420px]' : 'right-0'}`}
         >
-          {/* Cancel on the LEFT — matches Cancel/Back/Close rule from CLAUDE.md. */}
+          {/* Cancel on the LEFT, matches Cancel/Back/Close rule from CLAUDE.md. */}
           <button
             onClick={onCancel}
             className="text-ui-11 uppercase tracking-caps font-sans text-tea-text-sec hover:text-tea-text transition-colors"
@@ -71,7 +71,7 @@ export function InventoryBulkToolbar({
           <button
             onClick={onApply}
             disabled={!bulkValue || isBulkApplying}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-tea-gold text-tea-bg text-ui-11 uppercase tracking-caps font-sans rounded-md hover:bg-tea-gold-lt transition-colors disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 cta-solid text-ui-11 uppercase tracking-caps font-sans rounded-md transition-colors disabled:opacity-40"
           >
             {isBulkApplying ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />} Apply
           </button>

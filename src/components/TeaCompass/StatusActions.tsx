@@ -9,7 +9,7 @@ import type { Currency } from '../../admin/types';
 interface StatusActionsProps {
   status: CompassStatus;
   onStatusChange: (status: CompassStatus) => void;
-  /** The full entry — needed to build the ledger line item */
+  /** The full entry, needed to build the ledger line item */
   entry?: TeaCompassEntry;
   /** Called after item is added to ledger, to switch to ledger tab */
   onAddedToLedger?: () => void;
@@ -131,7 +131,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
             isInLedger
               ? 'bg-tea-gold/20 text-tea-gold'
               : status === 'in_stock'
-                ? 'bg-tea-gold text-tea-bg'
+                ? 'cta-solid'
                 : 'bg-tea-gold/8 text-tea-text-sec active:bg-tea-gold/15 hover:bg-tea-gold/12'
           }`}
         >
@@ -182,7 +182,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Incoming — ordered but not yet arrived */}
+      {/* Incoming, ordered but not yet arrived */}
       <AnimatePresence>
         {(status === 'want' || status === 'noted' || status === 'incoming') && (
           <motion.button
@@ -203,7 +203,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Quantity picker — slides in when Buy is tapped */}
+      {/* Quantity picker, slides in when Buy is tapped */}
       <AnimatePresence>
         {showQtyPicker && !justAdded && (
           <motion.div
@@ -276,7 +276,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
                 <button
                   type="button"
                   onClick={handleConfirmAdd}
-                  className="flex-1 py-2 rounded-xl bg-tea-gold text-tea-bg font-semibold text-xs uppercase tracking-[0.08em] transition-opacity active:opacity-80"
+                  className="flex-1 py-2 rounded-xl cta-solid font-semibold text-xs uppercase tracking-[0.08em] transition-opacity active:opacity-80"
                 >
                   Add to Ledger
                 </button>

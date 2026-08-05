@@ -1,0 +1,11 @@
+{
+  "id": "china",
+  "name": "China",
+  "country": "China",
+  "province": "Various Provinces",
+  "altitude": "100-2000m",
+  "climate": "Diverse tea growing regions across the country",
+  "holding": "regions",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

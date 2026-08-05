@@ -1,0 +1,39 @@
+{
+  "id": "bei-dou",
+  "name": "Bei Dou",
+  "chineseName": "北斗",
+  "altNames": [
+    "North Star",
+    "Bei Dou Yi Hao (North Star #1)"
+  ],
+  "originCountry": "China",
+  "originRegion": "Wuyi Mountains (Fujian)",
+  "developedYear": 1960,
+  "parentage": "Cloned from the Bei Dou mother tree, which itself was said to be a cutting from an original Da Hong Pao bush.",
+  "description": "'North Star'. A prestigious Wuyi Rock Oolong cultivar directly descended from the legendary Da Hong Pao lineage. It is renowned for its powerful and robust character, thick body, and a classic roasted flavor profile that is both complex and deeply satisfying, making it a favorite among seasoned Yancha drinkers.",
+  "plantType": "Sturdy, upright arbor type well-adapted to rocky terrain (Camellia sinensis var. sinensis).",
+  "environment": "Grows best in the core 'Zhengyan' region of the Wuyi Mountains, where the mineral-rich soil and terroir create its powerful flavor.",
+  "processing": "The processing of Bei Dou is a classic example of traditional Yancha craftsmanship. Its strong leaves can withstand the necessary heavy oxidation and multiple roasts that build its complex character.",
+  "oxidation": "Undergoes heavy oxidation (50-60%) to develop a rich, fruity, and robust flavor base that serves as the perfect foundation for the charcoal roasting process.",
+  "roasting": "Receives a medium-to-heavy charcoal roast, often in multiple stages. This is essential for creating its signature roasted depth, smoothing its texture, and developing the long, sweet finish.",
+  "versatility": "Highly specialized. Bei Dou is a pure expression of the traditional, powerful Wuyi Rock Oolong style and is not used for other types of tea.",
+  "distribution": {
+    "china": [
+      "Fujian Province (Wuyi Mountains)"
+    ]
+  },
+  "expressions": {
+    "Wuyi Rock Oolong (Yancha)": {
+      "Bei Dou Yancha": "A powerful, complex rock oolong with deep roast notes, a pronounced mineral character, and a long, sweet aftertaste."
+    }
+  },
+  "sensory": {
+    "aroma": "Roasted nuts, dark chocolate, subtle florals, warm minerals",
+    "flavor": "Rich, robust, and deeply mineralic with a satisfying, lingering sweetness.",
+    "mouthfeel_liquor": "Thick, viscous, and warming with a strong and comforting presence. The liquor is a deep, clear amber."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

@@ -77,7 +77,7 @@ export const PlatformAuditLogPage: React.FC = () => {
         for (const a of d.accounts) map[a.id] = a.name || a.slug || a.id;
         setAccountNames(map);
       })
-      .catch(() => { /* non-fatal — UI just won't show the friendly name */ });
+      .catch(() => { /* non-fatal: UI just won't show the friendly name */ });
     return () => { cancelled = true; };
   }, []);
 

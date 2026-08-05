@@ -1,0 +1,13 @@
+{
+  "id": "oolong-cui-yu",
+  "type": "Oolong",
+  "name": "Cui Yu",
+  "chineseName": "翠玉",
+  "altNames": [
+    "Jade Oolong"
+  ],
+  "region": "Taiwan",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

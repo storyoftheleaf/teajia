@@ -1,0 +1,17 @@
+{
+  "id": "camphor-stored",
+  "name": "Camphor-Stored",
+  "chineseName": "樟香",
+  "altNames": [
+    "Zhang Xiang",
+    "Camphor Fragrance"
+  ],
+  "appliesToTypes": [
+    "Sheng",
+    "Shou"
+  ],
+  "description": "Aging pu-erh in proximity to camphor wood, whether camphor-lined warehouses or nearby camphor trees, a traditional Chinese storage method. Imparts a cool, aromatic quality into the tea that persists regardless of later re-storage.",
+  "holding": "styles",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

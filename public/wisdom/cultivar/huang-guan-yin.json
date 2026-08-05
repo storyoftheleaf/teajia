@@ -1,0 +1,41 @@
+{
+  "id": "huang-guan-yin",
+  "name": "Huang Guan Yin",
+  "chineseName": "黄观音",
+  "altNames": [
+    "Yellow Goddess of Mercy"
+  ],
+  "originCountry": "China",
+  "originRegion": "Wuyi Mountains (Fujian)",
+  "developedYear": 1990,
+  "parentage": "Huang Dan (Huang Jin Gui) x Tie Guan Yin",
+  "description": "'Yellow Goddess'. A successful modern hybrid cultivar, created by crossing Huang Jin Gui (for aroma) and Tie Guan Yin (for substance). It is an intensely aromatic tea, often presenting a bouquet of powerful floral notes like gardenia and magnolia, and has become a popular 'new style' of Wuyi Rock Oolong.",
+  "plantType": "Vigorous, productive, early-sprouting hybrid bush (Camellia sinensis var. sinensis).",
+  "environment": "Bred to be vigorous and adaptable, it is grown in both Anxi and Wuyi. In Wuyi, the rocky terroir adds a mineral foundation to its powerful aroma.",
+  "processing": "This cultivar was designed for aroma, so the entire processing chain is geared towards preserving its highly volatile floral compounds. Gentle handling is key.",
+  "oxidation": "Oxidation is kept on the lighter side for an oolong (20-40%) to maintain the freshness and vibrancy of its floral character.",
+  "roasting": "Roasting, especially for the Yancha style, must be very light and at a low temperature. It is more of a finishing bake to stabilize the tea. A heavy roast would completely destroy the delicate aroma it was bred to produce.",
+  "versatility": "Moderately versatile. It can be crafted into either a Wuyi or Anxi style, but it will always be a light, intensely fragrant oolong. It lacks the structure for heavy roasting or black tea production.",
+  "distribution": {
+    "china": [
+      "Fujian Province (Wuyi Mountains, Anxi)"
+    ]
+  },
+  "expressions": {
+    "Wuyi Rock Oolong (New Style)": {
+      "Huang Guan Yin Yancha": "A very lightly roasted Yancha where the processing is designed to maximize its explosive floral aroma."
+    },
+    "Anxi Oolong (Green Style)": {
+      "Fragrant Anxi Oolong": "When processed in Anxi, it is made into a very green, unroasted oolong similar to modern Tie Guan Yin, but even more aromatic."
+    }
+  },
+  "sensory": {
+    "aroma": "Intense Gardenia, Ginger Lily, Magnolia, very perfume-like",
+    "flavor": "Sweet, overwhelmingly floral, with a light body and a clean finish. When from Wuyi, it has a subtle mineral undertone.",
+    "mouthfeel_liquor": "Smooth and silky, generally lighter-bodied than traditional Yancha. The liquor is a very bright, pale golden-yellow."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

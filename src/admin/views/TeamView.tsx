@@ -304,7 +304,7 @@ const MemberSettingsModal: React.FC<MemberSettingsModalProps> = ({
             </div>
           )}
 
-          {/* Transfer Ownership — only for non-self members who aren't already the only owner */}
+          {/* Transfer Ownership, only for non-self members who aren't already the only owner */}
           {!isSelf && !isLastOwner && canEditRoles && (
             <div className="pt-4 border-t border-tea-border">
               <p className="label-caps text-tea-text-sec mb-2">Ownership</p>
@@ -320,7 +320,7 @@ const MemberSettingsModal: React.FC<MemberSettingsModalProps> = ({
             </div>
           )}
 
-          {/* Remove — destructive with inline confirm */}
+          {/* Remove, destructive with inline confirm */}
           {!isSelf && !isLastOwner && canEditRoles && (
             <div className="pt-4 border-t border-tea-border">
               {!confirmingRemove ? (
@@ -464,7 +464,7 @@ export const TeamView: React.FC = () => {
             setInviteOpen(true);
             setInviteMsg(null);
           }}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
         >
           <UserPlus size={13} />
           Invite
@@ -624,7 +624,7 @@ export const TeamView: React.FC = () => {
                 <button
                   type="submit"
                   disabled={inviteBusy || !inviteEmail}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40"
                 >
                   {inviteBusy && <Loader2 className="animate-spin" size={12} />}
                   Send Invite

@@ -4,7 +4,7 @@ import { useInventory } from '../../context/InventoryContext';
 import { InventoryItem } from '../../types';
 
 /**
- * ProductReferences — shared "quiet footnote" colophon primitive for
+ * ProductReferences, shared "quiet footnote" colophon primitive for
  * linking network-level content (Magazine articles, Learn modules,
  * Advise projects) to referenced teas. Renders nothing if there is
  * nothing to link.
@@ -15,15 +15,15 @@ import { InventoryItem } from '../../types';
  * - Single click into the /shop/product/<id> product page
  *
  * Two shapes:
- * - Hook `useProductReferences(...)` — headless, returns resolved
+ * - Hook `useProductReferences(...)`, headless, returns resolved
  *   `InventoryItem[]`. Use when the surrounding layout is custom.
- * - `<ProductReferences>` — full "colophon" layout (centered, bordered
+ * - `<ProductReferences>`, full "colophon" layout (centered, bordered
  *   top rule, eyebrow label). Use for long-form editorial surfaces
  *   like the Reader bottom.
  */
 
 export interface UseProductReferencesOptions {
-  /** Unique stable id for the fetch — used as part of the react-query key */
+  /** Unique stable id for the fetch, used as part of the react-query key */
   sourceId: string;
   /** React-query key namespace, e.g. `article-products`, `module-products` */
   queryKey: string;
@@ -34,7 +34,7 @@ export interface UseProductReferencesOptions {
 }
 
 /**
- * Headless hook — returns the resolved, deduped list of InventoryItems
+ * Headless hook, returns the resolved, deduped list of InventoryItems
  * for a given article/module/project id. Rendering is the caller's job.
  */
 export function useProductReferences({

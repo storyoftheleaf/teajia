@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 /**
- * useSubViewNavigation — URL-synced sub-view state with browser history support
+ * useSubViewNavigation: URL-synced sub-view state with browser history support
  *
  * Replaces local `useState<View>` for sections that have sub-views.
  * Each sub-view gets a real URL search param (?v=glossary), so:
@@ -38,7 +38,7 @@ export function useSubViewNavigation<T extends string>(
   // Restore scroll position when view changes (including browser back/forward)
   useEffect(() => {
     if (prevView.current === null) {
-      // First render — just record the view
+      // First render, just record the view
       prevView.current = currentView;
       return;
     }
@@ -54,7 +54,7 @@ export function useSubViewNavigation<T extends string>(
     }
   }, [currentView]);
 
-  // Navigate to a sub-view — pushes a new history entry
+  // Navigate to a sub-view, pushes a new history entry
   const navigateTo = useCallback((view: T) => {
     if (view === defaultView) {
       // Going back to default: remove the param

@@ -483,7 +483,15 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                                   <div className="flex-1 h-[3px] rounded-full overflow-hidden bg-tea-elevated">
                                     <div
                                       className="h-full rounded-full"
-                                      style={{ width: `${noteData.quality * 10}%`, background: 'linear-gradient(90deg, var(--color-tea-gold-lt,#d4ac66)80, var(--color-tea-gold,#b8924e))' }}
+                                      // Two hex fallbacks behind two variable names the
+                                      // palette has never declared (`--color-tea-gold-lt`,
+                                      // `--color-tea-gold`), so this bar has always painted
+                                      // the fallbacks. It has not even painted those: the
+                                      // stray `80` left over from a stripped `#d4ac6680`
+                                      // alpha suffix sits outside the `var()` call, which
+                                      // makes the whole declaration invalid and drops the
+                                      // gradient. Real tokens, valid syntax, same intent.
+                                      style={{ width: `${noteData.quality * 10}%`, background: 'linear-gradient(90deg, rgb(var(--tea-gold-lt-rgb) / 0.5), var(--tea-gold))' }}
                                     />
                                   </div>
                                   <span className="text-ui-10 text-tea-text-dim tabular-nums shrink-0">Quality {noteData.quality}</span>

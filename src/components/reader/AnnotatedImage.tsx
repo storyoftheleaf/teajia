@@ -15,7 +15,7 @@ interface AnnotatedImageProps {
 }
 
 /**
- * AnnotatedImage — Image with numbered callout markers and legend below.
+ * AnnotatedImage: Image with numbered callout markers and legend below.
  * Markers are 24x24px gold circles with white number text.
  * Tap/hover a marker to expand it and show a tooltip.
  * Legend lists all annotations below the image.
@@ -87,7 +87,7 @@ const AnnotatedImage: React.FC<AnnotatedImageProps> = ({
                         height: 0,
                         borderLeft: '5px solid transparent',
                         borderRight: '5px solid transparent',
-                        borderTop: '5px solid var(--color-tea-surface, #f5f0e8)',
+                        borderTop: '5px solid var(--tea-surface)',
                       }}
                     />
                   </motion.div>

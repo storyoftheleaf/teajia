@@ -4,7 +4,7 @@ import { resolveTermLabel, LIQUOR_COLORS } from '../../../data/tastingTaxonomy';
 interface AlcoveFactsLedgerProps {
   origin?: string;
   harvest?: string | number;
-  /** First liquor-color term id from item.tasting — row renders only when present. */
+  /** First liquor-color term id from item.tasting. Row renders only when present. */
   liquorTermId?: string;
   /**
    * Caller-supplied rows rendered verbatim in the same ledger grammar,
@@ -21,9 +21,9 @@ export interface LedgerRow {
 }
 
 /**
- * Boxless facts ledger — one grammar for facts: small tracked uppercase sans
+ * Boxless facts ledger. One grammar for facts: small tracked uppercase sans
  * label left, serif value right, hairline between rows. No enclosing boxes.
- * Rows render only when their data exists. Price is NOT here — the commerce
+ * Rows render only when their data exists. Price is NOT here: the commerce
  * footer is price's single home.
  */
 export const AlcoveFactsLedger: React.FC<AlcoveFactsLedgerProps> = ({

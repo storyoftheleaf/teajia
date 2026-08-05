@@ -20,7 +20,7 @@ const SERVICES = [
   {
     id: 'design',
     label: 'Tea House Design & Curation',
-    desc: 'From concept through opening — design, curation, tea selection, training, and operations.',
+    desc: 'From concept through opening. Design, curation, tea selection, training, and operations.',
     price: '$5,000 – $100,000+',
     preselect: 'Space design or tea integration',
     cta: 'Start a conversation',
@@ -28,7 +28,7 @@ const SERVICES = [
   {
     id: 'sourcing',
     label: 'Tea Curation & Sourcing',
-    desc: 'Direct sourcing from Taiwan, China, and trusted origins — for collectors, spaces, and communities.',
+    desc: 'Direct sourcing from Taiwan, China, and trusted origins, for collectors, spaces, and communities.',
     price: 'By inquiry',
     preselect: 'Tea sourcing',
     cta: 'Inquire',
@@ -50,7 +50,7 @@ const SERVICES = [
 ] as const;
 
 /* =====================================================
-   AdvisePage — main shell
+   AdvisePage, main shell
    ===================================================== */
 
 interface AdvisePageProps {
@@ -99,7 +99,7 @@ export const AdvisePage: React.FC<AdvisePageProps> = ({ onCartClick, onAccountCl
 
   const selectedProject = selectedProjectId ? adviseProjects.find(p => p.id === selectedProjectId) : null;
 
-  // Portfolio is not built yet — the projects sub-views are hidden. Any old /advise?v=projects
+  // Portfolio is not built yet, the projects sub-views are hidden. Any old /advise?v=projects
   // or ?v=project-detail link falls back to the main page. See TODO.md (Advise portfolio).
   const portfolioEnabled = false;
 
@@ -128,11 +128,11 @@ export const AdvisePage: React.FC<AdvisePageProps> = ({ onCartClick, onAccountCl
     );
   }
 
-  /* ── Main layout — five moments ── */
+  /* ── Main layout, five moments ── */
   return (
     <div className="w-full animate-[fadeIn_0.6s_ease-out]">
       <Helmet>
-        <title>Advise — Teajia</title>
+        <title>Advise · Teajia</title>
         <meta name="description" content="Tea space design, sourcing guidance, ceremony training. Twenty years of practice distilled into services for those who take tea seriously." />
       </Helmet>
       <PageHeader title="Advise" onCartClick={onCartClick} onAccountClick={onAccountClick} cartItemCount={cartItemCount} />
@@ -140,7 +140,7 @@ export const AdvisePage: React.FC<AdvisePageProps> = ({ onCartClick, onAccountCl
       <div className="max-w-[1400px] mx-auto">
 
         {/* ════════════════════════════════════════════
-            1. HERO — heading hangs in space, then bio
+            1. HERO, heading hangs in space, then bio
             ════════════════════════════════════════════ */}
         <div
           ref={heroReveal.ref}
@@ -202,7 +202,7 @@ export const AdvisePage: React.FC<AdvisePageProps> = ({ onCartClick, onAccountCl
           <Services />
         </div>
 
-        {/* B2B link — quiet bridge for business/institutional visitors */}
+        {/* B2B link, quiet bridge for business/institutional visitors */}
         <div className="mt-10 mb-2 max-w-[560px]">
           <Link
             to="/for-your-space"
@@ -218,10 +218,10 @@ export const AdvisePage: React.FC<AdvisePageProps> = ({ onCartClick, onAccountCl
         {/* warm divider */}
         <div className="divider-warm my-16 md:my-20" />
 
-        {/* 3. PORTFOLIO — hidden until the portfolio is built. See TODO.md (Advise portfolio).
+        {/* 3. PORTFOLIO, hidden until the portfolio is built. See TODO.md (Advise portfolio).
             Restore <ProjectsPreview onSelectProject={(id) => navigateTo('project-detail', id)} onViewAll={() => navigateTo('projects')} /> here when ready. */}
 
-        {/* 4. TESTIMONIAL — separated by whitespace alone, not a divider */}
+        {/* 4. TESTIMONIAL, separated by whitespace alone, not a divider */}
         <Testimonial />
 
         {/* warm divider */}
@@ -238,7 +238,7 @@ export const AdvisePage: React.FC<AdvisePageProps> = ({ onCartClick, onAccountCl
 };
 
 /* =====================================================
-   FloatingInquiryCTA — floating pill
+   FloatingInquiryCTA, floating pill
    ===================================================== */
 
 const FloatingInquiryCTA: React.FC<{ onOpenInquiry: () => void }> = ({ onOpenInquiry }) => {
@@ -284,7 +284,7 @@ const FloatingInquiryCTA: React.FC<{ onOpenInquiry: () => void }> = ({ onOpenInq
 };
 
 /* =====================================================
-   Services — dense block, each service distinct
+   Services, dense block, each service distinct
    ===================================================== */
 
 const Services: React.FC = () => (
@@ -352,7 +352,7 @@ const Services: React.FC = () => (
 );
 
 /* =====================================================
-   ProjectsPreview — simplified header
+   ProjectsPreview, simplified header
    ===================================================== */
 
 interface ProjectsPreviewProps {
@@ -414,7 +414,7 @@ const ProjectsPreview: React.FC<ProjectsPreviewProps> = ({ onSelectProject, onVi
 
 
 /* =====================================================
-   Testimonial — single quote, no panel, no carousel
+   Testimonial, single quote, no panel, no carousel
    ===================================================== */
 
 const Testimonial: React.FC = () => {
@@ -441,7 +441,7 @@ const Testimonial: React.FC = () => {
 };
 
 /* =====================================================
-   ClosingCTA — biggest type on the page
+   ClosingCTA, biggest type on the page
    ===================================================== */
 
 interface ClosingCTAProps {
@@ -462,7 +462,7 @@ const ClosingCTA: React.FC<ClosingCTAProps> = ({ onOpenInquiry }) => (
     </h3>
     <button
       onClick={onOpenInquiry}
-      className="mt-10 bg-tea-gold text-tea-bg text-xs font-medium
+      className="mt-10 cta-solid text-xs font-medium
                  py-2.5 px-6 hover:bg-tea-gold/90 transition-colors duration-300
                  active:scale-95 min-h-[44px]
                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"

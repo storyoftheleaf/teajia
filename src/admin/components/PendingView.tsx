@@ -33,7 +33,7 @@ export const PendingView: React.FC = () => {
     },
   });
 
-  // Group pending RSVPs by eventId — stable unique key, not title+date
+  // Group pending RSVPs by eventId: stable unique key, not title+date
   const eventGroups = useMemo(() => {
     const groups = new Map<string, { eventId: string; title: string; date: string; attendees: PendingAttendee[] }>();
     for (const a of pendingAttendees) {
@@ -96,7 +96,7 @@ export const PendingView: React.FC = () => {
                   onClick={() => navigate(`/admin/activity?tab=orders&search=${encodeURIComponent(order.invoice_number || '')}`)}
                   className="relative flex bg-tea-surface border border-tea-border rounded-xl overflow-hidden text-left hover:bg-tea-elevated transition-colors"
                 >
-                  {/* All rows here are pending — accent is always gold */}
+                  {/* All rows here are pending, accent is always gold */}
                   <span className="w-1 shrink-0 bg-tea-gold" aria-hidden />
                   <div className="flex-1 min-w-0 flex items-center justify-between gap-3 px-3.5 py-3">
                     <div className="min-w-0">

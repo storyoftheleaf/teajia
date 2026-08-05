@@ -66,7 +66,7 @@ export const ActivityView: React.FC<ActivityViewProps> = ({ products }) => {
         </div>
       </div>
 
-      {/* Tab bar — bottom-border underline (§6) */}
+      {/* Tab bar, bottom-border underline (§6) */}
       <div className="border-b border-tea-border bg-tea-bg flex-shrink-0">
         <div className="flex items-center gap-6 px-4 md:px-6 lg:px-10 max-w-7xl mx-auto overflow-x-auto hide-scrollbar">
         {tabs.map(tab => {
@@ -94,7 +94,7 @@ export const ActivityView: React.FC<ActivityViewProps> = ({ products }) => {
         </div>
       </div>
 
-      {/* Content — RecordsView already has Archive/Log/Ledger as internal tabs,
+      {/* Content: RecordsView already has Archive/Log/Ledger as internal tabs,
           so we pass it the right initial tab via a key-based approach */}
       <div className="flex-1 overflow-auto">
         {activeTab === 'pending' && <PendingView />}

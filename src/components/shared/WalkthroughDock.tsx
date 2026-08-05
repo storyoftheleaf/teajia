@@ -4,14 +4,14 @@ import { ArrowRight, ArrowLeft, X, CheckCircle, Warning, Eye, CaretUp, CaretDown
 import { useWalkthrough, type StepVerdict } from '../../lib/walkthroughStore';
 
 /**
- * WalkthroughDock — the "walk with me" companion. Mounted at the app root so it
+ * WalkthroughDock, the "walk with me" companion. Mounted at the app root so it
  * survives navigation: when the owner starts a walk-through and clicks "try it"
  * to a real admin page, this dock stays pinned at the bottom, showing the
  * current step, a button to go to it, and three verdict buttons (works / broken
  * / looks wrong) plus a one-line note. So the owner runs the actual flow and
  * logs what breaks at the exact step, without losing their place.
  *
- * Renders nothing unless a walk-through is active. Owner-only by construction —
+ * Renders nothing unless a walk-through is active. Owner-only by construction,
  * it's only ever started from the owner-gated guide.
  */
 
@@ -33,7 +33,7 @@ export const WalkthroughDock: React.FC = () => {
   const atFirst = current === 0;
   const atLast = current === steps.length - 1;
 
-  // Collapsed pill — out of the way but one tap to reopen.
+  // Collapsed pill, out of the way but one tap to reopen.
   if (collapsed) {
     return (
       <div className="fixed left-1/2 -translate-x-1/2 bottom-nav-gap lg:bottom-6 z-toast">
@@ -68,7 +68,7 @@ export const WalkthroughDock: React.FC = () => {
 
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             {step.to && (
-              <button onClick={() => navigate(step.to!)} className="inline-flex items-center gap-1.5 font-sans text-ui-13 font-medium text-tea-bg bg-tea-gold rounded-full px-3.5 py-1.5 hover:bg-tea-gold-lt tap-target">
+              <button onClick={() => navigate(step.to!)} className="inline-flex items-center gap-1.5 font-sans text-ui-13 font-medium cta-solid rounded-full px-3.5 py-1.5 tap-target">
                 {step.goLabel || 'Go there'} <ArrowRight className="w-3.5 h-3.5" weight="bold" />
               </button>
             )}
@@ -89,14 +89,14 @@ export const WalkthroughDock: React.FC = () => {
             </div>
           </div>
 
-          {/* Note — always available so a problem can be written and saved on any
+          {/* Note, always available so a problem can be written and saved on any
               step without first picking a verdict. Saves to D1 as you type (debounced),
               so a note logged on step 1 of 3 is recorded server-side immediately. */}
           <div className="mt-2.5">
             <input
               value={entry.note}
               onChange={(e) => setNote(current, e.target.value)}
-              placeholder="Note a problem here — it saves as you type"
+              placeholder="Note a problem here. It saves as you type."
               className="w-full bg-tea-surface rounded-xl px-3 py-2 font-serif text-ui-14 text-tea-text placeholder:text-tea-text-dim border border-transparent focus:border-tea-gold/30 focus:outline-none"
             />
             {entry.note.trim() !== '' && (

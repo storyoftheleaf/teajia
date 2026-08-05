@@ -1,0 +1,11 @@
+{
+  "id": "kyoto-prefecture",
+  "name": "Kyoto Prefecture",
+  "country": "Japan",
+  "province": "Kyoto",
+  "altitude": "100-600m",
+  "climate": "Historic tea region with traditional cultivation methods",
+  "holding": "regions",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

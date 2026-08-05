@@ -99,7 +99,7 @@ export const TeaDiscoveryFlow: React.FC<TeaDiscoveryFlowProps> = ({
 
   return (
     <div className="mx-auto flex min-h-[72vh] w-full max-w-xl flex-col">
-      {/* Top bar — Back (left) + step counter */}
+      {/* Top bar: Back (left) + step counter */}
       <div className="flex items-center justify-between pt-2 pb-4">
         <button
           type="button"
@@ -163,7 +163,7 @@ export const TeaDiscoveryFlow: React.FC<TeaDiscoveryFlowProps> = ({
             type="button"
             onClick={handleContinue}
             disabled={!answered}
-            className="w-full rounded-xl bg-tea-gold py-3 font-sans text-ui-15 font-medium text-tea-bg transition-all hover:bg-tea-gold/90 disabled:cursor-not-allowed disabled:opacity-40"
+            className="w-full rounded-xl cta-solid py-3 font-sans text-ui-15 font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40"
           >
             {isLast ? 'See my profile' : 'Continue'}
           </button>

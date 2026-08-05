@@ -1,0 +1,14 @@
+{
+  "id": "sheng-gushu",
+  "type": "Sheng",
+  "name": "Gushu",
+  "chineseName": "古树",
+  "altNames": [
+    "Ancient Tree",
+    "Old Growth"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

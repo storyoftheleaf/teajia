@@ -1,50 +1,24 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
-import type { PublicProduct, PublicProductType } from '../types';
+import { normalizeProduct } from '../lib/storefrontApi';
+import type { PublicProduct } from '../types';
 
+/**
+ * The default storefront's catalogue.
+ *
+ * The row-to-object mapping is `normalizeProduct`, shared with the store-scoped
+ * path in storefrontApi.ts. This hook used to carry its own copy of it, and the
+ * copy fell behind three times over: no mood tags, no flavour tags, and no
+ * cultivar, which meant the wisdom band resolved nothing on the one storefront
+ * almost every reader sees. The endpoint differs between the two paths; the
+ * shape it returns does not.
+ */
 export const usePublicProducts = () => {
   return useQuery({
     queryKey: ['products', 'public'],
-    queryFn: async () => {
+    queryFn: async (): Promise<PublicProduct[]> => {
       const data = await api.products.listPublic();
-      return (data || []).map((p: any): PublicProduct => ({
-        id: p.id,
-        type: (p.type || 'Misc') as PublicProductType,
-        givenName: p.given_name || '',
-        chineseName: p.chinese_name || '',
-        productName: p.product_name || '',
-        year: p.year,
-        originCountry: p.origin_country || '',
-        originRegion: p.origin_region || '',
-        pricePerGramUSD: Number(p.retail_price_per_gram_usd) || 0,
-        fixedRetailPriceUSD: p.fixed_retail_price_usd != null ? Number(p.fixed_retail_price_usd) : null,
-        stockGrams: Number(p.stock_grams) || 0,
-        description: p.description || '',
-        tastingNotes: Array.isArray(p.tasting_notes) ? p.tasting_notes : [],
-        imageUrl: p.image_url || '',
-        additionalImages: Array.isArray(p.additional_images) ? p.additional_images : [],
-        status: p.status || 'Active',
-        isPersonal: !!p.is_personal,
-        canReorder: !!p.can_reorder,
-        isFeatured: !!p.is_featured,
-        isOneOfAKind: !p.can_reorder,
-        isCurated: !!p.is_curated,
-        lore: p.lore || '',
-        showWisdom: p.show_wisdom == null ? true : !!p.show_wisdom,
-        processingNotes: p.processing_notes || '',
-        terroir: p.terroir || '',
-        mood: p.mood || '',
-        experience: p.experience || '',
-        material: p.material || '',
-        capacityMl: p.capacity_ml != null ? Number(p.capacity_ml) : undefined,
-        teawareCategory: p.teaware_category || undefined,
-        quantityUnits: p.quantity_units != null ? Number(p.quantity_units) : undefined,
-        tasting: p.tasting && typeof p.tasting === 'object' ? p.tasting : undefined,
-        tastingSource:
-          p.tasting_source === 'owner' || p.tasting_source === 'community' || p.tasting_source === 'common'
-            ? p.tasting_source
-            : undefined,
-      }));
+      return (data || []).map(normalizeProduct);
     },
     staleTime: 1000 * 60 * 5,
   });

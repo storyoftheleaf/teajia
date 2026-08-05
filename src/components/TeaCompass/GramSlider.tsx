@@ -2,7 +2,7 @@ import React, { useCallback, useRef, useState } from 'react';
 
 /**
  * GramSlider: a CONTINUOUS grams slider styled as a precision gauge. The value
- * can be any amount between the smallest and largest preset — you slide freely
+ * can be any amount between the smallest and largest preset, you slide freely
  * and can rest between the marked amounts. The presets are magnetic *guides*:
  * drag near one and it gently snaps (soft snap); drag away and you keep the
  * in-between value (rounded to 5g).
@@ -149,7 +149,7 @@ export const GramSlider: React.FC<GramSliderProps> = ({ presets, value, onChange
             ))}
           </div>
 
-          {/* Live value bubble — fades in above the knob while dragging. */}
+          {/* Live value bubble, fades in above the knob while dragging. */}
           <div
             className={`gram-slider-bubble ${dragging ? 'is-shown' : ''}`}
             style={{ left: `${pct}%` }}

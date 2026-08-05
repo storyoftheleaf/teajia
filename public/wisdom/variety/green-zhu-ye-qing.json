@@ -1,0 +1,13 @@
+{
+  "id": "green-zhu-ye-qing",
+  "type": "Green",
+  "name": "Zhu Ye Qing",
+  "chineseName": "竹叶青",
+  "altNames": [
+    "Bamboo Leaf Green"
+  ],
+  "region": "Emei Mountain",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

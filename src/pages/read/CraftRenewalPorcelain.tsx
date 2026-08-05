@@ -1,5 +1,9 @@
 /**
- * Shangyin Qiwu — Porcelain and Tea, N°15
+ * @color-literals. The Read section is one always-dark editorial surface.
+ * Rationale, and the conditions on this exception, in read/immersive.tsx.
+ */
+/**
+ * Shangyin Qiwu: Porcelain and Tea, N°15
  * A porcelain restorer on repair, patience, and mending what we love.
  * The only real interview in the issue. Built on the Earth, Water, Fire
  * conversation frame (split cover, standfirst, movements, photo plates,
@@ -67,7 +71,7 @@ const CraftRenewalPorcelain: React.FC = () => {
         <AccentSwatches accent={accent} setAccent={setAccent} />
 
         <article style={{ position: 'relative', zIndex: 1 }}>
-          {/* COVER — split portrait + title */}
+          {/* COVER, split portrait + title */}
           <header style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,360px),1fr))', alignItems: 'stretch', borderBottom: '1px solid rgba(168,135,77,0.14)', minHeight: '90vh' }}>
             <div style={{ position: 'relative', order: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 'clamp(36px,6vw,84px) clamp(24px,5vw,72px)' }}>
               <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.34em', textTransform: 'uppercase', color: C.gold, marginBottom: 28 }}>Conversations over Tea</div>
@@ -84,7 +88,7 @@ const CraftRenewalPorcelain: React.FC = () => {
                 </div>
               </div>
             </div>
-            {/* COVER PORTRAIT — drag a real photo in (owner), pan/zoom, save */}
+            {/* COVER PORTRAIT, drag a real photo in (owner), pan/zoom, save */}
             <div style={{ position: 'relative', order: 1, overflow: 'hidden', minHeight: '48vh', background: 'linear-gradient(155deg,#23252a 0%,#14100b 80%)' }}>
               <EditablePhoto
                 slot="portrait"
@@ -98,7 +102,7 @@ const CraftRenewalPorcelain: React.FC = () => {
                   </>
                 }
               />
-              <div style={{ position: 'absolute', left: 'clamp(18px,3vw,28px)', bottom: 'clamp(18px,3vw,26px)', fontFamily: F.mono, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim, pointerEvents: 'none' }}>Portrait — at the repair table</div>
+              <div style={{ position: 'absolute', left: 'clamp(18px,3vw,28px)', bottom: 'clamp(18px,3vw,26px)', fontFamily: F.mono, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim, pointerEvents: 'none' }}>Portrait, at the repair table</div>
             </div>
           </header>
 
@@ -110,7 +114,7 @@ const CraftRenewalPorcelain: React.FC = () => {
             </p>
           </section>
 
-          {/* MOVEMENT I — Collecting & repair */}
+          {/* MOVEMENT I: Collecting & repair */}
           <Movement numeral="I" label="What Brought Me Here">
             <EditableText field="m1-p1" as="p" style={pBody} multiline>I like collecting things. Because of tea, I collect utensils. Many old utensils have some damage. Nine out of ten old things are incomplete, but those marks are history.</EditableText>
             <EditableText field="m1-p2" as="p" style={pBody} multiline>When I repair them, they can return to our lives again. Some are a hundred years old, some a thousand. It is wonderful that they can meet you after so long and continue to live on our tea tables today.</EditableText>
@@ -132,7 +136,7 @@ const CraftRenewalPorcelain: React.FC = () => {
             <div aria-hidden="true" style={{ width: 40, height: 1, background: C.gold, opacity: 0.5, margin: '34px auto 0' }} />
           </section>
 
-          {/* PHOTO ESSAY — plates the owner can reorder, add to, or remove */}
+          {/* PHOTO ESSAY, plates the owner can reorder, add to, or remove */}
           <PlateRow
             initial={[
               { slot: 'plate-1', alt: 'A broken piece before repair', label: 'Plate I', caption: 'Nine out of ten old things are incomplete. But those marks are history.', captionField: 'cap-plate-1' },
@@ -141,7 +145,7 @@ const CraftRenewalPorcelain: React.FC = () => {
             ]}
           />
 
-          {/* MOVEMENT II — Slowness & taste */}
+          {/* MOVEMENT II: Slowness & taste */}
           <Movement numeral="II" label="Clay, Fire, and Patience">
             <p style={pBody}>I bring my repaired pieces to exhibitions and markets so that more people can understand the connection between ancient objects and modern life. I also share them on platforms such as Douyin and Xiaohongshu. When people see something damaged, they do not know what it can be used for. After I repair it and display it, they discover, <span style={{ fontStyle: 'italic', color: C.warm }}>Oh, it can still be used, and it is beautiful.</span></p>
 
@@ -175,7 +179,7 @@ const CraftRenewalPorcelain: React.FC = () => {
             </div>
           </section>
 
-          {/* MOVEMENT III — Repair, tea, and the future */}
+          {/* MOVEMENT III: Repair, tea, and the future */}
           <Movement numeral="III" label="Repair and Life">
             <p style={pBody}>Focusing on one utensil, one matter, has made my life steadier and more relaxed. I no longer chase speed, which used to make me impetuous. Friends who use these restored objects say they feel calm when holding them. They begin to think, <span style={{ fontStyle: 'italic', color: C.warm }}>I should spend more time on the things in front of me.</span></p>
             <EditableText field="m3-p1" as="p" style={pBody} multiline>A broken object is like life. Life cannot be perfect, and neither can objects. When we repair objects, we are also repairing ourselves. Life is not afraid of difficulties. When we face them, we find ways to repair and then embrace a new state of being.</EditableText>

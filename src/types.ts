@@ -1,4 +1,10 @@
 
+// Tea type vocabulary lives in the shared wisdom base (src/wisdom) — re-exported
+// here so existing consumers (e.g. admin-panel/InventoryEditor.tsx) keep working
+// without importing from ../wisdom directly. Do not redeclare this list.
+import { NON_TEA_TYPES, type TeaType } from './wisdom';
+export { TEA_TYPES, type TeaType, NON_TEA_TYPES } from './wisdom';
+
 /**
  * A single captured note within a tasting session. May originate from a voice
  * transcription, typed entry, or promoted community entry. Starred notes are
@@ -508,6 +514,8 @@ export interface InventoryItem {
   supplier?: string; // Supplier/vendor name for the item
   supplier_location?: string; // Location/country where supplier is based (maps to currency)
   chineseName?: string;
+  /** The plant this tea is made from, resolved against the tea wisdom base. */
+  cultivar?: string | null;
   lore?: string;
   showWisdom?: boolean;
   terroir?: string;
@@ -540,7 +548,7 @@ export interface InventoryItem {
 }
 
 // Public-safe product type (no cost/vendor fields)
-export type PublicProductType = 'Green' | 'Yellow' | 'White' | 'Oolong' | 'Red' | 'Dark' | 'Sheng' | 'Shou' | 'Herbal' | 'Teaware' | 'Misc';
+export type PublicProductType = TeaType | typeof NON_TEA_TYPES[number];
 
 export interface PublicProduct {
   id: string;
@@ -578,10 +586,13 @@ export interface PublicProduct {
   tastingSource?: 'common' | 'owner' | 'community';
   moodTags?: string[];
   flavorTags?: string[];
+  /**
+   * The plant, as written. Resolved against the wisdom base at render time, so
+   * a record saved "Da Ye Zhong" and one saved in Chinese reach the same page.
+   * Not a display string: when the base holds nothing for it, nothing is shown.
+   */
+  cultivar?: string | null;
 }
-
-export const TEA_TYPES = ['Green', 'White', 'Oolong', 'Black', 'Puerh', 'Yellow'] as const;
-export type TeaType = typeof TEA_TYPES[number];
 
 export interface StarterSet {
   id: string;

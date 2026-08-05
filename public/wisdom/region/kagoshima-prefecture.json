@@ -1,0 +1,11 @@
+{
+  "id": "kagoshima-prefecture",
+  "name": "Kagoshima Prefecture",
+  "country": "Japan",
+  "province": "Kagoshima",
+  "altitude": "100-800m",
+  "climate": "Southernmost major tea region with volcanic soil",
+  "holding": "regions",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

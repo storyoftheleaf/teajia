@@ -1,0 +1,13 @@
+{
+  "id": "oolong-alishan",
+  "type": "Oolong",
+  "name": "Alishan",
+  "chineseName": "阿里山",
+  "altNames": [
+    "Ali Shan"
+  ],
+  "region": "Alishan",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

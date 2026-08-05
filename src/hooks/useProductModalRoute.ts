@@ -18,7 +18,7 @@ interface BackgroundState {
  * This hook is the modal side, used by the shop grid components. A card tap
  * calls openProduct(item), which pushes /shop/product/:id with
  * { state: { background: currentLocation } } so App.tsx keeps rendering the
- * shop underneath — grid scroll and filter state survive untouched. Swipes
+ * shop underneath. Grid scroll and filter state survive untouched. Swipes
  * inside the modal replace the entry (background carried along), so one Back
  * always closes the modal. viewItem is derived from the URL instead of local
  * state, so back/forward can never desync and the old cold-deep-link
@@ -37,7 +37,7 @@ export function useProductModalRoute(inventory: InventoryItem[]) {
     [productId, inventory],
   );
 
-  /** Card tap — push the product URL with the current location as background. */
+  /** Card tap: push the product URL with the current location as background. */
   const openProduct = useCallback(
     (item: InventoryItem) => {
       navigate(`/shop/product/${encodeURIComponent(item.id)}`, {
@@ -47,7 +47,7 @@ export function useProductModalRoute(inventory: InventoryItem[]) {
     [navigate, background, location],
   );
 
-  /** Swipe/arrow inside the modal — replace so Back still closes in one step. */
+  /** Swipe/arrow inside the modal: replace so Back still closes in one step. */
   const navigateWithinModal = useCallback(
     (item: InventoryItem) => {
       if (!background) return;
@@ -60,7 +60,7 @@ export function useProductModalRoute(inventory: InventoryItem[]) {
   );
 
   /**
-   * Close — pop the history entry the open pushed (background case). Without
+   * Close: pop the history entry the open pushed (background case). Without
    * a background entry there is no modal, only the real page; send the user
    * to the shop without leaving a dead product entry behind.
    */

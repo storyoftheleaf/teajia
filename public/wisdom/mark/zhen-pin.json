@@ -1,0 +1,16 @@
+{
+  "id": "zhen-pin",
+  "name": "Zhen Pin",
+  "chineseName": "珍品",
+  "altNames": [
+    "Precious Grade",
+    "Treasure Grade"
+  ],
+  "appliesToTypes": [
+    "Oolong"
+  ],
+  "description": "A premium grading term meaning 'precious item' or 'treasure grade,' indicating the finest leaf selection and most careful processing within a tea's classification. Seen on Tie Guan Yin.",
+  "holding": "marks",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

@@ -1,12 +1,11 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { CartItem as PublicCartItem } from '../../types';
-import { fmtPrice, fmtShopPrice } from '../../utils/formatNumber';
 import { buildOrderMessage } from '../../lib/whatsapp';
 import { CONTACT_UNAVAILABLE, resolveContactChannels } from '../../lib/contact';
 import { useAppStore } from '../../lib/store';
-import { formatCurrency } from '../../admin/utils';
 import { useRates } from '../../admin/hooks/useAdminData';
+import { useShopPrice } from '../shop/shopPrice';
 import { Icons } from '../Icons';
 import { Button } from './Button';
 import { CartItemRow } from './CartItem';
@@ -58,13 +57,20 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
   const setCurrency = useAppStore(s => s.setCurrency);
   const { data: rates = [] } = useRates();
 
-  const displayPrice = useCallback((usd: number) => {
-    const rounded = Math.ceil(usd);
-    if (rates.length > 0 && currency !== 'USD') {
-      return formatCurrency(rounded, currency, rates);
-    }
-    return fmtShopPrice(usd);
-  }, [currency, rates]);
+  /**
+   * One conversion, owned by the shop.
+   *
+   * This was four lines of private arithmetic against the same rate table the
+   * shop price helper already reads, and `CartItem` one file over held a
+   * verbatim copy of it. Two conversions against one table is two chances to
+   * round differently, and the row total and the cart total are the two numbers
+   * a customer is most likely to compare.
+   *
+   * `rates` is still read here, but only to decide whether the currency
+   * selector and the exchange-rate line have anything to offer.
+   */
+  const shopPrice = useShopPrice();
+  const displayPrice = useCallback((usd: number) => shopPrice.total(usd), [shopPrice]);
 
   const orderRef = useMemo(() => {
     const stored = localStorage.getItem('teajia_orderRef');
@@ -84,7 +90,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
     }
     const sessionCart = sessionStorage.getItem('teajia_cartState');
     if (sessionCart && isOpen && cart.length === 0) setRecoveredCart(true);
-    // Use a media query (no resize storm) — re-evaluated only when crossing the breakpoint
+    // Use a media query (no resize storm), re-evaluated only when crossing the breakpoint
     const mql = window.matchMedia('(min-width: 768px)');
     const apply = () => setPreferredChannel(mql.matches ? 'email' : 'whatsapp');
     apply();
@@ -121,9 +127,9 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
       const trimmed = value.trim();
       if (!trimmed) return 'Location is required';
       if (trimmed.length < 4) return 'Please enter your city and country';
-      if (!trimmed.includes(',')) return 'Include your country — e.g. Bangkok, Thailand';
+      if (!trimmed.includes(',')) return 'Include your country, e.g. Bangkok, Thailand';
       const country = trimmed.split(',')[1]?.trim() ?? '';
-      if (country.length < 2) return 'Include your country — e.g. Bangkok, Thailand';
+      if (country.length < 2) return 'Include your country, e.g. Bangkok, Thailand';
     }
     return '';
   };
@@ -152,17 +158,25 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
     customerContact: details.contact,
     customerLocation: details.location,
     notes: details.notes,
+    currency: shopPrice.code,
     items: cart.map(item => ({
       name: item.name,
       variant: item.variant,
       quantity: item.quantityGrams,
       unit: item.category === 'tea' ? 'g' : '\u00d7',
-      price: fmtPrice(item.pricePerGram),
-      total: fmtShopPrice(item.totalPrice),
+      // The same figures the reader has been looking at for three steps. These
+      // were the raw dollar formatters while the totals beside them were
+      // localised, so the review screen and the message it produced disagreed
+      // about the price of the same basket. Loose leaf is quoted per gram, a
+      // pot per pot, which is how each of them is sold.
+      price: item.category === 'tea'
+        ? shopPrice.perGram(item.pricePerGram)
+        : shopPrice.total(item.pricePerGram),
+      total: shopPrice.total(item.totalPrice),
     })),
-    subtotal: fmtShopPrice(subtotal),
-    total: fmtShopPrice(subtotal),
-  }), [cart, details, subtotal, orderRef]);
+    subtotal: shopPrice.total(subtotal),
+    total: shopPrice.total(subtotal),
+  }), [cart, details, subtotal, orderRef, shopPrice]);
   const contactChannels = useMemo(() => resolveContactChannels({ whatsappNumber, email: contactEmail, subject: `Tea Order - ${details.name}`, message: orderMessage }), [whatsappNumber, contactEmail, details.name, orderMessage]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
@@ -184,7 +198,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
   };
 
   const showSuccess = (type: 'whatsapp' | 'email' | 'copy') => {
-    // Persistent success message — user dismisses manually or it stays
+    // Persistent success message, user dismisses manually or it stays
     setSuccessMessage({ show: true, type });
   };
 
@@ -201,14 +215,14 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
         source,
       });
     } catch {
-      // Non-critical — inquiry still sent via WhatsApp/email
+      // Non-critical, inquiry still sent via WhatsApp/email
     }
   };
 
   const handleWhatsApp = () => {
     // Validate the resolved phone before opening WhatsApp. buildWhatsAppUrl
     // silently falls back to a recipient-less wa.me link when digits < 7,
-    // which sends nothing — surface a clear error and offer email instead.
+    // which sends nothing, surface a clear error and offer email instead.
     if (!contactChannels.whatsapp) {
       setCheckoutError("This store doesn't have WhatsApp ordering set up. Please use Email or Copy text below to send your order.");
       return;
@@ -255,7 +269,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
 
   return (
     <>
-      {/* Step indicator + currency selector — hairline rules, single bronze for active step */}
+      {/* Step indicator + currency selector, hairline rules, single bronze for active step */}
       <div className="flex-shrink-0 bg-tea-surface border-b border-tea-border">
         <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-tea-border">
           <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -296,7 +310,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
             </select>
           )}
         </div>
-        {/* Exchange rate info — shown when non-USD currency is selected */}
+        {/* Exchange rate info, shown when non-USD currency is selected */}
         {rates.length > 0 && currency !== 'USD' && (
           <div className="px-4 py-2 text-right text-ui-10 text-tea-text-sec">
             <div className="flex items-center justify-end gap-2">
@@ -425,7 +439,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                   <label htmlFor="inquiry-location" className="block text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec mb-0.5">
                     Shipping Location *
                   </label>
-                  <p className="text-ui-11 text-tea-text-dim mb-1">City, Country — e.g. Tokyo, Japan</p>
+                  <p className="text-ui-11 text-tea-text-dim mb-1">City, Country (e.g. Tokyo, Japan)</p>
                   <div className="relative">
                     <input
                       id="inquiry-location"
@@ -482,7 +496,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                 <p className="text-xs text-tea-text-sec">Please review before sending.</p>
               </div>
 
-              {/* Single editorial block — top + bottom hairline rules, internal sections divided by rules only */}
+              {/* Single editorial block, top + bottom hairline rules, internal sections divided by rules only */}
               <div className="border-y border-tea-border divide-y divide-tea-border">
                 {/* Customer details */}
                 <dl className="py-4 space-y-2.5">
@@ -532,7 +546,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
 
               <p className="text-ui-11 text-tea-text-sec text-center font-mono">{orderRef}</p>
 
-              {/* Persistent success message — editorial confirmation, no green */}
+              {/* Persistent success message, editorial confirmation, no green */}
               {successMessage?.show && (
                 <div className="cart-fade-in border border-tea-border rounded-md px-4 py-4 space-y-3">
                   <div className="flex items-start justify-between gap-2">
@@ -587,7 +601,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                 </div>
               )}
 
-              {/* Send actions — WhatsApp is the intentional primary channel; alternatives step down to text links */}
+              {/* Send actions: WhatsApp is the intentional primary channel; alternatives step down to text links */}
               <div className="flex flex-col gap-3">
                 {contactChannels.whatsapp && <Button
                   onClick={handleWhatsApp}

@@ -1,4 +1,8 @@
 /**
+ * @color-literals. The Read section is one always-dark editorial surface.
+ * Rationale, and the conditions on this exception, in read/immersive.tsx.
+ */
+/**
  * Story inline-editing engine for the hand-built Read pages.
  *
  * Wrap a story in <StoryEditProvider slug="..."> and use the primitives:

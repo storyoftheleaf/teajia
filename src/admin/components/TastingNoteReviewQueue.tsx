@@ -101,7 +101,7 @@ function CandidateRow({ candidate }: { candidate: TastingNoteCandidate }) {
       {error && <p role="alert" className="text-ui-11 text-tea-text-sec">{error}</p>}
       <div className="flex items-center justify-between gap-3">
         <button type="button" onClick={() => dismiss.mutate()} disabled={pending} className="tap-target text-ui-12 text-tea-text-sec transition-colors hover:text-tea-text disabled:opacity-50">Dismiss</button>
-        <button type="button" onClick={() => promote.mutate()} disabled={pending || !draft.editedText.trim() || !draft.attributionName.trim()} className="tap-target inline-flex items-center gap-1.5 rounded-md bg-tea-gold px-3 py-2 text-ui-12 font-medium text-tea-bg disabled:opacity-50">
+        <button type="button" onClick={() => promote.mutate()} disabled={pending || !draft.editedText.trim() || !draft.attributionName.trim()} className="tap-target inline-flex items-center gap-1.5 rounded-md cta-solid px-3 py-2 text-ui-12 font-medium disabled:opacity-50">
           {promote.isPending && <Loader2 size={13} className="animate-spin" />}
           Promote impression
         </button>

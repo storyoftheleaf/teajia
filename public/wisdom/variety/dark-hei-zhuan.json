@@ -1,0 +1,13 @@
+{
+  "id": "dark-hei-zhuan",
+  "type": "Dark",
+  "name": "Hei Zhuan",
+  "chineseName": "黑砖",
+  "altNames": [
+    "Black Brick"
+  ],
+  "region": "Hunan",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

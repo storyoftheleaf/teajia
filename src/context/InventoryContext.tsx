@@ -42,10 +42,11 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const isStoreMode = !!shopStoreSlug && shopStoreSlug !== DEFAULT_SLUG;
   const activeQuery = isStoreMode ? storeQuery : defaultQuery;
 
-  const inventory = useMemo(() => {
+  const inventory = useMemo<InventoryItem[]>(() => {
     if (isStoreMode) {
-      // storeQuery already returns InventoryItem[]
-      return activeQuery.data ?? [];
+      // storeQuery already returns InventoryItem[]. Read it directly rather
+      // than through activeQuery, whose type is the union of the two shapes.
+      return storeQuery.data ?? [];
     }
     // Default path: map PublicProduct → InventoryItem
     const apiItems = (defaultQuery.data || []).map(publicProductToInventoryItem);
@@ -53,7 +54,7 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return SAMPLE_PRODUCTS.map(publicProductToInventoryItem);
     }
     return apiItems;
-  }, [isStoreMode, activeQuery.data, defaultQuery.data, defaultQuery.isLoading, defaultQuery.isError]);
+  }, [isStoreMode, storeQuery.data, defaultQuery.data, defaultQuery.isLoading, defaultQuery.isError]);
 
   // CRUD operations are no-ops on the public side.
   const addInventoryItem = () => {};

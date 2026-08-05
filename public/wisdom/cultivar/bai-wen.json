@@ -1,0 +1,40 @@
+{
+  "id": "bai-wen",
+  "name": "Bai Wen",
+  "chineseName": "白文",
+  "altNames": [
+    "White Hairs",
+    "TRES #17"
+  ],
+  "originCountry": "Taiwan",
+  "originRegion": "Hsinchu, Miaoli",
+  "developedYear": 2000,
+  "parentage": "(Qing Xin Da Mao x TRES-1407)",
+  "description": "'White Hairs'. A modern cultivar developed by TRES specifically for the production of leafhopper-bitten teas like Oriental Beauty. It was designed to be a more productive and pest-resistant alternative to the traditional Qing Xin Da Mao cultivar, while still being able to produce the signature honey-fruit fragrance when bitten by the tea leafhopper.",
+  "plantType": "Vigorous, upright bush with large, downy leaves.",
+  "environment": "Grows well in the same hot, humid, and leafhopper-rich environments as Qing Xin Da Mao in northwestern Taiwan.",
+  "processing": "Processing is identical to that of traditional Oriental Beauty. The key is that the leaves must be bitten by the tea leafhopper to initiate the chemical changes that create the unique aroma.",
+  "oxidation": "Undergoes heavy oxidation (60-70%) to fully develop the complex honey and fruit flavors that result from the insect bites.",
+  "roasting": "Completely unroasted. All the flavor and aroma are developed through the natural reaction to the insect bites and the subsequent heavy oxidation.",
+  "versatility": "Extremely specialized. This cultivar was bred for the single purpose of making Oriental Beauty oolong, offering farmers a more reliable option.",
+  "distribution": {
+    "taiwan": [
+      "Hsinchu County",
+      "Miaoli County"
+    ]
+  },
+  "expressions": {
+    "Oriental Beauty Oolong (Dong Fang Mei Ren)": {
+      "Bai Hao Oolong": "Its sole purpose is to be an alternative cultivar for making high-quality Oriental Beauty oolong."
+    }
+  },
+  "sensory": {
+    "aroma": "Honey, Ripe Peach, Floral, similar to Oriental Beauty",
+    "flavor": "Sweet, fruity, and complex with a smooth finish.",
+    "mouthfeel_liquor": "Full-bodied and smooth. The liquor is a bright reddish-orange."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

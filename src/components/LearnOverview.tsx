@@ -27,7 +27,7 @@ const PIN_TYPE_LABELS: Record<string, string> = {
 // Curated Unsplash tea photography
 // ═══════════════════════════════════════════════════════════════
 
-/** Ink-wash style placeholder — organic, painterly */
+/** Ink-wash style placeholder, organic, painterly */
 const InkWashPlaceholder: React.FC<{ label?: string; aspectRatio?: string; className?: string; mood?: 'warm' | 'cool' | 'neutral' | 'dark' }> = ({
   label,
   aspectRatio = '4/3',
@@ -73,7 +73,7 @@ const InkWashPlaceholder: React.FC<{ label?: string; aspectRatio?: string; class
   );
 };
 
-/** Section label — serif, editorial, warm gold accent */
+/** Section label, serif, editorial, warm gold accent */
 const SectionLabel: React.FC<{ children: React.ReactNode; subtitle?: string }> = ({ children, subtitle }) => (
   <div style={{ marginBottom: 'clamp(28px, 3vw, 40px)' }}>
     <h3 className="text-tea-text tracking-[0.01em] leading-[1.2]" style={{ fontSize: 'clamp(20px, 2.5vw + 8px, 28px)', fontFamily: 'var(--font-display)' }}>
@@ -168,7 +168,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
     <div>
 
       {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 1 — HERO + EXPLORE (integrated)
+          SECTION 1: HERO + EXPLORE (integrated)
           Image, quote, and navigation flow as one opening gesture.
           ═══════════════════════════════════════════════════════════════════ */}
       <section
@@ -176,7 +176,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         className={`mb-[clamp(5rem,8vw,7rem)] ${heroReveal.className}`}
         style={heroReveal.style}
       >
-        {/* Hero image — wide, cinematic */}
+        {/* Hero image, wide, cinematic */}
         <div className="relative overflow-hidden rounded-[1px]" style={{ marginBottom: 'clamp(20px, 2.5vw, 32px)' }}>
           <InkWashPlaceholder label="tea ceremony" aspectRatio="2.35/1" mood="warm" />
           {/* Quote overlaid at the bottom */}
@@ -200,7 +200,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           />
         </div>
 
-        {/* Start Here — new user callout */}
+        {/* Start Here, new user callout */}
         <div className="mb-5 px-4 py-3.5 rounded-md bg-tea-surface/60 border border-tea-border flex items-start gap-3">
           <span className="text-tea-gold/60 mt-0.5 shrink-0" aria-hidden="true">
             <Icons.Leaf className="w-4 h-4" />
@@ -217,7 +217,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           </div>
         </div>
 
-        {/* Explore — flows directly from the hero, no separator */}
+        {/* Explore, flows directly from the hero, no separator */}
         <div>
           {[
             { id: 'course' as LearnView, label: 'Go Deeper', sub: 'Structured lessons from leaf to cup', icon: <Icons.BookOpen className="w-5 h-5" />, iconColor: 'text-tea-gold/50' },
@@ -294,7 +294,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
       <div className="divider-warm mb-[clamp(5rem,8vw,7rem)]" />
 
       {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 3 — GLOSSARY SPOTLIGHT
+          SECTION 3: GLOSSARY SPOTLIGHT
           The Chinese characters are the hero at massive scale.
           ═══════════════════════════════════════════════════════════════════ */}
       <section
@@ -310,7 +310,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         >
           <CardContainer>
             <div className="relative overflow-hidden">
-              {/* Atmospheric gradient — subtle warmth from bottom-left */}
+              {/* Atmospheric gradient, subtle warmth from bottom-left */}
               <div className="absolute inset-0 pointer-events-none" style={{
                 backgroundImage: `radial-gradient(ellipse at 0% 100%, var(--tea-accent-sub) 0%, transparent 60%)`
               }} />
@@ -334,7 +334,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                   </p>
                 )}
 
-                {/* Definition — Body role */}
+                {/* Definition: Body role */}
                 <p className="text-tea-text-sec leading-[1.85] mb-8 max-w-lg" style={{ fontSize: 'clamp(14px, 1.2vw + 8px, 17px)', fontFamily: 'var(--font-body)' }}>
                   {spotlightTerm.definition}
                 </p>
@@ -396,7 +396,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
       <div className="divider-warm mb-[clamp(5rem,8vw,7rem)]" />
 
       {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 4 — CURRICULUM ENTRY
+          SECTION 4: CURRICULUM ENTRY
           A doorway, not the room. Shows progress summary, the next module
           to tackle, and a clear CTA into the full curriculum.
           ═══════════════════════════════════════════════════════════════════ */}
@@ -449,7 +449,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
       <div className="divider-warm mb-[clamp(5rem,8vw,7rem)]" />
 
       {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 5 — RESOURCES & TOOLS (moved up from original position)
+          SECTION 5: RESOURCES & TOOLS (moved up from original position)
           Refined grid. The cards are dark, the layout is tight.
           ═══════════════════════════════════════════════════════════════════ */}
       <section
@@ -493,7 +493,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
       <div className="divider-warm mb-[clamp(5rem,8vw,7rem)]" />
 
       {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 6 — ATLAS & PLACES
+          SECTION 6: ATLAS & PLACES
           Location cards with real photography.
           ═══════════════════════════════════════════════════════════════════ */}
       <section
@@ -542,7 +542,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
       <div className="divider-warm mb-[clamp(5rem,8vw,7rem)]" />
 
       {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 7 — TEA SPACE TEASER
+          SECTION 7: TEA SPACE TEASER
           Warm, aspirational. Real photo.
           ═══════════════════════════════════════════════════════════════════ */}
       <section
@@ -580,7 +580,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
 
 
       {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 8 — CLOSING
+          SECTION 8: CLOSING
           A colophon. Adrian's signature. Generous final breath.
           ═══════════════════════════════════════════════════════════════════ */}
       <section

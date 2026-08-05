@@ -38,15 +38,15 @@ interface AlcoveCommerceFooterProps {
   handleAdd: () => void;
   formatPrice?: (pricePerGram: number, grams: number) => string;
   /**
-   * 'pinned' (default) — the card's bottom bar: top hairline + solid card bg.
-   * 'rail' — the product page's desktop order module: the enclosing box owns
+   * 'pinned' (default) is the card's bottom bar: top hairline + solid card bg.
+   * 'rail' is the product page's desktop order module: the enclosing box owns
    * the border, the background stays transparent, and the action row stacks
    * vertically with a full-width order button.
    */
   variant?: 'pinned' | 'rail';
 }
 
-/** Sessions from grams — a session is ~5 g of leaf. */
+/** Sessions from grams. A session is ~5 g of leaf. */
 const sessionsFor = (grams: number) => Math.round(grams / 5);
 
 const STOCK_DOT: React.CSSProperties = {
@@ -70,7 +70,7 @@ interface SegCell {
 /**
  * Aman-style commerce footer: quiet centered stock line, one segmented
  * quantity strip with a gold inner keyline on the active cell, a bordered
- * action cluster, and exactly one solid element — the gold order button.
+ * action cluster, and exactly one solid element, the gold order button.
  */
 export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
   item,
@@ -142,7 +142,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
     },
   ];
 
-  // Teaware / non-tea presets are whole units ("pieces"), not grams — same
+  // Teaware / non-tea presets are whole units ("pieces"), not grams. Same
   // segmented visual grammar, with the price as each cell's sub-line.
   const teawareCells: SegCell[] = presets.map(p => ({
     key: String(p),
@@ -163,7 +163,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
       }
       style={isRail ? undefined : { background: alcoveBg }}
     >
-      {/* Stock line — only when it carries a warning. "In stock" is implied by
+      {/* Stock line, only when it carries a warning. "In stock" is implied by
           an enabled order button, and the pinned bar pays for every row. */}
       {stockStatus.level !== 'ok' && (
         <div className="mb-2.5 flex items-center justify-center gap-[7px]">

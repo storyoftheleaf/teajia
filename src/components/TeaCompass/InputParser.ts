@@ -1,4 +1,5 @@
-import { SEASONS, COMMON_REGIONS } from './types';
+import { normalizeTeaForm, normalizeTeaType, SEASONS } from '../../wisdom';
+import { RED_COMPOUND_SUFFIXES, recognizeAmbiguity, recognizeRegion } from '../../wisdom/recognition';
 import type { TeaType, TeaForm, Season, Storage } from './types';
 
 export interface ParseResult {
@@ -11,10 +12,8 @@ export interface ParseResult {
   region?: string;
 }
 
-// Words that follow "Red" and indicate it's part of a tea name, not the type
-const RED_COMPOUND_SUFFIXES = ['robe', 'label', 'jade', 'mark', 'peony', 'beauty', 'dragon'];
-
-// Storage phrase mappings (input phrase → Storage value)
+// Storage isn't part of the shared tea-type/form vocabulary. Nothing else in
+// the app parses storage phrases, so this knowledge lives only here.
 const STORAGE_PHRASES: { phrase: string; value: Storage }[] = [
   { phrase: 'dry storage', value: 'Dry' },
   { phrase: 'wet storage', value: 'Wet/Traditional' },
@@ -31,40 +30,35 @@ const STORAGE_SINGLES: { word: string; value: Storage }[] = [
   { word: 'wet', value: 'Wet/Traditional' },
 ];
 
-// Form aliases (input → TeaForm)
-const FORM_ALIASES: Record<string, TeaForm> = {
-  cake: 'Cake',
-  brick: 'Brick',
-  tuo: 'Tuo',
-  'loose leaf': 'Loose',
-  loose: 'Loose',
-  ball: 'Ball',
-  bag: 'Bag',
-};
-
-// Type aliases
-const TYPE_ALIASES: Record<string, TeaType> = {
-  green: 'Green',
-  white: 'White',
-  yellow: 'Yellow',
-  oolong: 'Oolong',
-  red: 'Red',
-  dark: 'Dark',
-  sheng: 'Sheng',
-  shou: 'Shou',
-  herbal: 'Herbal',
-  matcha: 'Green',
-  black: 'Red', // Chinese convention
-};
-
-// Ambiguous puerh terms — skip these (user should pick Sheng or Shou)
-const AMBIGUOUS_TYPE_TERMS = ['puerh', 'pu-erh', 'puer', "pu'er", 'pu er'];
+// Words this free-text parser will auto-strip out of the name when it
+// recognises them as a bare type/form word. This is deliberately a narrower
+// allowlist than the wisdom base's full `normalizeTeaType`/`normalizeTeaForm`
+// dialect tables: those also answer to generic English words used elsewhere
+// in a tea's own name, such as "leaf" (Big Leaf varieties), "pearl" (Jasmine
+// Pearl), "flower"/"raw"/"ripe"/"cooked", which would otherwise vanish from a typed
+// name the moment they appeared. The *values* still come from the shared
+// vocabulary (`normalizeTeaType/normalizeTeaForm`) so a canonicalisation
+// change there is picked up automatically; only *which words trigger a strip
+// here* is curated locally, because that is a free-text-parsing safety
+// concern the wisdom base itself has no opinion on.
+const STRIPPABLE_TYPE_WORDS = ['green', 'white', 'yellow', 'oolong', 'red', 'dark', 'sheng', 'shou', 'herbal', 'matcha', 'black'];
+const STRIPPABLE_FORM_WORDS = ['cake', 'brick', 'tuo', 'loose', 'ball', 'bag'];
 
 const CURRENT_YEAR = new Date().getFullYear();
 
 /**
  * Parse a free-text tea input into structured fields.
- * Extraction order: storage phrases (multi-word) → form phrases (multi-word) → regions → single tokens
+ * Extraction order: storage phrases (multi-word) → loose leaf → region (from
+ * the wisdom base's 167 known places) → single tokens (year, season, storage,
+ * type, form).
+ *
+ * Type and form recognition read the wisdom base's one shared vocabulary
+ * (`normalizeTeaType` / `normalizeTeaForm`) instead of a local alias table, so
+ * this parser and every other surface agree on what a word means, including
+ * the two careful exceptions the shared recogniser preserves: a bare puerh
+ * spelling never resolves to Sheng or Shou, and "Red" followed by a name word
+ * (robe, label, jade, mark, peony, beauty, dragon) stays part of the tea's
+ * name rather than becoming the type.
  */
 export function parseTeaInput(input: string, knownRegions: string[] = []): ParseResult {
   if (!input.trim()) {
@@ -73,7 +67,7 @@ export function parseTeaInput(input: string, knownRegions: string[] = []): Parse
 
   const result: ParseResult = { name: '' };
 
-  // Working copy — we'll remove matched tokens and what's left becomes the name
+  // Working copy: we'll remove matched tokens and what's left becomes the name
   let working = input;
 
   // Helper: remove a substring from working (case-insensitive), returns whether it matched
@@ -99,21 +93,12 @@ export function parseTeaInput(input: string, knownRegions: string[] = []): Parse
     result.form = 'Loose';
   }
 
-  // --- Pass 3: Multi-word regions (e.g., "Dong Ding") ---
-  const allRegions = [...COMMON_REGIONS, ...knownRegions];
-  // Sort by length descending so longer phrases match first
-  const sortedRegions = [...new Set(allRegions)].sort((a, b) => b.length - a.length);
-
-  for (const region of sortedRegions) {
-    if (region.includes(' ')) {
-      // Multi-word region
-      const regex = new RegExp(`\\b${escapeRegex(region)}\\b`, 'i');
-      if (regex.test(working)) {
-        result.region = region;
-        working = working.replace(regex, ' ');
-        break;
-      }
-    }
+  // --- Pass 3: Region (multi-word or single-word, from the wisdom base) ---
+  const regionMatch = recognizeRegion(working, knownRegions);
+  if (regionMatch) {
+    result.region = regionMatch;
+    const regionPattern = new RegExp(`\\b${escapeRegex(regionMatch)}\\b`, 'i');
+    working = working.replace(regionPattern, ' ');
   }
 
   // --- Pass 4: Process remaining tokens (single words) ---
@@ -152,7 +137,7 @@ export function parseTeaInput(input: string, knownRegions: string[] = []): Parse
     if (!result.storage) {
       const storageMatch = STORAGE_SINGLES.find((s) => s.word === lower);
       if (storageMatch) {
-        // Check if next token is "storage" — if so, it was already handled in pass 1
+        // Check if next token is "storage": if so, it was already handled in pass 1
         // If next token is NOT "storage", treat this as a standalone storage indicator
         const nextToken = i + 1 < tokens.length ? tokens[i + 1]?.toLowerCase() : '';
         if (nextToken !== 'storage') {
@@ -170,18 +155,21 @@ export function parseTeaInput(input: string, knownRegions: string[] = []): Parse
       }
     }
 
-    // Tea type
-    if (!result.type) {
-      // Skip ambiguous puerh terms
-      if (AMBIGUOUS_TYPE_TERMS.includes(lower)) continue;
+    // Tea type: value comes from the wisdom base's shared vocabulary, but
+    // only for the small set of words this free-text parser treats as safe to
+    // auto-strip from a typed name (see STRIPPABLE_TYPE_WORDS above). Bare
+    // puerh spellings stay unresolved, and "Red" stays part of a compound tea
+    // name (Red Robe, Red Label, Red Jade...) rather than becoming the type.
+    if (!result.type && STRIPPABLE_TYPE_WORDS.includes(lower)) {
+      if (recognizeAmbiguity(token)) continue;
 
-      const typeMatch = TYPE_ALIASES[lower];
+      const typeMatch = normalizeTeaType(lower);
       if (typeMatch) {
-        // Special handling for "Red" — check if it's part of a compound name
+        // Special handling for "Red": check if it's part of a compound name
         if (lower === 'red') {
           const nextToken = i + 1 < tokens.length ? tokens[i + 1]?.toLowerCase() : '';
           if (nextToken && RED_COMPOUND_SUFFIXES.includes(nextToken)) {
-            // "Red Robe" — leave both in name
+            // "Red Robe": leave both in name
             continue;
           }
         }
@@ -191,23 +179,11 @@ export function parseTeaInput(input: string, knownRegions: string[] = []): Parse
       }
     }
 
-    // Form (single-word)
-    if (!result.form) {
-      const formKey = lower;
-      if (formKey in FORM_ALIASES) {
-        result.form = FORM_ALIASES[formKey];
-        consumed.add(i);
-        continue;
-      }
-    }
-
-    // Region (single-word)
-    if (!result.region) {
-      const regionMatch = sortedRegions.find(
-        (r) => !r.includes(' ') && r.toLowerCase() === lower
-      );
-      if (regionMatch) {
-        result.region = regionMatch;
+    // Form (single-word): same allowlist principle as type, above.
+    if (!result.form && STRIPPABLE_FORM_WORDS.includes(lower)) {
+      const formMatch = normalizeTeaForm(lower);
+      if (formMatch) {
+        result.form = formMatch;
         consumed.add(i);
         continue;
       }

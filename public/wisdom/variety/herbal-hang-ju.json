@@ -1,0 +1,13 @@
+{
+  "id": "herbal-hang-ju",
+  "type": "Herbal",
+  "name": "Hang Ju",
+  "chineseName": "杭菊",
+  "altNames": [
+    "Hangzhou Chrysanthemum"
+  ],
+  "region": "Hangzhou",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

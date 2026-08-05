@@ -88,7 +88,7 @@ interface AppState {
   recentlyViewed: string[];
   addRecentlyViewed: (id: string) => void;
 
-  // Tea Discovery profile (onboarding quiz — client-side in v1; see docs/TEA_DISCOVERY.md)
+  // Tea Discovery profile (onboarding quiz, client-side in v1; see docs/TEA_DISCOVERY.md)
   teaDiscoveryProfile: TeaDiscoveryProfile | null;
   setTeaDiscoveryProfile: (profile: TeaDiscoveryProfile) => void;
   clearTeaDiscoveryProfile: () => void;
@@ -140,7 +140,7 @@ interface AppState {
   setInventorySortConfig: (sortConfig: { key: string; direction: 'asc' | 'desc' }[]) => void;
   setInventoryPriceMode: (mode: 'cost' | 'retail') => void;
 
-  // Draft Product (auto-save for AddProductModal) — scoped per account so
+  // Draft Product (auto-save for AddProductModal), scoped per account so
   // operators can context-switch between stores without losing a half-drafted
   // product. Keyed by `activeAccountId`.
   draftProductByAccountId: Record<string, DraftProduct>;
@@ -149,7 +149,7 @@ interface AppState {
   /** Clears the draft for the currently active account. */
   clearDraftProduct: () => void;
 
-  // Public shop — selected store location (null = default Bali)
+  // Public shop, selected store location (null = default Bali)
   shopStoreSlug: string | null;
   setShopStoreSlug: (slug: string | null) => void;
 
@@ -166,7 +166,7 @@ interface AppState {
   setPlatformRole: (role: PlatformRole) => void;
   clearAccountState: () => void;
 
-  // Auth — shared across all components. NOT persisted (JWT is source of truth).
+  // Auth, shared across all components. NOT persisted (JWT is source of truth).
   authUser: AuthUser | null;
   isSessionReady: boolean;
   setAuthUser: (u: AuthUser | null) => void;
@@ -187,7 +187,7 @@ interface AppState {
 
 // ── Members & Access selectors ────────────────────────────────────────────────
 // Use these in components to keep bundle checks consistent. Platform tier
-// (platform_owner / platform_admin) always returns true regardless of bundle —
+// (platform_owner / platform_admin) always returns true regardless of bundle,
 // they have all six bundles on every account by definition.
 export function selectHasBundle(state: Pick<AppState, 'memberships' | 'activeAccountId' | 'platformRole'>, bundle: import('../types').Bundle): boolean {
   if (state.platformRole === 'platform_owner' || state.platformRole === 'platform_admin') return true;
@@ -534,13 +534,13 @@ export const useAppStore = create<AppState>()(
       setInventorySortConfig: (sortConfig) => set({ inventorySortConfig: sortConfig }),
       setInventoryPriceMode: (mode) => set({ inventoryPriceMode: mode }),
 
-      // Draft Product — per-account so operators don't lose drafts on switch
+      // Draft Product, per-account so operators don't lose drafts on switch
       draftProductByAccountId: {},
       setDraftProduct: (draft) =>
         set((state) => {
           const accountId = state.activeAccountId;
           if (!accountId) return state;
-          // A null/empty draft means "clear" — drop the key entirely so we
+          // A null/empty draft means "clear", drop the key entirely so we
           // don't keep stale entries hanging around.
           if (!draft || Object.keys(draft).length === 0) {
             if (!(accountId in state.draftProductByAccountId)) return state;
@@ -600,7 +600,7 @@ export const useAppStore = create<AppState>()(
           platformRole: null,
         }),
 
-      // Auth (shared; not persisted — see partialize)
+      // Auth (shared; not persisted, see partialize)
       authUser: null,
       isSessionReady: false,
       setAuthUser: (authUser) => set({ authUser }),
@@ -611,7 +611,7 @@ export const useAppStore = create<AppState>()(
       setUpcomingEventsCount: (count) => set({ upcomingEventsCount: count }),
       cartLastAddedAt: null,
 
-      // Product overlay flag (transient — never persisted)
+      // Product overlay flag (transient, never persisted)
       productOverlayOpen: false,
       setProductOverlayOpen: (open) => set({ productOverlayOpen: open }),
     }),
@@ -641,7 +641,7 @@ export const useAppStore = create<AppState>()(
         memberships: state.memberships,
         activeUserId: state.activeUserId,
         activeAccountId: state.activeAccountId,
-        // isDevAdmin intentionally excluded — never persisted to localStorage (security fix)
+        // isDevAdmin intentionally excluded, never persisted to localStorage (security fix)
         sidebarCollapsed: state.sidebarCollapsed,
         shopPriceWeight: state.shopPriceWeight,
         shopSort: state.shopSort,

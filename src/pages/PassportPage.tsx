@@ -1,5 +1,5 @@
 /**
- * PassportPage — guest-facing tea journey via RSVP token
+ * PassportPage, guest-facing tea journey via RSVP token
  * Route: /passport/:token
  *
  * Fetches the guest's RSVP record and post-session data, then renders
@@ -292,7 +292,7 @@ const PassportPage: React.FC = () => {
           </p>
         </motion.div>
 
-        {/* Flavor profile — shown before the event chapters if data exists */}
+        {/* Flavor profile, shown before the event chapters if data exists */}
         <FlavorProfile words={flavorWords} />
 
         {/* Event chapter */}

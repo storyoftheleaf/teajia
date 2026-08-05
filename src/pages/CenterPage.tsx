@@ -70,7 +70,7 @@ function QueueCard({ entry }: { entry: TeaCompassEntry }) {
                 className={[
                   'text-ui-10 px-2 py-0.5 rounded-md transition-colors',
                   verdict === v
-                    ? 'bg-tea-gold text-tea-bg'
+                    ? 'cta-solid'
                     : 'bg-tea-elevated text-tea-text-sec hover:text-tea-text',
                 ].join(' ')}
               >
@@ -274,7 +274,7 @@ export default function CenterPage() {
           <p className="text-ui-13 text-tea-text-sec mb-4">Sign in to access your personal center.</p>
           <button
             onClick={() => navigate('/signin')}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
           >
             Sign in
           </button>
@@ -307,7 +307,7 @@ export default function CenterPage() {
         </p>
       </div>
 
-      {/* Identity card — §19 */}
+      {/* Identity card, §19 */}
       <div className="bg-tea-surface border border-tea-border rounded-xl p-5 flex items-start gap-4">
         <div className="w-12 h-12 rounded-full bg-tea-elevated text-tea-text-sec font-display text-ui-15 flex items-center justify-center flex-shrink-0">
           {initials}

@@ -19,7 +19,7 @@ interface Variant {
 const VARIANTS: Variant[] = [
   {
     id: 'current',
-    name: '0. Current — Espresso (live)',
+    name: '0. Current: Espresso (live)',
     blurb: 'What ships today. Yellow-leaning bronze, mustard text-dim, no green.',
     vars: {
       '--bg': '#18130e',
@@ -257,7 +257,7 @@ const VARIANTS: Variant[] = [
       '--border': 'rgba(236,228,208,0.10)',
       '--accent-sub': 'rgba(90,120,120,0.10)',
       '--forest': '#788a7a',
-      // abalone iridescent gradient — only for accents that opt in
+      // abalone iridescent gradient, only for accents that opt in
       '--accent2': 'linear-gradient(95deg,#6a8a8a 0%,#c4a8b8 38%,#b89a78 70%,#8aa898 100%)',
       '--grain-strength': '0.025',
     },
@@ -303,7 +303,7 @@ const VARIANTS: Variant[] = [
       '--accent2': '#8a7048',
       '--grain-strength': '0.04',
     },
-    accent2Label: 'Brass — used literally once per page',
+    accent2Label: 'Brass, used literally once per page',
   },
 ];
 
@@ -409,7 +409,7 @@ const HomepagePreview: React.FC<{ hasAccent2?: boolean; accent2Label?: string; v
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontFamily: 'var(--font-display)', fontWeight: 300 }}>
-        {['Source — the cellars and gardens', 'Discover — the magazine', 'Deepen — your tasting record', 'Create — host a table'].map(
+        {['Source, the cellars and gardens', 'Discover, the magazine', 'Deepen, your tasting record', 'Create, host a table'].map(
           (line, i) => (
             <div
               key={line}

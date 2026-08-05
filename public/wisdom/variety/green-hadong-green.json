@@ -1,0 +1,11 @@
+{
+  "id": "green-hadong-green",
+  "type": "Green",
+  "name": "Hadong Green",
+  "chineseName": null,
+  "altNames": [],
+  "region": "Hadong",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

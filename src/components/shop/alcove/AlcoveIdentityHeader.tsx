@@ -6,7 +6,7 @@ interface AlcoveIdentityHeaderProps {
   productName: string;
   givenName: string;
   teaType: string;
-  /** CJK-only characters (already stripped of latin/digits) — rendered as real text under the name. */
+  /** CJK-only characters (already stripped of latin/digits), rendered as real text under the name. */
   chineseCharacters: string;
   /** Type-color dot from getTeaColor(item.type). */
   typeColor: string;
@@ -21,7 +21,7 @@ interface AlcoveIdentityHeaderProps {
 }
 
 /**
- * Quiet-card header — centered serif identity block.
+ * Quiet-card header: centered serif identity block.
  * Tea name in Cormorant, hanzi as real text (the watermark is retired),
  * then a tracked sub-line with the type-color dot.
  */
@@ -67,7 +67,7 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
           <span>{subLine}</span>
         </p>
       )}
-      {/* Vendor / Source — admin-only link to source profile */}
+      {/* Vendor / Source: admin-only link to source profile */}
       {item.supplier && isAdmin && (
         <div className="pt-1">
           <button type="button" onClick={onNavigateSource} className="alcove-source-link">

@@ -48,18 +48,28 @@ export const DuplicateNudge: React.FC<DuplicateNudgeProps> = ({
         <p className="text-ui-12 text-tea-text-sec flex-1 min-w-0 truncate whitespace-nowrap" title={`Logged "${matchedEntry.name}"${vendor} ${date}`}>
           Logged <span className="text-tea-text">"{matchedEntry.name}"</span>{vendor} &middot; {date}
         </p>
+        {/* `pill-dense`, deliberately, and this is the justification the class
+            asks for. This is not a toolbar: it is a one-line notice inside the
+            Curate capture form, and Same / Different are two words inside the
+            sentence they answer. At the full 44px floor the three controls made
+            a 47px band out of a 26px strip and pushed the form the warning is
+            about below the fold on a 390px screen, which is the opposite of
+            what a warning is for. The row is behind the admin login and driven
+            by a pointer at a bench; 28px clears the WCAG 2.5.8 AA target size.
+            The dismiss X keeps the full floor, because it is an icon with no
+            word beside it to enlarge its own target. */}
         <div className="flex items-center gap-1 shrink-0">
           <button
             type="button"
             onClick={onSameTea}
-            className="pill curate-duplicate-action tap-target min-h-11 text-tea-gold px-2"
+            className="pill pill-dense curate-duplicate-action text-tea-gold"
           >
             Same
           </button>
           <button
             type="button"
             onClick={onDifferentTea}
-            className="pill curate-duplicate-action tap-target min-h-11 text-tea-gold px-2"
+            className="pill pill-dense curate-duplicate-action text-tea-gold"
           >
             Different
           </button>

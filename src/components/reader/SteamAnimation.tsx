@@ -18,7 +18,7 @@ const blobs: BlobConfig[] = [
 ];
 
 /**
- * SteamAnimation — Animated rising steam/mist for cover pages and chapter openers.
+ * SteamAnimation: Animated rising steam/mist for cover pages and chapter openers.
  * Six blurred circles rise from ~80% height off-screen.
  * Respects prefers-reduced-motion: renders static blobs if reduced motion is enabled.
  */
@@ -61,7 +61,7 @@ const SteamAnimation: React.FC = () => {
         />
       ))}
 
-      {/* Keyframes injected via style tag — only added once */}
+      {/* Keyframes injected via style tag, only added once */}
       {!reducedMotion && (
         <style>{`
           @keyframes steamRise {

@@ -305,7 +305,7 @@ const EventRecapPage: React.FC = () => {
   const navigate = useNavigate();
 
   // Public recap endpoint: GET /api/events/:slug/recap (no auth required)
-  // Returns { event, post_session, tea_menu } — see worker/src/index.ts handleGetPublicEventRecap.
+  // Returns { event, post_session, tea_menu }, see worker/src/index.ts handleGetPublicEventRecap.
   const { data, isLoading, isError } = useQuery<PublicEventRecap>({
     queryKey: ['event-recap-public', slug],
     queryFn: () => api.events.getPublicRecap(slug!),
@@ -316,7 +316,7 @@ const EventRecapPage: React.FC = () => {
   // OG meta
   useEffect(() => {
     if (!data?.event) return;
-    document.title = `${data.event.title} — Recap · Teajia`;
+    document.title = `${data.event.title}: Recap · Teajia`;
     return () => { document.title = 'Teajia | Tea Journal'; };
   }, [data]);
 
@@ -378,7 +378,7 @@ const EventRecapPage: React.FC = () => {
         </div>
       )}
 
-      {/* Back button — fixed over hero if image present, otherwise regular flow */}
+      {/* Back button, fixed over hero if image present, otherwise regular flow */}
       <div className={event.flyer_image_url ? 'absolute top-3 left-4 z-10' : 'pt-4 px-6'}>
         <button
           onClick={() => navigate(`/event/${slug}`)}
@@ -402,7 +402,7 @@ const EventRecapPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Main content — editorial reader chrome */}
+      {/* Main content, editorial reader chrome */}
       <div className="max-w-2xl mx-auto px-4 md:px-6 pt-12 pb-nav-gap">
         {/* Header */}
         <div className="text-center mb-10">
@@ -437,7 +437,7 @@ const EventRecapPage: React.FC = () => {
         {/* Gallery */}
         {hasGallery && <GallerySection images={post_session.gallery_images!} />}
 
-        {/* Personal note prompt — always shown */}
+        {/* Personal note prompt, always shown */}
         {slug && <PersonalNoteSection eventSlug={slug} />}
 
         {/* Footer */}
