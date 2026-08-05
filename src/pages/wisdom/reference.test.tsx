@@ -529,7 +529,15 @@ describe('the pair of holdings that describe one relation', () => {
     expect(render('/wisdom/marks')).toContain('Menghai Tea Factory');
     const producers = render('/wisdom/producers');
     expect(producers).toContain('Factory');
-    expect(producers).toContain('marks held');
+    expect(producers).toContain('mark');
+  });
+
+  it('counts one mark as one mark', () => {
+    // Nine of the ten producers hold exactly one mark, so "1 marks held" was
+    // the most repeated string on the page.
+    const producers = render('/wisdom/producers');
+    expect(producers).toContain('1 mark held');
+    expect(producers).not.toContain('1 marks held');
   });
 });
 

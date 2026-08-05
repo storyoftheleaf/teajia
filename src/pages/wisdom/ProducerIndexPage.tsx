@@ -92,7 +92,7 @@ const ProducerRows: React.FC<{ rows: Producer[] }> = ({ rows }) => (
           cells={[
             [producer.region, producer.country].filter(Boolean).join(', ') || { absent: 'Place not recorded' },
             KIND_LABEL[producer.kind],
-            held > 0 ? `${held} marks held` : { absent: 'No marks held' },
+            held > 0 ? `${held} mark${held === 1 ? '' : 's'} held` : { absent: 'No marks held' },
           ]}
         />
       );
