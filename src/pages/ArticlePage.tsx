@@ -2620,7 +2620,7 @@ export default function ArticlePage() {
   return (
     <>
       <Helmet>
-        <title>{article.title} · Teajia</title>
+        <title>{`${article.title} · Teajia`}</title>
         {description && <meta name="description" content={description} />}
         <meta property="og:type" content="article" />
         <meta property="og:title" content={article.title} />

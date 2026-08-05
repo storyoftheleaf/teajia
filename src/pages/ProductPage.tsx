@@ -273,7 +273,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
   return (
     <div className="w-full animate-[fadeIn_0.5s_ease-out]">
       <Helmet>
-        <title>{item.name} · Teajia</title>
+        <title>{`${item.name} · Teajia`}</title>
         <meta name="description" content={metaDescription} />
         <meta property="og:title" content={`${item.name} · Teajia`} />
         <meta property="og:description" content={(introduction || mainStory || '').slice(0, 160)} />
