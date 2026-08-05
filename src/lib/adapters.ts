@@ -41,5 +41,9 @@ export function publicProductToInventoryItem(p: PublicProduct): InventoryItem {
     tastingSource: p.tastingSource,
     moodTags: p.moodTags,
     flavorTags: p.flavorTags,
+    // Carried through so the wisdom band on the card and the page can resolve
+    // the plant. Without this the column exists, the API returns it, and the
+    // band still finds nothing, which is how it read before.
+    cultivar: p.cultivar,
   };
 }

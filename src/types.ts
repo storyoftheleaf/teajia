@@ -586,6 +586,12 @@ export interface PublicProduct {
   tastingSource?: 'common' | 'owner' | 'community';
   moodTags?: string[];
   flavorTags?: string[];
+  /**
+   * The plant, as written. Resolved against the wisdom base at render time, so
+   * a record saved "Da Ye Zhong" and one saved in Chinese reach the same page.
+   * Not a display string: when the base holds nothing for it, nothing is shown.
+   */
+  cultivar?: string | null;
 }
 
 export interface StarterSet {

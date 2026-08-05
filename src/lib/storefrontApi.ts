@@ -40,8 +40,17 @@ async function fetchJson<T>(path: string): Promise<T> {
   }
 }
 
-/** Normalize raw product JSON from the public endpoints into PublicProduct. */
-function normalizeProduct(p: any): PublicProduct {
+/**
+ * Normalize raw product JSON from the public endpoints into PublicProduct.
+ *
+ * Exported because `usePublicProducts` used to keep a second hand-written copy
+ * of this mapping for the legacy `/api/products/public` endpoint, and the two
+ * drifted: the copy never learned `moodTags`, `flavorTags` or `cultivar`, so
+ * the default Bali storefront (which is every reader who has not switched
+ * stores) resolved no plant on any product page while a store-scoped one did.
+ * Two mappings for one payload is one mapping too many.
+ */
+export function normalizeProduct(p: any): PublicProduct {
   return {
     id: p.id,
     type: (p.type || 'Misc') as PublicProductType,
@@ -81,6 +90,7 @@ function normalizeProduct(p: any): PublicProduct {
         : undefined,
     moodTags: Array.isArray(p.mood_tags) ? p.mood_tags : [],
     flavorTags: Array.isArray(p.flavor_tags) ? p.flavor_tags : [],
+    cultivar: p.cultivar || null,
   };
 }
 
