@@ -10,19 +10,20 @@ import { Helmet } from 'react-helmet-async';
 import { findMarkById, findProducerById } from '../../wisdom';
 import {
   AXIS_INDENT,
+  catalogueNumber,
   EntryAuthorship,
-  FACT_CLASS,
   Fact,
+  FACT_CLASS,
+  GROUND,
   HoldingNotFound,
   Invitation,
   MEASURE,
   PAGE,
   PageHead,
   QUIET_LINK,
-  SPACE,
   SectionHead,
+  SPACE,
   WisdomSubNav,
-  catalogueNumber,
 } from './wisdomShared';
 
 const MarkPage: React.FC = () => {
@@ -111,7 +112,7 @@ const MarkPage: React.FC = () => {
       </div>
 
       {mark.description && (
-        <section className={SPACE.section}>
+        <section className={`${SPACE.section} ${GROUND} py-6`}>
           <SectionHead label="Record" />
           <p className={`${FACT_CLASS} text-tea-text ${MEASURE} ${AXIS_INDENT}`}>{mark.description}</p>
         </section>

@@ -11,19 +11,20 @@ import { Helmet } from 'react-helmet-async';
 import { findProducerById, marksOf, markNamesOf, type Producer } from '../../wisdom';
 import {
   AXIS_INDENT,
+  catalogueNumber,
   EntryAuthorship,
-  FACT_CLASS,
   Fact,
+  FACT_CLASS,
+  GROUND,
   HoldingNotFound,
   Invitation,
   MEASURE,
   PAGE,
   PageHead,
   QUIET_LINK,
-  SPACE,
   SectionHead,
+  SPACE,
   WisdomSubNav,
-  catalogueNumber,
 } from './wisdomShared';
 
 const KIND_LABEL: Record<Producer['kind'], string> = {
@@ -115,14 +116,14 @@ const ProducerPage: React.FC = () => {
       </div>
 
       {producer.description && (
-        <section className={SPACE.section}>
+        <section className={`${SPACE.section} ${GROUND} py-6`}>
           <SectionHead label="Record" />
           <p className={`${FACT_CLASS} text-tea-text ${MEASURE} ${AXIS_INDENT}`}>{producer.description}</p>
         </section>
       )}
 
       {markNames.length > 0 && (
-        <section className={SPACE.section}>
+        <section className={`${SPACE.section} ${GROUND} py-6`}>
           <SectionHead label="Known for" count={markNames.length} />
           <ul className={`list-none m-0 p-0 ${AXIS_INDENT}`}>
             {markNames.map(name => {

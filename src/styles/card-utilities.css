@@ -3775,3 +3775,85 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] {
    desktop spacing is untouched. */
 .inv-tight th,
 .inv-tight td { padding-left: 6px; padding-right: 6px; }
+
+/* ============================================
+   The reference's quiet ground (/wisdom)
+   ============================================
+   A block of records on a page of apparatus, and the whole problem is that it
+   has to be seen without being a slab.
+
+   The reference tried both ends of that first. Flat, with the grouping carried
+   by space and hairlines alone, which Adrian read as one blank page. Then a
+   filled block in `tea-elevated`, which is the one token on the ramp that clears
+   the 1.4 contrast where a fill is perceptible on its own, and which reads as
+   exactly what it is: a lighter rectangle laid on a darker one.
+
+   The error in both was treating the fill as the only thing that can say
+   "plane". The house card has never done that. `.card-grid-item` sits on
+   `--tea-surface`, a whisper at 1.21:1, and what a reader actually sees is the
+   1px bronze edge-light along its top and the shadow it casts. Value does not
+   carry it. Edges do, and an edge can be quiet in a way a field cannot.
+
+   So: the whisper fill, a bronze rim light along the top, and a shadow soft
+   enough to read as depth rather than as elevation. 4px, the same radius the
+   shop cards take, because 12px on a block this wide reads as an app card and
+   this is a page of a reference.
+
+   Bronze is spent here at 0.06 on one hairline, which is inside the rule that
+   bronze marks an edge and is never a wash.
+*/
+   `tea-surface` at full strength was still too far from the page. It is only
+   1.21:1, but a fill that close to the threshold reads bigger than it measures
+   once a shadow darkens the page immediately around it, and the seam is what
+   the eye picks up. So the fill is mixed 45 percent of the way back toward the
+   page, which lands near 1.09:1, and the shadow is widened and lightened until
+   there is no seam left to see. Both tones now sit inside a hair of each other
+   and the block is still there. That is the whole intent: the reader should
+   feel a plane, not find a rectangle.
+
+   The mix uses the same `color-mix` idiom the curate sheet uses for its tonal
+   zones, so a theme change carries both.
+*/
+.wisdom-ground {
+  position: relative;
+  background:
+    radial-gradient(ellipse 100% 70% at 50% 0%, rgba(184, 146, 78, 0.022) 0%, transparent 62%),
+    color-mix(in srgb, var(--tea-surface) 55%, var(--tea-bg));
+  border-radius: 4px;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.10),
+    0 8px 24px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(184, 146, 78, 0.045);
+}
+
+/* Parchment takes a shorter shadow and a light rim rather than a bronze one:
+   a bronze edge-light on a light surface reads as a stain, not as a lift. The
+   rim is the page's own paper tone, never white. */
+/* Mixed further back than dark mode, at 40 rather than 55. The light ramp runs
+   the other way: the block sits darker than the parchment, and a step downward
+   reads stronger than the same step upward, so matching the numbers across the
+   two themes would not match what a reader sees. */
+.light .wisdom-ground {
+  background:
+    radial-gradient(ellipse 100% 70% at 50% 0%, rgba(142, 109, 46, 0.022) 0%, transparent 62%),
+    color-mix(in srgb, var(--tea-surface) 40%, var(--tea-bg));
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.035),
+    0 8px 22px rgba(0, 0, 0, 0.025),
+    inset 0 1px 0 rgba(244, 236, 224, 0.45);
+}
+
+/* One row from the next, scored rather than drawn.
+   A hairline in the border tone is bronze at 14 percent, and a run of them down
+   a list is the wash the palette rules exist to prevent: the line is doing the
+   work of a separator while reading as ornament. This is the same line a press
+   leaves, a dark score with a hair of light under it, and at a glance it is
+   simply the place where one row stops. Never above the first row of a block. */
+.wisdom-rule + .wisdom-rule {
+  border-top: 1px solid rgba(0, 0, 0, 0.13);
+  box-shadow: inset 0 1px 0 rgba(200, 170, 120, 0.035);
+}
+.light .wisdom-rule + .wisdom-rule {
+  border-top: 1px solid rgba(90, 70, 40, 0.08);
+  box-shadow: inset 0 1px 0 rgba(244, 236, 224, 0.4);
+}

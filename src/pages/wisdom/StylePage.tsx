@@ -7,18 +7,19 @@ import { Helmet } from 'react-helmet-async';
 import { findStyleById } from '../../wisdom';
 import {
   AXIS_INDENT,
+  catalogueNumber,
   EntryAuthorship,
-  FACT_CLASS,
   Fact,
+  FACT_CLASS,
+  GROUND,
   HoldingNotFound,
   Invitation,
   MEASURE,
   PAGE,
   PageHead,
-  SPACE,
   SectionHead,
+  SPACE,
   WisdomSubNav,
-  catalogueNumber,
 } from './wisdomShared';
 
 const StylePage: React.FC = () => {
@@ -94,7 +95,7 @@ const StylePage: React.FC = () => {
       </div>
 
       {style.description && (
-        <section className={SPACE.section}>
+        <section className={`${SPACE.section} ${GROUND} py-6`}>
           <SectionHead label="Record" />
           <p className={`${FACT_CLASS} text-tea-text ${MEASURE} ${AXIS_INDENT}`}>{style.description}</p>
         </section>

@@ -12,20 +12,21 @@ import { Helmet } from 'react-helmet-async';
 import { findNamedTeaById } from '../../wisdom';
 import {
   AXIS_INDENT,
+  catalogueNumber,
   EntryAuthorship,
   FACT,
-  FACT_CLASS,
   Fact,
+  FACT_CLASS,
+  GROUND,
   HoldingNotFound,
   Invitation,
   MEASURE,
   PAGE,
   PageHead,
   Passage,
-  SPACE,
   SectionHead,
+  SPACE,
   WisdomSubNav,
-  catalogueNumber,
 } from './wisdomShared';
 
 function provenanceStatement(provenance: 'undisclosed' | 'partial' | 'stated'): string {
@@ -122,7 +123,7 @@ const NamedTeaPage: React.FC = () => {
           sentence on the value axis at body size. Below the facts, not above
           them, because a reader wants to know what type of tea it is before
           they want to know how its name was arrived at. */}
-      <section className={SPACE.section}>
+      <section className={`${SPACE.section} ${GROUND} py-6`}>
         <SectionHead label="How it was named" />
         <Passage label="Naming tradition" text={tea.tradition} />
         <p className={`${FACT_CLASS} text-tea-text ${MEASURE} ${AXIS_INDENT} mt-5`}>
@@ -131,7 +132,7 @@ const NamedTeaPage: React.FC = () => {
       </section>
 
       {tea.description && (
-        <section className={SPACE.section}>
+        <section className={`${SPACE.section} ${GROUND} py-6`}>
           <SectionHead label="Record" />
           <p className={`${FACT} ${MEASURE} ${AXIS_INDENT}`}>{tea.description}</p>
         </section>

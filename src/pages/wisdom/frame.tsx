@@ -157,17 +157,63 @@ export const ROW_AXIS =
  * different lengths does not, so the eye loses which fact belongs to which name
  * the moment a row wraps.
  *
- * It is the full rule, at the same weight and the same tone, doing one more job.
- * Not a third weight and not a zebra: an alternating fill would be a second
- * surface, and the surface step on this page measures 1.21:1, which is under the
- * 1.4 where a step is perceptible at all. A rule a reader can actually see beats
- * a stripe they cannot.
+ * It is scored, not drawn. The rule was the border tone first, which is bronze
+ * at 14 percent, and a run of forty of them down a list is a wash of warm lines
+ * reading as ornament while doing a separator's job. `.wisdom-rule` is a dark
+ * score with a hair of light under it, the mark a press leaves, and at a glance
+ * it is simply where one row stops. It is set with an adjacent-sibling selector
+ * rather than a first-child reset, so a rule can never land above the first row
+ * of a block: a rule directly under a head reads as a divider cutting the head
+ * off from what it heads.
  *
- * Never above the first row of a group. A rule drawn directly under a section
- * head reads as a divider cutting the head off from what it heads, which is the
- * exact defect the short bronze rule exists to avoid.
+ * Lives in card-utilities.css, per the house rule that a reusable style is not
+ * a string of utilities repeated at call sites.
  */
-export const ROW_RULE = 'border-t border-tea-border first:border-t-0';
+export const ROW_RULE = 'wisdom-rule';
+
+/**
+ * The tone step, and the measurement that decides which token carries it.
+ *
+ * Three attempts, and the first two were the two obvious ones.
+ *
+ * Flat, with space and hairlines carrying the grouping, because `tea-surface` on
+ * `tea-bg` measures 1.21:1 and a fill is only perceptible from about 1.4. Adrian
+ * read that as one blank page, and he was right.
+ *
+ * Then a filled block in `tea-elevated`, which at 1.51:1 does clear the
+ * threshold. It is seen, and it is seen as exactly what it is: a lighter
+ * rectangle laid on a darker one. Adrian's word for it was that it is not the
+ * right colour, which it is not, because no colour on this ramp is. A fill big
+ * enough to be perceived on its own is a slab, and a slab is what a shop's app
+ * chrome looks like, not a page of a reference.
+ *
+ * The mistake in both was assuming a fill is the only thing that can say
+ * "plane". The house card has never assumed that. `.card-grid-item` sits on
+ * `tea-surface`, the whisper, and what a reader actually sees is the 1px bronze
+ * edge-light along its top and the shadow it casts. Value does not carry it,
+ * edges do, and an edge can be quiet in a way a field cannot. `.wisdom-ground`
+ * is that idiom at the reference's scale, and the visual work is done by a
+ * hairline of bronze at 6 percent and a soft shadow, both of which are as close
+ * to nothing as a device can be and still be read.
+ *
+ * Where it goes is one rule: the record is raised, and the apparatus around the
+ * record is not. On an index the list of entries lifts, and the group mark above
+ * it, the toolbar, the headword and the notes at the foot stay on the page. On
+ * an entry each section of the record lifts and the headword, the authorship
+ * line and the invitation stay down. A band boundary then means the same thing
+ * wherever a reader meets it.
+ *
+ * Alternating rows were built and taken out. Banding every second row of a
+ * 630-entry reference reads as a spreadsheet, and it puts a second separator on
+ * a list the scored rule had already separated.
+ *
+ * The negative margin is matched to the app's own page padding at each
+ * breakpoint, so the block reaches the edge of the reading area and no further,
+ * and everything inside it stays on the same left axis as everything outside it.
+ * Vertical padding is the caller's, because a section of prose and a list of
+ * rows do not want the same amount of it.
+ */
+export const GROUND = 'wisdom-ground -mx-4 px-4 md:-mx-6 md:px-6';
 
 /** Content that sits on the value edge with nothing hung in the margin beside it. */
 export const AXIS_INDENT = 'sm:ml-[9rem]';
