@@ -43,6 +43,7 @@ import {
   FACT,
   FACT_CLASS,
   FOOTNOTE,
+  GROUND,
   LABEL,
   LABEL_CLASS,
   MEASURE,
@@ -818,8 +819,8 @@ export const HoldingRow: React.FC<{
  * page's own padding at every width, so nothing here needs clipping and nothing
  * here can take the page sideways.
  */
-export const IndexList: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <ul className="list-none m-0 p-0">{children}</ul>
+export const IndexList: React.FC<{ children: React.ReactNode; plain?: boolean }> = ({ children, plain = false }) => (
+  <ul className={`list-none m-0 p-0 ${plain ? '' : `${GROUND} py-2`}`}>{children}</ul>
 );
 
 /**

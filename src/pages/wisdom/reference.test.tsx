@@ -409,15 +409,28 @@ describe('guide words at the top of a long list', () => {
 });
 
 describe('what carries the grouping', () => {
-  it('puts no panel fill anywhere in the reference', () => {
-    // bg-tea-surface on bg-tea-bg is 1.21:1 in dark mode and 1.15:1 in light.
-    // A surface step is only perceptible from about 1.4, so every panel on
-    // these pages was contributing padding and no structure. Space and two
-    // rules carry the grouping now, and a fill creeping back would be a
-    // container nobody can see.
+  it('spends its tone step on the token that can actually be seen', () => {
+    // bg-tea-surface on bg-tea-bg is 1.21:1 in dark mode and 1.15:1 in light,
+    // and a step is only perceptible from about 1.4, so a panel drawn in it is
+    // padding pretending to be structure. bg-tea-elevated is 1.51:1 dark and
+    // 1.41:1 light. If a ground ever drops back to surface, the page goes flat
+    // again and nobody can see why.
     for (const path of ['/wisdom', ...INDEX_PAGES, ...DETAIL_PAGES, '/wisdom/style/xiao-qing-gan']) {
-      expect(render(path)).not.toContain('bg-tea-surface border border-tea-border rounded-xl');
+      const html = render(path);
+      expect(html).not.toContain('bg-tea-surface');
+      expect(html).toContain('bg-tea-elevated rounded-xl');
     }
+  });
+
+  it('raises the record and leaves the apparatus on the page tone', () => {
+    // An index lifts its list; the group mark above it does not lift, or the
+    // band boundary stops meaning one thing.
+    const named = render('/wisdom/named');
+    expect(named).toMatch(/<ul class="list-none m-0 p-0 bg-tea-elevated rounded-xl[^"]*py-2">/);
+    // A group head is a heading, so it stays down on the page's own tone.
+    expect(named).not.toMatch(/scroll-mt-12[^"]*bg-tea-elevated/);
+    // An entry lifts each section of the record, and the foot notes stay down.
+    expect(render('/wisdom/cultivar/jin-xuan')).toMatch(/<section class="mt-12 bg-tea-elevated rounded-xl/);
   });
 
   it('holds the spacing grammar and both rules on every page', () => {
@@ -453,9 +466,11 @@ describe('one row from the next', () => {
     }
   });
 
-  it('never stripes, because the surface step is below the threshold to see it', () => {
-    // bg-tea-surface on bg-tea-bg is 1.21:1 in dark mode. A zebra drawn in a
-    // tone a reader cannot resolve is separation that does not separate.
+  it('never stripes', () => {
+    // Alternating rows were built and taken out. The tone was right, the rhythm
+    // was wrong: banding every second row of a 630-entry reference reads as a
+    // spreadsheet, and it puts a second separator on a list the hairline had
+    // already separated. One block of tone says it once.
     for (const path of INDEX_PAGES) {
       expect(render(path)).not.toMatch(/even:bg-|odd:bg-|nth-child/);
     }

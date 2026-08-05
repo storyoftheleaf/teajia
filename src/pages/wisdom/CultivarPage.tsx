@@ -13,11 +13,14 @@ import { findCultivarById } from '../../wisdom';
 import {
   AXIS,
   AXIS_INDENT,
-  EntryAuthorship,
+  catalogueNumber,
   CELL_CLASS,
+  EntryAuthorship,
   FACT,
-  FACT_CLASS,
   Fact,
+  FACT_CLASS,
+  GROUND,
+  growingPlace,
   HoldingNotFound,
   Invitation,
   LABEL,
@@ -28,12 +31,10 @@ import {
   Passage,
   ProseSkeleton,
   QUIET_LINK,
-  SPACE,
   SectionHead,
-  WisdomSubNav,
-  catalogueNumber,
-  growingPlace,
+  SPACE,
   useCultivarStory,
+  WisdomSubNav,
 } from './wisdomShared';
 import { LineageTree, isCultivar, nameOf, readLineage } from './LineageTree';
 
@@ -167,12 +168,15 @@ const CultivarPage: React.FC = () => {
         </p>
       </div>
 
-      <div className={SPACE.section}>
+      {/* The rail is the largest block on a plant's page, so leaving it on the
+          page tone left the top half of the entry reading as one flat field
+          however many bands sat under it. */}
+      <div className={`${SPACE.section} ${GROUND} py-6`}>
         <LineageTree cultivar={cultivar} />
       </div>
 
       {/* The account. Prose, so it waits for the corpus. */}
-      <section className={SPACE.section}>
+      <section className={`${SPACE.section} ${GROUND} py-6`}>
         <SectionHead label="The plant" />
         <div className={AXIS_INDENT}>
           {loading && <ProseSkeleton lines={4} />}
@@ -200,7 +204,7 @@ const CultivarPage: React.FC = () => {
           that holds its altitude and its climate, with the grower's own wording
           kept underneath only where the two differ. The developed year went the
           same way: the header line already carries it. */}
-      <section className={SPACE.section}>
+      <section className={`${SPACE.section} ${GROUND} py-6`}>
         <SectionHead label="Where it grows" />
         <Fact label="Place">
           {place ? (
@@ -252,7 +256,7 @@ const CultivarPage: React.FC = () => {
       </section>
 
       {/* The sensory footprint. */}
-      <section className={SPACE.section}>
+      <section className={`${SPACE.section} ${GROUND} py-6`}>
         <SectionHead label="In the cup" />
         {loading && (
           <div className={AXIS_INDENT}>
@@ -278,7 +282,7 @@ const CultivarPage: React.FC = () => {
           A family is its own object: the name sits on the page and the teas
           under it sit in a panel, the same shape a section takes. */}
       {(loading || expressions.length > 0) && (
-        <section className={SPACE.section}>
+        <section className={`${SPACE.section} ${GROUND} py-6`}>
           <SectionHead label="The teas" />
           {loading && (
             <div className={AXIS_INDENT}>
@@ -307,7 +311,7 @@ const CultivarPage: React.FC = () => {
 
       {/* Growing and making. */}
       {(loading || story) && (
-        <section className={SPACE.section}>
+        <section className={`${SPACE.section} ${GROUND} py-6`}>
           <SectionHead label="Grown and made" />
           {loading && (
             <div className={AXIS_INDENT}>
@@ -328,7 +332,7 @@ const CultivarPage: React.FC = () => {
           not available to the reference and must never be copied into it, so
           this says what is true and points at the shop rather than inventing a
           list of teas attributed to the plant. */}
-      <section className={SPACE.section}>
+      <section className={`${SPACE.section} ${GROUND} py-6`}>
         <SectionHead label="In the shop" />
         <p className={`${FACT} ${MEASURE} ${AXIS_INDENT}`}>
           The reference does not hold what any shop stocks, so nothing on sale is currently attributed to this plant.{' '}

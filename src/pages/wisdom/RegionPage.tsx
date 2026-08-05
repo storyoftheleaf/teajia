@@ -12,9 +12,11 @@ import { Helmet } from 'react-helmet-async';
 import { REGIONS, findRegion } from '../../wisdom';
 import {
   AXIS_INDENT,
+  catalogueNumber,
   EntryAuthorship,
-  FACT_CLASS,
   Fact,
+  FACT_CLASS,
+  GROUND,
   HoldingNotFound,
   HoldingRow,
   IndexList,
@@ -23,11 +25,10 @@ import {
   PAGE,
   PageHead,
   Passage,
-  SPACE,
-  SectionHead,
-  WisdomSubNav,
-  catalogueNumber,
   plantsGrownIn,
+  SectionHead,
+  SPACE,
+  WisdomSubNav,
 } from './wisdomShared';
 
 const RegionPage: React.FC = () => {
@@ -140,7 +141,7 @@ const RegionPage: React.FC = () => {
         )}
       </div>
 
-      <section className={SPACE.section}>
+      <section className={`${SPACE.section} ${GROUND} py-6`}>
         <SectionHead label="Plants from here" count={plants.length || undefined} />
         {plants.length === 0 ? (
           <p className={`${FACT_CLASS} text-tea-text-dim ${MEASURE} ${AXIS_INDENT}`}>
@@ -148,7 +149,7 @@ const RegionPage: React.FC = () => {
             claim that nothing grows here.
           </p>
         ) : (
-          <IndexList>
+          <IndexList plain>
             {plants.map(plant => (
               <HoldingRow
                 key={plant.id}
