@@ -124,6 +124,51 @@ export const SPACE = {
  */
 export const AXIS = 'sm:grid sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:gap-x-6 sm:items-baseline';
 
+/**
+ * The same axis, with a third track for an index row's metadata.
+ *
+ * Up to lg it is `AXIS` exactly: catalogue number in the margin, name on the
+ * value edge, and the facts running in on a second line beneath the name. That
+ * is the only shape a 390px phone or a 900px tablet has room for.
+ *
+ * From lg the row opens out. The name takes the free space and the facts move up
+ * onto its baseline in a 24rem track of their own, set flush to the far edge of
+ * the row. That is what the extra width is for, and the right edge is where the
+ * facts have to land: a fixed track anywhere short of it leaves a few hundred
+ * pixels of rule running out to nothing, which is the same empty fore-edge in a
+ * different place. Flush right, the rule ends where the last fact ends.
+ *
+ * The lineage rail already sets its origin and its year this way, on the same
+ * surface, and reads well doing it. Ragged left is the price and it is small:
+ * these are one or two words apiece, and the rule under each row is what carries
+ * the eye from a name to its facts, the job leader dots do in print.
+ */
+export const ROW_AXIS =
+  'sm:grid sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:gap-x-6 sm:items-baseline lg:grid-cols-[7.5rem_minmax(0,1fr)_minmax(0,24rem)]';
+
+/**
+ * A hairline between one row of a list and the next.
+ *
+ * The reference ran with no row separation at all, taken from fine bookwork,
+ * where a clustered block of entries in an open field reads as a list without a
+ * single rule being drawn. Adrian looked at 630 entries set that way and asked
+ * for the lines back, and on a screen he is right: a printed page holds a fixed
+ * block in the hand at a fixed size, and a scrolling list of names of wildly
+ * different lengths does not, so the eye loses which fact belongs to which name
+ * the moment a row wraps.
+ *
+ * It is the full rule, at the same weight and the same tone, doing one more job.
+ * Not a third weight and not a zebra: an alternating fill would be a second
+ * surface, and the surface step on this page measures 1.21:1, which is under the
+ * 1.4 where a step is perceptible at all. A rule a reader can actually see beats
+ * a stripe they cannot.
+ *
+ * Never above the first row of a group. A rule drawn directly under a section
+ * head reads as a divider cutting the head off from what it heads, which is the
+ * exact defect the short bronze rule exists to avoid.
+ */
+export const ROW_RULE = 'border-t border-tea-border first:border-t-0';
+
 /** Content that sits on the value edge with nothing hung in the margin beside it. */
 export const AXIS_INDENT = 'sm:ml-[9rem]';
 
@@ -137,17 +182,25 @@ export const MEASURE = 'max-w-[66ch]';
 /**
  * The page shell every wisdom route uses.
  *
- * Not centred. The column is held left against the label axis and the right
- * margin is left to run empty, the way a book's fore-edge does. On a wide
- * monitor that reads as unfinished to an eye trained on dashboards, and it is
- * meant to: a measure floating in the middle of 1600px with equal voids either
- * side is a web page, and a page held to its left edge with air to its right is
- * a book.
+ * This ran at 46rem, held hard against the left edge with the rest of a wide
+ * screen deliberately left empty, on the argument that a fore-edge is what tells
+ * a book from a dashboard. Adrian looked at it and said the opposite: a narrow
+ * column on the left where you cannot see much. He is right about what it costs.
+ * A 630-entry reference read at 736px shows one fact per row and hides the rest
+ * on a second line, and the width that would have carried them sits empty beside
+ * it. A fore-edge is a printer's constraint, not a virtue, and a reference is
+ * the one kind of book that has always been set wide.
+ *
+ * So the shell takes the width, and the width is used: `MEASURE` still caps
+ * every paragraph at 66 characters, so nothing that is prose gets longer, and
+ * what spreads is the index row, which gains a third column for the metadata it
+ * used to run in under the name. `mx-auto` only does anything past 78rem of
+ * usable width, where holding left would put a third of a monitor in the margin.
  *
  * `hang-punct` is inherited, so one class here hangs punctuation in every
  * paragraph below it.
  */
-export const PAGE = 'w-full max-w-[46rem] pt-4 pb-nav hang-punct';
+export const PAGE = 'w-full max-w-[78rem] mx-auto pt-4 pb-nav hang-punct';
 
 /**
  * A grammar of exactly two rules, and length is what says which is which.

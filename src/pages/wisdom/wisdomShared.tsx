@@ -49,6 +49,8 @@ import {
   NAME_CLASS,
   PAGE,
   QUIET_LINK,
+  ROW_AXIS,
+  ROW_RULE,
   RULE_FULL,
   RULE_SHORT,
   RULE_UNDER,
@@ -595,7 +597,13 @@ export const RunningHead: React.FC<{ groups: Array<{ id: string; label: string; 
       let found = -1;
       for (let index = 0; index < groups.length; index += 1) {
         const mark = document.getElementById(groups[index].id);
-        if (mark && mark.getBoundingClientRect().top <= edge) found = index;
+        // `bottom`, not `top`. A group head carries 40px of space above its
+        // word, so measured from its top the bar lit while the word it was
+        // naming was still on screen underneath it, and a reader at the head of
+        // China read "China" twice, 40px apart, one of them at guide-mark size.
+        // Guide words are for a heading that has left, so the bar waits until
+        // the heading has actually passed under it.
+        if (mark && mark.getBoundingClientRect().bottom <= edge) found = index;
       }
       setCurrent(value => (value === found ? value : found));
     };
@@ -683,15 +691,23 @@ const ROW_HOVER = 'hover:bg-tea-accent-sub';
  *
  * The catalogue number hangs right-aligned and dim in the label margin. The
  * name follows in the display serif at body size, with the Chinese name beside
- * it. The facts run in beneath the name, small and dim, separated by middots.
+ * it. The facts sit small and dim, separated by middots: under the name up to
+ * lg, and from lg in a track of their own on the name's baseline.
  *
- * The columns went with the panel. Fixed grid tracks, a labelled header strip
- * and a rule between every row are the four things that make a list read as a
- * spreadsheet, and a reference of 630 entries read as a spreadsheet is exactly
- * the "overwhelming" this pass was called to fix. What replaces them is the
- * same left axis every other page in the reference uses, generous rows, no
- * zebra and no row borders. The eye still reads a clustered block in an open
- * field as a list; it just no longer reads it as data entry.
+ * Two things that were true of this row are no longer true, and both were
+ * reversed on Adrian's instruction rather than on a fresh argument.
+ *
+ * It had no separation between one row and the next, on the fine-bookwork
+ * reading that a clustered block of entries in an open field is already a list.
+ * It carries a hairline now. See `ROW_RULE` for why the page is not the printed
+ * page that reasoning came from.
+ *
+ * And it kept everything inside a 46rem column with the rest of the screen left
+ * empty, which meant one fact per row and the others pushed onto a second line.
+ * From lg the metadata takes a column, on a single x for the whole list. It is
+ * still not a table: no header strip, no fixed cell borders, no zebra, and the
+ * name is still display type rather than a field. It is a contents page that
+ * knows what its columns are, which is what this surface always said it was.
  *
  * The number repeats at the head of the run-in line below sm, where the margin
  * column has collapsed. It is the one device on the page that makes 630 entries
@@ -703,7 +719,9 @@ const ROW_HOVER = 'hover:bg-tea-accent-sub';
  * own link without an anchor ever nesting inside another.
  *
  * `note` exists for the front door only, where a handful of rows each need a
- * sentence saying what a holding is. It is set as prose, in sentence case.
+ * sentence saying what a holding is. It is set as prose, in sentence case, and
+ * stays under the name rather than moving out to the metadata track: it is a
+ * sentence, and a sentence in a column of two-word facts is not a fact.
  */
 export const HoldingRow: React.FC<{
   to: string;
@@ -715,8 +733,13 @@ export const HoldingRow: React.FC<{
   const number = catalogueNumberFor(to);
   const runIn = cells.filter(hasContent);
   return (
-    <li>
-      <div className={`group relative ${AXIS} ${ROW_HOVER} min-h-[44px] ${SPACE.row} -mx-3 px-3 rounded-md transition-colors`}>
+    /* The rule and the hover field are the same width, and both bleed 12px past
+       the text on each side. Getting that wrong is what makes a ruled list look
+       cheap: a fill wider than the rule above it reads as a misprint. The bleed
+       lives on the li so the border draws at the full width, and the padding
+       lives on the row so the content still starts on the axis. */
+    <li className={`${ROW_RULE} -mx-3`}>
+      <div className={`group relative ${ROW_AXIS} ${ROW_HOVER} min-h-[44px] py-2.5 px-3 transition-colors`}>
         {number ? (
           <span
             aria-hidden
@@ -740,49 +763,61 @@ export const HoldingRow: React.FC<{
             </Link>
             {chineseName && <span className={`${NAME_CLASS} text-tea-text-dim break-words`}>{chineseName}</span>}
           </span>
-          {(runIn.length > 0 || number) && (
-            <span className={`${CELL_CLASS} text-tea-text-dim block mt-0.5 break-words`}>
-              {number && (
-                <span className="sm:hidden figures-tab">
-                  {number}
-                  {runIn.length > 0 && (
-                    <span aria-hidden className="px-1.5">
-                      ·
-                    </span>
-                  )}
-                </span>
-              )}
-              {runIn.map((cell, index) => (
-                <React.Fragment key={index}>
-                  {index > 0 && (
-                    <span aria-hidden className="px-1.5">
-                      ·
-                    </span>
-                  )}
-                  {isLink(cell) ? (
-                    /* `relative` lifts it above the name link's stretched
-                       ::after so it is its own destination. No block padding:
-                       it sits on the run-in line and the row is already 44px. */
-                    <Link to={cell.to} className={`relative ${QUIET_LINK}`}>
-                      {cell.text}
-                    </Link>
-                  ) : isAbsent(cell) ? (
-                    cell.absent
-                  ) : (
-                    <span className="figures-tab">{cellText(cell)}</span>
-                  )}
-                </React.Fragment>
-              ))}
-            </span>
-          )}
           {note && <span className={`${FACT} ${MEASURE} block mt-1.5`}>{note}</span>}
         </span>
+        {(runIn.length > 0 || number) && (
+          /* `sm:col-start-2` keeps it under the name while the row is two
+             tracks, instead of letting it flow back into the number margin.
+             `lg:row-start-1` lifts it onto the name's own baseline once there
+             is a third track to put it in. */
+          <span
+            className={`${CELL_CLASS} text-tea-text-dim block mt-0.5 break-words min-w-0 sm:col-start-2 lg:col-start-3 lg:row-start-1 lg:mt-0 lg:text-right`}
+          >
+            {number && (
+              <span className="sm:hidden figures-tab">
+                {number}
+                {runIn.length > 0 && (
+                  <span aria-hidden className="px-1.5">
+                    ·
+                  </span>
+                )}
+              </span>
+            )}
+            {runIn.map((cell, index) => (
+              <React.Fragment key={index}>
+                {index > 0 && (
+                  <span aria-hidden className="px-1.5">
+                    ·
+                  </span>
+                )}
+                {isLink(cell) ? (
+                  /* `relative` lifts it above the name link's stretched
+                     ::after so it is its own destination. No block padding:
+                     it sits on the run-in line and the row is already 44px. */
+                  <Link to={cell.to} className={`relative ${QUIET_LINK}`}>
+                    {cell.text}
+                  </Link>
+                ) : isAbsent(cell) ? (
+                  cell.absent
+                ) : (
+                  <span className="figures-tab">{cellText(cell)}</span>
+                )}
+              </React.Fragment>
+            ))}
+          </span>
+        )}
       </div>
     </li>
   );
 };
 
-/** The list itself. No zebra, no rules between rows, no header strip. */
+/**
+ * The list itself. Ruled between rows, never striped, and with no header strip.
+ *
+ * Each row bleeds 12px past the text on both sides, which lands inside the
+ * page's own padding at every width, so nothing here needs clipping and nothing
+ * here can take the page sideways.
+ */
 export const IndexList: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <ul className="list-none m-0 p-0">{children}</ul>
 );

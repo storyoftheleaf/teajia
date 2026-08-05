@@ -436,9 +436,57 @@ describe('what carries the grouping', () => {
       const html = render(path);
       expect(html).toContain('max-w-[66ch]');
       expect(html).toContain('sm:grid-cols-[7.5rem_minmax(0,1fr)]');
-      // Held left against the label axis, never centred on a wide screen.
-      expect(html).toContain('class="w-full max-w-[46rem] pt-4 pb-nav hang-punct"');
+      // The shell takes the width now. What holds a paragraph to a readable
+      // line is the measure, which is a property of the text, and it is
+      // unchanged: widening the page must never widen the prose.
+      expect(html).toContain('class="w-full max-w-[78rem] mx-auto pt-4 pb-nav hang-punct"');
+      expect(html).not.toContain('max-w-[46rem]');
     }
+  });
+});
+
+describe('one row from the next', () => {
+  it('rules between rows, and never above the first row of a group', () => {
+    for (const path of INDEX_PAGES) {
+      const html = render(path);
+      expect(html).toContain('border-t border-tea-border first:border-t-0');
+    }
+  });
+
+  it('never stripes, because the surface step is below the threshold to see it', () => {
+    // bg-tea-surface on bg-tea-bg is 1.21:1 in dark mode. A zebra drawn in a
+    // tone a reader cannot resolve is separation that does not separate.
+    for (const path of INDEX_PAGES) {
+      expect(render(path)).not.toMatch(/even:bg-|odd:bg-|nth-child/);
+    }
+  });
+
+  it('draws the rule and the hover field at one width', () => {
+    // The bleed lives on the li so the border spans it; the padding lives on
+    // the row so the text still starts on the axis. A hover fill wider than
+    // the rule above it reads as a misprint.
+    const html = render('/wisdom/named');
+    expect(html).toMatch(/<li class="border-t border-tea-border first:border-t-0 -mx-3">/);
+    expect(html).toMatch(/hover:bg-tea-accent-sub min-h-\[44px\] py-2\.5 px-3/);
+  });
+});
+
+describe('what the extra width is for', () => {
+  it('gives an index row a metadata column of its own from lg', () => {
+    // Up to lg the facts run in under the name, which is the only shape a
+    // phone has room for. From lg they sit on the name's baseline, starting at
+    // the same x on every row, which is the thing a reader can run an eye down.
+    for (const path of INDEX_PAGES) {
+      const html = render(path);
+      expect(html).toContain('lg:grid-cols-[7.5rem_minmax(0,1fr)_minmax(0,24rem)]');
+      expect(html).toContain('sm:col-start-2 lg:col-start-3 lg:row-start-1');
+    }
+  });
+
+  it('keeps a front-door note under its name rather than in the fact column', () => {
+    // A sentence in a column of two-word facts is not a fact.
+    const html = render('/wisdom');
+    expect(html).toMatch(/text-ui-17[^"]*text-tea-text-sec max-w-\[66ch\] block mt-1\.5/);
   });
 });
 
