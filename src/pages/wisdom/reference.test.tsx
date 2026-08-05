@@ -409,16 +409,18 @@ describe('guide words at the top of a long list', () => {
 });
 
 describe('what carries the grouping', () => {
-  it('spends its tone step on the token that can actually be seen', () => {
-    // bg-tea-surface on bg-tea-bg is 1.21:1 in dark mode and 1.15:1 in light,
-    // and a step is only perceptible from about 1.4, so a panel drawn in it is
-    // padding pretending to be structure. bg-tea-elevated is 1.51:1 dark and
-    // 1.41:1 light. If a ground ever drops back to surface, the page goes flat
-    // again and nobody can see why.
+  it('lets an edge carry the plane, never a fill big enough to be a slab', () => {
+    // A fill perceptible on its own has to clear about 1.4, and the only token
+    // on the ramp that does is tea-elevated, which reads as a lighter rectangle
+    // laid on a darker one. The house card solved this years ago: a whisper
+    // fill, a 1px bronze rim light, a soft shadow, and the edges do the reading.
+    // A rounded elevated block creeping back is the slab returning. The search
+    // field keeps that fill and should: it is a control a reader has to find,
+    // not a container, and a field nobody can see is worse than a flat page.
     for (const path of ['/wisdom', ...INDEX_PAGES, ...DETAIL_PAGES, '/wisdom/style/xiao-qing-gan']) {
       const html = render(path);
-      expect(html).not.toContain('bg-tea-surface');
-      expect(html).toContain('bg-tea-elevated rounded-xl');
+      expect(html).not.toMatch(/bg-tea-elevated[^"]*rounded-(lg|xl)/);
+      expect(html).toContain('wisdom-ground');
     }
   });
 
@@ -426,11 +428,11 @@ describe('what carries the grouping', () => {
     // An index lifts its list; the group mark above it does not lift, or the
     // band boundary stops meaning one thing.
     const named = render('/wisdom/named');
-    expect(named).toMatch(/<ul class="list-none m-0 p-0 bg-tea-elevated rounded-xl[^"]*py-2">/);
+    expect(named).toMatch(/<ul class="list-none m-0 p-0 wisdom-ground[^"]*py-2">/);
     // A group head is a heading, so it stays down on the page's own tone.
-    expect(named).not.toMatch(/scroll-mt-12[^"]*bg-tea-elevated/);
+    expect(named).not.toMatch(/scroll-mt-12[^"]*wisdom-ground/);
     // An entry lifts each section of the record, and the foot notes stay down.
-    expect(render('/wisdom/cultivar/jin-xuan')).toMatch(/<section class="mt-12 bg-tea-elevated rounded-xl/);
+    expect(render('/wisdom/cultivar/jin-xuan')).toMatch(/<section class="mt-12 wisdom-ground/);
   });
 
   it('holds the spacing grammar and both rules on every page', () => {
@@ -462,7 +464,7 @@ describe('one row from the next', () => {
   it('rules between rows, and never above the first row of a group', () => {
     for (const path of INDEX_PAGES) {
       const html = render(path);
-      expect(html).toContain('border-t border-tea-border first:border-t-0');
+      expect(html).toContain('wisdom-rule');
     }
   });
 
@@ -481,7 +483,7 @@ describe('one row from the next', () => {
     // the row so the text still starts on the axis. A hover fill wider than
     // the rule above it reads as a misprint.
     const html = render('/wisdom/named');
-    expect(html).toMatch(/<li class="border-t border-tea-border first:border-t-0 -mx-3">/);
+    expect(html).toMatch(/<li class="wisdom-rule -mx-3">/);
     expect(html).toMatch(/hover:bg-tea-accent-sub min-h-\[44px\] py-2\.5 px-3/);
   });
 });
