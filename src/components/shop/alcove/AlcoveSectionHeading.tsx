@@ -3,12 +3,12 @@ import React from 'react';
 interface AlcoveSectionHeadingProps {
   /** Section word rendered between the two hairlines (e.g. "Character"). */
   label: string;
-  /** Extra classes on the wrapper — used for margins per placement. */
+  /** Extra classes on the wrapper, used for margins per placement. */
   className?: string;
 }
 
 /**
- * Centered section word between two hairlines — the quiet card's only
+ * Centered section word between two hairlines. The quiet card's only
  * section-heading device. Word is tracked uppercase sans in gold-lt.
  */
 export const AlcoveSectionHeading: React.FC<AlcoveSectionHeadingProps> = ({

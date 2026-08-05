@@ -97,7 +97,7 @@ function toCamelCase(row: Record<string, any>): TeaCompassEntry {
 
 // ── Pending-work helpers ──
 
-/** True while anything still needs to reach the server — unsynced entries,
+/** True while anything still needs to reach the server, unsynced entries,
  *  unconfirmed deletes, or unretried draft promotions. Drives the retry
  *  heartbeat in useCompassSync. */
 export function compassHasPendingWork(accountId?: string | null): boolean {
@@ -120,7 +120,7 @@ async function retryPendingPromotions(accountId: string): Promise<void> {
   for (const id of store.pendingPromotions) {
     const before = useTeaCompassStore.getState();
     if (before.accountScopeId !== accountId || before.accountScopeRevision !== accountRevision) return;
-    // Entry deleted since — nothing left to promote.
+    // Entry deleted since, nothing left to promote.
     if (!store.entries.some(e => e.id === id)) {
       useTeaCompassStore.getState().removePendingPromotion(id);
       continue;
@@ -143,7 +143,7 @@ async function retryPendingPromotions(accountId: string): Promise<void> {
   }
 }
 
-/** Retry server deletes for tombstoned ids (deletes whose DELETE call failed —
+/** Retry server deletes for tombstoned ids (deletes whose DELETE call failed,
  *  the "I deleted it and it came back" bug on flaky connections). Each id is
  *  cleared only once its delete confirms; failures keep the tombstone for the
  *  next cycle. Previously this only ran on app-start hydrate, so a delete that
@@ -183,7 +183,7 @@ export async function syncCompassEntries(accountId?: string): Promise<number> {
   if (!requestedAccountId || initial.accountScopeId !== requestedAccountId) return 0;
   if (!isTokenScopedToAccount(requestedAccountId)) return 0;
 
-  // Deletes ride every sync cycle, not just hydrate — a failed delete must
+  // Deletes ride every sync cycle, not just hydrate, a failed delete must
   // not wait for the next app reload to retry.
   await retryPendingDeletes(requestedAccountId);
 
@@ -219,12 +219,12 @@ export async function syncCompassEntries(accountId?: string): Promise<number> {
       syncError: state.accountScopeId === requestedAccountId ? hasUnacknowledged : state.syncError,
     }));
 
-    // Entries are on the server now — safe to retry any queued promotions.
+    // Entries are on the server now, safe to retry any queued promotions.
     await retryPendingPromotions(requestedAccountId);
 
     return acknowledgedIds.size;
   } catch (err) {
-    // Offline or error — do NOT mark entries as synced; they will retry next cycle.
+    // Offline or error, do NOT mark entries as synced; they will retry next cycle.
     // Flag it so the UI can say "couldn't save" rather than leaving the user to
     // assume a local-only change persisted.
     console.warn('[TeaCompass] Sync failed:', err);
@@ -302,7 +302,7 @@ export async function hydrateCompassEntries(accountId?: string): Promise<void> {
     const merged: TeaCompassEntry[] = [];
     const seenIds = new Set<string>();
 
-    // Fields that live ONLY on this device — the compass tables have no
+    // Fields that live ONLY on this device, the compass tables have no
     // columns for them (see migration 082's "localStorage-only" note), so a
     // server row never carries them. Naively replacing a synced local entry
     // with the server row wiped them all on every app start: vendor details
@@ -321,7 +321,7 @@ export async function hydrateCompassEntries(accountId?: string): Promise<void> {
       }
       // teaKey IS a server column, but the bulk-sync handler historically
       // dropped it, so old server rows carry null. Never let a null server
-      // value erase a real local key — notes are anchored by it.
+      // value erase a real local key, notes are anchored by it.
       if (out.teaKey == null && local.teaKey != null) out.teaKey = local.teaKey;
       return out as TeaCompassEntry;
     };
@@ -330,10 +330,10 @@ export async function hydrateCompassEntries(accountId?: string): Promise<void> {
     for (const local of localEntries) {
       seenIds.add(local.id);
       if (!local.synced) {
-        // Local change not yet pushed — keep local version
+        // Local change not yet pushed, keep local version
         merged.push(local);
       } else {
-        // Synced locally — prefer server version if it exists (may have newer
+        // Synced locally, prefer server version if it exists (may have newer
         // data), but preserve this device's client-only fields.
         const server = serverEntries.find(s => s.id === local.id);
         merged.push(server ? withClientFields(server, local) : local);
@@ -356,7 +356,7 @@ export async function hydrateCompassEntries(accountId?: string): Promise<void> {
       : state);
 
     // Reconcile tombstones: a tombstoned id the server no longer has is confirmed
-    // gone — forget it. One it still has means an earlier delete didn't land —
+    // gone, forget it. One it still has means an earlier delete didn't land, so
     // retry it, and forget it only once that retry succeeds.
     if (store.deletedIds.length > 0) {
       const confirmedGone = store.deletedIds.filter(id => !rawServerIds.has(id));
@@ -374,7 +374,7 @@ export async function hydrateCompassEntries(accountId?: string): Promise<void> {
               ? s.deletedIds.filter(d => d !== id)
               : s.deletedIds,
           })))
-          .catch(() => { /* still unreachable — keep tombstone, retry next hydrate */ });
+          .catch(() => { /* still unreachable, keep tombstone, retry next hydrate */ });
       }
     }
   } catch (err) {
@@ -382,7 +382,7 @@ export async function hydrateCompassEntries(accountId?: string): Promise<void> {
     if (current.accountScopeId === requestedAccountId && current.accountScopeRevision === requestedRevision) {
       current.setHydrationStatus('error');
     }
-    // Offline or error — local data remains available, but the UI must say so.
+    // Offline or error, local data remains available, but the UI must say so.
     console.warn('[TeaCompass] Hydration failed:', err);
   }
 }

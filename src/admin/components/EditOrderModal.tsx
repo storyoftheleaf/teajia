@@ -297,7 +297,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
           <button
             onClick={handleSave}
             disabled={loading || fetching || items.length === 0}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
           >
             {loading ? <Loader2 size={13} className="animate-spin" /> : <Pencil size={13} />} Save Changes
           </button>

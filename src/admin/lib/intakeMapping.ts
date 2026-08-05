@@ -1,4 +1,4 @@
-// Intake column mapping — the primitive that lets ANY spreadsheet shape load
+// Intake column mapping, the primitive that lets ANY spreadsheet shape load
 // into Teajia. A loaded file's columns are matched (best-effort) to a set of
 // target fields; the user can correct the mapping; the corrected mapping is
 // remembered per header-signature so the same file shape auto-maps next time.
@@ -6,6 +6,9 @@
 // Item fields feed the product object accepted by api.products.bulkCreate.
 // Order/logistics fields feed a purchase_orders record (money + shipment trail)
 // and are intentionally kept OUT of the product object.
+
+import { TEA_TYPES, NON_TEA_TYPES, normalizeTeaType, type TeaType, type TeaForm as WisdomTeaForm } from '../../wisdom';
+import { recognizeForm, recognizeType } from '../../wisdom/recognition';
 
 export type TargetGroup = 'item' | 'order' | 'ignore';
 
@@ -58,7 +61,7 @@ export type ColumnMapping = Record<string, string>;
 const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 
 // Best-effort suggestion for a single header. Returns a target key or '' (ignore).
-// Ranks candidates so the LONGEST matching alias wins — this avoids substring
+// Ranks candidates so the LONGEST matching alias wins, this avoids substring
 // false-positives like "Discounts" matching "count" (qty) before "discounts".
 export function suggestTarget(header: string, alreadyUsed: Set<string>): string {
   const n = normalize(header);
@@ -169,13 +172,17 @@ export function normalizeCurrency(raw: unknown): string {
   return 'UNK';
 }
 
-const VALID_TYPES = ['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Teaware', 'Misc'];
+// Teaware/Misc are not tea types, so they're composed on top of the shared
+// wisdom vocabulary rather than redeclared. See docs/TEA_WISDOM_BASE.md.
+const VALID_TYPES: string[] = [...TEA_TYPES, ...NON_TEA_TYPES];
 export function normalizeType(raw: unknown): string {
   const v = String(raw ?? '').toLowerCase().trim();
   if (!v) return 'Misc';
-  if (['matcha', 'flower'].includes(v)) return 'Herbal';
   const m = VALID_TYPES.find((t) => t.toLowerCase() === v);
-  return m || 'Misc';
+  if (m) return m;
+  // Fall back to the shared alias table, which knows matcha is a Green tea and
+  // hong cha is Red. This file used to file matcha under Herbal.
+  return normalizeTeaType(v) || 'Misc';
 }
 
 const VALID_FORMS = ['Loose', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other'];
@@ -244,7 +251,7 @@ function resolveCurrency(row: Record<string, any>, mapping: ColumnMapping, costR
 }
 
 // Detect teaware from an item's name (English + Chinese) and classify it.
-// Order matters — more specific vessels win over generic accessories so
+// Order matters, more specific vessels win over generic accessories so
 // "tea tray" → tray, "tea knife" → accessory, "kettle" → pot. Returns a
 // teaware_category, or '' when the name isn't teaware (e.g. a jade pendant).
 const TEAWARE_RULES: { cat: string; kw: string[] }[] = [
@@ -253,7 +260,7 @@ const TEAWARE_RULES: { cat: string; kw: string[] }[] = [
   { cat: 'storage', kw: ['caddy', 'canister', 'storage', 'jar', 'tin', 'basket', '罐', '仓', '倉', '储', '儲', '收纳', '收納'] },
   { cat: 'tray', kw: ['tray', 'tea table', 'tea boat', 'saucer', 'pot stand', '茶盘', '茶盤', '茶船', '茶台', '茶臺', '壶承', '壺承'] },
   { cat: 'decorative', kw: ['incense', 'censer', 'ornament', 'statue', 'figurine', '香炉', '香爐', '摆件', '擺件'] },
-  // Tool keywords are kept specific so tea names don't collide — e.g. bare
+  // Tool keywords are kept specific so tea names don't collide, e.g. bare
   // "needle"/"pick" would wrongly catch "Silver Needle" or "hand-picked".
   { cat: 'accessory', kw: ['tea knife', 'pu knife', 'tea needle', 'pu needle', 'pry needle', 'tea pick', 'tongs', 'tweezer', 'tea scoop', 'tea cloth', 'tea towel', 'tea filter', 'strainer', 'funnel', 'stove', 'tea brush', 'coaster', 'lid rest', 'tea spoon', '茶刀', '茶夹', '茶夾', '茶针', '茶針', '茶则', '茶則', '滤网', '濾網', '炉', '爐', '杯垫', '杯墊', '盖置', '蓋置'] },
 ];
@@ -266,52 +273,41 @@ export function detectTeaware(...names: string[]): string {
   return '';
 }
 
-// Guess a tea type from the name when the sheet has no Type column. Order is
-// significant: ripe/raw pu'er win before generic, cultivars resolve to oolong,
-// etc. Generic "pu'er" with no raw/ripe marker stays unguessed (returns '').
-const TEA_TYPE_RULES: { type: string; kw: string[] }[] = [
-  { type: 'Shou', kw: ['shou', 'ripe pu', 'cooked pu', 'ripe puer', 'shu pu', '熟普', '熟茶', '熟饼', '熟餅'] },
-  { type: 'Sheng', kw: ['sheng', 'raw pu', 'raw puer', 'raw pu-erh', 'uncooked', '生普', '生茶', '生饼', '生餅'] },
-  { type: 'Oolong', kw: ['oolong', 'wulong', 'wu long', 'tie guan yin', 'tieguanyin', 'tiekuanyin', 'da hong pao', 'dahongpao', 'rou gui', 'rougui', 'shui xian', 'shuixian', 'dan cong', 'dancong', 'dong ding', 'dongding', 'alishan', 'ali shan', 'jin xuan', 'jinxuan', 'gaba', 'milk oolong', 'high mountain', 'gao shan', '乌龙', '烏龍', '岩茶', '铁观音', '鐵觀音', '凤凰', '鳳凰', '单丛', '單欉'] },
-  { type: 'Red', kw: ['black tea', 'red tea', 'hong cha', 'hongcha', 'dian hong', 'dianhong', 'lapsang', 'zheng shan', 'jin jun mei', 'jinjunmei', 'keemun', 'qimen', '红茶', '紅茶', '正山', '金骏眉', '金駿眉'] },
-  { type: 'White', kw: ['white tea', 'bai cha', 'silver needle', 'bai hao', 'baihao', 'bai mu dan', 'baimudan', 'shou mei', 'shoumei', 'gong mei', 'gongmei', '白茶', '白毫', '白牡丹', '寿眉', '壽眉'] },
-  { type: 'Green', kw: ['green tea', 'lu cha', 'long jing', 'longjing', 'dragon well', 'bi luo chun', 'biluochun', 'mao feng', 'maofeng', 'gunpowder', 'gua pian', 'anji', '绿茶', '綠茶', '龙井', '龍井', '碧螺春', '毛峰'] },
-  { type: 'Yellow', kw: ['yellow tea', 'huang cha', 'jun shan', 'junshan', 'huang ya', '黄茶', '黃茶', '君山', '黄芽'] },
-  { type: 'Dark', kw: ['dark tea', 'hei cha', 'heicha', 'liu bao', 'liubao', 'fu zhuan', 'fu brick', 'an hua', 'anhua', 'golden flower', '黑茶', '六堡', '茯砖', '茯磚', '安化'] },
-];
-export function detectTeaType(...names: string[]): string {
-  const hay = names.filter(Boolean).join(' ').toLowerCase();
-  if (!hay) return '';
-  for (const { type, kw } of TEA_TYPE_RULES) {
-    if (kw.some((k) => hay.includes(k))) return type;
-  }
-  return '';
+// Guess a tea type from the name when the sheet has no Type column. Reads the
+// shared wisdom recognition index (src/wisdom/recognition.ts), which layers
+// the same curated bilingual keyword knowledge this file used to hold locally
+// (ripe/raw pu'er, cultivars resolving to oolong, etc.) on top of an automatic
+// derivation from the 316 tea varieties in the wisdom base, so a variety not
+// in the curated list still resolves. Generic "pu'er" with no raw/ripe marker
+// stays unguessed (returns ''), same as before.
+export function detectTeaType(...names: string[]): TeaType | '' {
+  const hay = names.filter(Boolean).join(' ');
+  return recognizeType(hay) ?? '';
 }
 
 // Guess a physical form from the name (cake, tuo, brick, ball…) when absent.
-const FORM_RULES: { form: string; kw: string[] }[] = [
-  { form: 'Cake', kw: ['cake', 'bing', 'disc', 'beeng', '饼', '餅'] },
-  { form: 'Tuo', kw: ['tuo', 'tuocha', 'nest', 'bowl-shaped', '沱'] },
-  { form: 'Brick', kw: ['brick', 'zhuan', '砖', '磚'] },
-  { form: 'Ball', kw: ['dragon ball', 'ball', 'long zhu', 'pearl', '龙珠', '龍珠'] },
+// Reads the same shared recognition index as detectTeaType. 'Rolled' and
+// 'Powder' are composed on top locally because intake tracks a couple of
+// physical forms the shared vocabulary doesn't carry.
+const EXTRA_FORM_RULES: { form: 'Rolled' | 'Powder'; kw: string[] }[] = [
   { form: 'Rolled', kw: ['rolled', 'curled'] },
   { form: 'Powder', kw: ['powder', 'matcha', 'ground'] },
-  { form: 'Bag', kw: ['tea bag', 'teabag', 'sachet'] },
-  { form: 'Loose', kw: ['loose leaf', 'loose-leaf', 'maocha', 'mao cha'] },
 ];
-export function detectForm(...names: string[]): string {
-  const hay = names.filter(Boolean).join(' ').toLowerCase();
-  if (!hay) return '';
-  for (const { form, kw } of FORM_RULES) {
-    if (kw.some((k) => hay.includes(k))) return form;
+export function detectForm(...names: string[]): WisdomTeaForm | 'Rolled' | 'Powder' | '' {
+  const hay = names.filter(Boolean).join(' ');
+  const form = recognizeForm(hay);
+  if (form) return form;
+  const lower = hay.toLowerCase();
+  for (const { form: extraForm, kw } of EXTRA_FORM_RULES) {
+    if (kw.some((k) => lower.includes(k))) return extraForm;
   }
   return '';
 }
 
-// A rough default *size* (relative bulk — how much shipping space an item takes,
+// A rough default *size* (relative bulk: how much shipping space an item takes,
 // NOT weight) used to prorate shipping. Teaware uses a per-piece size by category
-// × unit count; tea uses a per-form size × piece count. Starting points only —
-// the user edits each one.
+// × unit count; tea uses a per-form size × piece count. Starting points only.
+// The user edits each one.
 const TEAWARE_SIZE: Record<string, number> = { pot: 100, cup: 15, tray: 120, storage: 60, accessory: 8, decorative: 40 };
 const FORM_SIZE: Record<string, number> = { Cake: 30, Brick: 28, Tuo: 12, Ball: 5, Bag: 2, Rolled: 12, 'Loose': 15, Powder: 8 };
 export function defaultSize(it: { type: string; teawareCategory: string; form?: string | null; quantityPurchased: number; stockGrams: number; quantityUnits: number }): number {
@@ -404,7 +400,7 @@ export function isReadyItem(it: StagedItem): boolean {
 }
 
 // Build the product object the bulkCreate endpoint expects.
-// Everything from intake lands as Draft — a deliberate safety choice so nothing
+// Everything from intake lands as Draft, a deliberate safety choice so nothing
 // reaches the public storefront without an explicit activation step. isReadyItem
 // drives the UI badge (ready-to-activate vs needs-info), not the import status.
 // extraCost (in the item's own currency) is the prorated shipping share folded

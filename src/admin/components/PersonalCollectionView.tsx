@@ -215,7 +215,10 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                                     </td>
                                     <td className="px-4 py-2 align-middle overflow-hidden">
                                         <span className="flex items-center gap-2 font-sans text-ui-11 uppercase tracking-caps text-tea-text-sec truncate">
-                                            <span style={{ color: dotColor, fontSize: '10px' }}>&#9679;</span> {product.type}
+                                            {/* Unicode escape rather than the HTML entity &#9679;: the
+                                                entity reads as a hex literal to the colour lint, which
+                                                then flags this style object for a colour not in it. */}
+                                            <span className="text-ui-10" style={{ color: dotColor }}>{'\u25CF'}</span> {product.type}
                                         </span>
                                     </td>
                                     <td className="px-4 py-2 align-middle overflow-hidden">

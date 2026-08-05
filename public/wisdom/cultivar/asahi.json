@@ -1,0 +1,38 @@
+{
+  "id": "asahi",
+  "name": "Asahi",
+  "chineseName": "あさひ",
+  "altNames": [
+    "Morning Sun"
+  ],
+  "originCountry": "Japan",
+  "originRegion": "Kyoto (Uji)",
+  "developedYear": 1950,
+  "parentage": "Selected from the native Uji Zairai population.",
+  "description": "'Morning Sun'. An old and revered elite cultivar from Uji, Kyoto. It is considered one of the absolute highest-grade cultivars for Matcha production, prized for its supremely elegant, profoundly sweet, and umami-rich profile with almost no bitterness. It is often used for top-tier, ceremonial-grade Matcha.",
+  "plantType": "Delicate, slow-growing, semi-upright bush with thin leaves (Camellia sinensis var. sinensis).",
+  "environment": "Requires the specific, stable, and rich terroir of Uji. It is a demanding cultivar with a low yield, reserved for the best plots.",
+  "processing": "Asahi is a shading master. It must be shaded for an extended period (20+ days) to develop its unique chemical composition, which is high in L-theanine and low in catechins. The leaves are very delicate and must be handled with extreme care.",
+  "oxidation": "Zero oxidation. The leaves are lightly steamed immediately after harvest to preserve their delicate character.",
+  "roasting": "No roasting. The leaves are processed into Tencha by being dried flat in a specialized 'tencha-ro' oven, which prepares them for stone-grinding without altering their pure flavor.",
+  "versatility": "Extremely specialized. Asahi is a 'thoroughbred' cultivar used exclusively for producing the most premium, ceremonial-grade Matcha in Japan.",
+  "distribution": {
+    "japan": [
+      "Kyoto (Uji)"
+    ]
+  },
+  "expressions": {
+    "Matcha & Tencha": {
+      "Ultra-Premium Ceremonial Matcha": "Its sole and highest expression. When shaded, it produces Tencha that is stone-ground into the finest Matcha, known for its incredible sweetness and elegance."
+    }
+  },
+  "sensory": {
+    "aroma": "Subtle, sweet, clean, and milky",
+    "flavor": "Profound and elegant umami with an exceptional, lasting sweetness and virtually zero bitterness.",
+    "mouthfeel_liquor": "Incredibly smooth, creamy, and refined, creating a very luxurious bowl of Matcha. The liquor is a bright, vibrant green."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

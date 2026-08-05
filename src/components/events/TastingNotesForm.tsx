@@ -12,7 +12,7 @@ interface TastingNotesFormProps {
   className?: string;
   /** Event ID to cross-link tastings into the personal journal */
   eventId?: string;
-  /** URL slug for the event — used for journal navigation */
+  /** URL slug for the event, used for journal navigation */
   eventSlug?: string;
   /** Event title shown as context in the journal */
   eventTitle?: string;
@@ -150,7 +150,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
         {onClose && (
           <button
             onClick={onClose}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
           >
             Done
           </button>
@@ -296,7 +296,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
           <button
             onClick={handleSubmit}
             disabled={!hasAnyRating || submitMutation.isPending}
-            className="flex-1 py-3 bg-tea-gold text-tea-bg text-ui-12 uppercase tracking-[0.25em] font-semibold rounded-md hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
+            className="flex-1 py-3 cta-solid text-ui-12 uppercase tracking-[0.25em] font-semibold rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
           >
             {submitMutation.isPending ? (
               <span className="inline-block w-4 h-4 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin" />

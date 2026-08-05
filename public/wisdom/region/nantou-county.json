@@ -1,0 +1,11 @@
+{
+  "id": "nantou-county",
+  "name": "Nantou County",
+  "country": "Taiwan",
+  "province": "Nantou",
+  "altitude": "300-2000m",
+  "climate": "Central Taiwan mountains with diverse altitude zones",
+  "holding": "regions",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

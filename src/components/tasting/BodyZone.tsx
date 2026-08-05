@@ -14,7 +14,7 @@ const WEIGHTS = [
 const TEXTURES = [
   { id: 'silky',  label: 'Silky',      hint: 'The tea slides across your tongue with no resistance.' },
   { id: 'smooth', label: 'Smooth',     hint: 'Even and gentle, nothing catches. Easy to drink.' },
-  { id: 'velvety',label: 'Velvety',    hint: 'Soft and plush — a little more weight than silky.' },
+  { id: 'velvety',label: 'Velvety',    hint: 'Soft and plush, carrying a little more weight than silky.' },
   { id: 'oily',   label: 'Oily',       hint: 'Coats your mouth, feels rich. Almost buttery.' },
   { id: 'crisp',  label: 'Taut',       hint: 'Crisp structure, a little tension. Like biting into a fresh apple.' },
   { id: 'dry',    label: 'Astringent', hint: 'Drying, puckering. The same feeling as strong black tea or unripe fruit.' },

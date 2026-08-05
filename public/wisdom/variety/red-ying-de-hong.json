@@ -1,0 +1,13 @@
+{
+  "id": "red-ying-de-hong",
+  "type": "Red",
+  "name": "Ying De Hong",
+  "chineseName": "英德红茶",
+  "altNames": [
+    "Yingde Red"
+  ],
+  "region": "Yingde",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

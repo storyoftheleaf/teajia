@@ -5,7 +5,7 @@ import type { Currency } from '../../admin/types';
 
 Font.register({
   family: 'Plus Jakarta Sans',
-  // Self-hosted (converted from the repo's woff2 by fontTools) — the old
+  // Self-hosted (converted from the repo's woff2 by fontTools), the old
   // fonts.gstatic.com URL is blocked in mainland China, which killed PDF
   // generation exactly where the ledger gets used.
   src: '/fonts/PlusJakartaSans-Regular.ttf',

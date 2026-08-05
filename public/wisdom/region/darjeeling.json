@@ -1,0 +1,11 @@
+{
+  "id": "darjeeling",
+  "name": "Darjeeling",
+  "country": "India",
+  "province": "West Bengal",
+  "altitude": "2000-2500m",
+  "climate": "High altitude Himalayan foothills, famous for muscatel flavor",
+  "holding": "regions",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

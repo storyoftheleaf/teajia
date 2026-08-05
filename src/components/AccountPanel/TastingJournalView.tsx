@@ -141,7 +141,7 @@ const EntryDetail: React.FC<{
     >
       <BackButton onClick={onClose} label="Tasting Journal" />
 
-      {/* Tea identity — sensory card pattern §34 */}
+      {/* Tea identity, sensory card pattern §34 */}
       <div className="bg-tea-surface border border-tea-border rounded-xl p-5 mb-5 flex items-start gap-4">
         {entry.productImage ? (
           <img src={entry.productImage} alt="" className="w-14 h-14 rounded-md object-cover shrink-0" loading="lazy" />
@@ -307,7 +307,7 @@ export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack, 
     return <EntryDetail entry={openEntry} onClose={() => setOpenId(null)} onOpenTea={onOpenTea} />;
   }
 
-  // Empty state — §19
+  // Empty state, §19
   if (entries.length === 0) {
     return (
       <div className="animate-[fadeIn_0.3s_ease-out]">
@@ -323,7 +323,7 @@ export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack, 
     );
   }
 
-  // List view — canonical ListShell + sensory list rows
+  // List view, canonical ListShell + sensory list rows
   return (
     <AnimatePresence mode="wait">
       <motion.div
@@ -351,7 +351,7 @@ export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack, 
           )}
         </div>
 
-        {/* Entry list — §34 sensory list pattern: date caps + display name +
+        {/* Entry list, §34 sensory list pattern: date caps + display name +
             body excerpt. Wrapped in ListShell for canonical bordered surface. */}
         <ListShell>
           {entries.map((entry) => {
@@ -377,9 +377,9 @@ export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack, 
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      {/* Date caps — §34 label-caps */}
+                      {/* Date caps, §34 label-caps */}
                       <div className="label-caps text-tea-text-dim">{dateText}</div>
-                      {/* Tea name — font-display text-ui-15 */}
+                      {/* Tea name, font-display text-ui-15 */}
                       <h4 className="font-display text-ui-15 text-tea-text mt-1 truncate group-hover/entry:text-tea-gold transition-colors">
                         {displayName}
                       </h4>
@@ -396,7 +396,7 @@ export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack, 
                   {/* Descriptors */}
                   <DescriptorPills entry={entry} />
 
-                  {/* Personal note excerpt — body-light italic */}
+                  {/* Personal note excerpt, body-light italic */}
                   {noteText && (
                     <p className="font-body italic text-ui-13 text-tea-text-sec mt-2 leading-relaxed line-clamp-2">
                       "{noteText}"

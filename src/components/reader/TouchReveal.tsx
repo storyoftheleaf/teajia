@@ -7,7 +7,7 @@ interface TouchRevealProps {
 }
 
 /**
- * TouchReveal — Frosted glass overlay that hides content until tapped.
+ * TouchReveal: Frosted glass overlay that hides content until tapped.
  * Tap once to reveal (persistent toggle). Tap again to re-hide.
  * Uses Framer Motion for blur transition on the overlay.
  * Overlay uses bg-tea-surface/40. No hardcoded rgba().

@@ -13,12 +13,12 @@ const USE_CASES = [
   {
     id: 'events',
     label: 'Private Events & Ceremonies',
-    desc: 'A tea ceremony for a dinner, retreat, or gathering. We bring the tea, the setup, and the knowledge — you bring your people.',
+    desc: 'A tea ceremony for a dinner, retreat, or gathering. We bring the tea, the setup, and the knowledge, you bring your people.',
   },
   {
     id: 'supply',
     label: 'Ongoing Supply & Integration',
-    desc: 'A curated tea selection for your hotel, studio, or restaurant — sourced well, presented thoughtfully, with guidance on how to serve it.',
+    desc: 'A curated tea selection for your hotel, studio, or restaurant, sourced well, presented thoughtfully, with guidance on how to serve it.',
   },
   {
     id: 'team',
@@ -29,10 +29,10 @@ const USE_CASES = [
 
 /* ── What to expect bullets ─────────────────────────── */
 const PROCESS_STEPS = [
-  "Initial conversation — you tell us what you're building, we listen",
+  "Initial conversation, you tell us what you're building, we listen",
   'A curated tea selection matched to your space and guests',
   'Basics on preparation, service, and how to talk about the tea',
-  'Ongoing support if you want it — re-orders, seasonal updates, questions',
+  'Ongoing support if you want it, re-orders, seasonal updates, questions',
 ];
 
 /* ── Inquiry types ───────────────────────────────────── */
@@ -165,7 +165,7 @@ export const ForYourSpacePage: React.FC = () => {
 
     // Build a pre-filled WhatsApp message
     const lines = [
-      `*Business Inquiry — Teajia*`,
+      `*Business Inquiry · Teajia*`,
       ``,
       `*Name:* ${form.name}`,
       `*Organization:* ${form.organization}`,
@@ -186,10 +186,10 @@ export const ForYourSpacePage: React.FC = () => {
   return (
     <div className="w-full animate-[fadeIn_0.6s_ease-out]">
       <Helmet>
-        <title>For Your Space — Teajia</title>
+        <title>For Your Space · Teajia</title>
         <meta
           name="description"
-          content="Bring tea to your hotel, studio, or team. Events, ongoing supply, and cultural experiences — curated and guided."
+          content="Bring tea to your hotel, studio, or team. Events, ongoing supply, and cultural experiences, curated and guided."
         />
       </Helmet>
 
@@ -402,7 +402,7 @@ export const ForYourSpacePage: React.FC = () => {
                   error={errors.organization}
                 />
 
-                {/* Type of inquiry — select */}
+                {/* Type of inquiry, select */}
                 <div className="relative mb-7">
                   <label
                     className={`block font-sans text-ui-11 uppercase tracking-[0.12em] mb-2 ${
@@ -437,7 +437,7 @@ export const ForYourSpacePage: React.FC = () => {
                 </div>
 
                 <FloatingField
-                  label="Brief description — a few sentences is plenty"
+                  label="Brief description, a few sentences is plenty"
                   type="textarea"
                   value={form.description}
                   onChange={set('description')}
@@ -486,7 +486,7 @@ export const ForYourSpacePage: React.FC = () => {
                 <div className="mt-8">
                   <button
                     type="submit"
-                    className="w-full bg-tea-gold text-tea-bg text-ui-11 uppercase tracking-[0.15em] font-medium
+                    className="w-full cta-solid text-ui-11 uppercase tracking-[0.15em] font-medium
                                py-3 px-6 hover:bg-tea-gold/90 transition-colors duration-300
                                active:scale-[0.98] min-h-[44px]
                                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"

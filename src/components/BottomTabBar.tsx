@@ -37,11 +37,11 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  // Derive admin route state from location — same value as the `isAdminRoute` prop,
+  // Derive admin route state from location, same value as the `isAdminRoute` prop,
   // using one authoritative source to avoid split-brain if prop is ever stale.
   const isOnAdmin = location.pathname.startsWith('/admin');
 
-  // The global nav stays visible even when a product alcove is open — the
+  // The global nav stays visible even when a product alcove is open, the
   // alcove commerce footer (Add to Cart, etc.) is sized to clear the bar,
   // and Adrian wants the bar reachable at all times. Only the explicit
   // `hidden` prop (e.g. cart drawer) can hide the bar.
@@ -238,7 +238,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
       >
         <div className="flex w-full px-0 h-full">
 
-          {/* Far left — Search (clean icon, sits inside the floating capsule) */}
+          {/* Far left: Search (clean icon, sits inside the floating capsule) */}
           <button
             onClick={onSearchClick}
             className="w-12 flex-shrink-0 h-full flex items-center justify-center pl-1 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none transition-colors duration-300"
@@ -261,7 +261,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             </svg>
           </button>
 
-          {/* Left sections — divider only between tab pairs, not adjacent to the bracket-framed search */}
+          {/* Left sections, divider only between tab pairs, not adjacent to the bracket-framed search */}
           {isAdminRoute ? (
             adminLeftTabs.map((tab, index) => (
               <React.Fragment key={tab.id}>
@@ -280,7 +280,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
 
           <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
 
-          {/* Center — HOME / ADMIN HOME. The logo is always the center
+          {/* Center: HOME / ADMIN HOME. The logo is always the center
               affordance; contextual actions (e.g. voice capture on the
               Compass) live in-panel, not in the global nav. */}
           <motion.button
@@ -310,7 +310,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
 
           <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
 
-          {/* Right sections — divider only between tab pairs, not adjacent to the bracket-framed account */}
+          {/* Right sections, divider only between tab pairs, not adjacent to the bracket-framed account */}
           {isAdminRoute ? (
             adminRightTabs.map((tab, index) => (
               <React.Fragment key={tab.id}>
@@ -327,7 +327,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             ))
           )}
 
-          {/* Far right — Your Table (clean icon, sits inside the floating capsule) */}
+          {/* Far right: Your Table (clean icon, sits inside the floating capsule) */}
           <button
             onClick={() => {
               if ('vibrate' in navigator) { navigator.vibrate?.(10); }

@@ -1,0 +1,13 @@
+{
+  "id": "oolong-mao-xie",
+  "type": "Oolong",
+  "name": "Mao Xie",
+  "chineseName": "毛蟹",
+  "altNames": [
+    "Hairy Crab"
+  ],
+  "region": "Anxi",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

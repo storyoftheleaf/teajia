@@ -304,7 +304,7 @@ export const VendorInfoPanel: React.FC<VendorInfoPanelProps> = ({
          <MapPin size={14} />}
         <span>
           {hasLocation ? `Location: ${d.lat!.toFixed(4)}, ${d.lng!.toFixed(4)}` :
-           geoState === 'error' ? 'GPS failed — try again' :
+           geoState === 'error' ? 'GPS failed, try again' :
            'Drop pin at current location'}
         </span>
       </button>
@@ -357,7 +357,7 @@ export const VendorInfoPanel: React.FC<VendorInfoPanelProps> = ({
       <button
         type="button"
         onClick={() => setEditing(false)}
-        className="w-full py-2.5 rounded-xl bg-tea-gold text-tea-bg text-xs font-semibold uppercase tracking-[0.1em] transition-opacity hover:opacity-90"
+        className="w-full py-2.5 rounded-xl cta-solid text-xs font-semibold uppercase tracking-[0.1em] transition-opacity hover:opacity-90"
       >
         Done
       </button>

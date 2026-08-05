@@ -15,7 +15,7 @@ interface TabListProps {
   onChange: (id: string) => void;
   /** Accessible name for the tablist. */
   ariaLabel: string;
-  /** Shared id base — pass the value returned by `useTabsIds()`. */
+  /** Shared id base, pass the value returned by `useTabsIds()`. */
   baseId: string;
   className?: string;
   tabClassName?: string;
@@ -30,7 +30,7 @@ export const tabElementId = (baseId: string, id: string) => `${baseId}-tab-${id}
 export const panelElementId = (baseId: string, id: string) => `${baseId}-panel-${id}`;
 
 /**
- * Accessible tab strip — `role="tablist"` with arrow-key roving focus.
+ * Accessible tab strip, `role="tablist"` with arrow-key roving focus.
  * Project underline-on-active visual style (no filled pills).
  * Pair with `<TabPanel>` using the same `baseId` from `useTabsIds()`.
  */

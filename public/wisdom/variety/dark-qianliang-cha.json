@@ -1,0 +1,13 @@
+{
+  "id": "dark-qianliang-cha",
+  "type": "Dark",
+  "name": "Qianliang Cha",
+  "chineseName": "千两茶",
+  "altNames": [
+    "Thousand Tael Tea"
+  ],
+  "region": "Hunan",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

@@ -145,7 +145,7 @@ export const ImportCompletionSummary: React.FC<Props> = ({ detail, result, onClo
 
       <div className="flex flex-wrap justify-between gap-3 border-t border-tea-border pt-3">
         <button type="button" onClick={onClose} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text">Close summary</button>
-        <button type="button" onClick={onNew} className="tap-target min-h-11 rounded-md bg-tea-gold px-4 text-ui-12 font-medium text-tea-bg">Start another import</button>
+        <button type="button" onClick={onNew} className="tap-target min-h-11 rounded-md cta-solid px-4 text-ui-12 font-medium">Start another import</button>
       </div>
     </section>
   );

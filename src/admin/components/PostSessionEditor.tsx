@@ -303,7 +303,7 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
         <button
           onClick={handleSave}
           disabled={saving || !ledgerLoaded || loadError}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
         >
           {saving || !ledgerLoaded ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
           {!ledgerLoaded ? 'Loading Post-Session' : 'Save Post-Session'}

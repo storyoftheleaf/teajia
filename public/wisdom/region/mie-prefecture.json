@@ -1,0 +1,11 @@
+{
+  "id": "mie-prefecture",
+  "name": "Mie Prefecture",
+  "country": "Japan",
+  "province": "Mie",
+  "altitude": "100-500m",
+  "climate": "Central Japan with mountain regions for quality tea",
+  "holding": "regions",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

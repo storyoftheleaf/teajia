@@ -21,7 +21,7 @@ function lazyWithRetry<T extends { default: React.ComponentType<unknown> }>(
       } catch (err) {
         if (attempt < delays.length) {
           await new Promise((r) => setTimeout(r, delays[attempt]));
-          continue; // transient blip — retry the same import
+          continue; // transient blip, retry the same import
         }
         // Bounded attempts exhausted: surface the stable recovery screen.
         throw err;
@@ -129,6 +129,20 @@ const ContributorProfilePage = lazy(() => import('./pages/ContributorProfilePage
 const ContributorsIndexPage = lazy(() => import('./pages/ContributorsIndexPage'));
 const StoreLaunchPlaybookPage = lazy(() => import('./pages/StoreLaunchPlaybookPage'));
 const McpPage = lazy(() => import('./pages/McpPage'));
+// The public tea reference: a page per holding, read out of src/wisdom.
+const WisdomHomePage = lazy(() => import('./pages/wisdom/WisdomHomePage'));
+const CultivarIndexPage = lazy(() => import('./pages/wisdom/CultivarIndexPage'));
+const CultivarPage = lazy(() => import('./pages/wisdom/CultivarPage'));
+const ProducerIndexPage = lazy(() => import('./pages/wisdom/ProducerIndexPage'));
+const ProducerPage = lazy(() => import('./pages/wisdom/ProducerPage'));
+const MarkIndexPage = lazy(() => import('./pages/wisdom/MarkIndexPage'));
+const MarkPage = lazy(() => import('./pages/wisdom/MarkPage'));
+const StyleIndexPage = lazy(() => import('./pages/wisdom/StyleIndexPage'));
+const StylePage = lazy(() => import('./pages/wisdom/StylePage'));
+const RegionIndexPage = lazy(() => import('./pages/wisdom/RegionIndexPage'));
+const RegionPage = lazy(() => import('./pages/wisdom/RegionPage'));
+const NamedTeaIndexPage = lazy(() => import('./pages/wisdom/NamedTeaIndexPage'));
+const NamedTeaPage = lazy(() => import('./pages/wisdom/NamedTeaPage'));
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchStore } from './lib/storefrontApi';
@@ -168,6 +182,7 @@ import AboutPage from './AboutPage';
 import Footer from './components/shared/Footer';
 import { ErrorBoundary } from './admin/components/ErrorBoundary';
 import { EmblemLoader } from './components/shared/EmblemLoader';
+import { WisdomFallback } from './pages/wisdom/frame';
 import { PullToRefreshIndicator } from './components/shared/PullToRefreshIndicator';
 import { NetworkStatus } from './components/shared/NetworkStatus';
 import { SessionExpiredNotice } from './components/shared/SessionExpiredNotice';
@@ -198,7 +213,7 @@ const AccountRouteBridge: React.FC<{ onOpen: () => void }> = ({ onOpen }) => {
 const AppContent = () => {
   // When the site is reached on a store-dedicated subdomain (e.g. au.teajia.com),
   // the root URL opens straight onto that store's shop instead of the homepage.
-  // Computed once — the host doesn't change within a session.
+  // Computed once, the host doesn't change within a session.
   const hostStoreSlug = currentHostStoreSlug();
 
   // Track click/tap position for cart fly animation (activeElement unreliable on mobile)
@@ -257,7 +272,7 @@ const AppContent = () => {
 
   // One URL, two containers (the Instagram pattern): grid taps navigate to
   // /shop/product/:id with { state: { background: location } }. While that
-  // background location is present the route table renders against it — the
+  // background location is present the route table renders against it: the
   // shop stays mounted underneath (scroll + filters intact) and the grid
   // component floats the AlcoveModal above it. Cold loads (shared links,
   // reloads without state) have no background and render the real ProductPage.
@@ -293,11 +308,11 @@ const AppContent = () => {
     if (prevSection.current !== activeSection) {
       scrollPositions.current[prevSection.current] = window.scrollY;
       if (isNavClick.current) {
-        // Deliberate link click — go to top
+        // Deliberate link click, go to top
         window.scrollTo(0, 0);
         isNavClick.current = false;
       } else {
-        // Browser back/forward — restore saved position
+        // Browser back/forward, restore saved position
         requestAnimationFrame(() => {
           window.scrollTo(0, scrollPositions.current[activeSection]);
         });
@@ -329,13 +344,13 @@ const AppContent = () => {
   useEffect(() => {
     const titles: Record<Section, string> = {
       HOME: 'Teajia | Tea Journal',
-      MAGAZINE: 'Magazine — Teajia',
-      LEARN: 'Craft — Teajia',
-      SHOP: 'Shop — Teajia',
-      OFFERINGS: 'Advise — Teajia',
-      EVENTS: 'Sessions — Teajia',
-      YOUR_TABLE: 'Your Table — Teajia',
-      ABOUT: 'About — Teajia',
+      MAGAZINE: 'Magazine · Teajia',
+      LEARN: 'Craft · Teajia',
+      SHOP: 'Shop · Teajia',
+      OFFERINGS: 'Advise · Teajia',
+      EVENTS: 'Sessions · Teajia',
+      YOUR_TABLE: 'Your Table · Teajia',
+      ABOUT: 'About · Teajia',
     };
     document.title = titles[activeSection] ?? 'Teajia | Tea Journal';
   }, [activeSection]);
@@ -361,7 +376,7 @@ const AppContent = () => {
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [sharingStory, setSharingStory] = useState<Story | null>(null);
 
-  // User State — persisted to localStorage (#77, #78)
+  // User State, persisted to localStorage (#77, #78)
   const [savedStoryIds, setSavedStoryIds] = useState<Record<string, boolean>>(() => {
     try { return JSON.parse(localStorage.getItem('teajia_saved_stories') || '{}'); } catch { return {}; }
   });
@@ -512,7 +527,7 @@ const AppContent = () => {
       totalPrice: total,
       image: item.image,
     });
-    // Show cart toast — read fresh count from store (Zustand updates synchronously)
+    // Show cart toast, read fresh count from store (Zustand updates synchronously)
     const freshCart = useAppStore.getState().publicCart;
     setCartToast({ itemName: item.name, cartCount: freshCart.length });
   };
@@ -553,25 +568,77 @@ const AppContent = () => {
     setTimeout(() => setToast({ show: false, message: '' }), duration);
   };
 
+  /**
+   * The public products query fails: who should hear about it.
+   *
+   * `useInventory` is provided at the app root, so this effect used to announce
+   * one failed fetch on every route in the app. A reader on `/wisdom/regions`,
+   * which renders its growing places out of a static module and issues no
+   * product request at all, got a five-second "Something prevented this from
+   * loading" laid over a page that had loaded perfectly. The reference pages,
+   * the read pages and the craft pages are all in that position.
+   *
+   * Scoped by route rather than by moving the effect down into the components
+   * that call `useInventory`, for three reasons. The question the effect has to
+   * answer is "is the reader looking at something made of products right now",
+   * and the route is exactly that fact, known here, where the effect already
+   * lives. The two surfaces that are made of products (`Shop` and the product
+   * loader behind it) are already handed `isError` and `onRetry` and render an
+   * inline failure with a retry button, which is a better treatment than a
+   * toast, so pushing the toast down means writing it into the places that need
+   * it least. And the remaining callers, the search overlay, the account
+   * panel's collection, the article product references, are incidental strips
+   * that should degrade to nothing rather than interrupt.
+   *
+   * The message names the shop as well. `/collection` is a shared collection
+   * rather than the shop itself, so on that route the reader needs to be told
+   * which dependency failed, and "the shop could not load" is a sentence they
+   * can act on where "something" is not.
+   *
+   * The incident record is deliberately outside the gate. An authenticated
+   * session leaves one record per failure wherever the reader happened to be:
+   * it is the interruption that was misplaced, not the diagnosis.
+   */
+  const isProductSurface = location.pathname === '/shop'
+    || location.pathname.startsWith('/shop/')
+    || location.pathname === '/collection';
+
   // Classify the actual failure rather than describing every HTTP/API error as
   // a connection problem. Authenticated sessions also leave one deduplicated,
   // sanitized incident record for later diagnosis.
-  const apiErrorShownRef = useRef(false);
+  //
+  // Two refs, not one, and the split is the point. A single "already handled"
+  // flag would let the reader's location at the moment of failure decide
+  // whether they ever see the message: fail while they are on a reference page,
+  // flag set, and walking to the shop afterwards would find a silent one. The
+  // report fires once per failure wherever they are; the toast fires once per
+  // failure, once they are somewhere it means something.
+  const incidentReportedRef = useRef(false);
+  const inventoryToastShownRef = useRef(false);
   useEffect(() => {
-    if (inventoryError && !apiErrorShownRef.current) {
-      apiErrorShownRef.current = true;
-      const incident = classifyIncident(inventoryErrorObj, { route: '/api/products/public', method: 'GET' });
-      showToast(incident.userMessage, 5000);
+    if (!inventoryError) {
+      incidentReportedRef.current = false;
+      inventoryToastShownRef.current = false;
+      return;
+    }
+    if (incidentReportedRef.current && (inventoryToastShownRef.current || !isProductSurface)) return;
+
+    const incident = classifyIncident(inventoryErrorObj, { route: '/api/products/public', method: 'GET' });
+
+    if (isProductSurface && !inventoryToastShownRef.current) {
+      inventoryToastShownRef.current = true;
+      showToast(`The shop could not load. ${incident.userMessage}`, 5000);
+    }
+
+    if (!incidentReportedRef.current) {
+      incidentReportedRef.current = true;
       if (isAuthenticated) {
         const { userMessage: _userMessage, ...report } = incident;
         void api.incidents.report(report).catch(() => { /* reporting must never block the user */ });
       }
     }
-    if (!inventoryError) {
-      apiErrorShownRef.current = false;
-    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inventoryError, inventoryErrorObj, isAuthenticated]);
+  }, [inventoryError, inventoryErrorObj, isAuthenticated, isProductSurface]);
 
   const toggleSave = (id: string) => {
     const isCurrentlySaved = savedStoryIds[id];
@@ -640,7 +707,7 @@ const AppContent = () => {
     return () => window.removeEventListener('open-account-panel', handler);
   }, []);
 
-  // Google OAuth return — the worker redirects customers back here to
+  // Google OAuth return, the worker redirects customers back here to
   // /?account=1 with the JWT in the URL hash (#oauth_token=...) on success, or
   // ?oauth_error=... on failure. Pick it up on load, hydrate the session, and
   // reopen the account panel so they see they're signed in.
@@ -682,7 +749,7 @@ const AppContent = () => {
       return;
     }
 
-    // Plain ?account=1 (no OAuth payload) — also a request to open the panel.
+    // Plain ?account=1 (no OAuth payload), also a request to open the panel.
     if (params.get('account') === '1') {
       setShowAccountModal(true);
       params.delete('account');
@@ -719,7 +786,7 @@ const AppContent = () => {
   };
 
   const isAdminRoute = location.pathname.startsWith('/admin');
-  // Focused, standalone pages with no app chrome (nav, footer, bottom bar) — link
+  // Focused, standalone pages with no app chrome (nav, footer, bottom bar), link
   // recipients who aren't logged in. Public collection links (/c/:slug) belong here
   // too: a sent link should be a clean single-purpose page, not the full app shell.
   const isFocusedShareRoute = location.pathname.startsWith('/share/') || location.pathname.startsWith('/c/');
@@ -735,7 +802,7 @@ const AppContent = () => {
   const isImmersiveRead = isImmersiveReadRoute;
 
   // LeftSidebar only mounts on admin routes now, so its useEffect that sets
-  // --teajia-sidebar-w doesn't fire on public routes — reset to 0px here so
+  // --teajia-sidebar-w doesn't fire on public routes, reset to 0px here so
   // sidebar-inset overlays don't get a phantom offset from the last admin visit.
   useEffect(() => {
     if (!isAdminRoute || isFocusedShareRoute) {
@@ -749,7 +816,7 @@ const AppContent = () => {
       <div className="texture-overlay"></div>
       <div className="fixed inset-0 bg-gradient-radial from-transparent via-tea-bg/40 to-tea-surface/90 pointer-events-none z-0"></div>
 
-      {/* Admin Toolbar — visible only for admin users */}
+      {/* Admin Toolbar, visible only for admin users */}
 
       {/* Scroll Progress Bar */}
       {!isFocusedShareRoute && shouldShowGlobalScrollProgress(location.pathname) && <ScrollProgressBar />}
@@ -766,7 +833,7 @@ const AppContent = () => {
         <LeftSidebar activeSection={activeSection} onNavigate={setActiveSection} onAccountClick={handleOpenAccount} onCartClick={handleOpenCart} onSearchClick={() => { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} cartItemCount={cart.length} topOffset={showAdminBar} />
       )}
 
-      {/* Main Content Area — admin keeps the sidebar offset; public goes
+      {/* Main Content Area, admin keeps the sidebar offset; public goes
           full-width with the bottom bar floating below. lg:pb-24 on public
           desktop clears the floating bar's resting height (52px bar +
           12px gap + safe-area). Pages with internal scroll containers can
@@ -839,7 +906,7 @@ const AppContent = () => {
                     </Suspense>
                   </ErrorBoundary>
                 } />
-                {/* Immersive long-reads — espresso + gold scrolling articles for the Read section. */}
+                {/* Immersive long-reads, espresso + gold scrolling articles for the Read section. */}
                 <Route path="/read" element={
                   <ErrorBoundary><Suspense fallback={<EmblemLoader />}><ReadIndex /></Suspense></ErrorBoundary>
                 } />
@@ -897,7 +964,7 @@ const AppContent = () => {
                     <LearnHub onStoryClick={handleCardClick} watchedStories={watchedStoryIds} onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} cartItemCount={cart.length} onNavigateToAdvise={() => setActiveSection('OFFERINGS')} />
                   </ErrorBoundary>
                 } />
-                {/* Legacy route — old links to /learn keep working. */}
+                {/* Legacy route, old links to /learn keep working. */}
                 <Route path="/learn" element={<Navigate to="/craft" replace />} />
                 <Route path="/shop" element={
                   <ErrorBoundary>
@@ -908,7 +975,7 @@ const AppContent = () => {
                     </Suspense>
                   </ErrorBoundary>
                 } />
-                {/* Cold loads only — grid taps carry a background location, so
+                {/* Cold loads only. Grid taps carry a background location, so
                     this route stays on the shop and the modal opens instead. */}
                 <Route path="/shop/product/:id" element={
                   <ErrorBoundary>
@@ -922,7 +989,7 @@ const AppContent = () => {
                     <AdvisePage onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} cartItemCount={cart.length} />
                   </ErrorBoundary>
                 } />
-                {/* Legacy route — old links to /consult keep working. */}
+                {/* Legacy route, old links to /consult keep working. */}
                 <Route path="/consult" element={<Navigate to="/advise" replace />} />
                 <Route path="/for-your-space" element={
                   <ErrorBoundary>
@@ -967,9 +1034,50 @@ const AppContent = () => {
                     </Suspense>
                   </ErrorBoundary>
                 } />
+                {/* The public tea reference. /wisdom is the front door naming every holding;
+                    each holding has its own index and detail page. */}
+                <Route path="/wisdom" element={
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><WisdomHomePage /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/wisdom/cultivars" element={
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><CultivarIndexPage /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/wisdom/cultivar/:id" element={
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><CultivarPage /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/wisdom/regions" element={
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><RegionIndexPage /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/wisdom/region/:id" element={
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><RegionPage /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/wisdom/producers" element={
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><ProducerIndexPage /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/wisdom/producer/:id" element={
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><ProducerPage /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/wisdom/marks" element={
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><MarkIndexPage /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/wisdom/mark/:id" element={
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><MarkPage /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/wisdom/styles" element={
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><StyleIndexPage /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/wisdom/style/:id" element={
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><StylePage /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/wisdom/named" element={
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><NamedTeaIndexPage /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/wisdom/named/:id" element={
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><NamedTeaPage /></Suspense></ErrorBoundary>
+                } />
                 <Route path="/about" element={<ErrorBoundary><AboutPage /></ErrorBoundary>} />
                 <Route path="/mcp" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><McpPage /></Suspense></ErrorBoundary>} />
-                {/* /compass is admin-only at /admin/compass — public route removed.
+                {/* /compass is admin-only at /admin/compass, public route removed.
                     Members use /account/journal for tasting; Compass is sourcing + ledger only. */}
                 <Route path="/compass" element={<Navigate to="/account/journal" replace />} />
                 <Route path="/account" element={<AccountRouteBridge onOpen={() => handleOpenAccount()} />} />
@@ -1007,7 +1115,7 @@ const AppContent = () => {
                 <Route path="/join" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><JoinPage /></Suspense></ErrorBoundary>} />
                 <Route path="/join/:code" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><JoinPage /></Suspense></ErrorBoundary>} />
                 <Route path="/t/:token" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><TableCardPage /></Suspense></ErrorBoundary>} />
-                {/* Stock spine step 5 — standalone public shelf. /u/ avoids the /t/:token collision. */}
+                {/* Stock spine step 5: standalone public shelf. /u/ avoids the /t/:token collision. */}
                 <Route path="/u/:slug" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><ShelfPage /></Suspense></ErrorBoundary>} />
                 <Route path="/find-a-table" element={
                   <ErrorBoundary>
@@ -1050,7 +1158,7 @@ const AppContent = () => {
                     <h1 className="text-6xl font-serif text-tea-gold mb-4">404</h1>
                     <p className="text-xl font-serif text-tea-text mb-2">Page not found</p>
                     <p className="text-sm text-tea-text-sec mb-8 max-w-md">The page you're looking for doesn't exist or may have been moved.</p>
-                    <button onClick={() => setActiveSection('HOME')} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors">Return Home</button>
+                    <button onClick={() => setActiveSection('HOME')} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors">Return Home</button>
                   </div>
                 } />
               </Routes>
@@ -1059,7 +1167,7 @@ const AppContent = () => {
           </AnimatePresence>
       </main>
 
-      {/* Global Footer — hidden on Home. Full-bleed; clearance lives inside Footer. */}
+      {/* Global Footer, hidden on Home. Full-bleed; clearance lives inside Footer. */}
       {viewState === 'BROWSE' && activeSection !== 'HOME' && (
         <Footer />
       )}
@@ -1068,7 +1176,7 @@ const AppContent = () => {
 
       {/* --- Full Screen Views --- */}
 
-      {/* Legacy article overlay removed — articles route through /article/:slug. */}
+      {/* Legacy article overlay removed, articles route through /article/:slug. */}
 
       {viewState === 'READER' && selectedStory && (
          <ImagePreloaderProvider>
@@ -1164,7 +1272,7 @@ const AppContent = () => {
         onDismiss={dismissCartToast}
       />
 
-      {/* Walk-through companion — follows the owner across pages while they
+      {/* Walk-through companion, follows the owner across pages while they
           run and test a flow from the guide. Renders nothing unless active. */}
       <WalkthroughDock />
 
@@ -1174,7 +1282,7 @@ const AppContent = () => {
       </div>
 
 
-      {/* Soft fade behind the floating bottom tab bar — masks page content
+      {/* Soft fade behind the floating bottom tab bar, masks page content
           peeking through the pill's side margins and bottom gap so the bar
           reads cleanly without distracting text behind it. */}
       {!isFocusedShareRoute && !isCartOpen && (
@@ -1189,7 +1297,7 @@ const AppContent = () => {
         />
       )}
 
-      {/* Bottom Tab Bar for Mobile — kept visible on the Read section too, so the
+      {/* Bottom Tab Bar for Mobile, kept visible on the Read section too, so the
           reader can always navigate. The Read long-reads stay full-bleed (the
           px-0 layout still keys off isImmersiveRead); their bottom-right accent
           swatches sit above the bar's height so they don't collide. */}

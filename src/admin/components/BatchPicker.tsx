@@ -14,7 +14,7 @@ export interface IntakeBatch {
 
 /**
  * Picks (or creates) the intake batch that a stock arrival belongs to.
- * A batch is "a session of putting stock in" — a shipment, an import, or a
+ * A batch is "a session of putting stock in": a shipment, an import, or a
  * round of logging old holdings. Stock added without a batch falls into the
  * account's "Unsorted" batch, so a tea is never batch-less.
  *
@@ -71,7 +71,7 @@ export function BatchPicker({
               .map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.label}
-                  {b.intake_date ? ` — ${b.intake_date}` : ''}
+                  {b.intake_date ? ` · ${b.intake_date}` : ''}
                 </option>
               ))}
           </select>
@@ -94,7 +94,7 @@ export function BatchPicker({
           />
           <div className="space-y-1">
             <span className="block text-ui-11 text-tea-text-dim">
-              Acquisition date (optional — leave blank for old stock you can't date)
+              Acquisition date (optional, leave blank for old stock you can't date)
             </span>
             <input
               type="date"
@@ -119,7 +119,7 @@ export function BatchPicker({
               type="button"
               disabled={!newLabel.trim() || createMutation.isPending}
               onClick={() => createMutation.mutate()}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-ui-13 font-semibold disabled:opacity-50 transition-opacity"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-ui-13 font-semibold disabled:opacity-50 transition-opacity"
             >
               <Check size={13} /> Create
             </button>

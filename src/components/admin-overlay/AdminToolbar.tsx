@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAdminOverlay } from '../../hooks/useAdminOverlay';
 import { Icons } from '../Icons';
-import { fmtDollars } from '../../utils/formatNumber';
+import { fmtRecordDollars } from '../../utils/formatNumber';
 
 interface AdminToolbarProps {
   collapsed?: boolean;
@@ -76,7 +76,7 @@ export const AdminToolbar: React.FC<AdminToolbarProps> = ({ collapsed: controlle
           title="Revenue this week"
         >
           <span className="text-ui-10 uppercase tracking-widest text-tea-text/50 group-hover:text-tea-text/80 transition-colors num">
-            {fmtDollars(stats.revenueThisWeek)} <span className="font-sans opacity-60">this week</span>
+            {fmtRecordDollars(stats.revenueThisWeek)} <span className="font-sans opacity-60">this week</span>
           </span>
         </button>
 

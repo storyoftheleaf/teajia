@@ -17,18 +17,53 @@ Teajia exposes an MCP server so AI assistants can help shoppers directly:
 
 ## Shop & catalog
 
-- Shop: https://teajia.co/shop
-- Individual products: https://teajia.co/shop/product/<id> (each carries Product + Offer JSON-LD)
-- Sitemap (pages): https://teajia.co/sitemap.xml
-- Sitemap (all products, generated from live inventory): https://teajia.co/sitemap-products.xml
+- Shop: https://teajia.com/shop
+- Individual products: https://teajia.com/shop/product/<id> (each carries Product + Offer JSON-LD)
+- Sitemap (pages): https://teajia.com/sitemap.xml
+- Sitemap (all products, generated from live inventory): https://teajia.com/sitemap-products.xml
 
 ## Reading & learning
 
-- Journal (articles & visual stories): https://teajia.co/read
-- Courses & education: https://teajia.co/learn
-- Start here: https://teajia.co/start-here
+- Journal (articles & visual stories): https://teajia.com/read
+- Courses & education: https://teajia.com/learn
+- Start here: https://teajia.com/start-here
+
+## Open data
+
+- Tea Wisdom Base contents page, start here: https://teajia.com/wisdom/index.json
+  - Lists every holding, its size, where to fetch it, and every id it contains.
+- One record at a time: https://teajia.com/wisdom/cultivar/{id}.json (also region, variety, producer, mark, style, named)
+- Everything in one file: https://teajia.com/wisdom/tea-wisdom.json
+  - CSV files, README and license at https://teajia.com/wisdom/
+  - CC BY 4.0 for the structured facts. Adrian's own tea write-ups and tasting notes are not included.
+  - Each cultivar carries an authorship rung (drafted, reviewed, authored) marking whether a human has verified it.
 
 ## Notes for assistants
 
 - To help someone buy: search or browse the catalog, confirm teas and grams with the shopper, then call `prepare_order` and share the WhatsApp link. Always tell the user that final price, shipping, and availability are confirmed by the shop in the WhatsApp conversation.
-- Do not fabricate tasting notes, provenance, or prices — read them from `get_tea` or the product page.
+- Do not fabricate tasting notes, provenance, or prices. Read them from `get_tea` or the product page.
+
+## The tea reference, for people
+
+The same holdings as the open dataset, as reader-facing pages. Every entry has
+its own address, and every address has a `.json` twin at the same path.
+
+- Start here: https://teajia.com/wisdom (names every holding, and searches all of them at once)
+- The tea plants: https://teajia.com/wisdom/cultivars, one at https://teajia.com/wisdom/cultivar/{id}
+- Growing regions: https://teajia.com/wisdom/regions, one at https://teajia.com/wisdom/region/{id}
+- Producers: https://teajia.com/wisdom/producers, one at https://teajia.com/wisdom/producer/{id}
+- Marks: https://teajia.com/wisdom/marks, one at https://teajia.com/wisdom/mark/{id}
+- Styles: https://teajia.com/wisdom/styles, one at https://teajia.com/wisdom/style/{id}
+- Named teas: https://teajia.com/wisdom/named, one at https://teajia.com/wisdom/named/{id}
+- Every one of those addresses, listed: https://teajia.com/wisdom/sitemap.xml
+- Tea varieties are data only (`variety/{id}.json`) and have no reader-facing page.
+
+Each entry page carries JSON-LD (Taxon for a plant, Place for a region,
+Organization for a producer) and a breadcrumb back to its holding. The dataset
+contents page at /wisdom/index.json now states, per holding, both the record
+address (`record`) and the human page address (`page`), so either can be
+reached from the other without guessing.
+
+The dataset says what it is as of when: `version` and `generatedAt` in
+/wisdom/index.json, repeated on the reference's front door. Cite the version
+you read.

@@ -3,7 +3,7 @@
  *
  * Imported by src/components/Reader.tsx
  * Contains all keyframes and CSS classes for the Teajia magazine reader.
- * Do NOT import this file from other components — it is scoped to the Reader.
+ * Do NOT import this file from other components, it is scoped to the Reader.
  */
 
 /* ─────────────────────────────────────────
@@ -38,7 +38,7 @@
 }
 
 /* ─────────────────────────────────────────
-   Page Entrance Animations — disabled
+   Page Entrance Animations, disabled
    Scroll-snap handles transitions cleanly on its own.
    Classes kept as no-ops so JSX references don't break.
    ───────────────────────────────────────── */
@@ -48,20 +48,20 @@
 .reader-enter-scale,
 .reader-enter-slide,
 .reader-enter-wipe {
-  /* intentionally empty — scroll-snap is the only transition */
+  /* intentionally empty, scroll-snap is the only transition */
 }
 
 /* ─────────────────────────────────────────
-   Legacy staggered fade-in — disabled
+   Legacy staggered fade-in, disabled
    The per-paragraph delays made page turns feel choppy.
    ───────────────────────────────────────── */
 
 /* ─────────────────────────────────────────
-   Image Reveal & Chapter Number — simplified
+   Image Reveal & Chapter Number, simplified
    ───────────────────────────────────────── */
 
 [data-page-active="true"] .reader-image-reveal {
-  /* images show immediately — no clip-path animation */
+  /* images show immediately, no clip-path animation */
 }
 
 [data-page-active="true"] .chapter-bg-number {
@@ -72,7 +72,7 @@
    Vignette overlay (page-vignette pseudo-element)
    ───────────────────────────────────────── */
 
-/* Default vignette — subtle edge darkening */
+/* Default vignette, subtle edge darkening */
 .page-vignette::after {
   content: '';
   position: absolute;
@@ -92,7 +92,7 @@
   z-index: 1;
 }
 
-/* No vignette for text-heavy pages — avoids dimming text at margins */
+/* No vignette for text-heavy pages, avoids dimming text at margins */
 .page-vignette-none::after {
   display: none;
 }
@@ -276,7 +276,7 @@
 }
 
 /* ─────────────────────────────────────────
-   Reduced Motion — disable all Reader animations
+   Reduced Motion, disable all Reader animations
    for users with vestibular disorders
    ───────────────────────────────────────── */
 
@@ -322,7 +322,7 @@
 .immersive-reveal.is-in { opacity: 1; transform: none; filter: none; }
 
 /* ─────────────────────────────────────────
-   AR.2 — Visual family
+   AR.2: Visual family
    ───────────────────────────────────────── */
 
 /* Ken Burns for the immersive full-bleed image (continuous, GPU-only). */
@@ -333,26 +333,26 @@
 .immersive-kenburns { animation: immersiveKenBurns 18s ease-in-out infinite alternate; will-change: transform; }
 @media (prefers-reduced-motion: reduce) { .immersive-kenburns { animation: none !important; } }
 
-/* Horizontal swipe gallery — CSS scroll-snap (harvested from the Atlas gallery). */
+/* Horizontal swipe gallery: CSS scroll-snap (harvested from the Atlas gallery). */
 .immersive-gallery { scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
 .immersive-gallery::-webkit-scrollbar { display: none; }
 .immersive-gallery > * { scroll-snap-align: start; }
 
-/* Book plate — quiet duotone treatment, fine-press feel (filter only). */
+/* Book plate, quiet duotone treatment, fine-press feel (filter only). */
 .immersive-bookplate-img { filter: sepia(0.42) saturate(0.7) contrast(1.05) brightness(0.92); }
 
-/* Audio waveform — bars pulse on the Y axis only while playing (transform). */
+/* Audio waveform, bars pulse on the Y axis only while playing (transform). */
 @keyframes immersiveWave { 0%,100% { transform: scaleY(0.3); } 50% { transform: scaleY(1); } }
 .immersive-wavebar { transform-origin: bottom; }
 .immersive-wavebar.is-playing { animation: immersiveWave 0.9s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .immersive-wavebar.is-playing { animation: none !important; } }
 
-/* Pinned hero — the held image is a sticky layer; text scrolls across it.
+/* Pinned hero, the held image is a sticky layer; text scrolls across it.
    No JS; sticky + a scrim do the crossing. */
 .immersive-pinned-img { will-change: transform; }
 
 /* ─────────────────────────────────────────
-   AR.3 — Text-effect dials
+   AR.3: Text-effect dials
    Each is a per-section opt-in. Reveal-driven ones use .is-in (toggled by the
    IntersectionObserver in <Reveal>); scroll-highlight is its own component.
    Animate only transform / opacity / filter / background-position.

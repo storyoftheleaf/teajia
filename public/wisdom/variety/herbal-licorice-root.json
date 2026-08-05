@@ -1,0 +1,13 @@
+{
+  "id": "herbal-licorice-root",
+  "type": "Herbal",
+  "name": "Licorice Root",
+  "chineseName": "甘草",
+  "altNames": [
+    "Gan Cao"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

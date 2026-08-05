@@ -1,0 +1,41 @@
+{
+  "id": "koshun",
+  "name": "Koshun",
+  "chineseName": "香駿",
+  "altNames": [
+    "Fragrant Shun"
+  ],
+  "originCountry": "Japan",
+  "originRegion": "Shizuoka",
+  "developedYear": 2000,
+  "parentage": "'Kurizawa' x 'Kanayamidori'",
+  "description": "'Fragrance of Shizuoka'. A remarkable modern cultivar bred specifically for its astonishingly powerful and unique floral aroma. It produces a Sencha with a perfume-like fragrance reminiscent of lily-of-the-valley, jasmine, and cherry leaves, offering a completely different experience from classic, umami-focused Japanese green teas.",
+  "plantType": "Upright, vigorous bush with long, elegant leaves (Camellia sinensis var. sinensis).",
+  "environment": "Well-suited to the climate of Shizuoka, where it was developed.",
+  "processing": "Processing Koshun is all about capturing its volatile aromatic compounds. It is typically lightly steamed (Asamushi) to prevent the heat from damaging the delicate floral notes. Careful, low-temperature drying is also crucial.",
+  "oxidation": "Zero oxidation for the Sencha style. The leaves are steamed immediately to lock in the floral aroma.",
+  "roasting": "A very gentle, low-temperature final drying roast is used to avoid baking away the prized floral fragrance.",
+  "versatility": "Moderately versatile. While its primary use is for a unique style of aromatic Sencha, its genetics also make it suitable for crafting fragrant Japanese oolongs.",
+  "distribution": {
+    "japan": [
+      "Shizuoka"
+    ]
+  },
+  "expressions": {
+    "Sencha": {
+      "Aromatic Sencha": "Its primary expression. A lightly steamed green tea where processing is entirely focused on preserving its unique, intense floral bouquet."
+    },
+    "Japanese Oolong": {
+      "Light Oolong": "Its aromatic potential also makes it a great candidate for producing lightly oxidized Japanese oolongs."
+    }
+  },
+  "sensory": {
+    "aroma": "Intense lily-of-the-valley, jasmine, cherry leaf, very perfume-like",
+    "flavor": "Light-bodied, highly aromatic, with a sweet, floral taste and a clean, fragrant finish.",
+    "mouthfeel_liquor": "Smooth and light with very low astringency. The liquor is a very pale, bright green-yellow."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

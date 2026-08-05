@@ -94,7 +94,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
         onClick={onClose}
       />
 
-      {/* Sheet — bottom-docked on mobile but the parent flex container
+      {/* Sheet, bottom-docked on mobile but the parent flex container
           carries pb-nav, so the sheet sits ABOVE the BottomTabBar
           rather than rendering behind it. On sm+ the modal centers
           normally. */}
@@ -196,7 +196,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
                       type="button"
                       disabled={!accountSlug.trim() || directMutation.isPending}
                       onClick={() => directMutation.mutate()}
-                      className="px-4 py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold uppercase tracking-[0.08em] disabled:opacity-40 transition-opacity flex items-center gap-1.5"
+                      className="px-4 py-2 rounded-md cta-solid text-xs font-semibold uppercase tracking-[0.08em] disabled:opacity-40 transition-opacity flex items-center gap-1.5"
                     >
                       {directMutation.isPending ? (
                         <span className="inline-block w-3.5 h-3.5 border-2 border-tea-bg/30 border-t-tea-bg rounded-full animate-spin" />
@@ -253,7 +253,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
                       type="button"
                       onClick={() => setShowQr(v => !v)}
                       className={`px-3 py-2.5 rounded-md text-xs font-semibold uppercase tracking-[0.08em] transition-colors flex items-center gap-1.5 ${
-                        showQr ? 'bg-tea-gold text-tea-bg' : 'bg-tea-gold/10 text-tea-gold hover:bg-tea-gold/15'
+                        showQr ? 'cta-solid' : 'bg-tea-gold/10 text-tea-gold hover:bg-tea-gold/15'
                       }`}
                     >
                       <QrCode size={12} />
@@ -281,7 +281,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
                   type="button"
                   disabled={linkMutation.isPending}
                   onClick={() => linkMutation.mutate()}
-                  className="w-full py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold uppercase tracking-[0.08em] disabled:opacity-40 transition-opacity flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-md cta-solid text-xs font-semibold uppercase tracking-[0.08em] disabled:opacity-40 transition-opacity flex items-center justify-center gap-2"
                 >
                   {linkMutation.isPending ? (
                     <span className="inline-block w-3.5 h-3.5 border-2 border-tea-bg/30 border-t-tea-bg rounded-full animate-spin" />
@@ -342,7 +342,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
                       }
                     } catch { /* ignore */ }
                   }}
-                  className="w-full py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold uppercase tracking-[0.08em] disabled:opacity-40 transition-opacity flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-md cta-solid text-xs font-semibold uppercase tracking-[0.08em] disabled:opacity-40 transition-opacity flex items-center justify-center gap-2"
                 >
                   <QrCode size={13} />
                   {synced ? 'Generate feedback QR' : 'Sync first to generate'}

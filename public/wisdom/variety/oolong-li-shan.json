@@ -1,0 +1,13 @@
+{
+  "id": "oolong-li-shan",
+  "type": "Oolong",
+  "name": "Li Shan",
+  "chineseName": "梨山",
+  "altNames": [
+    "Pear Mountain"
+  ],
+  "region": "Li Shan",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

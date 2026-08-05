@@ -202,7 +202,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
   const controlsTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const marginTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  // W30: Time-of-Day Theming — strengthened
+  // W30: Time-of-Day Theming, strengthened
   const hour = new Date().getHours();
   const timeTheme = hour >= 6 && hour < 12 ? 'morning' : hour >= 12 && hour < 18 ? 'afternoon' : 'evening';
   const timeFilter = timeTheme === 'morning'
@@ -483,7 +483,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
       try {
         await navigator.share({
           title: story.title,
-          text: `${story.title} — Page ${currentPageIndex + 1}`,
+          text: `${story.title} · Page ${currentPageIndex + 1}`,
           url: window.location.href,
         });
       } catch { /* user cancelled */ }
@@ -906,7 +906,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
           className="relative w-full h-full flex items-center justify-center"
           style={{ paddingTop: '64px', paddingBottom: '96px' }}
         >
-          {/* Gallery margins — left (desktop only) */}
+          {/* Gallery margins, left (desktop only) */}
           <div
             className="hidden lg:flex flex-col justify-between h-full py-20 px-8 pointer-events-none shrink-0"
             style={{ opacity: marginOpacity, transition: 'opacity 0.6s ease' }}
@@ -959,7 +959,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
 
           </div>
 
-          {/* Gallery margins — right (desktop only) */}
+          {/* Gallery margins, right (desktop only) */}
           <div
             className="hidden lg:flex flex-col justify-end h-full py-20 px-8 pointer-events-none shrink-0"
             style={{ opacity: marginOpacity, transition: 'opacity 0.6s ease' }}
@@ -969,7 +969,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
             </span>
           </div>
 
-          {/* Desktop nav arrows — in margins */}
+          {/* Desktop nav arrows, in margins */}
           {isDesktop && (
             <>
               <button

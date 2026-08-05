@@ -1,0 +1,13 @@
+{
+  "id": "green-mao-jian",
+  "type": "Green",
+  "name": "Mao Jian",
+  "chineseName": "毛尖",
+  "altNames": [
+    "Hair Tip"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

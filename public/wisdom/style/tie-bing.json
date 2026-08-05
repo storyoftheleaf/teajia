@@ -1,0 +1,16 @@
+{
+  "id": "tie-bing",
+  "name": "Tie Bing",
+  "chineseName": "铁饼",
+  "altNames": [
+    "Iron Cake"
+  ],
+  "appliesToTypes": [
+    "Sheng",
+    "Shou"
+  ],
+  "description": "A pu-erh cake pressed hydraulically to extreme density rather than with a traditional stone mold. The heavier compression slows aging and concentrates flavor, and can create distinct flavor zones between a cake's interior and exterior.",
+  "holding": "styles",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

@@ -151,7 +151,7 @@ const OwnerPrivateNote: React.FC<{
         <button
           onClick={save}
           disabled={!dirty || saving}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
           Save
@@ -196,7 +196,7 @@ const SampleOfferModal: React.FC<{
     ? [
         `Hi ${firstName}!`,
         '',
-        `I have a sample of ${selected.givenName || selected.productName} I'd love to send you — ${[selected.type, selected.originRegion].filter(Boolean).join(', ')}.`,
+        `I have a sample of ${selected.givenName || selected.productName} I'd love to send you: ${[selected.type, selected.originRegion].filter(Boolean).join(', ')}.`,
         note.trim() ? note.trim() : '',
         `Would you be interested? Just let me know and I'll get it sorted.`,
       ].filter(l => l !== undefined).join('\n')
@@ -291,7 +291,7 @@ const SampleOfferModal: React.FC<{
                     href={whatsappUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-tea-gold text-tea-bg hover:bg-tea-gold/90 text-xs font-semibold transition-colors"
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md cta-solid text-xs font-semibold transition-colors"
                   >
                     <MessageCircle size={13} />
                     WhatsApp
@@ -346,7 +346,7 @@ export const CustomerProfilePage: React.FC = () => {
       showToast('Failed to load profile', 'error');
     }).finally(() => setLoading(false));
 
-    // Journey loads separately — non-blocking
+    // Journey loads separately, non-blocking
     api.events.getCustomerJourney(customerId)
       .then(j => setJourney(j))
       .catch(() => {});
@@ -364,7 +364,7 @@ export const CustomerProfilePage: React.FC = () => {
           ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
           : '—',
         label: 'Order',
-        body: `Invoice #${order.invoice_number}${order.status ? ` — ${order.status}` : ''}`,
+        body: `Invoice #${order.invoice_number}${order.status ? ` · ${order.status}` : ''}`,
       });
     });
 
@@ -383,7 +383,7 @@ export const CustomerProfilePage: React.FC = () => {
         iso: imp.date,
         date: new Date(imp.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         label: 'Tasting note',
-        body: `"${imp.text}" — ${imp.teaName}`,
+        body: `"${imp.text}" · ${imp.teaName}`,
         system: true,
       });
     });
@@ -502,7 +502,7 @@ export const CustomerProfilePage: React.FC = () => {
             <div className="flex flex-wrap gap-2 mt-5 pt-5 border-t border-tea-border">
               <button
                 onClick={() => setShowRecommend(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg hover:bg-tea-gold/90 text-xs font-semibold transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
               >
                 <Leaf size={13} />
                 <span>Recommend Teas</span>
@@ -535,7 +535,7 @@ export const CustomerProfilePage: React.FC = () => {
             </div>
           </section>
 
-          {/* Portrait — editorial detail */}
+          {/* Portrait, editorial detail */}
           {(journey?.portrait || preferredTypes.length > 0 || (journey?.milestones?.length ?? 0) > 0) && (
             <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
               <h3 className="h3 mb-1">Portrait</h3>
@@ -563,7 +563,7 @@ export const CustomerProfilePage: React.FC = () => {
             </section>
           )}
 
-          {/* Tea Discovery — the threads that draw them, plus where they are in the
+          {/* Tea Discovery: the threads that draw them, plus where they are in the
               practice. Stated preference, complementing the observed Portrait above. */}
           {journey?.teaDiscoveryProfile?.dispositionId && (() => {
             const disc = journey.teaDiscoveryProfile!;
@@ -581,7 +581,7 @@ export const CustomerProfilePage: React.FC = () => {
                     <div className="mt-2 flex flex-col gap-1.5">
                       {threads.map((t) => (
                         <p key={t.id} className="text-ui-13 text-tea-text-sec leading-relaxed">
-                          <span className="text-tea-text">{t.name}</span> — {t.description}
+                          <span className="text-tea-text">{t.name}</span> · {t.description}
                         </p>
                       ))}
                     </div>
@@ -747,7 +747,7 @@ export const CustomerProfilePage: React.FC = () => {
               </div>
               {attendedEvents.length > 1 && (
                 <p className="text-ui-12 text-tea-text-dim mt-3">
-                  +{attendedEvents.length - 1} earlier session{attendedEvents.length > 2 ? 's' : ''} — see Activity below
+                  +{attendedEvents.length - 1} earlier session{attendedEvents.length > 2 ? 's' : ''}, see Activity below
                 </p>
               )}
             </section>

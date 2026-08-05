@@ -4,7 +4,7 @@ import { useAppStore } from '../../lib/store';
 import { fetchWithTimeout, getApiOrigin } from '../../lib/api';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
-// MCP tokens — voice/agent control of this account's inventory through the
+// MCP tokens, voice/agent control of this account's inventory through the
 // /mcp endpoint on the worker. Each token authenticates a single MCP client
 // (Claude desktop, Claude mobile, an external script) as a specific user
 // against this account with the selected scope permissions.
@@ -93,7 +93,7 @@ export const MCPTokensView: React.FC = () => {
           Mint a token to connect Claude desktop, Claude mobile, or any MCP-compatible
           client to this account&apos;s inventory. Tools cover tea search, account context,
           stock adjustments, customer lookup + dossiers, invoice listing/reading, sales
-          summaries, and creating/filling/voiding invoices — every mutating action requires
+          summaries, and creating/filling/voiding invoices. Every mutating action requires
           a confirmation in the model. The token is scoped to the permissions you select
           below; treat it like a password.
         </p>
@@ -107,7 +107,7 @@ export const MCPTokensView: React.FC = () => {
         <div className="mb-8 border border-tea-gold/40 bg-tea-gold/10 p-4 rounded-xl">
           <div className="text-tea-text font-display mb-2">New token: {justMinted.label}</div>
           <p className="text-tea-text-sec text-ui-13 leading-[1.5] mb-3">
-            Copy this now — you won&apos;t see it again. If you lose it, revoke and mint a new one.
+            Copy this now, you won&apos;t see it again. If you lose it, revoke and mint a new one.
           </p>
           <pre className="text-ui-12 bg-tea-bg p-3 rounded border border-tea-border overflow-x-auto select-all break-all whitespace-pre-wrap">{justMinted.token}</pre>
           <div className="mt-3 flex gap-3">
@@ -158,7 +158,7 @@ export const MCPTokensView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowMint(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
               >
                 <Plus size={13} />
                 <span>Mint a new token</span>
@@ -196,7 +196,7 @@ export const MCPTokensView: React.FC = () => {
   }
 }`}</pre>
             <p className="text-tea-text-sec text-ui-13 leading-[1.6] mt-3">
-              Restart Claude. You&apos;ll see Teajia tools available in any conversation — the exact
+              Restart Claude. You&apos;ll see Teajia tools available in any conversation. The exact
               set depends on the scopes you selected when minting the token.
               Mobile voice mode works the same way once the desktop config syncs.
             </p>
@@ -311,7 +311,7 @@ const MintForm: React.FC<MintFormProps> = ({ onCancel, onMinted }) => {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Scope selection state — keyed by scope string
+  // Scope selection state, keyed by scope string
   const [selectedScopes, setSelectedScopes] = useState<Record<string, boolean>>(
     () => Object.fromEntries(SCOPE_DEFS.map(s => [s.scope, s.defaultChecked]))
   );
@@ -350,8 +350,8 @@ const MintForm: React.FC<MintFormProps> = ({ onCancel, onMinted }) => {
 
   const scopeGroups: { key: ScopeDef['group']; title: string; note?: string }[] = [
     { key: 'read', title: 'Read' },
-    { key: 'operator', title: 'Write — Operator' },
-    { key: 'owner', title: 'Write — Owner', note: 'Owner / admin tools — grant with care' },
+    { key: 'operator', title: 'Write: Operator' },
+    { key: 'owner', title: 'Write: Owner', note: 'Owner / admin tools, grant with care' },
   ];
 
   return (
@@ -416,7 +416,7 @@ const MintForm: React.FC<MintFormProps> = ({ onCancel, onMinted }) => {
         <button
           type="submit"
           disabled={busy || !label.trim()}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {busy && <Loader2 size={13} className="animate-spin" />}
           <span>{busy ? 'Minting…' : 'Mint token'}</span>

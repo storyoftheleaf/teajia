@@ -1,0 +1,38 @@
+{
+  "id": "zhi-lan-xiang",
+  "name": "Zhi Lan Xiang",
+  "chineseName": "芝兰香",
+  "altNames": [
+    "Orchid Dan Cong"
+  ],
+  "originCountry": "China",
+  "originRegion": "Phoenix Mountains (Guangdong)",
+  "developedYear": 1644,
+  "parentage": "One of the oldest and most classic fragrance types, selected from the native Phoenix Mountain population.",
+  "description": "'Orchid Fragrance'. A benchmark Phoenix Dan Cong oolong, considered one of the most classic and elegant expressions of a floral Dan Cong. It is prized for its refined, high-pitched, and pure orchid fragrance, which is less fruity than Mi Lan Xiang and more focused and delicate, representing a connoisseur's floral profile.",
+  "plantType": "Medium-sized arbor with long, yellowish-green leaves (Camellia sinensis var. sinensis).",
+  "environment": "Grows in the high-altitude terroir of Wudong Mountain within the Phoenix range, which is considered the best area for producing Dan Congs with elegance and complexity.",
+  "processing": "The processing of Zhi Lan Xiang requires an expert hand. The goal is to achieve a perfect, clean expression of its orchid aroma without any off-notes. This demands precise control over withering, bruising, and oxidation.",
+  "oxidation": "Oxidation is typically in the lighter-medium range (25-35%). This keeps the profile bright, fresh, and focused on the high-note floral aromatics.",
+  "roasting": "Receives a very light, low-temperature finishing roast. The bake is just enough to ensure stability and remove any residual greenness, allowing the pure orchid fragrance to be the star.",
+  "versatility": "Completely specialized for the high-end Dan Cong oolong style. Its value is derived entirely from its masterful expression of a pure and elegant floral profile.",
+  "distribution": {
+    "china": [
+      "Guangdong Province (Chaozhou - Phoenix Mountains, especially Wudong)"
+    ]
+  },
+  "expressions": {
+    "Dan Cong Oolong": {
+      "Zhi Lan Xiang Dan Cong": "A masterfully processed Dan Cong oolong where every step is aimed at capturing the pure, elegant, and ethereal orchid aroma."
+    }
+  },
+  "sensory": {
+    "aroma": "Refined, high-pitched Orchid, Iris, fresh greenery",
+    "flavor": "Elegant, sweet, and intensely floral with a clean mineral backbone and a very long, fragrant aftertaste.",
+    "mouthfeel_liquor": "Silky, smooth, and vibrant with a characteristic cooling sensation in the throat. The liquor is a very clear, pale gold."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

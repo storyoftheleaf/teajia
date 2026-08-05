@@ -1,0 +1,11 @@
+{
+  "id": "india",
+  "name": "India",
+  "country": "India",
+  "province": "Various States",
+  "altitude": "500-2500m",
+  "climate": "Diverse climates from tropical to highland, famous for black tea",
+  "holding": "regions",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

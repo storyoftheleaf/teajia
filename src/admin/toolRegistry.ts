@@ -52,12 +52,13 @@ export const ADMIN_TOOLS: AdminTool[] = [
   { id: 'access', label: 'Members & Access', group: 'teach', route: '/admin/access', addedAt: '2026-04-26', requires: 'owner', bundle: 'members', staffVisible: true },
   { id: 'settings', label: 'Settings', group: 'teach', route: '/admin/account-settings', addedAt: '2026-04-27', requires: 'owner' },
   { id: 'mcp-tokens', label: 'Voice & Agent (MCP)', group: 'teach', route: '/admin/mcp-tokens', addedAt: '2026-05-09', requires: 'owner' },
+  { id: 'wisdom', label: 'Wisdom', group: 'teach', route: '/admin/wisdom', addedAt: '2026-07-27' },
   { id: 'platform-access', label: 'Platform Access', group: 'teach', route: '/admin/access/platform', addedAt: '2026-04-26', requires: 'platform' },
   { id: 'currency-rates', label: 'Exchange Rates', group: 'teach', route: '/admin/currency', addedAt: '2026-04-27', requires: 'platform' },
   { id: 'platform-dashboard', label: 'Platform Dashboard', group: 'teach', route: '/admin/platform', addedAt: '2026-05-10', requires: 'platform' },
   { id: 'platform-audit-log', label: 'Platform Audit Log', group: 'teach', route: '/admin/platform/audit-log', addedAt: '2026-05-10', requires: 'platform' },
 
-  // Network — Steps 2-6 of NETWORK_ROLLOUT_PLAN. Owner-gated as a proxy for the
+  // Network: Steps 2-6 of NETWORK_ROLLOUT_PLAN. Owner-gated as a proxy for the
   // bundles (catalog/sell/etc); the views themselves enforce the bundle gate
   // server-side and inline.
   { id: 'network-catalog', label: 'Carry from Network', group: 'network', route: '/admin/network?tab=catalog', addedAt: '2026-04-26', requires: 'owner', bundle: 'catalog', staffVisible: true },

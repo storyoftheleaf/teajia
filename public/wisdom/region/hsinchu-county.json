@@ -1,0 +1,11 @@
+{
+  "id": "hsinchu-county",
+  "name": "Hsinchu County",
+  "country": "Taiwan",
+  "province": "Hsinchu",
+  "altitude": "200-1200m",
+  "climate": "Mountainous region known for Oriental Beauty oolong",
+  "holding": "regions",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

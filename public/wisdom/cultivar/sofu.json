@@ -1,0 +1,42 @@
+{
+  "id": "sofu",
+  "name": "Sofu",
+  "chineseName": "そうふう / 蒼風",
+  "altNames": [
+    "Blue Wind"
+  ],
+  "originCountry": "Japan",
+  "originRegion": "Saitama",
+  "developedYear": 2001,
+  "parentage": "'Fuding Da Bai' x a native Saitama Zairai",
+  "description": "'Blue Wind'. A modern aromatic cultivar, similar to Koshun, that is prized for its striking and unique fragrance. It produces a Sencha or light oolong with a powerful perfume-like aroma of black currant, citrus, and mint, representing a new wave of aromatic Japanese teas.",
+  "plantType": "Vigorous, upright bush (Camellia sinensis var. sinensis).",
+  "environment": "Adaptable to various climates, it is a key cultivar for the Saitama region.",
+  "processing": "Like other aromatic cultivars, Sofu is processed with a gentle hand to preserve its volatile compounds. Light steaming is preferred to avoid damaging the unique aroma.",
+  "oxidation": "Zero oxidation for the Sencha style. Steamed immediately after harvest.",
+  "roasting": "A very light final drying roast is applied to stabilize the tea without diminishing its powerful, unique fragrance.",
+  "versatility": "Moderately versatile. It is primarily used for creating unique aromatic Senchas and is also an excellent choice for making Japanese-style light oolongs.",
+  "distribution": {
+    "japan": [
+      "Saitama",
+      "Shizuoka"
+    ]
+  },
+  "expressions": {
+    "Sencha": {
+      "Aromatic Sencha": "Used to create a Sencha with a very unique, zesty, and minty aromatic profile."
+    },
+    "Japanese Oolong": {
+      "Light Oolong": "Its strong aromatics are well-suited for producing fragrant, lightly oxidized oolongs."
+    }
+  },
+  "sensory": {
+    "aroma": "Striking black currant, citrus peel, mint",
+    "flavor": "Bright, zesty, and aromatic with a refreshing, cool finish.",
+    "mouthfeel_liquor": "Smooth, light-to-medium-bodied, and very refreshing. The liquor is a pale green-yellow."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

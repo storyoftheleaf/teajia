@@ -13,9 +13,9 @@ interface ModalProps {
   title?: React.ReactNode;
   ariaLabel?: string;
   /**
-   * center — centered card (default). Close X top-right.
-   * sheet — bottom sheet on mobile, centered card on desktop. Close X top-left.
-   * panel — full-screen panel. Close X top-left.
+   * center, centered card (default). Close X top-right.
+   * sheet, bottom sheet on mobile, centered card on desktop. Close X top-left.
+   * panel, full-screen panel. Close X top-left.
    */
   variant?: ModalVariant;
   /** Hide the built-in close button (e.g. when a header toolbar owns it). */

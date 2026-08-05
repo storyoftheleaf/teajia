@@ -1,0 +1,39 @@
+{
+  "id": "anji-bai-cha",
+  "name": "Anji Bai Cha",
+  "chineseName": "安吉白茶",
+  "altNames": [
+    "Anji White Leaf"
+  ],
+  "originCountry": "China",
+  "originRegion": "Anji (Zhejiang)",
+  "developedYear": 1982,
+  "parentage": "A rare, natural mutation discovered in the wild and then propagated.",
+  "description": "'Anji White Tea'. A unique and fascinating cultivar that, despite its name, is processed as a green tea. In the low temperatures of early spring, its leaves have an albino-like appearance due to a lack of chlorophyll. This results in an exceptionally high concentration of amino acids, producing a tea with a powerful, savory 'umami' flavor unlike any other green tea.",
+  "plantType": "Delicate, temperature-sensitive bush (Camellia sinensis var. sinensis).",
+  "environment": "Requires a specific microclimate with a cool spring to trigger its albino phase. It thrives in the bamboo-rich terroir of Anji County.",
+  "processing": "Processing must be extremely gentle to protect the delicate, amino-acid-rich leaves. The goal is to do as little as possible to let the unique character of the raw material shine through.",
+  "oxidation": "Zero oxidation. The leaves are lightly steamed or pan-fired at a low temperature to halt oxidation while preserving their delicate structure and chemical composition.",
+  "roasting": "No roasting. The tea is simply dried at a low temperature after the kill-green step. Any roasting would destroy its unique, savory flavor.",
+  "versatility": "Extremely specialized. This cultivar is cultivated for one purpose only: to create the unique, umami-rich green tea known as Anji Bai Cha.",
+  "distribution": {
+    "china": [
+      "Zhejiang Province (Anji County)",
+      "Sichuan Province (where it is also cultivated)"
+    ]
+  },
+  "expressions": {
+    "Green Tea": {
+      "Anji Bai Cha": "Its sole expression is a minimally processed green tea, designed to preserve its high amino acid content and unique umami flavor. The leaves are typically long and needle-like."
+    }
+  },
+  "sensory": {
+    "aroma": "Steamed Asparagus, nuts, a subtle sweet floral note",
+    "flavor": "Powerful, savory Umami, reminiscent of chicken broth, with a very sweet and clean finish.",
+    "mouthfeel_liquor": "Light-bodied but intensely flavorful and savory, with a smooth, vibrant texture. The liquor is a very pale, almost clear jade color."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

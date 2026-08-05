@@ -1,0 +1,17 @@
+{
+  "id": "tea-masters-cake",
+  "name": "Tea Masters Cake",
+  "chineseName": "茶师饼",
+  "altNames": [],
+  "type": "Shou",
+  "form": "Cake",
+  "region": "Yunnan",
+  "country": "China",
+  "vendor": "HangJia",
+  "provenance": "undisclosed",
+  "tradition": "Chinese private-collection naming",
+  "description": "Whether the name refers to a brand, a maker's tribute, or a quality grade is undocumented. Mountain, village and vintage are unrecorded beyond the Yunnan province.",
+  "holding": "namedTeas",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

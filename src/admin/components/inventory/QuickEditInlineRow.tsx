@@ -10,7 +10,7 @@ export interface QuickEditInlineRowProps {
   /** The visible columns (key + width class), in order, so the editors align
    *  to the columns above. */
   cols: QuickEditColumn[];
-  /** Column count to span — match the col array the parent row used. */
+  /** Column count to span, match the col array the parent row used. */
   colSpan: number;
   onUpdate: (id: string, field: keyof Product, value: any) => void;
   onTasting: (product: Product) => void;
@@ -24,7 +24,7 @@ export interface QuickEditInlineRowProps {
 // The inline quick-edit panel rendered as an extra full-width table row directly
 // under the long-pressed product row. It slides down (height 0 -> auto) inside a
 // colSpan'd td so the animation stays smooth, and INSIDE that td it lays out a
-// nested table-fixed grid mirroring the parent's column widths — so each editor
+// nested table-fixed grid mirroring the parent's column widths, so each editor
 // sits directly under its real column (Stock under Stock, Year under Year).
 function QuickEditInlineRowBase({
   product, expanded, cols, colSpan, onUpdate, onTasting, onFullEdit, rates, onClose, onStockMovement,

@@ -7,7 +7,7 @@ import { ALL_BUNDLES, BUNDLE_DESCRIPTIONS, BUNDLE_LABELS } from '../../types';
 import type { AccountMember, Bundle } from '../../types';
 import { PlacementRequests } from '../components/PlacementRequests';
 
-// Members & Access — Location Owner / Tea Master view at /admin/access.
+// Members & Access: Location Owner / Tea Master view at /admin/access.
 // Per docs/ARCHITECTURE.md and docs/NETWORK_UI_BRIEF.md.
 // shared vocabulary. Wine-list rhythm. No avatars-in-circles. No role-as-pill.
 // Bundles as comma-separated capability words underneath each name.
@@ -145,7 +145,7 @@ const EditorSheet: React.FC<EditorSheetProps> = ({ member, isViewerOwner, onClos
         aria-label={`Edit access for ${member.name || member.email}`}
         className="fixed top-0 right-0 bottom-0 z-modal w-full sm:w-[420px] bg-tea-surface border-l border-tea-border flex flex-col animate-slideInRight"
       >
-        {/* Header — close X on the left per CLAUDE.md panel rule */}
+        {/* Header, close X on the left per CLAUDE.md panel rule */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-tea-border">
           <button
             type="button"
@@ -224,7 +224,7 @@ const EditorSheet: React.FC<EditorSheetProps> = ({ member, isViewerOwner, onClos
             </>
           )}
 
-          {/* Dangerous actions — secondary color, never red. Inline confirm. */}
+          {/* Dangerous actions: secondary color, never red. Inline confirm. */}
           {isViewerOwner && !isOwner && (
             <div className="mt-10 pt-6 border-t border-tea-border">
               {!confirmingRemove ? (
@@ -275,7 +275,7 @@ const EditorSheet: React.FC<EditorSheetProps> = ({ member, isViewerOwner, onClos
           )}
         </div>
 
-        {/* Footer — Cancel left, Save right per CLAUDE.md */}
+        {/* Footer: Cancel left, Save right per CLAUDE.md */}
         <div className="border-t border-tea-border px-5 py-4 flex items-center justify-between gap-2 bg-tea-bg">
           <button
             type="button"
@@ -288,7 +288,7 @@ const EditorSheet: React.FC<EditorSheetProps> = ({ member, isViewerOwner, onClos
             type="button"
             onClick={handleSave}
             disabled={!dirty || saving || isOwner}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {saving ? 'Saving…' : 'Save'}
           </button>
@@ -303,7 +303,7 @@ export const AccessView: React.FC = () => {
   const activeAccountId = useAppStore(s => s.activeAccountId);
   const isOwnerTier = useAppStore(selectIsOwnerTier);
   // Identify the viewer so we never let them edit their own bundles via this
-  // surface — an owner toggling away their own `members` would lock themselves
+  // surface, an owner toggling away their own `members` would lock themselves
   // out of the only screen that can grant it back.
   const currentUserId = useMemo(() => getTokenClaims()?.sub || null, []);
 
@@ -376,7 +376,7 @@ export const AccessView: React.FC = () => {
     }, 1800);
   };
 
-  // Optimistic save — patch the row in place while the network call flies,
+  // Optimistic save: patch the row in place while the network call flies,
   // roll back if it rejects. Errors bubble back into EditorSheet so the inline
   // error message appears next to the toggles.
   const handleSaveBundles = async (next: Bundle[]) => {
@@ -402,7 +402,7 @@ export const AccessView: React.FC = () => {
     }
   };
 
-  // Confirmation lives inline inside EditorSheet — this just executes the removal.
+  // Confirmation lives inline inside EditorSheet, this just executes the removal.
   const handleRemove = async () => {
     if (!editing || !activeAccountId) return;
     try {
@@ -424,7 +424,7 @@ export const AccessView: React.FC = () => {
 
   return (
     <div className="px-4 md:px-6 pt-6 pb-nav-gap max-w-3xl mx-auto">
-      {/* Header — quiet location name + summary sentence */}
+      {/* Header, quiet location name + summary sentence */}
       <header className="mb-8">
         <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>
           {activeAccount?.name || 'Access'}
@@ -475,7 +475,7 @@ export const AccessView: React.FC = () => {
         </div>
       )}
 
-      {/* Stock spine step 4 — pending placement requests from members (owner-tier
+      {/* Stock spine step 4, pending placement requests from members (owner-tier
           only; renders nothing when there are none). */}
       {isOwnerTier && <PlacementRequests accountId={activeAccountId} />}
 
@@ -493,7 +493,7 @@ export const AccessView: React.FC = () => {
         </section>
       )}
 
-      {/* Members group — divider only if both sections present */}
+      {/* Members group, divider only if both sections present */}
       {owners.length > 0 && staffAndViewers.length > 0 && (
         <div className="border-t border-tea-border my-8" />
       )}
@@ -518,7 +518,7 @@ export const AccessView: React.FC = () => {
             <button
               type="button"
               onClick={() => setAdding(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
             >
               Add Member
             </button>
@@ -578,7 +578,7 @@ export const AccessView: React.FC = () => {
                   type="button"
                   onClick={handleAddMember}
                   disabled={!addEmail.includes('@') || addBusy}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {addBusy ? 'Sending…' : 'Send Invite'}
                 </button>

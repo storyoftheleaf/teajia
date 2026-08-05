@@ -191,7 +191,7 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
             <button
               type="submit"
               disabled={submitting || !vendorName.trim()}
-              className="flex items-center gap-2 px-5 py-2.5 bg-tea-gold text-tea-bg text-xs font-semibold uppercase tracking-[0.12em] rounded-xl hover:bg-tea-gold/90 transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-5 py-2.5 cta-solid text-xs font-semibold uppercase tracking-[0.12em] rounded-xl transition-colors disabled:opacity-50"
             >
               {submitting ? <Loader2 size={13} className="animate-spin" /> : <ShoppingBag size={13} />}
               Create PO
@@ -294,7 +294,7 @@ const ReceiveStockPrompt: React.FC<{
                 setConfirming(false);
               }
             }}
-            className="flex items-center gap-2 px-5 py-2.5 bg-tea-gold text-tea-bg text-xs font-semibold uppercase tracking-[0.12em] rounded-xl hover:bg-tea-gold/90 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2.5 cta-solid text-xs font-semibold uppercase tracking-[0.12em] rounded-xl transition-colors disabled:opacity-50"
           >
             {confirming ? <Loader2 size={12} className="animate-spin" /> : null}
             Add to stock
@@ -353,12 +353,12 @@ export const PurchaseOrdersPage: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
-      {/* Header — canonical §5 */}
+      {/* Header, canonical §5 */}
       <div className="px-4 md:px-6 lg:px-10 pt-6 pb-3 flex-shrink-0 flex items-center gap-3">
         <h1 className="h2 flex-1">Purchase Orders</h1>
         <button
           onClick={() => setIsNewFormOpen(true)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
         >
           <Plus size={13} />
           New PO

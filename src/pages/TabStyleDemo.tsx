@@ -3,7 +3,7 @@ import { LayoutGroup, motion } from 'framer-motion';
 
 const TABS = ['Read', 'Learn', 'Advise', 'Shop'];
 
-// ─── Style 1: Whisper Capsule — frosted gold outline ───────────────────────
+// ─── Style 1: Whisper Capsule, frosted gold outline ───────────────────────
 function Style1({ tabs }: { tabs: string[] }) {
   const [active, setActive] = useState(tabs[0]);
   return (
@@ -213,7 +213,7 @@ const VARIANTS = [
   {
     id: 1,
     name: 'Whisper Capsule',
-    desc: 'Frosted gold outline — barely-there border with a warm haze. Spring morph between tabs.',
+    desc: 'Frosted gold outline, barely-there border with a warm haze. Spring morph between tabs.',
     Component: Style1,
   },
   {
@@ -225,7 +225,7 @@ const VARIANTS = [
   {
     id: 3,
     name: 'Recessed Press',
-    desc: 'Active word sinks slightly — dark tint capsule + subtle text-shadow gives depth not surface.',
+    desc: 'Active word sinks slightly, dark tint capsule + subtle text-shadow gives depth not surface.',
     Component: Style3,
   },
   {
@@ -282,7 +282,7 @@ export default function TabStyleDemo() {
               <p className="text-ui-12 leading-relaxed opacity-50">{desc}</p>
             </div>
 
-            {/* Preview bar — mimics the bottom nav width */}
+            {/* Preview bar, mimics the bottom nav width */}
             <div
               className="rounded-xl flex items-center justify-center py-4 px-6"
               style={{

@@ -4,7 +4,7 @@ import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { syncCompassEntries } from '../../lib/teaCompassSync';
 
 /**
- * SyncIndicator — surfaces only when something actually needs the user's
+ * SyncIndicator, surfaces only when something actually needs the user's
  * attention. The previous tiny gold dot read as decoration; users had no
  * way to tell it from an empty bullet point. The new version:
  *
@@ -35,7 +35,7 @@ export const SyncIndicator: React.FC = () => {
 
   const isPending = unsyncedCount > 0;
 
-  // Quiet path — fully synced, no error, and not flashing the just-saved confirmation.
+  // Quiet path, fully synced, no error, and not flashing the just-saved confirmation.
   if (!isPending && !syncing && !showSavedFlash && !syncError) return null;
 
   if (syncing) {
@@ -62,7 +62,7 @@ export const SyncIndicator: React.FC = () => {
     );
   }
 
-  // Couldn't reach the server — say so plainly and offer a retry. Takes priority
+  // Couldn't reach the server, say so plainly and offer a retry. Takes priority
   // over the neutral "unsaved" count so the user knows it's a connection problem,
   // not just work pending. This is the signal that was missing when changes
   // silently failed to save (e.g. on a blocked network).
@@ -72,11 +72,11 @@ export const SyncIndicator: React.FC = () => {
         type="button"
         onClick={handleSync}
         className="tap-target inline-flex items-center gap-1.5 px-2 h-7 rounded-md bg-tea-error/[0.10] text-tea-error border border-tea-error/30 hover:bg-tea-error/[0.16] transition-colors text-ui-11 font-medium"
-        aria-label="Couldn't save to the server — tap to retry"
-        title="Couldn't reach the server — tap to retry"
+        aria-label="Couldn't save to the server. Tap to retry."
+        title="Couldn't reach the server. Tap to retry."
       >
         <CloudOff size={12} strokeWidth={1.75} />
-        <span>Not saved — retry</span>
+        <span>Not saved. Retry</span>
       </button>
     );
   }
@@ -86,8 +86,8 @@ export const SyncIndicator: React.FC = () => {
       type="button"
       onClick={handleSync}
       className="tap-target inline-flex items-center gap-1.5 px-2 h-7 rounded-md bg-tea-gold/[0.08] text-tea-gold border border-tea-gold/30 hover:bg-tea-gold/[0.14] transition-colors text-ui-11 font-medium"
-      aria-label={`${unsyncedCount} unsaved ${unsyncedCount === 1 ? 'entry' : 'entries'} — tap to sync`}
-      title={`${unsyncedCount} unsaved — tap to sync`}
+      aria-label={`${unsyncedCount} unsaved ${unsyncedCount === 1 ? 'entry' : 'entries'}, tap to sync`}
+      title={`${unsyncedCount} unsaved, tap to sync`}
     >
       <CloudOff size={12} strokeWidth={1.75} />
       <span className="tabular-nums">{unsyncedCount}</span>

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Pencil, Eye, Star, FlaskConical, Share2, Receipt, Layers, Archive, X as XIcon, Loader2 } from 'lucide-react';
 
 /**
- * InventoryActionRail — the ONE surface for acting on selected inventory rows.
+ * InventoryActionRail, the ONE surface for acting on selected inventory rows.
  *
  * A narrow vertical strip (68px) that slides in from the right edge when one or
  * more rows are selected. Each action is icon-on-top, short-word-below, stacked.
@@ -84,7 +84,11 @@ export const InventoryActionRail: React.FC<InventoryActionRailProps> = ({
         // A thin inset gold hairline marks the rail's left edge without casting a
         // drop shadow onto the table. The earlier -12px blurred shadow smeared
         // shading over the right columns in both shrunken and expanded states.
-        boxShadow: 'inset 1px 0 0 rgba(212,166,82,0.14)',
+        // The hairline is --tea-border, not a hand-mixed copy of it. What it
+        // replaced carried the border token's alpha but a gold that was never
+        // the palette's gold in either mode, so the rail's edge did not match
+        // any other divider on the page and did not move when the theme did.
+        boxShadow: 'inset 1px 0 0 var(--tea-border)',
         paddingTop: 12,
         paddingBottom: 'calc(12px + env(safe-area-inset-bottom))',
       }}
@@ -98,7 +102,7 @@ export const InventoryActionRail: React.FC<InventoryActionRailProps> = ({
         <span className="block text-ui-9 text-tea-text-dim font-normal uppercase">{selectedCount === 1 ? 'item' : 'items'}</span>
       </div>
 
-      {/* Edit — the ONLY door to the full ProductEditPanel, single-select only */}
+      {/* Edit: the ONLY door to the full ProductEditPanel, single-select only */}
       {isSingle && (
         <RailButton label="Edit" variant="edit" onClick={onEdit}>
           <Pencil size={19} aria-hidden="true" />

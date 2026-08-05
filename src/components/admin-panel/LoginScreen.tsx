@@ -50,7 +50,7 @@ export const LoginScreen: React.FC<{ onLogin: () => void; onClose: () => void }>
                             />
                             <button
                                 onClick={checkLogin}
-                                className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+                                className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-md cta-solid text-xs font-semibold transition-colors"
                             >
                                 Enter
                             </button>
@@ -83,7 +83,7 @@ export const LoginScreen: React.FC<{ onLogin: () => void; onClose: () => void }>
                         </div>
                         <button
                             onClick={() => { setPwd(createdKey); setCreatedKey(null); }}
-                            className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+                            className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-md cta-solid text-xs font-semibold transition-colors"
                         >
                             Login Now
                         </button>

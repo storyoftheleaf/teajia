@@ -85,14 +85,14 @@ export const MagazineView: React.FC = () => {
 
         <button
           onClick={handleNewArticle}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors shrink-0"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors shrink-0"
         >
           <Plus size={13} />
           New Article
         </button>
       </div>
 
-      {/* Tab strip — bottom-border underline per §6 */}
+      {/* Tab strip, bottom-border underline per §6 */}
       <div className="flex items-center gap-6 px-4 md:px-6 lg:px-10 border-b border-tea-border flex-shrink-0">
         {TABS.map(t => (
           <button
@@ -135,7 +135,7 @@ export const MagazineView: React.FC = () => {
             {tab === 'all' && (
               <button
                 onClick={handleNewArticle}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-medium hover:bg-tea-gold/90 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-medium transition-colors"
               >
                 <Plus size={13} />
                 New Article

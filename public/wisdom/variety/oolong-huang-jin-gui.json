@@ -1,0 +1,14 @@
+{
+  "id": "oolong-huang-jin-gui",
+  "type": "Oolong",
+  "name": "Huang Jin Gui",
+  "chineseName": "黄金桂",
+  "altNames": [
+    "Golden Osmanthus",
+    "Golden Cassia"
+  ],
+  "region": "Anxi",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

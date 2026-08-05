@@ -1,0 +1,13 @@
+{
+  "id": "herbal-calendula",
+  "type": "Herbal",
+  "name": "Calendula",
+  "chineseName": null,
+  "altNames": [
+    "Marigold Flower"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

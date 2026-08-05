@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-/** Floating back-to-top button — minimal gold line aesthetic. */
+/** Floating back-to-top button, minimal gold line aesthetic. */
 export const BackToTop: React.FC = () => {
   const [visible, setVisible] = useState(false);
 

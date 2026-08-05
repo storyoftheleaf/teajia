@@ -1,0 +1,13 @@
+{
+  "id": "oolong-lao-cong-shui-xian",
+  "type": "Oolong",
+  "name": "Lao Cong Shui Xian",
+  "chineseName": "老丛水仙",
+  "altNames": [
+    "Old Bush Narcissus"
+  ],
+  "region": "Wuyi",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

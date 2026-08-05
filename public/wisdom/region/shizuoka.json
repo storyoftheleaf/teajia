@@ -1,0 +1,11 @@
+{
+  "id": "shizuoka",
+  "name": "Shizuoka",
+  "country": "Japan",
+  "province": "Shizuoka",
+  "altitude": "100-800m",
+  "climate": "Mount Fuji region, largest tea producing area in Japan",
+  "holding": "regions",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

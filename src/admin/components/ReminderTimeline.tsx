@@ -38,21 +38,21 @@ function buildMilestones(event: TeaEvent): ReminderMilestone[] {
       label: '3 days before',
       scheduledAt: addDays(eventDate, -3).toISOString(),
       sent: false,
-      messageTemplate: `Hi! Teajia reminder — "${title}" is coming up this week.\n\nYour seat is confirmed. We'll send the full address 24h before.\n\nLooking forward to sitting together. 🍵`,
+      messageTemplate: `Hi! Teajia reminder, "${title}" is coming up this week.\n\nYour seat is confirmed. We'll send the full address 24h before.\n\nLooking forward to sitting together. 🍵`,
     },
     {
       key: '1d',
       label: '1 day before',
       scheduledAt: addDays(eventDate, -1).toISOString(),
       sent: false,
-      messageTemplate: `Hi! Teajia reminder — "${title}" is tomorrow.\n\nVenue: ${locationHint}\nFull details: ${eventUrl}\n\nSee you soon!`,
+      messageTemplate: `Hi! Teajia reminder, "${title}" is tomorrow.\n\nVenue: ${locationHint}\nFull details: ${eventUrl}\n\nSee you soon!`,
     },
     {
       key: '2h',
       label: '2 hours before',
       scheduledAt: subtractHours(eventDate, 2).toISOString(),
       sent: false,
-      messageTemplate: `Hi! Teajia reminder — "${title}" starts in about 2 hours.\n\nNo rush, take your time getting here. We'll be ready for you. 🍵`,
+      messageTemplate: `Hi! Teajia reminder, "${title}" starts in about 2 hours.\n\nNo rush, take your time getting here. We'll be ready for you. 🍵`,
     },
   ];
 }

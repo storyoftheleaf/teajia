@@ -1,0 +1,14 @@
+{
+  "id": "herbal-rooibos",
+  "type": "Herbal",
+  "name": "Rooibos",
+  "chineseName": null,
+  "altNames": [
+    "Red Bush",
+    "South African Red"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

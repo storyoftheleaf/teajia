@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminOverlay } from '../../hooks/useAdminOverlay';
 import { Icons } from '../Icons';
-import { fmtDollars } from '../../utils/formatNumber';
+import { fmtRecordDollars } from '../../utils/formatNumber';
 
 export const AdminMiniDashboard: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
   const { isAdmin, stats } = useAdminOverlay();
@@ -52,7 +52,7 @@ export const AdminMiniDashboard: React.FC<{ onClose?: () => void }> = ({ onClose
           className="bg-tea-surface/30 border border-tea-border p-3 flex flex-col items-center gap-1 hover:bg-tea-surface/50 transition-colors"
         >
           <span className="num text-xl text-tea-text">
-            {fmtDollars(stats.revenueThisWeek)}
+            {fmtRecordDollars(stats.revenueThisWeek)}
           </span>
           <span className="text-ui-9 uppercase tracking-widest text-tea-text-sec/60">
             This Week

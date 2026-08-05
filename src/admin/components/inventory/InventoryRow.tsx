@@ -17,7 +17,7 @@ export interface InventoryRowProps {
   visibleCols: readonly ColDef[];
   splitViewCols: readonly ColDef[];
   splitView: boolean;
-  /** Mobile horizontal-swipe mode — pins the Product column to the left edge. */
+  /** Mobile horizontal-swipe mode, pins the Product column to the left edge. */
   stickyFirstCol?: boolean;
   /** Mobile swipe table left-aligns every column (numbers included). */
   alignLeft?: boolean;
@@ -42,7 +42,7 @@ export interface InventoryRowProps {
   onOpenSource: (product: Product) => void;
 }
 
-// Canonical inventory row — see DesignSystemShowcase § Inventory list (INV_ROWS).
+// Canonical inventory row, see DesignSystemShowcase § Inventory list (INV_ROWS).
 // Serif numerics for year/grams/price, dot+label for type, gold-tinted active row.
 // Information-first: the row body selects (it has no action cluster). Every row
 // action lives in the unified action rail that appears when rows are selected.
@@ -64,7 +64,7 @@ function InventoryRowBase(props: InventoryRowProps) {
   const cellId = (colIdx: number) => `cell-${globalIdx}-${colIdx}`;
   const ghostId = (colIdx: number) => `ghost-${globalIdx}-${colIdx}`;
 
-  // Tone tokens — the PRODUCT NAME stays one calm color (text, or text-sec when
+  // Tone tokens: the PRODUCT NAME stays one calm color (text, or text-sec when
   // sold/archived) so the Product column reads consistently. The low-stock signal
   // is confined to the STOCK NUMBER alone (`stockTone`) so it informs without
   // shouting; every other numeric column stays neutral. This keeps the list calm
@@ -73,7 +73,7 @@ function InventoryRowBase(props: InventoryRowProps) {
   const isLow = !isOut && product.stockGrams <= product.lowStockThreshold;
   const isSold = product.status === 'Archived' || isOut;
   const nameTone = isSold ? 'text-tea-text-sec' : 'text-tea-text';
-  // Non-stock numbers (retail, cost) never carry the low-stock tint — low stock
+  // Non-stock numbers (retail, cost) never carry the low-stock tint, low stock
   // has nothing to do with price, so tinting it there was pure noise.
   const numTone = isSold ? 'text-tea-text-dim' : 'text-tea-text';
   // The stock number is the only place the low-stock signal lives. `tea-gold-lt`
@@ -83,7 +83,7 @@ function InventoryRowBase(props: InventoryRowProps) {
 
   // The Year column already shows the vintage, so a trailing year baked into the
   // name ("Aged Liu Bao 1960") is redundant. Strip it for display ONLY when it
-  // matches product.year — never touch a trailing number that isn't the vintage.
+  // matches product.year, never touch a trailing number that isn't the vintage.
   const displayName = stripMatchingYear(product.productName, product.year);
 
   // On the mobile swipe table numbers left-align (under their header) instead of
@@ -113,7 +113,7 @@ function InventoryRowBase(props: InventoryRowProps) {
           : 'font-display text-ui-17 leading-tight truncate font-medium';
         // The pinned column sits ON TOP of the card surface as the rest of the
         // row swipes beneath it, so its opaque background must MATCH the card
-        // (tea-surface) — using tea-bg here made the Product column read as a
+        // (tea-surface), using tea-bg here made the Product column read as a
         // lighter slab against a darker data band, the over-separated look we're
         // removing. Selected/panel rows still get a gold-tinted surface mix.
         const stickyNameBg = isPanelOpen
@@ -121,8 +121,8 @@ function InventoryRowBase(props: InventoryRowProps) {
           : isSelected
             ? 'color-mix(in srgb, var(--tea-gold) 18%, var(--tea-surface))'
             : 'var(--tea-surface)';
-        // No divider and no shadow between the pinned column and the swipe area —
-        // the matching surface background is enough; any line or gradient read as
+        // No divider and no shadow between the pinned column and the swipe area.
+        // The matching surface background is enough; any line or gradient read as
         // an unwanted hard separation.
         const stickyNameCls = stickyFirstCol
           ? 'sticky left-0 z-[1]'
@@ -191,7 +191,7 @@ function InventoryRowBase(props: InventoryRowProps) {
               <span className="font-bold truncate block" style={{ color: typeColor }}>{product.type}</span>
             ) : (
               // The type is carried by the word itself, tinted + bold in the
-              // type's colour — the separate colour dot was redundant ink.
+              // type's colour, the separate colour dot was redundant ink.
               <span className="font-bold truncate block" style={{ color: typeColor }}>{product.type}</span>
             )}
           </td>
@@ -221,7 +221,7 @@ function InventoryRowBase(props: InventoryRowProps) {
       case 'stockGrams': {
         return (
           <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${stockTone}`}>
-            {/* Stock is the gram quantity, editable inline — type a new value
+            {/* Stock is the gram quantity, editable inline, type a new value
                 directly in the cell. The history clock and recount-flag icons
                 were removed: stock history opens from the column-header link,
                 and the recount flag lives in the side action bar / edit panel.
@@ -251,7 +251,7 @@ function InventoryRowBase(props: InventoryRowProps) {
       );
       case 'pricePerGramUSD': {
         const sellingPrice = product.fixedRetailPriceUSD ?? product.pricePerGramUSD;
-        // Price-override marker: a soft bronze, not the brightest tone — the
+        // Price-override marker: a soft bronze, not the brightest tone, the
         // selected row is what should stand out, not a per-row price flag.
         const overrideTone = product.fixedRetailPriceUSD != null && !isSold ? 'text-tea-gold-lt' : numTone;
         return (
@@ -338,7 +338,7 @@ function InventoryRowBase(props: InventoryRowProps) {
   };
 
   // Canonical active-row signature: gold-tinted bg + gold outline (selection or panel open).
-  // Every non-active row reads as ONE flat color — no per-row background tints and no
+  // Every non-active row reads as ONE flat color, no per-row background tints and no
   // whole-row opacity fades (they made the table look like a patchwork of browns).
   // Hidden-from-shop state is carried by the EyeOff icon, not by fading the row.
   const trCls = [

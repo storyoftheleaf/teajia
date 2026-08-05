@@ -1,0 +1,15 @@
+{
+  "id": "basket-tea",
+  "name": "Basket Tea",
+  "chineseName": "篮茶",
+  "altNames": [
+    "Basket-Aged"
+  ],
+  "appliesToTypes": [
+    "Dark"
+  ],
+  "description": "Dark tea packed loose into bamboo baskets lined with bamboo leaves and sealed for long-term aging, historically used for Liu An (Anhui) and Liu Bao (Guangxi). The bamboo lining creates a micro-environment that slowly flavors the tea over decades, distinct from cedar or camphor storage.",
+  "holding": "styles",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

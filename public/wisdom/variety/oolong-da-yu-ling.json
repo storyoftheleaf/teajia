@@ -1,0 +1,13 @@
+{
+  "id": "oolong-da-yu-ling",
+  "type": "Oolong",
+  "name": "Da Yu Ling",
+  "chineseName": "大禹岭",
+  "altNames": [
+    "Dayuling"
+  ],
+  "region": "Da Yu Ling",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

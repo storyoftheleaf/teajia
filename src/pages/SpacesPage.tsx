@@ -46,7 +46,7 @@ const FALLBACK_SPACES: Space[] = [
   {
     id: 'teajia-studio',
     name: 'The Studio Tea Room',
-    description: "Tea space within Adrian's art studio — where tea and creative practice meet.",
+    description: "Tea space within Adrian's art studio, where tea and creative practice meet.",
     type: 'Studio',
     location: 'Ubud, Bali',
     host: 'Adrian',
@@ -107,7 +107,7 @@ export const SpacesPage: React.FC = () => {
   return (
     <div className="w-full animate-[fadeIn_0.5s_ease-out] pb-nav-gap">
       <Helmet>
-        <title>Our Spaces — Teajia</title>
+        <title>Our Spaces · Teajia</title>
         <meta
           name="description"
           content="Tea spaces connected to the Teajia network. Private rooms, studios, and spaces for sessions in Ubud, Bali."
@@ -153,7 +153,7 @@ export const SpacesPage: React.FC = () => {
           className="text-ui-15 text-tea-text-sec leading-[1.85]"
           style={{ fontFamily: 'var(--font-body)' }}
         >
-          Tea spaces connected to the Teajia network. Each one is a real room — not a venue, not a
+          Tea spaces connected to the Teajia network. Each one is a real room, not a venue, not a
           service. A place where tea is taken seriously.
         </motion.p>
       </header>
@@ -217,7 +217,7 @@ export const SpacesPage: React.FC = () => {
                       className="text-ui-11 text-tea-text-dim tracking-[0.04em]"
                       style={{ fontFamily: 'var(--font-sans)' }}
                     >
-                      Private — by invitation or inquiry
+                      Private, by invitation or inquiry
                     </span>
                   </div>
                 )}

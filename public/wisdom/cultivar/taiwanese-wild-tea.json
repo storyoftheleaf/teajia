@@ -1,0 +1,43 @@
+{
+  "id": "taiwanese-wild-tea",
+  "name": "Taiwanese Wild Tea",
+  "chineseName": "台灣山茶",
+  "altNames": [
+    "Taiwan Mountain Tea",
+    "Formosan Wild Tea"
+  ],
+  "originCountry": "Taiwan",
+  "originRegion": "Various",
+  "developedYear": 0,
+  "parentage": "Native, indigenous species to Taiwan.",
+  "description": "The native, indigenous tea species of Taiwan, genetically distinct from the more common Camellia sinensis. It grows wild in the central mountain range. While not a major commercial crop, it is wild-harvested for specialty teas and is crucially important as genetic stock for breeding, most famously as a parent of the Hong Yu #18 'Ruby' cultivar.",
+  "plantType": "Wild-growing tree that can become very large and old (Camellia formosensis).",
+  "environment": "Grows wild in the protected, biodiverse forests of Taiwan's central mountain range at various altitudes.",
+  "processing": "Processing is often experimental and done by boutique producers. The wild-harvested leaves are precious and are typically handled with care to express their unique, wild character.",
+  "oxidation": "Typically undergoes full oxidation to be made into black tea, which seems to best complement its wild, woody, and herbaceous notes.",
+  "roasting": "No roasting. The tea is dried with hot air.",
+  "versatility": "Not a commercial production cultivar, but a specialty item and a vital genetic resource. It is a wild plant, not a cultivated one in the traditional sense.",
+  "distribution": {
+    "taiwan": [
+      "Central Mountain Range (various counties)"
+    ]
+  },
+  "expressions": {
+    "Specialty Tea": {
+      "Wild Black Tea": "When processed as a black tea, it has a unique, wild, and herbaceous character.",
+      "Scented Tea": "Its unique leaves are sometimes used as a base for scented or blended teas."
+    },
+    "Breeding": {
+      "Genetic Stock": "Its most important role, providing unique genes for creating modern hybrids like Hong Yu #18."
+    }
+  },
+  "sensory": {
+    "aroma": "Wild, herbaceous, forest floor, mushroom, sweet wood",
+    "flavor": "Unique and complex, with notes of sweet wood, herbs, and a deep, wild sweetness.",
+    "mouthfeel_liquor": "Surprisingly smooth and clean with a deep, lingering aftertaste. The liquor can be reddish-brown or dark amber."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

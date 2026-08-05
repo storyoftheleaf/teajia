@@ -1,0 +1,11 @@
+{
+  "id": "uji-city-kyoto",
+  "name": "Uji City, Kyoto",
+  "country": "Japan",
+  "province": "Kyoto",
+  "altitude": "50-300m",
+  "climate": "Famous for high-grade Matcha and Gyokuro production",
+  "holding": "regions",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

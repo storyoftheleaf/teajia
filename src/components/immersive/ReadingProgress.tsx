@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 
 // Thin aged-bronze bar fixed to the top of the viewport, width = scroll progress.
-// Passive scroll listener (progress is not a reveal — IntersectionObserver does not fit).
+// Passive scroll listener (progress is not a reveal: IntersectionObserver does not fit).
 // Animates width via transform-free style update; acceptable for a 2px bar.
 export function ReadingProgress() {
   const [pct, setPct] = useState(0);

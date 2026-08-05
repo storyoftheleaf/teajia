@@ -1,0 +1,14 @@
+{
+  "id": "bamboo-tube",
+  "name": "Bamboo Tube",
+  "chineseName": "竹筒茶",
+  "altNames": [
+    "Zhu Tong Cha"
+  ],
+  "appliesToTypes": [],
+  "region": "Xishuangbanna, Yunnan",
+  "description": "Tea packed into fresh-cut bamboo segments and roasted or dried, a traditional preparation among the Dai, Hani and other ethnic minorities of Xishuangbanna, Yunnan. The bamboo imparts its own fragrance into the tea, becoming part of its identity over time.",
+  "holding": "styles",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

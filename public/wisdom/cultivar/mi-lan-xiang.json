@@ -1,0 +1,38 @@
+{
+  "id": "mi-lan-xiang",
+  "name": "Mi Lan Xiang",
+  "chineseName": "米兰香",
+  "altNames": [
+    "Honey Orchid Dan Cong"
+  ],
+  "originCountry": "China",
+  "originRegion": "Phoenix Mountains (Guangdong)",
+  "developedYear": 1644,
+  "parentage": "A specific, highly successful fragrance-type selected from the local Shui Xian population.",
+  "description": "'Honey Orchid Fragrance'. The most popular, accessible, and representative of all Phoenix Dan Cong oolongs. It is beloved for its intoxicating and forward aroma that beautifully mimics the scent of honey, orchids, and ripe stone fruit, all built upon the classic mineral-rich foundation of its mountainous terroir.",
+  "plantType": "Tall, upright arbor type, can grow into a small tree (Camellia sinensis var. sinensis).",
+  "environment": "Thrives in the high-altitude (600-1,200m), misty, and rocky environment of the Phoenix (Feng Huang) Mountains.",
+  "processing": "The key to processing Mi Lan Xiang is the carefully controlled withering and bruising ('yao qing') stage. This is where the leaf's cell walls are broken down just enough to develop the signature honey-orchid aroma without introducing bitterness.",
+  "oxidation": "Undergoes a medium level of oxidation (25-40%), which is the sweet spot for developing its complex fruity and floral notes while retaining a fresh vibrancy.",
+  "roasting": "Receives a light to medium charcoal roasting. This bake helps to stabilize the tea, round out the flavors, and fix the beautiful aroma, making it more persistent over multiple infusions.",
+  "versatility": "Specialized for the Dan Cong oolong style. While theoretically it could be processed differently, its entire value and identity lie in its famous 'honey orchid' aromatic profile.",
+  "distribution": {
+    "china": [
+      "Guangdong Province (Chaozhou - Phoenix Mountains)"
+    ]
+  },
+  "expressions": {
+    "Dan Cong Oolong": {
+      "Mi Lan Xiang Dan Cong": "This is its primary and most famous expression. A medium-oxidized and lightly roasted oolong designed to be explosively aromatic."
+    }
+  },
+  "sensory": {
+    "aroma": "Intense Honey, Orchid, Lychee, Sweet Potato",
+    "flavor": "Sweet, fruity, and floral with a distinct honeyed character and a long, vibrant finish.",
+    "mouthfeel_liquor": "Full-bodied, creamy, and smooth with a characteristic sweet and fragrant aftertaste. The liquor is a bright golden-orange."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

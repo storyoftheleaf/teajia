@@ -1,0 +1,13 @@
+{
+  "id": "herbal-lily-bulb",
+  "type": "Herbal",
+  "name": "Lily Bulb",
+  "chineseName": "百合",
+  "altNames": [
+    "Bai He"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

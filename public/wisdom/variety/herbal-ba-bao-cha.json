@@ -1,0 +1,13 @@
+{
+  "id": "herbal-ba-bao-cha",
+  "type": "Herbal",
+  "name": "Ba Bao Cha",
+  "chineseName": "八宝茶",
+  "altNames": [
+    "Eight Treasure Tea"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

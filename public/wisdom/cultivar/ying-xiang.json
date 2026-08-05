@@ -1,0 +1,39 @@
+{
+  "id": "ying-xiang",
+  "name": "Ying Xiang",
+  "chineseName": "迎香",
+  "altNames": [
+    "Welcome Fragrance",
+    "TRES #20"
+  ],
+  "originCountry": "Taiwan",
+  "originRegion": "Nantou",
+  "developedYear": 2014,
+  "parentage": "Jin Xuan x Qing Xin cross-pollination.",
+  "description": "'Welcome Fragrance'. A new-generation oolong cultivar released by TRES in 2014, Ying Xiang was bred to have the elegant floral character of Qing Xin but with more intensity and a tropical twist. It is known for its clear, sophisticated, floral aroma reminiscent of osmanthus and lily.",
+  "plantType": "Vigorous, upright bush with good productivity.",
+  "environment": "Adaptable to a range of mid-altitude environments, performing well in the established oolong regions of Nantou.",
+  "processing": "Processing is focused on highlighting its refined floral notes. It requires gentle handling during withering and bruising to develop its complex bouquet without introducing any undesirable green notes.",
+  "oxidation": "Undergoes light oxidation (15-25%), which is ideal for showcasing its high-note floral aromatics.",
+  "roasting": "Unroasted. Like other highly aromatic Taiwanese oolongs, any significant roasting would damage its primary characteristic.",
+  "versatility": "Specialized for light, aromatic oolongs. It was designed to be a modern, high-fragrance alternative to Qing Xin and excels in that role.",
+  "distribution": {
+    "taiwan": [
+      "Nantou County"
+    ]
+  },
+  "expressions": {
+    "Oolong Tea (Aromatic Style)": {
+      "Ying Xiang Oolong": "Best expressed as a lightly oxidized, unroasted oolong, often in the twisted Baozhong style, to maximize its elegant and intense floral character."
+    }
+  },
+  "sensory": {
+    "aroma": "Elegant tropical flowers, Osmanthus, Lily, fresh sweetness",
+    "flavor": "Clean, intensely floral, and sweet with a very smooth and refined profile.",
+    "mouthfeel_liquor": "Smooth, silky, and medium-bodied with a long, purely aromatic finish. The liquor is a clear, pale gold."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

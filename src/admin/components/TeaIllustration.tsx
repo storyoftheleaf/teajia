@@ -1,20 +1,42 @@
 import React from 'react';
 import { ProductType } from '../types';
 import { getTeaVividColor } from '../../designTokens';
+import { normalizeTeaType, type TeaType } from '../../wisdom';
 
 interface TeaIllustrationProps {
   type: ProductType;
   className?: string;
 }
 
+// Illustration shape grouped by canonical tea type. Record<TeaType, ...> means
+// a missing or extra type key is a compile error. Teaware and Misc are not tea
+// types so they're handled outside the record; legacy stored spellings are
+// normalized before lookup so old records still render.
+type IllustrationShape = 'cake' | 'oolong' | 'leaf';
+
+const SHAPE_BY_TYPE: Record<TeaType, IllustrationShape> = {
+  Sheng: 'cake',
+  Shou: 'cake',
+  Dark: 'cake',
+  Oolong: 'oolong',
+  Green: 'leaf',
+  Yellow: 'leaf',
+  White: 'leaf',
+  Red: 'leaf',
+  Herbal: 'leaf',
+};
+
 export const TeaIllustration: React.FC<TeaIllustrationProps> = ({ type, className = "w-full h-full" }) => {
   const color = getTeaVividColor(type);
+  const normalized = normalizeTeaType(type);
+  const shape: IllustrationShape | 'teapot' | null =
+    type === 'Teaware' ? 'teapot'
+    : type === 'Misc' ? 'leaf'
+    : normalized ? SHAPE_BY_TYPE[normalized] : null;
 
   const renderPath = () => {
-    switch (type) {
-      case 'Sheng':
-      case 'Shou':
-      case 'Dark':
+    switch (shape) {
+      case 'cake':
         return (
           <g stroke={color} fill="none" opacity="0.9">
              {/* Tea Cake (Bing) */}
@@ -29,7 +51,7 @@ export const TeaIllustration: React.FC<TeaIllustrationProps> = ({ type, classNam
              <path d="M95 95 L 105 105 M105 95 L 95 105" strokeWidth="0.5" opacity="0.3" />
           </g>
         );
-      case 'Oolong':
+      case 'oolong':
         return (
            <g stroke={color} fill="none" opacity="0.9">
               {/* Rolled Tea Shape */}
@@ -38,12 +60,7 @@ export const TeaIllustration: React.FC<TeaIllustrationProps> = ({ type, classNam
               <path d="M50 120 C 70 110, 80 90, 90 70" opacity="0.5"/>
            </g>
         );
-      case 'Green':
-      case 'Yellow':
-      case 'White':
-      case 'Red':
-      case 'Herbal':
-      case 'Misc':
+      case 'leaf':
         return (
             <g stroke={color} fill="none" opacity="0.9">
                 {/* Elegant Leaf */}
@@ -54,7 +71,7 @@ export const TeaIllustration: React.FC<TeaIllustrationProps> = ({ type, classNam
                 <path d="M100 140 L 120 120" opacity="0.5"/>
             </g>
         );
-       case 'Teaware':
+       case 'teapot':
          return (
              <g stroke={color} fill="none" opacity="0.9">
                 {/* Clay Teapot */}
@@ -75,9 +92,9 @@ export const TeaIllustration: React.FC<TeaIllustrationProps> = ({ type, classNam
        {/* Background Watermark */}
        <circle cx="100" cy="100" r="90" stroke={color} strokeWidth="0.5" opacity="0.1" fill="none" />
        <circle cx="100" cy="100" r="82" stroke={color} strokeWidth="0.5" opacity="0.05" fill="none" />
-       
+
        {renderPath()}
-       
+
        {/* Traditional Seal (Chop) Effect */}
        <g opacity="0.3" transform="translate(145, 145)">
           <rect width="24" height="24" stroke={color} fill="none" />

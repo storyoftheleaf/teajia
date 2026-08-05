@@ -30,7 +30,7 @@ function generateICS(event: TeaEvent): string {
       hour12: false,
     }).formatToParts(new Date(dateStr));
     const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '00';
-    // Intl can emit '24' for midnight with hour12:false — normalize to '00'.
+    // Intl can emit '24' for midnight with hour12:false, normalize to '00'.
     const hour = get('hour') === '24' ? '00' : get('hour');
     return `${get('year')}${get('month')}${get('day')}T${hour}${get('minute')}${get('second')}`;
   };

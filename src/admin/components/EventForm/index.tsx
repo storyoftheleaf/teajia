@@ -40,7 +40,7 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
           exit={{ opacity: 0, y: 16 }}
           className="fixed inset-0 sidebar-inset bg-tea-bg z-modal flex flex-col"
         >
-          {/* Header — close-X on left per drawer/panel rule */}
+          {/* Header, close-X on left per drawer/panel rule */}
           <div className="flex-shrink-0 flex items-center gap-3 px-6 py-4 border-b border-tea-border">
             <button onClick={onClose} aria-label="Close" className="text-tea-text-sec hover:text-tea-text transition-colors rounded-md p-1.5 tap-target">
               <X size={16} />

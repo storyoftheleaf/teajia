@@ -162,7 +162,7 @@ export const ProductCollectionsSection: React.FC<ProductCollectionsSectionProps>
                     type="button"
                     onClick={createAndAdd}
                     disabled={!newTitle.trim() || busy}
-                    className="px-3 py-1.5 bg-tea-gold text-tea-bg rounded text-ui-11 font-medium hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
+                    className="px-3 py-1.5 cta-solid rounded text-ui-11 font-medium transition-colors disabled:opacity-40"
                   >
                     {busy ? <Loader2 size={11} className="animate-spin" /> : 'Create'}
                   </button>

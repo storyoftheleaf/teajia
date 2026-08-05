@@ -8,7 +8,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore, selectHasBundle } from '../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
-// Phosphor (Light weight) — refined hairlines, replaces the generic lucide
+// Phosphor (Light weight), refined hairlines, replaces the generic lucide
 // stock icons in the admin nav. Browse keeps its hand-drawn brand icons.
 import {
   CalendarBlank, SquaresFour, Briefcase, Leaf, Coffee, Storefront, UsersThree,
@@ -43,7 +43,7 @@ interface NavItem {
 
 // ── NavButton ──────────────────────────────────────────────────────────────
 // Mount-only fade (motion.div initial/animate fires once, not on re-renders).
-// Active indicator uses shared layoutId="nav-indicator" — separate from the
+// Active indicator uses shared layoutId="nav-indicator", separate from the
 // logo and account indicators so the bar never jumps between different heights.
 const NavButton: React.FC<{
   item: NavItem;
@@ -52,7 +52,7 @@ const NavButton: React.FC<{
   delay?: number;
   collapsed?: boolean;
 }> = ({ item, isActive, onClick, delay = 0, collapsed = false }) => {
-  // Icons appear in both modes — muted gold anchor in expanded mode so the
+  // Icons appear in both modes, muted gold anchor in expanded mode so the
   // eye has a landmark per row without losing the editorial text-first feel.
   const iconEl = (
     <div className={`shrink-0 transition-colors duration-200 ${
@@ -78,11 +78,11 @@ const NavButton: React.FC<{
 
   const badgeEl = item.badge !== undefined && item.badge > 0 && (
     collapsed ? (
-      <span className="absolute -top-1 -right-1 w-4 h-4 bg-tea-gold text-tea-bg text-ui-10 font-bold rounded-full flex items-center justify-center leading-none">
+      <span className="absolute -top-1 -right-1 w-4 h-4 cta-solid text-ui-10 font-bold rounded-full flex items-center justify-center leading-none">
         {item.badge > 9 ? '9+' : item.badge}
       </span>
     ) : (
-      <span className="ml-auto w-5 h-5 bg-tea-gold text-tea-bg text-ui-10 font-bold rounded-full flex items-center justify-center shrink-0 leading-none">
+      <span className="ml-auto w-5 h-5 cta-solid text-ui-10 font-bold rounded-full flex items-center justify-center shrink-0 leading-none">
         {item.badge > 9 ? '9+' : item.badge}
       </span>
     )
@@ -210,7 +210,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         { id: 'capture',  path: '/admin/capture',  label: 'Quick Capture', icon: <Camera    size={14} weight={PHOSPHOR_WEIGHT} /> },
         { id: 'compass',  path: '/admin/compass',  label: 'Curate',       icon: <Compass    size={14} weight={PHOSPHOR_WEIGHT} /> },
         // Carry from the network catalog into your own store. Gated by the
-        // Catalog bundle — admins who can populate their own store. Moved here
+        // Catalog bundle, admins who can populate their own store. Moved here
         // from the inventory toolbar so it lives next to the stock destinations.
         ...(hasCatalog ? [{ id: 'carry', path: '/admin/network?tab=catalog', label: 'Carry from network', icon: <Globe size={14} weight={PHOSPHOR_WEIGHT} /> }] : []),
       ],
@@ -239,7 +239,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       icon: <BookOpen size={18} weight={PHOSPHOR_WEIGHT} />,
       path: '/admin/magazine',
     },
-    // Network — single hub entry. Catalog, suggestions, wholesale, adoptions
+    // Network, single hub entry. Catalog, suggestions, wholesale, adoptions
     // live inside as tabs. Render only if caller has at least one capability.
     ...(hasCatalog || hasSell || platformRole ? [{
       id: 'network', label: 'Network',
@@ -254,7 +254,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   ];
 
   // Admin sub-items auto-reveal when the parent or one of its children is active.
-  // No accordion state — avoids the hidden-active-item bug where a user-collapsed
+  // No accordion state, avoids the hidden-active-item bug where a user-collapsed
   // section would hide the highlighted child after internal navigation.
 
   const userName = auth.isAuthenticated
@@ -273,7 +273,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           boxShadow: '2px 0 16px rgb(var(--tea-bg-rgb) / 0.22)',
         }}
       >
-        {/* Grain texture — minimal in dark mode (narrow surface, pixel-noise risk) */}
+        {/* Grain texture, minimal in dark mode (narrow surface, pixel-noise risk) */}
         <div
           className="absolute inset-0 pointer-events-none z-0"
           style={{ opacity: 0.025, backgroundImage: GRAIN, backgroundSize: '120px' }}
@@ -285,7 +285,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           <div
             className={`flex items-center shrink-0 h-14 border-b border-tea-border ${collapsed ? 'justify-center' : ''}`}
           >
-            {/* Brand button — navigates home */}
+            {/* Brand button, navigates home */}
             <button
               onClick={() => { if (isAdminRoute) { navigate('/'); } else { onNavigate('HOME'); window.scrollTo({ top: 0, behavior: 'smooth' }); } }}
               className={`relative flex items-center ${collapsed ? 'justify-center w-full h-full' : 'gap-3 px-5 h-full flex-1 min-w-0'} transition-colors duration-200 group ${
@@ -317,7 +317,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               )}
             </button>
 
-            {/* Collapse trigger — expanded mode only; in collapsed mode the
+            {/* Collapse trigger, expanded mode only; in collapsed mode the
                 expand toggle sits directly below the logo (next block) so the
                 control lives in the same top zone regardless of state. */}
             {!collapsed && (
@@ -332,7 +332,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             )}
           </div>
 
-          {/* Expand toggle — collapsed mode only, directly under the logo.
+          {/* Expand toggle, collapsed mode only, directly under the logo.
               Keeps the collapse/expand control co-located in the header zone. */}
           {collapsed && (
             <button
@@ -463,7 +463,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               );
             })}
 
-            {/* Cart — lives adjacent to Shop, separated by a thin rule */}
+            {/* Cart, lives adjacent to Shop, separated by a thin rule */}
             <div className="mt-1 pt-1 border-t border-tea-border">
               <motion.div
                 initial={{ opacity: 0, x: -6 }}
@@ -489,7 +489,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                       />
                       {cartItemCount > 0 && (
                         <div
-                          className={`absolute -top-2 -right-2.5 w-4 h-4 bg-tea-gold text-tea-bg text-ui-10 font-bold rounded-full flex items-center justify-center leading-none ${
+                          className={`absolute -top-2 -right-2.5 w-4 h-4 cta-solid text-ui-10 font-bold rounded-full flex items-center justify-center leading-none ${
                             badgeAnimating ? 'cart-badge-pulse' : ''
                           }`}
                           aria-hidden="true"
@@ -510,7 +510,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                       </span>
                       {cartItemCount > 0 && (
                         <span
-                          className={`ml-auto w-5 h-5 bg-tea-gold text-tea-bg text-ui-10 font-bold rounded-full flex items-center justify-center shrink-0 leading-none ${
+                          className={`ml-auto w-5 h-5 cta-solid text-ui-10 font-bold rounded-full flex items-center justify-center shrink-0 leading-none ${
                             badgeAnimating ? 'cart-badge-pulse' : ''
                           }`}
                           aria-hidden="true"
@@ -564,7 +564,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 40 / 1000, duration: 0.25, ease: 'easeOut' }}
                     >
-                      {/* Parent row — single click target. Children auto-reveal
+                      {/* Parent row, single click target. Children auto-reveal
                           when parent or one of its children is active. */}
                       <Link
                         to={item.path!}
@@ -600,7 +600,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                         )}
                       </Link>
 
-                      {/* Children — reveal reactively when parent context is active */}
+                      {/* Children, reveal reactively when parent context is active */}
                       <AnimatePresence initial={false}>
                         {showChildren && (
                           <motion.div
@@ -641,7 +641,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             )}
           </AnimatePresence>
 
-          {/* ── Curator Nav (Collections only — for Members with curator capability) ── */}
+          {/* ── Curator Nav (Collections only, for Members with curator capability) ── */}
           <AnimatePresence>
             {auth.isAuthenticated && !auth.isAdmin && canCreateCollections && (
               <motion.div

@@ -1,4 +1,5 @@
 import React from 'react';
+import { normalizeTeaType, NON_TEA_TYPES, type TeaType } from '../../wisdom';
 
 /**
  * Minimal SVG placeholder illustrations for each tea category.
@@ -14,7 +15,9 @@ interface TeaPlaceholderProps {
   size?: number;
 }
 
-const teaColors: Record<string, string> = {
+// Typed against the wisdom base's TeaType so a missing or extra key is a
+// compile error. 'Teaware' and 'Misc' are the wisdom base's NON_TEA_TYPES.
+const teaColors: Record<TeaType | typeof NON_TEA_TYPES[number], string> = {
   Green:   '#859F85',
   Yellow:  '#D4C586',
   White:   '#D6D3CD',
@@ -28,13 +31,20 @@ const teaColors: Record<string, string> = {
   Misc:    '#737373',
 };
 
+// Resolves any historical dialect (e.g. a stored 'Black' value) to its
+// canonical wisdom type before lookup, so old records still get the right
+// illustration instead of silently falling back to the Misc circle.
+function resolveTypeKey(type: string): keyof typeof teaColors {
+  return (normalizeTeaType(type) ?? type) as keyof typeof teaColors;
+}
+
 function getColor(type: string): string {
-  return teaColors[type] || teaColors.Misc;
+  return teaColors[resolveTypeKey(type)] || teaColors.Misc;
 }
 
 // --- Individual tea type illustrations ---
 
-// A curled leaf — fresh, vegetal
+// A curled leaf: fresh, vegetal
 function GreenLeaf({ color }: { color: string }) {
   return (
     <g>
@@ -46,7 +56,7 @@ function GreenLeaf({ color }: { color: string }) {
   );
 }
 
-// A small bud with fine hairs — delicate, golden
+// A small bud with fine hairs: delicate, golden
 function YellowBud({ color }: { color: string }) {
   return (
     <g>
@@ -59,7 +69,7 @@ function YellowBud({ color }: { color: string }) {
   );
 }
 
-// Silver needle — minimal, ethereal
+// Silver needle: minimal, ethereal
 function WhiteNeedle({ color }: { color: string }) {
   return (
     <g>
@@ -73,7 +83,7 @@ function WhiteNeedle({ color }: { color: string }) {
   );
 }
 
-// A partially rolled leaf — complex, in-between
+// A partially rolled leaf: complex, in-between
 function OolongRoll({ color }: { color: string }) {
   return (
     <g>
@@ -84,7 +94,7 @@ function OolongRoll({ color }: { color: string }) {
   );
 }
 
-// An oxidized leaf — warm, full
+// An oxidized leaf: warm, full
 function RedLeaf({ color }: { color: string }) {
   return (
     <g>
@@ -95,7 +105,7 @@ function RedLeaf({ color }: { color: string }) {
   );
 }
 
-// A compressed brick/cake shape — aged, dense
+// A compressed brick/cake shape: aged, dense
 function DarkBrick({ color }: { color: string }) {
   return (
     <g>
@@ -109,7 +119,7 @@ function DarkBrick({ color }: { color: string }) {
   );
 }
 
-// A pu-erh cake — round, compressed, dark
+// A pu-erh cake: round, compressed, dark
 function ShouCake({ color }: { color: string }) {
   return (
     <g>
@@ -122,7 +132,7 @@ function ShouCake({ color }: { color: string }) {
   );
 }
 
-// A wild leaf — raw, living
+// A wild leaf: raw, living
 function ShengLeaf({ color }: { color: string }) {
   return (
     <g>
@@ -148,7 +158,7 @@ function HerbalScatter({ color }: { color: string }) {
   );
 }
 
-// A vessel — gaiwan/teapot silhouette
+// A vessel: gaiwan/teapot silhouette
 function TeawareVessel({ color }: { color: string }) {
   return (
     <g>
@@ -164,7 +174,7 @@ function TeawareVessel({ color }: { color: string }) {
   );
 }
 
-// A simple circle — neutral
+// A simple circle: neutral
 function MiscCircle({ color }: { color: string }) {
   return (
     <g>
@@ -176,7 +186,7 @@ function MiscCircle({ color }: { color: string }) {
 }
 
 function getIllustration(type: string, color: string) {
-  switch (type) {
+  switch (resolveTypeKey(type)) {
     case 'Green':   return <GreenLeaf color={color} />;
     case 'Yellow':  return <YellowBud color={color} />;
     case 'White':   return <WhiteNeedle color={color} />;

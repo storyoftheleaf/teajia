@@ -17,6 +17,7 @@ const migrationNames = [
   '119_curate_import_analysis.sql',
   '120_compass_sample_set.sql',
   '121_curate_import_trust_pipeline.sql',
+  '122_tea_wisdom_cultivar.sql',
 ] as const;
 
 const migrations = migrationNames.map(name =>
@@ -129,6 +130,7 @@ describe('Curate and Inventory migration rehearsal', () => {
       '119_curate_import_analysis.sql',
       '120_compass_sample_set.sql',
       '121_curate_import_trust_pipeline.sql',
+      '122_tea_wisdom_cultivar.sql',
     ]);
   });
 
@@ -176,7 +178,7 @@ describe('Curate and Inventory migration rehearsal', () => {
     expect(query(database, 'PRAGMA foreign_key_check;')).toEqual([]);
   });
 
-  it('matches the canonical schema for every Curate/Inventory table changed through migration 121', () => {
+  it('matches the canonical schema for every Curate/Inventory table changed through migration 122', () => {
     const upgraded = databaseFor(
       'teajia-upgraded-schema-',
       schemaThrough098 + migrations,
@@ -196,7 +198,9 @@ describe('Curate and Inventory migration rehearsal', () => {
     expect(query(upgraded, 'PRAGMA foreign_key_check;')).toEqual([]);
     expect(query(canonical, 'PRAGMA integrity_check;')).toEqual([{ integrity_check: 'ok' }]);
     expect(query(canonical, 'PRAGMA foreign_key_check;')).toEqual([]);
-  });
+    // Replays every migration against two databases and diffs the result, so it
+    // is legitimately slow and grows with each migration added.
+  }, 30_000);
 
   it('adds the Curate import trust-pipeline fields without changing existing values', () => {
     const database = databaseFor(

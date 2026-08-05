@@ -46,7 +46,7 @@ export async function clearStaleAppCaches(): Promise<void> {
       );
     }
   } catch {
-    // ignore — the caller reloads regardless
+    // ignore, the caller reloads regardless
   }
 }
 

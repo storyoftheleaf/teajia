@@ -6,7 +6,7 @@ import { Heart } from 'lucide-react';
 import { useAppStore } from '../../lib/store';
 import { useInventory } from '../../context/InventoryContext';
 import type { InventoryItem } from '../../types';
-import { fmtPricePerGram } from '../../utils/formatNumber';
+import { useShopPrice } from '../shop/shopPrice';
 import { TastingSession, type TastingItem } from '../tasting/TastingSession';
 import { ListShell } from './primitives';
 
@@ -20,6 +20,8 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
   const { inventory } = useInventory();
   const [copied, setCopied] = useState(false);
   const [tastingItem, setTastingItem] = useState<InventoryItem | null>(null);
+  // The saved list is the shop, remembered. Same prices, same currency.
+  const shopPrice = useShopPrice();
 
   const favoriteItems = useMemo(() => {
     return favoriteTeas
@@ -38,7 +40,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'My Tea Collection — Teajia',
+          title: 'My Tea Collection · Teajia',
           text: `Check out my favorite teas on Teajia! ${favoriteItems.length} selections.`,
           url,
         });
@@ -58,7 +60,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Back button — top-left, matches Cancel/Back/Close rules
+  // Back button, top-left, matches Cancel/Back/Close rules
   const BackButton = (
     <button
       onClick={onBack}
@@ -70,7 +72,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
     </button>
   );
 
-  // Empty state — §19 pattern: 28px Lucide icon, font-display headline,
+  // Empty state, §19 pattern: 28px Lucide icon, font-display headline,
   // text-ui-12 body. No decorative illustrations.
   if (favoriteItems.length === 0) {
     return (
@@ -91,7 +93,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
     <div className="animate-[fadeIn_0.3s_ease-out]">
       {BackButton}
 
-      {/* Header — narrow form chrome, title left, share right */}
+      {/* Header, narrow form chrome, title left, share right */}
       <div className="flex items-end justify-between mb-5 gap-3">
         <div className="min-w-0">
           <h3 className="h3">My Collection</h3>
@@ -117,7 +119,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
         </button>
       </div>
 
-      {/* Copy link bar — quiet utility row */}
+      {/* Copy link bar, quiet utility row */}
       <button
         onClick={handleCopyLink}
         className="w-full flex items-center gap-3 px-3 py-3 mb-4 bg-tea-surface border border-tea-border rounded-md hover:bg-tea-accent-sub transition-colors group"
@@ -140,13 +142,13 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
         )}
       </AnimatePresence>
 
-      {/* Tea list — canonical §19 ListShell/ListRow.
+      {/* Tea list, canonical §19 ListShell/ListRow.
           We use `as="div"` because each row has inline action buttons
           (tasting + favorite); nesting buttons inside a button is invalid HTML. */}
       <ListShell>
         {favoriteItems.map((item) => {
           const meta = [item.type, item.origin].filter(Boolean).join(' · ');
-          const price = fmtPricePerGram(parseFloat(item.price_per_gram || '0'));
+          const price = shopPrice.perGram(parseFloat(item.price_per_gram || '0'));
 
           const leading = item.image ? (
             <button

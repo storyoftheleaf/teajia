@@ -1,0 +1,14 @@
+{
+  "id": "green-chun-mee",
+  "type": "Green",
+  "name": "Chun Mee",
+  "chineseName": "珍眉",
+  "altNames": [
+    "Zhenmei",
+    "Pearl Eyebrow"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

@@ -102,7 +102,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
         await navigator.share(shareData);
         onClose();
       } catch (err) {
-        // Share cancelled or failed — silent on production
+        // Share cancelled or failed, silent on production
       }
     } else {
       // Fallback for desktop without native share: Just copy link
@@ -127,7 +127,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
               });
               return;
           } catch (e) {
-              // Native share cancelled — fall through to download
+              // Native share cancelled, fall through to download
           }
       }
 
@@ -299,7 +299,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
                 <span className="text-ui-9 uppercase tracking-wider font-semibold">{copied ? 'Copied' : 'Copy'}</span>
               </button>
 
-              {/* Twitter Button — anchor for popup-blocker friendliness */}
+              {/* Twitter Button, anchor for popup-blocker friendliness */}
               <a
                 href={twitterHref}
                 target="_blank"

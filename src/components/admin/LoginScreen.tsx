@@ -24,7 +24,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onClose }) =>
       </button>
 
       <div className="w-full max-w-xs text-center">
-        <div className="w-12 h-12 bg-tea-gold rounded-xl mx-auto mb-8 flex items-center justify-center text-tea-bg font-serif font-bold text-xl">
+        <div className="w-12 h-12 cta-solid rounded-xl mx-auto mb-8 flex items-center justify-center font-serif font-bold text-xl">
           T
         </div>
         <h2 className="text-tea-text font-serif text-xl mb-6">Editor Access</h2>
@@ -41,7 +41,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onClose }) =>
 
         <button
           onClick={checkLogin}
-          className="w-full bg-tea-gold text-tea-bg py-3 uppercase tracking-[0.15em] text-xs font-bold hover:bg-tea-gold-lt transition-colors rounded-md"
+          className="w-full cta-solid py-3 uppercase tracking-[0.15em] text-xs font-bold transition-colors rounded-md"
         >
           Enter
         </button>

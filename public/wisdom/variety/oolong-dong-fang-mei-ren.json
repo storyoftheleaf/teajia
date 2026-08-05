@@ -1,0 +1,15 @@
+{
+  "id": "oolong-dong-fang-mei-ren",
+  "type": "Oolong",
+  "name": "Dong Fang Mei Ren",
+  "chineseName": "东方美人",
+  "altNames": [
+    "Oriental Beauty",
+    "Bai Hao",
+    "Champagne Oolong"
+  ],
+  "region": "Hsinchu",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

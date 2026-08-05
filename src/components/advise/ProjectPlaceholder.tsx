@@ -29,7 +29,7 @@ export const ProjectPlaceholder: React.FC<ProjectPlaceholderProps> = ({ project,
     <div
       className={`relative w-full h-full overflow-hidden ${className ?? ''}`}
       role="img"
-      aria-label={`${project.name} — ${label}`}
+      aria-label={`${project.name}: ${label}`}
       style={{ aspectRatio: isHero ? undefined : '16 / 10' }}
     >
       <div className="absolute inset-0 bg-tea-elevated" />

@@ -1,0 +1,13 @@
+{
+  "id": "oolong-chun-lan-xiang",
+  "type": "Oolong",
+  "name": "Chun Lan Xiang",
+  "chineseName": "春兰香",
+  "altNames": [
+    "Spring Orchid Dan Cong"
+  ],
+  "region": "Phoenix Mountain",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

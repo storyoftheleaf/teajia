@@ -1,0 +1,13 @@
+{
+  "id": "sheng-tai-di-cha",
+  "type": "Sheng",
+  "name": "Tai Di Cha",
+  "chineseName": "台地茶",
+  "altNames": [
+    "Plantation Tea"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

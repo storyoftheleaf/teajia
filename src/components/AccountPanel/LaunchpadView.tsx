@@ -91,7 +91,7 @@ const Tile: React.FC<LaunchpadTile> = ({ verb, hint, icon, badge, accent, onClic
         {icon}
       </div>
       {badge !== undefined && badge > 0 && (
-        <span className="min-w-[20px] h-5 px-1.5 bg-tea-gold text-tea-bg text-ui-10 font-bold rounded-full flex items-center justify-center leading-none">
+        <span className="min-w-[20px] h-5 px-1.5 cta-solid text-ui-10 font-bold rounded-full flex items-center justify-center leading-none">
           {badge > 99 ? '99+' : badge}
         </span>
       )}
@@ -114,7 +114,7 @@ const Tile: React.FC<LaunchpadTile> = ({ verb, hint, icon, badge, accent, onClic
 );
 
 /**
- * LaunchpadView — Your Table as a tile launchpad instead of a stat dashboard.
+ * LaunchpadView: Your Table as a tile launchpad instead of a stat dashboard.
  *
  * Six tiles, tier-gated:
  *   Steep · Sessions · Remember · Inbound · Switch · Workshop
@@ -122,7 +122,7 @@ const Tile: React.FC<LaunchpadTile> = ({ verb, hint, icon, badge, accent, onClic
  * Reader/Member sees 4-5 (Switch only if multi-store membership; Workshop hidden).
  * Owner/Admin sees all 6.
  *
- * Each tile is a place you go, not a stat you check — verbs lowercase Cormorant,
+ * Each tile is a place you go, not a stat you check, verbs lowercase Cormorant,
  * hint line tells you what's there, badge counts only when actionable.
  */
 export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
@@ -156,7 +156,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
   const initial = displayName.charAt(0).toUpperCase();
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
-  // Day-status voice line — picks the most pressing thing and speaks it.
+  // Day-status voice line, picks the most pressing thing and speaks it.
   const dayStatus: string =
     pendingInvoiceCount > 0
       ? pendingInvoiceCount === 1
@@ -197,7 +197,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
       onClick: () => { onClose(); navigate('/account/collection'); },
     },
     {
-      // Stock spine step 4: the personal cellar — tea the user actually owns,
+      // Stock spine step 4: the personal cellar, tea the user actually owns,
       // with a quantity. Private; distinct from "remember" (favorited shop teas).
       id: 'cellar',
       verb: 'cellar',
@@ -278,7 +278,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
 
       {/* ── Identity zone ─────────────────────────────────────────────────── */}
       <div className="flex flex-col items-center text-center mb-10">
-        {/* Avatar — large, central, the "portrait at the door" */}
+        {/* Avatar, large, central, the "portrait at the door" */}
         <button
           onClick={onAvatarClick}
           className="relative w-20 h-20 rounded-full bg-tea-surface border border-tea-gold/30 flex items-center justify-center overflow-hidden transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
@@ -317,7 +317,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
         {tiles.map(tile => <Tile key={tile.id} {...tile} />)}
       </div>
 
-      {/* ── Footer: sign out (only thing not a tile — it's an exit) ───────── */}
+      {/* ── Footer: sign out (only thing not a tile, it's an exit) ───────── */}
       <div className="flex justify-center mt-10">
         <button
           onClick={onSignOut}

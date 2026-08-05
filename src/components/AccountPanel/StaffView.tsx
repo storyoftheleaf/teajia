@@ -84,7 +84,7 @@ export const StaffView: React.FC<StaffViewProps> = ({
 
   return (
     <div>
-      {/* ── Identity card (§19) — staff variant: shift meta + role ── */}
+      {/* ── Identity card (§19), staff variant: shift meta + role ── */}
       <IdentityCard
         user={user}
         avatarDataUrl={avatarDataUrl}
@@ -113,7 +113,7 @@ export const StaffView: React.FC<StaffViewProps> = ({
         </PreviewBlock>
       )}
 
-      {/* ── Shift tools — bundle-aware text-link cluster ────────────── */}
+      {/* ── Shift tools, bundle-aware text-link cluster ────────────── */}
       {shiftTools.length > 0 ? (
         <div className="border-t border-tea-border px-6 pt-7 pb-5">
           <div className="flex items-center gap-2 label-caps text-tea-text-dim">
@@ -161,7 +161,7 @@ export const StaffView: React.FC<StaffViewProps> = ({
         </div>
       )}
 
-      {/* ── Learn — quiet text links ────────────────────────────────── */}
+      {/* ── Learn, quiet text links ────────────────────────────────── */}
       <div className="border-t border-tea-border px-6 pt-7 pb-5">
         <div className="flex items-center gap-2 label-caps text-tea-text-dim">
           <span className="text-tea-text-sec shrink-0 flex items-center" aria-hidden="true"><BookOpen size={14} strokeWidth={1.5} /></span>

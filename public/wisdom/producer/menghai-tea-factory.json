@@ -1,0 +1,22 @@
+{
+  "id": "menghai-tea-factory",
+  "name": "Menghai Tea Factory",
+  "chineseName": "勐海茶厂",
+  "altNames": [
+    "Menghai",
+    "Dayi",
+    "Taetea",
+    "大益"
+  ],
+  "kind": "factory",
+  "country": "China",
+  "region": "Xishuangbanna Prefecture",
+  "founded": 1940,
+  "notableMarks": [
+    "7572"
+  ],
+  "description": "State-founded pu-erh factory in Menghai county, Xishuangbanna, Yunnan, drawing leaf from gardens across the region since the 1940s. Now privatized and sold under the Dayi/Taetea brand. The 7572 shou recipe (1975 formula, grade 7 leaf, factory number 2) is its benchmark product.",
+  "holding": "producers",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

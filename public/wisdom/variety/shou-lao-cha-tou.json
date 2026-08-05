@@ -1,0 +1,14 @@
+{
+  "id": "shou-lao-cha-tou",
+  "type": "Shou",
+  "name": "Lao Cha Tou",
+  "chineseName": "老茶头",
+  "altNames": [
+    "Tea Nuggets",
+    "Cha Tou"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

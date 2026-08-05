@@ -1,0 +1,13 @@
+{
+  "id": "red-jin-jun-mei",
+  "type": "Red",
+  "name": "Jin Jun Mei",
+  "chineseName": "金骏眉",
+  "altNames": [
+    "Golden Eyebrow"
+  ],
+  "region": "Wuyi",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

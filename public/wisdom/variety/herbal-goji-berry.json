@@ -1,0 +1,14 @@
+{
+  "id": "herbal-goji-berry",
+  "type": "Herbal",
+  "name": "Goji Berry",
+  "chineseName": "枸杞",
+  "altNames": [
+    "Wolfberry",
+    "Gou Qi Zi"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

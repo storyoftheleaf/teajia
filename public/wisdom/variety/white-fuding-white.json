@@ -1,0 +1,13 @@
+{
+  "id": "white-fuding-white",
+  "type": "White",
+  "name": "Fuding White",
+  "chineseName": "福鼎白茶",
+  "altNames": [
+    "Fuding Bai Cha"
+  ],
+  "region": "Fuding",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

@@ -163,7 +163,7 @@ const SpaceForm: React.FC<SpaceFormProps> = ({ venueId, space, onSaved, onCancel
         <button type="button" onClick={onCancel} className="px-3 py-1.5 text-sm text-tea-text-sec hover:text-tea-text transition-colors">
           Cancel
         </button>
-        <button type="button" onClick={handleSave} disabled={saving || uploading} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+        <button type="button" onClick={handleSave} disabled={saving || uploading} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
           {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
           {space ? 'Update' : 'Add Space'}
         </button>
@@ -391,7 +391,7 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
                   <button type="button" onClick={() => setEditing(false)} className="px-3 py-1.5 text-sm text-tea-text-sec hover:text-tea-text transition-colors">
                     Cancel
                   </button>
-                  <button type="button" onClick={handleSave} disabled={saving} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                  <button type="button" onClick={handleSave} disabled={saving} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                     {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
                     Save
                   </button>
@@ -405,7 +405,7 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
             <p className="label-caps text-tea-text-dim">Spaces</p>
 
             {venue.spaces.length === 0 && !addingSpace && (
-              <p className="text-xs text-tea-text-dim py-2">No spaces yet — add a tea table or room below.</p>
+              <p className="text-xs text-tea-text-dim py-2">No spaces yet, add a tea table or room below.</p>
             )}
 
             {venue.spaces.map(space => (
@@ -603,7 +603,7 @@ const NewVenueForm: React.FC<NewVenueFormProps> = ({ onSaved, onCancel }) => {
         <button type="button" onClick={onCancel} className="px-3 py-1.5 text-sm text-tea-text-sec hover:text-tea-text transition-colors">
           Cancel
         </button>
-        <button type="button" onClick={handleSave} disabled={saving} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+        <button type="button" onClick={handleSave} disabled={saving} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
           {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
           Create Venue
         </button>
@@ -624,7 +624,7 @@ export const VenueManager: React.FC = () => {
       const data = await api.venues.list();
       setVenues(data);
     } catch {
-      // silently fail — user will see empty state
+      // silently fail, user will see empty state
     } finally {
       setLoading(false);
     }

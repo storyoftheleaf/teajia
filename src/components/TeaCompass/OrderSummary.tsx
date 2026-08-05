@@ -462,7 +462,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
                   onClick={handleConfirm}
                   disabled={buyingEntries.length === 0}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full py-4 rounded-xl bg-tea-gold text-tea-bg text-base font-medium
+                  className="w-full py-4 rounded-xl cta-solid text-base font-medium
                              uppercase tracking-wider shadow-lg transition-opacity disabled:opacity-40"
                 >
                   Confirm Purchase

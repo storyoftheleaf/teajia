@@ -1,0 +1,38 @@
+{
+  "id": "tie-luo-han",
+  "name": "Tie Luo Han",
+  "chineseName": "铁罗汉",
+  "altNames": [
+    "Iron Arhat"
+  ],
+  "originCountry": "China",
+  "originRegion": "Wuyi Mountains (Fujian)",
+  "developedYear": 1368,
+  "parentage": "One of the four original, legendary Wuyi cultivars, selected from the native Wuyi population.",
+  "description": "'Iron Arhat'. One of the four original 'Si Da Ming Cong' (Great Famous Bushes) of the Wuyi Mountains. Tie Luo Han is a powerful and assertive tea, steeped in history and known for its strong 'cha qi' (tea energy), warming character, and complex flavor profile with distinct medicinal and spicy undertones.",
+  "plantType": "Sturdy, semi-upright bush with strong branches, well-suited to its rocky environment (Camellia sinensis var. sinensis).",
+  "environment": "Grows in the core 'Zhengyan' region of the Wuyi Mountains, where the unique mineral composition of the soil contributes to its powerful character.",
+  "processing": "The processing of Tie Luo Han aims to tame its natural intensity while enhancing its complexity. Its robust leaves can handle the high heat and repeated steps necessary to develop its deep, warming character.",
+  "oxidation": "Undergoes heavy oxidation (50-70%) to build a rich, complex base that can support its inherent strength and the intensity of the roast. This step is crucial for developing its fruity and herbal notes.",
+  "roasting": "Requires a strong, masterful charcoal roast. The goal is to bake the flavor deep into the leaf, smoothing out any rough edges while amplifying its warming, spicy, and mineral-driven qualities.",
+  "versatility": "Completely specialized. Tie Luo Han is a singular expression of Yancha. Its identity is inseparable from the traditional, heavily processed rock oolong style.",
+  "distribution": {
+    "china": [
+      "Fujian Province (Wuyi Mountains - Zhengyan area)"
+    ]
+  },
+  "expressions": {
+    "Wuyi Rock Oolong (Yancha)": {
+      "Tie Luo Han Yancha": "This is its sole expression. It is a heavily oxidized and roasted oolong designed to be bold and complex, showcasing its unique herbal and mineral profile."
+    }
+  },
+  "sensory": {
+    "aroma": "Medicinal herbs, ginger spice, dark honey, hot metal, charcoal",
+    "flavor": "Strong, warming, with a distinct mineralic and metallic finish. Notes of dark fruit and burnt sugar.",
+    "mouthfeel_liquor": "Thick, viscous, and warming with a powerful, long-lasting aftertaste and noticeable 'cha qi'. The liquor is a deep, dark amber."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

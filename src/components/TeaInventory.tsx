@@ -11,9 +11,10 @@ import { getCommonTastingForType } from '../data/commonTastingByStyle';
 import { TeaPlaceholder } from './shop/TeaPlaceholder';
 import { PageHeader } from './shared/PageHeader';
 import { PageHeaderTabs } from './shared/PageHeaderTabs';
-import { fmtShopPrice } from '../utils/formatNumber';
+import { useShopPrice } from './shop/shopPrice';
 import { TEA_TYPE_COLORS } from '../designTokens';
 import { InventoryItem } from '../types';
+import { TEA_TYPES as WISDOM_TEA_TYPES, findRegion, normalizeTeaType } from '../wisdom';
 import { SALE_ITEM_IDS } from '../data/curatedCollections';
 import { useAppStore } from '../lib/store';
 import { useProductModalRoute, PRODUCT_PATH_RE } from '../hooks/useProductModalRoute';
@@ -39,10 +40,37 @@ interface TeaInventoryProps {
   onAdminEdit?: (itemId: string) => void;
 }
 
-// Preferred display order for tea types — any types not listed here appear at the end
-const TYPE_ORDER = ['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Black', 'Dark', 'Sheng', 'Shou', 'Herbal'];
+// Preferred display order for tea types, any types not listed here appear at the end.
+// Sourced from the wisdom base; the old local list additionally carried a 'Black'
+// entry alongside 'Red' (they are the same canonical type, hong cha is Red, not
+// Black), which merged into the single 'Red' entry below.
+const TYPE_ORDER: string[] = [...WISDOM_TEA_TYPES];
 
-// Sort options for the shop toolbar — rendered as inline pills matching Type/Feeling
+// Canonical filter/group key for a stored item type, resolves historical
+// dialects (e.g. a record saved with type 'Black') to the wisdom base's
+// canonical type, so 'Red' and 'Black' records land in the same filter pill
+// and section rather than splitting into two. Falls back to the raw stored
+// value when it isn't a recognized tea-type dialect (e.g. teaware categories).
+const displayType = (type: string): string => normalizeTeaType(type) ?? type;
+
+/**
+ * Canonical filter key for where an item was grown.
+ *
+ * Resolved through the same wisdom base the product page reads, so a record
+ * written "Wuyi Mountains" and one written "Wuyishan" land on one filter rather
+ * than two. Origins the base does not hold fall back to the written string,
+ * lowercased, so an unrecognised place still filters to itself.
+ */
+const regionKey = (origin: string | null | undefined): string | null => {
+  const written = origin?.trim();
+  if (!written) return null;
+  return findRegion(written)?.id ?? written.toLowerCase();
+};
+
+/** What to call an active region filter in the chip that clears it. */
+const regionLabel = (key: string): string => findRegion(key)?.name ?? key;
+
+// Sort options for the shop toolbar, rendered as inline pills matching Type/Feeling
 const SORT_OPTIONS: { id: 'featured' | 'price_asc' | 'price_desc' | 'recent' | 'tasted'; label: string }[] = [
   { id: 'featured', label: 'Featured' },
   { id: 'price_asc', label: 'Price ↑' },
@@ -89,11 +117,26 @@ function resolvedIncludes(item: TeaItem, categoryId: TastingCategoryId, termId: 
 }
 
 export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCart, onCartClick, onAccountClick, cartItemCount = 0, hideHeader = false, isAdmin = false, adminProductMap, onAdminEdit }) => {
+  /**
+   * The grid price, in the currency the reader chose.
+   *
+   * This row is the first price anyone sees on the site, and it was the last
+   * one still quoting dollars. Round six localised the product page and the
+   * quick view, round seven swept the compare, saved, collection and sample
+   * surfaces, and this list stayed on `fmtShopPrice` through both, so a reader
+   * set to Rupiah browsed a wall of dollars and then watched every one of them
+   * change the moment they tapped a tea. The conversion is not re-derived here:
+   * it is the same hook the cart, the card and the page already read.
+   */
+  const shopPrice = useShopPrice();
+
+
   // Filter State
   const [activeType, setActiveType] = useState<string>('All');
   const [activeFeeling, setActiveFeeling] = useState<string | null>(null); // feeling term ID from taxonomy
+  const [activeRegion, setActiveRegion] = useState<string | null>(null); // region ID from the wisdom base, or a written origin
   const [specialFilter, setSpecialFilter] = useState<'None' | 'Curated' | 'Sale' | 'Liked' | 'Tasted'>('None');
-  const [openFilter, setOpenFilter] = useState<'type' | 'feeling' | 'sort' | null>(null);
+  const [openFilter, setOpenFilter] = useState<'type' | 'place' | 'feeling' | 'sort' | null>(null);
   const [searchText, setSearchText] = useState<string>('');
   // Profile-level mood/flavor tag filters (URL params: ?mood=id,id2 and ?flavorTag=id,id2)
   const [activeMoodTags, setActiveMoodTags] = useState<string[]>([]);
@@ -102,10 +145,30 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
   // Derive tea types from actual inventory (ordered by TYPE_ORDER, then alphabetically)
   const teaTypes = useMemo(() => {
-    const types = new Set(inventory.map(item => item.type));
+    const types = new Set(inventory.map(item => displayType(item.type)));
     const ordered = TYPE_ORDER.filter(t => types.has(t));
     const remaining = [...types].filter(t => !TYPE_ORDER.includes(t)).sort();
     return [...ordered, ...remaining];
+  }, [inventory]);
+
+  /**
+   * The places this shop actually sells from, resolved and de-duplicated.
+   *
+   * Round four gave the region filter a URL and a chip, and left it with no
+   * door: the only way to browse by place was to open a product page first and
+   * follow the origin out of it. Place is one of the three facts the shop
+   * groups by, so it gets a pill row beside Type, built from the inventory the
+   * same way the type row is, and it disappears when there is only one place.
+   */
+  const availableRegions = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const item of inventory) {
+      const key = regionKey(item.origin);
+      if (key && !seen.has(key)) seen.set(key, regionLabel(key));
+    }
+    return [...seen.entries()]
+      .map(([key, label]) => ({ key, label }))
+      .sort((left, right) => left.label.localeCompare(right.label));
   }, [inventory]);
 
   // Derive which feeling terms are actually present in the inventory.
@@ -147,20 +210,25 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
     return ALL_FLAVOR_TAG_TERMS.filter(t => present.has(t.id));
   }, [inventory]);
 
-  // User Interaction State — persisted via Zustand store
+  // User Interaction State, persisted via Zustand store
   const { favoriteTeas, toggleFavoriteTea, compareItems, recentlyViewed, addRecentlyViewed, shopPriceWeight, setShopPriceWeight, shopSort, setShopSort, shopSavedOnly, setShopSavedOnly } = useAppStore();
   const userFavorites = useMemo(() => new Set(favoriteTeas), [favoriteTeas]);
   const [showCompare, setShowCompare] = useState(false);
 
-  // Tasting journal — count how many times user has tasted each tea
+  // Tasting journal, count how many times user has tasted each tea
   const tastingCounts = useTastingCounts();
 
   // Tasting term filter (cross-reference from AlcoveCard)
   const [tastingFilter, setTastingFilter] = useState<{ termId: string; categoryId: string } | null>(null);
 
-  // URL ↔ filter round-trip. ?flavor=<termId> and ?feel=<termId> are shareable
-  // entry points from product pages; clearing filters in the UI also clears
-  // the URL so history behaves as expected.
+  // URL ↔ filter round-trip. ?type=, ?region=, ?flavor=<termId> and
+  // ?feel=<termId> are shareable entry points from product pages; clearing
+  // filters in the UI also clears the URL so history behaves as expected.
+  //
+  // Type and region joined the set in round four. Until then the product page
+  // wrote a breadcrumb pointing at ?type= and a "Same place" heading with
+  // nowhere to send a reader, because the shop read four of its six facts out
+  // of the address and silently dropped the two the product page had.
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const didHydrateFromUrl = useRef(false);
@@ -169,10 +237,14 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   useEffect(() => {
     if (didHydrateFromUrl.current) return;
     didHydrateFromUrl.current = true;
+    const type = searchParams.get('type');
+    const region = searchParams.get('region');
     const flavor = searchParams.get('flavor');
     const feel = searchParams.get('feel');
     const mood = searchParams.get('mood');
     const flavorTag = searchParams.get('flavorTag');
+    if (type) setActiveType(displayType(type));
+    if (region) setActiveRegion(regionKey(region));
     if (flavor) setTastingFilter({ termId: flavor, categoryId: 'flavor' });
     if (feel) setActiveFeeling(feel);
     if (mood) {
@@ -193,7 +265,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   }, []);
 
   // Reverse direction: whenever state changes after hydration, update the URL.
-  // Skipped while the product modal route is displayed — writing search params
+  // Skipped while the product modal route is displayed: writing search params
   // there would replace the modal entry and drop its background state; the
   // location.pathname dep re-runs the sync once the modal closes back to /shop.
   useEffect(() => {
@@ -201,6 +273,10 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
     if (PRODUCT_PATH_RE.test(location.pathname)) return;
     const next = new URLSearchParams(searchParams);
     const flavorTerm = tastingFilter?.categoryId === 'flavor' ? tastingFilter.termId : null;
+    if (activeType !== 'All') next.set('type', activeType);
+    else next.delete('type');
+    if (activeRegion) next.set('region', activeRegion);
+    else next.delete('region');
     if (flavorTerm) next.set('flavor', flavorTerm);
     else next.delete('flavor');
     if (activeFeeling) next.set('feel', activeFeeling);
@@ -213,9 +289,9 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       setSearchParams(next, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeFeeling, tastingFilter, activeMoodTags, activeFlavorTags, location.pathname]);
+  }, [activeType, activeRegion, activeFeeling, tastingFilter, activeMoodTags, activeFlavorTags, location.pathname]);
 
-  // Alcove modal — driven by the URL. A card tap pushes /shop/product/:id with
+  // Alcove modal, driven by the URL. A card tap pushes /shop/product/:id with
   // the current location as background state; viewItem is derived from that
   // URL, so it is always fresh after an inventory refetch and back/forward can
   // never desync from the modal. See useProductModalRoute.
@@ -256,7 +332,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       setAdminTastingItem(item);
       return;
     }
-    // Close the AlcoveModal via history — the product entry pops, so the
+    // Close the AlcoveModal via history: the product entry pops, so the
     // modal cannot re-open behind the tasting session.
     closeProduct();
     setTastingItem(item);
@@ -285,8 +361,9 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       const matchSearch = !searchLower || item.name.toLowerCase().includes(searchLower);
 
       // 1. Basic Filter (Type/Feeling)
-      const matchType = activeType === 'All' || item.type === activeType;
+      const matchType = activeType === 'All' || displayType(item.type) === activeType;
       const matchFeeling = !activeFeeling || resolvedIncludes(item, 'feeling', activeFeeling);
+      const matchRegion = !activeRegion || regionKey(item.origin) === activeRegion;
 
       // 2. Special Filter (Curated/Sale/Liked)
       let matchSpecial = true;
@@ -325,19 +402,20 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       // 5. Saved-only shop toggle
       const matchSaved = !shopSavedOnly || userFavorites.has(item.id);
 
-      return matchSearch && matchType && matchFeeling && matchSpecial && matchTasting && matchMoodTags && matchFlavorTags && matchSaved;
+      return matchSearch && matchType && matchFeeling && matchRegion && matchSpecial && matchTasting && matchMoodTags && matchFlavorTags && matchSaved;
     });
-  }, [inventory, searchText, activeType, activeFeeling, specialFilter, userFavorites, tastingFilter, shopSavedOnly, activeMoodTags, activeFlavorTags]);
+  }, [inventory, searchText, activeType, activeFeeling, activeRegion, specialFilter, userFavorites, tastingFilter, shopSavedOnly, activeMoodTags, activeFlavorTags]);
 
   // Grouping & Sorting Logic
   const groupedInventory = useMemo(() => {
     const groups: Record<string, TeaItem[]> = {};
     
     filteredInventory.forEach(item => {
-        if (!groups[item.type]) {
-            groups[item.type] = [];
+        const key = displayType(item.type);
+        if (!groups[key]) {
+            groups[key] = [];
         }
-        groups[item.type].push(item);
+        groups[key].push(item);
     });
 
     // Return groups in specific order, or just the active one if filtered
@@ -392,6 +470,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   const clearFilters = () => {
     setActiveType('All');
     setActiveFeeling(null);
+    setActiveRegion(null);
     setSpecialFilter('None');
     setTastingFilter(null);
     setSearchText('');
@@ -447,7 +526,11 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
         >
           <PageHeaderTabs
             tabs={[
-              { id: 'Curated', label: 'recommended' },
+              // Filter chip, not navigation. The id and the filter behind it
+              // are untouched; only the word changes. It read "recommended",
+              // which named a merchandising flag one person sets in the admin
+              // panel as though it were a recommendation made to the reader.
+              { id: 'Curated', label: 'On the Shelf' },
               { id: 'Sale', label: 'On Sale' },
               { id: 'Liked', label: 'My Likes' },
               { id: 'Tasted', label: 'Tasted' },
@@ -503,7 +586,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                <button
                  type="button"
                  onClick={() => setOpenFilter(prev => prev === 'type' ? null : 'type')}
-                 className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1 shrink-0 transition-colors ${
+                 className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] min-h-[44px] shrink-0 transition-colors ${
                    activeType !== 'All' ? 'text-tea-gold' : openFilter === 'type' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
                  }`}
                >
@@ -511,11 +594,24 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                  <Icons.ChevronDown className={`w-3 h-3 transition-transform ${openFilter === 'type' ? 'rotate-180' : ''}`} aria-hidden="true" />
                </button>
 
+               {(availableRegions.length > 1 || activeRegion) && (
+                 <button
+                   type="button"
+                   onClick={() => setOpenFilter(prev => prev === 'place' ? null : 'place')}
+                   className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] min-h-[44px] shrink-0 transition-colors ${
+                     activeRegion ? 'text-tea-gold' : openFilter === 'place' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
+                   }`}
+                 >
+                   <span>{activeRegion ? regionLabel(activeRegion) : 'Place'}</span>
+                   <Icons.ChevronDown className={`w-3 h-3 transition-transform ${openFilter === 'place' ? 'rotate-180' : ''}`} aria-hidden="true" />
+                 </button>
+               )}
+
                {availableFeelings.length > 0 && (
                  <button
                    type="button"
                    onClick={() => setOpenFilter(prev => prev === 'feeling' ? null : 'feeling')}
-                   className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1 shrink-0 transition-colors ${
+                   className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] min-h-[44px] shrink-0 transition-colors ${
                      activeFeeling ? 'text-tea-gold' : openFilter === 'feeling' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
                    }`}
                  >
@@ -527,7 +623,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                <button
                  type="button"
                  onClick={() => setOpenFilter(prev => prev === 'sort' ? null : 'sort')}
-                 className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1 shrink-0 transition-colors ${
+                 className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] min-h-[44px] shrink-0 transition-colors ${
                    shopSort !== 'featured' ? 'text-tea-gold' : openFilter === 'sort' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
                  }`}
                >
@@ -542,7 +638,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                onClick={() => setShopSavedOnly(!shopSavedOnly)}
                aria-pressed={shopSavedOnly}
                aria-label="Show only liked teas"
-               className={`ml-auto text-ui-10 uppercase tracking-[0.15em] py-1 shrink-0 transition-colors ${
+               className={`ml-auto text-ui-10 uppercase tracking-[0.15em] min-h-[44px] shrink-0 transition-colors ${
                  shopSavedOnly ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
                }`}
              >
@@ -550,7 +646,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
              </button>
            </div>
 
-           {/* Inline-expanding options — flush below the toolbar, pushes content down */}
+           {/* Inline-expanding options, flush below the toolbar, pushes content down */}
            {openFilter === 'type' && (
               <div className="flex flex-wrap gap-1.5 pb-3 animate-[fadeIn_0.15s_ease-out]">
                  <button
@@ -566,6 +662,25 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                        className={`pill ${activeType === t ? 'pill-active' : ''}`}
                     >
                        {t}
+                    </button>
+                 ))}
+              </div>
+           )}
+           {openFilter === 'place' && (
+              <div className="flex flex-wrap gap-1.5 pb-3 animate-[fadeIn_0.15s_ease-out]">
+                 <button
+                    onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveRegion(null); setOpenFilter(null); }}
+                    className={`pill ${activeRegion === null ? 'pill-active' : ''}`}
+                 >
+                    All
+                 </button>
+                 {availableRegions.map(region => (
+                    <button
+                       key={region.key}
+                       onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveRegion(prev => prev === region.key ? null : region.key); setOpenFilter(null); }}
+                       className={`pill ${activeRegion === region.key ? 'pill-active' : ''}`}
+                    >
+                       {region.label}
                     </button>
                  ))}
               </div>
@@ -606,6 +721,13 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
            )}
          </div>
 
+         {/* The region's own chip is gone. It existed because a region could
+             only arrive from a product page and had no control of its own, so
+             the chip had to be both the announcement and the clear. Now that
+             Place is a filter beside Type, the toolbar states the active place
+             by name and clears it, and a second control for one filter is one
+             control too many. */}
+
          {/* Active tasting filter chip (from AlcoveCard cross-reference) */}
          {tastingFilter && (() => {
             const Icon = resolveTermIcon(tastingFilter.termId);
@@ -623,14 +745,14 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
             );
          })()}
 
-         {/* Mood and flavor tag filter — collapsible, editorial chip rows */}
+         {/* Mood and flavor tag filter, collapsible, editorial chip rows */}
          {(availableMoodTagTerms.length > 0 || availableFlavorTagTerms.length > 0) && (
            <div className="mb-4 border-b border-tea-border pb-3">
              <div className="flex flex-col gap-0.5">
                <button
                  type="button"
                  onClick={() => setMoodFlavorOpen(p => !p)}
-                 className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1 transition-colors w-fit ${
+                 className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] min-h-[44px] transition-colors w-fit ${
                    (activeMoodTags.length > 0 || activeFlavorTags.length > 0)
                      ? 'text-tea-gold'
                      : moodFlavorOpen
@@ -790,7 +912,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
             </div>
          ) : null}
 
-         {/* LIST VIEW — tap opens AlcoveCard */}
+         {/* LIST VIEW, tap opens AlcoveCard */}
          {filteredInventory.length > 0 && (
             <div className="flex flex-col px-0 animate-[fadeIn_0.5s_ease-out]">
                {groupedInventory.map((group) => (
@@ -920,8 +1042,8 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                         </div>
                                         {/* Divider between actions and price */}
                                         <div className="w-px h-5 bg-tea-border ml-2.5 mr-3" />
-                                        <div className="text-right num text-sm text-tea-gold font-medium tabular-nums min-w-[44px]">
-                                            {fmtShopPrice(priceAtWeight)}
+                                        <div className="text-right num text-sm text-tea-gold font-medium tabular-nums min-w-[44px] whitespace-nowrap">
+                                            {shopPrice.total(priceAtWeight)}
                                         </div>
                                     </div>
                                 </div>
@@ -968,7 +1090,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-sticky animate-[fadeIn_0.3s_ease-out]">
           <button
             onClick={() => setShowCompare(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.1em] font-medium rounded-md shadow-lg hover:bg-tea-gold-lt transition-all active:scale-95"
+            className="flex items-center gap-2 px-5 py-2.5 cta-solid text-xs uppercase tracking-[0.1em] font-medium rounded-md shadow-lg transition-all active:scale-95"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="7" height="18" rx="1" />

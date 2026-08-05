@@ -1,5 +1,9 @@
 /**
- * Field Notes: Two Rooms in Bali — Field Notes · N°11
+ * @color-literals. The Read section is one always-dark editorial surface.
+ * Rationale, and the conditions on this exception, in read/immersive.tsx.
+ */
+/**
+ * Field Notes: Two Rooms in Bali: Field Notes · N°11
  * Two tea rooms in the hills above Ubud: one dark as a drum, one open to the sky.
  * Ported pixel-faithfully from the tea-article-redesign mockup.
  */
@@ -82,13 +86,13 @@ const FieldNotesTwoRoomsBali: React.FC = () => {
           <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(0deg, rgba(20,16,11,0.86), transparent 42%)' }} />
           <div style={{ position: 'relative', zIndex: 1, padding: '0 clamp(24px,6vw,84px) clamp(48px,9vw,110px)', maxWidth: 1000 }}>
             <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.36em', textTransform: 'uppercase', color: C.gold, marginBottom: 24 }}>
-              Field Notes — the hills above Ubud, Bali
+              Field Notes, the hills above Ubud, Bali
             </div>
             <h1 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(48px,9vw,114px)', lineHeight: 0.98, letterSpacing: '-0.015em', color: C.cream, margin: 0 }}>
               Two Rooms <span style={{ fontStyle: 'italic', color: C.gold }}>in Bali</span>
             </h1>
             <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(16px,2.1vw,21px)', lineHeight: 1.5, color: C.taupe, margin: '24px 0 0', maxWidth: 540 }}>
-              A valley apart, two tea rooms made from the island itself — jackfruit wood and charcoal in one, bonsai and daylight in the other. Both, in the end, an argument for slowness.
+              A valley apart, two tea rooms made from the island itself, jackfruit wood and charcoal in one, bonsai and daylight in the other. Both, in the end, an argument for slowness.
             </p>
           </div>
           {/* scroll indicator */}
@@ -103,7 +107,7 @@ const FieldNotesTwoRoomsBali: React.FC = () => {
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(56px,9vw,116px) 24px clamp(28px,5vw,52px)' }}>
           <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: C.ink, margin: 0 }}>
             <span style={{ float: 'left', fontFamily: F.display, fontWeight: 600, fontSize: '5em', lineHeight: 0.78, color: C.gold, margin: '8px 16px -4px 0' }}>B</span>
-            ali does not grow much tea of its own, yet it has become a place people come to <em style={{ fontStyle: 'italic', color: C.cream }}>learn</em> it — somewhere the climate and the culture both conspire toward unhurry. In the green hills above Ubud I found two rooms that brew it, a valley apart, and could not be more different. One is dark as the inside of a drum. One is open to the sky. I sat in both, for a long time, and took these notes.
+            ali does not grow much tea of its own, yet it has become a place people come to <em style={{ fontStyle: 'italic', color: C.cream }}>learn</em> it, somewhere the climate and the culture both conspire toward unhurry. In the green hills above Ubud I found two rooms that brew it, a valley apart, and could not be more different. One is dark as the inside of a drum. One is open to the sky. I sat in both, for a long time, and took these notes.
           </p>
         </section>
 
@@ -115,7 +119,7 @@ const FieldNotesTwoRoomsBali: React.FC = () => {
             <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim }}>Rumah Kayu · the jackfruit room</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,300px),1fr))', gap: 'clamp(24px,4vw,56px)', alignItems: 'center' }}>
-            {/* Plate I — the brazier */}
+            {/* Plate I: the brazier */}
             <figure data-reveal style={{ margin: 0 }}>
               <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgba(168,135,77,0.2)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(160deg,#2a1d10,#14100b 78%)' }}>
                 <div aria-hidden="true" style={{ ...grainCss('0.8', 120), opacity: 0.08 }} />
@@ -134,7 +138,7 @@ const FieldNotesTwoRoomsBali: React.FC = () => {
                 </svg>
                 {/* ember glow */}
                 <div aria-hidden="true" style={{ position: 'absolute', left: '50%', bottom: '16%', transform: 'translateX(-50%)', width: '34%', aspectRatio: '1/1', borderRadius: '50%', background: 'radial-gradient(circle, rgba(228,128,46,0.55), rgba(200,90,30,0.18) 50%, transparent 72%)', animation: 'tjEmber 4s ease-in-out infinite' }} />
-                <div style={plateLabel}>Plate I — the brazier</div>
+                <div style={plateLabel}>Plate I, the brazier</div>
               </div>
               <figcaption style={cap}>Century-old jackfruit boards, and a charcoal fire that is never quite let out.</figcaption>
             </figure>
@@ -144,10 +148,10 @@ const FieldNotesTwoRoomsBali: React.FC = () => {
                 Dark as the inside of a drum
               </h2>
               <p style={pBody}>
-                You step down into it, out of the glare, and your eyes take a minute. The whole room is built of <em style={{ fontStyle: 'italic', color: C.ink }}>nangka</em> — jackfruit wood — reclaimed from a house older than anyone remembers, oiled to the colour of dark honey. It drinks the light. A charcoal brazier breathes in the corner; the air tastes faintly of smoke and resin.
+                You step down into it, out of the glare, and your eyes take a minute. The whole room is built of <em style={{ fontStyle: 'italic', color: C.ink }}>nangka</em>, jackfruit wood, reclaimed from a house older than anyone remembers, oiled to the colour of dark honey. It drinks the light. A charcoal brazier breathes in the corner; the air tastes faintly of smoke and resin.
               </p>
               <p style={{ ...pBody, margin: 0 }}>
-                A single ancient bonsai keeps watch by the door — a knuckled little pine, older than the brewer. He sits on the floor and pours without speaking, an hour to a session, and somehow you do not think to check your phone even once.
+                A single ancient bonsai keeps watch by the door, a knuckled little pine, older than the brewer. He sits on the floor and pours without speaking, an hour to a session, and somehow you do not think to check your phone even once.
               </p>
             </div>
           </div>
@@ -161,19 +165,19 @@ const FieldNotesTwoRoomsBali: React.FC = () => {
             <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim }}>Taman · the garden room</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,300px),1fr))', gap: 'clamp(24px,4vw,56px)', alignItems: 'center' }}>
-            {/* prose column — order:2 on desktop so figure is left */}
+            {/* prose column, order:2 on desktop so figure is left */}
             <div data-reveal style={{ order: 2 }}>
               <h2 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(28px,4vw,44px)', lineHeight: 1.08, color: C.cream, margin: '0 0 20px' }}>
                 Open to the sky
               </h2>
               <p style={pBody}>
-                A valley away, the second room has barely any walls at all. Tea is served on a weathered teak platform set into a courtyard of <em style={{ fontStyle: 'italic', color: C.ink }}>penjing</em> — bonsai arranged on volcanic stone, a thread of water running between them. Frangipani drops its flowers onto the boards. The light is green and moving; the kettle sits on a little clay stove.
+                A valley away, the second room has barely any walls at all. Tea is served on a weathered teak platform set into a courtyard of <em style={{ fontStyle: 'italic', color: C.ink }}>penjing</em>, bonsai arranged on volcanic stone, a thread of water running between them. Frangipani drops its flowers onto the boards. The light is green and moving; the kettle sits on a little clay stove.
               </p>
               <p style={{ ...pBody, margin: 0 }}>
-                Here slowness is social, not solemn. People murmur. A gamelan practises somewhere down the hill. The tea is lighter — greens and whites that suit the daylight — and you stay for hours without deciding to.
+                Here slowness is social, not solemn. People murmur. A gamelan practises somewhere down the hill. The tea is lighter, greens and whites that suit the daylight, and you stay for hours without deciding to.
               </p>
             </div>
-            {/* Plate II — penjing on stone */}
+            {/* Plate II: penjing on stone */}
             <figure data-reveal style={{ margin: 0, order: 1 }}>
               <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgba(168,135,77,0.2)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(160deg,#1f261c,#14100b 80%)' }}>
                 <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 44% at 50% 26%, rgba(150,180,140,0.22), transparent 62%)' }} />
@@ -197,7 +201,7 @@ const FieldNotesTwoRoomsBali: React.FC = () => {
                     <path d="M60 344 C 130 336, 200 336, 260 344" />
                   </g>
                 </svg>
-                <div style={plateLabel}>Plate II — penjing on stone</div>
+                <div style={plateLabel}>Plate II, penjing on stone</div>
               </div>
               <figcaption style={cap}>A courtyard of bonsai and volcanic rock, with water threaded between.</figcaption>
             </figure>
@@ -250,7 +254,7 @@ const FieldNotesTwoRoomsBali: React.FC = () => {
               {/* Pace row */}
               <div style={{ display: 'contents' }}>
                 <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.ui, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.gold, alignSelf: 'center' }}>Pace</div>
-                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.body, fontSize: 15, color: C.taupe, borderLeft: '1px solid rgba(168,135,77,0.1)' }}>Glacial — an hour to a cup</div>
+                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.body, fontSize: 15, color: C.taupe, borderLeft: '1px solid rgba(168,135,77,0.1)' }}>Glacial, an hour to a cup</div>
                 <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.body, fontSize: 15, color: C.taupe, borderLeft: '1px solid rgba(168,135,77,0.1)' }}>Unhurried, but sociable</div>
               </div>
             </div>
@@ -260,7 +264,7 @@ const FieldNotesTwoRoomsBali: React.FC = () => {
         {/* ── PULL QUOTE ────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 900, margin: '0 auto', padding: 'clamp(40px,7vw,90px) 24px', textAlign: 'center' }}>
           <blockquote style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(28px,4.8vw,54px)', lineHeight: 1.18, color: C.cream, margin: '0 auto', maxWidth: 840 }}>
-            "One room hides the light; the other gives it away. Both are teaching the same lesson — sit down, and stay."
+            "One room hides the light; the other gives it away. Both are teaching the same lesson, sit down, and stay."
           </blockquote>
           <div aria-hidden="true" style={{ width: 40, height: 1, background: C.gold, opacity: 0.5, margin: '34px auto 0' }} />
         </section>
@@ -268,7 +272,7 @@ const FieldNotesTwoRoomsBali: React.FC = () => {
         {/* ── CLOSING ───────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(20px,4vw,40px) 24px clamp(40px,6vw,72px)' }}>
           <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(17px,2.1vw,20px)', lineHeight: 1.72, color: C.taupe, margin: 0 }}>
-            It was in the dark jackfruit room that a homesick traveller named Mei first tasted tea on purpose, and decided to spend the rest of her life chasing that feeling — eventually carrying it to a converted garage in Melbourne. Two rooms in the Bali hills; one of them, quietly, the beginning of a third. That is how it spreads: one slow hour at a time.
+            It was in the dark jackfruit room that a homesick traveller named Mei first tasted tea on purpose, and decided to spend the rest of her life chasing that feeling, eventually carrying it to a converted garage in Melbourne. Two rooms in the Bali hills; one of them, quietly, the beginning of a third. That is how it spreads: one slow hour at a time.
           </p>
           <div style={{ marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>
             Pictures &amp; words by Teajia &nbsp;·&nbsp; Field Notes &nbsp;·&nbsp; N°11

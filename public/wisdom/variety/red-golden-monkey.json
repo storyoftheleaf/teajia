@@ -1,0 +1,14 @@
+{
+  "id": "red-golden-monkey",
+  "type": "Red",
+  "name": "Golden Monkey",
+  "chineseName": "金猴",
+  "altNames": [
+    "Jin Hou",
+    "Golden Tips"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

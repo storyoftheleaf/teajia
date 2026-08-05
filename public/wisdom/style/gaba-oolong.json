@@ -1,0 +1,13 @@
+{
+  "id": "gaba-oolong",
+  "name": "GABA Oolong",
+  "chineseName": "GABA乌龙",
+  "altNames": [],
+  "appliesToTypes": [
+    "Oolong"
+  ],
+  "description": "Oolong finished with an anaerobic step: withered leaf is sealed in a nitrogen-rich, oxygen-free chamber before a light roast. The anaerobic oxidation converts glutamic acid into gamma-aminobutyric acid (GABA), a compound associated with relaxation. First developed by Japanese researchers in 1987.",
+  "holding": "styles",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

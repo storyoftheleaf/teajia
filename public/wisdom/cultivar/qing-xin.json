@@ -1,0 +1,47 @@
+{
+  "id": "qing-xin",
+  "name": "Qing Xin",
+  "chineseName": "青心",
+  "altNames": [
+    "Green Heart",
+    "Chin Shin Oolong"
+  ],
+  "originCountry": "Taiwan",
+  "originRegion": "High Mountains (Lishan, Alishan)",
+  "developedYear": 1885,
+  "parentage": "Brought to Taiwan from Fujian, China.",
+  "description": "'Green Heart'. The undisputed king of Taiwanese oolongs, Qing Xin is celebrated for its ability to perfectly express the unique terroir of Taiwan's high mountains. It produces a tea with an ethereal, elegant character, a remarkably thick and creamy mouthfeel, and a delicate floral aroma of lilac and gardenia. It is the benchmark for high-end Taiwanese tea.",
+  "plantType": "Relatively small, slow-growing bush that requires meticulous care and specific conditions to thrive (Camellia sinensis var. sinensis).",
+  "environment": "Grows best at very high altitudes (1,000-2,600m) where cool temperatures, constant mist, and large diurnal temperature swings concentrate flavors in the leaves.",
+  "processing": "Processing Qing Xin is all about preservation. The goal is to capture the pristine character of the high-mountain leaf with minimal intervention. Gentle handling and a slow, controlled withering process are essential.",
+  "oxidation": "Undergoes very light oxidation (15-25%) to develop its creamy texture and floral notes without losing the freshness endowed by its high-altitude terroir.",
+  "roasting": "Generally unroasted. A final, very light bake is applied for drying, but any significant roast would be seen as masking the pure, delicate character of the leaf.",
+  "versatility": "Highly versatile for high-quality teas. It is the gold standard for High Mountain Oolong and Baozhong, and also makes an excellent Taiwanese green tea. Its quality ceiling is extremely high.",
+  "distribution": {
+    "taiwan": [
+      "Nantou (Lishan, Alishan, Shan Lin Xi)",
+      "New Taipei City (Pinglin - for Baozhong)",
+      "Hsinchu (for Bi Luo Chun green tea)"
+    ]
+  },
+  "expressions": {
+    "High Mountain Oolong (Gao Shan Cha)": {
+      "Lishan/Alishan Oolong": "Its highest expression. A lightly oxidized, unroasted, ball-rolled oolong with an incredibly thick, creamy body and delicate floral notes."
+    },
+    "Baozhong Oolong": {
+      "Pouchong": "A lightly oxidized, twisted-leaf oolong that emphasizes its fresh floral aroma."
+    },
+    "Green Tea": {
+      "Sanxia Bi Luo Chun": "A Taiwanese version of the famous Chinese green tea, made with this cultivar."
+    }
+  },
+  "sensory": {
+    "aroma": "Elegant and ethereal Lilac, Gardenia, Cream, Fresh Mountain Air",
+    "flavor": "Exceptionally smooth, buttery, and sweet with a profound and lasting aftertaste (huigan).",
+    "mouthfeel_liquor": "Thick, soupy, and viscous with a very soft, creamy texture. The liquor is a pale, luminous golden-green."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

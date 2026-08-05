@@ -1,0 +1,13 @@
+{
+  "id": "sheng-pu-er",
+  "type": "Sheng",
+  "name": "Pu'er",
+  "chineseName": "普洱市",
+  "altNames": [
+    "Pu-er City"
+  ],
+  "region": "Pu'er",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

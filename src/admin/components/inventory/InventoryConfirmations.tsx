@@ -25,7 +25,7 @@ type InventoryConfirmationsProps = {
   onCloseMaintenanceModal: () => void;
   onOpenDatabaseReset: () => void;
   // Permanent single-product delete (e.g. a mistyped duplicate). Irreversible,
-  // so it requires typing "delete" to confirm — same floor as the DB wipe.
+  // so it requires typing "delete" to confirm, same floor as the DB wipe.
   deleteTarget: { id: string; name: string } | null;
   onCloseDeleteConfirm: () => void;
   deleteInput: string;
@@ -80,7 +80,7 @@ export function InventoryConfirmations({
               <button
                 onClick={onConfirmEnrich}
                 disabled={isEnriching}
-                className="px-4 py-2 bg-tea-gold text-tea-bg text-xs font-semibold rounded-md hover:bg-tea-gold/90 disabled:opacity-40 transition-colors"
+                className="px-4 py-2 cta-solid text-xs font-semibold rounded-md disabled:opacity-40 transition-colors"
               >
                 {isEnriching ? 'Generating...' : 'Generate'}
               </button>
@@ -107,7 +107,7 @@ export function InventoryConfirmations({
               <button onClick={onCloseVerificationResetConfirm} className="px-1 py-2 text-tea-text-sec hover:text-tea-text transition-colors text-xs uppercase tracking-[0.2em]">Cancel</button>
               <button
                 onClick={onConfirmVerificationReset}
-                className="px-4 py-2 bg-tea-gold text-tea-bg text-xs font-semibold rounded-md hover:bg-tea-gold/90 transition-colors"
+                className="px-4 py-2 cta-solid text-xs font-semibold rounded-md transition-colors"
               >
                 Reset
               </button>
@@ -226,7 +226,7 @@ export function InventoryConfirmations({
             <div className="p-4 border-t border-tea-border flex justify-end bg-tea-surface">
               <button
                 onClick={onCloseMaintenanceModal}
-                className="px-6 py-2 bg-tea-gold text-tea-bg text-xs font-semibold rounded-md hover:bg-tea-gold/90 transition-colors"
+                className="px-6 py-2 cta-solid text-xs font-semibold rounded-md transition-colors"
               >
                 Close
               </button>

@@ -1,0 +1,17 @@
+{
+  "id": "xinghai-tea-factory",
+  "name": "Xinghai Tea Factory",
+  "chineseName": "兴海茶厂",
+  "altNames": [
+    "Xinghai",
+    "兴海"
+  ],
+  "kind": "factory",
+  "country": "China",
+  "region": "Yunnan",
+  "notableMarks": [],
+  "description": "Named only in one product's title (Xinghai Aged Sheng Cha). That product's write-up body is empty, so nothing beyond the name is confirmed by Adrian's own source material.",
+  "holding": "producers",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

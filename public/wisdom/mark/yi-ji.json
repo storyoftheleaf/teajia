@@ -1,0 +1,15 @@
+{
+  "id": "yi-ji",
+  "name": "Yi Ji",
+  "chineseName": "一级",
+  "altNames": [
+    "First Grade"
+  ],
+  "appliesToTypes": [
+    "Dark"
+  ],
+  "description": "A first-grade classification referring to leaf size and quality, indicating the finest, most tender material, typically from spring harvests.",
+  "holding": "marks",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

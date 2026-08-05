@@ -22,6 +22,7 @@ import { AutocompleteInput } from '../../components/TeaCompass/AutocompleteInput
 import { buildVarietyDataMap, getTeaVarietySuggestions } from '../../data/teaVarieties';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { getThemeColor } from '../themeUtils';
+import { TEA_TYPES } from '../../wisdom';
 import { effectivePurpose, getEffectivePublication, getTeaReadiness } from './inventory/domain';
 import {
   flattenTastingNotes,
@@ -388,7 +389,7 @@ export const FieldGroupDivider = () => (
 );
 
 /* ------------------------------------------------------------------ */
-/* Tasting notes editor — listed inside the Story & background section */
+/* Tasting notes editor, listed inside the Story & background section */
 /* ------------------------------------------------------------------ */
 
 /** Inline microphone button. Mirrors the standalone VoiceRecorder logic
@@ -462,7 +463,7 @@ const InlineMicButton: React.FC<{ onTranscript: (text: string) => void }> = ({ o
   );
 };
 
-/** One row in the notes list — textarea with inline save on blur + delete. */
+/** One row in the notes list, textarea with inline save on blur + delete. */
 const TastingNoteRow: React.FC<{
   value: string;
   onSave: (text: string) => void;
@@ -517,7 +518,7 @@ const TastingNotesEditor: React.FC<{
   ), [tasting]);
 
   // Hoist any legacy single voiceNote into the notes array so the editor
-  // can manage it uniformly — saved out via the same pipeline.
+  // can manage it uniformly, saved out via the same pipeline.
   const initialDisplay = useMemo(() => {
     const arr = sourceNotes.map((n: any) => typeof n === 'string' ? { text: n } : { ...n, text: n?.text ?? '' });
     const legacy = typeof tasting?.voiceNote === 'string' && tasting.voiceNote.trim() ? tasting.voiceNote.trim() : null;
@@ -760,7 +761,7 @@ export const ImageManager = ({ product, onUpdate }: {
                   </div>
                 ) : (
                   <>
-                    {/* Action menu trigger — always visible top-right so it works on touch */}
+                    {/* Action menu trigger, always visible top-right so it works on touch */}
                     <button
                       onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === i ? null : i); }}
                       aria-label={`Image actions for ${slotLabels[i].toLowerCase()}`}
@@ -924,7 +925,7 @@ export function buildProductUpdatePayload(field: keyof Product, value: any): Rec
 }
 
 /* ------------------------------------------------------------------ */
-/* ProductEditPanel — the inventory sidebar, now reusable              */
+/* ProductEditPanel: the inventory sidebar, now reusable              */
 /* ------------------------------------------------------------------ */
 
 export interface ProductEditPanelProps {
@@ -942,7 +943,7 @@ export interface ProductEditPanelProps {
    */
   onUpdate?: (id: string, field: keyof Product, value: any) => void | Promise<void>;
   /**
-   * Optional list of other products — used for:
+   * Optional list of other products, used for:
    *   - prev/next navigation (pass products in desired order)
    *   - name-autocomplete suggestions
    */
@@ -1040,7 +1041,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
     return { ...varietyMap, ...productMap };
   }, [product, products]);
 
-  // Default onUpdate if parent didn't supply one — persist directly
+  // Default onUpdate if parent didn't supply one, persist directly
   const handleUpdate = useCallback(async (id: string, field: keyof Product, value: any) => {
     if (onUpdate) { await onUpdate(id, field, value); return; }
     const payload = buildProductUpdatePayload(field, value);
@@ -1168,7 +1169,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
 
   const titleId = product ? `panel-title-${product.id}` : undefined;
 
-  // Memoize pricing calc — only recompute when relevant fields change
+  // Memoize pricing calc, only recompute when relevant fields change
   const pricingCalc = useMemo(() => {
     if (!product) return null;
     return calculatePricing(
@@ -1188,7 +1189,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
     rates,
   ]);
 
-  // Memoize tasting flatten — only recompute when product.tasting changes
+  // Memoize tasting flatten, only recompute when product.tasting changes
   const flattenedTastingCount = useMemo(() => {
     const tasting = (product as any)?.tasting;
     return tasting ? flattenTastingNotes(tasting).length : 0;
@@ -1209,7 +1210,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
         className={`fixed inset-0 md:inset-auto md:right-[var(--panel-right)] md:top-0 md:bottom-0 md:w-[360px] lg:w-[420px] xl:w-[440px] z-modal flex flex-col transition-transform duration-300 ease-out ${product ? 'translate-x-0 pointer-events-auto panel-sidebar' : 'translate-x-full pointer-events-none invisible'}`}
       >
         {product && (<>
-          {/* Header — Row 1: Nav. Sits on the panel bg with a single hairline border. */}
+          {/* Header, Row 1: Nav. Sits on the panel bg with a single hairline border. */}
           <div className="flex items-center justify-between px-3 pt-2.5 pb-1.5 border-b border-admin-border">
             <button
               ref={closeButtonRef}
@@ -1248,7 +1249,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
             </div>
           </div>
 
-          {/* Keyboard hint bar — quiet, single-line */}
+          {/* Keyboard hint bar: quiet, single-line */}
           {onNavigate && (
             <div className="hidden md:flex items-center justify-center gap-3 px-4 py-1.5 border-b border-admin-border">
               <span className="text-ui-10 text-admin-text-dim uppercase tracking-[0.06em]">Esc close</span>
@@ -1257,16 +1258,24 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
             </div>
           )}
 
-          {/* Scrollable content. Identity card lives here too — scrolls with
+          {/* Scrollable content. Identity card lives here too, scrolls with
               everything else instead of staying fixed under the nav row. */}
           <div className="flex-1 overflow-y-auto custom-scrollbar pt-3 pb-nav-gap">
             {/* Identity card. Neutral admin surface; the type color signal
-                lives as a 2px left bar so the rest of the card is calm. */}
+                lives as a 2px left bar so the rest of the card is calm.
+                The bar is a child element rather than an inset box-shadow: an
+                inline boxShadow replaces .admin-card's whole shadow stack, so
+                the old form had to respell the bevel and the drop shadow by
+                hand in raw rgba, and both were white-on-dark literals that
+                would have inverted wrongly the day this panel gets a light
+                mode. Drawn as a span, the card keeps its own shadow. */}
             <div className="px-3 pb-3">
-              <div
-                className="admin-card relative pl-4 pr-3 py-3 flex items-start justify-between gap-3"
-                style={{ boxShadow: `inset 2px 0 0 ${getThemeColor(product.type)}, inset 0 1px 0 rgba(255,255,255,0.04), 0 1px 2px rgba(0,0,0,0.3)` }}
-              >
+              <div className="admin-card relative overflow-hidden pl-4 pr-3 py-3 flex items-start justify-between gap-3">
+                <span
+                  aria-hidden
+                  className="absolute left-0 top-0 bottom-0 w-[2px]"
+                  style={{ background: getThemeColor(product.type) }}  // color-data: the tea type's own colour, from themeUtils
+                />
                 <div className="min-w-0 flex-1">
                   <h3 id={titleId} className="font-sans text-ui-17 font-medium text-admin-text leading-[1.25] tracking-[-0.005em]" title={product.productName}>{product.productName}</h3>
                   {product.givenName && <div className="text-ui-13 text-admin-text-sec leading-tight mt-1">{product.givenName}</div>}
@@ -1315,7 +1324,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                     onClick={() => handleUpdate(product.id, 'inventoryPurpose', purpose)}
                     className={`admin-pill ${effectivePurpose(product) === purpose ? 'admin-pill-on' : ''}`}
                   >
-                    {purpose === 'working' ? 'Working' : purpose === 'sample' ? 'Sample holding' : 'Personal'}
+                    {purpose === 'working' ? 'Shop stock' : purpose === 'sample' ? 'Sample' : 'Personal'}
                   </button>
                 ))}
               </div>
@@ -1326,7 +1335,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               )}
               {publication && (
                 <div className="text-ui-12 text-admin-text-sec">
-                  Publication: {publication.state === 'published' ? 'Published' : `Hidden — ${publication.operatorGate ? 'listing on' : 'listing off'}; ${publication.locationGate ? 'location shown' : 'location held'}`}
+                  Publication: {publication.state === 'published' ? 'Published' : `Hidden, ${publication.operatorGate ? 'listing on' : 'listing off'}; ${publication.locationGate ? 'location shown' : 'location held'}`}
                 </div>
               )}
               {readiness?.state === 'not_ready' && (
@@ -1341,13 +1350,13 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
             </div>
 
             {/* Visibility / promotion / classification toggles.
-                  Lives directly under the identity card — these get toggled
+                  Lives directly under the identity card: these get toggled
                   daily and shouldn't be hidden in a collapsible. Single flex-wrap
-                  row, no per-row caps labels (Visible / Promote / Classify) — the
+                  row, no per-row caps labels (Visible / Promote / Classify), since the
                   pill icons + names speak for themselves. Ordered by frequency
                   of use: visibility → promotion → classification. */}
             <div className="px-3 pb-3 flex flex-wrap gap-1.5">
-              <button onClick={() => handleUpdate(product.id, 'isPublic', !product.isPublic)} className={`admin-pill ${product.isPublic ? 'admin-pill-on' : ''}`} title={product.isPublic ? 'Visible in shop — click to hide' : 'Hidden — click to show in shop'}>
+              <button onClick={() => handleUpdate(product.id, 'isPublic', !product.isPublic)} className={`admin-pill ${product.isPublic ? 'admin-pill-on' : ''}`} title={product.isPublic ? 'Visible in shop, click to hide' : 'Hidden, click to show in shop'}>
                 {product.isPublic ? <Eye size={10} /> : <EyeOff size={10} />} In Shop
               </button>
               {/* Stock spine step 2: the LOCATION OWNER's curation gate, a sibling
@@ -1359,16 +1368,24 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 disabled={!isOwnerTier}
                 className={`admin-pill ${product.shownInShop ? 'admin-pill-on' : ''} ${!isOwnerTier ? 'opacity-60 cursor-default' : ''}`}
                 title={isOwnerTier
-                  ? (product.shownInShop ? 'Shown by the owner — click to hold' : 'Held — click to show in this shop')
-                  : (product.shownInShop ? 'Shown in this shop by the owner' : 'Held — only the location owner can show this')}
+                  ? (product.shownInShop ? 'Shown by the owner, click to hold' : 'Held, click to show in this shop')
+                  : (product.shownInShop ? 'Shown in this shop by the owner' : 'Held, only the location owner can show this')}
               >
                 <Store size={10} /> {product.shownInShop ? 'Shown' : 'Held'}
               </button>
-              <button onClick={() => handleUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`admin-pill ${product.isFeatured ? 'admin-pill-on' : ''}`} title="Starred — promoted on collection pages">
+              <button onClick={() => handleUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`admin-pill ${product.isFeatured ? 'admin-pill-on' : ''}`} title="Starred, promoted on collection pages">
                 <Star size={10} className={product.isFeatured ? 'fill-current' : ''} /> Starred
               </button>
-              <button onClick={() => handleUpdate(product.id, 'isCurated', !product.isCurated)} className={`admin-pill ${product.isCurated ? 'admin-pill-on' : ''}`} title="Top Pick — featured on the storefront">
-                <Sparkles size={10} /> Top Pick
+              {/* This pill read "Top Pick", which is a claim about the reader
+                  and the one thing the flag cannot be. It is a switch one
+                  person flips in this panel: it does not know who is looking,
+                  what they have opened or what they have bought, and it puts
+                  the same tea in front of everyone. The storefront badge for
+                  the same field has always read "Curated", and the shop's
+                  equivalent section was renamed to say plainly that the shelf
+                  is the same for everyone who walks in. This now matches both. */}
+              <button onClick={() => handleUpdate(product.id, 'isCurated', !product.isCurated)} className={`admin-pill ${product.isCurated ? 'admin-pill-on' : ''}`} title="On the curator's shelf. Shows as Curated on the storefront, the same for every reader.">
+                <Sparkles size={10} /> Curated
               </button>
               <button aria-label="Sample-size offering" onClick={() => handleUpdate(product.id, 'isSample', !product.isSample)} className={`admin-pill ${product.isSample ? 'admin-pill-on' : ''}`} title="Sample-size offering">
                 <FlaskConical size={10} /> Sample size
@@ -1382,7 +1399,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
             {/* 1. QUICK ENTRY. Required fields grouped on one bordered card.
                   Identity, origin, vendor, pricing, stock all live here so a
                   product can be entered top-to-bottom without expanding sections.
-                  Visibility/promotion toggles moved out — they live in the
+                  Visibility/promotion toggles moved out, they live in the
                   always-visible bar above this card. */}
             <div className="admin-card mx-3 mb-3 px-4 pt-4 pb-4">
               <div className="flex items-baseline justify-between mb-4 pb-2.5 border-b border-admin-border">
@@ -1434,7 +1451,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 ) : (
                   <>
                     <FieldCell label="Type">
-                      <GhostSelect variant="bordered" ariaLabel="Type" value={product.type} onSave={(val) => handleUpdate(product.id, 'type', val)} options={['Green', 'Yellow', 'White', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Misc']} />
+                      <GhostSelect variant="bordered" ariaLabel="Type" value={product.type} onSave={(val) => handleUpdate(product.id, 'type', val)} options={[...TEA_TYPES, 'Misc']} />
                     </FieldCell>
                     <FieldCell label="Form">
                       <GhostSelect variant="bordered" ariaLabel="Form" value={product.form || ''} onSave={(val) => handleUpdate(product.id, 'form', val)} options={['Loose', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other']} />
@@ -1625,12 +1642,12 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               })()}
 
               {/* Visibility / promote / classify pills moved to the consolidated
-                  "Placement" section below — colocated with collections and outbound
+                  "Placement" section below, colocated with collections and outbound
                   links since they all answer "where does this product appear?" */}
               </div>
             </div>
 
-            {/* 2. Images — flat, no section header */}
+            {/* 2. Images: flat, no section header */}
             <div className="px-3 mb-3">
               <ImageManager product={product} onUpdate={(field, value) => handleUpdate(product.id, field, value)} />
             </div>
@@ -1668,7 +1685,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
 
             {/* Experience section removed. The freeform 'experience' field, mood
                 chips, and flavor chips are all captured through the Tasting
-                profile editor (TastingSession) — opened via the Tasting profile
+                profile editor (TastingSession), opened via the Tasting profile
                 button above the collapsibles. */}
 
             {/* 7. Story & Background */}
@@ -1735,13 +1752,13 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 occasional: the collections this product belongs to and the
                 outbound links (encounter, orders, full story page). */}
             <CollapsibleSection title="Placement" description="Collections and outbound links." defaultOpen={false}>
-              {/* Collections — curated bundles this product is in. */}
+              {/* Collections, curated bundles this product is in. */}
               <div>
                 <div className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em] mb-2">Collections</div>
                 {product?.id && <ProductCollectionsSection productId={product.id} />}
               </div>
 
-              {/* Outbound links — same divider-list pattern as before. */}
+              {/* Outbound links, same divider-list pattern as before. */}
               <div className="mt-5 pt-4 border-t border-admin-border">
                 <div className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em] mb-1">Links</div>
                 <div className="divide-y divide-admin-border border-y border-admin-border">
@@ -1846,8 +1863,11 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
         </>)}
       </div>
 
-      {/* Mobile backdrop */}
-      {product && <div className="fixed inset-0 z-20 md:hidden" style={{ backgroundColor: 'rgba(14,14,16,0.7)' }} onClick={onClose} />}
+      {/* Mobile backdrop. Same scrim the sibling admin modals use
+          (SplitOrderModal, AddToCartModal, CsvImportModal): the page colour at
+          70% rather than a fixed near-black, so it dims whichever theme is
+          actually behind it. */}
+      {product && <div className="fixed inset-0 z-20 md:hidden bg-tea-bg/70 backdrop-blur-[2px]" onClick={onClose} />}
 
       {/* Tasting editor modal */}
       {tastingEditorProduct && (

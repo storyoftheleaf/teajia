@@ -1,0 +1,19 @@
+Teajia Tea Wisdom Base
+License: CC BY 4.0 (Creative Commons Attribution 4.0 International)
+https://creativecommons.org/licenses/by/4.0/
+
+This license covers the structured facts in this dataset: cultivar names,
+breeding lineage, growing regions, tea variety names, and the controlled
+vocabulary (tea types, forms, seasons, storage styles), along with the
+cultivar descriptions drafted from research.
+
+You are free to share and adapt this data for any purpose, including
+commercially, as long as you give appropriate credit. Attribute as:
+
+  Teajia Tea Wisdom Base (teajia.com), CC BY 4.0.
+
+Carve-out: Adrian's own tea write-ups and tasting notes are NOT included in
+this dataset and remain his. This dataset is the shared research layer only,
+not the shop's own voice.
+
+Corrections and additions: hello@teajia.com

@@ -23,7 +23,7 @@ const PHASES: Record<BreathPhase, PhaseConfig> = {
 const PHASE_ORDER: BreathPhase[] = ['inhale', 'hold', 'exhale'];
 
 /**
- * BreathPacer — 4-7-8 breathing guide with animated circle.
+ * BreathPacer, 4-7-8 breathing guide with animated circle.
  * Inhale 4s (scale up), Hold 7s (sustain), Exhale 8s (scale down).
  * Uses Framer Motion for animation. Respects prefers-reduced-motion.
  * Positioned absolute at bottom-center of parent.
@@ -61,19 +61,19 @@ const BreathPacer: React.FC<BreathPacerProps> = ({ active, onToggle }) => {
 
   return (
     <>
-      {/* Toggle button — leaf/lotus icon using Unicode */}
+      {/* Toggle button, leaf/lotus icon using Unicode */}
       <button
         onClick={onToggle}
         aria-label={active ? 'Stop breath pacer' : 'Start 4-7-8 breath pacer'}
         className="flex items-center justify-center w-11 h-11 rounded-full bg-tea-surface text-tea-text-sec hover:bg-tea-elevated transition-colors"
       >
         {/* Lotus-like symbol */}
-        <span className="text-xl leading-none select-none" style={{ color: active ? 'var(--color-tea-gold, #c9a84c)' : undefined }}>
+        <span className="text-xl leading-none select-none" style={{ color: active ? 'var(--tea-gold)' : undefined }}>
           ❀
         </span>
       </button>
 
-      {/* Breathing circle — positioned at bottom-center of page */}
+      {/* Breathing circle, positioned at bottom-center of page */}
       {active && (
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 pointer-events-none z-20">
           <motion.div

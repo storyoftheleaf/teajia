@@ -94,7 +94,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
         </div>
       )}
 
-      {/* Search Bar — dark, blends with theme */}
+      {/* Search Bar, dark, blends with theme */}
       <div className="relative mb-6">
         <Icons.Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-tea-text-sec" />
         <input
@@ -118,7 +118,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
         )}
       </div>
 
-      {/* Category Filters — refined pills */}
+      {/* Category Filters, refined pills */}
       <div className="relative z-0 mb-5 overflow-x-auto hide-scrollbar">
         <div className="flex gap-1.5 pb-1">
           {categoryButtons.map((cat) => (

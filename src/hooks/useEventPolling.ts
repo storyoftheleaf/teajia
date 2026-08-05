@@ -255,7 +255,7 @@ export function useUpdateApprovedGuests(token: string) {
   });
 }
 
-/** Toggle show_in_guest_list — lets confirmed guests opt in/out of the public name list. */
+/** Toggle show_in_guest_list, lets confirmed guests opt in/out of the public name list. */
 export function useUpdateGuestListVisibility(token: string) {
   const queryClient = useQueryClient();
   return useMutation({

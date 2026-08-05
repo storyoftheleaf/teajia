@@ -54,7 +54,7 @@ function loadState(): Persisted | null {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const p = JSON.parse(raw) as Persisted;
-    // Drop image sources that were still extracting when the tab closed — their
+    // Drop image sources that were still extracting when the tab closed, their
     // in-flight upload/extract didn't finish, so there's nothing to restore.
     const sources = (p.sources || []).filter((s) => s.kind !== 'image' || s.status === 'ready');
     const keep = new Set(sources.map((s) => s.id));
@@ -88,7 +88,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
       if (sources.length === 0) { localStorage.removeItem(STORAGE_KEY); return; }
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ sources, items, batchId, savePurchaseRecord, shippingTotal, shippingCurrency }));
     } catch {
-      /* quota exceeded / serialization — non-fatal, staging just won't survive reload */
+      /* quota exceeded / serialization: non-fatal, staging just won't survive reload */
     }
   }, [sources, items, batchId, savePurchaseRecord, shippingTotal, shippingCurrency]);
 
@@ -250,7 +250,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
         skipped += res?.skipped ?? 0;
       }
       if (savePurchaseRecord) {
-        // One purchase record per vendor/store — an order sheet routinely spans
+        // One purchase record per vendor/store, an order sheet routinely spans
         // many stores, so a single PO per file would lump them together wrongly.
         const rateFor = (cur: string) => rates.find((r) => r.currency === cur)?.rateToUSD || 1;
         const groups = new Map<string, StagedItem[]>();
@@ -483,10 +483,10 @@ const HeroDropzone: React.FC<{ onBrowse: () => void; dragging: boolean }> = ({ o
     </div>
     <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text mb-1.5`}>Drag your files in</h2>
     <p className="text-ui-13 text-tea-text-sec max-w-sm mb-5">
-      Drop a CSV or .xlsx export, or a photo of an item — paste a screenshot
+      Drop a CSV or .xlsx export, or a photo of an item. Paste a screenshot
       too. Anything you load is staged for review before it touches inventory.
     </p>
-    <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-tea-gold text-tea-bg text-ui-13 font-semibold">
+    <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md cta-solid text-ui-13 font-semibold">
       Browse files
     </span>
     <div className="flex items-center gap-2 mt-6">
@@ -581,7 +581,7 @@ const SourceCard: React.FC<{
           <div className="flex items-center gap-2 mb-3">
             <Tag size={12} className="text-tea-text-dim" />
             <span className="label-caps text-tea-text-dim">Map columns</span>
-            <span className="text-ui-10 text-tea-text-dim">— remembered for files shaped like this</span>
+            <span className="text-ui-10 text-tea-text-dim">(remembered for files shaped like this)</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
             {src.headers.map((h) => {
@@ -601,7 +601,7 @@ const SourceCard: React.FC<{
                     onChange={(e) => onRemap(src, h, e.target.value)}
                     className="admin-input text-ui-11 px-2 py-1.5 mt-0.5"
                   >
-                    <option value="">— Ignore —</option>
+                    <option value="">Ignore</option>
                     <optgroup label="Item">
                       {TARGET_FIELDS.filter((f) => f.group === 'item').map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
                     </optgroup>
@@ -677,7 +677,7 @@ const ShippingSplit: React.FC<{
     </div>
     {total > 0 && (
       <p className="text-ui-10 text-tea-text-dim basis-full">
-        Total size {Math.round(totalSize).toLocaleString()} · sizes are auto-estimated per item — edit any you know · each share folds into landed cost
+        Total size {Math.round(totalSize).toLocaleString()} · sizes are auto-estimated per item (edit any you know) · each share folds into landed cost
       </p>
     )}
   </div>
@@ -758,7 +758,7 @@ const ItemsTable: React.FC<{
                     {shippingActive && (
                       <>
                         <span className="opacity-40">·</span>
-                        <span className="inline-flex items-center gap-1" title="Auto-estimated from this item's type — edit if you know its real size">
+                        <span className="inline-flex items-center gap-1" title="Auto-estimated from this item's type, edit if you know its real size">
                           <span>size</span>
                           <input
                             type="number" min="0" value={it.sizeEstimate || ''} placeholder="0"
@@ -784,7 +784,7 @@ const ItemsTable: React.FC<{
                   />
                   <span
                     className={`badge-status ${ready ? 'badge-status-default' : 'badge-status-muted'} w-16 justify-center flex-shrink-0`}
-                    title={ready ? 'Has name, type, cost & stock — one click to activate in Capture' : 'Missing info — stays a draft until completed'}
+                    title={ready ? 'Has name, type, cost & stock: one click to activate in Capture' : 'Missing info: stays a draft until completed'}
                   >
                     {ready ? 'Ready' : 'Review'}
                   </span>

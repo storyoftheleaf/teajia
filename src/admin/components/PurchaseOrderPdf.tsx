@@ -1,10 +1,20 @@
+/**
+ * PurchaseOrderPdf: the printable purchase order, rendered by @react-pdf/renderer.
+ *
+ * @color-literals Same claim as InvoicePdf, and for the same reason. This is a
+ * document sent to a vendor, not a surface in the app. @react-pdf/renderer has
+ * no browser and therefore no CSS custom properties to resolve, so tokens do
+ * not merely fail to adapt here, they do not resolve. The palette is a document
+ * palette (white stock, near-black body, grey meta) chosen to survive a
+ * monochrome printer at a supplier's office.
+ */
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Font } from '@react-pdf/renderer';
 import { CartItem, ExchangeRate, Currency } from '../types';
 
 Font.register({
   family: 'Plus Jakarta Sans',
-  // Self-hosted (converted from the repo's woff2 by fontTools) — the old
+  // Self-hosted (converted from the repo's woff2 by fontTools), the old
   // fonts.gstatic.com URL is blocked in mainland China, which killed PDF
   // generation exactly where the ledger gets used.
   src: '/fonts/PlusJakartaSans-Regular.ttf'
@@ -185,7 +195,7 @@ export const PurchaseOrderPdfDocument: React.FC<PurchaseOrderPdfProps> = ({
 
         <View style={{ position: 'absolute', bottom: 30, left: 50, right: 50 }}>
           <Text style={{ fontSize: 8, color: '#999', textAlign: 'center' }}>
-            Teajia — teajia.com
+            Teajia · teajia.com
           </Text>
         </View>
       </Page>

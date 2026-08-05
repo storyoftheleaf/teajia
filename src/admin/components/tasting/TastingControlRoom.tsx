@@ -31,7 +31,7 @@ export function TastingControlRoom() {
   const tabsId = useTabsIds();
   const [confirmComplete, setConfirmComplete] = useState(false);
 
-  // Derived from the URL — no separate state, so browser back/forward stays in sync.
+  // Derived from the URL: no separate state, so browser back/forward stays in sync.
   const tab: Tab = location.pathname.endsWith('/live') ? 'live' : 'share';
 
   const { data, isLoading } = useQuery<SessionEnvelope>({
@@ -63,7 +63,7 @@ export function TastingControlRoom() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
-      {/* Title bar — narrow chrome */}
+      {/* Title bar, narrow chrome */}
       <header className="px-4 md:px-6 lg:px-10 max-w-5xl w-full mx-auto h-16 flex items-end pb-3 gap-3">
         <button
           type="button"
@@ -144,7 +144,7 @@ export function TastingControlRoom() {
               type="button"
               disabled={completeMutation.isPending}
               onClick={() => completeMutation.mutate()}
-              className="tap-target inline-flex items-center gap-1.5 px-3 rounded-md bg-tea-gold text-tea-bg text-ui-12 font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="tap-target inline-flex items-center gap-1.5 px-3 rounded-md cta-solid text-ui-12 font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               {completeMutation.isPending ? 'Ending…' : 'End session'}
             </button>

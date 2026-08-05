@@ -1,5 +1,9 @@
 /**
- * The Pot That Remembers — The Craft of Tea, N°14
+ * @color-literals. The Read section is one always-dark editorial surface.
+ * Rationale, and the conditions on this exception, in read/immersive.tsx.
+ */
+/**
+ * The Pot That Remembers: The Craft of Tea, N°14
  * A Yixing zisha teapot essay: the clay, the seasoning, and the patina of years.
  * Ported pixel-faithfully from the tea-article-redesign mockup.
  */
@@ -113,12 +117,12 @@ const CraftPotThatRemembers: React.FC = () => {
               <span style={{ fontStyle: 'italic', color: C.gold }}>Remembers</span>
             </h1>
             <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(16px,2vw,20px)', lineHeight: 1.5, color: C.taupe, margin: '24px 0 0', maxWidth: 440 }}>
-              A small unglazed teapot from a single town in China drinks in every tea it brews — until, years later, it can make tea from hot water alone.
+              A small unglazed teapot from a single town in China drinks in every tea it brews, until, years later, it can make tea from hot water alone.
             </p>
             <div style={{ marginTop: 'clamp(30px,5vw,46px)', paddingTop: 24, borderTop: '1px solid rgba(168,135,77,0.16)', fontFamily: F.cn, fontSize: 22, color: C.taupe }}>
               紫砂壺{' '}
               <span style={{ fontFamily: F.ui, fontSize: 10.5, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.dim }}>
-                — zǐshā hú, the purple-sand pot
+               zǐshā hú, the purple-sand pot
               </span>
             </div>
           </div>
@@ -127,7 +131,7 @@ const CraftPotThatRemembers: React.FC = () => {
           <div style={{ position: 'relative', order: 1, overflow: 'hidden', minHeight: '48vh', background: 'linear-gradient(155deg,#2a1d14 0%,#14100b 80%)' }}>
             <div aria-hidden="true" style={{ ...grainCss('0.8', 150), opacity: 0.08 }} />
             <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 50% at 50% 44%, rgba(176,106,60,0.2), transparent 64%)' }} />
-            {/* teapot SVG — xishi form */}
+            {/* teapot SVG, xishi form */}
             <svg viewBox="0 0 420 420" preserveAspectRatio="xMidYMid meet" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
               <g fill="none" stroke="rgba(176,120,72,0.5)" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round">
                 {/* body */}
@@ -146,7 +150,7 @@ const CraftPotThatRemembers: React.FC = () => {
               <g fill="none" stroke="rgba(168,135,77,0.2)" strokeWidth="1"><ellipse cx="232" cy="324" rx="70" ry="12" /></g>
             </svg>
             <div style={{ position: 'absolute', left: 'clamp(18px,3vw,28px)', bottom: 'clamp(18px,3vw,26px)', fontFamily: F.mono, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim }}>
-              A xishi pot — unglazed zisha
+              A xishi pot, unglazed zisha
             </div>
           </div>
         </header>
@@ -155,15 +159,15 @@ const CraftPotThatRemembers: React.FC = () => {
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(56px,9vw,116px) 24px clamp(28px,5vw,52px)' }}>
           <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: C.ink, margin: 0 }}>
             <span style={{ float: 'left', fontFamily: F.display, fontWeight: 600, fontSize: '5em', lineHeight: 0.78, color: C.gold, margin: '8px 16px -4px 0' }}>M</span>
-            ost teapots are inert — glazed, sealed, forgetful. The little pots of Yixing are the opposite. Thrown from a rare unglazed stoneware called{' '}
+            ost teapots are inert, glazed, sealed, forgetful. The little pots of Yixing are the opposite. Thrown from a rare unglazed stoneware called{' '}
             <span style={{ fontFamily: F.cn, color: C.taupe }}>紫砂</span>
             , zǐshā or "purple sand," they are faintly{' '}
             <em style={{ fontStyle: 'italic', color: C.cream }}>porous</em>
-            {' '}— riddled with microscopic pockets that, over years, drink in the oils and aromatics of the tea they hold. A Yixing pot does not just brew your tea. It remembers it.
+            , riddled with microscopic pockets that, over years, drink in the oils and aromatics of the tea they hold. A Yixing pot does not just brew your tea. It remembers it.
           </p>
         </section>
 
-        {/* ── I — PURPLE SAND ───────────────────────────────────────────── */}
+        {/* ── I: PURPLE SAND ───────────────────────────────────────────── */}
         <section style={{ maxWidth: 1100, margin: '0 auto', padding: 'clamp(20px,4vw,40px) clamp(20px,5vw,40px)' }}>
           <div style={{ maxWidth: 680, margin: '0 auto', marginBottom: 'clamp(28px,4vw,40px)' }}>
             {sectionDivider('I', 'Purple sand')}
@@ -174,13 +178,13 @@ const CraftPotThatRemembers: React.FC = () => {
                 The ore comes from one place on earth: the hills around Yixing, in Jiangsu, where it is mined in seams, weathered in the open air for seasons, then ground and aged for years before a maker will touch it. Fired without glaze, it sets to a stoneware that rings like a low bell and feels like warm skin.
               </p>
               <p style={{ ...pBody, margin: 0 }}>
-                Its colour depends on the seam. Three are classic — the deep brown-purple of{' '}
+                Its colour depends on the seam. Three are classic, the deep brown-purple of{' '}
                 <em style={{ fontStyle: 'italic', color: C.ink }}>zini</em>
                 , the orange-red of{' '}
                 <em style={{ fontStyle: 'italic', color: C.ink }}>zhuni</em>
                 , the pale buff of{' '}
                 <em style={{ fontStyle: 'italic', color: C.ink }}>duanni</em>
-                {' '}— and a maker reads each one like a painter reads pigment.
+                , and a maker reads each one like a painter reads pigment.
               </p>
             </div>
             <figure data-reveal style={{ margin: 0 }}>
@@ -200,7 +204,7 @@ const CraftPotThatRemembers: React.FC = () => {
                     <circle cx="230" cy="176" r="1.6" />
                   </g>
                 </svg>
-                <div style={plateLabel}>Plate I — the raw ore</div>
+                <div style={plateLabel}>Plate I, the raw ore</div>
               </div>
               <figcaption style={cap}>Zisha ore, weathered and aged for years before it is worked.</figcaption>
             </figure>
@@ -216,9 +220,9 @@ const CraftPotThatRemembers: React.FC = () => {
             <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim }}>Three clays</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,240px),1fr))', gap: 'clamp(18px,3vw,28px)' }}>
-            <ClayCard bg="#6e5040" name="Zini" cn="紫泥" desc="Deep brown-purple, the workhorse. Even, forgiving, the most common — a fine all-round pot for darker teas." />
+            <ClayCard bg="#6e5040" name="Zini" cn="紫泥" desc="Deep brown-purple, the workhorse. Even, forgiving, the most common, a fine all-round pot for darker teas." />
             <ClayCard bg="#a8553a" name="Zhuni" cn="朱泥" desc="Bright orange-red, rare and high-shrinkage. Rings clear and high; prized by gongfu brewers for fragrant oolongs." />
-            <ClayCard bg="#b89a64" name="Duanni" cn="段泥" desc="Pale sandy beige, often speckled. Cooler and gentler in the cup — a quiet choice for greens and lighter teas." />
+            <ClayCard bg="#b89a64" name="Duanni" cn="段泥" desc="Pale sandy beige, often speckled. Cooler and gentler in the cup, a quiet choice for greens and lighter teas." />
           </div>
         </section>
 
@@ -230,7 +234,7 @@ const CraftPotThatRemembers: React.FC = () => {
           <div aria-hidden="true" style={{ width: 40, height: 1, background: C.gold, opacity: 0.5, margin: '34px auto 0' }} />
         </section>
 
-        {/* ── II — SEASONING ────────────────────────────────────────────── */}
+        {/* ── II: SEASONING ────────────────────────────────────────────── */}
         <section style={{ maxWidth: 680, margin: '0 auto', padding: '0 24px' }}>
           <div data-reveal style={{ display: 'flex', alignItems: 'center', gap: 18, margin: 'clamp(20px,4vw,40px) 0 clamp(28px,4vw,40px)' }}>
             <span style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 30, color: C.gold, lineHeight: 1 }}>II</span>
@@ -241,11 +245,11 @@ const CraftPotThatRemembers: React.FC = () => {
             Because the clay drinks in flavour, you give a Yixing pot a single job. One pot for rock oolong; one for aged Pu'er; one for fragrant green. Mix teas in a single pot and you muddy them both. Keep faith with one, and something remarkable happens: the pot slowly seasons, its pores filling with the memory of that exact tea.
           </p>
           <p data-reveal style={{ ...pBody, margin: 0 }}>
-            Brewers speak, only half in jest, of pots so well seasoned that after decades you could pour in nothing but hot water and still draw out a ghost of tea. The pot has become an instrument tuned to one note — and it plays that note better every year.
+            Brewers speak, only half in jest, of pots so well seasoned that after decades you could pour in nothing but hot water and still draw out a ghost of tea. The pot has become an instrument tuned to one note, and it plays that note better every year.
           </p>
         </section>
 
-        {/* ── III — PATINA ──────────────────────────────────────────────── */}
+        {/* ── III: PATINA ──────────────────────────────────────────────── */}
         <section style={{ maxWidth: 1100, margin: '0 auto', padding: 'clamp(40px,6vw,72px) clamp(20px,5vw,40px) clamp(20px,4vw,40px)' }}>
           <div style={{ maxWidth: 680, margin: '0 auto', marginBottom: 'clamp(28px,4vw,40px)' }}>
             <div data-reveal style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
@@ -255,7 +259,7 @@ const CraftPotThatRemembers: React.FC = () => {
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,300px),1fr))', gap: 'clamp(24px,4vw,52px)', alignItems: 'center' }}>
-            {/* illustration — plate II */}
+            {/* illustration, plate II */}
             <figure data-reveal style={{ margin: 0, order: 2 }}>
               <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgba(168,135,77,0.2)', borderRadius: 3, overflow: 'hidden', background: 'radial-gradient(ellipse 64% 56% at 50% 44%, rgba(176,106,60,0.22), transparent 64%), linear-gradient(160deg,#241a12,#14100b)' }}>
                 <svg viewBox="0 0 320 400" preserveAspectRatio="xMidYMid meet" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
@@ -267,7 +271,7 @@ const CraftPotThatRemembers: React.FC = () => {
                   </g>
                   <g fill="rgba(255,225,180,0.18)"><ellipse cx="166" cy="206" rx="22" ry="34" /></g>
                 </svg>
-                <div style={{ ...plateLabel }}>Plate II — baojiang, the sheen</div>
+                <div style={{ ...plateLabel }}>Plate II, baojiang, the sheen</div>
               </div>
               <figcaption style={cap}>A pot polished by years of tea and handling to a soft, deep glow.</figcaption>
             </figure>
@@ -277,7 +281,7 @@ const CraftPotThatRemembers: React.FC = () => {
               <p style={pBody}>
                 A used pot earns a patina the Chinese call{' '}
                 <span style={{ fontFamily: F.cn, color: C.taupe }}>包浆</span>
-                , bāojiāng — a low, lacquer-like sheen raised not by polish but by tea and touch. After each session the pot is rinsed with hot water, never soap, and wiped with a soft cloth. Over years the surface deepens and warms, the way a wooden bannister does under a thousand hands.
+                , bāojiāng: a low, lacquer-like sheen raised not by polish but by tea and touch. After each session the pot is rinsed with hot water, never soap, and wiped with a soft cloth. Over years the surface deepens and warms, the way a wooden bannister does under a thousand hands.
               </p>
               <p style={{ ...pBody, margin: 0 }}>
                 This is why these pots are handed down. A grandmother's seasoned pot is not just an object; it is the compressed record of ten thousand cups, still faintly flavouring the next one. You do not inherit the pot. You inherit the tea inside its walls.
@@ -306,7 +310,7 @@ const CraftPotThatRemembers: React.FC = () => {
         {/* ── CLOSING ───────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(30px,5vw,56px) 24px clamp(40px,6vw,72px)' }}>
           <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(17px,2.1vw,20px)', lineHeight: 1.72, color: C.taupe, margin: 0 }}>
-            In a world of objects designed to forget — wiped clean, reset, replaced — the Yixing pot insists on the opposite. It keeps everything. It asks for one tea, a little ritual, and a great deal of time, and in return it gives you something almost no other vessel can: a memory you can drink. Choose your pot, and your tea, with care. You may be choosing for your grandchildren.
+            In a world of objects designed to forget, wiped clean, reset, replaced, the Yixing pot insists on the opposite. It keeps everything. It asks for one tea, a little ritual, and a great deal of time, and in return it gives you something almost no other vessel can: a memory you can drink. Choose your pot, and your tea, with care. You may be choosing for your grandchildren.
           </p>
           <div style={{ marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>
             The Craft of Tea by Teajia &nbsp;·&nbsp; N°14

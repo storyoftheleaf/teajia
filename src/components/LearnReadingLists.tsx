@@ -31,7 +31,7 @@ export const LearnReadingLists: React.FC = () => {
             onClick={() => setActiveListId(list.id)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-all ${
               activeListId === list.id
-                ? 'bg-tea-gold text-tea-bg'
+                ? 'cta-solid'
                 : 'bg-tea-text/5 text-tea-text/60 hover:bg-tea-text/10'
             }`}
           >

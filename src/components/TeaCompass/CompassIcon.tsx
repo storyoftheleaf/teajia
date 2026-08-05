@@ -22,7 +22,7 @@ export const CompassIcon: React.FC<CompassIconProps> = ({ className = '', filled
       {/* Inner circle */}
       <circle cx="12" cy="12" r="3" fill={filled ? 'currentColor' : 'none'} />
 
-      {/* Compass needle — north (filled diamond) */}
+      {/* Compass needle, north (filled diamond) */}
       <polygon
         points="12,2.5 13.2,9.2 12,10 10.8,9.2"
         fill="currentColor"
@@ -30,7 +30,7 @@ export const CompassIcon: React.FC<CompassIconProps> = ({ className = '', filled
         strokeWidth={0.5}
       />
 
-      {/* Compass needle — south (outline diamond) */}
+      {/* Compass needle, south (outline diamond) */}
       <polygon
         points="12,21.5 13.2,14.8 12,14 10.8,14.8"
         fill={filled ? 'currentColor' : 'none'}

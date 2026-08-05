@@ -6,7 +6,7 @@ import { BookOpen, X as XIcon } from 'lucide-react';
 import { api } from '../lib/api';
 import type { SavedCollectionRow } from '../types';
 
-// The logged-in user's shelf of collections — ones sent to them via a shared
+// The logged-in user's shelf of collections, ones sent to them via a shared
 // link ('received') or that they explicitly saved ('saved'). Cross-account:
 // these can come from any curator. Each card deep-links back to the /c/:slug
 // link they arrived through so they can re-open and order.

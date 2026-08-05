@@ -304,13 +304,13 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
   const onToggleVenueGuide = useCallback(() => toggleSection('venue-guide'), [toggleSection]);
   const onToggleSessionFlow = useCallback(() => toggleSection('session-flow'), [toggleSection]);
 
-  // BasicInfoSection — slug input also flips slugManual
+  // BasicInfoSection, slug input also flips slugManual
   const handleSlugChange = useCallback((value: string) => {
     setSlugManual(true);
     setForm(prev => ({ ...prev, slug: value }));
   }, []);
 
-  // LocationSection — location name / address inputs also clear selectedLocationId
+  // LocationSection: location name / address inputs also clear selectedLocationId
   const handleLocationNameChange = useCallback((value: string) => {
     setSelectedLocationId('');
     setForm(prev => ({ ...prev, locationName: value }));
@@ -478,7 +478,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
         <button
           type="submit"
           disabled={saving}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed tap-target"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed tap-target"
         >
           {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
           Update Event

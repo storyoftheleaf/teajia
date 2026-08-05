@@ -38,7 +38,7 @@ export function TastingEventsList() {
         <button
           type="button"
           onClick={() => navigate('/admin/tasting-events/new')}
-          className="tap-target rounded-full bg-tea-gold text-tea-bg px-4 py-2 text-ui-13 tracking-wide flex items-center gap-1.5"
+          className="tap-target rounded-full cta-solid px-4 py-2 text-ui-13 tracking-wide flex items-center gap-1.5"
         >
           <Plus className="w-3.5 h-3.5" aria-hidden="true" />
           New
@@ -58,7 +58,7 @@ export function TastingEventsList() {
             <button
               type="button"
               onClick={() => navigate('/admin/tasting-events/new')}
-              className="tap-target mt-6 rounded-full bg-tea-gold text-tea-bg px-5 py-2 text-ui-13 tracking-wide inline-flex items-center gap-1.5"
+              className="tap-target mt-6 rounded-full cta-solid px-5 py-2 text-ui-13 tracking-wide inline-flex items-center gap-1.5"
             >
               <Plus className="w-3.5 h-3.5" aria-hidden="true" />
               New tasting event

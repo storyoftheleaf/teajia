@@ -1,0 +1,39 @@
+{
+  "id": "long-jing-qunti-zhong",
+  "name": "Long Jing Qunti Zhong",
+  "chineseName": "龙井群体种",
+  "altNames": [
+    "Old Long Jing",
+    "Traditional Dragon Well"
+  ],
+  "originCountry": "China",
+  "originRegion": "Hangzhou (Zhejiang)",
+  "developedYear": 0,
+  "parentage": "The original, native heirloom population of the West Lake region.",
+  "description": "'Long Jing Population'. This is not a single clonal cultivar but the original, genetically diverse, seed-propagated heirloom population of Long Jing tea plants. Connoisseurs often prefer it to the modern #43 clone, believing it to have a deeper, more complex, and nuanced flavor profile, though its appearance is less uniform and it buds later.",
+  "plantType": "Variable, seed-propagated bushes with diverse growth habits (Camellia sinensis var. sinensis).",
+  "environment": "Grows in the core, traditional production areas around West Lake in Hangzhou. It is perfectly adapted to this specific terroir over centuries of growth.",
+  "processing": "The processing is identical to Long Jing #43 (pan-firing), but the skill of the tea master is even more crucial due to the variability in leaf size and moisture content from the genetically diverse bushes.",
+  "oxidation": "Zero oxidation. Like all Long Jing, it is a green tea where oxidation is halted immediately by pan-firing.",
+  "roasting": "No roasting. The complex toasted notes are a direct result of the skillful pan-firing process.",
+  "versatility": "Specialized for pan-fired green tea. It represents the historical and most complex expression of the Long Jing style.",
+  "distribution": {
+    "china": [
+      "Zhejiang Province (Hangou - core West Lake scenic area)"
+    ]
+  },
+  "expressions": {
+    "Green Tea": {
+      "West Lake Long Jing (Heirloom)": "The most traditional and complex expression of Long Jing. It is pan-fired in the same way as #43, but its genetic diversity yields a multi-layered flavor."
+    }
+  },
+  "sensory": {
+    "aroma": "Deeper and more complex than #43, with floral and fruity notes mixed in with the classic chestnut and soybean",
+    "flavor": "Multi-layered, nuanced, rich, with a longer and more complex aftertaste (huigan).",
+    "mouthfeel_liquor": "Often thicker and fuller-bodied than #43, with a very smooth and satisfying texture. The liquor is a rich yellow-green."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

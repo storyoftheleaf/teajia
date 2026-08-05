@@ -1,14 +1,18 @@
 /**
- * A Map of Mountains — The Geography of Tea, N°06
+ * @color-literals. The Read section is one always-dark editorial surface.
+ * Rationale, and the conditions on this exception, in read/immersive.tsx.
+ */
+/**
+ * A Map of Mountains: The Geography of Tea, N°06
  * An interactive terroir atlas of the great tea mountains of China.
  * Ported pixel-faithfully from the Claude Design mockup:
  *   docs/_design-import/tea-article-redesign/Atlas - A Map of Mountains.dc.html
  *
  * Bespoke interactive effects ported verbatim:
- *   1. Pin hover/click/focus → select() — region highlight, dot pulse, label colour
- *   2. Index row hover/click → select() — opacity dimming of non-active rows
- *   3. Parallax pointer-move on the map plate — 4-layer depth with lerped rAF loop
- *   4. tjPulse keyframe — injected locally (not in shared useImmersiveChrome set)
+ *   1. Pin hover/click/focus → select(), region highlight, dot pulse, label colour
+ *   2. Index row hover/click → select(), opacity dimming of non-active rows
+ *   3. Parallax pointer-move on the map plate, 4-layer depth with lerped rAF loop
+ *   4. tjPulse keyframe, injected locally (not in shared useImmersiveChrome set)
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
@@ -39,15 +43,15 @@ interface Region {
 }
 
 const REGIONS: Region[] = [
-  { id: 'yunnan',   coord: 'N22.0 · E100.8', name: 'Yunnan',       cn: '云南', area: 'Xishuangbanna & Lincang',  teas: 'Pu\'er, Dian Hong',           note: 'Ancient big-leaf trees, some a thousand years old, on misted southern mountains — the cradle of dark tea.',                                           elev: '1,200–2,000 m',  type: 'Pu\'er / dark',         color: '#8B8C89', pl: 13, pt: 70, ls: 'r' },
-  { id: 'mengding', coord: 'N30.1 · E103.3', name: 'Mengding Shan', cn: '蒙顶山', area: 'Sichuan',                 teas: 'Mengding Ganlu, Huangya',     note: 'China\'s oldest cultivated tea mountain — tribute tea to the emperor for more than a thousand years.',                                              elev: '1,000–1,400 m',  type: 'Green & yellow',        color: '#859F85', pl: 19, pt: 37, ls: 'r' },
-  { id: 'junshan',  coord: 'N29.4 · E113.0', name: 'Junshan',       cn: '君山',  area: 'Dongting Lake, Hunan',    teas: 'Junshan Yinzhen',             note: 'A single island in a vast lake, source of the rarest yellow tea — needles that stand upright and dance in the glass.',                             elev: '~90 m',           type: 'Yellow tea',            color: '#D4C586', pl: 42, pt: 60, ls: 'r' },
-  { id: 'huangshan',coord: 'N30.1 · E118.2', name: 'Huangshan',     cn: '黄山',  area: 'Anhui',                   teas: 'Keemun, Maofeng, Houkui',     note: 'Cloud-wreathed yellow mountains giving both a fine green and Keemun — the red the West built its breakfast on.',                                  elev: '700–1,300 m',    type: 'Red (Keemun)',          color: '#A67B70', pl: 57, pt: 42, ls: 'r' },
-  { id: 'westlake', coord: 'N30.2 · E120.1', name: 'West Lake',     cn: '西湖',  area: 'Hangzhou, Zhejiang',      teas: 'Longjing (Dragon Well)',      note: 'Pan-fired by hand against the hot wok until flat as a blade — the most famous green tea in China.',                                                 elev: '50–300 m',       type: 'Green tea',             color: '#859F85', pl: 73, pt: 33, ls: 'l' },
-  { id: 'fuding',   coord: 'N27.2 · E120.2', name: 'Fuding',        cn: '福鼎',  area: 'Fujian (coast)',          teas: 'Silver Needle, White Peony',  note: 'Barely made at all — sun-withered and dried. The soft, downy home of white tea, beside the sea.',                                                  elev: '500–800 m',      type: 'White tea',             color: '#D6D3CD', pl: 79, pt: 51, ls: 'l' },
+  { id: 'yunnan',   coord: 'N22.0 · E100.8', name: 'Yunnan',       cn: '云南', area: 'Xishuangbanna & Lincang',  teas: 'Pu\'er, Dian Hong',           note: 'Ancient big-leaf trees, some a thousand years old, on misted southern mountains, the cradle of dark tea.',                                           elev: '1,200–2,000 m',  type: 'Pu\'er / dark',         color: '#8B8C89', pl: 13, pt: 70, ls: 'r' },
+  { id: 'mengding', coord: 'N30.1 · E103.3', name: 'Mengding Shan', cn: '蒙顶山', area: 'Sichuan',                 teas: 'Mengding Ganlu, Huangya',     note: 'China\'s oldest cultivated tea mountain, tribute tea to the emperor for more than a thousand years.',                                              elev: '1,000–1,400 m',  type: 'Green & yellow',        color: '#859F85', pl: 19, pt: 37, ls: 'r' },
+  { id: 'junshan',  coord: 'N29.4 · E113.0', name: 'Junshan',       cn: '君山',  area: 'Dongting Lake, Hunan',    teas: 'Junshan Yinzhen',             note: 'A single island in a vast lake, source of the rarest yellow tea, needles that stand upright and dance in the glass.',                             elev: '~90 m',           type: 'Yellow tea',            color: '#D4C586', pl: 42, pt: 60, ls: 'r' },
+  { id: 'huangshan',coord: 'N30.1 · E118.2', name: 'Huangshan',     cn: '黄山',  area: 'Anhui',                   teas: 'Keemun, Maofeng, Houkui',     note: 'Cloud-wreathed yellow mountains giving both a fine green and Keemun, the red the West built its breakfast on.',                                  elev: '700–1,300 m',    type: 'Red (Keemun)',          color: '#A67B70', pl: 57, pt: 42, ls: 'r' },
+  { id: 'westlake', coord: 'N30.2 · E120.1', name: 'West Lake',     cn: '西湖',  area: 'Hangzhou, Zhejiang',      teas: 'Longjing (Dragon Well)',      note: 'Pan-fired by hand against the hot wok until flat as a blade, the most famous green tea in China.',                                                 elev: '50–300 m',       type: 'Green tea',             color: '#859F85', pl: 73, pt: 33, ls: 'l' },
+  { id: 'fuding',   coord: 'N27.2 · E120.2', name: 'Fuding',        cn: '福鼎',  area: 'Fujian (coast)',          teas: 'Silver Needle, White Peony',  note: 'Barely made at all, sun-withered and dried. The soft, downy home of white tea, beside the sea.',                                                  elev: '500–800 m',      type: 'White tea',             color: '#D6D3CD', pl: 79, pt: 51, ls: 'l' },
   { id: 'wuyi',     coord: 'N27.7 · E118.0', name: 'Wuyishan',      cn: '武夷山', area: 'Fujian · the cliffs',    teas: 'Da Hong Pao, Rou Gui',        note: 'Bushes rooted in cracked red cliff give yancha its mineral "rock rhyme." This is also where the world\'s first black tea was made.',              elev: '200–600 m',      type: 'Rock oolong',           color: '#C4A484', pl: 62, pt: 60, ls: 'l' },
-  { id: 'anxi',     coord: 'N25.1 · E117.7', name: 'Anxi',          cn: '安溪',  area: 'Fujian (south)',          teas: 'Tieguanyin',                  note: 'Home of the "Iron Goddess" — oolong rolled into tight jade pellets that open to orchid and cream.',                                                  elev: '300–1,000 m',    type: 'Floral oolong',         color: '#C4A484', pl: 67, pt: 75, ls: 'l' },
-  { id: 'alishan',  coord: 'N23.5 · E120.8', name: 'Alishan',       cn: '阿里山', area: 'Taiwan',                  teas: 'High-mountain oolong',        note: 'Grown in the cold and cloud above a thousand metres — buttery, floral, the prize of high-mountain tea.',                                            elev: '1,000–1,700 m',  type: 'High-mountain oolong',  color: '#C4A484', pl: 90, pt: 73, ls: 'l' },
+  { id: 'anxi',     coord: 'N25.1 · E117.7', name: 'Anxi',          cn: '安溪',  area: 'Fujian (south)',          teas: 'Tieguanyin',                  note: 'Home of the "Iron Goddess", oolong rolled into tight jade pellets that open to orchid and cream.',                                                  elev: '300–1,000 m',    type: 'Floral oolong',         color: '#C4A484', pl: 67, pt: 75, ls: 'l' },
+  { id: 'alishan',  coord: 'N23.5 · E120.8', name: 'Alishan',       cn: '阿里山', area: 'Taiwan',                  teas: 'High-mountain oolong',        note: 'Grown in the cold and cloud above a thousand metres, buttery, floral, the prize of high-mountain tea.',                                            elev: '1,000–1,700 m',  type: 'High-mountain oolong',  color: '#C4A484', pl: 90, pt: 73, ls: 'l' },
 ];
 
 // ─── hexA helper (verbatim from source) ──────────────────────────────────────
@@ -103,14 +107,14 @@ const AtlasMapOfMountains: React.FC = () => {
   const rootRef = useReveals([]);
   const progress = useReadingProgress();
 
-  // Active region state — drives pin highlight + panel + index dimming
+  // Active region state, drives pin highlight + panel + index dimming
   const [activeId, setActiveId] = useState<string>('wuyi');
   const activeRegion = REGIONS.find(r => r.id === activeId) ?? REGIONS[6]; // wuyi default
 
   // Whether the hint has been dismissed (first selection hides it)
   const [hintVisible, setHintVisible] = useState(true);
 
-  // select() — mirrors source exactly: sets active id, hides hint
+  // select(), mirrors source exactly: sets active id, hides hint
   const select = useCallback((id: string) => {
     setActiveId(id);
     setHintVisible(false);
@@ -137,7 +141,7 @@ const AtlasMapOfMountains: React.FC = () => {
       { el: gridRef.current,    f: 5  },
     ];
 
-    // lerp state — verbatim variable names and constants
+    // lerp state, verbatim variable names and constants
     let tx = 0, ty = 0, cx = 0, cy = 0;
     let raf: number | null = null;
 
@@ -211,7 +215,7 @@ const AtlasMapOfMountains: React.FC = () => {
             </h1>
             <div aria-hidden="true" style={{ width: 54, height: 1, background: C.gold, opacity: 0.6, margin: '30px auto' }} />
             <p style={{ fontFamily: F.body, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(16px,2.3vw,21px)', lineHeight: 1.5, color: '#cdc0a8', margin: '0 auto', maxWidth: 560 }}>
-              Half of what a tea is, it owes to a place. An atlas of the mountains that make the great teas of China — trace a peak to taste it.
+              Half of what a tea is, it owes to a place. An atlas of the mountains that make the great teas of China, trace a peak to taste it.
             </p>
           </div>
         </header>
@@ -220,7 +224,7 @@ const AtlasMapOfMountains: React.FC = () => {
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(36px,6vw,72px) 24px clamp(28px,5vw,52px)' }}>
           <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: '#ede4d4', margin: 0 }}>
             <span style={{ float: 'left', fontFamily: F.display, fontWeight: 600, fontSize: '5em', lineHeight: 0.78, color: C.gold, margin: '8px 16px -4px 0' }}>T</span>
-            he French call it <em style={{ fontStyle: 'italic', color: '#f3ead9' }}>terroir</em>; the Chinese have known it far longer. Altitude, mist, the mineral in the rock, the angle of the morning sun — a tea drinks all of it in before a single leaf is plucked. Move a famous bush a hundred miles and it makes a stranger. Here are the places that cannot be moved.
+            he French call it <em style={{ fontStyle: 'italic', color: '#f3ead9' }}>terroir</em>; the Chinese have known it far longer. Altitude, mist, the mineral in the rock, the angle of the morning sun, a tea drinks all of it in before a single leaf is plucked. Move a famous bush a hundred miles and it makes a stranger. Here are the places that cannot be moved.
           </p>
         </section>
 
@@ -234,11 +238,11 @@ const AtlasMapOfMountains: React.FC = () => {
               style={{ position: 'relative', flex: '1 1 460px', minWidth: 300, aspectRatio: '3/2', border: '1px solid rgba(168,135,77,0.22)', borderRadius: 4, overflow: 'hidden', background: 'linear-gradient(155deg,#1b1812 0%,#14100b 76%)', cursor: 'crosshair' }}
             >
               <svg viewBox="0 0 1000 680" preserveAspectRatio="xMidYMid slice" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-                {/* parallax layer 0 — deepest, factor 26 */}
+                {/* parallax layer 0, deepest, factor 26 */}
                 <g ref={mapcharRef}>
                   <text x="500" y="430" textAnchor="middle" fontFamily="'Noto Serif SC',serif" fontWeight="200" fontSize="440" fill="rgba(168,135,77,0.045)">茶</text>
                 </g>
-                {/* parallax layer 3 — shallowest, factor 5 */}
+                {/* parallax layer 3, shallowest, factor 5 */}
                 <g ref={gridRef} stroke="rgba(168,135,77,0.07)" strokeWidth="1">
                   <line x1="200" y1="-40" x2="200" y2="720"/>
                   <line x1="400" y1="-40" x2="400" y2="720"/>
@@ -248,7 +252,7 @@ const AtlasMapOfMountains: React.FC = () => {
                   <line x1="-40" y1="340" x2="1040" y2="340"/>
                   <line x1="-40" y1="510" x2="1040" y2="510"/>
                 </g>
-                {/* parallax layer 2 — factor 11 */}
+                {/* parallax layer 2, factor 11 */}
                 <g ref={topoRef} fill="none" stroke="rgba(168,135,77,0.16)" strokeWidth="1.2" strokeLinecap="round">
                   <path d="M-60 250 C 220 200, 470 214, 760 178 C 880 164, 980 158, 1060 150"/>
                   <path d="M-60 300 C 200 250, 480 266, 770 228 C 900 212, 1000 206, 1060 198"/>
@@ -258,7 +262,7 @@ const AtlasMapOfMountains: React.FC = () => {
                   <path d="M-60 566 C 240 510, 540 530, 820 490 C 950 472, 1020 468, 1060 464"/>
                   <path d="M-60 628 C 240 576, 540 596, 830 556 C 960 540, 1020 536, 1060 532" stroke="rgba(168,135,77,0.1)"/>
                 </g>
-                {/* parallax layer 1 — factor 18 */}
+                {/* parallax layer 1, factor 18 */}
                 <g ref={topo2Ref} fill="none" stroke="rgba(150,180,180,0.1)" strokeWidth="1">
                   <path d="M560 360 C 600 330, 700 332, 760 372 C 720 408, 600 408, 560 360 Z"/>
                   <path d="M580 366 C 612 344, 690 346, 736 376 C 704 402, 612 402, 580 366 Z"/>
@@ -285,12 +289,12 @@ const AtlasMapOfMountains: React.FC = () => {
                   <span style={{ width: 34, height: 4, background: 'rgba(168,135,77,0.5)' }} />
                   <span style={{ width: 34, height: 4, background: 'rgba(168,135,77,0.16)' }} />
                 </div>
-                <span style={{ fontFamily: F.mono, fontSize: 8.5, letterSpacing: '0.12em', color: C.dim }}>0 — 500 km</span>
+                <span style={{ fontFamily: F.mono, fontSize: 8.5, letterSpacing: '0.12em', color: C.dim }}>0, 500 km</span>
               </div>
 
               {/* title cartouche */}
               <div aria-hidden="true" style={{ position: 'absolute', left: 'clamp(12px,2.4vw,22px)', top: 'clamp(12px,2.4vw,18px)', fontFamily: F.mono, fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim }}>
-                Tea mountains of China — a schematic
+                Tea mountains of China, a schematic
               </div>
 
               {/* ── PINS ─────────────────────────────────────────────────── */}
@@ -319,7 +323,7 @@ const AtlasMapOfMountains: React.FC = () => {
                         gap: 9,
                       }}
                     >
-                      {/* dot — mirrors source: scale, background, boxShadow, animation on active */}
+                      {/* dot, mirrors source: scale, background, boxShadow, animation on active */}
                       <span style={{ position: 'relative', width: 13, height: 13, flex: 'none', display: 'block' }}>
                         <span style={{
                           position: 'absolute',
@@ -354,7 +358,7 @@ const AtlasMapOfMountains: React.FC = () => {
                 })}
               </div>
 
-              {/* hover hint — fades out after first selection */}
+              {/* hover hint, fades out after first selection */}
               <div style={{
                 position: 'absolute',
                 left: '50%',
@@ -426,7 +430,7 @@ const AtlasMapOfMountains: React.FC = () => {
         {/* ── PULL QUOTE ─────────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 900, margin: '0 auto', padding: 'clamp(50px,8vw,104px) 24px', textAlign: 'center' }}>
           <blockquote style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(28px,4.8vw,54px)', lineHeight: 1.18, color: '#f3ead9', margin: '0 auto', maxWidth: 860 }}>
-            "A tea carries its mountain the way a wine carries its hill — you are not drinking a leaf, but a place."
+            "A tea carries its mountain the way a wine carries its hill, you are not drinking a leaf, but a place."
           </blockquote>
           <div aria-hidden="true" style={{ width: 40, height: 1, background: C.gold, opacity: 0.5, margin: '34px auto 0' }} />
         </section>
@@ -444,7 +448,7 @@ const AtlasMapOfMountains: React.FC = () => {
                 Height buys a tea its slowness. Up in the cold and cloud, the leaf grows lazily, packing sugars and aromatics into a small, dense bud instead of racing to size. The mist that pools in mountain valleys filters the sun, sparing the leaf its harsher, more bitter compounds.
               </p>
               <p style={{ fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.8, color: '#cdc0a8', margin: 0 }}>
-                And the rock itself speaks. Iron, quartz, weathered stone — the root takes up the mountain's minerals and hands them, transformed, to your cup. This is why two gardens an hour apart can taste like different countries.
+                And the rock itself speaks. Iron, quartz, weathered stone, the root takes up the mountain's minerals and hands them, transformed, to your cup. This is why two gardens an hour apart can taste like different countries.
               </p>
             </div>
             <figure data-reveal style={{ margin: 0, border: '1px solid rgba(168,135,77,0.18)', borderRadius: 4, background: 'linear-gradient(160deg,#1d1810,#15110b)', padding: 'clamp(22px,3vw,32px)' }}>
@@ -478,7 +482,7 @@ const AtlasMapOfMountains: React.FC = () => {
         {/* ── CLOSING ────────────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(20px,4vw,40px) 24px clamp(40px,6vw,72px)' }}>
           <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(17px,2.1vw,20px)', lineHeight: 1.72, color: '#cdc0a8', margin: 0 }}>
-            A map of tea is really a map of patience — of places remote and high enough that the modern hurry never quite arrived. Drink carefully, and the mountain comes with the cup: the cold, the cloud, the stone. Geography you can taste.
+            A map of tea is really a map of patience, of places remote and high enough that the modern hurry never quite arrived. Drink carefully, and the mountain comes with the cup: the cold, the cloud, the stone. Geography you can taste.
           </p>
           <div style={{ marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>
             Words by Teajia &nbsp;·&nbsp; The Geography of Tea &nbsp;·&nbsp; N°06

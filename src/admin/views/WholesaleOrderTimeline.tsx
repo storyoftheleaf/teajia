@@ -10,7 +10,7 @@ import type {
   WholesaleTransitionBody,
 } from '../../types';
 
-// ── WholesaleOrderTimeline — Surface 9 per docs/NETWORK_UI_BRIEF.md ──────────
+// ── WholesaleOrderTimeline: Surface 9 per docs/NETWORK_UI_BRIEF.md ──────────
 //
 // /admin/network/wholesale/:orderId/timeline
 // Both buyer and supplier see this same page (role-adaptive action affordances).
@@ -70,7 +70,7 @@ function trackingUrl(carrier: string | null, trackingNumber: string): string | n
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Status sentences — diary-entry register
+// Status sentences, diary-entry register
 // ─────────────────────────────────────────────────────────────────────────────
 
 function currentStateSentence(
@@ -193,7 +193,7 @@ const Divider: React.FC<{ className?: string }> = ({ className = 'my-6' }) => (
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Action area — supplier on submitted state
+// Action area, supplier on submitted state
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface SupplierConfirmAreaProps {
@@ -374,7 +374,7 @@ const SupplierConfirmArea: React.FC<SupplierConfirmAreaProps> = ({ orderId, onTr
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Action area — supplier on confirmed state (update tracking + ship)
+// Action area, supplier on confirmed state (update tracking + ship)
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface SupplierShipAreaProps {
@@ -464,7 +464,7 @@ const SupplierShipArea: React.FC<SupplierShipAreaProps> = ({ orderId, onTransiti
 
       {!confirmOpen ? (
         <div className="mt-5">
-          {/* Inline validation hint when fields are empty — surfaces the requirement
+          {/* Inline validation hint when fields are empty, surfaces the requirement
               before the user clicks Confirm and gets a generic 400 from the worker. */}
           {(!carrier.trim() || !trackingNumber.trim()) && (
             <p className="text-tea-text-sec italic text-ui-13 leading-[1.6] mb-3">
@@ -517,7 +517,7 @@ const SupplierShipArea: React.FC<SupplierShipAreaProps> = ({ orderId, onTransiti
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Action area — buyer on shipped state (mark as received)
+// Action area, buyer on shipped state (mark as received)
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface BuyerReceiveAreaProps {
@@ -592,7 +592,7 @@ const BuyerReceiveArea: React.FC<BuyerReceiveAreaProps> = ({ orderId, onTransiti
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Action area — buyer on submitted >7 days (nudge or cancel)
+// Action area, buyer on submitted >7 days (nudge or cancel)
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface BuyerStuckAreaProps {
@@ -721,7 +721,7 @@ const BuyerStuckArea: React.FC<BuyerStuckAreaProps> = ({ orderId, supplierName, 
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Cancel text-link — available in pre-ship states for both parties
+// Cancel text-link, available in pre-ship states for both parties
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface CancelLinkProps {
@@ -1071,7 +1071,7 @@ export const WholesaleOrderTimeline: React.FC = () => {
         ← Wholesale
       </button>
 
-      {/* Header — status as heading */}
+      {/* Header, status as heading */}
       <header className="mb-8">
         <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text mb-2`}>
           WHOLESALE ORDER · {statusWord(status)}
@@ -1093,7 +1093,7 @@ export const WholesaleOrderTimeline: React.FC = () => {
         </div>
       </header>
 
-      {/* Current state block — most prominent thing after the header */}
+      {/* Current state block, most prominent thing after the header */}
       <p className="font-body text-ui-17 text-tea-text leading-[1.7] mb-2">
         {currentStateSentence(status, role, order, supplier, buyer)}
       </p>
@@ -1109,7 +1109,7 @@ export const WholesaleOrderTimeline: React.FC = () => {
         </button>
       )}
 
-      {/* Replied — buyer link to draft view */}
+      {/* Replied, buyer link to draft view */}
       {status === 'replied' && role === 'buyer' && (
         <button
           type="button"
@@ -1137,7 +1137,7 @@ export const WholesaleOrderTimeline: React.FC = () => {
         <BuyerStuckArea orderId={orderId!} supplierName={supplier.name} onTransitioned={load} />
       )}
 
-      {/* Cancel text-link — pre-ship states, not when stuck area already shows */}
+      {/* Cancel text-link: pre-ship states, not when stuck area already shows */}
       {isCancellable && status !== 'cancelled' && !isStuck && !(status === 'submitted' && role === 'supplier') && (
         <div className="mt-6">
           <CancelLink orderId={orderId!} onTransitioned={load} />
@@ -1205,7 +1205,7 @@ export const WholesaleOrderTimeline: React.FC = () => {
         </>
       )}
 
-      {/* Invoice references — only after received */}
+      {/* Invoice references, only after received */}
       {status === 'received' && (order.invoice_id_supplier || order.invoice_id_buyer) && (
         <>
           <Divider />
@@ -1216,7 +1216,7 @@ export const WholesaleOrderTimeline: React.FC = () => {
                 <span className="text-tea-text-sec text-ui-13">{supplier.name}'s outgoing invoice</span>
                 <div className="flex items-baseline gap-4">
                   <span className="font-mono text-ui-12 text-tea-text-sec">{order.invoice_id_supplier}</span>
-                  {/* No /admin/invoices/:id route yet — land in the orders list with the
+                  {/* No /admin/invoices/:id route yet, land in the orders list with the
                       invoice id as the search query so the user can find it. */}
                   <button
                     type="button"

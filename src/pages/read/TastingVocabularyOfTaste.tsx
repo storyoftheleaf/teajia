@@ -1,17 +1,21 @@
 /**
- * The Vocabulary of Taste — The Language of Tea, N°08
+ * @color-literals. The Read section is one always-dark editorial surface.
+ * Rationale, and the conditions on this exception, in read/immersive.tsx.
+ */
+/**
+ * The Vocabulary of Taste: The Language of Tea, N°08
  * A radial flavour-wheel + switchable radar chart explorer.
  * Ported pixel-faithfully from the Claude Design mockup.
  *
  * Bespoke effects beyond the shared hooks:
- *   1. FLAVOR WHEEL — SVG built in JSX from the same families[] data + arc math
+ *   1. FLAVOR WHEEL: SVG built in JSX from the same families[] data + arc math
  *      (sector(), hexA(), 8 segments, gap=0.022, rIn=92, rOut=200, rMid=150)
  *      Wedge selection translates the active segment out along its radial axis.
- *   2. RADAR GRID — static 6-axis hexagonal grid (cx=180,cy=180,R=128)
+ *   2. RADAR GRID, static 6-axis hexagonal grid (cx=180,cy=180,R=128)
  *      rendered once in JSX with 4 concentric rings + spokes + axis labels.
- *   3. RADAR POLYGON — re-drawn on tea-switch via useState + eased animation
+ *   3. RADAR POLYGON, re-drawn on tea-switch via useState + eased animation
  *      (cubic ease-out, 600ms, requestAnimationFrame). Same radarPoints() math.
- *   4. TEA SWITCHER — three buttons; clicking calls selectTea() → animateRadar().
+ *   4. TEA SWITCHER, three buttons; clicking calls selectTea() → animateRadar().
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
@@ -41,19 +45,19 @@ interface TeaProfile {
 
 const FAMILIES: Family[] = [
   { id: 'floral', en: 'Floral', cn: '花', color: '#c8a6b0', desc: 'High, perfumed top-notes that lift off the cup before you sip.', teas: 'Tieguanyin, Dan Cong, jasmine green', notes: ['Orchid', 'Jasmine', 'Osmanthus', 'Rose', 'Lilac'] },
-  { id: 'fruity', en: 'Fruity', cn: '果', color: '#c98f63', desc: 'Sweet, juicy, sometimes jammy — from fresh stone fruit to dried longan.', teas: 'Red teas, ripe oolong, aged white', notes: ['Apricot', 'Peach', 'Lychee', 'Citrus', 'Dried longan'] },
-  { id: 'sweet', en: 'Sweet', cn: '甜', color: '#d8b25c', desc: 'The honeyed, sugary register — and the returning sweetness that climbs back up the throat.', teas: 'Honey black, aged white, Dian Hong', notes: ['Honey', 'Caramel', 'Brown sugar', 'Malt', 'Vanilla'] },
-  { id: 'roasted', en: 'Roasted', cn: '焙', color: '#a9743f', desc: "Fire’s signature — the toasty, nutty, sometimes smoky notes a charcoal roast leaves behind.", teas: 'Wuyi yancha, roasted oolong, Lapsang', notes: ['Toasted rice', 'Hazelnut', 'Cocoa', 'Charcoal', 'Coffee'] },
-  { id: 'woody', en: 'Woody', cn: '木', color: '#8a6a45', desc: 'Deep, dry, resinous — the taste of age, bark and old timber.', teas: "Aged Pu'er, dark tea, old white", notes: ['Aged wood', 'Camphor', 'Cedar', 'Bark', 'Tobacco'] },
-  { id: 'mineral', en: 'Mineral', cn: '石', color: '#8f9aa0', desc: 'Stone, salt and rain on rock — the elusive yán yùn, or "rock rhyme."', teas: 'Wuyi rock oolong, high-mountain tea', notes: ['Wet stone', 'Flint', 'Slate', 'Rock', 'Saline'] },
-  { id: 'vegetal', en: 'Vegetal', cn: '青', color: '#8a9f6e', desc: 'Green and growing — the fresh, leafy register of an unoxidised tea.', teas: 'Longjing, Maofeng, sencha-style greens', notes: ['Fresh grass', 'Snow pea', 'Spinach', 'Bamboo', 'Artichoke'] },
-  { id: 'marine', en: 'Marine', cn: '海', color: '#6f9488', desc: 'Savoury and sea-touched — broth, kelp and a clean umami depth.', teas: 'Shaded greens, gyokuro-style, fresh white', notes: ['Seaweed', 'Nori', 'Broth', 'Chestnut', 'Umami'] },
+  { id: 'fruity', en: 'Fruity', cn: '果', color: '#c98f63', desc: 'Sweet, juicy, sometimes jammy, from fresh stone fruit to dried longan.', teas: 'Red teas, ripe oolong, aged white', notes: ['Apricot', 'Peach', 'Lychee', 'Citrus', 'Dried longan'] },
+  { id: 'sweet', en: 'Sweet', cn: '甜', color: '#d8b25c', desc: 'The honeyed, sugary register, and the returning sweetness that climbs back up the throat.', teas: 'Honey black, aged white, Dian Hong', notes: ['Honey', 'Caramel', 'Brown sugar', 'Malt', 'Vanilla'] },
+  { id: 'roasted', en: 'Roasted', cn: '焙', color: '#a9743f', desc: "Fire’s signature, the toasty, nutty, sometimes smoky notes a charcoal roast leaves behind.", teas: 'Wuyi yancha, roasted oolong, Lapsang', notes: ['Toasted rice', 'Hazelnut', 'Cocoa', 'Charcoal', 'Coffee'] },
+  { id: 'woody', en: 'Woody', cn: '木', color: '#8a6a45', desc: 'Deep, dry, resinous, the taste of age, bark and old timber.', teas: "Aged Pu'er, dark tea, old white", notes: ['Aged wood', 'Camphor', 'Cedar', 'Bark', 'Tobacco'] },
+  { id: 'mineral', en: 'Mineral', cn: '石', color: '#8f9aa0', desc: 'Stone, salt and rain on rock, the elusive yán yùn, or "rock rhyme."', teas: 'Wuyi rock oolong, high-mountain tea', notes: ['Wet stone', 'Flint', 'Slate', 'Rock', 'Saline'] },
+  { id: 'vegetal', en: 'Vegetal', cn: '青', color: '#8a9f6e', desc: 'Green and growing, the fresh, leafy register of an unoxidised tea.', teas: 'Longjing, Maofeng, sencha-style greens', notes: ['Fresh grass', 'Snow pea', 'Spinach', 'Bamboo', 'Artichoke'] },
+  { id: 'marine', en: 'Marine', cn: '海', color: '#6f9488', desc: 'Savoury and sea-touched, broth, kelp and a clean umami depth.', teas: 'Shaded greens, gyokuro-style, fresh white', notes: ['Seaweed', 'Nori', 'Broth', 'Chestnut', 'Umami'] },
 ];
 
 const TEA_PROFILES: Record<string, TeaProfile> = {
   rougui: { name: 'Rou Gui', cn: '肉桂', desc: 'A Wuyi rock oolong: roast and cinnamon up front, orchid behind, and that long mineral "rock rhyme" that defines the cliffs.', vals: [0.5, 0.45, 0.55, 0.82, 0.55, 0.95] },
-  silver: { name: 'Silver Needle', cn: '白毫银', desc: 'A Fuding white of pure buds — soft, downy, gently floral and honey-sweet, with almost no fire at all.', vals: [0.82, 0.55, 0.72, 0.08, 0.15, 0.32] },
-  puer:   { name: "Aged Pu'er", cn: '老普洱', desc: 'A dark tea rested for years — deep wood and camphor, a round earthy sweetness, the forest after rain.', vals: [0.2, 0.42, 0.66, 0.4, 0.92, 0.6] },
+  silver: { name: 'Silver Needle', cn: '白毫银', desc: 'A Fuding white of pure buds, soft, downy, gently floral and honey-sweet, with almost no fire at all.', vals: [0.82, 0.55, 0.72, 0.08, 0.15, 0.32] },
+  puer:   { name: "Aged Pu'er", cn: '老普洱', desc: 'A dark tea rested for years, deep wood and camphor, a round earthy sweetness, the forest after rain.', vals: [0.2, 0.42, 0.66, 0.4, 0.92, 0.6] },
 };
 
 const RADAR_AXES = ['Floral', 'Fruity', 'Sweet', 'Roasted', 'Woody', 'Mineral'];
@@ -71,7 +75,7 @@ function hexA(hex: string, a: number): string {
 
 /**
  * Build an SVG arc path for one wheel segment (annular sector).
- * Exact port of the controller's sector() — same arg order, same toFixed(2).
+ * Exact port of the controller's sector(), same arg order, same toFixed(2).
  */
 function sector(cx: number, cy: number, rIn: number, rOut: number, a0: number, a1: number): string {
   const p = (r: number, a: number): [number, number] => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
@@ -83,7 +87,7 @@ function sector(cx: number, cy: number, rIn: number, rOut: number, a0: number, a
 
 /**
  * Compute the 6 polygon vertices for a radar chart from normalised values.
- * Exact port of the controller's radarPoints() — cx=180, cy=180, R=128.
+ * Exact port of the controller's radarPoints(), cx=180, cy=180, R=128.
  */
 function radarPoints(vals: number[]): [number, number][] {
   const cx = 180, cy = 180, R = 128;
@@ -327,7 +331,7 @@ const TastingVocabularyOfTaste: React.FC = () => {
     setHintVisible(false);
   }, []);
 
-  // Radar state — `activeTea` drives the polygon animation
+  // Radar state, `activeTea` drives the polygon animation
   const [activeTea, setActiveTea] = useState<string>('rougui');
   const activeProfile = TEA_PROFILES[activeTea];
   const activeFamData = FAMILIES.find((f) => f.id === activeFam)!;
@@ -380,7 +384,7 @@ const TastingVocabularyOfTaste: React.FC = () => {
             </h1>
             <div aria-hidden="true" style={{ width: 54, height: 1, background: C.gold, opacity: 0.6, margin: '30px auto' }} />
             <p style={{ fontFamily: F.body, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(16px,2.3vw,21px)', lineHeight: 1.5, color: C.taupe, margin: '0 auto', maxWidth: 560 }}>
-              Tea says far more than "tea." A turning wheel of the words tasters reach for — from orchid to wet stone — and how a single cup maps across them.
+              Tea says far more than "tea." A turning wheel of the words tasters reach for, from orchid to wet stone, and how a single cup maps across them.
             </p>
           </div>
         </header>
@@ -389,7 +393,7 @@ const TastingVocabularyOfTaste: React.FC = () => {
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(32px,5vw,60px) 24px clamp(28px,5vw,48px)' }}>
           <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: C.ink, margin: 0 }}>
             <span style={{ float: 'left', fontFamily: F.display, fontWeight: 600, fontSize: '5em', lineHeight: 0.78, color: C.gold, margin: '8px 16px -4px 0' }}>T</span>
-            he hardest part of tea is not tasting it — it is finding the words. The mouth knows long before the mind can name it. A flavour wheel is a borrowed vocabulary: a way to turn a wordless impression into "orchid," "wet stone," "toasted rice." Turn the wheel below, and let the cup teach you its language.
+            he hardest part of tea is not tasting it, it is finding the words. The mouth knows long before the mind can name it. A flavour wheel is a borrowed vocabulary: a way to turn a wordless impression into "orchid," "wet stone," "toasted rice." Turn the wheel below, and let the cup teach you its language.
           </p>
         </section>
 
@@ -436,7 +440,7 @@ const TastingVocabularyOfTaste: React.FC = () => {
         {/* ── PULL QUOTE ────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 900, margin: '0 auto', padding: 'clamp(50px,8vw,104px) 24px', textAlign: 'center' }}>
           <blockquote style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(28px,4.8vw,54px)', lineHeight: 1.18, color: C.cream, margin: '0 auto', maxWidth: 860 }}>
-            "To name a flavour is to notice it twice — once on the tongue, and once in the mind."
+            "To name a flavour is to notice it twice, once on the tongue, and once in the mind."
           </blockquote>
           <div aria-hidden="true" style={{ width: 40, height: 1, background: C.gold, opacity: 0.5, margin: '34px auto 0' }} />
         </section>
@@ -505,7 +509,7 @@ const TastingVocabularyOfTaste: React.FC = () => {
         {/* ── CLOSING ───────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(20px,4vw,40px) 24px clamp(40px,6vw,72px)' }}>
           <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(17px,2.1vw,20px)', lineHeight: 1.72, color: C.taupe, margin: 0 }}>
-            No two drinkers taste quite the same cup, and no wheel can hold every word. But a shared vocabulary lets us point at the same fleeting thing and say, "there — that." The wheel is only a beginning. The fluency is yours to drink into being.
+            No two drinkers taste quite the same cup, and no wheel can hold every word. But a shared vocabulary lets us point at the same fleeting thing and say, "there, that." The wheel is only a beginning. The fluency is yours to drink into being.
           </p>
           <div style={{ marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>
             Words by Teajia &nbsp;·&nbsp; The Language of Tea &nbsp;·&nbsp; N°08

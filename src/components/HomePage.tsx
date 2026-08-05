@@ -6,7 +6,7 @@ import { LogoEmblem } from './Logos/LogoEmblem';
 import { LogoText } from './Logos/LogoText';
 import { api } from '../lib/api';
 
-// Track across mounts — animation plays once per session
+// Track across mounts, animation plays once per session
 let hasAnimated = false;
 
 const HERO_SPACER_HEIGHT = '100dvh';
@@ -23,7 +23,7 @@ interface HomePageProps {
   cartItemCount?: number;
 }
 
-/** Email capture form — used in Act 2 */
+/** Email capture form, used in Act 2 */
 const EmailCapture: React.FC = () => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -102,7 +102,7 @@ const EmailCapture: React.FC = () => {
   );
 };
 
-/** Character reveal + email + doors — fully scroll-driven, all inside fixed overlay */
+/** Character reveal + email + doors, fully scroll-driven, all inside fixed overlay */
 const CharacterRevealCapture: React.FC = () => {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0);
@@ -160,18 +160,18 @@ const CharacterRevealCapture: React.FC = () => {
 
   return (
     <>
-      {/* Spacer — 200dvh gives scroll distance for: logo, teaser, 3 characters,
+      {/* Spacer, 200dvh gives scroll distance for: logo, teaser, 3 characters,
           spirit+philosophy lines, and email capture. dvh (not vh) is critical on
           iOS Safari where vh and window.innerHeight disagree. */}
       <div ref={sectionRef} id="brand-story" style={{ height: '200dvh' }} />
 
-      {/* Fixed overlay — pointer-events-none so scroll passes through; interactive children opt back in */}
+      {/* Fixed overlay, pointer-events-none so scroll passes through; interactive children opt back in */}
       {isVisible && (
         <div
           className="fixed inset-0 z-overlay flex flex-col items-center justify-center px-5 pt-[env(safe-area-inset-top)] pb-nav-gap pointer-events-none sm:px-6 lg:pb-24"
         >
           <div className="flex w-full max-w-[880px] flex-col items-center">
-          {/* Logo — drops from top */}
+          {/* Logo, drops from top */}
           <div
             className="mb-7 md:mb-8"
             style={{
@@ -233,7 +233,7 @@ const CharacterRevealCapture: React.FC = () => {
             </div>
           </div>
 
-          {/* Spirit + philosophy — the business, in one breath */}
+          {/* Spirit + philosophy, the business, in one breath */}
           <div
             className="mt-6 flex max-w-[420px] flex-col items-center text-center md:mt-7"
             style={{ opacity: spiritP, transform: `translateY(${(1 - spiritP) * 12}px)` }}
@@ -456,7 +456,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             ))}
           </motion.nav>
 
-          {/* Start here — scrolls to the brand story (Act 2) + discover the reader's tea */}
+          {/* Start here, scrolls to the brand story (Act 2) + discover the reader's tea */}
           <motion.div
             className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2"
             initial={initial({ opacity: 0 })}

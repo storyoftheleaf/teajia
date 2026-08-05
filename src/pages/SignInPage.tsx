@@ -226,7 +226,7 @@ export default function SignInPage() {
         <button
           type="submit"
           disabled={loading || (!passwordMode && codeSent && code.length !== 6)}
-          className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-50"
+          className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-50"
         >
           {loading ? (
             <div className="w-4 h-4 border-2 border-tea-bg/30 border-t-tea-bg rounded-full animate-spin" />
@@ -293,7 +293,7 @@ export default function SignInPage() {
                 <button
                   type="submit"
                   disabled={forgotLoading || !forgotEmail.trim()}
-                  className="px-4 py-2 bg-tea-gold text-tea-bg font-sans font-medium rounded hover:bg-tea-gold-lt transition-colors duration-150 disabled:opacity-50 flex justify-center items-center gap-2 text-ui-14"
+                  className="px-4 py-2 cta-solid font-sans font-medium rounded transition-colors duration-150 disabled:opacity-50 flex justify-center items-center gap-2 text-ui-14"
                 >
                   {forgotLoading ? (
                     <div className="w-4 h-4 border-2 border-tea-border border-t-tea-text-sec rounded-full animate-spin" />

@@ -1,0 +1,13 @@
+{
+  "id": "green-que-she",
+  "type": "Green",
+  "name": "Que She",
+  "chineseName": "雀舌",
+  "altNames": [
+    "Sparrow Tongue"
+  ],
+  "region": null,
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

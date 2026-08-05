@@ -1,5 +1,5 @@
 /**
- * Offline Sync Queue — queues API writes when offline, flushes when reconnected.
+ * Offline Sync Queue, queues API writes when offline, flushes when reconnected.
  * Works with the existing Zustand persisted state for favorites and tasting journal.
  *
  * Usage:
@@ -32,7 +32,7 @@ function saveQueue(queue: SyncEntry[]): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(queue));
   } catch {
-    // localStorage full — drop oldest entries
+    // localStorage full, drop oldest entries
     const trimmed = queue.slice(-20);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
   }
@@ -41,7 +41,7 @@ function saveQueue(queue: SyncEntry[]): void {
 /** Add an operation to the offline queue */
 export function enqueueSync(entry: Omit<SyncEntry, 'id' | 'timestamp' | 'retries'>): void {
   const queue = getQueue();
-  // Deduplicate — replace existing entry of same type
+  // Deduplicate, replace existing entry of same type
   const filtered = queue.filter(e => e.type !== entry.type);
   filtered.push({
     ...entry,
@@ -63,7 +63,7 @@ export function pendingSyncCount(): number {
 }
 
 /**
- * Flush the sync queue — call with a handler map that processes each entry type.
+ * Flush the sync queue, call with a handler map that processes each entry type.
  * Returns the number of successfully synced entries.
  */
 export async function flushSyncQueue(handlers: {

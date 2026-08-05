@@ -1,0 +1,14 @@
+{
+  "id": "red-lapsang-souchong",
+  "type": "Red",
+  "name": "Lapsang Souchong",
+  "chineseName": "正山小种",
+  "altNames": [
+    "Zheng Shan Xiao Zhong",
+    "Smoky Black"
+  ],
+  "region": "Wuyi",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

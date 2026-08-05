@@ -83,6 +83,7 @@ CREATE TABLE IF NOT EXISTS products (
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     type TEXT NOT NULL,
     classification TEXT,
+    cultivar TEXT,
     form TEXT,
     given_name TEXT,
     chinese_name TEXT,
@@ -606,6 +607,7 @@ CREATE TABLE IF NOT EXISTS tea_compass_entries (
   origin_country TEXT,
   origin_region TEXT,
   classification TEXT,
+  cultivar TEXT,
   description TEXT,
   tea_key TEXT,
   price_amount REAL,
@@ -651,6 +653,7 @@ CREATE INDEX IF NOT EXISTS idx_compass_account_decision ON tea_compass_entries(a
 CREATE INDEX IF NOT EXISTS idx_compass_account_sample_state ON tea_compass_entries(account_id, sample_state);
 CREATE INDEX IF NOT EXISTS idx_compass_account_sample_set ON tea_compass_entries(account_id, sample_set_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_compass_import_item ON tea_compass_entries(account_id, user_id, import_item_id) WHERE import_item_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_compass_cultivar ON tea_compass_entries(cultivar);
 
 -- Operational sample workflow (migrations 0007, 017, and 021). Sets precede
 -- samples, and samples precede tastings, matching their dependency chain.
@@ -892,6 +895,7 @@ CREATE TABLE IF NOT EXISTS newsletter_subscribers (
 
 -- Performance indices for common query patterns
 CREATE INDEX IF NOT EXISTS idx_products_account_status ON products(account_id, status);
+CREATE INDEX IF NOT EXISTS idx_products_cultivar ON products(cultivar);
 CREATE INDEX IF NOT EXISTS idx_products_account_owner ON products(account_id, owner_user_id);
 CREATE INDEX IF NOT EXISTS idx_products_account_shown ON products(account_id, shown_in_shop);
 CREATE INDEX IF NOT EXISTS idx_invoices_account_status ON invoices(account_id, status);

@@ -149,7 +149,7 @@ export default function JoinPage() {
         <button
           type="button"
           onClick={() => navigate(`/session/${sessionId}`, { replace: true })}
-          className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+          className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-md cta-solid text-xs font-semibold transition-colors"
         >
           Enter the Tasting
         </button>
@@ -185,7 +185,7 @@ export default function JoinPage() {
               type="button"
               disabled={code.length !== CODE_LENGTH}
               onClick={goToIdentity}
-              className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Continue
             </button>
@@ -250,7 +250,7 @@ export default function JoinPage() {
               type="button"
               disabled={submitting || !firstName.trim() || !email.includes('@')}
               onClick={submit}
-              className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {submitting ? 'Joining…' : 'Join the Tasting'}
             </button>

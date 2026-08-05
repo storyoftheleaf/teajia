@@ -1,0 +1,13 @@
+{
+  "id": "yellow-jun-shan-yin-zhen",
+  "type": "Yellow",
+  "name": "Jun Shan Yin Zhen",
+  "chineseName": "君山银针",
+  "altNames": [
+    "Junshan Silver Needle"
+  ],
+  "region": "Junshan",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

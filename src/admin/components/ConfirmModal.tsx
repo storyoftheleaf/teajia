@@ -58,7 +58,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             className={`px-5 py-2 text-sm font-medium rounded-xl transition-all flex items-center gap-2 ${
               isDestructive
                 ? 'bg-tea-surface text-tea-text hover:bg-tea-elevated border border-tea-border'
-                : 'bg-tea-gold text-tea-bg hover:bg-tea-gold/90 shadow-lg shadow-tea-gold/10'
+                : 'cta-solid shadow-lg shadow-tea-gold/10'
             } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {isLoading && <span className="animate-spin inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full" />}

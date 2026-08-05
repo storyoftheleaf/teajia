@@ -1,0 +1,11 @@
+{
+  "id": "ceylon",
+  "name": "Ceylon",
+  "country": "Sri Lanka",
+  "province": "Central Highlands",
+  "altitude": "1000-2500m",
+  "climate": "High altitude tropical climate, produces bright citrusy black tea",
+  "holding": "regions",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

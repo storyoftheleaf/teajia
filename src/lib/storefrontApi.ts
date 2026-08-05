@@ -8,7 +8,7 @@ import type { TeaEvent } from '../types/events';
 import { publicProductToInventoryItem } from './adapters';
 
 // In production, call the API on the app's own origin (relative paths) so it
-// rides the China-reachable hostname via the Pages Function proxy — see the
+// rides the China-reachable hostname via the Pages Function proxy, see the
 // note in src/lib/api.ts. Dev still targets VITE_API_URL.
 import { fetchWithTimeout, getApiOrigin } from './api';
 

@@ -71,6 +71,7 @@ const BLOCKING_LABELS: Record<string, string> = {
   price_amount: 'price', line_cost: 'price', price_basis: 'price interpretation', currency: 'currency',
   acquired: 'physical stock status', acquisition_state: 'physical stock status',
   inventoryPurpose: 'Inventory purpose', inventory_purpose: 'Inventory purpose',
+  cultivar: 'cultivar',
   duplicateIdentity: 'tea identity', compassEntryId: 'tea identity', productId: 'Inventory holding',
   acquisitionState: 'physical stock status', physicalStock: 'physical stock status', acquiredIntoStock: 'physical stock status',
   disposition: 'destination',
@@ -132,6 +133,7 @@ const FIELD_BLOCKER_ALIASES: Record<string, string[]> = {
   identity: ['identity', 'duplicateidentity', 'compassentryid', 'proposedcompassentryid'],
   holding: ['productid', 'proposedproductid', 'inventoryholding'],
   inventoryPurpose: ['inventorypurpose', 'purpose'],
+  cultivar: ['cultivar', 'varietal'],
 };
 
 export const importFieldNeedsConfirmation = (field: keyof typeof FIELD_BLOCKER_ALIASES, blockingFields: string[]) => {
@@ -222,7 +224,7 @@ const WORKER_IMPORT_FIELDS = [
   'sourceItemId', 'category', 'originalName', 'englishName', 'packWeight', 'weightUnit', 'packCount',
   'priceAmount', 'currency', 'priceBasis', 'confidence', 'uncertainty', 'evidenceRefs', 'acquired',
   'duplicateResolution', 'proposedCompassEntryId', 'proposedProductId', 'chineseName', 'type', 'form',
-  'year', 'originCountry', 'originRegion', 'classification', 'description', 'inventoryPurpose',
+  'year', 'originCountry', 'originRegion', 'classification', 'cultivar', 'description', 'inventoryPurpose',
   'sourceId', 'sourceExcerpt', 'sourceLanguage', 'provenance', 'fieldProvenance', 'disposition',
   'vendorResolution', 'identityResolution', 'holdingResolution',
 ] as const;
@@ -234,6 +236,7 @@ export const withoutImportDerivedFields = (parsed: Record<string, unknown>) => O
 export interface ImportCorrectionDraft {
   englishName: string | null; originalName: string | null; chineseName?: string | null; type: string | null; classification: string | null;
   year: number | null; form: string | null; originCountry?: string | null; originRegion: string | null; description: string | null;
+  cultivar?: string | null;
   inventoryPurpose: CurateImportInventoryPurpose | null; compassSelection: string | null; productSelection: string | null; acquired: boolean;
   disposition: CurateImportDisposition;
   packWeight: number | null; weightUnit: CurateImportItem['weight_unit']; packCount: number | null; priceAmount: string | null;
@@ -300,7 +303,7 @@ export const buildImportCorrectionParsedData = (parsed: Record<string, unknown>,
   return {
     ...withoutImportDerivedFields(parsed),
     englishName: draft.englishName, originalName: draft.originalName, chineseName, type: draft.type,
-    classification: draft.classification, year: draft.year, form: draft.form, originCountry: draft.originCountry ?? null, originRegion: draft.originRegion,
+    classification: draft.classification, cultivar: draft.cultivar ?? null, year: draft.year, form: draft.form, originCountry: draft.originCountry ?? null, originRegion: draft.originRegion,
     description: draft.description, inventoryPurpose: draft.disposition === 'library_only' ? null : draft.inventoryPurpose,
     proposedCompassEntryId, proposedProductId, identityResolution, holdingResolution,
     disposition: draft.disposition, acquired: draft.disposition === 'received',

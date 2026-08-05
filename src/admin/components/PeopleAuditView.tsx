@@ -132,7 +132,7 @@ const PeopleAuditView: React.FC = () => {
             <button
               onClick={() => applyMutation.mutate()}
               disabled={suggestions.length === 0 || applyMutation.isPending}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-tea-gold text-tea-bg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl cta-solid text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {applyMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
               Apply suggestions

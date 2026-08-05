@@ -32,7 +32,7 @@ export const ContributorsView: React.FC = () => {
           </div>
           <div className="flex items-center gap-2">
             <button type="button" aria-label="Refresh contributors" onClick={() => query.refetch()} disabled={query.isFetching} className="tap-target rounded-md p-2 text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text disabled:opacity-50"><RefreshCw size={16} className={query.isFetching ? 'animate-spin' : ''} /></button>
-            <button type="button" onClick={() => setSelected(null)} className="tap-target inline-flex items-center gap-2 rounded-md bg-tea-gold px-3 py-2 text-ui-13 font-medium text-tea-bg hover:bg-tea-gold-lt"><Plus size={15} /> Create contributor</button>
+            <button type="button" onClick={() => setSelected(null)} className="tap-target inline-flex items-center gap-2 rounded-md cta-solid px-3 py-2 text-ui-13 font-medium"><Plus size={15} /> Create contributor</button>
           </div>
         </header>
 

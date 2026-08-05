@@ -76,7 +76,7 @@ function ReadingColumn({ children }: { children: React.ReactNode }) {
   return <div className="px-6 md:px-0 mx-auto max-w-[680px]">{children}</div>;
 }
 
-// ─── AR.3 — Text-effect dials ──────────────────────────────────────────────
+// ─── AR.3: Text-effect dials ──────────────────────────────────────────────
 // A section opts into one effect by name. Most effects are driven by the
 // `.is-in` class that <Reveal> toggles via IntersectionObserver, so they cost
 // nothing until the section enters the viewport. scroll-highlight is its own
@@ -211,7 +211,7 @@ export function Epilogue({ text, signature }: { text: string; signature?: string
   );
 }
 
-// ─── AR.2 — Visual family ──────────────────────────────────────────────────
+// ─── AR.2: Visual family ──────────────────────────────────────────────────
 
 // Caption used under inline / plate images. Quiet sans, dim.
 function ImageCaption({ caption }: { caption?: string }) {
@@ -338,7 +338,7 @@ export function PinnedHero({ url, title, kicker }: { url?: string; title: string
   );
 }
 
-// ─── AR.4 — Interactive & data family ──────────────────────────────────────
+// ─── AR.4: Interactive & data family ──────────────────────────────────────
 
 // Comparison slider: two images framed in a double bezel, a draggable divider
 // reveals the second over the first via clip-path. Pointer-driven; only
@@ -665,7 +665,7 @@ export function Colophon({ lines, onShare }: { lines: string[]; onShare?: () => 
 }
 
 // Poem: a centered, contemplative passage. Demonstrates a text-effect dial
-// wired through renderBlock — the lines rise on a line-by-line stagger.
+// wired through renderBlock, the lines rise on a line-by-line stagger.
 export function PoemSection({ text }: { text: string }) {
   const lines = text.split('\n').filter(Boolean);
   return (
@@ -699,7 +699,7 @@ export function DefinitionSection({ term, body, etymology }: { term: string; bod
 
 // Derive 0..5 tasting scores from tasting_notes. A note has no numeric score in
 // the model, so we map by sensible keyword weighting and fall back to a middle
-// value — keeps the radar meaningful without a new block field. Noted as an
+// value, keeps the radar meaningful without a new block field. Noted as an
 // invented mapping in the handoff.
 function scoresFromNotes(items: Array<{ label: string; note: string }>): Array<{ label: string; value: number }> {
   return items.slice(0, 8).map(({ label, note }) => {
@@ -763,7 +763,7 @@ export function renderBlock(block: ArticleBlock, index: number, ctx?: RenderBloc
       // Demonstrates the blur-focus text-effect dial wired from block data.
       return <DefinitionSection key={index} term={block.term} body={block.body} etymology={block.etymology} />;
 
-    // AR.2 — image variants map to the visual family.
+    // AR.2, image variants map to the visual family.
     case 'image': {
       const src = block.url ?? block.images?.[0];
       switch (block.variant) {
@@ -784,7 +784,7 @@ export function renderBlock(block: ArticleBlock, index: number, ctx?: RenderBloc
       }
     }
 
-    // AR.4 — interactive & data family, mapped to existing blocks.
+    // AR.4, interactive & data family, mapped to existing blocks.
     case 'recipe':
       return <BrewingSteps key={index} title={block.title} steps={block.steps} ingredients={block.ingredients} pairing={block.pairing} />;
     case 'list':

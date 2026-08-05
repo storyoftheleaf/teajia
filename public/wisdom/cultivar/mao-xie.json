@@ -1,0 +1,39 @@
+{
+  "id": "mao-xie",
+  "name": "Mao Xie",
+  "chineseName": "毛蟹",
+  "altNames": [
+    "Hairy Crab"
+  ],
+  "originCountry": "China",
+  "originRegion": "Anxi (Fujian)",
+  "developedYear": 1901,
+  "parentage": "Distinct Anxi cultivar, not a direct Tie Guan Yin relative.",
+  "description": "'Hairy Crab'. An Anxi oolong cultivar named for the fine, downy hairs on its fresh leaves and the slightly curled shape of the brewed leaf, thought to resemble a crab. It is known for its forward, fruity-floral aroma, high yield, and early budding, making it a commercially important variety in Anxi.",
+  "plantType": "Semi-spreading bush with dense branches and high productivity (Camellia sinensis var. sinensis).",
+  "environment": "Highly adaptable and vigorous, growing well in the general terroir of Anxi County, from lower to mid-elevations.",
+  "processing": "Mao Xie is prized for its upfront aroma which can be easily developed. The processing focuses on a controlled withering to bring out these volatile compounds without needing the heavy bruising or roasting that other cultivars require.",
+  "oxidation": "Undergoes light oxidation (15-25%) to preserve its characteristic fresh and fruity notes. The processing is efficient and focuses on capturing the peak aroma.",
+  "roasting": "Like Ben Shan, it is almost always unroasted or receives only a minimal drying bake to preserve its fresh, fragrant profile.",
+  "versatility": "Similar to Ben Shan, it has low versatility. It is a specialist in producing fragrant, accessible, and affordable green-style oolongs and does not have the structure for other tea styles.",
+  "distribution": {
+    "china": [
+      "Fujian Province (Anxi - widely cultivated)",
+      "Other parts of Fujian"
+    ]
+  },
+  "expressions": {
+    "Oolong Tea (Classic Expression)": {
+      "Anxi Oolong (Aromatic Style)": "Made in the modern 'green' style, similar to Ben Shan. The processing is designed to highlight its forward, almost perfume-like fruity and floral character."
+    }
+  },
+  "sensory": {
+    "aroma": "Fruity-floral, Green Apple, Apricot, Fresh Flowers",
+    "flavor": "Bright, sweet, and very aromatic with a pleasant, light character.",
+    "mouthfeel_liquor": "Medium-bodied with a smooth texture and a distinctly fragrant finish. The liquor is a bright golden-yellow."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

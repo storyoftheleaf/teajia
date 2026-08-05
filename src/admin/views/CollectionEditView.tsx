@@ -8,6 +8,7 @@ import {
   CheckCircle2, MessageCircle, GripVertical, Link as LinkIcon,
 } from 'lucide-react';
 import { api, collectionShareUrl } from '../../lib/api';
+import { TEA_TYPES } from '../../wisdom';
 import { buildWhatsAppUrl } from '../../lib/whatsapp';
 import { useAppStore } from '../../lib/store';
 import { useToast } from '../components/Toast';
@@ -135,12 +136,12 @@ const CollectionItemRow: React.FC<{
         focused ? 'bg-tea-gold-lt' : dragOver ? 'bg-tea-accent-sub' : 'hover:bg-tea-accent-sub'
       } ${dragging ? 'opacity-40' : ''}`}
     >
-      {/* Drop indicator — a bronze hairline at the top edge of the hovered row. */}
+      {/* Drop indicator, a bronze hairline at the top edge of the hovered row. */}
       {dragOver && !dragging && (
         <span className="absolute left-0 right-0 top-0 h-px bg-tea-gold" aria-hidden />
       )}
       <div className="flex items-start gap-2">
-        {/* Drag handle — the grip is the draggable surface, so inputs stay usable. */}
+        {/* Drag handle: the grip is the draggable surface, so inputs stay usable. */}
         <button
           type="button"
           draggable
@@ -156,13 +157,13 @@ const CollectionItemRow: React.FC<{
         <span className="w-4 shrink-0 text-right text-ui-12 text-tea-text-dim num leading-6">
           {position}
         </span>
-        {/* Thumbnail only when there's a real photo — no empty grey square. */}
+        {/* Thumbnail only when there's a real photo, no empty grey square. */}
         {item.image_url && (
           <div className="w-9 h-9 flex-shrink-0 rounded-md bg-tea-elevated overflow-hidden mt-0.5">
             <img src={item.image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
           </div>
         )}
-        {/* Name is the hero — full width, two lines allowed before it ever clips. */}
+        {/* Name is the hero: full width, two lines allowed before it ever clips. */}
         <div className="flex-1 min-w-0">
           <div className="font-display text-ui-15 text-tea-text leading-snug">
             <span className="break-words">{item.product_name || 'Untitled'}</span>
@@ -247,7 +248,7 @@ export const CollectionEditView: React.FC = () => {
     enabled: !!id,
   });
 
-  // Network stores — used to label store-target publications and to populate the
+  // Network stores, used to label store-target publications and to populate the
   // "Publish to store" picker.
   const { data: networkStores } = useQuery({
     queryKey: ['network-stores'],
@@ -281,7 +282,7 @@ export const CollectionEditView: React.FC = () => {
   const [copyingLink, setCopyingLink] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   // Remember the open link's slug locally so a second click reuses it even
-  // before the server refetch lands — never mint two open links.
+  // before the server refetch lands, never mint two open links.
   const openLinkSlugRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -289,7 +290,7 @@ export const CollectionEditView: React.FC = () => {
       setTitleDraft(detail.collection.title);
       setNoteDraft(detail.collection.note ?? '');
     }
-    openLinkSlugRef.current = null; // new collection — forget the prior open link
+    openLinkSlugRef.current = null; // new collection, forget the prior open link
   }, [detail?.collection.id]);
 
   // Keep the local drag order in sync with the server, except mid-drag (the
@@ -469,7 +470,7 @@ export const CollectionEditView: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
-      {/* Top bar — back link left, status pill right */}
+      {/* Top bar: back link left, status pill right */}
       <div className="max-w-3xl mx-auto w-full px-4 md:px-6 pt-6 md:pt-8 flex-shrink-0">
         <div className="flex items-center justify-between gap-3">
           <button
@@ -499,7 +500,7 @@ export const CollectionEditView: React.FC = () => {
               value={noteDraft}
               onChange={e => setNoteDraft(e.target.value)}
               onBlur={() => noteChanged && saveMeta({ note: noteDraft })}
-              placeholder="A short note for whoever opens the link — this shows above the product list on the public page."
+              placeholder="A short note for whoever opens the link, this shows above the product list on the public page."
               rows={2}
               className="body-light w-full bg-transparent border-none outline-none resize-none italic placeholder:text-tea-text-dim"
             />
@@ -509,7 +510,7 @@ export const CollectionEditView: React.FC = () => {
           {/* Hero image */}
           <section className="flex flex-col gap-2">
             <h3 className="h3">Hero image</h3>
-            <p className="label-caps text-tea-text-dim">Optional — appears at the top of the public collection page.</p>
+            <p className="label-caps text-tea-text-dim">Optional, appears at the top of the public collection page.</p>
             {detail.collection.hero_image_url ? (
               <div className="relative group rounded-xl overflow-hidden bg-tea-elevated border border-tea-border">
                 <img
@@ -550,7 +551,7 @@ export const CollectionEditView: React.FC = () => {
               </div>
               <button
                 onClick={() => setAddOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
               >
                 <Plus size={13} /> Add products
               </button>
@@ -562,7 +563,7 @@ export const CollectionEditView: React.FC = () => {
                   <p className="text-ui-12 text-tea-text-dim">Add some to make this collection shareable.</p>
                   <button
                     onClick={() => setAddOpen(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
                   >
                     <Plus size={13} /> Add products
                   </button>
@@ -607,7 +608,7 @@ export const CollectionEditView: React.FC = () => {
             )}
           </section>
 
-          {/* Send — link-first. Copying a link is the common path; the recipient
+          {/* Send, link-first. Copying a link is the common path; the recipient
               opens the public page and picks, no account needed. Sending to a
               specific person / tag / tea house is the optional path below. */}
           <section className="flex flex-col gap-3">
@@ -630,7 +631,7 @@ export const CollectionEditView: React.FC = () => {
               </div>
             ) : (
               <>
-                {/* Primary action — copy a link to send however you like. */}
+                {/* Primary action, copy a link to send however you like. */}
                 <div className="bg-tea-surface border border-tea-border rounded-xl px-5 py-4 flex items-center gap-4">
                   <div className="w-9 h-9 rounded-md bg-tea-elevated flex items-center justify-center flex-shrink-0">
                     <LinkIcon size={15} className="text-tea-gold" strokeWidth={1.75} />
@@ -644,7 +645,7 @@ export const CollectionEditView: React.FC = () => {
                   <button
                     onClick={copyShareLink}
                     disabled={copyingLink}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-50 shrink-0"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-50 shrink-0"
                   >
                     {copyingLink
                       ? <><Loader2 size={13} className="animate-spin" /> …</>
@@ -654,7 +655,7 @@ export const CollectionEditView: React.FC = () => {
                   </button>
                 </div>
 
-                {/* Optional — send to a specific person / tag / tea house. */}
+                {/* Optional: send to a specific person / tag / tea house. */}
                 <button
                   onClick={() => setPublishOpen(true)}
                   className="group w-full inline-flex items-center justify-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors py-1"
@@ -831,7 +832,9 @@ const PublicationRow: React.FC<{
 };
 
 // ── Add products sheet ──
-const TEA_TYPE_FILTERS = ['Sheng', 'Shou', 'Oolong', 'Red', 'Green', 'White', 'Yellow', 'Dark', 'Herbal', 'Misc'] as const;
+// 'Misc' is composed on top of the shared wisdom vocabulary rather than
+// redeclared. See docs/TEA_WISDOM_BASE.md.
+const TEA_TYPE_FILTERS = [...TEA_TYPES, 'Misc'] as const;
 type TopFilter = 'all' | 'tea' | 'teaware';
 
 const AddProductsSheet: React.FC<{
@@ -855,7 +858,7 @@ const AddProductsSheet: React.FC<{
     );
   }, [products, existingProductIds]);
 
-  // Counts for the chip badges — derived from the un-filtered pool so the
+  // Counts for the chip badges, derived from the un-filtered pool so the
   // numbers stay stable as the user narrows.
   const counts = useMemo(() => {
     const c = { all: pool.length, tea: 0, teaware: 0, byType: new Map<string, number>() };
@@ -1035,7 +1038,7 @@ const AddProductsSheet: React.FC<{
           <button
             onClick={submit}
             disabled={selected.size === 0 || submitting}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
           >
             {submitting ? <><Loader2 size={13} className="animate-spin" /> Adding…</> : <>Add {selected.size || ''}</>}
           </button>
@@ -1077,7 +1080,7 @@ const AddPublicationSheet: React.FC<{
   const [error, setError] = useState<string | null>(null);
   // After a person-send, show a success card with the link + WhatsApp deep-links
   // (matches the inventory-side CollectionShareSheet). Tag/store sends close
-  // straight away — they have no per-recipient link to hand to the owner.
+  // straight away, they have no per-recipient link to hand to the owner.
   const [sent, setSent] = useState<{ slug: string; recipients: CollectionRecipient[] } | null>(null);
 
   useEffect(() => {
@@ -1329,7 +1332,7 @@ const AddPublicationSheet: React.FC<{
           <button
             onClick={submit}
             disabled={!canSubmit || submitting || disabled}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
           >
             {submitting
               ? <><Loader2 size={13} className="animate-spin" /> Sending…</>
@@ -1361,14 +1364,14 @@ const PublicationSuccessCard: React.FC<{
       await navigator.clipboard.writeText(url);
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
-    } catch { /* clipboard blocked — silent */ }
+    } catch { /* clipboard blocked, silent */ }
   };
 
   const withPhone = recipients.filter(r => r.phone && r.phone.trim());
   const withoutPhone = recipients.filter(r => !r.phone || !r.phone.trim());
 
   const messageFor = (r: CollectionRecipient) => {
-    const greeting = r.name ? `Hi ${r.name.split(' ')[0]} — ` : 'Hi — ';
+    const greeting = r.name ? `Hi ${r.name.split(' ')[0]}, ` : 'Hi, ';
     return `${greeting}I made a small collection for you: ${collectionTitle}.\n\n${url}`;
   };
 
@@ -1458,7 +1461,7 @@ const PublicationSuccessCard: React.FC<{
         <footer className="flex items-center justify-end gap-3 px-5 py-4 border-t border-tea-border flex-shrink-0">
           <button
             onClick={onDone}
-            className="px-4 py-2 bg-tea-gold text-tea-bg rounded-xl text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors"
+            className="px-4 py-2 cta-solid rounded-xl text-xs font-semibold tracking-wide transition-colors"
           >
             Done
           </button>

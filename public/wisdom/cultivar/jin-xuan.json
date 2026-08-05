@@ -1,0 +1,51 @@
+{
+  "id": "jin-xuan",
+  "name": "Jin Xuan",
+  "chineseName": "金萱",
+  "altNames": [
+    "Golden Lily",
+    "Milk Oolong",
+    "TRES #12"
+  ],
+  "originCountry": "Taiwan",
+  "originRegion": "Nantou",
+  "developedYear": 1981,
+  "parentage": "Ying Zhi Hong Xin x Tainung #8",
+  "description": "'Golden Lily'. A celebrated modern cultivar developed by Taiwan's TRES in 1981, it is famous for its distinct, natural 'nai xiang' or 'milk fragrance'. This creamy, buttery, and smooth profile, combined with its high yield and adaptability, has made Jin Xuan one of the most popular and beloved teas in Taiwan and beyond.",
+  "plantType": "Vigorous, adaptable, high-yielding bush with distinctive round, thick leaves (Camellia sinensis var. sinensis).",
+  "environment": "Highly adaptable, thriving in a wide range of environments from lower elevations in Nantou to high altitudes on Alishan (200-1,600m).",
+  "processing": "The processing for Jin Xuan oolong is specifically designed to highlight its unique, inherent 'nai xiang' (milk fragrance). Careful withering is key to developing this signature trait.",
+  "oxidation": "For oolong, oxidation is light (15-25%) to preserve the creamy notes. For black tea, it undergoes full oxidation (100%), which transforms the creaminess into a honeyed sweetness.",
+  "roasting": "Typically unroasted for the classic Milk Oolong style to maintain its fresh, creamy character.",
+  "versatility": "Very versatile. It is a star performer as a light oolong and also makes an exceptionally smooth and sweet black tea, making it a valuable and flexible cultivar for farmers.",
+  "distribution": {
+    "taiwan": [
+      "Nantou County (Mingjian)",
+      "Chiayi County (Alishan)",
+      "Jiayi"
+    ],
+    "thailand": [
+      "Chiang Rai"
+    ],
+    "vietnam": [
+      "Lam Dong"
+    ]
+  },
+  "expressions": {
+    "Oolong Tea": {
+      "Milk Oolong": "Its most famous expression. A lightly oxidized, ball-rolled oolong with a prominent creamy, milky, and buttery character."
+    },
+    "Black Tea": {
+      "Jin Xuan Black Tea": "When fully oxidized, it produces a uniquely sweet and smooth black tea with notes of honey and a hint of its signature creaminess."
+    }
+  },
+  "sensory": {
+    "aroma": "Distinct Milk, Cream, Butter, light floral (Osmanthus)",
+    "flavor": "Buttery, smooth, sweet, with a clean and light finish.",
+    "mouthfeel_liquor": "Smooth, creamy, and round with very low astringency. The liquor is a bright, pale golden color."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

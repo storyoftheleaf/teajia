@@ -12,7 +12,7 @@ import { useRates } from '../hooks/useAdminData';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import type { ProfileSuggestableField, ProfileSuggestionFieldDraft } from '../../types';
 
-// ── Partner listing edit — Surface 2 + Surface 5 per docs/NETWORK_UI_BRIEF.md ──
+// ── Partner listing edit: Surface 2 + Surface 5 per docs/NETWORK_UI_BRIEF.md ──
 //
 // "The card is the editor." Canonical fields are edited in-place on the same
 // page that displays them. Footer buttons swap from empty helper text to
@@ -60,14 +60,14 @@ interface ProfileData {
   curated_by_kind?: string | null;
   originated_by_account_id: string;
   curated_by_name?: string | null;
-  // Adoption queue state — set when the originator has flagged this profile
+  // Adoption queue state, set when the originator has flagged this profile
   // for network-wide adoption. Decision lives in tea_profiles.
   adoption_decision?: 'pending' | 'adopted' | 'declined' | null;
   suggested_for_network_at?: string | null;
   adoption_decline_note?: string | null;
 }
 
-// One pending edit per field — indexed by field name
+// One pending edit per field, indexed by field name
 type PendingEdits = Partial<Record<ProfileSuggestableField, string>>;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -251,7 +251,7 @@ const CanonicalDrawer: React.FC<CanonicalDrawerProps> = ({ profile, onClose }) =
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Single canonical field — the card-as-editor model
+// Single canonical field, the card-as-editor model
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface CanonicalFieldProps {
@@ -365,7 +365,7 @@ const CanonicalField: React.FC<CanonicalFieldProps> = ({
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Listing-owned section — stock, price, note
+// Listing-owned section: stock, price, note
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface ListingFieldsProps {
@@ -405,7 +405,7 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
 
   // Inline autosave on blur. Only persists fields that genuinely changed
   // since the last successful save (initial value or last server-confirmed).
-  // Errors surface as inline italic prose in the saveMsg slot — no toast.
+  // Errors surface as inline italic prose in the saveMsg slot, no toast.
   const lastSaved = useRef({
     stock: String(listing.stock_grams ?? ''),
     price: listing.fixed_retail_price_usd != null
@@ -558,7 +558,7 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
         </div>
       </div>
 
-      {/* Photos — display-only for now. Upload + reorder + delete is its own surface
+      {/* Photos, display-only for now. Upload + reorder + delete is its own surface
           (deferred). Partners can at least see what they have. */}
       <div>
         <p className="text-tea-text-sec text-ui-13 mb-2">Your photos</p>
@@ -599,7 +599,7 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Network adoption block — only when caller originated the profile
+// Network adoption block, only when caller originated the profile
 // AND the curator is not yet the platform account.
 // Per Step 6 of the rollout: a partner flags their tea for Adrian to consider.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -610,7 +610,7 @@ interface NetworkAdoptionBlockProps {
   decision: 'pending' | 'adopted' | 'declined' | null;
   suggestedAt: string | null;
   declineNote: string | null;
-  /** True when curated_by_account_id is the platform account — already canonical. */
+  /** True when curated_by_account_id is the platform account, already canonical. */
   curatorIsPlatform: boolean;
   onSuggested: () => void | Promise<void>;
 }
@@ -623,7 +623,7 @@ const NetworkAdoptionBlock: React.FC<NetworkAdoptionBlockProps> = ({
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  // Adopted — quiet credit line, originator stays attributed permanently.
+  // Adopted: quiet credit line, originator stays attributed permanently.
   if (decision === 'adopted' || curatorIsPlatform) {
     return (
       <div className="mb-8">
@@ -636,7 +636,7 @@ const NetworkAdoptionBlock: React.FC<NetworkAdoptionBlockProps> = ({
     );
   }
 
-  // If decision is 'pending', show a quiet pending notice — no action.
+  // If decision is 'pending', show a quiet pending notice, no action.
   if (decision === 'pending') {
     return (
       <div className="mb-8">
@@ -881,7 +881,7 @@ export const PartnerListingEdit: React.FC = () => {
     setSubmitBusy(true);
     setSubmitError(null);
 
-    // Build suggestion bundle — only fields where proposed_value != current canonical
+    // Build suggestion bundle, only fields where proposed_value != current canonical
     const drafts: ProfileSuggestionFieldDraft[] = [];
     for (const [field, proposedValue] of Object.entries(pendingEdits) as [ProfileSuggestableField, string][]) {
       const currentValue = getProfileValue(profile, field);
@@ -984,7 +984,7 @@ export const PartnerListingEdit: React.FC = () => {
           ← Stock
         </button>
 
-        {/* Tea name — wayfinder, not editable directly here */}
+        {/* Tea name: wayfinder, not editable directly here */}
         <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text mb-2`}>
           {profile.name}
         </h1>
@@ -1009,7 +1009,7 @@ export const PartnerListingEdit: React.FC = () => {
           <span className="inline-block transition-transform group-hover:translate-x-0.5">→</span>
         </button>
 
-        {/* Order more from this supplier — only when caller is the carrier, not the curator,
+        {/* Order more from this supplier: only when caller is the carrier, not the curator,
             and has the Sell bundle. Lands them on a fresh wholesale draft view. */}
         {!isCurator && hasSell && (
           <button
@@ -1023,11 +1023,11 @@ export const PartnerListingEdit: React.FC = () => {
         )}
       </header>
 
-      {/* ── Curator notice — hides suggestion machinery ─────────────────────── */}
+      {/* ── Curator notice, hides suggestion machinery ─────────────────────── */}
       {isCurator && (
         <div className="mb-8">
           <p className="font-body italic text-ui-14 text-tea-text-sec leading-[1.7]">
-            You curate this tea — edit it directly in your inventory.{' '}
+            You curate this tea, edit it directly in your inventory.{' '}
             <button
               type="button"
               onClick={() => navigate('/admin/stock')}
@@ -1039,7 +1039,7 @@ export const PartnerListingEdit: React.FC = () => {
         </div>
       )}
 
-      {/* ── Network adoption — show whenever the active account originated this profile.
+      {/* ── Network adoption, show whenever the active account originated this profile.
           The block handles its own state machine (never-suggested / pending / declined / adopted),
           so it stays visible after Adrian adopts so the originator can see "your tea is now in the network."
           ───────────────────────────────────────────────────────────────────────────── */}
@@ -1069,7 +1069,7 @@ export const PartnerListingEdit: React.FC = () => {
       {/* Hairline */}
       <div className="h-px bg-tea-border mb-8" />
 
-      {/* ── Canonical section — card-as-editor ─────────────────────────────── */}
+      {/* ── Canonical section, card-as-editor ─────────────────────────────── */}
       {!isCurator && (
         <section className="mb-10">
           <div className="flex items-baseline justify-between mb-1">
@@ -1084,7 +1084,7 @@ export const PartnerListingEdit: React.FC = () => {
           </div>
           <p className="font-body italic text-ui-13 text-tea-text-dim leading-[1.6] mb-6">
             Changes you make here go to {profile.curated_by_name ?? 'the curator'}'s review queue.
-            They accept or reject each field. The change is the argument — no explanation needed.
+            They accept or reject each field. The change is the argument, no explanation needed.
           </p>
 
           {/* Canonical image */}
@@ -1134,7 +1134,7 @@ export const PartnerListingEdit: React.FC = () => {
         </section>
       )}
 
-      {/* ── Editorial footer — the footer button swap ─────────────────────── */}
+      {/* ── Editorial footer, the footer button swap ─────────────────────── */}
       {!isCurator && (
         <footer className="pb-nav-gap">
           {/* Success message */}
@@ -1174,7 +1174,7 @@ export const PartnerListingEdit: React.FC = () => {
           )}
 
           {hasEdits ? (
-            /* Footer with pending edits — editorial action pair */
+            /* Footer with pending edits, editorial action pair */
             <div className="flex items-center justify-between">
               <button
                 type="button"
@@ -1196,7 +1196,7 @@ export const PartnerListingEdit: React.FC = () => {
               </button>
             </div>
           ) : (
-            /* Empty footer — quiet helper text */
+            /* Empty footer, quiet helper text */
             <p className="font-body italic text-ui-13 text-tea-text-dim text-center leading-[1.6]">
               Edit any of {profile.curated_by_name ?? 'the curator'}'s content above to suggest a change.
             </p>

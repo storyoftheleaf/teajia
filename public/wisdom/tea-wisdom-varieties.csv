@@ -1,0 +1,317 @@
+id,type,name,chineseName,altNames,region
+green-longjing,Green,Longjing,龙井,Dragon Well;Long Jing,Hangzhou
+green-biluochun,Green,Biluochun,碧螺春,Pi Lo Chun;Bi Luo Chun,Suzhou
+green-anji-bai-cha,Green,Anji Bai Cha,安吉白茶,Anji White Tea,Anji
+green-mo-gan-huang-ya,Green,Mo Gan Huang Ya,莫干黄芽,,Zhejiang
+green-zhu-cha,Green,Zhu Cha,珠茶,Gunpowder,Zhejiang
+green-chun-mee,Green,Chun Mee,珍眉,Zhenmei;Pearl Eyebrow,
+green-young-hyson,Green,Young Hyson,熙春,,
+green-huang-shan-mao-feng,Green,Huang Shan Mao Feng,黄山毛峰,Huangshan Mao Feng,Huangshan
+green-tai-ping-hou-kui,Green,Tai Ping Hou Kui,太平猴魁,Monkey King,Taiping
+green-liu-an-gua-pian,Green,Liu An Gua Pian,六安瓜片,Melon Seed Tea,Lu'an
+green-ding-gu-da-fang,Green,Ding Gu Da Fang,顶谷大方,,Anhui
+green-nanjing-yuhua,Green,Nanjing Yuhua,南京雨花茶,Rain Flower Tea,Nanjing
+green-xinyang-mao-jian,Green,Xinyang Mao Jian,信阳毛尖,,Xinyang
+green-duyun-mao-jian,Green,Duyun Mao Jian,都匀毛尖,,Guizhou
+green-mengding-gan-lu,Green,Mengding Gan Lu,蒙顶甘露,Sweet Dew,Ya'an
+green-mengding-xian-cha,Green,Mengding Xian Cha,蒙顶仙茶,,Ya'an
+green-zhu-ye-qing,Green,Zhu Ye Qing,竹叶青,Bamboo Leaf Green,Emei Mountain
+green-lu-shan-yun-wu,Green,Lu Shan Yun Wu,庐山云雾,Cloud Mist,Lushan
+green-enshi-yu-lu,Green,Enshi Yu Lu,恩施玉露,Jade Dew,Enshi
+green-yuan-an-lu-yuan,Green,Yuan An Lu Yuan,远安鹿苑,,Yuan'an
+green-mao-jian,Green,Mao Jian,毛尖,Hair Tip,
+green-mao-feng,Green,Mao Feng,毛峰,Fur Peak,
+green-que-she,Green,Que She,雀舌,Sparrow Tongue,
+green-ya-bao,Green,Ya Bao,芽苞,Wild Yunnan Buds,Yunnan
+green-gyokuro,Green,Gyokuro,玉露,Jade Dew,Uji
+green-sencha,Green,Sencha,煎茶,,
+green-shincha,Green,Shincha,新茶,New Tea;First Harvest,
+green-kabusecha,Green,Kabusecha,かぶせ茶,Covered Tea,
+green-tencha,Green,Tencha,碾茶,,
+green-matcha,Green,Matcha,抹茶,,Uji
+green-genmaicha,Green,Genmaicha,玄米茶,Brown Rice Tea,
+green-hojicha,Green,Hojicha,ほうじ茶,Roasted Green Tea,
+green-bancha,Green,Bancha,番茶,,
+green-kukicha,Green,Kukicha,茎茶,Twig Tea;Bocha,
+green-tamaryokucha,Green,Tamaryokucha,玉緑茶,Guricha,
+green-kamairicha,Green,Kamairicha,釜炒り茶,Pan-fired Green,
+green-konacha,Green,Konacha,粉茶,Powder Tea,
+green-ichibancha,Green,Ichibancha,一番茶,First Harvest Sencha,
+green-yame-gyokuro,Green,Yame Gyokuro,,Fukuoka Gyokuro,Yame
+green-ujeon,Green,Ujeon,雨前,Pre-Rain Korean Green,Boseong
+green-sejak,Green,Sejak,,Second Flush Korean Green,Boseong
+green-jungjak,Green,Jungjak,,Third Flush Korean Green,Boseong
+green-hadong-green,Green,Hadong Green,,,Hadong
+green-jeju-green,Green,Jeju Green,,,Jeju
+green-darjeeling-green,Green,Darjeeling Green,,,Darjeeling
+green-nepal-green,Green,Nepal Green,,,Nepal
+green-vietnam-green,Green,Vietnam Green,,,Vietnam
+green-ceylon-green,Green,Ceylon Green,,,Sri Lanka
+green-moroccan-mint,Green,Moroccan Mint,,Touareg Tea;Maghrebi Mint,
+green-georgia-green,Green,Georgia Green,,,Georgia
+white-bai-hao-yin-zhen,White,Bai Hao Yin Zhen,白毫银针,Silver Needle,Fuding
+white-bai-mu-dan,White,Bai Mu Dan,白牡丹,White Peony;Pai Mu Tan,Fujian
+white-gong-mei,White,Gong Mei,贡眉,Tribute Eyebrow,Fujian
+white-shou-mei,White,Shou Mei,寿眉,Longevity Eyebrow,Fujian
+white-yue-guang-bai,White,Yue Guang Bai,月光白,Moonlight White;Moonlight Beauty,Yunnan
+white-fuding-white,White,Fuding White,福鼎白茶,Fuding Bai Cha,Fuding
+white-zhenghe-white,White,Zhenghe White,政和白茶,Zhenghe Bai Cha,Zhenghe
+white-yunnan-white,White,Yunnan White,云南白茶,,Yunnan
+white-aged-white,White,Aged White,老白茶,Lao Bai Cha;Old White Tea,
+white-yunnan-ancient-tree-white,White,Yunnan Ancient Tree White,云南古树白茶,,Yunnan
+white-bohe-hao,White,Bohe Hao,博贺号,,Guangdong
+white-darjeeling-white,White,Darjeeling White,,,Darjeeling
+white-ceylon-white,White,Ceylon White,,,Sri Lanka
+white-kenya-white,White,Kenya White,,,Kenya
+white-nepal-white,White,Nepal White,,,Nepal
+yellow-jun-shan-yin-zhen,Yellow,Jun Shan Yin Zhen,君山银针,Junshan Silver Needle,Junshan
+yellow-meng-ding-huang-ya,Yellow,Meng Ding Huang Ya,蒙顶黄芽,Mengding Yellow Bud,Ya'an
+yellow-huo-shan-huang-ya,Yellow,Huo Shan Huang Ya,霍山黄芽,Huoshan Yellow Bud,Huoshan
+yellow-ping-yang-huang-tang,Yellow,Ping Yang Huang Tang,平阳黄汤,,Pingyang
+yellow-huang-tang,Yellow,Huang Tang,黄汤,,Zhejiang
+yellow-guangdong-da-ye-qing,Yellow,Guangdong Da Ye Qing,广东大叶青,Large Leaf Green,Guangdong
+yellow-beigang-mao-jian,Yellow,Beigang Mao Jian,北港毛尖,,Hunan
+yellow-weishan-mao-jian,Yellow,Weishan Mao Jian,沩山毛尖,,Hunan
+yellow-yuan-an-lu-yuan,Yellow,Yuan An Lu Yuan,远安鹿苑,,Yuan'an
+yellow-hai-ma-gong,Yellow,Hai Ma Gong,海马拱,,Sichuan
+oolong-da-hong-pao,Oolong,Da Hong Pao,大红袍,Big Red Robe,Wuyi
+oolong-rou-gui,Oolong,Rou Gui,肉桂,Cassia;Cinnamon Oolong,Wuyi
+oolong-shui-xian,Oolong,Shui Xian,水仙,Water Fairy;Narcissus,Wuyi
+oolong-lao-cong-shui-xian,Oolong,Lao Cong Shui Xian,老丛水仙,Old Bush Narcissus,Wuyi
+oolong-tie-luo-han,Oolong,Tie Luo Han,铁罗汉,Iron Arhat,Wuyi
+oolong-bai-ji-guan,Oolong,Bai Ji Guan,白鸡冠,White Cockscomb,Wuyi
+oolong-shui-jin-gui,Oolong,Shui Jin Gui,水金龟,Golden Water Turtle,Wuyi
+oolong-qi-dan,Oolong,Qi Dan,奇丹,,Wuyi
+oolong-ban-tian-yao,Oolong,Ban Tian Yao,半天腰,,Wuyi
+oolong-bei-dou,Oolong,Bei Dou,北斗,Big Dipper,Wuyi
+oolong-mei-zhan,Oolong,Mei Zhan,梅占,,Wuyi
+oolong-huang-guan-yin,Oolong,Huang Guan Yin,黄观音,Yellow Guan Yin,Wuyi
+oolong-jin-mu-dan,Oolong,Jin Mu Dan,金牡丹,Golden Peony,Wuyi
+oolong-huang-mei-gui,Oolong,Huang Mei Gui,黄玫瑰,Yellow Rose,Wuyi
+oolong-rui-xiang,Oolong,Rui Xiang,瑞香,,Wuyi
+oolong-xiao-hong-pao,Oolong,Xiao Hong Pao,小红袍,Small Red Robe,Wuyi
+oolong-wuyi-yancha,Oolong,Wuyi Yancha,武夷岩茶,Rock Oolong;Yan Cha,
+oolong-alishan,Oolong,Alishan,阿里山,Ali Shan,Alishan
+oolong-li-shan,Oolong,Li Shan,梨山,Pear Mountain,Li Shan
+oolong-da-yu-ling,Oolong,Da Yu Ling,大禹岭,Dayuling,Da Yu Ling
+oolong-shan-lin-xi,Oolong,Shan Lin Xi,杉林溪,Cedar Creek,Nantou
+oolong-dong-ding,Oolong,Dong Ding,冻顶,Tung Ting;Frozen Summit,Nantou
+oolong-li-shan-cui-feng,Oolong,Li Shan Cui Feng,梨山翠峰,,Li Shan
+oolong-jin-xuan,Oolong,Jin Xuan,金萱,Milk Oolong;Golden Daylily,Taiwan
+oolong-cui-yu,Oolong,Cui Yu,翠玉,Jade Oolong,Taiwan
+oolong-si-ji-chun,Oolong,Si Ji Chun,四季春,Four Seasons Spring,Taiwan
+oolong-qingxin,Oolong,Qingxin,青心乌龙,Qing Xin;Blue Heart,Taiwan
+oolong-hong-oolong,Oolong,Hong Oolong,红乌龙,,Taitung
+oolong-bao-zhong,Oolong,Bao Zhong,包种,Pouchong;Wenshan Pouchong,Wenshan
+oolong-dong-fang-mei-ren,Oolong,Dong Fang Mei Ren,东方美人,Oriental Beauty;Bai Hao;Champagne Oolong,Hsinchu
+oolong-muzha-tie-guan-yin,Oolong,Muzha Tie Guan Yin,木栅铁观音,,Taipei
+oolong-taiwan-honey-black,Oolong,Taiwan Honey Black,蜜香红茶,Honey Oolong;Bug-bitten Oolong,
+oolong-tie-guan-yin,Oolong,Tie Guan Yin,铁观音,Iron Goddess;Ti Kuan Yin,Anxi
+oolong-huang-jin-gui,Oolong,Huang Jin Gui,黄金桂,Golden Osmanthus;Golden Cassia,Anxi
+oolong-ben-shan,Oolong,Ben Shan,本山,Original Mountain,Anxi
+oolong-mao-xie,Oolong,Mao Xie,毛蟹,Hairy Crab,Anxi
+oolong-ruan-zhi,Oolong,Ruan Zhi,软枝,Soft Branch,Fujian
+oolong-dan-cong,Oolong,Dan Cong,单枞,Phoenix Dan Cong,Phoenix Mountain
+oolong-mi-lan-xiang,Oolong,Mi Lan Xiang,蜜兰香,Honey Orchid Dan Cong,Phoenix Mountain
+oolong-ya-shi-xiang,Oolong,Ya Shi Xiang,鸭屎香,Duck Shit Aroma;Ya Shi,Phoenix Mountain
+oolong-huang-zhi-xiang,Oolong,Huang Zhi Xiang,黄枝香,Orange Blossom Dan Cong,Phoenix Mountain
+oolong-gui-hua-xiang,Oolong,Gui Hua Xiang,桂花香,Osmanthus Dan Cong,Phoenix Mountain
+oolong-xing-ren-xiang,Oolong,Xing Ren Xiang,杏仁香,Almond Dan Cong,Phoenix Mountain
+oolong-jiang-hua-xiang,Oolong,Jiang Hua Xiang,姜花香,Ginger Flower Dan Cong,Phoenix Mountain
+oolong-yu-lan-xiang,Oolong,Yu Lan Xiang,玉兰香,Magnolia Dan Cong,Phoenix Mountain
+oolong-fo-shou,Oolong,Fo Shou,佛手,Buddha Hand Dan Cong,Phoenix Mountain
+oolong-rou-gui-xiang,Oolong,Rou Gui Xiang,肉桂香,Cinnamon Dan Cong,Phoenix Mountain
+oolong-chun-lan-xiang,Oolong,Chun Lan Xiang,春兰香,Spring Orchid Dan Cong,Phoenix Mountain
+oolong-tong-tian-xiang,Oolong,Tong Tian Xiang,通天香,,Phoenix Mountain
+oolong-song-zhong,Oolong,Song Zhong,宋种,Song Variety,Phoenix Mountain
+oolong-lao-cong-dan-cong,Oolong,Lao Cong Dan Cong,老丛单枞,Old Bush Dan Cong,Phoenix Mountain
+oolong-guangdong-shui-xian,Oolong,Guangdong Shui Xian,广东水仙,,Guangdong
+oolong-darjeeling-oolong,Oolong,Darjeeling Oolong,,,Darjeeling
+oolong-nepal-oolong,Oolong,Nepal Oolong,,,Nepal
+oolong-vietnam-oolong,Oolong,Vietnam Oolong,,,Vietnam
+oolong-bao-loc-oolong,Oolong,Bao Loc Oolong,,,Bao Loc
+oolong-thailand-oolong,Oolong,Thailand Oolong,,,Doi Mae Salong
+oolong-doi-mae-salong,Oolong,Doi Mae Salong,,,Chiang Rai
+red-jin-jun-mei,Red,Jin Jun Mei,金骏眉,Golden Eyebrow,Wuyi
+red-yin-jun-mei,Red,Yin Jun Mei,银骏眉,Silver Eyebrow,Wuyi
+red-tong-jun-mei,Red,Tong Jun Mei,铜骏眉,Bronze Eyebrow,Wuyi
+red-lapsang-souchong,Red,Lapsang Souchong,正山小种,Zheng Shan Xiao Zhong;Smoky Black,Wuyi
+red-tan-yang-gong-fu,Red,Tan Yang Gong Fu,坦洋工夫,,Fujian
+red-zhenghe-gong-fu,Red,Zhenghe Gong Fu,政和工夫,,Zhenghe
+red-bai-lin-gong-fu,Red,Bai Lin Gong Fu,白琳工夫,,Fuding
+red-keemun,Red,Keemun,祁门红茶,Qi Men Hong Cha;Qimen,Qimen
+red-keemun-mao-feng,Red,Keemun Mao Feng,祁门毛峰,,Qimen
+red-keemun-hao-ya,Red,Keemun Hao Ya,祁门毫芽,,Qimen
+red-keemun-gong-fu,Red,Keemun Gong Fu,祁门工夫,,Qimen
+red-dianhong,Red,Dianhong,滇红,Yunnan Red;Dian Hong,Yunnan
+red-dianhong-mao-feng,Red,Dianhong Mao Feng,滇红毛峰,,Yunnan
+red-dianhong-gold-tips,Red,Dianhong Gold Tips,滇红金芽,Golden Tips Yunnan,Yunnan
+red-classic-58,Red,Classic 58,经典58,Dian Hong Classic 58,Yunnan
+red-yunnan-wild-arbor-red,Red,Yunnan Wild Arbor Red,云南古树红茶,Ancient Tree Red,Yunnan
+red-golden-monkey,Red,Golden Monkey,金猴,Jin Hou;Golden Tips,
+red-dian-hong-gong-fu,Red,Dian Hong Gong Fu,滇红工夫,,Yunnan
+red-ying-de-hong,Red,Ying De Hong,英德红茶,Yingde Red,Yingde
+red-jiu-qu-hong-mei,Red,Jiu Qu Hong Mei,九曲红梅,Nine Curve Red Plum,Zhejiang
+red-sichuan-gong-fu,Red,Sichuan Gong Fu,川红工夫,,Sichuan
+red-ruby-18,Red,Ruby 18,红玉,Hong Yu;Red Jade,Sun Moon Lake
+red-sun-moon-lake-black,Red,Sun Moon Lake Black,日月潭红茶,Assam Taiwan,Sun Moon Lake
+red-taiwan-honey-red,Red,Taiwan Honey Red,蜜香红茶,,Taiwan
+red-darjeeling,Red,Darjeeling,,Darjeeling Black,Darjeeling
+red-darjeeling-first-flush,Red,Darjeeling First Flush,,,Darjeeling
+red-darjeeling-second-flush,Red,Darjeeling Second Flush,,,Darjeeling
+red-darjeeling-autumnal,Red,Darjeeling Autumnal,,,Darjeeling
+red-assam,Red,Assam,,CTC Assam;Assam Orthodox,Assam
+red-nilgiri,Red,Nilgiri,,,Nilgiri
+red-doke,Red,Doke,,Doke Rolling Thunder,Doke
+red-sikkim,Red,Sikkim,,,Sikkim
+red-meghalaya,Red,Meghalaya,,,Meghalaya
+red-margaret-s-hope,Red,Margaret's Hope,,,Darjeeling
+red-makaibari,Red,Makaibari,,,Darjeeling
+red-ceylon,Red,Ceylon,,Sri Lanka Black,
+red-nuwara-eliya,Red,Nuwara Eliya,,,Nuwara Eliya
+red-uva,Red,Uva,,,Uva
+red-dimbula,Red,Dimbula,,,Dimbula
+red-kandy,Red,Kandy,,,Kandy
+red-nepal-black,Red,Nepal Black,,,Nepal
+red-kenya-black,Red,Kenya Black,,,Kenya
+red-ethiopia-black,Red,Ethiopia Black,,,Ethiopia
+red-georgian-black,Red,Georgian Black,,,Georgia
+red-turkish-black,Red,Turkish Black,,Rize Cay;Turkish Cay,Rize
+red-vietnam-black,Red,Vietnam Black,,,Vietnam
+red-japan-black,Red,Japan Black,,Wazuka Red;Wakoucha,Wazuka
+red-indonesia-black,Red,Indonesia Black,,Java Black,Java
+dark-liu-bao,Dark,Liu Bao,六堡茶,Liubao,Guangxi
+dark-aged-liu-bao,Dark,Aged Liu Bao,陈年六堡,,Guangxi
+dark-fu-zhuan,Dark,Fu Zhuan,茯砖,Fu Brick;Fermented Brick,Hunan
+dark-hei-zhuan,Dark,Hei Zhuan,黑砖,Black Brick,Hunan
+dark-hua-zhuan,Dark,Hua Zhuan,花砖,Flower Brick,Hunan
+dark-tian-jian,Dark,Tian Jian,天尖,Sky Tip;Heaven Tip,Hunan
+dark-gong-jian,Dark,Gong Jian,贡尖,Tribute Tip,Hunan
+dark-sheng-jian,Dark,Sheng Jian,生尖,,Hunan
+dark-qianliang-cha,Dark,Qianliang Cha,千两茶,Thousand Tael Tea,Hunan
+dark-bai-liang-cha,Dark,Bai Liang Cha,百两茶,Hundred Tael Tea,Hunan
+dark-shi-liang-cha,Dark,Shi Liang Cha,十两茶,,Hunan
+dark-liu-an-basket-tea,Dark,Liu An Basket Tea,六安篓茶,Liu An Heicha,Anhui
+dark-ya-an-tibetan-tea,Dark,Ya An Tibetan Tea,雅安藏茶,Kangzhuan;Ya An Dark Tea,Ya'an
+dark-sichuan-dark,Dark,Sichuan Dark,四川边茶,Tibetan Brick,Sichuan
+dark-yunnan-dark,Dark,Yunnan Dark,云南黑茶,,Yunnan
+dark-malaysian-stored-dark,Dark,Malaysian Stored Dark,,Malaysia-stored Heicha,
+dark-hong-kong-stored-dark,Dark,Hong Kong Stored Dark,,HK-stored Heicha,
+sheng-yiwu,Sheng,Yiwu,易武,,Yiwu
+sheng-gua-feng-zhai,Sheng,Gua Feng Zhai,刮风寨,,Yiwu
+sheng-ma-hei,Sheng,Ma Hei,麻黑,,Yiwu
+sheng-ding-jia-zhai,Sheng,Ding Jia Zhai,丁家寨,,Yiwu
+sheng-tong-qing-he,Sheng,Tong Qing He,铜箐河,,Yiwu
+sheng-wan-gong,Sheng,Wan Gong,弯弓,,Yiwu
+sheng-luo-shui-dong,Sheng,Luo Shui Dong,落水洞,,Yiwu
+sheng-man-zhuan,Sheng,Man Zhuan,曼砖,Man Sa;Mansa,Yiwu
+sheng-yi-bang,Sheng,Yi Bang,倚邦,,Mengla
+sheng-ge-deng,Sheng,Ge Deng,革登,,Mengla
+sheng-lao-ban-zhang,Sheng,Lao Ban Zhang,老班章,,Menghai
+sheng-xin-ban-zhang,Sheng,Xin Ban Zhang,新班章,,Menghai
+sheng-lao-man-e,Sheng,Lao Man E,老曼峨,,Menghai
+sheng-zhang-jia-wan,Sheng,Zhang Jia Wan,张家湾,,Menghai
+sheng-he-kai,Sheng,He Kai,贺开,,Menghai
+sheng-nan-nuo,Sheng,Nan Nuo,南糯,,Menghai
+sheng-bada,Sheng,Bada,巴达,,Menghai
+sheng-bu-lang,Sheng,Bu Lang,布朗,Bulang,Menghai
+sheng-jingmai,Sheng,Jingmai,景迈,,Jingmai
+sheng-man-jing,Sheng,Man Jing,曼景,,Jingmai
+sheng-bing-dao,Sheng,Bing Dao,冰岛,Bingdao;Ice Island,Lincang
+sheng-xi-gui,Sheng,Xi Gui,昔归,Xige;Xigu,Lincang
+sheng-mengku,Sheng,Mengku,勐库,,Lincang
+sheng-na-ka,Sheng,Na Ka,那卡,,Lincang
+sheng-na-han,Sheng,Na Han,那罕,,Lincang
+sheng-san-he-she,Sheng,San He She,三合社,,Lincang
+sheng-wang-zi-shan,Sheng,Wang Zi Shan,王子山,,Lincang
+sheng-lincang-wild-arbor,Sheng,Lincang Wild Arbor,临沧野生,,Lincang
+sheng-jinggu,Sheng,Jinggu,景谷,,Jinggu
+sheng-bao-he,Sheng,Bao He,保合,,Jinggu
+sheng-nuo-song,Sheng,Nuo Song,糯松,,Jinggu
+sheng-wuliang,Sheng,Wuliang,无量山,,Wuliang Mountain
+sheng-ailao,Sheng,Ailao,哀牢山,,Ailao Mountain
+sheng-dehong,Sheng,Dehong,德宏,,Dehong
+sheng-gaoligong,Sheng,Gaoligong,高黎贡山,,Dehong
+sheng-pu-er,Sheng,Pu'er,普洱市,Pu-er City,Pu'er
+sheng-dayi-7542,Sheng,Dayi 7542,大益7542,Menghai 7542,Menghai
+sheng-dayi-7532,Sheng,Dayi 7532,大益7532,,Menghai
+sheng-dayi-8582,Sheng,Dayi 8582,大益8582,Menghai 8582,Menghai
+sheng-xiaguan-tuo,Sheng,Xiaguan Tuo,下关沱茶,,Xiaguan
+sheng-xiaguan-jia-ji,Sheng,Xiaguan Jia Ji,下关甲级沱,,Xiaguan
+sheng-chen-sheng-hao,Sheng,Chen Sheng Hao,陈升号,,Menghai
+sheng-yi-chang-hao,Sheng,Yi Chang Hao,易昌号,,
+sheng-hai-lang-hao,Sheng,Hai Lang Hao,海朗号,,
+sheng-yiwu-gu-liu,Sheng,Yiwu Gu Liu,易武古柳,,Yiwu
+sheng-gushu,Sheng,Gushu,古树,Ancient Tree;Old Growth,
+sheng-qiao-mu,Sheng,Qiao Mu,乔木,Wild Arbor;Tall Tree,
+sheng-tai-di-cha,Sheng,Tai Di Cha,台地茶,Plantation Tea,
+sheng-mao-cha,Sheng,Mao Cha,毛茶,Rough Tea;Unprocessed Puerh,
+shou-menghai-shou,Shou,Menghai Shou,勐海熟普,Menghai Cooked Puerh,Menghai
+shou-dayi-shou,Shou,Dayi Shou,大益熟普,,Menghai
+shou-xiaguan-shou,Shou,Xiaguan Shou,下关熟普,,Xiaguan
+shou-cnnp-shou,Shou,CNNP Shou,中茶熟普,,Yunnan
+shou-kunming-shou,Shou,Kunming Shou,昆明熟普,,Kunming
+shou-yiwu-shou,Shou,Yiwu Shou,易武熟普,,Yiwu
+shou-lincang-shou,Shou,Lincang Shou,临沧熟普,,Lincang
+shou-jingmai-shou,Shou,Jingmai Shou,景迈熟普,,Jingmai
+shou-gong-ting,Shou,Gong Ting,宫廷普洱,Palace Grade;Imperial Grade,
+shou-te-ji,Shou,Te Ji,特级熟普,Special Grade,
+shou-yi-ji,Shou,Yi Ji,一级熟普,Grade 1,
+shou-gushu-shou,Shou,Gushu Shou,古树熟普,Ancient Tree Cooked,
+shou-aged-shou,Shou,Aged Shou,陈年熟普,Old Cooked Puerh,
+shou-mini-tuo,Shou,Mini Tuo,小沱茶,Mini Tuo Cha,
+shou-shou-cake,Shou,Shou Cake,熟饼,Cooked Cake,
+shou-shou-brick,Shou,Shou Brick,熟砖,Cooked Brick,
+shou-lao-cha-tou,Shou,Lao Cha Tou,老茶头,Tea Nuggets;Cha Tou,
+shou-dayi-7572,Shou,Dayi 7572,大益7572,,Menghai
+shou-menghai-8592,Shou,Menghai 8592,大益8592,,Menghai
+shou-hong-yin,Shou,Hong Yin,红印,Red Mark,
+shou-lao-shu-yuan-cha,Shou,Lao Shu Yuan Cha,老树圆茶,,
+shou-chun-zui,Shou,Chun Zui,醇粹,,
+herbal-chrysanthemum,Herbal,Chrysanthemum,菊花,Ju Hua,Tongxiang
+herbal-hang-ju,Herbal,Hang Ju,杭菊,Hangzhou Chrysanthemum,Hangzhou
+herbal-tai-ju,Herbal,Tai Ju,台菊,Tai Chrysanthemum,
+herbal-bo-ju,Herbal,Bo Ju,亳菊,Bo Chrysanthemum,Bozhou
+herbal-chu-ju,Herbal,Chu Ju,滁菊,Chu Chrysanthemum,Chuzhou
+herbal-osmanthus,Herbal,Osmanthus,桂花,Gui Hua,
+herbal-rose,Herbal,Rose,玫瑰花,Mei Gui Hua,
+herbal-jasmine,Herbal,Jasmine,茉莉花,Mo Li Hua,
+herbal-hibiscus,Herbal,Hibiscus,洛神花,Luo Shen Hua;Roselle,
+herbal-butterfly-pea-flower,Herbal,Butterfly Pea Flower,蝶豆花,Blue Pea;Clitoria,
+herbal-lavender,Herbal,Lavender,薰衣草,,
+herbal-chamomile,Herbal,Chamomile,洋甘菊,,
+herbal-elderflower,Herbal,Elderflower,,,
+herbal-calendula,Herbal,Calendula,,Marigold Flower,
+herbal-linden-flower,Herbal,Linden Flower,,Tilleul,
+herbal-lotus-leaf,Herbal,Lotus Leaf,荷叶,He Ye,
+herbal-lily-bulb,Herbal,Lily Bulb,百合,Bai He,
+herbal-jin-yin-hua,Herbal,Jin Yin Hua,金银花,Honeysuckle Flower,
+herbal-peppermint,Herbal,Peppermint,薄荷,Bo He,
+herbal-spearmint,Herbal,Spearmint,,,
+herbal-lemongrass,Herbal,Lemongrass,柠檬草,Citronella,
+herbal-lemon-verbena,Herbal,Lemon Verbena,,Verbena,
+herbal-lemon-balm,Herbal,Lemon Balm,,Melissa,
+herbal-tulsi,Herbal,Tulsi,,Holy Basil;Sacred Basil,
+herbal-echinacea,Herbal,Echinacea,,,
+herbal-nettle,Herbal,Nettle,,Stinging Nettle,
+herbal-moringa,Herbal,Moringa,,Drumstick Leaf;Malunggay,
+herbal-dandelion,Herbal,Dandelion,蒲公英,Pu Gong Ying,
+herbal-mulberry-leaf,Herbal,Mulberry Leaf,桑叶,Sang Ye,
+herbal-pandan,Herbal,Pandan,,Screwpine Leaf,
+herbal-ginger,Herbal,Ginger,生姜,Sheng Jiang,
+herbal-turmeric,Herbal,Turmeric,姜黄,Jiang Huang,
+herbal-licorice-root,Herbal,Licorice Root,甘草,Gan Cao,
+herbal-cinnamon,Herbal,Cinnamon,肉桂,Rou Gui Bark,
+herbal-ginseng,Herbal,Ginseng,人参,Ren Shen,
+herbal-ashwagandha,Herbal,Ashwagandha,,Indian Ginseng,
+herbal-goji-berry,Herbal,Goji Berry,枸杞,Wolfberry;Gou Qi Zi,
+herbal-hawthorn,Herbal,Hawthorn,山楂,Shan Zha,
+herbal-longan,Herbal,Longan,龙眼,Long Yan;Dragon Eye,
+herbal-jujube,Herbal,Jujube,红枣,Red Date;Hong Zao,
+herbal-schisandra,Herbal,Schisandra,五味子,Wu Wei Zi;Five Flavor Berry,
+herbal-luo-han-guo,Herbal,Luo Han Guo,罗汉果,Monk Fruit,
+herbal-rooibos,Herbal,Rooibos,,Red Bush;South African Red,
+herbal-honeybush,Herbal,Honeybush,,Cyclopia,
+herbal-ba-bao-cha,Herbal,Ba Bao Cha,八宝茶,Eight Treasure Tea,
+herbal-ku-ding-cha,Herbal,Ku Ding Cha,苦丁茶,Bitter Spike Tea,
+herbal-chrysanthemum-puerh,Herbal,Chrysanthemum Puerh,菊普,Ju Pu,

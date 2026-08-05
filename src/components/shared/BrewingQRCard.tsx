@@ -2,6 +2,24 @@ import React from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { buildWhatsAppUrl } from '../../lib/whatsapp';
 
+/**
+ * @color-literals
+ *
+ * Two reasons, and both are the documented exception rather than a shortcut.
+ *
+ * The `compact` branch is a 200x96 label that goes to a label printer and ends
+ * up stuck on a tin. It has no theme, because paper has no theme, and a custom
+ * property would bake in whichever mode the operator happened to be in when
+ * they hit print. White stock, black text, grey wordmark, fixed.
+ *
+ * The white plate behind the QR in the full card is the same kind of fact. A
+ * QR code is read by a camera looking for dark modules inside a light quiet
+ * zone; inverting it on a dark theme is not a restyle, it is a code that stops
+ * scanning. The plate is part of the encoding, not part of the surface.
+ *
+ * Nothing else in this file may add a literal. See COLOR_RULES.md Rule 11.
+ */
+
 export interface BrewingQRCardProps {
   teaName: string;
   teaType: string; // slug used in URL, e.g. 'gongfu-oolong'
@@ -199,7 +217,7 @@ export const BrewingQRCard: React.FC<BrewingQRCardProps> = ({
           Share via WhatsApp
         </a>
 
-        {/* Print styles — injected once per render via <style> */}
+        {/* Print styles, injected once per render via <style> */}
         <style>{`
           @media print {
             .brewing-qr-label {

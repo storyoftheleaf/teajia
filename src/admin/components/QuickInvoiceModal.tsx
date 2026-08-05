@@ -362,7 +362,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
         <div className="overflow-y-auto overscroll-contain custom-scrollbar flex-1">
           <div className="px-6 py-5 space-y-7">
 
-            {/* Customer — labeled "For" */}
+            {/* Customer, labeled "For" */}
             <div ref={customerRef} className="relative">
               <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2 block">For</label>
               <div className="relative">
@@ -463,7 +463,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
               )}
             </div>
 
-            {/* Currency — pill tabs, no dropdown */}
+            {/* Currency: pill tabs, no dropdown */}
             <div>
               <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2.5 block">Currency</label>
               <div className="flex flex-wrap gap-1.5">
@@ -473,7 +473,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                     onClick={() => setCurrency(c)}
                     className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-150 ${
                       currency === c
-                        ? 'bg-tea-gold text-tea-bg'
+                        ? 'cta-solid'
                         : 'bg-tea-surface text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated border border-tea-border'
                     }`}
                   >
@@ -483,7 +483,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
               </div>
             </div>
 
-            {/* Line Items — numbered like a tea menu */}
+            {/* Line Items, numbered like a tea menu */}
             <div>
               <div className="flex items-center justify-between mb-4">
                 <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Items</label>
@@ -503,7 +503,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                   >
                     <div className="flex items-start gap-3 py-4">
 
-                      {/* Ordinal number — editorial gold numeral */}
+                      {/* Ordinal number, editorial gold numeral */}
                       <span
                         className="font-serif text-ui-26 leading-none text-tea-gold/25 shrink-0 select-none tabular-nums"
                         style={{ minWidth: '2rem', textAlign: 'right' }}
@@ -514,7 +514,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                       {/* Content */}
                       <div className="flex-1 min-w-0">
 
-                        {/* Name — serif, underline style */}
+                        {/* Name: serif, underline style */}
                         <div className="relative">
                           <input
                             ref={el => { nameInputRefs.current[item.localId] = el; }}
@@ -584,7 +584,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                           )}
                         </div>
 
-                        {/* Qty / Unit / Price — compact row below name */}
+                        {/* Qty / Unit / Price, compact row below name */}
                         <div className="flex items-center gap-2 mt-2.5">
                           <input
                             type="number" min={0} step={1}
@@ -637,7 +637,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
               </div>
             </div>
 
-            {/* Notes — minimal underline style */}
+            {/* Notes, minimal underline style */}
             <div>
               <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2 block">Notes</label>
               <textarea
@@ -653,7 +653,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
           </div>
         </div>
 
-        {/* Footer — sticky, with large total display */}
+        {/* Footer: sticky, with large total display */}
         <div className="px-6 pt-4 pb-nav-gap border-t border-tea-border shrink-0">
 
           {/* Shipping */}
@@ -670,7 +670,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
             </div>
           </div>
 
-          {/* Subtotal row — only shown when shipping > 0 */}
+          {/* Subtotal row, only shown when shipping > 0 */}
           {shipping > 0 && (
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs text-tea-text-dim">Subtotal</span>
@@ -678,7 +678,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
             </div>
           )}
 
-          {/* Total — large editorial display */}
+          {/* Total, large editorial display */}
           <div className="flex items-baseline justify-between py-3.5 border-t border-tea-border">
             <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Total</span>
             <div className="text-right">
@@ -704,7 +704,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
             <button
               onClick={() => handleSave(true)}
               disabled={saving}
-              className="flex-1 px-4 py-2.5 rounded-xl text-sm text-tea-bg bg-tea-gold hover:bg-tea-gold/90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              className="flex-1 px-4 py-2.5 rounded-xl text-sm cta-solid active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {saving ? (
                 <Loader2 size={14} className="animate-spin" />

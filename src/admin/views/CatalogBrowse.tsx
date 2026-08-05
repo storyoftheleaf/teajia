@@ -6,7 +6,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import type { NetworkCatalogProfile } from '../../types';
 
-// ── Carry-from-network catalog browse — Surface 1 per docs/NETWORK_UI_BRIEF.md ──
+// ── Carry-from-network catalog browse: Surface 1 per docs/NETWORK_UI_BRIEF.md ──
 //
 // "Carried successfully" notification strategy: localStorage flash message.
 // On carry commit we write { id, name, ts } to localStorage key
@@ -62,7 +62,7 @@ interface CarryFormProps {
 const CarryForm: React.FC<CarryFormProps> = ({ profile, callerCurrency, onCarried, onCancel }) => {
   // Default retail: the curator's own retail price (per 100g) in their currency.
   // The carry endpoint converts whatever amount+currency we submit to USD, and the
-  // storefront re-displays it in this store's currency — so submitting the curator's
+  // storefront re-displays it in this store's currency, so submitting the curator's
   // retail in the curator's currency lands the new listing at the same price Adrian
   // sells it for, with this store free to adjust afterward.
   const curatorRetailPer100g = useMemo(() => {
@@ -131,7 +131,7 @@ const CarryForm: React.FC<CarryFormProps> = ({ profile, callerCurrency, onCarrie
         </label>
       </div>
 
-      {/* Retail price field — prefilled to the curator's retail; optional to change */}
+      {/* Retail price field, prefilled to the curator's retail; optional to change */}
       <div>
         <label className="flex items-baseline justify-between gap-4">
           <span className="text-tea-text-sec text-ui-13 w-44 shrink-0">Retail price</span>
@@ -157,7 +157,7 @@ const CarryForm: React.FC<CarryFormProps> = ({ profile, callerCurrency, onCarrie
           </p>
         ) : (
           <p className="text-tea-text-sec italic text-ui-12 leading-[1.6] mt-2 pl-0 md:pl-48">
-            No reference price for this tea yet — set your retail price.
+            No reference price for this tea yet, set your retail price.
           </p>
         )}
       </div>
@@ -223,7 +223,7 @@ const ProfileDrawer: React.FC<DrawerProps> = ({ profile, callerCurrency, onClose
         onClick={onClose}
         aria-hidden="true"
       />
-      {/* Drawer / sheet — full-screen on mobile, right-side panel on desktop */}
+      {/* Drawer / sheet: full-screen on mobile, right-side panel on desktop */}
       <div
         role="dialog"
         aria-modal="true"
@@ -296,7 +296,7 @@ const ProfileDrawer: React.FC<DrawerProps> = ({ profile, callerCurrency, onClose
             </p>
           )}
 
-          {/* Flavor / mood tags live in tasting per Decision 23 — not exposed by the catalog endpoint. */}
+          {/* Flavor / mood tags live in tasting per Decision 23, not exposed by the catalog endpoint. */}
 
           {/* Hairline */}
           <div className="h-px bg-tea-border my-4" />
@@ -458,7 +458,7 @@ const CatalogCard: React.FC<CatalogCardProps> = ({ profile, onSelect, isHovered,
           {/* Hairline */}
           <div className="h-px bg-tea-border my-3" />
 
-          {/* CTA — bronze only on hover */}
+          {/* CTA, bronze only on hover */}
           <div className="self-start">
             <span
               className={`font-body text-ui-14 tracking-[0.02em] transition-colors group ${
@@ -499,7 +499,7 @@ export const CatalogBrowse: React.FC<CatalogBrowseProps> = ({ embedded = false }
     })),
   );
 
-  // Bundle gate — Catalog bundle required
+  // Bundle gate: Catalog bundle required
   const hasCatalog = selectHasBundle({ memberships, activeAccountId, platformRole }, 'catalog');
 
   // Caller's display currency: first non-empty currency in membership or default AUD
@@ -579,7 +579,7 @@ export const CatalogBrowse: React.FC<CatalogBrowseProps> = ({ embedded = false }
   return (
     <div className={outerClass}>
 
-      {/* Network error — stale data notice */}
+      {/* Network error, stale data notice */}
       {networkError && (
         <p className="font-body italic text-ui-14 text-tea-text-sec leading-[1.6] mb-6">
           Couldn't reach the catalog. Showing the last known state.
@@ -596,7 +596,7 @@ export const CatalogBrowse: React.FC<CatalogBrowseProps> = ({ embedded = false }
         </p>
       </header>
 
-      {/* Filter row — comma-separated text-links */}
+      {/* Filter row, comma-separated text-links */}
       {teaTypes.length > 0 && (
         <nav className="mb-8 flex flex-wrap gap-x-0 gap-y-1 font-body text-ui-14" aria-label="Filter by type">
           <button
@@ -621,7 +621,7 @@ export const CatalogBrowse: React.FC<CatalogBrowseProps> = ({ embedded = false }
         </nav>
       )}
 
-      {/* Empty — carries everything */}
+      {/* Empty, carries everything */}
       {!networkError && profiles?.length === 0 && (
         <p className="font-body italic text-ui-16 text-tea-text-sec leading-[1.7]">
           You carry everything Adrian curates. New harvests appear here as Adrian publishes them.
@@ -660,7 +660,7 @@ export const CatalogBrowse: React.FC<CatalogBrowseProps> = ({ embedded = false }
                 'teajia_carried_flash',
                 JSON.stringify({ id: listingId, name, ts: Date.now() }),
               );
-            } catch { /* storage blocked — flash won't show, not fatal */ }
+            } catch { /* storage blocked, flash won't show, not fatal */ }
             navigate('/admin/stock');
           }}
         />

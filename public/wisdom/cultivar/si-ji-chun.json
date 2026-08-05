@@ -1,0 +1,39 @@
+{
+  "id": "si-ji-chun",
+  "name": "Si Ji Chun",
+  "chineseName": "四季春",
+  "altNames": [
+    "Four Seasons Oolong"
+  ],
+  "originCountry": "Taiwan",
+  "originRegion": "Nantou",
+  "developedYear": 1980,
+  "parentage": "Natural cross-pollination of Wu Yi and Qing Xin Gan Zhi.",
+  "description": "'Four Seasons Spring'. A famously prolific and aromatic cultivar, discovered as a natural cross in the 1980s. It's named for its ability to be harvested almost year-round, while still producing a tea with an explosive, forward, and highly accessible floral aroma, primarily of gardenia and jasmine.",
+  "plantType": "Extremely vigorous, dense, and highly productive bush (Camellia sinensis var. sinensis).",
+  "environment": "Thrives in lower-altitude, warmer, and more humid climates, which allows for its near-constant flushing and harvesting.",
+  "processing": "Processing is fast and efficient, aimed at capturing the cultivar's potent upfront aroma. It is a workhorse cultivar that responds well to standard green oolong processing.",
+  "oxidation": "Oxidation is kept very light (10-20%) to ensure the final product is dominated by the fresh, powerful gardenia and jasmine notes.",
+  "roasting": "Unroasted. Its value lies in its fresh floral aroma, which would be destroyed by any significant roasting.",
+  "versatility": "Low versatility. While incredibly productive, it is a specialist in producing one type of tea: a fragrant, accessible, and affordable light oolong. It lacks the structure for other styles.",
+  "distribution": {
+    "taiwan": [
+      "Nantou County (Mingjian is the largest area)",
+      "Other low-altitude regions"
+    ]
+  },
+  "expressions": {
+    "Oolong Tea (Aromatic Style)": {
+      "Si Ji Chun Oolong": "Almost always made as a very lightly oxidized, unroasted oolong (often in the twisted Baozhong style) to maximize its powerful, fresh floral aroma. It's a popular daily-drinker tea."
+    }
+  },
+  "sensory": {
+    "aroma": "Intense, forward Gardenia, Jasmine, and other white flowers",
+    "flavor": "Crisp, highly floral, and slightly pungent with a brisk finish.",
+    "mouthfeel_liquor": "Light-to-medium-bodied with a fresh, clean texture. The liquor is a pale green-yellow."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

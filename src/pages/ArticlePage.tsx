@@ -1,3 +1,19 @@
+/**
+ * @color-literals. Decided, not deferred.
+ *
+ * The token block `T` below is the rule in this file: chrome, type and surfaces
+ * all read `var(--tea-*)`. What is exempt is the plate art, and only the plate
+ * art: the radial washes behind a cover, the concentric rings of the compass
+ * plate, the gradient scrim that lets a title sit on a photograph. Those are
+ * drawings, and the page they are drawn on is a fixed 1080x1350 frame designed
+ * to be screenshotted at that size and posted. A rasteriser reads computed
+ * inline values, so a custom property in a plate bakes in whichever theme the
+ * sender happened to be using when they hit export.
+ *
+ * Same reasoning as components/tasting/TastingCard.tsx, and the same condition:
+ * a colour that is chrome rather than art still takes a token. See
+ * COLOR_RULES.md Rule 11.
+ */
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
@@ -7,7 +23,7 @@ import type { DbArticle } from '../types';
 import { SharePanel, type SharePage } from '../components/article/SharePanel';
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Article Pages Reader — 4:5 paginated, Instagram + book ready.
+//  Article Pages Reader, 4:5 paginated, Instagram + book ready.
 //
 //  Every page is rendered inside a strict 4:5 frame so a screenshot at
 //  1080×1350 is shippable without any export step. The on-screen reader
@@ -132,7 +148,7 @@ function buildPages(article: DbArticle): Page[] {
     });
   }
 
-  // 2. Masthead — built from intro block
+  // 2. Masthead, built from intro block
   if (firstIntro && firstIntro.type === 'intro') {
     pages.push({
       kind: 'masthead',
@@ -144,7 +160,7 @@ function buildPages(article: DbArticle): Page[] {
     });
   }
 
-  // 3. Body — every block becomes one page (parser already shaped them this way)
+  // 3. Body, every block becomes one page (parser already shaped them this way)
   blocks.forEach(block => {
     switch (block.type) {
       case 'intro':
@@ -1030,7 +1046,7 @@ const QuotePage: React.FC<{ page: Extract<Page, { kind: 'quote' }> }> = ({ page 
             marginTop: '32.4px',
           }}
         >
-          — {page.attribution}
+         {page.attribution}
         </div>
       )}
       <div style={{ flex: 1.2 }} />
@@ -1986,7 +2002,7 @@ const ListPage: React.FC<{ page: Extract<Page, { kind: 'list' }> }> = ({ page })
 // could lazy-load the actual iframe but for shareability the still is correct.
 const EmbedPage: React.FC<{ page: Extract<Page, { kind: 'embed' }> }> = ({ page }) => {
   // Real video thumbnails will go here once Cloudinary/real externalIds are
-  // wired in. For now: typographic plate with a play affordance — no stock
+  // wired in. For now: typographic plate with a play affordance, no stock
   // YouTube thumbnail.
   return (
     <PageFrame>
@@ -2136,7 +2152,7 @@ const BackMatterPage: React.FC<{ page: Extract<Page, { kind: 'back_matter' }> }>
   </PageFrame>
 );
 
-// ─── Image variants — extend ImagePage to handle multi-image layouts ─────────
+// ─── Image variants, extend ImagePage to handle multi-image layouts ─────────
 const MultiImagePage: React.FC<{ page: Extract<Page, { kind: 'image' }> }> = ({ page }) => {
   const variant = page.variant;
   const imgs = page.images ?? (page.url ? [page.url] : []);
@@ -2585,7 +2601,7 @@ export default function ArticlePage() {
     return intro && 'text' in intro ? intro.text.slice(0, 160) : undefined;
   })();
 
-  // Article JSON-LD for AI/search — mirrors the Product schema on ProductPage.
+  // Article JSON-LD for AI/search, mirrors the Product schema on ProductPage.
   const articleSlug = (article as any).slug || article.id;
   const articleAuthor = article.author_name || formatAuthor(article.author_id);
   const articleStructuredData = {
@@ -2598,13 +2614,13 @@ export default function ArticlePage() {
     ...((article.updated_at || article.created_at) && { dateModified: article.updated_at || article.created_at }),
     ...(articleAuthor && { author: { '@type': 'Person', name: articleAuthor } }),
     publisher: { '@type': 'Organization', name: 'Teajia' },
-    mainEntityOfPage: `https://teajia.co/article/${articleSlug}`,
+    mainEntityOfPage: `https://teajia.com/article/${articleSlug}`,
   };
 
   return (
     <>
       <Helmet>
-        <title>{article.title} — Teajia</title>
+        <title>{article.title} · Teajia</title>
         {description && <meta name="description" content={description} />}
         <meta property="og:type" content="article" />
         <meta property="og:title" content={article.title} />
@@ -2615,7 +2631,7 @@ export default function ArticlePage() {
       </Helmet>
 
       <div
-        aria-label={`${article.title} — paginated reader`}
+        aria-label={`${article.title}, paginated reader`}
         style={{
           position: 'fixed',
           inset: 0,
@@ -2630,7 +2646,7 @@ export default function ArticlePage() {
       >
         <style>{FRAME_STYLES}</style>
 
-        {/* Atmospheric backdrop grain — outside the page frame, makes the page feel like a sheet on a desk */}
+        {/* Atmospheric backdrop grain, outside the page frame, makes the page feel like a sheet on a desk */}
         <div
           aria-hidden="true"
           style={{

@@ -44,7 +44,7 @@ const REASON_LABELS: Record<string, string> = {
   CREATION: 'Created',
 };
 
-// Canonical ledger column header — used across all three tab tables
+// Canonical ledger column header, used across all three tab tables
 const headerCellClass = (align: 'left' | 'right' | 'center' = 'left') =>
   `px-4 py-2 border-b border-tea-border font-serif text-ui-11 uppercase tracking-display font-normal text-tea-text-sec text-${align}`;
 
@@ -122,7 +122,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
     setLogOffset(0);
   };
 
-  // Active counter for the top strip — varies by tab
+  // Active counter for the top strip, varies by tab
   const activeCount =
     activeTab === 'archive' ? soldOutProducts.length :
     activeTab === 'logs'    ? logsTotal :
@@ -135,7 +135,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
   return (
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
 
-      {/* Header — when hosted by ActivityView, skip the redundant tab bar and only show contextual controls */}
+      {/* Header: when hosted by ActivityView, skip the redundant tab bar and only show contextual controls */}
       {isHosted ? (
         /* Slim contextual header: just the action controls for the active tab */
         (activeTab === 'logs' || activeTab === 'archive') ? (
@@ -202,7 +202,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
             )}
           </div>
 
-          {/* Tab strip — bottom-border underline */}
+          {/* Tab strip, bottom-border underline */}
           <div className="flex items-center gap-6 px-4 md:px-6 lg:px-10 max-w-7xl mx-auto border-b border-tea-border">
             {([
               { id: 'archive', label: 'Archive', icon: <Archive size={13} /> },
@@ -251,7 +251,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
             </div>
           )}
 
-          {/* Top strip — counter (right-aligned) */}
+          {/* Top strip, counter (right-aligned) */}
           <div className="px-4 md:px-6 lg:px-10 max-w-7xl mx-auto flex items-center justify-end py-2">
             <span className="label-caps text-tea-text-dim tabular-nums">{activeCount} {activeLabel}</span>
           </div>
@@ -348,7 +348,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
           </div>
         )}
 
-        {/* TAB: ARCHIVE — Mobile */}
+        {/* TAB: ARCHIVE, Mobile */}
         {activeTab === 'archive' && (
           <div className="md:hidden pb-nav">
             {soldOutProducts.length === 0 ? (
@@ -443,7 +443,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                   </tbody>
                 </table>
 
-                {/* Bottom strip — pagination */}
+                {/* Bottom strip, pagination */}
                 {logsTotal > PAGE_SIZE && (
                   <div className="flex items-center justify-between px-4 py-3 border-t border-tea-border bg-tea-bg">
                     <span className="font-serif text-ui-13 tabular-nums text-tea-text-dim">
@@ -477,7 +477,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
               </div>
             )}
 
-            {/* Logs — Mobile */}
+            {/* Logs: Mobile */}
             {!logsLoading && (
               <div className="md:hidden px-3 pt-3 pb-nav space-y-2">
                 {logs.length === 0 ? (
@@ -617,7 +617,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                   </tbody>
                 </table>
 
-                {/* Bottom strip — pagination */}
+                {/* Bottom strip, pagination */}
                 {ledgerTotal > PAGE_SIZE && (
                   <div className="flex items-center justify-between px-4 py-3 border-t border-tea-border bg-tea-bg">
                     <span className="font-serif text-ui-13 tabular-nums text-tea-text-dim">
@@ -651,7 +651,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
               </div>
             )}
 
-            {/* Stock Ledger — Mobile */}
+            {/* Stock Ledger: Mobile */}
             {!ledgerLoading && (
               <div className="md:hidden px-3 pt-3 pb-nav space-y-2">
                 {ledgerEntries.length === 0 ? (

@@ -1,0 +1,40 @@
+{
+  "id": "huang-jin-gui",
+  "name": "Huang Jin Gui",
+  "chineseName": "黄金桂",
+  "altNames": [
+    "Huang Dan",
+    "Golden Osmanthus"
+  ],
+  "originCountry": "China",
+  "originRegion": "Anxi (Fujian)",
+  "developedYear": 1801,
+  "parentage": "Selected from the native Anxi heirloom population.",
+  "description": "'Golden Osmanthus'. A classic Anxi oolong celebrated for its singular, intense, and unmistakable aroma of sweet osmanthus flowers. It is an early-budding and high-yielding cultivar, prized for its ability to produce a light, crisp, and almost perfume-like tea that serves as a benchmark for pure floral aroma.",
+  "plantType": "Early-budding, productive, spreading bush (Camellia sinensis var. sinensis).",
+  "environment": "Thrives in the Hukou area of Anxi county, where the specific terroir is said to produce the most fragrant expression of the cultivar.",
+  "processing": "The processing of Huang Jin Gui is a race against time to capture its volatile aromatics. The leaves are delicate and require gentle handling and a short processing window.",
+  "oxidation": "Oxidation is very light (10-20%), just enough to eliminate the green, grassy notes and allow the powerful osmanthus fragrance to fully emerge.",
+  "roasting": "Completely unroasted, aside from a final low-temperature bake for drying and stabilization. Any significant roasting would erase its signature character.",
+  "versatility": "Not versatile at all. Huang Jin Gui is a master of a single craft: producing an intensely aromatic, light-bodied green oolong. Its entire value is based on this specialization.",
+  "distribution": {
+    "china": [
+      "Fujian Province (Anxi, particularly Hukou township)",
+      "Taiwan"
+    ]
+  },
+  "expressions": {
+    "Anxi Oolong (Light & Aromatic)": {
+      "Huang Jin Gui Oolong": "This is its one and only famous expression. It is processed as a very green, unroasted oolong to capture its fleeting, powerful osmanthus fragrance at its peak."
+    }
+  },
+  "sensory": {
+    "aroma": "Overwhelming sweet Osmanthus, perfume-like, fresh flowers",
+    "flavor": "Light, crisp, sweet, and intensely floral with a clean, brisk finish.",
+    "mouthfeel_liquor": "Relatively thin-bodied and delicate with no astringency. The liquor is a very pale, clear golden-yellow."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

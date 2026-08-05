@@ -1,0 +1,13 @@
+{
+  "id": "oolong-si-ji-chun",
+  "type": "Oolong",
+  "name": "Si Ji Chun",
+  "chineseName": "四季春",
+  "altNames": [
+    "Four Seasons Spring"
+  ],
+  "region": "Taiwan",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

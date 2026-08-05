@@ -17,7 +17,7 @@ export interface ResolvedTasting {
  *   2. Community-aggregated tasting (tastingSource === 'community')
  *   3. Style-level common profile (falls back for everything else)
  *
- * Returns null only if the product has no style match *and* no saved tasting —
+ * Returns null only if the product has no style match *and* no saved tasting,
  * in which case no tasting strip should render.
  */
 export function useProductTasting(item: Pick<InventoryItem, 'type' | 'tasting' | 'tastingSource'> | null | undefined): ResolvedTasting | null {
@@ -26,7 +26,7 @@ export function useProductTasting(item: Pick<InventoryItem, 'type' | 'tasting' |
 
     const itemHasTerms = !!(item.tasting && hasAnyTerms(item.tasting));
 
-    // 1. Owner-authored data — Adrian's voice.
+    // 1. Owner-authored data: Adrian's voice.
     if (item.tastingSource === 'owner' && itemHasTerms) {
       return { tasting: item.tasting!, source: 'owner' };
     }
@@ -36,13 +36,13 @@ export function useProductTasting(item: Pick<InventoryItem, 'type' | 'tasting' |
       return { tasting: item.tasting!, source: 'community' };
     }
 
-    // 3. Explicit "common" stamp on this product — use the product's own
+    // 3. Explicit "common" stamp on this product, use the product's own
     //    tasting data but label it as style-typical (not owner-authored).
     if (item.tastingSource === 'common' && itemHasTerms) {
       return { tasting: item.tasting!, source: 'common' };
     }
 
-    // 4. Type-level fallback — baseline for the style, when no product-level
+    // 4. Type-level fallback, baseline for the style, when no product-level
     //    data exists. Currently empty; populate commonTastingByStyle.ts to enable.
     const common = getCommonTastingForType(item.type);
     if (common && hasAnyTerms(common)) {

@@ -1,0 +1,13 @@
+{
+  "id": "oolong-ruan-zhi",
+  "type": "Oolong",
+  "name": "Ruan Zhi",
+  "chineseName": "软枝",
+  "altNames": [
+    "Soft Branch"
+  ],
+  "region": "Fujian",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

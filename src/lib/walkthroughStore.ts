@@ -3,23 +3,23 @@ import { persist } from 'zustand/middleware';
 import { api } from './api';
 
 /**
- * walkthroughStore — the "walk with me" companion state. When the owner starts
+ * walkthroughStore, the "walk with me" companion state. When the owner starts
  * a walk-through from the guide, the active walk-through + its steps live here,
  * and a floating dock (mounted at the app root) reads this so it follows the
  * owner across every page as they click "try it". Per-step verdicts and notes
  * (works / broken / looks wrong) are logged here and rolled up into the
  * "problems found" view back in the guide.
  *
- * Persisted to localStorage so navigating to a real admin page — or a full
- * reload mid-walk — never loses the active session or the problems logged.
+ * Persisted to localStorage so navigating to a real admin page, or a full
+ * reload mid-walk, never loses the active session or the problems logged.
  * This is owner-only tooling; nothing here is customer data.
  *
  * Durable save: every verdict/note also writes through to D1 (feature_status,
- * keyed by `${activeId}#${stepIndex}`) the instant it's set — so flagging a
+ * keyed by `${activeId}#${stepIndex}`) the instant it's set, so flagging a
  * problem on step 1 of 3 is saved server-side immediately, not just in
  * localStorage. The local log is the live working copy; D1 is the record that
  * the briefing guide's "problems found" rollup and the TODO.md sync read from.
- * Finishing a walk-through no longer wipes the log — problems persist until the
+ * Finishing a walk-through no longer wipes the log, problems persist until the
  * next walk-through is started.
  */
 
@@ -70,7 +70,7 @@ interface WalkthroughState {
  * "done" checkbox share the same feature_status row. Debounced per step so
  * typing a note doesn't fire a request per keystroke; verdict changes flush on
  * the same timer. Fire-and-forget: a failed save keeps the localStorage copy, so
- * nothing is lost — it just isn't on the server until the next successful write.
+ * nothing is lost, it just isn't on the server until the next successful write.
  */
 const saveTimers: Record<string, ReturnType<typeof setTimeout>> = {};
 function persistStep(walkId: string, index: number, verdict: StepVerdict, note: string) {

@@ -1,0 +1,13 @@
+{
+  "id": "oolong-gui-hua-xiang",
+  "type": "Oolong",
+  "name": "Gui Hua Xiang",
+  "chineseName": "桂花香",
+  "altNames": [
+    "Osmanthus Dan Cong"
+  ],
+  "region": "Phoenix Mountain",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

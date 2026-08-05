@@ -1,0 +1,13 @@
+{
+  "id": "oolong-rou-gui-xiang",
+  "type": "Oolong",
+  "name": "Rou Gui Xiang",
+  "chineseName": "肉桂香",
+  "altNames": [
+    "Cinnamon Dan Cong"
+  ],
+  "region": "Phoenix Mountain",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

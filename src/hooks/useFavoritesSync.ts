@@ -42,14 +42,14 @@ export function useFavoritesSync(isAuthenticated: boolean) {
         mergeFavorites(data.favorites);
       }
     } catch {
-      // Silently fail — localStorage remains the source of truth
+      // Silently fail, localStorage remains the source of truth
     }
   }, [mergeFavorites]);
 
   // Debounced push to server on changes (when authenticated)
   useEffect(() => {
     if (!isAuthenticated || !hasToken()) return;
-    // Skip the initial sync — only push after user actions
+    // Skip the initial sync, only push after user actions
     if (!hasFetchedRef.current) return;
 
     if (debounceRef.current) {
@@ -57,7 +57,7 @@ export function useFavoritesSync(isAuthenticated: boolean) {
     }
     debounceRef.current = setTimeout(() => {
       api.favorites.put(favoriteTeas).catch(() => {
-        // Silently fail — will retry on next change
+        // Silently fail, will retry on next change
       });
     }, 1000);
 

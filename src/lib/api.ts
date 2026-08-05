@@ -14,7 +14,7 @@ export type CurateImportInventoryPurpose = 'working' | 'sample' | 'personal';
 export type CurateImportProvenanceState = 'source_fact' | 'canonical_match' | 'ai_interpretation' | 'user_edit' | 'not_present' | 'uncertain';
 export type CurateImportValidationState = 'source_fact' | 'ai_interpretation' | 'canonical_match' | 'validated' | 'not_present' | 'uncertain';
 export type CurateImportCanonicalField =
-  | 'originalName' | 'englishName' | 'chineseName' | 'category' | 'type' | 'classification' | 'form' | 'year'
+  | 'originalName' | 'englishName' | 'chineseName' | 'category' | 'type' | 'classification' | 'cultivar' | 'producer' | 'form' | 'year'
   | 'originCountry' | 'originRegion' | 'description' | 'packWeight' | 'weightUnit' | 'packCount' | 'priceAmountExact'
   | 'currency' | 'priceBasis' | 'lineCostExact' | 'unitCostExact' | 'totalQuantityGrams' | 'totalUnits'
   | 'disposition' | 'inventoryPurpose' | 'vendorResolution' | 'identityResolution' | 'holdingResolution';
@@ -28,7 +28,7 @@ export type CurateImportHoldingResolution = { kind: 'existing'; productId: strin
 export interface CurateImportCanonicalRecord {
   sourceId?: string | null; sourceItemId?: string | null; evidenceRefs?: string[]; sourceExcerpt?: string | null; sourceLanguage?: string | null;
   englishName?: string | null; originalName?: string | null; chineseName?: string | null; category?: 'tea' | 'teaware';
-  type?: string | null; classification?: string | null; form?: string | null; year?: number | null;
+  type?: string | null; classification?: string | null; cultivar?: string | null; producer?: string | null; form?: string | null; year?: number | null;
   originCountry?: string | null; originRegion?: string | null; description?: string | null;
   packWeight?: number | null; weightUnit?: 'g' | 'kg' | 'count' | null; packCount?: number | null;
   priceAmount?: number | string | null; priceAmountExact?: string | null; currency?: string | null;
@@ -138,7 +138,7 @@ export interface PlatformUser {
   username?: string | null;
   platform_role: PlatformRole;
   created_at: string;
-  shelf_enabled?: boolean;   // stock spine step 5 — public shelf granted
+  shelf_enabled?: boolean;   // stock spine step 5, public shelf granted
   shelf_slug?: string | null;
   memberships: { account_id: string; role: string }[];
 }
@@ -157,7 +157,7 @@ export interface PlatformAccount {
   features: Record<string, boolean>;
 }
 
-// Stock spine step 3 — one row of the all-locations master view (the movement).
+// Stock spine step 3: one row of the all-locations master view (the movement).
 export interface PlatformStockRow {
   id: string;
   type: string;
@@ -186,7 +186,7 @@ export interface PlatformStockRow {
   owner_email: string | null;
 }
 
-// Stock spine step 4 — one item in a user's personal cellar.
+// Stock spine step 4: one item in a user's personal cellar.
 export interface CellarItem {
   id: string;
   name: string;
@@ -209,7 +209,7 @@ export interface CellarPlacementRequest extends CellarItem {
   ownerEmail?: string | null;
 }
 
-// Stock spine step 5 — the seller's own shelf settings (grant state + identity).
+// Stock spine step 5: the seller's own shelf settings (grant state + identity).
 export interface ShelfSettings {
   enabled: boolean;
   slug: string | null;
@@ -217,7 +217,7 @@ export interface ShelfSettings {
   whatsapp: string | null;
 }
 
-// One item on a public shelf — public-safe fields only.
+// One item on a public shelf, public-safe fields only.
 export interface PublicShelfItem {
   id: string;
   name: string;
@@ -264,7 +264,7 @@ import { classifyIncident } from './incidents';
 
 // Production talks to the API on the app's OWN origin (teajia.com /
 // www.teajia.com), NOT a dedicated api.* host. The custom domain api.teajia.com
-// — like *.workers.dev — is blocked/reset by the Great Firewall, so anything
+//, like *.workers.dev, is blocked/reset by the Great Firewall, so anything
 // pointed at it silently fails in mainland China (sign-in, photo upload,
 // transcription, compass sync) even though the site itself loads fine. The
 // `teajia.com/api/*` path is served by a Cloudflare Pages Function
@@ -284,7 +284,7 @@ const REQUEST_TIMEOUT_MS = 30_000;
 
 // Public base URL for share links (collection links sent to recipients). These
 // must point at the deployed customer site, NOT wherever the admin happens to be
-// browsing — a `localhost` link is useless (and breaks over https in dev). In
+// browsing, a `localhost` link is useless (and breaks over https in dev). In
 // production window.location.origin is already correct; in local dev we fall
 // back to the live site so a copied link actually works when sent.
 const PUBLIC_SITE_URL: string = (() => {
@@ -317,7 +317,7 @@ function announceTokenChange() {
 
 export function setToken(token: string) {
   // Persist to localStorage so sessions survive browser restarts and deploys.
-  // iOS Safari private mode / strict ITP can throw on localStorage.setItem —
+  // iOS Safari private mode / strict ITP can throw on localStorage.setItem, so
   // fall back to sessionStorage so the session at least survives the tab.
   try {
     localStorage.setItem('teajia_token', token);
@@ -325,7 +325,7 @@ export function setToken(token: string) {
   } catch {
     try {
       sessionStorage.setItem('teajia_token', token);
-    } catch { /* storage fully blocked — session cannot be persisted */ }
+    } catch { /* storage fully blocked, session cannot be persisted */ }
   }
   _invalidateClaimsCache();
   announceTokenChange();
@@ -389,7 +389,7 @@ export function hasToken(): boolean {
 // Decoding the JWT payload on every request (authHeaders is called for every
 // authenticated fetch) is wasteful. We cache the decoded object in module
 // scope and invalidate it whenever the token changes (setToken / clearToken /
-// after a successful refresh). The cache is keyed implicitly — any token
+// after a successful refresh). The cache is keyed implicitly, any token
 // change calls _invalidateClaimsCache() so the next getDecodedClaims() call
 // re-decodes from the new token.
 let _cachedClaims: Record<string, unknown> | null = null;
@@ -419,7 +419,7 @@ export const isConfigured = !!API_URL;
 /** Check whether the stored JWT is expired (with 60s buffer). */
 export function isTokenExpired(): boolean {
   const claims = getTokenClaims();
-  if (!claims?.exp) return false; // No expiry claim — let server decide
+  if (!claims?.exp) return false; // No expiry claim, let server decide
   return Date.now() >= claims.exp * 1000 - 60_000;
 }
 
@@ -453,7 +453,7 @@ function authHeaders(): Record<string, string> {
     if (activeAccountId) {
       headers['X-Teajia-Account'] = activeAccountId;
     } else {
-      // JWT doesn't carry active_account_id (e.g. very old token shape) —
+      // JWT doesn't carry active_account_id (e.g. very old token shape), so
       // fall back to Zustand state. Log so we know it happened.
       try {
         const storeAccountId = useAppStore.getState().activeAccountId;
@@ -461,7 +461,7 @@ function authHeaders(): Record<string, string> {
           console.warn('[api] X-Teajia-Account: JWT claim absent, falling back to Zustand state');
           headers['X-Teajia-Account'] = storeAccountId;
         }
-      } catch { /* store not ready — header omitted */ }
+      } catch { /* store not ready, header omitted */ }
     }
   }
   return headers;
@@ -548,9 +548,9 @@ async function updateProductByDomain(id: string, data: Record<string, any>) {
 // Coordinates ongoing refresh calls so many concurrent requests don't each
 // fire their own refresh when a page first loads a stale token.
 //
-// 'refreshed'     — new token issued and stored; retry the original call
-// 'rejected'      — server explicitly rejected the token (non-2xx); log out
-// 'network_error' — couldn't reach the refresh endpoint; keep existing token
+// 'refreshed'    , new token issued and stored; retry the original call
+// 'rejected'     , server explicitly rejected the token (non-2xx); log out
+// 'network_error', couldn't reach the refresh endpoint; keep existing token
 type RefreshResult = 'refreshed' | 'rejected' | 'network_error';
 
 let inFlightRefresh: Promise<RefreshResult> | null = null;
@@ -571,7 +571,7 @@ async function refreshTokenNow(): Promise<RefreshResult> {
       signal: controller.signal,
     });
     // 5xx = server temporarily unavailable (cold start, DB blip, deployment).
-    // Do NOT log the user out for a transient infrastructure error — keep the
+    // Do NOT log the user out for a transient infrastructure error, keep the
     // existing token and let the next API call retry.
     if (res.status >= 500) return 'network_error';
     if (!res.ok) return 'rejected'; // 4xx = token genuinely invalid/expired
@@ -584,7 +584,7 @@ async function refreshTokenNow(): Promise<RefreshResult> {
     }
     return 'rejected';
   } catch {
-    // Network error or timeout — keep the old token; next success will retry.
+    // Network error or timeout, keep the old token; next success will retry.
     return 'network_error';
   } finally {
     clearTimeout(timeoutId);
@@ -604,7 +604,7 @@ export function ensureTokenRefreshed(): Promise<RefreshResult> {
 
 function maybeScheduleBackgroundRefresh() {
   if (!shouldProactivelyRefreshToken()) return;
-  // Throttle — don't retry more than once per minute on failure, since the
+  // Throttle, don't retry more than once per minute on failure, since the
   // refresh helper is best-effort and we don't want to hammer the API while
   // a Worker deploy is cycling.
   if (Date.now() - lastRefreshAttemptAt < 60_000) return;
@@ -625,25 +625,25 @@ function maybeScheduleBackgroundRefresh() {
  */
 // Transient network failures surface as a `fetch` TypeError (DNS hiccup, TLS
 // reset, momentary offline). In mainland China the most common cause is the
-// GFW resetting a Cloudflare connection mid-handshake — the API is reachable
+// GFW resetting a Cloudflare connection mid-handshake, the API is reachable
 // only in short, jumpy windows. A single-shot request (or one fast retry) lands
 // in a block window and turns into a hard "couldn't reach the server" even
 // though the server is up. So we retry network errors several times with
-// exponential backoff + jitter, and — when the browser reports itself offline —
+// exponential backoff + jitter, and, when the browser reports itself offline,
 // wait for the `online` event so the request fires the instant the connection
 // returns instead of burning the attempt on a guaranteed failure.
-// HTTP errors (4xx/5xx) are NOT retried — they come back as a resolved Response,
+// HTTP errors (4xx/5xx) are NOT retried, they come back as a resolved Response,
 // never a thrown TypeError, so they skip this path entirely.
 const NETWORK_RETRY_BACKOFF_MS = [600, 1800, 4000, 7000];
 
 // The GFW's other failure mode is a BLACKHOLED connection: no reset, the
 // request just hangs until our own abort fires. Those aborts used to surface
-// immediately as "Request timed out" with no second chance — the dominant
+// immediately as "Request timed out" with no second chance, the dominant
 // failure Adrian hit in China. Idempotent calls (GET/HEAD automatically, plus
 // writes that opt in via `retryTimeouts`, e.g. compass sync/delete which are
 // INSERT OR REPLACE / DELETE-by-id on the worker) now get a shorter
 // per-attempt budget and up to two fresh connections instead of one 30s hang.
-// Non-idempotent writes keep the old single-shot behavior — a timed-out
+// Non-idempotent writes keep the old single-shot behavior, a timed-out
 // request may still have reached the server, and e.g. invoice creation must
 // not double-fire.
 const TIMEOUT_RETRY_MAX = 2;
@@ -735,7 +735,7 @@ export async function fetchWithTimeout(url: string, options: ApiRequestInit = {}
       if ((isNetworkError || isTimeout) && attempt < NETWORK_RETRY_BACKOFF_MS.length) {
         clearTimeout(timeoutId);
         if (isTimeout) {
-          // The old connection already burned 15s — retry near-immediately on
+          // The old connection already burned 15s, retry near-immediately on
           // a fresh one rather than adding backoff on top.
           timeoutRetries++;
           await new Promise(resolve => setTimeout(resolve, 300));
@@ -876,7 +876,7 @@ async function handleResponse(res: Response) {
     throw error;
   }
   if (!res.ok) {
-    // Detect account access denial — clear active account and prompt UI reload.
+    // Detect account access denial, clear active account and prompt UI reload.
     // (401 refresh + retry is handled in authedFetch before this is called.)
     if (res.status === 403 && data?.code === 'account_access_denied') {
       try {
@@ -908,7 +908,7 @@ async function handleResponse(res: Response) {
 }
 
 /**
- * Authenticated fetch wrapper — the standard path for all API calls that
+ * Authenticated fetch wrapper, the standard path for all API calls that
  * require a JWT. Injects auth headers automatically (including
  * X-Teajia-Account derived from the JWT claim), and implements one-shot
  * retry on 401 so callers never see a "refresh succeeded but this call
@@ -924,11 +924,11 @@ async function handleResponse(res: Response) {
  *      - 'network_error' → transient; keep token, throw the original error.
  *   3. On retry success → return result transparently.
  *
- * The retry is not recursive — on 401 the second attempt goes straight to
+ * The retry is not recursive, on 401 the second attempt goes straight to
  * handleResponse, which throws if the fresh token is also rejected.
  */
 /** Auth headers adjusted for the request body. FormData bodies MUST NOT carry
- *  our default `Content-Type: application/json` — with an explicit header the
+ *  our default `Content-Type: application/json`, with an explicit header the
  *  browser can't append the multipart boundary, and the worker hard-rejects
  *  non-multipart uploads with 400. This single header bug broke every
  *  `api.uploadImage` call (photo capture, vendor photos, teaware, ledger). */
@@ -946,19 +946,19 @@ async function authenticatedResponse(url: string, init: ApiRequestInit = {}): Pr
   const res = await fetchWithTimeout(url, opts);
 
   if (res.status === 401 && hasToken()) {
-    // Read the body once here — the Response body stream can only be consumed
+    // Read the body once here, the Response body stream can only be consumed
     // once, so we capture it before branching on the refresh result.
     let bodyData: any;
     try { bodyData = JSON.parse(await res.text()); } catch { /* ignore */ }
     const reason = bodyData?.code as string | undefined;
 
-    // 'no_token' means the server got no Authorization header — a client-side
+    // 'no_token' means the server got no Authorization header, a client-side
     // bug, not an expired session. Refreshing would be pointless and could
     // falsely fire SESSION_EXPIRED.
     if (reason !== 'auth_no_token') {
       const refreshResult = await ensureTokenRefreshed();
       if (refreshResult === 'refreshed') {
-        // New token stored — retry ONCE with fresh auth headers.
+        // New token stored, retry ONCE with fresh auth headers.
         // The second call goes straight to handleResponse; there is no further
         // retry (the retry itself throws on 401, which surfaces SESSION_EXPIRED
         // correctly if the fresh token is also rejected).
@@ -1015,7 +1015,7 @@ export interface TokenClaims {
 
 /**
  * UTF-8 safe base64 decode. Plain `atob` returns a binary string whose code
- * units are the raw bytes — feeding that to JSON.parse corrupts any
+ * units are the raw bytes, feeding that to JSON.parse corrupts any
  * non-ASCII character (e.g. a Chinese `name` claim). TextDecoder gives us
  * the original UTF-8 string back.
  */
@@ -1182,13 +1182,13 @@ export const api = {
       note?: string; batch_id?: string; source_invoice_id?: string; source_invoice_number?: string; source_compass_entry_id?: string;
     }) => authedFetch(`${API_URL}/api/products/${productId}/movements`, { method: 'POST', body: JSON.stringify(body), retryTimeouts: true }),
   },
-  // Working Feature Guide — admin-only internal build tracker.
+  // Working Feature Guide, admin-only internal build tracker.
   featureStatus: {
     /** Map of feature_id → { stage, works, tested, visual, notes, updated_at }. */
     list: async (): Promise<Record<string, {
       stage: string; works: string; tested: boolean; visual: string; notes: string; updated_at: string;
     }>> => authedFetch(`${API_URL}/api/admin/feature-status`),
-    /** Partial upsert — only the fields you pass change. */
+    /** Partial upsert, only the fields you pass change. */
     save: async (feature_id: string, patch: {
       stage?: string; works?: string; tested?: boolean; visual?: string; notes?: string;
     }) => authedFetch(`${API_URL}/api/admin/feature-status`, {
@@ -1253,7 +1253,7 @@ export const api = {
         recoverableUntil: pending.recoverableUntil,
       });
     },
-    /** Explicit refresh — rarely needed directly; prefer `ensureTokenRefreshed`. */
+    /** Explicit refresh, rarely needed directly; prefer `ensureTokenRefreshed`. */
     refresh: async (): Promise<boolean> => ensureTokenRefreshed().then(r => r === 'refreshed'),
     me: async () => {
       return authedFetch(`${API_URL}/api/auth/me`)
@@ -1369,7 +1369,7 @@ export const api = {
     updatePublication: async (id: string, data: Record<string, any>) => {
       return putProductUpdate(id, '/publication', data);
     },
-    // Stock spine step 2 — flip the location-owner curation gate. Owner-tier only
+    // Stock spine step 2: flip the location-owner curation gate. Owner-tier only
     // (server enforces requireOwnerTier); a staff seller cannot show their own tea.
     updateShown: async (id: string, shown: boolean) => {
       return putProductUpdate(id, '/shown', { shown_in_shop: shown });
@@ -1469,7 +1469,7 @@ export const api = {
       });
     },
     update: async (id: string, data: Record<string, any>) => {
-      // PUT by id — idempotent, safe to retry through a GFW timeout (vendor
+      // PUT by id, idempotent, safe to retry through a GFW timeout (vendor
       // photo/location saves from the Compass ride this).
       return authedFetch(`${API_URL}/api/customers/${id}`, {
         method: 'PUT',
@@ -1775,9 +1775,9 @@ export const api = {
     const filename = options?.filename ?? (file instanceof File ? file.name : 'photo.jpg');
     formData.append('file', file, filename);
     // Use the same headers authedFetch sends (Authorization + X-Teajia-Account),
-    // but NOT Content-Type — the browser sets the multipart boundary itself.
+    // but NOT Content-Type, the browser sets the multipart boundary itself.
     // Network-level failures (timeout / connection reset) retry on a fresh
-    // connection up to 2 extra times — on GFW-style jumpy links the first
+    // connection up to 2 extra times, on GFW-style jumpy links the first
     // attempt often dies mid-stream while an immediate retry lands. HTTP
     // errors (4xx/5xx) are real answers from the server and do NOT retry.
     // Each attempt creates at most one R2 object, so a duplicate is harmless.
@@ -1945,7 +1945,7 @@ export const api = {
       if (!res.ok) return [];
       return res.json();
     },
-    /** Standalone helper — send invites to all approved attendees. */
+    /** Standalone helper, send invites to all approved attendees. */
     sendEventInvites: async (eventId: string): Promise<{ sent: number; failed: number }> => {
       return authedFetch(`${API_URL}/api/admin/events/${eventId}/send-emails`, {
         method: 'POST',
@@ -2307,7 +2307,7 @@ export const api = {
       });
     },
     update: async (id: string, updates: CompassWrite) => {
-      // PUT by id — idempotent, safe to retry through a GFW timeout.
+      // PUT by id, idempotent, safe to retry through a GFW timeout.
       return authedFetch(`${API_URL}/api/compass/entries/${id}`, {
         method: 'PUT',
         body: JSON.stringify(updates),
@@ -2315,7 +2315,7 @@ export const api = {
       });
     },
     remove: async (id: string, options: ApiBackgroundOptions = {}) => {
-      // DELETE by id — idempotent, safe to retry through a GFW timeout.
+      // DELETE by id, idempotent, safe to retry through a GFW timeout.
       return authedFetch(`${API_URL}/api/compass/entries/${id}`, {
         ...options,
         method: 'DELETE',
@@ -2323,7 +2323,7 @@ export const api = {
       });
     },
     sync: async (entries: CompassWrite[], options: ApiBackgroundOptions = {}): Promise<CompassSyncResult> => {
-      // Worker uses an ownership-scoped upsert keyed by entry id — idempotent
+      // Worker uses an ownership-scoped upsert keyed by entry id, idempotent
       // without replacing server-owned or omitted fields.
       return authedFetch(`${API_URL}/api/compass/sync`, {
         ...options,
@@ -2333,7 +2333,7 @@ export const api = {
       });
     },
     /** Promote a compass entry to a Draft product in the active account.
-     *  Idempotent — returns the existing product if already promoted. */
+     *  Idempotent, returns the existing product if already promoted. */
     promote: async (entryId: string, options: ApiBackgroundOptions = {}): Promise<{ id: string; product: Record<string, any>; alreadyPromoted: boolean }> => {
       return authedFetch(`${API_URL}/api/compass/entries/${entryId}/promote`, {
         ...options,
@@ -2375,7 +2375,7 @@ export const api = {
     getIncoming: async () => {
       return authedFetch(`${API_URL}/api/compass/incoming`)
     },
-    /** Accept a direct-push share — creates a compass entry in caller's account */
+    /** Accept a direct-push share, creates a compass entry in caller's account */
     acceptShare: async (shareId: string) => {
       return authedFetch(`${API_URL}/api/compass/shares/${shareId}/accept`, {
         method: 'POST',
@@ -2387,12 +2387,12 @@ export const api = {
         method: 'POST',
       });
     },
-    /** Public — fetch share metadata from an invite token (no auth required) */
+    /** Public, fetch share metadata from an invite token (no auth required) */
     getInvite: async (token: string) => {
-      // Token is injected by authedFetch (if present) — no extra headers needed.
+      // Token is injected by authedFetch (if present), no extra headers needed.
       return authedFetch(`${API_URL}/api/compass/invite/${token}`);
     },
-    /** Authenticated — claim an invite link into the caller's compass */
+    /** Authenticated, claim an invite link into the caller's compass */
     claimInvite: async (token: string) => {
       return authedFetch(`${API_URL}/api/compass/invite/${token}/claim`, {
         method: 'POST',
@@ -2645,7 +2645,7 @@ export const api = {
     list: async (productId: string) => handleResponse(await fetchWithTimeout(`${API_URL}/api/products/${encodeURIComponent(productId)}/impressions`)),
   },
 
-  // Tea Discovery — the onboarding disposition profile (one per member, server-
+  // Tea Discovery, the onboarding disposition profile (one per member, server-
   // persisted so it follows them across devices and the tea master can read it).
   teaDiscovery: {
     get: async () => {
@@ -2817,11 +2817,11 @@ export const api = {
         method: 'POST', body: JSON.stringify({ new_owner_user_id: newOwnerUserId }),
       });
     },
-    // Members & Access — roster with bundle resolution per member
+    // Members & Access, roster with bundle resolution per member
     getAccess: async (accountId: string): Promise<{ members: AccountMember[] }> => {
       return authedFetch(`${API_URL}/api/accounts/${accountId}/access`)
     },
-    // Members & Access — replace a member's bundles wholesale
+    // Members & Access, replace a member's bundles wholesale
     setMemberBundles: async (accountId: string, userId: string, bundles: Bundle[]): Promise<void> => {
       await authedFetch(`${API_URL}/api/accounts/${accountId}/members/${userId}/bundles`, {
         method: 'PUT', body: JSON.stringify({ bundles }),
@@ -2901,7 +2901,7 @@ export const api = {
     },
 
     /**
-     * PUT /api/listings/:id — update partner-owned listing fields
+     * PUT /api/listings/:id, update partner-owned listing fields
      * (stock_grams, fixed_retail_price_usd, store_note, is_sample).
      * No canonical fields. Catalog bundle required.
      */
@@ -2997,7 +2997,7 @@ export const api = {
       });
     },
 
-    /** POST /api/network/profiles/:id/suggest-for-network — partner flags own profile */
+    /** POST /api/network/profiles/:id/suggest-for-network, partner flags own profile */
     suggestForNetwork: async (profileId: string, note?: string): Promise<{ ok: true }> => {
       return authedFetch(`${API_URL}/api/network/profiles/${profileId}/suggest-for-network`, {
         method: 'POST',
@@ -3005,7 +3005,7 @@ export const api = {
       });
     },
 
-    /** GET /api/network/adoption-queue?status=pending|adopted|declined — Platform tier */
+    /** GET /api/network/adoption-queue?status=pending|adopted|declined: Platform tier */
     adoptionQueue: async (
       status: 'pending' | 'adopted' | 'declined' = 'pending',
     ): Promise<{ profiles: import('../types').AdoptionQueueEntry[] }> => {
@@ -3014,7 +3014,7 @@ export const api = {
       return authedFetch(url.toString());
     },
 
-    /** POST /api/network/profiles/:id/adopt — Platform tier decides */
+    /** POST /api/network/profiles/:id/adopt: Platform tier decides */
     decideAdoption: async (
       profileId: string,
       decision: 'adopted' | 'declined',
@@ -3027,9 +3027,9 @@ export const api = {
     },
   },
 
-  /** Wholesale orders (Step 4) — cross-account transactional layer. */
+  /** Wholesale orders (Step 4), cross-account transactional layer. */
   wholesale: {
-    /** POST /api/wholesale/orders — buyer creates a draft. */
+    /** POST /api/wholesale/orders, buyer creates a draft. */
     createOrder: async (
       body: import('../types').WholesaleOrderCreateBody,
     ): Promise<{ order_id: string }> => {
@@ -3039,7 +3039,7 @@ export const api = {
       });
     },
 
-    /** GET /api/wholesale/orders — list with optional role + status filters. */
+    /** GET /api/wholesale/orders, list with optional role + status filters. */
     listOrders: async (
       opts: { role?: 'buyer' | 'supplier'; status?: import('../types').WholesaleOrderStatus } = {},
     ): Promise<{ orders: import('../types').WholesaleOrderSummary[] }> => {
@@ -3049,12 +3049,12 @@ export const api = {
       return authedFetch(url.toString());
     },
 
-    /** GET /api/wholesale/orders/:id — detail + items + party accounts. */
+    /** GET /api/wholesale/orders/:id, detail + items + party accounts. */
     getOrder: async (orderId: string): Promise<import('../types').WholesaleOrderDetail> => {
       return authedFetch(`${API_URL}/api/wholesale/orders/${orderId}`)
     },
 
-    /** PUT /api/wholesale/orders/:id — buyer edits draft (or replied). */
+    /** PUT /api/wholesale/orders/:id, buyer edits draft (or replied). */
     updateOrder: async (
       orderId: string,
       patch: import('../types').WholesaleOrderUpdateBody,
@@ -3065,7 +3065,7 @@ export const api = {
       });
     },
 
-    /** POST /api/wholesale/orders/:id/transition — single dispatch for status changes. */
+    /** POST /api/wholesale/orders/:id/transition, single dispatch for status changes. */
     transition: async (
       orderId: string,
       transition: import('../types').WholesaleTransitionBody,
@@ -3076,7 +3076,7 @@ export const api = {
       });
     },
 
-    /** POST /api/wholesale/orders/:id/nudge — buyer reminds supplier. 24h throttle. */
+    /** POST /api/wholesale/orders/:id/nudge, buyer reminds supplier. 24h throttle. */
     nudge: async (orderId: string): Promise<{ ok: true }> => {
       return authedFetch(`${API_URL}/api/wholesale/orders/${orderId}/nudge`, {
         method: 'POST',
@@ -3201,7 +3201,7 @@ export const api = {
     needsAttention: async (): Promise<{ items: import('../types').NeedsAttentionItem[] }> => {
       return authedFetch(`${API_URL}/api/collections/needs-attention`)
     },
-    /** Public — no auth. Used by /c/:slug page. */
+    /** Public, no auth. Used by /c/:slug page. */
     getPublic: async (slug: string): Promise<import('../types').PublicCollectionResponse> => {
       const res = await fetchWithTimeout(`${API_URL}/api/public/c/${slug}`, {});
       return handleResponse(res);
@@ -3209,7 +3209,7 @@ export const api = {
     trackPublicView: async (slug: string): Promise<void> => {
       await fetchWithTimeout(`${API_URL}/api/public/c/${slug}/view`, { method: 'POST' });
     },
-    /** Public — no auth. Recipient confirms their picks; creates a Draft invoice for the curator to review. */
+    /** Public, no auth. Recipient confirms their picks; creates a Draft invoice for the curator to review. */
     confirmPicks: async (
       slug: string,
       payload: { picks: Array<{ item_id: string; quantity: number; note?: string }>; contact_name?: string; contact_phone?: string },
@@ -3232,14 +3232,14 @@ export const api = {
       });
     },
     /** Best-effort: record that I (a logged-in user) opened a shared link, so it
-     *  lands on my shelf as 'received'. Swallows errors — never blocks the view. */
+     *  lands on my shelf as 'received'. Swallows errors, never blocks the view. */
     markReceived: async (slug: string): Promise<void> => {
       try {
         await authedFetch(`${API_URL}/api/me/collections/received`, {
           method: 'POST',
           body: JSON.stringify({ slug }),
         });
-      } catch { /* not logged in or dead link — fine, this is opportunistic */ }
+      } catch { /* not logged in or dead link, fine, this is opportunistic */ }
     },
     /** Remove a collection from my shelf. */
     unsaveMine: async (collectionId: string): Promise<{ ok: true }> => {
@@ -3261,7 +3261,7 @@ export const api = {
         body: JSON.stringify({}),
       });
     },
-    /** Public — no auth. Returns the 20 most recently shop-published collections. */
+    /** Public, no auth. Returns the 20 most recently shop-published collections. */
     publicShop: async (): Promise<import('../types').PublicShopCollectionsResponse> => {
       const res = await fetchWithTimeout(`${API_URL}/api/collections/shop`, {});
       return handleResponse(res);
@@ -3278,7 +3278,7 @@ export const api = {
         body: JSON.stringify({ platform_role }),
       });
     },
-    // Stock spine step 5 — grant/revoke a user's public shelf and set its slug.
+    // Stock spine step 5: grant/revoke a user's public shelf and set its slug.
     grantShelf: async (userId: string, data: { enabled: boolean; slug?: string }): Promise<{ ok: boolean; enabled: boolean; slug: string | null }> => {
       return authedFetch(`${API_URL}/api/platform/users/${userId}/shelf`, {
         method: 'PUT',
@@ -3288,7 +3288,7 @@ export const api = {
     listAccounts: async (): Promise<{ accounts: PlatformAccount[] }> => {
       return authedFetch(`${API_URL}/api/platform/accounts`)
     },
-    // Stock spine step 3 — read-only stock across every location.
+    // Stock spine step 3: read-only stock across every location.
     allStock: async (): Promise<{ stock: PlatformStockRow[] }> => {
       return authedFetch(`${API_URL}/api/platform/all-stock`)
     },
@@ -3615,7 +3615,7 @@ export const api = {
     },
   },
 
-  // Stock spine step 4 — the personal cellar: location-less, person-owned stock.
+  // Stock spine step 4: the personal cellar: location-less, person-owned stock.
   cellar: {
     list: async (): Promise<{ items: CellarItem[] }> => {
       return authedFetch(`${API_URL}/api/me/cellar`);
@@ -3637,7 +3637,7 @@ export const api = {
     cancelPlacement: async (id: string): Promise<{ item: CellarItem }> => {
       return authedFetch(`${API_URL}/api/me/cellar/${id}/cancel-placement`, { method: 'POST' });
     },
-    // Location-owner side — review and decide placement requests.
+    // Location-owner side, review and decide placement requests.
     listPlacements: async (): Promise<{ requests: CellarPlacementRequest[] }> => {
       return authedFetch(`${API_URL}/api/cellar-placements`);
     },
@@ -3647,7 +3647,7 @@ export const api = {
     declinePlacement: async (id: string): Promise<{ ok: boolean }> => {
       return authedFetch(`${API_URL}/api/cellar-placements/${id}/decline`, { method: 'POST' });
     },
-    // Stock spine step 5 — the standalone public shelf.
+    // Stock spine step 5: the standalone public shelf.
     getShelf: async (): Promise<ShelfSettings> => {
       return authedFetch(`${API_URL}/api/me/shelf`);
     },
@@ -3662,7 +3662,7 @@ export const api = {
     },
   },
 
-  // Stock spine step 5 — PUBLIC standalone shelf (no auth).
+  // Stock spine step 5: PUBLIC standalone shelf (no auth).
   shelf: {
     getPublic: async (slug: string): Promise<PublicShelf> => {
       const res = await fetchWithTimeout(`${API_URL}/api/shelf/${encodeURIComponent(slug)}`);

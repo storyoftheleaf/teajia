@@ -31,7 +31,7 @@ function buildWhatsAppText(items: ReturnType<typeof useSampleCartStore.getState>
     lines.push(`_${vendor}_`);
     for (const item of vendorItems) {
       const name = item.chineseName ? `${item.name} (${item.chineseName})` : item.name;
-      lines.push(`• ${name} — ${item.grams}g`);
+      lines.push(`• ${name} · ${item.grams}g`);
     }
     lines.push('');
   }
@@ -314,7 +314,7 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
         {savedConfirm ? (
           <div className="flex min-h-40 items-center justify-center gap-2 px-6 text-ui-12 text-tea-gold">
             <Check size={13} />
-            Saved as sample batch — list cleared
+            Saved as sample batch. List cleared.
           </div>
         ) : isEmpty ? (
           <div className="flex flex-col items-center justify-center py-16 px-6 text-center">

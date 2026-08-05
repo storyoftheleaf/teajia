@@ -1,0 +1,13 @@
+{
+  "id": "green-gyokuro",
+  "type": "Green",
+  "name": "Gyokuro",
+  "chineseName": "玉露",
+  "altNames": [
+    "Jade Dew"
+  ],
+  "region": "Uji",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

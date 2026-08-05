@@ -38,7 +38,7 @@ const fmtUsd = (n: number) => `$${Math.round(n * 100) / 100}`;
 
 // ── Brewing guidance ─────────────────────────────────────────────────────────
 // A modest steep guide keyed off product_type. Generic-but-correct starting
-// points, not per-tea precision — upgrades cleanly if per-tea brew data is added
+// points, not per-tea precision, upgrades cleanly if per-tea brew data is added
 // to the payload later. Returns null for types we shouldn't advise on (teaware).
 
 interface BrewGuide { temp: string; time: string; ratio: string }
@@ -150,7 +150,7 @@ const PublicCollectionPage: React.FC = () => {
     try {
       if (sessionStorage.getItem(key)) return;
       sessionStorage.setItem(key, '1');
-    } catch { /* private mode — skip */ }
+    } catch { /* private mode, skip */ }
     api.collections.trackPublicView(slug).catch(() => { /* ignore */ });
   }, [status, slug]);
 
@@ -165,7 +165,7 @@ const PublicCollectionPage: React.FC = () => {
     try {
       if (sessionStorage.getItem(key)) return;
       sessionStorage.setItem(key, '1');
-    } catch { /* private mode — still attempt once */ }
+    } catch { /* private mode, still attempt once */ }
     api.collections.markReceived(slug);
   }, [status, slug]);
 
@@ -238,18 +238,18 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
   const [basketNote, setBasketNote] = useState('');
   const [shareState, setShareState] = useState<'idle' | 'copied'>('idle');
 
-  // Share — native share sheet where available, clipboard copy as fallback.
+  // Share, native share sheet where available, clipboard copy as fallback.
   async function handleShare() {
     const url = window.location.href;
     const title = collection.title;
     if (navigator.share) {
-      try { await navigator.share({ title, url }); return; } catch { /* cancelled — fall through */ }
+      try { await navigator.share({ title, url }); return; } catch { /* cancelled, fall through */ }
     }
     try {
       await navigator.clipboard.writeText(url);
       setShareState('copied');
       window.setTimeout(() => setShareState('idle'), 2000);
-    } catch { /* clipboard blocked — no-op */ }
+    } catch { /* clipboard blocked, no-op */ }
   }
   const [confirmState, setConfirmState] = useState<'idle' | 'contact' | 'sending' | 'sent'>('idle');
   const [contactName, setContactName] = useState('');
@@ -317,7 +317,7 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
           // note to the first pick (prefixed) so it reaches the curator.
           const perItem = basket[id].note?.trim();
           const note = i === 0 && trimmedBasketNote
-            ? [perItem, `Note for the order: ${trimmedBasketNote}`].filter(Boolean).join(' — ')
+            ? [perItem, `Note for the order: ${trimmedBasketNote}`].filter(Boolean).join(' · ')
             : perItem || undefined;
           return {
             item_id: id,
@@ -338,10 +338,10 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
 
   return (
     <main className="min-h-screen bg-tea-bg text-tea-text pb-nav-gap-lg">
-      {/* Masthead — editorial cover. Big title over a faint count watermark so an
+      {/* Masthead, editorial cover. Big title over a faint count watermark so an
           image-less collection still has presence. Contents index doubles as nav. */}
       <header className="relative overflow-hidden border-b border-tea-border">
-        {/* Faint oversized count watermark — typographic texture, no image needed */}
+        {/* Faint oversized count watermark, typographic texture, no image needed */}
         <span
           aria-hidden
           className="pointer-events-none select-none absolute -right-2 -top-10 md:-top-16 font-display leading-none text-tea-elevated"
@@ -351,7 +351,7 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
         </span>
 
         <div className="relative max-w-5xl mx-auto px-4 md:px-6 lg:px-10 pt-12 pb-10 md:pt-24 md:pb-16">
-          {/* Only label a real source — no store-name placeholder. */}
+          {/* Only label a real source, no store-name placeholder. */}
           {account?.name && (
             <p className="label-caps text-tea-text-dim mb-5">
               A collection from <span className="text-tea-text-sec">{account.name}</span>
@@ -396,7 +396,7 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
             </figure>
           )}
 
-          {/* Contents — quick index, each row jumps to its entry */}
+          {/* Contents, quick index, each row jumps to its entry */}
           {visible.length > 1 && (
             <nav aria-label="Contents" className="mt-10 pt-6 border-t border-tea-border max-w-[44ch]">
               <ul className="flex flex-col gap-2.5">
@@ -444,13 +444,25 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
         )}
       </section>
 
+      {/* "Curated for you" was the fallback here, and it was a claim the page
+          cannot make. Nothing on this route is personalised: the list is a fixed
+          set of picks a curator chose and sent, identical for every person who
+          opens the link, and the app does not rank, score or recommend anything.
+          The shop's equivalent section says so plainly ("The same shelf for
+          everyone who walks in"); this says the same thing in a footer's worth
+          of words. Where a human curator is named, name them, and where only the
+          store is known, name the store. Only the last branch is generic. */}
       <footer className="border-t border-tea-border py-10 text-center">
         <p className="label-caps text-tea-text-dim">
-          {curatorName ? `Curated by ${curatorName}` : 'Curated for you'}
+          {curatorName
+            ? `Curated by ${curatorName}`
+            : account?.name
+              ? `Curated by ${account.name}`
+              : 'A curator’s picks. The same list for everyone who opens it.'}
         </p>
       </footer>
 
-      {/* Sticky basket footer — only visible when ≥1 item selected. This page is a
+      {/* Sticky basket footer, only visible when ≥1 item selected. This page is a
           focused standalone route (no app bottom nav), so it sits flush at the
           bottom with safe-area padding. */}
       {selectedCount > 0 && confirmState !== 'sent' && (
@@ -492,7 +504,7 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
                   <button
                     onClick={handleContactSubmit}
                     disabled={confirmState === 'sending'}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-md text-ui-12 font-medium tracking-[0.3px] hover:bg-tea-gold-lt disabled:opacity-60 transition-colors"
+                    className="inline-flex items-center gap-2 px-4 py-2 cta-solid rounded-md text-ui-12 font-medium tracking-[0.3px] disabled:opacity-60 transition-colors"
                   >
                     {confirmState === 'sending' ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
                     {confirmState === 'sending' ? 'Sending…' : 'Send picks'}
@@ -521,7 +533,7 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
                 </button>
                 <button
                   onClick={handleConfirmClick}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-md text-ui-12 font-medium tracking-[0.3px] hover:bg-tea-gold-lt transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 cta-solid rounded-md text-ui-12 font-medium tracking-[0.3px] transition-colors"
                 >
                   <Check size={13} />
                   Confirm my picks
@@ -532,7 +544,7 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
         </div>
       )}
 
-      {/* Sent confirmation — replaces the action bar once the picks are in. */}
+      {/* Sent confirmation, replaces the action bar once the picks are in. */}
       {confirmState === 'sent' && (
         <div className="fixed left-0 right-0 bottom-0 bg-tea-surface border-t border-tea-border z-40 px-4 md:px-6 lg:px-10 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] flex items-center justify-center gap-2.5 text-center">
           <Check size={15} className="text-tea-gold shrink-0" />
@@ -542,7 +554,7 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
         </div>
       )}
 
-      {/* Cycling tea card — one instance, driven by the open item id. */}
+      {/* Cycling tea card, one instance, driven by the open item id. */}
       {detailId && (() => {
         const di = visible.findIndex(it => it.id === detailId);
         if (di === -1) return null;
@@ -561,7 +573,7 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
         );
       })()}
 
-      {/* Reviewable basket — opens from the sticky bar or the card's "Review picks". */}
+      {/* Reviewable basket, opens from the sticky bar or the card's "Review picks". */}
       {reviewOpen && selectedCount > 0 && confirmState === 'idle' && (
         <BasketReview
           items={visible}
@@ -783,7 +795,7 @@ const ItemControls: React.FC<{
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Amount + cost — always shown for in-stock, above the action */}
+      {/* Amount + cost, always shown for in-stock, above the action */}
       {!oos && <AmountCost ctl={ctl} />}
 
       {/* Once added: let them change how much they actually want */}
@@ -819,7 +831,7 @@ const ItemControls: React.FC<{
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={toggle}
-            className="tap-target inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-ui-12 font-medium tracking-[0.3px] bg-tea-gold text-tea-bg hover:bg-tea-gold-lt transition-colors"
+            className="tap-target inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-ui-12 font-medium tracking-[0.3px] cta-solid transition-colors"
           >
             <Plus size={13} /> Add
           </button>
@@ -922,24 +934,24 @@ const CatalogEntry: React.FC<{
         </div>
 
       {/* ── Right column: quiet index. Blurb, cost preview, "View →". The card
-          owns the decision — the row never Adds. ── */}
+          owns the decision, the row never Adds. ── */}
       <div className="min-w-0 pl-[44px] lg:pl-0 max-w-[60ch]">
-        {/* Curator's note — "why I chose this". The curation voice. */}
+        {/* Curator's note, "why I chose this". The curation voice. */}
         {item.item_note?.trim() && (
           <p className="font-body text-ui-15 leading-[1.7] text-tea-gold italic mb-4">
             “{item.item_note.trim()}”
-            <span className="not-italic text-tea-text-dim text-ui-12"> — {curatorFirstName}</span>
+            <span className="not-italic text-tea-text-dim text-ui-12">, {curatorFirstName}</span>
           </p>
         )}
 
-        {/* Short blurb — what this tea is. Clamped; the card holds the full read. */}
+        {/* Short blurb, what this tea is. Clamped; the card holds the full read. */}
         {description && (
           <p className="font-body text-ui-15 leading-[1.75] text-tea-text line-clamp-2 mb-4">
             {description}
           </p>
         )}
 
-        {/* Cost preview — read-only here; choosing happens in the card */}
+        {/* Cost preview, read-only here; choosing happens in the card */}
         {!oos && (
           <p className="font-body text-ui-14 text-tea-text-sec mb-4">
             {recQty != null ? (
@@ -1067,7 +1079,7 @@ const TeaCard: React.FC<{
             <X size={18} />
           </button>
           <div className="flex items-center gap-3">
-            {/* Position dots — fast read of where you are in the flight */}
+            {/* Position dots, fast read of where you are in the flight */}
             {items.length > 1 && items.length <= 8 && (
               <div className="flex items-center gap-1.5" aria-hidden>
                 {items.map((it, i) => (
@@ -1104,7 +1116,7 @@ const TeaCard: React.FC<{
           </div>
         </div>
 
-        {/* Scrollable body — re-keyed per item so a quick fade plays on cycle */}
+        {/* Scrollable body, re-keyed per item so a quick fade plays on cycle */}
         <div key={item.id} className="flex-1 overflow-y-auto animate-[fadeIn_220ms_ease-out]">
           {item.image_url && (
             <figure className="relative">
@@ -1142,18 +1154,18 @@ const TeaCard: React.FC<{
             {item.item_note?.trim() && (
               <p className="font-body text-ui-15 leading-[1.7] text-tea-gold italic">
                 “{item.item_note.trim()}”
-                <span className="not-italic text-tea-text-dim text-ui-12"> — {curatorFirstName}</span>
+                <span className="not-italic text-tea-text-dim text-ui-12">, {curatorFirstName}</span>
               </p>
             )}
 
-            {/* Short blurb — what this tea is. No tasting notes. */}
+            {/* Short blurb, what this tea is. No tasting notes. */}
             {description && (
               <p className="font-body text-ui-15 leading-[1.8] text-tea-text whitespace-pre-line">
                 {description}
               </p>
             )}
 
-            {/* Brewing guidance — substance, keyed off type. The connoisseur signal. */}
+            {/* Brewing guidance, substance, keyed off type. The connoisseur signal. */}
             {brew && (
               <div className="border-t border-tea-border pt-4">
                 <p className="label-caps text-tea-text-dim mb-2.5">How to brew</p>
@@ -1173,14 +1185,14 @@ const TeaCard: React.FC<{
           </div>
         </div>
 
-        {/* Decision zone — fenced off from the read above by a top border. The
+        {/* Decision zone, fenced off from the read above by a top border. The
             barrier: amount + cost, a quantity control, the accept/decline, and a
             running basket count so the recipient can pick the whole flight without
             closing the card. */}
         <div className="shrink-0 border-t border-tea-border bg-tea-elevated/40 px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <ItemControls ctl={ctl} onAddAndNext={hasNext ? () => onNavigate(activeIndex + 1) : undefined} />
 
-          {/* Running picks summary — completes the loop inside the card */}
+          {/* Running picks summary, completes the loop inside the card */}
           {selectedCount > 0 && (
             <div className="mt-4 pt-3 border-t border-tea-border flex items-center justify-between gap-3">
               <span className="font-sans text-ui-12 text-tea-text-sec">
@@ -1204,7 +1216,7 @@ const TeaCard: React.FC<{
 // ── Basket review ────────────────────────────────────────────────────────────
 // A reviewable summary before confirming: each pick (amount, cost, remove), the
 // total, and an optional note for the whole order. So the recipient sees exactly
-// what they're sending — fewer surprise corrections for the curator.
+// what they're sending, fewer surprise corrections for the curator.
 
 const BasketReview: React.FC<{
   items: PublicCollectionItem[];
@@ -1307,7 +1319,7 @@ const BasketReview: React.FC<{
           <button
             onClick={onConfirm}
             disabled={selectedIds.length === 0}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-tea-gold text-tea-bg rounded-md text-ui-12 font-medium tracking-[0.3px] hover:bg-tea-gold-lt disabled:opacity-50 transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-2.5 cta-solid rounded-md text-ui-12 font-medium tracking-[0.3px] disabled:opacity-50 transition-colors"
           >
             <Check size={13} /> Confirm picks
           </button>

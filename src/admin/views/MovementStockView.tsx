@@ -6,7 +6,7 @@ import { api } from '../../lib/api';
 import type { PlatformStockRow } from '../../lib/api';
 import { useAppStore } from '../store';
 
-// Stock spine step 3 — the movement: Adrian's read-only master lens over every
+// Stock spine step 3, the movement: Adrian's read-only master lens over every
 // location's stock at once, each tea labelled by where it lives and who owns it.
 // The movement holds no stock and sells nothing; to change anything the operator
 // steps into the location via the AccountSwitcher. No cart, no buy button.
@@ -100,7 +100,7 @@ export const MovementStockView: React.FC = () => {
           <ArrowLeft size={16} />
         </button>
         <div>
-          <h1 className="text-lg text-tea-text font-serif">The Movement — All Stock</h1>
+          <h1 className="text-lg text-tea-text font-serif">The Movement: All Stock</h1>
           <p className="text-ui-11 text-tea-text-dim uppercase tracking-[0.12em]">
             Read-only · every location · step into a location to change anything
           </p>
@@ -186,7 +186,7 @@ export const MovementStockView: React.FC = () => {
                       </span>
                       <span
                         className={`inline-flex items-center gap-0.5 text-ui-10 px-1.5 py-0.5 rounded ${row.shown_in_shop ? 'text-tea-gold' : 'text-tea-text-dim'}`}
-                        title={row.shown_in_shop ? 'Shown by the owner' : 'Held — not shown in shop'}
+                        title={row.shown_in_shop ? 'Shown by the owner' : 'Held, not shown in shop'}
                       >
                         <Store size={10} />
                       </span>

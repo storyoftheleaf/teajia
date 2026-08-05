@@ -160,7 +160,7 @@ export const InboundCollectionView: React.FC = () => {
               <button
                 onClick={importAll}
                 disabled={remaining.length === 0 || bulkImporting}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-tea-gold text-tea-bg rounded-md text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center gap-1.5 px-3 py-1.5 cta-solid rounded-md text-xs font-semibold tracking-wide transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {bulkImporting
                   ? <><Loader2 size={11} className="animate-spin" /> Importing…</>

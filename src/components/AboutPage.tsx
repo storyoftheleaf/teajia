@@ -22,7 +22,7 @@ export default function AboutPage() {
             <p>
               Adrian has spent more than twenty years immersed in Chinese tea culture, traveling through
               Taiwan and China, sourcing tea and building relationships with farmers, masters, and
-              artisans. His background in design and visual art shapes everything he creates — from the
+              artisans. His background in design and visual art shapes everything he creates, from the
               way tea is presented to the spaces where it is shared.
             </p>
             <p>
@@ -31,7 +31,7 @@ export default function AboutPage() {
               understanding of craft, terroir, and the quiet rituals that connect us to place.
             </p>
             <p>
-              TeajiA grew from a desire to share this world more widely — not just the tea itself,
+              TeajiA grew from a desire to share this world more widely, not just the tea itself,
               but the stories, the knowledge, and the sense of community that surrounds it.
             </p>
           </div>
@@ -42,7 +42,7 @@ export default function AboutPage() {
           <h2 className="h3 mb-6">The Story</h2>
           <p className="body-light">
             The full story of TeajiA and the journey that created it. This section will be
-            expanded with Adrian's personal narrative — the years on the road, the people and
+            expanded with Adrian's personal narrative: the years on the road, the people and
             places that shaped the vision, and the path from tea student to guide.
           </p>
         </section>

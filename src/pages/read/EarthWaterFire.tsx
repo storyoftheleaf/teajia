@@ -1,5 +1,9 @@
 /**
- * Earth, Water, Fire — Conversations over Tea, N°03
+ * @color-literals. The Read section is one always-dark editorial surface.
+ * Rationale, and the conditions on this exception, in read/immersive.tsx.
+ */
+/**
+ * Earth, Water, Fire: Conversations over Tea, N°03
  * A Jingdezhen porcelain potter on the vessels that hold the tea.
  * Ported pixel-faithfully from the tea-article-redesign mockup.
  */
@@ -22,9 +26,9 @@ const qStyle: React.CSSProperties = { fontFamily: F.display, fontStyle: 'italic'
 const qa = (q: string, body: React.ReactNode) => ({ q, body });
 
 const movementI = [
-  qa('This clay — where does it come from?', (
+  qa('This clay, where does it come from?', (
     <>
-      <p style={pBody}>The same hills that have fed these kilns for a thousand years. Gaoling — the white earth. Foreigners took the word and called it kaolin. The mountain is lower now than when my grandmother dug it; we have been borrowing from it for forty generations.</p>
+      <p style={pBody}>The same hills that have fed these kilns for a thousand years. Gaoling, the white earth. Foreigners took the word and called it kaolin. The mountain is lower now than when my grandmother dug it; we have been borrowing from it for forty generations.</p>
       <p style={{ ...pBody, margin: 0 }}>I think about that every time I open a bag.</p>
     </>
   )),
@@ -32,22 +36,22 @@ const movementI = [
     <p style={{ ...pBody, margin: 0 }}>Always. Clay remembers how it was handled. Rush it, and it will crack in the fire to spite you. Centre it patiently, and it gives you everything. People think the potter shapes the clay. Mostly the clay is teaching the potter what it is willing to become.</p>
   )),
   qa('You could buy clay ready-mixed.', (
-    <p style={{ ...pBody, margin: 0 }}>I could. But then the bowl would be anyone’s. I want the bowl to be from here — this water, this earth, this pair of hands. A vessel should carry its origin the way a tea carries its mountain.</p>
+    <p style={{ ...pBody, margin: 0 }}>I could. But then the bowl would be anyone’s. I want the bowl to be from here, this water, this earth, this pair of hands. A vessel should carry its origin the way a tea carries its mountain.</p>
   )),
 ];
 
 const movementII = [
-  qa('The glaze on your cups — that pale blue-green — is famous. What is it?', (
+  qa('The glaze on your cups, that pale blue-green, is famous. What is it?', (
     <>
       <p style={pBody}>Qingbai. “Blue-white.” It is mostly an accident we have spent a thousand years perfecting. The colour is not painted on; it is what the iron in the glaze does when the fire starves it of oxygen.</p>
       <p style={{ ...pBody, margin: 0 }}>We do not make the colour. We make the conditions, and the fire decides.</p>
     </>
   )),
   qa('That sounds like a loss of control.', (
-    <p style={{ ...pBody, margin: 0 }}>It is. The kiln is the last and most important member of the workshop, and it does not take instruction. I load three hundred pieces and I lose some every firing. You learn to give the fire its share without resentment — what survives is better for the danger.</p>
+    <p style={{ ...pBody, margin: 0 }}>It is. The kiln is the last and most important member of the workshop, and it does not take instruction. I load three hundred pieces and I lose some every firing. You learn to give the fire its share without resentment, what survives is better for the danger.</p>
   )),
   qa('Do you remember your first good piece?', (
-    <p style={{ ...pBody, margin: 0 }}>I remember my first hundred bad ones. The good piece only came because of them. There is no shortcut through the bad bowls — every one is teaching your hands a sentence they will need later.</p>
+    <p style={{ ...pBody, margin: 0 }}>I remember my first hundred bad ones. The good piece only came because of them. There is no shortcut through the bad bowls, every one is teaching your hands a sentence they will need later.</p>
   )),
   qa('How long until a potter is truly skilled?', (
     <p style={{ ...pBody, margin: 0 }}><span style={{ color: C.dim, fontStyle: 'italic' }}>(she smiles)</span> Ask me when I get there. My grandmother worked sixty years and called herself a student. I am only forty-three. I have barely been introduced to the clay.</p>
@@ -56,13 +60,13 @@ const movementII = [
 
 const movementIII = [
   qa('Does the cup really change the tea?', (
-    <p style={{ ...pBody, margin: 0 }}>Of course. A thick cup holds heat and rounds a tea; a thin one lets it sing and fade quickly. Porcelain is honest — it adds nothing, hides nothing. That is why it suits green and oolong. The vessel is not a container. It is part of the brewing.</p>
+    <p style={{ ...pBody, margin: 0 }}>Of course. A thick cup holds heat and rounds a tea; a thin one lets it sing and fade quickly. Porcelain is honest, it adds nothing, hides nothing. That is why it suits green and oolong. The vessel is not a container. It is part of the brewing.</p>
   )),
   qa('What do you want someone to feel, holding your gaiwan?', (
     <p style={{ ...pBody, margin: 0 }}>That it was made by a person, for a person. The slight unevenness of the rim where my thumb passed. The weight that settles into the palm. A cup should disappear in use, and only be noticed in gratitude. If they forget it is mine, I have done well.</p>
   )),
   qa('After a thousand years, what is left to discover?', (
-    <p style={{ ...pBody, margin: 0 }}>Everything. The clay is the same; I am not. Each generation meets the same earth with new hands and finds something the last one missed. That is not a burden — that is the gift. The mountain keeps its secrets long enough for all of us to have a turn.</p>
+    <p style={{ ...pBody, margin: 0 }}>Everything. The clay is the same; I am not. Each generation meets the same earth with new hands and finds something the last one missed. That is not a burden, that is the gift. The mountain keeps its secrets long enough for all of us to have a turn.</p>
   )),
 ];
 
@@ -109,7 +113,7 @@ const EarthWaterFire: React.FC = () => {
               Earth, Water,<br /><span style={{ fontStyle: 'italic', color: C.gold }}>Fire</span>
             </h1>
             <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(16px,2vw,20px)', lineHeight: 1.5, color: C.taupe, margin: '26px 0 0', maxWidth: 440 }}>
-              In a thousand-year-old porcelain town, a potter throws the vessels that tea is poured from — and lets the kiln have the final word.
+              In a thousand-year-old porcelain town, a potter throws the vessels that tea is poured from, and lets the kiln have the final word.
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 'clamp(30px,5vw,46px)', paddingTop: 24, borderTop: '1px solid rgba(168,135,77,0.16)' }}>
               <div>
@@ -134,7 +138,7 @@ const EarthWaterFire: React.FC = () => {
                 <ellipse cx="200" cy="244" rx="44" ry="9" />
               </g>
             </svg>
-            <div style={{ position: 'absolute', left: 'clamp(18px,3vw,28px)', bottom: 'clamp(18px,3vw,26px)', fontFamily: F.mono, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim }}>Portrait — at the wheel</div>
+            <div style={{ position: 'absolute', left: 'clamp(18px,3vw,28px)', bottom: 'clamp(18px,3vw,26px)', fontFamily: F.mono, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim }}>Portrait, at the wheel</div>
           </div>
         </header>
 
@@ -159,7 +163,7 @@ const EarthWaterFire: React.FC = () => {
         {/* PHOTO ESSAY */}
         <section data-reveal style={{ padding: 'clamp(20px,4vw,40px) clamp(20px,5vw,56px) clamp(40px,6vw,72px)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,240px),1fr))', gap: 'clamp(14px,2.4vw,26px)', maxWidth: 1180, margin: '0 auto' }}>
-            {/* Plate I — wheel */}
+            {/* Plate I: wheel */}
             <figure style={{ margin: 0 }}>
               <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgba(168,135,77,0.2)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(160deg,#23252a,#120e09)' }}>
                 <div aria-hidden="true" style={grainCss('0.8', 120)} />
@@ -171,9 +175,9 @@ const EarthWaterFire: React.FC = () => {
                 </svg>
                 <div style={plateLabel}>Plate I</div>
               </div>
-              <figcaption style={cap}>The wheel, mid-turn — the gaiwan opening under her thumbs.</figcaption>
+              <figcaption style={cap}>The wheel, mid-turn, the gaiwan opening under her thumbs.</figcaption>
             </figure>
-            {/* Plate II — drying bowls */}
+            {/* Plate II: drying bowls */}
             <figure style={{ margin: 0 }}>
               <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgba(168,135,77,0.2)', borderRadius: 3, overflow: 'hidden', background: 'radial-gradient(ellipse 60% 50% at 50% 64%, rgba(120,150,150,0.2), transparent 65%), #1a1610' }}>
                 <div aria-hidden="true" style={grainCss('0.85', 120)} />
@@ -187,14 +191,14 @@ const EarthWaterFire: React.FC = () => {
               </div>
               <figcaption style={cap}>Bowls drying in rows, waiting for the glaze and the fire.</figcaption>
             </figure>
-            {/* Plate III — kiln mouth */}
+            {/* Plate III: kiln mouth */}
             <figure style={{ margin: 0 }}>
               <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgba(168,135,77,0.2)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(160deg,#2a1c12,#120e09), radial-gradient(ellipse 70% 40% at 50% 80%, rgba(200,110,40,0.25), transparent 60%)' }}>
                 <div aria-hidden="true" style={grainCss('0.8', 120)} />
                 <div aria-hidden="true" style={{ position: 'absolute', left: '50%', bottom: '18%', transform: 'translateX(-50%)', width: '46%', aspectRatio: '1/1', borderRadius: '50%', background: 'radial-gradient(circle, rgba(220,130,50,0.5), transparent 68%)' }} />
                 <div style={plateLabel}>Plate III</div>
               </div>
-              <figcaption style={cap}>The kiln mouth at temperature — the moment colour is decided.</figcaption>
+              <figcaption style={cap}>The kiln mouth at temperature, the moment colour is decided.</figcaption>
             </figure>
           </div>
         </section>
@@ -262,7 +266,7 @@ const EarthWaterFire: React.FC = () => {
         {/* CLOSING */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(40px,6vw,72px) 24px' }}>
           <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(17px,2.1vw,20px)', lineHeight: 1.72, color: C.taupe, margin: 0 }}>
-            She fires next week — three hundred pieces, and the quiet violence of the kiln. Some will not survive. Lín Yùzhēn has made her peace with that. The fire, she says, has better taste than she does; she has only learned to trust it.
+            She fires next week, three hundred pieces, and the quiet violence of the kiln. Some will not survive. Lín Yùzhēn has made her peace with that. The fire, she says, has better taste than she does; she has only learned to trust it.
           </p>
           <div style={colophon}>Interview by Teajia &nbsp;·&nbsp; Conversations over Tea &nbsp;·&nbsp; N°03</div>
         </section>

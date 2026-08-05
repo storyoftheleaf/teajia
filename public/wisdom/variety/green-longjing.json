@@ -1,0 +1,14 @@
+{
+  "id": "green-longjing",
+  "type": "Green",
+  "name": "Longjing",
+  "chineseName": "龙井",
+  "altNames": [
+    "Dragon Well",
+    "Long Jing"
+  ],
+  "region": "Hangzhou",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

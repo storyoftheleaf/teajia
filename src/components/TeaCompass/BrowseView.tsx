@@ -39,7 +39,7 @@ function pricePerGram(e: TeaCompassEntry): number {
 interface BrowseViewProps {
   onEditEntry: (id: string) => void;
   onNewCapture: () => void;
-  /** External search query — when provided, overrides and hides the internal search input */
+  /** External search query, when provided, overrides and hides the internal search input */
   externalSearchQuery?: string;
   /** Desktop: fires when a card is tapped, shows detail panel in right column */
   onSelectEntry?: (id: string) => void;
@@ -85,7 +85,7 @@ const SectionHeader: React.FC<{ label: React.ReactNode; count: number; right?: R
   </div>
 );
 
-// ─── Photo tile — the bag-shot view of an entry ──────────────────────────────
+// ─── Photo tile, the bag-shot view of an entry ──────────────────────────────
 // Image-led card for the Photos layout: capture photo (the bag), title or
 // vendor + date fallback, and a small inline note that saves on blur.
 
@@ -284,10 +284,10 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
     };
   }, [entries]);
 
-  // Tasted teas still waiting for a verdict — the batch-review working set.
+  // Tasted teas still waiting for a verdict, the batch-review working set.
   const untriaged = useMemo(() => entries.filter(isUntriaged), [entries]);
 
-  // Entries with no deliberate field fragment — safe to bulk-delete.
+  // Entries with no deliberate field fragment, safe to bulk-delete.
   const emptyEntries = useMemo(() =>
     entries.filter((e) => !entryHasDeliberateInput(e)),
     [entries]
@@ -453,7 +453,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           const tastedCount = setEntries.filter(hasTastingData).length;
           const allTasted = tastedCount === setEntries.length;
 
-          // Decision summary counts — use sampleVerdict if set, else quality fallback
+          // Decision summary counts, use sampleVerdict if set, else quality fallback
           const verdictCounts = allTasted ? setEntries.reduce((acc, e) => {
             const v = e.sampleVerdict ?? (
               e.tasting?.quality != null
@@ -492,7 +492,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
               />
               {renderEntries(setEntries, { dimTasted: true })}
 
-              {/* Decision summary — shown when all samples tasted */}
+              {/* Decision summary, shown when all samples tasted */}
               {allTasted && verdictCounts && (
                 <div className="mt-2 rounded-xl bg-tea-surface/60 border border-tea-border px-3 py-2.5 space-y-2">
                   <div className="flex items-center gap-3">
@@ -546,7 +546,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
     );
   };
 
-  // ─── Photos layout — grid of capture photos (bag shots) ──────────────────
+  // ─── Photos layout, grid of capture photos (bag shots) ──────────────────
 
   const renderPhotos = (result: TeaCompassEntry[]) => {
     if (result.length === 0) {
@@ -681,7 +681,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         </p>
         <button
           onClick={onNewCapture}
-          className="tap-target min-h-11 px-8 py-3 bg-tea-gold text-tea-bg text-ui-12 font-semibold hover:bg-tea-gold/90 transition-colors rounded-md"
+          className="tap-target min-h-11 px-8 py-3 cta-solid text-ui-12 font-semibold transition-colors rounded-md"
         >
           Begin
         </button>
@@ -693,7 +693,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
 
   return (
     <div className="space-y-3 animate-[fadeIn_0.3s_ease-out]">
-      {/* Search — hidden when parent provides externalSearchQuery */}
+      {/* Search, hidden when parent provides externalSearchQuery */}
       {externalSearchQuery === undefined && (
         <div className="relative">
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
@@ -718,13 +718,13 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         </div>
       )}
 
-      {/* Controls — two groups, separated by a hairline:
+      {/* Controls, two groups, separated by a hairline:
             1. status filters (which subset of the library)
             2. view controls (how to view it: sort + photo grid)
-          "New" was removed here — it duplicated the header "+ NEW" and the
+          "New" was removed here, it duplicated the header "+ NEW" and the
           empty-pane "+ New Entry". Text-only labels per the chrome rule. */}
       <div data-testid="library-controls" className="flex flex-wrap items-center gap-2">
-        {/* Group 1 — status filters */}
+        {/* Group 1: status filters */}
         {filterOptions.map((opt) => (
           <button
             key={opt.value}
@@ -753,8 +753,8 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           {activeLibraryFilterCount(libraryFilters) ? `${activeLibraryFilterCount(libraryFilters)} filter${activeLibraryFilterCount(libraryFilters) === 1 ? '' : 's'}` : 'Filters'}
         </button>
 
-        {/* Group 2 — view controls */}
-        {/* Sort — opens a sheet of the four orderings. Active when not the
+        {/* Group 2: view controls */}
+        {/* Sort, opens a sheet of the four orderings. Active when not the
             default recency sort, so the user can see they've reordered. */}
         <button
           type="button"
@@ -768,7 +768,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         >
           <span>{SORT_LABELS[browseSort]}</span>
         </button>
-        {/* Photos layout toggle — swap the list for a grid of bag shots.
+        {/* Photos layout toggle, swap the list for a grid of bag shots.
             A view control, so it lives with Sort, not in the filter row. */}
         <button
           type="button"
@@ -815,7 +815,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
       )}
       {possessionError && libraryFilters.possession && (
         <div role="alert" className="flex min-h-11 items-center justify-between gap-3 rounded-md border border-tea-border bg-tea-surface px-3 text-ui-12 text-tea-text-sec">
-          <span>Inventory unavailable — possession results are hidden to avoid misclassifying entries.</span>
+          <span>Inventory unavailable. Possession results are hidden to avoid misclassifying entries.</span>
           <button type="button" className="tap-target min-h-11 text-tea-gold hover:text-tea-gold-lt" onClick={() => setPossessionRetry((value) => value + 1)}>Retry</button>
         </div>
       )}
@@ -823,7 +823,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         <div role="status" className="min-h-11 rounded-md border border-tea-border bg-tea-surface px-3 py-3 text-ui-12 text-tea-text-sec">Loading Inventory possession…</div>
       )}
 
-      {/* Cleanup banner — shown when empty test entries exist */}
+      {/* Cleanup banner, shown when empty test entries exist */}
       <AnimatePresence>
         {!cleanupDismissed && emptyEntries.length >= 3 && (
           <motion.div
@@ -858,7 +858,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         )}
       </AnimatePresence>
 
-      {/* Triage prompt — surfaces when tasted teas are waiting for a verdict.
+      {/* Triage prompt, surfaces when tasted teas are waiting for a verdict.
           Opens the batch-review screen so a sitting of tastings can be sorted
           down to keepers in one pass. */}
       <AnimatePresence>
@@ -935,7 +935,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         }}
       />
 
-      {/* Batch tasting review — full-screen triage of untriaged tastings */}
+      {/* Batch tasting review, full-screen triage of untriaged tastings */}
       {reviewOpen && (
         <SessionReview
           entries={untriaged}

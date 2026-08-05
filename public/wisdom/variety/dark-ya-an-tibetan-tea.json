@@ -1,0 +1,14 @@
+{
+  "id": "dark-ya-an-tibetan-tea",
+  "type": "Dark",
+  "name": "Ya An Tibetan Tea",
+  "chineseName": "雅安藏茶",
+  "altNames": [
+    "Kangzhuan",
+    "Ya An Dark Tea"
+  ],
+  "region": "Ya'an",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

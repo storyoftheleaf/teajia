@@ -76,7 +76,7 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
   simplified = false,
   teaType,
 }) => {
-  // Uncontrolled fallback — used when admin views don't provide activeSectionId
+  // Uncontrolled fallback, used when admin views don't provide activeSectionId
   const [internalSectionId, setInternalSectionId] = useState<SectionId>('body');
   const activeSectionId = controlledSectionId ?? internalSectionId;
   const onSectionChange = (id: SectionId) => {
@@ -226,7 +226,7 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
     <div className="flex flex-col h-full">
       <div className="flex-1 min-h-0">
 
-        {/* Section content — full width, tabs live in TastingSession's bottom bar */}
+        {/* Section content: full width. The tabs live in TastingSession's bottom bar. */}
         <div
           ref={contentRef}
           className="relative overflow-x-hidden overflow-y-auto h-full tasting-scroll"

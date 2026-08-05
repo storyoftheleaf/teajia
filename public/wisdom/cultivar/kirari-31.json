@@ -1,0 +1,42 @@
+{
+  "id": "kirari-31",
+  "name": "Kirari 31",
+  "chineseName": "きらり31",
+  "altNames": [
+    "Kirari"
+  ],
+  "originCountry": "Japan",
+  "originRegion": "Miyazaki",
+  "developedYear": 2015,
+  "parentage": "'Saemidori' x a hybrid of 'Sofu' and 'Makura-Cd86'.",
+  "description": "A very new Japanese green tea cultivar registered in 2015. It was bred for its high resistance to disease and its suitability for producing a very fragrant and low-astringency Kamairicha (pan-fired green tea). It is known for its bright, clear liquor and a sweet, slightly milky, and floral aroma.",
+  "plantType": "Early-budding, vigorous bush with excellent disease resistance (Camellia sinensis var. sinensis).",
+  "environment": "Thrives in the warm climates of southern Japan, particularly in regions that specialize in Kamairicha production.",
+  "processing": "Kirari 31 was specifically bred with pan-firing in mind. Its chemical composition responds well to the high, dry heat of this method, creating a fragrant tea without developing bitterness.",
+  "oxidation": "Zero oxidation. The 'kill-green' step, whether by pan-firing or steaming, is done immediately after harvest.",
+  "roasting": "For its primary style, Kamairicha, the pan-firing serves as the 'roast', creating a gentle nutty character. For Sencha, it would receive a standard light final bake.",
+  "versatility": "Moderately versatile. While it excels as a pan-fired tea, it can also produce a high-quality steamed Sencha, making it a valuable modern cultivar.",
+  "distribution": {
+    "japan": [
+      "Miyazaki",
+      "Kagoshima"
+    ]
+  },
+  "expressions": {
+    "Kamairicha (Pan-Fired Green Tea)": {
+      "Aromatic Kamairicha": "Its premier expression. The pan-firing process highlights its sweet, floral aroma and results in a very bright, clean tea."
+    },
+    "Sencha": {
+      "Aromatic Sencha": "Can also be steamed to make a fragrant Sencha, though this is less common."
+    }
+  },
+  "sensory": {
+    "aroma": "Sweet, floral, slightly milky",
+    "flavor": "Very low astringency with a clear, lasting sweetness and a clean finish.",
+    "mouthfeel_liquor": "Smooth and medium-bodied with a very refreshing texture. The liquor is a bright, clear green-yellow."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

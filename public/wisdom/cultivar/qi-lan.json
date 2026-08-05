@@ -1,0 +1,37 @@
+{
+  "id": "qi-lan",
+  "name": "Qi Lan",
+  "chineseName": "奇兰",
+  "altNames": [
+    "Rare Orchid"
+  ],
+  "originCountry": "China",
+  "originRegion": "Wuyi Mountains, Anxi",
+  "developedYear": 1801,
+  "parentage": "Originated in Pinghe County, southern Fujian.",
+  "description": "'Rare Orchid' or 'Marvelous Orchid'. A highly aromatic cultivar that originated in southern Fujian but has found a second home in the Wuyi Mountains. It is celebrated for its powerful and persistent orchid-like fragrance, which it can express beautifully as both a greener Anxi-style oolong and a more robust, roasted Wuyi-style rock oolong.",
+  "plantType": "Upright, vigorous bush with good productivity (Camellia sinensis var. sinensis).",
+  "environment": "Highly adaptable, it thrives in both the clay soils of its native southern Fujian and the rocky terroir of the Wuyi Mountains.",
+  "processing": "it undergoes a traditional Yancha process with a moderate roast. In Anxi",
+  "oxidation": "it is processed very lightly like a modern Tie Guan Yin to preserve its fresh aroma.,Oxidation ranges from light (20-30% for Anxi style) to medium (40-50% for Wuyi style)",
+  "roasting": "demonstrating the cultivar's ability to adapt to different processing goals.,Roasting is the key differentiator. It is unroasted in Anxi to preserve fresh florals",
+  "versatility": "but receives a light-to-medium charcoal roast in Wuyi to add depth and a mineral character.,Very versatile within the oolong category. It is one of the few cultivars that is famous for being produced in two distinct regional styles (Anxi and Wuyi).\nMei Zhan,梅占,A highly versatile Fujian cultivar",
+  "distribution": {
+    "china": [
+      "Fujian Province (Wuyi Mountains, Anxi, Pinghe)"
+    ]
+  },
+  "expressions": {
+    "Wuyi Rock Oolong (Yancha)": {
+      "Qi Lan Yancha": "When grown in Wuyi, it's made into an aroma-forward rock oolong, balancing its orchid fragrance with a mineral base and a light-to-medium roast."
+    },
+    "Anxi Oolong": {
+      "Qi Lan Oolong": "When processed in Anxi, it is made in a greener, unroasted style that maximizes its intense, fresh floral aroma."
+    }
+  },
+  "sensory": null,
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

@@ -1,0 +1,14 @@
+{
+  "id": "red-dianhong",
+  "type": "Red",
+  "name": "Dianhong",
+  "chineseName": "滇红",
+  "altNames": [
+    "Yunnan Red",
+    "Dian Hong"
+  ],
+  "region": "Yunnan",
+  "holding": "teaVarieties",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

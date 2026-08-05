@@ -29,7 +29,7 @@ export const TopRightUtilities: React.FC<TopRightUtilitiesProps> = ({
         {cartItemCount > 0 && (
           <div
             key={cartItemCount}
-            className="absolute -top-1 -right-1 w-5 h-5 bg-tea-gold text-tea-bg text-ui-10 font-bold rounded-full flex items-center justify-center animate-[scaleIn_0.3s_ease-out]"
+            className="absolute -top-1 -right-1 w-5 h-5 cta-solid text-ui-10 font-bold rounded-full flex items-center justify-center animate-[scaleIn_0.3s_ease-out]"
           >
             {cartItemCount > 9 ? '9+' : cartItemCount}
           </div>

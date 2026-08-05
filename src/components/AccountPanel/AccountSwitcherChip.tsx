@@ -15,7 +15,7 @@ interface AccountSwitcherChipProps {
  *
  * Renders nothing when the user only has one membership. Otherwise shows a
  * pill-shaped chip with the active account name + a chevron. Tapping the chip
- * opens a small dropdown listing all memberships — tapping a row switches and
+ * opens a small dropdown listing all memberships, tapping a row switches and
  * closes. The active row gets a check + tea-gold accent treatment.
  *
  * Tap targets meet WCAG 2.5.5 (>=44x44 via .tap-target invisible padding).

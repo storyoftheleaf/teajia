@@ -28,7 +28,7 @@ import { CreateInventoryRecordAction } from './CreateInventoryRecordAction';
 export interface BrowseCardProps {
   entry: TeaCompassEntry;
   onEdit: (id: string) => void;
-  /** Shows a queue/prioritise button — used in the To Taste filter */
+  /** Shows a queue/prioritise button, used in the To Taste filter */
   tasteQueueActive?: boolean;
   /** Desktop: fires instead of expand-in-place when provided */
   onSelect?: (id: string) => void;
@@ -197,7 +197,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
       if (!imageUrl) throw new Error('no url');
       updateEntry(entry.id, { photos: [...entry.photos, imageUrl] });
     } catch {
-      // Not silent — on a flaky connection the user must know to retap.
+      // Not silent, on a flaky connection the user must know to retap.
       setPhotoFailed(true);
     } finally { setPhotoUploading(false); }
   }, [entry.id, entry.photos, updateEntry]);
@@ -220,7 +220,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
   const hasTasting = entry.tasting && Object.values(entry.tasting).some(
     (v) => Array.isArray(v) ? v.length > 0 : v != null
   );
-  // Effective verdict — first-class field, falling back to legacy sample verdict.
+  // Effective verdict, first-class field, falling back to legacy sample verdict.
   const verdict: CompassVerdict | undefined = entry.verdict ?? entry.sampleVerdict;
   const setVerdict = (v: CompassVerdict) => updateEntry(entry.id, { verdict: verdict === v ? undefined : v });
 
@@ -313,7 +313,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                 <p className="text-ui-12 text-tea-text-sec font-chinese leading-tight truncate">{entry.chineseName}</p>
               )}
 
-              {/* Vendor — provenance group, right after Chinese name */}
+              {/* Vendor, provenance group, right after Chinese name */}
               {entry.vendorName && (
                 <div className="flex items-center gap-1 text-ui-12 text-tea-text-dim">
                   <Store size={11} className="shrink-0" />
@@ -361,7 +361,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                 </div>
               )}
 
-              {/* Summary tags (body + flavor) — only when collapsed */}
+              {/* Summary tags (body + flavor), only when collapsed */}
               {!expanded && summaryTags.length > 0 && (
                 <div className="flex gap-1 flex-wrap">
                   {summaryTags.map((tag) => (
@@ -446,7 +446,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                   <TastingProfileStrip value={entry.tasting!} />
                 )}
 
-                {/* Verdict — quick set/clear; the organizing signal behind the
+                {/* Verdict, quick set/clear; the organizing signal behind the
                     Loved lens and the want-list suggestion. Only shown once a
                     tea has been tasted. */}
                 {hasTasting && (
@@ -523,7 +523,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
           )}
         </AnimatePresence>
 
-        {/* ── Action bar — always visible. Wraps on narrow columns so the
+        {/* ── Action bar, always visible. Wraps on narrow columns so the
             Sample action is never clipped by the card edge. ── */}
         {!onSelect && <div className="flex flex-wrap items-center gap-x-1 border-t border-tea-border px-2 py-1">
           {/* Wishlist toggle */}
@@ -541,7 +541,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
             {isWishlisted ? 'Wanted' : 'Want'}
           </button>
 
-          {/* Buy / Bought — label is always "Buy" or "Bought", never a price string */}
+          {/* Buy / Bought, label is always "Buy" or "Bought", never a price string */}
           <button
             type="button"
             data-library-action
@@ -582,7 +582,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
               : 'Taste'}
           </button>
 
-          {/* Reorder — visible only when depleted */}
+          {/* Reorder, visible only when depleted */}
           {entry.status === 'depleted' && (
             <button
               type="button"
@@ -597,7 +597,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
             </button>
           )}
 
-          {/* Taste queue — visible only in To Taste filter */}
+          {/* Taste queue, visible only in To Taste filter */}
           {tasteQueueActive && (
             <button
               type="button"
@@ -648,7 +648,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
             <Pencil size={12} />
           </button>
 
-          {/* Delete — two-tap confirm */}
+          {/* Delete, two-tap confirm */}
           {confirmDelete ? (
             <button
               type="button"
@@ -698,7 +698,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
               updateEntry(entry.id, {
                 tasting: data,
                 tastingHistory: history,
-                // Only overwrite verdict if the session captured one — otherwise
+                // Only overwrite verdict if the session captured one, otherwise
                 // leave it for later triage in the batch review.
                 ...(sessionVerdict ? { verdict: sessionVerdict } : {}),
               });

@@ -1,13 +1,13 @@
 /**
- * JourneyPage — guest's personal tea history
+ * JourneyPage, guest's personal tea history
  * Route: /journey (accessed via verify flow or direct link with verified session)
  *
  * Sections:
- *   1. Seal Collection — circular stamps per event attended
- *   2. Tea Map — horizontal fill bars by type
- *   3. Your Words — tasting impressions in serif italic
- *   4. Milestones — quiet Chinese character marks
- *   5. Preferences — contact preference, notification opt-in, delete data
+ *   1. Seal Collection, circular stamps per event attended
+ *   2. Tea Map, horizontal fill bars by type
+ *   3. Your Words, tasting impressions in serif italic
+ *   4. Milestones, quiet Chinese character marks
+ *   5. Preferences, contact preference, notification opt-in, delete data
  */
 
 import React, { useState, useEffect, lazy, Suspense } from 'react';
@@ -202,7 +202,7 @@ const SectionHeader: React.FC<{ title: string; subtitle?: string }> = ({ title, 
 );
 
 // ----------------------------------------------------------------
-// Editorial brand story — shown on /journey before verification
+// Editorial brand story, shown on /journey before verification
 // ----------------------------------------------------------------
 const JourneyEditorial: React.FC<{ onVerify: () => void }> = ({ onVerify }) => (
   <div className="max-w-3xl mx-auto px-4 md:px-6 pt-12 pb-nav-gap">
@@ -220,7 +220,7 @@ const JourneyEditorial: React.FC<{ onVerify: () => void }> = ({ onVerify }) => (
       Twenty years on the tea road, in one quiet record.
     </p>
 
-    {/* Section 1 — Origins */}
+    {/* Section 1: Origins */}
     <section className="mb-14">
       <h2 className="h3 mb-4">
         It began with a single session in Taipei
@@ -229,26 +229,26 @@ const JourneyEditorial: React.FC<{ onVerify: () => void }> = ({ onVerify }) => (
         Twenty years ago, a pot of Dong Ding oolong changed the direction of everything. Not because it was extraordinary in the way luxury goods announce themselves, but because it was quiet, specific, and alive in ways that nothing from a bag or a café had prepared us for. The person pouring it knew the farmer by name. They knew the elevation of the garden, the year the trees were planted, the particular soil that gave the tea its lingering sweetness. That knowledge was inseparable from the cup.
       </p>
       <p className="body-prose mb-4">
-        What followed was not a business plan. It was years of learning — studying under traditional masters in Taiwan, making sourcing trips through Fujian and Yunnan, sitting at tables where the conversation went on for hours because the tea demanded it. A practice that deepened the longer it ran, accumulating knowledge the way old trees accumulate rings.
+        What followed was not a business plan. It was years of learning, studying under traditional masters in Taiwan, making sourcing trips through Fujian and Yunnan, sitting at tables where the conversation went on for hours because the tea demanded it. A practice that deepened the longer it ran, accumulating knowledge the way old trees accumulate rings.
       </p>
       <p className="body-prose">
-        TeajiA grew out of that practice. Not to scale it, but to share it — carefully, and only with people who want to drink tea the way it deserves to be drunk.
+        TeajiA grew out of that practice. Not to scale it, but to share it, carefully, and only with people who want to drink tea the way it deserves to be drunk.
       </p>
     </section>
 
     {/* Divider */}
     <div className="border-t border-tea-border mb-14" />
 
-    {/* Section 2 — Sourcing */}
+    {/* Section 2: Sourcing */}
     <section className="mb-14">
       <h2 className="h3 mb-4">
         Sourcing means going to origin, every time
       </h2>
       <p className="body-prose mb-4">
-        Every tea in this collection was chosen in person. Not from a catalogue, not through a broker, not by reading tasting notes written by someone else. We travel to the gardens — Alishan, Wuyi, Anxi, Menghai, Fuding — and taste widely before choosing carefully. A tea earns its place here by being interesting enough to talk about for a year.
+        Every tea in this collection was chosen in person. Not from a catalogue, not through a broker, not by reading tasting notes written by someone else. We travel to the gardens, Alishan, Wuyi, Anxi, Menghai, Fuding, and taste widely before choosing carefully. A tea earns its place here by being interesting enough to talk about for a year.
       </p>
       <p className="body-prose mb-4">
-        The relationships behind the teas matter as much as the teas themselves. We work with families who have farmed the same land for generations, with artisan producers who still process by hand, and with small workshops where the person making the teapot is also the person who designed it. These aren't romantic abstractions — they're the reason the tea tastes the way it does.
+        The relationships behind the teas matter as much as the teas themselves. We work with families who have farmed the same land for generations, with artisan producers who still process by hand, and with small workshops where the person making the teapot is also the person who designed it. These aren't romantic abstractions, they're the reason the tea tastes the way it does.
       </p>
       <p className="body-prose">
         Nothing here is anonymous. Every tea has a name, a place, a person, and a story. That is what curation means to us: not a larger selection, but a more specific one.
@@ -258,13 +258,13 @@ const JourneyEditorial: React.FC<{ onVerify: () => void }> = ({ onVerify }) => (
     {/* Divider */}
     <div className="border-t border-tea-border mb-14" />
 
-    {/* Section 3 — WhatsApp */}
+    {/* Section 3: WhatsApp */}
     <section className="mb-14">
       <h2 className="h3 mb-4">
         Every order is a conversation, not a transaction
       </h2>
       <p className="body-prose mb-4">
-        We checkout over WhatsApp because tea is not a product you should buy without talking to someone. When you place an order, you are in contact with the person who chose the tea. If you want to know whether a particular oolong suits your palate, or whether the 2019 or the 2022 sheng is more approachable for someone new to aged puerh, we will tell you — and mean it — before a single gram ships.
+        We checkout over WhatsApp because tea is not a product you should buy without talking to someone. When you place an order, you are in contact with the person who chose the tea. If you want to know whether a particular oolong suits your palate, or whether the 2019 or the 2022 sheng is more approachable for someone new to aged puerh, we will tell you, and mean it, before a single gram ships.
       </p>
       <p className="body-prose mb-4">
         This is not a workaround. It is the point. A checkout button optimised for conversion is the wrong tool for selling something that requires knowledge to drink well. The conversation is part of the product.
@@ -277,13 +277,13 @@ const JourneyEditorial: React.FC<{ onVerify: () => void }> = ({ onVerify }) => (
     {/* Divider */}
     <div className="border-t border-tea-border mb-14" />
 
-    {/* Section 4 — Curation */}
+    {/* Section 4: Curation */}
     <section className="mb-14">
       <h2 className="h3 mb-4">
-        What curation is — and what it isn't
+        What curation is, and what it isn't
       </h2>
       <p className="body-prose mb-4">
-        A catalogue lists everything. A curated collection holds only what has earned its place. The teas here number in the dozens, not the hundreds, because each one requires sustained attention — to source, to understand, to describe honestly, and to match with the person who will drink it. We would rather carry thirty teas we know deeply than three hundred we have tasted once.
+        A catalogue lists everything. A curated collection holds only what has earned its place. The teas here number in the dozens, not the hundreds, because each one requires sustained attention, to source, to understand, to describe honestly, and to match with the person who will drink it. We would rather carry thirty teas we know deeply than three hundred we have tasted once.
       </p>
       <p className="body-prose mb-4">
         Curation is not aesthetics, though we care about those too. It is an opinion backed by experience. It means saying no to teas that are technically correct but dull, and yes to teas that are difficult to explain but impossible to stop thinking about. The collection reflects a point of view, and that point of view has been twenty years in the making.
@@ -296,20 +296,20 @@ const JourneyEditorial: React.FC<{ onVerify: () => void }> = ({ onVerify }) => (
     {/* Divider */}
     <div className="border-t border-tea-border mb-14" />
 
-    {/* Section 5 — The personal journey CTA */}
+    {/* Section 5: The personal journey CTA */}
     <section className="mb-8">
       <h2 className="h3 mb-4">
         Your record at the table
       </h2>
       <p className="body-prose mb-4">
-        If you have attended a TeajiA gathering, your sessions, tasting notes, and tea map are here — a quiet record of every tea you have shared with us. Verify your contact to see your personal journey.
+        If you have attended a TeajiA gathering, your sessions, tasting notes, and tea map are here, a quiet record of every tea you have shared with us. Verify your contact to see your personal journey.
       </p>
       <p className="body-prose mb-8">
         The record grows with each session. Over time, it becomes something worth keeping.
       </p>
       <button
         onClick={onVerify}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
       >
         View your journey
       </button>
@@ -364,7 +364,7 @@ const JourneyPage: React.FC = () => {
   if (showVerify || !verifiedContact) {
     return (
       <div className="min-h-screen bg-tea-bg">
-        {/* Brand story — visible before verification */}
+        {/* Brand story, visible before verification */}
         <JourneyEditorial onVerify={() => setShowVerify(true)} />
         <Suspense fallback={null}>
           <VerifySheet

@@ -1,0 +1,39 @@
+{
+  "id": "hong-yu",
+  "name": "Hong Yu",
+  "chineseName": "红玉",
+  "altNames": [
+    "Ruby",
+    "Tai Cha #18"
+  ],
+  "originCountry": "Taiwan",
+  "originRegion": "Sun Moon Lake (Nantou)",
+  "developedYear": 1999,
+  "parentage": "C. sinensis var. assamica (Burma) x C. formosensis (Taiwanese Wild Tea)",
+  "description": "'Ruby'. Taiwan's most famous and unique black tea, Hong Yu is a modern hybrid developed by TRES. It is celebrated for its truly singular and powerful aroma, a complex bouquet of cinnamon, wintergreen, and mint, layered over a rich, malty base. It is a world-class black tea that has become an icon of the Taiwanese tea industry.",
+  "plantType": "Vigorous, large-leaf bush with a strong upright growth habit.",
+  "environment": "Prefers the warm, extremely humid, and stable climate around Sun Moon Lake, which mimics the conditions needed by its Assamica parentage.",
+  "processing": "The processing is a relatively standard black tea method (wither, roll, oxidize, dry), but the magic is in the unique genetics of the leaf itself. The goal is simply to fully express the inherent character of the cultivar.",
+  "oxidation": "Undergoes full and complete oxidation (100%) to develop the deep red color and the complex aromatic compounds that define it.",
+  "roasting": "No roasting. The tea is dried with hot air to halt oxidation and reduce moisture content. All of its flavor comes from the leaf chemistry and oxidation.",
+  "versatility": "Completely specialized. Hong Yu was bred for the express purpose of making a world-class black tea, and its unique genetics make it unsuitable for other styles.",
+  "distribution": {
+    "taiwan": [
+      "Nantou County (Yuchi Township - Sun Moon Lake)"
+    ]
+  },
+  "expressions": {
+    "Black Tea": {
+      "Ruby #18 Black Tea": "Its sole, iconic expression. A fully oxidized black tea with a powerful and unmistakable spicy-minty aroma and a rich, sweet flavor."
+    }
+  },
+  "sensory": {
+    "aroma": "Powerful Cinnamon, Wintergreen, Mint, Camphor, Malt",
+    "flavor": "Malty, sweet, with a complex spice character and a unique cooling sensation in the finish.",
+    "mouthfeel_liquor": "Full-bodied, robust, and very smooth with a long, powerful, and cooling aftertaste. The liquor is a brilliant, clear ruby red."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

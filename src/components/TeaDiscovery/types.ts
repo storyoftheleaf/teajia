@@ -1,10 +1,10 @@
 import type { ComponentType } from 'react';
 
 /**
- * Axis 2 — how far into the practice someone is. Gates content depth today,
+ * Axis 2: how far into the practice someone is. Gates content depth today,
  * feeds matching in Phase 2. `devoted` is *conferred*, not self-claimed or
  * counted up to: a member tells us they're new or practicing, but standing as a
- * devoted practitioner is granted (Adrian knows them, or they contribute) — the
+ * devoted practitioner is granted (Adrian knows them, or they contribute), the
  * one gate in the whole model, so a beginner can never click their way into it.
  */
 export type DiscoveryLevel = 'curious' | 'practicing' | 'devoted';
@@ -17,7 +17,7 @@ export interface DiscoveryOption {
   label: string;
   /** Maps an answer to an experience level (Q1 only). */
   level?: DiscoveryLevel;
-  /** Effect/motivation tag (Q5) — forward-compatible with the taster "Effect" zone. */
+  /** Effect/motivation tag (Q5), forward-compatible with the taster "Effect" zone. */
   effect?: string;
   /** Plain-language explainer revealed by the non-blocking "What's this?" toggle. */
   learnMore?: string;
@@ -39,7 +39,7 @@ export interface DiscoveryQuestion {
 }
 
 /**
- * Axis 1 — a "thread": a reason someone comes to tea. Not a box you fall into;
+ * Axis 1: a "thread": a reason someone comes to tea. Not a box you fall into;
  * threads stack, so a member can hold several at once. The three (Stillness /
  * Connection / Quality) each point at a different shelf, which is the whole job:
  * they're how Teajia knows what to put in front of someone, not a label to wear.
@@ -55,10 +55,10 @@ export type TeaDiscoveryAnswers = Record<string, string | string[]>;
 
 export interface TeaDiscoveryProfile {
   answers: TeaDiscoveryAnswers;
-  /** Axis 2 — where they are in the practice (curious → practicing → devoted). */
+  /** Axis 2: where they are in the practice (curious → practicing → devoted). */
   level: DiscoveryLevel;
-  /** Axis 1 — the threads that draw them (any of Stillness / Connection / Quality). */
+  /** Axis 1: the threads that draw them (any of Stillness / Connection / Quality). */
   threadIds: string[];
-  /** ISO timestamp — when the profile was last completed. */
+  /** ISO timestamp, when the profile was last completed. */
   completedAt: string;
 }

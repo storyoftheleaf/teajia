@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
 
 /**
- * Shared IntersectionObserver singleton — all useSectionReveal instances
+ * Shared IntersectionObserver singleton, all useSectionReveal instances
  * register with the same observer to avoid creating N observers per page.
  */
 const callbacks = new Map<Element, (entry: IntersectionObserverEntry) => void>();
@@ -63,7 +63,7 @@ function getClassNames(direction: 'up' | 'left' | 'right' | 'fade', visible: boo
 }
 
 /** Lightweight scroll-reveal hook using a shared IntersectionObserver.
- *  Respects prefers-reduced-motion — instantly visible, no animation.
+ *  Respects prefers-reduced-motion, instantly visible, no animation.
  *
  *  @param direction - reveal direction: 'up' (default), 'left', 'right', or 'fade'
  */

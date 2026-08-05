@@ -1,0 +1,39 @@
+{
+  "id": "hong-yun",
+  "name": "Hong Yun",
+  "chineseName": "红韵",
+  "altNames": [
+    "Red Rhyme",
+    "TRES #21"
+  ],
+  "originCountry": "Taiwan",
+  "originRegion": "Sun Moon Lake (Nantou)",
+  "developedYear": 2008,
+  "parentage": "Indian 'Kyang' varietal x Keemun varietal",
+  "description": "'Red Rhyme'. Another modern black tea masterpiece from TRES, Hong Yun was developed to have a more fruit-forward and floral profile compared to Hong Yu's spicy character. It is known for its bright, uplifting aroma of citrus fruits like yuzu and orange peel, combined with a sweet, lingering floral finish.",
+  "plantType": "Vigorous bush, slightly smaller and more compact than Hong Yu.",
+  "environment": "Grows well in the warm, humid environment of Yuchi (Sun Moon Lake) and other black tea producing regions in Taiwan.",
+  "processing": "Like Hong Yu, the processing is a standard black tea method. The skill of the tea master lies in perfectly timing the oxidation to capture the peak of its citrus and floral aromatics.",
+  "oxidation": "Undergoes full oxidation (100%) to develop its bright red liquor and complex fruity-floral flavor profile.",
+  "roasting": "No roasting. The tea is dried with hot air. Its flavor is derived from its unique parentage and the oxidation process.",
+  "versatility": "Completely specialized. Hong Yun was specifically bred to create a unique, aromatic black tea and is not used for other tea styles.",
+  "distribution": {
+    "taiwan": [
+      "Nantou County (Yuchi Township - Sun Moon Lake)"
+    ]
+  },
+  "expressions": {
+    "Black Tea": {
+      "Hong Yun Black Tea": "Its only expression. A fully oxidized black tea designed to be exceptionally aromatic, with a focus on bright citrus and floral notes."
+    }
+  },
+  "sensory": {
+    "aroma": "Bright Yuzu, Orange Peel, Passionfruit, underlying floral sweetness",
+    "flavor": "Citrusy, sweet, and vibrant with a clean, honey-like finish.",
+    "mouthfeel_liquor": "Medium-to-full-bodied, smooth, and very aromatic with a long, sweet aftertaste. The liquor is a bright orange-red."
+  },
+  "authorshipRung": "drafted",
+  "holding": "cultivars",
+  "license": "CC BY 4.0, see LICENSE.txt",
+  "source": "https://teajia.com/wisdom/"
+}

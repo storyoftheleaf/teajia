@@ -9,7 +9,7 @@ import { PageHeaderActions } from './shared/PageHeaderActions';
 import { ShopGridLayout } from './shared/ShopGridLayout';
 import { TeaItem } from './TeaInventory';
 import { TeaPlaceholder } from './shop/TeaPlaceholder';
-import { fmtShopPrice } from '../utils/formatNumber';
+import { useShopPrice } from './shop/shopPrice';
 import { useProductModalRoute } from '../hooks/useProductModalRoute';
 import { useAppStore } from '../lib/store';
 import type { Product } from '../admin/types';
@@ -38,6 +38,12 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
 
   // Alcove modal driven by the URL (/shop/product/:id + background state).
   const { viewItem, openProduct, navigateWithinModal, closeProduct } = useProductModalRoute(externalInventory);
+
+  // The grid and the card it opens must quote one currency. `TeawareAlcoveCard`
+  // has read `useShopPrice` since round seven; this catalogue still called the
+  // raw dollar formatter, so a reader in Rupiah saw dollars in the grid and
+  // Rupiah in the card they tapped. Same defect already fixed on the tea grid.
+  const shopPrice = useShopPrice();
 
   // Persisted favorites via Zustand store (same as tea section)
   const { favoriteTeas, toggleFavoriteTea } = useAppStore();
@@ -126,7 +132,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
       {/* --- Inline Filter Chips + Content --- */}
       <div className="max-w-full mx-auto px-3 md:px-4 lg:px-6 pt-4">
 
-        {/* Category filter chips — matching tea's type chips */}
+        {/* Category filter chips, matching tea's type chips */}
         <div className="mb-4 space-y-3">
           <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-1">
             <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim shrink-0 mr-1">Category</span>
@@ -187,7 +193,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
               <div className="animate-[fadeIn_0.5s_ease-out]">
                 {groupedItems.map((group) => (
                   <div key={group.id}>
-                    {/* Category label — matching tea's style */}
+                    {/* Category label, matching tea's style */}
                     <div className="pt-8 pb-2 first:pt-4 pl-2 border-b border-tea-border">
                       <span className="font-sans text-ui-10 uppercase tracking-[2px] text-tea-text-sec">{group.label}</span>
                     </div>
@@ -215,7 +221,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                           }
                           priceDisplay={
                             <span className="card-grid-price">
-                              <span className="num">{fmtShopPrice(parseFloat(item.price_50g ?? '0'))}</span>
+                              <span className="num">{shopPrice.total(parseFloat(item.price_50g ?? '0'))}</span>
                               <span className="text-tea-text-sec text-ui-10 ml-1">each</span>
                             </span>
                           }
@@ -250,7 +256,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                     }
                     priceDisplay={
                       <span className="card-grid-price">
-                        <span className="num">{fmtShopPrice(parseFloat(item.price_50g ?? '0'))}</span>
+                        <span className="num">{shopPrice.total(parseFloat(item.price_50g ?? '0'))}</span>
                         <span className="text-tea-text-sec text-ui-10 ml-1">each</span>
                       </span>
                     }
@@ -260,13 +266,13 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
             )
           )}
 
-          {/* === LIST VIEW — matching tea's row pattern === */}
+          {/* === LIST VIEW, matching tea's row pattern === */}
           {viewMode === 'LIST' && filteredItems.length > 0 && (
             <div className="flex flex-col px-0 animate-[fadeIn_0.5s_ease-out]">
               {groupedItems.map((group) => (
                 <React.Fragment key={group.id}>
 
-                  {/* Category label — same style as tea type headers */}
+                  {/* Category label, same style as tea type headers */}
                   {activeCategory === 'All' && (
                     <div className="pt-8 pb-2 first:pt-4 pl-2 border-b border-tea-border">
                       <span className="font-sans text-ui-10 uppercase tracking-[2px] text-tea-text-sec">{group.label}</span>
@@ -345,7 +351,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                               </button>
                             )}
                             <div className="text-right">
-                              <span className="num text-sm text-tea-gold">{fmtShopPrice(unitPrice)}</span>
+                              <span className="num text-sm text-tea-gold">{shopPrice.total(unitPrice)}</span>
                               <span className="text-tea-text-sec text-ui-10 ml-1">each</span>
                             </div>
                             <Icons.Next className="w-4 h-4 text-tea-text-sec shrink-0" />
