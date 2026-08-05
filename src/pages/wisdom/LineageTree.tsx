@@ -10,7 +10,18 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { childrenOf, parentsOf, type Cultivar } from '../../wisdom';
-import { CELL, CELL_CLASS, FACT, FACT_CLASS, LABEL, NAME_CLASS, Panel, QUIET_LINK, SectionHead } from './wisdomShared';
+import {
+  AXIS_INDENT,
+  CELL,
+  CELL_CLASS,
+  FACT,
+  FACT_CLASS,
+  LABEL,
+  MEASURE,
+  NAME_CLASS,
+  QUIET_LINK,
+  SectionHead,
+} from './wisdomShared';
 
 // ─── Reading the record ──────────────────────────────────────────────────────
 
@@ -119,12 +130,14 @@ const NodeRow: React.FC<NodeRowProps> = ({ node, tone, rail, children }) => {
       <span className={`${NAME_CLASS} text-tea-text group-hover:text-tea-gold-lt transition-colors break-words`}>
         {node.name}
       </span>
-      {node.chineseName && <span className="font-display text-ui-15 text-tea-text-dim">{node.chineseName}</span>}
+      {node.chineseName && <span className={`${NAME_CLASS} text-tea-text-dim`}>{node.chineseName}</span>}
     </Link>
   ) : (
     <span className="inline-flex items-baseline gap-3 flex-wrap min-w-0">
       <span className={`${NAME_CLASS} text-tea-text-sec break-words`}>{tidyName(node)}</span>
-      <span className={`${LABEL} whitespace-nowrap`}>not held here</span>
+      {/* Not tracked capitals. Caps here would be a badge, which is a third
+          job for a device that does two: field labels and section heads. */}
+      <span className={`${CELL_CLASS} text-tea-text-dim whitespace-nowrap`}>not held here</span>
     </span>
   );
 
@@ -165,7 +178,7 @@ const NodeRow: React.FC<NodeRowProps> = ({ node, tone, rail, children }) => {
 const FoldedParents: React.FC<{ of: string; parents: Array<Cultivar | string> }> = ({ of, parents }) => {
   if (parents.length === 0) return null;
   return (
-    <p className={`${CELL_CLASS} text-tea-text-dim leading-relaxed mt-0.5 max-w-[60ch]`}>
+    <p className={`${CELL_CLASS} text-tea-text-dim leading-relaxed mt-0.5 ${MEASURE}`}>
       <span className="sr-only">Parents of {of}: </span>
       <span aria-hidden>from </span>
       {parents.map((parent, index) => (
@@ -208,21 +221,26 @@ export const LineageTree: React.FC<{ cultivar: Cultivar }> = ({ cultivar }) => {
 
   return (
     <section aria-labelledby="lineage-heading">
-      <SectionHead glyph="§" label="Lineage" />
+      <SectionHead label="Lineage" />
       <h2 id="lineage-heading" className="sr-only">
         Lineage of {cultivar.name}
       </h2>
 
-      <Panel>
+      <div className={AXIS_INDENT}>
         {/* The record itself, verbatim, before anything is read out of it. It
-            heads the panel, above a rule, because the tree below is a reading
-            of this line and a reader is entitled to check the reading against
-            it. Stacked rather than inline: at 390px a label and a 40-character
-            cross on one line wrapped into a shape that read as two facts. */}
+            heads the block, because the tree below is a reading of this line
+            and a reader is entitled to check the reading against it. Stacked
+            rather than inline: at 390px a label and a 40-character cross on one
+            line wrapped into a shape that read as two facts.
+
+            No rule between this and the tree. The full-measure hairline is the
+            reference's one mark for a major division, and a second one inside a
+            section would be the same weight doing a smaller job. The label says
+            what this line is; the space says where it ends. */}
         {lineage.raw && lineage.kind === 'cross' && (
-          <div className="-mx-4 sm:-mx-5 px-4 sm:px-5 pb-4 mb-2 border-b border-tea-border">
+          <div className="mb-5">
             <p className={`${LABEL} mb-1`}>Recorded as</p>
-            <p className={`${CELL} min-w-0 break-words tabular-nums`}>{lineage.raw}</p>
+            <p className={`${CELL} min-w-0 break-words figures-tab`}>{lineage.raw}</p>
           </div>
         )}
 
@@ -256,7 +274,7 @@ export const LineageTree: React.FC<{ cultivar: Cultivar }> = ({ cultivar }) => {
                   at the body size, which put a generation's footnote at the
                   size of the page's prose. */}
               {child.parentage && (
-                <p className={`${CELL_CLASS} text-tea-text-dim leading-relaxed mt-0.5 max-w-[60ch]`}>
+                <p className={`${CELL_CLASS} text-tea-text-dim leading-relaxed mt-0.5 ${MEASURE}`}>
                   {child.parentage}
                 </p>
               )}
@@ -267,21 +285,21 @@ export const LineageTree: React.FC<{ cultivar: Cultivar }> = ({ cultivar }) => {
         {lineage.kind === 'note' && lineage.raw && (
           <div className="mt-5 pl-7">
             <p className={`${LABEL} mb-1.5`}>Recorded origin</p>
-            <p className={`${FACT} max-w-[60ch]`}>{lineage.raw}</p>
+            <p className={`${FACT} ${MEASURE}`}>{lineage.raw}</p>
           </div>
         )}
 
         {lineage.kind === 'none' && (
-          <p className={`${FACT_CLASS} text-tea-text-dim mt-5 pl-7 max-w-[60ch]`}>
+          <p className={`${FACT_CLASS} text-tea-text-dim mt-5 pl-7 ${MEASURE}`}>
             No breeding record is held for this plant yet. That is a gap, not a claim that none exists.
           </p>
         )}
-      </Panel>
 
-      <p className={`${CELL_CLASS} text-tea-text-dim leading-relaxed mt-6 max-w-[64ch]`}>
-        A name you can open is a plant held in this reference. A name in plain type was written into the record but is
-        not held yet.
-      </p>
+        <p className={`${CELL_CLASS} text-tea-text-dim leading-relaxed mt-6 ${MEASURE}`}>
+          A name you can open is a plant held in this reference. A name in plain type was written into the record but is
+          not held yet.
+        </p>
+      </div>
     </section>
   );
 };

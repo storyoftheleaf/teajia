@@ -6,16 +6,19 @@ import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { findStyleById } from '../../wisdom';
 import {
+  AXIS_INDENT,
   EntryAuthorship,
   FACT_CLASS,
   Fact,
-  FactPanel,
   HoldingNotFound,
   Invitation,
-  LABEL,
+  MEASURE,
+  PAGE,
   PageHead,
-  Panel,
+  SPACE,
+  SectionHead,
   WisdomSubNav,
+  catalogueNumber,
 } from './wisdomShared';
 
 const StylePage: React.FC = () => {
@@ -62,7 +65,7 @@ const StylePage: React.FC = () => {
   }
 
   return (
-    <article className="w-full max-w-3xl mx-auto pt-4 pb-nav">
+    <article className={PAGE}>
       <Helmet>
         <title>{`${style.name} · Styles · Teajia`}</title>
         <meta
@@ -74,26 +77,26 @@ const StylePage: React.FC = () => {
 
       <WisdomSubNav active="styles" />
 
-      <div className="mt-4">
+      <div className="mt-7">
         <PageHead
+          kind="Style"
           title={style.name}
           chineseName={style.chineseName}
-          note={style.altNames.length > 0 ? `Also written ${style.altNames.join(', ')}` : undefined}
+          aka={style.altNames.length > 0 ? `Also written ${style.altNames.join(', ')}` : undefined}
           rungFor={style.id}
+          number={catalogueNumber('styles', style.id)}
         />
       </div>
 
-      <FactPanel className="mt-6">
+      <div className="mt-8">
         <Fact label="Applies to">{style.appliesToTypes.join(', ') || null}</Fact>
         <Fact label="Region">{style.region}</Fact>
-      </FactPanel>
+      </div>
 
       {style.description && (
-        <section className="mt-10">
-          <Panel>
-            <p className={`${LABEL} mb-2`}>Record</p>
-            <p className={`${FACT_CLASS} text-tea-text max-w-[68ch]`}>{style.description}</p>
-          </Panel>
+        <section className={SPACE.section}>
+          <SectionHead label="Record" />
+          <p className={`${FACT_CLASS} text-tea-text ${MEASURE} ${AXIS_INDENT}`}>{style.description}</p>
         </section>
       )}
 

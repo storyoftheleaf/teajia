@@ -12,22 +12,26 @@ import React, { useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { CULTIVARS, TEA_TYPES, type Cultivar, type TeaType } from '../../wisdom';
 import {
+  AXIS_INDENT,
   FACT,
   GroupHead,
   GroupJump,
   HoldingAuthorship,
   HoldingRow,
-  IndexPanel,
-  IndexTable,
+  IndexList,
   Invitation,
+  MEASURE,
   NoMatch,
+  PAGE,
   PageHead,
+  RULE_FULL,
+  RunningHead,
+  SPACE,
   SearchEverywhere,
   ViewSwitch,
   WisdomSubNav,
   WisdomToolbar,
   useCultivarTypes,
-  type IndexColumns,
 } from './wisdomShared';
 
 type View = 'origin' | 'type' | 'alphabetical';
@@ -37,23 +41,6 @@ const VIEWS: Array<{ id: View; label: string }> = [
   { id: 'type', label: 'By tea type' },
   { id: 'alphabetical', label: 'A to Z' },
 ];
-
-/**
- * Fractional tracks, not pixel ones.
- *
- * The pixel version put a 196px column and a 72px column hard against the right
- * edge of a 768px row and gave every remaining pixel to the name, so a
- * nine-character plant name sat in a 400px track and the two facts huddled in
- * the last third with a void between. Fractions spread the same three columns
- * across the whole measure, which is what the axis was for. The last track is
- * still fixed, because a year is four characters and does not want a share of
- * anything.
- */
-const COLUMNS: IndexColumns = {
-  template: 'minmax(0,1.5fr) minmax(0,1.2fr) 5rem',
-  nameLabel: 'Plant',
-  labels: ['Origin', 'Developed'],
-};
 
 const matchKey = (value: string) => value.normalize('NFKD').toLowerCase();
 
@@ -86,11 +73,11 @@ const Group: React.FC<{ label: string; rows: Cultivar[] }> = ({ label, rows }) =
   return (
     <section>
       <GroupHead id={anchorId(label)} label={label} count={rows.length} />
-      <ul className="list-none m-0 p-0">
+      <IndexList>
         {rows.map(cultivar => (
           <CultivarRow key={cultivar.id} cultivar={cultivar} />
         ))}
-      </ul>
+      </IndexList>
     </section>
   );
 };
@@ -137,6 +124,12 @@ const CultivarIndexPage: React.FC = () => {
     return [...groups.filter(([, rows]) => rows.length > 0), ['Type not recorded', unrecorded] as [string, Cultivar[]]];
   }, [visible, typesById]);
 
+  /** The groups on screen, for the running head and the jump control alike. */
+  const groups = useMemo(
+    () => jumpFrom(view === 'origin' ? byCountry : view === 'type' ? byType : byLetter),
+    [view, byCountry, byType, byLetter],
+  );
+
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
@@ -158,7 +151,7 @@ const CultivarIndexPage: React.FC = () => {
   };
 
   return (
-    <article className="w-full max-w-3xl mx-auto pt-4 pb-nav">
+    <article className={PAGE}>
       <Helmet>
         <title>The Tea Plants · Teajia</title>
         <meta
@@ -175,11 +168,11 @@ const CultivarIndexPage: React.FC = () => {
 
       <WisdomSubNav active="cultivars" />
 
-      <div className="mt-4 mb-2">
-        <PageHead title="The Tea Plants" note="Their breeding, and the ground they came from." />
+      <div className="mt-7">
+        <PageHead kind="Holding" title="The Tea Plants" note="Their breeding, and the ground they came from." />
       </div>
 
-      <IndexPanel className="mt-5">
+      <div className={SPACE.section}>
         <WisdomToolbar
           query={query}
           onQueryChange={setQuery}
@@ -192,44 +185,42 @@ const CultivarIndexPage: React.FC = () => {
           <ViewSwitch options={VIEWS} value={view} onChange={next => setView(next)} label="Browse the plants" />
           {/* Silent at 79 plants: the threshold lives in GroupJump, so this
               appears on its own the day the holding outgrows a plain scroll. */}
-          <GroupJump
-            groups={jumpFrom(view === 'origin' ? byCountry : view === 'type' ? byType : byLetter)}
-            rows={visible.length}
-            label="Jump to a group of plants"
-          />
+          <GroupJump groups={groups} rows={visible.length} label="Jump to a group of plants" />
         </WisdomToolbar>
 
         {visible.length === 0 && <NoMatch noun="plant" query={query} />}
 
         {visible.length > 0 && (
-          <IndexTable columns={COLUMNS}>
+          <>
+            <RunningHead groups={groups} />
             {view === 'origin' && byCountry.map(([country, rows]) => <Group key={country} label={country} rows={rows} />)}
 
             {view === 'alphabetical' && byLetter.map(([letter, rows]) => <Group key={letter} label={letter} rows={rows} />)}
 
-            {view === 'type' && typesLoading && <p className={`${FACT} py-14 text-center`}>Reading the record.</p>}
+            {view === 'type' && typesLoading && (
+              <p className={`${FACT} ${AXIS_INDENT} py-12`}>Reading the record.</p>
+            )}
 
             {view === 'type' && !typesLoading && byType.map(([type, rows]) => <Group key={type} label={type} rows={rows} />)}
-          </IndexTable>
+          </>
         )}
-      </IndexPanel>
+      </div>
 
-      {view === 'type' && !typesLoading && (
-        <p className={`${FACT} mt-8 max-w-[64ch]`}>
-          A plant can sit under more than one type. The same bush is picked for a green in April and a red in June, and
-          the record follows the tea, not the leaf.
-        </p>
-      )}
-
-      <div className="mt-14">
-        <p className={`${FACT} max-w-[68ch]`}>
+      <div className={`${SPACE.section} pt-6 ${RULE_FULL}`}>
+        {view === 'type' && !typesLoading && (
+          <p className={`${FACT} ${MEASURE} ${AXIS_INDENT} mb-5`}>
+            A plant can sit under more than one type. The same bush is picked for a green in April and a red in June,
+            and the record follows the tea, not the leaf.
+          </p>
+        )}
+        <p className={`${FACT} ${MEASURE} ${AXIS_INDENT}`}>
           A cultivar is a tea plant someone chose and kept. One bush behaved differently on one hillside, a cutting was
           taken, and a whole garden ended up carrying its habits. It is the half of a tea nobody prints on the label,
           which is why two gardens on the same slope can taste like different countries. What follows is the breeding
           record as we hold it, with the crosses named where they are known and left blank where they are not.
         </p>
-        <HoldingAuthorship noun="plants" className="max-w-[64ch] mt-6" />
-        <SearchEverywhere query={query} className="mt-2" />
+        <HoldingAuthorship noun="plants" className={`${MEASURE} ${AXIS_INDENT} mt-5`} />
+        <SearchEverywhere query={query} className={`${AXIS_INDENT} mt-2`} />
       </div>
 
       <Invitation subject="Tea plants" />

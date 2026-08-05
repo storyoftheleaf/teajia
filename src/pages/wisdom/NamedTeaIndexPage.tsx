@@ -11,27 +11,28 @@ import React, { useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { NAMED_TEAS, NAMING_TRADITIONS, namedTeasInTradition, type NamedTea } from '../../wisdom';
 import {
+  AXIS_INDENT,
   FACT,
   GroupHead,
   HoldingAuthorship,
   HoldingRow,
-  IndexPanel,
-  IndexTable,
+  IndexList,
   Invitation,
+  MEASURE,
   NoMatch,
+  PAGE,
   PageHead,
+  RULE_FULL,
+  RunningHead,
+  SPACE,
   SearchEverywhere,
   ViewSwitch,
   WisdomSubNav,
   WisdomToolbar,
-  type IndexColumns,
 } from './wisdomShared';
 
-const COLUMNS: IndexColumns = {
-  template: 'minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr)',
-  nameLabel: 'Tea',
-  labels: ['Type', 'Form'],
-};
+const anchorId = (label: string) =>
+  `named-${label.normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
 
 /**
  * A tradition is written in the base as an explanation, not as a label:
@@ -95,7 +96,7 @@ const VIEWS: Array<{ id: View; label: string }> = [
 const NO_TYPE = 'Type not stated';
 
 const NamedTeaRows: React.FC<{ rows: NamedTea[] }> = ({ rows }) => (
-  <ul className="list-none m-0 p-0">
+  <IndexList>
     {rows.map(tea => (
       <HoldingRow
         key={tea.id}
@@ -105,7 +106,7 @@ const NamedTeaRows: React.FC<{ rows: NamedTea[] }> = ({ rows }) => (
         cells={[tea.type || { absent: 'Not stated' }, tea.form || { absent: 'Not stated' }]}
       />
     ))}
-  </ul>
+  </IndexList>
 );
 
 const NamedTeaIndexPage: React.FC = () => {
@@ -132,6 +133,16 @@ const NamedTeaIndexPage: React.FC = () => {
 
   const alphabetical = useMemo(() => [...visible].sort((left, right) => left.name.localeCompare(right.name)), [visible]);
 
+  const runningGroups = useMemo(() => {
+    const source: Array<[string, NamedTea[]]> =
+      view === 'tradition'
+        ? groups.map(([tradition, rows]) => [traditionLabel(tradition), rows])
+        : view === 'type'
+          ? byType
+          : [];
+    return source.map(([label, rows]) => ({ id: anchorId(label), label, count: rows.length }));
+  }, [view, groups, byType]);
+
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
@@ -152,7 +163,7 @@ const NamedTeaIndexPage: React.FC = () => {
   };
 
   return (
-    <article className="w-full max-w-3xl mx-auto pt-4 pb-nav">
+    <article className={PAGE}>
       <Helmet>
         <title>Named Teas · The Wisdom Base · Teajia</title>
         <meta
@@ -164,11 +175,11 @@ const NamedTeaIndexPage: React.FC = () => {
 
       <WisdomSubNav active="named" />
 
-      <div className="mt-4 mb-2">
-        <PageHead title="Named Teas" note="Where the composition was never disclosed." />
+      <div className="mt-7">
+        <PageHead kind="Holding" title="Named Teas" note="Where the composition was never disclosed." />
       </div>
 
-      <IndexPanel className="mt-5">
+      <div className={SPACE.section}>
         <WisdomToolbar
           query={query}
           onQueryChange={setQuery}
@@ -184,28 +195,33 @@ const NamedTeaIndexPage: React.FC = () => {
         {visibleCount === 0 && <NoMatch noun="named tea" query={query} />}
 
         {visibleCount > 0 && (
-          <IndexTable columns={COLUMNS}>
+          <>
+            <RunningHead groups={runningGroups} />
             {view === 'tradition' &&
               groups.map(([tradition, rows]) => (
                 <section key={tradition}>
-                  <GroupHead label={traditionLabel(tradition)} count={rows.length} />
+                  <GroupHead
+                    id={anchorId(traditionLabel(tradition))}
+                    label={traditionLabel(tradition)}
+                    count={rows.length}
+                  />
                   <NamedTeaRows rows={rows} />
                 </section>
               ))}
             {view === 'type' &&
               byType.map(([type, rows]) => (
                 <section key={type}>
-                  <GroupHead label={type} count={rows.length} />
+                  <GroupHead id={anchorId(type)} label={type} count={rows.length} />
                   <NamedTeaRows rows={rows} />
                 </section>
               ))}
             {view === 'alphabetical' && <NamedTeaRows rows={alphabetical} />}
-          </IndexTable>
+          </>
         )}
-      </IndexPanel>
+      </div>
 
-      <div className="mt-14">
-        <p className={`${FACT} max-w-[68ch]`}>
+      <div className={`${SPACE.section} pt-6 ${RULE_FULL}`}>
+        <p className={`${FACT} ${MEASURE} ${AXIS_INDENT}`}>
           A collector stores a sheng for years and names it Courage. The mountain is rarely recorded and the vintage
           often is not either, and the tea moves on carrying only that word. That is not a gap in the record. It is the
           nature of the record, and holding it plainly beats not holding it at all.
@@ -217,13 +233,13 @@ const NamedTeaIndexPage: React.FC = () => {
             saying is where the full sentence lives, and it says it here with
             the rest of the notes about the holding. */}
         {view === 'tradition' && (
-          <p className={`${FACT} max-w-[68ch] mt-4`}>
+          <p className={`${FACT} ${MEASURE} ${AXIS_INDENT} mt-4`}>
             The groups above are how each tea came by its name. Every entry states its tradition in full on its own
             page.
           </p>
         )}
-        <HoldingAuthorship noun="teas" className="max-w-[64ch] mt-6" />
-        <SearchEverywhere query={query} className="mt-2" />
+        <HoldingAuthorship noun="teas" className={`${MEASURE} ${AXIS_INDENT} mt-5`} />
+        <SearchEverywhere query={query} className={`${AXIS_INDENT} mt-2`} />
       </div>
 
       <Invitation subject="A named tea that is missing" />

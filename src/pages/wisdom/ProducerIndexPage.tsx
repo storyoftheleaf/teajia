@@ -25,20 +25,24 @@ import React, { useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { PRODUCERS, marksOf, type Producer } from '../../wisdom';
 import {
+  AXIS_INDENT,
   FACT,
   GroupHead,
   HoldingAuthorship,
   HoldingRow,
-  IndexPanel,
-  IndexTable,
+  IndexList,
   Invitation,
+  MEASURE,
   NoMatch,
+  PAGE,
   PageHead,
+  RULE_FULL,
+  RunningHead,
+  SPACE,
   SearchEverywhere,
   ViewSwitch,
   WisdomSubNav,
   WisdomToolbar,
-  type IndexColumns,
 } from './wisdomShared';
 
 type View = 'kind' | 'alphabetical';
@@ -56,13 +60,6 @@ const KIND_LABEL: Record<Producer['kind'], string> = {
   unknown: 'Not recorded',
 };
 
-/** "Marks held", not "Marks": the count is what the base holds, not what the factory ever made. */
-const COLUMNS: IndexColumns = {
-  template: 'minmax(0,1.4fr) minmax(0,1.1fr) 6rem 5rem',
-  nameLabel: 'Producer',
-  labels: ['Operates in', 'Kind', 'Marks held'],
-};
-
 const matchKey = (value: string) => value.normalize('NFKD').toLowerCase();
 
 function matches(producer: Producer, query: string): boolean {
@@ -75,12 +72,16 @@ function matches(producer: Producer, query: string): boolean {
 
 const byName = (left: Producer, right: Producer) => left.name.localeCompare(right.name);
 
+const anchorId = (label: string) =>
+  `producer-${label.normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
+
 const ProducerRows: React.FC<{ rows: Producer[] }> = ({ rows }) => (
-  <ul className="list-none m-0 p-0">
+  <IndexList>
     {rows.map(producer => {
       // How many marks the base holds for this producer. The row opens the
-      // producer, whose record lists them and links each one. A producer we
-      // hold no mark for says so, rather than leaving the column blank.
+      // producer, whose record lists them and links each one. "Marks held", not
+      // "marks": the count is what the base holds, not what the factory made.
+      // A producer we hold no mark for says so, rather than saying nothing.
       const held = marksOf(producer).length;
       return (
         <HoldingRow
@@ -89,14 +90,14 @@ const ProducerRows: React.FC<{ rows: Producer[] }> = ({ rows }) => (
           name={producer.name}
           chineseName={producer.chineseName}
           cells={[
-            [producer.region, producer.country].filter(Boolean).join(', ') || { absent: 'Not recorded' },
+            [producer.region, producer.country].filter(Boolean).join(', ') || { absent: 'Place not recorded' },
             KIND_LABEL[producer.kind],
-            held > 0 ? String(held) : { absent: 'None' },
+            held > 0 ? `${held} marks held` : { absent: 'No marks held' },
           ]}
         />
       );
     })}
-  </ul>
+  </IndexList>
 );
 
 const ProducerIndexPage: React.FC = () => {
@@ -114,6 +115,11 @@ const ProducerIndexPage: React.FC = () => {
     }
     return [...map.entries()].sort((left, right) => right[1].length - left[1].length || left[0].localeCompare(right[0]));
   }, [visible]);
+
+  const groups = useMemo(
+    () => byKind.map(([kind, rows]) => ({ id: anchorId(kind), label: kind, count: rows.length })),
+    [byKind],
+  );
 
   const structuredData = {
     '@context': 'https://schema.org',
@@ -135,7 +141,7 @@ const ProducerIndexPage: React.FC = () => {
   };
 
   return (
-    <article className="w-full max-w-3xl mx-auto pt-4 pb-nav">
+    <article className={PAGE}>
       <Helmet>
         <title>Tea Producers · The Wisdom Base · Teajia</title>
         <meta
@@ -147,11 +153,11 @@ const ProducerIndexPage: React.FC = () => {
 
       <WisdomSubNav active="producers" />
 
-      <div className="mt-4 mb-2">
-        <PageHead title="Producers" note="Who made the tea, not who a shop bought it from." />
+      <div className="mt-7">
+        <PageHead kind="Holding" title="Producers" note="Who made the tea, not who a shop bought it from." />
       </div>
 
-      <IndexPanel className="mt-5">
+      <div className={SPACE.section}>
         <WisdomToolbar
           query={query}
           onQueryChange={setQuery}
@@ -167,27 +173,28 @@ const ProducerIndexPage: React.FC = () => {
         {visible.length === 0 && <NoMatch noun="producer" query={query} />}
 
         {visible.length > 0 && (
-          <IndexTable columns={COLUMNS}>
+          <>
+            {view === 'kind' && <RunningHead groups={groups} />}
             {view === 'alphabetical' && <ProducerRows rows={visible} />}
             {view === 'kind' &&
               byKind.map(([kind, rows]) => (
                 <section key={kind}>
-                  <GroupHead label={kind} count={rows.length} />
+                  <GroupHead id={anchorId(kind)} label={kind} count={rows.length} />
                   <ProducerRows rows={rows} />
                 </section>
               ))}
-          </IndexTable>
+          </>
         )}
-      </IndexPanel>
+      </div>
 
-      <div className="mt-14">
-        <p className={`${FACT} max-w-[68ch]`}>
+      <div className={`${SPACE.section} pt-6 ${RULE_FULL}`}>
+        <p className={`${FACT} ${MEASURE} ${AXIS_INDENT}`}>
           A house (号) is a pre-1950 family firm. A factory (茶厂) is state or industrial. Neither is the vendor a shop
           bought from, which is account-scoped and stays in the shop&rsquo;s own records. A producer is true for
           everyone: a 7572 was made by Menghai Tea Factory no matter whose shelf it sits on.
         </p>
-        <HoldingAuthorship noun="producers" className="max-w-[64ch] mt-6" />
-        <SearchEverywhere query={query} className="mt-2" />
+        <HoldingAuthorship noun="producers" className={`${MEASURE} ${AXIS_INDENT} mt-5`} />
+        <SearchEverywhere query={query} className={`${AXIS_INDENT} mt-2`} />
       </div>
 
       <Invitation subject="A producer that is missing" />

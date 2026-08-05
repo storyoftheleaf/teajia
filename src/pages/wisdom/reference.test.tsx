@@ -226,8 +226,9 @@ describe('growing regions', () => {
     expect(html).toContain('id="place-china-fujian"');
     expect(html).toContain('Province not recorded');
     expect(html).toMatch(/<select[^>]*aria-label="Jump to a group of places"/);
-    // A heading that leaves with the first screenful is no heading at all.
-    expect(html).toMatch(/class="sticky top-0 pt-7[^"]*"/);
+    // A heading that leaves with the first screenful is no heading at all, so
+    // one thin running head carries the current group. See the block below.
+    expect(html).toMatch(/class="sticky top-0 z-10 -mb-8 h-8 bg-tea-bg/);
   });
 
   it('names the plants recorded from a place, and says so when there are none', () => {
@@ -386,32 +387,81 @@ describe('a column that is empty on half its rows', () => {
   });
 });
 
-describe('a sticky group head', () => {
-  it('carries an opaque fill and a bottom edge, so a row passing behind it is not a clipping fault', () => {
+describe('guide words at the top of a long list', () => {
+  it('sticks one thin running head on the page background, not a second bar per group', () => {
     const html = render('/wisdom/regions');
-    // The fill is the panel's own, not a tone of its own: a filled heading band
-    // over a ruled list is a table header, which is the one thing this is not.
-    expect(html).toMatch(/class="sticky top-0 pt-7 z-10 bg-tea-surface border-b border-tea-border/);
+    // The page's own tone, so rows pass behind it rather than through it, and
+    // one full-measure rule under it. A fill of its own would make it a table
+    // header, which is the one thing this is not.
+    expect(html).toMatch(/class="sticky top-0 z-10 -mb-8 h-8 bg-tea-bg[^"]*border-b border-tea-border/);
+    // Exactly one, however many groups the view has.
+    expect((html.match(/class="sticky /g) ?? []).length).toBe(1);
   });
 
-  it('is a heading with air above it rather than a band pressed against the row', () => {
-    // Labels, head and first row used to run twenty pixels apart with nothing
-    // saying which was the parent of which.
-    expect(render('/wisdom/regions')).toContain('pt-7');
+  it('marks each break with a guide mark that half-hangs into the label margin', () => {
+    const html = render('/wisdom/regions');
+    // Half of the 7.5rem label column, so the mark sits on neither axis and
+    // cannot be read as a label or as a value.
+    expect(html).toContain('sm:pl-[3.75rem]');
+    // A province inside a country hangs a step further in, at body size.
+    expect(html).toContain('sm:pl-[5.25rem]');
   });
 });
 
-describe('the container a holding sits in', () => {
-  it('gives every index one panel, so the list has an edge and an inset', () => {
-    for (const path of ['/wisdom', ...INDEX_PAGES]) {
-      expect(render(path)).toContain('bg-tea-surface border border-tea-border rounded-xl');
+describe('what carries the grouping', () => {
+  it('puts no panel fill anywhere in the reference', () => {
+    // bg-tea-surface on bg-tea-bg is 1.21:1 in dark mode and 1.15:1 in light.
+    // A surface step is only perceptible from about 1.4, so every panel on
+    // these pages was contributing padding and no structure. Space and two
+    // rules carry the grouping now, and a fill creeping back would be a
+    // container nobody can see.
+    for (const path of ['/wisdom', ...INDEX_PAGES, ...DETAIL_PAGES, '/wisdom/style/xiao-qing-gan']) {
+      expect(render(path)).not.toContain('bg-tea-surface border border-tea-border rounded-xl');
     }
   });
 
-  it('gives every detail page the same shape for its record', () => {
-    for (const path of [...DETAIL_PAGES, '/wisdom/style/xiao-qing-gan']) {
-      expect(render(path)).toContain('bg-tea-surface border border-tea-border rounded-xl');
+  it('holds the spacing grammar and both rules on every page', () => {
+    for (const path of [...INDEX_PAGES, ...DETAIL_PAGES]) {
+      const html = render(path);
+      // 48px between sections, and a full-measure hairline at a major break.
+      expect(html).toContain('mt-12');
+      expect(html).toContain('border-t border-tea-border');
     }
+    // The short bronze rule under a section head, 40px, stopping dead.
+    expect(render('/wisdom/cultivar/jin-xuan')).toContain('block w-10 h-px bg-tea-gold/40');
+  });
+
+  it('holds the measure and the one left axis', () => {
+    for (const path of [...INDEX_PAGES, ...DETAIL_PAGES]) {
+      const html = render(path);
+      expect(html).toContain('max-w-[66ch]');
+      expect(html).toContain('sm:grid-cols-[7.5rem_minmax(0,1fr)]');
+      // Held left against the label axis, never centred on a wide screen.
+      expect(html).toContain('class="w-full max-w-[46rem] pt-4 pb-nav hang-punct"');
+    }
+  });
+});
+
+describe('catalogue numbers', () => {
+  it('gives every entry a number, in bronze beside its headword', () => {
+    for (const path of DETAIL_PAGES) {
+      expect(render(path)).toMatch(/figures-tab text-tea-readgold[^>]*>[A-Z]{2} \d{3}</);
+    }
+  });
+
+  it('carries the number into the index, dim and right aligned', () => {
+    const html = render('/wisdom/cultivars');
+    expect(html).toMatch(/figures-tab text-tea-text-dim hidden sm:block text-right[^>]*>PL \d{3}</);
+  });
+
+  it('numbers a front-door search hit by the holding it came out of', () => {
+    const html = render('/wisdom?q=rou%20gui');
+    expect(html).toContain('/wisdom/cultivar/rou-gui');
+    expect(html).toMatch(/>PL \d{3}</);
+  });
+
+  it('never numbers a holding row, which is not a record', () => {
+    expect(render('/wisdom')).not.toMatch(/>(PL|RG|PD|MK|SY|NT) \d{3}</);
   });
 });
 
@@ -431,7 +481,7 @@ describe('the pair of holdings that describe one relation', () => {
     expect(render('/wisdom/marks')).toContain('Menghai Tea Factory');
     const producers = render('/wisdom/producers');
     expect(producers).toContain('Factory');
-    expect(producers).toContain('Marks held');
+    expect(producers).toContain('marks held');
   });
 });
 
@@ -444,7 +494,40 @@ describe('the tradition of a named tea', () => {
     const sentence = 'Chinese private-collection naming';
     const at11px = new RegExp(`text-ui-11[^"]*"[^>]*>${sentence}`);
     expect(html).not.toMatch(at11px);
-    expect(html).toMatch(new RegExp(`text-ui-15[^"]*"[^>]*>${sentence}`));
+    // The body size, which is 17 now that 15 has been taken out of the scale.
+    expect(html).toMatch(new RegExp(`text-ui-17[^"]*"[^>]*>${sentence}`));
+  });
+});
+
+describe('three type sizes, and nothing else', () => {
+  it('leaves no 15px step anywhere in the reference', () => {
+    // Prose at 15 and a row name at 17 are two sizes a reader cannot tell
+    // apart and can only feel as noise. They are one size now.
+    for (const path of ['/wisdom', ...INDEX_PAGES, ...DETAIL_PAGES]) {
+      expect(render(path)).not.toContain('text-ui-15');
+    }
+  });
+
+  it('sets one headword per page and nothing else at that scale', () => {
+    for (const path of [...INDEX_PAGES, ...DETAIL_PAGES]) {
+      const html = render(path);
+      const headwords = html.match(/text-\[32px\] sm:text-\[44px\]/g) ?? [];
+      expect(headwords.length).toBe(1);
+    }
+  });
+
+  it('names the kind of record above the headword, so a cold arrival knows what it is', () => {
+    const kinds: Array<[string, string]> = [
+      ['/wisdom/cultivar/jin-xuan', 'Tea plant'],
+      ['/wisdom/region/wuyi-mountains-fujian', 'Growing place'],
+      ['/wisdom/producer/menghai-tea-factory', 'Producer'],
+      ['/wisdom/mark/7572', 'Mark'],
+      ['/wisdom/style/xiao-qing-gan', 'Style'],
+      ['/wisdom/named/courage', 'Named tea'],
+    ];
+    for (const [path, kind] of kinds) {
+      expect(render(path)).toContain(`>${kind}<`);
+    }
   });
 });
 

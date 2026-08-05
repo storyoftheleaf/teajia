@@ -17,23 +17,25 @@ import { Helmet } from 'react-helmet-async';
 import { CULTIVARS, MARKS, NAMED_TEAS, PRODUCERS, REGIONS, STYLES } from '../../wisdom';
 import { DATASET_BUILT, DATASET_PAGES, DATASET_RECORDS, DATASET_VERSION } from './datasetStamp';
 import {
+  AXIS_INDENT,
   FACT,
   FOOTNOTE,
   HoldingAuthorship,
   HoldingRow,
-  IndexPanel,
-  IndexTable,
+  IndexList,
   Invitation,
-  LABEL,
+  MEASURE,
+  PAGE,
   NoMatch,
   PageHead,
-  Panel,
   QUIET_LINK,
+  RULE_FULL,
+  SPACE,
   ScopeNote,
+  SectionHead,
   WisdomSubNav,
   WisdomToolbar,
   searchHoldings,
-  type IndexColumns,
 } from './wisdomShared';
 
 interface Holding {
@@ -42,19 +44,6 @@ interface Holding {
   count: number;
   description: string;
 }
-
-const HOLDING_COLUMNS: IndexColumns = {
-  template: 'minmax(0,1fr) 6rem',
-  nameLabel: 'Holding',
-  labels: ['Entries'],
-};
-
-/** A hit needs to say what it is before it says where it is from. */
-const HIT_COLUMNS: IndexColumns = {
-  template: 'minmax(0,1.5fr) minmax(0,1fr) minmax(0,1.2fr)',
-  nameLabel: 'Name',
-  labels: ['Holding', 'Where'],
-};
 
 const HOLDINGS: Holding[] = [
   {
@@ -137,7 +126,7 @@ const WisdomHomePage: React.FC = () => {
   };
 
   return (
-    <article className="w-full max-w-3xl mx-auto pt-4 pb-nav">
+    <article className={PAGE}>
       <Helmet>
         <title>The Tea Wisdom Base · Teajia</title>
         <meta
@@ -154,14 +143,15 @@ const WisdomHomePage: React.FC = () => {
 
       <WisdomSubNav active="overview" />
 
-      <div className="mt-4 mb-2">
+      <div className="mt-7">
         <PageHead
+          kind="The reference"
           title="The Tea Wisdom Base"
           note="What a tea is, held once, true regardless of who stocks it. Not a product catalog."
         />
       </div>
 
-      <IndexPanel className="mt-5">
+      <div className={SPACE.section}>
         <WisdomToolbar
           query={query}
           onQueryChange={setQuery}
@@ -173,52 +163,45 @@ const WisdomHomePage: React.FC = () => {
         />
 
         {!searching && (
-          <IndexTable columns={HOLDING_COLUMNS}>
-            <ul className="list-none m-0 p-0">
-              {HOLDINGS.map(holding => (
-                <HoldingRow
-                  key={holding.to}
-                  to={holding.to}
-                  name={holding.label}
-                  cells={[String(holding.count)]}
-                  note={holding.description}
-                />
-              ))}
-            </ul>
-          </IndexTable>
+          <IndexList>
+            {HOLDINGS.map(holding => (
+              <HoldingRow
+                key={holding.to}
+                to={holding.to}
+                name={holding.label}
+                cells={[`${holding.count} entries`]}
+                note={holding.description}
+              />
+            ))}
+          </IndexList>
         )}
 
         {searching && hits.length === 0 && <NoMatch noun="entry" query={query} />}
 
         {searching && hits.length > 0 && (
-          <IndexTable columns={HIT_COLUMNS}>
-            <ul className="list-none m-0 p-0">
-              {hits.map(hit => (
-                <HoldingRow
-                  key={hit.to}
-                  to={hit.to}
-                  name={hit.name}
-                  chineseName={hit.chineseName}
-                  cells={[hit.holding, hit.where]}
-                />
-              ))}
-            </ul>
-          </IndexTable>
+          <IndexList>
+            {hits.map(hit => (
+              <HoldingRow
+                key={hit.to}
+                to={hit.to}
+                name={hit.name}
+                chineseName={hit.chineseName}
+                cells={[hit.holding, hit.where]}
+              />
+            ))}
+          </IndexList>
         )}
-      </IndexPanel>
+      </div>
 
       {searching && hits.length === HIT_LIMIT && (
-        <p className={`${FOOTNOTE} mt-4`}>
+        <p className={`${FOOTNOTE} ${AXIS_INDENT} mt-4`}>
           The closest {HIT_LIMIT} records. Narrow the search, or open the holding itself.
         </p>
       )}
 
-      {/* The download is a thing rather than a passage about one, so it gets a
-          shape of its own instead of a rule and eight paragraphs' worth of
-          margin. */}
-      <Panel className="mt-12">
-        <p className={LABEL}>The open dataset</p>
-        <p className={`${FACT} mt-2 max-w-[68ch]`}>
+      <section className={SPACE.section}>
+        <SectionHead label="The open dataset" />
+        <p className={`${FACT} ${MEASURE} ${AXIS_INDENT}`}>
           Everything above is also exported as a downloadable public good: a single{' '}
           <a href="/wisdom/tea-wisdom.json" className={QUIET_LINK}>
             tea-wisdom.json
@@ -239,17 +222,17 @@ const WisdomHomePage: React.FC = () => {
             more and have never had a page. So each number now says what it
             counts, in the same sentence, and the difference between them is
             stated rather than left as an apparent contradiction. */}
-        <p className={`${FOOTNOTE} mt-3 max-w-[68ch]`}>
+        <p className={`${FOOTNOTE} ${MEASURE} ${AXIS_INDENT} figures-tab mt-3`}>
           Version {DATASET_VERSION}, built {readableDate(DATASET_BUILT)}. {DATASET_RECORDS} records in all:{' '}
           {DATASET_PAGES} entries with a page above, plus {DATASET_RECORDS - DATASET_PAGES} tea variety names carried as
           data only. Cite it as: Teajia Tea Wisdom Base (teajia.com), version {DATASET_VERSION},{' '}
           {readableDate(DATASET_BUILT)}, CC BY 4.0.
         </p>
-      </Panel>
+      </section>
 
-      <div className="mt-12">
-        <HoldingAuthorship noun="entries" className="max-w-[64ch]" />
-        <ScopeNote className="max-w-[64ch] mt-1" />
+      <div className={`${SPACE.section} pt-6 ${RULE_FULL}`}>
+        <HoldingAuthorship noun="entries" className={`${MEASURE} ${AXIS_INDENT}`} />
+        <ScopeNote className={`${MEASURE} ${AXIS_INDENT} mt-1`} />
       </div>
 
       <Invitation subject="The wisdom base" />

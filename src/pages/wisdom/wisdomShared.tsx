@@ -14,7 +14,7 @@
  * imports no data so `App.tsx` can render it in the first frame. This module
  * re-exports the lot, so a page still imports from one place.
  */
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { ChevronDown, Search } from 'lucide-react';
@@ -36,6 +36,8 @@ import {
 } from '../../wisdom';
 import { AUTHORSHIP, authorshipLine, getAuthorship, type AuthorshipRung } from '../../wisdom/authorship';
 import {
+  AXIS,
+  AXIS_INDENT,
   CELL,
   CELL_CLASS,
   FACT,
@@ -43,8 +45,14 @@ import {
   FOOTNOTE,
   LABEL,
   LABEL_CLASS,
+  MEASURE,
   NAME_CLASS,
+  PAGE,
   QUIET_LINK,
+  RULE_FULL,
+  RULE_SHORT,
+  RULE_UNDER,
+  SPACE,
   TITLE_CLASS,
   WISDOM_SECTIONS,
   WisdomSubNav,
@@ -52,8 +60,10 @@ import {
   switchMark,
   type WisdomSection,
 } from './frame';
+import { catalogueNumberFor } from './catalogue';
 
 export * from './frame';
+export * from './catalogue';
 
 /** The one address corrections arrive at. Governance is one editor with an inbox. */
 export const WISDOM_INBOX = 'hello@teajia.com';
@@ -63,13 +73,26 @@ export const mailtoWisdom = (subject?: string): string =>
 
 // ─── Section head ────────────────────────────────────────────────────────────
 
-/** A marker, a hairline, a name. The section device the detail pages use. */
-export const SectionHead: React.FC<{ glyph: string; label: string; count?: number }> = ({ glyph, label, count }) => (
-  <div className="flex items-center gap-3 mb-4">
-    <span className="font-display italic text-ui-17 text-tea-readgold leading-none">{glyph}</span>
-    <span className={`${LABEL} whitespace-nowrap`}>{label}</span>
-    <span aria-hidden className="flex-1 h-px bg-tea-border" />
-    {count != null && <span className={`${CELL_CLASS} text-tea-text-dim tabular-nums`}>{count}</span>}
+/**
+ * A tracked-capitals label, and 40px of bronze under it that stops dead.
+ *
+ * What went was a serif glyph, a full-measure hairline running out to the right
+ * of the label, and the panel the section's content used to sit in. The
+ * hairline was the defect: a rule that runs the full measure is a divider, and
+ * a divider drawn directly under a heading tells the reader the heading has
+ * been cut off from what follows it. The short rule cannot be read as a
+ * divider, so it reads as what it is, a mark belonging to the head above it.
+ *
+ * The 3:1 space does the rest. 48px above the head, 16px under it, which is
+ * why this carries `SPACE.head` and the caller carries `SPACE.section`.
+ */
+export const SectionHead: React.FC<{ label: string; count?: number }> = ({ label, count }) => (
+  <div className={SPACE.head}>
+    <div className="flex items-baseline gap-2.5">
+      <span className={`${LABEL} whitespace-nowrap`}>{label}</span>
+      {count != null && <span className={`${CELL_CLASS} text-tea-text-dim figures-tab`}>{count}</span>}
+    </div>
+    <span aria-hidden className={`${RULE_SHORT} mt-2`} />
   </div>
 );
 
@@ -109,29 +132,66 @@ export const RungMark: React.FC<{ id: string }> = ({ id }) => (
 );
 
 /**
- * One line of heading, and no eyebrow. The sub-nav strip above already says
- * which holding a reader is in, so repeating it cost 60px and told nobody
- * anything. Where a page carries a deck it sits inline with the title rather
- * than owning a line of its own.
+ * The headword. Every page of the reference opens like a dictionary entry.
  *
- * `rungFor` is an entry id. An index passes nothing, because a holding states
- * its rung once for all of its entries at the foot of the list.
+ * A small tracked label naming the kind of record, then the name itself very
+ * large in the display serif at normal weight, and nothing else at that scale
+ * anywhere on the page. That is the whole hierarchy: a reader landing cold from
+ * a search engine knows in one glance what they are looking at and what it is
+ * called, before they have read a word of the record.
+ *
+ * The catalogue number sits beside the name, small and in bronze, on the same
+ * baseline. It is the single warm mark on the page and the best place in the
+ * reference to spend bronze: one per entry, never a wash. See `catalogue.ts`
+ * for what the number is and why it cannot move.
+ *
+ * `optical-left` pulls the letterform rather than the box onto the axis. At
+ * 44px Cormorant's side bearing is enough to make a naively aligned headword
+ * read as indented against the labels and rules under it.
+ *
+ * `kind` is the record type, three words at most. `rungFor` is an entry id, and
+ * an index passes none, because a holding states its rung once for all of its
+ * entries at the foot of the list.
  */
-export const PageHead: React.FC<{ title: string; chineseName?: string; note?: string; rungFor?: string }> = ({
-  title,
-  chineseName,
-  note,
-  rungFor,
-}) => (
-  <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+export const PageHead: React.FC<{
+  kind: string;
+  title: string;
+  chineseName?: string;
+  /** A deck. Prose, in the measure, under the headword. */
+  note?: string;
+  /** Alternative spellings. Metadata, not a deck. */
+  aka?: string;
+  rungFor?: string;
+  /** The record's catalogue number, already formatted. Indexes have none. */
+  number?: string | null;
+}> = ({ kind, title, chineseName, note, aka, rungFor, number }) => (
+  <header>
+    <div className="flex items-baseline gap-2.5">
+      <span className={`${LABEL} whitespace-nowrap`}>{kind}</span>
+      {rungFor && (
+        <>
+          <span aria-hidden className={`${LABEL} shrink-0`}>
+            ·
+          </span>
+          <RungMark id={rungFor} />
+        </>
+      )}
+    </div>
     {/* min-w-0 and break-words together: a flex item's default min-width is its
         longest word, so at 390px a name like "Huangshan Qunti Zhong" set at
-        28px would otherwise widen the header past the viewport rather than
+        32px would otherwise widen the header past the viewport rather than
         wrap. Every long string in the head is treated the same way. */}
-    <h1 className={`${TITLE_CLASS} text-tea-text min-w-0 break-words`}>{title}</h1>
-    {chineseName && <span className={`${NAME_CLASS} text-tea-text-sec min-w-0 break-words`}>{chineseName}</span>}
-    {rungFor && <RungMark id={rungFor} />}
-    {note && <p className={`${FACT} min-w-0 break-words max-w-[56ch]`}>{note}</p>}
+    <div className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+      <h1 className={`${TITLE_CLASS} optical-left text-tea-text min-w-0 break-words`}>{title}</h1>
+      {number && (
+        <span className={`${CELL_CLASS} figures-tab text-tea-readgold shrink-0 whitespace-nowrap`}>{number}</span>
+      )}
+    </div>
+    {chineseName && (
+      <p className={`${NAME_CLASS} text-tea-text-sec mt-1.5 min-w-0 break-words`}>{chineseName}</p>
+    )}
+    {aka && <p className={`${CELL_CLASS} text-tea-text-dim mt-2 min-w-0 break-words`}>{aka}</p>}
+    {note && <p className={`${FACT} ${MEASURE} ${AXIS_INDENT} mt-4 min-w-0 break-words`}>{note}</p>}
   </header>
 );
 
@@ -186,8 +246,8 @@ export const someEntryIsVerified = (): boolean =>
 export const EntryAuthorship: React.FC<{ id: string }> = ({ id }) => {
   if (getAuthorship(id).rung === 'drafted' && !someEntryIsVerified()) return null;
   return (
-    <div className="mt-12 pt-8 border-t border-tea-border">
-      <AuthorshipNote id={id} className="max-w-[64ch]" />
+    <div className={`${SPACE.section} pt-6 ${RULE_FULL}`}>
+      <AuthorshipNote id={id} className={`${MEASURE} ${AXIS_INDENT}`} />
     </div>
   );
 };
@@ -220,16 +280,21 @@ export const ScopeNote: React.FC<{ className?: string }> = ({ className = '' }) 
 /**
  * Adrian's standard, stated as a direction rather than a claim.
  *
- * It takes the surface tone rather than a hairline, because it is the one block
- * on a reference page that is not the reference: it is an address, standing at
- * the foot of every page, asking for something back. A rule above it made it
- * read as one more paragraph of the entry.
+ * It used to take the surface tone, on the argument that it is the one block on
+ * a reference page that is not the reference. The argument was sound and the
+ * device was not: surface on the page background measures 1.21:1 in dark mode
+ * and 1.15:1 in light, and a step is only perceptible from about 1.4, so the
+ * fill was invisible and all it ever contributed was padding. What separates
+ * this block now is a full-measure rule and 48px of air, which are the two
+ * devices the whole reference uses for a major division.
+ *
+ * It keeps its own left position: the label hangs in the margin like every
+ * other label, and the address sits on the value axis with everything else.
  */
 export const Invitation: React.FC<{ subject?: string }> = ({ subject }) => (
-  /* The panel's shape, written out rather than composed, so this stays an
-     <aside> and keeps its landmark. */
-  <aside className="mt-14 bg-tea-surface border border-tea-border rounded-xl px-4 sm:px-5 py-4 sm:py-5">
-    <p className={`${FACT_CLASS} text-tea-text max-w-[52ch]`}>
+  <aside className={`${SPACE.section} pt-6 ${RULE_FULL} ${AXIS}`}>
+    <p className={`${LABEL} mb-1 sm:mb-0`}>Corrections</p>
+    <p className={`${FACT_CLASS} text-tea-text ${MEASURE}`}>
       This is not everything. The goal is to be everything. If you know something that isn&rsquo;t here,{' '}
       <a href={mailtoWisdom(subject)} className={QUIET_LINK}>
         send it
@@ -317,41 +382,22 @@ export const SearchEverywhere: React.FC<{ query: string; className?: string }> =
 );
 
 /**
- * The one container an index puts everything in.
+ * How a holding is ordered and searched: one line, with a full-measure rule
+ * under it.
  *
- * The reference used to be text on the page background with no panel and no
- * edge: a toolbar floating above a rule, a rule floating above a list, nothing
- * telling a reader where the holding started or stopped. Tone alone did not fix
- * that, and tone applied to the headings alone made it worse, because a filled
- * heading band is what a spreadsheet looks like.
+ * The panel this used to be the head of is gone. It was a `bg-tea-surface`
+ * fill on a `bg-tea-bg` page, which measures 1.21:1 in dark mode and 1.15:1 in
+ * light, and a surface step is only perceptible from about 1.4. It was not a
+ * quiet container; it was an invisible one, contributing padding, a radius, an
+ * edge nobody could see, and no structure at all. What told a reader where the
+ * list began was always the space and the rule, so those are what is left.
  *
- * So the holding gets a shape. The toolbar is its head, the column labels its
- * second line, the list its body. Everything inside shares one horizontal
- * inset, which is what makes the search field, the count, the column labels and
- * every row line up down a single pair of edges. The page title, the section
- * prose and the closing note stay outside it, on the page's own background,
- * because they are about the holding rather than in it.
- */
-export const IndexPanel: React.FC<{ children: React.ReactNode; className?: string }> = ({
-  children,
-  className = '',
-}) => (
-  <div className={`bg-tea-surface border border-tea-border rounded-xl px-4 sm:px-5 pt-1 pb-2 ${className}`.trimEnd()}>{children}</div>
-);
-
-/**
- * The head of the panel: how the list is ordered on the left, the search field
- * and the live count on the right.
+ * The search field keeps a fill, because it is a control rather than a
+ * container: `bg-tea-elevated` on the page background is 1.53:1, which is
+ * perceptible, and a field a reader cannot find is worse than a flat page.
  *
- * It sits inside `IndexPanel` and bleeds to the panel's own padding, so its
- * bottom rule runs the full width of the container and its two ends align with
- * the first and last column beneath it. Floating on the page it was three
- * alignments on a 24px line with nothing under them to agree with.
- *
- * The cross-holding escape line used to print here, directly above a second
- * dim line on some holdings, so a reader met two footnotes before they met one
- * tea. It now prints once, at the foot, with the rest of the notes about the
- * holding. See `SearchEverywhere`.
+ * The cross-holding escape line prints once, at the foot, with the rest of the
+ * notes about the holding. See `SearchEverywhere`.
  */
 export const WisdomToolbar: React.FC<{
   query: string;
@@ -364,7 +410,7 @@ export const WisdomToolbar: React.FC<{
   noun: string;
   children?: React.ReactNode;
 }> = ({ query, onQueryChange, placeholder, searchLabel, visible, total, noun, children }) => (
-  <div className="-mx-4 sm:-mx-5 px-4 sm:px-5 py-2 flex flex-wrap items-center gap-x-6 gap-y-1 border-b border-tea-border">
+  <div className={`pb-2 flex flex-wrap items-center gap-x-6 gap-y-1 ${RULE_UNDER}`}>
     {children}
     <div className="w-full sm:w-auto sm:ml-auto flex items-center gap-x-4 min-w-0">
       <div className="relative flex-1 sm:flex-none sm:w-[188px] min-w-0">
@@ -382,7 +428,11 @@ export const WisdomToolbar: React.FC<{
           className={`${CELL_CLASS} w-full h-11 bg-tea-elevated pl-8 pr-3 rounded-md text-tea-text placeholder:text-tea-text-sec focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50`}
         />
       </div>
-      <span className={`${LABEL} shrink-0 tabular-nums whitespace-nowrap`}>
+      {/* CELL, not LABEL. Tracked capitals are the reference's second colour
+          of text and they do exactly one job, field labels and section heads.
+          A live count is neither: it is a value, and set in caps it competed
+          with the column labels it sat beside. */}
+      <span className={`${CELL_CLASS} text-tea-text-dim shrink-0 figures-tab whitespace-nowrap`}>
         {visible === total ? `${total} ${noun}` : `${visible} / ${total}`}
       </span>
     </div>
@@ -460,100 +510,30 @@ export const GroupJump: React.FC<{
   );
 };
 
-// ─── One holding, as a list with real columns ────────────────────────────────
+// ─── One holding, set like a dictionary ──────────────────────────────────────
 
 /**
- * The columns a holding's index reads down. Fixed widths, left aligned, so the
- * second and third facts form an axis the eye can track instead of ragging off
- * the right edge at whatever length the string happened to be.
- */
-export interface IndexColumns {
-  /** grid-template-columns, applied at sm and up. First track is the name. */
-  template: string;
-  /** Header for the name column. Three words or fewer. */
-  nameLabel: string;
-  /** Headers for the data columns, in order. Three words or fewer each. */
-  labels: string[];
-}
-
-const IndexColumnsContext = createContext<IndexColumns | null>(null);
-
-const columnStyle = (columns: IndexColumns): React.CSSProperties =>
-  ({ '--wisdom-cols': columns.template }) as React.CSSProperties;
-
-/**
- * Below sm there is no room for three tracks without either a horizontal
- * scroll or a column of two-character fragments, so the grid drops to a wrap:
- * the name takes the first line and the facts sit under it on the second,
- * still in reading order. The header row goes with the columns it labels.
- */
-const ROW_LAYOUT =
-  'flex flex-wrap items-baseline gap-x-4 gap-y-0.5 sm:grid sm:gap-y-0 sm:grid-cols-[var(--wisdom-cols)]';
-
-/**
- * tea-accent-sub, not tea-gold/6. Tailwind's opacity scale has no 6 step, so
- * `bg-tea-gold/6` compiles to nothing: every row that used it had no hover at
- * all. tea-accent-sub is the token COLOR_RULES names for exactly this.
- */
-const ROW_HOVER = 'hover:bg-tea-accent-sub';
-
-export const IndexTable: React.FC<{ columns: IndexColumns; children: React.ReactNode; className?: string }> = ({
-  columns,
-  children,
-  className = '',
-}) => (
-  <IndexColumnsContext.Provider value={columns}>
-    <div className={className} style={columnStyle(columns)}>
-      {/* No fill. Inside the panel the column labels are a line of the page's
-          furniture, not a grey bar: a filled header strip over a ruled list is
-          the exact shape of a spreadsheet, which is the one thing the reference
-          is not. It bleeds to the panel's padding so its rule agrees with the
-          toolbar's above it. */}
-      <div
-        aria-hidden
-        className="hidden sm:grid sm:grid-cols-[var(--wisdom-cols)] items-baseline gap-x-4 -mx-4 sm:-mx-5 px-4 sm:px-5 pt-3.5 pb-2 border-b border-tea-border"
-      >
-        <span className={LABEL}>{columns.nameLabel}</span>
-        {columns.labels.map(label => (
-          <span key={label} className={LABEL}>
-            {label}
-          </span>
-        ))}
-      </div>
-      {children}
-    </div>
-  </IndexColumnsContext.Provider>
-);
-
-/**
- * A group inside an index. A quiet label and a count, no rule and no glyph:
- * the old head was a full-width hairline with a serif marker, which read louder
- * than the plant names underneath it.
+ * A group inside an index, marked the way a dictionary marks a break.
  *
- * It sticks to the top of the viewport for as long as its own group is on
- * screen. Ninety-eight Chinese places scrolled past under a heading that left
- * with the first screenful, so from the second screenful on a reader had no way
- * of knowing which country they were inside. The background is the page's own,
- * so rows pass behind it rather than through it.
+ * The guide mark half-hangs into the label margin: it starts halfway across the
+ * 7.5rem column, so it sits neither on the label axis nor on the value axis and
+ * cannot be mistaken for either. That is what a guide letter does on a printed
+ * page, and it is why it can be large and dim rather than small and loud.
  *
- * `sub` is a group inside a group: same device, indented and dimmer, and it
- * sticks below the head above it rather than replacing it.
+ * This is the one deliberate exception to the three-size rule, and it is worth
+ * stating why it is not the noise that rule exists to remove. The noise was 17
+ * against 15: two sizes close enough that the eye reads them as a mistake. 26
+ * against 44 and 17 is not close, it is dim, and it does exactly one job on the
+ * page. A group label at body size with no other signal was tried and vanished
+ * into the rows it was meant to break.
  *
- * The hairline under it is not decoration. Stuck to the top of the viewport the
- * head has an opaque background and rows pass behind it, so at scrolling speed
- * a name half-eaten by an invisible boundary reads as a clipping fault rather
- * than as a fixed heading. `border-b` draws the boundary the eye was already
- * looking for. It costs nothing when the head is not stuck, because the first
- * row of a group carries no top border of its own (`first:border-t-0`), so this
- * is the same single rule that was always between a head and its list.
+ * `sub` is a group inside a group: the same mark, at body size and indented, so
+ * a province reads as belonging to the country above it.
  *
- * It carries the panel's own fill and no other, which is the point. A tone of
- * its own would make it a filled band over a ruled list, and that is a table
- * header, which is the one thing a reader must not think they are looking at.
- * What separates a group from the rows above it is air: `pt-7` against the
- * `py-2.5` of a row, so the break is felt before it is read. The three bands
- * that used to run twenty pixels apart (labels, head, first row) now have a
- * clear parent and child.
+ * It no longer sticks. What sticks is one thin running head at the top of the
+ * list, the way guide words sit at the top of a dictionary page, so a reader
+ * scrolling the 98 places under China always knows where they are without
+ * every group heading being a second bar. See `RunningHead`.
  */
 export const GroupHead: React.FC<{ label: string; count: number; id?: string; sub?: boolean }> = ({
   label,
@@ -563,28 +543,103 @@ export const GroupHead: React.FC<{ label: string; count: number; id?: string; su
 }) => (
   <div
     id={id}
-    /* 50px is the head above it: pt-7 (28), an 11px line at 1.4 (15.4), pb-1.5
-       (6) and the rule (1). It seats the sub head flush under the country head
-       rather than leaving a hairline gap for a scrolling row to show through.
-
-       The sub head indents with pl-8/pl-9 rather than pl-3, because Tailwind
-       emits pl-* after px-*: a bare pl-3 alongside px-4 sm:px-5 would have set
-       the left padding to the panel's own padding on a phone (no indent at all)
-       and to less than it from sm up (an outdent). */
-    className={`sticky ${sub ? 'top-[50px] pl-8 sm:pl-9 pt-4' : 'top-0 pt-7'} z-10 bg-tea-surface border-b border-tea-border flex items-baseline gap-2.5 -mx-4 sm:-mx-5 px-4 sm:px-5 pb-1.5`}
+    /* scroll-mt clears the running head, which is 33px of line plus its rule.
+       Without it the jump control lands a group underneath the very bar that
+       is meant to name it. */
+    className={`scroll-mt-12 ${sub ? 'pt-6 sm:pl-[5.25rem]' : 'pt-10 sm:pl-[3.75rem]'} ${SPACE.label} flex items-baseline gap-3`}
   >
-    <span className={isMicroCapsLabel(label) ? LABEL : `${CELL_CLASS} text-tea-text-dim`}>{label}</span>
-    {/* The count sits a step brighter than the label. A group of eleven and a
+    <h2
+      className={
+        sub
+          ? `${NAME_CLASS} text-tea-text-dim min-w-0 break-words`
+          : 'font-display text-ui-26 font-normal leading-[1.1] tracking-[-0.01em] text-tea-text-dim min-w-0 break-words'
+      }
+    >
+      {label}
+    </h2>
+    {/* The count sits a step brighter than the mark. A group of eleven and a
         group of one used to read as identical weight, and the only thing that
         told them apart was the number nobody could see. */}
-    <span className={`${CELL_CLASS} text-tea-text-sec tabular-nums`}>{count}</span>
+    <span className={`${CELL_CLASS} text-tea-text-sec figures-tab shrink-0`}>{count}</span>
   </div>
 );
 
 /**
- * A cell that is itself somewhere to go. Used where the base holds a real
- * relation and the reader is entitled to follow it: a mark's producer, for
- * instance. A name the base does not hold is a plain string and stays one.
+ * Guide words. The thin running head that says which group the reader is in.
+ *
+ * A dictionary puts the first and last headword of the spread at the top of
+ * every page, because a reader scanning a long list needs to know where they
+ * are without reading a heading that scrolled off four screens ago. This is
+ * that, for a list of 182 places where 98 of them are under one country.
+ *
+ * It replaces the sticky group heading, which had become a second bar under the
+ * toolbar and forced every group head to carry an opaque fill and an edge so
+ * rows would not appear to be clipped by it. One bar, at the top of the list,
+ * on the page's own background.
+ *
+ * Read by scroll position rather than an observer: the question is not which
+ * groups are visible but which one the top of the list is currently inside,
+ * and that is a comparison, not an intersection. Throttled to a frame.
+ */
+export const RunningHead: React.FC<{ groups: Array<{ id: string; label: string; count: number }> }> = ({ groups }) => {
+  /** -1 until a group break has actually passed under the bar. */
+  const [current, setCurrent] = useState(-1);
+  const bar = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (groups.length < 2) return;
+    let frame = 0;
+    const read = () => {
+      frame = 0;
+      const edge = (bar.current?.getBoundingClientRect().bottom ?? 0) + 1;
+      let found = -1;
+      for (let index = 0; index < groups.length; index += 1) {
+        const mark = document.getElementById(groups[index].id);
+        if (mark && mark.getBoundingClientRect().top <= edge) found = index;
+      }
+      setCurrent(value => (value === found ? value : found));
+    };
+    const onScroll = () => {
+      if (!frame) frame = window.requestAnimationFrame(read);
+    };
+    read();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, [groups]);
+
+  if (groups.length < 2) return null;
+  const showing = current >= 0;
+  const here = groups[Math.min(Math.max(current, 0), groups.length - 1)];
+  return (
+    /* `-mb-8` against `h-8`: the bar costs no layout at all, so at the top of a
+       list a reader meets the first guide mark where they would have anyway,
+       not 32px lower. It is invisible until a break has passed under it, which
+       is also what stops it printing the first group's name directly above the
+       same name set large. Two rules 32px apart, one under the toolbar and one
+       under a bar saying what the heading below it already says, is the exact
+       table header this pass took out. */
+    <div
+      ref={bar}
+      aria-hidden
+      className={`sticky top-0 z-10 -mb-8 h-8 bg-tea-bg flex items-end gap-2.5 pb-1.5 ${RULE_UNDER} transition-opacity duration-200 ${
+        showing ? 'opacity-100' : 'opacity-0'
+      }`}
+    >
+      <span className={isMicroCapsLabel(here.label) ? LABEL : `${CELL_CLASS} text-tea-text-dim`}>{here.label}</span>
+      <span className={`${CELL_CLASS} text-tea-text-dim figures-tab`}>{here.count}</span>
+    </div>
+  );
+};
+
+/**
+ * A piece of metadata that is itself somewhere to go. Used where the base holds
+ * a real relation and the reader is entitled to follow it: a mark's producer,
+ * for instance. A name the base does not hold is a plain string and stays one.
  */
 export interface CellLink {
   text: string;
@@ -592,20 +647,17 @@ export interface CellLink {
 }
 
 /**
- * A cell the base has nothing for. Seven of the fifteen marks have no producer
- * recorded, and an empty cell says nothing about why: a reader cannot tell an
- * unknown producer from a column that failed to render. The entry page has
- * always said "Not recorded" in that position, so the row says it too, in the
- * dim tone the value would not have used, which keeps absence from reading as
- * a fact at a glance.
+ * Something the base has nothing for. Seven of the fifteen marks have no
+ * producer recorded, and silence says nothing about why: a reader cannot tell
+ * an unknown producer from a field that failed to render. The entry page has
+ * always said "Not recorded" in that position, so the row says it too.
  *
  * This is for a scarce absence, not a structural one. Seven of fifteen is worth
- * naming; ninety-nine of a hundred and eighty-two is not, because at that
+ * naming; ninety-four of a hundred and eighty-two is not, because at that
  * density the words stop being information and become the column. Where a whole
  * class of record simply has no such field (the working-list places carry
- * neither a province nor an altitude, by construction), the cell is left
- * genuinely empty and the reason is stated once above the list. See
- * RegionIndexPage.
+ * neither a province nor an altitude, by construction), nothing is printed and
+ * the reason is stated once above the list. See RegionIndexPage.
  */
 export interface CellAbsent {
   absent: string;
@@ -617,20 +669,41 @@ const isLink = (cell: RowCell): cell is CellLink => typeof cell === 'object' && 
 const isAbsent = (cell: RowCell): cell is CellAbsent => typeof cell === 'object' && cell !== null && 'absent' in cell;
 
 const cellText = (cell: RowCell): string => (typeof cell === 'string' ? cell : '');
+const hasContent = (cell: RowCell): boolean => isLink(cell) || isAbsent(cell) || Boolean(cellText(cell));
 
 /**
- * One line of record. A serif name (plus the Chinese name when the record has
- * one), then one value per column. No description line: a 90-character sentence
- * under every row triples the ink and halves how many rows reach the screen,
- * and everything it said is on the entry's own page one click away.
+ * tea-accent-sub, not tea-gold/6. Tailwind's opacity scale has no 6 step, so
+ * `bg-tea-gold/6` compiles to nothing: every row that used it had no hover at
+ * all. tea-accent-sub is the token COLOR_RULES names for exactly this.
+ */
+const ROW_HOVER = 'hover:bg-tea-accent-sub';
+
+/**
+ * One entry, set as a dictionary entry rather than as a row of a table.
  *
- * The whole row is still one click, but it is not one anchor: the name link
- * stretches over the row with `after:inset-0`, which leaves a cell free to be
- * its own link without nesting anchors. That is what lets a mark's row reach
- * its producer directly.
+ * The catalogue number hangs right-aligned and dim in the label margin. The
+ * name follows in the display serif at body size, with the Chinese name beside
+ * it. The facts run in beneath the name, small and dim, separated by middots.
+ *
+ * The columns went with the panel. Fixed grid tracks, a labelled header strip
+ * and a rule between every row are the four things that make a list read as a
+ * spreadsheet, and a reference of 630 entries read as a spreadsheet is exactly
+ * the "overwhelming" this pass was called to fix. What replaces them is the
+ * same left axis every other page in the reference uses, generous rows, no
+ * zebra and no row borders. The eye still reads a clustered block in an open
+ * field as a list; it just no longer reads it as data entry.
+ *
+ * The number repeats at the head of the run-in line below sm, where the margin
+ * column has collapsed. It is the one device on the page that makes 630 entries
+ * feel finite, so losing it on a phone would lose it where most reading
+ * happens.
+ *
+ * The whole row is one click but not one anchor: the name link stretches over
+ * the row with `after:inset-0`, which leaves a piece of metadata free to be its
+ * own link without an anchor ever nesting inside another.
  *
  * `note` exists for the front door only, where a handful of rows each need a
- * sentence saying what the holding is. It is set as prose, in sentence case.
+ * sentence saying what a holding is. It is set as prose, in sentence case.
  */
 export const HoldingRow: React.FC<{
   to: string;
@@ -639,60 +712,80 @@ export const HoldingRow: React.FC<{
   cells?: RowCell[];
   note?: string;
 }> = ({ to, name, chineseName, cells = [], note }) => {
-  const columns = useContext(IndexColumnsContext);
+  const number = catalogueNumberFor(to);
+  const runIn = cells.filter(hasContent);
   return (
-    <li className="border-t border-tea-border first:border-t-0">
-      {/* The hover band bleeds to the panel's own padding rather than stopping
-          8px short of it. Inset, it read as a floating pill; full width it reads
-          as the row being lit. */}
-      <div
-        className={`group relative ${ROW_LAYOUT} ${ROW_HOVER} min-h-[44px] py-2.5 -mx-4 sm:-mx-5 px-4 sm:px-5 transition-colors`}
-        style={columns ? columnStyle(columns) : undefined}
-      >
-        {/* gap-3, not gap-2. Two scripts set side by side need more air between
-            them than two words of one script do, and this pair had the least on
-            the page at the moment it needed the most. */}
-        <span className="basis-full sm:basis-auto min-w-0 inline-flex items-baseline gap-3 flex-wrap">
-          <Link
-            to={to}
-            className={`${NAME_CLASS} text-tea-text group-hover:text-tea-gold-lt transition-colors break-words after:absolute after:inset-0 after:content-['']`}
+    <li>
+      <div className={`group relative ${AXIS} ${ROW_HOVER} min-h-[44px] ${SPACE.row} -mx-3 px-3 rounded-md transition-colors`}>
+        {number ? (
+          <span
+            aria-hidden
+            className={`${CELL_CLASS} figures-tab text-tea-text-dim hidden sm:block text-right whitespace-nowrap`}
           >
-            {name}
-          </Link>
-          {chineseName && <span className="font-display text-ui-15 text-tea-text-dim">{chineseName}</span>}
-        </span>
-        {cells.map((cell, index) =>
-          // An empty cell keeps its grid track at sm and up, because the column
-          // it sits in is an axis the eye runs down and a missing track would
-          // shift every value after it. Below sm the row is a flex wrap with no
-          // columns to hold, so an empty cell renders nothing at all rather
-          // than a stray 16px gap after the name.
-          !isLink(cell) && !isAbsent(cell) && !cellText(cell) ? (
-            <span key={index} aria-hidden className="hidden sm:block" />
-          ) : isLink(cell) ? (
-            <span key={index} className={`${CELL} min-w-0 break-words`}>
-              {/* `relative` lifts it above the name link's stretched ::after so
-                  the cell is its own destination. `py-2` grows the hit box on an
-                  inline element without touching the line box, so the column
-                  baseline the header sets is unaffected. No `truncate` here:
-                  overflow-hidden would clip that padding straight off again. */}
-              <Link to={cell.to} className={`relative py-2 ${QUIET_LINK}`}>
-                {cell.text}
-              </Link>
-            </span>
-          ) : isAbsent(cell) ? (
-            <span key={index} className={`${CELL_CLASS} text-tea-text-dim min-w-0 truncate`}>{cell.absent}</span>
-          ) : (
-            <span key={index} className={`${CELL} min-w-0 truncate tabular-nums`}>
-              {cellText(cell)}
-            </span>
-          ),
+            {number}
+          </span>
+        ) : (
+          <span aria-hidden className="hidden sm:block" />
         )}
-        {note && <span className={`${FACT} basis-full sm:col-span-full sm:mt-1 max-w-[68ch]`}>{note}</span>}
+        <span className="min-w-0 block">
+          {/* gap-3, not gap-2. Two scripts set side by side need more air
+              between them than two words of one script do, and this pair had
+              the least on the page at the moment it needed the most. */}
+          <span className="inline-flex items-baseline gap-3 flex-wrap min-w-0">
+            <Link
+              to={to}
+              className={`${NAME_CLASS} text-tea-text group-hover:text-tea-gold-lt transition-colors break-words after:absolute after:inset-0 after:content-['']`}
+            >
+              {name}
+            </Link>
+            {chineseName && <span className={`${NAME_CLASS} text-tea-text-dim break-words`}>{chineseName}</span>}
+          </span>
+          {(runIn.length > 0 || number) && (
+            <span className={`${CELL_CLASS} text-tea-text-dim block mt-0.5 break-words`}>
+              {number && (
+                <span className="sm:hidden figures-tab">
+                  {number}
+                  {runIn.length > 0 && (
+                    <span aria-hidden className="px-1.5">
+                      ·
+                    </span>
+                  )}
+                </span>
+              )}
+              {runIn.map((cell, index) => (
+                <React.Fragment key={index}>
+                  {index > 0 && (
+                    <span aria-hidden className="px-1.5">
+                      ·
+                    </span>
+                  )}
+                  {isLink(cell) ? (
+                    /* `relative` lifts it above the name link's stretched
+                       ::after so it is its own destination. No block padding:
+                       it sits on the run-in line and the row is already 44px. */
+                    <Link to={cell.to} className={`relative ${QUIET_LINK}`}>
+                      {cell.text}
+                    </Link>
+                  ) : isAbsent(cell) ? (
+                    cell.absent
+                  ) : (
+                    <span className="figures-tab">{cellText(cell)}</span>
+                  )}
+                </React.Fragment>
+              ))}
+            </span>
+          )}
+          {note && <span className={`${FACT} ${MEASURE} block mt-1.5`}>{note}</span>}
+        </span>
       </div>
     </li>
   );
 };
+
+/** The list itself. No zebra, no rules between rows, no header strip. */
+export const IndexList: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <ul className="list-none m-0 p-0">{children}</ul>
+);
 
 /**
  * Nothing matched the filter. Names what was searched, so a reader who mistypes
@@ -700,12 +793,12 @@ export const HoldingRow: React.FC<{
  * the toolbar reading zero is not an answer.
  */
 export const NoMatch: React.FC<{ noun: string; query?: string }> = ({ noun, query }) => (
-  /* No tone of its own: this renders inside the index panel, which already
-     holds it. Left on the page's own background it was a hole where the list
-     had been, which read as the page having failed rather than as the
+  /* On the value axis, where every record would have been. A message centred
+     in the void the list left reads as the page having failed; a paragraph
+     starting exactly where the first entry would have started reads as the
      reference having answered. */
-  <div className="py-12">
-    <p className={`${FACT} text-center max-w-[46ch] mx-auto`}>
+  <div className={`py-10 ${AXIS_INDENT}`}>
+    <p className={`${FACT} max-w-[46ch]`}>
       {query?.trim() ? (
         <>
           No {noun} here answers to &ldquo;{query.trim()}&rdquo;.{' '}
@@ -732,13 +825,16 @@ export const HoldingNotFound: React.FC<{
   backLabel: string;
   subject: string;
 }> = ({ section, heading, backTo, backLabel, subject }) => (
-  <article className="w-full max-w-3xl mx-auto pt-4 pb-nav">
+  <article className={PAGE}>
     <Helmet>
       <title>Not found · Teajia</title>
     </Helmet>
     <WisdomSubNav active={section} />
-    <h1 className={`${TITLE_CLASS} text-tea-text mt-6`}>{heading}</h1>
-    <p className={`${FACT} mt-3 max-w-[56ch]`}>
+    <div className="mt-7">
+      <p className={LABEL}>Not held</p>
+      <h1 className={`${TITLE_CLASS} optical-left text-tea-text mt-2 break-words`}>{heading}</h1>
+    </div>
+    <p className={`${FACT} ${MEASURE} ${AXIS_INDENT} mt-6`}>
       Nothing in the reference answers to that name yet.{' '}
       <Link to={backTo} className={QUIET_LINK}>
         {backLabel}
@@ -752,47 +848,31 @@ export const HoldingNotFound: React.FC<{
 // ─── Facts ───────────────────────────────────────────────────────────────────
 
 /**
- * One section of a detail page, as one object.
+ * A labelled line on a detail page. The label hangs in the margin, the value
+ * starts on the one axis every value in the reference starts on.
  *
- * A detail page used to be nine sections down a single flat wall, each of them
- * a marker, a hairline and some text, with nothing but a 48px margin telling
- * one from the next. The repair is the same one the index panel makes: the
- * heading stays outside on the page, and what the section actually holds sits
- * in a shape with edges and real internal padding.
+ * No panel, no rule between rows, and no rule under the last one. All three
+ * were doing the job space does better: a run of `Fact` rows 8px apart, sitting
+ * 48px below whatever came before them, reads as a block without a single
+ * pixel of ink drawn around it. The panel they used to sit in was a
+ * `bg-tea-surface` fill measuring 1.21:1 on the page background, which is under
+ * the 1.4 where a surface step becomes perceptible at all.
  *
- * Surface and not elevated, for the measured reason `GroupHead` gives: `LABEL`
- * is `tea-text-dim`, which is 5.40:1 on surface and 4.26:1 on elevated, and the
- * label track is the axis the whole section is read down.
- *
- * `FactPanel` is the same shape with the vertical padding taken off, because a
- * run of `Fact` rows brings its own: each carries `py-2.5` and its own rule.
- */
-export const Panel: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
-  <div className={`bg-tea-surface border border-tea-border rounded-xl px-4 sm:px-5 py-4 sm:py-5 ${className}`.trimEnd()}>
-    {children}
-  </div>
-);
-
-export const FactPanel: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
-  <div className={`bg-tea-surface border border-tea-border rounded-xl px-4 sm:px-5 py-1 ${className}`.trimEnd()}>{children}</div>
-);
-
-/**
- * A labelled line on a detail page. The label sits in a fixed track so every
- * value starts at the same x down the page, the same reason the index columns
- * are fixed rather than right aligned.
- *
- * `first:border-t-0` because inside a `FactPanel` the panel's own top edge is
- * already the boundary, and a rule drawn on it reads as a seam. A `Fact` with
- * no value renders nothing at all, so the first rule lands on whichever fact
- * the record actually carries.
+ * A `Fact` with no value renders nothing, so a record shows only what it holds.
  */
 export const Fact: React.FC<{ label: string; children?: React.ReactNode }> = ({ label, children }) => {
   if (!children) return null;
   return (
-    <div className="py-2.5 border-t border-tea-border first:border-t-0 sm:grid sm:grid-cols-[152px_minmax(0,1fr)] sm:gap-x-6">
-      <span className={`${LABEL} block sm:pt-1`}>{label}</span>
-      <span className={`${FACT_CLASS} text-tea-text max-w-[60ch] block min-w-0 break-words`}>{children}</span>
+    /* py-1.5 below sm, py-1 from sm up. With the label above the value on a
+       phone, 8px between rows against 4px between a label and its own value is
+       only two to one and the pairs run together; 12px against 4px is the three
+       to one the rest of the page holds. From sm up the label is beside the
+       value, so 8px between rows is already unambiguous. */
+    <div className={`${SPACE.row} sm:py-1 ${AXIS}`}>
+      <span className={`${LABEL} block`}>{label}</span>
+      <span className={`${FACT_CLASS} text-tea-text ${MEASURE} block min-w-0 break-words mt-1 sm:mt-0`}>
+        {children}
+      </span>
     </div>
   );
 };
@@ -800,16 +880,15 @@ export const Fact: React.FC<{ label: string; children?: React.ReactNode }> = ({ 
 /**
  * A paragraph, under its own quiet heading. What a `Fact` is not.
  *
- * A fact is a phrase that answers a label: a country, an altitude, a year. Set
- * in a 152px label track, it forms an axis the eye runs down. Research prose
- * does not belong in that axis. A region's climate runs to 240 characters, and
- * inside a value cell it became a paragraph wearing a field's clothes: four
- * lines of body type hanging off a micro-caps label, breaking the axis for
- * every row below it.
+ * A fact is a phrase that answers a label: a country, an altitude, a year, and
+ * it sits on one line beside its label. Research prose does not. A region's
+ * climate runs to 240 characters, and set on a value line it became a paragraph
+ * wearing a field's clothes, breaking the baseline the rows above it agree on.
  *
- * So prose gets the full measure, the label sits above it rather than beside
- * it, and the reader is told by the shape of the block which kind of thing they
- * are about to read before they read a word of it.
+ * So prose keeps the label hung in the margin, exactly like a fact, but drops
+ * its own first line clear of it and takes the full measure. Same axis, second
+ * rank, and the reader is told by the shape of the block which kind of thing
+ * they are about to read before they read a word of it.
  */
 export const Passage: React.FC<{ label: string; text?: string | null; className?: string }> = ({
   label,
@@ -817,13 +896,13 @@ export const Passage: React.FC<{ label: string; text?: string | null; className?
   // The caller owns the spacing outright rather than adding to a hardcoded
   // margin: two competing margin classes on one element are settled by
   // stylesheet order, which is not somewhere a layout decision should live.
-  className = 'mt-6 first:mt-0',
+  className = 'mt-5 first:mt-0',
 }) => {
   if (!text) return null;
   return (
-    <div className={className}>
-      <p className={`${LABEL} mb-1.5`}>{label}</p>
-      <p className={`${FACT} max-w-[68ch]`}>{text}</p>
+    <div className={`${className} ${AXIS}`}>
+      <p className={`${LABEL} mb-1.5 sm:mb-0`}>{label}</p>
+      <p className={`${FACT} ${MEASURE}`}>{text}</p>
     </div>
   );
 };

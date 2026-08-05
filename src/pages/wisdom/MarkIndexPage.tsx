@@ -14,20 +14,24 @@ import React, { useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { MARKS, findProducerById, type Mark } from '../../wisdom';
 import {
+  AXIS_INDENT,
   FACT,
   GroupHead,
   HoldingAuthorship,
   HoldingRow,
-  IndexPanel,
-  IndexTable,
+  IndexList,
   Invitation,
+  MEASURE,
   NoMatch,
+  PAGE,
   PageHead,
+  RULE_FULL,
+  RunningHead,
+  SPACE,
   SearchEverywhere,
   ViewSwitch,
   WisdomSubNav,
   WisdomToolbar,
-  type IndexColumns,
 } from './wisdomShared';
 
 type View = 'producer' | 'alphabetical';
@@ -37,15 +41,11 @@ const VIEWS: Array<{ id: View; label: string }> = [
   { id: 'alphabetical', label: 'A to Z' },
 ];
 
-/** Shares of the measure, so the three columns spread rather than crowd right. */
-const COLUMNS: IndexColumns = {
-  template: 'minmax(0,1.3fr) 6rem minmax(0,1.3fr)',
-  nameLabel: 'Mark',
-  labels: ['Era', 'Producer'],
-};
-
 /** Three words. A mark nobody is recorded as owning is a fact, not a blank. */
 const NO_PRODUCER = 'No producer recorded';
+
+const anchorId = (label: string) =>
+  `mark-${label.normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
 
 const matchKey = (value: string) => value.normalize('NFKD').toLowerCase();
 
@@ -60,7 +60,7 @@ function matches(mark: Mark, query: string): boolean {
 const byName = (left: Mark, right: Mark) => left.name.localeCompare(right.name);
 
 const MarkRows: React.FC<{ rows: Mark[] }> = ({ rows }) => (
-  <ul className="list-none m-0 p-0">
+  <IndexList>
     {rows.map(mark => {
       // The producer column is a real relation, so it is a real link. A mark
       // whose producer the base does not hold says so: an empty cell reads as
@@ -80,7 +80,7 @@ const MarkRows: React.FC<{ rows: Mark[] }> = ({ rows }) => (
         />
       );
     })}
-  </ul>
+  </IndexList>
 );
 
 const MarkIndexPage: React.FC = () => {
@@ -104,6 +104,11 @@ const MarkIndexPage: React.FC = () => {
     ];
   }, [visible]);
 
+  const groups = useMemo(
+    () => byProducer.map(([label, rows]) => ({ id: anchorId(label), label, count: rows.length })),
+    [byProducer],
+  );
+
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
@@ -124,7 +129,7 @@ const MarkIndexPage: React.FC = () => {
   };
 
   return (
-    <article className="w-full max-w-3xl mx-auto pt-4 pb-nav">
+    <article className={PAGE}>
       <Helmet>
         <title>Tea Marks · The Wisdom Base · Teajia</title>
         <meta
@@ -136,11 +141,11 @@ const MarkIndexPage: React.FC = () => {
 
       <WisdomSubNav active="marks" />
 
-      <div className="mt-4 mb-2">
-        <PageHead title="Marks" note="Recipe numbers, seals and labels a product line carries." />
+      <div className="mt-7">
+        <PageHead kind="Holding" title="Marks" note="Recipe numbers, seals and labels a product line carries." />
       </div>
 
-      <IndexPanel className="mt-5">
+      <div className={SPACE.section}>
         <WisdomToolbar
           query={query}
           onQueryChange={setQuery}
@@ -156,28 +161,29 @@ const MarkIndexPage: React.FC = () => {
         {visible.length === 0 && <NoMatch noun="mark" query={query} />}
 
         {visible.length > 0 && (
-          <IndexTable columns={COLUMNS}>
+          <>
+            {view === 'producer' && <RunningHead groups={groups} />}
             {view === 'alphabetical' && <MarkRows rows={visible} />}
             {view === 'producer' &&
               byProducer.map(([producer, rows]) => (
                 <section key={producer}>
-                  <GroupHead label={producer} count={rows.length} />
+                  <GroupHead id={anchorId(producer)} label={producer} count={rows.length} />
                   <MarkRows rows={rows} />
                 </section>
               ))}
-          </IndexTable>
+          </>
         )}
-      </IndexPanel>
+      </div>
 
-      <div className="mt-14">
-        <p className={`${FACT} max-w-[68ch]`}>
+      <div className={`${SPACE.section} pt-6 ${RULE_FULL}`}>
+        <p className={`${FACT} ${MEASURE} ${AXIS_INDENT}`}>
           A mark is a recipe number, seal or label rather than a plant or a place: 7572 is Menghai Tea Factory&rsquo;s
           benchmark shou recipe, encoded in its own digits. Eight of these are tied to a producer we hold. The rest are
           grading terms and labels used across the trade, or seen on a tea whose factory the record never named, which
-          is why their producer reads as not recorded rather than as blank.
+          is why their producer reads as not recorded rather than as nothing at all.
         </p>
-        <HoldingAuthorship noun="marks" className="max-w-[64ch] mt-6" />
-        <SearchEverywhere query={query} className="mt-2" />
+        <HoldingAuthorship noun="marks" className={`${MEASURE} ${AXIS_INDENT} mt-5`} />
+        <SearchEverywhere query={query} className={`${AXIS_INDENT} mt-2`} />
       </div>
 
       <Invitation subject="A mark that is missing" />

@@ -11,18 +11,21 @@ import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { findNamedTeaById } from '../../wisdom';
 import {
+  AXIS_INDENT,
   EntryAuthorship,
   FACT,
   FACT_CLASS,
   Fact,
-  FactPanel,
   HoldingNotFound,
   Invitation,
-  LABEL,
+  MEASURE,
+  PAGE,
   PageHead,
-  Panel,
   Passage,
+  SPACE,
+  SectionHead,
   WisdomSubNav,
+  catalogueNumber,
 } from './wisdomShared';
 
 function provenanceStatement(provenance: 'undisclosed' | 'partial' | 'stated'): string {
@@ -81,7 +84,7 @@ const NamedTeaPage: React.FC = () => {
   }
 
   return (
-    <article className="w-full max-w-3xl mx-auto pt-4 pb-nav">
+    <article className={PAGE}>
       <Helmet>
         <title>{`${tea.name} · Named Teas · Teajia`}</title>
         <meta
@@ -93,43 +96,44 @@ const NamedTeaPage: React.FC = () => {
 
       <WisdomSubNav active="named" />
 
-      <div className="mt-4">
+      <div className="mt-7">
         <PageHead
+          kind="Named tea"
           title={tea.name}
           chineseName={tea.chineseName}
-          note={tea.altNames.length > 0 ? `Also written ${tea.altNames.join(', ')}` : undefined}
+          aka={tea.altNames.length > 0 ? `Also written ${tea.altNames.join(', ')}` : undefined}
           rungFor={tea.id}
+          number={catalogueNumber('named', tea.id)}
         />
       </div>
 
-      <FactPanel className="mt-6">
+      <div className="mt-8">
         <Fact label="Type">{tea.type}</Fact>
         <Fact label="Form">{tea.form}</Fact>
         <Fact label="Country">{tea.country}</Fact>
         <Fact label="Province">{tea.region}</Fact>
         <Fact label="Collection">{tea.collection}</Fact>
         <Fact label="Source">{tea.vendor}</Fact>
-      </FactPanel>
+      </div>
 
-      {/* The tradition is a sixteen-word sentence, and it used to run at CELL:
-          11px, the label size, directly under the title. It was the last full
-          sentence in the reference set at label size, which is the fine-print
-          defect this pass has been taking out everywhere else. It is prose, so
-          it takes the device the reference already has for prose: full measure,
-          15px, its label above it rather than beside it. Below the facts, not
-          above them, because a reader wants to know what type of tea it is
-          before they want to know how its name was arrived at. */}
-      <Panel className="mt-8">
+      {/* The tradition is a sixteen-word sentence, and it once ran at the label
+          size, 11px, directly under the title. It is prose, so it takes the
+          device the reference has for prose: the label hung in the margin, the
+          sentence on the value axis at body size. Below the facts, not above
+          them, because a reader wants to know what type of tea it is before
+          they want to know how its name was arrived at. */}
+      <section className={SPACE.section}>
+        <SectionHead label="How it was named" />
         <Passage label="Naming tradition" text={tea.tradition} />
-        <p className={`${FACT_CLASS} text-tea-text mt-6 max-w-[68ch]`}>{provenanceStatement(tea.provenance)}</p>
-      </Panel>
+        <p className={`${FACT_CLASS} text-tea-text ${MEASURE} ${AXIS_INDENT} mt-5`}>
+          {provenanceStatement(tea.provenance)}
+        </p>
+      </section>
 
       {tea.description && (
-        <section className="mt-10">
-          <Panel>
-            <p className={`${LABEL} mb-2`}>Record</p>
-            <p className={`${FACT} max-w-[68ch]`}>{tea.description}</p>
-          </Panel>
+        <section className={SPACE.section}>
+          <SectionHead label="Record" />
+          <p className={`${FACT} ${MEASURE} ${AXIS_INDENT}`}>{tea.description}</p>
         </section>
       )}
 

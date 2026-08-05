@@ -9,17 +9,20 @@ import { Link, useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { findMarkById, findProducerById } from '../../wisdom';
 import {
+  AXIS_INDENT,
   EntryAuthorship,
   FACT_CLASS,
   Fact,
-  FactPanel,
   HoldingNotFound,
   Invitation,
-  LABEL,
+  MEASURE,
+  PAGE,
   PageHead,
-  Panel,
   QUIET_LINK,
+  SPACE,
+  SectionHead,
   WisdomSubNav,
+  catalogueNumber,
 } from './wisdomShared';
 
 const MarkPage: React.FC = () => {
@@ -67,7 +70,7 @@ const MarkPage: React.FC = () => {
   }
 
   return (
-    <article className="w-full max-w-3xl mx-auto pt-4 pb-nav">
+    <article className={PAGE}>
       <Helmet>
         <title>{`${mark.name} · Marks · Teajia`}</title>
         <meta
@@ -79,16 +82,18 @@ const MarkPage: React.FC = () => {
 
       <WisdomSubNav active="marks" />
 
-      <div className="mt-4">
+      <div className="mt-7">
         <PageHead
+          kind="Mark"
           title={mark.name}
           chineseName={mark.chineseName}
-          note={mark.altNames.length > 0 ? `Also written ${mark.altNames.join(', ')}` : undefined}
+          aka={mark.altNames.length > 0 ? `Also written ${mark.altNames.join(', ')}` : undefined}
           rungFor={mark.id}
+          number={catalogueNumber('marks', mark.id)}
         />
       </div>
 
-      <FactPanel className="mt-6">
+      <div className="mt-8">
         <Fact label="Era">{mark.era}</Fact>
         <Fact label="Applies to">{mark.appliesToTypes.join(', ') || null}</Fact>
         {/* A producer the base holds is somewhere to go. One the record does
@@ -103,14 +108,12 @@ const MarkPage: React.FC = () => {
             <span className="text-tea-text-sec">Not recorded</span>
           )}
         </Fact>
-      </FactPanel>
+      </div>
 
       {mark.description && (
-        <section className="mt-10">
-          <Panel>
-            <p className={`${LABEL} mb-2`}>Record</p>
-            <p className={`${FACT_CLASS} text-tea-text max-w-[68ch]`}>{mark.description}</p>
-          </Panel>
+        <section className={SPACE.section}>
+          <SectionHead label="Record" />
+          <p className={`${FACT_CLASS} text-tea-text ${MEASURE} ${AXIS_INDENT}`}>{mark.description}</p>
         </section>
       )}
 

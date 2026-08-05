@@ -13,20 +13,24 @@ import React, { useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { STYLES, TEA_TYPES, type Style, type TeaType } from '../../wisdom';
 import {
+  AXIS_INDENT,
   FACT,
   GroupHead,
   HoldingAuthorship,
   HoldingRow,
-  IndexPanel,
-  IndexTable,
+  IndexList,
   Invitation,
+  MEASURE,
   NoMatch,
+  PAGE,
   PageHead,
+  RULE_FULL,
+  RunningHead,
+  SPACE,
   SearchEverywhere,
   ViewSwitch,
   WisdomSubNav,
   WisdomToolbar,
-  type IndexColumns,
 } from './wisdomShared';
 
 type View = 'type' | 'alphabetical';
@@ -36,14 +40,11 @@ const VIEWS: Array<{ id: View; label: string }> = [
   { id: 'alphabetical', label: 'A to Z' },
 ];
 
-const COLUMNS: IndexColumns = {
-  template: 'minmax(0,1.4fr) minmax(0,1fr) minmax(0,1.1fr)',
-  nameLabel: 'Style',
-  labels: ['Applies to', 'Region'],
-};
-
 /** Three words, so the group head stays inside the micro-caps rule. */
 const NO_TYPE = 'Type not stated';
+
+const anchorId = (label: string) =>
+  `style-${label.normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
 
 const matchKey = (value: string) => value.normalize('NFKD').toLowerCase();
 
@@ -58,7 +59,7 @@ function matches(style: Style, query: string): boolean {
 const byName = (left: Style, right: Style) => left.name.localeCompare(right.name);
 
 const StyleRows: React.FC<{ rows: Style[] }> = ({ rows }) => (
-  <ul className="list-none m-0 p-0">
+  <IndexList>
     {rows.map(style => (
       <HoldingRow
         key={style.id}
@@ -71,7 +72,7 @@ const StyleRows: React.FC<{ rows: Style[] }> = ({ rows }) => (
         ]}
       />
     ))}
-  </ul>
+  </IndexList>
 );
 
 const StyleIndexPage: React.FC = () => {
@@ -88,6 +89,11 @@ const StyleIndexPage: React.FC = () => {
       ([, rows]) => rows.length > 0,
     );
   }, [visible]);
+
+  const groups = useMemo(
+    () => byType.map(([label, rows]) => ({ id: anchorId(label), label, count: rows.length })),
+    [byType],
+  );
 
   const structuredData = {
     '@context': 'https://schema.org',
@@ -109,7 +115,7 @@ const StyleIndexPage: React.FC = () => {
   };
 
   return (
-    <article className="w-full max-w-3xl mx-auto pt-4 pb-nav">
+    <article className={PAGE}>
       <Helmet>
         <title>Tea Styles · The Wisdom Base · Teajia</title>
         <meta
@@ -121,11 +127,11 @@ const StyleIndexPage: React.FC = () => {
 
       <WisdomSubNav active="styles" />
 
-      <div className="mt-4 mb-2">
-        <PageHead title="Styles" note="Ways of making or pressing that are neither plant nor form." />
+      <div className="mt-7">
+        <PageHead kind="Holding" title="Styles" note="Ways of making or pressing that are neither plant nor form." />
       </div>
 
-      <IndexPanel className="mt-5">
+      <div className={SPACE.section}>
         <WisdomToolbar
           query={query}
           onQueryChange={setQuery}
@@ -141,27 +147,28 @@ const StyleIndexPage: React.FC = () => {
         {visible.length === 0 && <NoMatch noun="style" query={query} />}
 
         {visible.length > 0 && (
-          <IndexTable columns={COLUMNS}>
+          <>
+            {view === 'type' && <RunningHead groups={groups} />}
             {view === 'alphabetical' && <StyleRows rows={visible} />}
             {view === 'type' &&
               byType.map(([type, rows]) => (
                 <section key={type}>
-                  <GroupHead label={type} count={rows.length} />
+                  <GroupHead id={anchorId(type)} label={type} count={rows.length} />
                   <StyleRows rows={rows} />
                 </section>
               ))}
-          </IndexTable>
+          </>
         )}
-      </IndexPanel>
+      </div>
 
-      <div className="mt-14">
-        <p className={`${FACT} max-w-[68ch]`}>
+      <div className={`${SPACE.section} pt-6 ${RULE_FULL}`}>
+        <p className={`${FACT} ${MEASURE} ${AXIS_INDENT}`}>
           A style is neither the plant nor the basic form a tea is pressed into. It is a recognised way of making or
           pressing, the kind of fact a write-up states about a tea without it being a place, a plant, or a maker. One
           style can apply to more than one type, so a name can appear under two headings above.
         </p>
-        <HoldingAuthorship noun="styles" className="max-w-[64ch] mt-6" />
-        <SearchEverywhere query={query} className="mt-2" />
+        <HoldingAuthorship noun="styles" className={`${MEASURE} ${AXIS_INDENT} mt-5`} />
+        <SearchEverywhere query={query} className={`${AXIS_INDENT} mt-2`} />
       </div>
 
       <Invitation subject="A style that is missing" />

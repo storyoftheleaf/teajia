@@ -16,22 +16,26 @@ import React, { useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { REGIONS, type Region } from '../../wisdom';
 import {
+  AXIS_INDENT,
   FACT,
   FOOTNOTE,
   GroupHead,
   GroupJump,
   HoldingAuthorship,
   HoldingRow,
-  IndexPanel,
-  IndexTable,
+  IndexList,
   Invitation,
+  MEASURE,
   NoMatch,
+  PAGE,
   PageHead,
+  RULE_FULL,
+  RunningHead,
+  SPACE,
   SearchEverywhere,
   ViewSwitch,
   WisdomSubNav,
   WisdomToolbar,
-  type IndexColumns,
 } from './wisdomShared';
 
 type View = 'country' | 'alphabetical';
@@ -42,18 +46,7 @@ const VIEWS: Array<{ id: View; label: string }> = [
 ];
 
 /**
- * A province name runs to about 18 characters; an altitude never past
- * "1000-2300m". Both take a share of the measure rather than a pixel width, so
- * the three columns spread across the row instead of crowding its right edge.
- */
-const COLUMNS: IndexColumns = {
-  template: 'minmax(0,1.5fr) minmax(0,1fr) 7rem',
-  nameLabel: 'Place',
-  labels: ['Province', 'Altitude'],
-};
-
-/**
- * What the two right-hand columns are actually reporting.
+ * What the two run-in facts are actually reporting.
  *
  * Ninety-four of the 182 places carry no altitude and eighty-four no province,
  * because they are not that kind of record: the working list holds the area a
@@ -123,11 +116,11 @@ const RegionRow: React.FC<{ region: Region }> = ({ region }) => (
 );
 
 const RegionRows: React.FC<{ rows: Region[] }> = ({ rows }) => (
-  <ul className="list-none m-0 p-0">
+  <IndexList>
     {rows.map(region => (
       <RegionRow key={region.id} region={region} />
     ))}
-  </ul>
+  </IndexList>
 );
 
 const GroupSection: React.FC<{ group: Group }> = ({ group }) => (
@@ -211,7 +204,7 @@ const RegionIndexPage: React.FC = () => {
   };
 
   return (
-    <article className="w-full max-w-3xl mx-auto pt-4 pb-nav">
+    <article className={PAGE}>
       <Helmet>
         <title>Growing Regions · The Wisdom Base · Teajia</title>
         <meta
@@ -224,24 +217,28 @@ const RegionIndexPage: React.FC = () => {
 
       <WisdomSubNav active="regions" />
 
-      <div className="mt-4 mb-2">
-        <PageHead title="Growing Regions" note="The ground itself: how high, how wet, and what grows there." />
+      <div className="mt-7">
+        <PageHead
+          kind="Holding"
+          title="Growing Regions"
+          note="The ground itself: how high, how wet, and what grows there."
+        />
       </div>
 
-      {/* What a bare row means, said once, and now the only dim line standing
+      {/* What a bare entry means, said once, and now the only dim line standing
           between the toolbar and the first place. The cross-holding escape line
           used to print above it, so a reader met two footnotes before they met
           a single record; that one moved to the foot. This one stays, because
-          it is about the columns directly beneath it. */}
+          it is about the facts directly beneath it. */}
       {visible.length > 0 && (
-        <p className={`${FOOTNOTE} mt-4 max-w-[68ch]`}>
+        <p className={`${FOOTNOTE} ${MEASURE} ${AXIS_INDENT} figures-tab mt-8`}>
           An altitude is recorded for {RECORDED_ALTITUDE} of these places and a province for {RECORDED_PROVINCE}. The
-          others are working-list names, held as a vendor writes them, and an empty column here means not researched
+          others are working-list names, held as a vendor writes them, and a missing fact here means not researched
           rather than not applicable.
         </p>
       )}
 
-      <IndexPanel className="mt-3">
+      <div className="mt-4">
         <WisdomToolbar
           query={query}
           onQueryChange={setQuery}
@@ -258,23 +255,24 @@ const RegionIndexPage: React.FC = () => {
         {visible.length === 0 && <NoMatch noun="place" query={query} />}
 
         {visible.length > 0 && (
-          <IndexTable columns={COLUMNS}>
+          <>
+            <RunningHead groups={jumpTo} />
             {groups.map(group => (
               <GroupSection key={group.id} group={group} />
             ))}
-          </IndexTable>
+          </>
         )}
-      </IndexPanel>
+      </div>
 
-      <div className="mt-14">
-        <p className={`${FACT} max-w-[68ch]`}>
+      <div className={`${SPACE.section} pt-6 ${RULE_FULL}`}>
+        <p className={`${FACT} ${MEASURE} ${AXIS_INDENT}`}>
           Two lists merged here. The researched origins name a county and carry altitude and climate; the working list
           names the area a vendor actually writes on an invoice, and carries neither. Both are kept, because a record
           that says &ldquo;Anxi&rdquo; and a record that says &ldquo;Anxi County, Fujian&rdquo; are both real, and
           collapsing one into the other would quietly change what a grower wrote.
         </p>
-        <HoldingAuthorship noun="places" className="max-w-[64ch] mt-6" />
-        <SearchEverywhere query={query} className="mt-2" />
+        <HoldingAuthorship noun="places" className={`${MEASURE} ${AXIS_INDENT} mt-5`} />
+        <SearchEverywhere query={query} className={`${AXIS_INDENT} mt-2`} />
       </div>
 
       <Invitation subject="A growing place that is missing" />

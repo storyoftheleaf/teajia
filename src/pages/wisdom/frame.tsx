@@ -16,29 +16,51 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
 
-// ─── The four type roles ─────────────────────────────────────────────────────
+// ─── Three type sizes, and nothing else ──────────────────────────────────────
 
 /**
- * Four roles, four sizes, and nothing else on any page of the reference.
+ * Three sizes on any page of the reference. Not four, and not the five this
+ * once ran.
  *
- *   TITLE  28px display  the one heading a page carries
- *   NAME   17px display  a row name, an entry name, the section switcher
- *   FACT   15px body     running prose, and any fact written as a phrase
- *   LABEL  11px sans     micro-caps, and ONLY for a label of three words or fewer
+ *   HEADWORD  44px display (32 on a phone)  the one heading a page carries
+ *   BODY      17px                          prose, entry names, row names
+ *   SMALL     11px                          labels, metadata, catalogue numbers
  *
- * CELL is the LABEL size and family with the caps taken off. It is what a value
- * inside a column is set in, because caps at 11px is unreadable for a place
- * name or a sentence. Case and colour, not size, tell a header from its values.
+ * What went was the 15px step. Body prose at 15 and a row name at 17 are two
+ * sizes a reader cannot tell apart and can only feel as noise, so they are one
+ * size now and the difference between them is carried where it belongs: family
+ * (Cormorant against Lora), case, tracking, and the tone steps that already
+ * exist. That is the whole point of the rule. Everything that is not one of
+ * these three has to differentiate itself without a new number.
  *
- * That is the whole scale. Nothing on a wisdom page may introduce a fifth step.
+ * The headword takes slightly negative tracking and a tight leading, because a
+ * Garamond set at 44px on the browser's defaults goes airy and loses its
+ * weight exactly where it is meant to carry the page.
+ *
+ * CELL is the LABEL size and family with the caps taken off. Caps at 11px is
+ * unreadable for a place name, so case and colour, not size, tell a label from
+ * a value.
+ *
+ * Nothing on a wisdom page may introduce a fourth step. The one deliberate
+ * exception is the guide mark at a group break in an index (`GroupHead`),
+ * which is documented where it is set.
  */
-export const TITLE_CLASS = 'font-display text-ui-28 font-normal leading-[1.15] tracking-[0.01em]';
-export const NAME_CLASS = 'font-display text-ui-17 font-normal leading-[1.35] tracking-[0.02em]';
-export const FACT_CLASS = 'font-body text-ui-15 font-normal leading-[1.65]';
+export const TITLE_CLASS =
+  'font-display text-[32px] sm:text-[44px] font-normal leading-[1.04] tracking-[-0.015em]';
+export const NAME_CLASS = 'font-display text-ui-17 font-normal leading-[1.35] tracking-[0.01em]';
+export const FACT_CLASS = 'font-body text-ui-17 font-normal leading-[1.6]';
 export const LABEL_CLASS = 'font-sans text-ui-11 font-normal uppercase tracking-[1.2px] leading-[1.4]';
-export const CELL_CLASS = 'font-sans text-ui-11 font-normal tracking-[0.02em] leading-[1.4]';
+export const CELL_CLASS = 'font-sans text-ui-11 font-normal tracking-[0.02em] leading-[1.5]';
 
-/** A micro-caps label. Dim, always subordinate to what it labels. */
+/**
+ * A micro-caps label. Dim, always subordinate to what it labels.
+ *
+ * Letterspaced capitals at 11px read as a different colour of text from roman
+ * lowercase, which is what lets the reference carry a second voice without a
+ * second hue. 1.2px on 11px is 10.9 percent, inside the 8 to 12 that makes caps
+ * legible rather than cramped. It does exactly two jobs: a field label, and a
+ * section head. Anything else in caps is a third job and is wrong.
+ */
 export const LABEL = `${LABEL_CLASS} text-tea-text-dim`;
 /** A value in a column, or any short piece of metadata. Never caps. */
 export const CELL = `${CELL_CLASS} text-tea-text-sec`;
@@ -49,6 +71,102 @@ export const FACT = `${FACT_CLASS} text-tea-text-sec`;
 
 export const QUIET_LINK =
   'text-tea-readgold underline underline-offset-4 decoration-tea-gold/40 hover:decoration-tea-gold transition-colors';
+
+// ─── The setting: space, axis, measure, rules ────────────────────────────────
+
+/**
+ * The spacing grammar, on a strict ratio, written once so it cannot drift.
+ *
+ * The page background is rgb(34,32,28) and the panel fill the reference used to
+ * reach for is rgb(50,46,41). That is 1.21:1 in dark mode and 1.15:1 in light,
+ * and a surface step is only perceptible from about 1.4. Every rounded panel
+ * and every one-pixel edge on these pages was therefore doing nothing but
+ * adding padding: the grouping a reader could see was never coming from the
+ * tone, it was coming from the space inside the panel. So the panels are gone
+ * and the space does the job on its own, on a ratio tight enough that a
+ * 630-entry reference does not inflate:
+ *
+ *   ROW      8 to 12px  between rows inside one group
+ *   LABEL    12px  from a label to the thing it labels
+ *   SECTION  48px  from one section to the next
+ *   HEAD     16px  under a section head, a third of the 48 above it
+ *
+ * The 3:1 above and below a head is the load-bearing number. A head with equal
+ * air on both sides belongs to neither side; at three to one the eye reads it
+ * as attached to what follows before it has read a word.
+ */
+export const SPACE = {
+  /** One section to the next. */
+  section: 'mt-12',
+  /** Under a section head. A third of the space above it. */
+  head: 'mb-4',
+  /** A label to its group. */
+  label: 'mb-3',
+  /** Rows inside a group. Half above and half below, so 12px between two rows. */
+  row: 'py-1.5',
+} as const;
+
+/**
+ * The one left axis.
+ *
+ * Small tracked labels hang in a 7.5rem margin column and every value in the
+ * reference starts at the same x to its right. The shared gutter is a
+ * structural line made of nothing, and it is what makes seven different record
+ * types read as one system rather than seven layouts.
+ *
+ * `sm:items-baseline` rather than a hand-tuned top padding on the label: a
+ * grid row aligns its items' first baselines, so an 11px label and a 17px value
+ * sit on one line without anybody guessing at a pixel offset.
+ *
+ * Below sm it collapses to label above value. That is a real loss and it is
+ * accepted: a 90px column at 390px leaves the value 200px of line, which is a
+ * column of two-word fragments.
+ */
+export const AXIS = 'sm:grid sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:gap-x-6 sm:items-baseline';
+
+/** Content that sits on the value edge with nothing hung in the margin beside it. */
+export const AXIS_INDENT = 'sm:ml-[9rem]';
+
+/**
+ * 66 characters. A measure is a property of the text, not of the window, so it
+ * is capped here and never allowed to follow the viewport out to a dashboard
+ * width.
+ */
+export const MEASURE = 'max-w-[66ch]';
+
+/**
+ * The page shell every wisdom route uses.
+ *
+ * Not centred. The column is held left against the label axis and the right
+ * margin is left to run empty, the way a book's fore-edge does. On a wide
+ * monitor that reads as unfinished to an eye trained on dashboards, and it is
+ * meant to: a measure floating in the middle of 1600px with equal voids either
+ * side is a web page, and a page held to its left edge with air to its right is
+ * a book.
+ *
+ * `hang-punct` is inherited, so one class here hangs punctuation in every
+ * paragraph below it.
+ */
+export const PAGE = 'w-full max-w-[46rem] pt-4 pb-nav hang-punct';
+
+/**
+ * A grammar of exactly two rules, and length is what says which is which.
+ *
+ * RULE_FULL is a full-measure hairline in the border tone, and marks a major
+ * division: the foot of a list, the start of the notes about a holding.
+ *
+ * RULE_SHORT is 40px of bronze at low opacity, sitting under a section head and
+ * stopping dead. A rule that does not run the full measure cannot be read as a
+ * divider, so the eye takes it as a typographic gesture belonging to the head
+ * above it, which is exactly the job.
+ *
+ * Never a third weight, and never these two doing each other's job within a
+ * screenful.
+ */
+export const RULE_FULL = 'border-t border-tea-border';
+/** The same rule, drawn under the block instead of over it. Same weight, same tone. */
+export const RULE_UNDER = 'border-b border-tea-border';
+export const RULE_SHORT = 'block w-10 h-px bg-tea-gold/40';
 
 /**
  * The caps rule, enforced rather than remembered. A label of three words or
@@ -194,17 +312,20 @@ const WisdomCompactNav: React.FC<{ active: WisdomSection['id'] }> = ({ active })
           aria-hidden
           className={`shrink-0 text-tea-text-sec transition-transform ${open ? 'rotate-180' : ''}`}
         />
-        <span className={`${LABEL} ml-auto shrink-0`}>
+        <span className={`${CELL_CLASS} text-tea-text-dim ml-auto shrink-0`}>
           {open ? 'Close' : `${WISDOM_SECTIONS.length} holdings`}
         </span>
       </button>
 
-      {/* The open panel takes the surface tone. Closed, this is a line of the
-          page; open, it is a contents list sitting on top of one, and a reader
-          should be able to tell which of those two states they are looking at
-          without reading a word of it. */}
+      {/* No fill on the open panel. It used to take the surface tone on the
+          argument that a reader should be able to see which of the two states
+          they are in without reading a word, which is right, but surface on the
+          page background is 1.21:1 in dark mode and 1.15:1 in light, and a step
+          is only perceptible from about 1.4. The state was being carried the
+          whole time by the six rows appearing, each on its own hairline, and by
+          the button's own label changing to Close. */}
       {open && (
-        <ul id="wisdom-holdings" className="list-none m-0 p-0 pb-1 mb-2 bg-tea-surface rounded-b-xl">
+        <ul id="wisdom-holdings" className="list-none m-0 p-0 pb-1 mb-2">
           {WISDOM_SECTIONS.filter(section => section.id !== active).map(section => (
             <li key={section.id} className="border-t border-tea-border first:border-t-0">
               <Link
@@ -257,11 +378,14 @@ export const ProseSkeleton: React.FC<{ lines?: number }> = ({ lines = 3 }) => (
 export const WisdomFallback: React.FC = () => {
   const { pathname } = useLocation();
   return (
-    <article className="w-full max-w-3xl mx-auto pt-4 pb-nav">
+    <article className={PAGE}>
       <WisdomSubNav active={sectionForPath(pathname)} />
-      <div className="mt-6" aria-hidden>
-        <div className="shimmer-warm h-7 w-[13rem] max-w-full rounded-md" />
-        <div className="mt-7">
+      {/* The block reserved is the headword's, at its real height, so the page
+          does not jump a line when the chunk lands. */}
+      <div className="mt-7" aria-hidden>
+        <div className="shimmer-warm h-3 w-[7rem] rounded-md" />
+        <div className="shimmer-warm mt-3 h-9 sm:h-12 w-[17rem] max-w-full rounded-md" />
+        <div className={`mt-10 ${AXIS_INDENT}`}>
           <ProseSkeleton lines={3} />
         </div>
       </div>

@@ -10,17 +10,20 @@ import { Link, useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { findProducerById, marksOf, markNamesOf, type Producer } from '../../wisdom';
 import {
+  AXIS_INDENT,
   EntryAuthorship,
   FACT_CLASS,
   Fact,
-  FactPanel,
   HoldingNotFound,
   Invitation,
-  LABEL,
+  MEASURE,
+  PAGE,
   PageHead,
-  Panel,
   QUIET_LINK,
+  SPACE,
+  SectionHead,
   WisdomSubNav,
+  catalogueNumber,
 } from './wisdomShared';
 
 const KIND_LABEL: Record<Producer['kind'], string> = {
@@ -80,7 +83,7 @@ const ProducerPage: React.FC = () => {
   }
 
   return (
-    <article className="w-full max-w-3xl mx-auto pt-4 pb-nav">
+    <article className={PAGE}>
       <Helmet>
         <title>{`${producer.name} · Producers · Teajia`}</title>
         <meta
@@ -92,54 +95,51 @@ const ProducerPage: React.FC = () => {
 
       <WisdomSubNav active="producers" />
 
-      <div className="mt-4">
+      <div className="mt-7">
         <PageHead
+          kind="Producer"
           title={producer.name}
           chineseName={producer.chineseName}
-          note={producer.altNames.length > 0 ? `Also written ${producer.altNames.join(', ')}` : undefined}
+          aka={producer.altNames.length > 0 ? `Also written ${producer.altNames.join(', ')}` : undefined}
           rungFor={producer.id}
+          number={catalogueNumber('makers', producer.id)}
         />
       </div>
 
-      <FactPanel className="mt-6">
+      <div className="mt-8">
         <Fact label="Kind">{KIND_LABEL[producer.kind]}</Fact>
         <Fact label="Operates in">{[producer.region, producer.country].filter(Boolean).join(', ') || null}</Fact>
-        <Fact label="Founded">{producer.founded ? String(producer.founded) : null}</Fact>
-      </FactPanel>
+        <Fact label="Founded">
+          {producer.founded ? <span className="figures-tab">{producer.founded}</span> : null}
+        </Fact>
+      </div>
 
       {producer.description && (
-        <section className="mt-10">
-          <Panel>
-            <p className={`${LABEL} mb-2`}>Record</p>
-            <p className={`${FACT_CLASS} text-tea-text max-w-[68ch]`}>{producer.description}</p>
-          </Panel>
+        <section className={SPACE.section}>
+          <SectionHead label="Record" />
+          <p className={`${FACT_CLASS} text-tea-text ${MEASURE} ${AXIS_INDENT}`}>{producer.description}</p>
         </section>
       )}
 
       {markNames.length > 0 && (
-        <section className="mt-10">
-          <p className={`${LABEL} mb-2`}>Known for</p>
-          <Panel className="py-1 sm:py-1">
-            <ul className="list-none m-0 p-0">
-              {markNames.map(name => {
-                const held = heldByName.get(name);
-                return (
-                  <li
-                    key={name}
-                    className="py-2.5 border-t border-tea-border first:border-t-0 min-h-[44px] flex items-center"
-                  >
-                    {held ? (
-                      <Link to={`/wisdom/mark/${held.id}`} className={`${FACT_CLASS} ${QUIET_LINK}`}>
-                        {name}
-                      </Link>
-                    ) : (
-                      <span className={`${FACT_CLASS} text-tea-text`}>{name}</span>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          </Panel>
+        <section className={SPACE.section}>
+          <SectionHead label="Known for" count={markNames.length} />
+          <ul className={`list-none m-0 p-0 ${AXIS_INDENT}`}>
+            {markNames.map(name => {
+              const held = heldByName.get(name);
+              return (
+                <li key={name} className="py-1.5 min-h-[44px] flex items-center">
+                  {held ? (
+                    <Link to={`/wisdom/mark/${held.id}`} className={`${FACT_CLASS} ${QUIET_LINK}`}>
+                      {name}
+                    </Link>
+                  ) : (
+                    <span className={`${FACT_CLASS} text-tea-text`}>{name}</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         </section>
       )}
 

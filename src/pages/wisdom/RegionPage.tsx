@@ -11,33 +11,24 @@ import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { REGIONS, findRegion } from '../../wisdom';
 import {
+  AXIS_INDENT,
   EntryAuthorship,
   FACT_CLASS,
   Fact,
   HoldingNotFound,
   HoldingRow,
-  IndexPanel,
-  IndexTable,
+  IndexList,
   Invitation,
+  MEASURE,
+  PAGE,
   PageHead,
-  Panel,
   Passage,
+  SPACE,
   SectionHead,
   WisdomSubNav,
+  catalogueNumber,
   plantsGrownIn,
-  type IndexColumns,
 } from './wisdomShared';
-
-/**
- * No origin column. Every plant in this list is here precisely because its
- * recorded origin walks back to this place, so the column printed the page's
- * own title down forty rows. The section head says it once.
- */
-const PLANT_COLUMNS: IndexColumns = {
-  template: 'minmax(0,1fr) 7rem',
-  nameLabel: 'Plant',
-  labels: ['Developed'],
-};
 
 const RegionPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -102,7 +93,7 @@ const RegionPage: React.FC = () => {
   }
 
   return (
-    <article className="w-full max-w-3xl mx-auto pt-4 pb-nav">
+    <article className={PAGE}>
       <Helmet>
         <title>{`${region.name} · Growing Regions · Teajia`}</title>
         <meta
@@ -120,56 +111,54 @@ const RegionPage: React.FC = () => {
       {/* No dateline under the title. It printed the province and the country,
           which are the first two rows of the panel below it: the same two facts
           twice, eight pixels apart. */}
-      <div className="mt-4">
-        <PageHead title={region.name} rungFor={region.id} />
+      <div className="mt-7">
+        <PageHead
+          kind="Growing place"
+          title={region.name}
+          rungFor={region.id}
+          number={catalogueNumber('places', region.id)}
+        />
       </div>
 
-      <Panel className="mt-6">
-        <div>
-          <Fact label="Country">{region.country}</Fact>
-          <Fact label="Province">{region.province}</Fact>
-          <Fact label="Altitude">{region.altitude}</Fact>
-        </div>
+      <div className="mt-8">
+        <Fact label="Country">{region.country}</Fact>
+        <Fact label="Province">{region.province}</Fact>
+        <Fact label="Altitude">
+          <span className="figures-tab">{region.altitude}</span>
+        </Fact>
 
         {/* Climate is the one field here that is research prose, not a fact:
-            the longest runs to 239 characters, four lines of body type. Inside
-            the 152px label track it read as a paragraph stuffed into a field
-            and broke the axis the three facts above it form. It gets the full
-            measure and its label above it instead. */}
-        <Passage label="Climate" text={region.climate} className="mt-7" />
+            the longest runs to 239 characters, four lines of body type. Set on
+            a value line it broke the baseline the three facts above it agree
+            on. It keeps the same hung label and drops clear of it. */}
+        <Passage label="Climate" text={region.climate} className="mt-5" />
 
         {!region.altitude && !region.climate && (
-          <p className={`${FACT_CLASS} text-tea-text-dim max-w-[64ch]`}>
+          <p className={`${FACT_CLASS} text-tea-text-dim ${MEASURE} ${AXIS_INDENT}`}>
             Only the name and the country are held for this place. Altitude and climate have not been researched yet.
           </p>
         )}
-      </Panel>
+      </div>
 
-      <section className="mt-14">
-        <SectionHead glyph="◇" label="Plants from here" count={plants.length || undefined} />
+      <section className={SPACE.section}>
+        <SectionHead label="Plants from here" count={plants.length || undefined} />
         {plants.length === 0 ? (
-          <Panel>
-            <p className={`${FACT_CLASS} text-tea-text-dim max-w-[64ch]`}>
-              No plant in the reference records this place as its origin yet. That is a gap in the plant records, not a
-              claim that nothing grows here.
-            </p>
-          </Panel>
+          <p className={`${FACT_CLASS} text-tea-text-dim ${MEASURE} ${AXIS_INDENT}`}>
+            No plant in the reference records this place as its origin yet. That is a gap in the plant records, not a
+            claim that nothing grows here.
+          </p>
         ) : (
-          <IndexPanel>
-            <IndexTable columns={PLANT_COLUMNS}>
-              <ul className="list-none m-0 p-0">
-                {plants.map(plant => (
-                  <HoldingRow
-                    key={plant.id}
-                    to={`/wisdom/cultivar/${plant.id}`}
-                    name={plant.name}
-                    chineseName={plant.chineseName}
-                    cells={[plant.developedYear ? String(plant.developedYear) : undefined]}
-                  />
-                ))}
-              </ul>
-            </IndexTable>
-          </IndexPanel>
+          <IndexList>
+            {plants.map(plant => (
+              <HoldingRow
+                key={plant.id}
+                to={`/wisdom/cultivar/${plant.id}`}
+                name={plant.name}
+                chineseName={plant.chineseName}
+                cells={[plant.developedYear ? `recorded ${plant.developedYear}` : undefined]}
+              />
+            ))}
+          </IndexList>
         )}
       </section>
 

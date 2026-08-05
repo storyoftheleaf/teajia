@@ -3168,6 +3168,40 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* ============================================
+   Setting utilities: the details of fine typesetting
+
+   Three properties that have to be set on the element rather than composed out
+   of Tailwind classes, and that are reusable anywhere text is being set rather
+   than laid out. Written for the public reference at /wisdom, which is the
+   first surface in the app set like a book rather than like a screen.
+   ============================================ */
+
+/* Punctuation hangs into the margin so the text edge stays optically flush.
+   `hanging-punctuation` is the real property for this, and the only honest way
+   to reach it: a per-character hack applied to some quotes and not others reads
+   worse than no hanging at all. A browser without support sets flush by
+   bounding box, which is what every page already did. Inherited, so one class
+   on a page root covers every paragraph under it. */
+.hang-punct { hanging-punctuation: first allow-end last; }
+
+/* Optical left alignment for a large display serif. Cormorant Garamond carries
+   a side bearing of roughly a fortieth of an em, so a headword set flush by its
+   bounding box reads as indented against the labels and rules beneath it, which
+   have almost none. The negative margin pulls the letterform, not the box, onto
+   the axis. It is in em, so it scales: about 1px at 44px, and nothing worth
+   seeing at 17px. */
+.optical-left { margin-left: -0.025em; }
+
+/* Tabular LINING figures. Tailwind's `tabular-nums` sets equal advance widths
+   but leaves figure style alone, so a face whose default figures are old style
+   still columns ascenders against descenders. Altitudes, years, counts and
+   catalogue numbers need both before a numeric column actually columns. */
+.figures-tab {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+}
+
+/* ============================================
    Bottom Nav Clearance Utilities
    The mobile bottom nav is a floating capsule:
    52px tall, lifted 12px above safe-area-inset-bottom, with 16px side margins.
