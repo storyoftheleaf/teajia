@@ -62,17 +62,20 @@ export const CurateField: React.FC<{
   derived?: boolean;
   /** Short count telling the operator a suggestion list is attached, e.g. "79 cultivars". */
   suggestions?: string;
+  /** Where the current value came from. */
+  provenance?: { state: string; label: string };
   className?: string;
   children: React.ReactElement;
-}> = ({ label, status, helper, helperTone = 'note', derived = false, suggestions, className = '', children }) => {
+}> = ({ label, status, helper, helperTone = 'note', derived = false, suggestions, provenance, className = '', children }) => {
   const generatedId = useId().replace(/:/g, '');
   const child = children as React.ReactElement<CurateFieldControlProps>;
   const controlId = child.props.id || `curate-field-${generatedId}`;
   const statusId = status ? `${controlId}-status` : undefined;
   const suggestionsId = suggestions ? `${controlId}-suggestions` : undefined;
   const derivedId = derived ? `${controlId}-derived` : undefined;
+  const provenanceId = provenance ? `${controlId}-provenance` : undefined;
   const helperId = helper ? `${controlId}-helper` : undefined;
-  const describedBy = [child.props['aria-describedby'], statusId, suggestionsId, derivedId, helperId].filter(Boolean).join(' ') || undefined;
+  const describedBy = [child.props['aria-describedby'], statusId, suggestionsId, derivedId, provenanceId, helperId].filter(Boolean).join(' ') || undefined;
   // Native select chrome collides with the chevron, so selects get house chrome:
   // arrow suppressed, chevron drawn at the end of the value line.
   const isSelect = child.type === 'select';
@@ -89,10 +92,11 @@ export const CurateField: React.FC<{
           {status && (
             <span id={statusId} role="status" className="curate-field-flag">{status}</span>
           )}
-          {(suggestions || derived) && (
+          {(suggestions || derived || provenance) && (
             <span className="curate-field-marks">
               {suggestions && <span id={suggestionsId}>{suggestions}</span>}
               {derived && <span id={derivedId}>From base</span>}
+              {provenance && <span id={provenanceId} data-provenance={provenance.state}>{provenance.label}</span>}
             </span>
           )}
         </div>

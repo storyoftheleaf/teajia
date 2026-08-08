@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, Check } from 'lucide-react';
-import type { CurateImportDisposition, CurateImportInventoryPurpose, CurateImportItem, CurateImportItemUpdate, CurateImportReviewedField, LookupState } from '../../../lib/api';
+import type { CurateImportCanonicalField, CurateImportDisposition, CurateImportInventoryPurpose, CurateImportItem, CurateImportItemUpdate, CurateImportReviewedField, LookupState } from '../../../lib/api';
 import { CurateActionBand, CurateDisclosure, CurateField } from '../CuratePrimitives';
 import {
   buildImportCorrectionParsedData,
@@ -19,6 +19,7 @@ import {
 import { ImportMatchPicker } from './ImportMatchPicker';
 import { enrichImportIdentity, IMPORT_TEA_FORMS, IMPORT_TEA_TYPES, vocabularyOptions } from './importIdentityEnrichment';
 import { CULTIVARS, findCultivarById, findRegion, matchCultivar, REGION_NAMES } from '../../../wisdom';
+import { importFieldProvenance, importSourceExcerpt } from './importEvidence';
 
 export interface ImportIdentityOption extends ImportMatchOption { category: 'tea' | 'teaware' }
 export interface ImportHoldingOption extends ImportMatchOption { category: 'tea' | 'teaware'; compassEntryId: string | null; purpose: string | null }
@@ -47,7 +48,7 @@ const vendorDraftFromItem = (item: CurateImportItem, identityBlocked: boolean, p
   pack_weight: value(item.pack_weight), weight_unit: value(item.weight_unit), pack_count: value(item.pack_count),
   price_amount: value(item.price_amount_exact ?? item.parsed_data?.priceAmountExact ?? item.price_amount), currency: value(item.currency), price_basis: value(item.price_basis || 'unknown'),
   tea_type: value(item.parsed_data?.type), classification: value(item.parsed_data?.classification), year: value(item.parsed_data?.year),
-  cultivar: value(item.parsed_data?.cultivar),
+  cultivar: value(item.parsed_data?.cultivar), producer: value(item.parsed_data?.producer), processing_notes: value(item.parsed_data?.processingNotes),
   form: value(item.parsed_data?.form), origin_country: value(item.parsed_data?.originCountry), origin: value(item.parsed_data?.originRegion), description: value(item.parsed_data?.description),
   purpose: value(item.parsed_data?.inventoryPurpose), compass_entry_id: value(identityBlocked ? '' : item.proposed_compass_entry_id || (item.duplicate_resolution === 'new' && 'new') || 'new'),
   product_id: value(productBlocked ? '' : item.proposed_product_id || 'new'),
@@ -208,7 +209,8 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({
       englishName: draft.english_name.trim() || null, originalName: draft.original_name.trim() || null, chineseName: draft.chinese_name.trim() || null,
       type: draft.tea_type.trim() || null, classification: draft.classification.trim() || null, year: draft.year ? Number(draft.year) : null,
       form: draft.form.trim() || null, originCountry: draft.origin_country.trim() || null, originRegion: draft.origin.trim() || null,
-      description: draft.description.trim() || null, cultivar: draft.cultivar.trim() || null, inventoryPurpose: (draft.purpose || null) as CurateImportInventoryPurpose | null,
+      description: draft.description.trim() || null, processingNotes: draft.processing_notes.trim() || null,
+      cultivar: draft.cultivar.trim() || null, producer: draft.producer.trim() || null, inventoryPurpose: (draft.purpose || null) as CurateImportInventoryPurpose | null,
       compassSelection: draft.compass_entry_id || null, productSelection: draft.product_id || null,
       identityTouched: identityResolutionTouched.current, productSelectionTouched: holdingResolutionTouched.current,
       disposition: draft.disposition as CurateImportDisposition, acquired: draft.disposition === 'received',
@@ -251,6 +253,12 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({
   const field = (name: Parameters<typeof needsConfirm>[0]) => needsConfirm(name) ? 'Confirm' : undefined;
   /** True while the value on screen came from the wisdom base rather than the vendor. */
   const fromBase = (key: string) => derivedFields.has(key);
+  const provenance = (name: CurateImportCanonicalField, fieldValue: unknown) => importFieldProvenance(
+    item.parsed_data,
+    name,
+    fieldValue,
+    item.manually_corrected_fields ?? [],
+  );
   // Cultivar and Origin carry suggestion lists the browser draws with no
   // affordance at all, so the field says how much is behind it.
   const cultivarSuggestions = `${CULTIVARS.length} cultivars`;
@@ -283,7 +291,7 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({
     currency: draft.currency,
     priceBasis: draft.price_basis,
   });
-  const identityFields = ['englishName', 'chineseName', 'originalName', 'type', 'year', 'originCountry', 'originRegion', 'cultivar', 'classification', 'form', 'description'] as const;
+  const identityFields = ['englishName', 'chineseName', 'originalName', 'type', 'year', 'originCountry', 'originRegion', 'cultivar', 'producer', 'classification', 'form', 'description', 'processingNotes'] as const;
   const purchaseFields = ['packWeight', 'weightUnit', 'packCount', 'priceAmount', 'currency', 'priceBasis'] as const;
   const inventoryFields = ['disposition', 'identity', 'holding', 'inventoryPurpose'] as const;
   const hasBlocked = (fields: readonly Parameters<typeof needsConfirm>[0][]) => fields.some(needsConfirm);
@@ -300,27 +308,30 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({
   );
   const secondaryNames = [item.original_name, item.chinese_name].filter((name, index, names) => name && names.indexOf(name) === index).join(' · ');
   const headerEquation = importQuantityCostEquation(item);
+  const sourceExcerpt = importSourceExcerpt(item.parsed_data, item.raw_text);
 
   const renderIdentityFields = (blocked: boolean) => <>
-    {show('englishName', blocked) && <CurateField label="English name" status={field('englishName')}><input aria-label="English name" value={draft.english_name} onChange={event => set('english_name', event.target.value)} /></CurateField>}
+    {show('englishName', blocked) && <CurateField label="English name" status={field('englishName')} provenance={provenance('englishName', draft.english_name)}><input aria-label="English name" value={draft.english_name} onChange={event => set('english_name', event.target.value)} /></CurateField>}
     {(show('chineseName', blocked) || show('originalName', blocked)) && <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       {show('chineseName', blocked) && <CurateField label="Chinese name" status={field('chineseName')} derived={fromBase('chinese_name')}><input aria-label="Chinese name" value={draft.chinese_name} onChange={event => set('chinese_name', event.target.value)} /></CurateField>}
       {show('originalName', blocked) && <CurateField label="Original name" status={field('originalName')}><input aria-label="Original name" value={draft.original_name} onChange={event => set('original_name', event.target.value)} /></CurateField>}
     </div>}
     {(show('type', blocked) || show('year', blocked)) && <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-      {show('type', blocked) && <CurateField label="Tea type" status={field('type')} derived={fromBase('tea_type')}><select aria-label="Tea type" value={draft.tea_type} onChange={event => set('tea_type', event.target.value)}><option value="">Choose type</option>{vocabularyOptions(IMPORT_TEA_TYPES, draft.tea_type).map(type => <option key={type} value={type}>{type}</option>)}</select></CurateField>}
-      {show('year', blocked) && <CurateField label="Year" status={field('year')} helper={yearHelper} helperTone="warning" derived={fromBase('year')}><input aria-label="Year" inputMode="numeric" value={draft.year} onChange={event => set('year', event.target.value)} /></CurateField>}
+      {show('type', blocked) && <CurateField label="Tea type" status={field('type')} derived={fromBase('tea_type')} provenance={provenance('type', draft.tea_type)}><select aria-label="Tea type" value={draft.tea_type} onChange={event => set('tea_type', event.target.value)}><option value="">Choose type</option>{vocabularyOptions(IMPORT_TEA_TYPES, draft.tea_type).map(type => <option key={type} value={type}>{type}</option>)}</select></CurateField>}
+      {show('year', blocked) && <CurateField label="Year" status={field('year')} helper={yearHelper} helperTone="warning" derived={fromBase('year')} provenance={provenance('year', draft.year)}><input aria-label="Year" inputMode="numeric" value={draft.year} onChange={event => set('year', event.target.value)} /></CurateField>}
     </div>}
     {(show('originCountry', blocked) || show('originRegion', blocked)) && <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       {show('originCountry', blocked) && <CurateField label="Origin country" status={field('originCountry')} derived={fromBase('origin_country')}><input aria-label="Origin country" value={draft.origin_country} onChange={event => set('origin_country', event.target.value)} /></CurateField>}
-      {show('originRegion', blocked) && <CurateField label="Origin region" status={field('originRegion')} helper={originHelper} derived={fromBase('origin')} suggestions={regionSuggestions}><input aria-label="Origin region" placeholder="Type to search" value={draft.origin} onChange={event => set('origin', event.target.value)} list={`regions-${item.id}`} /></CurateField>}
+      {show('originRegion', blocked) && <CurateField label="Origin region" status={field('originRegion')} helper={originHelper} derived={fromBase('origin')} suggestions={regionSuggestions} provenance={provenance('originRegion', draft.origin)}><input aria-label="Origin region" placeholder="Type to search" value={draft.origin} onChange={event => set('origin', event.target.value)} list={`regions-${item.id}`} /></CurateField>}
     </div>}
     {show('originRegion', blocked) && <datalist id={`regions-${item.id}`}>{REGION_NAMES.map(name => <option key={name} value={name} />)}</datalist>}
-    {show('cultivar', blocked) && <CurateField label="Cultivar" status={field('cultivar')} helper={cultivarHelper} derived={fromBase('cultivar')} suggestions={cultivarSuggestions}><input aria-label="Cultivar" placeholder="Type to search" value={draft.cultivar} onChange={event => set('cultivar', event.target.value)} list={`cultivars-${item.id}`} /></CurateField>}
+    {show('cultivar', blocked) && <CurateField label="Cultivar" status={field('cultivar')} helper={cultivarHelper} derived={fromBase('cultivar')} suggestions={cultivarSuggestions} provenance={provenance('cultivar', draft.cultivar)}><input aria-label="Cultivar" placeholder="Type to search" value={draft.cultivar} onChange={event => set('cultivar', event.target.value)} list={`cultivars-${item.id}`} /></CurateField>}
     {show('cultivar', blocked) && <datalist id={`cultivars-${item.id}`}>{CULTIVARS.map(entry => <option key={entry.id} value={entry.name}>{entry.chineseName || entry.originRegion || ''}</option>)}</datalist>}
     {show('classification', blocked) && <CurateField label="Production or classification" status={field('classification')}><input aria-label="Production or classification" value={draft.classification} onChange={event => set('classification', event.target.value)} /></CurateField>}
     {show('form', blocked) && <CurateField label="Form" status={field('form')} derived={fromBase('form')}><select aria-label="Form" value={draft.form} onChange={event => set('form', event.target.value)}><option value="">Choose form</option>{vocabularyOptions(IMPORT_TEA_FORMS, draft.form).map(form => <option key={form} value={form}>{form}</option>)}</select></CurateField>}
-    {show('description', blocked) && <CurateField label="Description" status={field('description')}><textarea aria-label="Description" rows={3} value={draft.description} onChange={event => set('description', event.target.value)} /></CurateField>}
+    {show('producer', blocked) && <CurateField label="Producer" status={field('producer')} provenance={provenance('producer', draft.producer)}><input aria-label="Producer" value={draft.producer} onChange={event => set('producer', event.target.value)} /></CurateField>}
+    {show('description', blocked) && <CurateField label="Description" status={field('description')} provenance={provenance('description', draft.description)}><textarea aria-label="Description" rows={3} value={draft.description} onChange={event => set('description', event.target.value)} /></CurateField>}
+    {show('processingNotes', blocked) && <CurateField label="Processing notes" status={field('processingNotes')} provenance={provenance('processingNotes', draft.processing_notes)}><textarea aria-label="Processing notes" rows={3} value={draft.processing_notes} onChange={event => set('processing_notes', event.target.value)} /></CurateField>}
   </>;
 
   const renderPurchaseFields = (blocked: boolean) => <>
@@ -367,6 +378,10 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({
       </div>
 
       {expanded && <fieldset disabled={busy} data-import-editor data-curate-source data-visual-layout="continuous-sheet" className="mt-3 border-t border-tea-border">
+        {sourceExcerpt && <section data-testid="import-source-excerpt" aria-label="Source excerpt" className="curate-cluster space-y-1">
+          <p className={`${MICRO_CAPS} text-tea-text-sec`}>Source excerpt</p>
+          <blockquote className="curate-support break-words text-tea-text-sec">{sourceExcerpt}</blockquote>
+        </section>}
         {/* Everything above More tea details is what the import cannot finish
             without. It carries a wash of accent so urgency is visible at a
             glance, without a single raised card or louder border. */}

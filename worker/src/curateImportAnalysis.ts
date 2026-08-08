@@ -7,7 +7,7 @@ export type ImportConfidenceField =
   | 'packCount' | 'priceBasis' | 'price' | 'priceAmount' | 'currency'
   | 'acquisitionState' | 'acquired' | 'duplicateResolution' | 'chineseName'
   | 'type' | 'form' | 'year' | 'originCountry' | 'originRegion'
-  | 'classification' | 'cultivar' | 'producer' | 'description' | 'inventoryPurpose';
+  | 'classification' | 'cultivar' | 'producer' | 'description' | 'processingNotes' | 'inventoryPurpose';
 export type ImportValidationState = 'source_fact' | 'ai_interpretation' | 'canonical_match' | 'validated' | 'not_present' | 'uncertain';
 export type ImportAnalysisConfidence = Partial<Record<ImportConfidenceField, number>>;
 export type ImportAnalysisValidation = Partial<Record<ImportConfidenceField, ImportValidationState>>;
@@ -106,6 +106,18 @@ export interface ImportRecordHints {
     arithmeticMatches: boolean;
     supplierName?: string | null;
     supplierExplicit?: boolean;
+    englishName?: string | null;
+    chineseName?: string | null;
+    type?: string | null;
+    form?: string | null;
+    year?: number | null;
+    originCountry?: string | null;
+    originRegion?: string | null;
+    classification?: string | null;
+    cultivar?: string | null;
+    producer?: string | null;
+    description?: string | null;
+    processingNotes?: string | null;
   }>;
   ignoredSummaries: Array<{ sourceId: string; text: string; evidenceRef: string }>;
   annotations: Array<{
@@ -124,7 +136,7 @@ const CONFIDENCE_FIELDS = [
   'vendor', 'identity', 'translation', 'englishName', 'nameTranslation', 'originalName', 'category',
   'packWeight', 'weightUnit', 'quantity', 'packCount', 'priceBasis', 'price', 'priceAmount', 'currency',
   'acquisitionState', 'acquired', 'duplicateResolution', 'chineseName', 'type', 'form', 'year',
-  'originCountry', 'originRegion', 'classification', 'cultivar', 'producer', 'description', 'inventoryPurpose',
+  'originCountry', 'originRegion', 'classification', 'cultivar', 'producer', 'description', 'processingNotes', 'inventoryPurpose',
 ] as const satisfies readonly ImportConfidenceField[];
 const confidenceSchema = {
   type: 'object',
@@ -213,9 +225,10 @@ export const IMPORT_ANALYSIS_OUTPUT_SCHEMA = {
                 cultivar: nullable({ type: 'string' }),
                 producer: nullable({ type: 'string' }),
                 description: nullable({ type: 'string' }),
+                processingNotes: nullable({ type: 'string' }),
                 inventoryPurpose: nullable({ type: 'string' }),
               },
-              required: ['sourceItemId', 'category', 'originalName', 'englishName', 'packWeight', 'weightUnit', 'packCount', 'priceAmount', 'currency', 'priceBasis', 'confidence', 'validation', 'uncertainty', 'evidenceRefs', 'acquired', 'duplicateResolution', 'proposedCompassEntryId', 'proposedProductId', 'chineseName', 'type', 'form', 'year', 'originCountry', 'originRegion', 'classification', 'cultivar', 'producer', 'description', 'inventoryPurpose'],
+              required: ['sourceItemId', 'category', 'originalName', 'englishName', 'packWeight', 'weightUnit', 'packCount', 'priceAmount', 'currency', 'priceBasis', 'confidence', 'validation', 'uncertainty', 'evidenceRefs', 'acquired', 'duplicateResolution', 'proposedCompassEntryId', 'proposedProductId', 'chineseName', 'type', 'form', 'year', 'originCountry', 'originRegion', 'classification', 'cultivar', 'producer', 'description', 'processingNotes', 'inventoryPurpose'],
               additionalProperties: false,
             },
           },
@@ -229,7 +242,7 @@ export const IMPORT_ANALYSIS_OUTPUT_SCHEMA = {
   additionalProperties: false,
 } as const;
 
-const IMPORT_ITEM_INPUT_FIELDS = ['sourceItemId', 'category', 'originalName', 'englishName', 'packWeight', 'weightUnit', 'packCount', 'priceAmount', 'currency', 'priceBasis', 'confidence', 'validation', 'uncertainty', 'evidenceRefs', 'acquired', 'duplicateResolution', 'proposedCompassEntryId', 'proposedProductId', 'chineseName', 'type', 'form', 'year', 'originCountry', 'originRegion', 'classification', 'cultivar', 'producer', 'description', 'inventoryPurpose'] as const;
+const IMPORT_ITEM_INPUT_FIELDS = ['sourceItemId', 'category', 'originalName', 'englishName', 'packWeight', 'weightUnit', 'packCount', 'priceAmount', 'currency', 'priceBasis', 'confidence', 'validation', 'uncertainty', 'evidenceRefs', 'acquired', 'duplicateResolution', 'proposedCompassEntryId', 'proposedProductId', 'chineseName', 'type', 'form', 'year', 'originCountry', 'originRegion', 'classification', 'cultivar', 'producer', 'description', 'processingNotes', 'inventoryPurpose'] as const;
 const IMPORT_ITEM_DERIVED_FIELDS = ['totalQuantityGrams', 'totalUnits', 'priceAmountExact', 'lineCost', 'lineCostExact', 'unitCost', 'unitCostExact', 'blockingFields'] as const;
 
 function record(value: unknown, field: string): Record<string, unknown> {
@@ -336,7 +349,7 @@ function decodeItem(value: unknown, groupIndex: number, itemIndex: number): Impo
     type: optionalText(input.type, 'type', 200), form: optionalText(input.form, 'form', 200),
     year: optionalYear(input.year), originCountry: optionalText(input.originCountry, 'originCountry', 200),
     originRegion: optionalText(input.originRegion, 'originRegion', 500), classification: optionalText(input.classification, 'classification', 500), cultivar: optionalText(input.cultivar, 'cultivar', 200), producer: optionalText(input.producer, 'producer', 200),
-    description: optionalText(input.description, 'description', 5000), inventoryPurpose: optionalText(input.inventoryPurpose, 'inventoryPurpose', 100),
+    description: optionalText(input.description, 'description', 5000), processingNotes: optionalText(input.processingNotes, 'processingNotes', 5000), inventoryPurpose: optionalText(input.inventoryPurpose, 'inventoryPurpose', 100),
     sourceItemId: string(input.sourceItemId, 'sourceItemId')!, category,
     originalName: string(input.originalName, 'originalName', true), englishName: string(input.englishName, 'englishName', true),
     packWeight: finiteNonNegative(input.packWeight, 'packWeight'), weightUnit,
@@ -416,7 +429,7 @@ const MATERIAL_VALIDATION_BLOCKERS: Partial<Record<ImportConfidenceField, string
   priceAmount: 'priceAmount', currency: 'currency', acquisitionState: 'acquired', acquired: 'acquired',
   duplicateResolution: 'duplicateResolution',
 };
-const OPTIONAL_METADATA_FIELDS = ['chineseName', 'type', 'form', 'year', 'originCountry', 'originRegion', 'classification', 'description'] as const;
+const OPTIONAL_METADATA_FIELDS = ['chineseName', 'type', 'form', 'year', 'originCountry', 'originRegion', 'classification', 'cultivar', 'producer', 'description', 'processingNotes'] as const;
 const HAN = /\p{Script=Han}/u;
 const DETERMINISTIC_TRANSLATIONS: Record<string, string> = {
   陈年六堡茶: 'Aged Liu Bao Tea',
@@ -743,6 +756,63 @@ function parsePurchaseLine(value: string): ParsedPurchaseLine | null {
 
 const comparable = (value: string | null | undefined) => (value ?? '').normalize('NFKC').replace(/\s+/g, '').toLocaleLowerCase();
 
+type ImportRecordLine = { lineIndex: number; text: string; normalized: string; evidenceRef: string; start: number };
+
+function labeledTeaRecord(sourceId: string, lines: ImportRecordLine[]): ImportRecordHints['items'][number] | null {
+  const facts = new Map<string, { value: string; line: ImportRecordLine; valueStart: number }>();
+  for (const line of lines) {
+    const match = line.text.match(/^([^:]+):\s*(.+)$/u);
+    if (!match) continue;
+    const valueStart = line.start + match[0].indexOf(match[2]);
+    facts.set(match[1].trim().toLocaleLowerCase(), { value: match[2].trim(), line, valueStart });
+  }
+  const name = facts.get('name');
+  const vendor = facts.get('vendor');
+  const format = facts.get('format and weight');
+  const prices = facts.get('current price variants');
+  const description = facts.get('description');
+  const processing = facts.get('processing notes');
+  const excerpt = facts.get('source excerpt');
+  if (!name || !vendor || !format || !prices || !description || !processing || !excerpt) return null;
+
+  const weight = format.value.match(/(\d+(?:\.\d+)?)\s*(g|kg)\s+per\s+(?:cake|pack)\b/iu);
+  const price = prices.value.match(/\b(USD|CNY|EUR|GBP|AUD|IDR|TWD)\s+(\d+(?:\.\d+)?)\s+for\s+one\s+\d+(?:\.\d+)?\s*(?:g|kg)\b/iu);
+  if (!weight || !price) return null;
+  const harvest = facts.get('harvest')?.value.match(/\b(\d{4})\b/u);
+  const origin = facts.get('origin')?.value ?? null;
+  const material = facts.get('plant material')?.value ?? null;
+  const cultivar = material?.match(/^(primitive small-leaf population)\b/iu)?.[1] ?? material;
+  const typeValue = facts.get('type')?.value ?? '';
+  const excerptRef = `${sourceId}:${excerpt.valueStart}-${excerpt.valueStart + excerpt.value.length}`;
+  return {
+    sourceId,
+    sourceItemId: `record:${sourceId}:${name.line.lineIndex}`,
+    evidenceRef: excerptRef,
+    originalName: name.value,
+    englishName: name.value,
+    packWeight: Number(weight[1]),
+    weightUnit: weight[2].toLocaleLowerCase() as ImportWeightUnit,
+    packCount: 1,
+    priceAmount: price[2],
+    currency: price[1].toUpperCase(),
+    priceBasis: 'per_pack',
+    lineTotal: price[2],
+    totalQuantityGrams: weight[2].toLocaleLowerCase() === 'kg' ? Number(weight[1]) * 1000 : Number(weight[1]),
+    arithmeticMatches: true,
+    supplierName: vendor.value,
+    supplierExplicit: true,
+    type: /(?:raw\s+pu-?erh|sheng)/iu.test(typeValue) ? 'Sheng' : null,
+    form: /\bcake\b/iu.test(format.value) ? 'Cake' : null,
+    year: harvest ? Number(harvest[1]) : null,
+    originCountry: origin?.match(/(?:^|,\s*)(China)\s*$/iu)?.[1] ?? null,
+    originRegion: origin?.replace(/,\s*China\s*$/iu, '') ?? null,
+    cultivar,
+    producer: facts.get('producer/brand')?.value ?? null,
+    description: description.value,
+    processingNotes: processing.value,
+  };
+}
+
 export function buildImportRecordHints(evidence: ImportEvidenceForAnalysis): ImportRecordHints {
   const hints: ImportRecordHints = { complete: false, suppliers: [], items: [], ignoredSummaries: [], annotations: [] };
   let unexplainedLines = 0;
@@ -753,8 +823,15 @@ export function buildImportRecordHints(evidence: ImportEvidenceForAnalysis): Imp
       const leading = raw.length - raw.trimStart().length;
       const text = raw.trim();
       const start = (match.index ?? 0) + leading;
-      return { lineIndex, text, normalized: text.normalize('NFKC'), evidenceRef: `${source.id}:${start}-${start + text.length}` };
+      return { lineIndex, text, normalized: text.normalize('NFKC'), evidenceRef: `${source.id}:${start}-${start + text.length}`, start };
     }).filter(line => line.text);
+    const labeledRecord = labeledTeaRecord(source.id, lines);
+    if (labeledRecord) {
+      hints.items.push(labeledRecord);
+      const vendorLine = lines.find(line => /^vendor:/iu.test(line.text));
+      hints.suppliers.push({ sourceId: source.id, name: labeledRecord.supplierName!, evidenceRef: vendorLine?.evidenceRef ?? labeledRecord.evidenceRef, explicit: true });
+      continue;
+    }
     let activeSupplier: string | null = null;
     let activeSupplierExplicit = false;
     let sourceItemCount = 0;
@@ -874,6 +951,11 @@ export function applyImportRecordHints(proposal: ImportAnalysisProposal, hints: 
       )));
     const confidence = { ...translated.confidence };
     const validation = { ...translated.validation };
+    for (const field of OPTIONAL_METADATA_FIELDS) if (hint[field] != null) {
+      confidence[field] = 1;
+      validation[field] = 'source_fact';
+      delete uncertainty[field];
+    }
     if (canonicalIdentity?.name) {
       confidence.translation = 1;
       confidence.identity = 1;
@@ -904,6 +986,7 @@ export function applyImportRecordHints(proposal: ImportAnalysisProposal, hints: 
       duplicateResolution: canonicalIdentity ? 'matched' as const : translated.duplicateResolution,
       proposedCompassEntryId: canonicalIdentity?.id ?? translated.proposedCompassEntryId,
       proposedProductId: canonicalIdentity?.productId ?? translated.proposedProductId,
+      ...Object.fromEntries(OPTIONAL_METADATA_FIELDS.flatMap(field => hint[field] == null ? [] : [[field, hint[field]]])),
     };
   });
   const itemGroups = new Map<string, { sourceId: string; supplier: string | null; supplierExplicit: boolean; items: ImportAnalysisItem[] }>();
@@ -971,7 +1054,10 @@ export function buildImportRecordFallbackProposal(hints: ImportRecordHints): Imp
           : 'No explicit supplier was found in the record.',
       },
       items: entry.items.map(hint => {
-        const englishName = deterministicTranslation(hint.originalName);
+        const englishName = hint.englishName ?? deterministicTranslation(hint.originalName) ?? (/\p{Script=Latin}/u.test(hint.originalName) ? hint.originalName : null);
+        const sourceFacts = Object.fromEntries(OPTIONAL_METADATA_FIELDS.flatMap(field => hint[field] == null ? [] : [[field, hint[field]]]));
+        const sourceFactConfidence = Object.fromEntries(OPTIONAL_METADATA_FIELDS.flatMap(field => hint[field] == null ? [] : [[field, 1]]));
+        const sourceFactValidation = Object.fromEntries(OPTIONAL_METADATA_FIELDS.flatMap(field => hint[field] == null ? [] : [[field, 'source_fact']]));
         return {
           sourceItemId: hint.sourceItemId,
           category: 'tea' as const,
@@ -988,8 +1074,15 @@ export function buildImportRecordFallbackProposal(hints: ImportRecordHints): Imp
             originalName: 1, packWeight: 1, weightUnit: 1, packCount: 1,
             priceAmount: 1, currency: 1, priceBasis: 1, acquired: 1,
             ...(englishName ? { translation: 1 } : {}),
+            ...sourceFactConfidence,
           },
-          validation: { translation: englishName ? 'validated' as const : 'uncertain' as const },
+          validation: {
+            originalName: 'source_fact' as const, englishName: 'source_fact' as const,
+            packWeight: 'source_fact' as const, weightUnit: 'source_fact' as const, packCount: 'source_fact' as const,
+            priceAmount: 'source_fact' as const, currency: 'source_fact' as const, priceBasis: 'source_fact' as const,
+            translation: englishName ? 'validated' as const : 'uncertain' as const,
+            ...sourceFactValidation,
+          },
           uncertainty: {
             ...(englishName ? {} : { englishName: 'Translation provider unavailable; review the original name.' }),
             duplicateResolution: 'Choose whether this is a new or existing Curate identity.',
@@ -997,6 +1090,7 @@ export function buildImportRecordFallbackProposal(hints: ImportRecordHints): Imp
           evidenceRefs: [hint.evidenceRef],
           acquired: true,
           duplicateResolution: 'unresolved' as const,
+          ...sourceFacts,
         };
       }),
     })),
@@ -1025,6 +1119,7 @@ export function buildImportAnalysisPrompt(evidence: ImportEvidenceForAnalysis, c
     'Identify the tea itself, not only the words on the record. Fill type, form, year, originCountry, originRegion, classification, and description for every tea item you can recognise, using both the record and general tea knowledge. A well-known name is enough: "陈年六堡茶 / Aged Liu Bao" is a Dark tea from Guangxi, China.',
     'type must be one of Green, White, Yellow, Oolong, Red, Dark, Sheng, Shou, Herbal. Use Red for Chinese hong cha, and Sheng or Shou rather than a generic puerh label. form must be one of Loose, Cake, Brick, Tuo, Ball, Bag. originCountry is a country name such as China, Taiwan, Japan; originRegion is the growing area such as Guangxi, Yiwu, Alishan.',
     'classification is the production or grade descriptor the trade would use, such as "traditional basket-fermented", "first flush", or "competition grade". description is one or two neutral sentences about what the tea is. Leave either null rather than writing marketing copy.',
+    'processingNotes must preserve factual processing facts separately from description. producer is the factory, house, family, or brand that made the tea, not the vendor that sold it.',
     'cultivar is the tea plant the leaf came from, when the record names it or the tea is only ever made from one, such as Rou Gui, Shui Xian, Tie Guan Yin, Cui Yu, Jin Xuan, Fuding Da Bai, Yabukita. Use the plant name alone, not the finished tea name, and leave it null when more than one plant is plausible.',
     'producer is the factory, house or brand that made the tea, when the record names one: Menghai Tea Factory, Xiaguan, Zhong Cha, Dayi, Tongqinghao, Wuzhou. This is never the supplier the buyer purchased from, which is recorded separately as the vendor. Leave it null when the record only names a seller.',
     'Mark every field you filled from general knowledge rather than the record as "ai_interpretation" in validation, and leave it null when you are not confident. A blank field is better than a wrong one, but a recognisable tea should not come back blank.',

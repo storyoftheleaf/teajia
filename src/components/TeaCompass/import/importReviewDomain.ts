@@ -123,6 +123,8 @@ const FIELD_BLOCKER_ALIASES: Record<string, string[]> = {
   classification: ['classification', 'production'],
   form: ['form'],
   description: ['description'],
+  processingNotes: ['processingnotes'],
+  producer: ['producer'],
   packWeight: ['packweight', 'totalquantitygrams', 'quantity'],
   weightUnit: ['weightunit', 'totalquantitygrams', 'quantity'],
   packCount: ['packcount', 'totalunits', 'quantity'],
@@ -224,7 +226,7 @@ const WORKER_IMPORT_FIELDS = [
   'sourceItemId', 'category', 'originalName', 'englishName', 'packWeight', 'weightUnit', 'packCount',
   'priceAmount', 'currency', 'priceBasis', 'confidence', 'uncertainty', 'evidenceRefs', 'acquired',
   'duplicateResolution', 'proposedCompassEntryId', 'proposedProductId', 'chineseName', 'type', 'form',
-  'year', 'originCountry', 'originRegion', 'classification', 'cultivar', 'description', 'inventoryPurpose',
+  'year', 'originCountry', 'originRegion', 'classification', 'cultivar', 'producer', 'description', 'processingNotes', 'inventoryPurpose',
   'sourceId', 'sourceExcerpt', 'sourceLanguage', 'provenance', 'fieldProvenance', 'disposition',
   'vendorResolution', 'identityResolution', 'holdingResolution',
 ] as const;
@@ -236,7 +238,7 @@ export const withoutImportDerivedFields = (parsed: Record<string, unknown>) => O
 export interface ImportCorrectionDraft {
   englishName: string | null; originalName: string | null; chineseName?: string | null; type: string | null; classification: string | null;
   year: number | null; form: string | null; originCountry?: string | null; originRegion: string | null; description: string | null;
-  cultivar?: string | null;
+  cultivar?: string | null; producer?: string | null; processingNotes?: string | null;
   inventoryPurpose: CurateImportInventoryPurpose | null; compassSelection: string | null; productSelection: string | null; acquired: boolean;
   disposition: CurateImportDisposition;
   packWeight: number | null; weightUnit: CurateImportItem['weight_unit']; packCount: number | null; priceAmount: string | null;
@@ -304,7 +306,8 @@ export const buildImportCorrectionParsedData = (parsed: Record<string, unknown>,
     ...withoutImportDerivedFields(parsed),
     englishName: draft.englishName, originalName: draft.originalName, chineseName, type: draft.type,
     classification: draft.classification, cultivar: draft.cultivar ?? null, year: draft.year, form: draft.form, originCountry: draft.originCountry ?? null, originRegion: draft.originRegion,
-    description: draft.description, inventoryPurpose: draft.disposition === 'library_only' ? null : draft.inventoryPurpose,
+    description: draft.description, producer: draft.producer ?? null, processingNotes: draft.processingNotes ?? null,
+    inventoryPurpose: draft.disposition === 'library_only' ? null : draft.inventoryPurpose,
     proposedCompassEntryId, proposedProductId, identityResolution, holdingResolution,
     disposition: draft.disposition, acquired: draft.disposition === 'received',
     duplicateResolution: identityTouched ? (createsIdentity ? 'new' : proposedCompassEntryId ? 'matched' : 'unresolved') : existingDuplicateResolution,

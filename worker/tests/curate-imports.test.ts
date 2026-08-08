@@ -347,6 +347,23 @@ function itemProposal(sourceItemId: string, evidenceRef = 'source') {
   };
 }
 
+const yiBangLabeledPaste = [
+  'Source URL: https://yunnansourcing.com/products/2025-yunnan-sourcing-yi-bang-wild-arbor-raw-pu-erh-tea-cake',
+  'Name: 2025 Yunnan Sourcing "Yi Bang" Wild Arbor Raw Pu-erh Tea Cake',
+  'Category: tea',
+  'Type: raw pu-erh (sheng)',
+  'Harvest: April 2025, first flush',
+  'Origin: Yi Bang village, northern Yiwu, Mengla County, Xishuangbanna, Yunnan, China',
+  'Plant material: primitive small-leaf population from wild-arbor trees roughly 60-80 years old',
+  'Producer/brand: Yunnan Sourcing Brand Pu-erh',
+  'Vendor: Yunnan Sourcing',
+  'Format and weight: stone-pressed cake, 250 g per cake',
+  'Current price variants: USD 76.00 for one 250 g cake; USD 10.30 for a 25 g sample',
+  "Description: Full-mouthed and pungently aromatic with the elegant power of Yi Bang's primitive small-leaf population. Bright orchard fruit, wildflower honey, fresh bamboo and citrus peel; clear yellow-gold liquor with a thick, viscous body; lively fruit over gentle grain and cane sweetness, measured young bitterness, long hui-gan and steady shengjin.",
+  'Processing notes: Hand-picked; hand-fixed in a copper wok; sun-withered; hand-rolled; sun-dried; stone-pressed in Yiwu with 40 kg stone presses; finished with a low-temperature bake at approximately 35 C; held several weeks after pressing so residual moisture could dissipate.',
+  "Source excerpt: From Yi Bang village in northern Yiwu, made entirely from wild-arbor trees roughly 60-80 years old. The Li family's matriarch hand-fixed the leaf in a copper wok, and picking and processing ran over a week at peak spring. Pressed into 250 g cakes in Yiwu using 40 kg stone presses, then finished with a low-temperature approximately 35 C bake.",
+].join('\n');
+
 function storedZip(entries: Array<[name: string, content: string]>) {
   const encoder = new TextEncoder();
   const locals: Uint8Array[] = [];
@@ -815,6 +832,91 @@ describe('Curate import provenance API', () => {
       expect.objectContaining({ provider: 'groq', modality: 'text', outcome: 'failed' }),
       expect.objectContaining({ provider: 'deterministic', outcome: 'succeeded' }),
     ]));
+  });
+
+  it('analyzes the exact Yi Bang labeled paste without configured providers', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', {
+      method: 'POST', body: JSON.stringify({ title: 'Yi Bang public record', pasted_text: yiBangLabeledPaste }),
+    });
+    const { batch, sources } = await created.json() as any;
+
+    const analyzed = await request(
+      db,
+      `/api/curate/imports/${batch.id}/analyze`,
+      { method: 'POST' },
+      'account-a',
+      'user-a',
+      undefined,
+      { ANTHROPIC_API_KEY: undefined, GROQ_API_KEY: undefined },
+    );
+    const body = await analyzed.json() as any;
+
+    expect(analyzed.status).toBe(200);
+    expect(body.batch).toMatchObject({ analysis_state: 'complete', analysis_model: 'record-parser-v1' });
+    expect(body.groups).toEqual([expect.objectContaining({ proposed_vendor_name: 'Yunnan Sourcing' })]);
+    expect(body.items).toEqual([expect.objectContaining({
+      name: '2025 Yunnan Sourcing "Yi Bang" Wild Arbor Raw Pu-erh Tea Cake',
+      parsed_data: expect.objectContaining({
+        sourceId: sources[0].id,
+        category: 'tea',
+        type: 'Sheng',
+        year: 2025,
+        originCountry: 'China',
+        originRegion: 'Yi Bang village, northern Yiwu, Mengla County, Xishuangbanna, Yunnan',
+        cultivar: 'primitive small-leaf population',
+        producer: 'Yunnan Sourcing Brand Pu-erh',
+        packWeight: 250,
+        weightUnit: 'g',
+        packCount: 1,
+        priceAmountExact: '76',
+        currency: 'USD',
+        priceBasis: 'per_pack',
+        description: expect.stringContaining('Full-mouthed and pungently aromatic'),
+        processingNotes: expect.stringContaining('hand-fixed in a copper wok'),
+        sourceExcerpt: expect.stringContaining('From Yi Bang village in northern Yiwu'),
+      }),
+    })]);
+    const parsed = body.items[0].parsed_data;
+    const reviewed = buildImportCorrectionParsedData(parsed, {
+      englishName: parsed.englishName, originalName: parsed.originalName, type: parsed.type, classification: parsed.classification,
+      year: parsed.year, form: parsed.form, originCountry: parsed.originCountry, originRegion: parsed.originRegion,
+      cultivar: parsed.cultivar, producer: parsed.producer, description: parsed.description, processingNotes: parsed.processingNotes,
+      inventoryPurpose: 'working', compassSelection: 'new', productSelection: 'new', acquired: true, disposition: 'received',
+      packWeight: parsed.packWeight, weightUnit: parsed.weightUnit, packCount: parsed.packCount,
+      priceAmount: parsed.priceAmountExact, currency: parsed.currency, priceBasis: parsed.priceBasis,
+    });
+    const saved = await request(db, `/api/curate/imports/${batch.id}/items/${body.items[0].id}`, {
+      method: 'PUT', body: JSON.stringify({ parsed_data: reviewed }),
+    });
+    expect(saved.status).toBe(200);
+    expect((await saved.json() as any).parsed_data).toMatchObject({
+      producer: 'Yunnan Sourcing Brand Pu-erh',
+      description: expect.stringContaining('Full-mouthed and pungently aromatic'),
+      processingNotes: expect.stringContaining('hand-fixed in a copper wok'),
+      sourceExcerpt: expect.stringContaining('From Yi Bang village in northern Yiwu'),
+    });
+  });
+
+  it('keeps unrelated providerless input behind the existing configuration guard', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', {
+      method: 'POST', body: JSON.stringify({ title: 'Unstructured record', pasted_text: 'A tea note without purchase facts' }),
+    });
+    const { batch } = await created.json() as any;
+
+    const analyzed = await request(
+      db,
+      `/api/curate/imports/${batch.id}/analyze`,
+      { method: 'POST' },
+      'account-a',
+      'user-a',
+      undefined,
+      { ANTHROPIC_API_KEY: undefined, GROQ_API_KEY: undefined },
+    );
+
+    expect(analyzed.status).toBe(503);
+    expect(await analyzed.json()).toEqual({ error: 'Import analysis is not configured' });
   });
 
   it('marks partially parsed deterministic recovery as failed and reviewable instead of dropping source text', async () => {

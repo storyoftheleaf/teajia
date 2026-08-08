@@ -65,6 +65,7 @@ describe('canonical Curate import record', () => {
       originCountry: 'China',
       originRegion: 'Guangxi',
       description: 'Aged Liu Bao tea listed by the supplier.',
+      processingNotes: null,
       currency: 'CNY',
       weightUnit: 'g',
       packWeight: 500,
@@ -133,6 +134,25 @@ describe('canonical Curate import record', () => {
       vendor_id: 'vendor-a',
       vendor: 'Huang Wei',
       inventory_purpose: 'working',
+    });
+  });
+
+  it('preserves Yi Bang processing notes across canonical destination mappings', () => {
+    const record = normalizeCanonicalImportRecord({
+      englishName: '2025 Yi Bang Wild Arbor Raw Pu-erh Tea Cake',
+      producer: 'Yunnan Sourcing',
+      description: 'A spring 2025 raw pu-erh cake from Yi Bang made from a primitive small-leaf population.',
+      processingNotes: 'Hand wok fixed, stone pressed, and dried at low temperature.',
+    });
+
+    expect(record).toMatchObject({
+      processingNotes: 'Hand wok fixed, stone pressed, and dried at low temperature.',
+    });
+    expect(canonicalImportToCompassValues(record)).toMatchObject({
+      notes: 'Hand wok fixed, stone pressed, and dried at low temperature.',
+    });
+    expect(canonicalImportToProductValues(record)).toMatchObject({
+      processing_notes: 'Hand wok fixed, stone pressed, and dried at low temperature.',
     });
   });
 
