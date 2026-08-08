@@ -873,6 +873,15 @@ describe('Curate import provenance API', () => {
         currency: 'USD',
         priceBasis: 'per_pack',
         description: expect.stringContaining('Full-mouthed and pungently aromatic'),
+        tasting: {
+          body: ['full'],
+          finish: ['finish-long', 'hui-gan', 'salivating'],
+          flavor: ['floral', 'honey', 'fruity', 'citrus', 'fresh', 'sweet', 'bitter'],
+          'liquor-color': ['gold'],
+          clarity: 'clear',
+          huiGan: true,
+        },
+        tastingSource: 'common',
         processingNotes: expect.stringContaining('hand-fixed in a copper wok'),
         sourceExcerpt: expect.stringContaining('From Yi Bang village in northern Yiwu'),
       }),
@@ -893,6 +902,8 @@ describe('Curate import provenance API', () => {
     expect((await saved.json() as any).parsed_data).toMatchObject({
       producer: 'Yunnan Sourcing Brand Pu-erh',
       description: expect.stringContaining('Full-mouthed and pungently aromatic'),
+      tasting: parsed.tasting,
+      tastingSource: 'common',
       processingNotes: expect.stringContaining('hand-fixed in a copper wok'),
       sourceExcerpt: expect.stringContaining('From Yi Bang village in northern Yiwu'),
     });

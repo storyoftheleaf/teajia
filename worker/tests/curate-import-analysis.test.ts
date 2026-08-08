@@ -251,6 +251,17 @@ describe('Curate import analysis domain', () => {
     )).toMatch(/processingNotes.*processing facts/i);
   });
 
+  it('rejects unknown and cross-category provider tasting terms', () => {
+    expect(() => decodeImportAnalysisProposal(proposal({
+      tasting: { body: ['honey'] },
+      tastingSource: 'common',
+    } as never))).toThrow(/Invalid tasting\.body term: honey/);
+    expect(() => decodeImportAnalysisProposal(proposal({
+      tasting: { flavor: ['vendor-invented'] },
+      tastingSource: 'common',
+    } as never))).toThrow(/Invalid tasting\.flavor term: vendor-invented/);
+  });
+
   it('recognizes supplier, purchased tea lines, totals, and acquired grams in a pasted vendor record', () => {
     const evidence = { sources: [{
       id: 'source-huang', kind: 'paste',

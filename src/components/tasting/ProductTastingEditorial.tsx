@@ -37,14 +37,14 @@ interface ProductTastingEditorialProps {
 /**
  * Where the tasting came from, in a sentence rather than in capitals.
  *
- * These were micro-caps labels until one of them ("Common to this style") ran
+ * These were micro-caps labels until one of them ("Potential profile") ran
  * to four words, which is a sentence wearing a label's clothes. They are
  * attributions, so they are set as attributions.
  */
 const SOURCE_LINE: Record<SensorySource, string> = {
   owner: 'Tasted by Adrian',
   community: 'From the community',
-  common: 'Common to this style',
+  common: 'Potential profile',
   record: 'Written on the record, not yet tasted',
 };
 

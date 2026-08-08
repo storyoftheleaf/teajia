@@ -98,6 +98,7 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
         }));
 
   const starred = starredNotes(tasting);
+  const hasVisibleStructuredTerms = flavorTerms.length > 0 || feelingTerms.length > 0;
   const hasTerms = tasteTerms.length > 0 || feelingTerms.length > 0;
   const hasAny = hasTerms || starred.length > 0;
 
@@ -126,6 +127,9 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
           )}
           {feelingTerms.length > 0 && (
             <TermLine label="Feel" terms={feelingTerms} onTermClick={onTermClick} />
+          )}
+          {item.tastingSource === 'common' && hasVisibleStructuredTerms && (
+            <p className="mt-2 font-sans text-ui-11 text-tea-text-dim">Potential profile</p>
           )}
         </div>
       )}

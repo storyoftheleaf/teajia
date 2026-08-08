@@ -30,6 +30,7 @@ export interface CurateImportCanonicalRecord {
   englishName?: string | null; originalName?: string | null; chineseName?: string | null; category?: 'tea' | 'teaware';
   type?: string | null; classification?: string | null; cultivar?: string | null; producer?: string | null; form?: string | null; year?: number | null;
   originCountry?: string | null; originRegion?: string | null; description?: string | null; processingNotes?: string | null;
+  tasting?: TastingData | null; tastingSource?: 'common' | null;
   packWeight?: number | null; weightUnit?: 'g' | 'kg' | 'count' | null; packCount?: number | null;
   priceAmount?: number | string | null; priceAmountExact?: string | null; currency?: string | null;
   priceBasis?: 'per_pack' | 'line_total' | 'unknown'; lineCost?: number | null; lineCostExact?: string | null;

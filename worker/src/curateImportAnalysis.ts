@@ -1,3 +1,6 @@
+import type { TastingData } from '../../src/types';
+import { normalizeImportTasting } from './curateImportTasting';
+
 export type ImportPriceBasis = 'per_pack' | 'line_total' | 'unknown';
 export type ImportWeightUnit = 'g' | 'kg' | 'count';
 export type ImportCategory = 'tea' | 'teaware';
@@ -118,6 +121,8 @@ export interface ImportRecordHints {
     producer?: string | null;
     description?: string | null;
     processingNotes?: string | null;
+    tasting?: TastingData | null;
+    tastingSource?: 'common' | null;
   }>;
   ignoredSummaries: Array<{ sourceId: string; text: string; evidenceRef: string }>;
   annotations: Array<{
@@ -150,6 +155,23 @@ const validationSchema = {
   required: [...CONFIDENCE_FIELDS],
   additionalProperties: false,
 };
+const tastingSchema = nullable({
+  type: 'object',
+  properties: {
+    body: nullable({ type: 'array', items: { type: 'string' } }),
+    finish: nullable({ type: 'array', items: { type: 'string' } }),
+    feeling: nullable({ type: 'array', items: { type: 'string' } }),
+    flavor: nullable({ type: 'array', items: { type: 'string' } }),
+    'liquor-color': nullable({ type: 'array', items: { type: 'string' } }),
+    clarity: nullable({ type: 'string', enum: ['clear', 'hazy', 'cloudy'] }),
+    huiGan: nullable({ type: 'boolean' }),
+    yun: nullable({ type: 'boolean' }),
+    qi: nullable({ type: 'boolean' }),
+    tangGan: nullable({ type: 'boolean' }),
+  },
+  required: ['body', 'finish', 'feeling', 'flavor', 'liquor-color', 'clarity', 'huiGan', 'yun', 'qi', 'tangGan'],
+  additionalProperties: false,
+});
 const itemUncertaintySchema = {
   type: 'object',
   properties: Object.fromEntries(CONFIDENCE_FIELDS.map(field => [field, nullable({ type: 'string' })])),
@@ -226,9 +248,11 @@ export const IMPORT_ANALYSIS_OUTPUT_SCHEMA = {
                 producer: nullable({ type: 'string' }),
                 description: nullable({ type: 'string' }),
                 processingNotes: nullable({ type: 'string' }),
+                tasting: tastingSchema,
+                tastingSource: nullable({ type: 'string', enum: ['common'] }),
                 inventoryPurpose: nullable({ type: 'string' }),
               },
-              required: ['sourceItemId', 'category', 'originalName', 'englishName', 'packWeight', 'weightUnit', 'packCount', 'priceAmount', 'currency', 'priceBasis', 'confidence', 'validation', 'uncertainty', 'evidenceRefs', 'acquired', 'duplicateResolution', 'proposedCompassEntryId', 'proposedProductId', 'chineseName', 'type', 'form', 'year', 'originCountry', 'originRegion', 'classification', 'cultivar', 'producer', 'description', 'processingNotes', 'inventoryPurpose'],
+              required: ['sourceItemId', 'category', 'originalName', 'englishName', 'packWeight', 'weightUnit', 'packCount', 'priceAmount', 'currency', 'priceBasis', 'confidence', 'validation', 'uncertainty', 'evidenceRefs', 'acquired', 'duplicateResolution', 'proposedCompassEntryId', 'proposedProductId', 'chineseName', 'type', 'form', 'year', 'originCountry', 'originRegion', 'classification', 'cultivar', 'producer', 'description', 'processingNotes', 'tasting', 'tastingSource', 'inventoryPurpose'],
               additionalProperties: false,
             },
           },
@@ -242,7 +266,7 @@ export const IMPORT_ANALYSIS_OUTPUT_SCHEMA = {
   additionalProperties: false,
 } as const;
 
-const IMPORT_ITEM_INPUT_FIELDS = ['sourceItemId', 'category', 'originalName', 'englishName', 'packWeight', 'weightUnit', 'packCount', 'priceAmount', 'currency', 'priceBasis', 'confidence', 'validation', 'uncertainty', 'evidenceRefs', 'acquired', 'duplicateResolution', 'proposedCompassEntryId', 'proposedProductId', 'chineseName', 'type', 'form', 'year', 'originCountry', 'originRegion', 'classification', 'cultivar', 'producer', 'description', 'processingNotes', 'inventoryPurpose'] as const;
+const IMPORT_ITEM_INPUT_FIELDS = ['sourceItemId', 'category', 'originalName', 'englishName', 'packWeight', 'weightUnit', 'packCount', 'priceAmount', 'currency', 'priceBasis', 'confidence', 'validation', 'uncertainty', 'evidenceRefs', 'acquired', 'duplicateResolution', 'proposedCompassEntryId', 'proposedProductId', 'chineseName', 'type', 'form', 'year', 'originCountry', 'originRegion', 'classification', 'cultivar', 'producer', 'description', 'processingNotes', 'tasting', 'tastingSource', 'inventoryPurpose'] as const;
 const IMPORT_ITEM_DERIVED_FIELDS = ['totalQuantityGrams', 'totalUnits', 'priceAmountExact', 'lineCost', 'lineCostExact', 'unitCost', 'unitCostExact', 'blockingFields'] as const;
 
 function record(value: unknown, field: string): Record<string, unknown> {
@@ -349,7 +373,9 @@ function decodeItem(value: unknown, groupIndex: number, itemIndex: number): Impo
     type: optionalText(input.type, 'type', 200), form: optionalText(input.form, 'form', 200),
     year: optionalYear(input.year), originCountry: optionalText(input.originCountry, 'originCountry', 200),
     originRegion: optionalText(input.originRegion, 'originRegion', 500), classification: optionalText(input.classification, 'classification', 500), cultivar: optionalText(input.cultivar, 'cultivar', 200), producer: optionalText(input.producer, 'producer', 200),
-    description: optionalText(input.description, 'description', 5000), processingNotes: optionalText(input.processingNotes, 'processingNotes', 5000), inventoryPurpose: optionalText(input.inventoryPurpose, 'inventoryPurpose', 100),
+    description: optionalText(input.description, 'description', 5000), processingNotes: optionalText(input.processingNotes, 'processingNotes', 5000),
+    tasting: normalizeImportTasting(input.tasting), tastingSource: input.tastingSource === 'common' ? 'common' : null,
+    inventoryPurpose: optionalText(input.inventoryPurpose, 'inventoryPurpose', 100),
     sourceItemId: string(input.sourceItemId, 'sourceItemId')!, category,
     originalName: string(input.originalName, 'originalName', true), englishName: string(input.englishName, 'englishName', true),
     packWeight: finiteNonNegative(input.packWeight, 'packWeight'), weightUnit,
@@ -758,6 +784,31 @@ const comparable = (value: string | null | undefined) => (value ?? '').normalize
 
 type ImportRecordLine = { lineIndex: number; text: string; normalized: string; evidenceRef: string; start: number };
 
+function tastingFromLabeledDescription(value: string): TastingData | null {
+  const tasting: TastingData = {};
+  const flavor = [
+    [/\bwildflowers?\b|\bfloral\b/iu, 'floral'],
+    [/\bhoney\b/iu, 'honey'],
+    [/\b(?:orchard\s+)?fruit\b/iu, 'fruity'],
+    [/\bcitrus\b/iu, 'citrus'],
+    [/\bfresh\b/iu, 'fresh'],
+    [/\bsweetness\b|\bsweet\b/iu, 'sweet'],
+    [/\bbitterness\b|\bbitter\b/iu, 'bitter'],
+  ].flatMap(([pattern, term]) => (pattern as RegExp).test(value) ? [term as string] : []);
+  if (flavor.length) tasting.flavor = flavor;
+  if (/\bfull-mouthed\b|\bthick,?\s+viscous\s+body\b/iu.test(value)) tasting.body = ['full'];
+  const finish = [
+    [/\blong\s+(?:hui-gan|finish|aftertaste)\b/iu, 'finish-long'],
+    [/\bhui-gan\b/iu, 'hui-gan'],
+    [/\bshengjin\b/iu, 'salivating'],
+  ].flatMap(([pattern, term]) => (pattern as RegExp).test(value) ? [term as string] : []);
+  if (finish.length) tasting.finish = finish;
+  if (/\byellow-gold\b|\bgold(?:en)?\s+liquor\b/iu.test(value)) tasting['liquor-color'] = ['gold'];
+  if (/\bclear\b[^.;]*\bliquor\b/iu.test(value)) tasting.clarity = 'clear';
+  if (/\bhui-gan\b/iu.test(value)) tasting.huiGan = true;
+  return Object.keys(tasting).length ? tasting : null;
+}
+
 function labeledTeaRecord(sourceId: string, lines: ImportRecordLine[]): ImportRecordHints['items'][number] | null {
   const facts = new Map<string, { value: string; line: ImportRecordLine; valueStart: number }>();
   for (const line of lines) {
@@ -784,6 +835,7 @@ function labeledTeaRecord(sourceId: string, lines: ImportRecordLine[]): ImportRe
   const cultivar = material?.match(/^(primitive small-leaf population)\b/iu)?.[1] ?? material;
   const typeValue = facts.get('type')?.value ?? '';
   const excerptRef = `${sourceId}:${excerpt.valueStart}-${excerpt.valueStart + excerpt.value.length}`;
+  const tasting = tastingFromLabeledDescription(description.value);
   return {
     sourceId,
     sourceItemId: `record:${sourceId}:${name.line.lineIndex}`,
@@ -810,6 +862,8 @@ function labeledTeaRecord(sourceId: string, lines: ImportRecordLine[]): ImportRe
     producer: facts.get('producer/brand')?.value ?? null,
     description: description.value,
     processingNotes: processing.value,
+    tasting,
+    tastingSource: tasting ? 'common' : null,
   };
 }
 
@@ -987,6 +1041,7 @@ export function applyImportRecordHints(proposal: ImportAnalysisProposal, hints: 
       proposedCompassEntryId: canonicalIdentity?.id ?? translated.proposedCompassEntryId,
       proposedProductId: canonicalIdentity?.productId ?? translated.proposedProductId,
       ...Object.fromEntries(OPTIONAL_METADATA_FIELDS.flatMap(field => hint[field] == null ? [] : [[field, hint[field]]])),
+      ...(hint.tasting ? { tasting: hint.tasting, tastingSource: 'common' as const } : {}),
     };
   });
   const itemGroups = new Map<string, { sourceId: string; supplier: string | null; supplierExplicit: boolean; items: ImportAnalysisItem[] }>();
@@ -1091,6 +1146,7 @@ export function buildImportRecordFallbackProposal(hints: ImportRecordHints): Imp
           acquired: true,
           duplicateResolution: 'unresolved' as const,
           ...sourceFacts,
+          ...(hint.tasting ? { tasting: hint.tasting, tastingSource: 'common' as const } : {}),
         };
       }),
     })),
@@ -1119,7 +1175,7 @@ export function buildImportAnalysisPrompt(evidence: ImportEvidenceForAnalysis, c
     'Identify the tea itself, not only the words on the record. Fill type, form, year, originCountry, originRegion, classification, and description for every tea item you can recognise, using both the record and general tea knowledge. A well-known name is enough: "陈年六堡茶 / Aged Liu Bao" is a Dark tea from Guangxi, China.',
     'type must be one of Green, White, Yellow, Oolong, Red, Dark, Sheng, Shou, Herbal. Use Red for Chinese hong cha, and Sheng or Shou rather than a generic puerh label. form must be one of Loose, Cake, Brick, Tuo, Ball, Bag. originCountry is a country name such as China, Taiwan, Japan; originRegion is the growing area such as Guangxi, Yiwu, Alishan.',
     'classification is the production or grade descriptor the trade would use, such as "traditional basket-fermented", "first flush", or "competition grade". description is one or two neutral sentences about what the tea is. Leave either null rather than writing marketing copy.',
-    'processingNotes must preserve factual processing facts separately from description. producer is the factory, house, family, or brand that made the tea, not the vendor that sold it.',
+    'processingNotes preserves processing facts. Route explicit sensory terms to existing tasting taxonomy IDs with tastingSource "common", never "owner".',
     'cultivar is the tea plant the leaf came from, when the record names it or the tea is only ever made from one, such as Rou Gui, Shui Xian, Tie Guan Yin, Cui Yu, Jin Xuan, Fuding Da Bai, Yabukita. Use the plant name alone, not the finished tea name, and leave it null when more than one plant is plausible.',
     'producer is the factory, house or brand that made the tea, when the record names one: Menghai Tea Factory, Xiaguan, Zhong Cha, Dayi, Tongqinghao, Wuzhou. This is never the supplier the buyer purchased from, which is recorded separately as the vendor. Leave it null when the record only names a seller.',
     'Mark every field you filled from general knowledge rather than the record as "ai_interpretation" in validation, and leave it null when you are not confident. A blank field is better than a wrong one, but a recognisable tea should not come back blank.',
