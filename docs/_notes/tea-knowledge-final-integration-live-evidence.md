@@ -38,3 +38,20 @@ Verified fields:
 The browser check passed at 1440 by 900 and 390 by 844. Both widths had zero horizontal overflow and zero browser console entries. The derived Chinese name `乔木` was marked From base and is broader than the pasted plant wording; it was left untouched because it is not part of this bounded extraction repair.
 
 The replacement draft was abandoned with Delete import after verification. The replacement import card disappeared, while the unrelated pre-existing 0/3 reviewed import remained. No product, inventory holding, receipt, vendor or sourcing run was created.
+
+## Sensory-field alignment rehearsal after deployment
+
+The production Worker and frontend were deployed again after the follow-up field-model review. The same exact 1,620-character Yi Bang paste was analyzed without edits. The live review again preserved the complete source description, processing notes and source excerpt, together with the producer, Sheng type, 2025 year, origin, plant wording, one 250 g cake and USD 76 per-pack price.
+
+The deterministic parser routes the vendor's sensory claims into the existing product tasting structure as an unconfirmed `common` profile:
+
+- Body: `full`
+- Finish: `finish-long`, `hui-gan`, `salivating`
+- Flavor: `floral`, `honey`, `fruity`, `citrus`, `fresh`, `sweet`, `bitter`
+- Liquor color: `gold`
+- Clarity: `clear`
+- Hui gan: true
+
+The exact-record regression verifies that the future product payload uses a neutral identity description, keeps processing notes separate, serializes this tasting profile into the existing `tasting` field and sets `tasting_source` to `common`. The importer cannot assign `owner` or `community`. The source description and excerpt remain unchanged on the audit record. No unsupported feeling or tang gan terms are inferred.
+
+The visible live review passed at 1440 by 900 and 390 by 844 with zero horizontal overflow and zero browser console entries. The live draft was then abandoned with Delete import. The card disappeared. No review fields were saved, no import was finalized, and no product, inventory holding, receipt, vendor or sourcing run was created.
