@@ -1,5 +1,28 @@
 # Handoff: wire the tea knowledge into everything else
 
+## 2026-08-08 audit deltas
+
+This handoff is historical. Steps 1 and 2 landed in PR #284 and are live. Migration 122
+is applied to `teajia-db`, the public product API carries `cultivar`, and the wisdom band
+renders on the quiet-card product page when a product has a cultivar recorded. There is
+no `producer` product column: producer is resolved from the shared record rather than
+stored on each product.
+
+The Tea domain is no longer empty. It contains Adrian's Tea stance and several captured
+claims. More importantly, the knowledge-system trust boundary changed: agents must
+propose through `capture`, and must never call `knowledge_assimilate` directly. The
+AssimilationBanner remains Adrian's human review gate.
+
+Step 3 is now specified as a deterministic, manual, hash-based proposal sync in
+`docs/_notes/tea-knowledge-final-integration.md`. It includes only substantive reference
+records and Adrian-authored tea write-ups, uses capped review batches, and preserves the
+source class and drafted/review status as provenance. Vocabulary, thin variety rows,
+standalone region facts and teaware are excluded.
+
+The importer uncertainty is narrowed to a reversible live draft rehearsal against a
+real public vendor record. It must be abandoned after field verification, without
+finalizing inventory. Cloudflare/Infisical credential work is explicitly out of scope.
+
 Adrian approved all three steps, in this order. Start a fresh session for it.
 
 ## Why this exists
