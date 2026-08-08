@@ -13,3 +13,28 @@ The untouched live result did not reach review. `Start import` saved the draft, 
 Static inspection recorded before any implementation found a separate contract defect: `description` is represented end to end, but Curate import analysis has no `processingNotes` field in its output schema, decoder, canonical record, destination mapping, or review UI. The review row also withholds the stored source excerpt and field provenance, and producer is not visible for review. These gaps prevent the required untouched field verification even if the deployed analyzer succeeds.
 
 No sourcing run or vendor was created. No finalization action was used. The failed draft was explicitly abandoned with Delete import before implementation began.
+
+## Replacement rehearsal after deployment
+
+The deployed Worker analyzed the same untouched paste with the deterministic record parser. The persisted replacement draft was reopened after the production frontend reloaded, then inspected without editing or saving the tea.
+
+Verified fields:
+
+- Name: `2025 Yunnan Sourcing "Yi Bang" Wild Arbor Raw Pu-erh Tea Cake`
+- Category: tea
+- Type: Sheng
+- Year: 2025
+- Origin country: China
+- Origin region: `Yi Bang village, northern Yiwu, Mengla County, Xishuangbanna, Yunnan`
+- Cultivar or plant wording: `primitive small-leaf population`
+- Producer: `Yunnan Sourcing Brand Pu-erh`
+- Vendor: `Yunnan Sourcing`, shown as the suggested vendor and not created
+- Form and purchase: one 250 g cake at USD 76 per pack, not the 25 g sample
+- Description: `Full-mouthed and pungently aromatic with the elegant power of Yi Bang's primitive small-leaf population. Bright orchard fruit, wildflower honey, fresh bamboo and citrus peel; clear yellow-gold liquor with a thick, viscous body; lively fruit over gentle grain and cane sweetness, measured young bitterness, long hui-gan and steady shengjin.`
+- Processing notes: `Hand-picked; hand-fixed in a copper wok; sun-withered; hand-rolled; sun-dried; stone-pressed in Yiwu with 40 kg stone presses; finished with a low-temperature bake at approximately 35 C; held several weeks after pressing so residual moisture could dissipate.`
+- Source excerpt: `From Yi Bang village in northern Yiwu, made entirely from wild-arbor trees roughly 60-80 years old. The Li family's matriarch hand-fixed the leaf in a copper wok, and picking and processing ran over a week at peak spring. Pressed into 250 g cakes in Yiwu using 40 kg stone presses, then finished with a low-temperature approximately 35 C bake.`
+- Field provenance: Source fact was visible for the name, type, year, origin region, cultivar wording, producer, description and processing notes.
+
+The browser check passed at 1440 by 900 and 390 by 844. Both widths had zero horizontal overflow and zero browser console entries. The derived Chinese name `乔木` was marked From base and is broader than the pasted plant wording; it was left untouched because it is not part of this bounded extraction repair.
+
+The replacement draft was abandoned with Delete import after verification. The replacement import card disappeared, while the unrelated pre-existing 0/3 reviewed import remained. No product, inventory holding, receipt, vendor or sourcing run was created.
