@@ -2655,16 +2655,20 @@ export const api = {
   },
 
   wisdomVerifications: {
-    get: (entryKind: WisdomEntryKind, entryId: string): Promise<WisdomVerificationReceipt | null> =>
-      authedFetch(`${API_URL}/api/wisdom/verifications/${encodeURIComponent(entryKind)}/${encodeURIComponent(entryId)}`),
-    put: (entryKind: WisdomEntryKind, entryId: string, contentHash: string): Promise<WisdomVerificationReceipt> =>
+    get: (accountId: string, entryKind: WisdomEntryKind, entryId: string): Promise<WisdomVerificationReceipt | null> =>
+      authedFetch(`${API_URL}/api/wisdom/verifications/${encodeURIComponent(entryKind)}/${encodeURIComponent(entryId)}`, {
+        headers: { 'X-Teajia-Account': accountId },
+      }),
+    put: (accountId: string, entryKind: WisdomEntryKind, entryId: string, contentHash: string): Promise<WisdomVerificationReceipt> =>
       authedFetch(`${API_URL}/api/wisdom/verifications/${encodeURIComponent(entryKind)}/${encodeURIComponent(entryId)}`, {
         method: 'PUT',
+        headers: { 'X-Teajia-Account': accountId },
         body: JSON.stringify({ content_hash: contentHash }),
       }),
-    delete: (entryKind: WisdomEntryKind, entryId: string): Promise<WisdomVerificationReceipt | null> =>
+    delete: (accountId: string, entryKind: WisdomEntryKind, entryId: string): Promise<WisdomVerificationReceipt | null> =>
       authedFetch(`${API_URL}/api/wisdom/verifications/${encodeURIComponent(entryKind)}/${encodeURIComponent(entryId)}`, {
         method: 'DELETE',
+        headers: { 'X-Teajia-Account': accountId },
       }),
   },
 

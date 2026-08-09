@@ -89,16 +89,17 @@ describe('WisdomVerificationControl receipt states', () => {
       put: vi.fn().mockResolvedValue({ entry_kind: 'cultivar', entry_id: 'rou-gui', content_hash: '', verified_at: 'now' }),
       delete: vi.fn(),
     };
-    const loaded = await loadWisdomVerification(input, client);
-    await saveWisdomVerification(input, client);
-    expect(client.get).toHaveBeenCalledWith('cultivar', 'rou-gui');
-    expect(client.put).toHaveBeenCalledWith('cultivar', 'rou-gui', loaded.currentHash);
+    setAccess('platform_owner', 'account-a');
+    const loaded = await loadWisdomVerification('account-a', input, client);
+    await saveWisdomVerification('account-a', input, client);
+    expect(client.get).toHaveBeenCalledWith('account-a', 'cultivar', 'rou-gui');
+    expect(client.put).toHaveBeenCalledWith('account-a', 'cultivar', 'rou-gui', loaded.currentHash);
 
-    const changedCitation = await loadWisdomVerification({
+    const changedCitation = await loadWisdomVerification('account-a', {
       ...input,
       citations: [...input.citations, { ...input.citations[0], id: 'citation-2' }],
     }, client);
-    const changedProfile = await loadWisdomVerification({
+    const changedProfile = await loadWisdomVerification('account-a', {
       ...input,
       potentialProfile: { ...input.potentialProfile!, tasting: { flavor: ['orchid'] } },
     }, client);
@@ -112,10 +113,11 @@ describe('WisdomVerificationControl receipt states', () => {
       put: vi.fn().mockResolvedValue({ entry_kind: 'cultivar', entry_id: 'rou-gui', content_hash: 'a'.repeat(64), verified_at: 'now' }),
       delete: vi.fn().mockResolvedValue(null),
     };
-    await saveWisdomVerification(input, client);
-    await undoWisdomVerification(input, client);
+    setAccess('platform_owner', 'account-a');
+    await saveWisdomVerification('account-a', input, client);
+    await undoWisdomVerification('account-a', input, client);
     expect(client.put).toHaveBeenCalledOnce();
-    expect(client.delete).toHaveBeenCalledWith('cultivar', 'rou-gui');
+    expect(client.delete).toHaveBeenCalledWith('account-a', 'cultivar', 'rou-gui');
   });
 
   it('drops the notice when navigation or current content changes without retargeting Undo', async () => {
@@ -137,8 +139,55 @@ describe('WisdomVerificationControl receipt states', () => {
     expect(noticeMatchesWisdomVerification(noticeForA, 'account-b', input, 'a'.repeat(64))).toBe(false);
     expect(noticeMatchesWisdomVerification(noticeForA, 'account-a', input, 'b'.repeat(64))).toBe(false);
 
-    await undoWisdomVerification(noticeForA, client);
-    expect(client.delete).toHaveBeenCalledWith('cultivar', 'rou-gui');
-    expect(client.delete).not.toHaveBeenCalledWith('cultivar', 'jin-xuan');
+    setAccess('platform_owner', 'account-a');
+    await undoWisdomVerification('account-a', noticeForA, client);
+    expect(client.delete).toHaveBeenCalledWith('account-a', 'cultivar', 'rou-gui');
+    expect(client.delete).not.toHaveBeenCalledWith('account-a', 'cultivar', 'jin-xuan');
+  });
+
+  it('keeps captured account scope through request races and rejects stale starts', async () => {
+    const entryB = { ...input, entryId: 'jin-xuan', entry: { id: 'jin-xuan', name: 'Jin Xuan' } };
+    const client = {
+      get: vi.fn(async () => {
+        setAccess('platform_owner', 'account-b');
+        return null;
+      }),
+      put: vi.fn(async (
+        _accountId: string,
+        entryKind: WisdomVerificationInput['entryKind'],
+        entryId: string,
+        contentHash: string,
+      ) => {
+        setAccess('platform_owner', 'account-b');
+        return { entry_kind: entryKind, entry_id: entryId, content_hash: contentHash, verified_at: 'now' };
+      }),
+      delete: vi.fn(async () => {
+        setAccess('platform_owner', 'account-b');
+        return null;
+      }),
+    };
+
+    setAccess('platform_owner', 'account-a');
+    const loadedA = await loadWisdomVerification('account-a', input, client);
+    expect(client.get).toHaveBeenLastCalledWith('account-a', 'cultivar', 'rou-gui');
+
+    setAccess('platform_owner', 'account-a');
+    const savedA = await saveWisdomVerification('account-a', input, client);
+    expect(client.put).toHaveBeenLastCalledWith('account-a', 'cultivar', 'rou-gui', loadedA.currentHash);
+    expect(noticeMatchesWisdomVerification({
+      accountId: 'account-a', entryKind: 'cultivar', entryId: 'rou-gui', contentHash: savedA.currentHash,
+    }, 'account-a', input, savedA.currentHash)).toBe(true);
+
+    setAccess('platform_owner', 'account-a');
+    await undoWisdomVerification('account-a', input, client);
+    expect(client.delete).toHaveBeenLastCalledWith('account-a', 'cultivar', 'rou-gui');
+
+    setAccess('platform_owner', 'account-b');
+    await loadWisdomVerification('account-b', entryB, client);
+    expect(client.get).toHaveBeenLastCalledWith('account-b', 'cultivar', 'jin-xuan');
+
+    setAccess('platform_owner', 'account-b');
+    await expect(saveWisdomVerification('account-a', input, client)).rejects.toThrow(/account changed/i);
+    expect(client.put).toHaveBeenCalledOnce();
   });
 });

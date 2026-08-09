@@ -50,6 +50,12 @@ function fingerprintInput(input: WisdomVerificationInput) {
   };
 }
 
+function assertActiveVerificationAccount(accountId: string): void {
+  if (useAppStore.getState().activeAccountId !== accountId) {
+    throw new Error('Wisdom verification account changed');
+  }
+}
+
 export function wisdomVerificationQueryKey(accountId: string, input: WisdomVerificationInput) {
   return [
     'wisdom-verification',
@@ -63,28 +69,34 @@ export function wisdomVerificationQueryKey(accountId: string, input: WisdomVerif
 }
 
 export async function loadWisdomVerification(
+  accountId: string,
   input: WisdomVerificationInput,
   client: WisdomVerificationApi = api.wisdomVerifications,
 ): Promise<WisdomVerificationQueryData> {
   const currentHash = await fingerprintWisdomEntry(fingerprintInput(input));
-  const receipt = await client.get(input.entryKind, input.entryId);
+  assertActiveVerificationAccount(accountId);
+  const receipt = await client.get(accountId, input.entryKind, input.entryId);
   return { currentHash, receipt };
 }
 
 export async function saveWisdomVerification(
+  accountId: string,
   input: WisdomVerificationInput,
   client: WisdomVerificationApi = api.wisdomVerifications,
 ): Promise<WisdomVerificationQueryData> {
   const currentHash = await fingerprintWisdomEntry(fingerprintInput(input));
-  const receipt = await client.put(input.entryKind, input.entryId, currentHash);
+  assertActiveVerificationAccount(accountId);
+  const receipt = await client.put(accountId, input.entryKind, input.entryId, currentHash);
   return { currentHash, receipt: { ...receipt, content_hash: currentHash } };
 }
 
 export async function undoWisdomVerification(
+  accountId: string,
   input: Pick<WisdomVerificationInput, 'entryKind' | 'entryId'>,
   client: WisdomVerificationApi = api.wisdomVerifications,
 ) {
-  return client.delete(input.entryKind, input.entryId);
+  assertActiveVerificationAccount(accountId);
+  return client.delete(accountId, input.entryKind, input.entryId);
 }
 
 export function noticeMatchesWisdomVerification(
@@ -120,11 +132,11 @@ const OwnerWisdomVerificationControl: React.FC<WisdomVerificationInput & { accou
   const queryKey = wisdomVerificationQueryKey(input.accountId, input);
   const query = useQuery({
     queryKey,
-    queryFn: () => loadWisdomVerification(input),
+    queryFn: () => loadWisdomVerification(input.accountId, input),
     enabled: input.ready !== false,
   });
   const save = useMutation({
-    mutationFn: (request: SaveRequest) => saveWisdomVerification(request.input),
+    mutationFn: (request: SaveRequest) => saveWisdomVerification(request.accountId, request.input),
     onSuccess: (data, request) => {
       queryClient.setQueryData(request.queryKey, data);
       setNoticeTarget({
@@ -136,7 +148,7 @@ const OwnerWisdomVerificationControl: React.FC<WisdomVerificationInput & { accou
     },
   });
   const undo = useMutation({
-    mutationFn: (request: UndoRequest) => undoWisdomVerification(request.target),
+    mutationFn: (request: UndoRequest) => undoWisdomVerification(request.target.accountId, request.target),
     onSuccess: (_data, request) => {
       queryClient.setQueryData<WisdomVerificationQueryData>(request.queryKey, cached => (
         cached ? { ...cached, receipt: null } : cached
