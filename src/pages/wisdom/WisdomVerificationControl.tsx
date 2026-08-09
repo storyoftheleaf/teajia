@@ -21,8 +21,26 @@ export interface WisdomVerificationQueryData {
   receipt: WisdomVerificationReceipt | null;
 }
 
+export interface WisdomVerificationNoticeTarget {
+  accountId: string;
+  entryKind: WisdomEntryKind;
+  entryId: string;
+  contentHash: string;
+}
+
 type WisdomVerificationApi = Pick<typeof api.wisdomVerifications, 'get' | 'put' | 'delete'>;
 type VerificationState = 'empty' | 'verified' | 'changed';
+
+interface SaveRequest {
+  accountId: string;
+  input: WisdomVerificationInput;
+  queryKey: ReturnType<typeof wisdomVerificationQueryKey>;
+}
+
+interface UndoRequest {
+  target: WisdomVerificationNoticeTarget;
+  queryKey: ReturnType<typeof wisdomVerificationQueryKey>;
+}
 
 function fingerprintInput(input: WisdomVerificationInput) {
   return {
@@ -69,6 +87,22 @@ export async function undoWisdomVerification(
   return client.delete(input.entryKind, input.entryId);
 }
 
+export function noticeMatchesWisdomVerification(
+  notice: WisdomVerificationNoticeTarget | null,
+  accountId: string,
+  input: Pick<WisdomVerificationInput, 'entryKind' | 'entryId'>,
+  currentHash: string | undefined,
+): boolean {
+  return Boolean(
+    notice
+    && currentHash
+    && notice.accountId === accountId
+    && notice.entryKind === input.entryKind
+    && notice.entryId === input.entryId
+    && notice.contentHash === currentHash,
+  );
+}
+
 function receiptState(data: WisdomVerificationQueryData | undefined): VerificationState {
   if (!data?.receipt) return 'empty';
   return data.receipt.content_hash === data.currentHash ? 'verified' : 'changed';
@@ -82,7 +116,7 @@ const STATE_LABEL: Record<VerificationState, string> = {
 
 const OwnerWisdomVerificationControl: React.FC<WisdomVerificationInput & { accountId: string }> = input => {
   const queryClient = useQueryClient();
-  const [notice, setNotice] = useState(false);
+  const [noticeTarget, setNoticeTarget] = useState<WisdomVerificationNoticeTarget | null>(null);
   const queryKey = wisdomVerificationQueryKey(input.accountId, input);
   const query = useQuery({
     queryKey,
@@ -90,19 +124,39 @@ const OwnerWisdomVerificationControl: React.FC<WisdomVerificationInput & { accou
     enabled: input.ready !== false,
   });
   const save = useMutation({
-    mutationFn: () => saveWisdomVerification(input),
-    onSuccess: data => {
-      queryClient.setQueryData(queryKey, data);
-      setNotice(true);
+    mutationFn: (request: SaveRequest) => saveWisdomVerification(request.input),
+    onSuccess: (data, request) => {
+      queryClient.setQueryData(request.queryKey, data);
+      setNoticeTarget({
+        accountId: request.accountId,
+        entryKind: request.input.entryKind,
+        entryId: request.input.entryId,
+        contentHash: data.currentHash,
+      });
     },
   });
   const undo = useMutation({
-    mutationFn: () => undoWisdomVerification(input),
-    onSuccess: () => {
-      if (query.data) queryClient.setQueryData(queryKey, { ...query.data, receipt: null });
-      setNotice(false);
+    mutationFn: (request: UndoRequest) => undoWisdomVerification(request.target),
+    onSuccess: (_data, request) => {
+      queryClient.setQueryData<WisdomVerificationQueryData>(request.queryKey, cached => (
+        cached ? { ...cached, receipt: null } : cached
+      ));
+      setNoticeTarget(current => (
+        current?.accountId === request.target.accountId
+        && current.entryKind === request.target.entryKind
+        && current.entryId === request.target.entryId
+        && current.contentHash === request.target.contentHash
+          ? null
+          : current
+      ));
     },
   });
+  const visibleNotice = noticeMatchesWisdomVerification(
+    noticeTarget,
+    input.accountId,
+    input,
+    query.data?.currentHash,
+  ) ? noticeTarget : null;
   const state = receiptState(query.data);
   const label = STATE_LABEL[state];
   const pending = save.isPending || undo.isPending;
@@ -114,7 +168,7 @@ const OwnerWisdomVerificationControl: React.FC<WisdomVerificationInput & { accou
           type="button"
           aria-label={label}
           title={label}
-          onClick={() => save.mutate()}
+          onClick={() => save.mutate({ accountId: input.accountId, input, queryKey })}
           disabled={pending || !query.data?.currentHash}
           className="tap-target relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-tea-border text-tea-text-dim transition-colors hover:border-tea-gold/30 hover:text-tea-gold focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 disabled:cursor-not-allowed disabled:opacity-50"
         >
@@ -127,12 +181,12 @@ const OwnerWisdomVerificationControl: React.FC<WisdomVerificationInput & { accou
           {state === 'changed' && <span aria-hidden="true" className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-tea-gold" />}
         </button>
 
-        {notice && (
+        {visibleNotice && (
           <p role="status" className="flex flex-wrap items-center gap-3 text-ui-11 text-tea-text-sec">
             Reference verified.
             <button
               type="button"
-              onClick={() => undo.mutate()}
+              onClick={() => undo.mutate({ target: visibleNotice, queryKey })}
               disabled={pending}
               className="tap-target text-ui-11 text-tea-gold transition-colors hover:text-tea-gold-lt disabled:opacity-50"
             >

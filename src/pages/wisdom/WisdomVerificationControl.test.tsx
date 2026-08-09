@@ -8,6 +8,7 @@ import {
   WisdomVerificationControl,
   loadWisdomVerification,
   saveWisdomVerification,
+  noticeMatchesWisdomVerification,
   undoWisdomVerification,
   wisdomVerificationQueryKey,
   type WisdomVerificationInput,
@@ -115,5 +116,29 @@ describe('WisdomVerificationControl receipt states', () => {
     await undoWisdomVerification(input, client);
     expect(client.put).toHaveBeenCalledOnce();
     expect(client.delete).toHaveBeenCalledWith('cultivar', 'rou-gui');
+  });
+
+  it('drops the notice when navigation or current content changes without retargeting Undo', async () => {
+    const noticeForA = {
+      accountId: 'account-a',
+      entryKind: 'cultivar' as const,
+      entryId: 'rou-gui',
+      contentHash: 'a'.repeat(64),
+    };
+    const entryB = { ...input, entryId: 'jin-xuan', entry: { id: 'jin-xuan', name: 'Jin Xuan' } };
+    const client = {
+      get: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn().mockResolvedValue(null),
+    };
+
+    expect(noticeMatchesWisdomVerification(noticeForA, 'account-a', input, 'a'.repeat(64))).toBe(true);
+    expect(noticeMatchesWisdomVerification(noticeForA, 'account-a', entryB, 'b'.repeat(64))).toBe(false);
+    expect(noticeMatchesWisdomVerification(noticeForA, 'account-b', input, 'a'.repeat(64))).toBe(false);
+    expect(noticeMatchesWisdomVerification(noticeForA, 'account-a', input, 'b'.repeat(64))).toBe(false);
+
+    await undoWisdomVerification(noticeForA, client);
+    expect(client.delete).toHaveBeenCalledWith('cultivar', 'rou-gui');
+    expect(client.delete).not.toHaveBeenCalledWith('cultivar', 'jin-xuan');
   });
 });
