@@ -1,7 +1,6 @@
 import { resolveLineage, resolveRecord, type TeaReferenceProduct } from './productIdentity';
 import {
   getEntryCitations,
-  getEntryResearchSources,
   RESEARCH_BUNDLE,
   type PublicResearchBundle,
 } from './research';
@@ -45,13 +44,18 @@ export function resolveProductResearch(
     const citedIds = new Set(profile.citationIds);
     const citations = publicCitations.filter(citation => citedIds.has(citation.id));
     if (citations.length === 0) continue;
+    const profileSourceIds = new Set(citations.flatMap(citation => citation.sourceIds));
+    const sources = bundle.sources
+      .filter(source => profileSourceIds.has(source.id))
+      .slice()
+      .sort((left, right) => left.id.localeCompare(right.id));
 
     return {
       entryKind,
       entryId,
       profile,
       citations,
-      sources: getEntryResearchSources(bundle, entryKind, entryId),
+      sources,
     };
   }
 

@@ -3,6 +3,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { AlcoveCharacterBand } from './AlcoveCharacterBand';
 import type { ProductResearchResolution } from '../../../wisdom/productResearch';
+import { resolveProductResearch } from '../../../wisdom/productResearch';
+import type { PublicResearchBundle } from '../../../wisdom/research';
 
 describe('AlcoveCharacterBand tasting attribution', () => {
   it('labels common imported potential without attributing it to Adrian', () => {
@@ -67,5 +69,65 @@ describe('AlcoveCharacterBand tasting attribution', () => {
     expect(markup).toContain('Tea Research Institute');
     expect(markup).toContain('href="/wisdom/cultivar/jin-xuan"');
     expect(markup).not.toContain('description');
+  });
+
+  it('attributes potential character only to sources supporting that profile', () => {
+    const researchBundle: PublicResearchBundle = {
+      sources: [
+        {
+          id: 'profile-source',
+          publisher: 'Profile Publisher',
+          title: 'Jin Xuan character',
+          url: 'https://example.com/profile',
+          kind: 'scientific',
+          accessedAt: '2026-08-08',
+        },
+        {
+          id: 'field-source',
+          publisher: 'Unrelated Field Publisher',
+          title: 'Jin Xuan history',
+          url: 'https://example.com/history',
+          kind: 'institutional',
+          accessedAt: '2026-08-08',
+        },
+      ],
+      citations: [
+        {
+          id: 'profile-citation',
+          entryKind: 'cultivar',
+          entryId: 'jin-xuan',
+          fields: ['potentialProfile'],
+          sourceIds: ['profile-source'],
+          usage: 'usable',
+        },
+        {
+          id: 'field-citation',
+          entryKind: 'cultivar',
+          entryId: 'jin-xuan',
+          fields: ['description'],
+          sourceIds: ['field-source'],
+          usage: 'usable',
+        },
+      ],
+      potentialProfiles: [{
+        entryKind: 'cultivar',
+        entryId: 'jin-xuan',
+        tasting: { flavor: ['honey'] },
+        citationIds: ['profile-citation'],
+      }],
+    };
+    const potentialResearch = resolveProductResearch(
+      { name: 'Jin Xuan', cultivar: 'jin-xuan' },
+      researchBundle,
+    );
+
+    const markup = renderToStaticMarkup(<AlcoveCharacterBand
+      item={{ tasting: { flavor: ['orchid'] }, tastingSource: 'owner' } as never}
+      legacyNotes={[]}
+      potentialResearch={potentialResearch}
+    />);
+
+    expect(markup).toContain('Profile Publisher');
+    expect(markup).not.toContain('Unrelated Field Publisher');
   });
 });

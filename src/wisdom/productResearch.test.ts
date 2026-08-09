@@ -93,4 +93,41 @@ describe('product Wisdom research resolution', () => {
 
     expect(resolveProductResearch(product, uncited)).toBeNull();
   });
+
+  it('returns only sources attached to the selected profile citations in stable order', () => {
+    const scoped = structuredClone(bundle);
+    scoped.sources = [
+      ...scoped.sources,
+      {
+        id: 'unrelated-field-source',
+        publisher: 'Unrelated Field Publisher',
+        title: 'A factual field source',
+        url: 'https://example.com/unrelated-field',
+        kind: 'institutional',
+        accessedAt: '2026-08-08',
+      },
+      {
+        id: 'earlier-profile-source',
+        publisher: 'Earlier Profile Publisher',
+        title: 'Another scoped profile source',
+        url: 'https://example.com/earlier-profile',
+        kind: 'scientific',
+        accessedAt: '2026-08-07',
+      },
+    ];
+    scoped.citations.push({
+      id: 'namedTea-unrelated-field',
+      entryKind: 'namedTea',
+      entryId: 'courage',
+      fields: ['description'],
+      sourceIds: ['unrelated-field-source'],
+      usage: 'usable',
+    });
+    scoped.citations[0].sourceIds = ['profile-source', 'earlier-profile-source'];
+
+    expect(resolveProductResearch(product, scoped)?.sources.map(source => source.id)).toEqual([
+      'earlier-profile-source',
+      'profile-source',
+    ]);
+  });
 });
