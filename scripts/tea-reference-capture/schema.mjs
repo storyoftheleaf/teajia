@@ -72,6 +72,7 @@ function validateValues(values, allowed, label) {
 function validateSource(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('Source must be an object');
   const sourceId = requiredString(input.sourceId, 'Source ID');
+  if (!/^[a-z0-9][a-z0-9._-]*$/i.test(sourceId)) throw new Error(`Source ID must be path-safe: ${sourceId}`);
   const urlText = requiredString(input.url, `URL for ${sourceId}`);
   let url;
   try {
@@ -94,6 +95,7 @@ function validateSource(input) {
     sourceId,
     url: url.toString(),
     publisher: requiredString(input.publisher, `Publisher for ${sourceId}`),
+    publisherQualifications: typeof input.publisherQualifications === 'string' ? input.publisherQualifications.trim() : '',
     publisherRole,
     sourceFamily: requiredString(input.sourceFamily, `Source family for ${sourceId}`),
     language: requiredString(input.language, `Language for ${sourceId}`),
