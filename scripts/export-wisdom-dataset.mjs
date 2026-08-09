@@ -54,6 +54,7 @@ const { NAMED_TEAS } = await loadModule(join(root, 'src/wisdom/namedTeas.ts'), '
 const { TEA_TYPES, TEA_FORMS, SEASONS, STORAGE_STYLES } = await loadModule(join(root, 'src/wisdom/vocabulary.ts'), 'vocabulary.mjs');
 const { TEA_VARIETIES } = await loadModule(join(root, 'src/data/teaVarieties.ts'), 'teaVarieties.mjs');
 const { getAuthorship } = await loadModule(join(root, 'src/wisdom/authorship.ts'), 'authorship.mjs');
+const { RESEARCH_BUNDLE } = await loadModule(join(root, 'src/wisdom/research.ts'), 'research.mjs');
 
 rmSync(tmpDir, { recursive: true, force: true });
 
@@ -96,7 +97,14 @@ const regions = REGIONS.map(region => ({
   province: region.province ?? null,
   altitude: region.altitude ?? null,
   climate: region.climate ?? null,
+  ...(region.description ? { description: region.description } : {}),
 }));
+
+// -------------------------------------------------------- research provenance
+
+const researchSources = RESEARCH_BUNDLE.sources;
+const citations = RESEARCH_BUNDLE.citations;
+const potentialProfiles = RESEARCH_BUNDLE.potentialProfiles;
 
 // --------------------------------------------------------------- tea varieties
 
@@ -145,12 +153,28 @@ const meta = {
     marks: MARKS.length,
     namedTeas: NAMED_TEAS.length,
     vocabulary: vocabulary.length,
+    researchSources: researchSources.length,
+    citations: citations.length,
+    potentialProfiles: potentialProfiles.length,
   },
 };
 
 writeFileSync(
   join(outDir, 'tea-wisdom.json'),
-  `${JSON.stringify({ meta, vocabulary, regions, cultivars, teaVarieties, producers: PRODUCERS, styles: STYLES, marks: MARKS, namedTeas: NAMED_TEAS }, null, 2)}\n`
+  `${JSON.stringify({
+    meta,
+    vocabulary,
+    regions,
+    cultivars,
+    teaVarieties,
+    producers: PRODUCERS,
+    styles: STYLES,
+    marks: MARKS,
+    namedTeas: NAMED_TEAS,
+    researchSources,
+    citations,
+    potentialProfiles,
+  }, null, 2)}\n`
 );
 
 // ------------------------------------------------- one file per record + contents
@@ -389,7 +413,9 @@ ${PRODUCERS.length} producers, ${MARKS.length} marks, ${STYLES.length} styles,
 ${NAMED_TEAS.length} teas known only by the name they were given,
 ${teaVarieties.length} tea varieties, and the controlled vocabulary that ties
 them together (${vocabulary.length} terms across type, form, season and
-storage). This is the account-agnostic layer behind teajia.com, true
+storage). Field-level support is published through ${researchSources.length}
+research source records and ${citations.length} citations. This is the
+account-agnostic layer behind teajia.com, true
 regardless of who stocks or sells a tea. It is not a product catalog, a shop
 export, or Adrian's own tasting notes.
 
@@ -424,6 +450,12 @@ ${GENERATED_AT}, CC BY 4.0.
   mean downloading every plant.
 - \`tea-wisdom-*.csv\`: flat, one file per holding, for spreadsheet tools.
 - \`LICENSE.txt\`
+
+The JSON bundle also includes \`researchSources\`, \`citations\`, and
+\`potentialProfiles\`. A citation supports only the listed entry fields. It
+does not certify an entire publisher or every field on an entry. Internal trust
+classifications, private evidence references, and verification state are never
+included.
 
 ## Which file do I want
 
@@ -463,6 +495,15 @@ record stays attributable after it has been copied somewhere else.
 | country | Country |
 | province | Province or prefecture, when the name alone is ambiguous |
 | altitude, climate | Growing conditions, when recorded |
+| description | Qualified place or trade context, when cited |
+
+### research provenance
+
+| Field | Meaning |
+|---|---|
+| researchSources | Public bibliographic metadata for cited works and pages |
+| citations | Entry id, exact supported fields, source ids, and any qualification |
+| potentialProfiles | Taxonomy-valid potential character at the cited entry scope |
 
 ### teaVarieties
 

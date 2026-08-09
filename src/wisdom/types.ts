@@ -10,6 +10,8 @@
  * What one shop stocks, priced, and tasted stays in the shop's own records.
  */
 
+import type { TastingData } from '../types';
+
 /** A growing region. `id` is a stable slug so records can point at it. */
 export interface Region {
   id: string;
@@ -19,6 +21,53 @@ export interface Region {
   province?: string;
   altitude?: string;
   climate?: string;
+  /** Qualified place or trade context, when a citation supports it. */
+  description?: string;
+}
+
+export type WisdomEntryKind = 'cultivar' | 'region' | 'producer' | 'style' | 'mark' | 'namedTea';
+export type CitationUsage = 'usable' | 'qualified' | 'held_back';
+export type ResearchSourceKind =
+  | 'scientific'
+  | 'governmental'
+  | 'institutional'
+  | 'producer-primary'
+  | 'specialist-retailer'
+  | 'book'
+  | 'other';
+
+/** Canonical bibliographic source. Internal fields never enter browser modules. */
+export interface ResearchSource {
+  id: string;
+  publisher: string;
+  title: string;
+  url?: string;
+  kind: ResearchSourceKind;
+  accessedAt: string;
+  publishedAt?: string;
+  trust: 'primary' | 'strong' | 'qualified' | 'lead-only';
+  privateEvidenceRef?: string;
+}
+
+export type PublicResearchSource = Omit<ResearchSource, 'trust' | 'privateEvidenceRef'>;
+
+/** Field-level support from one or more bibliographic sources. */
+export interface WisdomCitation {
+  id: string;
+  entryKind: WisdomEntryKind;
+  entryId: string;
+  fields: string[];
+  sourceIds: string[];
+  usage: CitationUsage;
+  qualification?: string;
+}
+
+/** Qualified sensory character at one shared Wisdom entry scope. */
+export interface WisdomPotentialProfile {
+  entryKind: WisdomEntryKind;
+  entryId: string;
+  tasting: TastingData;
+  citationIds: string[];
 }
 
 /** A tea plant cultivar. The lean shape: no prose, safe to import anywhere. */

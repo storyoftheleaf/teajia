@@ -1,0 +1,15 @@
+[
+  {
+    "id": "yi-bang-place-source",
+    "entryKind": "region",
+    "entryId": "yi-bang-village-yunnan",
+    "fields": [
+      "description"
+    ],
+    "sourceIds": [
+      "yunnan-sourcing-yi-bang-2025"
+    ],
+    "usage": "qualified",
+    "qualification": "Supports Yi Bang's place and specialist-retail trade context only. It does not support a village-wide sensory profile."
+  }
+]
