@@ -10,7 +10,8 @@ export type ImportConfidenceField =
   | 'packCount' | 'priceBasis' | 'price' | 'priceAmount' | 'currency'
   | 'acquisitionState' | 'acquired' | 'duplicateResolution' | 'chineseName'
   | 'type' | 'form' | 'year' | 'originCountry' | 'originRegion'
-  | 'classification' | 'cultivar' | 'producer' | 'description' | 'processingNotes' | 'inventoryPurpose';
+  | 'classification' | 'cultivar' | 'producer' | 'description' | 'processingNotes' | 'inventoryPurpose'
+  | 'tasting' | 'tastingSource';
 export type ImportValidationState = 'source_fact' | 'ai_interpretation' | 'canonical_match' | 'validated' | 'not_present' | 'uncertain';
 export type ImportAnalysisConfidence = Partial<Record<ImportConfidenceField, number>>;
 export type ImportAnalysisValidation = Partial<Record<ImportConfidenceField, ImportValidationState>>;
@@ -97,6 +98,7 @@ export interface ImportRecordHints {
     sourceId: string;
     sourceItemId: string;
     evidenceRef: string;
+    tastingEvidenceRef?: string | null;
     originalName: string;
     packWeight: number;
     weightUnit: ImportWeightUnit;
@@ -142,6 +144,7 @@ const CONFIDENCE_FIELDS = [
   'packWeight', 'weightUnit', 'quantity', 'packCount', 'priceBasis', 'price', 'priceAmount', 'currency',
   'acquisitionState', 'acquired', 'duplicateResolution', 'chineseName', 'type', 'form', 'year',
   'originCountry', 'originRegion', 'classification', 'cultivar', 'producer', 'description', 'processingNotes', 'inventoryPurpose',
+  'tasting', 'tastingSource',
 ] as const satisfies readonly ImportConfidenceField[];
 const confidenceSchema = {
   type: 'object',
@@ -365,25 +368,38 @@ function decodeItem(value: unknown, groupIndex: number, itemIndex: number): Impo
   const priceBasis = string(input.priceBasis, 'priceBasis');
   if (priceBasis !== 'per_pack' && priceBasis !== 'line_total' && priceBasis !== 'unknown') throw new Error('Invalid priceBasis');
   if (!Array.isArray(input.evidenceRefs) || input.evidenceRefs.some(entry => typeof entry !== 'string' || entry.length > 1000)) throw new Error('Invalid evidenceRefs');
+  const evidenceRefs = [...input.evidenceRefs] as string[];
   const duplicateResolution = input.duplicateResolution == null ? 'unresolved' : string(input.duplicateResolution, 'duplicateResolution');
   if (duplicateResolution !== 'new' && duplicateResolution !== 'matched' && duplicateResolution !== 'unresolved') throw new Error('Invalid duplicateResolution');
   if (input.acquired != null && typeof input.acquired !== 'boolean') throw new Error('Invalid acquired');
-  const tasting = normalizeImportTasting(input.tasting);
+  const confidence = confidenceRecord(input.confidence);
+  const validation = validationRecord(input.validation);
+  const uncertainty = stringRecord(input.uncertainty, 'uncertainty', CONFIDENCE_FIELDS);
+  const proposedTasting = normalizeImportTasting(input.tasting);
+  const hasExactTastingProvenance = proposedTasting != null
+    && (input.tastingSource === 'source' || input.tastingSource === 'common')
+    && validation.tasting === 'source_fact'
+    && validation.tastingSource === 'source_fact'
+    && evidenceRefs.some(ref => ref.trim().length > 0);
+  if (proposedTasting && !hasExactTastingProvenance && uncertainty.tasting == null) {
+    uncertainty.tasting = 'Sensory terms require an exact source reference.';
+  }
+  const tasting = hasExactTastingProvenance ? proposedTasting : null;
   return {
     chineseName: optionalText(input.chineseName, 'chineseName', 500),
     type: optionalText(input.type, 'type', 200), form: optionalText(input.form, 'form', 200),
     year: optionalYear(input.year), originCountry: optionalText(input.originCountry, 'originCountry', 200),
     originRegion: optionalText(input.originRegion, 'originRegion', 500), classification: optionalText(input.classification, 'classification', 500), cultivar: optionalText(input.cultivar, 'cultivar', 200), producer: optionalText(input.producer, 'producer', 200),
     description: optionalText(input.description, 'description', 5000), processingNotes: optionalText(input.processingNotes, 'processingNotes', 5000),
-    tasting, tastingSource: tasting && (input.tastingSource === 'source' || input.tastingSource === 'common') ? 'source' : null,
+    tasting, tastingSource: tasting ? 'source' : null,
     inventoryPurpose: optionalText(input.inventoryPurpose, 'inventoryPurpose', 100),
     sourceItemId: string(input.sourceItemId, 'sourceItemId')!, category,
     originalName: string(input.originalName, 'originalName', true), englishName: string(input.englishName, 'englishName', true),
     packWeight: finiteNonNegative(input.packWeight, 'packWeight'), weightUnit,
     packCount: finiteNonNegative(input.packCount, 'packCount'), priceAmount: authoritativeDecimal(input.priceAmount, 'priceAmount'),
     currency: string(input.currency, 'currency', true), priceBasis,
-    confidence: confidenceRecord(input.confidence), validation: validationRecord(input.validation), uncertainty: stringRecord(input.uncertainty, 'uncertainty', CONFIDENCE_FIELDS),
-    evidenceRefs: [...input.evidenceRefs] as string[],
+    confidence, validation, uncertainty,
+    evidenceRefs,
     acquired: input.acquired == null ? null : input.acquired,
     duplicateResolution,
     proposedCompassEntryId: string(input.proposedCompassEntryId, 'proposedCompassEntryId', true),
@@ -836,11 +852,13 @@ function labeledTeaRecord(sourceId: string, lines: ImportRecordLine[]): ImportRe
   const cultivar = material?.match(/^(primitive small-leaf population)\b/iu)?.[1] ?? material;
   const typeValue = facts.get('type')?.value ?? '';
   const excerptRef = `${sourceId}:${excerpt.valueStart}-${excerpt.valueStart + excerpt.value.length}`;
+  const tastingEvidenceRef = `${sourceId}:${description.valueStart}-${description.valueStart + description.value.length}`;
   const tasting = tastingFromLabeledDescription(description.value);
   return {
     sourceId,
     sourceItemId: `record:${sourceId}:${name.line.lineIndex}`,
     evidenceRef: excerptRef,
+    tastingEvidenceRef,
     originalName: name.value,
     englishName: name.value,
     packWeight: Number(weight[1]),
@@ -1021,6 +1039,15 @@ export function applyImportRecordHints(proposal: ImportAnalysisProposal, hints: 
       delete uncertainty.identity;
       delete uncertainty.duplicateResolution;
     }
+    if (hint.tasting) {
+      confidence.tasting = 1;
+      confidence.tastingSource = 1;
+      validation.tasting = 'source_fact';
+      validation.tastingSource = 'source_fact';
+      delete uncertainty.tasting;
+      delete uncertainty.tastingSource;
+    }
+    const evidenceRefs = [...new Set([hint.evidenceRef, hint.tastingEvidenceRef].filter((ref): ref is string => Boolean(ref)))];
     return {
       ...translated,
       sourceItemId: hint.sourceItemId,
@@ -1034,7 +1061,7 @@ export function applyImportRecordHints(proposal: ImportAnalysisProposal, hints: 
       currency: hint.currency,
       priceBasis: hint.priceBasis,
       acquired: true,
-      evidenceRefs: [hint.evidenceRef],
+      evidenceRefs,
       confidence,
       validation,
       uncertainty,
@@ -1130,6 +1157,7 @@ export function buildImportRecordFallbackProposal(hints: ImportRecordHints): Imp
             originalName: 1, packWeight: 1, weightUnit: 1, packCount: 1,
             priceAmount: 1, currency: 1, priceBasis: 1, acquired: 1,
             ...(englishName ? { translation: 1 } : {}),
+            ...(hint.tasting ? { tasting: 1, tastingSource: 1 } : {}),
             ...sourceFactConfidence,
           },
           validation: {
@@ -1137,13 +1165,14 @@ export function buildImportRecordFallbackProposal(hints: ImportRecordHints): Imp
             packWeight: 'source_fact' as const, weightUnit: 'source_fact' as const, packCount: 'source_fact' as const,
             priceAmount: 'source_fact' as const, currency: 'source_fact' as const, priceBasis: 'source_fact' as const,
             translation: englishName ? 'validated' as const : 'uncertain' as const,
+            ...(hint.tasting ? { tasting: 'source_fact' as const, tastingSource: 'source_fact' as const } : {}),
             ...sourceFactValidation,
           },
           uncertainty: {
             ...(englishName ? {} : { englishName: 'Translation provider unavailable; review the original name.' }),
             duplicateResolution: 'Choose whether this is a new or existing Curate identity.',
           },
-          evidenceRefs: [hint.evidenceRef],
+          evidenceRefs: [...new Set([hint.evidenceRef, hint.tastingEvidenceRef].filter((ref): ref is string => Boolean(ref)))],
           acquired: true,
           duplicateResolution: 'unresolved' as const,
           ...sourceFacts,
@@ -1176,7 +1205,7 @@ export function buildImportAnalysisPrompt(evidence: ImportEvidenceForAnalysis, c
     'Identify the tea itself, not only the words on the record. Fill type, form, year, originCountry, originRegion, classification, and description for every tea item you can recognise, using both the record and general tea knowledge. A well-known name is enough: "陈年六堡茶 / Aged Liu Bao" is a Dark tea from Guangxi, China.',
     'type must be one of Green, White, Yellow, Oolong, Red, Dark, Sheng, Shou, Herbal. Use Red for Chinese hong cha, and Sheng or Shou rather than a generic puerh label. form must be one of Loose, Cake, Brick, Tuo, Ball, Bag. originCountry is a country name such as China, Taiwan, Japan; originRegion is the growing area such as Guangxi, Yiwu, Alishan.',
     'classification is the production or grade descriptor the trade would use, such as "traditional basket-fermented", "first flush", or "competition grade". description is one or two neutral sentences about what the tea is. Leave either null rather than writing marketing copy.',
-    'processingNotes preserves processing facts. Route explicit sensory terms about the exact listed product to existing tasting taxonomy IDs with tastingSource "source", never "common" or "owner".',
+    'processingNotes preserves processing facts. For exact-record sensory terms, use taxonomy IDs, tastingSource "source", source_fact validation for tasting and tastingSource, and an exact evidence range. Otherwise both sensory fields must be null.',
     'cultivar is the tea plant the leaf came from, when the record names it or the tea is only ever made from one, such as Rou Gui, Shui Xian, Tie Guan Yin, Cui Yu, Jin Xuan, Fuding Da Bai, Yabukita. Use the plant name alone, not the finished tea name, and leave it null when more than one plant is plausible.',
     'producer is the factory, house or brand that made the tea, when the record names one: Menghai Tea Factory, Xiaguan, Zhong Cha, Dayi, Tongqinghao, Wuzhou. This is never the supplier the buyer purchased from, which is recorded separately as the vendor. Leave it null when the record only names a seller.',
     'Mark every field you filled from general knowledge rather than the record as "ai_interpretation" in validation, and leave it null when you are not confident. A blank field is better than a wrong one, but a recognisable tea should not come back blank.',

@@ -266,6 +266,8 @@ describe('Curate import analysis domain', () => {
     expect(decodeImportAnalysisProposal(proposal({
       tasting: { flavor: ['honey'] },
       tastingSource: 'source',
+      confidence: { tasting: 0.99, tastingSource: 0.99 },
+      validation: { tasting: 'source_fact', tastingSource: 'source_fact' },
     } as never)).groups[0].items[0]).toMatchObject({
       tasting: { flavor: ['honey'] },
       tastingSource: 'source',
@@ -276,13 +278,83 @@ describe('Curate import analysis domain', () => {
     const decoded = decodeImportAnalysisProposal(proposal({
       tasting: { flavor: ['honey'] },
       tastingSource: 'common',
+      confidence: { tasting: 0.99, tastingSource: 0.99 },
+      validation: { tasting: 'source_fact', tastingSource: 'source_fact' },
     } as never)).groups[0].items[0];
 
     expect(decoded.tastingSource).toBe('source');
     expect(decoded.tastingSource).not.toBe('common');
+  });
+
+  it('keeps provider sensory terms only with exact source-fact provenance', () => {
+    const exact = decodeImportAnalysisProposal(proposal({
+      tasting: { flavor: ['honey'] },
+      tastingSource: 'source',
+      confidence: { tasting: 0.99, tastingSource: 0.99 },
+      validation: { tasting: 'source_fact', tastingSource: 'source_fact' },
+    } as never)).groups[0].items[0];
+    const inferred = decodeImportAnalysisProposal(proposal({
+      tasting: { flavor: ['honey'] },
+      tastingSource: 'source',
+      confidence: { tasting: 0.99, tastingSource: 0.99 },
+      validation: { tasting: 'ai_interpretation', tastingSource: 'ai_interpretation' },
+    } as never)).groups[0].items[0];
+    const missingEvidence = decodeImportAnalysisProposal(proposal({
+      tasting: { flavor: ['honey'] },
+      tastingSource: 'source',
+      evidenceRefs: [],
+      confidence: { tasting: 0.99, tastingSource: 0.99 },
+      validation: { tasting: 'source_fact', tastingSource: 'source_fact' },
+    } as never)).groups[0].items[0];
+    const missingSource = decodeImportAnalysisProposal(proposal({
+      tasting: { flavor: ['honey'] },
+      tastingSource: null,
+      confidence: { tasting: 0.99, tastingSource: 0.99 },
+      validation: { tasting: 'source_fact', tastingSource: 'source_fact' },
+    } as never)).groups[0].items[0];
+
+    expect(exact).toMatchObject({ tasting: { flavor: ['honey'] }, tastingSource: 'source' });
+    for (const rejected of [inferred, missingEvidence, missingSource]) {
+      expect(rejected.tasting).toBeNull();
+      expect(rejected.tastingSource).toBeNull();
+      expect(rejected.uncertainty).toHaveProperty('tasting');
+    }
+  });
+
+  it('retains exact Yi Bang sensory evidence as source facts', () => {
+    const hints = buildImportRecordHints({ sources: [{ id: 'source-yi-bang', kind: 'paste', text: yiBangRecord }] });
+    const normalized = normalizeImportProposal(buildImportRecordFallbackProposal(hints)).groups[0].items[0];
+
+    expect(normalized).toMatchObject({
+      description: expect.stringContaining('Full-mouthed and pungently aromatic'),
+      processingNotes: expect.stringContaining('hand-fixed in a copper wok'),
+      tasting: { flavor: expect.arrayContaining(['honey', 'citrus']) },
+      tastingSource: 'source',
+      validation: { tasting: 'source_fact', tastingSource: 'source_fact' },
+    });
+    expect(normalized.evidenceRefs).toEqual(expect.arrayContaining([
+      expect.stringMatching(/^source-yi-bang:\d+-\d+$/),
+    ]));
+  });
+
+  it('publishes sensory provenance in provider confidence and validation', () => {
+    const itemSchema = (IMPORT_ANALYSIS_OUTPUT_SCHEMA.properties.groups.items.properties.items.items as { properties: Record<string, any> });
+    expect(itemSchema.properties.confidence.properties).toEqual(expect.objectContaining({
+      tasting: expect.any(Object),
+      tastingSource: expect.any(Object),
+    }));
+    expect(itemSchema.properties.validation.properties).toEqual(expect.objectContaining({
+      tasting: expect.any(Object),
+      tastingSource: expect.any(Object),
+    }));
+  });
+
+  it('drops unsupported sensory attribution even with source-fact flags', () => {
     expect(decodeImportAnalysisProposal(proposal({
       tasting: { flavor: ['honey'] },
       tastingSource: 'owner',
+      confidence: { tasting: 0.99, tastingSource: 0.99 },
+      validation: { tasting: 'source_fact', tastingSource: 'source_fact' },
     } as never)).groups[0].items[0].tastingSource).toBeNull();
   });
 

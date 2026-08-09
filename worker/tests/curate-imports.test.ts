@@ -883,12 +883,14 @@ describe('Curate import provenance API', () => {
           huiGan: true,
         },
         tastingSource: 'source',
+        validation: expect.objectContaining({ tasting: 'source_fact', tastingSource: 'source_fact' }),
         processingNotes: expect.stringContaining('hand-fixed in a copper wok'),
         sourceExcerpt: expect.stringContaining('From Yi Bang village in northern Yiwu'),
       }),
     })]);
     const parsed = body.items[0].parsed_data;
     expect(parsed.tastingSource).not.toBe('common');
+    expect(parsed.evidenceRefs).toHaveLength(2);
     const reviewed = buildImportCorrectionParsedData(parsed, {
       englishName: parsed.englishName, originalName: parsed.originalName, type: parsed.type, classification: parsed.classification,
       year: parsed.year, form: parsed.form, originCountry: parsed.originCountry, originRegion: parsed.originRegion,
@@ -906,6 +908,7 @@ describe('Curate import provenance API', () => {
       description: expect.stringContaining('Full-mouthed and pungently aromatic'),
       tasting: parsed.tasting,
       tastingSource: 'source',
+      validation: expect.objectContaining({ tasting: 'source_fact', tastingSource: 'source_fact' }),
       processingNotes: expect.stringContaining('hand-fixed in a copper wok'),
       sourceExcerpt: expect.stringContaining('From Yi Bang village in northern Yiwu'),
     });
@@ -1430,12 +1433,19 @@ describe('Curate import provenance API', () => {
     expect(db.sources.get('source-4')).toMatchObject({ analysis_status: 'failed', analysis_error: 'source_bytes_total_too_large' });
   });
 
-  it('rejects AI evidence references that do not name a source in the batch', async () => {
+  it('rejects source-fact sensory profiles whose evidence does not name a source in the batch', async () => {
     const db = new ImportDb();
     const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Refs', pasted_text: 'Taiwan Tea' }) });
     const { batch } = await created.json() as any;
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({
-      overview: 'one', language: 'en', groups: [{ key: 'v', proposedVendorName: 'V', items: [{ ...itemProposal('one'), evidenceRefs: ['foreign-source:1-2'] }] }],
+      overview: 'one', language: 'en', groups: [{ key: 'v', proposedVendorName: 'V', items: [{
+        ...itemProposal('one'),
+        tasting: { flavor: ['honey'] },
+        tastingSource: 'source',
+        confidence: { tasting: 0.99, tastingSource: 0.99 },
+        validation: { tasting: 'source_fact', tastingSource: 'source_fact' },
+        evidenceRefs: ['foreign-source:1-2'],
+      }] }],
     }) }] }), { status: 200 }));
     const analyzed = await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' });
     expect(analyzed.status).toBe(502);
