@@ -72,9 +72,15 @@ An internal D1 record containing:
 
 The receipt is current only when its stored hash matches the entry currently displayed. Any content or citation change makes it stale automatically.
 
+### SourceDescribedProfile
+
+A taxonomy-valid sensory profile transcribed from evidence about one exact TeaLot. It may be stored on that product with `tasting_source = 'source'` until Adrian records his own tasting. It does not become a Wisdom PotentialProfile and does not generalize to the tea's village, cultivar, producer, or style.
+
+When Adrian saves his own tasting, the product profile becomes `owner`. The original source description and excerpt remain on the private Curate import record, so replacing the displayed profile does not erase the evidence trail.
+
 ### TeaLot, Vendor, Producer, and PersonalObservation
 
-These keep their current meanings and storage boundaries. A ResearchSource never fills Vendor. A product-specific producer, harvest, tree age, processing claim, or tasting claim transfers only when it describes the exact TeaLot.
+These keep their current meanings and storage boundaries. A ResearchSource never fills Vendor. A product-specific producer, harvest, tree age, processing claim, or tasting claim transfers only when it describes the exact TeaLot. New Curate imports label exact source-described tasting as `source`; they do not write `common`. Existing `common` product records remain untouched until they are individually audited.
 
 ## Canonical storage
 
@@ -126,10 +132,11 @@ The product page combines:
 - the actual private vendor relationship where the admin surface needs it;
 - the exact producer when known;
 - Adrian's product tasting from D1;
+- an exact source-described product profile from D1 when Adrian has not yet replaced it with his own tasting;
 - related Wisdom context resolved from existing product identity fields;
 - a cited Potential Profile from Wisdom, visually and semantically separate from Adrian's tasting.
 
-The product does not copy Wisdom prose or tasting into its D1 record. Updating the shared entry updates every resolving product after the normal site build.
+The product does not copy Wisdom prose or tasting into its D1 record. Updating the shared entry updates every resolving product after the normal site build. The tasting section labels the three possible layers plainly: source-described for this exact product, Adrian's tasting, and broader potential character from cited Wisdom research.
 
 ### Internal verification
 
@@ -152,6 +159,7 @@ Use source type and claim scope together.
 - Scientific, governmental, institutional, and producer-primary records can support stable factual claims within their stated scope.
 - Reputable specialist retailers such as Yunnan Sourcing can support qualified trade descriptions and provide research leads.
 - Retailer price, format, harvest, tree age, family, exact processing, and exact tasting remain attached to that retailer's exact product unless independently supported.
+- A retailer page used to analyze an actual purchase or offer may supply a SourceDescribedProfile for that exact TeaLot. The same page cannot create a regional or style PotentialProfile without separate broader evidence.
 - General style, place, cultivar, and processing knowledge may be promoted only when the citation supports that broader scope and the prose remains qualified.
 - Contradictory or unattributed claims are held back.
 
@@ -217,6 +225,7 @@ Add citations in bounded batches, starting with the entries used by live product
 - Yunnan Sourcing can appear publicly as a Research Source without appearing as Teajia's Vendor or the producer of a different tea.
 - A Wisdom entry shows the sources supporting it.
 - A product page keeps its exact description and Adrian tasting while showing separately cited potential character.
+- An exact retailer tasting imported through Curate is labeled source-described for that product, not common to its region or style.
 - Updating one Wisdom entry changes every resolving product without editing product records.
 - Only Adrian as platform owner sees and can use the verification check.
 - Verification becomes stale when entry content, citations, or potential profile changes.
