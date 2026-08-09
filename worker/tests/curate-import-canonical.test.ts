@@ -153,11 +153,14 @@ describe('canonical Curate import record', () => {
       description: 'Bright orchard fruit, wildflower honey, citrus peel, thick body, long hui-gan and steady shengjin.',
       processingNotes: 'Hand wok fixed, stone pressed, and dried at low temperature.',
       tasting: { body: ['full'], finish: ['finish-long', 'hui-gan', 'salivating'], flavor: ['floral', 'honey', 'fruity', 'citrus', 'sweet', 'bitter'], 'liquor-color': ['gold'], clarity: 'clear', huiGan: true },
-      tastingSource: 'common',
+      tastingSource: 'source',
     });
 
     expect(record).toMatchObject({
+      description: 'Bright orchard fruit, wildflower honey, citrus peel, thick body, long hui-gan and steady shengjin.',
       processingNotes: 'Hand wok fixed, stone pressed, and dried at low temperature.',
+      producer: 'Yunnan Sourcing',
+      tastingSource: 'source',
     });
     expect(canonicalImportToCompassValues(record)).toMatchObject({
       notes: 'Hand wok fixed, stone pressed, and dried at low temperature.',
@@ -166,7 +169,7 @@ describe('canonical Curate import record', () => {
     expect(product).toMatchObject({
       processing_notes: 'Hand wok fixed, stone pressed, and dried at low temperature.',
       description: '2025 Sheng cake from Yi Bang village, northern Yiwu, China, made from primitive small-leaf population by Yunnan Sourcing.',
-      tasting_source: 'common',
+      tasting_source: 'source',
     });
     expect(JSON.parse(product.tasting!)).toEqual(record.tasting);
   });
@@ -194,7 +197,10 @@ describe('canonical Curate import record', () => {
       tastingSource: 'common',
     }));
 
-    expect(product.description).toBe('A neutral product description supplied by the provider.');
+    expect(product).toMatchObject({
+      description: 'A neutral product description supplied by the provider.',
+      tasting_source: 'common',
+    });
   });
 
   it('keeps provenance and resolution controls canonical without leaking them into destination columns', () => {

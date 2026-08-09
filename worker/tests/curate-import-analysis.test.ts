@@ -254,12 +254,22 @@ describe('Curate import analysis domain', () => {
   it('rejects unknown and cross-category provider tasting terms', () => {
     expect(() => decodeImportAnalysisProposal(proposal({
       tasting: { body: ['honey'] },
-      tastingSource: 'common',
+      tastingSource: 'source',
     } as never))).toThrow(/Invalid tasting\.body term: honey/);
     expect(() => decodeImportAnalysisProposal(proposal({
       tasting: { flavor: ['vendor-invented'] },
-      tastingSource: 'common',
+      tastingSource: 'source',
     } as never))).toThrow(/Invalid tasting\.flavor term: vendor-invented/);
+  });
+
+  it('decodes an exact-lot tasting as source-described', () => {
+    expect(decodeImportAnalysisProposal(proposal({
+      tasting: { flavor: ['honey'] },
+      tastingSource: 'source',
+    } as never)).groups[0].items[0]).toMatchObject({
+      tasting: { flavor: ['honey'] },
+      tastingSource: 'source',
+    });
   });
 
   it('recognizes supplier, purchased tea lines, totals, and acquired grams in a pasted vendor record', () => {

@@ -148,6 +148,9 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
           {item.tastingSource === 'common' && hasVisibleStructuredTerms && (
             <p className="mt-2 font-sans text-ui-11 text-tea-text-dim">Potential profile</p>
           )}
+          {item.tastingSource === 'source' && hasVisibleStructuredTerms && (
+            <p className="mt-2 font-sans text-ui-11 text-tea-text-dim">Source-described profile</p>
+          )}
         </div>
       )}
 

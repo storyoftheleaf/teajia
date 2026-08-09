@@ -86,7 +86,7 @@ export interface Product {
   moodTags?: string[];       // structured feeling/state term ids from taxonomy
   flavorTags?: string[];     // structured flavor term ids from taxonomy
   tasting?: TastingData;
-  tastingSource?: 'common' | 'owner' | 'community';
+  tastingSource?: 'common' | 'owner' | 'community' | 'source';
   sourceCompassEntryId?: string; // Persistent link to the Tea Compass entry that sourced this product
   teaKey?: string; // Normalised tea identity key, shared across accounts for cross-store review aggregation
   wholesalePrice?: number;

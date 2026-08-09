@@ -122,7 +122,7 @@ export interface ImportRecordHints {
     description?: string | null;
     processingNotes?: string | null;
     tasting?: TastingData | null;
-    tastingSource?: 'common' | null;
+    tastingSource?: 'source' | 'common' | null;
   }>;
   ignoredSummaries: Array<{ sourceId: string; text: string; evidenceRef: string }>;
   annotations: Array<{
@@ -249,7 +249,7 @@ export const IMPORT_ANALYSIS_OUTPUT_SCHEMA = {
                 description: nullable({ type: 'string' }),
                 processingNotes: nullable({ type: 'string' }),
                 tasting: tastingSchema,
-                tastingSource: nullable({ type: 'string', enum: ['common'] }),
+                tastingSource: nullable({ type: 'string', enum: ['source', 'common'] }),
                 inventoryPurpose: nullable({ type: 'string' }),
               },
               required: ['sourceItemId', 'category', 'originalName', 'englishName', 'packWeight', 'weightUnit', 'packCount', 'priceAmount', 'currency', 'priceBasis', 'confidence', 'validation', 'uncertainty', 'evidenceRefs', 'acquired', 'duplicateResolution', 'proposedCompassEntryId', 'proposedProductId', 'chineseName', 'type', 'form', 'year', 'originCountry', 'originRegion', 'classification', 'cultivar', 'producer', 'description', 'processingNotes', 'tasting', 'tastingSource', 'inventoryPurpose'],
@@ -374,7 +374,7 @@ function decodeItem(value: unknown, groupIndex: number, itemIndex: number): Impo
     year: optionalYear(input.year), originCountry: optionalText(input.originCountry, 'originCountry', 200),
     originRegion: optionalText(input.originRegion, 'originRegion', 500), classification: optionalText(input.classification, 'classification', 500), cultivar: optionalText(input.cultivar, 'cultivar', 200), producer: optionalText(input.producer, 'producer', 200),
     description: optionalText(input.description, 'description', 5000), processingNotes: optionalText(input.processingNotes, 'processingNotes', 5000),
-    tasting: normalizeImportTasting(input.tasting), tastingSource: input.tastingSource === 'common' ? 'common' : null,
+    tasting: normalizeImportTasting(input.tasting), tastingSource: input.tastingSource === 'source' || input.tastingSource === 'common' ? input.tastingSource : null,
     inventoryPurpose: optionalText(input.inventoryPurpose, 'inventoryPurpose', 100),
     sourceItemId: string(input.sourceItemId, 'sourceItemId')!, category,
     originalName: string(input.originalName, 'originalName', true), englishName: string(input.englishName, 'englishName', true),
@@ -863,7 +863,7 @@ function labeledTeaRecord(sourceId: string, lines: ImportRecordLine[]): ImportRe
     description: description.value,
     processingNotes: processing.value,
     tasting,
-    tastingSource: tasting ? 'common' : null,
+    tastingSource: tasting ? 'source' : null,
   };
 }
 
@@ -1041,7 +1041,7 @@ export function applyImportRecordHints(proposal: ImportAnalysisProposal, hints: 
       proposedCompassEntryId: canonicalIdentity?.id ?? translated.proposedCompassEntryId,
       proposedProductId: canonicalIdentity?.productId ?? translated.proposedProductId,
       ...Object.fromEntries(OPTIONAL_METADATA_FIELDS.flatMap(field => hint[field] == null ? [] : [[field, hint[field]]])),
-      ...(hint.tasting ? { tasting: hint.tasting, tastingSource: 'common' as const } : {}),
+      ...(hint.tasting ? { tasting: hint.tasting, tastingSource: 'source' as const } : {}),
     };
   });
   const itemGroups = new Map<string, { sourceId: string; supplier: string | null; supplierExplicit: boolean; items: ImportAnalysisItem[] }>();
@@ -1146,7 +1146,7 @@ export function buildImportRecordFallbackProposal(hints: ImportRecordHints): Imp
           acquired: true,
           duplicateResolution: 'unresolved' as const,
           ...sourceFacts,
-          ...(hint.tasting ? { tasting: hint.tasting, tastingSource: 'common' as const } : {}),
+          ...(hint.tasting ? { tasting: hint.tasting, tastingSource: 'source' as const } : {}),
         };
       }),
     })),
@@ -1175,7 +1175,7 @@ export function buildImportAnalysisPrompt(evidence: ImportEvidenceForAnalysis, c
     'Identify the tea itself, not only the words on the record. Fill type, form, year, originCountry, originRegion, classification, and description for every tea item you can recognise, using both the record and general tea knowledge. A well-known name is enough: "陈年六堡茶 / Aged Liu Bao" is a Dark tea from Guangxi, China.',
     'type must be one of Green, White, Yellow, Oolong, Red, Dark, Sheng, Shou, Herbal. Use Red for Chinese hong cha, and Sheng or Shou rather than a generic puerh label. form must be one of Loose, Cake, Brick, Tuo, Ball, Bag. originCountry is a country name such as China, Taiwan, Japan; originRegion is the growing area such as Guangxi, Yiwu, Alishan.',
     'classification is the production or grade descriptor the trade would use, such as "traditional basket-fermented", "first flush", or "competition grade". description is one or two neutral sentences about what the tea is. Leave either null rather than writing marketing copy.',
-    'processingNotes preserves processing facts. Route explicit sensory terms to existing tasting taxonomy IDs with tastingSource "common", never "owner".',
+    'processingNotes preserves processing facts. Route explicit sensory terms about the exact listed product to existing tasting taxonomy IDs with tastingSource "source", never "common" or "owner".',
     'cultivar is the tea plant the leaf came from, when the record names it or the tea is only ever made from one, such as Rou Gui, Shui Xian, Tie Guan Yin, Cui Yu, Jin Xuan, Fuding Da Bai, Yabukita. Use the plant name alone, not the finished tea name, and leave it null when more than one plant is plausible.',
     'producer is the factory, house or brand that made the tea, when the record names one: Menghai Tea Factory, Xiaguan, Zhong Cha, Dayi, Tongqinghao, Wuzhou. This is never the supplier the buyer purchased from, which is recorded separately as the vendor. Leave it null when the record only names a seller.',
     'Mark every field you filled from general knowledge rather than the record as "ai_interpretation" in validation, and leave it null when you are not confident. A blank field is better than a wrong one, but a recognisable tea should not come back blank.',

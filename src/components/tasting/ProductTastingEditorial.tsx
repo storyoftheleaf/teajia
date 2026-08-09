@@ -44,6 +44,7 @@ interface ProductTastingEditorialProps {
 const SOURCE_LINE: Record<SensorySource, string> = {
   owner: 'Tasted by Adrian',
   community: 'From the community',
+  source: 'Source-described profile',
   common: 'Potential profile',
   record: 'Written on the record, not yet tasted',
 };
@@ -52,6 +53,7 @@ const SOURCE_LINE: Record<SensorySource, string> = {
 const SOURCE_TONE: Record<SensorySource, string> = {
   owner: 'text-tea-text-sec',
   community: 'text-tea-text-dim',
+  source: 'text-tea-text-dim',
   common: 'text-tea-text-dim',
   record: 'text-tea-text-dim',
 };

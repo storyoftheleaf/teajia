@@ -108,7 +108,7 @@ const ALL_FLAVOR_TAG_TERMS = (() => {
  */
 function resolvedIncludes(item: TeaItem, categoryId: TastingCategoryId, termId: string): boolean {
   const ownerTerms =
-    (item.tastingSource === 'owner' || item.tastingSource === 'community')
+    (item.tastingSource === 'owner' || item.tastingSource === 'community' || item.tastingSource === 'source')
       ? item.tasting?.[categoryId]
       : undefined;
   if (ownerTerms?.includes(termId)) return true;
@@ -178,7 +178,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
     const present = new Set<string>();
     for (const item of inventory) {
       const ownerTerms =
-        (item.tastingSource === 'owner' || item.tastingSource === 'community')
+        (item.tastingSource === 'owner' || item.tastingSource === 'community' || item.tastingSource === 'source')
           ? item.tasting?.feeling
           : undefined;
       if (ownerTerms) {

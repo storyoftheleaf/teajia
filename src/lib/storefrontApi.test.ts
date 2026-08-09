@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchNetworkStores } from './storefrontApi';
+import { fetchNetworkStores, normalizeProduct } from './storefrontApi';
 
 describe('storefront API transport retries', () => {
   beforeEach(() => {
@@ -30,5 +30,12 @@ describe('storefront API transport retries', () => {
 
     await expect(request).resolves.toEqual([]);
     expect(fetch).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('storefront product tasting provenance', () => {
+  it('decodes source and preserves legacy common tasting sources', () => {
+    expect(normalizeProduct({ id: 'source-lot', tasting_source: 'source' }).tastingSource).toBe('source');
+    expect(normalizeProduct({ id: 'legacy-common', tasting_source: 'common' }).tastingSource).toBe('common');
   });
 });

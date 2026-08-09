@@ -536,11 +536,11 @@ export interface InventoryItem {
    * Source of the tasting data.
    * - 'owner': reviewed and saved by the shop owner — speaks as Adrian's voice.
    * - 'community': aggregated from public reviews.
+   * - 'source': described by source material for this exact tea lot.
    * - 'common' | undefined: default to style-level common profile (see commonTastingByStyle).
-   * Only 'owner' and 'community' are public claims about this specific product;
-   * anything else falls back to the style baseline and is labeled as such.
+   * Source-described profiles remain distinct from owner tasting and shared knowledge.
    */
-  tastingSource?: 'common' | 'owner' | 'community';
+  tastingSource?: 'common' | 'owner' | 'community' | 'source';
   quantityUnits?: number;
   sessionReserveGrams?: number; // When stock_g <= this, show a soft low-availability warning
   moodTags?: string[];
@@ -583,7 +583,7 @@ export interface PublicProduct {
   teawareCategory?: 'pot' | 'cup' | 'tray' | 'storage' | 'accessory' | 'decorative';
   quantityUnits?: number;
   tasting?: TastingData;
-  tastingSource?: 'common' | 'owner' | 'community';
+  tastingSource?: 'common' | 'owner' | 'community' | 'source';
   moodTags?: string[];
   flavorTags?: string[];
   /**

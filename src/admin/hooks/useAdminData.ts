@@ -13,6 +13,12 @@ const useAccountQueryScope = () => {
   };
 };
 
+export function normalizeAdminProductTastingSource(value: unknown): Product['tastingSource'] | undefined {
+  return value === 'owner' || value === 'community' || value === 'source' || value === 'common'
+    ? value
+    : undefined;
+}
+
 // Fetch Products
 export const useProducts = (options?: { enabled?: boolean }) => {
   const { accountScope, userScope } = useAccountQueryScope();
@@ -74,10 +80,7 @@ export const useProducts = (options?: { enabled?: boolean }) => {
         recheckStock: !!p.recheck_stock,
         stockVerifiedAt: p.stock_verified_at || null,
         tasting: p.tasting && typeof p.tasting === 'object' ? p.tasting : undefined,
-        tastingSource:
-          p.tasting_source === 'owner' || p.tasting_source === 'community' || p.tasting_source === 'common'
-            ? p.tasting_source
-            : undefined,
+        tastingSource: normalizeAdminProductTastingSource(p.tasting_source),
         sourceCompassEntryId: p.source_compass_entry_id || undefined,
         material: p.material || undefined,
         capacityMl: p.capacity_ml == null ? undefined : Number(p.capacity_ml),

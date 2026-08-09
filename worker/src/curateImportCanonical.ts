@@ -57,7 +57,7 @@ export interface CanonicalImportRecord {
   description: string | null;
   processingNotes: string | null;
   tasting: TastingData | null;
-  tastingSource: 'common' | null;
+  tastingSource: 'source' | 'common' | null;
   packWeight: number | null;
   weightUnit: CanonicalImportWeightUnit | null;
   packCount: number | null;
@@ -196,7 +196,7 @@ function inventoryPurpose(value: unknown): CanonicalImportInventoryPurpose | nul
 }
 
 function tastingSource(value: unknown): CanonicalImportRecord['tastingSource'] {
-  return value === 'common' ? value : null;
+  return value === 'source' || value === 'common' ? value : null;
 }
 
 function priceBasis(value: unknown): CanonicalImportPriceBasis {
@@ -352,7 +352,7 @@ export function canonicalImportToProductValues(record: CanonicalImportRecord): C
     + (record.producer ? ` by ${record.producer}` : '');
   const identityDescription = record.sourceItemId?.startsWith('record:')
     && record.tasting
-    && record.tastingSource === 'common'
+    && (record.tastingSource === 'source' || record.tastingSource === 'common')
     && neutralIdentityDescription
     ? `${neutralIdentityDescription}.`
     : record.description;

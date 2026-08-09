@@ -840,6 +840,7 @@ describe('Curate import provenance API', () => {
       method: 'POST', body: JSON.stringify({ title: 'Yi Bang public record', pasted_text: yiBangLabeledPaste }),
     });
     const { batch, sources } = await created.json() as any;
+    expect(db.sources.get(sources[0].id)?.pasted_text).toBe(yiBangLabeledPaste);
 
     const analyzed = await request(
       db,
@@ -881,12 +882,13 @@ describe('Curate import provenance API', () => {
           clarity: 'clear',
           huiGan: true,
         },
-        tastingSource: 'common',
+        tastingSource: 'source',
         processingNotes: expect.stringContaining('hand-fixed in a copper wok'),
         sourceExcerpt: expect.stringContaining('From Yi Bang village in northern Yiwu'),
       }),
     })]);
     const parsed = body.items[0].parsed_data;
+    expect(parsed.tastingSource).not.toBe('common');
     const reviewed = buildImportCorrectionParsedData(parsed, {
       englishName: parsed.englishName, originalName: parsed.originalName, type: parsed.type, classification: parsed.classification,
       year: parsed.year, form: parsed.form, originCountry: parsed.originCountry, originRegion: parsed.originRegion,
@@ -903,7 +905,7 @@ describe('Curate import provenance API', () => {
       producer: 'Yunnan Sourcing Brand Pu-erh',
       description: expect.stringContaining('Full-mouthed and pungently aromatic'),
       tasting: parsed.tasting,
-      tastingSource: 'common',
+      tastingSource: 'source',
       processingNotes: expect.stringContaining('hand-fixed in a copper wok'),
       sourceExcerpt: expect.stringContaining('From Yi Bang village in northern Yiwu'),
     });

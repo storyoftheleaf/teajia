@@ -17,6 +17,17 @@ describe('AlcoveCharacterBand tasting attribution', () => {
     expect(markup).not.toContain('Adrian');
   });
 
+  it('labels exact-lot terms as source-described without implying style or owner', () => {
+    const markup = renderToStaticMarkup(<AlcoveCharacterBand
+      item={{ tasting: { flavor: ['honey'] }, tastingSource: 'source' } as never}
+      legacyNotes={[]}
+    />);
+
+    expect(markup).toContain('Source-described profile');
+    expect(markup).not.toContain('Potential profile');
+    expect(markup).not.toContain('Adrian');
+  });
+
   it('does not label legacy-only visible terms as a common potential profile', () => {
     const markup = renderToStaticMarkup(<AlcoveCharacterBand
       item={{ tasting: { body: ['full'] }, tastingSource: 'common' } as never}

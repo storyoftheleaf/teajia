@@ -642,7 +642,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             tasting_notes: formData.tastingNotes.split(',').map(n => n.trim()).filter(n => n),
             tasting: Object.keys(tastingData).length > 0 ? tastingData : undefined,
             // Only an explicit tasting editor save speaks in the owner's voice.
-            // Untouched imported potential keeps its existing common source.
+            // Untouched imported tasting keeps its existing provenance.
             tasting_source: productTastingSourceForSave(tastingData, initialData?.tastingSource, tastingExplicitlyEdited),
             is_custom_wisdom: formData.isCustomWisdom,
             show_wisdom: formData.showWisdom,
