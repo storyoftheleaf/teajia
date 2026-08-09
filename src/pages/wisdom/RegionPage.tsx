@@ -30,6 +30,7 @@ import {
   SPACE,
   WisdomSubNav,
 } from './wisdomShared';
+import { EntryResearchSection } from './EntryResearchSection';
 
 const RegionPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -162,6 +163,8 @@ const RegionPage: React.FC = () => {
           </IndexList>
         )}
       </section>
+
+      <EntryResearchSection entryKind="region" entryId={region.id} />
 
       <EntryAuthorship id={region.id} />
 

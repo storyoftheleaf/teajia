@@ -1,8 +1,9 @@
 import React from 'react';
 import type { InventoryItem } from '../../../types';
-import { resolveTermLabel } from '../../../data/tastingTaxonomy';
+import { resolveTermLabel, TASTING_CATEGORY_ORDER } from '../../../data/tastingTaxonomy';
 import { starredNotes } from '../../../lib/noteEntries';
 import { AlcoveSectionHeading } from './AlcoveSectionHeading';
+import type { ProductResearchResolution } from '../../../wisdom/productResearch';
 
 /** Converts a string to Title Case */
 function toTitleCase(str: string): string {
@@ -22,6 +23,21 @@ interface AlcoveCharacterBandProps {
   isAdmin?: boolean;
   onEditProductTasting?: (item: InventoryItem) => void;
   onTermClick?: (termId: string, categoryId: string) => void;
+  potentialResearch?: ProductResearchResolution | null;
+}
+
+const POTENTIAL_LABELS: Record<string, string> = {
+  body: 'Body',
+  finish: 'Finish',
+  feeling: 'Feeling',
+  flavor: 'Taste',
+  'liquor-color': 'Liquor',
+  brewing: 'Brewing',
+};
+
+function wisdomEntryPath({ entryKind, entryId }: ProductResearchResolution): string {
+  const segment = entryKind === 'namedTea' ? 'named' : entryKind;
+  return `/wisdom/${segment}/${entryId}`;
 }
 
 /** One centered label + serif term line, terms separated by gold middots. */
@@ -71,6 +87,7 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
   isAdmin,
   onEditProductTasting,
   onTermClick,
+  potentialResearch,
 }) => {
   const tasting = item.tasting;
 
@@ -100,7 +117,7 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
   const starred = starredNotes(tasting);
   const hasVisibleStructuredTerms = flavorTerms.length > 0 || feelingTerms.length > 0;
   const hasTerms = tasteTerms.length > 0 || feelingTerms.length > 0;
-  const hasAny = hasTerms || starred.length > 0;
+  const hasAny = hasTerms || starred.length > 0 || Boolean(potentialResearch);
 
   // No sensory data and no admin editor: no band, no empty heading.
   if (!hasAny && !(isAdmin && onEditProductTasting)) return null;
@@ -152,6 +169,41 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
           </figure>
         );
       })}
+
+      {potentialResearch && (
+        <div className={`border-t border-tea-border px-1 text-center ${hasTerms || starred.length ? 'mt-4 pt-4' : 'pt-1'}`}>
+          <p className="font-sans text-ui-9 uppercase tracking-[0.24em] indent-[0.24em] text-tea-text-dim">
+            Potential character
+          </p>
+          <div className="mt-2 flex flex-wrap justify-center gap-x-6 gap-y-3">
+            {TASTING_CATEGORY_ORDER.map(category => {
+              const terms = potentialResearch.profile.tasting[category];
+              if (!terms?.length) return null;
+              return (
+                <div key={category} className="max-w-full">
+                  <p className="font-sans text-ui-9 uppercase tracking-[0.15em] text-tea-text-dim">
+                    {POTENTIAL_LABELS[category]}
+                  </p>
+                  <p className="mt-1 font-display text-ui-17 leading-[1.4] text-tea-text">
+                    {terms.map(resolveTermLabel).join(' · ')}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+          <p className="mt-3 font-sans text-ui-11 leading-relaxed text-tea-text-sec">
+            Cited shared research
+            {potentialResearch.sources.length > 0 && ` from ${potentialResearch.sources.map(source => source.publisher).join(', ')}`}
+            {'. '}
+            <a
+              href={wisdomEntryPath(potentialResearch)}
+              className="inline-flex min-h-[44px] items-center rounded-md underline decoration-tea-text-dim underline-offset-4 transition-colors hover:text-tea-gold hover:decoration-tea-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
+            >
+              Research context
+            </a>
+          </p>
+        </div>
+      )}
     </section>
   );
 };

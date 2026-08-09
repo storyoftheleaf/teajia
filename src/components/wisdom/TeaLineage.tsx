@@ -2,14 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
 import {
-  findCultivarById,
-  findRegion,
   loadCultivarStory,
-  matchCultivar,
   type Cultivar,
   type CultivarStory,
   type Region,
 } from '../../wisdom';
+import {
+  resolveLineage,
+  type TeaLineageProduct,
+  type TeaLineageResolution,
+} from '../../wisdom/productIdentity';
 import { authorshipLine } from '../../wisdom/authorship';
 import { FactGrid, orderFacts, type Fact } from './FactGrid';
 import { BODY, HEADING, LABEL, LABEL_GAP, SECTION } from '../shared/typeRoles';
@@ -20,18 +22,8 @@ import { BODY, HEADING, LABEL, LABEL_GAP, SECTION } from '../shared/typeRoles';
  * component can be dropped onto any surface that sells a tea, not just the
  * product page.
  */
-export interface TeaLineageProduct {
-  name: string;
-  chineseName?: string | null;
-  origin?: string | null;
-  /** A cultivar id or a freeform name recorded directly on the product, when known. */
-  cultivar?: string | null;
-}
-
-export interface TeaLineageResolution {
-  cultivar: Cultivar | null;
-  region: Region | null;
-}
+export { resolveLineage } from '../../wisdom/productIdentity';
+export type { TeaLineageProduct, TeaLineageResolution } from '../../wisdom/productIdentity';
 
 /** One label/value pair in the expanded reference grid. */
 export type LineageFact = Fact;
@@ -54,14 +46,6 @@ const SUMMARY_ROW = 'flex items-start justify-between gap-3';
  * recorded origin, so a product can show altitude/climate for where it was
  * actually grown even when its cultivar's home region differs.
  */
-export function resolveLineage(product: TeaLineageProduct): TeaLineageResolution {
-  const cultivar = product.cultivar
-    ? findCultivarById(product.cultivar) ?? matchCultivar(product.cultivar)
-    : matchCultivar(product.name, product.chineseName);
-  const region = findRegion(product.origin);
-  return { cultivar, region };
-}
-
 /**
  * The opening of a story, not the full paragraph.
  *

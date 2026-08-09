@@ -25,6 +25,7 @@ import {
   SPACE,
   WisdomSubNav,
 } from './wisdomShared';
+import { EntryResearchSection } from './EntryResearchSection';
 
 const MarkPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -117,6 +118,8 @@ const MarkPage: React.FC = () => {
           <p className={`${FACT_CLASS} text-tea-text ${MEASURE} ${AXIS_INDENT}`}>{mark.description}</p>
         </section>
       )}
+
+      <EntryResearchSection entryKind="mark" entryId={mark.id} />
 
       <EntryAuthorship id={mark.id} />
 

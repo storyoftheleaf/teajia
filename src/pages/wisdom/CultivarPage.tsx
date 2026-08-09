@@ -37,6 +37,7 @@ import {
   WisdomSubNav,
 } from './wisdomShared';
 import { LineageTree, isCultivar, nameOf, readLineage } from './LineageTree';
+import { EntryResearchSection } from './EntryResearchSection';
 
 const titleCase = (value: string) =>
   value.replace(/\b[a-z]/g, letter => letter.toUpperCase()).replace(/\bAnd\b/g, 'and');
@@ -342,6 +343,8 @@ const CultivarPage: React.FC = () => {
           and look for {cultivar.name} by name.
         </p>
       </section>
+
+      <EntryResearchSection entryKind="cultivar" entryId={cultivar.id} />
 
       <EntryAuthorship id={cultivar.id} />
 

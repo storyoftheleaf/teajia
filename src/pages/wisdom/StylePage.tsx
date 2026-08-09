@@ -21,6 +21,7 @@ import {
   SPACE,
   WisdomSubNav,
 } from './wisdomShared';
+import { EntryResearchSection } from './EntryResearchSection';
 
 const StylePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -100,6 +101,8 @@ const StylePage: React.FC = () => {
           <p className={`${FACT_CLASS} text-tea-text ${MEASURE} ${AXIS_INDENT}`}>{style.description}</p>
         </section>
       )}
+
+      <EntryResearchSection entryKind="style" entryId={style.id} />
 
       <EntryAuthorship id={style.id} />
 

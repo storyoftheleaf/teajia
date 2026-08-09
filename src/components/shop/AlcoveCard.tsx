@@ -29,6 +29,7 @@ import { TeaReference, type TeaReferenceProduct } from '../wisdom/TeaReference';
 import { FactGrid } from '../wisdom/FactGrid';
 import { LABEL } from '../shared/typeRoles';
 import type { ProductImpression } from './ProductImpressions';
+import { resolveProductResearch } from '../../wisdom/productResearch';
 
 interface AlcoveCardProps {
   item: InventoryItem;
@@ -372,17 +373,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     />
   );
 
-  // 4. Character: taste, feel, and starred notes in one tonal band
-  const characterBand = (
-    <AlcoveCharacterBand
-      item={item}
-      legacyNotes={notes}
-      isAdmin={isAdmin}
-      onEditProductTasting={onEditProductTasting}
-      onTermClick={onTermClick}
-    />
-  );
-
   // What the wisdom base can resolve from this product's own fields.
   const referenceProduct: TeaReferenceProduct = {
     name: item.name,
@@ -393,6 +383,21 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     type: item.type,
     year: item.year,
   };
+  const potentialResearch = item.category === 'tea'
+    ? resolveProductResearch(referenceProduct)
+    : null;
+
+  // 4. Character: exact product tasting and cited shared potential remain separate.
+  const characterBand = (
+    <AlcoveCharacterBand
+      item={item}
+      legacyNotes={notes}
+      isAdmin={isAdmin}
+      onEditProductTasting={onEditProductTasting}
+      onTermClick={onTermClick}
+      potentialResearch={potentialResearch}
+    />
+  );
   const brewingProfile = item.category === 'tea' ? getBrewingProfile(item.type) : undefined;
 
   // 5. About this tea: story + terroir + craft as one reading chapter

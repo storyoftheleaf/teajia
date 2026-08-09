@@ -30,6 +30,9 @@ import { DATASET_BUILT, DATASET_PAGES, DATASET_RECORDS, DATASET_VERSION } from '
 import { tidyName } from './LineageTree';
 import { AUTHORSHIP } from '../../wisdom/authorship';
 import { NAMING_TRADITIONS, REGIONS } from '../../wisdom';
+import type { PublicResearchBundle } from '../../wisdom/research';
+import type { WisdomEntryKind } from '../../wisdom/types';
+import { EntryResearchSection } from './EntryResearchSection';
 
 const render = (path: string) =>
   renderToString(
@@ -70,6 +73,75 @@ const DETAIL_PAGES = [
   '/wisdom/region/wuyi-mountains-fujian',
   '/wisdom/named/courage',
 ];
+
+const researchKinds: WisdomEntryKind[] = ['cultivar', 'region', 'producer', 'style', 'mark', 'namedTea'];
+const sharedResearchBundle: PublicResearchBundle = {
+  sources: [{
+    id: 'shared-source',
+    publisher: 'Tea Research Institute',
+    title: 'A scoped tea character study',
+    url: 'https://example.com/tea-study',
+    kind: 'institutional',
+    accessedAt: '2026-08-08',
+  }],
+  citations: researchKinds.map(entryKind => ({
+    id: `${entryKind}-citation`,
+    entryKind,
+    entryId: `${entryKind}-fixture`,
+    fields: ['description'],
+    sourceIds: ['shared-source'],
+    usage: 'qualified' as const,
+    qualification: `Limited to this ${entryKind} entry.`,
+  })),
+  potentialProfiles: researchKinds.map(entryKind => ({
+    entryKind,
+    entryId: `${entryKind}-fixture`,
+    tasting: { flavor: ['honey'], body: ['full'] },
+    citationIds: [`${entryKind}-citation`],
+  })),
+};
+
+describe('entry research', () => {
+  it('shows the qualified Yi Bang source without turning it into a commercial relationship', () => {
+    const html = render('/wisdom/region/yi-bang-village-yunnan');
+
+    expect(html).toContain('Research sources');
+    expect(html).toContain('Yunnan Sourcing');
+    expect(html).toContain('2025 Yunnan Sourcing Yi Bang Wild Arbor Raw Pu-erh Tea Cake');
+    expect(html).toContain('href="https://yunnansourcing.com/products/2025-yunnan-sourcing-yi-bang-wild-arbor-raw-pu-erh-tea-cake"');
+    expect(html).toContain('Accessed 8 August 2026');
+    expect(html).toContain('Supports Yi Bang&#x27;s place and specialist-retail trade context only. It does not support a village-wide sensory profile.');
+    expect(html).not.toMatch(/\b(?:our vendor|vendor|producer)\b/i);
+    expect(html).not.toContain('Potential profile');
+  });
+
+  it('uses the same cited research section for every Wisdom detail kind', () => {
+    for (const entryKind of researchKinds) {
+      const html = renderToString(
+        <MemoryRouter>
+          <EntryResearchSection
+            entryKind={entryKind}
+            entryId={`${entryKind}-fixture`}
+            bundle={sharedResearchBundle}
+          />
+        </MemoryRouter>,
+      );
+
+      expect(html).toContain('Potential profile');
+      expect(html).toContain('Honey');
+      expect(html).toContain('Research sources');
+      expect(html).toContain(`Limited to this ${entryKind} entry.`);
+    }
+  });
+
+  it('renders no research section when an entry has neither citations nor a cited profile', () => {
+    const html = renderToString(
+      <EntryResearchSection entryKind="region" entryId="no-research" bundle={sharedResearchBundle} />,
+    );
+
+    expect(html).toBe('');
+  });
+});
 
 describe('wayfinding', () => {
   it('carries one control, not a back link above a lit nav item', () => {
@@ -535,7 +607,9 @@ describe('the jump control', () => {
     const html = render('/wisdom/regions');
     expect(html).toMatch(/<select[^>]*class="[^"]*appearance-none/);
     // Its own chevron, drawn in the same glyph the compact nav uses.
-    expect(html).toMatch(/<select[\s\S]{0,4000}?lucide-chevron-down/);
+    expect(html).toMatch(
+      /<select[^>]*aria-label="Jump to a group of places"[\s\S]*?<\/select><svg[^>]*lucide-chevron-down/,
+    );
   });
 });
 

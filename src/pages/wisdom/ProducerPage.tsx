@@ -26,6 +26,7 @@ import {
   SPACE,
   WisdomSubNav,
 } from './wisdomShared';
+import { EntryResearchSection } from './EntryResearchSection';
 
 const KIND_LABEL: Record<Producer['kind'], string> = {
   factory: 'Factory',
@@ -143,6 +144,8 @@ const ProducerPage: React.FC = () => {
           </ul>
         </section>
       )}
+
+      <EntryResearchSection entryKind="producer" entryId={producer.id} />
 
       <EntryAuthorship id={producer.id} />
 

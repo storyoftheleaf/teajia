@@ -28,6 +28,7 @@ import {
   SPACE,
   WisdomSubNav,
 } from './wisdomShared';
+import { EntryResearchSection } from './EntryResearchSection';
 
 function provenanceStatement(provenance: 'undisclosed' | 'partial' | 'stated'): string {
   switch (provenance) {
@@ -137,6 +138,8 @@ const NamedTeaPage: React.FC = () => {
           <p className={`${FACT} ${MEASURE} ${AXIS_INDENT}`}>{tea.description}</p>
         </section>
       )}
+
+      <EntryResearchSection entryKind="namedTea" entryId={tea.id} />
 
       <EntryAuthorship id={tea.id} />
 
