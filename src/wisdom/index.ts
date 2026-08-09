@@ -33,6 +33,7 @@ export type {
   ResearchSource,
   PublicResearchSource,
   WisdomCitation,
+  WisdomPotentialTasting,
   WisdomPotentialProfile,
 } from './types';
 

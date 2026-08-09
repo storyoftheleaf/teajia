@@ -40,6 +40,17 @@ export const RESEARCH_BUNDLE: PublicResearchBundle = {
 
 const ENTRY_KINDS: WisdomEntryKind[] = ['cultivar', 'region', 'producer', 'style', 'mark', 'namedTea'];
 const PUBLIC_USAGES = new Set(['usable', 'qualified']);
+const RESEARCH_SOURCE_KINDS = new Set([
+  'scientific',
+  'governmental',
+  'institutional',
+  'producer-primary',
+  'specialist-retailer',
+  'book',
+  'other',
+]);
+const RESEARCH_SOURCE_TRUST = new Set(['primary', 'strong', 'qualified', 'lead-only']);
+const STABLE_SOURCE_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 const DEFAULT_ENTRY_RECORDS: ResearchEntryRecords = {
   cultivar: CULTIVARS.map(entry => ({
@@ -148,17 +159,67 @@ function entryIndex(records: ResearchEntryRecords) {
   ])) as Record<WisdomEntryKind, Map<string, Record<string, unknown>>>;
 }
 
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && Boolean(value.trim());
+}
+
+function isIsoDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+
+function isHttpUrl(value: unknown): boolean {
+  if (typeof value !== 'string') return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 /** Returns every validation problem in deterministic order. An empty array is valid. */
 export function validateResearchBundle(
-  bundle: ResearchReadableBundle,
+  bundle: ResearchBundle,
   records: ResearchEntryRecords = DEFAULT_ENTRY_RECORDS,
 ): string[] {
   const errors: string[] = [];
   const entries = entryIndex(records);
   const sources = new Map<string, ResearchSource | PublicResearchSource>();
-  for (const source of bundle.sources.slice().sort(byStableId)) {
-    if (sources.has(source.id)) errors.push(`Duplicate research source id ${source.id}`);
-    sources.set(source.id, source);
+  const sourceRecords = bundle.sources
+    .map((source, index) => ({ source, index }))
+    .sort((left, right) => String(left.source?.id ?? '').localeCompare(String(right.source?.id ?? ''))
+      || left.index - right.index);
+  for (const { source, index } of sourceRecords) {
+    const sourceRecord = source as unknown as Record<string, unknown>;
+    const requiredFields = ['id', 'publisher', 'title', 'kind', 'accessedAt', 'trust'] as const;
+    for (const field of requiredFields) {
+      if (!isNonEmptyString(sourceRecord[field])) {
+        errors.push(`Research source at index ${index} has invalid ${field}`);
+      }
+    }
+
+    const sourceId = isNonEmptyString(sourceRecord.id) ? sourceRecord.id : '';
+    const label = sourceId || `at index ${index}`;
+    if (sourceId && !STABLE_SOURCE_ID.test(sourceId)) {
+      errors.push(`Research source at index ${index} has invalid id ${sourceId}`);
+    }
+    if (isNonEmptyString(sourceRecord.kind) && !RESEARCH_SOURCE_KINDS.has(sourceRecord.kind)) {
+      errors.push(`Research source ${label} has invalid kind ${sourceRecord.kind}`);
+    }
+    if (isNonEmptyString(sourceRecord.trust) && !RESEARCH_SOURCE_TRUST.has(sourceRecord.trust)) {
+      errors.push(`Research source ${label} has invalid trust ${sourceRecord.trust}`);
+    }
+    if (isNonEmptyString(sourceRecord.accessedAt) && !isIsoDate(sourceRecord.accessedAt)) {
+      errors.push(`Research source ${label} has invalid accessedAt ${sourceRecord.accessedAt}`);
+    }
+    if (sourceRecord.url !== undefined && !isHttpUrl(sourceRecord.url)) {
+      errors.push(`Research source ${label} has invalid url ${String(sourceRecord.url)}`);
+    }
+
+    if (sources.has(sourceId)) errors.push(`Duplicate research source id ${sourceId}`);
+    sources.set(sourceId, source);
   }
 
   const citations = new Map<string, WisdomCitation>();
@@ -200,11 +261,23 @@ export function validateResearchBundle(
     if (!entries[profile.entryKind]?.has(profile.entryId)) {
       errors.push(`Potential profile ${scope} references an unknown entry`);
     }
-    for (const [categoryId, values] of Object.entries(profile.tasting)) {
-      if (!Array.isArray(values)) continue;
-      const allowed = taxonomyTerms.get(categoryId);
-      for (const termId of [...values].sort()) {
-        if (!allowed?.has(termId)) errors.push(`Potential profile ${scope} has invalid ${categoryId} id ${termId}`);
+    const tasting = profile.tasting as unknown;
+    if (!tasting || typeof tasting !== 'object' || Array.isArray(tasting)) {
+      errors.push(`Potential profile ${scope} tasting must be an object`);
+    } else {
+      for (const [categoryId, values] of Object.entries(tasting)) {
+        const allowed = taxonomyTerms.get(categoryId);
+        if (!allowed) {
+          errors.push(`Potential profile ${scope} has unsupported tasting category ${categoryId}`);
+          continue;
+        }
+        if (!Array.isArray(values)) {
+          errors.push(`Potential profile ${scope} category ${categoryId} must be an array`);
+          continue;
+        }
+        for (const termId of [...values].sort()) {
+          if (!allowed.has(termId)) errors.push(`Potential profile ${scope} has invalid ${categoryId} id ${termId}`);
+        }
       }
     }
 

@@ -99,6 +99,67 @@ describe('tea research provenance', () => {
     );
   });
 
+  it('rejects non-taxonomy potential profile fields', () => {
+    for (const [field, value] of [['voiceNote', 'Copied prose'], ['quality', 10]] as const) {
+      const invalid = structuredClone(bundle);
+      invalid.potentialProfiles = [{
+        entryKind: 'region',
+        entryId: 'yi-bang-village-yunnan',
+        tasting: { [field]: value },
+        citationIds: ['yi-bang-place-source'],
+      }];
+      expect(validateResearchBundle(invalid as ResearchBundle)).toContain(
+        `Potential profile region:yi-bang-village-yunnan has unsupported tasting category ${field}`,
+      );
+    }
+  });
+
+  it('rejects a taxonomy category whose value is not an array', () => {
+    const invalid = structuredClone(bundle);
+    invalid.potentialProfiles = [{
+      entryKind: 'region',
+      entryId: 'yi-bang-village-yunnan',
+      tasting: { body: 'full' },
+      citationIds: ['yi-bang-place-source'],
+    }];
+    expect(validateResearchBundle(invalid as unknown as ResearchBundle)).toContain(
+      'Potential profile region:yi-bang-village-yunnan category body must be an array',
+    );
+  });
+
+  it('rejects missing required research source fields', () => {
+    const cases: Array<[string, (source: Record<string, unknown>) => void]> = [
+      ['id', source => { source.id = ''; }],
+      ['publisher', source => { delete source.publisher; }],
+      ['title', source => { source.title = '   '; }],
+      ['kind', source => { delete source.kind; }],
+      ['accessedAt', source => { delete source.accessedAt; }],
+      ['trust', source => { delete source.trust; }],
+    ];
+    for (const [field, mutate] of cases) {
+      const invalid = structuredClone(bundle);
+      mutate(invalid.sources[0] as unknown as Record<string, unknown>);
+      expect(validateResearchBundle(invalid)).toContain(
+        `Research source at index 0 has invalid ${field}`,
+      );
+    }
+  });
+
+  it('rejects invalid research source enums, dates, and URLs', () => {
+    const cases: Array<[string, unknown, string]> = [
+      ['id', 'Bad Source!', 'Research source at index 0 has invalid id Bad Source!'],
+      ['kind', 'blog', 'Research source yunnan-sourcing-yi-bang-2025 has invalid kind blog'],
+      ['trust', 'trusted', 'Research source yunnan-sourcing-yi-bang-2025 has invalid trust trusted'],
+      ['accessedAt', '08/08/2026', 'Research source yunnan-sourcing-yi-bang-2025 has invalid accessedAt 08/08/2026'],
+      ['url', 'ftp://example.com/tea', 'Research source yunnan-sourcing-yi-bang-2025 has invalid url ftp://example.com/tea'],
+    ];
+    for (const [field, value, message] of cases) {
+      const invalid = structuredClone(bundle);
+      (invalid.sources[0] as unknown as Record<string, unknown>)[field] = value;
+      expect(validateResearchBundle(invalid)).toContain(message);
+    }
+  });
+
   it('rejects profile citations from another entry scope', () => {
     const invalid = structuredClone(bundle);
     invalid.citations.push({

@@ -63,10 +63,15 @@ export interface WisdomCitation {
 }
 
 /** Qualified sensory character at one shared Wisdom entry scope. */
+export type WisdomPotentialTasting = Pick<
+  TastingData,
+  'body' | 'finish' | 'feeling' | 'flavor' | 'liquor-color' | 'brewing'
+>;
+
 export interface WisdomPotentialProfile {
   entryKind: WisdomEntryKind;
   entryId: string;
-  tasting: TastingData;
+  tasting: WisdomPotentialTasting;
   citationIds: string[];
 }
 
