@@ -164,7 +164,7 @@ const RegionPage: React.FC = () => {
         )}
       </section>
 
-      <EntryResearchSection entryKind="region" entryId={region.id} />
+      <EntryResearchSection entryKind="region" entryId={region.id} entry={region} />
 
       <EntryAuthorship id={region.id} />
 

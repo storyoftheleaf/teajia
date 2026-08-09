@@ -344,7 +344,12 @@ const CultivarPage: React.FC = () => {
         </p>
       </section>
 
-      <EntryResearchSection entryKind="cultivar" entryId={cultivar.id} />
+      <EntryResearchSection
+        entryKind="cultivar"
+        entryId={cultivar.id}
+        entry={story ? { ...cultivar, story } : cultivar}
+        verificationReady={!loading}
+      />
 
       <EntryAuthorship id={cultivar.id} />
 

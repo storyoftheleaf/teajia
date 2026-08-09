@@ -119,7 +119,7 @@ const MarkPage: React.FC = () => {
         </section>
       )}
 
-      <EntryResearchSection entryKind="mark" entryId={mark.id} />
+      <EntryResearchSection entryKind="mark" entryId={mark.id} entry={mark} />
 
       <EntryAuthorship id={mark.id} />
 

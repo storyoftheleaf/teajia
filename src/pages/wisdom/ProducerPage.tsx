@@ -145,7 +145,7 @@ const ProducerPage: React.FC = () => {
         </section>
       )}
 
-      <EntryResearchSection entryKind="producer" entryId={producer.id} />
+      <EntryResearchSection entryKind="producer" entryId={producer.id} entry={producer} />
 
       <EntryAuthorship id={producer.id} />
 

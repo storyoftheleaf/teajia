@@ -19,10 +19,13 @@ import {
   SectionHead,
   SPACE,
 } from './wisdomShared';
+import { WisdomVerificationControl } from './WisdomVerificationControl';
 
 interface EntryResearchSectionProps {
   entryKind: WisdomEntryKind;
   entryId: string;
+  entry?: unknown;
+  verificationReady?: boolean;
   bundle?: PublicResearchBundle;
 }
 
@@ -49,6 +52,8 @@ function readableDate(value: string): string {
 export const EntryResearchSection: React.FC<EntryResearchSectionProps> = ({
   entryKind,
   entryId,
+  entry,
+  verificationReady = true,
   bundle = RESEARCH_BUNDLE,
 }) => {
   const citations = getEntryCitations(bundle, entryKind, entryId);
@@ -58,8 +63,6 @@ export const EntryResearchSection: React.FC<EntryResearchSectionProps> = ({
   const profile = candidateProfile?.citationIds.some(id => citationIds.has(id))
     ? candidateProfile
     : null;
-
-  if (!profile && sources.length === 0) return null;
 
   return (
     <>
@@ -121,6 +124,17 @@ export const EntryResearchSection: React.FC<EntryResearchSectionProps> = ({
             })}
           </ul>
         </section>
+      )}
+
+      {entry !== undefined && (
+        <WisdomVerificationControl
+          entryKind={entryKind}
+          entryId={entryId}
+          entry={entry}
+          citations={citations}
+          potentialProfile={profile}
+          ready={verificationReady}
+        />
       )}
     </>
   );

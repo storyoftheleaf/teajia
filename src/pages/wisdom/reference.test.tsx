@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest';
 import { renderToString } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import CultivarIndexPage from './CultivarIndexPage';
 import CultivarPage from './CultivarPage';
 import MarkIndexPage from './MarkIndexPage';
@@ -33,28 +34,36 @@ import { NAMING_TRADITIONS, REGIONS } from '../../wisdom';
 import type { PublicResearchBundle } from '../../wisdom/research';
 import type { WisdomEntryKind } from '../../wisdom/types';
 import { EntryResearchSection } from './EntryResearchSection';
+import { useAppStore } from '../../lib/store';
+
+const setVerificationAccess = (platformRole: 'platform_owner' | 'platform_admin' | null, activeAccountId: string | null) => {
+  useAppStore.setState({ platformRole, activeAccountId });
+  Object.assign(useAppStore.getInitialState(), { platformRole, activeAccountId });
+};
 
 const render = (path: string) =>
   renderToString(
-    <HelmetProvider>
-      <MemoryRouter initialEntries={[path]}>
-        <Routes>
-          <Route path="/wisdom" element={<WisdomHomePage />} />
-          <Route path="/wisdom/cultivars" element={<CultivarIndexPage />} />
-          <Route path="/wisdom/regions" element={<RegionIndexPage />} />
-          <Route path="/wisdom/region/:id" element={<RegionPage />} />
-          <Route path="/wisdom/cultivar/:id" element={<CultivarPage />} />
-          <Route path="/wisdom/producers" element={<ProducerIndexPage />} />
-          <Route path="/wisdom/marks" element={<MarkIndexPage />} />
-          <Route path="/wisdom/mark/:id" element={<MarkPage />} />
-          <Route path="/wisdom/producer/:id" element={<ProducerPage />} />
-          <Route path="/wisdom/styles" element={<StyleIndexPage />} />
-          <Route path="/wisdom/named" element={<NamedTeaIndexPage />} />
-          <Route path="/wisdom/named/:id" element={<NamedTeaPage />} />
-          <Route path="/wisdom/style/:id" element={<StylePage />} />
-        </Routes>
-      </MemoryRouter>
-    </HelmetProvider>,
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <HelmetProvider>
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
+            <Route path="/wisdom" element={<WisdomHomePage />} />
+            <Route path="/wisdom/cultivars" element={<CultivarIndexPage />} />
+            <Route path="/wisdom/regions" element={<RegionIndexPage />} />
+            <Route path="/wisdom/region/:id" element={<RegionPage />} />
+            <Route path="/wisdom/cultivar/:id" element={<CultivarPage />} />
+            <Route path="/wisdom/producers" element={<ProducerIndexPage />} />
+            <Route path="/wisdom/marks" element={<MarkIndexPage />} />
+            <Route path="/wisdom/mark/:id" element={<MarkPage />} />
+            <Route path="/wisdom/producer/:id" element={<ProducerPage />} />
+            <Route path="/wisdom/styles" element={<StyleIndexPage />} />
+            <Route path="/wisdom/named" element={<NamedTeaIndexPage />} />
+            <Route path="/wisdom/named/:id" element={<NamedTeaPage />} />
+            <Route path="/wisdom/style/:id" element={<StylePage />} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>
+    </QueryClientProvider>,
   );
 
 const INDEX_PAGES = [
@@ -71,6 +80,15 @@ const DETAIL_PAGES = [
   '/wisdom/mark/7572',
   '/wisdom/producer/menghai-tea-factory',
   '/wisdom/region/wuyi-mountains-fujian',
+  '/wisdom/named/courage',
+];
+
+const ALL_DETAIL_PAGES = [
+  '/wisdom/cultivar/jin-xuan',
+  '/wisdom/region/wuyi-mountains-fujian',
+  '/wisdom/producer/menghai-tea-factory',
+  '/wisdom/style/xiao-qing-gan',
+  '/wisdom/mark/7572',
   '/wisdom/named/courage',
 ];
 
@@ -140,6 +158,26 @@ describe('entry research', () => {
     );
 
     expect(html).toBe('');
+  });
+});
+
+describe('private reference verification', () => {
+  it('leaves no control markup for public readers and platform admins', () => {
+    for (const role of [null, 'platform_admin'] as const) {
+      setVerificationAccess(role, 'account-a');
+      for (const path of ALL_DETAIL_PAGES) expect(render(path)).not.toContain('data-wisdom-verification');
+    }
+    setVerificationAccess(null, null);
+  });
+
+  it('places the owner control on all six detail kinds, including an entry without research', () => {
+    setVerificationAccess('platform_owner', 'account-a');
+    try {
+      for (const path of ALL_DETAIL_PAGES) expect(render(path)).toContain('data-wisdom-verification');
+      expect(render('/wisdom/mark/aaa-grade')).toContain('data-wisdom-verification');
+    } finally {
+      setVerificationAccess(null, null);
+    }
   });
 });
 

@@ -102,7 +102,7 @@ const StylePage: React.FC = () => {
         </section>
       )}
 
-      <EntryResearchSection entryKind="style" entryId={style.id} />
+      <EntryResearchSection entryKind="style" entryId={style.id} entry={style} />
 
       <EntryAuthorship id={style.id} />
 

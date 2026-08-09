@@ -139,7 +139,7 @@ const NamedTeaPage: React.FC = () => {
         </section>
       )}
 
-      <EntryResearchSection entryKind="namedTea" entryId={tea.id} />
+      <EntryResearchSection entryKind="namedTea" entryId={tea.id} entry={tea} />
 
       <EntryAuthorship id={tea.id} />
 
