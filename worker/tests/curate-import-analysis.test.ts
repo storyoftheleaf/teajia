@@ -272,6 +272,20 @@ describe('Curate import analysis domain', () => {
     });
   });
 
+  it('normalizes legacy provider common attribution to exact-lot source', () => {
+    const decoded = decodeImportAnalysisProposal(proposal({
+      tasting: { flavor: ['honey'] },
+      tastingSource: 'common',
+    } as never)).groups[0].items[0];
+
+    expect(decoded.tastingSource).toBe('source');
+    expect(decoded.tastingSource).not.toBe('common');
+    expect(decodeImportAnalysisProposal(proposal({
+      tasting: { flavor: ['honey'] },
+      tastingSource: 'owner',
+    } as never)).groups[0].items[0].tastingSource).toBeNull();
+  });
+
   it('recognizes supplier, purchased tea lines, totals, and acquired grams in a pasted vendor record', () => {
     const evidence = { sources: [{
       id: 'source-huang', kind: 'paste',

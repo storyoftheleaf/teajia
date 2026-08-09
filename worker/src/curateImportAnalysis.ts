@@ -122,7 +122,7 @@ export interface ImportRecordHints {
     description?: string | null;
     processingNotes?: string | null;
     tasting?: TastingData | null;
-    tastingSource?: 'source' | 'common' | null;
+    tastingSource?: 'source' | null;
   }>;
   ignoredSummaries: Array<{ sourceId: string; text: string; evidenceRef: string }>;
   annotations: Array<{
@@ -368,13 +368,14 @@ function decodeItem(value: unknown, groupIndex: number, itemIndex: number): Impo
   const duplicateResolution = input.duplicateResolution == null ? 'unresolved' : string(input.duplicateResolution, 'duplicateResolution');
   if (duplicateResolution !== 'new' && duplicateResolution !== 'matched' && duplicateResolution !== 'unresolved') throw new Error('Invalid duplicateResolution');
   if (input.acquired != null && typeof input.acquired !== 'boolean') throw new Error('Invalid acquired');
+  const tasting = normalizeImportTasting(input.tasting);
   return {
     chineseName: optionalText(input.chineseName, 'chineseName', 500),
     type: optionalText(input.type, 'type', 200), form: optionalText(input.form, 'form', 200),
     year: optionalYear(input.year), originCountry: optionalText(input.originCountry, 'originCountry', 200),
     originRegion: optionalText(input.originRegion, 'originRegion', 500), classification: optionalText(input.classification, 'classification', 500), cultivar: optionalText(input.cultivar, 'cultivar', 200), producer: optionalText(input.producer, 'producer', 200),
     description: optionalText(input.description, 'description', 5000), processingNotes: optionalText(input.processingNotes, 'processingNotes', 5000),
-    tasting: normalizeImportTasting(input.tasting), tastingSource: input.tastingSource === 'source' || input.tastingSource === 'common' ? input.tastingSource : null,
+    tasting, tastingSource: tasting && (input.tastingSource === 'source' || input.tastingSource === 'common') ? 'source' : null,
     inventoryPurpose: optionalText(input.inventoryPurpose, 'inventoryPurpose', 100),
     sourceItemId: string(input.sourceItemId, 'sourceItemId')!, category,
     originalName: string(input.originalName, 'originalName', true), englishName: string(input.englishName, 'englishName', true),
