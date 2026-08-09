@@ -8,7 +8,7 @@ export class SourceLayoutMismatchError extends Error {
 }
 
 const NAMED_ENTITIES = Object.freeze({
-  amp: '&', apos: "'", gt: '>', lt: '<', nbsp: ' ', quot: '"',
+  amp: '&', apos: "'", gt: '>', hellip: '…', laquo: '«', ldquo: '“', lsquo: '‘', lt: '<', mdash: '—', ndash: '–', nbsp: ' ', ordm: 'º', quot: '"', raquo: '»', rdquo: '”', rsquo: '’',
 });
 
 export function decodeHtml(value) {
@@ -66,6 +66,31 @@ export function extractMetaContent(html, name) {
 
 export function extractTitle(html) {
   return extractElement(html, 'h1')?.text || extractElement(html, 'title')?.text || '';
+}
+
+export function extractElementByClass(html, tag, className) {
+  const token = new RegExp(`(?:^|\\s)${className}(?:\\s|$)`, 'i');
+  return extractElement(html, tag, ({ attributes }) => token.test(extractAttribute(attributes, 'class')));
+}
+
+export function extractBoundedClassRegion(html, className, endClassNames = []) {
+  const source = String(html);
+  const opening = new RegExp(`<([a-z0-9]+)\\b([^>]*\\bclass\\s*=\\s*(?:"[^"]*\\b${className}\\b[^"]*"|'[^']*\\b${className}\\b[^']*')[^>]*)>`, 'i').exec(source);
+  if (!opening) return null;
+  const start = opening.index + opening[0].length;
+  const candidates = [];
+  for (const endClass of endClassNames) {
+    const marker = new RegExp(`<[a-z0-9]+\\b[^>]*\\bclass\\s*=\\s*(?:"[^"]*\\b${endClass}\\b[^"]*"|'[^']*\\b${endClass}\\b[^']*')`, 'i').exec(source.slice(start));
+    if (marker) candidates.push(start + marker.index);
+  }
+  const mainEnd = source.toLowerCase().indexOf('</main>', start);
+  if (mainEnd >= 0) candidates.push(mainEnd);
+  if (candidates.length === 0) {
+    const tagEnd = source.toLowerCase().indexOf(`</${opening[1].toLowerCase()}>`, start);
+    if (tagEnd >= 0) candidates.push(tagEnd);
+  }
+  if (candidates.length === 0) return null;
+  return source.slice(start, Math.min(...candidates));
 }
 
 export function requireElement(html, tag, label = tag) {

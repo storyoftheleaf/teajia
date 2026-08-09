@@ -15,6 +15,15 @@ function sleep(milliseconds) {
   return milliseconds > 0 ? new Promise((resolve) => setTimeout(resolve, milliseconds)) : Promise.resolve();
 }
 
+function localDate(value) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) throw new Error('Capture clock returned an invalid date');
+  const year = String(date.getFullYear()).padStart(4, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function confined(root, ...segments) {
   const resolvedRoot = path.resolve(root);
   const target = path.resolve(resolvedRoot, ...segments);
@@ -85,11 +94,12 @@ function errorRecord(source, error) {
   });
 }
 
-export async function captureBatch({ allowlist, outputRoot, fetcher = globalThis.fetch, previousRun = null }) {
+export async function captureBatch({ allowlist, outputRoot, fetcher = globalThis.fetch, previousRun = null, now = () => new Date() }) {
   if (typeof fetcher !== 'function') throw new Error('Capture requires a fetch function');
   const contract = validateAllowlist(allowlist);
   const root = await prepareOutputRoot(outputRoot);
   const previousClaims = await loadPreviousClaims(previousRun);
+  const accessedDate = localDate(now());
   const packets = [];
   const errors = [];
 
@@ -111,7 +121,7 @@ export async function captureBatch({ allowlist, outputRoot, fetcher = globalThis
         source,
         metadata: extracted.metadata,
         retrieval: Object.freeze({
-          accessedDate: new Date().toISOString().slice(0, 10),
+          accessedDate,
           httpStatus: response.status,
           contentType: response.headers?.get?.('content-type') || '',
           originalSha256: sha256(original),

@@ -1,14 +1,16 @@
 import { createClaimDraft } from '../claim.mjs';
 import { createEvidence, normalizeCapturedText } from '../evidence.mjs';
-import { extractElements, extractTitle, SourceLayoutMismatchError } from './html.mjs';
+import { extractElement, extractElements, extractTitle, SourceLayoutMismatchError } from './html.mjs';
 
 const FIELD_RULES = [
   { pattern: /英文名稱|english\s*name/i, predicate: 'english_name', claimScope: 'identity' },
+  { pattern: /^cultivar\s*name$/i, predicate: 'english_name', claimScope: 'identity' },
   { pattern: /親本|親緣|parentage|parents?/i, predicate: 'parentage', claimScope: 'identity' },
   { pattern: /適製性|適製茶類|suitable|tea\s*type/i, predicate: 'suitable_styles', claimScope: 'cultivar_potential' },
-  { pattern: /品種名稱|中文名稱|cultivar\s*name|variety\s*name/i, predicate: 'native_name', claimScope: 'identity' },
+  { pattern: /茶樹品種名稱|品種名稱|中文名稱|variety\s*name/i, predicate: 'native_name', claimScope: 'identity' },
   { pattern: /命名|育成|選拔|release|selection|registration/i, predicate: 'development_history', claimScope: 'identity' },
   { pattern: /特性|品質|characteristic|quality/i, predicate: 'common_characteristics', claimScope: 'cultivar_potential' },
+  { pattern: /品種概述|overview|description/i, predicate: 'common_characteristics', claimScope: 'cultivar_potential' },
 ];
 
 function labelledPairs(html) {
@@ -25,11 +27,16 @@ function labelledPairs(html) {
     const cells = extractElements(row.html, ['th', 'td']);
     if (cells.length >= 2) pairs.push([cells[0].text, cells.slice(1).map(({ text }) => text).join(' ')]);
   }
+  for (const paragraph of extractElements(html, ['p'])) {
+    const match = paragraph.text.match(/^([^：:\n]{1,40})[：:]\s*([\s\S]+)$/);
+    if (match) pairs.push([match[1].trim(), match[2].trim()]);
+  }
   return pairs;
 }
 
 export function extractTbrsCultivar({ source, html }) {
-  const title = extractTitle(html);
+  const detailTitle = extractElement(html, 'h3', ({ attributes }) => /\bdetail_titles\b/i.test(attributes));
+  const title = detailTitle?.text || extractTitle(html);
   if (!title) throw new SourceLayoutMismatchError('Expected cultivar title was not found');
   const fields = labelledPairs(html).map(([label, value]) => ({
     label,

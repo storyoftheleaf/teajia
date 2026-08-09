@@ -58,7 +58,7 @@ function coverageRows(claims) {
   return [...groups.values()].sort((left, right) => left.entityKind.localeCompare(right.entityKind) || left.claimScope.localeCompare(right.claimScope));
 }
 
-function styleTable(sheet, rows, widths, { decisionColumn = null, heldRows = false, tableName }) {
+function styleTable(sheet, rows, widths, { decisionColumn = null, heldRows = false, tableName, dateColumns = [] }) {
   const rowCount = Math.max(rows.length, 2);
   const columnCount = rows[0].length;
   const lastColumn = columnName(columnCount - 1);
@@ -88,6 +88,10 @@ function styleTable(sheet, rows, widths, { decisionColumn = null, heldRows = fal
   widths.forEach((width, index) => {
     sheet.getRangeByIndexes(0, index, rowCount, 1).format.columnWidth = width;
   });
+  for (const index of dateColumns) {
+    const letter = columnName(index);
+    sheet.getRange(`${letter}2:${letter}${rows.length}`).setNumberFormat('yyyy-mm-dd');
+  }
   if (decisionColumn !== null && rows.length > 1) {
     const letter = columnName(decisionColumn);
     sheet.getRange(`${letter}2:${letter}${Math.max(rows.length, 200)}`).dataValidation = { rule: { type: 'list', values: [...DECISIONS] } };
@@ -156,7 +160,7 @@ export async function writeReviewWorkbook({ capture, outputPath, artifactTool })
     packet.retrieval.originalSha256, packet.retrieval.normalizedSha256, 'captured',
   ]);
   for (const error of capture.errors) sourceRows.push([error.sourceId, '', '', '', '', '', '', '', error.url, '', '', `error: ${error.message}`]);
-  styleTable(sheets.SOURCES, sourceRows, [20, 24, 20, 30, 28, 22, 14, 14, 44, 34, 34, 28], { tableName: 'SourcesTable' });
+  styleTable(sheets.SOURCES, sourceRows, [20, 24, 20, 30, 28, 22, 14, 14, 44, 34, 34, 28], { tableName: 'SourcesTable', dateColumns: [6, 7] });
 
   const evidenceRows = [['Evidence ID', 'Source ID', 'Source URL', 'Heading', 'Section', 'Exact source text', 'Start', 'End', 'Excerpt hash']];
   for (const item of capture.evidence) evidenceRows.push([

@@ -2,10 +2,11 @@ import { createClaimDraft } from '../claim.mjs';
 import { createEvidence, normalizeCapturedText } from '../evidence.mjs';
 import {
   extractAttribute,
+  extractBoundedClassRegion,
+  extractElementByClass,
   extractElements,
   extractMetaContent,
   extractTitle,
-  requireElement,
   SourceLayoutMismatchError,
 } from './html.mjs';
 
@@ -17,18 +18,23 @@ const SCOPE_RULES = [
 ];
 
 function permittedScope(source, heading, paragraph) {
-  const context = `${heading} ${paragraph}`;
-  const candidate = SCOPE_RULES.find(([, pattern]) => pattern.test(context))?.[0] ?? 'identity';
+  const headingCandidate = SCOPE_RULES.find(([, pattern]) => pattern.test(heading))?.[0];
+  if (headingCandidate && source.permittedClaimScopes.includes(headingCandidate)) return headingCandidate;
+  const candidate = SCOPE_RULES.find(([, pattern]) => pattern.test(paragraph))?.[0] ?? 'identity';
   if (source.permittedClaimScopes.includes(candidate)) return candidate;
   return source.permittedClaimScopes[0];
 }
 
 export function extractSpecialistArticle({ source, html }) {
-  const article = requireElement(html, 'article', 'article root');
-  const title = extractTitle(article.html) || extractTitle(html);
+  const article = extractElements(html, ['article'])[0];
+  const wordpressBody = extractBoundedClassRegion(html, 'wp-block-post-content', ['wp-block-post-comments', 'post-navigation']);
+  const rootHtml = article?.html || wordpressBody;
+  if (!rootHtml) throw new SourceLayoutMismatchError('Expected article root was not found');
+  const postTitle = extractElementByClass(html, 'h1', 'wp-block-post-title');
+  const title = postTitle?.text || extractTitle(article?.html || '') || extractTitle(html);
   if (!title) throw new SourceLayoutMismatchError('Expected article title was not found');
 
-  const sequence = extractElements(article.html, ['h2', 'h3', 'p']);
+  const sequence = extractElements(rootHtml, ['h2', 'h3', 'p']);
   let heading = '';
   const paragraphs = [];
   for (const element of sequence) {
@@ -65,11 +71,12 @@ export function extractSpecialistArticle({ source, html }) {
     }));
   }
 
-  const time = extractElements(article.html, ['time'])[0];
+  const time = extractElements(html, ['time'])[0];
+  const wordpressAuthor = extractElementByClass(html, 'div', 'wp-block-post-author-name');
   return Object.freeze({
     metadata: Object.freeze({
       title,
-      author: extractMetaContent(html, 'author'),
+      author: extractMetaContent(html, 'author') || wordpressAuthor?.text || '',
       publishedDate: time ? extractAttribute(time.attributes, 'datetime') || time.text : '',
     }),
     normalizedText,

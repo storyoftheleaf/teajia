@@ -64,14 +64,16 @@ test('capture stores private originals, hashes, exact evidence and stable claims
     'https://example.test/qingxin': tbrsHtml,
   });
 
-  const first = await captureBatch({ allowlist, outputRoot: path.join(temp, 'run-1'), fetcher });
-  const second = await captureBatch({ allowlist, outputRoot: path.join(temp, 'run-2'), fetcher, previousRun: path.join(temp, 'run-1') });
+  const now = () => new Date('2030-02-03T08:00:00+08:00');
+  const first = await captureBatch({ allowlist, outputRoot: path.join(temp, 'run-1'), fetcher, now });
+  const second = await captureBatch({ allowlist, outputRoot: path.join(temp, 'run-2'), fetcher, previousRun: path.join(temp, 'run-1'), now });
 
   assert.equal(first.manifest.complete, true);
   assert.equal(first.manifest.sourceCount, 2);
   assert.equal(first.manifest.errorCount, 0);
   assert.ok(first.sources.every((packet) => /^[a-f0-9]{64}$/.test(packet.retrieval.originalSha256)));
   assert.ok(first.sources.every((packet) => /^[a-f0-9]{64}$/.test(packet.retrieval.normalizedSha256)));
+  assert.ok(first.sources.every((packet) => packet.retrieval.accessedDate === '2030-02-03'));
   assert.equal(await fs.readFile(path.join(temp, 'run-1', 'sources', 'specialist-yiwu', 'original.html'), 'utf8'), specialistHtml);
 
   const claimBytes1 = await fs.readFile(path.join(temp, 'run-1', 'claims.json'));
