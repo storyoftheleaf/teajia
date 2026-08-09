@@ -55,3 +55,21 @@ The deterministic parser routes the vendor's sensory claims into the existing pr
 The exact-record regression verifies that the future product payload uses a neutral identity description, keeps processing notes separate, serializes this tasting profile into the existing `tasting` field and sets `tasting_source` to `common`. The importer cannot assign `owner` or `community`. The source description and excerpt remain unchanged on the audit record. No unsupported feeling or tang gan terms are inferred.
 
 The visible live review passed at 1440 by 900 and 390 by 844 with zero horizontal overflow and zero browser console entries. The live draft was then abandoned with Delete import. The card disappeared. No review fields were saved, no import was finalized, and no product, inventory holding, receipt, vendor or sourcing run was created.
+
+## Final source-provenance rehearsal, 2026-08-09
+
+The same untouched 1,620-character Yi Bang record was analyzed after the exact-lot provenance model replaced the interim `common` label. The live review preserved the exact description, processing notes, source excerpt, producer, Sheng type, 2025 year, origin, plant wording, one 250 g cake and USD 76 per-pack price. Yunnan Sourcing remained a suggested vendor and cited research publisher. It was not treated as Teajia's supplier and was not created as a vendor.
+
+A read-only query of the saved draft confirmed `tastingSource` was `source`. The taxonomy-valid profile contained body `full`; finish `finish-long`, `hui-gan`, and `salivating`; flavor `floral`, `honey`, `fruity`, `citrus`, `fresh`, `sweet`, and `bitter`; liquor color `gold`; clarity `clear`; and hui gan true. The draft had zero import receipts before abandonment.
+
+The draft was abandoned through the live Delete import confirmation without saving the tea. A read-only post-condition query confirmed the batch and item were abandoned, finalization was absent, no review was saved, and there was no linked Compass entry, import receipt, resolved vendor, journey, or visit.
+
+The public Yi Bang Wisdom page showed the Yunnan Sourcing publisher, exact source title, access date, and the qualification limiting the citation to place and specialist-retail trade context. It showed no village-wide Potential profile. Clean production Chrome checks passed at 390 by 844 and 1440 by 900 with no console errors, failed requests, or horizontal overflow. Logged-out markup contained no private verification control.
+
+The first production Pages upload had cached the missing lazy Region page asset as an HTML fallback under an immutable JavaScript URL. A bounded page marker changed the chunk hash, the verified build was deployed again, and both viewport checks passed against the replacement asset.
+
+## Manual proposal sync, 2026-08-09
+
+Two independent manifest builds were byte-identical with SHA-256 `8130cff8057644a6e9cb987aa59350842ba20148605b5fc7c4f084b472a47801`. The complete corpus contained 319 proposals: 188 eligible and 131 held back for lacking a usable public citation. The first manual apply captured exactly 25 eligible v2 proposals and left all 25 remotely open for review. Each has a nonblank audit receipt and triage receipt. No proposal was approved or assimilated.
+
+All 25 exact v1 predecessors had already been dismissed. The sync therefore made zero defer calls because it could not prove an open predecessor, preserving the fail-closed supersession rule. The remaining 163 eligible proposals were deferred only by the apply cap and no later batch was run.
