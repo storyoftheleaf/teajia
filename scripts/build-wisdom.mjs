@@ -230,7 +230,7 @@ async function loadResearchValidator() {
   const outfile = join(temp, 'research.mjs');
   try {
     await bundleModule({
-      entryPoints: [join(projectRoot, 'src/wisdom/research.ts')],
+      entryPoints: [join(projectRoot, 'src/wisdom/researchValidation.ts')],
       bundle: true,
       format: 'esm',
       platform: 'node',
@@ -259,18 +259,38 @@ if (researchErrors.length) {
 const publicCitations = researchBundle.citations
   .filter(citation => citation.usage === 'usable' || citation.usage === 'qualified')
   .map(citation => ({
-    ...citation,
+    id: citation.id,
+    entryKind: citation.entryKind,
+    entryId: citation.entryId,
     fields: [...citation.fields].sort(),
     sourceIds: [...citation.sourceIds].sort(),
+    usage: citation.usage,
+    ...(citation.qualification ? { qualification: citation.qualification } : {}),
   }))
   .sort((left, right) => left.id.localeCompare(right.id));
 const publicSourceIds = new Set(publicCitations.flatMap(citation => citation.sourceIds));
 const publicResearchSources = researchBundle.sources
   .filter(entry => publicSourceIds.has(entry.id))
-  .map(({ trust: _trust, privateEvidenceRef: _privateEvidenceRef, ...entry }) => entry)
+  .map(entry => ({
+    id: entry.id,
+    publisher: entry.publisher,
+    title: entry.title,
+    ...(entry.url ? { url: entry.url } : {}),
+    kind: entry.kind,
+    accessedAt: entry.accessedAt,
+    ...(entry.publishedAt ? { publishedAt: entry.publishedAt } : {}),
+  }))
   .sort((left, right) => left.id.localeCompare(right.id));
+const POTENTIAL_PROFILE_CATEGORIES = ['body', 'finish', 'feeling', 'flavor', 'liquor-color', 'brewing'];
 const publicPotentialProfiles = researchBundle.potentialProfiles
-  .map(profile => ({ ...profile, citationIds: [...profile.citationIds].sort() }))
+  .map(profile => ({
+    entryKind: profile.entryKind,
+    entryId: profile.entryId,
+    tasting: Object.fromEntries(POTENTIAL_PROFILE_CATEGORIES
+      .filter(categoryId => Array.isArray(profile.tasting[categoryId]))
+      .map(categoryId => [categoryId, [...profile.tasting[categoryId]].sort()])),
+    citationIds: [...profile.citationIds].sort(),
+  }))
   .sort((left, right) => `${left.entryKind}:${left.entryId}`.localeCompare(`${right.entryKind}:${right.entryId}`));
 
 // ------------------------------------------------------------------- output

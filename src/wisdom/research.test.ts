@@ -3,9 +3,9 @@ import {
   getEntryCitations,
   getEntryPotentialProfile,
   getEntryResearchSources,
-  validateResearchBundle,
   type ResearchBundle,
 } from './research';
+import { validateResearchBundle } from './researchValidation';
 import type { WisdomPotentialProfile } from './types';
 
 const bundle: ResearchBundle = {
@@ -176,6 +176,24 @@ describe('tea research provenance', () => {
     }];
     expect(validateResearchBundle(invalid)).toContain(
       'Potential profile region:yi-bang-village-yunnan citation other-region-source targets region:anji-county-zhejiang',
+    );
+  });
+
+  it('rejects a public potential profile that also cites held-back evidence', () => {
+    const invalid = structuredClone(bundle);
+    invalid.citations.push({
+      ...invalid.citations[0],
+      id: 'held-back-source',
+      usage: 'held_back',
+    });
+    invalid.potentialProfiles = [{
+      entryKind: 'region',
+      entryId: 'yi-bang-village-yunnan',
+      tasting: { body: ['full'] },
+      citationIds: ['yi-bang-place-source', 'held-back-source'],
+    }];
+    expect(validateResearchBundle(invalid)).toContain(
+      'Potential profile region:yi-bang-village-yunnan cannot cite held-back citation held-back-source',
     );
   });
 });

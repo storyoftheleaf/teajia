@@ -104,4 +104,33 @@ describe('wisdom research build', () => {
     expect(bytes).not.toContain('privateEvidenceRef');
     expect(bytes).not.toContain('trust');
   });
+
+  it('allowlists every field written to public browser modules', () => {
+    const root = fixtureRoot();
+    rewriteJson(root, 'research-sources.json', sources => {
+      sources[0].adversarialSourceKey = 'source-secret';
+    });
+    rewriteJson(root, 'citations.json', citations => {
+      citations[0].adversarialCitationKey = 'citation-secret';
+    });
+    rewriteJson(root, 'potential-profiles.json', profiles => profiles.push({
+      entryKind: 'region',
+      entryId: 'yi-bang-village-yunnan',
+      tasting: { body: ['full'] },
+      citationIds: ['yi-bang-place-source'],
+      adversarialProfileKey: 'profile-secret',
+    }));
+
+    const result = runBuild(root);
+    expect(result.status).toBe(0);
+    const bytes = ['citations.ts', 'potentialProfiles.ts', 'researchSources.ts']
+      .map(name => readFileSync(join(root, 'src/wisdom/generated', name), 'utf8'))
+      .join('\n');
+    expect(bytes).not.toContain('adversarialSourceKey');
+    expect(bytes).not.toContain('adversarialCitationKey');
+    expect(bytes).not.toContain('adversarialProfileKey');
+    expect(bytes).not.toContain('source-secret');
+    expect(bytes).not.toContain('citation-secret');
+    expect(bytes).not.toContain('profile-secret');
+  });
 });
