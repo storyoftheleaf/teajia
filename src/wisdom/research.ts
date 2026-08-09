@@ -30,7 +30,8 @@ export interface PublicResearchBundle {
 }
 
 export type ResearchReadableBundle = ResearchBundle | PublicResearchBundle;
-export type ResearchEntryRecords = Record<WisdomEntryKind, Array<Record<string, unknown>>>;
+export type ResearchEntryRecord = object & { id: string };
+export type ResearchEntryRecords = Record<WisdomEntryKind, ResearchEntryRecord[]>;
 
 export const RESEARCH_BUNDLE: PublicResearchBundle = {
   sources: RESEARCH_SOURCES,
@@ -142,7 +143,7 @@ export function getEntryPotentialProfile(
   ) ?? null;
 }
 
-function fieldExists(record: Record<string, unknown>, path: string): boolean {
+function fieldExists(record: ResearchEntryRecord, path: string): boolean {
   let value: unknown = record;
   for (const segment of path.split('.')) {
     if (!segment || !value || typeof value !== 'object'
@@ -156,7 +157,7 @@ function entryIndex(records: ResearchEntryRecords) {
   return Object.fromEntries(ENTRY_KINDS.map(kind => [
     kind,
     new Map(records[kind].map(record => [String(record.id), record])),
-  ])) as Record<WisdomEntryKind, Map<string, Record<string, unknown>>>;
+  ])) as Record<WisdomEntryKind, Map<string, ResearchEntryRecord>>;
 }
 
 function isNonEmptyString(value: unknown): value is string {

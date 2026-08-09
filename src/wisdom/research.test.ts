@@ -6,6 +6,7 @@ import {
   validateResearchBundle,
   type ResearchBundle,
 } from './research';
+import type { WisdomPotentialProfile } from './types';
 
 const bundle: ResearchBundle = {
   sources: [{
@@ -121,8 +122,8 @@ describe('tea research provenance', () => {
       entryId: 'yi-bang-village-yunnan',
       tasting: { body: 'full' },
       citationIds: ['yi-bang-place-source'],
-    }];
-    expect(validateResearchBundle(invalid as unknown as ResearchBundle)).toContain(
+    } as unknown as WisdomPotentialProfile];
+    expect(validateResearchBundle(invalid)).toContain(
       'Potential profile region:yi-bang-village-yunnan category body must be an array',
     );
   });
