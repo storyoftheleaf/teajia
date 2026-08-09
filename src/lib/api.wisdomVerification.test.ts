@@ -49,7 +49,10 @@ describe('Wisdom verification API client', () => {
     expect((await api.wisdomVerifications.put('account-a', 'namedTea', 'courage', 'a'.repeat(64))).content_hash).toBe('a'.repeat(64));
     expect(await api.wisdomVerifications.delete('account-a', 'namedTea', 'courage')).toBeNull();
 
-    expect(fetchMock.mock.calls.map(([url, init]) => [url, init?.method ?? 'GET'])).toEqual([
+    expect(fetchMock.mock.calls.map(([url, init]) => [
+      new URL(String(url), 'https://test').pathname,
+      init?.method ?? 'GET',
+    ])).toEqual([
       ['/api/wisdom/verifications/namedTea/courage', 'GET'],
       ['/api/wisdom/verifications/namedTea/courage', 'PUT'],
       ['/api/wisdom/verifications/namedTea/courage', 'DELETE'],

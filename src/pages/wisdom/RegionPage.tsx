@@ -95,7 +95,7 @@ const RegionPage: React.FC = () => {
   }
 
   return (
-    <article className={PAGE}>
+    <article className={PAGE} data-wisdom-region-page="true">
       <Helmet>
         <title>{`${region.name} · Growing Regions · Teajia`}</title>
         <meta

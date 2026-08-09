@@ -123,6 +123,7 @@ describe('entry research', () => {
   it('shows the qualified Yi Bang source without turning it into a commercial relationship', () => {
     const html = render('/wisdom/region/yi-bang-village-yunnan');
 
+    expect(html).toContain('data-wisdom-region-page="true"');
     expect(html).toContain('Research sources');
     expect(html).toContain('Yunnan Sourcing');
     expect(html).toContain('2025 Yunnan Sourcing Yi Bang Wild Arbor Raw Pu-erh Tea Cake');
