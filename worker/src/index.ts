@@ -17,6 +17,14 @@ import { buildEventArticleDraft } from './eventArticleDraft';
 import { candidateToApi, impressionToApi, parseCandidateInput } from './tastingNoteCuration';
 import { deliverVerificationCode } from './verificationDelivery';
 import { INCIDENT_STATUSES, incidentToApi, normalizeIncidentInput, upsertIncident, type IncidentStatus } from './incidents';
+import {
+  deleteWisdomVerification,
+  getWisdomVerification,
+  putWisdomVerification,
+  validWisdomVerificationHash,
+  validWisdomVerificationTarget,
+  type WisdomVerificationEntryKind,
+} from './wisdomVerification';
 
 interface Env {
   DB: D1Database;
@@ -791,6 +799,22 @@ async function requirePlatformAdmin(request: Request, env: Env): Promise<Respons
     return json({ error: 'Platform admin access required' }, 403);
   }
   return null;
+}
+
+async function requireWisdomVerificationOwner(
+  request: Request,
+  env: Env,
+): Promise<AccountCtx | { error: Response }> {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx;
+  const dbRole = await resolveDbPlatformRole(env, ctx.userId);
+  if (dbRole === 'db_error') {
+    return { error: restError(503, 'Authentication dependency unavailable', 'auth_dependency_unavailable', { dependency: 'users' }) };
+  }
+  if (dbRole !== 'platform_owner') {
+    return { error: restError(403, 'Platform owner access required', 'platform_owner_required') };
+  }
+  return ctx;
 }
 
 // ── Audit & Ledger Helpers ──
@@ -20501,6 +20525,60 @@ async function handleUpdateIncident(request: Request, env: Env, params: Record<s
   return json({ incident: incidentToApi(row || {}) });
 }
 
+function wisdomVerificationTarget(
+  params: Record<string, string>,
+): { entryKind: WisdomVerificationEntryKind; entryId: string } | { error: Response } {
+  const entryKind = params.kind || '';
+  const entryId = params.id || '';
+  if (!validWisdomVerificationTarget(entryKind, entryId)) {
+    return { error: restError(400, 'Invalid Wisdom verification target', 'validation_failed') };
+  }
+  return { entryKind, entryId };
+}
+
+const handleGetWisdomVerification: Handler = async (request, env, params) => {
+  const ctx = await requireWisdomVerificationOwner(request, env);
+  if ('error' in ctx) return ctx.error;
+  const target = wisdomVerificationTarget(params);
+  if ('error' in target) return target.error;
+  return json(await getWisdomVerification(env.DB, ctx.accountId, target.entryKind, target.entryId));
+};
+
+const handlePutWisdomVerification: Handler = async (request, env, params) => {
+  const ctx = await requireWisdomVerificationOwner(request, env);
+  if ('error' in ctx) return ctx.error;
+  const target = wisdomVerificationTarget(params);
+  if ('error' in target) return target.error;
+
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json<Record<string, unknown>>();
+  } catch {
+    return restError(400, 'Invalid verification request', 'validation_failed');
+  }
+  if (!validWisdomVerificationHash(body?.content_hash)) {
+    return restError(400, 'content_hash must be 64 lowercase hexadecimal characters', 'validation_failed');
+  }
+
+  return json(await putWisdomVerification(env.DB, {
+    accountId: ctx.accountId,
+    entryKind: target.entryKind,
+    entryId: target.entryId,
+    contentHash: body.content_hash,
+    verifiedByUserId: ctx.userId,
+    verifiedAt: new Date().toISOString(),
+    id: crypto.randomUUID(),
+  }));
+};
+
+const handleDeleteWisdomVerification: Handler = async (request, env, params) => {
+  const ctx = await requireWisdomVerificationOwner(request, env);
+  if ('error' in ctx) return ctx.error;
+  const target = wisdomVerificationTarget(params);
+  if ('error' in target) return target.error;
+  return json(await deleteWisdomVerification(env.DB, ctx.accountId, target.entryKind, target.entryId));
+};
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
@@ -20553,6 +20631,9 @@ const routes: [string, string, Handler][] = [
   ['GET',  '/api/platform/audit-log', handlePlatformAuditLog],
   ['GET',  '/api/platform/incidents', handleListIncidents],
   ['PATCH','/api/platform/incidents/:id', handleUpdateIncident],
+  ['GET',  '/api/wisdom/verifications/:kind/:id', handleGetWisdomVerification],
+  ['PUT',  '/api/wisdom/verifications/:kind/:id', handlePutWisdomVerification],
+  ['DELETE', '/api/wisdom/verifications/:kind/:id', handleDeleteWisdomVerification],
   ['GET',  '/api/platform/applications', handlePlatformListApplications],
   ['POST', '/api/platform/applications/:id/decide', handlePlatformDecideApplication],
   ['POST', '/api/platform/tea-masters/invite', handlePlatformInviteTeaMaster],

@@ -1,5 +1,13 @@
 import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, AdminContributor, Bundle, ContributorOption, ContributorWrite, CurateReceiptProposal, CustomerOrderDetail, DbArticle, PlatformRole, TastingData } from '../types';
 import type { CompassDecision, CurateJourney, CurateVisit } from '../components/TeaCompass/types';
+import type { WisdomEntryKind } from '../wisdom/types';
+
+export interface WisdomVerificationReceipt {
+  entry_kind: WisdomEntryKind;
+  entry_id: string;
+  content_hash: string;
+  verified_at: string;
+}
 
 type CompassWrite = Record<string, unknown> & { decision?: CompassDecision | null };
 export interface CompassSyncResult {
@@ -2644,6 +2652,20 @@ export const api = {
 
   productImpressions: {
     list: async (productId: string) => handleResponse(await fetchWithTimeout(`${API_URL}/api/products/${encodeURIComponent(productId)}/impressions`)),
+  },
+
+  wisdomVerifications: {
+    get: (entryKind: WisdomEntryKind, entryId: string): Promise<WisdomVerificationReceipt | null> =>
+      authedFetch(`${API_URL}/api/wisdom/verifications/${encodeURIComponent(entryKind)}/${encodeURIComponent(entryId)}`),
+    put: (entryKind: WisdomEntryKind, entryId: string, contentHash: string): Promise<WisdomVerificationReceipt> =>
+      authedFetch(`${API_URL}/api/wisdom/verifications/${encodeURIComponent(entryKind)}/${encodeURIComponent(entryId)}`, {
+        method: 'PUT',
+        body: JSON.stringify({ content_hash: contentHash }),
+      }),
+    delete: (entryKind: WisdomEntryKind, entryId: string): Promise<WisdomVerificationReceipt | null> =>
+      authedFetch(`${API_URL}/api/wisdom/verifications/${encodeURIComponent(entryKind)}/${encodeURIComponent(entryId)}`, {
+        method: 'DELETE',
+      }),
   },
 
   // Tea Discovery, the onboarding disposition profile (one per member, server-
