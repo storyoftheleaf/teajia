@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { Story } from '../types';
 import { Icons } from './Icons';
 import { CardContainer } from './shared/CardContainer';
@@ -220,20 +221,19 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         {/* Explore, flows directly from the hero, no separator */}
         <div>
           {[
-            { id: 'course' as LearnView, label: 'Go Deeper', sub: 'Structured lessons from leaf to cup', icon: <Icons.BookOpen className="w-5 h-5" />, iconColor: 'text-tea-gold/50' },
-            { id: 'glossary' as LearnView, label: 'Glossary', sub: 'The language of tea, demystified', icon: <Icons.Book className="w-5 h-5" />, iconColor: 'text-tea-gold/40' },
-            { id: 'journeys' as LearnView, label: 'Journeys', sub: 'Guided tastings to shape your palate', icon: <Icons.MapPin className="w-5 h-5" />, iconColor: 'text-tea-gold/40' },
-            { id: 'playlists' as LearnView, label: 'Playlists', sub: 'Music for tea time', icon: <Icons.Music className="w-5 h-5" />, iconColor: 'text-tea-gold/35' },
-            { id: 'videos' as LearnView, label: 'Videos', sub: 'Watch & learn', icon: <Icons.Film className="w-5 h-5" />, iconColor: 'text-tea-gold/40' },
-            { id: 'visual-guides' as LearnView, label: 'Guides', sub: 'Charts & references', icon: <Icons.Download className="w-5 h-5" />, iconColor: 'text-tea-gold/35' },
-            { id: 'spaces' as LearnView, label: 'Spaces', sub: 'Inspiration for your tea room', icon: <Icons.Home className="w-5 h-5" />, iconColor: 'text-tea-gold/40' },
-          ].map(tile => (
-            <button
-              key={tile.id}
-              onClick={() => onNavigateTo(tile.id)}
-              className={`w-full flex items-center py-3.5 px-1 last:shadow-none hover:bg-tea-text/[0.02] transition-colors group text-left ${CTA_FOCUS}`}
-              style={{ gap: 'clamp(8px, 1.5vw, 16px)', boxShadow: '0 1px 0 var(--tea-accent-sub)' }}
-            >
+            { kind: 'view' as const, id: 'course' as LearnView, label: 'Go Deeper', sub: 'Structured lessons from leaf to cup', icon: <Icons.BookOpen className="w-5 h-5" />, iconColor: 'text-tea-gold/50' },
+            { kind: 'view' as const, id: 'glossary' as LearnView, label: 'Glossary', sub: 'The language of tea, demystified', icon: <Icons.Book className="w-5 h-5" />, iconColor: 'text-tea-gold/40' },
+            { kind: 'route' as const, to: '/wisdom', label: 'Tea Reference', sub: 'Plants, places, producers, styles and named teas', icon: <Icons.Leaf className="w-5 h-5" />, iconColor: 'text-tea-gold/40' },
+            { kind: 'view' as const, id: 'journeys' as LearnView, label: 'Journeys', sub: 'Guided tastings to shape your palate', icon: <Icons.MapPin className="w-5 h-5" />, iconColor: 'text-tea-gold/40' },
+            { kind: 'view' as const, id: 'playlists' as LearnView, label: 'Playlists', sub: 'Music for tea time', icon: <Icons.Music className="w-5 h-5" />, iconColor: 'text-tea-gold/35' },
+            { kind: 'view' as const, id: 'videos' as LearnView, label: 'Videos', sub: 'Watch & learn', icon: <Icons.Film className="w-5 h-5" />, iconColor: 'text-tea-gold/40' },
+            { kind: 'view' as const, id: 'visual-guides' as LearnView, label: 'Guides', sub: 'Charts & references', icon: <Icons.Download className="w-5 h-5" />, iconColor: 'text-tea-gold/35' },
+            { kind: 'view' as const, id: 'spaces' as LearnView, label: 'Spaces', sub: 'Inspiration for your tea room', icon: <Icons.Home className="w-5 h-5" />, iconColor: 'text-tea-gold/40' },
+          ].map(tile => {
+            const rowClassName = `w-full flex items-center py-3.5 px-1 last:shadow-none hover:bg-tea-text/[0.02] transition-colors group text-left ${CTA_FOCUS}`;
+            const rowStyle = { gap: 'clamp(8px, 1.5vw, 16px)', boxShadow: '0 1px 0 var(--tea-accent-sub)' };
+            const rowContent = (
+              <>
               <span className={`${tile.iconColor || 'text-tea-gold/40'} group-hover:text-tea-gold/70 transition-colors flex-shrink-0`}>
                 {tile.icon}
               </span>
@@ -243,8 +243,19 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               <span className="text-tea-text-sec font-sans text-right shrink-0 max-w-[45%] leading-[1.5]" style={{ fontSize: 'clamp(9px, 0.8vw + 5px, 11px)', letterSpacing: 'clamp(0.08em, 0.5vw, 0.15em)' }}>
                 {tile.sub}
               </span>
-            </button>
-          ))}
+              </>
+            );
+
+            if (tile.kind === 'route') {
+              return <Link key={tile.to} to={tile.to} className={rowClassName} style={rowStyle}>{rowContent}</Link>;
+            }
+
+            return (
+              <button key={tile.id} onClick={() => onNavigateTo(tile.id)} className={rowClassName} style={rowStyle}>
+                {rowContent}
+              </button>
+            );
+          })}
         </div>
 
         {/* Search results */}
