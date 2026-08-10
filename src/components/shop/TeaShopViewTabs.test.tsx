@@ -1,4 +1,5 @@
 import React from 'react';
+import { readFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { TeaFinder } from './TeaFinder';
@@ -48,5 +49,19 @@ describe('TeaShopViewTabs', () => {
     expect(finderMarkup).toContain('Choose a direction to find a tea.');
     expect(finderMarkup).toContain('Light and fragrant');
     expect(resultMarkup).toContain('2 teas shown');
+  });
+
+  it('keeps the live region outside the Finder/ledger branch in TeaInventory', () => {
+    const inventorySource = readFileSync(
+      new URL('../TeaInventory.tsx', import.meta.url),
+      'utf8',
+    );
+    const regionStart = inventorySource.indexOf('<TeaShopViewRegion');
+    const viewBranch = inventorySource.indexOf("{teaView === 'find' ?", regionStart);
+    const regionEnd = inventorySource.indexOf('</TeaShopViewRegion>', regionStart);
+
+    expect(regionStart).toBeGreaterThan(-1);
+    expect(viewBranch).toBeGreaterThan(regionStart);
+    expect(regionEnd).toBeGreaterThan(viewBranch);
   });
 });
