@@ -27,8 +27,8 @@ test('dedicated browser verification is explicit, private-fixture gated, and out
   assert.match(browserSpec, /page\.on\('requestfailed'/);
   assert.match(browserSpec, /__tea-reference-preview/);
   assert.match(browserSpec, /testInfo\.attach\(/);
-  assert.match(browserSpec, /words\.includes\('sheng'\)/);
-  assert.doesNotMatch(browserSpec, /words\.includes\('shou'\)/);
+  assert.match(browserSpec, /import \{ normalizeTeaType \} from '\.\.\/src\/wisdom\/vocabulary'/);
+  assert.match(browserSpec, /normalizeTeaType\(entry\.label\) === 'Sheng'/);
   assert.match(browserSpec, /a cited Sheng-compatible tea_style entry with matching public source metadata is required/);
   assert.match(browserSpec, /page\.goto\('\/wisdom\/type\/sheng'\)/);
   assert.match(browserSpec, /type: 'Sheng'/);

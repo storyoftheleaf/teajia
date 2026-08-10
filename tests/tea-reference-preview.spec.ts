@@ -12,6 +12,7 @@ import type {
   PublicReferencePreview,
   WebsiteReceivingPublicTransport,
 } from '../src/wisdom/receiving/previewImporter';
+import { normalizeTeaType } from '../src/wisdom/vocabulary';
 
 const PRIVATE_MARKERS = /\b(?:held|conflict|private|evidence)\b/i;
 const SAFE_API_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
@@ -98,8 +99,7 @@ function deriveFixtureContract(transport: unknown): FixtureContract {
 
   const citedStyle = citedEntry(entries, preview.sources, entry => {
     if (entry.entityKind !== 'tea_style') return false;
-    const words = normalizedWords(entry.label).split(' ');
-    return words.includes('sheng');
+    return normalizeTeaType(entry.label) === 'Sheng';
   });
   if (!citedStyle) {
     fixtureError('a cited Sheng-compatible tea_style entry with matching public source metadata is required; a Shou-only fixture cannot exercise /wisdom/type/sheng.');

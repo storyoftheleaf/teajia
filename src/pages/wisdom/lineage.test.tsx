@@ -53,6 +53,13 @@ describe('the public tea reference', () => {
     expect(html).not.toMatch(/TRES-2022[\s\S]{0,400}wisdom\/cultivar\/ying-xiang/);
   });
 
+  it('uses the visible Lineage heading as the section label without duplicating h2', () => {
+    const html = render('/wisdom/cultivar/jin-xuan');
+    expect(html).toMatch(/<section aria-labelledby="lineage-heading">[\s\S]*<h2 id="lineage-heading" class="flex items-baseline gap-2\.5">/);
+    expect(html.match(/id="lineage-heading"/g)).toHaveLength(1);
+    expect(html).not.toMatch(/<h2[^>]*class="sr-only"[^>]*>[\s\S]*?Lineage/);
+  });
+
   it('reads a lineage for every plant without inventing a parent', () => {
     for (const cultivar of CULTIVARS) {
       const lineage = readLineage(cultivar);
