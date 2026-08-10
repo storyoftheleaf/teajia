@@ -64,9 +64,10 @@ test('review workbook retains sources, evidence and claim decisions', { skip: !b
   const workbook = await artifactTool.SpreadsheetFile.importXlsx(file);
   const sheets = (await workbook.inspect({ kind: 'sheet', include: 'name', maxChars: 5000 })).ndjson
     .trim().split('\n').map((line) => JSON.parse(line).name);
-  assert.deepEqual(sheets, ['START HERE', 'SOURCES', 'EVIDENCE', 'CLAIMS', 'HELD', 'RELATIONSHIPS', 'ENTITY RESOLUTION', 'COVERAGE']);
+  assert.deepEqual(sheets, ['START HERE', 'SOURCES', 'EVIDENCE', 'CLAIMS', 'HELD', 'RELATIONSHIPS', 'ENTITY RESOLUTION', 'WEBSITE HANDOFF', 'COVERAGE']);
   const start = workbook.worksheets.getItem('START HERE').getRange('A3:B12').values;
   assert.deepEqual(start[1], ['Continual capture gate', 'Eligible for capped capture-only batches']);
+  assert.match(workbook.worksheets.getItem('START HERE').getRange('A20').values[0][0], /website-handoff\.json is the machine feed/i);
   const values = workbook.worksheets.getItem('CLAIMS').getRange('A1:P3').values;
   assert.equal(values[0][15], 'Adrian decision');
   assert.equal(values[1][2], 'https://example.test/yiwu');
@@ -78,6 +79,13 @@ test('review workbook retains sources, evidence and claim decisions', { skip: !b
   assert.equal(resolution[0][8], 'Proposed action');
   assert.equal(resolution[1][1], 'Yiwu');
   assert.equal(resolution[1][11], false);
+  const handoff = workbook.worksheets.getItem('WEBSITE HANDOFF').getRange('A1:N3').values;
+  assert.equal(handoff[0][6], 'Website holding');
+  assert.equal(handoff[0][7], 'Website field');
+  assert.equal(handoff[0][8], 'Candidate value');
+  assert.equal(handoff[1][6], 'regions');
+  assert.equal(handoff[1][8], 'Yiwu is in eastern Xishuangbanna.');
+  assert.equal(handoff[1][11], 'hold');
   if (process.env.TEA_REFERENCE_WORKBOOK_RENDER_DIR) {
     const renderDir = process.env.TEA_REFERENCE_WORKBOOK_RENDER_DIR;
     await fs.mkdir(renderDir, { recursive: true });

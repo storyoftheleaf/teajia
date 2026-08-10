@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import { classifyClaimRelationships } from './claim-relationships.mjs';
 import { buildEntityResolutionPreview } from './entity-resolution.mjs';
+import { buildWebsiteHandoff } from './website-handoff.mjs';
 
 const DECISIONS = Object.freeze(['Accept candidate', 'Needs research', 'Rename', 'Merge', 'Hold', 'Exclude']);
 const COLORS = Object.freeze({
@@ -119,7 +120,7 @@ function makeStartSheet(sheet, capture) {
     ['3. “Accept candidate” means suitable for later private verification; it does not publish or assimilate anything.'],
     ['4. Specialist descriptions stay attributed. They do not become Adrian tasting notes.'],
     ['5. RELATIONSHIPS separates supporting evidence, different scopes, and genuine contradiction candidates.'],
-    ['6. Nothing in this workbook changes the website, inventory, products, or Wisdom corpus.'],
+    ['6. WEBSITE HANDOFF shows each destination. website-handoff.json is the machine feed; neither file changes the website, inventory, products, or Wisdom corpus.'],
   ];
   sheet.getRange('A15:F20').format = { fill: COLORS.pale, font: { color: COLORS.ink }, wrapText: true, rowHeight: 30, verticalAlignment: 'center' };
   sheet.getRange('A22:F22').merge();
@@ -137,7 +138,7 @@ export async function writeReviewWorkbook({ capture, outputPath, artifactTool })
   if (!artifactTool?.Workbook || !artifactTool?.SpreadsheetFile) throw new Error('The bundled artifact workbook runtime is required');
   const { Workbook, SpreadsheetFile } = artifactTool;
   const workbook = Workbook.create();
-  const sheets = Object.fromEntries(['START HERE', 'SOURCES', 'EVIDENCE', 'CLAIMS', 'HELD', 'RELATIONSHIPS', 'ENTITY RESOLUTION', 'COVERAGE']
+  const sheets = Object.fromEntries(['START HERE', 'SOURCES', 'EVIDENCE', 'CLAIMS', 'HELD', 'RELATIONSHIPS', 'ENTITY RESOLUTION', 'WEBSITE HANDOFF', 'COVERAGE']
     .map((name) => [name, workbook.worksheets.add(name)]));
   makeStartSheet(sheets['START HERE'], capture);
   const sources = sourceMap(capture);
@@ -188,6 +189,14 @@ export async function writeReviewWorkbook({ capture, outputPath, artifactTool })
     candidate.sourceIds.join(', '), '',
   ]);
   styleTable(sheets['ENTITY RESOLUTION'], resolutionRows, [28, 24, 18, 24, 28, 22, 28, 24, 24, 52, 30, 14, 46, 34, 22], { tableName: 'EntityResolutionTable', decisionColumn: 14, heldRows: true });
+
+  const websiteHandoff = capture.websiteHandoff ?? buildWebsiteHandoff(capture);
+  const handoffRows = [['Claim ID', 'Resolution ID', 'Canonical entity ID', 'Subject', 'Entity kind', 'Claim scope', 'Website holding', 'Website field', 'Candidate value', 'Compatibility', 'Citation ID', 'Proposed action', 'Hold reason', 'Payload hash']];
+  for (const item of websiteHandoff.claims) handoffRows.push([
+    item.claimId, item.resolutionId, item.canonicalEntityId, item.subject, item.entityKind, item.claimScope, item.websiteHolding,
+    item.websiteField, scalar(item.candidateValue), item.compatibility, item.citationId, item.proposedAction, item.holdReason, item.payloadSha256,
+  ]);
+  styleTable(sheets['WEBSITE HANDOFF'], handoffRows, [28, 28, 28, 24, 18, 22, 20, 24, 56, 26, 38, 18, 58, 34], { tableName: 'WebsiteHandoffTable', heldRows: true });
 
   const coverage = [['Entity kind', 'Claim scope', 'Unique subjects', 'Claim drafts', 'Held claims']];
   for (const group of coverageRows(capture.claims)) coverage.push([group.entityKind, group.claimScope, group.subjects.size, group.claims, group.held]);

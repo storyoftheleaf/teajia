@@ -84,6 +84,10 @@ test('capture stores private originals, hashes, exact evidence and stable claims
   assert.equal(await fs.readFile(path.join(temp, 'run-1', 'sources', 'specialist-yiwu', 'original.html'), 'utf8'), specialistHtml);
   assert.equal(JSON.parse(await fs.readFile(path.join(temp, 'run-1', 'relationships.json'), 'utf8')).length, 0);
   assert.equal(JSON.parse(await fs.readFile(path.join(temp, 'run-1', 'entity-resolution.json'), 'utf8')).length, 2);
+  const websiteHandoff = JSON.parse(await fs.readFile(path.join(temp, 'run-1', 'website-handoff.json'), 'utf8'));
+  assert.equal(websiteHandoff.manifest.mode, 'preview-only');
+  assert.equal(websiteHandoff.manifest.readyToPublishCount, 0);
+  assert.equal(websiteHandoff.claims.length, 6);
 
   const claimBytes1 = await fs.readFile(path.join(temp, 'run-1', 'claims.json'));
   const claimBytes2 = await fs.readFile(path.join(temp, 'run-2', 'claims.json'));

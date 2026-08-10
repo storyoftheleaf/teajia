@@ -12,6 +12,7 @@ import { canonicalJson, sha256 } from './canonical.mjs';
 import { classifyClaimRelationships } from './claim-relationships.mjs';
 import { buildEntityResolutionPreview } from './entity-resolution.mjs';
 import { validateAllowlist } from './schema.mjs';
+import { buildWebsiteHandoff } from './website-handoff.mjs';
 
 const ADAPTERS = Object.freeze({
   'ctma-article': extractCtmaArticle,
@@ -217,6 +218,8 @@ export async function captureBatch({ allowlist, outputRoot, fetcher = globalThis
   await writeCanonical(confined(root, 'duplicate-snapshots.json'), duplicateSnapshots);
   await writeCanonical(confined(root, 'errors.json'), errors);
   await writeCanonical(confined(root, 'preview.json'), preview);
+  const websiteHandoff = buildWebsiteHandoff({ manifest, sources: packets, claims, entityResolution });
+  await writeCanonical(confined(root, 'website-handoff.json'), websiteHandoff);
 
   return Object.freeze({
     root,
@@ -226,6 +229,7 @@ export async function captureBatch({ allowlist, outputRoot, fetcher = globalThis
     claims: Object.freeze(claims),
     relationships,
     entityResolution,
+    websiteHandoff,
     errors: Object.freeze(errors),
     preview,
   });
