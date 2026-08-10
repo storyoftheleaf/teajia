@@ -145,6 +145,57 @@ test('adapter passes every other request through', async () => {
   assert.equal(response.body, '');
 });
 
+test('adapter serves the current public Teajia catalogue through a read-only local endpoint', async () => {
+  const requests = [];
+  const middleware = configuredMiddleware(teaReferencePreviewPlugin({
+    command: 'serve',
+    mode: 'tea-reference-preview',
+    handoffPath: '/does/not/need/to/exist.json',
+    async fetchPublicProducts(url, options) {
+      requests.push({ url, options });
+      return new Response(JSON.stringify([{ id: 'public-sheng', type: 'Sheng' }]), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    },
+  }));
+  const response = responseRecorder();
+  let nextCalled = false;
+
+  await middleware({ method: 'GET', url: '/api/products/public' }, response, () => { nextCalled = true; });
+
+  assert.equal(nextCalled, false);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.getHeader('cache-control'), 'no-store');
+  assert.deepEqual(JSON.parse(response.body), [{ id: 'public-sheng', type: 'Sheng' }]);
+  assert.deepEqual(requests, [{
+    url: 'https://www.teajia.com/api/products/public',
+    options: { headers: { Accept: 'application/json' } },
+  }]);
+});
+
+test('adapter refuses non-read public product requests and bounds upstream failures', async () => {
+  const middleware = configuredMiddleware(teaReferencePreviewPlugin({
+    command: 'serve',
+    mode: 'tea-reference-preview',
+    handoffPath: '/does/not/need/to/exist.json',
+    async fetchPublicProducts() {
+      throw new Error('PRIVATE UPSTREAM DETAIL');
+    },
+  }));
+  const writeResponse = responseRecorder();
+  const errorResponse = responseRecorder();
+
+  await middleware({ method: 'POST', url: '/api/products/public' }, writeResponse, () => assert.fail('write passed through'));
+  await middleware({ method: 'GET', url: '/api/products/public' }, errorResponse, () => assert.fail('error passed through'));
+
+  assert.equal(writeResponse.statusCode, 405);
+  assert.deepEqual(JSON.parse(writeResponse.body), { error: 'Tea Reference preview is read-only.' });
+  assert.equal(errorResponse.statusCode, 502);
+  assert.deepEqual(JSON.parse(errorResponse.body), { error: 'Public tea catalogue could not be loaded.' });
+  assert.doesNotMatch(errorResponse.body, /PRIVATE|UPSTREAM|DETAIL/);
+});
+
 test('invalid input returns a bounded generic 422 without raw details', async () => {
   const handoffPath = '/private/research/PRIVATE-CANDIDATE.json';
   const middleware = configuredMiddleware(teaReferencePreviewPlugin({

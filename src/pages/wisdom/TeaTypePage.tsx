@@ -7,21 +7,31 @@ import {
   FACT,
   Fact,
   HoldingNotFound,
+  HoldingRow,
+  IndexList,
   MEASURE,
   PREVIEW_PAGE,
   PageHead,
   ProseSkeleton,
   QUIET_LINK,
   SPACE,
+  SectionHead,
   WisdomSubNav,
 } from './wisdomShared';
 import ReferenceFactSections from './ReferenceFactSections';
+import { previewPlaceLevel } from './previewOriginMetadata';
 
 const TeaTypePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { catalogue, products, isLoading, isError } = useTeaReferenceCatalogue();
   const type = catalogue?.types.find(entry => entry.id === id);
   const family = type ? catalogue?.families.find(entry => entry.id === type.familyId) : undefined;
+  const connectedOrigins = type && catalogue
+    ? catalogue.origins.filter(origin => origin.productIds.some(productId => type.productIds.includes(productId)))
+    : [];
+  const displayedOrigins = connectedOrigins.filter(origin => (
+    !connectedOrigins.some(candidate => candidate.parentId === origin.id)
+  ));
 
   if (catalogue && !type) {
     return (
@@ -55,6 +65,25 @@ const TeaTypePage: React.FC = () => {
               {family ? <Link to={`/wisdom/family/${family.id}`} className={`${QUIET_LINK} tap-target`}>{family.name}</Link> : null}
             </Fact>
           </div>
+          {displayedOrigins.length > 0 && (
+            <section className={SPACE.section} aria-labelledby="type-origins-heading">
+              <SectionHead
+                id="type-origins-heading"
+                label="Origins represented by available teas"
+                count={displayedOrigins.length}
+              />
+              <IndexList>
+                {displayedOrigins.map(origin => (
+                  <HoldingRow
+                    key={origin.id}
+                    to={`/wisdom/region/${origin.id}`}
+                    name={origin.name}
+                    cells={[previewPlaceLevel(origin.level).singular]}
+                  />
+                ))}
+              </IndexList>
+            </section>
+          )}
           <ReferenceFactSections
             facts={type.facts}
             sources={catalogue?.sources ?? []}

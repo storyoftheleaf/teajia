@@ -283,6 +283,25 @@ describe('sellable Tea Reference catalogue', () => {
     expect(result.origins.some(origin => origin.id === 'resolution-glossary')).toBe(false);
   });
 
+  it('connects ordinary catalogue place names to cited labels with geographic qualifiers', () => {
+    const yunnan = entry('resolution-qualified-yunnan', 'Yunnan Pu’er production regions', 'major_region');
+    const yiwu = entry('resolution-qualified-yiwu', 'Greater Yiwu', 'tea_area');
+    const menghai = entry('resolution-qualified-menghai', 'Menghai County', 'tea_area');
+    const products = [
+      product({ id: 'tea-yunnan', originRegion: 'Yunnan' }),
+      product({ id: 'tea-yiwu', originRegion: 'Yiwu, Yunnan' }),
+      product({ id: 'tea-menghai', originRegion: 'Menghai, Yunnan' }),
+    ];
+
+    const result = buildTeaReferenceCatalogue(preview([yunnan, yiwu, menghai]), products);
+
+    expect(result.origins).toEqual([
+      expect.objectContaining({ id: menghai.id, productIds: ['tea-menghai'] }),
+      expect.objectContaining({ id: yiwu.id, productIds: ['tea-yiwu'] }),
+      expect.objectContaining({ id: yunnan.id, productIds: ['tea-menghai', 'tea-yiwu', 'tea-yunnan'] }),
+    ]);
+  });
+
   it('does not match origins from supplier or vendor data', () => {
     const supplierOnly = Object.assign(product({
       id: 'supplier-only',

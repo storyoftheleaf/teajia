@@ -20,6 +20,7 @@ import {
 } from './wisdomShared';
 import ReferenceFactSections from './ReferenceFactSections';
 import { previewPlaceLevel } from './previewOriginMetadata';
+import { mapSearchLink } from './mapLinks';
 
 const PreviewOriginPage: React.FC<{ id: string }> = ({ id }) => {
   const { catalogue, products, isLoading, isError } = useTeaReferenceCatalogue();
@@ -39,6 +40,16 @@ const PreviewOriginPage: React.FC<{ id: string }> = ({ id }) => {
   const children = origin
     ? catalogue?.origins.filter(entry => entry.parentId === origin.id) ?? []
     : [];
+  const representedTypes = origin && catalogue
+    ? catalogue.types.filter(type => type.productIds.some(productId => origin.productIds.includes(productId)))
+    : [];
+  const originProducts = origin
+    ? products.filter(product => origin.productIds.includes(product.id))
+    : [];
+  const recordedCountries = [...new Set(originProducts.map(product => product.originCountry.trim()).filter(Boolean))];
+  const map = origin && recordedCountries.length === 1
+    ? mapSearchLink([origin.name, ...[...ancestors].reverse().map(ancestor => ancestor.name)], recordedCountries[0])
+    : null;
 
   if (catalogue && !origin) {
     return (
@@ -86,6 +97,13 @@ const PreviewOriginPage: React.FC<{ id: string }> = ({ id }) => {
                 ))}
               </Fact>
             )}
+            {map && (
+              <Fact label="Map">
+                <a href={map.url} target="_blank" rel="noreferrer" className={`${QUIET_LINK} tap-target`}>
+                  {map.label}
+                </a>
+              </Fact>
+            )}
           </div>
 
           {children.length > 0 && (
@@ -102,6 +120,25 @@ const PreviewOriginPage: React.FC<{ id: string }> = ({ id }) => {
                 ))}
               </IndexList>
             </div>
+          )}
+
+          {representedTypes.length > 0 && (
+            <section className={SPACE.section} aria-labelledby="origin-types-heading">
+              <SectionHead
+                id="origin-types-heading"
+                label="Tea types represented by available teas"
+                count={representedTypes.length}
+              />
+              <IndexList>
+                {representedTypes.map(type => (
+                  <HoldingRow
+                    key={type.id}
+                    to={`/wisdom/type/${type.id}`}
+                    name={type.name}
+                  />
+                ))}
+              </IndexList>
+            </section>
           )}
 
           <ReferenceFactSections

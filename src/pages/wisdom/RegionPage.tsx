@@ -27,6 +27,7 @@ import {
   PageHead,
   Passage,
   plantsGrownIn,
+  QUIET_LINK,
   SectionHead,
   SPACE,
   WisdomSubNav,
@@ -34,6 +35,7 @@ import {
 } from './wisdomShared';
 import { EntryResearchSection } from './EntryResearchSection';
 import { WisdomPublicStateGate, WisdomRelatedMaterial } from './WisdomRelatedMaterial';
+import { mapSearchLink } from './mapLinks';
 
 const PreviewOriginPage = import.meta.env.MODE === 'tea-reference-preview'
   ? React.lazy(() => import('./PreviewOriginPage'))
@@ -48,6 +50,23 @@ const RegionPage: React.FC = () => {
   const region = useMemo(() => REGIONS.find(entry => entry.id === id) ?? findRegion(id), [id]);
 
   const plants = useMemo(() => (region ? plantsGrownIn(region) : []), [region]);
+  const placesWithin = useMemo(() => {
+    if (!region || region.province) return [];
+    return REGIONS.filter(candidate => (
+      candidate.id !== region.id
+      && candidate.country === region.country
+      && candidate.province === region.name
+    ));
+  }, [region]);
+  const plantsWithin = useMemo(() => {
+    const seen = new Set<string>();
+    return placesWithin.flatMap(place => plantsGrownIn(place).map(plant => ({ plant, place })))
+      .filter(({ plant }) => {
+        if (seen.has(plant.id)) return false;
+        seen.add(plant.id);
+        return true;
+      });
+  }, [placesWithin]);
 
   const structuredData = useMemo(() => {
     if (!region) return null;
@@ -109,6 +128,11 @@ const RegionPage: React.FC = () => {
     );
   }
 
+  const map = mapSearchLink([region.name, region.province], region.country);
+  const directOrNestedPlants = plants.length > 0
+    ? plants.map(plant => ({ plant, place: null }))
+    : plantsWithin;
+
   return (
     <WisdomPublicStateGate identity={{ nodeType: 'region', nodeId: region.id }}>
     <article className={REGION_PAGE} data-wisdom-region-page="true">
@@ -141,8 +165,15 @@ const RegionPage: React.FC = () => {
       <div className="mt-8">
         <Fact label="Country">{region.country}</Fact>
         <Fact label="Province">{region.province}</Fact>
-        <Fact label="Altitude">
-          <span className="figures-tab">{region.altitude}</span>
+        {region.altitude && (
+          <Fact label="Altitude">
+            <span className="figures-tab">{region.altitude}</span>
+          </Fact>
+        )}
+        <Fact label="Map">
+          <a href={map.url} target="_blank" rel="noreferrer" className={`${QUIET_LINK} tap-target`}>
+            {map.label}
+          </a>
         </Fact>
 
         {/* Climate is the one field here that is research prose, not a fact:
@@ -151,29 +182,55 @@ const RegionPage: React.FC = () => {
             on. It keeps the same hung label and drops clear of it. */}
         <Passage label="Climate" text={region.climate} className="mt-5" />
 
-        {!region.altitude && !region.climate && (
+        {!region.altitude && !region.climate && placesWithin.length > 0 && (
           <p className={`${FACT_CLASS} text-tea-text-dim ${MEASURE} ${AXIS_INDENT}`}>
-            Only the name and the country are held for this place. Altitude and climate have not been researched yet.
+            This is a broad place entry. Elevation and climate are recorded on the more specific growing places below.
+          </p>
+        )}
+        {!region.altitude && !region.climate && placesWithin.length === 0 && (
+          <p className={`${FACT_CLASS} text-tea-text-dim ${MEASURE} ${AXIS_INDENT}`}>
+            This entry currently records its name and country. Elevation and climate have not been added yet.
           </p>
         )}
       </div>
 
+      {placesWithin.length > 0 && (
+        <section className={SPACE.section}>
+          <SectionHead label={`Places within ${region.name}`} count={placesWithin.length} />
+          <IndexList>
+            {placesWithin.map(place => (
+              <HoldingRow
+                key={place.id}
+                to={`/wisdom/region/${place.id}`}
+                name={place.name}
+                cells={[place.altitude]}
+              />
+            ))}
+          </IndexList>
+        </section>
+      )}
+
       <section className={`${SPACE.section} ${GROUND} py-6`}>
-        <SectionHead label="Plants from here" count={plants.length || undefined} />
-        {plants.length === 0 ? (
+        <SectionHead
+          label={plants.length > 0 ? 'Plants from here' : `Plants recorded within ${region.name}`}
+          count={directOrNestedPlants.length || undefined}
+        />
+        {directOrNestedPlants.length === 0 ? (
           <p className={`${FACT_CLASS} text-tea-text-dim ${MEASURE} ${AXIS_INDENT}`}>
-            No plant in the reference records this place as its origin yet. That is a gap in the plant records, not a
-            claim that nothing grows here.
+            No cultivar record links directly to this place or to a more specific place within it yet.
           </p>
         ) : (
           <IndexList plain>
-            {plants.map(plant => (
+            {directOrNestedPlants.map(({ plant, place }) => (
               <HoldingRow
                 key={plant.id}
                 to={`/wisdom/cultivar/${plant.id}`}
                 name={plant.name}
                 chineseName={plant.chineseName}
-                cells={[plant.developedYear ? `recorded ${plant.developedYear}` : undefined]}
+                cells={[
+                  place ? { text: place.name, to: `/wisdom/region/${place.id}` } : undefined,
+                  plant.developedYear ? `recorded ${plant.developedYear}` : undefined,
+                ]}
               />
             ))}
           </IndexList>

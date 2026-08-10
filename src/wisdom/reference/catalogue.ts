@@ -22,6 +22,20 @@ const PLACE_LEVELS = new Set<PlaceLevel>([
 ]);
 
 const PUER_FAMILY_LABELS = new Set(['puer', 'puerh']);
+const PLACE_DESCRIPTOR_WORDS = new Set([
+  'area',
+  'county',
+  'greater',
+  'mountain',
+  'mountains',
+  'production',
+  'puer',
+  'puerh',
+  'region',
+  'regions',
+  'tea',
+  'village',
+]);
 const PUER_TYPES = TEA_TYPES.filter(type => type === 'Sheng' || type === 'Shou');
 const PLACE_RANK: Record<PlaceLevel, number> = {
   major_region: 0,
@@ -80,6 +94,15 @@ function searchableProductFields(product: PublicProduct): string[] {
 
 function productMatches(product: PublicProduct, label: string): boolean {
   return searchableProductFields(product).some(value => matchesAtTokenBoundary(value, label));
+}
+
+function productMatchesPlace(product: PublicProduct, label: string): boolean {
+  const words = normalizedWords(label).split(' ').filter(Boolean);
+  const concise = words.filter(word => !PLACE_DESCRIPTOR_WORDS.has(word)).join(' ');
+  const aliases = new Set([label, concise].filter(alias => [...normalizedWords(alias)].length >= 2));
+  return [...aliases].some(alias => (
+    searchableProductFields(product).some(value => matchesAtTokenBoundary(value, alias))
+  ));
 }
 
 /** Only public catalogue records can be shown; active records alone qualify a reference entry. */
@@ -227,7 +250,7 @@ function buildOrigins(
   const directAllMatches = new Map<string, string[]>();
   for (const [id, candidate] of candidates) {
     const matchingProducts = products
-      .filter(product => candidate.entries.some(placeEntry => productMatches(product, placeEntry.label)));
+      .filter(product => candidate.entries.some(placeEntry => productMatchesPlace(product, placeEntry.label)));
     if (matchingProducts.length > 0) {
       directAllMatches.set(id, matchingProducts.map(product => product.id));
     }

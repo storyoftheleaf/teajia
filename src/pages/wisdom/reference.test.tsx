@@ -709,6 +709,8 @@ describe('Tea Reference type preview', () => {
     expect(html).toMatch(/<p class="[^"]*break-words[^"]*">One cited source/);
     expect(html).toMatch(/<a[^>]*class="[^"]*break-words[^"]*">Tea Institute · Sheng Field Guide/);
     expect(html).toMatch(/<p class="[^"]*break-words[^"]*">Mei Lin/);
+    expect(html).toContain('Origins represented by available teas');
+    expect(html).toContain('href="/wisdom/region/reference-manxiu"');
   });
 
   it('uses the established not-found page for a type absent from the product-connected catalogue', () => {
@@ -931,7 +933,28 @@ describe('growing regions', () => {
     expect(wuyi).toContain('/wisdom/cultivar/');
 
     const bare = render('/wisdom/region/anji');
-    expect(bare).toContain('No plant in the reference records this place as its origin yet');
+    expect(bare).toContain('No cultivar record links directly to this place');
+  });
+
+  it('treats a broad province as a parent place instead of an empty origin', () => {
+    const html = render('/wisdom/region/anhui').replace(/&amp;/g, '&');
+
+    expect(html).toContain('Reference ID');
+    expect(html).toContain('RG 006');
+    expect(html).toContain('Open in Apple Maps');
+    expect(html).toContain('href="https://maps.apple.com/?q=Anhui%2C%20China"');
+    expect(html).not.toContain('>Altitude<');
+    expect(html).toContain('Places within Anhui');
+    expect(html).toContain('href="/wisdom/region/qimen-county-anhui"');
+    expect(html).toContain('Plants recorded within Anhui');
+    expect(html).toContain('href="/wisdom/cultivar/qi-men-zhong"');
+    expect(html).not.toContain('No plant in the reference records this place as its origin yet');
+  });
+
+  it('uses Google Maps for places outside China', () => {
+    const html = render('/wisdom/region/darjeeling').replace(/&amp;/g, '&');
+    expect(html).toContain('Open in Google Maps');
+    expect(html).toContain('https://www.google.com/maps/search/?api=1&query=Darjeeling%2C%20West%20Bengal%2C%20India');
   });
 
   it('answers for a place it does not hold', async () => {
@@ -974,7 +997,7 @@ describe('growing regions', () => {
 
   it.skipIf(!TEA_REFERENCE_PREVIEW_ENABLED)('renders a cited origin at the established region URL with verified hierarchy, citations, and teas', async () => {
     const html = (await renderAsync('/wisdom/region/reference-manxiu')).replace(/&amp;/g, '&');
-    expect(html).not.toMatch(/<section(\s|>)/);
+    expect(html).toMatch(/<section[^>]*aria-labelledby="origin-types-heading"/);
     expect(html).toContain('>Cited origin<');
     expect(html).toContain('>Locality<');
     expect(html).toContain('>Origin path<');
@@ -997,6 +1020,10 @@ describe('growing regions', () => {
     expect(html).toContain('Previously offered');
     expect(html).toContain('href="/shop/product/manxiu-archive-cake"');
     expect(html).toContain('Report an inaccuracy');
+    expect(html).toContain('Tea types represented by available teas');
+    expect(html).toContain('href="/wisdom/type/sheng"');
+    expect(html).toContain('Open in Apple Maps');
+    expect(html).toContain('href="https://maps.apple.com/?q=Manxiu%2C%20Mansa%20Village%2C%20Gedeng%20Mountain%2C%20Yiwu%20Tea%20Area%2C%20Yunnan%2C%20China"');
     expect(html).not.toMatch(/Country|Province|Altitude|Climate/);
     expect(html).not.toMatch(/held|conflict|evidence|private/i);
     expect(html).not.toContain('overflow-x-auto');
@@ -1323,7 +1350,9 @@ describe('what the extra width is for', () => {
 describe('catalogue numbers', () => {
   it('gives every entry a number, in bronze beside its headword', () => {
     for (const path of DETAIL_PAGES) {
-      expect(render(path)).toMatch(/figures-tab text-tea-readgold[^>]*>[A-Z]{2} \d{3}</);
+      const html = render(path);
+      expect(html).toContain('Reference ID');
+      expect(html).toMatch(/text-tea-readgold[^>]*>[A-Z]{2} \d{3}</);
     }
   });
 

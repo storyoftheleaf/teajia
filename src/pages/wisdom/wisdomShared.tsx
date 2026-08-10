@@ -195,7 +195,14 @@ export const PageHead: React.FC<{
     <div className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
       <h1 className={`${TITLE_CLASS} optical-left text-tea-text min-w-0 break-words`}>{title}</h1>
       {number && (
-        <span className={`${CELL_CLASS} figures-tab text-tea-readgold shrink-0 whitespace-nowrap`}>{number}</span>
+        <span
+          className={`${CELL_CLASS} figures-tab shrink-0 whitespace-nowrap`}
+          aria-label={`Reference ID ${number}`}
+        >
+          <span className="text-tea-text-dim">Reference ID</span>
+          <span aria-hidden className="text-tea-text-dim"> · </span>
+          <span className="text-tea-readgold">{number}</span>
+        </span>
       )}
     </div>
     {chineseName && (
