@@ -39,19 +39,24 @@ const PreviewOriginIndexSection: React.FC = () => {
   if (!catalogue || catalogue.origins.length === 0) return null;
 
   return (
-    <div className={SPACE.section}>
-      <SectionHead label="Cited origins in this preview" count={catalogue.origins.length} />
+    <section aria-labelledby="preview-origin-heading" className={SPACE.section}>
+      <SectionHead
+        id="preview-origin-heading"
+        label="Cited origins in this preview"
+        count={catalogue.origins.length}
+      />
       {PREVIEW_PLACE_LEVELS.map(group => {
         const origins = catalogue.origins.filter(origin => origin.level === group.level);
         if (origins.length === 0) return null;
+        const headingId = `preview-origin-level-${group.level}`;
         return (
-          <div key={group.level} className="mt-8 first:mt-0">
-            <SectionHead label={group.plural} count={origins.length} />
+          <section key={group.level} aria-labelledby={headingId} className="mt-8 first:mt-0">
+            <SectionHead id={headingId} headingLevel={3} label={group.plural} count={origins.length} />
             <OriginRows origins={origins} />
-          </div>
+          </section>
         );
       })}
-    </div>
+    </section>
   );
 };
 

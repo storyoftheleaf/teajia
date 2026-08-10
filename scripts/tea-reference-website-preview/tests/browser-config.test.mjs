@@ -18,4 +18,14 @@ test('dedicated browser verification is explicit, private-fixture gated, and out
   assert.match(config, /Desktop Chrome/);
   assert.match(config, /Mobile Chrome/);
   assert.match(config, /tea-reference-preview\.spec\.ts/);
+
+  const browserSpec = read('tests/tea-reference-preview.spec.ts');
+  assert.match(browserSpec, /route\('\*\*\/api\/\*\*'/);
+  assert.match(browserSpec, /route\.abort\(/);
+  assert.match(browserSpec, /page\.on\('pageerror'/);
+  assert.match(browserSpec, /message\.type\(\) === 'error'/);
+  assert.match(browserSpec, /page\.on\('requestfailed'/);
+  assert.match(browserSpec, /__tea-reference-preview/);
+  assert.match(browserSpec, /testInfo\.attach\(/);
+  assert.doesNotMatch(browserSpec, /Lincang|MarshalN|teadb\.org/i);
 });

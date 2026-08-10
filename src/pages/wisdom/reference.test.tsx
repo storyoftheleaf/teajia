@@ -910,6 +910,9 @@ describe('growing regions', () => {
     expect(html.indexOf('Cited origins in this preview')).toBeLessThan(html.indexOf('id="place-china"'));
     expect(html).toContain(`${REGIONS.length} places`);
     expect(html).not.toContain('overflow-x-auto');
+    expect(html).toMatch(/<section aria-labelledby="preview-origin-heading"[^>]*>[\s\S]*<h2[^>]*id="preview-origin-heading"/);
+    expect(html).toMatch(/<section aria-labelledby="preview-origin-level-major_region"[^>]*>[\s\S]*<h3[^>]*id="preview-origin-level-major_region"/);
+    expect(html).not.toMatch(/<h2[^>]*id="preview-origin-level-/);
   });
 
   it.skipIf(!TEA_REFERENCE_PREVIEW_ENABLED)('keeps an existing Wuyi URL on the published region page before consulting cited origins', async () => {

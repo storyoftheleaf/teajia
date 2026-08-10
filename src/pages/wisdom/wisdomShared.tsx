@@ -89,15 +89,23 @@ export const mailtoWisdom = (subject?: string): string =>
  * The 3:1 space does the rest. 48px above the head, 16px under it, which is
  * why this carries `SPACE.head` and the caller carries `SPACE.section`.
  */
-export const SectionHead: React.FC<{ label: string; count?: number }> = ({ label, count }) => (
-  <div className={SPACE.head}>
-    <h2 className="flex items-baseline gap-2.5">
-      <span className={`${LABEL} whitespace-nowrap`}>{label}</span>
-      {count != null && <span className={`${CELL_CLASS} text-tea-text-dim figures-tab`}>{count}</span>}
-    </h2>
-    <span aria-hidden className={`${RULE_SHORT} mt-2`} />
-  </div>
-);
+export const SectionHead: React.FC<{
+  label: string;
+  count?: number;
+  headingLevel?: 2 | 3 | 4 | 5 | 6;
+  id?: string;
+}> = ({ label, count, headingLevel = 2, id }) => {
+  const Heading = `h${headingLevel}` as 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+  return (
+    <div className={SPACE.head}>
+      <Heading id={id} className="flex items-baseline gap-2.5">
+        <span className={`${LABEL} whitespace-nowrap`}>{label}</span>
+        {count != null && <span className={`${CELL_CLASS} text-tea-text-dim figures-tab`}>{count}</span>}
+      </Heading>
+      <span aria-hidden className={`${RULE_SHORT} mt-2`} />
+    </div>
+  );
+};
 
 // ─── The page head ───────────────────────────────────────────────────────────
 

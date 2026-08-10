@@ -77,20 +77,24 @@ async function serveStaticSpa(directory) {
 
 async function filesBeneath(directory) {
   try {
-    const entries = await fs.readdir(directory, { recursive: true, withFileTypes: true });
-    return entries.filter(entry => entry.isFile()).map(entry => entry.name);
+    const entries = await fs.readdir(directory, { withFileTypes: true });
+    return (await Promise.all(entries.map(async entry => {
+      const entryPath = path.join(directory, entry.name);
+      return entry.isDirectory() ? filesBeneath(entryPath) : [entryPath];
+    }))).flat();
   } catch (error) {
     if (error.code === 'ENOENT') return [];
     throw error;
   }
 }
 
-test('real Vite config gates the public adapter without putting handoff data in optimizer configuration', { timeout: 15000 }, async t => {
+test('real Vite config gates the public adapter without writing handoff data into dependency tooling', { timeout: 120000 }, async t => {
   const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'tea-reference-vite-config-'));
   t.after(() => fs.rm(temp, { recursive: true, force: true }));
   const handoffPath = path.join(temp, 'website-handoff.json');
   const previewCache = path.join(temp, 'preview-cache');
-  await fs.writeFile(handoffPath, JSON.stringify(emptyHandoff()));
+  const handoff = emptyHandoff();
+  await fs.writeFile(handoffPath, JSON.stringify(handoff));
   const priorHandoffPath = process.env.TEA_REFERENCE_HANDOFF_PATH;
   process.env.TEA_REFERENCE_HANDOFF_PATH = handoffPath;
   t.after(() => {
@@ -131,9 +135,34 @@ test('real Vite config gates the public adapter without putting handoff data in 
   const response = await fetch(`http://127.0.0.1:${address.port}/__tea-reference-preview`);
   assert.equal(response.status, 200);
   assert.deepEqual(Object.keys(await response.json()), ['manifest', 'publicPreview']);
+
+  const executablePath = await installedChromiumExecutable();
+  const browser = await chromium.launch({ headless: true, ...(executablePath ? { executablePath } : {}) });
+  t.after(() => browser.close());
+  const page = await browser.newPage();
+  await page.route('**/api/products/public', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: '[]',
+  }));
+  await page.goto(`http://127.0.0.1:${address.port}/wisdom`, { waitUntil: 'networkidle' });
+  await page.locator('main#main-content').waitFor();
+  await page.close();
   await previewServer.close();
 
-  assert.deepEqual(await filesBeneath(previewCache), []);
+  const dependencyFiles = await filesBeneath(previewCache);
+  assert.ok(dependencyFiles.length > 0, 'normal Vite dependency tooling may maintain a disposable cache');
+  const dependencyOutput = (await Promise.all(dependencyFiles.map(file => fs.readFile(file, 'utf8').catch(() => '')))).join('\n');
+  assert.equal(dependencyOutput.includes(handoffPath), false, 'dependency output must not contain the private handoff path');
+  assert.equal(
+    dependencyOutput.includes(handoff.manifest.payloadSha256),
+    false,
+    'dependency output must not contain the handoff payload identity',
+  );
+  assert.deepEqual(JSON.parse(await fs.readFile(handoffPath, 'utf8')), handoff, 'the source handoff must remain unchanged');
+  const unexpectedArtifacts = (await fs.readdir(temp))
+    .filter(name => !['normal-cache', 'preview-cache', 'website-handoff.json'].includes(name));
+  assert.deepEqual(unexpectedArtifacts, [], 'a real page load must not write a handoff or domain artifact');
 });
 
 test('normal production builds reject Tea Reference preview modules while preview builds allow them', async () => {

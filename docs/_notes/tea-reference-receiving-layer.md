@@ -1,6 +1,6 @@
 # Tea Reference website receiving layer
 
-This phase receives the deterministic `website-handoff.json` produced by the Tea Reference capture tool. It is deliberately preview-only. It has no database, API, inventory, product, approval, assimilation, or publication writer.
+This phase receives the deterministic `website-handoff.json` produced by the Tea Reference capture tool. It is deliberately preview-only. Its importer, domain model, and handoff projection have no database, API, inventory, product, approval, assimilation, publication, or handoff-data filesystem writer.
 
 ## Model boundary
 
@@ -30,9 +30,9 @@ Run the integrated local website preview:
 npm run tea-reference:teajia:preview -- --handoff /absolute/path/to/website-handoff.json
 ```
 
-This opens the real Teajia application on `http://localhost:7777`. In this local mode only, the Wisdom Base adds Types and calls the region holding Origins. These are preview-only routes and labels; the normal production build keeps them disabled.
+This serves the real Teajia application on `http://localhost:7777`; it does not open a browser automatically. The integrated preview accepts any valid Tea Reference handoff. In this local mode only, the Wisdom Base adds Types and calls the region holding Origins. These are preview-only routes and labels; the normal production build keeps them disabled.
 
-The terminal operation report is private operator material. It includes create/update/no-op/conflict/held planning and verification reasons and must not be copied into the browser. The browser receives only the allowlisted public transport: public wording, limited excerpts where available, citation and source metadata, and the public correction action. Chinese excerpts are omitted rather than translated implicitly. The preview reads the handoff and public product response in memory; it has no database, API, filesystem, product, inventory, approval, assimilation, or publication writer.
+The terminal operation report is private operator material. It includes create/update/no-op/conflict/held planning and verification reasons and must not be copied into the browser. The browser receives only the allowlisted public transport: public wording, limited excerpts where available, citation and source metadata, and the public correction action. Chinese excerpts are omitted rather than translated implicitly. The importer and public projection read the handoff and public product response in memory and have no database, API, domain-data filesystem, product, inventory, approval, assimilation, or publication writer. Normal Vite tooling may maintain its disposable dependency cache; that cache is tooling output, not a handoff or domain artifact.
 
 Types and origins surface only when they connect to eligible products in Teajia's public catalogue. Active teas appear as Available teas and sold-out catalogue history appears as Previously offered. A cited place keeps its declared major-region, tea-area, mountain, village, or locality level. When the handoff does not verify a parent chain, the missing hierarchy remains held in the private operation report rather than being flattened or invented in the public page.
 
@@ -42,7 +42,7 @@ The dedicated browser check uses the same integrated server without tracking or 
 TEA_REFERENCE_HANDOFF_PATH=/absolute/path/to/website-handoff.json npm run test:tea-reference-browser
 ```
 
-The command fails immediately when `TEA_REFERENCE_HANDOFF_PATH` is absent. It is intentionally not part of the default receiving or CI suite because the external private fixture is not stored in this repository.
+The command fails immediately when `TEA_REFERENCE_HANDOFF_PATH` is absent. This browser rehearsal expects the handoff to contain a Pu’er tea family, a cited Sheng or Shou tea style, and at least one cited origin at a supported geographic level, with matching public source metadata. That narrower contract belongs to the product-connected browser check; the integrated preview command itself accepts any valid handoff. The check is intentionally not part of the default receiving or CI suite because the external private fixture is not stored in this repository.
 
 ## Current 12-source rehearsal
 
