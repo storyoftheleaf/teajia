@@ -57,6 +57,7 @@ const TeaTypePage: React.FC = () => {
           </div>
           <ReferenceFactSections
             facts={type.facts}
+            sources={catalogue?.sources ?? []}
             products={products.filter(product => type.productIds.includes(product.id))}
             reportIdentity={`Tea type: ${type.name}`}
           />

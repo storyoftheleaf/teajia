@@ -71,6 +71,7 @@ const TeaFamilyPage: React.FC = () => {
           </section>
           <ReferenceFactSections
             facts={family.facts}
+            sources={catalogue?.sources ?? []}
             products={products.filter(product => family.productIds.includes(product.id))}
             reportIdentity={`Tea family: ${family.name}`}
           />

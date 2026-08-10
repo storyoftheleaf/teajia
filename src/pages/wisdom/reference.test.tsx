@@ -30,6 +30,7 @@ import TeaFamilyPage from './TeaFamilyPage';
 import TeaTypeIndexPage from './TeaTypeIndexPage';
 import TeaTypePage from './TeaTypePage';
 import {
+  PAGE,
   WISDOM_SECTIONS,
   isMicroCapsLabel,
   searchHoldings,
@@ -51,11 +52,18 @@ const setVerificationAccess = (platformRole: 'platform_owner' | 'platform_admin'
 };
 import type { PublicProduct } from '../../types';
 import type { WebsiteReceivingPublicTransport } from '../../wisdom/receiving/previewImporter';
-import { TEA_REFERENCE_PREVIEW_QUERY_KEY } from '../../wisdom/reference/client';
+import {
+  TEA_REFERENCE_PREVIEW_QUERY_KEY,
+} from '../../wisdom/reference/client';
+import {
+  TEA_REFERENCE_PREVIEW_ENABLED,
+  teaReferenceRoutePaths,
+} from '../../wisdom/reference/previewMode';
 
-const render = (path: string) =>
-  renderToString(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+const render = (path: string) => {
+  const client = createReferenceQueryClient();
+  return renderToString(
+    <QueryClientProvider client={client}>
       <HelmetProvider>
         <MemoryRouter initialEntries={[path]}>
           <Routes>
@@ -77,13 +85,14 @@ const render = (path: string) =>
       </HelmetProvider>
     </QueryClientProvider>,
   );
+};
 
 const previewTransport: WebsiteReceivingPublicTransport = {
   manifest: { schemaVersion: 1, mode: 'preview-only' },
   publicPreview: {
     title: 'Pu’er reference',
     deck: 'Cited public tea knowledge.',
-    sourceCount: 1,
+    sourceCount: 2,
     entryCount: 3,
     sections: [{
       id: 'types',
@@ -137,15 +146,26 @@ const previewTransport: WebsiteReceivingPublicTransport = {
       ],
     }],
     geographicScale: [],
-    sources: [{
-      sourceId: 'tea-institute',
-      publisher: 'Tea Institute',
-      publisherRoleLabel: 'Institute',
-      title: 'Pu’er reference',
-      author: 'Research Desk',
-      publishedDate: '2026-01-01',
-      url: 'https://example.com/puer',
-    }],
+    sources: [
+      {
+        sourceId: 'tea-institute',
+        publisher: 'Tea Institute',
+        publisherRoleLabel: 'Institute',
+        title: 'Pu’er reference',
+        author: 'Research Desk',
+        publishedDate: '2026-01-01',
+        url: 'https://example.com/puer',
+      },
+      {
+        sourceId: 'sheng-field-guide',
+        publisher: 'Tea Institute',
+        publisherRoleLabel: 'Retailer or reseller',
+        title: 'Sheng Field Guide',
+        author: 'Mei Lin',
+        publishedDate: '2026-02-03',
+        url: 'https://example.com/sheng/',
+      },
+    ],
     reportUrl: 'mailto:hello@teajia.com?subject=Tea%20Reference',
   },
 };
@@ -168,10 +188,15 @@ const previewProducts: PublicProduct[] = [{
   isOneOfAKind: false,
 }];
 
-const renderPreview = (path: string) => {
+function createReferenceQueryClient(): QueryClient {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   client.setQueryData(TEA_REFERENCE_PREVIEW_QUERY_KEY, previewTransport);
   client.setQueryData(['products', 'public'], previewProducts);
+  return client;
+}
+
+const renderPreview = (path: string) => {
+  const client = createReferenceQueryClient();
   return renderToString(
     <QueryClientProvider client={client}>
       <HelmetProvider>
@@ -315,10 +340,10 @@ describe('wayfinding', () => {
       expect.objectContaining({ id: 'types', label: 'Types', path: '/wisdom/types' }),
       expect.objectContaining({ id: 'regions', label: 'Origins', path: '/wisdom/regions' }),
     ]));
-    expect(wisdomSections(false)).toEqual(WISDOM_SECTIONS);
     expect(wisdomSections(false).map(section => section.label)).toEqual([
       'Overview', 'Plants', 'Regions', 'Producers', 'Marks', 'Styles', 'Named',
     ]);
+    expect(WISDOM_SECTIONS).toEqual(wisdomSections(TEA_REFERENCE_PREVIEW_ENABLED));
     expect(sectionForPath('/wisdom/types')).toBe('types');
     expect(sectionForPath('/wisdom/type/sheng')).toBe('types');
     expect(sectionForPath('/wisdom/family/puer')).toBe('types');
@@ -328,6 +353,18 @@ describe('wayfinding', () => {
       expect.objectContaining({ label: 'Tea Types', to: '/wisdom/types', count: 0 }),
       expect.objectContaining({ label: 'Origins', to: '/wisdom/regions', count: REGIONS.length }),
     ]));
+
+    expect(teaReferenceRoutePaths(false)).toEqual([]);
+    expect(teaReferenceRoutePaths(true)).toEqual([
+      '/wisdom/types',
+      '/wisdom/family/:id',
+      '/wisdom/type/:id',
+    ]);
+    expect(teaReferenceRoutePaths(TEA_REFERENCE_PREVIEW_ENABLED)).toEqual(
+      TEA_REFERENCE_PREVIEW_ENABLED
+        ? ['/wisdom/types', '/wisdom/family/:id', '/wisdom/type/:id']
+        : [],
+    );
   });
 
   it('carries one control, not a back link above a lit nav item', () => {
@@ -342,17 +379,18 @@ describe('wayfinding', () => {
   });
 
   it('lights the holding a detail page belongs to', () => {
+    const regionLabel = WISDOM_SECTIONS.find(section => section.id === 'regions')?.label;
     expect(render('/wisdom/region/wuyi-mountains-fujian')).toMatch(
-      /aria-current="page"[^>]*>Regions|Regions<\/a>/,
+      new RegExp(`aria-current="page"[^>]*>${regionLabel}|${regionLabel}<\\/a>`),
     );
   });
 
-  it('collapses to one line on a phone and keeps all seven reachable', () => {
+  it('collapses to one line on a phone and keeps every active holding reachable', () => {
     const html = render('/wisdom/regions');
-    // Seven serif items need two 44px rows at 390px. Below sm the strip is
+    // The serif items need multiple rows at 390px. Below sm the strip is
     // the holding you are in, and it opens in place.
     expect(html).toContain('aria-controls="wisdom-holdings"');
-    expect(html).toContain('7 holdings');
+    expect(html).toContain(`${WISDOM_SECTIONS.length} holdings`);
     // Both shapes are in the DOM, but `hidden` is display:none, so exactly one
     // of them is in the accessibility tree at any width.
     expect(html).toContain('class="sm:hidden"');
@@ -360,6 +398,13 @@ describe('wayfinding', () => {
     for (const section of WISDOM_SECTIONS) {
       expect(html).toContain(`href="${section.path}"`);
     }
+    expect(html.includes('href="/wisdom/types"')).toBe(TEA_REFERENCE_PREVIEW_ENABLED);
+    expect(html).toContain(TEA_REFERENCE_PREVIEW_ENABLED ? '>Origins<' : '>Regions<');
+  });
+
+  it('uses the mandatory mobile navigation gap on every Wisdom page', () => {
+    expect(PAGE.split(/\s+/)).toContain('pb-nav-gap');
+    expect(PAGE.split(/\s+/)).not.toContain('pb-nav');
   });
 });
 
@@ -371,6 +416,14 @@ describe('Tea Reference type preview', () => {
     expect(index).toContain('href="/wisdom/family/puer"');
     expect(index).toContain('href="/wisdom/type/sheng"');
     expect(index).not.toContain('href="/wisdom/type/shou"');
+    if (TEA_REFERENCE_PREVIEW_ENABLED) {
+      expect(index).toContain('>Types<');
+      expect(index).toContain('>Origins<');
+      expect(index).toContain('8 holdings');
+    } else {
+      expect(index).not.toContain('href="/wisdom/types"');
+      expect(index).toContain('>Regions<');
+    }
 
     const family = renderPreview('/wisdom/family/puer');
     expect(family).toContain('Pu’er');
@@ -381,8 +434,13 @@ describe('Tea Reference type preview', () => {
     const html = renderPreview('/wisdom/type/sheng').replace(/&amp;/g, '&');
     expect(html).toContain('Common characteristics');
     expect(html).toContain('Cultivar potential');
-    expect(html).toContain('Tea Institute, Sheng reference (2026)');
-    expect(html).toContain('href="https://example.com/sheng"');
+    expect(html).toContain('Tea Institute');
+    expect(html).toContain('Sheng Field Guide');
+    expect(html).toContain('Mei Lin');
+    expect(html).toContain('2026-02-03');
+    expect(html).toContain('href="https://example.com/sheng/"');
+    expect(html).toContain('Tea Institute, Cultivar guide (2025)');
+    expect(html).not.toContain('Retailer or reseller');
     expect(html).toContain('Available teas');
     expect(html).toContain('href="/shop/product/sheng-spring-cake"');
     expect(html).toContain('Spring Cake');
@@ -747,7 +805,7 @@ describe('what carries the grouping', () => {
       // The shell takes the width now. What holds a paragraph to a readable
       // line is the measure, which is a property of the text, and it is
       // unchanged: widening the page must never widen the prose.
-      expect(html).toContain('class="w-full max-w-[78rem] mx-auto pt-4 pb-nav hang-punct"');
+      expect(html).toContain(`class="${PAGE}"`);
       expect(html).not.toContain('max-w-[46rem]');
     }
   });

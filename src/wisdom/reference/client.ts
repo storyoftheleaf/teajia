@@ -3,8 +3,14 @@ import { useQuery } from '@tanstack/react-query';
 import { usePublicProducts } from '../../hooks/usePublicProducts';
 import { buildTeaReferenceCatalogue } from './catalogue';
 import type { WebsiteReceivingPublicTransport } from '../receiving/previewImporter';
+import { TEA_REFERENCE_PREVIEW_ENABLED } from './previewMode';
 
-export const TEA_REFERENCE_PREVIEW_ENABLED = import.meta.env.MODE === 'tea-reference-preview';
+export {
+  ACTIVE_TEA_REFERENCE_ROUTE_PATHS,
+  TEA_REFERENCE_PREVIEW_ENABLED,
+  TEA_REFERENCE_ROUTE_PATHS,
+  teaReferenceRoutePaths,
+} from './previewMode';
 export const TEA_REFERENCE_PREVIEW_QUERY_KEY = ['wisdom', 'tea-reference-preview'] as const;
 
 async function fetchTeaReferencePreview(): Promise<WebsiteReceivingPublicTransport> {

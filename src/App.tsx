@@ -2,6 +2,10 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate, useParams, type Location } from 'react-router-dom';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
+import {
+  ACTIVE_TEA_REFERENCE_ROUTE_PATHS,
+  TEA_REFERENCE_ROUTE_PATHS,
+} from './wisdom/reference/previewMode';
 
 // Retry a failed chunk load in place. A transient fetch failure is common on a
 // jumpy/firewalled connection, especially for the large admin bundle.
@@ -146,14 +150,13 @@ const RegionIndexPage = lazy(() => import('./pages/wisdom/RegionIndexPage'));
 const RegionPage = lazy(() => import('./pages/wisdom/RegionPage'));
 const NamedTeaIndexPage = lazy(() => import('./pages/wisdom/NamedTeaIndexPage'));
 const NamedTeaPage = lazy(() => import('./pages/wisdom/NamedTeaPage'));
-const teaReferencePreviewEnabled = import.meta.env.MODE === 'tea-reference-preview';
-const TeaTypeIndexPage = teaReferencePreviewEnabled
+const TeaTypeIndexPage = ACTIVE_TEA_REFERENCE_ROUTE_PATHS.includes(TEA_REFERENCE_ROUTE_PATHS.index)
   ? lazy(() => import('./pages/wisdom/TeaTypeIndexPage'))
   : null;
-const TeaFamilyPage = teaReferencePreviewEnabled
+const TeaFamilyPage = ACTIVE_TEA_REFERENCE_ROUTE_PATHS.includes(TEA_REFERENCE_ROUTE_PATHS.family)
   ? lazy(() => import('./pages/wisdom/TeaFamilyPage'))
   : null;
-const TeaTypePage = teaReferencePreviewEnabled
+const TeaTypePage = ACTIVE_TEA_REFERENCE_ROUTE_PATHS.includes(TEA_REFERENCE_ROUTE_PATHS.type)
   ? lazy(() => import('./pages/wisdom/TeaTypePage'))
   : null;
 
@@ -1088,13 +1091,13 @@ const AppContent = () => {
                 <Route path="/wisdom/named/:id" element={
                   <ErrorBoundary><Suspense fallback={<WisdomFallback />}><NamedTeaPage /></Suspense></ErrorBoundary>
                 } />
-                {TeaTypeIndexPage && <Route path="/wisdom/types" element={
+                {TeaTypeIndexPage && <Route path={TEA_REFERENCE_ROUTE_PATHS.index} element={
                   <ErrorBoundary><Suspense fallback={<WisdomFallback />}><TeaTypeIndexPage /></Suspense></ErrorBoundary>
                 } />}
-                {TeaFamilyPage && <Route path="/wisdom/family/:id" element={
+                {TeaFamilyPage && <Route path={TEA_REFERENCE_ROUTE_PATHS.family} element={
                   <ErrorBoundary><Suspense fallback={<WisdomFallback />}><TeaFamilyPage /></Suspense></ErrorBoundary>
                 } />}
-                {TeaTypePage && <Route path="/wisdom/type/:id" element={
+                {TeaTypePage && <Route path={TEA_REFERENCE_ROUTE_PATHS.type} element={
                   <ErrorBoundary><Suspense fallback={<WisdomFallback />}><TeaTypePage /></Suspense></ErrorBoundary>
                 } />}
                 <Route path="/about" element={<ErrorBoundary><AboutPage /></ErrorBoundary>} />

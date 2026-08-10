@@ -15,6 +15,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
+import { TEA_REFERENCE_PREVIEW_ENABLED } from '../../wisdom/reference/previewMode';
 
 // ─── Three type sizes, and nothing else ──────────────────────────────────────
 
@@ -246,7 +247,7 @@ export const MEASURE = 'max-w-[66ch]';
  * `hang-punct` is inherited, so one class here hangs punctuation in every
  * paragraph below it.
  */
-export const PAGE = 'w-full max-w-[78rem] mx-auto pt-4 pb-nav hang-punct';
+export const PAGE = 'w-full max-w-[78rem] mx-auto pt-4 pb-nav-gap hang-punct';
 
 /**
  * A grammar of exactly two rules, and length is what says which is which.
@@ -303,7 +304,7 @@ export function wisdomSections(previewEnabled: boolean): WisdomSection[] {
 
 /** The active build's holdings. Normal development, tests and production retain the established seven. */
 export const WISDOM_SECTIONS: WisdomSection[] = wisdomSections(
-  import.meta.env.MODE === 'tea-reference-preview',
+  TEA_REFERENCE_PREVIEW_ENABLED,
 );
 
 /**

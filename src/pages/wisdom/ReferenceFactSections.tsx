@@ -1,6 +1,7 @@
 import React from 'react';
 import type { PublicProduct } from '../../types';
 import type { PublicReferenceStatement } from '../../wisdom/receiving/previewImporter';
+import type { PublicTeaReferenceSource } from '../../wisdom/reference/types';
 import {
   AXIS_INDENT,
   CELL_CLASS,
@@ -23,6 +24,27 @@ interface FactGroup {
   facts: PublicReferenceStatement[];
 }
 
+function canonicalReferenceUrl(value: string): string | null {
+  try {
+    const url = new URL(value);
+    url.hash = '';
+    url.searchParams.sort();
+    if (url.pathname.length > 1) url.pathname = url.pathname.replace(/\/+$/, '');
+    return url.href;
+  } catch {
+    return null;
+  }
+}
+
+function sourceForFact(
+  fact: PublicReferenceStatement,
+  sources: readonly PublicTeaReferenceSource[],
+): PublicTeaReferenceSource | undefined {
+  const citationUrl = canonicalReferenceUrl(fact.citation.url);
+  if (!citationUrl) return undefined;
+  return sources.find(source => canonicalReferenceUrl(source.url) === citationUrl);
+}
+
 function groupedFacts(facts: readonly PublicReferenceStatement[]): FactGroup[] {
   const common = facts.filter(fact => fact.label === 'Common characteristics');
   const potential = facts.filter(fact => fact.label === 'Potential characteristics');
@@ -34,38 +56,50 @@ function groupedFacts(facts: readonly PublicReferenceStatement[]): FactGroup[] {
   ].filter(group => group.facts.length > 0);
 }
 
-const FactStatement: React.FC<{ fact: PublicReferenceStatement }> = ({ fact }) => (
-  <li className={`${RULE_FULL} first:border-t-0 py-4`}>
-    <p className={`${FACT} ${MEASURE}`}>{fact.text}</p>
-    {fact.excerpt && (
-      <blockquote className={`${FOOTNOTE} ${MEASURE} mt-2 border-l-2 border-tea-border pl-3`}>
-        &ldquo;{fact.excerpt}&rdquo;
-      </blockquote>
-    )}
-    <p className={`${CELL_CLASS} text-tea-text-dim mt-2`}>Source:{' '}
-      <a
-        href={fact.citation.url}
-        target="_blank"
-        rel="noreferrer"
-        className={`${QUIET_LINK} tap-target`}
-      >
-        {fact.citation.label}
-      </a>
-    </p>
-  </li>
-);
+const FactStatement: React.FC<{
+  fact: PublicReferenceStatement;
+  sources: readonly PublicTeaReferenceSource[];
+}> = ({ fact, sources }) => {
+  const source = sourceForFact(fact, sources);
+  return (
+    <li className={`${RULE_FULL} first:border-t-0 py-4`}>
+      <p className={`${FACT} ${MEASURE}`}>{fact.text}</p>
+      {fact.excerpt && (
+        <blockquote className={`${FOOTNOTE} ${MEASURE} mt-2 border-l-2 border-tea-border pl-3`}>
+          &ldquo;{fact.excerpt}&rdquo;
+        </blockquote>
+      )}
+      <p className={`${CELL_CLASS} text-tea-text-dim mt-2`}>Source:{' '}
+        <a
+          href={source?.url ?? fact.citation.url}
+          target="_blank"
+          rel="noreferrer"
+          className={`${QUIET_LINK} tap-target`}
+        >
+          {source ? `${source.publisher} · ${source.title}` : fact.citation.label}
+        </a>
+      </p>
+      {source && (source.author || source.publishedDate) && (
+        <p className={`${CELL_CLASS} text-tea-text-dim mt-1`}>
+          {[source.author, source.publishedDate].filter(Boolean).join(' · ')}
+        </p>
+      )}
+    </li>
+  );
+};
 
 export const ReferenceFactSections: React.FC<{
   facts: readonly PublicReferenceStatement[];
+  sources: readonly PublicTeaReferenceSource[];
   products: readonly PublicProduct[];
   reportIdentity: string;
-}> = ({ facts, products, reportIdentity }) => (
+}> = ({ facts, sources, products, reportIdentity }) => (
   <>
     {groupedFacts(facts).map(group => (
       <section key={group.label} className={`${SPACE.section} ${GROUND} py-6`}>
         <SectionHead label={group.label} count={group.facts.length} />
         <ul className={`list-none m-0 p-0 ${AXIS_INDENT}`}>
-          {group.facts.map(fact => <FactStatement key={fact.id} fact={fact} />)}
+          {group.facts.map(fact => <FactStatement key={fact.id} fact={fact} sources={sources} />)}
         </ul>
       </section>
     ))}
