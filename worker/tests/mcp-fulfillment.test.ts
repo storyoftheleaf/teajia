@@ -1,5 +1,21 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { mcpFetch } from '../src/mcp';
+
+const mcpSource = readFileSync(new URL('../src/mcp.ts', import.meta.url), 'utf8');
+
+describe('MCP Tea Master sales invariant wiring', () => {
+  it('uses the shared sale authorization and settlement seams', () => {
+    expect(mcpSource).toContain('authorizeInvoiceLines');
+    expect(mcpSource).toContain('buildSettlementStatements');
+    expect(mcpSource).toContain('buildSettlementReversalStatements');
+  });
+
+  it('subtracts other live holds before MCP fulfillment or immediate sale', () => {
+    expect(mcpSource).toContain('SUM(held_grams)');
+    expect(mcpSource).toContain('invoice_id != ?');
+  });
+});
 
 const ACCOUNT_ID = 'acc_test';
 const TOKEN = 'tjmcp_test';
