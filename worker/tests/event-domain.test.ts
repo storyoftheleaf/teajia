@@ -65,6 +65,14 @@ describe('event domain', () => {
     });
   });
 
+  it('gives cancellation precedence over stale update-only flags', () => {
+    expect(normalizeRsvpUpdate({
+      status: 'cancelled',
+      cancellation_note: 'Travel',
+      show_in_guest_list: 'false',
+    })).toEqual({ action: 'cancel', cancellationNote: 'Travel' });
+  });
+
   it('accepts boolean and numeric RSVP visibility flags without coercion', () => {
     expect(normalizeRsvpUpdate({
       first_visit_briefed: false,
@@ -166,7 +174,13 @@ describe('event domain', () => {
   it.each(['capacity', 'confirmedSeats', 'offeredSeats'] as const)(
     'rejects invalid %s values',
     (key) => {
-      for (const value of [-1, 0.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+      for (const value of [
+        -1,
+        0.5,
+        Number.NaN,
+        Number.POSITIVE_INFINITY,
+        Number.MAX_SAFE_INTEGER + 1,
+      ]) {
         expect(() => seatAvailability({
           capacity: 3,
           confirmedSeats: 2,

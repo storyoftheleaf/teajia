@@ -40,19 +40,19 @@ function normalizeRsvpFlag(name: string, value: unknown): boolean {
 }
 
 export function normalizeRsvpUpdate(input: Record<string, unknown>) {
-  const firstVisitBriefed = 'first_visit_briefed' in input
-    ? normalizeRsvpFlag('first_visit_briefed', input.first_visit_briefed)
-    : undefined;
-  const showInGuestList = 'show_in_guest_list' in input
-    ? normalizeRsvpFlag('show_in_guest_list', input.show_in_guest_list)
-    : undefined;
-
   if (input.cancel === true || input.status === 'cancelled') {
     return {
       action: 'cancel' as const,
       cancellationNote: String(input.cancellation_note || '') || undefined,
     };
   }
+
+  const firstVisitBriefed = 'first_visit_briefed' in input
+    ? normalizeRsvpFlag('first_visit_briefed', input.first_visit_briefed)
+    : undefined;
+  const showInGuestList = 'show_in_guest_list' in input
+    ? normalizeRsvpFlag('show_in_guest_list', input.show_in_guest_list)
+    : undefined;
 
   return {
     action: 'update' as const,
@@ -95,7 +95,7 @@ export function publicPostSessionProjection(row: Record<string, unknown>) {
 }
 
 function requireSeatCount(name: string, value: number): void {
-  if (!Number.isInteger(value) || value < 0) {
+  if (!Number.isSafeInteger(value) || value < 0) {
     throw new TypeError(`${name} must be a non-negative integer`);
   }
 }
