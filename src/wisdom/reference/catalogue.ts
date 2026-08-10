@@ -417,7 +417,8 @@ function isGeneratedOriginPage(page: PublicTeaReferencePage): page is GeneratedO
 }
 
 function generatedOrigins(products: readonly PublicProduct[]): PublicTeaOrigin[] {
-  const pages = GENERATED_TEA_REFERENCE_PAGES.filter(isGeneratedOriginPage);
+  const pages = (GENERATED_TEA_REFERENCE_PAGES as readonly PublicTeaReferencePage[])
+    .filter(isGeneratedOriginPage);
   const byId = new Map<string, GeneratedOriginPage>(pages.map(page => [page.id, page]));
   const allMatches = new Map<string, string[]>();
   const activeMatches = new Set<string>();

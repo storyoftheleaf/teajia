@@ -26,6 +26,12 @@ export interface PublicWisdomNodeState {
   public_state: 'hidden' | 'public' | 'inherit';
   is_public: boolean;
 }
+import type {
+  CreateTeaReferenceIssueInput,
+  CreateTeaReferenceIssueResponse,
+  ListTeaReferenceIssuesResponse,
+  ResolveTeaReferenceIssuesResponse,
+} from '../wisdom/reference/issues';
 
 type CompassWrite = Record<string, unknown> & { decision?: CompassDecision | null };
 export interface CompassSyncResult {
@@ -1241,6 +1247,22 @@ export const api = {
           })),
       };
     },
+  },
+  teaReferenceIssues: {
+    create: (input: CreateTeaReferenceIssueInput): Promise<CreateTeaReferenceIssueResponse> => authedFetch(
+      `${API_URL}/api/admin/tea-reference/issues`,
+      { method: 'POST', body: JSON.stringify(input), retryTimeouts: true },
+    ),
+    list: (): Promise<ListTeaReferenceIssuesResponse> => authedFetch(
+      `${API_URL}/api/admin/tea-reference/issues`,
+    ),
+    exportBrief: (): Promise<Blob> => authedBlobFetch(
+      `${API_URL}/api/admin/tea-reference/issues/export`,
+    ),
+    resolve: (ids: string[]): Promise<ResolveTeaReferenceIssuesResponse> => authedFetch(
+      `${API_URL}/api/admin/tea-reference/issues/resolve`,
+      { method: 'POST', body: JSON.stringify({ ids }), retryTimeouts: true },
+    ),
   },
   incidents: {
     // Keep browser traffic on the public same-origin proxy. A direct Worker

@@ -43,15 +43,14 @@ function resetSessionBootstrap() {
   sessionBootstrapPromise = null;
 }
 
-// Hydrate auth user from local JWT claims once, on module load. This runs
+// Hydrate account scope, platform role, and auth user from local JWT claims once, on module load. This runs
 // before any component mounts, so every `useAuth()` call sees the same
 // initial state, fixes the per-component useState hydration race that
 // hid the admin sidebar nav on first render after login.
 (() => {
   const store = useAppStore.getState();
-  if (store.authUser) return;
-  const claims = getTokenClaims();
-  if (claims) {
+  const claims = hydrateAccountStateFromToken();
+  if (claims && !store.authUser) {
     store.setAuthUser({
       email: claims.email,
       username: claims.username ?? null,

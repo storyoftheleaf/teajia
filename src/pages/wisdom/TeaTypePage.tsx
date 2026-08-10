@@ -89,6 +89,7 @@ const TeaTypePage: React.FC = () => {
             sources={catalogue?.sources ?? []}
             products={products.filter(product => type.productIds.includes(product.id))}
             reportIdentity={`Tea type: ${type.name}`}
+            referencePage={catalogue?.pages.find(page => page.kind === 'tea_type' && page.id === type.id)}
           />
         </>
       )}

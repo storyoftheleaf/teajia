@@ -27,7 +27,9 @@ import {
   nodeTypeForHolding,
 } from '../components/wisdom/relations';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
+import { useAppStore } from '../../lib/store';
 import { TEA_REFERENCE_PREVIEW_ENABLED } from '../../wisdom/reference/previewMode';
+import { TeaReferenceIssuesView } from './TeaReferenceIssuesView';
 
 const TeaReferenceReviewView = TEA_REFERENCE_PREVIEW_ENABLED
   ? React.lazy(async () => {
@@ -119,11 +121,13 @@ const wisdomAddress = (state: WisdomAddress): Record<string, string> => {
 
 export const TeaReferenceWisdomSwitch: React.FC<{
   previewEnabled: boolean;
+  isPlatformOwner?: boolean;
   browse: React.ReactNode;
+  issues?: React.ReactNode;
   review: React.ReactNode;
-}> = ({ previewEnabled, browse, review }) => {
-  const [surface, setSurface] = useState<'browse' | 'review'>('browse');
-  if (!previewEnabled) return <>{browse}</>;
+}> = ({ previewEnabled, isPlatformOwner = false, browse, issues, review }) => {
+  const [surface, setSurface] = useState<'browse' | 'issues' | 'review'>('browse');
+  if (!previewEnabled && !isPlatformOwner) return <>{browse}</>;
 
   return (
     <div className="min-h-full bg-tea-bg">
@@ -140,7 +144,21 @@ export const TeaReferenceWisdomSwitch: React.FC<{
         >
           Browse base
         </button>
-        <button
+        {isPlatformOwner && (
+          <button
+            type="button"
+            aria-pressed={surface === 'issues'}
+            onClick={() => setSurface('issues')}
+            className={`${TYPOGRAPHY_CLASSES.link} min-h-11 rounded-md border px-3 transition-colors ${
+              surface === 'issues'
+                ? 'border-tea-gold bg-tea-gold/10 text-tea-gold'
+                : 'border-tea-border text-tea-text-sec hover:border-tea-gold hover:text-tea-text'
+            }`}
+          >
+            Reference issues
+          </button>
+        )}
+        {previewEnabled && <button
           type="button"
           aria-pressed={surface === 'review'}
           onClick={() => setSurface('review')}
@@ -151,17 +169,22 @@ export const TeaReferenceWisdomSwitch: React.FC<{
           }`}
         >
           Review incoming
-        </button>
-        <span className={`${TYPOGRAPHY_CLASSES.label} flex min-h-11 items-center text-tea-text-dim`}>
+        </button>}
+        {previewEnabled && <span className={`${TYPOGRAPHY_CLASSES.label} flex min-h-11 items-center text-tea-text-dim`}>
           Local preview only
-        </span>
+        </span>}
       </div>
-      {surface === 'review' ? review : browse}
+      {surface === 'review' ? review : surface === 'issues' && isPlatformOwner ? issues : browse}
     </div>
   );
 };
 
+export function isPlatformOwnerRole(role: unknown): boolean {
+  return role === 'platform_owner';
+}
+
 export const WisdomView: React.FC = () => {
+  const isPlatformOwner = isPlatformOwnerRole(useAppStore(state => state.platformRole));
   const [searchParams, setSearchParams] = useSearchParams();
   const rawTab = searchParams.get(WISDOM_PARAM.tab);
   const active = WISDOM_HOLDINGS.find(holding => holding.id === rawTab) ?? WISDOM_HOLDINGS[0];
@@ -502,7 +525,9 @@ export const WisdomView: React.FC = () => {
   return (
     <TeaReferenceWisdomSwitch
       previewEnabled={TEA_REFERENCE_PREVIEW_ENABLED}
+      isPlatformOwner={isPlatformOwner}
       browse={wisdomBrowser}
+      issues={<TeaReferenceIssuesView />}
       review={TeaReferenceReviewView ? (
         <React.Suspense
           fallback={<p className={`${TYPOGRAPHY_CLASSES.bodyLight} p-4 text-tea-text-sec`}>Loading private review packet.</p>}

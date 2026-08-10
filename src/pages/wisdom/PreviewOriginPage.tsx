@@ -146,6 +146,9 @@ const PreviewOriginPage: React.FC<{ id: string }> = ({ id }) => {
             sources={catalogue?.sources ?? []}
             products={products.filter(product => origin.productIds.includes(product.id))}
             reportIdentity={`Origin: ${origin.name}`}
+            referencePage={catalogue?.pages.find(page => (
+              (page.kind === 'major_region' || page.kind === 'tea_area') && page.id === origin.id
+            ))}
           />
         </>
       )}

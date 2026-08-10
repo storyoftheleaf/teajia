@@ -74,6 +74,7 @@ const TeaFamilyPage: React.FC = () => {
             sources={catalogue?.sources ?? []}
             products={products.filter(product => family.productIds.includes(product.id))}
             reportIdentity={`Tea family: ${family.name}`}
+            referencePage={catalogue?.pages.find(page => page.kind === 'tea_family' && page.id === family.id)}
           />
         </>
       )}

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { usePublicProducts } from '../../hooks/usePublicProducts';
-import { buildTeaReferenceCatalogue } from './catalogue';
+import { buildGeneratedTeaReferenceCatalogue, buildTeaReferenceCatalogue } from './catalogue';
 import type { WebsiteReceivingPublicTransport } from '../receiving/previewImporter';
 import { TEA_REFERENCE_PREVIEW_ENABLED } from './previewMode';
 
@@ -45,16 +45,18 @@ export function useTeaReferenceCatalogue() {
   const productsQuery = usePublicProducts();
   const products = productsQuery.data ?? [];
   const catalogue = useMemo(
-    () => previewQuery.data && productsQuery.data
-      ? buildTeaReferenceCatalogue(previewQuery.data.publicPreview, products)
-      : null,
+    () => {
+      if (!productsQuery.data) return null;
+      if (previewQuery.data) return buildTeaReferenceCatalogue(previewQuery.data.publicPreview, products);
+      return TEA_REFERENCE_PREVIEW_ENABLED ? null : buildGeneratedTeaReferenceCatalogue(products);
+    },
     [previewQuery.data, productsQuery.data, products],
   );
 
   return {
     catalogue,
     products,
-    isLoading: previewQuery.isPending || productsQuery.isPending,
-    isError: previewQuery.isError || productsQuery.isError,
+    isLoading: productsQuery.isPending || (TEA_REFERENCE_PREVIEW_ENABLED && previewQuery.isPending),
+    isError: productsQuery.isError || (TEA_REFERENCE_PREVIEW_ENABLED && previewQuery.isError),
   };
 }

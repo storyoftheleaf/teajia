@@ -2,6 +2,8 @@ import React from 'react';
 import type { PublicProduct } from '../../types';
 import type { PublicReferenceStatement } from '../../wisdom/receiving/previewImporter';
 import type { PublicTeaReferenceSource } from '../../wisdom/reference/types';
+import type { TeaReferenceFlagPage } from '../../wisdom/reference/issues';
+import FlagReferenceIssueSheet from './FlagReferenceIssueSheet';
 import {
   AXIS_INDENT,
   CELL_CLASS,
@@ -24,11 +26,20 @@ interface FactGroup {
   facts: PublicReferenceStatement[];
 }
 
-function sourceForFact(
-  fact: PublicReferenceStatement,
+type PublicReferenceCitation = PublicReferenceStatement['citation'];
+
+function citationsForFact(fact: PublicReferenceStatement): readonly PublicReferenceCitation[] {
+  const citations = (fact as PublicReferenceStatement & {
+    citations?: readonly PublicReferenceCitation[];
+  }).citations;
+  return citations?.length ? citations : [fact.citation];
+}
+
+function sourceForCitation(
+  citation: PublicReferenceCitation,
   sources: readonly PublicTeaReferenceSource[],
 ): PublicTeaReferenceSource | undefined {
-  return sources.find(source => source.sourceId === fact.citation.sourceId);
+  return sources.find(source => source.sourceId === citation.sourceId);
 }
 
 function groupedFacts(facts: readonly PublicReferenceStatement[]): FactGroup[] {
@@ -79,9 +90,8 @@ function compactMetadata(value: string, maxLength: number): string {
 const FactStatement: React.FC<{
   fact: PublicReferenceStatement;
   sources: readonly PublicTeaReferenceSource[];
-  showSource: boolean;
-}> = ({ fact, sources, showSource }) => {
-  const source = sourceForFact(fact, sources);
+  visibleCitations: readonly PublicReferenceCitation[];
+}> = ({ fact, sources, visibleCitations }) => {
   return (
     <li className={`${RULE_FULL} first:border-t-0 py-4 min-w-0`}>
       <p className={`${FACT} ${MEASURE} min-w-0 break-words`}>{fact.text}</p>
@@ -90,29 +100,33 @@ const FactStatement: React.FC<{
           &ldquo;{fact.excerpt}&rdquo;
         </blockquote>
       )}
-      {showSource && (
-        <p className={`${CELL_CLASS} text-tea-text-dim mt-2 min-w-0 break-words`}>Source:{' '}
-          <a
-            href={source?.url ?? fact.citation.url}
-            target="_blank"
-            rel="noreferrer"
-            className={`${QUIET_LINK} tap-target min-w-0 break-words`}
-          >
-            {source
-              ? `${compactMetadata(source.publisher, 48)} · ${compactMetadata(source.title, 80)}`
-              : compactMetadata(fact.citation.label, 120)}
-          </a>
-          {source && [
-            compactMetadata(source.author, 64),
-            readableReferenceDate(source.publishedDate),
-          ].filter(Boolean).map((detail, index) => (
-            <React.Fragment key={`${detail}-${index}`}>
-              <span aria-hidden="true"> · </span>
-              <span>{detail}</span>
-            </React.Fragment>
-          ))}
-        </p>
-      )}
+      {visibleCitations.map((citation, citationIndex) => {
+        const source = sourceForCitation(citation, sources);
+        return (
+          <p key={`${citation.sourceId}-${citationIndex}`} className={`${CELL_CLASS} text-tea-text-dim mt-2 min-w-0 break-words`}>
+            {citationIndex === 0 ? 'Source: ' : 'Also: '}
+            <a
+              href={source?.url ?? citation.url}
+              target="_blank"
+              rel="noreferrer"
+              className={`${QUIET_LINK} tap-target min-w-0 break-words`}
+            >
+              {source
+                ? `${compactMetadata(source.publisher, 48)} · ${compactMetadata(source.title, 80)}`
+                : compactMetadata(citation.label, 120)}
+            </a>
+            {source && [
+              compactMetadata(source.author, 64),
+              readableReferenceDate(source.publishedDate),
+            ].filter(Boolean).map((detail, index) => (
+              <React.Fragment key={`${detail}-${index}`}>
+                <span aria-hidden="true"> · </span>
+                <span>{detail}</span>
+              </React.Fragment>
+            ))}
+          </p>
+        );
+      })}
     </li>
   );
 };
@@ -122,7 +136,8 @@ export const ReferenceFactSections: React.FC<{
   sources: readonly PublicTeaReferenceSource[];
   products: readonly PublicProduct[];
   reportIdentity: string;
-}> = ({ facts, sources, products, reportIdentity }) => {
+  referencePage?: TeaReferenceFlagPage;
+}> = ({ facts, sources, products, reportIdentity, referencePage }) => {
   const groups = groupedFacts(facts.filter(isUsefulFact));
   const availableProducts = products.filter(product => product.status !== 'Sold Out');
   const previouslyOfferedProducts = products.filter(product => product.status === 'Sold Out');
@@ -155,11 +170,21 @@ export const ReferenceFactSections: React.FC<{
             <SectionHead id={sectionId} label={group.label} count={group.facts.length} />
             <ul className={`list-none m-0 p-0 ${AXIS_INDENT}`}>
               {group.facts.map(fact => {
-                const source = sourceForFact(fact, sources);
-                const sourceKey = source?.url || fact.citation.url;
-                const showSource = !seenSources.has(sourceKey);
-                seenSources.add(sourceKey);
-                return <FactStatement key={fact.id} fact={fact} sources={sources} showSource={showSource} />;
+                const visibleCitations = citationsForFact(fact).filter(citation => {
+                  const source = sourceForCitation(citation, sources);
+                  const sourceKey = source?.url || citation.url;
+                  if (seenSources.has(sourceKey)) return false;
+                  seenSources.add(sourceKey);
+                  return true;
+                });
+                return (
+                  <FactStatement
+                    key={fact.id}
+                    fact={fact}
+                    sources={sources}
+                    visibleCitations={visibleCitations}
+                  />
+                );
               })}
             </ul>
           </section>
@@ -186,6 +211,11 @@ export const ReferenceFactSections: React.FC<{
         </div>
       )}
 
+      {referencePage && (
+        <div className={`${AXIS_INDENT} ${SPACE.section}`}>
+          <FlagReferenceIssueSheet page={referencePage} />
+        </div>
+      )}
       <Invitation subject={`Report an inaccuracy: ${reportIdentity}`} />
     </>
   );
