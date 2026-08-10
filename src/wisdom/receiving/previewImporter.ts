@@ -600,20 +600,151 @@ const FORBIDDEN_PUBLIC_KEYS = new Set([
 
 const FORBIDDEN_PUBLIC_MARKER = /(?:^|[^a-z0-9])(?:exact[ _-]lot|personal[ _-]tasting)(?:[^a-z0-9]|$)/i;
 
-function validatePublicProjection(value: unknown, seen = new WeakSet<object>()): void {
+function hasOwn(value: object, key: PropertyKey): boolean {
+  return Object.prototype.hasOwnProperty.call(value, key);
+}
+
+function validateNoPrivateData(value: unknown, activePath = new Set<object>()): void {
   if (typeof value === 'string') {
     if (FORBIDDEN_PUBLIC_MARKER.test(value)) throw new Error('Unsafe public preview: forbidden private marker');
     return;
   }
   if (!value || typeof value !== 'object') return;
-  if (seen.has(value)) throw new Error('Unsafe public preview: repeated or cyclic object');
-  seen.add(value);
-  for (const [key, entry] of Object.entries(value)) {
-    if (FORBIDDEN_PUBLIC_KEYS.has(key) || /sha256$/i.test(key) || FORBIDDEN_PUBLIC_MARKER.test(key)) {
-      throw new Error(`Unsafe public preview: forbidden private key ${key}`);
+  if (activePath.has(value)) throw new Error('Unsafe public preview: cyclic object');
+  activePath.add(value);
+  try {
+    for (const key of Reflect.ownKeys(value)) {
+      const keyText = String(key);
+      if (FORBIDDEN_PUBLIC_KEYS.has(keyText) || /sha256$/i.test(keyText) || FORBIDDEN_PUBLIC_MARKER.test(keyText)) {
+        throw new Error(`Unsafe public preview: forbidden private key ${keyText}`);
+      }
+      validateNoPrivateData(Reflect.get(value, key), activePath);
     }
-    validatePublicProjection(entry, seen);
+  } finally {
+    activePath.delete(value);
   }
+}
+
+function publicObject(value: unknown, allowedKeys: readonly string[], path: string): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`Unsafe public preview: ${path} must be an object`);
+  }
+  const allowed = new Set(allowedKeys);
+  for (const key of Reflect.ownKeys(value)) {
+    if (typeof key !== 'string' || !allowed.has(key)) {
+      throw new Error(`Unsafe public preview: unknown ${path} key ${String(key)}`);
+    }
+  }
+  for (const key of allowedKeys) {
+    if (!hasOwn(value, key)) throw new Error(`Unsafe public preview: missing ${path} key ${key}`);
+  }
+  return value as Record<string, unknown>;
+}
+
+function publicArray(value: unknown, path: string): unknown[] {
+  if (!Array.isArray(value)) throw new Error(`Unsafe public preview: ${path} must be an array`);
+  for (const key of Reflect.ownKeys(value)) {
+    if (key === 'length') continue;
+    if (typeof key !== 'string' || !/^(0|[1-9]\d*)$/.test(key) || Number(key) >= value.length) {
+      throw new Error(`Unsafe public preview: unknown ${path} key ${String(key)}`);
+    }
+  }
+  for (let index = 0; index < value.length; index += 1) {
+    if (!hasOwn(value, index)) throw new Error(`Unsafe public preview: sparse ${path}`);
+  }
+  return value;
+}
+
+function publicString(value: unknown, path: string): void {
+  if (typeof value !== 'string') throw new Error(`Unsafe public preview: ${path} must be a string`);
+}
+
+function publicCount(value: unknown, path: string): void {
+  if (!Number.isInteger(value) || (value as number) < 0) {
+    throw new Error(`Unsafe public preview: ${path} must be a non-negative integer`);
+  }
+}
+
+function validatePublicCitation(value: unknown, path: string): void {
+  const citation = publicObject(value, ['label', 'url'], path);
+  publicString(citation.label, `${path}.label`);
+  publicString(citation.url, `${path}.url`);
+}
+
+function validatePublicStatement(value: unknown, path: string): void {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`Unsafe public preview: ${path} must be an object`);
+  }
+  const keys = hasOwn(value, 'excerpt')
+    ? ['id', 'label', 'text', 'excerpt', 'citation']
+    : ['id', 'label', 'text', 'citation'];
+  const statement = publicObject(value, keys, path);
+  publicString(statement.id, `${path}.id`);
+  publicString(statement.label, `${path}.label`);
+  publicString(statement.text, `${path}.text`);
+  if (hasOwn(statement, 'excerpt')) publicString(statement.excerpt, `${path}.excerpt`);
+  validatePublicCitation(statement.citation, `${path}.citation`);
+}
+
+function validatePublicEntry(value: unknown, path: string): void {
+  const entry = publicObject(value, ['id', 'label', 'entityKind', 'kindLabel', 'statements', 'reportUrl'], path);
+  publicString(entry.id, `${path}.id`);
+  publicString(entry.label, `${path}.label`);
+  publicString(entry.entityKind, `${path}.entityKind`);
+  publicString(entry.kindLabel, `${path}.kindLabel`);
+  publicArray(entry.statements, `${path}.statements`)
+    .forEach((statement, index) => validatePublicStatement(statement, `${path}.statements[${index}]`));
+  publicString(entry.reportUrl, `${path}.reportUrl`);
+}
+
+function validatePublicSection(value: unknown, path: string): void {
+  const section = publicObject(value, ['id', 'label', 'description', 'entries'], path);
+  publicString(section.id, `${path}.id`);
+  publicString(section.label, `${path}.label`);
+  publicString(section.description, `${path}.description`);
+  publicArray(section.entries, `${path}.entries`)
+    .forEach((entry, index) => validatePublicEntry(entry, `${path}.entries[${index}]`));
+}
+
+function validateGeographicScale(value: unknown, path: string): void {
+  const scale = publicObject(value, ['id', 'label', 'count'], path);
+  publicString(scale.id, `${path}.id`);
+  if (!GEOGRAPHIC_LEVELS.has(scale.id as ReferenceEntityKind)) {
+    throw new Error(`Unsafe public preview: ${path}.id must be a geographic level`);
+  }
+  publicString(scale.label, `${path}.label`);
+  publicCount(scale.count, `${path}.count`);
+}
+
+function validatePublicSource(value: unknown, path: string): void {
+  const source = publicObject(
+    value,
+    ['sourceId', 'publisher', 'publisherRoleLabel', 'title', 'author', 'publishedDate', 'url'],
+    path,
+  );
+  for (const key of ['sourceId', 'publisher', 'publisherRoleLabel', 'title', 'author', 'publishedDate', 'url']) {
+    publicString(source[key], `${path}.${key}`);
+  }
+}
+
+function validatePublicProjection(value: unknown): asserts value is PublicReferencePreview {
+  validateNoPrivateData(value);
+  const preview = publicObject(
+    value,
+    ['title', 'deck', 'sourceCount', 'entryCount', 'sections', 'geographicScale', 'sources', 'reportUrl'],
+    'publicPreview',
+  );
+  publicString(preview.title, 'publicPreview.title');
+  publicString(preview.deck, 'publicPreview.deck');
+  publicCount(preview.sourceCount, 'publicPreview.sourceCount');
+  publicCount(preview.entryCount, 'publicPreview.entryCount');
+  publicArray(preview.sections, 'publicPreview.sections')
+    .forEach((section, index) => validatePublicSection(section, `publicPreview.sections[${index}]`));
+  publicArray(preview.geographicScale, 'publicPreview.geographicScale')
+    .forEach((scale, index) => validateGeographicScale(scale, `publicPreview.geographicScale[${index}]`));
+  publicArray(preview.sources, 'publicPreview.sources')
+    .forEach((source, index) => validatePublicSource(source, `publicPreview.sources[${index}]`));
+  publicString(preview.reportUrl, 'publicPreview.reportUrl');
 }
 
 export function publicTransportFor(preview: WebsiteReceivingPreview): WebsiteReceivingPublicTransport {

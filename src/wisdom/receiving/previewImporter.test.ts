@@ -312,4 +312,41 @@ describe('public receiving transport', () => {
 
     expect(() => publicTransportFor(preview)).toThrow(/unsafe public preview/i);
   });
+
+  it('rejects an unknown top-level public preview property', () => {
+    const preview = previewWebsiteHandoff(handoff());
+    Object.assign(preview.publicPreview, { internalNotes: 'private' });
+
+    expect(() => publicTransportFor(preview)).toThrow(/unsafe public preview/i);
+  });
+
+  it('rejects an unknown nested public preview property', () => {
+    const preview = previewWebsiteHandoff(handoff());
+    Object.assign(preview.publicPreview.sections[0].entries[0].statements[0].citation, {
+      internalNotes: 'private',
+    });
+
+    expect(() => publicTransportFor(preview)).toThrow(/unsafe public preview/i);
+  });
+
+  it('allows shared references within an otherwise valid public preview', () => {
+    const preview = previewWebsiteHandoff(handoff());
+    const statements = preview.publicPreview.sections[0].entries[0].statements;
+    statements.push({
+      ...statements[0],
+      id: 'CLAIM-SHARED-CITATION',
+      citation: statements[0].citation,
+    });
+
+    expect(() => publicTransportFor(preview)).not.toThrow();
+  });
+
+  it('rejects cyclic public preview data', () => {
+    const preview = previewWebsiteHandoff(handoff());
+    Object.assign(preview.publicPreview.sections[0], {
+      entries: preview.publicPreview.sections,
+    });
+
+    expect(() => publicTransportFor(preview)).toThrow(/unsafe public preview/i);
+  });
 });
