@@ -1,7 +1,8 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
-import { TeaShopViewTabs } from './TeaShopViewTabs';
+import { TeaFinder } from './TeaFinder';
+import { TeaShopViewRegion, TeaShopViewTabs } from './TeaShopViewTabs';
 
 describe('TeaShopViewTabs', () => {
   it('renders the approved compact order and selected state', () => {
@@ -29,5 +30,23 @@ describe('TeaShopViewTabs', () => {
 
     selectionButton.props.onClick();
     expect(onChange).toHaveBeenCalledWith('selection');
+  });
+
+  it('keeps a polite result status mounted with the finder and updates it for results', () => {
+    const finderMarkup = renderToStaticMarkup(
+      <TeaShopViewRegion active="find" count={0} showPast={false}>
+        <TeaFinder onChoose={() => {}} />
+      </TeaShopViewRegion>,
+    );
+    const resultMarkup = renderToStaticMarkup(
+      <TeaShopViewRegion active="all" count={2} showPast={false}>
+        <span>Ledger results</span>
+      </TeaShopViewRegion>,
+    );
+
+    expect(finderMarkup).toContain('aria-live="polite"');
+    expect(finderMarkup).toContain('Choose a direction to find a tea.');
+    expect(finderMarkup).toContain('Light and fragrant');
+    expect(resultMarkup).toContain('2 teas shown');
   });
 });

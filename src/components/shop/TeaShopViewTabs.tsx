@@ -1,9 +1,41 @@
+import type { ReactNode } from 'react';
 import { HIT_AREA, LABEL } from '../shared/typeRoles';
 import { TEA_SHOP_VIEWS, type TeaShopView } from './teaShopView';
 
 interface TeaShopViewTabsProps {
   active: TeaShopView;
   onChange: (view: TeaShopView) => void;
+}
+
+interface TeaShopResultStatusProps {
+  active: TeaShopView;
+  count: number;
+  showPast: boolean;
+}
+
+export function TeaShopResultStatus({ active, count, showPast }: TeaShopResultStatusProps) {
+  const message = active === 'find'
+    ? 'Choose a direction to find a tea.'
+    : `${count} ${count === 1 ? 'tea' : 'teas'} ${showPast ? 'in the archive' : active === 'selection' ? 'in My selection' : 'shown'}`;
+
+  return (
+    <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+      {message}
+    </p>
+  );
+}
+
+interface TeaShopViewRegionProps extends TeaShopResultStatusProps {
+  children: ReactNode;
+}
+
+export function TeaShopViewRegion({ active, count, showPast, children }: TeaShopViewRegionProps) {
+  return (
+    <>
+      <TeaShopResultStatus active={active} count={count} showPast={showPast} />
+      {children}
+    </>
+  );
 }
 
 export function TeaShopViewTabs({ active, onChange }: TeaShopViewTabsProps) {

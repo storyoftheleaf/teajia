@@ -24,7 +24,7 @@ import { AnimatePresence } from 'framer-motion';
 import type { Product } from '../admin/types';
 import { TeaFinder } from './shop/TeaFinder';
 import { TeaLedger } from './shop/TeaLedger';
-import { TeaShopViewTabs } from './shop/TeaShopViewTabs';
+import { TeaShopViewRegion, TeaShopViewTabs } from './shop/TeaShopViewTabs';
 import { BODY, LINK } from './shared/typeRoles';
 import {
   applyFinderIntent,
@@ -600,6 +600,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       <div className="max-w-full mx-auto px-4 md:px-6 lg:px-10 pt-4">
 
          <TeaShopViewTabs active={teaView} onChange={handleTeaViewChange} />
+         <TeaShopViewRegion active={teaView} count={filteredInventory.length} showPast={showPast}>
 
          {teaView === 'find' ? (
            <div className="pt-6">
@@ -948,8 +949,6 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
          {/* Main content area (full width now) */}
          <div className="w-full">
            <p
-             aria-live="polite"
-             aria-atomic="true"
              className="py-3 text-ui-10 text-tea-text-dim"
              style={{ fontFamily: 'var(--font-body)' }}
            >
@@ -1022,6 +1021,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
          </div>
            </>
          )}
+         </TeaShopViewRegion>
       </div>
 
       {/* Recently Viewed */}
