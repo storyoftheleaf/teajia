@@ -26,6 +26,68 @@ export interface CompassSyncResult {
   conflicts: string[];
 }
 
+export type SalesOwnerShareType = 'percent' | 'fixed';
+export interface SalesGrant {
+  id: string;
+  account_id: string;
+  product_id: string;
+  seller_user_id: string;
+  seller_name?: string;
+  granted_by_user_id: string;
+  granted_by_name?: string;
+  price_floor: number | null;
+  owner_share_type: SalesOwnerShareType;
+  owner_share_value: number;
+  quantity_limit: number | null;
+  starts_at: string | null;
+  expires_at: string | null;
+  revoked_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+export interface SalesGrantWrite {
+  product_id: string;
+  seller_user_id: string;
+  price_floor?: number | null;
+  owner_share_type?: SalesOwnerShareType;
+  owner_share_value?: number;
+  quantity_limit?: number | null;
+  starts_at?: string | null;
+  expires_at?: string | null;
+}
+export interface EligibleSalesProduct {
+  product_id: string;
+  product_name: string;
+  owner_id: string | null;
+  owner_name: string | null;
+  physical_quantity: number;
+  held_quantity: number;
+  available_quantity: number;
+  price_floor: number | null;
+  grant_id: string | null;
+  permission_reason: 'account_owner' | 'location_stock' | 'own_stock' | 'active_grant';
+}
+export interface SalesSettlement {
+  id: string;
+  account_id: string;
+  invoice_id: string;
+  line_item_id: string;
+  product_id: string | null;
+  product_name?: string | null;
+  stock_owner_user_id: string | null;
+  stock_owner_name?: string | null;
+  seller_user_id: string;
+  seller_name?: string;
+  grant_id: string | null;
+  gross_amount: number;
+  owner_amount: number;
+  seller_amount: number;
+  status: 'owed' | 'paid' | 'reversed';
+  reversed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export type CurateImportSourceKind = 'wechat' | 'invoice' | 'vendor_list' | 'photo' | 'file' | 'paste';
 export type CurateImportDisposition = 'received' | 'in_transit' | 'library_only';
 export type CurateImportInventoryPurpose = 'working' | 'sample' | 'personal';
@@ -1243,6 +1305,29 @@ export const api = {
     list: () => authedFetch(`${API_URL}/api/platform/incidents`),
     update: (id: string, patch: { status: string; resolution_ref?: string }) => authedFetch(`${API_URL}/api/platform/incidents/${encodeURIComponent(id)}`, {
       method: 'PATCH', body: JSON.stringify(patch), retryTimeouts: true,
+    }),
+  },
+  sales: {
+    listGrants: (productId?: string): Promise<SalesGrant[]> => {
+      const query = productId ? `?product_id=${encodeURIComponent(productId)}` : '';
+      return authedFetch(`${API_URL}/api/sales/grants${query}`);
+    },
+    createGrant: (data: SalesGrantWrite): Promise<SalesGrant> => authedFetch(`${API_URL}/api/sales/grants`, {
+      method: 'POST', body: JSON.stringify(data),
+    }),
+    updateGrant: (id: string, data: Partial<SalesGrantWrite>): Promise<SalesGrant> => authedFetch(`${API_URL}/api/sales/grants/${encodeURIComponent(id)}`, {
+      method: 'PUT', body: JSON.stringify(data),
+    }),
+    revokeGrant: (id: string): Promise<{ success: true }> => authedFetch(`${API_URL}/api/sales/grants/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    }),
+    eligibleProducts: (): Promise<EligibleSalesProduct[]> => authedFetch(`${API_URL}/api/sales/eligible-products`),
+    listSettlements: (options?: { mine?: boolean }): Promise<SalesSettlement[]> => {
+      const query = options?.mine ? '?mine=1' : '';
+      return authedFetch(`${API_URL}/api/sales/settlements${query}`);
+    },
+    markSettlementPaid: (id: string): Promise<{ success: true }> => authedFetch(`${API_URL}/api/sales/settlements/${encodeURIComponent(id)}`, {
+      method: 'PUT', body: JSON.stringify({ status: 'paid' }),
     }),
   },
   inventoryReceipts: {
