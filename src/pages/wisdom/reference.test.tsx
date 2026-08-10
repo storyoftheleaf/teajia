@@ -941,7 +941,8 @@ describe('growing regions', () => {
 
     expect(html).not.toContain('Reference ID');
     expect(html).not.toContain('RG 006');
-    expect(html).toContain('Open in Apple Maps');
+    expect(html).toContain('>View map</a>');
+    expect(html).not.toContain('Apple Maps');
     expect(html).toContain('href="https://maps.apple.com/?q=Anhui%2C%20China"');
     expect(html).not.toContain('>Altitude<');
     expect(html).toContain('Places within Anhui');
@@ -951,10 +952,21 @@ describe('growing regions', () => {
     expect(html).not.toContain('No plant in the reference records this place as its origin yet');
   });
 
-  it('uses Google Maps for places outside China', () => {
+  it('keeps the map provider out of the public action label', () => {
     const html = render('/wisdom/region/darjeeling').replace(/&amp;/g, '&');
-    expect(html).toContain('Open in Google Maps');
+    expect(html).toContain('>View map</a>');
+    expect(html).not.toContain('Google Maps');
     expect(html).toContain('https://www.google.com/maps/search/?api=1&query=Darjeeling%2C%20West%20Bengal%2C%20India');
+  });
+
+  it('asks for corrections without over-explaining', () => {
+    const html = render('/wisdom/region/jinzhai-county-lu-an');
+
+    expect(html).toContain('If you notice any inaccuracies, please');
+    expect(html).toContain('>report them</a>');
+    expect(html).toContain('It helps us improve the reference for everyone.');
+    expect(html).not.toContain('This is not everything');
+    expect(html).not.toContain('every correction is credited');
   });
 
   it('answers for a place it does not hold', async () => {
@@ -1022,7 +1034,8 @@ describe('growing regions', () => {
     expect(html).toContain('Report an inaccuracy');
     expect(html).toContain('Tea types represented by available teas');
     expect(html).toContain('href="/wisdom/type/sheng"');
-    expect(html).toContain('Open in Apple Maps');
+    expect(html).toContain('>View map</a>');
+    expect(html).not.toContain('Apple Maps');
     expect(html).toContain('href="https://maps.apple.com/?q=Manxiu%2C%20Mansa%20Village%2C%20Gedeng%20Mountain%2C%20Yiwu%20Tea%20Area%2C%20Yunnan%2C%20China"');
     expect(html).not.toMatch(/Country|Province|Altitude|Climate/);
     expect(html).not.toMatch(/held|conflict|evidence|private/i);

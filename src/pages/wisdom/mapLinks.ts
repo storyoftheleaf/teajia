@@ -12,10 +12,10 @@ export function mapSearchLink(parts: readonly (string | undefined)[], country: s
   const query = [...new Set([...parts, country].filter((value): value is string => Boolean(value?.trim())))]
     .join(', ');
   if (country === 'China') {
-    return { label: 'Open in Apple Maps', url: `https://maps.apple.com/?q=${encodeURIComponent(query)}` };
+    return { label: 'View map', url: `https://maps.apple.com/?q=${encodeURIComponent(query)}` };
   }
   return {
-    label: 'Open in Google Maps',
+    label: 'View map',
     url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`,
   };
 }

@@ -294,11 +294,11 @@ export const Invitation: React.FC<{ subject?: string }> = ({ subject }) => (
   <aside className={`${SPACE.section} pt-6 ${RULE_FULL} ${AXIS}`}>
     <p className={`${LABEL} mb-1 sm:mb-0`}>Corrections</p>
     <p className={`${FACT_CLASS} text-tea-text ${MEASURE}`}>
-      This is not everything. The goal is to be everything. If you know something that isn&rsquo;t here,{' '}
+      If you notice any inaccuracies, please{' '}
       <a href={mailtoWisdom(subject)} className={QUIET_LINK}>
-        send it
+        report them
       </a>
-      . One editor reads it, and every correction is credited.
+      . It helps us improve the reference for everyone.
     </p>
   </aside>
 );
