@@ -38,6 +38,7 @@ class IssueDb {
   rows: IssueRow[] = [];
   platformRole: string | null = 'platform_owner';
   resolveBeforeNextUpdate: string | null = null;
+  resolveBeforeNextDuplicateRead = false;
   issueSql: string[] = [];
 
   prepare(sql: string) {
@@ -55,6 +56,20 @@ class IssueDb {
         if (normalized.includes('select status from accounts')) return { status: 'active' };
         if (normalized.includes('from tea_reference_issues') && normalized.includes('normalized_note = ?')) {
           const [accountId, pageId, sectionKey, category, normalizedNote] = values;
+          if (this.resolveBeforeNextDuplicateRead) {
+            const raced = this.rows.find(row => row.account_id === accountId
+              && row.page_id === pageId
+              && row.section_key === sectionKey
+              && row.category === category
+              && row.normalized_note === normalizedNote
+              && row.status === 'open');
+            if (raced) {
+              raced.status = 'resolved';
+              raced.resolved_by_user_id = OWNER_ID;
+              raced.resolved_at = '2026-08-10 02:03:04';
+            }
+            this.resolveBeforeNextDuplicateRead = false;
+          }
           return this.rows.find(row => row.account_id === accountId
             && row.page_id === pageId
             && row.section_key === sectionKey
@@ -200,6 +215,22 @@ describe('Tea Reference revision issue API', () => {
     expect(db.rows).toHaveLength(1);
   });
 
+  it('creates a replacement if the duplicate is resolved between insert and read-back', async () => {
+    const db = new IssueDb();
+    const first = await (await create(db)).json() as any;
+    db.resolveBeforeNextDuplicateRead = true;
+
+    const replacement = await create(db, { ...createBody, note: '  CLARIFY   what “place-bound” means.  ' });
+
+    expect(replacement.status).toBe(201);
+    expect(await replacement.json()).toMatchObject({
+      duplicate: false,
+      issue: { id: expect.not.stringMatching(first.issue.id), status: 'open' },
+    });
+    expect(db.rows.filter(row => row.status === 'open')).toHaveLength(1);
+    expect(db.rows.filter(row => row.status === 'resolved')).toHaveLength(1);
+  });
+
   it('lists only open issues belonging to the selected account', async () => {
     const db = new IssueDb();
     await create(db, createBody, ACCOUNT_A);
@@ -229,8 +260,12 @@ describe('Tea Reference revision issue API', () => {
     expect(await second.text()).toBe(firstMarkdown);
     expect(firstMarkdown.indexOf('The geographic frame')).toBeLessThan(firstMarkdown.indexOf('Read labels with care'));
     expect(firstMarkdown).toContain('A note with \\# heading and \\[link\\]\\(https://unsafe.test\\).');
+    expect(firstMarkdown).toContain('Publisher: TeaDB');
+    expect(firstMarkdown).toContain("Title: Pu'erh Regions: Yunnan Overview");
+    expect(firstMarkdown).toContain('Published: 2014-12-27');
+    expect(firstMarkdown).toContain('URL: <https://teadb.org/yunnan/>');
     expect(firstMarkdown).not.toContain('2026-08-10 01:02:03');
-    expect(firstMarkdown).not.toMatch(/evidence|translation method|excerpt hash/i);
+    expect(firstMarkdown).not.toMatch(/evidence|translation method|excerpt hash|source_language|locator|excerpt_sha256/i);
   });
 
   it('resolves explicit open IDs atomically and denies cross-account or unknown IDs', async () => {

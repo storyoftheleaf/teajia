@@ -26,6 +26,14 @@ interface CanonicalPage {
   sections: readonly CanonicalSection[];
 }
 
+interface CanonicalSource {
+  sourceId: string;
+  publisher: string;
+  title: string;
+  publishedDate: string;
+  url: string;
+}
+
 interface TeaReferenceIssueRow {
   id: string;
   account_id: string;
@@ -79,6 +87,9 @@ export class TeaReferenceIssueError extends Error {
 const categorySet: ReadonlySet<string> = new Set(TEA_REFERENCE_ISSUE_CATEGORIES);
 const pagesById = new Map<string, CanonicalPage>(
   (GENERATED_TEA_REFERENCE_REGISTRY.pages as readonly CanonicalPage[]).map(page => [page.id, page]),
+);
+const sourcesById = new Map<string, CanonicalSource>(
+  (GENERATED_TEA_REFERENCE_REGISTRY.sources as readonly CanonicalSource[]).map(source => [source.sourceId, source]),
 );
 
 function codePointCompare(left: string, right: string): number {
@@ -203,36 +214,43 @@ export async function createTeaReferenceIssue(
 
   const { page, section, route } = canonicalTarget(pageId, sectionKey);
   const normalizedNote = normalizeNote(note);
-  const id = crypto.randomUUID();
-  const insert = await db.prepare(`
-    INSERT INTO tea_reference_issues (
-      id, account_id, page_id, page_slug, route, section_key, category, note,
-      normalized_note, public_text_snapshot, source_ids_json, created_by_user_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT DO NOTHING
-  `).bind(
-    id,
-    context.accountId,
-    page.id,
-    page.slug,
-    route,
-    section.key,
-    category,
-    note,
-    normalizedNote,
-    section.text,
-    JSON.stringify([...section.sourceIds].sort(codePointCompare)),
-    context.userId,
-  ).run();
+  const sourceIdsJson = JSON.stringify([...section.sourceIds].sort(codePointCompare));
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const id = crypto.randomUUID();
+    const insert = await db.prepare(`
+      INSERT INTO tea_reference_issues (
+        id, account_id, page_id, page_slug, route, section_key, category, note,
+        normalized_note, public_text_snapshot, source_ids_json, created_by_user_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT DO NOTHING
+    `).bind(
+      id,
+      context.accountId,
+      page.id,
+      page.slug,
+      route,
+      section.key,
+      category,
+      note,
+      normalizedNote,
+      section.text,
+      sourceIdsJson,
+      context.userId,
+    ).run();
 
-  const row = await db.prepare(`
-    SELECT ${issueProjection}
-    FROM tea_reference_issues
-    WHERE account_id = ? AND page_id = ? AND section_key = ?
-      AND category = ? AND normalized_note = ? AND status = 'open'
-  `).bind(context.accountId, page.id, section.key, category, normalizedNote).first<TeaReferenceIssueRow>();
-  if (!row) throw new Error('Tea Reference issue insert could not be read back');
-  return { issue: rowToIssue(row), duplicate: Number(insert.meta.changes ?? 0) === 0 };
+    const row = await db.prepare(`
+      SELECT ${issueProjection}
+      FROM tea_reference_issues
+      WHERE account_id = ? AND page_id = ? AND section_key = ?
+        AND category = ? AND normalized_note = ? AND status = 'open'
+    `).bind(context.accountId, page.id, section.key, category, normalizedNote).first<TeaReferenceIssueRow>();
+    if (row) return { issue: rowToIssue(row), duplicate: Number(insert.meta.changes ?? 0) === 0 };
+  }
+  throw new TeaReferenceIssueError(
+    'Tea Reference issue changed while it was being created; retry the request',
+    409,
+    'create_conflict',
+  );
 }
 
 export async function listTeaReferenceIssues(db: D1Database, accountId: string): Promise<TeaReferenceIssue[]> {
@@ -261,11 +279,24 @@ const categoryLabels: Record<TeaReferenceIssueCategory, string> = {
 };
 
 function escapeMarkdown(value: string): string {
-  return value.replace(/[\\`*_{}\[\]<>()#+!|>-]/g, '\\$&');
+  return value.replace(/[\\`*_{}\[\]<>()#+!|]/g, '\\$&').replace(/^([>-])/gm, '\\$1');
 }
 
 function quotedMarkdown(value: string): string {
   return value.replace(/\r\n?/g, '\n').split('\n').map(line => `> ${escapeMarkdown(line)}`).join('\n');
+}
+
+function publicSourceMarkdown(sourceId: string): string[] {
+  const source = sourcesById.get(sourceId);
+  if (!source) return [`- Source ID: \`${sourceId}\``, '  - Public metadata: Unavailable in current registry'];
+  const safeUrl = source.url.replace(/</g, '%3C').replace(/>/g, '%3E');
+  return [
+    `- Source ID: \`${source.sourceId}\``,
+    `  - Publisher: ${escapeMarkdown(source.publisher)}`,
+    `  - Title: ${escapeMarkdown(source.title)}`,
+    `  - Published: ${escapeMarkdown(source.publishedDate)}`,
+    `  - URL: <${safeUrl}>`,
+  ];
 }
 
 export async function exportTeaReferenceIssues(db: D1Database, accountId: string): Promise<string> {
@@ -300,7 +331,10 @@ export async function exportTeaReferenceIssues(db: D1Database, accountId: string
       `<!-- tea-reference-issue:${issue.id} -->`,
       `- Category: ${categoryLabels[issue.category]}`,
       `- Issue ID: \`${issue.id}\``,
-      `- Source IDs: ${issue.source_ids.length ? issue.source_ids.map(id => `\`${id}\``).join(', ') : 'None'}`,
+      '',
+      '**Sources**',
+      '',
+      ...(issue.source_ids.length ? issue.source_ids.flatMap(publicSourceMarkdown) : ['None']),
       '',
       '**Note**',
       '',
