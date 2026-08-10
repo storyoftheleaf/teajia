@@ -113,6 +113,34 @@ describe('public RSVP update contract', () => {
     expect(db.attendee).toMatchObject({ notes: 'No stairs', first_visit_briefed: 1 });
   });
 
+  it('preserves guest-list visibility updates through normalization', async () => {
+    const db = new EventContractDb();
+
+    const result = await updateRsvp(db, { show_in_guest_list: false });
+
+    expect(result.response.status).toBe(200);
+    expect(result.body).toMatchObject({ success: true, show_in_guest_list: 0 });
+    expect(db.attendee.show_in_guest_list).toBe(0);
+  });
+
+  it('preserves plus-one updates alongside normalized fields', async () => {
+    const db = new EventContractDb();
+
+    const result = await updateRsvp(db, {
+      notes: 'Seated together',
+      plus_one: true,
+      plus_one_name: 'Ari',
+    });
+
+    expect(result.response.status).toBe(200);
+    expect(result.body).toMatchObject({ success: true, notes: 'Seated together' });
+    expect(db.attendee).toMatchObject({
+      notes: 'Seated together',
+      plus_one: 1,
+      plus_one_name: 'Ari',
+    });
+  });
+
   it('keeps legacy cancel requests working', async () => {
     const db = new EventContractDb();
 
