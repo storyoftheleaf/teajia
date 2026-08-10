@@ -1,6 +1,9 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import { classifyClaimRelationships } from './claim-relationships.mjs';
+import { buildEntityResolutionPreview } from './entity-resolution.mjs';
+
 const DECISIONS = Object.freeze(['Accept candidate', 'Needs research', 'Rename', 'Merge', 'Hold', 'Exclude']);
 const COLORS = Object.freeze({
   ink: '#2F352B', sage: '#6D7B5C', cream: '#F5F1E7', pale: '#FBF9F3', gold: '#B59052', white: '#FFFFFF', held: '#FFF3D6', line: '#D8D2C4', danger: '#8C3A2B',
@@ -25,24 +28,6 @@ function columnName(index) {
 
 function sourceMap(capture) {
   return new Map(capture.sources.map((packet) => [packet.source.sourceId, packet]));
-}
-
-function findConflicts(claims) {
-  const groups = new Map();
-  for (const claim of claims) {
-    if (claim.predicate === 'source_description') continue;
-    const key = [claim.entityKind, claim.subject, claim.predicate].join('\u001f');
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(claim);
-  }
-  const conflicts = [];
-  for (const [key, group] of groups) {
-    const values = new Set(group.map(({ value }) => JSON.stringify(value)));
-    if (values.size < 2) continue;
-    const conflictId = `CONFLICT-${Buffer.from(key).toString('hex').slice(0, 16).toUpperCase()}`;
-    for (const claim of group) conflicts.push({ conflictId, ...claim });
-  }
-  return conflicts.sort((left, right) => left.conflictId.localeCompare(right.conflictId) || left.claimId.localeCompare(right.claimId));
 }
 
 function coverageRows(claims) {
@@ -105,42 +90,46 @@ function makeStartSheet(sheet, capture) {
   sheet.getRange('A1:F1').merge();
   sheet.getRange('A1').values = [['Tea Reference capture review']];
   sheet.getRange('A1:F1').format = { fill: COLORS.ink, font: { name: 'Aptos Display', size: 20, bold: true, color: COLORS.white }, rowHeight: 40, verticalAlignment: 'center' };
-  sheet.getRange('A3:B8').values = [
+  sheet.getRange('A3:B12').values = [
     ['Batch status', capture.manifest.complete ? 'Complete capture' : 'Incomplete - source errors present'],
+    ['Continual capture gate', capture.manifest.continualCaptureEligible ? 'Eligible for capped capture-only batches' : 'No-go: inspect safety gates'],
     ['Sources captured', null],
     ['Claim drafts', null],
     ['Held claims', null],
     ['Source errors', capture.manifest.errorCount ?? capture.errors.length],
+    ['Duplicate snapshots', capture.manifest.duplicateSnapshotGroupCount ?? 0],
+    ['Automatic merges', capture.manifest.autoMergeCandidateCount ?? 0],
+    ['Genuine contradictions', capture.manifest.genuineContradictionCount ?? 0],
     ['Preview change', `+${capture.preview.added} added / ${capture.preview.changed} changed / ${capture.preview.missing} missing`],
   ];
   const sourceEnd = Math.max(2, capture.sources.length + 1);
   const claimEnd = Math.max(2, capture.claims.length + 1);
-  sheet.getRange('B4').formulas = [[`=COUNTA('SOURCES'!A2:A${sourceEnd})`]];
-  sheet.getRange('B5').formulas = [[`=COUNTA('CLAIMS'!A2:A${claimEnd})`]];
-  sheet.getRange('B6').formulas = [[`=COUNTIF('CLAIMS'!M2:M${claimEnd},"held")`]];
-  sheet.getRange('A3:A8').format = { fill: COLORS.cream, font: { bold: true, color: COLORS.ink }, borders: { bottom: { style: 'thin', color: COLORS.line } } };
-  sheet.getRange('B3:B8').format = { fill: COLORS.pale, font: { color: COLORS.ink }, borders: { bottom: { style: 'thin', color: COLORS.line } } };
-  sheet.getRange('A10:F10').merge();
-  sheet.getRange('A10').values = [['How to review']];
-  sheet.getRange('A10:F10').format = { fill: COLORS.sage, font: { bold: true, color: COLORS.white }, rowHeight: 26 };
-  sheet.getRange('A11:F16').merge(true);
-  sheet.getRange('A11:A16').values = [
+  sheet.getRange('B5').formulas = [[`=COUNTA('SOURCES'!A2:A${sourceEnd})`]];
+  sheet.getRange('B6').formulas = [[`=COUNTA('CLAIMS'!A2:A${claimEnd})`]];
+  sheet.getRange('B7').formulas = [[`=COUNTIF('CLAIMS'!M2:M${claimEnd},"held")`]];
+  sheet.getRange('A3:A12').format = { fill: COLORS.cream, font: { bold: true, color: COLORS.ink }, borders: { bottom: { style: 'thin', color: COLORS.line } } };
+  sheet.getRange('B3:B12').format = { fill: COLORS.pale, font: { color: COLORS.ink }, borders: { bottom: { style: 'thin', color: COLORS.line } } };
+  sheet.getRange('A14:F14').merge();
+  sheet.getRange('A14').values = [['How to review']];
+  sheet.getRange('A14:F14').format = { fill: COLORS.sage, font: { bold: true, color: COLORS.white }, rowHeight: 26 };
+  sheet.getRange('A15:F20').merge(true);
+  sheet.getRange('A15:A20').values = [
     ['1. Read CLAIMS and HELD. Every draft keeps its source URL and exact evidence ID.'],
     ['2. Use Adrian decision: Accept candidate, Needs research, Rename, Merge, Hold, or Exclude.'],
     ['3. “Accept candidate” means suitable for later private verification; it does not publish or assimilate anything.'],
     ['4. Specialist descriptions stay attributed. They do not become Adrian tasting notes.'],
-    ['5. One-source claims are flags for research, not automatic rejections. Contradictions remain side by side.'],
+    ['5. RELATIONSHIPS separates supporting evidence, different scopes, and genuine contradiction candidates.'],
     ['6. Nothing in this workbook changes the website, inventory, products, or Wisdom corpus.'],
   ];
-  sheet.getRange('A11:F16').format = { fill: COLORS.pale, font: { color: COLORS.ink }, wrapText: true, rowHeight: 30, verticalAlignment: 'center' };
-  sheet.getRange('A18:F18').merge();
-  sheet.getRange('A18').values = [['Evidence rule: exact private source text may be retained for audit; public use requires citations and only minimal excerpts unless reuse rights allow more.']];
-  sheet.getRange('A18:F18').format = { fill: COLORS.held, font: { italic: true, color: COLORS.danger }, wrapText: true, rowHeight: 42 };
-  sheet.getRange('A1:F18').format.font = { name: 'Aptos', color: COLORS.ink };
+  sheet.getRange('A15:F20').format = { fill: COLORS.pale, font: { color: COLORS.ink }, wrapText: true, rowHeight: 30, verticalAlignment: 'center' };
+  sheet.getRange('A22:F22').merge();
+  sheet.getRange('A22').values = [['Evidence rule: exact private source text may be retained for audit; public use requires citations and only minimal excerpts unless reuse rights allow more.']];
+  sheet.getRange('A22:F22').format = { fill: COLORS.held, font: { italic: true, color: COLORS.danger }, wrapText: true, rowHeight: 42 };
+  sheet.getRange('A1:F22').format.font = { name: 'Aptos', color: COLORS.ink };
   sheet.getRange('A1:F1').format.font = { name: 'Aptos Display', size: 20, bold: true, color: COLORS.white };
-  sheet.getRange('A10:F10').format.font = { name: 'Aptos', size: 11, bold: true, color: COLORS.white };
-  sheet.getRange('A1:A18').format.columnWidth = 30;
-  sheet.getRange('B1:F18').format.columnWidth = 18;
+  sheet.getRange('A14:F14').format.font = { name: 'Aptos', size: 11, bold: true, color: COLORS.white };
+  sheet.getRange('A1:A22').format.columnWidth = 30;
+  sheet.getRange('B1:F22').format.columnWidth = 18;
   sheet.freezePanes.freezeRows(1);
 }
 
@@ -148,7 +137,7 @@ export async function writeReviewWorkbook({ capture, outputPath, artifactTool })
   if (!artifactTool?.Workbook || !artifactTool?.SpreadsheetFile) throw new Error('The bundled artifact workbook runtime is required');
   const { Workbook, SpreadsheetFile } = artifactTool;
   const workbook = Workbook.create();
-  const sheets = Object.fromEntries(['START HERE', 'SOURCES', 'EVIDENCE', 'CLAIMS', 'HELD', 'CONFLICTS', 'COVERAGE']
+  const sheets = Object.fromEntries(['START HERE', 'SOURCES', 'EVIDENCE', 'CLAIMS', 'HELD', 'RELATIONSHIPS', 'ENTITY RESOLUTION', 'COVERAGE']
     .map((name) => [name, workbook.worksheets.add(name)]));
   makeStartSheet(sheets['START HERE'], capture);
   const sources = sourceMap(capture);
@@ -181,12 +170,24 @@ export async function writeReviewWorkbook({ capture, outputPath, artifactTool })
   const heldRows = [claimHeader, ...capture.claims.filter(({ status }) => status === 'held').map(claimRow)];
   styleTable(sheets.HELD, heldRows, [28, 20, 44, 28, 24, 18, 22, 24, 56, 20, 20, 34, 14, 48, 52, 22], { tableName: 'HeldTable', decisionColumn: 15, heldRows: true });
 
-  const conflictRows = [['Conflict group', 'Claim ID', 'Subject', 'Entity kind', 'Predicate', 'Value', 'Source ID', 'Source URL', 'Evidence ID', 'Status', 'Adrian decision']];
-  for (const conflict of findConflicts(capture.claims)) conflictRows.push([
-    conflict.conflictId, conflict.claimId, conflict.subject, conflict.entityKind, conflict.predicate, scalar(conflict.value), conflict.sourceId,
-    sources.get(conflict.sourceId)?.source.url || '', conflict.evidenceId, conflict.status, '',
+  const relationshipRows = [['Relationship group', 'Classification', 'Reason', 'Claim ID', 'Subject', 'Entity kind', 'Predicate', 'Value', 'Source ID', 'Source URL', 'Evidence ID', 'Status', 'Adrian decision']];
+  for (const relationship of classifyClaimRelationships(capture.claims)) {
+    for (const claim of relationship.claims) relationshipRows.push([
+      relationship.relationshipId, relationship.classification, relationship.reason, claim.claimId, claim.subject, claim.entityKind,
+      claim.predicate, scalar(claim.value), claim.sourceId, sources.get(claim.sourceId)?.source.url || '', claim.evidenceId, claim.status, '',
+    ]);
+  }
+  styleTable(sheets.RELATIONSHIPS, relationshipRows, [26, 24, 48, 28, 24, 18, 24, 50, 20, 44, 28, 14, 22], { tableName: 'RelationshipsTable', decisionColumn: 12, heldRows: true });
+
+  const resolutionRows = [['Resolution ID', 'Subject', 'Entity kind', 'Normalized label', 'Canonical ID candidate', 'Preferred label', 'Parent candidate', 'Match basis', 'Proposed action', 'Reason', 'Duplicate cluster', 'Auto merge', 'Representative claim IDs', 'Source IDs', 'Adrian decision']];
+  for (const candidate of buildEntityResolutionPreview(capture.claims)) resolutionRows.push([
+    candidate.resolutionId, candidate.subject, candidate.entityKind, candidate.normalizedLabel, candidate.canonicalId, candidate.preferredLabel,
+    candidate.parentCanonicalId, candidate.matchBasis, candidate.proposedAction, candidate.reason, candidate.duplicateClusterId,
+    candidate.autoMerge,
+    `${candidate.claimIds.length} claim${candidate.claimIds.length === 1 ? '' : 's'}: ${candidate.claimIds.slice(0, 3).join(', ')}${candidate.claimIds.length > 3 ? ` (+${candidate.claimIds.length - 3} more)` : ''}`,
+    candidate.sourceIds.join(', '), '',
   ]);
-  styleTable(sheets.CONFLICTS, conflictRows, [24, 28, 24, 18, 24, 50, 20, 44, 28, 14, 22], { tableName: 'ConflictsTable', decisionColumn: 10, heldRows: true });
+  styleTable(sheets['ENTITY RESOLUTION'], resolutionRows, [28, 24, 18, 24, 28, 22, 28, 24, 24, 52, 30, 14, 46, 34, 22], { tableName: 'EntityResolutionTable', decisionColumn: 14, heldRows: true });
 
   const coverage = [['Entity kind', 'Claim scope', 'Unique subjects', 'Claim drafts', 'Held claims']];
   for (const group of coverageRows(capture.claims)) coverage.push([group.entityKind, group.claimScope, group.subjects.size, group.claims, group.held]);
@@ -198,4 +199,4 @@ export async function writeReviewWorkbook({ capture, outputPath, artifactTool })
   return workbook;
 }
 
-export { DECISIONS, findConflicts };
+export { DECISIONS };

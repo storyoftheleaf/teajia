@@ -49,3 +49,10 @@ test('rejects undeclared publisher roles', () => {
 test('rejects personal tasting as an extractable source scope', () => {
   assert.throws(() => validateAllowlist({ schemaVersion: 1, sources: [{ ...source, permittedClaimScopes: ['personal_tasting'] }] }), /personal tasting/i);
 });
+
+test('rejects an unknown fetch transport', () => {
+  assert.throws(
+    () => validateAllowlist({ schemaVersion: 1, sources: [{ ...source, fetchTransport: 'bypass' }] }),
+    /fetch transport/i,
+  );
+});

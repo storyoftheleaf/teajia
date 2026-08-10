@@ -71,10 +71,19 @@ test('capture stores private originals, hashes, exact evidence and stable claims
   assert.equal(first.manifest.complete, true);
   assert.equal(first.manifest.sourceCount, 2);
   assert.equal(first.manifest.errorCount, 0);
+  assert.equal(first.manifest.relationshipGroupCount, 0);
+  assert.equal(first.manifest.differentScopeRelationshipCount, 0);
+  assert.equal(first.manifest.genuineContradictionCount, 0);
+  assert.equal(first.manifest.entityResolutionCandidateCount, 2);
+  assert.equal(first.manifest.autoMergeCandidateCount, 0);
+  assert.equal(first.manifest.duplicateSnapshotGroupCount, 0);
+  assert.equal(first.manifest.continualCaptureEligible, true);
   assert.ok(first.sources.every((packet) => /^[a-f0-9]{64}$/.test(packet.retrieval.originalSha256)));
   assert.ok(first.sources.every((packet) => /^[a-f0-9]{64}$/.test(packet.retrieval.normalizedSha256)));
   assert.ok(first.sources.every((packet) => packet.retrieval.accessedDate === '2030-02-03'));
   assert.equal(await fs.readFile(path.join(temp, 'run-1', 'sources', 'specialist-yiwu', 'original.html'), 'utf8'), specialistHtml);
+  assert.equal(JSON.parse(await fs.readFile(path.join(temp, 'run-1', 'relationships.json'), 'utf8')).length, 0);
+  assert.equal(JSON.parse(await fs.readFile(path.join(temp, 'run-1', 'entity-resolution.json'), 'utf8')).length, 2);
 
   const claimBytes1 = await fs.readFile(path.join(temp, 'run-1', 'claims.json'));
   const claimBytes2 = await fs.readFile(path.join(temp, 'run-2', 'claims.json'));
@@ -98,9 +107,33 @@ test('a failed source is recorded and makes the batch incomplete', async (t) => 
     }),
   });
   assert.equal(failed.manifest.complete, false);
+  assert.equal(failed.manifest.continualCaptureEligible, false);
   assert.equal(failed.errors.length, 1);
   assert.equal(failed.errors[0].sourceId, 'tbrs-qingxin');
   assert.match(failed.errors[0].message, /network unavailable/);
+});
+
+test('identical normalized snapshots from different URLs block continual capture eligibility', async (t) => {
+  const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'tea-reference-capture-'));
+  t.after(() => fs.rm(temp, { recursive: true, force: true }));
+  const duplicateAllowlist = {
+    schemaVersion: 1,
+    sources: [
+      source({ sourceId: 'specialist-one', url: 'https://example.test/one' }),
+      source({ sourceId: 'specialist-two', url: 'https://example.test/two' }),
+    ],
+  };
+  const capture = await captureBatch({
+    allowlist: duplicateAllowlist,
+    outputRoot: path.join(temp, 'duplicate-run'),
+    fetcher: fixtureFetcher({
+      'https://example.test/one': specialistHtml,
+      'https://example.test/two': specialistHtml,
+    }),
+  });
+  assert.equal(capture.manifest.complete, true);
+  assert.equal(capture.manifest.duplicateSnapshotGroupCount, 1);
+  assert.equal(capture.manifest.continualCaptureEligible, false);
 });
 
 test('preview reports added and missing claims without changing the previous run', async (t) => {

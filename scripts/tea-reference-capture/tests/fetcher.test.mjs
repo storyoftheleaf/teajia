@@ -29,3 +29,14 @@ test('CLI fetcher does not hide ordinary primary-fetch failures', async () => {
   const fetcher = createCliFetcher({ primaryFetch, curlExec });
   await assert.rejects(fetcher('https://example.test/tea'), /connection reset/);
 });
+
+test('CLI fetcher uses the system transport only when the source explicitly requests it', async () => {
+  const primaryFetch = async () => { throw new Error('primary transport must not be called'); };
+  const curlExec = async () => ({
+    stdout: Buffer.from('<html>industry source</html>\n__TEAJIA_CURL_META_7e44c93d__:200\ttext/html'),
+  });
+  const fetcher = createCliFetcher({ primaryFetch, curlExec });
+  const response = await fetcher('https://association.example/tea', { teajiaTransport: 'system' });
+  assert.equal(response.ok, true);
+  assert.equal(Buffer.from(await response.arrayBuffer()).toString('utf8'), '<html>industry source</html>');
+});

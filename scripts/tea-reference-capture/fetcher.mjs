@@ -50,9 +50,11 @@ async function curlFetch(url, curlExec) {
 
 export function createCliFetcher({ primaryFetch = globalThis.fetch, curlExec = execFileAsync } = {}) {
   if (typeof primaryFetch !== 'function') throw new Error('Primary fetch function is required');
-  return async (url, options) => {
+  return async (url, options = {}) => {
+    const { teajiaTransport = 'primary', ...fetchOptions } = options;
+    if (teajiaTransport === 'system') return curlFetch(url, curlExec);
     try {
-      return await primaryFetch(url, options);
+      return await primaryFetch(url, fetchOptions);
     } catch (error) {
       if (!certificateChainFailure(error)) throw error;
       return curlFetch(url, curlExec);

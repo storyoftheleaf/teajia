@@ -2,15 +2,21 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import { extractJournalAbstract } from './adapters/journal-abstract.mjs';
+import { extractMarshalnArticle } from './adapters/marshaln-article.mjs';
+import { extractCtmaArticle } from './adapters/ctma-article.mjs';
 import { extractMoaPrintArticle } from './adapters/moa-print-article.mjs';
 import { extractSpecialistArticle } from './adapters/specialist-article.mjs';
 import { extractTbrsCultivar } from './adapters/tbrs-cultivar.mjs';
 import { extractVietnamGiArticle } from './adapters/vietnam-gi-article.mjs';
 import { canonicalJson, sha256 } from './canonical.mjs';
+import { classifyClaimRelationships } from './claim-relationships.mjs';
+import { buildEntityResolutionPreview } from './entity-resolution.mjs';
 import { validateAllowlist } from './schema.mjs';
 
 const ADAPTERS = Object.freeze({
+  'ctma-article': extractCtmaArticle,
   'journal-abstract': extractJournalAbstract,
+  'marshaln-article': extractMarshalnArticle,
   'moa-print-article': extractMoaPrintArticle,
   'specialist-article': extractSpecialistArticle,
   'tbrs-cultivar': extractTbrsCultivar,
@@ -90,6 +96,19 @@ function createPreview(currentClaims, previousClaims) {
   return Object.freeze(preview);
 }
 
+function duplicateSnapshotGroups(packets) {
+  const byHash = new Map();
+  for (const packet of packets) {
+    const hash = packet.retrieval.normalizedSha256;
+    if (!byHash.has(hash)) byHash.set(hash, []);
+    byHash.get(hash).push(packet.source.sourceId);
+  }
+  return [...byHash.entries()]
+    .filter(([, sourceIds]) => sourceIds.length > 1)
+    .map(([normalizedSha256, sourceIds]) => ({ normalizedSha256, sourceIds: [...sourceIds].sort() }))
+    .sort((left, right) => left.normalizedSha256.localeCompare(right.normalizedSha256));
+}
+
 function errorRecord(source, error) {
   return Object.freeze({
     sourceId: source.sourceId,
@@ -117,6 +136,7 @@ export async function captureBatch({ allowlist, outputRoot, fetcher = globalThis
       const response = await fetcher(source.url, {
         headers: { accept: 'text/html,application/xhtml+xml' },
         redirect: 'follow',
+        teajiaTransport: source.fetchTransport,
       });
       if (!response?.ok) throw new Error(`HTTP ${response?.status ?? 'unknown'} retrieving ${source.url}`);
       const original = Buffer.from(await response.arrayBuffer());
@@ -155,7 +175,16 @@ export async function captureBatch({ allowlist, outputRoot, fetcher = globalThis
   errors.sort((left, right) => left.sourceId.localeCompare(right.sourceId));
   const evidence = packets.flatMap((packet) => packet.evidence).sort((left, right) => left.evidenceId.localeCompare(right.evidenceId));
   const claims = packets.flatMap((packet) => packet.claims).sort((left, right) => left.claimId.localeCompare(right.claimId));
+  const relationships = classifyClaimRelationships(claims);
+  const entityResolution = buildEntityResolutionPreview(claims);
+  const duplicateSnapshots = duplicateSnapshotGroups(packets);
   const preview = createPreview(claims, previousClaims);
+  const autoMergeCandidateCount = entityResolution.filter(({ autoMerge }) => autoMerge).length;
+  const continualCaptureEligible = errors.length === 0
+    && duplicateSnapshots.length === 0
+    && autoMergeCandidateCount === 0
+    && claims.length > 0
+    && claims.every(({ status }) => status === 'held' || status === 'captured');
   const manifest = Object.freeze({
     schemaVersion: 1,
     captureMode: 'preview-only',
@@ -165,6 +194,15 @@ export async function captureBatch({ allowlist, outputRoot, fetcher = globalThis
     evidenceCount: evidence.length,
     claimCount: claims.length,
     heldClaimCount: claims.filter(({ status }) => status === 'held').length,
+    relationshipGroupCount: relationships.length,
+    supportingInformationRelationshipCount: relationships.filter(({ classification }) => classification === 'supporting_information').length,
+    differentScopeRelationshipCount: relationships.filter(({ classification }) => classification === 'different_scope_or_method').length,
+    genuineContradictionCount: relationships.filter(({ classification }) => classification === 'genuine_contradiction').length,
+    entityResolutionCandidateCount: entityResolution.length,
+    privateVerificationCandidateCount: entityResolution.filter(({ proposedAction }) => proposedAction === 'private_verification').length,
+    autoMergeCandidateCount,
+    duplicateSnapshotGroupCount: duplicateSnapshots.length,
+    continualCaptureEligible,
     errorCount: errors.length,
     sourceSnapshotSha256: sha256(canonicalJson(packets.map(({ source, retrieval, metadata }) => ({ source, retrieval, metadata })))),
     claimsSha256: sha256(canonicalJson(claims)),
@@ -174,8 +212,21 @@ export async function captureBatch({ allowlist, outputRoot, fetcher = globalThis
   await writeCanonical(confined(root, 'sources.json'), packets.map(({ source, metadata, retrieval }) => ({ source, metadata, retrieval })));
   await writeCanonical(confined(root, 'evidence.json'), evidence);
   await writeCanonical(confined(root, 'claims.json'), claims);
+  await writeCanonical(confined(root, 'relationships.json'), relationships);
+  await writeCanonical(confined(root, 'entity-resolution.json'), entityResolution);
+  await writeCanonical(confined(root, 'duplicate-snapshots.json'), duplicateSnapshots);
   await writeCanonical(confined(root, 'errors.json'), errors);
   await writeCanonical(confined(root, 'preview.json'), preview);
 
-  return Object.freeze({ root, manifest, sources: Object.freeze(packets), evidence: Object.freeze(evidence), claims: Object.freeze(claims), errors: Object.freeze(errors), preview });
+  return Object.freeze({
+    root,
+    manifest,
+    sources: Object.freeze(packets),
+    evidence: Object.freeze(evidence),
+    claims: Object.freeze(claims),
+    relationships,
+    entityResolution,
+    errors: Object.freeze(errors),
+    preview,
+  });
 }

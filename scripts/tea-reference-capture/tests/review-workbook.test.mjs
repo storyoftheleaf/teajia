@@ -36,13 +36,20 @@ test('review workbook retains sources, evidence and claim decisions', { skip: !b
       sourceTerm: 'Geography', assertingPublisherRole: 'specialist_editorial', status: 'captured', uncertaintyReason: '', payloadSha256: 'hash-1',
     },
     {
-      claimId: 'CLAIM-2', sourceId: source.sourceId, evidenceId: evidence.evidenceId, subject: 'Yiwu',
+      claimId: 'CLAIM-2', sourceId: 'specialist-yunnan', evidenceId: evidence.evidenceId, subject: 'Yiwu',
       entityKind: 'tea_area', claimScope: 'common_characteristics', predicate: 'source_description', value: 'Often described as fragrant.',
       sourceTerm: 'Character', assertingPublisherRole: 'specialist_editorial', status: 'held', uncertaintyReason: 'Needs private review.', payloadSha256: 'hash-2',
     },
   ];
   const capture = {
-    manifest: { complete: true, errorCount: 0 },
+    manifest: {
+      complete: true,
+      continualCaptureEligible: true,
+      errorCount: 0,
+      duplicateSnapshotGroupCount: 0,
+      autoMergeCandidateCount: 0,
+      genuineContradictionCount: 0,
+    },
     preview: { added: 2, changed: 0, unchanged: 0, missing: 0 },
     sources: [{
       source,
@@ -57,11 +64,20 @@ test('review workbook retains sources, evidence and claim decisions', { skip: !b
   const workbook = await artifactTool.SpreadsheetFile.importXlsx(file);
   const sheets = (await workbook.inspect({ kind: 'sheet', include: 'name', maxChars: 5000 })).ndjson
     .trim().split('\n').map((line) => JSON.parse(line).name);
-  assert.deepEqual(sheets, ['START HERE', 'SOURCES', 'EVIDENCE', 'CLAIMS', 'HELD', 'CONFLICTS', 'COVERAGE']);
+  assert.deepEqual(sheets, ['START HERE', 'SOURCES', 'EVIDENCE', 'CLAIMS', 'HELD', 'RELATIONSHIPS', 'ENTITY RESOLUTION', 'COVERAGE']);
+  const start = workbook.worksheets.getItem('START HERE').getRange('A3:B12').values;
+  assert.deepEqual(start[1], ['Continual capture gate', 'Eligible for capped capture-only batches']);
   const values = workbook.worksheets.getItem('CLAIMS').getRange('A1:P3').values;
   assert.equal(values[0][15], 'Adrian decision');
   assert.equal(values[1][2], 'https://example.test/yiwu');
   assert.equal(values[1][3], 'EVIDENCE-1');
+  const relationships = workbook.worksheets.getItem('RELATIONSHIPS').getRange('A1:M3').values;
+  assert.equal(relationships[0][1], 'Classification');
+  assert.equal(relationships[1][1], 'different_scope_or_method');
+  const resolution = workbook.worksheets.getItem('ENTITY RESOLUTION').getRange('A1:O2').values;
+  assert.equal(resolution[0][8], 'Proposed action');
+  assert.equal(resolution[1][1], 'Yiwu');
+  assert.equal(resolution[1][11], false);
   if (process.env.TEA_REFERENCE_WORKBOOK_RENDER_DIR) {
     const renderDir = process.env.TEA_REFERENCE_WORKBOOK_RENDER_DIR;
     await fs.mkdir(renderDir, { recursive: true });

@@ -45,6 +45,7 @@ export function extractSpecialistArticle({ source, html }) {
 
   const normalizedText = normalizeCapturedText(paragraphs.map(({ text }) => text).join('\n\n'));
   const entityKind = source.permittedEntityKinds[0];
+  const subject = source.captureSubject || title;
   const evidence = [];
   const claims = [];
   for (const paragraph of paragraphs) {
@@ -60,7 +61,7 @@ export function extractSpecialistArticle({ source, html }) {
     claims.push(createClaimDraft({
       source,
       evidenceId: item.evidenceId,
-      subject: title,
+      subject,
       predicate: 'source_description',
       value: paragraph.text,
       claimScope: permittedScope(source, paragraph.heading, paragraph.text),

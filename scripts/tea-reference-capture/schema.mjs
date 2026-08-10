@@ -50,6 +50,7 @@ export const CLAIM_SCOPES = Object.freeze([
 ]);
 
 const ACCESS_POLICIES = new Set(['allowed', 'manual_only', 'blocked']);
+const FETCH_TRANSPORTS = new Set(['primary', 'system']);
 const ROLE_SET = new Set(PUBLISHER_ROLES);
 const ENTITY_SET = new Set(ENTITY_KINDS);
 const SCOPE_SET = new Set(CLAIM_SCOPES);
@@ -91,6 +92,9 @@ function validateSource(input) {
   const rateLimitMs = Number(input.rateLimitMs);
   if (!Number.isFinite(rateLimitMs) || rateLimitMs < 0) throw new Error(`Rate limit for ${sourceId} must be a non-negative number`);
 
+  const fetchTransport = typeof input.fetchTransport === 'string' ? input.fetchTransport.trim() : 'primary';
+  if (!FETCH_TRANSPORTS.has(fetchTransport)) throw new Error(`Unknown fetch transport: ${fetchTransport}`);
+
   return Object.freeze({
     sourceId,
     url: url.toString(),
@@ -102,6 +106,8 @@ function validateSource(input) {
     accessPolicy,
     adapter: requiredString(input.adapter, `Adapter for ${sourceId}`),
     adapterVersion: requiredString(input.adapterVersion, `Adapter version for ${sourceId}`),
+    fetchTransport,
+    captureAuthor: typeof input.captureAuthor === 'string' ? input.captureAuthor.trim() : '',
     captureSubject: typeof input.captureSubject === 'string' ? input.captureSubject.trim() : '',
     permittedEntityKinds: validateValues(input.permittedEntityKinds, ENTITY_SET, 'entity kind'),
     permittedClaimScopes: validateValues(input.permittedClaimScopes, SCOPE_SET, 'claim scope'),
