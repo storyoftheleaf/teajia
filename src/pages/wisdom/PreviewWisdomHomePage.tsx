@@ -29,6 +29,14 @@ function matchRank(value: string | undefined, needle: string, offset = 0): numbe
   return MISS;
 }
 
+function visibleHitRank(hit: HoldingHit, needle: string): number {
+  return Math.min(
+    matchRank(hit.name, needle),
+    matchRank(hit.chineseName, needle),
+    matchRank(hit.where, needle, 4),
+  );
+}
+
 function codePointCompare(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
 }
@@ -61,7 +69,7 @@ export function searchPreviewWisdomHome(
   limit: number,
 ): HoldingHit[] {
   const needle = searchKey(query);
-  if (!needle) return [];
+  if (!needle || limit <= 0) return [];
   const staticHits = searchHoldings(query, Number.MAX_SAFE_INTEGER);
   const previewHits: HoldingHit[] = catalogue ? [
     ...catalogue.families.map(family => ({
@@ -78,16 +86,39 @@ export function searchPreviewWisdomHome(
     })),
   ].filter(hit => Math.min(matchRank(hit.name, needle), matchRank(hit.where, needle, 4)) < MISS) : [];
 
-  const byPath = new Map<string, HoldingHit>();
-  for (const hit of [...staticHits, ...previewHits]) byPath.set(hit.to, hit);
-  return [...byPath.values()]
+  const staticQueue = staticHits.map(hit => {
+    const visibleRank = visibleHitRank(hit, needle);
+    return {
+      hit,
+      // searchHoldings also matches aliases and short internal context fields
+      // that are not necessarily printed in the result. Keep those between
+      // visible name and context matches, then retain searchHoldings' original
+      // index as the authoritative order among all static results.
+      rank: visibleRank === MISS ? 3 : visibleRank,
+    };
+  });
+  const previewQueue = previewHits
     .map(hit => ({
       hit,
       rank: Math.min(matchRank(hit.name, needle), matchRank(hit.where, needle, 4)),
     }))
-    .sort((left, right) => left.rank - right.rank || codePointCompare(left.hit.to, right.hit.to))
-    .slice(0, limit)
-    .map(result => result.hit);
+    .sort((left, right) => left.rank - right.rank || codePointCompare(left.hit.to, right.hit.to));
+
+  const merged: HoldingHit[] = [];
+  const seen = new Set<string>();
+  let staticIndex = 0;
+  let previewIndex = 0;
+  while (merged.length < limit && (staticIndex < staticQueue.length || previewIndex < previewQueue.length)) {
+    const staticResult = staticQueue[staticIndex];
+    const previewResult = previewQueue[previewIndex];
+    const next = !previewResult || (staticResult && staticResult.rank <= previewResult.rank)
+      ? staticQueue[staticIndex++]
+      : previewQueue[previewIndex++];
+    if (!next || seen.has(next.hit.to)) continue;
+    seen.add(next.hit.to);
+    merged.push(next.hit);
+  }
+  return merged;
 }
 
 const PreviewWisdomHomePage: React.FC = () => {

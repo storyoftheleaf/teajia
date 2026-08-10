@@ -26,7 +26,10 @@ import RegionIndexPage from './RegionIndexPage';
 import RegionPage from './RegionPage';
 import StyleIndexPage from './StyleIndexPage';
 import WisdomHomePage, { TOTAL_ENTRIES, readableDate } from './WisdomHomePage';
-import PreviewWisdomHomePage, { previewWisdomHomeHoldings } from './PreviewWisdomHomePage';
+import PreviewWisdomHomePage, {
+  previewWisdomHomeHoldings,
+  searchPreviewWisdomHome,
+} from './PreviewWisdomHomePage';
 import TeaFamilyPage from './TeaFamilyPage';
 import TeaTypeIndexPage from './TeaTypeIndexPage';
 import TeaTypePage from './TeaTypePage';
@@ -60,6 +63,7 @@ import {
   TEA_REFERENCE_PREVIEW_ENABLED,
   teaReferenceRoutePaths,
 } from '../../wisdom/reference/previewMode';
+import { buildTeaReferenceCatalogue } from '../../wisdom/reference/catalogue';
 
 const render = (path: string) => {
   const client = createReferenceQueryClient();
@@ -207,6 +211,8 @@ const previewProducts: PublicProduct[] = [{
   canReorder: false,
   isOneOfAKind: false,
 }];
+
+const previewCatalogue = buildTeaReferenceCatalogue(previewTransport.publicPreview, previewProducts);
 
 function createReferenceQueryClient(products: PublicProduct[] = previewProducts): QueryClient {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -499,14 +505,16 @@ describe('Tea Reference type preview', () => {
 });
 
 describe('Tea Reference preview home', () => {
-  it('merges product-connected family and type hits into the cross-holding search', () => {
-    if (!TEA_REFERENCE_PREVIEW_ENABLED) return;
-    expect(render('/wisdom?q=Sheng')).toContain('href="/wisdom/type/sheng"');
-    expect(render('/wisdom?q=Pu%E2%80%99er')).toContain('href="/wisdom/family/puer"');
+  it.each(['白', 'Orchid Dan Cong'])('preserves the established static ranking for %s', query => {
+    expect(searchPreviewWisdomHome(query, previewCatalogue, 10)).toEqual(searchHoldings(query, 10));
   });
 
-  it('states that local cited entries are additional to the published dataset', () => {
-    if (!TEA_REFERENCE_PREVIEW_ENABLED) return;
+  it('merges product-connected family and type hits into the cross-holding search', () => {
+    expect(searchPreviewWisdomHome('Sheng', previewCatalogue, 1)[0]?.to).toBe('/wisdom/type/sheng');
+    expect(searchPreviewWisdomHome('Pu’er', previewCatalogue, 1)[0]?.to).toBe('/wisdom/family/puer');
+  });
+
+  it.skipIf(!TEA_REFERENCE_PREVIEW_ENABLED)('states that local cited entries are additional to the published dataset', () => {
     const html = render('/wisdom');
     expect(html).toContain('Local cited preview entries are additional to the published open dataset');
     expect(html).toContain('not included in its static page count');
@@ -514,8 +522,7 @@ describe('Tea Reference preview home', () => {
     expect(html).not.toContain('Everything above is also exported');
   });
 
-  it('withholds a zero-entry Types holding while its client queries are pending', () => {
-    if (!TEA_REFERENCE_PREVIEW_ENABLED) return;
+  it.skipIf(!TEA_REFERENCE_PREVIEW_ENABLED)('withholds a zero-entry Types holding while its client queries are pending', () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false, retryOnMount: false } } });
     const html = renderToString(
       <QueryClientProvider client={client}>
@@ -526,8 +533,7 @@ describe('Tea Reference preview home', () => {
     expect(html).not.toContain('>0 entries<');
   });
 
-  it('keeps normal holdings usable and shows a quiet diagnostic after a client query error', async () => {
-    if (!TEA_REFERENCE_PREVIEW_ENABLED) return;
+  it.skipIf(!TEA_REFERENCE_PREVIEW_ENABLED)('keeps normal holdings usable and shows a quiet diagnostic after a client query error', async () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false, retryOnMount: false } } });
     await client.prefetchQuery({
       queryKey: TEA_REFERENCE_PREVIEW_QUERY_KEY,
