@@ -159,6 +159,25 @@ describe('Tea Master invoice authorization, holds and settlements', () => {
     expect(db.sqlite.prepare('SELECT COUNT(*) AS count FROM invoices').get()).toEqual({ count: 1 });
   });
 
+  it('preserves seller and owner snapshots while atomically splitting Pending holds', async () => {
+    const db = database(); seed(db); await createGrant(db, { quantity_limit: 100 });
+    const body = invoiceBody('Pending', 20);
+    body.lineItems.push({ product_id: 'person-tea', quantity: 10, price_at_sale: 0.5 });
+    const invoice = await (await call(db, '/api/invoices', { method: 'POST', userId: 'seller', body })).json() as any;
+    const lines = db.sqlite.prepare('SELECT id FROM invoice_line_items WHERE invoice_id=? ORDER BY id').all(invoice.id) as any[];
+    const split = await call(db, '/api/rpc/split-invoice', {
+      method: 'POST', userId: 'seller', body: { invoice_id: invoice.id, line_item_ids: [lines[0].id] },
+    });
+    expect(split.status).toBe(201);
+    const result = await split.json() as any;
+    expect(db.sqlite.prepare('SELECT sold_by_user_id,payment_recipient_user_id FROM invoices WHERE id=?').get(result.new_id))
+      .toEqual({ sold_by_user_id: 'seller', payment_recipient_user_id: 'stock-owner' });
+    expect(db.sqlite.prepare('SELECT held_grams FROM stock_holds WHERE invoice_id=?').get(invoice.id)).toBeTruthy();
+    expect(db.sqlite.prepare('SELECT held_grams FROM stock_holds WHERE invoice_id=?').get(result.new_id)).toBeTruthy();
+    expect(db.sqlite.prepare('SELECT SUM(held_grams) AS held FROM stock_holds WHERE invoice_id IN (?,?)').get(invoice.id, result.new_id))
+      .toEqual({ held: 30 });
+  });
+
   it('deducts exact stock, releases its hold, creates settlement, then void restores and reverses', async () => {
     const db = database(); seed(db); const grant = await (await createGrant(db)).json() as any;
     const created = await call(db, '/api/invoices', { method: 'POST', userId: 'seller', body: invoiceBody('Pending', 20, 0.5) });
