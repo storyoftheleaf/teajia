@@ -8,11 +8,18 @@ import { teaReferencePreviewPlugin } from './scripts/tea-reference-website-previ
 export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, '.', 'VITE_');
   const BUILD_ID = Date.now().toString(36);
+  const isTeaReferencePreview = command === 'serve' && mode === 'tea-reference-preview';
   return {
     base: '/',
     define: {
       __BUILD_ID__: JSON.stringify(BUILD_ID),
     },
+    ...(isTeaReferencePreview ? {
+      optimizeDeps: {
+        noDiscovery: true,
+        include: [],
+      },
+    } : {}),
     server: {
       port: 7777,
       strictPort: true,

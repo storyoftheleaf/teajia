@@ -8,6 +8,10 @@ export function teaReferencePreviewPlugin({ command, mode, handoffPath }) {
 
   return {
     name: 'tea-reference-teajia-preview',
+    configResolved(config) {
+      config.optimizeDeps.noDiscovery = true;
+      config.optimizeDeps.include = [];
+    },
     configureServer(server) {
       let transportPromise;
       server.middlewares.use(async (request, response, next) => {
