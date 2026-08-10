@@ -156,6 +156,7 @@ import { useAppStore } from './lib/store';
 import { api, setToken, hydrateAccountStateFromToken } from './lib/api';
 import { classifyIncident } from './lib/incidents';
 import { currentHostStoreSlug } from './lib/storeHost';
+import { canAddToStoreCart, resolveCheckoutStoreSlug } from './lib/publicCartDomain';
 import { getArticleRenderMode } from './lib/articleRenderMode';
 import { useAuth } from './hooks/useAuth';
 import { useFavoritesSync } from './hooks/useFavoritesSync';
@@ -240,6 +241,7 @@ const AppContent = () => {
     removeFromPublicCart,
     updatePublicCartQuantity,
     setIsPublicCartOpen: setIsCartOpen,
+    shopStoreSlug,
     sidebarCollapsed,
   } = useAppStore();
   const { isAdmin, isAuthenticated, isSessionReady, checkSession } = useAuth();
@@ -289,10 +291,15 @@ const AppContent = () => {
     return m ? decodeURIComponent(m[1]) : null;
   }, [location.pathname]);
 
+  const checkoutStoreSlug = resolveCheckoutStoreSlug({
+    hostedSlug: hostStoreSlug,
+    storefrontSlug,
+    selectedSlug: shopStoreSlug,
+  });
+
   const { data: activeStore } = useQuery<Account>({
-    queryKey: ['storefront', 'store', storefrontSlug],
-    queryFn: () => fetchStore(storefrontSlug as string),
-    enabled: !!storefrontSlug,
+    queryKey: ['storefront', 'store', checkoutStoreSlug],
+    queryFn: () => fetchStore(checkoutStoreSlug),
     staleTime: 1000 * 60 * 5,
   });
 
@@ -493,6 +500,29 @@ const AppContent = () => {
       return;
     }
 
+    const pricePerGram = item.category === 'tea'
+      ? parseFloat(item.price_per_gram || '0')
+      : parseFloat(item.price_50g || '0');
+    const cartItem = {
+      id: item.id,
+      name: item.name,
+      variant: item.variant,
+      category: item.category,
+      storeSlug: checkoutStoreSlug,
+      storeName: activeStore?.name || checkoutStoreSlug,
+      quantityGrams: qty,
+      pricePerGram,
+      totalPrice: total,
+      image: item.image,
+    };
+    const currentCart = useAppStore.getState().publicCart;
+    if (!canAddToStoreCart(currentCart, cartItem).allowed) {
+      setCartToast(null);
+      setIsCartOpen(true);
+      showToast(`Your cart already contains items from ${currentCart[0].storeName}. One order can contain items from one store only.`, 5000);
+      return;
+    }
+
     // Use the most recent click/tap position for fly origin, fall back to screen center
     let originX = window.innerWidth / 2 - 24;
     let originY = window.innerHeight / 2;
@@ -516,20 +546,7 @@ const AppContent = () => {
       image: item.image,
     });
 
-    const pricePerGram = item.category === 'tea'
-      ? parseFloat(item.price_per_gram || '0')
-      : parseFloat(item.price_50g || '0');
-
-    addToPublicCart({
-      id: item.id,
-      name: item.name,
-      variant: item.variant,
-      category: item.category,
-      quantityGrams: qty,
-      pricePerGram,
-      totalPrice: total,
-      image: item.image,
-    });
+    addToPublicCart(cartItem);
     // Show cart toast, read fresh count from store (Zustand updates synchronously)
     const freshCart = useAppStore.getState().publicCart;
     setCartToast({ itemName: item.name, cartCount: freshCart.length });

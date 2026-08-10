@@ -510,6 +510,8 @@ export interface CartItem {
   name: string;
   variant: string;
   category: 'tea' | 'ware';
+  storeSlug: string;
+  storeName: string;
   quantityGrams: number;
   pricePerGram: number;
   totalPrice: number;

@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { CartItem as AdminCartItem, Currency, Product } from '../admin/types';
 import { Account, AccountMembership, CartItem as PublicCartItem, CustomerTasting, PlatformRole } from '../types';
 import type { TeaDiscoveryProfile } from '../components/TeaDiscovery/types';
+import { canAddToStoreCart } from './publicCartDomain';
 
 export interface AuthUser {
   email: string;
@@ -307,6 +308,9 @@ export const useAppStore = create<AppState>()(
 
       addToPublicCart: (item) =>
         set((state) => {
+          if (!canAddToStoreCart(state.publicCart, item).allowed) {
+            return state;
+          }
           const existing = state.publicCart.find((c) => c.id === item.id);
           if (existing) {
             const newGrams = existing.quantityGrams + item.quantityGrams;
@@ -659,7 +663,9 @@ export const useAppStore = create<AppState>()(
       //     `inventoryColumns` and to each saved view's `columns` so a returning
       //     operator's stored layout picks up the new columns without losing any
       //     deliberate customization.
-      version: 2,
+      // v3: public cart rows became store-bound. Ambiguous legacy rows are
+      //     discarded rather than silently assigning them to a store.
+      version: 3,
       migrate: (persistedState, version) => {
         if (!persistedState || typeof persistedState !== 'object') return persistedState as AppState;
         if (version < 1) {
@@ -698,6 +704,15 @@ export const useAppStore = create<AppState>()(
                 : v
             );
           }
+        }
+        if (version < 3) {
+          const prev = persistedState as { publicCart?: Array<Partial<PublicCartItem>> };
+          prev.publicCart = Array.isArray(prev.publicCart)
+            ? prev.publicCart.filter(
+                (item): item is PublicCartItem =>
+                  typeof item.storeSlug === 'string' && item.storeSlug.length > 0,
+              )
+            : [];
         }
         return persistedState as AppState;
       },
