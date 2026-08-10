@@ -56,4 +56,13 @@ export async function loadReceivingPreview({ handoffPath, existingPath = '' }) {
   return previewWebsiteHandoff(handoff, existing);
 }
 
+export async function loadPublicTransport({ handoffPath }) {
+  const [{ previewWebsiteHandoff, publicTransportFor }, handoff] = await Promise.all([
+    loadImporter(),
+    readJson(handoffPath, 'website handoff'),
+  ]);
+  verifyHandoffIntegrity(handoff);
+  return publicTransportFor(previewWebsiteHandoff(handoff));
+}
+
 export { REPO_ROOT };
