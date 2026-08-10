@@ -51,6 +51,7 @@ import { CurrencyRatesView } from './views/CurrencyRatesView';
 import { MCPTokensView } from './views/MCPTokensView';
 import { OAuthConsentView } from './views/OAuthConsentView';
 import { WisdomView } from './views/WisdomView';
+import { TEA_REFERENCE_PREVIEW_ENABLED } from '../wisdom/reference/previewMode';
 import { EventsManager } from './components/EventsManager';
 import { EventDetail } from './components/EventDetail';
 import { TastingEventsList } from './components/tasting/TastingEventsList';
@@ -340,6 +341,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
   const isOnCapture = location.pathname.includes('/admin/capture');
   const isOnIntake = location.pathname.includes('/admin/intake');
   const isOnHome = location.pathname === '/admin/' || location.pathname === '/admin/compass';
+  const isLocalTeaReferenceReview = TEA_REFERENCE_PREVIEW_ENABLED && location.pathname === '/admin/wisdom';
 
   // React Query Hooks, only fetch when authenticated to avoid 401 errors on initial load
   const isLoggedIn = isAuthenticated || isDevAdmin;
@@ -370,6 +372,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
   // that would skip the login modal on fresh visits.
   useEffect(() => {
     const timer = setTimeout(() => {
+      if (isLocalTeaReferenceReview) return;
       if (isLoggedIn && location.pathname === '/admin') {
         navigate('/admin/compass');
       } else if (!isLoggedIn && location.pathname.startsWith('/admin')) {
@@ -377,7 +380,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
       }
     }, 0);
     return () => clearTimeout(timer);
-  }, [isLoggedIn, navigate, location.pathname]);
+  }, [isLocalTeaReferenceReview, isLoggedIn, navigate, location.pathname]);
 
   // Close registry drawer when navigating to a different route
   useEffect(() => {
@@ -389,6 +392,19 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
   const needsMembershipGate = shouldShowNoMembershipGate({
     isAuthenticated, isDevAdmin, platformRole, membershipCount: memberships.length,
   });
+
+  // The editorial receiver is a local preview-only surface with no database,
+  // mutation, or persistence. Let it render against its local GET endpoints
+  // without requiring production API credentials or an admin session.
+  if (isLocalTeaReferenceReview) {
+    return (
+      <div className="h-full min-h-0 flex flex-col bg-tea-bg">
+        <main className="flex-1 min-h-0 overflow-auto">
+          <WisdomView />
+        </main>
+      </div>
+    );
+  }
 
   // Early return for missing configuration (after all hooks)
   if (!isConfigured) {

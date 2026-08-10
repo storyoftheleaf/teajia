@@ -26,6 +26,15 @@ import {
   type WisdomIntegrityFinding,
   nodeTypeForHolding,
 } from '../components/wisdom/relations';
+import { TYPOGRAPHY_CLASSES } from '../../designTokens';
+import { TEA_REFERENCE_PREVIEW_ENABLED } from '../../wisdom/reference/previewMode';
+
+const TeaReferenceReviewView = TEA_REFERENCE_PREVIEW_ENABLED
+  ? React.lazy(async () => {
+      const module = await import('./TeaReferenceReviewView');
+      return { default: module.TeaReferenceReviewView };
+    })
+  : null;
 
 /**
  * Wisdom: browse the shared tea wisdom base (src/wisdom).
@@ -106,6 +115,50 @@ const wisdomAddress = (state: WisdomAddress): Record<string, string> => {
   const shape = wisdomShapeToken(state.prefs, state.holding);
   if (shape) next[WISDOM_PARAM.shape] = shape;
   return next;
+};
+
+export const TeaReferenceWisdomSwitch: React.FC<{
+  previewEnabled: boolean;
+  browse: React.ReactNode;
+  review: React.ReactNode;
+}> = ({ previewEnabled, browse, review }) => {
+  const [surface, setSurface] = useState<'browse' | 'review'>('browse');
+  if (!previewEnabled) return <>{browse}</>;
+
+  return (
+    <div className="min-h-full bg-tea-bg">
+      <div className="flex flex-wrap gap-2 border-b border-tea-border bg-tea-surface px-3 py-2 md:px-4">
+        <button
+          type="button"
+          aria-pressed={surface === 'browse'}
+          onClick={() => setSurface('browse')}
+          className={`${TYPOGRAPHY_CLASSES.link} min-h-11 rounded-md border px-3 transition-colors ${
+            surface === 'browse'
+              ? 'border-tea-gold bg-tea-gold/10 text-tea-gold'
+              : 'border-tea-border text-tea-text-sec hover:border-tea-gold hover:text-tea-text'
+          }`}
+        >
+          Browse base
+        </button>
+        <button
+          type="button"
+          aria-pressed={surface === 'review'}
+          onClick={() => setSurface('review')}
+          className={`${TYPOGRAPHY_CLASSES.link} min-h-11 rounded-md border px-3 transition-colors ${
+            surface === 'review'
+              ? 'border-tea-gold bg-tea-gold/10 text-tea-gold'
+              : 'border-tea-border text-tea-text-sec hover:border-tea-gold hover:text-tea-text'
+          }`}
+        >
+          Review incoming
+        </button>
+        <span className={`${TYPOGRAPHY_CLASSES.label} flex min-h-11 items-center text-tea-text-dim`}>
+          Local preview only
+        </span>
+      </div>
+      {surface === 'review' ? review : browse}
+    </div>
+  );
 };
 
 export const WisdomView: React.FC = () => {
@@ -409,7 +462,7 @@ export const WisdomView: React.FC = () => {
     </AnchoredMenu>
   );
 
-  return (
+  const wisdomBrowser = (
     <div className="min-h-full bg-tea-bg">
       <h1 className="sr-only">Wisdom</h1>
       {/* Remounting on tab change resets the find field, which is right: a query
@@ -444,6 +497,20 @@ export const WisdomView: React.FC = () => {
         onSelectFinding={openFinding}
       />
     </div>
+  );
+
+  return (
+    <TeaReferenceWisdomSwitch
+      previewEnabled={TEA_REFERENCE_PREVIEW_ENABLED}
+      browse={wisdomBrowser}
+      review={TeaReferenceReviewView ? (
+        <React.Suspense
+          fallback={<p className={`${TYPOGRAPHY_CLASSES.bodyLight} p-4 text-tea-text-sec`}>Loading private review packet.</p>}
+        >
+          <TeaReferenceReviewView />
+        </React.Suspense>
+      ) : null}
+    />
   );
 };
 

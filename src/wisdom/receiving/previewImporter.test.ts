@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   EMPTY_RECEIVING_STATE,
   canonicalPayloadSha256,
+  privateReviewFor,
   previewWebsiteHandoff,
   publicTransportFor,
   type ReferenceReceivingState,
@@ -127,6 +128,126 @@ function readyHandoff(overrides: Partial<WebsiteHandoff> = {}): WebsiteHandoff {
 }
 
 describe('citation-aware receiving preview', () => {
+  it('projects held entities and facts with exact evidence, hierarchy, and product-review metadata', () => {
+    const parent = {
+      ...entity,
+      resolutionId: 'RESOLUTION-YUNNAN',
+      canonicalEntityId: 'place:yunnan',
+      preferredLabel: 'Yunnan',
+      sourceLabel: 'Yunnan',
+      entityKind: 'major_region',
+      claimIds: [],
+    } as const;
+    const child = {
+      ...entity,
+      parentEntityId: parent.canonicalEntityId,
+    } as const;
+    const input = handoff({ entities: [child, parent] });
+    const received = previewWebsiteHandoff(input);
+    const publicBytes = JSON.stringify(publicTransportFor(received));
+
+    const review = privateReviewFor({
+      handoff: input,
+      preview: received,
+      evidence: [{
+        evidenceId: citation.evidenceId,
+        sourceId: citation.sourceId,
+        exact: 'The greater Yiwu area is often described as softer, with a lasting sweet aftertaste.',
+        heading: 'Taste profile',
+        section: 'Greater Yiwu',
+        page: null,
+        start: 120,
+        end: 204,
+        prefix: 'Regional overview. ',
+        suffix: ' Individual lots vary.',
+        excerptSha256: HASH_A,
+        extractorVersion: '1',
+        confidence: null,
+      }],
+      products: [{
+        id: 'tea-yiwu-spring',
+        givenName: 'Spring Yiwu',
+        productName: 'Raw Pu’er cake',
+        type: 'Sheng',
+        year: 2024,
+        originCountry: 'China',
+        originRegion: 'Greater Yiwu',
+        status: 'Active',
+      }],
+    });
+
+    expect(review.manifest).toEqual({ schemaVersion: 1, mode: 'private-review' });
+    expect(review.summary).toEqual({ entities: 2, facts: 1 });
+    expect(review.items.map(item => [item.resourceType, item.resourceId, item.status])).toEqual([
+      ['entity', 'RESOLUTION-YIWU', 'held'],
+      ['entity', 'RESOLUTION-YUNNAN', 'held'],
+      ['fact', 'CLAIM-COMMON', 'held'],
+    ]);
+
+    const heldEntity = review.items.find(item => item.resourceId === child.resolutionId)!;
+    expect(heldEntity.hierarchy).toEqual({
+      level: 'tea_area',
+      parent: { resourceId: parent.resolutionId, label: 'Yunnan', entityKind: 'major_region' },
+      children: [],
+    });
+    expect(heldEntity.evidence[0]).toMatchObject({
+      exact: 'The greater Yiwu area is often described as softer, with a lasting sweet aftertaste.',
+      heading: 'Taste profile',
+      section: 'Greater Yiwu',
+      citation: {
+        citationId: citation.citationId,
+        publisher: citation.publisher,
+        title: citation.title,
+        url: citation.url,
+      },
+    });
+
+    const heldFact = review.items.find(item => item.resourceId === commonClaim.claimId)!;
+    expect(heldFact.candidateValue).toBe(commonClaim.candidateValue);
+    expect(heldFact.proposedPublicWording).toMatch(/broad reference notes, not a description of any particular lot/i);
+    expect(heldFact.productReview).toEqual({
+      matchTerms: ['Greater Yiwu'],
+      candidates: [{
+        productId: 'tea-yiwu-spring',
+        label: 'Spring Yiwu',
+        type: 'Sheng',
+        year: 2024,
+        originCountry: 'China',
+        originRegion: 'Greater Yiwu',
+        status: 'Active',
+        matchBasis: ['originRegion'],
+      }],
+    });
+    expect(JSON.stringify(review)).not.toMatch(/Private seller|vendor/i);
+    expect(JSON.stringify(publicTransportFor(received))).toBe(publicBytes);
+  });
+
+  it('sorts the private review packet deterministically and requires exact evidence for held facts', () => {
+    const input = handoff();
+    const received = previewWebsiteHandoff(input);
+    const exactEvidence = {
+      evidenceId: citation.evidenceId,
+      sourceId: citation.sourceId,
+      exact: 'Exact source evidence.\nPreserved on a second reviewed line.',
+      heading: '',
+      section: '',
+      page: null,
+      start: 0,
+      end: 58,
+      prefix: '',
+      suffix: '',
+      excerptSha256: HASH_A,
+      extractorVersion: '1',
+      confidence: null,
+    } as const;
+    const first = privateReviewFor({ handoff: input, preview: received, evidence: [exactEvidence], products: [] });
+    const repeated = privateReviewFor({ handoff: input, preview: received, evidence: [exactEvidence], products: [] });
+
+    expect(JSON.stringify(repeated)).toBe(JSON.stringify(first));
+    expect(() => privateReviewFor({ handoff: input, preview: received, evidence: [], products: [] }))
+      .toThrow(/exact evidence/i);
+  });
+
   it('keeps common characteristics separate from exact-lot and personal tasting registers', () => {
     const exactLot = {
       ...commonClaim,

@@ -423,7 +423,7 @@ const WisdomCompactNav: React.FC<{ active: WisdomSection['id'] }> = ({ active })
           className={`shrink-0 text-tea-text-sec transition-transform ${open ? 'rotate-180' : ''}`}
         />
         <span className={`${CELL_CLASS} text-tea-text-dim ml-auto shrink-0`}>
-          {open ? 'Close' : `${WISDOM_SECTIONS.length} holdings`}
+          {open ? 'Close' : `${WISDOM_SECTIONS.length} sections`}
         </span>
       </button>
 

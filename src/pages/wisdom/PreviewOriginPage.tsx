@@ -55,7 +55,7 @@ const PreviewOriginPage: React.FC<{ id: string }> = ({ id }) => {
     return (
       <HoldingNotFound
         section="regions"
-        heading="Not a place we hold"
+        heading="Place not found"
         backTo="/wisdom/regions"
         backLabel="All origins"
         subject="A growing place that is missing"

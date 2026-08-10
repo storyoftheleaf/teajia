@@ -103,7 +103,6 @@ const CultivarPage: React.FC = () => {
           inLanguage: 'en',
           about: { '@id': `${pageUrl}#taxon` },
           isPartOf: { '@type': 'CollectionPage', name: 'The Tea Plants', url: `${origin}/wisdom/cultivars` },
-          creditText: 'Drafted by AI from research, published by Teajia, corrected by hand.',
         },
         {
           '@type': 'BreadcrumbList',

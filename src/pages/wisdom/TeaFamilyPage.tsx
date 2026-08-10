@@ -30,7 +30,7 @@ const TeaFamilyPage: React.FC = () => {
     return (
       <HoldingNotFound
         section="types"
-        heading="Not a tea family we hold"
+        heading="Tea family not found"
         backTo="/wisdom/types"
         backLabel="All tea types"
         subject="A tea family that is missing"

@@ -5,7 +5,10 @@ import type {
   PublicReferencePreview,
   PublicReferenceStatement,
 } from '../receiving/previewImporter';
-import { buildTeaReferenceCatalogue } from './catalogue';
+import {
+  buildInventoryBackedReferenceCandidates,
+  buildTeaReferenceCatalogue,
+} from './catalogue';
 
 const statement = (id: string): PublicReferenceStatement => ({
   id,
@@ -224,6 +227,63 @@ describe('sellable Tea Reference catalogue', () => {
     expect(surfacedIds).not.toContain('archived-sheng');
     expect(result.types.flatMap(type => type.productIds)).not.toContain('tea-oolong');
     expect(result.types.flatMap(type => type.productIds)).not.toContain('tea-oolong-sheng-name');
+  });
+
+  it('excludes active products with zero stock or zero effective retail while retaining a sellable active tea', () => {
+    const result = buildTeaReferenceCatalogue(preview(), [
+      product({ id: 'cvb', stockGrams: 0, pricePerGramUSD: 0 }),
+      product({ id: 'zero-stock', stockGrams: 0 }),
+      product({ id: 'zero-price', pricePerGramUSD: 0, fixedRetailPriceUSD: null }),
+      product({ id: 'fixed-retail', pricePerGramUSD: 0, fixedRetailPriceUSD: 0.75 }),
+      product({ id: 'per-gram-retail', pricePerGramUSD: 0.5, fixedRetailPriceUSD: 0 }),
+    ]);
+    const surfacedIds = result.families.flatMap(family => family.productIds)
+      .concat(result.types.flatMap(type => type.productIds), result.origins.flatMap(origin => origin.productIds));
+
+    expect(surfacedIds).not.toContain('cvb');
+    expect(surfacedIds).not.toContain('zero-stock');
+    expect(surfacedIds).not.toContain('zero-price');
+    expect(surfacedIds).toContain('fixed-retail');
+    expect(surfacedIds).toContain('per-gram-retail');
+  });
+
+  it('exposes controlled inventory types as review candidates without inventing families or cited facts', () => {
+    const candidates = buildInventoryBackedReferenceCandidates([
+      product({ id: 'oolong-2023', type: 'Oolong', givenName: 'House Oolong', year: 2023 }),
+      product({ id: 'oolong-2024', type: 'Oolong', givenName: 'House Oolong', year: 2024 }),
+      product({ id: 'oolong-2024', type: 'Oolong', givenName: 'Zed duplicate', year: 2025 }),
+      product({ id: 'dark-2020', type: 'Dark', year: 2020 }),
+      product({ id: 'white-2022', type: 'White', year: 2022 }),
+      product({ id: 'red-2021', type: 'Red', year: 2021 }),
+      product({ id: 'personal-red', type: 'Red', isPersonal: true }),
+      product({ id: 'empty-white', type: 'White', stockGrams: 0 }),
+    ]);
+
+    expect(candidates.map(candidate => candidate.canonicalType)).toEqual(['Dark', 'Oolong', 'Red', 'White']);
+    expect(candidates.find(candidate => candidate.canonicalType === 'Oolong')).toMatchObject({
+      matchMethod: 'controlled_type',
+      familyId: null,
+      facts: [],
+      lots: [
+        { productId: 'oolong-2023', displayName: 'House Oolong', year: 2023 },
+        { productId: 'oolong-2024', displayName: 'House Oolong', year: 2024 },
+      ],
+    });
+    expect(candidates.every(candidate => candidate.modelGap.includes('reviewed reference family'))).toBe(true);
+    expect(JSON.stringify(candidates)).not.toMatch(/publisher|producer|vendor/i);
+  });
+
+  it('deduplicates inventory review lots deterministically', () => {
+    const products = [
+      product({ id: 'same-lot', type: 'Oolong', givenName: 'Zed duplicate', year: 2025 }),
+      product({ id: 'same-lot', type: 'Oolong', givenName: 'House Oolong', year: 2024 }),
+    ];
+
+    const forward = buildInventoryBackedReferenceCandidates(products);
+    const reversed = buildInventoryBackedReferenceCandidates([...products].reverse());
+
+    expect(reversed).toEqual(forward);
+    expect(forward[0].lots).toEqual([{ productId: 'same-lot', displayName: 'House Oolong', year: 2024 }]);
   });
 
   it('does not let sold-out history qualify a controlled type by itself', () => {

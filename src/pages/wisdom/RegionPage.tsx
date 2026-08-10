@@ -9,7 +9,12 @@
 import React, { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { REGIONS, findRegion } from '../../wisdom';
+import {
+  REGIONS,
+  findRegion,
+  regionElevationPresentation,
+  regionsWithin,
+} from '../../wisdom';
 import {
   AXIS_INDENT,
   EntryAuthorship,
@@ -49,14 +54,7 @@ const RegionPage: React.FC = () => {
   const region = useMemo(() => REGIONS.find(entry => entry.id === id) ?? findRegion(id), [id]);
 
   const plants = useMemo(() => (region ? plantsGrownIn(region) : []), [region]);
-  const placesWithin = useMemo(() => {
-    if (!region || region.province) return [];
-    return REGIONS.filter(candidate => (
-      candidate.id !== region.id
-      && candidate.country === region.country
-      && candidate.province === region.name
-    ));
-  }, [region]);
+  const placesWithin = useMemo(() => regionsWithin(region), [region]);
   const plantsWithin = useMemo(() => {
     const seen = new Set<string>();
     return placesWithin.flatMap(place => plantsGrownIn(place).map(plant => ({ plant, place })))
@@ -84,8 +82,14 @@ const RegionPage: React.FC = () => {
             addressCountry: region.country,
             ...(region.province ? { addressRegion: region.province } : {}),
           },
-          ...(region.altitude
-            ? { additionalProperty: [{ '@type': 'PropertyValue', name: 'Altitude', value: region.altitude }] }
+          ...(regionElevationPresentation(region)
+            ? {
+                additionalProperty: [{
+                  '@type': 'PropertyValue',
+                  name: regionElevationPresentation(region)!.label,
+                  value: regionElevationPresentation(region)!.value,
+                }],
+              }
             : {}),
         },
         {
@@ -119,7 +123,7 @@ const RegionPage: React.FC = () => {
     return (
       <HoldingNotFound
         section="regions"
-        heading="Not a place we hold"
+        heading="Place not found"
         backTo="/wisdom/regions"
         backLabel="All growing regions"
         subject="A growing place that is missing"
@@ -128,6 +132,7 @@ const RegionPage: React.FC = () => {
   }
 
   const map = mapSearchLink([region.name, region.province], region.country);
+  const elevation = regionElevationPresentation(region);
   const directOrNestedPlants = plants.length > 0
     ? plants.map(plant => ({ plant, place: null }))
     : plantsWithin;
@@ -163,10 +168,28 @@ const RegionPage: React.FC = () => {
       <div className="mt-8">
         <Fact label="Country">{region.country}</Fact>
         <Fact label="Province">{region.province}</Fact>
-        {region.altitude && (
-          <Fact label="Altitude">
-            <span className="figures-tab">{region.altitude}</span>
+        {elevation && (
+          <Fact label={elevation.label}>
+            <span className="figures-tab">{elevation.value}</span>
           </Fact>
+        )}
+        {elevation?.note && (
+          <p className={`${FACT_CLASS} text-tea-text-dim ${MEASURE} ${AXIS_INDENT} mt-1.5`}>
+            {elevation.note}
+          </p>
+        )}
+        {elevation?.source && (
+          <p className={`${FACT_CLASS} text-tea-text-dim ${MEASURE} ${AXIS_INDENT} mt-1.5`}>
+            Source:{' '}
+            <a
+              href={elevation.source.url}
+              target="_blank"
+              rel="noreferrer"
+              className={`${QUIET_LINK} tap-target`}
+            >
+              {elevation.source.label}
+            </a>
+          </p>
         )}
         <p className={`${FACT_CLASS} ${AXIS_INDENT} mt-1.5`}>
           <a href={map.url} target="_blank" rel="noreferrer" className={`${QUIET_LINK} tap-target`}>
@@ -180,12 +203,12 @@ const RegionPage: React.FC = () => {
             on. It keeps the same hung label and drops clear of it. */}
         <Passage label="Climate" text={region.climate} className="mt-5" />
 
-        {!region.altitude && !region.climate && placesWithin.length > 0 && (
+        {!elevation && !region.climate && placesWithin.length > 0 && (
           <p className={`${FACT_CLASS} text-tea-text-dim ${MEASURE} ${AXIS_INDENT}`}>
             This is a broad place entry. Elevation and climate are recorded on the more specific growing places below.
           </p>
         )}
-        {!region.altitude && !region.climate && placesWithin.length === 0 && (
+        {!elevation && !region.climate && placesWithin.length === 0 && (
           <p className={`${FACT_CLASS} text-tea-text-dim ${MEASURE} ${AXIS_INDENT}`}>
             This entry currently records its name and country. Elevation and climate have not been added yet.
           </p>
@@ -201,23 +224,19 @@ const RegionPage: React.FC = () => {
                 key={place.id}
                 to={`/wisdom/region/${place.id}`}
                 name={place.name}
-                cells={[place.altitude]}
+                cells={[regionElevationPresentation(place)?.value]}
               />
             ))}
           </IndexList>
         </section>
       )}
 
-      <section className={`${SPACE.section} ${GROUND} py-6`}>
-        <SectionHead
-          label={plants.length > 0 ? 'Plants from here' : `Plants recorded within ${region.name}`}
-          count={directOrNestedPlants.length || undefined}
-        />
-        {directOrNestedPlants.length === 0 ? (
-          <p className={`${FACT_CLASS} text-tea-text-dim ${MEASURE} ${AXIS_INDENT}`}>
-            No cultivar record links directly to this place or to a more specific place within it yet.
-          </p>
-        ) : (
+      {directOrNestedPlants.length > 0 && (
+        <section className={`${SPACE.section} ${GROUND} py-6`}>
+          <SectionHead
+            label={plants.length > 0 ? 'Plants from here' : `Plants recorded within ${region.name}`}
+            count={directOrNestedPlants.length}
+          />
           <IndexList plain>
             {directOrNestedPlants.map(({ plant, place }) => (
               <HoldingRow
@@ -232,8 +251,8 @@ const RegionPage: React.FC = () => {
               />
             ))}
           </IndexList>
-        )}
-      </section>
+        </section>
+      )}
 
       <EntryResearchSection entryKind="region" entryId={region.id} entry={region} />
 

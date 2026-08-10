@@ -37,7 +37,7 @@ const TeaTypePage: React.FC = () => {
     return (
       <HoldingNotFound
         section="types"
-        heading="Not a tea type we hold"
+        heading="Tea type not found"
         backTo="/wisdom/types"
         backLabel="All tea types"
         subject="A tea type that is missing"

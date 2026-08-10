@@ -37,6 +37,7 @@ const PLACE_DESCRIPTOR_WORDS = new Set([
   'village',
 ]);
 const PUER_TYPES = TEA_TYPES.filter(type => type === 'Sheng' || type === 'Shou');
+const INVENTORY_CANDIDATE_TYPES: ReadonlySet<string> = new Set(['Oolong', 'Dark', 'White', 'Red']);
 const PLACE_RANK: Record<PlaceLevel, number> = {
   major_region: 0,
   tea_area: 1,
@@ -105,11 +106,75 @@ function productMatchesPlace(product: PublicProduct, label: string): boolean {
   ));
 }
 
+function hasPositiveRetail(product: PublicProduct): boolean {
+  return Number(product.fixedRetailPriceUSD) > 0 || Number(product.pricePerGramUSD) > 0;
+}
+
+function isSellableActiveTea(product: PublicProduct): boolean {
+  return product.status === 'Active'
+    && product.stockGrams > 0
+    && hasPositiveRetail(product);
+}
+
 /** Only public catalogue records can be shown; active records alone qualify a reference entry. */
 function isEligiblePublicTeaProduct(product: PublicProduct): boolean {
-  return (product.status === 'Active' || product.status === 'Sold Out')
-    && !product.isPersonal
-    && isTeaType(product.type);
+  if (product.isPersonal || !isTeaType(product.type)) return false;
+  return product.status === 'Sold Out' || isSellableActiveTea(product);
+}
+
+export interface InventoryBackedReferenceLotCandidate {
+  productId: string;
+  displayName: string;
+  year?: number;
+}
+
+export interface InventoryBackedReferenceCandidate {
+  canonicalType: 'Oolong' | 'Dark' | 'White' | 'Red';
+  matchMethod: 'controlled_type';
+  familyId: null;
+  facts: [];
+  lots: InventoryBackedReferenceLotCandidate[];
+  modelGap: string;
+}
+
+/**
+ * Inventory can safely nominate its controlled types for editorial review, but
+ * it cannot decide whether each is a family or child type and carries no cited
+ * reference facts. Keep these candidates separate from the public cited model.
+ */
+export function buildInventoryBackedReferenceCandidates(
+  publicProducts: readonly PublicProduct[],
+): InventoryBackedReferenceCandidate[] {
+  const byType = new Map<InventoryBackedReferenceCandidate['canonicalType'], PublicProduct[]>();
+  for (const product of publicProducts) {
+    if (product.isPersonal || !isSellableActiveTea(product)) continue;
+    const canonicalType = normalizeTeaType(product.type);
+    if (!canonicalType || !INVENTORY_CANDIDATE_TYPES.has(canonicalType)) continue;
+    const candidateType = canonicalType as InventoryBackedReferenceCandidate['canonicalType'];
+    byType.set(candidateType, [...(byType.get(candidateType) ?? []), product]);
+  }
+
+  return [...byType.entries()]
+    .map(([canonicalType, products]) => ({
+      canonicalType,
+      matchMethod: 'controlled_type' as const,
+      familyId: null,
+      facts: [] as [],
+      lots: products
+        .map(product => ({
+          productId: product.id,
+          displayName: product.givenName || product.productName,
+          ...(product.year ? { year: product.year } : {}),
+        }))
+        .sort((left, right) => (
+          codePointCompare(left.productId, right.productId)
+          || codePointCompare(left.displayName, right.displayName)
+          || Number(left.year ?? 0) - Number(right.year ?? 0)
+        ))
+        .filter((lot, index, all) => index === 0 || all[index - 1].productId !== lot.productId),
+      modelGap: 'The public product model has a controlled tea type, but no reviewed reference family/type id or cited facts.',
+    }))
+    .sort((left, right) => codePointCompare(left.canonicalType, right.canonicalType));
 }
 
 function publicStatement(statement: PublicReferenceStatement): PublicReferenceStatement {

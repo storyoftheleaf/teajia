@@ -12,6 +12,34 @@
 
 import type { TastingData } from '../types';
 
+export type RegionLevel =
+  | 'country'
+  | 'province'
+  | 'prefecture'
+  | 'county'
+  | 'tea_area'
+  | 'mountain'
+  | 'village'
+  | 'locality';
+
+export interface RegionEvidenceSource {
+  label: string;
+  url: string;
+}
+
+/**
+ * An evidenced elevation statement. Whole-place geography and tea-garden
+ * elevation are deliberately different scopes: one must never imply the
+ * other.
+ */
+export interface RegionElevation {
+  value: string;
+  scope: 'tea_growing' | 'place';
+  /** Reader-facing qualifier when the numerical range could be overread. */
+  note?: string;
+  source?: RegionEvidenceSource;
+}
+
 /** A growing region. `id` is a stable slug so records can point at it. */
 export interface Region {
   id: string;
@@ -19,6 +47,13 @@ export interface Region {
   country: string;
   /** Province or prefecture, when the name alone is ambiguous. */
   province?: string;
+  /** Explicit geographic level. Absence means the legacy flat record is unresolved. */
+  level?: RegionLevel;
+  /** Stable id of an explicitly reviewed parent. A province label is not silently promoted to this. */
+  parentId?: string;
+  /** Evidence-aware replacement for the legacy, context-free altitude string. */
+  elevation?: RegionElevation;
+  /** Legacy context-free data. New reviewed records should use `elevation`. */
   altitude?: string;
   climate?: string;
   /** Qualified place or trade context, when a citation supports it. */

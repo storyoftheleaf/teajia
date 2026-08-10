@@ -65,4 +65,16 @@ export async function loadPublicTransport({ handoffPath }) {
   return publicTransportFor(previewWebsiteHandoff(handoff));
 }
 
+export async function loadPrivateReview({ handoffPath }) {
+  const evidencePath = path.join(path.dirname(path.resolve(handoffPath)), 'evidence.json');
+  const [{ previewWebsiteHandoff, privateReviewFor }, handoff, evidence] = await Promise.all([
+    loadImporter(),
+    readJson(handoffPath, 'website handoff'),
+    readJson(evidencePath, 'exact evidence'),
+  ]);
+  verifyHandoffIntegrity(handoff);
+  const preview = previewWebsiteHandoff(handoff);
+  return privateReviewFor({ handoff, preview, evidence, products: [] });
+}
+
 export { REPO_ROOT };

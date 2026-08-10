@@ -34,7 +34,7 @@ import {
   type Region,
   type TeaType,
 } from '../../wisdom';
-import { AUTHORSHIP, authorshipLine, getAuthorship, type AuthorshipRung } from '../../wisdom/authorship';
+import { TEA_REFERENCE_PREVIEW_ENABLED } from '../../wisdom/reference/previewMode';
 import {
   AXIS,
   AXIS_INDENT,
@@ -49,6 +49,7 @@ import {
   MEASURE,
   NAME_CLASS,
   PAGE,
+  PREVIEW_PAGE,
   QUIET_LINK,
   ROW_AXIS,
   ROW_RULE,
@@ -108,39 +109,6 @@ export const SectionHead: React.FC<{
 // ─── The page head ───────────────────────────────────────────────────────────
 
 /**
- * The rung an entry sits on, in one word, in its header.
- *
- * A reader walking the reference meets the authorship sentence on the index
- * they came through, which is why it is not repeated three hundred times at the
- * foot. A reader arriving cold on a single entry from a search engine walks
- * through no index at all, and used to be shown no rung anywhere on the page.
- *
- * One micro-caps word is the whole repair. It costs nothing on a line the
- * header already occupies, it is honest on a cold arrival, and it is not the
- * four-line footnote block this loop removed.
- *
- * The word carries no tooltip. A `title` holding the full sentence would put
- * "Drafted from research. Not yet read by a human." back into the markup of all
- * three hundred entries, which is the thing that was removed, and it would be
- * invisible on the phone most of these are read on. The sentence lives on the
- * holding's index and on the front door, and every record in the download
- * carries the same value as `authorshipRung`. Here it is one word, with its
- * subject said before it for a screen reader.
- */
-const RUNG_WORD: Record<AuthorshipRung, string> = {
-  drafted: 'Drafted',
-  reviewed: 'Reviewed',
-  authored: 'Authored',
-};
-
-export const RungMark: React.FC<{ id: string }> = ({ id }) => (
-  <span className={`${LABEL} shrink-0`}>
-    <span className="sr-only">Authorship: </span>
-    {RUNG_WORD[getAuthorship(id).rung]}
-  </span>
-);
-
-/**
  * The headword. Every page of the reference opens like a dictionary entry.
  *
  * A small tracked label naming the kind of record, then the name itself very
@@ -153,9 +121,9 @@ export const RungMark: React.FC<{ id: string }> = ({ id }) => (
  * 44px Cormorant's side bearing is enough to make a naively aligned headword
  * read as indented against the labels and rules under it.
  *
- * `kind` is the record type, three words at most. `rungFor` is an entry id, and
- * an index passes none, because a holding states its rung once for all of its
- * entries at the foot of the list.
+ * `kind` is the public record type. The legacy `rungFor` prop remains accepted
+ * while callers are migrated, but public pages never render editorial workflow
+ * state.
  */
 export const PageHead: React.FC<{
   kind: string;
@@ -166,18 +134,12 @@ export const PageHead: React.FC<{
   /** Alternative spellings. Metadata, not a deck. */
   aka?: string;
   rungFor?: string;
-}> = ({ kind, title, chineseName, note, aka, rungFor }) => (
+}> = ({ kind, title, chineseName, note, aka }) => (
   <header>
     <div className="flex items-baseline gap-2.5">
-      <span className={`${LABEL} whitespace-nowrap`}>{kind}</span>
-      {rungFor && (
-        <>
-          <span aria-hidden className={`${LABEL} shrink-0`}>
-            ·
-          </span>
-          <RungMark id={rungFor} />
-        </>
-      )}
+      <span className={`${LABEL} whitespace-nowrap`}>
+        {kind === 'Holding' ? 'Reference section' : kind}
+      </span>
     </div>
     {/* min-w-0 and break-words together: a flex item's default min-width is its
         longest word, so at 390px a name like "Huangshan Qunti Zhong" set at
@@ -196,72 +158,11 @@ export const PageHead: React.FC<{
 
 // ─── Authorship ──────────────────────────────────────────────────────────────
 
-/**
- * The rung this entry sits on, said plainly, in one line. Most of the corpus
- * was AI-drafted from research and published before a human read it line by
- * line. That is stated, not hidden and not apologised for.
- *
- * One line is the whole budget. The foot of an entry used to run four lines of
- * 11px text: this note in two, then a scope footnote in two more, repeating on
- * every page of the reference what is true of the reference as a whole. The
- * scope is now said once, on the front door.
- */
-export const AuthorshipNote: React.FC<{ id?: string | null; className?: string }> = ({ id = null, className = '' }) => (
-  <p className={`${FOOTNOTE} ${className}`}>{authorshipLine(id)}</p>
-);
+// Compatibility exports let existing page modules shed workflow UI without a
+// route-by-route migration in the same release.
+export const EntryAuthorship: React.FC<{ id: string }> = () => null;
 
-/**
- * Has anything in the base actually been read by a human yet.
- *
- * Read fresh rather than captured at module load, because the day a rung is
- * added it must change what the pages say without anyone remembering to move a
- * component. It walks an object that is empty today and will hold tens of keys
- * at its largest, so the cost is nothing.
- */
-export const someEntryIsVerified = (): boolean =>
-  Object.values(AUTHORSHIP).some(entry => entry.rung !== 'drafted');
-
-/**
- * Where the authorship line belongs, and why it moved.
- *
- * It used to print on all three hundred entries, saying the identical sentence
- * on every one of them, because every one of them is on the identical rung.
- * A sentence that cannot vary is not provenance, it is wallpaper: a reader
- * learns it once and stops seeing it, which is the opposite of what a
- * disclosure is for.
- *
- * So while the base is uniform, the holding says it once, on its index, in the
- * plural, and an entry says nothing. The moment a single record is reviewed or
- * authored, `someEntryIsVerified` turns true and every entry starts carrying
- * its own line again, because from then on the sentence distinguishes one
- * entry from the next and the reader needs it at the point of citation. An
- * entry that has itself been reviewed always says so, uniform base or not,
- * since a credit is owed to a person by name.
- *
- * Nothing was deleted. The claim is still on the page a reader reaches the
- * entries through, still in the export on every record as `authorshipRung`,
- * and still on the front door. What went is three hundred copies of it.
- */
-export const EntryAuthorship: React.FC<{ id: string }> = ({ id }) => {
-  if (getAuthorship(id).rung === 'drafted' && !someEntryIsVerified()) return null;
-  return (
-    <div className={`${SPACE.section} pt-6 ${RULE_FULL}`}>
-      <AuthorshipNote id={id} className={`${MEASURE} ${AXIS_INDENT}`} />
-    </div>
-  );
-};
-
-/**
- * The same claim, made once for a whole holding, in the plural. This is the
- * line that carries the disclosure while the base is uniform.
- */
-export const HoldingAuthorship: React.FC<{ noun: string; className?: string }> = ({ noun, className = '' }) => (
-  <p className={`${FOOTNOTE} ${className}`}>
-    {someEntryIsVerified()
-      ? `Each of these ${noun} states its own authorship at the foot of its page.`
-      : `Every one of these ${noun} was drafted from research. None has been read by a human yet, and each says so in the download as its authorship rung.`}
-  </p>
-);
+export const HoldingAuthorship: React.FC<{ noun: string; className?: string }> = () => null;
 
 /**
  * The scope of the whole reference, said once on the front door. Nothing here
@@ -295,7 +196,7 @@ export const Invitation: React.FC<{ subject?: string }> = ({ subject }) => (
     <p className={`${LABEL} mb-1 sm:mb-0`}>Corrections</p>
     <p className={`${FACT_CLASS} text-tea-text ${MEASURE}`}>
       If you notice any inaccuracies, please{' '}
-      <a href={mailtoWisdom(subject)} className={QUIET_LINK}>
+      <a href={mailtoWisdom(subject)} className={`${QUIET_LINK} tap-target`}>
         report them
       </a>
       . It helps us improve the reference for everyone.
@@ -362,17 +263,17 @@ export const SearchEverywhere: React.FC<{ query: string; className?: string }> =
   <p className={`${FOOTNOTE} ${className}`}>
     {query.trim() ? (
       <>
-        Wrong holding?{' '}
+        Wrong section?{' '}
         <Link to={everywhereTo(query)} className={QUIET_LINK}>
-          Search every holding for &ldquo;{query.trim()}&rdquo;
+          Search every section for &ldquo;{query.trim()}&rdquo;
         </Link>
         .
       </>
     ) : (
       <>
-        Not sure this is the right holding?{' '}
+        Not sure this is the right section?{' '}
         <Link to={everywhereTo('')} className={QUIET_LINK}>
-          Search every holding at once
+          Search every section at once
         </Link>
         .
       </>
@@ -829,13 +730,13 @@ export const HoldingNotFound: React.FC<{
   backLabel: string;
   subject: string;
 }> = ({ section, heading, backTo, backLabel, subject }) => (
-  <article className={PAGE}>
+  <article className={TEA_REFERENCE_PREVIEW_ENABLED || section === 'types' ? PREVIEW_PAGE : PAGE}>
     <Helmet>
       <title>Not found · Teajia</title>
     </Helmet>
     <WisdomSubNav active={section} />
     <div className="mt-7">
-      <p className={LABEL}>Not held</p>
+      <p className={LABEL}>Not found</p>
       <h1 className={`${TITLE_CLASS} optical-left text-tea-text mt-2 break-words`}>{heading}</h1>
     </div>
     <p className={`${FACT} ${MEASURE} ${AXIS_INDENT} mt-6`}>
@@ -866,6 +767,7 @@ export const HoldingNotFound: React.FC<{
  */
 export const Fact: React.FC<{ label: string; children?: React.ReactNode }> = ({ label, children }) => {
   if (!children) return null;
+  const publicLabel = label === 'Holding' ? 'Section' : label;
   return (
     /* py-1.5 below sm, py-1 from sm up. With the label above the value on a
        phone, 8px between rows against 4px between a label and its own value is
@@ -873,7 +775,7 @@ export const Fact: React.FC<{ label: string; children?: React.ReactNode }> = ({ 
        to one the rest of the page holds. From sm up the label is beside the
        value, so 8px between rows is already unambiguous. */
     <div className={`${SPACE.row} sm:py-1 ${AXIS}`}>
-      <span className={`${LABEL} block`}>{label}</span>
+      <span className={`${LABEL} block`}>{publicLabel}</span>
       <span className={`${FACT_CLASS} text-tea-text ${MEASURE} block min-w-0 break-words mt-1 sm:mt-0`}>
         {children}
       </span>

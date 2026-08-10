@@ -70,6 +70,24 @@ function handoff() {
   };
 }
 
+function evidence() {
+  return [{
+    evidenceId: 'PRIVATE-EVIDENCE-ID',
+    sourceId: 'source',
+    exact: 'Greater Yiwu is described as having a softer base and a lasting sweet aftertaste.',
+    heading: 'Greater Yiwu profile',
+    section: 'Regions',
+    page: null,
+    start: 30,
+    end: 111,
+    prefix: 'Regional context. ',
+    suffix: ' Lots still vary.',
+    excerptSha256: 'd'.repeat(64),
+    extractorVersion: '1',
+    confidence: null,
+  }];
+}
+
 function responseRecorder() {
   const headers = new Map();
   return {
@@ -128,6 +146,71 @@ test('endpoint returns only public transport with no-store caching', async t => 
     response.body,
     /PRIVATE|operations|projectedState|privateVerification|evidenceIds?|holdReason|candidateValue|(?:inputPayload|sourceSnapshot|payload)Sha256/i,
   );
+});
+
+test('private review endpoint joins exact evidence without coupling the packet to the live catalogue', async t => {
+  const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'tea-reference-private-review-'));
+  t.after(() => fs.rm(temp, { recursive: true, force: true }));
+  const handoffPath = path.join(temp, 'website-handoff.json');
+  await Promise.all([
+    fs.writeFile(handoffPath, JSON.stringify(handoff())),
+    fs.writeFile(path.join(temp, 'evidence.json'), JSON.stringify(evidence())),
+  ]);
+  let catalogueRequests = 0;
+  const plugin = teaReferencePreviewPlugin({
+    command: 'serve',
+    mode: 'tea-reference-preview',
+    handoffPath,
+    async fetchPublicProducts() {
+      catalogueRequests += 1;
+      return new Response(JSON.stringify([{
+        id: 'public-yiwu',
+        given_name: 'Yiwu Spring',
+        product_name: 'Raw Pu’er cake',
+        type: 'Sheng',
+        year: 2024,
+        origin_country: 'China',
+        origin_region: 'Greater Yiwu',
+        status: 'Active',
+        vendor: 'PRIVATE VENDOR',
+      }]), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    },
+  });
+  const middleware = configuredMiddleware(plugin);
+  const response = responseRecorder();
+
+  await middleware({ method: 'GET', url: '/__tea-reference-review' }, response, () => assert.fail('review passed through'));
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.getHeader('cache-control'), 'no-store');
+  const packet = JSON.parse(response.body);
+  assert.deepEqual(packet.manifest, { schemaVersion: 1, mode: 'private-review' });
+  assert.equal(packet.items.find(item => item.resourceType === 'fact').evidence[0].exact, evidence()[0].exact);
+  assert.deepEqual(packet.items.find(item => item.resourceType === 'fact').productReview.candidates, []);
+  assert.equal(catalogueRequests, 0);
+  assert.doesNotMatch(response.body, /PRIVATE VENDOR|vendor/i);
+});
+
+test('every Tea Reference preview endpoint rejects non-GET requests', async t => {
+  const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'tea-reference-read-only-'));
+  t.after(() => fs.rm(temp, { recursive: true, force: true }));
+  const handoffPath = path.join(temp, 'website-handoff.json');
+  await Promise.all([
+    fs.writeFile(handoffPath, JSON.stringify(handoff())),
+    fs.writeFile(path.join(temp, 'evidence.json'), JSON.stringify(evidence())),
+  ]);
+  const middleware = configuredMiddleware(teaReferencePreviewPlugin({
+    command: 'serve',
+    mode: 'tea-reference-preview',
+    handoffPath,
+  }));
+
+  for (const url of ['/__tea-reference-preview', '/__tea-reference-review']) {
+    const response = responseRecorder();
+    await middleware({ method: 'POST', url }, response, () => assert.fail(`${url} passed through`));
+    assert.equal(response.statusCode, 405);
+    assert.deepEqual(JSON.parse(response.body), { error: 'Tea Reference preview is read-only.' });
+  }
 });
 
 test('adapter passes every other request through', async () => {

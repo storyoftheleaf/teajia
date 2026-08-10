@@ -14,7 +14,7 @@
  */
 import React, { useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { REGIONS, type Region } from '../../wisdom';
+import { REGIONS, regionElevationPresentation, type Region } from '../../wisdom';
 import {
   AXIS_INDENT,
   FACT,
@@ -115,7 +115,7 @@ const RegionRow: React.FC<{ region: Region }> = ({ region }) => (
   <HoldingRow
     to={`/wisdom/region/${region.id}`}
     name={region.name}
-    cells={[region.province, region.altitude]}
+    cells={[region.province, regionElevationPresentation(region)?.value]}
   />
 );
 
@@ -152,7 +152,10 @@ const RegionIndexPage: React.FC = () => {
     () => publicState.entries.filter(region => matches(region, query)).sort((left, right) => left.name.localeCompare(right.name)),
     [publicState.entries, query],
   );
-  const recordedAltitude = useMemo(() => publicState.entries.filter(region => region.altitude).length, [publicState.entries]);
+  const recordedElevation = useMemo(
+    () => publicState.entries.filter(region => regionElevationPresentation(region)).length,
+    [publicState.entries],
+  );
   const recordedProvince = useMemo(() => publicState.entries.filter(region => region.province).length, [publicState.entries]);
 
   const byCountry = useMemo(
@@ -237,9 +240,9 @@ const RegionIndexPage: React.FC = () => {
           it is about the facts directly beneath it. */}
       {visible.length > 0 && (
         <p className={`${FOOTNOTE} ${MEASURE} ${AXIS_INDENT} figures-tab mt-8`}>
-          An altitude is recorded for {recordedAltitude} of these places and a province for {recordedProvince}. The
-          others are working-list names, held as a vendor writes them, and a missing fact here means not researched
-          rather than not applicable.
+          An elevation is recorded for {recordedElevation} of these places and a province for {recordedProvince}. The
+          remaining entries keep only the location details the reference can currently support; a missing fact means
+          it has not been established here, not that it is inapplicable.
         </p>
       )}
 
@@ -271,10 +274,8 @@ const RegionIndexPage: React.FC = () => {
 
       <div className={`${SPACE.section} pt-6 ${RULE_FULL}`}>
         <p className={`${FACT} ${MEASURE} ${AXIS_INDENT}`}>
-          Two lists merged here. The researched origins name a county and carry altitude and climate; the working list
-          names the area a vendor actually writes on an invoice, and carries neither. Both are kept, because a record
-          that says &ldquo;Anxi&rdquo; and a record that says &ldquo;Anxi County, Fujian&rdquo; are both real, and
-          collapsing one into the other would quietly change what a grower wrote.
+          Specific places and broader areas remain separate when their relationship has not been established. For
+          example, &ldquo;Anxi&rdquo; and &ldquo;Anxi County, Fujian&rdquo; are not silently combined.
         </p>
         <HoldingAuthorship noun="places" className={`${MEASURE} ${AXIS_INDENT} mt-5`} />
         <SearchEverywhere query={query} className={`${AXIS_INDENT} mt-2`} />

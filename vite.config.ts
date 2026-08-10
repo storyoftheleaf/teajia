@@ -14,6 +14,7 @@ const TEA_REFERENCE_PREVIEW_ONLY_MODULES = [
   '/src/pages/wisdom/TeaTypePage.tsx',
   '/src/pages/wisdom/ReferenceFactSections.tsx',
   '/src/pages/wisdom/previewOriginMetadata.ts',
+  '/src/admin/views/TeaReferenceReviewView.tsx',
   '/src/wisdom/reference/client.ts',
   '/src/wisdom/reference/catalogue.ts',
 ] as const;

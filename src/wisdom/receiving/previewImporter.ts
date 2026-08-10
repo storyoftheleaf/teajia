@@ -251,6 +251,106 @@ export interface WebsiteReceivingPublicTransport {
   publicPreview: PublicReferencePreview;
 }
 
+export interface WebsiteExactEvidence {
+  evidenceId: string;
+  sourceId: string;
+  exact: string;
+  heading: string;
+  section: string;
+  page: number | string | null;
+  start: number;
+  end: number;
+  prefix: string;
+  suffix: string;
+  excerptSha256: string;
+  extractorVersion: string;
+  confidence: number | null;
+}
+
+export interface PrivateReviewProduct {
+  id: string;
+  givenName: string;
+  productName: string;
+  type: string;
+  year?: number;
+  originCountry: string;
+  originRegion: string;
+  status: string;
+}
+
+export interface PrivateReviewEvidence {
+  evidenceId: string;
+  exact: string;
+  heading: string;
+  section: string;
+  page: number | string | null;
+  prefix: string;
+  suffix: string;
+  citation: {
+    citationId: string;
+    sourceId: string;
+    publisher: string;
+    publisherRole: PublisherRole;
+    title: string;
+    author: string;
+    publishedDate: string;
+    url: string;
+  };
+}
+
+export interface PrivateReviewHierarchyNode {
+  resourceId: string;
+  label: string;
+  entityKind: ReferenceEntityKind;
+}
+
+export interface PrivateReviewHierarchy {
+  level?: GeographicLevel;
+  parent?: PrivateReviewHierarchyNode;
+  children: PrivateReviewHierarchyNode[];
+  issue?: string;
+}
+
+export interface PrivateReviewProductCandidate {
+  productId: string;
+  label: string;
+  type: string;
+  year?: number;
+  originCountry: string;
+  originRegion: string;
+  status: string;
+  matchBasis: string[];
+}
+
+export interface PrivateReviewItem {
+  resourceType: 'entity' | 'fact';
+  resourceId: string;
+  status: 'held' | 'conflict';
+  subject: string;
+  entityKind: ReferenceEntityKind;
+  websiteHolding: string;
+  reviewReason: string;
+  field?: string;
+  scope?: string;
+  candidateValue?: unknown;
+  proposedPublicWording?: string;
+  hierarchy: PrivateReviewHierarchy;
+  evidence: PrivateReviewEvidence[];
+  productReview: {
+    matchTerms: string[];
+    candidates: PrivateReviewProductCandidate[];
+  };
+}
+
+export interface WebsiteReceivingPrivateReview {
+  manifest: {
+    schemaVersion: 1;
+    mode: 'private-review';
+  };
+  summary: { entities: number; facts: number };
+  items: PrivateReviewItem[];
+}
+
 export const EMPTY_RECEIVING_STATE: ReferenceReceivingState = Object.freeze({
   schemaVersion: 1,
   sources: Object.freeze([]) as unknown as ReferenceSource[],
@@ -701,6 +801,200 @@ function ordinaryReferenceText(claim: WebsiteHandoffClaim): string {
   }
 }
 
+function normalizedReviewText(value: string): string {
+  return value
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[’']/g, '')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+}
+
+function reviewTextContains(value: string, term: string): boolean {
+  const haystack = normalizedReviewText(value);
+  const needle = normalizedReviewText(term);
+  return Boolean(needle) && ` ${haystack} `.includes(` ${needle} `);
+}
+
+function productReviewFor(
+  subject: string,
+  products: readonly PrivateReviewProduct[],
+): PrivateReviewItem['productReview'] {
+  const matchTerms = [subject.trim()].filter(Boolean);
+  const searchableFields: Array<keyof Pick<PrivateReviewProduct, 'givenName' | 'productName' | 'type' | 'originCountry' | 'originRegion'>> = [
+    'givenName', 'productName', 'type', 'originCountry', 'originRegion',
+  ];
+  const candidates = products.flatMap(product => {
+    const matchBasis = searchableFields.filter(field => (
+      matchTerms.some(term => reviewTextContains(product[field], term))
+    ));
+    if (matchBasis.length === 0) return [];
+    return [{
+      productId: product.id,
+      label: product.givenName || product.productName || product.id,
+      type: product.type,
+      ...(product.year === undefined ? {} : { year: product.year }),
+      originCountry: product.originCountry,
+      originRegion: product.originRegion,
+      status: product.status,
+      matchBasis,
+    }];
+  }).sort((left, right) => codepointCompare(left.productId, right.productId));
+  return { matchTerms, candidates };
+}
+
+function hierarchyForReview(
+  entity: WebsiteHandoffEntity,
+  entitiesById: ReadonlyMap<string, WebsiteHandoffEntity>,
+  parentIds: ReadonlyMap<string, string>,
+  unsafeEntityReasons: ReadonlyMap<string, string>,
+): PrivateReviewHierarchy {
+  const nodeFor = (candidate: WebsiteHandoffEntity): PrivateReviewHierarchyNode => ({
+    resourceId: candidate.resolutionId,
+    label: candidate.preferredLabel || candidate.sourceLabel,
+    entityKind: candidate.entityKind,
+  });
+  const parentId = parentIds.get(entity.resolutionId);
+  const parent = parentId ? entitiesById.get(parentId) : undefined;
+  const children = [...parentIds.entries()]
+    .filter(([, candidateParentId]) => candidateParentId === entity.resolutionId)
+    .map(([childId]) => entitiesById.get(childId))
+    .filter((child): child is WebsiteHandoffEntity => Boolean(child))
+    .map(nodeFor)
+    .sort((left, right) => codepointCompare(left.resourceId, right.resourceId));
+  return {
+    ...(GEOGRAPHIC_LEVELS.has(entity.entityKind) ? { level: entity.entityKind as GeographicLevel } : {}),
+    ...(parent ? { parent: nodeFor(parent) } : {}),
+    children,
+    ...(unsafeEntityReasons.has(entity.resolutionId)
+      ? { issue: unsafeEntityReasons.get(entity.resolutionId)! }
+      : {}),
+  };
+}
+
+export function privateReviewFor({
+  handoff,
+  preview,
+  evidence,
+  products,
+}: {
+  handoff: WebsiteHandoff;
+  preview: WebsiteReceivingPreview;
+  evidence: readonly WebsiteExactEvidence[];
+  products: readonly PrivateReviewProduct[];
+}): WebsiteReceivingPrivateReview {
+  validateHandoff(handoff);
+  const evidenceById = new Map<string, WebsiteExactEvidence>();
+  for (const item of [...evidence].sort((left, right) => codepointCompare(left.evidenceId, right.evidenceId))) {
+    requireId(item.evidenceId, 'Private review evidenceId');
+    requireId(item.sourceId, `Private review evidence ${item.evidenceId} sourceId`);
+    requireEvidenceText(item.exact, `Private review evidence ${item.evidenceId} exact`);
+    if (evidenceById.has(item.evidenceId)) throw new Error(`Duplicate private review exact evidence: ${item.evidenceId}`);
+    evidenceById.set(item.evidenceId, item);
+  }
+
+  const operationsByResource = new Map(
+    preview.operations
+      .filter(operation => operation.resourceType === 'entity' || operation.resourceType === 'fact')
+      .map(operation => [`${operation.resourceType}:${operation.resourceId}`, operation]),
+  );
+  const citationsById = new Map(handoff.citations.map(citation => [citation.citationId, citation]));
+  const claimsById = new Map(handoff.claims.map(claim => [claim.claimId, claim]));
+  const entitiesById = new Map(handoff.entities.map(entity => [entity.resolutionId, entity]));
+  const { parentIds, unsafeEntityReasons } = resolvedParentEntityIds(handoff.entities);
+
+  const evidenceForClaim = (claim: WebsiteHandoffClaim): PrivateReviewEvidence => {
+    const citation = citationsById.get(claim.citationId);
+    const exact = citation ? evidenceById.get(citation.evidenceId) : undefined;
+    if (!citation || !exact || exact.sourceId !== citation.sourceId) {
+      throw new Error(`Private review requires exact evidence for held fact ${claim.claimId}.`);
+    }
+    return {
+      evidenceId: exact.evidenceId,
+      exact: exact.exact,
+      heading: exact.heading,
+      section: exact.section,
+      page: exact.page,
+      prefix: exact.prefix,
+      suffix: exact.suffix,
+      citation: {
+        citationId: citation.citationId,
+        sourceId: citation.sourceId,
+        publisher: citation.publisher,
+        publisherRole: citation.publisherRole,
+        title: citation.title,
+        author: citation.author,
+        publishedDate: citation.publishedDate,
+        url: citation.url,
+      },
+    };
+  };
+
+  const items: PrivateReviewItem[] = [];
+  for (const record of preview.privateVerification) {
+    if (record.status !== 'held' && record.status !== 'conflict') continue;
+    const operation = operationsByResource.get(`${record.resourceType}:${record.resourceId}`);
+    if (!operation || (operation.action !== 'held' && operation.action !== 'conflict')) continue;
+
+    if (record.resourceType === 'entity') {
+      const entity = entitiesById.get(record.resourceId);
+      if (!entity) throw new Error(`Private review entity is missing from the handoff: ${record.resourceId}`);
+      const claims = entity.claimIds
+        .map(claimId => claimsById.get(claimId))
+        .filter((claim): claim is WebsiteHandoffClaim => Boolean(claim));
+      items.push({
+        resourceType: 'entity',
+        resourceId: entity.resolutionId,
+        status: record.status,
+        subject: entity.preferredLabel || entity.sourceLabel,
+        entityKind: entity.entityKind,
+        websiteHolding: entity.websiteHolding,
+        reviewReason: record.reason,
+        candidateValue: record.candidateValue,
+        hierarchy: hierarchyForReview(entity, entitiesById, parentIds, unsafeEntityReasons),
+        evidence: claims.map(evidenceForClaim),
+        productReview: productReviewFor(entity.preferredLabel || entity.sourceLabel, products),
+      });
+      continue;
+    }
+
+    const claim = claimsById.get(record.resourceId);
+    if (!claim) throw new Error(`Private review fact is missing from the handoff: ${record.resourceId}`);
+    const entity = entitiesById.get(claim.resolutionId);
+    if (!entity) throw new Error(`Private review fact has no entity context: ${claim.claimId}`);
+    items.push({
+      resourceType: 'fact',
+      resourceId: claim.claimId,
+      status: record.status,
+      subject: claim.subject,
+      entityKind: claim.entityKind,
+      websiteHolding: claim.websiteHolding,
+      reviewReason: record.reason,
+      field: claim.websiteField,
+      scope: claim.claimScope,
+      candidateValue: claim.candidateValue,
+      proposedPublicWording: ordinaryReferenceText(claim),
+      hierarchy: hierarchyForReview(entity, entitiesById, parentIds, unsafeEntityReasons),
+      evidence: [evidenceForClaim(claim)],
+      productReview: productReviewFor(claim.subject, products),
+    });
+  }
+
+  items.sort((left, right) => (
+    codepointCompare(left.resourceType, right.resourceType)
+    || codepointCompare(left.resourceId, right.resourceId)
+  ));
+  return {
+    manifest: { schemaVersion: 1, mode: 'private-review' },
+    summary: {
+      entities: items.filter(item => item.resourceType === 'entity').length,
+      facts: items.filter(item => item.resourceType === 'fact').length,
+    },
+    items,
+  };
+}
+
 function hasAllowedUrlScheme(value: string, schemes: readonly string[]): boolean {
   try {
     return schemes.includes(new URL(value).protocol);
@@ -877,6 +1171,16 @@ function requireRecord(value: unknown, path: string): Record<string, unknown> {
 function requireString(value: unknown, path: string, allowBlank = false): string {
   if (typeof value !== 'string' || (!allowBlank && !value.trim())) throw new Error(`${path} must be a non-blank string`);
   if (/[\u0000-\u001f\u007f]/u.test(value)) throw new Error(`${path} contains control characters`);
+  return value;
+}
+
+function requireEvidenceText(value: unknown, path: string): string {
+  if (typeof value !== 'string' || !value.trim()) throw new Error(`${path} must be a non-blank string`);
+  // Exact source passages may preserve normal line breaks and tabs from the
+  // reviewed workbook. Reject only control bytes that cannot be displayed.
+  if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u.test(value)) {
+    throw new Error(`${path} contains control characters`);
+  }
   return value;
 }
 

@@ -14,7 +14,8 @@ import type {
 } from '../src/wisdom/receiving/previewImporter';
 import { normalizeTeaType } from '../src/wisdom/vocabulary';
 
-const PRIVATE_MARKERS = /\b(?:held|conflict|private|evidence)\b/i;
+const PRIVATE_MARKERS = /\b(?:held|holding|holdings|drafted|authorship|conflict|private|evidence)\b/i;
+const MASKED_REFERENCE_COPY = /\bthe cited source (?:discusses|records|describes)\b/i;
 const SAFE_API_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 const PLACE_LEVELS = new Set(['major_region', 'tea_area', 'mountain', 'village', 'locality']);
 
@@ -146,6 +147,7 @@ function publicProducts(contract: FixtureContract) {
       status: 'Active',
       is_personal: false,
       can_reorder: true,
+      year: 2008,
     },
     {
       id: 'preview-sheng-sold-out',
@@ -162,6 +164,42 @@ function publicProducts(contract: FixtureContract) {
       status: 'Sold Out',
       is_personal: false,
       can_reorder: false,
+      year: 2006,
+    },
+    {
+      id: 'preview-sheng-unavailable',
+      type: 'Sheng',
+      given_name: 'Unavailable rehearsal tea',
+      product_name: 'Unavailable rehearsal tea',
+      origin_country: `${contract.place.label}, China`,
+      origin_region: contract.place.label,
+      retail_price_per_gram_usd: 0,
+      fixed_retail_price_usd: null,
+      stock_grams: 0,
+      description: '',
+      tasting_notes: [],
+      image_url: '',
+      status: 'Active',
+      is_personal: false,
+      can_reorder: false,
+      year: 2010,
+    },
+    {
+      id: 'preview-sheng-second-lot',
+      type: 'Sheng',
+      given_name: `${contract.place.label} Spring Sheng`,
+      product_name: `${contract.place.label} reference tea`,
+      origin_country: `${contract.place.label}, China`,
+      origin_region: contract.place.label,
+      retail_price_per_gram_usd: 0.7,
+      stock_grams: 160,
+      description: '',
+      tasting_notes: [],
+      image_url: '',
+      status: 'Active',
+      is_personal: false,
+      can_reorder: true,
+      year: 2012,
     },
   ] as const;
 }
@@ -243,22 +281,9 @@ async function expectNoHorizontalOverflow(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 }
 
-async function attachScreen(page: Page, testInfo: TestInfo, name: 'types' | 'origin') {
+async function attachScreen(page: Page, testInfo: TestInfo, name: 'types' | 'origin' | 'review') {
   const body = await page.screenshot({ fullPage: false });
   await testInfo.attach(`${testInfo.project.name} ${name}`, { body, contentType: 'image/png' });
-}
-
-async function expectFactSource(
-  page: Page,
-  fact: PublicReferenceStatement,
-  source: PublicSource,
-) {
-  await expect(page.locator(`a[href="${source.url}"]`).first()).toBeVisible();
-  await expect(page.getByText(`${source.publisher} · ${source.title}`, { exact: true }).first()).toBeVisible();
-  if (fact.excerpt) await expect(page.getByText(fact.excerpt, { exact: false }).first()).toBeVisible();
-  if (source.author || source.publishedDate) {
-    await expect(page.getByText([source.author, source.publishedDate].filter(Boolean).join(' · '), { exact: true }).first()).toBeVisible();
-  }
 }
 
 function expectHealthyPage(health: PageHealth) {
@@ -273,6 +298,8 @@ test('renders the public-shaped Tea Reference inside Teajia without writes or pr
   const products = publicProducts(contract);
   const activeProductId = products[0].id;
   const soldOutProductId = products[1].id;
+  const unavailableProductId = products[2].id;
+  const secondLotProductId = products[3].id;
   const health = capturePageHealth(page);
   await installApiBoundary(page, health, products);
 
@@ -293,10 +320,14 @@ test('renders the public-shaped Tea Reference inside Teajia without writes or pr
   await expect(page.getByText('Previously offered', { exact: true })).toBeVisible();
   await expect(page.locator(`a[href="/shop/product/${activeProductId}"]`)).toBeVisible();
   await expect(page.locator(`a[href="/shop/product/${soldOutProductId}"]`)).toBeVisible();
+  await expect(page.locator(`a[href="/shop/product/${secondLotProductId}"]`)).toBeVisible();
+  await expect(page.locator(`a[href="/shop/product/${unavailableProductId}"]`)).toHaveCount(0);
+  await expect(page.getByText('2008', { exact: true })).toBeVisible();
+  await expect(page.getByText('2012', { exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Pu’er', exact: true })).toHaveAttribute('href', '/wisdom/family/puer');
-  await expectFactSource(page, contract.styleFact, contract.styleSource);
-  await expect(page.getByRole('link', { name: 'Report an inaccuracy' })).toHaveAttribute('href', /^mailto:hello@teajia\.com/);
+  await expect(page.getByRole('link', { name: 'report them' })).toHaveAttribute('href', /^mailto:hello@teajia\.com/);
   expect(await page.locator('main').innerText()).not.toMatch(PRIVATE_MARKERS);
+  expect(await page.locator('main').innerText()).not.toMatch(MASKED_REFERENCE_COPY);
   await expectAccessiblePage(page);
   await expectNoHorizontalOverflow(page);
 
@@ -318,12 +349,14 @@ test('renders the public-shaped Tea Reference inside Teajia without writes or pr
   await expect(page.getByText('Previously offered', { exact: true })).toBeVisible();
   await expect(page.locator(`a[href="/shop/product/${activeProductId}"]`)).toBeVisible();
   await expect(page.locator(`a[href="/shop/product/${soldOutProductId}"]`)).toBeVisible();
-  await expectFactSource(page, contract.placeFact, contract.placeSource);
+  await expect(page.locator(`a[href="/shop/product/${secondLotProductId}"]`)).toBeVisible();
+  await expect(page.locator(`a[href="/shop/product/${unavailableProductId}"]`)).toHaveCount(0);
   expect(await page.locator('main').innerText()).not.toMatch(PRIVATE_MARKERS);
+  expect(await page.locator('main').innerText()).not.toMatch(MASKED_REFERENCE_COPY);
   await expectAccessiblePage(page);
   await expectNoHorizontalOverflow(page);
 
-  const report = page.getByRole('link', { name: 'Report an inaccuracy' });
+  const report = page.getByRole('link', { name: 'report them' });
   await report.scrollIntoViewIfNeeded();
   if (testInfo.project.name === 'Mobile Chrome') {
     const reportBox = await report.boundingBox();
@@ -334,5 +367,62 @@ test('renders the public-shaped Tea Reference inside Teajia without writes or pr
   }
   await attachScreen(page, testInfo, 'origin');
 
+  expectHealthyPage(health);
+});
+
+test('presents Jinzhai as a sourced place without a misleading county altitude or empty plant claim', async ({ page }) => {
+  const health = capturePageHealth(page);
+  await installApiBoundary(page, health, [] as unknown as ReturnType<typeof publicProducts>);
+
+  await page.goto('/wisdom/region/jinzhai-county-lu-an');
+  await expect(page.getByRole('heading', { level: 1, name: "Jinzhai County, Lu'an" })).toBeVisible();
+  await expect(page.getByText('China', { exact: true })).toBeVisible();
+  await expect(page.getByText('Anhui', { exact: true })).toBeVisible();
+  await expect(page.getByText('Altitude', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'View map' })).toHaveAttribute('href', /^https:\/\/maps\.apple\.com\/\?q=/);
+  await expect(page.getByRole('heading', { name: /Plants (?:from|recorded)/i })).toHaveCount(0);
+  await expect(page.getByText(
+    'If you notice any inaccuracies, please report them. It helps us improve the reference for everyone.',
+    { exact: true },
+  )).toBeVisible();
+
+  expect(await page.locator('main').innerText()).not.toMatch(PRIVATE_MARKERS);
+  await expectAccessiblePage(page);
+  await expectNoHorizontalOverflow(page);
+  expectHealthyPage(health);
+});
+
+test('opens the private incoming review inside Wisdom without saving a decision', async ({ page, request }, testInfo) => {
+  const contract = await loadFixtureContract(request);
+  const privateResponse = await request.get('/__tea-reference-review');
+  expect(privateResponse.ok()).toBe(true);
+  const privatePacket = await privateResponse.json() as {
+    summary: { entities: number; facts: number };
+  };
+  expect(privatePacket.summary.entities).toBeGreaterThan(0);
+  expect(privatePacket.summary.facts).toBeGreaterThan(0);
+
+  const health = capturePageHealth(page);
+  await installApiBoundary(page, health, publicProducts(contract));
+  await page.goto('/admin/wisdom');
+  await page.getByRole('button', { name: 'Review incoming' }).click();
+
+  await expect(page.getByRole('heading', { level: 1, name: 'Tea Reference review' })).toBeVisible();
+  await expect(page.getByText(/Session only\./i)).toBeVisible();
+  await expect(page.getByRole('button', {
+    name: `Held entities · ${privatePacket.summary.entities}`,
+  })).toBeVisible();
+  await expect(page.getByRole('button', {
+    name: `Held facts · ${privatePacket.summary.facts}`,
+  })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Exact source evidence' }).first()).toBeVisible();
+
+  const ready = page.getByRole('button', { name: 'Ready' }).first();
+  await ready.click();
+  await expect(ready).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByText('Ready', { exact: true }).first()).toBeVisible();
+
+  await expectNoHorizontalOverflow(page);
+  await attachScreen(page, testInfo, 'review');
   expectHealthyPage(health);
 });
