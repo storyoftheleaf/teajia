@@ -8,10 +8,15 @@ import type {
 import type {
   PlaceLevel,
   PublicTeaOrigin,
+  PublicTeaReferencePage,
   PublicTeaReferenceSource,
   PublicTeaType,
   TeaReferenceCatalogue,
 } from './types';
+import {
+  GENERATED_TEA_REFERENCE_PAGES,
+  GENERATED_TEA_REFERENCE_REGISTRY,
+} from './generatedPages';
 
 const PLACE_LEVELS = new Set<PlaceLevel>([
   'major_region',
@@ -376,6 +381,116 @@ function publicSources(preview: PublicReferencePreview): PublicTeaReferenceSourc
   return [...byId.values()];
 }
 
+function generatedFacts(page: PublicTeaReferencePage): PublicReferenceStatement[] {
+  const sourcesById = new Map(
+    GENERATED_TEA_REFERENCE_REGISTRY.sources.map(source => [source.sourceId, source]),
+  );
+  return page.sections.flatMap(section => section.sourceIds.map(sourceId => {
+    const source = sourcesById.get(sourceId)!;
+    const date = source.publishedDate ? ` (${source.publishedDate.slice(0, 4)})` : '';
+    return {
+      id: `${page.id}:${section.key}:${sourceId}`,
+      label: section.label,
+      text: section.text,
+      citation: {
+        sourceId,
+        label: `${source.publisher}, ${source.title}${date}`,
+        url: source.url,
+      },
+    };
+  }));
+}
+
+function generatedOrigins(products: readonly PublicProduct[]): PublicTeaOrigin[] {
+  const pages = GENERATED_TEA_REFERENCE_PAGES.filter(
+    page => page.kind === 'major_region' || page.kind === 'tea_area',
+  );
+  const byId = new Map(pages.map(page => [page.id, page]));
+  const allMatches = new Map<string, string[]>();
+  const activeMatches = new Set<string>();
+
+  for (const page of pages) {
+    const matchingProducts = products.filter(product => productMatchesPlace(product, page.label));
+    if (matchingProducts.length > 0) allMatches.set(page.id, matchingProducts.map(product => product.id));
+    if (matchingProducts.some(product => product.status === 'Active')) activeMatches.add(page.id);
+  }
+
+  const surfacedIds = new Map<string, string[]>();
+  for (const matchedId of activeMatches) {
+    const productIds = allMatches.get(matchedId) ?? [];
+    let currentId: string | undefined = matchedId;
+    const visited = new Set<string>();
+    while (currentId && !visited.has(currentId)) {
+      visited.add(currentId);
+      surfacedIds.set(currentId, [...(surfacedIds.get(currentId) ?? []), ...productIds]);
+      currentId = byId.get(currentId)?.parentId;
+    }
+  }
+
+  return [...surfacedIds].map(([id, productIds]) => {
+    const page = byId.get(id)!;
+    return {
+      id: page.id,
+      name: page.label,
+      level: page.kind,
+      ...(page.parentId ? { parentId: page.parentId } : {}),
+      facts: generatedFacts(page),
+      productIds: orderedUniqueIds(productIds),
+    };
+  }).sort((left, right) => codePointCompare(left.id, right.id));
+}
+
+/** Builds the launch catalogue from tracked Markdown without preview endpoints or private capture data. */
+export function buildGeneratedTeaReferenceCatalogue(
+  publicProducts: readonly PublicProduct[],
+): TeaReferenceCatalogue {
+  const products = publicProducts.filter(isEligiblePublicTeaProduct);
+  const types = GENERATED_TEA_REFERENCE_PAGES
+    .filter(page => page.kind === 'tea_type')
+    .flatMap(page => {
+      const canonicalType = normalizeTeaType(page.id);
+      if (!canonicalType) return [];
+      const matches = products.filter(product => normalizeTeaType(product.type) === canonicalType);
+      if (!matches.some(product => product.status === 'Active')) return [];
+      return [{
+        id: page.id,
+        name: page.label,
+        familyId: page.parentId ?? '',
+        facts: generatedFacts(page),
+        productIds: orderedUniqueIds(matches.map(product => product.id)),
+      }];
+    });
+  const families = GENERATED_TEA_REFERENCE_PAGES
+    .filter(page => page.kind === 'tea_family')
+    .flatMap(page => {
+      const controlledMatches = page.id === 'puer'
+        ? PUER_TYPES.flatMap(type => {
+          const matches = products.filter(product => normalizeTeaType(product.type) === type);
+          return matches.some(product => product.status === 'Active') ? matches.map(product => product.id) : [];
+        })
+        : [];
+      const directMatches = products.filter(product => productMatches(product, page.label));
+      const directIds = directMatches.some(product => product.status === 'Active')
+        ? directMatches.map(product => product.id)
+        : [];
+      const productIds = orderedUniqueIds([...controlledMatches, ...directIds]);
+      return productIds.length === 0 ? [] : [{
+        id: page.id,
+        name: page.label,
+        facts: generatedFacts(page),
+        productIds,
+      }];
+    });
+
+  return {
+    families,
+    types,
+    origins: generatedOrigins(products),
+    sources: [...GENERATED_TEA_REFERENCE_REGISTRY.sources],
+    pages: GENERATED_TEA_REFERENCE_PAGES,
+  };
+}
+
 export function buildTeaReferenceCatalogue(
   publicPreview: PublicReferencePreview,
   publicProducts: readonly PublicProduct[],
@@ -399,5 +514,6 @@ export function buildTeaReferenceCatalogue(
     types,
     origins: buildOrigins(entries, products),
     sources: publicSources(publicPreview),
+    pages: GENERATED_TEA_REFERENCE_PAGES,
   };
 }

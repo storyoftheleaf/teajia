@@ -21,10 +21,13 @@
     "test:mobile": "playwright test tests/account-panel-mobile.spec.ts --project='Mobile Chrome' --reporter=list",
     "test:platform-hardening": "node --test scripts/platform-hardening.test.mjs",
     "test:tea-reference-capture": "node --test scripts/tea-reference-capture/tests/*.test.mjs",
+    "test:tea-reference-pages": "node --test scripts/tea-reference-markdown/tests/*.test.mjs",
     "test:tea-reference-receiving": "vitest run src/pages/wisdom/reference.test.tsx src/wisdom/reference/catalogue.test.ts src/wisdom/receiving/previewImporter.test.ts && vitest run --mode tea-reference-preview src/pages/wisdom/reference.test.tsx src/wisdom/reference/catalogue.test.ts && node --test scripts/tea-reference-capture/tests/adapters.test.mjs scripts/tea-reference-website-preview/tests/*.test.mjs",
     "test:tea-reference-browser": "playwright test --config=playwright.tea-reference.config.ts",
     "tea-reference:capture:preview": "node scripts/tea-reference-capture/cli.mjs --allowlist scripts/tea-reference-capture/pilot-allowlist.json --output outputs/tea-reference-capture/pilot",
     "tea-reference:capture:diversity-preview": "node scripts/tea-reference-capture/cli.mjs --allowlist scripts/tea-reference-capture/source-diversity-allowlist.json --output outputs/tea-reference-capture/source-diversity",
+    "tea-reference:pages": "node scripts/tea-reference-markdown/build-pages.mjs",
+    "tea-reference:pages:check": "node scripts/tea-reference-markdown/build-pages.mjs --check",
     "tea-reference:website:preview": "node scripts/tea-reference-website-preview/preview-cli.mjs",
     "tea-reference:teajia:preview": "node scripts/tea-reference-website-preview/teajia-preview.mjs"
   },

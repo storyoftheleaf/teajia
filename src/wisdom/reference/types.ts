@@ -36,9 +36,36 @@ export interface PublicTeaReferenceSource {
   url: string;
 }
 
+export type PublicTeaReferencePageKind = 'tea_family' | 'tea_type' | 'major_region' | 'tea_area';
+
+export interface PublicTeaReferencePageSection {
+  key: string;
+  label: string;
+  text: string;
+  sourceIds: readonly string[];
+}
+
+export interface PublicTeaReferencePage {
+  id: string;
+  slug: string;
+  kind: PublicTeaReferencePageKind;
+  label: string;
+  nativeName?: string;
+  parentId?: string;
+  sourceIds: readonly string[];
+  sections: readonly PublicTeaReferencePageSection[];
+}
+
+export interface TeaReferencePageRegistry {
+  schemaVersion: 1;
+  pages: readonly PublicTeaReferencePage[];
+  sources: readonly PublicTeaReferenceSource[];
+}
+
 export interface TeaReferenceCatalogue {
   families: PublicTeaFamily[];
   types: PublicTeaType[];
   origins: PublicTeaOrigin[];
   sources: PublicTeaReferenceSource[];
+  pages: readonly PublicTeaReferencePage[];
 }

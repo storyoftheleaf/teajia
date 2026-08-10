@@ -6,6 +6,7 @@ import type {
   PublicReferenceStatement,
 } from '../receiving/previewImporter';
 import {
+  buildGeneratedTeaReferenceCatalogue,
   buildInventoryBackedReferenceCandidates,
   buildTeaReferenceCatalogue,
 } from './catalogue';
@@ -130,6 +131,46 @@ const qualifyingProducts: PublicProduct[] = [
 ];
 
 describe('sellable Tea Reference catalogue', () => {
+  it('builds a production-safe catalogue from canonical Markdown without preview transport wording', () => {
+    const result = buildGeneratedTeaReferenceCatalogue(qualifyingProducts);
+
+    expect(result.pages.map(page => page.id)).toEqual([
+      'greater-yiwu',
+      'lincang',
+      'menghai-county',
+      'puer',
+      'sheng',
+      'yunnan',
+    ]);
+    expect(result.families).toEqual([
+      expect.objectContaining({
+        id: 'puer',
+        name: 'Pu’er',
+        productIds: ['tea-sheng-active', 'tea-sheng-sold-out', 'tea-shou-active'],
+      }),
+    ]);
+    expect(result.families[0].facts.map(fact => fact.text)).toContain(
+      'Pu’er belongs to Yunnan’s long tea history. The name now gathers a family of teas whose identity is tied not only to manufacture, but also to material, place, and the traditions that developed around them.',
+    );
+    expect(result.types).toEqual([
+      expect.objectContaining({
+        id: 'sheng',
+        name: 'Sheng Pu’er',
+        familyId: 'puer',
+        productIds: ['tea-sheng-active', 'tea-sheng-sold-out'],
+      }),
+    ]);
+    expect(result.origins).toEqual([
+      expect.objectContaining({ id: 'greater-yiwu', parentId: 'yunnan', productIds: ['tea-sheng-active'] }),
+      expect.objectContaining({ id: 'menghai-county', parentId: 'yunnan', productIds: ['tea-sheng-sold-out', 'tea-shou-active'] }),
+      expect.objectContaining({ id: 'yunnan', productIds: ['tea-sheng-active', 'tea-sheng-sold-out', 'tea-shou-active'] }),
+    ]);
+    expect(result.sources.find(source => source.sourceId === 'ctma-puer-history-2021')?.title).toBe(
+      "A millennium in one leaf: a history of Yunnan Pu'er tea",
+    );
+    expect(JSON.stringify(result)).not.toMatch(/evidenceId|excerptSha256|translation|holdReason|candidateValue/i);
+  });
+
   it('derives sellable Sheng and Shou types and keeps their Pu’er family through its children', () => {
     const result = buildTeaReferenceCatalogue(preview(), qualifyingProducts);
 
