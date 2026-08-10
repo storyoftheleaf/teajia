@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   EMPTY_RECEIVING_STATE,
+  canonicalPayloadSha256,
   previewWebsiteHandoff,
   publicTransportFor,
   type ReferenceReceivingState,
   type WebsiteHandoff,
+  type WebsiteHandoffClaim,
 } from './previewImporter';
 
 const HASH_A = 'a'.repeat(64);
@@ -94,6 +96,7 @@ function handoff(overrides: Partial<WebsiteHandoff> = {}): WebsiteHandoff {
       citationCount: result.citations.length,
       readyToPublishCount: result.claims.length - result.heldBack.length,
       heldBackCount: result.heldBack.length,
+      payloadSha256: canonicalPayloadSha256(result),
     };
   }
   return result;
@@ -368,6 +371,11 @@ describe('citation-aware receiving preview', () => {
     expect(update.projectedState.facts[0].scope).toBe('historical');
 
     const conflictedState = structuredClone(first.projectedState);
+    conflictedState.entities.push({
+      ...conflictedState.entities[0],
+      entityId: 'RESOLUTION-OTHER',
+      canonicalEntityId: 'tea-family:other',
+    });
     conflictedState.facts[0].entityId = 'RESOLUTION-OTHER';
     const conflict = previewWebsiteHandoff(input, conflictedState);
     expect(conflict.operations.find(operation => operation.resourceType === 'fact')?.action).toBe('conflict');
@@ -384,7 +392,10 @@ describe('citation-aware receiving preview', () => {
     const input = handoff({ claims: [secondClaim, commonClaim], citations: [secondCitation, citation] });
     const reversed = handoff({ claims: [commonClaim, secondClaim], citations: [citation, secondCitation] });
 
-    expect(previewWebsiteHandoff(input)).toEqual(previewWebsiteHandoff(reversed));
+    const forwardPreview = previewWebsiteHandoff(input);
+    const reversedPreview = previewWebsiteHandoff(reversed);
+    expect({ ...forwardPreview, manifest: undefined }).toEqual({ ...reversedPreview, manifest: undefined });
+    expect(forwardPreview.manifest.inputPayloadSha256).not.toBe(reversedPreview.manifest.inputPayloadSha256);
     expect(previewWebsiteHandoff(input)).toEqual(previewWebsiteHandoff(input));
   });
 
@@ -442,6 +453,138 @@ describe('citation-aware receiving preview', () => {
     expect(() => previewWebsiteHandoff(handoff({
       heldBack: [{ claimId: 'CLAIM-MISSING', reason: 'Missing.' }],
     }))).toThrow(/missing claim reference/i);
+  });
+
+  it('recomputes the canonical payload SHA-256 while treating capture hashes as opaque provenance', () => {
+    expect(canonicalPayloadSha256({ entities: [], claims: [], citations: [], heldBack: [] }))
+      .toBe('6f6bebd38e2cd623daf00584838d1947cd3960b2fa7e680466e14978e7f53454');
+
+    const tampered = handoff();
+    (tampered.claims as WebsiteHandoffClaim[])[0] = {
+      ...tampered.claims[0],
+      subject: 'Tampered after handoff creation',
+    };
+    expect(() => previewWebsiteHandoff(tampered)).toThrow(/payload SHA-256.*canonical payload/i);
+
+    const provenanceOnly = handoff();
+    provenanceOnly.manifest = {
+      ...provenanceOnly.manifest,
+      claimsSha256: 'd'.repeat(64),
+      sourceSnapshotSha256: 'e'.repeat(64),
+    };
+    const received = previewWebsiteHandoff(provenanceOnly);
+    expect(received.manifest.sourceSnapshotSha256).toBe('e'.repeat(64));
+  });
+
+  it('accepts the capture producer contract and holds valid non-public vocabulary', () => {
+    const cases = [
+      { kind: 'named_tea', holding: 'namedTeas', scope: 'identity', field: 'description', status: 'private_verification' },
+      { kind: 'cultivar', holding: 'cultivars', scope: 'cultivar_potential', field: 'potentialProfile', status: 'private_verification' },
+      { kind: 'germplasm_accession', holding: 'newHolding', scope: 'identity', field: 'description', status: 'private_verification' },
+      { kind: 'recognized_garden', holding: 'newHolding', scope: 'relationship', field: 'relationships', status: 'duplicate_candidate' },
+      { kind: 'recognized_tree', holding: 'none', scope: 'identity', field: 'description', status: 'hold_unresolved' },
+      { kind: 'mark', holding: 'marks', scope: 'legal', field: 'definition', status: 'private_verification' },
+    ] as const;
+
+    for (const [index, item] of cases.entries()) {
+      const resolutionId = `RESOLUTION-CONTRACT-${index}`;
+      const claimId = `CLAIM-CONTRACT-${index}`;
+      const contractEntity = {
+        ...entity,
+        resolutionId,
+        canonicalEntityId: '',
+        entityKind: item.kind,
+        websiteHolding: item.holding,
+        resolutionStatus: item.status,
+        claimIds: [claimId],
+      };
+      const contractClaim = {
+        ...commonClaim,
+        claimId,
+        resolutionId,
+        entityKind: item.kind,
+        claimScope: item.scope,
+        websiteHolding: item.holding,
+        websiteField: item.field,
+        compatibility: item.kind === 'recognized_tree' ? 'prohibited' : 'requires_model_extension',
+      };
+      const result = previewWebsiteHandoff(handoff({ entities: [contractEntity], claims: [contractClaim] }));
+      expect(result.operations.find(operation => operation.resourceType === 'entity')?.action).toBe('held');
+      expect(result.operations.find(operation => operation.resourceType === 'fact')?.action).toBe('held');
+      expect(result.publicPreview.entryCount).toBe(0);
+    }
+  });
+
+  it('permits a resolved major region or region root without inventing a parent', () => {
+    for (const kind of ['major_region', 'region'] as const) {
+      const rootEntity = {
+        ...entity,
+        canonicalEntityId: `place:${kind}`,
+        entityKind: kind,
+        websiteHolding: 'regions',
+        proposedAction: 'create',
+        resolutionStatus: 'resolved',
+        reason: 'Verified root geography.',
+      };
+      const rootClaim = {
+        ...commonClaim,
+        canonicalEntityId: rootEntity.canonicalEntityId,
+        entityKind: kind,
+        claimScope: 'geography',
+        websiteField: 'description',
+        compatibility: 'compatible',
+        proposedAction: 'create',
+        holdReason: '',
+      };
+      const result = previewWebsiteHandoff(handoff({ entities: [rootEntity], claims: [rootClaim], heldBack: [] }));
+      expect(result.operations.find(operation => operation.resourceType === 'entity')?.action).toBe('create');
+      expect(result.projectedState.entities[0]).not.toHaveProperty('parentEntityId');
+    }
+  });
+
+  it('rejects malformed current state before planning', () => {
+    const valid = previewWebsiteHandoff(readyHandoff()).projectedState;
+    expect(() => previewWebsiteHandoff(readyHandoff(), { ...valid, schemaVersion: 2 } as unknown as ReferenceReceivingState))
+      .toThrow(/current receiving state schemaVersion/i);
+    expect(() => previewWebsiteHandoff(readyHandoff(), { ...valid, facts: {} } as unknown as ReferenceReceivingState))
+      .toThrow(/current receiving state facts must be an array/i);
+
+    const duplicateSource = structuredClone(valid);
+    duplicateSource.sources.push(structuredClone(duplicateSource.sources[0]));
+    expect(() => previewWebsiteHandoff(readyHandoff(), duplicateSource)).toThrow(/duplicate current source/i);
+
+    const danglingCitation = structuredClone(valid);
+    danglingCitation.citations[0].sourceId = 'missing-source';
+    expect(() => previewWebsiteHandoff(readyHandoff(), danglingCitation)).toThrow(/citation.*missing source/i);
+
+    const danglingParent = structuredClone(valid);
+    danglingParent.entities[0].parentEntityId = 'missing-parent';
+    expect(() => previewWebsiteHandoff(readyHandoff(), danglingParent)).toThrow(/entity.*missing parent/i);
+
+    const danglingFact = structuredClone(valid);
+    danglingFact.facts[0].citationIds = ['missing-citation'];
+    expect(() => previewWebsiteHandoff(readyHandoff(), danglingFact)).toThrow(/fact.*missing citation/i);
+  });
+
+  it('canonicalizes current state independently of array order', () => {
+    const input = readyHandoff();
+    const current = previewWebsiteHandoff(input).projectedState;
+    current.sources.push({ ...current.sources[0], sourceId: 'second-source', title: 'Second source' });
+    current.citations.push({ citationId: 'CITATION-SECOND', sourceId: 'second-source', evidenceId: 'EVIDENCE-SECOND' });
+    current.entities.push({ ...current.entities[0], entityId: 'RESOLUTION-SECOND', canonicalEntityId: 'tea-family:second', label: 'Second' });
+    current.facts.push({
+      ...current.facts[0],
+      factId: 'CLAIM-SECOND',
+      entityId: 'RESOLUTION-SECOND',
+      citationIds: ['CITATION-SECOND'],
+    });
+    const reversed = structuredClone(current);
+    reversed.sources.reverse();
+    reversed.citations.reverse();
+    reversed.entities.reverse();
+    reversed.facts.reverse();
+
+    expect(previewWebsiteHandoff(input, current)).toEqual(previewWebsiteHandoff(input, reversed));
   });
 
   it('prunes source metadata that is unreachable from surviving public facts', () => {

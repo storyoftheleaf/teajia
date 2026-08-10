@@ -63,7 +63,7 @@ Only the first three may appear as general reference content. Exact-lot descript
 The immutable handoff follows this path:
 
 1. A local preview command reads `website-handoff.json` from an explicit absolute path.
-2. The existing pure importer validates schema, manifest counts, deterministic hashes, IDs, references, and duplicate consistency.
+2. The existing pure importer validates schema, manifest counts, the canonical handoff payload hash, IDs, references, and duplicate consistency. `claimsSha256` and `sourceSnapshotSha256` remain format-validated opaque provenance because their original capture inputs are not present in the website handoff and cannot be reconstructed there.
 3. It plans every source, citation, entity, and fact as `create`, `update`, `no-op`, `conflict`, or `held` against an optional existing receiving snapshot.
 4. It returns the operation report, projected receiving state, private verification state, and a sanitized public projection in memory.
 5. A Vite development-only adapter exposes only that public projection to the actual Teajia application.

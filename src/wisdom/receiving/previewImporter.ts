@@ -152,8 +152,10 @@ export interface WebsiteHandoff {
     schemaVersion: number;
     siteModel: string;
     mode: string;
-    claimsSha256: string;
-    sourceSnapshotSha256: string;
+    /** Opaque provenance from the capture package; the website handoff cannot reconstruct it. */
+    claimsSha256: OpaqueProvenanceSha256;
+    /** Opaque provenance from the source snapshot; the website handoff cannot reconstruct it. */
+    sourceSnapshotSha256: OpaqueProvenanceSha256;
     entityCount: number;
     claimCount: number;
     citationCount: number;
@@ -166,6 +168,8 @@ export interface WebsiteHandoff {
   citations: readonly WebsiteHandoffCitation[];
   heldBack: ReadonlyArray<{ claimId: string; reason: string }>;
 }
+
+type OpaqueProvenanceSha256 = string;
 
 export interface ReceivingOperation {
   action: ReceivingAction;
@@ -269,13 +273,21 @@ const PUBLIC_ENTITY_KINDS = new Set<ReferenceEntityKind>([
   'tea_family', 'tea_style', 'region', 'major_region', 'tea_area', 'mountain',
   'village', 'locality',
 ]);
+// Mirrored from scripts/tea-reference-capture/schema.mjs and the destination
+// vocabulary in website-handoff.mjs. Keep this browser-safe receiver independent
+// of the capture package's Node-side module graph; contract regressions cover it.
 const ENTITY_KINDS = new Set<ReferenceEntityKind>([
   ...PUBLIC_ENTITY_KINDS, 'named_tea', 'cultivar', 'producer', 'factory', 'brand',
   'mark', 'recipe', 'glossary_term', 'taxonomy_term', 'exact_lot',
+  'germplasm_accession', 'recognized_garden', 'recognized_tree',
 ]);
 const PUBLISHER_ROLES = new Set<PublisherRole>([
   'institute', 'registry', 'standards_body', 'academic', 'archive', 'producer',
   'trade_association', 'specialist_editorial', 'retailer_reseller', 'community',
+]);
+const FACT_REGISTERS = new Set<FactRegister>([
+  'reference', 'common_characteristics', 'cultivar_potential',
+  'exact_lot_source_description', 'personal_tasting',
 ]);
 const PUBLIC_FACT_REGISTERS = new Set<FactRegister>([
   'reference', 'common_characteristics', 'cultivar_potential',
@@ -283,7 +295,7 @@ const PUBLIC_FACT_REGISTERS = new Set<FactRegister>([
 const CLAIM_SCOPES = new Set([
   'identity', 'geography', 'historical', 'legal', 'cultivar_potential',
   'common_characteristics', 'processing', 'storage', 'brewing', 'exact_lot',
-  'personal_tasting',
+  'personal_tasting', 'relationship',
 ]);
 const PUBLIC_CLAIM_SCOPES = new Set([
   'identity', 'geography', 'historical', 'legal', 'cultivar_potential',
@@ -291,14 +303,20 @@ const PUBLIC_CLAIM_SCOPES = new Set([
 ]);
 const WEBSITE_FIELDS = new Set([
   'description', 'commonCharacteristics', 'history', 'processing', 'storage',
-  'brewing', 'sourceDescription', 'personalTasting',
+  'brewing', 'sourceDescription', 'personalTasting', 'definition',
+  'potentialProfile', 'relationships',
 ]);
 const PUBLIC_WEBSITE_FIELDS = new Set([
   'description', 'commonCharacteristics', 'history', 'processing', 'storage', 'brewing',
 ]);
-const WEBSITE_HOLDINGS = new Set(['vocabulary', 'styles', 'regions', 'glossary', 'producers', 'none']);
+const WEBSITE_HOLDINGS = new Set([
+  'vocabulary', 'namedTeas', 'styles', 'cultivars', 'regions', 'producers',
+  'marks', 'glossary', 'newHolding', 'none',
+]);
 const COMPATIBILITY_STATUSES = new Set(['compatible', 'requires_model_extension', 'prohibited']);
-const ENTITY_RESOLUTION_STATUSES = new Set(['resolved', 'private_verification', 'hold_unresolved', 'conflict']);
+const ENTITY_RESOLUTION_STATUSES = new Set([
+  'resolved', 'private_verification', 'duplicate_candidate', 'hold_unresolved', 'conflict',
+]);
 const PROPOSED_ACTIONS = new Set(['create', 'update', 'no-op', 'hold', 'conflict']);
 const HASH_PATTERN = /^[a-f0-9]{64}$/;
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]*$/;
@@ -380,13 +398,116 @@ function cloneState(state: ReferenceReceivingState): ReferenceReceivingState {
     sources: state.sources.map(source => ({ ...source })),
     citations: state.citations.map(citation => ({ ...citation })),
     entities: state.entities.map(entity => ({ ...entity })),
-    facts: state.facts.map(fact => ({ ...fact, citationIds: [...fact.citationIds] })),
-    verification: state.verification.map(record => ({ ...record, evidenceIds: [...record.evidenceIds], sourceRoles: [...record.sourceRoles] })),
+    facts: state.facts.map(fact => ({ ...fact, citationIds: [...fact.citationIds].sort(codepointCompare) })),
+    verification: state.verification.map(record => ({
+      ...record,
+      evidenceIds: [...record.evidenceIds].sort(codepointCompare),
+      sourceRoles: [...record.sourceRoles].sort(codepointCompare),
+    })),
   };
 }
 
 function codepointCompare(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
+}
+
+function canonicalValue(value: unknown): unknown {
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return value;
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) throw new Error('Canonical JSON does not permit non-finite numbers');
+    return value;
+  }
+  if (Array.isArray(value)) return value.map(item => canonicalValue(item));
+  if (typeof value === 'object') {
+    return Object.fromEntries(
+      Object.keys(value)
+        .filter(key => (value as Record<string, unknown>)[key] !== undefined)
+        .sort(codepointCompare)
+        .map(key => [key, canonicalValue((value as Record<string, unknown>)[key])]),
+    );
+  }
+  throw new Error(`Unsupported canonical JSON value: ${typeof value}`);
+}
+
+function rotateRight(value: number, amount: number): number {
+  return (value >>> amount) | (value << (32 - amount));
+}
+
+/** Browser-safe synchronous SHA-256 used only for bounded preview handoff integrity. */
+function sha256(value: string): string {
+  const input = new TextEncoder().encode(value);
+  const bitLength = input.length * 8;
+  const paddedLength = Math.ceil((input.length + 9) / 64) * 64;
+  const padded = new Uint8Array(paddedLength);
+  padded.set(input);
+  padded[input.length] = 0x80;
+  const view = new DataView(padded.buffer);
+  view.setUint32(paddedLength - 8, Math.floor(bitLength / 0x1_0000_0000), false);
+  view.setUint32(paddedLength - 4, bitLength >>> 0, false);
+
+  const constants = [
+    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+  ];
+  const hash = [
+    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+    0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
+  ];
+  const words = new Uint32Array(64);
+
+  for (let offset = 0; offset < paddedLength; offset += 64) {
+    for (let index = 0; index < 16; index += 1) words[index] = view.getUint32(offset + index * 4, false);
+    for (let index = 16; index < 64; index += 1) {
+      const left = words[index - 15];
+      const right = words[index - 2];
+      const sigma0 = rotateRight(left, 7) ^ rotateRight(left, 18) ^ (left >>> 3);
+      const sigma1 = rotateRight(right, 17) ^ rotateRight(right, 19) ^ (right >>> 10);
+      words[index] = (words[index - 16] + sigma0 + words[index - 7] + sigma1) >>> 0;
+    }
+    let [a, b, c, d, e, f, g, h] = hash;
+    for (let index = 0; index < 64; index += 1) {
+      const sum1 = rotateRight(e, 6) ^ rotateRight(e, 11) ^ rotateRight(e, 25);
+      const choose = (e & f) ^ (~e & g);
+      const temp1 = (h + sum1 + choose + constants[index] + words[index]) >>> 0;
+      const sum0 = rotateRight(a, 2) ^ rotateRight(a, 13) ^ rotateRight(a, 22);
+      const majority = (a & b) ^ (a & c) ^ (b & c);
+      const temp2 = (sum0 + majority) >>> 0;
+      h = g;
+      g = f;
+      f = e;
+      e = (d + temp1) >>> 0;
+      d = c;
+      c = b;
+      b = a;
+      a = (temp1 + temp2) >>> 0;
+    }
+    hash[0] = (hash[0] + a) >>> 0;
+    hash[1] = (hash[1] + b) >>> 0;
+    hash[2] = (hash[2] + c) >>> 0;
+    hash[3] = (hash[3] + d) >>> 0;
+    hash[4] = (hash[4] + e) >>> 0;
+    hash[5] = (hash[5] + f) >>> 0;
+    hash[6] = (hash[6] + g) >>> 0;
+    hash[7] = (hash[7] + h) >>> 0;
+  }
+  return hash.map(word => word.toString(16).padStart(8, '0')).join('');
+}
+
+export function canonicalPayloadSha256(
+  handoff: Pick<WebsiteHandoff, 'entities' | 'claims' | 'citations' | 'heldBack'>,
+): string {
+  return sha256(JSON.stringify(canonicalValue({
+    entities: handoff.entities,
+    claims: handoff.claims,
+    citations: handoff.citations,
+    heldBack: handoff.heldBack,
+  })));
 }
 
 function stable(value: unknown): string {
@@ -801,6 +922,9 @@ function validateHandoff(handoff: WebsiteHandoff): void {
   for (const key of ['entities', 'claims', 'citations', 'heldBack'] as const) {
     if (!Array.isArray(handoff[key])) throw new Error(`Website handoff ${key} must be an array`);
   }
+  if (canonicalPayloadSha256(handoff) !== manifest.payloadSha256) {
+    throw new Error('Website handoff payload SHA-256 does not match its canonical payload');
+  }
   if (entityCount !== handoff.entities.length) throw new Error('Website handoff entity count does not match its manifest');
   if (claimCount !== handoff.claims.length) throw new Error('Website handoff claim count does not match its manifest');
   if (citationCount !== handoff.citations.length) throw new Error('Website handoff citation count does not match its manifest');
@@ -907,6 +1031,117 @@ function validateHandoff(handoff: WebsiteHandoff): void {
     if ((claim.proposedAction === 'hold') !== heldClaimIds.has(claim.claimId)) {
       throw new Error(`Claim ${claim.claimId} held status does not match heldBack`);
     }
+  }
+}
+
+function validateCurrentState(state: ReferenceReceivingState): void {
+  if (!state || typeof state !== 'object') throw new Error('Current receiving state must be an object');
+  if (state.schemaVersion !== 1) throw new Error('Current receiving state schemaVersion must be 1');
+  for (const key of ['sources', 'citations', 'entities', 'facts', 'verification'] as const) {
+    if (!Array.isArray(state[key])) throw new Error(`Current receiving state ${key} must be an array`);
+  }
+
+  const sourceIds = new Set<string>();
+  for (const source of state.sources) {
+    requireRecord(source, 'Current source');
+    const sourceId = requireId(source.sourceId, 'Current source sourceId');
+    if (sourceIds.has(sourceId)) throw new Error(`Duplicate current source: ${sourceId}`);
+    sourceIds.add(sourceId);
+    requireString(source.publisher, `Current source ${sourceId} publisher`);
+    requireAllowed(source.publisherRole, PUBLISHER_ROLES as ReadonlySet<string>, `Current source ${sourceId} publisherRole`);
+    requireString(source.title, `Current source ${sourceId} title`);
+    requireString(source.author, `Current source ${sourceId} author`, true);
+    requireString(source.publishedDate, `Current source ${sourceId} publishedDate`, true);
+    requireString(source.accessedDate, `Current source ${sourceId} accessedDate`);
+    const url = requireString(source.url, `Current source ${sourceId} url`);
+    if (!hasAllowedUrlScheme(url, ['http:', 'https:'])) throw new Error(`Current source ${sourceId} URL must use HTTP or HTTPS`);
+  }
+
+  const citationIds = new Set<string>();
+  for (const citation of state.citations) {
+    requireRecord(citation, 'Current citation');
+    const citationId = requireId(citation.citationId, 'Current citation citationId');
+    if (citationIds.has(citationId)) throw new Error(`Duplicate current citation: ${citationId}`);
+    citationIds.add(citationId);
+    const sourceId = requireId(citation.sourceId, `Current citation ${citationId} sourceId`);
+    requireId(citation.evidenceId, `Current citation ${citationId} evidenceId`);
+    if (!sourceIds.has(sourceId)) throw new Error(`Current citation ${citationId} has a missing source: ${sourceId}`);
+  }
+
+  const entityIds = new Set<string>();
+  for (const entity of state.entities) {
+    requireRecord(entity, 'Current entity');
+    const entityId = requireId(entity.entityId, 'Current entity entityId');
+    if (entityIds.has(entityId)) throw new Error(`Duplicate current entity: ${entityId}`);
+    entityIds.add(entityId);
+    requireId(entity.canonicalEntityId, `Current entity ${entityId} canonicalEntityId`, true);
+    requireString(entity.label, `Current entity ${entityId} label`);
+    requireString(entity.sourceLabel, `Current entity ${entityId} sourceLabel`);
+    requireAllowed(entity.entityKind, ENTITY_KINDS as ReadonlySet<string>, `Current entity ${entityId} entityKind`);
+    if (entity.geographicLevel !== undefined) {
+      requireAllowed(entity.geographicLevel, GEOGRAPHIC_LEVELS as ReadonlySet<string>, `Current entity ${entityId} geographicLevel`);
+      if (entity.geographicLevel !== entity.entityKind) throw new Error(`Current entity ${entityId} geographic level does not match its kind`);
+    }
+    if (entity.parentEntityId !== undefined) requireId(entity.parentEntityId, `Current entity ${entityId} parentEntityId`);
+  }
+  const currentEntityIndex = new Map(state.entities.map(entity => [entity.entityId, entity]));
+  for (const entity of state.entities) {
+    if (entity.parentEntityId && !entityIds.has(entity.parentEntityId)) {
+      throw new Error(`Current entity ${entity.entityId} has a missing parent: ${entity.parentEntityId}`);
+    }
+    const visited = new Set<string>();
+    let cursor: ReferenceEntity | undefined = entity;
+    while (cursor?.parentEntityId) {
+      if (visited.has(cursor.entityId)) throw new Error(`Current entity ${entity.entityId} has a cyclic parent hierarchy`);
+      visited.add(cursor.entityId);
+      cursor = currentEntityIndex.get(cursor.parentEntityId);
+    }
+  }
+
+  const factIds = new Set<string>();
+  for (const fact of state.facts) {
+    requireRecord(fact, 'Current fact');
+    const factId = requireId(fact.factId, 'Current fact factId');
+    if (factIds.has(factId)) throw new Error(`Duplicate current fact: ${factId}`);
+    factIds.add(factId);
+    const entityId = requireId(fact.entityId, `Current fact ${factId} entityId`);
+    if (!entityIds.has(entityId)) throw new Error(`Current fact ${factId} has a missing entity: ${entityId}`);
+    requireAllowed(fact.field, WEBSITE_FIELDS, `Current fact ${factId} field`);
+    requireAllowed(fact.scope, CLAIM_SCOPES, `Current fact ${factId} scope`);
+    requireAllowed(fact.register, FACT_REGISTERS as ReadonlySet<string>, `Current fact ${factId} register`);
+    requireString(fact.publicText, `Current fact ${factId} publicText`);
+    if (!Array.isArray(fact.citationIds) || fact.citationIds.length === 0) {
+      throw new Error(`Current fact ${factId} citationIds must be a non-empty array`);
+    }
+    const seenCitationIds = new Set<string>();
+    for (const citationId of fact.citationIds) {
+      requireId(citationId, `Current fact ${factId} citationId`);
+      if (seenCitationIds.has(citationId)) throw new Error(`Current fact ${factId} repeats citation ${citationId}`);
+      if (!citationIds.has(citationId)) throw new Error(`Current fact ${factId} has a missing citation: ${citationId}`);
+      seenCitationIds.add(citationId);
+    }
+  }
+
+  const verificationIds = new Set<string>();
+  for (const record of state.verification) {
+    requireRecord(record, 'Current verification record');
+    if (!['entity', 'fact'].includes(record.resourceType)) throw new Error('Current verification resourceType is unsupported');
+    requireId(record.resourceId, 'Current verification resourceId');
+    if (!['held', 'conflict', 'ready_for_private_review'].includes(record.status)) {
+      throw new Error(`Current verification ${record.resourceId} status is unsupported`);
+    }
+    if (record.register !== 'entity_resolution') {
+      requireAllowed(record.register, FACT_REGISTERS as ReadonlySet<string>, `Current verification ${record.resourceId} register`);
+    }
+    requireString(record.reason, `Current verification ${record.resourceId} reason`);
+    if (!Array.isArray(record.evidenceIds) || !Array.isArray(record.sourceRoles)) {
+      throw new Error(`Current verification ${record.resourceId} evidenceIds and sourceRoles must be arrays`);
+    }
+    record.evidenceIds.forEach((evidenceId, index) => requireId(evidenceId, `Current verification ${record.resourceId} evidenceIds[${index}]`));
+    record.sourceRoles.forEach((role, index) => requireAllowed(role, PUBLISHER_ROLES as ReadonlySet<string>, `Current verification ${record.resourceId} sourceRoles[${index}]`));
+    const key = `${record.resourceType}:${record.resourceId}`;
+    if (verificationIds.has(key)) throw new Error(`Duplicate current verification: ${key}`);
+    verificationIds.add(key);
   }
 }
 
@@ -1147,6 +1382,7 @@ export function previewWebsiteHandoff(
   currentState: ReferenceReceivingState = EMPTY_RECEIVING_STATE,
 ): WebsiteReceivingPreview {
   validateHandoff(handoff);
+  validateCurrentState(currentState);
   const projectedState = cloneState(currentState);
   const sources = uniqueSources(handoff.citations);
   const operations: ReceivingOperation[] = [];
@@ -1191,14 +1427,17 @@ export function previewWebsiteHandoff(
   const currentEntities = new Map(projectedState.entities.map(candidate => [candidate.entityId, candidate]));
   for (const input of [...handoff.entities].sort((left, right) => codepointCompare(left.resolutionId, right.resolutionId))) {
     const candidate = entityCandidate(input, parentIds);
-    const geographicGap = candidate.geographicLevel && !candidate.parentEntityId;
+    const geographicGap = candidate.geographicLevel
+      && !['region', 'major_region'].includes(candidate.geographicLevel)
+      && !candidate.parentEntityId;
     const parentProblem = unsafeEntityReasons.get(candidate.entityId);
     const retailerProducerAssertion = ['producer', 'factory', 'brand'].includes(candidate.entityKind)
       && handoff.claims.some(claim => claim.resolutionId === candidate.entityId && claim.assertingPublisherRole === 'retailer_reseller');
     let action: ReceivingAction;
     let reason: string;
     const current = currentEntities.get(candidate.entityId);
-    if (parentProblem || geographicGap || retailerProducerAssertion || input.proposedAction === 'hold' || input.resolutionStatus === 'hold_unresolved' || input.resolutionStatus === 'private_verification') {
+    if (parentProblem || geographicGap || retailerProducerAssertion || input.proposedAction === 'hold'
+      || ['hold_unresolved', 'private_verification', 'duplicate_candidate'].includes(input.resolutionStatus)) {
       action = 'held';
       reason = retailerProducerAssertion
         ? 'A retailer or reseller cannot establish producer, factory, or brand identity by being the publisher.'
