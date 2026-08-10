@@ -24,25 +24,11 @@ interface FactGroup {
   facts: PublicReferenceStatement[];
 }
 
-function canonicalReferenceUrl(value: string): string | null {
-  try {
-    const url = new URL(value);
-    url.hash = '';
-    url.searchParams.sort();
-    if (url.pathname.length > 1) url.pathname = url.pathname.replace(/\/+$/, '');
-    return url.href;
-  } catch {
-    return null;
-  }
-}
-
 function sourceForFact(
   fact: PublicReferenceStatement,
   sources: readonly PublicTeaReferenceSource[],
 ): PublicTeaReferenceSource | undefined {
-  const citationUrl = canonicalReferenceUrl(fact.citation.url);
-  if (!citationUrl) return undefined;
-  return sources.find(source => canonicalReferenceUrl(source.url) === citationUrl);
+  return sources.find(source => source.sourceId === fact.citation.sourceId);
 }
 
 function groupedFacts(facts: readonly PublicReferenceStatement[]): FactGroup[] {
@@ -62,25 +48,25 @@ const FactStatement: React.FC<{
 }> = ({ fact, sources }) => {
   const source = sourceForFact(fact, sources);
   return (
-    <li className={`${RULE_FULL} first:border-t-0 py-4`}>
-      <p className={`${FACT} ${MEASURE}`}>{fact.text}</p>
+    <li className={`${RULE_FULL} first:border-t-0 py-4 min-w-0`}>
+      <p className={`${FACT} ${MEASURE} min-w-0 break-words`}>{fact.text}</p>
       {fact.excerpt && (
-        <blockquote className={`${FOOTNOTE} ${MEASURE} mt-2 border-l-2 border-tea-border pl-3`}>
+        <blockquote className={`${FOOTNOTE} ${MEASURE} mt-2 border-l-2 border-tea-border pl-3 min-w-0 break-words`}>
           &ldquo;{fact.excerpt}&rdquo;
         </blockquote>
       )}
-      <p className={`${CELL_CLASS} text-tea-text-dim mt-2`}>Source:{' '}
+      <p className={`${CELL_CLASS} text-tea-text-dim mt-2 min-w-0 break-words`}>Source:{' '}
         <a
           href={source?.url ?? fact.citation.url}
           target="_blank"
           rel="noreferrer"
-          className={`${QUIET_LINK} tap-target`}
+          className={`${QUIET_LINK} tap-target min-w-0 break-words`}
         >
           {source ? `${source.publisher} · ${source.title}` : fact.citation.label}
         </a>
       </p>
       {source && (source.author || source.publishedDate) && (
-        <p className={`${CELL_CLASS} text-tea-text-dim mt-1`}>
+        <p className={`${CELL_CLASS} text-tea-text-dim mt-1 min-w-0 break-words`}>
           {[source.author, source.publishedDate].filter(Boolean).join(' · ')}
         </p>
       )}

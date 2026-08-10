@@ -10,7 +10,7 @@ import {
   HoldingRow,
   IndexList,
   MEASURE,
-  PAGE,
+  PREVIEW_PAGE,
   PageHead,
   ProseSkeleton,
   QUIET_LINK,
@@ -39,7 +39,7 @@ const TeaFamilyPage: React.FC = () => {
   }
 
   return (
-    <article className={PAGE}>
+    <article className={PREVIEW_PAGE}>
       <Helmet><title>{family ? `${family.name} · Tea Types · Teajia` : 'Tea family · Teajia'}</title></Helmet>
       <WisdomSubNav active="types" />
       <div className="mt-7">

@@ -8,7 +8,7 @@ import {
   Fact,
   HoldingNotFound,
   MEASURE,
-  PAGE,
+  PREVIEW_PAGE,
   PageHead,
   ProseSkeleton,
   QUIET_LINK,
@@ -36,7 +36,7 @@ const TeaTypePage: React.FC = () => {
   }
 
   return (
-    <article className={PAGE}>
+    <article className={PREVIEW_PAGE}>
       <Helmet><title>{type ? `${type.name} · Tea Types · Teajia` : 'Tea type · Teajia'}</title></Helmet>
       <WisdomSubNav active="types" />
       <div className="mt-7">

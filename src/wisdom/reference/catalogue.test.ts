@@ -12,7 +12,11 @@ const statement = (id: string): PublicReferenceStatement => ({
   label: 'Identity',
   text: `Public reference note for ${id}.`,
   excerpt: `Public excerpt for ${id}.`,
-  citation: { label: 'Tea Institute, Reference (2026)', url: `https://example.com/${id}` },
+  citation: {
+    sourceId: `source-${id}`,
+    label: 'Tea Institute, Reference (2026)',
+    url: `https://example.com/${id}`,
+  },
 });
 
 const entry = (
@@ -181,12 +185,45 @@ describe('sellable Tea Reference catalogue', () => {
     expect(result.types.flatMap(type => type.productIds)).not.toContain('tea-oolong-sheng-name');
   });
 
-  it('keeps Sold Out public tea eligible for its controlled type', () => {
+  it('does not let sold-out history qualify a controlled type by itself', () => {
     const result = buildTeaReferenceCatalogue(preview(), [
       product({ id: 'sold-out-sheng', type: 'Sheng', status: 'Sold Out' }),
     ]);
 
-    expect(result.types.find(type => type.id === 'sheng')?.productIds).toEqual(['sold-out-sheng']);
+    expect(result.types).toEqual([]);
+    expect(result.families).toEqual([]);
+  });
+
+  it('keeps sold-out history after an active tea independently qualifies the type', () => {
+    const result = buildTeaReferenceCatalogue(preview(), [
+      product({ id: 'active-sheng', type: 'Sheng', status: 'Active' }),
+      product({ id: 'sold-out-sheng', type: 'Sheng', status: 'Sold Out' }),
+    ]);
+
+    expect(result.types.find(type => type.id === 'sheng')?.productIds).toEqual([
+      'active-sheng',
+      'sold-out-sheng',
+    ]);
+  });
+
+  it('does not let a sold-out origin qualify a public place by itself', () => {
+    const result = buildTeaReferenceCatalogue(preview(), [
+      product({ id: 'sold-out-menghai', type: 'Sheng', status: 'Sold Out', originRegion: 'Menghai' }),
+    ]);
+
+    expect(result.origins).toEqual([]);
+  });
+
+  it('keeps sold-out history after an active tea independently qualifies the origin', () => {
+    const result = buildTeaReferenceCatalogue(preview(), [
+      product({ id: 'active-menghai', type: 'Sheng', status: 'Active', originRegion: 'Menghai' }),
+      product({ id: 'sold-out-menghai', type: 'Sheng', status: 'Sold Out', originRegion: 'Menghai' }),
+    ]);
+
+    expect(result.origins.find(origin => origin.id === 'resolution-menghai')?.productIds).toEqual([
+      'active-menghai',
+      'sold-out-menghai',
+    ]);
   });
 
   it('matches public origins at token boundaries while preserving every exact place level', () => {
@@ -390,6 +427,7 @@ describe('sellable Tea Reference catalogue', () => {
       /privateVerification|verification|evidenceIds?|candidateValue|candidate|status|held|guessed-parent|secret/i,
     );
     expect(new Set(forward.types[0].productIds).size).toBe(forward.types[0].productIds.length);
+    expect(forward.types[0].facts[0].citation.sourceId).toBe('source-resolution-sheng-fact');
     expect(forward.sources.map(source => source.sourceId)).toEqual(['source-a', 'source-z']);
   });
 });

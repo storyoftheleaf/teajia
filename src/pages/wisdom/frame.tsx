@@ -247,7 +247,9 @@ export const MEASURE = 'max-w-[66ch]';
  * `hang-punct` is inherited, so one class here hangs punctuation in every
  * paragraph below it.
  */
-export const PAGE = 'w-full max-w-[78rem] mx-auto pt-4 pb-nav-gap hang-punct';
+export const PAGE = 'w-full max-w-[78rem] mx-auto pt-4 pb-nav hang-punct';
+/** Local Tea Reference compositions carry one extra rhythm step above the mobile nav. */
+export const PREVIEW_PAGE = 'w-full max-w-[78rem] mx-auto pt-4 pb-nav-gap hang-punct';
 
 /**
  * A grammar of exactly two rules, and length is what says which is which.

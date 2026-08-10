@@ -7,7 +7,7 @@ import {
   HoldingRow,
   IndexList,
   MEASURE,
-  PAGE,
+  PREVIEW_PAGE,
   PageHead,
   ProseSkeleton,
   SPACE,
@@ -19,7 +19,7 @@ const TeaTypeIndexPage: React.FC = () => {
   const { catalogue, isLoading, isError } = useTeaReferenceCatalogue();
 
   return (
-    <article className={PAGE}>
+    <article className={PREVIEW_PAGE}>
       <Helmet>
         <title>Tea Types · The Wisdom Base · Teajia</title>
         <meta name="description" content="Tea families and the sellable tea types they contain, connected to Teajia's public catalogue." />

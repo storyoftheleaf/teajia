@@ -36,6 +36,7 @@ import TeaTypeIndexPage from './TeaTypeIndexPage';
 import TeaTypePage from './TeaTypePage';
 import {
   PAGE,
+  PREVIEW_PAGE,
   WISDOM_SECTIONS,
   isMicroCapsLabel,
   searchHoldings,
@@ -66,6 +67,8 @@ import {
 } from '../../wisdom/reference/previewMode';
 import { buildTeaReferenceCatalogue } from '../../wisdom/reference/catalogue';
 import { PREVIEW_PLACE_LEVELS } from './previewOriginMetadata';
+
+const LONG_HANDOFF_TOKEN = 'sourceword'.repeat(20);
 
 const render = (path: string) => {
   const client = createReferenceQueryClient();
@@ -120,7 +123,11 @@ const previewTransport: WebsiteReceivingPublicTransport = {
             label: 'Identity',
             text: 'Pu’er is a broad tea family with both naturally aged and deliberately fermented forms.',
             excerpt: 'A concise public source excerpt about the family.',
-            citation: { label: 'Tea Institute, Pu’er reference (2026)', url: 'https://example.com/puer' },
+            citation: {
+              sourceId: 'tea-institute',
+              label: 'Tea Institute, Pu’er reference (2026)',
+              url: 'https://example.com/puer',
+            },
           }],
         },
         {
@@ -133,15 +140,23 @@ const previewTransport: WebsiteReceivingPublicTransport = {
             {
               id: 'sheng-common',
               label: 'Common characteristics',
-              text: 'One cited source describes broad characteristics associated with Sheng.',
+              text: `One cited source describes broad characteristics associated with Sheng. ${LONG_HANDOFF_TOKEN}`,
               excerpt: 'A concise public source excerpt about common characteristics.',
-              citation: { label: 'Tea Institute, Sheng reference (2026)', url: 'https://example.com/sheng' },
+              citation: {
+                sourceId: 'sheng-field-guide',
+                label: 'Tea Institute, Sheng reference (2026)',
+                url: 'https://example.com/shared-sheng-source',
+              },
             },
             {
               id: 'sheng-potential',
               label: 'Potential characteristics',
               text: 'Cultivar expression still depends on growing and making conditions.',
-              citation: { label: 'Tea Institute, Cultivar guide (2025)', url: 'https://example.com/cultivar' },
+              citation: {
+                sourceId: 'cultivar-guide',
+                label: 'Tea Institute, Cultivar guide (2025)',
+                url: 'https://example.com/cultivar',
+              },
             },
           ],
         },
@@ -206,7 +221,11 @@ const previewTransport: WebsiteReceivingPublicTransport = {
             label: 'Identity',
             text: 'Manxiu is cited here at the locality level within the verified public origin chain.',
             excerpt: 'A concise public source excerpt about Manxiu.',
-            citation: { label: 'Tea Geography Institute, Manxiu reference (2026)', url: 'https://example.com/manxiu' },
+            citation: {
+              sourceId: 'tea-geography-institute',
+              label: 'Tea Geography Institute, Manxiu reference (2026)',
+              url: 'https://example.com/manxiu',
+            },
           }],
         },
         {
@@ -241,13 +260,31 @@ const previewTransport: WebsiteReceivingPublicTransport = {
         url: 'https://example.com/puer',
       },
       {
+        sourceId: 'duplicate-url-source',
+        publisher: 'Wrong Duplicate Publisher',
+        publisherRoleLabel: 'Institute',
+        title: 'Wrong duplicate title',
+        author: 'Wrong duplicate author',
+        publishedDate: '2020-01-01',
+        url: 'https://example.com/shared-sheng-source',
+      },
+      {
         sourceId: 'sheng-field-guide',
         publisher: 'Tea Institute',
         publisherRoleLabel: 'Retailer or reseller',
-        title: 'Sheng Field Guide',
-        author: 'Mei Lin',
+        title: `Sheng Field Guide ${LONG_HANDOFF_TOKEN}`,
+        author: `Mei Lin ${LONG_HANDOFF_TOKEN}`,
         publishedDate: '2026-02-03',
-        url: 'https://example.com/sheng/',
+        url: 'https://example.com/shared-sheng-source',
+      },
+      {
+        sourceId: 'cultivar-guide',
+        publisher: 'Tea Institute',
+        publisherRoleLabel: 'Institute',
+        title: 'Cultivar guide',
+        author: '',
+        publishedDate: '2025-01-01',
+        url: 'https://example.com/cultivar',
       },
       {
         sourceId: 'tea-geography-institute',
@@ -608,9 +645,15 @@ describe('wayfinding', () => {
     expect(html).toContain(TEA_REFERENCE_PREVIEW_ENABLED ? '>Origins<' : '>Regions<');
   });
 
-  it('uses the mandatory mobile navigation gap on every Wisdom page', () => {
-    expect(PAGE.split(/\s+/)).toContain('pb-nav-gap');
-    expect(PAGE.split(/\s+/)).not.toContain('pb-nav');
+  it('keeps the production shell unchanged and adds extra clearance only to preview pages', () => {
+    expect(PAGE.split(/\s+/)).toContain('pb-nav');
+    expect(PAGE.split(/\s+/)).not.toContain('pb-nav-gap');
+    expect(PREVIEW_PAGE.split(/\s+/)).toContain('pb-nav-gap');
+    expect(PREVIEW_PAGE.split(/\s+/)).not.toContain('pb-nav');
+    expect(renderPreview('/wisdom/types')).toContain(`class="${PREVIEW_PAGE}"`);
+    expect(render('/wisdom/regions')).toContain(
+      `class="${TEA_REFERENCE_PREVIEW_ENABLED ? PREVIEW_PAGE : PAGE}"`,
+    );
   });
 });
 
@@ -644,8 +687,9 @@ describe('Tea Reference type preview', () => {
     expect(html).toContain('Sheng Field Guide');
     expect(html).toContain('Mei Lin');
     expect(html).toContain('2026-02-03');
-    expect(html).toContain('href="https://example.com/sheng/"');
-    expect(html).toContain('Tea Institute, Cultivar guide (2025)');
+    expect(html).toContain('href="https://example.com/shared-sheng-source"');
+    expect(html).not.toContain('Wrong Duplicate Publisher');
+    expect(html).toContain('Tea Institute · Cultivar guide');
     expect(html).not.toContain('Retailer or reseller');
     expect(html).toContain('Available teas');
     expect(html).toContain('href="/shop/product/sheng-spring-cake"');
@@ -660,6 +704,11 @@ describe('Tea Reference type preview', () => {
     expect(html).toContain('Report an inaccuracy');
     expect(html).toContain('subject=Report%20an%20inaccuracy%3A%20Tea%20type%3A%20Sheng');
     expect(html).not.toMatch(/held|conflict|review|evidence|private/i);
+    expect(html).toContain(LONG_HANDOFF_TOKEN);
+    expect(html).toMatch(/<li class="[^"]*min-w-0[^"]*">/);
+    expect(html).toMatch(/<p class="[^"]*break-words[^"]*">One cited source/);
+    expect(html).toMatch(/<a[^>]*class="[^"]*break-words[^"]*">Tea Institute · Sheng Field Guide/);
+    expect(html).toMatch(/<p class="[^"]*break-words[^"]*">Mei Lin/);
   });
 
   it('uses the established not-found page for a type absent from the product-connected catalogue', () => {
@@ -668,14 +717,14 @@ describe('Tea Reference type preview', () => {
     expect(html).not.toContain('Available teas');
   });
 
-  it('does not label previously offered teas as available when every match is sold out', () => {
+  it('does not publish a type when every matching tea is sold out history', () => {
     const soldOutProduct = previewProducts.find(product => product.status === 'Sold Out');
     if (!soldOutProduct) throw new Error('sold-out fixture is required');
     const html = renderPreview('/wisdom/type/sheng', [soldOutProduct]);
+    expect(html).toContain('Not a tea type we hold');
     expect(html).not.toContain('Available teas');
-    expect(html).toContain('Previously offered');
-    expect(html).toContain('href="/shop/product/sheng-sold-out-cake"');
-    expect(html).toContain('Sold out');
+    expect(html).not.toContain('Previously offered');
+    expect(html).not.toContain('href="/shop/product/sheng-sold-out-cake"');
   });
 
   it('explains a valid catalogue with no product-connected tea types', () => {
@@ -1215,7 +1264,10 @@ describe('what carries the grouping', () => {
       // The shell takes the width now. What holds a paragraph to a readable
       // line is the measure, which is a property of the text, and it is
       // unchanged: widening the page must never widen the prose.
-      expect(html).toContain(`class="${PAGE}"`);
+      const expectedPage = TEA_REFERENCE_PREVIEW_ENABLED && path.startsWith('/wisdom/region')
+        ? PREVIEW_PAGE
+        : PAGE;
+      expect(html).toContain(`class="${expectedPage}"`);
       expect(html).not.toContain('max-w-[46rem]');
     }
   });

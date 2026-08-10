@@ -7,6 +7,7 @@ import {
   type Holding,
 } from './WisdomHomePage';
 import { searchHoldings, type HoldingHit } from './wisdomShared';
+import { PREVIEW_PAGE } from './frame';
 
 const MISS = 9;
 
@@ -134,6 +135,7 @@ const PreviewWisdomHomePage: React.FC = () => {
       holdings={holdings}
       search={search}
       previewDataset
+      pageClassName={PREVIEW_PAGE}
       previewDiagnostic={isError && !catalogue
         ? 'The local cited preview is unavailable. The established Wisdom holdings remain ready to browse.'
         : undefined}

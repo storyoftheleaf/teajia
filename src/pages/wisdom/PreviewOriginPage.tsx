@@ -10,7 +10,7 @@ import {
   HoldingRow,
   IndexList,
   MEASURE,
-  PAGE,
+  PREVIEW_PAGE,
   PageHead,
   ProseSkeleton,
   QUIET_LINK,
@@ -53,7 +53,7 @@ const PreviewOriginPage: React.FC<{ id: string }> = ({ id }) => {
   }
 
   return (
-    <article className={PAGE}>
+    <article className={PREVIEW_PAGE}>
       <Helmet><title>{origin ? `${origin.name} · Origins · Teajia` : 'Cited origin · Teajia'}</title></Helmet>
       <WisdomSubNav active="regions" />
       <div className="mt-7">

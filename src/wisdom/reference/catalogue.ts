@@ -82,7 +82,7 @@ function productMatches(product: PublicProduct, label: string): boolean {
   return searchableProductFields(product).some(value => matchesAtTokenBoundary(value, label));
 }
 
-/** Active and Sold Out public catalogue teas remain eligible; sold history is reference-worthy. */
+/** Only public catalogue records can be shown; active records alone qualify a reference entry. */
 function isEligiblePublicTeaProduct(product: PublicProduct): boolean {
   return (product.status === 'Active' || product.status === 'Sold Out')
     && !product.isPersonal
@@ -96,6 +96,7 @@ function publicStatement(statement: PublicReferenceStatement): PublicReferenceSt
     text: statement.text,
     ...(statement.excerpt === undefined ? {} : { excerpt: statement.excerpt }),
     citation: {
+      sourceId: statement.citation.sourceId,
       label: statement.citation.label,
       url: statement.citation.url,
     },
@@ -139,7 +140,7 @@ function buildTypes(
 ): PublicTeaType[] {
   return PUER_TYPES.flatMap(type => {
     const matches = products.filter(product => normalizeTeaType(product.type) === type);
-    if (matches.length === 0) return [];
+    if (!matches.some(product => product.status === 'Active')) return [];
     const typeEntries = entries.filter(entry => controlledTypeFor(entry) === type);
     return [{
       id: type.toLowerCase(),
@@ -210,16 +211,23 @@ function buildOrigins(
     }),
   );
 
-  const directMatches = new Map<string, string[]>();
+  const directActiveMatches = new Map<string, string[]>();
+  const directAllMatches = new Map<string, string[]>();
   for (const [id, candidate] of candidates) {
-    const productIds = products
-      .filter(product => candidate.entries.some(placeEntry => productMatches(product, placeEntry.label)))
+    const matchingProducts = products
+      .filter(product => candidate.entries.some(placeEntry => productMatches(product, placeEntry.label)));
+    if (matchingProducts.length > 0) {
+      directAllMatches.set(id, matchingProducts.map(product => product.id));
+    }
+    const activeProductIds = matchingProducts
+      .filter(product => product.status === 'Active')
       .map(product => product.id);
-    if (productIds.length > 0) directMatches.set(id, productIds);
+    if (activeProductIds.length > 0) directActiveMatches.set(id, activeProductIds);
   }
 
   const surfacedIds = new Map<string, string[]>();
-  for (const [matchedId, productIds] of directMatches) {
+  for (const [matchedId] of directActiveMatches) {
+    const productIds = directAllMatches.get(matchedId) ?? [];
     let currentId: string | undefined = matchedId;
     const visited = new Set<string>();
     while (currentId && !visited.has(currentId)) {

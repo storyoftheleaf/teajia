@@ -108,11 +108,13 @@ export const WisdomHomeContent: React.FC<{
   search?: (query: string, limit: number) => HoldingHit[];
   previewDiagnostic?: string;
   previewDataset?: boolean;
+  pageClassName?: string;
 }> = ({
   holdings = PUBLISHED_WISDOM_HOLDINGS,
   search = searchHoldings,
   previewDiagnostic,
   previewDataset = false,
+  pageClassName = PAGE,
 }) => {
   // Every index carries a line across to this search, and it carries the words
   // already typed. Arriving here with the field empty would have made the trip
@@ -138,7 +140,7 @@ export const WisdomHomeContent: React.FC<{
   };
 
   return (
-    <article className={PAGE}>
+    <article className={pageClassName}>
       <Helmet>
         <title>The Tea Wisdom Base · Teajia</title>
         <meta

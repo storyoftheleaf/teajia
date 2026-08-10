@@ -23,6 +23,7 @@ import {
   Invitation,
   MEASURE,
   PAGE,
+  PREVIEW_PAGE,
   PageHead,
   Passage,
   plantsGrownIn,
@@ -37,6 +38,7 @@ import { WisdomPublicStateGate, WisdomRelatedMaterial } from './WisdomRelatedMat
 const PreviewOriginPage = import.meta.env.MODE === 'tea-reference-preview'
   ? React.lazy(() => import('./PreviewOriginPage'))
   : null;
+const REGION_PAGE = import.meta.env.MODE === 'tea-reference-preview' ? PREVIEW_PAGE : PAGE;
 
 const RegionPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -109,7 +111,7 @@ const RegionPage: React.FC = () => {
 
   return (
     <WisdomPublicStateGate identity={{ nodeType: 'region', nodeId: region.id }}>
-    <article className={PAGE} data-wisdom-region-page="true">
+    <article className={REGION_PAGE} data-wisdom-region-page="true">
       <Helmet>
         <title>{`${region.name} · Growing Regions · Teajia`}</title>
         <meta

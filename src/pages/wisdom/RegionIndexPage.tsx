@@ -28,6 +28,7 @@ import {
   MEASURE,
   NoMatch,
   PAGE,
+  PREVIEW_PAGE,
   PageHead,
   RULE_FULL,
   RunningHead,
@@ -49,6 +50,7 @@ const VIEWS: Array<{ id: View; label: string }> = [
 const PreviewOriginIndexSection = import.meta.env.MODE === 'tea-reference-preview'
   ? React.lazy(() => import('./PreviewOriginIndexSection'))
   : null;
+const REGION_INDEX_PAGE = import.meta.env.MODE === 'tea-reference-preview' ? PREVIEW_PAGE : PAGE;
 
 /**
  * What the two run-in facts are actually reporting.
@@ -201,7 +203,7 @@ const RegionIndexPage: React.FC = () => {
   }
 
   return (
-    <article className={PAGE}>
+    <article className={REGION_INDEX_PAGE}>
       <Helmet>
         <title>Growing Regions · The Wisdom Base · Teajia</title>
         <meta
