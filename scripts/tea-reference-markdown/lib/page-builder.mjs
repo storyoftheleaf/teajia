@@ -7,6 +7,7 @@ const ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const SOURCE_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const SECTION_PATTERN = /^## ([^\n]+) \{#([a-z0-9]+(?:-[a-z0-9]+)*)\}$/;
 const CITATION_PATTERN = /\[cite:([a-z0-9]+(?:-[a-z0-9]+)*)\]/g;
+const CITATION_LIKE_PATTERN = /\[\s*(?:cite|citation)(?:\b|:)/i;
 const PAGE_KINDS = new Set([
   'tea_family',
   'tea_type',
@@ -85,10 +86,14 @@ function cleanSectionText(lines, fileName, sectionKey) {
   if (/^#{1,6}\s/m.test(raw)) fail(fileName, `section ${sectionKey} contains an unsupported nested heading`);
   if (HAN_SCRIPT.test(raw)) fail(fileName, `Han-script is not allowed in public prose for section ${sectionKey}`);
   const sourceIds = [];
-  const text = raw.replace(CITATION_PATTERN, (_marker, sourceId) => {
+  const withoutCitations = raw.replace(CITATION_PATTERN, (_marker, sourceId) => {
     sourceIds.push(sourceId);
     return '';
-  }).split('\n\n').map(paragraph => paragraph.replace(/\s+/g, ' ').trim()).filter(Boolean).join('\n\n');
+  });
+  if (CITATION_LIKE_PATTERN.test(withoutCitations)) {
+    fail(fileName, `section ${sectionKey} contains a malformed or unsupported citation marker`);
+  }
+  const text = withoutCitations.split('\n\n').map(paragraph => paragraph.replace(/\s+/g, ' ').trim()).filter(Boolean).join('\n\n');
   if (!/[A-Za-z]{2}/.test(text) || !/[.!?][”’"']?$/.test(text)) {
     fail(fileName, `section ${sectionKey} must contain ordinary English prose`);
   }

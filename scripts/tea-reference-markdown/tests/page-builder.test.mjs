@@ -124,6 +124,26 @@ test('parses the fixed front matter, real section keys, and compact source citat
   });
 });
 
+test('rejects malformed or unsupported citation markers instead of leaking them into public prose', () => {
+  const malformedMarkers = [
+    '[cite:BAD_ID]',
+    '[CITE:source-a]',
+    '[cite : source-a]',
+    '[citation:source-a]',
+    '[cite:source-a',
+  ];
+
+  for (const marker of malformedMarkers) {
+    assert.throws(
+      () => parsePageMarkdown(samplePage({
+        body: `This is clear English reference prose. [cite:source-a] ${marker} This must not be public.`,
+      }), 'malformed-citation.md'),
+      /malformed or unsupported citation marker/i,
+      marker,
+    );
+  }
+});
+
 test('rejects Han-script public prose while allowing explicit native-name metadata and private translations', async () => {
   assert.throws(
     () => parsePageMarkdown(samplePage({ body: '这是不得公开的中文正文。 [cite:source-a]' }), 'han.md'),
