@@ -2558,27 +2558,44 @@ export const api = {
 
   inquiries: {
     create: async (data: {
+      tracking_token: string;
       ref_number: string;
+      store_slug: string;
       customer_name: string;
       customer_contact: string;
       customer_location?: string;
       notes?: string;
       items_json: string;
       total_estimate_usd: number;
+      currency: string;
       source: 'whatsapp' | 'email' | 'copy';
-    }) => {
+    }): Promise<{ id: string; ref_number: string; tracking_token: string; source: string; success: true }> => {
       const res = await fetchWithTimeout(`${API_URL}/api/inquiries`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      if (!res.ok) return null;
+      if (!res.ok) {
+        const error = await res.json().catch(() => null) as { error?: string } | null;
+        throw new Error(error?.error || 'Your order request could not be saved. Please try again.');
+      }
       return res.json();
     },
 
-    getByRef: async (ref: string) => {
-      const res = await fetchWithTimeout(`${API_URL}/api/inquiries/${encodeURIComponent(ref)}`);
-      if (!res.ok) return null;
+    getByTrackingToken: async (token: string): Promise<{
+      ref_number: string;
+      items_json: string;
+      status: string;
+      total_estimate_usd: number;
+      currency: string;
+      created_at: string;
+    } | null> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/inquiries/${encodeURIComponent(token)}`);
+      if (res.status === 404) return null;
+      if (!res.ok) {
+        const error = await res.json().catch(() => null) as { error?: string } | null;
+        throw new Error(error?.error || 'Order tracking is temporarily unavailable.');
+      }
       return res.json();
     },
 

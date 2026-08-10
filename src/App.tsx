@@ -1362,6 +1362,8 @@ const AppContent = () => {
 
       <CartPanel
          mode="public"
+         storeSlug={contactStoreSlug || browsingStoreSlug}
+         storeName={checkoutContactStore?.name || cart[0]?.storeName || browsingStoreSlug}
          isOpen={isCartOpen}
          onClose={handleCloseCart}
          cart={cart}

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   canAddToStoreCart,
+  createHumanOrderRef,
+  createTrackingToken,
   resolveCartContactStoreSlug,
   resolveCheckoutStoreSlug,
   shouldFetchCheckoutStore,
@@ -66,5 +68,23 @@ describe('public cart store boundary', () => {
     expect(shouldFetchCheckoutStore({ hasCart: false, isCommerceRoute: true, hostedSlug: null, contactStoreSlug: 'teajia-bali' })).toBe(true);
     expect(shouldFetchCheckoutStore({ hasCart: false, isCommerceRoute: false, hostedSlug: 'teajia-australia', contactStoreSlug: 'teajia-australia' })).toBe(true);
     expect(shouldFetchCheckoutStore({ hasCart: true, isCommerceRoute: true, hostedSlug: null, contactStoreSlug: null })).toBe(false);
+  });
+});
+
+describe('public cart inquiry identity', () => {
+  it('creates a private 32-byte base64url tracking token', () => {
+    const token = createTrackingToken();
+
+    expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(token).not.toContain('=');
+  });
+
+  it('creates a human reference from the date and the first eight UUID characters', () => {
+    const ref = createHumanOrderRef(
+      new Date('2026-08-10T09:15:00.000Z'),
+      () => 'a1b2c3d4-e5f6-4789-abcd-0123456789ab',
+    );
+
+    expect(ref).toBe('TJ-20260810-A1B2C3D4');
   });
 });
