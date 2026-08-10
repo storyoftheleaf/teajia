@@ -20,6 +20,13 @@ describe('event domain', () => {
     });
   });
 
+  it('deeply freezes canonical lifecycle transitions', () => {
+    expect(Object.isFrozen(EVENT_TRANSITIONS)).toBe(true);
+    for (const transitions of Object.values(EVENT_TRANSITIONS)) {
+      expect(Object.isFrozen(transitions)).toBe(true);
+    }
+  });
+
   it('normalizes legacy event update keys and removes their aliases', () => {
     expect(normalizeEventUpdate({
       end_date: '2026-09-01T12:00:00Z',
@@ -27,6 +34,18 @@ describe('event domain', () => {
     })).toEqual({
       event_end_date: '2026-09-01T12:00:00Z',
       total_capacity: 12,
+    });
+  });
+
+  it('preserves canonical event update keys when legacy aliases collide', () => {
+    expect(normalizeEventUpdate({
+      event_end_date: '2026-09-01T13:00:00Z',
+      end_date: '2026-09-01T12:00:00Z',
+      total_capacity: 16,
+      capacity: 12,
+    })).toEqual({
+      event_end_date: '2026-09-01T13:00:00Z',
+      total_capacity: 16,
     });
   });
 
@@ -44,6 +63,26 @@ describe('event domain', () => {
       notes: 'No stairs',
       firstVisitBriefed: true,
     });
+  });
+
+  it('accepts boolean and numeric RSVP visibility flags without coercion', () => {
+    expect(normalizeRsvpUpdate({
+      first_visit_briefed: false,
+      show_in_guest_list: 0,
+    })).toEqual({
+      action: 'update',
+      firstVisitBriefed: false,
+      showInGuestList: false,
+    });
+  });
+
+  it.each([
+    ['first_visit_briefed', 'false'],
+    ['show_in_guest_list', '0'],
+  ])('rejects unsupported %s values', (key, value) => {
+    expect(() => normalizeRsvpUpdate({ [key]: value })).toThrowError(
+      new TypeError(`${key} must be a boolean or 0/1`),
+    );
   });
 
   it('projects only public post-session fields and safely parses JSON', () => {
@@ -74,6 +113,42 @@ describe('event domain', () => {
     });
   });
 
+  it('filters gallery entries and rejects wrong-shaped public JSON fields', () => {
+    expect(publicPostSessionProjection({
+      event_id: 'event-3',
+      session_notes: 'Shared',
+      gallery_images: '["gallery-1.jpg",7,null,{"url":"private"}]',
+      tea_ledger: '[]',
+    })).toEqual({
+      event_id: 'event-3',
+      session_notes: 'Shared',
+      gallery_images: ['gallery-1.jpg'],
+      tea_ledger: null,
+    });
+
+    expect(publicPostSessionProjection({
+      event_id: 'event-4',
+      gallery_images: '"gallery-1.jpg"',
+      tea_ledger: '42',
+    })).toEqual({
+      event_id: 'event-4',
+      session_notes: null,
+      gallery_images: [],
+      tea_ledger: null,
+    });
+
+    expect(publicPostSessionProjection({
+      event_id: 'event-5',
+      gallery_images: { image: 'gallery-1.jpg' },
+      tea_ledger: '"ledger"',
+    })).toEqual({
+      event_id: 'event-5',
+      session_notes: null,
+      gallery_images: [],
+      tea_ledger: null,
+    });
+  });
+
   it('returns held seats and nonnegative availability', () => {
     expect(seatAvailability({
       capacity: 3,
@@ -87,4 +162,18 @@ describe('event domain', () => {
       offeredSeats: 0,
     })).toEqual({ held: 3, available: 0 });
   });
+
+  it.each(['capacity', 'confirmedSeats', 'offeredSeats'] as const)(
+    'rejects invalid %s values',
+    (key) => {
+      for (const value of [-1, 0.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+        expect(() => seatAvailability({
+          capacity: 3,
+          confirmedSeats: 2,
+          offeredSeats: 1,
+          [key]: value,
+        })).toThrow(TypeError);
+      }
+    },
+  );
 });

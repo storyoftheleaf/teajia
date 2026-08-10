@@ -6,32 +6,47 @@ export type EventLifecycle =
   | 'cancelled'
   | 'archived';
 
-export const EVENT_TRANSITIONS: Record<EventLifecycle, EventLifecycle[]> = {
-  draft: ['published', 'cancelled'],
-  published: ['registration_closed', 'cancelled'],
-  registration_closed: ['completed', 'cancelled'],
-  completed: ['archived'],
-  cancelled: ['archived'],
-  archived: [],
-};
+export const EVENT_TRANSITIONS: Readonly<Record<EventLifecycle, readonly EventLifecycle[]>> =
+  Object.freeze({
+    draft: Object.freeze(['published', 'cancelled']),
+    published: Object.freeze(['registration_closed', 'cancelled']),
+    registration_closed: Object.freeze(['completed', 'cancelled']),
+    completed: Object.freeze(['archived']),
+    cancelled: Object.freeze(['archived']),
+    archived: Object.freeze([]),
+  });
 
 export function normalizeEventUpdate(input: Record<string, unknown>): Record<string, unknown> {
   const result = { ...input };
 
   if ('end_date' in result) {
-    result.event_end_date = result.end_date;
+    if (!('event_end_date' in result)) result.event_end_date = result.end_date;
     delete result.end_date;
   }
 
   if ('capacity' in result) {
-    result.total_capacity = result.capacity;
+    if (!('total_capacity' in result)) result.total_capacity = result.capacity;
     delete result.capacity;
   }
 
   return result;
 }
 
+function normalizeRsvpFlag(name: string, value: unknown): boolean {
+  if (typeof value === 'boolean') return value;
+  if (value === 1) return true;
+  if (value === 0) return false;
+  throw new TypeError(`${name} must be a boolean or 0/1`);
+}
+
 export function normalizeRsvpUpdate(input: Record<string, unknown>) {
+  const firstVisitBriefed = 'first_visit_briefed' in input
+    ? normalizeRsvpFlag('first_visit_briefed', input.first_visit_briefed)
+    : undefined;
+  const showInGuestList = 'show_in_guest_list' in input
+    ? normalizeRsvpFlag('show_in_guest_list', input.show_in_guest_list)
+    : undefined;
+
   if (input.cancel === true || input.status === 'cancelled') {
     return {
       action: 'cancel' as const,
@@ -42,32 +57,47 @@ export function normalizeRsvpUpdate(input: Record<string, unknown>) {
   return {
     action: 'update' as const,
     ...('notes' in input ? { notes: String(input.notes || '') || null } : {}),
-    ...('first_visit_briefed' in input
-      ? { firstVisitBriefed: Boolean(input.first_visit_briefed) }
-      : {}),
-    ...('show_in_guest_list' in input
-      ? { showInGuestList: Boolean(input.show_in_guest_list) }
-      : {}),
+    ...(firstVisitBriefed !== undefined ? { firstVisitBriefed } : {}),
+    ...(showInGuestList !== undefined ? { showInGuestList } : {}),
   };
 }
 
-function parseJson(value: unknown, fallback: unknown): unknown {
-  if (typeof value !== 'string') return value ?? fallback;
+function parseJson(value: unknown): unknown {
+  if (typeof value !== 'string') return value;
 
   try {
     return JSON.parse(value);
   } catch {
-    return fallback;
+    return null;
   }
+}
+
+function parseGalleryImages(value: unknown): string[] {
+  const parsed = parseJson(value);
+  return Array.isArray(parsed)
+    ? parsed.filter((image): image is string => typeof image === 'string')
+    : [];
+}
+
+function parseTeaLedger(value: unknown): Record<string, unknown> | null {
+  const parsed = parseJson(value);
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+  return parsed as Record<string, unknown>;
 }
 
 export function publicPostSessionProjection(row: Record<string, unknown>) {
   return {
     event_id: row.event_id,
     session_notes: row.session_notes ?? null,
-    gallery_images: parseJson(row.gallery_images, []),
-    tea_ledger: parseJson(row.tea_ledger, null),
+    gallery_images: parseGalleryImages(row.gallery_images),
+    tea_ledger: parseTeaLedger(row.tea_ledger),
   };
+}
+
+function requireSeatCount(name: string, value: number): void {
+  if (!Number.isInteger(value) || value < 0) {
+    throw new TypeError(`${name} must be a non-negative integer`);
+  }
 }
 
 export function seatAvailability(input: {
@@ -75,6 +105,10 @@ export function seatAvailability(input: {
   confirmedSeats: number;
   offeredSeats: number;
 }): { held: number; available: number } {
+  requireSeatCount('capacity', input.capacity);
+  requireSeatCount('confirmedSeats', input.confirmedSeats);
+  requireSeatCount('offeredSeats', input.offeredSeats);
+
   const held = input.confirmedSeats + input.offeredSeats;
   return {
     held,
