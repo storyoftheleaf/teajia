@@ -31,6 +31,7 @@ import {
   WisdomSubNav,
 } from './wisdomShared';
 import { EntryResearchSection } from './EntryResearchSection';
+import { WisdomPublicStateGate, WisdomRelatedMaterial } from './WisdomRelatedMaterial';
 
 const RegionPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -95,6 +96,7 @@ const RegionPage: React.FC = () => {
   }
 
   return (
+    <WisdomPublicStateGate identity={{ nodeType: 'region', nodeId: region.id }}>
     <article className={PAGE} data-wisdom-region-page="true">
       <Helmet>
         <title>{`${region.name} · Growing Regions · Teajia`}</title>
@@ -166,10 +168,12 @@ const RegionPage: React.FC = () => {
 
       <EntryResearchSection entryKind="region" entryId={region.id} entry={region} />
 
+      <WisdomRelatedMaterial identity={{ nodeType: 'region', nodeId: region.id }} />
       <EntryAuthorship id={region.id} />
 
       <Invitation subject={`Growing place: ${region.name}`} />
     </article>
+    </WisdomPublicStateGate>
   );
 };
 

@@ -39,6 +39,8 @@ interface RenderOptions {
   usage?: WisdomUsage;
   /** The rest of the base, which is what makes a cross-holding answer possible. */
   siblings?: typeof WISDOM_HOLDINGS;
+  relationPanel?: (identity: { nodeType: string; nodeId: string }) => React.ReactNode;
+  tools?: React.ReactNode;
 }
 
 const render = (holding = cultivars, options: RenderOptions = {}) =>
@@ -55,6 +57,8 @@ const render = (holding = cultivars, options: RenderOptions = {}) =>
       initialQuery={options.query}
       usage={options.usage}
       shapeRefused={options.shapeRefused}
+      relationPanel={options.relationPanel}
+      tools={options.tools}
       prefs={{
         sort: { key: holding.columns[0].key, direction: 'asc' },
         groupKey: options.groupKey ?? '',
@@ -74,6 +78,23 @@ const rowCount = (html: string) => (html.match(/min-h-\[36px\]/g) ?? []).length;
 const PAGE = 150;
 
 describe('WisdomBrowser', () => {
+  it('seats typed relationship controls inside the existing detail topology', () => {
+    const selectedId = cultivars.idOf(cultivars.rows[0]);
+    const html = render(cultivars, {
+      selectedId,
+      relationPanel: identity => <aside data-testid="relation-panel">{identity.nodeType}:{identity.nodeId}</aside>,
+    });
+    expect(html).toContain('data-testid="wisdom-panel"');
+    expect(html).toContain('data-testid="relation-panel"');
+    expect(html).toContain(`cultivar:${selectedId}`);
+  });
+
+  it('keeps relationship integrity tools in the standing Wisdom toolbar', () => {
+    const html = render(cultivars, { tools: <button type="button">Integrity 12</button> });
+    expect(html).toContain('Integrity 12');
+    expect(html.indexOf('Integrity 12')).toBeLessThan(html.indexOf('data-testid="wisdom-rows"'));
+  });
+
   it('labels its columns, which the old browsers never did', () => {
     const html = render();
     expect(html).toContain('data-testid="wisdom-column-row"');

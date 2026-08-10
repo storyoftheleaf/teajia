@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ShieldAlert } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { AnchoredMenu } from '../../components/shared/AnchoredMenu';
 import { useProducts } from '../hooks/useAdminData';
 import { WisdomBrowser } from '../components/wisdom/WisdomBrowser';
 import {
   WISDOM_PARAM,
+  WISDOM_CHROME_BTN,
   WISDOM_TYPE,
   defaultPrefs,
   readWisdomShapeReport,
@@ -17,6 +18,14 @@ import {
 } from '../components/wisdom/config';
 import { WISDOM_HOLDINGS, findHolding } from '../components/wisdom/holdings';
 import { useWisdomUsage } from '../components/wisdom/usage';
+import { selectHasBundle, useAppStore } from '../../lib/store';
+import {
+  WisdomIntegrityQueue,
+  WisdomRelationsPanel,
+  holdingIdForNodeType,
+  type WisdomIntegrityFinding,
+  nodeTypeForHolding,
+} from '../components/wisdom/relations';
 
 /**
  * Wisdom: browse the shared tea wisdom base (src/wisdom).
@@ -83,6 +92,8 @@ interface WisdomAddress {
   entry: string | null;
   query: string;
   prefs: WisdomPrefs;
+  review: boolean;
+  finding: string | null;
 }
 
 /** One address, built in one place, so no caller can forget half of it. */
@@ -90,6 +101,8 @@ const wisdomAddress = (state: WisdomAddress): Record<string, string> => {
   const next: Record<string, string> = { [WISDOM_PARAM.tab]: state.holding.id };
   if (state.query) next[WISDOM_PARAM.query] = state.query;
   if (state.entry) next[WISDOM_PARAM.entry] = state.entry;
+  if (state.review) next.review = 'integrity';
+  if (state.finding) next.finding = state.finding;
   const shape = wisdomShapeToken(state.prefs, state.holding);
   if (shape) next[WISDOM_PARAM.shape] = shape;
   return next;
@@ -101,6 +114,10 @@ export const WisdomView: React.FC = () => {
   const active = WISDOM_HOLDINGS.find(holding => holding.id === rawTab) ?? WISDOM_HOLDINGS[0];
   const entry = searchParams.get(WISDOM_PARAM.entry);
   const query = searchParams.get(WISDOM_PARAM.query) ?? '';
+  const review = searchParams.get('review') === 'integrity';
+  const finding = searchParams.get('finding');
+  const canEditRelations = useAppStore(state => selectHasBundle(state, 'publish'));
+  const canApproveRelations = useAppStore(state => state.platformRole === 'platform_owner' || state.platformRole === 'platform_admin');
 
   /**
    * The shape of the open holding, read out of the address and checked against
@@ -153,8 +170,8 @@ export const WisdomView: React.FC = () => {
    * So every write is a patch against the last one, whether or not React has
    * re-rendered in between.
    */
-  const standing = useRef<WisdomAddress>({ holding: active, entry, query, prefs });
-  standing.current = { holding: active, entry, query, prefs };
+  const standing = useRef<WisdomAddress>({ holding: active, entry, query, prefs, review, finding });
+  standing.current = { holding: active, entry, query, prefs, review, finding };
 
   const write = useCallback(
     (patch: Partial<WisdomAddress>) => {
@@ -199,6 +216,14 @@ export const WisdomView: React.FC = () => {
    */
   const { data: products } = useProducts();
   const usage = useWisdomUsage(products);
+  const relationTargetOptions = useMemo(() => ({
+    product_tasting: (products ?? []).map(product => ({ id: product.id, label: product.givenName || product.productName })),
+    wisdom_node: WISDOM_HOLDINGS.flatMap(holding => holding.rows.map(row => ({
+      id: holding.idOf(row),
+      label: `${String(holding.columns[0]?.value(row) ?? holding.idOf(row))} (${nodeTypeForHolding(holding.id).replace(/_/g, ' ')})`,
+      subtype: nodeTypeForHolding(holding.id),
+    }))),
+  }), [products]);
 
   const openEntry = useCallback(
     // The query survives opening a row: the narrowed list is the context the
@@ -258,6 +283,31 @@ export const WisdomView: React.FC = () => {
    * come out empty, so the bar clears itself.
    */
   const keepHonoured = useCallback(() => setPrefs(prefs), [prefs, setPrefs]);
+
+  const openFinding = useCallback((item: WisdomIntegrityFinding) => {
+    if (!item.node_type || !item.node_id) return;
+    const holding = findHolding(holdingIdForNodeType(item.node_type));
+    if (!holding) return;
+    write({
+      holding,
+      entry: item.node_id,
+      query: '',
+      prefs: revealEntry(shapeOf(holding), holding, item.node_id),
+      review: false,
+      finding: item.id,
+    });
+  }, [shapeOf, write]);
+
+  const integrityTool = (
+    <button
+      type="button"
+      onClick={() => write({ review: true })}
+      className={WISDOM_CHROME_BTN}
+      aria-label="Open Wisdom integrity review queue"
+    >
+      <span className="inline-flex items-center gap-1.5"><ShieldAlert size={13} aria-hidden="true" /> Integrity</span>
+    </button>
+  );
 
   // Wraps rather than scrolls. At 390px the seven tabs fall onto three lines; a
   // sideways-scrolling strip would hide the holdings a reader has not met yet,
@@ -382,6 +432,16 @@ export const WisdomView: React.FC = () => {
         usage={usage}
         shapeRefused={reading.refused}
         onKeepHonoured={keepHonoured}
+        tools={integrityTool}
+        relationPanel={identity => (
+          <WisdomRelationsPanel identity={identity} canEdit={canEditRelations} canApprove={canApproveRelations} targetOptions={relationTargetOptions} />
+        )}
+      />
+      <WisdomIntegrityQueue
+        isOpen={review}
+        selectedFindingId={finding}
+        onClose={() => write({ review: false, finding: null })}
+        onSelectFinding={openFinding}
       />
     </div>
   );

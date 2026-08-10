@@ -44,6 +44,7 @@ import {
   WisdomSubNav,
   WisdomToolbar,
 } from './wisdomShared';
+import { buildWisdomCollectionData, usePublicWisdomEntries, WisdomIndexVisibilityNotice } from './publicIndexVisibility';
 
 type View = 'kind' | 'alphabetical';
 
@@ -104,7 +105,11 @@ const ProducerIndexPage: React.FC = () => {
   // Grouped by default, the same as Marks. See the note at the top of the file.
   const [view, setView] = useState<View>('kind');
   const [query, setQuery] = useState('');
-  const visible = useMemo(() => PRODUCERS.filter(producer => matches(producer, query)).sort(byName), [query]);
+  const publicState = usePublicWisdomEntries('producer', PRODUCERS);
+  const visible = useMemo(
+    () => publicState.entries.filter(producer => matches(producer, query)).sort(byName),
+    [publicState.entries, query],
+  );
 
   /** Factories, then houses, then brands: the order the record's own note reads in. */
   const byKind = useMemo(() => {
@@ -121,24 +126,16 @@ const ProducerIndexPage: React.FC = () => {
     [byKind],
   );
 
-  const structuredData = {
-    '@context': 'https://schema.org',
-    '@type': 'CollectionPage',
+  const structuredData = buildWisdomCollectionData({
     name: 'Tea Producers',
     description: 'Factories, houses and brands read out of Adrian’s own write-ups: who made a tea, not who sold it.',
-    inLanguage: 'en',
-    isPartOf: { '@type': 'WebSite', name: 'Teajia' },
-    mainEntity: {
-      '@type': 'ItemList',
-      numberOfItems: PRODUCERS.length,
-      itemListElement: PRODUCERS.map((producer, index) => ({
-        '@type': 'ListItem',
-        position: index + 1,
-        name: producer.name,
-        url: `/wisdom/producer/${producer.id}`,
-      })),
-    },
-  };
+    entries: publicState.entries,
+    pathFor: producer => `/wisdom/producer/${producer.id}`,
+  });
+
+  if (publicState.status !== 'ready') {
+    return <WisdomIndexVisibilityNotice status={publicState.status} onRetry={publicState.retry} />;
+  }
 
   return (
     <article className={PAGE}>
@@ -146,7 +143,7 @@ const ProducerIndexPage: React.FC = () => {
         <title>Tea Producers · The Wisdom Base · Teajia</title>
         <meta
           name="description"
-          content={`${PRODUCERS.length} factories, houses and brands: who made a tea, held apart from who a shop bought it from.`}
+          content={`${publicState.entries.length} factories, houses and brands: who made a tea, held apart from who a shop bought it from.`}
         />
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
@@ -164,7 +161,7 @@ const ProducerIndexPage: React.FC = () => {
           placeholder="Search producers"
           searchLabel="Search producers by name, Chinese name or alias"
           visible={visible.length}
-          total={PRODUCERS.length}
+          total={publicState.entries.length}
           noun="producers"
         >
           <ViewSwitch options={VIEWS} value={view} onChange={next => setView(next)} label="Browse the producers" />

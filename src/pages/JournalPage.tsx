@@ -4,24 +4,75 @@ import { TastingJournal } from '../components/tasting/TastingJournal';
 import { api, hasToken } from '../lib/api';
 import { useAppStore } from '../lib/store';
 import { PersonalTeaLinks } from '../components/account/PersonalTeaLinks';
+import type { CustomerTasting, TastingData, TastingRecord } from '../types';
 
-function fromApiRow(row: Record<string, any>) {
+export function readJournalDeepLink(search: string): { productId: string | null; entryId: string | null } {
+  const params = new URLSearchParams(search);
   return {
-    id: row.id,
-    teaId: row.product_id ?? 'unknown',
-    teaName: row.product_name ?? 'Unknown Tea',
-    teaType: row.product_type || '',
-    teaImage: row.product_image ?? undefined,
-    tasting: (() => {
-      try { return row.tasting ? (typeof row.tasting === 'string' ? JSON.parse(row.tasting) : row.tasting) : {}; }
-      catch { return {}; }
-    })(),
-    personalNote: row.personal_note ?? undefined,
-    rating: row.rating ?? undefined,
-    createdAt: row.created_at || new Date().toISOString(),
-    eventId: row.event_id ?? undefined,
-    eventTitle: row.event_title ?? undefined,
+    productId: params.get('tea')?.trim() || null,
+    entryId: params.get('entry')?.trim() || null,
+  };
+}
+
+function parseJsonObject(value: unknown): Record<string, any> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) return value as Record<string, any>;
+  if (typeof value !== 'string' || !value.trim()) return {};
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch { return {}; }
+}
+
+function parseJsonArray(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== 'string' || !value.trim()) return [];
+  try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parsed : []; }
+  catch { return []; }
+}
+
+export function fromApiRow(row: Record<string, any>): CustomerTasting {
+  const createdAt = row.created_at || new Date().toISOString();
+  const legacyTasting = parseJsonObject(row.tasting) as TastingData;
+  const storedNote = parseJsonObject(row.note);
+  const noteTasting = parseJsonObject(storedNote.tasting) as TastingData;
+  const note = {
+    tasting: Object.keys(noteTasting).length > 0 ? noteTasting : legacyTasting,
+    ...(storedNote.personalNote ?? row.personal_note ? { personalNote: storedNote.personalNote ?? row.personal_note } : {}),
+    ...(storedNote.rating ?? row.rating != null ? { rating: storedNote.rating ?? row.rating } : {}),
+    ...(storedNote.verdict ? { verdict: storedNote.verdict } : {}),
+    ...(storedNote.wouldBuy != null ? { wouldBuy: Boolean(storedNote.wouldBuy) } : {}),
+    updatedAt: storedNote.updatedAt || createdAt,
+  } as CustomerTasting['note'];
+  const storedTastings = parseJsonArray(row.tastings)
+    .filter(value => value && typeof value === 'object')
+    .map((value, index) => {
+      const tasting = value as Record<string, any>;
+      return {
+        ...tasting,
+        id: String(tasting.id || `${row.id}-sitting-${index + 1}`),
+        createdAt: tasting.createdAt || tasting.created_at || createdAt,
+        tasting: parseJsonObject(tasting.tasting) as TastingData,
+      } as TastingRecord;
+    });
+  const tastings: TastingRecord[] = storedTastings.length > 0 ? storedTastings : [{
+    id: `${row.id}-legacy`,
+    createdAt,
+    tasting: legacyTasting,
     sourceType: row.source_type ?? 'product',
+    ...(row.event_id ? { eventId: row.event_id } : {}),
+    ...(row.event_title ? { eventTitle: row.event_title } : {}),
+  }];
+  return {
+    id: String(row.id),
+    productId: row.product_id ?? 'unknown',
+    productName: row.product_name ?? 'Unknown Tea',
+    productType: row.product_type || '',
+    productImage: row.product_image ?? undefined,
+    note,
+    tastings,
+    createdAt,
+    accountId: row.account_id ?? undefined,
+    archived: row.archived === true || row.archived === 1,
     compassEntryId: row.compass_entry_id ?? undefined,
     synced: true,
   };
@@ -32,6 +83,7 @@ export default function JournalPage() {
   const { tastingJournal } = useAppStore();
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [fetching, setFetching] = useState(false);
+  const deepLink = readJournalDeepLink(window.location.search);
 
   useEffect(() => {
     if (!hasToken()) return;
@@ -42,9 +94,9 @@ export default function JournalPage() {
         const entries = rows.map(fromApiRow);
         if (entries.length > 0) {
           useAppStore.setState(state => {
-            const existingIds = new Set(state.tastingJournal.map((e: any) => e.id));
-            const newEntries = entries.filter((e: any) => !existingIds.has(e.id));
-            const all = [...state.tastingJournal, ...newEntries]
+            const serverById = new Map(entries.map((entry: CustomerTasting) => [entry.id, entry]));
+            const retainedLocal = state.tastingJournal.filter(entry => !serverById.has(entry.id));
+            const all = [...entries, ...retainedLocal]
               .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
             return { tastingJournal: all };
           });
@@ -66,6 +118,8 @@ export default function JournalPage() {
       <TastingJournal
         onBack={() => navigate(-1)}
         onOrderTea={(teaId) => navigate(`/shop/product/${teaId}`)}
+        initialProductId={deepLink.productId}
+        initialEntryId={deepLink.entryId}
       />
       <div className="mx-auto max-w-3xl px-4 pb-nav-gap-lg md:px-6">
         <PersonalTeaLinks current="journal" />

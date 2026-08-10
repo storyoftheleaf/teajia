@@ -25,6 +25,20 @@ import {
   validWisdomVerificationTarget,
   type WisdomVerificationEntryKind,
 } from './wisdomVerification';
+import {
+  normalizeLanguages,
+  parsePublicPaymentContext,
+  projectPublicPaymentMethod,
+  resolvePublishedPaymentMethods,
+  type PaymentMethodRow,
+} from './profileDomain';
+import {
+  deriveWisdomFindings,
+  nodeKey,
+  validateWisdomRelationInput,
+  wisdomManifestNodes,
+  wisdomNodeExists,
+} from './wisdomRelations';
 
 interface Env {
   DB: D1Database;
@@ -671,6 +685,22 @@ async function requireAccount(
   env: Env
 ): Promise<AccountCtx | { error: Response }> {
   return getActiveAccount(request, env);
+}
+
+// Global person-owned resources (profile, favorites, payment destinations) are
+// keyed by the authenticated user, not by their currently selected tenant.
+// Losing the last account membership must not strand a person's public data.
+async function requireAuthenticatedUser(
+  request: Request,
+  env: Env,
+): Promise<{ userId: string; email: string; name: string } | { error: Response }> {
+  const token = isAuthed(request);
+  if (!token) return { error: restError(401, 'Unauthorized', 'auth_no_token') };
+  const authError = await validateSessionToken(token, env);
+  if (authError) return { error: authError };
+  const claims = parseToken(token);
+  if (!claims) return { error: restError(401, 'Unauthorized', 'auth_invalid') };
+  return { userId: claims.sub, email: claims.email, name: claims.name };
 }
 
 async function requireAccountRole(
@@ -2535,7 +2565,22 @@ const handleCreateProduct: Handler = async (request, env) => {
   // creators (role 'owner', which platform owner/admin act as) put their tea
   // straight in the shop; a staff seller's tea starts HELD (0) until the owner
   // shows it. This is the literal meaning of "the owner curates what shows."
+  const isIncomingOnlyCreate = Number(body.stock_grams || 0) <= 0 && Boolean(body.in_transit);
+  if (isIncomingOnlyCreate) {
+    // Intake is easy by default, but publication remains explicit and blocked
+    // until receipt. This avoids a hidden database default making first-arrival
+    // stock public while preserving a clear 409 for callers that ask to publish.
+    if (body.is_public === undefined) body.is_public = 0;
+    if (body.shown_in_shop === undefined) body.shown_in_shop = 0;
+  }
   if (body.shown_in_shop === undefined) body.shown_in_shop = ctx.role === 'owner' ? 1 : 0;
+  const incomingCreateError = incomingOnlyCandidateError({
+    stockGrams: Number(body.stock_grams || 0),
+    incomingQuantity: body.in_transit ? Math.max(Number(body.in_transit_grams || 0), 1) : 0,
+    isPublic: body.is_public === undefined ? true : Boolean(body.is_public),
+    shownInShop: Boolean(body.shown_in_shop),
+  });
+  if (incomingCreateError) return incomingCreateError;
   const id = crypto.randomUUID();
   const cols = Object.keys(body);
   const placeholders = cols.map(() => '?').join(', ');
@@ -3016,7 +3061,54 @@ function makeProductCommandUpdateHandler(
 const handleUpdateProductCatalog = makeProductCommandUpdateHandler('catalog', PRODUCT_CATALOG_UPDATE_COLUMNS, 'product.catalog_updated');
 const handleUpdateProductStock = makeProductCommandUpdateHandler('stock', PRODUCT_STOCK_UPDATE_COLUMNS, 'product.stock_updated');
 const handleUpdateProductCommercial = makeProductCommandUpdateHandler('sell', PRODUCT_COMMERCIAL_UPDATE_COLUMNS, 'product.commercial_updated');
-const handleUpdateProductPublication = makeProductCommandUpdateHandler('publish', PRODUCT_PUBLICATION_UPDATE_COLUMNS, 'product.publication_updated');
+
+function incomingOnlyCandidateError(candidate: {
+  stockGrams: number;
+  incomingQuantity: number;
+  isPublic: boolean;
+  shownInShop: boolean;
+}): Response | null {
+  if (candidate.stockGrams <= 0 && candidate.incomingQuantity > 0 && (candidate.isPublic || candidate.shownInShop)) {
+    return restError(409, 'Incoming tea cannot be published until stock is received', 'incoming_stock_not_publishable', {
+      incoming_quantity: candidate.incomingQuantity,
+    });
+  }
+  return null;
+}
+
+async function incomingOnlyPublicationError(request: Request, env: Env, productId: string, accountId: string, field: 'is_public' | 'shown_in_shop') {
+  let body: Record<string, unknown>;
+  try { body = await request.clone().json() as Record<string, unknown>; } catch { return null; }
+  if (!body[field]) return null;
+  const row = await env.DB.prepare(
+    `SELECT p.stock_grams, p.in_transit, p.in_transit_grams,
+            COALESCE(SUM(CASE WHEN r.state IN ('planned','ordered','in_transit','partially_received')
+              THEN MAX(irl.expected_quantity - irl.received_quantity - irl.cancelled_quantity, 0) ELSE 0 END), 0) AS incoming_quantity
+       FROM products p
+       LEFT JOIN inventory_receipt_lines irl ON irl.product_id = p.id AND irl.account_id = p.account_id
+       LEFT JOIN inventory_receipts r ON r.id = irl.receipt_id AND r.account_id = irl.account_id
+      WHERE p.id = ? AND p.account_id = ? GROUP BY p.id`
+  ).bind(productId, accountId).first<Record<string, any>>();
+  const incomingQuantity = row
+    ? Number(row.incoming_quantity || 0) > 0
+      ? Number(row.incoming_quantity)
+      : row.in_transit ? Math.max(Number(row.in_transit_grams || 0), 1) : 0
+    : 0;
+  return row ? incomingOnlyCandidateError({
+    stockGrams: Number(row.stock_grams || 0),
+    incomingQuantity,
+    isPublic: field === 'is_public',
+    shownInShop: field === 'shown_in_shop',
+  }) : null;
+}
+
+const handleUpdateProductPublication: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'publish');
+  if ('error' in ctx) return ctx.error;
+  const guard = await incomingOnlyPublicationError(request, env, params.id, ctx.accountId, 'is_public');
+  if (guard) return guard;
+  return applyProductUpdate(request, env, params, ctx, PRODUCT_PUBLICATION_UPDATE_COLUMNS, true, 'product.publication_updated');
+};
 
 // Stock spine step 2: flip the location-owner curation gate (shown_in_shop).
 // Gated by requireOwnerTier, NOT a bundle — a staff seller may hold the
@@ -3025,7 +3117,72 @@ const handleUpdateProductPublication = makeProductCommandUpdateHandler('publish'
 const handleUpdateProductVisibility: Handler = async (request, env, params) => {
   const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
+  const guard = await incomingOnlyPublicationError(request, env, params.id, ctx.accountId, 'shown_in_shop');
+  if (guard) return guard;
   return applyProductUpdate(request, env, params, ctx, PRODUCT_VISIBILITY_UPDATE_COLUMNS, true, 'product.visibility_updated');
+};
+
+const handleGetInventorySummaries: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'stock');
+  if ('error' in ctx) return ctx.error;
+  const rows = await env.DB.prepare(
+    `SELECT p.id AS product_id,
+            CASE WHEN COALESCE(incoming.incoming_quantity, 0) > 0 THEN incoming.incoming_quantity
+                 WHEN COALESCE(p.in_transit, 0) = 1 THEN MAX(COALESCE(p.in_transit_grams, 0), 1)
+                 ELSE 0 END AS incoming_quantity,
+            COALESCE(writing.writing_count, 0) AS writing_count,
+            COALESCE(writing.published_writing_count, 0) AS published_writing_count,
+            COALESCE(personal.tasting_count, 0) AS personal_tasting_count,
+            personal.latest_tasting_entry_id,
+            personal.latest_tasting_at
+       FROM products p
+       LEFT JOIN (
+         SELECT irl.product_id,
+                SUM(MAX(irl.expected_quantity - irl.received_quantity - irl.cancelled_quantity, 0)) AS incoming_quantity
+           FROM inventory_receipt_lines irl
+           JOIN inventory_receipts r ON r.id = irl.receipt_id AND r.account_id = irl.account_id
+          WHERE irl.account_id = ? AND r.state IN ('planned','ordered','in_transit','partially_received')
+          GROUP BY irl.product_id
+       ) incoming ON incoming.product_id = p.id
+       LEFT JOIN (
+         SELECT ap.product_id, COUNT(DISTINCT a.id) AS writing_count,
+                COUNT(DISTINCT CASE WHEN a.status = 'published' THEN a.id END) AS published_writing_count
+           FROM article_products ap JOIN articles a ON a.id = ap.article_id
+          WHERE a.account_id = ? GROUP BY ap.product_id
+       ) writing ON writing.product_id = p.id
+       LEFT JOIN (
+         SELECT journal.product_id,
+                SUM(CASE
+                  WHEN json_valid(journal.tastings) AND json_type(journal.tastings) = 'array'
+                    AND json_array_length(journal.tastings) > 0
+                  THEN json_array_length(journal.tastings)
+                  ELSE 1 END) AS tasting_count,
+                MAX(journal.created_at) AS latest_tasting_at,
+                (SELECT latest.id FROM customer_tasting_journal latest
+                  WHERE latest.account_id = journal.account_id AND latest.product_id = journal.product_id
+                    AND COALESCE(latest.archived, 0) = 0
+                    AND (latest.user_id = ? OR lower(latest.user_id) = lower(?))
+                  ORDER BY latest.created_at DESC, latest.id DESC LIMIT 1) AS latest_tasting_entry_id
+           FROM customer_tasting_journal journal
+          WHERE journal.account_id = ? AND COALESCE(journal.archived, 0) = 0
+            AND (journal.user_id = ? OR lower(journal.user_id) = lower(?))
+          GROUP BY journal.product_id
+       ) personal ON personal.product_id = p.id
+      WHERE p.account_id = ?
+      ORDER BY p.id`
+  ).bind(ctx.accountId, ctx.accountId, ctx.userId, ctx.email, ctx.accountId, ctx.userId, ctx.email, ctx.accountId).all();
+  return json({ summaries: (rows.results as Record<string, any>[]).map(row => ({
+    product_id: row.product_id,
+    incoming_quantity: Number(row.incoming_quantity || 0),
+    has_open_incoming: Number(row.incoming_quantity || 0) > 0,
+    writing_count: Number(row.writing_count || 0),
+    published_writing_count: Number(row.published_writing_count || 0),
+    has_writing: Number(row.writing_count || 0) > 0,
+    personal_tasting_count: Number(row.personal_tasting_count || 0),
+    personally_tasted: Number(row.personal_tasting_count || 0) > 0,
+    latest_tasting_entry_id: row.latest_tasting_entry_id ?? null,
+    latest_tasting_at: row.latest_tasting_at ?? null,
+  })) });
 };
 
 const handleDeleteProduct: Handler = async (request, env, params) => {
@@ -4926,14 +5083,23 @@ const handleListAdminContributors: Handler = async (request, env) => {
             c.name AS contact_name,
             c.email AS contact_email,
             c.phone AS contact_phone,
-            c.whatsapp AS contact_whatsapp
+            c.whatsapp AS contact_whatsapp,
+            d.payload AS profile_draft_payload,
+            d.approval_status AS profile_draft_approval_status,
+            d.submitted_at AS profile_draft_submitted_at,
+            d.updated_at AS profile_draft_updated_at,
+            d.reviewer_note AS profile_draft_reviewer_note
        FROM contributors co
        LEFT JOIN customers c ON c.id = co.contact_customer_id AND c.account_id = co.account_id
-      WHERE co.account_id = ?
+       LEFT JOIN contributor_profile_drafts d ON d.contributor_id = co.id
+      WHERE co.account_id = ? OR EXISTS (
+        SELECT 1 FROM contributor_accounts ca
+         WHERE ca.contributor_id = co.id AND ca.account_id = ?
+      )
       ORDER BY co.display_name ASC`
-  ).bind(accountId).all();
+  ).bind(accountId, accountId).all();
 
-  return json({ contributors: (rows.results ?? []).map(row => adminContributor(row as Record<string, any>)) });
+  return json({ contributors: (rows.results ?? []).map(row => adminContributorDraftPreview(row as Record<string, any>)) });
 };
 
 // Publish-bundle-safe identity choices for article author/subject fields. This
@@ -4942,12 +5108,13 @@ const handleListContributorOptions: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
   const rows = await env.DB.prepare(
-    `SELECT id, id AS slug, display_name,
-            CASE WHEN is_published = 1 THEN 'published' ELSE 'draft' END AS status
-       FROM contributors
-      WHERE account_id = ?
-      ORDER BY display_name ASC`
-  ).bind(ctx.accountId).all();
+    `SELECT DISTINCT c.id, c.id AS slug, c.display_name,
+            CASE WHEN c.is_published = 1 THEN 'published' ELSE 'draft' END AS status
+       FROM contributors c
+       LEFT JOIN contributor_accounts ca ON ca.contributor_id = c.id AND ca.account_id = ?
+      WHERE c.account_id = ? OR ca.account_id IS NOT NULL
+      ORDER BY c.display_name ASC`
+  ).bind(ctx.accountId, ctx.accountId).all();
   return json({ contributors: rows.results ?? [] });
 };
 
@@ -4956,6 +5123,13 @@ const CONTRIBUTOR_WRITE_FIELDS = [
   'beginnings', 'now_text', 'now_stamp', 'now_updated_at', 'inspirations', 'closing', 'avatar_url',
   'portrait_url', 'portrait_caption', 'voice_clip_url', 'voice_clip_caption',
   'pouring_today_product_id', 'pouring_today_note', 'where_to_find_text', 'user_id',
+] as const;
+
+const PROFILE_SELF_FIELDS = [
+  'display_name', 'chinese_name', 'pronouns', 'location_line', 'active_since', 'languages',
+  'beginnings', 'now_text', 'now_stamp', 'now_updated_at', 'inspirations', 'closing',
+  'avatar_url', 'portrait_url', 'portrait_caption', 'voice_clip_url', 'voice_clip_caption',
+  'pouring_today_product_id', 'pouring_today_note', 'where_to_find_text', 'links',
 ] as const;
 
 function parseContributorLinks(value: unknown): { value?: string; error?: string } {
@@ -4987,6 +5161,10 @@ function parseContributorWrite(body: Record<string, unknown>) {
   const links = parseContributorLinks(body.links);
   if (links.error) return { error: links.error };
   if (links.value !== undefined) values.links = links.value;
+  if ('languages' in body) {
+    if (!Array.isArray(body.languages)) return { error: 'languages must be an array' };
+    values.languages = JSON.stringify(normalizeLanguages(body.languages));
+  }
   return { values };
 }
 
@@ -5038,8 +5216,8 @@ async function validateContributorReferences(env: Env, accountId: string, values
 
 function contributorDatabaseError(error: unknown): Response {
   const message = error instanceof Error ? error.message : String(error);
-  if (/UNIQUE constraint failed: (?:contributors\.(?:id|face_of_account_id)|accounts\.host_contributor_id)/i.test(message)) {
-    return json({ error: 'Contributor slug or account host is unavailable' }, 409);
+  if (/UNIQUE constraint failed: (?:contributors\.(?:id|user_id|face_of_account_id)|accounts\.host_contributor_id)/i.test(message)) {
+    return json({ error: 'Contributor slug, linked user, or account host is unavailable' }, 409);
   }
   console.error('Contributor database error:', error);
   return json({ error: 'Internal server error' }, 500);
@@ -5072,8 +5250,23 @@ const handleCreateAdminContributor: Handler = async (request, env) => {
      VALUES (?, ?, ${fields.map(() => '?').join(', ')}, 0, datetime('now'), datetime('now'))`
   ).bind(id, ctx.accountId, ...fields.map(field => parsed.values[field]));
   const statements: D1PreparedStatement[] = [insert];
+  const requestedHostAccount = typeof body.face_of_account_id === 'string' && body.face_of_account_id.trim()
+    ? body.face_of_account_id.trim()
+    : null;
+  if (requestedHostAccount) {
+    statements.push(
+      env.DB.prepare('UPDATE contributor_accounts SET is_host = 0, updated_at = datetime(\'now\') WHERE account_id = ?').bind(requestedHostAccount),
+      env.DB.prepare('UPDATE accounts SET host_contributor_id = NULL WHERE id = ?').bind(requestedHostAccount),
+      env.DB.prepare('UPDATE contributors SET face_of_account_id = NULL, updated_at = datetime(\'now\') WHERE face_of_account_id = ?').bind(requestedHostAccount),
+    );
+  }
+  statements.push(env.DB.prepare(
+    `INSERT INTO contributor_accounts
+      (contributor_id, account_id, public_role, is_host, display_order, created_at, updated_at)
+     VALUES (?, ?, ?, ?, 0, datetime('now'), datetime('now'))`
+  ).bind(id, ctx.accountId, parsed.values.role ?? null, requestedHostAccount === ctx.accountId ? 1 : 0));
   if ('face_of_account_id' in body) {
-    const requested = typeof body.face_of_account_id === 'string' && body.face_of_account_id.trim() ? body.face_of_account_id.trim() : null;
+    const requested = requestedHostAccount;
     statements.push(...contributorHostStatements(env, ctx.accountId, id, requested, null));
   }
   try { await env.DB.batch(statements); } catch (error) { return contributorDatabaseError(error); }
@@ -5084,8 +5277,26 @@ const handleCreateAdminContributor: Handler = async (request, env) => {
 const handleGetAdminContributor: Handler = async (request, env, params) => {
   const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
-  const row = await env.DB.prepare('SELECT * FROM contributors WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first<Record<string, any>>();
-  return row ? json({ contributor: adminContributor(row) }) : json({ error: 'Contributor not found' }, 404);
+  const row = await env.DB.prepare(
+    `SELECT co.*,
+            c.name AS contact_name,
+            c.email AS contact_email,
+            c.phone AS contact_phone,
+            c.whatsapp AS contact_whatsapp,
+            d.payload AS profile_draft_payload,
+            d.approval_status AS profile_draft_approval_status,
+            d.submitted_at AS profile_draft_submitted_at,
+            d.updated_at AS profile_draft_updated_at,
+            d.reviewer_note AS profile_draft_reviewer_note
+       FROM contributors co
+       LEFT JOIN customers c ON c.id = co.contact_customer_id AND c.account_id = co.account_id
+       LEFT JOIN contributor_profile_drafts d ON d.contributor_id = co.id
+      WHERE co.id = ? AND (co.account_id = ? OR EXISTS (
+        SELECT 1 FROM contributor_accounts ca
+         WHERE ca.contributor_id = co.id AND ca.account_id = ?
+      ))`
+  ).bind(params.id, ctx.accountId, ctx.accountId).first<Record<string, any>>();
+  return row ? json({ contributor: adminContributorDraftPreview(row) }) : json({ error: 'Contributor not found' }, 404);
 };
 
 const handleUpdateAdminContributor: Handler = async (request, env, params) => {
@@ -5109,11 +5320,34 @@ const handleUpdateAdminContributor: Handler = async (request, env, params) => {
     if (requested !== null && requested !== ctx.accountId) return json({ error: 'Host account not found' }, 404);
   }
   const fields = Object.keys(parsed.values);
+  if (fields.some(field => (PROFILE_SELF_FIELDS as readonly string[]).includes(field))) {
+    const draft = await env.DB.prepare(
+      `SELECT approval_status FROM contributor_profile_drafts
+        WHERE contributor_id = ? AND approval_status != 'approved'`
+    ).bind(params.id).first();
+    if (draft) {
+      return restError(409, 'Review the submitted profile changes before editing live profile fields', 'profile_review_required');
+    }
+  }
   const statements: D1PreparedStatement[] = [];
   if (fields.length) statements.push(env.DB.prepare(`UPDATE contributors SET ${fields.map(field => `${field} = ?`).join(', ')}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
     .bind(...fields.map(field => parsed.values[field]), params.id, ctx.accountId));
   if ('face_of_account_id' in body) {
     const requested = typeof body.face_of_account_id === 'string' && body.face_of_account_id.trim() ? body.face_of_account_id.trim() : null;
+    if (requested) {
+      statements.push(
+        env.DB.prepare('UPDATE contributor_accounts SET is_host = 0, updated_at = datetime(\'now\') WHERE account_id = ?').bind(requested),
+        env.DB.prepare(
+          `INSERT INTO contributor_accounts (contributor_id, account_id, public_role, is_host, display_order, created_at, updated_at)
+           VALUES (?, ?, NULL, 1, 0, datetime('now'), datetime('now'))
+           ON CONFLICT(contributor_id, account_id) DO UPDATE SET is_host = 1, updated_at = datetime('now')`
+        ).bind(params.id, requested),
+      );
+    } else if (existing.face_of_account_id) {
+      statements.push(env.DB.prepare(
+        'UPDATE contributor_accounts SET is_host = 0, updated_at = datetime(\'now\') WHERE contributor_id = ? AND account_id = ?'
+      ).bind(params.id, existing.face_of_account_id));
+    }
     statements.push(...contributorHostStatements(env, ctx.accountId, params.id, requested, (existing.face_of_account_id as string | null) || null));
   }
   if (statements.length) {
@@ -5128,13 +5362,50 @@ const setAdminContributorPublication = (published: boolean): Handler => async (r
   if ('error' in ctx) return ctx.error;
   const row = await env.DB.prepare('SELECT * FROM contributors WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first<Record<string, any>>();
   if (!row) return json({ error: 'Contributor not found' }, 404);
-  if (published && (typeof row.beginnings !== 'string' || !row.beginnings.trim())) {
+  const draft = published
+    ? await env.DB.prepare('SELECT payload FROM contributor_profile_drafts WHERE contributor_id = ? AND approval_status != ?')
+      .bind(params.id, 'approved').first<Record<string, any>>()
+    : null;
+  let draftValues: Record<string, string | null> = {};
+  if (draft?.payload) {
+    try {
+      const parsed = JSON.parse(String(draft.payload));
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        draftValues = Object.fromEntries(Object.entries(parsed).filter(([field, value]) =>
+          (PROFILE_SELF_FIELDS as readonly string[]).includes(field) && (typeof value === 'string' || value === null))
+        ) as Record<string, string | null>;
+      }
+    } catch {
+      return restError(500, 'Profile draft is invalid', 'profile_draft_invalid');
+    }
+  }
+  const candidate = { ...row, ...draftValues };
+  if (published && (typeof candidate.display_name !== 'string' || !candidate.display_name.trim())) {
+    return restError(400, 'display_name is required before publication', 'profile_name_required');
+  }
+  if (published && (typeof candidate.beginnings !== 'string' || !candidate.beginnings.trim())) {
     return json({ error: 'beginnings is required before publication' }, 400);
   }
-  await env.DB.prepare('UPDATE contributors SET is_published = ?, updated_at = datetime(\'now\') WHERE id = ? AND account_id = ?')
-    .bind(published ? 1 : 0, params.id, ctx.accountId).run();
-  row.is_published = published ? 1 : 0;
-  return json({ contributor: adminContributor(row) });
+  const statements: D1PreparedStatement[] = [];
+  const draftFields = Object.keys(draftValues);
+  if (published && draftFields.length) {
+    statements.push(env.DB.prepare(
+      `UPDATE contributors SET ${draftFields.map(field => `${field} = ?`).join(', ')}, is_published = 1,
+          unpublished_at = NULL, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+    ).bind(...draftFields.map(field => draftValues[field]), params.id, ctx.accountId));
+    statements.push(env.DB.prepare(
+      `UPDATE contributor_profile_drafts SET approval_status = 'approved', reviewed_by = ?,
+          reviewed_at = datetime('now'), reviewer_note = NULL, updated_at = datetime('now') WHERE contributor_id = ?`
+    ).bind(ctx.userId, params.id));
+  } else {
+    statements.push(env.DB.prepare(`UPDATE contributors
+      SET is_published = ?, unpublished_at = CASE WHEN ? = 1 THEN NULL ELSE datetime('now') END,
+          updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
+      .bind(published ? 1 : 0, published ? 1 : 0, params.id, ctx.accountId));
+  }
+  await env.DB.batch(statements);
+  const updated = await env.DB.prepare('SELECT * FROM contributors WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first<Record<string, any>>();
+  return json({ contributor: adminContributor(updated!) });
 };
 
 const handlePutAdminContributorContact: Handler = async (request, env, params) => {
@@ -5170,6 +5441,1149 @@ const handlePutAdminContributorContact: Handler = async (request, env, params) =
   }
 
   return json({ success: true, contributor_id: params.id, contact_customer_id: customerId });
+};
+
+const SELF_CONTRIBUTOR_WRITE_FIELDS = new Set<string>(PROFILE_SELF_FIELDS);
+
+function parsedContributor(row: Record<string, any>) {
+  const parsed = adminContributor(row);
+  try { parsed.languages = JSON.parse(row.languages || '[]'); } catch { parsed.languages = []; }
+  return parsed;
+}
+
+function parseStoredProfileDraft(value: unknown): Record<string, string | null> {
+  try {
+    const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    return Object.fromEntries(Object.entries(parsed).filter(([field, item]) =>
+      SELF_CONTRIBUTOR_WRITE_FIELDS.has(field) && (typeof item === 'string' || item === null))) as Record<string, string | null>;
+  } catch {
+    return {};
+  }
+}
+
+function adminContributorDraftPreview(row: Record<string, any>) {
+  const {
+    profile_draft_payload: draftPayload,
+    profile_draft_approval_status: draftApprovalStatus,
+    profile_draft_submitted_at: draftSubmittedAt,
+    profile_draft_updated_at: draftUpdatedAt,
+    profile_draft_reviewer_note: draftReviewerNote,
+    ...liveRow
+  } = row;
+  const live = parsedContributor(liveRow);
+  const hasPendingDraft = Boolean(draftApprovalStatus && draftApprovalStatus !== 'approved');
+  const approvalState = draftApprovalStatus ?? (liveRow.is_published === 1 || liveRow.unpublished_at ? 'approved' : 'pending');
+  if (!hasPendingDraft) {
+    return {
+      ...live, live_profile: live, pending_profile: null, reviewer_note: draftReviewerNote ?? null,
+      has_pending_draft: false, approval_state: approvalState, draft_diff: null,
+    };
+  }
+
+  const draftValues = parseStoredProfileDraft(draftPayload);
+  const pending = parsedContributor({ ...liveRow, ...draftValues });
+  const changedFields = PROFILE_SELF_FIELDS.filter(field => field in draftValues
+    && JSON.stringify(live[field]) !== JSON.stringify(pending[field]));
+  return {
+    ...pending,
+    live_profile: live,
+    pending_profile: pending,
+    reviewer_note: draftReviewerNote ?? null,
+    has_pending_draft: true,
+    approval_state: approvalState,
+    draft_diff: {
+      submitted_at: draftSubmittedAt ?? null,
+      updated_at: draftUpdatedAt ?? null,
+      changed_fields: changedFields,
+      live: Object.fromEntries(changedFields.map(field => [field, live[field] ?? null])),
+      pending: Object.fromEntries(changedFields.map(field => [field, pending[field] ?? null])),
+    },
+  };
+}
+
+async function contributorWithDraft(env: Env, contributor: Record<string, any>) {
+  const draft = await env.DB.prepare(
+    'SELECT payload, approval_status, submitted_at, reviewed_at, reviewer_note FROM contributor_profile_drafts WHERE contributor_id = ?'
+  ).bind(contributor.id).first<Record<string, any>>();
+  const livePublished = contributor.is_published === 1;
+  const pending = Boolean(draft && draft.approval_status !== 'approved');
+  const overlay = pending ? parseStoredProfileDraft(draft!.payload) : {};
+  const liveProfile = parsedContributor(contributor);
+  const pendingProfile = pending ? parsedContributor({ ...contributor, ...overlay }) : null;
+  return {
+    ...(pendingProfile ?? liveProfile),
+    live_profile: liveProfile,
+    pending_profile: pendingProfile,
+    publication_state: livePublished
+      ? 'published'
+      : pending
+        ? 'awaiting_approval'
+        : contributor.unpublished_at
+          ? 'unpublished'
+          : 'draft',
+    approval_state: draft?.approval_status ?? (livePublished || contributor.unpublished_at ? 'approved' : 'pending'),
+    reviewer_note: draft?.reviewer_note ?? null,
+    has_pending_draft: pending,
+  };
+}
+
+function buildProfileDraftStatement(env: Env, contributorId: string, userId: string, values: Record<string, string | null>) {
+  return env.DB.prepare(
+    `INSERT INTO contributor_profile_drafts
+      (contributor_id, payload, approval_status, submitted_by, submitted_at, reviewed_by, reviewed_at, updated_at)
+     VALUES (?, ?, 'pending', ?, datetime('now'), NULL, NULL, datetime('now'))
+     ON CONFLICT(contributor_id) DO UPDATE SET
+       payload = excluded.payload, approval_status = 'pending', submitted_by = excluded.submitted_by,
+       submitted_at = datetime('now'), reviewed_by = NULL, reviewed_at = NULL, reviewer_note = NULL,
+       updated_at = datetime('now')`
+  ).bind(contributorId, JSON.stringify(values), userId);
+}
+
+async function contributorForUser(env: Env, userId: string) {
+  return env.DB.prepare('SELECT * FROM contributors WHERE user_id = ?').bind(userId).first<Record<string, any>>();
+}
+
+async function verifiedShelfSlug(env: Env, userId: string | null | undefined): Promise<string | null> {
+  if (!userId) return null;
+  try {
+    const row = await env.DB.prepare('SELECT shelf_slug FROM users WHERE id = ? AND shelf_enabled = 1')
+      .bind(userId).first<Record<string, any>>();
+    return typeof row?.shelf_slug === 'string' ? row.shelf_slug : null;
+  } catch {
+    // Pre-shelf local/test schemas cannot verify a mapping, so omit it rather
+    // than guessing from username or contributor slug.
+    return null;
+  }
+}
+
+const handleGetMyPublicProfile: Handler = async (request, env) => {
+  const ctx = await requireAuthenticatedUser(request, env);
+  if ('error' in ctx) return ctx.error;
+  const contributor = await contributorForUser(env, ctx.userId);
+  if (!contributor) return json({ contributor: null, can_create: true });
+  const accounts = await env.DB.prepare(
+    `SELECT ca.account_id, ca.public_role, ca.is_host, ca.display_order,
+            a.slug, a.name, a.slug AS account_slug, a.name AS account_name,
+            a.kind AS account_kind, a.location_city, a.location_country
+      FROM contributor_accounts ca
+      JOIN accounts a ON a.id = ca.account_id
+      WHERE ca.contributor_id = ? AND a.status = 'active'
+      ORDER BY ca.display_order, a.name`
+  ).bind(contributor.id).all();
+  const [selection, shelf] = await Promise.all([
+    env.DB.prepare(
+      `SELECT COUNT(DISTINCT p.id) AS count
+         FROM contributor_accounts ca
+         JOIN accounts a ON a.id = ca.account_id
+         JOIN product_listings pl ON pl.account_id = ca.account_id
+         JOIN products p ON p.id = pl.legacy_product_id AND p.account_id = pl.account_id
+        WHERE ca.contributor_id = ? AND ca.is_host = 1
+          AND a.kind = 'master' AND a.status = 'active' AND a.public_enabled = 1
+          AND pl.status = 'active' AND pl.is_public = 1 AND pl.shown_in_shop = 1
+          AND p.status = 'Active' AND p.is_public = 1 AND p.shown_in_shop = 1`
+    ).bind(contributor.id).first<Record<string, any>>(),
+    verifiedShelfSlug(env, ctx.userId),
+  ]);
+  return json({
+    contributor: {
+      ...await contributorWithDraft(env, contributor),
+      contributor_slug: contributor.id,
+      shelf_slug: shelf,
+      selection_count: Number(selection?.count || 0),
+      accounts: accounts.results ?? [],
+    },
+    can_create: false,
+  });
+};
+
+const handlePutMyPublicProfile: Handler = async (request, env) => {
+  const ctx = await requireAuthenticatedUser(request, env);
+  if ('error' in ctx) return ctx.error;
+  const bodyResult = await contributorJson(request);
+  if (bodyResult instanceof Response) return bodyResult;
+  const safeBody = Object.fromEntries(Object.entries(bodyResult).filter(([field]) => SELF_CONTRIBUTOR_WRITE_FIELDS.has(field)));
+  const parsed = parseContributorWrite(safeBody);
+  if ('error' in parsed) return json({ error: parsed.error, code: 'profile_invalid' }, 400);
+  let contributor = await contributorForUser(env, ctx.userId);
+  if (!contributor) {
+    const editorialSteward = await env.DB.prepare(
+      `SELECT id FROM accounts
+        WHERE is_platform_owner = 1 AND status = 'active'
+        ORDER BY created_at, id
+        LIMIT 1`
+    ).first<Record<string, any>>();
+    if (!editorialSteward) {
+      return restError(503, 'Editorial steward account unavailable', 'editorial_steward_unavailable');
+    }
+    const id = typeof bodyResult.id === 'string' ? bodyResult.id.trim() : '';
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)) return json({ error: 'A lowercase kebab-case profile slug is required', code: 'profile_slug_required' }, 400);
+    if (!parsed.values.display_name) return json({ error: 'display_name is required', code: 'profile_name_required' }, 400);
+    if (await env.DB.prepare('SELECT id FROM contributors WHERE id = ?').bind(id).first()) {
+      return json({ error: 'Profile slug is unavailable', code: 'profile_slug_unavailable' }, 409);
+    }
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO contributors (id, account_id, user_id, display_name, is_published, created_at, updated_at)
+         VALUES (?, ?, ?, ?, 0, datetime('now'), datetime('now'))`
+      ).bind(id, editorialSteward.id, ctx.userId, parsed.values.display_name),
+      buildProfileDraftStatement(env, id, ctx.userId, parsed.values),
+    ]);
+    contributor = await contributorForUser(env, ctx.userId);
+    return json({ contributor: await contributorWithDraft(env, contributor!), can_create: false }, 201);
+  }
+  const existingDraft = await env.DB.prepare('SELECT payload, approval_status FROM contributor_profile_drafts WHERE contributor_id = ?')
+    .bind(contributor.id).first<Record<string, any>>();
+  const pendingValues = existingDraft?.approval_status !== 'approved'
+    ? parseStoredProfileDraft(existingDraft?.payload)
+    : {};
+  const nextDraft = { ...pendingValues, ...parsed.values };
+  await buildProfileDraftStatement(env, contributor.id, ctx.userId, nextDraft).run();
+  contributor = await contributorForUser(env, ctx.userId);
+  return json({ contributor: await contributorWithDraft(env, contributor!), can_create: false });
+};
+
+const handleUnpublishMyPublicProfile: Handler = async (request, env) => {
+  const ctx = await requireAuthenticatedUser(request, env);
+  if ('error' in ctx) return ctx.error;
+  const contributor = await contributorForUser(env, ctx.userId);
+  if (!contributor) return json({ error: 'Profile not found', code: 'profile_not_found' }, 404);
+  const result = await env.DB.prepare(
+    `UPDATE contributors
+        SET is_published = 0, unpublished_at = datetime('now'), updated_at = datetime('now')
+      WHERE id = ?`
+  ).bind(contributor.id).run();
+  return result.meta.changes
+    ? json({ success: true })
+    : json({ success: true });
+};
+
+async function requireContributorSteward(request: Request, env: Env, contributorId: string) {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx;
+  const contributor = await env.DB.prepare('SELECT id, account_id, user_id FROM contributors WHERE id = ?').bind(contributorId).first<Record<string, any>>();
+  const association = contributor && !ctx.isPlatform
+    ? await env.DB.prepare(
+      `SELECT 1 FROM contributor_accounts ca JOIN accounts a ON a.id = ca.account_id
+        WHERE ca.contributor_id = ? AND ca.account_id = ? AND a.status = 'active'`
+    ).bind(contributorId, ctx.accountId).first()
+    : null;
+  if (!contributor || (!ctx.isPlatform && !association)) {
+    return { error: json({ error: 'Contributor not found' }, 404) };
+  }
+  return { ctx, contributor, canReadAllAssociations: ctx.isPlatform };
+}
+
+async function requireContributorEditorialSteward(request: Request, env: Env, contributorId: string) {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx;
+  const contributor = await env.DB.prepare('SELECT id, account_id FROM contributors WHERE id = ?')
+    .bind(contributorId).first<Record<string, any>>();
+  if (!contributor || (!ctx.isPlatform && contributor.account_id !== ctx.accountId)) {
+    return { error: json({ error: 'Contributor not found' }, 404) };
+  }
+  return { ctx, contributor };
+}
+
+const handleGetContributorAccounts: Handler = async (request, env, params) => {
+  const authorized = await requireContributorSteward(request, env, params.id);
+  if ('error' in authorized) return authorized.error;
+  const scopeClause = authorized.canReadAllAssociations ? '' : 'AND ca.account_id = ?';
+  const statement = env.DB.prepare(
+    `SELECT ca.*, a.slug, a.name, a.slug AS account_slug, a.name AS account_name,
+            a.kind AS account_kind, a.location_city, a.location_country
+       FROM contributor_accounts ca JOIN accounts a ON a.id = ca.account_id
+      WHERE ca.contributor_id = ? ${scopeClause} ORDER BY ca.display_order, a.name`
+  );
+  const rows = authorized.canReadAllAssociations
+    ? await statement.bind(params.id).all()
+    : await statement.bind(params.id, authorized.ctx.accountId).all();
+  return json({ accounts: rows.results ?? [] });
+};
+
+const handlePutContributorAccounts: Handler = async (request, env, params) => {
+  const authorized = await requireContributorSteward(request, env, params.id);
+  if ('error' in authorized) return authorized.error;
+  const bodyResult = await contributorJson(request);
+  if (bodyResult instanceof Response) return bodyResult;
+  const rows = Array.isArray(bodyResult.accounts) ? bodyResult.accounts : null;
+  if (!rows) return json({ error: 'accounts must be an array' }, 400);
+  const normalized: Array<{ account_id: string; public_role: string | null; is_host: number; display_order: number }> = [];
+  for (const [index, value] of rows.entries()) {
+    if (!value || typeof value !== 'object') return json({ error: 'Each account association must be an object' }, 400);
+    const accountId = typeof (value as any).account_id === 'string' ? (value as any).account_id.trim() : '';
+    const account = accountId ? await env.DB.prepare("SELECT id FROM accounts WHERE id = ? AND status = 'active'").bind(accountId).first() : null;
+    if (!account) return json({ error: 'Associated account not found' }, 400);
+    const publicRoleValue = (value as any).public_role;
+    if (publicRoleValue !== undefined && publicRoleValue !== null && typeof publicRoleValue !== 'string') {
+      return restError(400, 'public_role must be a string or null', 'association_invalid');
+    }
+    const publicRole = typeof publicRoleValue === 'string' ? publicRoleValue.trim() || null : null;
+    if (publicRole && publicRole.length > 80) {
+      return restError(400, 'public_role must be 80 characters or fewer', 'association_invalid');
+    }
+    const hostValue = (value as any).is_host;
+    if (hostValue !== undefined && typeof hostValue !== 'boolean' && hostValue !== 0 && hostValue !== 1) {
+      return restError(400, 'is_host must be a boolean', 'association_invalid');
+    }
+    const orderValue = (value as any).display_order;
+    if (orderValue !== undefined && (!Number.isInteger(orderValue) || orderValue < 0 || orderValue > 10000)) {
+      return restError(400, 'display_order must be an integer between 0 and 10000', 'association_invalid');
+    }
+    normalized.push({
+      account_id: accountId,
+      public_role: publicRole,
+      is_host: hostValue === true || hostValue === 1 ? 1 : 0,
+      display_order: orderValue === undefined ? index : orderValue,
+    });
+  }
+  if (new Set(normalized.map(row => row.account_id)).size !== normalized.length) return json({ error: 'Duplicate account association' }, 400);
+  if (!authorized.ctx.isPlatform && normalized.some(row => row.account_id !== authorized.ctx.accountId)) {
+    return restError(403, 'You can only manage this profile association for the active account', 'cross_account_association_denied');
+  }
+  const statements: D1PreparedStatement[] = authorized.ctx.isPlatform ? [
+    env.DB.prepare('UPDATE accounts SET host_contributor_id = NULL WHERE host_contributor_id = ?').bind(params.id),
+    env.DB.prepare('UPDATE contributors SET face_of_account_id = NULL, updated_at = datetime(\'now\') WHERE id = ?').bind(params.id),
+    env.DB.prepare('DELETE FROM contributor_accounts WHERE contributor_id = ?').bind(params.id),
+  ] : [
+    env.DB.prepare('UPDATE accounts SET host_contributor_id = NULL WHERE id = ? AND host_contributor_id = ?').bind(authorized.ctx.accountId, params.id),
+    env.DB.prepare('UPDATE contributors SET face_of_account_id = NULL, updated_at = datetime(\'now\') WHERE id = ? AND face_of_account_id = ?').bind(params.id, authorized.ctx.accountId),
+    env.DB.prepare('DELETE FROM contributor_accounts WHERE contributor_id = ? AND account_id = ?').bind(params.id, authorized.ctx.accountId),
+  ];
+  for (const row of normalized) {
+    if (row.is_host) {
+      statements.push(
+        env.DB.prepare('UPDATE contributor_accounts SET is_host = 0, updated_at = datetime(\'now\') WHERE account_id = ?').bind(row.account_id),
+        env.DB.prepare('UPDATE accounts SET host_contributor_id = NULL WHERE id = ?').bind(row.account_id),
+        env.DB.prepare('UPDATE contributors SET face_of_account_id = NULL, updated_at = datetime(\'now\') WHERE face_of_account_id = ?').bind(row.account_id),
+      );
+    }
+    statements.push(env.DB.prepare(
+      `INSERT INTO contributor_accounts
+        (contributor_id, account_id, public_role, is_host, display_order, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))`
+    ).bind(params.id, row.account_id, row.public_role, row.is_host, row.display_order));
+    if (row.is_host) statements.push(
+      env.DB.prepare('UPDATE accounts SET host_contributor_id = ? WHERE id = ?').bind(params.id, row.account_id),
+      env.DB.prepare('UPDATE contributors SET face_of_account_id = ?, updated_at = datetime(\'now\') WHERE id = ?').bind(row.account_id, params.id),
+    );
+  }
+  await env.DB.batch(statements);
+  return handleGetContributorAccounts(request, env, params);
+};
+
+const handleRequestContributorChanges: Handler = async (request, env, params) => {
+  const authorized = await requireContributorEditorialSteward(request, env, params.id);
+  if ('error' in authorized) return authorized.error;
+  const bodyResult = await contributorJson(request);
+  if (bodyResult instanceof Response) return bodyResult;
+  const note = typeof bodyResult.note === 'string' ? bodyResult.note.trim() : '';
+  if (!note || note.length > 1000) {
+    return restError(400, 'note must be between 1 and 1000 characters', 'reviewer_note_invalid');
+  }
+  const result = await env.DB.prepare(
+    `UPDATE contributor_profile_drafts
+        SET approval_status = 'changes_requested', reviewer_note = ?, reviewed_by = ?,
+            reviewed_at = datetime('now'), updated_at = datetime('now')
+      WHERE contributor_id = ? AND approval_status != 'approved'`
+  ).bind(note, authorized.ctx.userId, params.id).run();
+  if (!result.meta.changes) {
+    return restError(409, 'There is no submitted profile draft to review', 'profile_draft_not_pending');
+  }
+  const row = await env.DB.prepare(
+    `SELECT co.*, d.payload AS profile_draft_payload,
+            d.approval_status AS profile_draft_approval_status,
+            d.submitted_at AS profile_draft_submitted_at,
+            d.updated_at AS profile_draft_updated_at,
+            d.reviewer_note AS profile_draft_reviewer_note
+       FROM contributors co JOIN contributor_profile_drafts d ON d.contributor_id = co.id
+      WHERE co.id = ?`
+  ).bind(params.id).first<Record<string, any>>();
+  return json({ contributor: adminContributorDraftPreview(row!) });
+};
+
+async function requireOwnContributor(request: Request, env: Env) {
+  const ctx = await requireAuthenticatedUser(request, env);
+  if ('error' in ctx) return ctx;
+  const contributor = await contributorForUser(env, ctx.userId);
+  if (!contributor) return { error: json({ error: 'Create your public profile first', code: 'profile_required' }, 409) };
+  return { ctx, contributor };
+}
+
+const handleListMyProfileFavorites: Handler = async (request, env) => {
+  const owned = await requireOwnContributor(request, env);
+  if ('error' in owned) return owned.error;
+  const [rows, teas] = await Promise.all([env.DB.prepare(
+    `SELECT pf.*, tp.slug, tp.name, tp.chinese_name, tp.type, tp.origin_country,
+            tp.origin_region, tp.harvest_year, tp.image_url, tp.status AS profile_status,
+            tp.network_visible
+       FROM profile_favorites pf
+       JOIN tea_profiles tp ON tp.id = pf.tea_profile_id
+      WHERE pf.contributor_id = ?
+      ORDER BY pf.position, pf.created_at`
+  ).bind(owned.contributor.id).all(), env.DB.prepare(
+    `WITH eligible_listings AS (
+       SELECT pl.profile_id, pl.account_id AS source_account_id,
+              pl.id AS source_listing_id, pl.legacy_product_id AS source_product_id,
+              a.slug AS source_account_slug,
+              ROW_NUMBER() OVER (
+                PARTITION BY pl.profile_id
+                ORDER BY pl.is_curated DESC, pl.updated_at DESC, pl.id
+              ) AS listing_rank
+         FROM product_listings pl
+         JOIN accounts a ON a.id = pl.account_id
+         JOIN products p ON p.id = pl.legacy_product_id AND p.account_id = pl.account_id
+        WHERE pl.status = 'active' AND pl.is_public = 1 AND pl.shown_in_shop = 1
+          AND pl.legacy_product_id IS NOT NULL
+          AND p.status = 'Active' AND p.is_public = 1 AND p.shown_in_shop = 1
+          AND a.public_enabled = 1 AND a.status = 'active'
+     )
+     SELECT tp.id, tp.name, tp.chinese_name, tp.type, tp.harvest_year,
+            tp.origin_region, tp.origin_country, tp.image_url,
+            eligible.source_account_id, eligible.source_listing_id, eligible.source_product_id,
+            '/shop/product/' || eligible.source_product_id || '?store=' || eligible.source_account_slug AS public_path
+       FROM tea_profiles tp
+       JOIN eligible_listings eligible ON eligible.profile_id = tp.id AND eligible.listing_rank = 1
+      WHERE tp.status = 'published' AND tp.network_visible = 1
+      ORDER BY tp.name LIMIT 500`
+  ).all()]);
+  return json({ favorites: rows.results ?? [], available_teas: (teas.results as Record<string, any>[]).map(tea => ({
+    id: tea.id,
+    name: tea.name,
+    chinese_name: tea.chinese_name ?? null,
+    type: tea.type ?? null,
+    year: tea.harvest_year ? Number(tea.harvest_year) || tea.harvest_year : null,
+    origin: [tea.origin_region, tea.origin_country].filter(Boolean).join(', ') || null,
+    image_url: tea.image_url ?? null,
+    source_account_id: tea.source_account_id,
+    source_listing_id: tea.source_listing_id,
+    source_product_id: tea.source_product_id,
+    public_path: tea.public_path ?? null,
+    is_public: Boolean(tea.public_path),
+  })) });
+};
+
+async function validateFavoriteSelection(env: Env, input: {
+  teaProfileId: string;
+  sourceAccountId: string | null;
+  sourceProductId: string | null;
+  sourceListingId: string | null;
+}): Promise<Response | null> {
+  const tea = await env.DB.prepare(
+    `SELECT tp.id FROM tea_profiles tp
+      WHERE tp.id = ? AND tp.status = 'published' AND tp.network_visible = 1
+        AND EXISTS (
+          SELECT 1 FROM product_listings visible_pl
+          JOIN accounts visible_account ON visible_account.id = visible_pl.account_id
+          JOIN products visible_product ON visible_product.id = visible_pl.legacy_product_id
+            AND visible_product.account_id = visible_pl.account_id
+          WHERE visible_pl.profile_id = tp.id AND visible_pl.status = 'active'
+            AND visible_pl.is_public = 1 AND visible_pl.shown_in_shop = 1
+            AND visible_pl.legacy_product_id IS NOT NULL
+            AND visible_product.status = 'Active' AND visible_product.is_public = 1
+            AND visible_product.shown_in_shop = 1
+            AND visible_account.public_enabled = 1 AND visible_account.status = 'active'
+        )`
+  ).bind(input.teaProfileId).first();
+  if (!tea) return restError(404, 'Tea profile not found', 'favorite_tea_not_public');
+
+  if (!input.sourceProductId && !input.sourceListingId) {
+    return input.sourceAccountId
+      ? restError(400, 'A product or listing is required with source_account_id', 'favorite_source_representation_required')
+      : null;
+  }
+  if (!input.sourceAccountId) return restError(400, 'source_account_id is required for a source', 'favorite_source_account_required');
+
+  const source = input.sourceProductId
+    ? await env.DB.prepare(
+      `SELECT pl.id FROM products p
+       JOIN product_listings pl ON pl.legacy_product_id = p.id AND pl.account_id = p.account_id
+       JOIN accounts a ON a.id = p.account_id
+       WHERE p.id = ? AND p.account_id = ? AND pl.profile_id = ?
+         AND p.status = 'Active' AND p.is_public = 1 AND p.shown_in_shop = 1
+         AND pl.status = 'active' AND pl.is_public = 1 AND pl.shown_in_shop = 1
+         AND a.public_enabled = 1 AND a.status = 'active'`
+    ).bind(input.sourceProductId, input.sourceAccountId, input.teaProfileId).first()
+    : await env.DB.prepare(
+      `SELECT pl.id FROM product_listings pl
+       JOIN accounts a ON a.id = pl.account_id
+       JOIN products p ON p.id = pl.legacy_product_id AND p.account_id = pl.account_id
+       WHERE pl.id = ? AND pl.account_id = ? AND pl.profile_id = ?
+         AND pl.status = 'active' AND pl.is_public = 1 AND pl.shown_in_shop = 1
+         AND pl.legacy_product_id IS NOT NULL
+         AND p.status = 'Active' AND p.is_public = 1 AND p.shown_in_shop = 1
+         AND a.public_enabled = 1 AND a.status = 'active'`
+    ).bind(input.sourceListingId, input.sourceAccountId, input.teaProfileId).first();
+  if (!source) return restError(400, 'Favorite source does not represent that public tea', 'favorite_source_mismatch');
+
+  return null;
+}
+
+const handleCreateMyProfileFavorite: Handler = async (request, env) => {
+  const owned = await requireOwnContributor(request, env);
+  if ('error' in owned) return owned.error;
+  const bodyResult = await contributorJson(request);
+  if (bodyResult instanceof Response) return bodyResult;
+  const teaProfileId = typeof bodyResult.tea_profile_id === 'string' ? bodyResult.tea_profile_id.trim() : '';
+  if (!teaProfileId) return json({ error: 'tea_profile_id is required' }, 400);
+  const note = typeof bodyResult.note === 'string' ? bodyResult.note.trim().slice(0, 280) || null : null;
+  const position = Number.isInteger(bodyResult.position) ? Math.max(0, Number(bodyResult.position)) : 0;
+  if ('is_public' in bodyResult && typeof bodyResult.is_public !== 'boolean') return json({ error: 'is_public must be a boolean' }, 400);
+  const isPublic = bodyResult.is_public === true ? 1 : 0;
+  const sourceAccountId = typeof bodyResult.source_account_id === 'string' ? bodyResult.source_account_id.trim() || null : null;
+  const sourceProductId = typeof bodyResult.source_product_id === 'string' ? bodyResult.source_product_id.trim() || null : null;
+  const sourceListingId = typeof bodyResult.source_listing_id === 'string' ? bodyResult.source_listing_id.trim() || null : null;
+  if (sourceProductId && sourceListingId) return json({ error: 'Choose a product or listing source, not both' }, 400);
+  if ((sourceProductId || sourceListingId) && !sourceAccountId) return json({ error: 'source_account_id is required for a source' }, 400);
+  const selectionError = await validateFavoriteSelection(env, {
+    teaProfileId, sourceAccountId, sourceProductId, sourceListingId,
+  });
+  if (selectionError) return selectionError;
+  await env.DB.prepare(
+    `INSERT INTO profile_favorites
+      (contributor_id, tea_profile_id, source_account_id, source_product_id, source_listing_id,
+       note, position, is_public, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+     ON CONFLICT(contributor_id, tea_profile_id) DO UPDATE SET
+       source_account_id = excluded.source_account_id,
+       source_product_id = excluded.source_product_id,
+       source_listing_id = excluded.source_listing_id,
+       note = excluded.note, position = excluded.position, is_public = excluded.is_public,
+       updated_at = datetime('now')`
+  ).bind(owned.contributor.id, teaProfileId, sourceAccountId, sourceProductId, sourceListingId, note, position, isPublic).run();
+  return json({ success: true }, 201);
+};
+
+const handleUpdateMyProfileFavorite: Handler = async (request, env, params) => {
+  const owned = await requireOwnContributor(request, env);
+  if ('error' in owned) return owned.error;
+  const bodyResult = await contributorJson(request);
+  if (bodyResult instanceof Response) return bodyResult;
+  const fields: string[] = [];
+  const values: unknown[] = [];
+  if ('note' in bodyResult) {
+    if (bodyResult.note !== null && typeof bodyResult.note !== 'string') return json({ error: 'note must be a string or null' }, 400);
+    fields.push('note = ?'); values.push(typeof bodyResult.note === 'string' ? bodyResult.note.trim().slice(0, 280) || null : null);
+  }
+  if ('position' in bodyResult) {
+    if (!Number.isInteger(bodyResult.position) || Number(bodyResult.position) < 0) return json({ error: 'position must be a non-negative integer' }, 400);
+    fields.push('position = ?'); values.push(Number(bodyResult.position));
+  }
+  if ('is_public' in bodyResult) {
+    if (typeof bodyResult.is_public !== 'boolean') return json({ error: 'is_public must be a boolean' }, 400);
+    fields.push('is_public = ?'); values.push(bodyResult.is_public ? 1 : 0);
+  }
+  if (!fields.length) return json({ error: 'No editable fields supplied' }, 400);
+  const result = await env.DB.prepare(
+    `UPDATE profile_favorites SET ${fields.join(', ')}, updated_at = datetime('now')
+      WHERE contributor_id = ? AND tea_profile_id = ?`
+  ).bind(...values, owned.contributor.id, params.teaProfileId).run();
+  return result.meta.changes ? json({ success: true }) : json({ error: 'Favorite not found' }, 404);
+};
+
+const handleDeleteMyProfileFavorite: Handler = async (request, env, params) => {
+  const owned = await requireOwnContributor(request, env);
+  if ('error' in owned) return owned.error;
+  const result = await env.DB.prepare('DELETE FROM profile_favorites WHERE contributor_id = ? AND tea_profile_id = ?')
+    .bind(owned.contributor.id, params.teaProfileId).run();
+  return result.meta.changes ? json({ success: true }) : json({ error: 'Favorite not found' }, 404);
+};
+
+const handleOrderMyProfileFavorites: Handler = async (request, env) => {
+  const owned = await requireOwnContributor(request, env);
+  if ('error' in owned) return owned.error;
+  const bodyResult = await contributorJson(request);
+  if (bodyResult instanceof Response) return bodyResult;
+  const ids = Array.isArray(bodyResult.tea_profile_ids) ? bodyResult.tea_profile_ids : null;
+  if (!ids || ids.some(id => typeof id !== 'string') || new Set(ids).size !== ids.length) {
+    return json({ error: 'tea_profile_ids must be a unique string array' }, 400);
+  }
+  const current = await env.DB.prepare(
+    'SELECT tea_profile_id FROM profile_favorites WHERE contributor_id = ? ORDER BY tea_profile_id'
+  ).bind(owned.contributor.id).all<Record<string, any>>();
+  const currentIds = (current.results ?? []).map(row => String(row.tea_profile_id)).sort();
+  const requestedIds = [...ids].sort();
+  if (currentIds.length !== requestedIds.length || currentIds.some((id, index) => id !== requestedIds[index])) {
+    return restError(409, 'Favorite order is stale; refresh and submit the complete set', 'favorite_order_stale', {
+      expected_count: currentIds.length,
+    });
+  }
+  await env.DB.batch(ids.map((id, position) => env.DB.prepare(
+    'UPDATE profile_favorites SET position = ?, updated_at = datetime(\'now\') WHERE contributor_id = ? AND tea_profile_id = ?'
+  ).bind(position, owned.contributor.id, id)));
+  return json({ success: true });
+};
+
+function httpsUrlOrNull(value: unknown, field: string): { value: string | null } | { error: Response } {
+  if (value === undefined || value === null || value === '') return { value: null };
+  if (typeof value !== 'string') return { error: json({ error: `${field} must be an https URL or null` }, 400) };
+  try {
+    const parsed = new URL(value.trim());
+    if (parsed.protocol !== 'https:') throw new Error('protocol');
+    return { value: parsed.toString() };
+  } catch {
+    return { error: json({ error: `${field} must be an https URL or null` }, 400) };
+  }
+}
+
+function parsePaymentMethodWrite(body: Record<string, unknown>, partial = false) {
+  const values: Record<string, unknown> = {};
+  const stringFields = ['label', 'recipient_name', 'account_identifier', 'instructions'] as const;
+  const limits: Record<typeof stringFields[number], number> = {
+    label: 80, recipient_name: 120, account_identifier: 240, instructions: 1000,
+  };
+  for (const field of stringFields) {
+    if (!(field in body)) continue;
+    if (body[field] !== null && typeof body[field] !== 'string') return { error: json({ error: `${field} must be a string or null` }, 400) };
+    const value = typeof body[field] === 'string' ? body[field].trim() || null : null;
+    if (value && value.length > limits[field]) {
+      return { error: restError(400, `${field} must be ${limits[field]} characters or fewer`, 'payment_field_too_long', { field, limit: limits[field] }) };
+    }
+    if ((field === 'label' || field === 'recipient_name') && value === null) {
+      return { error: restError(400, `${field} is required`, 'payment_field_required', { field }) };
+    }
+    values[field] = value;
+  }
+  if (!partial && (!values.label || !values.recipient_name)) return { error: json({ error: 'label and recipient_name are required' }, 400) };
+  if ('method_type' in body || !partial) {
+    const methodType = typeof body.method_type === 'string' ? body.method_type : '';
+    if (!['bank_transfer', 'payment_link', 'provider_qr', 'other'].includes(methodType)) return { error: json({ error: 'Invalid method_type' }, 400) };
+    values.method_type = methodType;
+  }
+  for (const field of ['external_url', 'qr_image_url'] as const) {
+    if (!(field in body)) continue;
+    const parsed = httpsUrlOrNull(body[field], field);
+    if ('error' in parsed) return parsed;
+    if (parsed.value && parsed.value.length > 2048) {
+      return { error: restError(400, `${field} must be 2048 characters or fewer`, 'payment_field_too_long', { field, limit: 2048 }) };
+    }
+    values[field] = parsed.value;
+  }
+  if ('account_id' in body) {
+    if (body.account_id !== null && typeof body.account_id !== 'string') return { error: json({ error: 'account_id must be a string or null' }, 400) };
+    values.account_id = typeof body.account_id === 'string' ? body.account_id.trim() || null : null;
+  }
+  if ('position' in body) {
+    if (!Number.isInteger(body.position) || Number(body.position) < 0) return { error: json({ error: 'position must be a non-negative integer' }, 400) };
+    values.position = Number(body.position);
+  } else if (!partial) values.position = 0;
+  if ('is_published' in body) {
+    if (typeof body.is_published !== 'boolean') return { error: json({ error: 'is_published must be a boolean' }, 400) };
+    values.is_published = body.is_published ? 1 : 0;
+  }
+  else if (!partial) values.is_published = 0;
+  return { values };
+}
+
+function redactedPaymentSnapshot(row: Record<string, any>) {
+  const externalHost = (() => {
+    try { return row.external_url ? new URL(String(row.external_url)).host : null; } catch { return null; }
+  })();
+  return {
+    account_id: row.account_id ?? null,
+    method_type: row.method_type,
+    label: row.label,
+    recipient_name: row.recipient_name,
+    has_account_identifier: Boolean(row.account_identifier),
+    has_instructions: Boolean(row.instructions),
+    external_host: externalHost,
+    has_qr_image: Boolean(row.qr_image_url),
+    position: Number(row.position || 0),
+    is_published: Number(row.is_published || 0) === 1,
+  };
+}
+
+function paymentAuditStatement(
+  env: Env,
+  contributorId: string,
+  paymentMethodId: string,
+  actorUserId: string,
+  action: 'created' | 'updated' | 'deleted',
+  changedFields: string[],
+  snapshot: Record<string, any>,
+) {
+  return env.DB.prepare(
+    `INSERT INTO payment_method_audit_events
+      (id, contributor_id, payment_method_id, actor_user_id, action, changed_fields, redacted_snapshot, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))`
+  ).bind(crypto.randomUUID(), contributorId, paymentMethodId, actorUserId, action,
+    JSON.stringify([...changedFields].sort()), JSON.stringify(redactedPaymentSnapshot(snapshot)));
+}
+
+const handleListMyPaymentMethods: Handler = async (request, env) => {
+  const owned = await requireOwnContributor(request, env);
+  if ('error' in owned) return owned.error;
+  const rows = await env.DB.prepare(
+    `SELECT pm.*, a.slug AS account_slug, a.name AS account_name
+       FROM payment_methods pm LEFT JOIN accounts a ON a.id = pm.account_id
+      WHERE pm.contributor_id = ? ORDER BY pm.account_id, pm.position, pm.label`
+  ).bind(owned.contributor.id).all();
+  return json({ payment_methods: rows.results ?? [] });
+};
+
+const handleCreateMyPaymentMethod: Handler = async (request, env) => {
+  const owned = await requireOwnContributor(request, env);
+  if ('error' in owned) return owned.error;
+  const bodyResult = await contributorJson(request);
+  if (bodyResult instanceof Response) return bodyResult;
+  const parsed = parsePaymentMethodWrite(bodyResult);
+  if ('error' in parsed) return parsed.error;
+  const values = parsed.values!;
+  if (values.account_id) {
+    const associated = await env.DB.prepare(
+      `SELECT 1 FROM contributor_accounts ca JOIN accounts a ON a.id = ca.account_id
+        WHERE ca.contributor_id = ? AND ca.account_id = ? AND a.status = 'active'`
+    )
+      .bind(owned.contributor.id, values.account_id).first();
+    if (!associated) return json({ error: 'Profile is not associated with that store' }, 400);
+  }
+  const id = crypto.randomUUID();
+  const snapshot = {
+    id, contributor_id: owned.contributor.id, account_id: values.account_id ?? null,
+    method_type: values.method_type, label: values.label, recipient_name: values.recipient_name,
+    account_identifier: values.account_identifier ?? null, instructions: values.instructions ?? null,
+    external_url: values.external_url ?? null, qr_image_url: values.qr_image_url ?? null,
+    position: values.position, is_published: values.is_published,
+  };
+  await env.DB.batch([env.DB.prepare(
+    `INSERT INTO payment_methods
+      (id, contributor_id, account_id, method_type, label, recipient_name, account_identifier,
+       instructions, external_url, qr_image_url, position, is_published, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`
+  ).bind(id, owned.contributor.id, values.account_id ?? null, values.method_type, values.label,
+    values.recipient_name, values.account_identifier ?? null, values.instructions ?? null,
+    values.external_url ?? null, values.qr_image_url ?? null, values.position, values.is_published),
+  paymentAuditStatement(env, owned.contributor.id as string, id, owned.ctx.userId, 'created', Object.keys(values), snapshot)]);
+  const row = await env.DB.prepare('SELECT * FROM payment_methods WHERE id = ?').bind(id).first();
+  return json({ payment_method: row }, 201);
+};
+
+const handleUpdateMyPaymentMethod: Handler = async (request, env, params) => {
+  const owned = await requireOwnContributor(request, env);
+  if ('error' in owned) return owned.error;
+  const bodyResult = await contributorJson(request);
+  if (bodyResult instanceof Response) return bodyResult;
+  const parsed = parsePaymentMethodWrite(bodyResult, true);
+  if ('error' in parsed) return parsed.error;
+  const fields = Object.keys(parsed.values!);
+  if (!fields.length) return json({ error: 'No editable fields supplied' }, 400);
+  if (parsed.values!.account_id) {
+    const associated = await env.DB.prepare(
+      `SELECT 1 FROM contributor_accounts ca JOIN accounts a ON a.id = ca.account_id
+        WHERE ca.contributor_id = ? AND ca.account_id = ? AND a.status = 'active'`
+    )
+      .bind(owned.contributor.id, parsed.values!.account_id).first();
+    if (!associated) return json({ error: 'Profile is not associated with that store' }, 400);
+  }
+  const existing = await env.DB.prepare('SELECT * FROM payment_methods WHERE id = ? AND contributor_id = ?')
+    .bind(params.id, owned.contributor.id).first<Record<string, any>>();
+  if (!existing) return json({ error: 'Payment method not found' }, 404);
+  const next = { ...existing, ...parsed.values };
+  const [result] = await env.DB.batch([env.DB.prepare(
+    `UPDATE payment_methods SET ${fields.map(field => `${field} = ?`).join(', ')}, updated_at = datetime('now')
+      WHERE id = ? AND contributor_id = ?`
+  ).bind(...fields.map(field => parsed.values![field]), params.id, owned.contributor.id),
+  paymentAuditStatement(env, owned.contributor.id as string, params.id, owned.ctx.userId, 'updated', fields, next)]);
+  return result.meta.changes ? json({ payment_method: await env.DB.prepare('SELECT * FROM payment_methods WHERE id = ?').bind(params.id).first() }) : json({ error: 'Payment method not found' }, 404);
+};
+
+const handleDeleteMyPaymentMethod: Handler = async (request, env, params) => {
+  const owned = await requireOwnContributor(request, env);
+  if ('error' in owned) return owned.error;
+  const existing = await env.DB.prepare('SELECT * FROM payment_methods WHERE id = ? AND contributor_id = ?')
+    .bind(params.id, owned.contributor.id).first<Record<string, any>>();
+  if (!existing) return json({ error: 'Payment method not found' }, 404);
+  const [result] = await env.DB.batch([
+    env.DB.prepare('DELETE FROM payment_methods WHERE id = ? AND contributor_id = ?').bind(params.id, owned.contributor.id),
+    paymentAuditStatement(env, owned.contributor.id as string, params.id, owned.ctx.userId, 'deleted', [], existing),
+  ]);
+  return result.meta.changes ? json({ success: true }) : json({ error: 'Payment method not found' }, 404);
+};
+
+function wisdomRelationToApi(row: Record<string, any>) {
+  return {
+    id: row.id,
+    node_type: row.node_type,
+    node_id: row.node_id,
+    target_type: row.target_type,
+    target_id: row.target_id,
+    target_subtype: row.target_subtype ?? null,
+    relationship_kind: row.relationship_kind,
+    source: row.source,
+    review_status: row.review_status,
+    account_id: row.account_id ?? null,
+    created_by: row.created_by ?? null,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+async function enrichWisdomRelation(env: Env, row: Record<string, any>, viewerAccountId?: string) {
+  const base = wisdomRelationToApi(row);
+  const canSeePrivate = Boolean(viewerAccountId && row.account_id === viewerAccountId);
+  if (row.target_type === 'article') {
+    const target = await env.DB.prepare(
+      `SELECT slug, title, status FROM articles WHERE id = ? AND (status = 'published' OR (? = 1 AND account_id = ?))`
+    ).bind(row.target_id, canSeePrivate ? 1 : 0, viewerAccountId || '').first<Record<string, any>>();
+    return { ...base, target_state: !target ? 'missing' : target.status === 'published' ? 'public' : 'unpublished', target_label: target?.title ?? null, target_href: target ? `/article/${target.slug}` : null };
+  }
+  if (row.target_type === 'tea_profile') {
+    const target = await env.DB.prepare(
+      `SELECT tp.name, tp.status, tp.network_visible,
+              (SELECT pl.legacy_product_id FROM product_listings pl
+                WHERE pl.profile_id = tp.id AND pl.status = 'active' AND pl.is_public = 1
+                  AND pl.shown_in_shop = 1 AND pl.legacy_product_id IS NOT NULL
+                ORDER BY pl.is_curated DESC, pl.updated_at DESC LIMIT 1) AS public_product_id
+         FROM tea_profiles tp WHERE tp.id = ?
+          AND ((tp.status = 'published' AND tp.network_visible = 1)
+            OR (? = 1 AND (tp.curated_by_account_id = ? OR tp.originated_by_account_id = ?)))`
+    ).bind(row.target_id, canSeePrivate ? 1 : 0, viewerAccountId || '', viewerAccountId || '').first<Record<string, any>>();
+    const isPublic = target?.status === 'published' && target?.network_visible === 1;
+    return { ...base, target_state: !target ? 'missing' : isPublic ? 'public' : 'unpublished', target_label: target?.name ?? null, target_href: target?.public_product_id ? `/shop/product/${target.public_product_id}` : null };
+  }
+  if (row.target_type === 'product_tasting') {
+    const target = await env.DB.prepare(
+      `SELECT product_name, status, is_public, shown_in_shop FROM products
+        WHERE id = ? AND ((status = 'Active' AND is_public = 1 AND shown_in_shop = 1) OR (? = 1 AND account_id = ?))`
+    ).bind(row.target_id, canSeePrivate ? 1 : 0, viewerAccountId || '').first<Record<string, any>>();
+    const isPublic = target?.status === 'Active' && target?.is_public === 1 && target?.shown_in_shop === 1;
+    return { ...base, target_state: !target ? 'missing' : isPublic ? 'public' : 'unpublished', target_label: target?.product_name ?? null, target_href: isPublic ? `/shop/product/${row.target_id}` : null };
+  }
+  if (row.target_type === 'promoted_tasting_note') {
+    const target = await env.DB.prepare(
+      `SELECT source_text, edited_text, status, product_id FROM tasting_note_candidates
+        WHERE id = ? AND (status = 'promoted' OR (? = 1 AND account_id = ?))`
+    ).bind(row.target_id, canSeePrivate ? 1 : 0, viewerAccountId || '').first<Record<string, any>>();
+    return { ...base, target_state: !target ? 'missing' : target.status === 'promoted' ? 'public' : 'unpublished', target_label: target ? (target.edited_text || target.source_text) : null, target_href: target?.status === 'promoted' ? `/shop/product/${target.product_id}` : null };
+  }
+  const nodePath: Record<string, string> = { cultivar: 'cultivar', region: 'region', producer: 'producer', mark: 'mark', style: 'style', named_tea: 'named' };
+  const path = row.target_subtype ? nodePath[row.target_subtype] : null;
+  return { ...base, target_state: path ? 'public' : 'unpublished', target_label: row.target_id, target_href: path ? `/wisdom/${path}/${encodeURIComponent(row.target_id)}` : null };
+}
+
+async function wisdomTargetAccessible(env: Env, ctx: AccountCtx, input: { target_type: string; target_id: string; target_subtype?: string | null }) {
+  if (input.target_type === 'wisdom_node') return wisdomNodeExists(input.target_subtype || '', input.target_id);
+  if (input.target_type === 'article') {
+    return Boolean(await env.DB.prepare('SELECT 1 FROM articles WHERE id = ? AND account_id = ?').bind(input.target_id, ctx.accountId).first());
+  }
+  if (input.target_type === 'tea_profile') {
+    return Boolean(await env.DB.prepare(
+      `SELECT 1 FROM tea_profiles WHERE id = ? AND (
+        (status = 'published' AND network_visible = 1) OR curated_by_account_id = ? OR originated_by_account_id = ?)`
+    ).bind(input.target_id, ctx.accountId, ctx.accountId).first());
+  }
+  if (input.target_type === 'product_tasting') {
+    return Boolean(await env.DB.prepare('SELECT 1 FROM products WHERE id = ? AND account_id = ?').bind(input.target_id, ctx.accountId).first());
+  }
+  return Boolean(await env.DB.prepare('SELECT 1 FROM tasting_note_candidates WHERE id = ? AND account_id = ?')
+    .bind(input.target_id, ctx.accountId).first());
+}
+
+const handleGetAdminWisdomRelations: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'publish');
+  if ('error' in ctx) return ctx.error;
+  const url = new URL(request.url);
+  const nodeType = url.searchParams.get('node_type')?.trim() || '';
+  const nodeId = url.searchParams.get('node_id')?.trim() || '';
+  if (!nodeType || !nodeId) return json({ error: 'node_type and node_id are required' }, 400);
+  const [relations, override] = await Promise.all([
+    env.DB.prepare(
+      `SELECT * FROM wisdom_relations
+        WHERE node_type = ? AND node_id = ?
+          AND (account_id IS NULL OR account_id = ?)
+        ORDER BY CASE review_status WHEN 'proposed' THEN 0 WHEN 'approved' THEN 1 ELSE 2 END, created_at DESC`
+    ).bind(nodeType, nodeId, ctx.accountId).all(),
+    env.DB.prepare('SELECT * FROM wisdom_node_overrides WHERE node_type = ? AND node_id = ?').bind(nodeType, nodeId).first(),
+  ]);
+  const enriched = await Promise.all((relations.results as Record<string, any>[]).map(row => enrichWisdomRelation(env, row, ctx.accountId)));
+  return json({ relations: enriched, override: override ?? null });
+};
+
+const handleCreateAdminWisdomRelation: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'publish');
+  if ('error' in ctx) return ctx.error;
+  const bodyResult = await contributorJson(request);
+  if (bodyResult instanceof Response) return bodyResult;
+  const input = {
+    node_type: typeof bodyResult.node_type === 'string' ? bodyResult.node_type.trim() : '',
+    node_id: typeof bodyResult.node_id === 'string' ? bodyResult.node_id.trim() : '',
+    target_type: typeof bodyResult.target_type === 'string' ? bodyResult.target_type.trim() : '',
+    target_id: typeof bodyResult.target_id === 'string' ? bodyResult.target_id.trim() : '',
+    target_subtype: typeof bodyResult.target_subtype === 'string' ? bodyResult.target_subtype.trim() || null : null,
+    relationship_kind: typeof bodyResult.relationship_kind === 'string' ? bodyResult.relationship_kind.trim() : 'supports',
+    review_status: 'proposed',
+  };
+  const validation = validateWisdomRelationInput(input);
+  if (!validation.ok) return json({ error: 'Invalid Wisdom relation', code: validation.code }, 400);
+  if (!(await wisdomTargetAccessible(env, ctx, input))) return json({ error: 'Relation target not found' }, 404);
+  const source = bodyResult.source === 'exact_backfill' || bodyResult.source === 'inferred' ? bodyResult.source : 'manual';
+  const id = crypto.randomUUID();
+  try {
+    await env.DB.prepare(
+      `INSERT INTO wisdom_relations
+        (id, node_type, node_id, target_type, target_id, target_subtype, relationship_kind,
+         source, review_status, account_id, created_by, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'proposed', ?, ?, datetime('now'), datetime('now'))`
+    ).bind(id, input.node_type, input.node_id, input.target_type, input.target_id, input.target_subtype,
+      input.relationship_kind, source, ctx.accountId, ctx.userId).run();
+  } catch (error) {
+    if (/UNIQUE constraint/i.test(error instanceof Error ? error.message : String(error))) return json({ error: 'Relation already exists' }, 409);
+    throw error;
+  }
+  const relation = await env.DB.prepare('SELECT * FROM wisdom_relations WHERE id = ?').bind(id).first<Record<string, any>>();
+  return json({ relation: await enrichWisdomRelation(env, relation!, ctx.accountId) }, 201);
+};
+
+const handleUpdateAdminWisdomRelation: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'publish');
+  if ('error' in ctx) return ctx.error;
+  const existing = await env.DB.prepare(
+    'SELECT * FROM wisdom_relations WHERE id = ? AND (account_id IS NULL OR account_id = ?)'
+  ).bind(params.id, ctx.accountId).first<Record<string, any>>();
+  if (!existing) return json({ error: 'Relation not found' }, 404);
+  if (existing.account_id === null) {
+    const authError = await requirePlatformAdmin(request, env);
+    if (authError) return authError;
+  }
+  const bodyResult = await contributorJson(request);
+  if (bodyResult instanceof Response) return bodyResult;
+  const nextStatus = typeof bodyResult.review_status === 'string' ? bodyResult.review_status : existing.review_status;
+  if (existing.account_id !== null && nextStatus !== existing.review_status && nextStatus !== 'proposed') {
+    const authError = await requirePlatformAdmin(request, env);
+    if (authError) return authError;
+  }
+  const input = {
+    node_type: existing.node_type as string,
+    node_id: existing.node_id as string,
+    target_type: existing.target_type as string,
+    target_id: existing.target_id as string,
+    target_subtype: existing.target_subtype as string | null,
+    relationship_kind: typeof bodyResult.relationship_kind === 'string' ? bodyResult.relationship_kind : existing.relationship_kind as string,
+    review_status: nextStatus,
+  };
+  const validation = validateWisdomRelationInput(input);
+  if (!validation.ok) return json({ error: 'Invalid Wisdom relation', code: validation.code }, 400);
+  await env.DB.prepare(
+    `UPDATE wisdom_relations SET relationship_kind = ?, review_status = ?, updated_at = datetime('now') WHERE id = ?`
+  ).bind(input.relationship_kind, input.review_status, params.id).run();
+  const relation = await env.DB.prepare('SELECT * FROM wisdom_relations WHERE id = ?').bind(params.id).first<Record<string, any>>();
+  return json({ relation: await enrichWisdomRelation(env, relation!, ctx.accountId) });
+};
+
+const handleDeleteAdminWisdomRelation: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'publish');
+  if ('error' in ctx) return ctx.error;
+  const existing = await env.DB.prepare(
+    'SELECT id, account_id FROM wisdom_relations WHERE id = ? AND (account_id IS NULL OR account_id = ?)'
+  ).bind(params.id, ctx.accountId).first<Record<string, any>>();
+  if (!existing) return json({ error: 'Relation not found' }, 404);
+  if (existing.account_id === null) {
+    const authError = await requirePlatformAdmin(request, env);
+    if (authError) return authError;
+  }
+  const result = await env.DB.prepare('DELETE FROM wisdom_relations WHERE id = ?').bind(params.id).run();
+  return result.meta.changes ? json({ success: true }) : json({ error: 'Relation not found' }, 404);
+};
+
+const handlePutAdminWisdomNode: Handler = async (request, env, params) => {
+  const authError = await requirePlatformAdmin(request, env);
+  if (authError) return authError;
+  const claims = parseToken(isAuthed(request) || '');
+  if (!claims) return json({ error: 'Unauthorized' }, 401);
+  if (!wisdomNodeExists(params.nodeType, params.nodeId)) {
+    return restError(404, 'Wisdom node not found', 'wisdom_node_not_found');
+  }
+  const bodyResult = await contributorJson(request);
+  if (bodyResult instanceof Response) return bodyResult;
+  const editorialStatus = typeof bodyResult.editorial_status === 'string' ? bodyResult.editorial_status : 'draft';
+  const publicState = typeof bodyResult.public_state === 'string' ? bodyResult.public_state : 'inherit';
+  if (!['draft', 'review', 'approved'].includes(editorialStatus) || !['inherit', 'public', 'hidden'].includes(publicState)) {
+    return json({ error: 'Invalid node state' }, 400);
+  }
+  const note = typeof bodyResult.editor_note === 'string' ? bodyResult.editor_note.trim() || null : null;
+  await env.DB.prepare(
+    `INSERT INTO wisdom_node_overrides
+      (node_type, node_id, editorial_status, public_state, editor_note, reviewed_by, reviewed_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+     ON CONFLICT(node_type, node_id) DO UPDATE SET
+       editorial_status = excluded.editorial_status, public_state = excluded.public_state,
+       editor_note = excluded.editor_note, reviewed_by = excluded.reviewed_by,
+       reviewed_at = datetime('now'), updated_at = datetime('now')`
+  ).bind(params.nodeType, params.nodeId, editorialStatus, publicState, note, claims.sub).run();
+  const override = await env.DB.prepare('SELECT * FROM wisdom_node_overrides WHERE node_type = ? AND node_id = ?')
+    .bind(params.nodeType, params.nodeId).first();
+  return json({ override });
+};
+
+const handleGetAdminWisdomFindings: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'publish');
+  if ('error' in ctx) return ctx.error;
+  const [relationsResult, articleResult, teaResult, productResult, candidateResult, legacyXrefResult, overrideResult] = await Promise.all([
+    env.DB.prepare(`SELECT node_type, node_id, target_type, target_id, target_subtype, review_status
+      FROM wisdom_relations WHERE account_id IS NULL OR account_id = ?`).bind(ctx.accountId).all(),
+    env.DB.prepare(`SELECT id, status FROM articles WHERE account_id = ?`).bind(ctx.accountId).all(),
+    env.DB.prepare(`SELECT id, status, network_visible FROM tea_profiles`).all(),
+    env.DB.prepare(`SELECT id, status, is_public, shown_in_shop FROM products WHERE account_id = ?`).bind(ctx.accountId).all(),
+    env.DB.prepare(`SELECT id, status FROM tasting_note_candidates WHERE account_id = ?`).bind(ctx.accountId).all(),
+    env.DB.prepare(
+      `SELECT ap.article_id, ap.product_id, p.cultivar,
+              COUNT(DISTINCT pl.profile_id) AS profile_count
+         FROM article_products ap
+         JOIN articles a ON a.id = ap.article_id AND a.account_id = ?
+         LEFT JOIN products p ON p.id = ap.product_id AND p.account_id = a.account_id
+         LEFT JOIN product_listings pl ON pl.legacy_product_id = p.id AND pl.account_id = p.account_id
+        GROUP BY ap.article_id, ap.product_id, p.cultivar`
+    ).bind(ctx.accountId).all(),
+    env.DB.prepare(`SELECT node_type, node_id, public_state FROM wisdom_node_overrides`).all(),
+  ]);
+  const articles = articleResult.results as Array<{ id: string; status: string }>;
+  const relationRows = relationsResult.results as Array<{ node_type: string; node_id: string; target_type: string; target_id: string; target_subtype: string | null; review_status: string }>;
+  const hiddenWisdomNodes = new Set(
+    (overrideResult.results as Array<{ node_type: string; node_id: string; public_state: string }>)
+      .filter(override => override.public_state === 'hidden')
+      .map(override => nodeKey(override.node_type, override.node_id))
+  );
+  const targets = [
+    ...articles.map(article => ({ id: article.id, target_type: 'article', is_public: article.status === 'published' })),
+    ...(teaResult.results as Array<{ id: string; status: string; network_visible: number }>).map(tea => ({
+      id: tea.id, target_type: 'tea_profile', is_public: tea.status === 'published' && tea.network_visible === 1,
+    })),
+    ...(productResult.results as Array<{ id: string; status: string; is_public: number; shown_in_shop: number }>).map(product => ({
+      id: product.id, target_type: 'product_tasting', is_public: product.status === 'Active' && product.is_public === 1 && product.shown_in_shop === 1,
+    })),
+    ...(candidateResult.results as Array<{ id: string; status: string }>).map(candidate => ({
+      id: candidate.id, target_type: 'promoted_tasting_note', is_public: candidate.status === 'promoted',
+    })),
+    ...relationRows.filter(relation => relation.target_type === 'wisdom_node'
+      && wisdomNodeExists(relation.target_subtype || '', relation.target_id)).map(relation => ({
+      id: relation.target_id,
+      target_type: 'wisdom_node',
+      target_subtype: relation.target_subtype,
+      is_public: !hiddenWisdomNodes.has(nodeKey(relation.target_subtype || '', relation.target_id)),
+    })),
+  ];
+  const findings = deriveWisdomFindings({ nodes: wisdomManifestNodes(), relations: relationRows, targets, articles });
+  const normalized = await Promise.all(findings.map(async (finding, index) => {
+    let title = 'Wisdom relationship needs attention';
+    let detail = `${finding.target_type || 'target'} ${finding.target_id}`;
+    let href: string | null = null;
+    if (finding.kind === 'missing_target') {
+      title = 'Linked material is missing';
+      detail = `${finding.target_type || 'Target'} ${finding.target_id} no longer exists.`;
+    } else if (finding.kind === 'unpublished_dependency') {
+      title = 'Linked material is not public';
+      detail = `${finding.target_type || 'Target'} ${finding.target_id} is approved here but unavailable publicly.`;
+    } else if (finding.kind === 'orphaned_article') {
+      const article = await env.DB.prepare('SELECT title, slug FROM articles WHERE id = ?').bind(finding.target_id).first<Record<string, any>>();
+      title = 'Published writing has no Wisdom link';
+      detail = article?.title || finding.target_id;
+      href = article?.slug ? `/article/${article.slug}` : null;
+    }
+    return {
+      id: `${finding.kind}:${finding.node_type || 'global'}:${finding.node_id || finding.target_id}:${index}`,
+      code: finding.kind === 'missing_writing' ? 'missing_supporting_writing' : finding.kind,
+      node_type: finding.node_type ?? null,
+      node_id: finding.node_id ?? null,
+      title,
+      detail,
+      severity: finding.kind === 'missing_target' ? 'broken' : 'attention',
+      target_type: finding.target_type ?? null,
+      target_subtype: finding.target_subtype ?? null,
+      target_id: finding.target_id,
+      href,
+    };
+  }));
+  const legacyFindings = (legacyXrefResult.results as Array<{ article_id: string; product_id: string; cultivar: string | null; profile_count: number }>).flatMap((row, index) => {
+    const nodeId = String(row.cultivar || '').trim().toLowerCase().replace(/[_\s]+/g, '-');
+    if (Number(row.profile_count) === 1 && wisdomNodeExists('cultivar', nodeId)) return [];
+    return [{
+      id: `legacy_xref_unmapped:${row.article_id}:${row.product_id}:${index}`,
+      code: Number(row.profile_count) > 1 ? 'ambiguous_product' : 'unmappable_article_product',
+      node_type: wisdomNodeExists('cultivar', nodeId) ? 'cultivar' : null,
+      node_id: wisdomNodeExists('cultivar', nodeId) ? nodeId : null,
+      title: Number(row.profile_count) > 1 ? 'Product resolves to several canonical teas' : 'Article-product link needs a canonical Wisdom anchor',
+      detail: `${row.article_id} · ${row.product_id}`,
+      severity: Number(row.profile_count) > 1 ? 'broken' : 'attention',
+      target_type: 'article',
+      target_id: row.article_id,
+      href: null,
+    }];
+  });
+  return json({ findings: [...normalized, ...legacyFindings] });
+};
+
+const handleGetPublicWisdomRelated: Handler = async (_request, env, params) => {
+  if (!wisdomNodeExists(params.nodeType, params.nodeId)) {
+    return restError(404, 'Wisdom node not found', 'wisdom_node_not_found');
+  }
+  const hidden = await env.DB.prepare(
+    `SELECT 1 FROM wisdom_node_overrides WHERE node_type = ? AND node_id = ? AND public_state = 'hidden'`
+  ).bind(params.nodeType, params.nodeId).first();
+  if (hidden) return json({ writings: [], teas: [] });
+  const [writings, teas] = await Promise.all([
+    env.DB.prepare(
+      `SELECT a.id, a.title, '/article/' || a.slug AS href, a.subtitle AS excerpt,
+              c.display_name AS author_name
+         FROM wisdom_relations wr JOIN articles a ON a.id = wr.target_id
+         LEFT JOIN contributors c ON c.id = a.author_id AND c.is_published = 1
+        WHERE wr.node_type = ? AND wr.node_id = ? AND wr.target_type = 'article'
+          AND wr.review_status = 'approved' AND a.status = 'published'
+        ORDER BY a.published_at DESC LIMIT 24`
+    ).bind(params.nodeType, params.nodeId).all(),
+    env.DB.prepare(
+      `SELECT tp.id, tp.name,
+              '/shop/product/' || pl.legacy_product_id || '?store=' || listing_account.slug AS href,
+              tp.image_url,
+              trim(COALESCE(tp.type, '') || CASE WHEN tp.origin_region IS NOT NULL THEN ' · ' || tp.origin_region ELSE '' END) AS detail
+         FROM wisdom_relations wr JOIN tea_profiles tp ON tp.id = wr.target_id
+         JOIN product_listings pl ON pl.profile_id = tp.id AND pl.status = 'active'
+           AND pl.is_public = 1 AND pl.shown_in_shop = 1 AND pl.legacy_product_id IS NOT NULL
+         JOIN products p ON p.id = pl.legacy_product_id AND p.account_id = pl.account_id
+           AND p.status = 'Active' AND p.is_public = 1 AND p.shown_in_shop = 1
+         JOIN accounts listing_account ON listing_account.id = pl.account_id
+           AND listing_account.public_enabled = 1 AND listing_account.status = 'active'
+        WHERE wr.node_type = ? AND wr.node_id = ? AND wr.target_type = 'tea_profile'
+          AND wr.review_status = 'approved' AND tp.status = 'published' AND tp.network_visible = 1
+        GROUP BY tp.id
+        ORDER BY tp.name LIMIT 48`
+    ).bind(params.nodeType, params.nodeId).all(),
+  ]);
+  return cachedJson({ writings: writings.results ?? [], teas: teas.results ?? [] }, 60);
+};
+
+const handleGetPublicWisdomState: Handler = async (_request, env, params) => {
+  if (!wisdomNodeExists(params.nodeType, params.nodeId)) {
+    return restError(404, 'Wisdom node not found', 'wisdom_node_not_found');
+  }
+  const override = await env.DB.prepare(
+    'SELECT public_state FROM wisdom_node_overrides WHERE node_type = ? AND node_id = ?'
+  ).bind(params.nodeType, params.nodeId).first<Record<string, any>>();
+  const publicState = override?.public_state === 'hidden' || override?.public_state === 'public'
+    ? String(override.public_state)
+    : 'inherit';
+  return cachedJson({
+    node_type: params.nodeType,
+    node_id: params.nodeId,
+    public_state: publicState,
+    is_public: publicState !== 'hidden',
+  }, 60);
+};
+
+const handleGetPublicWisdomStates: Handler = async (_request, env) => {
+  const rows = await env.DB.prepare(
+    `SELECT node_type, node_id, public_state
+       FROM wisdom_node_overrides
+      WHERE public_state IN ('hidden', 'public')
+      ORDER BY node_type, node_id`
+  ).all();
+  return cachedJson({
+    states: (rows.results as Array<Record<string, any>>).map(row => ({
+      node_type: row.node_type,
+      node_id: row.node_id,
+      public_state: row.public_state,
+      is_public: row.public_state !== 'hidden',
+    })),
+  }, 60);
 };
 
 const handleCreateCustomer: Handler = async (request, env) => {
@@ -5724,8 +7138,8 @@ function makeXrefHandlers(tableName: string, fkColumn: string, parentTable?: str
   // their own product to another tenant's article/module/project.
 
   // Returns null if the parent belongs to the caller, or a Response to return
-  // (404) if it does not. Returns null on a verification error (table not
-  // account-scoped / missing) so platform-level content keeps working.
+  // when ownership cannot be established. Any dependency failure is closed;
+  // parent tables passed here are part of the authorization boundary.
   async function verifyParent(env: Env, parentId: string, accountId: string): Promise<Response | null> {
     if (!parentTable) return null;
     try {
@@ -5735,9 +7149,7 @@ function makeXrefHandlers(tableName: string, fkColumn: string, parentTable?: str
       if (!row) return json({ error: 'Not found' }, 404);
       return null;
     } catch {
-      // Parent table isn't account-scoped (or doesn't exist) — can't verify
-      // ownership here; fall through rather than block platform-level content.
-      return null;
+      return restError(503, 'Parent ownership verification unavailable', 'xref_parent_verification_unavailable');
     }
   }
 
@@ -5818,39 +7230,48 @@ function makeXrefHandlers(tableName: string, fkColumn: string, parentTable?: str
 }
 
 // Public (no-auth) xref list — used by Magazine / Learn / Consult colophons.
-// Always scoped to the platform-owner (Bali) account, same as the legacy
-// `/api/products/public` alias. Returns only PUBLIC_FIELDS — no cost, no
-// vendor, no sourcing references. Network-level content (articles, modules,
-// projects) is platform-wide, so the colophon always reads from Bali.
-function makePublicXrefHandler(tableName: string, fkColumn: string): Handler {
+// Article links derive their product tenant from the published article itself;
+// legacy module/project links retain the platform catalog compatibility scope.
+// Every response is projected through PUBLIC_FIELDS.
+function makePublicXrefHandler(tableName: string, fkColumn: string, sourceTable?: 'articles'): Handler {
   return async (_request, env, params) => {
     const id = params.id;
+    const sourceJoin = sourceTable
+      ? `JOIN ${sourceTable} source ON source.id = xr.${fkColumn} AND source.status = 'published'`
+      : '';
+    const accountPredicate = sourceTable ? 'p.account_id = source.account_id' : 'p.account_id = ?';
+    const productStatement = env.DB.prepare(
+      `SELECT p.id, p.type, p.given_name, p.chinese_name, p.product_name, p.year,
+              public_account.slug AS account_slug,
+              '/shop/product/' || p.id || '?store=' || public_account.slug AS public_path,
+              p.origin_country, p.origin_region, p.stock_grams, p.description,
+              p.tasting_notes, p.image_url, p.additional_images, p.status,
+              p.is_personal, p.can_reorder, p.is_curated, p.lore,
+              p.show_wisdom, p.processing_notes, p.terroir, p.mood, p.experience,
+              p.cost_amount, p.cost_currency, p.quantity_purchased,
+              p.shipping_rate_per_kg, p.fixed_retail_price_usd,
+              p.material, p.capacity_ml, p.teaware_category, p.quantity_units, p.tasting, p.tasting_source,
+              (SELECT COUNT(*) > 0 FROM collection_items ci2
+                 JOIN collections c2 ON c2.id = ci2.collection_id
+                 JOIN collection_publications cp2 ON cp2.collection_id = c2.id
+                WHERE ci2.product_id = p.id
+                  AND cp2.target_type = 'shop'
+                  AND cp2.unpublished_at IS NULL) AS is_featured
+       FROM ${tableName} xr
+       ${sourceJoin}
+       JOIN products p ON xr.product_id = p.id
+       JOIN accounts public_account ON public_account.id = p.account_id
+         AND public_account.status = 'active' AND public_account.public_enabled = 1
+       WHERE xr.${fkColumn} = ?
+         AND ${accountPredicate}
+         AND p.is_public = 1
+         AND p.shown_in_shop = 1
+         AND p.status = 'Active'
+       ORDER BY xr.created_at DESC`
+    );
     const [ratesResult, result] = await env.DB.batch([
       env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates'),
-      env.DB.prepare(
-        `SELECT p.id, p.type, p.given_name, p.chinese_name, p.product_name, p.year,
-                p.origin_country, p.origin_region, p.stock_grams, p.description,
-                p.tasting_notes, p.image_url, p.additional_images, p.status,
-                p.is_personal, p.can_reorder, p.is_curated, p.lore,
-                p.show_wisdom, p.processing_notes, p.terroir, p.mood, p.experience,
-                p.cost_amount, p.cost_currency, p.quantity_purchased,
-                p.shipping_rate_per_kg, p.fixed_retail_price_usd,
-                p.material, p.capacity_ml, p.teaware_category, p.quantity_units, p.tasting, p.tasting_source,
-                (SELECT COUNT(*) > 0 FROM collection_items ci2
-                   JOIN collections c2 ON c2.id = ci2.collection_id
-                   JOIN collection_publications cp2 ON cp2.collection_id = c2.id
-                  WHERE ci2.product_id = p.id
-                    AND cp2.target_type = 'shop'
-                    AND cp2.unpublished_at IS NULL) AS is_featured
-         FROM ${tableName} xr
-         JOIN products p ON xr.product_id = p.id
-         WHERE xr.${fkColumn} = ?
-           AND p.account_id = ?
-           AND p.is_public = 1
-           AND p.shown_in_shop = 1
-           AND p.status = 'Active'
-         ORDER BY xr.created_at DESC`
-      ).bind(id, BALI_ACCOUNT_ID),
+      sourceTable ? productStatement.bind(id) : productStatement.bind(id, BALI_ACCOUNT_ID),
     ]);
     const rates = new Map<string, number>();
     for (const r of ratesResult.results as any[]) {
@@ -5871,11 +7292,35 @@ function makePublicXrefHandler(tableName: string, fkColumn: string): Handler {
       for (const key of PUBLIC_FIELDS) {
         if (key in withPricing) safe[key] = (withPricing as Record<string, unknown>)[key];
       }
+      safe.account_slug = p.account_slug;
+      safe.public_path = p.public_path;
       return safe;
     });
     return cachedJson(products, 60);
   };
 }
+
+const handleGetPublicProductArticles: Handler = async (_request, env, params) => {
+  const product = await env.DB.prepare(
+    `SELECT p.id FROM products p JOIN accounts account ON account.id = p.account_id
+      WHERE p.id = ? AND p.status = 'Active' AND p.is_public = 1 AND p.shown_in_shop = 1
+        AND account.status = 'active' AND account.public_enabled = 1`
+  ).bind(params.productId).first();
+  if (!product) return json([]);
+  const rows = await env.DB.prepare(
+    `SELECT article.id, article.slug, article.title, article.subtitle,
+            CASE WHEN contributor.id IS NOT NULL THEN contributor.display_name
+                 WHEN NOT EXISTS (SELECT 1 FROM contributors hidden WHERE hidden.id = article.author_id)
+                 THEN author_user.name ELSE NULL END AS author_name
+       FROM article_products xref
+       JOIN articles article ON article.id = xref.article_id AND article.status = 'published'
+       LEFT JOIN contributors contributor ON contributor.id = article.author_id AND contributor.is_published = 1
+       LEFT JOIN users author_user ON author_user.id = article.author_id
+      WHERE xref.product_id = ?
+      ORDER BY article.published_at DESC, article.title`
+  ).bind(params.productId).all();
+  return cachedJson(rows.results ?? [], 60);
+};
 
 const articleProductXref = makeXrefHandlers('article_products', 'article_id', 'articles');
 const moduleProductXref = makeXrefHandlers('module_products', 'module_id', 'modules');
@@ -6527,6 +7972,43 @@ const handleUploadImage: Handler = async (request, env) => {
   const publicUrl = `https://media.teajia.co/${key}?v=${Date.now()}`;
 
   return json({ url: publicUrl, key }, 201);
+};
+
+const handleUploadMyProfileImage: Handler = async (request, env) => {
+  const owned = await requireOwnContributor(request, env);
+  if ('error' in owned) return owned.error;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${owned.ctx.userId}:profile-image`);
+  if (limited) return limited;
+  if (!env.MEDIA_BUCKET) return json({ error: 'R2 media bucket not configured' }, 503);
+  if (!(request.headers.get('Content-Type') || '').includes('multipart/form-data')) {
+    return json({ error: 'Expected multipart/form-data' }, 400);
+  }
+  const preReadError = validateContentLength(request, MAX_IMAGE_BYTES);
+  if (preReadError) return preReadError;
+  const formData = await request.formData();
+  const file = formData.get('file') as File | null;
+  if (!file) return json({ error: 'No file provided' }, 400);
+  const fileError = await validateUpload(file, 'image', MAX_IMAGE_BYTES);
+  if (fileError) return fileError;
+  const slot = formData.get('slot') === 'avatar' ? 'avatar' : 'portrait';
+  const ext = safeUploadExtension(file.type);
+  // Pending media must use an immutable versioned key. Reusing the live key
+  // would replace the public object before a reviewer approves its new URL.
+  const key = `people/${owned.contributor.id}/drafts/${crypto.randomUUID()}-${slot}.${ext}`;
+  await env.MEDIA_BUCKET.put(key, file.stream(), { httpMetadata: { contentType: file.type || 'image/jpeg' } });
+  const publicUrl = `https://media.teajia.co/${key}?v=${Date.now()}`;
+  const field = slot === 'avatar' ? 'avatar_url' : 'portrait_url';
+  const existingDraft = await env.DB.prepare(
+    'SELECT payload, approval_status FROM contributor_profile_drafts WHERE contributor_id = ?'
+  ).bind(owned.contributor.id).first<Record<string, any>>();
+  const pendingValues = existingDraft?.approval_status !== 'approved'
+    ? parseStoredProfileDraft(existingDraft?.payload)
+    : {};
+  await buildProfileDraftStatement(env, owned.contributor.id as string, owned.ctx.userId, {
+    ...pendingValues,
+    [field]: publicUrl,
+  }).run();
+  return json({ url: publicUrl, key, slot, approval_state: 'pending' }, 201);
 };
 
 // ── Story photos ──
@@ -9410,7 +10892,11 @@ const handleGetPublicShelf: Handler = async (_request, env, params) => {
   const slug = normalizeShelfSlug(params.slug);
   if (!slug) return json({ error: 'Not found' }, 404);
   const seller = await env.DB.prepare(
-    'SELECT id, name, shelf_enabled, shelf_title, shelf_whatsapp FROM users WHERE shelf_slug = ?'
+    `SELECT u.id, u.name, u.shelf_enabled, u.shelf_title, u.shelf_whatsapp,
+            contributor.id AS contributor_slug
+       FROM users u
+       LEFT JOIN contributors contributor ON contributor.user_id = u.id AND contributor.is_published = 1
+      WHERE u.shelf_slug = ?`
   ).bind(slug).first() as any;
   if (!seller || !seller.shelf_enabled) return json({ error: 'Shelf not found' }, 404);
   const { results } = await env.DB.prepare(
@@ -9423,6 +10909,7 @@ const handleGetPublicShelf: Handler = async (_request, env, params) => {
     slug,
     title: seller.shelf_title ?? null,
     seller_name: seller.name ?? null,
+    ...(seller.contributor_slug ? { contributor_slug: seller.contributor_slug } : {}),
     whatsapp: seller.shelf_whatsapp ?? null,
     items: (results as any[]).map(r => ({
       id: r.id,
@@ -14005,7 +15492,7 @@ const handlePlatformListAccounts: Handler = async (request, env) => {
   if (authErr) return authErr;
 
   const { results: accounts } = await env.DB.prepare(
-    `SELECT a.id, a.slug, a.name, a.location_city, a.location_country,
+    `SELECT a.id, a.slug, a.name, a.kind, a.location_city, a.location_country,
             a.is_platform_owner, a.public_enabled, a.status, a.trust_tier, a.created_at,
             COUNT(am.user_id) as member_count
      FROM accounts a
@@ -16457,8 +17944,14 @@ async function validateArticleContributors(env: Env, accountId: string, input: {
   const pullQuoteSubject = typeof input.pull_quote_subject === 'string' && input.pull_quote_subject.trim() ? input.pull_quote_subject.trim() : null;
   const ids = [...new Set([...(subjectIds ?? []), ...(pullQuoteSubject ? [pullQuoteSubject] : []), ...(authorId && authorId !== legacyAuthor ? [authorId] : [])])];
   for (const id of ids) {
-    const contributor = await env.DB.prepare('SELECT id FROM contributors WHERE id = ? AND account_id = ?').bind(id, accountId).first();
-    if (!contributor) return { error: json({ error: 'Contributor not found in this account' }, 400) };
+    const stewarded = await env.DB.prepare('SELECT id FROM contributors WHERE id = ? AND account_id = ?')
+      .bind(id, accountId).first();
+    const contributor = stewarded || await env.DB.prepare(
+      `SELECT c.id FROM contributors c
+         JOIN contributor_accounts ca ON ca.contributor_id = c.id
+        WHERE c.id = ? AND ca.account_id = ?`
+    ).bind(id, accountId).first();
+    if (!contributor) return { error: json({ error: 'Contributor is not associated with this account' }, 400) };
   }
   return { authorId, subjectIds, pullQuoteSubject };
 }
@@ -16485,7 +17978,7 @@ const handleListArticles: Handler = async (request, env) => {
             COALESCE(c.display_name, u.name) AS author_name,
             substr(json_extract(blocks, '$[0].text'), 1, 120) AS blocks_preview
      FROM articles a
-     LEFT JOIN contributors c ON c.id = a.author_id AND c.account_id = a.account_id
+     LEFT JOIN contributors c ON c.id = a.author_id
      LEFT JOIN users u ON u.id = a.author_id
      WHERE a.account_id = ? ${statusClause.replace(/status/g, 'a.status')}
      ORDER BY a.updated_at DESC`
@@ -16671,11 +18164,15 @@ const handleGetPublicArticles: Handler = async (request, env) => {
   const offset = clampOffset(url.searchParams.get('offset'));
 
   const rows = await env.DB.prepare(
-    `SELECT a.id, a.account_id, a.title, a.subtitle, a.author_id, a.slug, a.status, a.category, a.tags,
+    `SELECT a.id, a.title, a.subtitle,
+            CASE WHEN c.id IS NOT NULL THEN a.author_id ELSE NULL END AS author_id,
+            a.slug, a.status, a.category, a.tags,
             a.cover_image_url, a.layout_template, a.reading_time_mins, a.published_at, a.created_at, a.updated_at,
-            COALESCE(c.display_name, u.name) AS author_name
+            CASE WHEN c.id IS NOT NULL THEN c.display_name
+                 WHEN NOT EXISTS (SELECT 1 FROM contributors hidden_c WHERE hidden_c.id = a.author_id) THEN u.name
+                 ELSE NULL END AS author_name
      FROM articles a
-     LEFT JOIN contributors c ON c.id = a.author_id AND c.account_id = a.account_id
+     LEFT JOIN contributors c ON c.id = a.author_id AND c.is_published = 1
      LEFT JOIN users u ON u.id = a.author_id
      WHERE a.status = 'published'
      ORDER BY a.published_at DESC
@@ -16691,9 +18188,24 @@ const handleGetPublicArticles: Handler = async (request, env) => {
 
 const handleGetPublicArticle: Handler = async (request, env, params) => {
   const row = await env.DB.prepare(
-    `SELECT a.*, COALESCE(c.display_name, u.name) AS author_name
+    `SELECT a.id, a.title, a.subtitle,
+            CASE WHEN c.id IS NOT NULL THEN a.author_id ELSE NULL END AS author_id,
+            a.slug, a.status, a.category, a.tags, a.cover_image_url, a.blocks,
+            a.layout_template, a.reading_time_mins, a.published_at, a.created_at, a.updated_at,
+            COALESCE((
+              SELECT json_group_array(subject.value)
+              FROM json_each(CASE WHEN json_valid(a.subject_ids) THEN a.subject_ids ELSE '[]' END) subject
+              JOIN contributors subject_contributor ON subject_contributor.id = subject.value
+                AND subject_contributor.is_published = 1
+            ), '[]') AS subject_ids,
+            a.pull_quote,
+            CASE WHEN pull_subject.id IS NOT NULL THEN a.pull_quote_subject ELSE NULL END AS pull_quote_subject,
+            CASE WHEN c.id IS NOT NULL THEN c.display_name
+                 WHEN NOT EXISTS (SELECT 1 FROM contributors hidden_c WHERE hidden_c.id = a.author_id) THEN u.name
+                 ELSE NULL END AS author_name
        FROM articles a
-       LEFT JOIN contributors c ON c.id = a.author_id AND c.account_id = a.account_id
+       LEFT JOIN contributors c ON c.id = a.author_id AND c.is_published = 1
+       LEFT JOIN contributors pull_subject ON pull_subject.id = a.pull_quote_subject AND pull_subject.is_published = 1
        LEFT JOIN users u ON u.id = a.author_id
       WHERE a.slug = ? AND a.status = 'published'`
   ).bind(params.slug).first() as Record<string, any> | null;
@@ -16717,6 +18229,49 @@ const handleListPublicContributors: Handler = async (request, env) => {
 
   return json({ contributors: rows.results ?? [] });
 };
+
+async function publicPaymentAvailability(env: Env, contributorId: string): Promise<{
+  hasAnyMethod: boolean;
+  accounts: Array<{ slug: string; name: string }>;
+}> {
+  const [anyMethod, accountResult] = await Promise.all([
+    env.DB.prepare(
+      `SELECT 1
+         FROM payment_methods pm
+        WHERE pm.contributor_id = ? AND pm.is_published = 1
+          AND (
+            pm.account_id IS NULL OR EXISTS (
+              SELECT 1
+                FROM contributor_accounts ca
+                JOIN accounts a ON a.id = ca.account_id
+               WHERE ca.contributor_id = pm.contributor_id
+                 AND ca.account_id = pm.account_id
+                 AND a.public_enabled = 1 AND a.status = 'active'
+            )
+          )
+        LIMIT 1`
+    ).bind(contributorId).first(),
+    env.DB.prepare(
+      `SELECT DISTINCT a.slug, a.name, ca.display_order
+         FROM contributor_accounts ca
+         JOIN accounts a ON a.id = ca.account_id
+         JOIN payment_methods pm
+           ON pm.contributor_id = ca.contributor_id
+          AND pm.account_id = ca.account_id
+          AND pm.is_published = 1
+        WHERE ca.contributor_id = ?
+          AND a.public_enabled = 1 AND a.status = 'active'
+        ORDER BY ca.display_order, a.name, a.slug`
+    ).bind(contributorId).all(),
+  ]);
+  return {
+    hasAnyMethod: Boolean(anyMethod),
+    accounts: (accountResult.results as Array<Record<string, any>>).map(account => ({
+      slug: account.slug as string,
+      name: account.name as string,
+    })),
+  };
+}
 
 const handleGetPublicContributor: Handler = async (request, env, params) => {
   const slug = params.slug;
@@ -16756,21 +18311,38 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
      LIMIT 12`
   ).bind(subjectMatch).all();
 
-  let hostAccount: Record<string, any> | null = null;
-  if (row.face_of_account_id) {
-    hostAccount = await env.DB.prepare(
-      `SELECT id, slug, name, tagline, public_shop_path, location_city, location_country
-       FROM accounts
-       WHERE id = ? AND public_enabled = 1`
-    ).bind(row.face_of_account_id).first() as Record<string, any> | null;
-  }
+  const hostAccount = await env.DB.prepare(
+    `SELECT a.id, a.slug, a.name, a.tagline, a.public_shop_path, a.location_city, a.location_country
+       FROM contributor_accounts ca JOIN accounts a ON a.id = ca.account_id
+      WHERE ca.contributor_id = ? AND ca.is_host = 1
+        AND a.kind = 'master' AND a.public_enabled = 1 AND a.status = 'active'
+      ORDER BY ca.display_order, a.name LIMIT 1`
+  ).bind(slug).first() as Record<string, any> | null;
 
   const productsRes = await env.DB.prepare(
-    `SELECT id, product_name, given_name, chinese_name, image_url, sourced_by, roasted_by, vouched_by
-     FROM products
-     WHERE sourced_by = ? OR roasted_by = ? OR vouched_by = ?
-     LIMIT 24`
-  ).bind(slug, slug, slug).all();
+    `SELECT DISTINCT p.id, p.product_name, p.given_name, p.chinese_name, p.image_url,
+            a.slug AS account_slug,
+            '/shop/product/' || p.id || '?store=' || a.slug AS public_path
+       FROM contributor_accounts ca
+       JOIN accounts a ON a.id = ca.account_id
+       JOIN product_listings pl ON pl.account_id = ca.account_id
+       JOIN products p ON p.id = pl.legacy_product_id AND p.account_id = pl.account_id
+      WHERE ca.contributor_id = ? AND ca.is_host = 1
+        AND a.kind = 'master' AND a.status = 'active' AND a.public_enabled = 1
+        AND pl.status = 'active' AND pl.is_public = 1 AND pl.shown_in_shop = 1
+        AND p.status = 'Active' AND p.is_public = 1 AND p.shown_in_shop = 1
+      ORDER BY ca.display_order, pl.updated_at DESC, p.product_name
+      LIMIT 24`
+  ).bind(slug).all();
+
+  const associationsRes = await env.DB.prepare(
+    `SELECT a.id AS account_id, a.slug, a.name, a.kind AS account_kind,
+            a.tagline, a.public_shop_path, a.location_city, a.location_country,
+            ca.public_role, ca.is_host, ca.display_order
+       FROM contributor_accounts ca JOIN accounts a ON a.id = ca.account_id
+      WHERE ca.contributor_id = ? AND a.public_enabled = 1 AND a.status = 'active'
+      ORDER BY ca.display_order, a.name`
+  ).bind(slug).all();
 
   let seasonalLine: string | null = null;
   if (row.location_line) {
@@ -16791,15 +18363,136 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
     if (seasonalRow) seasonalLine = seasonalRow.line as string;
   }
 
+  let publicLanguages: unknown = [];
+  try { publicLanguages = row.languages ? JSON.parse(row.languages as string) : []; } catch { publicLanguages = []; }
+  let publicLinks: unknown[] = [];
+  try { publicLinks = row.links ? JSON.parse(row.links as string) : []; } catch { publicLinks = []; }
+
+  const [publicShelf, paymentAvailability] = await Promise.all([
+    verifiedShelfSlug(env, row.user_id as string | null),
+    publicPaymentAvailability(env, slug),
+  ]);
+
   return json({
-    ...row,
-    links: row.links ? JSON.parse(row.links as string) : [],
+    id: row.id,
+    display_name: row.display_name,
+    chinese_name: row.chinese_name ?? null,
+    role: row.role ?? null,
+    pronouns: row.pronouns ?? null,
+    location_line: row.location_line ?? null,
+    active_since: row.active_since ?? null,
+    beginnings: row.beginnings ?? null,
+    now_text: row.now_text ?? null,
+    now_stamp: row.now_stamp ?? null,
+    now_updated_at: row.now_updated_at ?? null,
+    inspirations: row.inspirations ?? null,
+    closing: row.closing ?? null,
+    avatar_url: row.avatar_url ?? null,
+    portrait_url: row.portrait_url ?? null,
+    portrait_caption: row.portrait_caption ?? null,
+    voice_clip_url: row.voice_clip_url ?? null,
+    voice_clip_caption: row.voice_clip_caption ?? null,
+    pouring_today_product_id: row.pouring_today_product_id ?? null,
+    pouring_today_note: row.pouring_today_note ?? null,
+    where_to_find_text: row.where_to_find_text ?? null,
+    links: publicLinks,
+    languages: normalizeLanguages(publicLanguages),
+    is_published: 1,
+    contributor_slug: row.id,
+    ...(publicShelf ? { shelf_slug: publicShelf } : {}),
     articles: articlesRes.results ?? [],
     pull_quotes: pullQuotesRes.results ?? [],
     featured_in: featuredInRes.results ?? [],
     products: productsRes.results ?? [],
+    accounts: associationsRes.results ?? [],
     host_account: hostAccount,
+    has_payment_methods: paymentAvailability.hasAnyMethod,
+    payment_accounts: paymentAvailability.accounts,
     seasonal_line: seasonalLine,
+  });
+};
+
+const handleGetPublicProfileFavorites: Handler = async (_request, env, params) => {
+  const contributor = await env.DB.prepare('SELECT id FROM contributors WHERE id = ? AND is_published = 1')
+    .bind(params.slug).first();
+  if (!contributor) return json({ error: 'Contributor not found' }, 404);
+  const rows = await env.DB.prepare(
+    `WITH eligible_favorites AS (
+       SELECT pf.tea_profile_id, pf.note, pf.position AS favorite_position, pf.created_at,
+              tp.slug, tp.name, tp.chinese_name, tp.type, tp.form, tp.origin_country,
+              tp.origin_region, tp.varietal, tp.harvest_year, tp.description, tp.image_url,
+              a.slug AS source_account_slug, a.name AS source_account_name,
+              '/shop/product/' || pl.legacy_product_id || '?store=' || a.slug AS public_path,
+              ROW_NUMBER() OVER (
+                PARTITION BY pf.contributor_id, pf.tea_profile_id
+                ORDER BY CASE
+                  WHEN pl.account_id = pf.source_account_id
+                    AND (pl.id = pf.source_listing_id OR pl.legacy_product_id = pf.source_product_id)
+                  THEN 0 ELSE 1 END,
+                  pl.is_curated DESC, pl.updated_at DESC, pl.id
+              ) AS listing_rank
+         FROM profile_favorites pf
+         JOIN tea_profiles tp ON tp.id = pf.tea_profile_id
+         JOIN product_listings pl ON pl.profile_id = pf.tea_profile_id
+         JOIN accounts a ON a.id = pl.account_id
+         JOIN products p ON p.id = pl.legacy_product_id AND p.account_id = pl.account_id
+        WHERE pf.contributor_id = ?
+          AND pf.is_public = 1
+          AND tp.network_visible = 1
+          AND tp.status = 'published'
+          AND pl.status = 'active' AND pl.is_public = 1 AND pl.shown_in_shop = 1
+          AND pl.legacy_product_id IS NOT NULL
+          AND p.status = 'Active' AND p.is_public = 1 AND p.shown_in_shop = 1
+          AND a.public_enabled = 1 AND a.status = 'active'
+     ), chosen AS (
+       SELECT * FROM eligible_favorites WHERE listing_rank = 1
+     )
+     SELECT tea_profile_id, note,
+            ROW_NUMBER() OVER (ORDER BY favorite_position, created_at) - 1 AS position,
+            slug, name, chinese_name, type, form, origin_country, origin_region,
+            varietal, harvest_year, description, image_url,
+            source_account_slug, source_account_name, public_path
+       FROM chosen
+      ORDER BY favorite_position, created_at`
+  ).bind(params.slug).all();
+  return cachedJson({ favorites: rows.results ?? [] }, 60);
+};
+
+const handleGetPublicPaymentMethods: Handler = async (request, env, params) => {
+  const contributor = await env.DB.prepare('SELECT id, display_name, portrait_url, avatar_url FROM contributors WHERE id = ? AND is_published = 1')
+    .bind(params.slug).first<Record<string, any>>();
+  if (!contributor) return json({ error: 'Contributor not found' }, 404);
+  const url = new URL(request.url);
+  const accountSlug = url.searchParams.get('account')?.trim() || url.searchParams.get('store')?.trim() || null;
+  let account: Record<string, any> | null = null;
+  if (accountSlug) {
+    account = await env.DB.prepare(
+      `SELECT a.id, a.slug, a.name
+         FROM contributor_accounts ca JOIN accounts a ON a.id = ca.account_id
+        WHERE ca.contributor_id = ? AND a.slug = ? AND a.public_enabled = 1 AND a.status = 'active'`
+    ).bind(params.slug, accountSlug).first<Record<string, any>>();
+    if (!account) return json({ error: 'Store is not available for this profile' }, 404);
+  }
+  const [rows, paymentAvailability] = await Promise.all([
+    env.DB.prepare(
+      `SELECT id, contributor_id, account_id, method_type, label, recipient_name,
+              account_identifier, instructions, external_url, qr_image_url, position, is_published
+         FROM payment_methods WHERE contributor_id = ? AND is_published = 1
+        ORDER BY position, label`
+    ).bind(params.slug).all(),
+    publicPaymentAvailability(env, params.slug),
+  ]);
+  const selectedPaymentRows = resolvePublishedPaymentMethods(rows.results as unknown as PaymentMethodRow[], account?.id ?? null);
+  const methods = selectedPaymentRows.map(projectPublicPaymentMethod);
+  const context = parsePublicPaymentContext(url.searchParams);
+  return json({
+    contributor: { id: contributor.id, display_name: contributor.display_name, portrait_url: contributor.portrait_url || contributor.avatar_url || null },
+    store: account ? { slug: account.slug, name: account.name } : null,
+    resolution: account && selectedPaymentRows.some(method => method.account_id === account!.id) ? 'account' : 'default',
+    has_any_method: paymentAvailability.hasAnyMethod,
+    available_accounts: paymentAvailability.accounts,
+    payment_methods: methods,
+    context: { ...context, display_only: true },
   });
 };
 
@@ -20676,9 +22369,10 @@ const routes: [string, string, Handler][] = [
   // Public xref (Magazine / Learn / Consult colophons)
   // No-auth reads of article/module/project → product links, scoped to the
   // platform-owner (Bali) account and returning PUBLIC_FIELDS only.
-  ['GET', '/api/public/xref/articles/:id/products', makePublicXrefHandler('article_products', 'article_id')],
+  ['GET', '/api/public/xref/articles/:id/products', makePublicXrefHandler('article_products', 'article_id', 'articles')],
   ['GET', '/api/public/xref/modules/:id/products', makePublicXrefHandler('module_products', 'module_id')],
   ['GET', '/api/public/xref/projects/:id/products', makePublicXrefHandler('project_products', 'project_id')],
+  ['GET', '/api/public/xref/products/:productId/articles', handleGetPublicProductArticles],
 
   // User Management (admin/owner)
   ['GET', '/api/admin/users', handleListUsers],
@@ -20696,6 +22390,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/products/public/:id', handleGetPublicProduct],
   ['GET', '/sitemap-products.xml', handleProductSitemap],
   ['GET', '/api/products', handleGetProducts],
+  ['GET', '/api/inventory/summaries', handleGetInventorySummaries],
   ['POST', '/api/products', handleCreateProduct],
   ['POST', '/api/products/bulk', handleBulkCreateProducts],
   ['PUT', '/api/products/:id/catalog', handleUpdateProductCatalog],
@@ -20741,7 +22436,10 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/admin/contributors/:id', handleUpdateAdminContributor],
   ['POST', '/api/admin/contributors/:id/publish', setAdminContributorPublication(true)],
   ['POST', '/api/admin/contributors/:id/unpublish', setAdminContributorPublication(false)],
+  ['POST', '/api/admin/contributors/:id/request-changes', handleRequestContributorChanges],
   ['PUT', '/api/admin/contributors/:id/contact', handlePutAdminContributorContact],
+  ['GET', '/api/admin/contributors/:id/accounts', handleGetContributorAccounts],
+  ['PUT', '/api/admin/contributors/:id/accounts', handlePutContributorAccounts],
   ['GET', '/api/customers', handleGetCustomers],
   ['GET', '/api/customers/:id', handleGetCustomer],
   ['GET', '/api/customers/:id/relationships', handleGetCustomerRelationships],
@@ -20838,6 +22536,7 @@ const routes: [string, string, Handler][] = [
 
   // Image Upload
   ['POST', '/api/upload-image', handleUploadImage],
+  ['POST', '/api/me/public-profile/image', handleUploadMyProfileImage],
 
   // Story photos (hand-built Read pages: drag-drop + crop per frame)
   ['GET', '/api/story-photos/:slug', handleGetStoryPhotos],
@@ -21084,6 +22783,14 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/admin/sample-sets/:id', handleUpdateSampleSet],
   ['DELETE', '/api/admin/sample-sets/:id', handleDeleteSampleSet],
 
+  // Wisdom editorial relations
+  ['GET', '/api/admin/wisdom/relations', handleGetAdminWisdomRelations],
+  ['POST', '/api/admin/wisdom/relations', handleCreateAdminWisdomRelation],
+  ['PUT', '/api/admin/wisdom/relations/:id', handleUpdateAdminWisdomRelation],
+  ['DELETE', '/api/admin/wisdom/relations/:id', handleDeleteAdminWisdomRelation],
+  ['PUT', '/api/admin/wisdom/nodes/:nodeType/:nodeId', handlePutAdminWisdomNode],
+  ['GET', '/api/admin/wisdom/findings', handleGetAdminWisdomFindings],
+
   // Article ↔ Product cross-references
   ['GET', '/api/xref/articles/:id/products', articleProductXref.list],
   ['POST', '/api/xref/articles/:id/products', articleProductXref.link],
@@ -21106,6 +22813,18 @@ const routes: [string, string, Handler][] = [
 
   // Me / Profile
   ['GET', '/api/me/profile', handleGetMyProfile],
+  ['GET', '/api/me/public-profile', handleGetMyPublicProfile],
+  ['PUT', '/api/me/public-profile', handlePutMyPublicProfile],
+  ['POST', '/api/me/public-profile/unpublish', handleUnpublishMyPublicProfile],
+  ['GET', '/api/me/profile/favorites', handleListMyProfileFavorites],
+  ['POST', '/api/me/profile/favorites', handleCreateMyProfileFavorite],
+  ['PUT', '/api/me/profile/favorites/order', handleOrderMyProfileFavorites],
+  ['PUT', '/api/me/profile/favorites/:teaProfileId', handleUpdateMyProfileFavorite],
+  ['DELETE', '/api/me/profile/favorites/:teaProfileId', handleDeleteMyProfileFavorite],
+  ['GET', '/api/me/profile/payment-methods', handleListMyPaymentMethods],
+  ['POST', '/api/me/profile/payment-methods', handleCreateMyPaymentMethod],
+  ['PUT', '/api/me/profile/payment-methods/:id', handleUpdateMyPaymentMethod],
+  ['DELETE', '/api/me/profile/payment-methods/:id', handleDeleteMyPaymentMethod],
   ['GET', '/api/me/queue', handleGetMyQueue],
   ['GET', '/api/me/wishlist', handleGetMyWishlist],
   ['GET', '/api/me/journey', handleGetMyJourney],
@@ -21153,6 +22872,11 @@ const routes: [string, string, Handler][] = [
   // Contributors — Public
   ['GET', '/api/people',         handleListPublicContributors],
   ['GET', '/api/people/:slug',   handleGetPublicContributor],
+  ['GET', '/api/public/people/:slug/favorites', handleGetPublicProfileFavorites],
+  ['GET', '/api/public/people/:slug/payment-methods', handleGetPublicPaymentMethods],
+  ['GET', '/api/public/wisdom/states', handleGetPublicWisdomStates],
+  ['GET', '/api/public/wisdom/:nodeType/:nodeId/related', handleGetPublicWisdomRelated],
+  ['GET', '/api/public/wisdom/:nodeType/:nodeId/state', handleGetPublicWisdomState],
 
   // Articles — Admin
   ['GET',    '/api/admin/articles',                    handleListArticles],

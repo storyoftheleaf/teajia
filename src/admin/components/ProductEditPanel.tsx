@@ -961,6 +961,8 @@ export interface ProductEditPanelProps {
   onShowStorePreview?: (product: Product) => void;
   /** Opens movement-first stock entry instead of directly overwriting stock. */
   onOpenStockMovement?: (product: Product, trigger: HTMLElement) => void;
+  /** False when this holding is not yet eligible for public shop visibility. */
+  canPublish?: boolean;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -981,6 +983,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   rightOffset = 0,
   onShowStorePreview,
   onOpenStockMovement,
+  canPublish = true,
 }) => {
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -1356,7 +1359,16 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   pill icons + names speak for themselves. Ordered by frequency
                   of use: visibility → promotion → classification. */}
             <div className="px-3 pb-3 flex flex-wrap gap-1.5">
-              <button onClick={() => handleUpdate(product.id, 'isPublic', !product.isPublic)} className={`admin-pill ${product.isPublic ? 'admin-pill-on' : ''}`} title={product.isPublic ? 'Visible in shop, click to hide' : 'Hidden, click to show in shop'}>
+              <button
+                onClick={() => { if (product.isPublic || canPublish) handleUpdate(product.id, 'isPublic', !product.isPublic); }}
+                disabled={!product.isPublic && !canPublish}
+                className={`admin-pill ${product.isPublic ? 'admin-pill-on' : ''} ${!product.isPublic && !canPublish ? 'cursor-not-allowed opacity-50' : ''}`}
+                title={product.isPublic
+                  ? 'Visible in shop, click to hide'
+                  : canPublish
+                    ? 'Hidden, click to show in shop'
+                    : 'Arrival status must be ready before publication'}
+              >
                 {product.isPublic ? <Eye size={10} /> : <EyeOff size={10} />} In Shop
               </button>
               {/* Stock spine step 2: the LOCATION OWNER's curation gate, a sibling
@@ -1364,12 +1376,20 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   may flip it; a staff seller sees the held/shown state of their
                   own tea but cannot self-approve it into the shop. */}
               <button
-                onClick={() => { if (isOwnerTier) handleToggleShown(product.id, !product.shownInShop); }}
-                disabled={!isOwnerTier}
-                className={`admin-pill ${product.shownInShop ? 'admin-pill-on' : ''} ${!isOwnerTier ? 'opacity-60 cursor-default' : ''}`}
-                title={isOwnerTier
-                  ? (product.shownInShop ? 'Shown by the owner, click to hold' : 'Held, click to show in this shop')
-                  : (product.shownInShop ? 'Shown in this shop by the owner' : 'Held, only the location owner can show this')}
+                onClick={() => {
+                  if (isOwnerTier && (product.shownInShop || canPublish)) {
+                    handleToggleShown(product.id, !product.shownInShop);
+                  }
+                }}
+                disabled={!isOwnerTier || (!product.shownInShop && !canPublish)}
+                className={`admin-pill ${product.shownInShop ? 'admin-pill-on' : ''} ${!isOwnerTier || (!product.shownInShop && !canPublish) ? 'opacity-60 cursor-not-allowed' : ''}`}
+                title={!isOwnerTier
+                  ? (product.shownInShop ? 'Shown in this shop by the owner' : 'Held, only the location owner can show this')
+                  : product.shownInShop
+                    ? 'Shown by the owner, click to hold'
+                    : canPublish
+                      ? 'Held, click to show in this shop'
+                      : 'Arrival status must be ready before publication'}
               >
                 <Store size={10} /> {product.shownInShop ? 'Shown' : 'Held'}
               </button>

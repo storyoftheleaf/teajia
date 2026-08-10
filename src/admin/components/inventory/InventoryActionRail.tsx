@@ -1,6 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { Pencil, Eye, Star, FlaskConical, Share2, Receipt, Layers, Archive, X as XIcon, Loader2 } from 'lucide-react';
+import { Pencil, Eye, Star, FlaskConical, Share2, Receipt, Layers, Archive, X as XIcon, Loader2, NotebookPen, BookOpen, FilePenLine, Link2 } from 'lucide-react';
 
 /**
  * InventoryActionRail, the ONE surface for acting on selected inventory rows.
@@ -20,10 +20,17 @@ export interface InventoryActionRailProps {
   selectedCount: number;
   isSingle: boolean;
   isBusy: boolean;
+  canPublish: boolean;
   /** Distance from the viewport right edge, in px. Lets the rail tuck against
    *  the spreadsheet while the ProductEditPanel occupies the far edge. */
   rightOffset: number;
   onEdit: () => void;
+  personalTastingLabel: 'Record tasting' | 'Continue tasting';
+  hasPersonalTasting: boolean;
+  onPersonalTasting: () => void;
+  onViewTasting: () => void;
+  onEditProductTasting: () => void;
+  onContentLinks: () => void;
   onPublish: () => void;
   onStar: () => void;
   onSample: () => void;
@@ -38,13 +45,14 @@ const RAIL_WIDTH = 60;
 
 interface RailButtonProps {
   label: string;
+  accessibleLabel?: string;
   onClick: () => void;
   disabled?: boolean;
   variant?: 'default' | 'edit' | 'danger';
   children: React.ReactNode;
 }
 
-const RailButton: React.FC<RailButtonProps> = ({ label, onClick, disabled, variant = 'default', children }) => {
+const RailButton: React.FC<RailButtonProps> = ({ label, accessibleLabel, onClick, disabled, variant = 'default', children }) => {
   const tone =
     variant === 'edit'
       ? 'text-tea-gold-lt bg-tea-gold/10'
@@ -57,7 +65,7 @@ const RailButton: React.FC<RailButtonProps> = ({ label, onClick, disabled, varia
       onClick={onClick}
       disabled={disabled}
       title={label}
-      aria-label={label}
+      aria-label={accessibleLabel ?? label}
       className={`tap-target flex flex-col items-center justify-center gap-1 w-[52px] min-h-[48px] rounded-[10px] px-0.5 py-1.5 transition-colors hover:bg-tea-surface disabled:opacity-40 disabled:cursor-not-allowed ${tone}`}
     >
       {children}
@@ -68,7 +76,10 @@ const RailButton: React.FC<RailButtonProps> = ({ label, onClick, disabled, varia
 
 export const InventoryActionRail: React.FC<InventoryActionRailProps> = ({
   open, selectedCount, isSingle, isBusy, rightOffset,
-  onEdit, onPublish, onStar, onSample, onShare, onInvoice, onCollect, onArchive, onClear,
+  canPublish,
+  personalTastingLabel, hasPersonalTasting,
+  onEdit, onPersonalTasting, onViewTasting, onEditProductTasting, onContentLinks,
+  onPublish, onStar, onSample, onShare, onInvoice, onCollect, onArchive, onClear,
 }) => {
   // Portal to document.body so the rail's `position: fixed` resolves against the
   // viewport, NOT against an ancestor. The admin shell wraps pages in a
@@ -77,7 +88,7 @@ export const InventoryActionRail: React.FC<InventoryActionRailProps> = ({
   // otherwise become the containing block and clip the rail off-screen.
   return createPortal(
     <div
-      className={`fixed top-0 bottom-0 z-drawer flex flex-col items-center bg-tea-bg transition-transform duration-200 ease-out ${open ? 'translate-x-0' : 'translate-x-full'}`}
+      className={`fixed top-0 bottom-0 z-drawer flex flex-col items-center overflow-y-auto bg-tea-bg transition-transform duration-200 ease-out ${open ? 'translate-x-0' : 'translate-x-full'}`}
       style={{
         right: rightOffset,
         width: RAIL_WIDTH,
@@ -104,14 +115,39 @@ export const InventoryActionRail: React.FC<InventoryActionRailProps> = ({
 
       {/* Edit: the ONLY door to the full ProductEditPanel, single-select only */}
       {isSingle && (
-        <RailButton label="Edit" variant="edit" onClick={onEdit}>
-          <Pencil size={19} aria-hidden="true" />
-        </RailButton>
+        <>
+          <RailButton label="Edit" variant="edit" onClick={onEdit}>
+            <Pencil size={19} aria-hidden="true" />
+          </RailButton>
+          <RailButton
+            label={personalTastingLabel === 'Record tasting' ? 'Taste' : 'Continue'}
+            accessibleLabel={personalTastingLabel}
+            onClick={onPersonalTasting}
+          >
+            <NotebookPen size={19} aria-hidden="true" />
+          </RailButton>
+          {hasPersonalTasting && (
+            <RailButton label="Journal" accessibleLabel="View personal tasting" onClick={onViewTasting}>
+              <BookOpen size={19} aria-hidden="true" />
+            </RailButton>
+          )}
+          <RailButton label="Profile" accessibleLabel="Edit product tasting profile" onClick={onEditProductTasting}>
+            <FilePenLine size={19} aria-hidden="true" />
+          </RailButton>
+          <RailButton label="Writing" accessibleLabel="Manage linked writing" onClick={onContentLinks}>
+            <Link2 size={19} aria-hidden="true" />
+          </RailButton>
+        </>
       )}
 
       <div className="h-px bg-tea-border my-1.5" style={{ width: 36 }} />
 
-      <RailButton label="Publish" onClick={onPublish} disabled={isBusy}>
+      <RailButton
+        label="Publish"
+        accessibleLabel={canPublish ? 'Publish selection' : 'Publish unavailable until inventory arrival status is ready'}
+        onClick={onPublish}
+        disabled={isBusy || !canPublish}
+      >
         {isBusy ? <Loader2 size={19} className="animate-spin" aria-hidden="true" /> : <Eye size={19} aria-hidden="true" />}
       </RailButton>
       <RailButton label="Star" onClick={onStar} disabled={isBusy}>

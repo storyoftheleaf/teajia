@@ -6,7 +6,7 @@ import { LogoEmblem } from './Logos';
 import { Section } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../hooks/useAuth';
-import { useAppStore, selectHasBundle } from '../lib/store';
+import { useAppStore, selectHasBundle, selectIsOwnerTier } from '../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 // Phosphor (Light weight), refined hairlines, replaces the generic lucide
 // stock icons in the admin nav. Browse keeps its hand-drawn brand icons.
@@ -18,6 +18,7 @@ import {
 } from '@phosphor-icons/react';
 import { SampleIcon } from './Icons';
 import { useSampleCartStore } from '../samples/sampleCartStore';
+import { ADMIN_CONNECTION_ROUTES, getVisibleAdminItemIds } from './navigationConnections';
 
 const PHOSPHOR_WEIGHT = 'light' as const;
 
@@ -159,7 +160,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   // Reactive subscriptions so they update when memberships hydrate post-mount.
   const hasCatalog = useAppStore(s => selectHasBundle(s, 'catalog'));
   const hasSell = useAppStore(s => selectHasBundle(s, 'sell'));
+  const hasPublish = useAppStore(s => selectHasBundle(s, 'publish'));
   const platformRole = useAppStore(s => s.platformRole);
+  const isOwnerTier = useAppStore(selectIsOwnerTier);
   const canCreateCollections = auth.user?.canCreateCollections ?? false;
   const sampleCount = useSampleCartStore(s => s.items.length);
 
@@ -227,6 +230,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       children: [
         { id: 'activity', path: '/admin/activity', label: 'Activity', icon: <FolderOpen  size={14} weight={PHOSPHOR_WEIGHT} /> },
         { id: 'people',   path: '/admin/people',   label: 'People',   icon: <UsersThree  size={14} weight={PHOSPHOR_WEIGHT} /> },
+        ...(isOwnerTier ? [{ id: 'contributors', path: ADMIN_CONNECTION_ROUTES.teaMasters, label: 'Tea Masters', icon: <UserCheck size={14} weight={PHOSPHOR_WEIGHT} /> }] : []),
       ],
     },
     {
@@ -239,6 +243,11 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       icon: <BookOpen size={18} weight={PHOSPHOR_WEIGHT} />,
       path: '/admin/magazine',
     },
+    ...(auth.isAdmin || hasPublish ? [{
+      id: 'wisdom', label: 'Wisdom',
+      icon: <Compass size={18} weight={PHOSPHOR_WEIGHT} />,
+      path: ADMIN_CONNECTION_ROUTES.wisdom,
+    }] : []),
     // Network, single hub entry. Catalog, suggestions, wholesale, adoptions
     // live inside as tabs. Render only if caller has at least one capability.
     ...(hasCatalog || hasSell || platformRole ? [{
@@ -252,6 +261,12 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       path: '/admin/settings',
     },
   ];
+  const visibleAdminItemIds = new Set(getVisibleAdminItemIds(
+    auth.isAdmin,
+    hasPublish,
+    adminItems.map(item => item.id),
+  ));
+  const visibleAdminItems = adminItems.filter(item => visibleAdminItemIds.has(item.id));
 
   // Admin sub-items auto-reveal when the parent or one of its children is active.
   // No accordion state, avoids the hidden-active-item bug where a user-collapsed
@@ -533,7 +548,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
           {/* ── Admin Nav ─────────────────────────────────────────────────── */}
           <AnimatePresence>
-            {auth.isAuthenticated && auth.isAdmin && (
+            {auth.isAuthenticated && visibleAdminItems.length > 0 && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -550,7 +565,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 <nav
                   className={`flex flex-col gap-0.5 ${collapsed ? 'px-1.5 pt-3 pb-3' : 'px-3 pb-3'}`}
                 >
-                {adminItems.map((item, index) => {
+                {visibleAdminItems.map((item, index) => {
                   const hasChildren = (item.children?.length ?? 0) > 0;
                   const isAnyChildActive = item.children?.some(c => currentPath === c.path) ?? false;
                   const isParentExact = currentPath === item.path;

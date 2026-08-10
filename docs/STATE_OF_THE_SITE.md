@@ -2,11 +2,13 @@
 
 > Concise current snapshot. Product direction lives in [Consolidated Direction](CONSOLIDATED_DIRECTION.md); all human and external launch checks live only in [Launch Validation](LAUNCH_VALIDATION.md).
 
-**Verified:** 2026-07-13 against the launch-to-real-use implementation branch and current repository.
+**Verified:** 2026-08-10 against the Tea Master operating-program branch and current repository.
 
 ## Executive summary
 
-Teajia is a working multi-store tea operating platform, not a foundation waiting to be built. It includes account-scoped inventory and stock movement, inquiry-led commerce, customer order detail, events, Curate, tasting memory, personal Cellar/Favorites/Journal surfaces, a unified D1 article engine, contributor publishing, and more than 40 MCP tools.
+Teajia is a working multi-store tea operating platform, not a foundation waiting to be built. It includes account-scoped inventory and stock movement, inquiry-led commerce, customer order detail, events, Curate, tasting memory, personal Cellar/Favorites/Journal surfaces, a unified D1 article engine, global Tea Master identities, external payment destinations, structured Wisdom relationships, and more than 40 MCP tools.
+
+The Tea Master operating program now treats a Tea Master as one global person with a primary hosted `accounts.kind='master'` operational home. Rayi or Barry's visible store selection belongs to that hosted Tea Master account; guest account associations do not become their selection. Public favorites remain separate cross-network human curation.
 
 Releases 1–3 of the launch-to-real-use program are implemented on the branch and locally verified. Invoice semantics and repair tooling, Read entry routing, email OTP delivery, tenancy-isolation coverage, customer order detail, starred-note curation, event-to-article drafting, personal-tea wiring, China-critical dependency removal, same-origin browser APIs, contact fallback, and contributor publishing are present and tested. Platform hardening now also includes strict frontend null checking, reproducible browser tests, stable REST errors, verified-email identity activation, protected owner invariants, tenant-safe synchronization, domain-scoped product/contact mutations, live MCP authorization, durable and locked provider limits, private retryable transcription, paged recording expiry, bounded `.xlsx` intake, immutable CI action pins, and exact browser origins.
 
@@ -28,6 +30,9 @@ This is distinct from the repaired Read entry paths and live editorial article r
 | Personal tea | Journal, Favorites, and API-backed Cellar are distinct and connected |
 | Events | Event lifecycle and idempotent post-session article drafting implemented |
 | Editorial | Unified article engine, contributor administration, author selection, pull quotes, and public contributor rendering implemented |
+| Tea Masters | Draft-reviewed global profiles, hosted master-account selection, account associations, Public favorites, share links, and payment destinations implemented |
+| Inventory | Lifecycle sections, truthful personal/product tasting separation, writing/incoming facets, exact Journal entry links, and incoming-only publication guards implemented |
+| Wisdom | Typed node relationships, public-state gating, integrity findings, name-first repair, and article/tea reverse links implemented |
 | China readiness | Runtime stock-media dependencies removed; browser APIs centralized/same-origin; contact fallback and service-worker policy implemented |
 | Design system | Semantic tokens, named text scale, tap targets, modal layers, strict null checking, and blocking action-button lint active |
 | Launch | Incomplete until the checks in `LAUNCH_VALIDATION.md` are performed |

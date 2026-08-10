@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, Package } from 'lucide-react';
 import { api, type PublicShelfItem } from '../lib/api';
+import { PublicIdentityLinks } from '../components/profile/PublicIdentityLinks';
 
 // Stock spine step 5: the standalone public shelf at /u/<slug>. A person's
 // private cellar, published with Adrian's permission. Shelf-first: the seller's
@@ -19,7 +20,7 @@ function waLink(whatsapp: string | null, item: PublicShelfItem, sellerName: stri
 const ShelfPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['public-shelf', slug],
     queryFn: () => api.shelf.getPublic(slug!),
     enabled: !!slug,
@@ -40,7 +41,8 @@ const ShelfPage: React.FC = () => {
       <div className="min-h-screen flex flex-col items-center justify-center bg-tea-bg text-center px-6">
         <Package size={32} className="text-tea-text-dim mb-3" />
         <h1 className="font-display text-xl text-tea-text">Shelf not found</h1>
-        <p className="text-ui-14 text-tea-text-sec mt-1">This shelf doesn't exist or isn't public.</p>
+        <p role="alert" className="text-ui-14 text-tea-text-sec mt-1">{error instanceof Error ? error.message : "This shelf doesn't exist or isn't public."}</p>
+        <button type="button" onClick={() => refetch()} className="tap-target mt-4 text-ui-13 text-tea-gold hover:text-tea-gold-lt">Retry</button>
       </div>
     );
   }
@@ -57,6 +59,7 @@ const ShelfPage: React.FC = () => {
           <p className="text-ui-13 text-tea-text-sec mt-2">
             Order directly with the seller over WhatsApp, they fulfil and are paid themselves.
           </p>
+          <PublicIdentityLinks contributorSlug={data.contributor_slug} subjectName={data.seller_name || heading} className="mt-4" />
         </header>
 
         {data.items.length === 0 ? (

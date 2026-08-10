@@ -1,6 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import type { Story } from '../../../types';
+import { Link, useNavigate } from 'react-router-dom';
 import type { ProductEvent } from '../../../hooks/useProductEvents';
 import type { ProductImpression } from '../ProductImpressions';
 import { AlcoveSectionHeading } from './AlcoveSectionHeading';
@@ -8,7 +7,7 @@ import { AlcoveSectionHeading } from './AlcoveSectionHeading';
 interface AlcoveTableSectionProps {
   impressions: ProductImpression[];
   events: ProductEvent[];
-  relatedArticles: Story[];
+  relatedArticles: Array<{ id: string; slug: string; title: string; subtitle?: string | null; author_name?: string | null }>;
   tastingCount: number;
 }
 
@@ -80,17 +79,14 @@ export const AlcoveTableSection: React.FC<AlcoveTableSectionProps> = ({
             );
           })}
           {relatedArticles.map(article => (
-            <button
+            <Link
               key={article.id}
-              type="button"
+              to={`/article/${encodeURIComponent(article.slug)}`}
               className="alcove-row-btn"
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent('openArticle', { detail: { story: article } }));
-              }}
             >
-              <RowText title={article.title} meta="From the journal" />
+              <RowText title={article.title} meta={article.author_name ? `From the journal · ${article.author_name}` : 'From the journal'} />
               <span aria-hidden="true" className="alcove-row-go">→</span>
-            </button>
+            </Link>
           ))}
         </div>
       )}

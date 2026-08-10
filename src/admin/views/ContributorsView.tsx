@@ -47,7 +47,7 @@ export const ContributorsView: React.FC = () => {
             {contributors.map(contributor => (
               <button key={contributor.id} type="button" aria-label={`Edit ${contributor.display_name}`} onClick={() => setSelected(contributor)} className="tap-target group flex w-full items-start justify-between gap-4 py-4 text-left hover:bg-tea-accent-sub sm:px-2">
                 <div className="min-w-0"><p className="text-ui-15 font-medium text-tea-text group-hover:text-tea-gold">{contributor.display_name}</p><p className="mt-1 text-ui-12 text-tea-text-sec">{[contributor.role, contributor.location_line].filter(Boolean).join(' · ') || 'Profile details not yet added'}</p></div>
-                <div className="shrink-0 text-right"><p className="text-ui-11 text-tea-text-sec">{contributor.is_published === 1 ? 'Published' : 'Draft'}</p>{contributor.face_of_account_id && <p className="mt-1 text-ui-10 text-tea-text-dim">Account host</p>}</div>
+                <div className="shrink-0 text-right"><p className="text-ui-11 text-tea-text-sec">{contributor.has_pending_draft ? (contributor.is_published === 1 ? 'Published · review changes' : 'Awaiting review') : contributor.is_published === 1 ? 'Published' : 'Draft'}</p>{contributor.face_of_account_id && <p className="mt-1 text-ui-10 text-tea-text-dim">Account host</p>}</div>
               </button>
             ))}
           </div>

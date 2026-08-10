@@ -22,6 +22,7 @@ import {
   WisdomSubNav,
 } from './wisdomShared';
 import { EntryResearchSection } from './EntryResearchSection';
+import { WisdomPublicStateGate, WisdomRelatedMaterial } from './WisdomRelatedMaterial';
 
 const StylePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -67,6 +68,7 @@ const StylePage: React.FC = () => {
   }
 
   return (
+    <WisdomPublicStateGate identity={{ nodeType: 'style', nodeId: style.id }}>
     <article className={PAGE}>
       <Helmet>
         <title>{`${style.name} · Styles · Teajia`}</title>
@@ -104,10 +106,12 @@ const StylePage: React.FC = () => {
 
       <EntryResearchSection entryKind="style" entryId={style.id} entry={style} />
 
+      <WisdomRelatedMaterial identity={{ nodeType: 'style', nodeId: style.id }} />
       <EntryAuthorship id={style.id} />
 
       <Invitation subject={`Style: ${style.name}`} />
     </article>
+    </WisdomPublicStateGate>
   );
 };
 

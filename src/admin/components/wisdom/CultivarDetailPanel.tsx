@@ -30,6 +30,7 @@ interface Props {
   publicHref?: string;
   /** How many products resolve through this cultivar right now. */
   usage?: WisdomEntryUsage;
+  relationPanel?: React.ReactNode;
 }
 
 /**
@@ -44,7 +45,7 @@ interface Props {
  * a reading measure, because only prose gets harder to read as it gets wider.
  */
 export const CultivarDetailPanel: React.FC<Props> = ({
-  cultivar, onClose, onSelectCultivar, jump, nav, section, run, publicHref, usage,
+  cultivar, onClose, onSelectCultivar, jump, nav, section, run, publicHref, usage, relationPanel,
 }) => {
   const [story, setStory] = useState<CultivarStory | null>(null);
   const [loadingStory, setLoadingStory] = useState(true);
@@ -234,6 +235,7 @@ export const CultivarDetailPanel: React.FC<Props> = ({
               </div>
             )}
           </div>
+          {relationPanel}
         </div>
       </div>
     </Modal>

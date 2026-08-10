@@ -351,6 +351,7 @@ const cultivars = defineHolding<Cultivar>({
       run={ctx.run}
       publicHref={ctx.publicHref}
       usage={ctx.usage}
+      relationPanel={ctx.relationPanel}
     />
   ),
 });

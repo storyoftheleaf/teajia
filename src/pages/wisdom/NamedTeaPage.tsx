@@ -29,6 +29,7 @@ import {
   WisdomSubNav,
 } from './wisdomShared';
 import { EntryResearchSection } from './EntryResearchSection';
+import { WisdomPublicStateGate, WisdomRelatedMaterial } from './WisdomRelatedMaterial';
 
 function provenanceStatement(provenance: 'undisclosed' | 'partial' | 'stated'): string {
   switch (provenance) {
@@ -86,6 +87,7 @@ const NamedTeaPage: React.FC = () => {
   }
 
   return (
+    <WisdomPublicStateGate identity={{ nodeType: 'named_tea', nodeId: tea.id }}>
     <article className={PAGE}>
       <Helmet>
         <title>{`${tea.name} · Named Teas · Teajia`}</title>
@@ -141,10 +143,12 @@ const NamedTeaPage: React.FC = () => {
 
       <EntryResearchSection entryKind="namedTea" entryId={tea.id} entry={tea} />
 
+      <WisdomRelatedMaterial identity={{ nodeType: 'named_tea', nodeId: tea.id }} />
       <EntryAuthorship id={tea.id} />
 
       <Invitation subject={`Named tea: ${tea.name}`} />
     </article>
+    </WisdomPublicStateGate>
   );
 };
 

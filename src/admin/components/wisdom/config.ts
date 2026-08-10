@@ -433,6 +433,8 @@ export interface WisdomPanelCtx {
   publicHref?: string;
   /** How many products resolve through this entry right now. */
   usage?: WisdomEntryUsage;
+  /** Account-backed relationship controls seated inside the existing panel. */
+  relationPanel?: React.ReactNode;
 }
 
 /**

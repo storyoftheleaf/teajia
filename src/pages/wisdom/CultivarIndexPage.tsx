@@ -33,6 +33,7 @@ import {
   WisdomToolbar,
   useCultivarTypes,
 } from './wisdomShared';
+import { buildWisdomCollectionData, usePublicWisdomEntries, WisdomIndexVisibilityNotice } from './publicIndexVisibility';
 
 type View = 'origin' | 'type' | 'alphabetical';
 
@@ -94,8 +95,12 @@ const CultivarIndexPage: React.FC = () => {
   const [view, setView] = useState<View>('origin');
   const [query, setQuery] = useState('');
   const { byId: typesById, loading: typesLoading } = useCultivarTypes();
+  const publicState = usePublicWisdomEntries('cultivar', CULTIVARS);
 
-  const visible = useMemo(() => CULTIVARS.filter(cultivar => matches(cultivar, query)).sort(byName), [query]);
+  const visible = useMemo(
+    () => publicState.entries.filter(cultivar => matches(cultivar, query)).sort(byName),
+    [publicState.entries, query],
+  );
 
   const byCountry = useMemo(() => {
     const map = new Map<string, Cultivar[]>();
@@ -130,25 +135,17 @@ const CultivarIndexPage: React.FC = () => {
     [view, byCountry, byType, byLetter],
   );
 
-  const structuredData = {
-    '@context': 'https://schema.org',
-    '@type': 'CollectionPage',
+  const structuredData = buildWisdomCollectionData({
     name: 'The Tea Plants',
     description:
       'A public reference of tea cultivars: breeding lineage, growing region, and the teas made from each plant.',
-    inLanguage: 'en',
-    isPartOf: { '@type': 'WebSite', name: 'Teajia' },
-    mainEntity: {
-      '@type': 'ItemList',
-      numberOfItems: CULTIVARS.length,
-      itemListElement: CULTIVARS.map((cultivar, index) => ({
-        '@type': 'ListItem',
-        position: index + 1,
-        name: cultivar.name,
-        url: `/wisdom/cultivar/${cultivar.id}`,
-      })),
-    },
-  };
+    entries: publicState.entries,
+    pathFor: cultivar => `/wisdom/cultivar/${cultivar.id}`,
+  });
+
+  if (publicState.status !== 'ready') {
+    return <WisdomIndexVisibilityNotice status={publicState.status} onRetry={publicState.retry} />;
+  }
 
   return (
     <article className={PAGE}>
@@ -156,7 +153,7 @@ const CultivarIndexPage: React.FC = () => {
         <title>The Tea Plants · Teajia</title>
         <meta
           name="description"
-          content={`A public reference of ${CULTIVARS.length} tea cultivars: breeding lineage, where each plant grows, and the teas made from it.`}
+          content={`A public reference of ${publicState.entries.length} tea cultivars: breeding lineage, where each plant grows, and the teas made from it.`}
         />
         <meta property="og:title" content="The Tea Plants · Teajia" />
         <meta
@@ -179,7 +176,7 @@ const CultivarIndexPage: React.FC = () => {
           placeholder="Search plants"
           searchLabel="Search plants by name, Chinese name, region or country"
           visible={visible.length}
-          total={CULTIVARS.length}
+          total={publicState.entries.length}
           noun="cultivars"
         >
           <ViewSwitch options={VIEWS} value={view} onChange={next => setView(next)} label="Browse the plants" />

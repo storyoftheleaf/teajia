@@ -7,8 +7,9 @@ import {
   TEA_COLUMN_DEFS,
   TEAWARE_COLUMN_DEFS,
 } from './config';
-import { effectivePurpose, getTeaReadiness } from './domain';
-import type { InventoryCategory, InventorySortDirection } from './types';
+import { effectivePurpose, getTeaReadiness, groupInventoryByLifecycle, inventoryMatchesFacetFilter, shouldApplyInventoryFacetFilter } from './domain';
+import type { IncomingInventorySummary, InventoryFacetFilter, InventorySummaryStatus, InventoryWritingSummary, PersonalTastingSummary } from './domain';
+import type { InventoryCategory, InventoryProductGroup, InventorySortDirection } from './types';
 
 type UseInventoryProductsArgs = {
   localProducts: Product[];
@@ -27,6 +28,13 @@ type UseInventoryProductsArgs = {
    * order captured when edit mode turned on.
    */
   isEditMode: boolean;
+  /** Batched or locally adapted personal journal state, keyed by product id. */
+  personalTastingByProductId?: Readonly<Record<string, PersonalTastingSummary>>;
+  /** Batched writing state. Description-only fallback is derived locally. */
+  writingSummaryByProductId?: Readonly<Record<string, InventoryWritingSummary>>;
+  /** Normalized receipt summary. Legacy product fields remain a fallback. */
+  incomingByProductId?: Readonly<Record<string, IncomingInventorySummary>>;
+  summaryStatus?: InventorySummaryStatus;
 };
 
 export function useInventoryProducts({
@@ -39,6 +47,10 @@ export function useInventoryProducts({
   inventoryGroupBy,
   priceMode,
   isEditMode,
+  personalTastingByProductId = {},
+  writingSummaryByProductId = {},
+  incomingByProductId = {},
+  summaryStatus = 'ready',
 }: UseInventoryProductsArgs) {
   // Frozen row order for edit mode. Captured (id → position) the first render
   // after edit mode turns on, cleared the moment it turns off. Items missing
@@ -83,7 +95,7 @@ export function useInventoryProducts({
       result = result.filter(p => p.type !== 'Teaware');
     }
 
-    if (filterType !== 'Archived') {
+    if (filterType !== 'Archived' && filterType !== 'All') {
       result = result.filter(p => p.status !== 'Archived');
     }
 
@@ -98,7 +110,12 @@ export function useInventoryProducts({
     } else if (filterType === 'NeedsDevelopment') {
       result = result.filter(p => getTeaReadiness(p).state === 'not_ready');
     } else if (filterType === 'ToTaste') {
-      result = result.filter(p => p.tastingSource !== 'owner');
+      result = result.filter(p => inventoryMatchesFacetFilter(
+        p,
+        'Untasted',
+        personalTastingByProductId[p.id] ?? { count: 0 },
+        writingSummaryByProductId[p.id] ?? { description: !!p.description.trim(), draftArticleCount: 0, publishedArticleCount: 0 },
+      ));
     } else if (filterType === 'Reorder') {
       result = result.filter(p => p.canReorder && (p.type === 'Teaware' ? (p.quantityUnits ?? 0) : p.stockGrams) <= p.lowStockThreshold);
     } else if (filterType === 'LowStock') {
@@ -119,8 +136,16 @@ export function useInventoryProducts({
       result = result.filter(p => effectivePurpose(p) === 'personal');
     } else if (filterType === 'Working' || filterType === 'ForSale') {
       result = result.filter(p => effectivePurpose(p) === 'working');
-    } else if (filterType === 'Untasted') {
-      result = result.filter(p => p.tastingSource !== 'owner');
+    } else if (['Tasted', 'Untasted', 'HasWriting', 'NeedsWriting', 'HasProductTasting', 'NeedsProductTasting'].includes(filterType)) {
+      const facetFilter = filterType as InventoryFacetFilter;
+      if (shouldApplyInventoryFacetFilter(facetFilter, summaryStatus)) {
+        result = result.filter(p => inventoryMatchesFacetFilter(
+          p,
+          facetFilter,
+          personalTastingByProductId[p.id] ?? { count: 0 },
+          writingSummaryByProductId[p.id] ?? { description: !!p.description.trim(), draftArticleCount: 0, publishedArticleCount: 0 },
+        ));
+      }
     } else if (filterType === 'Archived') {
       result = result.filter(p => p.status === 'Archived');
     } else if (filterType === 'SoldOut') {
@@ -166,7 +191,7 @@ export function useInventoryProducts({
     }
 
     return sorted;
-  }, [localProducts, searchQuery, filterType, inventorySortConfig, inventoryCategory, isEditMode]);
+  }, [localProducts, searchQuery, filterType, inventorySortConfig, inventoryCategory, isEditMode, personalTastingByProductId, writingSummaryByProductId, summaryStatus]);
 
   const visibleCols = useMemo(() => activeColumnDefs.filter(col => {
     const isCostCol = col.key === 'costAmount' || col.key === 'costPerGramUSD';
@@ -182,8 +207,18 @@ export function useInventoryProducts({
   );
 
   const groupedProducts = useMemo(() => {
-    if (!inventoryGroupBy) return null;
-    const groups: Record<string, { items: Product[]; totalStock: number; totalRetail: number }> = {};
+    if (!inventoryGroupBy) {
+      return groupInventoryByLifecycle(processedProducts, incomingByProductId)
+        .map<InventoryProductGroup>(group => ({
+          key: group.stage,
+          label: group.label,
+          items: group.items,
+          totalStock: group.totalStock,
+          totalRetail: group.totalRetail,
+          lifecycle: true,
+        }));
+    }
+    const groups: Record<string, InventoryProductGroup> = {};
     for (const p of processedProducts) {
       // Stock spine step 2: a null owner means the row is owned by the location
       // itself (house stock), not an individual seller, label it as such rather
@@ -191,14 +226,14 @@ export function useInventoryProducts({
       const key = inventoryGroupBy === 'ownerUserId'
         ? (p.ownerUserId ? `Seller · ${p.ownerUserId.slice(0, 8)}` : 'House stock')
         : String((p as unknown as Record<string, unknown>)[inventoryGroupBy] ?? 'Unknown');
-      if (!groups[key]) groups[key] = { items: [], totalStock: 0, totalRetail: 0 };
+      if (!groups[key]) groups[key] = { key, label: key, items: [], totalStock: 0, totalRetail: 0, lifecycle: false };
       groups[key].items.push(p);
       groups[key].totalStock += Number(p.stockGrams) || 0;
       groups[key].totalRetail += (Number(p.fixedRetailPriceUSD ?? p.pricePerGramUSD) || 0) * (Number(p.stockGrams) || 0);
     }
     for (const g of Object.values(groups)) g.totalStock = Math.round(g.totalStock);
-    return groups;
-  }, [processedProducts, inventoryGroupBy]);
+    return Object.values(groups);
+  }, [processedProducts, inventoryGroupBy, incomingByProductId]);
 
   const pendingCount = useMemo(
     () => localProducts.filter(p => p.lore && !p.showWisdom).length,

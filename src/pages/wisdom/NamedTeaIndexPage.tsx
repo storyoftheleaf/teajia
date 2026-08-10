@@ -30,6 +30,7 @@ import {
   WisdomSubNav,
   WisdomToolbar,
 } from './wisdomShared';
+import { buildWisdomCollectionData, usePublicWisdomEntries, WisdomIndexVisibilityNotice } from './publicIndexVisibility';
 
 const anchorId = (label: string) =>
   `named-${label.normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
@@ -112,7 +113,8 @@ const NamedTeaRows: React.FC<{ rows: NamedTea[] }> = ({ rows }) => (
 const NamedTeaIndexPage: React.FC = () => {
   const [view, setView] = useState<View>('tradition');
   const [query, setQuery] = useState('');
-  const visible = useMemo(() => NAMED_TEAS.filter(tea => matches(tea, query)), [query]);
+  const publicState = usePublicWisdomEntries('named_tea', NAMED_TEAS);
+  const visible = useMemo(() => publicState.entries.filter(tea => matches(tea, query)), [publicState.entries, query]);
   const visibleIds = useMemo(() => new Set(visible.map(tea => tea.id)), [visible]);
   const visibleCount = visibleIds.size;
 
@@ -143,24 +145,16 @@ const NamedTeaIndexPage: React.FC = () => {
     return source.map(([label, rows]) => ({ id: anchorId(label), label, count: rows.length }));
   }, [view, groups, byType]);
 
-  const structuredData = {
-    '@context': 'https://schema.org',
-    '@type': 'CollectionPage',
+  const structuredData = buildWisdomCollectionData({
     name: 'Named Teas',
     description: 'Teas known by the name they were given, where the composition is not disclosed.',
-    inLanguage: 'en',
-    isPartOf: { '@type': 'WebSite', name: 'Teajia' },
-    mainEntity: {
-      '@type': 'ItemList',
-      numberOfItems: NAMED_TEAS.length,
-      itemListElement: NAMED_TEAS.map((tea, index) => ({
-        '@type': 'ListItem',
-        position: index + 1,
-        name: tea.name,
-        url: `/wisdom/named/${tea.id}`,
-      })),
-    },
-  };
+    entries: publicState.entries,
+    pathFor: tea => `/wisdom/named/${tea.id}`,
+  });
+
+  if (publicState.status !== 'ready') {
+    return <WisdomIndexVisibilityNotice status={publicState.status} onRetry={publicState.retry} />;
+  }
 
   return (
     <article className={PAGE}>
@@ -168,7 +162,7 @@ const NamedTeaIndexPage: React.FC = () => {
         <title>Named Teas · The Wisdom Base · Teajia</title>
         <meta
           name="description"
-          content={`${NAMED_TEAS.length} teas known by the name they were given, where the composition was never disclosed.`}
+          content={`${publicState.entries.length} teas known by the name they were given, where the composition was never disclosed.`}
         />
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
@@ -186,7 +180,7 @@ const NamedTeaIndexPage: React.FC = () => {
           placeholder="Search named teas"
           searchLabel="Search named teas by name, Chinese name, type or tradition"
           visible={visibleCount}
-          total={NAMED_TEAS.length}
+          total={publicState.entries.length}
           noun="named teas"
         >
           <ViewSwitch options={VIEWS} value={view} onChange={next => setView(next)} label="Browse the named teas" />

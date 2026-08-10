@@ -183,6 +183,12 @@ describe('private reference verification', () => {
 });
 
 describe('wayfinding', () => {
+  it('reserves the live approved-relations seam on every public detail page', () => {
+    for (const path of DETAIL_PAGES) {
+      expect(render(path), path).toContain('aria-label="Related material loading"');
+    }
+  });
+
   it('carries one control, not a back link above a lit nav item', () => {
     for (const path of DETAIL_PAGES) {
       const html = render(path);

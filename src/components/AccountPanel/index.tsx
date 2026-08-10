@@ -9,7 +9,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { useAuth } from '../../hooks/useAuth';
-import { useAppStore } from '../../lib/store';
+import { selectHasBundle, useAppStore } from '../../lib/store';
 
 import { api, setToken, hydrateAccountStateFromToken, API_URL, clearPendingSignup, restorePendingSignup, type PendingSignup } from '../../lib/api';
 import { fetchStoreEvents, fetchStoreProducts } from '../../lib/storefrontApi';
@@ -408,6 +408,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
   const inactiveMemberships = memberships.filter(m => m.account_id !== activeAccountId);
   const membershipRole = activeMembership?.role;
   const isStaff = membershipRole === 'staff' || membershipRole === 'owner' || auth.isAdmin;
+  const canPublish = auth.isAdmin || selectHasBundle({ memberships, activeAccountId, platformRole }, 'publish');
 
   const activeLocationStr = [activeAccount?.location_city, activeAccount?.location_country]
     .filter(Boolean)
@@ -1475,7 +1476,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 accountName={activeAccount?.name ?? null}
                 locationLabel={activeLocationStr || null}
                 isOwner={membershipRole === 'owner' || auth.isAdmin}
-                isStaffOrOwner={isStaff}
+                canPublish={canPublish}
                 membershipsCount={memberships.length}
                 pendingInvoiceCount={pendingCount}
                 todayEventCount={todayEventCount}
