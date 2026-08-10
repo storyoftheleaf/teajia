@@ -17,10 +17,14 @@ function handoff() {
   return {
     manifest: {
       schemaVersion: 1,
+      siteModel: 'tea-wisdom-v1',
       mode: 'preview-only',
+      claimsSha256: 'a'.repeat(64),
+      sourceSnapshotSha256: 'b'.repeat(64),
       entityCount: 0,
       claimCount: 0,
       citationCount: 0,
+      readyToPublishCount: 0,
       heldBackCount: 0,
       payloadSha256: sha256(canonicalJson(payload)),
     },

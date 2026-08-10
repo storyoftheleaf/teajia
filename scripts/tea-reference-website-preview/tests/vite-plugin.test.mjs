@@ -48,17 +48,17 @@ function handoff() {
     citationId: 'CITATION-SOURCE-EVIDENCE',
     proposedAction: 'hold',
     holdReason: 'PRIVATE CLAIM REASON',
-    payloadSha256: 'private-claim-hash',
+    payloadSha256: 'a'.repeat(64),
   }];
-  const heldBack = [{ claimId: 'CLAIM-COMMON', reason: 'PRIVATE HELD REASON' }];
+  const heldBack = [{ claimId: 'CLAIM-COMMON', reason: 'PRIVATE CLAIM REASON' }];
   const payload = { entities, claims, citations, heldBack };
   return {
     manifest: {
       schemaVersion: 1,
       siteModel: 'tea-wisdom-v1',
       mode: 'preview-only',
-      claimsSha256: 'private-claims-hash',
-      sourceSnapshotSha256: 'private-sources-hash',
+      claimsSha256: 'b'.repeat(64),
+      sourceSnapshotSha256: 'c'.repeat(64),
       entityCount: entities.length,
       claimCount: claims.length,
       citationCount: citations.length,
