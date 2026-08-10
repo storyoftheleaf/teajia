@@ -27,7 +27,7 @@ function labelledPairs(html) {
     const cells = extractElements(row.html, ['th', 'td']);
     if (cells.length >= 2) pairs.push([cells[0].text, cells.slice(1).map(({ text }) => text).join(' ')]);
   }
-  for (const paragraph of extractElements(html, ['p'])) {
+  for (const paragraph of extractElements(html, ['p', 'li'])) {
     const match = paragraph.text.match(/^([^：:\n]{1,40})[：:]\s*([\s\S]+)$/);
     if (match) pairs.push([match[1].trim(), match[2].trim()]);
   }

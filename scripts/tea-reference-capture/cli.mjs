@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { captureBatch } from './capture.mjs';
+import { createCliFetcher } from './fetcher.mjs';
 import { writeReviewWorkbook } from './review-workbook.mjs';
 
 const VALUE_FLAGS = new Set(['--allowlist', '--output', '--previous', '--artifact-node-modules']);
@@ -54,7 +55,7 @@ async function loadArtifactTool(nodeModulesPath) {
 export async function runCli({
   argv,
   cwd = process.cwd(),
-  fetcher = globalThis.fetch,
+  fetcher = null,
   workbookWriter = writeReviewWorkbook,
   artifactTool = null,
 } = {}) {
@@ -63,7 +64,7 @@ export async function runCli({
   const previousRun = options.previous ? capturePath(cwd, options.previous, 'Previous run') : null;
   const allowlistPath = path.resolve(cwd, options.allowlist);
   const allowlist = JSON.parse(await fs.readFile(allowlistPath, 'utf8'));
-  const capture = await captureBatch({ allowlist, outputRoot, fetcher, previousRun });
+  const capture = await captureBatch({ allowlist, outputRoot, fetcher: fetcher || createCliFetcher(), previousRun });
   const toolkit = artifactTool || await loadArtifactTool(options.artifact_node_modules || process.env.TEA_REFERENCE_ARTIFACT_NODE_MODULES);
   await workbookWriter({ capture, outputPath: path.join(outputRoot, 'review.xlsx'), artifactTool: toolkit });
   return capture;

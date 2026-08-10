@@ -102,6 +102,7 @@ function validateSource(input) {
     accessPolicy,
     adapter: requiredString(input.adapter, `Adapter for ${sourceId}`),
     adapterVersion: requiredString(input.adapterVersion, `Adapter version for ${sourceId}`),
+    captureSubject: typeof input.captureSubject === 'string' ? input.captureSubject.trim() : '',
     permittedEntityKinds: validateValues(input.permittedEntityKinds, ENTITY_SET, 'entity kind'),
     permittedClaimScopes: validateValues(input.permittedClaimScopes, SCOPE_SET, 'claim scope'),
     rateLimitMs,

@@ -70,7 +70,25 @@ export function extractTitle(html) {
 
 export function extractElementByClass(html, tag, className) {
   const token = new RegExp(`(?:^|\\s)${className}(?:\\s|$)`, 'i');
-  return extractElement(html, tag, ({ attributes }) => token.test(extractAttribute(attributes, 'class')));
+  const source = String(html);
+  const openingPattern = new RegExp(`<${tag}\\b([^>]*)>`, 'gi');
+  for (const opening of source.matchAll(openingPattern)) {
+    if (!token.test(extractAttribute(opening[1], 'class'))) continue;
+    const contentStart = opening.index + opening[0].length;
+    const boundaryPattern = new RegExp(`<\\/?${tag}\\b[^>]*>`, 'gi');
+    boundaryPattern.lastIndex = contentStart;
+    let depth = 1;
+    for (let boundary = boundaryPattern.exec(source); boundary; boundary = boundaryPattern.exec(source)) {
+      const closing = new RegExp(`^<\\/${tag}\\b`, 'i').test(boundary[0]);
+      if (closing) depth -= 1;
+      else if (!/\/>$/.test(boundary[0])) depth += 1;
+      if (depth === 0) {
+        const inner = source.slice(contentStart, boundary.index);
+        return { attributes: opening[1], html: inner, text: stripTags(inner) };
+      }
+    }
+  }
+  return null;
 }
 
 export function extractBoundedClassRegion(html, className, endClassNames = []) {

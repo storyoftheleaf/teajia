@@ -1,14 +1,20 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import { extractJournalAbstract } from './adapters/journal-abstract.mjs';
+import { extractMoaPrintArticle } from './adapters/moa-print-article.mjs';
 import { extractSpecialistArticle } from './adapters/specialist-article.mjs';
 import { extractTbrsCultivar } from './adapters/tbrs-cultivar.mjs';
+import { extractVietnamGiArticle } from './adapters/vietnam-gi-article.mjs';
 import { canonicalJson, sha256 } from './canonical.mjs';
 import { validateAllowlist } from './schema.mjs';
 
 const ADAPTERS = Object.freeze({
+  'journal-abstract': extractJournalAbstract,
+  'moa-print-article': extractMoaPrintArticle,
   'specialist-article': extractSpecialistArticle,
   'tbrs-cultivar': extractTbrsCultivar,
+  'vietnam-gi-article': extractVietnamGiArticle,
 });
 
 function sleep(milliseconds) {

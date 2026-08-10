@@ -12,3 +12,6 @@ playwright-report/
 
 # Isolated agent implementation worktrees
 .worktrees/
+
+# Temporary third-party web research captures
+.firecrawl/
