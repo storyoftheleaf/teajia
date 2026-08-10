@@ -156,7 +156,12 @@ import { useAppStore } from './lib/store';
 import { api, setToken, hydrateAccountStateFromToken } from './lib/api';
 import { classifyIncident } from './lib/incidents';
 import { currentHostStoreSlug } from './lib/storeHost';
-import { canAddToStoreCart, resolveCheckoutStoreSlug } from './lib/publicCartDomain';
+import {
+  canAddToStoreCart,
+  resolveCartContactStoreSlug,
+  resolveCheckoutStoreSlug,
+  shouldFetchCheckoutStore,
+} from './lib/publicCartDomain';
 import { getArticleRenderMode } from './lib/articleRenderMode';
 import { useAuth } from './hooks/useAuth';
 import { useFavoritesSync } from './hooks/useFavoritesSync';
@@ -291,17 +296,33 @@ const AppContent = () => {
     return m ? decodeURIComponent(m[1]) : null;
   }, [location.pathname]);
 
-  const checkoutStoreSlug = resolveCheckoutStoreSlug({
+  const isShopRoute = location.pathname === '/shop' || location.pathname.startsWith('/shop/');
+  const querySelectedStoreSlug = useMemo(() => {
+    if (!isShopRoute) return null;
+    return new URLSearchParams(location.search).get('store')?.trim() || null;
+  }, [isShopRoute, location.search]);
+  const browsingStoreSlug = resolveCheckoutStoreSlug({
     hostedSlug: hostStoreSlug,
     storefrontSlug,
+    querySelectedSlug: querySelectedStoreSlug,
     selectedSlug: shopStoreSlug,
+  });
+  const contactStoreSlug = resolveCartContactStoreSlug(cart, browsingStoreSlug);
+  const isCommerceRoute = isShopRoute || !!storefrontSlug;
+  const shouldFetchStore = shouldFetchCheckoutStore({
+    hasCart: cart.length > 0,
+    isCommerceRoute,
+    hostedSlug: hostStoreSlug,
+    contactStoreSlug,
   });
 
   const { data: activeStore } = useQuery<Account>({
-    queryKey: ['storefront', 'store', checkoutStoreSlug],
-    queryFn: () => fetchStore(checkoutStoreSlug),
+    queryKey: ['storefront', 'store', contactStoreSlug],
+    queryFn: () => fetchStore(contactStoreSlug as string),
+    enabled: shouldFetchStore,
     staleTime: 1000 * 60 * 5,
   });
+  const checkoutContactStore = activeStore?.slug === contactStoreSlug ? activeStore : undefined;
 
   const [magazineDefaultTab, setMagazineDefaultTab] = useState<'articles' | 'visual' | 'tea-inspire'>('articles');
 
@@ -503,13 +524,18 @@ const AppContent = () => {
     const pricePerGram = item.category === 'tea'
       ? parseFloat(item.price_per_gram || '0')
       : parseFloat(item.price_50g || '0');
+    const browsingStoreName = activeStore?.slug === browsingStoreSlug
+      ? activeStore.name
+      : cart[0]?.storeSlug === browsingStoreSlug
+        ? cart[0].storeName
+        : browsingStoreSlug;
     const cartItem = {
       id: item.id,
       name: item.name,
       variant: item.variant,
       category: item.category,
-      storeSlug: checkoutStoreSlug,
-      storeName: activeStore?.name || checkoutStoreSlug,
+      storeSlug: browsingStoreSlug,
+      storeName: browsingStoreName,
       quantityGrams: qty,
       pricePerGram,
       totalPrice: total,
@@ -1342,8 +1368,8 @@ const AppContent = () => {
          onRemoveItem={handleRemoveFromCart}
          onUpdateQuantity={handleUpdateCartQuantity}
          onAddItem={addToPublicCart}
-         whatsappNumber={activeStore?.whatsapp_number}
-         contactEmail={activeStore?.contact_email}
+         whatsappNumber={checkoutContactStore?.whatsapp_number}
+         contactEmail={checkoutContactStore?.contact_email}
       />
     </div>
   );
