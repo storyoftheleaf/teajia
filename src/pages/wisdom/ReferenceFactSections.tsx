@@ -93,47 +93,64 @@ export const ReferenceFactSections: React.FC<{
   sources: readonly PublicTeaReferenceSource[];
   products: readonly PublicProduct[];
   reportIdentity: string;
-}> = ({ facts, sources, products, reportIdentity }) => (
-  <>
-    {groupedFacts(facts).map(group => (
-      <section key={group.label} className={`${SPACE.section} ${GROUND} py-6`}>
-        <SectionHead label={group.label} count={group.facts.length} />
-        <ul className={`list-none m-0 p-0 ${AXIS_INDENT}`}>
-          {group.facts.map(fact => <FactStatement key={fact.id} fact={fact} sources={sources} />)}
-        </ul>
-      </section>
-    ))}
+}> = ({ facts, sources, products, reportIdentity }) => {
+  const availableProducts = products.filter(product => product.status !== 'Sold Out');
+  const previouslyOfferedProducts = products.filter(product => product.status === 'Sold Out');
+  const productRows = (matchingProducts: readonly PublicProduct[]) => (
+    <IndexList>
+      {matchingProducts.map(product => (
+        <HoldingRow
+          key={product.id}
+          to={`/shop/product/${encodeURIComponent(product.id)}`}
+          name={product.givenName || product.productName}
+          chineseName={product.chineseName}
+          cells={[product.type, product.originRegion, product.status === 'Sold Out' ? 'Sold out' : undefined]}
+        />
+      ))}
+    </IndexList>
+  );
 
-    <section className={SPACE.section}>
-      <SectionHead label="Teas in the public catalogue" count={products.length || undefined} />
-      {products.length > 0 ? (
-        <IndexList>
-          {products.map(product => (
-            <HoldingRow
-              key={product.id}
-              to={`/shop/product/${encodeURIComponent(product.id)}`}
-              name={product.givenName || product.productName}
-              chineseName={product.chineseName}
-              cells={[product.type, product.originRegion, product.status === 'Sold Out' ? 'Sold out' : undefined]}
-            />
-          ))}
-        </IndexList>
-      ) : (
-        <p className={`${FACT_CLASS} text-tea-text-dim ${MEASURE} ${AXIS_INDENT}`}>
-          No matching tea is available in the public shop right now.
-        </p>
+  return (
+    <>
+      {groupedFacts(facts).map(group => (
+        <section key={group.label} className={`${SPACE.section} ${GROUND} py-6`}>
+          <SectionHead label={group.label} count={group.facts.length} />
+          <ul className={`list-none m-0 p-0 ${AXIS_INDENT}`}>
+            {group.facts.map(fact => <FactStatement key={fact.id} fact={fact} sources={sources} />)}
+          </ul>
+        </section>
+      ))}
+
+      {(availableProducts.length > 0 || previouslyOfferedProducts.length === 0) && (
+        <section className={SPACE.section}>
+          <SectionHead label="Available teas" count={availableProducts.length || undefined} />
+          {availableProducts.length > 0 ? (
+            productRows(availableProducts)
+          ) : (
+            <p className={`${FACT_CLASS} text-tea-text-dim ${MEASURE} ${AXIS_INDENT}`}>
+              No matching tea is available in the public shop right now.
+            </p>
+          )}
+        </section>
       )}
-    </section>
 
-    <aside className={`${SPACE.section} pt-6 ${RULE_FULL} ${AXIS_INDENT}`}>
-      <a
-        href={mailtoWisdom(`Report an inaccuracy: ${reportIdentity}`)}
-        className={`${QUIET_LINK} tap-target ${FACT_CLASS}`}
-      >
-        Report an inaccuracy
-      </a>
-    </aside>
-  </>
-);
+      {previouslyOfferedProducts.length > 0 && (
+        <section className={SPACE.section}>
+          <SectionHead label="Previously offered" count={previouslyOfferedProducts.length} />
+          {productRows(previouslyOfferedProducts)}
+        </section>
+      )}
+
+      <aside className={`${SPACE.section} pt-6 ${RULE_FULL} ${AXIS_INDENT}`}>
+        <a
+          href={mailtoWisdom(`Report an inaccuracy: ${reportIdentity}`)}
+          className={`${QUIET_LINK} tap-target ${FACT_CLASS}`}
+        >
+          Report an inaccuracy
+        </a>
+      </aside>
+    </>
+  );
+};
 
 export default ReferenceFactSections;

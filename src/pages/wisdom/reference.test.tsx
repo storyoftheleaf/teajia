@@ -461,12 +461,16 @@ describe('Tea Reference type preview', () => {
     expect(html).toContain('href="https://example.com/sheng/"');
     expect(html).toContain('Tea Institute, Cultivar guide (2025)');
     expect(html).not.toContain('Retailer or reseller');
-    expect(html).toContain('Teas in the public catalogue');
+    expect(html).toContain('Available teas');
     expect(html).toContain('href="/shop/product/sheng-spring-cake"');
     expect(html).toContain('Spring Cake');
     expect(html).toContain('href="/shop/product/sheng-sold-out-cake"');
     expect(html).toContain('Aged Sheng Cake');
+    expect(html).toContain('Previously offered');
     expect(html).toContain('Sold out');
+    expect(html.indexOf('Available teas')).toBeLessThan(html.indexOf('href="/shop/product/sheng-spring-cake"'));
+    expect(html.indexOf('href="/shop/product/sheng-spring-cake"')).toBeLessThan(html.indexOf('Previously offered'));
+    expect(html.indexOf('Previously offered')).toBeLessThan(html.indexOf('href="/shop/product/sheng-sold-out-cake"'));
     expect(html).toContain('Report an inaccuracy');
     expect(html).toContain('subject=Report%20an%20inaccuracy%3A%20Tea%20type%3A%20Sheng');
     expect(html).not.toMatch(/held|conflict|review|evidence|private/i);
@@ -475,7 +479,17 @@ describe('Tea Reference type preview', () => {
   it('uses the established not-found page for a type absent from the product-connected catalogue', () => {
     const html = renderPreview('/wisdom/type/shou');
     expect(html).toContain('Not a tea type we hold');
-    expect(html).not.toContain('Teas in the public catalogue');
+    expect(html).not.toContain('Available teas');
+  });
+
+  it('does not label previously offered teas as available when every match is sold out', () => {
+    const soldOutProduct = previewProducts.find(product => product.status === 'Sold Out');
+    if (!soldOutProduct) throw new Error('sold-out fixture is required');
+    const html = renderPreview('/wisdom/type/sheng', [soldOutProduct]);
+    expect(html).not.toContain('Available teas');
+    expect(html).toContain('Previously offered');
+    expect(html).toContain('href="/shop/product/sheng-sold-out-cake"');
+    expect(html).toContain('Sold out');
   });
 
   it('explains a valid catalogue with no product-connected tea types', () => {
