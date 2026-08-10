@@ -161,6 +161,64 @@ describe('citation-aware receiving preview', () => {
     expect(geographic.every(operation => operation.reason.includes('verified parent'))).toBe(true);
   });
 
+  it('carries a validated parent entity through the receiving preview and public transport', () => {
+    const parent = {
+      ...entity,
+      resolutionId: 'RESOLUTION-PARENT',
+      canonicalEntityId: 'ENTITY-PARENT',
+      preferredLabel: 'Yunnan',
+      sourceLabel: 'Yunnan',
+      entityKind: 'major_region',
+      claimIds: [],
+    } as const;
+    const child = {
+      ...entity,
+      resolutionId: 'RESOLUTION-CHILD',
+      canonicalEntityId: 'ENTITY-CHILD',
+      preferredLabel: 'Yiwu',
+      sourceLabel: 'Yiwu',
+      entityKind: 'tea_area',
+      parentEntityId: parent.canonicalEntityId,
+      claimIds: [],
+    } as const;
+
+    const received = previewWebsiteHandoff(handoff({
+      entities: [child, parent],
+      claims: [],
+      citations: [],
+      heldBack: [],
+    }));
+    const transported = publicTransportFor(received);
+    const publicChild = transported.publicPreview.sections
+      .flatMap(section => section.entries)
+      .find(item => item.id === child.resolutionId);
+    const childOperation = received.operations.find(operation => operation.resourceId === child.resolutionId);
+
+    expect(childOperation?.candidate?.parentEntityId).toBe(parent.resolutionId);
+    expect(publicChild?.parentId).toBe(parent.resolutionId);
+  });
+
+  it.each([
+    ['blank', ' '],
+    ['self resolution', 'RESOLUTION-CHILD'],
+    ['self canonical entity', 'ENTITY-CHILD'],
+    ['missing', 'RESOLUTION-MISSING'],
+  ])('rejects a %s public parent entity ID', (_case, parentEntityId) => {
+    const child = {
+      ...entity,
+      resolutionId: 'RESOLUTION-CHILD',
+      canonicalEntityId: 'ENTITY-CHILD',
+      parentEntityId,
+    };
+
+    expect(() => previewWebsiteHandoff(handoff({
+      entities: [child],
+      claims: [],
+      citations: [],
+      heldBack: [],
+    }))).toThrow(/parent/i);
+  });
+
   it('reports create, update, no-op, conflict and held without mutating the supplied state', () => {
     const first = previewWebsiteHandoff(handoff());
     expect(first.summary).toEqual({ create: 2, update: 0, noOp: 0, conflict: 0, held: 2 });
@@ -327,6 +385,13 @@ describe('public receiving transport', () => {
     });
 
     expect(() => publicTransportFor(preview)).toThrow(/unsafe public preview/i);
+  });
+
+  it('rejects a non-string public parentId', () => {
+    const preview = previewWebsiteHandoff(handoff());
+    Object.assign(preview.publicPreview.sections[0].entries[0], { parentId: 42 });
+
+    expect(() => publicTransportFor(preview)).toThrow(/parentId.*string/i);
   });
 
   it('allows shared references within an otherwise valid public preview', () => {

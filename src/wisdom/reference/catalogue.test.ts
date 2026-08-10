@@ -112,6 +112,14 @@ const qualifyingProducts: PublicProduct[] = [
   product({ id: 'tea-sheng-sold-out', type: 'Sheng', status: 'Sold Out', originRegion: 'Menghai' }),
   product({ id: 'tea-shou-active', type: 'Shou', givenName: 'Ripe cake', originRegion: 'Menghai' }),
   product({ id: 'tea-oolong', type: 'Oolong', originCountry: 'Taiwan', originRegion: 'Nantou' }),
+  product({
+    id: 'tea-oolong-sheng-name',
+    type: 'Oolong',
+    givenName: 'Sheng Reserve',
+    productName: 'Oolong',
+    originCountry: 'Taiwan',
+    originRegion: 'Nantou',
+  }),
 ];
 
 describe('sellable Tea Reference catalogue', () => {
@@ -170,6 +178,15 @@ describe('sellable Tea Reference catalogue', () => {
     expect(surfacedIds).not.toContain('non-tea');
     expect(surfacedIds).not.toContain('archived-sheng');
     expect(result.types.flatMap(type => type.productIds)).not.toContain('tea-oolong');
+    expect(result.types.flatMap(type => type.productIds)).not.toContain('tea-oolong-sheng-name');
+  });
+
+  it('keeps Sold Out public tea eligible for its controlled type', () => {
+    const result = buildTeaReferenceCatalogue(preview(), [
+      product({ id: 'sold-out-sheng', type: 'Sheng', status: 'Sold Out' }),
+    ]);
+
+    expect(result.types.find(type => type.id === 'sheng')?.productIds).toEqual(['sold-out-sheng']);
   });
 
   it('matches public origins at token boundaries while preserving every exact place level', () => {
@@ -278,6 +295,75 @@ describe('sellable Tea Reference catalogue', () => {
     ]);
     expect(result.origins.every(origin => origin.parentId === undefined)).toBe(true);
     expect(result.origins.some(origin => origin.id === cycleB.id)).toBe(false);
+  });
+
+  it('omits inverted and same-rank geographic parent relations', () => {
+    const narrowParent = entry('resolution-narrow-parent', 'Narrow Parent Village', 'village');
+    const invertedChild = Object.assign(
+      entry('resolution-inverted-child', 'Matched Broad Area', 'tea_area'),
+      { parentId: narrowParent.id },
+    );
+    const peerParent = entry('resolution-peer-parent', 'Peer Parent Village', 'village');
+    const peerChild = Object.assign(
+      entry('resolution-peer-child', 'Matched Peer Village', 'village'),
+      { parentId: peerParent.id },
+    );
+    const result = buildTeaReferenceCatalogue(preview([
+      narrowParent,
+      invertedChild,
+      peerParent,
+      peerChild,
+    ]), [
+      product({ id: 'tea-inverted', originRegion: invertedChild.label }),
+      product({ id: 'tea-peer', originRegion: peerChild.label }),
+    ]);
+
+    expect(result.origins.map(origin => origin.id)).toEqual([invertedChild.id, peerChild.id]);
+    expect(result.origins.every(origin => origin.parentId === undefined)).toBe(true);
+  });
+
+  it('preserves Unicode letters and numbers when matching Chinese origins', () => {
+    const yiwu = entry('resolution-chinese-yiwu', '易武', 'tea_area');
+    const result = buildTeaReferenceCatalogue(preview([yiwu]), [
+      product({ id: 'tea-chinese-exact', originRegion: '易武' }),
+      product({ id: 'tea-chinese-token', originRegion: '云南 易武 古树' }),
+    ]);
+
+    expect(result.origins).toEqual([
+      expect.objectContaining({
+        id: yiwu.id,
+        productIds: ['tea-chinese-exact', 'tea-chinese-token'],
+      }),
+    ]);
+  });
+
+  it('orders catalogue output by locale-independent code points', () => {
+    const codePointPreview = preview([
+      entry('a-origin', 'Alpha Place', 'tea_area'),
+      entry('Z-origin', 'Zulu Place', 'tea_area'),
+      entry('family-a', 'Puer', 'tea_family', [statement('a-fact'), statement('Z-fact')]),
+      entry('style-sheng', 'Sheng', 'tea_style'),
+    ]);
+    codePointPreview.sources = [
+      { ...codePointPreview.sources[0], sourceId: 'a-source' },
+      { ...codePointPreview.sources[1], sourceId: 'Z-source' },
+      { ...codePointPreview.sources[0], sourceId: '\u{E000}-source' },
+      { ...codePointPreview.sources[1], sourceId: '\u{10000}-source' },
+    ];
+    const result = buildTeaReferenceCatalogue(codePointPreview, [
+      product({ id: 'a-product', originRegion: 'Alpha Place Zulu Place' }),
+      product({ id: 'Z-product', originRegion: 'Alpha Place Zulu Place' }),
+    ]);
+
+    expect(result.types[0].productIds).toEqual(['Z-product', 'a-product']);
+    expect(result.families[0].facts.map(fact => fact.id)).toEqual(['Z-fact', 'a-fact']);
+    expect(result.origins.map(origin => origin.id)).toEqual(['Z-origin', 'a-origin']);
+    expect(result.sources.map(source => source.sourceId)).toEqual([
+      'Z-source',
+      'a-source',
+      '\u{E000}-source',
+      '\u{10000}-source',
+    ]);
   });
 
   it('copies only allowlisted public fields and returns deterministic, deduplicated ordering', () => {

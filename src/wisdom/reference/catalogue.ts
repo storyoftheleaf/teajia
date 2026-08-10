@@ -23,13 +23,33 @@ const PLACE_LEVELS = new Set<PlaceLevel>([
 
 const PUER_FAMILY_LABELS = new Set(['puer', 'puerh']);
 const PUER_TYPES = TEA_TYPES.filter(type => type === 'Sheng' || type === 'Shou');
-
-type PublicPlaceEntry = PublicReferenceEntry & { parentId?: string };
+const PLACE_RANK: Record<PlaceLevel, number> = {
+  major_region: 0,
+  tea_area: 1,
+  mountain: 2,
+  village: 3,
+  locality: 4,
+};
 
 interface PlaceCandidate {
-  entries: PublicPlaceEntry[];
+  entries: PublicReferenceEntry[];
   level: PlaceLevel;
   name: string;
+}
+
+function codePointCompare(left: string, right: string): number {
+  const leftCharacters = left[Symbol.iterator]();
+  const rightCharacters = right[Symbol.iterator]();
+  while (true) {
+    const leftCharacter = leftCharacters.next();
+    const rightCharacter = rightCharacters.next();
+    if (leftCharacter.done || rightCharacter.done) {
+      return leftCharacter.done === rightCharacter.done ? 0 : leftCharacter.done ? -1 : 1;
+    }
+    const leftPoint = leftCharacter.value.codePointAt(0)!;
+    const rightPoint = rightCharacter.value.codePointAt(0)!;
+    if (leftPoint !== rightPoint) return leftPoint < rightPoint ? -1 : 1;
+  }
 }
 
 function normalizedWords(value: string): string {
@@ -38,7 +58,7 @@ function normalizedWords(value: string): string {
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[’']/g, '')
-    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim();
 }
 
@@ -62,7 +82,8 @@ function productMatches(product: PublicProduct, label: string): boolean {
   return searchableProductFields(product).some(value => matchesAtTokenBoundary(value, label));
 }
 
-function isSellableTea(product: PublicProduct): boolean {
+/** Active and Sold Out public catalogue teas remain eligible; sold history is reference-worthy. */
+function isEligiblePublicTeaProduct(product: PublicProduct): boolean {
   return (product.status === 'Active' || product.status === 'Sold Out')
     && !product.isPersonal
     && isTeaType(product.type);
@@ -85,8 +106,8 @@ function orderedUniqueFacts(entries: readonly PublicReferenceEntry[]): PublicRef
   const facts = entries
     .flatMap(entry => entry.statements)
     .map(publicStatement)
-    .sort((left, right) => left.id.localeCompare(right.id)
-      || JSON.stringify(left).localeCompare(JSON.stringify(right)));
+    .sort((left, right) => codePointCompare(left.id, right.id)
+      || codePointCompare(JSON.stringify(left), JSON.stringify(right)));
   const byId = new Map<string, PublicReferenceStatement>();
   for (const fact of facts) {
     if (!byId.has(fact.id)) byId.set(fact.id, fact);
@@ -95,15 +116,15 @@ function orderedUniqueFacts(entries: readonly PublicReferenceEntry[]): PublicRef
 }
 
 function orderedUniqueIds(ids: readonly string[]): string[] {
-  return [...new Set(ids)].sort((left, right) => left.localeCompare(right));
+  return [...new Set(ids)].sort(codePointCompare);
 }
 
 function allEntries(preview: PublicReferencePreview): PublicReferenceEntry[] {
   return preview.sections
     .flatMap(section => section.entries)
-    .sort((left, right) => left.id.localeCompare(right.id)
-      || left.label.localeCompare(right.label)
-      || left.entityKind.localeCompare(right.entityKind));
+    .sort((left, right) => codePointCompare(left.id, right.id)
+      || codePointCompare(left.label, right.label)
+      || codePointCompare(left.entityKind, right.entityKind));
 }
 
 function controlledTypeFor(entry: PublicReferenceEntry): 'Sheng' | 'Shou' | null {
@@ -117,7 +138,7 @@ function buildTypes(
   products: readonly PublicProduct[],
 ): PublicTeaType[] {
   return PUER_TYPES.flatMap(type => {
-    const matches = products.filter(product => normalizeTeaType(product.type) === type || productMatches(product, type));
+    const matches = products.filter(product => normalizeTeaType(product.type) === type);
     if (matches.length === 0) return [];
     const typeEntries = entries.filter(entry => controlledTypeFor(entry) === type);
     return [{
@@ -127,7 +148,7 @@ function buildTypes(
       facts: orderedUniqueFacts(typeEntries),
       productIds: orderedUniqueIds(matches.map(product => product.id)),
     }];
-  }).sort((left, right) => left.id.localeCompare(right.id));
+  }).sort((left, right) => codePointCompare(left.id, right.id));
 }
 
 function isPuerFamily(entry: PublicReferenceEntry): boolean {
@@ -142,20 +163,19 @@ function buildOrigins(
   const candidates = new Map<string, PlaceCandidate>();
   for (const entry of entries) {
     if (!PLACE_LEVELS.has(entry.entityKind as PlaceLevel)) continue;
-    const placeEntry = entry as PublicPlaceEntry;
     const existing = candidates.get(entry.id);
     if (existing) {
-      existing.entries.push(placeEntry);
+      existing.entries.push(entry);
       continue;
     }
     candidates.set(entry.id, {
-      entries: [placeEntry],
+      entries: [entry],
       level: entry.entityKind as PlaceLevel,
       name: entry.label,
     });
   }
 
-  const declaredParents = new Map<string, string>();
+  const structurallyValidParents = new Map<string, string>();
   for (const [id, candidate] of candidates) {
     const declarations: unknown[] = [];
     for (const placeEntry of candidate.entries) {
@@ -167,14 +187,14 @@ function buildOrigins(
     if (parentIds.size !== 1) continue;
     const [parentId] = parentIds;
     if (parentId === id || !candidates.has(parentId)) continue;
-    declaredParents.set(id, parentId);
+    structurallyValidParents.set(id, parentId);
   }
 
   const entersCycle = (startId: string): boolean => {
     const seen = new Set([startId]);
     let currentId = startId;
-    while (declaredParents.has(currentId)) {
-      const parentId = declaredParents.get(currentId)!;
+    while (structurallyValidParents.has(currentId)) {
+      const parentId = structurallyValidParents.get(currentId)!;
       if (seen.has(parentId)) return true;
       seen.add(parentId);
       currentId = parentId;
@@ -182,7 +202,12 @@ function buildOrigins(
     return false;
   };
   const verifiedParents = new Map(
-    [...declaredParents].filter(([id]) => !entersCycle(id)),
+    [...structurallyValidParents].filter(([id, parentId]) => {
+      if (entersCycle(id)) return false;
+      const child = candidates.get(id)!;
+      const parent = candidates.get(parentId)!;
+      return PLACE_RANK[parent.level] < PLACE_RANK[child.level];
+    }),
   );
 
   const directMatches = new Map<string, string[]>();
@@ -220,7 +245,7 @@ function buildOrigins(
         productIds: orderedUniqueIds(productIds),
       };
     })
-    .sort((left, right) => left.id.localeCompare(right.id));
+    .sort((left, right) => codePointCompare(left.id, right.id));
 }
 
 function publicSources(preview: PublicReferencePreview): PublicTeaReferenceSource[] {
@@ -234,8 +259,8 @@ function publicSources(preview: PublicReferencePreview): PublicTeaReferenceSourc
       publishedDate: source.publishedDate,
       url: source.url,
     }))
-    .sort((left, right) => left.sourceId.localeCompare(right.sourceId)
-      || JSON.stringify(left).localeCompare(JSON.stringify(right)));
+    .sort((left, right) => codePointCompare(left.sourceId, right.sourceId)
+      || codePointCompare(JSON.stringify(left), JSON.stringify(right)));
   const byId = new Map<string, PublicTeaReferenceSource>();
   for (const source of sources) {
     if (!byId.has(source.sourceId)) byId.set(source.sourceId, source);
@@ -248,7 +273,7 @@ export function buildTeaReferenceCatalogue(
   publicProducts: readonly PublicProduct[],
 ): TeaReferenceCatalogue {
   const entries = allEntries(publicPreview);
-  const products = publicProducts.filter(isSellableTea);
+  const products = publicProducts.filter(isEligiblePublicTeaProduct);
   const types = buildTypes(entries, products);
   const familyProductIds = orderedUniqueIds(types.flatMap(type => type.productIds));
   const familyEntries = entries.filter(isPuerFamily);

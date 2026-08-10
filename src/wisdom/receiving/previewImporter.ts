@@ -117,6 +117,7 @@ export interface WebsiteHandoffCitation extends ReferenceSource {
 export interface WebsiteHandoffEntity {
   resolutionId: string;
   canonicalEntityId: string;
+  parentEntityId?: string;
   preferredLabel: string;
   sourceLabel: string;
   entityKind: ReferenceEntityKind;
@@ -192,6 +193,7 @@ export interface PublicReferenceEntry {
   label: string;
   entityKind: ReferenceEntityKind;
   kindLabel: string;
+  parentId?: string;
   statements: PublicReferenceStatement[];
   reportUrl: string;
 }
@@ -394,7 +396,10 @@ function factRegister(claim: WebsiteHandoffClaim): FactRegister {
   return 'reference';
 }
 
-function entityCandidate(entity: WebsiteHandoffEntity): ReferenceEntity {
+function entityCandidate(
+  entity: WebsiteHandoffEntity,
+  parentIds: ReadonlyMap<string, string>,
+): ReferenceEntity {
   return {
     entityId: entity.resolutionId,
     canonicalEntityId: entity.canonicalEntityId,
@@ -402,7 +407,36 @@ function entityCandidate(entity: WebsiteHandoffEntity): ReferenceEntity {
     sourceLabel: entity.sourceLabel,
     entityKind: entity.entityKind,
     ...(GEOGRAPHIC_LEVELS.has(entity.entityKind) ? { geographicLevel: entity.entityKind as GeographicLevel } : {}),
+    ...(parentIds.has(entity.resolutionId) ? { parentEntityId: parentIds.get(entity.resolutionId) } : {}),
   };
+}
+
+function resolvedParentEntityIds(entities: readonly WebsiteHandoffEntity[]): Map<string, string> {
+  const resolutionByEntityId = new Map<string, string>();
+  for (const entity of entities) {
+    const identifiers = [entity.resolutionId, entity.canonicalEntityId.trim()].filter(Boolean);
+    for (const identifier of identifiers) {
+      const existing = resolutionByEntityId.get(identifier);
+      if (existing && existing !== entity.resolutionId) {
+        throw new Error(`Entity identifier resolves to more than one entity: ${identifier}`);
+      }
+      resolutionByEntityId.set(identifier, entity.resolutionId);
+    }
+  }
+
+  const parentIds = new Map<string, string>();
+  for (const entity of entities) {
+    if (entity.parentEntityId === undefined) continue;
+    const parentEntityId = entity.parentEntityId.trim();
+    if (!parentEntityId) throw new Error(`Entity ${entity.resolutionId} has a blank parent entity ID`);
+    const parentResolutionId = resolutionByEntityId.get(parentEntityId);
+    if (!parentResolutionId) throw new Error(`Entity ${entity.resolutionId} has a missing parent entity ID: ${parentEntityId}`);
+    if (parentResolutionId === entity.resolutionId) {
+      throw new Error(`Entity ${entity.resolutionId} cannot reference itself as its parent`);
+    }
+    parentIds.set(entity.resolutionId, parentResolutionId);
+  }
+  return parentIds;
 }
 
 function reportUrl(subject: string): string {
@@ -456,6 +490,7 @@ function publicPreviewFor(
 ): PublicReferencePreview {
   const citations = new Map(handoff.citations.map(citation => [citation.citationId, citation]));
   const sourceIndex = new Map(sources.map(source => [source.sourceId, source]));
+  const parentIds = resolvedParentEntityIds(handoff.entities);
   const entries = [...handoff.entities]
     .sort((left, right) => {
       const kind = ENTITY_ORDER.indexOf(left.entityKind) - ENTITY_ORDER.indexOf(right.entityKind);
@@ -493,6 +528,7 @@ function publicPreviewFor(
         label,
         entityKind: entity.entityKind,
         kindLabel: KIND_LABELS[entity.entityKind] || 'Reference entry',
+        ...(parentIds.has(entity.resolutionId) ? { parentId: parentIds.get(entity.resolutionId) } : {}),
         statements,
         reportUrl: reportUrl(label),
       } satisfies PublicReferenceEntry;
@@ -571,6 +607,7 @@ function validateHandoff(handoff: WebsiteHandoff): void {
     if (entityIds.has(entity.resolutionId)) throw new Error(`Duplicate entity resolution: ${entity.resolutionId}`);
     entityIds.add(entity.resolutionId);
   }
+  resolvedParentEntityIds(handoff.entities);
   const citationIds = new Set<string>();
   for (const citation of handoff.citations) {
     if (citationIds.has(citation.citationId)) throw new Error(`Duplicate citation: ${citation.citationId}`);
@@ -687,11 +724,18 @@ function validatePublicStatement(value: unknown, path: string): void {
 }
 
 function validatePublicEntry(value: unknown, path: string): void {
-  const entry = publicObject(value, ['id', 'label', 'entityKind', 'kindLabel', 'statements', 'reportUrl'], path);
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`Unsafe public preview: ${path} must be an object`);
+  }
+  const keys = hasOwn(value, 'parentId')
+    ? ['id', 'label', 'entityKind', 'kindLabel', 'parentId', 'statements', 'reportUrl']
+    : ['id', 'label', 'entityKind', 'kindLabel', 'statements', 'reportUrl'];
+  const entry = publicObject(value, keys, path);
   publicString(entry.id, `${path}.id`);
   publicString(entry.label, `${path}.label`);
   publicString(entry.entityKind, `${path}.entityKind`);
   publicString(entry.kindLabel, `${path}.kindLabel`);
+  if (hasOwn(entry, 'parentId')) publicString(entry.parentId, `${path}.parentId`);
   publicArray(entry.statements, `${path}.statements`)
     .forEach((statement, index) => validatePublicStatement(statement, `${path}.statements[${index}]`));
   publicString(entry.reportUrl, `${path}.reportUrl`);
@@ -800,8 +844,9 @@ export function previewWebsiteHandoff(
   }
 
   const citations = new Map(handoff.citations.map(citation => [citation.citationId, citation]));
+  const parentIds = resolvedParentEntityIds(handoff.entities);
   for (const input of [...handoff.entities].sort((left, right) => left.resolutionId.localeCompare(right.resolutionId))) {
-    const candidate = entityCandidate(input);
+    const candidate = entityCandidate(input, parentIds);
     const geographicGap = candidate.geographicLevel && !candidate.parentEntityId;
     const reason = geographicGap
       ? `The ${candidate.geographicLevel} level has no verified parent entity in the handoff; it cannot be flattened into a generic region.`
