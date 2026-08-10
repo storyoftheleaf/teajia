@@ -167,6 +167,47 @@ describe('sellable Tea Reference catalogue', () => {
     expect(result.families[0]?.id).toBe('puer');
   });
 
+  it('qualifies the Pu’er family directly through an active family-matched tea and then includes its history', () => {
+    const result = buildTeaReferenceCatalogue(preview(), [
+      product({
+        id: 'active-family-match',
+        type: 'Dark',
+        givenName: 'Pu’er family cake',
+        productName: 'Unclassified dark tea',
+      }),
+      product({
+        id: 'sold-out-family-history',
+        type: 'Dark',
+        status: 'Sold Out',
+        givenName: 'Pu’er reserve cake',
+        productName: 'Unclassified dark tea',
+      }),
+    ]);
+
+    expect(result.types).toEqual([]);
+    expect(result.families).toEqual([{
+      id: 'puer',
+      name: 'Pu’er',
+      facts: [statement('resolution-puer-fact')],
+      productIds: ['active-family-match', 'sold-out-family-history'],
+    }]);
+  });
+
+  it('does not let a sold-out family match qualify the Pu’er family by itself', () => {
+    const result = buildTeaReferenceCatalogue(preview(), [
+      product({
+        id: 'sold-out-family-only',
+        type: 'Dark',
+        status: 'Sold Out',
+        givenName: 'Pu’er family cake',
+        productName: 'Unclassified dark tea',
+      }),
+    ]);
+
+    expect(result.types).toEqual([]);
+    expect(result.families).toEqual([]);
+  });
+
   it('ignores personal, non-tea, and non-sellable records', () => {
     const excluded = [
       product({ id: 'personal-sheng', isPersonal: true, type: 'Sheng' }),

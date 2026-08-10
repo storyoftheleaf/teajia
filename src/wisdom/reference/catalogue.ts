@@ -157,6 +157,18 @@ function isPuerFamily(entry: PublicReferenceEntry): boolean {
     && PUER_FAMILY_LABELS.has(normalizedWords(entry.label).replace(/\s/g, ''));
 }
 
+function directlyMatchedFamilyProductIds(
+  familyEntries: readonly PublicReferenceEntry[],
+  products: readonly PublicProduct[],
+): string[] {
+  const matches = products.filter(product => (
+    familyEntries.some(entry => productMatches(product, entry.label))
+  ));
+  return matches.some(product => product.status === 'Active')
+    ? matches.map(product => product.id)
+    : [];
+}
+
 function buildOrigins(
   entries: readonly PublicReferenceEntry[],
   products: readonly PublicProduct[],
@@ -283,8 +295,11 @@ export function buildTeaReferenceCatalogue(
   const entries = allEntries(publicPreview);
   const products = publicProducts.filter(isEligiblePublicTeaProduct);
   const types = buildTypes(entries, products);
-  const familyProductIds = orderedUniqueIds(types.flatMap(type => type.productIds));
   const familyEntries = entries.filter(isPuerFamily);
+  const familyProductIds = orderedUniqueIds([
+    ...types.flatMap(type => type.productIds),
+    ...directlyMatchedFamilyProductIds(familyEntries, products),
+  ]);
 
   return {
     families: familyProductIds.length === 0 ? [] : [{
