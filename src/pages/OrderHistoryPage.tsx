@@ -4,21 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { api, hasToken } from '../lib/api';
 import { Icons } from '../components/Icons';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
-
-// Currency formatter, falls back to a plain prefix when Intl rejects the code
-// (D1 stores legacy values like "NT" or "Yuan" that aren't ISO 4217).
-function formatTotal(amountUsd: number, currency: string): string {
-  const safe = Number.isFinite(amountUsd) ? amountUsd : 0;
-  try {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency || 'USD',
-      maximumFractionDigits: 2,
-    }).format(safe);
-  } catch {
-    return `${currency || 'USD'} ${safe.toFixed(2)}`;
-  }
-}
+import { useRates } from '../admin/hooks/useAdminData';
+import { formatOrderAmount } from '../lib/orderMoney';
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -36,6 +23,7 @@ function statusTone(status: string): string {
 export default function OrderHistoryPage() {
   const navigate = useNavigate();
   const authed = hasToken();
+  const { data: rates = [] } = useRates();
 
   useEffect(() => {
     if (!authed) {
@@ -102,7 +90,7 @@ export default function OrderHistoryPage() {
                 type="button"
                 onClick={() => navigate(`/account/orders/${encodeURIComponent(order.id)}`)}
                 className="w-full min-h-11 rounded border border-tea-border bg-tea-surface px-4 py-3 flex items-center justify-between gap-4 text-left hover:border-tea-gold/30 transition-colors"
-                aria-label={`${order.invoice_number}, ${order.status}, ${formatTotal(order.total_amount_usd, order.currency)}`}
+                aria-label={`${order.invoice_number}, ${order.status}, ${formatOrderAmount(order.total_amount_usd, order.currency, rates)}`}
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -120,7 +108,7 @@ export default function OrderHistoryPage() {
                 </div>
                 <div className="text-right flex items-center gap-2 shrink-0">
                   <p className="text-ui-14 text-tea-text font-medium">
-                    {formatTotal(order.total_amount_usd, order.currency)}
+                    {formatOrderAmount(order.total_amount_usd, order.currency, rates)}
                   </p>
                   <Icons.ChevronRight className="w-4 h-4 text-tea-text-sec" aria-hidden="true" />
                 </div>
