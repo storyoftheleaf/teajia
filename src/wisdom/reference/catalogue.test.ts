@@ -203,6 +203,83 @@ describe('sellable Tea Reference catalogue', () => {
     expect(result.origins.some(origin => origin.id === 'resolution-vendor-valley')).toBe(false);
   });
 
+  it('retains the verified public ancestor chain of a directly matched origin', () => {
+    const grandparent = entry('resolution-ancestor-region', 'Southwestern Range', 'major_region');
+    const parent = Object.assign(
+      entry('resolution-ancestor-area', 'Six Great Tea Mountains', 'tea_area'),
+      { parentId: grandparent.id },
+    );
+    const child = Object.assign(
+      entry('resolution-matched-village', 'Mansa', 'village'),
+      { parentId: parent.id },
+    );
+    const matched = product({
+      id: 'tea-mansa',
+      type: 'Sheng',
+      givenName: 'Spring cake',
+      productName: 'Old tree tea',
+      originCountry: 'China',
+      originRegion: 'Mansa',
+    });
+
+    const result = buildTeaReferenceCatalogue(preview([grandparent, parent, child]), [matched]);
+
+    expect(result.origins).toEqual([
+      expect.objectContaining({
+        id: parent.id,
+        level: 'tea_area',
+        parentId: grandparent.id,
+        productIds: [matched.id],
+      }),
+      expect.objectContaining({
+        id: grandparent.id,
+        level: 'major_region',
+        productIds: [matched.id],
+      }),
+      expect.objectContaining({
+        id: child.id,
+        level: 'village',
+        parentId: parent.id,
+        productIds: [matched.id],
+      }),
+    ]);
+    expect(result.origins.find(origin => origin.id === grandparent.id)?.parentId).toBeUndefined();
+  });
+
+  it('omits missing, self-referential, and cyclic public parent relations without following them', () => {
+    const missing = Object.assign(
+      entry('resolution-missing-parent-child', 'Missing Parent Village', 'village'),
+      { parentId: 'resolution-does-not-exist' },
+    );
+    const self = Object.assign(
+      entry('resolution-self-parent', 'Self Parent Village', 'village'),
+      { parentId: 'resolution-self-parent' },
+    );
+    const cycleA = Object.assign(
+      entry('resolution-cycle-a', 'Cycle Start Village', 'village'),
+      { parentId: 'resolution-cycle-b' },
+    );
+    const cycleB = Object.assign(
+      entry('resolution-cycle-b', 'Unmatched Cycle Area', 'tea_area'),
+      { parentId: 'resolution-cycle-a' },
+    );
+    const products = [
+      product({ id: 'tea-missing-parent', originRegion: missing.label }),
+      product({ id: 'tea-self-parent', originRegion: self.label }),
+      product({ id: 'tea-cycle', originRegion: cycleA.label }),
+    ];
+
+    const result = buildTeaReferenceCatalogue(preview([missing, self, cycleA, cycleB]), products);
+
+    expect(result.origins.map(origin => origin.id)).toEqual([
+      cycleA.id,
+      missing.id,
+      self.id,
+    ]);
+    expect(result.origins.every(origin => origin.parentId === undefined)).toBe(true);
+    expect(result.origins.some(origin => origin.id === cycleB.id)).toBe(false);
+  });
+
   it('copies only allowlisted public fields and returns deterministic, deduplicated ordering', () => {
     const unsafePreview = preview();
     Object.assign(unsafePreview, { privateVerification: [{ status: 'held', evidenceIds: ['secret'] }] });

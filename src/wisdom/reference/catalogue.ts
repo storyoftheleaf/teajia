@@ -24,6 +24,14 @@ const PLACE_LEVELS = new Set<PlaceLevel>([
 const PUER_FAMILY_LABELS = new Set(['puer', 'puerh']);
 const PUER_TYPES = TEA_TYPES.filter(type => type === 'Sheng' || type === 'Shou');
 
+type PublicPlaceEntry = PublicReferenceEntry & { parentId?: string };
+
+interface PlaceCandidate {
+  entries: PublicPlaceEntry[];
+  level: PlaceLevel;
+  name: string;
+}
+
 function normalizedWords(value: string): string {
   return value
     .normalize('NFKD')
@@ -131,32 +139,87 @@ function buildOrigins(
   entries: readonly PublicReferenceEntry[],
   products: readonly PublicProduct[],
 ): PublicTeaOrigin[] {
-  const byId = new Map<string, { entries: PublicReferenceEntry[]; level: PlaceLevel; name: string; productIds: string[] }>();
+  const candidates = new Map<string, PlaceCandidate>();
   for (const entry of entries) {
     if (!PLACE_LEVELS.has(entry.entityKind as PlaceLevel)) continue;
-    const productIds = products.filter(product => productMatches(product, entry.label)).map(product => product.id);
-    if (productIds.length === 0) continue;
-    const existing = byId.get(entry.id);
+    const placeEntry = entry as PublicPlaceEntry;
+    const existing = candidates.get(entry.id);
     if (existing) {
-      existing.entries.push(entry);
-      existing.productIds.push(...productIds);
+      existing.entries.push(placeEntry);
       continue;
     }
-    byId.set(entry.id, {
-      entries: [entry],
+    candidates.set(entry.id, {
+      entries: [placeEntry],
       level: entry.entityKind as PlaceLevel,
       name: entry.label,
-      productIds,
     });
   }
-  return [...byId.entries()]
-    .map(([id, origin]) => ({
-      id,
-      name: origin.name,
-      level: origin.level,
-      facts: orderedUniqueFacts(origin.entries),
-      productIds: orderedUniqueIds(origin.productIds),
-    }))
+
+  const declaredParents = new Map<string, string>();
+  for (const [id, candidate] of candidates) {
+    const declarations: unknown[] = [];
+    for (const placeEntry of candidate.entries) {
+      if (Object.prototype.hasOwnProperty.call(placeEntry, 'parentId')) declarations.push(placeEntry.parentId);
+    }
+    if (declarations.length === 0) continue;
+    if (declarations.some(parentId => typeof parentId !== 'string' || !parentId.trim())) continue;
+    const parentIds = new Set(declarations.map(parentId => (parentId as string).trim()));
+    if (parentIds.size !== 1) continue;
+    const [parentId] = parentIds;
+    if (parentId === id || !candidates.has(parentId)) continue;
+    declaredParents.set(id, parentId);
+  }
+
+  const entersCycle = (startId: string): boolean => {
+    const seen = new Set([startId]);
+    let currentId = startId;
+    while (declaredParents.has(currentId)) {
+      const parentId = declaredParents.get(currentId)!;
+      if (seen.has(parentId)) return true;
+      seen.add(parentId);
+      currentId = parentId;
+    }
+    return false;
+  };
+  const verifiedParents = new Map(
+    [...declaredParents].filter(([id]) => !entersCycle(id)),
+  );
+
+  const directMatches = new Map<string, string[]>();
+  for (const [id, candidate] of candidates) {
+    const productIds = products
+      .filter(product => candidate.entries.some(placeEntry => productMatches(product, placeEntry.label)))
+      .map(product => product.id);
+    if (productIds.length > 0) directMatches.set(id, productIds);
+  }
+
+  const surfacedIds = new Map<string, string[]>();
+  for (const [matchedId, productIds] of directMatches) {
+    let currentId: string | undefined = matchedId;
+    const visited = new Set<string>();
+    while (currentId && !visited.has(currentId)) {
+      visited.add(currentId);
+      const existing = surfacedIds.get(currentId) || [];
+      existing.push(...productIds);
+      surfacedIds.set(currentId, existing);
+      currentId = verifiedParents.get(currentId);
+    }
+  }
+
+  return [...surfacedIds.entries()]
+    .filter(([id]) => candidates.has(id))
+    .map(([id, productIds]) => {
+      const origin = candidates.get(id)!;
+      const parentId = verifiedParents.get(id);
+      return {
+        id,
+        name: origin.name,
+        level: origin.level,
+        ...(parentId ? { parentId } : {}),
+        facts: orderedUniqueFacts(origin.entries),
+        productIds: orderedUniqueIds(productIds),
+      };
+    })
     .sort((left, right) => left.id.localeCompare(right.id));
 }
 
