@@ -168,11 +168,11 @@ const RegionPage: React.FC = () => {
             <span className="figures-tab">{region.altitude}</span>
           </Fact>
         )}
-        <Fact label="Map">
+        <p className={`${FACT_CLASS} ${AXIS_INDENT} mt-1.5`}>
           <a href={map.url} target="_blank" rel="noreferrer" className={`${QUIET_LINK} tap-target`}>
             {map.label}
           </a>
-        </Fact>
+        </p>
 
         {/* Climate is the one field here that is research prose, not a fact:
             the longest runs to 239 characters, four lines of body type. Set on

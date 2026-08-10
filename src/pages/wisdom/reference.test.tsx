@@ -942,6 +942,8 @@ describe('growing regions', () => {
     expect(html).not.toContain('Reference ID');
     expect(html).not.toContain('RG 006');
     expect(html).toContain('>View map</a>');
+    expect(html).not.toMatch(/>Map</);
+    expect(html).toMatch(/sm:ml-\[9rem\][^\"]*mt-1\.5/);
     expect(html).not.toContain('Apple Maps');
     expect(html).toContain('href="https://maps.apple.com/?q=Anhui%2C%20China"');
     expect(html).not.toContain('>Altitude<');
@@ -955,6 +957,7 @@ describe('growing regions', () => {
   it('keeps the map provider out of the public action label', () => {
     const html = render('/wisdom/region/darjeeling').replace(/&amp;/g, '&');
     expect(html).toContain('>View map</a>');
+    expect(html).not.toMatch(/>Map</);
     expect(html).not.toContain('Google Maps');
     expect(html).toContain('https://www.google.com/maps/search/?api=1&query=Darjeeling%2C%20West%20Bengal%2C%20India');
   });
@@ -1035,6 +1038,8 @@ describe('growing regions', () => {
     expect(html).toContain('Tea types represented by available teas');
     expect(html).toContain('href="/wisdom/type/sheng"');
     expect(html).toContain('>View map</a>');
+    expect(html).not.toMatch(/>Map</);
+    expect(html).toMatch(/sm:ml-\[9rem\][^\"]*mt-1\.5/);
     expect(html).not.toContain('Apple Maps');
     expect(html).toContain('href="https://maps.apple.com/?q=Manxiu%2C%20Mansa%20Village%2C%20Gedeng%20Mountain%2C%20Yiwu%20Tea%20Area%2C%20Yunnan%2C%20China"');
     expect(html).not.toMatch(/Country|Province|Altitude|Climate/);

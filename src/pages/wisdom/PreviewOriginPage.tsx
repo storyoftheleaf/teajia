@@ -98,11 +98,11 @@ const PreviewOriginPage: React.FC<{ id: string }> = ({ id }) => {
               </Fact>
             )}
             {map && (
-              <Fact label="Map">
+              <p className={`${FACT} ${AXIS_INDENT} mt-1.5`}>
                 <a href={map.url} target="_blank" rel="noreferrer" className={`${QUIET_LINK} tap-target`}>
                   {map.label}
                 </a>
-              </Fact>
+              </p>
             )}
           </div>
 
