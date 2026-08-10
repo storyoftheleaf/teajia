@@ -11,6 +11,7 @@ import { Projects } from './advise/Projects';
 import { ProjectDetail } from './advise/ProjectDetail';
 import { useScrollDirection } from '../hooks/useScrollDirection';
 import { useSectionReveal } from '../hooks/useSectionReveal';
+import { TYPOGRAPHY_CLASSES } from '../designTokens';
 
 /* =====================================================
    Data
@@ -128,107 +129,96 @@ export const AdvisePage: React.FC<AdvisePageProps> = ({ onCartClick, onAccountCl
     );
   }
 
-  /* ── Main layout, five moments ── */
+  /* ── Main layout, four tonal moments ── */
   return (
-    <div className="w-full animate-[fadeIn_0.6s_ease-out]">
+    <div data-testid="advise-page" className="w-full animate-[fadeIn_0.6s_ease-out]">
       <Helmet>
         <title>Advise · Teajia</title>
         <meta name="description" content="Tea space design, sourcing guidance, ceremony training. Twenty years of practice distilled into services for those who take tea seriously." />
       </Helmet>
       <PageHeader title="Advise" onCartClick={onCartClick} onAccountClick={onAccountClick} cartItemCount={cartItemCount} />
 
-      <div className="max-w-[1400px] mx-auto">
-
-        {/* ════════════════════════════════════════════
-            1. HERO, heading hangs in space, then bio
-            ════════════════════════════════════════════ */}
-        <div
-          ref={heroReveal.ref}
-          className={`pt-14 md:pt-20 lg:pt-24 pb-10 md:pb-14 ${heroReveal.className}`}
-          style={heroReveal.style}
-        >
-          <h2 className="text-[2rem] md:text-[2.8rem] lg:text-[3.5rem] font-normal text-tea-text leading-[1.1] tracking-[-0.02em]"
-              style={{ fontFamily: 'var(--font-display)' }}>
-            Tea spaces, sourcing,<br /> guidance.
-          </h2>
-        </div>
-
-        <div
-          ref={bioReveal.ref}
-          className={`flex flex-col md:flex-row gap-10 md:gap-14 pb-24 md:pb-32 ${bioReveal.className}`}
-          style={bioReveal.style}
-        >
-          <div className="relative shrink-0 w-full md:w-[340px]">
-            <img
-              src="https://res.cloudinary.com/dobbosnda/image/upload/f_auto,q_auto,w_600/v1773837991/2021-06-27_IMG_7745_Original_ehkz30.jpg"
-              alt=""
-              width={600}
-              height={750}
-              className="w-full aspect-[3/2] md:aspect-[4/5] object-cover bg-tea-surface rounded-xl"
-              loading="lazy"
-            />
+      <div data-testid="advise-hero" className="bg-tea-bg">
+        <div className="max-w-[1400px] mx-auto">
+          <div
+            ref={heroReveal.ref}
+            className={`pt-14 md:pt-20 lg:pt-24 pb-10 md:pb-14 ${heroReveal.className}`}
+            style={heroReveal.style}
+          >
+            <h2 className="text-[2rem] md:text-[2.8rem] lg:text-[3.5rem] font-normal text-tea-text leading-[1.1] tracking-[-0.02em]"
+                style={{ fontFamily: 'var(--font-display)' }}>
+              Tea spaces, sourcing,<br /> guidance.
+            </h2>
           </div>
-          <div className="flex flex-col justify-center max-w-[460px]">
-            <p className="text-[1.05rem] md:text-[1.15rem] font-normal text-tea-text leading-[1.4] tracking-[-0.005em] mb-6"
-               style={{ fontFamily: 'var(--font-display)' }}>
-              Twenty years in tea culture.<br className="hidden md:block" />
-              Taiwan, China, Japan, Bali, and beyond.
-            </p>
-            <p className="text-ui-14 text-tea-text-sec leading-[1.85] mb-4"
-               style={{ fontFamily: 'var(--font-body)' }}>
-              We work with individuals deepening their personal tea practice, with collectors seeking rare and aged teas, and with retreat centers, hotels, and private residences ready to bring tea culture into their spaces. For larger projects, that means everything from room design and teaware curation to tea sourcing and staff training.
-            </p>
-            <p className="text-ui-14 text-tea-text-sec leading-[1.85]"
-               style={{ fontFamily: 'var(--font-body)' }}>
-              A background in design and visual art shapes every detail. Two decades of sourcing relationships across Asia ground every recommendation. An international practice rooted in Bali.
-            </p>
-            <button
-              onClick={() => openInquiry('')}
-              className="text-ui-11 uppercase tracking-[0.1em] text-tea-gold hover:text-tea-gold/70
-                         font-medium transition-colors duration-300 text-left mt-8 min-h-[44px]"
-              style={{ fontFamily: 'var(--font-sans)' }}
-            >
-              Every engagement begins with a conversation <span className="ml-1">&rarr;</span>
-            </button>
+
+          <div
+            ref={bioReveal.ref}
+            className={`flex flex-col md:flex-row gap-10 md:gap-14 pb-24 md:pb-32 ${bioReveal.className}`}
+            style={bioReveal.style}
+          >
+            <div className="relative shrink-0 w-full md:w-[340px]">
+              <img
+                src="https://res.cloudinary.com/dobbosnda/image/upload/f_auto,q_auto,w_600/v1773837991/2021-06-27_IMG_7745_Original_ehkz30.jpg"
+                alt=""
+                width={600}
+                height={750}
+                className="w-full aspect-[3/2] md:aspect-[4/5] object-cover bg-tea-surface rounded-xl"
+                loading="lazy"
+              />
+            </div>
+            <div className="flex flex-col justify-center max-w-[460px]">
+              <p className="text-[1.05rem] md:text-[1.15rem] font-normal text-tea-text leading-[1.4] tracking-[-0.005em] mb-6"
+                 style={{ fontFamily: 'var(--font-display)' }}>
+                Twenty years in tea culture.<br className="hidden md:block" />
+                Taiwan, China, Japan, Bali, and beyond.
+              </p>
+              <p className="text-ui-14 text-tea-text-sec leading-[1.85] mb-4"
+                 style={{ fontFamily: 'var(--font-body)' }}>
+                We work with individuals deepening their personal tea practice, with collectors seeking rare and aged teas, and with retreat centers, hotels, and private residences ready to bring tea culture into their spaces. For larger projects, that means everything from room design and teaware curation to tea sourcing and staff training.
+              </p>
+              <p className="text-ui-14 text-tea-text-sec leading-[1.85]"
+                 style={{ fontFamily: 'var(--font-body)' }}>
+                A background in design and visual art shapes every detail. Two decades of sourcing relationships across Asia ground every recommendation. An international practice rooted in Bali.
+              </p>
+              <button
+                onClick={() => openInquiry('')}
+                className="text-ui-11 uppercase tracking-[0.1em] text-tea-gold hover:text-tea-gold/70
+                           font-medium transition-colors duration-300 text-left mt-8 min-h-[44px]"
+                style={{ fontFamily: 'var(--font-sans)' }}
+              >
+                Every engagement begins with a conversation <span className="ml-1">&rarr;</span>
+              </button>
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* 2. SERVICES */}
+      <div
+        data-testid="advise-services-band"
+        className="-mx-4 px-4 md:-mx-6 md:px-6 lg:-mx-10 lg:px-10 bg-tea-surface/40 border-y border-tea-border"
+      >
         <div
           ref={servicesReveal.ref}
-          className={`${servicesReveal.className}`}
+          className={`max-w-[1400px] mx-auto ${servicesReveal.className}`}
           style={servicesReveal.style}
         >
           <Services />
         </div>
+      </div>
 
-        {/* B2B link, quiet bridge for business/institutional visitors */}
-        <div className="mt-10 mb-2 max-w-[560px]">
-          <Link
-            to="/for-your-space"
-            className="inline-flex items-center gap-2 text-ui-12 text-tea-text-sec hover:text-tea-text
-                       transition-colors duration-200 group min-h-[44px]"
-            style={{ fontFamily: 'var(--font-sans)' }}
-          >
-            <span className="uppercase tracking-[0.1em]">Hotels, studios, and teams</span>
-            <span className="text-tea-gold/60 group-hover:text-tea-gold transition-colors duration-200">&rarr;</span>
-          </Link>
+      <div data-testid="advise-testimonial-band" className="bg-tea-bg">
+        <div className="max-w-[1400px] mx-auto">
+          <Testimonial />
         </div>
+      </div>
 
-        {/* warm divider */}
-        <div className="divider-warm my-16 md:my-20" />
-
-        {/* 3. PORTFOLIO, hidden until the portfolio is built. See TODO.md (Advise portfolio).
-            Restore <ProjectsPreview onSelectProject={(id) => navigateTo('project-detail', id)} onViewAll={() => navigateTo('projects')} /> here when ready. */}
-
-        {/* 4. TESTIMONIAL, separated by whitespace alone, not a divider */}
-        <Testimonial />
-
-        {/* warm divider */}
-        <div className="divider-warm my-16 md:my-20" />
-
-        {/* 5. CLOSE */}
-        <ClosingCTA onOpenInquiry={() => openInquiry('')} />
+      <div
+        data-testid="advise-closing-band"
+        className="-mx-4 px-4 md:-mx-6 md:px-6 lg:-mx-10 lg:px-10 bg-tea-surface/20 border-t border-tea-border"
+      >
+        <div className="max-w-[1400px] mx-auto">
+          <ClosingCTA onOpenInquiry={() => openInquiry('')} />
+        </div>
       </div>
 
       <FloatingInquiryCTA onOpenInquiry={() => openInquiry('')} />
@@ -267,7 +257,7 @@ const FloatingInquiryCTA: React.FC<{ onOpenInquiry: () => void }> = ({ onOpenInq
   return (
     <button
       onClick={onOpenInquiry}
-      className={`fixed z-drawer right-5 bottom-[calc(1.25rem+env(safe-area-inset-bottom))]
+      className={`fixed z-drawer right-5 bottom-nav-gap
                   transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]
                   ${visible ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-4 opacity-0 scale-95 pointer-events-none'}
                   bg-tea-bg/80 backdrop-blur-md text-tea-gold
@@ -284,70 +274,84 @@ const FloatingInquiryCTA: React.FC<{ onOpenInquiry: () => void }> = ({ onOpenInq
 };
 
 /* =====================================================
-   Services, dense block, each service distinct
+   Services, editorial ledger
    ===================================================== */
 
 const Services: React.FC = () => (
-  <section className="max-w-[600px]">
-    {SERVICES.map((svc, i) => {
-      const isDesign = svc.id === 'design';
+  <section
+    data-testid="advise-services"
+    aria-labelledby="advise-services-title"
+    className="py-16 md:py-20 lg:py-24"
+  >
+    <p id="advise-services-title" className={`${TYPOGRAPHY_CLASSES.label} mb-5 text-tea-text-dim`}>
+      Services
+    </p>
+    <div className="border-y border-tea-border">
+      {SERVICES.map((svc, index) => {
+        const isDesign = svc.id === 'design';
 
-      return (
-        <React.Fragment key={svc.id}>
-          {i > 0 && <div className="h-px bg-tea-border/20" />}
-          <motion.div
+        return (
+          <motion.article
+            key={svc.id}
+            data-service-id={svc.id}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-40px' }}
-            transition={{ duration: 0.6, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] }}
-            className={`${i > 0 ? 'pt-14 md:pt-16' : ''} ${i < SERVICES.length - 1 ? 'pb-14 md:pb-16' : 'pb-6'}`}
+            transition={{ duration: 0.6, delay: index * 0.1, ease: [0.22, 1, 0.36, 1] }}
+            className="grid grid-cols-[1.5rem_minmax(0,1fr)] gap-x-3 border-b border-tea-border py-9 last:border-b-0 md:grid-cols-[2.25rem_minmax(13rem,0.82fr)_minmax(18rem,1.18fr)] md:gap-x-8 md:py-12 lg:gap-x-14"
           >
-            <div className="flex items-baseline justify-between gap-6 mb-3">
-            <h3 className={`font-normal text-tea-text leading-tight tracking-[-0.01em]
-                           ${isDesign ? 'text-[1.5rem] md:text-[1.75rem]' : 'text-[1.2rem] md:text-[1.35rem]'}`}
-                style={{ fontFamily: 'var(--font-display)' }}>
-              {svc.label}
-            </h3>
-            <span className="text-ui-11 uppercase tracking-[0.1em] text-tea-gold/70 shrink-0"
-                  style={{ fontFamily: 'var(--font-sans)' }}>
-              {svc.price}
+            <span className={`${TYPOGRAPHY_CLASSES.label} pt-1 text-tea-gold`}>
+              {String(index + 1).padStart(2, '0')}
             </span>
-          </div>
 
-          <p className="text-ui-14 text-tea-text-sec leading-[1.8]"
-             style={{ fontFamily: 'var(--font-body)' }}>
-            {svc.desc}
-          </p>
-
-          {'offerings' in svc && svc.offerings && (
-            <div className="mt-8 pt-4">
-              {svc.offerings.map((o, j) => (
-                <div key={o.name}
-                     className="flex flex-col py-4 hover:bg-tea-surface/50 transition-colors duration-200 -mx-2 px-2 rounded-md">
-                  <div className="flex items-baseline justify-between gap-4">
-                    <span className="text-ui-15 font-normal text-tea-text"
-                          style={{ fontFamily: 'var(--font-display)' }}>
-                      {o.name}
-                    </span>
-                    <span className="text-ui-11 text-tea-gold/70 shrink-0 uppercase tracking-[0.1em] tabular-nums"
-                          style={{ fontFamily: 'var(--font-mono, var(--font-sans))' }}>
-                      {o.price}
-                    </span>
-                  </div>
-                  {'desc' in o && (
-                    <p className="text-ui-12 text-tea-text-sec mt-1.5 leading-relaxed"
-                       style={{ fontFamily: 'var(--font-sans)' }}>
-                      {o.desc}
-                    </p>
-                  )}
-                </div>
-              ))}
+            <div className="min-w-0">
+              <h3 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>{svc.label}</h3>
+              <span className={`${TYPOGRAPHY_CLASSES.mono} mt-3 block uppercase tracking-[0.1em] text-tea-gold/70 tabular-nums`}>
+                {svc.price}
+              </span>
             </div>
-          )}
-          </motion.div>
-        </React.Fragment>
-      );
-    })}
+
+            <div className="col-start-2 mt-5 min-w-0 md:col-start-3 md:mt-0">
+              <p className="font-body text-ui-14 leading-[1.8] text-tea-text-sec">{svc.desc}</p>
+
+              {isDesign && (
+                <Link
+                  to="/for-your-space"
+                  className="tap-target group mt-5 inline-flex min-h-[44px] items-center gap-2 font-sans text-ui-12 uppercase tracking-[0.1em] text-tea-text-sec transition-colors duration-200 hover:text-tea-text"
+                >
+                  <span>Hotels, studios, and teams</span>
+                  <span className="text-tea-gold/60 transition-colors duration-200 group-hover:text-tea-gold">&rarr;</span>
+                </Link>
+              )}
+
+              {'offerings' in svc && svc.offerings && (
+                <div className="mt-7 grid grid-cols-1 border-t border-tea-border min-[520px]:grid-cols-2">
+                  {svc.offerings.map((offering, offeringIndex) => (
+                    <div
+                      key={offering.name}
+                      data-offering-name={offering.name}
+                      className={`border-b border-tea-border py-5 min-[520px]:px-5 ${
+                        offeringIndex % 2 === 0 ? 'min-[520px]:border-r min-[520px]:pl-0' : 'min-[520px]:pr-0'
+                      }`}
+                    >
+                      <div className="flex items-baseline justify-between gap-4">
+                        <h4 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>{offering.name}</h4>
+                        <span className={`${TYPOGRAPHY_CLASSES.mono} shrink-0 uppercase tracking-[0.1em] text-tea-gold/70 tabular-nums`}>
+                          {offering.price}
+                        </span>
+                      </div>
+                      <p className="mt-2 font-sans text-ui-12 leading-relaxed text-tea-text-sec">
+                        {offering.desc}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.article>
+        );
+      })}
+    </div>
   </section>
 );
 
@@ -426,7 +430,7 @@ const Testimonial: React.FC = () => {
       whileInView={{ opacity: 1 }}
       viewport={{ once: true, margin: '-40px' }}
       transition={{ duration: 1 }}
-      className="mt-28 md:mt-40 text-center"
+      className="py-20 text-center md:py-28 lg:py-32"
     >
       <p className="text-[1.5rem] md:text-[1.85rem] font-normal text-tea-text leading-[1.35] max-w-[540px] mx-auto tracking-[-0.01em]"
          style={{ fontFamily: 'var(--font-display)' }}>
@@ -454,7 +458,7 @@ const ClosingCTA: React.FC<ClosingCTAProps> = ({ onOpenInquiry }) => (
     whileInView={{ opacity: 1, y: 0 }}
     viewport={{ once: true, margin: '-40px' }}
     transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-    className="mt-16 md:mt-24 pb-32 md:pb-40 text-center"
+    className="pb-32 pt-16 text-center md:pb-40 md:pt-24"
   >
     <h3 className="text-[2rem] md:text-[2.75rem] lg:text-[3.25rem] font-normal text-tea-text leading-[1.1] tracking-[-0.02em] mx-auto max-w-[580px]"
         style={{ fontFamily: 'var(--font-display)' }}>
