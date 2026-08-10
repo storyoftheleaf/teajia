@@ -14,6 +14,7 @@ import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 import { deriveConfirmedInvoiceLine, repairCandidate } from './invoiceDomain';
 import { buildEventArticleDraft } from './eventArticleDraft';
+import { decodeWordforgeDraft, isWordforgeManagedArticle, upsertWordforgeDraft, WordforgeDraftError, WORDFORGE_DRAFT_MAX_BYTES } from './wordforgeArticleDraft';
 import { candidateToApi, impressionToApi, parseCandidateInput } from './tastingNoteCuration';
 import { deliverVerificationCode } from './verificationDelivery';
 import { INCIDENT_STATUSES, incidentToApi, normalizeIncidentInput, upsertIncident, type IncidentStatus } from './incidents';
@@ -101,6 +102,8 @@ interface Env {
   OAUTH_AUTHORIZE_LIMITER?: RateLimiterBinding;
   // Scoped machine credential used only by the repository incident-queue exporter.
   INCIDENT_EXPORT_TOKEN?: string;
+  WORDFORGE_INTEGRATION_TOKEN?: string;
+  WORDFORGE_ACCOUNT_ID?: string;
 }
 
 interface RateLimiterBinding {
@@ -17915,6 +17918,46 @@ async function _upsertTasteProfile(
 
 // ── Articles ──
 
+async function equalTokenDigests(supplied: string, configured: string): Promise<boolean> {
+  const encoder = new TextEncoder();
+  const [left, right] = await Promise.all([
+    crypto.subtle.digest('SHA-256', encoder.encode(supplied)),
+    crypto.subtle.digest('SHA-256', encoder.encode(configured)),
+  ]);
+  const a = new Uint8Array(left);
+  const b = new Uint8Array(right);
+  let difference = 0;
+  for (let index = 0; index < a.length; index += 1) difference |= a[index] ^ b[index];
+  return difference === 0;
+}
+
+const handlePutWordforgeArticle: Handler = async (request, env, params) => {
+  if (!env.WORDFORGE_INTEGRATION_TOKEN || !env.WORDFORGE_ACCOUNT_ID) {
+    return restError(503, 'WordForge integration is not configured', 'wordforge_not_configured');
+  }
+  const authorization = request.headers.get('Authorization') || '';
+  const supplied = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
+  if (!supplied || !(await equalTokenDigests(supplied, env.WORDFORGE_INTEGRATION_TOKEN))) {
+    return restError(401, 'Unauthorized', 'unauthorized');
+  }
+  const declaredLength = Number(request.headers.get('Content-Length'));
+  if (Number.isFinite(declaredLength) && declaredLength > WORDFORGE_DRAFT_MAX_BYTES) {
+    return restError(413, 'WordForge draft exceeds 256 KB', 'payload_too_large');
+  }
+  const bytes = await request.arrayBuffer();
+  if (bytes.byteLength > WORDFORGE_DRAFT_MAX_BYTES) return restError(413, 'WordForge draft exceeds 256 KB', 'payload_too_large');
+  try {
+    const payload = decodeWordforgeDraft(JSON.parse(new TextDecoder().decode(bytes)));
+    if (payload.source.id !== params.sourceId) return restError(400, 'Payload source ID does not match route source ID', 'wordforge_source_id_mismatch');
+    const result = await upsertWordforgeDraft(env.DB, env.WORDFORGE_ACCOUNT_ID, payload);
+    return json(result, result.created ? 201 : 200);
+  } catch (error) {
+    if (error instanceof WordforgeDraftError) return restError(error.status, error.message, error.code);
+    if (error instanceof SyntaxError) return restError(400, 'Request body must be valid JSON', 'invalid_json');
+    throw error;
+  }
+};
+
 function slugify(text: string): string {
   return text
     .toLowerCase()
@@ -18054,6 +18097,14 @@ const handleUpdateArticle: Handler = async (request, env, params) => {
   delete body.id;
   delete body.account_id;
   delete body.created_at;
+
+  const WORDFORGE_PROTECTED_ARTICLE_FIELDS = new Set([
+    'title', 'subtitle', 'slug', 'category', 'tags', 'blocks', 'author_id', 'subject_ids', 'pull_quote', 'pull_quote_subject',
+  ]);
+  if (Object.keys(body).some(field => WORDFORGE_PROTECTED_ARTICLE_FIELDS.has(field))
+    && await isWordforgeManagedArticle(env.DB, accountId, params.id)) {
+    return restError(409, 'Article prose is managed by WordForge', 'externally_managed_article');
+  }
 
   if (Array.isArray(body.tags)) body.tags = JSON.stringify(body.tags);
   if (Array.isArray(body.blocks)) body.blocks = JSON.stringify(body.blocks);
@@ -22868,6 +22919,9 @@ const routes: [string, string, Handler][] = [
   // Articles — Public
   ['GET', '/api/articles',       handleGetPublicArticles],
   ['GET', '/api/articles/:slug', handleGetPublicArticle],
+
+  // Articles — WordForge integration (credential-derived account)
+  ['PUT', '/api/integrations/wordforge/articles/:sourceId', handlePutWordforgeArticle],
 
   // Contributors — Public
   ['GET', '/api/people',         handleListPublicContributors],

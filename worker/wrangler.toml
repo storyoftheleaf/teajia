@@ -29,6 +29,7 @@ custom_domain = true
 #   using the custom API domain here provides no mainland-China benefit.)
 [vars]
 OAUTH_REDIRECT_ORIGIN = "https://teajia-api.lightcodes.workers.dev"
+WORDFORGE_ACCOUNT_ID = "acc_teajia_bali"
 
 [ai]
 binding = "AI"

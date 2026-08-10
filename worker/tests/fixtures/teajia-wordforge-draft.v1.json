@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "source": {
+    "system": "wordforge",
+    "id": "interview-li-shan-001",
+    "revision": 1,
+    "content_hash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+  },
+  "article": {
+    "title": "Listening to the Mountain",
+    "subtitle": "A conversation about high-mountain tea",
+    "slug": "listening-to-the-mountain",
+    "category": "interview",
+    "tags": ["oolong", "interview"],
+    "layout_template": "immersive",
+    "cover_image_url": "https://images.example.test/li-shan-cover.jpg",
+    "author_id": null,
+    "subject_ids": [],
+    "credits": ["Interview and photographs by Teajia"],
+    "blocks": [
+      {
+        "type": "cover",
+        "title": "Listening to the Mountain",
+        "subtitle": "A conversation about high-mountain tea",
+        "image": "https://images.example.test/li-shan-cover.jpg",
+        "kicker": "Interview"
+      },
+      {
+        "type": "intro",
+        "text": "Before sunrise, the tea garden is quiet enough to hear water moving through the soil."
+      },
+      {
+        "type": "section_heading",
+        "text": "Learning the slope"
+      },
+      {
+        "type": "qa_pair",
+        "items": [
+          {
+            "q": "What does the mountain teach first?",
+            "a": "Patience. The leaf tells you when it is ready, but only if you stop trying to hurry it."
+          }
+        ]
+      },
+      {
+        "type": "quote",
+        "text": "Good tea remembers the weather.",
+        "attribution": "Lin Mei"
+      },
+      {
+        "type": "image",
+        "url": "https://images.example.test/li-shan-garden.jpg",
+        "description": "Tea rows following a misty mountain contour",
+        "caption": "The upper garden at first light"
+      },
+      {
+        "type": "epilogue",
+        "text": "By noon, the mist had lifted and the first baskets were already on their way down the mountain.",
+        "signature": "Teajia"
+      },
+      {
+        "type": "back_matter",
+        "variant": "copyright",
+        "lines": ["© Teajia", "All rights reserved"]
+      }
+    ]
+  }
+}
