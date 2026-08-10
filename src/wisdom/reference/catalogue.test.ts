@@ -6,6 +6,7 @@ import type {
   PublicReferenceStatement,
 } from '../receiving/previewImporter';
 import {
+  buildGeneratedTeaReferenceFacts,
   buildGeneratedTeaReferenceCatalogue,
   buildInventoryBackedReferenceCandidates,
   buildTeaReferenceCatalogue,
@@ -131,6 +132,46 @@ const qualifyingProducts: PublicProduct[] = [
 ];
 
 describe('sellable Tea Reference catalogue', () => {
+  it('emits one generated fact per section with a deterministic complete citation trail', () => {
+    const facts = buildGeneratedTeaReferenceFacts({
+      id: 'two-source-page',
+      slug: 'two-source-page',
+      kind: 'major_region',
+      label: 'Two-source page',
+      sourceIds: ['source-a', 'source-b'],
+      sections: [{
+        key: 'overview',
+        label: 'Overview',
+        text: 'One section supported by two sources.',
+        sourceIds: ['source-b', 'source-a'],
+      }],
+    }, [
+      {
+        sourceId: 'source-b',
+        publisher: 'Beta Institute',
+        publisherRoleLabel: 'Institute',
+        title: 'Beta source',
+        author: '',
+        publishedDate: '2026-01-02',
+        url: 'https://example.com/b',
+      },
+      {
+        sourceId: 'source-a',
+        publisher: 'Alpha Institute',
+        publisherRoleLabel: 'Institute',
+        title: 'Alpha source',
+        author: '',
+        publishedDate: '2025-01-02',
+        url: 'https://example.com/a',
+      },
+    ]);
+
+    expect(facts).toHaveLength(1);
+    expect(facts[0].id).toBe('two-source-page:overview');
+    expect(facts[0].citation.sourceId).toBe('source-a');
+    expect(facts[0].citations?.map(citation => citation.sourceId)).toEqual(['source-a', 'source-b']);
+  });
+
   it('builds a production-safe catalogue from canonical Markdown without preview transport wording', () => {
     const result = buildGeneratedTeaReferenceCatalogue(qualifyingProducts);
 

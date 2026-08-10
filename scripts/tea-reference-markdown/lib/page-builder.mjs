@@ -185,6 +185,7 @@ function validatePrivateDocument(document) {
   }
   const sourceIds = new Set();
   const evidenceIds = new Set();
+  const evidenceOwners = new Map();
   for (const source of document.sources) {
     if (!SOURCE_ID_PATTERN.test(source?.source_id ?? '')) throw new Error('Private source has an invalid source_id');
     if (sourceIds.has(source.source_id)) throw new Error(`Duplicate private source ${source.source_id}`);
@@ -203,6 +204,7 @@ function validatePrivateDocument(document) {
       }
       if (evidenceIds.has(evidence.evidence_id)) throw new Error(`Duplicate evidence ${evidence.evidence_id}`);
       evidenceIds.add(evidence.evidence_id);
+      evidenceOwners.set(evidence.evidence_id, source.source_id);
       if (!/^[a-f0-9]{64}$/.test(evidence.excerpt_sha256 ?? '')) throw new Error(`${evidence.evidence_id} has an invalid excerpt hash`);
       if (!Array.isArray(evidence.uses) || evidence.uses.length === 0) throw new Error(`${evidence.evidence_id} needs at least one page/section use`);
     }
@@ -212,6 +214,9 @@ function validatePrivateDocument(document) {
     if (translations.has(translation.evidence_id)) throw new Error(`Duplicate translation ${translation.evidence_id}`);
     translations.set(translation.evidence_id, translation);
     if (!sourceIds.has(translation.source_id)) throw new Error(`${translation.evidence_id} translation source is missing`);
+    if (evidenceOwners.get(translation.evidence_id) !== translation.source_id) {
+      throw new Error(`${translation.evidence_id} translation source ${translation.source_id} does not own its evidence record`);
+    }
     if (!HAN_SCRIPT.test(translation.original ?? '')) throw new Error(`${translation.evidence_id} original must preserve Han-script evidence`);
     assertEnglish(translation.english, `${translation.evidence_id} English translation`);
     for (const field of ['method', 'translator', 'version', 'translated_date']) {
@@ -259,9 +264,37 @@ export async function buildRegistry({ pagesDirectory, translationsPath }) {
   if (new Set(sourcePages.map(page => page.slug)).size !== sourcePages.length) throw new Error('Page slugs must be unique');
   const pagesById = new Map(sourcePages.map(page => [page.id, page]));
   const sourcesById = new Map(document.sources.map(source => [source.source_id, source]));
+
+  for (const page of sourcePages) {
+    const pathIds = [];
+    const seen = new Set();
+    let current = page;
+    while (current) {
+      if (seen.has(current.id)) {
+        const cycleStart = pathIds.indexOf(current.id);
+        const cycle = [...pathIds.slice(cycleStart), current.id].join(' -> ');
+        throw new Error(`Page hierarchy cycle detected: ${cycle}`);
+      }
+      seen.add(current.id);
+      pathIds.push(current.id);
+      current = current.parentId ? pagesById.get(current.parentId) : undefined;
+    }
+  }
+
   for (const page of sourcePages) {
     if (page.parentId && !pagesById.has(page.parentId)) throw new Error(`${page.id} parent ${page.parentId} is missing`);
     if (page.parentId === page.id) throw new Error(`${page.id} cannot be its own parent`);
+    const parent = page.parentId ? pagesById.get(page.parentId) : undefined;
+    if (page.kind === 'tea_family' && parent) throw new Error(`tea_family ${page.id} must be a root page`);
+    if (page.kind === 'tea_type' && parent?.kind !== 'tea_family') {
+      throw new Error(`tea_type ${page.id} must have a tea_family parent`);
+    }
+    if (page.kind === 'major_region' && parent && parent.kind !== 'major_region') {
+      throw new Error(`major_region ${page.id} may only have a major_region parent`);
+    }
+    if (page.kind === 'tea_area' && (!parent || !['major_region', 'tea_area'].includes(parent.kind))) {
+      throw new Error(`tea_area ${page.id} must have a major_region or tea_area parent`);
+    }
     for (const sourceId of page.sourceIds) {
       const source = sourcesById.get(sourceId);
       if (!source) throw new Error(`${page.id} cites missing private source provenance ${sourceId}`);

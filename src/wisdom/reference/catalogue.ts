@@ -381,31 +381,44 @@ function publicSources(preview: PublicReferencePreview): PublicTeaReferenceSourc
   return [...byId.values()];
 }
 
-function generatedFacts(page: PublicTeaReferencePage): PublicReferenceStatement[] {
-  const sourcesById = new Map(
-    GENERATED_TEA_REFERENCE_REGISTRY.sources.map(source => [source.sourceId, source]),
+export function buildGeneratedTeaReferenceFacts(
+  page: PublicTeaReferencePage,
+  sources: readonly PublicTeaReferenceSource[] = GENERATED_TEA_REFERENCE_REGISTRY.sources,
+): PublicReferenceStatement[] {
+  const sourcesById = new Map<string, PublicTeaReferenceSource>(
+    sources.map(source => [source.sourceId, source]),
   );
-  return page.sections.flatMap(section => section.sourceIds.map(sourceId => {
-    const source = sourcesById.get(sourceId)!;
-    const date = source.publishedDate ? ` (${source.publishedDate.slice(0, 4)})` : '';
-    return {
-      id: `${page.id}:${section.key}:${sourceId}`,
-      label: section.label,
-      text: section.text,
-      citation: {
+  return page.sections.map(section => {
+    const citations = [...new Set(section.sourceIds)].sort(codePointCompare).map(sourceId => {
+      const source = sourcesById.get(sourceId);
+      if (!source) throw new Error(`${page.id}#${section.key} cites missing public source ${sourceId}`);
+      const date = source.publishedDate ? ` (${source.publishedDate.slice(0, 4)})` : '';
+      return {
         sourceId,
         label: `${source.publisher}, ${source.title}${date}`,
         url: source.url,
-      },
+      };
+    });
+    if (citations.length === 0) throw new Error(`${page.id}#${section.key} needs a public citation`);
+    return {
+      id: `${page.id}:${section.key}`,
+      label: section.label,
+      text: section.text,
+      citation: citations[0],
+      citations,
     };
-  }));
+  });
+}
+
+type GeneratedOriginPage = PublicTeaReferencePage & { kind: 'major_region' | 'tea_area' };
+
+function isGeneratedOriginPage(page: PublicTeaReferencePage): page is GeneratedOriginPage {
+  return page.kind === 'major_region' || page.kind === 'tea_area';
 }
 
 function generatedOrigins(products: readonly PublicProduct[]): PublicTeaOrigin[] {
-  const pages = GENERATED_TEA_REFERENCE_PAGES.filter(
-    page => page.kind === 'major_region' || page.kind === 'tea_area',
-  );
-  const byId = new Map(pages.map(page => [page.id, page]));
+  const pages = GENERATED_TEA_REFERENCE_PAGES.filter(isGeneratedOriginPage);
+  const byId = new Map<string, GeneratedOriginPage>(pages.map(page => [page.id, page]));
   const allMatches = new Map<string, string[]>();
   const activeMatches = new Set<string>();
 
@@ -434,7 +447,7 @@ function generatedOrigins(products: readonly PublicProduct[]): PublicTeaOrigin[]
       name: page.label,
       level: page.kind,
       ...(page.parentId ? { parentId: page.parentId } : {}),
-      facts: generatedFacts(page),
+      facts: buildGeneratedTeaReferenceFacts(page),
       productIds: orderedUniqueIds(productIds),
     };
   }).sort((left, right) => codePointCompare(left.id, right.id));
@@ -456,7 +469,7 @@ export function buildGeneratedTeaReferenceCatalogue(
         id: page.id,
         name: page.label,
         familyId: page.parentId ?? '',
-        facts: generatedFacts(page),
+        facts: buildGeneratedTeaReferenceFacts(page),
         productIds: orderedUniqueIds(matches.map(product => product.id)),
       }];
     });
@@ -477,7 +490,7 @@ export function buildGeneratedTeaReferenceCatalogue(
       return productIds.length === 0 ? [] : [{
         id: page.id,
         name: page.label,
-        facts: generatedFacts(page),
+        facts: buildGeneratedTeaReferenceFacts(page),
         productIds,
       }];
     });

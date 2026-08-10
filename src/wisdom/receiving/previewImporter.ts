@@ -191,6 +191,8 @@ export interface PublicReferenceStatement {
   text: string;
   excerpt?: string;
   citation: PublicCitation;
+  /** All supporting sources when a public statement synthesizes more than one citation. */
+  citations?: PublicCitation[];
 }
 
 export interface PublicReferenceEntry {

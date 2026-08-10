@@ -90,10 +90,14 @@ const sampleProvenance = ({
 };
 
 async function temporaryRegistry(pageText, provenance = sampleProvenance()) {
+  return temporaryRegistryPages([{ fileName: 'page.md', text: pageText }], provenance);
+}
+
+async function temporaryRegistryPages(pageFiles, provenance) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tea-reference-pages-'));
   const pagesDirectory = path.join(root, 'pages');
   await fs.mkdir(pagesDirectory);
-  await fs.writeFile(path.join(pagesDirectory, 'page.md'), pageText);
+  await Promise.all(pageFiles.map(page => fs.writeFile(path.join(pagesDirectory, page.fileName), page.text)));
   const translationsPath = path.join(root, 'translations.json');
   await fs.writeFile(translationsPath, `${JSON.stringify(provenance)}\n`);
   return buildRegistry({ pagesDirectory, translationsPath });
@@ -148,6 +152,17 @@ test('resolves every public citation to private provenance without exposing evid
   );
 });
 
+test('rejects a translation whose source does not own its evidence record', async () => {
+  const provenance = sampleProvenance({ language: 'zh' });
+  provenance.sources.push(sampleProvenance({ sourceId: 'source-b' }).sources[0]);
+  provenance.translations[0].source_id = 'source-b';
+
+  await assert.rejects(
+    temporaryRegistry(samplePage(), provenance),
+    /translation source.*does not own.*evidence/i,
+  );
+});
+
 test('orders files and nested IDs by Unicode code point and renders byte-identical output', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tea-reference-order-'));
   const pagesDirectory = path.join(root, 'pages');
@@ -182,10 +197,61 @@ test('rejects route, list, and grouping research when it is modelled as a geogra
   for (const contentShape of ['route', 'list', 'grouping']) {
     await assert.rejects(
       temporaryRegistry(
-        samplePage({ kind: 'tea_area' }),
+        samplePage({ kind: 'major_region' }),
         sampleProvenance({ contentShape }),
       ),
       new RegExp(`${contentShape}.*reference_topic`, 'i'),
+    );
+  }
+});
+
+test('rejects multi-node page hierarchy cycles', async () => {
+  const provenance = sampleProvenance();
+  provenance.sources[0].evidence[0].uses = [
+    { page_id: 'area-a', section_key: 'overview' },
+    { page_id: 'area-b', section_key: 'overview' },
+  ];
+
+  await assert.rejects(
+    temporaryRegistryPages([
+      { fileName: 'a.md', text: samplePage({ id: 'area-a', kind: 'tea_area', parent: 'area-b' }) },
+      { fileName: 'b.md', text: samplePage({ id: 'area-b', kind: 'tea_area', parent: 'area-a' }) },
+    ], provenance),
+    /hierarchy cycle.*area-a.*area-b/i,
+  );
+});
+
+test('rejects invalid public parent-kind relationships', async () => {
+  const cases = [
+    {
+      child: samplePage({ id: 'type-child', kind: 'tea_type', parent: 'region-parent' }),
+      parent: samplePage({ id: 'region-parent', kind: 'major_region' }),
+      expected: /tea_type.*tea_family/i,
+    },
+    {
+      child: samplePage({ id: 'area-child', kind: 'tea_area', parent: 'family-parent' }),
+      parent: samplePage({ id: 'family-parent', kind: 'tea_family' }),
+      expected: /tea_area.*major_region.*tea_area/i,
+    },
+    {
+      child: samplePage({ id: 'family-child', kind: 'tea_family', parent: 'family-parent' }),
+      parent: samplePage({ id: 'family-parent', kind: 'tea_family' }),
+      expected: /tea_family.*root/i,
+    },
+  ];
+
+  for (const candidate of cases) {
+    const provenance = sampleProvenance();
+    provenance.sources[0].evidence[0].uses = [
+      { page_id: /id: ([^\n]+)/.exec(candidate.child)[1], section_key: 'overview' },
+      { page_id: /id: ([^\n]+)/.exec(candidate.parent)[1], section_key: 'overview' },
+    ];
+    await assert.rejects(
+      temporaryRegistryPages([
+        { fileName: 'child.md', text: candidate.child },
+        { fileName: 'parent.md', text: candidate.parent },
+      ], provenance),
+      candidate.expected,
     );
   }
 });
