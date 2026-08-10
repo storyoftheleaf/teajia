@@ -19,6 +19,7 @@ import { SectionDivider } from './shared/SectionDivider';
 import { SectionSkeleton } from './shared/SectionSkeleton';
 import { LogoEmblem } from './Logos/LogoEmblem';
 import { getSetCoverVariant } from './shop/setCover';
+import { resolvePublicSetItems } from './shop/setContents';
 import { useShopPrice } from './shop/shopPrice';
 import { useAdminOverlay } from '../hooks/useAdminOverlay';
 import { useScrollRestoration } from '../hooks/useScrollRestoration';
@@ -207,19 +208,6 @@ export const Shop: React.FC<ShopProps> = ({
     setTimeout(() => setAddedProductId(null), 1500);
   };
 
-  // Resolve set items to inventory names
-  const resolveSetItems = (set: StarterSet) =>
-    set.items.map(({ type, itemId, quantity }) => {
-      const item = allInventory.find(inv => inv.id === itemId);
-      return {
-        name: item?.name || itemId,
-        type,
-        itemId,
-        quantity: quantity || (type === 'tea' ? 50 : 1),
-        unit: type === 'tea' ? 'g' : '',
-      };
-    });
-
   // Calculate "retail" total from individual item prices
   const calcRetailTotal = (set: StarterSet): number => {
     let total = 0;
@@ -238,7 +226,7 @@ export const Shop: React.FC<ShopProps> = ({
   };
 
   const renderSetCard = (set: StarterSet) => {
-    const resolvedItems = resolveSetItems(set);
+    const resolvedItems = resolvePublicSetItems(set, allInventory);
     const retailTotal = calcRetailTotal(set);
     const setPrice = parseInt(set.price.replace('$', ''), 10);
     const showComparison = retailTotal > 0 && retailTotal > setPrice;
@@ -292,9 +280,9 @@ export const Shop: React.FC<ShopProps> = ({
                 What's inside
               </p>
               <div className="divide-y divide-tea-border">
-                {resolvedItems.map((item) => (
+                {resolvedItems.map((item, index) => (
                   <div
-                    key={item.itemId}
+                    key={`${item.type}-${index}`}
                     className="flex items-center gap-2 py-1.5 text-ui-13 text-tea-text leading-snug"
                   >
                     {/* dot */}

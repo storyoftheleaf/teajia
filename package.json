@@ -12,6 +12,7 @@
     "preview": "vite preview",
     "lint": "tsc --noEmit",
     "audit": "node scripts/audit.mjs",
+    "audit:shop-catalogue": "node scripts/audit-shop-catalogue.mjs",
     "intake:findings": "node scripts/intake-findings.mjs",
     "incidents:export": "node scripts/export-incident-queue.mjs",
     "test:worker": "vitest run worker/tests --exclude='.claude/worktrees/**' --testTimeout=20000",
