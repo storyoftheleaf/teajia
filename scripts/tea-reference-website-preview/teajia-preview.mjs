@@ -10,7 +10,10 @@ import { REPO_ROOT } from './load-preview.mjs';
 export const VITE_BIN = path.join(REPO_ROOT, 'node_modules', '.bin', 'vite');
 
 async function readableHandoff(handoffPath) {
-  const resolved = path.resolve(handoffPath);
+  if (!path.isAbsolute(handoffPath)) {
+    throw new Error('Tea Reference handoff path must be absolute');
+  }
+  const resolved = handoffPath;
   let stats;
   try {
     [, stats] = await Promise.all([

@@ -52,6 +52,20 @@ test('wrapper rejects an unreadable handoff before spawning Vite', async () => {
   assert.equal(spawned, false);
 });
 
+test('wrapper rejects a relative handoff path before spawning Vite', async () => {
+  let spawned = false;
+  await assert.rejects(
+    startTeajiaPreview({
+      argv: ['--handoff', 'outputs/website-handoff.json'],
+      spawnProcess() {
+        spawned = true;
+      },
+    }),
+    /path must be absolute/i,
+  );
+  assert.equal(spawned, false);
+});
+
 test('wrapper rejects directories and FIFOs before spawning Vite', async t => {
   const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'tea-reference-handoff-kind-'));
   t.after(() => fs.rm(temp, { recursive: true, force: true }));

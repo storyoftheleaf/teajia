@@ -1,7 +1,7 @@
 # Tea Reference Teajia Integration Design
 
-**Date:** 2026-08-10  
-**Status:** Approved for local implementation  
+**Date:** 2026-08-10
+**Status:** Approved for local implementation
 **Scope:** Citation-aware receiving model and local-only preview inside Teajia Wisdom
 
 ## Outcome
