@@ -1,9 +1,42 @@
 import path from 'path';
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import fs from 'fs';
 import { teaReferencePreviewPlugin } from './scripts/tea-reference-website-preview/vite-plugin.mjs';
+
+const TEA_REFERENCE_PREVIEW_ONLY_MODULES = [
+  '/src/pages/wisdom/PreviewWisdomHomePage.tsx',
+  '/src/pages/wisdom/TeaTypeIndexPage.tsx',
+  '/src/pages/wisdom/TeaFamilyPage.tsx',
+  '/src/pages/wisdom/TeaTypePage.tsx',
+  '/src/pages/wisdom/ReferenceFactSections.tsx',
+  '/src/wisdom/reference/client.ts',
+  '/src/wisdom/reference/catalogue.ts',
+] as const;
+
+export function teaReferenceProductionLeakGuard({
+  command,
+  mode,
+}: {
+  command: 'build' | 'serve';
+  mode: string;
+}): Plugin | null {
+  if (command !== 'build' || mode === 'tea-reference-preview') return null;
+  return {
+    name: 'tea-reference-production-leak-guard',
+    generateBundle(_options, bundle) {
+      const leaked = Object.values(bundle)
+        .filter(output => output.type === 'chunk')
+        .flatMap(chunk => Object.keys(chunk.modules))
+        .map(id => id.replaceAll('\\', '/').split('?')[0])
+        .filter(id => TEA_REFERENCE_PREVIEW_ONLY_MODULES.some(suffix => id.endsWith(suffix)));
+      if (leaked.length > 0) {
+        this.error(`Tea Reference preview modules leaked into the normal production build: ${[...new Set(leaked)].join(', ')}`);
+      }
+    },
+  };
+}
 
 export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, '.', 'VITE_');
@@ -35,6 +68,7 @@ export default defineConfig(({ command, mode }) => {
       host: 'localhost',
     },
     plugins: [
+      teaReferenceProductionLeakGuard({ command, mode }),
       react(),
       teaReferencePreviewPlugin({
         command,

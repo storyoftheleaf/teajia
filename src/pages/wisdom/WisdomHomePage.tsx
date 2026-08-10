@@ -15,11 +15,6 @@ import React, { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { CULTIVARS, MARKS, NAMED_TEAS, PRODUCERS, REGIONS, STYLES } from '../../wisdom';
-import {
-  TEA_REFERENCE_PREVIEW_ENABLED,
-  useTeaReferenceCatalogue,
-} from '../../wisdom/reference/client';
-import type { TeaReferenceCatalogue } from '../../wisdom/reference/types';
 import { DATASET_BUILT, DATASET_PAGES, DATASET_RECORDS, DATASET_VERSION } from './datasetStamp';
 import {
   AXIS_INDENT,
@@ -41,16 +36,17 @@ import {
   WisdomSubNav,
   WisdomToolbar,
   searchHoldings,
+  type HoldingHit,
 } from './wisdomShared';
 
-interface Holding {
+export interface Holding {
   label: string;
   to: string;
   count: number;
   description: string;
 }
 
-const HOLDINGS: Holding[] = [
+export const PUBLISHED_WISDOM_HOLDINGS: Holding[] = [
   {
     label: 'The Tea Plants',
     to: '/wisdom/cultivars',
@@ -89,42 +85,15 @@ const HOLDINGS: Holding[] = [
   },
 ];
 
-export function wisdomHomeHoldings(
-  previewEnabled: boolean,
-  catalogue: TeaReferenceCatalogue | null = null,
-): Holding[] {
-  if (!previewEnabled) return HOLDINGS;
-  const typeCount = (catalogue?.families.length ?? 0) + (catalogue?.types.length ?? 0);
-  return HOLDINGS.flatMap(holding => {
-    const current = holding.to === '/wisdom/regions'
-      ? {
-          ...holding,
-          label: 'Origins',
-          description: 'Tea places, from broad growing regions toward the areas and localities the reference can establish.',
-        }
-      : holding;
-    if (holding.to !== '/wisdom/cultivars') return [current];
-    return [
-      current,
-      {
-        label: 'Tea Types',
-        to: '/wisdom/types',
-        count: typeCount,
-        description: 'Tea families and the sellable identities they contain, connected to teas in the public shop.',
-      },
-    ];
-  });
-}
-
 /**
  * The entries that have a page here. Exported so a test can hold it against
  * DATASET_PAGES: the two are printed within a few lines of each other on this
  * page, and they must never again be allowed to say different things.
  */
-export const TOTAL_ENTRIES = HOLDINGS.reduce((sum, holding) => sum + holding.count, 0);
+export const TOTAL_ENTRIES = PUBLISHED_WISDOM_HOLDINGS.reduce((sum, holding) => sum + holding.count, 0);
 
 /** Enough to answer a name and the records around it, short enough that the list is still readable. */
-const HIT_LIMIT = 40;
+export const HIT_LIMIT = 40;
 
 /** "2026-07-27" as "27 July 2026". Parsed by hand: `new Date` on a bare date reads it as UTC. */
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -134,22 +103,24 @@ export function readableDate(iso: string): string {
   return `${day} ${MONTHS[month - 1]} ${year}`;
 }
 
-const WisdomHomeContent: React.FC<{
-  previewEnabled?: boolean;
-  previewCatalogue?: TeaReferenceCatalogue | null;
-  previewUnavailable?: boolean;
-}> = ({ previewEnabled = false, previewCatalogue = null, previewUnavailable = false }) => {
+export const WisdomHomeContent: React.FC<{
+  holdings?: Holding[];
+  search?: (query: string, limit: number) => HoldingHit[];
+  previewDiagnostic?: string;
+  previewDataset?: boolean;
+}> = ({
+  holdings = PUBLISHED_WISDOM_HOLDINGS,
+  search = searchHoldings,
+  previewDiagnostic,
+  previewDataset = false,
+}) => {
   // Every index carries a line across to this search, and it carries the words
   // already typed. Arriving here with the field empty would have made the trip
   // cost the reader their own question.
   const [params] = useSearchParams();
   const [query, setQuery] = useState(() => params.get('q') ?? '');
   const searching = query.trim().length > 0;
-  const hits = useMemo(() => searchHoldings(query, HIT_LIMIT), [query]);
-  const holdings = useMemo(
-    () => wisdomHomeHoldings(previewEnabled, previewCatalogue),
-    [previewEnabled, previewCatalogue],
-  );
+  const hits = useMemo(() => search(query, HIT_LIMIT), [query, search]);
   const totalEntries = holdings.reduce((sum, holding) => sum + holding.count, 0);
 
   const structuredData = {
@@ -217,9 +188,9 @@ const WisdomHomeContent: React.FC<{
           </IndexList>
         )}
 
-        {previewUnavailable && !searching && (
+        {previewDiagnostic && !searching && (
           <p role="status" className={`${FOOTNOTE} ${MEASURE} ${AXIS_INDENT} mt-4`}>
-            The local cited preview is unavailable. The established Wisdom holdings remain ready to browse.
+            {previewDiagnostic}
           </p>
         )}
 
@@ -249,11 +220,15 @@ const WisdomHomeContent: React.FC<{
       <section className={SPACE.section}>
         <SectionHead label="The open dataset" />
         <p className={`${FACT} ${MEASURE} ${AXIS_INDENT}`}>
-          Everything above is also exported as a downloadable public good: a single{' '}
+          {previewDataset
+            ? 'The published Wisdom holdings are exported as a downloadable public good. Local cited preview entries are additional to the published open dataset and are not included in its static page count. '
+            : 'Everything above is also exported as a downloadable public good: '}
+          A single{' '}
           <a href="/wisdom/tea-wisdom.json" className={QUIET_LINK}>
             tea-wisdom.json
           </a>{' '}
-          carrying every holding, flat CSVs per entity, a README and a licence, all served from the{' '}
+          {previewDataset ? 'carrying every published holding' : 'carrying every holding'}, flat CSVs per entity, a
+          README and a licence, all served from the{' '}
           <code className="text-tea-text-sec">/wisdom/</code> folder. CC BY 4.0, minus Adrian&rsquo;s own tea write-ups
           and tasting notes, which remain his.
         </p>
@@ -270,9 +245,10 @@ const WisdomHomeContent: React.FC<{
             counts, in the same sentence, and the difference between them is
             stated rather than left as an apparent contradiction. */}
         <p className={`${FOOTNOTE} ${MEASURE} ${AXIS_INDENT} figures-tab mt-3`}>
-          Version {DATASET_VERSION}, built {readableDate(DATASET_BUILT)}. {DATASET_RECORDS} records in all:{' '}
-          {DATASET_PAGES} entries with a page above, plus {DATASET_RECORDS - DATASET_PAGES} tea variety names carried as
-          data only. Cite it as: Teajia Tea Wisdom Base (teajia.com), version {DATASET_VERSION},{' '}
+          Version {DATASET_VERSION}, built {readableDate(DATASET_BUILT)}. {DATASET_RECORDS} published records in all:{' '}
+          {DATASET_PAGES} published entries with a page in the static Wisdom Base, plus{' '}
+          {DATASET_RECORDS - DATASET_PAGES} tea variety names carried as data only. Cite it as: Teajia Tea Wisdom Base
+          (teajia.com), version {DATASET_VERSION},{' '}
           {readableDate(DATASET_BUILT)}, CC BY 4.0.
         </p>
       </section>
@@ -287,19 +263,6 @@ const WisdomHomeContent: React.FC<{
   );
 };
 
-const PreviewWisdomHomePage: React.FC = () => {
-  const { catalogue, isError } = useTeaReferenceCatalogue();
-  return (
-    <WisdomHomeContent
-      previewEnabled
-      previewCatalogue={catalogue}
-      previewUnavailable={isError && !catalogue}
-    />
-  );
-};
-
-const WisdomHomePage: React.FC = () => (
-  TEA_REFERENCE_PREVIEW_ENABLED ? <PreviewWisdomHomePage /> : <WisdomHomeContent />
-);
+const WisdomHomePage: React.FC = () => <WisdomHomeContent />;
 
 export default WisdomHomePage;

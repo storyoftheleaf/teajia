@@ -25,7 +25,8 @@ import ProducerPage from './ProducerPage';
 import RegionIndexPage from './RegionIndexPage';
 import RegionPage from './RegionPage';
 import StyleIndexPage from './StyleIndexPage';
-import WisdomHomePage, { TOTAL_ENTRIES, readableDate, wisdomHomeHoldings } from './WisdomHomePage';
+import WisdomHomePage, { TOTAL_ENTRIES, readableDate } from './WisdomHomePage';
+import PreviewWisdomHomePage, { previewWisdomHomeHoldings } from './PreviewWisdomHomePage';
 import TeaFamilyPage from './TeaFamilyPage';
 import TeaTypeIndexPage from './TeaTypeIndexPage';
 import TeaTypePage from './TeaTypePage';
@@ -67,7 +68,10 @@ const render = (path: string) => {
       <HelmetProvider>
         <MemoryRouter initialEntries={[path]}>
           <Routes>
-            <Route path="/wisdom" element={<WisdomHomePage />} />
+            <Route
+              path="/wisdom"
+              element={TEA_REFERENCE_PREVIEW_ENABLED ? <PreviewWisdomHomePage /> : <WisdomHomePage />}
+            />
             <Route path="/wisdom/cultivars" element={<CultivarIndexPage />} />
             <Route path="/wisdom/regions" element={<RegionIndexPage />} />
             <Route path="/wisdom/region/:id" element={<RegionPage />} />
@@ -186,17 +190,33 @@ const previewProducts: PublicProduct[] = [{
   isPersonal: false,
   canReorder: false,
   isOneOfAKind: false,
+}, {
+  id: 'sheng-sold-out-cake',
+  type: 'Sheng',
+  givenName: 'Aged Sheng Cake',
+  productName: 'Aged Sheng Cake',
+  originCountry: 'China',
+  originRegion: 'Menghai',
+  pricePerGramUSD: 0.8,
+  stockGrams: 0,
+  description: '',
+  tastingNotes: [],
+  imageUrl: '',
+  status: 'Sold Out',
+  isPersonal: false,
+  canReorder: false,
+  isOneOfAKind: false,
 }];
 
-function createReferenceQueryClient(): QueryClient {
+function createReferenceQueryClient(products: PublicProduct[] = previewProducts): QueryClient {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   client.setQueryData(TEA_REFERENCE_PREVIEW_QUERY_KEY, previewTransport);
-  client.setQueryData(['products', 'public'], previewProducts);
+  client.setQueryData(['products', 'public'], products);
   return client;
 }
 
-const renderPreview = (path: string) => {
-  const client = createReferenceQueryClient();
+const renderPreview = (path: string, products: PublicProduct[] = previewProducts) => {
+  const client = createReferenceQueryClient(products);
   return renderToString(
     <QueryClientProvider client={client}>
       <HelmetProvider>
@@ -348,11 +368,11 @@ describe('wayfinding', () => {
     expect(sectionForPath('/wisdom/type/sheng')).toBe('types');
     expect(sectionForPath('/wisdom/family/puer')).toBe('types');
 
-    const previewHoldings = wisdomHomeHoldings(true);
+    const previewHoldings = previewWisdomHomeHoldings(null);
     expect(previewHoldings).toEqual(expect.arrayContaining([
-      expect.objectContaining({ label: 'Tea Types', to: '/wisdom/types', count: 0 }),
       expect.objectContaining({ label: 'Origins', to: '/wisdom/regions', count: REGIONS.length }),
     ]));
+    expect(previewHoldings.some(holding => holding.to === '/wisdom/types')).toBe(false);
 
     expect(teaReferenceRoutePaths(false)).toEqual([]);
     expect(teaReferenceRoutePaths(true)).toEqual([
@@ -441,9 +461,12 @@ describe('Tea Reference type preview', () => {
     expect(html).toContain('href="https://example.com/sheng/"');
     expect(html).toContain('Tea Institute, Cultivar guide (2025)');
     expect(html).not.toContain('Retailer or reseller');
-    expect(html).toContain('Available teas');
+    expect(html).toContain('Teas in the public catalogue');
     expect(html).toContain('href="/shop/product/sheng-spring-cake"');
     expect(html).toContain('Spring Cake');
+    expect(html).toContain('href="/shop/product/sheng-sold-out-cake"');
+    expect(html).toContain('Aged Sheng Cake');
+    expect(html).toContain('Sold out');
     expect(html).toContain('Report an inaccuracy');
     expect(html).toContain('subject=Report%20an%20inaccuracy%3A%20Tea%20type%3A%20Sheng');
     expect(html).not.toMatch(/held|conflict|review|evidence|private/i);
@@ -452,7 +475,68 @@ describe('Tea Reference type preview', () => {
   it('uses the established not-found page for a type absent from the product-connected catalogue', () => {
     const html = renderPreview('/wisdom/type/shou');
     expect(html).toContain('Not a tea type we hold');
-    expect(html).not.toContain('Available teas');
+    expect(html).not.toContain('Teas in the public catalogue');
+  });
+
+  it('explains a valid catalogue with no product-connected tea types', () => {
+    const html = renderPreview('/wisdom/types', []);
+    expect(html).toContain('No tea family or type is connected to the public catalogue in this preview.');
+  });
+});
+
+describe('Tea Reference preview home', () => {
+  it('merges product-connected family and type hits into the cross-holding search', () => {
+    if (!TEA_REFERENCE_PREVIEW_ENABLED) return;
+    expect(render('/wisdom?q=Sheng')).toContain('href="/wisdom/type/sheng"');
+    expect(render('/wisdom?q=Pu%E2%80%99er')).toContain('href="/wisdom/family/puer"');
+  });
+
+  it('states that local cited entries are additional to the published dataset', () => {
+    if (!TEA_REFERENCE_PREVIEW_ENABLED) return;
+    const html = render('/wisdom');
+    expect(html).toContain('Local cited preview entries are additional to the published open dataset');
+    expect(html).toContain('not included in its static page count');
+    expect(html).toContain('carrying every published holding');
+    expect(html).not.toContain('Everything above is also exported');
+  });
+
+  it('withholds a zero-entry Types holding while its client queries are pending', () => {
+    if (!TEA_REFERENCE_PREVIEW_ENABLED) return;
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, retryOnMount: false } } });
+    const html = renderToString(
+      <QueryClientProvider client={client}>
+        <HelmetProvider><MemoryRouter><PreviewWisdomHomePage /></MemoryRouter></HelmetProvider>
+      </QueryClientProvider>,
+    );
+    expect(html).not.toContain('>Tea Types<');
+    expect(html).not.toContain('>0 entries<');
+  });
+
+  it('keeps normal holdings usable and shows a quiet diagnostic after a client query error', async () => {
+    if (!TEA_REFERENCE_PREVIEW_ENABLED) return;
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, retryOnMount: false } } });
+    await client.prefetchQuery({
+      queryKey: TEA_REFERENCE_PREVIEW_QUERY_KEY,
+      queryFn: async () => { throw new Error('unavailable'); },
+    });
+    const previewQuery = client.getQueryCache().find({ queryKey: TEA_REFERENCE_PREVIEW_QUERY_KEY });
+    if (!previewQuery) throw new Error('preview query was not created');
+    previewQuery.setState({
+      ...previewQuery.state,
+      status: 'error',
+      error: new Error('unavailable'),
+      fetchStatus: 'idle',
+    });
+    client.setQueryData(['products', 'public'], previewProducts);
+    const html = renderToString(
+      <QueryClientProvider client={client}>
+        <HelmetProvider><MemoryRouter><PreviewWisdomHomePage /></MemoryRouter></HelmetProvider>
+      </QueryClientProvider>,
+    );
+    expect(html).toContain('The local cited preview is unavailable');
+    expect(html).toContain('href="/wisdom/cultivars"');
+    expect(html).not.toContain('>Tea Types<');
+    expect(html).not.toContain('>0 entries<');
   });
 });
 
@@ -704,8 +788,8 @@ describe('a cold arrival on one entry', () => {
 describe('two counts on the front door', () => {
   it('names what each one counts instead of printing them side by side', () => {
     const html = render('/wisdom').replace(/<!-- -->/g, '');
-    expect(html).toContain(`${DATASET_RECORDS} records in all`);
-    expect(html).toContain(`${DATASET_PAGES} entries with a page above`);
+    expect(html).toContain(`${DATASET_RECORDS} published records in all`);
+    expect(html).toContain(`${DATASET_PAGES} published entries with a page in the static Wisdom Base`);
     expect(html).toContain(`${DATASET_RECORDS - DATASET_PAGES} tea variety names carried as data only`);
   });
 

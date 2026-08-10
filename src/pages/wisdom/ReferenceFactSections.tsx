@@ -105,7 +105,7 @@ export const ReferenceFactSections: React.FC<{
     ))}
 
     <section className={SPACE.section}>
-      <SectionHead label="Available teas" count={products.length || undefined} />
+      <SectionHead label="Teas in the public catalogue" count={products.length || undefined} />
       {products.length > 0 ? (
         <IndexList>
           {products.map(product => (

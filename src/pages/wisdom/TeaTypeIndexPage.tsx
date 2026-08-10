@@ -38,6 +38,11 @@ const TeaTypeIndexPage: React.FC = () => {
 
       {catalogue && (
         <>
+          {catalogue.families.length === 0 && catalogue.types.length === 0 && (
+            <p className={`${FACT} ${MEASURE} ${AXIS_INDENT} ${SPACE.section}`}>
+              No tea family or type is connected to the public catalogue in this preview.
+            </p>
+          )}
           <section className={SPACE.section}>
             <SectionHead label="Tea families" count={catalogue.families.length || undefined} />
             <IndexList>

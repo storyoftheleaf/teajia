@@ -2,10 +2,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate, useParams, type Location } from 'react-router-dom';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
-import {
-  ACTIVE_TEA_REFERENCE_ROUTE_PATHS,
-  TEA_REFERENCE_ROUTE_PATHS,
-} from './wisdom/reference/previewMode';
+import { TEA_REFERENCE_ROUTE_PATHS } from './wisdom/reference/previewMode';
 
 // Retry a failed chunk load in place. A transient fetch failure is common on a
 // jumpy/firewalled connection, especially for the large admin bundle.
@@ -137,7 +134,9 @@ const ContributorsIndexPage = lazy(() => import('./pages/ContributorsIndexPage')
 const StoreLaunchPlaybookPage = lazy(() => import('./pages/StoreLaunchPlaybookPage'));
 const McpPage = lazy(() => import('./pages/McpPage'));
 // The public tea reference: a page per holding, read out of src/wisdom.
-const WisdomHomePage = lazy(() => import('./pages/wisdom/WisdomHomePage'));
+const WisdomHomePage = import.meta.env.MODE === 'tea-reference-preview'
+  ? lazy(() => import('./pages/wisdom/PreviewWisdomHomePage'))
+  : lazy(() => import('./pages/wisdom/WisdomHomePage'));
 const CultivarIndexPage = lazy(() => import('./pages/wisdom/CultivarIndexPage'));
 const CultivarPage = lazy(() => import('./pages/wisdom/CultivarPage'));
 const ProducerIndexPage = lazy(() => import('./pages/wisdom/ProducerIndexPage'));
@@ -150,13 +149,13 @@ const RegionIndexPage = lazy(() => import('./pages/wisdom/RegionIndexPage'));
 const RegionPage = lazy(() => import('./pages/wisdom/RegionPage'));
 const NamedTeaIndexPage = lazy(() => import('./pages/wisdom/NamedTeaIndexPage'));
 const NamedTeaPage = lazy(() => import('./pages/wisdom/NamedTeaPage'));
-const TeaTypeIndexPage = ACTIVE_TEA_REFERENCE_ROUTE_PATHS.includes(TEA_REFERENCE_ROUTE_PATHS.index)
+const TeaTypeIndexPage = import.meta.env.MODE === 'tea-reference-preview'
   ? lazy(() => import('./pages/wisdom/TeaTypeIndexPage'))
   : null;
-const TeaFamilyPage = ACTIVE_TEA_REFERENCE_ROUTE_PATHS.includes(TEA_REFERENCE_ROUTE_PATHS.family)
+const TeaFamilyPage = import.meta.env.MODE === 'tea-reference-preview'
   ? lazy(() => import('./pages/wisdom/TeaFamilyPage'))
   : null;
-const TeaTypePage = ACTIVE_TEA_REFERENCE_ROUTE_PATHS.includes(TEA_REFERENCE_ROUTE_PATHS.type)
+const TeaTypePage = import.meta.env.MODE === 'tea-reference-preview'
   ? lazy(() => import('./pages/wisdom/TeaTypePage'))
   : null;
 
