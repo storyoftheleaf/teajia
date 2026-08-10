@@ -8,9 +8,15 @@ import { ActivityView } from './ActivityView';
 import type { InquiryRecord } from '../../lib/api';
 
 const appStoreState = vi.hoisted(() => ({ activeAccountId: null as string | null }));
+const tokenScope = vi.hoisted(() => ({ accountId: null as string | null }));
 
 vi.mock('../../lib/store', () => ({
   useAppStore: (selector: (state: typeof appStoreState) => unknown) => selector(appStoreState),
+}));
+
+vi.mock('../../lib/api', async importOriginal => ({
+  ...await importOriginal<typeof import('../../lib/api')>(),
+  isTokenScopedToAccount: (accountId: string | null) => Boolean(accountId) && tokenScope.accountId === accountId,
 }));
 
 const source = readFileSync(new URL('./ActivityView.tsx', import.meta.url), 'utf8');
@@ -45,7 +51,13 @@ function renderActivity(queryClient: QueryClient) {
 
 afterEach(() => {
   appStoreState.activeAccountId = null;
+  tokenScope.accountId = null;
 });
+
+function activateAccount(accountId: string) {
+  appStoreState.activeAccountId = accountId;
+  tokenScope.accountId = accountId;
+}
 
 describe('account-scoped inquiry inbox', () => {
   it('never renders cached rows from the previous account when the current account fails', async () => {
@@ -59,7 +71,7 @@ describe('account-scoped inquiry inbox', () => {
       queryKey: ['admin-inquiries', 'account-current', 'all'],
       queryFn: async () => { throw new Error('Current account unavailable'); },
     });
-    appStoreState.activeAccountId = 'account-current';
+    activateAccount('account-current');
 
     const html = renderActivity(queryClient);
 
@@ -79,6 +91,20 @@ describe('account-scoped inquiry inbox', () => {
     expect(html).not.toContain('Unscoped Customer');
   });
 
+  it('renders no cached rows while the selected account and token scope disagree', () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(['admin-inquiries', 'account-current', 'all'], [
+      inquiry('wrong-token-inquiry', 'account-old', 'Wrong Token Customer'),
+    ]);
+    appStoreState.activeAccountId = 'account-current';
+    tokenScope.accountId = 'account-old';
+
+    const html = renderActivity(queryClient);
+
+    expect(html).not.toContain('Wrong Token Customer');
+    expect(html).not.toContain('Loading…');
+  });
+
   it('shows an accessible unknown count and retry control when the count request fails', async () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false, retryOnMount: false, refetchOnMount: false } },
@@ -86,13 +112,14 @@ describe('account-scoped inquiry inbox', () => {
     for (const queryKey of [
       ['inquiries-new-count'],
       ['inquiries-new-count', 'account-current'],
+      ['inquiries-new-count', 'account-current', 0],
     ]) {
       await queryClient.prefetchQuery({
         queryKey,
         queryFn: async () => { throw new Error('Count unavailable'); },
       });
     }
-    appStoreState.activeAccountId = 'account-current';
+    activateAccount('account-current');
 
     const html = renderActivity(queryClient);
 
@@ -109,7 +136,7 @@ describe('account-scoped inquiry inbox', () => {
     queryClient.setQueryData(['admin-inquiries', 'account-current', 'all'], [
       inquiry('inquiry-one', 'account-current', 'Private Person'),
     ]);
-    appStoreState.activeAccountId = 'account-current';
+    activateAccount('account-current');
 
     const html = renderActivity(queryClient);
 
