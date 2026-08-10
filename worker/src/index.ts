@@ -4396,6 +4396,18 @@ const handleSplitInvoice: Handler = async (request, env) => {
     return json({ error: 'Must select a proper subset of items to split' }, 400);
   }
 
+  let authorizedItems: AuthorizedInvoiceLine[];
+  try {
+    authorizedItems = await authorizeInvoiceLines(env, {
+      accountId, actorUserId: ctx.userId, actorRole: ctx.role, lines: allItems.results as any[],
+    });
+  } catch (error) { return salesError(error); }
+  const movedIds = new Set(line_item_ids);
+  const movedItems = authorizedItems.filter(item => item.id && movedIds.has(item.id));
+  const remainingItems = authorizedItems.filter(item => !item.id || !movedIds.has(item.id));
+  const movedOwners = [...new Set(movedItems.filter(item => item.product_id).map(item => item.stock_owner_user_id))];
+  const movedPaymentRecipient = movedOwners.length === 1 ? movedOwners[0] : null;
+
   const newId = crypto.randomUUID();
 
   // Allocate the split's invoice number, retrying on the active-invoice-number
@@ -4413,9 +4425,11 @@ const handleSplitInvoice: Handler = async (request, env) => {
     const stmts: D1PreparedStatement[] = [];
 
     stmts.push(env.DB.prepare(
-      `INSERT INTO invoices (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 0, 'Pending', 0, ?)`
-    ).bind(newId, accountId, newNumber, invoice.customer_name, invoice.customer_whatsapp, invoice.customer_id, invoice.display_currency, invoice.notes));
+      `INSERT INTO invoices
+       (id,account_id,invoice_number,customer_name,customer_whatsapp,customer_id,display_currency,shipping_cost_usd,status,inventory_deducted,notes,sold_by_user_id,payment_recipient_user_id)
+       VALUES (?,?,?,?,?,?,?,0,'Pending',0,?,?,?)`
+    ).bind(newId, accountId, newNumber, invoice.customer_name, invoice.customer_whatsapp, invoice.customer_id,
+      invoice.display_currency, invoice.notes, invoice.sold_by_user_id || ctx.userId, movedPaymentRecipient));
 
     for (const itemId of line_item_ids) {
       stmts.push(
@@ -4423,6 +4437,14 @@ const handleSplitInvoice: Handler = async (request, env) => {
           .bind(newId, itemId, accountId)
       );
     }
+
+    const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+    stmts.push(...buildInvoiceReservationStatements(env, {
+      accountId, invoiceId: invoice_id, lines: remainingItems, expiresAt,
+    }));
+    stmts.push(...buildInvoiceReservationStatements(env, {
+      accountId, invoiceId: newId, lines: movedItems, expiresAt,
+    }));
 
     stmts.push(buildActivityLog(env, 'INVOICE_SPLIT',
       `Invoice ${invoice.invoice_number} split. ${line_item_ids.length} item(s) moved to ${newNumber}.`,
@@ -4437,6 +4459,7 @@ const handleSplitInvoice: Handler = async (request, env) => {
     } catch (err: any) {
       lastErr = err;
       const msg = String(err?.message || err);
+      if (/insufficient available stock/i.test(msg)) return restError(409, 'Insufficient available stock', 'insufficient_available_stock');
       if (/UNIQUE|constraint/i.test(msg)) continue; // collision — bump seq and retry
       console.error('handleSplitInvoice batch failed:', err);
       return json({ error: 'Split failed — no changes were committed' }, 500);

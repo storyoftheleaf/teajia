@@ -1,7 +1,9 @@
 # Events Platform Rebuild Design
 
-**Date:** 2026-08-10  
-**Status:** Approved  
+**Date:** 2026-08-10
+
+**Status:** Approved
+
 **Scope:** Public sessions, RSVP and attendance, Tea Master and team participation, store operations, post-session memory, content, inventory, communications, and human-led commerce.
 
 ## Purpose
