@@ -15,6 +15,11 @@ import React, { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { CULTIVARS, MARKS, NAMED_TEAS, PRODUCERS, REGIONS, STYLES } from '../../wisdom';
+import {
+  TEA_REFERENCE_PREVIEW_ENABLED,
+  useTeaReferenceCatalogue,
+} from '../../wisdom/reference/client';
+import type { TeaReferenceCatalogue } from '../../wisdom/reference/types';
 import { DATASET_BUILT, DATASET_PAGES, DATASET_RECORDS, DATASET_VERSION } from './datasetStamp';
 import {
   AXIS_INDENT,
@@ -84,6 +89,33 @@ const HOLDINGS: Holding[] = [
   },
 ];
 
+export function wisdomHomeHoldings(
+  previewEnabled: boolean,
+  catalogue: TeaReferenceCatalogue | null = null,
+): Holding[] {
+  if (!previewEnabled) return HOLDINGS;
+  const typeCount = (catalogue?.families.length ?? 0) + (catalogue?.types.length ?? 0);
+  return HOLDINGS.flatMap(holding => {
+    const current = holding.to === '/wisdom/regions'
+      ? {
+          ...holding,
+          label: 'Origins',
+          description: 'Tea places, from broad growing regions toward the areas and localities the reference can establish.',
+        }
+      : holding;
+    if (holding.to !== '/wisdom/cultivars') return [current];
+    return [
+      current,
+      {
+        label: 'Tea Types',
+        to: '/wisdom/types',
+        count: typeCount,
+        description: 'Tea families and the sellable identities they contain, connected to teas in the public shop.',
+      },
+    ];
+  });
+}
+
 /**
  * The entries that have a page here. Exported so a test can hold it against
  * DATASET_PAGES: the two are printed within a few lines of each other on this
@@ -102,7 +134,11 @@ export function readableDate(iso: string): string {
   return `${day} ${MONTHS[month - 1]} ${year}`;
 }
 
-const WisdomHomePage: React.FC = () => {
+const WisdomHomeContent: React.FC<{
+  previewEnabled?: boolean;
+  previewCatalogue?: TeaReferenceCatalogue | null;
+  previewUnavailable?: boolean;
+}> = ({ previewEnabled = false, previewCatalogue = null, previewUnavailable = false }) => {
   // Every index carries a line across to this search, and it carries the words
   // already typed. Arriving here with the field empty would have made the trip
   // cost the reader their own question.
@@ -110,6 +146,11 @@ const WisdomHomePage: React.FC = () => {
   const [query, setQuery] = useState(() => params.get('q') ?? '');
   const searching = query.trim().length > 0;
   const hits = useMemo(() => searchHoldings(query, HIT_LIMIT), [query]);
+  const holdings = useMemo(
+    () => wisdomHomeHoldings(previewEnabled, previewCatalogue),
+    [previewEnabled, previewCatalogue],
+  );
+  const totalEntries = holdings.reduce((sum, holding) => sum + holding.count, 0);
 
   const structuredData = {
     '@context': 'https://schema.org',
@@ -118,7 +159,7 @@ const WisdomHomePage: React.FC = () => {
     description: "A public reference of what a tea is, held once and true for everyone: plants, growing regions, producers, marks, styles, and teas known only by name.",
     inLanguage: 'en',
     isPartOf: { '@type': 'WebSite', name: 'Teajia' },
-    hasPart: HOLDINGS.map(holding => ({
+    hasPart: holdings.map(holding => ({
       '@type': 'CollectionPage',
       name: holding.label,
       url: holding.to,
@@ -157,14 +198,14 @@ const WisdomHomePage: React.FC = () => {
           onQueryChange={setQuery}
           placeholder="Search every holding"
           searchLabel="Search every holding by name, Chinese name, alias, or the place and maker a record names"
-          visible={searching ? hits.length : TOTAL_ENTRIES}
-          total={TOTAL_ENTRIES}
+          visible={searching ? hits.length : totalEntries}
+          total={totalEntries}
           noun="entries"
         />
 
         {!searching && (
           <IndexList>
-            {HOLDINGS.map(holding => (
+            {holdings.map(holding => (
               <HoldingRow
                 key={holding.to}
                 to={holding.to}
@@ -174,6 +215,12 @@ const WisdomHomePage: React.FC = () => {
               />
             ))}
           </IndexList>
+        )}
+
+        {previewUnavailable && !searching && (
+          <p role="status" className={`${FOOTNOTE} ${MEASURE} ${AXIS_INDENT} mt-4`}>
+            The local cited preview is unavailable. The established Wisdom holdings remain ready to browse.
+          </p>
         )}
 
         {searching && hits.length === 0 && <NoMatch noun="entry" query={query} />}
@@ -239,5 +286,20 @@ const WisdomHomePage: React.FC = () => {
     </article>
   );
 };
+
+const PreviewWisdomHomePage: React.FC = () => {
+  const { catalogue, isError } = useTeaReferenceCatalogue();
+  return (
+    <WisdomHomeContent
+      previewEnabled
+      previewCatalogue={catalogue}
+      previewUnavailable={isError && !catalogue}
+    />
+  );
+};
+
+const WisdomHomePage: React.FC = () => (
+  TEA_REFERENCE_PREVIEW_ENABLED ? <PreviewWisdomHomePage /> : <WisdomHomeContent />
+);
 
 export default WisdomHomePage;

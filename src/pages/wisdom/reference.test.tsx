@@ -25,8 +25,17 @@ import ProducerPage from './ProducerPage';
 import RegionIndexPage from './RegionIndexPage';
 import RegionPage from './RegionPage';
 import StyleIndexPage from './StyleIndexPage';
-import WisdomHomePage, { TOTAL_ENTRIES, readableDate } from './WisdomHomePage';
-import { WISDOM_SECTIONS, isMicroCapsLabel, searchHoldings } from './wisdomShared';
+import WisdomHomePage, { TOTAL_ENTRIES, readableDate, wisdomHomeHoldings } from './WisdomHomePage';
+import TeaFamilyPage from './TeaFamilyPage';
+import TeaTypeIndexPage from './TeaTypeIndexPage';
+import TeaTypePage from './TeaTypePage';
+import {
+  WISDOM_SECTIONS,
+  isMicroCapsLabel,
+  searchHoldings,
+  sectionForPath,
+  wisdomSections,
+} from './wisdomShared';
 import { DATASET_BUILT, DATASET_PAGES, DATASET_RECORDS, DATASET_VERSION } from './datasetStamp';
 import { tidyName } from './LineageTree';
 import { AUTHORSHIP } from '../../wisdom/authorship';
@@ -40,6 +49,9 @@ const setVerificationAccess = (platformRole: 'platform_owner' | 'platform_admin'
   useAppStore.setState({ platformRole, activeAccountId });
   Object.assign(useAppStore.getInitialState(), { platformRole, activeAccountId });
 };
+import type { PublicProduct } from '../../types';
+import type { WebsiteReceivingPublicTransport } from '../../wisdom/receiving/previewImporter';
+import { TEA_REFERENCE_PREVIEW_QUERY_KEY } from '../../wisdom/reference/client';
 
 const render = (path: string) =>
   renderToString(
@@ -65,6 +77,115 @@ const render = (path: string) =>
       </HelmetProvider>
     </QueryClientProvider>,
   );
+
+const previewTransport: WebsiteReceivingPublicTransport = {
+  manifest: { schemaVersion: 1, mode: 'preview-only' },
+  publicPreview: {
+    title: 'Pu’er reference',
+    deck: 'Cited public tea knowledge.',
+    sourceCount: 1,
+    entryCount: 3,
+    sections: [{
+      id: 'types',
+      label: 'Tea types',
+      description: 'Public tea identities.',
+      entries: [
+        {
+          id: 'reference-puer',
+          label: 'Pu’er',
+          entityKind: 'tea_family',
+          kindLabel: 'Tea family',
+          reportUrl: 'mailto:hello@teajia.com?subject=Pu%E2%80%99er',
+          statements: [{
+            id: 'puer-reference',
+            label: 'Identity',
+            text: 'Pu’er is a broad tea family with both naturally aged and deliberately fermented forms.',
+            excerpt: 'A concise public source excerpt about the family.',
+            citation: { label: 'Tea Institute, Pu’er reference (2026)', url: 'https://example.com/puer' },
+          }],
+        },
+        {
+          id: 'reference-sheng',
+          label: 'Sheng',
+          entityKind: 'tea_style',
+          kindLabel: 'Tea type',
+          reportUrl: 'mailto:hello@teajia.com?subject=Sheng',
+          statements: [
+            {
+              id: 'sheng-common',
+              label: 'Common characteristics',
+              text: 'One cited source describes broad characteristics associated with Sheng.',
+              excerpt: 'A concise public source excerpt about common characteristics.',
+              citation: { label: 'Tea Institute, Sheng reference (2026)', url: 'https://example.com/sheng' },
+            },
+            {
+              id: 'sheng-potential',
+              label: 'Potential characteristics',
+              text: 'Cultivar expression still depends on growing and making conditions.',
+              citation: { label: 'Tea Institute, Cultivar guide (2025)', url: 'https://example.com/cultivar' },
+            },
+          ],
+        },
+        {
+          id: 'reference-shou',
+          label: 'Shou',
+          entityKind: 'tea_style',
+          kindLabel: 'Tea type',
+          reportUrl: 'mailto:hello@teajia.com?subject=Shou',
+          statements: [],
+        },
+      ],
+    }],
+    geographicScale: [],
+    sources: [{
+      sourceId: 'tea-institute',
+      publisher: 'Tea Institute',
+      publisherRoleLabel: 'Institute',
+      title: 'Pu’er reference',
+      author: 'Research Desk',
+      publishedDate: '2026-01-01',
+      url: 'https://example.com/puer',
+    }],
+    reportUrl: 'mailto:hello@teajia.com?subject=Tea%20Reference',
+  },
+};
+
+const previewProducts: PublicProduct[] = [{
+  id: 'sheng-spring-cake',
+  type: 'Sheng',
+  givenName: 'Spring Cake',
+  productName: 'Yiwu old-tree tea',
+  originCountry: 'China',
+  originRegion: 'Yiwu',
+  pricePerGramUSD: 0.5,
+  stockGrams: 100,
+  description: '',
+  tastingNotes: [],
+  imageUrl: '',
+  status: 'Active',
+  isPersonal: false,
+  canReorder: false,
+  isOneOfAKind: false,
+}];
+
+const renderPreview = (path: string) => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  client.setQueryData(TEA_REFERENCE_PREVIEW_QUERY_KEY, previewTransport);
+  client.setQueryData(['products', 'public'], previewProducts);
+  return renderToString(
+    <QueryClientProvider client={client}>
+      <HelmetProvider>
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
+            <Route path="/wisdom/types" element={<TeaTypeIndexPage />} />
+            <Route path="/wisdom/family/:id" element={<TeaFamilyPage />} />
+            <Route path="/wisdom/type/:id" element={<TeaTypePage />} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>
+    </QueryClientProvider>,
+  );
+};
 
 const INDEX_PAGES = [
   '/wisdom/cultivars',
@@ -189,6 +310,26 @@ describe('wayfinding', () => {
     }
   });
 
+  it('adds Types and renames Regions to Origins only for the local preview', () => {
+    expect(wisdomSections(true)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'types', label: 'Types', path: '/wisdom/types' }),
+      expect.objectContaining({ id: 'regions', label: 'Origins', path: '/wisdom/regions' }),
+    ]));
+    expect(wisdomSections(false)).toEqual(WISDOM_SECTIONS);
+    expect(wisdomSections(false).map(section => section.label)).toEqual([
+      'Overview', 'Plants', 'Regions', 'Producers', 'Marks', 'Styles', 'Named',
+    ]);
+    expect(sectionForPath('/wisdom/types')).toBe('types');
+    expect(sectionForPath('/wisdom/type/sheng')).toBe('types');
+    expect(sectionForPath('/wisdom/family/puer')).toBe('types');
+
+    const previewHoldings = wisdomHomeHoldings(true);
+    expect(previewHoldings).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: 'Tea Types', to: '/wisdom/types', count: 0 }),
+      expect.objectContaining({ label: 'Origins', to: '/wisdom/regions', count: REGIONS.length }),
+    ]));
+  });
+
   it('carries one control, not a back link above a lit nav item', () => {
     for (const path of DETAIL_PAGES) {
       const html = render(path);
@@ -219,6 +360,41 @@ describe('wayfinding', () => {
     for (const section of WISDOM_SECTIONS) {
       expect(html).toContain(`href="${section.path}"`);
     }
+  });
+});
+
+describe('Tea Reference type preview', () => {
+  it('renders the family-to-type path in the Wisdom frame and omits an unmatched type', () => {
+    const index = renderPreview('/wisdom/types');
+    expect(index).toContain('aria-label="The wisdom base"');
+    expect(index).toContain('Tea families');
+    expect(index).toContain('href="/wisdom/family/puer"');
+    expect(index).toContain('href="/wisdom/type/sheng"');
+    expect(index).not.toContain('href="/wisdom/type/shou"');
+
+    const family = renderPreview('/wisdom/family/puer');
+    expect(family).toContain('Pu’er');
+    expect(family).toContain('href="/wisdom/type/sheng"');
+  });
+
+  it('renders grouped citations, matching teas, and a page-specific correction action', () => {
+    const html = renderPreview('/wisdom/type/sheng').replace(/&amp;/g, '&');
+    expect(html).toContain('Common characteristics');
+    expect(html).toContain('Cultivar potential');
+    expect(html).toContain('Tea Institute, Sheng reference (2026)');
+    expect(html).toContain('href="https://example.com/sheng"');
+    expect(html).toContain('Available teas');
+    expect(html).toContain('href="/shop/product/sheng-spring-cake"');
+    expect(html).toContain('Spring Cake');
+    expect(html).toContain('Report an inaccuracy');
+    expect(html).toContain('subject=Report%20an%20inaccuracy%3A%20Tea%20type%3A%20Sheng');
+    expect(html).not.toMatch(/held|conflict|review|evidence|private/i);
+  });
+
+  it('uses the established not-found page for a type absent from the product-connected catalogue', () => {
+    const html = renderPreview('/wisdom/type/shou');
+    expect(html).toContain('Not a tea type we hold');
+    expect(html).not.toContain('Available teas');
   });
 });
 

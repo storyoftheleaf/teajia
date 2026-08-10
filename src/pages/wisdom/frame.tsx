@@ -288,15 +288,23 @@ export interface WisdomSection {
   path: string;
 }
 
-export const WISDOM_SECTIONS: WisdomSection[] = [
-  { id: 'overview', label: 'Overview', path: '/wisdom' },
-  { id: 'cultivars', label: 'Plants', path: '/wisdom/cultivars' },
-  { id: 'regions', label: 'Regions', path: '/wisdom/regions' },
-  { id: 'producers', label: 'Producers', path: '/wisdom/producers' },
-  { id: 'marks', label: 'Marks', path: '/wisdom/marks' },
-  { id: 'styles', label: 'Styles', path: '/wisdom/styles' },
-  { id: 'named', label: 'Named', path: '/wisdom/named' },
-];
+export function wisdomSections(previewEnabled: boolean): WisdomSection[] {
+  return [
+    { id: 'overview', label: 'Overview', path: '/wisdom' },
+    { id: 'cultivars', label: 'Plants', path: '/wisdom/cultivars' },
+    ...(previewEnabled ? [{ id: 'types', label: 'Types', path: '/wisdom/types' }] : []),
+    { id: 'regions', label: previewEnabled ? 'Origins' : 'Regions', path: '/wisdom/regions' },
+    { id: 'producers', label: 'Producers', path: '/wisdom/producers' },
+    { id: 'marks', label: 'Marks', path: '/wisdom/marks' },
+    { id: 'styles', label: 'Styles', path: '/wisdom/styles' },
+    { id: 'named', label: 'Named', path: '/wisdom/named' },
+  ];
+}
+
+/** The active build's holdings. Normal development, tests and production retain the established seven. */
+export const WISDOM_SECTIONS: WisdomSection[] = wisdomSections(
+  import.meta.env.MODE === 'tea-reference-preview',
+);
 
 /**
  * Which holding a path belongs to. Singular detail routes and plural index
@@ -306,6 +314,7 @@ export const WISDOM_SECTIONS: WisdomSection[] = [
 export function sectionForPath(pathname: string): WisdomSection['id'] {
   const segment = pathname.replace(/^\/wisdom\/?/, '').split('/')[0] ?? '';
   if (!segment) return 'overview';
+  if (segment === 'types' || segment === 'type' || segment === 'family') return 'types';
   if (segment.startsWith('cultivar')) return 'cultivars';
   if (segment.startsWith('region')) return 'regions';
   if (segment.startsWith('producer')) return 'producers';

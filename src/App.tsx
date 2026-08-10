@@ -146,6 +146,16 @@ const RegionIndexPage = lazy(() => import('./pages/wisdom/RegionIndexPage'));
 const RegionPage = lazy(() => import('./pages/wisdom/RegionPage'));
 const NamedTeaIndexPage = lazy(() => import('./pages/wisdom/NamedTeaIndexPage'));
 const NamedTeaPage = lazy(() => import('./pages/wisdom/NamedTeaPage'));
+const teaReferencePreviewEnabled = import.meta.env.MODE === 'tea-reference-preview';
+const TeaTypeIndexPage = teaReferencePreviewEnabled
+  ? lazy(() => import('./pages/wisdom/TeaTypeIndexPage'))
+  : null;
+const TeaFamilyPage = teaReferencePreviewEnabled
+  ? lazy(() => import('./pages/wisdom/TeaFamilyPage'))
+  : null;
+const TeaTypePage = teaReferencePreviewEnabled
+  ? lazy(() => import('./pages/wisdom/TeaTypePage'))
+  : null;
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchStore } from './lib/storefrontApi';
@@ -1078,6 +1088,15 @@ const AppContent = () => {
                 <Route path="/wisdom/named/:id" element={
                   <ErrorBoundary><Suspense fallback={<WisdomFallback />}><NamedTeaPage /></Suspense></ErrorBoundary>
                 } />
+                {TeaTypeIndexPage && <Route path="/wisdom/types" element={
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><TeaTypeIndexPage /></Suspense></ErrorBoundary>
+                } />}
+                {TeaFamilyPage && <Route path="/wisdom/family/:id" element={
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><TeaFamilyPage /></Suspense></ErrorBoundary>
+                } />}
+                {TeaTypePage && <Route path="/wisdom/type/:id" element={
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><TeaTypePage /></Suspense></ErrorBoundary>
+                } />}
                 <Route path="/about" element={<ErrorBoundary><AboutPage /></ErrorBoundary>} />
                 <Route path="/mcp" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><McpPage /></Suspense></ErrorBoundary>} />
                 {/* /compass is admin-only at /admin/compass, public route removed.
