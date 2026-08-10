@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import worker from '../src/index';
 
 const migrationSql = readFileSync(new URL('../migrations/127_secure_inquiry_tracking.sql', import.meta.url), 'utf8');
+const JWT_SECRET = 'inquiry-security-secret';
 
 type InquiryRow = Record<string, unknown> & {
   id: string;
@@ -33,6 +34,22 @@ class InquiryDb {
     const statement = {
       bind: (...next: unknown[]) => { values = next; return statement; },
       first: async () => {
+        if (normalized.includes('select platform_role, session_version from users where id = ?')) {
+          return { platform_role: null, session_version: 0 };
+        }
+        if (normalized.includes('from account_members am') && normalized.includes('join accounts a')) {
+          const [userId, accountId] = values.map(String);
+          if (accountId !== 'account-bali' || !['seller', 'member'].includes(userId)) return null;
+          return {
+            role: 'staff',
+            permissions: JSON.stringify({ bundles: userId === 'seller' ? ['sell'] : [] }),
+            kind: 'location',
+          };
+        }
+        if (normalized.includes('select status from accounts where id = ?')) {
+          const account = [...this.accounts.values()].find(candidate => candidate.id === values[0]);
+          return account ? { status: account.status } : null;
+        }
         if (normalized.includes('select id from accounts where slug = ?')) {
           const account = this.accounts.get(String(values[0]));
           if (!account) return null;
@@ -50,6 +67,13 @@ class InquiryDb {
         return null;
       },
       all: async () => {
+        if (normalized.includes('from inquiries where account_id = ?')) {
+          const accountId = String(values[0]);
+          const status = normalized.includes('and status = ?') ? String(values[1]) : null;
+          return {
+            results: this.inquiries.filter(row => row.account_id === accountId && (!status || row.status === status)),
+          };
+        }
         if (normalized.includes('from products') && normalized.includes('account_id = ?')) {
           const [accountId, ...ids] = values.map(String);
           return {
@@ -61,6 +85,13 @@ class InquiryDb {
         return { results: [] };
       },
       run: async () => {
+        if (normalized.startsWith('update inquiries set status = ?')) {
+          const [status, id, accountId] = values.map(String);
+          const row = this.inquiries.find(candidate => candidate.id === id && candidate.account_id === accountId);
+          if (!row) return { success: true, meta: { changes: 0 } };
+          row.status = status;
+          return { success: true, meta: { changes: 1 } };
+        }
         if (!normalized.startsWith('insert into inquiries')) {
           return { success: true, meta: { changes: 0 } };
         }
@@ -119,6 +150,51 @@ async function get(db: InquiryDb, tokenOrRef: string) {
     { DB: db } as never,
     {} as never,
   );
+}
+
+function encodeJwtSegment(value: Record<string, unknown>): string {
+  return btoa(JSON.stringify(value));
+}
+
+async function operatorToken(userId: 'seller' | 'member'): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  const header = encodeJwtSegment({ alg: 'HS256', typ: 'JWT' });
+  const payload = encodeJwtSegment({
+    sub: userId,
+    email: `${userId}@example.com`,
+    name: userId,
+    active_account_id: 'account-bali',
+    session_version: 0,
+    iat: now,
+    exp: now + 3600,
+  });
+  const unsigned = `${header}.${payload}`;
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(JWT_SECRET),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(unsigned));
+  const encodedSignature = btoa(String.fromCharCode(...new Uint8Array(signature)));
+  return `${unsigned}.${encodedSignature}`;
+}
+
+async function adminRequest(
+  db: InquiryDb,
+  path = '/api/admin/inquiries',
+  init: RequestInit = {},
+  userId?: 'seller' | 'member',
+) {
+  const headers = new Headers(init.headers);
+  if (userId) headers.set('Authorization', `Bearer ${await operatorToken(userId)}`);
+  headers.set('X-Teajia-Account', 'account-bali');
+  if (init.body) headers.set('Content-Type', 'application/json');
+  return worker.fetch(new Request(`https://api.test${path}`, { ...init, headers }), {
+    DB: db,
+    JWT_SECRET,
+  } as never, {} as never);
 }
 
 describe('private inquiry tracking', () => {
@@ -337,5 +413,82 @@ describe('private inquiry tracking', () => {
     expect(new Set(db.inquiries.map((row) => row.account_id))).toEqual(new Set(['account-bali', 'account-sydney']));
     expect((await get(db, 'TJ-20260810-A1B2C3D4')).status).toBe(404);
     expect((await get(db, SECOND_TOKEN)).status).toBe(200);
+  });
+});
+
+describe('authenticated inquiry operations', () => {
+  function seededDb() {
+    const db = new InquiryDb();
+    db.inquiries.push(
+      {
+        id: 'bali-inquiry', account_id: 'account-bali', tracking_token_hash: 'bali-hash',
+        ref_number: 'TJ-BALI', request_fingerprint: 'bali-fingerprint', status: 'new',
+        items: '[]', created_at: '2026-08-10 09:15:00',
+      },
+      {
+        id: 'sydney-inquiry', account_id: 'account-sydney', tracking_token_hash: 'sydney-hash',
+        ref_number: 'TJ-SYDNEY', request_fingerprint: 'sydney-fingerprint', status: 'new',
+        items: '[]', created_at: '2026-08-10 09:16:00',
+      },
+    );
+    return db;
+  }
+
+  it.each([
+    ['GET', '/api/admin/inquiries', undefined],
+    ['PATCH', '/api/admin/inquiries/bali-inquiry/status', JSON.stringify({ status: 'seen' })],
+  ])('rejects unauthenticated %s operations', async (method, path, body) => {
+    const response = await adminRequest(seededDb(), path, { method, body });
+    expect(response.status).toBe(401);
+    expect(await response.json()).toMatchObject({ code: 'auth_no_token' });
+  });
+
+  it.each([
+    ['GET', '/api/admin/inquiries', undefined],
+    ['PATCH', '/api/admin/inquiries/bali-inquiry/status', JSON.stringify({ status: 'seen' })],
+  ])('rejects %s operations when the member lacks sell', async (method, path, body) => {
+    const response = await adminRequest(seededDb(), path, { method, body }, 'member');
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({
+      code: 'insufficient_bundle',
+      details: { required_bundle: 'sell' },
+    });
+  });
+
+  it('lets a sell member list and update inquiries in their account', async () => {
+    const db = seededDb();
+    const list = await adminRequest(db, '/api/admin/inquiries', {}, 'seller');
+    expect(list.status).toBe(200);
+    expect(await list.json()).toEqual({
+      inquiries: [expect.objectContaining({ id: 'bali-inquiry', account_id: 'account-bali', status: 'new' })],
+    });
+
+    const update = await adminRequest(db, '/api/admin/inquiries/bali-inquiry/status', {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'replied' }),
+    }, 'seller');
+    expect(update.status).toBe(200);
+    expect(db.inquiries.find(row => row.id === 'bali-inquiry')?.status).toBe('replied');
+  });
+
+  it('hides cross-account inquiries and denies cross-account status updates', async () => {
+    const db = seededDb();
+    const list = await adminRequest(db, '/api/admin/inquiries', {}, 'seller');
+    expect(JSON.stringify(await list.json())).not.toContain('sydney-inquiry');
+
+    const update = await adminRequest(db, '/api/admin/inquiries/sydney-inquiry/status', {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'closed' }),
+    }, 'seller');
+    expect(update.status).toBe(404);
+    expect(db.inquiries.find(row => row.id === 'sydney-inquiry')?.status).toBe('new');
+  });
+
+  it('continues to reject unsupported inquiry statuses', async () => {
+    const response = await adminRequest(seededDb(), '/api/admin/inquiries/bali-inquiry/status', {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'converted' }),
+    }, 'seller');
+    expect(response.status).toBe(400);
   });
 });

@@ -6,8 +6,9 @@ import { OrdersView } from './OrdersView';
 import { RecordsView } from './SoldItemsView';
 import { PendingView } from './PendingView';
 import { usePendingAttendees } from '../hooks/useEventData';
-import { api } from '../../lib/api';
+import { api, type InquiryRecord, type InquiryStatus } from '../../lib/api';
 import { Product } from '../types';
+import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
 type ActivityTab = 'pending' | 'orders' | 'ledger' | 'log' | 'inquiries';
 const VALID_TABS: ActivityTab[] = ['pending', 'orders', 'ledger', 'log', 'inquiries'];
@@ -38,15 +39,15 @@ export const ActivityView: React.FC<ActivityViewProps> = ({ products }) => {
   const setActiveTab = (tab: ActivityTab) => setSearchParams({ tab }, { replace: true });
   const pendingCount = usePendingCount();
 
-  const { data: inquiryData } = useQuery({
+  const { data: inquiryData, isError: isInquiryCountError } = useQuery({
     queryKey: ['inquiries-new-count'],
     staleTime: 60_000,
     queryFn: async () => {
-      const data = await api.inquiries.list('new') as any;
-      return data?.inquiries ?? [];
+      const data = await api.inquiries.list('new');
+      return data.inquiries;
     },
   });
-  const newInquiryCount = inquiryData?.length ?? 0;
+  const newInquiryCount = isInquiryCountError ? 0 : inquiryData?.length ?? 0;
 
   const tabs: { id: ActivityTab; label: string; icon: React.ReactNode; badge?: number }[] = [
     { id: 'pending', label: 'Pending', icon: <Inbox size={15} />, badge: pendingCount },
@@ -109,14 +110,14 @@ export const ActivityView: React.FC<ActivityViewProps> = ({ products }) => {
 
 // ── Inline InquiriesView ─────────────────────────────────────────────────────
 
-const STATUS_LABELS: Record<string, string> = {
+const STATUS_LABELS: Record<InquiryStatus, string> = {
   new: 'New',
   seen: 'Seen',
   replied: 'Replied',
   closed: 'Closed',
 };
 
-const STATUS_COLORS: Record<string, string> = {
+const STATUS_COLORS: Record<InquiryStatus, string> = {
   new: 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40',
   seen: 'bg-tea-elevated text-tea-text-sec',
   replied: 'bg-tea-green/10 text-tea-green ring-1 ring-inset ring-tea-green/40',
@@ -125,19 +126,19 @@ const STATUS_COLORS: Record<string, string> = {
 
 function InquiriesView() {
   const qc = useQueryClient();
-  const [filter, setFilter] = React.useState<string>('all');
+  const [filter, setFilter] = React.useState<'all' | InquiryStatus>('all');
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['admin-inquiries', filter],
     staleTime: 30_000,
     queryFn: async () => {
-      const res = await api.inquiries.list(filter === 'all' ? undefined : filter) as any;
-      return res?.inquiries ?? [];
+      const res = await api.inquiries.list(filter === 'all' ? undefined : filter);
+      return res.inquiries;
     },
   });
 
   const updateStatus = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: 'new' | 'seen' | 'replied' | 'closed' }) =>
+    mutationFn: ({ id, status }: { id: string; status: InquiryStatus }) =>
       api.inquiries.updateStatus(id, status),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-inquiries'] });
@@ -145,14 +146,15 @@ function InquiriesView() {
     },
   });
 
-  const inquiries: any[] = data ?? [];
+  const inquiries = data ?? [];
+  const failedUpdate = updateStatus.isError ? updateStatus.variables : null;
 
   return (
     <div className="p-4 md:p-6 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h2 className="h3 text-tea-text">Inquiries</h2>
         <div className="flex items-center gap-6 border-b border-tea-border">
-          {['all', 'new', 'seen', 'replied', 'closed'].map(s => {
+          {(['all', 'new', 'seen', 'replied', 'closed'] as const).map(s => {
             const isActive = filter === s;
             return (
               <button
@@ -175,7 +177,34 @@ function InquiriesView() {
         <p className="text-tea-text-sec text-sm">Loading…</p>
       )}
 
-      {!isLoading && inquiries.length === 0 && (
+      {isError && (
+        <div role="alert" className="rounded-md border border-tea-border bg-tea-surface px-4 py-3">
+          <p className={`${TYPOGRAPHY_CLASSES.link} text-tea-text-sec`}>Could not load inquiries</p>
+          <button
+            type="button"
+            onClick={() => { void refetch(); }}
+            className={`${TYPOGRAPHY_CLASSES.link} tap-target mt-2 text-tea-gold hover:text-tea-gold-lt`}
+          >
+            Try again
+          </button>
+          {error instanceof Error && <span className="sr-only">{error.message}</span>}
+        </div>
+      )}
+
+      {failedUpdate && (
+        <div role="alert" className="rounded-md border border-tea-border bg-tea-surface px-4 py-3">
+          <p className={`${TYPOGRAPHY_CLASSES.link} text-tea-text-sec`}>Could not update inquiry status.</p>
+          <button
+            type="button"
+            onClick={() => updateStatus.mutate(failedUpdate)}
+            className={`${TYPOGRAPHY_CLASSES.link} tap-target mt-2 text-tea-gold hover:text-tea-gold-lt`}
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      {!isLoading && !isError && inquiries.length === 0 && (
         <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
           <MessageSquare size={28} strokeWidth={1.25} className="text-tea-text-dim mb-3" />
           <div className="font-display text-ui-17 text-tea-text">No inquiries</div>
@@ -186,7 +215,7 @@ function InquiriesView() {
       )}
 
       <div className="space-y-3">
-        {inquiries.map((inq: any) => (
+        {inquiries.map((inq: InquiryRecord) => (
           <div key={inq.id} className="bg-tea-surface border border-tea-border rounded-xl p-4 space-y-3">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -205,7 +234,8 @@ function InquiriesView() {
                 </span>
                 <select
                   value={inq.status}
-                  onChange={e => updateStatus.mutate({ id: inq.id, status: e.target.value as any })}
+                  disabled={updateStatus.isPending && updateStatus.variables?.id === inq.id}
+                  onChange={e => updateStatus.mutate({ id: inq.id, status: e.target.value as InquiryStatus })}
                   className="text-ui-10 bg-tea-bg border border-tea-border rounded px-1.5 py-0.5 text-tea-text-sec"
                 >
                   {Object.entries(STATUS_LABELS).map(([val, label]) => (
@@ -217,7 +247,7 @@ function InquiriesView() {
 
             {(inq.items ?? []).length > 0 && (
               <div className="space-y-1 border-t border-tea-border pt-2">
-                {inq.items.map((item: any, i: number) => (
+                {inq.items.map((item, i) => (
                   <div key={i} className="flex justify-between text-xs">
                     <span className="text-tea-text">{item.name}</span>
                     <span className="text-tea-text-sec num">{item.quantityGrams ?? item.qty ?? ''}g</span>
