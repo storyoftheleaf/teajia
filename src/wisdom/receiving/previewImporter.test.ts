@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   EMPTY_RECEIVING_STATE,
   previewWebsiteHandoff,
+  publicTransportFor,
   type ReferenceReceivingState,
   type WebsiteHandoff,
 } from './previewImporter';
@@ -258,5 +259,57 @@ describe('citation-aware receiving preview', () => {
     expect(operation?.reason).toMatch(/retailer.*cannot establish producer/i);
     expect(result.operations.some(item => item.resourceType === 'entity' && item.action === 'create')).toBe(false);
     expect(JSON.stringify(result.publicPreview)).not.toContain(producerClaim.candidateValue);
+  });
+});
+
+describe('public receiving transport', () => {
+  it('returns only the public manifest and a cloned public preview', () => {
+    const preview = previewWebsiteHandoff(handoff());
+
+    const transport = publicTransportFor(preview);
+
+    expect(Object.keys(transport)).toEqual(['manifest', 'publicPreview']);
+    expect(transport.manifest).toEqual({ schemaVersion: 1, mode: 'preview-only' });
+    expect(transport.publicPreview).toEqual(preview.publicPreview);
+    expect(transport.publicPreview).not.toBe(preview.publicPreview);
+    expect(transport.publicPreview.sections).not.toBe(preview.publicPreview.sections);
+    expect(JSON.stringify(transport)).not.toMatch(
+      /operations|projectedState|privateVerification|evidenceIds?|holdReason|(?:inputPayload|sourceSnapshot|payload)Sha256|exact[ _-]lot|personal[ _-]tasting/i,
+    );
+  });
+
+  it.each([
+    'evidenceId',
+    'evidenceIds',
+    'candidateValue',
+    'reason',
+    'status',
+    'operations',
+    'verification',
+    'privateVerification',
+    'projectedState',
+    'holdReason',
+    'payloadSha256',
+    'inputPayloadSha256',
+    'sourceSnapshotSha256',
+  ])('rejects a recursively nested %s key', forbiddenKey => {
+    const preview = previewWebsiteHandoff(handoff());
+    Object.assign(preview.publicPreview.sections[0].entries[0].statements[0].citation, {
+      [forbiddenKey]: 'private',
+    });
+
+    expect(() => publicTransportFor(preview)).toThrow(/unsafe public preview/i);
+  });
+
+  it.each([
+    'exact_lot_source_description',
+    'exact-lot source description',
+    'personal_tasting',
+    'personal-tasting',
+  ])('rejects the forbidden public register marker %s', forbiddenMarker => {
+    const preview = previewWebsiteHandoff(handoff());
+    preview.publicPreview.sections[0].entries[0].statements[0].excerpt = forbiddenMarker;
+
+    expect(() => publicTransportFor(preview)).toThrow(/unsafe public preview/i);
   });
 });

@@ -236,6 +236,14 @@ export interface WebsiteReceivingPreview {
   publicPreview: PublicReferencePreview;
 }
 
+export interface WebsiteReceivingPublicTransport {
+  manifest: {
+    schemaVersion: 1;
+    mode: 'preview-only';
+  };
+  publicPreview: PublicReferencePreview;
+}
+
 export const EMPTY_RECEIVING_STATE: ReferenceReceivingState = Object.freeze({
   schemaVersion: 1,
   sources: Object.freeze([]) as unknown as ReferenceSource[],
@@ -575,6 +583,45 @@ function validateHandoff(handoff: WebsiteHandoff): void {
     if (!entityIds.has(claim.resolutionId)) throw new Error(`Claim ${claim.claimId} has a missing entity resolution: ${claim.resolutionId}`);
     claimIds.add(claim.claimId);
   }
+}
+
+const FORBIDDEN_PUBLIC_KEYS = new Set([
+  'evidenceId',
+  'evidenceIds',
+  'candidateValue',
+  'reason',
+  'status',
+  'operations',
+  'verification',
+  'privateVerification',
+  'projectedState',
+  'holdReason',
+]);
+
+const FORBIDDEN_PUBLIC_MARKER = /(?:^|[^a-z0-9])(?:exact[ _-]lot|personal[ _-]tasting)(?:[^a-z0-9]|$)/i;
+
+function validatePublicProjection(value: unknown, seen = new WeakSet<object>()): void {
+  if (typeof value === 'string') {
+    if (FORBIDDEN_PUBLIC_MARKER.test(value)) throw new Error('Unsafe public preview: forbidden private marker');
+    return;
+  }
+  if (!value || typeof value !== 'object') return;
+  if (seen.has(value)) throw new Error('Unsafe public preview: repeated or cyclic object');
+  seen.add(value);
+  for (const [key, entry] of Object.entries(value)) {
+    if (FORBIDDEN_PUBLIC_KEYS.has(key) || /sha256$/i.test(key) || FORBIDDEN_PUBLIC_MARKER.test(key)) {
+      throw new Error(`Unsafe public preview: forbidden private key ${key}`);
+    }
+    validatePublicProjection(entry, seen);
+  }
+}
+
+export function publicTransportFor(preview: WebsiteReceivingPreview): WebsiteReceivingPublicTransport {
+  validatePublicProjection(preview.publicPreview);
+  return {
+    manifest: { schemaVersion: 1, mode: 'preview-only' },
+    publicPreview: structuredClone(preview.publicPreview),
+  };
 }
 
 export function previewWebsiteHandoff(
