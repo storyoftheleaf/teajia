@@ -39,6 +39,13 @@ import {
   wisdomManifestNodes,
   wisdomNodeExists,
 } from './wisdomRelations';
+import {
+  TeaReferenceIssueError,
+  createTeaReferenceIssue,
+  exportTeaReferenceIssues,
+  listTeaReferenceIssues,
+  resolveTeaReferenceIssues,
+} from './teaReferenceIssues';
 
 interface Env {
   DB: D1Database;
@@ -22272,6 +22279,69 @@ const handleDeleteWisdomVerification: Handler = async (request, env, params) => 
   return json(await deleteWisdomVerification(env.DB, ctx.accountId, target.entryKind, target.entryId));
 };
 
+async function requireTeaReferenceIssueOwner(
+  request: Request,
+  env: Env,
+): Promise<AccountCtx | Response> {
+  const account = await requireAccount(request, env);
+  if ('error' in account) return account.error;
+  const ownerError = await requirePlatformOwner(request, env);
+  return ownerError ?? account;
+}
+
+function teaReferenceIssueErrorResponse(error: unknown): Response {
+  if (!(error instanceof TeaReferenceIssueError)) throw error;
+  return restError(error.status, error.message, error.code, error.details);
+}
+
+const handleCreateTeaReferenceIssue: Handler = async (request, env) => {
+  const context = await requireTeaReferenceIssueOwner(request, env);
+  if (context instanceof Response) return context;
+  const body = await request.json().catch(() => null);
+  try {
+    const result = await createTeaReferenceIssue(env.DB, {
+      accountId: context.accountId,
+      userId: context.userId,
+    }, body);
+    return json(result, result.duplicate ? 200 : 201);
+  } catch (error) {
+    return teaReferenceIssueErrorResponse(error);
+  }
+};
+
+const handleListTeaReferenceIssues: Handler = async (request, env) => {
+  const context = await requireTeaReferenceIssueOwner(request, env);
+  if (context instanceof Response) return context;
+  return json({ issues: await listTeaReferenceIssues(env.DB, context.accountId) });
+};
+
+const handleExportTeaReferenceIssues: Handler = async (request, env) => {
+  const context = await requireTeaReferenceIssueOwner(request, env);
+  if (context instanceof Response) return context;
+  const markdown = await exportTeaReferenceIssues(env.DB, context.accountId);
+  return new Response(markdown, {
+    headers: {
+      'Content-Type': 'text/markdown; charset=utf-8',
+      'Content-Disposition': 'attachment; filename="tea-reference-regeneration-brief.md"',
+    },
+  });
+};
+
+const handleResolveTeaReferenceIssues: Handler = async (request, env) => {
+  const context = await requireTeaReferenceIssueOwner(request, env);
+  if (context instanceof Response) return context;
+  const body = await request.json().catch(() => null);
+  try {
+    const resolvedIds = await resolveTeaReferenceIssues(env.DB, {
+      accountId: context.accountId,
+      userId: context.userId,
+    }, body);
+    return json({ resolved_ids: resolvedIds, resolved_count: resolvedIds.length });
+  } catch (error) {
+    return teaReferenceIssueErrorResponse(error);
+  }
+};
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
@@ -22381,6 +22451,10 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/admin/reset-token', handleCreateResetToken],
   ['GET', '/api/admin/repairs/invoice-lines', handlePreviewInvoiceLineRepair],
   ['POST', '/api/admin/repairs/invoice-lines', handleApplyInvoiceLineRepair],
+  ['POST', '/api/admin/tea-reference/issues', handleCreateTeaReferenceIssue],
+  ['GET', '/api/admin/tea-reference/issues', handleListTeaReferenceIssues],
+  ['GET', '/api/admin/tea-reference/issues/export', handleExportTeaReferenceIssues],
+  ['POST', '/api/admin/tea-reference/issues/resolve', handleResolveTeaReferenceIssues],
 
   // Public — venues/spaces
   ['GET', '/api/venues/public', handleGetPublicVenues],
