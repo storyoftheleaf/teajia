@@ -1060,7 +1060,8 @@ CREATE TABLE IF NOT EXISTS inquiries (
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   ref_number TEXT,
   source TEXT NOT NULL DEFAULT 'cart',
-  tracking_token_hash TEXT
+  tracking_token_hash TEXT,
+  request_fingerprint TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_inquiries_ref_number ON inquiries(ref_number);
 CREATE INDEX IF NOT EXISTS idx_inquiries_account_source ON inquiries(account_id, source, created_at DESC);

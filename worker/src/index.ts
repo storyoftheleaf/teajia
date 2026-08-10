@@ -31,7 +31,7 @@ import {
   wisdomManifestNodes,
   wisdomNodeExists,
 } from './wisdomRelations';
-import { isValidTrackingToken, normalizeCartInquiry, redactPublicInquiry, sha256Hex } from './inquiryDomain';
+import { inquiryRequestFingerprint, isValidTrackingToken, normalizeCartInquiry, redactPublicInquiry, sha256Hex } from './inquiryDomain';
 
 interface Env {
   DB: D1Database;
@@ -518,6 +518,17 @@ function resolveBundles(
 async function getAccountIdBySlug(env: Env, slug: string): Promise<string | null> {
   try {
     const row = await env.DB.prepare('SELECT id FROM accounts WHERE slug = ?').bind(slug).first();
+    return row ? (row.id as string) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function getPublicAccountIdBySlug(env: Env, slug: string): Promise<string | null> {
+  try {
+    const row = await env.DB.prepare(
+      "SELECT id FROM accounts WHERE slug = ? AND status = 'active' AND public_enabled = 1"
+    ).bind(slug).first();
     return row ? (row.id as string) : null;
   } catch {
     return null;
@@ -10305,15 +10316,17 @@ const handleGetNewsletterSubscribers: Handler = async (request, env) => {
 const handleCreateInquiry: Handler = async (request, env) => {
   const body = await request.json() as Record<string, any>;
   const source = typeof body.source === 'string' && body.source.trim() ? body.source.trim() : 'cart';
-  const name = (body.customer_name || body.name || '').trim();
-  const contact = (body.customer_contact || body.email || '').trim();
+  const nameValue = body.customer_name || body.name;
+  const contactValue = body.customer_contact || body.email;
+  const name = typeof nameValue === 'string' ? nameValue.trim() : '';
+  const contact = typeof contactValue === 'string' ? contactValue.trim() : '';
 
   if (!name || !contact) {
     return json({ error: 'Name and contact are required' }, 400);
   }
 
   let itemsStr: string;
-  let totalUsd: number | null;
+  let totalUsd: number;
   let message: string | null;
   let phone: string | null;
 
@@ -10329,20 +10342,36 @@ const handleCreateInquiry: Handler = async (request, env) => {
     if (referral) parts.push(`Referral: ${referral}`);
     message = parts.join('\n\n');
     itemsStr = '[]';
-    totalUsd = null;
-    phone = (body.whatsapp || '').trim() || null;
+    totalUsd = 0;
+    phone = typeof body.whatsapp === 'string' ? body.whatsapp.trim() || null : null;
   } else {
     const normalized = normalizeCartInquiry(body);
     if (!normalized.ok) return json({ error: normalized.error }, 400);
 
-    const accountId = await getAccountIdBySlug(env, normalized.value.storeSlug);
+    const accountId = await getPublicAccountIdBySlug(env, normalized.value.storeSlug);
     if (!accountId) return json({ error: 'Store not found' }, 404);
     const tokenHash = await sha256Hex(normalized.value.trackingToken);
+    const location = typeof body.customer_location === 'string' ? body.customer_location.trim() : '';
+    const notes = typeof body.notes === 'string'
+      ? body.notes.trim()
+      : typeof body.message === 'string' ? body.message.trim() : '';
+    const requestFingerprint = await inquiryRequestFingerprint({
+      accountId,
+      storeSlug: normalized.value.storeSlug,
+      refNumber: normalized.value.refNumber,
+      name,
+      contact,
+      location,
+      notes,
+      itemsJson: normalized.value.itemsJson,
+      totalUsd: normalized.value.totalUsd,
+      currency: normalized.value.currency,
+    });
     const existing = await env.DB.prepare(
-      'SELECT id, account_id, ref_number FROM inquiries WHERE tracking_token_hash = ? LIMIT 1'
-    ).bind(tokenHash).first() as { id: string; account_id: string; ref_number: string } | null;
+      'SELECT id, account_id, ref_number, request_fingerprint FROM inquiries WHERE tracking_token_hash = ? LIMIT 1'
+    ).bind(tokenHash).first() as { id: string; account_id: string; ref_number: string; request_fingerprint: string | null } | null;
     if (existing) {
-      if (existing.account_id !== accountId) {
+      if (existing.account_id !== accountId || existing.request_fingerprint !== requestFingerprint) {
         return json({ error: 'Tracking token conflict' }, 409);
       }
       return json({
@@ -10355,18 +10384,27 @@ const handleCreateInquiry: Handler = async (request, env) => {
       }, 200);
     }
 
+    const productIds = [...new Set(normalized.value.items.map((item) => String((item as Record<string, unknown>).id)))];
+    const placeholders = productIds.map(() => '?').join(', ');
+    const availableProducts = await env.DB.prepare(
+      `SELECT id FROM products WHERE account_id = ? AND id IN (${placeholders})`
+    ).bind(accountId, ...productIds).all();
+    if (availableProducts.results.length !== productIds.length) {
+      return json({ error: 'Store or items not found' }, 404);
+    }
+
     const id = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
-    message = body.notes || body.message || null;
-    phone = body.phone || body.customer_location || null;
+    message = notes || null;
+    phone = (typeof body.phone === 'string' ? body.phone.trim() : '') || location || null;
     try {
       await env.DB.prepare(
         `INSERT INTO inquiries
-         (id, account_id, name, email, phone, items, total_usd, currency, message, source, ref_number, tracking_token_hash)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+         (id, account_id, name, email, phone, items, total_usd, currency, message, source, ref_number, tracking_token_hash, request_fingerprint)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).bind(
         id, accountId, name, contact, phone, normalized.value.itemsJson,
         normalized.value.totalUsd, normalized.value.currency, message, source,
-        normalized.value.refNumber, tokenHash,
+        normalized.value.refNumber, tokenHash, requestFingerprint,
       ).run();
       return json({
         id,
@@ -10377,10 +10415,10 @@ const handleCreateInquiry: Handler = async (request, env) => {
       }, 201);
     } catch (error) {
       const raced = await env.DB.prepare(
-        'SELECT id, account_id, ref_number FROM inquiries WHERE tracking_token_hash = ? LIMIT 1'
-      ).bind(tokenHash).first() as { id: string; account_id: string; ref_number: string } | null;
+        'SELECT id, account_id, ref_number, request_fingerprint FROM inquiries WHERE tracking_token_hash = ? LIMIT 1'
+      ).bind(tokenHash).first() as { id: string; account_id: string; ref_number: string; request_fingerprint: string | null } | null;
       if (!raced) throw error;
-      if (raced.account_id !== accountId) {
+      if (raced.account_id !== accountId || raced.request_fingerprint !== requestFingerprint) {
         return json({ error: 'Tracking token conflict' }, 409);
       }
       return json({

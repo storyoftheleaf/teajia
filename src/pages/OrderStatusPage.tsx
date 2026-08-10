@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Search } from 'lucide-react';
 import { api } from '../lib/api';
 import { useShopPrice } from '../components/shop/shopPrice';
+import { createAsyncResultGuard } from '../lib/orderTrackingDomain';
 
 const inputClass =
   'w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
@@ -36,9 +37,11 @@ const OrderStatusPage: React.FC = () => {
     }
     setLoading(true);
     setNotFound(false);
+    const guard = createAsyncResultGuard();
     api.inquiries
       .getByTrackingToken(trackingToken)
       .then((data) => {
+        if (!guard.isCurrent()) return;
         if (data) {
           setInquiry(data);
         } else {
@@ -48,9 +51,11 @@ const OrderStatusPage: React.FC = () => {
         setLoading(false);
       })
       .catch(() => {
+        if (!guard.isCurrent()) return;
         setNotFound(true);
         setLoading(false);
       });
+    return () => guard.cancel();
   }, [trackingToken]);
 
   const handleLookup = (e: React.FormEvent) => {

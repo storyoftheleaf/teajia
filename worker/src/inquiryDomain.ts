@@ -23,6 +23,49 @@ export async function sha256Hex(value: string): Promise<string> {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
+function stableValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map((item) => stableValue(item));
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([, item]) => item !== undefined)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, item]) => [key, stableValue(item)]),
+    );
+  }
+  return value;
+}
+
+function stableJson(value: unknown): string {
+  return JSON.stringify(stableValue(value));
+}
+
+export async function inquiryRequestFingerprint(input: {
+  accountId: string;
+  storeSlug: string;
+  refNumber: string;
+  name: string;
+  contact: string;
+  location: string;
+  notes: string;
+  itemsJson: string;
+  totalUsd: number;
+  currency: string;
+}): Promise<string> {
+  return sha256Hex(stableJson({
+    accountId: input.accountId,
+    storeSlug: input.storeSlug,
+    refNumber: input.refNumber,
+    name: input.name.trim(),
+    contact: input.contact.trim(),
+    location: input.location.trim(),
+    notes: input.notes.trim(),
+    items: JSON.parse(input.itemsJson),
+    totalUsd: input.totalUsd,
+    currency: input.currency,
+  }));
+}
+
 export function normalizeCartInquiry(body: Record<string, unknown>): CartInquiryNormalization {
   const storeSlug = typeof body.store_slug === 'string' ? body.store_slug.trim() : '';
   if (!storeSlug) return { ok: false, error: 'Store is required' };
@@ -49,12 +92,22 @@ export function normalizeCartInquiry(body: Record<string, unknown>): CartInquiry
   if (!Array.isArray(items) || items.length === 0) {
     return { ok: false, error: 'Items are required' };
   }
-  if (items.some((item) => (
-    !item
-    || typeof item !== 'object'
-    || (item as Record<string, unknown>).storeSlug !== storeSlug
-  ))) {
-    return { ok: false, error: 'Every item must belong to the requested store' };
+  for (const item of items) {
+    if (!item || typeof item !== 'object') {
+      return { ok: false, error: 'Every item must be a valid cart line' };
+    }
+    const line = item as Record<string, unknown>;
+    if (typeof line.id !== 'string' || !line.id.trim()
+      || typeof line.name !== 'string' || !line.name.trim()
+      || (line.category !== 'tea' && line.category !== 'ware')
+      || typeof line.quantityGrams !== 'number' || !Number.isFinite(line.quantityGrams) || line.quantityGrams <= 0
+      || typeof line.pricePerGram !== 'number' || !Number.isFinite(line.pricePerGram) || line.pricePerGram < 0
+      || typeof line.totalPrice !== 'number' || !Number.isFinite(line.totalPrice) || line.totalPrice < 0) {
+      return { ok: false, error: 'Every item must be a valid cart line' };
+    }
+    if (line.storeSlug !== storeSlug) {
+      return { ok: false, error: 'Every item must belong to the requested store' };
+    }
   }
 
   const currency = typeof body.currency === 'string' ? body.currency.trim().toUpperCase() : '';
@@ -69,7 +122,7 @@ export function normalizeCartInquiry(body: Record<string, unknown>): CartInquiry
       trackingToken: body.tracking_token,
       refNumber,
       items,
-      itemsJson: JSON.stringify(items),
+      itemsJson: stableJson(items),
       totalUsd,
       currency,
     },

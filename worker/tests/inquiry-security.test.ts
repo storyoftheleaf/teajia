@@ -9,12 +9,20 @@ type InquiryRow = Record<string, unknown> & {
   account_id: string;
   tracking_token_hash: string;
   ref_number: string;
+  request_fingerprint: string;
 };
 
 class InquiryDb {
-  readonly accounts = new Map([
-    ['bali', 'account-bali'],
-    ['sydney', 'account-sydney'],
+  readonly accounts = new Map<string, { id: string; status: string; public_enabled: number }>([
+    ['bali', { id: 'account-bali', status: 'active', public_enabled: 1 }],
+    ['sydney', { id: 'account-sydney', status: 'active', public_enabled: 1 }],
+    ['private', { id: 'account-private', status: 'active', public_enabled: 0 }],
+    ['inactive', { id: 'account-inactive', status: 'inactive', public_enabled: 1 }],
+  ]);
+  readonly products = new Map([
+    ['tea-1', 'account-bali'],
+    ['tea-2', 'account-bali'],
+    ['sydney-tea', 'account-sydney'],
   ]);
   readonly inquiries: InquiryRow[] = [];
   tokenLookupMisses = 0;
@@ -25,9 +33,12 @@ class InquiryDb {
     const statement = {
       bind: (...next: unknown[]) => { values = next; return statement; },
       first: async () => {
-        if (normalized === 'select id from accounts where slug = ?') {
-          const id = this.accounts.get(String(values[0]));
-          return id ? { id } : null;
+        if (normalized.includes('select id from accounts where slug = ?')) {
+          const account = this.accounts.get(String(values[0]));
+          if (!account) return null;
+          if (normalized.includes("status = 'active'") && account.status !== 'active') return null;
+          if (normalized.includes('public_enabled = 1') && account.public_enabled !== 1) return null;
+          return { id: account.id };
         }
         if (normalized.includes('from inquiries where tracking_token_hash = ?')) {
           if (this.tokenLookupMisses > 0) {
@@ -38,6 +49,17 @@ class InquiryDb {
         }
         return null;
       },
+      all: async () => {
+        if (normalized.includes('from products') && normalized.includes('account_id = ?')) {
+          const [accountId, ...ids] = values.map(String);
+          return {
+            results: [...new Set(ids)]
+              .filter((id) => this.products.get(id) === accountId)
+              .map((id) => ({ id })),
+          };
+        }
+        return { results: [] };
+      },
       run: async () => {
         if (!normalized.startsWith('insert into inquiries')) {
           return { success: true, meta: { changes: 0 } };
@@ -45,7 +67,8 @@ class InquiryDb {
         const columns = sql.match(/inquiries\s*\(([^)]+)\)/i)?.[1]
           .split(',').map((column) => column.trim()) ?? [];
         const row = Object.fromEntries(columns.map((column, index) => [column, values[index]])) as InquiryRow;
-        if (this.inquiries.some((existing) => existing.tracking_token_hash === row.tracking_token_hash)) {
+        if (row.total_usd === null) throw new Error('NOT NULL constraint failed: inquiries.total_usd');
+        if (row.tracking_token_hash && this.inquiries.some((existing) => existing.tracking_token_hash === row.tracking_token_hash)) {
           throw new Error('UNIQUE constraint failed: inquiries.tracking_token_hash');
         }
         this.inquiries.push({
@@ -71,7 +94,10 @@ function createPayload(overrides: Record<string, unknown> = {}) {
     customer_name: 'Private Person',
     customer_contact: 'private@example.com',
     customer_location: 'Denpasar, Indonesia',
-    items: [{ id: 'tea-1', name: 'Rou Gui', storeSlug: 'bali', totalPrice: 25 }],
+    items: [{
+      id: 'tea-1', name: 'Rou Gui', category: 'tea', storeSlug: 'bali',
+      quantityGrams: 25, pricePerGram: 1, totalPrice: 25,
+    }],
     total_estimate_usd: 25,
     currency: 'usd',
     source: 'whatsapp',
@@ -100,17 +126,66 @@ describe('private inquiry tracking', () => {
     expect(migrationSql).toMatch(/ON inquiries\s*\(account_id, ref_number, created_at DESC\)/i);
   });
 
+  it('adds a request fingerprint to the inquiry schema', () => {
+    expect(migrationSql).toMatch(/ADD COLUMN request_fingerprint TEXT/i);
+  });
+
   it('requires a store for cart inquiries', async () => {
     const response = await post(new InquiryDb(), createPayload({ store_slug: undefined }));
     expect(response.status).toBe(400);
   });
 
-  it('rejects unknown stores', async () => {
-    const response = await post(new InquiryDb(), createPayload({
-      store_slug: 'unknown',
-      items: [{ id: 'tea-1', name: 'Rou Gui', storeSlug: 'unknown', totalPrice: 25 }],
+  it.each(['unknown', 'inactive', 'private'])('hides unavailable store %s behind a 404', async (storeSlug) => {
+    const db = new InquiryDb();
+    const response = await post(db, createPayload({
+      store_slug: storeSlug,
+      items: [{
+        id: 'tea-1', name: 'Rou Gui', category: 'tea', storeSlug,
+        quantityGrams: 25, pricePerGram: 1, totalPrice: 25,
+      }],
     }));
     expect(response.status).toBe(404);
+    expect(db.inquiries).toHaveLength(0);
+  });
+
+  it.each([
+    { field: 'id', value: '' },
+    { field: 'name', value: '' },
+    { field: 'category', value: 'service' },
+    { field: 'quantityGrams', value: 0 },
+    { field: 'quantityGrams', value: null },
+    { field: 'pricePerGram', value: -1 },
+    { field: 'pricePerGram', value: null },
+    { field: 'totalPrice', value: -1 },
+    { field: 'totalPrice', value: null },
+  ])('rejects malformed line field $field=$value', async ({ field, value }) => {
+    const item = { ...(createPayload().items as Array<Record<string, unknown>>)[0], [field]: value };
+    const response = await post(new InquiryDb(), createPayload({ items: [item] }));
+    expect(response.status).toBe(400);
+  });
+
+  it.each(['missing-tea', 'sydney-tea'])('rejects unavailable product %s without writing', async (productId) => {
+    const db = new InquiryDb();
+    const item = { ...(createPayload().items as Array<Record<string, unknown>>)[0], id: productId };
+
+    const response = await post(db, createPayload({ items: [item] }));
+
+    expect(response.status).toBe(404);
+    expect(db.inquiries).toHaveLength(0);
+  });
+
+  it('keeps consult inquiries exempt from cart validation and stores a schema-safe zero total', async () => {
+    const db = new InquiryDb();
+    const response = await post(db, {
+      source: 'consult',
+      name: 'Consulting Customer',
+      email: 'consult@example.com',
+      vision: 'Build a thoughtful tea program.',
+    });
+
+    expect(response.status).toBe(201);
+    expect(db.inquiries).toHaveLength(1);
+    expect(db.inquiries[0]).toMatchObject({ items: '[]', total_usd: 0, source: 'consult' });
   });
 
   it.each([undefined, '', 'US dollars'])('rejects missing or invalid currency %s', async (currency) => {
@@ -129,6 +204,7 @@ describe('private inquiry tracking', () => {
     expect(db.inquiries).toHaveLength(1);
     expect(db.inquiries[0].tracking_token_hash).toMatch(/^[a-f0-9]{64}$/);
     expect(db.inquiries[0].tracking_token_hash).not.toBe(TOKEN);
+    expect(db.inquiries[0].request_fingerprint).toMatch(/^[a-f0-9]{64}$/);
     expect(JSON.stringify(db.inquiries[0])).not.toContain(TOKEN);
   });
 
@@ -146,13 +222,35 @@ describe('private inquiry tracking', () => {
     expect(db.inquiries).toHaveLength(1);
   });
 
+  it('treats delivery source changes as the same inquiry', async () => {
+    const db = new InquiryDb();
+    expect((await post(db, createPayload({ source: 'whatsapp' }))).status).toBe(201);
+
+    const repeated = await post(db, createPayload({ source: 'email' }));
+
+    expect(repeated.status).toBe(200);
+    expect(await repeated.json()).toMatchObject({ idempotent: true });
+    expect(db.inquiries).toHaveLength(1);
+  });
+
+  it('rejects a changed payload for the same account and tracking token', async () => {
+    const db = new InquiryDb();
+    expect((await post(db, createPayload())).status).toBe(201);
+
+    const conflict = await post(db, createPayload({ notes: 'Changed after persistence' }));
+
+    expect(conflict.status).toBe(409);
+    expect(await conflict.json()).toEqual({ error: 'Tracking token conflict' });
+    expect(db.inquiries).toHaveLength(1);
+  });
+
   it('rejects reuse of a tracking token by another store without revealing the first row', async () => {
     const db = new InquiryDb();
     await post(db, createPayload());
 
     const conflict = await post(db, createPayload({
       store_slug: 'sydney',
-      items: [{ id: 'tea-1', name: 'Rou Gui', storeSlug: 'sydney', totalPrice: 25 }],
+      items: [{ id: 'sydney-tea', name: 'Rou Gui', category: 'tea', storeSlug: 'sydney', quantityGrams: 25, pricePerGram: 1, totalPrice: 25 }],
     }));
     const body = await conflict.json() as Record<string, unknown>;
 
@@ -186,12 +284,24 @@ describe('private inquiry tracking', () => {
 
     const conflict = await post(db, createPayload({
       store_slug: 'sydney',
-      items: [{ id: 'tea-1', name: 'Rou Gui', storeSlug: 'sydney', totalPrice: 25 }],
+      items: [{ id: 'sydney-tea', name: 'Rou Gui', category: 'tea', storeSlug: 'sydney', quantityGrams: 25, pricePerGram: 1, totalPrice: 25 }],
     }));
     const body = await conflict.json() as Record<string, unknown>;
 
     expect(conflict.status).toBe(409);
     expect(body).toEqual({ error: 'Tracking token conflict' });
+    expect(db.inquiries).toHaveLength(1);
+  });
+
+  it('rejects a changed same-store payload discovered after a unique insert race', async () => {
+    const db = new InquiryDb();
+    expect((await post(db, createPayload())).status).toBe(201);
+    db.tokenLookupMisses = 1;
+
+    const conflict = await post(db, createPayload({ notes: 'Changed after persistence' }));
+
+    expect(conflict.status).toBe(409);
+    expect(await conflict.json()).toEqual({ error: 'Tracking token conflict' });
     expect(db.inquiries).toHaveLength(1);
   });
 
@@ -220,7 +330,7 @@ describe('private inquiry tracking', () => {
     await post(db, createPayload({
       tracking_token: SECOND_TOKEN,
       store_slug: 'sydney',
-      items: [{ id: 'tea-1', name: 'Rou Gui', storeSlug: 'sydney', totalPrice: 25 }],
+      items: [{ id: 'sydney-tea', name: 'Rou Gui', category: 'tea', storeSlug: 'sydney', quantityGrams: 25, pricePerGram: 1, totalPrice: 25 }],
     }));
 
     expect(db.inquiries).toHaveLength(2);
