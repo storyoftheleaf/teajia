@@ -1336,7 +1336,9 @@ CREATE TABLE IF NOT EXISTS venues (
   arrival_notes TEXT,
   photos TEXT,
   created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now'))
+  updated_at TEXT DEFAULT (datetime('now')),
+  website TEXT,
+  instagram TEXT
 );
 
 CREATE TABLE IF NOT EXISTS venue_spaces (
@@ -1349,7 +1351,8 @@ CREATE TABLE IF NOT EXISTS venue_spaces (
   photos TEXT,
   sort_order INTEGER DEFAULT 0,
   created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now'))
+  updated_at TEXT DEFAULT (datetime('now')),
+  tea_styles TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_venues_account ON venues(account_id);
 CREATE INDEX IF NOT EXISTS idx_venue_spaces_venue ON venue_spaces(venue_id);
@@ -1441,6 +1444,89 @@ CREATE INDEX IF NOT EXISTS idx_attendees_event ON event_attendees(event_id);
 CREATE INDEX IF NOT EXISTS idx_attendees_token ON event_attendees(magic_token);
 CREATE INDEX IF NOT EXISTS idx_attendees_status ON event_attendees(event_id, status);
 CREATE INDEX IF NOT EXISTS idx_attendees_phone ON event_attendees(event_id, phone_number);
+
+CREATE TABLE IF NOT EXISTS event_tea_menu (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  event_id TEXT NOT NULL REFERENCES events(id),
+  product_id TEXT REFERENCES products(id),
+  custom_name TEXT,
+  custom_description TEXT,
+  reveal_date TEXT,
+  brew_order INTEGER,
+  created_at TEXT DEFAULT (datetime('now')),
+  account_id TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_tea_menu_event ON event_tea_menu(event_id);
+
+CREATE TABLE IF NOT EXISTS event_tasting_notes (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  event_id TEXT NOT NULL REFERENCES events(id),
+  attendee_id TEXT NOT NULL REFERENCES event_attendees(id),
+  tea_menu_id TEXT REFERENCES event_tea_menu(id),
+  rating INTEGER CHECK(rating BETWEEN 1 AND 5),
+  impression TEXT,
+  is_favorite INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now')),
+  account_id TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_tasting_notes_event ON event_tasting_notes(event_id);
+
+CREATE TABLE IF NOT EXISTS event_notifications (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  event_id TEXT NOT NULL REFERENCES events(id),
+  attendee_id TEXT REFERENCES event_attendees(id),
+  type TEXT NOT NULL
+    CHECK(type IN ('checkin_reminder', 'waitlist_promotion', 'spot_claimed', 'event_update')),
+  message_template TEXT,
+  status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'sent', 'failed')),
+  created_at TEXT DEFAULT (datetime('now')),
+  sent_at TEXT,
+  account_id TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_notifications_event ON event_notifications(event_id);
+
+CREATE TABLE IF NOT EXISTS guest_invites (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  event_id TEXT NOT NULL REFERENCES events(id),
+  parent_attendee_id TEXT NOT NULL REFERENCES event_attendees(id),
+  invite_token TEXT UNIQUE NOT NULL,
+  name_hint TEXT,
+  claimed_by_name TEXT,
+  claimed_by_phone TEXT,
+  claimed_by_email TEXT,
+  claimed_attendee_id TEXT REFERENCES event_attendees(id),
+  status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'claimed', 'expired')),
+  account_id TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  claimed_at TEXT,
+  contact TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_guest_invites_event ON guest_invites(event_id);
+CREATE INDEX IF NOT EXISTS idx_guest_invites_token ON guest_invites(invite_token);
+CREATE INDEX IF NOT EXISTS idx_guest_invites_parent ON guest_invites(parent_attendee_id);
+
+CREATE TABLE IF NOT EXISTS interest_signups (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  event_id TEXT REFERENCES events(id),
+  customer_id TEXT REFERENCES customers(id),
+  name TEXT,
+  phone TEXT,
+  email TEXT,
+  account_id TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  converted_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_interest_event ON interest_signups(event_id);
+
+CREATE TABLE IF NOT EXISTS stock_holds (
+  id TEXT PRIMARY KEY,
+  account_id TEXT,
+  invoice_id TEXT,
+  product_id TEXT,
+  held_grams REAL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_stock_holds_invoice ON stock_holds(invoice_id);
+CREATE INDEX IF NOT EXISTS idx_stock_holds_product ON stock_holds(product_id);
 
 CREATE TABLE IF NOT EXISTS event_party_members (
   id TEXT PRIMARY KEY,

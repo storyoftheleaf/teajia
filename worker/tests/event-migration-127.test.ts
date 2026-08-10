@@ -168,4 +168,53 @@ describe('migration 127', () => {
     ]);
     db.close();
   });
+
+  it('keeps the established event support schema in the canonical snapshot', () => {
+    const db = new DatabaseSync(':memory:');
+    db.exec(readFileSync(join(workerDir, 'schema.sql'), 'utf8'));
+
+    expect(db.prepare(`
+      SELECT name FROM sqlite_master
+      WHERE type='table' AND name IN (
+        'event_tea_menu','event_tasting_notes','event_notifications',
+        'guest_invites','interest_signups','stock_holds'
+      ) ORDER BY name
+    `).all()).toEqual([
+      { name: 'event_notifications' },
+      { name: 'event_tasting_notes' },
+      { name: 'event_tea_menu' },
+      { name: 'guest_invites' },
+      { name: 'interest_signups' },
+      { name: 'stock_holds' },
+    ]);
+    expect(db.prepare(`
+      SELECT name FROM pragma_table_info('venues')
+      WHERE name IN ('website','instagram') ORDER BY name
+    `).all()).toEqual([{ name: 'instagram' }, { name: 'website' }]);
+    expect(db.prepare(`
+      SELECT name FROM pragma_table_info('venue_spaces') WHERE name='tea_styles'
+    `).get()).toEqual({ name: 'tea_styles' });
+    expect(db.prepare(`
+      SELECT name FROM pragma_table_info('guest_invites')
+      WHERE name IN ('account_id','contact') ORDER BY name
+    `).all()).toEqual([{ name: 'account_id' }, { name: 'contact' }]);
+    expect(db.prepare(`
+      SELECT name FROM pragma_table_info('interest_signups')
+      WHERE name IN ('account_id','customer_id','converted_at') ORDER BY name
+    `).all()).toEqual([
+      { name: 'account_id' },
+      { name: 'converted_at' },
+      { name: 'customer_id' },
+    ]);
+    expect(db.prepare(`
+      SELECT name FROM pragma_table_info('stock_holds')
+      WHERE name IN ('account_id','invoice_id','product_id','held_grams') ORDER BY name
+    `).all()).toEqual([
+      { name: 'account_id' },
+      { name: 'held_grams' },
+      { name: 'invoice_id' },
+      { name: 'product_id' },
+    ]);
+    db.close();
+  });
 });
