@@ -3546,12 +3546,20 @@ const handleCreateSalesGrant: Handler = async (request, env) => {
     await assertSellRecipient(env, ctx.accountId, body.seller_user_id);
     const terms = grantWriteBody(body);
     const id = crypto.randomUUID();
-    await env.DB.prepare(
+    await env.DB.batch([
+      env.DB.prepare(
+        `UPDATE sales_grants SET revoked_at=COALESCE(revoked_at,datetime('now')),updated_at=datetime('now')
+         WHERE account_id=? AND product_id=? AND seller_user_id=? AND revoked_at IS NULL
+           AND (starts_at IS NULL OR starts_at<=datetime('now'))
+           AND (expires_at IS NULL OR expires_at>datetime('now'))`
+      ).bind(ctx.accountId, body.product_id, body.seller_user_id),
+      env.DB.prepare(
       `INSERT INTO sales_grants
        (id,account_id,product_id,seller_user_id,granted_by_user_id,price_floor,owner_share_type,owner_share_value,quantity_limit,starts_at,expires_at)
        VALUES (?,?,?,?,?,?,?,?,?,?,?)`
-    ).bind(id, ctx.accountId, body.product_id, body.seller_user_id, ctx.userId, terms.priceFloor,
-      terms.shareType, terms.shareValue, terms.quantityLimit, body.starts_at ?? null, body.expires_at ?? null).run();
+      ).bind(id, ctx.accountId, body.product_id, body.seller_user_id, ctx.userId, terms.priceFloor,
+        terms.shareType, terms.shareValue, terms.quantityLimit, body.starts_at ?? null, body.expires_at ?? null),
+    ]);
     const row = await env.DB.prepare('SELECT * FROM sales_grants WHERE id=? AND account_id=?').bind(id, ctx.accountId).first();
     return json(row, 201);
   } catch (error) { return salesError(error); }
@@ -3601,9 +3609,13 @@ const handleGetEligibleSalesProducts: Handler = async (request, env) => {
           AND (h.expires_at IS NULL OR h.expires_at>datetime('now'))),0) AS held_quantity,
         sg.id AS grant_id,sg.price_floor
        FROM products p LEFT JOIN users u ON u.id=p.owner_user_id
-       LEFT JOIN sales_grants sg ON sg.account_id=p.account_id AND sg.product_id=p.id AND sg.seller_user_id=?
-        AND sg.revoked_at IS NULL AND (sg.starts_at IS NULL OR sg.starts_at<=datetime('now'))
-        AND (sg.expires_at IS NULL OR sg.expires_at>datetime('now'))
+       LEFT JOIN sales_grants sg ON sg.id=(
+         SELECT winner.id FROM sales_grants winner
+         WHERE winner.account_id=p.account_id AND winner.product_id=p.id AND winner.seller_user_id=?
+           AND winner.revoked_at IS NULL AND (winner.starts_at IS NULL OR winner.starts_at<=datetime('now'))
+           AND (winner.expires_at IS NULL OR winner.expires_at>datetime('now'))
+         ORDER BY winner.created_at DESC,winner.id DESC LIMIT 1
+       )
        WHERE p.account_id=? ORDER BY product_name`
     ).bind(ctx.userId, ctx.accountId).all();
     const eligible = (rows.results as any[]).flatMap(row => {
@@ -3737,10 +3749,10 @@ const handleCreateInvoice: Handler = async (request, env) => {
       item.id = lineId;
       return env.DB.prepare(
         `INSERT INTO invoice_line_items
-         (id,account_id,invoice_id,product_id,custom_name,quantity,price_at_sale,stock_owner_user_id,sales_grant_id)
-         VALUES (?,?,?,?,?,?,?,?,?)`
+         (id,account_id,invoice_id,product_id,custom_name,quantity,price_at_sale,stock_owner_user_id,sales_grant_id,owner_share_type,owner_share_value)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?)`
       ).bind(lineId, accountId, id, item.product_id, item.custom_name ?? null, item.quantity, item.price_at_sale,
-        item.stock_owner_user_id, item.sales_grant_id);
+        item.stock_owner_user_id, item.sales_grant_id, item.owner_share_type, item.owner_share_value);
     });
 
     const invoiceStmt = env.DB.prepare(
@@ -3838,8 +3850,8 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
         accountId, actorUserId: ctx.userId, actorRole: ctx.role, lines: current.results as any[],
       });
       for (const line of authorized) statements.push(env.DB.prepare(
-        'UPDATE invoice_line_items SET stock_owner_user_id=?,sales_grant_id=? WHERE id=? AND account_id=?'
-      ).bind(line.stock_owner_user_id, line.sales_grant_id, line.id, accountId));
+        'UPDATE invoice_line_items SET stock_owner_user_id=?,sales_grant_id=?,owner_share_type=?,owner_share_value=? WHERE id=? AND account_id=?'
+      ).bind(line.stock_owner_user_id, line.sales_grant_id, line.owner_share_type, line.owner_share_value, line.id, accountId));
       statements.push(...buildInvoiceReservationStatements(env, {
         accountId, invoiceId: params.id, lines: authorized,
         expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
@@ -3894,13 +3906,15 @@ const handleFulfillInvoice: Handler = async (request, env) => {
   if (invoice.inventory_deducted) return json({ error: 'Inventory already deducted' }, 409);
 
   const items = await env.DB.prepare(
-    `SELECT ili.*,sg.owner_share_type,sg.owner_share_value
-     FROM invoice_line_items ili LEFT JOIN sales_grants sg ON sg.id=ili.sales_grant_id AND sg.account_id=ili.account_id
-     WHERE ili.invoice_id = ? AND ili.account_id = ?`
+    `SELECT ili.* FROM invoice_line_items ili WHERE ili.invoice_id = ? AND ili.account_id = ?`
   ).bind(invoice_id, accountId).all();
 
   // Fetch current stock for all affected products — skip custom items (no product_id)
-  const productIds = (items.results as any[]).filter(i => i.product_id).map(i => i.product_id);
+  const quantities = new Map<string, number>();
+  for (const item of items.results as any[]) {
+    if (item.product_id) quantities.set(item.product_id, (quantities.get(item.product_id) ?? 0) + Number(item.quantity || 0));
+  }
+  const productIds = [...quantities.keys()];
   const products = new Map<string, any>();
   for (const pid of productIds) {
     const p = await env.DB.prepare(
@@ -3914,19 +3928,17 @@ const handleFulfillInvoice: Handler = async (request, env) => {
   // fulfill path previously did no availability check at all, so concurrent
   // fulfillments could drive stock negative. We 409 here on the common case;
   // the guarded UPDATE below defends against the narrow race window.
-  for (const item of items.results as any[]) {
-    if (!item.product_id) continue;
-    const product = products.get(item.product_id as string);
+  for (const [productId, qty] of quantities) {
+    const product = products.get(productId);
     const otherHolds = await env.DB.prepare(
       `SELECT COALESCE(SUM(held_grams),0) AS held FROM stock_holds
        WHERE account_id=? AND product_id=? AND invoice_id!=? AND (expires_at IS NULL OR expires_at>datetime('now'))`
-    ).bind(accountId, item.product_id, invoice_id).first() as any;
+    ).bind(accountId, productId, invoice_id).first() as any;
     const available = (product ? Number(product.stock_grams) || 0 : 0) - (Number(otherHolds?.held) || 0);
-    const qty = Number(item.quantity) || 0;
     if (qty > available) {
       return json({
         error: 'insufficient_stock',
-        product_id: item.product_id,
+        product_id: productId,
         requested: qty,
         available,
       }, 409);
@@ -3949,7 +3961,6 @@ const handleFulfillInvoice: Handler = async (request, env) => {
   // The non-negative-stock trigger aborts the whole batch if stock changed
   // after the pre-check. A termination before this batch leaves only the
   // leased claim, which can be reclaimed after five minutes.
-  const deductLines = (items.results as any[]).filter(i => i.product_id);
   const stmts: D1PreparedStatement[] = [];
   if (!invoice.sold_by_user_id) {
     invoice.sold_by_user_id = ctx.userId;
@@ -3959,19 +3970,26 @@ const handleFulfillInvoice: Handler = async (request, env) => {
   }
 
   for (const item of items.results as any[]) {
-    if (!item.product_id) continue; // custom line items have no stock to deduct
-    const product = products.get(item.product_id as string);
-    if (item.stock_owner_user_id == null && product?.owner_user_id != null) item.stock_owner_user_id = product.owner_user_id;
+    if (item.product_id && item.stock_owner_user_id == null && products.get(item.product_id)?.owner_user_id != null) {
+      item.stock_owner_user_id = products.get(item.product_id)?.owner_user_id;
+    }
+  }
+
+  for (const [productId, qty] of quantities) {
+    const product = products.get(productId);
     const currentStock = product ? Number(product.stock_grams) || 0 : 0;
-    const qty = Number(item.quantity) || 0;
     const newBalance = currentStock - qty;
     const threshold = product ? Number(product.low_stock_threshold) || 0 : 0;
 
     stmts.push(env.DB.prepare(
-      `UPDATE products SET stock_grams = stock_grams - ?
+      `UPDATE products SET stock_grams = CASE
+         WHEN stock_grams - COALESCE((SELECT SUM(held_grams) FROM stock_holds
+           WHERE account_id=? AND product_id=? AND invoice_id!=?
+             AND (expires_at IS NULL OR expires_at>datetime('now'))),0) >= ?
+         THEN stock_grams - ? ELSE -1 END
        WHERE id = ? AND account_id = ?
          AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)`
-    ).bind(qty, item.product_id, accountId, invoice_id, accountId, fulfillmentClaim));
+    ).bind(accountId, productId, invoice_id, qty, qty, productId, accountId, invoice_id, accountId, fulfillmentClaim));
 
     // Listing mirror — clamp to 0 (mirror the wholesale path's MAX(0, COALESCE(...))
     // pattern) so a mirror that drifted below the products row can't go negative.
@@ -3979,24 +3997,26 @@ const handleFulfillInvoice: Handler = async (request, env) => {
       env.DB.prepare(
         `UPDATE product_listings SET stock_grams = MAX(0, COALESCE(stock_grams, 0) - ?), updated_at = datetime('now') WHERE id = ?
          AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)`
-      ).bind(qty, `list_${item.product_id}`, invoice_id, accountId, fulfillmentClaim)
+      ).bind(qty, `list_${productId}`, invoice_id, accountId, fulfillmentClaim)
     );
     stmts.push(env.DB.prepare(
       `INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, source_invoice_id, source_invoice_number, user_email, note, account_id)
-       SELECT ?, ?, ?, ?, 'FULFILLMENT', ?, ?, ?, NULL, ?
-       WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)`
-    ).bind(crypto.randomUUID(), item.product_id, -qty, newBalance, invoice_id, invoice.invoice_number, userEmail, accountId, invoice_id, accountId, fulfillmentClaim));
+       SELECT ?, ?, ?, p.stock_grams, 'FULFILLMENT', ?, ?, ?, NULL, ? FROM products p
+       WHERE p.id=? AND p.account_id=?
+         AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)`
+    ).bind(crypto.randomUUID(), productId, -qty, invoice_id, invoice.invoice_number, userEmail, accountId,
+      productId, accountId, invoice_id, accountId, fulfillmentClaim));
 
     if (newBalance <= 0 && product && product.status !== 'Sold Out') {
       stmts.push(
         env.DB.prepare("UPDATE products SET status = 'Sold Out', sold_out_at = datetime('now') WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)")
-          .bind(item.product_id, accountId, invoice_id, accountId, fulfillmentClaim)
+          .bind(productId, accountId, invoice_id, accountId, fulfillmentClaim)
       );
       stmts.push(env.DB.prepare("UPDATE product_listings SET status = 'Sold Out', updated_at = datetime('now') WHERE id = ? AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)")
-        .bind(`list_${item.product_id}`, invoice_id, accountId, fulfillmentClaim));
+        .bind(`list_${productId}`, invoice_id, accountId, fulfillmentClaim));
       stmts.push(env.DB.prepare(`INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
         SELECT ?, 'PRODUCT_SOLD_OUT', ?, ?, 'product', ?, ? WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)`)
-        .bind(crypto.randomUUID(), `${product.given_name || product.product_name} auto-archived (stock reached ${newBalance}g after fulfillment of ${invoice.invoice_number})`, userEmail, item.product_id, accountId, invoice_id, accountId, fulfillmentClaim));
+        .bind(crypto.randomUUID(), `${product.given_name || product.product_name} auto-archived (stock reached ${newBalance}g after fulfillment of ${invoice.invoice_number})`, userEmail, productId, accountId, invoice_id, accountId, fulfillmentClaim));
       // Set linked compass entry to depleted
       if (product.source_compass_entry_id) {
         stmts.push(
@@ -4006,10 +4026,10 @@ const handleFulfillInvoice: Handler = async (request, env) => {
       }
     } else if (threshold > 0 && newBalance < threshold && currentStock >= threshold && product) {
       // Low-stock alert when fulfillment drops stock below the configured threshold
-      const name = (product.given_name || product.product_name || item.product_id) as string;
+      const name = (product.given_name || product.product_name || productId) as string;
       stmts.push(env.DB.prepare(`INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
         SELECT ?, 'low_stock_alert', ?, ?, 'product', ?, ? WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)`)
-        .bind(crypto.randomUUID(), JSON.stringify({ productName: name, stockGrams: newBalance, threshold }), userEmail, item.product_id, accountId, invoice_id, accountId, fulfillmentClaim));
+        .bind(crypto.randomUUID(), JSON.stringify({ productName: name, stockGrams: newBalance, threshold }), userEmail, productId, accountId, invoice_id, accountId, fulfillmentClaim));
     }
   }
 
@@ -4042,6 +4062,9 @@ const handleFulfillInvoice: Handler = async (request, env) => {
   } catch (err: any) {
     console.error('handleFulfillInvoice batch failed:', err);
     await releaseClaim().catch(() => {});
+    if (/stock_grams cannot be negative/i.test(String(err?.message || err))) {
+      return json({ error: 'insufficient_stock' }, 409);
+    }
     return json({ error: 'Fulfillment failed — no changes were committed' }, 500);
   }
 
@@ -4553,10 +4576,10 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
     for (const item of authorized) {
       stmts.push(env.DB.prepare(
         `INSERT INTO invoice_line_items
-         (id,account_id,invoice_id,product_id,custom_name,quantity,price_at_sale,stock_owner_user_id,sales_grant_id)
-         VALUES (?,?,?,?,?,?,?,?,?)`
+         (id,account_id,invoice_id,product_id,custom_name,quantity,price_at_sale,stock_owner_user_id,sales_grant_id,owner_share_type,owner_share_value)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?)`
       ).bind(crypto.randomUUID(), accountId, params.id, item.product_id, item.custom_name ?? null,
-        item.quantity, item.price_at_sale, item.stock_owner_user_id, item.sales_grant_id));
+        item.quantity, item.price_at_sale, item.stock_owner_user_id, item.sales_grant_id, item.owner_share_type, item.owner_share_value));
     }
     stmts.push(...buildInvoiceReservationStatements(env, {
       accountId, invoiceId: params.id, lines: authorized,
@@ -4639,18 +4662,20 @@ const handleLinkLineItem: Handler = async (request, env) => {
 
   const stmts: D1PreparedStatement[] = [];
   const current = await env.DB.prepare(
-    `SELECT id,product_id,custom_name,quantity,price_at_sale,stock_owner_user_id,sales_grant_id
+    `SELECT id,product_id,custom_name,quantity,price_at_sale,stock_owner_user_id,sales_grant_id,owner_share_type,owner_share_value
      FROM invoice_line_items WHERE invoice_id=? AND account_id=?`
   ).bind(invoice_id, accountId).all();
   const proposed = (current.results as any[]).map(item => item.id === line_item_id
-    ? { ...item, product_id, custom_name: null, stock_owner_user_id: authorized.stock_owner_user_id, sales_grant_id: authorized.sales_grant_id }
+    ? { ...item, product_id, custom_name: null, stock_owner_user_id: authorized.stock_owner_user_id, sales_grant_id: authorized.sales_grant_id,
+        owner_share_type: authorized.owner_share_type, owner_share_value: authorized.owner_share_value }
     : item);
   let recipientLines = proposed as AuthorizedInvoiceLine[];
 
   stmts.push(env.DB.prepare(
-    `UPDATE invoice_line_items SET product_id=?,custom_name=NULL,stock_owner_user_id=?,sales_grant_id=?
+    `UPDATE invoice_line_items SET product_id=?,custom_name=NULL,stock_owner_user_id=?,sales_grant_id=?,owner_share_type=?,owner_share_value=?
      WHERE id=? AND invoice_id=? AND account_id=?`
-  ).bind(product_id, authorized.stock_owner_user_id, authorized.sales_grant_id, line_item_id, invoice_id, accountId));
+  ).bind(product_id, authorized.stock_owner_user_id, authorized.sales_grant_id, authorized.owner_share_type,
+    authorized.owner_share_value, line_item_id, invoice_id, accountId));
 
   if (invoice.status === 'Pending') {
     let allAuthorized: AuthorizedInvoiceLine[];

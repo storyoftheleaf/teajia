@@ -46,6 +46,8 @@ ALTER TABLE invoices ADD COLUMN sold_by_user_id TEXT REFERENCES users(id);
 ALTER TABLE invoices ADD COLUMN payment_recipient_user_id TEXT REFERENCES users(id);
 ALTER TABLE invoice_line_items ADD COLUMN stock_owner_user_id TEXT REFERENCES users(id);
 ALTER TABLE invoice_line_items ADD COLUMN sales_grant_id TEXT REFERENCES sales_grants(id);
+ALTER TABLE invoice_line_items ADD COLUMN owner_share_type TEXT NOT NULL DEFAULT 'percent' CHECK(owner_share_type IN ('percent','fixed'));
+ALTER TABLE invoice_line_items ADD COLUMN owner_share_value REAL NOT NULL DEFAULT 100;
 
 CREATE TABLE sales_settlements (
   id TEXT PRIMARY KEY,

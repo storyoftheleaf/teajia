@@ -56,13 +56,16 @@ describe('Tea Master migration safety', () => {
     }
     for (const [table, columns] of [
       ['invoices', ['sold_by_user_id', 'payment_recipient_user_id']],
-      ['invoice_line_items', ['stock_owner_user_id', 'sales_grant_id']],
+      ['invoice_line_items', ['stock_owner_user_id', 'sales_grant_id', 'owner_share_type', 'owner_share_value']],
     ] as const) {
       for (const column of columns) {
-        expect(migrated.prepare(`SELECT name FROM pragma_table_info('${table}') WHERE name=?`).get(column))
-          .toEqual({ name: column });
-        expect(canonical.prepare(`SELECT name FROM pragma_table_info('${table}') WHERE name=?`).get(column))
-          .toEqual({ name: column });
+        const canonicalColumn = canonical.prepare(
+          `SELECT name,type,"notnull",dflt_value,pk FROM pragma_table_info('${table}') WHERE name=?`
+        ).get(column);
+        expect(migrated.prepare(
+          `SELECT name,type,"notnull",dflt_value,pk FROM pragma_table_info('${table}') WHERE name=?`
+        ).get(column)).toEqual(canonicalColumn);
+        expect(canonicalColumn).toMatchObject({ name: column });
       }
     }
     expect(migrated.prepare(`SELECT sql FROM sqlite_master WHERE type='index' AND name='idx_sales_grants_account_product_seller'`).get()).toBeTruthy();

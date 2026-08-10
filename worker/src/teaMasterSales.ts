@@ -168,7 +168,7 @@ export async function authorizeInvoiceLines(env: { DB: D1Database }, input: {
            WHERE account_id = ? AND product_id = ? AND seller_user_id = ? AND revoked_at IS NULL
              AND (starts_at IS NULL OR starts_at <= datetime('now'))
              AND (expires_at IS NULL OR expires_at > datetime('now'))
-           ORDER BY created_at DESC LIMIT 1`
+           ORDER BY created_at DESC, id DESC LIMIT 1`
         ).bind(input.accountId, line.product_id, input.actorUserId).first() as Record<string, unknown> | null;
       } catch {
         throw new SalesInvariantError(503, 'sales_authorization_unavailable');
@@ -205,7 +205,11 @@ export async function validateInvoiceLineSnapshots(env: { DB: D1Database }, inpu
   for (const line of input.lines) {
     const quantity = Number(line.quantity);
     const unitPrice = Number(line.price_at_sale);
+    const shareValue = Number(line.owner_share_value);
     if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(unitPrice) || unitPrice < 0) {
+      throw new SalesInvariantError(409, 'invalid_invoice_sale_snapshot');
+    }
+    if (!['percent', 'fixed'].includes(line.owner_share_type) || !Number.isFinite(shareValue) || shareValue < 0) {
       throw new SalesInvariantError(409, 'invalid_invoice_sale_snapshot');
     }
     if (!line.product_id) {

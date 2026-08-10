@@ -292,7 +292,9 @@ CREATE TABLE IF NOT EXISTS invoice_line_items (
     quantity INTEGER NOT NULL,
     price_at_sale REAL NOT NULL,
     stock_owner_user_id TEXT REFERENCES users(id),
-    sales_grant_id TEXT REFERENCES sales_grants(id)
+    sales_grant_id TEXT REFERENCES sales_grants(id),
+    owner_share_type TEXT NOT NULL DEFAULT 'percent' CHECK(owner_share_type IN ('percent','fixed')),
+    owner_share_value REAL NOT NULL DEFAULT 100
 );
 
 CREATE TABLE IF NOT EXISTS stock_holds (

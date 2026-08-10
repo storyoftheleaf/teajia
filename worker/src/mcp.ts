@@ -1372,6 +1372,15 @@ async function toolRecordSale(env: Env, auth: McpAuth, args: any) {
   const notes = args?.notes ? String(args.notes).slice(0, 1000) : null;
   const confirm = args?.confirm ? String(args.confirm) : null;
 
+  if (confirm) {
+    const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
+    if (!pending || pending.kind !== 'record_sale'
+      || pending.accountId !== auth.accountId || pending.actorUserId !== auth.userId) {
+      return { error: 'invalid_or_expired_confirmation_token' };
+    }
+    return commitRecordSale(env, pending, auth);
+  }
+
   if (lines.length === 0) throw new Error('lines must be a non-empty array');
   if (!customerName && !customerId) throw new Error('customer_name or customer_id is required');
 
@@ -1468,18 +1477,19 @@ async function toolRecordSale(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
-  if (!pending || pending.kind !== 'record_sale') {
-    return { error: 'invalid_or_expired_confirmation_token' };
-  }
-  return commitRecordSale(env, pending);
+  return { error: 'invalid_or_expired_confirmation_token' };
 }
 
-async function commitRecordSale(env: Env, m: Extract<PendingMutation, { kind: 'record_sale' }>) {
+async function commitRecordSale(
+  env: Env,
+  m: Extract<PendingMutation, { kind: 'record_sale' }>,
+  auth: McpAuth,
+) {
+  const currentActorRole = OWNER_TIERS.has(auth.creatorTier) ? 'owner' : 'staff';
   let authorizedLines;
   try {
     authorizedLines = await authorizeInvoiceLines(env, {
-      accountId: m.accountId, actorUserId: m.actorUserId, actorRole: m.actorRole,
+      accountId: m.accountId, actorUserId: auth.userId, actorRole: currentActorRole,
       lines: m.lines.map(line => ({ product_id: line.productId, quantity: line.grams, price_at_sale: line.pricePerGramUsd })),
     });
   } catch (error) {
@@ -1535,7 +1545,7 @@ async function commitRecordSale(env: Env, m: Extract<PendingMutation, { kind: 'r
      VALUES (?, ?, ?, ?, ?, ?, 'USD', 0, 'Filled', 1, datetime('now'), ?, 'unpaid',?,?)`
   ).bind(
     invoiceId, m.accountId, invoiceNumber,
-    m.customerName, m.customerWhatsapp, m.customerId, m.notes, m.actorUserId, paymentRecipientUserId,
+    m.customerName, m.customerWhatsapp, m.customerId, m.notes, auth.userId, paymentRecipientUserId,
   ));
 
   for (const [productId, grams] of quantities) {
@@ -1551,38 +1561,40 @@ async function commitRecordSale(env: Env, m: Extract<PendingMutation, { kind: 'r
   for (let lineIndex = 0; lineIndex < m.lines.length; lineIndex += 1) {
     const line = m.lines[lineIndex];
     const authorized = authorizedLines[lineIndex];
-    const p = productCache.get(line.productId)!;
-    const currentStock = Number(p.stock_grams || 0);
-    const balanceAfter = balances.get(line.productId)!;
-    const threshold = Number(p.low_stock_threshold || 0);
 
     const lineId = crypto.randomUUID();
     authorized.id = lineId;
     stmts.push(env.DB.prepare(
       `INSERT INTO invoice_line_items
-       (id,account_id,invoice_id,product_id,quantity,price_at_sale,stock_owner_user_id,sales_grant_id)
-       VALUES (?,?,?,?,?,?,?,?)`
+       (id,account_id,invoice_id,product_id,quantity,price_at_sale,stock_owner_user_id,sales_grant_id,owner_share_type,owner_share_value)
+       VALUES (?,?,?,?,?,?,?,?,?,?)`
     ).bind(lineId, m.accountId, invoiceId, line.productId, line.grams, line.pricePerGramUsd,
-      authorized.stock_owner_user_id, authorized.sales_grant_id));
+      authorized.stock_owner_user_id, authorized.sales_grant_id, authorized.owner_share_type, authorized.owner_share_value));
+  }
 
+  for (const [productId, grams] of quantities) {
+    const p = productCache.get(productId)!;
+    const currentStock = Number(p.stock_grams || 0);
+    const balanceAfter = balances.get(productId)!;
+    const threshold = Number(p.low_stock_threshold || 0);
     stmts.push(env.DB.prepare(
       'UPDATE product_listings SET stock_grams = MAX(0, stock_grams - ?), updated_at = datetime(\'now\') WHERE id = ?'
-    ).bind(line.grams, `list_${line.productId}`));
+    ).bind(grams, `list_${productId}`));
 
     stmts.push(env.DB.prepare(
       `INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, source_invoice_id, source_invoice_number, user_email, note, account_id)
        SELECT ?, ?, ?, p.stock_grams, 'FULFILLMENT', ?, ?, ?, ?, ?
        FROM products p WHERE p.id=? AND p.account_id=?`
     ).bind(
-      crypto.randomUUID(), line.productId, -line.grams,
+      crypto.randomUUID(), productId, -grams,
       invoiceId, invoiceNumber, m.userEmail, 'MCP record_sale', m.accountId,
-      line.productId, m.accountId,
+      productId, m.accountId,
     ));
 
     if (balanceAfter <= 0 && p.status !== 'Sold Out') {
       stmts.push(env.DB.prepare(
         "UPDATE products SET status = 'Sold Out', sold_out_at = datetime('now') WHERE id = ? AND account_id = ?"
-      ).bind(line.productId, m.accountId));
+      ).bind(productId, m.accountId));
     } else if (threshold > 0 && balanceAfter < threshold && currentStock >= threshold) {
       stmts.push(env.DB.prepare(
         `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
@@ -1590,14 +1602,14 @@ async function commitRecordSale(env: Env, m: Extract<PendingMutation, { kind: 'r
       ).bind(
         crypto.randomUUID(),
         JSON.stringify({ productName: p.given_name || p.product_name, stockGrams: balanceAfter, threshold }),
-        m.userEmail, line.productId, m.accountId,
+        m.userEmail, productId, m.accountId,
       ));
     }
   }
 
   stmts.push(...buildSettlementStatements(env, {
     accountId: m.accountId,
-    invoice: { id: invoiceId, sold_by_user_id: m.actorUserId },
+    invoice: { id: invoiceId, sold_by_user_id: auth.userId },
     lines: authorizedLines,
   }));
 
@@ -2560,11 +2572,10 @@ async function toolFulfillInvoice(env: Env, auth: McpAuth, args: any) {
 
   const { results: rawItems } = await env.DB.prepare(
     `SELECT ili.id,ili.product_id,ili.custom_name,ili.quantity,ili.price_at_sale,
-            ili.stock_owner_user_id,ili.sales_grant_id,p.given_name,p.product_name,p.stock_grams,
-            sg.owner_share_type,sg.owner_share_value
+            ili.stock_owner_user_id,ili.sales_grant_id,ili.owner_share_type,ili.owner_share_value,
+            p.given_name,p.product_name,p.stock_grams
        FROM invoice_line_items ili
        LEFT JOIN products p ON p.id = ili.product_id AND p.account_id = ?
-       LEFT JOIN sales_grants sg ON sg.id=ili.sales_grant_id AND sg.account_id=ili.account_id
       WHERE ili.invoice_id = ? AND ili.account_id = ?`
   ).bind(auth.accountId, invoiceId, auth.accountId).all();
 
@@ -2713,9 +2724,15 @@ async function commitFulfillInvoice(
     const threshold = Number(product.low_stock_threshold || 0);
 
     stmts.push(
-      env.DB.prepare(`UPDATE products SET stock_grams = stock_grams - ? WHERE id = ? AND account_id = ?
-        AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)`)
-        .bind(qty, item.product_id, m.accountId, m.invoiceId, m.accountId, fulfillmentClaim)
+      env.DB.prepare(`UPDATE products SET stock_grams = CASE
+          WHEN stock_grams - COALESCE((SELECT SUM(held_grams) FROM stock_holds
+            WHERE account_id=? AND product_id=? AND invoice_id!=?
+              AND (expires_at IS NULL OR expires_at>datetime('now'))),0) >= ?
+          THEN stock_grams - ? ELSE -1 END
+        WHERE id = ? AND account_id = ?
+          AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)`)
+        .bind(m.accountId, item.product_id, m.invoiceId, qty, qty, item.product_id, m.accountId,
+          m.invoiceId, m.accountId, fulfillmentClaim)
     );
     stmts.push(
       env.DB.prepare(
@@ -2725,12 +2742,14 @@ async function commitFulfillInvoice(
     stmts.push(
       env.DB.prepare(
         `INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, source_invoice_id, source_invoice_number, user_email, note, account_id)
-         SELECT ?, ?, ?, ?, 'FULFILLMENT', ?, ?, ?, ?, ?
-         WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)`
+         SELECT ?, ?, ?, p.stock_grams, 'FULFILLMENT', ?, ?, ?, ?, ? FROM products p
+         WHERE p.id=? AND p.account_id=?
+           AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)`
       ).bind(
-        crypto.randomUUID(), item.product_id, -qty, newBalance,
+        crypto.randomUUID(), item.product_id, -qty,
         m.invoiceId, invoice.invoice_number as string, m.userEmail,
-        'MCP fulfill_invoice', m.accountId, m.invoiceId, m.accountId, fulfillmentClaim,
+        'MCP fulfill_invoice', m.accountId, item.product_id, m.accountId,
+        m.invoiceId, m.accountId, fulfillmentClaim,
       )
     );
 
@@ -2792,6 +2811,9 @@ async function commitFulfillInvoice(
     if (Number(results[finalizeIndex]?.meta?.changes || 0) === 0) return { error: 'invoice_fulfillment_lease_lost' };
   } catch (error) {
     await releaseClaim().catch(() => {});
+    if (/stock_grams cannot be negative/i.test(String((error as Error)?.message || error))) {
+      return { error: 'stock_underflow_at_commit' };
+    }
     throw error;
   }
 
@@ -2932,11 +2954,10 @@ async function commitMarkInvoicePaid(env: Env, m: Extract<PendingMutation, { kin
     } else {
       const { results: lineItems } = await env.DB.prepare(
         `SELECT ili.id,ili.product_id,ili.custom_name,ili.quantity,ili.price_at_sale,
-                ili.stock_owner_user_id,ili.sales_grant_id,p.given_name,p.product_name,p.stock_grams,
-                sg.owner_share_type,sg.owner_share_value
+                ili.stock_owner_user_id,ili.sales_grant_id,ili.owner_share_type,ili.owner_share_value,
+                p.given_name,p.product_name,p.stock_grams
            FROM invoice_line_items ili
            LEFT JOIN products p ON p.id = ili.product_id AND p.account_id = ?
-           LEFT JOIN sales_grants sg ON sg.id=ili.sales_grant_id AND sg.account_id=ili.account_id
           WHERE ili.invoice_id = ? AND ili.account_id = ?`
       ).bind(m.accountId, m.invoiceId, m.accountId).all();
       fulfillment = await commitFulfillInvoice(

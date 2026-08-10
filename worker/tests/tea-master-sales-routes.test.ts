@@ -15,7 +15,7 @@ afterEach(() => {
   while (databases.length) databases.pop()!.close();
 });
 
-async function call(db: SqliteD1, path: string, options: {
+async function call(db: any, path: string, options: {
   method?: string; body?: unknown; userId?: string; accountId?: string;
 } = {}) {
   const userId = options.userId ?? 'account-owner';
@@ -30,6 +30,38 @@ async function call(db: SqliteD1, path: string, options: {
     method: options.method ?? 'GET', headers,
     body: options.body === undefined ? undefined : JSON.stringify(options.body),
   }), { DB: db as any, JWT_SECRET: SECRET } as any);
+}
+
+class FulfillmentRaceDb {
+  private injected = false;
+
+  constructor(readonly inner: SqliteD1) {}
+
+  prepare(sql: string) {
+    const inner = this.inner.prepare(sql);
+    const normalized = sql.replace(/\s+/g, ' ').trim().toLowerCase();
+    const statement = {
+      inner,
+      bind: (...values: unknown[]) => { inner.bind(...values); return statement; },
+      first: async () => {
+        const result = inner.first();
+        if (!this.injected && result && normalized.startsWith('update invoices set fulfillment_claim_token = ?')) {
+          this.injected = true;
+          this.inner.sqlite.prepare(`INSERT INTO stock_holds
+            (id,account_id,invoice_id,product_id,held_grams,expires_at)
+            VALUES ('racing-hold','account-a','racing-invoice','person-tea',30,datetime('now','+1 day'))`).run();
+        }
+        return result;
+      },
+      all: async () => inner.all(),
+      run: async () => inner.run(),
+    };
+    return statement;
+  }
+
+  async batch(statements: any[]) {
+    return this.inner.batch(statements.map(statement => statement.inner) as any);
+  }
 }
 
 function seed(db: SqliteD1) {
@@ -90,6 +122,21 @@ describe('Tea Master sales grants and eligibility', () => {
 
     expect((await call(db, `/api/sales/grants/${grant.id}`, { method: 'DELETE', userId: 'stock-owner' })).status).toBe(200);
     expect(db.sqlite.prepare('SELECT revoked_at FROM sales_grants WHERE id=?').get(grant.id)).toMatchObject({ revoked_at: expect.any(String) });
+  });
+
+  it('atomically retires the previous effective grant and exposes one deterministic winner', async () => {
+    const db = database(); seed(db);
+    const first = await (await createGrant(db, { owner_share_value: 80 })).json() as any;
+    const second = await (await createGrant(db, { owner_share_value: 60 })).json() as any;
+    expect(db.sqlite.prepare(`SELECT id FROM sales_grants
+      WHERE account_id='account-a' AND product_id='person-tea' AND seller_user_id='seller' AND revoked_at IS NULL
+        AND (starts_at IS NULL OR starts_at<=datetime('now')) AND (expires_at IS NULL OR expires_at>datetime('now'))`).all())
+      .toEqual([{ id: second.id }]);
+    expect(db.sqlite.prepare('SELECT revoked_at FROM sales_grants WHERE id=?').get(first.id)).toMatchObject({ revoked_at: expect.any(String) });
+    const eligible = await (await call(db, '/api/sales/eligible-products', { userId: 'seller' })).json() as any[];
+    expect(eligible.filter(row => row.product_id === 'person-tea')).toEqual([
+      expect.objectContaining({ grant_id: second.id, permission_reason: 'active_grant' }),
+    ]);
   });
 
   it('returns only operational labels for products the actor may sell', async () => {
@@ -386,6 +433,44 @@ describe('Tea Master invoice authorization, holds and settlements', () => {
     expect(db.sqlite.prepare(`SELECT stock_grams FROM products WHERE id='person-tea'`).get()).toEqual({ stock_grams: 100 });
     expect(db.sqlite.prepare('SELECT status,reversed_at FROM sales_settlements WHERE invoice_id=?').get(invoice.id))
       .toMatchObject({ status: 'reversed', reversed_at: expect.any(String) });
+  });
+
+  it('settles from immutable line economics and aggregates duplicate product stock movements', async () => {
+    const db = database(); seed(db); const grant = await (await createGrant(db, { quantity_limit: 100, owner_share_value: 80 })).json() as any;
+    const body = invoiceBody('Pending', 40, 0.5);
+    body.lineItems.push({ product_id: 'person-tea', quantity: 40, price_at_sale: 0.5 });
+    const invoice = await (await call(db, '/api/invoices', { method: 'POST', userId: 'seller', body })).json() as any;
+    expect(db.sqlite.prepare(`SELECT owner_share_type,owner_share_value FROM invoice_line_items WHERE invoice_id=? ORDER BY id`).all(invoice.id))
+      .toEqual([{ owner_share_type: 'percent', owner_share_value: 80 }, { owner_share_type: 'percent', owner_share_value: 80 }]);
+    await call(db, `/api/sales/grants/${grant.id}`, { method: 'PUT', body: { owner_share_value: 50 } });
+
+    const fulfilled = await call(db, '/api/rpc/fulfill-invoice', { method: 'POST', userId: 'other-seller', body: { invoice_id: invoice.id } });
+    expect(fulfilled.status).toBe(200);
+    expect(db.sqlite.prepare(`SELECT stock_grams FROM products WHERE id='person-tea'`).get()).toEqual({ stock_grams: 20 });
+    expect(db.sqlite.prepare(`SELECT delta,balance_after FROM stock_ledger WHERE source_invoice_id=?`).all(invoice.id))
+      .toEqual([{ delta: -80, balance_after: 20 }]);
+    expect(db.sqlite.prepare(`SELECT owner_amount,seller_amount,grant_id FROM sales_settlements WHERE invoice_id=? ORDER BY line_item_id`).all(invoice.id))
+      .toEqual([
+        { owner_amount: 16, seller_amount: 4, grant_id: grant.id },
+        { owner_amount: 16, seller_amount: 4, grant_id: grant.id },
+      ]);
+  });
+
+  it('atomically rejects a fulfillment when another hold arrives after its availability read', async () => {
+    const db = database(); seed(db); await createGrant(db, { quantity_limit: 100 });
+    const body = invoiceBody('Pending', 40, 0.5);
+    body.lineItems.push({ product_id: 'person-tea', quantity: 40, price_at_sale: 0.5 });
+    const invoice = await (await call(db, '/api/invoices', { method: 'POST', userId: 'seller', body })).json() as any;
+
+    const fulfilled = await call(new FulfillmentRaceDb(db), '/api/rpc/fulfill-invoice', {
+      method: 'POST', userId: 'other-seller', body: { invoice_id: invoice.id },
+    });
+    expect(fulfilled.status).toBe(409);
+    expect(db.sqlite.prepare(`SELECT stock_grams FROM products WHERE id='person-tea'`).get()).toEqual({ stock_grams: 100 });
+    expect(db.sqlite.prepare(`SELECT COUNT(*) AS count FROM stock_ledger WHERE source_invoice_id=?`).get(invoice.id)).toEqual({ count: 0 });
+    expect(db.sqlite.prepare(`SELECT COUNT(*) AS count FROM sales_settlements WHERE invoice_id=?`).get(invoice.id)).toEqual({ count: 0 });
+    expect(db.sqlite.prepare(`SELECT status,inventory_deducted,fulfillment_claim_token FROM invoices WHERE id=?`).get(invoice.id))
+      .toEqual({ status: 'Pending', inventory_deducted: 0, fulfillment_claim_token: null });
   });
 
   it('limits settlement reads to participants and owner-tier, and paid writes to owner-tier', async () => {

@@ -21,11 +21,11 @@ describe('MCP Tea Master sales invariant wiring', () => {
 const tokenHash = async (token: string) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token)))]
   .map(value => value.toString(16).padStart(2, '0')).join('');
 
-class FailingRecordSaleDb {
-  constructor(readonly inner: SqliteD1) {}
+class RecordSaleDb {
+  constructor(readonly inner: SqliteD1, readonly failBatch = false) {}
 
   prepare(sql: string) {
-    if (normalizeSql(sql).startsWith('update products set stock_grams=stock_grams+?')) {
+    if (this.failBatch && normalizeSql(sql).startsWith('update products set stock_grams=stock_grams+?')) {
       const rejected = {
         bind: () => rejected,
         run: async () => { throw new Error('simulated compensation failure'); },
@@ -44,14 +44,15 @@ class FailingRecordSaleDb {
   }
 
   batch(statements: any[]) {
-    return this.inner.batch([
-      ...statements.map(statement => statement.inner),
-      this.inner.prepare(`INSERT INTO products(id,account_id,type,product_name) VALUES ('prod_test','acc_test','Tea','duplicate')`),
-    ] as any);
+    const inner = statements.map(statement => statement.inner);
+    if (this.failBatch) {
+      inner.push(this.inner.prepare(`INSERT INTO products(id,account_id,type,product_name) VALUES ('prod_test','acc_test','Tea','duplicate')`));
+    }
+    return this.inner.batch(inner as any);
   }
 }
 
-async function callRecordSale(db: FailingRecordSaleDb, args: Record<string, unknown>) {
+async function callRecordSale(db: RecordSaleDb, args: Record<string, unknown>) {
   const response = await mcpFetch(new Request('https://worker.test/mcp', {
     method: 'POST',
     headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
@@ -72,7 +73,7 @@ describe('MCP record_sale atomicity', () => {
       sqlite.sqlite.prepare(`INSERT INTO products
         (id,account_id,type,product_name,given_name,stock_grams,fixed_retail_price_usd)
         VALUES ('prod_test','acc_test','Oolong','Atomic Tea','Atomic Tea',100,0.5)`).run();
-      const db = new FailingRecordSaleDb(sqlite);
+      const db = new RecordSaleDb(sqlite, true);
       const args = { customer_name: 'Buyer', lines: [{ product_id: 'prod_test', grams: 40, price_per_gram_usd: 0.5 }] };
       const previewRpc = await callRecordSale(db, args);
       const preview = JSON.parse(previewRpc.result.content[0].text);
@@ -83,6 +84,67 @@ describe('MCP record_sale atomicity', () => {
       expect(sqlite.sqlite.prepare('SELECT COUNT(*) AS count FROM invoices').get()).toEqual({ count: 0 });
       expect(sqlite.sqlite.prepare('SELECT COUNT(*) AS count FROM stock_ledger').get()).toEqual({ count: 0 });
       expect(sqlite.sqlite.prepare('SELECT COUNT(*) AS count FROM sales_settlements').get()).toEqual({ count: 0 });
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  it('uses the ticket payload and current authority when confirming a sale', async () => {
+    const sqlite = new SqliteD1();
+    try {
+      seedIdentity(sqlite, { userId: 'user_test', accountId: ACCOUNT_ID, role: 'owner' });
+      seedIdentity(sqlite, { userId: 'stock-owner', accountId: ACCOUNT_ID, role: 'staff', bundles: ['stock'] });
+      sqlite.sqlite.prepare(`INSERT INTO mcp_tokens
+        (id,account_id,user_id,user_email,label,token_hash,token_prefix,scopes,creator_tier)
+        VALUES ('token-reauth','acc_test','user_test','owner@test.dev','reauth',?,?,'["sales:write"]','account_owner')`)
+        .run(await tokenHash(TOKEN), TOKEN.slice(0, 8));
+      sqlite.sqlite.prepare(`INSERT INTO products
+        (id,account_id,type,product_name,given_name,stock_grams,fixed_retail_price_usd,owner_user_id)
+        VALUES ('owned-tea','acc_test','Oolong','Owned Tea','Owned Tea',100,0.5,'stock-owner'),
+               ('location-tea','acc_test','Oolong','Location Tea','Location Tea',100,0.5,NULL)`).run();
+      const db = new RecordSaleDb(sqlite);
+      const sale = { customer_name: 'Buyer', lines: [{ product_id: 'owned-tea', grams: 40, price_per_gram_usd: 0.5 }] };
+      const previewRpc = await callRecordSale(db, sale);
+      const preview = JSON.parse(previewRpc.result.content[0].text);
+      sqlite.sqlite.prepare(`UPDATE account_members SET role='staff',permissions='{"bundles":["sell"]}'
+        WHERE account_id='acc_test' AND user_id='user_test'`).run();
+
+      const confirmRpc = await callRecordSale(db, {
+        confirm: preview.confirmation_token,
+        customer_name: 'Substitute',
+        lines: [{ product_id: 'location-tea', grams: 1, price_per_gram_usd: 0.1 }],
+      });
+      const denied = JSON.parse(confirmRpc.result.content[0].text);
+      expect(denied.error).toBe('sale_grant_required');
+      expect(sqlite.sqlite.prepare('SELECT COUNT(*) AS count FROM invoices').get()).toEqual({ count: 0 });
+      expect(sqlite.sqlite.prepare(`SELECT stock_grams FROM products WHERE id='owned-tea'`).get()).toEqual({ stock_grams: 100 });
+      expect(sqlite.sqlite.prepare('SELECT COUNT(*) AS count FROM stock_ledger').get()).toEqual({ count: 0 });
+      expect(sqlite.sqlite.prepare('SELECT COUNT(*) AS count FROM sales_settlements').get()).toEqual({ count: 0 });
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  it('confirms the stored sale payload when current authority is unchanged', async () => {
+    const sqlite = new SqliteD1();
+    try {
+      seedIdentity(sqlite, { userId: 'user_test', accountId: ACCOUNT_ID, role: 'owner' });
+      sqlite.sqlite.prepare(`INSERT INTO mcp_tokens
+        (id,account_id,user_id,user_email,label,token_hash,token_prefix,scopes,creator_tier)
+        VALUES ('token-stable','acc_test','user_test','owner@test.dev','stable',?,?,'["sales:write"]','account_owner')`)
+        .run(await tokenHash(TOKEN), TOKEN.slice(0, 8));
+      sqlite.sqlite.prepare(`INSERT INTO products
+        (id,account_id,type,product_name,given_name,stock_grams,fixed_retail_price_usd)
+        VALUES ('stable-tea','acc_test','Oolong','Stable Tea','Stable Tea',100,0.5)`).run();
+      const db = new RecordSaleDb(sqlite);
+      const sale = { customer_name: 'Buyer', lines: [{ product_id: 'stable-tea', grams: 40, price_per_gram_usd: 0.5 }] };
+      const previewRpc = await callRecordSale(db, sale);
+      const preview = JSON.parse(previewRpc.result.content[0].text);
+      const confirmRpc = await callRecordSale(db, { confirm: preview.confirmation_token });
+      const confirmed = JSON.parse(confirmRpc.result.content[0].text);
+      expect(confirmed.committed).toBe(true);
+      expect(sqlite.sqlite.prepare(`SELECT stock_grams FROM products WHERE id='stable-tea'`).get()).toEqual({ stock_grams: 60 });
+      expect(sqlite.sqlite.prepare('SELECT COUNT(*) AS count FROM invoices').get()).toEqual({ count: 1 });
     } finally {
       sqlite.close();
     }
@@ -136,6 +198,9 @@ type FakeDbState = {
   failFulfillmentBatch: boolean;
   stealLeaseBeforeBatch: boolean;
   authRole: 'owner' | 'staff';
+  mutableGrantShareValue: number | null;
+  otherHeldGrams: number;
+  injectHoldBeforeFulfillmentBatch: boolean;
 };
 
 class FakeStatement {
@@ -175,6 +240,7 @@ class FakeStatement {
     if (sql.includes('from invoices where id = ? and account_id = ?')) {
       return this.state.invoice;
     }
+    if (sql.includes('sum(held_grams)')) return { held: this.state.otherHeldGrams };
     if (sql.includes('from products where id = ? and account_id = ?')) {
       return this.state.products.get(String(this.values[0])) || null;
     }
@@ -204,12 +270,16 @@ class FakeStatement {
       return {
         results: this.state.lineItems.map(li => {
           const p = li.product_id ? this.state.products.get(li.product_id) : undefined;
-          return {
+          const row = {
             ...li,
             given_name: p?.given_name ?? null,
             product_name: p?.product_name ?? null,
             stock_grams: p?.stock_grams ?? null,
           };
+          if (sql.includes('left join sales_grants') && this.state.mutableGrantShareValue != null) {
+            row.owner_share_value = this.state.mutableGrantShareValue;
+          }
+          return row;
         }),
       };
     }
@@ -229,6 +299,10 @@ class FakeDb {
   }
 
   async batch(statements: FakeStatement[]) {
+    if (this.state.injectHoldBeforeFulfillmentBatch) {
+      this.state.injectHoldBeforeFulfillmentBatch = false;
+      this.state.otherHeldGrams = 30;
+    }
     if (this.state.stealLeaseBeforeBatch && statements.some(statement => normalizeSql(statement.sql).startsWith('update products set stock_grams'))) {
       this.state.stealLeaseBeforeBatch = false;
       this.state.invoice.fulfillment_claim_token = 'winner-b'; this.state.invoice.inventory_deducted = 1; this.state.invoice.fulfilled_at = 'winner-time';
@@ -275,11 +349,16 @@ function runStatement(state: FakeDbState, statement: FakeStatement) {
     return { success: true, meta: { changes: 1 } };
   }
 
-  if (sql.startsWith('update products set stock_grams = stock_grams - ?')) {
-    const grams = Number(values[0]);
-    const productId = String(values[1]);
+  if (sql.startsWith('update products set stock_grams = stock_grams - ?')
+    || sql.startsWith('update products set stock_grams = case')) {
+    const guarded = sql.startsWith('update products set stock_grams = case');
+    const grams = Number(values[guarded ? 4 : 0]);
+    const productId = String(values[guarded ? 5 : 1]);
     const product = state.products.get(productId);
     if (!product) return { success: true, meta: { changes: 0 } };
+    if (guarded && product.stock_grams - state.otherHeldGrams < grams) {
+      throw new Error('stock_grams cannot be negative');
+    }
     product.stock_grams -= grams;
     return { success: true, meta: { changes: 1 } };
   }
@@ -294,10 +373,13 @@ function runStatement(state: FakeDbState, statement: FakeStatement) {
   }
 
   if (sql.startsWith('insert into stock_ledger')) {
+    const productId = String(values[1]);
     state.ledger.push({
-      product_id: String(values[1]),
+      product_id: productId,
       delta: Number(values[2]),
-      balance_after: Number(values[3]),
+      balance_after: sql.includes('p.stock_grams')
+        ? Number(state.products.get(productId)?.stock_grams ?? 0)
+        : Number(values[3]),
     });
     return { success: true, meta: { changes: 1 } };
   }
@@ -379,6 +461,9 @@ function makeState(stockGrams: number): FakeDbState {
     failFulfillmentBatch: false,
     stealLeaseBeforeBatch: false,
     authRole: 'staff',
+    mutableGrantShareValue: null,
+    otherHeldGrams: 0,
+    injectHoldBeforeFulfillmentBatch: false,
   };
 }
 
@@ -427,6 +512,36 @@ describe('MCP invoice fulfillment', () => {
       stock_owner_user_id: 'stock-owner', seller_user_id: 'seller-original', grant_id: 'revoked-grant',
       gross_amount: 20, owner_amount: 16, seller_amount: 4,
     }]);
+  });
+
+  it('uses line economics after the referenced grant terms change', async () => {
+    const state = makeState(100);
+    state.authRole = 'owner';
+    state.mutableGrantShareValue = 50;
+    state.lineItems = [{
+      id: 'line-granted', product_id: 'prod_test', quantity: 40, price_at_sale: 0.5,
+      stock_owner_user_id: 'stock-owner', sales_grant_id: 'changed-grant',
+      owner_share_type: 'percent', owner_share_value: 80,
+    }];
+    state.products.get('prod_test')!.owner_user_id = 'stock-owner';
+
+    const result = await fulfillInvoice(state);
+
+    expect(result.committed).toBe(true);
+    expect(state.settlements).toEqual([expect.objectContaining({
+      grant_id: 'changed-grant', owner_amount: 16, seller_amount: 4,
+    })]);
+  });
+
+  it('atomically rejects a competing hold injected after the MCP availability read', async () => {
+    const state = makeState(100);
+    state.injectHoldBeforeFulfillmentBatch = true;
+    const result = await fulfillInvoice(state);
+    expect(result.error).toBe('stock_underflow_at_commit');
+    expect(state.products.get('prod_test')?.stock_grams).toBe(100);
+    expect(state.ledger).toEqual([]);
+    expect(state.settlements).toEqual([]);
+    expect(state.invoice.inventory_deducted).toBe(0);
   });
 
   it('aggregates duplicate product lines before deducting stock and writing ledger', async () => {
