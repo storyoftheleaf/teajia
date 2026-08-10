@@ -14,6 +14,7 @@ import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 import { deriveConfirmedInvoiceLine, repairCandidate } from './invoiceDomain';
 import { buildEventArticleDraft } from './eventArticleDraft';
+import { normalizeRsvpUpdate } from './eventDomain';
 import { candidateToApi, impressionToApi, parseCandidateInput } from './tastingNoteCuration';
 import { deliverVerificationCode } from './verificationDelivery';
 import { INCIDENT_STATUSES, incidentToApi, normalizeIncidentInput, upsertIncident, type IncidentStatus } from './incidents';
@@ -8980,25 +8981,58 @@ const handleUpdateRSVP: Handler = async (request, env, params) => {
   if (!attendee) return json({ error: 'RSVP not found' }, 404);
 
   const body = await request.json() as Record<string, any>;
+  const update = normalizeRsvpUpdate(body);
 
   // Handle cancellation
-  if (body.cancel) {
-    await env.DB.prepare(
-      `UPDATE event_attendees SET status = 'cancelled' WHERE id = ?`
-    ).bind(attendee.id).run();
+  if (update.action === 'cancel') {
+    if (update.cancellationNote !== undefined) {
+      await env.DB.prepare(
+        `UPDATE event_attendees SET status = 'cancelled', cancellation_note = ? WHERE id = ?`
+      ).bind(update.cancellationNote, attendee.id).run();
+    } else {
+      await env.DB.prepare(
+        `UPDATE event_attendees SET status = 'cancelled' WHERE id = ?`
+      ).bind(attendee.id).run();
+    }
 
     // Cascade waitlist
     await cascadeWaitlist(env, attendee.eid as string, (attendee.claim_window_minutes as number) || 60);
 
-    return json({ success: true, status: 'cancelled' });
+    return json({
+      success: true,
+      status: 'cancelled',
+      ...(update.cancellationNote !== undefined ? { cancellation_note: update.cancellationNote } : {}),
+    });
   }
 
-  // Handle guest list visibility toggle
-  if (body.show_in_guest_list !== undefined) {
+  const attendeeAssignments: string[] = [];
+  const attendeeValues: unknown[] = [];
+  const result: Record<string, unknown> = { success: true };
+
+  if ('notes' in update) {
+    attendeeAssignments.push('notes = ?');
+    attendeeValues.push(update.notes);
+    result.notes = update.notes;
+  }
+
+  if ('firstVisitBriefed' in update) {
+    const firstVisitBriefed = update.firstVisitBriefed ? 1 : 0;
+    attendeeAssignments.push('first_visit_briefed = ?');
+    attendeeValues.push(firstVisitBriefed);
+    result.first_visit_briefed = firstVisitBriefed;
+  }
+
+  if ('showInGuestList' in update) {
+    const showInGuestList = update.showInGuestList ? 1 : 0;
+    attendeeAssignments.push('show_in_guest_list = ?');
+    attendeeValues.push(showInGuestList);
+    result.show_in_guest_list = showInGuestList;
+  }
+
+  if (attendeeAssignments.length > 0) {
     await env.DB.prepare(
-      `UPDATE event_attendees SET show_in_guest_list = ? WHERE id = ?`
-    ).bind(body.show_in_guest_list ? 1 : 0, attendee.id).run();
-    return json({ success: true });
+      `UPDATE event_attendees SET ${attendeeAssignments.join(', ')} WHERE id = ?`
+    ).bind(...attendeeValues, attendee.id).run();
   }
 
   // Handle plus_one change
@@ -9031,7 +9065,7 @@ const handleUpdateRSVP: Handler = async (request, env, params) => {
     }
   }
 
-  return json({ success: true });
+  return json(result);
 };
 
 const handleClaimSpot: Handler = async (_request, env, params) => {
