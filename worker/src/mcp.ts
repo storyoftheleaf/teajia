@@ -26,6 +26,13 @@
 // still fire). Nothing in this file touches D1 in a way that bypasses the
 // admin UI's invariants.
 
+import {
+  authorizeInvoiceLines,
+  buildSettlementReversalStatements,
+  buildSettlementStatements,
+  SalesInvariantError,
+} from './teaMasterSales';
+
 type Env = {
   DB: D1Database;
   JWT_SECRET: string;
@@ -48,6 +55,25 @@ function rpcError(id: number | string | null, code: number, message: string, dat
 
 function rpcResult(id: number | string | null, result: unknown): Response {
   return json({ jsonrpc: '2.0', id, result });
+}
+
+async function activeHeldGrams(
+  env: Env,
+  accountId: string,
+  productId: string,
+  excludeInvoiceId: string | null = null,
+): Promise<number> {
+  const row = excludeInvoiceId
+    ? await env.DB.prepare(
+      `SELECT COALESCE(SUM(held_grams),0) AS held FROM stock_holds
+       WHERE account_id=? AND product_id=? AND invoice_id != ?
+         AND (expires_at IS NULL OR expires_at>datetime('now'))`
+    ).bind(accountId, productId, excludeInvoiceId).first() as any
+    : await env.DB.prepare(
+      `SELECT COALESCE(SUM(held_grams),0) AS held FROM stock_holds
+       WHERE account_id=? AND product_id=? AND (expires_at IS NULL OR expires_at>datetime('now'))`
+    ).bind(accountId, productId).first() as any;
+  return Number(row?.held) || 0;
 }
 
 function authenticationDependencyUnavailable(): Response {
@@ -407,7 +433,7 @@ async function authenticateMcp(request: Request, env: Env): Promise<McpAuth | Re
 type PendingMutation =
   | { kind: 'add_stock'; accountId: string; userEmail: string; productId: string; grams: number; note: string | null }
   | { kind: 'remove_stock'; accountId: string; userEmail: string; productId: string; grams: number; reason: string; note: string | null }
-  | { kind: 'record_sale'; accountId: string; userEmail: string; lines: { productId: string; grams: number; pricePerGramUsd: number }[]; customerId: string | null; customerName: string; customerWhatsapp: string | null; notes: string | null }
+  | { kind: 'record_sale'; accountId: string; userEmail: string; actorUserId: string; actorRole: string; lines: { productId: string; grams: number; pricePerGramUsd: number }[]; customerId: string | null; customerName: string; customerWhatsapp: string | null; notes: string | null }
   | { kind: 'create_customer'; accountId: string; userEmail: string; name: string; whatsapp: string | null; email: string | null; phone: string | null; notes: string | null; tags: string[] }
   | { kind: 'update_customer'; accountId: string; userEmail: string; customerId: string; fields: Record<string, string | null> }
   | { kind: 'update_tea_pricing'; accountId: string; userEmail: string; productId: string; costAmount: number | null; costCurrency: string | null; retailPriceUsd: number | null }
@@ -420,11 +446,11 @@ type PendingMutation =
   | { kind: 'link_vendor'; accountId: string; userEmail: string; customerId: string; productId: string; note: string | null }
   | { kind: 'unlink_vendor'; accountId: string; userEmail: string; customerId: string; productId: string }
   | { kind: 'set_archive_status'; accountId: string; userEmail: string; productId: string; archived: boolean; reason: string | null }
-  | { kind: 'fulfill_invoice'; accountId: string; userEmail: string; invoiceId: string }
+  | { kind: 'fulfill_invoice'; accountId: string; userEmail: string; actorUserId: string; invoiceId: string }
   | { kind: 'update_account_settings'; accountId: string; userEmail: string; fields: Record<string, string | null> }
   | { kind: 'update_exchange_rate'; accountId: string; userEmail: string; currency: string; rateVsUsd: number; previousRate: number }
   | { kind: 'create_tea'; accountId: string; userEmail: string; product: NewTeaInput }
-  | { kind: 'mark_invoice_paid'; accountId: string; userEmail: string; invoiceId: string; invoiceNumber: string; paymentMethod: string; fulfillStock: boolean };
+  | { kind: 'mark_invoice_paid'; accountId: string; userEmail: string; actorUserId: string; actorRole: string; invoiceId: string; invoiceNumber: string; paymentMethod: string; fulfillStock: boolean };
 
 const PENDING_TTL_MS = 5 * 60 * 1000;
 
@@ -1381,7 +1407,7 @@ async function toolRecordSale(env: Env, auth: McpAuth, args: any) {
     ).bind(productId, auth.accountId).first() as ProductRow | null;
     if (!p) return { error: 'product_not_found', product_id: productId };
 
-    const available = Number(p.stock_grams || 0);
+    const available = Math.max(0, Number(p.stock_grams || 0) - await activeHeldGrams(env, auth.accountId, productId));
     previewLines.push({
       product_id: productId,
       product_name: p.given_name || p.product_name,
@@ -1402,11 +1428,26 @@ async function toolRecordSale(env: Env, auth: McpAuth, args: any) {
     };
   }
 
+  try {
+    await authorizeInvoiceLines(env, {
+      accountId: auth.accountId,
+      actorUserId: auth.userId,
+      actorRole: OWNER_TIERS.has(auth.creatorTier) ? 'owner' : 'staff',
+      lines: previewLines.map(line => ({
+        product_id: line.product_id, quantity: line.grams, price_at_sale: line.price_per_gram_usd,
+      })),
+    });
+  } catch (error) {
+    if (error instanceof SalesInvariantError) return { error: error.code, ...error.details };
+    return { error: 'sales_authorization_unavailable' };
+  }
+
   const total = previewLines.reduce((s, l) => s + l.line_total_usd, 0);
 
   if (!confirm) {
     const token = await issueConfirmationToken(env, {
       kind: 'record_sale', accountId: auth.accountId, userEmail: auth.userEmail,
+      actorUserId: auth.userId, actorRole: OWNER_TIERS.has(auth.creatorTier) ? 'owner' : 'staff',
       lines: previewLines.map(l => ({ productId: l.product_id, grams: l.grams, pricePerGramUsd: l.price_per_gram_usd })),
       customerId, customerName: customerNameResolved, customerWhatsapp, notes,
     }, auth.tokenId);
@@ -1435,6 +1476,16 @@ async function toolRecordSale(env: Env, auth: McpAuth, args: any) {
 }
 
 async function commitRecordSale(env: Env, m: Extract<PendingMutation, { kind: 'record_sale' }>) {
+  let authorizedLines;
+  try {
+    authorizedLines = await authorizeInvoiceLines(env, {
+      accountId: m.accountId, actorUserId: m.actorUserId, actorRole: m.actorRole,
+      lines: m.lines.map(line => ({ product_id: line.productId, quantity: line.grams, price_at_sale: line.pricePerGramUsd })),
+    });
+  } catch (error) {
+    if (error instanceof SalesInvariantError) return { error: error.code, ...error.details };
+    return { error: 'sales_authorization_unavailable' };
+  }
   // Re-validate + fetch product metadata at commit time — the preview window
   // is 5min and stock could have changed via another channel.
   const productCache = new Map<string, { id: string; stock_grams: number; given_name: string | null; product_name: string; status: string; low_stock_threshold: number | null; source_compass_entry_id: string | null }>();
@@ -1458,8 +1509,11 @@ async function commitRecordSale(env: Env, m: Extract<PendingMutation, { kind: 'r
   for (const line of m.lines) {
     const p = productCache.get(line.productId)!;
     const dec = await env.DB.prepare(
-      'UPDATE products SET stock_grams = stock_grams - ? WHERE id = ? AND account_id = ? AND stock_grams >= ? RETURNING stock_grams'
-    ).bind(line.grams, line.productId, m.accountId, line.grams).first() as { stock_grams: number } | null;
+      `UPDATE products SET stock_grams = stock_grams - ? WHERE id = ? AND account_id = ?
+       AND stock_grams - COALESCE((SELECT SUM(held_grams) FROM stock_holds
+         WHERE account_id=? AND product_id=? AND (expires_at IS NULL OR expires_at>datetime('now'))),0) >= ?
+       RETURNING stock_grams`
+    ).bind(line.grams, line.productId, m.accountId, m.accountId, line.productId, line.grams).first() as { stock_grams: number } | null;
     if (!dec) {
       // Roll back any decrements already applied for earlier lines in this sale
       // so a multi-line failure doesn't leave partial deductions behind.
@@ -1492,6 +1546,8 @@ async function commitRecordSale(env: Env, m: Extract<PendingMutation, { kind: 'r
 
   const invoiceId = crypto.randomUUID();
   const stmts: D1PreparedStatement[] = [];
+  const stockOwners = [...new Set(authorizedLines.map(line => line.stock_owner_user_id))];
+  const paymentRecipientUserId = stockOwners.length === 1 ? stockOwners[0] : null;
 
   // Invoice + line items, written as Filled with inventory_deducted=1 in one pass.
   // Stock has already been deducted above; this batch records the invoice,
@@ -1499,22 +1555,30 @@ async function commitRecordSale(env: Env, m: Extract<PendingMutation, { kind: 'r
   stmts.push(env.DB.prepare(
     `INSERT INTO invoices
        (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id,
-        display_currency, shipping_cost_usd, status, inventory_deducted, fulfilled_at, notes, payment_status)
-     VALUES (?, ?, ?, ?, ?, ?, 'USD', 0, 'Filled', 1, datetime('now'), ?, 'unpaid')`
+        display_currency, shipping_cost_usd, status, inventory_deducted, fulfilled_at, notes, payment_status,
+        sold_by_user_id,payment_recipient_user_id)
+     VALUES (?, ?, ?, ?, ?, ?, 'USD', 0, 'Filled', 1, datetime('now'), ?, 'unpaid',?,?)`
   ).bind(
     invoiceId, m.accountId, invoiceNumber,
-    m.customerName, m.customerWhatsapp, m.customerId, m.notes,
+    m.customerName, m.customerWhatsapp, m.customerId, m.notes, m.actorUserId, paymentRecipientUserId,
   ));
 
-  for (const line of m.lines) {
+  for (let lineIndex = 0; lineIndex < m.lines.length; lineIndex += 1) {
+    const line = m.lines[lineIndex];
+    const authorized = authorizedLines[lineIndex];
     const p = productCache.get(line.productId)!;
     const currentStock = Number(p.stock_grams || 0);
     const balanceAfter = balances.get(line.productId)!;
     const threshold = Number(p.low_stock_threshold || 0);
 
+    const lineId = crypto.randomUUID();
+    authorized.id = lineId;
     stmts.push(env.DB.prepare(
-      'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?, ?)'
-    ).bind(crypto.randomUUID(), m.accountId, invoiceId, line.productId, line.grams, line.pricePerGramUsd));
+      `INSERT INTO invoice_line_items
+       (id,account_id,invoice_id,product_id,quantity,price_at_sale,stock_owner_user_id,sales_grant_id)
+       VALUES (?,?,?,?,?,?,?,?)`
+    ).bind(lineId, m.accountId, invoiceId, line.productId, line.grams, line.pricePerGramUsd,
+      authorized.stock_owner_user_id, authorized.sales_grant_id));
 
     stmts.push(env.DB.prepare(
       'UPDATE product_listings SET stock_grams = MAX(0, stock_grams - ?), updated_at = datetime(\'now\') WHERE id = ?'
@@ -1544,6 +1608,12 @@ async function commitRecordSale(env: Env, m: Extract<PendingMutation, { kind: 'r
     }
   }
 
+  stmts.push(...buildSettlementStatements(env, {
+    accountId: m.accountId,
+    invoice: { id: invoiceId, sold_by_user_id: m.actorUserId },
+    lines: authorizedLines,
+  }));
+
   stmts.push(env.DB.prepare(
     `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
      VALUES (?, 'INVOICE_CREATED_MCP', ?, ?, 'invoice', ?, ?)`
@@ -1553,7 +1623,15 @@ async function commitRecordSale(env: Env, m: Extract<PendingMutation, { kind: 'r
     m.userEmail, invoiceId, m.accountId,
   ));
 
-  await env.DB.batch(stmts);
+  try {
+    await env.DB.batch(stmts);
+  } catch (error) {
+    for (const [productId, grams] of appliedLines) {
+      await env.DB.prepare('UPDATE products SET stock_grams=stock_grams+? WHERE id=? AND account_id=?')
+        .bind(grams, productId, m.accountId).run().catch(() => {});
+    }
+    throw error;
+  }
 
   return {
     committed: true,
@@ -2071,6 +2149,7 @@ async function commitVoidInvoice(
     env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ? AND account_id = ?')
       .bind(m.invoiceId, m.accountId)
   );
+  stmts.push(...buildSettlementReversalStatements(env, { accountId: m.accountId, invoiceId: m.invoiceId }));
   stmts.push(
     env.DB.prepare("UPDATE invoices SET status = 'Void', inventory_deducted = 0 WHERE id = ? AND account_id = ?")
       .bind(m.invoiceId, m.accountId)
@@ -2487,18 +2566,38 @@ async function toolFulfillInvoice(env: Env, auth: McpAuth, args: any) {
   if (!invoiceId) throw new Error('invoice_id is required');
 
   const invoice = await env.DB.prepare(
-    'SELECT id, invoice_number, customer_name, status, inventory_deducted FROM invoices WHERE id = ? AND account_id = ?'
+    'SELECT id, invoice_number, customer_name, status, inventory_deducted,sold_by_user_id FROM invoices WHERE id = ? AND account_id = ?'
   ).bind(invoiceId, auth.accountId).first() as Record<string, any> | null;
   if (!invoice) return { error: 'invoice_not_found' };
   if (invoice.status === 'Void') return { error: 'void_invoice_cannot_be_fulfilled' };
   if (invoice.inventory_deducted) return { error: 'inventory_already_deducted', invoice_status: invoice.status };
 
   const { results: rawItems } = await env.DB.prepare(
-    `SELECT ili.product_id, ili.quantity, p.given_name, p.product_name, p.stock_grams
+    `SELECT ili.id,ili.product_id,ili.custom_name,ili.quantity,ili.price_at_sale,
+            ili.stock_owner_user_id,ili.sales_grant_id,p.given_name,p.product_name,p.stock_grams,
+            sg.owner_share_type,sg.owner_share_value
        FROM invoice_line_items ili
        LEFT JOIN products p ON p.id = ili.product_id AND p.account_id = ?
+       LEFT JOIN sales_grants sg ON sg.id=ili.sales_grant_id AND sg.account_id=ili.account_id
       WHERE ili.invoice_id = ? AND ili.account_id = ?`
   ).bind(auth.accountId, invoiceId, auth.accountId).all();
+
+  try {
+    const authorized = await authorizeInvoiceLines(env, {
+      accountId: auth.accountId, actorUserId: auth.userId,
+      actorRole: OWNER_TIERS.has(auth.creatorTier) ? 'owner' : 'staff',
+      lines: (rawItems as any[]).map(item => ({
+        id: item.id, product_id: item.product_id, custom_name: item.custom_name,
+        quantity: item.quantity, price_at_sale: item.price_at_sale ?? 0,
+      })),
+    });
+    for (let index = 0; index < authorized.length; index += 1) {
+      Object.assign((rawItems as any[])[index], authorized[index]);
+    }
+  } catch (error) {
+    if (error instanceof SalesInvariantError) return { error: error.code, ...error.details };
+    return { error: 'sales_authorization_unavailable' };
+  }
 
   // Aggregate duplicate product lines so underflow checks and deductions apply
   // to the invoice total, not per line: two 60g lines of the same product on
@@ -2517,6 +2616,11 @@ async function toolFulfillInvoice(env: Env, auth: McpAuth, args: any) {
       items.push(copy);
     }
   }
+  for (const item of items) {
+    item.available_stock_grams = item.product_id
+      ? Math.max(0, Number(item.stock_grams || 0) - await activeHeldGrams(env, auth.accountId, item.product_id, invoiceId))
+      : 0;
+  }
 
   // Build per-line summary + check for underflows.
   type LineCheck = {
@@ -2530,7 +2634,7 @@ async function toolFulfillInvoice(env: Env, auth: McpAuth, args: any) {
 
   const lineChecks: LineCheck[] = items.map(item => {
     const qty = Number(item.quantity) || 0;
-    const stock = Number(item.stock_grams) || 0;
+    const stock = Number(item.available_stock_grams) || 0;
     return {
       product_id: item.product_id ?? null,
       product_name: item.given_name || item.product_name || '(custom item)',
@@ -2560,7 +2664,7 @@ async function toolFulfillInvoice(env: Env, auth: McpAuth, args: any) {
   if (!confirm) {
     const token = await issueConfirmationToken(env, {
       kind: 'fulfill_invoice', accountId: auth.accountId, userEmail: auth.userEmail,
-      invoiceId,
+      actorUserId: auth.userId, invoiceId,
     }, auth.tokenId);
     return {
       preview: {
@@ -2587,7 +2691,7 @@ async function toolFulfillInvoice(env: Env, auth: McpAuth, args: any) {
   if (!pending || pending.kind !== 'fulfill_invoice' || pending.invoiceId !== invoiceId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
-  return commitFulfillInvoice(env, pending, invoice, items);
+  return commitFulfillInvoice(env, pending, invoice, items, rawItems as any[]);
 }
 
 async function commitFulfillInvoice(
@@ -2595,6 +2699,7 @@ async function commitFulfillInvoice(
   m: Extract<PendingMutation, { kind: 'fulfill_invoice' }>,
   invoice: Record<string, any>,
   lineItems: any[],
+  settlementLines: any[],
 ) {
   const fulfillmentClaim = crypto.randomUUID();
   const claimed = await env.DB.prepare(
@@ -2608,6 +2713,18 @@ async function commitFulfillInvoice(
     'UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?'
   ).bind(m.invoiceId, m.accountId, fulfillmentClaim).run();
   const stmts: D1PreparedStatement[] = [];
+  if (!invoice.sold_by_user_id) {
+    invoice.sold_by_user_id = m.actorUserId;
+    stmts.push(env.DB.prepare(
+      'UPDATE invoices SET sold_by_user_id=COALESCE(sold_by_user_id,?) WHERE id=? AND account_id=? AND fulfillment_claim_token=?'
+    ).bind(m.actorUserId, m.invoiceId, m.accountId, fulfillmentClaim));
+  }
+  for (const line of settlementLines) {
+    if (!line.id) continue;
+    stmts.push(env.DB.prepare(
+      'UPDATE invoice_line_items SET stock_owner_user_id=?,sales_grant_id=? WHERE id=? AND account_id=?'
+    ).bind(line.stock_owner_user_id ?? null, line.sales_grant_id ?? null, line.id, m.accountId));
+  }
 
   for (const item of lineItems) {
     if (!item.product_id) continue; // custom items have no stock
@@ -2619,8 +2736,9 @@ async function commitFulfillInvoice(
     if (!product) continue;
 
     const currentStock = Number(product.stock_grams || 0);
+    const availableStock = currentStock - await activeHeldGrams(env, m.accountId, item.product_id, m.invoiceId);
     const qty = Number(item.quantity) || 0;
-    if (qty > currentStock) {
+    if (qty > availableStock) {
       await releaseClaim().catch(() => {});
       // Abort — stock changed between preview and confirm.
       return {
@@ -2628,7 +2746,7 @@ async function commitFulfillInvoice(
         product_id: item.product_id,
         product_name: product.given_name || product.product_name,
         requested_grams: qty,
-        available_grams: currentStock,
+        available_grams: Math.max(0, availableStock),
         message: 'Stock changed between preview and commit. Re-run fulfill_invoice to get a fresh preview.',
       };
     }
@@ -2691,6 +2809,9 @@ async function commitFulfillInvoice(
     env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)')
       .bind(m.invoiceId, m.accountId, m.invoiceId, m.accountId, fulfillmentClaim)
   );
+  stmts.push(...buildSettlementStatements(env, {
+    accountId: m.accountId, invoice, lines: settlementLines,
+  }));
   stmts.push(
     env.DB.prepare(
       `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
@@ -2763,6 +2884,7 @@ async function toolMarkInvoicePaid(env: Env, auth: McpAuth, args: any) {
 
   const token = await issueConfirmationToken(env, {
     kind: 'mark_invoice_paid', accountId: auth.accountId, userEmail: auth.userEmail,
+    actorUserId: auth.userId, actorRole: OWNER_TIERS.has(auth.creatorTier) ? 'owner' : 'staff',
     invoiceId: row.id, invoiceNumber: row.invoice_number,
     paymentMethod, fulfillStock,
   }, auth.tokenId);
@@ -2840,7 +2962,7 @@ async function commitMarkInvoicePaid(env: Env, m: Extract<PendingMutation, { kin
   let fulfillment: unknown = null;
   if (m.fulfillStock) {
     const invoice = await env.DB.prepare(
-      'SELECT id, invoice_number, customer_name, status, inventory_deducted FROM invoices WHERE id = ? AND account_id = ?'
+      'SELECT id, invoice_number, customer_name, status, inventory_deducted,sold_by_user_id FROM invoices WHERE id = ? AND account_id = ?'
     ).bind(m.invoiceId, m.accountId).first() as Record<string, any> | null;
 
     if (!invoice) {
@@ -2851,15 +2973,36 @@ async function commitMarkInvoicePaid(env: Env, m: Extract<PendingMutation, { kin
       fulfillment = { skipped: true, reason: 'inventory_already_deducted' };
     } else {
       const { results: lineItems } = await env.DB.prepare(
-        `SELECT ili.product_id, ili.quantity, p.given_name, p.product_name, p.stock_grams
+        `SELECT ili.id,ili.product_id,ili.custom_name,ili.quantity,ili.price_at_sale,
+                ili.stock_owner_user_id,ili.sales_grant_id,p.given_name,p.product_name,p.stock_grams,
+                sg.owner_share_type,sg.owner_share_value
            FROM invoice_line_items ili
            LEFT JOIN products p ON p.id = ili.product_id AND p.account_id = ?
+           LEFT JOIN sales_grants sg ON sg.id=ili.sales_grant_id AND sg.account_id=ili.account_id
           WHERE ili.invoice_id = ? AND ili.account_id = ?`
       ).bind(m.accountId, m.invoiceId, m.accountId).all();
+      try {
+        const authorized = await authorizeInvoiceLines(env, {
+          accountId: m.accountId, actorUserId: m.actorUserId, actorRole: m.actorRole,
+          lines: (lineItems as any[]).map(item => ({
+            id: item.id,product_id: item.product_id,custom_name: item.custom_name,
+            quantity: item.quantity,price_at_sale: item.price_at_sale ?? 0,
+          })),
+        });
+        for (let index = 0; index < authorized.length; index += 1) Object.assign((lineItems as any[])[index], authorized[index]);
+      } catch (error) {
+        fulfillment = error instanceof SalesInvariantError ? { error: error.code, ...error.details } : { error: 'sales_authorization_unavailable' };
+        return {
+          committed: true, action: 'mark_invoice_paid', invoice_id: m.invoiceId,
+          invoice_number: m.invoiceNumber, payment_status: 'paid', payment_date: now,
+          payment_method: m.paymentMethod, already_paid: alreadyPaid, fulfillment,
+        };
+      }
       fulfillment = await commitFulfillInvoice(
         env,
-        { kind: 'fulfill_invoice', accountId: m.accountId, userEmail: m.userEmail, invoiceId: m.invoiceId },
+        { kind: 'fulfill_invoice', accountId: m.accountId, userEmail: m.userEmail, actorUserId: m.actorUserId, invoiceId: m.invoiceId },
         invoice,
+        lineItems as any[],
         lineItems as any[],
       );
     }
