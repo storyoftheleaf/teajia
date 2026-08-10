@@ -152,6 +152,9 @@ test('normal production builds reject Tea Reference preview modules while previe
   assert.throws(() => guard.generateBundle.call(pluginContext, {}, {
     'leaked.js': { type: 'chunk', modules: { [path.join(REPO_ROOT, 'src/wisdom/reference/client.ts')]: {} } },
   }), /Tea Reference preview modules leaked.*client\.ts/i);
+  assert.throws(() => guard.generateBundle.call(pluginContext, {}, {
+    'leaked-origin.js': { type: 'chunk', modules: { [path.join(REPO_ROOT, 'src/pages/wisdom/PreviewOriginPage.tsx')]: {} } },
+  }), /Tea Reference preview modules leaked.*PreviewOriginPage\.tsx/i);
 
   const previewConfig = await resolveConfig({
     root: REPO_ROOT,

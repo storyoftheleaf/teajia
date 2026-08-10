@@ -46,6 +46,10 @@ const VIEWS: Array<{ id: View; label: string }> = [
   { id: 'alphabetical', label: 'A to Z' },
 ];
 
+const PreviewOriginIndexSection = import.meta.env.MODE === 'tea-reference-preview'
+  ? React.lazy(() => import('./PreviewOriginIndexSection'))
+  : null;
+
 /**
  * What the two run-in facts are actually reporting.
  *
@@ -217,6 +221,12 @@ const RegionIndexPage: React.FC = () => {
           note="The ground itself: how high, how wet, and what grows there."
         />
       </div>
+
+      {PreviewOriginIndexSection && (
+        <React.Suspense fallback={null}>
+          <PreviewOriginIndexSection />
+        </React.Suspense>
+      )}
 
       {/* What a bare entry means, said once, and now the only dim line standing
           between the toolbar and the first place. The cross-holding escape line

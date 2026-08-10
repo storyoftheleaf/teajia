@@ -9,7 +9,8 @@
  */
 import React from 'react';
 import { describe, expect, it } from 'vitest';
-import { renderToString } from 'react-dom/server';
+import { PassThrough } from 'node:stream';
+import { renderToPipeableStream, renderToString } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -100,8 +101,8 @@ const previewTransport: WebsiteReceivingPublicTransport = {
   publicPreview: {
     title: 'Pu’er reference',
     deck: 'Cited public tea knowledge.',
-    sourceCount: 2,
-    entryCount: 3,
+    sourceCount: 3,
+    entryCount: 10,
     sections: [{
       id: 'types',
       label: 'Tea types',
@@ -152,6 +153,80 @@ const previewTransport: WebsiteReceivingPublicTransport = {
           statements: [],
         },
       ],
+    }, {
+      id: 'origins',
+      label: 'Tea origins',
+      description: 'Publicly cited tea places at their declared geographic levels.',
+      entries: [
+        {
+          id: 'reference-yunnan',
+          label: 'Yunnan',
+          entityKind: 'major_region',
+          kindLabel: 'Major region',
+          reportUrl: 'mailto:hello@teajia.com?subject=Yunnan',
+          statements: [],
+        },
+        {
+          id: 'reference-yiwu',
+          label: 'Yiwu Tea Area',
+          entityKind: 'tea_area',
+          kindLabel: 'Tea area',
+          parentId: 'reference-yunnan',
+          reportUrl: 'mailto:hello@teajia.com?subject=Yiwu',
+          statements: [],
+        },
+        {
+          id: 'reference-gedeng',
+          label: 'Gedeng Mountain',
+          entityKind: 'mountain',
+          kindLabel: 'Mountain',
+          parentId: 'reference-yiwu',
+          reportUrl: 'mailto:hello@teajia.com?subject=Gedeng',
+          statements: [],
+        },
+        {
+          id: 'reference-mansa',
+          label: 'Mansa Village',
+          entityKind: 'village',
+          kindLabel: 'Village',
+          parentId: 'reference-gedeng',
+          reportUrl: 'mailto:hello@teajia.com?subject=Mansa',
+          statements: [],
+        },
+        {
+          id: 'reference-manxiu',
+          label: 'Manxiu',
+          entityKind: 'locality',
+          kindLabel: 'Locality',
+          parentId: 'reference-mansa',
+          reportUrl: 'mailto:hello@teajia.com?subject=Manxiu',
+          statements: [{
+            id: 'manxiu-origin-reference',
+            label: 'Identity',
+            text: 'Manxiu is cited here at the locality level within the verified public origin chain.',
+            excerpt: 'A concise public source excerpt about Manxiu.',
+            citation: { label: 'Tea Geography Institute, Manxiu reference (2026)', url: 'https://example.com/manxiu' },
+          }],
+        },
+        {
+          id: 'reference-orphan-village',
+          label: 'Orphan Village',
+          entityKind: 'village',
+          kindLabel: 'Village',
+          parentId: 'reference-missing-parent',
+          reportUrl: 'mailto:hello@teajia.com?subject=Orphan',
+          statements: [],
+        },
+        {
+          id: 'reference-inverted-area',
+          label: 'Inverted Area',
+          entityKind: 'tea_area',
+          kindLabel: 'Tea area',
+          parentId: 'reference-manxiu',
+          reportUrl: 'mailto:hello@teajia.com?subject=Inverted',
+          statements: [],
+        },
+      ],
     }],
     geographicScale: [],
     sources: [
@@ -172,6 +247,15 @@ const previewTransport: WebsiteReceivingPublicTransport = {
         author: 'Mei Lin',
         publishedDate: '2026-02-03',
         url: 'https://example.com/sheng/',
+      },
+      {
+        sourceId: 'tea-geography-institute',
+        publisher: 'Tea Geography Institute',
+        publisherRoleLabel: 'Institute',
+        title: 'Manxiu reference',
+        author: 'Field Research Desk',
+        publishedDate: '2026-03-04',
+        url: 'https://example.com/manxiu',
       },
     ],
     reportUrl: 'mailto:hello@teajia.com?subject=Tea%20Reference',
@@ -210,6 +294,70 @@ const previewProducts: PublicProduct[] = [{
   isPersonal: false,
   canReorder: false,
   isOneOfAKind: false,
+}, {
+  id: 'manxiu-spring-cake',
+  type: 'Sheng',
+  givenName: 'Manxiu Spring Cake',
+  productName: 'Manxiu old-tree tea',
+  originCountry: 'China',
+  originRegion: 'Manxiu',
+  pricePerGramUSD: 0.9,
+  stockGrams: 80,
+  description: '',
+  tastingNotes: [],
+  imageUrl: '',
+  status: 'Active',
+  isPersonal: false,
+  canReorder: false,
+  isOneOfAKind: false,
+}, {
+  id: 'manxiu-archive-cake',
+  type: 'Sheng',
+  givenName: 'Manxiu Archive Cake',
+  productName: 'Manxiu archive tea',
+  originCountry: 'China',
+  originRegion: 'Manxiu',
+  pricePerGramUSD: 1.1,
+  stockGrams: 0,
+  description: '',
+  tastingNotes: [],
+  imageUrl: '',
+  status: 'Sold Out',
+  isPersonal: false,
+  canReorder: false,
+  isOneOfAKind: false,
+}, {
+  id: 'orphan-village-cake',
+  type: 'Sheng',
+  givenName: 'Orphan Village Cake',
+  productName: 'Orphan Village tea',
+  originCountry: 'China',
+  originRegion: 'Orphan Village',
+  pricePerGramUSD: 0.6,
+  stockGrams: 40,
+  description: '',
+  tastingNotes: [],
+  imageUrl: '',
+  status: 'Active',
+  isPersonal: false,
+  canReorder: false,
+  isOneOfAKind: false,
+}, {
+  id: 'inverted-area-cake',
+  type: 'Sheng',
+  givenName: 'Inverted Area Cake',
+  productName: 'Inverted Area tea',
+  originCountry: 'China',
+  originRegion: 'Inverted Area',
+  pricePerGramUSD: 0.7,
+  stockGrams: 35,
+  description: '',
+  tastingNotes: [],
+  imageUrl: '',
+  status: 'Active',
+  isPersonal: false,
+  canReorder: false,
+  isOneOfAKind: false,
 }];
 
 const previewCatalogue = buildTeaReferenceCatalogue(previewTransport.publicPreview, previewProducts);
@@ -237,6 +385,37 @@ const renderPreview = (path: string, products: PublicProduct[] = previewProducts
     </QueryClientProvider>,
   );
 };
+
+const renderRegionAsync = (path: string, client: QueryClient): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    let html = '';
+    const destination = new PassThrough();
+    destination.setEncoding('utf8');
+    destination.on('data', chunk => { html += chunk; });
+    destination.on('end', () => resolve(html));
+    destination.on('error', reject);
+    const stream = renderToPipeableStream(
+      <QueryClientProvider client={client}>
+        <HelmetProvider>
+          <MemoryRouter initialEntries={[path]}>
+            <Routes>
+              <Route path="/wisdom/regions" element={<RegionIndexPage />} />
+              <Route path="/wisdom/region/:id" element={<RegionPage />} />
+            </Routes>
+          </MemoryRouter>
+        </HelmetProvider>
+      </QueryClientProvider>,
+      {
+        onAllReady() { stream.pipe(destination); },
+        onShellError: reject,
+        onError: reject,
+      },
+    );
+  });
+};
+
+const renderAsync = (path: string, products: PublicProduct[] = previewProducts): Promise<string> =>
+  renderRegionAsync(path, createReferenceQueryClient(products));
 
 const INDEX_PAGES = [
   '/wisdom/cultivars',
@@ -695,8 +874,120 @@ describe('growing regions', () => {
     expect(bare).toContain('No plant in the reference records this place as its origin yet');
   });
 
-  it('answers for a place it does not hold', () => {
-    expect(render('/wisdom/region/nope')).toContain('Not a place we hold');
+  it('answers for a place it does not hold', async () => {
+    const html = TEA_REFERENCE_PREVIEW_ENABLED
+      ? await renderAsync('/wisdom/region/nope')
+      : render('/wisdom/region/nope');
+    expect(html).toContain('Not a place we hold');
+  });
+
+  it.skipIf(!TEA_REFERENCE_PREVIEW_ENABLED)('prepends product-connected cited origins without flattening their declared levels', async () => {
+    await renderAsync('/wisdom/regions');
+    const html = render('/wisdom/regions');
+    expect(html).toContain('Cited origins in this preview');
+    for (const [label, id, count] of [
+      ['Major regions', 'reference-yunnan', 1],
+      ['Tea areas', 'reference-yiwu', 2],
+      ['Mountains', 'reference-gedeng', 1],
+      ['Villages', 'reference-mansa', 2],
+      ['Localities', 'reference-manxiu', 1],
+    ]) {
+      expect(html).toContain(label);
+      expect(html).toContain(`href="/wisdom/region/${id}"`);
+      expect(html).toMatch(new RegExp(`${label}</span><span[^>]*>${count}</span>`));
+    }
+    expect(html.indexOf('Cited origins in this preview')).toBeLessThan(html.indexOf('id="place-china"'));
+    expect(html).toContain(`${REGIONS.length} places`);
+    expect(html).not.toContain('overflow-x-auto');
+  });
+
+  it.skipIf(!TEA_REFERENCE_PREVIEW_ENABLED)('keeps an existing Wuyi URL on the published region page before consulting cited origins', async () => {
+    const html = await renderAsync('/wisdom/region/wuyi-mountains-fujian');
+    expect(html).toContain('>Growing place<');
+    expect(html).toContain('Plants from here');
+    expect(html).toContain('Country');
+    expect(html).not.toContain('Cited origin');
+  });
+
+  it.skipIf(!TEA_REFERENCE_PREVIEW_ENABLED)('renders a cited origin at the established region URL with verified hierarchy, citations, and teas', async () => {
+    const html = (await renderAsync('/wisdom/region/reference-manxiu')).replace(/&amp;/g, '&');
+    expect(html).toContain('>Cited origin<');
+    expect(html).toContain('>Locality<');
+    expect(html).toContain('>Origin path<');
+    expect(html).toContain('href="/wisdom/region/reference-yunnan"');
+    expect(html).toContain('href="/wisdom/region/reference-yiwu"');
+    expect(html).toContain('href="/wisdom/region/reference-gedeng"');
+    expect(html).toContain('href="/wisdom/region/reference-mansa"');
+    expect(html).toContain('Mansa Village');
+    expect(html.indexOf('href="/wisdom/region/reference-yunnan"')).toBeLessThan(html.indexOf('href="/wisdom/region/reference-yiwu"'));
+    expect(html.indexOf('href="/wisdom/region/reference-yiwu"')).toBeLessThan(html.indexOf('href="/wisdom/region/reference-gedeng"'));
+    expect(html.indexOf('href="/wisdom/region/reference-gedeng"')).toBeLessThan(html.indexOf('href="/wisdom/region/reference-mansa"'));
+    expect(html).toContain('General reference');
+    expect(html).toContain('A concise public source excerpt about Manxiu.');
+    expect(html).toContain('Tea Geography Institute · Manxiu reference');
+    expect(html).toContain('Field Research Desk');
+    expect(html).toContain('2026-03-04');
+    expect(html).toContain('href="https://example.com/manxiu"');
+    expect(html).toContain('Available teas');
+    expect(html).toContain('href="/shop/product/manxiu-spring-cake"');
+    expect(html).toContain('Previously offered');
+    expect(html).toContain('href="/shop/product/manxiu-archive-cake"');
+    expect(html).toContain('Report an inaccuracy');
+    expect(html).not.toMatch(/Country|Province|Altitude|Climate/);
+    expect(html).not.toMatch(/held|conflict|evidence|private/i);
+    expect(html).not.toContain('overflow-x-auto');
+  });
+
+  it.skipIf(!TEA_REFERENCE_PREVIEW_ENABLED)('shows children only from verified reverse parent ids and omits missing or inverted parents', async () => {
+    const parent = await renderAsync('/wisdom/region/reference-mansa');
+    expect(parent).toContain('Places within this origin');
+    expect(parent).toContain('href="/wisdom/region/reference-manxiu"');
+
+    const missing = await renderAsync('/wisdom/region/reference-orphan-village');
+    expect(missing).not.toContain('reference-missing-parent');
+    expect(missing).not.toContain('Origin path');
+
+    const inverted = await renderAsync('/wisdom/region/reference-inverted-area');
+    expect(inverted).not.toContain('href="/wisdom/region/reference-manxiu"');
+    expect(inverted).not.toContain('Origin path');
+  });
+
+  it.skipIf(!TEA_REFERENCE_PREVIEW_ENABLED)('withholds the cited index while loading and keeps the published list usable on a bounded error', async () => {
+    const pendingClient = new QueryClient({ defaultOptions: { queries: { retry: false, retryOnMount: false } } });
+    const pending = await renderRegionAsync('/wisdom/regions', pendingClient);
+    expect(pending).not.toContain('Cited origins in this preview');
+    expect(pending).toContain(`${REGIONS.length} places`);
+    expect(pending).toContain('href="/wisdom/region/wuyi-mountains-fujian"');
+
+    const errorClient = new QueryClient({ defaultOptions: { queries: { retry: false, retryOnMount: false } } });
+    await errorClient.prefetchQuery({
+      queryKey: TEA_REFERENCE_PREVIEW_QUERY_KEY,
+      queryFn: async () => { throw new Error('private upstream detail'); },
+    });
+    errorClient.setQueryData(['products', 'public'], previewProducts);
+    const error = await renderRegionAsync('/wisdom/regions', errorClient);
+    expect(error).toContain('The local cited origins preview is unavailable');
+    expect(error).toContain(`${REGIONS.length} places`);
+    expect(error).not.toContain('private upstream detail');
+  });
+
+  it.skipIf(!TEA_REFERENCE_PREVIEW_ENABLED)('uses the Wisdom skeleton while an unknown origin loads and gives a bounded error route back', async () => {
+    const pendingClient = new QueryClient({ defaultOptions: { queries: { retry: false, retryOnMount: false } } });
+    const pending = await renderRegionAsync('/wisdom/region/reference-unknown', pendingClient);
+    expect(pending).toContain('shimmer-warm');
+    expect(pending).toContain('aria-label="The wisdom base"');
+
+    const errorClient = new QueryClient({ defaultOptions: { queries: { retry: false, retryOnMount: false } } });
+    await errorClient.prefetchQuery({
+      queryKey: TEA_REFERENCE_PREVIEW_QUERY_KEY,
+      queryFn: async () => { throw new Error('private upstream detail'); },
+    });
+    errorClient.setQueryData(['products', 'public'], previewProducts);
+    const error = await renderRegionAsync('/wisdom/region/reference-unknown', errorClient);
+    expect(error).toContain('This cited origin could not be loaded');
+    expect(error).toContain('href="/wisdom/regions"');
+    expect(error).toContain('Return to Origins');
+    expect(error).not.toContain('private upstream detail');
   });
 });
 

@@ -29,9 +29,14 @@ import {
   SectionHead,
   SPACE,
   WisdomSubNav,
+  WisdomFallback,
 } from './wisdomShared';
 import { EntryResearchSection } from './EntryResearchSection';
 import { WisdomPublicStateGate, WisdomRelatedMaterial } from './WisdomRelatedMaterial';
+
+const PreviewOriginPage = import.meta.env.MODE === 'tea-reference-preview'
+  ? React.lazy(() => import('./PreviewOriginPage'))
+  : null;
 
 const RegionPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -84,6 +89,13 @@ const RegionPage: React.FC = () => {
   }, [region]);
 
   if (!region) {
+    if (PreviewOriginPage) {
+      return (
+        <React.Suspense fallback={<WisdomFallback />}>
+          <PreviewOriginPage id={id ?? ''} />
+        </React.Suspense>
+      );
+    }
     return (
       <HoldingNotFound
         section="regions"
