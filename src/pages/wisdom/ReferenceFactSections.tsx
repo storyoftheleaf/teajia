@@ -113,16 +113,16 @@ export const ReferenceFactSections: React.FC<{
   return (
     <>
       {groupedFacts(facts).map(group => (
-        <section key={group.label} className={`${SPACE.section} ${GROUND} py-6`}>
+        <div key={group.label} className={`${SPACE.section} ${GROUND} py-6`}>
           <SectionHead label={group.label} count={group.facts.length} />
           <ul className={`list-none m-0 p-0 ${AXIS_INDENT}`}>
             {group.facts.map(fact => <FactStatement key={fact.id} fact={fact} sources={sources} />)}
           </ul>
-        </section>
+        </div>
       ))}
 
       {(availableProducts.length > 0 || previouslyOfferedProducts.length === 0) && (
-        <section className={SPACE.section}>
+        <div className={SPACE.section}>
           <SectionHead label="Available teas" count={availableProducts.length || undefined} />
           {availableProducts.length > 0 ? (
             productRows(availableProducts)
@@ -131,14 +131,14 @@ export const ReferenceFactSections: React.FC<{
               No matching tea is available in the public shop right now.
             </p>
           )}
-        </section>
+        </div>
       )}
 
       {previouslyOfferedProducts.length > 0 && (
-        <section className={SPACE.section}>
+        <div className={SPACE.section}>
           <SectionHead label="Previously offered" count={previouslyOfferedProducts.length} />
           {productRows(previouslyOfferedProducts)}
-        </section>
+        </div>
       )}
 
       <aside className={`${SPACE.section} pt-6 ${RULE_FULL} ${AXIS_INDENT}`}>

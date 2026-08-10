@@ -24,13 +24,25 @@ npm run tea-reference:website:preview -- --handoff /absolute/path/to/website-han
 
 Compare with an existing receiving snapshot by adding `--existing /absolute/path/to/snapshot.json`. The report classifies every source, citation, entity, and fact as `create`, `update`, `no-op`, `conflict`, or `held`. The importer is a pure in-memory projection and does not write a snapshot.
 
-Run the standalone local website preview:
+Run the integrated local website preview:
 
 ```bash
-npm run tea-reference:website:serve -- --handoff /absolute/path/to/website-handoff.json --no-open
+npm run tea-reference:teajia:preview -- --handoff /absolute/path/to/website-handoff.json
 ```
 
-The server exposes only the public projection in memory. The screen uses ordinary cited reference language, limits excerpts, omits Chinese excerpts rather than translating them implicitly, and includes a visible Report an inaccuracy action. It does not add or change an application route or navigation item.
+This opens the real Teajia application on `http://localhost:7777`. In this local mode only, the Wisdom Base adds Types and calls the region holding Origins. These are preview-only routes and labels; the normal production build keeps them disabled.
+
+The terminal operation report is private operator material. It includes create/update/no-op/conflict/held planning and verification reasons and must not be copied into the browser. The browser receives only the allowlisted public transport: public wording, limited excerpts where available, citation and source metadata, and the public correction action. Chinese excerpts are omitted rather than translated implicitly. The preview reads the handoff and public product response in memory; it has no database, API, filesystem, product, inventory, approval, assimilation, or publication writer.
+
+Types and origins surface only when they connect to eligible products in Teajia's public catalogue. Active teas appear as Available teas and sold-out catalogue history appears as Previously offered. A cited place keeps its declared major-region, tea-area, mountain, village, or locality level. When the handoff does not verify a parent chain, the missing hierarchy remains held in the private operation report rather than being flattened or invented in the public page.
+
+The dedicated browser check uses the same integrated server without tracking or copying the private handoff:
+
+```bash
+TEA_REFERENCE_HANDOFF_PATH=/absolute/path/to/website-handoff.json npm run test:tea-reference-browser
+```
+
+The command fails immediately when `TEA_REFERENCE_HANDOFF_PATH` is absent. It is intentionally not part of the default receiving or CI suite because the external private fixture is not stored in this repository.
 
 ## Current 12-source rehearsal
 

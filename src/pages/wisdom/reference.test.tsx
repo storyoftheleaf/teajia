@@ -65,6 +65,7 @@ import {
   teaReferenceRoutePaths,
 } from '../../wisdom/reference/previewMode';
 import { buildTeaReferenceCatalogue } from '../../wisdom/reference/catalogue';
+import { PREVIEW_PLACE_LEVELS } from './previewOriginMetadata';
 
 const render = (path: string) => {
   const client = createReferenceQueryClient();
@@ -841,6 +842,16 @@ describe('an empty cell', () => {
 });
 
 describe('growing regions', () => {
+  it('uses one exact geographic level order with singular and plural public labels', () => {
+    expect(PREVIEW_PLACE_LEVELS).toEqual([
+      { level: 'major_region', singular: 'Major region', plural: 'Major regions' },
+      { level: 'tea_area', singular: 'Tea area', plural: 'Tea areas' },
+      { level: 'mountain', singular: 'Mountain', plural: 'Mountains' },
+      { level: 'village', singular: 'Village', plural: 'Villages' },
+      { level: 'locality', singular: 'Locality', plural: 'Localities' },
+    ]);
+  });
+
   it('is a holding in the nav', () => {
     expect(WISDOM_SECTIONS.map(section => section.id)).toContain('regions');
     expect(WISDOM_SECTIONS.find(section => section.id === 'regions')?.path).toBe('/wisdom/regions');
@@ -911,6 +922,7 @@ describe('growing regions', () => {
 
   it.skipIf(!TEA_REFERENCE_PREVIEW_ENABLED)('renders a cited origin at the established region URL with verified hierarchy, citations, and teas', async () => {
     const html = (await renderAsync('/wisdom/region/reference-manxiu')).replace(/&amp;/g, '&');
+    expect(html).not.toMatch(/<section(\s|>)/);
     expect(html).toContain('>Cited origin<');
     expect(html).toContain('>Locality<');
     expect(html).toContain('>Origin path<');

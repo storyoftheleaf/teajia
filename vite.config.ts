@@ -1,5 +1,5 @@
 import path from 'path';
-import { defineConfig, loadEnv, type Plugin } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import fs from 'fs';
@@ -13,6 +13,7 @@ const TEA_REFERENCE_PREVIEW_ONLY_MODULES = [
   '/src/pages/wisdom/TeaFamilyPage.tsx',
   '/src/pages/wisdom/TeaTypePage.tsx',
   '/src/pages/wisdom/ReferenceFactSections.tsx',
+  '/src/pages/wisdom/previewOriginMetadata.ts',
   '/src/wisdom/reference/client.ts',
   '/src/wisdom/reference/catalogue.ts',
 ] as const;
@@ -41,20 +42,12 @@ export function teaReferenceProductionLeakGuard({
 }
 
 export default defineConfig(({ command, mode }) => {
-  const env = loadEnv(mode, '.', 'VITE_');
   const BUILD_ID = Date.now().toString(36);
-  const isTeaReferencePreview = command === 'serve' && mode === 'tea-reference-preview';
   return {
     base: '/',
     define: {
       __BUILD_ID__: JSON.stringify(BUILD_ID),
     },
-    ...(isTeaReferencePreview ? {
-      optimizeDeps: {
-        noDiscovery: true,
-        include: [],
-      },
-    } : {}),
     server: {
       port: 7777,
       strictPort: true,

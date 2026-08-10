@@ -2,7 +2,6 @@ import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { useTeaReferenceCatalogue } from '../../wisdom/reference/client';
-import type { PlaceLevel } from '../../wisdom/reference/types';
 import {
   AXIS_INDENT,
   FACT,
@@ -20,14 +19,7 @@ import {
   WisdomSubNav,
 } from './wisdomShared';
 import ReferenceFactSections from './ReferenceFactSections';
-
-const LEVEL_LABELS: Record<PlaceLevel, string> = {
-  major_region: 'Major region',
-  tea_area: 'Tea area',
-  mountain: 'Mountain',
-  village: 'Village',
-  locality: 'Locality',
-};
+import { previewPlaceLevel } from './previewOriginMetadata';
 
 const PreviewOriginPage: React.FC<{ id: string }> = ({ id }) => {
   const { catalogue, products, isLoading, isError } = useTeaReferenceCatalogue();
@@ -81,7 +73,7 @@ const PreviewOriginPage: React.FC<{ id: string }> = ({ id }) => {
       {origin && (
         <>
           <div className="mt-8">
-            <Fact label="Level">{LEVEL_LABELS[origin.level]}</Fact>
+            <Fact label="Level">{previewPlaceLevel(origin.level).singular}</Fact>
             {origin.parentId && ancestors.length > 0 && (
               <Fact label="Origin path">
                 {ancestors.map((ancestor, index) => (
@@ -97,7 +89,7 @@ const PreviewOriginPage: React.FC<{ id: string }> = ({ id }) => {
           </div>
 
           {children.length > 0 && (
-            <section className={SPACE.section}>
+            <div className={SPACE.section}>
               <SectionHead label="Places within this origin" count={children.length} />
               <IndexList>
                 {children.map(child => (
@@ -105,11 +97,11 @@ const PreviewOriginPage: React.FC<{ id: string }> = ({ id }) => {
                     key={child.id}
                     to={`/wisdom/region/${child.id}`}
                     name={child.name}
-                    cells={[LEVEL_LABELS[child.level]]}
+                    cells={[previewPlaceLevel(child.level).singular]}
                   />
                 ))}
               </IndexList>
-            </section>
+            </div>
           )}
 
           <ReferenceFactSections

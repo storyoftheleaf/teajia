@@ -85,7 +85,7 @@ async function filesBeneath(directory) {
   }
 }
 
-test('real Vite config gates the public adapter and suppresses preview optimizer writes', { timeout: 15000 }, async t => {
+test('real Vite config gates the public adapter without putting handoff data in optimizer configuration', { timeout: 15000 }, async t => {
   const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'tea-reference-vite-config-'));
   t.after(() => fs.rm(temp, { recursive: true, force: true }));
   const handoffPath = path.join(temp, 'website-handoff.json');
@@ -122,8 +122,8 @@ test('real Vite config gates the public adapter and suppresses preview optimizer
   });
   t.after(() => previewServer.close());
   assert.equal(previewServer.config.plugins.some(plugin => plugin.name === 'tea-reference-teajia-preview'), true);
-  assert.equal(previewServer.config.optimizeDeps.noDiscovery, true);
-  assert.deepEqual(previewServer.config.optimizeDeps.include, []);
+  assert.notEqual(previewServer.config.optimizeDeps.noDiscovery, true);
+  assert.doesNotMatch(JSON.stringify(previewServer.config.optimizeDeps), /website-handoff|TEA_REFERENCE_HANDOFF_PATH/);
 
   await previewServer.listen();
   const address = previewServer.httpServer.address();
@@ -155,6 +155,9 @@ test('normal production builds reject Tea Reference preview modules while previe
   assert.throws(() => guard.generateBundle.call(pluginContext, {}, {
     'leaked-origin.js': { type: 'chunk', modules: { [path.join(REPO_ROOT, 'src/pages/wisdom/PreviewOriginPage.tsx')]: {} } },
   }), /Tea Reference preview modules leaked.*PreviewOriginPage\.tsx/i);
+  assert.throws(() => guard.generateBundle.call(pluginContext, {}, {
+    'leaked-origin-metadata.js': { type: 'chunk', modules: { [path.join(REPO_ROOT, 'src/pages/wisdom/previewOriginMetadata.ts')]: {} } },
+  }), /Tea Reference preview modules leaked.*previewOriginMetadata\.ts/i);
 
   const previewConfig = await resolveConfig({
     root: REPO_ROOT,

@@ -91,10 +91,10 @@ export const mailtoWisdom = (subject?: string): string =>
  */
 export const SectionHead: React.FC<{ label: string; count?: number }> = ({ label, count }) => (
   <div className={SPACE.head}>
-    <div className="flex items-baseline gap-2.5">
+    <h2 className="flex items-baseline gap-2.5">
       <span className={`${LABEL} whitespace-nowrap`}>{label}</span>
       {count != null && <span className={`${CELL_CLASS} text-tea-text-dim figures-tab`}>{count}</span>}
-    </div>
+    </h2>
     <span aria-hidden className={`${RULE_SHORT} mt-2`} />
   </div>
 );
