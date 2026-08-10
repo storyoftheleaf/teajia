@@ -69,6 +69,18 @@ export function childrenOf(cultivar: Cultivar): Cultivar[] {
 /** Recorded parents, resolved to entries we hold where possible. */
 export function parentsOf(cultivar: Cultivar): Array<Cultivar | string> {
   if (!cultivar.parentage) return [];
+
+  // A prose note such as "selected from the native heirloom population" is
+  // provenance, not a parent list. Feeding the whole sentence to the ordinary
+  // tea-name matcher let generic aliases such as "Heirloom" fabricate a Zairai
+  // parent. An unsplit value is lineage only when it is exactly a held name.
+  const hasParentList = /\s+[x×]\s+|[/,]/i.test(cultivar.parentage);
+  if (!hasParentList) {
+    const key = matchKey(cultivar.parentage.replace(/[()'".]/g, ' ').trim());
+    const direct = CULTIVAR_ALIASES.find(entry => entry.key === key)?.cultivar;
+    return direct ? [direct] : [];
+  }
+
   return cultivar.parentage
     // Parentheses group a cross within a cross. Flatten them rather than
     // trying to model generations the records do not consistently express.

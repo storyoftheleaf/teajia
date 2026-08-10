@@ -42,6 +42,12 @@ describe('parentsOf', () => {
   it('has no parents when none were recorded', () => {
     expect(parentsOf({ id: 'x', name: 'X', altNames: [] })).toEqual([]);
   });
+
+  it('does not turn descriptive parentage language into a false cultivar link', () => {
+    const banTianYao = findCultivarById('ban-tian-yao');
+    expect(banTianYao?.parentage).toContain('heirloom population');
+    expect(parentsOf(banTianYao!)).toEqual([]);
+  });
 });
 
 describe('childrenOf', () => {

@@ -7,6 +7,7 @@ import type { Cultivar, CultivarStory } from '../../../wisdom';
 import {
   WISDOM_TYPE,
   type WisdomEntryUsage,
+  type WisdomFact,
   type WisdomLink,
   type WisdomRun,
   type WisdomSection,
@@ -15,6 +16,12 @@ import { FactGrid, LabelledBlock, WisdomChip, WisdomDetailHeader, WisdomRoving }
 
 interface Props {
   cultivar: Cultivar;
+  /** The holding's reader-facing noun when this profile is reached elsewhere. */
+  kind?: string;
+  /** The holding entry whose authorship and product usage are being reviewed. */
+  entryId?: string;
+  /** Facts owned by the holding that led into this shared plant profile. */
+  additionalFacts?: WisdomFact[];
   onClose: () => void;
   /** Jump the panel to a resolved parent/child without leaving the overlay. */
   onSelectCultivar: (id: string) => void;
@@ -37,15 +44,15 @@ interface Props {
  * Full detail for one cultivar: the lean index, the prose fetched on demand
  * from stories/cultivars.json, and its resolved lineage. Read-only.
  *
- * The one holding whose panel is not generic, because lineage links jump the
- * panel to another entry. Everything else here is the shared vocabulary: the
- * same head, the same fact grid, the same micro-caps labels.
+ * Cultivars use it directly; an exact same-name variety may reuse the research
+ * without copying it into a second record. Everything else here is the shared
+ * vocabulary: the same head, the same fact grid, the same micro-caps labels.
  *
  * Facts and story sections lay out ACROSS the panel. Only the description keeps
  * a reading measure, because only prose gets harder to read as it gets wider.
  */
 export const CultivarDetailPanel: React.FC<Props> = ({
-  cultivar, onClose, onSelectCultivar, jump, nav, section, run, publicHref, usage, relationPanel,
+  cultivar, kind = 'Cultivar', entryId = cultivar.id, additionalFacts = [], onClose, onSelectCultivar, jump, nav, section, run, publicHref, usage, relationPanel,
 }) => {
   const [story, setStory] = useState<CultivarStory | null>(null);
   const [loadingStory, setLoadingStory] = useState(true);
@@ -83,13 +90,13 @@ export const CultivarDetailPanel: React.FC<Props> = ({
         <div className="mx-auto max-w-5xl pb-8">
           <WisdomDetailHeader
             detail={{
-              kind: 'Cultivar',
+              kind,
               name: cultivar.name,
               chineseName: cultivar.chineseName,
               altNames: cultivar.altNames,
               facts: [],
             }}
-            id={cultivar.id}
+            id={entryId}
             section={section}
             run={run}
             publicHref={publicHref}
@@ -99,6 +106,7 @@ export const CultivarDetailPanel: React.FC<Props> = ({
           <FactGrid
             className="mt-5 border-t border-tea-border pt-5"
             facts={[
+              ...additionalFacts,
               {
                 label: 'Region',
                 value: cultivar.originRegion && (

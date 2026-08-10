@@ -31,7 +31,7 @@ import {
   withInventoryPanel,
   type WisdomPrefs,
 } from './config';
-import { WISDOM_HOLDINGS } from './holdings';
+import { WISDOM_HOLDINGS, researchCultivarForVariety } from './holdings';
 import { readWisdomScope } from './usage';
 import { rungSummary } from './Rung';
 
@@ -399,14 +399,51 @@ describe('wisdom holdings', () => {
     expect(named.length).toBeGreaterThan(0);
   });
 
-  it('says what a variety entry is, because it is the shallowest record held', () => {
+  it('marks an unresearched matching name as unfinished without dressing it up as an article', () => {
     const varieties = holdingBy('varieties');
-    for (const row of varieties.rows) {
-      expect(varieties.detail(row).note, `${row.id} reads as a gap without a note`).toMatch(/short by design/i);
-    }
+    const darjeelingWhite = varieties.rows.find(row => row.name === 'Darjeeling White')!;
+    expect(varieties.detail(darjeelingWhite).note).toBe(
+      'This name is kept so imports can recognise it. It is not yet linked to a researched reference profile.',
+    );
+    expect(varieties.detail(darjeelingWhite).note).not.toMatch(/nothing further was ever recorded|short by design/i);
     // And it resolves through the importer's own alias index, not a substring.
     const longjing = varieties.rows.find(row => row.name === 'Longjing')!;
     expect(varieties.matchEntity!('Dragon Well')?.id).toBe(longjing.id);
+  });
+
+  it('uses the researched cultivar profile when a variety is the same named plant', () => {
+    const varieties = holdingBy('varieties');
+    const banTianYao = varieties.rows.find(row => row.name === 'Ban Tian Yao')!;
+
+    expect(researchCultivarForVariety(banTianYao)).toMatchObject({
+      id: 'ban-tian-yao',
+      name: 'Ban Tian Yao',
+      parentage: 'Selected from the native Wuyi heirloom population.',
+    });
+  });
+
+  it('opens the researched profile instead of the recognition-only panel', () => {
+    const varieties = holdingBy('varieties');
+    const banTianYao = varieties.rows.find(row => row.name === 'Ban Tian Yao')!;
+    const panel = varieties.renderDetail?.(banTianYao, {
+      onClose: () => undefined,
+      onSelect: () => undefined,
+      jump: () => undefined,
+    }) as {
+      props?: {
+        cultivar?: { id: string };
+        kind?: string;
+        entryId?: string;
+        additionalFacts?: Array<{ label: string }>;
+      };
+    } | undefined;
+
+    expect(panel?.props?.cultivar?.id).toBe('ban-tian-yao');
+    expect(panel?.props?.kind).toBe('Variety');
+    expect(panel?.props?.entryId).toBe(banTianYao.id);
+    expect(panel?.props?.additionalFacts).toEqual([
+      expect.objectContaining({ label: 'Type' }),
+    ]);
   });
 });
 
