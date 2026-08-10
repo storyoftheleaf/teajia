@@ -939,8 +939,8 @@ describe('growing regions', () => {
   it('treats a broad province as a parent place instead of an empty origin', () => {
     const html = render('/wisdom/region/anhui').replace(/&amp;/g, '&');
 
-    expect(html).toContain('Reference ID');
-    expect(html).toContain('RG 006');
+    expect(html).not.toContain('Reference ID');
+    expect(html).not.toContain('RG 006');
     expect(html).toContain('Open in Apple Maps');
     expect(html).toContain('href="https://maps.apple.com/?q=Anhui%2C%20China"');
     expect(html).not.toContain('>Altitude<');
@@ -1335,8 +1335,8 @@ describe('what the extra width is for', () => {
     // the same x on every row, which is the thing a reader can run an eye down.
     for (const path of INDEX_PAGES) {
       const html = render(path);
-      expect(html).toContain('lg:grid-cols-[7.5rem_minmax(0,1fr)_minmax(0,24rem)]');
-      expect(html).toContain('sm:col-start-2 lg:col-start-3 lg:row-start-1');
+      expect(html).toContain('lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]');
+      expect(html).toContain('lg:col-start-2 lg:row-start-1');
     }
   });
 
@@ -1347,24 +1347,24 @@ describe('what the extra width is for', () => {
   });
 });
 
-describe('catalogue numbers', () => {
-  it('gives every entry a number, in bronze beside its headword', () => {
+describe('internal catalogue numbers', () => {
+  it('keeps reference IDs off every public detail page', () => {
     for (const path of DETAIL_PAGES) {
       const html = render(path);
-      expect(html).toContain('Reference ID');
-      expect(html).toMatch(/text-tea-readgold[^>]*>[A-Z]{2} \d{3}</);
+      expect(html).not.toContain('Reference ID');
+      expect(html).not.toMatch(/>(PL|RG|PD|MK|SY|NT) \d{3}</);
     }
   });
 
-  it('carries the number into the index, dim and right aligned', () => {
+  it('keeps reference IDs off public index rows', () => {
     const html = render('/wisdom/cultivars');
-    expect(html).toMatch(/figures-tab text-tea-text-dim hidden sm:block text-right[^>]*>PL \d{3}</);
+    expect(html).not.toMatch(/>PL \d{3}</);
   });
 
-  it('numbers a front-door search hit by the holding it came out of', () => {
+  it('keeps reference IDs off front-door search results', () => {
     const html = render('/wisdom?q=rou%20gui');
     expect(html).toContain('/wisdom/cultivar/rou-gui');
-    expect(html).toMatch(/>PL \d{3}</);
+    expect(html).not.toMatch(/>PL \d{3}</);
   });
 
   it('never numbers a holding row, which is not a record', () => {

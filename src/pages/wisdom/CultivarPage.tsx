@@ -13,7 +13,6 @@ import { findCultivarById } from '../../wisdom';
 import {
   AXIS,
   AXIS_INDENT,
-  catalogueNumber,
   CELL_CLASS,
   EntryAuthorship,
   FACT,
@@ -158,7 +157,6 @@ const CultivarPage: React.FC = () => {
           chineseName={cultivar.chineseName}
           aka={cultivar.altNames.length > 0 ? `Also written ${cultivar.altNames.join(', ')}` : undefined}
           rungFor={cultivar.id}
-          number={catalogueNumber('plants', cultivar.id)}
         />
         {/* The country and the year, and not the region. The region is a place
             with a page of its own, an altitude and a climate, and it is said

@@ -12,7 +12,6 @@ import { Helmet } from 'react-helmet-async';
 import { REGIONS, findRegion } from '../../wisdom';
 import {
   AXIS_INDENT,
-  catalogueNumber,
   EntryAuthorship,
   Fact,
   FACT_CLASS,
@@ -158,7 +157,6 @@ const RegionPage: React.FC = () => {
           kind="Growing place"
           title={region.name}
           rungFor={region.id}
-          number={catalogueNumber('places', region.id)}
         />
       </div>
 

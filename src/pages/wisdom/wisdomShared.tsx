@@ -63,8 +63,6 @@ import {
   switchMark,
   type WisdomSection,
 } from './frame';
-import { catalogueNumberFor } from './catalogue';
-
 export * from './frame';
 export * from './catalogue';
 
@@ -151,11 +149,6 @@ export const RungMark: React.FC<{ id: string }> = ({ id }) => (
  * a search engine knows in one glance what they are looking at and what it is
  * called, before they have read a word of the record.
  *
- * The catalogue number sits beside the name, small and in bronze, on the same
- * baseline. It is the single warm mark on the page and the best place in the
- * reference to spend bronze: one per entry, never a wash. See `catalogue.ts`
- * for what the number is and why it cannot move.
- *
  * `optical-left` pulls the letterform rather than the box onto the axis. At
  * 44px Cormorant's side bearing is enough to make a naively aligned headword
  * read as indented against the labels and rules under it.
@@ -173,9 +166,7 @@ export const PageHead: React.FC<{
   /** Alternative spellings. Metadata, not a deck. */
   aka?: string;
   rungFor?: string;
-  /** The record's catalogue number, already formatted. Indexes have none. */
-  number?: string | null;
-}> = ({ kind, title, chineseName, note, aka, rungFor, number }) => (
+}> = ({ kind, title, chineseName, note, aka, rungFor }) => (
   <header>
     <div className="flex items-baseline gap-2.5">
       <span className={`${LABEL} whitespace-nowrap`}>{kind}</span>
@@ -192,18 +183,8 @@ export const PageHead: React.FC<{
         longest word, so at 390px a name like "Huangshan Qunti Zhong" set at
         32px would otherwise widen the header past the viewport rather than
         wrap. Every long string in the head is treated the same way. */}
-    <div className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+    <div className="mt-2">
       <h1 className={`${TITLE_CLASS} optical-left text-tea-text min-w-0 break-words`}>{title}</h1>
-      {number && (
-        <span
-          className={`${CELL_CLASS} figures-tab shrink-0 whitespace-nowrap`}
-          aria-label={`Reference ID ${number}`}
-        >
-          <span className="text-tea-text-dim">Reference ID</span>
-          <span aria-hidden className="text-tea-text-dim"> · </span>
-          <span className="text-tea-readgold">{number}</span>
-        </span>
-      )}
     </div>
     {chineseName && (
       <p className={`${NAME_CLASS} text-tea-text-sec mt-1.5 min-w-0 break-words`}>{chineseName}</p>
@@ -725,11 +706,6 @@ const ROW_HOVER = 'hover:bg-tea-accent-sub';
  * name is still display type rather than a field. It is a contents page that
  * knows what its columns are, which is what this surface always said it was.
  *
- * The number repeats at the head of the run-in line below sm, where the margin
- * column has collapsed. It is the one device on the page that makes 630 entries
- * feel finite, so losing it on a phone would lose it where most reading
- * happens.
- *
  * The whole row is one click but not one anchor: the name link stretches over
  * the row with `after:inset-0`, which leaves a piece of metadata free to be its
  * own link without an anchor ever nesting inside another.
@@ -746,7 +722,6 @@ export const HoldingRow: React.FC<{
   cells?: RowCell[];
   note?: string;
 }> = ({ to, name, chineseName, cells = [], note }) => {
-  const number = catalogueNumberFor(to);
   const runIn = cells.filter(hasContent);
   return (
     /* The rule and the hover field are the same width, and both bleed 12px past
@@ -756,16 +731,6 @@ export const HoldingRow: React.FC<{
        lives on the row so the content still starts on the axis. */
     <li className={`${ROW_RULE} -mx-3`}>
       <div className={`group relative ${ROW_AXIS} ${ROW_HOVER} min-h-[44px] py-2.5 px-3 transition-colors`}>
-        {number ? (
-          <span
-            aria-hidden
-            className={`${CELL_CLASS} figures-tab text-tea-text-dim hidden sm:block text-right whitespace-nowrap`}
-          >
-            {number}
-          </span>
-        ) : (
-          <span aria-hidden className="hidden sm:block" />
-        )}
         <span className="min-w-0 block">
           {/* gap-3, not gap-2. Two scripts set side by side need more air
               between them than two words of one script do, and this pair had
@@ -781,24 +746,12 @@ export const HoldingRow: React.FC<{
           </span>
           {note && <span className={`${FACT} ${MEASURE} block mt-1.5`}>{note}</span>}
         </span>
-        {(runIn.length > 0 || number) && (
-          /* `sm:col-start-2` keeps it under the name while the row is two
-             tracks, instead of letting it flow back into the number margin.
-             `lg:row-start-1` lifts it onto the name's own baseline once there
-             is a third track to put it in. */
+        {runIn.length > 0 && (
+          /* `lg:row-start-1` lifts the facts onto the name's own baseline once
+             there is a second track to put them in. */
           <span
-            className={`${CELL_CLASS} text-tea-text-dim block mt-0.5 break-words min-w-0 sm:col-start-2 lg:col-start-3 lg:row-start-1 lg:mt-0 lg:text-right`}
+            className={`${CELL_CLASS} text-tea-text-dim block mt-0.5 break-words min-w-0 lg:col-start-2 lg:row-start-1 lg:mt-0 lg:text-right`}
           >
-            {number && (
-              <span className="sm:hidden figures-tab">
-                {number}
-                {runIn.length > 0 && (
-                  <span aria-hidden className="px-1.5">
-                    ·
-                  </span>
-                )}
-              </span>
-            )}
             {runIn.map((cell, index) => (
               <React.Fragment key={index}>
                 {index > 0 && (

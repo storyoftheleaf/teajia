@@ -12,7 +12,6 @@ import { Helmet } from 'react-helmet-async';
 import { findNamedTeaById } from '../../wisdom';
 import {
   AXIS_INDENT,
-  catalogueNumber,
   EntryAuthorship,
   FACT,
   Fact,
@@ -107,7 +106,6 @@ const NamedTeaPage: React.FC = () => {
           chineseName={tea.chineseName}
           aka={tea.altNames.length > 0 ? `Also written ${tea.altNames.join(', ')}` : undefined}
           rungFor={tea.id}
-          number={catalogueNumber('named', tea.id)}
         />
       </div>
 

@@ -126,11 +126,10 @@ export const SPACE = {
 export const AXIS = 'sm:grid sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:gap-x-6 sm:items-baseline';
 
 /**
- * The same axis, with a third track for an index row's metadata.
+ * The index-row axis, with a separate metadata track on wide screens.
  *
- * Up to lg it is `AXIS` exactly: catalogue number in the margin, name on the
- * value edge, and the facts running in on a second line beneath the name. That
- * is the only shape a 390px phone or a 900px tablet has room for.
+ * Up to lg the facts run in beneath the name. That is the only shape a 390px
+ * phone or a 900px tablet has room for.
  *
  * From lg the row opens out. The name takes the free space and the facts move up
  * onto its baseline in a 24rem track of their own, set flush to the far edge of
@@ -145,7 +144,7 @@ export const AXIS = 'sm:grid sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:gap-x-6 sm:i
  * the eye from a name to its facts, the job leader dots do in print.
  */
 export const ROW_AXIS =
-  'sm:grid sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:gap-x-6 sm:items-baseline lg:grid-cols-[7.5rem_minmax(0,1fr)_minmax(0,24rem)]';
+  'lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:gap-x-6 lg:items-baseline';
 
 /**
  * A hairline between one row of a list and the next.

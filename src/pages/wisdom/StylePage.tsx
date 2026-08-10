@@ -7,7 +7,6 @@ import { Helmet } from 'react-helmet-async';
 import { findStyleById } from '../../wisdom';
 import {
   AXIS_INDENT,
-  catalogueNumber,
   EntryAuthorship,
   Fact,
   FACT_CLASS,
@@ -88,7 +87,6 @@ const StylePage: React.FC = () => {
           chineseName={style.chineseName}
           aka={style.altNames.length > 0 ? `Also written ${style.altNames.join(', ')}` : undefined}
           rungFor={style.id}
-          number={catalogueNumber('styles', style.id)}
         />
       </div>
 

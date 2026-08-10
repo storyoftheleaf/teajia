@@ -10,7 +10,6 @@ import { Helmet } from 'react-helmet-async';
 import { findMarkById, findProducerById } from '../../wisdom';
 import {
   AXIS_INDENT,
-  catalogueNumber,
   EntryAuthorship,
   Fact,
   FACT_CLASS,
@@ -93,7 +92,6 @@ const MarkPage: React.FC = () => {
           chineseName={mark.chineseName}
           aka={mark.altNames.length > 0 ? `Also written ${mark.altNames.join(', ')}` : undefined}
           rungFor={mark.id}
-          number={catalogueNumber('marks', mark.id)}
         />
       </div>
 

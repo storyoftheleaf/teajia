@@ -1,5 +1,5 @@
 /**
- * Catalogue numbers for the public reference.
+ * Stable internal catalogue numbers retained for data continuity.
  *
  * ─── The decision, written down because it can never be taken twice ─────────
  *
@@ -29,7 +29,7 @@
  * unfilled, which is what a withdrawn accession number does in any catalogue.
  *
  * Adding a record therefore needs no edit here. Re-ordering this file, or
- * removing an id from a ledger, silently renumbers the reference in public, and
+ * removing an id from a ledger silently renumbers the internal reference, and
  * `catalogue.test.ts` fails if either happens.
  */
 import { CULTIVARS, MARKS, NAMED_TEAS, PRODUCERS, REGIONS, STYLES } from '../../wisdom';

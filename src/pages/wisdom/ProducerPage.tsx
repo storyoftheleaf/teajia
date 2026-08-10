@@ -11,7 +11,6 @@ import { Helmet } from 'react-helmet-async';
 import { findProducerById, marksOf, markNamesOf, type Producer } from '../../wisdom';
 import {
   AXIS_INDENT,
-  catalogueNumber,
   EntryAuthorship,
   Fact,
   FACT_CLASS,
@@ -106,7 +105,6 @@ const ProducerPage: React.FC = () => {
           chineseName={producer.chineseName}
           aka={producer.altNames.length > 0 ? `Also written ${producer.altNames.join(', ')}` : undefined}
           rungFor={producer.id}
-          number={catalogueNumber('makers', producer.id)}
         />
       </div>
 
