@@ -1066,7 +1066,7 @@ CREATE INDEX IF NOT EXISTS idx_inquiries_ref_number ON inquiries(ref_number);
 CREATE INDEX IF NOT EXISTS idx_inquiries_account_source ON inquiries(account_id, source, created_at DESC);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_inquiries_tracking_token_hash
   ON inquiries(tracking_token_hash) WHERE tracking_token_hash IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_inquiries_account_ref ON inquiries(account_id, ref_number);
+CREATE INDEX IF NOT EXISTS idx_inquiries_account_ref ON inquiries(account_id, ref_number, created_at DESC);
 
 -- Performance indices for common query patterns
 CREATE INDEX IF NOT EXISTS idx_products_account_status ON products(account_id, status);

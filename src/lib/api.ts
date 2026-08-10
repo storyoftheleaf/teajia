@@ -2569,7 +2569,7 @@ export const api = {
       total_estimate_usd: number;
       currency: string;
       source: 'whatsapp' | 'email' | 'copy';
-    }): Promise<{ id: string; ref_number: string; tracking_token: string; source: string; success: true }> => {
+    }): Promise<{ id: string; ref_number: string; tracking_token: string; source: string; success: true; idempotent?: true }> => {
       const res = await fetchWithTimeout(`${API_URL}/api/inquiries`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

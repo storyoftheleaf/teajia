@@ -7,4 +7,4 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_inquiries_tracking_token_hash
   WHERE tracking_token_hash IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_inquiries_account_ref
-  ON inquiries(account_id, ref_number);
+  ON inquiries(account_id, ref_number, created_at DESC);

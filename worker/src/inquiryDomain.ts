@@ -57,8 +57,10 @@ export function normalizeCartInquiry(body: Record<string, unknown>): CartInquiry
     return { ok: false, error: 'Every item must belong to the requested store' };
   }
 
-  const requestedCurrency = typeof body.currency === 'string' ? body.currency.trim().toUpperCase() : '';
-  const currency = /^[A-Z]{3}$/.test(requestedCurrency) ? requestedCurrency : 'USD';
+  const currency = typeof body.currency === 'string' ? body.currency.trim().toUpperCase() : '';
+  if (!/^[A-Z]{3}$/.test(currency)) {
+    return { ok: false, error: 'Currency must be a three-letter code' };
+  }
 
   return {
     ok: true,

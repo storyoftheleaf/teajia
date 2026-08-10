@@ -87,4 +87,11 @@ describe('public cart inquiry identity', () => {
 
     expect(ref).toBe('TJ-20260810-A1B2C3D4');
   });
+
+  it('creates distinct human references on the same date from distinct UUIDs', () => {
+    const date = new Date('2026-08-10T09:15:00.000Z');
+
+    expect(createHumanOrderRef(date, () => '11111111-e5f6-4789-abcd-0123456789ab'))
+      .not.toBe(createHumanOrderRef(date, () => '22222222-e5f6-4789-abcd-0123456789ab'));
+  });
 });

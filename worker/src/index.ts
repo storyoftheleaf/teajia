@@ -10339,15 +10339,19 @@ const handleCreateInquiry: Handler = async (request, env) => {
     if (!accountId) return json({ error: 'Store not found' }, 404);
     const tokenHash = await sha256Hex(normalized.value.trackingToken);
     const existing = await env.DB.prepare(
-      'SELECT id, ref_number FROM inquiries WHERE tracking_token_hash = ? LIMIT 1'
-    ).bind(tokenHash).first() as { id: string; ref_number: string } | null;
+      'SELECT id, account_id, ref_number FROM inquiries WHERE tracking_token_hash = ? LIMIT 1'
+    ).bind(tokenHash).first() as { id: string; account_id: string; ref_number: string } | null;
     if (existing) {
+      if (existing.account_id !== accountId) {
+        return json({ error: 'Tracking token conflict' }, 409);
+      }
       return json({
         id: existing.id,
         ref_number: existing.ref_number,
         tracking_token: normalized.value.trackingToken,
         source,
         success: true,
+        idempotent: true,
       }, 200);
     }
 
@@ -10373,15 +10377,19 @@ const handleCreateInquiry: Handler = async (request, env) => {
       }, 201);
     } catch (error) {
       const raced = await env.DB.prepare(
-        'SELECT id, ref_number FROM inquiries WHERE tracking_token_hash = ? LIMIT 1'
-      ).bind(tokenHash).first() as { id: string; ref_number: string } | null;
+        'SELECT id, account_id, ref_number FROM inquiries WHERE tracking_token_hash = ? LIMIT 1'
+      ).bind(tokenHash).first() as { id: string; account_id: string; ref_number: string } | null;
       if (!raced) throw error;
+      if (raced.account_id !== accountId) {
+        return json({ error: 'Tracking token conflict' }, 409);
+      }
       return json({
         id: raced.id,
         ref_number: raced.ref_number,
         tracking_token: normalized.value.trackingToken,
         source,
         success: true,
+        idempotent: true,
       }, 200);
     }
   }
