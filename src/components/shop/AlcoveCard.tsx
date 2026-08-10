@@ -49,6 +49,8 @@ interface AlcoveCardProps {
   onEditProductTasting?: (item: InventoryItem) => void;
   /** Canonical public route, including store context on standalone pages. */
   publicHref?: string;
+  /** Product-page-only control kept beside ordering reassurance. */
+  orderAccess?: React.ReactNode;
   /**
    * 'card' (default) is the modal quiet card inside AlcoveShell (internal
    * scroll, pinned commerce bar). 'page' is the standalone product-page
@@ -84,7 +86,7 @@ function hexToRgbString(hex: string): string | undefined {
   return `${(int >> 16) & 255} ${(int >> 8) & 255} ${int & 255}`;
 }
 
-export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting, publicHref, layout = 'card' }) => {
+export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting, publicHref, orderAccess, layout = 'card' }) => {
   const navigate = useNavigate();
   const { favoriteTeas, toggleFavoriteTea, activeAccountId } = useAppStore();
 
@@ -202,8 +204,11 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const shopPrice = useShopPrice();
   const resolvedFormatPrice = formatPrice ?? ((usdPerGram: number, g: number) => shopPrice.total(usdPerGram * g));
   const total = resolvedFormatPrice(pricePerGram, grams);
-  // No unit here: the commerce footer appends its own "/g" after this string.
-  const perGramDisplay = resolvedFormatPrice(pricePerGram, 1);
+  // A rate is a complete display value. Public prices use the rate formatter;
+  // admin overrides add their unit here, at the card boundary, exactly once.
+  const rateLabel = formatPrice
+    ? `${formatPrice(pricePerGram, 1)}/g`
+    : shopPrice.perGram(pricePerGram);
 
   const stockStatus = getStockStatus(item.stock_g);
   const isSoldOut = stockStatus.level === 'out';
@@ -295,7 +300,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       sliderMax={sliderMax}
       presets={presets}
       pricePerGram={pricePerGram}
-      perGramDisplay={perGramDisplay}
+      rateLabel={rateLabel}
       total={total}
       added={added}
       shareCopied={shareCopied}
@@ -469,6 +474,15 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     </p>
   );
 
+  const commerceReassurance = (
+    <div className="flex min-h-[44px] items-center justify-between gap-3 border-t border-tea-border bg-tea-bg px-3.5">
+      {orderAccess}
+      <p className="m-0 ml-auto text-right font-sans text-ui-10 tracking-[0.04em] text-tea-text-dim">
+        Ordered over WhatsApp, Adrian confirms within a day
+      </p>
+    </div>
+  );
+
   // ── Page layout: the "quiet page" at /shop/product/:id on cold loads ─────
   if (layout === 'page') {
     return (
@@ -482,6 +496,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 vertically inside it (order button full width). */}
             <div className="mx-6 mt-6 hidden border border-tea-border lg:block">
               {commerceFooter('rail')}
+              {commerceReassurance}
             </div>
           </div>
 
@@ -492,7 +507,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             {aboutSection}
             {referenceSection}
             {tableSection}
-            {whatsAppNote}
           </div>
         </div>
 
@@ -500,6 +514,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             mobile bottom nav (bottom-nav utility, never inline calc). */}
         <div className="fixed inset-x-0 bottom-nav z-sticky border-b border-tea-border lg:hidden">
           {commerceFooter('pinned')}
+          {commerceReassurance}
         </div>
         {/* Clearance for the fixed bar's own height; the bottom nav clearance
             itself comes from the app shell's pb-nav-gap-lg on <main>. */}

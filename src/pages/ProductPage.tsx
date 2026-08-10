@@ -16,9 +16,35 @@ import type { InventoryItem } from '../types';
 import type { Product } from '../admin/types';
 import { useAppStore } from '../lib/store';
 import { buildPublicProductHref } from '../lib/publicProductNavigation';
+import { LABEL, NUMERAL } from '../components/shared/typeRoles';
 
 interface ProductPageProps {
   onAddToCart?: (item: InventoryItem, qty: number, total: number) => void;
+  onCartClick?: () => void;
+  cartItemCount?: number;
+}
+
+interface ProductOrderAccessProps {
+  onCartClick?: () => void;
+  cartItemCount: number;
+}
+
+export function ProductOrderAccess({ onCartClick, cartItemCount }: ProductOrderAccessProps) {
+  if (!onCartClick || cartItemCount <= 0) return null;
+
+  const itemLabel = cartItemCount === 1 ? 'item' : 'items';
+  return (
+    <button
+      type="button"
+      onClick={onCartClick}
+      aria-label={`Open order with ${cartItemCount} ${itemLabel}`}
+      className={`${LABEL} tap-target inline-flex shrink-0 items-center gap-2 text-tea-text-sec transition-colors hover:text-tea-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50`}
+    >
+      <Icons.Bag className="h-4 w-4" aria-hidden="true" />
+      <span>View order</span>
+      <span className={`normal-case text-tea-gold ${NUMERAL}`}>{cartItemCount}</span>
+    </button>
+  );
 }
 
 /**
@@ -48,7 +74,7 @@ const PUBLISHED_CURRENCY = 'USD';
  * reading content on the right; below lg it is a single column with the
  * commerce bar fixed above the bottom nav.
  */
-export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
+export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartClick, cartItemCount = 0 }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -315,6 +341,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
         onTermClick={handleTermClick}
         onTaste={handleTaste}
         publicHref={productHref}
+        orderAccess={<ProductOrderAccess onCartClick={onCartClick} cartItemCount={cartItemCount} />}
         isAdmin={isAdmin}
         onEditProductTasting={isAdmin ? (editItem) => setAdminTastingItem(editItem) : undefined}
       />

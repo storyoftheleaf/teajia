@@ -989,7 +989,11 @@ const AppContent = () => {
                 <Route path="/shop/product/:id" element={
                   <ErrorBoundary>
                     <Suspense fallback={<EmblemLoader />}>
-                      <ProductPage onAddToCart={handleAddToCart} />
+                      <ProductPage
+                        onAddToCart={handleAddToCart}
+                        onCartClick={handleOpenCart}
+                        cartItemCount={cart.length}
+                      />
                     </Suspense>
                   </ErrorBoundary>
                 } />

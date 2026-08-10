@@ -23,7 +23,10 @@ interface AlcoveCommerceFooterProps {
   sliderMax: number;
   presets: number[];
   pricePerGram: number;
-  perGramDisplay: string;
+  /** Complete display rate, including its unit (for example "$0.15/g"). */
+  rateLabel?: string;
+  /** Legacy unit-price fragment retained for the teaware caller. */
+  perGramDisplay?: string;
   total: string;
   added: boolean;
   shareCopied: boolean;
@@ -86,6 +89,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
   sliderMax,
   presets,
   pricePerGram,
+  rateLabel,
   perGramDisplay,
   total,
   added,
@@ -104,6 +108,9 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
 }) => {
   const isTea = item.category === 'tea';
   const isRail = variant === 'rail';
+  const completeRateLabel = rateLabel ?? (perGramDisplay
+    ? `${formatPrice ? perGramDisplay : `$${perGramDisplay}`}${isTea ? '/g' : ' each'}`
+    : '');
 
   const selectWeight = (g: number) => {
     setGrams(g);
@@ -317,11 +324,11 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
               <span className="alcove-order-verb">Add to order</span>
               <span className="alcove-order-amt">
                 {formatPrice ? total : `$${total}`}
-                {isTea && pricePerGram > 0 && (
-                  <> · {formatPrice ? perGramDisplay : `$${perGramDisplay}`}/g</>
+                {isTea && pricePerGram > 0 && completeRateLabel && (
+                  <> · {completeRateLabel}</>
                 )}
-                {!isTea && grams > 1 && pricePerGram > 0 && (
-                  <> · {formatPrice ? perGramDisplay : `$${perGramDisplay}`} each</>
+                {!isTea && grams > 1 && pricePerGram > 0 && completeRateLabel && (
+                  <> · {completeRateLabel}</>
                 )}
               </span>
             </>
