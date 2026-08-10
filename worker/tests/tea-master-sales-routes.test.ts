@@ -178,6 +178,81 @@ describe('Tea Master invoice authorization, holds and settlements', () => {
       .toEqual({ held: 30 });
   });
 
+  it('uses the snapshotted seller when another Sell editor replaces or links lines', async () => {
+    const db = database(); seed(db); const grant = await (await createGrant(db, { quantity_limit: 100 })).json() as any;
+    const created = await call(db, '/api/invoices', { method: 'POST', userId: 'seller', body: invoiceBody('Pending', 10) });
+    const invoice = await created.json() as any;
+
+    const replaced = await call(db, `/api/invoices/${invoice.id}/items`, {
+      method: 'PUT', userId: 'other-seller', body: { lineItems: [
+        { product_id: 'person-tea', quantity: 12, price_at_sale: 0.5 },
+        { product_id: 'location-tea', quantity: 5, price_at_sale: 0.4 },
+      ] },
+    });
+    expect(replaced.status).toBe(200);
+    expect(db.sqlite.prepare('SELECT sold_by_user_id,payment_recipient_user_id FROM invoices WHERE id=?').get(invoice.id))
+      .toEqual({ sold_by_user_id: 'seller', payment_recipient_user_id: null });
+    expect(db.sqlite.prepare(`SELECT stock_owner_user_id,sales_grant_id FROM invoice_line_items
+      WHERE invoice_id=? AND product_id='person-tea'`).get(invoice.id))
+      .toEqual({ stock_owner_user_id: 'stock-owner', sales_grant_id: grant.id });
+
+    const customCreated = await call(db, '/api/invoices', {
+      method: 'POST', userId: 'seller', body: {
+        invoice: { customer_name: 'Buyer', display_currency: 'USD', status: 'Draft' },
+        lineItems: [{ product_id: null, custom_name: 'Custom', quantity: 8, price_at_sale: 0.5 }],
+      },
+    });
+    const customInvoice = await customCreated.json() as any;
+    const customLine = db.sqlite.prepare('SELECT id FROM invoice_line_items WHERE invoice_id=?').get(customInvoice.id) as any;
+    const linked = await call(db, '/api/rpc/link-line-item', {
+      method: 'POST', userId: 'other-seller', body: {
+        invoice_id: customInvoice.id, line_item_id: customLine.id, product_id: 'person-tea',
+      },
+    });
+    expect(linked.status).toBe(200);
+    expect(db.sqlite.prepare('SELECT sold_by_user_id,payment_recipient_user_id FROM invoices WHERE id=?').get(customInvoice.id))
+      .toEqual({ sold_by_user_id: 'seller', payment_recipient_user_id: 'stock-owner' });
+    expect(db.sqlite.prepare('SELECT stock_owner_user_id,sales_grant_id FROM invoice_line_items WHERE id=?').get(customLine.id))
+      .toEqual({ stock_owner_user_id: 'stock-owner', sales_grant_id: grant.id });
+  });
+
+  it('rejects invalid split IDs before writes and recalculates both payment recipients', async () => {
+    const db = database(); seed(db); await createGrant(db, { quantity_limit: 100 });
+    const body = invoiceBody('Pending', 10);
+    body.lineItems.push(
+      { product_id: 'person-tea', quantity: 5, price_at_sale: 0.5 },
+      { product_id: 'location-tea', quantity: 7, price_at_sale: 0.4 },
+    );
+    const invoice = await (await call(db, '/api/invoices', { method: 'POST', userId: 'seller', body })).json() as any;
+    const lines = db.sqlite.prepare('SELECT id,product_id FROM invoice_line_items WHERE invoice_id=? ORDER BY id').all(invoice.id) as any[];
+    const beforeSeq = db.sqlite.prepare(`SELECT invoice_seq FROM accounts WHERE id='account-a'`).get();
+    const beforeLines = db.sqlite.prepare('SELECT id,invoice_id FROM invoice_line_items ORDER BY id').all();
+    const beforeHolds = db.sqlite.prepare('SELECT invoice_id,product_id,held_grams FROM stock_holds ORDER BY product_id').all();
+
+    const duplicate = await call(db, '/api/rpc/split-invoice', {
+      method: 'POST', userId: 'seller', body: { invoice_id: invoice.id, line_item_ids: [lines[0].id, lines[0].id] },
+    });
+    expect(duplicate.status).toBe(400);
+    const unknown = await call(db, '/api/rpc/split-invoice', {
+      method: 'POST', userId: 'seller', body: { invoice_id: invoice.id, line_item_ids: ['unknown-line'] },
+    });
+    expect(unknown.status).toBe(400);
+    expect(db.sqlite.prepare(`SELECT invoice_seq FROM accounts WHERE id='account-a'`).get()).toEqual(beforeSeq);
+    expect(db.sqlite.prepare('SELECT id,invoice_id FROM invoice_line_items ORDER BY id').all()).toEqual(beforeLines);
+    expect(db.sqlite.prepare('SELECT invoice_id,product_id,held_grams FROM stock_holds ORDER BY product_id').all()).toEqual(beforeHolds);
+
+    const locationLine = lines.find(line => line.product_id === 'location-tea');
+    const split = await call(db, '/api/rpc/split-invoice', {
+      method: 'POST', userId: 'other-seller', body: { invoice_id: invoice.id, line_item_ids: [locationLine.id] },
+    });
+    expect(split.status).toBe(201);
+    const result = await split.json() as any;
+    expect(db.sqlite.prepare('SELECT sold_by_user_id,payment_recipient_user_id FROM invoices WHERE id=?').get(invoice.id))
+      .toEqual({ sold_by_user_id: 'seller', payment_recipient_user_id: 'stock-owner' });
+    expect(db.sqlite.prepare('SELECT sold_by_user_id,payment_recipient_user_id FROM invoices WHERE id=?').get(result.new_id))
+      .toEqual({ sold_by_user_id: 'seller', payment_recipient_user_id: null });
+  });
+
   it('deducts exact stock, releases its hold, creates settlement, then void restores and reverses', async () => {
     const db = database(); seed(db); const grant = await (await createGrant(db)).json() as any;
     const created = await call(db, '/api/invoices', { method: 'POST', userId: 'seller', body: invoiceBody('Pending', 20, 0.5) });

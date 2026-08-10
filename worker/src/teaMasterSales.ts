@@ -108,6 +108,13 @@ export interface AuthorizedInvoiceLine extends InvoiceSaleLineInput {
   owner_share_value: number;
 }
 
+export function resolvePaymentRecipientUserId(
+  lines: Array<Pick<AuthorizedInvoiceLine, 'product_id' | 'stock_owner_user_id'>>,
+): string | null {
+  const owners = new Set(lines.filter(line => line.product_id).map(line => line.stock_owner_user_id));
+  return owners.size === 1 ? [...owners][0] : null;
+}
+
 function grantFromRow(row: Record<string, unknown>): SalesGrantTerms {
   return {
     id: String(row.id), accountId: String(row.account_id), productId: String(row.product_id),

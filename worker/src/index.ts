@@ -19,6 +19,7 @@ import {
   buildSettlementReversalStatements,
   buildSettlementStatements,
   resolveSalePermission,
+  resolvePaymentRecipientUserId,
   SalesInvariantError,
   type AuthorizedInvoiceLine,
 } from './teaMasterSales';
@@ -3444,6 +3445,21 @@ function salesError(error: unknown): Response {
   return restError(503, 'Sales dependency unavailable', 'sales_dependency_unavailable');
 }
 
+async function invoiceSellerAuthorizationContext(env: Env, accountId: string, invoice: Record<string, any>) {
+  const sellerUserId = String(invoice.sold_by_user_id || '');
+  if (!sellerUserId) throw new SalesInvariantError(409, 'invoice_seller_snapshot_missing');
+  let membership: Record<string, any> | null;
+  try {
+    membership = await env.DB.prepare(
+      'SELECT role FROM account_members WHERE account_id=? AND user_id=?'
+    ).bind(accountId, sellerUserId).first() as Record<string, any> | null;
+  } catch {
+    throw new SalesInvariantError(503, 'sales_authorization_unavailable');
+  }
+  if (!membership) throw new SalesInvariantError(409, 'invoice_seller_membership_missing');
+  return { actorUserId: sellerUserId, actorRole: String(membership.role || 'staff') };
+}
+
 const grantWriteBody = (body: Record<string, unknown>) => {
   const shareType = body.owner_share_type === 'fixed' ? 'fixed' : body.owner_share_type === 'percent' || body.owner_share_type == null ? 'percent' : null;
   const shareValue = body.owner_share_value == null ? 100 : Number(body.owner_share_value);
@@ -4392,21 +4408,27 @@ const handleSplitInvoice: Handler = async (request, env) => {
   const allItems = await env.DB.prepare(
     'SELECT * FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
   ).bind(invoice_id, accountId).all();
-  if (line_item_ids.length === 0 || line_item_ids.length >= allItems.results.length) {
+  if (!Array.isArray(line_item_ids) || line_item_ids.length === 0 || new Set(line_item_ids).size !== line_item_ids.length
+    || line_item_ids.length >= allItems.results.length) {
     return json({ error: 'Must select a proper subset of items to split' }, 400);
   }
+  const invoiceLineIds = new Set((allItems.results as any[]).map(item => item.id));
+  if (line_item_ids.some(itemId => !invoiceLineIds.has(itemId))) {
+    return json({ error: 'Every selected line item must belong to the invoice' }, 400);
+  }
 
-  let authorizedItems: AuthorizedInvoiceLine[];
   try {
-    authorizedItems = await authorizeInvoiceLines(env, {
-      accountId, actorUserId: ctx.userId, actorRole: ctx.role, lines: allItems.results as any[],
+    const seller = await invoiceSellerAuthorizationContext(env, accountId, invoice);
+    await authorizeInvoiceLines(env, {
+      accountId, ...seller, lines: allItems.results as any[],
     });
   } catch (error) { return salesError(error); }
+  const snapshotItems = allItems.results as AuthorizedInvoiceLine[];
   const movedIds = new Set(line_item_ids);
-  const movedItems = authorizedItems.filter(item => item.id && movedIds.has(item.id));
-  const remainingItems = authorizedItems.filter(item => !item.id || !movedIds.has(item.id));
-  const movedOwners = [...new Set(movedItems.filter(item => item.product_id).map(item => item.stock_owner_user_id))];
-  const movedPaymentRecipient = movedOwners.length === 1 ? movedOwners[0] : null;
+  const movedItems = snapshotItems.filter(item => item.id && movedIds.has(item.id));
+  const remainingItems = snapshotItems.filter(item => !item.id || !movedIds.has(item.id));
+  const movedPaymentRecipient = resolvePaymentRecipientUserId(movedItems);
+  const remainingPaymentRecipient = resolvePaymentRecipientUserId(remainingItems);
 
   const newId = crypto.randomUUID();
 
@@ -4429,7 +4451,11 @@ const handleSplitInvoice: Handler = async (request, env) => {
        (id,account_id,invoice_number,customer_name,customer_whatsapp,customer_id,display_currency,shipping_cost_usd,status,inventory_deducted,notes,sold_by_user_id,payment_recipient_user_id)
        VALUES (?,?,?,?,?,?,?,0,'Pending',0,?,?,?)`
     ).bind(newId, accountId, newNumber, invoice.customer_name, invoice.customer_whatsapp, invoice.customer_id,
-      invoice.display_currency, invoice.notes, invoice.sold_by_user_id || ctx.userId, movedPaymentRecipient));
+      invoice.display_currency, invoice.notes, invoice.sold_by_user_id, movedPaymentRecipient));
+
+    stmts.push(env.DB.prepare(
+      'UPDATE invoices SET payment_recipient_user_id=? WHERE id=? AND account_id=?'
+    ).bind(remainingPaymentRecipient, invoice_id, accountId));
 
     for (const itemId of line_item_ids) {
       stmts.push(
@@ -4495,14 +4521,17 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
   };
 
   const stmts: D1PreparedStatement[] = [];
+  let replacementPaymentRecipient: string | null | undefined;
 
   if (body.lineItems) {
     let authorized: AuthorizedInvoiceLine[];
     try {
+      const seller = await invoiceSellerAuthorizationContext(env, accountId, invoice as Record<string, any>);
       authorized = await authorizeInvoiceLines(env, {
-        accountId, actorUserId: ctx.userId, actorRole: ctx.role, lines: body.lineItems,
+        accountId, ...seller, lines: body.lineItems,
       });
     } catch (error) { return salesError(error); }
+    replacementPaymentRecipient = resolvePaymentRecipientUserId(authorized);
     stmts.push(env.DB.prepare(
       'DELETE FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
     ).bind(params.id, accountId));
@@ -4528,6 +4557,10 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
     if (!ALLOWED_ITEM_UPDATES.has(key)) continue;
     updates.push(`${key} = ?`);
     vals.push(val ?? null);
+  }
+  if (replacementPaymentRecipient !== undefined) {
+    updates.push('payment_recipient_user_id = ?');
+    vals.push(replacementPaymentRecipient);
   }
   if (updates.length > 0) {
     stmts.push(
@@ -4579,8 +4612,9 @@ const handleLinkLineItem: Handler = async (request, env) => {
 
   let authorized: AuthorizedInvoiceLine;
   try {
+    const seller = await invoiceSellerAuthorizationContext(env, accountId, invoice as Record<string, any>);
     [authorized] = await authorizeInvoiceLines(env, {
-      accountId, actorUserId: ctx.userId, actorRole: ctx.role,
+      accountId, ...seller,
       lines: [{
         id: line_item_id, product_id, custom_name: null,
         quantity: Number(lineItem.quantity), price_at_sale: Number(lineItem.price_at_sale),
@@ -4589,6 +4623,14 @@ const handleLinkLineItem: Handler = async (request, env) => {
   } catch (error) { return salesError(error); }
 
   const stmts: D1PreparedStatement[] = [];
+  const current = await env.DB.prepare(
+    `SELECT id,product_id,custom_name,quantity,price_at_sale,stock_owner_user_id,sales_grant_id
+     FROM invoice_line_items WHERE invoice_id=? AND account_id=?`
+  ).bind(invoice_id, accountId).all();
+  const proposed = (current.results as any[]).map(item => item.id === line_item_id
+    ? { ...item, product_id, custom_name: null, stock_owner_user_id: authorized.stock_owner_user_id, sales_grant_id: authorized.sales_grant_id }
+    : item);
+  let recipientLines = proposed as AuthorizedInvoiceLine[];
 
   stmts.push(env.DB.prepare(
     `UPDATE invoice_line_items SET product_id=?,custom_name=NULL,stock_owner_user_id=?,sales_grant_id=?
@@ -4596,14 +4638,11 @@ const handleLinkLineItem: Handler = async (request, env) => {
   ).bind(product_id, authorized.stock_owner_user_id, authorized.sales_grant_id, line_item_id, invoice_id, accountId));
 
   if (invoice.status === 'Pending') {
-    const current = await env.DB.prepare(
-      'SELECT id,product_id,custom_name,quantity,price_at_sale FROM invoice_line_items WHERE invoice_id=? AND account_id=?'
-    ).bind(invoice_id, accountId).all();
-    const proposed = (current.results as any[]).map(item => item.id === line_item_id ? { ...item, product_id, custom_name: null } : item);
     let allAuthorized: AuthorizedInvoiceLine[];
     try {
+      const seller = await invoiceSellerAuthorizationContext(env, accountId, invoice as Record<string, any>);
       allAuthorized = await authorizeInvoiceLines(env, {
-        accountId, actorUserId: ctx.userId, actorRole: ctx.role, lines: proposed,
+        accountId, ...seller, lines: proposed,
       });
     } catch (error) { return salesError(error); }
     stmts.push(...buildInvoiceReservationStatements(env, {
@@ -4611,6 +4650,10 @@ const handleLinkLineItem: Handler = async (request, env) => {
       expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
     }));
   }
+
+  stmts.push(env.DB.prepare(
+    'UPDATE invoices SET payment_recipient_user_id=? WHERE id=? AND account_id=?'
+  ).bind(resolvePaymentRecipientUserId(recipientLines), invoice_id, accountId));
 
   if (invoice.inventory_deducted) {
     const qty = Number(lineItem.quantity) || 0;

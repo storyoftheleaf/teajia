@@ -17,9 +17,28 @@ describe('Tea Master migration safety', () => {
       CREATE TABLE products(id TEXT PRIMARY KEY, account_id TEXT);
       CREATE TABLE invoices(id TEXT PRIMARY KEY, account_id TEXT);
       CREATE TABLE invoice_line_items(id TEXT PRIMARY KEY, account_id TEXT, invoice_id TEXT, product_id TEXT);
-      CREATE TABLE stock_holds(id TEXT PRIMARY KEY, held_grams REAL);
+      CREATE TABLE stock_holds(
+        id TEXT PRIMARY KEY,
+        account_id TEXT NOT NULL,
+        invoice_id TEXT NOT NULL,
+        product_id TEXT NOT NULL,
+        held_grams REAL NOT NULL DEFAULT 0
+      );
     `);
     migrated.exec(migration('126_tea_master_sales.sql'));
+
+    expect(migrated.prepare(`SELECT name FROM pragma_table_info('stock_holds') ORDER BY cid`).all())
+      .toEqual(canonical.prepare(`SELECT name FROM pragma_table_info('stock_holds') ORDER BY cid`).all());
+    migrated.exec(`
+      INSERT INTO accounts(id) VALUES ('reservation-account');
+      INSERT INTO users(id) VALUES ('reservation-seller');
+      INSERT INTO products(id,account_id) VALUES ('reservation-product','reservation-account');
+      INSERT INTO invoices(id,account_id,sold_by_user_id) VALUES ('reservation-invoice','reservation-account','reservation-seller');
+      INSERT INTO stock_holds(id,account_id,invoice_id,product_id,held_grams,expires_at)
+        VALUES ('reservation-hold','reservation-account','reservation-invoice','reservation-product',10,datetime('now','+2 days'));
+    `);
+    expect(migrated.prepare(`SELECT held_grams, expires_at IS NOT NULL AS has_expiry FROM stock_holds WHERE id='reservation-hold'`).get())
+      .toEqual({ held_grams: 10, has_expiry: 1 });
 
     for (const table of ['sales_grants', 'sales_settlements']) {
       expect(migrated.prepare(`SELECT name, type, "notnull", dflt_value, pk FROM pragma_table_info('${table}')`).all())

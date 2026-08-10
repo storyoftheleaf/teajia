@@ -1,5 +1,7 @@
 -- Same-account Tea Master sales authority and settlement snapshots.
 -- Grants are revoked in place so fulfilled invoice history remains auditable.
+ALTER TABLE stock_holds ADD COLUMN expires_at TEXT;
+
 CREATE TABLE sales_grants (
   id TEXT PRIMARY KEY,
   account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,

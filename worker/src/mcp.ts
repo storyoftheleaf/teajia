@@ -1497,42 +1497,17 @@ async function commitRecordSale(env: Env, m: Extract<PendingMutation, { kind: 'r
     productCache.set(line.productId, p);
   }
 
-  // Atomic, conditional decrement of every line BEFORE allocating an invoice
-  // number or writing the invoice. The SELECT above is advisory; the
-  // `stock_grams >= ?` guard is what actually prevents overselling under
-  // concurrency. We run these standalone (not in env.DB.batch, which can't
-  // branch mid-batch on a row count) and bail on the first failure so no
-  // invoice/ledger rows are written and the invoice_seq is not consumed.
-  // balance_after is derived from the RETURNING value, never the stale read.
-  const balances = new Map<string, number>();
-  const appliedLines: [string, number][] = []; // [productId, grams] already deducted
+  // Aggregate duplicate product lines so one guarded write checks the complete
+  // sale quantity. The write is added to the invoice mutation batch below;
+  // forcing -1 on insufficient available stock invokes the nonnegative-stock
+  // trigger and aborts the entire D1 transaction.
+  const quantities = new Map<string, number>();
   for (const line of m.lines) {
-    const p = productCache.get(line.productId)!;
-    const dec = await env.DB.prepare(
-      `UPDATE products SET stock_grams = stock_grams - ? WHERE id = ? AND account_id = ?
-       AND stock_grams - COALESCE((SELECT SUM(held_grams) FROM stock_holds
-         WHERE account_id=? AND product_id=? AND (expires_at IS NULL OR expires_at>datetime('now'))),0) >= ?
-       RETURNING stock_grams`
-    ).bind(line.grams, line.productId, m.accountId, m.accountId, line.productId, line.grams).first() as { stock_grams: number } | null;
-    if (!dec) {
-      // Roll back any decrements already applied for earlier lines in this sale
-      // so a multi-line failure doesn't leave partial deductions behind.
-      for (const [pid, restoreLine] of appliedLines) {
-        await env.DB.prepare('UPDATE products SET stock_grams = stock_grams + ? WHERE id = ? AND account_id = ?')
-          .bind(restoreLine, pid, m.accountId).run().catch(() => {});
-      }
-      const live = await env.DB.prepare('SELECT stock_grams FROM products WHERE id = ? AND account_id = ?')
-        .bind(line.productId, m.accountId).first() as { stock_grams: number } | null;
-      return {
-        error: 'insufficient_stock_at_commit',
-        product_id: line.productId,
-        product_name: p.given_name || p.product_name,
-        requested_grams: line.grams,
-        available_grams: Number(live?.stock_grams ?? 0),
-      };
-    }
-    balances.set(line.productId, Number(dec.stock_grams));
-    appliedLines.push([line.productId, line.grams]);
+    quantities.set(line.productId, (quantities.get(line.productId) ?? 0) + line.grams);
+  }
+  const balances = new Map<string, number>();
+  for (const [productId, grams] of quantities) {
+    balances.set(productId, Number(productCache.get(productId)!.stock_grams || 0) - grams);
   }
 
   // Allocate invoice number using the existing per-account sequence.
@@ -1563,6 +1538,16 @@ async function commitRecordSale(env: Env, m: Extract<PendingMutation, { kind: 'r
     m.customerName, m.customerWhatsapp, m.customerId, m.notes, m.actorUserId, paymentRecipientUserId,
   ));
 
+  for (const [productId, grams] of quantities) {
+    stmts.push(env.DB.prepare(
+      `UPDATE products SET stock_grams = CASE
+         WHEN stock_grams - COALESCE((SELECT SUM(held_grams) FROM stock_holds
+           WHERE account_id=? AND product_id=? AND (expires_at IS NULL OR expires_at>datetime('now'))),0) >= ?
+         THEN stock_grams - ? ELSE -1 END
+       WHERE id=? AND account_id=?`
+    ).bind(m.accountId, productId, grams, grams, productId, m.accountId));
+  }
+
   for (let lineIndex = 0; lineIndex < m.lines.length; lineIndex += 1) {
     const line = m.lines[lineIndex];
     const authorized = authorizedLines[lineIndex];
@@ -1586,10 +1571,12 @@ async function commitRecordSale(env: Env, m: Extract<PendingMutation, { kind: 'r
 
     stmts.push(env.DB.prepare(
       `INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, source_invoice_id, source_invoice_number, user_email, note, account_id)
-       VALUES (?, ?, ?, ?, 'FULFILLMENT', ?, ?, ?, ?, ?)`
+       SELECT ?, ?, ?, p.stock_grams, 'FULFILLMENT', ?, ?, ?, ?, ?
+       FROM products p WHERE p.id=? AND p.account_id=?`
     ).bind(
-      crypto.randomUUID(), line.productId, -line.grams, balanceAfter,
+      crypto.randomUUID(), line.productId, -line.grams,
       invoiceId, invoiceNumber, m.userEmail, 'MCP record_sale', m.accountId,
+      line.productId, m.accountId,
     ));
 
     if (balanceAfter <= 0 && p.status !== 'Sold Out') {
@@ -1626,9 +1613,8 @@ async function commitRecordSale(env: Env, m: Extract<PendingMutation, { kind: 'r
   try {
     await env.DB.batch(stmts);
   } catch (error) {
-    for (const [productId, grams] of appliedLines) {
-      await env.DB.prepare('UPDATE products SET stock_grams=stock_grams+? WHERE id=? AND account_id=?')
-        .bind(grams, productId, m.accountId).run().catch(() => {});
+    if (/stock_grams cannot be negative/i.test(String((error as Error)?.message || error))) {
+      return { error: 'insufficient_stock_at_commit' };
     }
     throw error;
   }
@@ -2582,23 +2568,6 @@ async function toolFulfillInvoice(env: Env, auth: McpAuth, args: any) {
       WHERE ili.invoice_id = ? AND ili.account_id = ?`
   ).bind(auth.accountId, invoiceId, auth.accountId).all();
 
-  try {
-    const authorized = await authorizeInvoiceLines(env, {
-      accountId: auth.accountId, actorUserId: auth.userId,
-      actorRole: OWNER_TIERS.has(auth.creatorTier) ? 'owner' : 'staff',
-      lines: (rawItems as any[]).map(item => ({
-        id: item.id, product_id: item.product_id, custom_name: item.custom_name,
-        quantity: item.quantity, price_at_sale: item.price_at_sale ?? 0,
-      })),
-    });
-    for (let index = 0; index < authorized.length; index += 1) {
-      Object.assign((rawItems as any[])[index], authorized[index]);
-    }
-  } catch (error) {
-    if (error instanceof SalesInvariantError) return { error: error.code, ...error.details };
-    return { error: 'sales_authorization_unavailable' };
-  }
-
   // Aggregate duplicate product lines so underflow checks and deductions apply
   // to the invoice total, not per line: two 60g lines of the same product on
   // 100g stock must fail, and must never write two ledger rows that each claim
@@ -2701,6 +2670,7 @@ async function commitFulfillInvoice(
   lineItems: any[],
   settlementLines: any[],
 ) {
+  if (!invoice.sold_by_user_id) return { error: 'invoice_seller_snapshot_missing' };
   const fulfillmentClaim = crypto.randomUUID();
   const claimed = await env.DB.prepare(
     `UPDATE invoices SET fulfillment_claim_token = ?, fulfillment_claimed_at = datetime('now')
@@ -2713,18 +2683,6 @@ async function commitFulfillInvoice(
     'UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?'
   ).bind(m.invoiceId, m.accountId, fulfillmentClaim).run();
   const stmts: D1PreparedStatement[] = [];
-  if (!invoice.sold_by_user_id) {
-    invoice.sold_by_user_id = m.actorUserId;
-    stmts.push(env.DB.prepare(
-      'UPDATE invoices SET sold_by_user_id=COALESCE(sold_by_user_id,?) WHERE id=? AND account_id=? AND fulfillment_claim_token=?'
-    ).bind(m.actorUserId, m.invoiceId, m.accountId, fulfillmentClaim));
-  }
-  for (const line of settlementLines) {
-    if (!line.id) continue;
-    stmts.push(env.DB.prepare(
-      'UPDATE invoice_line_items SET stock_owner_user_id=?,sales_grant_id=? WHERE id=? AND account_id=?'
-    ).bind(line.stock_owner_user_id ?? null, line.sales_grant_id ?? null, line.id, m.accountId));
-  }
 
   for (const item of lineItems) {
     if (!item.product_id) continue; // custom items have no stock
@@ -2981,23 +2939,6 @@ async function commitMarkInvoicePaid(env: Env, m: Extract<PendingMutation, { kin
            LEFT JOIN sales_grants sg ON sg.id=ili.sales_grant_id AND sg.account_id=ili.account_id
           WHERE ili.invoice_id = ? AND ili.account_id = ?`
       ).bind(m.accountId, m.invoiceId, m.accountId).all();
-      try {
-        const authorized = await authorizeInvoiceLines(env, {
-          accountId: m.accountId, actorUserId: m.actorUserId, actorRole: m.actorRole,
-          lines: (lineItems as any[]).map(item => ({
-            id: item.id,product_id: item.product_id,custom_name: item.custom_name,
-            quantity: item.quantity,price_at_sale: item.price_at_sale ?? 0,
-          })),
-        });
-        for (let index = 0; index < authorized.length; index += 1) Object.assign((lineItems as any[])[index], authorized[index]);
-      } catch (error) {
-        fulfillment = error instanceof SalesInvariantError ? { error: error.code, ...error.details } : { error: 'sales_authorization_unavailable' };
-        return {
-          committed: true, action: 'mark_invoice_paid', invoice_id: m.invoiceId,
-          invoice_number: m.invoiceNumber, payment_status: 'paid', payment_date: now,
-          payment_method: m.paymentMethod, already_paid: alreadyPaid, fulfillment,
-        };
-      }
       fulfillment = await commitFulfillInvoice(
         env,
         { kind: 'fulfill_invoice', accountId: m.accountId, userEmail: m.userEmail, actorUserId: m.actorUserId, invoiceId: m.invoiceId },
