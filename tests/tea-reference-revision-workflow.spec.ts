@@ -187,18 +187,13 @@ async function assertAboveMobileNavigation(page: Page, testInfo: TestInfo, targe
   if (testInfo.project.name !== 'Mobile Chrome') return;
   const navigation = page.getByTestId('bottom-tab-bar');
   await expect(navigation).toBeVisible();
-  await target.evaluate(element => {
-    let ancestor = element.parentElement;
-    while (ancestor) {
-      const overflowY = getComputedStyle(ancestor).overflowY;
-      if (overflowY === 'auto' || overflowY === 'scroll') {
-        ancestor.scrollTop = ancestor.scrollHeight;
-        return;
-      }
-      ancestor = ancestor.parentElement;
-    }
-    element.scrollIntoView({ block: 'end' });
-  });
+  const scrollContainer = target.locator('xpath=ancestor::*[contains(concat(" ", normalize-space(@class), " "), " overflow-y-auto ")][1]');
+  if (await scrollContainer.count()) {
+    await scrollContainer.evaluate(element => { element.scrollTop = element.scrollHeight; });
+    await expect.poll(() => scrollContainer.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+  } else {
+    await target.scrollIntoViewIfNeeded();
+  }
   const [navigationBox, targetBox] = await Promise.all([navigation.boundingBox(), target.boundingBox()]);
   expect(navigationBox, 'mobile navigation should have measurable bounds').not.toBeNull();
   expect(targetBox, 'workflow control should have measurable bounds').not.toBeNull();
@@ -213,7 +208,8 @@ test('keeps revision lightweight from an English public page to the grouped owne
   await expect(page.getByRole('heading', { level: 1, name: 'Lincang' })).toBeVisible();
   await expect(page.getByRole('heading', { level: 2, name: /Northern Pu’er country/ })).toBeVisible();
   await expect(page.getByRole('heading', { level: 2, name: /A broad regional tendency/ })).toBeVisible();
-  await expect(page.getByText(/^Source:/).first()).toBeVisible();
+  await expect(page.getByText(/^Source:/)).toHaveCount(0);
+  await expect(page.getByText(/TeaDB/i)).toHaveCount(0);
   await expect(page.getByText(/held|conflict|private evidence/i)).toHaveCount(0);
 
   await page.getByRole('button', { name: 'Flag Lincang for revision' }).click();

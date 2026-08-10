@@ -65,10 +65,10 @@ const PreviewOriginPage: React.FC<{ id: string; fallback?: React.ReactNode }> = 
 
   return (
     <article className={PREVIEW_PAGE}>
-      <Helmet><title>{origin ? `${origin.name} · Origins · Teajia` : 'Cited origin · Teajia'}</title></Helmet>
+      <Helmet><title>{origin ? `${origin.name} · Origins · Teajia` : 'Growing place · Teajia'}</title></Helmet>
       <WisdomSubNav active="regions" />
       <div className="mt-7">
-        <PageHead kind="Cited origin" title={origin?.name ?? 'Cited origin'} />
+        <PageHead kind="Growing place" title={origin?.name ?? 'Growing place'} />
       </div>
 
       {isLoading && !catalogue && (
@@ -76,7 +76,7 @@ const PreviewOriginPage: React.FC<{ id: string; fallback?: React.ReactNode }> = 
       )}
       {isError && !catalogue && (
         <div role="status" className={`${FACT} ${MEASURE} ${AXIS_INDENT} ${SPACE.section}`}>
-          This cited origin could not be loaded.{' '}
+          This growing place could not be loaded.{' '}
           <Link to="/wisdom/regions" className={`${QUIET_LINK} tap-target`}>Return to Origins</Link>.
         </div>
       )}

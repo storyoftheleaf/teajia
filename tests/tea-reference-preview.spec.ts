@@ -235,6 +235,14 @@ async function installApiBoundary(page: Page, health: PageHealth, products: Retu
       });
       return;
     }
+    if (request.method() === 'GET' && pathname === '/api/products') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(products),
+      });
+      return;
+    }
     if (!SAFE_API_METHODS.has(request.method())) {
       health.blockedMutations.push(`${request.method()} ${pathname}`);
       health.intentionallyAborted.add(request);
@@ -328,6 +336,8 @@ test('renders the public-shaped Tea Reference inside Teajia without writes or pr
   await expect(page.getByRole('link', { name: 'report them' })).toHaveAttribute('href', /^mailto:hello@teajia\.com/);
   expect(await page.locator('main').innerText()).not.toMatch(PRIVATE_MARKERS);
   expect(await page.locator('main').innerText()).not.toMatch(MASKED_REFERENCE_COPY);
+  await expect(page.getByText(contract.styleSource.publisher, { exact: true })).toHaveCount(0);
+  await expect(page.getByText(/^Source:/)).toHaveCount(0);
   await expectAccessiblePage(page);
   await expectNoHorizontalOverflow(page);
 
@@ -353,6 +363,8 @@ test('renders the public-shaped Tea Reference inside Teajia without writes or pr
   await expect(page.locator(`a[href="/shop/product/${unavailableProductId}"]`)).toHaveCount(0);
   expect(await page.locator('main').innerText()).not.toMatch(PRIVATE_MARKERS);
   expect(await page.locator('main').innerText()).not.toMatch(MASKED_REFERENCE_COPY);
+  await expect(page.getByText(contract.placeSource.publisher, { exact: true })).toHaveCount(0);
+  await expect(page.getByText(/^Source:/)).toHaveCount(0);
   await expectAccessiblePage(page);
   await expectNoHorizontalOverflow(page);
 

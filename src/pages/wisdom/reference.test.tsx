@@ -702,6 +702,9 @@ describe('wayfinding', () => {
       const html = await routeHtml(path);
       expect(html, path).toContain(sectionLabel);
       expect(html, path).toContain(canonicalSection);
+      expect(html, path).not.toContain('Source:');
+      expect(html, path).not.toContain('TeaDB');
+      expect(html, path).not.toContain('>Cited origin<');
     }
   });
 
@@ -763,6 +766,44 @@ describe('wayfinding', () => {
 });
 
 describe('Tea Reference type preview', () => {
+  it('keeps research attribution behind the public Teajia prose', () => {
+    const html = renderToString(
+      <MemoryRouter>
+        <ReferenceFactSections
+          facts={[{
+            id: 'teajia-reference-fact',
+            label: 'Identity',
+            text: 'Teajia presents the researched fact in a clear editorial voice.',
+            excerpt: 'A private-facing source excerpt.',
+            citation: {
+              sourceId: 'tea-institute',
+              label: 'TeaDB, background reference',
+              url: 'https://example.com/teadb',
+            },
+          }]}
+          sources={[{
+            sourceId: 'tea-institute',
+            publisher: 'TeaDB',
+            publisherRoleLabel: 'Independent publication',
+            title: 'Background reference',
+            author: 'Research author',
+            publishedDate: '2026-02-03',
+            url: 'https://example.com/teadb',
+          }]}
+          products={[]}
+          reportIdentity="Tea type: test"
+        />
+      </MemoryRouter>,
+    );
+
+    expect(html).toContain('Teajia presents the researched fact in a clear editorial voice.');
+    expect(html).not.toContain('A private-facing source excerpt.');
+    expect(html).not.toContain('TeaDB');
+    expect(html).not.toContain('Research author');
+    expect(html).not.toContain('example.com/teadb');
+    expect(html).not.toContain('Source:');
+  });
+
   it('keeps exact-lot source descriptions separate from common characteristics', () => {
     const sharedCitation = {
       sourceId: 'tea-institute',
@@ -820,24 +861,16 @@ describe('Tea Reference type preview', () => {
     expect(family).toContain('href="/wisdom/type/sheng"');
   });
 
-  it.skipIf(!TEA_REFERENCE_PREVIEW_ENABLED)('renders grouped citations, matching teas, and a page-specific correction action', () => {
+  it.skipIf(!TEA_REFERENCE_PREVIEW_ENABLED)('renders Teajia reference prose, matching teas, and a page-specific correction action', () => {
     const html = renderPreview('/wisdom/type/sheng').replace(/&amp;/g, '&');
     expect(html).toContain('Common characteristics');
     expect(html).toContain('Cultivar potential');
-    expect(html).toContain('Tea Institute');
-    expect(html).toContain('Sheng Field Guide');
-    expect(html).toContain('Mei Lin');
-    expect(html).toContain('3 February 2026');
-    expect(html).not.toContain('2026-02-03');
-    expect(html).toContain('href="https://example.com/shared-sheng-source"');
-    expect(html).not.toContain('Wrong Duplicate Publisher');
-    expect(html).toContain('Tea Institute · Cultivar guide');
+    expect(html).not.toContain('Tea Institute');
+    expect(html).not.toContain('Sheng Field Guide');
+    expect(html).not.toContain('Mei Lin');
+    expect(html).not.toContain('href="https://example.com/shared-sheng-source"');
     expect(html).not.toContain('Retailer or reseller');
-    expect(html.match(/Tea Institute · Sheng Field Guide/g)).toHaveLength(2);
-    expect(html.match(/Mei Lin/g)).toHaveLength(2);
-    expect(html).not.toContain(`Tea Institute · Sheng Field Guide ${LONG_HANDOFF_TOKEN}`);
-    expect(html).not.toContain(`Mei Lin ${LONG_HANDOFF_TOKEN}</span>`);
-    expect(html).toMatch(/Tea Institute · Sheng Field Guide[^<]*…<\/a>/);
+    expect(html).not.toContain('Source:');
     expect(html).toContain('A second concrete public detail from the Sheng field guide.');
     expect(html).not.toContain('The cited source discusses storage context associated with Sheng.');
     expect(html).toContain('Available teas');
@@ -859,8 +892,6 @@ describe('Tea Reference type preview', () => {
     expect(html).toContain(LONG_HANDOFF_TOKEN);
     expect(html).toMatch(/<li class="[^"]*min-w-0[^"]*">/);
     expect(html).toMatch(/<p class="[^"]*break-words[^"]*">A concrete public characteristic/);
-    expect(html).toMatch(/<a[^>]*class="[^"]*break-words[^"]*">Tea Institute · Sheng Field Guide/);
-    expect(html).toMatch(/<p class="[^"]*break-words[^"]*">Source:/);
     expect(html).toContain('Origins represented by available teas');
     expect(html).toContain('href="/wisdom/region/reference-manxiu"');
   });
@@ -1165,10 +1196,10 @@ describe('growing regions', () => {
     expect(html).not.toContain('Cited origin');
   });
 
-  it.skipIf(!TEA_REFERENCE_PREVIEW_ENABLED)('renders a cited origin at the established region URL with verified hierarchy, citations, and teas', async () => {
+  it.skipIf(!TEA_REFERENCE_PREVIEW_ENABLED)('renders a growing place at the established region URL with verified hierarchy and teas', async () => {
     const html = (await renderAsync('/wisdom/region/reference-manxiu')).replace(/&amp;/g, '&');
     expect(html).toMatch(/<section[^>]*aria-labelledby="origin-types-heading"/);
-    expect(html).toContain('>Cited origin<');
+    expect(html).toContain('>Growing place<');
     expect(html).toContain('>Locality<');
     expect(html).toContain('>Origin path<');
     expect(html).toContain('href="/wisdom/region/reference-yunnan"');
@@ -1180,12 +1211,10 @@ describe('growing regions', () => {
     expect(html.indexOf('href="/wisdom/region/reference-yiwu"')).toBeLessThan(html.indexOf('href="/wisdom/region/reference-gedeng"'));
     expect(html.indexOf('href="/wisdom/region/reference-gedeng"')).toBeLessThan(html.indexOf('href="/wisdom/region/reference-mansa"'));
     expect(html).toContain('Identity');
-    expect(html).toContain('A concise public source excerpt about Manxiu.');
-    expect(html).toContain('Tea Geography Institute · Manxiu reference');
-    expect(html).toContain('Field Research Desk');
-    expect(html).toContain('4 March 2026');
-    expect(html).not.toContain('2026-03-04');
-    expect(html).toContain('href="https://example.com/manxiu"');
+    expect(html).not.toContain('A concise public source excerpt about Manxiu.');
+    expect(html).not.toContain('Tea Geography Institute · Manxiu reference');
+    expect(html).not.toContain('Field Research Desk');
+    expect(html).not.toContain('href="https://example.com/manxiu"');
     expect(html).toContain('Available teas');
     expect(html).toContain('href="/shop/product/manxiu-spring-cake"');
     expect(html).toContain('Previously offered');
@@ -1249,7 +1278,7 @@ describe('growing regions', () => {
     });
     errorClient.setQueryData(['products', 'public'], previewProducts);
     const error = await renderRegionAsync('/wisdom/region/reference-unknown', errorClient);
-    expect(error).toContain('This cited origin could not be loaded');
+    expect(error).toContain('This growing place could not be loaded');
     expect(error).toContain('href="/wisdom/regions"');
     expect(error).toContain('Return to Origins');
     expect(error).not.toContain('private upstream detail');
