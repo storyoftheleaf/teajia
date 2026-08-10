@@ -64,6 +64,11 @@
   Normalized error: `http_500`
   Evidence: [server-post-api-tasting-journal-sync-500-http-500-c6566bdc.json](evidence/server-post-api-tasting-journal-sync-500-http-500-c6566bdc.json)
 
+- [ ] `client_get_app_shell_none_chunk_load_recovered` — **medium**
+  1 occurrence · first 2026-08-09T07:56:44Z · last 2026-08-09T07:56:44Z
+  Normalized error: `chunk_load_recovered`
+  Evidence: [client-get-app-shell-none-chunk-load-recovered-f0a509f3.json](evidence/client-get-app-shell-none-chunk-load-recovered-f0a509f3.json)
+
 - [ ] `network_get_api_products_public_none_timeout` — **medium**
   2 occurrences · first 2026-07-31T11:29:23Z · last 2026-07-31T11:29:23Z
   Normalized error: `timeout`
