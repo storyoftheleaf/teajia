@@ -3,6 +3,7 @@ import type { InventoryItem } from '../../types';
 import {
   TEA_SHOP_VIEWS,
   applyFinderIntent,
+  isSaleReadyTea,
   selectAvailableTeas,
   selectCuratedTeas,
   selectPastTeas,
@@ -41,6 +42,13 @@ describe('tea shop views', () => {
     ];
 
     expect(selectAvailableTeas(items).map(item => item.id)).toEqual(['finite']);
+  });
+
+  it('only marks positive finite prices as sale ready', () => {
+    expect(isSaleReadyTea(tea({ price_per_gram: 'NaN' }))).toBe(false);
+    expect(isSaleReadyTea(tea({ price_per_gram: '-0.2' }))).toBe(false);
+    expect(isSaleReadyTea(tea({ price_per_gram: undefined }))).toBe(false);
+    expect(isSaleReadyTea(tea({ price_per_gram: '0.2' }))).toBe(true);
   });
 
   it('preserves source order without mutating the input', () => {

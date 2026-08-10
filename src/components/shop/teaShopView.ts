@@ -9,17 +9,17 @@ export const TEA_SHOP_VIEWS = [
   { id: 'find' as const, label: 'Find a tea' },
 ];
 
-const saleReady = (item: InventoryItem) => {
+export const isSaleReadyTea = (item: InventoryItem) => {
   const price = Number(item.price_per_gram);
   return Number.isFinite(price) && price > 0;
 };
 
 export const selectAvailableTeas = (items: InventoryItem[]) =>
-  items.filter(item => item.stock_g > 0 && saleReady(item));
+  items.filter(item => item.stock_g > 0 && isSaleReadyTea(item));
 export const selectCuratedTeas = (items: InventoryItem[]) =>
   selectAvailableTeas(items).filter(item => item.isCurated);
 export const selectPastTeas = (items: InventoryItem[]) =>
-  items.filter(item => item.stock_g <= 0 && saleReady(item));
+  items.filter(item => item.stock_g <= 0 && isSaleReadyTea(item));
 
 export function applyFinderIntent(intent: TeaFinderIntent) {
   if (intent === 'light-fragrant') return { categoryId: 'flavor' as const, termId: 'floral' };
