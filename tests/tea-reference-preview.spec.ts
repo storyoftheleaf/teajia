@@ -20,12 +20,8 @@ const PLACE_LEVELS = new Set(['major_region', 'tea_area', 'mountain', 'village',
 type PublicSource = PublicReferencePreview['sources'][number];
 
 interface FixtureContract {
-  family: PublicReferenceEntry;
-  style: PublicReferenceEntry;
   styleFact: PublicReferenceStatement;
   styleSource: PublicSource;
-  typeName: 'Sheng' | 'Shou';
-  typeId: 'sheng' | 'shou';
   place: PublicReferenceEntry;
   placeFact: PublicReferenceStatement;
   placeSource: PublicSource;
@@ -103,13 +99,11 @@ function deriveFixtureContract(transport: unknown): FixtureContract {
   const citedStyle = citedEntry(entries, preview.sources, entry => {
     if (entry.entityKind !== 'tea_style') return false;
     const words = normalizedWords(entry.label).split(' ');
-    return words.includes('sheng') || words.includes('shou');
+    return words.includes('sheng');
   });
   if (!citedStyle) {
-    fixtureError('a cited Sheng or Shou tea_style entry with matching public source metadata is required.');
+    fixtureError('a cited Sheng-compatible tea_style entry with matching public source metadata is required; a Shou-only fixture cannot exercise /wisdom/type/sheng.');
   }
-  const typeName = normalizedWords(citedStyle.entry.label).split(' ').includes('sheng') ? 'Sheng' : 'Shou';
-  const typeId = typeName.toLowerCase() as 'sheng' | 'shou';
 
   const citedPlace = citedEntry(
     entries,
@@ -121,12 +115,8 @@ function deriveFixtureContract(transport: unknown): FixtureContract {
   }
 
   return {
-    family,
-    style: citedStyle.entry,
     styleFact: citedStyle.fact,
     styleSource: citedStyle.source,
-    typeName,
-    typeId,
     place: citedPlace.entry,
     placeFact: citedPlace.fact,
     placeSource: citedPlace.source,
@@ -142,9 +132,9 @@ async function loadFixtureContract(request: APIRequestContext): Promise<FixtureC
 function publicProducts(contract: FixtureContract) {
   return [
     {
-      id: `preview-${contract.typeId}-active`,
-      type: contract.typeName,
-      given_name: `${contract.place.label} Spring ${contract.typeName}`,
+      id: 'preview-sheng-active',
+      type: 'Sheng',
+      given_name: `${contract.place.label} Spring Sheng`,
       product_name: `${contract.place.label} reference tea`,
       origin_country: `${contract.place.label}, China`,
       origin_region: contract.place.label,
@@ -158,9 +148,9 @@ function publicProducts(contract: FixtureContract) {
       can_reorder: true,
     },
     {
-      id: `preview-${contract.typeId}-sold-out`,
-      type: contract.typeName,
-      given_name: `${contract.place.label} Archive ${contract.typeName}`,
+      id: 'preview-sheng-sold-out',
+      type: 'Sheng',
+      given_name: `${contract.place.label} Archive Sheng`,
       product_name: `${contract.place.label} historical tea`,
       origin_country: `${contract.place.label}, China`,
       origin_region: contract.place.label,
@@ -291,16 +281,13 @@ test('renders the public-shaped Tea Reference inside Teajia without writes or pr
   await expectTeajiaChrome(page);
   await expectWisdomNavigation(page, 'Types', 'Origins');
   await expect(page.getByRole('link', { name: 'Pu’er', exact: true })).toHaveAttribute('href', '/wisdom/family/puer');
-  await expect(page.getByRole('link', { name: new RegExp(`^${contract.typeName}`) })).toHaveAttribute(
-    'href',
-    `/wisdom/type/${contract.typeId}`,
-  );
+  await expect(page.getByRole('link', { name: /^Sheng/ })).toHaveAttribute('href', '/wisdom/type/sheng');
   await expectAccessiblePage(page);
   await expectNoHorizontalOverflow(page);
   await attachScreen(page, testInfo, 'types');
 
-  await page.goto(`/wisdom/type/${contract.typeId}`);
-  await expect(page.getByRole('heading', { level: 1, name: contract.typeName })).toBeVisible();
+  await page.goto('/wisdom/type/sheng');
+  await expect(page.getByRole('heading', { level: 1, name: 'Sheng' })).toBeVisible();
   await expectTeajiaChrome(page);
   await expect(page.getByText('Available teas', { exact: true })).toBeVisible();
   await expect(page.getByText('Previously offered', { exact: true })).toBeVisible();

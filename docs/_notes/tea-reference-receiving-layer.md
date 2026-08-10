@@ -42,7 +42,7 @@ The dedicated browser check uses the same integrated server without tracking or 
 TEA_REFERENCE_HANDOFF_PATH=/absolute/path/to/website-handoff.json npm run test:tea-reference-browser
 ```
 
-The command fails immediately when `TEA_REFERENCE_HANDOFF_PATH` is absent. This browser rehearsal expects the handoff to contain a Pu’er tea family, a cited Sheng or Shou tea style, and at least one cited origin at a supported geographic level, with matching public source metadata. That narrower contract belongs to the product-connected browser check; the integrated preview command itself accepts any valid handoff. The check is intentionally not part of the default receiving or CI suite because the external private fixture is not stored in this repository.
+The command fails immediately when `TEA_REFERENCE_HANDOFF_PATH` is absent. This browser rehearsal expects the handoff to contain a Pu’er tea family, a cited Sheng-compatible tea style, and at least one cited origin at a supported geographic level, with matching public source metadata. A Shou-only fixture fails clearly because the rehearsal must exercise `/wisdom/type/sheng`. That narrower contract belongs to the product-connected browser check; the integrated preview command itself accepts any valid handoff. The check is intentionally not part of the default receiving or CI suite because the external private fixture is not stored in this repository.
 
 ## Current 12-source rehearsal
 
