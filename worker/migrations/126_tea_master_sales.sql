@@ -1,6 +1,29 @@
 -- Same-account Tea Master sales authority and settlement snapshots.
 -- Grants are revoked in place so fulfilled invoice history remains auditable.
-ALTER TABLE stock_holds ADD COLUMN expires_at TEXT;
+-- Migration 018 created a nullable, tenant-unsafe version of stock_holds.
+-- Preserve complete rows and deliberately discard unusable rows whose tenant,
+-- invoice, product, or quantity is unknown rather than exposing them globally.
+ALTER TABLE stock_holds RENAME TO stock_holds_legacy_126;
+DROP INDEX IF EXISTS idx_stock_holds_invoice;
+DROP INDEX IF EXISTS idx_stock_holds_product;
+
+CREATE TABLE stock_holds (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  invoice_id TEXT NOT NULL,
+  product_id TEXT NOT NULL,
+  held_grams REAL NOT NULL DEFAULT 0,
+  expires_at TEXT
+);
+INSERT INTO stock_holds (id,account_id,invoice_id,product_id,held_grams,expires_at)
+SELECT id,account_id,invoice_id,product_id,held_grams,NULL
+FROM stock_holds_legacy_126
+WHERE id IS NOT NULL AND account_id IS NOT NULL AND invoice_id IS NOT NULL
+  AND product_id IS NOT NULL AND held_grams IS NOT NULL;
+DROP TABLE stock_holds_legacy_126;
+
+CREATE INDEX idx_stock_holds_invoice ON stock_holds(account_id,invoice_id);
+CREATE INDEX idx_stock_holds_product ON stock_holds(account_id,product_id);
 
 CREATE TABLE sales_grants (
   id TEXT PRIMARY KEY,

@@ -19,16 +19,26 @@ describe('Tea Master migration safety', () => {
       CREATE TABLE invoice_line_items(id TEXT PRIMARY KEY, account_id TEXT, invoice_id TEXT, product_id TEXT);
       CREATE TABLE stock_holds(
         id TEXT PRIMARY KEY,
-        account_id TEXT NOT NULL,
-        invoice_id TEXT NOT NULL,
-        product_id TEXT NOT NULL,
-        held_grams REAL NOT NULL DEFAULT 0
+        account_id TEXT,
+        invoice_id TEXT,
+        product_id TEXT,
+        held_grams REAL DEFAULT 0
       );
+      INSERT INTO stock_holds(id,account_id,invoice_id,product_id,held_grams)
+        VALUES ('legacy-valid','account-a','invoice-a','product-a',12),
+               ('legacy-null-account',NULL,'invoice-a','product-a',5),
+               ('legacy-null-quantity','account-a','invoice-a','product-a',NULL);
     `);
     migrated.exec(migration('126_tea_master_sales.sql'));
 
-    expect(migrated.prepare(`SELECT name FROM pragma_table_info('stock_holds') ORDER BY cid`).all())
-      .toEqual(canonical.prepare(`SELECT name FROM pragma_table_info('stock_holds') ORDER BY cid`).all());
+    expect(migrated.prepare(`SELECT name,type,"notnull",dflt_value,pk FROM pragma_table_info('stock_holds') ORDER BY cid`).all())
+      .toEqual(canonical.prepare(`SELECT name,type,"notnull",dflt_value,pk FROM pragma_table_info('stock_holds') ORDER BY cid`).all());
+    for (const index of ['idx_stock_holds_invoice', 'idx_stock_holds_product']) {
+      expect(migrated.prepare(`SELECT name FROM pragma_index_info('${index}') ORDER BY seqno`).all())
+        .toEqual(canonical.prepare(`SELECT name FROM pragma_index_info('${index}') ORDER BY seqno`).all());
+    }
+    expect(migrated.prepare(`SELECT id,account_id,invoice_id,product_id,held_grams,expires_at FROM stock_holds ORDER BY id`).all())
+      .toEqual([{ id: 'legacy-valid', account_id: 'account-a', invoice_id: 'invoice-a', product_id: 'product-a', held_grams: 12, expires_at: null }]);
     migrated.exec(`
       INSERT INTO accounts(id) VALUES ('reservation-account');
       INSERT INTO users(id) VALUES ('reservation-seller');

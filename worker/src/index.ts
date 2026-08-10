@@ -21,6 +21,7 @@ import {
   resolveSalePermission,
   resolvePaymentRecipientUserId,
   SalesInvariantError,
+  validateInvoiceLineSnapshots,
   type AuthorizedInvoiceLine,
 } from './teaMasterSales';
 import { buildEventArticleDraft } from './eventArticleDraft';
@@ -3448,16 +3449,29 @@ function salesError(error: unknown): Response {
 async function invoiceSellerAuthorizationContext(env: Env, accountId: string, invoice: Record<string, any>) {
   const sellerUserId = String(invoice.sold_by_user_id || '');
   if (!sellerUserId) throw new SalesInvariantError(409, 'invoice_seller_snapshot_missing');
-  let membership: Record<string, any> | null;
   try {
-    membership = await env.DB.prepare(
-      'SELECT role FROM account_members WHERE account_id=? AND user_id=?'
+    const user = await env.DB.prepare('SELECT platform_role FROM users WHERE id=?')
+      .bind(sellerUserId).first() as Record<string, any> | null;
+    if (!user) throw new SalesInvariantError(403, 'invoice_seller_not_authorized');
+    if (user.platform_role === 'platform_owner' || user.platform_role === 'platform_admin') {
+      return { actorUserId: sellerUserId, actorRole: 'owner' };
+    }
+    const membership = await env.DB.prepare(
+      `SELECT am.role,am.permissions,a.kind FROM account_members am
+       JOIN accounts a ON a.id=am.account_id
+       WHERE am.account_id=? AND am.user_id=? AND am.status='active'`
     ).bind(accountId, sellerUserId).first() as Record<string, any> | null;
-  } catch {
+    if (!membership) throw new SalesInvariantError(403, 'invoice_seller_not_authorized');
+    if (membership.role === 'owner') return { actorUserId: sellerUserId, actorRole: 'owner' };
+    const bundles = resolveBundles(membership.role, membership.kind || 'location', membership.permissions || null);
+    if (membership.role !== 'staff' || !bundles.includes('sell')) {
+      throw new SalesInvariantError(403, 'invoice_seller_not_authorized');
+    }
+    return { actorUserId: sellerUserId, actorRole: 'staff' };
+  } catch (error) {
+    if (error instanceof SalesInvariantError) throw error;
     throw new SalesInvariantError(503, 'sales_authorization_unavailable');
   }
-  if (!membership) throw new SalesInvariantError(409, 'invoice_seller_membership_missing');
-  return { actorUserId: sellerUserId, actorRole: String(membership.role || 'staff') };
 }
 
 const grantWriteBody = (body: Record<string, unknown>) => {
@@ -4419,8 +4433,9 @@ const handleSplitInvoice: Handler = async (request, env) => {
 
   try {
     const seller = await invoiceSellerAuthorizationContext(env, accountId, invoice);
-    await authorizeInvoiceLines(env, {
-      accountId, ...seller, lines: allItems.results as any[],
+    await validateInvoiceLineSnapshots(env, {
+      accountId, sellerUserId: seller.actorUserId, sellerRole: seller.actorRole,
+      lines: allItems.results as AuthorizedInvoiceLine[],
     });
   } catch (error) { return salesError(error); }
   const snapshotItems = allItems.results as AuthorizedInvoiceLine[];

@@ -196,6 +196,60 @@ export async function authorizeInvoiceLines(env: { DB: D1Database }, input: {
   return authorized;
 }
 
+export async function validateInvoiceLineSnapshots(env: { DB: D1Database }, input: {
+  accountId: string;
+  sellerUserId: string;
+  sellerRole: string;
+  lines: AuthorizedInvoiceLine[];
+}): Promise<void> {
+  for (const line of input.lines) {
+    const quantity = Number(line.quantity);
+    const unitPrice = Number(line.price_at_sale);
+    if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(unitPrice) || unitPrice < 0) {
+      throw new SalesInvariantError(409, 'invalid_invoice_sale_snapshot');
+    }
+    if (!line.product_id) {
+      if (line.stock_owner_user_id != null || line.sales_grant_id != null) {
+        throw new SalesInvariantError(409, 'invalid_invoice_sale_snapshot');
+      }
+      continue;
+    }
+    let product: Record<string, unknown> | null;
+    try {
+      product = await env.DB.prepare(
+        'SELECT id,owner_user_id FROM products WHERE id=? AND account_id=?'
+      ).bind(line.product_id, input.accountId).first() as Record<string, unknown> | null;
+    } catch {
+      throw new SalesInvariantError(503, 'sales_authorization_unavailable');
+    }
+    if (!product) throw new SalesInvariantError(409, 'invalid_invoice_sale_snapshot', { product_id: line.product_id });
+    const productOwner = product.owner_user_id == null ? null : String(product.owner_user_id);
+    if (productOwner !== (line.stock_owner_user_id ?? null)) {
+      throw new SalesInvariantError(409, 'invalid_invoice_sale_snapshot', { product_id: line.product_id });
+    }
+
+    let historicalGrant: Record<string, unknown> | null = null;
+    if (line.sales_grant_id) {
+      try {
+        historicalGrant = await env.DB.prepare(
+          `SELECT id FROM sales_grants
+           WHERE id=? AND account_id=? AND product_id=? AND seller_user_id=?`
+        ).bind(line.sales_grant_id, input.accountId, line.product_id, input.sellerUserId).first() as Record<string, unknown> | null;
+      } catch {
+        throw new SalesInvariantError(503, 'sales_authorization_unavailable');
+      }
+      if (!historicalGrant) throw new SalesInvariantError(409, 'invalid_invoice_sale_snapshot', { product_id: line.product_id });
+    }
+    const permission = resolveSalePermission({
+      actorRole: input.sellerRole,
+      actorUserId: input.sellerUserId,
+      stockOwnerUserId: productOwner,
+      activeGrant: historicalGrant ? { id: String(historicalGrant.id) } as SalesGrantTerms : null,
+    });
+    if (!permission.allowed) throw new SalesInvariantError(409, 'invalid_invoice_sale_snapshot', { product_id: line.product_id });
+  }
+}
+
 export function buildInvoiceReservationStatements(env: { DB: D1Database }, input: {
   accountId: string;
   invoiceId: string;
