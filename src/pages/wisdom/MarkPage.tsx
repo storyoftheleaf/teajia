@@ -25,6 +25,7 @@ import {
   SPACE,
   WisdomSubNav,
 } from './wisdomShared';
+import { WisdomPublicStateGate, WisdomRelatedMaterial } from './WisdomRelatedMaterial';
 
 const MarkPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -71,6 +72,7 @@ const MarkPage: React.FC = () => {
   }
 
   return (
+    <WisdomPublicStateGate identity={{ nodeType: 'mark', nodeId: mark.id }}>
     <article className={PAGE}>
       <Helmet>
         <title>{`${mark.name} · Marks · Teajia`}</title>
@@ -118,10 +120,12 @@ const MarkPage: React.FC = () => {
         </section>
       )}
 
+      <WisdomRelatedMaterial identity={{ nodeType: 'mark', nodeId: mark.id }} />
       <EntryAuthorship id={mark.id} />
 
       <Invitation subject={`Mark: ${mark.name}`} />
     </article>
+    </WisdomPublicStateGate>
   );
 };
 

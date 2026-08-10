@@ -25,3 +25,12 @@ export type BulkEditField = {
   type: 'select' | 'boolean';
   options?: readonly string[];
 };
+
+export type InventoryProductGroup = {
+  key: string;
+  label: string;
+  items: import('../../types').Product[];
+  totalStock: number;
+  totalRetail: number;
+  lifecycle: boolean;
+};

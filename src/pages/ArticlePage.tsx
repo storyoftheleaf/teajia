@@ -21,6 +21,45 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import type { DbArticle } from '../types';
 import { SharePanel, type SharePage } from '../components/article/SharePanel';
+import { buildPublicProductHref } from '../lib/publicProductNavigation';
+
+export type ArticleTeaReference = { id: string; name: string; detail: string; href: string };
+
+const ARTICLE_TEAS_PER_PAGE = 6;
+
+export function paginateArticleTeaReferences(teas: ArticleTeaReference[]): ArticleTeaReference[][] {
+  const pages: ArticleTeaReference[][] = [];
+  for (let index = 0; index < teas.length; index += ARTICLE_TEAS_PER_PAGE) {
+    pages.push(teas.slice(index, index + ARTICLE_TEAS_PER_PAGE));
+  }
+  return pages;
+}
+
+export function paginateQaItems<T extends { q: string; a: string }>(items: T[]): T[][] {
+  return items.map(item => [item]);
+}
+
+export function normalizeArticleTeaReferences(rows: unknown): ArticleTeaReference[] {
+  if (!Array.isArray(rows)) return [];
+  const seen = new Set<string>();
+  const references: ArticleTeaReference[] = [];
+  for (const value of rows) {
+    if (!value || typeof value !== 'object') continue;
+    const row = value as Record<string, unknown>;
+    const id = typeof row.id === 'string' ? row.id.trim() : '';
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    const name = String(row.name ?? row.product_name ?? '').trim();
+    if (!name) continue;
+    const detail = [row.type, row.origin_region, row.origin, row.year]
+      .filter(part => typeof part === 'string' && part.trim())
+      .map(String)
+      .filter((part, index, all) => all.indexOf(part) === index)
+      .join(' · ');
+    references.push({ id, name, detail, href: buildPublicProductHref(row) });
+  }
+  return references;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Article Pages Reader, 4:5 paginated, Instagram + book ready.
@@ -68,6 +107,7 @@ type Page =
   | { kind: 'cover'; title: string; subtitle?: string; coverImage?: string; category?: string; mark?: string }
   | { kind: 'masthead'; intro: string; author?: string; authorSlug?: string; date?: string; readingTime?: number }
   | { kind: 'colophon'; title: string; author?: string; authorSlug?: string; date?: string; category?: string }
+  | { kind: 'tea_references'; teas: ArticleTeaReference[] }
   | { kind: 'end'; title: string }
   // Original 8 (kept for the renderers we already wrote)
   | { kind: 'body'; head: string; paragraphs: string[]; pageNum: number; pageTotal: number }
@@ -219,23 +259,7 @@ function buildPages(article: DbArticle): Page[] {
         return; // dividers are page breaks, but every block already is one
 
       case 'qa_pair': {
-        // Paginate Q&A: try to fit ~2 short pairs or 1 longer pair per page.
-        const items = block.items;
-        const pages_qa: Array<Array<{ q: string; a: string }>> = [];
-        let bucket: Array<{ q: string; a: string }> = [];
-        let chars = 0;
-        const MAX_QA = 700;
-        for (const item of items) {
-          const len = (item.q?.length ?? 0) + (item.a?.length ?? 0);
-          if (bucket.length && chars + len > MAX_QA) {
-            pages_qa.push(bucket);
-            bucket = [];
-            chars = 0;
-          }
-          bucket.push(item);
-          chars += len;
-        }
-        if (bucket.length) pages_qa.push(bucket);
+        const pages_qa = paginateQaItems(block.items);
         pages_qa.forEach((page, i) =>
           pages.push({ kind: 'qa', items: page, pageNum: i + 1, pageTotal: pages_qa.length }),
         );
@@ -1254,6 +1278,33 @@ const EndPage: React.FC<{ page: Extract<Page, { kind: 'end' }> }> = ({ page }) =
       </div>
       <div style={{ flex: 1.4 }} />
     </PageInner>
+  </PageFrame>
+);
+
+export const ArticleTeaReferencesPage: React.FC<{ teas: ArticleTeaReference[] }> = ({ teas }) => (
+  <PageFrame>
+    <PageInner>
+      <div style={{ flex: 0.65 }} />
+      <p style={{ fontFamily: T.mono, fontSize: 19, letterSpacing: '0.18em', textTransform: 'uppercase', color: T.gold, margin: 0 }}>
+        Teas in this piece
+      </p>
+      <div aria-hidden="true" style={{ width: 64, height: 1, background: T.border, margin: '30px 0 38px' }} />
+      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 28 }}>
+        {teas.map(tea => (
+          <li key={tea.id}>
+            <a
+              href={tea.href}
+              style={{ fontFamily: T.display, fontStyle: 'italic', fontSize: 37, lineHeight: 1.15, color: T.text, textDecoration: 'none' }}
+            >
+              {tea.name}
+            </a>
+            {tea.detail && <p style={{ fontFamily: T.body, fontSize: 21, color: T.textSec, margin: '8px 0 0' }}>{tea.detail}</p>}
+          </li>
+        ))}
+      </ul>
+      <div style={{ flex: 1 }} />
+    </PageInner>
+    <Watermark />
   </PageFrame>
 );
 
@@ -2391,6 +2442,7 @@ const PageDispatch: React.FC<{ page: Page }> = ({ page }) => {
     case 'cover':           return <CoverPage page={page} />;
     case 'masthead':        return <MastheadPage page={page} />;
     case 'colophon':        return <ColophonPage page={page} />;
+    case 'tea_references':   return <ArticleTeaReferencesPage teas={page.teas} />;
     case 'end':             return <EndPage page={page} />;
     // Original kinds, kept as fallbacks (synthetic body never created now)
     case 'body':            return <BodyPage page={page} />;
@@ -2471,7 +2523,23 @@ export default function ArticlePage() {
     retry: false,
   });
 
-  const pages = useMemo(() => (article ? buildPages(article) : []), [article]);
+  const { data: articleTeaRows } = useQuery<Array<Record<string, unknown>>>({
+    queryKey: ['public-xref', 'article-products', article?.id],
+    queryFn: () => api.publicXref.articles(article!.id),
+    enabled: !!article?.id,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const pages = useMemo(() => {
+    if (!article) return [];
+    const built = buildPages(article);
+    const teas = normalizeArticleTeaReferences(articleTeaRows);
+    if (teas.length === 0) return built;
+    const endIndex = built.findIndex(page => page.kind === 'end');
+    const insertAt = endIndex >= 0 ? endIndex : built.length;
+    const teaPages = paginateArticleTeaReferences(teas).map(pageTeas => ({ kind: 'tea_references' as const, teas: pageTeas }));
+    return [...built.slice(0, insertAt), ...teaPages, ...built.slice(insertAt)];
+  }, [article, articleTeaRows]);
   const total = pages.length;
 
   // Read the restored page index synchronously so we don't start at 0 and

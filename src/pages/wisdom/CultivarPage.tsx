@@ -36,6 +36,7 @@ import {
   useCultivarStory,
   WisdomSubNav,
 } from './wisdomShared';
+import { WisdomPublicStateGate, WisdomRelatedMaterial } from './WisdomRelatedMaterial';
 import { LineageTree, isCultivar, nameOf, readLineage } from './LineageTree';
 
 const titleCase = (value: string) =>
@@ -131,6 +132,7 @@ const CultivarPage: React.FC = () => {
   const expressions = story?.expressions ? Object.entries(story.expressions) : [];
 
   return (
+    <WisdomPublicStateGate identity={{ nodeType: 'cultivar', nodeId: cultivar.id }}>
     <article className={PAGE}>
       <Helmet>
         <title>{`${cultivar.name} · The Tea Plants · Teajia`}</title>
@@ -343,10 +345,12 @@ const CultivarPage: React.FC = () => {
         </p>
       </section>
 
+      <WisdomRelatedMaterial identity={{ nodeType: 'cultivar', nodeId: cultivar.id }} />
       <EntryAuthorship id={cultivar.id} />
 
       <Invitation subject={`Cultivar: ${cultivar.name}`} />
     </article>
+    </WisdomPublicStateGate>
   );
 };
 

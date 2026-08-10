@@ -5,6 +5,7 @@ import { RungTag, rungSummary } from './Rung';
 import { SearchBox } from './SearchBox';
 import { PublicLink, WisdomDetailPanel, WisdomPanelNav, WisdomRoving } from './WisdomDetailPanel';
 import type { WisdomUsage } from './usage';
+import { nodeTypeForHolding, type WisdomNodeIdentity } from './relations';
 import {
   ALL_FOLDED,
   AT_BLOCK,
@@ -214,6 +215,10 @@ interface Props {
    * Optional, like every other write-back here: the engine runs standalone.
    */
   onKeepHonoured?: () => void;
+  /** Renders account-backed relations without coupling the static browser to its API. */
+  relationPanel?: (identity: WisdomNodeIdentity) => React.ReactNode;
+  /** Standing controls belonging to the Wisdom topology, such as integrity review. */
+  tools?: React.ReactNode;
 }
 
 interface Section {
@@ -239,7 +244,7 @@ const joinDots = (parts: React.ReactNode[]): React.ReactNode =>
 
 export const WisdomBrowser: React.FC<Props> = ({
   holding, tabs, selectedId, onSelect, onJump, siblings, prefs, onPrefsChange,
-  initialQuery = '', onQueryChange, usage, shapeRefused, onKeepHonoured,
+  initialQuery = '', onQueryChange, usage, shapeRefused, onKeepHonoured, relationPanel, tools,
 }) => {
   const [query, setQuery] = useState(initialQuery);
   const nameColumn = holding.columns[0];
@@ -1251,7 +1256,7 @@ export const WisdomBrowser: React.FC<Props> = ({
           >
             {typed ? typedStatus(false) : statusLine(true, !condensed)}
           </p>
-          <div className="flex shrink-0 items-center gap-3">{foldAll}{sortMenu}{groupMenu}</div>
+          <div className="flex shrink-0 items-center gap-3">{tools}{foldAll}{sortMenu}{groupMenu}</div>
         </div>
 
         {/* One band, two jobs at two sizes. A phone has no keyboard to hint at
@@ -1709,6 +1714,8 @@ export const WisdomBrowser: React.FC<Props> = ({
         ) : undefined;
         const publicHref = holding.publicRef?.entry?.(selected);
         const entryLoad = entryUsage(holding.idOf(selected));
+        const identity = { nodeType: nodeTypeForHolding(holding.id), nodeId: holding.idOf(selected) };
+        const relationContent = relationPanel?.(identity);
         return holding.renderDetail
           ? holding.renderDetail(selected, {
               onClose: () => onSelect(null),
@@ -1719,6 +1726,7 @@ export const WisdomBrowser: React.FC<Props> = ({
               run,
               publicHref,
               usage: entryLoad,
+              relationPanel: relationContent,
             })
           : (
             <WisdomDetailPanel
@@ -1730,6 +1738,7 @@ export const WisdomBrowser: React.FC<Props> = ({
               run={run}
               publicHref={publicHref}
               usage={entryLoad}
+              relationPanel={relationContent}
             />
           );
       })()}

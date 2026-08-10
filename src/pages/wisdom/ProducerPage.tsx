@@ -26,6 +26,7 @@ import {
   SPACE,
   WisdomSubNav,
 } from './wisdomShared';
+import { WisdomPublicStateGate, WisdomRelatedMaterial } from './WisdomRelatedMaterial';
 
 const KIND_LABEL: Record<Producer['kind'], string> = {
   factory: 'Factory',
@@ -84,6 +85,7 @@ const ProducerPage: React.FC = () => {
   }
 
   return (
+    <WisdomPublicStateGate identity={{ nodeType: 'producer', nodeId: producer.id }}>
     <article className={PAGE}>
       <Helmet>
         <title>{`${producer.name} · Producers · Teajia`}</title>
@@ -144,10 +146,12 @@ const ProducerPage: React.FC = () => {
         </section>
       )}
 
+      <WisdomRelatedMaterial identity={{ nodeType: 'producer', nodeId: producer.id }} />
       <EntryAuthorship id={producer.id} />
 
       <Invitation subject={`Producer: ${producer.name}`} />
     </article>
+    </WisdomPublicStateGate>
   );
 };
 

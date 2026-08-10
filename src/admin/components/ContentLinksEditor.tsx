@@ -2,10 +2,10 @@ import React, { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { X, Plus, Trash2, Link2, Loader2, ChevronDown } from 'lucide-react';
 import { api } from '../../lib/api';
-import { STORIES } from '../../content';
 import { LEARN_CURRICULUM } from '../../constants';
 import { adviseProjects } from '../../data/adviseProjects';
 import { Product } from '../types';
+import type { DbArticle } from '../../types';
 
 /**
  * ContentLinksEditor, admin panel for curating article/module/project → product
@@ -21,20 +21,22 @@ const ENTITY_LABELS: Record<EntityType, string> = {
   project: 'Advise Project',
 };
 
-function useEntityOptions(type: EntityType): Array<{ id: string; label: string }> {
+export const articleEntityOptions = (articles: DbArticle[]): Array<{ id: string; label: string }> =>
+  articles
+    .filter(article => article.status === 'published' || article.status === 'draft')
+    .map(article => ({ id: article.id, label: article.title }));
+
+function useEntityOptions(type: EntityType, articles: DbArticle[]): Array<{ id: string; label: string }> {
   return useMemo(() => {
     if (type === 'article') {
-      return STORIES.filter(s => s.status === 'published' || s.status === 'draft').map(s => ({
-        id: s.id,
-        label: s.title,
-      }));
+      return articleEntityOptions(articles);
     }
     if (type === 'module') {
       return LEARN_CURRICULUM.map(m => ({ id: m.id, label: `${m.subtitle}: ${m.title}` }));
     }
     // project
     return adviseProjects.map(p => ({ id: p.id, label: p.name }));
-  }, [type]);
+  }, [type, articles]);
 }
 
 async function fetchLinked(type: EntityType, entityId: string): Promise<Array<{ id: string }>> {
@@ -67,8 +69,13 @@ export const ContentLinksEditor: React.FC<ContentLinksEditorProps> = ({ products
   const [pickerQuery, setPickerQuery] = useState('');
   const [busy, setBusy] = useState<string | null>(null); // productId being linked/unlinked
   const queryClient = useQueryClient();
+  const articlesQuery = useQuery({
+    queryKey: ['admin-articles', 'content-links'],
+    queryFn: () => api.articles.list(),
+    enabled: entityType === 'article',
+  });
 
-  const entityOptions = useEntityOptions(entityType);
+  const entityOptions = useEntityOptions(entityType, articlesQuery.data ?? []);
 
   const qKey = ['admin-xref', entityType, entityId];
   const { data: linkedRaw, isLoading } = useQuery<Array<{ id: string }>>({
@@ -174,8 +181,9 @@ export const ContentLinksEditor: React.FC<ContentLinksEditorProps> = ({ products
               value={entityId}
               onChange={e => { setEntityId(e.target.value); setAdding(false); setPickerQuery(''); }}
               className="w-full appearance-none bg-tea-elevated border border-tea-border rounded px-3 py-2 text-sm text-tea-text pr-8 focus:outline-none focus:ring-1 focus:ring-tea-gold/40"
+              disabled={entityType === 'article' && articlesQuery.isLoading}
             >
-              <option value="">Choose one</option>
+              <option value="">{entityType === 'article' && articlesQuery.isLoading ? 'Loading articles…' : 'Choose one'}</option>
               {entityOptions.map(o => (
                 <option key={o.id} value={o.id}>{o.label}</option>
               ))}

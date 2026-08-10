@@ -126,6 +126,9 @@ const TeaHouseQuietHours = lazy(() => import('./pages/read/TeaHouseQuietHours'))
 const CraftRenewalPorcelain = lazy(() => import('./pages/read/CraftRenewalPorcelain'));
 const PublicCollectionPage = lazy(() => import('./pages/PublicCollectionPage'));
 const ContributorProfilePage = lazy(() => import('./pages/ContributorProfilePage'));
+const AccountProfilePage = lazy(() => import('./pages/AccountProfilePage'));
+const ProfileFavoritesPage = lazy(() => import('./pages/ProfileFavoritesPage'));
+const ProfilePaymentPage = lazy(() => import('./pages/ProfilePaymentPage'));
 const ContributorsIndexPage = lazy(() => import('./pages/ContributorsIndexPage'));
 const StoreLaunchPlaybookPage = lazy(() => import('./pages/StoreLaunchPlaybookPage'));
 const McpPage = lazy(() => import('./pages/McpPage'));
@@ -1089,6 +1092,7 @@ const AppContent = () => {
                 <Route path="/signin" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SignInPage /></Suspense></ErrorBoundary>} />
                 <Route path="/signup" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SignUpPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/settings" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><AccountSettingsPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/profile" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><AccountProfilePage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/orders" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><OrderHistoryPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/orders/:id" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><OrderDetailPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/samples" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SampleHistoryPage /></Suspense></ErrorBoundary>} />
@@ -1144,6 +1148,12 @@ const AppContent = () => {
                       <ContributorProfilePage />
                     </Suspense>
                   </ErrorBoundary>
+                } />
+                <Route path="/people/:slug/favorites" element={
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><ProfileFavoritesPage /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/people/:slug/pay" element={
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><ProfilePaymentPage /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/people" element={
                   <ErrorBoundary>

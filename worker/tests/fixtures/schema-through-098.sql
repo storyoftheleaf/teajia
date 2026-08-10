@@ -138,6 +138,9 @@ CREATE TABLE IF NOT EXISTS products (
     stock_verified_at TEXT,                        -- Last time stock was physically verified
     source_compass_entry_id TEXT,                  -- FK to tea_compass_entries(id) — which field note sourced this product
     owner_user_id TEXT,                          -- NULL = owned by the location; set = owned by a specific member/person (stock spine step 1)
+    sourced_by TEXT,
+    roasted_by TEXT,
+    vouched_by TEXT,
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now')),  -- Tracks admin edits for smart export
     last_synced_at TEXT                         -- Last time markdown sync touched this row
@@ -594,6 +597,9 @@ CREATE TABLE IF NOT EXISTS newsletter_subscribers (
 
 -- Performance indices for common query patterns
 CREATE INDEX IF NOT EXISTS idx_products_account_status ON products(account_id, status);
+CREATE INDEX IF NOT EXISTS idx_products_sourced_by ON products(sourced_by) WHERE sourced_by IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_products_roasted_by ON products(roasted_by) WHERE roasted_by IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_products_vouched_by ON products(vouched_by) WHERE vouched_by IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_invoices_account_status ON invoices(account_id, status);
 CREATE INDEX IF NOT EXISTS idx_customers_account_name ON customers(account_id, name);
 CREATE INDEX IF NOT EXISTS idx_activity_logs_account_created ON activity_logs(account_id, created_at);

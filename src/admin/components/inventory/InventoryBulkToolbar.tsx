@@ -9,6 +9,7 @@ type InventoryBulkToolbarProps = {
   bulkField: string;
   bulkValue: string;
   isBulkApplying: boolean;
+  canApply?: boolean;
   onBulkFieldChange: (field: string) => void;
   onBulkValueChange: (value: string) => void;
   onApply: () => void;
@@ -22,6 +23,7 @@ export function InventoryBulkToolbar({
   bulkField,
   bulkValue,
   isBulkApplying,
+  canApply = true,
   onBulkFieldChange,
   onBulkValueChange,
   onApply,
@@ -70,7 +72,8 @@ export function InventoryBulkToolbar({
           )}
           <button
             onClick={onApply}
-            disabled={!bulkValue || isBulkApplying}
+            disabled={!bulkValue || isBulkApplying || !canApply}
+            title={!canApply ? 'Arrival status must be ready before publication' : undefined}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 cta-solid text-ui-11 uppercase tracking-caps font-sans rounded-md transition-colors disabled:opacity-40"
           >
             {isBulkApplying ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />} Apply

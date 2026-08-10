@@ -13,7 +13,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { getTeaColor } from '../../designTokens';
 import { LIQUOR_COLORS } from '../../data/tastingTaxonomy';
 import { useSampleCartStore } from '../../samples/sampleCartStore';
-import type { InventoryItem, Story } from '../../types';
+import type { InventoryItem } from '../../types';
 import { ContentType } from '../../types';
 
 import { AlcoveShell } from './alcove/AlcoveShell';
@@ -46,6 +46,8 @@ interface AlcoveCardProps {
   onTaste?: (item: InventoryItem) => void;
   /** Admin-only: called to open the product tasting editor (writes to the product's own tasting field). */
   onEditProductTasting?: (item: InventoryItem) => void;
+  /** Canonical public route, including store context on standalone pages. */
+  publicHref?: string;
   /**
    * 'card' (default) is the modal quiet card inside AlcoveShell (internal
    * scroll, pinned commerce bar). 'page' is the standalone product-page
@@ -81,7 +83,7 @@ function hexToRgbString(hex: string): string | undefined {
   return `${(int >> 16) & 255} ${(int >> 8) & 255} ${int & 255}`;
 }
 
-export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting, layout = 'card' }) => {
+export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting, publicHref, layout = 'card' }) => {
   const navigate = useNavigate();
   const { favoriteTeas, toggleFavoriteTea, activeAccountId } = useAppStore();
 
@@ -164,15 +166,20 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     queryFn: () => api.productImpressions.list(item.id),
     staleTime: 60_000,
   });
+  const { data: xrefArticleResponse } = useQuery({
+    queryKey: ['public-xref', 'product-articles', item.id],
+    queryFn: () => api.publicXref.productArticles(item.id),
+    staleTime: 5 * 60 * 1000,
+  });
 
   // Related journal articles (stories with matching teaId, published articles only)
   const { stories } = useStories();
-  const relatedArticles = useMemo<Story[]>(() =>
-    stories.filter(
-      s => s.teaId === item.id && s.status === 'published' && s.type === ContentType.Article
-    ),
-    [stories, item.id]
-  );
+  const relatedArticles = useMemo(() => {
+    if (xrefArticleResponse) return xrefArticleResponse.articles;
+    return stories
+      .filter(s => s.teaId === item.id && s.status === 'published' && s.type === ContentType.Article)
+      .map(story => ({ id: story.id, slug: story.slug || story.id, title: story.title }));
+  }, [xrefArticleResponse, stories, item.id]);
 
   const sliderMin = 5;
   const sliderMax = Math.max(sliderMin, Math.floor(item.stock_g || 0));
@@ -244,7 +251,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   // Share handler: uses Web Share API with clipboard fallback.
   const handleShare = async () => {
     const shareText = `${item.name}, ${item.origin || ''} ${teaType} from Teajia`;
-    const shareUrl = `${window.location.origin}/shop/product/${item.id}`;
+    const shareUrl = new URL(publicHref || `/shop/product/${encodeURIComponent(item.id)}`, window.location.origin).toString();
 
     if (navigator.share) {
       try {

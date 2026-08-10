@@ -27,6 +27,27 @@ export function withParam(params: URLSearchParams, key: string, value: string | 
   return next;
 }
 
+const INVENTORY_FOLD_PARAM = 'fold';
+
+/** Folded lifecycle headings live in the address so reload/back restores the ledger shape. */
+export function readInventoryFold(params: URLSearchParams): Set<string> {
+  return new Set(
+    (params.get(INVENTORY_FOLD_PARAM) ?? '')
+      .split(',')
+      .map(value => value.trim())
+      .filter(Boolean),
+  );
+}
+
+/** Preserve every unrelated inventory address key while changing the folded headings. */
+export function withInventoryFold(params: URLSearchParams, collapsed: ReadonlySet<string>): URLSearchParams {
+  const next = new URLSearchParams(params);
+  const values = [...collapsed].filter(Boolean).sort();
+  if (values.length === 0) next.delete(INVENTORY_FOLD_PARAM);
+  else next.set(INVENTORY_FOLD_PARAM, values.join(','));
+  return next;
+}
+
 export function isFeaturedButHidden(product: Product): boolean {
   if (!product.isFeatured) return false;
   if (product.status !== 'Active') return true;

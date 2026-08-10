@@ -2,7 +2,7 @@
 
 > Every route, organized by tier visibility. For end-to-end flows see FLOWS.md; for current priorities see CONSOLIDATED_DIRECTION.md.
 
-**Last updated:** 2026-04-27
+**Last updated:** 2026-08-10
 
 ---
 
@@ -18,6 +18,8 @@
 | /events | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | /find-a-table | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | /about | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| /people/* | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| /wisdom/* | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | /account/* | – | ✓ | ✓ | ✓ | ✓ | ✓ |
 | /admin/* | – | bundle-gated | ✓ | ✓ | ✓ | ✓ |
 | /admin/access/platform | – | – | – | – | ✓ | ✓ |
@@ -76,6 +78,19 @@
 - Adrian's story, sourcing philosophy, contact, press
 - **Status:** WIRED
 
+### /people and /people/:slug
+- Published Tea Master directory and one global person profile
+- A Tea Master's own tea selection comes from the active public `master` account they host; guest collaborations are shown separately
+- **Sub-routes:**
+  - `/people/:slug/favorites` — shareable Public favorites
+  - `/people/:slug/pay` — external transfer destinations with optional account, amount, currency, and reference context
+- **Status:** WIRED
+
+### /wisdom and /wisdom/*
+- Public Tea Wisdom Base for cultivars, regions, producers, marks, styles, and named teas
+- Approved related teas and writing render on detail pages; explicitly hidden nodes fail closed on direct access
+- **Status:** WIRED
+
 ### Marketing & Onboarding Routes
 
 - `/for-your-space` — B2B marketing page (private events, ongoing supply, team experiences) with WhatsApp inquiry CTA
@@ -101,7 +116,14 @@ All require authentication (Guest cannot access).
 - Tasting journal — list of tasting entries
 - Click entry → detail view → edit personal note
 - Add new tasting (start from product detail or here)
+- Inventory deep links can focus the exact personal entry through `tea` and `entry` query parameters
 - **Status:** WIRED (per project_tasting_model: one CustomerTasting per user × product)
+
+### /account/profile
+- Tea Master public-profile draft, readiness, portrait, Public favorites, and external payment destinations
+- Draft publication remains owner/platform reviewed; Request changes carries a reviewer note
+- Profile, favorites, and payment share links are directly copyable
+- **Status:** WIRED
 
 ### /account/collection
 - Favorites list backed by the member's saved teas

@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Loader2, Plus, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Loader2, Plus, Trash2, X } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
-import type { AdminContributor, ContributorLink, ContributorWrite } from '../../types';
+import type { AdminContributor, ContributorAccountRef, ContributorLink, ContributorWrite } from '../../types';
 
 type Props = {
   contributor: AdminContributor | null;
@@ -29,16 +29,65 @@ function contributorWrite(contributor: AdminContributor): ContributorWrite {
   return result;
 }
 
+function liveContributor(contributor: AdminContributor): AdminContributor {
+  return contributor.draft_diff?.live
+    ? { ...contributor, ...contributor.draft_diff.live } as AdminContributor
+    : contributor;
+}
+
+type EditableAssociation = {
+  account_id: string;
+  account_slug: string;
+  account_name: string;
+  public_role: string | null;
+  is_host: boolean;
+  display_order: number;
+};
+
+export function shouldPersistContributorAssociations(changed: boolean): boolean {
+  return changed;
+}
+
+export function canEditContributorAssociation(accountId: string, activeAccountId: string | null, platformRole: string | null): boolean {
+  return Boolean(platformRole || (activeAccountId && accountId === activeAccountId));
+}
+
+function editableAssociations(rows: ContributorAccountRef[] | undefined): EditableAssociation[] {
+  return (rows ?? []).map((row, index) => ({
+    account_id: row.account_id || row.account_slug || row.slug,
+    account_slug: row.account_slug || row.slug,
+    account_name: row.account_name || row.name,
+    public_role: row.public_role ?? null,
+    is_host: Boolean(row.is_host),
+    display_order: Number.isInteger(row.display_order) ? row.display_order : index,
+  })).sort((a, b) => a.display_order - b.display_order);
+}
+
+function reviewValue(value: unknown): string {
+  if (value == null || value === '') return 'Not set';
+  if (Array.isArray(value)) return value.length ? value.map(item => typeof item === 'string' ? item : JSON.stringify(item)).join(', ') : 'None';
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+}
+
 export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, onSaved }) => {
-  const accountId = useAppStore(state => state.activeAccountId) ?? '';
-  const accountName = useAppStore(state => state.memberships.find(item => item.account_id === state.activeAccountId)?.account_name) || 'this account';
+  const memberships = useAppStore(state => state.memberships);
+  const activeAccountId = useAppStore(state => state.activeAccountId);
+  const platformRole = useAppStore(state => state.platformRole);
   const [persistedContributor, setPersistedContributor] = useState<AdminContributor | null>(contributor);
-  const [form, setForm] = useState<ContributorWrite>(() => contributor ? contributorWrite(contributor) : emptyWrite());
+  const [form, setForm] = useState<ContributorWrite>(() => contributor ? contributorWrite(liveContributor(contributor)) : emptyWrite());
+  const [associations, setAssociations] = useState<EditableAssociation[]>(() => editableAssociations(contributor?.accounts));
+  const [associationsLoaded, setAssociationsLoaded] = useState(() => !contributor || Array.isArray(contributor.accounts));
+  const [associationsDirty, setAssociationsDirty] = useState(false);
+  const [availableAccounts, setAvailableAccounts] = useState<Array<{ id: string; slug: string; name: string; account_kind?: 'platform' | 'location' | 'master' }>>(() => memberships.map(item => ({ id: item.account_id, slug: item.slug, name: item.account_name, account_kind: item.account_kind })));
+  const [newAssociationId, setNewAssociationId] = useState('');
   const [contactId, setContactId] = useState(contributor?.contact_customer_id ?? '');
   const [customers, setCustomers] = useState<Array<{ id: string; name: string }>>([]);
   const [customersLoaded, setCustomersLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [requestingChanges, setRequestingChanges] = useState(false);
+  const [reviewerNote, setReviewerNote] = useState('');
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
@@ -49,6 +98,27 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
     closeButtonRef.current?.focus();
     return () => returnFocusRef.current?.focus();
   }, []);
+
+  useEffect(() => {
+    if (!persistedContributor) return;
+    let cancelled = false;
+    void api.people.getContributorAccounts(persistedContributor.id).then(result => {
+      if (!cancelled) {
+        setAssociations(editableAssociations(result.accounts));
+        setAssociationsLoaded(true);
+      }
+    }).catch(() => {
+      // Keep the contributor projection as a safe fallback while older workers roll out.
+    });
+    if (platformRole) {
+      void api.platform.listAccounts().then(result => {
+        if (!cancelled) setAvailableAccounts(result.accounts.map(item => ({ id: item.id, slug: item.slug, name: item.name, account_kind: item.account_kind ?? item.kind })));
+      }).catch(() => {
+        // Membership accounts remain available if platform discovery is unavailable.
+      });
+    }
+    return () => { cancelled = true; };
+  }, [persistedContributor?.id, platformRole]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -93,22 +163,76 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
   };
 
   const persist = async (publishing = false) => {
-    const validation = validate(publishing);
+    const approvingPendingDraft = publishing && !isNew && persistedContributor?.has_pending_draft === true;
+    const validation = approvingPendingDraft ? null : validate(publishing);
     if (validation) { setError(validation); return; }
     setSaving(true); setError(null);
     try {
-      const payload = { ...form, face_of_account_id: form.face_of_account_id ? accountId : null };
+      if (approvingPendingDraft) {
+        await api.people.publishContributor(persistedContributor.id);
+        onSaved();
+        return;
+      }
+      const { face_of_account_id: _legacyHost, ...payload } = form;
       const result = isNew
         ? await api.people.createContributor(payload)
         : await api.people.updateContributor(persistedContributor.id, payload);
       if (isNew) setPersistedContributor(result.contributor);
       const id = result.contributor.id;
       if (contactId !== (contributor?.contact_customer_id ?? '')) await api.people.updateContributorContact(id, contactId || null);
+      if (associationsLoaded && shouldPersistContributorAssociations(associationsDirty)) {
+        const writableAssociations = associations.filter(association => canEditContributorAssociation(association.account_id, activeAccountId, platformRole));
+        await api.people.updateContributorAccounts(id, writableAssociations.map((association, index) => ({
+          account_id: association.account_id,
+          public_role: association.public_role,
+          is_host: association.is_host,
+          display_order: index,
+        })));
+      }
       if (publishing) await api.people.publishContributor(id);
       onSaved();
     } catch (caught: any) {
       setError(caught?.message || 'Could not save this contributor. Try again.');
     } finally { setSaving(false); }
+  };
+
+  const requestChanges = async () => {
+    if (!persistedContributor || !reviewerNote.trim()) return;
+    setSaving(true); setError(null);
+    try {
+      await api.people.requestContributorChanges(persistedContributor.id, reviewerNote.trim());
+      onSaved();
+    } catch (caught: any) {
+      setError(caught?.message || 'Could not request profile changes.');
+    } finally { setSaving(false); }
+  };
+
+  const addAssociation = () => {
+    const account = availableAccounts.find(item => item.id === newAssociationId);
+    if (!account || associations.some(item => item.account_id === account.id)) return;
+    setAssociations(current => [...current, {
+      account_id: account.id,
+      account_slug: account.slug,
+      account_name: account.name,
+      public_role: 'Tea Master',
+      is_host: false,
+      display_order: current.length,
+    }]);
+    setAssociationsDirty(true);
+    setNewAssociationId('');
+  };
+
+  const updateAssociation = (id: string, patch: Partial<EditableAssociation>) => {
+    setAssociations(current => current.map(item => item.account_id === id ? { ...item, ...patch } : item));
+    setAssociationsDirty(true);
+  };
+  const moveAssociation = (index: number, nextIndex: number) => {
+    if (nextIndex < 0 || nextIndex >= associations.length) return;
+    const reordered = [...associations];
+    const [moved] = reordered.splice(index, 1);
+    reordered.splice(nextIndex, 0, moved);
+    setAssociations(reordered.map((item, position) => ({ ...item, display_order: position })));
+    setAssociationsDirty(true);
   };
 
   const unpublish = async () => {
@@ -134,6 +258,29 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
         <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-6 pb-nav-gap sm:px-6">
           <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>{isNew ? 'Create contributor' : 'Edit contributor'}</h2>
           <p className="mt-1 max-w-[60ch] text-ui-13 leading-relaxed text-tea-text-sec">Editorial identity, current practice, and where this person appears across Teajia.</p>
+
+          {persistedContributor?.has_pending_draft && (
+            <div className="mt-5 border-l-2 border-tea-gold pl-3">
+              <p className="text-ui-13 font-medium text-tea-text">Submitted changes awaiting review</p>
+              <p className="mt-1 text-ui-12 leading-relaxed text-tea-text-sec">The editor below contains the live profile only. Approving publishes this exact draft; editorial saving is unavailable during review.</p>
+              {persistedContributor.draft_diff && (
+                <div className="mt-4 overflow-hidden rounded-md border border-tea-border">
+                  <div className="grid grid-cols-[minmax(90px,0.65fr)_minmax(0,1fr)_minmax(0,1fr)] gap-px bg-tea-border text-ui-12">
+                    <div className="bg-tea-elevated px-3 py-2 text-tea-text-sec">Field</div>
+                    <div className="bg-tea-elevated px-3 py-2 font-medium text-tea-text">Live profile</div>
+                    <div className="bg-tea-elevated px-3 py-2 font-medium text-tea-text">Submitted draft</div>
+                    {persistedContributor.draft_diff.changed_fields.map(field => (
+                      <React.Fragment key={field}>
+                        <div className="break-words bg-tea-surface px-3 py-2 text-tea-text-sec">{field.replace(/_/g, ' ')}</div>
+                        <div className="break-words bg-tea-surface px-3 py-2 text-tea-text">{reviewValue(persistedContributor.draft_diff?.live[field])}</div>
+                        <div className="break-words bg-tea-surface px-3 py-2 text-tea-text">{reviewValue(persistedContributor.draft_diff?.pending[field])}</div>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {error && <div role="alert" className="mt-5 rounded-md border border-tea-border bg-tea-accent-sub px-3 py-2 text-ui-13 text-tea-text">{error}</div>}
 
@@ -194,9 +341,38 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
             </section>
 
             <section>
-              <h3 className={`${TYPOGRAPHY_CLASSES.label} text-tea-text`}>Associations</h3>
-              <div className="mt-3 space-y-4">
-                <label className="flex min-h-11 items-center gap-3"><input type="checkbox" checked={form.face_of_account_id === accountId} onChange={e => setField('face_of_account_id', e.target.checked ? accountId : null)} /><span className="text-ui-13 text-tea-text">Public host for {accountName}</span></label>
+              <h3 className={`${TYPOGRAPHY_CLASSES.label} text-tea-text`}>Store and account associations</h3>
+              <p className="mt-2 text-ui-12 leading-relaxed text-tea-text-sec">A Tea Master is one global person. Their primary master account is their operational home for stock and selection; other accounts are guest or collaborating associations.</p>
+              <div className="mt-4 space-y-4">
+                {associations.map((association, index) => (
+                  <div key={association.account_id} className="rounded-md border border-tea-border bg-tea-bg p-3">
+                    {(() => {
+                      const editable = canEditContributorAssociation(association.account_id, activeAccountId, platformRole);
+                      return <>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-ui-14 font-medium text-tea-text">{association.account_name}</p>
+                        <p className="mt-1 text-ui-11 text-tea-text-sec">{availableAccounts.find(item => item.id === association.account_id)?.account_kind === 'master' ? 'Tea Master operational home' : 'Guest or collaborating practice'}</p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button type="button" aria-label={`Move ${association.account_name} up`} disabled={!editable || index === 0} onClick={() => moveAssociation(index, index - 1)} className="tap-target text-tea-text-sec hover:text-tea-text disabled:opacity-30"><ArrowUp size={16} /></button>
+                        <button type="button" aria-label={`Move ${association.account_name} down`} disabled={!editable || index === associations.length - 1} onClick={() => moveAssociation(index, index + 1)} className="tap-target text-tea-text-sec hover:text-tea-text disabled:opacity-30"><ArrowDown size={16} /></button>
+                        <button type="button" aria-label={`Remove ${association.account_name}`} disabled={!editable} onClick={() => { setAssociations(current => current.filter(item => item.account_id !== association.account_id)); setAssociationsDirty(true); }} className="tap-target text-tea-text-sec hover:text-tea-text disabled:opacity-30"><Trash2 size={16} /></button>
+                      </div>
+                    </div>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+                      <label><span className={labelClass}>Public role</span><input disabled={!editable} value={association.public_role ?? ''} onChange={event => updateAssociation(association.account_id, { public_role: event.target.value || null })} className={inputClass} placeholder="Tea Master, guest curator, writer" /></label>
+                      <label className="tap-target flex min-h-11 items-center gap-3 text-ui-13 text-tea-text-sec"><input type="checkbox" disabled={!editable} checked={association.is_host} onChange={event => updateAssociation(association.account_id, { is_host: event.target.checked })} className="h-4 w-4 accent-tea-gold" /> Host profile</label>
+                    </div>
+                    {!editable && <p className="mt-2 text-ui-11 text-tea-text-dim">Read only while another account is active.</p>}
+                    </>;
+                    })()}
+                  </div>
+                ))}
+                <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                  <label><span className={labelClass}>Add an account</span><select value={newAssociationId} onChange={event => setNewAssociationId(event.target.value)} className={inputClass}><option value="">Choose an account</option>{availableAccounts.filter(item => canEditContributorAssociation(item.id, activeAccountId, platformRole) && !associations.some(association => association.account_id === item.id)).map(item => <option key={item.id} value={item.id}>{item.name}{item.account_kind === 'master' ? ' · Tea Master home' : ''}</option>)}</select></label>
+                  <button type="button" onClick={addAssociation} disabled={!newAssociationId} className="tap-target self-end rounded-md border border-tea-border px-4 py-2.5 text-ui-13 text-tea-text hover:bg-tea-accent-sub disabled:opacity-50">Add association</button>
+                </div>
                 <label><span className={labelClass}>Private contact</span><select className={inputClass} value={contactId} onFocus={loadCustomers} onChange={e => setContactId(e.target.value)}><option value="">No linked contact</option>{customers.map(customer => <option key={customer.id} value={customer.id}>{customer.name}</option>)}</select></label>
                 <label><span className={labelClass}>Where to find them</span><textarea className={`${inputClass} min-h-20 resize-y`} value={form.where_to_find_text ?? ''} onChange={e => setField('where_to_find_text', e.target.value)} /></label>
               </div>
@@ -208,10 +384,18 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
           <button type="button" onClick={onClose} disabled={saving} className="tap-target px-2 py-2 text-ui-13 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Cancel</button>
           <div className="flex flex-wrap justify-end gap-2">
             {!isNew && persistedContributor?.is_published === 1 && <button type="button" onClick={unpublish} disabled={saving} className="tap-target px-3 py-2 text-ui-13 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Unpublish</button>}
-            <button type="button" onClick={() => persist(false)} disabled={saving} className="tap-target rounded-md border border-tea-border px-3 py-2 text-ui-13 text-tea-text hover:bg-tea-accent-sub disabled:opacity-50">{saving ? 'Saving…' : 'Save changes'}</button>
-            {(isNew || persistedContributor?.is_published !== 1) && <button type="button" onClick={() => persist(true)} disabled={saving} className="tap-target inline-flex items-center gap-2 rounded-md cta-solid px-3 py-2 text-ui-13 font-medium disabled:opacity-50">{saving && <Loader2 size={14} className="animate-spin" />} Publish contributor</button>}
+            {!persistedContributor?.has_pending_draft && <button type="button" onClick={() => persist(false)} disabled={saving} className="tap-target rounded-md border border-tea-border px-3 py-2 text-ui-13 text-tea-text hover:bg-tea-accent-sub disabled:opacity-50">{saving ? 'Saving…' : 'Save changes'}</button>}
+            {persistedContributor?.has_pending_draft && <button type="button" onClick={() => setRequestingChanges(current => !current)} disabled={saving} className="tap-target px-3 py-2 text-ui-13 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Request changes</button>}
+            {persistedContributor?.has_pending_draft && <button type="button" onClick={() => persist(true)} disabled={saving} className="tap-target inline-flex items-center gap-2 rounded-md cta-solid px-3 py-2 text-ui-13 font-medium disabled:opacity-50">{saving && <Loader2 size={14} className="animate-spin" />} Approve submitted changes</button>}
+            {!persistedContributor?.has_pending_draft && (isNew || persistedContributor?.is_published !== 1) && <button type="button" onClick={() => persist(true)} disabled={saving} className="tap-target inline-flex items-center gap-2 rounded-md cta-solid px-3 py-2 text-ui-13 font-medium disabled:opacity-50">{saving && <Loader2 size={14} className="animate-spin" />} Publish contributor</button>}
           </div>
         </footer>
+        {requestingChanges && persistedContributor?.has_pending_draft && (
+          <div className="absolute inset-x-0 bottom-0 z-modal border-t border-tea-border bg-tea-elevated px-4 pt-4 pb-nav-gap sm:px-6 lg:pb-4">
+            <label><span className={labelClass}>What should the Tea Master revise?</span><textarea autoFocus rows={3} maxLength={800} value={reviewerNote} onChange={event => setReviewerNote(event.target.value)} className={`${inputClass} resize-y`} /></label>
+            <div className="mt-3 flex justify-between gap-3"><button type="button" onClick={() => { setRequestingChanges(false); setReviewerNote(''); }} className="tap-target text-ui-13 text-tea-text-sec hover:text-tea-text">Cancel</button><button type="button" onClick={requestChanges} disabled={saving || !reviewerNote.trim()} className="cta-solid tap-target rounded-md px-4 py-2 text-ui-13 disabled:opacity-50">Send revision request</button></div>
+          </div>
+        )}
       </aside>
     </>
   );

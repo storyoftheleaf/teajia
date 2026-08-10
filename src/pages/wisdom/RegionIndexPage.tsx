@@ -37,6 +37,7 @@ import {
   WisdomSubNav,
   WisdomToolbar,
 } from './wisdomShared';
+import { buildWisdomCollectionData, usePublicWisdomEntries, WisdomIndexVisibilityNotice } from './publicIndexVisibility';
 
 type View = 'country' | 'alphabetical';
 
@@ -65,9 +66,6 @@ const VIEWS: Array<{ id: View; label: string }> = [
  * Both figures are counted, never typed. The day a place is researched the line
  * above the list moves on its own.
  */
-const RECORDED_ALTITUDE = REGIONS.filter(region => region.altitude).length;
-const RECORDED_PROVINCE = REGIONS.filter(region => region.province).length;
-
 /**
  * Above this many rows a country stops being a group and becomes a list again.
  * China is the only one over it today, at 98.
@@ -142,11 +140,14 @@ const GroupSection: React.FC<{ group: Group }> = ({ group }) => (
 const RegionIndexPage: React.FC = () => {
   const [view, setView] = useState<View>('country');
   const [query, setQuery] = useState('');
+  const publicState = usePublicWisdomEntries('region', REGIONS);
 
   const visible = useMemo(
-    () => REGIONS.filter(region => matches(region, query)).sort((left, right) => left.name.localeCompare(right.name)),
-    [query],
+    () => publicState.entries.filter(region => matches(region, query)).sort((left, right) => left.name.localeCompare(right.name)),
+    [publicState.entries, query],
   );
+  const recordedAltitude = useMemo(() => publicState.entries.filter(region => region.altitude).length, [publicState.entries]);
+  const recordedProvince = useMemo(() => publicState.entries.filter(region => region.province).length, [publicState.entries]);
 
   const byCountry = useMemo(
     () =>
@@ -184,24 +185,16 @@ const RegionIndexPage: React.FC = () => {
     [groups],
   );
 
-  const structuredData = {
-    '@context': 'https://schema.org',
-    '@type': 'CollectionPage',
+  const structuredData = buildWisdomCollectionData({
     name: 'Tea Growing Regions',
     description: 'Growing places held once: country, province, altitude and climate, and the plants recorded from each.',
-    inLanguage: 'en',
-    isPartOf: { '@type': 'WebSite', name: 'Teajia' },
-    mainEntity: {
-      '@type': 'ItemList',
-      numberOfItems: REGIONS.length,
-      itemListElement: REGIONS.map((region, index) => ({
-        '@type': 'ListItem',
-        position: index + 1,
-        name: region.name,
-        url: `/wisdom/region/${region.id}`,
-      })),
-    },
-  };
+    entries: publicState.entries,
+    pathFor: region => `/wisdom/region/${region.id}`,
+  });
+
+  if (publicState.status !== 'ready') {
+    return <WisdomIndexVisibilityNotice status={publicState.status} onRetry={publicState.retry} />;
+  }
 
   return (
     <article className={PAGE}>
@@ -209,7 +202,7 @@ const RegionIndexPage: React.FC = () => {
         <title>Growing Regions · The Wisdom Base · Teajia</title>
         <meta
           name="description"
-          content={`${REGIONS.length} tea growing places: country, province, altitude and climate, and the plants recorded from each.`}
+          content={`${publicState.entries.length} tea growing places: country, province, altitude and climate, and the plants recorded from each.`}
         />
         <meta property="og:title" content="Growing Regions · Teajia" />
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
@@ -232,7 +225,7 @@ const RegionIndexPage: React.FC = () => {
           it is about the facts directly beneath it. */}
       {visible.length > 0 && (
         <p className={`${FOOTNOTE} ${MEASURE} ${AXIS_INDENT} figures-tab mt-8`}>
-          An altitude is recorded for {RECORDED_ALTITUDE} of these places and a province for {RECORDED_PROVINCE}. The
+          An altitude is recorded for {recordedAltitude} of these places and a province for {recordedProvince}. The
           others are working-list names, held as a vendor writes them, and a missing fact here means not researched
           rather than not applicable.
         </p>
@@ -245,7 +238,7 @@ const RegionIndexPage: React.FC = () => {
           placeholder="Search places"
           searchLabel="Search growing places by name, province or country"
           visible={visible.length}
-          total={REGIONS.length}
+          total={publicState.entries.length}
           noun="places"
         >
           <ViewSwitch options={VIEWS} value={view} onChange={next => setView(next)} label="Browse the places" />

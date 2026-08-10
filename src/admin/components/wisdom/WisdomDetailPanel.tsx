@@ -371,10 +371,11 @@ interface Props {
   publicHref?: string;
   /** How many products resolve through this entry right now. */
   usage?: WisdomEntryUsage;
+  relationPanel?: React.ReactNode;
 }
 
 export const WisdomDetailPanel: React.FC<Props> = ({
-  detail, id, onClose, nav, section, run, publicHref, usage,
+  detail, id, onClose, nav, section, run, publicHref, usage, relationPanel,
 }) => (
   <Modal isOpen onClose={onClose} variant="panel" ariaLabel={detail.name} headerActions={nav}>
     <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-2 pb-nav-gap sm:px-6">
@@ -392,6 +393,7 @@ export const WisdomDetailPanel: React.FC<Props> = ({
           <p className={`${TYPOGRAPHY_CLASSES.body} text-tea-text mt-6 max-w-2xl`}>{detail.prose}</p>
         )}
         {detail.extra}
+        {relationPanel}
       </div>
     </div>
   </Modal>

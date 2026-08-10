@@ -137,7 +137,7 @@ class FakeStatement {
     if (sql.includes('from invoices where customer_id = ?')) {
       return { results: [{ id: 'invoice-private', customer_id: 'cus_test', account_id: ACCOUNT_ID }] };
     }
-    if (sql.includes('from contributors') && sql.includes('display_name')) {
+    if (sql.includes('from contributors') && sql.includes('display_name') && !sql.includes('from articles a')) {
       return { results: [{ id: 'writer', slug: 'writer', display_name: 'Writer', status: 'published' }] };
     }
     // The public list query aliases the table (FROM articles a … WHERE a.status = 'published').

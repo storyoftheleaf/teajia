@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BowlSteam, CalendarBlank, Heart, Tray, ArrowsLeftRight, Wrench, Path, BookOpen, Compass, Package, NotePencil } from '@phosphor-icons/react';
+import { BowlSteam, CalendarBlank, Heart, Tray, ArrowsLeftRight, Wrench, Path, BookOpen, Compass, Package, NotePencil, IdentificationCard } from '@phosphor-icons/react';
+import { ADMIN_CONNECTION_ROUTES } from '../navigationConnections';
 
 interface LaunchpadTile {
   id: string;
@@ -23,7 +24,7 @@ interface LaunchpadViewProps {
 
   // Tier
   isOwner: boolean;
-  isStaffOrOwner: boolean;
+  canPublish: boolean;
   membershipsCount: number;
 
   // Signals
@@ -133,7 +134,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
   accountName,
   locationLabel,
   isOwner,
-  isStaffOrOwner,
+  canPublish,
   membershipsCount,
   pendingInvoiceCount,
   todayEventCount,
@@ -212,10 +213,17 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
       icon: <Path {...ICON_PROPS} />,
       onClick: () => { onClose(); navigate('/discover'); },
     },
+    {
+      id: 'profile',
+      verb: 'profile',
+      hint: 'public identity & payment',
+      icon: <IdentificationCard {...ICON_PROPS} />,
+      onClick: () => { onClose(); navigate('/account/profile'); },
+    },
     // Collections are the shareable unit. Curators (publish bundle) get their
     // create/manage home; everyone else gets their shelf of collections shared
     // with or saved by them.
-    isStaffOrOwner ? {
+    canPublish ? {
       id: 'collections',
       verb: 'collections',
       hint: inboundUnreadCount > 0
@@ -250,12 +258,26 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
       accent: pendingInvoiceCount > 0,
       onClick: () => { onClose(); navigate('/admin/dashboard'); },
     } as LaunchpadTile] : []),
-    ...(isStaffOrOwner ? [{
+    ...(canPublish ? [{
       id: 'write',
       verb: 'write',
       hint: 'create an article',
       icon: <NotePencil {...ICON_PROPS} />,
       onClick: () => { onClose(); navigate('/admin/magazine'); },
+    } as LaunchpadTile] : []),
+    ...(isOwner ? [{
+      id: 'tea-masters',
+      verb: 'tea masters',
+      hint: 'profiles & associations',
+      icon: <IdentificationCard {...ICON_PROPS} />,
+      onClick: () => { onClose(); navigate(ADMIN_CONNECTION_ROUTES.teaMasters); },
+    } as LaunchpadTile] : []),
+    ...(canPublish ? [{
+      id: 'wisdom',
+      verb: 'wisdom',
+      hint: 'knowledge & relationships',
+      icon: <Compass {...ICON_PROPS} />,
+      onClick: () => { onClose(); navigate(ADMIN_CONNECTION_ROUTES.wisdom); },
     } as LaunchpadTile] : []),
     ...(isOwner ? [{
       id: 'briefing',

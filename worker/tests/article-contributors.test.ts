@@ -22,9 +22,9 @@ class Statement {
 }
 class Db {
   contributors = new Map([
-    ['writer-one', { id: 'writer-one', account_id: ACCOUNT, display_name: 'Writer One' }],
-    ['subject-one', { id: 'subject-one', account_id: ACCOUNT, display_name: 'Subject One' }],
-    ['other-writer', { id: 'other-writer', account_id: 'acc-other', display_name: 'Other Writer' }],
+    ['writer-one', { id: 'writer-one', account_id: ACCOUNT, display_name: 'Writer One', is_published: 0 }],
+    ['subject-one', { id: 'subject-one', account_id: ACCOUNT, display_name: 'Subject One', is_published: 0 }],
+    ['other-writer', { id: 'other-writer', account_id: 'acc-other', display_name: 'Other Writer', is_published: 0 }],
   ]);
   articles = new Map<string, any>([['legacy-article', { id: 'legacy-article', account_id: ACCOUNT, title: 'Legacy', slug: 'legacy', status: 'draft', author_id: 'legacy-writer', tags: '[]', blocks: '[]', subject_ids: '[]', pull_quote: null, pull_quote_subject: null }]]);
   prepare(sql: string) { return new Statement(this, sql); }
@@ -38,7 +38,19 @@ class Db {
     if (sql.includes('from articles where id = ?')) return structuredClone(this.articles.get(values[0]) ?? null);
     if (sql.includes("where a.slug = ? and a.status = 'published'")) {
       const row = [...this.articles.values()].find(article => article.slug === values[0] && article.status === 'published');
-      if (!row) return null; const contributor = this.contributors.get(row.author_id); return { ...structuredClone(row), author_name: contributor?.account_id === row.account_id ? contributor.display_name : null };
+      if (!row) return null;
+      const contributor = this.contributors.get(row.author_id);
+      const publishedAuthor = contributor?.is_published === 1 ? contributor : null;
+      let subjectIds: string[] = [];
+      try { subjectIds = JSON.parse(row.subject_ids || '[]'); } catch { subjectIds = []; }
+      subjectIds = subjectIds.filter(id => this.contributors.get(id)?.is_published === 1);
+      return {
+        ...structuredClone(row),
+        author_id: publishedAuthor?.id ?? null,
+        author_name: publishedAuthor?.display_name ?? null,
+        subject_ids: subjectIds,
+        pull_quote_subject: this.contributors.get(row.pull_quote_subject)?.is_published === 1 ? row.pull_quote_subject : null,
+      };
     }
     return null;
   }
@@ -84,9 +96,9 @@ describe('article contributor linkage', () => {
     expect((await call(db, '/api/admin/articles/legacy-article', { method: 'PUT', body: JSON.stringify({ title: 'Still legacy', author_id: 'legacy-writer' }) })).status).toBe(200);
     expect((await call(db, '/api/admin/articles/legacy-article', { method: 'PUT', body: JSON.stringify({ author_id: 'invented-writer' }) })).status).toBe(400);
   });
-  it('returns contributor author_name publicly and keeps legacy author_id visible', async () => {
-    const db = new Db(); db.articles.set('published', { id: 'published', account_id: ACCOUNT, title: 'Published', slug: 'published', status: 'published', author_id: 'writer-one', tags: '[]', blocks: '[]', subject_ids: '[]' });
+  it('omits unpublished contributor identity from public articles', async () => {
+    const db = new Db(); db.articles.set('published', { id: 'published', account_id: ACCOUNT, title: 'Published', slug: 'published', status: 'published', author_id: 'writer-one', tags: '[]', blocks: '[]', subject_ids: '["subject-one"]' });
     const linked = await worker.fetch(new Request('https://worker.test/api/articles/published'), { DB: db } as any);
-    expect(await linked.json()).toMatchObject({ author_id: 'writer-one', author_name: 'Writer One' });
+    expect(await linked.json()).toMatchObject({ author_id: null, author_name: null, subject_ids: [] });
   });
 });
