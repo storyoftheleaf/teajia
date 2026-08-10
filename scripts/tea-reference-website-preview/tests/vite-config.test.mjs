@@ -165,7 +165,7 @@ test('real Vite config gates the public adapter without writing handoff data int
   assert.deepEqual(unexpectedArtifacts, [], 'a real page load must not write a handoff or domain artifact');
 });
 
-test('normal production builds reject Tea Reference preview modules while preview builds allow them', async () => {
+test('normal production builds allow canonical reference pages but reject private preview surfaces', async () => {
   const productionConfig = await resolveConfig({
     root: REPO_ROOT,
     configFile: path.join(REPO_ROOT, 'vite.config.ts'),
@@ -178,15 +178,19 @@ test('normal production builds reject Tea Reference preview modules while previe
   assert.doesNotThrow(() => guard.generateBundle.call(pluginContext, {}, {
     'safe.js': { type: 'chunk', modules: { [path.join(REPO_ROOT, 'src/pages/wisdom/WisdomHomePage.tsx')]: {} } },
   }));
+  assert.doesNotThrow(() => guard.generateBundle.call(pluginContext, {}, {
+    'canonical-reference.js': { type: 'chunk', modules: {
+      [path.join(REPO_ROOT, 'src/wisdom/reference/client.ts')]: {},
+      [path.join(REPO_ROOT, 'src/pages/wisdom/PreviewOriginPage.tsx')]: {},
+      [path.join(REPO_ROOT, 'src/pages/wisdom/previewOriginMetadata.ts')]: {},
+    } },
+  }));
   assert.throws(() => guard.generateBundle.call(pluginContext, {}, {
-    'leaked.js': { type: 'chunk', modules: { [path.join(REPO_ROOT, 'src/wisdom/reference/client.ts')]: {} } },
-  }), /Tea Reference preview modules leaked.*client\.ts/i);
+    'leaked-preview-home.js': { type: 'chunk', modules: { [path.join(REPO_ROOT, 'src/pages/wisdom/PreviewWisdomHomePage.tsx')]: {} } },
+  }), /Tea Reference preview modules leaked.*PreviewWisdomHomePage\.tsx/i);
   assert.throws(() => guard.generateBundle.call(pluginContext, {}, {
-    'leaked-origin.js': { type: 'chunk', modules: { [path.join(REPO_ROOT, 'src/pages/wisdom/PreviewOriginPage.tsx')]: {} } },
-  }), /Tea Reference preview modules leaked.*PreviewOriginPage\.tsx/i);
-  assert.throws(() => guard.generateBundle.call(pluginContext, {}, {
-    'leaked-origin-metadata.js': { type: 'chunk', modules: { [path.join(REPO_ROOT, 'src/pages/wisdom/previewOriginMetadata.ts')]: {} } },
-  }), /Tea Reference preview modules leaked.*previewOriginMetadata\.ts/i);
+    'leaked-preview-index.js': { type: 'chunk', modules: { [path.join(REPO_ROOT, 'src/pages/wisdom/PreviewOriginIndexSection.tsx')]: {} } },
+  }), /Tea Reference preview modules leaked.*PreviewOriginIndexSection\.tsx/i);
   assert.throws(() => guard.generateBundle.call(pluginContext, {}, {
     'leaked-private-review.js': { type: 'chunk', modules: { [path.join(REPO_ROOT, 'src/admin/views/TeaReferenceReviewView.tsx')]: {} } },
   }), /Tea Reference preview modules leaked.*TeaReferenceReviewView\.tsx/i);

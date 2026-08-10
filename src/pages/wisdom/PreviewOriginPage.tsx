@@ -22,7 +22,7 @@ import ReferenceFactSections from './ReferenceFactSections';
 import { previewPlaceLevel } from './previewOriginMetadata';
 import { mapSearchLink } from './mapLinks';
 
-const PreviewOriginPage: React.FC<{ id: string }> = ({ id }) => {
+const PreviewOriginPage: React.FC<{ id: string; fallback?: React.ReactNode }> = ({ id, fallback }) => {
   const { catalogue, products, isLoading, isError } = useTeaReferenceCatalogue();
   const origin = catalogue?.origins.find(entry => entry.id === id);
   const ancestors = [] as NonNullable<typeof origin>[];
@@ -52,7 +52,7 @@ const PreviewOriginPage: React.FC<{ id: string }> = ({ id }) => {
     : null;
 
   if (catalogue && !origin) {
-    return (
+    return fallback ?? (
       <HoldingNotFound
         section="regions"
         heading="Place not found"

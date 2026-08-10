@@ -49,11 +49,16 @@ function groupedFacts(facts: readonly PublicReferenceStatement[]): FactGroup[] {
   const general = facts.filter(fact => (
     !common.includes(fact) && !potential.includes(fact) && !exactLot.includes(fact)
   ));
+  const namedGeneral = new Map<string, PublicReferenceStatement[]>();
+  for (const fact of general) {
+    const label = fact.label.trim() || 'General reference';
+    namedGeneral.set(label, [...(namedGeneral.get(label) ?? []), fact]);
+  }
   return [
     { label: 'Common characteristics', facts: common },
     { label: 'Cultivar potential', facts: potential },
     { label: 'Exact lot source description', facts: exactLot },
-    { label: 'General reference', facts: general },
+    ...[...namedGeneral].map(([label, grouped]) => ({ label, facts: grouped })),
   ].filter(group => group.facts.length > 0);
 }
 
@@ -191,6 +196,12 @@ export const ReferenceFactSections: React.FC<{
         );
       })}
 
+      {referencePage && (
+        <div className={`${AXIS_INDENT} ${SPACE.section}`}>
+          <FlagReferenceIssueSheet page={referencePage} />
+        </div>
+      )}
+
       {(availableProducts.length > 0 || previouslyOfferedProducts.length === 0) && (
         <div className={SPACE.section}>
           <SectionHead label="Available teas" count={availableProducts.length || undefined} />
@@ -211,11 +222,6 @@ export const ReferenceFactSections: React.FC<{
         </div>
       )}
 
-      {referencePage && (
-        <div className={`${AXIS_INDENT} ${SPACE.section}`}>
-          <FlagReferenceIssueSheet page={referencePage} />
-        </div>
-      )}
       <Invitation subject={`Report an inaccuracy: ${reportIdentity}`} />
     </>
   );

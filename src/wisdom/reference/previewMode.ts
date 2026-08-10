@@ -6,8 +6,8 @@ export const TEA_REFERENCE_ROUTE_PATHS = {
   type: '/wisdom/type/:id',
 } as const;
 
-export function teaReferenceRoutePaths(previewEnabled: boolean): string[] {
-  return previewEnabled ? Object.values(TEA_REFERENCE_ROUTE_PATHS) : [];
+export function teaReferenceRoutePaths(_previewEnabled: boolean): string[] {
+  return Object.values(TEA_REFERENCE_ROUTE_PATHS);
 }
 
 export const ACTIVE_TEA_REFERENCE_ROUTE_PATHS = teaReferenceRoutePaths(

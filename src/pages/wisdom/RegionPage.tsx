@@ -21,7 +21,6 @@ import {
   Fact,
   FACT_CLASS,
   GROUND,
-  HoldingNotFound,
   HoldingRow,
   IndexList,
   Invitation,
@@ -40,11 +39,16 @@ import {
 import { EntryResearchSection } from './EntryResearchSection';
 import { WisdomPublicStateGate, WisdomRelatedMaterial } from './WisdomRelatedMaterial';
 import { mapSearchLink } from './mapLinks';
+import { GENERATED_TEA_REFERENCE_REGISTRY } from '../../wisdom/reference/generatedPages';
+import { TEA_REFERENCE_PREVIEW_ENABLED } from '../../wisdom/reference/previewMode';
 
-const PreviewOriginPage = import.meta.env.MODE === 'tea-reference-preview'
-  ? React.lazy(() => import('./PreviewOriginPage'))
-  : null;
+const ReferenceOriginPage = React.lazy(() => import('./PreviewOriginPage'));
 const REGION_PAGE = import.meta.env.MODE === 'tea-reference-preview' ? PREVIEW_PAGE : PAGE;
+const GENERATED_ORIGIN_IDS = new Set<string>(
+  GENERATED_TEA_REFERENCE_REGISTRY.pages
+    .filter(page => page.kind !== 'tea_family' && page.kind !== 'tea_type')
+    .map(page => page.id),
+);
 
 const RegionPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -113,21 +117,10 @@ const RegionPage: React.FC = () => {
   }, [region]);
 
   if (!region) {
-    if (PreviewOriginPage) {
-      return (
-        <React.Suspense fallback={<WisdomFallback />}>
-          <PreviewOriginPage id={id ?? ''} />
-        </React.Suspense>
-      );
-    }
     return (
-      <HoldingNotFound
-        section="regions"
-        heading="Place not found"
-        backTo="/wisdom/regions"
-        backLabel="All growing regions"
-        subject="A growing place that is missing"
-      />
+      <React.Suspense fallback={<WisdomFallback />}>
+        <ReferenceOriginPage id={id ?? ''} />
+      </React.Suspense>
     );
   }
 
@@ -137,7 +130,7 @@ const RegionPage: React.FC = () => {
     ? plants.map(plant => ({ plant, place: null }))
     : plantsWithin;
 
-  return (
+  const legacyPage = (
     <WisdomPublicStateGate identity={{ nodeType: 'region', nodeId: region.id }}>
     <article className={REGION_PAGE} data-wisdom-region-page="true">
       <Helmet>
@@ -263,6 +256,16 @@ const RegionPage: React.FC = () => {
     </article>
     </WisdomPublicStateGate>
   );
+
+  if (!TEA_REFERENCE_PREVIEW_ENABLED && GENERATED_ORIGIN_IDS.has(id ?? '')) {
+    return (
+      <React.Suspense fallback={<WisdomFallback />}>
+        <ReferenceOriginPage id={id ?? ''} fallback={legacyPage} />
+      </React.Suspense>
+    );
+  }
+
+  return legacyPage;
 };
 
 export default RegionPage;

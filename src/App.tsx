@@ -149,15 +149,9 @@ const RegionIndexPage = lazy(() => import('./pages/wisdom/RegionIndexPage'));
 const RegionPage = lazy(() => import('./pages/wisdom/RegionPage'));
 const NamedTeaIndexPage = lazy(() => import('./pages/wisdom/NamedTeaIndexPage'));
 const NamedTeaPage = lazy(() => import('./pages/wisdom/NamedTeaPage'));
-const TeaTypeIndexPage = import.meta.env.MODE === 'tea-reference-preview'
-  ? lazy(() => import('./pages/wisdom/TeaTypeIndexPage'))
-  : null;
-const TeaFamilyPage = import.meta.env.MODE === 'tea-reference-preview'
-  ? lazy(() => import('./pages/wisdom/TeaFamilyPage'))
-  : null;
-const TeaTypePage = import.meta.env.MODE === 'tea-reference-preview'
-  ? lazy(() => import('./pages/wisdom/TeaTypePage'))
-  : null;
+const TeaTypeIndexPage = lazy(() => import('./pages/wisdom/TeaTypeIndexPage'));
+const TeaFamilyPage = lazy(() => import('./pages/wisdom/TeaFamilyPage'));
+const TeaTypePage = lazy(() => import('./pages/wisdom/TeaTypePage'));
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchStore } from './lib/storefrontApi';
@@ -1090,15 +1084,15 @@ const AppContent = () => {
                 <Route path="/wisdom/named/:id" element={
                   <ErrorBoundary><Suspense fallback={<WisdomFallback />}><NamedTeaPage /></Suspense></ErrorBoundary>
                 } />
-                {TeaTypeIndexPage && <Route path={TEA_REFERENCE_ROUTE_PATHS.index} element={
+                <Route path={TEA_REFERENCE_ROUTE_PATHS.index} element={
                   <ErrorBoundary><Suspense fallback={<WisdomFallback />}><TeaTypeIndexPage /></Suspense></ErrorBoundary>
-                } />}
-                {TeaFamilyPage && <Route path={TEA_REFERENCE_ROUTE_PATHS.family} element={
+                } />
+                <Route path={TEA_REFERENCE_ROUTE_PATHS.family} element={
                   <ErrorBoundary><Suspense fallback={<WisdomFallback />}><TeaFamilyPage /></Suspense></ErrorBoundary>
-                } />}
-                {TeaTypePage && <Route path={TEA_REFERENCE_ROUTE_PATHS.type} element={
+                } />
+                <Route path={TEA_REFERENCE_ROUTE_PATHS.type} element={
                   <ErrorBoundary><Suspense fallback={<WisdomFallback />}><TeaTypePage /></Suspense></ErrorBoundary>
-                } />}
+                } />
                 <Route path="/about" element={<ErrorBoundary><AboutPage /></ErrorBoundary>} />
                 <Route path="/mcp" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><McpPage /></Suspense></ErrorBoundary>} />
                 {/* /compass is admin-only at /admin/compass, public route removed.

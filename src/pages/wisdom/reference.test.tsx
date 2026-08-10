@@ -424,6 +424,37 @@ const previewProducts: PublicProduct[] = [{
 
 const previewCatalogue = buildTeaReferenceCatalogue(previewTransport.publicPreview, previewProducts);
 
+const canonicalRouteProducts: PublicProduct[] = [
+  {
+    ...previewProducts[0],
+    id: 'canonical-yiwu-sheng',
+    givenName: 'Greater Yiwu Sheng',
+    productName: 'Greater Yiwu reference tea',
+    originRegion: 'Greater Yiwu',
+  },
+  {
+    ...previewProducts[0],
+    id: 'canonical-lincang-sheng',
+    givenName: 'Lincang Sheng',
+    productName: 'Lincang reference tea',
+    originRegion: 'Lincang',
+  },
+  {
+    ...previewProducts[0],
+    id: 'canonical-menghai-shou',
+    type: 'Shou',
+    givenName: 'Menghai County Shou',
+    productName: 'Menghai County reference tea',
+    originRegion: 'Menghai County',
+  },
+];
+
+function createCanonicalQueryClient(): QueryClient {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  client.setQueryData(['products', 'public'], canonicalRouteProducts);
+  return client;
+}
+
 function createReferenceQueryClient(products: PublicProduct[] = previewProducts): QueryClient {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   client.setQueryData(TEA_REFERENCE_PREVIEW_QUERY_KEY, previewTransport);
@@ -439,6 +470,22 @@ const renderPreview = (path: string, products: PublicProduct[] = previewProducts
         <MemoryRouter initialEntries={[path]}>
           <Routes>
             <Route path="/wisdom/types" element={<TeaTypeIndexPage />} />
+            <Route path="/wisdom/family/:id" element={<TeaFamilyPage />} />
+            <Route path="/wisdom/type/:id" element={<TeaTypePage />} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>
+    </QueryClientProvider>,
+  );
+};
+
+const renderCanonicalTypeRoute = (path: string) => {
+  const client = createCanonicalQueryClient();
+  return renderToString(
+    <QueryClientProvider client={client}>
+      <HelmetProvider>
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
             <Route path="/wisdom/family/:id" element={<TeaFamilyPage />} />
             <Route path="/wisdom/type/:id" element={<TeaTypePage />} />
           </Routes>
@@ -602,7 +649,7 @@ describe('wayfinding', () => {
     }
   });
 
-  it('adds Types and renames Regions to Origins only for the local preview', () => {
+  it('keeps wayfinding preview-only while the approved reference routes work in the normal app', () => {
     expect(wisdomSections(true)).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: 'types', label: 'Types', path: '/wisdom/types' }),
       expect.objectContaining({ id: 'regions', label: 'Origins', path: '/wisdom/regions' }),
@@ -621,17 +668,51 @@ describe('wayfinding', () => {
     ]));
     expect(previewHoldings.some(holding => holding.to === '/wisdom/types')).toBe(false);
 
-    expect(teaReferenceRoutePaths(false)).toEqual([]);
+    expect(teaReferenceRoutePaths(false)).toEqual([
+      '/wisdom/types',
+      '/wisdom/family/:id',
+      '/wisdom/type/:id',
+    ]);
     expect(teaReferenceRoutePaths(true)).toEqual([
       '/wisdom/types',
       '/wisdom/family/:id',
       '/wisdom/type/:id',
     ]);
-    expect(teaReferenceRoutePaths(TEA_REFERENCE_PREVIEW_ENABLED)).toEqual(
-      TEA_REFERENCE_PREVIEW_ENABLED
-        ? ['/wisdom/types', '/wisdom/family/:id', '/wisdom/type/:id']
-        : [],
-    );
+    expect(teaReferenceRoutePaths(TEA_REFERENCE_PREVIEW_ENABLED)).toEqual([
+      '/wisdom/types',
+      '/wisdom/family/:id',
+      '/wisdom/type/:id',
+    ]);
+  });
+
+  it.skipIf(TEA_REFERENCE_PREVIEW_ENABLED)('renders all six canonical pages on their existing routes, including colliding region ids', async () => {
+    const routeHtml = async (path: string) => path.startsWith('/wisdom/region/')
+      ? renderRegionAsync(path, createCanonicalQueryClient())
+      : renderCanonicalTypeRoute(path);
+    const pages = [
+      ['/wisdom/family/puer', 'A tea rooted in Yunnan', 'Pu’er belongs to Yunnan’s long tea history.'],
+      ['/wisdom/type/sheng', 'What sheng means', 'Sheng is the undarkened branch of Pu’er'],
+      ['/wisdom/region/yunnan', 'The geographic frame', 'Pu’er is unusually place-bound for a broad tea family.'],
+      ['/wisdom/region/greater-yiwu', 'A name at several scales', 'Yiwu can mean a township, a market center'],
+      ['/wisdom/region/menghai-county', 'Western Xishuangbanna', 'Menghai County anchors much of western Xishuangbanna'],
+      ['/wisdom/region/lincang', 'Northern Pu’er country', 'Lincang lies north of Pu’er Prefecture'],
+    ] as const;
+
+    for (const [path, sectionLabel, canonicalSection] of pages) {
+      const html = await routeHtml(path);
+      expect(html, path).toContain(sectionLabel);
+      expect(html, path).toContain(canonicalSection);
+    }
+  });
+
+  it.skipIf(TEA_REFERENCE_PREVIEW_ENABLED)('falls back to the established region entry when a canonical page has no active catalogue tea', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    client.setQueryData(['products', 'public'], []);
+    const html = await renderRegionAsync('/wisdom/region/yunnan', client);
+    expect(html).toContain('>Growing place<');
+    expect(html).toContain('>Yunnan</h1>');
+    expect(html).not.toContain('Place not found');
+    expect(html).not.toContain('The geographic frame');
   });
 
   it('carries one control, not a back link above a lit nav item', () => {
@@ -739,7 +820,7 @@ describe('Tea Reference type preview', () => {
     expect(family).toContain('href="/wisdom/type/sheng"');
   });
 
-  it('renders grouped citations, matching teas, and a page-specific correction action', () => {
+  it.skipIf(!TEA_REFERENCE_PREVIEW_ENABLED)('renders grouped citations, matching teas, and a page-specific correction action', () => {
     const html = renderPreview('/wisdom/type/sheng').replace(/&amp;/g, '&');
     expect(html).toContain('Common characteristics');
     expect(html).toContain('Cultivar potential');
@@ -803,7 +884,7 @@ describe('Tea Reference type preview', () => {
 
   it('explains a valid catalogue with no product-connected tea types', () => {
     const html = renderPreview('/wisdom/types', []);
-    expect(html).toContain('No tea family or type is connected to the public catalogue in this preview.');
+    expect(html).toContain('No tea family or type is connected to the public catalogue right now.');
   });
 });
 
@@ -1098,7 +1179,7 @@ describe('growing regions', () => {
     expect(html.indexOf('href="/wisdom/region/reference-yunnan"')).toBeLessThan(html.indexOf('href="/wisdom/region/reference-yiwu"'));
     expect(html.indexOf('href="/wisdom/region/reference-yiwu"')).toBeLessThan(html.indexOf('href="/wisdom/region/reference-gedeng"'));
     expect(html.indexOf('href="/wisdom/region/reference-gedeng"')).toBeLessThan(html.indexOf('href="/wisdom/region/reference-mansa"'));
-    expect(html).toContain('General reference');
+    expect(html).toContain('Identity');
     expect(html).toContain('A concise public source excerpt about Manxiu.');
     expect(html).toContain('Tea Geography Institute · Manxiu reference');
     expect(html).toContain('Field Research Desk');

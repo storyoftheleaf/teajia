@@ -47,7 +47,9 @@ export function useTeaReferenceCatalogue() {
   const catalogue = useMemo(
     () => {
       if (!productsQuery.data) return null;
-      if (previewQuery.data) return buildTeaReferenceCatalogue(previewQuery.data.publicPreview, products);
+      if (TEA_REFERENCE_PREVIEW_ENABLED && previewQuery.data) {
+        return buildTeaReferenceCatalogue(previewQuery.data.publicPreview, products);
+      }
       return TEA_REFERENCE_PREVIEW_ENABLED ? null : buildGeneratedTeaReferenceCatalogue(products);
     },
     [previewQuery.data, productsQuery.data, products],

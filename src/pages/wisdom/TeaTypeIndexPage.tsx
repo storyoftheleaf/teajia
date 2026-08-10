@@ -32,7 +32,7 @@ const TeaTypeIndexPage: React.FC = () => {
       {isLoading && !catalogue && <div className={`${SPACE.section} ${AXIS_INDENT}`}><ProseSkeleton /></div>}
       {isError && !catalogue && (
         <p role="status" className={`${FACT} ${MEASURE} ${AXIS_INDENT} ${SPACE.section}`}>
-          The local cited preview is unavailable. The rest of the Wisdom Base is still ready to browse.
+          The cited reference is unavailable. The rest of the Wisdom Base is still ready to browse.
         </p>
       )}
 
@@ -40,7 +40,7 @@ const TeaTypeIndexPage: React.FC = () => {
         <>
           {catalogue.families.length === 0 && catalogue.types.length === 0 && (
             <p className={`${FACT} ${MEASURE} ${AXIS_INDENT} ${SPACE.section}`}>
-              No tea family or type is connected to the public catalogue in this preview.
+              No tea family or type is connected to the public catalogue right now.
             </p>
           )}
           <section className={SPACE.section}>

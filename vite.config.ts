@@ -8,15 +8,7 @@ import { teaReferencePreviewPlugin } from './scripts/tea-reference-website-previ
 const TEA_REFERENCE_PREVIEW_ONLY_MODULES = [
   '/src/pages/wisdom/PreviewWisdomHomePage.tsx',
   '/src/pages/wisdom/PreviewOriginIndexSection.tsx',
-  '/src/pages/wisdom/PreviewOriginPage.tsx',
-  '/src/pages/wisdom/TeaTypeIndexPage.tsx',
-  '/src/pages/wisdom/TeaFamilyPage.tsx',
-  '/src/pages/wisdom/TeaTypePage.tsx',
-  '/src/pages/wisdom/ReferenceFactSections.tsx',
-  '/src/pages/wisdom/previewOriginMetadata.ts',
   '/src/admin/views/TeaReferenceReviewView.tsx',
-  '/src/wisdom/reference/client.ts',
-  '/src/wisdom/reference/catalogue.ts',
 ] as const;
 
 export function teaReferenceProductionLeakGuard({

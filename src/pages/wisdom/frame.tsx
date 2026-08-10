@@ -405,7 +405,7 @@ const WisdomStrip: React.FC<{ active: WisdomSection['id'] }> = ({ active }) => (
  */
 const WisdomCompactNav: React.FC<{ active: WisdomSection['id'] }> = ({ active }) => {
   const [open, setOpen] = useState(false);
-  const current = WISDOM_SECTIONS.find(section => section.id === active) ?? WISDOM_SECTIONS[0];
+  const current = WISDOM_SECTIONS.find(section => section.id === active);
 
   return (
     <nav aria-label="The wisdom base" className="border-b border-tea-border">
@@ -416,7 +416,9 @@ const WisdomCompactNav: React.FC<{ active: WisdomSection['id'] }> = ({ active })
         onClick={() => setOpen(value => !value)}
         className="w-full min-h-[44px] flex items-center gap-2 text-left"
       >
-        <span className={`${NAME_CLASS} text-tea-gold min-w-0 break-words`}>{current.label}</span>
+        <span className={`${NAME_CLASS} text-tea-gold min-w-0 break-words`}>
+          {current?.label ?? 'The wisdom base'}
+        </span>
         <ChevronDown
           size={15}
           aria-hidden
