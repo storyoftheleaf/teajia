@@ -72,11 +72,9 @@ function parseJson(value: unknown): unknown {
   }
 }
 
-function parseGalleryImages(value: unknown): string[] {
+function parseStringArray(value: unknown): string[] {
   const parsed = parseJson(value);
-  return Array.isArray(parsed)
-    ? parsed.filter((image): image is string => typeof image === 'string')
-    : [];
+  return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
 }
 
 function parseTeaLedger(value: unknown): Record<string, unknown> | null {
@@ -89,8 +87,9 @@ export function publicPostSessionProjection(row: Record<string, unknown>) {
   return {
     event_id: row.event_id,
     session_notes: row.session_notes ?? null,
-    gallery_images: parseGalleryImages(row.gallery_images),
+    gallery_images: parseStringArray(row.gallery_images),
     tea_ledger: parseTeaLedger(row.tea_ledger),
+    shared_tasting_notes: parseStringArray(row.shared_tasting_notes),
   };
 }
 

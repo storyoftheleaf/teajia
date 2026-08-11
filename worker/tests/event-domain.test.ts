@@ -101,11 +101,13 @@ describe('event domain', () => {
       host_notes: 'Private',
       host_changes: 'Private change',
       tea_ledger: '{"teas":["Rou Gui"]}',
+      shared_tasting_notes: '["Curated reflection",7,null]',
     })).toEqual({
       event_id: 'event-1',
       session_notes: 'Shared',
       gallery_images: ['gallery-1.jpg'],
       tea_ledger: { teas: ['Rou Gui'] },
+      shared_tasting_notes: ['Curated reflection'],
     });
 
     expect(publicPostSessionProjection({
@@ -118,6 +120,7 @@ describe('event domain', () => {
       session_notes: null,
       gallery_images: [],
       tea_ledger: null,
+      shared_tasting_notes: [],
     });
   });
 
@@ -132,6 +135,7 @@ describe('event domain', () => {
       session_notes: 'Shared',
       gallery_images: ['gallery-1.jpg'],
       tea_ledger: null,
+      shared_tasting_notes: [],
     });
 
     expect(publicPostSessionProjection({
@@ -143,6 +147,7 @@ describe('event domain', () => {
       session_notes: null,
       gallery_images: [],
       tea_ledger: null,
+      shared_tasting_notes: [],
     });
 
     expect(publicPostSessionProjection({
@@ -154,6 +159,7 @@ describe('event domain', () => {
       session_notes: null,
       gallery_images: [],
       tea_ledger: null,
+      shared_tasting_notes: [],
     });
   });
 

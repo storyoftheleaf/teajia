@@ -151,3 +151,19 @@ CREATE INDEX idx_event_contributors_event_order
   ON event_contributors(event_id, display_order);
 CREATE INDEX idx_event_team_assignments_event_user
   ON event_team_assignments(event_id, user_id);
+
+-- The legacy endpoint appended repeated submissions. Keep the latest row for
+-- each attendee/menu key before enforcing the Release 1 idempotency contract.
+DELETE FROM event_tasting_notes
+WHERE rowid NOT IN (
+  SELECT MAX(rowid)
+  FROM event_tasting_notes
+  GROUP BY attendee_id, tea_menu_id
+);
+
+CREATE UNIQUE INDEX uniq_event_tasting_notes_attendee_menu
+  ON event_tasting_notes(attendee_id, tea_menu_id)
+  WHERE tea_menu_id IS NOT NULL;
+CREATE UNIQUE INDEX uniq_event_tasting_notes_attendee_null_menu
+  ON event_tasting_notes(attendee_id)
+  WHERE tea_menu_id IS NULL;

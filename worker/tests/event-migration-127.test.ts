@@ -223,6 +223,36 @@ describe('migration 127', () => {
     db.close();
   });
 
+  it('deduplicates legacy tasting notes and enforces one row per attendee and menu key', () => {
+    const db = pre127Database();
+    db.exec(`
+      INSERT INTO event_tea_menu(id, event_id, custom_name)
+      VALUES ('menu-one', 'event-one', 'Rou Gui');
+      INSERT INTO event_tasting_notes(id, event_id, attendee_id, tea_menu_id, impression)
+      VALUES
+        ('menu-old', 'event-one', 'attendee-one', 'menu-one', 'Old menu note'),
+        ('menu-new', 'event-one', 'attendee-one', 'menu-one', 'Latest menu note'),
+        ('null-old', 'event-one', 'attendee-one', NULL, 'Old private note'),
+        ('null-new', 'event-one', 'attendee-one', NULL, 'Latest private note');
+    `);
+
+    applyMigration127(db);
+
+    expect(db.prepare(`SELECT id, impression FROM event_tasting_notes ORDER BY id`).all()).toEqual([
+      { id: 'menu-new', impression: 'Latest menu note' },
+      { id: 'null-new', impression: 'Latest private note' },
+    ]);
+    expect(() => db.exec(`
+      INSERT INTO event_tasting_notes(id, event_id, attendee_id, tea_menu_id)
+      VALUES ('menu-duplicate', 'event-one', 'attendee-one', 'menu-one')
+    `)).toThrow(/UNIQUE/);
+    expect(() => db.exec(`
+      INSERT INTO event_tasting_notes(id, event_id, attendee_id, tea_menu_id)
+      VALUES ('null-duplicate', 'event-one', 'attendee-one', NULL)
+    `)).toThrow(/UNIQUE/);
+    db.close();
+  });
+
   it('rejects non-boolean event, contributor, and consent flags', () => {
     const db = pre127Database();
     applyMigration127(db);
@@ -265,7 +295,9 @@ describe('migration 127', () => {
         'uniq_event_attendees_id_event_account',
         'uniq_customers_id_account',
         'uniq_account_members_user_account',
-        'uniq_event_party_members_primary'
+        'uniq_event_party_members_primary',
+        'uniq_event_tasting_notes_attendee_menu',
+        'uniq_event_tasting_notes_attendee_null_menu'
       ) ORDER BY name
     `).all()).toEqual([
       { name: 'idx_event_contributors_event_order' },
@@ -276,6 +308,8 @@ describe('migration 127', () => {
       { name: 'uniq_customers_id_account' },
       { name: 'uniq_event_attendees_id_event_account' },
       { name: 'uniq_event_party_members_primary' },
+      { name: 'uniq_event_tasting_notes_attendee_menu' },
+      { name: 'uniq_event_tasting_notes_attendee_null_menu' },
       { name: 'uniq_events_id_account' },
     ]);
     db.close();
@@ -326,6 +360,16 @@ describe('migration 127', () => {
       SELECT name FROM pragma_table_info('event_attendees')
       WHERE name IN ('user_id','payment_status') ORDER BY name
     `).all()).toEqual([{ name: 'payment_status' }, { name: 'user_id' }]);
+    expect(db.prepare(`
+      SELECT name FROM sqlite_master
+      WHERE type='index' AND name IN (
+        'uniq_event_tasting_notes_attendee_menu',
+        'uniq_event_tasting_notes_attendee_null_menu'
+      ) ORDER BY name
+    `).all()).toEqual([
+      { name: 'uniq_event_tasting_notes_attendee_menu' },
+      { name: 'uniq_event_tasting_notes_attendee_null_menu' },
+    ]);
     expect(db.prepare(`
       SELECT name FROM sqlite_master
       WHERE type='table' AND name IN (

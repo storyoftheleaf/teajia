@@ -1479,6 +1479,12 @@ CREATE TABLE IF NOT EXISTS event_tasting_notes (
   account_id TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_tasting_notes_event ON event_tasting_notes(event_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_event_tasting_notes_attendee_menu
+  ON event_tasting_notes(attendee_id, tea_menu_id)
+  WHERE tea_menu_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_event_tasting_notes_attendee_null_menu
+  ON event_tasting_notes(attendee_id)
+  WHERE tea_menu_id IS NULL;
 
 CREATE TABLE IF NOT EXISTS event_notifications (
   id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),

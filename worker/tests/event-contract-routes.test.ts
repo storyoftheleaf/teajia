@@ -253,11 +253,12 @@ async function adminEventRequest(
 
 function seedPostSessionGuest(db: SqliteD1, options: {
   lifecycle?: 'published' | 'completed';
+  recap?: 'draft' | 'published';
   status?: 'confirmed' | 'requested' | 'cancelled';
   attended?: number;
 } = {}) {
-  db.sqlite.prepare(`UPDATE events SET lifecycle_status = ? WHERE id = ?`)
-    .run(options.lifecycle ?? 'completed', 'event-a');
+  db.sqlite.prepare(`UPDATE events SET lifecycle_status = ?, recap_status = ? WHERE id = ?`)
+    .run(options.lifecycle ?? 'completed', options.recap ?? 'published', 'event-a');
   db.sqlite.prepare(`INSERT INTO event_attendees
     (id, account_id, event_id, full_name, magic_token, status, attended)
     VALUES (?, ?, ?, ?, ?, ?, ?)`)
@@ -278,6 +279,23 @@ function submitGuestNotes(db: SqliteD1, body: unknown) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   }), { DB: db } as any);
+}
+
+function seedPostSessionRecord(db: SqliteD1) {
+  db.sqlite.prepare(`INSERT INTO event_post_session
+    (id, account_id, event_id, session_notes, gallery_images, tea_ledger,
+     shared_tasting_notes, host_notes, host_changes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+    'post-a',
+    'account-a',
+    'event-a',
+    'Shared reflection',
+    '["public.jpg"]',
+    '{"teas":["Rou Gui"]}',
+    '["Curated reflection"]',
+    'Private host note',
+    'Private host change',
+  );
 }
 
 describe('Events Release 1 persisted route contracts', () => {
@@ -676,17 +694,20 @@ describe('Events Release 1 persisted route contracts', () => {
     const db = seedEventContractDb();
     try {
       seedPostSessionGuest(db);
-      db.sqlite.prepare(`INSERT INTO event_post_session
-        (id, account_id, event_id, session_notes, gallery_images, tea_ledger, host_notes, host_changes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(
-        'post-a',
-        'account-a',
-        'event-a',
-        'Shared reflection',
-        '["public.jpg"]',
-        '{"teas":["Rou Gui"]}',
-        'Private host note',
-        'Private host change',
+      seedPostSessionRecord(db);
+      db.sqlite.prepare(`INSERT INTO event_consents (id, account_id, event_id, attendee_id)
+        VALUES (?, ?, ?, ?)`).run('consent-a', 'account-a', 'event-a', 'guest-a');
+      expect(db.sqlite.prepare(`SELECT photography, public_quote, review_publication, contact_exchange
+        FROM event_consents WHERE id = ?`).get('consent-a')).toEqual({
+        photography: 0,
+        public_quote: 0,
+        review_publication: 0,
+        contact_exchange: 0,
+      });
+      db.sqlite.prepare(`INSERT INTO event_tasting_notes
+        (id, account_id, event_id, attendee_id, impression)
+        VALUES (?, ?, ?, ?, ?)`).run(
+        'private-note', 'account-a', 'event-a', 'guest-a', 'Private guest reflection',
       );
 
       const response = await worker.fetch(
@@ -700,8 +721,65 @@ describe('Events Release 1 persisted route contracts', () => {
         session_notes: 'Shared reflection',
         gallery_images: ['public.jpg'],
         tea_ledger: { teas: ['Rou Gui'] },
-        tasting_notes: [],
+        shared_tasting_notes: ['Curated reflection'],
       });
+    } finally {
+      db.close();
+    }
+  });
+
+  it('hides an unpublished post-session recap from attendee tokens', async () => {
+    const db = seedEventContractDb();
+    try {
+      seedPostSessionGuest(db, { recap: 'draft' });
+      seedPostSessionRecord(db);
+
+      const response = await worker.fetch(
+        new Request('https://worker.test/api/rsvp/guest-token/post-session'),
+        { DB: db } as any,
+      );
+
+      expect(response.status).toBe(404);
+      expect(await response.json()).toEqual({ error: 'Post-session recap not published' });
+    } finally {
+      db.close();
+    }
+  });
+
+  it('rejects post-session access before the event lifecycle is completed', async () => {
+    const db = seedEventContractDb();
+    try {
+      seedPostSessionGuest(db, { lifecycle: 'published' });
+      seedPostSessionRecord(db);
+
+      const response = await worker.fetch(
+        new Request('https://worker.test/api/rsvp/guest-token/post-session'),
+        { DB: db } as any,
+      );
+
+      expect(response.status).toBe(409);
+      expect(await response.json()).toEqual({ error: 'Post-session recap is not available until the event is completed' });
+    } finally {
+      db.close();
+    }
+  });
+
+  it.each([
+    ['cancelled guest', 'cancelled', 1],
+    ['unattended guest', 'confirmed', 0],
+  ] as const)('rejects post-session access for a %s', async (_label, status, attended) => {
+    const db = seedEventContractDb();
+    try {
+      seedPostSessionGuest(db, { status, attended });
+      seedPostSessionRecord(db);
+
+      const response = await worker.fetch(
+        new Request('https://worker.test/api/rsvp/guest-token/post-session'),
+        { DB: db } as any,
+      );
+
+      expect(response.status).toBe(403);
+      expect(await response.json()).toEqual({ error: 'Post-session recap is available only to confirmed attendees' });
     } finally {
       db.close();
     }
@@ -796,6 +874,76 @@ describe('Events Release 1 persisted route contracts', () => {
           is_favorite: 0,
         },
       ]);
+    } finally {
+      db.close();
+    }
+  });
+
+  it.each([
+    ['rating below range', { rating: 0 }],
+    ['rating above range', { rating: 6 }],
+    ['fractional rating', { rating: 2.5 }],
+    ['string rating', { rating: '5' }],
+    ['non-string impression', { impression: 7 }],
+    ['string favorite', { is_favorite: 'true' }],
+    ['out-of-range favorite', { is_favorite: 2 }],
+    ['null favorite', { is_favorite: null }],
+  ])('rejects malformed tasting-note input: %s', async (_label, note) => {
+    const db = seedEventContractDb();
+    try {
+      seedPostSessionGuest(db);
+      const response = await submitGuestNotes(db, { notes: [note] });
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({ error: 'Invalid tasting note' });
+      expect(db.sqlite.prepare(`SELECT COUNT(*) AS count FROM event_tasting_notes`).get()).toEqual({ count: 0 });
+    } finally {
+      db.close();
+    }
+  });
+
+  it.each([
+    ['duplicate menu key', [{ tea_menu_id: 'menu-a' }, { tea_menu_id: 'menu-a' }]],
+    ['duplicate null key', [{ tea_menu_id: null }, { tea_menu_id: null }]],
+  ])('rejects %s before writing the batch', async (_label, notes) => {
+    const db = seedEventContractDb();
+    try {
+      seedPostSessionGuest(db);
+      db.sqlite.prepare(`INSERT INTO event_tea_menu
+        (id, account_id, event_id, custom_name) VALUES (?, ?, ?, ?)`)
+        .run('menu-a', 'account-a', 'event-a', 'Rou Gui');
+
+      const response = await submitGuestNotes(db, { notes });
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({ error: 'Duplicate tasting note key' });
+      expect(db.sqlite.prepare(`SELECT COUNT(*) AS count FROM event_tasting_notes`).get()).toEqual({ count: 0 });
+    } finally {
+      db.close();
+    }
+  });
+
+  it('trims impression text, maps blank to null, and accepts boolean-compatible 0/1 favorites', async () => {
+    const db = seedEventContractDb();
+    try {
+      seedPostSessionGuest(db);
+      db.sqlite.prepare(`INSERT INTO event_tea_menu
+        (id, account_id, event_id, custom_name) VALUES (?, ?, ?, ?)`)
+        .run('menu-a', 'account-a', 'event-a', 'Rou Gui');
+
+      const first = await submitGuestNotes(db, {
+        notes: [{ tea_menu_id: 'menu-a', rating: 3, impression: '  Orchid  ', is_favorite: 1 }],
+      });
+      expect(first.status).toBe(201);
+      expect(db.sqlite.prepare(`SELECT rating, impression, is_favorite FROM event_tasting_notes`).get())
+        .toEqual({ rating: 3, impression: 'Orchid', is_favorite: 1 });
+
+      const second = await submitGuestNotes(db, {
+        notes: [{ tea_menu_id: 'menu-a', rating: null, impression: '   ', is_favorite: 0 }],
+      });
+      expect(second.status).toBe(201);
+      expect(db.sqlite.prepare(`SELECT rating, impression, is_favorite FROM event_tasting_notes`).get())
+        .toEqual({ rating: null, impression: null, is_favorite: 0 });
     } finally {
       db.close();
     }

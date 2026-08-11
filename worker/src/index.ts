@@ -9121,37 +9121,32 @@ const handleClaimSpot: Handler = async (_request, env, params) => {
 
 const handleGetPostSession: Handler = async (_request, env, params) => {
   const attendee = await env.DB.prepare(
-    `SELECT ea.event_id, ea.account_id
+    `SELECT ea.event_id, ea.account_id, ea.status, ea.attended,
+            e.lifecycle_status, e.recap_status
      FROM event_attendees ea
      JOIN events e ON e.id = ea.event_id AND e.account_id = ea.account_id
      WHERE ea.magic_token = ?`
   ).bind(params.token).first();
 
   if (!attendee) return json({ error: 'RSVP not found' }, 404);
+  if (attendee.status !== 'confirmed' || Number(attendee.attended) !== 1) {
+    return json({ error: 'Post-session recap is available only to confirmed attendees' }, 403);
+  }
+  if (attendee.lifecycle_status !== 'completed') {
+    return json({ error: 'Post-session recap is not available until the event is completed' }, 409);
+  }
+  if (attendee.recap_status !== 'published') {
+    return json({ error: 'Post-session recap not published' }, 404);
+  }
 
   const postSession = await env.DB.prepare(
-    `SELECT event_id, session_notes, gallery_images, tea_ledger
+    `SELECT event_id, session_notes, gallery_images, tea_ledger, shared_tasting_notes
      FROM event_post_session WHERE event_id = ? AND account_id = ?`
   ).bind(attendee.event_id, attendee.account_id).first();
 
   if (!postSession) return json({ error: 'Post-session data not yet available' }, 404);
 
-  // Get aggregated tasting notes (anonymous)
-  const notes = await env.DB.prepare(
-    `SELECT etn.tea_menu_id, etn.rating, etn.impression, etn.is_favorite,
-            etm.custom_name, p.given_name, p.product_name
-     FROM event_tasting_notes etn
-     LEFT JOIN event_tea_menu etm
-       ON etm.id = etn.tea_menu_id AND etm.event_id = etn.event_id AND etm.account_id = etn.account_id
-     LEFT JOIN products p ON p.id = etm.product_id AND p.account_id = etm.account_id
-     WHERE etn.event_id = ? AND etn.account_id = ?
-     ORDER BY etm.brew_order ASC`
-  ).bind(attendee.event_id, attendee.account_id).all();
-
-  return json({
-    ...publicPostSessionProjection(postSession as Record<string, unknown>),
-    tasting_notes: notes.results,
-  });
+  return json(publicPostSessionProjection(postSession as Record<string, unknown>));
 };
 
 const handleSubmitTastingNotes: Handler = async (request, env, params) => {
@@ -9196,12 +9191,42 @@ const handleSubmitTastingNotes: Handler = async (request, env, params) => {
     ) {
       return json({ error: 'Invalid tasting note' }, 400);
     }
+    const rawRating = input.rating;
+    if (
+      rawRating !== undefined
+      && rawRating !== null
+      && (!Number.isInteger(rawRating) || Number(rawRating) < 1 || Number(rawRating) > 5)
+    ) {
+      return json({ error: 'Invalid tasting note' }, 400);
+    }
+    const rawImpression = input.impression;
+    if (rawImpression !== undefined && rawImpression !== null && typeof rawImpression !== 'string') {
+      return json({ error: 'Invalid tasting note' }, 400);
+    }
+    const rawFavorite = input.is_favorite;
+    if (
+      rawFavorite !== undefined
+      && rawFavorite !== true
+      && rawFavorite !== false
+      && rawFavorite !== 1
+      && rawFavorite !== 0
+    ) {
+      return json({ error: 'Invalid tasting note' }, 400);
+    }
+    const impression = typeof rawImpression === 'string' ? rawImpression.trim() : '';
     normalizedNotes.push({
       teaMenuId: typeof rawTeaMenuId === 'string' ? rawTeaMenuId : null,
-      rating: typeof input.rating === 'number' ? input.rating : null,
-      impression: typeof input.impression === 'string' ? input.impression : null,
-      isFavorite: input.is_favorite === true ? 1 : 0,
+      rating: typeof rawRating === 'number' ? rawRating : null,
+      impression: impression || null,
+      isFavorite: rawFavorite === true || rawFavorite === 1 ? 1 : 0,
     });
+  }
+
+  const noteKeys = new Set<string>();
+  for (const note of normalizedNotes) {
+    const key = note.teaMenuId === null ? 'null' : `menu:${note.teaMenuId}`;
+    if (noteKeys.has(key)) return json({ error: 'Duplicate tasting note key' }, 400);
+    noteKeys.add(key);
   }
 
   const teaMenuIds = [...new Set(
