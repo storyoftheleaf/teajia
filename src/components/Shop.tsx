@@ -411,7 +411,12 @@ export const Shop: React.FC<ShopProps> = ({
                       role="option"
                       aria-selected={isActive}
                       onClick={() => {
-                        setShopStoreSlug(store.slug === 'teajia-bali' ? null : store.slug);
+                        const nextSlug = store.slug === 'teajia-bali' ? null : store.slug;
+                        const nextParams = new URLSearchParams(searchParams);
+                        if (nextSlug) nextParams.set('store', nextSlug);
+                        else nextParams.delete('store');
+                        setSearchParams(nextParams, { replace: true });
+                        setShopStoreSlug(nextSlug);
                         close();
                       }}
                       className={`w-full text-left px-3 py-2 flex items-center gap-2.5 text-ui-13 transition-colors ${

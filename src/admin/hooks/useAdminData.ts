@@ -122,7 +122,10 @@ export const useRates = () => {
       return Array.from(rateMap.values()) as ExchangeRate[];
     },
     staleTime: 1000 * 60 * 60 * 6, // 6-hour TTL, rates don't change frequently
-    initialData: INITIAL_RATES
+    // Keep offline rates visible immediately, but still load account-backed
+    // currencies (for example AUD) instead of treating this seed as fresh for
+    // the full six-hour stale window.
+    placeholderData: INITIAL_RATES
   });
 };
 

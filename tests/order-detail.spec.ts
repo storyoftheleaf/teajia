@@ -1,5 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 
+test.describe.configure({ mode: 'serial' });
+
 const token = [
   btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' })),
   btoa(JSON.stringify({ sub: 'user-a', email: 'member@example.com', name: 'Member', role: 'member', active_account_id: 'acct-a', memberships: [] })),
@@ -33,6 +35,17 @@ test.beforeEach(async ({ page }, testInfo) => {
 async function mockHistory(page: Page) {
   await page.route('**/api/me/orders', route => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify(history),
+  }));
+}
+
+async function mockAudRate(page: Page) {
+  await page.route('**/api/rates', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify([
+      { currency: 'USD', rate_to_usd: 1 },
+      { currency: 'AUD', rate_to_usd: 1.52 },
+    ]),
   }));
 }
 
@@ -113,4 +126,24 @@ test('zero shipping is displayed explicitly and email is the inquiry fallback', 
   await page.goto('/account/orders/inv-a');
   await expect(page.getByTestId('shipping-total')).toContainText('$0.00');
   await expect(page.getByRole('link', { name: 'Ask about this order by email' })).toHaveAttribute('href', /mailto:orders@store\.test/);
+});
+
+test('AUD history and detail convert the stored USD total before labeling it', async ({ page }) => {
+  await mockAudRate(page);
+  await page.route('**/api/me/orders', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ orders: [{ ...history.orders[0], currency: 'AUD' }] }),
+  }));
+  await page.route('**/api/me/orders/inv-a', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ ...detail, currency: 'AUD' }),
+  }));
+
+  await page.goto('/account/orders');
+  await expect(page.getByRole('button', { name: /A-001/ })).toContainText('A$24.32');
+  await page.getByRole('button', { name: /A-001/ }).click();
+  await expect(page.getByRole('heading', { name: 'Order A-001' })).toBeVisible();
+  await expect(page.getByText('A$24.32', { exact: true })).toBeVisible();
 });
