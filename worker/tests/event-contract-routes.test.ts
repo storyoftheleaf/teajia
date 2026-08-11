@@ -19,6 +19,8 @@ type Attendee = {
 };
 
 class EventContractDb {
+  confirmedTotal = 0;
+
   attendee: Attendee = {
     id: 'attendee-1',
     event_id: 'event-1',
@@ -48,11 +50,16 @@ class EventContractDb {
         if (normalized.includes('where ea.magic_token = ?')) {
           return values[0] === this.attendee.magic_token ? { ...this.attendee } : null;
         }
+        if (normalized.includes('select coalesce(sum(1 + plus_one), 0) as total')) {
+          return { total: this.confirmedTotal };
+        }
         if (normalized.includes("status = 'waitlist'")) return null;
         return null;
       },
       run: async () => {
         if (!normalized.startsWith('update event_attendees set')) return { success: true };
+
+        expect(values.at(-1)).toBe(this.attendee.id);
 
         const assignments = normalized
           .slice('update event_attendees set '.length, normalized.indexOf(' where id = ?'))
@@ -139,6 +146,35 @@ describe('public RSVP update contract', () => {
       plus_one: 1,
       plus_one_name: 'Ari',
     });
+  });
+
+  it('rejects a full-capacity mixed update without persisting any attendee fields', async () => {
+    const db = new EventContractDb();
+    db.confirmedTotal = db.attendee.total_capacity;
+    const before = { ...db.attendee };
+
+    const result = await updateRsvp(db, {
+      notes: 'Seated together',
+      first_visit_briefed: 1,
+      show_in_guest_list: false,
+      plus_one: true,
+      plus_one_name: 'Ari',
+    });
+
+    expect(result.response.status).toBe(409);
+    expect(result.body).toEqual({ error: 'No capacity for plus one' });
+    expect(db.attendee).toEqual(before);
+  });
+
+  it('returns a client error for malformed RSVP flags', async () => {
+    const db = new EventContractDb();
+    const before = { ...db.attendee };
+
+    const result = await updateRsvp(db, { first_visit_briefed: 'yes' });
+
+    expect(result.response.status).toBe(400);
+    expect(result.body).toEqual({ error: 'first_visit_briefed must be a boolean or 0/1' });
+    expect(db.attendee).toEqual(before);
   });
 
   it('keeps legacy cancel requests working', async () => {

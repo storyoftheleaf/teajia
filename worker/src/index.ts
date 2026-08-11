@@ -8981,7 +8981,13 @@ const handleUpdateRSVP: Handler = async (request, env, params) => {
   if (!attendee) return json({ error: 'RSVP not found' }, 404);
 
   const body = await request.json() as Record<string, any>;
-  const update = normalizeRsvpUpdate(body);
+  let update: ReturnType<typeof normalizeRsvpUpdate>;
+  try {
+    update = normalizeRsvpUpdate(body);
+  } catch (error) {
+    if (error instanceof TypeError) return json({ error: error.message }, 400);
+    throw error;
+  }
 
   // Handle cancellation
   if (update.action === 'cancel') {
@@ -9003,6 +9009,29 @@ const handleUpdateRSVP: Handler = async (request, env, params) => {
       status: 'cancelled',
       ...(update.cancellationNote !== undefined ? { cancellation_note: update.cancellationNote } : {}),
     });
+  }
+
+  const plusOneUpdate = body.plus_one === undefined ? null : {
+    newPlusOne: body.plus_one ? 1 : 0,
+    oldPlusOne: (attendee.plus_one as number) || 0,
+  };
+
+  if (
+    plusOneUpdate
+    && plusOneUpdate.newPlusOne > plusOneUpdate.oldPlusOne
+    && attendee.status === 'confirmed'
+  ) {
+    const count = await env.DB.prepare(
+      `SELECT COALESCE(SUM(1 + plus_one), 0) as total
+       FROM event_attendees WHERE event_id = ? AND status = 'confirmed'`
+    ).bind(attendee.eid).first();
+
+    const confirmedTotal = (count?.total as number) || 0;
+    const totalCapacity = attendee.total_capacity as number;
+
+    if (confirmedTotal + 1 > totalCapacity) {
+      return json({ error: 'No capacity for plus one' }, 409);
+    }
   }
 
   const attendeeAssignments: string[] = [];
@@ -9036,31 +9065,13 @@ const handleUpdateRSVP: Handler = async (request, env, params) => {
   }
 
   // Handle plus_one change
-  if (body.plus_one !== undefined) {
-    const newPlusOne = body.plus_one ? 1 : 0;
-    const oldPlusOne = (attendee.plus_one as number) || 0;
-
-    if (newPlusOne > oldPlusOne && attendee.status === 'confirmed') {
-      // Adding a plus one — check capacity
-      const count = await env.DB.prepare(
-        `SELECT COALESCE(SUM(1 + plus_one), 0) as total
-         FROM event_attendees WHERE event_id = ? AND status = 'confirmed'`
-      ).bind(attendee.eid).first();
-
-      const confirmedTotal = (count?.total as number) || 0;
-      const totalCapacity = attendee.total_capacity as number;
-
-      if (confirmedTotal + 1 > totalCapacity) {
-        return json({ error: 'No capacity for plus one' }, 409);
-      }
-    }
-
+  if (plusOneUpdate) {
     await env.DB.prepare(
       `UPDATE event_attendees SET plus_one = ?, plus_one_name = ? WHERE id = ?`
-    ).bind(newPlusOne, body.plus_one_name || null, attendee.id).run();
+    ).bind(plusOneUpdate.newPlusOne, body.plus_one_name || null, attendee.id).run();
 
     // If removing plus one and there are waitlisted people, cascade
-    if (newPlusOne < oldPlusOne) {
+    if (plusOneUpdate.newPlusOne < plusOneUpdate.oldPlusOne) {
       await cascadeWaitlist(env, attendee.eid as string, (attendee.claim_window_minutes as number) || 60);
     }
   }
