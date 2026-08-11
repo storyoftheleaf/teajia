@@ -18,9 +18,23 @@ const validTea = (overrides = {}) => ({
   ...overrides,
 });
 
+const validPublicApiTea = {
+  id: 'tea-public-1',
+  type: 'White',
+  product_name: 'Moonlight White',
+  year: String(new Date().getFullYear() - 2),
+  retail_price_per_gram_usd: 0.25,
+  fixed_retail_price_usd: null,
+  description: 'Soft florals with a clean finish.',
+};
+
 describe('shop catalogue audit', () => {
   it('returns no findings for a valid tea', () => {
     assert.deepEqual(inspectCatalogueProduct(validTea()), []);
+  });
+
+  it('accepts the public products API tea shape', () => {
+    assert.deepEqual(inspectCatalogueProduct(validPublicApiTea), []);
   });
 
   it('reports stable public catalogue finding codes', () => {

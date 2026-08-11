@@ -14,6 +14,7 @@ const FINDING_CODES = [
 
 const PUBLIC_COPY_FIELDS = [
   'name',
+  'product_name',
   'public_name',
   'publicName',
   'title',
@@ -35,7 +36,7 @@ const NUMBER_WORDS = new Map([
 ]);
 
 function publicName(product) {
-  for (const field of ['name', 'public_name', 'publicName', 'title']) {
+  for (const field of ['name', 'product_name', 'public_name', 'publicName', 'title']) {
     if (typeof product?.[field] === 'string' && product[field].trim()) return product[field].trim();
   }
   return '';
@@ -50,11 +51,12 @@ function publicCopy(product) {
 
 function priceFor(product) {
   const category = String(product?.category ?? product?.type ?? '').toLowerCase();
+  const publicFields = ['fixed_retail_price_usd', 'retail_price_per_gram_usd'];
   const fields = category === 'tea'
-    ? ['price_per_gram', 'pricePerGram']
+    ? ['price_per_gram', 'pricePerGram', ...publicFields]
     : category === 'set'
-      ? ['price', 'set_price']
-      : ['price_50g', 'price', 'price_per_unit', 'pricePerUnit'];
+      ? ['price', 'set_price', ...publicFields]
+      : ['price_50g', 'price', 'price_per_unit', 'pricePerUnit', ...publicFields];
 
   const raw = fields.map(field => product?.[field]).find(value => value !== undefined && value !== null);
   if (typeof raw === 'number') return raw;
