@@ -99,8 +99,18 @@ describe('migration 017 rehearsals', () => {
       ) VALUES
         ('legacy-bali-attendee', 'legacy-bali-event', 'Bali guest', '1', 'confirmed', 'legacy-bali-magic', 'acc_teajia_bali'),
         ('legacy-australia-attendee', 'legacy-australia-event', 'Australia guest', '2', 'waitlist', 'legacy-australia-magic', 'acc_teajia_australia');
+      INSERT INTO event_tea_menu(id, event_id, custom_name, account_id)
+      VALUES ('legacy-bali-menu', 'legacy-bali-event', 'Legacy Rou Gui', 'acc_teajia_bali');
     `);
-    const applied = [...firstBatch, ...applyTrackedMigrations(database)];
+    const through126 = applyTrackedMigrations(database, '126_tea_master_integrity.sql');
+    sqlite(database, `
+      INSERT INTO event_tasting_notes(
+        id, event_id, attendee_id, tea_menu_id, rating, impression, is_favorite, created_at, account_id
+      ) VALUES
+        ('legacy-note-new', 'legacy-bali-event', 'legacy-bali-attendee', 'legacy-bali-menu', 5, 'Newest', 1, '2026-09-03T08:00:00Z', NULL),
+        ('legacy-note-old', 'legacy-bali-event', 'legacy-bali-attendee', 'legacy-bali-menu', 2, 'Older', 0, '2026-09-01T08:00:00Z', NULL);
+    `);
+    const applied = [...firstBatch, ...through126, ...applyTrackedMigrations(database)];
 
     expect(applied.at(0)).toBe('017_multi_account_patched.sql');
     expect(applied.at(-1)).toBe('127_events_trust_identity.sql');
@@ -119,6 +129,18 @@ describe('migration 017 rehearsals', () => {
       'legacy-australia-event|registration_closed',
       'legacy-bali-event|published',
     ]);
+    expect(sqlite(database, `
+      SELECT id || '|' || account_id || '|' || impression
+      FROM event_tasting_notes WHERE attendee_id='legacy-bali-attendee';
+    `)).toBe('legacy-note-new|acc_teajia_bali|Newest');
+    expect(sqlite(database, `
+      SELECT original_note_id || '|' || account_id || '|' || COALESCE(original_account_id, 'NULL') || '|' ||
+             event_id || '|' || attendee_id || '|' ||
+             tea_menu_id || '|' || rating || '|' || impression || '|' || is_favorite || '|' || created_at || '|' || archive_reason
+      FROM event_tasting_note_history WHERE original_note_id='legacy-note-old';
+    `)).toBe(
+      'legacy-note-old|acc_teajia_bali|NULL|legacy-bali-event|legacy-bali-attendee|legacy-bali-menu|2|Older|0|2026-09-01T08:00:00Z|superseded_during_migration_127',
+    );
     expect(sqlite(database, `
       SELECT account_id || '|' || event_id || '|' || participation_id || '|' || is_primary || '|' || seat_status
         FROM event_party_members

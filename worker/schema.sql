@@ -1486,6 +1486,31 @@ CREATE UNIQUE INDEX IF NOT EXISTS uniq_event_tasting_notes_attendee_null_menu
   ON event_tasting_notes(attendee_id)
   WHERE tea_menu_id IS NULL;
 
+CREATE TABLE IF NOT EXISTS event_tasting_note_history (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  original_note_id TEXT NOT NULL,
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  original_account_id TEXT,
+  event_id TEXT NOT NULL,
+  attendee_id TEXT NOT NULL,
+  tea_menu_id TEXT,
+  rating INTEGER,
+  impression TEXT,
+  is_favorite INTEGER,
+  created_at TEXT,
+  archive_reason TEXT NOT NULL
+    CHECK(archive_reason IN ('superseded_during_migration_127')),
+  archived_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY(event_id, account_id)
+    REFERENCES events(id, account_id),
+  FOREIGN KEY(attendee_id, event_id, account_id)
+    REFERENCES event_attendees(id, event_id, account_id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_event_tasting_note_history_original
+  ON event_tasting_note_history(original_note_id);
+CREATE INDEX IF NOT EXISTS idx_event_tasting_note_history_account_event
+  ON event_tasting_note_history(account_id, event_id, archived_at);
+
 CREATE TABLE IF NOT EXISTS event_notifications (
   id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
   event_id TEXT NOT NULL REFERENCES events(id),

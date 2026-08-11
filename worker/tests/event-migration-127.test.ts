@@ -40,6 +40,8 @@ function pre127Database(): DatabaseSync {
   db.exec(`
     ALTER TABLE events ADD COLUMN account_id TEXT;
     ALTER TABLE event_attendees ADD COLUMN account_id TEXT;
+    ALTER TABLE event_tea_menu ADD COLUMN account_id TEXT;
+    ALTER TABLE event_tasting_notes ADD COLUMN account_id TEXT;
   `);
   db.exec(migration('025_venues.sql'));
   db.exec(migration('026_wholesale_catalog.sql'));
@@ -223,33 +225,88 @@ describe('migration 127', () => {
     db.close();
   });
 
-  it('deduplicates legacy tasting notes and enforces one row per attendee and menu key', () => {
+  it('deterministically keeps the newest valid tasting note and archives every superseded row losslessly', () => {
     const db = pre127Database();
     db.exec(`
       INSERT INTO event_tea_menu(id, event_id, custom_name)
       VALUES ('menu-one', 'event-one', 'Rou Gui');
-      INSERT INTO event_tasting_notes(id, event_id, attendee_id, tea_menu_id, impression)
+      INSERT INTO event_tasting_notes(
+        id, event_id, attendee_id, tea_menu_id, rating, impression, is_favorite, created_at, account_id
+      )
       VALUES
-        ('menu-old', 'event-one', 'attendee-one', 'menu-one', 'Old menu note'),
-        ('menu-new', 'event-one', 'attendee-one', 'menu-one', 'Latest menu note'),
-        ('null-old', 'event-one', 'attendee-one', NULL, 'Old private note'),
-        ('null-new', 'event-one', 'attendee-one', NULL, 'Latest private note');
+        ('menu-new', 'event-one', 'attendee-one', 'menu-one', 5, 'Latest menu note', 1, '2026-09-03T08:00:00Z', NULL),
+        ('menu-old', 'event-one', 'attendee-one', 'menu-one', 2, 'Old menu note', 0, '2026-09-01T08:00:00Z', 'account-two'),
+        ('menu-invalid-date', 'event-one', 'attendee-one', 'menu-one', 3, 'Invalid-date menu note', 0, 'not-a-date', NULL),
+        ('null-z', 'event-one', 'attendee-one', NULL, 4, 'Stable tie winner', 1, '2026-09-02T08:00:00Z', NULL),
+        ('null-a', 'event-one', 'attendee-one', NULL, 1, 'Stable tie loser', 0, '2026-09-02T08:00:00Z', 'account-two');
     `);
 
     applyMigration127(db);
 
-    expect(db.prepare(`SELECT id, impression FROM event_tasting_notes ORDER BY id`).all()).toEqual([
-      { id: 'menu-new', impression: 'Latest menu note' },
-      { id: 'null-new', impression: 'Latest private note' },
+    expect(db.prepare(`SELECT id, account_id, impression FROM event_tasting_notes ORDER BY id`).all()).toEqual([
+      { id: 'menu-new', account_id: 'account-one', impression: 'Latest menu note' },
+      { id: 'null-z', account_id: 'account-one', impression: 'Stable tie winner' },
     ]);
+    expect(db.prepare(`
+      SELECT original_note_id, account_id, original_account_id, event_id, attendee_id, tea_menu_id,
+             rating, impression, is_favorite, created_at, archive_reason
+      FROM event_tasting_note_history
+      ORDER BY original_note_id
+    `).all()).toEqual([
+      {
+        original_note_id: 'menu-invalid-date', account_id: 'account-one', original_account_id: null,
+        event_id: 'event-one',
+        attendee_id: 'attendee-one', tea_menu_id: 'menu-one', rating: 3,
+        impression: 'Invalid-date menu note', is_favorite: 0, created_at: 'not-a-date',
+        archive_reason: 'superseded_during_migration_127',
+      },
+      {
+        original_note_id: 'menu-old', account_id: 'account-one', original_account_id: 'account-two',
+        event_id: 'event-one',
+        attendee_id: 'attendee-one', tea_menu_id: 'menu-one', rating: 2,
+        impression: 'Old menu note', is_favorite: 0, created_at: '2026-09-01T08:00:00Z',
+        archive_reason: 'superseded_during_migration_127',
+      },
+      {
+        original_note_id: 'null-a', account_id: 'account-one', original_account_id: 'account-two',
+        event_id: 'event-one',
+        attendee_id: 'attendee-one', tea_menu_id: null, rating: 1,
+        impression: 'Stable tie loser', is_favorite: 0, created_at: '2026-09-02T08:00:00Z',
+        archive_reason: 'superseded_during_migration_127',
+      },
+    ]);
+    expect(db.prepare(`
+      SELECT COUNT(*) AS count FROM event_tasting_note_history
+      WHERE archived_at IS NOT NULL AND datetime(archived_at) IS NOT NULL
+    `).get()).toEqual({ count: 3 });
     expect(() => db.exec(`
-      INSERT INTO event_tasting_notes(id, event_id, attendee_id, tea_menu_id)
-      VALUES ('menu-duplicate', 'event-one', 'attendee-one', 'menu-one')
+      INSERT INTO event_tasting_notes(id, account_id, event_id, attendee_id, tea_menu_id)
+      VALUES ('menu-duplicate', 'account-one', 'event-one', 'attendee-one', 'menu-one')
     `)).toThrow(/UNIQUE/);
     expect(() => db.exec(`
-      INSERT INTO event_tasting_notes(id, event_id, attendee_id, tea_menu_id)
-      VALUES ('null-duplicate', 'event-one', 'attendee-one', NULL)
+      INSERT INTO event_tasting_notes(id, account_id, event_id, attendee_id, tea_menu_id)
+      VALUES ('null-duplicate', 'account-one', 'event-one', 'attendee-one', NULL)
     `)).toThrow(/UNIQUE/);
+    db.close();
+  });
+
+  it('backfills every legacy tasting-note account from the owning attendee and event', () => {
+    const db = pre127Database();
+    db.exec(`
+      INSERT INTO event_tasting_notes(id, event_id, attendee_id, impression, account_id)
+      VALUES
+        ('null-account', 'event-one', 'attendee-one', 'Missing tenant', NULL),
+        ('wrong-account', 'event-two', 'attendee-two', 'Wrong tenant', 'account-one');
+    `);
+
+    applyMigration127(db);
+
+    expect(db.prepare(`
+      SELECT id, account_id FROM event_tasting_notes ORDER BY id
+    `).all()).toEqual([
+      { id: 'null-account', account_id: 'account-one' },
+      { id: 'wrong-account', account_id: 'account-two' },
+    ]);
     db.close();
   });
 
@@ -277,11 +334,14 @@ describe('migration 127', () => {
 
     expect(db.prepare(`
       SELECT name FROM sqlite_master
-      WHERE type='table' AND name IN ('event_contributors','event_team_assignments','event_consents')
+      WHERE type='table' AND name IN (
+        'event_contributors','event_team_assignments','event_consents','event_tasting_note_history'
+      )
       ORDER BY name
     `).all()).toEqual([
       { name: 'event_consents' },
       { name: 'event_contributors' },
+      { name: 'event_tasting_note_history' },
       { name: 'event_team_assignments' },
     ]);
     expect(db.prepare(`
@@ -297,17 +357,21 @@ describe('migration 127', () => {
         'uniq_account_members_user_account',
         'uniq_event_party_members_primary',
         'uniq_event_tasting_notes_attendee_menu',
-        'uniq_event_tasting_notes_attendee_null_menu'
+        'uniq_event_tasting_notes_attendee_null_menu',
+        'uniq_event_tasting_note_history_original',
+        'idx_event_tasting_note_history_account_event'
       ) ORDER BY name
     `).all()).toEqual([
       { name: 'idx_event_contributors_event_order' },
       { name: 'idx_event_party_members_event_seat' },
+      { name: 'idx_event_tasting_note_history_account_event' },
       { name: 'idx_event_team_assignments_event_user' },
       { name: 'idx_events_account_lifecycle_date' },
       { name: 'uniq_account_members_user_account' },
       { name: 'uniq_customers_id_account' },
       { name: 'uniq_event_attendees_id_event_account' },
       { name: 'uniq_event_party_members_primary' },
+      { name: 'uniq_event_tasting_note_history_original' },
       { name: 'uniq_event_tasting_notes_attendee_menu' },
       { name: 'uniq_event_tasting_notes_attendee_null_menu' },
       { name: 'uniq_events_id_account' },
@@ -373,12 +437,14 @@ describe('migration 127', () => {
     expect(db.prepare(`
       SELECT name FROM sqlite_master
       WHERE type='table' AND name IN (
-        'event_party_members','event_contributors','event_team_assignments','event_consents'
+        'event_party_members','event_contributors','event_team_assignments','event_consents',
+        'event_tasting_note_history'
       ) ORDER BY name
     `).all()).toEqual([
       { name: 'event_consents' },
       { name: 'event_contributors' },
       { name: 'event_party_members' },
+      { name: 'event_tasting_note_history' },
       { name: 'event_team_assignments' },
     ]);
     db.close();
@@ -391,7 +457,13 @@ describe('migration 127', () => {
     canonical.exec('PRAGMA foreign_keys = ON;');
     canonical.exec(readFileSync(join(workerDir, 'schema.sql'), 'utf8'));
 
-    for (const table of ['event_party_members', 'event_consents', 'event_contributors', 'event_team_assignments']) {
+    for (const table of [
+      'event_party_members',
+      'event_consents',
+      'event_contributors',
+      'event_team_assignments',
+      'event_tasting_note_history',
+    ]) {
       expect(tableShape(canonical, table), table).toEqual(tableShape(migrated, table));
     }
     migrated.close();

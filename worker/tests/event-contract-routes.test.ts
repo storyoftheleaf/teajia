@@ -281,6 +281,14 @@ function submitGuestNotes(db: SqliteD1, body: unknown) {
   }), { DB: db } as any);
 }
 
+function submitGuestNotesRaw(db: SqliteD1, body: string) {
+  return worker.fetch(new Request('https://worker.test/api/rsvp/guest-token/tasting-notes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body,
+  }), { DB: db } as any);
+}
+
 function seedPostSessionRecord(db: SqliteD1) {
   db.sqlite.prepare(`INSERT INTO event_post_session
     (id, account_id, event_id, session_notes, gallery_images, tea_ledger,
@@ -874,6 +882,57 @@ describe('Events Release 1 persisted route contracts', () => {
           is_favorite: 0,
         },
       ]);
+    } finally {
+      db.close();
+    }
+  });
+
+  it('replaces a legacy null-account note under the migrated unique index', async () => {
+    const db = seedEventContractDb();
+    try {
+      seedPostSessionGuest(db);
+      db.sqlite.prepare(`INSERT INTO event_tasting_notes
+        (id, account_id, event_id, attendee_id, tea_menu_id, rating, impression)
+        VALUES (?, NULL, ?, ?, NULL, ?, ?)`).run(
+        'legacy-null-account-note', 'event-a', 'guest-a', 2, 'Legacy reflection',
+      );
+
+      const response = await submitGuestNotes(db, {
+        notes: [{ tea_menu_id: null, rating: 5, impression: 'Replacement reflection' }],
+      });
+
+      expect(response.status).toBe(201);
+      expect(await response.json()).toEqual({ success: true, count: 1 });
+      expect(db.sqlite.prepare(`
+        SELECT account_id, event_id, attendee_id, tea_menu_id, rating, impression
+        FROM event_tasting_notes
+      `).all()).toEqual([{
+        account_id: 'account-a',
+        event_id: 'event-a',
+        attendee_id: 'guest-a',
+        tea_menu_id: null,
+        rating: 5,
+        impression: 'Replacement reflection',
+      }]);
+    } finally {
+      db.close();
+    }
+  });
+
+  it.each([
+    ['invalid JSON', '{'],
+    ['top-level null', 'null'],
+    ['top-level number', '7'],
+    ['top-level string', '"notes"'],
+  ])('returns 400 without writes for %s tasting-note payloads', async (_label, body) => {
+    const db = seedEventContractDb();
+    try {
+      seedPostSessionGuest(db);
+
+      const response = await submitGuestNotesRaw(db, body);
+
+      expect(response.status).toBe(400);
+      expect(db.sqlite.prepare(`SELECT COUNT(*) AS count FROM event_tasting_notes`).get()).toEqual({ count: 0 });
     } finally {
       db.close();
     }

@@ -152,13 +152,108 @@ CREATE INDEX idx_event_contributors_event_order
 CREATE INDEX idx_event_team_assignments_event_user
   ON event_team_assignments(event_id, user_id);
 
--- The legacy endpoint appended repeated submissions. Keep the latest row for
--- each attendee/menu key before enforcing the Release 1 idempotency contract.
+CREATE TABLE event_tasting_note_history (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  original_note_id TEXT NOT NULL,
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  original_account_id TEXT,
+  event_id TEXT NOT NULL,
+  attendee_id TEXT NOT NULL,
+  tea_menu_id TEXT,
+  rating INTEGER,
+  impression TEXT,
+  is_favorite INTEGER,
+  created_at TEXT,
+  archive_reason TEXT NOT NULL
+    CHECK(archive_reason IN ('superseded_during_migration_127')),
+  archived_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY(event_id, account_id)
+    REFERENCES events(id, account_id),
+  FOREIGN KEY(attendee_id, event_id, account_id)
+    REFERENCES event_attendees(id, event_id, account_id)
+);
+
+CREATE UNIQUE INDEX uniq_event_tasting_note_history_original
+  ON event_tasting_note_history(original_note_id);
+CREATE INDEX idx_event_tasting_note_history_account_event
+  ON event_tasting_note_history(account_id, event_id, archived_at);
+
+-- Rank by semantic time rather than physical row placement. Invalid or absent
+-- timestamps sort behind every valid timestamp; the immutable note id makes
+-- equal timestamps deterministic across rehearsals and production.
+INSERT INTO event_tasting_note_history (
+  original_note_id,
+  account_id,
+  original_account_id,
+  event_id,
+  attendee_id,
+  tea_menu_id,
+  rating,
+  impression,
+  is_favorite,
+  created_at,
+  archive_reason
+)
+SELECT
+  ranked.id,
+  attendee.account_id,
+  ranked.account_id,
+  ranked.event_id,
+  ranked.attendee_id,
+  ranked.tea_menu_id,
+  ranked.rating,
+  ranked.impression,
+  ranked.is_favorite,
+  ranked.created_at,
+  'superseded_during_migration_127'
+FROM (
+  SELECT
+    note.*,
+    ROW_NUMBER() OVER (
+      PARTITION BY attendee_id, tea_menu_id
+      ORDER BY
+        CASE WHEN julianday(created_at) IS NULL THEN 1 ELSE 0 END,
+        julianday(created_at) DESC,
+        id DESC
+    ) AS duplicate_rank
+  FROM event_tasting_notes AS note
+) AS ranked
+JOIN event_attendees AS attendee
+  ON attendee.id = ranked.attendee_id
+ AND attendee.event_id = ranked.event_id
+JOIN events AS event
+  ON event.id = attendee.event_id
+ AND event.account_id = attendee.account_id
+WHERE ranked.duplicate_rank > 1;
+
+-- Legacy tasting notes predate tenant-scoped writes. Derive every valid
+-- note's canonical tenant from the participation and its owning event. The
+-- archive above retains the source account_id before this correction.
+UPDATE event_tasting_notes
+SET account_id = (
+  SELECT attendee.account_id
+  FROM event_attendees AS attendee
+  JOIN events AS event
+    ON event.id = attendee.event_id
+   AND event.account_id = attendee.account_id
+  WHERE attendee.id = event_tasting_notes.attendee_id
+    AND attendee.event_id = event_tasting_notes.event_id
+)
+WHERE EXISTS (
+  SELECT 1
+  FROM event_attendees AS attendee
+  JOIN events AS event
+    ON event.id = attendee.event_id
+   AND event.account_id = attendee.account_id
+  WHERE attendee.id = event_tasting_notes.attendee_id
+    AND attendee.event_id = event_tasting_notes.event_id
+);
+
 DELETE FROM event_tasting_notes
-WHERE rowid NOT IN (
-  SELECT MAX(rowid)
-  FROM event_tasting_notes
-  GROUP BY attendee_id, tea_menu_id
+WHERE id IN (
+  SELECT original_note_id
+  FROM event_tasting_note_history
+  WHERE archive_reason = 'superseded_during_migration_127'
 );
 
 CREATE UNIQUE INDEX uniq_event_tasting_notes_attendee_menu

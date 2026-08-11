@@ -9166,10 +9166,17 @@ const handleSubmitTastingNotes: Handler = async (request, env, params) => {
     return json({ error: 'Only confirmed attendees marked attended may submit tasting notes' }, 403);
   }
 
-  const payload = await request.json() as
-    | { notes?: Array<{ tea_menu_id?: string; rating?: number; impression?: string; is_favorite?: boolean }> }
-    | Array<{ tea_menu_id?: string; rating?: number; impression?: string; is_favorite?: boolean }>;
-  const notes = Array.isArray(payload) ? payload : payload.notes;
+  let payload: unknown;
+  try {
+    payload = await request.json();
+  } catch {
+    return json({ error: 'Invalid JSON body' }, 400);
+  }
+  const notes = Array.isArray(payload)
+    ? payload
+    : payload !== null && typeof payload === 'object'
+      ? (payload as Record<string, unknown>).notes
+      : undefined;
   if (!Array.isArray(notes)) return json({ error: 'Expected an array of tasting notes' }, 400);
 
   const normalizedNotes: Array<{
@@ -9247,7 +9254,7 @@ const handleSubmitTastingNotes: Handler = async (request, env, params) => {
   const stmts = normalizedNotes.flatMap(note => [
     env.DB.prepare(
       `DELETE FROM event_tasting_notes
-       WHERE event_id = ? AND account_id = ? AND attendee_id = ?
+       WHERE event_id = ? AND (account_id = ? OR account_id IS NULL) AND attendee_id = ?
          AND (tea_menu_id = ? OR (tea_menu_id IS NULL AND ? IS NULL))`
     ).bind(attendee.event_id, attendee.account_id, attendee.id, note.teaMenuId, note.teaMenuId),
     env.DB.prepare(
