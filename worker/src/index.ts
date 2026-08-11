@@ -4277,16 +4277,42 @@ const handleSplitInvoice: Handler = async (request, env) => {
   const userEmail = getUserEmail(request);
   const { invoice_id, line_item_ids } = await request.json() as { invoice_id: string; line_item_ids: string[] };
 
-  const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ? AND account_id = ?')
-    .bind(invoice_id, accountId).first() as Record<string, any> | null;
-  if (!invoice) return json({ error: 'Invoice not found' }, 404);
-  if (invoice.status !== 'Pending') return json({ error: 'Only Pending invoices can be split' }, 400);
+  const splitClaim = crypto.randomUUID();
+  const invoice = await env.DB.prepare(
+    `UPDATE invoices SET fulfillment_claim_token = ?, fulfillment_claimed_at = datetime('now')
+     WHERE id = ? AND account_id = ? AND status = 'Pending' AND inventory_deducted = 0
+       AND (fulfillment_claim_token IS NULL OR fulfillment_claimed_at IS NULL OR fulfillment_claimed_at < datetime('now', '-5 minutes'))
+     RETURNING *`
+  ).bind(splitClaim, invoice_id, accountId).first() as Record<string, any> | null;
+  if (!invoice) {
+    const current = await env.DB.prepare('SELECT status FROM invoices WHERE id = ? AND account_id = ?')
+      .bind(invoice_id, accountId).first() as Record<string, any> | null;
+    if (!current) return json({ error: 'Invoice not found' }, 404);
+    if (current.status !== 'Pending') return json({ error: 'Only Pending invoices can be split' }, 400);
+    return json({ error: 'Invoice lifecycle change is already in progress' }, 409);
+  }
+  const releaseClaim = () => env.DB.prepare(
+    'UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?'
+  ).bind(invoice_id, accountId, splitClaim).run();
 
-  const allItems = await env.DB.prepare(
-    'SELECT * FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
-  ).bind(invoice_id, accountId).all();
+  let allItems: D1Result<Record<string, any>>;
+  try {
+    allItems = await env.DB.prepare(
+      'SELECT * FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
+    ).bind(invoice_id, accountId).all() as D1Result<Record<string, any>>;
+  } catch (error) {
+    console.error('handleSplitInvoice line read failed:', error);
+    await releaseClaim().catch(() => {});
+    return json({ error: 'Split failed before any changes were committed' }, 500);
+  }
   if (line_item_ids.length === 0 || line_item_ids.length >= allItems.results.length) {
+    await releaseClaim().catch(() => {});
     return json({ error: 'Must select a proper subset of items to split' }, 400);
+  }
+  const ownedLineIds = new Set((allItems.results as Record<string, any>[]).map(item => String(item.id)));
+  if (line_item_ids.some(itemId => !ownedLineIds.has(itemId))) {
+    await releaseClaim().catch(() => {});
+    return json({ error: 'Selected line item not found on this invoice' }, 400);
   }
 
   const newId = crypto.randomUUID();
@@ -4297,48 +4323,82 @@ const handleSplitInvoice: Handler = async (request, env) => {
   let committed = false;
   let lastErr: any = null;
   for (let attempt = 0; attempt < 3 && !committed; attempt++) {
-    const splitSeqRow = await env.DB.prepare(
-      'UPDATE accounts SET invoice_seq = invoice_seq + 1 WHERE id = ? RETURNING invoice_seq, invoice_prefix'
-    ).bind(accountId).first() as { invoice_seq: number; invoice_prefix: string | null } | null;
-    const splitSeq = splitSeqRow?.invoice_seq ?? 1;
-    newNumber = formatInvoiceNumber(splitSeqRow?.invoice_prefix || null, splitSeq);
-
     const stmts: D1PreparedStatement[] = [];
 
     stmts.push(env.DB.prepare(
+      `UPDATE accounts SET invoice_seq = invoice_seq + ? WHERE id = ?
+       AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND status = 'Pending'
+         AND inventory_deducted = 0 AND fulfillment_claim_token = ?)
+       RETURNING invoice_seq`
+    ).bind(attempt + 1, accountId, invoice_id, accountId, splitClaim));
+
+    stmts.push(env.DB.prepare(
       `INSERT INTO invoices (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 0, 'Pending', 0, ?)`
-    ).bind(newId, accountId, newNumber, invoice.customer_name, invoice.customer_whatsapp, invoice.customer_id, invoice.display_currency, invoice.notes));
+       SELECT ?, ?,
+         CASE WHEN COALESCE(a.invoice_prefix, '') = '' THEN printf('%05d', a.invoice_seq)
+              ELSE a.invoice_prefix || '-' || printf('%05d', a.invoice_seq) END,
+         ?, ?, ?, ?, 0, 'Pending', 0, ?
+       FROM accounts a WHERE a.id = ?
+         AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND status = 'Pending'
+           AND inventory_deducted = 0 AND fulfillment_claim_token = ?)`
+    ).bind(newId, accountId, invoice.customer_name, invoice.customer_whatsapp, invoice.customer_id,
+      invoice.display_currency, invoice.notes, accountId, invoice_id, accountId, splitClaim));
 
     for (const itemId of line_item_ids) {
-      stmts.push(
-        env.DB.prepare('UPDATE invoice_line_items SET invoice_id = ? WHERE id = ? AND account_id = ?')
-          .bind(newId, itemId, accountId)
-      );
+      stmts.push(env.DB.prepare(
+        `UPDATE invoice_line_items SET invoice_id = ? WHERE id = ? AND account_id = ? AND invoice_id = ?
+         AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND status = 'Pending'
+           AND inventory_deducted = 0 AND fulfillment_claim_token = ?)`
+      ).bind(newId, itemId, accountId, invoice_id, invoice_id, accountId, splitClaim));
     }
 
-    stmts.push(buildActivityLog(env, 'INVOICE_SPLIT',
-      `Invoice ${invoice.invoice_number} split. ${line_item_ids.length} item(s) moved to ${newNumber}.`,
-      userEmail, 'invoice', invoice_id, accountId));
-    stmts.push(buildActivityLog(env, 'INVOICE_SPLIT',
-      `Invoice ${newNumber} created from split of ${invoice.invoice_number}.`,
-      userEmail, 'invoice', newId, accountId));
+    stmts.push(env.DB.prepare(
+      `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+       SELECT ?, 'INVOICE_SPLIT', 'Invoice ' || ? || ' split. ${line_item_ids.length} item(s) moved to ' ||
+         (SELECT invoice_number FROM invoices WHERE id = ? AND account_id = ?) || '.', ?, 'invoice', ?, ?
+       WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND status = 'Pending'
+         AND inventory_deducted = 0 AND fulfillment_claim_token = ?)`
+    ).bind(crypto.randomUUID(), invoice.invoice_number, newId, accountId, userEmail, invoice_id, accountId,
+      invoice_id, accountId, splitClaim));
+    stmts.push(env.DB.prepare(
+      `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+       SELECT ?, 'INVOICE_SPLIT', 'Invoice ' ||
+         (SELECT invoice_number FROM invoices WHERE id = ? AND account_id = ?) || ' created from split of ' || ? || '.',
+         ?, 'invoice', ?, ?
+       WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND status = 'Pending'
+         AND inventory_deducted = 0 AND fulfillment_claim_token = ?)`
+    ).bind(crypto.randomUUID(), newId, accountId, invoice.invoice_number, userEmail, newId, accountId,
+      invoice_id, accountId, splitClaim));
+    const releaseIndex = stmts.length;
+    stmts.push(env.DB.prepare(
+      `UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL
+       WHERE id = ? AND account_id = ? AND status = 'Pending' AND inventory_deducted = 0 AND fulfillment_claim_token = ?`
+    ).bind(invoice_id, accountId, splitClaim));
 
     try {
-      await env.DB.batch(stmts);
+      const results = await env.DB.batch(stmts);
+      if (Number(results[releaseIndex]?.meta?.changes || 0) === 0) {
+        await releaseClaim().catch(() => {});
+        return json({ error: 'Invoice changed before the split could be applied' }, 409);
+      }
       committed = true;
     } catch (err: any) {
       lastErr = err;
       const msg = String(err?.message || err);
       if (/UNIQUE|constraint/i.test(msg)) continue; // collision — bump seq and retry
       console.error('handleSplitInvoice batch failed:', err);
+      await releaseClaim().catch(() => {});
       return json({ error: 'Split failed — no changes were committed' }, 500);
     }
   }
   if (!committed) {
     console.error('handleSplitInvoice: failed after retries:', lastErr);
+    await releaseClaim().catch(() => {});
     return json({ error: 'Could not allocate a unique invoice number — please retry' }, 409);
   }
+  const created = await env.DB.prepare('SELECT invoice_number FROM invoices WHERE id = ? AND account_id = ?')
+    .bind(newId, accountId).first() as { invoice_number?: string } | null;
+  newNumber = String(created?.invoice_number || '');
   await ensureContactRelationship(env, accountId, invoice.customer_id, 'buyer', 'workflow', 'invoice', newId);
   return json({ original_id: invoice_id, new_id: newId, new_invoice_number: newNumber }, 201);
 };
@@ -4495,95 +4555,150 @@ const handleLinkLineItem: Handler = async (request, env) => {
     invoice_id: string; line_item_id: string; product_id: string;
   };
 
-  const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ? AND account_id = ?')
-    .bind(invoice_id, accountId).first();
-  if (!invoice) return json({ error: 'Invoice not found' }, 404);
+  const linkClaim = crypto.randomUUID();
+  const invoice = await env.DB.prepare(
+    `UPDATE invoices SET fulfillment_claim_token = ?, fulfillment_claimed_at = datetime('now')
+     WHERE id = ? AND account_id = ? AND status IN ('Draft', 'Pending', 'Filled', 'Void')
+       AND (fulfillment_claim_token IS NULL OR fulfillment_claimed_at IS NULL OR fulfillment_claimed_at < datetime('now', '-5 minutes'))
+     RETURNING *`
+  ).bind(linkClaim, invoice_id, accountId).first();
+  if (!invoice) {
+    const current = await env.DB.prepare('SELECT status FROM invoices WHERE id = ? AND account_id = ?')
+      .bind(invoice_id, accountId).first() as Record<string, any> | null;
+    if (!current) return json({ error: 'Invoice not found' }, 404);
+    if (!['Draft', 'Pending', 'Filled', 'Void'].includes(String(current.status))) {
+      return json({ error: 'Invoice status cannot be linked' }, 400);
+    }
+    return json({ error: 'Invoice lifecycle change is already in progress' }, 409);
+  }
+  const releaseClaim = () => env.DB.prepare(
+    'UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?'
+  ).bind(invoice_id, accountId, linkClaim).run();
+  const expectedStatus = String(invoice.status);
+  const expectedDeducted = Number(invoice.inventory_deducted) ? 1 : 0;
 
-  const lineItem = await env.DB.prepare(
-    'SELECT * FROM invoice_line_items WHERE id = ? AND invoice_id = ? AND account_id = ?'
-  ).bind(line_item_id, invoice_id, accountId).first();
-  if (!lineItem) return json({ error: 'Line item not found' }, 404);
+  let lineItem: Record<string, any> | null;
+  let product: Record<string, any> | null;
+  try {
+    lineItem = await env.DB.prepare(
+      'SELECT * FROM invoice_line_items WHERE id = ? AND invoice_id = ? AND account_id = ?'
+    ).bind(line_item_id, invoice_id, accountId).first() as Record<string, any> | null;
+    if (!lineItem) {
+      await releaseClaim().catch(() => {});
+      return json({ error: 'Line item not found' }, 404);
+    }
 
-  const product = await env.DB.prepare(
-    'SELECT id, stock_grams, low_stock_threshold, given_name, product_name, status, source_compass_entry_id FROM products WHERE id = ? AND account_id = ?'
-  ).bind(product_id, accountId).first();
-  if (!product) return json({ error: 'Product not found' }, 404);
+    product = await env.DB.prepare(
+      'SELECT id, stock_grams, low_stock_threshold, given_name, product_name, status, source_compass_entry_id FROM products WHERE id = ? AND account_id = ?'
+    ).bind(product_id, accountId).first() as Record<string, any> | null;
+    if (!product) {
+      await releaseClaim().catch(() => {});
+      return json({ error: 'Product not found' }, 404);
+    }
+  } catch (error) {
+    console.error('handleLinkLineItem input read failed:', error);
+    await releaseClaim().catch(() => {});
+    return json({ error: 'Failed to link line item before any changes were committed' }, 500);
+  }
 
   const stmts: D1PreparedStatement[] = [];
 
   stmts.push(env.DB.prepare(
-    'UPDATE invoice_line_items SET product_id = ?, custom_name = NULL WHERE id = ? AND invoice_id = ? AND account_id = ?'
-  ).bind(product_id, line_item_id, invoice_id, accountId));
+    `UPDATE invoice_line_items SET product_id = ?, custom_name = NULL WHERE id = ? AND invoice_id = ? AND account_id = ?
+     AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?
+       AND status = ? AND inventory_deducted = ?)`
+  ).bind(product_id, line_item_id, invoice_id, accountId, invoice_id, accountId, linkClaim, expectedStatus, expectedDeducted));
 
-  if (invoice.inventory_deducted) {
+  if (expectedDeducted) {
     const qty = Number(lineItem.quantity) || 0;
     const available = Number(product.stock_grams) || 0;
 
     // C2 — availability pre-check before any retroactive deduction.
     if (qty > available) {
+      await releaseClaim().catch(() => {});
       return json({ error: 'insufficient_stock', product_id, requested: qty, available }, 409);
     }
 
-    // Atomic, guarded deduction. RETURNING gives us the true balance_after; an
-    // empty result means a concurrent fulfillment drained stock since the
-    // pre-check — abort with 409 before committing the rest of the batch.
-    const deducted = await env.DB.prepare(
-      'UPDATE products SET stock_grams = stock_grams - ? WHERE id = ? AND account_id = ? AND stock_grams >= ? RETURNING stock_grams'
-    ).bind(qty, product_id, accountId, qty).first() as { stock_grams?: number } | null;
-    if (!deducted) {
-      const fresh = await env.DB.prepare('SELECT stock_grams FROM products WHERE id = ? AND account_id = ?')
-        .bind(product_id, accountId).first();
-      return json({
-        error: 'insufficient_stock', product_id, requested: qty,
-        available: fresh ? Number(fresh.stock_grams) || 0 : 0,
-      }, 409);
-    }
-    const newBalance = Number(deducted.stock_grams) || 0;
+    const newBalance = available - qty;
+    stmts.push(env.DB.prepare(
+      `UPDATE products SET stock_grams = stock_grams - ? WHERE id = ? AND account_id = ?
+       AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?
+         AND status = ? AND inventory_deducted = ?)`
+    ).bind(qty, product_id, accountId, invoice_id, accountId, linkClaim, expectedStatus, expectedDeducted));
 
     // Listing mirror — clamp to 0 (mirror the wholesale path's MAX(0, COALESCE(...))).
     stmts.push(env.DB.prepare(
-      `UPDATE product_listings SET stock_grams = MAX(0, COALESCE(stock_grams, 0) - ?), updated_at = datetime('now') WHERE id = ?`
-    ).bind(qty, `list_${product_id}`));
+      `UPDATE product_listings SET stock_grams = MAX(0, COALESCE(stock_grams, 0) - ?), updated_at = datetime('now') WHERE id = ?
+       AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?
+         AND status = ? AND inventory_deducted = ?)`
+    ).bind(qty, `list_${product_id}`, invoice_id, accountId, linkClaim, expectedStatus, expectedDeducted));
 
-    stmts.push(buildStockLedgerEntry(
-      env, product_id, -qty, newBalance, 'FULFILLMENT',
-      userEmail, invoice_id, invoice.invoice_number as string, 'retroactive link', accountId
-    ));
+    stmts.push(env.DB.prepare(
+      `INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, source_invoice_id, source_invoice_number, user_email, note, account_id)
+       SELECT ?, ?, ?, (SELECT stock_grams FROM products WHERE id = ? AND account_id = ?), 'FULFILLMENT', ?, ?, ?, 'retroactive link', ?
+       WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?
+         AND status = ? AND inventory_deducted = ?)`
+    ).bind(crypto.randomUUID(), product_id, -qty, product_id, accountId, invoice_id, invoice.invoice_number,
+      userEmail, accountId, invoice_id, accountId, linkClaim, expectedStatus, expectedDeducted));
 
     if (newBalance <= 0 && product.status !== 'Sold Out') {
       stmts.push(env.DB.prepare(
-        "UPDATE products SET status = 'Sold Out', sold_out_at = datetime('now') WHERE id = ? AND account_id = ?"
-      ).bind(product_id, accountId));
-      stmts.push(buildListingStatusMirror(env, product_id, 'Sold Out'));
+        `UPDATE products SET status = 'Sold Out', sold_out_at = datetime('now') WHERE id = ? AND account_id = ? AND stock_grams <= 0
+         AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?
+           AND status = ? AND inventory_deducted = ?)`
+      ).bind(product_id, accountId, invoice_id, accountId, linkClaim, expectedStatus, expectedDeducted));
+      stmts.push(env.DB.prepare(
+        `UPDATE product_listings SET status = 'Sold Out', updated_at = datetime('now') WHERE id = ?
+         AND EXISTS (SELECT 1 FROM products WHERE id = ? AND account_id = ? AND stock_grams <= 0)
+         AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?
+           AND status = ? AND inventory_deducted = ?)`
+      ).bind(`list_${product_id}`, product_id, accountId, invoice_id, accountId, linkClaim, expectedStatus, expectedDeducted));
       if (product.source_compass_entry_id) {
         stmts.push(env.DB.prepare(
-          "UPDATE tea_compass_entries SET status = 'depleted', updated_at = datetime('now') WHERE id = ? AND status = 'in_stock'"
-        ).bind(product.source_compass_entry_id));
+          `UPDATE tea_compass_entries SET status = 'depleted', updated_at = datetime('now') WHERE id = ? AND status = 'in_stock'
+           AND EXISTS (SELECT 1 FROM products WHERE id = ? AND account_id = ? AND stock_grams <= 0)
+           AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?
+             AND status = ? AND inventory_deducted = ?)`
+        ).bind(product.source_compass_entry_id, product_id, accountId, invoice_id, accountId, linkClaim, expectedStatus, expectedDeducted));
       }
     }
   }
 
   const productName = (product.given_name || product.product_name) as string;
-  stmts.push(buildActivityLog(env, 'INVOICE_EDITED',
-    `Invoice ${invoice.invoice_number}: custom item linked to ${productName}.${invoice.inventory_deducted ? ' Stock deducted.' : ''}`,
-    userEmail, 'invoice', invoice_id, accountId));
+  stmts.push(env.DB.prepare(
+    `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+     SELECT ?, 'INVOICE_EDITED', ?, ?, 'invoice', ?, ?
+     WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?
+       AND status = ? AND inventory_deducted = ?)`
+  ).bind(crypto.randomUUID(),
+    `Invoice ${invoice.invoice_number}: custom item linked to ${productName}.${expectedDeducted ? ' Stock deducted.' : ''}`,
+    userEmail, invoice_id, accountId, invoice_id, accountId, linkClaim, expectedStatus, expectedDeducted));
+  const releaseIndex = stmts.length;
+  stmts.push(env.DB.prepare(
+    `UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL
+     WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ? AND status = ? AND inventory_deducted = ?`
+  ).bind(invoice_id, accountId, linkClaim, expectedStatus, expectedDeducted));
 
   try {
-    await env.DB.batch(stmts);
+    const results = await env.DB.batch(stmts);
+    if (Number(results[releaseIndex]?.meta?.changes || 0) === 0) {
+      await releaseClaim().catch(() => {});
+      return json({ error: 'Invoice changed before the line item could be linked' }, 409);
+    }
   } catch (err: any) {
     console.error('handleLinkLineItem batch failed:', err);
-    // If we already committed a guarded deduction above, compensate it so the
-    // failed link can't leave stock reduced (and a retry double-deduct).
-    if (invoice.inventory_deducted) {
-      const qty = Number(lineItem.quantity) || 0;
-      try {
-        await env.DB.prepare('UPDATE products SET stock_grams = stock_grams + ? WHERE id = ? AND account_id = ?')
-          .bind(qty, product_id, accountId).run();
-      } catch (e) { console.error('handleLinkLineItem rollback failed:', e); }
+    await releaseClaim().catch(() => {});
+    if (expectedDeducted && /stock_grams cannot be negative/i.test(String(err?.message || err))) {
+      const fresh = await env.DB.prepare('SELECT stock_grams FROM products WHERE id = ? AND account_id = ?')
+        .bind(product_id, accountId).first();
+      return json({
+        error: 'insufficient_stock', product_id, requested: Number(lineItem.quantity) || 0,
+        available: fresh ? Number(fresh.stock_grams) || 0 : 0,
+      }, 409);
     }
     return json({ error: 'Failed to link line item — no changes were committed' }, 500);
   }
-  return json({ success: true, inventory_deducted: !!invoice.inventory_deducted });
+  return json({ success: true, inventory_deducted: !!expectedDeducted });
 };
 
 // ── Stock Ledger ──
