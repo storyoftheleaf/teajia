@@ -81,6 +81,17 @@ function seed(db: SqliteD1) {
     VALUES ('foreign-tea','account-b','Oolong','Foreign Tea','Foreign Tea',100,0.5,'account-b-owner')`).run();
 }
 
+function seedEvent(db: SqliteD1, productId: string) {
+  db.sqlite.exec(`
+    CREATE TABLE events (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, status TEXT, updated_at TEXT);
+    CREATE TABLE event_tea_menu (id TEXT PRIMARY KEY, event_id TEXT NOT NULL, product_id TEXT, brew_order INTEGER);
+    CREATE TABLE event_attendees (id TEXT PRIMARY KEY, event_id TEXT NOT NULL, full_name TEXT, phone_number TEXT, email TEXT, customer_id TEXT, attended INTEGER);
+  `);
+  db.sqlite.prepare(`INSERT INTO events(id,account_id,status) VALUES ('event-a','account-a','active')`).run();
+  db.sqlite.prepare(`INSERT INTO event_tea_menu(id,event_id,product_id,brew_order) VALUES ('menu-a','event-a',?,1)`).run(productId);
+  db.sqlite.prepare(`INSERT INTO event_attendees(id,event_id,full_name,phone_number,attended) VALUES ('attendee-a','event-a','Guest','123',1)`).run();
+}
+
 async function createGrant(db: SqliteD1, overrides: Record<string, unknown> = {}) {
   return call(db, '/api/sales/grants', {
     method: 'POST', body: {
@@ -538,5 +549,89 @@ describe('Tea Master invoice authorization, holds and settlements', () => {
     expect((await call(db, `/api/sales/settlements/${settlement.id}`, { method: 'PUT', userId: 'seller', body: { status: 'paid' } })).status).toBe(403);
     expect((await call(db, `/api/sales/settlements/${settlement.id}`, { method: 'PUT', body: { status: 'paid' } })).status).toBe(200);
     expect(db.sqlite.prepare('SELECT status FROM sales_settlements WHERE id=?').get(settlement.id)).toEqual({ status: 'paid' });
+  });
+});
+
+describe('Tea Master event completion invoice authorization', () => {
+  it.each([
+    ['Active', 'Teaware'],
+    ['Active', 'Misc'],
+    ['Draft', 'Oolong'],
+  ])('rejects a linked %s %s event product without completing or writing invoices', async (status, type) => {
+    const db = database(); seed(db);
+    db.sqlite.prepare(`INSERT INTO products
+      (id,account_id,type,product_name,given_name,status,stock_grams,fixed_retail_price_usd,owner_user_id)
+      VALUES ('event-product','account-a',?,'Event Product','Event Product',?,20,0.5,NULL)`).run(type, status);
+    seedEvent(db, 'event-product');
+
+    const response = await call(db, '/api/admin/events/event-a/complete', { method: 'POST' });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ code: 'product_not_sale_eligible' });
+    expect(db.sqlite.prepare(`SELECT status FROM events WHERE id='event-a'`).get()).toEqual({ status: 'active' });
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS count FROM invoices').get()).toEqual({ count: 0 });
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS count FROM invoice_line_items').get()).toEqual({ count: 0 });
+  });
+
+  it('requires Sell access before event completion can create linked invoices', async () => {
+    const db = database(); seed(db);
+    seedIdentity(db, { userId: 'gatherer', accountId: 'account-a', role: 'staff', bundles: ['gather'] });
+    seedEvent(db, 'location-tea');
+
+    const response = await call(db, '/api/admin/events/event-a/complete', { method: 'POST', userId: 'gatherer' });
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({ code: 'insufficient_bundle', details: { required_bundle: 'sell' } });
+    expect(db.sqlite.prepare(`SELECT status FROM events WHERE id='event-a'`).get()).toEqual({ status: 'active' });
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS count FROM invoices').get()).toEqual({ count: 0 });
+  });
+
+  it('snapshots the authenticated seller and authorized grant terms on event invoices', async () => {
+    const db = database(); seed(db);
+    db.sqlite.prepare(`UPDATE account_members SET permissions='{"bundles":["gather","sell"]}'
+      WHERE account_id='account-a' AND user_id='seller'`).run();
+    const grant = await (await createGrant(db, { price_floor: null, owner_share_value: 80 })).json() as any;
+    seedEvent(db, 'person-tea');
+
+    const response = await call(db, '/api/admin/events/event-a/complete', { method: 'POST', userId: 'seller' });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ status: 'completed', invoices_created: 1 });
+    expect(db.sqlite.prepare(`SELECT status FROM events WHERE id='event-a'`).get()).toEqual({ status: 'completed' });
+    expect(db.sqlite.prepare('SELECT sold_by_user_id,payment_recipient_user_id FROM invoices').get())
+      .toEqual({ sold_by_user_id: 'seller', payment_recipient_user_id: 'stock-owner' });
+    expect(db.sqlite.prepare(`SELECT product_id,custom_name,stock_owner_user_id,sales_grant_id,owner_share_type,owner_share_value
+      FROM invoice_line_items`).get()).toEqual({
+      product_id: 'person-tea', custom_name: null, stock_owner_user_id: 'stock-owner',
+      sales_grant_id: grant.id, owner_share_type: 'percent', owner_share_value: 80,
+    });
+  });
+});
+
+describe('Tea Master public draft acceptance', () => {
+  it('reauthorizes a public linked tea and snapshots the accepting seller atomically', async () => {
+    const db = database(); seed(db);
+    const grant = await (await createGrant(db)).json() as any;
+    db.sqlite.prepare(`INSERT INTO invoices
+      (id,account_id,invoice_number,customer_name,display_currency,status,inventory_deducted,payment_status)
+      VALUES ('public-draft','account-a','PUBLIC-1','Recipient','USD','Draft',0,'unpaid')`).run();
+    db.sqlite.prepare(`INSERT INTO invoice_line_items
+      (id,account_id,invoice_id,product_id,custom_name,quantity,price_at_sale)
+      VALUES ('public-line','account-a','public-draft','person-tea',NULL,10,0.5)`).run();
+
+    const response = await call(db, '/api/invoices/public-draft', {
+      method: 'PUT', userId: 'seller', body: { status: 'Pending' },
+    });
+
+    expect(response.status).toBe(200);
+    expect(db.sqlite.prepare(`SELECT status,sold_by_user_id,payment_recipient_user_id FROM invoices WHERE id='public-draft'`).get())
+      .toEqual({ status: 'Pending', sold_by_user_id: 'seller', payment_recipient_user_id: 'stock-owner' });
+    expect(db.sqlite.prepare(`SELECT stock_owner_user_id,sales_grant_id,owner_share_type,owner_share_value
+      FROM invoice_line_items WHERE id='public-line'`).get()).toEqual({
+      stock_owner_user_id: 'stock-owner', sales_grant_id: grant.id,
+      owner_share_type: 'percent', owner_share_value: 80,
+    });
+    expect(db.sqlite.prepare(`SELECT held_grams FROM stock_holds WHERE invoice_id='public-draft'`).get())
+      .toEqual({ held_grams: 10 });
   });
 });

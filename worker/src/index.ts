@@ -42,7 +42,7 @@ import {
   wisdomManifestNodes,
   wisdomNodeExists,
 } from './wisdomRelations';
-import { TEA_TYPES } from '../../src/wisdom/vocabulary';
+import { isTeaType, TEA_TYPES } from '../../src/wisdom/vocabulary';
 
 interface Env {
   DB: D1Database;
@@ -3836,7 +3836,7 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
 
   const body = await request.json() as Record<string, any>;
   delete body.account_id;
-  const invoice = await env.DB.prepare('SELECT id,status FROM invoices WHERE id=? AND account_id=?')
+  const invoice = await env.DB.prepare('SELECT id,status,sold_by_user_id FROM invoices WHERE id=? AND account_id=?')
     .bind(params.id, accountId).first() as Record<string, any> | null;
   if (!invoice) return restError(404, 'Invoice not found', 'invoice_not_found');
   const INVOICE_ALLOWED_COLS = new Set(['customer_name','customer_id','customer_phone','customer_email','status','notes','display_currency','amount_usd','shipping_cost_usd','message_text','payment_status','paid_at','payment_date','due_date','payment_method','currency_rate','source_event_id']);
@@ -3849,9 +3849,10 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
       const current = await env.DB.prepare(
         'SELECT id,product_id,custom_name,quantity,price_at_sale FROM invoice_line_items WHERE invoice_id=? AND account_id=?'
       ).bind(params.id, accountId).all();
-      const authorized = await authorizeInvoiceLines(env, {
-        accountId, actorUserId: ctx.userId, actorRole: ctx.role, lines: current.results as any[],
-      });
+      const seller = invoice.sold_by_user_id
+        ? await invoiceSellerAuthorizationContext(env, accountId, invoice)
+        : { actorUserId: ctx.userId, actorRole: ctx.role };
+      const authorized = await authorizeInvoiceLines(env, { accountId, ...seller, lines: current.results as any[] });
       for (const line of authorized) statements.push(env.DB.prepare(
         'UPDATE invoice_line_items SET stock_owner_user_id=?,sales_grant_id=?,owner_share_type=?,owner_share_value=? WHERE id=? AND account_id=?'
       ).bind(line.stock_owner_user_id, line.sales_grant_id, line.owner_share_type, line.owner_share_value, line.id, accountId));
@@ -3859,6 +3860,9 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
         accountId, invoiceId: params.id, lines: authorized,
         expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
       }));
+      statements.push(env.DB.prepare(
+        'UPDATE invoices SET sold_by_user_id=?,payment_recipient_user_id=? WHERE id=? AND account_id=?'
+      ).bind(seller.actorUserId, resolvePaymentRecipientUserId(authorized), params.id, accountId));
     } else if (invoice.status === 'Pending' && body.status === 'Draft') {
       statements.push(env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id=? AND account_id=?').bind(params.id, accountId));
     }
@@ -12800,14 +12804,11 @@ const handleWaitlistAttendee: Handler = async (request, env, params) => {
 const handleCompleteEvent: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
+  const salesCtx = await requireBundle(request, env, 'sell');
+  if ('error' in salesCtx) return salesCtx.error;
   const { accountId } = ctx;
   const guard = await assertEventInAccount(env, params.id, accountId);
   if (guard) return guard;
-
-  // Mark event as completed
-  await env.DB.prepare(
-    `UPDATE events SET status = 'completed', updated_at = datetime('now') WHERE id = ? AND account_id = ?`
-  ).bind(params.id, accountId).run();
 
   // Get tea menu — if empty, skip invoice creation
   const menuRows = await env.DB.prepare(
@@ -12816,6 +12817,9 @@ const handleCompleteEvent: Handler = async (request, env, params) => {
   ).bind(params.id).all();
 
   if (menuRows.results.length === 0) {
+    await env.DB.prepare(
+      `UPDATE events SET status = 'completed', updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+    ).bind(params.id, accountId).run();
     return json({ success: true, status: 'completed', invoices_created: 0 });
   }
 
@@ -12828,6 +12832,9 @@ const handleCompleteEvent: Handler = async (request, env, params) => {
 
   const attendees = attendeesRows.results as any[];
   if (attendees.length === 0) {
+    await env.DB.prepare(
+      `UPDATE events SET status = 'completed', updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+    ).bind(params.id, accountId).run();
     return json({ success: true, status: 'completed', invoices_created: 0 });
   }
 
@@ -12837,19 +12844,44 @@ const handleCompleteEvent: Handler = async (request, env, params) => {
   ).bind(params.id, accountId).all();
   const existingNames = new Set((existingInvoiceRows.results as any[]).map((r: any) => r.customer_name));
 
-  const stmts: D1PreparedStatement[] = [];
+  const newAttendees = attendees.filter(attendee => !existingNames.has(attendee.full_name));
+  if (newAttendees.length === 0) {
+    await env.DB.prepare(
+      `UPDATE events SET status = 'completed', updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+    ).bind(params.id, accountId).run();
+    return json({ success: true, status: 'completed', invoices_created: 0 });
+  }
+
+  let authorizedMenuLines: AuthorizedInvoiceLine[];
+  try {
+    authorizedMenuLines = await authorizeInvoiceLines(env, {
+      accountId,
+      actorUserId: salesCtx.userId,
+      actorRole: salesCtx.role,
+      lines: (menuRows.results as any[]).map(menuItem => ({
+        product_id: menuItem.product_id,
+        custom_name: null,
+        quantity: 1,
+        price_at_sale: 0,
+      })),
+    });
+  } catch (error) {
+    return salesError(error);
+  }
+  const paymentRecipientUserId = resolvePaymentRecipientUserId(authorizedMenuLines);
+  const stmts: D1PreparedStatement[] = [env.DB.prepare(
+    `UPDATE events SET status = 'completed', updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+  ).bind(params.id, accountId)];
   let invoicesCreated = 0;
 
-  for (const att of attendees) {
-    if (existingNames.has(att.full_name)) continue;
-
+  for (const att of newAttendees) {
     const invoiceId = crypto.randomUUID();
     const invoiceNumber = `EVT-${params.id.slice(0, 6).toUpperCase()}-${att.id.slice(0, 4).toUpperCase()}`;
 
     stmts.push(
       env.DB.prepare(
-        `INSERT INTO invoices (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, payment_status, source_event_id)
-         VALUES (?, ?, ?, ?, ?, ?, 'TWD', 0, 'Draft', 0, 'unpaid', ?)`
+        `INSERT INTO invoices (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, payment_status, source_event_id, sold_by_user_id, payment_recipient_user_id)
+         VALUES (?, ?, ?, ?, ?, ?, 'TWD', 0, 'Draft', 0, 'unpaid', ?, ?, ?)`
       ).bind(
         invoiceId,
         accountId,
@@ -12857,16 +12889,22 @@ const handleCompleteEvent: Handler = async (request, env, params) => {
         att.full_name,
         att.phone_number || null,
         att.customer_id || null,
-        params.id
+        params.id,
+        salesCtx.userId,
+        paymentRecipientUserId,
       )
     );
 
     // Add one line item per tea menu entry
-    for (const menuItem of menuRows.results as any[]) {
+    for (const line of authorizedMenuLines) {
       stmts.push(
         env.DB.prepare(
-          'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, custom_name, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?, ?, ?)'
-        ).bind(crypto.randomUUID(), accountId, invoiceId, menuItem.product_id, null, 1, 0)
+          `INSERT INTO invoice_line_items
+           (id,account_id,invoice_id,product_id,custom_name,quantity,price_at_sale,stock_owner_user_id,sales_grant_id,owner_share_type,owner_share_value)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?)`
+        ).bind(crypto.randomUUID(), accountId, invoiceId, line.product_id, line.custom_name ?? null,
+          line.quantity, line.price_at_sale, line.stock_owner_user_id, line.sales_grant_id,
+          line.owner_share_type, line.owner_share_value)
       );
     }
 
@@ -20475,7 +20513,7 @@ const handleConfirmCollectionPicks: Handler = async (request, env, params) => {
   const byItemId = new Map<string, any>();
   for (const r of (itemRows.results ?? []) as any[]) byItemId.set(r.id, r);
 
-  const lineItems: Array<{ product_id: string; custom_name: null; quantity: number; price_at_sale: number; label: string }> = [];
+  const lineItems: Array<{ product_id: string | null; custom_name: string | null; quantity: number; price_at_sale: number; label: string }> = [];
   for (const pick of picks) {
     const row = pick.item_id ? byItemId.get(pick.item_id) : null;
     if (!row || row.product_status !== 'Active') continue;
@@ -20492,9 +20530,10 @@ const handleConfirmCollectionPicks: Handler = async (request, env, params) => {
       catalogUnitPriceUsd: row.fixed_retail_price_usd == null ? null : Number(row.fixed_retail_price_usd),
     });
 
+    const mayRemainLinked = isTeaType(String(row.product_type || ''));
     lineItems.push({
-      product_id: row.product_id,
-      custom_name: null,
+      product_id: mayRemainLinked ? row.product_id : null,
+      custom_name: mayRemainLinked ? null : row.product_name,
       quantity: derived.quantity,
       price_at_sale: derived.unitPriceUsd,
       label: `${row.product_name} × ${derived.quantity}${isTeaware ? '' : 'g'}`,
