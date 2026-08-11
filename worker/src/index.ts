@@ -14,7 +14,17 @@ import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 import { deriveConfirmedInvoiceLine, repairCandidate } from './invoiceDomain';
 import { buildEventArticleDraft } from './eventArticleDraft';
-import { EVENT_TRANSITIONS, normalizeEventUpdate, normalizeRsvpUpdate, publicPostSessionProjection, type EventLifecycle } from './eventDomain';
+import {
+  EVENT_TRANSITIONS,
+  normalizeEventUpdate,
+  normalizeRsvpUpdate,
+  publicPostSessionProjection,
+  reservePartySeats,
+  type EventLifecycle,
+  type PartySeatReservation,
+  type ReservePartySeatsInput,
+  type ReservePartySeatsResult,
+} from './eventDomain';
 import { candidateToApi, impressionToApi, parseCandidateInput } from './tastingNoteCuration';
 import { deliverVerificationCode } from './verificationDelivery';
 import { INCIDENT_STATUSES, incidentToApi, normalizeIncidentInput, upsertIncident, type IncidentStatus } from './incidents';
@@ -8508,11 +8518,21 @@ async function cascadeWaitlist(env: Env, eventId: string, claimWindowMinutes: nu
   }
 }
 
+function seatReservationError(result: Exclude<ReservePartySeatsResult, { ok: true }>): Response {
+  if (result.code === 'capacity_conflict') {
+    return json({ error: 'Event capacity reached', code: 'capacity_conflict' }, 409);
+  }
+  if (result.code === 'event_not_reservable') {
+    return json({ error: 'Event is not accepting reservations', code: 'event_not_reservable' }, 409);
+  }
+  return json({ error: 'Reservation state changed', code: 'state_conflict' }, 409);
+}
+
 // ── Event Public Routes ──
 
 const handleGetEventBySlug: Handler = async (_request, env, params) => {
   const event = await env.DB.prepare(
-    `SELECT e.id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date, e.event_end_date,
+    `SELECT e.id, e.account_id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date, e.event_end_date,
             e.location_name, e.address_text, e.map_link, e.guidelines_text, e.venue_guide, e.total_capacity, e.timezone, e.status,
             e.session_flow, e.playlist_url, e.event_format, e.gathering_type, e.area_hint, e.mood_hints, e.created_at,
             e.requires_approval, e.venue_id,
@@ -8528,11 +8548,16 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
   if (!event) return json({ error: 'Event not found' }, 404);
 
   const count = await env.DB.prepare(
-    `SELECT COALESCE(SUM(1 + plus_one), 0) as total
-     FROM event_attendees WHERE event_id = ? AND status = 'confirmed'`
-  ).bind(event.id).first();
+    `SELECT
+       (SELECT COUNT(*) FROM event_party_members pm
+        WHERE pm.event_id = ? AND pm.account_id = ? AND pm.seat_status IN ('held','confirmed')) AS accepted,
+       (SELECT COUNT(*) FROM event_attendees offer
+        WHERE offer.event_id = ? AND offer.account_id = ? AND offer.status = 'waitlist'
+          AND offer.claim_expires_at IS NOT NULL AND datetime(offer.claim_expires_at) > datetime('now')) AS offered`
+  ).bind(event.id, event.account_id, event.id, event.account_id).first();
 
-  const confirmedCount = (count?.total as number) || 0;
+  const confirmedCount = Number(count?.accepted || 0);
+  const offeredCount = Number(count?.offered || 0);
 
   // First names of guests who opted in to the public guest list
   const guestListRows = await env.DB.prepare(
@@ -8548,13 +8573,15 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
   if (event.venue_photos) {
     try { venuePhotos = JSON.parse(event.venue_photos as string); } catch { venuePhotos = []; }
   }
+  const { account_id: _accountId, ...publicEvent } = event;
 
   return cachedJson({
-    ...event,
+    ...publicEvent,
     venue_photos: venuePhotos,
     confirmed_count: confirmedCount,
+    offered_count: offeredCount,
     confirmed_names: confirmedNames,
-    seats_remaining: (event.total_capacity as number) - confirmedCount,
+    seats_remaining: Math.max(0, (event.total_capacity as number) - confirmedCount - offeredCount),
   }, 30);
 };
 
@@ -8645,24 +8672,30 @@ const handleListPublicEvents: Handler = async (_request, env, _params) => {
   const rows = await env.DB.prepare(
     `SELECT e.id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date,
             e.location_name, e.area_hint, e.mood_hints, e.total_capacity, e.timezone, e.status,
-            COALESCE(SUM(CASE WHEN ea.status = 'confirmed' THEN 1 + ea.plus_one ELSE 0 END), 0) AS confirmed_count
+            COALESCE((SELECT COUNT(*) FROM event_party_members pm
+              WHERE pm.event_id = e.id AND pm.account_id = e.account_id
+                AND pm.seat_status IN ('held','confirmed')), 0) AS confirmed_count,
+            COALESCE((SELECT COUNT(*) FROM event_attendees offer
+              WHERE offer.event_id = e.id AND offer.account_id = e.account_id
+                AND offer.status = 'waitlist' AND offer.claim_expires_at IS NOT NULL
+                AND datetime(offer.claim_expires_at) > datetime('now')), 0) AS offered_count
      FROM events e
      JOIN accounts a ON a.id = e.account_id
-     LEFT JOIN event_attendees ea ON ea.event_id = e.id
      WHERE e.status = 'active'
        AND e.event_date >= datetime('now')
        AND a.is_platform_owner = 1
-     GROUP BY e.id
      ORDER BY e.event_date ASC
      LIMIT 20`
   ).all();
 
   const events = (rows.results ?? []).map((ev) => {
     const confirmedCount = (ev.confirmed_count as number) || 0;
+    const offeredCount = (ev.offered_count as number) || 0;
     return {
       ...ev,
       confirmed_count: confirmedCount,
-      seats_remaining: (ev.total_capacity as number) - confirmedCount,
+      offered_count: offeredCount,
+      seats_remaining: Math.max(0, (ev.total_capacity as number) - confirmedCount - offeredCount),
     };
   });
 
@@ -8676,7 +8709,8 @@ const handleRSVP: Handler = async (request, env, params) => {
   // Public RSVP — resolve the event's account so all inserts (customer,
   // attendee, activity log) are attributed to the right store.
   const event = await env.DB.prepare(
-    `SELECT id, account_id, total_capacity, claim_window_minutes, requires_approval FROM events WHERE slug = ? AND status = 'active'`
+    `SELECT id, account_id, total_capacity, claim_window_minutes, requires_approval, lifecycle_status
+     FROM events WHERE slug = ? AND status = 'active'`
   ).bind(params.slug).first();
 
   if (!event) return json({ error: 'Event not found' }, 404);
@@ -8716,6 +8750,7 @@ const handleRSVP: Handler = async (request, env, params) => {
   // Golden tier detection — look up customer within this account only.
   let accessTier = 'standard';
   let customerId: string | null = null;
+  let customerNeedsCreation = false;
 
   let customer: Record<string, unknown> | null = null;
   if (phone_number) {
@@ -8742,77 +8777,98 @@ const handleRSVP: Handler = async (request, env, params) => {
       }
     } catch {}
   } else {
-    const newCustomerId = crypto.randomUUID();
-    await env.DB.prepare(
-      `INSERT INTO customers (id, account_id, name, phone, email, whatsapp, contact_preference)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
-    ).bind(
-      newCustomerId,
-      accountId,
-      full_name,
-      phone_number || null,
-      email || null,
-      phone_number || null,
-      contact_method || 'whatsapp'
-    ).run();
-    customerId = newCustomerId;
+    customerId = crypto.randomUUID();
+    customerNeedsCreation = true;
   }
 
-  // Determine attendee status: instant-confirm when requires_approval = 0 and capacity available.
+  // Approval-required requests do not hold capacity. Instant RSVPs reserve the
+  // complete party atomically through the canonical seat allocator.
   const requiresApproval = (event.requires_approval as number) !== 0; // default true for all existing rows
-  const confirmedForCapacity = await env.DB.prepare(
-    `SELECT COALESCE(SUM(1 + plus_one), 0) as total FROM event_attendees WHERE event_id = ? AND status = 'confirmed'`
-  ).bind(event.id).first();
-  const currentConfirmed = (confirmedForCapacity?.total as number) || 0;
-  const hasCapacity = currentConfirmed < (event.total_capacity as number);
-  const status = (!requiresApproval && hasCapacity) ? 'confirmed' : 'requested';
+  const status = requiresApproval ? 'requested' : 'confirmed';
   const magicToken = crypto.randomUUID();
 
   let guestRequestsJson: string | null = null;
+  let normalizedGuestRequests: Array<{ nameHint: string; contact: string | null; approved: null }> = [];
   if (Array.isArray(guest_requests) && guest_requests.length > 0) {
-    const normalised = guest_requests.map((g: any) => ({
+    normalizedGuestRequests = guest_requests.map((g: any) => ({
       nameHint: g.nameHint || g.name_hint || '',
       contact: g.contact || null,
-      approved: null,
+      approved: null as null,
     }));
-    guestRequestsJson = JSON.stringify(normalised);
+    guestRequestsJson = JSON.stringify(normalizedGuestRequests);
   } else if (plus_one) {
-    guestRequestsJson = JSON.stringify([{ nameHint: plus_one_name || 'guest', approved: null }]);
+    normalizedGuestRequests = [{ nameHint: plus_one_name || 'guest', contact: null, approved: null }];
+    guestRequestsJson = JSON.stringify(normalizedGuestRequests);
   }
 
   const attendeeId = crypto.randomUUID();
-
-  const batchOps: ReturnType<typeof env.DB.prepare>[] = [
-    env.DB.prepare(
-      `INSERT INTO event_attendees
-         (id, account_id, event_id, customer_id, full_name, phone_number, email, plus_one, plus_one_name,
-          access_tier, status, magic_token, photo_consent, notes, tea_preference, bringing_tea,
-          guest_requests, contact_method, source, show_in_guest_list)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(
-      attendeeId,
-      accountId,
-      event.id,
-      customerId,
-      full_name,
-      phone_number || null,
-      email || null,
-      plus_one ? 1 : 0,
-      plus_one_name || null,
-      accessTier,
-      status,
-      magicToken,
-      photo_consent ? 1 : 0,
-      notes || null,
-      tea_preference || null,
-      bringing_tea || null,
-      guestRequestsJson,
-      contact_method || 'whatsapp',
-      'direct',
-      show_in_guest_list ? 1 : 0
-    ),
-    buildActivityLog(env, 'rsvp_requested', `${full_name} requested a seat`, null, 'event_attendee', attendeeId, accountId),
+  const targetSeatState = status === 'confirmed' ? 'confirmed' : 'requested';
+  const seats: PartySeatReservation[] = [
+    {
+      id: crypto.randomUUID(),
+      fullName: full_name,
+      isPrimary: true,
+      sourceState: null,
+      targetState: targetSeatState,
+    },
+    ...normalizedGuestRequests.map((guest) => ({
+      id: crypto.randomUUID(),
+      fullName: guest.nameHint || null,
+      isPrimary: false,
+      sourceState: null as null,
+      targetState: targetSeatState,
+    })),
   ];
+  const reserved = await reservePartySeats(env, {
+    accountId,
+    eventId: event.id as string,
+    participationId: attendeeId,
+    sourceState: 'requested',
+    targetState: status,
+    seats,
+    createParticipation: {
+      columns: [
+        'customer_id', 'full_name', 'phone_number', 'email', 'plus_one', 'plus_one_name',
+        'access_tier', 'magic_token', 'photo_consent', 'notes', 'tea_preference', 'bringing_tea',
+        'guest_requests', 'contact_method', 'source', 'show_in_guest_list',
+      ],
+      values: [
+        customerNeedsCreation ? null : customerId,
+        full_name,
+        phone_number || null,
+        email || null,
+        plus_one ? 1 : 0,
+        plus_one_name || null,
+        accessTier,
+        magicToken,
+        photo_consent ? 1 : 0,
+        notes || null,
+        tea_preference || null,
+        bringing_tea || null,
+        guestRequestsJson,
+        contact_method || 'whatsapp',
+        'direct',
+        show_in_guest_list ? 1 : 0,
+      ],
+    },
+  });
+  if (!reserved.ok) return seatReservationError(reserved);
+
+  if (customerNeedsCreation && customerId) {
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO customers (id, account_id, name, phone, email, whatsapp)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      ).bind(customerId, accountId, full_name, phone_number || null, email || null, phone_number || null),
+      env.DB.prepare('UPDATE event_attendees SET customer_id = ? WHERE id = ? AND account_id = ?')
+        .bind(customerId, attendeeId, accountId),
+      env.DB.prepare(`UPDATE event_party_members SET customer_id = ?
+        WHERE participation_id = ? AND account_id = ? AND is_primary = 1`)
+        .bind(customerId, attendeeId, accountId),
+    ]);
+  }
+
+  await buildActivityLog(env, 'rsvp_requested', `${full_name} requested a seat`, null, 'event_attendee', attendeeId, accountId).run();
 
   // If the user is authenticated and submitted a phone number they don't have
   // saved yet, persist it to their profile so future RSVPs pre-fill correctly.
@@ -8827,17 +8883,13 @@ const handleRSVP: Handler = async (request, env, params) => {
             'SELECT phone FROM users WHERE id = ?'
           ).bind(claims.sub).first();
           if (userRow && !userRow.phone) {
-            batchOps.push(
-              env.DB.prepare('UPDATE users SET phone = ? WHERE id = ?')
-                .bind(phone_number, claims.sub)
-            );
+            await env.DB.prepare('UPDATE users SET phone = ? WHERE id = ?')
+              .bind(phone_number, claims.sub).run();
           }
         }
       }
     }
   }
-
-  await env.DB.batch(batchOps);
 
   return json({
     magic_token: magicToken,
@@ -8848,24 +8900,31 @@ const handleRSVP: Handler = async (request, env, params) => {
 
 const handleGetEventAvailability: Handler = async (_request, env, params) => {
   const event = await env.DB.prepare(
-    `SELECT id, total_capacity FROM events WHERE slug = ? AND status = 'active'`
+    `SELECT id, account_id, total_capacity FROM events WHERE slug = ? AND status = 'active'`
   ).bind(params.slug).first();
 
   if (!event) return json({ error: 'Event not found' }, 404);
 
   const count = await env.DB.prepare(
-    `SELECT COALESCE(SUM(1 + plus_one), 0) as total
-     FROM event_attendees WHERE event_id = ? AND status = 'confirmed'`
-  ).bind(event.id).first();
+    `SELECT
+       (SELECT COUNT(*) FROM event_party_members pm
+        WHERE pm.event_id = ? AND pm.account_id = ? AND pm.seat_status IN ('held','confirmed')) AS accepted,
+       (SELECT COUNT(*) FROM event_attendees offer
+        WHERE offer.event_id = ? AND offer.account_id = ? AND offer.status = 'waitlist'
+          AND offer.claim_expires_at IS NOT NULL AND datetime(offer.claim_expires_at) > datetime('now')) AS offered`
+  ).bind(event.id, event.account_id, event.id, event.account_id).first();
 
-  const confirmedCount = (count?.total as number) || 0;
+  const confirmedCount = Number(count?.accepted || 0);
+  const offeredCount = Number(count?.offered || 0);
   const totalCapacity = event.total_capacity as number;
+  const heldCount = confirmedCount + offeredCount;
 
   return cachedJson({
     total_capacity: totalCapacity,
     confirmed_count: confirmedCount,
-    seats_remaining: totalCapacity - confirmedCount,
-    is_full: confirmedCount >= totalCapacity,
+    offered_count: offeredCount,
+    seats_remaining: Math.max(0, totalCapacity - heldCount),
+    is_full: heldCount >= totalCapacity,
   }, 10);
 };
 
@@ -9087,9 +9146,9 @@ const handleUpdateRSVP: Handler = async (request, env, params) => {
 
 const handleClaimSpot: Handler = async (_request, env, params) => {
   const attendee = await env.DB.prepare(
-    `SELECT ea.*, e.claim_window_minutes, e.id as eid
+    `SELECT ea.*, e.claim_window_minutes, e.id as eid, e.account_id as event_account_id
      FROM event_attendees ea
-     JOIN events e ON e.id = ea.event_id
+     JOIN events e ON e.id = ea.event_id AND e.account_id = ea.account_id
      WHERE ea.magic_token = ? AND ea.status = 'waitlist'`
   ).bind(params.token).first();
 
@@ -9111,10 +9170,32 @@ const handleClaimSpot: Handler = async (_request, env, params) => {
     return json({ error: 'Claim window has expired' }, 410);
   }
 
-  // Claim the spot
-  await env.DB.prepare(
-    `UPDATE event_attendees SET status = 'confirmed', claimed_at = datetime('now'), claim_expires_at = NULL WHERE id = ?`
-  ).bind(attendee.id).run();
+  const primary = await env.DB.prepare(
+    `SELECT id, full_name, seat_status FROM event_party_members
+     WHERE participation_id = ? AND event_id = ? AND account_id = ? AND is_primary = 1`
+  ).bind(attendee.id, attendee.eid, attendee.event_account_id).first<{
+    id: string;
+    full_name: string | null;
+    seat_status: 'requested' | 'held' | 'confirmed';
+  }>();
+  if (!primary) return json({ error: 'RSVP party is incomplete', code: 'state_conflict' }, 409);
+
+  const reserved = await reservePartySeats(env, {
+    accountId: attendee.event_account_id as string,
+    eventId: attendee.eid as string,
+    participationId: attendee.id as string,
+    sourceState: 'waitlist',
+    targetState: 'confirmed',
+    offerExpiresAt: attendee.claim_expires_at as string,
+    seats: [{
+      id: primary.id,
+      fullName: primary.full_name || attendee.full_name as string,
+      isPrimary: true,
+      sourceState: primary.seat_status,
+      targetState: 'confirmed',
+    }],
+  });
+  if (!reserved.ok) return seatReservationError(reserved);
 
   // Create spot_claimed notification
   await env.DB.prepare(
@@ -9430,7 +9511,13 @@ const handleGetEvents: Handler = async (request, env) => {
       e.event_date, e.event_end_date, e.location_name, e.area_hint,
       e.total_capacity, e.claim_window_minutes, e.timezone, e.status,
       e.created_at, e.updated_at,
-      COALESCE(SUM(CASE WHEN ea.status = 'confirmed' THEN 1 + ea.plus_one ELSE 0 END), 0) as confirmed_count,
+      COALESCE((SELECT COUNT(*) FROM event_party_members pm
+        WHERE pm.event_id = e.id AND pm.account_id = e.account_id
+          AND pm.seat_status IN ('held','confirmed')), 0) as confirmed_count,
+      COALESCE((SELECT COUNT(*) FROM event_attendees offer
+        WHERE offer.event_id = e.id AND offer.account_id = e.account_id
+          AND offer.status = 'waitlist' AND offer.claim_expires_at IS NOT NULL
+          AND datetime(offer.claim_expires_at) > datetime('now')), 0) as offered_count,
       COALESCE(SUM(CASE WHEN ea.status = 'waitlist' THEN 1 ELSE 0 END), 0) as waitlist_count,
       COALESCE(SUM(CASE WHEN ea.status = 'requested' THEN 1 ELSE 0 END), 0) as requested_count,
       COUNT(ea.id) as total_attendees,
@@ -9452,7 +9539,13 @@ const handleGetEvent: Handler = async (request, env, params) => {
 
   const result = await env.DB.prepare(`
     SELECT e.*,
-      COALESCE(SUM(CASE WHEN ea.status = 'confirmed' THEN 1 + ea.plus_one ELSE 0 END), 0) as confirmed_count,
+      COALESCE((SELECT COUNT(*) FROM event_party_members pm
+        WHERE pm.event_id = e.id AND pm.account_id = e.account_id
+          AND pm.seat_status IN ('held','confirmed')), 0) as confirmed_count,
+      COALESCE((SELECT COUNT(*) FROM event_attendees offer
+        WHERE offer.event_id = e.id AND offer.account_id = e.account_id
+          AND offer.status = 'waitlist' AND offer.claim_expires_at IS NOT NULL
+          AND datetime(offer.claim_expires_at) > datetime('now')), 0) as offered_count,
       COALESCE(SUM(CASE WHEN ea.status = 'waitlist' THEN 1 ELSE 0 END), 0) as waitlist_count,
       COALESCE(SUM(CASE WHEN ea.status = 'requested' THEN 1 ELSE 0 END), 0) as requested_count,
       COUNT(ea.id) as total_attendees,
@@ -12640,6 +12733,80 @@ const handleSyncCompassEntries: Handler = async (request, env) => {
 
 // ── Event System V2 Handlers ──
 
+type ApprovalAttendeeRow = {
+  id: string;
+  account_id: string;
+  event_id: string;
+  full_name: string;
+  guest_requests: string | null;
+  phone_number: string | null;
+  email: string | null;
+  customer_id: string | null;
+  magic_token: string;
+  event_title?: string;
+  event_slug?: string;
+};
+
+async function buildApprovalReservation(
+  env: Env,
+  attendee: ApprovalAttendeeRow,
+  approvedGuests: number,
+): Promise<ReservePartySeatsInput | null> {
+  const party = await env.DB.prepare(
+    `SELECT id, full_name, is_primary, seat_status
+     FROM event_party_members
+     WHERE participation_id = ? AND event_id = ? AND account_id = ?
+     ORDER BY is_primary DESC, created_at ASC, id ASC`
+  ).bind(attendee.id, attendee.event_id, attendee.account_id).all<{
+    id: string;
+    full_name: string | null;
+    is_primary: number;
+    seat_status: 'requested' | 'held' | 'confirmed';
+  }>();
+  const primary = party.results.find((seat) => Number(seat.is_primary) === 1);
+  if (!primary) return null;
+
+  let guestRequests: Array<{ nameHint?: string; contact?: string | null }> = [];
+  if (attendee.guest_requests) {
+    try { guestRequests = JSON.parse(attendee.guest_requests); } catch {}
+  }
+  const requestedGuestSeats = party.results.filter((seat) => Number(seat.is_primary) === 0 && seat.seat_status === 'requested');
+  const seats: PartySeatReservation[] = [{
+    id: primary.id,
+    fullName: primary.full_name || attendee.full_name,
+    isPrimary: true,
+    sourceState: primary.seat_status,
+    targetState: 'confirmed',
+  }];
+  for (let index = 0; index < approvedGuests; index++) {
+    const requestedSeat = requestedGuestSeats[index];
+    const invitationId = crypto.randomUUID();
+    const request = guestRequests[index];
+    seats.push({
+      id: requestedSeat?.id || crypto.randomUUID(),
+      fullName: request?.nameHint || requestedSeat?.full_name || null,
+      isPrimary: false,
+      sourceState: requestedSeat?.seat_status || null,
+      targetState: 'held',
+      invitationId,
+      invitation: {
+        token: crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, ''),
+        nameHint: request?.nameHint || null,
+        contact: request?.contact || null,
+      },
+    });
+  }
+
+  return {
+    accountId: attendee.account_id,
+    eventId: attendee.event_id,
+    participationId: attendee.id,
+    sourceState: 'requested',
+    targetState: 'confirmed',
+    seats,
+  };
+}
+
 // PUT /api/admin/attendees/:id/approve
 const handleApproveAttendee: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'gather');
@@ -12647,10 +12814,10 @@ const handleApproveAttendee: Handler = async (request, env, params) => {
   const { accountId } = ctx;
 
   const attendee = await env.DB.prepare(
-    `SELECT ea.*, e.id as event_id, e.title as event_title, e.slug as event_slug FROM event_attendees ea
-     JOIN events e ON e.id = ea.event_id
+    `SELECT ea.*, e.id as event_id, e.account_id as account_id, e.title as event_title, e.slug as event_slug FROM event_attendees ea
+     JOIN events e ON e.id = ea.event_id AND e.account_id = ea.account_id
      WHERE ea.id = ? AND e.account_id = ?`
-  ).bind(params.id, accountId).first();
+  ).bind(params.id, accountId).first() as ApprovalAttendeeRow | null;
 
   if (!attendee) return json({ error: 'Attendee not found' }, 404);
 
@@ -12658,44 +12825,17 @@ const handleApproveAttendee: Handler = async (request, env, params) => {
   const approvedGuests = body.approved_guests ?? 0;
   const userEmail = getUserEmail(request);
 
-  // Guard against race conditions: only update if still in 'requested' status
-  const updateResult = await env.DB.prepare(
-    `UPDATE event_attendees SET status = 'confirmed' WHERE id = ? AND status = 'requested'`
-  ).bind(params.id).run();
+  const reservation = await buildApprovalReservation(env, attendee, approvedGuests);
+  if (!reservation) return json({ error: 'Attendee party is incomplete', code: 'state_conflict' }, 409);
+  const reserved = await reservePartySeats(env, reservation);
+  if (!reserved.ok) return seatReservationError(reserved);
 
-  if (updateResult.meta.changes === 0) {
-    return json({ error: 'Attendee already processed' }, 409);
-  }
-
-  const stmts: D1PreparedStatement[] = [
-    buildActivityLog(
-      env,
-      'attendee_approved',
-      `Approved ${attendee.full_name}${body.message ? ': ' + body.message : ''}`,
-      userEmail, 'event_attendee', params.id, accountId
-    ),
-  ];
-
-  if (approvedGuests > 0) {
-    let guestRequests: Array<{ nameHint: string; contact?: string | null; approved: boolean | null }> = [];
-    if (attendee.guest_requests) {
-      try { guestRequests = JSON.parse(attendee.guest_requests as string); } catch {}
-    }
-
-    for (let i = 0; i < approvedGuests; i++) {
-      const inviteToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
-      const nameHint = guestRequests[i]?.nameHint || null;
-      const contact = guestRequests[i]?.contact || null;
-      stmts.push(
-        env.DB.prepare(
-          `INSERT INTO guest_invites (id, account_id, event_id, parent_attendee_id, invite_token, name_hint, contact)
-           VALUES (lower(hex(randomblob(8))), ?, ?, ?, ?, ?, ?)`
-        ).bind(accountId, attendee.event_id, params.id, inviteToken, nameHint, contact)
-      );
-    }
-  }
-
-  await env.DB.batch(stmts);
+  await buildActivityLog(
+    env,
+    'attendee_approved',
+    `Approved ${attendee.full_name}${body.message ? ': ' + body.message : ''}`,
+    userEmail, 'event_attendee', params.id, accountId
+  ).run();
 
   // F9: Auto-link attendee to a customer record
   try {
@@ -13108,55 +13248,34 @@ const handleApproveBatch: Handler = async (request, env, params) => {
 
   const approvedGuestsMap = body.approved_guests_map || {};
   const userEmail = getUserEmail(request);
-  const stmts: D1PreparedStatement[] = [];
   type AttendeeRow = { id: string; phone_number: string | null; email: string | null; customer_id: string | null };
   const rows: AttendeeRow[] = [];
+  const reservations: ReservePartySeatsInput[] = [];
+  const approvedAttendees: ApprovalAttendeeRow[] = [];
 
   for (const attendeeId of body.attendee_ids) {
     const attendee = await env.DB.prepare(
-      `SELECT id, full_name, guest_requests, phone_number, email, customer_id FROM event_attendees WHERE id = ? AND event_id = ?`
-    ).bind(attendeeId, params.id).first();
+      `SELECT id, account_id, event_id, full_name, guest_requests, phone_number, email, customer_id, magic_token
+       FROM event_attendees WHERE id = ? AND event_id = ? AND account_id = ?`
+    ).bind(attendeeId, params.id, accountId).first() as ApprovalAttendeeRow | null;
 
     if (!attendee) continue;
-    rows.push({ id: attendeeId, phone_number: (attendee as any).phone_number, email: (attendee as any).email, customer_id: (attendee as any).customer_id });
-
-    stmts.push(
-      env.DB.prepare(
-        `UPDATE event_attendees SET status = 'confirmed' WHERE id = ?`
-      ).bind(attendeeId)
-    );
-
-    stmts.push(
-      buildActivityLog(
-        env,
-        'attendee_approved',
-        `Batch approved ${attendee.full_name}`,
-        userEmail, 'event_attendee', attendeeId, accountId
-      )
-    );
-
-    const approvedGuests = approvedGuestsMap[attendeeId] ?? 0;
-    if (approvedGuests > 0) {
-      let guestRequests: Array<{ nameHint: string; contact?: string | null; approved: boolean | null }> = [];
-      if (attendee.guest_requests) {
-        try { guestRequests = JSON.parse(attendee.guest_requests as string); } catch {}
-      }
-      for (let i = 0; i < approvedGuests; i++) {
-        const inviteToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
-        const nameHint = guestRequests[i]?.nameHint || null;
-        const contact = guestRequests[i]?.contact || null;
-        stmts.push(
-          env.DB.prepare(
-            `INSERT INTO guest_invites (id, account_id, event_id, parent_attendee_id, invite_token, name_hint, contact)
-             VALUES (lower(hex(randomblob(8))), ?, ?, ?, ?, ?, ?)`
-          ).bind(accountId, params.id, attendeeId, inviteToken, nameHint, contact)
-        );
-      }
-    }
+    const reservation = await buildApprovalReservation(env, attendee, approvedGuestsMap[attendeeId] ?? 0);
+    if (!reservation) return json({ error: 'Attendee party is incomplete', code: 'state_conflict' }, 409);
+    reservations.push(reservation);
+    approvedAttendees.push(attendee);
+    rows.push({ id: attendeeId, phone_number: attendee.phone_number, email: attendee.email, customer_id: attendee.customer_id });
   }
 
-  if (stmts.length > 0) {
-    await env.DB.batch(stmts);
+  if (reservations.length > 0) {
+    const reserved = await reservePartySeats(env, reservations);
+    if (!reserved.ok) return seatReservationError(reserved);
+    await env.DB.batch(approvedAttendees.map((attendee) => buildActivityLog(
+      env,
+      'attendee_approved',
+      `Batch approved ${attendee.full_name}`,
+      userEmail, 'event_attendee', attendee.id, accountId
+    )));
   }
 
   // Auto-link customer records (non-critical, same logic as single approval)
@@ -13187,11 +13306,14 @@ const handleApproveBatch: Handler = async (request, env, params) => {
       }
       await env.DB.prepare('UPDATE event_attendees SET customer_id = ? WHERE id = ?')
         .bind(linkedId, row.id).run();
+      await env.DB.prepare(`UPDATE event_party_members SET customer_id = ?
+        WHERE participation_id = ? AND account_id = ? AND is_primary = 1`)
+        .bind(linkedId, row.id, accountId).run();
       await ensureContactRelationship(env, accountId, linkedId, 'event_guest', 'workflow', 'event_attendee', row.id);
     } catch {}
   }
 
-  return json({ success: true, approved_count: body.attendee_ids.length });
+  return json({ success: true, approved_count: reservations.length });
 };
 
 // GET /api/admin/events/:id/share
@@ -13259,7 +13381,7 @@ const handleClaimGuestInvite: Handler = async (request, env, params) => {
   const invite = await env.DB.prepare(
     `SELECT gi.*, e.id as event_id, e.account_id as account_id, e.title as event_title, e.event_date
      FROM guest_invites gi
-     JOIN events e ON e.id = gi.event_id
+     JOIN events e ON e.id = gi.event_id AND e.account_id = gi.account_id
      WHERE gi.invite_token = ?`
   ).bind(params.token).first();
 
@@ -13281,41 +13403,62 @@ const handleClaimGuestInvite: Handler = async (request, env, params) => {
   const magicToken = crypto.randomUUID();
   const newAttendeeId = crypto.randomUUID();
   const contactMethod = body.phone ? 'whatsapp' : 'email';
+  const offeredSeat = await env.DB.prepare(
+    `SELECT id, seat_status FROM event_party_members
+     WHERE invitation_id = ? AND account_id = ? AND event_id = ?`
+  ).bind(invite.id, accountId, invite.event_id).first<{
+    id: string;
+    seat_status: 'requested' | 'held' | 'confirmed';
+  }>();
+  const reserved = await reservePartySeats(env, {
+    accountId,
+    eventId: invite.event_id as string,
+    participationId: newAttendeeId,
+    sourceState: 'requested',
+    targetState: 'confirmed',
+    seats: [{
+      id: offeredSeat?.id || crypto.randomUUID(),
+      fullName: body.name,
+      isPrimary: true,
+      sourceState: offeredSeat?.seat_status || null,
+      targetState: 'confirmed',
+      invitationId: invite.id as string,
+    }],
+    createParticipation: {
+      columns: ['full_name', 'phone_number', 'email', 'contact_method', 'magic_token', 'source', 'access_tier'],
+      values: [
+        body.name,
+        body.phone || null,
+        body.email || null,
+        contactMethod,
+        magicToken,
+        'guest_invite',
+        'standard',
+      ],
+    },
+    guestClaim: {
+      invitationId: invite.id as string,
+      claimedByName: body.name,
+      claimedByPhone: body.phone || null,
+      claimedByEmail: body.email || null,
+    },
+  });
+  if (!reserved.ok) {
+    if (reserved.code === 'state_conflict') {
+      const latest = await env.DB.prepare(
+        `SELECT status FROM guest_invites WHERE id = ? AND account_id = ? AND event_id = ?`
+      ).bind(invite.id, accountId, invite.event_id).first();
+      if (latest && latest.status !== 'pending') return json({ error: `Invite already ${latest.status}` }, 409);
+    }
+    return seatReservationError(reserved);
+  }
 
-  await env.DB.batch([
-    env.DB.prepare(
-      `INSERT INTO event_attendees
-         (id, account_id, event_id, full_name, phone_number, email, contact_method, status, magic_token, source, access_tier)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'confirmed', ?, 'guest_invite', 'standard')`
-    ).bind(
-      newAttendeeId,
-      accountId,
-      invite.event_id,
-      body.name,
-      body.phone || null,
-      body.email || null,
-      contactMethod,
-      magicToken
-    ),
-    env.DB.prepare(
-      `UPDATE guest_invites
-       SET status = 'claimed', claimed_by_name = ?, claimed_by_phone = ?, claimed_by_email = ?,
-           claimed_attendee_id = ?, claimed_at = datetime('now')
-       WHERE invite_token = ?`
-    ).bind(
-      body.name,
-      body.phone || null,
-      body.email || null,
-      newAttendeeId,
-      params.token
-    ),
-    buildActivityLog(
-      env,
-      'guest_invite_claimed',
-      `${body.name} claimed guest invite for event ${invite.event_title}`,
-      null, 'event_attendee', newAttendeeId, accountId
-    ),
-  ]);
+  await buildActivityLog(
+    env,
+    'guest_invite_claimed',
+    `${body.name} claimed guest invite for event ${invite.event_title}`,
+    null, 'event_attendee', newAttendeeId, accountId
+  ).run();
 
   // Auto-link customer record for claimed guest (non-critical)
   try {
@@ -13342,6 +13485,9 @@ const handleClaimGuestInvite: Handler = async (request, env, params) => {
     }
     await env.DB.prepare('UPDATE event_attendees SET customer_id = ? WHERE id = ?')
       .bind(linkedId, newAttendeeId).run();
+    await env.DB.prepare(`UPDATE event_party_members SET customer_id = ?
+      WHERE participation_id = ? AND account_id = ? AND is_primary = 1`)
+      .bind(linkedId, newAttendeeId, accountId).run();
     await ensureContactRelationship(env, accountId, linkedId, 'event_guest', 'workflow', 'event_attendee', newAttendeeId);
   } catch {}
 
@@ -16847,12 +16993,19 @@ const handleGetPublicAccountEvents: Handler = async (_request, env, params) => {
             e.event_date, e.event_end_date, e.location_name, e.area_hint,
             e.total_capacity, e.timezone, e.status,
             COALESCE(a.confirmed_count, 0) as confirmed_count,
-            e.total_capacity - COALESCE(a.confirmed_count, 0) as seats_remaining
+            COALESCE(a.offered_count, 0) as offered_count,
+            MAX(0, e.total_capacity - COALESCE(a.confirmed_count, 0) - COALESCE(a.offered_count, 0)) as seats_remaining
      FROM events e
      LEFT JOIN (
-       SELECT event_id, SUM(1 + plus_one) as confirmed_count
-       FROM event_attendees WHERE status = 'confirmed'
-       GROUP BY event_id
+       SELECT scoped.id as event_id,
+         (SELECT COUNT(*) FROM event_party_members pm
+          WHERE pm.event_id = scoped.id AND pm.account_id = scoped.account_id
+            AND pm.seat_status IN ('held','confirmed')) as confirmed_count,
+         (SELECT COUNT(*) FROM event_attendees offer
+          WHERE offer.event_id = scoped.id AND offer.account_id = scoped.account_id
+            AND offer.status = 'waitlist' AND offer.claim_expires_at IS NOT NULL
+            AND datetime(offer.claim_expires_at) > datetime('now')) as offered_count
+       FROM events scoped
      ) a ON a.event_id = e.id
      WHERE e.status = 'active' AND e.account_id = ?
      ORDER BY e.event_date ASC`
