@@ -553,6 +553,31 @@ describe('Tea Master invoice authorization, holds and settlements', () => {
 });
 
 describe('Tea Master event completion invoice authorization', () => {
+  it.each(['empty menu', 'no attended guests', 'no new invoices'] as const)(
+    'allows a Gather-only user to complete with %s', async (branch) => {
+      const db = database(); seed(db);
+      seedIdentity(db, { userId: 'gatherer', accountId: 'account-a', role: 'staff', bundles: ['gather'] });
+      seedEvent(db, 'location-tea');
+      if (branch === 'empty menu') {
+        db.sqlite.prepare(`DELETE FROM event_tea_menu WHERE event_id='event-a'`).run();
+      } else if (branch === 'no attended guests') {
+        db.sqlite.prepare(`UPDATE event_attendees SET attended=0 WHERE event_id='event-a'`).run();
+      } else {
+        db.sqlite.prepare(`INSERT INTO invoices
+          (id,account_id,invoice_number,customer_name,display_currency,status,inventory_deducted,payment_status,source_event_id)
+          VALUES ('existing-event-invoice','account-a','EVENT-EXISTING','Guest','TWD','Draft',0,'unpaid','event-a')`).run();
+      }
+      const beforeInvoices = db.sqlite.prepare('SELECT COUNT(*) AS count FROM invoices').get();
+
+      const response = await call(db, '/api/admin/events/event-a/complete', { method: 'POST', userId: 'gatherer' });
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toMatchObject({ status: 'completed', invoices_created: 0 });
+      expect(db.sqlite.prepare(`SELECT status FROM events WHERE id='event-a'`).get()).toEqual({ status: 'completed' });
+      expect(db.sqlite.prepare('SELECT COUNT(*) AS count FROM invoices').get()).toEqual(beforeInvoices);
+    },
+  );
+
   it.each([
     ['Active', 'Teaware'],
     ['Active', 'Misc'],

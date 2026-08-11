@@ -12804,8 +12804,6 @@ const handleWaitlistAttendee: Handler = async (request, env, params) => {
 const handleCompleteEvent: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
-  const salesCtx = await requireBundle(request, env, 'sell');
-  if ('error' in salesCtx) return salesCtx.error;
   const { accountId } = ctx;
   const guard = await assertEventInAccount(env, params.id, accountId);
   if (guard) return guard;
@@ -12852,6 +12850,8 @@ const handleCompleteEvent: Handler = async (request, env, params) => {
     return json({ success: true, status: 'completed', invoices_created: 0 });
   }
 
+  const salesCtx = await requireBundle(request, env, 'sell');
+  if ('error' in salesCtx) return salesCtx.error;
   let authorizedMenuLines: AuthorizedInvoiceLine[];
   try {
     authorizedMenuLines = await authorizeInvoiceLines(env, {
