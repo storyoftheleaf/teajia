@@ -22,7 +22,7 @@ export function SettlementLedgerView({ mode, rows, isOwner, pendingId, error, su
   error: string | null;
   success: string | null;
   onRetry: () => void;
-  onRequestPaid: (row: SalesSettlement) => void;
+  onRequestPaid: (row: SalesSettlement, trigger: HTMLButtonElement) => void;
   onDismissMessage: () => void;
 }) {
   if (mode === 'loading') return <div role="status" aria-label="Loading settlements" className="space-y-3 border-y border-tea-border py-5">
@@ -66,7 +66,7 @@ export function SettlementLedgerView({ mode, rows, isOwner, pendingId, error, su
         </dl>
         <div className="col-span-2 flex min-w-0 items-center justify-between gap-3 md:col-span-1 md:flex-col md:items-end">
           <span className="text-ui-11 font-medium uppercase tracking-[0.12em] text-tea-text-sec">{statusLabel(row.status)}</span>
-          {isOwner && row.status === 'owed' && <button type="button" disabled={pendingId === row.id} onClick={() => onRequestPaid(row)} className="tap-target min-h-[44px] text-ui-12 font-medium text-tea-gold hover:text-tea-gold-lt disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.98]">{pendingId === row.id ? 'Updating' : 'Mark paid'}</button>}
+          {isOwner && row.status === 'owed' && <button type="button" disabled={pendingId === row.id} onClick={event => onRequestPaid(row, event.currentTarget)} className="tap-target min-h-[44px] text-ui-12 font-medium text-tea-gold hover:text-tea-gold-lt disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.98]">{pendingId === row.id ? 'Updating' : 'Mark paid'}</button>}
         </div>
       </article>)}
     </div>
@@ -80,15 +80,34 @@ export function SettlementLedger() {
   const [tokenRevision, setTokenRevision] = React.useState(0);
   const [confirming, setConfirming] = React.useState<SalesSettlement | null>(null);
   const [message, setMessage] = React.useState<{ kind: 'error' | 'success'; text: string } | null>(null);
+  const dialogRef = React.useRef<HTMLDivElement | null>(null);
+  const paidTriggerRef = React.useRef<HTMLButtonElement | null>(null);
   const tokenScoped = isTokenScopedToAccount(accountId);
+
+  const closeConfirm = React.useCallback(() => {
+    setConfirming(null);
+  }, []);
 
   React.useEffect(() => {
     const onToken = () => setTokenRevision(value => value + 1);
     window.addEventListener(AUTH_TOKEN_CHANGED_EVENT, onToken);
     return () => window.removeEventListener(AUTH_TOKEN_CHANGED_EVENT, onToken);
   }, []);
-  React.useEffect(() => { setConfirming(null); setMessage(null); }, [accountId]);
-  React.useEffect(() => { if (!isOwner) setConfirming(null); }, [isOwner]);
+  React.useEffect(() => { closeConfirm(); setMessage(null); }, [accountId, closeConfirm]);
+  React.useEffect(() => { if (!isOwner) closeConfirm(); }, [isOwner, closeConfirm]);
+  React.useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      if (confirming) {
+        const firstButton = dialogRef.current?.querySelector<HTMLButtonElement>('button:not([disabled])');
+        (firstButton || dialogRef.current)?.focus();
+        return;
+      }
+      const trigger = paidTriggerRef.current;
+      paidTriggerRef.current = null;
+      if (trigger?.isConnected) trigger.focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [confirming]);
 
   const query = useQuery({
     queryKey: ['sales-settlements', accountId, tokenRevision], enabled: tokenScoped, retry: false, staleTime: 30_000,
@@ -108,11 +127,11 @@ export function SettlementLedger() {
     onSuccess: (id, { requestAccount }) => {
       if (useAppStore.getState().activeAccountId !== requestAccount || !isTokenScopedToAccount(requestAccount)) return;
       queryClient.setQueryData<SalesSettlement[]>(['sales-settlements', accountId, tokenRevision], rows => rows?.map(row => row.id === id ? { ...row, status: 'paid' } : row));
-      setConfirming(null); setMessage({ kind: 'success', text: 'Settlement marked paid.' });
+      closeConfirm(); setMessage({ kind: 'success', text: 'Settlement marked paid.' });
     },
     onError: (_error, { requestAccount }) => {
       if (useAppStore.getState().activeAccountId !== requestAccount || !isTokenScopedToAccount(requestAccount)) return;
-      setConfirming(null); setMessage({ kind: 'error', text: 'Settlement could not be marked paid. Retry from the owed row.' });
+      closeConfirm(); setMessage({ kind: 'error', text: 'Settlement could not be marked paid. Retry from the owed row.' });
     },
   });
   const rows = tokenScoped ? query.data || [] : [];
@@ -124,14 +143,31 @@ export function SettlementLedger() {
         <h2 id="settlement-ledger-title" className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>Settlements</h2>
         <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-1 text-tea-text-sec`}>{isOwner ? 'Account sales split between stock owners and sellers.' : 'Sales in which you participated as seller or stock owner.'}</p>
       </div>
-      <SettlementLedgerView mode={mode} rows={rows} isOwner={isOwner} pendingId={mutation.isPending ? mutation.variables?.row.id || null : null} error={message?.kind === 'error' ? message.text : null} success={message?.kind === 'success' ? message.text : null} onRetry={() => { void query.refetch(); }} onRequestPaid={setConfirming} onDismissMessage={() => setMessage(null)} />
+      <SettlementLedgerView mode={mode} rows={rows} isOwner={isOwner} pendingId={mutation.isPending ? mutation.variables?.row.id || null : null} error={message?.kind === 'error' ? message.text : null} success={message?.kind === 'success' ? message.text : null} onRetry={() => { void query.refetch(); }} onRequestPaid={(row, trigger) => { paidTriggerRef.current = trigger; setConfirming(row); }} onDismissMessage={() => setMessage(null)} />
     </div>
     {isOwner && confirming && <div role="dialog" aria-modal="true" aria-labelledby="settlement-confirm-title" className="fixed inset-0 z-modal flex items-center justify-center bg-tea-bg/90 p-4">
-      <div className="w-full max-w-md rounded-md border border-tea-border bg-tea-elevated p-5">
+      <div
+        ref={dialogRef}
+        tabIndex={-1}
+        onKeyDown={event => {
+          if (event.key === 'Escape') {
+            if (!mutation.isPending) { event.preventDefault(); closeConfirm(); }
+            return;
+          }
+          if (event.key !== 'Tab') return;
+          const buttons = Array.from(dialogRef.current?.querySelectorAll<HTMLButtonElement>('button:not([disabled])') || []);
+          if (buttons.length === 0) { event.preventDefault(); dialogRef.current?.focus(); return; }
+          const first = buttons[0];
+          const last = buttons[buttons.length - 1];
+          if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+          else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+        }}
+        className="w-full max-w-md rounded-md border border-tea-border bg-tea-elevated p-5"
+      >
         <h3 id="settlement-confirm-title" className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Confirm settlement payment</h3>
         <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-2 text-tea-text-sec`}>Mark {money(confirming.seller_amount)} for {confirming.seller_name || 'this seller'} as paid? This records the settlement only.</p>
         <div className="mt-6 flex justify-between gap-4 border-t border-tea-border pt-4">
-          <button type="button" disabled={mutation.isPending} onClick={() => setConfirming(null)} className="tap-target min-h-[44px] text-ui-13 text-tea-text-sec hover:text-tea-text disabled:opacity-60">Cancel</button>
+          <button type="button" disabled={mutation.isPending} onClick={closeConfirm} className="tap-target min-h-[44px] text-ui-13 text-tea-text-sec hover:text-tea-text disabled:opacity-60">Cancel</button>
           <button type="button" disabled={mutation.isPending} onClick={() => mutation.mutate({ row: confirming, requestAccount: accountId })} className="cta-solid tap-target min-h-[44px] px-4 text-ui-13 font-medium disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.98]">{mutation.isPending ? 'Marking paid' : 'Confirm paid'}</button>
         </div>
       </div>

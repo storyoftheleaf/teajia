@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { api } from '../../lib/api';
+import { api, AUTH_TOKEN_CHANGED_EVENT, isTokenScopedToAccount } from '../../lib/api';
 import type { InvoiceWithItems, Product } from '../types';
 import { openWhatsAppStatus, buildQuickInvoiceDraftParam } from '../../lib/whatsapp';
 import { Loader2, Search, XCircle, Trash2, Eye, X, PackageCheck, Users, Scissors, Pencil, Package, MoreHorizontal, MessageCircle, Plus, Link2, StickyNote, Leaf, Check } from 'lucide-react';
@@ -112,6 +112,8 @@ export const OrdersView = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToast();
   const activeAccountId = useAppStore(state => state.activeAccountId);
+  const [tokenRevision, setTokenRevision] = useState(0);
+  const tokenScoped = isTokenScopedToAccount(activeAccountId);
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [viewingInvoice, setViewingInvoice] = useState<DbOrder | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -170,15 +172,30 @@ export const OrdersView = () => {
     setInvoiceTimeline([]);
   }, [activeAccountId]);
 
+  useEffect(() => {
+    const handleTokenChange = () => setTokenRevision(revision => revision + 1);
+    window.addEventListener(AUTH_TOKEN_CHANGED_EVENT, handleTokenChange);
+    return () => window.removeEventListener(AUTH_TOKEN_CHANGED_EVENT, handleTokenChange);
+  }, []);
+
   const [pageSize, setPageSize] = useState(50);
-  const { data: orders = [], isLoading, refetch } = useQuery<DbOrder[]>({
-    queryKey: ['orders', pageSize],
+  const ordersQuery = useQuery<DbOrder[]>({
+    queryKey: ['orders', activeAccountId, tokenRevision, pageSize],
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
+    enabled: tokenScoped,
     queryFn: async () => {
-      return await api.invoices.list(pageSize) as DbOrder[];
+      const requestAccount = activeAccountId;
+      const result = await api.invoices.list(pageSize) as DbOrder[];
+      if (useAppStore.getState().activeAccountId !== requestAccount || !isTokenScopedToAccount(requestAccount)) {
+        throw new Error('Account scope changed');
+      }
+      return result;
     }
   });
+  const orders = tokenScoped ? ordersQuery.data || [] : [];
+  const isLoading = !tokenScoped || ordersQuery.isPending;
+  const refetch = ordersQuery.refetch;
 
   // Pipeline summary
   const summary = useMemo(() => {
@@ -193,16 +210,23 @@ export const OrdersView = () => {
   }, [orders]);
 
   const handleView = async (invoice: DbOrder) => {
+    const requestAccount = activeAccountId;
+    const requestIsCurrent = () => useAppStore.getState().activeAccountId === requestAccount && isTokenScopedToAccount(requestAccount);
+    if (!requestIsCurrent()) return;
     try {
       const items = await api.invoices.getItems(invoice.id);
+      if (!requestIsCurrent()) return;
       setViewingInvoice({ ...invoice, items });
       // Fetch timeline
       try {
         const timeline = await api.activityLogs.list({ entity_id: invoice.id, limit: 20 });
+        if (!requestIsCurrent()) return;
         setInvoiceTimeline(timeline?.logs || []);
-      } catch { setInvoiceTimeline([]); }
+      } catch {
+        if (requestIsCurrent()) setInvoiceTimeline([]);
+      }
     } catch {
-      showToast("Could not load invoice details.", 'error');
+      if (requestIsCurrent()) showToast("Could not load invoice details.", 'error');
     }
   };
 
