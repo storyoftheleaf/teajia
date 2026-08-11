@@ -26,6 +26,17 @@ import {
 } from './teaMasterSales';
 import { buildEventArticleDraft } from './eventArticleDraft';
 import { decodeWordforgeDraft, isWordforgeManagedArticle, upsertWordforgeDraft, WordforgeDraftError, WORDFORGE_DRAFT_MAX_BYTES } from './wordforgeArticleDraft';
+import {
+  EVENT_TRANSITIONS,
+  normalizeEventUpdate,
+  normalizeRsvpUpdate,
+  publicPostSessionProjection,
+  reservePartySeats,
+  type EventLifecycle,
+  type PartySeatReservation,
+  type ReservePartySeatsInput,
+  type ReservePartySeatsResult,
+} from './eventDomain';
 import { candidateToApi, impressionToApi, parseCandidateInput } from './tastingNoteCuration';
 import { deliverVerificationCode } from './verificationDelivery';
 import { INCIDENT_STATUSES, incidentToApi, normalizeIncidentInput, upsertIncident, type IncidentStatus } from './incidents';
@@ -9054,11 +9065,21 @@ async function cascadeWaitlist(env: Env, eventId: string, claimWindowMinutes: nu
   }
 }
 
+function seatReservationError(result: Exclude<ReservePartySeatsResult, { ok: true }>): Response {
+  if (result.code === 'capacity_conflict') {
+    return json({ error: 'Event capacity reached', code: 'capacity_conflict' }, 409);
+  }
+  if (result.code === 'event_not_reservable') {
+    return json({ error: 'Event is not accepting reservations', code: 'event_not_reservable' }, 409);
+  }
+  return json({ error: 'Reservation state changed', code: 'state_conflict' }, 409);
+}
+
 // ── Event Public Routes ──
 
 const handleGetEventBySlug: Handler = async (_request, env, params) => {
   const event = await env.DB.prepare(
-    `SELECT e.id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date, e.event_end_date,
+    `SELECT e.id, e.account_id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date, e.event_end_date,
             e.location_name, e.address_text, e.map_link, e.guidelines_text, e.venue_guide, e.total_capacity, e.timezone, e.status,
             e.session_flow, e.playlist_url, e.event_format, e.gathering_type, e.area_hint, e.mood_hints, e.created_at,
             e.requires_approval, e.venue_id,
@@ -9074,11 +9095,16 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
   if (!event) return json({ error: 'Event not found' }, 404);
 
   const count = await env.DB.prepare(
-    `SELECT COALESCE(SUM(1 + plus_one), 0) as total
-     FROM event_attendees WHERE event_id = ? AND status = 'confirmed'`
-  ).bind(event.id).first();
+    `SELECT
+       (SELECT COUNT(*) FROM event_party_members pm
+        WHERE pm.event_id = ? AND pm.account_id = ? AND pm.seat_status IN ('held','confirmed')) AS accepted,
+       (SELECT COUNT(*) FROM event_attendees offer
+        WHERE offer.event_id = ? AND offer.account_id = ? AND offer.status = 'waitlist'
+          AND offer.claim_expires_at IS NOT NULL AND datetime(offer.claim_expires_at) > datetime('now')) AS offered`
+  ).bind(event.id, event.account_id, event.id, event.account_id).first();
 
-  const confirmedCount = (count?.total as number) || 0;
+  const confirmedCount = Number(count?.accepted || 0);
+  const offeredCount = Number(count?.offered || 0);
 
   // First names of guests who opted in to the public guest list
   const guestListRows = await env.DB.prepare(
@@ -9094,35 +9120,42 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
   if (event.venue_photos) {
     try { venuePhotos = JSON.parse(event.venue_photos as string); } catch { venuePhotos = []; }
   }
+  const { account_id: _accountId, ...publicEvent } = event;
 
   return cachedJson({
-    ...event,
+    ...publicEvent,
     venue_photos: venuePhotos,
     confirmed_count: confirmedCount,
+    offered_count: offeredCount,
     confirmed_names: confirmedNames,
-    seats_remaining: (event.total_capacity as number) - confirmedCount,
+    seats_remaining: Math.max(0, (event.total_capacity as number) - confirmedCount - offeredCount),
   }, 30);
 };
 
 // GET /api/events/:slug/recap — public post-session recap (no auth required)
-// Only returns data for completed/closed events where the host has published
-// a post-session record. The tea_menu always uses the public menu endpoint data
-// so product IDs are available for shop links.
+// Only returns an explicit public projection for completed or archived events
+// whose host published the recap from a public, active account.
 const handleGetPublicEventRecap: Handler = async (_request, env, params) => {
-  // Resolve event by slug — only completed or closed events are accessible
   const event = await env.DB.prepare(
-    `SELECT id, slug, title, subtitle, flyer_image_url, event_date, status
-     FROM events WHERE slug = ? AND status IN ('closed', 'completed', 'archived')`
+    `SELECT e.id, e.account_id, e.slug, e.title, e.subtitle, e.flyer_image_url, e.event_date
+     FROM events e
+     JOIN accounts a ON a.id = e.account_id
+     WHERE e.slug = ?
+       AND e.lifecycle_status IN ('completed', 'archived')
+       AND e.recap_status = 'published'
+       AND e.public_visibility = 'public'
+       AND a.status = 'active'
+       AND a.public_enabled = 1`
   ).bind(params.slug).first();
 
-  if (!event) return json({ error: 'Recap not found or event is still upcoming' }, 404);
+  if (!event) return json({ error: 'Recap not found' }, 404);
 
   const postSession = await env.DB.prepare(
     `SELECT id, session_notes, playlist_url, gallery_images, shared_tasting_notes
-     FROM event_post_session WHERE event_id = ?`
-  ).bind(event.id).first();
+     FROM event_post_session WHERE event_id = ? AND account_id = ?`
+  ).bind(event.id, event.account_id).first();
 
-  if (!postSession) return json({ error: 'Post-session data not yet available' }, 404);
+  if (!postSession) return json({ error: 'Recap not found' }, 404);
 
   // Parse JSON fields safely
   let galleryImages: string[] | null = null;
@@ -9138,12 +9171,13 @@ const handleGetPublicEventRecap: Handler = async (_request, env, params) => {
   const menuRows = await env.DB.prepare(
     `SELECT etm.id, etm.event_id, etm.product_id, etm.custom_name, etm.custom_description,
             etm.brew_order, etm.reveal_date,
-            p.product_name, p.product_type, p.image_url as product_image_url
+            p.product_name, p.type AS product_type, p.image_url AS product_image_url
      FROM event_tea_menu etm
-     LEFT JOIN products p ON p.id = etm.product_id
-     WHERE etm.event_id = ?
+     LEFT JOIN products p ON p.id = etm.product_id AND p.account_id = etm.account_id
+     WHERE etm.event_id = ? AND etm.account_id = ?
+       AND (etm.reveal_date IS NULL OR datetime(etm.reveal_date) <= datetime('now'))
      ORDER BY etm.brew_order ASC NULLS LAST`
-  ).bind(event.id).all();
+  ).bind(event.id, event.account_id).all();
 
   const teaMenu = (menuRows.results ?? []).map((m) => ({
     id: m.id,
@@ -9185,24 +9219,30 @@ const handleListPublicEvents: Handler = async (_request, env, _params) => {
   const rows = await env.DB.prepare(
     `SELECT e.id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date,
             e.location_name, e.area_hint, e.mood_hints, e.total_capacity, e.timezone, e.status,
-            COALESCE(SUM(CASE WHEN ea.status = 'confirmed' THEN 1 + ea.plus_one ELSE 0 END), 0) AS confirmed_count
+            COALESCE((SELECT COUNT(*) FROM event_party_members pm
+              WHERE pm.event_id = e.id AND pm.account_id = e.account_id
+                AND pm.seat_status IN ('held','confirmed')), 0) AS confirmed_count,
+            COALESCE((SELECT COUNT(*) FROM event_attendees offer
+              WHERE offer.event_id = e.id AND offer.account_id = e.account_id
+                AND offer.status = 'waitlist' AND offer.claim_expires_at IS NOT NULL
+                AND datetime(offer.claim_expires_at) > datetime('now')), 0) AS offered_count
      FROM events e
      JOIN accounts a ON a.id = e.account_id
-     LEFT JOIN event_attendees ea ON ea.event_id = e.id
      WHERE e.status = 'active'
        AND e.event_date >= datetime('now')
        AND a.is_platform_owner = 1
-     GROUP BY e.id
      ORDER BY e.event_date ASC
      LIMIT 20`
   ).all();
 
   const events = (rows.results ?? []).map((ev) => {
     const confirmedCount = (ev.confirmed_count as number) || 0;
+    const offeredCount = (ev.offered_count as number) || 0;
     return {
       ...ev,
       confirmed_count: confirmedCount,
-      seats_remaining: (ev.total_capacity as number) - confirmedCount,
+      offered_count: offeredCount,
+      seats_remaining: Math.max(0, (ev.total_capacity as number) - confirmedCount - offeredCount),
     };
   });
 
@@ -9216,7 +9256,8 @@ const handleRSVP: Handler = async (request, env, params) => {
   // Public RSVP — resolve the event's account so all inserts (customer,
   // attendee, activity log) are attributed to the right store.
   const event = await env.DB.prepare(
-    `SELECT id, account_id, total_capacity, claim_window_minutes, requires_approval FROM events WHERE slug = ? AND status = 'active'`
+    `SELECT id, account_id, total_capacity, claim_window_minutes, requires_approval, lifecycle_status
+     FROM events WHERE slug = ? AND status = 'active'`
   ).bind(params.slug).first();
 
   if (!event) return json({ error: 'Event not found' }, 404);
@@ -9256,6 +9297,7 @@ const handleRSVP: Handler = async (request, env, params) => {
   // Golden tier detection — look up customer within this account only.
   let accessTier = 'standard';
   let customerId: string | null = null;
+  let customerNeedsCreation = false;
 
   let customer: Record<string, unknown> | null = null;
   if (phone_number) {
@@ -9282,77 +9324,98 @@ const handleRSVP: Handler = async (request, env, params) => {
       }
     } catch {}
   } else {
-    const newCustomerId = crypto.randomUUID();
-    await env.DB.prepare(
-      `INSERT INTO customers (id, account_id, name, phone, email, whatsapp, contact_preference)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
-    ).bind(
-      newCustomerId,
-      accountId,
-      full_name,
-      phone_number || null,
-      email || null,
-      phone_number || null,
-      contact_method || 'whatsapp'
-    ).run();
-    customerId = newCustomerId;
+    customerId = crypto.randomUUID();
+    customerNeedsCreation = true;
   }
 
-  // Determine attendee status: instant-confirm when requires_approval = 0 and capacity available.
+  // Approval-required requests do not hold capacity. Instant RSVPs reserve the
+  // complete party atomically through the canonical seat allocator.
   const requiresApproval = (event.requires_approval as number) !== 0; // default true for all existing rows
-  const confirmedForCapacity = await env.DB.prepare(
-    `SELECT COALESCE(SUM(1 + plus_one), 0) as total FROM event_attendees WHERE event_id = ? AND status = 'confirmed'`
-  ).bind(event.id).first();
-  const currentConfirmed = (confirmedForCapacity?.total as number) || 0;
-  const hasCapacity = currentConfirmed < (event.total_capacity as number);
-  const status = (!requiresApproval && hasCapacity) ? 'confirmed' : 'requested';
+  const status = requiresApproval ? 'requested' : 'confirmed';
   const magicToken = crypto.randomUUID();
 
   let guestRequestsJson: string | null = null;
+  let normalizedGuestRequests: Array<{ nameHint: string; contact: string | null; approved: null }> = [];
   if (Array.isArray(guest_requests) && guest_requests.length > 0) {
-    const normalised = guest_requests.map((g: any) => ({
+    normalizedGuestRequests = guest_requests.map((g: any) => ({
       nameHint: g.nameHint || g.name_hint || '',
       contact: g.contact || null,
-      approved: null,
+      approved: null as null,
     }));
-    guestRequestsJson = JSON.stringify(normalised);
+    guestRequestsJson = JSON.stringify(normalizedGuestRequests);
   } else if (plus_one) {
-    guestRequestsJson = JSON.stringify([{ nameHint: plus_one_name || 'guest', approved: null }]);
+    normalizedGuestRequests = [{ nameHint: plus_one_name || 'guest', contact: null, approved: null }];
+    guestRequestsJson = JSON.stringify(normalizedGuestRequests);
   }
 
   const attendeeId = crypto.randomUUID();
-
-  const batchOps: ReturnType<typeof env.DB.prepare>[] = [
-    env.DB.prepare(
-      `INSERT INTO event_attendees
-         (id, account_id, event_id, customer_id, full_name, phone_number, email, plus_one, plus_one_name,
-          access_tier, status, magic_token, photo_consent, notes, tea_preference, bringing_tea,
-          guest_requests, contact_method, source, show_in_guest_list)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(
-      attendeeId,
-      accountId,
-      event.id,
-      customerId,
-      full_name,
-      phone_number || null,
-      email || null,
-      plus_one ? 1 : 0,
-      plus_one_name || null,
-      accessTier,
-      status,
-      magicToken,
-      photo_consent ? 1 : 0,
-      notes || null,
-      tea_preference || null,
-      bringing_tea || null,
-      guestRequestsJson,
-      contact_method || 'whatsapp',
-      'direct',
-      show_in_guest_list ? 1 : 0
-    ),
-    buildActivityLog(env, 'rsvp_requested', `${full_name} requested a seat`, null, 'event_attendee', attendeeId, accountId),
+  const targetSeatState = status === 'confirmed' ? 'confirmed' : 'requested';
+  const seats: PartySeatReservation[] = [
+    {
+      id: crypto.randomUUID(),
+      fullName: full_name,
+      isPrimary: true,
+      sourceState: null,
+      targetState: targetSeatState,
+    },
+    ...normalizedGuestRequests.map((guest) => ({
+      id: crypto.randomUUID(),
+      fullName: guest.nameHint || null,
+      isPrimary: false,
+      sourceState: null as null,
+      targetState: targetSeatState,
+    })),
   ];
+  const reserved = await reservePartySeats(env, {
+    accountId,
+    eventId: event.id as string,
+    participationId: attendeeId,
+    sourceState: 'requested',
+    targetState: status,
+    seats,
+    createParticipation: {
+      columns: [
+        'customer_id', 'full_name', 'phone_number', 'email', 'plus_one', 'plus_one_name',
+        'access_tier', 'magic_token', 'photo_consent', 'notes', 'tea_preference', 'bringing_tea',
+        'guest_requests', 'contact_method', 'source', 'show_in_guest_list',
+      ],
+      values: [
+        customerNeedsCreation ? null : customerId,
+        full_name,
+        phone_number || null,
+        email || null,
+        plus_one ? 1 : 0,
+        plus_one_name || null,
+        accessTier,
+        magicToken,
+        photo_consent ? 1 : 0,
+        notes || null,
+        tea_preference || null,
+        bringing_tea || null,
+        guestRequestsJson,
+        contact_method || 'whatsapp',
+        'direct',
+        show_in_guest_list ? 1 : 0,
+      ],
+    },
+  });
+  if (!reserved.ok) return seatReservationError(reserved);
+
+  if (customerNeedsCreation && customerId) {
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO customers (id, account_id, name, phone, email, whatsapp)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      ).bind(customerId, accountId, full_name, phone_number || null, email || null, phone_number || null),
+      env.DB.prepare('UPDATE event_attendees SET customer_id = ? WHERE id = ? AND account_id = ?')
+        .bind(customerId, attendeeId, accountId),
+      env.DB.prepare(`UPDATE event_party_members SET customer_id = ?
+        WHERE participation_id = ? AND account_id = ? AND is_primary = 1`)
+        .bind(customerId, attendeeId, accountId),
+    ]);
+  }
+
+  await buildActivityLog(env, 'rsvp_requested', `${full_name} requested a seat`, null, 'event_attendee', attendeeId, accountId).run();
 
   // If the user is authenticated and submitted a phone number they don't have
   // saved yet, persist it to their profile so future RSVPs pre-fill correctly.
@@ -9367,17 +9430,13 @@ const handleRSVP: Handler = async (request, env, params) => {
             'SELECT phone FROM users WHERE id = ?'
           ).bind(claims.sub).first();
           if (userRow && !userRow.phone) {
-            batchOps.push(
-              env.DB.prepare('UPDATE users SET phone = ? WHERE id = ?')
-                .bind(phone_number, claims.sub)
-            );
+            await env.DB.prepare('UPDATE users SET phone = ? WHERE id = ?')
+              .bind(phone_number, claims.sub).run();
           }
         }
       }
     }
   }
-
-  await env.DB.batch(batchOps);
 
   return json({
     magic_token: magicToken,
@@ -9388,24 +9447,31 @@ const handleRSVP: Handler = async (request, env, params) => {
 
 const handleGetEventAvailability: Handler = async (_request, env, params) => {
   const event = await env.DB.prepare(
-    `SELECT id, total_capacity FROM events WHERE slug = ? AND status = 'active'`
+    `SELECT id, account_id, total_capacity FROM events WHERE slug = ? AND status = 'active'`
   ).bind(params.slug).first();
 
   if (!event) return json({ error: 'Event not found' }, 404);
 
   const count = await env.DB.prepare(
-    `SELECT COALESCE(SUM(1 + plus_one), 0) as total
-     FROM event_attendees WHERE event_id = ? AND status = 'confirmed'`
-  ).bind(event.id).first();
+    `SELECT
+       (SELECT COUNT(*) FROM event_party_members pm
+        WHERE pm.event_id = ? AND pm.account_id = ? AND pm.seat_status IN ('held','confirmed')) AS accepted,
+       (SELECT COUNT(*) FROM event_attendees offer
+        WHERE offer.event_id = ? AND offer.account_id = ? AND offer.status = 'waitlist'
+          AND offer.claim_expires_at IS NOT NULL AND datetime(offer.claim_expires_at) > datetime('now')) AS offered`
+  ).bind(event.id, event.account_id, event.id, event.account_id).first();
 
-  const confirmedCount = (count?.total as number) || 0;
+  const confirmedCount = Number(count?.accepted || 0);
+  const offeredCount = Number(count?.offered || 0);
   const totalCapacity = event.total_capacity as number;
+  const heldCount = confirmedCount + offeredCount;
 
   return cachedJson({
     total_capacity: totalCapacity,
     confirmed_count: confirmedCount,
-    seats_remaining: totalCapacity - confirmedCount,
-    is_full: confirmedCount >= totalCapacity,
+    offered_count: offeredCount,
+    seats_remaining: Math.max(0, totalCapacity - heldCount),
+    is_full: heldCount >= totalCapacity,
   }, 10);
 };
 
@@ -9527,65 +9593,109 @@ const handleUpdateRSVP: Handler = async (request, env, params) => {
   if (!attendee) return json({ error: 'RSVP not found' }, 404);
 
   const body = await request.json() as Record<string, any>;
+  let update: ReturnType<typeof normalizeRsvpUpdate>;
+  try {
+    update = normalizeRsvpUpdate(body);
+  } catch (error) {
+    if (error instanceof TypeError) return json({ error: error.message }, 400);
+    throw error;
+  }
 
   // Handle cancellation
-  if (body.cancel) {
-    await env.DB.prepare(
-      `UPDATE event_attendees SET status = 'cancelled' WHERE id = ?`
-    ).bind(attendee.id).run();
+  if (update.action === 'cancel') {
+    if (update.cancellationNote !== undefined) {
+      await env.DB.prepare(
+        `UPDATE event_attendees SET status = 'cancelled', cancellation_note = ? WHERE id = ?`
+      ).bind(update.cancellationNote, attendee.id).run();
+    } else {
+      await env.DB.prepare(
+        `UPDATE event_attendees SET status = 'cancelled' WHERE id = ?`
+      ).bind(attendee.id).run();
+    }
 
     // Cascade waitlist
     await cascadeWaitlist(env, attendee.eid as string, (attendee.claim_window_minutes as number) || 60);
 
-    return json({ success: true, status: 'cancelled' });
+    return json({
+      success: true,
+      status: 'cancelled',
+      ...(update.cancellationNote !== undefined ? { cancellation_note: update.cancellationNote } : {}),
+    });
   }
 
-  // Handle guest list visibility toggle
-  if (body.show_in_guest_list !== undefined) {
+  const plusOneUpdate = body.plus_one === undefined ? null : {
+    newPlusOne: body.plus_one ? 1 : 0,
+    oldPlusOne: (attendee.plus_one as number) || 0,
+  };
+
+  if (
+    plusOneUpdate
+    && plusOneUpdate.newPlusOne > plusOneUpdate.oldPlusOne
+    && attendee.status === 'confirmed'
+  ) {
+    const count = await env.DB.prepare(
+      `SELECT COALESCE(SUM(1 + plus_one), 0) as total
+       FROM event_attendees WHERE event_id = ? AND status = 'confirmed'`
+    ).bind(attendee.eid).first();
+
+    const confirmedTotal = (count?.total as number) || 0;
+    const totalCapacity = attendee.total_capacity as number;
+
+    if (confirmedTotal + 1 > totalCapacity) {
+      return json({ error: 'No capacity for plus one' }, 409);
+    }
+  }
+
+  const attendeeAssignments: string[] = [];
+  const attendeeValues: unknown[] = [];
+  const result: Record<string, unknown> = { success: true };
+
+  if ('notes' in update) {
+    attendeeAssignments.push('notes = ?');
+    attendeeValues.push(update.notes);
+    result.notes = update.notes;
+  }
+
+  if ('firstVisitBriefed' in update) {
+    const firstVisitBriefed = update.firstVisitBriefed ? 1 : 0;
+    attendeeAssignments.push('first_visit_briefed = ?');
+    attendeeValues.push(firstVisitBriefed);
+    result.first_visit_briefed = firstVisitBriefed;
+  }
+
+  if ('showInGuestList' in update) {
+    const showInGuestList = update.showInGuestList ? 1 : 0;
+    attendeeAssignments.push('show_in_guest_list = ?');
+    attendeeValues.push(showInGuestList);
+    result.show_in_guest_list = showInGuestList;
+  }
+
+  if (attendeeAssignments.length > 0) {
     await env.DB.prepare(
-      `UPDATE event_attendees SET show_in_guest_list = ? WHERE id = ?`
-    ).bind(body.show_in_guest_list ? 1 : 0, attendee.id).run();
-    return json({ success: true });
+      `UPDATE event_attendees SET ${attendeeAssignments.join(', ')} WHERE id = ?`
+    ).bind(...attendeeValues, attendee.id).run();
   }
 
   // Handle plus_one change
-  if (body.plus_one !== undefined) {
-    const newPlusOne = body.plus_one ? 1 : 0;
-    const oldPlusOne = (attendee.plus_one as number) || 0;
-
-    if (newPlusOne > oldPlusOne && attendee.status === 'confirmed') {
-      // Adding a plus one — check capacity
-      const count = await env.DB.prepare(
-        `SELECT COALESCE(SUM(1 + plus_one), 0) as total
-         FROM event_attendees WHERE event_id = ? AND status = 'confirmed'`
-      ).bind(attendee.eid).first();
-
-      const confirmedTotal = (count?.total as number) || 0;
-      const totalCapacity = attendee.total_capacity as number;
-
-      if (confirmedTotal + 1 > totalCapacity) {
-        return json({ error: 'No capacity for plus one' }, 409);
-      }
-    }
-
+  if (plusOneUpdate) {
     await env.DB.prepare(
       `UPDATE event_attendees SET plus_one = ?, plus_one_name = ? WHERE id = ?`
-    ).bind(newPlusOne, body.plus_one_name || null, attendee.id).run();
+    ).bind(plusOneUpdate.newPlusOne, body.plus_one_name || null, attendee.id).run();
 
     // If removing plus one and there are waitlisted people, cascade
-    if (newPlusOne < oldPlusOne) {
+    if (plusOneUpdate.newPlusOne < plusOneUpdate.oldPlusOne) {
       await cascadeWaitlist(env, attendee.eid as string, (attendee.claim_window_minutes as number) || 60);
     }
   }
 
-  return json({ success: true });
+  return json(result);
 };
 
 const handleClaimSpot: Handler = async (_request, env, params) => {
   const attendee = await env.DB.prepare(
-    `SELECT ea.*, e.claim_window_minutes, e.id as eid
+    `SELECT ea.*, e.claim_window_minutes, e.id as eid, e.account_id as event_account_id
      FROM event_attendees ea
-     JOIN events e ON e.id = ea.event_id
+     JOIN events e ON e.id = ea.event_id AND e.account_id = ea.account_id
      WHERE ea.magic_token = ? AND ea.status = 'waitlist'`
   ).bind(params.token).first();
 
@@ -9607,10 +9717,32 @@ const handleClaimSpot: Handler = async (_request, env, params) => {
     return json({ error: 'Claim window has expired' }, 410);
   }
 
-  // Claim the spot
-  await env.DB.prepare(
-    `UPDATE event_attendees SET status = 'confirmed', claimed_at = datetime('now'), claim_expires_at = NULL WHERE id = ?`
-  ).bind(attendee.id).run();
+  const primary = await env.DB.prepare(
+    `SELECT id, full_name, seat_status FROM event_party_members
+     WHERE participation_id = ? AND event_id = ? AND account_id = ? AND is_primary = 1`
+  ).bind(attendee.id, attendee.eid, attendee.event_account_id).first<{
+    id: string;
+    full_name: string | null;
+    seat_status: 'requested' | 'held' | 'confirmed';
+  }>();
+  if (!primary) return json({ error: 'RSVP party is incomplete', code: 'state_conflict' }, 409);
+
+  const reserved = await reservePartySeats(env, {
+    accountId: attendee.event_account_id as string,
+    eventId: attendee.eid as string,
+    participationId: attendee.id as string,
+    sourceState: 'waitlist',
+    targetState: 'confirmed',
+    offerExpiresAt: attendee.claim_expires_at as string,
+    seats: [{
+      id: primary.id,
+      fullName: primary.full_name || attendee.full_name as string,
+      isPrimary: true,
+      sourceState: primary.seat_status,
+      targetState: 'confirmed',
+    }],
+  });
+  if (!reserved.ok) return seatReservationError(reserved);
 
   // Create spot_claimed notification
   await env.DB.prepare(
@@ -9623,83 +9755,161 @@ const handleClaimSpot: Handler = async (_request, env, params) => {
 
 const handleGetPostSession: Handler = async (_request, env, params) => {
   const attendee = await env.DB.prepare(
-    `SELECT ea.event_id FROM event_attendees ea WHERE ea.magic_token = ?`
+    `SELECT ea.event_id, ea.account_id, ea.status, ea.attended,
+            e.lifecycle_status, e.recap_status
+     FROM event_attendees ea
+     JOIN events e ON e.id = ea.event_id AND e.account_id = ea.account_id
+     WHERE ea.magic_token = ?`
   ).bind(params.token).first();
 
   if (!attendee) return json({ error: 'RSVP not found' }, 404);
+  if (attendee.status !== 'confirmed' || Number(attendee.attended) !== 1) {
+    return json({ error: 'Post-session recap is available only to confirmed attendees' }, 403);
+  }
+  if (attendee.lifecycle_status !== 'completed' && attendee.lifecycle_status !== 'archived') {
+    return json({ error: 'Post-session recap is not available until the event is completed' }, 409);
+  }
+  if (attendee.recap_status !== 'published') {
+    return json({ error: 'Post-session recap not published' }, 404);
+  }
 
   const postSession = await env.DB.prepare(
-    `SELECT * FROM event_post_session WHERE event_id = ?`
-  ).bind(attendee.event_id).first();
+    `SELECT event_id, session_notes, gallery_images, tea_ledger, shared_tasting_notes
+     FROM event_post_session WHERE event_id = ? AND account_id = ?`
+  ).bind(attendee.event_id, attendee.account_id).first();
 
   if (!postSession) return json({ error: 'Post-session data not yet available' }, 404);
 
-  // Parse JSON fields
-  let galleryImages = null;
-  if (postSession.gallery_images) {
-    try { galleryImages = JSON.parse(postSession.gallery_images as string); } catch { galleryImages = postSession.gallery_images; }
-  }
-  let teaLedger = null;
-  if (postSession.tea_ledger) {
-    try { teaLedger = JSON.parse(postSession.tea_ledger as string); } catch { teaLedger = postSession.tea_ledger; }
-  }
-
-  // Get aggregated tasting notes (anonymous)
-  const notes = await env.DB.prepare(
-    `SELECT etn.tea_menu_id, etn.rating, etn.impression, etn.is_favorite,
-            etm.custom_name, p.given_name, p.product_name
-     FROM event_tasting_notes etn
-     LEFT JOIN event_tea_menu etm ON etm.id = etn.tea_menu_id
-     LEFT JOIN products p ON p.id = etm.product_id
-     WHERE etn.event_id = ?
-     ORDER BY etm.brew_order ASC`
-  ).bind(attendee.event_id).all();
-
-  return json({
-    ...postSession,
-    gallery_images: galleryImages,
-    tea_ledger: teaLedger,
-    tasting_notes: notes.results,
-  });
+  return json(publicPostSessionProjection(postSession as Record<string, unknown>));
 };
 
 const handleSubmitTastingNotes: Handler = async (request, env, params) => {
   const attendee = await env.DB.prepare(
-    `SELECT ea.id, ea.event_id, e.event_date
+    `SELECT ea.id, ea.event_id, ea.account_id, ea.status, ea.attended, e.lifecycle_status
      FROM event_attendees ea
-     JOIN events e ON e.id = ea.event_id
+     JOIN events e ON e.id = ea.event_id AND e.account_id = ea.account_id
      WHERE ea.magic_token = ?`
   ).bind(params.token).first();
 
   if (!attendee) return json({ error: 'RSVP not found' }, 404);
 
-  // Verify event date has passed
-  const eventDate = new Date(attendee.event_date as string);
-  if (eventDate > new Date()) {
-    return json({ error: 'Tasting notes can only be submitted after the event' }, 400);
+  if (attendee.lifecycle_status !== 'completed') {
+    return json({ error: 'Tasting notes are only available after the event is completed' }, 409);
+  }
+  if (attendee.status !== 'confirmed' || Number(attendee.attended) !== 1) {
+    return json({ error: 'Only confirmed attendees marked attended may submit tasting notes' }, 403);
   }
 
-  const notes = await request.json() as Array<{ tea_menu_id?: string; rating?: number; impression?: string; is_favorite?: boolean }>;
+  let payload: unknown;
+  try {
+    payload = await request.json();
+  } catch {
+    return json({ error: 'Invalid JSON body' }, 400);
+  }
+  const notes = Array.isArray(payload)
+    ? payload
+    : payload !== null && typeof payload === 'object'
+      ? (payload as Record<string, unknown>).notes
+      : undefined;
   if (!Array.isArray(notes)) return json({ error: 'Expected an array of tasting notes' }, 400);
 
-  const stmts = notes.map(note =>
+  const normalizedNotes: Array<{
+    teaMenuId: string | null;
+    rating: number | null;
+    impression: string | null;
+    isFavorite: number;
+  }> = [];
+  for (const note of notes as unknown[]) {
+    if (!note || typeof note !== 'object' || Array.isArray(note)) {
+      return json({ error: 'Invalid tasting note' }, 400);
+    }
+    const input = note as Record<string, unknown>;
+    const rawTeaMenuId = input.tea_menu_id;
+    if (
+      rawTeaMenuId !== undefined
+      && rawTeaMenuId !== null
+      && (typeof rawTeaMenuId !== 'string' || rawTeaMenuId.trim() === '')
+    ) {
+      return json({ error: 'Invalid tasting note' }, 400);
+    }
+    const rawRating = input.rating;
+    if (
+      rawRating !== undefined
+      && rawRating !== null
+      && (!Number.isInteger(rawRating) || Number(rawRating) < 1 || Number(rawRating) > 5)
+    ) {
+      return json({ error: 'Invalid tasting note' }, 400);
+    }
+    const rawImpression = input.impression;
+    if (rawImpression !== undefined && rawImpression !== null && typeof rawImpression !== 'string') {
+      return json({ error: 'Invalid tasting note' }, 400);
+    }
+    const rawFavorite = input.is_favorite;
+    if (
+      rawFavorite !== undefined
+      && rawFavorite !== true
+      && rawFavorite !== false
+      && rawFavorite !== 1
+      && rawFavorite !== 0
+    ) {
+      return json({ error: 'Invalid tasting note' }, 400);
+    }
+    const impression = typeof rawImpression === 'string' ? rawImpression.trim() : '';
+    normalizedNotes.push({
+      teaMenuId: typeof rawTeaMenuId === 'string' ? rawTeaMenuId : null,
+      rating: typeof rawRating === 'number' ? rawRating : null,
+      impression: impression || null,
+      isFavorite: rawFavorite === true || rawFavorite === 1 ? 1 : 0,
+    });
+  }
+
+  const noteKeys = new Set<string>();
+  for (const note of normalizedNotes) {
+    const key = note.teaMenuId === null ? 'null' : `menu:${note.teaMenuId}`;
+    if (noteKeys.has(key)) return json({ error: 'Duplicate tasting note key' }, 400);
+    noteKeys.add(key);
+  }
+
+  const teaMenuIds = [...new Set(
+    normalizedNotes.flatMap(note => note.teaMenuId === null ? [] : [note.teaMenuId])
+  )];
+  if (teaMenuIds.length > 0) {
+    const placeholders = teaMenuIds.map(() => '?').join(', ');
+    const ownedMenu = await env.DB.prepare(
+      `SELECT id FROM event_tea_menu
+       WHERE event_id = ? AND account_id = ? AND id IN (${placeholders})`
+    ).bind(attendee.event_id, attendee.account_id, ...teaMenuIds).all<{ id: string }>();
+    const ownedIds = new Set(ownedMenu.results.map(row => row.id));
+    if (teaMenuIds.some(id => !ownedIds.has(id))) {
+      return json({ error: 'Invalid tea menu item' }, 400);
+    }
+  }
+
+  const stmts = normalizedNotes.flatMap(note => [
     env.DB.prepare(
-      `INSERT INTO event_tasting_notes (id, event_id, attendee_id, tea_menu_id, rating, impression, is_favorite)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
+      `DELETE FROM event_tasting_notes
+       WHERE event_id = ? AND (account_id = ? OR account_id IS NULL) AND attendee_id = ?
+         AND (tea_menu_id = ? OR (tea_menu_id IS NULL AND ? IS NULL))`
+    ).bind(attendee.event_id, attendee.account_id, attendee.id, note.teaMenuId, note.teaMenuId),
+    env.DB.prepare(
+      `INSERT INTO event_tasting_notes
+       (id, account_id, event_id, attendee_id, tea_menu_id, rating, impression, is_favorite)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       crypto.randomUUID(),
+      attendee.account_id,
       attendee.event_id,
       attendee.id,
-      note.tea_menu_id || null,
-      note.rating || null,
-      note.impression || null,
-      note.is_favorite ? 1 : 0
-    )
-  );
+      note.teaMenuId,
+      note.rating,
+      note.impression,
+      note.isFavorite,
+    ),
+  ]);
 
-  await env.DB.batch(stmts);
+  if (stmts.length > 0) await env.DB.batch(stmts);
 
-  return json({ success: true, count: notes.length }, 201);
+  return json({ success: true, count: normalizedNotes.length }, 201);
 };
 
 const handleFindRSVP: Handler = async (request, env, params) => {
@@ -9803,6 +10013,37 @@ const handleFindRSVP: Handler = async (request, env, params) => {
 
 // ── Event Admin Routes ──
 
+const EVENT_LIFECYCLE_BY_STATUS = {
+  draft: 'draft',
+  active: 'published',
+  closed: 'registration_closed',
+  archived: 'archived',
+} as const;
+
+const EVENT_LIFECYCLE_STATUSES = new Set([
+  'draft',
+  'published',
+  'registration_closed',
+  'completed',
+  'cancelled',
+  'archived',
+]);
+
+const EVENT_STATUS_BY_LIFECYCLE: Readonly<Record<EventLifecycle, keyof typeof EVENT_LIFECYCLE_BY_STATUS>> = {
+  draft: 'draft',
+  published: 'active',
+  registration_closed: 'closed',
+  completed: 'closed',
+  cancelled: 'closed',
+  archived: 'archived',
+};
+
+const isLegacyEventStatus = (value: unknown): value is keyof typeof EVENT_LIFECYCLE_BY_STATUS =>
+  typeof value === 'string' && Object.prototype.hasOwnProperty.call(EVENT_LIFECYCLE_BY_STATUS, value);
+
+const isEventLifecycleStatus = (value: unknown): value is EventLifecycle =>
+  typeof value === 'string' && EVENT_LIFECYCLE_STATUSES.has(value);
+
 const handleGetEvents: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
@@ -9817,7 +10058,13 @@ const handleGetEvents: Handler = async (request, env) => {
       e.event_date, e.event_end_date, e.location_name, e.area_hint,
       e.total_capacity, e.claim_window_minutes, e.timezone, e.status,
       e.created_at, e.updated_at,
-      COALESCE(SUM(CASE WHEN ea.status = 'confirmed' THEN 1 + ea.plus_one ELSE 0 END), 0) as confirmed_count,
+      COALESCE((SELECT COUNT(*) FROM event_party_members pm
+        WHERE pm.event_id = e.id AND pm.account_id = e.account_id
+          AND pm.seat_status IN ('held','confirmed')), 0) as confirmed_count,
+      COALESCE((SELECT COUNT(*) FROM event_attendees offer
+        WHERE offer.event_id = e.id AND offer.account_id = e.account_id
+          AND offer.status = 'waitlist' AND offer.claim_expires_at IS NOT NULL
+          AND datetime(offer.claim_expires_at) > datetime('now')), 0) as offered_count,
       COALESCE(SUM(CASE WHEN ea.status = 'waitlist' THEN 1 ELSE 0 END), 0) as waitlist_count,
       COALESCE(SUM(CASE WHEN ea.status = 'requested' THEN 1 ELSE 0 END), 0) as requested_count,
       COUNT(ea.id) as total_attendees,
@@ -9839,7 +10086,13 @@ const handleGetEvent: Handler = async (request, env, params) => {
 
   const result = await env.DB.prepare(`
     SELECT e.*,
-      COALESCE(SUM(CASE WHEN ea.status = 'confirmed' THEN 1 + ea.plus_one ELSE 0 END), 0) as confirmed_count,
+      COALESCE((SELECT COUNT(*) FROM event_party_members pm
+        WHERE pm.event_id = e.id AND pm.account_id = e.account_id
+          AND pm.seat_status IN ('held','confirmed')), 0) as confirmed_count,
+      COALESCE((SELECT COUNT(*) FROM event_attendees offer
+        WHERE offer.event_id = e.id AND offer.account_id = e.account_id
+          AND offer.status = 'waitlist' AND offer.claim_expires_at IS NOT NULL
+          AND datetime(offer.claim_expires_at) > datetime('now')), 0) as offered_count,
       COALESCE(SUM(CASE WHEN ea.status = 'waitlist' THEN 1 ELSE 0 END), 0) as waitlist_count,
       COALESCE(SUM(CASE WHEN ea.status = 'requested' THEN 1 ELSE 0 END), 0) as requested_count,
       COUNT(ea.id) as total_attendees,
@@ -9864,6 +10117,20 @@ const handleCreateEvent: Handler = async (request, env) => {
     return json({ error: 'slug, title, event_date, and total_capacity are required' }, 400);
   }
 
+  const eventStatus = body.status ?? 'draft';
+  if (!isLegacyEventStatus(eventStatus)) {
+    return json({ error: 'Invalid event status' }, 400);
+  }
+  const lifecycleStatus = EVENT_LIFECYCLE_BY_STATUS[eventStatus];
+  if (body.lifecycle_status !== undefined) {
+    if (!isEventLifecycleStatus(body.lifecycle_status)) {
+      return json({ error: 'Invalid lifecycle_status' }, 400);
+    }
+    if (body.lifecycle_status !== lifecycleStatus) {
+      return json({ error: 'lifecycle_status must match status' }, 400);
+    }
+  }
+
   // Event slug must be unique globally (it's used in /api/events/:slug/public
   // and in shareable URLs across the network).
   const existingSlug = await env.DB.prepare('SELECT id FROM events WHERE slug = ?').bind(body.slug).first();
@@ -9874,9 +10141,9 @@ const handleCreateEvent: Handler = async (request, env) => {
   await env.DB.prepare(
     `INSERT INTO events (id, account_id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
        location_name, address_text, map_link, guidelines_text, venue_guide, total_capacity, claim_window_minutes,
-       timezone, status, session_flow, playlist_url, location_id, event_format,
+       timezone, status, lifecycle_status, session_flow, playlist_url, location_id, event_format,
        venue_id, active_space_ids, gathering_type, area_hint, mood_hints, briefing_cards, requires_approval)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
     accountId,
@@ -9895,7 +10162,8 @@ const handleCreateEvent: Handler = async (request, env) => {
     body.total_capacity,
     body.claim_window_minutes || 60,
     body.timezone || 'Asia/Taipei',
-    body.status || 'draft',
+    eventStatus,
+    lifecycleStatus,
     body.session_flow ? (typeof body.session_flow === 'string' ? body.session_flow : JSON.stringify(body.session_flow)) : null,
     body.playlist_url || null,
     body.location_id || null,
@@ -9917,8 +10185,52 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
-  const body = await request.json() as Record<string, any>;
+  const body = normalizeEventUpdate(await request.json() as Record<string, any>) as Record<string, any>;
   delete body.account_id;
+
+  if (body.lifecycle_status !== undefined && !isEventLifecycleStatus(body.lifecycle_status)) {
+    return json({ error: 'Invalid lifecycle_status' }, 400);
+  }
+  if (body.status !== undefined && !isLegacyEventStatus(body.status)) {
+    return json({ error: 'Invalid event status' }, 400);
+  }
+
+  const currentEvent = await env.DB.prepare(
+    'SELECT status, lifecycle_status FROM events WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first<{ status: string; lifecycle_status: string }>();
+  if (!currentEvent) return json({ error: 'Event not found' }, 404);
+
+  let requestedLifecycle: EventLifecycle | undefined;
+  let currentLifecycle: EventLifecycle | undefined;
+  if (body.lifecycle_status !== undefined || body.status !== undefined) {
+    if (!isEventLifecycleStatus(currentEvent.lifecycle_status)) {
+      return json({ error: 'Event has an invalid lifecycle status' }, 409);
+    }
+    currentLifecycle = currentEvent.lifecycle_status;
+  }
+
+  if (isEventLifecycleStatus(body.lifecycle_status)) {
+    requestedLifecycle = body.lifecycle_status;
+    const compatibleStatus = EVENT_STATUS_BY_LIFECYCLE[requestedLifecycle];
+    if (body.status !== undefined && body.status !== compatibleStatus) {
+      return json({ error: 'lifecycle_status must match status' }, 400);
+    }
+    body.status = compatibleStatus;
+  } else if (isLegacyEventStatus(body.status)) {
+    requestedLifecycle = body.status === currentEvent.status
+      ? currentLifecycle
+      : EVENT_LIFECYCLE_BY_STATUS[body.status];
+    body.lifecycle_status = requestedLifecycle;
+  }
+
+  if (requestedLifecycle !== undefined && currentLifecycle !== undefined) {
+    if (
+      requestedLifecycle !== currentLifecycle
+      && !EVENT_TRANSITIONS[currentLifecycle].includes(requestedLifecycle)
+    ) {
+      return json({ error: `Invalid lifecycle transition from ${currentLifecycle} to ${requestedLifecycle}` }, 400);
+    }
+  }
 
   if (body.session_flow && typeof body.session_flow !== 'string') {
     body.session_flow = JSON.stringify(body.session_flow);
@@ -9934,14 +10246,24 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
   }
   if (body.event_format === undefined) delete body.event_format;
 
-  const EVENT_ALLOWED_COLS = new Set(['title','subtitle','description','slug','status','event_date','event_end_date','end_date','location','location_name','capacity','total_capacity','price_usd','display_currency','event_format','gathering_type','notes','host_name','event_type','max_guests','booking_cutoff_hours','private','image_url','flyer_url','flyer_image_url','claim_window_minutes','venue_id','venue_space_id','active_space_ids','location_id','session_template_id','meta_json','session_flow','address_text','map_link','guidelines_text','area_hint','venue_guide','mood_hints','briefing_cards','timezone','playlist_url','requires_approval']);
+  const EVENT_ALLOWED_COLS = new Set(['title','subtitle','description','slug','status','lifecycle_status','event_date','event_end_date','location_name','total_capacity','event_format','gathering_type','flyer_image_url','claim_window_minutes','venue_id','active_space_ids','location_id','session_flow','address_text','map_link','guidelines_text','area_hint','venue_guide','mood_hints','briefing_cards','timezone','playlist_url','requires_approval']);
   const cols = Object.keys(body).filter(k => EVENT_ALLOWED_COLS.has(k));
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
   const sets = cols.map(c => `${c} = ?`).join(', ');
+  const lifecycleCompare = requestedLifecycle !== undefined ? currentLifecycle : undefined;
   const result = await env.DB.prepare(
-    `UPDATE events SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
-  ).bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
+    `UPDATE events SET ${sets}, updated_at = datetime('now')
+     WHERE id = ? AND account_id = ?${lifecycleCompare !== undefined ? ' AND lifecycle_status = ?' : ''}`
+  ).bind(
+    ...cols.map(c => body[c] ?? null),
+    params.id,
+    accountId,
+    ...(lifecycleCompare !== undefined ? [lifecycleCompare] : []),
+  ).run();
+  if (Number(result.meta?.changes || 0) === 0 && lifecycleCompare !== undefined) {
+    return json({ error: 'Event lifecycle changed; retry the update' }, 409);
+  }
   if (Number(result.meta?.changes || 0) === 0) return json({ error: 'Event not found' }, 404);
 
   return json({ success: true });
@@ -10229,6 +10551,15 @@ const handleUpsertPostSession: Handler = async (request, env, params) => {
 
   const body = await request.json() as Record<string, any>;
 
+  const requestedRecapStatus = body.recap_status;
+  if (
+    requestedRecapStatus !== undefined
+    && requestedRecapStatus !== 'draft'
+    && requestedRecapStatus !== 'published'
+  ) {
+    return json({ error: 'Invalid recap_status' }, 400);
+  }
+
   const teaLedger = body.tea_ledger ? (typeof body.tea_ledger === 'string' ? body.tea_ledger : JSON.stringify(body.tea_ledger)) : null;
   const galleryImages = body.gallery_images ? (typeof body.gallery_images === 'string' ? body.gallery_images : JSON.stringify(body.gallery_images)) : null;
   const sharedTastingNotes = body.shared_tasting_notes
@@ -10236,18 +10567,92 @@ const handleUpsertPostSession: Handler = async (request, env, params) => {
     : null;
 
   const existing = await env.DB.prepare(
-    `SELECT id FROM event_post_session WHERE event_id = ?`
-  ).bind(params.id).first();
+    `SELECT id FROM event_post_session WHERE event_id = ? AND account_id = ?`
+  ).bind(params.id, accountId).first<{ id: string }>();
 
-  if (existing) {
-    await env.DB.prepare(
-      `UPDATE event_post_session SET tea_ledger = ?, playlist_url = ?, gallery_images = ?, session_notes = ?, host_notes = ?, host_changes = ?, energy = ?, shared_tasting_notes = ? WHERE event_id = ? AND account_id = ?`
-    ).bind(teaLedger, body.playlist_url || null, galleryImages, body.session_notes || null, body.host_notes || null, body.host_changes || null, body.energy || null, sharedTastingNotes, params.id, accountId).run();
-  } else {
-    await env.DB.prepare(
-      `INSERT INTO event_post_session (id, account_id, event_id, tea_ledger, playlist_url, gallery_images, session_notes, host_notes, host_changes, energy, shared_tasting_notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(crypto.randomUUID(), accountId, params.id, teaLedger, body.playlist_url || null, galleryImages, body.session_notes || null, body.host_notes || null, body.host_changes || null, body.energy || null, sharedTastingNotes).run();
+  // Keep the long-supported draft-save contract unchanged when callers omit
+  // recap_status. Publication uses the atomic path below.
+  if (requestedRecapStatus === undefined) {
+    if (existing) {
+      await env.DB.prepare(
+        `UPDATE event_post_session SET tea_ledger = ?, playlist_url = ?, gallery_images = ?, session_notes = ?, host_notes = ?, host_changes = ?, energy = ?, shared_tasting_notes = ? WHERE event_id = ? AND account_id = ?`
+      ).bind(teaLedger, body.playlist_url || null, galleryImages, body.session_notes || null, body.host_notes || null, body.host_changes || null, body.energy || null, sharedTastingNotes, params.id, accountId).run();
+    } else {
+      await env.DB.prepare(
+        `INSERT INTO event_post_session (id, account_id, event_id, tea_ledger, playlist_url, gallery_images, session_notes, host_notes, host_changes, energy, shared_tasting_notes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(crypto.randomUUID(), accountId, params.id, teaLedger, body.playlist_url || null, galleryImages, body.session_notes || null, body.host_notes || null, body.host_changes || null, body.energy || null, sharedTastingNotes).run();
+    }
+    return json({ success: true });
+  }
+
+  const event = await env.DB.prepare(
+    `SELECT lifecycle_status FROM events WHERE id = ? AND account_id = ?`
+  ).bind(params.id, accountId).first<{ lifecycle_status: string }>();
+  if (!event) return json({ error: 'Event not found' }, 404);
+  if (requestedRecapStatus === 'published' && event.lifecycle_status !== 'completed') {
+    return json({ error: 'Recap can be published only after the event is completed' }, 409);
+  }
+
+  const postSessionWrite = env.DB.prepare(
+    `INSERT INTO event_post_session
+       (id, account_id, event_id, tea_ledger, playlist_url, gallery_images, session_notes,
+        host_notes, host_changes, energy, shared_tasting_notes)
+     SELECT ?, ?, e.id, ?, ?, ?, ?, ?, ?, ?, ?
+     FROM events e
+     WHERE e.id = ? AND e.account_id = ?
+       AND (? <> 'published' OR e.lifecycle_status = 'completed')
+       AND (
+         NOT EXISTS (SELECT 1 FROM event_post_session WHERE event_id = e.id)
+         OR EXISTS (
+           SELECT 1 FROM event_post_session
+           WHERE event_id = e.id AND account_id = e.account_id
+         )
+       )
+     ON CONFLICT(event_id) DO UPDATE SET
+       tea_ledger = excluded.tea_ledger,
+       playlist_url = excluded.playlist_url,
+       gallery_images = excluded.gallery_images,
+       session_notes = excluded.session_notes,
+       host_notes = excluded.host_notes,
+       host_changes = excluded.host_changes,
+       energy = excluded.energy,
+       shared_tasting_notes = excluded.shared_tasting_notes
+     WHERE event_post_session.account_id = excluded.account_id`
+  ).bind(
+    existing?.id ?? crypto.randomUUID(),
+    accountId,
+    teaLedger,
+    body.playlist_url || null,
+    galleryImages,
+    body.session_notes || null,
+    body.host_notes || null,
+    body.host_changes || null,
+    body.energy || null,
+    sharedTastingNotes,
+    params.id,
+    accountId,
+    requestedRecapStatus,
+  );
+
+  const recapWrite = env.DB.prepare(
+    `UPDATE events SET recap_status = ?, updated_at = datetime('now')
+     WHERE id = ? AND account_id = ?
+       AND (? <> 'published' OR lifecycle_status = 'completed')
+       AND (
+         NOT EXISTS (SELECT 1 FROM event_post_session WHERE event_id = events.id)
+         OR EXISTS (
+           SELECT 1 FROM event_post_session
+           WHERE event_id = events.id AND account_id = events.account_id
+         )
+       )`
+  ).bind(requestedRecapStatus, params.id, accountId, requestedRecapStatus);
+  const [postResult, recapResult] = await env.DB.batch([postSessionWrite, recapWrite]);
+  if (
+    Number(postResult.meta?.changes || 0) === 0
+    || Number(recapResult.meta?.changes || 0) === 0
+  ) {
+    return json({ error: 'Event lifecycle changed; retry recap publication' }, 409);
   }
 
   return json({ success: true });
@@ -10337,6 +10742,96 @@ const handleCreateEventArticleDraft: Handler = async (request, env, params) => {
   return json({ existing: false, article: eventDraftArticleToApi(article!) }, 201);
 };
 
+type EventDateRepresentation = {
+  epochMs: number;
+  kind: 'local' | 'utc' | 'offset';
+  offsetMinutes: number;
+  suffix: string;
+  precision: 'minute' | 'second' | 'fraction';
+  fractionDigits: number;
+};
+
+function parseEventDateRepresentation(value: unknown): EventDateRepresentation | null {
+  if (typeof value !== 'string') return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|([+-])(\d{2}):(\d{2}))?$/.exec(value);
+  if (!match) return null;
+
+  const [, yearText, monthText, dayText, hourText, minuteText, secondText, fractionText, suffix = '', offsetSign, offsetHourText, offsetMinuteText] = match;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+  const second = Number(secondText || '0');
+  const millisecond = Number((fractionText || '').padEnd(3, '0') || '0');
+  if (month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 || minute > 59 || second > 59) return null;
+
+  const wallClockMs = Date.UTC(year, month - 1, day, hour, minute, second, millisecond);
+  const wallClock = new Date(wallClockMs);
+  if (wallClock.getUTCFullYear() !== year
+    || wallClock.getUTCMonth() !== month - 1
+    || wallClock.getUTCDate() !== day
+    || wallClock.getUTCHours() !== hour
+    || wallClock.getUTCMinutes() !== minute
+    || wallClock.getUTCSeconds() !== second
+    || wallClock.getUTCMilliseconds() !== millisecond) return null;
+
+  let kind: EventDateRepresentation['kind'] = 'local';
+  let offsetMinutes = 0;
+  if (suffix === 'Z') {
+    kind = 'utc';
+  } else if (suffix) {
+    const offsetHours = Number(offsetHourText);
+    const offsetRemainder = Number(offsetMinuteText);
+    if (offsetHours > 23 || offsetRemainder > 59) return null;
+    kind = 'offset';
+    offsetMinutes = (offsetSign === '-' ? -1 : 1) * (offsetHours * 60 + offsetRemainder);
+  }
+
+  return {
+    epochMs: wallClockMs - offsetMinutes * 60_000,
+    kind,
+    offsetMinutes,
+    suffix,
+    precision: fractionText ? 'fraction' : secondText ? 'second' : 'minute',
+    fractionDigits: fractionText?.length || 0,
+  };
+}
+
+const padEventDatePart = (value: number, length = 2) => String(value).padStart(length, '0');
+
+function formatShiftedEventDate(start: EventDateRepresentation, epochMs: number): string | null {
+  if (start.kind === 'utc') return new Date(epochMs).toISOString();
+
+  const precisionMs = start.precision === 'minute'
+    ? 60_000
+    : start.precision === 'second'
+      ? 1_000
+      : 10 ** (3 - start.fractionDigits);
+  if (epochMs % precisionMs !== 0) return null;
+
+  const wallClock = new Date(epochMs + start.offsetMinutes * 60_000);
+  let formatted = `${padEventDatePart(wallClock.getUTCFullYear(), 4)}-${padEventDatePart(wallClock.getUTCMonth() + 1)}-${padEventDatePart(wallClock.getUTCDate())}`
+    + `T${padEventDatePart(wallClock.getUTCHours())}:${padEventDatePart(wallClock.getUTCMinutes())}`;
+  if (start.precision !== 'minute') formatted += `:${padEventDatePart(wallClock.getUTCSeconds())}`;
+  if (start.precision === 'fraction') {
+    formatted += `.${padEventDatePart(wallClock.getUTCMilliseconds(), 3).slice(0, start.fractionDigits)}`;
+  }
+  return `${formatted}${start.suffix}`;
+}
+
+function duplicateEventEndDate(sourceStart: unknown, sourceEnd: unknown, requestedStart: unknown): string | null {
+  const start = parseEventDateRepresentation(sourceStart);
+  const end = parseEventDateRepresentation(sourceEnd);
+  const requested = parseEventDateRepresentation(requestedStart);
+  if (!start || !end || !requested) return null;
+  if (start.kind !== end.kind || (start.kind === 'offset' && start.offsetMinutes !== end.offsetMinutes)) return null;
+
+  const durationMs = end.epochMs - start.epochMs;
+  if (durationMs < 0) return null;
+  return formatShiftedEventDate(requested, requested.epochMs + durationMs);
+}
+
 const handleDuplicateEvent: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
@@ -10353,6 +10848,7 @@ const handleDuplicateEvent: Handler = async (request, env, params) => {
   if (!source) return json({ error: 'Source event not found' }, 404);
 
   const newId = crypto.randomUUID();
+  const duplicateEndDate = duplicateEventEndDate(source.event_date, source.event_end_date, body.event_date);
 
   await env.DB.prepare(
     `INSERT INTO events (id, account_id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
@@ -10369,7 +10865,7 @@ const handleDuplicateEvent: Handler = async (request, env, params) => {
     source.description,
     source.flyer_image_url,
     body.event_date,
-    source.event_end_date,
+    duplicateEndDate,
     source.location_name,
     source.address_text,
     source.map_link,
@@ -10397,18 +10893,19 @@ const handleDuplicateEvent: Handler = async (request, env, params) => {
   if (menu.results.length > 0) {
     const menuStmts = (menu.results as any[]).map(m =>
       env.DB.prepare(
-        `INSERT INTO event_tea_menu (id, account_id, event_id, product_id, custom_name, custom_description, reveal_date, brew_order, brewing_temp, brewing_time, vessel_type)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO event_tea_menu (id, account_id, event_id, product_id, custom_name, custom_description, reveal_date, brew_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
       ).bind(
         crypto.randomUUID(), accountId, newId,
-        m.product_id, m.custom_name, m.custom_description, m.reveal_date, m.brew_order,
-        m.brewing_temp ?? null, m.brewing_time ?? null, m.vessel_type ?? null
+        m.product_id, m.custom_name, m.custom_description, m.reveal_date, m.brew_order
       )
     );
     await env.DB.batch(menuStmts);
   }
 
-  return json({ id: newId, slug: body.slug }, 201);
+  const created = await env.DB.prepare('SELECT * FROM events WHERE id = ? AND account_id = ?')
+    .bind(newId, accountId).first();
+  return json(created || { id: newId, account_id: accountId, slug: body.slug, event_date: body.event_date }, 201);
 };
 
 const handleBatchAttendance: Handler = async (request, env, params) => {
@@ -10444,12 +10941,52 @@ const handleGetTeaMenu: Handler = async (request, env, params) => {
   const result = await env.DB.prepare(
     `SELECT etm.*, p.given_name, p.product_name, p.chinese_name, p.type, p.image_url
      FROM event_tea_menu etm
-     LEFT JOIN products p ON p.id = etm.product_id
-     WHERE etm.event_id = ?
+     LEFT JOIN products p ON p.id = etm.product_id AND p.account_id = etm.account_id
+     WHERE etm.event_id = ? AND etm.account_id = ?
      ORDER BY etm.brew_order ASC`
-  ).bind(params.id).all();
+  ).bind(params.id, accountId).all();
 
   return json(result.results);
+};
+
+const handleGetPublicTeaMenu: Handler = async (_request, env, params) => {
+  const event = await env.DB.prepare(
+    `SELECT e.id, e.account_id
+     FROM events e
+     JOIN accounts a ON a.id = e.account_id
+     WHERE e.slug = ?
+       AND e.status = 'active'
+       AND e.lifecycle_status = 'published'
+       AND e.public_visibility = 'public'
+       AND a.status = 'active'
+       AND a.public_enabled = 1`
+  ).bind(params.slug).first();
+  if (!event) return json({ error: 'Event not found' }, 404);
+
+  const result = await env.DB.prepare(
+    `SELECT
+       etm.id,
+       etm.event_id,
+       etm.product_id,
+       etm.custom_name,
+       etm.custom_description,
+       etm.reveal_date,
+       etm.brew_order,
+       p.given_name,
+       p.product_name,
+       p.chinese_name,
+       p.type AS product_type,
+       p.image_url AS product_image_url
+     FROM event_tea_menu etm
+     LEFT JOIN products p
+       ON p.id = etm.product_id AND p.account_id = etm.account_id
+     WHERE etm.event_id = ?
+       AND etm.account_id = ?
+       AND (etm.reveal_date IS NULL OR datetime(etm.reveal_date) <= datetime('now'))
+     ORDER BY etm.brew_order ASC`
+  ).bind(event.id, event.account_id).all();
+
+  return json(result.results || []);
 };
 
 const handleUpsertTeaMenu: Handler = async (request, env, params) => {
@@ -10459,8 +10996,25 @@ const handleUpsertTeaMenu: Handler = async (request, env, params) => {
   const guard = await assertEventInAccount(env, params.id, accountId);
   if (guard) return guard;
 
-  const items = await request.json() as Array<Record<string, any>>;
+  const payload = await request.json() as { items?: Array<Record<string, any>> } | Array<Record<string, any>>;
+  const items = Array.isArray(payload) ? payload : payload.items;
   if (!Array.isArray(items)) return json({ error: 'Expected an array of menu items' }, 400);
+
+  if (items.some(item => item.product_id != null && item.product_id !== '' && typeof item.product_id !== 'string')) {
+    return json({ error: 'All tea menu products must belong to the event account' }, 400);
+  }
+  const productIds = [...new Set(items
+    .map(item => item.product_id)
+    .filter((productId): productId is string => typeof productId === 'string' && productId.length > 0))];
+  if (productIds.length > 0) {
+    const placeholders = productIds.map(() => '?').join(',');
+    const products = await env.DB.prepare(
+      `SELECT id FROM products WHERE account_id = ? AND id IN (${placeholders})`
+    ).bind(accountId, ...productIds).all();
+    if ((products.results || []).length !== productIds.length) {
+      return json({ error: 'All tea menu products must belong to the event account' }, 400);
+    }
+  }
 
   const stmts: D1PreparedStatement[] = [];
 
@@ -10468,7 +11022,7 @@ const handleUpsertTeaMenu: Handler = async (request, env, params) => {
     if (item.id) {
       stmts.push(
         env.DB.prepare(
-          `UPDATE event_tea_menu SET product_id = ?, custom_name = ?, custom_description = ?, reveal_date = ?, brew_order = ?, tea_type = ?, origin_region = ?
+          `UPDATE event_tea_menu SET product_id = ?, custom_name = ?, custom_description = ?, reveal_date = ?, brew_order = ?
            WHERE id = ? AND event_id = ?`
         ).bind(
           item.product_id || null,
@@ -10476,8 +11030,6 @@ const handleUpsertTeaMenu: Handler = async (request, env, params) => {
           item.custom_description || null,
           item.reveal_date || null,
           item.brew_order ?? null,
-          item.tea_type || null,
-          item.origin_region || null,
           item.id,
           params.id
         )
@@ -10485,8 +11037,8 @@ const handleUpsertTeaMenu: Handler = async (request, env, params) => {
     } else {
       stmts.push(
         env.DB.prepare(
-          `INSERT INTO event_tea_menu (id, account_id, event_id, product_id, custom_name, custom_description, reveal_date, brew_order, tea_type, origin_region)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          `INSERT INTO event_tea_menu (id, account_id, event_id, product_id, custom_name, custom_description, reveal_date, brew_order)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
         ).bind(
           crypto.randomUUID(),
           accountId,
@@ -10495,9 +11047,7 @@ const handleUpsertTeaMenu: Handler = async (request, env, params) => {
           item.custom_name || null,
           item.custom_description || null,
           item.reveal_date || null,
-          item.brew_order ?? null,
-          item.tea_type || null,
-          item.origin_region || null
+          item.brew_order ?? null
         )
       );
     }
@@ -10518,9 +11068,9 @@ const handleUpsertTeaMenu: Handler = async (request, env, params) => {
     if (seatCount > 0) {
       const menuRows = await env.DB.prepare(
         `SELECT etm.product_id, p.serving_grams FROM event_tea_menu etm
-         LEFT JOIN products p ON p.id = etm.product_id
-         WHERE etm.event_id = ? AND etm.product_id IS NOT NULL`
-      ).bind(params.id).all();
+         LEFT JOIN products p ON p.id = etm.product_id AND p.account_id = etm.account_id
+         WHERE etm.event_id = ? AND etm.account_id = ? AND etm.product_id IS NOT NULL`
+      ).bind(params.id, accountId).all();
 
       const eventHoldKey = `event:${params.id}`;
       // Clear existing event holds then re-create from current menu
@@ -12730,6 +13280,80 @@ const handleSyncCompassEntries: Handler = async (request, env) => {
 
 // ── Event System V2 Handlers ──
 
+type ApprovalAttendeeRow = {
+  id: string;
+  account_id: string;
+  event_id: string;
+  full_name: string;
+  guest_requests: string | null;
+  phone_number: string | null;
+  email: string | null;
+  customer_id: string | null;
+  magic_token: string;
+  event_title?: string;
+  event_slug?: string;
+};
+
+async function buildApprovalReservation(
+  env: Env,
+  attendee: ApprovalAttendeeRow,
+  approvedGuests: number,
+): Promise<ReservePartySeatsInput | null> {
+  const party = await env.DB.prepare(
+    `SELECT id, full_name, is_primary, seat_status
+     FROM event_party_members
+     WHERE participation_id = ? AND event_id = ? AND account_id = ?
+     ORDER BY is_primary DESC, created_at ASC, id ASC`
+  ).bind(attendee.id, attendee.event_id, attendee.account_id).all<{
+    id: string;
+    full_name: string | null;
+    is_primary: number;
+    seat_status: 'requested' | 'held' | 'confirmed';
+  }>();
+  const primary = party.results.find((seat) => Number(seat.is_primary) === 1);
+  if (!primary) return null;
+
+  let guestRequests: Array<{ nameHint?: string; contact?: string | null }> = [];
+  if (attendee.guest_requests) {
+    try { guestRequests = JSON.parse(attendee.guest_requests); } catch {}
+  }
+  const requestedGuestSeats = party.results.filter((seat) => Number(seat.is_primary) === 0 && seat.seat_status === 'requested');
+  const seats: PartySeatReservation[] = [{
+    id: primary.id,
+    fullName: primary.full_name || attendee.full_name,
+    isPrimary: true,
+    sourceState: primary.seat_status,
+    targetState: 'confirmed',
+  }];
+  for (let index = 0; index < approvedGuests; index++) {
+    const requestedSeat = requestedGuestSeats[index];
+    const invitationId = crypto.randomUUID();
+    const request = guestRequests[index];
+    seats.push({
+      id: requestedSeat?.id || crypto.randomUUID(),
+      fullName: request?.nameHint || requestedSeat?.full_name || null,
+      isPrimary: false,
+      sourceState: requestedSeat?.seat_status || null,
+      targetState: 'held',
+      invitationId,
+      invitation: {
+        token: crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, ''),
+        nameHint: request?.nameHint || null,
+        contact: request?.contact || null,
+      },
+    });
+  }
+
+  return {
+    accountId: attendee.account_id,
+    eventId: attendee.event_id,
+    participationId: attendee.id,
+    sourceState: 'requested',
+    targetState: 'confirmed',
+    seats,
+  };
+}
+
 // PUT /api/admin/attendees/:id/approve
 const handleApproveAttendee: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'gather');
@@ -12737,10 +13361,10 @@ const handleApproveAttendee: Handler = async (request, env, params) => {
   const { accountId } = ctx;
 
   const attendee = await env.DB.prepare(
-    `SELECT ea.*, e.id as event_id, e.title as event_title, e.slug as event_slug FROM event_attendees ea
-     JOIN events e ON e.id = ea.event_id
+    `SELECT ea.*, e.id as event_id, e.account_id as account_id, e.title as event_title, e.slug as event_slug FROM event_attendees ea
+     JOIN events e ON e.id = ea.event_id AND e.account_id = ea.account_id
      WHERE ea.id = ? AND e.account_id = ?`
-  ).bind(params.id, accountId).first();
+  ).bind(params.id, accountId).first() as ApprovalAttendeeRow | null;
 
   if (!attendee) return json({ error: 'Attendee not found' }, 404);
 
@@ -12748,44 +13372,17 @@ const handleApproveAttendee: Handler = async (request, env, params) => {
   const approvedGuests = body.approved_guests ?? 0;
   const userEmail = getUserEmail(request);
 
-  // Guard against race conditions: only update if still in 'requested' status
-  const updateResult = await env.DB.prepare(
-    `UPDATE event_attendees SET status = 'confirmed' WHERE id = ? AND status = 'requested'`
-  ).bind(params.id).run();
+  const reservation = await buildApprovalReservation(env, attendee, approvedGuests);
+  if (!reservation) return json({ error: 'Attendee party is incomplete', code: 'state_conflict' }, 409);
+  const reserved = await reservePartySeats(env, reservation);
+  if (!reserved.ok) return seatReservationError(reserved);
 
-  if (updateResult.meta.changes === 0) {
-    return json({ error: 'Attendee already processed' }, 409);
-  }
-
-  const stmts: D1PreparedStatement[] = [
-    buildActivityLog(
-      env,
-      'attendee_approved',
-      `Approved ${attendee.full_name}${body.message ? ': ' + body.message : ''}`,
-      userEmail, 'event_attendee', params.id, accountId
-    ),
-  ];
-
-  if (approvedGuests > 0) {
-    let guestRequests: Array<{ nameHint: string; contact?: string | null; approved: boolean | null }> = [];
-    if (attendee.guest_requests) {
-      try { guestRequests = JSON.parse(attendee.guest_requests as string); } catch {}
-    }
-
-    for (let i = 0; i < approvedGuests; i++) {
-      const inviteToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
-      const nameHint = guestRequests[i]?.nameHint || null;
-      const contact = guestRequests[i]?.contact || null;
-      stmts.push(
-        env.DB.prepare(
-          `INSERT INTO guest_invites (id, account_id, event_id, parent_attendee_id, invite_token, name_hint, contact)
-           VALUES (lower(hex(randomblob(8))), ?, ?, ?, ?, ?, ?)`
-        ).bind(accountId, attendee.event_id, params.id, inviteToken, nameHint, contact)
-      );
-    }
-  }
-
-  await env.DB.batch(stmts);
+  await buildActivityLog(
+    env,
+    'attendee_approved',
+    `Approved ${attendee.full_name}${body.message ? ': ' + body.message : ''}`,
+    userEmail, 'event_attendee', params.id, accountId
+  ).run();
 
   // F9: Auto-link attendee to a customer record
   try {
@@ -13232,55 +13829,34 @@ const handleApproveBatch: Handler = async (request, env, params) => {
 
   const approvedGuestsMap = body.approved_guests_map || {};
   const userEmail = getUserEmail(request);
-  const stmts: D1PreparedStatement[] = [];
   type AttendeeRow = { id: string; phone_number: string | null; email: string | null; customer_id: string | null };
   const rows: AttendeeRow[] = [];
+  const reservations: ReservePartySeatsInput[] = [];
+  const approvedAttendees: ApprovalAttendeeRow[] = [];
 
   for (const attendeeId of body.attendee_ids) {
     const attendee = await env.DB.prepare(
-      `SELECT id, full_name, guest_requests, phone_number, email, customer_id FROM event_attendees WHERE id = ? AND event_id = ?`
-    ).bind(attendeeId, params.id).first();
+      `SELECT id, account_id, event_id, full_name, guest_requests, phone_number, email, customer_id, magic_token
+       FROM event_attendees WHERE id = ? AND event_id = ? AND account_id = ?`
+    ).bind(attendeeId, params.id, accountId).first() as ApprovalAttendeeRow | null;
 
     if (!attendee) continue;
-    rows.push({ id: attendeeId, phone_number: (attendee as any).phone_number, email: (attendee as any).email, customer_id: (attendee as any).customer_id });
-
-    stmts.push(
-      env.DB.prepare(
-        `UPDATE event_attendees SET status = 'confirmed' WHERE id = ?`
-      ).bind(attendeeId)
-    );
-
-    stmts.push(
-      buildActivityLog(
-        env,
-        'attendee_approved',
-        `Batch approved ${attendee.full_name}`,
-        userEmail, 'event_attendee', attendeeId, accountId
-      )
-    );
-
-    const approvedGuests = approvedGuestsMap[attendeeId] ?? 0;
-    if (approvedGuests > 0) {
-      let guestRequests: Array<{ nameHint: string; contact?: string | null; approved: boolean | null }> = [];
-      if (attendee.guest_requests) {
-        try { guestRequests = JSON.parse(attendee.guest_requests as string); } catch {}
-      }
-      for (let i = 0; i < approvedGuests; i++) {
-        const inviteToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
-        const nameHint = guestRequests[i]?.nameHint || null;
-        const contact = guestRequests[i]?.contact || null;
-        stmts.push(
-          env.DB.prepare(
-            `INSERT INTO guest_invites (id, account_id, event_id, parent_attendee_id, invite_token, name_hint, contact)
-             VALUES (lower(hex(randomblob(8))), ?, ?, ?, ?, ?, ?)`
-          ).bind(accountId, params.id, attendeeId, inviteToken, nameHint, contact)
-        );
-      }
-    }
+    const reservation = await buildApprovalReservation(env, attendee, approvedGuestsMap[attendeeId] ?? 0);
+    if (!reservation) return json({ error: 'Attendee party is incomplete', code: 'state_conflict' }, 409);
+    reservations.push(reservation);
+    approvedAttendees.push(attendee);
+    rows.push({ id: attendeeId, phone_number: attendee.phone_number, email: attendee.email, customer_id: attendee.customer_id });
   }
 
-  if (stmts.length > 0) {
-    await env.DB.batch(stmts);
+  if (reservations.length > 0) {
+    const reserved = await reservePartySeats(env, reservations);
+    if (!reserved.ok) return seatReservationError(reserved);
+    await env.DB.batch(approvedAttendees.map((attendee) => buildActivityLog(
+      env,
+      'attendee_approved',
+      `Batch approved ${attendee.full_name}`,
+      userEmail, 'event_attendee', attendee.id, accountId
+    )));
   }
 
   // Auto-link customer records (non-critical, same logic as single approval)
@@ -13311,11 +13887,14 @@ const handleApproveBatch: Handler = async (request, env, params) => {
       }
       await env.DB.prepare('UPDATE event_attendees SET customer_id = ? WHERE id = ?')
         .bind(linkedId, row.id).run();
+      await env.DB.prepare(`UPDATE event_party_members SET customer_id = ?
+        WHERE participation_id = ? AND account_id = ? AND is_primary = 1`)
+        .bind(linkedId, row.id, accountId).run();
       await ensureContactRelationship(env, accountId, linkedId, 'event_guest', 'workflow', 'event_attendee', row.id);
     } catch {}
   }
 
-  return json({ success: true, approved_count: body.attendee_ids.length });
+  return json({ success: true, approved_count: reservations.length });
 };
 
 // GET /api/admin/events/:id/share
@@ -13340,7 +13919,8 @@ const handleGetEventShareMessages: Handler = async (request, env, params) => {
     }
   }
 
-  const eventUrl = `https://teajia.co/e/${event.slug}`;
+  const appOrigin = (env.APP_URL || 'https://www.teajia.com').replace(/\/$/, '');
+  const eventUrl = `${appOrigin}/event/${event.slug}`;
   const areaHint = event.area_hint || 'Taipei';
 
   const whatsappText =
@@ -13382,7 +13962,7 @@ const handleClaimGuestInvite: Handler = async (request, env, params) => {
   const invite = await env.DB.prepare(
     `SELECT gi.*, e.id as event_id, e.account_id as account_id, e.title as event_title, e.event_date
      FROM guest_invites gi
-     JOIN events e ON e.id = gi.event_id
+     JOIN events e ON e.id = gi.event_id AND e.account_id = gi.account_id
      WHERE gi.invite_token = ?`
   ).bind(params.token).first();
 
@@ -13404,41 +13984,62 @@ const handleClaimGuestInvite: Handler = async (request, env, params) => {
   const magicToken = crypto.randomUUID();
   const newAttendeeId = crypto.randomUUID();
   const contactMethod = body.phone ? 'whatsapp' : 'email';
+  const offeredSeat = await env.DB.prepare(
+    `SELECT id, seat_status FROM event_party_members
+     WHERE invitation_id = ? AND account_id = ? AND event_id = ?`
+  ).bind(invite.id, accountId, invite.event_id).first<{
+    id: string;
+    seat_status: 'requested' | 'held' | 'confirmed';
+  }>();
+  const reserved = await reservePartySeats(env, {
+    accountId,
+    eventId: invite.event_id as string,
+    participationId: newAttendeeId,
+    sourceState: 'requested',
+    targetState: 'confirmed',
+    seats: [{
+      id: offeredSeat?.id || crypto.randomUUID(),
+      fullName: body.name,
+      isPrimary: true,
+      sourceState: offeredSeat?.seat_status || null,
+      targetState: 'confirmed',
+      invitationId: invite.id as string,
+    }],
+    createParticipation: {
+      columns: ['full_name', 'phone_number', 'email', 'contact_method', 'magic_token', 'source', 'access_tier'],
+      values: [
+        body.name,
+        body.phone || null,
+        body.email || null,
+        contactMethod,
+        magicToken,
+        'guest_invite',
+        'standard',
+      ],
+    },
+    guestClaim: {
+      invitationId: invite.id as string,
+      claimedByName: body.name,
+      claimedByPhone: body.phone || null,
+      claimedByEmail: body.email || null,
+    },
+  });
+  if (!reserved.ok) {
+    if (reserved.code === 'state_conflict') {
+      const latest = await env.DB.prepare(
+        `SELECT status FROM guest_invites WHERE id = ? AND account_id = ? AND event_id = ?`
+      ).bind(invite.id, accountId, invite.event_id).first();
+      if (latest && latest.status !== 'pending') return json({ error: `Invite already ${latest.status}` }, 409);
+    }
+    return seatReservationError(reserved);
+  }
 
-  await env.DB.batch([
-    env.DB.prepare(
-      `INSERT INTO event_attendees
-         (id, account_id, event_id, full_name, phone_number, email, contact_method, status, magic_token, source, access_tier)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'confirmed', ?, 'guest_invite', 'standard')`
-    ).bind(
-      newAttendeeId,
-      accountId,
-      invite.event_id,
-      body.name,
-      body.phone || null,
-      body.email || null,
-      contactMethod,
-      magicToken
-    ),
-    env.DB.prepare(
-      `UPDATE guest_invites
-       SET status = 'claimed', claimed_by_name = ?, claimed_by_phone = ?, claimed_by_email = ?,
-           claimed_attendee_id = ?, claimed_at = datetime('now')
-       WHERE invite_token = ?`
-    ).bind(
-      body.name,
-      body.phone || null,
-      body.email || null,
-      newAttendeeId,
-      params.token
-    ),
-    buildActivityLog(
-      env,
-      'guest_invite_claimed',
-      `${body.name} claimed guest invite for event ${invite.event_title}`,
-      null, 'event_attendee', newAttendeeId, accountId
-    ),
-  ]);
+  await buildActivityLog(
+    env,
+    'guest_invite_claimed',
+    `${body.name} claimed guest invite for event ${invite.event_title}`,
+    null, 'event_attendee', newAttendeeId, accountId
+  ).run();
 
   // Auto-link customer record for claimed guest (non-critical)
   try {
@@ -13465,6 +14066,9 @@ const handleClaimGuestInvite: Handler = async (request, env, params) => {
     }
     await env.DB.prepare('UPDATE event_attendees SET customer_id = ? WHERE id = ?')
       .bind(linkedId, newAttendeeId).run();
+    await env.DB.prepare(`UPDATE event_party_members SET customer_id = ?
+      WHERE participation_id = ? AND account_id = ? AND is_primary = 1`)
+      .bind(linkedId, newAttendeeId, accountId).run();
     await ensureContactRelationship(env, accountId, linkedId, 'event_guest', 'workflow', 'event_attendee', newAttendeeId);
   } catch {}
 
@@ -16970,12 +17574,19 @@ const handleGetPublicAccountEvents: Handler = async (_request, env, params) => {
             e.event_date, e.event_end_date, e.location_name, e.area_hint,
             e.total_capacity, e.timezone, e.status,
             COALESCE(a.confirmed_count, 0) as confirmed_count,
-            e.total_capacity - COALESCE(a.confirmed_count, 0) as seats_remaining
+            COALESCE(a.offered_count, 0) as offered_count,
+            MAX(0, e.total_capacity - COALESCE(a.confirmed_count, 0) - COALESCE(a.offered_count, 0)) as seats_remaining
      FROM events e
      LEFT JOIN (
-       SELECT event_id, SUM(1 + plus_one) as confirmed_count
-       FROM event_attendees WHERE status = 'confirmed'
-       GROUP BY event_id
+       SELECT scoped.id as event_id,
+         (SELECT COUNT(*) FROM event_party_members pm
+          WHERE pm.event_id = scoped.id AND pm.account_id = scoped.account_id
+            AND pm.seat_status IN ('held','confirmed')) as confirmed_count,
+         (SELECT COUNT(*) FROM event_attendees offer
+          WHERE offer.event_id = scoped.id AND offer.account_id = scoped.account_id
+            AND offer.status = 'waitlist' AND offer.claim_expires_at IS NOT NULL
+            AND datetime(offer.claim_expires_at) > datetime('now')) as offered_count
+       FROM events scoped
      ) a ON a.event_id = e.id
      WHERE e.status = 'active' AND e.account_id = ?
      ORDER BY e.event_date ASC`
@@ -23269,6 +23880,7 @@ const routes: [string, string, Handler][] = [
   // Events — Public
   ['GET', '/api/events', handleListPublicEvents],
   ['GET', '/api/events/:slug/public', handleGetEventBySlug],
+  ['GET', '/api/events/:slug/tea-menu', handleGetPublicTeaMenu],
   ['GET', '/api/events/:slug/recap', handleGetPublicEventRecap],
   ['POST', '/api/events/:slug/rsvp', handleRSVP],
   ['GET', '/api/events/:slug/availability', handleGetEventAvailability],

@@ -23,6 +23,10 @@ export type EditSection = 'basic' | 'location' | 'venue-guide' | 'session-flow' 
 
 const EMPTY_VENUE_GUIDE: VenueGuide = { steps: [], parking_notes: '', transit_notes: '', arrival_notes: '' };
 
+export function initialRequiresApproval(event: Pick<TeaEvent, 'requiresApproval'>): boolean {
+  return event.requiresApproval ?? true;
+}
+
 const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) => {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
@@ -89,6 +93,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
       eventEndDate: initialData.eventEndDate ? initialData.eventEndDate.slice(0, 16) : '',
       totalCapacity: initialData.totalCapacity,
       claimWindowMinutes: initialData.claimWindowMinutes,
+      timezone: initialData.timezone,
       status: initialData.status,
       flyerImageUrl: initialData.flyerImageUrl || '',
       locationName: initialData.locationName || '',
@@ -115,9 +120,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
     setRepeatDates([]);
     setEditVenueId(initialData.venueId ?? '');
     setEditSpaceIds(initialData.activeSpaceIds ?? []);
-    // requires_approval comes as raw integer from worker; default true for old events
-    const rawApproval = (initialData as any).requires_approval;
-    setEditRequiresApproval(rawApproval === undefined || rawApproval === null ? true : rawApproval !== 0);
+    setEditRequiresApproval(initialRequiresApproval(initialData));
   }, [initialData]);
 
   const updateField = useCallback((field: keyof EventFormData, value: any) => {
@@ -349,10 +352,11 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
         subtitle: form.subtitle || null,
         description: form.description || null,
         event_date: form.eventDate,
-        end_date: form.eventDate ? computeEndDate(form.eventDate, durationHours) : null,
+        event_end_date: form.eventDate ? computeEndDate(form.eventDate, durationHours) : null,
         repeat_dates: repeatDates.filter(Boolean).length > 0 ? JSON.stringify(repeatDates.filter(Boolean)) : null,
         total_capacity: form.totalCapacity,
         claim_window_minutes: form.claimWindowMinutes,
+        timezone: form.timezone || initialData.timezone || 'Asia/Taipei',
         status: form.status,
         event_format: form.format || 'private_tasting',
         gathering_type: form.gatheringType || 'private',

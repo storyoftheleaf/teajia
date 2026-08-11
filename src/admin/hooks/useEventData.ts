@@ -45,7 +45,7 @@ export const useEvents = () => {
 };
 
 // Helper to map raw event row to TeaEvent
-function mapEvent(e: any): TeaEvent {
+export function mapEvent(e: any): TeaEvent {
   return {
     id: e.id,
     slug: e.slug,
@@ -64,11 +64,20 @@ function mapEvent(e: any): TeaEvent {
     claimWindowMinutes: Number(e.claim_window_minutes) || 30,
     timezone: e.timezone || 'Asia/Taipei',
     status: e.status || 'draft',
+    format: e.event_format || undefined,
+    gatheringType: e.gathering_type || undefined,
     sessionFlow: e.session_flow ? safeParse(e.session_flow, undefined) : undefined,
     playlistUrl: e.playlist_url || undefined,
     briefingCards: e.briefing_cards ? safeParse(e.briefing_cards, undefined) : undefined,
     areaHint: e.area_hint || undefined,
     moodHints: e.mood_hints ? safeParse(e.mood_hints, undefined) : undefined,
+    venueId: e.venue_id || undefined,
+    activeSpaceIds: e.active_space_ids ? safeParse(e.active_space_ids, []) : [],
+    requiresApproval: e.requires_approval == null ? true : Boolean(e.requires_approval),
+    lifecycleStatus: e.lifecycle_status || undefined,
+    publicVisibility: e.public_visibility || undefined,
+    networkDiscovery: e.network_discovery == null ? undefined : Boolean(e.network_discovery),
+    recapStatus: e.recap_status || undefined,
     createdAt: e.created_at,
     updatedAt: e.updated_at,
     confirmedCount: Number(e.confirmed_count) || 0,

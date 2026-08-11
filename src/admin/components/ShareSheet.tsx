@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Copy, Check, Link2, MessageCircle, Download, Loader2, Send } from 'lucide-react';
+import { X, Copy, Check, Link2, MessageCircle, Download, Send, Mail } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { api } from '../../lib/api';
 import { buildWhatsAppUrl } from '../../lib/whatsapp';
 import { useToast } from './Toast';
 import { TeaEvent } from '../../types/events';
@@ -42,10 +41,7 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({ isOpen, onClose, event }
   const qrRef = useRef<HTMLDivElement>(null);
 
   const [copiedLabel, setCopiedLabel] = useState<string | null>(null);
-  const [sendingEmail, setSendingEmail] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
-
-  const eventUrl = `${window.location.origin}/event/${event.slug}`;
+  const eventUrl = `${window.location.origin.replace(/\/$/, '')}/event/${event.slug}`;
   const whatsappMessage = buildWhatsAppMessage(event, eventUrl);
   const whatsappUrl = buildWhatsAppUrl('', whatsappMessage);
 
@@ -53,7 +49,6 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({ isOpen, onClose, event }
   useEffect(() => {
     if (isOpen) {
       setCopiedLabel(null);
-      setEmailSent(false);
     }
   }, [isOpen]);
 
@@ -80,19 +75,6 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({ isOpen, onClose, event }
     showToast('QR downloaded', 'success');
   };
 
-  const handleSendEmails = async () => {
-    setSendingEmail(true);
-    try {
-      await api.events.sendEmailInvites(event.id, {});
-      setEmailSent(true);
-      showToast('Email invites sent', 'success');
-    } catch (err: any) {
-      showToast(err.message || 'Failed to send emails', 'error');
-    } finally {
-      setSendingEmail(false);
-    }
-  };
-
   if (!isOpen) return null;
 
   return (
@@ -102,7 +84,7 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({ isOpen, onClose, event }
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end lg:items-center justify-center"
+        className="fixed inset-0 bg-tea-bg/70 backdrop-blur-sm z-modal flex items-end lg:items-center justify-center"
         onClick={onClose}
       >
         <motion.div
@@ -118,7 +100,8 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({ isOpen, onClose, event }
           <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-tea-border">
             <button
               onClick={onClose}
-              className="text-tea-text-sec hover:text-tea-text transition-colors"
+              className="tap-target text-tea-text-sec hover:text-tea-text transition-colors"
+              aria-label="Close share event"
             >
               <X size={16} />
             </button>
@@ -145,7 +128,7 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({ isOpen, onClose, event }
               <div className="flex gap-2">
                 <button
                   onClick={() => copyToClipboard(whatsappMessage, 'Message')}
-                  className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded transition-colors ${
+                  className={`tap-target flex items-center gap-1.5 text-xs px-3 py-1.5 rounded transition-colors ${
                     copiedLabel === 'Message'
                       ? 'bg-tea-gold/20 text-tea-gold'
                       : 'bg-tea-elevated text-tea-text-sec hover:text-tea-text'
@@ -159,7 +142,7 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({ isOpen, onClose, event }
                   href={whatsappUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded bg-tea-elevated text-tea-text-sec hover:text-tea-text transition-colors"
+                  className="tap-target flex items-center gap-1.5 text-xs px-3 py-1.5 rounded bg-tea-elevated text-tea-text-sec hover:text-tea-text transition-colors"
                 >
                   <Send size={11} />
                   Open WhatsApp
@@ -174,27 +157,12 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({ isOpen, onClose, event }
               <div className="text-ui-10 uppercase tracking-[0.18em] text-tea-text-sec font-medium">
                 Email
               </div>
-              <p className="text-ui-11 text-tea-text-dim">
-                Send an invite to all customers in your list.
-              </p>
-              <button
-                onClick={handleSendEmails}
-                disabled={sendingEmail || emailSent}
-                className={`flex items-center gap-2 text-xs px-4 py-2 rounded transition-colors disabled:opacity-50 ${
-                  emailSent
-                    ? 'bg-tea-gold/20 text-tea-gold'
-                    : 'bg-tea-elevated text-tea-text-sec hover:text-tea-text'
-                }`}
-              >
-                {sendingEmail ? (
-                  <Loader2 size={11} className="animate-spin" />
-                ) : emailSent ? (
-                  <Check size={11} />
-                ) : (
-                  <Send size={11} />
-                )}
-                {emailSent ? 'Invites Sent' : sendingEmail ? 'Sending...' : 'Send Email Invites'}
-              </button>
+              <div className="flex items-start gap-2 rounded-md bg-tea-elevated border border-tea-border p-3">
+                <Mail size={13} className="mt-0.5 shrink-0 text-tea-text-sec" />
+                <p className="text-ui-11 text-tea-text-sec">
+                  Email delivery is not configured. Copy the event link or WhatsApp message to share it manually.
+                </p>
+              </div>
             </section>
 
             <div className="border-t border-tea-border" />
@@ -204,7 +172,7 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({ isOpen, onClose, event }
               <div className="flex items-center gap-3 flex-wrap">
                 <button
                   onClick={() => copyToClipboard(eventUrl, 'Link')}
-                  className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded transition-colors ${
+                  className={`tap-target flex items-center gap-1.5 text-xs px-3 py-1.5 rounded transition-colors ${
                     copiedLabel === 'Link'
                       ? 'bg-tea-gold/20 text-tea-gold'
                       : 'bg-tea-elevated text-tea-text-sec hover:text-tea-text'
@@ -216,7 +184,7 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({ isOpen, onClose, event }
 
                 <button
                   onClick={handleDownloadQR}
-                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded bg-tea-elevated text-tea-text-sec hover:text-tea-text transition-colors"
+                  className="tap-target flex items-center gap-1.5 text-xs px-3 py-1.5 rounded bg-tea-elevated text-tea-text-sec hover:text-tea-text transition-colors"
                 >
                   <Download size={11} />
                   Download QR

@@ -968,6 +968,13 @@ export class ApiError extends Error {
   }
 }
 
+export class EmailDeliveryUnavailableError extends Error {
+  constructor() {
+    super('Email delivery is not configured');
+    this.name = 'EmailDeliveryUnavailableError';
+  }
+}
+
 /** Retry only failures that may succeed without changing the request. */
 export function isTransientApiError(error: unknown): boolean {
   if (error instanceof ApiError) return error.status === 408 || error.status === 429 || error.status >= 500;
@@ -2094,10 +2101,10 @@ export const api = {
     },
     createArticleDraft: (id: string): Promise<{ existing: boolean; article: DbArticle }> =>
       authedFetch(`${API_URL}/api/admin/events/${id}/article-draft`, { method: 'POST' }),
-    duplicate: async (id: string, newSlug: string) => {
+    duplicate: async (id: string, input: { slug: string; eventDate: string }) => {
       return authedFetch(`${API_URL}/api/admin/events/${id}/duplicate`, {
         method: 'POST',
-        body: JSON.stringify({ slug: newSlug }),
+        body: JSON.stringify({ slug: input.slug, event_date: input.eventDate }),
       });
     },
     batchAttendance: async (id: string, attendeeIds: string[], attended: boolean) => {
@@ -2153,18 +2160,12 @@ export const api = {
     getShareMessages: async (id: string) => {
       return authedFetch(`${API_URL}/api/admin/events/${id}/share`)
     },
-    sendEmailInvites: async (id: string, data: Record<string, any>) => {
-      return authedFetch(`${API_URL}/api/admin/events/${id}/send-emails`, {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
+    sendEmailInvites: async (_id: string, _data: Record<string, any>) => {
+      throw new EmailDeliveryUnavailableError();
     },
-    /** Send WhatsApp/email invites to approved attendees for an event. */
-    sendInvites: async (eventId: string): Promise<{ sent: number; failed: number }> => {
-      return authedFetch(`${API_URL}/api/admin/events/${eventId}/send-emails`, {
-        method: 'POST',
-        body: JSON.stringify({ type: 'invite' }),
-      });
+    /** Email delivery is not configured for Release 1. */
+    sendInvites: async (_eventId: string): Promise<{ sent: number; failed: number }> => {
+      throw new EmailDeliveryUnavailableError();
     },
     /** Fetch the public tea menu for an event (no auth required). */
     getPublicTeaMenu: async (slug: string) => {
@@ -2172,12 +2173,9 @@ export const api = {
       if (!res.ok) return [];
       return res.json();
     },
-    /** Standalone helper, send invites to all approved attendees. */
-    sendEventInvites: async (eventId: string): Promise<{ sent: number; failed: number }> => {
-      return authedFetch(`${API_URL}/api/admin/events/${eventId}/send-emails`, {
-        method: 'POST',
-        body: JSON.stringify({ type: 'invite' }),
-      });
+    /** Email delivery is not configured for Release 1. */
+    sendEventInvites: async (_eventId: string): Promise<{ sent: number; failed: number }> => {
+      throw new EmailDeliveryUnavailableError();
     },
     getCustomerJourney: async (customerId: string) => {
       return authedFetch(`${API_URL}/api/admin/customers/${customerId}/journey`)

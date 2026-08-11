@@ -41,7 +41,12 @@ export const EventsManager: React.FC = () => {
   const { memberships, activeAccountId } = useAppStore();
   const activeMembership = memberships.find(m => m.account_id === activeAccountId);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [duplicateDialog, setDuplicateDialog] = useState<{ event: TeaEvent; slug: string } | null>(null);
+  const [duplicateDialog, setDuplicateDialog] = useState<{
+    event: TeaEvent;
+    slug: string;
+    eventDate: string;
+    error: string | null;
+  } | null>(null);
   const [searchRaw, setSearchRaw] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<EventFilter>('upcoming');
@@ -88,19 +93,23 @@ export const EventsManager: React.FC = () => {
 
   const handleDuplicate = async (e: React.MouseEvent, event: TeaEvent) => {
     e.stopPropagation();
-    setDuplicateDialog({ event, slug: `${event.slug}-copy` });
+    setDuplicateDialog({ event, slug: `${event.slug}-copy`, eventDate: '', error: null });
   };
 
   const handleConfirmDuplicate = async () => {
-    if (!duplicateDialog || !duplicateDialog.slug.trim()) return;
+    if (!duplicateDialog || !duplicateDialog.slug.trim() || !duplicateDialog.eventDate) return;
     try {
-      await api.events.duplicate(duplicateDialog.event.id, duplicateDialog.slug.trim());
+      await api.events.duplicate(duplicateDialog.event.id, {
+        slug: duplicateDialog.slug.trim(),
+        eventDate: duplicateDialog.eventDate,
+      });
       refetch();
       showToast('Event duplicated', 'success');
-    } catch (err: any) {
-      showToast(err.message || 'Failed to duplicate', 'error');
-    } finally {
       setDuplicateDialog(null);
+    } catch (err: any) {
+      const message = err.message || 'Failed to duplicate';
+      setDuplicateDialog(prev => prev ? { ...prev, error: message } : null);
+      showToast(message, 'error');
     }
   };
 
@@ -334,23 +343,33 @@ export const EventsManager: React.FC = () => {
         {duplicateDialog && (
           <>
             <div className="px-6 pt-4 pb-3">
-              <p className="text-ui-12 text-tea-text-dim">Choose a unique slug for the duplicate.</p>
+              <p className="text-ui-12 text-tea-text-dim">Choose a unique slug and a new date for the duplicate.</p>
             </div>
-            <div className="px-6 pb-4">
+            <div className="px-6 pb-4 space-y-3">
               <input
                 type="text"
                 value={duplicateDialog.slug}
-                onChange={e => setDuplicateDialog(prev => prev ? { ...prev, slug: e.target.value } : null)}
+                onChange={e => setDuplicateDialog(prev => prev ? { ...prev, slug: e.target.value, error: null } : null)}
                 className="w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text font-mono placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors"
                 placeholder="event-slug"
                 aria-label="Duplicate event slug"
                 autoFocus
                 onKeyDown={e => { if (e.key === 'Enter') handleConfirmDuplicate(); }}
               />
+              <input
+                type="datetime-local"
+                value={duplicateDialog.eventDate}
+                onChange={e => setDuplicateDialog(prev => prev ? { ...prev, eventDate: e.target.value, error: null } : null)}
+                className="w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors"
+                aria-label="Duplicate event date"
+              />
+              {duplicateDialog.error && (
+                <p role="alert" className="text-ui-12 text-tea-text-sec">{duplicateDialog.error}</p>
+              )}
             </div>
             <div className="flex justify-between gap-2 px-6 py-4 border-t border-tea-border">
               <button type="button" onClick={() => setDuplicateDialog(null)} className="tap-target px-2 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
-              <button type="button" onClick={handleConfirmDuplicate} disabled={!duplicateDialog.slug.trim()} className="tap-target inline-flex items-center gap-1.5 px-3 rounded-md cta-solid text-ui-12 font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Duplicate</button>
+              <button type="button" onClick={handleConfirmDuplicate} disabled={!duplicateDialog.slug.trim() || !duplicateDialog.eventDate} className="tap-target inline-flex items-center gap-1.5 px-3 rounded-md cta-solid text-ui-12 font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Duplicate</button>
             </div>
           </>
         )}

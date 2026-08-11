@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, Copy, Check, Loader2, Send, CheckCircle, AlertCircle, Clock, Mail, Eye, EyeOff, X } from 'lucide-react';
+import { Bell, Copy, Check, Loader2, CheckCircle, AlertCircle, Clock, Mail } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useEventNotifications } from '../hooks/useEventData';
 import { useToast } from './Toast';
@@ -18,234 +18,39 @@ const STATUS_STYLES: Record<NotificationStatus, { icon: React.ReactNode; classNa
   failed: { icon: <AlertCircle size={10} />, className: 'bg-tea-surface text-tea-error' },
 };
 
-function formatEventTime(dateStr: string): string {
-  try {
-    const d = new Date(dateStr);
-    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-  } catch {
-    return dateStr;
-  }
-}
-
-function formatEventDateFull(dateStr: string): string {
-  try {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-  } catch {
-    return dateStr;
-  }
-}
-
-/** Compose the invite message template shown in the preview. */
-function composeInviteMessage(name: string, event: TeaEvent): string {
-  const time = formatEventTime(event.eventDate);
-  const date = formatEventDateFull(event.eventDate);
-  const rsvpUrl = `${window.location.origin}/event/${event.slug}`;
-  const lines = [
-    `Hi ${name}! 🍵`,
-    ``,
-    `You've been approved for *${event.title}*, we're looking forward to having you.`,
-    ``,
-    `📅 ${date}`,
-    `🕐 ${time}`,
-    event.areaHint ? `📍 ${event.areaHint}` : null,
-    ``,
-    `Your confirmation and full details are here:`,
-    rsvpUrl,
-    ``,
-    `See you soon.`,
-  ].filter((l): l is string => l !== null);
-  return lines.join('\n');
-}
-
-/** Compose the reminder message template. */
-function generateReminderMessage(name: string, event: TeaEvent): string {
-  const time = formatEventTime(event.eventDate);
-  const eventUrl = `${window.location.origin}/event/${event.slug}`;
-  return `Hi ${name}! 🍵\n\nThis is a reminder about ${event.title} tomorrow at ${time}.\n\nAre you still coming?\n✅ Confirm: ${eventUrl}?action=confirm\n❌ Cancel: ${eventUrl}?action=cancel\n\nLooking forward to seeing you!`;
-}
-
-// ── Invite Send Confirmation Modal ────────────────────────────────────────
-interface SendConfirmModalProps {
-  approvedCount: number;
-  previewMessage: string;
-  onConfirm: () => void;
-  onClose: () => void;
-  isSending: boolean;
-}
-
-const SendConfirmModal: React.FC<SendConfirmModalProps> = ({
-  approvedCount,
-  previewMessage,
-  onConfirm,
-  onClose,
-  isSending,
-}) => {
-  const [showPreview, setShowPreview] = useState(false);
-
-  return (
-    <div className="fixed inset-0 z-modal flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Send event invites">
-      <button
-        type="button"
-        aria-hidden
-        onClick={onClose}
-        className="absolute inset-0 bg-tea-bg/70 backdrop-blur-[2px]"
-      />
-      <div className="relative bg-tea-surface border border-tea-border rounded-xl shadow-2xl w-full max-w-md">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-tea-text-sec hover:text-tea-text transition-colors rounded-md p-1.5 tap-target"
-          aria-label="Close"
-        >
-          <X size={16} />
-        </button>
-
-        <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <Mail size={14} className="text-tea-gold" />
-              <h3 className="h3 text-tea-text">Send Event Invites</h3>
-            </div>
-            <p className="text-ui-13 text-tea-text-sec mt-1">
-              This will send WhatsApp/email invites to{' '}
-              <span className="text-tea-text">{approvedCount} approved</span>{' '}
-              {approvedCount === 1 ? 'attendee' : 'attendees'}.
-            </p>
-          </div>
-        </div>
-
-        <div className="px-5 py-4 space-y-3">
-          <button
-            onClick={() => setShowPreview(v => !v)}
-            className="inline-flex items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-gold transition-colors"
-          >
-            {showPreview ? <EyeOff size={12} /> : <Eye size={12} />}
-            {showPreview ? 'Hide message preview' : 'Preview invite message'}
-          </button>
-
-          {showPreview && (
-            <div className="p-4 bg-tea-bg border border-tea-border rounded-md">
-              <p className="label-caps text-tea-text-dim mb-2">
-                Message template (sent to each attendee)
-              </p>
-              <pre className="text-ui-12 text-tea-text-sec whitespace-pre-wrap font-sans leading-relaxed max-h-40 overflow-y-auto">
-                {previewMessage}
-              </pre>
-            </div>
-          )}
-
-          <p className="text-ui-12 text-tea-text-dim mt-1">
-            Note: actual delivery depends on the connected messaging provider. If none is configured, invites will be queued but not sent.
-          </p>
-        </div>
-
-        <div className="flex justify-between gap-2 px-5 py-3 border-t border-tea-border bg-tea-bg/40 rounded-b-xl">
-          <button
-            onClick={onClose}
-            className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            disabled={isSending}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
-          >
-            {isSending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
-            {isSending ? 'Sending…' : 'Send Now'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 // ── Invite Email Status Block ─────────────────────────────────────────────
 interface InviteStatusBlockProps {
-  event: TeaEvent;
   approvedCount: number;
-  lastSentAt: string | null;
-  onSend: () => void;
 }
 
 const InviteStatusBlock: React.FC<InviteStatusBlockProps> = ({
-  event,
   approvedCount,
-  lastSentAt,
-  onSend,
 }) => {
-  if (lastSentAt) {
-    return (
-      <div className="mb-6 p-4 bg-tea-surface border border-tea-border rounded-md">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <CheckCircle size={16} className="text-tea-text-sec mt-0.5 shrink-0" />
-            <div>
-              <p className="text-sm font-medium text-tea-text">Invites sent</p>
-              <p className="text-xs text-tea-text-sec mt-0.5">
-                Sent {new Date(lastSentAt).toLocaleString()}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onSend}
-            className="text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
-          >
-            Resend
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="mb-6 p-4 bg-tea-surface border border-tea-border rounded-md">
       <div className="flex items-start gap-3">
-        <Mail size={16} className="text-tea-gold/60 mt-0.5 shrink-0" />
+        <Mail size={16} className="text-tea-text-sec mt-0.5 shrink-0" />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-tea-text mb-1">Event invites not sent</p>
-          <p className="text-xs text-tea-text-sec leading-relaxed mb-3">
-            Send WhatsApp/email invites to all{' '}
-            {approvedCount > 0
-              ? <span className="text-tea-text">{approvedCount} approved attendee{approvedCount === 1 ? '' : 's'}</span>
-              : 'approved attendees'}{' '}
-            with their confirmation link and event details.
+          <p className="text-sm font-medium text-tea-text mb-1">Email delivery unavailable</p>
+          <p className="text-xs text-tea-text-sec leading-relaxed">
+            Automated email delivery is not configured. Copy the prepared reminders below and send them through your current channel
+            {approvedCount > 0 ? ` for ${approvedCount} approved attendee${approvedCount === 1 ? '' : 's'}` : ''}.
           </p>
-          <button
-            onClick={onSend}
-            disabled={approvedCount === 0}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <Send size={13} />
-            Send Invites
-          </button>
-          {approvedCount === 0 && (
-            <p className="text-ui-10 text-tea-text-dim mt-1">
-              No approved attendees yet.
-            </p>
-          )}
         </div>
       </div>
     </div>
   );
 };
 
-export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId, event }) => {
+export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId }) => {
   const { showToast } = useToast();
   const { data: notifications = [], refetch } = useEventNotifications(eventId);
   const [generating, setGenerating] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [sendingInvites, setSendingInvites] = useState(false);
-  const [showSendConfirm, setShowSendConfirm] = useState(false);
-  const [lastInviteSentAt, setLastInviteSentAt] = useState<string | null>(null);
-  const [invitesSentCount, setInvitesSentCount] = useState<number | null>(null);
 
   // Count approved attendees from the notification list (type approval = sent invite context)
   // We approximate: attendees with status === 'sent' are already notified
   const approvedCount = notifications.filter(n => n.type === 'approval').length;
-
-  // Compose the preview message using a placeholder attendee name
-  const previewMessage = composeInviteMessage('Guest', event);
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -257,23 +62,6 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId, e
       showToast((err as Error).message || 'Failed to generate', 'error');
     } finally {
       setGenerating(false);
-    }
-  };
-
-  const handleSendInvites = async () => {
-    setSendingInvites(true);
-    try {
-      const result = await api.events.sendEventInvites(eventId);
-      const sentCount = typeof result?.sent === 'number' ? result.sent : approvedCount;
-      setLastInviteSentAt(new Date().toISOString());
-      setInvitesSentCount(sentCount);
-      setShowSendConfirm(false);
-      refetch();
-      showToast(`${sentCount} invite${sentCount === 1 ? '' : 's'} sent`, 'success');
-    } catch (err: unknown) {
-      showToast((err as Error).message || 'Failed to send invites', 'error');
-    } finally {
-      setSendingInvites(false);
     }
   };
 
@@ -312,19 +100,8 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId, e
     <div>
       {/* ── Invite send block ── */}
       <InviteStatusBlock
-        event={event}
-        approvedCount={approvedCount || 1}
-        lastSentAt={lastInviteSentAt}
-        onSend={() => setShowSendConfirm(true)}
+        approvedCount={approvedCount}
       />
-
-      {/* Invite result banner */}
-      {invitesSentCount !== null && (
-        <div className="mb-4 flex items-center gap-2 p-3 bg-tea-gold/10 border border-tea-gold/30 rounded-md text-xs text-tea-text">
-          <CheckCircle size={12} className="shrink-0 text-tea-gold" />
-          {invitesSentCount} {invitesSentCount === 1 ? 'invite' : 'invites'} sent successfully.
-        </div>
-      )}
 
       {/* Reminders section header */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
@@ -338,14 +115,14 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId, e
           <button
             onClick={copyAllMessages}
             disabled={pendingCount === 0}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub text-xs transition-colors disabled:opacity-40"
+            className="tap-target inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub text-xs transition-colors disabled:opacity-40"
           >
             <Copy size={12} /> Copy All Pending
           </button>
           <button
             onClick={handleGenerate}
             disabled={generating}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="tap-target inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {generating ? <Loader2 size={13} className="animate-spin" /> : <Bell size={13} />}
             Generate Reminders
@@ -388,7 +165,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId, e
                   <div className="flex flex-col gap-1 shrink-0">
                     <button
                       onClick={() => copyMessage(notif)}
-                      className="flex items-center gap-1 text-ui-10 px-2 py-1 rounded border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30 transition-colors"
+                      className="tap-target flex items-center gap-1 text-ui-10 px-2 py-1 rounded border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30 transition-colors"
                     >
                       {copiedId === notif.id ? <Check size={10} className="text-tea-text-sec" /> : <Copy size={10} />}
                       {copiedId === notif.id ? 'Copied' : 'Copy'}
@@ -401,16 +178,6 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId, e
         </div>
       )}
 
-      {/* Send confirmation modal */}
-      {showSendConfirm && (
-        <SendConfirmModal
-          approvedCount={approvedCount || 1}
-          previewMessage={previewMessage}
-          onConfirm={handleSendInvites}
-          onClose={() => setShowSendConfirm(false)}
-          isSending={sendingInvites}
-        />
-      )}
     </div>
   );
 };

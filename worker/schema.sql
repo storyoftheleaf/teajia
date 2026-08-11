@@ -60,6 +60,8 @@ CREATE TABLE IF NOT EXISTS account_members (
 );
 CREATE INDEX IF NOT EXISTS idx_account_members_user ON account_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_account_members_account ON account_members(account_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_account_members_user_account
+  ON account_members(user_id, account_id);
 
 -- Network-wide tea reviews (cross-account, keyed by tea_key)
 CREATE TABLE IF NOT EXISTS tea_reviews (
@@ -175,6 +177,8 @@ CREATE TABLE IF NOT EXISTS customers (
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
 );
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_customers_id_account
+  ON customers(id, account_id);
 
 -- Global public-person identity. `account_id` is the editorial steward;
 -- contributor_accounts below carries the person's many public store ties.
@@ -1381,6 +1385,340 @@ CREATE TABLE IF NOT EXISTS product_impressions (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_product_impressions_account_product_published ON product_impressions(account_id, product_id, published_at DESC);
+
+-- Events: legacy-compatible participation plus Release 1 trust and identity.
+CREATE TABLE IF NOT EXISTS saved_locations (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  name TEXT NOT NULL,
+  address TEXT NOT NULL,
+  map_link TEXT,
+  guidelines TEXT,
+  venue_guide TEXT,
+  account_id TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_saved_locations_name ON saved_locations(name);
+
+CREATE TABLE IF NOT EXISTS venues (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  name TEXT NOT NULL,
+  address TEXT NOT NULL,
+  map_link TEXT,
+  area_hint TEXT,
+  arrival_notes TEXT,
+  photos TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now')),
+  website TEXT,
+  instagram TEXT
+);
+
+CREATE TABLE IF NOT EXISTS venue_spaces (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  venue_id TEXT NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  capacity INTEGER NOT NULL DEFAULT 10,
+  description TEXT,
+  photos TEXT,
+  sort_order INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now')),
+  tea_styles TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_venues_account ON venues(account_id);
+CREATE INDEX IF NOT EXISTS idx_venue_spaces_venue ON venue_spaces(venue_id);
+CREATE INDEX IF NOT EXISTS idx_venue_spaces_account ON venue_spaces(account_id);
+
+CREATE TABLE IF NOT EXISTS events (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  slug TEXT UNIQUE NOT NULL,
+  title TEXT NOT NULL,
+  subtitle TEXT,
+  description TEXT,
+  flyer_image_url TEXT,
+  event_date TEXT NOT NULL,
+  event_end_date TEXT,
+  location_name TEXT,
+  address_text TEXT,
+  map_link TEXT,
+  guidelines_text TEXT,
+  venue_guide TEXT,
+  total_capacity INTEGER NOT NULL DEFAULT 12,
+  claim_window_minutes INTEGER DEFAULT 60,
+  timezone TEXT DEFAULT 'Asia/Taipei',
+  status TEXT DEFAULT 'draft' CHECK(status IN ('draft', 'active', 'closed', 'archived')),
+  session_flow TEXT,
+  playlist_url TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now')),
+  briefing_cards TEXT,
+  interested_list TEXT,
+  area_hint TEXT,
+  mood_hints TEXT,
+  location_id TEXT REFERENCES saved_locations(id),
+  account_id TEXT,
+  venue_id TEXT REFERENCES venues(id),
+  active_space_ids TEXT,
+  event_format TEXT NOT NULL DEFAULT 'private_tasting',
+  gathering_type TEXT DEFAULT 'private',
+  requires_approval INTEGER NOT NULL DEFAULT 1,
+  lifecycle_status TEXT NOT NULL DEFAULT 'draft'
+    CHECK(lifecycle_status IN ('draft','published','registration_closed','completed','cancelled','archived')),
+  public_visibility TEXT NOT NULL DEFAULT 'public'
+    CHECK(public_visibility IN ('public','unlisted','private')),
+  network_discovery INTEGER NOT NULL DEFAULT 1
+    CHECK(network_discovery IN (0, 1)),
+  recap_status TEXT NOT NULL DEFAULT 'draft'
+    CHECK(recap_status IN ('draft','published'))
+);
+CREATE INDEX IF NOT EXISTS idx_events_slug ON events(slug);
+CREATE INDEX IF NOT EXISTS idx_events_status ON events(status);
+CREATE INDEX IF NOT EXISTS idx_events_account ON events(account_id);
+CREATE INDEX IF NOT EXISTS idx_events_venue ON events(venue_id);
+CREATE INDEX IF NOT EXISTS idx_events_account_lifecycle_date
+  ON events(account_id, lifecycle_status, event_date);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_events_id_account
+  ON events(id, account_id);
+
+CREATE TABLE IF NOT EXISTS event_attendees (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  event_id TEXT NOT NULL REFERENCES events(id),
+  customer_id TEXT REFERENCES customers(id),
+  full_name TEXT NOT NULL,
+  phone_number TEXT,
+  email TEXT,
+  plus_one INTEGER DEFAULT 0,
+  plus_one_name TEXT,
+  access_tier TEXT DEFAULT 'standard' CHECK(access_tier IN ('standard', 'golden')),
+  status TEXT DEFAULT 'confirmed'
+    CHECK(status IN ('confirmed', 'waitlist', 'cancelled', 'requested', 'denied')),
+  magic_token TEXT UNIQUE NOT NULL,
+  photo_consent INTEGER DEFAULT 0,
+  notes TEXT,
+  tea_preference TEXT,
+  bringing_tea TEXT,
+  waitlist_position INTEGER,
+  claimed_at TEXT,
+  claim_expires_at TEXT,
+  attended INTEGER,
+  created_at TEXT DEFAULT (datetime('now')),
+  guest_requests TEXT,
+  first_visit_briefed INTEGER DEFAULT 0,
+  cancellation_note TEXT,
+  source TEXT DEFAULT 'direct',
+  contact_method TEXT DEFAULT 'whatsapp',
+  denial_message TEXT,
+  account_id TEXT,
+  user_id TEXT REFERENCES users(id),
+  payment_status TEXT NOT NULL DEFAULT 'not_required'
+    CHECK(payment_status IN ('not_required','pending','paid','waived','refunded')),
+  UNIQUE(event_id, phone_number)
+);
+CREATE INDEX IF NOT EXISTS idx_attendees_event ON event_attendees(event_id);
+CREATE INDEX IF NOT EXISTS idx_attendees_token ON event_attendees(magic_token);
+CREATE INDEX IF NOT EXISTS idx_attendees_status ON event_attendees(event_id, status);
+CREATE INDEX IF NOT EXISTS idx_attendees_phone ON event_attendees(event_id, phone_number);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_event_attendees_id_event_account
+  ON event_attendees(id, event_id, account_id);
+
+CREATE TABLE IF NOT EXISTS event_tea_menu (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  event_id TEXT NOT NULL REFERENCES events(id),
+  product_id TEXT REFERENCES products(id),
+  custom_name TEXT,
+  custom_description TEXT,
+  reveal_date TEXT,
+  brew_order INTEGER,
+  created_at TEXT DEFAULT (datetime('now')),
+  account_id TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_tea_menu_event ON event_tea_menu(event_id);
+
+CREATE TABLE IF NOT EXISTS event_tasting_notes (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  event_id TEXT NOT NULL REFERENCES events(id),
+  attendee_id TEXT NOT NULL REFERENCES event_attendees(id),
+  tea_menu_id TEXT REFERENCES event_tea_menu(id),
+  rating INTEGER CHECK(rating BETWEEN 1 AND 5),
+  impression TEXT,
+  is_favorite INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now')),
+  account_id TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_tasting_notes_event ON event_tasting_notes(event_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_event_tasting_notes_attendee_menu
+  ON event_tasting_notes(attendee_id, tea_menu_id)
+  WHERE tea_menu_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_event_tasting_notes_attendee_null_menu
+  ON event_tasting_notes(attendee_id)
+  WHERE tea_menu_id IS NULL;
+
+CREATE TABLE IF NOT EXISTS event_tasting_note_history (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  original_note_id TEXT NOT NULL,
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  original_account_id TEXT,
+  event_id TEXT NOT NULL,
+  attendee_id TEXT NOT NULL,
+  tea_menu_id TEXT,
+  rating INTEGER,
+  impression TEXT,
+  is_favorite INTEGER,
+  created_at TEXT,
+  archive_reason TEXT NOT NULL
+    CHECK(archive_reason IN ('superseded_during_migration_129')),
+  archived_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY(event_id, account_id)
+    REFERENCES events(id, account_id),
+  FOREIGN KEY(attendee_id, event_id, account_id)
+    REFERENCES event_attendees(id, event_id, account_id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_event_tasting_note_history_original
+  ON event_tasting_note_history(original_note_id);
+CREATE INDEX IF NOT EXISTS idx_event_tasting_note_history_account_event
+  ON event_tasting_note_history(account_id, event_id, archived_at);
+
+CREATE TABLE IF NOT EXISTS event_notifications (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  event_id TEXT NOT NULL REFERENCES events(id),
+  attendee_id TEXT REFERENCES event_attendees(id),
+  type TEXT NOT NULL
+    CHECK(type IN ('checkin_reminder', 'waitlist_promotion', 'spot_claimed', 'event_update')),
+  message_template TEXT,
+  status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'sent', 'failed')),
+  created_at TEXT DEFAULT (datetime('now')),
+  sent_at TEXT,
+  account_id TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_notifications_event ON event_notifications(event_id);
+
+CREATE TABLE IF NOT EXISTS guest_invites (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  event_id TEXT NOT NULL REFERENCES events(id),
+  parent_attendee_id TEXT NOT NULL REFERENCES event_attendees(id),
+  invite_token TEXT UNIQUE NOT NULL,
+  name_hint TEXT,
+  claimed_by_name TEXT,
+  claimed_by_phone TEXT,
+  claimed_by_email TEXT,
+  claimed_attendee_id TEXT REFERENCES event_attendees(id),
+  status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'claimed', 'expired')),
+  account_id TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  claimed_at TEXT,
+  contact TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_guest_invites_event ON guest_invites(event_id);
+CREATE INDEX IF NOT EXISTS idx_guest_invites_token ON guest_invites(invite_token);
+CREATE INDEX IF NOT EXISTS idx_guest_invites_parent ON guest_invites(parent_attendee_id);
+
+CREATE TABLE IF NOT EXISTS interest_signups (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  event_id TEXT REFERENCES events(id),
+  customer_id TEXT REFERENCES customers(id),
+  name TEXT,
+  phone TEXT,
+  email TEXT,
+  account_id TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  converted_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_interest_event ON interest_signups(event_id);
+
+CREATE TABLE IF NOT EXISTS stock_holds (
+  id TEXT PRIMARY KEY,
+  account_id TEXT,
+  invoice_id TEXT,
+  product_id TEXT,
+  held_grams REAL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_stock_holds_invoice ON stock_holds(invoice_id);
+CREATE INDEX IF NOT EXISTS idx_stock_holds_product ON stock_holds(product_id);
+
+CREATE TABLE IF NOT EXISTS event_party_members (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  event_id TEXT NOT NULL,
+  participation_id TEXT NOT NULL,
+  user_id TEXT REFERENCES users(id),
+  customer_id TEXT REFERENCES customers(id),
+  full_name TEXT,
+  is_primary INTEGER NOT NULL DEFAULT 0 CHECK(is_primary IN (0, 1)),
+  invitation_id TEXT,
+  seat_status TEXT NOT NULL
+    CHECK(seat_status IN ('requested','held','confirmed','cancelled','expired')),
+  attendance_status TEXT
+    CHECK(attendance_status IN ('checked_in','attended','no_show')),
+  checked_in_at TEXT,
+  attended_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY(event_id, account_id)
+    REFERENCES events(id, account_id),
+  FOREIGN KEY(participation_id, event_id, account_id)
+    REFERENCES event_attendees(id, event_id, account_id),
+  FOREIGN KEY(customer_id, account_id)
+    REFERENCES customers(id, account_id)
+);
+CREATE INDEX IF NOT EXISTS idx_event_party_members_event_seat
+  ON event_party_members(event_id, seat_status);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_event_party_members_primary
+  ON event_party_members(participation_id)
+  WHERE is_primary = 1;
+
+CREATE TABLE IF NOT EXISTS event_contributors (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  event_id TEXT NOT NULL,
+  contributor_id TEXT NOT NULL,
+  role TEXT NOT NULL
+    CHECK(role IN ('lead_host','co_host','guest_host','photographer','author')),
+  is_public INTEGER NOT NULL DEFAULT 1 CHECK(is_public IN (0, 1)),
+  display_order INTEGER NOT NULL DEFAULT 0,
+  UNIQUE(event_id, contributor_id, role),
+  FOREIGN KEY(event_id, account_id)
+    REFERENCES events(id, account_id),
+  FOREIGN KEY(contributor_id, account_id)
+    REFERENCES contributor_accounts(contributor_id, account_id)
+);
+CREATE INDEX IF NOT EXISTS idx_event_contributors_event_order
+  ON event_contributors(event_id, display_order);
+
+CREATE TABLE IF NOT EXISTS event_team_assignments (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  event_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  role TEXT NOT NULL
+    CHECK(role IN ('coordinator','service','assistant','inventory','communications','photographer')),
+  UNIQUE(event_id, user_id, role),
+  FOREIGN KEY(event_id, account_id)
+    REFERENCES events(id, account_id),
+  FOREIGN KEY(user_id, account_id)
+    REFERENCES account_members(user_id, account_id)
+);
+CREATE INDEX IF NOT EXISTS idx_event_team_assignments_event_user
+  ON event_team_assignments(event_id, user_id);
+
+CREATE TABLE IF NOT EXISTS event_consents (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  event_id TEXT NOT NULL,
+  attendee_id TEXT NOT NULL,
+  photography INTEGER NOT NULL DEFAULT 0 CHECK(photography IN (0, 1)),
+  public_quote INTEGER NOT NULL DEFAULT 0 CHECK(public_quote IN (0, 1)),
+  review_publication INTEGER NOT NULL DEFAULT 0 CHECK(review_publication IN (0, 1)),
+  contact_exchange INTEGER NOT NULL DEFAULT 0 CHECK(contact_exchange IN (0, 1)),
+  operational_messages INTEGER NOT NULL DEFAULT 1 CHECK(operational_messages IN (0, 1)),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(event_id, attendee_id),
+  FOREIGN KEY(event_id, account_id)
+    REFERENCES events(id, account_id),
+  FOREIGN KEY(attendee_id, event_id, account_id)
+    REFERENCES event_attendees(id, event_id, account_id)
+);
 
 -- Event post-session editorial source and ordinary article drafts.
 CREATE TABLE IF NOT EXISTS event_post_session (
