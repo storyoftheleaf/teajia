@@ -251,6 +251,35 @@ async function adminEventRequest(
   } as any);
 }
 
+function seedPostSessionGuest(db: SqliteD1, options: {
+  lifecycle?: 'published' | 'completed';
+  status?: 'confirmed' | 'requested' | 'cancelled';
+  attended?: number;
+} = {}) {
+  db.sqlite.prepare(`UPDATE events SET lifecycle_status = ? WHERE id = ?`)
+    .run(options.lifecycle ?? 'completed', 'event-a');
+  db.sqlite.prepare(`INSERT INTO event_attendees
+    (id, account_id, event_id, full_name, magic_token, status, attended)
+    VALUES (?, ?, ?, ?, ?, ?, ?)`)
+    .run(
+      'guest-a',
+      'account-a',
+      'event-a',
+      'Guest',
+      'guest-token',
+      options.status ?? 'confirmed',
+      options.attended ?? 1,
+    );
+}
+
+function submitGuestNotes(db: SqliteD1, body: unknown) {
+  return worker.fetch(new Request('https://worker.test/api/rsvp/guest-token/tasting-notes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  }), { DB: db } as any);
+}
+
 describe('Events Release 1 persisted route contracts', () => {
   it('creates active events with a published lifecycle and an eligible public menu', async () => {
     const db = seedEventContractDb();
@@ -643,33 +672,160 @@ describe('Events Release 1 persisted route contracts', () => {
     }
   });
 
-  it('persists canonical and legacy tasting-note request envelopes', async () => {
+  it('returns an exact public post-session projection to attendee tokens', async () => {
     const db = seedEventContractDb();
     try {
-      db.sqlite.prepare(`INSERT INTO event_attendees
-        (id, account_id, event_id, full_name, magic_token, status)
-        VALUES (?, ?, ?, ?, ?, ?)`)
-        .run('guest-a', 'account-a', 'event-a', 'Guest', 'guest-token', 'confirmed');
+      seedPostSessionGuest(db);
+      db.sqlite.prepare(`INSERT INTO event_post_session
+        (id, account_id, event_id, session_notes, gallery_images, tea_ledger, host_notes, host_changes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(
+        'post-a',
+        'account-a',
+        'event-a',
+        'Shared reflection',
+        '["public.jpg"]',
+        '{"teas":["Rou Gui"]}',
+        'Private host note',
+        'Private host change',
+      );
 
-      const canonical = await worker.fetch(new Request('https://worker.test/api/rsvp/guest-token/tasting-notes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notes: [{ rating: 5, impression: 'Mineral', is_favorite: true }] }),
-      }), { DB: db } as any);
-      const legacy = await worker.fetch(new Request('https://worker.test/api/rsvp/guest-token/tasting-notes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify([{ rating: 4, impression: 'Orchid' }]),
-      }), { DB: db } as any);
+      const response = await worker.fetch(
+        new Request('https://worker.test/api/rsvp/guest-token/post-session'),
+        { DB: db } as any,
+      );
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({
+        event_id: 'event-a',
+        session_notes: 'Shared reflection',
+        gallery_images: ['public.jpg'],
+        tea_ledger: { teas: ['Rou Gui'] },
+        tasting_notes: [],
+      });
+    } finally {
+      db.close();
+    }
+  });
+
+  it('rejects tasting notes until the event lifecycle is completed', async () => {
+    const db = seedEventContractDb();
+    try {
+      seedPostSessionGuest(db, { lifecycle: 'published' });
+      const response = await submitGuestNotes(db, { notes: [{ impression: 'Too early' }] });
+
+      expect(response.status).toBe(409);
+      expect(await response.json()).toEqual({ error: 'Tasting notes are only available after the event is completed' });
+      expect(db.sqlite.prepare(`SELECT COUNT(*) AS count FROM event_tasting_notes`).get()).toEqual({ count: 0 });
+    } finally {
+      db.close();
+    }
+  });
+
+  it.each([
+    ['requested attendee', 'requested', 1],
+    ['unattended guest', 'confirmed', 0],
+  ] as const)('rejects tasting notes from a %s', async (_label, status, attended) => {
+    const db = seedEventContractDb();
+    try {
+      seedPostSessionGuest(db, { status, attended });
+      const response = await submitGuestNotes(db, { notes: [{ impression: 'Not eligible' }] });
+
+      expect(response.status).toBe(403);
+      expect(await response.json()).toEqual({ error: 'Only confirmed attendees marked attended may submit tasting notes' });
+      expect(db.sqlite.prepare(`SELECT COUNT(*) AS count FROM event_tasting_notes`).get()).toEqual({ count: 0 });
+    } finally {
+      db.close();
+    }
+  });
+
+  it('rejects a cross-event menu id without partially writing a valid batch', async () => {
+    const db = seedEventContractDb();
+    try {
+      seedPostSessionGuest(db);
+      db.sqlite.prepare(`INSERT INTO event_tea_menu
+        (id, account_id, event_id, custom_name, brew_order) VALUES (?, ?, ?, ?, ?)`).run(
+        'menu-a', 'account-a', 'event-a', 'Account Tea', 1,
+      );
+      db.sqlite.prepare(`INSERT INTO event_tea_menu
+        (id, account_id, event_id, custom_name, brew_order) VALUES (?, ?, ?, ?, ?)`).run(
+        'menu-b', 'account-b', 'event-b', 'Other Tea', 1,
+      );
+
+      const response = await submitGuestNotes(db, { notes: [
+        { tea_menu_id: 'menu-a', impression: 'Valid' },
+        { tea_menu_id: 'menu-b', impression: 'Wrong event' },
+      ] });
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({ error: 'Invalid tea menu item' });
+      expect(db.sqlite.prepare(`SELECT COUNT(*) AS count FROM event_tasting_notes`).get()).toEqual({ count: 0 });
+    } finally {
+      db.close();
+    }
+  });
+
+  it('rejects malformed menu ids and idempotently upserts a null-menu note', async () => {
+    const db = seedEventContractDb();
+    try {
+      seedPostSessionGuest(db);
+
+      const malformed = await submitGuestNotes(db, { notes: [{ tea_menu_id: 7, impression: 'Invalid' }] });
+      expect(malformed.status).toBe(400);
+      expect(await malformed.json()).toEqual({ error: 'Invalid tasting note' });
+
+      const canonical = await submitGuestNotes(db, {
+        notes: [{ tea_menu_id: null, rating: 5, impression: 'Mineral', is_favorite: true }],
+      });
+      const legacy = await submitGuestNotes(db, [
+        { tea_menu_id: null, rating: 4, impression: 'Orchid' },
+      ]);
 
       expect(canonical.status).toBe(201);
       expect(await canonical.json()).toEqual({ success: true, count: 1 });
       expect(legacy.status).toBe(201);
       expect(await legacy.json()).toEqual({ success: true, count: 1 });
-      expect(db.sqlite.prepare(`SELECT event_id, attendee_id, rating, impression, is_favorite
+      expect(db.sqlite.prepare(`SELECT account_id, event_id, attendee_id, tea_menu_id, rating, impression, is_favorite
+        FROM event_tasting_notes`).all()).toEqual([
+        {
+          account_id: 'account-a',
+          event_id: 'event-a',
+          attendee_id: 'guest-a',
+          tea_menu_id: null,
+          rating: 4,
+          impression: 'Orchid',
+          is_favorite: 0,
+        },
+      ]);
+    } finally {
+      db.close();
+    }
+  });
+
+  it('persists canonical and legacy tasting-note request envelopes', async () => {
+    const db = seedEventContractDb();
+    try {
+      seedPostSessionGuest(db);
+      db.sqlite.prepare(`INSERT INTO event_tea_menu
+        (id, account_id, event_id, custom_name, brew_order) VALUES (?, ?, ?, ?, ?), (?, ?, ?, ?, ?)`).run(
+        'menu-a', 'account-a', 'event-a', 'Rou Gui', 1,
+        'menu-b', 'account-a', 'event-a', 'Shui Xian', 2,
+      );
+
+      const canonical = await submitGuestNotes(db, {
+        notes: [{ tea_menu_id: 'menu-a', rating: 5, impression: 'Mineral', is_favorite: true }],
+      });
+      const legacy = await submitGuestNotes(db, [
+        { tea_menu_id: 'menu-b', rating: 4, impression: 'Orchid' },
+      ]);
+
+      expect(canonical.status).toBe(201);
+      expect(await canonical.json()).toEqual({ success: true, count: 1 });
+      expect(legacy.status).toBe(201);
+      expect(await legacy.json()).toEqual({ success: true, count: 1 });
+      expect(db.sqlite.prepare(`SELECT account_id, event_id, attendee_id, tea_menu_id, rating, impression, is_favorite
         FROM event_tasting_notes ORDER BY created_at, rowid`).all()).toEqual([
-        { event_id: 'event-a', attendee_id: 'guest-a', rating: 5, impression: 'Mineral', is_favorite: 1 },
-        { event_id: 'event-a', attendee_id: 'guest-a', rating: 4, impression: 'Orchid', is_favorite: 0 },
+        { account_id: 'account-a', event_id: 'event-a', attendee_id: 'guest-a', tea_menu_id: 'menu-a', rating: 5, impression: 'Mineral', is_favorite: 1 },
+        { account_id: 'account-a', event_id: 'event-a', attendee_id: 'guest-a', tea_menu_id: 'menu-b', rating: 4, impression: 'Orchid', is_favorite: 0 },
       ]);
     } finally {
       db.close();

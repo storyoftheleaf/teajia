@@ -14,7 +14,7 @@ import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 import { deriveConfirmedInvoiceLine, repairCandidate } from './invoiceDomain';
 import { buildEventArticleDraft } from './eventArticleDraft';
-import { EVENT_TRANSITIONS, normalizeEventUpdate, normalizeRsvpUpdate, type EventLifecycle } from './eventDomain';
+import { EVENT_TRANSITIONS, normalizeEventUpdate, normalizeRsvpUpdate, publicPostSessionProjection, type EventLifecycle } from './eventDomain';
 import { candidateToApi, impressionToApi, parseCandidateInput } from './tastingNoteCuration';
 import { deliverVerificationCode } from './verificationDelivery';
 import { INCIDENT_STATUSES, incidentToApi, normalizeIncidentInput, upsertIncident, type IncidentStatus } from './incidents';
@@ -9121,60 +9121,54 @@ const handleClaimSpot: Handler = async (_request, env, params) => {
 
 const handleGetPostSession: Handler = async (_request, env, params) => {
   const attendee = await env.DB.prepare(
-    `SELECT ea.event_id FROM event_attendees ea WHERE ea.magic_token = ?`
+    `SELECT ea.event_id, ea.account_id
+     FROM event_attendees ea
+     JOIN events e ON e.id = ea.event_id AND e.account_id = ea.account_id
+     WHERE ea.magic_token = ?`
   ).bind(params.token).first();
 
   if (!attendee) return json({ error: 'RSVP not found' }, 404);
 
   const postSession = await env.DB.prepare(
-    `SELECT * FROM event_post_session WHERE event_id = ?`
-  ).bind(attendee.event_id).first();
+    `SELECT event_id, session_notes, gallery_images, tea_ledger
+     FROM event_post_session WHERE event_id = ? AND account_id = ?`
+  ).bind(attendee.event_id, attendee.account_id).first();
 
   if (!postSession) return json({ error: 'Post-session data not yet available' }, 404);
-
-  // Parse JSON fields
-  let galleryImages = null;
-  if (postSession.gallery_images) {
-    try { galleryImages = JSON.parse(postSession.gallery_images as string); } catch { galleryImages = postSession.gallery_images; }
-  }
-  let teaLedger = null;
-  if (postSession.tea_ledger) {
-    try { teaLedger = JSON.parse(postSession.tea_ledger as string); } catch { teaLedger = postSession.tea_ledger; }
-  }
 
   // Get aggregated tasting notes (anonymous)
   const notes = await env.DB.prepare(
     `SELECT etn.tea_menu_id, etn.rating, etn.impression, etn.is_favorite,
             etm.custom_name, p.given_name, p.product_name
      FROM event_tasting_notes etn
-     LEFT JOIN event_tea_menu etm ON etm.id = etn.tea_menu_id
-     LEFT JOIN products p ON p.id = etm.product_id
-     WHERE etn.event_id = ?
+     LEFT JOIN event_tea_menu etm
+       ON etm.id = etn.tea_menu_id AND etm.event_id = etn.event_id AND etm.account_id = etn.account_id
+     LEFT JOIN products p ON p.id = etm.product_id AND p.account_id = etm.account_id
+     WHERE etn.event_id = ? AND etn.account_id = ?
      ORDER BY etm.brew_order ASC`
-  ).bind(attendee.event_id).all();
+  ).bind(attendee.event_id, attendee.account_id).all();
 
   return json({
-    ...postSession,
-    gallery_images: galleryImages,
-    tea_ledger: teaLedger,
+    ...publicPostSessionProjection(postSession as Record<string, unknown>),
     tasting_notes: notes.results,
   });
 };
 
 const handleSubmitTastingNotes: Handler = async (request, env, params) => {
   const attendee = await env.DB.prepare(
-    `SELECT ea.id, ea.event_id, e.event_date
+    `SELECT ea.id, ea.event_id, ea.account_id, ea.status, ea.attended, e.lifecycle_status
      FROM event_attendees ea
-     JOIN events e ON e.id = ea.event_id
+     JOIN events e ON e.id = ea.event_id AND e.account_id = ea.account_id
      WHERE ea.magic_token = ?`
   ).bind(params.token).first();
 
   if (!attendee) return json({ error: 'RSVP not found' }, 404);
 
-  // Verify event date has passed
-  const eventDate = new Date(attendee.event_date as string);
-  if (eventDate > new Date()) {
-    return json({ error: 'Tasting notes can only be submitted after the event' }, 400);
+  if (attendee.lifecycle_status !== 'completed') {
+    return json({ error: 'Tasting notes are only available after the event is completed' }, 409);
+  }
+  if (attendee.status !== 'confirmed' || Number(attendee.attended) !== 1) {
+    return json({ error: 'Only confirmed attendees marked attended may submit tasting notes' }, 403);
   }
 
   const payload = await request.json() as
@@ -9183,24 +9177,73 @@ const handleSubmitTastingNotes: Handler = async (request, env, params) => {
   const notes = Array.isArray(payload) ? payload : payload.notes;
   if (!Array.isArray(notes)) return json({ error: 'Expected an array of tasting notes' }, 400);
 
-  const stmts = notes.map(note =>
+  const normalizedNotes: Array<{
+    teaMenuId: string | null;
+    rating: number | null;
+    impression: string | null;
+    isFavorite: number;
+  }> = [];
+  for (const note of notes as unknown[]) {
+    if (!note || typeof note !== 'object' || Array.isArray(note)) {
+      return json({ error: 'Invalid tasting note' }, 400);
+    }
+    const input = note as Record<string, unknown>;
+    const rawTeaMenuId = input.tea_menu_id;
+    if (
+      rawTeaMenuId !== undefined
+      && rawTeaMenuId !== null
+      && (typeof rawTeaMenuId !== 'string' || rawTeaMenuId.trim() === '')
+    ) {
+      return json({ error: 'Invalid tasting note' }, 400);
+    }
+    normalizedNotes.push({
+      teaMenuId: typeof rawTeaMenuId === 'string' ? rawTeaMenuId : null,
+      rating: typeof input.rating === 'number' ? input.rating : null,
+      impression: typeof input.impression === 'string' ? input.impression : null,
+      isFavorite: input.is_favorite === true ? 1 : 0,
+    });
+  }
+
+  const teaMenuIds = [...new Set(
+    normalizedNotes.flatMap(note => note.teaMenuId === null ? [] : [note.teaMenuId])
+  )];
+  if (teaMenuIds.length > 0) {
+    const placeholders = teaMenuIds.map(() => '?').join(', ');
+    const ownedMenu = await env.DB.prepare(
+      `SELECT id FROM event_tea_menu
+       WHERE event_id = ? AND account_id = ? AND id IN (${placeholders})`
+    ).bind(attendee.event_id, attendee.account_id, ...teaMenuIds).all<{ id: string }>();
+    const ownedIds = new Set(ownedMenu.results.map(row => row.id));
+    if (teaMenuIds.some(id => !ownedIds.has(id))) {
+      return json({ error: 'Invalid tea menu item' }, 400);
+    }
+  }
+
+  const stmts = normalizedNotes.flatMap(note => [
     env.DB.prepare(
-      `INSERT INTO event_tasting_notes (id, event_id, attendee_id, tea_menu_id, rating, impression, is_favorite)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
+      `DELETE FROM event_tasting_notes
+       WHERE event_id = ? AND account_id = ? AND attendee_id = ?
+         AND (tea_menu_id = ? OR (tea_menu_id IS NULL AND ? IS NULL))`
+    ).bind(attendee.event_id, attendee.account_id, attendee.id, note.teaMenuId, note.teaMenuId),
+    env.DB.prepare(
+      `INSERT INTO event_tasting_notes
+       (id, account_id, event_id, attendee_id, tea_menu_id, rating, impression, is_favorite)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       crypto.randomUUID(),
+      attendee.account_id,
       attendee.event_id,
       attendee.id,
-      note.tea_menu_id || null,
-      note.rating || null,
-      note.impression || null,
-      note.is_favorite ? 1 : 0
-    )
-  );
+      note.teaMenuId,
+      note.rating,
+      note.impression,
+      note.isFavorite,
+    ),
+  ]);
 
-  await env.DB.batch(stmts);
+  if (stmts.length > 0) await env.DB.batch(stmts);
 
-  return json({ success: true, count: notes.length }, 201);
+  return json({ success: true, count: normalizedNotes.length }, 201);
 };
 
 const handleFindRSVP: Handler = async (request, env, params) => {
