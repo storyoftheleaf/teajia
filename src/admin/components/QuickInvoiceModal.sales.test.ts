@@ -40,6 +40,17 @@ describe('Quick Invoice sales eligibility', () => {
     expect(quickInvoiceStockLabel(suggestions[0].eligibility)).toBe('Mei Lin · 12g available · floor $0.30/g');
   });
 
+  it('defensively limits malformed eligibility responses to local active tea products', () => {
+    const draft = { ...product('draft', 'Draft Tea'), status: 'Draft' as const };
+    const archived = { ...product('archived', 'Archived Tea'), status: 'Archived' as const };
+    const teaware = { ...product('tray', 'Tea Tray'), type: 'Teaware' as const };
+    const suggestions = buildEligibleQuickInvoiceSuggestions(
+      [product('active', 'Active Tea'), draft, archived, teaware],
+      [eligible('active'), eligible('draft'), eligible('archived'), eligible('tray')],
+    );
+    expect(suggestions.map(suggestion => suggestion.productId)).toEqual(['active']);
+  });
+
   it('labels location-owned inventory as House stock and never uses physical total', () => {
     const row = eligible('house', { physical_quantity: 100, held_quantity: 35, available_quantity: 65 });
     expect(quickInvoiceStockLabel(row)).toBe('House stock · 65g available');

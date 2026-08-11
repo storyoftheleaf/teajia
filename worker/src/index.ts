@@ -3616,7 +3616,7 @@ const handleGetEligibleSalesProducts: Handler = async (request, env) => {
            AND (winner.expires_at IS NULL OR winner.expires_at>datetime('now'))
          ORDER BY winner.created_at DESC,winner.id DESC LIMIT 1
        )
-       WHERE p.account_id=? ORDER BY product_name`
+       WHERE p.account_id=? AND p.status='Active' AND LOWER(p.type)<>'teaware' ORDER BY product_name`
     ).bind(ctx.userId, ctx.accountId).all();
     const eligible = (rows.results as any[]).flatMap(row => {
       const permission = resolveSalePermission({

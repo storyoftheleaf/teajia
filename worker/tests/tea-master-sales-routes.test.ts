@@ -141,6 +141,12 @@ describe('Tea Master sales grants and eligibility', () => {
 
   it('returns only operational labels for products the actor may sell', async () => {
     const db = database(); seed(db); await createGrant(db);
+    db.sqlite.prepare(`INSERT INTO products
+      (id,account_id,type,product_name,given_name,status,stock_grams,fixed_retail_price_usd,owner_user_id)
+      VALUES
+      ('teaware','account-a','Teaware','Tea Tray','Tea Tray','Active',0,20,NULL),
+      ('draft-tea','account-a','Oolong','Draft Tea','Draft Tea','Draft',40,0.4,NULL),
+      ('archived-tea','account-a','Oolong','Archived Tea','Archived Tea','Archived',40,0.4,NULL)`).run();
     db.sqlite.prepare(`INSERT INTO stock_holds(id,account_id,invoice_id,product_id,held_grams,expires_at)
       VALUES ('hold-a','account-a','other-order','person-tea',25,datetime('now','+1 day'))`).run();
     const response = await call(db, '/api/sales/eligible-products', { userId: 'seller' });
@@ -150,6 +156,7 @@ describe('Tea Master sales grants and eligibility', () => {
       expect.objectContaining({ product_id: 'person-tea', owner_id: 'stock-owner', physical_quantity: 100, held_quantity: 25, available_quantity: 75, permission_reason: 'active_grant' }),
       expect.objectContaining({ product_id: 'location-tea', owner_id: null, permission_reason: 'location_stock' }),
     ]));
+    expect(rows.map(row => row.product_id)).not.toEqual(expect.arrayContaining(['teaware', 'draft-tea', 'archived-tea']));
     expect(JSON.stringify(rows)).not.toContain('@test.dev');
   });
 });

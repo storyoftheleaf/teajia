@@ -3,6 +3,7 @@ import { X, Plus, Trash2, Search, FileDown, Loader2, RotateCcw, Phone, Mail, Mes
 import Fuse from 'fuse.js';
 import { api } from '../../lib/api';
 import type { EligibleSalesProduct } from '../../lib/api';
+import { useAppStore } from '../../lib/store';
 import { Currency, InvoiceDisplayItem, Product, ContactChannel, ContactEntry } from '../types';
 import { useRates } from '../hooks/useAdminData';
 import { formatCurrency } from '../utils';
@@ -24,7 +25,7 @@ export interface EligibleQuickInvoiceSuggestion {
   name: string;
   unit: 'g' | 'pcs';
   price: number;
-  product?: Product;
+  product: Product;
   eligibility: EligibleSalesProduct;
 }
 
@@ -33,16 +34,17 @@ export function buildEligibleQuickInvoiceSuggestions(
   eligibleRows: EligibleSalesProduct[],
 ): EligibleQuickInvoiceSuggestion[] {
   const productsById = new Map(products.map(product => [product.id, product]));
-  return eligibleRows.map(eligibility => {
+  return eligibleRows.flatMap(eligibility => {
     const product = productsById.get(eligibility.product_id);
-    return {
-      productId: eligibility.product_id,
-      name: product?.givenName || product?.productName || eligibility.product_name,
-      unit: product?.type === 'Teaware' ? 'pcs' as const : 'g' as const,
-      price: Math.max(product?.pricePerGramUSD ?? 0, eligibility.price_floor ?? 0),
+    if (!product || product.status !== 'Active' || product.type === 'Teaware') return [];
+    return [{
+      productId: product.id,
+      name: product.givenName || product.productName || eligibility.product_name,
+      unit: 'g' as const,
+      price: Math.max(product.pricePerGramUSD ?? 0, eligibility.price_floor ?? 0),
       product,
       eligibility,
-    };
+    }];
   });
 }
 
@@ -134,6 +136,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
   isOpen, onClose, onSuccess, products, showToast, prefill,
 }) => {
   const { data: rates = [] } = useRates();
+  const activeAccountId = useAppStore(state => state.activeAccountId);
 
   const [customers, setCustomers] = useState<any[]>([]);
   const [customerQuery, setCustomerQuery] = useState('');
@@ -154,6 +157,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
   const [loadingRepeat, setLoadingRepeat] = useState(false);
   const [eligibleProducts, setEligibleProducts] = useState<EligibleSalesProduct[]>([]);
   const [eligibilityStatus, setEligibilityStatus] = useState<QuickInvoiceEligibilityStatus>('loading');
+  const [eligibilityAccountId, setEligibilityAccountId] = useState<string | null>(null);
   const [eligibilityError, setEligibilityError] = useState<string | null>(null);
   const [salesValidationError, setSalesValidationError] = useState<string | null>(null);
   const eligibilityRequestRef = useRef(0);
@@ -161,9 +165,14 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
   const nameInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const latestAddedItemId = useRef<string | null>(null);
 
+  const scopedEligibleProducts = eligibilityAccountId === activeAccountId ? eligibleProducts : [];
+  const scopedEligibilityStatus: QuickInvoiceEligibilityStatus = eligibilityAccountId === activeAccountId
+    ? eligibilityStatus
+    : 'loading';
+
   const eligibleSuggestions = useMemo(
-    () => buildEligibleQuickInvoiceSuggestions(products, eligibleProducts),
-    [products, eligibleProducts],
+    () => buildEligibleQuickInvoiceSuggestions(products, scopedEligibleProducts),
+    [products, scopedEligibleProducts],
   );
 
   const productFuse = useMemo(() => new Fuse(eligibleSuggestions, {
@@ -179,14 +188,14 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
   }), [customers]);
 
   const productSuggestions = useMemo(() => {
-    if (eligibilityStatus !== 'ready') return [];
+    if (scopedEligibilityStatus !== 'ready') return [];
     if (!productQuery.trim()) return eligibleSuggestions.slice(0, 6);
     return productFuse.search(productQuery).map(r => r.item).slice(0, 6);
-  }, [eligibilityStatus, eligibleSuggestions, productQuery, productFuse]);
+  }, [scopedEligibilityStatus, eligibleSuggestions, productQuery, productFuse]);
 
   const eligibleById = useMemo(
-    () => new Map(eligibleProducts.map(row => [row.product_id, row])),
-    [eligibleProducts],
+    () => new Map(scopedEligibleProducts.map(row => [row.product_id, row])),
+    [scopedEligibleProducts],
   );
 
   const customerSuggestions = useMemo(() => {
@@ -232,18 +241,25 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
     api.customers.list('customer').then(setCustomers).catch(() => {});
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const loadEligibleProducts = async () => {
+  const loadEligibleProducts = async (accountId: string | null) => {
     const requestId = ++eligibilityRequestRef.current;
+    setEligibleProducts([]);
+    setEligibilityAccountId(accountId);
     setEligibilityStatus('loading');
     setEligibilityError(null);
+    if (!accountId) {
+      setEligibilityStatus('error');
+      setEligibilityError('Choose an account before linking stock.');
+      return;
+    }
     try {
       const rows = await api.sales.eligibleProducts();
-      if (eligibilityRequestRef.current !== requestId) return;
+      if (eligibilityRequestRef.current !== requestId || useAppStore.getState().activeAccountId !== accountId) return;
       setEligibleProducts(rows);
       setEligibilityStatus('ready');
       setSalesValidationError(null);
     } catch (error) {
-      if (eligibilityRequestRef.current !== requestId) return;
+      if (eligibilityRequestRef.current !== requestId || useAppStore.getState().activeAccountId !== accountId) return;
       setEligibleProducts([]);
       setEligibilityStatus('error');
       setEligibilityError(error instanceof Error ? error.message : 'Eligible sales inventory could not be loaded.');
@@ -252,9 +268,9 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
 
   useEffect(() => {
     if (!isOpen) return;
-    void loadEligibleProducts();
+    void loadEligibleProducts(activeAccountId);
     return () => { eligibilityRequestRef.current += 1; };
-  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen, activeAccountId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -392,7 +408,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
       showToast('All items need a name', 'error');
       return;
     }
-    const linkedValidation = validateQuickInvoiceLinkedItems(lineItems, eligibilityStatus, eligibleProducts);
+    const linkedValidation = validateQuickInvoiceLinkedItems(lineItems, scopedEligibilityStatus, scopedEligibleProducts);
     if (linkedValidation) {
       setSalesValidationError(linkedValidation);
       showToast(linkedValidation, 'error');
@@ -616,24 +632,25 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                 </button>
               </div>
 
-              {eligibilityStatus === 'loading' && (
-                <div className="mb-3 flex items-center gap-2 rounded-md border border-tea-border bg-tea-surface px-3 py-2 text-ui-11 text-tea-text-sec">
+              {scopedEligibilityStatus === 'loading' && (
+                <div role="status" aria-live="polite" className="mb-3 flex items-center gap-2 rounded-md border border-tea-border bg-tea-surface px-3 py-2 text-ui-11 text-tea-text-sec">
                   <Loader2 size={12} className="animate-spin" />
                   Checking eligible sales inventory…
                 </div>
               )}
-              {eligibilityStatus === 'error' && (
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-tea-border bg-tea-surface px-3 py-2">
+              {scopedEligibilityStatus === 'error' && (
+                <div role="alert" className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-tea-border bg-tea-surface px-3 py-2">
                   <div>
                     <p className="text-ui-11 font-medium text-tea-text">Sales inventory unavailable</p>
                     <p className="mt-0.5 text-ui-10 text-tea-text-sec">{eligibilityError || 'Linked stock cannot be verified.'}</p>
                   </div>
-                  <button type="button" onClick={() => void loadEligibleProducts()} className="tap-target text-ui-11 text-tea-gold hover:text-tea-gold-lt">Retry</button>
+                  <button type="button" onClick={() => void loadEligibleProducts(activeAccountId)} className="tap-target text-ui-11 text-tea-gold hover:text-tea-gold-lt">Retry</button>
                 </div>
               )}
-              {eligibilityStatus === 'ready' && eligibleSuggestions.length === 0 && (
-                <p className="mb-3 rounded-md border border-tea-border bg-tea-surface px-3 py-2 text-ui-11 text-tea-text-sec">No eligible linked inventory. Custom items are still available.</p>
+              {scopedEligibilityStatus === 'ready' && eligibleSuggestions.length === 0 && (
+                <p role="status" aria-live="polite" className="mb-3 rounded-md border border-tea-border bg-tea-surface px-3 py-2 text-ui-11 text-tea-text-sec">No eligible linked tea inventory. Custom items are still available.</p>
               )}
+              <p className="mb-3 text-ui-10 text-tea-text-dim">Linked stock is limited to active tea. Add Teaware only as a custom line; it will not link to or deduct stock.</p>
 
               <div className="space-y-0">
                 {lineItems.map((item, index) => (
@@ -726,10 +743,10 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                         </div>
 
                         {item.productId && (
-                          <p className={`mt-1.5 text-ui-10 ${eligibilityStatus === 'ready' && eligibleById.has(item.productId) ? 'text-tea-text-dim' : 'text-tea-text-sec'}`}>
-                            {eligibilityStatus === 'loading'
+                          <p className={`mt-1.5 text-ui-10 ${scopedEligibilityStatus === 'ready' && eligibleById.has(item.productId) ? 'text-tea-text-dim' : 'text-tea-text-sec'}`}>
+                            {scopedEligibilityStatus === 'loading'
                               ? 'Checking linked stock authorization…'
-                              : eligibilityStatus === 'error'
+                              : scopedEligibilityStatus === 'error'
                                 ? 'Linked stock unavailable until sales inventory is retried.'
                                 : eligibleById.has(item.productId)
                                   ? quickInvoiceStockLabel(eligibleById.get(item.productId)!)
