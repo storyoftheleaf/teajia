@@ -14,7 +14,7 @@ const date = (value: string) => new Intl.DateTimeFormat('en-US', {
 }).format(new Date(value));
 const statusLabel = (status: SalesSettlement['status']) => `${status.charAt(0).toUpperCase()}${status.slice(1)}`;
 
-export function SettlementLedgerView({ mode, rows, isOwner, pendingId, error, success, onRetry, onRequestPaid, onDismissMessage }: {
+export function SettlementLedgerView({ mode, rows, isOwner, pendingId, error, success, onRetry, onRequestPaid, onDismissMessage, messageRef }: {
   mode: ViewMode;
   rows: SalesSettlement[];
   isOwner: boolean;
@@ -24,6 +24,7 @@ export function SettlementLedgerView({ mode, rows, isOwner, pendingId, error, su
   onRetry: () => void;
   onRequestPaid: (row: SalesSettlement, trigger: HTMLButtonElement) => void;
   onDismissMessage: () => void;
+  messageRef?: React.Ref<HTMLDivElement>;
 }) {
   if (mode === 'loading') return <div role="status" aria-label="Loading settlements" className="space-y-3 border-y border-tea-border py-5">
     <span className="sr-only">Loading settlements</span>
@@ -39,7 +40,7 @@ export function SettlementLedgerView({ mode, rows, isOwner, pendingId, error, su
   </div>;
 
   return <>
-    {(error || success) && <div role={error ? 'alert' : 'status'} className="mb-3 flex min-h-[44px] items-center justify-between gap-3 border-y border-tea-border py-2 text-ui-12 text-tea-text-sec">
+    {(error || success) && <div ref={messageRef} tabIndex={-1} role={error ? 'alert' : 'status'} className="mb-3 flex min-h-[44px] items-center justify-between gap-3 border-y border-tea-border py-2 text-ui-12 text-tea-text-sec">
       <span>{error || success}</span><button type="button" onClick={onDismissMessage} className="tap-target shrink-0 text-tea-gold hover:text-tea-gold-lt">Dismiss</button>
     </div>}
     <div className="divide-y divide-tea-border border-y border-tea-border">
@@ -82,6 +83,7 @@ export function SettlementLedger() {
   const [message, setMessage] = React.useState<{ kind: 'error' | 'success'; text: string } | null>(null);
   const dialogRef = React.useRef<HTMLDivElement | null>(null);
   const paidTriggerRef = React.useRef<HTMLButtonElement | null>(null);
+  const messageRef = React.useRef<HTMLDivElement | null>(null);
   const tokenScoped = isTokenScopedToAccount(accountId);
 
   const closeConfirm = React.useCallback(() => {
@@ -108,6 +110,11 @@ export function SettlementLedger() {
     });
     return () => window.cancelAnimationFrame(frame);
   }, [confirming]);
+  React.useEffect(() => {
+    if (message?.kind !== 'success') return;
+    const frame = window.requestAnimationFrame(() => messageRef.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, [message]);
 
   const query = useQuery({
     queryKey: ['sales-settlements', accountId, tokenRevision], enabled: tokenScoped, retry: false, staleTime: 30_000,
@@ -143,7 +150,7 @@ export function SettlementLedger() {
         <h2 id="settlement-ledger-title" className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>Settlements</h2>
         <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-1 text-tea-text-sec`}>{isOwner ? 'Account sales split between stock owners and sellers.' : 'Sales in which you participated as seller or stock owner.'}</p>
       </div>
-      <SettlementLedgerView mode={mode} rows={rows} isOwner={isOwner} pendingId={mutation.isPending ? mutation.variables?.row.id || null : null} error={message?.kind === 'error' ? message.text : null} success={message?.kind === 'success' ? message.text : null} onRetry={() => { void query.refetch(); }} onRequestPaid={(row, trigger) => { paidTriggerRef.current = trigger; setConfirming(row); }} onDismissMessage={() => setMessage(null)} />
+      <SettlementLedgerView mode={mode} rows={rows} isOwner={isOwner} pendingId={mutation.isPending ? mutation.variables?.row.id || null : null} error={message?.kind === 'error' ? message.text : null} success={message?.kind === 'success' ? message.text : null} onRetry={() => { void query.refetch(); }} onRequestPaid={(row, trigger) => { paidTriggerRef.current = trigger; setConfirming(row); }} onDismissMessage={() => setMessage(null)} messageRef={messageRef} />
     </div>
     {isOwner && confirming && <div role="dialog" aria-modal="true" aria-labelledby="settlement-confirm-title" className="fixed inset-0 z-modal flex items-center justify-center bg-tea-bg/90 p-4">
       <div

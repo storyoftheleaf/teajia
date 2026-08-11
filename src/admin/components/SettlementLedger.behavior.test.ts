@@ -56,6 +56,7 @@ describe('SettlementLedger behavior', () => {
     expect(await page.getByRole('dialog').count()).toBe(1);
     await page.evaluate(() => (window as any).settlementLedgerTest.resolvePaid(0));
     await expect.poll(() => page.getByText('Settlement marked paid.', { exact: true }).count()).toBe(1);
+    await expect.poll(() => page.getByRole('status').evaluate(element => document.activeElement === element)).toBe(true);
   });
 
   it('shows retry and verified empty states, and never offers staff the paid action', async () => {
