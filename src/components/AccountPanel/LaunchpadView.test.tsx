@@ -1,3 +1,4 @@
+import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
@@ -27,9 +28,9 @@ const baseProps = {
   onSignOut: () => undefined,
 };
 
-const render = (isOwner: boolean, canPublish: boolean) => renderToStaticMarkup(
+const render = (isOwner: boolean, canPublish: boolean, canSell = false) => renderToStaticMarkup(
   <MemoryRouter>
-    <LaunchpadView {...baseProps} isOwner={isOwner} canPublish={canPublish} />
+    {React.createElement(LaunchpadView, { ...baseProps, isOwner, canPublish, canSell } as never)}
   </MemoryRouter>,
 );
 
@@ -64,5 +65,16 @@ describe('Launchpad operating-program entrances', () => {
     const html = render(false, true);
     expect(html).toContain('curate &amp; share');
     expect(html).toContain('create an article');
+  });
+
+  it('shows orders to someone with the Sell capability', () => {
+    const html = render(false, false, true);
+    expect(html).toContain('orders');
+    expect(html).toContain('sales &amp; fulfillment');
+  });
+
+  it('does not expose orders without the Sell capability', () => {
+    const html = render(false, false, false);
+    expect(html).not.toContain('sales &amp; fulfillment');
   });
 });

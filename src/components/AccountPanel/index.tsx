@@ -11,7 +11,7 @@ import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { useAuth } from '../../hooks/useAuth';
 import { selectHasBundle, useAppStore } from '../../lib/store';
 
-import { api, setToken, hydrateAccountStateFromToken, API_URL, clearPendingSignup, restorePendingSignup, type PendingSignup } from '../../lib/api';
+import { api, setToken, hydrateAccountStateFromToken, isTokenScopedToAccount, API_URL, clearPendingSignup, restorePendingSignup, type PendingSignup } from '../../lib/api';
 import { fetchStoreEvents, fetchStoreProducts } from '../../lib/storefrontApi';
 import { hydrateTastingJournal } from '../../lib/tastingJournalSync';
 import type { Currency } from '../../admin/types';
@@ -409,6 +409,10 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
   const membershipRole = activeMembership?.role;
   const isStaff = membershipRole === 'staff' || membershipRole === 'owner' || auth.isAdmin;
   const canPublish = auth.isAdmin || selectHasBundle({ memberships, activeAccountId, platformRole }, 'publish');
+  const canSell = isTokenScopedToAccount(activeAccountId) && (
+    activeMembership?.role === 'owner' ||
+    selectHasBundle({ memberships, activeAccountId, platformRole }, 'sell')
+  );
 
   const activeLocationStr = [activeAccount?.location_city, activeAccount?.location_country]
     .filter(Boolean)
@@ -1477,6 +1481,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 locationLabel={activeLocationStr || null}
                 isOwner={membershipRole === 'owner' || auth.isAdmin}
                 canPublish={canPublish}
+                canSell={canSell}
                 membershipsCount={memberships.length}
                 pendingInvoiceCount={pendingCount}
                 todayEventCount={todayEventCount}

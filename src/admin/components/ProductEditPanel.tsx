@@ -17,6 +17,7 @@ import { useToast } from './Toast';
 import { TastingEditorModal } from './TastingEditorModal';
 import { QrCodeModal } from './QrCodeModal';
 import { ProductCollectionsSection } from './collections/ProductCollectionsSection';
+import { SalesPermissionsPanel } from './sales/SalesPermissionsPanel';
 import { CollectionPill } from './collections/CollectionPill';
 import { AutocompleteInput } from '../../components/TeaCompass/AutocompleteInput';
 import { buildVarietyDataMap, getTeaVarietySuggestions } from '../../data/teaVarieties';
@@ -990,6 +991,8 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   const panelQueryClient = useQueryClient();
   // Stock spine step 2: only the location owner curates what shows in the shop.
   const isOwnerTier = useAppStore(selectIsOwnerTier);
+  const activeUserId = useAppStore((state) => state.activeUserId);
+  const activeAccountId = useAppStore((state) => state.activeAccountId);
   const compassEntries = useTeaCompassStore((s) => s.entries);
   const readiness = product ? getTeaReadiness(product) : null;
   const publication = product ? getEffectivePublication(product) : null;
@@ -1819,6 +1822,12 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 </div>
               </div>
             </CollapsibleSection>
+
+            {(isOwnerTier || product.ownerUserId === activeUserId) && activeAccountId && (
+              <CollapsibleSection title="Sales permissions" description="Who may sell this holding and on what terms." defaultOpen={false}>
+                <SalesPermissionsPanel productId={product.id} accountId={activeAccountId} />
+              </CollapsibleSection>
+            )}
 
             {/* 8. Events */}
             <CollapsibleSection title="Events" description="Tasting aggregate, guest impressions, and the events this tea appeared at." defaultOpen={false}>

@@ -173,6 +173,7 @@ export default function AccountSettingsPage() {
       <div>
         <h1 className="h2">Account Settings</h1>
         <p className="label-caps text-tea-text-dim mt-1">Profile · Security</p>
+        <a href="/account/profile" className="tap-target mt-3 inline-flex text-ui-13 text-tea-gold transition-colors hover:text-tea-gold-lt">Tea Master profile</a>
       </div>
 
       {/* Identity card */}

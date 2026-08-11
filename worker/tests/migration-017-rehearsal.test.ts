@@ -41,10 +41,11 @@ function initializeLedger(database: string, appliedNames: string[] = []): void {
   }
 }
 
-function applyTrackedMigrations(database: string): string[] {
+function applyTrackedMigrations(database: string, stopBefore?: string): string[] {
   initializeLedger(database);
   const applied: string[] = [];
   for (const name of migrationNames) {
+    if (name === stopBefore) break;
     const alreadyApplied = sqlite(database, `
       SELECT EXISTS(SELECT 1 FROM d1_migrations WHERE name = ${quote(name)});
     `) === '1';
@@ -71,7 +72,7 @@ describe('migration 017 rehearsals', () => {
       ORDER BY name;
     `);
     expect(output.split('\n')).toEqual(['account_members', 'accounts', 'identity_email_verifications', 'private_recordings', 'provider_jobs']);
-    expect(migrationNames.at(-1)).toBe('126_tea_master_integrity.sql');
+    expect(migrationNames.at(-1)).toBe('127_tea_master_sales.sql');
     expect(sqlite(database, `SELECT name FROM pragma_table_info('tea_compass_entries') WHERE name='sample_set_id';`)).toBe('sample_set_id');
     expect(sqlite(database, `SELECT name FROM pragma_table_info('tea_compass_entries') WHERE name='classification';`)).toBe('classification');
   }));
@@ -81,10 +82,16 @@ describe('migration 017 rehearsals', () => {
     sqlite(database, `INSERT INTO products(id, type, product_name) VALUES ('legacy', 'Oolong', 'Legacy tea');`);
     initializeLedger(database, ['017_multi_account.sql']);
 
-    const applied = applyTrackedMigrations(database);
+    const appliedBeforeSales = applyTrackedMigrations(database, '127_tea_master_sales.sql');
+    sqlite(database, `
+      INSERT INTO stock_holds(id,account_id,invoice_id,product_id,held_grams)
+        VALUES ('legacy-valid','acc_teajia_bali','pending-old','legacy',15),
+               ('legacy-unsafe',NULL,'pending-old','legacy',5);
+    `);
+    const appliedSales = applyTrackedMigrations(database);
 
-    expect(applied.at(0)).toBe('017_multi_account_patched.sql');
-    expect(applied.at(-1)).toBe('126_tea_master_integrity.sql');
+    expect(appliedBeforeSales.at(0)).toBe('017_multi_account_patched.sql');
+    expect(appliedSales).toEqual(['127_tea_master_sales.sql']);
     expect(sqlite(database, `SELECT account_id FROM products WHERE id='legacy';`)).toBe('acc_teajia_bali');
     expect(sqlite(database, `SELECT name FROM sqlite_master WHERE type='table' AND name='private_recordings';`))
       .toBe('private_recordings');
@@ -93,6 +100,17 @@ describe('migration 017 rehearsals', () => {
     expect(sqlite(database, `SELECT COUNT(*) FROM users WHERE email_verified_at IS NULL;`)).toBe('0');
     expect(sqlite(database, `SELECT name FROM pragma_table_info('tea_sample_sets') WHERE name='archived';`)).toBe('archived');
     expect(sqlite(database, `SELECT name FROM pragma_table_info('tea_compass_entries') WHERE name='sample_set_id';`)).toBe('sample_set_id');
+    expect(sqlite(database, `SELECT group_concat(name, ',') FROM pragma_table_info('stock_holds') ORDER BY cid;`))
+      .toBe('id,account_id,invoice_id,product_id,held_grams,expires_at');
+    expect(sqlite(database, `SELECT id || ':' || held_grams || ':' || (expires_at IS NULL) FROM stock_holds ORDER BY id;`))
+      .toBe('legacy-valid:15.0:1');
+    sqlite(database, `
+      INSERT INTO invoices(id,invoice_number,status,account_id) VALUES ('pending-reservation','TST-1','Pending','acc_teajia_bali');
+      INSERT INTO stock_holds(id,account_id,invoice_id,product_id,held_grams,expires_at)
+        VALUES ('pending-hold','acc_teajia_bali','pending-reservation','legacy',10,datetime('now','+2 days'));
+    `);
+    expect(sqlite(database, `SELECT held_grams || ':' || (expires_at IS NOT NULL) FROM stock_holds WHERE id='pending-hold';`))
+      .toBe('10.0:1');
   }), 30_000);
 
   it('makes a real repeated migration-ledger application a no-op', () => withDatabase((database) => {
