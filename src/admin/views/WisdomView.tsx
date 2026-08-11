@@ -27,7 +27,6 @@ import {
   nodeTypeForHolding,
 } from '../components/wisdom/relations';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
-import { useAppStore } from '../../lib/store';
 import { TEA_REFERENCE_PREVIEW_ENABLED } from '../../wisdom/reference/previewMode';
 import { TeaReferenceIssuesView } from './TeaReferenceIssuesView';
 
