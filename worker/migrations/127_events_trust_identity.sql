@@ -34,6 +34,8 @@ CREATE UNIQUE INDEX uniq_events_id_account
   ON events(id, account_id);
 CREATE UNIQUE INDEX uniq_event_attendees_id_event_account
   ON event_attendees(id, event_id, account_id);
+CREATE UNIQUE INDEX uniq_customers_id_account
+  ON customers(id, account_id);
 CREATE UNIQUE INDEX uniq_account_members_user_account
   ON account_members(user_id, account_id);
 
@@ -57,7 +59,9 @@ CREATE TABLE event_party_members (
   FOREIGN KEY(event_id, account_id)
     REFERENCES events(id, account_id),
   FOREIGN KEY(participation_id, event_id, account_id)
-    REFERENCES event_attendees(id, event_id, account_id)
+    REFERENCES event_attendees(id, event_id, account_id),
+  FOREIGN KEY(customer_id, account_id)
+    REFERENCES customers(id, account_id)
 );
 
 INSERT INTO event_party_members (

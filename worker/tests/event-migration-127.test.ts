@@ -12,7 +12,10 @@ function pre127Database(): DatabaseSync {
     PRAGMA foreign_keys = ON;
     CREATE TABLE accounts (id TEXT PRIMARY KEY);
     CREATE TABLE users (id TEXT PRIMARY KEY);
-    CREATE TABLE customers (id TEXT PRIMARY KEY);
+    CREATE TABLE customers (
+      id TEXT PRIMARY KEY,
+      account_id TEXT
+    );
     CREATE TABLE products (id TEXT PRIMARY KEY);
     CREATE TABLE contributors (
       id TEXT PRIMARY KEY,
@@ -33,6 +36,7 @@ function pre127Database(): DatabaseSync {
 
   db.exec(migration('003_events.sql'));
   db.exec(migration('004_events_v2.sql'));
+  db.exec(migration('004_saved_locations.sql'));
   db.exec(`
     ALTER TABLE events ADD COLUMN account_id TEXT;
     ALTER TABLE event_attendees ADD COLUMN account_id TEXT;
@@ -46,7 +50,8 @@ function pre127Database(): DatabaseSync {
   db.exec(`
     INSERT INTO accounts(id) VALUES ('account-one'), ('account-two');
     INSERT INTO users(id) VALUES ('user-one'), ('user-two');
-    INSERT INTO customers(id) VALUES ('customer-one'), ('customer-two');
+    INSERT INTO customers(id, account_id)
+      VALUES ('customer-one', 'account-one'), ('customer-two', 'account-two');
     INSERT INTO contributors(id, account_id)
       VALUES ('host-one', 'account-one'), ('host-two', 'account-two');
     INSERT INTO account_members(id, account_id, user_id)
@@ -143,6 +148,15 @@ describe('migration 127', () => {
     db.close();
   });
 
+  it('fails backfill when an attendee customer belongs to another account', () => {
+    const db = pre127Database();
+    expect(db.prepare('PRAGMA foreign_keys').get()).toEqual({ foreign_keys: 1 });
+    db.exec(`UPDATE event_attendees SET customer_id='customer-two' WHERE id='attendee-one'`);
+
+    expect(() => applyMigration127(db)).toThrow(/FOREIGN KEY/);
+    db.close();
+  });
+
   it('rejects cross-event and cross-account identity links', () => {
     const db = pre127Database();
     applyMigration127(db);
@@ -156,6 +170,14 @@ describe('migration 127', () => {
       INSERT INTO event_party_members(
         id, account_id, event_id, participation_id, full_name, seat_status
       ) VALUES ('cross-party-account', 'account-two', 'event-one', 'attendee-one', 'Guest', 'requested')
+    `)).toThrow(/FOREIGN KEY/);
+    expect(() => db.exec(`
+      INSERT INTO event_party_members(
+        id, account_id, event_id, participation_id, customer_id, full_name, seat_status
+      ) VALUES (
+        'cross-party-customer', 'account-one', 'event-one', 'attendee-one',
+        'customer-two', 'Guest', 'requested'
+      )
     `)).toThrow(/FOREIGN KEY/);
     expect(() => db.exec(`
       INSERT INTO event_consents(id, account_id, event_id, attendee_id)
@@ -241,6 +263,7 @@ describe('migration 127', () => {
         'idx_event_team_assignments_event_user',
         'uniq_events_id_account',
         'uniq_event_attendees_id_event_account',
+        'uniq_customers_id_account',
         'uniq_account_members_user_account',
         'uniq_event_party_members_primary'
       ) ORDER BY name
@@ -250,6 +273,7 @@ describe('migration 127', () => {
       { name: 'idx_event_team_assignments_event_user' },
       { name: 'idx_events_account_lifecycle_date' },
       { name: 'uniq_account_members_user_account' },
+      { name: 'uniq_customers_id_account' },
       { name: 'uniq_event_attendees_id_event_account' },
       { name: 'uniq_event_party_members_primary' },
       { name: 'uniq_events_id_account' },
@@ -325,6 +349,23 @@ describe('migration 127', () => {
 
     for (const table of ['event_party_members', 'event_consents', 'event_contributors', 'event_team_assignments']) {
       expect(tableShape(canonical, table), table).toEqual(tableShape(migrated, table));
+    }
+    migrated.close();
+    canonical.close();
+  });
+
+  it('keeps event parent column order and attributes aligned with the migrated schema', () => {
+    const migrated = pre127Database();
+    applyMigration127(migrated);
+    const canonical = new DatabaseSync(':memory:');
+    canonical.exec(readFileSync(join(workerDir, 'schema.sql'), 'utf8'));
+
+    for (const table of ['events', 'event_attendees']) {
+      expect(canonical.prepare(`
+        SELECT name, type, "notnull", dflt_value, pk FROM pragma_table_info(?) ORDER BY cid
+      `).all(table), table).toEqual(migrated.prepare(`
+        SELECT name, type, "notnull", dflt_value, pk FROM pragma_table_info(?) ORDER BY cid
+      `).all(table));
     }
     migrated.close();
     canonical.close();

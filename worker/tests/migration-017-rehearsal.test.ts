@@ -44,7 +44,7 @@ function initializeLedger(database: string, appliedNames: string[] = []): void {
   }
 }
 
-function applyTrackedMigrations(database: string): string[] {
+function applyTrackedMigrations(database: string, through?: string): string[] {
   initializeLedger(database);
   const applied: string[] = [];
   for (const name of migrationNames) {
@@ -60,6 +60,7 @@ function applyTrackedMigrations(database: string): string[] {
       COMMIT;
     `);
     applied.push(name);
+    if (name === through) break;
   }
   return applied;
 }
@@ -84,15 +85,22 @@ describe('migration 017 rehearsals', () => {
     expect(sqlite(database, 'PRAGMA foreign_keys;')).toBe('1');
     sqlite(database, `
       INSERT INTO products(id, type, product_name) VALUES ('legacy', 'Oolong', 'Legacy tea');
-      INSERT INTO events(id, slug, title, event_date, status)
-        VALUES ('legacy-event', 'legacy-event', 'Legacy event', '2026-09-01', 'active');
-      INSERT INTO event_attendees(
-        id, event_id, full_name, phone_number, status, magic_token
-      ) VALUES ('legacy-attendee', 'legacy-event', 'Legacy guest', '1', 'confirmed', 'legacy-magic');
     `);
     initializeLedger(database, ['017_multi_account.sql']);
 
-    const applied = applyTrackedMigrations(database);
+    const firstBatch = applyTrackedMigrations(database, '017_multi_account_patched.sql');
+    sqlite(database, `
+      INSERT INTO events(id, slug, title, event_date, status, account_id)
+      VALUES
+        ('legacy-bali-event', 'legacy-bali-event', 'Legacy Bali event', '2026-09-01', 'active', 'acc_teajia_bali'),
+        ('legacy-australia-event', 'legacy-australia-event', 'Legacy Australia event', '2026-09-02', 'closed', 'acc_teajia_australia');
+      INSERT INTO event_attendees(
+        id, event_id, full_name, phone_number, status, magic_token, account_id
+      ) VALUES
+        ('legacy-bali-attendee', 'legacy-bali-event', 'Bali guest', '1', 'confirmed', 'legacy-bali-magic', 'acc_teajia_bali'),
+        ('legacy-australia-attendee', 'legacy-australia-event', 'Australia guest', '2', 'waitlist', 'legacy-australia-magic', 'acc_teajia_australia');
+    `);
+    const applied = [...firstBatch, ...applyTrackedMigrations(database)];
 
     expect(applied.at(0)).toBe('017_multi_account_patched.sql');
     expect(applied.at(-1)).toBe('127_events_trust_identity.sql');
@@ -104,15 +112,37 @@ describe('migration 017 rehearsals', () => {
     expect(sqlite(database, `SELECT COUNT(*) FROM users WHERE email_verified_at IS NULL;`)).toBe('0');
     expect(sqlite(database, `SELECT name FROM pragma_table_info('tea_sample_sets') WHERE name='archived';`)).toBe('archived');
     expect(sqlite(database, `SELECT name FROM pragma_table_info('tea_compass_entries') WHERE name='sample_set_id';`)).toBe('sample_set_id');
-    expect(sqlite(database, `SELECT lifecycle_status FROM events WHERE id='legacy-event';`)).toBe('published');
+    expect(sqlite(database, `
+      SELECT id || '|' || lifecycle_status FROM events
+       WHERE id IN ('legacy-bali-event', 'legacy-australia-event') ORDER BY id;
+    `).split('\n')).toEqual([
+      'legacy-australia-event|registration_closed',
+      'legacy-bali-event|published',
+    ]);
     expect(sqlite(database, `
       SELECT account_id || '|' || event_id || '|' || participation_id || '|' || is_primary || '|' || seat_status
-        FROM event_party_members WHERE participation_id='legacy-attendee';
-    `)).toBe('acc_teajia_bali|legacy-event|legacy-attendee|1|confirmed');
+        FROM event_party_members
+       WHERE participation_id IN ('legacy-bali-attendee', 'legacy-australia-attendee')
+       ORDER BY participation_id;
+    `).split('\n')).toEqual([
+      'acc_teajia_australia|legacy-australia-event|legacy-australia-attendee|1|requested',
+      'acc_teajia_bali|legacy-bali-event|legacy-bali-attendee|1|confirmed',
+    ]);
+    expect(() => sqlite(database, `
+      INSERT INTO event_party_members(
+        id, account_id, event_id, participation_id, full_name, seat_status
+      ) VALUES (
+        'cross-tenant-party', 'acc_teajia_bali', 'legacy-bali-event',
+        'legacy-australia-attendee', 'Cross tenant', 'requested'
+      );
+    `)).toThrow(/FOREIGN KEY constraint failed/);
     expect(() => sqlite(database, `
       INSERT INTO event_party_members(
         id, account_id, event_id, participation_id, full_name, is_primary, seat_status
-      ) VALUES ('duplicate-primary', 'acc_teajia_bali', 'legacy-event', 'legacy-attendee', 'Duplicate', 1, 'confirmed');
+      ) VALUES (
+        'duplicate-primary', 'acc_teajia_bali', 'legacy-bali-event',
+        'legacy-bali-attendee', 'Duplicate', 1, 'confirmed'
+      );
     `)).toThrow(/UNIQUE constraint failed/);
   }), 30_000);
 

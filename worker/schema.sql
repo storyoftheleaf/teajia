@@ -176,6 +176,8 @@ CREATE TABLE IF NOT EXISTS customers (
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
 );
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_customers_id_account
+  ON customers(id, account_id);
 
 -- Global public-person identity. `account_id` is the editorial steward;
 -- contributor_accounts below carries the person's many public store ties.
@@ -1380,6 +1382,8 @@ CREATE TABLE IF NOT EXISTS events (
   status TEXT DEFAULT 'draft' CHECK(status IN ('draft', 'active', 'closed', 'archived')),
   session_flow TEXT,
   playlist_url TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now')),
   briefing_cards TEXT,
   interested_list TEXT,
   area_hint TEXT,
@@ -1398,9 +1402,7 @@ CREATE TABLE IF NOT EXISTS events (
   network_discovery INTEGER NOT NULL DEFAULT 1
     CHECK(network_discovery IN (0, 1)),
   recap_status TEXT NOT NULL DEFAULT 'draft'
-    CHECK(recap_status IN ('draft','published')),
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now'))
+    CHECK(recap_status IN ('draft','published'))
 );
 CREATE INDEX IF NOT EXISTS idx_events_slug ON events(slug);
 CREATE INDEX IF NOT EXISTS idx_events_status ON events(status);
@@ -1432,6 +1434,7 @@ CREATE TABLE IF NOT EXISTS event_attendees (
   claimed_at TEXT,
   claim_expires_at TEXT,
   attended INTEGER,
+  created_at TEXT DEFAULT (datetime('now')),
   guest_requests TEXT,
   first_visit_briefed INTEGER DEFAULT 0,
   cancellation_note TEXT,
@@ -1442,7 +1445,6 @@ CREATE TABLE IF NOT EXISTS event_attendees (
   user_id TEXT REFERENCES users(id),
   payment_status TEXT NOT NULL DEFAULT 'not_required'
     CHECK(payment_status IN ('not_required','pending','paid','waived','refunded')),
-  created_at TEXT DEFAULT (datetime('now')),
   UNIQUE(event_id, phone_number)
 );
 CREATE INDEX IF NOT EXISTS idx_attendees_event ON event_attendees(event_id);
@@ -1555,7 +1557,9 @@ CREATE TABLE IF NOT EXISTS event_party_members (
   FOREIGN KEY(event_id, account_id)
     REFERENCES events(id, account_id),
   FOREIGN KEY(participation_id, event_id, account_id)
-    REFERENCES event_attendees(id, event_id, account_id)
+    REFERENCES event_attendees(id, event_id, account_id),
+  FOREIGN KEY(customer_id, account_id)
+    REFERENCES customers(id, account_id)
 );
 CREATE INDEX IF NOT EXISTS idx_event_party_members_event_seat
   ON event_party_members(event_id, seat_status);
