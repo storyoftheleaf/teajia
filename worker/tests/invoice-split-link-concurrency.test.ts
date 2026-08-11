@@ -24,9 +24,15 @@ class SplitLinkDb {
   fulfillBeforeMutableRead = false;
   stealBeforeSplitBatch = false;
   stealBeforeLinkBatch = false;
+  claimAttempts = 0;
+  throwOnSplitBatchPrepare = false;
 
   prepare(sql: string) {
     const normalized = sql.replace(/\s+/g, ' ').trim().toLowerCase();
+    if (this.throwOnSplitBatchPrepare && this.invoice.fulfillment_claim_token && normalized.startsWith('update accounts set invoice_seq')) {
+      this.throwOnSplitBatchPrepare = false;
+      throw new Error('unexpected split statement construction failure');
+    }
     let values: any[] = [];
     const statement = {
       sql,
@@ -36,6 +42,7 @@ class SplitLinkDb {
         if (normalized.includes('from account_members am')) return { role: 'owner', permissions: '{}', kind: 'location' };
         if (normalized.includes('select status from accounts')) return { status: 'active' };
         if (normalized.startsWith('update invoices set fulfillment_claim_token = ?')) {
+          this.claimAttempts += 1;
           const stale = this.invoice.fulfillment_claim_token != null
             && (this.invoice.fulfillment_claimed_at == null || new Date(this.invoice.fulfillment_claimed_at).getTime() < Date.now() - 5 * 60_000);
           const allowed = normalized.includes("status = 'pending'")
@@ -192,6 +199,31 @@ const split = (db: SplitLinkDb) => rpc(db, '/api/rpc/split-invoice', { invoice_i
 const link = (db: SplitLinkDb) => rpc(db, '/api/rpc/link-line-item', { invoice_id: 'invoice-a', line_item_id: 'line-a', product_id: 'product-a' });
 
 describe('invoice split and line-link lifecycle fencing', () => {
+  it.each([
+    { invoice_id: null, line_item_ids: ['line-a'] },
+    { invoice_id: '   ', line_item_ids: ['line-a'] },
+    { invoice_id: 'invoice-a', line_item_ids: null },
+    { invoice_id: 'invoice-a', line_item_ids: 'line-a' },
+    { invoice_id: 'invoice-a', line_item_ids: [] },
+    { invoice_id: 'invoice-a', line_item_ids: ['   '] },
+    { invoice_id: 'invoice-a', line_item_ids: ['line-a', 'line-a'] },
+  ])('rejects malformed split identifiers before claiming: $invoice_id / $line_item_ids', async body => {
+    const db = new SplitLinkDb();
+    const response = await rpc(db, '/api/rpc/split-invoice', body as any);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ error: expect.any(String) });
+    expect(db.claimAttempts).toBe(0);
+    expect(db.sequence).toBe(1); expect(db.createdInvoices).toEqual([]); expect(db.audits).toBe(0);
+  });
+
+  it('token-safely releases after an unexpected post-claim exception', async () => {
+    const db = new SplitLinkDb(); db.throwOnSplitBatchPrepare = true;
+    expect((await split(db)).status).toBe(500);
+    expect(db.claimAttempts).toBe(1);
+    expect(db.invoice.fulfillment_claim_token).toBeNull();
+    expect(db.sequence).toBe(1); expect(db.createdInvoices).toEqual([]); expect(db.audits).toBe(0);
+  });
+
   it('claims a Pending invoice before reading split line inputs', async () => {
     const db = new SplitLinkDb(); db.fulfillBeforeMutableRead = true;
     expect((await split(db)).status).toBe(201);

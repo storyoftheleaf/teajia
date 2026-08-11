@@ -4275,7 +4275,20 @@ const handleSplitInvoice: Handler = async (request, env) => {
   const { accountId } = ctx;
 
   const userEmail = getUserEmail(request);
-  const { invoice_id, line_item_ids } = await request.json() as { invoice_id: string; line_item_ids: string[] };
+  const parsed = await readInvoiceJson(request);
+  if ('error' in parsed) return parsed.error;
+  const rawInvoiceId = parsed.value.invoice_id;
+  const rawLineItemIds = parsed.value.line_item_ids;
+  if (typeof rawInvoiceId !== 'string' || !rawInvoiceId.trim()
+    || !Array.isArray(rawLineItemIds) || rawLineItemIds.length === 0
+    || rawLineItemIds.some(itemId => typeof itemId !== 'string' || !itemId.trim())) {
+    return restError(400, 'invoice_id and a nonempty line_item_ids string array are required', 'validation_failed');
+  }
+  const invoice_id = rawInvoiceId.trim();
+  const line_item_ids = rawLineItemIds.map(itemId => (itemId as string).trim());
+  if (new Set(line_item_ids).size !== line_item_ids.length) {
+    return restError(400, 'line_item_ids must contain unique values', 'validation_failed');
+  }
 
   const splitClaim = crypto.randomUUID();
   const invoice = await env.DB.prepare(
@@ -4295,25 +4308,26 @@ const handleSplitInvoice: Handler = async (request, env) => {
     'UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?'
   ).bind(invoice_id, accountId, splitClaim).run();
 
-  let allItems: D1Result<Record<string, any>>;
   try {
-    allItems = await env.DB.prepare(
-      'SELECT * FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
-    ).bind(invoice_id, accountId).all() as D1Result<Record<string, any>>;
-  } catch (error) {
-    console.error('handleSplitInvoice line read failed:', error);
-    await releaseClaim().catch(() => {});
-    return json({ error: 'Split failed before any changes were committed' }, 500);
-  }
-  if (line_item_ids.length === 0 || line_item_ids.length >= allItems.results.length) {
-    await releaseClaim().catch(() => {});
-    return json({ error: 'Must select a proper subset of items to split' }, 400);
-  }
-  const ownedLineIds = new Set((allItems.results as Record<string, any>[]).map(item => String(item.id)));
-  if (line_item_ids.some(itemId => !ownedLineIds.has(itemId))) {
-    await releaseClaim().catch(() => {});
-    return json({ error: 'Selected line item not found on this invoice' }, 400);
-  }
+    let allItems: D1Result<Record<string, any>>;
+    try {
+      allItems = await env.DB.prepare(
+        'SELECT * FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
+      ).bind(invoice_id, accountId).all() as D1Result<Record<string, any>>;
+    } catch (error) {
+      console.error('handleSplitInvoice line read failed:', error);
+      await releaseClaim().catch(() => {});
+      return json({ error: 'Split failed before any changes were committed' }, 500);
+    }
+    if (line_item_ids.length >= allItems.results.length) {
+      await releaseClaim().catch(() => {});
+      return json({ error: 'Must select a proper subset of items to split' }, 400);
+    }
+    const ownedLineIds = new Set((allItems.results as Record<string, any>[]).map(item => String(item.id)));
+    if (line_item_ids.some(itemId => !ownedLineIds.has(itemId))) {
+      await releaseClaim().catch(() => {});
+      return json({ error: 'Selected line item not found on this invoice' }, 400);
+    }
 
   const newId = crypto.randomUUID();
 
@@ -4400,7 +4414,12 @@ const handleSplitInvoice: Handler = async (request, env) => {
     .bind(newId, accountId).first() as { invoice_number?: string } | null;
   newNumber = String(created?.invoice_number || '');
   await ensureContactRelationship(env, accountId, invoice.customer_id, 'buyer', 'workflow', 'invoice', newId);
-  return json({ original_id: invoice_id, new_id: newId, new_invoice_number: newNumber }, 201);
+    return json({ original_id: invoice_id, new_id: newId, new_invoice_number: newNumber }, 201);
+  } catch (error) {
+    console.error('handleSplitInvoice unexpected failure:', error);
+    await releaseClaim().catch(() => {});
+    return json({ error: 'Split failed — no changes were committed' }, 500);
+  }
 };
 
 // ── Update Invoice Items (edit pending order) ──
