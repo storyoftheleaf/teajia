@@ -64,6 +64,11 @@
   Normalized error: `http_500`
   Evidence: [server-post-api-tasting-journal-sync-500-http-500-c6566bdc.json](evidence/server-post-api-tasting-journal-sync-500-http-500-c6566bdc.json)
 
+- [ ] `server_post_api_verify_request_503_http_503` — **high**
+  1 occurrence · first 2026-08-11T02:46:51Z · last 2026-08-11T02:46:51Z
+  Normalized error: `http_503`
+  Evidence: [server-post-api-verify-request-503-http-503-7ee643ea.json](evidence/server-post-api-verify-request-503-http-503-7ee643ea.json)
+
 - [ ] `client_get_app_shell_none_chunk_load_recovered` — **medium**
   1 occurrence · first 2026-08-09T07:56:44Z · last 2026-08-09T07:56:44Z
   Normalized error: `chunk_load_recovered`
