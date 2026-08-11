@@ -12,7 +12,7 @@ import {
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
 import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
-import { deriveConfirmedInvoiceLine, repairCandidate } from './invoiceDomain';
+import { deriveConfirmedInvoiceLine, repairCandidate, validateRetailInvoiceInput, type RetailInvoiceInput } from './invoiceDomain';
 import { buildEventArticleDraft } from './eventArticleDraft';
 import { candidateToApi, impressionToApi, parseCandidateInput } from './tastingNoteCuration';
 import { deliverVerificationCode } from './verificationDelivery';
@@ -3478,17 +3478,67 @@ export function formatInvoiceNumber(accountPrefix: string | null, seq: number): 
   return accountPrefix ? `${accountPrefix}-${padded}` : padded;
 }
 
+function invalidInvoiceResponse(error: unknown): Response {
+  return restError(400, error instanceof Error ? error.message : 'Invalid invoice', 'invalid_invoice');
+}
+
+async function readInvoiceJson(request: Request): Promise<{ value: Record<string, unknown> } | { error: Response }> {
+  try {
+    const value = await request.json();
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new RangeError('invoice body must be an object');
+    return { value: value as Record<string, unknown> };
+  } catch (error) {
+    return { error: invalidInvoiceResponse(error) };
+  }
+}
+
+function validateExplicitInvoiceLifecycle(body: Record<string, unknown>): Response | null {
+  if (Object.prototype.hasOwnProperty.call(body, 'status') && body.status !== 'Draft' && body.status !== 'Pending') {
+    return invalidInvoiceResponse(new RangeError('status must be Draft or Pending'));
+  }
+  if (Object.prototype.hasOwnProperty.call(body, 'payment_status') && body.payment_status !== 'unpaid') {
+    return invalidInvoiceResponse(new RangeError('payment_status must be unpaid'));
+  }
+  return null;
+}
+
+async function validateRetailInvoiceOwnership(env: Env, accountId: string, input: RetailInvoiceInput): Promise<Response | null> {
+  const productIds = [...new Set(input.lineItems.map(item => item.product_id).filter((id): id is string => id !== null))];
+  for (const productId of productIds) {
+    const product = await env.DB.prepare('SELECT id FROM products WHERE id = ? AND account_id = ?')
+      .bind(productId, accountId).first();
+    if (!product) return restError(404, 'Invoice product not found', 'invoice_product_not_found', { product_id: productId });
+  }
+  if (input.customer_id) {
+    const customer = await env.DB.prepare('SELECT id FROM customers WHERE id = ? AND account_id = ?')
+      .bind(input.customer_id, accountId).first();
+    if (!customer) return restError(404, 'Invoice customer not found', 'invoice_customer_not_found', { customer_id: input.customer_id });
+  }
+  return null;
+}
+
 const handleCreateInvoice: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'sell');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
   const userEmail = getUserEmail(request);
-  const body = await request.json() as { invoice: Record<string, any>; lineItems: Record<string, any>[] };
-  const id = crypto.randomUUID();
-  const paymentStatus = body.invoice.payment_status || 'unpaid';
+  const parsed = await readInvoiceJson(request);
+  if ('error' in parsed) return parsed.error;
+  const body = parsed.value;
+  let input: RetailInvoiceInput;
+  try {
+    const invoice = body?.invoice && typeof body.invoice === 'object' && !Array.isArray(body.invoice) ? body.invoice : {};
+    input = validateRetailInvoiceInput({ ...invoice, lineItems: body?.lineItems });
+  } catch (error) {
+    return invalidInvoiceResponse(error);
+  }
+  const ownershipError = await validateRetailInvoiceOwnership(env, accountId, input);
+  if (ownershipError) return ownershipError;
 
-  const lineItemStmts = body.lineItems.map((item: Record<string, any>) =>
+  const id = crypto.randomUUID();
+
+  const lineItemStmts = input.lineItems.map(item =>
     env.DB.prepare(
       'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, custom_name, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?, ?, ?)'
     ).bind(crypto.randomUUID(), accountId, id, item.product_id ?? null, item.custom_name ?? null, item.quantity, item.price_at_sale)
@@ -3514,21 +3564,21 @@ const handleCreateInvoice: Handler = async (request, env) => {
       id,
       accountId,
       invoiceNumber,
-      body.invoice.customer_name,
-      body.invoice.customer_whatsapp || null,
-      body.invoice.customer_id || null,
-      body.invoice.display_currency,
-      body.invoice.shipping_cost_usd || 0,
-      body.invoice.status || 'Pending',
+      input.customer_name,
+      input.customer_whatsapp,
+      input.customer_id,
+      input.display_currency,
+      input.shipping_cost_usd,
+      input.status,
       0,
-      body.invoice.notes || null,
-      body.invoice.source_event_id || null,
-      paymentStatus
+      input.notes,
+      input.source_event_id,
+      input.payment_status
     );
 
     const logStmt = buildActivityLog(
       env, 'INVOICE_CREATED',
-      `Invoice ${invoiceNumber} created for ${body.invoice.customer_name} (${body.lineItems.length} items)`,
+      `Invoice ${invoiceNumber} created for ${input.customer_name} (${input.lineItems.length} items)`,
       userEmail, 'invoice', id, accountId
     );
 
@@ -3547,7 +3597,7 @@ const handleCreateInvoice: Handler = async (request, env) => {
     return json({ error: 'Could not allocate a unique invoice number — please retry' }, 409);
   }
 
-  await ensureContactRelationship(env, accountId, body.invoice.customer_id, 'buyer', 'workflow', 'invoice', id);
+  await ensureContactRelationship(env, accountId, input.customer_id, 'buyer', 'workflow', 'invoice', id);
 
   return json({ id, invoice_number: invoiceNumber }, 201);
 };
@@ -3575,15 +3625,59 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
-  const body = await request.json() as Record<string, any>;
-  delete body.account_id;
-  const INVOICE_ALLOWED_COLS = new Set(['customer_name','customer_id','customer_phone','customer_email','status','notes','display_currency','amount_usd','shipping_cost_usd','message_text','payment_status','paid_at','payment_date','due_date','payment_method','currency_rate','source_event_id']);
-  const cols = Object.keys(body).filter(k => INVOICE_ALLOWED_COLS.has(k));
+  const parsed = await readInvoiceJson(request);
+  if ('error' in parsed) return parsed.error;
+  const body = parsed.value;
+  const INVOICE_ALLOWED_COLS = new Set(['customer_name','customer_id','customer_whatsapp','status','notes','display_currency','shipping_cost_usd','payment_status','payment_date','payment_method','source_event_id']);
+  const validatedFields = validatedUpdateFields(body, INVOICE_ALLOWED_COLS);
+  if ('error' in validatedFields) return validatedFields.error;
+  const lifecycleError = validateExplicitInvoiceLifecycle(body);
+  if (lifecycleError) return lifecycleError;
+  const invoice = await env.DB.prepare('SELECT id FROM invoices WHERE id = ? AND account_id = ?')
+    .bind(params.id, accountId).first();
+  if (!invoice) return restError(404, 'Invoice not found', 'invoice_not_found');
+
+  let normalized: RetailInvoiceInput;
+  try {
+    normalized = validateRetailInvoiceInput({
+      customer_name: Object.prototype.hasOwnProperty.call(body, 'customer_name') ? body.customer_name : 'validation',
+      customer_id: body.customer_id,
+      customer_whatsapp: body.customer_whatsapp,
+      display_currency: body.display_currency,
+      shipping_cost_usd: body.shipping_cost_usd,
+      status: body.status,
+      notes: body.notes,
+      source_event_id: body.source_event_id,
+      payment_status: body.payment_status,
+      lineItems: [{ custom_name: 'validation', quantity: 1, price_at_sale: 0 }],
+    });
+  } catch (error) {
+    return invalidInvoiceResponse(error);
+  }
+  if (body.customer_id !== undefined && normalized.customer_id) {
+    const customer = await env.DB.prepare('SELECT id FROM customers WHERE id = ? AND account_id = ?')
+      .bind(normalized.customer_id, accountId).first();
+    if (!customer) return restError(404, 'Invoice customer not found', 'invoice_customer_not_found', { customer_id: normalized.customer_id });
+  }
+
+  const normalizedValues: Record<string, unknown> = {
+    ...body,
+    customer_name: normalized.customer_name,
+    customer_id: normalized.customer_id,
+    customer_whatsapp: normalized.customer_whatsapp,
+    display_currency: normalized.display_currency,
+    shipping_cost_usd: normalized.shipping_cost_usd,
+    status: normalized.status,
+    notes: normalized.notes,
+    source_event_id: normalized.source_event_id,
+    payment_status: normalized.payment_status,
+  };
+  const cols = validatedFields.fields;
   if (cols.length === 0) return json({ success: true });
   const sets = cols.map(c => `${c} = ?`).join(', ');
   await env.DB.prepare(`UPDATE invoices SET ${sets} WHERE id = ? AND account_id = ?`)
-    .bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
-  await ensureContactRelationship(env, accountId, body.customer_id, 'buyer', 'workflow', 'invoice', params.id);
+    .bind(...cols.map(c => normalizedValues[c] ?? null), params.id, accountId).run();
+  await ensureContactRelationship(env, accountId, normalized.customer_id, 'buyer', 'workflow', 'invoice', params.id);
   return json({ success: true });
 };
 
@@ -4193,27 +4287,41 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
   const { accountId } = ctx;
 
   const userEmail = getUserEmail(request);
+  const parsed = await readInvoiceJson(request);
+  if ('error' in parsed) return parsed.error;
+  const body = parsed.value;
+  const lifecycleError = validateExplicitInvoiceLifecycle(body);
+  if (lifecycleError) return lifecycleError;
   const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ? AND account_id = ?')
     .bind(params.id, accountId).first();
   if (!invoice) return json({ error: 'Invoice not found' }, 404);
   if (invoice.status !== 'Pending') return json({ error: 'Only Pending invoices can be edited' }, 400);
 
-  const body = await request.json() as {
-    lineItems?: { product_id: string; quantity: number; price_at_sale: number; custom_name?: string }[];
-    shipping_cost_usd?: number;
-    customer_name?: string;
-    customer_id?: string;
-    display_currency?: string;
-    notes?: string;
-  };
+  const hasReplacementLines = Object.prototype.hasOwnProperty.call(body, 'lineItems');
+  let lines: unknown = body.lineItems;
+  if (!hasReplacementLines) {
+    const existing = await env.DB.prepare(
+      'SELECT product_id, custom_name, quantity, price_at_sale FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
+    ).bind(params.id, accountId).all();
+    lines = existing.results;
+  }
+
+  let input: RetailInvoiceInput;
+  try {
+    input = validateRetailInvoiceInput({ ...invoice, ...body, lineItems: lines });
+  } catch (error) {
+    return invalidInvoiceResponse(error);
+  }
+  const ownershipError = await validateRetailInvoiceOwnership(env, accountId, input);
+  if (ownershipError) return ownershipError;
 
   const stmts: D1PreparedStatement[] = [];
 
-  if (body.lineItems) {
+  if (hasReplacementLines) {
     stmts.push(env.DB.prepare(
       'DELETE FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
     ).bind(params.id, accountId));
-    for (const item of body.lineItems) {
+    for (const item of input.lineItems) {
       stmts.push(env.DB.prepare(
         'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, custom_name, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?, ?, ?)'
       ).bind(crypto.randomUUID(), accountId, params.id, item.product_id ?? null, item.custom_name ?? null, item.quantity, item.price_at_sale));
@@ -4222,12 +4330,21 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
 
   const updates: string[] = [];
   const vals: any[] = [];
-  const ALLOWED_ITEM_UPDATES = new Set(['shipping_cost_usd','customer_name','customer_id','display_currency','notes','customer_phone','customer_email']);
-  for (const [key, val] of Object.entries(body)) {
+  const ALLOWED_ITEM_UPDATES = new Set(['shipping_cost_usd','customer_name','customer_id','customer_whatsapp','display_currency','notes','source_event_id']);
+  const normalizedValues: Record<string, unknown> = {
+    shipping_cost_usd: input.shipping_cost_usd,
+    customer_name: input.customer_name,
+    customer_id: input.customer_id,
+    customer_whatsapp: input.customer_whatsapp,
+    display_currency: input.display_currency,
+    notes: input.notes,
+    source_event_id: input.source_event_id,
+  };
+  for (const key of Object.keys(body)) {
     if (key === 'lineItems') continue;
     if (!ALLOWED_ITEM_UPDATES.has(key)) continue;
     updates.push(`${key} = ?`);
-    vals.push(val ?? null);
+    vals.push(normalizedValues[key] ?? null);
   }
   if (updates.length > 0) {
     stmts.push(
@@ -4237,11 +4354,11 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
   }
 
   stmts.push(buildActivityLog(env, 'INVOICE_EDITED',
-    `Invoice ${invoice.invoice_number} edited.${body.lineItems ? ` ${body.lineItems.length} line items.` : ''}`,
+    `Invoice ${invoice.invoice_number} edited.${hasReplacementLines ? ` ${input.lineItems.length} line items.` : ''}`,
     userEmail, 'invoice', params.id, accountId));
 
   await env.DB.batch(stmts);
-  await ensureContactRelationship(env, accountId, body.customer_id, 'buyer', 'workflow', 'invoice', params.id);
+  await ensureContactRelationship(env, accountId, input.customer_id, 'buyer', 'workflow', 'invoice', params.id);
   return json({ success: true });
 };
 

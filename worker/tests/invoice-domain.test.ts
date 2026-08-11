@@ -3,6 +3,7 @@ import {
   deriveConfirmedInvoiceLine,
   invoiceLineTotal,
   repairCandidate,
+  validateRetailInvoiceInput,
 } from '../src/invoiceDomain';
 
 describe('invoice line invariant', () => {
@@ -153,5 +154,90 @@ describe('invoice line invariant', () => {
       recommendedPriceUsd: 12,
       catalogUnitPriceUsd: 0.3,
     })).toThrow(RangeError);
+  });
+});
+
+describe('retail invoice input', () => {
+  const validInput = () => ({
+    customer_name: '  Ada Buyer  ',
+    lineItems: [
+      { product_id: 'product-a', custom_name: '  ignored label  ', quantity: 2, price_at_sale: 4.5 },
+      { product_id: null, custom_name: '  Gift tin  ', quantity: 1, price_at_sale: 0 },
+    ],
+  });
+
+  it('normalizes text and applies safe retail defaults', () => {
+    expect(validateRetailInvoiceInput(validInput())).toEqual({
+      customer_name: 'Ada Buyer',
+      customer_whatsapp: null,
+      customer_id: null,
+      display_currency: 'USD',
+      shipping_cost_usd: 0,
+      status: 'Pending',
+      notes: null,
+      source_event_id: null,
+      payment_status: 'unpaid',
+      lineItems: [
+        { product_id: 'product-a', custom_name: 'ignored label', quantity: 2, price_at_sale: 4.5 },
+        { product_id: null, custom_name: 'Gift tin', quantity: 1, price_at_sale: 0 },
+      ],
+    });
+  });
+
+  it('defaults nullable persisted header values for legacy pending invoices', () => {
+    expect(validateRetailInvoiceInput({
+      ...validInput(),
+      display_currency: null,
+      shipping_cost_usd: null,
+      status: null,
+      payment_status: null,
+    })).toMatchObject({
+      display_currency: 'USD',
+      shipping_cost_usd: 0,
+      status: 'Pending',
+      payment_status: 'unpaid',
+    });
+  });
+
+  it.each(['NT', 'Yuan'])('preserves the established case-sensitive currency code %s', display_currency => {
+    expect(validateRetailInvoiceInput({ ...validInput(), display_currency }).display_currency).toBe(display_currency);
+  });
+
+  it.each([
+    ['missing customer name', { customer_name: undefined }],
+    ['blank customer name', { customer_name: '   ' }],
+    ['missing lines', { lineItems: undefined }],
+    ['empty lines', { lineItems: [] }],
+    ['negative shipping', { shipping_cost_usd: -1 }],
+    ['non-finite shipping', { shipping_cost_usd: Number.POSITIVE_INFINITY }],
+    ['malformed currency', { display_currency: 'US dollars' }],
+    ['terminal create status', { status: 'Filled' }],
+    ['terminal payment status', { payment_status: 'paid' }],
+  ])('rejects %s', (_label, override) => {
+    expect(() => validateRetailInvoiceInput({ ...validInput(), ...override })).toThrow(RangeError);
+  });
+
+  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY])('rejects invalid quantity %s', quantity => {
+    const input = validInput();
+    input.lineItems[0].quantity = quantity;
+    expect(() => validateRetailInvoiceInput(input)).toThrow(RangeError);
+  });
+
+  it.each([-1, Number.NaN, Number.POSITIVE_INFINITY])('rejects invalid price %s', price_at_sale => {
+    const input = validInput();
+    input.lineItems[0].price_at_sale = price_at_sale;
+    expect(() => validateRetailInvoiceInput(input)).toThrow(RangeError);
+  });
+
+  it('rejects a line without a product or nonempty custom name', () => {
+    const input = validInput();
+    input.lineItems = [{ product_id: null, custom_name: ' ', quantity: 1, price_at_sale: 1 }];
+    expect(() => validateRetailInvoiceInput(input)).toThrow(RangeError);
+  });
+
+  it('rejects numeric strings instead of coercing them', () => {
+    const input = validInput() as any;
+    input.lineItems[0].quantity = '2';
+    expect(() => validateRetailInvoiceInput(input)).toThrow(RangeError);
   });
 });
