@@ -37,6 +37,10 @@ type FakeDbState = {
   tickets: Map<string, { payload_json: string; expires_at: number; consumed_at: number | null }>;
   failFulfillmentBatch: boolean;
   stealLeaseBeforeBatch: boolean;
+  editBeforeLineRead: boolean;
+  fulfillBeforeVoidRead: boolean;
+  lineReads: number;
+  stealVoidLeaseBeforeBatch: boolean;
 };
 
 class FakeStatement {
@@ -74,17 +78,18 @@ class FakeStatement {
       return { role: 'staff', permissions: JSON.stringify({ bundles: ['sell'] }) };
     }
     if (sql.includes('from invoices where id = ? and account_id = ?')) {
-      return this.state.invoice;
+      return { ...this.state.invoice };
     }
     if (sql.includes('from products where id = ? and account_id = ?')) {
       return this.state.products.get(String(this.values[0])) || null;
     }
     if (sql.startsWith('update invoices set fulfillment_claim_token = ?')) {
       const stale = this.state.invoice.fulfillment_claim_token != null && (this.state.invoice.fulfillment_claimed_at == null || new Date(this.state.invoice.fulfillment_claimed_at).getTime() < Date.now() - 5 * 60_000);
-      if (this.state.invoice.inventory_deducted || (this.state.invoice.fulfillment_claim_token && !stale)) return null;
+      const allowedStatuses = sql.includes("status in ('draft', 'pending')") ? ['Draft', 'Pending'] : ['Draft', 'Pending', 'Filled'];
+      if (!allowedStatuses.includes(this.state.invoice.status) || (sql.includes('inventory_deducted = 0') && this.state.invoice.inventory_deducted) || (this.state.invoice.fulfillment_claim_token && !stale)) return null;
       this.state.invoice.fulfillment_claim_token = String(this.values[0]);
       this.state.invoice.fulfillment_claimed_at = new Date().toISOString();
-      return { id: this.state.invoice.id };
+      return { ...this.state.invoice };
     }
     if (sql.startsWith('update mcp_confirmation_tickets set consumed_at')) {
       // consumeConfirmationToken binds (now, token_hash, now)
@@ -102,6 +107,19 @@ class FakeStatement {
     const sql = normalizeSql(this.sql);
     // The line-items query LEFT JOINs products for name + stock fields.
     if (sql.includes('from invoice_line_items')) {
+      this.state.lineReads += 1;
+      if (this.state.editBeforeLineRead && !this.state.invoice.fulfillment_claim_token) {
+        this.state.editBeforeLineRead = false;
+        this.state.lineItems[0].quantity = 50;
+      }
+      if (this.state.fulfillBeforeVoidRead && !this.state.invoice.fulfillment_claim_token) {
+        this.state.fulfillBeforeVoidRead = false;
+        this.state.invoice.status = 'Filled';
+        this.state.invoice.inventory_deducted = 1;
+        this.state.products.get('prod_test')!.stock_grams = 20;
+        this.state.listings.get('list_prod_test')!.stock_grams = 20;
+        this.state.ledger.push({ product_id: 'prod_test', delta: -80, balance_after: 20 });
+      }
       return {
         results: this.state.lineItems.map(li => {
           const p = li.product_id ? this.state.products.get(li.product_id) : undefined;
@@ -137,6 +155,13 @@ class FakeDb {
       this.state.listings.get('list_prod_test')!.stock_grams = 20;
       this.state.ledger.push({ product_id: 'prod_test', delta: -80, balance_after: 20 });
     }
+    if (this.state.stealVoidLeaseBeforeBatch && statements.some(statement => normalizeSql(statement.sql).startsWith("update invoices set status = 'void'"))) {
+      this.state.stealVoidLeaseBeforeBatch = false;
+      this.state.invoice.fulfillment_claim_token = 'winning-void'; this.state.invoice.status = 'Void'; this.state.invoice.inventory_deducted = 0;
+      this.state.products.get('prod_test')!.stock_grams = 100;
+      this.state.listings.get('list_prod_test')!.stock_grams = 100;
+      this.state.ledger = [{ product_id: 'prod_test', delta: 80, balance_after: 100 }];
+    }
     const snapshot = { invoice: { ...this.state.invoice }, products: new Map([...this.state.products].map(([id, row]) => [id, { ...row }])), listings: new Map([...this.state.listings].map(([id, row]) => [id, { ...row }])), ledger: this.state.ledger.map(row => ({ ...row })) };
     const results = [];
     try {
@@ -162,8 +187,7 @@ function runStatement(state: FakeDbState, statement: FakeStatement) {
   const sql = normalizeSql(statement.sql);
   const values = statement.values;
   if (sql.includes('fulfillment_claim_token = ?') && !sql.startsWith('update invoices set fulfillment_claim_token = ?')) {
-    const claim = String(values.at(-1));
-    if (state.invoice.fulfillment_claim_token !== claim) return { success: true, meta: { changes: 0 }, results: [] };
+    if (!values.includes(state.invoice.fulfillment_claim_token)) return { success: true, meta: { changes: 0 }, results: [] };
   }
 
   if (sql.startsWith('insert into mcp_confirmation_tickets')) {
@@ -194,6 +218,18 @@ function runStatement(state: FakeDbState, statement: FakeStatement) {
     return { success: true, meta: { changes: 1 } };
   }
 
+  if (sql.startsWith('update products set stock_grams = stock_grams + ?')) {
+    const product = state.products.get(String(values[1]));
+    if (product) product.stock_grams += Number(values[0]);
+    return { success: true, meta: { changes: product ? 1 : 0 } };
+  }
+
+  if (sql.startsWith('update product_listings set stock_grams = stock_grams + ?')) {
+    const listing = state.listings.get(String(values[1]));
+    if (listing) listing.stock_grams += Number(values[0]);
+    return { success: true, meta: { changes: listing ? 1 : 0 } };
+  }
+
   if (sql.startsWith('insert into stock_ledger')) {
     state.ledger.push({
       product_id: String(values[1]),
@@ -206,10 +242,18 @@ function runStatement(state: FakeDbState, statement: FakeStatement) {
   // Single-statement commit: status and inventory_deducted are set together
   // inside the batch (atomicity comes from DB.batch, not a -1 claim phase).
   if (sql.startsWith("update invoices set status = 'filled', inventory_deducted = 1")) {
-    if (state.invoice.fulfillment_claim_token !== values[2]) return { success: true, meta: { changes: 0 } };
+    if (!values.includes(state.invoice.fulfillment_claim_token)) return { success: true, meta: { changes: 0 } };
     state.invoice.status = 'Filled';
     state.invoice.inventory_deducted = 1;
     state.invoice.fulfilled_at ||= '2026-07-13 00:00:00';
+    state.invoice.fulfillment_claim_token = null;
+    state.invoice.fulfillment_claimed_at = null;
+    return { success: true, meta: { changes: 1 } };
+  }
+  if (sql.startsWith("update invoices set status = 'void', inventory_deducted = 0")) {
+    if (sql.includes('fulfillment_claim_token = ?') && !values.includes(state.invoice.fulfillment_claim_token)) return { success: true, meta: { changes: 0 } };
+    state.invoice.status = 'Void';
+    state.invoice.inventory_deducted = 0;
     state.invoice.fulfillment_claim_token = null;
     state.invoice.fulfillment_claimed_at = null;
     return { success: true, meta: { changes: 1 } };
@@ -258,10 +302,14 @@ function makeState(stockGrams: number): FakeDbState {
     tickets: new Map(),
     failFulfillmentBatch: false,
     stealLeaseBeforeBatch: false,
+    editBeforeLineRead: false,
+    fulfillBeforeVoidRead: false,
+    lineReads: 0,
+    stealVoidLeaseBeforeBatch: false,
   };
 }
 
-async function callMcp(state: FakeDbState, args: Record<string, unknown>) {
+async function callMcp(state: FakeDbState, args: Record<string, unknown>, name = 'fulfill_invoice') {
   const response = await mcpFetch(new Request('https://worker.test/mcp', {
     method: 'POST',
     headers: {
@@ -272,7 +320,7 @@ async function callMcp(state: FakeDbState, args: Record<string, unknown>) {
       jsonrpc: '2.0',
       id: 1,
       method: 'tools/call',
-      params: { name: 'fulfill_invoice', arguments: args },
+      params: { name, arguments: args },
     }),
   }), { DB: new FakeDb(state) } as any);
   const rpc = await response.json() as any;
@@ -407,5 +455,57 @@ describe('MCP invoice fulfillment', () => {
     expect(state.listings.get('list_prod_test')?.stock_grams).toBe(65);
     expect(state.ledger).toEqual([{ product_id: 'prod_test', delta: -35, balance_after: 65 }]);
     expect(result.items_fulfilled).toBe(1);
+  });
+
+  it('claims before confirm-time line reads so an edit cannot change fulfillment inputs', async () => {
+    const state = makeState(100);
+    const preview = await callMcp(state, { invoice_id: 'inv_test' });
+    state.editBeforeLineRead = true;
+    const result = await callMcp(state, { invoice_id: 'inv_test', confirm: preview.confirmation_token });
+    expect(result.committed).toBe(true);
+    expect(state.lineItems[0].quantity).toBe(40);
+    expect(state.products.get('prod_test')?.stock_grams).toBe(20);
+  });
+
+  it('rejects an unsupported fulfillment status before reading line inputs', async () => {
+    const state = makeState(100); state.invoice.status = 'Filled';
+    const result = await callMcp(state, { invoice_id: 'inv_test' });
+    expect(result.error).toBe('invoice_status_cannot_be_fulfilled');
+    expect(state.lineReads).toBe(0);
+  });
+
+  it('releases the MCP fulfillment claim after confirm-time stock rejection', async () => {
+    const state = makeState(100);
+    const preview = await callMcp(state, { invoice_id: 'inv_test' });
+    state.products.get('prod_test')!.stock_grams = 20;
+    const result = await callMcp(state, { invoice_id: 'inv_test', confirm: preview.confirmation_token });
+    expect(result.error).toBe('stock_underflow_at_commit');
+    expect(state.invoice.fulfillment_claim_token).toBeNull();
+    expect(state.products.get('prod_test')?.stock_grams).toBe(20);
+    expect(state.ledger).toEqual([]);
+  });
+
+  it('void claims before confirm-time restoration reads and blocks a competing fulfillment', async () => {
+    const state = makeState(100);
+    const preview = await callMcp(state, { invoice_id: 'inv_test' }, 'void_invoice');
+    state.fulfillBeforeVoidRead = true;
+    const result = await callMcp(state, { invoice_id: 'inv_test', confirm: preview.confirmation_token }, 'void_invoice');
+    expect(result.committed).toBe(true);
+    expect(state.invoice.status).toBe('Void');
+    expect(state.products.get('prod_test')?.stock_grams).toBe(100);
+    expect(state.ledger).toEqual([]);
+    expect(state.invoice.fulfillment_claim_token).toBeNull();
+  });
+
+  it('fences MCP restoration when another void wins after the claim', async () => {
+    const state = makeState(60);
+    Object.assign(state.invoice, { status: 'Filled', inventory_deducted: 1 });
+    const preview = await callMcp(state, { invoice_id: 'inv_test' }, 'void_invoice');
+    state.stealVoidLeaseBeforeBatch = true;
+    const result = await callMcp(state, { invoice_id: 'inv_test', confirm: preview.confirmation_token }, 'void_invoice');
+    expect(result.error).toBe('invoice_void_lease_lost');
+    expect(state.invoice).toMatchObject({ status: 'Void', inventory_deducted: 0, fulfillment_claim_token: 'winning-void' });
+    expect(state.products.get('prod_test')?.stock_grams).toBe(100);
+    expect(state.ledger).toEqual([{ product_id: 'prod_test', delta: 80, balance_after: 100 }]);
   });
 });
