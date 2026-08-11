@@ -390,6 +390,68 @@ describe('Events Release 1 persisted route contracts', () => {
     }
   });
 
+  it.each(['completed', 'cancelled'])('preserves canonical %s for a legacy closed no-op edit', async (lifecycleStatus) => {
+    const db = seedEventContractDb();
+    try {
+      db.sqlite.prepare(`UPDATE events SET status = 'closed', lifecycle_status = ? WHERE id = ?`)
+        .run(lifecycleStatus, 'event-a');
+
+      const response = await adminEventRequest(db, '/api/admin/events/event-a', {
+        method: 'PUT',
+        body: JSON.stringify({ title: `Edited ${lifecycleStatus}`, status: 'closed' }),
+      });
+      expect(response.status).toBe(200);
+      expect(db.sqlite.prepare(`SELECT title, status, lifecycle_status FROM events WHERE id = ?`).get('event-a'))
+        .toEqual({ title: `Edited ${lifecycleStatus}`, status: 'closed', lifecycle_status: lifecycleStatus });
+    } finally {
+      db.close();
+    }
+  });
+
+  it('rejects a stale lifecycle transition without overwriting the concurrent state', async () => {
+    const db = seedEventContractDb();
+    let injectedRace = false;
+    const racingDb = {
+      sqlite: db.sqlite,
+      prepare(sql: string) {
+        const statement = db.prepare(sql);
+        const normalized = sql.replace(/\s+/g, ' ').trim().toLowerCase();
+        if (!injectedRace && normalized === 'select status, lifecycle_status from events where id = ? and account_id = ?') {
+          const wrapped = {
+            bind(...values: unknown[]) {
+              statement.bind(...values);
+              return wrapped;
+            },
+            first<T>() {
+              const result = statement.first<T>();
+              db.sqlite.prepare(`UPDATE events SET status = 'closed', lifecycle_status = 'cancelled' WHERE id = ?`)
+                .run('event-a');
+              injectedRace = true;
+              return result;
+            },
+          };
+          return wrapped;
+        }
+        return statement;
+      },
+      batch: db.batch.bind(db),
+      exec: db.exec.bind(db),
+    } as unknown as SqliteD1;
+
+    try {
+      const response = await adminEventRequest(racingDb, '/api/admin/events/event-a', {
+        method: 'PUT',
+        body: JSON.stringify({ title: 'Stale edit', lifecycle_status: 'registration_closed' }),
+      });
+      expect(response.status).toBe(409);
+      expect(await response.json()).toEqual({ error: 'Event lifecycle changed; retry the update' });
+      expect(db.sqlite.prepare(`SELECT title, status, lifecycle_status FROM events WHERE id = ?`).get('event-a'))
+        .toEqual({ title: 'Cliff Tea', status: 'closed', lifecycle_status: 'cancelled' });
+    } finally {
+      db.close();
+    }
+  });
+
   it.each([
     ['closed', 'registration_closed'],
     ['archived', 'archived'],

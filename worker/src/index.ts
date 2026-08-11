@@ -9480,6 +9480,14 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
   if (!currentEvent) return json({ error: 'Event not found' }, 404);
 
   let requestedLifecycle: EventLifecycle | undefined;
+  let currentLifecycle: EventLifecycle | undefined;
+  if (body.lifecycle_status !== undefined || body.status !== undefined) {
+    if (!isEventLifecycleStatus(currentEvent.lifecycle_status)) {
+      return json({ error: 'Event has an invalid lifecycle status' }, 409);
+    }
+    currentLifecycle = currentEvent.lifecycle_status;
+  }
+
   if (isEventLifecycleStatus(body.lifecycle_status)) {
     requestedLifecycle = body.lifecycle_status;
     const compatibleStatus = EVENT_STATUS_BY_LIFECYCLE[requestedLifecycle];
@@ -9488,15 +9496,13 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
     }
     body.status = compatibleStatus;
   } else if (isLegacyEventStatus(body.status)) {
-    requestedLifecycle = EVENT_LIFECYCLE_BY_STATUS[body.status];
+    requestedLifecycle = body.status === currentEvent.status
+      ? currentLifecycle
+      : EVENT_LIFECYCLE_BY_STATUS[body.status];
     body.lifecycle_status = requestedLifecycle;
   }
 
-  if (requestedLifecycle !== undefined) {
-    if (!isEventLifecycleStatus(currentEvent.lifecycle_status)) {
-      return json({ error: 'Event has an invalid lifecycle status' }, 409);
-    }
-    const currentLifecycle = currentEvent.lifecycle_status;
+  if (requestedLifecycle !== undefined && currentLifecycle !== undefined) {
     if (
       requestedLifecycle !== currentLifecycle
       && !EVENT_TRANSITIONS[currentLifecycle].includes(requestedLifecycle)
@@ -9524,9 +9530,19 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
   const sets = cols.map(c => `${c} = ?`).join(', ');
+  const lifecycleCompare = requestedLifecycle !== undefined ? currentLifecycle : undefined;
   const result = await env.DB.prepare(
-    `UPDATE events SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
-  ).bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
+    `UPDATE events SET ${sets}, updated_at = datetime('now')
+     WHERE id = ? AND account_id = ?${lifecycleCompare !== undefined ? ' AND lifecycle_status = ?' : ''}`
+  ).bind(
+    ...cols.map(c => body[c] ?? null),
+    params.id,
+    accountId,
+    ...(lifecycleCompare !== undefined ? [lifecycleCompare] : []),
+  ).run();
+  if (Number(result.meta?.changes || 0) === 0 && lifecycleCompare !== undefined) {
+    return json({ error: 'Event lifecycle changed; retry the update' }, 409);
+  }
   if (Number(result.meta?.changes || 0) === 0) return json({ error: 'Event not found' }, 404);
 
   return json({ success: true });
