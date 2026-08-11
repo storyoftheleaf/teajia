@@ -83,6 +83,11 @@ function seed(db: SqliteD1) {
 
 function seedEvent(db: SqliteD1, productId: string) {
   db.sqlite.exec(`
+    DROP TABLE IF EXISTS event_tasting_notes;
+    DROP TABLE IF EXISTS event_party_members;
+    DROP TABLE IF EXISTS event_attendees;
+    DROP TABLE IF EXISTS event_tea_menu;
+    DROP TABLE IF EXISTS events;
     CREATE TABLE events (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, status TEXT, updated_at TEXT);
     CREATE TABLE event_tea_menu (id TEXT PRIMARY KEY, event_id TEXT NOT NULL, product_id TEXT, brew_order INTEGER);
     CREATE TABLE event_attendees (id TEXT PRIMARY KEY, event_id TEXT NOT NULL, full_name TEXT, phone_number TEXT, email TEXT, customer_id TEXT, attended INTEGER);
