@@ -8559,7 +8559,7 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
 };
 
 // GET /api/events/:slug/recap — public post-session recap (no auth required)
-// Only returns an explicit public projection for canonically completed events
+// Only returns an explicit public projection for completed or archived events
 // whose host published the recap from a public, active account.
 const handleGetPublicEventRecap: Handler = async (_request, env, params) => {
   const event = await env.DB.prepare(
@@ -8567,7 +8567,7 @@ const handleGetPublicEventRecap: Handler = async (_request, env, params) => {
      FROM events e
      JOIN accounts a ON a.id = e.account_id
      WHERE e.slug = ?
-       AND e.lifecycle_status = 'completed'
+       AND e.lifecycle_status IN ('completed', 'archived')
        AND e.recap_status = 'published'
        AND e.public_visibility = 'public'
        AND a.status = 'active'
@@ -9138,7 +9138,7 @@ const handleGetPostSession: Handler = async (_request, env, params) => {
   if (attendee.status !== 'confirmed' || Number(attendee.attended) !== 1) {
     return json({ error: 'Post-session recap is available only to confirmed attendees' }, 403);
   }
-  if (attendee.lifecycle_status !== 'completed') {
+  if (attendee.lifecycle_status !== 'completed' && attendee.lifecycle_status !== 'archived') {
     return json({ error: 'Post-session recap is not available until the event is completed' }, 409);
   }
   if (attendee.recap_status !== 'published') {

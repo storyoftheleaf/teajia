@@ -252,7 +252,7 @@ async function adminEventRequest(
 }
 
 function seedPostSessionGuest(db: SqliteD1, options: {
-  lifecycle?: 'published' | 'completed';
+  lifecycle?: 'published' | 'completed' | 'archived';
   recap?: 'draft' | 'published';
   status?: 'confirmed' | 'requested' | 'cancelled';
   attended?: number;
@@ -702,10 +702,10 @@ describe('Events Release 1 persisted route contracts', () => {
     }
   });
 
-  it('returns an exact public post-session projection to attendee tokens', async () => {
+  it('keeps the exact attendee projection available for an archived published recap', async () => {
     const db = seedEventContractDb();
     try {
-      seedPostSessionGuest(db);
+      seedPostSessionGuest(db, { lifecycle: 'archived' });
       seedPostSessionRecord(db);
       db.sqlite.prepare(`INSERT INTO event_consents (id, account_id, event_id, attendee_id)
         VALUES (?, ?, ?, ?)`).run('consent-a', 'account-a', 'event-a', 'guest-a');
@@ -801,6 +801,38 @@ describe('Events Release 1 persisted route contracts', () => {
     }
   });
 
+  it('returns the public projection for an archived published recap from an eligible account', async () => {
+    const db = seedEventContractDb();
+    try {
+      seedPostSessionGuest(db, { lifecycle: 'archived' });
+      seedPostSessionRecord(db);
+
+      const response = await getPublicRecap(db);
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({
+        event: {
+          id: 'event-a',
+          slug: 'cliff-tea',
+          title: 'Cliff Tea',
+          subtitle: null,
+          event_date: '2020-01-10T10:00:00Z',
+          flyer_image_url: null,
+        },
+        post_session: {
+          id: 'post-a',
+          event_id: 'event-a',
+          session_notes: 'Shared reflection',
+          gallery_images: ['public.jpg'],
+          shared_tasting_notes: ['Curated reflection'],
+        },
+        tea_menu: [],
+      });
+    } finally {
+      db.close();
+    }
+  });
+
   it.each([
     ['draft lifecycle', `UPDATE events SET status = 'closed', lifecycle_status = 'draft', recap_status = 'published' WHERE id = 'event-a'`],
     ['registration-closed lifecycle', `UPDATE events SET status = 'closed', lifecycle_status = 'registration_closed', recap_status = 'published' WHERE id = 'event-a'`],
@@ -866,6 +898,29 @@ describe('Events Release 1 persisted route contracts', () => {
       expect(premature.status).toBe(409);
       expect(await premature.json()).toEqual({ error: 'Recap can be published only after the event is completed' });
 
+      expect(db.sqlite.prepare(`SELECT recap_status FROM events WHERE id = ?`).get('event-a'))
+        .toEqual({ recap_status: 'draft' });
+      expect(db.sqlite.prepare(`SELECT session_notes FROM event_post_session WHERE event_id = ?`).get('event-a'))
+        .toEqual({ session_notes: 'Shared reflection' });
+    } finally {
+      db.close();
+    }
+  });
+
+  it('does not allow an archived draft recap to be published for the first time', async () => {
+    const db = seedEventContractDb();
+    try {
+      seedPostSessionRecord(db);
+      db.sqlite.prepare(`UPDATE events SET lifecycle_status = 'archived', recap_status = 'draft' WHERE id = ?`)
+        .run('event-a');
+
+      const response = await adminEventRequest(db, '/api/admin/events/event-a/post-session', {
+        method: 'POST',
+        body: JSON.stringify({ recap_status: 'published', session_notes: 'Late publication' }),
+      });
+
+      expect(response.status).toBe(409);
+      expect(await response.json()).toEqual({ error: 'Recap can be published only after the event is completed' });
       expect(db.sqlite.prepare(`SELECT recap_status FROM events WHERE id = ?`).get('event-a'))
         .toEqual({ recap_status: 'draft' });
       expect(db.sqlite.prepare(`SELECT session_notes FROM event_post_session WHERE event_id = ?`).get('event-a'))
