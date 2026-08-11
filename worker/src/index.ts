@@ -9854,6 +9854,16 @@ const handleDuplicateEvent: Handler = async (request, env, params) => {
   if (!source) return json({ error: 'Source event not found' }, 404);
 
   const newId = crypto.randomUUID();
+  const sourceStartMs = Date.parse(String(source.event_date || ''));
+  const sourceEndMs = source.event_end_date == null ? NaN : Date.parse(String(source.event_end_date));
+  const newStartMs = Date.parse(body.event_date);
+  const sourceDurationMs = sourceEndMs - sourceStartMs;
+  const duplicateEndDate = Number.isFinite(sourceStartMs)
+    && Number.isFinite(sourceEndMs)
+    && Number.isFinite(newStartMs)
+    && sourceDurationMs >= 0
+    ? new Date(newStartMs + sourceDurationMs).toISOString()
+    : null;
 
   await env.DB.prepare(
     `INSERT INTO events (id, account_id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
@@ -9870,7 +9880,7 @@ const handleDuplicateEvent: Handler = async (request, env, params) => {
     source.description,
     source.flyer_image_url,
     body.event_date,
-    source.event_end_date,
+    duplicateEndDate,
     source.location_name,
     source.address_text,
     source.map_link,
@@ -9946,15 +9956,28 @@ const handleGetTeaMenu: Handler = async (request, env, params) => {
   const result = await env.DB.prepare(
     `SELECT etm.*, p.given_name, p.product_name, p.chinese_name, p.type, p.image_url
      FROM event_tea_menu etm
-     LEFT JOIN products p ON p.id = etm.product_id
-     WHERE etm.event_id = ?
+     LEFT JOIN products p ON p.id = etm.product_id AND p.account_id = etm.account_id
+     WHERE etm.event_id = ? AND etm.account_id = ?
      ORDER BY etm.brew_order ASC`
-  ).bind(params.id).all();
+  ).bind(params.id, accountId).all();
 
   return json(result.results);
 };
 
 const handleGetPublicTeaMenu: Handler = async (_request, env, params) => {
+  const event = await env.DB.prepare(
+    `SELECT e.id, e.account_id
+     FROM events e
+     JOIN accounts a ON a.id = e.account_id
+     WHERE e.slug = ?
+       AND e.status = 'active'
+       AND e.lifecycle_status = 'published'
+       AND e.public_visibility = 'public'
+       AND a.status = 'active'
+       AND a.public_enabled = 1`
+  ).bind(params.slug).first();
+  if (!event) return json({ error: 'Event not found' }, 404);
+
   const result = await env.DB.prepare(
     `SELECT
        etm.id,
@@ -9967,16 +9990,16 @@ const handleGetPublicTeaMenu: Handler = async (_request, env, params) => {
        p.given_name,
        p.product_name,
        p.chinese_name,
-       p.type,
-       p.image_url
-     FROM events e
-     JOIN event_tea_menu etm
-       ON etm.event_id = e.id AND etm.account_id = e.account_id
+       p.type AS product_type,
+       p.image_url AS product_image_url
+     FROM event_tea_menu etm
      LEFT JOIN products p
-       ON p.id = etm.product_id AND p.account_id = e.account_id
-     WHERE e.slug = ?
+       ON p.id = etm.product_id AND p.account_id = etm.account_id
+     WHERE etm.event_id = ?
+       AND etm.account_id = ?
+       AND (etm.reveal_date IS NULL OR datetime(etm.reveal_date) <= datetime('now'))
      ORDER BY etm.brew_order ASC`
-  ).bind(params.slug).all();
+  ).bind(event.id, event.account_id).all();
 
   return json(result.results || []);
 };
@@ -9991,6 +10014,22 @@ const handleUpsertTeaMenu: Handler = async (request, env, params) => {
   const payload = await request.json() as { items?: Array<Record<string, any>> } | Array<Record<string, any>>;
   const items = Array.isArray(payload) ? payload : payload.items;
   if (!Array.isArray(items)) return json({ error: 'Expected an array of menu items' }, 400);
+
+  if (items.some(item => item.product_id != null && item.product_id !== '' && typeof item.product_id !== 'string')) {
+    return json({ error: 'All tea menu products must belong to the event account' }, 400);
+  }
+  const productIds = [...new Set(items
+    .map(item => item.product_id)
+    .filter((productId): productId is string => typeof productId === 'string' && productId.length > 0))];
+  if (productIds.length > 0) {
+    const placeholders = productIds.map(() => '?').join(',');
+    const products = await env.DB.prepare(
+      `SELECT id FROM products WHERE account_id = ? AND id IN (${placeholders})`
+    ).bind(accountId, ...productIds).all();
+    if ((products.results || []).length !== productIds.length) {
+      return json({ error: 'All tea menu products must belong to the event account' }, 400);
+    }
+  }
 
   const stmts: D1PreparedStatement[] = [];
 
@@ -10044,9 +10083,9 @@ const handleUpsertTeaMenu: Handler = async (request, env, params) => {
     if (seatCount > 0) {
       const menuRows = await env.DB.prepare(
         `SELECT etm.product_id, p.serving_grams FROM event_tea_menu etm
-         LEFT JOIN products p ON p.id = etm.product_id
-         WHERE etm.event_id = ? AND etm.product_id IS NOT NULL`
-      ).bind(params.id).all();
+         LEFT JOIN products p ON p.id = etm.product_id AND p.account_id = etm.account_id
+         WHERE etm.event_id = ? AND etm.account_id = ? AND etm.product_id IS NOT NULL`
+      ).bind(params.id, accountId).all();
 
       const eventHoldKey = `event:${params.id}`;
       // Clear existing event holds then re-create from current menu

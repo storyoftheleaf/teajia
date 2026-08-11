@@ -213,9 +213,13 @@ function seedEventContractDb() {
   seedIdentity(db, { userId: 'host-a', accountId: 'account-a', accountSlug: 'shop-a' });
   seedIdentity(db, { userId: 'host-b', accountId: 'account-b', accountSlug: 'shop-b' });
   db.sqlite.prepare(`INSERT INTO events
-    (id, account_id, slug, title, event_date, event_end_date, total_capacity, location_name, timezone)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run('event-a', 'account-a', 'cliff-tea', 'Cliff Tea', '2020-01-10T10:00:00Z', '2020-01-10T12:00:00Z', 12, 'Old room', 'Asia/Taipei');
+    (id, account_id, slug, title, event_date, event_end_date, total_capacity, location_name, timezone,
+     status, lifecycle_status, public_visibility)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(
+      'event-a', 'account-a', 'cliff-tea', 'Cliff Tea', '2020-01-10T10:00:00Z', '2020-01-10T12:00:00Z',
+      12, 'Old room', 'Asia/Taipei', 'active', 'published', 'public',
+    );
   db.sqlite.prepare(`INSERT INTO events
     (id, account_id, slug, title, event_date, total_capacity)
     VALUES (?, ?, ?, ?, ?, ?)`)
@@ -409,14 +413,16 @@ describe('Events Release 1 persisted route contracts', () => {
         slug: 'cliff-tea-again',
         title: 'Cliff Tea',
         event_date: '2032-05-06T10:00:00Z',
+        event_end_date: '2032-05-06T12:00:00.000Z',
         status: 'draft',
       });
-      expect(db.sqlite.prepare(`SELECT account_id, slug, title, event_date, status FROM events WHERE id = ?`)
+      expect(db.sqlite.prepare(`SELECT account_id, slug, title, event_date, event_end_date, status FROM events WHERE id = ?`)
         .get(body.id as string)).toEqual({
         account_id: 'account-a',
         slug: 'cliff-tea-again',
         title: 'Cliff Tea',
         event_date: '2032-05-06T10:00:00Z',
+        event_end_date: '2032-05-06T12:00:00.000Z',
         status: 'draft',
       });
       expect(db.sqlite.prepare(`SELECT account_id, event_id, custom_name, brew_order
@@ -441,6 +447,76 @@ describe('Events Release 1 persisted route contracts', () => {
     }
   });
 
+  it.each([
+    ['missing', null],
+    ['negative', '2030-01-02T10:00:00Z'],
+  ])('persists a null duplicate end date when the source duration is %s', async (caseName, sourceEndDate) => {
+    const db = seedEventContractDb();
+    try {
+      db.sqlite.prepare(`INSERT INTO events
+        (id, account_id, slug, title, event_date, event_end_date, total_capacity)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`)
+        .run(`event-${caseName}-duration`, 'account-a', `${caseName}-duration`, 'Invalid Duration', '2030-01-02T12:00:00Z', sourceEndDate, 4);
+
+      const response = await adminEventRequest(db, `/api/admin/events/event-${caseName}-duration/duplicate`, {
+        method: 'POST',
+        body: JSON.stringify({ slug: `${caseName}-duration-copy`, event_date: '2035-01-02T12:00:00Z' }),
+      });
+      const body = await response.json() as Record<string, unknown>;
+
+      expect(response.status).toBe(201);
+      expect(body.event_end_date).toBeNull();
+      expect(db.sqlite.prepare(`SELECT event_end_date FROM events WHERE id = ?`).get(body.id as string))
+        .toEqual({ event_end_date: null });
+    } finally {
+      db.close();
+    }
+  });
+
+  it('rejects a mixed-account tea menu atomically before mutations or holds', async () => {
+    const db = seedEventContractDb();
+    try {
+      db.sqlite.prepare(`INSERT INTO products (id, account_id, type, product_name)
+        VALUES (?, ?, ?, ?), (?, ?, ?, ?)`)
+        .run('product-a', 'account-a', 'oolong', 'Account Tea', 'product-b', 'account-b', 'black', 'Other Tea');
+      db.sqlite.prepare(`INSERT INTO event_tea_menu
+        (id, account_id, event_id, product_id, custom_name, brew_order) VALUES (?, ?, ?, ?, ?, ?)`)
+        .run('existing-menu', 'account-a', 'event-a', 'product-a', 'Original', 1);
+
+      const response = await adminEventRequest(db, '/api/admin/events/event-a/tea-menu', {
+        method: 'POST',
+        body: JSON.stringify({ items: [
+          { id: 'existing-menu', product_id: 'product-a', custom_name: 'Changed', brew_order: 1 },
+          { product_id: 'product-b', custom_name: 'Cross-account', brew_order: 2 },
+        ] }),
+      });
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({ error: 'All tea menu products must belong to the event account' });
+      expect(db.sqlite.prepare(`SELECT id, product_id, custom_name, brew_order FROM event_tea_menu ORDER BY brew_order`).all())
+        .toEqual([{ id: 'existing-menu', product_id: 'product-a', custom_name: 'Original', brew_order: 1 }]);
+      expect(db.sqlite.prepare(`SELECT * FROM stock_holds`).all()).toEqual([]);
+    } finally {
+      db.close();
+    }
+  });
+
+  it('rejects malformed non-null tea-menu product identifiers before mutation', async () => {
+    const db = seedEventContractDb();
+    try {
+      const response = await adminEventRequest(db, '/api/admin/events/event-a/tea-menu', {
+        method: 'POST',
+        body: JSON.stringify({ items: [{ product_id: 123, custom_name: 'Malformed' }] }),
+      });
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({ error: 'All tea menu products must belong to the event account' });
+      expect(db.sqlite.prepare(`SELECT * FROM event_tea_menu`).all()).toEqual([]);
+    } finally {
+      db.close();
+    }
+  });
+
   it('returns only explicit public tea-menu fields from same-account joins', async () => {
     const db = seedEventContractDb();
     try {
@@ -448,16 +524,15 @@ describe('Events Release 1 persisted route contracts', () => {
         (id, account_id, type, product_name, given_name, chinese_name, image_url, cost_amount, vendor, stock_grams)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
         .run('product-a', 'account-a', 'oolong', 'Public Tea', 'Rou Gui', '肉桂', 'https://media.test/tea.jpg', 77, 'Secret vendor', 900);
-      db.sqlite.prepare(`INSERT INTO products
-        (id, account_id, type, product_name, given_name, cost_amount, vendor, stock_grams)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
-        .run('product-b', 'account-b', 'black', 'Other Account Tea', 'Private Tea', 88, 'Other vendor', 800);
       db.sqlite.prepare(`INSERT INTO event_tea_menu
         (id, account_id, event_id, product_id, custom_name, custom_description, reveal_date, brew_order)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?, ?)`)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?),
+               (?, ?, ?, ?, ?, ?, datetime('now', '-1 day'), ?),
+               (?, ?, ?, ?, ?, ?, datetime('now', '+1 day'), ?)`)
         .run(
           'menu-a', 'account-a', 'event-a', 'product-a', null, 'Roasted cliff tea', null, 1,
-          'menu-cross', 'account-a', 'event-a', 'product-b', 'Mystery tea', 'No leak', null, 2,
+          'menu-revealed', 'account-a', 'event-a', 'product-a', 'Revealed tea', 'Already revealed', 2,
+          'menu-future', 'account-a', 'event-a', 'product-a', 'Future tea', 'Not revealed', 3,
         );
 
       const response = await worker.fetch(new Request('https://worker.test/api/events/cliff-tea/tea-menu'), { DB: db } as any);
@@ -475,24 +550,43 @@ describe('Events Release 1 persisted route contracts', () => {
           given_name: 'Rou Gui',
           product_name: 'Public Tea',
           chinese_name: '肉桂',
-          type: 'oolong',
-          image_url: 'https://media.test/tea.jpg',
+          product_type: 'oolong',
+          product_image_url: 'https://media.test/tea.jpg',
         },
         {
-          id: 'menu-cross',
+          id: 'menu-revealed',
           event_id: 'event-a',
-          product_id: 'product-b',
-          custom_name: 'Mystery tea',
-          custom_description: 'No leak',
-          reveal_date: null,
+          product_id: 'product-a',
+          custom_name: 'Revealed tea',
+          custom_description: 'Already revealed',
+          reveal_date: expect.any(String),
           brew_order: 2,
-          given_name: null,
-          product_name: null,
-          chinese_name: null,
-          type: null,
-          image_url: null,
+          given_name: 'Rou Gui',
+          product_name: 'Public Tea',
+          chinese_name: '肉桂',
+          product_type: 'oolong',
+          product_image_url: 'https://media.test/tea.jpg',
         },
       ]);
+    } finally {
+      db.close();
+    }
+  });
+
+  it.each([
+    ['inactive legacy status', `UPDATE events SET status = 'draft' WHERE id = 'event-a'`],
+    ['draft lifecycle', `UPDATE events SET lifecycle_status = 'draft' WHERE id = 'event-a'`],
+    ['private visibility', `UPDATE events SET public_visibility = 'private' WHERE id = 'event-a'`],
+    ['unlisted visibility', `UPDATE events SET public_visibility = 'unlisted' WHERE id = 'event-a'`],
+    ['inactive account', `UPDATE accounts SET status = 'suspended' WHERE id = 'account-a'`],
+    ['disabled public account', `UPDATE accounts SET public_enabled = 0 WHERE id = 'account-a'`],
+  ])('hides public tea menus for %s', async (_label, mutation) => {
+    const db = seedEventContractDb();
+    try {
+      db.exec(mutation);
+      const response = await worker.fetch(new Request('https://worker.test/api/events/cliff-tea/tea-menu'), { DB: db } as any);
+      expect(response.status).toBe(404);
+      expect(await response.json()).toEqual({ error: 'Event not found' });
     } finally {
       db.close();
     }
