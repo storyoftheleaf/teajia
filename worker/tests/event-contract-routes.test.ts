@@ -306,6 +306,10 @@ function seedPostSessionRecord(db: SqliteD1) {
   );
 }
 
+function getPublicRecap(db: SqliteD1) {
+  return worker.fetch(new Request('https://worker.test/api/events/cliff-tea/recap'), { DB: db } as any);
+}
+
 describe('Events Release 1 persisted route contracts', () => {
   it('creates active events with a published lifecycle and an eligible public menu', async () => {
     const db = seedEventContractDb();
@@ -731,6 +735,141 @@ describe('Events Release 1 persisted route contracts', () => {
         tea_ledger: { teas: ['Rou Gui'] },
         shared_tasting_notes: ['Curated reflection'],
       });
+    } finally {
+      db.close();
+    }
+  });
+
+  it('publishes post-session content atomically through the admin API for public and attendee recap access', async () => {
+    const db = seedEventContractDb();
+    try {
+      seedPostSessionGuest(db, { recap: 'draft' });
+      db.sqlite.prepare(`UPDATE events SET status = 'closed', public_visibility = 'public' WHERE id = ?`)
+        .run('event-a');
+
+      const published = await adminEventRequest(db, '/api/admin/events/event-a/post-session', {
+        method: 'POST',
+        body: JSON.stringify({
+          recap_status: 'published',
+          session_notes: 'Published reflection',
+          gallery_images: ['published.jpg'],
+          shared_tasting_notes: ['Curated public note'],
+          host_notes: 'Private host note',
+        }),
+      });
+
+      expect(published.status).toBe(200);
+      expect(await published.json()).toEqual({ success: true });
+      expect(db.sqlite.prepare(`SELECT recap_status FROM events WHERE id = ?`).get('event-a'))
+        .toEqual({ recap_status: 'published' });
+
+      const publicResponse = await getPublicRecap(db);
+      expect(publicResponse.status).toBe(200);
+      expect(await publicResponse.json()).toEqual({
+        event: {
+          id: 'event-a',
+          slug: 'cliff-tea',
+          title: 'Cliff Tea',
+          subtitle: null,
+          event_date: '2020-01-10T10:00:00Z',
+          flyer_image_url: null,
+        },
+        post_session: {
+          id: expect.any(String),
+          event_id: 'event-a',
+          session_notes: 'Published reflection',
+          gallery_images: ['published.jpg'],
+          shared_tasting_notes: ['Curated public note'],
+        },
+        tea_menu: [],
+      });
+
+      const attendeeResponse = await worker.fetch(
+        new Request('https://worker.test/api/rsvp/guest-token/post-session'),
+        { DB: db } as any,
+      );
+      expect(attendeeResponse.status).toBe(200);
+      expect(await attendeeResponse.json()).toEqual({
+        event_id: 'event-a',
+        session_notes: 'Published reflection',
+        gallery_images: ['published.jpg'],
+        tea_ledger: null,
+        shared_tasting_notes: ['Curated public note'],
+      });
+    } finally {
+      db.close();
+    }
+  });
+
+  it.each([
+    ['draft lifecycle', `UPDATE events SET status = 'closed', lifecycle_status = 'draft', recap_status = 'published' WHERE id = 'event-a'`],
+    ['registration-closed lifecycle', `UPDATE events SET status = 'closed', lifecycle_status = 'registration_closed', recap_status = 'published' WHERE id = 'event-a'`],
+    ['cancelled lifecycle', `UPDATE events SET status = 'closed', lifecycle_status = 'cancelled', recap_status = 'published' WHERE id = 'event-a'`],
+    ['draft recap', `UPDATE events SET status = 'closed', lifecycle_status = 'completed', recap_status = 'draft' WHERE id = 'event-a'`],
+    ['private visibility', `UPDATE events SET status = 'closed', lifecycle_status = 'completed', recap_status = 'published', public_visibility = 'private' WHERE id = 'event-a'`],
+    ['unlisted visibility', `UPDATE events SET status = 'closed', lifecycle_status = 'completed', recap_status = 'published', public_visibility = 'unlisted' WHERE id = 'event-a'`],
+    ['inactive account', `UPDATE events SET status = 'closed', lifecycle_status = 'completed', recap_status = 'published' WHERE id = 'event-a'; UPDATE accounts SET status = 'suspended' WHERE id = 'account-a'`],
+    ['disabled public account', `UPDATE events SET status = 'closed', lifecycle_status = 'completed', recap_status = 'published' WHERE id = 'event-a'; UPDATE accounts SET public_enabled = 0 WHERE id = 'account-a'`],
+  ])('hides a public recap for %s', async (_label, mutation) => {
+    const db = seedEventContractDb();
+    try {
+      seedPostSessionRecord(db);
+      db.exec(mutation);
+
+      const response = await getPublicRecap(db);
+
+      expect(response.status).toBe(404);
+      expect(await response.json()).toEqual({ error: 'Recap not found' });
+    } finally {
+      db.close();
+    }
+  });
+
+  it('requires the public recap child row to belong to the event account', async () => {
+    const db = seedEventContractDb();
+    try {
+      db.sqlite.prepare(`UPDATE events SET status = 'closed', lifecycle_status = 'completed', recap_status = 'published'
+        WHERE id = ?`).run('event-a');
+      db.sqlite.prepare(`INSERT INTO event_post_session
+        (id, account_id, event_id, session_notes, host_notes)
+        VALUES (?, ?, ?, ?, ?)`).run(
+        'cross-account-post', 'account-b', 'event-a', 'Leaked reflection', 'Leaked private note',
+      );
+
+      const response = await getPublicRecap(db);
+
+      expect(response.status).toBe(404);
+      expect(await response.json()).toEqual({ error: 'Recap not found' });
+    } finally {
+      db.close();
+    }
+  });
+
+  it('rejects invalid or premature recap publication without partially writing post-session content', async () => {
+    const db = seedEventContractDb();
+    try {
+      seedPostSessionRecord(db);
+      db.sqlite.prepare(`UPDATE events SET lifecycle_status = 'published', recap_status = 'draft' WHERE id = ?`)
+        .run('event-a');
+
+      const invalid = await adminEventRequest(db, '/api/admin/events/event-a/post-session', {
+        method: 'POST',
+        body: JSON.stringify({ recap_status: 'hidden', session_notes: 'Invalid mutation' }),
+      });
+      expect(invalid.status).toBe(400);
+      expect(await invalid.json()).toEqual({ error: 'Invalid recap_status' });
+
+      const premature = await adminEventRequest(db, '/api/admin/events/event-a/post-session', {
+        method: 'POST',
+        body: JSON.stringify({ recap_status: 'published', session_notes: 'Premature mutation' }),
+      });
+      expect(premature.status).toBe(409);
+      expect(await premature.json()).toEqual({ error: 'Recap can be published only after the event is completed' });
+
+      expect(db.sqlite.prepare(`SELECT recap_status FROM events WHERE id = ?`).get('event-a'))
+        .toEqual({ recap_status: 'draft' });
+      expect(db.sqlite.prepare(`SELECT session_notes FROM event_post_session WHERE event_id = ?`).get('event-a'))
+        .toEqual({ session_notes: 'Shared reflection' });
     } finally {
       db.close();
     }

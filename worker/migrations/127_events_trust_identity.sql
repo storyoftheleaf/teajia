@@ -5,6 +5,54 @@
 -- attendee columns remain in place while application consumers move to the
 -- canonical model.
 
+-- Legacy foreign keys prove that each referenced row exists, but they do not
+-- prove that an attendee or tea-menu row belongs to the tasting note's event
+-- and tenant. Fail before any domain schema/data mutation if those ownership
+-- relationships are inconsistent; duplicate ranking must never archive the
+-- wrong row in an ambiguous legacy partition.
+CREATE TABLE migration_127_tasting_note_validation (
+  violation TEXT NOT NULL CHECK(violation = 'valid')
+);
+
+INSERT INTO migration_127_tasting_note_validation(violation)
+SELECT 'event_attendee_ownership_mismatch'
+FROM event_tasting_notes AS note
+LEFT JOIN event_attendees AS attendee
+  ON attendee.id = note.attendee_id
+LEFT JOIN events AS event
+  ON event.id = note.event_id
+WHERE attendee.id IS NULL
+   OR event.id IS NULL
+   OR attendee.event_id <> note.event_id
+   OR attendee.account_id IS NULL
+   OR event.account_id IS NULL
+   OR attendee.account_id <> event.account_id
+ORDER BY note.id
+LIMIT 1;
+
+INSERT INTO migration_127_tasting_note_validation(violation)
+SELECT 'event_tea_menu_ownership_mismatch'
+FROM event_tasting_notes AS note
+JOIN event_attendees AS attendee
+  ON attendee.id = note.attendee_id
+ AND attendee.event_id = note.event_id
+JOIN events AS event
+  ON event.id = note.event_id
+ AND event.account_id = attendee.account_id
+LEFT JOIN event_tea_menu AS menu
+  ON menu.id = note.tea_menu_id
+WHERE note.tea_menu_id IS NOT NULL
+  AND (
+    menu.id IS NULL
+    OR menu.event_id <> note.event_id
+    OR menu.account_id IS NULL
+    OR menu.account_id <> event.account_id
+  )
+ORDER BY note.id
+LIMIT 1;
+
+DROP TABLE migration_127_tasting_note_validation;
+
 ALTER TABLE events ADD COLUMN lifecycle_status TEXT NOT NULL DEFAULT 'draft'
   CHECK(lifecycle_status IN ('draft','published','registration_closed','completed','cancelled','archived'));
 ALTER TABLE events ADD COLUMN public_visibility TEXT NOT NULL DEFAULT 'public'

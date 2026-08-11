@@ -8559,24 +8559,29 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
 };
 
 // GET /api/events/:slug/recap — public post-session recap (no auth required)
-// Only returns data for completed/closed events where the host has published
-// a post-session record. The tea_menu always uses the public menu endpoint data
-// so product IDs are available for shop links.
+// Only returns an explicit public projection for canonically completed events
+// whose host published the recap from a public, active account.
 const handleGetPublicEventRecap: Handler = async (_request, env, params) => {
-  // Resolve event by slug — only completed or closed events are accessible
   const event = await env.DB.prepare(
-    `SELECT id, slug, title, subtitle, flyer_image_url, event_date, status
-     FROM events WHERE slug = ? AND status IN ('closed', 'completed', 'archived')`
+    `SELECT e.id, e.account_id, e.slug, e.title, e.subtitle, e.flyer_image_url, e.event_date
+     FROM events e
+     JOIN accounts a ON a.id = e.account_id
+     WHERE e.slug = ?
+       AND e.lifecycle_status = 'completed'
+       AND e.recap_status = 'published'
+       AND e.public_visibility = 'public'
+       AND a.status = 'active'
+       AND a.public_enabled = 1`
   ).bind(params.slug).first();
 
-  if (!event) return json({ error: 'Recap not found or event is still upcoming' }, 404);
+  if (!event) return json({ error: 'Recap not found' }, 404);
 
   const postSession = await env.DB.prepare(
     `SELECT id, session_notes, playlist_url, gallery_images, shared_tasting_notes
-     FROM event_post_session WHERE event_id = ?`
-  ).bind(event.id).first();
+     FROM event_post_session WHERE event_id = ? AND account_id = ?`
+  ).bind(event.id, event.account_id).first();
 
-  if (!postSession) return json({ error: 'Post-session data not yet available' }, 404);
+  if (!postSession) return json({ error: 'Recap not found' }, 404);
 
   // Parse JSON fields safely
   let galleryImages: string[] | null = null;
@@ -8592,12 +8597,13 @@ const handleGetPublicEventRecap: Handler = async (_request, env, params) => {
   const menuRows = await env.DB.prepare(
     `SELECT etm.id, etm.event_id, etm.product_id, etm.custom_name, etm.custom_description,
             etm.brew_order, etm.reveal_date,
-            p.product_name, p.product_type, p.image_url as product_image_url
+            p.product_name, p.type AS product_type, p.image_url AS product_image_url
      FROM event_tea_menu etm
-     LEFT JOIN products p ON p.id = etm.product_id
-     WHERE etm.event_id = ?
+     LEFT JOIN products p ON p.id = etm.product_id AND p.account_id = etm.account_id
+     WHERE etm.event_id = ? AND etm.account_id = ?
+       AND (etm.reveal_date IS NULL OR datetime(etm.reveal_date) <= datetime('now'))
      ORDER BY etm.brew_order ASC NULLS LAST`
-  ).bind(event.id).all();
+  ).bind(event.id, event.account_id).all();
 
   const teaMenu = (menuRows.results ?? []).map((m) => ({
     id: m.id,
@@ -9905,6 +9911,15 @@ const handleUpsertPostSession: Handler = async (request, env, params) => {
 
   const body = await request.json() as Record<string, any>;
 
+  const requestedRecapStatus = body.recap_status;
+  if (
+    requestedRecapStatus !== undefined
+    && requestedRecapStatus !== 'draft'
+    && requestedRecapStatus !== 'published'
+  ) {
+    return json({ error: 'Invalid recap_status' }, 400);
+  }
+
   const teaLedger = body.tea_ledger ? (typeof body.tea_ledger === 'string' ? body.tea_ledger : JSON.stringify(body.tea_ledger)) : null;
   const galleryImages = body.gallery_images ? (typeof body.gallery_images === 'string' ? body.gallery_images : JSON.stringify(body.gallery_images)) : null;
   const sharedTastingNotes = body.shared_tasting_notes
@@ -9912,18 +9927,92 @@ const handleUpsertPostSession: Handler = async (request, env, params) => {
     : null;
 
   const existing = await env.DB.prepare(
-    `SELECT id FROM event_post_session WHERE event_id = ?`
-  ).bind(params.id).first();
+    `SELECT id FROM event_post_session WHERE event_id = ? AND account_id = ?`
+  ).bind(params.id, accountId).first<{ id: string }>();
 
-  if (existing) {
-    await env.DB.prepare(
-      `UPDATE event_post_session SET tea_ledger = ?, playlist_url = ?, gallery_images = ?, session_notes = ?, host_notes = ?, host_changes = ?, energy = ?, shared_tasting_notes = ? WHERE event_id = ? AND account_id = ?`
-    ).bind(teaLedger, body.playlist_url || null, galleryImages, body.session_notes || null, body.host_notes || null, body.host_changes || null, body.energy || null, sharedTastingNotes, params.id, accountId).run();
-  } else {
-    await env.DB.prepare(
-      `INSERT INTO event_post_session (id, account_id, event_id, tea_ledger, playlist_url, gallery_images, session_notes, host_notes, host_changes, energy, shared_tasting_notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(crypto.randomUUID(), accountId, params.id, teaLedger, body.playlist_url || null, galleryImages, body.session_notes || null, body.host_notes || null, body.host_changes || null, body.energy || null, sharedTastingNotes).run();
+  // Keep the long-supported draft-save contract unchanged when callers omit
+  // recap_status. Publication uses the atomic path below.
+  if (requestedRecapStatus === undefined) {
+    if (existing) {
+      await env.DB.prepare(
+        `UPDATE event_post_session SET tea_ledger = ?, playlist_url = ?, gallery_images = ?, session_notes = ?, host_notes = ?, host_changes = ?, energy = ?, shared_tasting_notes = ? WHERE event_id = ? AND account_id = ?`
+      ).bind(teaLedger, body.playlist_url || null, galleryImages, body.session_notes || null, body.host_notes || null, body.host_changes || null, body.energy || null, sharedTastingNotes, params.id, accountId).run();
+    } else {
+      await env.DB.prepare(
+        `INSERT INTO event_post_session (id, account_id, event_id, tea_ledger, playlist_url, gallery_images, session_notes, host_notes, host_changes, energy, shared_tasting_notes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(crypto.randomUUID(), accountId, params.id, teaLedger, body.playlist_url || null, galleryImages, body.session_notes || null, body.host_notes || null, body.host_changes || null, body.energy || null, sharedTastingNotes).run();
+    }
+    return json({ success: true });
+  }
+
+  const event = await env.DB.prepare(
+    `SELECT lifecycle_status FROM events WHERE id = ? AND account_id = ?`
+  ).bind(params.id, accountId).first<{ lifecycle_status: string }>();
+  if (!event) return json({ error: 'Event not found' }, 404);
+  if (requestedRecapStatus === 'published' && event.lifecycle_status !== 'completed') {
+    return json({ error: 'Recap can be published only after the event is completed' }, 409);
+  }
+
+  const postSessionWrite = env.DB.prepare(
+    `INSERT INTO event_post_session
+       (id, account_id, event_id, tea_ledger, playlist_url, gallery_images, session_notes,
+        host_notes, host_changes, energy, shared_tasting_notes)
+     SELECT ?, ?, e.id, ?, ?, ?, ?, ?, ?, ?, ?
+     FROM events e
+     WHERE e.id = ? AND e.account_id = ?
+       AND (? <> 'published' OR e.lifecycle_status = 'completed')
+       AND (
+         NOT EXISTS (SELECT 1 FROM event_post_session WHERE event_id = e.id)
+         OR EXISTS (
+           SELECT 1 FROM event_post_session
+           WHERE event_id = e.id AND account_id = e.account_id
+         )
+       )
+     ON CONFLICT(event_id) DO UPDATE SET
+       tea_ledger = excluded.tea_ledger,
+       playlist_url = excluded.playlist_url,
+       gallery_images = excluded.gallery_images,
+       session_notes = excluded.session_notes,
+       host_notes = excluded.host_notes,
+       host_changes = excluded.host_changes,
+       energy = excluded.energy,
+       shared_tasting_notes = excluded.shared_tasting_notes
+     WHERE event_post_session.account_id = excluded.account_id`
+  ).bind(
+    existing?.id ?? crypto.randomUUID(),
+    accountId,
+    teaLedger,
+    body.playlist_url || null,
+    galleryImages,
+    body.session_notes || null,
+    body.host_notes || null,
+    body.host_changes || null,
+    body.energy || null,
+    sharedTastingNotes,
+    params.id,
+    accountId,
+    requestedRecapStatus,
+  );
+
+  const recapWrite = env.DB.prepare(
+    `UPDATE events SET recap_status = ?, updated_at = datetime('now')
+     WHERE id = ? AND account_id = ?
+       AND (? <> 'published' OR lifecycle_status = 'completed')
+       AND (
+         NOT EXISTS (SELECT 1 FROM event_post_session WHERE event_id = events.id)
+         OR EXISTS (
+           SELECT 1 FROM event_post_session
+           WHERE event_id = events.id AND account_id = events.account_id
+         )
+       )`
+  ).bind(requestedRecapStatus, params.id, accountId, requestedRecapStatus);
+  const [postResult, recapResult] = await env.DB.batch([postSessionWrite, recapWrite]);
+  if (
+    Number(postResult.meta?.changes || 0) === 0
+    || Number(recapResult.meta?.changes || 0) === 0
+  ) {
+    return json({ error: 'Event lifecycle changed; retry recap publication' }, 409);
   }
 
   return json({ success: true });

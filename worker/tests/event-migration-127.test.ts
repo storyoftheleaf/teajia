@@ -228,8 +228,8 @@ describe('migration 127', () => {
   it('deterministically keeps the newest valid tasting note and archives every superseded row losslessly', () => {
     const db = pre127Database();
     db.exec(`
-      INSERT INTO event_tea_menu(id, event_id, custom_name)
-      VALUES ('menu-one', 'event-one', 'Rou Gui');
+      INSERT INTO event_tea_menu(id, account_id, event_id, custom_name)
+      VALUES ('menu-one', 'account-one', 'event-one', 'Rou Gui');
       INSERT INTO event_tasting_notes(
         id, event_id, attendee_id, tea_menu_id, rating, impression, is_favorite, created_at, account_id
       )
@@ -287,6 +287,50 @@ describe('migration 127', () => {
       INSERT INTO event_tasting_notes(id, account_id, event_id, attendee_id, tea_menu_id)
       VALUES ('null-duplicate', 'account-one', 'event-one', 'attendee-one', NULL)
     `)).toThrow(/UNIQUE/);
+    db.close();
+  });
+
+  it('rejects an FK-valid cross-event attendee before ranking, archiving, or deleting tasting notes', () => {
+    const db = pre127Database();
+    db.exec(`
+      INSERT INTO event_tasting_notes(
+        id, account_id, event_id, attendee_id, impression, created_at
+      ) VALUES
+        ('valid-note', 'account-one', 'event-one', 'attendee-one', 'Valid note', '2026-09-02T08:00:00Z'),
+        ('cross-attendee', 'account-one', 'event-one', 'attendee-two', 'Wrong event attendee', '2026-09-01T08:00:00Z');
+    `);
+
+    expect(() => applyMigration127(db)).toThrow(/CHECK constraint failed/);
+    expect(db.prepare(`SELECT id, event_id, attendee_id FROM event_tasting_notes ORDER BY id`).all()).toEqual([
+      { id: 'cross-attendee', event_id: 'event-one', attendee_id: 'attendee-two' },
+      { id: 'valid-note', event_id: 'event-one', attendee_id: 'attendee-one' },
+    ]);
+    expect(db.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'event_tasting_note_history'`).get())
+      .toBeUndefined();
+    db.close();
+  });
+
+  it('rejects an FK-valid cross-event tea menu before ranking, archiving, or deleting tasting notes', () => {
+    const db = pre127Database();
+    db.exec(`
+      INSERT INTO event_tea_menu(id, account_id, event_id, custom_name)
+      VALUES
+        ('menu-one', 'account-one', 'event-one', 'Rou Gui'),
+        ('menu-two', 'account-two', 'event-two', 'Other tea');
+      INSERT INTO event_tasting_notes(
+        id, account_id, event_id, attendee_id, tea_menu_id, impression, created_at
+      ) VALUES
+        ('valid-menu-note', 'account-one', 'event-one', 'attendee-one', 'menu-one', 'Valid note', '2026-09-02T08:00:00Z'),
+        ('cross-menu', 'account-one', 'event-one', 'attendee-one', 'menu-two', 'Wrong event menu', '2026-09-01T08:00:00Z');
+    `);
+
+    expect(() => applyMigration127(db)).toThrow(/CHECK constraint failed/);
+    expect(db.prepare(`SELECT id, event_id, attendee_id, tea_menu_id FROM event_tasting_notes ORDER BY id`).all()).toEqual([
+      { id: 'cross-menu', event_id: 'event-one', attendee_id: 'attendee-one', tea_menu_id: 'menu-two' },
+      { id: 'valid-menu-note', event_id: 'event-one', attendee_id: 'attendee-one', tea_menu_id: 'menu-one' },
+    ]);
+    expect(db.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'event_tasting_note_history'`).get())
+      .toBeUndefined();
     db.close();
   });
 
