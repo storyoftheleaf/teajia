@@ -24,6 +24,10 @@ function request(payload: unknown = fixture, token = 'receiver-secret', sourceId
 describe('WordForge draft decoder', () => {
   it('accepts the canonical handoff fixture', () => {
     expect(decodeWordforgeDraft(fixture)).toEqual(fixture);
+    expect(fixture.article.blocks.map((block: { type: string }) => block.type)).toEqual([
+      'cover', 'intro', 'paragraph', 'section_heading', 'qa_pair',
+      'quote', 'image', 'pull_sidebar', 'epilogue', 'back_matter',
+    ]);
   });
 
   it.each(['account_id', 'status', 'published_at'] as const)('rejects caller-controlled %s', field => {
@@ -32,10 +36,28 @@ describe('WordForge draft decoder', () => {
     expect(() => decodeWordforgeDraft(payload)).toThrow(/unknown field/i);
   });
 
-  it('rejects unknown blocks, prose over 600 characters, and multi-item Q&A blocks', () => {
+  it('accepts exact paragraph and pull-sidebar shapes', () => {
+    const payload = structuredClone(fixture);
+    payload.article.blocks = [
+      fixture.article.blocks[0],
+      { type: 'paragraph', variant: 'drop_cap', text: 'A bounded narrative page.', textEffect: 'letter-expand' },
+      { type: 'pull_sidebar', side: 'image', body: 'Weather at elevation', sidebar: 'Cloud redraws the picking window.', image: 'https://images.example.test/cloud.jpg' },
+    ];
+    expect(decodeWordforgeDraft(payload).article.blocks).toEqual(payload.article.blocks);
+  });
+
+  it('rejects unknown blocks, prose over 600 characters, invalid sidebar shapes, and multi-item Q&A blocks', () => {
     for (const block of [
       { type: 'video', url: 'https://example.test' },
       { type: 'intro', text: 'x'.repeat(601) },
+      { type: 'paragraph', text: 'x'.repeat(601) },
+      { type: 'paragraph', variant: 'grid', text: 'bounded' },
+      { type: 'paragraph', text: 'bounded', textEffect: 'fireworks' },
+      { type: 'paragraph', text: 'bounded', surprise: true },
+      { type: 'pull_sidebar', side: 'middle', body: 'Title', sidebar: 'Aside' },
+      { type: 'pull_sidebar', side: 'right', body: 'x'.repeat(601), sidebar: 'Aside' },
+      { type: 'pull_sidebar', side: 'right', body: 'Title', sidebar: 'x'.repeat(601) },
+      { type: 'pull_sidebar', side: 'right', body: 'Title', sidebar: 'Aside', surprise: true },
       { type: 'qa_pair', items: [{ q: 'One?', a: 'One.' }, { q: 'Two?', a: 'Two.' }] },
     ]) {
       const payload = structuredClone(fixture);

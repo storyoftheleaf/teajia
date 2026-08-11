@@ -4,7 +4,7 @@
     "system": "wordforge",
     "id": "interview-li-shan-001",
     "revision": 1,
-    "content_hash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    "content_hash": "4fe270b35a90265a68685f12d4f07c0a46611dc5f07139ab30df2e3716a70ce9"
   },
   "article": {
     "title": "Listening to the Mountain",
@@ -30,6 +30,10 @@
         "text": "Before sunrise, the tea garden is quiet enough to hear water moving through the soil."
       },
       {
+        "type": "paragraph",
+        "text": "At this elevation, every decision is made against weather that can change before the baskets reach the path."
+      },
+      {
         "type": "section_heading",
         "text": "Learning the slope"
       },
@@ -52,6 +56,12 @@
         "url": "https://images.example.test/li-shan-garden.jpg",
         "description": "Tea rows following a misty mountain contour",
         "caption": "The upper garden at first light"
+      },
+      {
+        "type": "pull_sidebar",
+        "side": "right",
+        "body": "Weather at elevation",
+        "sidebar": "Cloud, wind, and temperature redraw the picking window each morning."
       },
       {
         "type": "epilogue",

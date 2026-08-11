@@ -1,7 +1,7 @@
 export const WORDFORGE_DRAFT_MAX_BYTES = 256 * 1024;
 
 type JsonObject = Record<string, unknown>;
-type ArticleBlock = JsonObject & { type: 'cover' | 'intro' | 'section_heading' | 'qa_pair' | 'quote' | 'image' | 'epilogue' | 'back_matter' };
+type ArticleBlock = JsonObject & { type: 'cover' | 'intro' | 'paragraph' | 'section_heading' | 'qa_pair' | 'quote' | 'image' | 'pull_sidebar' | 'epilogue' | 'back_matter' };
 
 export type TeajiaWordforgeDraftV1 = {
   schema_version: 1;
@@ -70,6 +70,15 @@ function decodeBlock(value: unknown, index: number): ArticleBlock {
       exact(block, ['type', 'text'], at);
       string(block.text, `${at}.text`, 600);
       break;
+    case 'paragraph':
+      exact(block, ['type', 'variant', 'text', 'textEffect'], at);
+      string(block.text, `${at}.text`, 600);
+      if (block.variant !== undefined) enumValue(block.variant, ['single', 'double', 'justified', 'center', 'drop_cap'], `${at}.variant`);
+      if (block.textEffect !== undefined) enumValue(block.textEffect, [
+        'none', 'scroll-highlight', 'word-rise', 'shimmer', 'blur-focus',
+        'line-stagger', 'scale-jump', 'color-wipe', 'underline-draw', 'letter-expand',
+      ], `${at}.textEffect`);
+      break;
     case 'qa_pair': {
       exact(block, ['type', 'items'], at);
       if (!Array.isArray(block.items) || block.items.length !== 1) throw new WordforgeDraftError(`${at}.items must contain exactly one Q&A item`);
@@ -93,6 +102,13 @@ function decodeBlock(value: unknown, index: number): ArticleBlock {
       if (typeof block.description !== 'string' || block.description.length > 500) throw new WordforgeDraftError(`${at}.description must be a string of at most 500 characters`);
       optionalString(block.caption, `${at}.caption`, 500);
       if (block.variant !== undefined) enumValue(block.variant, ['full_bleed', 'caption_bottom', 'split_vertical', 'film_strip', 'polaroid_scatter', 'circle_mask', 'arch_mask', 'book_plate', 'pinned_hero'], `${at}.variant`);
+      break;
+    case 'pull_sidebar':
+      exact(block, ['type', 'side', 'body', 'sidebar', 'image'], at);
+      enumValue(block.side, ['left', 'right', 'image'], `${at}.side`);
+      string(block.body, `${at}.body`, 600);
+      string(block.sidebar, `${at}.sidebar`, 600);
+      optionalString(block.image, `${at}.image`, 2048);
       break;
     case 'epilogue':
       exact(block, ['type', 'text', 'signature'], at);
