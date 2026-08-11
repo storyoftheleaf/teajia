@@ -1,3 +1,5 @@
+import { isTeaType } from '../../src/wisdom/vocabulary';
+
 export type SalePermissionReason = 'account_owner' | 'location_stock' | 'own_stock' | 'active_grant' | 'grant_required';
 
 export interface SalesGrantTerms {
@@ -153,12 +155,15 @@ export async function authorizeInvoiceLines(env: { DB: D1Database }, input: {
     let product: Record<string, unknown> | null;
     try {
       product = await env.DB.prepare(
-        'SELECT id, owner_user_id FROM products WHERE id = ? AND account_id = ?'
+        'SELECT id, owner_user_id, status, type FROM products WHERE id = ? AND account_id = ?'
       ).bind(line.product_id, input.accountId).first() as Record<string, unknown> | null;
     } catch {
       throw new SalesInvariantError(503, 'sales_authorization_unavailable');
     }
     if (!product) throw new SalesInvariantError(404, 'product_not_found', { product_id: line.product_id });
+    if (product.status !== 'Active' || !isTeaType(String(product.type ?? ''))) {
+      throw new SalesInvariantError(400, 'product_not_sale_eligible', { product_id: line.product_id });
+    }
     const stockOwnerUserId = product.owner_user_id == null ? null : String(product.owner_user_id);
     let grantRow: Record<string, unknown> | null = null;
     if (input.actorRole !== 'owner' && stockOwnerUserId && stockOwnerUserId !== input.actorUserId) {

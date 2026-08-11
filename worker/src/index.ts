@@ -42,6 +42,7 @@ import {
   wisdomManifestNodes,
   wisdomNodeExists,
 } from './wisdomRelations';
+import { TEA_TYPES } from '../../src/wisdom/vocabulary';
 
 interface Env {
   DB: D1Database;
@@ -3616,8 +3617,10 @@ const handleGetEligibleSalesProducts: Handler = async (request, env) => {
            AND (winner.expires_at IS NULL OR winner.expires_at>datetime('now'))
          ORDER BY winner.created_at DESC,winner.id DESC LIMIT 1
        )
-       WHERE p.account_id=? AND p.status='Active' AND LOWER(p.type)<>'teaware' ORDER BY product_name`
-    ).bind(ctx.userId, ctx.accountId).all();
+       WHERE p.account_id=? AND p.status='Active'
+         AND p.type IN (${TEA_TYPES.map(() => '?').join(',')})
+       ORDER BY product_name`
+    ).bind(ctx.userId, ctx.accountId, ...TEA_TYPES).all();
     const eligible = (rows.results as any[]).flatMap(row => {
       const permission = resolveSalePermission({
         actorRole: ctx.role, actorUserId: ctx.userId, stockOwnerUserId: row.owner_id,

@@ -44,9 +44,12 @@ describe('Quick Invoice sales eligibility', () => {
     const draft = { ...product('draft', 'Draft Tea'), status: 'Draft' as const };
     const archived = { ...product('archived', 'Archived Tea'), status: 'Archived' as const };
     const teaware = { ...product('tray', 'Tea Tray'), type: 'Teaware' as const };
+    const misc = { ...product('misc', 'Misc Item'), type: 'Misc' as const };
+    const missing = { ...product('missing', 'Missing Type'), type: 'MISSING_TYPE' as const };
+    const unclassified = { ...product('unclassified', 'Unclassified'), type: '' as Product['type'] };
     const suggestions = buildEligibleQuickInvoiceSuggestions(
-      [product('active', 'Active Tea'), draft, archived, teaware],
-      [eligible('active'), eligible('draft'), eligible('archived'), eligible('tray')],
+      [product('active', 'Active Tea'), draft, archived, teaware, misc, missing, unclassified],
+      [eligible('active'), eligible('draft'), eligible('archived'), eligible('tray'), eligible('misc'), eligible('missing'), eligible('unclassified')],
     );
     expect(suggestions.map(suggestion => suggestion.productId)).toEqual(['active']);
   });

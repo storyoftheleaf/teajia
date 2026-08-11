@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { X, Plus, Trash2, Search, FileDown, Loader2, RotateCcw, Phone, Mail, MessageCircle, AtSign, Send, Lock, Hash, MessagesSquare } from 'lucide-react';
 import Fuse from 'fuse.js';
-import { api } from '../../lib/api';
+import { api, AUTH_TOKEN_CHANGED_EVENT, isTokenScopedToAccount } from '../../lib/api';
 import type { EligibleSalesProduct } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
+import { isTeaType } from '../../wisdom/vocabulary';
 import { Currency, InvoiceDisplayItem, Product, ContactChannel, ContactEntry } from '../types';
 import { useRates } from '../hooks/useAdminData';
 import { formatCurrency } from '../utils';
@@ -36,7 +37,7 @@ export function buildEligibleQuickInvoiceSuggestions(
   const productsById = new Map(products.map(product => [product.id, product]));
   return eligibleRows.flatMap(eligibility => {
     const product = productsById.get(eligibility.product_id);
-    if (!product || product.status !== 'Active' || product.type === 'Teaware') return [];
+    if (!product || product.status !== 'Active' || !isTeaType(product.type)) return [];
     return [{
       productId: product.id,
       name: product.givenName || product.productName || eligibility.product_name,
@@ -160,6 +161,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
   const [eligibilityAccountId, setEligibilityAccountId] = useState<string | null>(null);
   const [eligibilityError, setEligibilityError] = useState<string | null>(null);
   const [salesValidationError, setSalesValidationError] = useState<string | null>(null);
+  const [tokenRevision, setTokenRevision] = useState(0);
   const eligibilityRequestRef = useRef(0);
 
   const nameInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
@@ -173,6 +175,10 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
   const eligibleSuggestions = useMemo(
     () => buildEligibleQuickInvoiceSuggestions(products, scopedEligibleProducts),
     [products, scopedEligibleProducts],
+  );
+  const verifiedEligibleProducts = useMemo(
+    () => eligibleSuggestions.map(suggestion => suggestion.eligibility),
+    [eligibleSuggestions],
   );
 
   const productFuse = useMemo(() => new Fuse(eligibleSuggestions, {
@@ -194,8 +200,8 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
   }, [scopedEligibilityStatus, eligibleSuggestions, productQuery, productFuse]);
 
   const eligibleById = useMemo(
-    () => new Map(scopedEligibleProducts.map(row => [row.product_id, row])),
-    [scopedEligibleProducts],
+    () => new Map(verifiedEligibleProducts.map(row => [row.product_id, row])),
+    [verifiedEligibleProducts],
   );
 
   const customerSuggestions = useMemo(() => {
@@ -252,14 +258,19 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
       setEligibilityError('Choose an account before linking stock.');
       return;
     }
+    if (!isTokenScopedToAccount(accountId)) return;
     try {
       const rows = await api.sales.eligibleProducts();
-      if (eligibilityRequestRef.current !== requestId || useAppStore.getState().activeAccountId !== accountId) return;
+      if (eligibilityRequestRef.current !== requestId
+        || useAppStore.getState().activeAccountId !== accountId
+        || !isTokenScopedToAccount(accountId)) return;
       setEligibleProducts(rows);
       setEligibilityStatus('ready');
       setSalesValidationError(null);
     } catch (error) {
-      if (eligibilityRequestRef.current !== requestId || useAppStore.getState().activeAccountId !== accountId) return;
+      if (eligibilityRequestRef.current !== requestId
+        || useAppStore.getState().activeAccountId !== accountId
+        || !isTokenScopedToAccount(accountId)) return;
       setEligibleProducts([]);
       setEligibilityStatus('error');
       setEligibilityError(error instanceof Error ? error.message : 'Eligible sales inventory could not be loaded.');
@@ -267,10 +278,16 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
   };
 
   useEffect(() => {
+    const handleTokenChange = () => setTokenRevision(revision => revision + 1);
+    window.addEventListener(AUTH_TOKEN_CHANGED_EVENT, handleTokenChange);
+    return () => window.removeEventListener(AUTH_TOKEN_CHANGED_EVENT, handleTokenChange);
+  }, []);
+
+  useEffect(() => {
     if (!isOpen) return;
     void loadEligibleProducts(activeAccountId);
     return () => { eligibilityRequestRef.current += 1; };
-  }, [isOpen, activeAccountId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen, activeAccountId, tokenRevision]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -408,7 +425,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
       showToast('All items need a name', 'error');
       return;
     }
-    const linkedValidation = validateQuickInvoiceLinkedItems(lineItems, scopedEligibilityStatus, scopedEligibleProducts);
+    const linkedValidation = validateQuickInvoiceLinkedItems(lineItems, scopedEligibilityStatus, verifiedEligibleProducts);
     if (linkedValidation) {
       setSalesValidationError(linkedValidation);
       showToast(linkedValidation, 'error');
@@ -635,7 +652,9 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
               {scopedEligibilityStatus === 'loading' && (
                 <div role="status" aria-live="polite" className="mb-3 flex items-center gap-2 rounded-md border border-tea-border bg-tea-surface px-3 py-2 text-ui-11 text-tea-text-sec">
                   <Loader2 size={12} className="animate-spin" />
-                  Checking eligible sales inventory…
+                  {activeAccountId && !isTokenScopedToAccount(activeAccountId)
+                    ? 'Waiting for account authorization…'
+                    : 'Checking eligible sales inventory…'}
                 </div>
               )}
               {scopedEligibilityStatus === 'error' && (

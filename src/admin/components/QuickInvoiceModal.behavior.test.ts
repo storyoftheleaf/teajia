@@ -54,10 +54,14 @@ describe('QuickInvoiceModal linked sales behavior', () => {
   it('fetches on open and renders only verified active tea suggestions with truthful Teaware copy', async () => {
     await open();
     await expect.poll(() => textOf(page.getByRole('status'))).toContain('Checking eligible sales inventory');
-    await page.evaluate(rows => (window as any).quickInvoiceTest.resolveRequest(0, rows), [eligible('tea-a'), eligible('tray'), eligible('draft'), eligible('archived')]);
+    await page.evaluate(rows => (window as any).quickInvoiceTest.resolveRequest(0, rows), [
+      eligible('tea-a'), eligible('tray'), eligible('misc'), eligible('missing'), eligible('draft'), eligible('archived'),
+    ]);
     await itemName().focus();
     await expect.poll(() => page.getByText('Account A Tea', { exact: true }).count()).toBe(1);
     expect(await page.getByText('Tea Tray', { exact: true }).count()).toBe(0);
+    expect(await page.getByText('Misc Item', { exact: true }).count()).toBe(0);
+    expect(await page.getByText('Missing Type', { exact: true }).count()).toBe(0);
     expect(await page.getByText('Draft Tea', { exact: true }).count()).toBe(0);
     expect(await page.getByText('Archived Tea', { exact: true }).count()).toBe(0);
     await expect.poll(() => page.getByText(/Teaware.*custom/i).count()).toBeGreaterThan(0);
@@ -84,18 +88,29 @@ describe('QuickInvoiceModal linked sales behavior', () => {
     expect(await page.evaluate(() => (window as any).quickInvoiceTest.invoiceCalls().length)).toBe(0);
   });
 
-  it('blocks below-floor and aggregate over-available linked invoices', async () => {
+  it('does not let a malformed eligible row validate a non-tea linked prefill', async () => {
+    await open({ prefill: { customerName: 'Buyer', items: [{ name: 'Misc Item', productId: 'misc', quantity: 1, price: 2 }] } });
+    await page.evaluate(row => (window as any).quickInvoiceTest.resolveRequest(0, [row]), eligible('misc'));
+    await expect.poll(() => page.getByText(/Unavailable for linked stock/).count()).toBeGreaterThan(0);
+    await saveDraft().click();
+    await expect.poll(() => textOf(page.getByRole('alert'))).toContain('no longer eligible');
+    expect(await page.evaluate(() => (window as any).quickInvoiceTest.invoiceCalls().length)).toBe(0);
+  });
+
+  it('blocks below-floor linked invoices', async () => {
     await open({ prefill: { customerName: 'Buyer', items: [{ name: 'Account A Tea', productId: 'tea-a', quantity: 5, price: 0.2 }] } });
     await page.evaluate(row => (window as any).quickInvoiceTest.resolveRequest(0, [row]), eligible('tea-a', { price_floor: 0.3 }));
     await saveDraft().click();
     await expect.poll(() => textOf(page.getByRole('alert'))).toContain('$0.30/g or above');
     expect(await page.evaluate(() => (window as any).quickInvoiceTest.invoiceCalls().length)).toBe(0);
 
-    await page.evaluate(() => (window as any).quickInvoiceTest.mount({ accountId: 'account-a', prefill: { customerName: 'Buyer', items: [
+  });
+
+  it('blocks aggregate over-available linked invoices', async () => {
+    await open({ prefill: { customerName: 'Buyer', items: [
       { name: 'Account A Tea', productId: 'tea-a', quantity: 7, price: 0.4 },
       { name: 'Account A Tea', productId: 'tea-a', quantity: 6, price: 0.4 },
-    ] } }));
-    await expect.poll(() => page.evaluate(() => (window as any).quickInvoiceTest.requestAccounts())).toEqual(['account-a']);
+    ] } });
     await page.evaluate(row => (window as any).quickInvoiceTest.resolveRequest(0, [row]), eligible('tea-a', { available_quantity: 12 }));
     await saveDraft().click();
     await expect.poll(() => textOf(page.getByRole('alert'))).toContain('links 13g');
@@ -112,10 +127,18 @@ describe('QuickInvoiceModal linked sales behavior', () => {
     expect(items).toEqual([expect.objectContaining({ product_id: null, custom_name: 'Tea Tray (custom)' })]);
   });
 
-  it('clears eligibility on account switch and ignores the late old-account response', async () => {
+  it('waits for the switched account token and ignores the late old-account response', async () => {
     await open({ accountId: 'account-a' });
     await page.evaluate(() => (window as any).quickInvoiceTest.setAccount('account-b'));
-    await expect.poll(() => page.evaluate(() => (window as any).quickInvoiceTest.requestAccounts())).toEqual(['account-a', 'account-b']);
+    await expect.poll(() => textOf(page.getByRole('status'))).toContain('Waiting for account authorization');
+    expect(await page.evaluate(() => (window as any).quickInvoiceTest.requestScopes())).toEqual([
+      { activeAccountId: 'account-a', headerAccountId: 'account-a' },
+    ]);
+    await page.evaluate(() => (window as any).quickInvoiceTest.setTokenAccount('account-b'));
+    await expect.poll(() => page.evaluate(() => (window as any).quickInvoiceTest.requestScopes())).toEqual([
+      { activeAccountId: 'account-a', headerAccountId: 'account-a' },
+      { activeAccountId: 'account-b', headerAccountId: 'account-b' },
+    ]);
     await page.evaluate(row => (window as any).quickInvoiceTest.resolveRequest(1, [row]), eligible('tea-b'));
     await page.evaluate(row => (window as any).quickInvoiceTest.resolveRequest(0, [row]), eligible('tea-a'));
     await itemName().focus();

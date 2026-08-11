@@ -1,14 +1,15 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { api } from '../../lib/api';
+import { api, setToken } from '../../lib/api';
 import type { EligibleSalesProduct } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
 import type { Product } from '../types';
 import { QuickInvoiceModal } from './QuickInvoiceModal';
 
 type PendingRequest = {
-  accountId: string | null;
+  activeAccountId: string | null;
+  headerAccountId: string | null;
   resolve: (rows: EligibleSalesProduct[]) => void;
   reject: (error: Error) => void;
 };
@@ -29,15 +30,29 @@ const products = [
   product('tea-a', 'Account A Tea'),
   product('tea-b', 'Account B Tea'),
   product('tray', 'Tea Tray', 'Teaware'),
+  product('misc', 'Misc Item', 'Misc'),
+  product('missing', 'Missing Type', 'MISSING_TYPE'),
   product('draft', 'Draft Tea', 'Oolong', 'Draft'),
   product('archived', 'Archived Tea', 'Oolong', 'Archived'),
 ];
 
-Object.assign(api.sales, {
-  eligibleProducts: () => new Promise<EligibleSalesProduct[]>((resolve, reject) => {
-    requests.push({ accountId: useAppStore.getState().activeAccountId, resolve, reject });
-  }),
-});
+const originalFetch = window.fetch.bind(window);
+window.fetch = async (input, init) => {
+  const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+  if (!url.includes('/api/sales/eligible-products')) return originalFetch(input, init);
+  const headers = new Headers(input instanceof Request ? input.headers : undefined);
+  new Headers(init?.headers).forEach((value, name) => headers.set(name, value));
+  return new Promise<Response>((resolve, reject) => {
+    requests.push({
+      activeAccountId: useAppStore.getState().activeAccountId,
+      headerAccountId: headers.get('X-Teajia-Account'),
+      resolve: rows => resolve(new Response(JSON.stringify(rows), {
+        status: 200, headers: { 'Content-Type': 'application/json' },
+      })),
+      reject,
+    });
+  });
+};
 Object.assign(api.customers, { list: async () => [] });
 Object.assign(api.rates, { list: async () => [] });
 Object.assign(api.invoices, {
@@ -51,11 +66,17 @@ const root = createRoot(document.getElementById('root')!);
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 let mountId = 0;
 
+const tokenForAccount = (accountId: string) => {
+  const payload = btoa(JSON.stringify({ sub: 'tester', active_account_id: accountId, exp: Math.floor(Date.now() / 1000) + 3600 }));
+  return `test.${payload}.signature`;
+};
+
 const testApi = {
   mount(options: { accountId?: string; prefill?: Record<string, unknown> } = {}) {
     requests.length = 0;
     invoiceCalls.length = 0;
     toasts.length = 0;
+    setToken(tokenForAccount(options.accountId || 'account-a'));
     useAppStore.setState({ activeAccountId: options.accountId || 'account-a' });
     root.render(
       <QueryClientProvider client={queryClient}>
@@ -72,7 +93,9 @@ const testApi = {
     );
   },
   setAccount(accountId: string) { useAppStore.setState({ activeAccountId: accountId }); },
-  requestAccounts() { return requests.map(request => request.accountId); },
+  setTokenAccount(accountId: string) { setToken(tokenForAccount(accountId)); },
+  requestAccounts() { return requests.map(request => request.headerAccountId); },
+  requestScopes() { return requests.map(request => ({ activeAccountId: request.activeAccountId, headerAccountId: request.headerAccountId })); },
   resolveRequest(index: number, rows: EligibleSalesProduct[]) { requests[index]?.resolve(rows); },
   rejectRequest(index: number, message = 'Unavailable') { requests[index]?.reject(new Error(message)); },
   invoiceCalls() { return invoiceCalls; },
