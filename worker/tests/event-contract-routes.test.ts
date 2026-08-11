@@ -292,6 +292,38 @@ describe('Events Release 1 persisted route contracts', () => {
     }
   });
 
+  it('ignores non-schema update keys while persisting canonical fields', async () => {
+    const db = seedEventContractDb();
+    try {
+      const response = await adminEventRequest(db, '/api/admin/events/event-a', {
+        method: 'PUT',
+        body: JSON.stringify({
+          title: 'Canonical title',
+          price_usd: 90,
+          display_currency: 'USD',
+          notes: 'internal',
+          host_name: 'Host',
+          event_type: 'legacy',
+          max_guests: 40,
+          booking_cutoff_hours: 12,
+          private: true,
+          image_url: 'https://media.test/legacy.jpg',
+          flyer_url: 'https://media.test/flyer.jpg',
+          venue_space_id: 'legacy-space',
+          session_template_id: 'legacy-template',
+          meta_json: '{}',
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ success: true });
+      expect(db.sqlite.prepare(`SELECT title, flyer_image_url, venue_id FROM events WHERE id = ?`)
+        .get('event-a')).toEqual({ title: 'Canonical title', flyer_image_url: null, venue_id: null });
+    } finally {
+      db.close();
+    }
+  });
+
   it('persists canonical and legacy tea-menu request envelopes', async () => {
     const db = seedEventContractDb();
     try {

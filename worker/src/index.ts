@@ -9435,7 +9435,7 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
   }
   if (body.event_format === undefined) delete body.event_format;
 
-  const EVENT_ALLOWED_COLS = new Set(['title','subtitle','description','slug','status','event_date','event_end_date','location_name','total_capacity','price_usd','display_currency','event_format','gathering_type','notes','host_name','event_type','max_guests','booking_cutoff_hours','private','image_url','flyer_url','flyer_image_url','claim_window_minutes','venue_id','venue_space_id','active_space_ids','location_id','session_template_id','meta_json','session_flow','address_text','map_link','guidelines_text','area_hint','venue_guide','mood_hints','briefing_cards','timezone','playlist_url','requires_approval']);
+  const EVENT_ALLOWED_COLS = new Set(['title','subtitle','description','slug','status','event_date','event_end_date','location_name','total_capacity','event_format','gathering_type','flyer_image_url','claim_window_minutes','venue_id','active_space_ids','location_id','session_flow','address_text','map_link','guidelines_text','area_hint','venue_guide','mood_hints','briefing_cards','timezone','playlist_url','requires_approval']);
   const cols = Object.keys(body).filter(k => EVENT_ALLOWED_COLS.has(k));
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 

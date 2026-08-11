@@ -115,14 +115,14 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId })
           <button
             onClick={copyAllMessages}
             disabled={pendingCount === 0}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub text-xs transition-colors disabled:opacity-40"
+            className="tap-target inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub text-xs transition-colors disabled:opacity-40"
           >
             <Copy size={12} /> Copy All Pending
           </button>
           <button
             onClick={handleGenerate}
             disabled={generating}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="tap-target inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {generating ? <Loader2 size={13} className="animate-spin" /> : <Bell size={13} />}
             Generate Reminders
@@ -165,7 +165,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId })
                   <div className="flex flex-col gap-1 shrink-0">
                     <button
                       onClick={() => copyMessage(notif)}
-                      className="flex items-center gap-1 text-ui-10 px-2 py-1 rounded border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30 transition-colors"
+                      className="tap-target flex items-center gap-1 text-ui-10 px-2 py-1 rounded border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30 transition-colors"
                     >
                       {copiedId === notif.id ? <Check size={10} className="text-tea-text-sec" /> : <Copy size={10} />}
                       {copiedId === notif.id ? 'Copied' : 'Copy'}

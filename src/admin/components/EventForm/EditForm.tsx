@@ -23,6 +23,10 @@ export type EditSection = 'basic' | 'location' | 'venue-guide' | 'session-flow' 
 
 const EMPTY_VENUE_GUIDE: VenueGuide = { steps: [], parking_notes: '', transit_notes: '', arrival_notes: '' };
 
+export function initialRequiresApproval(event: Pick<TeaEvent, 'requiresApproval'>): boolean {
+  return event.requiresApproval ?? true;
+}
+
 const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) => {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
@@ -116,9 +120,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
     setRepeatDates([]);
     setEditVenueId(initialData.venueId ?? '');
     setEditSpaceIds(initialData.activeSpaceIds ?? []);
-    // requires_approval comes as raw integer from worker; default true for old events
-    const rawApproval = (initialData as any).requires_approval;
-    setEditRequiresApproval(rawApproval === undefined || rawApproval === null ? true : rawApproval !== 0);
+    setEditRequiresApproval(initialRequiresApproval(initialData));
   }, [initialData]);
 
   const updateField = useCallback((field: keyof EventFormData, value: any) => {
