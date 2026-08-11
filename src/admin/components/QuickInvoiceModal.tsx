@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { X, Plus, Trash2, Search, FileDown, Loader2, RotateCcw, Phone, Mail, MessageCircle, AtSign, Send, Lock, Hash, MessagesSquare } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { api } from '../../lib/api';
+import type { EligibleSalesProduct } from '../../lib/api';
 import { Currency, InvoiceDisplayItem, Product, ContactChannel, ContactEntry } from '../types';
 import { useRates } from '../hooks/useAdminData';
 import { formatCurrency } from '../utils';
@@ -13,6 +14,78 @@ interface QuickLineItem {
   quantity: number;
   unit: 'g' | 'pcs';
   price: number;
+}
+
+export type QuickInvoiceEligibilityStatus = 'loading' | 'ready' | 'error';
+type LinkedQuickInvoiceItem = Pick<QuickLineItem, 'name' | 'productId' | 'quantity' | 'price'>;
+
+export interface EligibleQuickInvoiceSuggestion {
+  productId: string;
+  name: string;
+  unit: 'g' | 'pcs';
+  price: number;
+  product?: Product;
+  eligibility: EligibleSalesProduct;
+}
+
+export function buildEligibleQuickInvoiceSuggestions(
+  products: Product[],
+  eligibleRows: EligibleSalesProduct[],
+): EligibleQuickInvoiceSuggestion[] {
+  const productsById = new Map(products.map(product => [product.id, product]));
+  return eligibleRows.map(eligibility => {
+    const product = productsById.get(eligibility.product_id);
+    return {
+      productId: eligibility.product_id,
+      name: product?.givenName || product?.productName || eligibility.product_name,
+      unit: product?.type === 'Teaware' ? 'pcs' as const : 'g' as const,
+      price: Math.max(product?.pricePerGramUSD ?? 0, eligibility.price_floor ?? 0),
+      product,
+      eligibility,
+    };
+  });
+}
+
+const compactNumber = (value: number) => Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)));
+
+export function quickInvoiceStockLabel(row: EligibleSalesProduct): string {
+  const owner = row.owner_id ? (row.owner_name || 'Stock owner') : 'House stock';
+  const floor = row.price_floor == null ? '' : ` · floor $${row.price_floor.toFixed(2)}/g`;
+  return `${owner} · ${compactNumber(row.available_quantity)}g available${floor}`;
+}
+
+export function validateQuickInvoiceLinkedItems(
+  items: LinkedQuickInvoiceItem[],
+  status: QuickInvoiceEligibilityStatus,
+  eligibleRows: EligibleSalesProduct[],
+): string | null {
+  const linked = items.filter(item => item.productId);
+  if (linked.length === 0) return null;
+  if (status === 'loading') return 'Sales inventory is still loading. Retry before saving linked stock.';
+  if (status === 'error') return 'Sales inventory could not be verified. Retry before saving linked stock.';
+
+  const eligibleById = new Map(eligibleRows.map(row => [row.product_id, row]));
+  for (const item of linked) {
+    const row = eligibleById.get(item.productId!);
+    if (!row) return `${item.name} is no longer eligible for linked stock. Choose an eligible product or remove the line.`;
+    if (row.price_floor != null && item.price < row.price_floor) {
+      return `${item.name} must be priced at $${row.price_floor.toFixed(2)}/g or above.`;
+    }
+  }
+
+  const quantities = new Map<string, { name: string; quantity: number }>();
+  for (const item of linked) {
+    const current = quantities.get(item.productId!) || { name: item.name, quantity: 0 };
+    current.quantity += item.quantity;
+    quantities.set(item.productId!, current);
+  }
+  for (const [productId, total] of quantities) {
+    const available = eligibleById.get(productId)!.available_quantity;
+    if (total.quantity > available) {
+      return `${total.name} has ${compactNumber(available)}g available; this invoice links ${compactNumber(total.quantity)}g.`;
+    }
+  }
+  return null;
 }
 
 const CONTACT_ICONS: Record<ContactChannel, React.ElementType> = {
@@ -79,15 +152,25 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [saving, setSaving] = useState(false);
   const [loadingRepeat, setLoadingRepeat] = useState(false);
+  const [eligibleProducts, setEligibleProducts] = useState<EligibleSalesProduct[]>([]);
+  const [eligibilityStatus, setEligibilityStatus] = useState<QuickInvoiceEligibilityStatus>('loading');
+  const [eligibilityError, setEligibilityError] = useState<string | null>(null);
+  const [salesValidationError, setSalesValidationError] = useState<string | null>(null);
+  const eligibilityRequestRef = useRef(0);
 
   const nameInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const latestAddedItemId = useRef<string | null>(null);
 
-  const productFuse = useMemo(() => new Fuse(products, {
-    keys: ['givenName', 'productName'],
+  const eligibleSuggestions = useMemo(
+    () => buildEligibleQuickInvoiceSuggestions(products, eligibleProducts),
+    [products, eligibleProducts],
+  );
+
+  const productFuse = useMemo(() => new Fuse(eligibleSuggestions, {
+    keys: ['name'],
     threshold: 0.35,
     ignoreLocation: true,
-  }), [products]);
+  }), [eligibleSuggestions]);
 
   const customerFuse = useMemo(() => new Fuse(customers, {
     keys: ['name', 'company'],
@@ -96,9 +179,15 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
   }), [customers]);
 
   const productSuggestions = useMemo(() => {
-    if (!productQuery.trim()) return products.filter(p => p.status === 'Active').slice(0, 6);
+    if (eligibilityStatus !== 'ready') return [];
+    if (!productQuery.trim()) return eligibleSuggestions.slice(0, 6);
     return productFuse.search(productQuery).map(r => r.item).slice(0, 6);
-  }, [productQuery, productFuse, products]);
+  }, [eligibilityStatus, eligibleSuggestions, productQuery, productFuse]);
+
+  const eligibleById = useMemo(
+    () => new Map(eligibleProducts.map(row => [row.product_id, row])),
+    [eligibleProducts],
+  );
 
   const customerSuggestions = useMemo(() => {
     if (!customerQuery.trim()) return customers.slice(0, 8);
@@ -139,7 +228,32 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
     setCustomerId(undefined);
     setCustomerInfo(null);
     setActiveItemId(null);
+    setSalesValidationError(null);
     api.customers.list('customer').then(setCustomers).catch(() => {});
+  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadEligibleProducts = async () => {
+    const requestId = ++eligibilityRequestRef.current;
+    setEligibilityStatus('loading');
+    setEligibilityError(null);
+    try {
+      const rows = await api.sales.eligibleProducts();
+      if (eligibilityRequestRef.current !== requestId) return;
+      setEligibleProducts(rows);
+      setEligibilityStatus('ready');
+      setSalesValidationError(null);
+    } catch (error) {
+      if (eligibilityRequestRef.current !== requestId) return;
+      setEligibleProducts([]);
+      setEligibilityStatus('error');
+      setEligibilityError(error instanceof Error ? error.message : 'Eligible sales inventory could not be loaded.');
+    }
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    void loadEligibleProducts();
+    return () => { eligibilityRequestRef.current += 1; };
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -167,6 +281,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
   const total = subtotal + shipping;
 
   const updateItem = (localId: string, patch: Partial<QuickLineItem>) => {
+    setSalesValidationError(null);
     setLineItems(prev => prev.map(i => i.localId === localId ? { ...i, ...patch } : i));
   };
 
@@ -184,13 +299,13 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
     setLineItems(prev => [...prev, item]);
   };
 
-  const pickProduct = (item: QuickLineItem, product: Product) => {
+  const pickProduct = (item: QuickLineItem, suggestion: EligibleQuickInvoiceSuggestion) => {
     updateItem(item.localId, {
-      name: product.givenName || product.productName,
-      productId: product.id,
-      unit: product.type === 'Teaware' ? 'pcs' : 'g',
-      price: product.pricePerGramUSD ?? 0,
-      quantity: product.type === 'Teaware' ? 1 : 10,
+      name: suggestion.name,
+      productId: suggestion.productId,
+      unit: suggestion.unit,
+      price: suggestion.price,
+      quantity: suggestion.unit === 'pcs' ? 1 : 10,
     });
     setActiveItemId(null);
     setProductQuery('');
@@ -275,6 +390,12 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
     }
     if (lineItems.some(i => !i.name.trim())) {
       showToast('All items need a name', 'error');
+      return;
+    }
+    const linkedValidation = validateQuickInvoiceLinkedItems(lineItems, eligibilityStatus, eligibleProducts);
+    if (linkedValidation) {
+      setSalesValidationError(linkedValidation);
+      showToast(linkedValidation, 'error');
       return;
     }
     setSaving(true);
@@ -495,6 +616,25 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                 </button>
               </div>
 
+              {eligibilityStatus === 'loading' && (
+                <div className="mb-3 flex items-center gap-2 rounded-md border border-tea-border bg-tea-surface px-3 py-2 text-ui-11 text-tea-text-sec">
+                  <Loader2 size={12} className="animate-spin" />
+                  Checking eligible sales inventory…
+                </div>
+              )}
+              {eligibilityStatus === 'error' && (
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-tea-border bg-tea-surface px-3 py-2">
+                  <div>
+                    <p className="text-ui-11 font-medium text-tea-text">Sales inventory unavailable</p>
+                    <p className="mt-0.5 text-ui-10 text-tea-text-sec">{eligibilityError || 'Linked stock cannot be verified.'}</p>
+                  </div>
+                  <button type="button" onClick={() => void loadEligibleProducts()} className="tap-target text-ui-11 text-tea-gold hover:text-tea-gold-lt">Retry</button>
+                </div>
+              )}
+              {eligibilityStatus === 'ready' && eligibleSuggestions.length === 0 && (
+                <p className="mb-3 rounded-md border border-tea-border bg-tea-surface px-3 py-2 text-ui-11 text-tea-text-sec">No eligible linked inventory. Custom items are still available.</p>
+              )}
+
               <div className="space-y-0">
                 {lineItems.map((item, index) => (
                   <div
@@ -568,21 +708,34 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                             <div className="absolute top-full left-0 right-0 mt-1 bg-tea-elevated border border-tea-border rounded-xl shadow-xl z-20 overflow-hidden">
                               {productSuggestions.map((p, idx) => (
                                 <button
-                                  key={p.id}
+                                  key={p.productId}
                                   onMouseDown={() => pickProduct(item, p)}
                                   className={`w-full text-left px-3 py-2 text-xs transition-colors flex justify-between items-center gap-2 ${
                                     idx === highlightedIndex ? 'bg-tea-surface' : 'hover:bg-tea-surface'
                                   }`}
                                 >
-                                  <span className="text-tea-text font-serif truncate">{p.givenName || p.productName}</span>
-                                  <span className="text-tea-text-dim shrink-0 tabular-nums">
-                                    {p.stockGrams != null ? `${p.stockGrams}g` : '—'} · {p.pricePerGramUSD != null ? `$${p.pricePerGramUSD}/g` : '—'}
+                                  <span className="min-w-0">
+                                    <span className="block truncate font-serif text-tea-text">{p.name}</span>
+                                    <span className="mt-0.5 block text-ui-10 text-tea-text-dim">{quickInvoiceStockLabel(p.eligibility)}</span>
                                   </span>
+                                  <span className="shrink-0 tabular-nums text-tea-text-sec">${p.price.toFixed(2)}/g</span>
                                 </button>
                               ))}
                             </div>
                           )}
                         </div>
+
+                        {item.productId && (
+                          <p className={`mt-1.5 text-ui-10 ${eligibilityStatus === 'ready' && eligibleById.has(item.productId) ? 'text-tea-text-dim' : 'text-tea-text-sec'}`}>
+                            {eligibilityStatus === 'loading'
+                              ? 'Checking linked stock authorization…'
+                              : eligibilityStatus === 'error'
+                                ? 'Linked stock unavailable until sales inventory is retried.'
+                                : eligibleById.has(item.productId)
+                                  ? quickInvoiceStockLabel(eligibleById.get(item.productId)!)
+                                  : 'Unavailable for linked stock. Choose an eligible product or remove this line.'}
+                          </p>
+                        )}
 
                         {/* Qty / Unit / Price, compact row below name */}
                         <div className="flex items-center gap-2 mt-2.5">
@@ -635,6 +788,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                   </div>
                 ))}
               </div>
+              {salesValidationError && <p role="alert" className="mt-3 text-ui-11 text-tea-text-sec">{salesValidationError}</p>}
             </div>
 
             {/* Notes, minimal underline style */}
