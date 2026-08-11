@@ -19,13 +19,6 @@ export interface WisdomVerificationReceipt {
   verified_at: string;
 }
 
-export type PublicWisdomNodeType = 'cultivar' | 'region' | 'tea_type' | 'producer' | 'mark' | 'style' | 'named_tea';
-export interface PublicWisdomNodeState {
-  node_type: PublicWisdomNodeType;
-  node_id: string;
-  public_state: 'hidden' | 'public' | 'inherit';
-  is_public: boolean;
-}
 import type {
   CreateTeaReferenceIssueInput,
   CreateTeaReferenceIssueResponse,
