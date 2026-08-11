@@ -585,7 +585,7 @@ describe('Tea Master invoice authorization, holds and settlements', () => {
     expect(await response.json()).toMatchObject({
       seller_name: 'seller',
       payment_recipient_name: 'stock-owner',
-      fulfilled_by_name: 'seller',
+      fulfilled_by_name: null,
       settlement_visibility: 'restricted',
       items: [expect.objectContaining({ stock_owner_name: 'stock-owner', settlement_status: null })],
     });

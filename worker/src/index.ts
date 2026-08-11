@@ -3869,7 +3869,7 @@ const handleGetInvoiceAttribution: Handler = async (request, env, params) => {
     ).bind(...itemBinds).all();
 
     let fulfilledByName: string | null = null;
-    if (invoice.fulfilled_at) {
+    if (invoice.fulfilled_at && ctx.role === 'owner') {
       const fulfillment = await env.DB.prepare(
         `SELECT user_email FROM activity_logs
          WHERE account_id=? AND entity_type='invoice' AND entity_id=? AND action='FULFILLMENT'

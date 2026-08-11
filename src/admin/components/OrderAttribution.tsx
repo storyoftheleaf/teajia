@@ -2,7 +2,8 @@ import React from 'react';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
-import { api, type InvoiceAttribution } from '../../lib/api';
+import { api, AUTH_TOKEN_CHANGED_EVENT, isTokenScopedToAccount, type InvoiceAttribution } from '../../lib/api';
+import { useAppStore } from '../../lib/store';
 
 type AttributionMode = 'loading' | 'error' | 'ready';
 
@@ -73,15 +74,31 @@ export const OrderAttributionView: React.FC<OrderAttributionViewProps> = ({ mode
 };
 
 export const OrderAttribution: React.FC<{ invoiceId: string; accountId: string }> = ({ invoiceId, accountId }) => {
+  const [tokenRevision, setTokenRevision] = React.useState(0);
+  const tokenScoped = isTokenScopedToAccount(accountId);
+
+  React.useEffect(() => {
+    const handleTokenChange = () => setTokenRevision(revision => revision + 1);
+    window.addEventListener(AUTH_TOKEN_CHANGED_EVENT, handleTokenChange);
+    return () => window.removeEventListener(AUTH_TOKEN_CHANGED_EVENT, handleTokenChange);
+  }, []);
+
   const query = useQuery({
-    queryKey: ['invoice-attribution', accountId, invoiceId],
-    queryFn: () => api.invoices.getAttribution(invoiceId),
+    queryKey: ['invoice-attribution', accountId, invoiceId, tokenRevision],
+    queryFn: async () => {
+      const detail = await api.invoices.getAttribution(invoiceId);
+      if (useAppStore.getState().activeAccountId !== accountId || !isTokenScopedToAccount(accountId)) {
+        throw new Error('Account scope changed');
+      }
+      return detail;
+    },
+    enabled: tokenScoped,
     staleTime: 60_000,
     retry: false,
   });
   return <OrderAttributionView
-    mode={query.isPending ? 'loading' : query.isError ? 'error' : 'ready'}
-    detail={query.data || null}
+    mode={!tokenScoped || query.isPending ? 'loading' : query.isError ? 'error' : 'ready'}
+    detail={tokenScoped ? query.data || null : null}
     onRetry={() => { void query.refetch(); }}
   />;
 };

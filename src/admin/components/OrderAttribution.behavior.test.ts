@@ -56,6 +56,9 @@ describe('OrderAttribution request behavior', () => {
     await open();
     await expect.poll(() => page.evaluate(() => (window as any).orderAttributionTest.requestAccounts())).toEqual(['account-a']);
     await page.evaluate(() => (window as any).orderAttributionTest.setAccount('account-b'));
+    await page.waitForTimeout(50);
+    expect(await page.evaluate(() => (window as any).orderAttributionTest.requestAccounts())).toEqual(['account-a']);
+    await page.evaluate(() => (window as any).orderAttributionTest.confirmAccount('account-b'));
     await expect.poll(() => page.evaluate(() => (window as any).orderAttributionTest.requestAccounts())).toEqual(['account-a', 'account-b']);
     await page.evaluate(value => (window as any).orderAttributionTest.resolve(1, value), detail('Barry'));
     await expect.poll(() => page.getByText('Barry', { exact: true }).count()).toBe(1);

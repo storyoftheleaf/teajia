@@ -163,6 +163,11 @@ export const OrdersView = () => {
   // Timeline state for invoice detail
   const [invoiceTimeline, setInvoiceTimeline] = useState<ActivityLogEntry[]>([]);
 
+  useEffect(() => {
+    setViewingInvoice(null);
+    setInvoiceTimeline([]);
+  }, [activeAccountId]);
+
   const [pageSize, setPageSize] = useState(50);
   const { data: orders = [], isLoading, refetch } = useQuery<DbOrder[]>({
     queryKey: ['orders', pageSize],
