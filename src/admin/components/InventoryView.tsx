@@ -16,6 +16,7 @@ import { QrCodeModal } from './QrCodeModal';
 import { useRates } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { useAppStore } from '../store';
+import { useAppStore as useCustomerAppStore } from '../../lib/store';
 import { useShallow } from 'zustand/react/shallow';
 import { fmtNum } from '../../utils/formatNumber';
 import { getThemeColor } from '../themeUtils';
@@ -53,7 +54,7 @@ import {
   VIEW_ICON_MAP,
 } from './inventory/config';
 import type { InventoryCategory, ColDef } from './inventory/types';
-import { isFeaturedButHidden, withParam } from './inventory/helpers';
+import { isFeaturedButHidden, readInventoryFold, withInventoryFold, withParam } from './inventory/helpers';
 import { InventoryRow } from './inventory/InventoryRow';
 import { QuickEditInlineRow } from './inventory/QuickEditInlineRow';
 import { InventoryActionRail, INVENTORY_ACTION_RAIL_WIDTH } from './inventory/InventoryActionRail';
@@ -65,6 +66,9 @@ import { InventoryBulkToolbar } from './inventory/InventoryBulkToolbar';
 import { IncomingReceiptsPanel } from './inventory/IncomingReceiptsPanel';
 import { StockMovementPanel } from './inventory/StockMovementPanel';
 import { InventorySourcePanel } from './inventory/InventorySourcePanel';
+import { TastingSession } from '../../components/tasting/TastingSession';
+import { adaptInventorySummaryRows, buildPersonalJournalHref, getPersonalTastingAction, inventorySummaryStatusMessage, isInventoryPublicationGateChangeAllowed, isInventorySelectionPublishable } from './inventory/domain';
+import type { IncomingInventorySummary, InventorySummaryRow, InventorySummaryStatus, InventoryWritingSummary, PersonalTastingSummary } from './inventory/domain';
 
 interface InventoryViewProps {
   products: Product[];
@@ -84,6 +88,12 @@ interface InventoryViewProps {
   /** Options menu controlled from parent top bar */
   externalShowOptions?: boolean;
   onOptionsToggle?: (open: boolean) => void;
+  /** Batched enrichment. Local product and journal data are compatibility fallbacks. */
+  inventorySummary?: {
+    incomingByProductId?: Readonly<Record<string, IncomingInventorySummary>>;
+    personalTastingByProductId?: Readonly<Record<string, PersonalTastingSummary>>;
+    writingByProductId?: Readonly<Record<string, InventoryWritingSummary>>;
+  };
 }
 
 type InventoryToastOptions = { action?: { label: string; onClick: () => void }; duration?: number };
@@ -123,6 +133,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   externalCategory = 'tea', externalSearchQuery = '',
   externalShowOptions, onOptionsToggle, onSearchQueryChange, onCategoryChange,
   activeAccountName = '',
+  inventorySummary,
 }) => {
   const { showToast } = useToast();
   const showInventoryToast = useCallback((message: string, type: string, options?: InventoryToastOptions) => {
@@ -185,7 +196,23 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const compassEntries = useTeaCompassStore((s) => s.entries);
   const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
   const updateCompassEntry = useTeaCompassStore((s) => s.updateEntry);
-
+  const { tastingJournal, tastingAccountId } = useCustomerAppStore(useShallow((s) => ({
+    tastingJournal: s.tastingJournal,
+    tastingAccountId: s.activeAccountId,
+  })));
+  const personalTastingByProductId = useMemo(() => {
+    const summary: Record<string, { count: number; latestEntryId: string | null }> = {};
+    for (const entry of tastingJournal) {
+      if (entry.archived || (entry.accountId && tastingAccountId && entry.accountId !== tastingAccountId)) continue;
+      const count = Math.max(1, entry.tastings?.length ?? 0);
+      const current = summary[entry.productId];
+      summary[entry.productId] = {
+        count: (current?.count ?? 0) + count,
+        latestEntryId: current?.latestEntryId ?? entry.id,
+      };
+    }
+    return summary;
+  }, [tastingJournal, tastingAccountId]);
   // Use external category/search from parent top bar
   const inventoryCategory: InventoryCategory = externalCategory;
   const searchQuery = externalSearchQuery;
@@ -249,6 +276,44 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // EDIT MODE STATE
   const [isEditMode, setIsEditMode] = useState(false);
   const [localProducts, setLocalProducts] = useState<Product[]>([]);
+  const [inventorySummaryRows, setInventorySummaryRows] = useState<InventorySummaryRow[]>([]);
+  const [inventorySummaryStatus, setInventorySummaryStatus] = useState<InventorySummaryStatus>('loading');
+  const [inventorySummaryRefreshKey, setInventorySummaryRefreshKey] = useState(0);
+  const inventorySummaryAccountRef = useRef<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const accountChanged = inventorySummaryAccountRef.current !== tastingAccountId;
+    inventorySummaryAccountRef.current = tastingAccountId;
+    if (accountChanged) setInventorySummaryRows([]);
+    setInventorySummaryStatus('loading');
+    api.inventorySummaries.list()
+      .then(result => {
+        if (cancelled) return;
+        setInventorySummaryRows(result.summaries ?? []);
+        setInventorySummaryStatus('ready');
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setInventorySummaryRows(current => {
+          setInventorySummaryStatus(!accountChanged && current.length > 0 ? 'stale' : 'error');
+          return current;
+        });
+      });
+    return () => { cancelled = true; };
+  }, [tastingAccountId, inventorySummaryRefreshKey]);
+  const endpointInventorySummary = useMemo(
+    () => adaptInventorySummaryRows(inventorySummaryRows, localProducts),
+    [inventorySummaryRows, localProducts],
+  );
+  const effectivePersonalTastingByProductId = useMemo(() => ({
+    ...personalTastingByProductId,
+    ...endpointInventorySummary.personalTastingByProductId,
+    ...(inventorySummary?.personalTastingByProductId ?? {}),
+  }), [personalTastingByProductId, endpointInventorySummary.personalTastingByProductId, inventorySummary?.personalTastingByProductId]);
+  const effectiveIncomingByProductId = useMemo(() => ({
+    ...endpointInventorySummary.incomingByProductId,
+    ...(inventorySummary?.incomingByProductId ?? {}),
+  }), [endpointInventorySummary.incomingByProductId, inventorySummary?.incomingByProductId]);
 
   // Intake batches: list (for the filter banner label) + the product-id set of
   // the active batch (for "show everything in this shipment").
@@ -349,8 +414,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [showColumnsPopover, setShowColumnsPopover] = useState(false);
   const [showVendorDropdown, setShowVendorDropdown] = useState(false);
 
-  // Feature 3: Row Grouping collapsed state
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  // Feature 3: Row Grouping collapsed state. Lifecycle folds belong to the
+  // inventory address so reload, back, and shared working views retain shape.
+  const collapsedGroups = useMemo(() => readInventoryFold(searchParams), [searchParams]);
+  const toggleCollapsedGroup = useCallback((groupKey: string) => {
+    const next = new Set(collapsedGroups);
+    if (next.has(groupKey)) next.delete(groupKey); else next.add(groupKey);
+    setSearchParams(params => withInventoryFold(params, next), { replace: true });
+  }, [collapsedGroups, setSearchParams]);
 
   // Feature 4: Saved Views, initialize defaults + sync names/icons/sortConfig from defaults
   useEffect(() => {
@@ -536,6 +607,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   // Tasting Editor Modal
   const [tastingEditorProduct, setTastingEditorProduct] = useState<Product | null>(null);
+  const [personalTastingProduct, setPersonalTastingProduct] = useState<Product | null>(null);
 
   // Feature 6: Keyboard Navigation
   const [focusedCell, setFocusedCell] = useState<{ row: number; col: number } | null>(null);
@@ -620,6 +692,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     inventoryGroupBy,
     priceMode,
     isEditMode,
+    personalTastingByProductId: effectivePersonalTastingByProductId,
+    writingSummaryByProductId: {
+      ...endpointInventorySummary.writingByProductId,
+      ...(inventorySummary?.writingByProductId ?? {}),
+    },
+    incomingByProductId: {
+      ...effectiveIncomingByProductId,
+    },
+    summaryStatus: inventorySummary ? 'ready' : inventorySummaryStatus,
   });
 
   // The mobile ledger exposes every purposeful column through horizontal
@@ -821,6 +902,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // Exactly one selected unlocks the Edit door to the full ProductEditPanel.
   const railOpen = selectedIds.size > 0 && !isEditMode;
   const railSingle = selectedIds.size === 1;
+  const effectiveInventorySummaryStatus: InventorySummaryStatus = inventorySummary ? 'ready' : inventorySummaryStatus;
+  const canPublishInventoryProduct = useCallback((product: Product) => isInventorySelectionPublishable(
+    [product],
+    effectiveIncomingByProductId,
+    effectiveInventorySummaryStatus,
+  ), [effectiveIncomingByProductId, effectiveInventorySummaryStatus]);
+  const railCanPublish = useMemo(() => isInventorySelectionPublishable(
+    localProducts.filter(product => selectedIds.has(product.id)),
+    effectiveIncomingByProductId,
+    effectiveInventorySummaryStatus,
+  ), [effectiveIncomingByProductId, effectiveInventorySummaryStatus, localProducts, selectedIds]);
   // The rail always rides the far right edge of the viewport (rightOffset 0). When
   // the edit panel is open on desktop, the PANEL sits to the LEFT of the rail,
   // offset inward by the rail width, so the order reads spreadsheet -> edit panel
@@ -931,6 +1023,24 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   }, [startNewCapture, updateCompassEntry, navigate]);
 
   const handleProductUpdate = useCallback(async (id: string, field: keyof Product, value: any, options?: { throwOnError?: boolean }) => {
+    const currentProduct = localProducts.find(product => product.id === id);
+    const turnsPublicationGateOn = (field === 'isPublic' || field === 'shownInShop') && value === true;
+    if (turnsPublicationGateOn && (
+      !currentProduct
+      || !isInventoryPublicationGateChangeAllowed(
+          currentProduct,
+          field,
+          value,
+          effectiveIncomingByProductId,
+          effectiveInventorySummaryStatus,
+        )
+    )) {
+      const error = new Error('Arrival status must be ready before publication');
+      showToast(error.message, 'error');
+      if (options?.throwOnError) throw error;
+      return;
+    }
+
     // 1. Optimistic Update, single setState call handles both the field change and any
     //    derived retail recalculation to avoid a double re-render.
     const pricingFieldsSet = new Set<keyof Product>(['costAmount', 'quantityPurchased', 'shippingRatePerKg', 'costCurrency']);
@@ -1030,7 +1140,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     } finally {
       setSavingCount(c => Math.max(0, c - 1));
     }
-  }, [setLocalProducts, setPanelDirty, showToast, onRefresh]);
+  }, [effectiveIncomingByProductId, effectiveInventorySummaryStatus, localProducts, setLocalProducts, setPanelDirty, showToast, onRefresh]);
 
   // Permanent delete, only reachable through the typed-"delete" confirmation.
   // Optimistically drops the row, then refetches to reconcile with the server.
@@ -1534,9 +1644,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   const handleBulkApply = async () => {
     if (selectedIds.size === 0 || !bulkField) return;
-    setIsBulkApplying(true);
     const fieldDef = BULK_EDIT_FIELDS.find(f => f.key === bulkField);
     const parsedValue = fieldDef?.type === 'boolean' ? bulkValue === 'true' : bulkValue;
+    if (bulkField === 'isPublic' && parsedValue === true && !railCanPublish) {
+      showToast('Publishing is unavailable until inventory arrival status is ready.', 'error');
+      return;
+    }
+    setIsBulkApplying(true);
     try {
       const results = await Promise.allSettled(
         [...selectedIds].map(id => handleProductUpdate(id, bulkField as keyof Product, parsedValue, { throwOnError: true }))
@@ -1553,6 +1667,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   };
 
   const handleBulkVisibility = async (makePublic: boolean) => {
+    if (makePublic && !railCanPublish) {
+      showToast('Publishing is unavailable until inventory arrival status is ready.', 'error');
+      return;
+    }
     setIsBulkApplying(true);
     try {
       const results = await Promise.allSettled(
@@ -1634,6 +1752,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     const product = processedProducts.find(p => p.id === id) ?? localProducts.find(p => p.id === id);
     if (product) setPanelProduct(product);
   };
+
+  const selectedRailProduct = selectedIds.size === 1
+    ? processedProducts.find(product => product.id === [...selectedIds][0])
+      ?? localProducts.find(product => product.id === [...selectedIds][0])
+      ?? null
+    : null;
+  const selectedPersonalTasting = selectedRailProduct
+    ? effectivePersonalTastingByProductId[selectedRailProduct.id] ?? { count: 0 }
+    : { count: 0 };
 
   // Spreadsheet-style row action: if the clicked product is in the selection, apply to all selected
   const handleSelectionAwareUpdate = useCallback(async (product: Product, field: keyof Product, value: any) => {
@@ -1806,6 +1933,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   );
 
   const corpusBtn = (active: boolean) => `tap-target relative font-display text-ui-20 font-medium leading-none px-0.5 ${active ? 'text-tea-gold after:absolute after:inset-x-0 after:-bottom-1 after:h-0.5 after:bg-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`;
+  const openIncoming = () => {
+    setSearchParams(params => withParam(params, 'incoming', '1'));
+    setShowOptions(false);
+  };
 
   const unifiedHeaderRows = (
           <div className="bg-tea-bg">
@@ -1813,9 +1944,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             <div
               data-testid="inventory-primary-row"
               data-inventory-header-row
-              className="static flex h-[52px] w-full max-w-full items-center gap-3 md:gap-4 px-3 md:px-4 whitespace-nowrap overflow-visible"
+              className="static flex h-[52px] w-full max-w-full items-center gap-1 md:gap-4 px-3 md:px-4 whitespace-nowrap overflow-visible"
             >
-              <div className="flex items-end gap-4 shrink-0">
+              <div className="flex items-end gap-2 md:gap-4 shrink-0">
                 <button type="button" aria-pressed={inventoryCategory === 'tea'} onClick={() => onCategoryChange?.('tea')} className={corpusBtn(inventoryCategory === 'tea')}>Tea</button>
                 <button type="button" aria-pressed={inventoryCategory === 'teaware'} onClick={() => onCategoryChange?.('teaware')} className={corpusBtn(inventoryCategory === 'teaware')}>Wares</button>
               </div>
@@ -1843,13 +1974,21 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               ) : (
                 <>
                   {/* desktop persistent search field ( !hidden beats .tap-target's display ) */}
-                  <button ref={mobileSearchTriggerRef} type="button" onClick={() => setMobileSearchExpanded(true)} aria-label="Search inventory" className="tap-target !hidden md:!flex flex-1 min-w-0 items-center gap-2 border-b border-tea-border py-1.5 text-tea-text-dim hover:text-tea-text-sec"><Search size={15} className="shrink-0" /><span className="font-mono text-ui-12">Search…</span></button>
+                  <button ref={isMobile ? undefined : mobileSearchTriggerRef} type="button" onClick={() => setMobileSearchExpanded(true)} aria-label="Search inventory" className="tap-target !hidden md:!flex flex-1 min-w-0 items-center gap-2 border-b border-tea-border py-1.5 text-tea-text-dim hover:text-tea-text-sec"><Search size={15} className="shrink-0" /><span className="font-mono text-ui-12">Search…</span></button>
 
-                  <div className="ml-auto flex items-center gap-2 md:gap-3">
+                  <div className="ml-auto flex items-center gap-1 md:gap-3">
                     {/* scope, quiet mono metadata */}
                     <span className="font-mono text-ui-11 text-tea-text-dim" title={activeAccountName}>{activeAccountName.replace(/^Teajia\s+/i, '') || 'Bali'}</span>
-                    <span className="text-tea-border" aria-hidden="true">·</span>
-                    <select value={currency} onChange={(event) => setCurrency(event.target.value as typeof currency)} aria-label="Select currency" className="tap-target shrink-0 appearance-none bg-transparent font-mono text-ui-11 text-tea-text-sec outline-none">{rates.map(rate => <option key={rate.currency} value={rate.currency}>{rate.currency}</option>)}</select>
+                    <span className="hidden text-tea-border md:inline" aria-hidden="true">·</span>
+                    <select
+                      value={currency}
+                      onChange={(event) => setCurrency(event.target.value as typeof currency)}
+                      aria-label="Select currency"
+                      className="tap-target shrink-0 appearance-none bg-transparent text-center font-mono text-ui-11 text-tea-text-sec outline-none"
+                      style={isMobile ? { width: 44, minWidth: 44, maxWidth: 44 } : undefined}
+                    >
+                      {rates.map(rate => <option key={rate.currency} value={rate.currency}>{rate.currency}</option>)}
+                    </select>
                     {/* One chip per filter, each naming its kind and clearing
                         only itself. A wisdom chip is also the way back to the
                         entry that filtered the list. The whole group shrinks
@@ -1938,22 +2077,30 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       );
                     })()}
 
+                    <button type="button" onClick={openIncoming} className="tap-target inline-flex items-center font-mono text-ui-9 text-tea-text-sec hover:text-tea-text md:text-ui-11">
+                      Incoming
+                    </button>
+
                     {/* find, mobile icon (desktop uses the field above; md:!hidden beats .tap-target) */}
-                    <button type="button" onClick={() => setMobileSearchExpanded(true)} aria-label="Search inventory" className="tap-target md:!hidden text-tea-text-sec hover:text-tea-text"><Search size={18} /></button>
+                    <button ref={isMobile ? mobileSearchTriggerRef : undefined} type="button" onClick={() => setMobileSearchExpanded(true)} aria-label="Search inventory" className="tap-target md:!hidden text-tea-text-sec hover:text-tea-text"><Search size={18} /></button>
 
                     {/* desktop chrome */}
                     <div className="hidden md:flex items-center gap-3">
                       <button type="button" onClick={() => setGlossaryMode(!glossaryMode)} aria-pressed={glossaryMode} className={chromeBtn}>Glossary</button>
                       {vendorMenu}
                       {!isEditMode && <button type="button" onClick={() => setIsEditMode(true)} aria-pressed={false} className={chromeBtn}>Edit</button>}
-                      {isEditMode && <button data-testid="inventory-done" type="button" onClick={() => setIsEditMode(false)} aria-pressed={true} className={chromeBtn}>Done</button>}
                     </div>
 
-                    {/* add, every width */}
-                    <button type="button" onClick={onAddClick} aria-label="Add new tea" className="tap-target inline-flex items-center gap-1 text-tea-gold hover:text-tea-gold-lt"><Plus size={18} /><span className="hidden md:inline font-mono text-ui-11 uppercase tracking-[0.08em]">Add</span></button>
+                    {/* Mobile keeps Add in the action sheet so this row retains
+                        six non-overlapping 44px targets at 390px. */}
+                    <button type="button" onClick={onAddClick} aria-label="Add new tea" className="tap-target !hidden md:!inline-flex items-center gap-1 text-tea-gold hover:text-tea-gold-lt"><Plus size={18} /><span className="font-mono text-ui-11 uppercase tracking-[0.08em]">Add</span></button>
 
                     {/* overflow */}
                     <button type="button" onClick={() => setShowOptions(!showOptions)} aria-label="Open inventory actions" aria-expanded={showOptions} className="tap-target text-tea-text-sec hover:text-tea-text"><MoreHorizontal size={18} /></button>
+
+                    {/* Editing is an active mode, so its exit is the terminal
+                        desktop action after Add and More. */}
+                    {isEditMode && <button data-testid="inventory-done" type="button" onClick={() => setIsEditMode(false)} aria-pressed={true} className={`${chromeBtn} !hidden md:!inline-flex`}>Done</button>}
                   </div>
                 </>
               )}
@@ -1969,8 +2116,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               const selectView = (view: typeof allViews[number]) => { setGlossaryMode(false); setActiveView(view.id); setInventoryColumns(view.columns); setInventorySortConfig(view.sortConfig); setFilterType(view.filterType); setInventoryGroupBy(view.groupBy); };
               const lensBtn = (active: boolean) => `tap-target relative font-display text-ui-16 font-medium leading-none whitespace-nowrap ${active ? 'text-tea-gold after:absolute after:inset-x-0 after:-bottom-1 after:h-0.5 after:bg-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`;
               return (
-                <div data-testid="inventory-purpose-row" data-inventory-header-row className="static flex h-12 w-full max-w-full items-center gap-4 md:gap-5 px-3 md:px-4 border-b border-tea-border whitespace-nowrap overflow-visible">
-                  <div className="flex items-center gap-4 md:gap-5 min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [mask-image:linear-gradient(to_right,#000_86%,transparent)] md:[mask-image:none]">
+                <div data-testid="inventory-purpose-row" data-inventory-header-row className="static flex h-12 w-full max-w-full items-center gap-2 md:gap-5 px-3 md:px-4 border-b border-tea-border whitespace-nowrap overflow-visible">
+                  <div className="flex items-center gap-2 md:gap-5 min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [mask-image:linear-gradient(to_right,#000_86%,transparent)] md:[mask-image:none]">
                     {purposeViews.map(view => <button key={view.id} type="button" onClick={() => selectView(view)} aria-pressed={activeViewId === view.id} className={lensBtn(activeViewId === view.id)}>{view.name || VIEW_FILTER_LABELS[view.filterType] || view.filterType}</button>)}
                   </div>
 
@@ -2013,10 +2160,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 tabIndex={-1}
                 ref={(el) => el?.focus()}
               >
-                  <button onClick={() => { const next = new URLSearchParams(searchParams); next.set('incoming', '1'); setSearchParams(next); setShowOptions(false); }} className="px-3 py-2 text-left text-ui-11 text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
-                      <History size={13} /> Incoming
-                  </button>
-                  <div className="h-px bg-tea-border"></div>
                   <button
                       onClick={() => { setFilterType(filterType === 'Pending' ? 'All' : 'Pending'); setShowOptions(false); }}
                       className={`px-3 py-2 text-left text-ui-11 flex items-center gap-2 hover:bg-tea-bg transition-colors ${filterType === 'Pending' ? 'text-tea-gold' : 'text-tea-text-sec'}`}
@@ -2055,7 +2198,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             {isMobile && (
               <BottomSheet open={showOptions} onOpenChange={setShowOptions} title="Inventory actions">
                 <div className="px-1">
-                  <button onClick={() => { const next = new URLSearchParams(searchParams); next.set('incoming', '1'); setSearchParams(next); setShowOptions(false); }} className={`${actionRow} text-tea-text hover:bg-tea-gold/[0.06]`}><History size={18} className="shrink-0 text-tea-text-sec" /> Incoming</button>
+                  <button onClick={() => { onAddClick(); setShowOptions(false); }} className={`${actionRow} text-tea-text hover:bg-tea-gold/[0.06]`}><Plus size={18} className="shrink-0 text-tea-gold" /> Add tea</button>
                   <button onClick={() => { setFilterType(filterType === 'Pending' ? 'All' : 'Pending'); setShowOptions(false); }} className={`${actionRow} ${filterType === 'Pending' ? 'text-tea-gold bg-tea-gold/[0.10]' : 'text-tea-text hover:bg-tea-gold/[0.06]'}`}><Sparkles size={18} className={`shrink-0 ${filterType === 'Pending' ? 'text-tea-gold' : 'text-tea-text-sec'}`} /> <span className="flex-1">Pending AI</span>{pendingCount > 0 && <span className="font-mono text-ui-11 text-tea-gold bg-tea-gold/10 rounded-full px-2 py-0.5">{pendingCount}</span>}</button>
                   <div className="h-px bg-tea-border my-1.5 mx-3" />
                   <button onClick={() => { onImportClick(); setShowOptions(false); }} className={`${actionRow} text-tea-text hover:bg-tea-gold/[0.06]`}><FileSpreadsheet size={18} className="shrink-0 text-tea-text-sec" /> Import CSV</button>
@@ -2093,6 +2236,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       <div className="shrink-0 z-sticky bg-tea-bg">
         {unifiedHeaderRows}
       </div>
+
+      {inventorySummaryStatus !== 'ready' && (
+        <div data-testid="inventory-summary-status" role={inventorySummaryStatus === 'error' ? 'alert' : 'status'} className="shrink-0 border-b border-tea-border bg-tea-surface px-4 py-2 text-ui-11 text-tea-text-sec">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2">
+            <span>{inventorySummaryStatusMessage(inventorySummaryStatus)}</span>
+            {(inventorySummaryStatus === 'error' || inventorySummaryStatus === 'stale') && (
+              <button type="button" onClick={() => setInventorySummaryRefreshKey(value => value + 1)} className="tap-target text-tea-gold hover:text-tea-gold-lt">Try again</button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* --- SCROLL CONTAINER ---
           The right margin (room for the action rail / edit panel) lives HERE,
@@ -2433,22 +2587,19 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               </table>
 
               {/* Grouped sections */}
-              {Object.entries(groupedProducts).map(([groupKey, { items, totalStock, totalRetail }]) => {
+              {groupedProducts.map(({ key: groupKey, label: groupLabel, items, totalStock, totalRetail, lifecycle }) => {
                 const isCollapsed = collapsedGroups.has(groupKey);
                 return (
-                  <div key={groupKey}>
+                  <div key={groupKey} data-testid={lifecycle ? `inventory-stage-${groupKey}` : undefined}>
                     <button
-                      onClick={() => setCollapsedGroups(prev => {
-                        const next = new Set(prev);
-                        if (next.has(groupKey)) next.delete(groupKey); else next.add(groupKey);
-                        return next;
-                      })}
+                      onClick={() => toggleCollapsedGroup(groupKey)}
+                      aria-expanded={!isCollapsed}
                       className="w-full flex items-center gap-3 px-5 py-2.5 bg-tea-bg/60 border-b border-tea-border hover:bg-tea-accent-sub transition-colors text-left"
                     >
                       {isCollapsed ? <ChevronRight size={14} className="text-tea-text-sec" /> : <ChevronDown size={14} className="text-tea-text-sec" />}
-                      <span className="font-display text-ui-15 text-tea-text">{groupKey}</span>
+                      <span className="font-display text-ui-15 text-tea-text">{groupLabel}</span>
                       <span className="label-caps text-tea-text-dim">{items.length} items</span>
-                      <span className="font-serif text-ui-13 text-tea-text-sec tabular-nums ml-auto">{totalStock}g</span>
+                      <span className="font-serif text-ui-13 text-tea-text-sec tabular-nums ml-auto">{totalStock}{inventoryCategory === 'teaware' ? ' units' : 'g'}</span>
                       <span className="font-serif text-ui-13 text-tea-text-sec tabular-nums">${fmtNum(totalRetail)}</span>
                     </button>
                     {!isCollapsed && (
@@ -2506,6 +2657,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                     rates={rates}
                                     onClose={() => setExpandedRowId(null)}
                                     onStockMovement={stableStockRecount}
+                                    canPublish={canPublishInventoryProduct(product)}
                                   />
                                 )}
                               </React.Fragment>
@@ -2590,6 +2742,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                 rates={rates}
                                 onClose={() => setExpandedRowId(null)}
                                 onStockMovement={stableStockRecount}
+                                canPublish={canPublishInventoryProduct(product)}
                               />
                             )}
                           </React.Fragment>
@@ -2703,8 +2856,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         selectedCount={selectedIds.size}
         isSingle={railSingle}
         isBusy={isBulkApplying}
+        canPublish={railCanPublish}
         rightOffset={railRightOffset}
         onEdit={handleRailEdit}
+        personalTastingLabel={getPersonalTastingAction(selectedPersonalTasting)}
+        hasPersonalTasting={selectedPersonalTasting.count > 0}
+        onPersonalTasting={() => { if (selectedRailProduct) setPersonalTastingProduct(selectedRailProduct); }}
+        onViewTasting={() => { if (selectedRailProduct) navigate(buildPersonalJournalHref(selectedRailProduct.id, selectedPersonalTasting)); }}
+        onEditProductTasting={() => { if (selectedRailProduct) setTastingEditorProduct(selectedRailProduct); }}
+        onContentLinks={() => setShowContentLinks(true)}
         onPublish={() => handleBulkVisibility(true)}
         onStar={handleBulkFeature}
         onSample={handleSendToSamples}
@@ -2730,6 +2890,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         filterLabel={filterType !== 'All' ? (VIEW_FILTER_LABELS[filterType] || filterType) : undefined}
         onShowStorePreview={(p) => setDetailsProduct(p)}
         onOpenStockMovement={stableStockMovement}
+        canPublish={panelProduct ? canPublishInventoryProduct(panelProduct) : false}
         rightOffset={panelRightOffset}
       />
 
@@ -2761,6 +2922,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         bulkField={bulkField}
         bulkValue={bulkValue}
         isBulkApplying={isBulkApplying}
+        canApply={!(bulkField === 'isPublic' && bulkValue === 'true' && !railCanPublish)}
         onBulkFieldChange={(field) => { setBulkField(field); setBulkValue(''); }}
         onBulkValueChange={setBulkValue}
         onApply={handleBulkApply}
@@ -2768,6 +2930,22 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       />
 
       {/* Tasting Editor Modal */}
+      <AnimatePresence>
+        {personalTastingProduct && (
+          <TastingSession
+            item={{
+              id: personalTastingProduct.id,
+              name: personalTastingProduct.givenName || personalTastingProduct.productName,
+              type: personalTastingProduct.type,
+              image: personalTastingProduct.imageUrl,
+              sourceType: 'product',
+              teaKey: personalTastingProduct.teaKey,
+            }}
+            onClose={() => setPersonalTastingProduct(null)}
+          />
+        )}
+      </AnimatePresence>
+
       {tastingEditorProduct && (
         <TastingEditorModal
           product={tastingEditorProduct}

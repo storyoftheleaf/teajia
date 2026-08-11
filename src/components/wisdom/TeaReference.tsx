@@ -1,7 +1,11 @@
 import React from 'react';
-import { resolveTea, type NamedTea, type TeaResolution } from '../../wisdom';
+import { type NamedTea, type TeaResolution } from '../../wisdom';
+import {
+  resolveRecord,
+  type TeaReferenceProduct,
+} from '../../wisdom/productIdentity';
 import { FactGrid, type Fact } from './FactGrid';
-import { TeaLineage, resolveLineage, type TeaLineageProduct } from './TeaLineage';
+import { TeaLineage, resolveLineage } from './TeaLineage';
 import { BODY, LABEL, LABEL_GAP, SECTION } from '../shared/typeRoles';
 
 /**
@@ -21,12 +25,8 @@ import { BODY, LABEL, LABEL_GAP, SECTION } from '../shared/typeRoles';
  * base and improves on every product page the day it is corrected, which is why
  * one hairline opens the whole band and separates it from Adrian's own words.
  */
-export interface TeaReferenceProduct extends TeaLineageProduct {
-  /** The shop's own name for the tea, when it differs from the given name. */
-  variant?: string | null;
-  type?: string | null;
-  year?: number | string | null;
-}
+export { resolveRecord } from '../../wisdom/productIdentity';
+export type { TeaReferenceProduct } from '../../wisdom/productIdentity';
 
 export const producerPath = (id: string) => `/wisdom/producer/${id}`;
 export const stylePath = (id: string) => `/wisdom/style/${id}`;
@@ -34,13 +34,6 @@ export const markPath = (id: string) => `/wisdom/mark/${id}`;
 export const namedTeaPath = (id: string) => `/wisdom/named/${id}`;
 
 /** One read of the base, from a product's own fields. */
-export function resolveRecord(product: TeaReferenceProduct): TeaResolution {
-  return resolveTea({
-    names: [product.variant, product.name, product.chineseName],
-    known: { type: product.type, region: product.origin, year: product.year },
-  });
-}
-
 /**
  * Who made it, how it was made, which line it belongs to, and the name it
  * arrived under. Declaration order is importance order: the maker is the

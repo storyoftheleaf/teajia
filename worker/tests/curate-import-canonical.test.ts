@@ -65,6 +65,9 @@ describe('canonical Curate import record', () => {
       originCountry: 'China',
       originRegion: 'Guangxi',
       description: 'Aged Liu Bao tea listed by the supplier.',
+      processingNotes: null,
+      tasting: null,
+      tastingSource: null,
       currency: 'CNY',
       weightUnit: 'g',
       packWeight: 500,
@@ -133,6 +136,70 @@ describe('canonical Curate import record', () => {
       vendor_id: 'vendor-a',
       vendor: 'Huang Wei',
       inventory_purpose: 'working',
+    });
+  });
+
+  it('preserves Yi Bang processing notes across canonical destination mappings', () => {
+    const record = normalizeCanonicalImportRecord({
+      sourceItemId: 'record:source-yi-bang:1',
+      englishName: '2025 Yi Bang Wild Arbor Raw Pu-erh Tea Cake',
+      type: 'Sheng',
+      form: 'Cake',
+      year: 2025,
+      originCountry: 'China',
+      originRegion: 'Yi Bang village, northern Yiwu',
+      cultivar: 'primitive small-leaf population',
+      producer: 'Yunnan Sourcing',
+      description: 'Bright orchard fruit, wildflower honey, citrus peel, thick body, long hui-gan and steady shengjin.',
+      processingNotes: 'Hand wok fixed, stone pressed, and dried at low temperature.',
+      tasting: { body: ['full'], finish: ['finish-long', 'hui-gan', 'salivating'], flavor: ['floral', 'honey', 'fruity', 'citrus', 'sweet', 'bitter'], 'liquor-color': ['gold'], clarity: 'clear', huiGan: true },
+      tastingSource: 'source',
+    });
+
+    expect(record).toMatchObject({
+      description: 'Bright orchard fruit, wildflower honey, citrus peel, thick body, long hui-gan and steady shengjin.',
+      processingNotes: 'Hand wok fixed, stone pressed, and dried at low temperature.',
+      producer: 'Yunnan Sourcing',
+      tastingSource: 'source',
+    });
+    expect(canonicalImportToCompassValues(record)).toMatchObject({
+      notes: 'Hand wok fixed, stone pressed, and dried at low temperature.',
+    });
+    const product = canonicalImportToProductValues(record);
+    expect(product).toMatchObject({
+      processing_notes: 'Hand wok fixed, stone pressed, and dried at low temperature.',
+      description: '2025 Sheng cake from Yi Bang village, northern Yiwu, China, made from primitive small-leaf population by Yunnan Sourcing.',
+      tasting_source: 'source',
+    });
+    expect(JSON.parse(product.tasting!)).toEqual(record.tasting);
+  });
+
+  it('rejects owner and community attribution from import normalization', () => {
+    expect(normalizeCanonicalImportRecord({ tasting: { flavor: ['honey'] }, tastingSource: 'owner' }).tastingSource).toBeNull();
+    expect(normalizeCanonicalImportRecord({ tasting: { flavor: ['honey'] }, tasting_source: 'community' }).tastingSource).toBeNull();
+  });
+
+  it('rejects invalid tasting taxonomy categories before canonical persistence', () => {
+    expect(() => normalizeCanonicalImportRecord({
+      tasting: { finish: ['honey'] },
+      tastingSource: 'common',
+    })).toThrow(/Invalid tasting\.finish term: honey/);
+  });
+
+  it('preserves provider-neutral descriptions for non-deterministic common tasting', () => {
+    const product = canonicalImportToProductValues(normalizeCanonicalImportRecord({
+      sourceItemId: 'provider:item-1',
+      englishName: 'Provider Tea',
+      type: 'Sheng',
+      originCountry: 'China',
+      description: 'A neutral product description supplied by the provider.',
+      tasting: { flavor: ['honey'] },
+      tastingSource: 'common',
+    }));
+
+    expect(product).toMatchObject({
+      description: 'A neutral product description supplied by the provider.',
+      tasting_source: 'common',
     });
   });
 

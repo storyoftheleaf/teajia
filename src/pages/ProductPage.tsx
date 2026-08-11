@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { AnimatePresence } from 'framer-motion';
 import { useInventory } from '../context/InventoryContext';
@@ -14,9 +14,37 @@ import { TastingEditorModal } from '../admin/components/TastingEditorModal';
 import { EmblemLoader } from '../components/shared/EmblemLoader';
 import type { InventoryItem } from '../types';
 import type { Product } from '../admin/types';
+import { useAppStore } from '../lib/store';
+import { buildPublicProductHref } from '../lib/publicProductNavigation';
+import { LABEL, NUMERAL } from '../components/shared/typeRoles';
 
 interface ProductPageProps {
   onAddToCart?: (item: InventoryItem, qty: number, total: number) => void;
+  onCartClick?: () => void;
+  cartItemCount?: number;
+}
+
+interface ProductOrderAccessProps {
+  onCartClick?: () => void;
+  cartItemCount: number;
+}
+
+export function ProductOrderAccess({ onCartClick, cartItemCount }: ProductOrderAccessProps) {
+  if (!onCartClick || cartItemCount <= 0) return null;
+
+  const itemLabel = cartItemCount === 1 ? 'item' : 'items';
+  return (
+    <button
+      type="button"
+      onClick={onCartClick}
+      aria-label={`Open order with ${cartItemCount} ${itemLabel}`}
+      className={`${LABEL} tap-target inline-flex shrink-0 items-center gap-2 text-tea-text-sec transition-colors hover:text-tea-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50`}
+    >
+      <Icons.Bag className="h-4 w-4" aria-hidden="true" />
+      <span>View order</span>
+      <span className={`normal-case text-tea-gold ${NUMERAL}`}>{cartItemCount}</span>
+    </button>
+  );
 }
 
 /**
@@ -46,9 +74,13 @@ const PUBLISHED_CURRENCY = 'USD';
  * reading content on the right; below lg it is a single column with the
  * commerce bar fixed above the bottom nav.
  */
-export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
+export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartClick, cartItemCount = 0 }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const persistedStoreSlug = useAppStore(state => state.shopStoreSlug);
+  const storeSlug = searchParams.get('store')?.trim() || persistedStoreSlug;
+  const shopHref = storeSlug ? `/shop?store=${encodeURIComponent(storeSlug)}` : '/shop';
   const { inventory, isLoading, refetch: refetchInventory } = useInventory();
   const { isAdmin } = useAuth();
 
@@ -70,8 +102,11 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
   // Tasting-term cross-reference: send the reader into the filtered shop.
   const handleTermClick = useCallback((termId: string, categoryId: string) => {
     const param = categoryId === 'feeling' ? 'feel' : 'flavor';
-    navigate(`/shop?${param}=${encodeURIComponent(termId)}`);
-  }, [navigate]);
+    const next = new URLSearchParams();
+    if (storeSlug) next.set('store', storeSlug);
+    next.set(param, termId);
+    navigate(`/shop?${next.toString()}`);
+  }, [navigate, storeSlug]);
 
   // Minimal Product shape TastingEditorModal needs, mapped from InventoryItem.
   const adminTastingProductShim: Product | null = useMemo(() => {
@@ -103,7 +138,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
           This product could not be found. It may have been removed or the link may be incorrect.
         </p>
         <Link
-          to="/shop"
+          to={shopHref}
           className="cta-solid px-8 py-3 text-xs uppercase tracking-[0.2em] transition-colors"
         >
           Back to Shop
@@ -137,7 +172,8 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
   // plant, so the two documents describe one entity, not two look-alikes.
   const siteOrigin = typeof window === 'undefined' ? '' : window.location.origin;
   const cultivarUrl = lineageCultivar ? `${siteOrigin}${cultivarPath(lineageCultivar.id)}` : null;
-  const productUrl = `${siteOrigin}/shop/product/${item.id}`;
+  const productHref = buildPublicProductHref({ id: item.id }, storeSlug);
+  const productUrl = `${siteOrigin}${productHref}`;
 
   // The crumb between the shop and this tea, resolved through the same
   // vocabulary the rest of the shop reads, so a record saved as "Red" and one
@@ -145,7 +181,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
   // the teaware tab does not read a type from the address, and a crumb that
   // lands nowhere is worse than no crumb.
   const crumbType = item.category === 'ware' ? null : normalizeTeaType(item.type) ?? item.type;
-  const typeHref = crumbType ? `/shop?type=${encodeURIComponent(crumbType)}` : null;
+  const typeHref = crumbType ? `${shopHref}${shopHref.includes('?') ? '&' : '?'}type=${encodeURIComponent(crumbType)}` : null;
 
   /**
    * What this tea actually costs, in the currency this page is priced in.
@@ -260,7 +296,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
         '@type': 'BreadcrumbList',
         '@id': `${productUrl}#breadcrumb`,
         itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Shop', item: `${siteOrigin}/shop` },
+          { '@type': 'ListItem', position: 1, name: 'Shop', item: `${siteOrigin}${shopHref}` },
           ...(crumbType && typeHref
             ? [{ '@type': 'ListItem', position: 2, name: crumbType, item: `${siteOrigin}${typeHref}` }]
             : []),
@@ -273,7 +309,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
   return (
     <div className="w-full animate-[fadeIn_0.5s_ease-out]">
       <Helmet>
-        <title>{item.name} · Teajia</title>
+        <title>{`${item.name} · Teajia`}</title>
         <meta name="description" content={metaDescription} />
         <meta property="og:title" content={`${item.name} · Teajia`} />
         <meta property="og:description" content={(introduction || mainStory || '').slice(0, 160)} />
@@ -289,7 +325,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
       {/* Back: page nav, top-left */}
       <div className="mx-auto w-full max-w-[1080px] pt-4 pb-2">
         <Link
-          to="/shop"
+          to={shopHref}
           className="inline-flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors text-sm"
         >
           <Icons.Back className="w-4 h-4" />
@@ -304,6 +340,8 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
         onAddToCart={onAddToCart}
         onTermClick={handleTermClick}
         onTaste={handleTaste}
+        publicHref={productHref}
+        orderAccess={<ProductOrderAccess onCartClick={onCartClick} cartItemCount={cartItemCount} />}
         isAdmin={isAdmin}
         onEditProductTasting={isAdmin ? (editItem) => setAdminTastingItem(editItem) : undefined}
       />
@@ -318,7 +356,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
               // Already on this product's page: just close the session.
               setTastingItem(null);
               if (ordered.id !== item.id) {
-                navigate(`/shop/product/${encodeURIComponent(ordered.id)}`);
+                navigate(buildPublicProductHref({ id: ordered.id }, storeSlug));
               }
             }}
           />

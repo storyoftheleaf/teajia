@@ -25,10 +25,6 @@ export const useContributor = (slug: string | undefined) => {
 
       return {
         id: data.id,
-        account_id: data.account_id,
-        user_id: data.user_id ?? null,
-        face_of_account_id: data.face_of_account_id ?? null,
-
         display_name: data.display_name,
         chinese_name: data.chinese_name ?? null,
         role: data.role ?? null,
@@ -54,17 +50,18 @@ export const useContributor = (slug: string | undefined) => {
         where_to_find_text: data.where_to_find_text ?? null,
 
         links,
+        languages: Array.isArray(data.languages) ? data.languages : [],
         is_published: (data.is_published ? 1 : 0) as 0 | 1,
 
         articles: Array.isArray(data.articles) ? data.articles : [],
         pull_quotes: Array.isArray(data.pull_quotes) ? data.pull_quotes : [],
         featured_in: Array.isArray(data.featured_in) ? data.featured_in : [],
         products: Array.isArray(data.products) ? data.products : [],
+        accounts: Array.isArray(data.accounts) ? data.accounts : [],
+        has_payment_methods: data.has_payment_methods === true,
+        payment_accounts: Array.isArray(data.payment_accounts) ? data.payment_accounts : [],
         host_account: data.host_account ?? null,
         seasonal_line: data.seasonal_line ?? null,
-
-        created_at: data.created_at,
-        updated_at: data.updated_at,
       };
     },
     staleTime: 1000 * 60 * 5,

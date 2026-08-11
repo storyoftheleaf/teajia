@@ -21,7 +21,7 @@ import { RESEARCH_REGIONS } from '../../../wisdom/generated/regions';
 import type { Cultivar, Mark, NamedTea, Producer, Region, Style } from '../../../wisdom';
 import { getThemeTextColor } from '../../themeUtils';
 import { CultivarDetailPanel } from './CultivarDetailPanel';
-import { WisdomChip, WisdomRoving } from './WisdomDetailPanel';
+import { WisdomChip, WisdomDetailPanel, WisdomRoving } from './WisdomDetailPanel';
 import {
   UNGROUPED,
   WISDOM_SLOT,
@@ -351,6 +351,7 @@ const cultivars = defineHolding<Cultivar>({
       run={ctx.run}
       publicHref={ctx.publicHref}
       usage={ctx.usage}
+      relationPanel={ctx.relationPanel}
     />
   ),
 });
@@ -485,17 +486,45 @@ function flattenVarieties(): FlatVariety[] {
 
 export const ALL_VARIETIES = flattenVarieties();
 
+const exactVarietyName = (value: string) =>
+  value.normalize('NFKC').toLowerCase().replace(/[^a-z0-9\u3400-\u9fff]+/g, '');
+
 /**
- * What a variety entry actually is, said in the panel rather than left for the
- * reader to infer from two facts.
- *
- * Regions got this treatment first, for the same reason: a panel that comes up
- * nearly empty reads as a screen that failed to load. A variety is genuinely
- * this small. It is a recognition key, and the names in the header ARE the
- * record, because those are the strings the importer matches on.
+ * A recognition entry may be the same named plant as a researched cultivar.
+ * Join only on an exact recorded name or alias: a plausible fuzzy match is not
+ * enough to inherit plant history, processing, or sensory claims.
  */
+export function researchCultivarForVariety(row: FlatVariety): Cultivar | null {
+  const names = [row.name, row.chineseName, ...(row.altNames ?? [])]
+    .filter((name): name is string => Boolean(name))
+    .map(exactVarietyName);
+
+  return CULTIVARS.find(cultivar =>
+    [cultivar.name, cultivar.chineseName, ...cultivar.altNames]
+      .filter((name): name is string => Boolean(name))
+      .map(exactVarietyName)
+      .some(name => names.includes(name)),
+  ) ?? null;
+}
+
+/** The honest empty state for a matching name with no researched profile yet. */
 const VARIETY_NOTE =
-  'A recognition key, not an article. What the base holds for a variety is exactly what is above: the names the import editor matches on, and the type and place they resolve to. Nothing further was ever recorded for one, so this panel is short by design. The prose lives on the cultivar and the region it points at.';
+  'This name is kept so imports can recognise it. It is not yet linked to a researched reference profile.';
+
+const varietyDetail = (row: FlatVariety, ctx?: WisdomLinkCtx) => ({
+  kind: 'Variety',
+  name: row.name,
+  chineseName: row.chineseName,
+  altNames: row.altNames,
+  note: VARIETY_NOTE,
+  facts: [
+    { label: 'Type', value: typeCell(row.type) },
+    { label: 'Region', value: regionChip(row.region, ctx) },
+    // Derived, not stored: the country falls out of the region the same way it
+    // does for a record that names only a region.
+    { label: 'Country', value: findRegion(row.region)?.country ?? null },
+  ],
+});
 
 const varieties = defineHolding<FlatVariety>({
   id: 'varieties',
@@ -540,20 +569,39 @@ const varieties = defineHolding<FlatVariety>({
     whole: total =>
       `Every one of the ${total} varieties that names a place names one the base holds as a region. Type and place both resolve at import.`,
   },
-  detail: (row, ctx) => ({
-    kind: 'Variety',
-    name: row.name,
-    chineseName: row.chineseName,
-    altNames: row.altNames,
-    note: VARIETY_NOTE,
-    facts: [
-      { label: 'Type', value: typeCell(row.type) },
-      { label: 'Region', value: regionChip(row.region, ctx) },
-      // Derived, not stored: the country falls out of the region the same way it
-      // does for a record that names only a region.
-      { label: 'Country', value: findRegion(row.region)?.country ?? null },
-    ],
-  }),
+  detail: varietyDetail,
+  renderDetail: (row, ctx) => {
+    const cultivar = researchCultivarForVariety(row);
+    if (!cultivar) {
+      return (
+        <WisdomDetailPanel
+          detail={varietyDetail(row, ctx)}
+          id={row.id}
+          onClose={ctx.onClose}
+          nav={ctx.nav}
+          section={ctx.section}
+          run={ctx.run}
+          usage={ctx.usage}
+        />
+      );
+    }
+
+    return (
+      <CultivarDetailPanel
+        cultivar={cultivar}
+        kind="Variety"
+        entryId={row.id}
+        additionalFacts={[{ label: 'Type', value: typeCell(row.type) }]}
+        onClose={ctx.onClose}
+        onSelectCultivar={id => ctx.jump({ holding: 'cultivars', entry: id })}
+        jump={ctx.jump}
+        nav={ctx.nav}
+        section={ctx.section}
+        run={ctx.run}
+        usage={ctx.usage}
+      />
+    );
+  },
 });
 
 // ── producers ─────────────────────────────────────────────────────────────────

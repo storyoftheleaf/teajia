@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import type { Location } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { AlcoveModal } from './AlcoveModal';
 import { TeaPlaceholder } from './TeaPlaceholder';
@@ -15,6 +16,7 @@ import { BODY, HEADING, LABEL, NUMERAL } from '../shared/typeRoles';
 interface CollectionTabProps {
   inventory: InventoryItem[];
   onAddToCart: (item: InventoryItem, qty: number, total: number) => void;
+  modalLocation?: Location;
 }
 
 /**
@@ -183,10 +185,10 @@ const ItemCard: React.FC<{
   );
 };
 
-export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddToCart }) => {
+export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddToCart, modalLocation }) => {
   const [tastingItem, setTastingItem] = useState<InventoryItem | null>(null);
   // Alcove modal driven by the URL (/shop/product/:id + background state).
-  const { viewItem, openProduct, navigateWithinModal, closeProduct } = useProductModalRoute(inventory);
+  const { viewItem, openProduct, navigateWithinModal, closeProduct } = useProductModalRoute(inventory, modalLocation);
 
   const favoriteTeas = useAppStore(state => state.favoriteTeas);
   const toggleFavoriteTea = useAppStore(state => state.toggleFavoriteTea);

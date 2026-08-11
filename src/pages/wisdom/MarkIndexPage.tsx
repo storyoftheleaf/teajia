@@ -33,6 +33,7 @@ import {
   WisdomSubNav,
   WisdomToolbar,
 } from './wisdomShared';
+import { buildWisdomCollectionData, usePublicWisdomEntries, WisdomIndexVisibilityNotice } from './publicIndexVisibility';
 
 type View = 'producer' | 'alphabetical';
 
@@ -86,7 +87,11 @@ const MarkRows: React.FC<{ rows: Mark[] }> = ({ rows }) => (
 const MarkIndexPage: React.FC = () => {
   const [view, setView] = useState<View>('producer');
   const [query, setQuery] = useState('');
-  const visible = useMemo(() => MARKS.filter(mark => matches(mark, query)).sort(byName), [query]);
+  const publicState = usePublicWisdomEntries('mark', MARKS);
+  const visible = useMemo(
+    () => publicState.entries.filter(mark => matches(mark, query)).sort(byName),
+    [publicState.entries, query],
+  );
 
   /** Producers first, biggest first, then everything nobody is recorded as owning. */
   const byProducer = useMemo(() => {
@@ -109,24 +114,16 @@ const MarkIndexPage: React.FC = () => {
     [byProducer],
   );
 
-  const structuredData = {
-    '@context': 'https://schema.org',
-    '@type': 'CollectionPage',
+  const structuredData = buildWisdomCollectionData({
     name: 'Tea Marks',
     description: 'Recipe numbers, seals and labels identifying a tea product line, most tied to a producer and an era.',
-    inLanguage: 'en',
-    isPartOf: { '@type': 'WebSite', name: 'Teajia' },
-    mainEntity: {
-      '@type': 'ItemList',
-      numberOfItems: MARKS.length,
-      itemListElement: MARKS.map((mark, index) => ({
-        '@type': 'ListItem',
-        position: index + 1,
-        name: mark.name,
-        url: `/wisdom/mark/${mark.id}`,
-      })),
-    },
-  };
+    entries: publicState.entries,
+    pathFor: mark => `/wisdom/mark/${mark.id}`,
+  });
+
+  if (publicState.status !== 'ready') {
+    return <WisdomIndexVisibilityNotice status={publicState.status} onRetry={publicState.retry} />;
+  }
 
   return (
     <article className={PAGE}>
@@ -134,7 +131,7 @@ const MarkIndexPage: React.FC = () => {
         <title>Tea Marks · The Wisdom Base · Teajia</title>
         <meta
           name="description"
-          content={`${MARKS.length} recipe numbers, seals and labels: what a product line is called, and who made it.`}
+          content={`${publicState.entries.length} recipe numbers, seals and labels: what a product line is called, and who made it.`}
         />
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
@@ -152,7 +149,7 @@ const MarkIndexPage: React.FC = () => {
           placeholder="Search marks"
           searchLabel="Search marks by name, Chinese name or era"
           visible={visible.length}
-          total={MARKS.length}
+          total={publicState.entries.length}
           noun="marks"
         >
           <ViewSwitch options={VIEWS} value={view} onChange={next => setView(next)} label="Browse the marks" />

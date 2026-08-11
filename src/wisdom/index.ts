@@ -18,7 +18,24 @@ export * from './regions';
 export * from './cultivars';
 export * from './producers';
 export * from './namedTeas';
-export type { Cultivar, Region, CultivarStory, Producer, Style, Mark, NamedTea } from './types';
+export * from './research';
+export type {
+  Cultivar,
+  Region,
+  CultivarStory,
+  Producer,
+  Style,
+  Mark,
+  NamedTea,
+  WisdomEntryKind,
+  CitationUsage,
+  ResearchSourceKind,
+  ResearchSource,
+  PublicResearchSource,
+  WisdomCitation,
+  WisdomPotentialTasting,
+  WisdomPotentialProfile,
+} from './types';
 
 /** What the wisdom base knows about a tea, and where each part came from. */
 export interface TeaResolution {

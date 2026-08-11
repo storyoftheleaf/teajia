@@ -328,11 +328,18 @@ export interface ContributorHostAccount {
   location_country?: string | null;
 }
 
+export interface ContributorAccountRef extends Omit<ContributorHostAccount, 'id'> {
+  account_id?: string;
+  account_slug?: string;
+  account_name?: string;
+  account_kind?: AccountKind;
+  public_role?: string | null;
+  is_host: 0 | 1;
+  display_order: number;
+}
+
 export interface ContributorProfile {
   id: string;
-  account_id: string;
-  user_id?: string | null;
-  face_of_account_id?: string | null;
 
   display_name: string;
   chinese_name?: string | null;
@@ -359,20 +366,38 @@ export interface ContributorProfile {
   where_to_find_text?: string | null;
 
   links: ContributorLink[];
+  languages?: string[];
   is_published: 0 | 1;
 
   articles: ContributorArticleRef[];
   pull_quotes: ContributorPullQuote[];
   featured_in: ContributorFeaturedRef[];
   products: ContributorProductRef[];
+  accounts?: ContributorAccountRef[];
+  shelf_slug?: string | null;
+  has_payment_methods?: boolean;
+  payment_accounts?: Array<{ slug: string; name: string }>;
   host_account: ContributorHostAccount | null;
   seasonal_line: string | null;
-
-  created_at: string;
-  updated_at: string;
 }
 
 export interface AdminContributor extends Omit<ContributorProfile, 'articles' | 'pull_quotes' | 'featured_in' | 'products' | 'host_account' | 'seasonal_line'> {
+  account_id: string;
+  publication_state?: 'draft' | 'awaiting_approval' | 'published' | 'unpublished';
+  approval_state?: 'pending' | 'approved' | 'changes_requested';
+  reviewer_note?: string | null;
+  has_pending_draft?: boolean;
+  draft_diff?: null | {
+    submitted_at: string | null;
+    updated_at: string | null;
+    changed_fields: string[];
+    live: Record<string, unknown>;
+    pending: Record<string, unknown>;
+  };
+  user_id?: string | null;
+  face_of_account_id?: string | null;
+  created_at: string;
+  updated_at: string;
   contact_customer_id?: string | null;
   contact_name?: string | null;
   contact_email?: string | null;
@@ -536,11 +561,11 @@ export interface InventoryItem {
    * Source of the tasting data.
    * - 'owner': reviewed and saved by the shop owner — speaks as Adrian's voice.
    * - 'community': aggregated from public reviews.
+   * - 'source': described by source material for this exact tea lot.
    * - 'common' | undefined: default to style-level common profile (see commonTastingByStyle).
-   * Only 'owner' and 'community' are public claims about this specific product;
-   * anything else falls back to the style baseline and is labeled as such.
+   * Source-described profiles remain distinct from owner tasting and shared knowledge.
    */
-  tastingSource?: 'common' | 'owner' | 'community';
+  tastingSource?: 'common' | 'owner' | 'community' | 'source';
   quantityUnits?: number;
   sessionReserveGrams?: number; // When stock_g <= this, show a soft low-availability warning
   moodTags?: string[];
@@ -583,7 +608,7 @@ export interface PublicProduct {
   teawareCategory?: 'pot' | 'cup' | 'tray' | 'storage' | 'accessory' | 'decorative';
   quantityUnits?: number;
   tasting?: TastingData;
-  tastingSource?: 'common' | 'owner' | 'community';
+  tastingSource?: 'common' | 'owner' | 'community' | 'source';
   moodTags?: string[];
   flavorTags?: string[];
   /**

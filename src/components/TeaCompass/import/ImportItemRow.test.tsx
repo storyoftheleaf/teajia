@@ -10,8 +10,14 @@ const item: CurateImportItem = {
   raw_text: 'normalized legacy row',
   parsed_data: {
     sourceExcerpt: '陈年六堡茶380元/500克 x1=380元', chineseName: '陈年六堡茶', disposition: 'in_transit', inventoryPurpose: 'working',
-    fieldProvenance: { englishName: 'ai_interpretation', originalName: 'source_fact', classification: 'canonical_match' },
-    classification: 'post-fermented tea', duplicateResolution: 'new',
+    fieldProvenance: {
+      englishName: 'ai_interpretation', originalName: 'source_fact', classification: 'canonical_match',
+      producer: 'source_fact', description: 'source_fact', processingNotes: 'source_fact',
+    },
+    classification: 'post-fermented tea', producer: 'Yunnan Sourcing',
+    description: 'A spring raw pu-erh cake from Yi Bang.',
+    processingNotes: 'Hand wok fixed, stone pressed, and dried at low temperature.',
+    duplicateResolution: 'new',
   },
   confidence: 0.92, uncertainty: {}, review_state: 'pending', compass_entry_id: null,
   reserved_compass_entry_id: 'library-1', pack_weight: 500, weight_unit: 'g', pack_count: 1,
@@ -76,7 +82,7 @@ describe('ImportItemRow', () => {
     expect(markup).toContain('More tea details');
     expect(markup).toContain('>Cancel<');
     expect(markup).toContain('>Save tea<');
-    expect(markup).not.toContain('data-provenance');
+    expect(markup).toContain('data-provenance');
   });
 
   it('opens every field behind More tea details for a ready row', () => {
@@ -97,6 +103,29 @@ describe('ImportItemRow', () => {
     expect(markup).toContain('aria-label="Pack count"');
     expect(markup).toContain('aria-label="Destination"');
     expect(markup).toContain('aria-label="Production or classification"');
+  });
+
+  it('shows the untouched Yi Bang producer, processing notes, source excerpt, and field provenance', () => {
+    const markup = renderToStaticMarkup(<ImportItemRow
+      item={item}
+      blockingFields={[]}
+      open
+      busy={false}
+      identityLookup={{ status: 'empty', options: [], error: null }}
+      holdingLookup={{ status: 'empty', options: [], error: null }}
+      onRetryIdentities={() => undefined}
+      onRetryHoldings={() => undefined}
+      onUpdate={async () => true}
+    />);
+
+    expect(markup).toContain('aria-label="Producer"');
+    expect(markup).toContain('value="Yunnan Sourcing"');
+    expect(markup).toContain('aria-label="Processing notes"');
+    expect(markup).toContain('Hand wok fixed, stone pressed, and dried at low temperature.');
+    expect(markup).toContain('data-testid="import-source-excerpt"');
+    expect(markup).toContain('陈年六堡茶380元/500克 x1=380元');
+    expect(markup).toContain('data-provenance="source_fact"');
+    expect(markup).toContain('>Source fact<');
   });
 
   it('separates the blocked group from More tea details, and counts what is waiting', () => {

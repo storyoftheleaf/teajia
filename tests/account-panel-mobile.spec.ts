@@ -229,6 +229,7 @@ async function assertPageHealthy(page: Page, label: string, consoleErrors: strin
 
 const PUBLIC_ROUTES = [
   ['/compass',            'Tea Compass'],
+  ['/account/profile',    'Tea Master Profile'],
   ['/account/journal',    'Tasting Journal'],
   ['/account/collection', 'My Collection'],
   ['/account/orders',     'Order History'],
@@ -260,6 +261,11 @@ test.describe('Destination pages — health check', () => {
       page.on('pageerror', err => consoleErrors.push(err.message));
 
       await injectAuth(page);
+      await page.route('**/api/products/public**', route => route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
+      }));
       await goto(page, route);
       const safe = label.replace(/[^a-z0-9]/gi, '_').toLowerCase();
       await shot(page, `dest_${safe}`);
@@ -274,12 +280,172 @@ test.describe('Destination pages — health check', () => {
       page.on('pageerror', err => consoleErrors.push(err.message));
 
       await injectAuth(page);
+      await page.route('**/api/products/public**', route => route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
+      }));
       await goto(page, route);
       const safe = label.replace(/[^a-z0-9]/gi, '_').toLowerCase();
       await shot(page, `admin_${safe}`);
       await assertPageHealthy(page, label, consoleErrors);
     });
   }
+});
+
+test.describe('Tea Master profile routes — mobile', () => {
+  test('profile management loads the identity, favorites, and payment sections', async ({ page }) => {
+    await injectAuth(page);
+    await page.route('**/api/me/public-profile', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        profile: {
+          id: 'mei-lin', slug: 'mei-lin', display_name: 'Mei Lin', chinese_name: '林美',
+          beginnings: 'Tea maker and host.', now_text: 'Sharing mountain oolongs.',
+          location_line: 'Bali', languages: ['English'], avatar_url: null, portrait_url: null,
+          links: [], publication_state: 'published', approval_state: 'approved', is_published: true,
+          associations: [{ account_id: 'acct-bali', account_slug: 'teajia-bali', account_name: 'Teajia Bali', public_role: 'Tea Master', is_host: true }],
+        },
+      }),
+    }));
+    await page.route('**/api/me/profile/favorites', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ favorites: [], available_teas: [] }),
+    }));
+    await page.route('**/api/me/profile/payment-methods', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ methods: [] }),
+    }));
+
+    await goto(page, '/account/profile');
+    await expect(page.getByRole('heading', { name: 'Your public profile' })).toBeVisible();
+    await expect(page.getByText('Published · public identity')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Save for review' })).toBeVisible();
+    await expect(page.getByText('Changes remain private until approved.')).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Public favorites' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Payment methods' })).toBeVisible();
+    await shot(page, 'profile_management');
+    await assertPageHealthy(page, 'Tea Master profile management', []);
+  });
+
+  test('profile management reports favorites and payment failures instead of false empty states', async ({ page }) => {
+    await injectAuth(page);
+    await page.route('**/api/me/public-profile', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        profile: {
+          id: 'mei-lin', slug: 'mei-lin', display_name: 'Mei Lin', chinese_name: null,
+          beginnings: 'Tea maker and host.', now_text: null, location_line: 'Bali', languages: [],
+          avatar_url: null, portrait_url: null, links: [], publication_state: 'draft',
+          approval_state: 'pending', is_published: false, associations: [],
+        },
+      }),
+    }));
+    await page.route('**/api/me/profile/favorites', route => route.fulfill({
+      status: 503,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: 'Favorites are temporarily unavailable.' }),
+    }));
+    await page.route('**/api/me/profile/payment-methods', route => route.fulfill({
+      status: 503,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: 'Payment methods are temporarily unavailable.' }),
+    }));
+
+    await goto(page, '/account/profile');
+    await expect(page.getByRole('heading', { name: 'Public favorites' })).toBeVisible();
+    await expect(page.getByRole('alert').filter({ hasText: /favorites/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Payment methods' })).toBeVisible();
+    await expect(page.getByRole('alert').filter({ hasText: /payment/i })).toBeVisible();
+    await expect(page.getByText('No teas selected yet.')).toHaveCount(0);
+    await expect(page.getByText('No payment methods yet.')).toHaveCount(0);
+  });
+
+  test('published profile save failures stay visible and do not claim success', async ({ page }) => {
+    await injectAuth(page);
+    await page.route('**/api/me/public-profile', async route => {
+      if (route.request().method() === 'PUT') {
+        await route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ error: 'Owner review is required.' }) });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          profile: {
+            id: 'mei-lin', slug: 'mei-lin', display_name: 'Mei Lin', chinese_name: null,
+            beginnings: 'Tea maker and host.', now_text: null, location_line: 'Bali', languages: [],
+            avatar_url: null, portrait_url: null, links: [], publication_state: 'published',
+            approval_state: 'approved', is_published: true, associations: [],
+          },
+        }),
+      });
+    });
+    await page.route('**/api/me/profile/favorites', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ favorites: [], available_teas: [] }) }));
+    await page.route('**/api/me/profile/payment-methods', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ methods: [] }) }));
+
+    await goto(page, '/account/profile');
+    await page.getByRole('textbox', { name: 'Display name', exact: true }).fill('Mei Lin Updated');
+    await page.getByRole('button', { name: 'Save for review' }).click();
+    await expect(page.getByRole('alert').filter({ hasText: 'Owner review is required.' })).toBeVisible();
+    await expect(page.getByText('Changes saved')).toHaveCount(0);
+  });
+
+  test('public favorites render a Tea Master selection without a dead tea link', async ({ page }) => {
+    await page.route('**/api/public/people/mei-lin/favorites', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        favorites: [{
+          tea_profile_id: 'tea-1', note: 'A quiet, mineral finish.', position: 0, is_public: 1,
+          name: 'Old Grove Dancong', type: 'Oolong', harvest_year: 2025,
+          origin_region: 'Phoenix Mountain', origin_country: 'China', public_path: null,
+        }],
+      }),
+    }));
+    await page.route('**/api/people/mei-lin', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ display_name: 'Mei Lin', portrait_url: null, accounts: [] }),
+    }));
+
+    await goto(page, '/people/mei-lin/favorites');
+    await expect(page.getByRole('heading', { name: 'Favorite teas' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Old Grove Dancong' })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Old Grove Dancong/ })).toHaveCount(0);
+    await shot(page, 'profile_public_favorites');
+    await assertPageHealthy(page, 'Public Tea Master favorites', []);
+  });
+
+  test('public payment chooser shows recipient methods and display-only context', async ({ page }) => {
+    await page.route('**/api/public/people/mei-lin/payment-methods**', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        contributor: { display_name: 'Mei Lin', portrait_url: null },
+        account: { slug: 'teajia-bali', name: 'Teajia Bali' },
+        resolution: 'account',
+        methods: [{
+          id: 'pay-1', account_id: 'acct-bali', method_type: 'bank_transfer', label: 'Bank transfer',
+          recipient_name: 'Mei Lin', account_identifier: '123 456 789', instructions: 'Use the shown reference.',
+          external_url: null, qr_image_url: null, position: 0, is_published: true,
+        }],
+      }),
+    }));
+
+    await goto(page, '/people/mei-lin/pay?store=teajia-bali&amount=180000&currency=IDR&reference=TEA-42');
+    await expect(page.getByRole('heading', { name: 'Pay Mei Lin' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Choose a transfer method' })).toBeVisible();
+    await expect(page.getByText('123 456 789')).toBeVisible();
+    await expect(page.getByText('IDR 180000')).toBeVisible();
+    await expect(page.getByText('This page does not verify or record payment.')).toBeVisible();
+    await shot(page, 'profile_public_payment');
+    await assertPageHealthy(page, 'Public Tea Master payment chooser', []);
+  });
 });
 
 test.describe('Member sample continuation', () => {

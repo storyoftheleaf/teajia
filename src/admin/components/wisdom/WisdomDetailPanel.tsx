@@ -371,10 +371,11 @@ interface Props {
   publicHref?: string;
   /** How many products resolve through this entry right now. */
   usage?: WisdomEntryUsage;
+  relationPanel?: React.ReactNode;
 }
 
 export const WisdomDetailPanel: React.FC<Props> = ({
-  detail, id, onClose, nav, section, run, publicHref, usage,
+  detail, id, onClose, nav, section, run, publicHref, usage, relationPanel,
 }) => (
   <Modal isOpen onClose={onClose} variant="panel" ariaLabel={detail.name} headerActions={nav}>
     <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-2 pb-nav-gap sm:px-6">
@@ -392,6 +393,7 @@ export const WisdomDetailPanel: React.FC<Props> = ({
           <p className={`${TYPOGRAPHY_CLASSES.body} text-tea-text mt-6 max-w-2xl`}>{detail.prose}</p>
         )}
         {detail.extra}
+        {relationPanel}
       </div>
     </div>
   </Modal>
@@ -405,14 +407,16 @@ export const WisdomDetailHeader: React.FC<{
   run?: WisdomRun;
   publicHref?: string;
   usage?: WisdomEntryUsage;
-}> = ({ detail, id, section, run, publicHref, usage }) => (
+  /** Gives the plant monograph a stronger title and a quieter editorial status rail. */
+  editorial?: boolean;
+}> = ({ detail, id, section, run, publicHref, usage, editorial = false }) => (
   <header>
     {/* The eyebrow says what this is, and, when prev/next is walking a grouped
         holding, which heading it is currently under. Crossing from the last
         Menghai mark to the first Xiaguan one used to be silent. The section
         value is not micro-caps: it is a value, and some of them are sentences
         of three words that would read as shouting in caps. */}
-    <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+    <div className={`${editorial ? 'mb-3' : 'mb-2'} flex flex-wrap items-baseline gap-x-2 gap-y-1`}>
       <p className={WISDOM_TYPE.label}>{detail.kind}</p>
       {section && (
         <p className="text-ui-11 text-tea-text-dim">
@@ -421,11 +425,11 @@ export const WisdomDetailHeader: React.FC<{
         </p>
       )}
     </div>
-    <h2 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>{detail.name}</h2>
-    <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-      {detail.chineseName && <p className="text-ui-15 text-tea-text-sec">{detail.chineseName}</p>}
+    <h2 className={`${editorial ? TYPOGRAPHY_CLASSES.h1 : TYPOGRAPHY_CLASSES.h2} text-tea-text`}>{detail.name}</h2>
+    <div className={`${editorial ? 'mt-2' : 'mt-1'} flex flex-wrap items-baseline gap-x-3 gap-y-1`}>
+      {detail.chineseName && <p className={`${editorial ? 'font-chinese text-ui-20' : 'text-ui-15'} text-tea-text-sec`}>{detail.chineseName}</p>}
       {detail.altNames && detail.altNames.length > 0 && (
-        <p className="text-ui-12 text-tea-text-dim">Also known as {detail.altNames.join(', ')}</p>
+        <p className={`${editorial ? TYPOGRAPHY_CLASSES.bodyLight : 'text-ui-12'} text-tea-text-dim`}>Also known as {detail.altNames.join(', ')}</p>
       )}
     </div>
     {/* Says what kind of entry this is BEFORE the facts, so a short panel reads
@@ -456,13 +460,15 @@ export const WisdomDetailHeader: React.FC<{
         <span className="min-w-0">{run.note}</span>
       </p>
     )}
-    <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-ui-12">
-      <p className="text-tea-text-dim">{authorshipLine(id)}</p>
-      <UsageLine usage={usage} />
-      {publicHref && <PublicLink href={publicHref}>How this reads in public</PublicLink>}
+    <div className={editorial ? 'mt-7 border-y border-tea-border bg-tea-elevated px-4 py-3 sm:px-5' : ''}>
+      <div className={`${editorial ? '' : 'mt-3'} flex flex-wrap items-baseline gap-x-3 gap-y-1 text-ui-12`}>
+        <p className="text-tea-text-dim">{authorshipLine(id)}</p>
+        <UsageLine usage={usage} />
+        {publicHref && <PublicLink href={publicHref}>How this reads in public</PublicLink>}
+      </div>
+      {/* And which products they are. Under the count, because the count is the
+          decision and the list is the work that follows from it. */}
+      <UsageProducts usage={usage} />
     </div>
-    {/* And which products they are. Under the count, because the count is the
-        decision and the list is the work that follows from it. */}
-    <UsageProducts usage={usage} />
   </header>
 );

@@ -221,10 +221,7 @@ export const LineageTree: React.FC<{ cultivar: Cultivar }> = ({ cultivar }) => {
 
   return (
     <section aria-labelledby="lineage-heading">
-      <SectionHead label="Lineage" />
-      <h2 id="lineage-heading" className="sr-only">
-        Lineage of {cultivar.name}
-      </h2>
+      <SectionHead id="lineage-heading" label="Lineage" />
 
       <div className={AXIS_INDENT}>
         {/* The record itself, verbatim, before anything is read out of it. It

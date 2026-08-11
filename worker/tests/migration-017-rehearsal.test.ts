@@ -62,7 +62,7 @@ function applyTrackedMigrations(database: string): string[] {
 }
 
 describe('migration 017 rehearsals', () => {
-  it('boots the clean canonical schema through migration 122', () => withDatabase((database) => {
+  it('boots the clean canonical schema through the latest migration', () => withDatabase((database) => {
     sqlite(database, sql('schema.sql'));
 
     const output = sqlite(database, `
@@ -71,12 +71,12 @@ describe('migration 017 rehearsals', () => {
       ORDER BY name;
     `);
     expect(output.split('\n')).toEqual(['account_members', 'accounts', 'identity_email_verifications', 'private_recordings', 'provider_jobs']);
-    expect(migrationNames.at(-1)).toBe('122_tea_wisdom_cultivar.sql');
+    expect(migrationNames.at(-1)).toBe('126_tea_master_integrity.sql');
     expect(sqlite(database, `SELECT name FROM pragma_table_info('tea_compass_entries') WHERE name='sample_set_id';`)).toBe('sample_set_id');
     expect(sqlite(database, `SELECT name FROM pragma_table_info('tea_compass_entries') WHERE name='classification';`)).toBe('classification');
   }));
 
-  it('upgrades the production-shaped pre-017 schema through migration 122', () => withDatabase((database) => {
+  it('upgrades the production-shaped pre-017 schema through the latest migration', () => withDatabase((database) => {
     sqlite(database, sql('tests/fixtures/pre-017-production.sql'));
     sqlite(database, `INSERT INTO products(id, type, product_name) VALUES ('legacy', 'Oolong', 'Legacy tea');`);
     initializeLedger(database, ['017_multi_account.sql']);
@@ -84,7 +84,7 @@ describe('migration 017 rehearsals', () => {
     const applied = applyTrackedMigrations(database);
 
     expect(applied.at(0)).toBe('017_multi_account_patched.sql');
-    expect(applied.at(-1)).toBe('122_tea_wisdom_cultivar.sql');
+    expect(applied.at(-1)).toBe('126_tea_master_integrity.sql');
     expect(sqlite(database, `SELECT account_id FROM products WHERE id='legacy';`)).toBe('acc_teajia_bali');
     expect(sqlite(database, `SELECT name FROM sqlite_master WHERE type='table' AND name='private_recordings';`))
       .toBe('private_recordings');

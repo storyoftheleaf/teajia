@@ -32,6 +32,7 @@ import {
   WisdomSubNav,
   WisdomToolbar,
 } from './wisdomShared';
+import { buildWisdomCollectionData, usePublicWisdomEntries, WisdomIndexVisibilityNotice } from './publicIndexVisibility';
 
 type View = 'type' | 'alphabetical';
 
@@ -78,7 +79,11 @@ const StyleRows: React.FC<{ rows: Style[] }> = ({ rows }) => (
 const StyleIndexPage: React.FC = () => {
   const [view, setView] = useState<View>('type');
   const [query, setQuery] = useState('');
-  const visible = useMemo(() => STYLES.filter(style => matches(style, query)).sort(byName), [query]);
+  const publicState = usePublicWisdomEntries('style', STYLES);
+  const visible = useMemo(
+    () => publicState.entries.filter(style => matches(style, query)).sort(byName),
+    [publicState.entries, query],
+  );
 
   const byType = useMemo(() => {
     const groups: Array<[string, Style[]]> = TEA_TYPES.map(
@@ -95,24 +100,16 @@ const StyleIndexPage: React.FC = () => {
     [byType],
   );
 
-  const structuredData = {
-    '@context': 'https://schema.org',
-    '@type': 'CollectionPage',
+  const structuredData = buildWisdomCollectionData({
     name: 'Tea Styles',
     description: 'Recognised ways a tea is made or pressed that are neither a plant variety nor one of the basic forms.',
-    inLanguage: 'en',
-    isPartOf: { '@type': 'WebSite', name: 'Teajia' },
-    mainEntity: {
-      '@type': 'ItemList',
-      numberOfItems: STYLES.length,
-      itemListElement: STYLES.map((style, index) => ({
-        '@type': 'ListItem',
-        position: index + 1,
-        name: style.name,
-        url: `/wisdom/style/${style.id}`,
-      })),
-    },
-  };
+    entries: publicState.entries,
+    pathFor: style => `/wisdom/style/${style.id}`,
+  });
+
+  if (publicState.status !== 'ready') {
+    return <WisdomIndexVisibilityNotice status={publicState.status} onRetry={publicState.retry} />;
+  }
 
   return (
     <article className={PAGE}>
@@ -120,7 +117,7 @@ const StyleIndexPage: React.FC = () => {
         <title>Tea Styles · The Wisdom Base · Teajia</title>
         <meta
           name="description"
-          content={`${STYLES.length} ways a tea is made or pressed that are neither a plant variety nor a basic form.`}
+          content={`${publicState.entries.length} ways a tea is made or pressed that are neither a plant variety nor a basic form.`}
         />
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
@@ -138,7 +135,7 @@ const StyleIndexPage: React.FC = () => {
           placeholder="Search styles"
           searchLabel="Search styles by name, Chinese name or region"
           visible={visible.length}
-          total={STYLES.length}
+          total={publicState.entries.length}
           noun="styles"
         >
           <ViewSwitch options={VIEWS} value={view} onChange={next => setView(next)} label="Browse the styles" />

@@ -13,6 +13,14 @@ test('Playwright is pinned and uses the clean test server', () => {
   assert.match(read('playwright.config.ts'), /command: 'npm run dev:test'/);
 });
 
+test('maintained Tea Reference receiving suite exercises default and preview modes', () => {
+  const pkg = JSON.parse(read('package.json'));
+  const command = pkg.scripts['test:tea-reference-receiving'];
+  assert.match(command, /vitest run src\/pages\/wisdom\/reference\.test\.tsx src\/wisdom\/reference\/catalogue\.test\.ts src\/wisdom\/receiving\/previewImporter\.test\.ts/);
+  assert.match(command, /vitest run --mode tea-reference-preview src\/pages\/wisdom\/reference\.test\.tsx src\/wisdom\/reference\/catalogue\.test\.ts/);
+  assert.match(command, /node --test scripts\/tea-reference-capture\/tests\/adapters\.test\.mjs scripts\/tea-reference-website-preview\/tests\/\*\.test\.mjs$/);
+});
+
 test('Playwright browser installation and CI execution are documented', () => {
   assert.match(read('README.md'), /npx playwright install chromium/);
   const workflow = read('.github/workflows/playwright.yml');

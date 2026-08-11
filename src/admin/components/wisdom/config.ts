@@ -411,8 +411,8 @@ export interface WisdomHolding<T> {
   detail: (row: T, ctx?: WisdomLinkCtx) => WisdomDetail;
   /**
    * Replaces the generic panel when a holding needs more than facts and prose.
-   * Cultivars are the only one: their lineage links jump the panel to another
-   * entry without leaving the overlay, which needs the browser's selection.
+   * Cultivar research uses one because its lineage links jump the panel to
+   * another entry; exact same-name variety records may reuse that profile.
    */
   renderDetail?: (row: T, ctx: WisdomPanelCtx) => React.ReactNode;
 }
@@ -433,6 +433,8 @@ export interface WisdomPanelCtx {
   publicHref?: string;
   /** How many products resolve through this entry right now. */
   usage?: WisdomEntryUsage;
+  /** Account-backed relationship controls seated inside the existing panel. */
+  relationPanel?: React.ReactNode;
 }
 
 /**

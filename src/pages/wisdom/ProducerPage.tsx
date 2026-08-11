@@ -11,7 +11,6 @@ import { Helmet } from 'react-helmet-async';
 import { findProducerById, marksOf, markNamesOf, type Producer } from '../../wisdom';
 import {
   AXIS_INDENT,
-  catalogueNumber,
   EntryAuthorship,
   Fact,
   FACT_CLASS,
@@ -26,6 +25,8 @@ import {
   SPACE,
   WisdomSubNav,
 } from './wisdomShared';
+import { EntryResearchSection } from './EntryResearchSection';
+import { WisdomPublicStateGate, WisdomRelatedMaterial } from './WisdomRelatedMaterial';
 
 const KIND_LABEL: Record<Producer['kind'], string> = {
   factory: 'Factory',
@@ -84,6 +85,7 @@ const ProducerPage: React.FC = () => {
   }
 
   return (
+    <WisdomPublicStateGate identity={{ nodeType: 'producer', nodeId: producer.id }}>
     <article className={PAGE}>
       <Helmet>
         <title>{`${producer.name} · Producers · Teajia`}</title>
@@ -103,7 +105,6 @@ const ProducerPage: React.FC = () => {
           chineseName={producer.chineseName}
           aka={producer.altNames.length > 0 ? `Also written ${producer.altNames.join(', ')}` : undefined}
           rungFor={producer.id}
-          number={catalogueNumber('makers', producer.id)}
         />
       </div>
 
@@ -144,10 +145,14 @@ const ProducerPage: React.FC = () => {
         </section>
       )}
 
+      <EntryResearchSection entryKind="producer" entryId={producer.id} entry={producer} />
+
+      <WisdomRelatedMaterial identity={{ nodeType: 'producer', nodeId: producer.id }} />
       <EntryAuthorship id={producer.id} />
 
       <Invitation subject={`Producer: ${producer.name}`} />
     </article>
+    </WisdomPublicStateGate>
   );
 };
 

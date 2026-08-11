@@ -36,16 +36,17 @@ import {
   WisdomSubNav,
   WisdomToolbar,
   searchHoldings,
+  type HoldingHit,
 } from './wisdomShared';
 
-interface Holding {
+export interface Holding {
   label: string;
   to: string;
   count: number;
   description: string;
 }
 
-const HOLDINGS: Holding[] = [
+export const PUBLISHED_WISDOM_HOLDINGS: Holding[] = [
   {
     label: 'The Tea Plants',
     to: '/wisdom/cultivars',
@@ -89,10 +90,10 @@ const HOLDINGS: Holding[] = [
  * DATASET_PAGES: the two are printed within a few lines of each other on this
  * page, and they must never again be allowed to say different things.
  */
-export const TOTAL_ENTRIES = HOLDINGS.reduce((sum, holding) => sum + holding.count, 0);
+export const TOTAL_ENTRIES = PUBLISHED_WISDOM_HOLDINGS.reduce((sum, holding) => sum + holding.count, 0);
 
 /** Enough to answer a name and the records around it, short enough that the list is still readable. */
-const HIT_LIMIT = 40;
+export const HIT_LIMIT = 40;
 
 /** "2026-07-27" as "27 July 2026". Parsed by hand: `new Date` on a bare date reads it as UTC. */
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -102,14 +103,27 @@ export function readableDate(iso: string): string {
   return `${day} ${MONTHS[month - 1]} ${year}`;
 }
 
-const WisdomHomePage: React.FC = () => {
+export const WisdomHomeContent: React.FC<{
+  holdings?: Holding[];
+  search?: (query: string, limit: number) => HoldingHit[];
+  previewDiagnostic?: string;
+  previewDataset?: boolean;
+  pageClassName?: string;
+}> = ({
+  holdings = PUBLISHED_WISDOM_HOLDINGS,
+  search = searchHoldings,
+  previewDiagnostic,
+  previewDataset = false,
+  pageClassName = PAGE,
+}) => {
   // Every index carries a line across to this search, and it carries the words
   // already typed. Arriving here with the field empty would have made the trip
   // cost the reader their own question.
   const [params] = useSearchParams();
   const [query, setQuery] = useState(() => params.get('q') ?? '');
   const searching = query.trim().length > 0;
-  const hits = useMemo(() => searchHoldings(query, HIT_LIMIT), [query]);
+  const hits = useMemo(() => search(query, HIT_LIMIT), [query, search]);
+  const totalEntries = holdings.reduce((sum, holding) => sum + holding.count, 0);
 
   const structuredData = {
     '@context': 'https://schema.org',
@@ -118,7 +132,7 @@ const WisdomHomePage: React.FC = () => {
     description: "A public reference of what a tea is, held once and true for everyone: plants, growing regions, producers, marks, styles, and teas known only by name.",
     inLanguage: 'en',
     isPartOf: { '@type': 'WebSite', name: 'Teajia' },
-    hasPart: HOLDINGS.map(holding => ({
+    hasPart: holdings.map(holding => ({
       '@type': 'CollectionPage',
       name: holding.label,
       url: holding.to,
@@ -126,7 +140,7 @@ const WisdomHomePage: React.FC = () => {
   };
 
   return (
-    <article className={PAGE}>
+    <article className={pageClassName}>
       <Helmet>
         <title>The Tea Wisdom Base · Teajia</title>
         <meta
@@ -157,14 +171,14 @@ const WisdomHomePage: React.FC = () => {
           onQueryChange={setQuery}
           placeholder="Search every holding"
           searchLabel="Search every holding by name, Chinese name, alias, or the place and maker a record names"
-          visible={searching ? hits.length : TOTAL_ENTRIES}
-          total={TOTAL_ENTRIES}
+          visible={searching ? hits.length : totalEntries}
+          total={totalEntries}
           noun="entries"
         />
 
         {!searching && (
           <IndexList>
-            {HOLDINGS.map(holding => (
+            {holdings.map(holding => (
               <HoldingRow
                 key={holding.to}
                 to={holding.to}
@@ -174,6 +188,12 @@ const WisdomHomePage: React.FC = () => {
               />
             ))}
           </IndexList>
+        )}
+
+        {previewDiagnostic && !searching && (
+          <p role="status" className={`${FOOTNOTE} ${MEASURE} ${AXIS_INDENT} mt-4`}>
+            {previewDiagnostic}
+          </p>
         )}
 
         {searching && hits.length === 0 && <NoMatch noun="entry" query={query} />}
@@ -202,11 +222,15 @@ const WisdomHomePage: React.FC = () => {
       <section className={SPACE.section}>
         <SectionHead label="The open dataset" />
         <p className={`${FACT} ${MEASURE} ${AXIS_INDENT}`}>
-          Everything above is also exported as a downloadable public good: a single{' '}
+          {previewDataset
+            ? 'The published Wisdom holdings are exported as a downloadable public good. Local cited preview entries are additional to the published open dataset and are not included in its static page count. '
+            : 'Everything above is also exported as a downloadable public good: '}
+          A single{' '}
           <a href="/wisdom/tea-wisdom.json" className={QUIET_LINK}>
             tea-wisdom.json
           </a>{' '}
-          carrying every holding, flat CSVs per entity, a README and a licence, all served from the{' '}
+          {previewDataset ? 'carrying every published holding' : 'carrying every holding'}, flat CSVs per entity, a
+          README and a licence, all served from the{' '}
           <code className="text-tea-text-sec">/wisdom/</code> folder. CC BY 4.0, minus Adrian&rsquo;s own tea write-ups
           and tasting notes, which remain his.
         </p>
@@ -223,9 +247,10 @@ const WisdomHomePage: React.FC = () => {
             counts, in the same sentence, and the difference between them is
             stated rather than left as an apparent contradiction. */}
         <p className={`${FOOTNOTE} ${MEASURE} ${AXIS_INDENT} figures-tab mt-3`}>
-          Version {DATASET_VERSION}, built {readableDate(DATASET_BUILT)}. {DATASET_RECORDS} records in all:{' '}
-          {DATASET_PAGES} entries with a page above, plus {DATASET_RECORDS - DATASET_PAGES} tea variety names carried as
-          data only. Cite it as: Teajia Tea Wisdom Base (teajia.com), version {DATASET_VERSION},{' '}
+          Version {DATASET_VERSION}, built {readableDate(DATASET_BUILT)}. {DATASET_RECORDS} published records in all:{' '}
+          {DATASET_PAGES} published entries with a page in the static Wisdom Base, plus{' '}
+          {DATASET_RECORDS - DATASET_PAGES} tea variety names carried as data only. Cite it as: Teajia Tea Wisdom Base
+          (teajia.com), version {DATASET_VERSION},{' '}
           {readableDate(DATASET_BUILT)}, CC BY 4.0.
         </p>
       </section>
@@ -239,5 +264,7 @@ const WisdomHomePage: React.FC = () => {
     </article>
   );
 };
+
+const WisdomHomePage: React.FC = () => <WisdomHomeContent />;
 
 export default WisdomHomePage;

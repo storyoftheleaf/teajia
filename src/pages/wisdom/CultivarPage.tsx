@@ -13,7 +13,6 @@ import { findCultivarById } from '../../wisdom';
 import {
   AXIS,
   AXIS_INDENT,
-  catalogueNumber,
   CELL_CLASS,
   EntryAuthorship,
   FACT,
@@ -36,7 +35,9 @@ import {
   useCultivarStory,
   WisdomSubNav,
 } from './wisdomShared';
+import { WisdomPublicStateGate, WisdomRelatedMaterial } from './WisdomRelatedMaterial';
 import { LineageTree, isCultivar, nameOf, readLineage } from './LineageTree';
+import { EntryResearchSection } from './EntryResearchSection';
 
 const titleCase = (value: string) =>
   value.replace(/\b[a-z]/g, letter => letter.toUpperCase()).replace(/\bAnd\b/g, 'and');
@@ -102,7 +103,6 @@ const CultivarPage: React.FC = () => {
           inLanguage: 'en',
           about: { '@id': `${pageUrl}#taxon` },
           isPartOf: { '@type': 'CollectionPage', name: 'The Tea Plants', url: `${origin}/wisdom/cultivars` },
-          creditText: 'Drafted by AI from research, published by Teajia, corrected by hand.',
         },
         {
           '@type': 'BreadcrumbList',
@@ -131,6 +131,7 @@ const CultivarPage: React.FC = () => {
   const expressions = story?.expressions ? Object.entries(story.expressions) : [];
 
   return (
+    <WisdomPublicStateGate identity={{ nodeType: 'cultivar', nodeId: cultivar.id }}>
     <article className={PAGE}>
       <Helmet>
         <title>{`${cultivar.name} · The Tea Plants · Teajia`}</title>
@@ -155,7 +156,6 @@ const CultivarPage: React.FC = () => {
           chineseName={cultivar.chineseName}
           aka={cultivar.altNames.length > 0 ? `Also written ${cultivar.altNames.join(', ')}` : undefined}
           rungFor={cultivar.id}
-          number={catalogueNumber('plants', cultivar.id)}
         />
         {/* The country and the year, and not the region. The region is a place
             with a page of its own, an altitude and a climate, and it is said
@@ -343,10 +343,19 @@ const CultivarPage: React.FC = () => {
         </p>
       </section>
 
+      <EntryResearchSection
+        entryKind="cultivar"
+        entryId={cultivar.id}
+        entry={story ? { ...cultivar, story } : cultivar}
+        verificationReady={!loading}
+      />
+
+      <WisdomRelatedMaterial identity={{ nodeType: 'cultivar', nodeId: cultivar.id }} />
       <EntryAuthorship id={cultivar.id} />
 
       <Invitation subject={`Cultivar: ${cultivar.name}`} />
     </article>
+    </WisdomPublicStateGate>
   );
 };
 

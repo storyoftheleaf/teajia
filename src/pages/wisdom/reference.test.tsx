@@ -9,9 +9,11 @@
  */
 import React from 'react';
 import { describe, expect, it } from 'vitest';
-import { renderToString } from 'react-dom/server';
+import { PassThrough } from 'node:stream';
+import { renderToPipeableStream, renderToString } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import CultivarIndexPage from './CultivarIndexPage';
 import CultivarPage from './CultivarPage';
 import MarkIndexPage from './MarkIndexPage';
@@ -25,34 +27,504 @@ import RegionIndexPage from './RegionIndexPage';
 import RegionPage from './RegionPage';
 import StyleIndexPage from './StyleIndexPage';
 import WisdomHomePage, { TOTAL_ENTRIES, readableDate } from './WisdomHomePage';
-import { WISDOM_SECTIONS, isMicroCapsLabel, searchHoldings } from './wisdomShared';
+import PreviewWisdomHomePage, {
+  previewWisdomHomeHoldings,
+  searchPreviewWisdomHome,
+} from './PreviewWisdomHomePage';
+import TeaFamilyPage from './TeaFamilyPage';
+import TeaTypeIndexPage from './TeaTypeIndexPage';
+import TeaTypePage from './TeaTypePage';
+import ReferenceFactSections from './ReferenceFactSections';
+import {
+  PAGE,
+  PREVIEW_PAGE,
+  WISDOM_SECTIONS,
+  isMicroCapsLabel,
+  searchHoldings,
+  sectionForPath,
+  wisdomSections,
+} from './wisdomShared';
 import { DATASET_BUILT, DATASET_PAGES, DATASET_RECORDS, DATASET_VERSION } from './datasetStamp';
 import { tidyName } from './LineageTree';
 import { AUTHORSHIP } from '../../wisdom/authorship';
-import { NAMING_TRADITIONS, REGIONS } from '../../wisdom';
+import { NAMING_TRADITIONS, REGIONS, regionElevationPresentation } from '../../wisdom';
+import type { PublicResearchBundle } from '../../wisdom/research';
+import type { WisdomEntryKind } from '../../wisdom/types';
+import { EntryResearchSection } from './EntryResearchSection';
+import { useAppStore } from '../../lib/store';
 
-const render = (path: string) =>
-  renderToString(
-    <HelmetProvider>
-      <MemoryRouter initialEntries={[path]}>
-        <Routes>
-          <Route path="/wisdom" element={<WisdomHomePage />} />
-          <Route path="/wisdom/cultivars" element={<CultivarIndexPage />} />
-          <Route path="/wisdom/regions" element={<RegionIndexPage />} />
-          <Route path="/wisdom/region/:id" element={<RegionPage />} />
-          <Route path="/wisdom/cultivar/:id" element={<CultivarPage />} />
-          <Route path="/wisdom/producers" element={<ProducerIndexPage />} />
-          <Route path="/wisdom/marks" element={<MarkIndexPage />} />
-          <Route path="/wisdom/mark/:id" element={<MarkPage />} />
-          <Route path="/wisdom/producer/:id" element={<ProducerPage />} />
-          <Route path="/wisdom/styles" element={<StyleIndexPage />} />
-          <Route path="/wisdom/named" element={<NamedTeaIndexPage />} />
-          <Route path="/wisdom/named/:id" element={<NamedTeaPage />} />
-          <Route path="/wisdom/style/:id" element={<StylePage />} />
-        </Routes>
-      </MemoryRouter>
-    </HelmetProvider>,
+const setVerificationAccess = (platformRole: 'platform_owner' | 'platform_admin' | null, activeAccountId: string | null) => {
+  useAppStore.setState({ platformRole, activeAccountId });
+  Object.assign(useAppStore.getInitialState(), { platformRole, activeAccountId });
+};
+import type { PublicProduct } from '../../types';
+import type { WebsiteReceivingPublicTransport } from '../../wisdom/receiving/previewImporter';
+import {
+  TEA_REFERENCE_PREVIEW_QUERY_KEY,
+} from '../../wisdom/reference/client';
+import {
+  TEA_REFERENCE_PREVIEW_ENABLED,
+  teaReferenceRoutePaths,
+} from '../../wisdom/reference/previewMode';
+import { buildTeaReferenceCatalogue } from '../../wisdom/reference/catalogue';
+import { PREVIEW_PLACE_LEVELS } from './previewOriginMetadata';
+
+const LONG_HANDOFF_TOKEN = 'sourceword'.repeat(20);
+
+const render = (path: string) => {
+  const client = createReferenceQueryClient();
+  return renderToString(
+    <QueryClientProvider client={client}>
+      <HelmetProvider>
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
+            <Route
+              path="/wisdom"
+              element={TEA_REFERENCE_PREVIEW_ENABLED ? <PreviewWisdomHomePage /> : <WisdomHomePage />}
+            />
+            <Route path="/wisdom/cultivars" element={<CultivarIndexPage />} />
+            <Route path="/wisdom/regions" element={<RegionIndexPage />} />
+            <Route path="/wisdom/region/:id" element={<RegionPage />} />
+            <Route path="/wisdom/cultivar/:id" element={<CultivarPage />} />
+            <Route path="/wisdom/producers" element={<ProducerIndexPage />} />
+            <Route path="/wisdom/marks" element={<MarkIndexPage />} />
+            <Route path="/wisdom/mark/:id" element={<MarkPage />} />
+            <Route path="/wisdom/producer/:id" element={<ProducerPage />} />
+            <Route path="/wisdom/styles" element={<StyleIndexPage />} />
+            <Route path="/wisdom/named" element={<NamedTeaIndexPage />} />
+            <Route path="/wisdom/named/:id" element={<NamedTeaPage />} />
+            <Route path="/wisdom/style/:id" element={<StylePage />} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>
+    </QueryClientProvider>,
   );
+};
+
+const previewTransport: WebsiteReceivingPublicTransport = {
+  manifest: { schemaVersion: 1, mode: 'preview-only' },
+  publicPreview: {
+    title: 'Pu’er reference',
+    deck: 'Cited public tea knowledge.',
+    sourceCount: 3,
+    entryCount: 10,
+    sections: [{
+      id: 'types',
+      label: 'Tea types',
+      description: 'Public tea identities.',
+      entries: [
+        {
+          id: 'reference-puer',
+          label: 'Pu’er',
+          entityKind: 'tea_family',
+          kindLabel: 'Tea family',
+          reportUrl: 'mailto:hello@teajia.com?subject=Pu%E2%80%99er',
+          statements: [{
+            id: 'puer-reference',
+            label: 'Identity',
+            text: 'Pu’er is a broad tea family with both naturally aged and deliberately fermented forms.',
+            excerpt: 'A concise public source excerpt about the family.',
+            citation: {
+              sourceId: 'tea-institute',
+              label: 'Tea Institute, Pu’er reference (2026)',
+              url: 'https://example.com/puer',
+            },
+          }],
+        },
+        {
+          id: 'reference-sheng',
+          label: 'Sheng',
+          entityKind: 'tea_style',
+          kindLabel: 'Tea type',
+          reportUrl: 'mailto:hello@teajia.com?subject=Sheng',
+          statements: [
+            {
+              id: 'sheng-common',
+              label: 'Common characteristics',
+              text: `A concrete public characteristic recorded for Sheng. ${LONG_HANDOFF_TOKEN}`,
+              excerpt: 'A concise public source excerpt about common characteristics.',
+              citation: {
+                sourceId: 'sheng-field-guide',
+                label: 'Tea Institute, Sheng reference (2026)',
+                url: 'https://example.com/shared-sheng-source',
+              },
+            },
+            {
+              id: 'sheng-potential',
+              label: 'Potential characteristics',
+              text: 'Cultivar expression still depends on growing and making conditions.',
+              citation: {
+                sourceId: 'cultivar-guide',
+                label: 'Tea Institute, Cultivar guide (2025)',
+                url: 'https://example.com/cultivar',
+              },
+            },
+            {
+              id: 'sheng-processing',
+              label: 'Processing',
+              text: 'A second concrete public detail from the Sheng field guide.',
+              excerpt: 'A second concise excerpt from the same logical source.',
+              citation: {
+                sourceId: 'sheng-field-guide',
+                label: 'Tea Institute, Sheng reference (2026)',
+                url: 'https://example.com/shared-sheng-source',
+              },
+            },
+            {
+              id: 'sheng-held-boilerplate',
+              label: 'Storage',
+              text: 'The cited source discusses storage context associated with Sheng.',
+              citation: {
+                sourceId: 'sheng-field-guide',
+                label: 'Tea Institute, Sheng reference (2026)',
+                url: 'https://example.com/shared-sheng-source',
+              },
+            },
+          ],
+        },
+        {
+          id: 'reference-shou',
+          label: 'Shou',
+          entityKind: 'tea_style',
+          kindLabel: 'Tea type',
+          reportUrl: 'mailto:hello@teajia.com?subject=Shou',
+          statements: [],
+        },
+      ],
+    }, {
+      id: 'origins',
+      label: 'Tea origins',
+      description: 'Publicly cited tea places at their declared geographic levels.',
+      entries: [
+        {
+          id: 'reference-yunnan',
+          label: 'Yunnan',
+          entityKind: 'major_region',
+          kindLabel: 'Major region',
+          reportUrl: 'mailto:hello@teajia.com?subject=Yunnan',
+          statements: [],
+        },
+        {
+          id: 'reference-yiwu',
+          label: 'Yiwu Tea Area',
+          entityKind: 'tea_area',
+          kindLabel: 'Tea area',
+          parentId: 'reference-yunnan',
+          reportUrl: 'mailto:hello@teajia.com?subject=Yiwu',
+          statements: [],
+        },
+        {
+          id: 'reference-gedeng',
+          label: 'Gedeng Mountain',
+          entityKind: 'mountain',
+          kindLabel: 'Mountain',
+          parentId: 'reference-yiwu',
+          reportUrl: 'mailto:hello@teajia.com?subject=Gedeng',
+          statements: [],
+        },
+        {
+          id: 'reference-mansa',
+          label: 'Mansa Village',
+          entityKind: 'village',
+          kindLabel: 'Village',
+          parentId: 'reference-gedeng',
+          reportUrl: 'mailto:hello@teajia.com?subject=Mansa',
+          statements: [],
+        },
+        {
+          id: 'reference-manxiu',
+          label: 'Manxiu',
+          entityKind: 'locality',
+          kindLabel: 'Locality',
+          parentId: 'reference-mansa',
+          reportUrl: 'mailto:hello@teajia.com?subject=Manxiu',
+          statements: [{
+            id: 'manxiu-origin-reference',
+            label: 'Identity',
+            text: 'Manxiu is cited here at the locality level within the verified public origin chain.',
+            excerpt: 'A concise public source excerpt about Manxiu.',
+            citation: {
+              sourceId: 'tea-geography-institute',
+              label: 'Tea Geography Institute, Manxiu reference (2026)',
+              url: 'https://example.com/manxiu',
+            },
+          }],
+        },
+        {
+          id: 'reference-orphan-village',
+          label: 'Orphan Village',
+          entityKind: 'village',
+          kindLabel: 'Village',
+          parentId: 'reference-missing-parent',
+          reportUrl: 'mailto:hello@teajia.com?subject=Orphan',
+          statements: [],
+        },
+        {
+          id: 'reference-inverted-area',
+          label: 'Inverted Area',
+          entityKind: 'tea_area',
+          kindLabel: 'Tea area',
+          parentId: 'reference-manxiu',
+          reportUrl: 'mailto:hello@teajia.com?subject=Inverted',
+          statements: [],
+        },
+      ],
+    }],
+    geographicScale: [],
+    sources: [
+      {
+        sourceId: 'tea-institute',
+        publisher: 'Tea Institute',
+        publisherRoleLabel: 'Institute',
+        title: 'Pu’er reference',
+        author: 'Research Desk',
+        publishedDate: '2026-01-01',
+        url: 'https://example.com/puer',
+      },
+      {
+        sourceId: 'duplicate-url-source',
+        publisher: 'Wrong Duplicate Publisher',
+        publisherRoleLabel: 'Institute',
+        title: 'Wrong duplicate title',
+        author: 'Wrong duplicate author',
+        publishedDate: '2020-01-01',
+        url: 'https://example.com/shared-sheng-source',
+      },
+      {
+        sourceId: 'sheng-field-guide',
+        publisher: 'Tea Institute',
+        publisherRoleLabel: 'Retailer or reseller',
+        title: `Sheng Field Guide ${LONG_HANDOFF_TOKEN}`,
+        author: `Mei Lin ${LONG_HANDOFF_TOKEN}`,
+        publishedDate: '2026-02-03',
+        url: 'https://example.com/shared-sheng-source',
+      },
+      {
+        sourceId: 'cultivar-guide',
+        publisher: 'Tea Institute',
+        publisherRoleLabel: 'Institute',
+        title: 'Cultivar guide',
+        author: '',
+        publishedDate: '2025-01-01',
+        url: 'https://example.com/cultivar',
+      },
+      {
+        sourceId: 'tea-geography-institute',
+        publisher: 'Tea Geography Institute',
+        publisherRoleLabel: 'Institute',
+        title: 'Manxiu reference',
+        author: 'Field Research Desk',
+        publishedDate: '2026-03-04',
+        url: 'https://example.com/manxiu',
+      },
+    ],
+    reportUrl: 'mailto:hello@teajia.com?subject=Tea%20Reference',
+  },
+};
+
+const previewProducts: PublicProduct[] = [{
+  id: 'sheng-spring-cake',
+  type: 'Sheng',
+  givenName: 'Spring Cake',
+  productName: 'Yiwu old-tree tea',
+  year: 2024,
+  originCountry: 'China',
+  originRegion: 'Yiwu',
+  pricePerGramUSD: 0.5,
+  stockGrams: 100,
+  description: '',
+  tastingNotes: [],
+  imageUrl: '',
+  status: 'Active',
+  isPersonal: false,
+  canReorder: false,
+  isOneOfAKind: false,
+}, {
+  id: 'sheng-sold-out-cake',
+  type: 'Sheng',
+  givenName: 'Aged Sheng Cake',
+  productName: 'Aged Sheng Cake',
+  year: 2018,
+  originCountry: 'China',
+  originRegion: 'Menghai',
+  pricePerGramUSD: 0.8,
+  stockGrams: 0,
+  description: '',
+  tastingNotes: [],
+  imageUrl: '',
+  status: 'Sold Out',
+  isPersonal: false,
+  canReorder: false,
+  isOneOfAKind: false,
+}, {
+  id: 'manxiu-spring-cake',
+  type: 'Sheng',
+  givenName: 'Manxiu Spring Cake',
+  productName: 'Manxiu old-tree tea',
+  originCountry: 'China',
+  originRegion: 'Manxiu',
+  pricePerGramUSD: 0.9,
+  stockGrams: 80,
+  description: '',
+  tastingNotes: [],
+  imageUrl: '',
+  status: 'Active',
+  isPersonal: false,
+  canReorder: false,
+  isOneOfAKind: false,
+}, {
+  id: 'manxiu-archive-cake',
+  type: 'Sheng',
+  givenName: 'Manxiu Archive Cake',
+  productName: 'Manxiu archive tea',
+  originCountry: 'China',
+  originRegion: 'Manxiu',
+  pricePerGramUSD: 1.1,
+  stockGrams: 0,
+  description: '',
+  tastingNotes: [],
+  imageUrl: '',
+  status: 'Sold Out',
+  isPersonal: false,
+  canReorder: false,
+  isOneOfAKind: false,
+}, {
+  id: 'orphan-village-cake',
+  type: 'Sheng',
+  givenName: 'Orphan Village Cake',
+  productName: 'Orphan Village tea',
+  originCountry: 'China',
+  originRegion: 'Orphan Village',
+  pricePerGramUSD: 0.6,
+  stockGrams: 40,
+  description: '',
+  tastingNotes: [],
+  imageUrl: '',
+  status: 'Active',
+  isPersonal: false,
+  canReorder: false,
+  isOneOfAKind: false,
+}, {
+  id: 'inverted-area-cake',
+  type: 'Sheng',
+  givenName: 'Inverted Area Cake',
+  productName: 'Inverted Area tea',
+  originCountry: 'China',
+  originRegion: 'Inverted Area',
+  pricePerGramUSD: 0.7,
+  stockGrams: 35,
+  description: '',
+  tastingNotes: [],
+  imageUrl: '',
+  status: 'Active',
+  isPersonal: false,
+  canReorder: false,
+  isOneOfAKind: false,
+}];
+
+const previewCatalogue = buildTeaReferenceCatalogue(previewTransport.publicPreview, previewProducts);
+
+const canonicalRouteProducts: PublicProduct[] = [
+  {
+    ...previewProducts[0],
+    id: 'canonical-yiwu-sheng',
+    givenName: 'Greater Yiwu Sheng',
+    productName: 'Greater Yiwu reference tea',
+    originRegion: 'Greater Yiwu',
+  },
+  {
+    ...previewProducts[0],
+    id: 'canonical-lincang-sheng',
+    givenName: 'Lincang Sheng',
+    productName: 'Lincang reference tea',
+    originRegion: 'Lincang',
+  },
+  {
+    ...previewProducts[0],
+    id: 'canonical-menghai-shou',
+    type: 'Shou',
+    givenName: 'Menghai County Shou',
+    productName: 'Menghai County reference tea',
+    originRegion: 'Menghai County',
+  },
+];
+
+function createCanonicalQueryClient(): QueryClient {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  client.setQueryData(['products', 'public'], canonicalRouteProducts);
+  return client;
+}
+
+function createReferenceQueryClient(products: PublicProduct[] = previewProducts): QueryClient {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  client.setQueryData(TEA_REFERENCE_PREVIEW_QUERY_KEY, previewTransport);
+  client.setQueryData(['products', 'public'], products);
+  return client;
+}
+
+const renderPreview = (path: string, products: PublicProduct[] = previewProducts) => {
+  const client = createReferenceQueryClient(products);
+  return renderToString(
+    <QueryClientProvider client={client}>
+      <HelmetProvider>
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
+            <Route path="/wisdom/types" element={<TeaTypeIndexPage />} />
+            <Route path="/wisdom/family/:id" element={<TeaFamilyPage />} />
+            <Route path="/wisdom/type/:id" element={<TeaTypePage />} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>
+    </QueryClientProvider>,
+  );
+};
+
+const renderCanonicalTypeRoute = (path: string) => {
+  const client = createCanonicalQueryClient();
+  return renderToString(
+    <QueryClientProvider client={client}>
+      <HelmetProvider>
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
+            <Route path="/wisdom/family/:id" element={<TeaFamilyPage />} />
+            <Route path="/wisdom/type/:id" element={<TeaTypePage />} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>
+    </QueryClientProvider>,
+  );
+};
+
+const renderRegionAsync = (path: string, client: QueryClient): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    let html = '';
+    const destination = new PassThrough();
+    destination.setEncoding('utf8');
+    destination.on('data', chunk => { html += chunk; });
+    destination.on('end', () => resolve(html));
+    destination.on('error', reject);
+    const stream = renderToPipeableStream(
+      <QueryClientProvider client={client}>
+        <HelmetProvider>
+          <MemoryRouter initialEntries={[path]}>
+            <Routes>
+              <Route path="/wisdom/regions" element={<RegionIndexPage />} />
+              <Route path="/wisdom/region/:id" element={<RegionPage />} />
+            </Routes>
+          </MemoryRouter>
+        </HelmetProvider>
+      </QueryClientProvider>,
+      {
+        onAllReady() { stream.pipe(destination); },
+        onShellError: reject,
+        onError: reject,
+      },
+    );
+  });
+};
+
+const renderAsync = (path: string, products: PublicProduct[] = previewProducts): Promise<string> =>
+  renderRegionAsync(path, createReferenceQueryClient(products));
 
 const INDEX_PAGES = [
   '/wisdom/cultivars',
@@ -71,7 +543,181 @@ const DETAIL_PAGES = [
   '/wisdom/named/courage',
 ];
 
+const ALL_DETAIL_PAGES = [
+  '/wisdom/cultivar/jin-xuan',
+  '/wisdom/region/wuyi-mountains-fujian',
+  '/wisdom/producer/menghai-tea-factory',
+  '/wisdom/style/xiao-qing-gan',
+  '/wisdom/mark/7572',
+  '/wisdom/named/courage',
+];
+
+const researchKinds: WisdomEntryKind[] = ['cultivar', 'region', 'producer', 'style', 'mark', 'namedTea'];
+const sharedResearchBundle: PublicResearchBundle = {
+  sources: [{
+    id: 'shared-source',
+    publisher: 'Tea Research Institute',
+    title: 'A scoped tea character study',
+    url: 'https://example.com/tea-study',
+    kind: 'institutional',
+    accessedAt: '2026-08-08',
+  }],
+  citations: researchKinds.map(entryKind => ({
+    id: `${entryKind}-citation`,
+    entryKind,
+    entryId: `${entryKind}-fixture`,
+    fields: ['description'],
+    sourceIds: ['shared-source'],
+    usage: 'qualified' as const,
+    qualification: `Limited to this ${entryKind} entry.`,
+  })),
+  potentialProfiles: researchKinds.map(entryKind => ({
+    entryKind,
+    entryId: `${entryKind}-fixture`,
+    tasting: { flavor: ['honey'], body: ['full'] },
+    citationIds: [`${entryKind}-citation`],
+  })),
+};
+
+describe('entry research', () => {
+  it('shows the qualified Yi Bang source without turning it into a commercial relationship', () => {
+    const html = render('/wisdom/region/yi-bang-village-yunnan');
+
+    expect(html).toContain('data-wisdom-region-page="true"');
+    expect(html).toContain('Research sources');
+    expect(html).toContain('Yunnan Sourcing');
+    expect(html).toContain('2025 Yunnan Sourcing Yi Bang Wild Arbor Raw Pu-erh Tea Cake');
+    expect(html).toContain('href="https://yunnansourcing.com/products/2025-yunnan-sourcing-yi-bang-wild-arbor-raw-pu-erh-tea-cake"');
+    expect(html).toContain('Accessed 8 August 2026');
+    expect(html).toContain('Supports Yi Bang&#x27;s place and specialist-retail trade context only. It does not support a village-wide sensory profile.');
+    expect(html).not.toMatch(/\b(?:our vendor|vendor|producer)\b/i);
+    expect(html).not.toContain('Potential profile');
+  });
+
+  it('uses the same cited research section for every Wisdom detail kind', () => {
+    for (const entryKind of researchKinds) {
+      const html = renderToString(
+        <MemoryRouter>
+          <EntryResearchSection
+            entryKind={entryKind}
+            entryId={`${entryKind}-fixture`}
+            bundle={sharedResearchBundle}
+          />
+        </MemoryRouter>,
+      );
+
+      expect(html).toContain('Potential profile');
+      expect(html).toContain('Honey');
+      expect(html).toContain('Research sources');
+      expect(html).toContain(`Limited to this ${entryKind} entry.`);
+    }
+  });
+
+  it('renders no research section when an entry has neither citations nor a cited profile', () => {
+    const html = renderToString(
+      <EntryResearchSection entryKind="region" entryId="no-research" bundle={sharedResearchBundle} />,
+    );
+
+    expect(html).toBe('');
+  });
+});
+
+describe('private reference verification', () => {
+  it('leaves no control markup for public readers and platform admins', () => {
+    for (const role of [null, 'platform_admin'] as const) {
+      setVerificationAccess(role, 'account-a');
+      for (const path of ALL_DETAIL_PAGES) expect(render(path)).not.toContain('data-wisdom-verification');
+    }
+    setVerificationAccess(null, null);
+  });
+
+  it('places the owner control on all six detail kinds, including an entry without research', () => {
+    setVerificationAccess('platform_owner', 'account-a');
+    try {
+      for (const path of ALL_DETAIL_PAGES) expect(render(path)).toContain('data-wisdom-verification');
+      expect(render('/wisdom/mark/aaa-grade')).toContain('data-wisdom-verification');
+    } finally {
+      setVerificationAccess(null, null);
+    }
+  });
+});
+
 describe('wayfinding', () => {
+  it('reserves the live approved-relations seam on every public detail page', () => {
+    for (const path of DETAIL_PAGES) {
+      expect(render(path), path).toContain('aria-label="Related material loading"');
+    }
+  });
+
+  it('keeps wayfinding preview-only while the approved reference routes work in the normal app', () => {
+    expect(wisdomSections(true)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'types', label: 'Types', path: '/wisdom/types' }),
+      expect.objectContaining({ id: 'regions', label: 'Origins', path: '/wisdom/regions' }),
+    ]));
+    expect(wisdomSections(false).map(section => section.label)).toEqual([
+      'Overview', 'Plants', 'Regions', 'Producers', 'Marks', 'Styles', 'Named',
+    ]);
+    expect(WISDOM_SECTIONS).toEqual(wisdomSections(TEA_REFERENCE_PREVIEW_ENABLED));
+    expect(sectionForPath('/wisdom/types')).toBe('types');
+    expect(sectionForPath('/wisdom/type/sheng')).toBe('types');
+    expect(sectionForPath('/wisdom/family/puer')).toBe('types');
+
+    const previewHoldings = previewWisdomHomeHoldings(null);
+    expect(previewHoldings).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: 'Origins', to: '/wisdom/regions', count: REGIONS.length }),
+    ]));
+    expect(previewHoldings.some(holding => holding.to === '/wisdom/types')).toBe(false);
+
+    expect(teaReferenceRoutePaths(false)).toEqual([
+      '/wisdom/types',
+      '/wisdom/family/:id',
+      '/wisdom/type/:id',
+    ]);
+    expect(teaReferenceRoutePaths(true)).toEqual([
+      '/wisdom/types',
+      '/wisdom/family/:id',
+      '/wisdom/type/:id',
+    ]);
+    expect(teaReferenceRoutePaths(TEA_REFERENCE_PREVIEW_ENABLED)).toEqual([
+      '/wisdom/types',
+      '/wisdom/family/:id',
+      '/wisdom/type/:id',
+    ]);
+  });
+
+  it.skipIf(TEA_REFERENCE_PREVIEW_ENABLED)('renders all six canonical pages on their existing routes, including colliding region ids', async () => {
+    const routeHtml = async (path: string) => path.startsWith('/wisdom/region/')
+      ? renderRegionAsync(path, createCanonicalQueryClient())
+      : renderCanonicalTypeRoute(path);
+    const pages = [
+      ['/wisdom/family/puer', 'A tea rooted in Yunnan', 'Pu’er belongs to Yunnan’s long tea history.'],
+      ['/wisdom/type/sheng', 'What sheng means', 'Sheng is the undarkened branch of Pu’er'],
+      ['/wisdom/region/yunnan', 'The geographic frame', 'Pu’er is unusually place-bound for a broad tea family.'],
+      ['/wisdom/region/greater-yiwu', 'A name at several scales', 'Yiwu can mean a township, a market center'],
+      ['/wisdom/region/menghai-county', 'Western Xishuangbanna', 'Menghai County anchors much of western Xishuangbanna'],
+      ['/wisdom/region/lincang', 'Northern Pu’er country', 'Lincang lies north of Pu’er Prefecture'],
+    ] as const;
+
+    for (const [path, sectionLabel, canonicalSection] of pages) {
+      const html = await routeHtml(path);
+      expect(html, path).toContain(sectionLabel);
+      expect(html, path).toContain(canonicalSection);
+      expect(html, path).not.toContain('Source:');
+      expect(html, path).not.toContain('TeaDB');
+      expect(html, path).not.toContain('>Cited origin<');
+    }
+  });
+
+  it.skipIf(TEA_REFERENCE_PREVIEW_ENABLED)('falls back to the established region entry when a canonical page has no active catalogue tea', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    client.setQueryData(['products', 'public'], []);
+    const html = await renderRegionAsync('/wisdom/region/yunnan', client);
+    expect(html).toContain('>Growing place<');
+    expect(html).toContain('>Yunnan</h1>');
+    expect(html).not.toContain('Place not found');
+    expect(html).not.toContain('The geographic frame');
+  });
+
   it('carries one control, not a back link above a lit nav item', () => {
     for (const path of DETAIL_PAGES) {
       const html = render(path);
@@ -84,17 +730,18 @@ describe('wayfinding', () => {
   });
 
   it('lights the holding a detail page belongs to', () => {
+    const regionLabel = WISDOM_SECTIONS.find(section => section.id === 'regions')?.label;
     expect(render('/wisdom/region/wuyi-mountains-fujian')).toMatch(
-      /aria-current="page"[^>]*>Regions|Regions<\/a>/,
+      new RegExp(`aria-current="page"[^>]*>${regionLabel}|${regionLabel}<\\/a>`),
     );
   });
 
-  it('collapses to one line on a phone and keeps all seven reachable', () => {
+  it('collapses to one line on a phone and keeps every active holding reachable', () => {
     const html = render('/wisdom/regions');
-    // Seven serif items need two 44px rows at 390px. Below sm the strip is
+    // The serif items need multiple rows at 390px. Below sm the strip is
     // the holding you are in, and it opens in place.
     expect(html).toContain('aria-controls="wisdom-holdings"');
-    expect(html).toContain('7 holdings');
+    expect(html).toContain(`${WISDOM_SECTIONS.length} sections`);
     // Both shapes are in the DOM, but `hidden` is display:none, so exactly one
     // of them is in the accessibility tree at any width.
     expect(html).toContain('class="sm:hidden"');
@@ -102,6 +749,229 @@ describe('wayfinding', () => {
     for (const section of WISDOM_SECTIONS) {
       expect(html).toContain(`href="${section.path}"`);
     }
+    expect(html.includes('href="/wisdom/types"')).toBe(TEA_REFERENCE_PREVIEW_ENABLED);
+    expect(html).toContain(TEA_REFERENCE_PREVIEW_ENABLED ? '>Origins<' : '>Regions<');
+  });
+
+  it('keeps the production shell unchanged and adds extra clearance only to preview pages', () => {
+    expect(PAGE.split(/\s+/)).toContain('pb-nav');
+    expect(PAGE.split(/\s+/)).not.toContain('pb-nav-gap');
+    expect(PREVIEW_PAGE.split(/\s+/)).toContain('pb-nav-gap');
+    expect(PREVIEW_PAGE.split(/\s+/)).not.toContain('pb-nav');
+    expect(renderPreview('/wisdom/types')).toContain(`class="${PREVIEW_PAGE}"`);
+    expect(render('/wisdom/regions')).toContain(
+      `class="${TEA_REFERENCE_PREVIEW_ENABLED ? PREVIEW_PAGE : PAGE}"`,
+    );
+  });
+});
+
+describe('Tea Reference type preview', () => {
+  it('keeps research attribution behind the public Teajia prose', () => {
+    const html = renderToString(
+      <MemoryRouter>
+        <ReferenceFactSections
+          facts={[{
+            id: 'teajia-reference-fact',
+            label: 'Identity',
+            text: 'Teajia presents the researched fact in a clear editorial voice.',
+            excerpt: 'A private-facing source excerpt.',
+            citation: {
+              sourceId: 'tea-institute',
+              label: 'TeaDB, background reference',
+              url: 'https://example.com/teadb',
+            },
+          }]}
+          sources={[{
+            sourceId: 'tea-institute',
+            publisher: 'TeaDB',
+            publisherRoleLabel: 'Independent publication',
+            title: 'Background reference',
+            author: 'Research author',
+            publishedDate: '2026-02-03',
+            url: 'https://example.com/teadb',
+          }]}
+          products={[]}
+          reportIdentity="Tea type: test"
+        />
+      </MemoryRouter>,
+    );
+
+    expect(html).toContain('Teajia presents the researched fact in a clear editorial voice.');
+    expect(html).not.toContain('A private-facing source excerpt.');
+    expect(html).not.toContain('TeaDB');
+    expect(html).not.toContain('Research author');
+    expect(html).not.toContain('example.com/teadb');
+    expect(html).not.toContain('Source:');
+  });
+
+  it('keeps exact-lot source descriptions separate from common characteristics', () => {
+    const sharedCitation = {
+      sourceId: 'tea-institute',
+      label: 'Tea Institute, Pu’er reference (2026)',
+      url: 'https://example.com/puer',
+    };
+    const html = renderToString(
+      <MemoryRouter>
+        <ReferenceFactSections
+          facts={[
+            {
+              id: 'common-fact',
+              label: 'Common characteristics',
+              text: 'A characteristic stated for the tea type in general.',
+              citation: sharedCitation,
+            },
+            {
+              id: 'lot-fact',
+              label: 'Exact lot source description',
+              text: 'A statement scoped only to one named lot.',
+              citation: sharedCitation,
+            },
+          ]}
+          sources={previewTransport.publicPreview.sources}
+          products={[]}
+          reportIdentity="Tea type: test"
+        />
+      </MemoryRouter>,
+    );
+
+    expect(html).toContain('>Common characteristics<');
+    expect(html).toContain('>Exact lot source description<');
+    expect(html.indexOf('>Common characteristics<')).toBeLessThan(html.indexOf('A characteristic stated'));
+    expect(html.indexOf('>Exact lot source description<')).toBeLessThan(html.indexOf('A statement scoped only'));
+  });
+
+  it('renders the family-to-type path in the Wisdom frame and omits an unmatched type', () => {
+    const index = renderPreview('/wisdom/types');
+    expect(index).toContain('aria-label="The wisdom base"');
+    expect(index).toContain('Tea families');
+    expect(index).toContain('href="/wisdom/family/puer"');
+    expect(index).toContain('href="/wisdom/type/sheng"');
+    expect(index).not.toContain('href="/wisdom/type/shou"');
+    if (TEA_REFERENCE_PREVIEW_ENABLED) {
+      expect(index).toContain('>Types<');
+      expect(index).toContain('>Origins<');
+      expect(index).toContain('8 sections');
+    } else {
+      expect(index).not.toContain('href="/wisdom/types"');
+      expect(index).toContain('>Regions<');
+    }
+
+    const family = renderPreview('/wisdom/family/puer');
+    expect(family).toContain('Pu’er');
+    expect(family).toContain('href="/wisdom/type/sheng"');
+  });
+
+  it.skipIf(!TEA_REFERENCE_PREVIEW_ENABLED)('renders Teajia reference prose, matching teas, and a page-specific correction action', () => {
+    const html = renderPreview('/wisdom/type/sheng').replace(/&amp;/g, '&');
+    expect(html).toContain('Common characteristics');
+    expect(html).toContain('Cultivar potential');
+    expect(html).not.toContain('Tea Institute');
+    expect(html).not.toContain('Sheng Field Guide');
+    expect(html).not.toContain('Mei Lin');
+    expect(html).not.toContain('href="https://example.com/shared-sheng-source"');
+    expect(html).not.toContain('Retailer or reseller');
+    expect(html).not.toContain('Source:');
+    expect(html).toContain('A second concrete public detail from the Sheng field guide.');
+    expect(html).not.toContain('The cited source discusses storage context associated with Sheng.');
+    expect(html).toContain('Available teas');
+    expect(html).toContain('href="/shop/product/sheng-spring-cake"');
+    expect(html).toContain('Spring Cake');
+    expect(html).toContain('2024');
+    expect(html).toContain('href="/shop/product/sheng-sold-out-cake"');
+    expect(html).toContain('Aged Sheng Cake');
+    expect(html).toContain('2018');
+    expect(html).toContain('Previously offered');
+    expect(html).toContain('Sold out');
+    expect(html.indexOf('Available teas')).toBeLessThan(html.indexOf('href="/shop/product/sheng-spring-cake"'));
+    expect(html.indexOf('href="/shop/product/sheng-spring-cake"')).toBeLessThan(html.indexOf('Previously offered'));
+    expect(html.indexOf('Previously offered')).toBeLessThan(html.indexOf('href="/shop/product/sheng-sold-out-cake"'));
+    expect(html).toContain('If you notice any inaccuracies, please');
+    expect(html).toContain('It helps us improve the reference for everyone.');
+    expect(html).toContain('subject=Report%20an%20inaccuracy%3A%20Tea%20type%3A%20Sheng');
+    expect(html).not.toMatch(/held|conflict|review|evidence|private/i);
+    expect(html).toContain(LONG_HANDOFF_TOKEN);
+    expect(html).toMatch(/<li class="[^"]*min-w-0[^"]*">/);
+    expect(html).toMatch(/<p class="[^"]*break-words[^"]*">A concrete public characteristic/);
+    expect(html).toContain('Origins represented by available teas');
+    expect(html).toContain('href="/wisdom/region/reference-manxiu"');
+  });
+
+  it('uses the established not-found page for a type absent from the product-connected catalogue', () => {
+    const html = renderPreview('/wisdom/type/shou');
+    expect(html).toContain('Tea type not found');
+    expect(html).toContain(`class="${PREVIEW_PAGE}"`);
+    expect(html).not.toContain('Available teas');
+  });
+
+  it('does not publish a type when every matching tea is sold out history', () => {
+    const soldOutProduct = previewProducts.find(product => product.status === 'Sold Out');
+    if (!soldOutProduct) throw new Error('sold-out fixture is required');
+    const html = renderPreview('/wisdom/type/sheng', [soldOutProduct]);
+    expect(html).toContain('Tea type not found');
+    expect(html).not.toContain('Available teas');
+    expect(html).not.toContain('Previously offered');
+    expect(html).not.toContain('href="/shop/product/sheng-sold-out-cake"');
+  });
+
+  it('explains a valid catalogue with no product-connected tea types', () => {
+    const html = renderPreview('/wisdom/types', []);
+    expect(html).toContain('No tea family or type is connected to the public catalogue right now.');
+  });
+});
+
+describe('Tea Reference preview home', () => {
+  it.each(['白', 'Orchid Dan Cong'])('preserves the established static ranking for %s', query => {
+    expect(searchPreviewWisdomHome(query, previewCatalogue, 10)).toEqual(searchHoldings(query, 10));
+  });
+
+  it('merges product-connected family and type hits into the cross-holding search', () => {
+    expect(searchPreviewWisdomHome('Sheng', previewCatalogue, 1)[0]?.to).toBe('/wisdom/type/sheng');
+    expect(searchPreviewWisdomHome('Pu’er', previewCatalogue, 1)[0]?.to).toBe('/wisdom/family/puer');
+  });
+
+  it.skipIf(!TEA_REFERENCE_PREVIEW_ENABLED)('states that local cited entries are additional to the published dataset', () => {
+    const html = render('/wisdom');
+    expect(html).toContain('Local cited preview entries are additional to the published open dataset');
+    expect(html).toContain('not included in its static page count');
+    expect(html).toContain('carrying every published holding');
+    expect(html).not.toContain('Everything above is also exported');
+  });
+
+  it.skipIf(!TEA_REFERENCE_PREVIEW_ENABLED)('withholds a zero-entry Types holding while its client queries are pending', () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, retryOnMount: false } } });
+    const html = renderToString(
+      <QueryClientProvider client={client}>
+        <HelmetProvider><MemoryRouter><PreviewWisdomHomePage /></MemoryRouter></HelmetProvider>
+      </QueryClientProvider>,
+    );
+    expect(html).not.toContain('>Tea Types<');
+    expect(html).not.toContain('>0 entries<');
+  });
+
+  it.skipIf(!TEA_REFERENCE_PREVIEW_ENABLED)('keeps normal holdings usable and shows a quiet diagnostic after a client query error', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, retryOnMount: false } } });
+    await client.prefetchQuery({
+      queryKey: TEA_REFERENCE_PREVIEW_QUERY_KEY,
+      queryFn: async () => { throw new Error('unavailable'); },
+    });
+    const previewQuery = client.getQueryCache().find({ queryKey: TEA_REFERENCE_PREVIEW_QUERY_KEY });
+    if (!previewQuery) throw new Error('preview query was not created');
+    previewQuery.setState({
+      ...previewQuery.state,
+      status: 'error',
+      error: new Error('unavailable'),
+      fetchStatus: 'idle',
+    });
+    client.setQueryData(['products', 'public'], previewProducts);
+    const html = renderToString(
+      <QueryClientProvider client={client}>
+        <HelmetProvider><MemoryRouter><PreviewWisdomHomePage /></MemoryRouter></HelmetProvider>
+      </QueryClientProvider>,
+    );
+    expect(html).toContain('The local cited preview is unavailable');
+    expect(html).toContain('href="/wisdom/cultivars"');
+    expect(html).not.toContain('>Tea Types<');
+    expect(html).not.toContain('>0 entries<');
   });
 });
 
@@ -117,30 +987,31 @@ describe('the foot of a page', () => {
   });
 });
 
-describe('where the authorship line lives', () => {
-  it('states the rung once per holding while every entry sits on the same one', () => {
-    for (const path of INDEX_PAGES) {
-      expect(render(path)).toContain('was drafted from research');
+describe('public editorial privacy', () => {
+  it('keeps workflow state and authorship rungs off public pages', () => {
+    for (const path of [...INDEX_PAGES, ...DETAIL_PAGES, '/wisdom/style/xiao-qing-gan']) {
+      const html = render(path);
+      expect(html).not.toMatch(/Drafted/i);
+      expect(html).not.toContain('Authorship: ');
+      expect(html).not.toContain('authorship rung');
+      expect(html).not.toContain('was drafted from research');
+      expect(html).not.toMatch(/>Holding</);
     }
   });
 
-  it('does not repeat that sentence on all three hundred entries', () => {
-    for (const path of DETAIL_PAGES) {
-      expect(render(path)).not.toContain('Drafted from research.');
-    }
-  });
-
-  it('returns to the entry the moment a second rung exists', () => {
-    AUTHORSHIP['jin-xuan'] = { rung: 'reviewed', reviewer: 'Adrian', date: '2026-07-27' };
-    try {
-      // The reviewed entry credits the person who read it...
-      expect(render('/wisdom/cultivar/jin-xuan')).toContain('Reviewed and corrected by Adrian');
-      // ...and every other entry starts saying it is not that, because from
-      // here on the sentence tells one entry from the next.
-      expect(render('/wisdom/mark/7572')).toContain('Drafted from research.');
-      expect(render('/wisdom/cultivars')).toContain('states its own authorship');
-    } finally {
-      delete AUTHORSHIP['jin-xuan'];
+  it('keeps the same private vocabulary off cited preview pages', async () => {
+    const pages = [
+      renderPreview('/wisdom/types'),
+      renderPreview('/wisdom/family/puer'),
+      renderPreview('/wisdom/type/sheng'),
+      await renderAsync('/wisdom/region/reference-manxiu'),
+    ];
+    for (const html of pages) {
+      expect(html).not.toMatch(/>Drafted</);
+      expect(html).not.toContain('Authorship: ');
+      expect(html).not.toContain('authorship rung');
+      expect(html).not.toMatch(/>Holding</);
+      expect(html).not.toMatch(/private hold|hold reason|held because/i);
     }
   });
 });
@@ -161,10 +1032,10 @@ describe('what the base is, as of when', () => {
   });
 });
 
-describe('reaching the cross-holding search from inside a holding', () => {
+describe('reaching the cross-section search from inside a section', () => {
   it('offers the way across on every index', () => {
     for (const path of INDEX_PAGES) {
-      expect(render(path)).toContain('Search every holding at once');
+      expect(render(path)).toContain('Search every section at once');
     }
   });
 
@@ -174,15 +1045,14 @@ describe('reaching the cross-holding search from inside a holding', () => {
     // single entry.
     for (const path of INDEX_PAGES) {
       const html = render(path);
-      const before = html.slice(0, html.indexOf('Search every holding at once'));
+      const before = html.slice(0, html.indexOf('Search every section at once'));
       expect(before).toContain('aria-label="Browse the');
-      // The escape line now sits after the list, with the holding's own notes.
-      expect(before).toContain('was drafted from research');
+      expect(before).not.toContain('was drafted from research');
     }
   });
 
   it('is not offered on the search itself', () => {
-    expect(render('/wisdom')).not.toContain('Search every holding at once');
+    expect(render('/wisdom')).not.toContain('Search every section at once');
   });
 
   it('opens the front door with the words already typed', () => {
@@ -207,6 +1077,16 @@ describe('an empty cell', () => {
 });
 
 describe('growing regions', () => {
+  it('uses one exact geographic level order with singular and plural public labels', () => {
+    expect(PREVIEW_PLACE_LEVELS).toEqual([
+      { level: 'major_region', singular: 'Major region', plural: 'Major regions' },
+      { level: 'tea_area', singular: 'Tea area', plural: 'Tea areas' },
+      { level: 'mountain', singular: 'Mountain', plural: 'Mountains' },
+      { level: 'village', singular: 'Village', plural: 'Villages' },
+      { level: 'locality', singular: 'Locality', plural: 'Localities' },
+    ]);
+  });
+
   it('is a holding in the nav', () => {
     expect(WISDOM_SECTIONS.map(section => section.id)).toContain('regions');
     expect(WISDOM_SECTIONS.find(section => section.id === 'regions')?.path).toBe('/wisdom/regions');
@@ -231,17 +1111,177 @@ describe('growing regions', () => {
     expect(html).toMatch(/class="sticky top-0 z-10 -mb-8 h-8 bg-tea-bg/);
   });
 
-  it('names the plants recorded from a place, and says so when there are none', () => {
+  it('names plants recorded from a place and omits an empty plant section', () => {
     const wuyi = render('/wisdom/region/wuyi-mountains-fujian');
     expect(wuyi).toContain('Plants from here');
     expect(wuyi).toContain('/wisdom/cultivar/');
 
     const bare = render('/wisdom/region/anji');
-    expect(bare).toContain('No plant in the reference records this place as its origin yet');
+    expect(bare).not.toContain('Plants recorded within Anji');
+    expect(bare).not.toContain('No cultivar record links directly to this place');
   });
 
-  it('answers for a place it does not hold', () => {
-    expect(render('/wisdom/region/nope')).toContain('Not a place we hold');
+  it('treats a broad province as a parent place instead of an empty origin', () => {
+    const html = render('/wisdom/region/anhui').replace(/&amp;/g, '&');
+
+    expect(html).not.toContain('Reference ID');
+    expect(html).not.toContain('RG 006');
+    expect(html).toContain('>View map</a>');
+    expect(html).not.toMatch(/>Map</);
+    expect(html).toMatch(/sm:ml-\[9rem\][^\"]*mt-1\.5/);
+    expect(html).not.toContain('Apple Maps');
+    expect(html).toContain('href="https://maps.apple.com/?q=Anhui%2C%20China"');
+    expect(html).not.toContain('>Altitude<');
+    expect(html).toContain('Places within Anhui');
+    expect(html).toContain('href="/wisdom/region/lu-an-city-anhui"');
+    expect(html).not.toContain('href="/wisdom/region/qimen-county-anhui"');
+    expect(html).toContain('Plants recorded within Anhui');
+    expect(html).toContain('href="/wisdom/cultivar/liu-an-gua-pian"');
+    expect(html).not.toContain('No plant in the reference records this place as its origin yet');
+  });
+
+  it('keeps the map provider out of the public action label', () => {
+    const html = render('/wisdom/region/darjeeling').replace(/&amp;/g, '&');
+    expect(html).toContain('>View map</a>');
+    expect(html).not.toMatch(/>Map</);
+    expect(html).not.toContain('Google Maps');
+    expect(html).toContain('https://www.google.com/maps/search/?api=1&query=Darjeeling%2C%20West%20Bengal%2C%20India');
+  });
+
+  it('asks for corrections without over-explaining', () => {
+    const html = render('/wisdom/region/jinzhai-county-lu-an');
+
+    expect(html).toContain('If you notice any inaccuracies, please');
+    expect(html).toContain('>report them</a>');
+    expect(html).toContain('It helps us improve the reference for everyone.');
+    expect(html).not.toContain('This is not everything');
+    expect(html).not.toContain('every correction is credited');
+  });
+
+  it('answers for a place it does not hold', async () => {
+    const html = TEA_REFERENCE_PREVIEW_ENABLED
+      ? await renderAsync('/wisdom/region/nope')
+      : render('/wisdom/region/nope');
+    expect(html).toContain('Place not found');
+  });
+
+  it.skipIf(!TEA_REFERENCE_PREVIEW_ENABLED)('prepends product-connected cited origins without flattening their declared levels', async () => {
+    await renderAsync('/wisdom/regions');
+    const html = render('/wisdom/regions');
+    expect(html).toContain('Cited origins in this preview');
+    for (const [label, id, count] of [
+      ['Major regions', 'reference-yunnan', 1],
+      ['Tea areas', 'reference-yiwu', 2],
+      ['Mountains', 'reference-gedeng', 1],
+      ['Villages', 'reference-mansa', 2],
+      ['Localities', 'reference-manxiu', 1],
+    ]) {
+      expect(html).toContain(label);
+      expect(html).toContain(`href="/wisdom/region/${id}"`);
+      expect(html).toMatch(new RegExp(`${label}</span><span[^>]*>${count}</span>`));
+    }
+    expect(html.indexOf('Cited origins in this preview')).toBeLessThan(html.indexOf('id="place-china"'));
+    expect(html).toContain(`${REGIONS.length} places`);
+    expect(html).not.toContain('overflow-x-auto');
+    expect(html).toMatch(/<section aria-labelledby="preview-origin-heading"[^>]*>[\s\S]*<h2[^>]*id="preview-origin-heading"/);
+    expect(html).toMatch(/<section aria-labelledby="preview-origin-level-major_region"[^>]*>[\s\S]*<h3[^>]*id="preview-origin-level-major_region"/);
+    expect(html).not.toMatch(/<h2[^>]*id="preview-origin-level-/);
+  });
+
+  it.skipIf(!TEA_REFERENCE_PREVIEW_ENABLED)('keeps an existing Wuyi URL on the published region page before consulting cited origins', async () => {
+    const html = await renderAsync('/wisdom/region/wuyi-mountains-fujian');
+    expect(html).toContain('>Growing place<');
+    expect(html).toContain('Plants from here');
+    expect(html).toContain('Country');
+    expect(html).not.toContain('Cited origin');
+  });
+
+  it.skipIf(!TEA_REFERENCE_PREVIEW_ENABLED)('renders a growing place at the established region URL with verified hierarchy and teas', async () => {
+    const html = (await renderAsync('/wisdom/region/reference-manxiu')).replace(/&amp;/g, '&');
+    expect(html).toMatch(/<section[^>]*aria-labelledby="origin-types-heading"/);
+    expect(html).toContain('>Growing place<');
+    expect(html).toContain('>Locality<');
+    expect(html).toContain('>Origin path<');
+    expect(html).toContain('href="/wisdom/region/reference-yunnan"');
+    expect(html).toContain('href="/wisdom/region/reference-yiwu"');
+    expect(html).toContain('href="/wisdom/region/reference-gedeng"');
+    expect(html).toContain('href="/wisdom/region/reference-mansa"');
+    expect(html).toContain('Mansa Village');
+    expect(html.indexOf('href="/wisdom/region/reference-yunnan"')).toBeLessThan(html.indexOf('href="/wisdom/region/reference-yiwu"'));
+    expect(html.indexOf('href="/wisdom/region/reference-yiwu"')).toBeLessThan(html.indexOf('href="/wisdom/region/reference-gedeng"'));
+    expect(html.indexOf('href="/wisdom/region/reference-gedeng"')).toBeLessThan(html.indexOf('href="/wisdom/region/reference-mansa"'));
+    expect(html).toContain('Identity');
+    expect(html).not.toContain('A concise public source excerpt about Manxiu.');
+    expect(html).not.toContain('Tea Geography Institute · Manxiu reference');
+    expect(html).not.toContain('Field Research Desk');
+    expect(html).not.toContain('href="https://example.com/manxiu"');
+    expect(html).toContain('Available teas');
+    expect(html).toContain('href="/shop/product/manxiu-spring-cake"');
+    expect(html).toContain('Previously offered');
+    expect(html).toContain('href="/shop/product/manxiu-archive-cake"');
+    expect(html).toContain('If you notice any inaccuracies, please');
+    expect(html).toContain('Tea types represented by available teas');
+    expect(html).toContain('href="/wisdom/type/sheng"');
+    expect(html).toContain('>View map</a>');
+    expect(html).not.toMatch(/>Map</);
+    expect(html).toMatch(/sm:ml-\[9rem\][^\"]*mt-1\.5/);
+    expect(html).not.toContain('Apple Maps');
+    expect(html).toContain('href="https://maps.apple.com/?q=Manxiu%2C%20Mansa%20Village%2C%20Gedeng%20Mountain%2C%20Yiwu%20Tea%20Area%2C%20Yunnan%2C%20China"');
+    expect(html).not.toMatch(/Country|Province|Altitude|Climate/);
+    expect(html).not.toMatch(/held|conflict|evidence|private/i);
+    expect(html).not.toContain('overflow-x-auto');
+  });
+
+  it.skipIf(!TEA_REFERENCE_PREVIEW_ENABLED)('shows children only from verified reverse parent ids and omits missing or inverted parents', async () => {
+    const parent = await renderAsync('/wisdom/region/reference-mansa');
+    expect(parent).toContain('Places within this origin');
+    expect(parent).toContain('href="/wisdom/region/reference-manxiu"');
+
+    const missing = await renderAsync('/wisdom/region/reference-orphan-village');
+    expect(missing).not.toContain('reference-missing-parent');
+    expect(missing).not.toContain('Origin path');
+
+    const inverted = await renderAsync('/wisdom/region/reference-inverted-area');
+    expect(inverted).not.toContain('href="/wisdom/region/reference-manxiu"');
+    expect(inverted).not.toContain('Origin path');
+  });
+
+  it.skipIf(!TEA_REFERENCE_PREVIEW_ENABLED)('withholds the cited index while loading and keeps the published list usable on a bounded error', async () => {
+    const pendingClient = new QueryClient({ defaultOptions: { queries: { retry: false, retryOnMount: false } } });
+    const pending = await renderRegionAsync('/wisdom/regions', pendingClient);
+    expect(pending).not.toContain('Cited origins in this preview');
+    expect(pending).toContain(`${REGIONS.length} places`);
+    expect(pending).toContain('href="/wisdom/region/wuyi-mountains-fujian"');
+
+    const errorClient = new QueryClient({ defaultOptions: { queries: { retry: false, retryOnMount: false } } });
+    await errorClient.prefetchQuery({
+      queryKey: TEA_REFERENCE_PREVIEW_QUERY_KEY,
+      queryFn: async () => { throw new Error('private upstream detail'); },
+    });
+    errorClient.setQueryData(['products', 'public'], previewProducts);
+    const error = await renderRegionAsync('/wisdom/regions', errorClient);
+    expect(error).toContain('The local cited origins preview is unavailable');
+    expect(error).toContain(`${REGIONS.length} places`);
+    expect(error).not.toContain('private upstream detail');
+  });
+
+  it.skipIf(!TEA_REFERENCE_PREVIEW_ENABLED)('uses the Wisdom skeleton while an unknown origin loads and gives a bounded error route back', async () => {
+    const pendingClient = new QueryClient({ defaultOptions: { queries: { retry: false, retryOnMount: false } } });
+    const pending = await renderRegionAsync('/wisdom/region/reference-unknown', pendingClient);
+    expect(pending).toContain('shimmer-warm');
+    expect(pending).toContain('aria-label="The wisdom base"');
+
+    const errorClient = new QueryClient({ defaultOptions: { queries: { retry: false, retryOnMount: false } } });
+    await errorClient.prefetchQuery({
+      queryKey: TEA_REFERENCE_PREVIEW_QUERY_KEY,
+      queryFn: async () => { throw new Error('private upstream detail'); },
+    });
+    errorClient.setQueryData(['products', 'public'], previewProducts);
+    const error = await renderRegionAsync('/wisdom/region/reference-unknown', errorClient);
+    expect(error).toContain('This growing place could not be loaded');
+    expect(error).toContain('href="/wisdom/regions"');
+    expect(error).toContain('Return to Origins');
+    expect(error).not.toContain('private upstream detail');
   });
 });
 
@@ -330,22 +1370,19 @@ describe('group heads', () => {
 });
 
 describe('a cold arrival on one entry', () => {
-  it('states the rung in the header, in one word, on every detail page', () => {
+  it('opens with ordinary reference language rather than review workflow state', () => {
     for (const path of [...DETAIL_PAGES, '/wisdom/style/xiao-qing-gan']) {
       const html = render(path);
-      // Somebody arriving from a search engine walks through no index, so the
-      // holding's authorship sentence never reaches them. One micro-caps word
-      // in the header is the whole repair.
-      expect(html).toContain('Authorship: ');
-      expect(html).toMatch(/>Drafted</);
-      // Not the four-line footnote block that used to sit on all 300 entries.
-      expect(html).not.toContain('Drafted from research. Not yet read by a human.<');
+      expect(html).not.toContain('Authorship: ');
+      expect(html).not.toMatch(/>Drafted</);
+      expect(html).not.toContain('Drafted from research.');
     }
   });
 
-  it('leaves the word off an index, which says the sentence in full instead', () => {
+  it('keeps the same workflow language off indexes', () => {
     for (const path of INDEX_PAGES) {
       expect(render(path)).not.toContain('Authorship: ');
+      expect(render(path)).not.toContain('was drafted from research');
     }
   });
 });
@@ -353,8 +1390,8 @@ describe('a cold arrival on one entry', () => {
 describe('two counts on the front door', () => {
   it('names what each one counts instead of printing them side by side', () => {
     const html = render('/wisdom').replace(/<!-- -->/g, '');
-    expect(html).toContain(`${DATASET_RECORDS} records in all`);
-    expect(html).toContain(`${DATASET_PAGES} entries with a page above`);
+    expect(html).toContain(`${DATASET_RECORDS} published records in all`);
+    expect(html).toContain(`${DATASET_PAGES} published entries with a page in the static Wisdom Base`);
     expect(html).toContain(`${DATASET_RECORDS - DATASET_PAGES} tea variety names carried as data only`);
   });
 
@@ -370,8 +1407,8 @@ describe('two counts on the front door', () => {
 describe('a column that is empty on half its rows', () => {
   it('says why once, above the list, rather than on every bare row', () => {
     const html = render('/wisdom/regions');
-    expect(html).toContain('working-list names');
-    expect(html).toContain('not researched rather than not applicable');
+    expect(html).toContain('remaining entries keep only the location details');
+    expect(html).toContain('not that it is inapplicable');
     // 94 of the 182 places carry no altitude. The absent-cell device is for a
     // scarce absence; at this density it would be the loudest thing on screen.
     const notRecorded = html.match(/Not recorded/g) ?? [];
@@ -379,11 +1416,11 @@ describe('a column that is empty on half its rows', () => {
   });
 
   it('counts what is recorded rather than printing a number that rots', () => {
-    const altitude = REGIONS.filter(region => region.altitude).length;
+    const elevation = REGIONS.filter(region => regionElevationPresentation(region)).length;
     const province = REGIONS.filter(region => region.province).length;
-    expect(altitude).toBeLessThan(REGIONS.length);
+    expect(elevation).toBeLessThan(REGIONS.length);
     const html = render('/wisdom/regions').replace(/<!-- -->/g, '');
-    expect(html).toContain(`An altitude is recorded for ${altitude} of these places and a province for ${province}`);
+    expect(html).toContain(`An elevation is recorded for ${elevation} of these places and a province for ${province}`);
   });
 });
 
@@ -454,7 +1491,10 @@ describe('what carries the grouping', () => {
       // The shell takes the width now. What holds a paragraph to a readable
       // line is the measure, which is a property of the text, and it is
       // unchanged: widening the page must never widen the prose.
-      expect(html).toContain('class="w-full max-w-[78rem] mx-auto pt-4 pb-nav hang-punct"');
+      const expectedPage = TEA_REFERENCE_PREVIEW_ENABLED && path.startsWith('/wisdom/region')
+        ? PREVIEW_PAGE
+        : PAGE;
+      expect(html).toContain(`class="${expectedPage}"`);
       expect(html).not.toContain('max-w-[46rem]');
     }
   });
@@ -495,8 +1535,8 @@ describe('what the extra width is for', () => {
     // the same x on every row, which is the thing a reader can run an eye down.
     for (const path of INDEX_PAGES) {
       const html = render(path);
-      expect(html).toContain('lg:grid-cols-[7.5rem_minmax(0,1fr)_minmax(0,24rem)]');
-      expect(html).toContain('sm:col-start-2 lg:col-start-3 lg:row-start-1');
+      expect(html).toContain('lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]');
+      expect(html).toContain('lg:col-start-2 lg:row-start-1');
     }
   });
 
@@ -507,22 +1547,24 @@ describe('what the extra width is for', () => {
   });
 });
 
-describe('catalogue numbers', () => {
-  it('gives every entry a number, in bronze beside its headword', () => {
+describe('internal catalogue numbers', () => {
+  it('keeps reference IDs off every public detail page', () => {
     for (const path of DETAIL_PAGES) {
-      expect(render(path)).toMatch(/figures-tab text-tea-readgold[^>]*>[A-Z]{2} \d{3}</);
+      const html = render(path);
+      expect(html).not.toContain('Reference ID');
+      expect(html).not.toMatch(/>(PL|RG|PD|MK|SY|NT) \d{3}</);
     }
   });
 
-  it('carries the number into the index, dim and right aligned', () => {
+  it('keeps reference IDs off public index rows', () => {
     const html = render('/wisdom/cultivars');
-    expect(html).toMatch(/figures-tab text-tea-text-dim hidden sm:block text-right[^>]*>PL \d{3}</);
+    expect(html).not.toMatch(/>PL \d{3}</);
   });
 
-  it('numbers a front-door search hit by the holding it came out of', () => {
+  it('keeps reference IDs off front-door search results', () => {
     const html = render('/wisdom?q=rou%20gui');
     expect(html).toContain('/wisdom/cultivar/rou-gui');
-    expect(html).toMatch(/>PL \d{3}</);
+    expect(html).not.toMatch(/>PL \d{3}</);
   });
 
   it('never numbers a holding row, which is not a record', () => {
@@ -535,7 +1577,9 @@ describe('the jump control', () => {
     const html = render('/wisdom/regions');
     expect(html).toMatch(/<select[^>]*class="[^"]*appearance-none/);
     // Its own chevron, drawn in the same glyph the compact nav uses.
-    expect(html).toMatch(/<select[\s\S]{0,4000}?lucide-chevron-down/);
+    expect(html).toMatch(
+      /<select[^>]*aria-label="Jump to a group of places"[\s\S]*?<\/select><svg[^>]*lucide-chevron-down/,
+    );
   });
 });
 

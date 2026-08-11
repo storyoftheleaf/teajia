@@ -7,10 +7,10 @@
 export const DATASET_VERSION = '1.0.0';
 
 /** ISO date the export last ran. */
-export const DATASET_BUILT = '2026-07-27';
+export const DATASET_BUILT = '2026-08-09';
 
 /** One file per record, across every holding. Everything the download carries. */
-export const DATASET_RECORDS = 629;
+export const DATASET_RECORDS = 630;
 
 /**
  * The subset with a page in the reference. Every holding except the tea
@@ -18,4 +18,4 @@ export const DATASET_RECORDS = 629;
  * This must equal the sum of the holding counts on the front door; a wisdom
  * test asserts it, so the two numbers cannot drift apart in public again.
  */
-export const DATASET_PAGES = 313;
+export const DATASET_PAGES = 314;

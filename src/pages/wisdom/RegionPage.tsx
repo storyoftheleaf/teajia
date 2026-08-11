@@ -9,27 +9,46 @@
 import React, { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { REGIONS, findRegion } from '../../wisdom';
+import {
+  REGIONS,
+  findRegion,
+  regionElevationPresentation,
+  regionsWithin,
+} from '../../wisdom';
 import {
   AXIS_INDENT,
-  catalogueNumber,
   EntryAuthorship,
   Fact,
   FACT_CLASS,
   GROUND,
-  HoldingNotFound,
   HoldingRow,
   IndexList,
   Invitation,
   MEASURE,
   PAGE,
+  PREVIEW_PAGE,
   PageHead,
   Passage,
   plantsGrownIn,
+  QUIET_LINK,
   SectionHead,
   SPACE,
   WisdomSubNav,
+  WisdomFallback,
 } from './wisdomShared';
+import { EntryResearchSection } from './EntryResearchSection';
+import { WisdomPublicStateGate, WisdomRelatedMaterial } from './WisdomRelatedMaterial';
+import { mapSearchLink } from './mapLinks';
+import { GENERATED_TEA_REFERENCE_REGISTRY } from '../../wisdom/reference/generatedPages';
+import { TEA_REFERENCE_PREVIEW_ENABLED } from '../../wisdom/reference/previewMode';
+
+const ReferenceOriginPage = React.lazy(() => import('./PreviewOriginPage'));
+const REGION_PAGE = import.meta.env.MODE === 'tea-reference-preview' ? PREVIEW_PAGE : PAGE;
+const GENERATED_ORIGIN_IDS = new Set<string>(
+  GENERATED_TEA_REFERENCE_REGISTRY.pages
+    .filter(page => page.kind !== 'tea_family' && page.kind !== 'tea_type')
+    .map(page => page.id),
+);
 
 const RegionPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -39,6 +58,16 @@ const RegionPage: React.FC = () => {
   const region = useMemo(() => REGIONS.find(entry => entry.id === id) ?? findRegion(id), [id]);
 
   const plants = useMemo(() => (region ? plantsGrownIn(region) : []), [region]);
+  const placesWithin = useMemo(() => regionsWithin(region), [region]);
+  const plantsWithin = useMemo(() => {
+    const seen = new Set<string>();
+    return placesWithin.flatMap(place => plantsGrownIn(place).map(plant => ({ plant, place })))
+      .filter(({ plant }) => {
+        if (seen.has(plant.id)) return false;
+        seen.add(plant.id);
+        return true;
+      });
+  }, [placesWithin]);
 
   const structuredData = useMemo(() => {
     if (!region) return null;
@@ -57,8 +86,14 @@ const RegionPage: React.FC = () => {
             addressCountry: region.country,
             ...(region.province ? { addressRegion: region.province } : {}),
           },
-          ...(region.altitude
-            ? { additionalProperty: [{ '@type': 'PropertyValue', name: 'Altitude', value: region.altitude }] }
+          ...(regionElevationPresentation(region)
+            ? {
+                additionalProperty: [{
+                  '@type': 'PropertyValue',
+                  name: regionElevationPresentation(region)!.label,
+                  value: regionElevationPresentation(region)!.value,
+                }],
+              }
             : {}),
         },
         {
@@ -83,18 +118,21 @@ const RegionPage: React.FC = () => {
 
   if (!region) {
     return (
-      <HoldingNotFound
-        section="regions"
-        heading="Not a place we hold"
-        backTo="/wisdom/regions"
-        backLabel="All growing regions"
-        subject="A growing place that is missing"
-      />
+      <React.Suspense fallback={<WisdomFallback />}>
+        <ReferenceOriginPage id={id ?? ''} />
+      </React.Suspense>
     );
   }
 
-  return (
-    <article className={PAGE}>
+  const map = mapSearchLink([region.name, region.province], region.country);
+  const elevation = regionElevationPresentation(region);
+  const directOrNestedPlants = plants.length > 0
+    ? plants.map(plant => ({ plant, place: null }))
+    : plantsWithin;
+
+  const legacyPage = (
+    <WisdomPublicStateGate identity={{ nodeType: 'region', nodeId: region.id }}>
+    <article className={REGION_PAGE} data-wisdom-region-page="true">
       <Helmet>
         <title>{`${region.name} · Growing Regions · Teajia`}</title>
         <meta
@@ -117,16 +155,40 @@ const RegionPage: React.FC = () => {
           kind="Growing place"
           title={region.name}
           rungFor={region.id}
-          number={catalogueNumber('places', region.id)}
         />
       </div>
 
       <div className="mt-8">
         <Fact label="Country">{region.country}</Fact>
         <Fact label="Province">{region.province}</Fact>
-        <Fact label="Altitude">
-          <span className="figures-tab">{region.altitude}</span>
-        </Fact>
+        {elevation && (
+          <Fact label={elevation.label}>
+            <span className="figures-tab">{elevation.value}</span>
+          </Fact>
+        )}
+        {elevation?.note && (
+          <p className={`${FACT_CLASS} text-tea-text-dim ${MEASURE} ${AXIS_INDENT} mt-1.5`}>
+            {elevation.note}
+          </p>
+        )}
+        {elevation?.source && (
+          <p className={`${FACT_CLASS} text-tea-text-dim ${MEASURE} ${AXIS_INDENT} mt-1.5`}>
+            Source:{' '}
+            <a
+              href={elevation.source.url}
+              target="_blank"
+              rel="noreferrer"
+              className={`${QUIET_LINK} tap-target`}
+            >
+              {elevation.source.label}
+            </a>
+          </p>
+        )}
+        <p className={`${FACT_CLASS} ${AXIS_INDENT} mt-1.5`}>
+          <a href={map.url} target="_blank" rel="noreferrer" className={`${QUIET_LINK} tap-target`}>
+            {map.label}
+          </a>
+        </p>
 
         {/* Climate is the one field here that is research prose, not a fact:
             the longest runs to 239 characters, four lines of body type. Set on
@@ -134,40 +196,76 @@ const RegionPage: React.FC = () => {
             on. It keeps the same hung label and drops clear of it. */}
         <Passage label="Climate" text={region.climate} className="mt-5" />
 
-        {!region.altitude && !region.climate && (
+        {!elevation && !region.climate && placesWithin.length > 0 && (
           <p className={`${FACT_CLASS} text-tea-text-dim ${MEASURE} ${AXIS_INDENT}`}>
-            Only the name and the country are held for this place. Altitude and climate have not been researched yet.
+            This is a broad place entry. Elevation and climate are recorded on the more specific growing places below.
+          </p>
+        )}
+        {!elevation && !region.climate && placesWithin.length === 0 && (
+          <p className={`${FACT_CLASS} text-tea-text-dim ${MEASURE} ${AXIS_INDENT}`}>
+            This entry currently records its name and country. Elevation and climate have not been added yet.
           </p>
         )}
       </div>
 
-      <section className={`${SPACE.section} ${GROUND} py-6`}>
-        <SectionHead label="Plants from here" count={plants.length || undefined} />
-        {plants.length === 0 ? (
-          <p className={`${FACT_CLASS} text-tea-text-dim ${MEASURE} ${AXIS_INDENT}`}>
-            No plant in the reference records this place as its origin yet. That is a gap in the plant records, not a
-            claim that nothing grows here.
-          </p>
-        ) : (
+      {placesWithin.length > 0 && (
+        <section className={SPACE.section}>
+          <SectionHead label={`Places within ${region.name}`} count={placesWithin.length} />
+          <IndexList>
+            {placesWithin.map(place => (
+              <HoldingRow
+                key={place.id}
+                to={`/wisdom/region/${place.id}`}
+                name={place.name}
+                cells={[regionElevationPresentation(place)?.value]}
+              />
+            ))}
+          </IndexList>
+        </section>
+      )}
+
+      {directOrNestedPlants.length > 0 && (
+        <section className={`${SPACE.section} ${GROUND} py-6`}>
+          <SectionHead
+            label={plants.length > 0 ? 'Plants from here' : `Plants recorded within ${region.name}`}
+            count={directOrNestedPlants.length}
+          />
           <IndexList plain>
-            {plants.map(plant => (
+            {directOrNestedPlants.map(({ plant, place }) => (
               <HoldingRow
                 key={plant.id}
                 to={`/wisdom/cultivar/${plant.id}`}
                 name={plant.name}
                 chineseName={plant.chineseName}
-                cells={[plant.developedYear ? `recorded ${plant.developedYear}` : undefined]}
+                cells={[
+                  place ? { text: place.name, to: `/wisdom/region/${place.id}` } : undefined,
+                  plant.developedYear ? `recorded ${plant.developedYear}` : undefined,
+                ]}
               />
             ))}
           </IndexList>
-        )}
-      </section>
+        </section>
+      )}
 
+      <EntryResearchSection entryKind="region" entryId={region.id} entry={region} />
+
+      <WisdomRelatedMaterial identity={{ nodeType: 'region', nodeId: region.id }} />
       <EntryAuthorship id={region.id} />
 
       <Invitation subject={`Growing place: ${region.name}`} />
     </article>
+    </WisdomPublicStateGate>
   );
+
+  if (!TEA_REFERENCE_PREVIEW_ENABLED && GENERATED_ORIGIN_IDS.has(id ?? '')) {
+    return (
+      <React.Suspense fallback={<WisdomFallback />}>
+        <ReferenceOriginPage id={id ?? ''} fallback={legacyPage} />
+      </React.Suspense>
+    );
+  }
+
+  return legacyPage;
 };
 
 export default RegionPage;

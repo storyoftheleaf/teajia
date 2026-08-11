@@ -1,8 +1,8 @@
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams, type Location } from 'react-router-dom';
 import { Icons } from './Icons';
-import { X, Leaf } from 'lucide-react';
+import { X } from 'lucide-react';
 import { AddToSampleButton } from './samples/AddToSampleButton';
 import { AlcoveModal } from './shop/AlcoveModal';
 import { TastingEditorModal } from '../admin/components/TastingEditorModal';
@@ -12,7 +12,6 @@ import { TeaPlaceholder } from './shop/TeaPlaceholder';
 import { PageHeader } from './shared/PageHeader';
 import { PageHeaderTabs } from './shared/PageHeaderTabs';
 import { useShopPrice } from './shop/shopPrice';
-import { TEA_TYPE_COLORS } from '../designTokens';
 import { InventoryItem } from '../types';
 import { TEA_TYPES as WISDOM_TEA_TYPES, findRegion, normalizeTeaType } from '../wisdom';
 import { SALE_ITEM_IDS } from '../data/curatedCollections';
@@ -23,6 +22,18 @@ import { useTastingCounts } from '../hooks/useTastingCount';
 import { TastingSession, type TastingItem } from './tasting/TastingSession';
 import { AnimatePresence } from 'framer-motion';
 import type { Product } from '../admin/types';
+import { TeaFinder } from './shop/TeaFinder';
+import { TeaLedger } from './shop/TeaLedger';
+import { TeaShopViewRegion, TeaShopViewTabs } from './shop/TeaShopViewTabs';
+import { BODY, LINK } from './shared/typeRoles';
+import {
+  applyFinderIntent,
+  selectAvailableTeas,
+  selectCuratedTeas,
+  selectPastTeas,
+  type TeaFinderIntent,
+  type TeaShopView,
+} from './shop/teaShopView';
 
 // Use shared type alias for backward compatibility in this component if needed,
 // or directly use InventoryItem
@@ -38,6 +49,7 @@ interface TeaInventoryProps {
   isAdmin?: boolean;
   adminProductMap?: Map<string, Product>;
   onAdminEdit?: (itemId: string) => void;
+  modalLocation?: Location;
 }
 
 // Preferred display order for tea types, any types not listed here appear at the end.
@@ -108,7 +120,7 @@ const ALL_FLAVOR_TAG_TERMS = (() => {
  */
 function resolvedIncludes(item: TeaItem, categoryId: TastingCategoryId, termId: string): boolean {
   const ownerTerms =
-    (item.tastingSource === 'owner' || item.tastingSource === 'community')
+    (item.tastingSource === 'owner' || item.tastingSource === 'community' || item.tastingSource === 'source')
       ? item.tasting?.[categoryId]
       : undefined;
   if (ownerTerms?.includes(termId)) return true;
@@ -116,7 +128,7 @@ function resolvedIncludes(item: TeaItem, categoryId: TastingCategoryId, termId: 
   return Boolean(common?.[categoryId]?.includes(termId));
 }
 
-export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCart, onCartClick, onAccountClick, cartItemCount = 0, hideHeader = false, isAdmin = false, adminProductMap, onAdminEdit }) => {
+export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCart, onCartClick, onAccountClick, cartItemCount = 0, hideHeader = false, isAdmin = false, adminProductMap, onAdminEdit, modalLocation }) => {
   /**
    * The grid price, in the currency the reader chose.
    *
@@ -138,18 +150,29 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   const [specialFilter, setSpecialFilter] = useState<'None' | 'Curated' | 'Sale' | 'Liked' | 'Tasted'>('None');
   const [openFilter, setOpenFilter] = useState<'type' | 'place' | 'feeling' | 'sort' | null>(null);
   const [searchText, setSearchText] = useState<string>('');
+  const [teaView, setTeaView] = useState<TeaShopView>('all');
+  const [showPast, setShowPast] = useState(false);
   // Profile-level mood/flavor tag filters (URL params: ?mood=id,id2 and ?flavorTag=id,id2)
   const [activeMoodTags, setActiveMoodTags] = useState<string[]>([]);
   const [activeFlavorTags, setActiveFlavorTags] = useState<string[]>([]);
   const [moodFlavorOpen, setMoodFlavorOpen] = useState(false);
 
+  const baseAvailable = useMemo(() => selectAvailableTeas(inventory), [inventory]);
+  const baseCurated = useMemo(() => selectCuratedTeas(inventory), [inventory]);
+  const basePast = useMemo(() => selectPastTeas(inventory), [inventory]);
+  const filterSource = showPast
+    ? basePast
+    : teaView === 'selection'
+      ? baseCurated
+      : baseAvailable;
+
   // Derive tea types from actual inventory (ordered by TYPE_ORDER, then alphabetically)
   const teaTypes = useMemo(() => {
-    const types = new Set(inventory.map(item => displayType(item.type)));
+    const types = new Set(filterSource.map(item => displayType(item.type)));
     const ordered = TYPE_ORDER.filter(t => types.has(t));
     const remaining = [...types].filter(t => !TYPE_ORDER.includes(t)).sort();
     return [...ordered, ...remaining];
-  }, [inventory]);
+  }, [filterSource]);
 
   /**
    * The places this shop actually sells from, resolved and de-duplicated.
@@ -162,23 +185,23 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
    */
   const availableRegions = useMemo(() => {
     const seen = new Map<string, string>();
-    for (const item of inventory) {
+    for (const item of filterSource) {
       const key = regionKey(item.origin);
       if (key && !seen.has(key)) seen.set(key, regionLabel(key));
     }
     return [...seen.entries()]
       .map(([key, label]) => ({ key, label }))
       .sort((left, right) => left.label.localeCompare(right.label));
-  }, [inventory]);
+  }, [filterSource]);
 
   // Derive which feeling terms are actually present in the inventory.
   // Includes style-level common feelings so filters are meaningful before
   // the owner has saved any explicit tastings.
   const availableFeelings = useMemo(() => {
     const present = new Set<string>();
-    for (const item of inventory) {
+    for (const item of filterSource) {
       const ownerTerms =
-        (item.tastingSource === 'owner' || item.tastingSource === 'community')
+        (item.tastingSource === 'owner' || item.tastingSource === 'community' || item.tastingSource === 'source')
           ? item.tasting?.feeling
           : undefined;
       if (ownerTerms) {
@@ -190,25 +213,25 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       }
     }
     return FEELING_TERMS.filter(t => present.has(t.id));
-  }, [inventory]);
+  }, [filterSource]);
 
   // Compute which profile-level mood/flavor terms are actually used by at least
   // one Active+public product so the filter only shows discoverable states.
   const availableMoodTagTerms = useMemo(() => {
     const present = new Set<string>();
-    for (const item of inventory) {
+    for (const item of filterSource) {
       for (const t of item.moodTags ?? []) present.add(t);
     }
     return ALL_MOOD_TERMS.filter(t => present.has(t.id));
-  }, [inventory]);
+  }, [filterSource]);
 
   const availableFlavorTagTerms = useMemo(() => {
     const present = new Set<string>();
-    for (const item of inventory) {
+    for (const item of filterSource) {
       for (const t of item.flavorTags ?? []) present.add(t);
     }
     return ALL_FLAVOR_TAG_TERMS.filter(t => present.has(t.id));
-  }, [inventory]);
+  }, [filterSource]);
 
   // User Interaction State, persisted via Zustand store
   const { favoriteTeas, toggleFavoriteTea, compareItems, recentlyViewed, addRecentlyViewed, shopPriceWeight, setShopPriceWeight, shopSort, setShopSort, shopSavedOnly, setShopSavedOnly } = useAppStore();
@@ -295,7 +318,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   // the current location as background state; viewItem is derived from that
   // URL, so it is always fresh after an inventory refetch and back/forward can
   // never desync from the modal. See useProductModalRoute.
-  const { viewItem, openProduct, navigateWithinModal, closeProduct } = useProductModalRoute(inventory);
+  const { viewItem, openProduct, navigateWithinModal, closeProduct } = useProductModalRoute(inventory, modalLocation);
 
   // Track recently viewed whenever a product opens (modal or swipe).
   useEffect(() => {
@@ -356,7 +379,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   // Filter Logic
   const filteredInventory = useMemo(() => {
     const searchLower = searchText.trim().toLowerCase();
-    return inventory.filter(item => {
+    return filterSource.filter(item => {
       // 0. Search filter (case-insensitive substring on name)
       const matchSearch = !searchLower || item.name.toLowerCase().includes(searchLower);
 
@@ -404,7 +427,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
       return matchSearch && matchType && matchFeeling && matchRegion && matchSpecial && matchTasting && matchMoodTags && matchFlavorTags && matchSaved;
     });
-  }, [inventory, searchText, activeType, activeFeeling, activeRegion, specialFilter, userFavorites, tastingFilter, shopSavedOnly, activeMoodTags, activeFlavorTags]);
+  }, [filterSource, searchText, activeType, activeFeeling, activeRegion, specialFilter, userFavorites, tastingFilter, shopSavedOnly, activeMoodTags, activeFlavorTags]);
 
   // Grouping & Sorting Logic
   const groupedInventory = useMemo(() => {
@@ -478,6 +501,39 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
     setActiveFlavorTags([]);
   };
 
+  const handleTeaViewChange = (view: TeaShopView) => {
+    setTeaView(view);
+    setShowPast(false);
+    setOpenFilter(null);
+  };
+
+  const handleFinderChoose = (intent: TeaFinderIntent) => {
+    const nextFilter = applyFinderIntent(intent);
+    setActiveType('All');
+    setActiveRegion(null);
+    setSpecialFilter('None');
+    setSearchText('');
+    setActiveMoodTags([]);
+    setActiveFlavorTags([]);
+    setMoodFlavorOpen(false);
+    setShopSavedOnly(false);
+    setOpenFilter(null);
+    setShowPast(false);
+
+    if (nextFilter?.categoryId === 'feeling') {
+      setActiveFeeling(nextFilter.termId);
+      setTastingFilter(null);
+    } else if (nextFilter?.categoryId === 'flavor') {
+      setActiveFeeling(null);
+      setTastingFilter(nextFilter);
+    } else {
+      setActiveFeeling(null);
+      setTastingFilter(null);
+    }
+
+    setTeaView('all');
+  };
+
   return (
     <div className="w-full pb-32 animate-[fadeIn_0.5s_ease-out]">
 
@@ -543,6 +599,16 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
       {/* --- Inline Filter Bar + Content (full width) --- */}
       <div className="max-w-full mx-auto px-4 md:px-6 lg:px-10 pt-4">
+
+         <TeaShopViewTabs active={teaView} onChange={handleTeaViewChange} />
+         <TeaShopViewRegion active={teaView} count={filteredInventory.length} showPast={showPast}>
+
+         {teaView === 'find' ? (
+           <div className="pt-6">
+             <TeaFinder onChoose={handleFinderChoose} />
+           </div>
+         ) : (
+           <>
 
          {/* Sticky shop toolbar */}
          <div className="sticky top-0 z-sticky -mx-4 px-4 md:-mx-6 md:px-6 lg:-mx-10 lg:px-10 bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border">
@@ -883,182 +949,84 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
          {/* Main content area (full width now) */}
          <div className="w-full">
+           <p
+             className="py-3 text-ui-10 text-tea-text-dim"
+             style={{ fontFamily: 'var(--font-body)' }}
+           >
+             {filteredInventory.length} {filteredInventory.length === 1 ? 'tea' : 'teas'} {showPast ? 'in the archive' : teaView === 'selection' ? 'in My selection' : 'shown'}
+           </p>
 
-         {filteredInventory.length === 0 ? (
-            <div className="text-center py-32">
-               <svg
-                 className="w-16 h-16 mx-auto mb-6 text-tea-text-dim tea-leaf-float"
-                 viewBox="0 0 64 64"
-                 fill="none"
-                 stroke="currentColor"
-                 strokeWidth="1.2"
-                 strokeLinecap="round"
-                 strokeLinejoin="round"
-                 aria-hidden="true"
-               >
-                 <path d="M32 56 C32 56 12 44 12 28 C12 16 20 8 32 8 C44 8 52 16 52 28 C52 44 32 56 32 56Z" />
-                 <path d="M32 8 C32 8 28 20 28 32 C28 44 32 56 32 56" />
-                 <path d="M18 22 C24 26 32 28 46 24" />
-                 <path d="M16 34 C22 36 30 38 48 32" />
-               </svg>
-               <p className="font-serif italic text-tea-text-sec mb-2">Nothing matched. Try different filters.</p>
-               <button
-                  type="button"
-                  onClick={clearFilters}
-                  className="text-sm text-tea-gold hover:text-tea-gold-lt transition-colors underline"
-               >
-                  Clear all filters
-               </button>
-            </div>
-         ) : null}
+           {filteredInventory.length === 0 ? (
+             <div className="py-24 text-center">
+               <p className={`${BODY} italic text-tea-text-sec mb-3`}>
+                 {showPast
+                   ? 'No past teas match these filters.'
+                   : teaView === 'selection'
+                     ? 'My selection is still taking shape.'
+                     : 'Nothing matched. Try different filters.'}
+               </p>
+               <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-ui-12">
+                 {(showPast || teaView === 'selection') && (
+                   <button
+                     type="button"
+                     onClick={() => {
+                       setShowPast(false);
+                       setTeaView('all');
+                     }}
+                     className={`${LINK} tap-target text-ui-12 text-tea-text-sec`}
+                   >
+                     All teas
+                   </button>
+                 )}
+                 <button
+                   type="button"
+                   onClick={clearFilters}
+                   className={`${LINK} tap-target text-ui-12 text-tea-text-sec`}
+                 >
+                   Clear all filters
+                 </button>
+                 <button
+                   type="button"
+                   onClick={() => handleTeaViewChange('find')}
+                   className={`${LINK} tap-target text-ui-12 text-tea-text-sec`}
+                 >
+                   Find a tea
+                 </button>
+               </div>
+             </div>
+           ) : (
+             <TeaLedger
+               groups={groupedInventory}
+               activeType={activeType}
+               specialFilter={specialFilter}
+               tastingCounts={tastingCounts}
+               priceWeight={shopPriceWeight}
+               formatPrice={shopPrice.total}
+               favoriteIds={userFavorites}
+               onToggleFavorite={handleFavoriteToggle}
+               onOpenProduct={openProduct}
+               isAdmin={isAdmin}
+               onAdminEdit={onAdminEdit}
+             />
+           )}
 
-         {/* LIST VIEW, tap opens AlcoveCard */}
-         {filteredInventory.length > 0 && (
-            <div className="flex flex-col px-0 animate-[fadeIn_0.5s_ease-out]">
-               {groupedInventory.map((group) => (
-                <React.Fragment key={group.type}>
-
-                    {/* Category label */}
-                    {activeType === 'All' && specialFilter === 'None' && (() => {
-                        const typeColor = TEA_TYPE_COLORS[group.type as keyof typeof TEA_TYPE_COLORS]?.card ?? '#737373';
-                        return (
-                            <div className="pt-6 first:pt-0 pb-2 px-1">
-                                <div className="border-t border-tea-border mb-3 first:border-0" />
-                                <div className="flex items-center gap-2">
-                                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: typeColor }} />
-                                    <span className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">{group.type}</span>
-                                </div>
-                            </div>
-                        );
-                    })()}
-
-                    {group.items.map((item) => {
-                        const isTeajiaFav = !!item.isFeatured;
-                        const isFavorite = userFavorites.has(item.id);
-                        const pricePerGram = parseFloat(item.price_per_gram || '0') || 0;
-                        const priceAtWeight = Math.round(pricePerGram * shopPriceWeight * 100) / 100;
-                        const showType = activeType !== 'All' || specialFilter !== 'None';
-
-                        // Stock badge logic (tea items only, stock_g is in grams)
-                        const stockG = item.stock_g ?? 0;
-                        const stockBadge: { label: string; cls: string } | null = item.category === 'tea'
-                          ? stockG <= 0
-                            ? { label: 'Sold Out', cls: 'bg-tea-surface text-tea-text-dim' }
-                            : stockG <= 50
-                              ? { label: 'Low Stock', cls: 'bg-tea-elevated text-tea-gold-lt' }
-                              : stockG <= 150
-                                ? { label: 'Limited', cls: 'bg-tea-elevated text-tea-text-sec' }
-                                : null
-                          : null;
-
-                        return (
-                            <div
-                                key={item.id}
-                                role="button"
-                                tabIndex={0}
-                                aria-label={`View ${item.name}`}
-                                className="border-b border-tea-border hover:bg-tea-surface/40 transition-colors cursor-pointer focus:outline-none focus-visible:bg-tea-surface/60 focus-visible:ring-1 focus-visible:ring-tea-gold/30"
-                                onClick={() => openProduct(item)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' || e.key === ' ') {
-                                    e.preventDefault();
-                                    openProduct(item);
-                                  }
-                                }}
-                            >
-                                <div className="flex items-center py-2 lg:py-2.5 px-1 gap-3">
-                                    {/* Name + metadata */}
-                                    <div className="flex-1 min-w-0">
-                                        {/* Featured / Curated badges */}
-                                        {(item.isFeatured || item.isCurated) && (
-                                          <div className="flex flex-col mb-0.5">
-                                            {item.isFeatured && (
-                                              <span className="text-xs tracking-widest uppercase text-tea-gold leading-none">Featured</span>
-                                            )}
-                                            {item.isCurated && (
-                                              <span className="text-xs tracking-widest uppercase text-tea-text-sec leading-none">Curated</span>
-                                            )}
-                                          </div>
-                                        )}
-                                        <div className="flex items-center gap-2">
-                                            <h3 className="font-serif text-ui-15 leading-snug text-tea-text font-medium truncate">
-                                                {item.name}
-                                            </h3>
-                                            {isTeajiaFav && <Icons.Seal className="w-2.5 h-2.5 text-tea-gold shrink-0" />}
-                                            {(tastingCounts.get(item.id) || 0) > 0 && (
-                                                <span className="inline-flex items-center gap-0.5 shrink-0 text-tea-green" title={`Tasted ${tastingCounts.get(item.id)} time${tastingCounts.get(item.id)! > 1 ? 's' : ''}`}>
-                                                    <Leaf className="w-2.5 h-2.5" />
-                                                    {tastingCounts.get(item.id)! > 1 && (
-                                                        <span className="text-ui-9 font-medium leading-none">{tastingCounts.get(item.id)}</span>
-                                                    )}
-                                                </span>
-                                            )}
-                                            {/* Stock badge */}
-                                            {stockBadge && (
-                                                <span className={`shrink-0 text-ui-10 uppercase tracking-widest px-1.5 py-0.5 rounded-md ${stockBadge.cls}`}>
-                                                    {stockBadge.label}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="mt-0.5 truncate flex items-center gap-1.5">
-                                             {showType && (
-                                                 <><span className="text-ui-10 uppercase tracking-wider text-tea-text-sec">{item.type}</span>
-                                                 <span className="text-tea-text-dim">·</span></>
-                                             )}
-                                             {item.origin && (
-                                                 <span className="text-ui-11 text-tea-text-sec">{item.origin}</span>
-                                             )}
-                                             {item.year && (
-                                                 <><span className="text-tea-text-dim">·</span>
-                                                 <span className="text-ui-11 text-tea-text-dim">{item.year}</span></>
-                                             )}
-                                        </div>
-                                    </div>
-
-                                    {/* Right: actions · divider · price */}
-                                    <div className="flex items-center shrink-0">
-                                        <div className="flex items-center gap-1">
-                                            {/* Admin: edit button */}
-                                            {isAdmin && onAdminEdit && (
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => { e.stopPropagation(); onAdminEdit(item.id); }}
-                                                    aria-label={`Edit ${item.name}`}
-                                                    className="p-1 text-tea-text-sec hover:text-tea-text transition-colors"
-                                                >
-                                                    <Icons.Edit className="w-4 h-4" aria-hidden="true" />
-                                                </button>
-                                            )}
-                                            {/* Like toggle */}
-                                            <button
-                                                type="button"
-                                                onClick={(e) => handleFavoriteToggle(item.id, e)}
-                                                aria-pressed={isFavorite}
-                                                aria-label={isFavorite ? `Unlike ${item.name}` : `Like ${item.name}`}
-                                                className={`p-1 transition-colors ${isFavorite ? 'text-tea-text hover:text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}
-                                            >
-                                                <Icons.Heart className="w-4 h-4" filled={isFavorite} aria-hidden="true" />
-                                            </button>
-                                        </div>
-                                        {/* Divider between actions and price */}
-                                        <div className="w-px h-5 bg-tea-border ml-2.5 mr-3" />
-                                        <div className="text-right num text-sm text-tea-gold font-medium tabular-nums min-w-[44px] whitespace-nowrap">
-                                            {shopPrice.total(priceAtWeight)}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </React.Fragment>
-             ))}
-            </div>
+           {teaView === 'all' && (
+             <button
+               type="button"
+               onClick={() => setShowPast(previous => !previous)}
+               className={`${LINK} tap-target mt-6 text-ui-11 text-tea-text-sec`}
+             >
+               {showPast ? 'Return to available teas' : 'Past teas · sold out archive'}
+             </button>
+           )}
+         </div>
+           </>
          )}
-      </div>
+         </TeaShopViewRegion>
       </div>
 
       {/* Recently Viewed */}
-      {recentlyViewedItems.length > 0 && filteredInventory.length > 0 && (
+      {teaView !== 'find' && recentlyViewedItems.length > 0 && filteredInventory.length > 0 && (
         <div className="mt-10 px-3 md:px-4 lg:px-6">
           <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mb-3">Recently Viewed</p>
           <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2">

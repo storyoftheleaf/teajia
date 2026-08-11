@@ -13,7 +13,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { getTeaColor } from '../../designTokens';
 import { LIQUOR_COLORS } from '../../data/tastingTaxonomy';
 import { useSampleCartStore } from '../../samples/sampleCartStore';
-import type { InventoryItem, Story } from '../../types';
+import type { InventoryItem } from '../../types';
 import { ContentType } from '../../types';
 
 import { AlcoveShell } from './alcove/AlcoveShell';
@@ -29,6 +29,7 @@ import { TeaReference, type TeaReferenceProduct } from '../wisdom/TeaReference';
 import { FactGrid } from '../wisdom/FactGrid';
 import { LABEL } from '../shared/typeRoles';
 import type { ProductImpression } from './ProductImpressions';
+import { resolveProductResearch } from '../../wisdom/productResearch';
 
 interface AlcoveCardProps {
   item: InventoryItem;
@@ -46,6 +47,10 @@ interface AlcoveCardProps {
   onTaste?: (item: InventoryItem) => void;
   /** Admin-only: called to open the product tasting editor (writes to the product's own tasting field). */
   onEditProductTasting?: (item: InventoryItem) => void;
+  /** Canonical public route, including store context on standalone pages. */
+  publicHref?: string;
+  /** Product-page-only control kept beside ordering reassurance. */
+  orderAccess?: React.ReactNode;
   /**
    * 'card' (default) is the modal quiet card inside AlcoveShell (internal
    * scroll, pinned commerce bar). 'page' is the standalone product-page
@@ -81,7 +86,7 @@ function hexToRgbString(hex: string): string | undefined {
   return `${(int >> 16) & 255} ${(int >> 8) & 255} ${int & 255}`;
 }
 
-export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting, layout = 'card' }) => {
+export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting, publicHref, orderAccess, layout = 'card' }) => {
   const navigate = useNavigate();
   const { favoriteTeas, toggleFavoriteTea, activeAccountId } = useAppStore();
 
@@ -164,15 +169,20 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     queryFn: () => api.productImpressions.list(item.id),
     staleTime: 60_000,
   });
+  const { data: xrefArticleResponse } = useQuery({
+    queryKey: ['public-xref', 'product-articles', item.id],
+    queryFn: () => api.publicXref.productArticles(item.id),
+    staleTime: 5 * 60 * 1000,
+  });
 
   // Related journal articles (stories with matching teaId, published articles only)
   const { stories } = useStories();
-  const relatedArticles = useMemo<Story[]>(() =>
-    stories.filter(
-      s => s.teaId === item.id && s.status === 'published' && s.type === ContentType.Article
-    ),
-    [stories, item.id]
-  );
+  const relatedArticles = useMemo(() => {
+    if (xrefArticleResponse) return xrefArticleResponse.articles;
+    return stories
+      .filter(s => s.teaId === item.id && s.status === 'published' && s.type === ContentType.Article)
+      .map(story => ({ id: story.id, slug: story.slug || story.id, title: story.title }));
+  }, [xrefArticleResponse, stories, item.id]);
 
   const sliderMin = 5;
   const sliderMax = Math.max(sliderMin, Math.floor(item.stock_g || 0));
@@ -194,8 +204,11 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const shopPrice = useShopPrice();
   const resolvedFormatPrice = formatPrice ?? ((usdPerGram: number, g: number) => shopPrice.total(usdPerGram * g));
   const total = resolvedFormatPrice(pricePerGram, grams);
-  // No unit here: the commerce footer appends its own "/g" after this string.
-  const perGramDisplay = resolvedFormatPrice(pricePerGram, 1);
+  // A rate is a complete display value. Public prices use the rate formatter;
+  // admin overrides add their unit here, at the card boundary, exactly once.
+  const rateLabel = formatPrice
+    ? `${formatPrice(pricePerGram, 1)}/g`
+    : shopPrice.perGram(pricePerGram);
 
   const stockStatus = getStockStatus(item.stock_g);
   const isSoldOut = stockStatus.level === 'out';
@@ -244,7 +257,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   // Share handler: uses Web Share API with clipboard fallback.
   const handleShare = async () => {
     const shareText = `${item.name}, ${item.origin || ''} ${teaType} from Teajia`;
-    const shareUrl = `${window.location.origin}/shop/product/${item.id}`;
+    const shareUrl = new URL(publicHref || `/shop/product/${encodeURIComponent(item.id)}`, window.location.origin).toString();
 
     if (navigator.share) {
       try {
@@ -287,7 +300,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       sliderMax={sliderMax}
       presets={presets}
       pricePerGram={pricePerGram}
-      perGramDisplay={perGramDisplay}
+      rateLabel={rateLabel}
       total={total}
       added={added}
       shareCopied={shareCopied}
@@ -372,17 +385,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     />
   );
 
-  // 4. Character: taste, feel, and starred notes in one tonal band
-  const characterBand = (
-    <AlcoveCharacterBand
-      item={item}
-      legacyNotes={notes}
-      isAdmin={isAdmin}
-      onEditProductTasting={onEditProductTasting}
-      onTermClick={onTermClick}
-    />
-  );
-
   // What the wisdom base can resolve from this product's own fields.
   const referenceProduct: TeaReferenceProduct = {
     name: item.name,
@@ -393,6 +395,21 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     type: item.type,
     year: item.year,
   };
+  const potentialResearch = item.category === 'tea'
+    ? resolveProductResearch(referenceProduct)
+    : null;
+
+  // 4. Character: exact product tasting and cited shared potential remain separate.
+  const characterBand = (
+    <AlcoveCharacterBand
+      item={item}
+      legacyNotes={notes}
+      isAdmin={isAdmin}
+      onEditProductTasting={onEditProductTasting}
+      onTermClick={onTermClick}
+      potentialResearch={potentialResearch}
+    />
+  );
   const brewingProfile = item.category === 'tea' ? getBrewingProfile(item.type) : undefined;
 
   // 5. About this tea: story + terroir + craft as one reading chapter
@@ -457,6 +474,15 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     </p>
   );
 
+  const commerceReassurance = (
+    <div className="flex min-h-[44px] items-center justify-between gap-3 border-t border-tea-border bg-tea-bg px-3.5">
+      {orderAccess}
+      <p className="m-0 ml-auto text-right font-sans text-ui-10 tracking-[0.04em] text-tea-text-dim">
+        Ordered over WhatsApp, Adrian confirms within a day
+      </p>
+    </div>
+  );
+
   // ── Page layout: the "quiet page" at /shop/product/:id on cold loads ─────
   if (layout === 'page') {
     return (
@@ -470,6 +496,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 vertically inside it (order button full width). */}
             <div className="mx-6 mt-6 hidden border border-tea-border lg:block">
               {commerceFooter('rail')}
+              {commerceReassurance}
             </div>
           </div>
 
@@ -480,7 +507,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             {aboutSection}
             {referenceSection}
             {tableSection}
-            {whatsAppNote}
           </div>
         </div>
 
@@ -488,6 +514,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             mobile bottom nav (bottom-nav utility, never inline calc). */}
         <div className="fixed inset-x-0 bottom-nav z-sticky border-b border-tea-border lg:hidden">
           {commerceFooter('pinned')}
+          {commerceReassurance}
         </div>
         {/* Clearance for the fixed bar's own height; the bottom nav clearance
             itself comes from the app shell's pb-nav-gap-lg on <main>. */}

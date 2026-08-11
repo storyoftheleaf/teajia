@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate, useParams, type Location } from 'react-router-dom';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
+import { TEA_REFERENCE_ROUTE_PATHS } from './wisdom/reference/previewMode';
 
 // Retry a failed chunk load in place. A transient fetch failure is common on a
 // jumpy/firewalled connection, especially for the large admin bundle.
@@ -126,11 +127,16 @@ const TeaHouseQuietHours = lazy(() => import('./pages/read/TeaHouseQuietHours'))
 const CraftRenewalPorcelain = lazy(() => import('./pages/read/CraftRenewalPorcelain'));
 const PublicCollectionPage = lazy(() => import('./pages/PublicCollectionPage'));
 const ContributorProfilePage = lazy(() => import('./pages/ContributorProfilePage'));
+const AccountProfilePage = lazy(() => import('./pages/AccountProfilePage'));
+const ProfileFavoritesPage = lazy(() => import('./pages/ProfileFavoritesPage'));
+const ProfilePaymentPage = lazy(() => import('./pages/ProfilePaymentPage'));
 const ContributorsIndexPage = lazy(() => import('./pages/ContributorsIndexPage'));
 const StoreLaunchPlaybookPage = lazy(() => import('./pages/StoreLaunchPlaybookPage'));
 const McpPage = lazy(() => import('./pages/McpPage'));
 // The public tea reference: a page per holding, read out of src/wisdom.
-const WisdomHomePage = lazy(() => import('./pages/wisdom/WisdomHomePage'));
+const WisdomHomePage = import.meta.env.MODE === 'tea-reference-preview'
+  ? lazy(() => import('./pages/wisdom/PreviewWisdomHomePage'))
+  : lazy(() => import('./pages/wisdom/WisdomHomePage'));
 const CultivarIndexPage = lazy(() => import('./pages/wisdom/CultivarIndexPage'));
 const CultivarPage = lazy(() => import('./pages/wisdom/CultivarPage'));
 const ProducerIndexPage = lazy(() => import('./pages/wisdom/ProducerIndexPage'));
@@ -143,6 +149,9 @@ const RegionIndexPage = lazy(() => import('./pages/wisdom/RegionIndexPage'));
 const RegionPage = lazy(() => import('./pages/wisdom/RegionPage'));
 const NamedTeaIndexPage = lazy(() => import('./pages/wisdom/NamedTeaIndexPage'));
 const NamedTeaPage = lazy(() => import('./pages/wisdom/NamedTeaPage'));
+const TeaTypeIndexPage = lazy(() => import('./pages/wisdom/TeaTypeIndexPage'));
+const TeaFamilyPage = lazy(() => import('./pages/wisdom/TeaFamilyPage'));
+const TeaTypePage = lazy(() => import('./pages/wisdom/TeaTypePage'));
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchStore } from './lib/storefrontApi';
@@ -970,7 +979,7 @@ const AppContent = () => {
                   <ErrorBoundary>
                     <Suspense fallback={<EmblemLoader />}>
                       <div className="w-full animate-[fadeIn_0.5s_ease-out]">
-                        <Shop teaInventory={teaInventory} teawareInventory={teawareInventory} onAddToCart={handleAddToCart} cartItemCount={cart.length} onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} isLoading={inventoryLoading} isError={inventoryError} error={inventoryErrorObj} onRetry={refetchInventory} />
+                        <Shop teaInventory={teaInventory} teawareInventory={teawareInventory} onAddToCart={handleAddToCart} cartItemCount={cart.length} onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} isLoading={inventoryLoading} isError={inventoryError} error={inventoryErrorObj} onRetry={refetchInventory} modalLocation={location} />
                       </div>
                     </Suspense>
                   </ErrorBoundary>
@@ -980,7 +989,11 @@ const AppContent = () => {
                 <Route path="/shop/product/:id" element={
                   <ErrorBoundary>
                     <Suspense fallback={<EmblemLoader />}>
-                      <ProductPage onAddToCart={handleAddToCart} />
+                      <ProductPage
+                        onAddToCart={handleAddToCart}
+                        onCartClick={handleOpenCart}
+                        cartItemCount={cart.length}
+                      />
                     </Suspense>
                   </ErrorBoundary>
                 } />
@@ -1075,6 +1088,15 @@ const AppContent = () => {
                 <Route path="/wisdom/named/:id" element={
                   <ErrorBoundary><Suspense fallback={<WisdomFallback />}><NamedTeaPage /></Suspense></ErrorBoundary>
                 } />
+                <Route path={TEA_REFERENCE_ROUTE_PATHS.index} element={
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><TeaTypeIndexPage /></Suspense></ErrorBoundary>
+                } />
+                <Route path={TEA_REFERENCE_ROUTE_PATHS.family} element={
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><TeaFamilyPage /></Suspense></ErrorBoundary>
+                } />
+                <Route path={TEA_REFERENCE_ROUTE_PATHS.type} element={
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><TeaTypePage /></Suspense></ErrorBoundary>
+                } />
                 <Route path="/about" element={<ErrorBoundary><AboutPage /></ErrorBoundary>} />
                 <Route path="/mcp" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><McpPage /></Suspense></ErrorBoundary>} />
                 {/* /compass is admin-only at /admin/compass, public route removed.
@@ -1089,6 +1111,7 @@ const AppContent = () => {
                 <Route path="/signin" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SignInPage /></Suspense></ErrorBoundary>} />
                 <Route path="/signup" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SignUpPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/settings" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><AccountSettingsPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/profile" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><AccountProfilePage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/orders" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><OrderHistoryPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/orders/:id" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><OrderDetailPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/samples" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SampleHistoryPage /></Suspense></ErrorBoundary>} />
@@ -1144,6 +1167,12 @@ const AppContent = () => {
                       <ContributorProfilePage />
                     </Suspense>
                   </ErrorBoundary>
+                } />
+                <Route path="/people/:slug/favorites" element={
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><ProfileFavoritesPage /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/people/:slug/pay" element={
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><ProfilePaymentPage /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/people" element={
                   <ErrorBoundary>

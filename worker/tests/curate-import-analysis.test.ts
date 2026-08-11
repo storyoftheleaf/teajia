@@ -18,6 +18,23 @@ const item = {
   acquired: true, duplicateResolution: 'new' as const,
 };
 
+const yiBangRecord = [
+  'Source URL: https://yunnansourcing.com/products/2025-yunnan-sourcing-yi-bang-wild-arbor-raw-pu-erh-tea-cake',
+  'Name: 2025 Yunnan Sourcing "Yi Bang" Wild Arbor Raw Pu-erh Tea Cake',
+  'Category: tea',
+  'Type: raw pu-erh (sheng)',
+  'Harvest: April 2025, first flush',
+  'Origin: Yi Bang village, northern Yiwu, Mengla County, Xishuangbanna, Yunnan, China',
+  'Plant material: primitive small-leaf population from wild-arbor trees roughly 60-80 years old',
+  'Producer/brand: Yunnan Sourcing Brand Pu-erh',
+  'Vendor: Yunnan Sourcing',
+  'Format and weight: stone-pressed cake, 250 g per cake',
+  'Current price variants: USD 76.00 for one 250 g cake; USD 10.30 for a 25 g sample',
+  "Description: Full-mouthed and pungently aromatic with the elegant power of Yi Bang's primitive small-leaf population. Bright orchard fruit, wildflower honey, fresh bamboo and citrus peel; clear yellow-gold liquor with a thick, viscous body; lively fruit over gentle grain and cane sweetness, measured young bitterness, long hui-gan and steady shengjin.",
+  'Processing notes: Hand-picked; hand-fixed in a copper wok; sun-withered; hand-rolled; sun-dried; stone-pressed in Yiwu with 40 kg stone presses; finished with a low-temperature bake at approximately 35 C; held several weeks after pressing so residual moisture could dissipate.',
+  "Source excerpt: From Yi Bang village in northern Yiwu, made entirely from wild-arbor trees roughly 60-80 years old. The Li family's matriarch hand-fixed the leaf in a copper wok, and picking and processing ran over a week at peak spring. Pressed into 250 g cakes in Yiwu using 40 kg stone presses, then finished with a low-temperature approximately 35 C bake.",
+].join('\n');
+
 function proposal(overrides: Partial<typeof item> = {}): ImportAnalysisProposal {
   return { overview: '1 tea found', language: 'zh', groups: [{ key: 'chen', proposedVendorName: 'Chen Family Tea', items: [{ ...item, ...overrides }] }] };
 }
@@ -212,6 +229,133 @@ describe('Curate import analysis domain', () => {
     expect(prompt).toContain('Never infer priceBasis');
     expect(prompt).toMatch(/priceAmount.*decimal string/i);
     expect(prompt).toContain('call the submitted material a record or records, never evidence');
+  });
+
+  it('keeps Yi Bang description and processing notes as distinct analyzed facts', () => {
+    const decoded = decodeImportAnalysisProposal(proposal({
+      producer: 'Yunnan Sourcing',
+      description: 'A spring 2025 raw pu-erh cake from Yi Bang made from a primitive small-leaf population.',
+      processingNotes: 'Hand wok fixed, stone pressed, and dried at low temperature.',
+      validation: { description: 'source_fact', processingNotes: 'source_fact' },
+    } as never));
+
+    expect(decoded.groups[0].items[0]).toMatchObject({
+      producer: 'Yunnan Sourcing',
+      description: 'A spring 2025 raw pu-erh cake from Yi Bang made from a primitive small-leaf population.',
+      processingNotes: 'Hand wok fixed, stone pressed, and dried at low temperature.',
+      validation: { description: 'source_fact', processingNotes: 'source_fact' },
+    });
+    expect(buildImportAnalysisPrompt(
+      { sources: [{ id: 'source-yi-bang', kind: 'paste', text: yiBangRecord }] },
+      { vendors: [], journeys: [] },
+    )).toMatch(/processingNotes.*processing facts/i);
+  });
+
+  it('rejects unknown and cross-category provider tasting terms', () => {
+    expect(() => decodeImportAnalysisProposal(proposal({
+      tasting: { body: ['honey'] },
+      tastingSource: 'source',
+    } as never))).toThrow(/Invalid tasting\.body term: honey/);
+    expect(() => decodeImportAnalysisProposal(proposal({
+      tasting: { flavor: ['vendor-invented'] },
+      tastingSource: 'source',
+    } as never))).toThrow(/Invalid tasting\.flavor term: vendor-invented/);
+  });
+
+  it('decodes an exact-lot tasting as source-described', () => {
+    expect(decodeImportAnalysisProposal(proposal({
+      tasting: { flavor: ['honey'] },
+      tastingSource: 'source',
+      confidence: { tasting: 0.99, tastingSource: 0.99 },
+      validation: { tasting: 'source_fact', tastingSource: 'source_fact' },
+    } as never)).groups[0].items[0]).toMatchObject({
+      tasting: { flavor: ['honey'] },
+      tastingSource: 'source',
+    });
+  });
+
+  it('normalizes legacy provider common attribution to exact-lot source', () => {
+    const decoded = decodeImportAnalysisProposal(proposal({
+      tasting: { flavor: ['honey'] },
+      tastingSource: 'common',
+      confidence: { tasting: 0.99, tastingSource: 0.99 },
+      validation: { tasting: 'source_fact', tastingSource: 'source_fact' },
+    } as never)).groups[0].items[0];
+
+    expect(decoded.tastingSource).toBe('source');
+    expect(decoded.tastingSource).not.toBe('common');
+  });
+
+  it('keeps provider sensory terms only with exact source-fact provenance', () => {
+    const exact = decodeImportAnalysisProposal(proposal({
+      tasting: { flavor: ['honey'] },
+      tastingSource: 'source',
+      confidence: { tasting: 0.99, tastingSource: 0.99 },
+      validation: { tasting: 'source_fact', tastingSource: 'source_fact' },
+    } as never)).groups[0].items[0];
+    const inferred = decodeImportAnalysisProposal(proposal({
+      tasting: { flavor: ['honey'] },
+      tastingSource: 'source',
+      confidence: { tasting: 0.99, tastingSource: 0.99 },
+      validation: { tasting: 'ai_interpretation', tastingSource: 'ai_interpretation' },
+    } as never)).groups[0].items[0];
+    const missingEvidence = decodeImportAnalysisProposal(proposal({
+      tasting: { flavor: ['honey'] },
+      tastingSource: 'source',
+      evidenceRefs: [],
+      confidence: { tasting: 0.99, tastingSource: 0.99 },
+      validation: { tasting: 'source_fact', tastingSource: 'source_fact' },
+    } as never)).groups[0].items[0];
+    const missingSource = decodeImportAnalysisProposal(proposal({
+      tasting: { flavor: ['honey'] },
+      tastingSource: null,
+      confidence: { tasting: 0.99, tastingSource: 0.99 },
+      validation: { tasting: 'source_fact', tastingSource: 'source_fact' },
+    } as never)).groups[0].items[0];
+
+    expect(exact).toMatchObject({ tasting: { flavor: ['honey'] }, tastingSource: 'source' });
+    for (const rejected of [inferred, missingEvidence, missingSource]) {
+      expect(rejected.tasting).toBeNull();
+      expect(rejected.tastingSource).toBeNull();
+      expect(rejected.uncertainty).toHaveProperty('tasting');
+    }
+  });
+
+  it('retains exact Yi Bang sensory evidence as source facts', () => {
+    const hints = buildImportRecordHints({ sources: [{ id: 'source-yi-bang', kind: 'paste', text: yiBangRecord }] });
+    const normalized = normalizeImportProposal(buildImportRecordFallbackProposal(hints)).groups[0].items[0];
+
+    expect(normalized).toMatchObject({
+      description: expect.stringContaining('Full-mouthed and pungently aromatic'),
+      processingNotes: expect.stringContaining('hand-fixed in a copper wok'),
+      tasting: { flavor: expect.arrayContaining(['honey', 'citrus']) },
+      tastingSource: 'source',
+      validation: { tasting: 'source_fact', tastingSource: 'source_fact' },
+    });
+    expect(normalized.evidenceRefs).toEqual(expect.arrayContaining([
+      expect.stringMatching(/^source-yi-bang:\d+-\d+$/),
+    ]));
+  });
+
+  it('publishes sensory provenance in provider confidence and validation', () => {
+    const itemSchema = (IMPORT_ANALYSIS_OUTPUT_SCHEMA.properties.groups.items.properties.items.items as { properties: Record<string, any> });
+    expect(itemSchema.properties.confidence.properties).toEqual(expect.objectContaining({
+      tasting: expect.any(Object),
+      tastingSource: expect.any(Object),
+    }));
+    expect(itemSchema.properties.validation.properties).toEqual(expect.objectContaining({
+      tasting: expect.any(Object),
+      tastingSource: expect.any(Object),
+    }));
+  });
+
+  it('drops unsupported sensory attribution even with source-fact flags', () => {
+    expect(decodeImportAnalysisProposal(proposal({
+      tasting: { flavor: ['honey'] },
+      tastingSource: 'owner',
+      confidence: { tasting: 0.99, tastingSource: 0.99 },
+      validation: { tasting: 'source_fact', tastingSource: 'source_fact' },
+    } as never)).groups[0].items[0].tastingSource).toBeNull();
   });
 
   it('recognizes supplier, purchased tea lines, totals, and acquired grams in a pasted vendor record', () => {

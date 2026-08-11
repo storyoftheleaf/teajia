@@ -1,5 +1,6 @@
 
 import React, { useEffect } from 'react';
+import { ArrowRight } from '@phosphor-icons/react';
 import { Person } from '../types';
 import { Icons } from './Icons';
 import { ContributorIdentityMark } from './shared/ContributorIdentityMark';
@@ -35,7 +36,8 @@ export const ContributorProfile: React.FC<ContributorProfileProps> = ({ person, 
 
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-tea-text-sec hover:text-tea-text transition-colors"
+          className="tap-target absolute top-4 right-4 p-2 text-tea-text-sec hover:text-tea-text transition-colors"
+          aria-label="Close profile"
         >
           <Icons.Close className="w-6 h-6" />
         </button>
@@ -69,6 +71,13 @@ export const ContributorProfile: React.FC<ContributorProfileProps> = ({ person, 
         <div className="mt-8 opacity-80">
              <Icons.Seal className="w-8 h-8 text-tea-gold" />
         </div>
+
+        <a
+          href={`/people/${encodeURIComponent(person.id)}`}
+          className="tap-target relative z-10 mt-6 inline-flex items-center gap-2 text-ui-13 text-tea-gold transition-colors hover:text-tea-gold-lt"
+        >
+          View Tea Master profile <ArrowRight size={16} aria-hidden="true" />
+        </a>
       </div>
     </div>
   );

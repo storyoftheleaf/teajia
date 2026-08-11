@@ -67,7 +67,7 @@ const CANONICAL_COMPASS_SOURCES: Partial<Record<CompassColumn, readonly (typeof 
   origin_country: ['originCountry'],
   origin_region: ['originRegion'],
   description: ['description'],
-  notes: ['sourceExcerpt'],
+  notes: ['processingNotes', 'sourceExcerpt'],
   vendor_id: ['vendorResolution'],
   vendor_name: ['vendorResolution'],
   price_amount: ['priceAmountExact'],

@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
 import { Modal } from '../../../components/shared/Modal';
 import { TYPOGRAPHY_CLASSES } from '../../../designTokens';
 import { childrenOf, findRegion, loadCultivarStory, parentsOf } from '../../../wisdom';
@@ -7,14 +6,142 @@ import type { Cultivar, CultivarStory } from '../../../wisdom';
 import {
   WISDOM_TYPE,
   type WisdomEntryUsage,
+  type WisdomFact,
   type WisdomLink,
   type WisdomRun,
   type WisdomSection,
 } from './config';
-import { FactGrid, LabelledBlock, WisdomChip, WisdomDetailHeader, WisdomRoving } from './WisdomDetailPanel';
+import { WisdomDetailHeader, WisdomRoving } from './WisdomDetailPanel';
+
+/** A museum-catalogue record: values stay plain and readable, never badge-like. */
+export const EditorialRecord: React.FC<{ facts: WisdomFact[] }> = ({ facts }) => {
+  const present = facts.filter(fact => fact.value !== null && fact.value !== undefined && fact.value !== '');
+  if (present.length === 0) return null;
+  return (
+    <aside className="bg-tea-surface px-5 py-6 sm:px-6 lg:px-7 lg:py-8" aria-label="Record">
+      <h3 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Record</h3>
+      <div className="mt-2 h-px w-10 bg-tea-gold" aria-hidden="true" />
+      <dl className="mt-5 divide-y divide-tea-border" data-testid="wisdom-editorial-record">
+        {present.map(fact => (
+          <div key={fact.label} className="grid gap-1 py-3.5 sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:gap-4 lg:grid-cols-1 lg:gap-1 xl:grid-cols-[7.5rem_minmax(0,1fr)] xl:gap-4">
+            <dt className={WISDOM_TYPE.label}>{fact.label}</dt>
+            <dd className="min-w-0 text-ui-13 leading-[1.6] text-tea-text">{fact.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </aside>
+  );
+};
+
+const MonographSection: React.FC<{
+  id: string;
+  title: string;
+  tone?: 'canvas' | 'surface' | 'elevated';
+  children: React.ReactNode;
+}> = ({ id, title, tone = 'canvas', children }) => (
+  <section
+    data-testid={`wisdom-monograph-${id}`}
+    aria-labelledby={`wisdom-monograph-${id}-heading`}
+    className={tone === 'surface' ? 'bg-tea-surface' : tone === 'elevated' ? 'bg-tea-elevated' : 'bg-tea-bg'}
+  >
+    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-12 lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-12 lg:py-14">
+      <header>
+        <div className="mb-3 h-px w-10 bg-tea-gold" aria-hidden="true" />
+        <h3 id={`wisdom-monograph-${id}-heading`} className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>
+          {title}
+        </h3>
+      </header>
+      <div className="mt-6 min-w-0 lg:mt-0">{children}</div>
+    </div>
+  </section>
+);
+
+const ReadingRows: React.FC<{ rows: ReadonlyArray<readonly [string, string | null | undefined]> }> = ({ rows }) => (
+  <dl className="divide-y divide-tea-border">
+    {rows.filter(([, value]) => Boolean(value)).map(([label, value]) => (
+      <div key={label} className="grid gap-2 py-5 first:pt-0 last:pb-0 sm:grid-cols-[8.5rem_minmax(0,1fr)] sm:gap-7">
+        <dt className={WISDOM_TYPE.label}>{label}</dt>
+        <dd className={`${TYPOGRAPHY_CLASSES.bodyLight} max-w-[68ch] text-tea-text-sec`}>{value}</dd>
+      </div>
+    ))}
+  </dl>
+);
+
+/** The researched prose, shaped into an authored reference rather than a field grid. */
+export const CultivarStoryMonograph: React.FC<{ story: CultivarStory }> = ({ story }) => (
+  <>
+    {(story.plantType || story.versatility) && (
+      <MonographSection id="plant" title="The plant" tone="surface">
+        <ReadingRows rows={[
+          ['Character', story.plantType],
+          ['Versatility', story.versatility],
+        ]} />
+      </MonographSection>
+    )}
+
+    {(story.environment || story.distribution) && (
+      <MonographSection id="place" title="Where it grows">
+        <ReadingRows rows={[
+          ['Environment', story.environment],
+          ['Distribution', story.distribution
+            ? Object.entries(story.distribution)
+                .map(([country, areas]) => `${country.charAt(0).toUpperCase()}${country.slice(1)}: ${areas.join(', ')}`)
+                .join('; ')
+            : null],
+        ]} />
+      </MonographSection>
+    )}
+
+    {story.sensory && (
+      <MonographSection id="cup" title="In the cup" tone="elevated">
+        <ReadingRows rows={[
+          ['Aroma', story.sensory.aroma],
+          ['Flavor', story.sensory.flavor],
+          ['Mouthfeel', story.sensory.mouthfeel_liquor],
+        ]} />
+      </MonographSection>
+    )}
+
+    {(story.processing || story.oxidation || story.roasting) && (
+      <MonographSection id="making" title="Grown and made">
+        <ReadingRows rows={[
+          ['Processing', story.processing],
+          ['Oxidation', story.oxidation],
+          ['Roasting', story.roasting],
+        ]} />
+      </MonographSection>
+    )}
+
+    {story.expressions && (
+      <MonographSection id="teas" title="The teas" tone="surface">
+        <div className="space-y-8">
+          {Object.entries(story.expressions).map(([family, named]) => (
+            <div key={family} className="grid gap-4 sm:grid-cols-[8.5rem_minmax(0,1fr)] sm:gap-7">
+              <p className={`${TYPOGRAPHY_CLASSES.subtitle} text-tea-text`}>{family}</p>
+              <div className="space-y-6">
+                {Object.entries(named).map(([name, text]) => (
+                  <div key={name}>
+                    <p className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>{name}</p>
+                    <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-1 max-w-[68ch] text-tea-text-sec`}>{text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </MonographSection>
+    )}
+  </>
+);
 
 interface Props {
   cultivar: Cultivar;
+  /** The holding's reader-facing noun when this profile is reached elsewhere. */
+  kind?: string;
+  /** The holding entry whose authorship and product usage are being reviewed. */
+  entryId?: string;
+  /** Facts owned by the holding that led into this shared plant profile. */
+  additionalFacts?: WisdomFact[];
   onClose: () => void;
   /** Jump the panel to a resolved parent/child without leaving the overlay. */
   onSelectCultivar: (id: string) => void;
@@ -30,21 +157,22 @@ interface Props {
   publicHref?: string;
   /** How many products resolve through this cultivar right now. */
   usage?: WisdomEntryUsage;
+  relationPanel?: React.ReactNode;
 }
 
 /**
  * Full detail for one cultivar: the lean index, the prose fetched on demand
  * from stories/cultivars.json, and its resolved lineage. Read-only.
  *
- * The one holding whose panel is not generic, because lineage links jump the
- * panel to another entry. Everything else here is the shared vocabulary: the
- * same head, the same fact grid, the same micro-caps labels.
+ * Cultivars use it directly; an exact same-name variety may reuse the research
+ * without copying it into a second record. Everything else here is the shared
+ * vocabulary: the same head, the same fact grid, the same micro-caps labels.
  *
  * Facts and story sections lay out ACROSS the panel. Only the description keeps
  * a reading measure, because only prose gets harder to read as it gets wider.
  */
 export const CultivarDetailPanel: React.FC<Props> = ({
-  cultivar, onClose, onSelectCultivar, jump, nav, section, run, publicHref, usage,
+  cultivar, kind = 'Cultivar', entryId = cultivar.id, additionalFacts = [], onClose, onSelectCultivar, jump, nav, section, run, publicHref, usage, relationPanel,
 }) => {
   const [story, setStory] = useState<CultivarStory | null>(null);
   const [loadingStory, setLoadingStory] = useState(true);
@@ -64,7 +192,7 @@ export const CultivarDetailPanel: React.FC<Props> = ({
 
   const parents = parentsOf(cultivar);
   const children = childrenOf(cultivar);
-  const lineageChip = 'text-ui-12 rounded-md px-2 py-1';
+  const lineageLink = 'tap-target text-ui-13 text-tea-gold underline decoration-tea-border underline-offset-4 transition-colors hover:text-tea-gold-lt hover:decoration-tea-gold';
 
   /**
    * The origin, split so the region can be walked into.
@@ -78,35 +206,88 @@ export const CultivarDetailPanel: React.FC<Props> = ({
 
   return (
     <Modal isOpen onClose={onClose} variant="panel" ariaLabel={cultivar.name} headerActions={nav}>
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-2 pb-nav-gap sm:px-6">
-        <div className="mx-auto max-w-5xl pb-8">
+      <div className="flex-1 min-h-0 overflow-y-auto bg-tea-bg pb-nav-gap-lg">
+        <section className="border-b border-tea-border bg-tea-surface">
+          <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10 lg:py-12">
           <WisdomDetailHeader
             detail={{
-              kind: 'Cultivar',
+              kind,
               name: cultivar.name,
               chineseName: cultivar.chineseName,
               altNames: cultivar.altNames,
               facts: [],
             }}
-            id={cultivar.id}
+            id={entryId}
             section={section}
             run={run}
             publicHref={publicHref}
             usage={usage}
+            editorial
           />
+          </div>
+        </section>
 
-          <FactGrid
-            className="mt-5 border-t border-tea-border pt-5"
+        <section className="mx-auto grid max-w-6xl gap-px bg-tea-border lg:grid-cols-[minmax(0,1.65fr)_minmax(18rem,0.75fr)]" data-testid="wisdom-monograph-overview">
+          <div className="bg-tea-elevated px-4 py-9 sm:px-6 sm:py-11 lg:px-10 lg:py-14">
+            {loadingStory ? (
+              <div className="animate-pulse space-y-3" aria-label="Loading cultivar research">
+                <div className="h-4 w-full bg-tea-surface" />
+                <div className="h-4 w-11/12 bg-tea-surface" />
+                <div className="h-4 w-4/5 bg-tea-surface" />
+              </div>
+            ) : story ? (
+              <p className={`${TYPOGRAPHY_CLASSES.body} max-w-[62ch] text-tea-text`}>{story.description}</p>
+            ) : (
+              <p className={`${TYPOGRAPHY_CLASSES.bodyLight} max-w-[62ch] text-tea-text-sec`}>
+                No written profile has been recorded for this cultivar yet.
+              </p>
+            )}
+
+            {(parents.length > 0 || children.length > 0) && (
+              <div className="mt-9 grid gap-6 border-t border-tea-border pt-7 sm:grid-cols-2">
+                {parents.length > 0 && (
+                  <div>
+                    <p className={WISDOM_TYPE.label}>Lineage</p>
+                    <WisdomRoving className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
+                      {parents.map((parent, index) =>
+                        typeof parent === 'string' ? (
+                          <span key={index} className="text-ui-13 leading-[1.6] text-tea-text-sec">{parent}</span>
+                        ) : (
+                          <button key={parent.id} type="button" onClick={() => onSelectCultivar(parent.id)} className={lineageLink}>
+                            {parent.name}
+                          </button>
+                        ),
+                      )}
+                    </WisdomRoving>
+                  </div>
+                )}
+                {children.length > 0 && (
+                  <div>
+                    <p className={WISDOM_TYPE.label}>Descendants</p>
+                    <WisdomRoving className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
+                      {children.map(child => (
+                        <button key={child.id} type="button" onClick={() => onSelectCultivar(child.id)} className={lineageLink}>
+                          {child.name}
+                        </button>
+                      ))}
+                    </WisdomRoving>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <EditorialRecord
             facts={[
+              ...additionalFacts,
               {
                 label: 'Region',
                 value: cultivar.originRegion && (
-                  <WisdomRoving className="flex flex-wrap gap-1.5">
-                    <WisdomChip
-                      label={cultivar.originRegion}
-                      onClick={region ? () => jump({ holding: 'regions', entry: region.id }) : undefined}
-                    />
-                  </WisdomRoving>
+                  region ? (
+                    <button type="button" onClick={() => jump({ holding: 'regions', entry: region.id })} className={lineageLink}>
+                      {cultivar.originRegion}
+                    </button>
+                  ) : cultivar.originRegion
                 ),
               },
               { label: 'Country', value: cultivar.originCountry },
@@ -114,127 +295,10 @@ export const CultivarDetailPanel: React.FC<Props> = ({
               { label: 'Parentage', value: cultivar.parentage },
             ]}
           />
+        </section>
 
-          {(parents.length > 0 || children.length > 0) && (
-            <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
-              {parents.length > 0 && (
-                <LabelledBlock label="Parents">
-                  <WisdomRoving className="flex flex-wrap gap-1.5">
-                    {parents.map((parent, index) =>
-                      typeof parent === 'string' ? (
-                        <span key={index} className={`${lineageChip} text-tea-text-sec bg-tea-surface`}>
-                          {parent}
-                        </span>
-                      ) : (
-                        <button
-                          key={parent.id}
-                          type="button"
-                          onClick={() => onSelectCultivar(parent.id)}
-                          className={`tap-target ${lineageChip} text-tea-gold hover:text-tea-gold-lt bg-tea-accent-sub transition-colors`}
-                        >
-                          {parent.name}
-                        </button>
-                      ),
-                    )}
-                  </WisdomRoving>
-                </LabelledBlock>
-              )}
-              {children.length > 0 && (
-                <LabelledBlock label="Children">
-                  <WisdomRoving className="flex flex-wrap gap-1.5">
-                    {children.map(child => (
-                      <button
-                        key={child.id}
-                        type="button"
-                        onClick={() => onSelectCultivar(child.id)}
-                        className={`tap-target ${lineageChip} text-tea-gold hover:text-tea-gold-lt bg-tea-accent-sub transition-colors`}
-                      >
-                        {child.name}
-                      </button>
-                    ))}
-                  </WisdomRoving>
-                </LabelledBlock>
-              )}
-            </div>
-          )}
-
-          <div className="mt-8 border-t border-tea-border pt-6">
-            {loadingStory ? (
-              <div className="flex items-center gap-2 py-6 text-tea-text-dim">
-                <Loader2 size={16} className="animate-spin" />
-                <span className="text-ui-13">Loading story...</span>
-              </div>
-            ) : !story ? (
-              <p className="py-6 text-ui-13 text-tea-text-dim">No prose recorded for this cultivar yet.</p>
-            ) : (
-              <div className="space-y-8">
-                <p className={`${TYPOGRAPHY_CLASSES.body} text-tea-text max-w-2xl`}>{story.description}</p>
-
-                <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
-                  {([
-                    ['Plant', story.plantType],
-                    ['Environment', story.environment],
-                    ['Processing', story.processing],
-                    ['Oxidation', story.oxidation],
-                    ['Roasting', story.roasting],
-                    ['Versatility', story.versatility],
-                  ] as const)
-                    .filter(([, value]) => Boolean(value))
-                    .map(([label, value]) => (
-                      <LabelledBlock key={label} label={label}>
-                        <p className="text-ui-13 text-tea-text-sec leading-[1.6]">{value}</p>
-                      </LabelledBlock>
-                    ))}
-                </div>
-
-                {(story.sensory || story.distribution) && (
-                  <div className="grid grid-cols-1 gap-x-8 gap-y-5 lg:grid-cols-2">
-                    {story.sensory && (
-                      <LabelledBlock label="Sensory">
-                        <div className="space-y-1.5 text-ui-13 text-tea-text-sec leading-[1.6]">
-                          {story.sensory.aroma && <p><span className="text-tea-text-dim">Aroma: </span>{story.sensory.aroma}</p>}
-                          {story.sensory.flavor && <p><span className="text-tea-text-dim">Flavor: </span>{story.sensory.flavor}</p>}
-                          {story.sensory.mouthfeel_liquor && <p><span className="text-tea-text-dim">Mouthfeel: </span>{story.sensory.mouthfeel_liquor}</p>}
-                        </div>
-                      </LabelledBlock>
-                    )}
-                    {story.distribution && (
-                      <LabelledBlock label="Distribution">
-                        <div className="space-y-2">
-                          {Object.entries(story.distribution).map(([country, areas]) => (
-                            <p key={country} className="text-ui-13 leading-[1.6]">
-                              <span className="text-tea-text capitalize">{country}</span>
-                              <span className="text-tea-text-sec">: {areas.join(', ')}</span>
-                            </p>
-                          ))}
-                        </div>
-                      </LabelledBlock>
-                    )}
-                  </div>
-                )}
-
-                {story.expressions && (
-                  <LabelledBlock label="Expressions">
-                    <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
-                      {Object.entries(story.expressions).map(([family, named]) => (
-                        <div key={family} className="min-w-0">
-                          <p className={`${WISDOM_TYPE.rowName} mb-1.5`}>{family}</p>
-                          <div className="space-y-1.5 border-l border-tea-border pl-3">
-                            {Object.entries(named).map(([name, text]) => (
-                              <p key={name} className="text-ui-12 text-tea-text-sec leading-[1.6]">
-                                <span className="text-tea-text">{name}</span>: {text}
-                              </p>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </LabelledBlock>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
+        {story && <CultivarStoryMonograph story={story} />}
+        {relationPanel && <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">{relationPanel}</div>}
       </div>
     </Modal>
   );

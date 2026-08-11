@@ -49,6 +49,11 @@
   Normalized error: `http_502`
   Evidence: [server-post-api-curate-imports-0d4bd40c-1a42-44e9-9ef9-4df965913b6b-analyze-502-cdfa670b.json](evidence/server-post-api-curate-imports-0d4bd40c-1a42-44e9-9ef9-4df965913b6b-analyze-502-cdfa670b.json)
 
+- [ ] `server_post_api_curate_imports_e189238c_72d2_440f_a3db_3e8ddfdd7744_analyze_502_` — **high**
+  1 occurrence · first 2026-08-08T07:10:53Z · last 2026-08-08T07:10:53Z
+  Normalized error: `http_502`
+  Evidence: [server-post-api-curate-imports-e189238c-72d2-440f-a3db-3e8ddfdd7744-analyze-502-80c7053e.json](evidence/server-post-api-curate-imports-e189238c-72d2-440f-a3db-3e8ddfdd7744-analyze-502-80c7053e.json)
+
 - [ ] `server_post_api_curate_imports_fd656d47_794c_4ce5_8281_b0e7ca4e6b2f_analyze_502_` — **high**
   1 occurrence · first 2026-07-20T10:30:24Z · last 2026-07-20T10:30:24Z
   Normalized error: `http_502`
@@ -58,6 +63,16 @@
   4 occurrences · first 2026-07-20T08:30:02Z · last 2026-07-21T00:12:12Z
   Normalized error: `http_500`
   Evidence: [server-post-api-tasting-journal-sync-500-http-500-c6566bdc.json](evidence/server-post-api-tasting-journal-sync-500-http-500-c6566bdc.json)
+
+- [ ] `server_post_api_verify_request_503_http_503` — **high**
+  1 occurrence · first 2026-08-11T02:46:51Z · last 2026-08-11T02:46:51Z
+  Normalized error: `http_503`
+  Evidence: [server-post-api-verify-request-503-http-503-7ee643ea.json](evidence/server-post-api-verify-request-503-http-503-7ee643ea.json)
+
+- [ ] `client_get_app_shell_none_chunk_load_recovered` — **medium**
+  1 occurrence · first 2026-08-09T07:56:44Z · last 2026-08-09T07:56:44Z
+  Normalized error: `chunk_load_recovered`
+  Evidence: [client-get-app-shell-none-chunk-load-recovered-f0a509f3.json](evidence/client-get-app-shell-none-chunk-load-recovered-f0a509f3.json)
 
 - [ ] `network_get_api_products_public_none_timeout` — **medium**
   2 occurrences · first 2026-07-31T11:29:23Z · last 2026-07-31T11:29:23Z

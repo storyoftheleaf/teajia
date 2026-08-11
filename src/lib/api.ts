@@ -1,5 +1,37 @@
 import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, AdminContributor, Bundle, ContributorOption, ContributorWrite, CurateReceiptProposal, CustomerOrderDetail, DbArticle, PlatformRole, TastingData } from '../types';
+import type {
+  FavoriteWrite,
+  PaymentMethod,
+  PaymentMethodWrite,
+  ProfileFavorite,
+  PublicFavoritesResponse,
+  PublicPaymentMethodsResponse,
+  SelfProfileResponse,
+  SelfProfileUpdate,
+} from '../components/profile/types';
 import type { CompassDecision, CurateJourney, CurateVisit } from '../components/TeaCompass/types';
+import type { WisdomEntryKind } from '../wisdom/types';
+
+export interface WisdomVerificationReceipt {
+  entry_kind: WisdomEntryKind;
+  entry_id: string;
+  content_hash: string;
+  verified_at: string;
+}
+
+export type PublicWisdomNodeType = 'cultivar' | 'region' | 'tea_type' | 'producer' | 'mark' | 'style' | 'named_tea';
+export interface PublicWisdomNodeState {
+  node_type: PublicWisdomNodeType;
+  node_id: string;
+  public_state: 'hidden' | 'public' | 'inherit';
+  is_public: boolean;
+}
+import type {
+  CreateTeaReferenceIssueInput,
+  CreateTeaReferenceIssueResponse,
+  ListTeaReferenceIssuesResponse,
+  ResolveTeaReferenceIssuesResponse,
+} from '../wisdom/reference/issues';
 
 type CompassWrite = Record<string, unknown> & { decision?: CompassDecision | null };
 export interface CompassSyncResult {
@@ -15,7 +47,7 @@ export type CurateImportProvenanceState = 'source_fact' | 'canonical_match' | 'a
 export type CurateImportValidationState = 'source_fact' | 'ai_interpretation' | 'canonical_match' | 'validated' | 'not_present' | 'uncertain';
 export type CurateImportCanonicalField =
   | 'originalName' | 'englishName' | 'chineseName' | 'category' | 'type' | 'classification' | 'cultivar' | 'producer' | 'form' | 'year'
-  | 'originCountry' | 'originRegion' | 'description' | 'packWeight' | 'weightUnit' | 'packCount' | 'priceAmountExact'
+  | 'originCountry' | 'originRegion' | 'description' | 'processingNotes' | 'tasting' | 'tastingSource' | 'packWeight' | 'weightUnit' | 'packCount' | 'priceAmountExact'
   | 'currency' | 'priceBasis' | 'lineCostExact' | 'unitCostExact' | 'totalQuantityGrams' | 'totalUnits'
   | 'disposition' | 'inventoryPurpose' | 'vendorResolution' | 'identityResolution' | 'holdingResolution';
 export type CurateImportVendorResolution =
@@ -29,7 +61,8 @@ export interface CurateImportCanonicalRecord {
   sourceId?: string | null; sourceItemId?: string | null; evidenceRefs?: string[]; sourceExcerpt?: string | null; sourceLanguage?: string | null;
   englishName?: string | null; originalName?: string | null; chineseName?: string | null; category?: 'tea' | 'teaware';
   type?: string | null; classification?: string | null; cultivar?: string | null; producer?: string | null; form?: string | null; year?: number | null;
-  originCountry?: string | null; originRegion?: string | null; description?: string | null;
+  originCountry?: string | null; originRegion?: string | null; description?: string | null; processingNotes?: string | null;
+  tasting?: TastingData | null; tastingSource?: 'source' | 'common' | null;
   packWeight?: number | null; weightUnit?: 'g' | 'kg' | 'count' | null; packCount?: number | null;
   priceAmount?: number | string | null; priceAmountExact?: string | null; currency?: string | null;
   priceBasis?: 'per_pack' | 'line_total' | 'unknown'; lineCost?: number | null; lineCostExact?: string | null;
@@ -155,6 +188,8 @@ export interface PlatformAccount {
   trust_tier: 'basic' | 'verified' | 'partner';
   member_count: number;
   features: Record<string, boolean>;
+  kind?: 'platform' | 'location' | 'master';
+  account_kind?: 'platform' | 'location' | 'master';
 }
 
 // Stock spine step 3: one row of the all-locations master view (the movement).
@@ -233,6 +268,7 @@ export interface PublicShelf {
   title: string | null;
   seller_name: string | null;
   whatsapp: string | null;
+  contributor_slug?: string | null;
   items: PublicShelfItem[];
 }
 
@@ -1001,6 +1037,46 @@ async function authedBlobFetch(url: string): Promise<Blob> {
   return response.blob();
 }
 
+function normalizeProfileFavorite(row: any, publicResponse = false): ProfileFavorite {
+  const statusPublic = publicResponse || (row?.profile_status === 'published' && Number(row?.network_visible) === 1);
+  return {
+    tea_profile_id: String(row?.tea_profile_id ?? row?.tea?.id ?? ''),
+    source_account_id: row?.source_account_id ?? null,
+    source_product_id: row?.source_product_id ?? null,
+    source_listing_id: row?.source_listing_id ?? null,
+    note: typeof row?.note === 'string' ? row.note : null,
+    position: Number.isFinite(Number(row?.position)) ? Number(row.position) : 0,
+    is_public: publicResponse || Boolean(row?.is_public),
+    tea: {
+      id: String(row?.tea_profile_id ?? row?.tea?.id ?? ''),
+      name: String(row?.name ?? row?.tea?.name ?? 'Tea'),
+      chinese_name: row?.chinese_name ?? row?.tea?.chinese_name ?? null,
+      type: row?.type ?? row?.tea?.type ?? null,
+      year: row?.harvest_year ?? row?.year ?? row?.tea?.year ?? null,
+      origin: [row?.origin_region, row?.origin_country].filter(Boolean).join(', ') || row?.tea?.origin || null,
+      image_url: row?.image_url ?? row?.tea?.image_url ?? null,
+      public_path: row?.public_path ?? row?.tea?.public_path ?? null,
+      is_public: publicResponse || Boolean(row?.tea?.is_public ?? statusPublic),
+    },
+  };
+}
+
+function normalizePaymentMethod(row: any): PaymentMethod {
+  return {
+    id: String(row?.id ?? ''),
+    account_id: row?.account_id ?? null,
+    method_type: row?.method_type,
+    label: String(row?.label ?? ''),
+    recipient_name: String(row?.recipient_name ?? ''),
+    account_identifier: row?.account_identifier ?? null,
+    instructions: row?.instructions ?? null,
+    external_url: row?.external_url ?? null,
+    qr_image_url: row?.qr_image_url ?? null,
+    position: Number.isFinite(Number(row?.position)) ? Number(row.position) : 0,
+    is_published: Boolean(row?.is_published),
+  };
+}
+
 export interface TokenClaims {
   sub: string;
   email: string;
@@ -1155,6 +1231,39 @@ export interface SampleTastingApiRow {
 }
 
 export const api = {
+  publicWisdom: {
+    states: async (): Promise<{ states: PublicWisdomNodeState[] }> => {
+      const response = await fetchWithTimeout(`${API_URL}/api/public/wisdom/states`);
+      const data = await handleResponse(response);
+      const rows = Array.isArray(data?.states) ? data.states : [];
+      return {
+        states: rows
+          .filter((row: any) => row && typeof row.node_type === 'string' && typeof row.node_id === 'string')
+          .map((row: any) => ({
+            node_type: row.node_type as PublicWisdomNodeType,
+            node_id: row.node_id,
+            public_state: ['hidden', 'public', 'inherit'].includes(row.public_state) ? row.public_state : 'inherit',
+            is_public: row.is_public !== false && row.public_state !== 'hidden',
+          })),
+      };
+    },
+  },
+  teaReferenceIssues: {
+    create: (input: CreateTeaReferenceIssueInput): Promise<CreateTeaReferenceIssueResponse> => authedFetch(
+      `${API_URL}/api/admin/tea-reference/issues`,
+      { method: 'POST', body: JSON.stringify(input), retryTimeouts: true },
+    ),
+    list: (): Promise<ListTeaReferenceIssuesResponse> => authedFetch(
+      `${API_URL}/api/admin/tea-reference/issues`,
+    ),
+    exportBrief: (): Promise<Blob> => authedBlobFetch(
+      `${API_URL}/api/admin/tea-reference/issues/export`,
+    ),
+    resolve: (ids: string[]): Promise<ResolveTeaReferenceIssuesResponse> => authedFetch(
+      `${API_URL}/api/admin/tea-reference/issues/resolve`,
+      { method: 'POST', body: JSON.stringify({ ids }), retryTimeouts: true },
+    ),
+  },
   incidents: {
     // Keep browser traffic on the public same-origin proxy. A direct Worker
     // fallback would bypass the China-reachable boundary and the CSP.
@@ -1173,6 +1282,18 @@ export const api = {
     updateState: (receiptId: string, state: 'ordered' | 'in_transit') => authedFetch(`${API_URL}/api/inventory/receipts/${receiptId}/state`, { method: 'PUT', body: JSON.stringify({ state }), retryTimeouts: true }),
     receive: (lineId: string, quantity: number, idempotencyKey = crypto.randomUUID()) => authedFetch(`${API_URL}/api/inventory/receipt-lines/${lineId}/receive`, { method: 'POST', body: JSON.stringify({ quantity, idempotency_key: idempotencyKey }), retryTimeouts: true }),
     cancelRemaining: (lineId: string) => authedFetch(`${API_URL}/api/inventory/receipt-lines/${lineId}/cancel-remaining`, { method: 'POST', retryTimeouts: true }),
+  },
+  inventorySummaries: {
+    list: (): Promise<{ summaries: Array<{
+      product_id: string;
+      incoming_quantity: number;
+      has_open_incoming: boolean;
+      writing_count: number;
+      published_writing_count: number;
+      has_writing: boolean;
+      personal_tasting_count: number;
+      personally_tasted: boolean;
+    }> }> => authedFetch(`${API_URL}/api/inventory/summaries`),
   },
   stockMovements: {
     create: (productId: string, body: {
@@ -2645,6 +2766,24 @@ export const api = {
     list: async (productId: string) => handleResponse(await fetchWithTimeout(`${API_URL}/api/products/${encodeURIComponent(productId)}/impressions`)),
   },
 
+  wisdomVerifications: {
+    get: (accountId: string, entryKind: WisdomEntryKind, entryId: string): Promise<WisdomVerificationReceipt | null> =>
+      authedFetch(`${API_URL}/api/wisdom/verifications/${encodeURIComponent(entryKind)}/${encodeURIComponent(entryId)}`, {
+        headers: { 'X-Teajia-Account': accountId },
+      }),
+    put: (accountId: string, entryKind: WisdomEntryKind, entryId: string, contentHash: string): Promise<WisdomVerificationReceipt> =>
+      authedFetch(`${API_URL}/api/wisdom/verifications/${encodeURIComponent(entryKind)}/${encodeURIComponent(entryId)}`, {
+        method: 'PUT',
+        headers: { 'X-Teajia-Account': accountId },
+        body: JSON.stringify({ content_hash: contentHash }),
+      }),
+    delete: (accountId: string, entryKind: WisdomEntryKind, entryId: string): Promise<WisdomVerificationReceipt | null> =>
+      authedFetch(`${API_URL}/api/wisdom/verifications/${encodeURIComponent(entryKind)}/${encodeURIComponent(entryId)}`, {
+        method: 'DELETE',
+        headers: { 'X-Teajia-Account': accountId },
+      }),
+  },
+
   // Tea Discovery, the onboarding disposition profile (one per member, server-
   // persisted so it follows them across devices and the tea master can read it).
   teaDiscovery: {
@@ -2731,6 +2870,11 @@ export const api = {
       const res = await fetchWithTimeout(`${API_URL}/api/public/xref/projects/${encodeURIComponent(projectId)}/products`);
       if (!res.ok) return [];
       return handleResponse(res);
+    },
+    productArticles: async (productId: string): Promise<{ articles: Array<{ id: string; slug: string; title: string; subtitle?: string | null; author_name?: string | null }> }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/public/xref/products/${encodeURIComponent(productId)}/articles`);
+      const data = await handleResponse(res);
+      return { articles: Array.isArray(data?.articles) ? data.articles : [] };
     },
   },
 
@@ -3883,6 +4027,174 @@ export const api = {
     },
   },
 
+  profile: {
+    getSelf: async (): Promise<SelfProfileResponse & { can_create?: boolean }> => {
+      const data = await authedFetch(`${API_URL}/api/me/public-profile`);
+      const row = data?.profile ?? data?.contributor ?? null;
+      if (!row) return { profile: null, can_create: Boolean(data?.can_create) };
+      const isPublished = Boolean(row.is_published);
+      const accounts = Array.isArray(row.associations) ? row.associations : Array.isArray(row.accounts) ? row.accounts : [];
+      return {
+        can_create: Boolean(data?.can_create),
+        profile: {
+          id: String(row.id),
+          slug: String(row.slug ?? row.id),
+          display_name: String(row.display_name ?? ''),
+          chinese_name: row.chinese_name ?? null,
+          beginnings: row.beginnings ?? null,
+          now_text: row.now_text ?? null,
+          location_line: row.location_line ?? null,
+          languages: Array.isArray(row.languages) ? row.languages.filter((item: unknown): item is string => typeof item === 'string') : [],
+          avatar_url: row.avatar_url ?? null,
+          portrait_url: row.portrait_url ?? null,
+          links: Array.isArray(row.links) ? row.links : [],
+          publication_state: row.publication_state ?? (isPublished ? 'published' : 'draft'),
+          approval_state: row.approval_state ?? (isPublished ? 'approved' : 'pending'),
+          is_published: isPublished,
+          has_pending_draft: Boolean(row.has_pending_draft),
+          reviewer_note: row.reviewer_note ?? null,
+          selection_count: Number.isFinite(Number(row.selection_count)) ? Number(row.selection_count) : 0,
+          article_count: Number.isFinite(Number(row.article_count)) ? Number(row.article_count) : 0,
+          shelf_slug: row.shelf_slug ?? null,
+          associations: accounts.map((account: any) => ({
+            account_id: String(account.account_id ?? account.id ?? ''),
+            account_slug: String(account.account_slug ?? account.slug ?? ''),
+            account_name: String(account.account_name ?? account.name ?? ''),
+            public_role: account.public_role ?? null,
+            is_host: Boolean(account.is_host),
+            display_order: Number.isFinite(Number(account.display_order)) ? Number(account.display_order) : 0,
+            account_kind: account.account_kind ?? undefined,
+          })),
+        },
+      };
+    },
+    updateSelf: async (data: SelfProfileUpdate & { id?: string }): Promise<{ contributor?: unknown; profile?: unknown }> => {
+      return authedFetch(`${API_URL}/api/me/public-profile`, { method: 'PUT', body: JSON.stringify(data) });
+    },
+    uploadImage: async (image: File | Blob, slot: 'portrait' | 'avatar' = 'portrait'): Promise<string> => {
+      const formData = new FormData();
+      formData.append('file', image, image instanceof File ? image.name : 'profile.jpg');
+      formData.append('slot', slot);
+      const data = await authedFetch(`${API_URL}/api/me/public-profile/image`, { method: 'POST', body: formData });
+      return String(data.url);
+    },
+    unpublishSelf: async (): Promise<{ success: true }> => {
+      return authedFetch(`${API_URL}/api/me/public-profile/unpublish`, { method: 'POST' });
+    },
+    listFavorites: async (): Promise<{ favorites: ProfileFavorite[]; available_teas: import('../components/profile/types').FavoriteTea[] }> => {
+      const data = await authedFetch(`${API_URL}/api/me/profile/favorites`);
+      return {
+        favorites: (Array.isArray(data?.favorites) ? data.favorites : []).map((row: any) => normalizeProfileFavorite(row)),
+        available_teas: (Array.isArray(data?.available_teas) ? data.available_teas : []).map((tea: any) => ({
+          id: String(tea?.id ?? ''),
+          name: String(tea?.name ?? 'Tea'),
+          chinese_name: tea?.chinese_name ?? null,
+          type: tea?.type ?? null,
+          year: Number.isFinite(Number(tea?.year)) ? Number(tea.year) : null,
+          origin: tea?.origin ?? null,
+          image_url: tea?.image_url ?? null,
+          public_path: tea?.public_path ?? null,
+          is_public: Boolean(tea?.is_public),
+          source_account_id: tea?.source_account_id ?? null,
+          source_product_id: tea?.source_product_id ?? null,
+          source_listing_id: tea?.source_listing_id ?? null,
+        })),
+      };
+    },
+    createFavorite: async (favorite: FavoriteWrite): Promise<{ success: true }> => {
+      return authedFetch(`${API_URL}/api/me/profile/favorites`, { method: 'POST', body: JSON.stringify(favorite) });
+    },
+    updateFavorite: async (teaProfileId: string, favorite: FavoriteWrite): Promise<{ success: true }> => {
+      return authedFetch(`${API_URL}/api/me/profile/favorites/${encodeURIComponent(teaProfileId)}`, { method: 'PUT', body: JSON.stringify(favorite) });
+    },
+    deleteFavorite: async (teaProfileId: string): Promise<{ success: true }> => {
+      return authedFetch(`${API_URL}/api/me/profile/favorites/${encodeURIComponent(teaProfileId)}`, { method: 'DELETE' });
+    },
+    reorderFavorites: async (teaProfileIds: string[]): Promise<{ success: true }> => {
+      return authedFetch(`${API_URL}/api/me/profile/favorites/order`, { method: 'PUT', body: JSON.stringify({ tea_profile_ids: teaProfileIds }) });
+    },
+    listPaymentMethods: async (): Promise<{ methods: PaymentMethod[] }> => {
+      const data = await authedFetch(`${API_URL}/api/me/profile/payment-methods`);
+      const rows = Array.isArray(data?.methods) ? data.methods : Array.isArray(data?.payment_methods) ? data.payment_methods : [];
+      return { methods: rows.map(normalizePaymentMethod) };
+    },
+    createPaymentMethod: async (method: PaymentMethodWrite): Promise<{ payment_method: PaymentMethod }> => {
+      const data = await authedFetch(`${API_URL}/api/me/profile/payment-methods`, { method: 'POST', body: JSON.stringify(method) });
+      return { payment_method: normalizePaymentMethod(data?.payment_method) };
+    },
+    updatePaymentMethod: async (id: string, method: PaymentMethodWrite): Promise<{ payment_method: PaymentMethod }> => {
+      const data = await authedFetch(`${API_URL}/api/me/profile/payment-methods/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(method) });
+      return { payment_method: normalizePaymentMethod(data?.payment_method) };
+    },
+    deletePaymentMethod: async (id: string): Promise<{ success: true }> => {
+      return authedFetch(`${API_URL}/api/me/profile/payment-methods/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    },
+    getPublicFavorites: async (slug: string): Promise<PublicFavoritesResponse> => {
+      const [favoritesResponse, contributorResponse] = await Promise.all([
+        fetchWithTimeout(`${API_URL}/api/public/people/${encodeURIComponent(slug)}/favorites`).then(handleResponse),
+        fetchWithTimeout(`${API_URL}/api/people/${encodeURIComponent(slug)}`).then(handleResponse),
+      ]);
+      return {
+        contributor: {
+          slug,
+          display_name: String(contributorResponse?.display_name ?? slug),
+          portrait_url: contributorResponse?.portrait_url ?? contributorResponse?.avatar_url ?? null,
+          associations: (Array.isArray(contributorResponse?.accounts) ? contributorResponse.accounts : []).map((account: any) => ({
+            account_id: String(account.account_id ?? account.id ?? account.slug ?? ''),
+            account_slug: String(account.account_slug ?? account.slug ?? ''),
+            account_name: String(account.account_name ?? account.name ?? ''),
+            public_role: account.public_role ?? null,
+            is_host: Boolean(account.is_host),
+            display_order: Number.isFinite(Number(account.display_order)) ? Number(account.display_order) : 0,
+            account_kind: account.account_kind ?? undefined,
+          })),
+        },
+        favorites: (Array.isArray(favoritesResponse?.favorites) ? favoritesResponse.favorites : []).map((row: any) => normalizeProfileFavorite(row, true)),
+      };
+    },
+    getPublicPaymentMethods: async (slug: string, accountSlug?: string | null): Promise<PublicPaymentMethodsResponse> => {
+      const params = new URLSearchParams();
+      // The public route contract calls this context "account". The current
+      // Worker also accepts it under its compatibility name, "store".
+      if (accountSlug) { params.set('account', accountSlug); params.set('store', accountSlug); }
+      const suffix = params.size ? `?${params.toString()}` : '';
+      const data = await fetchWithTimeout(`${API_URL}/api/public/people/${encodeURIComponent(slug)}/payment-methods${suffix}`).then(handleResponse);
+      const rows = Array.isArray(data?.methods) ? data.methods : Array.isArray(data?.payment_methods) ? data.payment_methods : [];
+      const account = data?.account ?? data?.store ?? data?.resolved_store ?? null;
+      const associationRows = Array.isArray(data?.available_accounts)
+        ? data.available_accounts
+        : Array.isArray(data?.associations)
+        ? data.associations
+        : Array.isArray(data?.accounts)
+          ? data.accounts
+          : Array.isArray(data?.contributor?.accounts)
+            ? data.contributor.accounts
+            : Array.isArray(data?.contributor?.associations)
+              ? data.contributor.associations
+              : [];
+      return {
+        contributor: {
+          slug,
+          display_name: String(data?.contributor?.display_name ?? slug),
+          portrait_url: data?.contributor?.portrait_url ?? null,
+          associations: associationRows.map((account: any) => ({
+            account_id: String(account.account_id ?? account.id ?? account.slug ?? ''),
+            account_slug: String(account.account_slug ?? account.slug ?? ''),
+            account_name: String(account.account_name ?? account.name ?? ''),
+            public_role: account.public_role ?? null,
+            is_host: Boolean(account.is_host),
+            display_order: Number.isFinite(Number(account.display_order)) ? Number(account.display_order) : 0,
+            account_kind: account.account_kind ?? undefined,
+          })),
+        },
+        account: account ? { slug: String(account.slug), name: String(account.name) } : null,
+        resolution: data?.resolution === 'account' ? 'account' : 'default',
+        hasAnyMethod: data?.has_any_method === true,
+        methods: rows.map(normalizePaymentMethod),
+      };
+    },
+  },
+
   people: {
     list: async () => {
       const res = await fetchWithTimeout(`${API_URL}/api/people`);
@@ -3926,6 +4238,21 @@ export const api = {
     },
     unpublishContributor: async (contributorId: string): Promise<{ contributor: AdminContributor }> => {
       return authedFetch(`${API_URL}/api/admin/contributors/${encodeURIComponent(contributorId)}/unpublish`, { method: 'POST' });
+    },
+    getContributorAccounts: async (contributorId: string): Promise<{ accounts: import('../types').ContributorAccountRef[] }> => {
+      return authedFetch(`${API_URL}/api/admin/contributors/${encodeURIComponent(contributorId)}/accounts`);
+    },
+    updateContributorAccounts: async (contributorId: string, accounts: Array<{ account_id: string; public_role: string | null; is_host: boolean; display_order: number }>): Promise<{ accounts: import('../types').ContributorAccountRef[] }> => {
+      return authedFetch(`${API_URL}/api/admin/contributors/${encodeURIComponent(contributorId)}/accounts`, {
+        method: 'PUT',
+        body: JSON.stringify({ accounts }),
+      });
+    },
+    requestContributorChanges: async (contributorId: string, note: string): Promise<{ contributor: AdminContributor }> => {
+      return authedFetch(`${API_URL}/api/admin/contributors/${encodeURIComponent(contributorId)}/request-changes`, {
+        method: 'POST',
+        body: JSON.stringify({ note }),
+      });
     },
     updateContributorContact: async (contributorId: string, customerId: string | null) => {
       return authedFetch(`${API_URL}/api/admin/contributors/${encodeURIComponent(contributorId)}/contact`, {

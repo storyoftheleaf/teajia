@@ -1,5 +1,6 @@
 
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { InventoryItem } from '../types';
 import { usePublicProducts } from '../hooks/usePublicProducts';
 import { publicProductToInventoryItem } from '../lib/adapters';
@@ -7,6 +8,7 @@ import { SAMPLE_PRODUCTS } from '../data/sampleProducts';
 import { useAppStore } from '../lib/store';
 import { useQuery } from '@tanstack/react-query';
 import { fetchStoreProducts } from '../lib/storefrontApi';
+import { resolveInventoryStoreSlug } from '../lib/publicProductNavigation';
 
 const DEFAULT_SLUG = 'teajia-bali';
 
@@ -25,7 +27,19 @@ const InventoryContext = createContext<InventoryContextType | undefined>(undefin
 
 export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const shopStoreSlug = useAppStore(state => state.shopStoreSlug);
-  const activeSlug = shopStoreSlug || DEFAULT_SLUG;
+  const setShopStoreSlug = useAppStore(state => state.setShopStoreSlug);
+  const [searchParams] = useSearchParams();
+  const requestedStoreSlug = searchParams.get('store')?.trim() || null;
+  const activeSlug = resolveInventoryStoreSlug(searchParams, shopStoreSlug);
+
+  // ProductPage is a cold-load sibling of Shop, so Shop's URL synchronizer
+  // cannot establish its inventory. Read the store at provider level and keep
+  // the persisted selection aligned for subsequent product/shop navigation.
+  useEffect(() => {
+    if (requestedStoreSlug && requestedStoreSlug !== shopStoreSlug) {
+      setShopStoreSlug(requestedStoreSlug);
+    }
+  }, [requestedStoreSlug, setShopStoreSlug, shopStoreSlug]);
 
   // Default path: legacy endpoint (no slug or Bali slug)
   const defaultQuery = usePublicProducts();
@@ -34,12 +48,12 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const storeQuery = useQuery<InventoryItem[]>({
     queryKey: ['storefront', 'products', activeSlug],
     queryFn: () => fetchStoreProducts(activeSlug),
-    enabled: !!shopStoreSlug && shopStoreSlug !== DEFAULT_SLUG,
+    enabled: activeSlug !== DEFAULT_SLUG,
     staleTime: 1000 * 60 * 5,
   });
 
   // Pick which query result to use
-  const isStoreMode = !!shopStoreSlug && shopStoreSlug !== DEFAULT_SLUG;
+  const isStoreMode = activeSlug !== DEFAULT_SLUG;
   const activeQuery = isStoreMode ? storeQuery : defaultQuery;
 
   const inventory = useMemo<InventoryItem[]>(() => {

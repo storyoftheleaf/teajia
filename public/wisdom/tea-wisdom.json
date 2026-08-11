@@ -2,19 +2,22 @@
   "meta": {
     "name": "Teajia Tea Wisdom Base",
     "version": "1.0.0",
-    "generatedAt": "2026-07-27",
+    "generatedAt": "2026-08-09",
     "license": "CC BY 4.0, see LICENSE.txt",
     "homepage": "https://teajia.com",
     "contact": "hello@teajia.com",
     "counts": {
       "cultivars": 79,
-      "regions": 182,
+      "regions": 183,
       "teaVarieties": 316,
       "producers": 10,
       "styles": 10,
       "marks": 15,
       "namedTeas": 17,
-      "vocabulary": 25
+      "vocabulary": 25,
+      "researchSources": 1,
+      "citations": 1,
+      "potentialProfiles": 0
     }
   },
   "vocabulary": [
@@ -693,8 +696,8 @@
       "name": "Jinzhai County, Lu'an",
       "country": "China",
       "province": "Anhui",
-      "altitude": "400-900m",
-      "climate": "Mountain county within Lu'an known for high quality green tea"
+      "altitude": null,
+      "climate": null
     },
     {
       "id": "junshan",
@@ -1455,6 +1458,15 @@
       "province": null,
       "altitude": null,
       "climate": null
+    },
+    {
+      "id": "yi-bang-village-yunnan",
+      "name": "Yi Bang Village, Yunnan",
+      "country": "China",
+      "province": "Northern Yiwu, Mengla County, Xishuangbanna, Yunnan",
+      "altitude": null,
+      "climate": null,
+      "description": "A tea-producing village in northern Yiwu, within Mengla County, Xishuangbanna, Yunnan."
     },
     {
       "id": "yilan-county",
@@ -7966,5 +7978,31 @@
       "tradition": "Chinese poetic tea-naming (named for the feeling of origin rather than a technical specification)",
       "description": "Named for the high-altitude, mist-shrouded forests it evokes rather than a specific garden. The write-up describes this as the Chinese tradition of naming a tea for the feeling of its origin; the exact garden and vintage are unrecorded."
     }
-  ]
+  ],
+  "researchSources": [
+    {
+      "id": "yunnan-sourcing-yi-bang-2025",
+      "publisher": "Yunnan Sourcing",
+      "title": "2025 Yunnan Sourcing Yi Bang Wild Arbor Raw Pu-erh Tea Cake",
+      "url": "https://yunnansourcing.com/products/2025-yunnan-sourcing-yi-bang-wild-arbor-raw-pu-erh-tea-cake",
+      "kind": "specialist-retailer",
+      "accessedAt": "2026-08-08"
+    }
+  ],
+  "citations": [
+    {
+      "id": "yi-bang-place-source",
+      "entryKind": "region",
+      "entryId": "yi-bang-village-yunnan",
+      "fields": [
+        "description"
+      ],
+      "sourceIds": [
+        "yunnan-sourcing-yi-bang-2025"
+      ],
+      "usage": "qualified",
+      "qualification": "Supports Yi Bang's place and specialist-retail trade context only. It does not support a village-wide sensory profile."
+    }
+  ],
+  "potentialProfiles": []
 }

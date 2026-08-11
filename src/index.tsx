@@ -30,7 +30,7 @@ const persister = createSyncStoragePersister({
 // Don't persist sensitive or auth-shaped queries. Anything containing these
 // substrings in its query key is excluded from disk.
 const NEVER_PERSIST = ['auth', 'session', 'me', 'magic'];
-const NEVER_PERSIST_ADMIN_KEYS = ['customers', 'activity_logs', 'stock_ledger'];
+const NEVER_PERSIST_ADMIN_KEYS = ['customers', 'activity_logs', 'stock_ledger', 'tea-reference-issues'];
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

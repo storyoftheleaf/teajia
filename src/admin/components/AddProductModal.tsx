@@ -25,6 +25,23 @@ interface AddProductModalProps {
   rates?: ExchangeRate[]; 
 }
 
+export function productTastingSourceForSave(
+  tasting: TastingData,
+  existingSource: Product['tastingSource'] | undefined,
+  explicitlyEdited: boolean,
+): Product['tastingSource'] | null {
+  if (!Object.keys(tasting).length) return null;
+  if (explicitlyEdited) return 'owner';
+  return existingSource ?? 'common';
+}
+
+export function productTastingIsOwner(
+  existingSource: Product['tastingSource'] | undefined,
+  explicitlyEdited: boolean,
+): boolean {
+  return explicitlyEdited || existingSource === 'owner';
+}
+
 const ImageThumbnail = ({ src, type }: { src: string, type: string }) => {
     const [error, setError] = useState(false);
 
@@ -270,6 +287,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   const isPlatformAccount = memberships.find(m => m.account_id === activeAccountId)?.is_platform_account ?? false;
 
   const [tastingData, setTastingData] = useState<TastingData>({});
+  const [tastingExplicitlyEdited, setTastingExplicitlyEdited] = useState(false);
   const [tastingOpen, setTastingOpen] = useState(false);
 
   // Feature 26: Compass sourcing lineage
@@ -371,6 +389,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   }, [formData.costCurrency, rates]);
 
   useEffect(() => {
+    if (isOpen) setTastingExplicitlyEdited(false);
     if (isOpen && initialData) {
       // Calculate USD shipping from stored Source Currency value
       const rate = rates.find(r => r.currency === initialData.costCurrency)?.rateToUSD || 1;
@@ -622,9 +641,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             lore: formData.lore,
             tasting_notes: formData.tastingNotes.split(',').map(n => n.trim()).filter(n => n),
             tasting: Object.keys(tastingData).length > 0 ? tastingData : undefined,
-            // Admin-authored tasting data speaks in the owner's voice.
-            // Clearing the profile resets source so the product falls back to the style baseline.
-            tasting_source: Object.keys(tastingData).length > 0 ? 'owner' : null,
+            // Only an explicit tasting editor save speaks in the owner's voice.
+            // Untouched imported tasting keeps its existing provenance.
+            tasting_source: productTastingSourceForSave(tastingData, initialData?.tastingSource, tastingExplicitlyEdited),
             is_custom_wisdom: formData.isCustomWisdom,
             show_wisdom: formData.showWisdom,
             processing_notes: formData.processingNotes,
@@ -1145,7 +1164,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     <label className={`${labelStyle} mb-0`}>Tasting Notes</label>
                     {(() => {
                       const hasTerms = flattenTastingNotes(tastingData).length > 0;
-                      const isOwner = initialData?.tastingSource === 'owner';
+                      const isOwner = productTastingIsOwner(initialData?.tastingSource, tastingExplicitlyEdited);
                       if (!hasTerms) return null;
                       return isOwner ? (
                         <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-gold" style={{ fontFamily: 'var(--font-display)' }}>
@@ -1199,7 +1218,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                       adminMode
                       initialData={tastingData}
                       onClose={() => setTastingOpen(false)}
-                      onSave={(data) => { setTastingData(data); setTastingOpen(false); }}
+                      onSave={(data) => { setTastingData(data); setTastingExplicitlyEdited(true); setTastingOpen(false); }}
                     />
                   )}
                 </div>

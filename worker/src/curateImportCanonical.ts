@@ -1,4 +1,6 @@
 import type { CompassColumn } from './compassCodec';
+import type { TastingData } from '../../src/types';
+import { normalizeImportTasting } from './curateImportTasting';
 
 export type CanonicalImportCategory = 'tea' | 'teaware';
 export type CanonicalImportDisposition = 'received' | 'in_transit' | 'library_only';
@@ -26,7 +28,7 @@ export type CanonicalHoldingResolution =
 export const CANONICAL_IMPORT_FIELDS = [
   'sourceId', 'sourceItemId', 'evidenceRefs', 'sourceExcerpt', 'sourceLanguage',
   'englishName', 'originalName', 'chineseName', 'category', 'type', 'classification', 'cultivar', 'producer',
-  'form', 'year', 'originCountry', 'originRegion', 'description',
+  'form', 'year', 'originCountry', 'originRegion', 'description', 'processingNotes', 'tasting', 'tastingSource',
   'packWeight', 'weightUnit', 'packCount', 'priceAmountExact', 'currency', 'priceBasis',
   'lineCostExact', 'unitCostExact', 'totalQuantityGrams', 'totalUnits',
   'disposition', 'inventoryPurpose', 'vendorResolution', 'identityResolution', 'holdingResolution',
@@ -53,6 +55,9 @@ export interface CanonicalImportRecord {
   originCountry: string | null;
   originRegion: string | null;
   description: string | null;
+  processingNotes: string | null;
+  tasting: TastingData | null;
+  tastingSource: 'source' | 'common' | null;
   packWeight: number | null;
   weightUnit: CanonicalImportWeightUnit | null;
   packCount: number | null;
@@ -72,7 +77,7 @@ export interface CanonicalImportRecord {
 
 export type CanonicalProductValues = Partial<Record<
   | 'product_name' | 'given_name' | 'chinese_name' | 'type' | 'classification' | 'cultivar' | 'producer' | 'form'
-  | 'year' | 'origin_country' | 'origin_region' | 'description' | 'vendor_id' | 'vendor'
+  | 'year' | 'origin_country' | 'origin_region' | 'description' | 'processing_notes' | 'tasting' | 'tasting_source' | 'vendor_id' | 'vendor'
   | 'inventory_purpose',
   string
 >>;
@@ -190,6 +195,10 @@ function inventoryPurpose(value: unknown): CanonicalImportInventoryPurpose | nul
   return normalized === 'working' || normalized === 'sample' || normalized === 'personal' ? normalized : null;
 }
 
+function tastingSource(value: unknown): CanonicalImportRecord['tastingSource'] {
+  return value === 'source' || value === 'common' ? value : null;
+}
+
 function priceBasis(value: unknown): CanonicalImportPriceBasis {
   const normalized = text(value)?.toLowerCase().replace(/[ -]/g, '_');
   return normalized === 'per_pack' || normalized === 'line_total' ? normalized : 'unknown';
@@ -275,6 +284,9 @@ export function normalizeCanonicalImportRecord(value: Record<string, unknown>): 
     originCountry: text(value.originCountry ?? value.origin_country),
     originRegion: text(value.originRegion ?? value.origin_region),
     description: text(value.description),
+    processingNotes: text(value.processingNotes ?? value.processing_notes),
+    tasting: normalizeImportTasting(value.tasting),
+    tastingSource: tastingSource(value.tastingSource ?? value.tasting_source),
     packWeight,
     weightUnit: normalizedWeightUnit,
     packCount,
@@ -319,7 +331,7 @@ export function canonicalImportToCompassValues(record: CanonicalImportRecord): P
     origin_country: record.originCountry,
     origin_region: record.originRegion,
     description: record.description,
-    notes: record.sourceExcerpt,
+    notes: record.processingNotes ?? record.sourceExcerpt,
     vendor_id: vendor.id,
     vendor_name: vendor.name,
     price_amount: record.priceAmountExact,
@@ -333,6 +345,17 @@ export function canonicalImportToCompassValues(record: CanonicalImportRecord): P
 
 export function canonicalImportToProductValues(record: CanonicalImportRecord): CanonicalProductValues {
   const vendor = resolvedVendor(record);
+  const identity = [record.year, record.type, record.form?.toLowerCase()].filter(value => value != null && value !== '').join(' ');
+  const origin = [record.originRegion, record.originCountry].filter(Boolean).join(', ');
+  const neutralIdentityDescription = [identity, origin ? `from ${origin}` : null].filter(Boolean).join(' ')
+    + (record.cultivar ? `, made from ${record.cultivar}` : '')
+    + (record.producer ? ` by ${record.producer}` : '');
+  const identityDescription = record.sourceItemId?.startsWith('record:')
+    && record.tasting
+    && (record.tastingSource === 'source' || record.tastingSource === 'common')
+    && neutralIdentityDescription
+    ? `${neutralIdentityDescription}.`
+    : record.description;
   return present({
     product_name: record.englishName,
     given_name: record.englishName,
@@ -345,7 +368,10 @@ export function canonicalImportToProductValues(record: CanonicalImportRecord): C
     year: record.year == null ? null : String(record.year),
     origin_country: record.originCountry,
     origin_region: record.originRegion,
-    description: record.description,
+    description: identityDescription,
+    processing_notes: record.processingNotes,
+    tasting: record.tasting ? JSON.stringify(record.tasting) : null,
+    tasting_source: record.tasting ? record.tastingSource : null,
     vendor_id: vendor.id,
     vendor: vendor.name,
     inventory_purpose: record.inventoryPurpose,

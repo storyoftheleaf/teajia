@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { LogoEmblem } from '../Logos';
+import { PUBLIC_REFERENCE_ROUTES } from '../navigationConnections';
 
 /**
  * Colophon-style site footer, matching the Read section's closing block.
@@ -29,6 +30,8 @@ const links: { label: string; to?: string; href?: string }[] = [
   { label: 'Shop', to: '/shop' },
   { label: 'Learn', to: '/learn' },
   { label: 'Advise', to: '/advise' },
+  { label: 'People', to: PUBLIC_REFERENCE_ROUTES.people },
+  { label: 'Tea Wisdom', to: PUBLIC_REFERENCE_ROUTES.wisdom },
   { label: 'About', to: '/about' },
   { label: 'Instagram', href: 'https://instagram.com/teajia.journal' },
   { label: 'Contact', href: 'mailto:hello@teajia.com' },

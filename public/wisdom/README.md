@@ -3,12 +3,14 @@
 ## What this is
 
 A public export of Teajia's tea wisdom base: 79 cultivars with
-breeding lineage and descriptions, 182 growing regions,
+breeding lineage and descriptions, 183 growing regions,
 10 producers, 15 marks, 10 styles,
 17 teas known only by the name they were given,
 316 tea varieties, and the controlled vocabulary that ties
 them together (25 terms across type, form, season and
-storage). This is the account-agnostic layer behind teajia.com, true
+storage). Field-level support is published through 1
+research source records and 1 citations. This is the
+account-agnostic layer behind teajia.com, true
 regardless of who stocks or sells a tea. It is not a product catalog, a shop
 export, or Adrian's own tasting notes.
 
@@ -25,7 +27,7 @@ not included in this dataset and remain his.
 ## Citation
 
 Teajia Tea Wisdom Base (teajia.com), version 1.0.0, generated
-2026-07-27, CC BY 4.0.
+2026-08-09, CC BY 4.0.
 
 ## Files
 
@@ -39,10 +41,16 @@ Teajia Tea Wisdom Base (teajia.com), version 1.0.0, generated
 - One file per record, at the same address as its human page with `.json`
   added: `cultivar/{id}.json`, `region/{id}.json`, `variety/{id}.json`,
   `producer/{id}.json`, `mark/{id}.json`, `style/{id}.json`,
-  `named/{id}.json`. 629 of them. Asking about one plant should not
+  `named/{id}.json`. 630 of them. Asking about one plant should not
   mean downloading every plant.
 - `tea-wisdom-*.csv`: flat, one file per holding, for spreadsheet tools.
 - `LICENSE.txt`
+
+The JSON bundle also includes `researchSources`, `citations`, and
+`potentialProfiles`. A citation supports only the listed entry fields. It
+does not certify an entire publisher or every field on an entry. Internal trust
+classifications, private evidence references, and verification state are never
+included.
 
 ## Which file do I want
 
@@ -82,6 +90,15 @@ record stays attributable after it has been copied somewhere else.
 | country | Country |
 | province | Province or prefecture, when the name alone is ambiguous |
 | altitude, climate | Growing conditions, when recorded |
+| description | Qualified place or trade context, when cited |
+
+### research provenance
+
+| Field | Meaning |
+|---|---|
+| researchSources | Public bibliographic metadata for cited works and pages |
+| citations | Entry id, exact supported fields, source ids, and any qualification |
+| potentialProfiles | Taxonomy-valid potential character at the cited entry scope |
 
 ### teaVarieties
 

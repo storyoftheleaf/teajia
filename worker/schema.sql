@@ -30,7 +30,9 @@ CREATE TABLE IF NOT EXISTS accounts (
     owner_user_id TEXT,
     status TEXT DEFAULT 'active',
     trust_tier TEXT DEFAULT 'basic',
+    kind TEXT NOT NULL DEFAULT 'location',
     is_platform_owner INTEGER DEFAULT 0,
+    host_contributor_id TEXT,
     ships_to_countries TEXT DEFAULT '[]',
     -- BYOK: per-account OpenAI API key. Encrypted with AES-GCM in the worker
     -- via KEY_ENCRYPTION_SECRET (see migration 065). Plaintext is never stored.
@@ -39,6 +41,9 @@ CREATE TABLE IF NOT EXISTS accounts (
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
 );
+CREATE INDEX IF NOT EXISTS idx_accounts_host_contributor
+  ON accounts(host_contributor_id) WHERE host_contributor_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_accounts_kind ON accounts(kind);
 
 CREATE TABLE IF NOT EXISTS account_members (
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
@@ -139,6 +144,9 @@ CREATE TABLE IF NOT EXISTS products (
     source_compass_entry_id TEXT,                  -- FK to tea_compass_entries(id) — which field note sourced this product
     owner_user_id TEXT,                          -- NULL = owned by the location; set = owned by a specific member/person (stock spine step 1)
     shown_in_shop INTEGER NOT NULL DEFAULT 1,
+    sourced_by TEXT,
+    roasted_by TEXT,
+    vouched_by TEXT,
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now')),  -- Tracks admin edits for smart export
     last_synced_at TEXT                         -- Last time markdown sync touched this row
@@ -166,6 +174,66 @@ CREATE TABLE IF NOT EXISTS customers (
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
 );
+
+-- Global public-person identity. `account_id` is the editorial steward;
+-- contributor_accounts below carries the person's many public store ties.
+CREATE TABLE IF NOT EXISTS contributors (
+    id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL REFERENCES accounts(id),
+    user_id TEXT REFERENCES users(id),
+    face_of_account_id TEXT REFERENCES accounts(id),
+    contact_customer_id TEXT,
+    display_name TEXT NOT NULL,
+    chinese_name TEXT,
+    role TEXT,
+    pronouns TEXT,
+    location_line TEXT,
+    active_since TEXT,
+    languages TEXT NOT NULL DEFAULT '[]',
+    beginnings TEXT,
+    now_text TEXT,
+    now_stamp TEXT,
+    now_updated_at TEXT,
+    inspirations TEXT,
+    closing TEXT,
+    avatar_url TEXT,
+    portrait_url TEXT,
+    portrait_caption TEXT,
+    voice_clip_url TEXT,
+    voice_clip_caption TEXT,
+    pouring_today_product_id TEXT,
+    pouring_today_note TEXT,
+    where_to_find_text TEXT,
+    links TEXT NOT NULL DEFAULT '[]',
+    is_published INTEGER NOT NULL DEFAULT 0,
+    unpublished_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_contributors_account ON contributors(account_id);
+CREATE INDEX IF NOT EXISTS idx_contributors_published ON contributors(is_published, account_id);
+CREATE INDEX IF NOT EXISTS idx_contributors_user ON contributors(user_id);
+CREATE TABLE IF NOT EXISTS contributor_user_link_conflicts (
+  contributor_id TEXT PRIMARY KEY REFERENCES contributors(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL,
+  kept_contributor_id TEXT NOT NULL REFERENCES contributors(id),
+  discovered_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_contributors_linked_user ON contributors(user_id) WHERE user_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_contributors_face_of_account ON contributors(face_of_account_id) WHERE face_of_account_id IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS seasonal_calendar (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  region TEXT NOT NULL,
+  month_start INTEGER NOT NULL,
+  month_end INTEGER NOT NULL,
+  day_start INTEGER,
+  day_end INTEGER,
+  line TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_seasonal_calendar_region ON seasonal_calendar(region, account_id);
 
 -- 2. Exchange Rates Table
 CREATE TABLE IF NOT EXISTS exchange_rates (
@@ -429,6 +497,88 @@ CREATE INDEX IF NOT EXISTS idx_listings_profile ON product_listings(profile_id);
 CREATE INDEX IF NOT EXISTS idx_listings_account_status ON product_listings(account_id, status);
 CREATE INDEX IF NOT EXISTS idx_listings_legacy ON product_listings(legacy_product_id);
 CREATE INDEX IF NOT EXISTS idx_listings_account_owner ON product_listings(account_id, owner_user_id);
+
+CREATE TABLE IF NOT EXISTS contributor_accounts (
+  contributor_id TEXT NOT NULL REFERENCES contributors(id) ON DELETE CASCADE,
+  account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  public_role TEXT,
+  is_host INTEGER NOT NULL DEFAULT 0 CHECK (is_host IN (0, 1)),
+  display_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (contributor_id, account_id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_contributor_accounts_host ON contributor_accounts(account_id) WHERE is_host = 1;
+CREATE INDEX IF NOT EXISTS idx_contributor_accounts_account ON contributor_accounts(account_id, display_order, contributor_id);
+
+CREATE TABLE IF NOT EXISTS contributor_profile_drafts (
+  contributor_id TEXT PRIMARY KEY REFERENCES contributors(id) ON DELETE CASCADE,
+  payload TEXT NOT NULL DEFAULT '{}',
+  approval_status TEXT NOT NULL DEFAULT 'pending'
+    CHECK (approval_status IN ('pending','approved','changes_requested')),
+  submitted_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+  reviewed_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+  submitted_at TEXT NOT NULL DEFAULT (datetime('now')),
+  reviewed_at TEXT,
+  reviewer_note TEXT CHECK (reviewer_note IS NULL OR length(reviewer_note) <= 1000),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS profile_favorites (
+  contributor_id TEXT NOT NULL REFERENCES contributors(id) ON DELETE CASCADE,
+  tea_profile_id TEXT NOT NULL REFERENCES tea_profiles(id) ON DELETE CASCADE,
+  source_account_id TEXT REFERENCES accounts(id) ON DELETE SET NULL,
+  source_product_id TEXT REFERENCES products(id) ON DELETE SET NULL,
+  source_listing_id TEXT REFERENCES product_listings(id) ON DELETE SET NULL,
+  note TEXT CHECK (note IS NULL OR length(note) <= 280),
+  position INTEGER NOT NULL DEFAULT 0 CHECK (position >= 0),
+  is_public INTEGER NOT NULL DEFAULT 0 CHECK (is_public IN (0, 1)),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (contributor_id, tea_profile_id),
+  CHECK (source_product_id IS NULL OR source_listing_id IS NULL),
+  CHECK ((source_product_id IS NULL AND source_listing_id IS NULL) OR source_account_id IS NOT NULL)
+);
+CREATE INDEX IF NOT EXISTS idx_profile_favorites_public ON profile_favorites(contributor_id, is_public, position);
+
+CREATE TABLE IF NOT EXISTS payment_methods (
+  id TEXT PRIMARY KEY,
+  contributor_id TEXT NOT NULL REFERENCES contributors(id) ON DELETE CASCADE,
+  account_id TEXT REFERENCES accounts(id) ON DELETE CASCADE,
+  method_type TEXT NOT NULL CHECK (method_type IN ('bank_transfer','payment_link','provider_qr','other')),
+  label TEXT NOT NULL CHECK (length(trim(label)) BETWEEN 1 AND 80),
+  recipient_name TEXT NOT NULL CHECK (length(trim(recipient_name)) BETWEEN 1 AND 120),
+  account_identifier TEXT CHECK (account_identifier IS NULL OR length(account_identifier) <= 240),
+  instructions TEXT CHECK (instructions IS NULL OR length(instructions) <= 1000),
+  external_url TEXT,
+  qr_image_url TEXT,
+  position INTEGER NOT NULL DEFAULT 0 CHECK (position >= 0),
+  is_published INTEGER NOT NULL DEFAULT 0 CHECK (is_published IN (0, 1)),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_payment_methods_contributor ON payment_methods(contributor_id, account_id, is_published, position);
+
+CREATE TABLE IF NOT EXISTS payment_method_audit_events (
+  id TEXT PRIMARY KEY,
+  contributor_id TEXT NOT NULL,
+  payment_method_id TEXT NOT NULL,
+  actor_user_id TEXT,
+  action TEXT NOT NULL CHECK (action IN ('created','updated','deleted')),
+  changed_fields TEXT NOT NULL DEFAULT '[]',
+  redacted_snapshot TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_payment_method_audit_contributor
+  ON payment_method_audit_events(contributor_id, created_at, id);
+CREATE TRIGGER IF NOT EXISTS payment_method_audit_events_immutable_update
+BEFORE UPDATE ON payment_method_audit_events BEGIN
+  SELECT RAISE(ABORT, 'payment audit events are immutable');
+END;
+CREATE TRIGGER IF NOT EXISTS payment_method_audit_events_immutable_delete
+BEFORE DELETE ON payment_method_audit_events BEGIN
+  SELECT RAISE(ABORT, 'payment audit events are immutable');
+END;
 
 -- 5b. Password Reset Tokens Table
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
@@ -898,6 +1048,9 @@ CREATE INDEX IF NOT EXISTS idx_products_account_status ON products(account_id, s
 CREATE INDEX IF NOT EXISTS idx_products_cultivar ON products(cultivar);
 CREATE INDEX IF NOT EXISTS idx_products_account_owner ON products(account_id, owner_user_id);
 CREATE INDEX IF NOT EXISTS idx_products_account_shown ON products(account_id, shown_in_shop);
+CREATE INDEX IF NOT EXISTS idx_products_sourced_by ON products(sourced_by) WHERE sourced_by IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_products_roasted_by ON products(roasted_by) WHERE roasted_by IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_products_vouched_by ON products(vouched_by) WHERE vouched_by IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_invoices_account_status ON invoices(account_id, status);
 CREATE INDEX IF NOT EXISTS idx_customers_account_name ON customers(account_id, name);
 CREATE INDEX IF NOT EXISTS idx_activity_logs_account_created ON activity_logs(account_id, created_at);
@@ -1095,6 +1248,32 @@ CREATE TABLE IF NOT EXISTS verification_challenges (
 
 CREATE INDEX IF NOT EXISTS idx_verification_challenges_contact_purpose
   ON verification_challenges(contact_normalized, purpose, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS customer_tasting_journal (
+  id TEXT PRIMARY KEY,
+  account_id TEXT,
+  user_id TEXT NOT NULL,
+  product_id TEXT,
+  product_name TEXT,
+  product_type TEXT,
+  product_image TEXT,
+  tasting TEXT DEFAULT '{}',
+  personal_note TEXT,
+  rating INTEGER,
+  event_id TEXT,
+  event_title TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  source_type TEXT,
+  note TEXT,
+  tastings TEXT,
+  archived INTEGER DEFAULT 0,
+  session_id TEXT,
+  session_title TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_customer_tasting_journal_user ON customer_tasting_journal(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_customer_tasting_journal_user_product ON customer_tasting_journal(user_id, product_id);
+CREATE INDEX IF NOT EXISTS idx_ctj_session ON customer_tasting_journal(session_id);
+
 CREATE TABLE IF NOT EXISTS tasting_note_candidates (
   id TEXT PRIMARY KEY,
   account_id TEXT NOT NULL REFERENCES accounts(id),
@@ -1165,6 +1344,9 @@ CREATE TABLE IF NOT EXISTS articles (
   reading_time_mins INTEGER,
   published_at TEXT,
   source_event_id TEXT,
+  subject_ids TEXT NOT NULL DEFAULT '[]',
+  pull_quote TEXT,
+  pull_quote_subject TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -1172,6 +1354,51 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_articles_slug ON articles(slug);
 CREATE INDEX IF NOT EXISTS idx_articles_account_status ON articles(account_id, status);
 CREATE INDEX IF NOT EXISTS idx_articles_published_at ON articles(published_at DESC);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_articles_account_source_event ON articles(account_id, source_event_id) WHERE source_event_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_articles_pull_quote_subject ON articles(pull_quote_subject) WHERE pull_quote_subject IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS article_products (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  article_id TEXT NOT NULL,
+  product_id TEXT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_article_products_unique ON article_products(article_id, product_id);
+CREATE INDEX IF NOT EXISTS idx_article_products_article ON article_products(article_id);
+CREATE INDEX IF NOT EXISTS idx_article_products_product ON article_products(product_id);
+
+CREATE TABLE IF NOT EXISTS wisdom_node_overrides (
+  node_type TEXT NOT NULL,
+  node_id TEXT NOT NULL,
+  editorial_status TEXT NOT NULL DEFAULT 'draft' CHECK (editorial_status IN ('draft','review','approved')),
+  public_state TEXT NOT NULL DEFAULT 'inherit' CHECK (public_state IN ('inherit','public','hidden')),
+  editor_note TEXT,
+  reviewed_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+  reviewed_at TEXT,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (node_type, node_id)
+);
+
+CREATE TABLE IF NOT EXISTS wisdom_relations (
+  id TEXT PRIMARY KEY,
+  node_type TEXT NOT NULL,
+  node_id TEXT NOT NULL,
+  target_type TEXT NOT NULL CHECK (target_type IN ('article','tea_profile','wisdom_node','product_tasting','promoted_tasting_note')),
+  target_id TEXT NOT NULL,
+  target_subtype TEXT,
+  relationship_kind TEXT NOT NULL CHECK (relationship_kind IN ('supports','illustrates','mentions','is_example_of')),
+  source TEXT NOT NULL DEFAULT 'manual' CHECK (source IN ('manual','exact_backfill','inferred')),
+  review_status TEXT NOT NULL DEFAULT 'proposed' CHECK (review_status IN ('proposed','approved','rejected')),
+  account_id TEXT REFERENCES accounts(id) ON DELETE CASCADE,
+  created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  CHECK ((target_type = 'wisdom_node' AND target_subtype IS NOT NULL) OR
+         (target_type != 'wisdom_node' AND target_subtype IS NULL))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_wisdom_relations_identity
+  ON wisdom_relations(ifnull(account_id, '__global__'), node_type, node_id, target_type, target_id, ifnull(target_subtype, ''), relationship_kind);
+CREATE INDEX IF NOT EXISTS idx_wisdom_relations_node ON wisdom_relations(node_type, node_id, review_status);
+CREATE INDEX IF NOT EXISTS idx_wisdom_relations_target ON wisdom_relations(target_type, target_id, review_status);
 
 -- Deduplicated operational failures for AI-assisted diagnosis and verified repair.
 CREATE TABLE IF NOT EXISTS incident_ledger (
@@ -1197,3 +1424,44 @@ CREATE TABLE IF NOT EXISTS incident_ledger (
 );
 CREATE INDEX IF NOT EXISTS idx_incident_ledger_status_severity_last_seen
   ON incident_ledger(status, severity, last_seen DESC);
+
+-- Head-admin revision flags for canonical public Tea Reference sections.
+-- Page metadata and the public snapshot are derived server-side; exact private
+-- evidence remains in the local provenance package and never enters D1.
+CREATE TABLE IF NOT EXISTS tea_reference_issues (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  page_id TEXT NOT NULL,
+  page_slug TEXT NOT NULL,
+  route TEXT NOT NULL,
+  section_key TEXT NOT NULL,
+  category TEXT NOT NULL CHECK (category IN (
+    'incorrect_information',
+    'translation',
+    'unclear_writing',
+    'wrong_source',
+    'geography_or_hierarchy',
+    'missing_information'
+  )),
+  note TEXT NOT NULL CHECK (length(trim(note)) > 0),
+  normalized_note TEXT NOT NULL CHECK (length(normalized_note) > 0),
+  public_text_snapshot TEXT NOT NULL,
+  source_ids_json TEXT NOT NULL DEFAULT '[]'
+    CHECK (json_valid(source_ids_json) AND json_type(source_ids_json) = 'array'),
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'resolved')),
+  created_by_user_id TEXT NOT NULL REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  resolved_by_user_id TEXT REFERENCES users(id),
+  resolved_at TEXT,
+  CHECK (
+    (status = 'open' AND resolved_by_user_id IS NULL AND resolved_at IS NULL)
+    OR
+    (status = 'resolved' AND resolved_by_user_id IS NOT NULL AND resolved_at IS NOT NULL)
+  )
+);
+CREATE INDEX IF NOT EXISTS idx_tea_reference_issues_open_account_page
+  ON tea_reference_issues(account_id, page_id, section_key, created_at, id)
+  WHERE status = 'open';
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tea_reference_issues_open_duplicate
+  ON tea_reference_issues(account_id, page_id, section_key, category, normalized_note)
+  WHERE status = 'open';

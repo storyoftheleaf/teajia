@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import type { InventoryItem, TastingData } from '../types';
 import { getCommonTastingForType } from '../data/commonTastingByStyle';
 
-export type ResolvedTastingSource = 'owner' | 'community' | 'common';
+export type ResolvedTastingSource = 'owner' | 'community' | 'source' | 'common';
 
 export interface ResolvedTasting {
   tasting: TastingData;
@@ -15,7 +15,8 @@ export interface ResolvedTasting {
  * Order:
  *   1. Owner-confirmed tasting on the product (tastingSource === 'owner')
  *   2. Community-aggregated tasting (tastingSource === 'community')
- *   3. Style-level common profile (falls back for everything else)
+ *   3. Source-described tasting for the exact product
+ *   4. Style-level common profile
  *
  * Returns null only if the product has no style match *and* no saved tasting,
  * in which case no tasting strip should render.
@@ -36,13 +37,18 @@ export function useProductTasting(item: Pick<InventoryItem, 'type' | 'tasting' |
       return { tasting: item.tasting!, source: 'community' };
     }
 
-    // 3. Explicit "common" stamp on this product, use the product's own
+    // 3. Source-described data belongs only to this exact tea lot.
+    if (item.tastingSource === 'source' && itemHasTerms) {
+      return { tasting: item.tasting!, source: 'source' };
+    }
+
+    // 4. Explicit "common" stamp on this product, use the product's own
     //    tasting data but label it as style-typical (not owner-authored).
     if (item.tastingSource === 'common' && itemHasTerms) {
       return { tasting: item.tasting!, source: 'common' };
     }
 
-    // 4. Type-level fallback, baseline for the style, when no product-level
+    // 5. Type-level fallback, baseline for the style, when no product-level
     //    data exists. Currently empty; populate commonTastingByStyle.ts to enable.
     const common = getCommonTastingForType(item.type);
     if (common && hasAnyTerms(common)) {

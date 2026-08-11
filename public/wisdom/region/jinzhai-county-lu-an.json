@@ -3,8 +3,8 @@
   "name": "Jinzhai County, Lu'an",
   "country": "China",
   "province": "Anhui",
-  "altitude": "400-900m",
-  "climate": "Mountain county within Lu'an known for high quality green tea",
+  "altitude": null,
+  "climate": null,
   "holding": "regions",
   "license": "CC BY 4.0, see LICENSE.txt",
   "source": "https://teajia.com/wisdom/"

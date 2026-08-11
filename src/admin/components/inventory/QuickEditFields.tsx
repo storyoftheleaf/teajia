@@ -26,6 +26,8 @@ export interface QuickEditFieldsProps {
   onClose?: () => void;
   /** Opens explicit stock movement entry; spreadsheet stock edits are recounts. */
   onStockMovement?: (product: Product, trigger: HTMLElement) => void;
+  /** False when arrival summaries are unavailable or this tea is incoming-only. */
+  canPublish?: boolean;
 }
 
 // A single editable value, sitting in its own column cell directly under the
@@ -70,11 +72,15 @@ const CellInput = ({
 // the two actions ride in the wide Product (first) column. Saves route through
 // onUpdate (same path as the table's inline edits), so persistence is unchanged.
 export const QuickEditFields: React.FC<QuickEditFieldsProps> = ({
-  product, cols, onUpdate, onTasting, onFullEdit, rates, onClose, onStockMovement,
+  product, cols, onUpdate, onTasting, onFullEdit, rates, onClose, onStockMovement, canPublish = true,
 }) => {
   void rates; // accepted for forward-compatible pricing display; basic fields don't need it yet
   const retailValue = product.fixedRetailPriceUSD ?? product.pricePerGramUSD ?? '';
   const accent = getThemeColor(product.type);
+  const hasProductTastingProfile = product.tastingSource === 'owner'
+    && !!(product.tasting && Object.keys(product.tasting).length > 0);
+  const hasWriting = product.description.trim().length > 0;
+  const hasIncoming = product.inTransit === true && ((product.inTransitGrams ?? 1) > 0);
 
   // Renders the editor that belongs in a given column, or null if that column
   // has no quick-edit field.
@@ -121,8 +127,10 @@ export const QuickEditFields: React.FC<QuickEditFieldsProps> = ({
       role="switch"
       aria-checked={product.isPublic}
       aria-label="Show in shop"
-      onClick={() => onUpdate(product.id, 'isPublic', !product.isPublic)}
-      className="tap-target inline-flex items-center gap-2 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
+      disabled={!product.isPublic && !canPublish}
+      title={!product.isPublic && !canPublish ? 'Arrival status must be ready before publication' : undefined}
+      onClick={() => { if (product.isPublic || canPublish) onUpdate(product.id, 'isPublic', !product.isPublic); }}
+      className="tap-target inline-flex items-center gap-2 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors disabled:cursor-not-allowed disabled:opacity-50"
     >
       <span
         className={`inline-flex items-center justify-center w-4 h-4 rounded-[4px] border transition-colors ${
@@ -173,7 +181,7 @@ export const QuickEditFields: React.FC<QuickEditFieldsProps> = ({
                           onClick={() => onTasting(product)}
                           className="tap-target text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
                         >
-                          Tasting
+                          Edit tasting profile
                         </button>
                         <button
                           onClick={() => onFullEdit(product)}
@@ -182,6 +190,12 @@ export const QuickEditFields: React.FC<QuickEditFieldsProps> = ({
                           Full edit
                         </button>
                       </div>
+                      <p className="flex flex-wrap gap-x-3 gap-y-1 text-ui-10 text-tea-text-dim">
+                        <span>Personal tasting: use Taste in the selection rail</span>
+                        <span>Product profile: {hasProductTastingProfile ? 'added' : 'needed'}</span>
+                        <span>Writing: {hasWriting ? 'added' : 'needed'}</span>
+                        {hasIncoming && <span>Incoming stock</span>}
+                      </p>
                     </div>
                   ) : editorFor(c.key)}
                 </td>

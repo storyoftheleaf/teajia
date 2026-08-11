@@ -19,17 +19,31 @@ import { persistTastingJournalEntry } from '../../lib/tastingJournalSync';
 interface TastingJournalProps {
   onBack: () => void;
   onOrderTea?: (productId: string) => void;
+  initialProductId?: string | null;
+  initialEntryId?: string | null;
 }
 
 type EventFilter = 'all' | 'event-only' | 'no-events';
 type SortMode = 'recent' | 'rating' | 'type';
 
-export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderTea }) => {
+export function journalEntriesForDeepLink(
+  entries: CustomerTasting[],
+  productId?: string | null,
+  entryId?: string | null,
+): CustomerTasting[] {
+  if (entryId) {
+    return entries.filter(entry => entry.id === entryId && (!productId || entry.productId === productId));
+  }
+  if (productId) return entries.filter(entry => entry.productId === productId);
+  return entries;
+}
+
+export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderTea, initialProductId, initialEntryId }) => {
   const { tastingJournal, updateTasting } = useAppStore();
   const navigate = useNavigate();
   const isPlatformPrivileged = usePlatformPrivilege();
 
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(initialEntryId ?? null);
   const [showArchived, setShowArchived] = useState(false);
   const [shareCardEntry, setShareCardEntry] = useState<CustomerTasting | null>(null);
   const [eventFilter, setEventFilter] = useState<EventFilter>('all');
@@ -104,7 +118,8 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
   }, [searchQuery, fuseInstance]);
 
   const filteredEntries = useMemo(() => {
-    let result = tastingJournal.filter(e => showArchived ? !!e.archived : !e.archived);
+    let result = journalEntriesForDeepLink(tastingJournal, initialProductId, initialEntryId)
+      .filter(e => showArchived ? !!e.archived : !e.archived);
     if (searchResults !== null) result = result.filter(e => searchResults.has(e.id));
     if (eventFilter === 'event-only') result = result.filter(e => !!eventByEntryId.get(e.id)?.eventId);
     else if (eventFilter === 'no-events') result = result.filter(e => !eventByEntryId.get(e.id)?.eventId);
@@ -119,7 +134,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
       result = [...result].sort((a, b) => (a.productType || '').localeCompare(b.productType || ''));
     }
     return result;
-  }, [tastingJournal, showArchived, eventFilter, searchResults, typeFilter, sortMode, eventByEntryId]);
+  }, [tastingJournal, initialProductId, initialEntryId, showArchived, eventFilter, searchResults, typeFilter, sortMode, eventByEntryId]);
 
   const groupedEntries = useMemo(() => {
     const groups: {
@@ -353,7 +368,8 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                   return (
                     <div
                       key={entry.id}
-                      className="bg-tea-surface/60 rounded-xl overflow-hidden"
+                      data-journal-entry-id={entry.id}
+                      className={`bg-tea-surface/60 rounded-xl overflow-hidden ${initialEntryId === entry.id ? 'ring-1 ring-tea-gold/40' : ''}`}
                     >
                       {typeColor && (
                         <div style={{ height: 2, background: `linear-gradient(90deg, ${typeColor}cc, ${typeColor}20)` }} />

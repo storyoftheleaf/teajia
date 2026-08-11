@@ -1,0 +1,385 @@
+{
+  "schema_version": 1,
+  "sources": [
+    {
+      "source_id": "ctma-menghai-seven-mountains-2025",
+      "source_language": "zh",
+      "content_shape": "route",
+      "public": {
+        "publisher": "China Tea Marketing Association",
+        "publisher_role_label": "Trade association",
+        "title": "Menghai County's tea-culture tourism circuit",
+        "author": "",
+        "published_date": "2025-01-04",
+        "url": "https://www.ctma.com.cn/shuzichalvyunyouzhongguo/79991.html"
+      },
+      "original_title": "西双版纳勐海县“茶文化旅游环线”茶旅融合精品线路",
+      "evidence": [
+        {
+          "evidence_id": "EVIDENCE-17B9BF842F4540ED9693D09D",
+          "locator": { "heading": "", "section": "", "page": null, "start": 21, "end": 183 },
+          "excerpt_sha256": "ec31802353d81c41a0ef48e4ef8d4abcfdd22c8b03468b150524055dd24d92cf",
+          "uses": [
+            { "page_id": "menghai-tea-mountain-circuit", "section_key": "editorial-boundary" },
+            { "page_id": "menghai-tea-mountain-circuit", "section_key": "seven-mountain-route" }
+          ]
+        },
+        {
+          "evidence_id": "EVIDENCE-4FD67B451554ADAAE0FEBF68",
+          "locator": { "heading": "当地茶叶推荐 ：古树茶普洱茶、白茶、红茶等", "section": "当地茶叶推荐 ：古树茶普洱茶、白茶、红茶等", "page": null, "start": 185, "end": 395 },
+          "excerpt_sha256": "69196e4896c84b0f18f60c291ee627a4d0c075ec43dd5418b42f4355955bd9d6",
+          "uses": [
+            { "page_id": "menghai-tea-mountain-circuit", "section_key": "reading-the-circuit" }
+          ]
+        }
+      ]
+    },
+    {
+      "source_id": "ctma-puer-history-2021",
+      "source_language": "zh",
+      "content_shape": "reference",
+      "public": {
+        "publisher": "China Tea Marketing Association",
+        "publisher_role_label": "Trade association",
+        "title": "A millennium in one leaf: a history of Yunnan Pu'er tea",
+        "author": "Guangming Daily",
+        "published_date": "2021-11-17",
+        "url": "https://www.ctma.com.cn/hangyeyaowen/71820.html"
+      },
+      "original_title": "一叶跨千年！云南普洱茶成长史大揭秘",
+      "evidence": [
+        {
+          "evidence_id": "EVIDENCE-5829FD880D9AD20B72092E01",
+          "locator": { "heading": "几度斜阳从兴旺到衰落", "section": "几度斜阳从兴旺到衰落", "page": null, "start": 1041, "end": 1188 },
+          "excerpt_sha256": "15a6ee5d7e94f3f8547f6955976266246692ebde32ab13128a9d2f42425fe7af",
+          "uses": [{ "page_id": "puer", "section_key": "history" }]
+        },
+        {
+          "evidence_id": "EVIDENCE-5B1AC33CAC9C5C015CA7CA80",
+          "locator": { "heading": "几度斜阳从兴旺到衰落", "section": "几度斜阳从兴旺到衰落", "page": null, "start": 147, "end": 171 },
+          "excerpt_sha256": "32ea6c5864c094b54ca8262475bc64fe07061123c97642410b2b0838d7b03318",
+          "uses": [{ "page_id": "puer", "section_key": "identity" }]
+        },
+        {
+          "evidence_id": "EVIDENCE-AAAA07C79A04F58BAF100676",
+          "locator": { "heading": "一叶报春变了人间", "section": "一叶报春变了人间", "page": null, "start": 1646, "end": 1826 },
+          "excerpt_sha256": "c2ac8b66818845a83e3d486d112ea8e4107b93ae0f9cd4079f0a69ec147ed459",
+          "uses": [{ "page_id": "puer", "section_key": "modern-family" }]
+        }
+      ]
+    },
+    {
+      "source_id": "ctma-xishuangbanna-twelve-mountains-2025",
+      "source_language": "zh",
+      "content_shape": "grouping",
+      "public": {
+        "publisher": "China Tea Marketing Association",
+        "publisher_role_label": "Trade association",
+        "title": "Xishuangbanna Pu'er tea at the 2025 Global South Media and Think Tank Forum",
+        "author": "",
+        "published_date": "2025-09-09",
+        "url": "https://www.ctma.com.cn/hangyeyaowen/82062.html"
+      },
+      "original_title": "西双版纳普洱茶亮相2025“全球南方”媒体智库高端论坛",
+      "evidence": [
+        {
+          "evidence_id": "EVIDENCE-AD2CD7E1D773CA0EE7D5748E",
+          "locator": { "heading": "", "section": "", "page": null, "start": 0, "end": 1335 },
+          "excerpt_sha256": "3c2bc91e50b9a0d4f41632868f3c0284883aa5d7994606335c6095f48b42244d",
+          "uses": [
+            { "page_id": "xishuangbanna-tea-mountains", "section_key": "regional-grouping" },
+            { "page_id": "xishuangbanna-tea-mountains", "section_key": "mountain-names" },
+            { "page_id": "xishuangbanna-tea-mountains", "section_key": "living-culture" }
+          ]
+        }
+      ]
+    },
+    {
+      "source_id": "ctma-yunnan-108-mountains-2026",
+      "source_language": "zh",
+      "content_shape": "list",
+      "public": {
+        "publisher": "China Tea Marketing Association",
+        "publisher_role_label": "Trade association",
+        "title": "Spring purchase prices published for 108 notable Yunnan tea mountains",
+        "author": "Luo Zongwei",
+        "published_date": "2026-04-28",
+        "url": "https://www.ctma.com.cn/hangyeyaowen/83904.html"
+      },
+      "original_title": "云南108座名山头春茶价格发布最高每公斤7.6万元",
+      "evidence": [
+        {
+          "evidence_id": "EVIDENCE-4A45816A2D2CC8C96A56D57D",
+          "locator": { "heading": "", "section": "", "page": null, "start": 0, "end": 454 },
+          "excerpt_sha256": "e8c200a02da55d0e19c38d17df1d6575d45dbc8ddf417c9bd1f10c3a912243af",
+          "uses": [
+            { "page_id": "yunnan-mountain-names", "section_key": "market-names" },
+            { "page_id": "yunnan-mountain-names", "section_key": "reading-the-list" }
+          ]
+        }
+      ]
+    },
+    {
+      "source_id": "marshaln-young-puer-2013",
+      "source_language": "en",
+      "content_shape": "reference",
+      "public": {
+        "publisher": "A Tea Addict's Journal",
+        "publisher_role_label": "Community",
+        "title": "Really young puerh is not really puerh",
+        "author": "MarshalN",
+        "published_date": "2013-09-18",
+        "url": "https://marshaln.com/2013/09/really-young-puerh-is-not-really-puerh/"
+      },
+      "original_title": "Really young puerh is not really puerh",
+      "evidence": [
+        {
+          "evidence_id": "EVIDENCE-E31C7DFEB22516770374C078",
+          "locator": { "heading": "", "section": "", "page": null, "start": 108, "end": 692 },
+          "excerpt_sha256": "7e29f7ee63964832a142302204a56c563fc5d1e9665fdf429360d6c7cbb83d16",
+          "uses": [{ "page_id": "sheng", "section_key": "aging" }]
+        }
+      ]
+    },
+    {
+      "source_id": "teadb-greater-yiwu",
+      "source_language": "en",
+      "content_shape": "reference",
+      "public": {
+        "publisher": "TeaDB",
+        "publisher_role_label": "Specialist editorial",
+        "title": "Pu'erh Regions: Eastern Xishuangbanna, Mengla County, Yiwu and Youle",
+        "author": "James",
+        "published_date": "2014-09-13",
+        "url": "https://teadb.org/mengla-county-yiwu/"
+      },
+      "original_title": "Pu’erh Regions: Eastern Xishuangbanna, Mengla County, Yiwu + Youle",
+      "evidence": [
+        {
+          "evidence_id": "EVIDENCE-063C59A9C3026FEBF80765F1",
+          "locator": { "heading": "Characteristic Taste", "section": "Characteristic Taste", "page": null, "start": 5577, "end": 5974 },
+          "excerpt_sha256": "244f6daeea43c6625eb9ec9a7c4ee46f9aa541106e85b2bb9bfbd72aa37d091c",
+          "uses": [{ "page_id": "greater-yiwu", "section_key": "common-character" }]
+        },
+        {
+          "evidence_id": "EVIDENCE-A856667D478345A121C24FD6",
+          "locator": { "heading": "A Brief History", "section": "A Brief History", "page": null, "start": 3706, "end": 4182 },
+          "excerpt_sha256": "e285e069879731cf738c55dcbfa0bac9d905fec7bedb9307df3b461353ecd0d7",
+          "uses": [{ "page_id": "greater-yiwu", "section_key": "history" }]
+        },
+        {
+          "evidence_id": "EVIDENCE-B4A02CADDFD91399DD30150A",
+          "locator": { "heading": "Greater Yiwu Region (Eastern Xishuangbanna / Mengla ) ( babelcarp )", "section": "Greater Yiwu Region (Eastern Xishuangbanna / Mengla ) ( babelcarp )", "page": null, "start": 3401, "end": 3704 },
+          "excerpt_sha256": "5e009e4690f79b2f1bea1cc54f1b63418282192300365349f55356a5e726a174",
+          "uses": [{ "page_id": "greater-yiwu", "section_key": "scope" }]
+        }
+      ]
+    },
+    {
+      "source_id": "teadb-lincang",
+      "source_language": "en",
+      "content_shape": "reference",
+      "public": {
+        "publisher": "TeaDB",
+        "publisher_role_label": "Specialist editorial",
+        "title": "Pu'erh Regions: Lincang",
+        "author": "James",
+        "published_date": "2015-02-07",
+        "url": "https://teadb.org/lincang/"
+      },
+      "original_title": "Pu’erh Regions: Lincang",
+      "evidence": [
+        {
+          "evidence_id": "EVIDENCE-4F088D1E4FC6C3B3B00588A1",
+          "locator": { "heading": "", "section": "", "page": null, "start": 284, "end": 939 },
+          "excerpt_sha256": "52bed1f0d6b50997f3d737ccc0f4c606d10a28f40702dc177280ad4da357d465",
+          "uses": [{ "page_id": "lincang", "section_key": "scope" }]
+        },
+        {
+          "evidence_id": "EVIDENCE-84EA37140299AE04597C39E4",
+          "locator": { "heading": "A Brief History", "section": "A Brief History", "page": null, "start": 941, "end": 1379 },
+          "excerpt_sha256": "0c5a247250145561b03fe732794ea5289ee3965652f05f60655a41ddd097b1d3",
+          "uses": [{ "page_id": "lincang", "section_key": "history" }]
+        },
+        {
+          "evidence_id": "EVIDENCE-CBE676D28C6D93BEE45434D4",
+          "locator": { "heading": "Characteristic Taste [Raw Pu’erh]", "section": "Characteristic Taste [Raw Pu’erh]", "page": null, "start": 1572, "end": 1773 },
+          "excerpt_sha256": "d7241a5de17edfebb04ab1438c796b6c6bc6e2b6e1631fa310b8149308a9688f",
+          "uses": [{ "page_id": "lincang", "section_key": "common-character" }]
+        }
+      ]
+    },
+    {
+      "source_id": "teadb-menghai-county",
+      "source_language": "en",
+      "content_shape": "reference",
+      "public": {
+        "publisher": "TeaDB",
+        "publisher_role_label": "Specialist editorial",
+        "title": "Pu'erh Regions: Western Xishuangbanna, Menghai County",
+        "author": "James",
+        "published_date": "2014-10-11",
+        "url": "https://teadb.org/menghai-county/"
+      },
+      "original_title": "Pu’erh Regions: Western Xishuangbanna, Menghai County",
+      "evidence": [
+        {
+          "evidence_id": "EVIDENCE-5F496A300F5E710FC8FA80B0",
+          "locator": { "heading": "Characteristic Taste [Raw Pu’erh]", "section": "Characteristic Taste [Raw Pu’erh]", "page": null, "start": 2047, "end": 2644 },
+          "excerpt_sha256": "5bd94c577c814b15d884d6e11bdc043a57dd40d648f1aea61586ba53c8c5e110",
+          "uses": [
+            { "page_id": "menghai-county", "section_key": "scope" },
+            { "page_id": "menghai-county", "section_key": "common-character" }
+          ]
+        },
+        {
+          "evidence_id": "EVIDENCE-FEBD2174326734F21F2CFF3B",
+          "locator": { "heading": "A Brief History", "section": "A Brief History", "page": null, "start": 1048, "end": 1546 },
+          "excerpt_sha256": "818fd742f17166eee050ec0bcf4e36c2715a1c4fe94ecd6a5907ed761b9a67c5",
+          "uses": [{ "page_id": "menghai-county", "section_key": "history" }]
+        }
+      ]
+    },
+    {
+      "source_id": "teadb-yunnan-overview",
+      "source_language": "en",
+      "content_shape": "reference",
+      "public": {
+        "publisher": "TeaDB",
+        "publisher_role_label": "Specialist editorial",
+        "title": "Pu'erh Regions: Yunnan Overview",
+        "author": "James",
+        "published_date": "2014-12-27",
+        "url": "https://teadb.org/yunnan/"
+      },
+      "original_title": "Pu’erh Regions: Yunnan Overview",
+      "evidence": [
+        {
+          "evidence_id": "EVIDENCE-3EE3ABDD50251B7812F1C99A",
+          "locator": { "heading": "The Big Three (Regions)", "section": "The Big Three (Regions)", "page": null, "start": 2569, "end": 2740 },
+          "excerpt_sha256": "2f0b75f452d5c7fbe4cc61b6bbbba921865984f2ff1c6e953cf6730b2f93908c",
+          "uses": [{ "page_id": "yunnan", "section_key": "reading-labels" }]
+        },
+        {
+          "evidence_id": "EVIDENCE-F9F875FFED47BD47BC79EC6C",
+          "locator": { "heading": "Xishuangbanna Prefecture", "section": "Xishuangbanna Prefecture", "page": null, "start": 2742, "end": 3025 },
+          "excerpt_sha256": "bdf25c1ba481e755449fc2811c062f84ac17bbf707fcbe790193bd80d502be00",
+          "uses": [{ "page_id": "yunnan", "section_key": "regional-map" }]
+        },
+        {
+          "evidence_id": "EVIDENCE-FD526336F67070D4C3DD64DF",
+          "locator": { "heading": "", "section": "", "page": null, "start": 282, "end": 1312 },
+          "excerpt_sha256": "334e5d5862b5203a63344113209559fe02c69373683fe2827a87bd2ea2f3e6d9",
+          "uses": [{ "page_id": "yunnan", "section_key": "geographic-frame" }]
+        }
+      ]
+    },
+    {
+      "source_id": "teaguardian-raw-cooked-puer",
+      "source_language": "en",
+      "content_shape": "reference",
+      "public": {
+        "publisher": "Tea Guardian",
+        "publisher_role_label": "Specialist editorial",
+        "title": "Raw Puer or Cooked Puer?",
+        "author": "Leo Kwan",
+        "published_date": "",
+        "url": "https://www.teaguardian.com/what-is-tea/raw-puer-or-cooked-puer/"
+      },
+      "original_title": "“Raw” Puer or “Cooked” Puer?",
+      "evidence": [
+        {
+          "evidence_id": "EVIDENCE-3BB473838666F92132E285E0",
+          "locator": { "heading": "what is a “raw” puer?", "section": "what is a “raw” puer?", "page": null, "start": 285, "end": 408 },
+          "excerpt_sha256": "777131e9ac588d2de1399437c8448f30202dabf3266aaa9fd9bc818549b622ec",
+          "uses": [{ "page_id": "sheng", "section_key": "identity" }]
+        },
+        {
+          "evidence_id": "EVIDENCE-6761D903E45891EFCB26F71D",
+          "locator": { "heading": "shengcha, maocha and crude tea", "section": "shengcha, maocha and crude tea", "page": null, "start": 1340, "end": 1647 },
+          "excerpt_sha256": "c40dc99a475d60ed726f51c83c09ab3a98c787af741af9792db236157e6eb421",
+          "uses": [{ "page_id": "sheng", "section_key": "processing" }]
+        }
+      ]
+    }
+  ],
+  "translations": [
+    {
+      "evidence_id": "EVIDENCE-17B9BF842F4540ED9693D09D",
+      "source_id": "ctma-menghai-seven-mountains-2025",
+      "locator": { "heading": "", "section": "", "page": null, "start": 21, "end": 183 },
+      "original": "线路包含景点 ：观赏第一条“一线串七大茶山”。即南糯山→帕沙→贺开→邦盆→新班章→老班章→老曼峨七座著名古茶园风光。勐海县茶厂南糯一厂旧址、南糯山900多年栽培型茶树王、南糯山民族茶文化愽物馆、六大茶山贺开庄园 老曼峨布朗族寺庙等。观赏第二条南本老寨→雨林古茶坊→益中雲古树茶庄园→曼方东良瀑布→曼勐大民俗村→勐海产业园区。",
+      "english": "The route includes two sets of sights. The first is described as one line connecting seven great tea mountains: Nannuo, Pasha, Hekai, Bangpen, Xin Banzhang, Lao Banzhang, and Lao Man'e, with views of seven noted old tea gardens. Other stops include the former Nannuo No. 1 factory of the Menghai County Tea Factory, a cultivated tea tree at Nannuo said to be more than 900 years old, the Nannuo Ethnic Tea Culture Museum, the Six Great Tea Mountains Hekai Estate, and a Bulang temple at Lao Man'e. A second line runs from Nanben Old Village through Rainforest Ancient Tea Workshop, Yizhongyun Ancient Tree Tea Estate, Manfang Dongliang Waterfall, Manmeng Dai Folk Village, and Menghai Industrial Park.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "GPT-5",
+      "translated_date": "2026-08-10"
+    },
+    {
+      "evidence_id": "EVIDENCE-4FD67B451554ADAAE0FEBF68",
+      "source_id": "ctma-menghai-seven-mountains-2025",
+      "locator": { "heading": "当地茶叶推荐 ：古树茶普洱茶、白茶、红茶等", "section": "当地茶叶推荐 ：古树茶普洱茶、白茶、红茶等", "page": null, "start": 185, "end": 395 },
+      "original": "勐海“七子饼”茶文化旅游环线，以南糯山为起点，老曼娥为终点，途径向阳寨、姑娘寨头寨、格朗和乡、帕沙中寨、贺开村、曼弄老寨、曼弄新寨、班盆、老班章新班章等地。线路全长约78.5公里，沿途可欣赏勐海县各个有名的古茶园风景，也可亲身体验摘茶制茶，从茶源头上了解茶文化，这条旅游环线上有哈尼族，拉祜族，布朗族三大古老而神秘的民族，在体验茶文化的同时能了解大山中的民族，欣赏量自然的森林景观，是了解“普洱茶”体验茶文化的首选线路。",
+      "english": "Menghai's Seven Sons Cake tea-culture tourism circuit begins at Nannuo Mountain and ends at Lao Man'e. It passes Xiangyang Village, Guniangzhai Touzhai, Gelanghe Township, Pasha Middle Village, Hekai Village, Mannong Old Village, Mannong New Village, Bangpen, Lao Banzhang, Xin Banzhang, and other places. The route is about 78.5 kilometres long. Along it, visitors can see well-known old tea gardens in Menghai County, take part in tea picking and making, and learn about tea culture at its source. Hani, Lahu, and Bulang communities live along the circuit, which combines tea-culture experiences with encounters with mountain communities and forest scenery. The article presents it as a preferred route for learning about Pu'er tea and experiencing tea culture.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "GPT-5",
+      "translated_date": "2026-08-10"
+    },
+    {
+      "evidence_id": "EVIDENCE-5829FD880D9AD20B72092E01",
+      "source_id": "ctma-puer-history-2021",
+      "locator": { "heading": "几度斜阳从兴旺到衰落", "section": "几度斜阳从兴旺到衰落", "page": null, "start": 1041, "end": 1188 },
+      "original": "早在唐宋时，云南普洱茶就通过“茶马古道”已销往西藏乃至域外。宋代至明代的“茶马互市”，以盐、茶、马等为云南主要商品的贸易，促进了云茶的发展；明末，一些地方已是“士庶所用，皆普茶也。”清初，每年仅销往西藏的普洱茶就达3万担之多。茶业的兴盛带动了滇南、滇西南及滇西北茶马古道交通线及商业集市的形成。",
+      "english": "As early as the Tang and Song periods, Yunnan Pu'er tea travelled by the Tea Horse Road to Tibet and beyond. From the Song through the Ming, markets exchanging tea and horses traded major Yunnan goods including salt, tea, and horses, helping Yunnan tea develop. By the late Ming, records described Pu tea as being used by people across social ranks. In the early Qing, annual Pu'er sales to Tibet alone were said to reach thirty thousand dan. The flourishing tea trade helped form Tea Horse Road transport lines and commercial markets across southern, southwestern, and northwestern Yunnan.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "GPT-5",
+      "translated_date": "2026-08-10"
+    },
+    {
+      "evidence_id": "EVIDENCE-5B1AC33CAC9C5C015CA7CA80",
+      "source_id": "ctma-puer-history-2021",
+      "locator": { "heading": "几度斜阳从兴旺到衰落", "section": "几度斜阳从兴旺到衰落", "page": null, "start": 147, "end": 171 },
+      "original": "云南是世界茶树的起源地和最早的茶文化发祥地之一。",
+      "english": "Yunnan is one of the places of origin of the world's tea trees and one of the earliest cradles of tea culture.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "GPT-5",
+      "translated_date": "2026-08-10"
+    },
+    {
+      "evidence_id": "EVIDENCE-AAAA07C79A04F58BAF100676",
+      "source_id": "ctma-puer-history-2021",
+      "locator": { "heading": "一叶报春变了人间", "section": "一叶报春变了人间", "page": null, "start": 1646, "end": 1826 },
+      "original": "从20世纪50、60年代起，云南省致力抓茶叶发展，复垦老茶园，大力发展新茶园，并重点发展云南大叶种红茶及绿茶。20世纪70年代，云南茶叶进出口公司开始自营出口普洱茶、红茶。为满足外销市场对普洱茶的需求，在昆明茶厂试制成功了现代普洱茶，形成了生、熟普洱茶及红茶、绿茶的生产。1978年，全省茶园面积从1949年前的25万亩发展到149.4万亩，面积居全国第三位。",
+      "english": "From the 1950s and 1960s, Yunnan Province worked to develop tea production, restoring old gardens, establishing new gardens, and emphasizing large-leaf Yunnan black and green teas. In the 1970s, the Yunnan Tea Import and Export Company began exporting Pu'er and black tea on its own account. To meet export demand for Pu'er, Kunming Tea Factory successfully trialled modern Pu'er production, leading to production of sheng and shou Pu'er alongside black and green tea. By 1978, Yunnan's tea-garden area had expanded from 250,000 mu before 1949 to 1.494 million mu, the third-largest area in China.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "GPT-5",
+      "translated_date": "2026-08-10"
+    },
+    {
+      "evidence_id": "EVIDENCE-AD2CD7E1D773CA0EE7D5748E",
+      "source_id": "ctma-xishuangbanna-twelve-mountains-2025",
+      "locator": { "heading": "", "section": "", "page": null, "start": 0, "end": 1335 },
+      "original": "9月5日至7日，由新华通讯社、中共云南省委、云南省人民政府共同主办的2025“全球南方”媒体智库高端论坛在昆明启幕。\n\n「大益传奇1975」成为此次活动指定用茶，以“和而不同 美美与共”的东方智慧为国际交流搭建新的桥梁。「大益传奇1975」是凝聚着大益制茶技艺与深厚文化底蕴的茶品，原料精选自勐海高山海拔1700米及以上黄金产区的群山古树，茶香馥郁，茶汤透亮，滋味醇厚饱满。\n\n此次论坛中，来自110个国家以及国际和地区组织的260余家机构约500名代表，聚焦“聚南方力量 应世界变局”主题开展广泛交流。大益集团在此期间特别策划了“云茶之美”茶会，向世界展示中国茶深厚的文化与独特的魅力。\n\n以云茶独特韵味为文化信使，构建以茶为媒、以心为桥的外交新场域！此次大益茶在“全球南方”论坛上的华丽亮相，让西双版纳普洱茶在国际上再度出圈。\n\n天赋异禀的自然环境\n\n西双版纳是中国热带生态系统保存最完整的地区之一，有着“地球绿肺”的称呼，孕育出独特而浓郁的热带风情和民族文化，这里常年温暖湿润，降水丰沛，年平均气温18-22℃，非常适合大叶种茶树的生长，也造就了集世界茶树原产地、普洱茶发祥地、茶马古道源头于一身的茶叶之都。\n\n得天独厚的地理条件形成了“高山云雾出好茶”的生态环境：海拔1000-2000米的山地丘陵，昼夜温差大，有利于茶叶内含物质的积累；常年云雾缭绕，漫射光多，使得茶叶嫩度高、品质好；酸性红壤，土层深厚肥沃，有机质含量高。\n\n古树茶资源的宝库\n\n西双版纳是普洱茶古树资源最丰富的地区，坐拥攸乐、革登、倚邦、莽枝、蛮砖、易武、小勐宋、南糯、贺开、勐宋、布朗山、巴达等十二座古茶山。这些古树茶树龄长，根系深，能够吸收更深层土壤中的矿物质，制成的茶叶内含物质丰富，口感层次多样，韵味悠长。\n\n深厚的历史文化底蕴\n\n早在汉代，西双版纳就已有种茶饮茶的记录，距今已有近两千年历史。自唐宋以来，茶马古道的兴起，将普洱茶从云南高原送往世界各地。及至清朝，勐腊的茶山更因出产朝廷贡茶而声名大噪，西双版纳的众多古茶山自此成了正宗普洱茶的代名词。西双版纳是普洱茶的发源地和茶马古道的起点，有着1300多年的种茶制茶历史。当地的布朗族、哈尼族、傣族等少数民族世代以茶为生，创造了丰富多彩的茶文化。\n\n西双版纳自古以来一直是普洱茶的核心产区。悠久的历史积淀了丰富的制茶经验，传承了精湛的制茶工艺。\n\n品质优异的茶叶特征\n\n西双版纳普洱茶具有明显的地域特征：大叶种茶树叶片肥厚，内含物质丰富， 茶气强烈；口感饱满，回甘生津明显 ；香气独特，带有蜜香、花香、果香等复合香气； 耐泡度高，可冲泡十余次仍有余香；陈化潜力大，随着时间的推移，口感更加醇厚。\n\n科学规范的产业发展\n\n西双版纳州高度重视普洱茶产业发展，实施了“古茶树保护条例”，建立了普洱茶产品质量可追溯体系，推动普洱茶产业规范化、标准化、品牌化发展。如今，西双版纳普洱茶不仅畅销国内，还远销东南亚、欧美等国家和地区，成为名副其实的“中国茶名片”。\n\n当前，西双版纳州以产业化、规模化、标准化、品牌化为方向，做好茶文化、茶产业、茶科技这篇大文章，推进茶产业一二三产融合发展，持续擦亮西双版纳普洱茶“金字招牌”。\n\n文稿综合：潘欢欢",
+      "english": "From 5 to 7 September, the 2025 Global South Media and Think Tank Forum, jointly hosted by Xinhua News Agency, the Yunnan Provincial Committee of the Communist Party of China, and the Yunnan Provincial People's Government, opened in Kunming.\n\nDayi Legend 1975 was chosen as the event's designated tea and was presented as a bridge for international exchange through the idea of harmony without uniformity. The product was described as combining Dayi's tea-making craft with a deep cultural heritage, using material selected from old mountain trees at elevations of 1,700 metres and above in Menghai, with a rich aroma, bright liquor, and full taste.\n\nAbout 500 representatives from more than 260 institutions across 110 countries and international or regional organisations attended the forum, which focused on gathering the strength of the Global South in response to world change. Dayi Group organised a Beauty of Yunnan Tea gathering during the event to present Chinese tea culture. The article frames Yunnan tea as a cultural messenger and says Dayi's appearance at the forum brought renewed international attention to Xishuangbanna Pu'er.\n\nGifted natural environment\n\nXishuangbanna is described as one of China's best-preserved tropical ecosystems, known as a green lung of the earth and home to distinctive tropical and ethnic cultures. It is warm and humid throughout the year, with abundant rainfall and an average annual temperature of 18 to 22 degrees Celsius, conditions presented as favourable for large-leaf tea trees. The article also calls it a centre associated with the origin of tea trees, the development of Pu'er, and the Tea Horse Road.\n\nMountainous terrain from 1,000 to 2,000 metres, large differences between day and night temperatures, persistent mist and diffuse light, acidic red soil, deep fertile ground, and high organic content are described as contributing to the local tea-growing environment.\n\nA storehouse of old-tree tea resources\n\nThe article describes Xishuangbanna as rich in old-tree Pu'er resources and lists twelve old tea mountains: Youle, Gedeng, Yibang, Mangzhi, Manzhuan, Yiwu, Xiao Mengsong, Nannuo, Hekai, Mengsong, Bulang, and Bada. It attributes varied and lasting tea character to the age and deep roots of old tea trees.\n\nDeep historical and cultural foundations\n\nThe article says records of tea cultivation and drinking in Xishuangbanna reach back to the Han period. It connects the rise of the Tea Horse Road from the Tang and Song periods with the movement of Pu'er from the Yunnan plateau, and the fame of Mengla's tribute-tea mountains during the Qing. It describes Xishuangbanna as a place of origin for Pu'er and a starting point of the Tea Horse Road, with more than 1,300 years of tea cultivation and manufacture. It credits generations of Bulang, Hani, Dai, and other local peoples with creating a rich tea culture.\n\nXishuangbanna is presented as a longstanding core production region whose history has accumulated extensive tea-making experience and craft.\n\nTea quality characteristics\n\nThe article attributes regional characteristics to Xishuangbanna Pu'er: thick large-leaf material, rich constituents, strong energy, a full taste, clear returning sweetness and salivation, compound honey, floral, and fruit aromas, endurance across many infusions, and potential to become rounder with age.\n\nScientific and regulated industry development\n\nThe article says Xishuangbanna has enacted old-tea-tree protection rules, established product traceability, and promoted regulated, standardised, and branded industry development. It describes sales in China and exports to Southeast Asia, Europe, and North America, and presents Pu'er as a calling card for Chinese tea.\n\nIt closes by describing a policy direction focused on industrialisation, scale, standards, branding, and the integration of tea culture, industry, technology, and rural economic sectors. Compiled by Pan Huanhuan.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "GPT-5",
+      "translated_date": "2026-08-10"
+    },
+    {
+      "evidence_id": "EVIDENCE-4A45816A2D2CC8C96A56D57D",
+      "source_id": "ctma-yunnan-108-mountains-2026",
+      "locator": { "heading": "", "section": "", "page": null, "start": 0, "end": 454 },
+      "original": "近日，“金砖茶魁”“一带一路”第十届昆明国际春茶周活动在昆明启动。吸引了海内外300多名云茶经销商、采购商、代理商、资深茶人和知名茶企齐聚春城，共品云茶春茗。\n\n启动仪式上，昆明市茶业行业协会发布了云南108座普洱茶著名山头产地采购价最新指数，以及茶企年度新品、文创成果和科技成果，包括薄荷塘、班章、冰岛、曼松、凤凰窝、昔归、景迈、倚邦、蛮砖等知名山头品牌。\n\n其中，价格最高的米地古树达76000元/公斤；曼松王子山古树45000元/公斤，混采（或大树）5000元/公斤；冰岛老寨一类35000元/公斤，二类20000元/公斤；易武薄荷塘一类25000元/公斤，二类9000元/公斤；布朗山老班章古树8500元/公斤，混采（或大树）3500元/公斤；凤凰窝（晒次）古树28000元/公斤。\n\n昆明市茶业行业协会相关负责人表示，从此次发布的云南108座著名普洱茶山头的排名可以看出，第一梯队与去年性价比相当，除个别名山和古树茶或单株的原材料采购价格上扬幅度超过15%外，整体来看价格有所下调。（记者 罗宗伟）",
+      "english": "The tenth Kunming International Spring Tea Week, presented under the Golden Brick Tea Leader and Belt and Road banners, recently opened in Kunming. It brought together more than 300 Yunnan tea distributors, buyers, agents, experienced tea professionals, and well-known tea companies to taste spring teas.\n\nAt the opening ceremony, the Kunming Tea Industry Association published its latest origin purchase-price index for 108 noted Yunnan Pu'er tea mountains, along with company product launches and cultural, creative, and technical work. Named mountain brands included Bohetang, Banzhang, Bingdao, Mansong, Fenghuangwo, Xigui, Jingmai, Yibang, and Manzhuan.\n\nThe highest listed price was 76,000 yuan per kilogram for old-tree material from Midi. Old-tree material from Wangzishan at Mansong was listed at 45,000 yuan per kilogram and mixed or large-tree material at 5,000; first-category Bingdao Old Village at 35,000 and second-category at 20,000; first-category Bohetang in Yiwu at 25,000 and second-category at 9,000; old-tree Lao Banzhang in Bulang at 8,500 and mixed or large-tree material at 3,500; and old-tree Fenghuangwo material at 28,000.\n\nA representative of the Kunming Tea Industry Association said the leading tier offered value comparable to the previous year. Apart from individual famous mountains and old-tree or single-tree materials whose purchase prices rose by more than 15 percent, prices were lower overall. Reported by Luo Zongwei.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "GPT-5",
+      "translated_date": "2026-08-10"
+    }
+  ]
+}

@@ -12,7 +12,6 @@ import { Helmet } from 'react-helmet-async';
 import { findNamedTeaById } from '../../wisdom';
 import {
   AXIS_INDENT,
-  catalogueNumber,
   EntryAuthorship,
   FACT,
   Fact,
@@ -28,6 +27,8 @@ import {
   SPACE,
   WisdomSubNav,
 } from './wisdomShared';
+import { EntryResearchSection } from './EntryResearchSection';
+import { WisdomPublicStateGate, WisdomRelatedMaterial } from './WisdomRelatedMaterial';
 
 function provenanceStatement(provenance: 'undisclosed' | 'partial' | 'stated'): string {
   switch (provenance) {
@@ -85,6 +86,7 @@ const NamedTeaPage: React.FC = () => {
   }
 
   return (
+    <WisdomPublicStateGate identity={{ nodeType: 'named_tea', nodeId: tea.id }}>
     <article className={PAGE}>
       <Helmet>
         <title>{`${tea.name} · Named Teas · Teajia`}</title>
@@ -104,7 +106,6 @@ const NamedTeaPage: React.FC = () => {
           chineseName={tea.chineseName}
           aka={tea.altNames.length > 0 ? `Also written ${tea.altNames.join(', ')}` : undefined}
           rungFor={tea.id}
-          number={catalogueNumber('named', tea.id)}
         />
       </div>
 
@@ -138,10 +139,14 @@ const NamedTeaPage: React.FC = () => {
         </section>
       )}
 
+      <EntryResearchSection entryKind="namedTea" entryId={tea.id} entry={tea} />
+
+      <WisdomRelatedMaterial identity={{ nodeType: 'named_tea', nodeId: tea.id }} />
       <EntryAuthorship id={tea.id} />
 
       <Invitation subject={`Named tea: ${tea.name}`} />
     </article>
+    </WisdomPublicStateGate>
   );
 };
 

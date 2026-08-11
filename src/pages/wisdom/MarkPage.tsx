@@ -10,7 +10,6 @@ import { Helmet } from 'react-helmet-async';
 import { findMarkById, findProducerById } from '../../wisdom';
 import {
   AXIS_INDENT,
-  catalogueNumber,
   EntryAuthorship,
   Fact,
   FACT_CLASS,
@@ -25,6 +24,8 @@ import {
   SPACE,
   WisdomSubNav,
 } from './wisdomShared';
+import { EntryResearchSection } from './EntryResearchSection';
+import { WisdomPublicStateGate, WisdomRelatedMaterial } from './WisdomRelatedMaterial';
 
 const MarkPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -71,6 +72,7 @@ const MarkPage: React.FC = () => {
   }
 
   return (
+    <WisdomPublicStateGate identity={{ nodeType: 'mark', nodeId: mark.id }}>
     <article className={PAGE}>
       <Helmet>
         <title>{`${mark.name} · Marks · Teajia`}</title>
@@ -90,7 +92,6 @@ const MarkPage: React.FC = () => {
           chineseName={mark.chineseName}
           aka={mark.altNames.length > 0 ? `Also written ${mark.altNames.join(', ')}` : undefined}
           rungFor={mark.id}
-          number={catalogueNumber('marks', mark.id)}
         />
       </div>
 
@@ -118,10 +119,14 @@ const MarkPage: React.FC = () => {
         </section>
       )}
 
+      <EntryResearchSection entryKind="mark" entryId={mark.id} entry={mark} />
+
+      <WisdomRelatedMaterial identity={{ nodeType: 'mark', nodeId: mark.id }} />
       <EntryAuthorship id={mark.id} />
 
       <Invitation subject={`Mark: ${mark.name}`} />
     </article>
+    </WisdomPublicStateGate>
   );
 };
 

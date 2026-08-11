@@ -15,6 +15,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
+import { TEA_REFERENCE_PREVIEW_ENABLED } from '../../wisdom/reference/previewMode';
 
 // ─── Three type sizes, and nothing else ──────────────────────────────────────
 
@@ -125,11 +126,10 @@ export const SPACE = {
 export const AXIS = 'sm:grid sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:gap-x-6 sm:items-baseline';
 
 /**
- * The same axis, with a third track for an index row's metadata.
+ * The index-row axis, with a separate metadata track on wide screens.
  *
- * Up to lg it is `AXIS` exactly: catalogue number in the margin, name on the
- * value edge, and the facts running in on a second line beneath the name. That
- * is the only shape a 390px phone or a 900px tablet has room for.
+ * Up to lg the facts run in beneath the name. That is the only shape a 390px
+ * phone or a 900px tablet has room for.
  *
  * From lg the row opens out. The name takes the free space and the facts move up
  * onto its baseline in a 24rem track of their own, set flush to the far edge of
@@ -144,7 +144,7 @@ export const AXIS = 'sm:grid sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:gap-x-6 sm:i
  * the eye from a name to its facts, the job leader dots do in print.
  */
 export const ROW_AXIS =
-  'sm:grid sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:gap-x-6 sm:items-baseline lg:grid-cols-[7.5rem_minmax(0,1fr)_minmax(0,24rem)]';
+  'lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:gap-x-6 lg:items-baseline';
 
 /**
  * A hairline between one row of a list and the next.
@@ -247,6 +247,8 @@ export const MEASURE = 'max-w-[66ch]';
  * paragraph below it.
  */
 export const PAGE = 'w-full max-w-[78rem] mx-auto pt-4 pb-nav hang-punct';
+/** Local Tea Reference compositions carry one extra rhythm step above the mobile nav. */
+export const PREVIEW_PAGE = 'w-full max-w-[78rem] mx-auto pt-4 pb-nav-gap hang-punct';
 
 /**
  * A grammar of exactly two rules, and length is what says which is which.
@@ -288,15 +290,23 @@ export interface WisdomSection {
   path: string;
 }
 
-export const WISDOM_SECTIONS: WisdomSection[] = [
-  { id: 'overview', label: 'Overview', path: '/wisdom' },
-  { id: 'cultivars', label: 'Plants', path: '/wisdom/cultivars' },
-  { id: 'regions', label: 'Regions', path: '/wisdom/regions' },
-  { id: 'producers', label: 'Producers', path: '/wisdom/producers' },
-  { id: 'marks', label: 'Marks', path: '/wisdom/marks' },
-  { id: 'styles', label: 'Styles', path: '/wisdom/styles' },
-  { id: 'named', label: 'Named', path: '/wisdom/named' },
-];
+export function wisdomSections(previewEnabled: boolean): WisdomSection[] {
+  return [
+    { id: 'overview', label: 'Overview', path: '/wisdom' },
+    { id: 'cultivars', label: 'Plants', path: '/wisdom/cultivars' },
+    ...(previewEnabled ? [{ id: 'types', label: 'Types', path: '/wisdom/types' }] : []),
+    { id: 'regions', label: previewEnabled ? 'Origins' : 'Regions', path: '/wisdom/regions' },
+    { id: 'producers', label: 'Producers', path: '/wisdom/producers' },
+    { id: 'marks', label: 'Marks', path: '/wisdom/marks' },
+    { id: 'styles', label: 'Styles', path: '/wisdom/styles' },
+    { id: 'named', label: 'Named', path: '/wisdom/named' },
+  ];
+}
+
+/** The active build's holdings. Normal development, tests and production retain the established seven. */
+export const WISDOM_SECTIONS: WisdomSection[] = wisdomSections(
+  TEA_REFERENCE_PREVIEW_ENABLED,
+);
 
 /**
  * Which holding a path belongs to. Singular detail routes and plural index
@@ -306,6 +316,7 @@ export const WISDOM_SECTIONS: WisdomSection[] = [
 export function sectionForPath(pathname: string): WisdomSection['id'] {
   const segment = pathname.replace(/^\/wisdom\/?/, '').split('/')[0] ?? '';
   if (!segment) return 'overview';
+  if (segment === 'types' || segment === 'type' || segment === 'family') return 'types';
   if (segment.startsWith('cultivar')) return 'cultivars';
   if (segment.startsWith('region')) return 'regions';
   if (segment.startsWith('producer')) return 'producers';
@@ -394,7 +405,7 @@ const WisdomStrip: React.FC<{ active: WisdomSection['id'] }> = ({ active }) => (
  */
 const WisdomCompactNav: React.FC<{ active: WisdomSection['id'] }> = ({ active }) => {
   const [open, setOpen] = useState(false);
-  const current = WISDOM_SECTIONS.find(section => section.id === active) ?? WISDOM_SECTIONS[0];
+  const current = WISDOM_SECTIONS.find(section => section.id === active);
 
   return (
     <nav aria-label="The wisdom base" className="border-b border-tea-border">
@@ -405,14 +416,16 @@ const WisdomCompactNav: React.FC<{ active: WisdomSection['id'] }> = ({ active })
         onClick={() => setOpen(value => !value)}
         className="w-full min-h-[44px] flex items-center gap-2 text-left"
       >
-        <span className={`${NAME_CLASS} text-tea-gold min-w-0 break-words`}>{current.label}</span>
+        <span className={`${NAME_CLASS} text-tea-gold min-w-0 break-words`}>
+          {current?.label ?? 'The wisdom base'}
+        </span>
         <ChevronDown
           size={15}
           aria-hidden
           className={`shrink-0 text-tea-text-sec transition-transform ${open ? 'rotate-180' : ''}`}
         />
         <span className={`${CELL_CLASS} text-tea-text-dim ml-auto shrink-0`}>
-          {open ? 'Close' : `${WISDOM_SECTIONS.length} holdings`}
+          {open ? 'Close' : `${WISDOM_SECTIONS.length} sections`}
         </span>
       </button>
 

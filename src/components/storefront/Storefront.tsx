@@ -113,7 +113,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
   return (
     <div className="w-full animate-[fadeIn_0.5s_ease-out]">
       <Helmet>
-        <title>{store.name} · Teajia</title>
+        <title>{`${store.name} · Teajia`}</title>
         {store.tagline && <meta name="description" content={store.tagline} />}
         {store.description && !store.tagline && (
           <meta name="description" content={store.description.slice(0, 160)} />

@@ -14,8 +14,8 @@ const SOURCE_FACT_FIELDS = new Set<CurateImportCanonicalField>([
   'priceBasis', 'lineCostExact', 'unitCostExact', 'totalQuantityGrams', 'totalUnits',
 ]);
 const CANONICAL_IDENTITY_FIELDS = new Set<CurateImportCanonicalField>([
-  'englishName', 'originalName', 'chineseName', 'category', 'type', 'classification', 'form', 'year',
-  'originCountry', 'originRegion', 'description',
+  'englishName', 'originalName', 'chineseName', 'category', 'type', 'classification', 'cultivar', 'producer', 'form', 'year',
+  'originCountry', 'originRegion', 'description', 'processingNotes',
 ]);
 const VALIDATION_FIELD_ALIASES: Partial<Record<CurateImportCanonicalField, string[]>> = {
   englishName: ['englishName', 'nameTranslation', 'translation'],

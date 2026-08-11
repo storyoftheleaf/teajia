@@ -10,6 +10,36 @@
  * What one shop stocks, priced, and tasted stays in the shop's own records.
  */
 
+import type { TastingData } from '../types';
+
+export type RegionLevel =
+  | 'country'
+  | 'province'
+  | 'prefecture'
+  | 'county'
+  | 'tea_area'
+  | 'mountain'
+  | 'village'
+  | 'locality';
+
+export interface RegionEvidenceSource {
+  label: string;
+  url: string;
+}
+
+/**
+ * An evidenced elevation statement. Whole-place geography and tea-garden
+ * elevation are deliberately different scopes: one must never imply the
+ * other.
+ */
+export interface RegionElevation {
+  value: string;
+  scope: 'tea_growing' | 'place';
+  /** Reader-facing qualifier when the numerical range could be overread. */
+  note?: string;
+  source?: RegionEvidenceSource;
+}
+
 /** A growing region. `id` is a stable slug so records can point at it. */
 export interface Region {
   id: string;
@@ -17,8 +47,67 @@ export interface Region {
   country: string;
   /** Province or prefecture, when the name alone is ambiguous. */
   province?: string;
+  /** Explicit geographic level. Absence means the legacy flat record is unresolved. */
+  level?: RegionLevel;
+  /** Stable id of an explicitly reviewed parent. A province label is not silently promoted to this. */
+  parentId?: string;
+  /** Evidence-aware replacement for the legacy, context-free altitude string. */
+  elevation?: RegionElevation;
+  /** Legacy context-free data. New reviewed records should use `elevation`. */
   altitude?: string;
   climate?: string;
+  /** Qualified place or trade context, when a citation supports it. */
+  description?: string;
+}
+
+export type WisdomEntryKind = 'cultivar' | 'region' | 'producer' | 'style' | 'mark' | 'namedTea';
+export type CitationUsage = 'usable' | 'qualified' | 'held_back';
+export type ResearchSourceKind =
+  | 'scientific'
+  | 'governmental'
+  | 'institutional'
+  | 'producer-primary'
+  | 'specialist-retailer'
+  | 'book'
+  | 'other';
+
+/** Canonical bibliographic source. Internal fields never enter browser modules. */
+export interface ResearchSource {
+  id: string;
+  publisher: string;
+  title: string;
+  url?: string;
+  kind: ResearchSourceKind;
+  accessedAt: string;
+  publishedAt?: string;
+  trust: 'primary' | 'strong' | 'qualified' | 'lead-only';
+  privateEvidenceRef?: string;
+}
+
+export type PublicResearchSource = Omit<ResearchSource, 'trust' | 'privateEvidenceRef'>;
+
+/** Field-level support from one or more bibliographic sources. */
+export interface WisdomCitation {
+  id: string;
+  entryKind: WisdomEntryKind;
+  entryId: string;
+  fields: string[];
+  sourceIds: string[];
+  usage: CitationUsage;
+  qualification?: string;
+}
+
+/** Qualified sensory character at one shared Wisdom entry scope. */
+export type WisdomPotentialTasting = Pick<
+  TastingData,
+  'body' | 'finish' | 'feeling' | 'flavor' | 'liquor-color' | 'brewing'
+>;
+
+export interface WisdomPotentialProfile {
+  entryKind: WisdomEntryKind;
+  entryId: string;
+  tasting: WisdomPotentialTasting;
+  citationIds: string[];
 }
 
 /** A tea plant cultivar. The lean shape: no prose, safe to import anywhere. */

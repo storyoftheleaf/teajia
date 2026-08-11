@@ -1,0 +1,57 @@
+# Tea Reference website receiving layer
+
+This phase receives the deterministic `website-handoff.json` produced by the Tea Reference capture tool. It is deliberately preview-only. Its importer, domain model, and handoff projection have no database, API, inventory, product, approval, assimilation, publication, or handoff-data filesystem writer.
+
+## Model boundary
+
+The receiving model keeps five concerns separate:
+
+1. Sources contain publisher and page metadata. A publisher is never inferred to be a producer, factory, brand, retailer, or vendor entity.
+2. Citations point from one fact to one private evidence record. Full evidence text and research snapshots stay outside the public projection.
+3. Entities retain their stated kind. Pu'er major regions, tea areas, mountains, villages, and localities are distinct geographic levels with an optional parent entity.
+4. Facts retain their field, claim scope, citation, and semantic register. General reference facts, common characteristics, cultivar potential, exact-lot source descriptions, and Adrian's personal tasting do not share a register.
+5. Verification records are private. They contain the candidate value, evidence pointers, source roles, and the reason a fact or entity remains held.
+
+The current handoff does not include verified parent identifiers for its geographic candidates. The present public Wisdom region type is also flat and has no fact-level citations. The receiver therefore holds those candidates and reports the exact hierarchy gap. It does not flatten a tea area into a generic region or write cited prose into the existing uncited description field.
+
+## Deterministic preview
+
+Run the receiving report against a handoff:
+
+```bash
+npm run tea-reference:website:preview -- --handoff /absolute/path/to/website-handoff.json --no-open
+```
+
+Compare with an existing receiving snapshot by adding `--existing /absolute/path/to/snapshot.json`. The report classifies every source, citation, entity, and fact as `create`, `update`, `no-op`, `conflict`, or `held`. The importer is a pure in-memory projection and does not write a snapshot.
+
+Run the integrated local website preview:
+
+```bash
+npm run tea-reference:teajia:preview -- --handoff /absolute/path/to/website-handoff.json
+```
+
+This serves the real Teajia application on `http://localhost:7777`; it does not open a browser automatically. The integrated preview accepts any valid Tea Reference handoff. In this local mode only, the Wisdom Base adds Types and calls the region holding Origins. These are preview-only routes and labels; the normal production build keeps them disabled. The preview server supplies the current public Teajia catalogue through a GET-only local proxy so type and origin links reflect teas actually offered; non-read requests to that endpoint are refused, and no other local API route is pointed at production.
+
+The same preview mode makes the existing `/admin/wisdom` screen locally readable without signing in. Choose **Review incoming** to inspect the private held packet beside exact evidence, hierarchy context, proposed public wording, and separately labelled current shop matches. `Ready`, `Needs edit`, and `Keep held` are session-only triage controls: they do not call an API, alter the handoff, or save a decision. The handoff directory must retain its private sibling `evidence.json`; the public browser transport never receives that file. Current shop products are fetched separately as live context so identical handoff and evidence inputs always produce identical private review packets.
+
+The terminal operation report is private operator material. It includes create/update/no-op/conflict/held planning and verification reasons and must not be copied into the browser. The browser receives only the allowlisted public transport: public wording, limited excerpts where available, citation and source metadata, and the public correction action. Chinese excerpts are omitted rather than translated implicitly. The importer and public projection read the handoff and public product response in memory and have no database, API, domain-data filesystem, product, inventory, approval, assimilation, or publication writer. Normal Vite tooling may maintain its disposable dependency cache; that cache is tooling output, not a handoff or domain artifact.
+
+The receiver recomputes `manifest.payloadSha256` from the canonical website-handoff payload before planning. `claimsSha256` and `sourceSnapshotSha256` are retained as format-validated opaque provenance: they identify upstream capture inputs that are deliberately absent from this handoff, so the receiver cannot reconstruct or independently verify them.
+
+Types and origins surface only when they connect to eligible products in Teajia's public catalogue. Active, non-personal teas with stock and a positive fixed or per-gram price appear as Available teas; sold-out catalogue history appears as Previously offered only after an active match qualifies the reference entry. Sellable Oolong, Dark, Red, and White lots that lack a reviewed cited family/type remain private candidates in **Inventory-backed reference gaps** rather than becoming uncited public facts. A cited place keeps its declared major-region, tea-area, mountain, village, or locality level. When the handoff does not verify a parent chain, the missing hierarchy remains held in the private operation report rather than being flattened or invented in the public page.
+
+Public origin pages omit empty plant sections and internal reference identifiers. Chinese places use a neutral **View map** action backed by Apple Maps, and elevation is shown only with its supported scope. Jinzhai, for example, presents the official county range explicitly as county geography—not as a tea-garden altitude claim—and keeps the official source beside it. Public corrections use the compact reader-facing sentence; private hold reasons and exact evidence never appear there.
+
+The dedicated browser check uses the same integrated server without tracking or copying the private handoff:
+
+```bash
+TEA_REFERENCE_HANDOFF_PATH=/absolute/path/to/website-handoff.json npm run test:tea-reference-browser
+```
+
+The command fails immediately when `TEA_REFERENCE_HANDOFF_PATH` is absent. This browser rehearsal expects the handoff to contain a Pu’er tea family, a cited Sheng-compatible tea style, and at least one cited origin at a supported geographic level, with matching public source metadata, plus the sibling exact-evidence file used by the private review. A Shou-only fixture fails clearly because the rehearsal must exercise `/wisdom/type/sheng`. The desktop and mobile projects also open **Review incoming**, make a session-only decision, verify that no mutation occurred, and attach public and private screen captures. That narrower contract belongs to the product-connected browser check; the integrated preview command itself accepts any valid handoff. The check is intentionally not part of the default receiving or CI suite because the external private fixture is not stored in this repository.
+
+## Current 12-source rehearsal
+
+The completed Chinese industry run contains 12 sources, 12 entity candidates, 181 atomic claims, and 181 citations. All 181 claims remain held in the source package. Against an empty receiving snapshot, the report plans 12 source creates, 181 citation creates, 12 held entities, and 181 held facts. Replaying the projected source and citation state produces 193 no-ops and the same 193 explicit holds.
+
+The local public projection contains nine supported entries: one tea family, one tea style, three major regions, and four tea areas, backed by nine reachable sources. The three research taxonomy candidates remain private and their now-unreachable source metadata is not transported. The package has no mountain or village entity candidates yet, so those geographic levels correctly remain empty rather than being invented from prose.

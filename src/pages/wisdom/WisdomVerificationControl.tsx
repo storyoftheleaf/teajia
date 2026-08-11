@@ -1,0 +1,224 @@
+import React, { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { CheckCircle2 } from 'lucide-react';
+import { api, type WisdomVerificationReceipt } from '../../lib/api';
+import { useAppStore } from '../../lib/store';
+import { fingerprintWisdomEntry } from '../../wisdom/verificationFingerprint';
+import type { WisdomCitation, WisdomEntryKind, WisdomPotentialProfile } from '../../wisdom/types';
+import { AXIS_INDENT, RULE_FULL, SPACE } from './wisdomShared';
+
+export interface WisdomVerificationInput {
+  entryKind: WisdomEntryKind;
+  entryId: string;
+  entry: unknown;
+  citations: WisdomCitation[];
+  potentialProfile: WisdomPotentialProfile | null;
+  ready?: boolean;
+}
+
+export interface WisdomVerificationQueryData {
+  currentHash: string;
+  receipt: WisdomVerificationReceipt | null;
+}
+
+export interface WisdomVerificationNoticeTarget {
+  accountId: string;
+  entryKind: WisdomEntryKind;
+  entryId: string;
+  contentHash: string;
+}
+
+type WisdomVerificationApi = Pick<typeof api.wisdomVerifications, 'get' | 'put' | 'delete'>;
+type VerificationState = 'empty' | 'verified' | 'changed';
+
+interface SaveRequest {
+  accountId: string;
+  input: WisdomVerificationInput;
+  queryKey: ReturnType<typeof wisdomVerificationQueryKey>;
+}
+
+interface UndoRequest {
+  target: WisdomVerificationNoticeTarget;
+  queryKey: ReturnType<typeof wisdomVerificationQueryKey>;
+}
+
+function fingerprintInput(input: WisdomVerificationInput) {
+  return {
+    entry: input.entry,
+    citations: input.citations,
+    potentialProfile: input.potentialProfile,
+  };
+}
+
+function assertActiveVerificationAccount(accountId: string): void {
+  if (useAppStore.getState().activeAccountId !== accountId) {
+    throw new Error('Wisdom verification account changed');
+  }
+}
+
+export function wisdomVerificationQueryKey(accountId: string, input: WisdomVerificationInput) {
+  return [
+    'wisdom-verification',
+    accountId,
+    input.entryKind,
+    input.entryId,
+    input.entry,
+    input.citations,
+    input.potentialProfile,
+  ] as const;
+}
+
+export async function loadWisdomVerification(
+  accountId: string,
+  input: WisdomVerificationInput,
+  client: WisdomVerificationApi = api.wisdomVerifications,
+): Promise<WisdomVerificationQueryData> {
+  const currentHash = await fingerprintWisdomEntry(fingerprintInput(input));
+  assertActiveVerificationAccount(accountId);
+  const receipt = await client.get(accountId, input.entryKind, input.entryId);
+  return { currentHash, receipt };
+}
+
+export async function saveWisdomVerification(
+  accountId: string,
+  input: WisdomVerificationInput,
+  client: WisdomVerificationApi = api.wisdomVerifications,
+): Promise<WisdomVerificationQueryData> {
+  const currentHash = await fingerprintWisdomEntry(fingerprintInput(input));
+  assertActiveVerificationAccount(accountId);
+  const receipt = await client.put(accountId, input.entryKind, input.entryId, currentHash);
+  return { currentHash, receipt: { ...receipt, content_hash: currentHash } };
+}
+
+export async function undoWisdomVerification(
+  accountId: string,
+  input: Pick<WisdomVerificationInput, 'entryKind' | 'entryId'>,
+  client: WisdomVerificationApi = api.wisdomVerifications,
+) {
+  assertActiveVerificationAccount(accountId);
+  return client.delete(accountId, input.entryKind, input.entryId);
+}
+
+export function noticeMatchesWisdomVerification(
+  notice: WisdomVerificationNoticeTarget | null,
+  accountId: string,
+  input: Pick<WisdomVerificationInput, 'entryKind' | 'entryId'>,
+  currentHash: string | undefined,
+): boolean {
+  return Boolean(
+    notice
+    && currentHash
+    && notice.accountId === accountId
+    && notice.entryKind === input.entryKind
+    && notice.entryId === input.entryId
+    && notice.contentHash === currentHash,
+  );
+}
+
+function receiptState(data: WisdomVerificationQueryData | undefined): VerificationState {
+  if (!data?.receipt) return 'empty';
+  return data.receipt.content_hash === data.currentHash ? 'verified' : 'changed';
+}
+
+const STATE_LABEL: Record<VerificationState, string> = {
+  empty: 'Verify this reference',
+  verified: 'Reference verified',
+  changed: 'Reference changed since verification',
+};
+
+const OwnerWisdomVerificationControl: React.FC<WisdomVerificationInput & { accountId: string }> = input => {
+  const queryClient = useQueryClient();
+  const [noticeTarget, setNoticeTarget] = useState<WisdomVerificationNoticeTarget | null>(null);
+  const queryKey = wisdomVerificationQueryKey(input.accountId, input);
+  const query = useQuery({
+    queryKey,
+    queryFn: () => loadWisdomVerification(input.accountId, input),
+    enabled: input.ready !== false,
+  });
+  const save = useMutation({
+    mutationFn: (request: SaveRequest) => saveWisdomVerification(request.accountId, request.input),
+    onSuccess: (data, request) => {
+      queryClient.setQueryData(request.queryKey, data);
+      setNoticeTarget({
+        accountId: request.accountId,
+        entryKind: request.input.entryKind,
+        entryId: request.input.entryId,
+        contentHash: data.currentHash,
+      });
+    },
+  });
+  const undo = useMutation({
+    mutationFn: (request: UndoRequest) => undoWisdomVerification(request.target.accountId, request.target),
+    onSuccess: (_data, request) => {
+      queryClient.setQueryData<WisdomVerificationQueryData>(request.queryKey, cached => (
+        cached ? { ...cached, receipt: null } : cached
+      ));
+      setNoticeTarget(current => (
+        current?.accountId === request.target.accountId
+        && current.entryKind === request.target.entryKind
+        && current.entryId === request.target.entryId
+        && current.contentHash === request.target.contentHash
+          ? null
+          : current
+      ));
+    },
+  });
+  const visibleNotice = noticeMatchesWisdomVerification(
+    noticeTarget,
+    input.accountId,
+    input,
+    query.data?.currentHash,
+  ) ? noticeTarget : null;
+  const state = receiptState(query.data);
+  const label = STATE_LABEL[state];
+  const pending = save.isPending || undo.isPending;
+
+  return (
+    <div data-wisdom-verification className={`${SPACE.section} ${RULE_FULL} pt-6`}>
+      <div className={`${AXIS_INDENT} flex flex-wrap items-center gap-3`}>
+        <button
+          type="button"
+          aria-label={label}
+          title={label}
+          onClick={() => save.mutate({ accountId: input.accountId, input, queryKey })}
+          disabled={pending || !query.data?.currentHash}
+          className="tap-target relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-tea-border text-tea-text-dim transition-colors hover:border-tea-gold/30 hover:text-tea-gold focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <CheckCircle2
+            size={18}
+            strokeWidth={state === 'verified' ? 2.5 : 1.5}
+            className={state === 'verified' ? 'fill-tea-gold text-tea-bg' : state === 'changed' ? 'text-tea-text-sec' : undefined}
+            aria-hidden="true"
+          />
+          {state === 'changed' && <span aria-hidden="true" className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-tea-gold" />}
+        </button>
+
+        {visibleNotice && (
+          <p role="status" className="flex flex-wrap items-center gap-3 text-ui-11 text-tea-text-sec">
+            Reference verified.
+            <button
+              type="button"
+              onClick={() => undo.mutate({ target: visibleNotice, queryKey })}
+              disabled={pending}
+              className="tap-target text-ui-11 text-tea-gold transition-colors hover:text-tea-gold-lt disabled:opacity-50"
+            >
+              Undo
+            </button>
+          </p>
+        )}
+        {(query.isError || save.isError || undo.isError) && (
+          <p role="alert" className="text-ui-11 text-tea-text-sec">Could not update reference verification.</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export const WisdomVerificationControl: React.FC<WisdomVerificationInput> = input => {
+  const platformRole = useAppStore(state => state.platformRole);
+  const activeAccountId = useAppStore(state => state.activeAccountId);
+  if (platformRole !== 'platform_owner' || !activeAccountId) return null;
+  return <OwnerWisdomVerificationControl {...input} accountId={activeAccountId} />;
+};
+
+export default WisdomVerificationControl;

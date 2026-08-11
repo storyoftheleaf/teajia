@@ -719,7 +719,18 @@ export async function analyzeCurateImport(request: Request, env: ImportEnv, ctx:
   const batch = await scopedBatch(env, params.id, ctx.accountId);
   if (!batch) return response({ error: 'Import not found' }, 404);
   if (batchIsTerminal(batch)) return terminalResponse();
-  if (!env.ANTHROPIC_API_KEY && !env.GROQ_API_KEY) return response({ error: 'Import analysis is not configured' }, 503);
+  if (!env.ANTHROPIC_API_KEY && !env.GROQ_API_KEY) {
+    const directSources = await env.DB.prepare('SELECT id, kind, pasted_text FROM curate_import_sources WHERE batch_id = ? AND account_id = ? ORDER BY created_at, id')
+      .bind(params.id, ctx.accountId).all<Record<string, unknown>>();
+    const directHints = buildImportRecordHints({
+      sources: directSources.results.map(source => ({
+        id: String(source.id),
+        kind: String(source.kind),
+        text: typeof source.pasted_text === 'string' ? source.pasted_text : null,
+      })),
+    });
+    if (!directHints.complete) return response({ error: 'Import analysis is not configured' }, 503);
+  }
   let requestedSourceIds: string[] | null = null;
   try {
     const raw = await request.text();

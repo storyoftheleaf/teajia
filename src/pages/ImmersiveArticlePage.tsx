@@ -34,7 +34,7 @@ export default function ImmersiveArticlePage() {
 
   return (
     <div className="bg-tea-bg text-tea-text min-h-[100dvh]" data-testid="immersive-article">
-      <Helmet><title>{article.title} · Teajia</title></Helmet>
+      <Helmet><title>{`${article.title} · Teajia`}</title></Helmet>
       <ReadingProgress />
       <button
         type="button"
