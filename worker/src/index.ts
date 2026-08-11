@@ -9304,6 +9304,28 @@ const handleFindRSVP: Handler = async (request, env, params) => {
 
 // ── Event Admin Routes ──
 
+const EVENT_LIFECYCLE_BY_STATUS = {
+  draft: 'draft',
+  active: 'published',
+  closed: 'registration_closed',
+  archived: 'archived',
+} as const;
+
+const EVENT_LIFECYCLE_STATUSES = new Set([
+  'draft',
+  'published',
+  'registration_closed',
+  'completed',
+  'cancelled',
+  'archived',
+]);
+
+const isLegacyEventStatus = (value: unknown): value is keyof typeof EVENT_LIFECYCLE_BY_STATUS =>
+  typeof value === 'string' && Object.prototype.hasOwnProperty.call(EVENT_LIFECYCLE_BY_STATUS, value);
+
+const isEventLifecycleStatus = (value: unknown): value is string =>
+  typeof value === 'string' && EVENT_LIFECYCLE_STATUSES.has(value);
+
 const handleGetEvents: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
@@ -9365,6 +9387,20 @@ const handleCreateEvent: Handler = async (request, env) => {
     return json({ error: 'slug, title, event_date, and total_capacity are required' }, 400);
   }
 
+  const eventStatus = body.status ?? 'draft';
+  if (!isLegacyEventStatus(eventStatus)) {
+    return json({ error: 'Invalid event status' }, 400);
+  }
+  const lifecycleStatus = EVENT_LIFECYCLE_BY_STATUS[eventStatus];
+  if (body.lifecycle_status !== undefined) {
+    if (!isEventLifecycleStatus(body.lifecycle_status)) {
+      return json({ error: 'Invalid lifecycle_status' }, 400);
+    }
+    if (body.lifecycle_status !== lifecycleStatus) {
+      return json({ error: 'lifecycle_status must match status' }, 400);
+    }
+  }
+
   // Event slug must be unique globally (it's used in /api/events/:slug/public
   // and in shareable URLs across the network).
   const existingSlug = await env.DB.prepare('SELECT id FROM events WHERE slug = ?').bind(body.slug).first();
@@ -9375,9 +9411,9 @@ const handleCreateEvent: Handler = async (request, env) => {
   await env.DB.prepare(
     `INSERT INTO events (id, account_id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
        location_name, address_text, map_link, guidelines_text, venue_guide, total_capacity, claim_window_minutes,
-       timezone, status, session_flow, playlist_url, location_id, event_format,
+       timezone, status, lifecycle_status, session_flow, playlist_url, location_id, event_format,
        venue_id, active_space_ids, gathering_type, area_hint, mood_hints, briefing_cards, requires_approval)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
     accountId,
@@ -9396,7 +9432,8 @@ const handleCreateEvent: Handler = async (request, env) => {
     body.total_capacity,
     body.claim_window_minutes || 60,
     body.timezone || 'Asia/Taipei',
-    body.status || 'draft',
+    eventStatus,
+    lifecycleStatus,
     body.session_flow ? (typeof body.session_flow === 'string' ? body.session_flow : JSON.stringify(body.session_flow)) : null,
     body.playlist_url || null,
     body.location_id || null,
@@ -9421,6 +9458,20 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
   const body = normalizeEventUpdate(await request.json() as Record<string, any>) as Record<string, any>;
   delete body.account_id;
 
+  if (body.lifecycle_status !== undefined && !isEventLifecycleStatus(body.lifecycle_status)) {
+    return json({ error: 'Invalid lifecycle_status' }, 400);
+  }
+  if (body.status !== undefined) {
+    if (!isLegacyEventStatus(body.status)) {
+      return json({ error: 'Invalid event status' }, 400);
+    }
+    const lifecycleStatus = EVENT_LIFECYCLE_BY_STATUS[body.status];
+    if (body.lifecycle_status !== undefined && body.lifecycle_status !== lifecycleStatus) {
+      return json({ error: 'lifecycle_status must match status' }, 400);
+    }
+    body.lifecycle_status = lifecycleStatus;
+  }
+
   if (body.session_flow && typeof body.session_flow !== 'string') {
     body.session_flow = JSON.stringify(body.session_flow);
   }
@@ -9435,7 +9486,7 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
   }
   if (body.event_format === undefined) delete body.event_format;
 
-  const EVENT_ALLOWED_COLS = new Set(['title','subtitle','description','slug','status','event_date','event_end_date','location_name','total_capacity','event_format','gathering_type','flyer_image_url','claim_window_minutes','venue_id','active_space_ids','location_id','session_flow','address_text','map_link','guidelines_text','area_hint','venue_guide','mood_hints','briefing_cards','timezone','playlist_url','requires_approval']);
+  const EVENT_ALLOWED_COLS = new Set(['title','subtitle','description','slug','status','lifecycle_status','event_date','event_end_date','location_name','total_capacity','event_format','gathering_type','flyer_image_url','claim_window_minutes','venue_id','active_space_ids','location_id','session_flow','address_text','map_link','guidelines_text','area_hint','venue_guide','mood_hints','briefing_cards','timezone','playlist_url','requires_approval']);
   const cols = Object.keys(body).filter(k => EVENT_ALLOWED_COLS.has(k));
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 

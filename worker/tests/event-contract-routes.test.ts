@@ -252,6 +252,169 @@ async function adminEventRequest(
 }
 
 describe('Events Release 1 persisted route contracts', () => {
+  it('creates active events with a published lifecycle and an eligible public menu', async () => {
+    const db = seedEventContractDb();
+    try {
+      const created = await adminEventRequest(db, '/api/admin/events', {
+        method: 'POST',
+        body: JSON.stringify({
+          slug: 'created-active',
+          title: 'Created Active',
+          event_date: '2031-01-01T10:00',
+          total_capacity: 8,
+          status: 'active',
+        }),
+      });
+      const createdBody = await created.json() as Record<string, unknown>;
+      expect(created.status).toBe(201);
+      expect(db.sqlite.prepare(`SELECT status, lifecycle_status FROM events WHERE id = ?`).get(createdBody.id as string))
+        .toEqual({ status: 'active', lifecycle_status: 'published' });
+
+      db.sqlite.prepare(`INSERT INTO event_tea_menu (id, account_id, event_id, custom_name, brew_order)
+        VALUES (?, ?, ?, ?, ?)`)
+        .run('created-active-menu', 'account-a', createdBody.id, 'Public Tea', 1);
+      const publicMenu = await worker.fetch(new Request('https://worker.test/api/events/created-active/tea-menu'), { DB: db } as any);
+      expect(publicMenu.status).toBe(200);
+      expect(await publicMenu.json()).toEqual([expect.objectContaining({ id: 'created-active-menu', custom_name: 'Public Tea' })]);
+    } finally {
+      db.close();
+    }
+  });
+
+  it('keeps default draft events unavailable to the public menu', async () => {
+    const db = seedEventContractDb();
+    try {
+      const created = await adminEventRequest(db, '/api/admin/events', {
+        method: 'POST',
+        body: JSON.stringify({
+          slug: 'created-draft',
+          title: 'Created Draft',
+          event_date: '2031-01-01T10:00',
+          total_capacity: 8,
+        }),
+      });
+      const createdBody = await created.json() as Record<string, unknown>;
+      expect(created.status).toBe(201);
+      expect(db.sqlite.prepare(`SELECT status, lifecycle_status FROM events WHERE id = ?`).get(createdBody.id as string))
+        .toEqual({ status: 'draft', lifecycle_status: 'draft' });
+
+      const publicMenu = await worker.fetch(new Request('https://worker.test/api/events/created-draft/tea-menu'), { DB: db } as any);
+      expect(publicMenu.status).toBe(404);
+    } finally {
+      db.close();
+    }
+  });
+
+  it('synchronizes draft to active/published and makes the public menu eligible', async () => {
+    const db = seedEventContractDb();
+    try {
+      db.sqlite.prepare(`INSERT INTO events
+        (id, account_id, slug, title, event_date, total_capacity, status, lifecycle_status)
+        VALUES (?, ?, ?, ?, ?, ?, 'draft', 'draft')`)
+        .run('event-promote', 'account-a', 'event-promote', 'Promoted Event', '2031-01-01T10:00', 8);
+      db.sqlite.prepare(`INSERT INTO event_tea_menu (id, account_id, event_id, custom_name, brew_order)
+        VALUES (?, ?, ?, ?, ?)`)
+        .run('event-promote-menu', 'account-a', 'event-promote', 'Promoted Tea', 1);
+
+      const updated = await adminEventRequest(db, '/api/admin/events/event-promote', {
+        method: 'PUT',
+        body: JSON.stringify({ status: 'active' }),
+      });
+      expect(updated.status).toBe(200);
+      expect(db.sqlite.prepare(`SELECT status, lifecycle_status FROM events WHERE id = ?`).get('event-promote'))
+        .toEqual({ status: 'active', lifecycle_status: 'published' });
+
+      const publicMenu = await worker.fetch(new Request('https://worker.test/api/events/event-promote/tea-menu'), { DB: db } as any);
+      expect(publicMenu.status).toBe(200);
+    } finally {
+      db.close();
+    }
+  });
+
+  it.each([
+    ['closed', 'registration_closed'],
+    ['archived', 'archived'],
+  ])('maps legacy %s updates to canonical %s', async (status, lifecycleStatus) => {
+    const db = seedEventContractDb();
+    try {
+      const created = await adminEventRequest(db, '/api/admin/events', {
+        method: 'POST',
+        body: JSON.stringify({
+          slug: `created-${status}`,
+          title: `Created ${status}`,
+          event_date: '2031-01-01T10:00',
+          total_capacity: 8,
+          status,
+        }),
+      });
+      const createdBody = await created.json() as Record<string, unknown>;
+      expect(created.status).toBe(201);
+      expect(db.sqlite.prepare(`SELECT status, lifecycle_status FROM events WHERE id = ?`).get(createdBody.id as string))
+        .toEqual({ status, lifecycle_status: lifecycleStatus });
+
+      const response = await adminEventRequest(db, '/api/admin/events/event-a', {
+        method: 'PUT',
+        body: JSON.stringify({ status }),
+      });
+      expect(response.status).toBe(200);
+      expect(db.sqlite.prepare(`SELECT status, lifecycle_status FROM events WHERE id = ?`).get('event-a'))
+        .toEqual({ status, lifecycle_status: lifecycleStatus });
+    } finally {
+      db.close();
+    }
+  });
+
+  it('rejects invalid or inconsistent lifecycle text without persisting status', async () => {
+    const db = seedEventContractDb();
+    try {
+      const consistentUpdate = await adminEventRequest(db, '/api/admin/events/event-a', {
+        method: 'PUT',
+        body: JSON.stringify({ status: 'active', lifecycle_status: 'published' }),
+      });
+      expect(consistentUpdate.status).toBe(200);
+
+      const invalidLegacy = await adminEventRequest(db, '/api/admin/events/event-a', {
+        method: 'PUT',
+        body: JSON.stringify({ status: 'published' }),
+      });
+      expect(invalidLegacy.status).toBe(400);
+      expect(await invalidLegacy.json()).toEqual({ error: 'Invalid event status' });
+
+      const invalidCanonical = await adminEventRequest(db, '/api/admin/events/event-a', {
+        method: 'PUT',
+        body: JSON.stringify({ lifecycle_status: 'bogus' }),
+      });
+      expect(invalidCanonical.status).toBe(400);
+      expect(await invalidCanonical.json()).toEqual({ error: 'Invalid lifecycle_status' });
+
+      const conflictingUpdate = await adminEventRequest(db, '/api/admin/events/event-a', {
+        method: 'PUT',
+        body: JSON.stringify({ status: 'closed', lifecycle_status: 'published' }),
+      });
+      expect(conflictingUpdate.status).toBe(400);
+      expect(await conflictingUpdate.json()).toEqual({ error: 'lifecycle_status must match status' });
+
+      const conflictingCreate = await adminEventRequest(db, '/api/admin/events', {
+        method: 'POST',
+        body: JSON.stringify({
+          slug: 'conflicting-lifecycle',
+          title: 'Conflicting Lifecycle',
+          event_date: '2031-01-01T10:00',
+          total_capacity: 8,
+          status: 'active',
+          lifecycle_status: 'draft',
+        }),
+      });
+      expect(conflictingCreate.status).toBe(400);
+      expect(await conflictingCreate.json()).toEqual({ error: 'lifecycle_status must match status' });
+      expect(db.sqlite.prepare(`SELECT status, lifecycle_status FROM events WHERE id = ?`).get('event-a'))
+        .toEqual({ status: 'active', lifecycle_status: 'published' });
+      expect(db.sqlite.prepare(`SELECT id FROM events WHERE slug = ?`).get('conflicting-lifecycle')).toBeUndefined();
+    } finally {
+      db.close();
+    }
+  });
+
   it('normalizes legacy update aliases before allowlisting and lets canonical keys win', async () => {
     const db = seedEventContractDb();
     try {
