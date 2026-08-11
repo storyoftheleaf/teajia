@@ -12,7 +12,10 @@ const migrationNames = readdirSync(migrationsDir)
   .sort();
 
 function sqlite(database: string, input: string): string {
-  return execFileSync('sqlite3', [database], { input: `.bail on\n${input}`, encoding: 'utf8' }).trim();
+  return execFileSync('sqlite3', [database], {
+    input: `.bail on\nPRAGMA foreign_keys = ON;\n${input}`,
+    encoding: 'utf8',
+  }).trim();
 }
 
 function withDatabase(run: (database: string) => void): void {
@@ -78,7 +81,15 @@ describe('migration 017 rehearsals', () => {
 
   it('upgrades the production-shaped pre-017 schema through the latest migration', () => withDatabase((database) => {
     sqlite(database, sql('tests/fixtures/pre-017-production.sql'));
-    sqlite(database, `INSERT INTO products(id, type, product_name) VALUES ('legacy', 'Oolong', 'Legacy tea');`);
+    expect(sqlite(database, 'PRAGMA foreign_keys;')).toBe('1');
+    sqlite(database, `
+      INSERT INTO products(id, type, product_name) VALUES ('legacy', 'Oolong', 'Legacy tea');
+      INSERT INTO events(id, slug, title, event_date, status)
+        VALUES ('legacy-event', 'legacy-event', 'Legacy event', '2026-09-01', 'active');
+      INSERT INTO event_attendees(
+        id, event_id, full_name, phone_number, status, magic_token
+      ) VALUES ('legacy-attendee', 'legacy-event', 'Legacy guest', '1', 'confirmed', 'legacy-magic');
+    `);
     initializeLedger(database, ['017_multi_account.sql']);
 
     const applied = applyTrackedMigrations(database);
@@ -93,6 +104,16 @@ describe('migration 017 rehearsals', () => {
     expect(sqlite(database, `SELECT COUNT(*) FROM users WHERE email_verified_at IS NULL;`)).toBe('0');
     expect(sqlite(database, `SELECT name FROM pragma_table_info('tea_sample_sets') WHERE name='archived';`)).toBe('archived');
     expect(sqlite(database, `SELECT name FROM pragma_table_info('tea_compass_entries') WHERE name='sample_set_id';`)).toBe('sample_set_id');
+    expect(sqlite(database, `SELECT lifecycle_status FROM events WHERE id='legacy-event';`)).toBe('published');
+    expect(sqlite(database, `
+      SELECT account_id || '|' || event_id || '|' || participation_id || '|' || is_primary || '|' || seat_status
+        FROM event_party_members WHERE participation_id='legacy-attendee';
+    `)).toBe('acc_teajia_bali|legacy-event|legacy-attendee|1|confirmed');
+    expect(() => sqlite(database, `
+      INSERT INTO event_party_members(
+        id, account_id, event_id, participation_id, full_name, is_primary, seat_status
+      ) VALUES ('duplicate-primary', 'acc_teajia_bali', 'legacy-event', 'legacy-attendee', 'Duplicate', 1, 'confirmed');
+    `)).toThrow(/UNIQUE constraint failed/);
   }), 30_000);
 
   it('makes a real repeated migration-ledger application a no-op', () => withDatabase((database) => {
