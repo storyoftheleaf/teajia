@@ -14,7 +14,7 @@ import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 import { deriveConfirmedInvoiceLine, repairCandidate } from './invoiceDomain';
 import { buildEventArticleDraft } from './eventArticleDraft';
-import { normalizeEventUpdate, normalizeRsvpUpdate } from './eventDomain';
+import { EVENT_TRANSITIONS, normalizeEventUpdate, normalizeRsvpUpdate, type EventLifecycle } from './eventDomain';
 import { candidateToApi, impressionToApi, parseCandidateInput } from './tastingNoteCuration';
 import { deliverVerificationCode } from './verificationDelivery';
 import { INCIDENT_STATUSES, incidentToApi, normalizeIncidentInput, upsertIncident, type IncidentStatus } from './incidents';
@@ -9320,10 +9320,19 @@ const EVENT_LIFECYCLE_STATUSES = new Set([
   'archived',
 ]);
 
+const EVENT_STATUS_BY_LIFECYCLE: Readonly<Record<EventLifecycle, keyof typeof EVENT_LIFECYCLE_BY_STATUS>> = {
+  draft: 'draft',
+  published: 'active',
+  registration_closed: 'closed',
+  completed: 'closed',
+  cancelled: 'closed',
+  archived: 'archived',
+};
+
 const isLegacyEventStatus = (value: unknown): value is keyof typeof EVENT_LIFECYCLE_BY_STATUS =>
   typeof value === 'string' && Object.prototype.hasOwnProperty.call(EVENT_LIFECYCLE_BY_STATUS, value);
 
-const isEventLifecycleStatus = (value: unknown): value is string =>
+const isEventLifecycleStatus = (value: unknown): value is EventLifecycle =>
   typeof value === 'string' && EVENT_LIFECYCLE_STATUSES.has(value);
 
 const handleGetEvents: Handler = async (request, env) => {
@@ -9461,15 +9470,39 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
   if (body.lifecycle_status !== undefined && !isEventLifecycleStatus(body.lifecycle_status)) {
     return json({ error: 'Invalid lifecycle_status' }, 400);
   }
-  if (body.status !== undefined) {
-    if (!isLegacyEventStatus(body.status)) {
-      return json({ error: 'Invalid event status' }, 400);
-    }
-    const lifecycleStatus = EVENT_LIFECYCLE_BY_STATUS[body.status];
-    if (body.lifecycle_status !== undefined && body.lifecycle_status !== lifecycleStatus) {
+  if (body.status !== undefined && !isLegacyEventStatus(body.status)) {
+    return json({ error: 'Invalid event status' }, 400);
+  }
+
+  const currentEvent = await env.DB.prepare(
+    'SELECT status, lifecycle_status FROM events WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first<{ status: string; lifecycle_status: string }>();
+  if (!currentEvent) return json({ error: 'Event not found' }, 404);
+
+  let requestedLifecycle: EventLifecycle | undefined;
+  if (isEventLifecycleStatus(body.lifecycle_status)) {
+    requestedLifecycle = body.lifecycle_status;
+    const compatibleStatus = EVENT_STATUS_BY_LIFECYCLE[requestedLifecycle];
+    if (body.status !== undefined && body.status !== compatibleStatus) {
       return json({ error: 'lifecycle_status must match status' }, 400);
     }
-    body.lifecycle_status = lifecycleStatus;
+    body.status = compatibleStatus;
+  } else if (isLegacyEventStatus(body.status)) {
+    requestedLifecycle = EVENT_LIFECYCLE_BY_STATUS[body.status];
+    body.lifecycle_status = requestedLifecycle;
+  }
+
+  if (requestedLifecycle !== undefined) {
+    if (!isEventLifecycleStatus(currentEvent.lifecycle_status)) {
+      return json({ error: 'Event has an invalid lifecycle status' }, 409);
+    }
+    const currentLifecycle = currentEvent.lifecycle_status;
+    if (
+      requestedLifecycle !== currentLifecycle
+      && !EVENT_TRANSITIONS[currentLifecycle].includes(requestedLifecycle)
+    ) {
+      return json({ error: `Invalid lifecycle transition from ${currentLifecycle} to ${requestedLifecycle}` }, 400);
+    }
   }
 
   if (body.session_flow && typeof body.session_flow !== 'string') {

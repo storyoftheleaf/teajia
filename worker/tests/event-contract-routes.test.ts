@@ -331,6 +331,65 @@ describe('Events Release 1 persisted route contracts', () => {
     }
   });
 
+  it('synchronizes legal canonical-only lifecycle transitions into the legacy status', async () => {
+    const db = seedEventContractDb();
+    try {
+      const registrationClosed = await adminEventRequest(db, '/api/admin/events/event-a', {
+        method: 'PUT',
+        body: JSON.stringify({ lifecycle_status: 'registration_closed' }),
+      });
+      expect(registrationClosed.status).toBe(200);
+      expect(db.sqlite.prepare(`SELECT status, lifecycle_status FROM events WHERE id = ?`).get('event-a'))
+        .toEqual({ status: 'closed', lifecycle_status: 'registration_closed' });
+
+      const completed = await adminEventRequest(db, '/api/admin/events/event-a', {
+        method: 'PUT',
+        body: JSON.stringify({ lifecycle_status: 'completed' }),
+      });
+      expect(completed.status).toBe(200);
+      expect(db.sqlite.prepare(`SELECT status, lifecycle_status FROM events WHERE id = ?`).get('event-a'))
+        .toEqual({ status: 'closed', lifecycle_status: 'completed' });
+
+      const archived = await adminEventRequest(db, '/api/admin/events/event-a', {
+        method: 'PUT',
+        body: JSON.stringify({ lifecycle_status: 'archived' }),
+      });
+      expect(archived.status).toBe(200);
+      expect(db.sqlite.prepare(`SELECT status, lifecycle_status FROM events WHERE id = ?`).get('event-a'))
+        .toEqual({ status: 'archived', lifecycle_status: 'archived' });
+    } finally {
+      db.close();
+    }
+  });
+
+  it('rejects illegal canonical and legacy transitions without mutation', async () => {
+    const db = seedEventContractDb();
+    try {
+      db.sqlite.prepare(`UPDATE events SET status = 'archived', lifecycle_status = 'archived' WHERE id = ?`)
+        .run('event-a');
+
+      const canonical = await adminEventRequest(db, '/api/admin/events/event-a', {
+        method: 'PUT',
+        body: JSON.stringify({ lifecycle_status: 'published' }),
+      });
+      expect(canonical.status).toBe(400);
+      expect(await canonical.json()).toEqual({ error: 'Invalid lifecycle transition from archived to published' });
+      expect(db.sqlite.prepare(`SELECT status, lifecycle_status FROM events WHERE id = ?`).get('event-a'))
+        .toEqual({ status: 'archived', lifecycle_status: 'archived' });
+
+      const legacy = await adminEventRequest(db, '/api/admin/events/event-a', {
+        method: 'PUT',
+        body: JSON.stringify({ status: 'active' }),
+      });
+      expect(legacy.status).toBe(400);
+      expect(await legacy.json()).toEqual({ error: 'Invalid lifecycle transition from archived to published' });
+      expect(db.sqlite.prepare(`SELECT status, lifecycle_status FROM events WHERE id = ?`).get('event-a'))
+        .toEqual({ status: 'archived', lifecycle_status: 'archived' });
+    } finally {
+      db.close();
+    }
+  });
+
   it.each([
     ['closed', 'registration_closed'],
     ['archived', 'archived'],
@@ -351,6 +410,11 @@ describe('Events Release 1 persisted route contracts', () => {
       expect(created.status).toBe(201);
       expect(db.sqlite.prepare(`SELECT status, lifecycle_status FROM events WHERE id = ?`).get(createdBody.id as string))
         .toEqual({ status, lifecycle_status: lifecycleStatus });
+
+      if (status === 'archived') {
+        db.sqlite.prepare(`UPDATE events SET status = 'closed', lifecycle_status = 'completed' WHERE id = ?`)
+          .run('event-a');
+      }
 
       const response = await adminEventRequest(db, '/api/admin/events/event-a', {
         method: 'PUT',
