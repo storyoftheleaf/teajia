@@ -87,7 +87,7 @@ describe('SettlementLedger behavior', () => {
     expect(await page.getByRole('button', { name: 'Mark paid' }).count()).toBe(1);
   });
 
-  it('does not leak a late paid mutation result into a newly active account', async () => {
+  it('does not leak a late paid mutation error into a ready newly active account', async () => {
     await open();
     await expect.poll(() => page.evaluate(() => (window as any).settlementLedgerTest.listAccounts())).toEqual(['account-a']);
     await page.evaluate(value => (window as any).settlementLedgerTest.resolveList(0, [value]), row());
@@ -97,8 +97,10 @@ describe('SettlementLedger behavior', () => {
     await page.evaluate(() => (window as any).settlementLedgerTest.setAccount('account-b'));
     await page.evaluate(() => (window as any).settlementLedgerTest.confirmAccount('account-b'));
     await expect.poll(() => page.evaluate(() => (window as any).settlementLedgerTest.listAccounts())).toEqual(['account-a', 'account-b']);
-    await page.evaluate(() => (window as any).settlementLedgerTest.resolvePaid(0));
-    await page.waitForTimeout(100);
+    await page.evaluate(value => (window as any).settlementLedgerTest.resolveList(1, [value]), row({ id: 'settlement-b', account_id: 'account-b', invoice_number: 'INV-B', product_name: 'Account B tea' }));
+    await expect.poll(() => page.getByText('Account B tea', { exact: true }).count()).toBe(1);
+    await page.evaluate(() => (window as any).settlementLedgerTest.rejectPaid(0));
+    await page.waitForTimeout(150);
     expect(await page.getByText('Settlement marked paid.', { exact: true }).count()).toBe(0);
     expect(await page.getByText(/could not be marked paid/i).count()).toBe(0);
   });

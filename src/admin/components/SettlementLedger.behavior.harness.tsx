@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { api, getTokenClaims, setToken, type SalesSettlement } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
+import type { AccountMembership } from '../../types';
 import { SettlementLedger } from './SettlementLedger';
 
 interface Request<T> { accountId: string | null; resolve: (value: T) => void; reject: () => void }
@@ -26,7 +27,7 @@ const root = createRoot(document.getElementById('root')!);
 let accountId = 'account-a';
 let renderRevision = 0;
 const tokenFor = (id: string) => `header.${btoa(JSON.stringify({ active_account_id: id }))}.signature`;
-const membership = (id: string, role: 'owner' | 'staff') => ({ account_id: id, account_name: id, slug: id, role, bundles: ['sell'] as const });
+const membership = (id: string, role: 'owner' | 'staff'): AccountMembership => ({ account_id: id, account_name: id, slug: id, role, bundles: ['sell'] });
 
 function render(role: 'owner' | 'staff') {
   useAppStore.setState({ activeAccountId: accountId, memberships: [membership(accountId, role)], platformRole: null });

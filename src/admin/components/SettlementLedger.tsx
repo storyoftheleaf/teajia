@@ -100,17 +100,20 @@ export function SettlementLedger() {
     },
   });
   const mutation = useMutation({
-    mutationFn: async (row: SalesSettlement) => {
-      const requestAccount = accountId;
+    mutationFn: async ({ row, requestAccount }: { row: SalesSettlement; requestAccount: string | null }) => {
       await api.sales.markSettlementPaid(row.id);
       if (useAppStore.getState().activeAccountId !== requestAccount || !isTokenScopedToAccount(requestAccount)) throw new Error('Account scope changed');
       return row.id;
     },
-    onSuccess: id => {
+    onSuccess: (id, { requestAccount }) => {
+      if (useAppStore.getState().activeAccountId !== requestAccount || !isTokenScopedToAccount(requestAccount)) return;
       queryClient.setQueryData<SalesSettlement[]>(['sales-settlements', accountId, tokenRevision], rows => rows?.map(row => row.id === id ? { ...row, status: 'paid' } : row));
       setConfirming(null); setMessage({ kind: 'success', text: 'Settlement marked paid.' });
     },
-    onError: () => { setConfirming(null); setMessage({ kind: 'error', text: 'Settlement could not be marked paid. Retry from the owed row.' }); },
+    onError: (_error, { requestAccount }) => {
+      if (useAppStore.getState().activeAccountId !== requestAccount || !isTokenScopedToAccount(requestAccount)) return;
+      setConfirming(null); setMessage({ kind: 'error', text: 'Settlement could not be marked paid. Retry from the owed row.' });
+    },
   });
   const rows = tokenScoped ? query.data || [] : [];
   const mode: ViewMode = !tokenScoped || query.isPending ? 'loading' : query.isError ? 'error' : rows.length === 0 ? 'empty' : 'ready';
@@ -121,7 +124,7 @@ export function SettlementLedger() {
         <h2 id="settlement-ledger-title" className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>Settlements</h2>
         <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-1 text-tea-text-sec`}>{isOwner ? 'Account sales split between stock owners and sellers.' : 'Sales in which you participated as seller or stock owner.'}</p>
       </div>
-      <SettlementLedgerView mode={mode} rows={rows} isOwner={isOwner} pendingId={mutation.isPending ? mutation.variables?.id || null : null} error={message?.kind === 'error' ? message.text : null} success={message?.kind === 'success' ? message.text : null} onRetry={() => { void query.refetch(); }} onRequestPaid={setConfirming} onDismissMessage={() => setMessage(null)} />
+      <SettlementLedgerView mode={mode} rows={rows} isOwner={isOwner} pendingId={mutation.isPending ? mutation.variables?.row.id || null : null} error={message?.kind === 'error' ? message.text : null} success={message?.kind === 'success' ? message.text : null} onRetry={() => { void query.refetch(); }} onRequestPaid={setConfirming} onDismissMessage={() => setMessage(null)} />
     </div>
     {isOwner && confirming && <div role="dialog" aria-modal="true" aria-labelledby="settlement-confirm-title" className="fixed inset-0 z-modal flex items-center justify-center bg-tea-bg/90 p-4">
       <div className="w-full max-w-md rounded-md border border-tea-border bg-tea-elevated p-5">
@@ -129,7 +132,7 @@ export function SettlementLedger() {
         <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-2 text-tea-text-sec`}>Mark {money(confirming.seller_amount)} for {confirming.seller_name || 'this seller'} as paid? This records the settlement only.</p>
         <div className="mt-6 flex justify-between gap-4 border-t border-tea-border pt-4">
           <button type="button" disabled={mutation.isPending} onClick={() => setConfirming(null)} className="tap-target min-h-[44px] text-ui-13 text-tea-text-sec hover:text-tea-text disabled:opacity-60">Cancel</button>
-          <button type="button" disabled={mutation.isPending} onClick={() => mutation.mutate(confirming)} className="cta-solid tap-target min-h-[44px] px-4 text-ui-13 font-medium disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.98]">{mutation.isPending ? 'Marking paid' : 'Confirm paid'}</button>
+          <button type="button" disabled={mutation.isPending} onClick={() => mutation.mutate({ row: confirming, requestAccount: accountId })} className="cta-solid tap-target min-h-[44px] px-4 text-ui-13 font-medium disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.98]">{mutation.isPending ? 'Marking paid' : 'Confirm paid'}</button>
         </div>
       </div>
     </div>}
