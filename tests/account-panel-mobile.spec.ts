@@ -38,10 +38,28 @@ const FAKE_TOKEN = makeFakeJWT({
   ],
 });
 
+const NO_SELL_TOKEN = makeFakeJWT({
+  sub: 'test-member-uid',
+  email: 'member@teajia.com',
+  name: 'Test Member',
+  role: 'member',
+  exp: Math.floor(Date.now() / 1000) + 86400 * 30,
+  active_account_id: 'acct-bali',
+  memberships: [
+    { account_id: 'acct-bali', account_name: 'Teajia Bali', role: 'member', slug: 'teajia-bali', bundles: [] },
+  ],
+});
+
 async function injectAuth(page: Page) {
   await page.addInitScript((token) => {
     localStorage.setItem('teajia_token', token);
   }, FAKE_TOKEN);
+}
+
+async function injectNoSellAuth(page: Page) {
+  await page.addInitScript((token) => {
+    localStorage.setItem('teajia_token', token);
+  }, NO_SELL_TOKEN);
 }
 
 async function goto(page: Page, route: string) {
@@ -188,6 +206,24 @@ test.describe('Account Panel — mobile audit', () => {
       await expect(signOut).toBeVisible();
     }
   });
+
+  test('orders tile closes the panel and opens order activity for a Sell-capable account', async ({ page }) => {
+    await injectAuth(page);
+    await goto(page, '/');
+    await openPanel(page);
+
+    await page.getByRole('button', { name: /orders/i }).click();
+    await expect(page).toHaveURL(/\/admin\/activity\?tab=orders/);
+    await expect(page.locator('.fixed.top-0.right-0')).toHaveCount(0);
+  });
+
+  test('orders tile is absent without the Sell capability', async ({ page }) => {
+    await injectNoSellAuth(page);
+    await goto(page, '/');
+    await openPanel(page);
+
+    await expect(page.getByRole('button', { name: /orders/i })).toHaveCount(0);
+  });
 });
 
 // ─── Page health check helper ─────────────────────────────────────────────────
@@ -327,8 +363,16 @@ test.describe('Tea Master profile routes — mobile', () => {
     await expect(page.getByText('Changes remain private until approved.')).toHaveCount(0);
     await expect(page.getByRole('heading', { name: 'Public favorites' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Payment methods' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Account settings' })).toHaveAttribute('href', '/account/settings');
     await shot(page, 'profile_management');
     await assertPageHealthy(page, 'Tea Master profile management', []);
+  });
+
+  test('account settings links back to the Tea Master profile', async ({ page }) => {
+    await injectAuth(page);
+    await goto(page, '/account/settings');
+
+    await expect(page.getByRole('link', { name: 'Tea Master profile' })).toHaveAttribute('href', '/account/profile');
   });
 
   test('profile management reports favorites and payment failures instead of false empty states', async ({ page }) => {

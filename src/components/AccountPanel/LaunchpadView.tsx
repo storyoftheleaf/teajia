@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BowlSteam, CalendarBlank, Heart, Tray, ArrowsLeftRight, Wrench, Path, BookOpen, Compass, Package, NotePencil, IdentificationCard } from '@phosphor-icons/react';
+import { BowlSteam, CalendarBlank, Heart, Tray, ArrowsLeftRight, Wrench, Path, BookOpen, Compass, Package, NotePencil, IdentificationCard, Receipt } from '@phosphor-icons/react';
 import { ADMIN_CONNECTION_ROUTES } from '../navigationConnections';
 
 interface LaunchpadTile {
@@ -25,6 +25,7 @@ interface LaunchpadViewProps {
   // Tier
   isOwner: boolean;
   canPublish: boolean;
+  canSell: boolean;
   membershipsCount: number;
 
   // Signals
@@ -135,6 +136,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
   locationLabel,
   isOwner,
   canPublish,
+  canSell,
   membershipsCount,
   pendingInvoiceCount,
   todayEventCount,
@@ -220,6 +222,13 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
       icon: <IdentificationCard {...ICON_PROPS} />,
       onClick: () => { onClose(); navigate('/account/profile'); },
     },
+    ...(canSell ? [{
+      id: 'orders',
+      verb: 'orders',
+      hint: 'sales & fulfillment',
+      icon: <Receipt {...ICON_PROPS} />,
+      onClick: () => { onClose(); navigate('/admin/activity?tab=orders'); },
+    } as LaunchpadTile] : []),
     // Collections are the shareable unit. Curators (publish bundle) get their
     // create/manage home; everyone else gets their shelf of collections shared
     // with or saved by them.

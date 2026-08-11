@@ -57,6 +57,7 @@ export default function AccountProfilePage() {
         <p className={`${TYPOGRAPHY_CLASSES.label} text-tea-gold`}>Tea Master identity</p>
         <h1 className={`${TYPOGRAPHY_CLASSES.h1} mt-3 text-tea-text`}>Your public profile</h1>
         <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-4 max-w-[62ch] text-tea-text-sec`}>One identity for your tea selections, writing, favorites, and payment destinations across every associated store.</p>
+        <a href="/account/settings" className="tap-target mt-4 inline-flex text-ui-13 text-tea-gold transition-colors hover:text-tea-gold-lt">Account settings</a>
       </header>
 
       {!profile ? (

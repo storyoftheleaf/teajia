@@ -409,6 +409,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
   const membershipRole = activeMembership?.role;
   const isStaff = membershipRole === 'staff' || membershipRole === 'owner' || auth.isAdmin;
   const canPublish = auth.isAdmin || selectHasBundle({ memberships, activeAccountId, platformRole }, 'publish');
+  const canSell = auth.isAdmin || selectHasBundle({ memberships, activeAccountId, platformRole }, 'sell');
 
   const activeLocationStr = [activeAccount?.location_city, activeAccount?.location_country]
     .filter(Boolean)
@@ -1477,6 +1478,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 locationLabel={activeLocationStr || null}
                 isOwner={membershipRole === 'owner' || auth.isAdmin}
                 canPublish={canPublish}
+                canSell={canSell}
                 membershipsCount={memberships.length}
                 pendingInvoiceCount={pendingCount}
                 todayEventCount={todayEventCount}
