@@ -9838,6 +9838,96 @@ const handleCreateEventArticleDraft: Handler = async (request, env, params) => {
   return json({ existing: false, article: eventDraftArticleToApi(article!) }, 201);
 };
 
+type EventDateRepresentation = {
+  epochMs: number;
+  kind: 'local' | 'utc' | 'offset';
+  offsetMinutes: number;
+  suffix: string;
+  precision: 'minute' | 'second' | 'fraction';
+  fractionDigits: number;
+};
+
+function parseEventDateRepresentation(value: unknown): EventDateRepresentation | null {
+  if (typeof value !== 'string') return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|([+-])(\d{2}):(\d{2}))?$/.exec(value);
+  if (!match) return null;
+
+  const [, yearText, monthText, dayText, hourText, minuteText, secondText, fractionText, suffix = '', offsetSign, offsetHourText, offsetMinuteText] = match;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+  const second = Number(secondText || '0');
+  const millisecond = Number((fractionText || '').padEnd(3, '0') || '0');
+  if (month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 || minute > 59 || second > 59) return null;
+
+  const wallClockMs = Date.UTC(year, month - 1, day, hour, minute, second, millisecond);
+  const wallClock = new Date(wallClockMs);
+  if (wallClock.getUTCFullYear() !== year
+    || wallClock.getUTCMonth() !== month - 1
+    || wallClock.getUTCDate() !== day
+    || wallClock.getUTCHours() !== hour
+    || wallClock.getUTCMinutes() !== minute
+    || wallClock.getUTCSeconds() !== second
+    || wallClock.getUTCMilliseconds() !== millisecond) return null;
+
+  let kind: EventDateRepresentation['kind'] = 'local';
+  let offsetMinutes = 0;
+  if (suffix === 'Z') {
+    kind = 'utc';
+  } else if (suffix) {
+    const offsetHours = Number(offsetHourText);
+    const offsetRemainder = Number(offsetMinuteText);
+    if (offsetHours > 23 || offsetRemainder > 59) return null;
+    kind = 'offset';
+    offsetMinutes = (offsetSign === '-' ? -1 : 1) * (offsetHours * 60 + offsetRemainder);
+  }
+
+  return {
+    epochMs: wallClockMs - offsetMinutes * 60_000,
+    kind,
+    offsetMinutes,
+    suffix,
+    precision: fractionText ? 'fraction' : secondText ? 'second' : 'minute',
+    fractionDigits: fractionText?.length || 0,
+  };
+}
+
+const padEventDatePart = (value: number, length = 2) => String(value).padStart(length, '0');
+
+function formatShiftedEventDate(start: EventDateRepresentation, epochMs: number): string | null {
+  if (start.kind === 'utc') return new Date(epochMs).toISOString();
+
+  const precisionMs = start.precision === 'minute'
+    ? 60_000
+    : start.precision === 'second'
+      ? 1_000
+      : 10 ** (3 - start.fractionDigits);
+  if (epochMs % precisionMs !== 0) return null;
+
+  const wallClock = new Date(epochMs + start.offsetMinutes * 60_000);
+  let formatted = `${padEventDatePart(wallClock.getUTCFullYear(), 4)}-${padEventDatePart(wallClock.getUTCMonth() + 1)}-${padEventDatePart(wallClock.getUTCDate())}`
+    + `T${padEventDatePart(wallClock.getUTCHours())}:${padEventDatePart(wallClock.getUTCMinutes())}`;
+  if (start.precision !== 'minute') formatted += `:${padEventDatePart(wallClock.getUTCSeconds())}`;
+  if (start.precision === 'fraction') {
+    formatted += `.${padEventDatePart(wallClock.getUTCMilliseconds(), 3).slice(0, start.fractionDigits)}`;
+  }
+  return `${formatted}${start.suffix}`;
+}
+
+function duplicateEventEndDate(sourceStart: unknown, sourceEnd: unknown, requestedStart: unknown): string | null {
+  const start = parseEventDateRepresentation(sourceStart);
+  const end = parseEventDateRepresentation(sourceEnd);
+  const requested = parseEventDateRepresentation(requestedStart);
+  if (!start || !end || !requested) return null;
+  if (start.kind !== end.kind || (start.kind === 'offset' && start.offsetMinutes !== end.offsetMinutes)) return null;
+
+  const durationMs = end.epochMs - start.epochMs;
+  if (durationMs < 0) return null;
+  return formatShiftedEventDate(requested, requested.epochMs + durationMs);
+}
+
 const handleDuplicateEvent: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
@@ -9854,16 +9944,7 @@ const handleDuplicateEvent: Handler = async (request, env, params) => {
   if (!source) return json({ error: 'Source event not found' }, 404);
 
   const newId = crypto.randomUUID();
-  const sourceStartMs = Date.parse(String(source.event_date || ''));
-  const sourceEndMs = source.event_end_date == null ? NaN : Date.parse(String(source.event_end_date));
-  const newStartMs = Date.parse(body.event_date);
-  const sourceDurationMs = sourceEndMs - sourceStartMs;
-  const duplicateEndDate = Number.isFinite(sourceStartMs)
-    && Number.isFinite(sourceEndMs)
-    && Number.isFinite(newStartMs)
-    && sourceDurationMs >= 0
-    ? new Date(newStartMs + sourceDurationMs).toISOString()
-    : null;
+  const duplicateEndDate = duplicateEventEndDate(source.event_date, source.event_end_date, body.event_date);
 
   await env.DB.prepare(
     `INSERT INTO events (id, account_id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,

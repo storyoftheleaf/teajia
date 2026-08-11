@@ -448,15 +448,38 @@ describe('Events Release 1 persisted route contracts', () => {
   });
 
   it.each([
-    ['missing', null],
-    ['negative', '2030-01-02T10:00:00Z'],
-  ])('persists a null duplicate end date when the source duration is %s', async (caseName, sourceEndDate) => {
+    ['timezone-less', '2032-05-06T10:00', '2032-05-06T12:00'],
+    ['explicit offset', '2032-05-06T10:00+08:00', '2032-05-06T12:00+08:00'],
+  ])('preserves the requested %s duplicate time representation', async (_label, eventDate, expectedEndDate) => {
+    const db = seedEventContractDb();
+    try {
+      const response = await adminEventRequest(db, '/api/admin/events/event-a/duplicate', {
+        method: 'POST',
+        body: JSON.stringify({ slug: `cliff-tea-${_label}`, event_date: eventDate }),
+      });
+      const body = await response.json() as Record<string, unknown>;
+
+      expect(response.status).toBe(201);
+      expect(body).toMatchObject({ event_date: eventDate, event_end_date: expectedEndDate });
+      expect(db.sqlite.prepare(`SELECT event_date, event_end_date FROM events WHERE id = ?`).get(body.id as string))
+        .toEqual({ event_date: eventDate, event_end_date: expectedEndDate });
+    } finally {
+      db.close();
+    }
+  });
+
+  it.each([
+    ['missing', '2030-01-02T12:00:00Z', null],
+    ['negative', '2030-01-02T12:00:00Z', '2030-01-02T10:00:00Z'],
+    ['invalid', 'not-a-date', '2030-01-02T14:00:00Z'],
+    ['incompatible', '2030-01-02T12:00', '2030-01-02T14:00:00Z'],
+  ])('persists a null duplicate end date when the source duration is %s', async (caseName, sourceStartDate, sourceEndDate) => {
     const db = seedEventContractDb();
     try {
       db.sqlite.prepare(`INSERT INTO events
         (id, account_id, slug, title, event_date, event_end_date, total_capacity)
         VALUES (?, ?, ?, ?, ?, ?, ?)`)
-        .run(`event-${caseName}-duration`, 'account-a', `${caseName}-duration`, 'Invalid Duration', '2030-01-02T12:00:00Z', sourceEndDate, 4);
+        .run(`event-${caseName}-duration`, 'account-a', `${caseName}-duration`, 'Invalid Duration', sourceStartDate, sourceEndDate, 4);
 
       const response = await adminEventRequest(db, `/api/admin/events/event-${caseName}-duration/duplicate`, {
         method: 'POST',
