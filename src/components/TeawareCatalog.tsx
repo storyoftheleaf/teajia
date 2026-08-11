@@ -1,5 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
+import type { Location } from 'react-router-dom';
 import { Icons } from './Icons';
 import { TeawareAlcoveModal } from './shop/TeawareAlcoveModal';
 import { CardGridItem } from './shared/CardGridItem';
@@ -21,6 +22,7 @@ export interface TeawareCatalogProps {
   isAdmin?: boolean;
   adminProductMap?: Map<string, Product>;
   onAdminEdit?: (itemId: string) => void;
+  modalLocation?: Location;
 }
 
 const CATEGORIES_META = [
@@ -32,12 +34,12 @@ const CATEGORIES_META = [
   { id: 'storage', label: 'Storage' },
 ];
 
-export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, externalInventory = [], hideHeader = false, isAdmin = false, adminProductMap, onAdminEdit }) => {
+export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, externalInventory = [], hideHeader = false, isAdmin = false, adminProductMap, onAdminEdit, modalLocation }) => {
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('LIST');
 
   // Alcove modal driven by the URL (/shop/product/:id + background state).
-  const { viewItem, openProduct, navigateWithinModal, closeProduct } = useProductModalRoute(externalInventory);
+  const { viewItem, openProduct, navigateWithinModal, closeProduct } = useProductModalRoute(externalInventory, modalLocation);
 
   // The grid and the card it opens must quote one currency. `TeawareAlcoveCard`
   // has read `useShopPrice` since round seven; this catalogue still called the

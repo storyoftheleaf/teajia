@@ -24,8 +24,12 @@ interface BackgroundState {
  * state, so back/forward can never desync and the old cold-deep-link
  * "back-button reopens the modal" trap is structurally impossible.
  */
-export function useProductModalRoute(inventory: InventoryItem[]) {
-  const location = useLocation();
+export function useProductModalRoute(inventory: InventoryItem[], routeLocation?: Location) {
+  const contextLocation = useLocation();
+  // Routes rendered against a background location deliberately scope
+  // useLocation() to /shop. App passes the actual router location so the
+  // still-mounted ledger can see /shop/product/:id and open its modal.
+  const location = routeLocation ?? contextLocation;
   const navigate = useNavigate();
 
   const background = (location.state as BackgroundState | null)?.background;

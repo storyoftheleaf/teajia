@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams, type Location } from 'react-router-dom';
 import { PRODUCT_PATH_RE } from '../hooks/useProductModalRoute';
 import { useQuery } from '@tanstack/react-query';
 
@@ -78,6 +78,7 @@ interface ShopProps {
   isError?: boolean;
   error?: Error | null;
   onRetry?: () => void;
+  modalLocation?: Location;
 }
 
 const TABS = [
@@ -98,6 +99,7 @@ export const Shop: React.FC<ShopProps> = ({
   isError,
   error,
   onRetry,
+  modalLocation,
 }) => {
   const [activeTab, setActiveTab] = useState<ShopTab>('tea');
   const [isAddingToCart, setIsAddingToCart] = useState<Record<string, boolean>>({});
@@ -127,7 +129,8 @@ export const Shop: React.FC<ShopProps> = ({
   // anymore. One reload edge remains: history state survives a reload, so this
   // component can mount while a product modal route is active. Make sure the
   // tab that owns the product is the one mounted, or the modal cannot open.
-  const { pathname } = useLocation();
+  const scopedLocation = useLocation();
+  const pathname = modalLocation?.pathname ?? scopedLocation.pathname;
   useEffect(() => {
     const match = PRODUCT_PATH_RE.exec(pathname);
     if (!match) return;
@@ -428,6 +431,7 @@ export const Shop: React.FC<ShopProps> = ({
           tabs={TABS}
           activeTab={activeTab}
           onChange={(tabId) => setActiveTab(tabId as ShopTab)}
+          fit
         />
       </PageHeader>
 
@@ -471,6 +475,7 @@ export const Shop: React.FC<ShopProps> = ({
           <CollectionTab
             inventory={collectionInventory}
             onAddToCart={onAddToCart}
+            modalLocation={modalLocation}
           />
         )}
 
@@ -482,6 +487,7 @@ export const Shop: React.FC<ShopProps> = ({
             isAdmin={isAdmin}
             adminProductMap={productMap}
             onAdminEdit={handleAdminEdit}
+            modalLocation={modalLocation}
           />
         )}
 
@@ -493,6 +499,7 @@ export const Shop: React.FC<ShopProps> = ({
             isAdmin={isAdmin}
             adminProductMap={productMap}
             onAdminEdit={handleAdminEdit}
+            modalLocation={modalLocation}
           />
         )}
 

@@ -13,29 +13,32 @@ interface PageHeaderTabsProps {
   activeTab: string;
   onChange: (tabId: string) => void;
   className?: string;
+  /** Fit a small primary tab set inside the viewport instead of scrolling it. */
+  fit?: boolean;
 }
 
 export const PageHeaderTabs: React.FC<PageHeaderTabsProps> = ({
   tabs,
   activeTab,
   onChange,
-  className = ''
+  className = '',
+  fit = false,
 }) => {
   return (
     <LayoutGroup>
-    <div className={`w-full px-4 md:px-6 lg:px-10 overflow-x-auto hide-scrollbar ${className}`} style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub)' }}>
-      <div className="flex items-center gap-7 md:gap-10 min-w-max">
+    <div className={`w-full ${fit ? 'px-3 md:px-6 lg:px-10 overflow-hidden' : 'px-4 md:px-6 lg:px-10 overflow-x-auto hide-scrollbar'} ${className}`} style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub)' }}>
+      <div className={`flex items-center ${fit ? 'w-full min-w-0 justify-between gap-1.5 md:justify-start md:gap-10' : 'gap-7 md:gap-10 min-w-max'}`}>
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => onChange(tab.id)}
-            className={`text-xs uppercase tracking-[0.25em] transition-all duration-300 relative group py-4 ${
+            className={`${fit ? 'tap-target text-ui-10 tracking-[0.18em] py-3' : 'text-ui-12 tracking-[0.25em] py-4'} min-w-0 uppercase transition-all duration-300 relative group ${
               activeTab === tab.id
                 ? 'text-tea-gold font-medium'
                 : 'text-tea-text-dim hover:text-tea-text-sec'
             }`}
           >
-            <div className="flex items-center gap-2">
+            <div className={`flex items-center ${fit ? 'gap-1.5' : 'gap-2'}`}>
               {tab.icon && <span>{tab.icon}</span>}
               <span>{tab.label}</span>
               {tab.count !== undefined && !tab.icon && (

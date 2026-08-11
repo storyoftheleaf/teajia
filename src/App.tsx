@@ -979,7 +979,7 @@ const AppContent = () => {
                   <ErrorBoundary>
                     <Suspense fallback={<EmblemLoader />}>
                       <div className="w-full animate-[fadeIn_0.5s_ease-out]">
-                        <Shop teaInventory={teaInventory} teawareInventory={teawareInventory} onAddToCart={handleAddToCart} cartItemCount={cart.length} onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} isLoading={inventoryLoading} isError={inventoryError} error={inventoryErrorObj} onRetry={refetchInventory} />
+                        <Shop teaInventory={teaInventory} teawareInventory={teawareInventory} onAddToCart={handleAddToCart} cartItemCount={cart.length} onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} isLoading={inventoryLoading} isError={inventoryError} error={inventoryErrorObj} onRetry={refetchInventory} modalLocation={location} />
                       </div>
                     </Suspense>
                   </ErrorBoundary>

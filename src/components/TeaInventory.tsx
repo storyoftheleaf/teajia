@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams, type Location } from 'react-router-dom';
 import { Icons } from './Icons';
 import { X } from 'lucide-react';
 import { AddToSampleButton } from './samples/AddToSampleButton';
@@ -49,6 +49,7 @@ interface TeaInventoryProps {
   isAdmin?: boolean;
   adminProductMap?: Map<string, Product>;
   onAdminEdit?: (itemId: string) => void;
+  modalLocation?: Location;
 }
 
 // Preferred display order for tea types, any types not listed here appear at the end.
@@ -127,7 +128,7 @@ function resolvedIncludes(item: TeaItem, categoryId: TastingCategoryId, termId: 
   return Boolean(common?.[categoryId]?.includes(termId));
 }
 
-export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCart, onCartClick, onAccountClick, cartItemCount = 0, hideHeader = false, isAdmin = false, adminProductMap, onAdminEdit }) => {
+export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCart, onCartClick, onAccountClick, cartItemCount = 0, hideHeader = false, isAdmin = false, adminProductMap, onAdminEdit, modalLocation }) => {
   /**
    * The grid price, in the currency the reader chose.
    *
@@ -317,7 +318,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   // the current location as background state; viewItem is derived from that
   // URL, so it is always fresh after an inventory refetch and back/forward can
   // never desync from the modal. See useProductModalRoute.
-  const { viewItem, openProduct, navigateWithinModal, closeProduct } = useProductModalRoute(inventory);
+  const { viewItem, openProduct, navigateWithinModal, closeProduct } = useProductModalRoute(inventory, modalLocation);
 
   // Track recently viewed whenever a product opens (modal or swipe).
   useEffect(() => {
