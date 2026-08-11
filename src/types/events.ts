@@ -7,6 +7,9 @@ export type TeaPreference = 'light_floral' | 'rich_roasted' | 'aged_earthy' | 's
 export type ContactMethod = 'whatsapp' | 'email';
 export type GuestInviteStatus = 'pending' | 'claimed' | 'expired';
 export type SessionEnergy = 'intimate_warm' | 'lively' | 'contemplative' | 'exploratory' | 'meditative';
+export type EventLifecycleStatus = 'draft' | 'published' | 'registration_closed' | 'completed' | 'cancelled' | 'archived';
+export type EventPublicVisibility = 'public' | 'unlisted' | 'private';
+export type EventRecapStatus = 'draft' | 'published';
 
 // ============================================================
 // Location
@@ -125,6 +128,10 @@ export interface TeaEvent {
   // RSVP approval mode
   requiresApproval?: boolean;       // camelCase for mapped responses
   requires_approval?: number;       // snake_case from raw worker response (0 or 1)
+  lifecycleStatus?: EventLifecycleStatus;
+  publicVisibility?: EventPublicVisibility;
+  networkDiscovery?: boolean;
+  recapStatus?: EventRecapStatus;
   // Account context
   accountLocationCountry?: string;
   accountName?: string;

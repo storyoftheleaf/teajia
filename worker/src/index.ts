@@ -14,7 +14,7 @@ import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 import { deriveConfirmedInvoiceLine, repairCandidate } from './invoiceDomain';
 import { buildEventArticleDraft } from './eventArticleDraft';
-import { normalizeRsvpUpdate } from './eventDomain';
+import { normalizeEventUpdate, normalizeRsvpUpdate } from './eventDomain';
 import { candidateToApi, impressionToApi, parseCandidateInput } from './tastingNoteCuration';
 import { deliverVerificationCode } from './verificationDelivery';
 import { INCIDENT_STATUSES, incidentToApi, normalizeIncidentInput, upsertIncident, type IncidentStatus } from './incidents';
@@ -9177,7 +9177,10 @@ const handleSubmitTastingNotes: Handler = async (request, env, params) => {
     return json({ error: 'Tasting notes can only be submitted after the event' }, 400);
   }
 
-  const notes = await request.json() as Array<{ tea_menu_id?: string; rating?: number; impression?: string; is_favorite?: boolean }>;
+  const payload = await request.json() as
+    | { notes?: Array<{ tea_menu_id?: string; rating?: number; impression?: string; is_favorite?: boolean }> }
+    | Array<{ tea_menu_id?: string; rating?: number; impression?: string; is_favorite?: boolean }>;
+  const notes = Array.isArray(payload) ? payload : payload.notes;
   if (!Array.isArray(notes)) return json({ error: 'Expected an array of tasting notes' }, 400);
 
   const stmts = notes.map(note =>
@@ -9415,7 +9418,7 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
-  const body = await request.json() as Record<string, any>;
+  const body = normalizeEventUpdate(await request.json() as Record<string, any>) as Record<string, any>;
   delete body.account_id;
 
   if (body.session_flow && typeof body.session_flow !== 'string') {
@@ -9432,7 +9435,7 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
   }
   if (body.event_format === undefined) delete body.event_format;
 
-  const EVENT_ALLOWED_COLS = new Set(['title','subtitle','description','slug','status','event_date','event_end_date','end_date','location','location_name','capacity','total_capacity','price_usd','display_currency','event_format','gathering_type','notes','host_name','event_type','max_guests','booking_cutoff_hours','private','image_url','flyer_url','flyer_image_url','claim_window_minutes','venue_id','venue_space_id','active_space_ids','location_id','session_template_id','meta_json','session_flow','address_text','map_link','guidelines_text','area_hint','venue_guide','mood_hints','briefing_cards','timezone','playlist_url','requires_approval']);
+  const EVENT_ALLOWED_COLS = new Set(['title','subtitle','description','slug','status','event_date','event_end_date','location_name','total_capacity','price_usd','display_currency','event_format','gathering_type','notes','host_name','event_type','max_guests','booking_cutoff_hours','private','image_url','flyer_url','flyer_image_url','claim_window_minutes','venue_id','venue_space_id','active_space_ids','location_id','session_template_id','meta_json','session_flow','address_text','map_link','guidelines_text','area_hint','venue_guide','mood_hints','briefing_cards','timezone','playlist_url','requires_approval']);
   const cols = Object.keys(body).filter(k => EVENT_ALLOWED_COLS.has(k));
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
@@ -9895,18 +9898,19 @@ const handleDuplicateEvent: Handler = async (request, env, params) => {
   if (menu.results.length > 0) {
     const menuStmts = (menu.results as any[]).map(m =>
       env.DB.prepare(
-        `INSERT INTO event_tea_menu (id, account_id, event_id, product_id, custom_name, custom_description, reveal_date, brew_order, brewing_temp, brewing_time, vessel_type)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO event_tea_menu (id, account_id, event_id, product_id, custom_name, custom_description, reveal_date, brew_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
       ).bind(
         crypto.randomUUID(), accountId, newId,
-        m.product_id, m.custom_name, m.custom_description, m.reveal_date, m.brew_order,
-        m.brewing_temp ?? null, m.brewing_time ?? null, m.vessel_type ?? null
+        m.product_id, m.custom_name, m.custom_description, m.reveal_date, m.brew_order
       )
     );
     await env.DB.batch(menuStmts);
   }
 
-  return json({ id: newId, slug: body.slug }, 201);
+  const created = await env.DB.prepare('SELECT * FROM events WHERE id = ? AND account_id = ?')
+    .bind(newId, accountId).first();
+  return json(created || { id: newId, account_id: accountId, slug: body.slug, event_date: body.event_date }, 201);
 };
 
 const handleBatchAttendance: Handler = async (request, env, params) => {
@@ -9950,6 +9954,33 @@ const handleGetTeaMenu: Handler = async (request, env, params) => {
   return json(result.results);
 };
 
+const handleGetPublicTeaMenu: Handler = async (_request, env, params) => {
+  const result = await env.DB.prepare(
+    `SELECT
+       etm.id,
+       etm.event_id,
+       etm.product_id,
+       etm.custom_name,
+       etm.custom_description,
+       etm.reveal_date,
+       etm.brew_order,
+       p.given_name,
+       p.product_name,
+       p.chinese_name,
+       p.type,
+       p.image_url
+     FROM events e
+     JOIN event_tea_menu etm
+       ON etm.event_id = e.id AND etm.account_id = e.account_id
+     LEFT JOIN products p
+       ON p.id = etm.product_id AND p.account_id = e.account_id
+     WHERE e.slug = ?
+     ORDER BY etm.brew_order ASC`
+  ).bind(params.slug).all();
+
+  return json(result.results || []);
+};
+
 const handleUpsertTeaMenu: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
@@ -9957,7 +9988,8 @@ const handleUpsertTeaMenu: Handler = async (request, env, params) => {
   const guard = await assertEventInAccount(env, params.id, accountId);
   if (guard) return guard;
 
-  const items = await request.json() as Array<Record<string, any>>;
+  const payload = await request.json() as { items?: Array<Record<string, any>> } | Array<Record<string, any>>;
+  const items = Array.isArray(payload) ? payload : payload.items;
   if (!Array.isArray(items)) return json({ error: 'Expected an array of menu items' }, 400);
 
   const stmts: D1PreparedStatement[] = [];
@@ -9966,7 +9998,7 @@ const handleUpsertTeaMenu: Handler = async (request, env, params) => {
     if (item.id) {
       stmts.push(
         env.DB.prepare(
-          `UPDATE event_tea_menu SET product_id = ?, custom_name = ?, custom_description = ?, reveal_date = ?, brew_order = ?, tea_type = ?, origin_region = ?
+          `UPDATE event_tea_menu SET product_id = ?, custom_name = ?, custom_description = ?, reveal_date = ?, brew_order = ?
            WHERE id = ? AND event_id = ?`
         ).bind(
           item.product_id || null,
@@ -9974,8 +10006,6 @@ const handleUpsertTeaMenu: Handler = async (request, env, params) => {
           item.custom_description || null,
           item.reveal_date || null,
           item.brew_order ?? null,
-          item.tea_type || null,
-          item.origin_region || null,
           item.id,
           params.id
         )
@@ -9983,8 +10013,8 @@ const handleUpsertTeaMenu: Handler = async (request, env, params) => {
     } else {
       stmts.push(
         env.DB.prepare(
-          `INSERT INTO event_tea_menu (id, account_id, event_id, product_id, custom_name, custom_description, reveal_date, brew_order, tea_type, origin_region)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          `INSERT INTO event_tea_menu (id, account_id, event_id, product_id, custom_name, custom_description, reveal_date, brew_order)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
         ).bind(
           crypto.randomUUID(),
           accountId,
@@ -9993,9 +10023,7 @@ const handleUpsertTeaMenu: Handler = async (request, env, params) => {
           item.custom_name || null,
           item.custom_description || null,
           item.reveal_date || null,
-          item.brew_order ?? null,
-          item.tea_type || null,
-          item.origin_region || null
+          item.brew_order ?? null
         )
       );
     }
@@ -12804,7 +12832,8 @@ const handleGetEventShareMessages: Handler = async (request, env, params) => {
     }
   }
 
-  const eventUrl = `https://teajia.co/e/${event.slug}`;
+  const appOrigin = (env.APP_URL || 'https://www.teajia.com').replace(/\/$/, '');
+  const eventUrl = `${appOrigin}/event/${event.slug}`;
   const areaHint = event.area_hint || 'Taipei';
 
   const whatsappText =
@@ -22607,6 +22636,7 @@ const routes: [string, string, Handler][] = [
   // Events — Public
   ['GET', '/api/events', handleListPublicEvents],
   ['GET', '/api/events/:slug/public', handleGetEventBySlug],
+  ['GET', '/api/events/:slug/tea-menu', handleGetPublicTeaMenu],
   ['GET', '/api/events/:slug/recap', handleGetPublicEventRecap],
   ['POST', '/api/events/:slug/rsvp', handleRSVP],
   ['GET', '/api/events/:slug/availability', handleGetEventAvailability],
