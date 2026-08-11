@@ -550,6 +550,59 @@ describe('Tea Master invoice authorization, holds and settlements', () => {
     expect((await call(db, `/api/sales/settlements/${settlement.id}`, { method: 'PUT', body: { status: 'paid' } })).status).toBe(200);
     expect(db.sqlite.prepare('SELECT status FROM sales_settlements WHERE id=?').get(settlement.id)).toEqual({ status: 'paid' });
   });
+
+  it('returns safe order attribution names and settlement status to owner-tier', async () => {
+    const db = database(); seed(db); await createGrant(db);
+    db.sqlite.prepare("UPDATE users SET name='Rayi' WHERE id='seller'").run();
+    db.sqlite.prepare("UPDATE users SET name='Barry' WHERE id='stock-owner'").run();
+    db.sqlite.prepare("UPDATE users SET name='Adrian' WHERE id='other-seller'").run();
+    const invoice = await (await call(db, '/api/invoices', { method: 'POST', userId: 'seller', body: invoiceBody() })).json() as any;
+    await call(db, '/api/rpc/fulfill-invoice', { method: 'POST', userId: 'other-seller', body: { invoice_id: invoice.id } });
+
+    const response = await call(db, `/api/invoices/${invoice.id}/attribution`);
+    expect(response.status).toBe(200);
+    const detail = await response.json() as any;
+    expect(detail).toMatchObject({
+      invoice_id: invoice.id,
+      seller_name: 'Rayi',
+      payment_recipient_name: 'Barry',
+      fulfilled_by_name: 'Adrian',
+      settlement_visibility: 'full',
+    });
+    expect(detail.items).toEqual([
+      expect.objectContaining({ stock_owner_name: 'Barry', settlement_status: 'owed' }),
+    ]);
+    expect(JSON.stringify(detail)).not.toContain('@test.dev');
+  });
+
+  it('keeps settlement status private from non-participant staff while preserving operational names', async () => {
+    const db = database(); seed(db); await createGrant(db);
+    const invoice = await (await call(db, '/api/invoices', { method: 'POST', userId: 'seller', body: invoiceBody() })).json() as any;
+    await call(db, '/api/rpc/fulfill-invoice', { method: 'POST', userId: 'seller', body: { invoice_id: invoice.id } });
+
+    const response = await call(db, `/api/invoices/${invoice.id}/attribution`, { userId: 'other-seller' });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      seller_name: 'seller',
+      payment_recipient_name: 'stock-owner',
+      fulfilled_by_name: 'seller',
+      settlement_visibility: 'restricted',
+      items: [expect.objectContaining({ stock_owner_name: 'stock-owner', settlement_status: null })],
+    });
+  });
+
+  it('lets a non-owner participant see only their authorized settlement status', async () => {
+    const db = database(); seed(db); await createGrant(db);
+    const invoice = await (await call(db, '/api/invoices', { method: 'POST', userId: 'seller', body: invoiceBody() })).json() as any;
+    await call(db, '/api/rpc/fulfill-invoice', { method: 'POST', userId: 'seller', body: { invoice_id: invoice.id } });
+
+    const response = await call(db, `/api/invoices/${invoice.id}/attribution`, { userId: 'stock-owner' });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      settlement_visibility: 'participant',
+      items: [expect.objectContaining({ stock_owner_name: 'stock-owner', settlement_status: 'owed' })],
+    });
+  });
 });
 
 describe('Tea Master event completion invoice authorization', () => {

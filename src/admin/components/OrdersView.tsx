@@ -13,6 +13,8 @@ import { SplitOrderModal } from './SplitOrderModal';
 import { EditOrderModal } from './EditOrderModal';
 import { QuickInvoiceModal } from './QuickInvoiceModal';
 import { Button } from '../../components/shared/Button';
+import { OrderAttribution } from './OrderAttribution';
+import { useAppStore } from '../../lib/store';
 
 const ROW_HEIGHT = 36;
 
@@ -108,6 +110,7 @@ export const OrdersView = () => {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToast();
+  const activeAccountId = useAppStore(state => state.activeAccountId);
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [viewingInvoice, setViewingInvoice] = useState<DbOrder | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -742,6 +745,8 @@ export const OrdersView = () => {
 	                        <span className={`font-medium ${viewingInvoice.inventory_deducted ? 'text-tea-text' : 'text-tea-gold'}`}>{stockLabel(viewingInvoice)}</span>
 	                    </div>
                 </div>
+
+                {activeAccountId && <OrderAttribution invoiceId={viewingInvoice.id} accountId={activeAccountId} />}
 
                 {/* Source Event */}
                 {viewingInvoice.source_event_title && (

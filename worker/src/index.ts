@@ -3829,6 +3829,94 @@ const handleGetInvoiceItems: Handler = async (request, env, params) => {
   return json(result.results);
 };
 
+const handleGetInvoiceAttribution: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+
+  try {
+    const invoice = await env.DB.prepare(
+      `SELECT i.id,i.sold_by_user_id,i.payment_recipient_user_id,i.fulfilled_at,
+        seller.name AS seller_name,recipient.name AS recipient_name,a.name AS account_name
+       FROM invoices i
+       JOIN accounts a ON a.id=i.account_id
+       LEFT JOIN users seller ON seller.id=i.sold_by_user_id
+       LEFT JOIN users recipient ON recipient.id=i.payment_recipient_user_id
+       WHERE i.id=? AND i.account_id=?`
+    ).bind(params.id, ctx.accountId).first() as Record<string, any> | null;
+    if (!invoice) return restError(404, 'Invoice not found', 'invoice_not_found');
+
+    const ownerParticipant = ctx.role === 'owner' || invoice.sold_by_user_id === ctx.userId
+      || Boolean(await env.DB.prepare(
+        'SELECT 1 FROM invoice_line_items WHERE invoice_id=? AND account_id=? AND stock_owner_user_id=? LIMIT 1'
+      ).bind(params.id, ctx.accountId, ctx.userId).first());
+    const settlementVisibility = ctx.role === 'owner' ? 'full' : ownerParticipant ? 'participant' : 'restricted';
+    const settlementJoin = ownerParticipant
+      ? `LEFT JOIN sales_settlements ss ON ss.line_item_id=ili.id AND ss.account_id=ili.account_id
+           AND (?='owner' OR ss.seller_user_id=? OR ss.stock_owner_user_id=?)`
+      : 'LEFT JOIN sales_settlements ss ON 1=0';
+    const itemBinds = ownerParticipant
+      ? [ctx.role, ctx.userId, ctx.userId, params.id, ctx.accountId]
+      : [params.id, ctx.accountId];
+    const items = await env.DB.prepare(
+      `SELECT ili.id AS line_item_id,ili.product_id,ili.stock_owner_user_id,
+        CASE WHEN ili.product_id IS NULL THEN NULL ELSE COALESCE(stock_owner.name,a.name) END AS stock_owner_name,
+        ss.status AS settlement_status
+       FROM invoice_line_items ili
+       JOIN accounts a ON a.id=ili.account_id
+       LEFT JOIN users stock_owner ON stock_owner.id=ili.stock_owner_user_id
+       ${settlementJoin}
+       WHERE ili.invoice_id=? AND ili.account_id=? ORDER BY ili.id`
+    ).bind(...itemBinds).all();
+
+    let fulfilledByName: string | null = null;
+    if (invoice.fulfilled_at) {
+      const fulfillment = await env.DB.prepare(
+        `SELECT user_email FROM activity_logs
+         WHERE account_id=? AND entity_type='invoice' AND entity_id=? AND action='FULFILLMENT'
+         ORDER BY created_at DESC LIMIT 1`
+      ).bind(ctx.accountId, params.id).first() as { user_email?: string | null } | null;
+      if (fulfillment?.user_email) {
+        const user = await env.DB.prepare('SELECT name FROM users WHERE lower(email)=lower(?) LIMIT 1')
+          .bind(fulfillment.user_email).first() as { name?: string | null } | null;
+        fulfilledByName = user?.name || null;
+      }
+    }
+
+    const rawItems = items.results as Record<string, any>[];
+    const linkedItems = rawItems.filter(item => item.product_id);
+    const stockOwners = new Set(linkedItems.map(item => item.stock_owner_user_id || 'account'));
+    let paymentRecipientKind: 'person' | 'account' | 'mixed' | 'none' | 'unrecorded';
+    let paymentRecipientName: string | null = null;
+    if (invoice.payment_recipient_user_id) {
+      paymentRecipientKind = 'person';
+      paymentRecipientName = invoice.recipient_name || null;
+    } else if (linkedItems.length === 0) {
+      paymentRecipientKind = 'none';
+    } else if (stockOwners.size === 1 && stockOwners.has('account')) {
+      paymentRecipientKind = 'account';
+      paymentRecipientName = invoice.account_name;
+    } else if (stockOwners.size > 1) {
+      paymentRecipientKind = 'mixed';
+    } else {
+      paymentRecipientKind = 'unrecorded';
+    }
+
+    return json({
+      invoice_id: invoice.id,
+      seller_name: invoice.seller_name || null,
+      payment_recipient_name: paymentRecipientName,
+      payment_recipient_kind: paymentRecipientKind,
+      fulfilled_by_name: fulfilledByName,
+      fulfilled_at: invoice.fulfilled_at || null,
+      settlement_visibility: settlementVisibility,
+      items: rawItems.map(({ stock_owner_user_id: _stockOwnerUserId, ...item }) => item),
+    });
+  } catch (error) {
+    console.error('Invoice attribution unavailable:', error);
+    return restError(503, 'Invoice attribution unavailable', 'invoice_attribution_unavailable');
+  }
+};
+
 const handleUpdateInvoice: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'sell');
   if ('error' in ctx) return ctx.error;
@@ -22820,6 +22908,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/invoices', handleGetInvoices],
   ['POST', '/api/invoices', handleCreateInvoice],
   ['GET', '/api/invoices/:id/items', handleGetInvoiceItems],
+  ['GET', '/api/invoices/:id/attribution', handleGetInvoiceAttribution],
   ['PUT', '/api/invoices/:id', handleUpdateInvoice],
   ['DELETE', '/api/invoices/:id', handleDeleteInvoice],
 

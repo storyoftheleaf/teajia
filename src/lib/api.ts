@@ -88,6 +88,22 @@ export interface SalesSettlement {
   updated_at: string;
 }
 
+export interface InvoiceAttribution {
+  invoice_id: string;
+  seller_name: string | null;
+  payment_recipient_name: string | null;
+  payment_recipient_kind: 'person' | 'account' | 'mixed' | 'none' | 'unrecorded';
+  fulfilled_by_name: string | null;
+  fulfilled_at: string | null;
+  settlement_visibility: 'full' | 'participant' | 'restricted';
+  items: Array<{
+    line_item_id: string;
+    product_id: string | null;
+    stock_owner_name: string | null;
+    settlement_status: 'owed' | 'paid' | 'reversed' | null;
+  }>;
+}
+
 export type CurateImportSourceKind = 'wechat' | 'invoice' | 'vendor_list' | 'photo' | 'file' | 'paste';
 export type CurateImportDisposition = 'received' | 'in_transit' | 'library_only';
 export type CurateImportInventoryPurpose = 'working' | 'sample' | 'personal';
@@ -1596,6 +1612,9 @@ export const api = {
     },
     getItems: async (id: string) => {
       return authedFetch(`${API_URL}/api/invoices/${id}/items`)
+    },
+    getAttribution: async (id: string): Promise<InvoiceAttribution> => {
+      return authedFetch(`${API_URL}/api/invoices/${encodeURIComponent(id)}/attribution`)
     },
     update: async (id: string, data: Record<string, any>) => {
       return authedFetch(`${API_URL}/api/invoices/${id}`, {
