@@ -50,16 +50,74 @@ const NO_SELL_TOKEN = makeFakeJWT({
   ],
 });
 
+const SWITCH_ACCOUNT_A = 'acct-owner-a';
+const SWITCH_ACCOUNT_B = 'acct-member-b';
+const SWITCH_MEMBERSHIPS = [
+  { account_id: SWITCH_ACCOUNT_A, account_name: 'Owner Table', role: 'owner', slug: 'owner-table', bundles: [] },
+  { account_id: SWITCH_ACCOUNT_B, account_name: 'Member Table', role: 'member', slug: 'member-table', bundles: [] },
+];
+
+function switchToken(activeAccountId: string, bBundles: string[] = []): string {
+  return makeFakeJWT({
+    sub: 'test-switch-uid',
+    email: 'switcher@teajia.com',
+    name: 'Account Switcher',
+    role: 'owner',
+    platform_role: null,
+    exp: Math.floor(Date.now() / 1000) + 86400 * 30,
+    active_account_id: activeAccountId,
+    memberships: SWITCH_MEMBERSHIPS.map(membership => membership.account_id === SWITCH_ACCOUNT_B
+      ? { ...membership, bundles: bBundles }
+      : membership),
+  });
+}
+
 async function injectAuth(page: Page) {
-  await page.addInitScript((token) => {
+  await page.addInitScript(({ token, memberships, activeAccountId, platformRole }) => {
     localStorage.setItem('teajia_token', token);
-  }, FAKE_TOKEN);
+    localStorage.setItem('teajia-storage', JSON.stringify({
+      version: 2,
+      state: { memberships, activeAccountId, platformRole },
+    }));
+  }, {
+    token: FAKE_TOKEN,
+    memberships: [
+      { account_id: 'acct-bali', account_name: 'Teajia Bali', role: 'owner', slug: 'teajia-bali' },
+      { account_id: 'acct-australia', account_name: 'Teajia Australia', role: 'owner', slug: 'teajia-australia' },
+    ],
+    activeAccountId: 'acct-bali',
+    platformRole: 'platform_owner',
+  });
 }
 
 async function injectNoSellAuth(page: Page) {
-  await page.addInitScript((token) => {
+  await page.addInitScript(({ token, memberships, activeAccountId }) => {
     localStorage.setItem('teajia_token', token);
-  }, NO_SELL_TOKEN);
+    localStorage.setItem('teajia-storage', JSON.stringify({
+      version: 2,
+      state: { memberships, activeAccountId },
+    }));
+  }, {
+    token: NO_SELL_TOKEN,
+    memberships: [
+      { account_id: 'acct-bali', account_name: 'Teajia Bali', role: 'member', slug: 'teajia-bali', bundles: [] },
+    ],
+    activeAccountId: 'acct-bali',
+  });
+}
+
+async function injectSwitchAuth(page: Page) {
+  await page.addInitScript(({ token, memberships, activeAccountId }) => {
+    localStorage.setItem('teajia_token', token);
+    localStorage.setItem('teajia-storage', JSON.stringify({
+      version: 2,
+      state: { memberships, activeAccountId },
+    }));
+  }, {
+    token: switchToken(SWITCH_ACCOUNT_A),
+    memberships: SWITCH_MEMBERSHIPS,
+    activeAccountId: SWITCH_ACCOUNT_A,
+  });
 }
 
 async function goto(page: Page, route: string) {
@@ -223,6 +281,61 @@ test.describe('Account Panel — mobile audit', () => {
     await openPanel(page);
 
     await expect(page.getByRole('button', { name: /orders/i })).toHaveCount(0);
+  });
+
+  test('orders authority follows the JWT-confirmed active account across a switch', async ({ page }) => {
+    let releaseSwitch: (() => void) | undefined;
+    const switchStarted = new Promise<void>(resolve => { releaseSwitch = resolve; });
+    let bSwitchCount = 0;
+    await page.route('**/api/accounts/switch', async route => {
+      const targetAccountId = route.request().postDataJSON()?.account_id as string;
+      if (targetAccountId === SWITCH_ACCOUNT_B) {
+        bSwitchCount += 1;
+        if (bSwitchCount === 1) await switchStarted;
+      }
+      const bBundles = targetAccountId === SWITCH_ACCOUNT_B && bSwitchCount > 1 ? ['sell'] : [];
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ token: switchToken(targetAccountId, bBundles), active_account_id: targetAccountId }),
+      });
+    });
+    await page.route('**/api/accounts/acct-*', route => {
+      const targetAccountId = route.request().url().endsWith(SWITCH_ACCOUNT_A) ? SWITCH_ACCOUNT_A : SWITCH_ACCOUNT_B;
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: targetAccountId,
+          name: targetAccountId === SWITCH_ACCOUNT_A ? 'Owner Table' : 'Member Table',
+          slug: targetAccountId === SWITCH_ACCOUNT_A ? 'owner-table' : 'member-table',
+          currency_default: 'USD',
+        }),
+      });
+    });
+    await injectSwitchAuth(page);
+    await goto(page, '/');
+    await openPanel(page);
+
+    const orders = page.getByRole('button', { name: /orders/i });
+    await expect(orders).toBeVisible();
+    await page.getByRole('button', { name: /switch account/i }).click();
+    await page.getByRole('option', { name: /Member Table/i }).click();
+
+    await expect(orders).toHaveCount(0);
+    releaseSwitch?.();
+    await expect(page.getByRole('button', { name: /switch account.*Member Table/i })).toBeVisible();
+    await expect(orders).toHaveCount(0);
+
+    await page.getByRole('button', { name: /switch account/i }).click();
+    await page.getByRole('option', { name: /Owner Table/i }).click();
+    await expect(page.getByRole('button', { name: /switch account.*Owner Table/i })).toBeVisible();
+    await expect(orders).toBeVisible();
+
+    await page.getByRole('button', { name: /switch account/i }).click();
+    await page.getByRole('option', { name: /Member Table/i }).click();
+    await expect(page.getByRole('button', { name: /switch account.*Member Table/i })).toBeVisible();
+    await expect(orders).toBeVisible();
   });
 });
 
