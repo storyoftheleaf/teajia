@@ -15,6 +15,7 @@ import { QuickInvoiceModal } from './QuickInvoiceModal';
 import { Button } from '../../components/shared/Button';
 import { OrderAttribution } from './OrderAttribution';
 import { useAppStore } from '../../lib/store';
+import { SettlementLedger } from './SettlementLedger';
 
 const ROW_HEIGHT = 36;
 
@@ -114,6 +115,7 @@ export const OrdersView = () => {
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [viewingInvoice, setViewingInvoice] = useState<DbOrder | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [showSettlements, setShowSettlements] = useState(false);
   const { data: products = [] } = useProducts();
 
   // Confirm modal state
@@ -309,6 +311,17 @@ export const OrdersView = () => {
     return Math.floor(diff / (1000 * 60 * 60 * 24));
   };
 
+  if (showSettlements) return (
+    <div className="h-full min-w-0 overflow-auto bg-tea-bg pb-nav">
+      <div className="sticky top-0 z-sticky border-b border-tea-border bg-tea-bg/90 px-4 py-2 backdrop-blur-md md:px-6">
+        <div className="mx-auto flex min-h-[44px] w-full max-w-5xl items-center">
+          <button type="button" onClick={() => setShowSettlements(false)} className="tap-target text-ui-12 font-medium text-tea-text-sec hover:text-tea-text active:scale-[0.98]">Back to orders</button>
+        </div>
+      </div>
+      <SettlementLedger />
+    </div>
+  );
+
   if (isLoading) return <div className="p-12 text-center text-tea-text-sec font-serif italic"><Loader2 className="animate-spin inline" /></div>;
 
   return (
@@ -355,6 +368,14 @@ export const OrdersView = () => {
               Revenue: ${summary.filledTotal.toFixed(0)}
             </span>
           )}
+
+          <button
+            type="button"
+            onClick={() => setShowSettlements(true)}
+            className="tap-target shrink-0 px-2 text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text active:scale-[0.98]"
+          >
+            Settlements
+          </button>
 
           <button
             onClick={() => setShowQuickInvoice(true)}

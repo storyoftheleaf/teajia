@@ -544,7 +544,9 @@ describe('Tea Master invoice authorization, holds and settlements', () => {
     await call(db, '/api/rpc/fulfill-invoice', { method: 'POST', userId: 'seller', body: { invoice_id: invoice.id } });
     const settlement = db.sqlite.prepare('SELECT id FROM sales_settlements WHERE invoice_id=?').get(invoice.id) as any;
 
-    expect((await (await call(db, '/api/sales/settlements?mine=1', { userId: 'seller' })).json() as any[]).length).toBe(1);
+    const sellerSettlements = await (await call(db, '/api/sales/settlements?mine=1', { userId: 'seller' })).json() as any[];
+    expect(sellerSettlements).toHaveLength(1);
+    expect(sellerSettlements[0]).toMatchObject({ invoice_id: invoice.id, invoice_number: invoice.invoice_number });
     expect((await (await call(db, '/api/sales/settlements?mine=1', { userId: 'other-seller' })).json() as any[]).length).toBe(0);
     expect((await call(db, `/api/sales/settlements/${settlement.id}`, { method: 'PUT', userId: 'seller', body: { status: 'paid' } })).status).toBe(403);
     expect((await call(db, `/api/sales/settlements/${settlement.id}`, { method: 'PUT', body: { status: 'paid' } })).status).toBe(200);

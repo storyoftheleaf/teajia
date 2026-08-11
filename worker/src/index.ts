@@ -3648,12 +3648,14 @@ const handleGetSalesSettlements: Handler = async (request, env) => {
   try {
     const participantOnly = ctx.role !== 'owner' || mine;
     const result = participantOnly
-      ? await env.DB.prepare(`SELECT ss.*,p.product_name,s.name AS seller_name,o.name AS stock_owner_name
+      ? await env.DB.prepare(`SELECT ss.*,i.invoice_number,p.product_name,s.name AS seller_name,o.name AS stock_owner_name
           FROM sales_settlements ss LEFT JOIN products p ON p.id=ss.product_id
+          JOIN invoices i ON i.id=ss.invoice_id AND i.account_id=ss.account_id
           JOIN users s ON s.id=ss.seller_user_id LEFT JOIN users o ON o.id=ss.stock_owner_user_id
           WHERE ss.account_id=? AND (ss.seller_user_id=? OR ss.stock_owner_user_id=?) ORDER BY ss.created_at DESC`).bind(ctx.accountId, ctx.userId, ctx.userId).all()
-      : await env.DB.prepare(`SELECT ss.*,p.product_name,s.name AS seller_name,o.name AS stock_owner_name
+      : await env.DB.prepare(`SELECT ss.*,i.invoice_number,p.product_name,s.name AS seller_name,o.name AS stock_owner_name
           FROM sales_settlements ss LEFT JOIN products p ON p.id=ss.product_id
+          JOIN invoices i ON i.id=ss.invoice_id AND i.account_id=ss.account_id
           JOIN users s ON s.id=ss.seller_user_id LEFT JOIN users o ON o.id=ss.stock_owner_user_id
           WHERE ss.account_id=? ORDER BY ss.created_at DESC`).bind(ctx.accountId).all();
     return json(result.results);

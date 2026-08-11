@@ -71,6 +71,7 @@ export interface SalesSettlement {
   id: string;
   account_id: string;
   invoice_id: string;
+  invoice_number?: string | null;
   line_item_id: string;
   product_id: string | null;
   product_name?: string | null;
