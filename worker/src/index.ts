@@ -3684,8 +3684,18 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
   const cols = validatedFields.fields;
   if (cols.length === 0) return json({ success: true });
   const sets = cols.map(c => `${c} = ?`).join(', ');
-  await env.DB.prepare(`UPDATE invoices SET ${sets} WHERE id = ? AND account_id = ?`)
-    .bind(...cols.map(c => normalizedValues[c] ?? null), params.id, accountId).run();
+  const statusWrite = Object.prototype.hasOwnProperty.call(body, 'status');
+  const updateResult = await env.DB.prepare(
+    `UPDATE invoices SET ${sets} WHERE id = ? AND account_id = ?${statusWrite ? ' AND status = ?' : ''}`
+  ).bind(
+    ...cols.map(c => normalizedValues[c] ?? null),
+    params.id,
+    accountId,
+    ...(statusWrite ? [invoice.status] : []),
+  ).run();
+  if (statusWrite && Number(updateResult.meta?.changes || 0) === 0) {
+    return restError(409, 'Invoice changed before the status update could be applied', 'invoice_write_conflict');
+  }
   await ensureContactRelationship(env, accountId, normalized.customer_id, 'buyer', 'workflow', 'invoice', params.id);
   return json({ success: true });
 };
@@ -4340,16 +4350,34 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
   });
   if (ownershipError) return ownershipError;
 
+  const editClaim = crypto.randomUUID();
+  const claimed = await env.DB.prepare(
+    `UPDATE invoices SET fulfillment_claim_token = ?, fulfillment_claimed_at = datetime('now'), status = COALESCE(status, 'Pending')
+     WHERE id = ? AND account_id = ? AND COALESCE(status, 'Pending') = 'Pending' AND inventory_deducted = 0
+       AND (fulfillment_claim_token IS NULL OR fulfillment_claimed_at IS NULL OR fulfillment_claimed_at < datetime('now', '-5 minutes'))
+     RETURNING id`
+  ).bind(editClaim, params.id, accountId).first();
+  if (!claimed) return restError(409, 'Invoice is no longer available for editing', 'invoice_edit_conflict');
+  const releaseEditClaim = () => env.DB.prepare(
+    'UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?'
+  ).bind(params.id, accountId, editClaim).run();
+
   const stmts: D1PreparedStatement[] = [];
 
   if (hasReplacementLines) {
     stmts.push(env.DB.prepare(
-      'DELETE FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
-    ).bind(params.id, accountId));
+      `DELETE FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?
+       AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND status = 'Pending'
+         AND inventory_deducted = 0 AND fulfillment_claim_token = ?)`
+    ).bind(params.id, accountId, params.id, accountId, editClaim));
     for (const item of input.lineItems) {
       stmts.push(env.DB.prepare(
-        'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, custom_name, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?, ?, ?)'
-      ).bind(crypto.randomUUID(), accountId, params.id, item.product_id ?? null, item.custom_name ?? null, item.quantity, item.price_at_sale));
+        `INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, custom_name, quantity, price_at_sale)
+         SELECT ?, ?, ?, ?, ?, ?, ?
+         WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND status = 'Pending'
+           AND inventory_deducted = 0 AND fulfillment_claim_token = ?)`
+      ).bind(crypto.randomUUID(), accountId, params.id, item.product_id ?? null, item.custom_name ?? null, item.quantity, item.price_at_sale,
+        params.id, accountId, editClaim));
     }
   }
 
@@ -4370,17 +4398,44 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
     vals.push(normalizedValues[key] ?? null);
   }
   if (updates.length > 0) {
-    stmts.push(
-      env.DB.prepare(`UPDATE invoices SET ${updates.join(', ')} WHERE id = ? AND account_id = ?`)
-        .bind(...vals, params.id, accountId)
-    );
+    stmts.push(env.DB.prepare(
+      `UPDATE invoices SET ${updates.join(', ')} WHERE id = ? AND account_id = ? AND status = 'Pending'
+       AND inventory_deducted = 0 AND fulfillment_claim_token = ?`
+    ).bind(...vals, params.id, accountId, editClaim));
   }
 
-  stmts.push(buildActivityLog(env, 'INVOICE_EDITED',
+  stmts.push(env.DB.prepare(
+    `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+     SELECT ?, 'INVOICE_EDITED', ?, ?, 'invoice', ?, ?
+     WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND status = 'Pending'
+       AND inventory_deducted = 0 AND fulfillment_claim_token = ?)`
+  ).bind(
+    crypto.randomUUID(),
     `Invoice ${invoice.invoice_number} edited.${hasReplacementLines ? ` ${input.lineItems.length} line items.` : ''}`,
-    userEmail, 'invoice', params.id, accountId));
+    userEmail,
+    params.id,
+    accountId,
+    params.id,
+    accountId,
+    editClaim,
+  ));
+  const releaseIndex = stmts.length;
+  stmts.push(env.DB.prepare(
+    `UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL
+     WHERE id = ? AND account_id = ? AND status = 'Pending' AND inventory_deducted = 0 AND fulfillment_claim_token = ?`
+  ).bind(params.id, accountId, editClaim));
 
-  await env.DB.batch(stmts);
+  try {
+    const results = await env.DB.batch(stmts);
+    if (Number(results[releaseIndex]?.meta?.changes || 0) === 0) {
+      await releaseEditClaim().catch(() => {});
+      return restError(409, 'Invoice changed before the edit could be applied', 'invoice_edit_conflict');
+    }
+  } catch (error) {
+    console.error('handleUpdateInvoiceItems batch failed:', error);
+    await releaseEditClaim().catch(() => {});
+    return restError(500, 'Invoice edit failed — no changes were committed', 'invoice_edit_failed');
+  }
   await ensureContactRelationship(env, accountId, hasCustomerIdUpdate ? input.customer_id : null, 'buyer', 'workflow', 'invoice', params.id);
   return json({ success: true });
 };

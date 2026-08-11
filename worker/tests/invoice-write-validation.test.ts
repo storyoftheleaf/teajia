@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import worker from '../src/index';
 
 const JWT_SECRET = 'invoice-write-secret';
@@ -9,10 +9,17 @@ class InvoiceWriteDb {
   readonly writes: RecordedStatement[] = [];
   readonly reads: RecordedStatement[] = [];
   sequenceAllocations = 0;
+  genericStatusBeforeUpdate: string | null = null;
+  editStatusBeforeClaim: string | null = null;
+  editStatusBeforeBatch: string | null = null;
+  failEditBatch = false;
+  editClaimAttempts = 0;
+  editReleaseAttempts = 0;
   invoices = [{
     id: 'invoice-a', account_id: 'account-a', invoice_number: 'A-00001', customer_name: 'Existing Buyer',
     customer_whatsapp: null, customer_id: null, display_currency: 'USD', shipping_cost_usd: 0,
-    status: 'Pending', notes: null, source_event_id: null, payment_status: 'unpaid',
+    status: 'Pending', notes: null, source_event_id: null, payment_status: 'unpaid', inventory_deducted: 0,
+    fulfillment_claim_token: null as string | null, fulfillment_claimed_at: null as string | null,
   }];
   lines = [{ id: 'line-a', account_id: 'account-a', invoice_id: 'invoice-a', product_id: 'product-a', custom_name: null, quantity: 1, price_at_sale: 5 }];
   products = [
@@ -36,6 +43,22 @@ class InvoiceWriteDb {
           this.sequenceAllocations += 1;
           this.writes.push(record());
           return { invoice_seq: this.sequenceAllocations, invoice_prefix: 'A' };
+        }
+        if (normalized.startsWith('update invoices set fulfillment_claim_token = ?')) {
+          this.editClaimAttempts += 1;
+          if (this.editStatusBeforeClaim) {
+            this.invoices[0].status = this.editStatusBeforeClaim;
+            this.editStatusBeforeClaim = null;
+          }
+          const invoice = this.invoices.find(row => row.id === values[1] && row.account_id === values[2]);
+          const stale = invoice?.fulfillment_claim_token != null
+            && (invoice.fulfillment_claimed_at == null || new Date(invoice.fulfillment_claimed_at).getTime() < Date.now() - 5 * 60_000);
+          if (!invoice || (invoice.status !== null && invoice.status !== 'Pending') || invoice.inventory_deducted !== 0 || (invoice.fulfillment_claim_token && !stale)) return null;
+          invoice.status = 'Pending';
+          invoice.fulfillment_claim_token = String(values[0]);
+          invoice.fulfillment_claimed_at = new Date().toISOString();
+          this.writes.push(record());
+          return { id: invoice.id };
         }
         this.reads.push(record());
         if (normalized.includes('select platform_role, session_version from users')) return { platform_role: null, session_version: 0 };
@@ -61,15 +84,64 @@ class InvoiceWriteDb {
         return { results: [] };
       },
       run: async () => {
+        const invoice = this.invoices[0];
+        if (normalized.startsWith('update invoices set fulfillment_claim_token = null')) {
+          this.editReleaseAttempts += 1;
+          const token = String(values.at(-1));
+          const requiresPendingFence = normalized.includes("status = 'pending'");
+          if (invoice.fulfillment_claim_token !== token
+            || (requiresPendingFence && (invoice.status !== 'Pending' || invoice.inventory_deducted !== 0))) {
+            return { success: true, meta: { changes: 0 } };
+          }
+          invoice.fulfillment_claim_token = null;
+          invoice.fulfillment_claimed_at = null;
+          this.writes.push(record());
+          return { success: true, meta: { changes: 1 } };
+        }
+        const isGenericInvoiceUpdate = normalized.startsWith('update invoices set')
+          && !normalized.includes('fulfillment_claim_token = null');
+        if (isGenericInvoiceUpdate && this.genericStatusBeforeUpdate) {
+          invoice.status = this.genericStatusBeforeUpdate;
+          this.genericStatusBeforeUpdate = null;
+        }
+        if (isGenericInvoiceUpdate && normalized.includes('and status = ?') && invoice.status !== values.at(-1)) {
+          return { success: true, meta: { changes: 0 } };
+        }
+        const fencedEdit = normalized.includes('fulfillment_claim_token = ?');
+        if (fencedEdit) {
+          const token = String(values.at(-1));
+          if (invoice.fulfillment_claim_token !== token || invoice.status !== 'Pending' || invoice.inventory_deducted !== 0) {
+            return { success: true, meta: { changes: 0 } };
+          }
+        }
         if (/^(insert|update|delete)/.test(normalized)) this.writes.push(record());
         return { success: true, meta: { changes: 1 } };
       },
+      sql: normalized,
     };
     return statement;
   }
 
   async batch(statements: Array<{ run: () => Promise<unknown> }>) {
-    return Promise.all(statements.map(statement => statement.run()));
+    if (this.editStatusBeforeBatch) {
+      this.invoices[0].status = this.editStatusBeforeBatch;
+      this.editStatusBeforeBatch = null;
+    }
+    const writesLength = this.writes.length;
+    const invoiceSnapshot = { ...this.invoices[0] };
+    try {
+      const results: unknown[] = [];
+      for (const [index, statement] of statements.entries()) {
+        results.push(await statement.run());
+        if (this.failEditBatch && index === 0) throw new Error('simulated edit batch failure');
+      }
+      return results;
+    } catch (error) {
+      this.writes.splice(writesLength);
+      Object.assign(this.invoices[0], invoiceSnapshot);
+      this.failEditBatch = false;
+      throw error;
+    }
   }
 }
 
@@ -111,6 +183,15 @@ function createBody(overrides: Record<string, unknown> = {}) {
 function expectNoWrites(db: InvoiceWriteDb) {
   expect(db.sequenceAllocations).toBe(0);
   expect(db.writes).toEqual([]);
+}
+
+function invoiceDataWrites(db: InvoiceWriteDb) {
+  return db.writes.filter(entry => !entry.sql.startsWith('update invoices set fulfillment_claim_token'));
+}
+
+function invoiceHeaderWrite(db: InvoiceWriteDb) {
+  return db.writes.find(entry => entry.sql.startsWith('update invoices set')
+    && !entry.sql.startsWith('update invoices set fulfillment_claim_token'));
 }
 
 describe('retail invoice write validation', () => {
@@ -204,7 +285,7 @@ describe('retail invoice write validation', () => {
     const db = new InvoiceWriteDb();
     const response = await request(db, 'PUT', '/api/invoices/invoice-a/items', { customer_name: '  Renamed Buyer  ' });
     expect(response.status).toBe(200);
-    const update = db.writes.find(entry => entry.sql.startsWith('update invoices set'))!;
+    const update = invoiceHeaderWrite(db)!;
     expect(update.values[0]).toBe('Renamed Buyer');
     expect(db.writes.some(entry => entry.sql.startsWith('delete from invoice_line_items'))).toBe(false);
   });
@@ -234,7 +315,7 @@ describe('retail invoice write validation', () => {
     Object.assign(db.invoices[0], { display_currency: null, shipping_cost_usd: null, status: null, payment_status: null });
     const response = await request(db, 'PUT', '/api/invoices/invoice-a/items', { notes: 'Legacy-safe edit' });
     expect(response.status).toBe(200);
-    expect(db.writes.find(entry => entry.sql.startsWith('update invoices set'))?.values[0]).toBe('Legacy-safe edit');
+    expect(invoiceHeaderWrite(db)?.values[0]).toBe('Legacy-safe edit');
   });
 
   it.each([
@@ -268,7 +349,7 @@ describe('retail invoice write validation', () => {
     });
     expect(response.status).toBe(200);
     expect(db.writes.find(entry => entry.sql.startsWith('insert into invoice_line_items'))?.values.slice(3))
-      .toEqual([null, 'Private tasting fee', 1, 25]);
+      .toEqual([null, 'Private tasting fee', 1, 25, 'invoice-a', 'account-a', expect.any(String)]);
   });
 
   it('allows a header-only edit when unchanged legacy references are orphaned', async () => {
@@ -277,7 +358,7 @@ describe('retail invoice write validation', () => {
     db.lines[0].product_id = 'orphaned-product';
     const response = await request(db, 'PUT', '/api/invoices/invoice-a/items', { customer_name: '  Legacy Buyer  ' });
     expect(response.status).toBe(200);
-    expect(db.writes.find(entry => entry.sql.startsWith('update invoices set'))?.values[0]).toBe('Legacy Buyer');
+    expect(invoiceHeaderWrite(db)?.values[0]).toBe('Legacy Buyer');
     expect(db.reads.some(entry => entry.sql.startsWith('select id from products'))).toBe(false);
     expect(db.reads.some(entry => entry.sql.startsWith('select id from customers'))).toBe(false);
     expect(db.writes.some(entry => entry.sql.startsWith('insert or ignore into contact_relationships'))).toBe(false);
@@ -358,5 +439,66 @@ describe('retail invoice write validation', () => {
     const response = await request(db, 'PUT', '/api/invoices/invoice-a', { notes: 'Administrative note' });
     expect(response.status).toBe(200);
     expect(db.writes.find(entry => entry.sql.startsWith('update invoices set'))?.values[0]).toBe('Administrative note');
+  });
+
+  it.each([
+    ['Draft', 'Pending'],
+    ['Draft', 'Filled'],
+    ['Pending', 'Void'],
+  ])('CAS-rejects a stale generic status write after %s concurrently becomes %s', async (persisted, concurrent) => {
+    const db = new InvoiceWriteDb();
+    db.invoices[0].status = persisted;
+    db.genericStatusBeforeUpdate = concurrent;
+    const response = await request(db, 'PUT', '/api/invoices/invoice-a', { status: 'Pending', customer_id: 'customer-a' });
+    expect(response.status).toBe(409);
+    expect(db.invoices[0].status).toBe(concurrent);
+    expect(invoiceDataWrites(db)).toEqual([]);
+    expect(db.writes.some(entry => entry.sql.startsWith('insert or ignore into contact_relationships'))).toBe(false);
+  });
+
+  it('rejects an edit claim when the invoice becomes terminal after validation', async () => {
+    const db = new InvoiceWriteDb();
+    db.editStatusBeforeClaim = 'Filled';
+    const response = await request(db, 'PUT', '/api/invoices/invoice-a/items', { notes: 'Too late' });
+    expect(response.status).toBe(409);
+    expect(db.editClaimAttempts).toBe(1);
+    expect(db.invoices[0].status).toBe('Filled');
+    expect(invoiceDataWrites(db)).toEqual([]);
+  });
+
+  it('fences the edit batch when a terminal transition wins after the claim', async () => {
+    const db = new InvoiceWriteDb();
+    db.editStatusBeforeBatch = 'Void';
+    const response = await request(db, 'PUT', '/api/invoices/invoice-a/items', {
+      customer_id: 'customer-a',
+      lineItems: [{ custom_name: 'Raced line', quantity: 1, price_at_sale: 10 }],
+    });
+    expect(response.status).toBe(409);
+    expect(db.invoices[0]).toMatchObject({ status: 'Void', fulfillment_claim_token: null });
+    expect(invoiceDataWrites(db)).toEqual([]);
+    expect(db.writes.some(entry => entry.sql.startsWith('insert or ignore into contact_relationships'))).toBe(false);
+  });
+
+  it('releases the shared claim after a normal pending edit', async () => {
+    const db = new InvoiceWriteDb();
+    const response = await request(db, 'PUT', '/api/invoices/invoice-a/items', { notes: 'Claimed edit' });
+    expect(response.status).toBe(200);
+    expect(db.editClaimAttempts).toBe(1);
+    expect(db.invoices[0].fulfillment_claim_token).toBeNull();
+    expect(db.writes.some(entry => entry.sql.startsWith("insert into activity_logs") && entry.sql.includes("select"))).toBe(true);
+  });
+
+  it('best-effort releases the shared claim after an atomic batch failure', async () => {
+    const db = new InvoiceWriteDb();
+    db.failEditBatch = true;
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const response = await request(db, 'PUT', '/api/invoices/invoice-a/items', {
+      lineItems: [{ custom_name: 'Will roll back', quantity: 1, price_at_sale: 10 }],
+    }).finally(() => consoleError.mockRestore());
+    expect(response.status).toBe(500);
+    expect(db.editClaimAttempts).toBe(1);
+    expect(db.editReleaseAttempts).toBe(1);
+    expect(db.invoices[0].fulfillment_claim_token).toBeNull();
+    expect(invoiceDataWrites(db)).toEqual([]);
   });
 });
