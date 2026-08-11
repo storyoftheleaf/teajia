@@ -72,19 +72,19 @@ export function validateRetailInvoiceInput(input: unknown): RetailInvoiceInput {
     throw new RangeError('lineItems must contain at least one line');
   }
 
-  const shippingCost = raw.shipping_cost_usd ?? 0;
+  const shippingCost = raw.shipping_cost_usd === undefined ? 0 : raw.shipping_cost_usd;
   if (typeof shippingCost !== 'number') throw new RangeError('shipping_cost_usd must be a number');
   requireNonNegative('shipping_cost_usd', shippingCost);
 
-  const rawCurrency = raw.display_currency == null ? 'USD' : requiredText(raw.display_currency, 'display_currency');
+  const rawCurrency = raw.display_currency === undefined ? 'USD' : requiredText(raw.display_currency, 'display_currency');
   const displayCurrency = rawCurrency.trim();
   if (!/^[A-Z]{3}$/.test(displayCurrency) && displayCurrency !== 'NT' && displayCurrency !== 'Yuan') {
     throw new RangeError('display_currency must be an uppercase three-letter code, NT, or Yuan');
   }
 
-  const status = raw.status ?? 'Pending';
+  const status = raw.status === undefined ? 'Pending' : raw.status;
   if (status !== 'Draft' && status !== 'Pending') throw new RangeError('status must be Draft or Pending');
-  const paymentStatus = raw.payment_status ?? 'unpaid';
+  const paymentStatus = raw.payment_status === undefined ? 'unpaid' : raw.payment_status;
   if (paymentStatus !== 'unpaid') throw new RangeError('payment_status must be unpaid');
 
   const lineItems = raw.lineItems.map((value, index): RetailInvoiceLineInput => {
@@ -102,6 +102,14 @@ export function validateRetailInvoiceInput(input: unknown): RetailInvoiceInput {
     requireNonNegative(`lineItems[${index}].price_at_sale`, line.price_at_sale);
     return { product_id: productId, custom_name: customName, quantity: line.quantity, price_at_sale: line.price_at_sale };
   });
+
+  let aggregateTotal = shippingCost;
+  for (const [index, line] of lineItems.entries()) {
+    const lineTotal = line.quantity * line.price_at_sale;
+    requireFinite(`lineItems[${index}] total`, lineTotal);
+    aggregateTotal += lineTotal;
+    requireFinite('invoice total', aggregateTotal);
+  }
 
   return {
     customer_name: customerName,

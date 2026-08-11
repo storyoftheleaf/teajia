@@ -3496,9 +3496,6 @@ function validateExplicitInvoiceLifecycle(body: Record<string, unknown>): Respon
   if (Object.prototype.hasOwnProperty.call(body, 'status') && body.status !== 'Draft' && body.status !== 'Pending') {
     return invalidInvoiceResponse(new RangeError('status must be Draft or Pending'));
   }
-  if (Object.prototype.hasOwnProperty.call(body, 'payment_status') && body.payment_status !== 'unpaid') {
-    return invalidInvoiceResponse(new RangeError('payment_status must be unpaid'));
-  }
   return null;
 }
 
@@ -3635,14 +3632,21 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
   const parsed = await readInvoiceJson(request);
   if ('error' in parsed) return parsed.error;
   const body = parsed.value;
-  const INVOICE_ALLOWED_COLS = new Set(['customer_name','customer_id','customer_whatsapp','status','notes','display_currency','shipping_cost_usd','payment_status','payment_date','payment_method','source_event_id']);
+  const INVOICE_ALLOWED_COLS = new Set(['customer_name','customer_id','customer_whatsapp','status','notes','display_currency','shipping_cost_usd','source_event_id']);
   const validatedFields = validatedUpdateFields(body, INVOICE_ALLOWED_COLS);
   if ('error' in validatedFields) return validatedFields.error;
   const lifecycleError = validateExplicitInvoiceLifecycle(body);
   if (lifecycleError) return lifecycleError;
-  const invoice = await env.DB.prepare('SELECT id FROM invoices WHERE id = ? AND account_id = ?')
-    .bind(params.id, accountId).first();
+  const invoice = await env.DB.prepare('SELECT status, payment_status FROM invoices WHERE id = ? AND account_id = ?')
+    .bind(params.id, accountId).first() as { status: string | null; payment_status: string | null } | null;
   if (!invoice) return restError(404, 'Invoice not found', 'invoice_not_found');
+  if (Object.prototype.hasOwnProperty.call(body, 'status')) {
+    const currentStatus = invoice.status;
+    const requestedStatus = body.status;
+    const allowed = (currentStatus === 'Draft' && (requestedStatus === 'Draft' || requestedStatus === 'Pending'))
+      || (currentStatus === 'Pending' && requestedStatus === 'Pending');
+    if (!allowed) return invalidInvoiceResponse(new RangeError(`status transition from ${currentStatus || 'unset'} to ${String(requestedStatus)} is not allowed`));
+  }
 
   let normalized: RetailInvoiceInput;
   try {
@@ -3655,7 +3659,6 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
       status: body.status,
       notes: body.notes,
       source_event_id: body.source_event_id,
-      payment_status: body.payment_status,
       lineItems: [{ custom_name: 'validation', quantity: 1, price_at_sale: 0 }],
     });
   } catch (error) {
@@ -3677,7 +3680,6 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
     status: normalized.status,
     notes: normalized.notes,
     source_event_id: normalized.source_event_id,
-    payment_status: normalized.payment_status,
   };
   const cols = validatedFields.fields;
   if (cols.length === 0) return json({ success: true });
@@ -4297,12 +4299,17 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
   const parsed = await readInvoiceJson(request);
   if ('error' in parsed) return parsed.error;
   const body = parsed.value;
-  const lifecycleError = validateExplicitInvoiceLifecycle(body);
-  if (lifecycleError) return lifecycleError;
+  const ALLOWED_ITEM_UPDATE_FIELDS = new Set(['lineItems','shipping_cost_usd','customer_name','customer_id','customer_whatsapp','display_currency','notes','source_event_id']);
+  const validatedFields = validatedUpdateFields(body, ALLOWED_ITEM_UPDATE_FIELDS);
+  if ('error' in validatedFields) return validatedFields.error;
+  if (validatedFields.fields.length === 0) {
+    return restError(400, 'No invoice changes provided', 'validation_failed');
+  }
   const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ? AND account_id = ?')
     .bind(params.id, accountId).first();
   if (!invoice) return json({ error: 'Invoice not found' }, 404);
-  if (invoice.status !== 'Pending') return json({ error: 'Only Pending invoices can be edited' }, 400);
+  const persistedStatus = invoice.status ?? 'Pending';
+  if (persistedStatus !== 'Pending') return json({ error: 'Only Pending invoices can be edited' }, 400);
 
   const hasReplacementLines = Object.prototype.hasOwnProperty.call(body, 'lineItems');
   const hasCustomerIdUpdate = Object.prototype.hasOwnProperty.call(body, 'customer_id');
@@ -4316,7 +4323,14 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
 
   let input: RetailInvoiceInput;
   try {
-    input = validateRetailInvoiceInput({ ...invoice, ...body, lineItems: lines });
+    const persistedInput = {
+      ...invoice,
+      display_currency: invoice.display_currency ?? undefined,
+      shipping_cost_usd: invoice.shipping_cost_usd ?? undefined,
+      status: persistedStatus,
+      payment_status: invoice.payment_status ?? undefined,
+    };
+    input = validateRetailInvoiceInput({ ...persistedInput, ...body, lineItems: lines });
   } catch (error) {
     return invalidInvoiceResponse(error);
   }
@@ -4341,7 +4355,6 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
 
   const updates: string[] = [];
   const vals: any[] = [];
-  const ALLOWED_ITEM_UPDATES = new Set(['shipping_cost_usd','customer_name','customer_id','customer_whatsapp','display_currency','notes','source_event_id']);
   const normalizedValues: Record<string, unknown> = {
     shipping_cost_usd: input.shipping_cost_usd,
     customer_name: input.customer_name,
@@ -4353,7 +4366,6 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
   };
   for (const key of Object.keys(body)) {
     if (key === 'lineItems') continue;
-    if (!ALLOWED_ITEM_UPDATES.has(key)) continue;
     updates.push(`${key} = ?`);
     vals.push(normalizedValues[key] ?? null);
   }

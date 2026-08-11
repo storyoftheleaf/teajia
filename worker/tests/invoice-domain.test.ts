@@ -184,19 +184,13 @@ describe('retail invoice input', () => {
     });
   });
 
-  it('defaults nullable persisted header values for legacy pending invoices', () => {
-    expect(validateRetailInvoiceInput({
-      ...validInput(),
-      display_currency: null,
-      shipping_cost_usd: null,
-      status: null,
-      payment_status: null,
-    })).toMatchObject({
-      display_currency: 'USD',
-      shipping_cost_usd: 0,
-      status: 'Pending',
-      payment_status: 'unpaid',
-    });
+  it.each([
+    ['display_currency', null],
+    ['shipping_cost_usd', null],
+    ['status', null],
+    ['payment_status', null],
+  ])('rejects an explicit null %s', (field, value) => {
+    expect(() => validateRetailInvoiceInput({ ...validInput(), [field]: value })).toThrow(RangeError);
   });
 
   it.each(['NT', 'Yuan'])('preserves the established case-sensitive currency code %s', display_currency => {
@@ -243,5 +237,22 @@ describe('retail invoice input', () => {
     const input = validInput() as any;
     input.lineItems[0].quantity = '2';
     expect(() => validateRetailInvoiceInput(input)).toThrow(RangeError);
+  });
+
+  it('rejects a finite line whose quantity and price product overflows', () => {
+    expect(() => validateRetailInvoiceInput({
+      customer_name: 'Buyer',
+      lineItems: [{ custom_name: 'Overflow', quantity: 2, price_at_sale: Number.MAX_VALUE }],
+    })).toThrow(RangeError);
+  });
+
+  it('rejects finite lines whose aggregate total overflows', () => {
+    expect(() => validateRetailInvoiceInput({
+      customer_name: 'Buyer',
+      lineItems: [
+        { custom_name: 'First', quantity: 1, price_at_sale: Number.MAX_VALUE },
+        { custom_name: 'Second', quantity: 1, price_at_sale: Number.MAX_VALUE },
+      ],
+    })).toThrow(RangeError);
   });
 });

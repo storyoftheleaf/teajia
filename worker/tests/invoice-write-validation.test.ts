@@ -42,10 +42,7 @@ class InvoiceWriteDb {
         if (normalized === 'select platform_role from users where id = ?') return { platform_role: null };
         if (normalized.includes('from account_members am join accounts')) return { role: 'owner', permissions: '{}', kind: 'location' };
         if (normalized.includes('select status from accounts')) return { status: 'active' };
-        if (normalized.startsWith('select * from invoices where id = ? and account_id = ?')) {
-          return this.invoices.find(row => row.id === values[0] && row.account_id === values[1]) ?? null;
-        }
-        if (normalized.startsWith('select id from invoices where id = ? and account_id = ?')) {
+        if (normalized.includes('from invoices where id = ? and account_id = ?')) {
           return this.invoices.find(row => row.id === values[0] && row.account_id === values[1]) ?? null;
         }
         if (normalized.startsWith('select id from products where id = ? and account_id = ?')) {
@@ -133,6 +130,10 @@ describe('retail invoice write validation', () => {
     ['numeric currency', createBody({ display_currency: 'US1' })],
     ['short currency', createBody({ display_currency: 'U' })],
     ['word currency', createBody({ display_currency: 'Banana' })],
+    ['null shipping', createBody({ shipping_cost_usd: null })],
+    ['null currency', createBody({ display_currency: null })],
+    ['null status', createBody({ status: null })],
+    ['null payment', createBody({ payment_status: null })],
     ['terminal status', createBody({ status: 'Filled' })],
     ['paid status', createBody({ payment_status: 'paid' })],
   ])('rejects invalid create input before allocating a sequence or writing: %s', async (_label, body) => {
@@ -186,6 +187,19 @@ describe('retail invoice write validation', () => {
     ]);
   });
 
+  it.each([
+    ['line product overflow', [{ custom_name: 'Overflow', quantity: 2, price_at_sale: Number.MAX_VALUE }]],
+    ['aggregate overflow', [
+      { custom_name: 'First', quantity: 1, price_at_sale: Number.MAX_VALUE },
+      { custom_name: 'Second', quantity: 1, price_at_sale: Number.MAX_VALUE },
+    ]],
+  ])('rejects create %s before allocating a sequence or writing', async (_label, lineItems) => {
+    const db = new InvoiceWriteDb();
+    const response = await request(db, 'POST', '/api/invoices', { ...createBody(), lineItems });
+    expect(response.status).toBe(400);
+    expectNoWrites(db);
+  });
+
   it('merges a partial pending edit with stored fields and lines before validating', async () => {
     const db = new InvoiceWriteDb();
     const response = await request(db, 'PUT', '/api/invoices/invoice-a/items', { customer_name: '  Renamed Buyer  ' });
@@ -201,6 +215,60 @@ describe('retail invoice write validation', () => {
     expect(response.status).toBe(400);
     expect(await response.json()).toMatchObject({ code: 'invalid_invoice' });
     expectNoWrites(db);
+  });
+
+  it.each([
+    ['shipping_cost_usd', null],
+    ['display_currency', null],
+    ['status', null],
+    ['payment_status', null],
+  ])('rejects explicit null edit field %s without writes', async (field, value) => {
+    const db = new InvoiceWriteDb();
+    const response = await request(db, 'PUT', '/api/invoices/invoice-a/items', { [field]: value });
+    expect(response.status).toBe(400);
+    expectNoWrites(db);
+  });
+
+  it('normalizes persisted legacy null defaults for an unrelated pending header edit', async () => {
+    const db = new InvoiceWriteDb();
+    Object.assign(db.invoices[0], { display_currency: null, shipping_cost_usd: null, status: null, payment_status: null });
+    const response = await request(db, 'PUT', '/api/invoices/invoice-a/items', { notes: 'Legacy-safe edit' });
+    expect(response.status).toBe(200);
+    expect(db.writes.find(entry => entry.sql.startsWith('update invoices set'))?.values[0]).toBe('Legacy-safe edit');
+  });
+
+  it.each([
+    ['empty body', {}],
+    ['unknown field', { amount_usd: 100 }],
+  ])('rejects a pending item edit with %s before activity writes', async (_label, body) => {
+    const db = new InvoiceWriteDb();
+    const response = await request(db, 'PUT', '/api/invoices/invoice-a/items', body);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ code: 'validation_failed' });
+    expectNoWrites(db);
+  });
+
+  it.each([
+    ['line product overflow', [{ custom_name: 'Overflow', quantity: 2, price_at_sale: Number.MAX_VALUE }]],
+    ['aggregate overflow', [
+      { custom_name: 'First', quantity: 1, price_at_sale: Number.MAX_VALUE },
+      { custom_name: 'Second', quantity: 1, price_at_sale: Number.MAX_VALUE },
+    ]],
+  ])('rejects edit %s without writes', async (_label, lineItems) => {
+    const db = new InvoiceWriteDb();
+    const response = await request(db, 'PUT', '/api/invoices/invoice-a/items', { lineItems });
+    expect(response.status).toBe(400);
+    expectNoWrites(db);
+  });
+
+  it('round-trips a custom-only replacement line', async () => {
+    const db = new InvoiceWriteDb();
+    const response = await request(db, 'PUT', '/api/invoices/invoice-a/items', {
+      lineItems: [{ product_id: null, custom_name: '  Private tasting fee  ', quantity: 1, price_at_sale: 25 }],
+    });
+    expect(response.status).toBe(200);
+    expect(db.writes.find(entry => entry.sql.startsWith('insert into invoice_line_items'))?.values.slice(3))
+      .toEqual([null, 'Private tasting fee', 1, 25]);
   });
 
   it('allows a header-only edit when unchanged legacy references are orphaned', async () => {
@@ -235,11 +303,60 @@ describe('retail invoice write validation', () => {
     ['partial payment bypass', { payment_status: 'partial' }],
     ['null lifecycle', { status: null }],
     ['null payment lifecycle', { payment_status: null }],
+    ['null shipping', { shipping_cost_usd: null }],
+    ['null currency', { display_currency: null }],
     ['nonexistent column', { amount_usd: 100 }],
   ])('blocks generic update: %s', async (_label, body) => {
     const db = new InvoiceWriteDb();
     const response = await request(db, 'PUT', '/api/invoices/invoice-a', body);
     expect(response.status).toBe(400);
     expectNoWrites(db);
+  });
+
+  it.each([
+    ['Draft', 'Draft'],
+    ['Pending', 'Pending'],
+    ['Draft', 'Pending'],
+  ])('allows generic lifecycle transition %s to %s', async (persisted, requested) => {
+    const db = new InvoiceWriteDb();
+    db.invoices[0].status = persisted;
+    const response = await request(db, 'PUT', '/api/invoices/invoice-a', { status: requested });
+    expect(response.status).toBe(200);
+    expect(db.reads.some(entry => entry.sql.startsWith('select status, payment_status from invoices'))).toBe(true);
+    expect(db.writes.find(entry => entry.sql.startsWith('update invoices set'))?.values[0]).toBe(requested);
+  });
+
+  it.each([
+    ['Pending', 'Draft'],
+    ['Filled', 'Pending'],
+    ['Void', 'Draft'],
+  ])('rejects generic lifecycle transition %s to %s without writes', async (persisted, requested) => {
+    const db = new InvoiceWriteDb();
+    db.invoices[0].status = persisted;
+    const response = await request(db, 'PUT', '/api/invoices/invoice-a', { status: requested });
+    expect(response.status).toBe(400);
+    expectNoWrites(db);
+  });
+
+  it.each([
+    ['paid', { payment_status: 'unpaid' }],
+    ['partial', { payment_status: 'unpaid' }],
+    ['paid', { payment_date: '2026-08-11' }],
+    ['partial', { payment_method: 'cash' }],
+  ])('rejects generic payment mutation from %s without writes', async (persisted, body) => {
+    const db = new InvoiceWriteDb();
+    db.invoices[0].payment_status = persisted;
+    const response = await request(db, 'PUT', '/api/invoices/invoice-a', body);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ code: 'validation_failed' });
+    expectNoWrites(db);
+  });
+
+  it.each(['Filled', 'Void'])('allows a notes-only generic edit on a terminal %s invoice', async status => {
+    const db = new InvoiceWriteDb();
+    db.invoices[0].status = status;
+    const response = await request(db, 'PUT', '/api/invoices/invoice-a', { notes: 'Administrative note' });
+    expect(response.status).toBe(200);
+    expect(db.writes.find(entry => entry.sql.startsWith('update invoices set'))?.values[0]).toBe('Administrative note');
   });
 });

@@ -3,6 +3,7 @@ import { X, Pencil, Loader2, Plus, Trash2, Search } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useProducts } from '../hooks/useAdminData';
 import Fuse from 'fuse.js';
+import { editLineToInvoiceWrite, editOrderLineLabel, invoiceLineToEditLine, type EditOrderLine } from './editOrderLineDomain';
 
 interface EditOrderModalProps {
   isOpen: boolean;
@@ -12,20 +13,11 @@ interface EditOrderModalProps {
   showToast: (msg: string, type?: string) => void;
 }
 
-interface LineItem {
-  id?: string;
-  product_id: string;
-  product_name: string;
-  given_name: string;
-  quantity: number;
-  price_at_sale: number;
-}
-
 export const EditOrderModal: React.FC<EditOrderModalProps> = ({
   isOpen, onClose, onSuccess, invoice, showToast,
 }) => {
   const { data: products = [] } = useProducts();
-  const [items, setItems] = useState<LineItem[]>([]);
+  const [items, setItems] = useState<EditOrderLine[]>([]);
   const [customerName, setCustomerName] = useState('');
   const [shippingCost, setShippingCost] = useState(0);
   const [notes, setNotes] = useState('');
@@ -55,14 +47,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
     setNotes(invoice.notes || '');
 
     api.invoices.getItems(invoice.id).then(data => {
-      setItems((data || []).map((item: any) => ({
-        id: item.id,
-        product_id: item.product_id,
-        product_name: item.product_name || '',
-        given_name: item.given_name || '',
-        quantity: Number(item.quantity) || 0,
-        price_at_sale: Number(item.price_at_sale) || 0,
-      })));
+      setItems((data || []).map((item: Record<string, unknown>) => invoiceLineToEditLine(item)));
       setFetching(false);
     }).catch(() => {
       showToast('Could not load invoice items. Refresh and try again.', 'error');
@@ -72,7 +57,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
 
   if (!isOpen) return null;
 
-  const updateItem = (index: number, field: keyof LineItem, value: any) => {
+  const updateItem = (index: number, field: keyof EditOrderLine, value: any) => {
     setItems(prev => prev.map((item, i) => i === index ? { ...item, [field]: value } : item));
   };
 
@@ -87,6 +72,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
   const addProduct = (product: any) => {
     setItems(prev => [...prev, {
       product_id: product.id,
+      custom_name: null,
       product_name: product.productName,
       given_name: product.givenName || product.productName,
       quantity: 10,
@@ -106,11 +92,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
     setLoading(true);
     try {
       await api.invoices.updateItems(invoice.id, {
-        lineItems: items.map(item => ({
-          product_id: item.product_id,
-          quantity: item.quantity,
-          price_at_sale: item.price_at_sale,
-        })),
+        lineItems: items.map(editLineToInvoiceWrite),
         shipping_cost_usd: shippingCost,
         customer_name: customerName,
         notes,
@@ -238,7 +220,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                   {items.map((item, index) => (
                     <div key={index} className="bg-tea-bg border border-tea-border rounded-md p-3">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-ui-14 text-tea-text truncate">{item.given_name || item.product_name}</span>
+                        <span className="text-ui-14 text-tea-text truncate">{editOrderLineLabel(item)}</span>
                         <button
                           onClick={() => removeItem(index)}
                           className="text-tea-text-sec hover:text-tea-text transition-colors p-0.5"
