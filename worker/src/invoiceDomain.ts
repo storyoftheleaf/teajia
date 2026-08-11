@@ -78,8 +78,8 @@ export function validateRetailInvoiceInput(input: unknown): RetailInvoiceInput {
 
   const rawCurrency = raw.display_currency == null ? 'USD' : requiredText(raw.display_currency, 'display_currency');
   const displayCurrency = rawCurrency.trim();
-  if (displayCurrency.length > 12 || !/^[A-Za-z][A-Za-z0-9]*$/.test(displayCurrency)) {
-    throw new RangeError('display_currency must be an alphanumeric currency code');
+  if (!/^[A-Z]{3}$/.test(displayCurrency) && displayCurrency !== 'NT' && displayCurrency !== 'Yuan') {
+    throw new RangeError('display_currency must be an uppercase three-letter code, NT, or Yuan');
   }
 
   const status = raw.status ?? 'Pending';

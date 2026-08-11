@@ -129,6 +129,10 @@ describe('retail invoice write validation', () => {
     ['blank customer', createBody({ customer_name: ' ' })],
     ['empty lines', { ...createBody(), lineItems: [] }],
     ['numeric string', { ...createBody(), lineItems: [{ product_id: 'product-a', quantity: '2', price_at_sale: 4 }] }],
+    ['lowercase currency', createBody({ display_currency: 'usd' })],
+    ['numeric currency', createBody({ display_currency: 'US1' })],
+    ['short currency', createBody({ display_currency: 'U' })],
+    ['word currency', createBody({ display_currency: 'Banana' })],
     ['terminal status', createBody({ status: 'Filled' })],
     ['paid status', createBody({ payment_status: 'paid' })],
   ])('rejects invalid create input before allocating a sequence or writing: %s', async (_label, body) => {
@@ -191,9 +195,31 @@ describe('retail invoice write validation', () => {
     expect(db.writes.some(entry => entry.sql.startsWith('delete from invoice_line_items'))).toBe(false);
   });
 
+  it.each(['usd', 'US1', 'U', 'Banana'])('rejects malformed edit currency %s without writes', async display_currency => {
+    const db = new InvoiceWriteDb();
+    const response = await request(db, 'PUT', '/api/invoices/invoice-a/items', { display_currency });
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ code: 'invalid_invoice' });
+    expectNoWrites(db);
+  });
+
+  it('allows a header-only edit when unchanged legacy references are orphaned', async () => {
+    const db = new InvoiceWriteDb();
+    db.invoices[0].customer_id = 'orphaned-customer';
+    db.lines[0].product_id = 'orphaned-product';
+    const response = await request(db, 'PUT', '/api/invoices/invoice-a/items', { customer_name: '  Legacy Buyer  ' });
+    expect(response.status).toBe(200);
+    expect(db.writes.find(entry => entry.sql.startsWith('update invoices set'))?.values[0]).toBe('Legacy Buyer');
+    expect(db.reads.some(entry => entry.sql.startsWith('select id from products'))).toBe(false);
+    expect(db.reads.some(entry => entry.sql.startsWith('select id from customers'))).toBe(false);
+    expect(db.writes.some(entry => entry.sql.startsWith('insert or ignore into contact_relationships'))).toBe(false);
+  });
+
   it.each([
     ['cross-account replacement product', { lineItems: [{ product_id: 'product-other', quantity: 1, price_at_sale: 2 }] }],
+    ['missing replacement product', { lineItems: [{ product_id: 'missing-product', quantity: 1, price_at_sale: 2 }] }],
     ['cross-account replacement customer', { customer_id: 'customer-other' }],
+    ['missing replacement customer', { customer_id: 'missing-customer' }],
     ['invalid replacement quantity', { lineItems: [{ product_id: 'product-a', quantity: 0, price_at_sale: 2 }] }],
   ])('rejects %s without changing the pending invoice', async (_label, body) => {
     const db = new InvoiceWriteDb();

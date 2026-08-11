@@ -203,6 +203,10 @@ describe('retail invoice input', () => {
     expect(validateRetailInvoiceInput({ ...validInput(), display_currency }).display_currency).toBe(display_currency);
   });
 
+  it.each(['usd', 'US1', 'U', 'Banana'])('rejects malformed alphanumeric currency %s', display_currency => {
+    expect(() => validateRetailInvoiceInput({ ...validInput(), display_currency })).toThrow(RangeError);
+  });
+
   it.each([
     ['missing customer name', { customer_name: undefined }],
     ['blank customer name', { customer_name: '   ' }],

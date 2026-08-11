@@ -3502,14 +3502,21 @@ function validateExplicitInvoiceLifecycle(body: Record<string, unknown>): Respon
   return null;
 }
 
-async function validateRetailInvoiceOwnership(env: Env, accountId: string, input: RetailInvoiceInput): Promise<Response | null> {
-  const productIds = [...new Set(input.lineItems.map(item => item.product_id).filter((id): id is string => id !== null))];
-  for (const productId of productIds) {
-    const product = await env.DB.prepare('SELECT id FROM products WHERE id = ? AND account_id = ?')
-      .bind(productId, accountId).first();
-    if (!product) return restError(404, 'Invoice product not found', 'invoice_product_not_found', { product_id: productId });
+async function validateRetailInvoiceOwnership(
+  env: Env,
+  accountId: string,
+  input: RetailInvoiceInput,
+  checks: { products?: boolean; customer?: boolean } = { products: true, customer: true },
+): Promise<Response | null> {
+  if (checks.products !== false) {
+    const productIds = [...new Set(input.lineItems.map(item => item.product_id).filter((id): id is string => id !== null))];
+    for (const productId of productIds) {
+      const product = await env.DB.prepare('SELECT id FROM products WHERE id = ? AND account_id = ?')
+        .bind(productId, accountId).first();
+      if (!product) return restError(404, 'Invoice product not found', 'invoice_product_not_found', { product_id: productId });
+    }
   }
-  if (input.customer_id) {
+  if (checks.customer !== false && input.customer_id) {
     const customer = await env.DB.prepare('SELECT id FROM customers WHERE id = ? AND account_id = ?')
       .bind(input.customer_id, accountId).first();
     if (!customer) return restError(404, 'Invoice customer not found', 'invoice_customer_not_found', { customer_id: input.customer_id });
@@ -4298,6 +4305,7 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
   if (invoice.status !== 'Pending') return json({ error: 'Only Pending invoices can be edited' }, 400);
 
   const hasReplacementLines = Object.prototype.hasOwnProperty.call(body, 'lineItems');
+  const hasCustomerIdUpdate = Object.prototype.hasOwnProperty.call(body, 'customer_id');
   let lines: unknown = body.lineItems;
   if (!hasReplacementLines) {
     const existing = await env.DB.prepare(
@@ -4312,7 +4320,10 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
   } catch (error) {
     return invalidInvoiceResponse(error);
   }
-  const ownershipError = await validateRetailInvoiceOwnership(env, accountId, input);
+  const ownershipError = await validateRetailInvoiceOwnership(env, accountId, input, {
+    products: hasReplacementLines,
+    customer: hasCustomerIdUpdate,
+  });
   if (ownershipError) return ownershipError;
 
   const stmts: D1PreparedStatement[] = [];
@@ -4358,7 +4369,7 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
     userEmail, 'invoice', params.id, accountId));
 
   await env.DB.batch(stmts);
-  await ensureContactRelationship(env, accountId, input.customer_id, 'buyer', 'workflow', 'invoice', params.id);
+  await ensureContactRelationship(env, accountId, hasCustomerIdUpdate ? input.customer_id : null, 'buyer', 'workflow', 'invoice', params.id);
   return json({ success: true });
 };
 
