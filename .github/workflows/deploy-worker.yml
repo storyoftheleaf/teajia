@@ -9,6 +9,14 @@ name: Deploy worker
 # Required GitHub repo secrets:
 #   CLOUDFLARE_API_TOKEN   — Edit Workers permission, scoped to the account
 #   CLOUDFLARE_ACCOUNT_ID  — the account that owns teajia-api
+#
+# 2026-08-19: CLOUDFLARE_API_TOKEN went missing around Aug 8 and every deploy
+# from then until Aug 11 failed at the wrangler step with "it's necessary to
+# set a CLOUDFLARE_API_TOKEN environment variable" (tests all green, deploy
+# never reached Cloudflare). If that error ever reappears, check the repo's
+# Actions secrets before debugging anything else — the token needs Workers
+# Scripts: Edit + D1: Edit. Worker deploys queue up silently while broken, so
+# also re-check that pending D1 migrations applied after recovery.
 
 on:
   push:
