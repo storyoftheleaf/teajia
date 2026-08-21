@@ -84,10 +84,36 @@ closes is still open on today's code, and write it fresh with its test. The thre
 new files above can be lifted nearly as-is; the five shared files must be redone
 by hand.
 
-**Start by confirming the inbox is actually exposed.** If the inquiry inbox on
-production is genuinely unauthenticated, that changes this from cleanup to
-something that wants doing this week. That check is one look at the live admin
-route, and it decides the urgency of everything else here.
+## What the check found — 2026-08-21
 
-When the fixes are re-landed, or when the check says they are moot, the branch
-and its worktree can be deleted. Its tip is `19c2107a`.
+The inbox was **not** open to the public: the server already required an account.
+The bug was the mirror image — the admin client sent no credentials at all and
+turned the resulting rejection into an empty list, so the inbox read as "no
+inquiries" whether there were none or the request had been refused. That is
+fixed and landed.
+
+Looking for that turned up something worse, on a different route.
+
+`GET /api/inquiries/:ref` is **public** — no token, no account. The reference it
+takes is built in the browser as `TJ-YYYYMMDD-NNN` where NNN is three digits,
+so 900 requests enumerate an entire day of orders. Every hit returned the
+customer's **name, email address and phone number**, along with their items and
+total.
+
+That is now closed: the route returns only what was ordered and its status, and
+`worker/tests/public-inquiry-privacy.test.ts` fails if anyone puts the identity
+fields back. Existing tracking links still work.
+
+Still open on that route: the reference remains guessable, so order **contents**
+are enumerable even though the people behind them are not. The real fix is the
+hashed tracking token on this branch, whose migration must be renumbered from
+127 to 130. Landing it breaks existing `/order/TJ-...` links, which is a
+customer-facing decision rather than a purely technical one.
+
+## Where this stands
+
+Three of the sixteen fixes are re-landed on main. Thirteen remain, listed above.
+Take each as intent and rebuild against current main — do not merge the branch.
+
+When the rest are through, delete the branch and its worktree. Its tip is
+`19c2107a`.
