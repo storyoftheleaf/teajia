@@ -10,10 +10,13 @@ import { Icons } from '../Icons';
 import { Button } from './Button';
 import { CartItemRow } from './CartItem';
 import { api } from '../../lib/api';
+import { createHumanOrderRef, createTrackingToken, validateStoreCart } from '../../lib/publicCartDomain';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
 export interface PublicCartProps {
+  storeSlug: string;
+  storeName: string;
   cart: PublicCartItem[];
   onRemoveItem: (id: string) => void;
   onUpdateQuantity: (id: string, grams: number) => void;
@@ -39,7 +42,7 @@ const STEPS = [
   { key: 'CONFIRM' as const, label: 'Review' },
 ];
 
-export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUpdateQuantity, onAddItem, isOpen, whatsappNumber, contactEmail, onClose }) => {
+export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, cart, onRemoveItem, onUpdateQuantity, onAddItem, isOpen, whatsappNumber, contactEmail, onClose }) => {
   const [step, setStep] = useState<CheckoutStep>('CART');
   const [details, setDetails] = useState({ name: '', contact: '', location: '', notes: '' });
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -48,6 +51,12 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [preferredChannel, setPreferredChannel] = useState<'whatsapp' | 'email'>('whatsapp');
   const [recoveredCart, setRecoveredCart] = useState(false);
+  const [inquiryIdentity] = useState(() => ({
+    ref: createHumanOrderRef(),
+    trackingToken: createTrackingToken(),
+  }));
+  const [trackingToken, setTrackingToken] = useState<string | null>(null);
+  const [isPersisting, setIsPersisting] = useState(false);
 
   // Undo state for removed items
   const [undoItem, setUndoItem] = useState<{ item: PublicCartItem; timeout: ReturnType<typeof setTimeout> } | null>(null);
@@ -72,14 +81,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
   const shopPrice = useShopPrice();
   const displayPrice = useCallback((usd: number) => shopPrice.total(usd), [shopPrice]);
 
-  const orderRef = useMemo(() => {
-    const stored = localStorage.getItem('teajia_orderRef');
-    if (stored) return stored;
-    const d = new Date();
-    const ref = `TJ-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}-${Math.floor(Math.random() * 900 + 100)}`;
-    localStorage.setItem('teajia_orderRef', ref);
-    return ref;
-  }, []);
+  const orderRef = inquiryIdentity.ref;
 
   // ── Effects ──────────────────────────────────────────────────────────────
 
@@ -112,6 +114,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
         setStep('CART');
         setSuccessMessage(null);
         setCheckoutError(null);
+        setTrackingToken(null);
         setRecoveredCart(false);
       }, 500);
       return () => clearTimeout(t);
@@ -203,23 +206,47 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
   };
 
   const persistInquiry = async (source: 'whatsapp' | 'email' | 'copy') => {
-    try {
-      await api.inquiries.create({
+    const validation = validateStoreCart(cart);
+    if (!validation.ok || validation.storeSlug !== storeSlug) {
+      throw new Error(`This order must contain items from ${storeName} only. Please review your cart and try again.`);
+    }
+    const result = await api.inquiries.create({
+        tracking_token: inquiryIdentity.trackingToken,
         ref_number: orderRef,
+        store_slug: storeSlug,
         customer_name: details.name,
         customer_contact: details.contact,
         customer_location: details.location,
         notes: details.notes || undefined,
         items_json: JSON.stringify(cart),
         total_estimate_usd: subtotal,
+        currency: shopPrice.code,
         source,
       });
-    } catch {
-      // Non-critical, inquiry still sent via WhatsApp/email
+    setTrackingToken(result.tracking_token);
+    return result;
+  };
+
+  const persistBeforeDelivery = async (
+    source: 'whatsapp' | 'email' | 'copy',
+    deliver: () => void | Promise<void>,
+  ) => {
+    if (isPersisting) return;
+    setIsPersisting(true);
+    setCheckoutError(null);
+    try {
+      await persistInquiry(source);
+      await deliver();
+      showSuccess(source);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : '';
+      setCheckoutError(`We couldn't save your order request${detail ? `: ${detail}` : '.'} Please try again.`);
+    } finally {
+      setIsPersisting(false);
     }
   };
 
-  const handleWhatsApp = () => {
+  const handleWhatsApp = async () => {
     // Validate the resolved phone before opening WhatsApp. buildWhatsAppUrl
     // silently falls back to a recipient-less wa.me link when digits < 7,
     // which sends nothing, surface a clear error and offer email instead.
@@ -227,23 +254,16 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
       setCheckoutError("This store doesn't have WhatsApp ordering set up. Please use Email or Copy text below to send your order.");
       return;
     }
-    setCheckoutError(null);
-    window.open(contactChannels.whatsapp.href);
-    showSuccess('whatsapp');
-    persistInquiry('whatsapp');
+    await persistBeforeDelivery('whatsapp', () => { window.open(contactChannels.whatsapp!.href); });
   };
 
-  const handleEmail = () => {
+  const handleEmail = async () => {
     if (!contactChannels.email) { setCheckoutError(CONTACT_UNAVAILABLE); return; }
-    window.open(contactChannels.email.href);
-    showSuccess('email');
-    persistInquiry('email');
+    await persistBeforeDelivery('email', () => { window.open(contactChannels.email!.href); });
   };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(orderMessage);
-    showSuccess('copy');
-    persistInquiry('copy');
+  const handleCopy = async () => {
+    await persistBeforeDelivery('copy', () => navigator.clipboard.writeText(orderMessage));
   };
 
   const handleFormSubmit = (e: React.FormEvent) => {
@@ -575,10 +595,10 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                       <Icons.Close className="w-3 h-3" />
                     </button>
                   </div>
-                  <div className="pl-7 flex items-center justify-between gap-4">
+                  {trackingToken && <div className="pl-7 flex items-center justify-between gap-4">
                     <span className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec">Order ref</span>
-                    <a href={`/order/${orderRef}`} className="font-mono text-xs text-tea-text underline underline-offset-4 decoration-tea-border hover:decoration-tea-gold transition-colors">{orderRef}</a>
-                  </div>
+                    <a href={`/order/${trackingToken}`} className="font-mono text-xs text-tea-text underline underline-offset-4 decoration-tea-border hover:decoration-tea-gold transition-colors">{orderRef}</a>
+                  </div>}
                 </div>
               )}
 
@@ -605,6 +625,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
               <div className="flex flex-col gap-3">
                 {contactChannels.whatsapp && <Button
                   onClick={handleWhatsApp}
+                  disabled={isPersisting}
                   variant="primary"
                   fullWidth
                   icon={<Icons.Message className="w-4 h-4" />}
@@ -615,6 +636,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                 <div className="flex items-center justify-center gap-6 pt-1">
                   {contactChannels.email && <button
                     onClick={handleEmail}
+                    disabled={isPersisting}
                     className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text underline underline-offset-[6px] decoration-tea-border hover:decoration-tea-gold transition-colors min-h-[44px]"
                   >
                     Email
@@ -622,6 +644,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                   {(contactChannels.whatsapp || contactChannels.email) && <span className="block w-px h-3 bg-tea-border" aria-hidden="true" />}
                   <button
                     onClick={handleCopy}
+                    disabled={isPersisting}
                     className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text underline underline-offset-[6px] decoration-tea-border hover:decoration-tea-gold transition-colors min-h-[44px]"
                   >
                     Copy text

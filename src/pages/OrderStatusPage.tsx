@@ -15,13 +15,13 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const OrderStatusPage: React.FC = () => {
-  const { ref } = useParams<{ ref: string }>();
+  const { ref: trackingToken } = useParams<{ ref: string }>();
   const navigate = useNavigate();
 
   const [inquiry, setInquiry] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [lookupRef, setLookupRef] = useState('');
+  const [lookupToken, setLookupToken] = useState('');
 
   // Above the loading early return, as every hook in this app must be. The
   // basket that produced this order was quoted in the reader's currency, so the
@@ -30,14 +30,14 @@ const OrderStatusPage: React.FC = () => {
   const shopPrice = useShopPrice();
 
   useEffect(() => {
-    if (!ref) {
+    if (!trackingToken) {
       setLoading(false);
       return;
     }
     setLoading(true);
     setNotFound(false);
     api.inquiries
-      .getByRef(ref)
+      .getByTrackingToken(trackingToken)
       .then((data) => {
         if (data) {
           setInquiry(data);
@@ -51,11 +51,11 @@ const OrderStatusPage: React.FC = () => {
         setNotFound(true);
         setLoading(false);
       });
-  }, [ref]);
+  }, [trackingToken]);
 
   const handleLookup = (e: React.FormEvent) => {
     e.preventDefault();
-    const next = lookupRef.trim();
+    const next = lookupToken.trim();
     if (!next) return;
     navigate(`/order/${encodeURIComponent(next)}`);
   };
@@ -70,8 +70,22 @@ const OrderStatusPage: React.FC = () => {
     );
   }
 
-  const items = inquiry?.items_json ? JSON.parse(inquiry.items_json) : [];
+  let items: any[] = [];
+  try {
+    items = inquiry?.items_json ? JSON.parse(inquiry.items_json) : [];
+  } catch {
+    items = [];
+  }
   const status = inquiry?.status || 'pending';
+  const formatStoredUsd = (amount: number) => {
+    const safe = Number.isFinite(amount) ? amount : 0;
+    if (inquiry?.currency === shopPrice.code) return shopPrice.total(safe);
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 2,
+    }).format(safe);
+  };
 
   return (
     <div className="max-w-3xl mx-auto px-4 md:px-6 pt-6 pb-3 pb-nav-gap space-y-6">
@@ -94,15 +108,15 @@ const OrderStatusPage: React.FC = () => {
       {/* Lookup form */}
       <form onSubmit={handleLookup} className="bg-tea-surface border border-tea-border rounded-xl p-5 space-y-3">
         <label htmlFor="order-ref" className="block text-ui-12 text-tea-text-sec">
-          Order reference
+          Private tracking code
         </label>
         <div className="flex gap-2">
           <input
             id="order-ref"
             type="text"
-            value={lookupRef}
-            onChange={(e) => setLookupRef(e.target.value)}
-            placeholder={ref || 'e.g. ORD-12345'}
+            value={lookupToken}
+            onChange={(e) => setLookupToken(e.target.value)}
+            placeholder={trackingToken || 'Paste your private tracking code'}
             className={inputClass}
             autoComplete="off"
           />
@@ -114,9 +128,9 @@ const OrderStatusPage: React.FC = () => {
             Look up
           </button>
         </div>
-        {ref && (
+        {trackingToken && (
           <p className="text-ui-12 text-tea-text-dim">
-            Showing order <span className="font-mono text-tea-text">{ref}</span>
+            Looking up a private tracking link
           </p>
         )}
       </form>
@@ -126,7 +140,7 @@ const OrderStatusPage: React.FC = () => {
         <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
           <h3 className="h3">Order not found</h3>
           <p className="text-ui-12 text-tea-text-sec mt-1 leading-relaxed">
-            This order reference doesn't exist or hasn't been submitted yet. Double-check the reference, or browse the shop and place a new inquiry.
+            This private tracking code doesn't exist or hasn't been submitted yet. Double-check the code, or browse the shop and place a new inquiry.
           </p>
           <div className="mt-4">
             <Link
@@ -143,7 +157,7 @@ const OrderStatusPage: React.FC = () => {
       {inquiry && !notFound && (
         <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
           <div className="flex items-baseline justify-between mb-3 flex-wrap gap-2">
-            <h3 className="h3">Order {ref}</h3>
+            <h3 className="h3">Order {inquiry.ref_number}</h3>
             <span className="label-caps text-tea-text-dim">
               {STATUS_LABEL[status] || status} ·{' '}
               {new Date(inquiry?.created_at || Date.now()).toLocaleDateString(undefined, {
@@ -166,7 +180,7 @@ const OrderStatusPage: React.FC = () => {
                   {item.category === 'tea' ? `${item.quantityGrams}g` : `×${item.quantityGrams}`}
                 </span>
                 <span className="font-mono tabular-nums w-20 text-right">
-                  {shopPrice.total(item.totalPrice)}
+                  {formatStoredUsd(Number(item.totalPrice))}
                 </span>
               </div>
             ))}
@@ -176,9 +190,13 @@ const OrderStatusPage: React.FC = () => {
           <div className="flex justify-between items-baseline pt-3 mt-2 border-t border-tea-border">
             <span className="font-display text-ui-17 font-medium text-tea-text">Estimate</span>
             <span className="font-mono text-ui-17 text-tea-text tabular-nums">
-              {shopPrice.total(inquiry?.total_estimate_usd || 0)}
+              {formatStoredUsd(Number(inquiry?.total_estimate_usd || 0))}
             </span>
           </div>
+
+          <p className="text-ui-11 text-tea-text-dim mt-2">
+            Requested display currency: {inquiry.currency || 'USD'}
+          </p>
 
           <p className="text-ui-12 text-tea-text-sec mt-4 leading-relaxed">
             We'll confirm availability, pricing, and shipping personally over WhatsApp.

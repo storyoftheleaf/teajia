@@ -21,6 +21,8 @@ type AdminProps = {
 
 type PublicProps = {
   mode: 'public';
+  storeSlug: string;
+  storeName: string;
   cart: PublicCartItem[];
   onRemoveItem: (id: string) => void;
   onUpdateQuantity: (id: string, grams: number) => void;
@@ -159,6 +161,8 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
             {/* Content */}
             <div className="flex flex-col flex-1 min-h-0">
               <PublicCart
+                storeSlug={props.storeSlug}
+                storeName={props.storeName}
                 cart={props.cart}
                 onRemoveItem={props.onRemoveItem}
                 onUpdateQuantity={props.onUpdateQuantity}

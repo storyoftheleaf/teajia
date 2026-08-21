@@ -75,7 +75,7 @@ describe('migration 017 rehearsals', () => {
       ORDER BY name;
     `);
     expect(output.split('\n')).toEqual(['account_members', 'accounts', 'identity_email_verifications', 'private_recordings', 'provider_jobs']);
-    expect(migrationNames.at(-1)).toBe('129_events_trust_identity.sql');
+    expect(migrationNames.at(-1)).toBe('130_secure_inquiry_tracking.sql');
     expect(sqlite(database, `SELECT name FROM pragma_table_info('tea_compass_entries') WHERE name='sample_set_id';`)).toBe('sample_set_id');
     expect(sqlite(database, `SELECT name FROM pragma_table_info('tea_compass_entries') WHERE name='classification';`)).toBe('classification');
   }));
@@ -118,7 +118,7 @@ describe('migration 017 rehearsals', () => {
     const applied = [...firstBatch, ...through126, ...applyTrackedMigrations(database)];
 
     expect(applied.at(0)).toBe('017_multi_account_patched.sql');
-    expect(applied.at(-1)).toBe('129_events_trust_identity.sql');
+    expect(applied.at(-1)).toBe('130_secure_inquiry_tracking.sql');
     expect(sqlite(database, `SELECT account_id FROM products WHERE id='legacy';`)).toBe('acc_teajia_bali');
     expect(sqlite(database, `SELECT name FROM sqlite_master WHERE type='table' AND name='private_recordings';`))
       .toBe('private_recordings');

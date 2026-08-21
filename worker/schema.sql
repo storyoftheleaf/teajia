@@ -1117,6 +1117,31 @@ CREATE TABLE IF NOT EXISTS newsletter_subscribers (
   status TEXT NOT NULL DEFAULT 'active'
 );
 
+-- Public cart inquiries. Tracking links carry a high-entropy bearer token;
+-- only its SHA-256 hash is persisted.
+CREATE TABLE IF NOT EXISTS inquiries (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  name TEXT,
+  email TEXT,
+  phone TEXT,
+  items TEXT NOT NULL DEFAULT '[]',
+  total_usd REAL NOT NULL DEFAULT 0,
+  currency TEXT NOT NULL DEFAULT 'USD',
+  message TEXT,
+  status TEXT NOT NULL DEFAULT 'new',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  ref_number TEXT,
+  source TEXT NOT NULL DEFAULT 'cart',
+  tracking_token_hash TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_inquiries_ref_number ON inquiries(ref_number);
+CREATE INDEX IF NOT EXISTS idx_inquiries_account_source ON inquiries(account_id, source, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_inquiries_tracking_token_hash
+  ON inquiries(tracking_token_hash) WHERE tracking_token_hash IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_inquiries_account_ref ON inquiries(account_id, ref_number);
+
 -- Performance indices for common query patterns
 CREATE INDEX IF NOT EXISTS idx_products_account_status ON products(account_id, status);
 CREATE INDEX IF NOT EXISTS idx_products_cultivar ON products(cultivar);

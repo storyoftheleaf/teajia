@@ -70,6 +70,7 @@ import {
   resolveTeaReferenceIssues,
 } from './teaReferenceIssues';
 import { isTeaType, TEA_TYPES } from '../../src/wisdom/vocabulary';
+import { isValidTrackingToken, normalizeCartInquiry, redactPublicInquiry, sha256Hex } from './inquiryDomain';
 
 interface Env {
   DB: D1Database;
@@ -11452,12 +11453,58 @@ const handleCreateInquiry: Handler = async (request, env) => {
     totalUsd = null;
     phone = (body.whatsapp || '').trim() || null;
   } else {
-    const itemsRaw = body.items_json || body.items;
-    if (!itemsRaw) return json({ error: 'Items are required' }, 400);
-    itemsStr = typeof itemsRaw === 'string' ? itemsRaw : JSON.stringify(itemsRaw);
-    totalUsd = body.total_estimate_usd ?? body.total_usd ?? null;
+    const normalized = normalizeCartInquiry(body);
+    if (!normalized.ok) return json({ error: normalized.error }, 400);
+
+    const accountId = await getAccountIdBySlug(env, normalized.value.storeSlug);
+    if (!accountId) return json({ error: 'Store not found' }, 404);
+    const tokenHash = await sha256Hex(normalized.value.trackingToken);
+    const existing = await env.DB.prepare(
+      'SELECT id, ref_number FROM inquiries WHERE tracking_token_hash = ? LIMIT 1'
+    ).bind(tokenHash).first() as { id: string; ref_number: string } | null;
+    if (existing) {
+      return json({
+        id: existing.id,
+        ref_number: existing.ref_number,
+        tracking_token: normalized.value.trackingToken,
+        source,
+        success: true,
+      }, 200);
+    }
+
+    const id = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
     message = body.notes || body.message || null;
     phone = body.phone || body.customer_location || null;
+    try {
+      await env.DB.prepare(
+        `INSERT INTO inquiries
+         (id, account_id, name, email, phone, items, total_usd, currency, message, source, ref_number, tracking_token_hash)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        id, accountId, name, contact, phone, normalized.value.itemsJson,
+        normalized.value.totalUsd, normalized.value.currency, message, source,
+        normalized.value.refNumber, tokenHash,
+      ).run();
+      return json({
+        id,
+        ref_number: normalized.value.refNumber,
+        tracking_token: normalized.value.trackingToken,
+        source,
+        success: true,
+      }, 201);
+    } catch (error) {
+      const raced = await env.DB.prepare(
+        'SELECT id, ref_number FROM inquiries WHERE tracking_token_hash = ? LIMIT 1'
+      ).bind(tokenHash).first() as { id: string; ref_number: string } | null;
+      if (!raced) throw error;
+      return json({
+        id: raced.id,
+        ref_number: raced.ref_number,
+        tracking_token: normalized.value.trackingToken,
+        source,
+        success: true,
+      }, 200);
+    }
   }
 
   let accountId: string | null = BALI_ACCOUNT_ID;
@@ -11509,25 +11556,15 @@ const handleGetInquiries: Handler = async (request, env) => {
 };
 
 const handleGetInquiryByRef: Handler = async (_request, env, params) => {
-  const ref = params.ref;
-  if (!ref) return json({ error: 'Ref is required' }, 400);
+  const token = params.ref;
+  if (!isValidTrackingToken(token)) return json({ error: 'Not found' }, 404);
+  const tokenHash = await sha256Hex(token);
   const row = await env.DB.prepare(
-    'SELECT * FROM inquiries WHERE ref_number = ? LIMIT 1'
-  ).bind(ref).first() as any;
+    `SELECT ref_number, items, status, total_usd, currency, created_at
+     FROM inquiries WHERE tracking_token_hash = ? LIMIT 1`
+  ).bind(tokenHash).first() as any;
   if (!row) return json({ error: 'Not found' }, 404);
-  // This route is public and takes a reference of the form TJ-YYYYMMDD-NNN,
-  // where NNN is three digits — 900 guesses covers a whole day. It must
-  // therefore never return anything that identifies the customer. It answers
-  // only "what was ordered and where has it got to", which is all the order
-  // page needs; the customer already knows their own name and number.
-  // The remaining work is to move this lookup onto an unguessable token so
-  // the order contents stop being enumerable either. See TODO.md.
-  return json({
-    items_json: row.items,
-    status: row.status,
-    total_estimate_usd: row.total_usd,
-    created_at: row.created_at,
-  });
+  return json(redactPublicInquiry(row));
 };
 
 const handleUpdateInquiryStatus: Handler = async (request, env, params) => {
