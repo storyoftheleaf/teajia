@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { CartItem as PublicCartItem } from '../../types';
 import { buildOrderMessage } from '../../lib/whatsapp';
 import { CONTACT_UNAVAILABLE, resolveContactChannels } from '../../lib/contact';
@@ -10,7 +10,16 @@ import { Icons } from '../Icons';
 import { Button } from './Button';
 import { CartItemRow } from './CartItem';
 import { api } from '../../lib/api';
-import { createHumanOrderRef, createTrackingToken, validateStoreCart } from '../../lib/publicCartDomain';
+import {
+  copyDeliveryStep,
+  createHumanOrderRef,
+  createInquiryPayloadKey,
+  createTrackingToken,
+  navigateDeliveryPlaceholder,
+  openDeliveryPlaceholder,
+  shouldRotateInquiryIdentity,
+  validateStoreCart,
+} from '../../lib/publicCartDomain';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -51,12 +60,15 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [preferredChannel, setPreferredChannel] = useState<'whatsapp' | 'email'>('whatsapp');
   const [recoveredCart, setRecoveredCart] = useState(false);
-  const [inquiryIdentity] = useState(() => ({
+  const [inquiryIdentity, setInquiryIdentity] = useState(() => ({
     ref: createHumanOrderRef(),
     trackingToken: createTrackingToken(),
   }));
   const [trackingToken, setTrackingToken] = useState<string | null>(null);
+  const [persistedPayloadKey, setPersistedPayloadKey] = useState<string | null>(null);
+  const [copyReady, setCopyReady] = useState(false);
   const [isPersisting, setIsPersisting] = useState(false);
+  const wasOpen = useRef(isOpen);
 
   // Undo state for removed items
   const [undoItem, setUndoItem] = useState<{ item: PublicCartItem; timeout: ReturnType<typeof setTimeout> } | null>(null);
@@ -114,7 +126,6 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
         setStep('CART');
         setSuccessMessage(null);
         setCheckoutError(null);
-        setTrackingToken(null);
         setRecoveredCart(false);
       }, 500);
       return () => clearTimeout(t);
@@ -153,6 +164,33 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
 
   const subtotal = useMemo(() => cart.reduce((acc, item) => acc + item.totalPrice, 0), [cart]);
   const isEmpty = cart.length === 0;
+  const currentPayloadKey = useMemo(() => createInquiryPayloadKey({
+    storeSlug,
+    name: details.name,
+    contact: details.contact,
+    location: details.location,
+    notes: details.notes,
+    cart,
+    totalUsd: subtotal,
+    currency: shopPrice.code,
+  }), [storeSlug, details, cart, subtotal, shopPrice.code]);
+
+  const rotateInquiryIdentity = useCallback(() => {
+    setInquiryIdentity({ ref: createHumanOrderRef(), trackingToken: createTrackingToken() });
+    setPersistedPayloadKey(null);
+    setTrackingToken(null);
+    setCopyReady(false);
+    setSuccessMessage(null);
+    setCheckoutError(null);
+  }, []);
+
+  useEffect(() => {
+    const reopened = isOpen && !wasOpen.current;
+    wasOpen.current = isOpen;
+    if (shouldRotateInquiryIdentity(persistedPayloadKey, currentPayloadKey, reopened)) {
+      rotateInquiryIdentity();
+    }
+  }, [isOpen, persistedPayloadKey, currentPayloadKey, rotateInquiryIdentity]);
 
   const orderMessage = useMemo(() => buildOrderMessage({
     type: 'inquiry',
@@ -224,29 +262,48 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
         source,
       });
     setTrackingToken(result.tracking_token);
+    setPersistedPayloadKey(currentPayloadKey);
     return result;
   };
 
-  const persistBeforeDelivery = async (
-    source: 'whatsapp' | 'email' | 'copy',
-    deliver: () => void | Promise<void>,
-  ) => {
-    if (isPersisting) return;
-    setIsPersisting(true);
-    setCheckoutError(null);
-    try {
-      await persistInquiry(source);
-      await deliver();
-      showSuccess(source);
-    } catch (error) {
-      const detail = error instanceof Error ? error.message : '';
-      setCheckoutError(`We couldn't save your order request${detail ? `: ${detail}` : '.'} Please try again.`);
-    } finally {
-      setIsPersisting(false);
-    }
+  const persistenceError = (error: unknown) => {
+    const detail = error instanceof Error ? error.message : '';
+    return `We couldn't save your order request${detail ? `: ${detail}` : '.'} Please try again.`;
   };
 
-  const handleWhatsApp = async () => {
+  const deliverToWindow = (source: 'whatsapp' | 'email', href: string) => {
+    if (isPersisting) return;
+    const popup = openDeliveryPlaceholder();
+    if (!popup) {
+      setCheckoutError('Your browser blocked the delivery window. Allow popups for Teajia, then try again.');
+      return;
+    }
+
+    setCheckoutError(null);
+    const navigate = () => {
+      if (navigateDeliveryPlaceholder(popup, href)) {
+        showSuccess(source);
+      } else {
+        setCheckoutError(`Your order was saved, but ${source === 'whatsapp' ? 'WhatsApp' : 'your email client'} could not be opened. Please try again.`);
+      }
+    };
+
+    if (persistedPayloadKey === currentPayloadKey && trackingToken) {
+      navigate();
+      return;
+    }
+
+    setIsPersisting(true);
+    void persistInquiry(source)
+      .then(navigate)
+      .catch((error) => {
+        try { popup.close(); } catch { /* best effort */ }
+        setCheckoutError(persistenceError(error));
+      })
+      .finally(() => setIsPersisting(false));
+  };
+
+  const handleWhatsApp = () => {
     // Validate the resolved phone before opening WhatsApp. buildWhatsAppUrl
     // silently falls back to a recipient-less wa.me link when digits < 7,
     // which sends nothing, surface a clear error and offer email instead.
@@ -254,16 +311,44 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
       setCheckoutError("This store doesn't have WhatsApp ordering set up. Please use Email or Copy text below to send your order.");
       return;
     }
-    await persistBeforeDelivery('whatsapp', () => { window.open(contactChannels.whatsapp!.href); });
+    deliverToWindow('whatsapp', contactChannels.whatsapp.href);
   };
 
-  const handleEmail = async () => {
+  const handleEmail = () => {
     if (!contactChannels.email) { setCheckoutError(CONTACT_UNAVAILABLE); return; }
-    await persistBeforeDelivery('email', () => { window.open(contactChannels.email!.href); });
+    deliverToWindow('email', contactChannels.email.href);
   };
 
-  const handleCopy = async () => {
-    await persistBeforeDelivery('copy', () => navigator.clipboard.writeText(orderMessage));
+  const handleCopy = () => {
+    if (isPersisting) return;
+    const isPersistedForPayload = persistedPayloadKey === currentPayloadKey && !!trackingToken;
+    if (copyDeliveryStep(isPersistedForPayload) === 'persist') {
+      setCheckoutError(null);
+      setIsPersisting(true);
+      void persistInquiry('copy')
+        .then(() => {
+          setCopyReady(true);
+          setSuccessMessage(null);
+        })
+        .catch((error) => setCheckoutError(persistenceError(error)))
+        .finally(() => setIsPersisting(false));
+      return;
+    }
+
+    setCheckoutError(null);
+    let copyPromise: Promise<void>;
+    try {
+      copyPromise = navigator.clipboard.writeText(orderMessage);
+    } catch {
+      setCheckoutError('Your order is saved, but the text could not be copied. Check clipboard permission and tap again.');
+      return;
+    }
+    void copyPromise
+      .then(() => {
+        setCopyReady(false);
+        showSuccess('copy');
+      })
+      .catch(() => setCheckoutError('Your order is saved, but the text could not be copied. Check clipboard permission and tap again.'));
   };
 
   const handleFormSubmit = (e: React.FormEvent) => {
@@ -621,6 +706,15 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                 </div>
               )}
 
+              {trackingToken && !successMessage?.show && persistedPayloadKey === currentPayloadKey && (
+                <div className="cart-fade-in text-center text-ui-12 text-tea-text-sec space-y-1" role="status">
+                  <p>{copyReady ? 'Order saved. Tap Copy saved order to place the text on your clipboard.' : 'Order saved.'}</p>
+                  <a href={`/order/${trackingToken}`} className="font-mono text-tea-text underline underline-offset-4 decoration-tea-border hover:decoration-tea-gold transition-colors">
+                    Track {orderRef}
+                  </a>
+                </div>
+              )}
+
               {/* Send actions: WhatsApp is the intentional primary channel; alternatives step down to text links */}
               <div className="flex flex-col gap-3">
                 {contactChannels.whatsapp && <Button
@@ -647,7 +741,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                     disabled={isPersisting}
                     className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text underline underline-offset-[6px] decoration-tea-border hover:decoration-tea-gold transition-colors min-h-[44px]"
                   >
-                    Copy text
+                    {copyReady && persistedPayloadKey === currentPayloadKey ? 'Copy saved order' : 'Copy text'}
                   </button>
                 </div>
                 {contactChannels.unavailable && <p className="text-center text-sm text-tea-text-sec">{CONTACT_UNAVAILABLE}</p>}

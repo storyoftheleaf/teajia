@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   canAddToStoreCart,
+  copyDeliveryStep,
   createHumanOrderRef,
+  createInquiryPayloadKey,
   createTrackingToken,
+  navigateDeliveryPlaceholder,
+  openDeliveryPlaceholder,
+  shouldRotateInquiryIdentity,
   resolveCartContactStoreSlug,
   resolveCheckoutStoreSlug,
   shouldFetchCheckoutStore,
@@ -86,5 +91,45 @@ describe('public cart inquiry identity', () => {
     );
 
     expect(ref).toBe('TJ-20260810-A1B2C3D4');
+  });
+
+  it('creates distinct human references on the same date from distinct UUIDs', () => {
+    const date = new Date('2026-08-10T09:15:00.000Z');
+
+    expect(createHumanOrderRef(date, () => '11111111-e5f6-4789-abcd-0123456789ab'))
+      .not.toBe(createHumanOrderRef(date, () => '22222222-e5f6-4789-abcd-0123456789ab'));
+  });
+
+  it('rotates only after persistence when payload changes or checkout reopens', () => {
+    expect(shouldRotateInquiryIdentity(null, 'payload-a', false)).toBe(false);
+    expect(shouldRotateInquiryIdentity('payload-a', 'payload-a', false)).toBe(false);
+    expect(shouldRotateInquiryIdentity('payload-a', 'payload-b', false)).toBe(true);
+    expect(shouldRotateInquiryIdentity('payload-a', 'payload-a', true)).toBe(true);
+  });
+
+  it('creates a stable payload key that changes with inquiry content', () => {
+    const base = { storeSlug: 'bali', name: 'Lin', contact: 'lin@example.com', location: 'Bali', notes: '', cart: [bali], totalUsd: 25, currency: 'USD' };
+    expect(createInquiryPayloadKey(base)).toBe(createInquiryPayloadKey({ ...base }));
+    expect(createInquiryPayloadKey(base)).not.toBe(createInquiryPayloadKey({ ...base, notes: 'Gift wrap' }));
+  });
+});
+
+describe('public cart delivery activation', () => {
+  it('reports a blocked popup without claiming a delivery window', () => {
+    expect(openDeliveryPlaceholder(() => null)).toBeNull();
+  });
+
+  it('severs opener access and navigates a synchronous placeholder', () => {
+    const popup = { opener: { unsafe: true }, location: { href: 'about:blank' }, close: () => undefined };
+    const opened = openDeliveryPlaceholder(() => popup);
+
+    expect(opened?.opener).toBeNull();
+    expect(navigateDeliveryPlaceholder(opened!, 'https://wa.me/example')).toBe(true);
+    expect(popup.location.href).toBe('https://wa.me/example');
+  });
+
+  it('uses the first copy click to persist and the next fresh gesture to copy', () => {
+    expect(copyDeliveryStep(false)).toBe('persist');
+    expect(copyDeliveryStep(true)).toBe('copy');
   });
 });

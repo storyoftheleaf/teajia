@@ -1,14 +1,21 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { ClipboardList, BarChart3, ScrollText, Inbox, MessageSquare } from 'lucide-react';
+import { ClipboardList, BarChart3, ScrollText, Inbox, MessageSquare, RefreshCw } from 'lucide-react';
 import { OrdersView } from './OrdersView';
 import { RecordsView } from './SoldItemsView';
 import { PendingView } from './PendingView';
 import { usePendingAttendees } from '../hooks/useEventData';
-import { api, type InquiryRecord, type InquiryStatus } from '../../lib/api';
+import {
+  api,
+  AUTH_TOKEN_CHANGED_EVENT,
+  isTokenScopedToAccount,
+  type InquiryRecord,
+  type InquiryStatus,
+} from '../../lib/api';
 import { Product } from '../types';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
+import { useAppStore } from '../../lib/store';
 
 type ActivityTab = 'pending' | 'orders' | 'ledger' | 'log' | 'inquiries';
 const VALID_TABS: ActivityTab[] = ['pending', 'orders', 'ledger', 'log', 'inquiries'];
@@ -38,21 +45,41 @@ export const ActivityView: React.FC<ActivityViewProps> = ({ products }) => {
   const activeTab: ActivityTab = rawTab && VALID_TABS.includes(rawTab) ? rawTab : 'pending';
   const setActiveTab = (tab: ActivityTab) => setSearchParams({ tab }, { replace: true });
   const pendingCount = usePendingCount();
+  const activeAccountId = useAppStore(state => state.activeAccountId);
+  const [tokenRevision, setTokenRevision] = React.useState(0);
 
-  const { data: inquiryData, isError: isInquiryCountError } = useQuery({
-    queryKey: ['inquiries-new-count'],
+  React.useEffect(() => {
+    const handleTokenChange = () => setTokenRevision(revision => revision + 1);
+    window.addEventListener(AUTH_TOKEN_CHANGED_EVENT, handleTokenChange);
+    return () => window.removeEventListener(AUTH_TOKEN_CHANGED_EVENT, handleTokenChange);
+  }, []);
+
+  const inquiryAccountReady = Boolean(activeAccountId) && isTokenScopedToAccount(activeAccountId);
+
+  const inquiryCountQuery = useQuery({
+    queryKey: ['inquiries-new-count', activeAccountId, tokenRevision],
     staleTime: 60_000,
+    enabled: inquiryAccountReady,
     queryFn: async () => {
       const data = await api.inquiries.list('new');
+      if (data.inquiries.some(inquiry => inquiry.account_id !== activeAccountId)) {
+        throw new Error('Inquiry response account mismatch');
+      }
       return data.inquiries;
     },
   });
-  const newInquiryCount = isInquiryCountError ? 0 : inquiryData?.length ?? 0;
+  const newInquiryCount = !inquiryAccountReady || inquiryCountQuery.isError ? undefined : inquiryCountQuery.data?.length;
 
-  const tabs: { id: ActivityTab; label: string; icon: React.ReactNode; badge?: number }[] = [
+  const tabs: { id: ActivityTab; label: string; icon: React.ReactNode; badge?: number; countUnavailable?: boolean }[] = [
     { id: 'pending', label: 'Pending', icon: <Inbox size={15} />, badge: pendingCount },
     { id: 'orders', label: 'Orders', icon: <ClipboardList size={15} /> },
-    { id: 'inquiries', label: 'Inquiries', icon: <MessageSquare size={15} />, badge: newInquiryCount || undefined },
+    {
+      id: 'inquiries',
+      label: 'Inquiries',
+      icon: <MessageSquare size={15} />,
+      badge: newInquiryCount || undefined,
+      countUnavailable: inquiryAccountReady && inquiryCountQuery.isError,
+    },
     { id: 'ledger', label: 'Ledger', icon: <BarChart3 size={15} /> },
     { id: 'log', label: 'Log', icon: <ScrollText size={15} /> },
   ];
@@ -73,23 +100,44 @@ export const ActivityView: React.FC<ActivityViewProps> = ({ products }) => {
         {tabs.map(tab => {
           const isActive = activeTab === tab.id;
           return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 py-2.5 text-ui-12 uppercase tracking-caps font-sans whitespace-nowrap transition-colors border-b ${
-                isActive
-                  ? 'text-tea-text border-tea-gold'
-                  : 'text-tea-text-sec hover:text-tea-text border-transparent'
-              }`}
-            >
-              {tab.icon}
-              {tab.label}
-              {tab.badge != null && tab.badge > 0 && (
-                <span className="ml-1.5 text-tea-text-dim font-mono tabular-nums">
-                  ({tab.badge})
-                </span>
+            <div key={tab.id} className="flex items-center">
+              <button
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-1.5 py-2.5 text-ui-12 uppercase tracking-caps font-sans whitespace-nowrap transition-colors border-b ${
+                  isActive
+                    ? 'text-tea-text border-tea-gold'
+                    : 'text-tea-text-sec hover:text-tea-text border-transparent'
+                }`}
+              >
+                {tab.icon}
+                {tab.label}
+                {tab.badge != null && tab.badge > 0 && (
+                  <span aria-label={`Inquiry count ${tab.badge}`} className="ml-1.5 text-tea-text-dim font-mono tabular-nums">
+                    ({tab.badge})
+                  </span>
+                )}
+                {tab.countUnavailable && (
+                  <span
+                    aria-label="Inquiry count unavailable"
+                    title="Inquiry count unavailable"
+                    className="ml-1.5 text-tea-text-dim font-mono"
+                  >
+                    (?)
+                  </span>
+                )}
+              </button>
+              {tab.countUnavailable && (
+                <button
+                  type="button"
+                  aria-label="Retry inquiry count"
+                  title="Retry inquiry count"
+                  onClick={() => { void inquiryCountQuery.refetch(); }}
+                  className="tap-target ml-1 text-tea-text-sec hover:text-tea-text"
+                >
+                  <RefreshCw size={12} aria-hidden="true" />
+                </button>
               )}
-            </button>
+            </div>
           );
         })}
         </div>
@@ -102,7 +150,7 @@ export const ActivityView: React.FC<ActivityViewProps> = ({ products }) => {
         {activeTab === 'orders' && <OrdersView />}
         {activeTab === 'ledger' && <RecordsView products={products} initialTab="ledger" />}
         {activeTab === 'log' && <RecordsView products={products} initialTab="log" />}
-        {activeTab === 'inquiries' && <InquiriesView />}
+        {activeTab === 'inquiries' && <InquiriesView accountId={activeAccountId} accountReady={inquiryAccountReady} />}
       </div>
     </div>
   );
@@ -124,30 +172,53 @@ const STATUS_COLORS: Record<InquiryStatus, string> = {
   closed: 'bg-tea-elevated text-tea-text-dim',
 };
 
-function InquiriesView() {
+function InquiriesView({ accountId, accountReady }: { accountId: string | null; accountReady: boolean }) {
   const qc = useQueryClient();
   const [filter, setFilter] = React.useState<'all' | InquiryStatus>('all');
 
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['admin-inquiries', filter],
+    queryKey: ['admin-inquiries', accountId, filter],
     staleTime: 30_000,
+    enabled: accountReady,
     queryFn: async () => {
       const res = await api.inquiries.list(filter === 'all' ? undefined : filter);
+      if (res.inquiries.some(inquiry => inquiry.account_id !== accountId)) {
+        throw new Error('Inquiry response account mismatch');
+      }
       return res.inquiries;
     },
   });
 
   const updateStatus = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: InquiryStatus }) =>
-      api.inquiries.updateStatus(id, status),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin-inquiries'] });
-      qc.invalidateQueries({ queryKey: ['inquiries-new-count'] });
+    mutationFn: ({ id, status, accountId: initiatingAccountId }: { id: string; status: InquiryStatus; accountId: string }) => {
+      if (!isTokenScopedToAccount(initiatingAccountId)) {
+        throw new Error('Account switch is still completing');
+      }
+      return api.inquiries.updateStatus(id, status);
+    },
+    onSuccess: (_result, variables) => {
+      qc.invalidateQueries({ queryKey: ['admin-inquiries', variables.accountId] });
+      qc.invalidateQueries({ queryKey: ['inquiries-new-count', variables.accountId] });
+      if (variables.accountId === accountId) updateStatus.reset();
+    },
+    onSettled: (_result, _error, variables) => {
+      if (variables.accountId !== accountId) updateStatus.reset();
     },
   });
 
-  const inquiries = data ?? [];
-  const failedUpdate = updateStatus.isError ? updateStatus.variables : null;
+  React.useEffect(() => {
+    updateStatus.reset();
+  }, [accountId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const submitStatusUpdate = (variables: { id: string; status: InquiryStatus; accountId: string }) => {
+    updateStatus.reset();
+    updateStatus.mutate(variables);
+  };
+
+  const inquiries = !accountReady || isError ? [] : data ?? [];
+  const failedUpdate = updateStatus.isError && updateStatus.variables?.accountId === accountId
+    ? updateStatus.variables
+    : null;
 
   return (
     <div className="p-4 md:p-6 space-y-4">
@@ -173,11 +244,11 @@ function InquiriesView() {
         </div>
       </div>
 
-      {isLoading && (
+      {accountReady && isLoading && (
         <p className="text-tea-text-sec text-sm">Loading…</p>
       )}
 
-      {isError && (
+      {accountReady && isError && (
         <div role="alert" className="rounded-md border border-tea-border bg-tea-surface px-4 py-3">
           <p className={`${TYPOGRAPHY_CLASSES.link} text-tea-text-sec`}>Could not load inquiries</p>
           <button
@@ -196,7 +267,7 @@ function InquiriesView() {
           <p className={`${TYPOGRAPHY_CLASSES.link} text-tea-text-sec`}>Could not update inquiry status.</p>
           <button
             type="button"
-            onClick={() => updateStatus.mutate(failedUpdate)}
+            onClick={() => submitStatusUpdate(failedUpdate)}
             className={`${TYPOGRAPHY_CLASSES.link} tap-target mt-2 text-tea-gold hover:text-tea-gold-lt`}
           >
             Try again
@@ -204,7 +275,7 @@ function InquiriesView() {
         </div>
       )}
 
-      {!isLoading && !isError && inquiries.length === 0 && (
+      {accountReady && !isLoading && !isError && inquiries.length === 0 && (
         <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
           <MessageSquare size={28} strokeWidth={1.25} className="text-tea-text-dim mb-3" />
           <div className="font-display text-ui-17 text-tea-text">No inquiries</div>
@@ -234,9 +305,10 @@ function InquiriesView() {
                 </span>
                 <select
                   value={inq.status}
-                  disabled={updateStatus.isPending && updateStatus.variables?.id === inq.id}
-                  onChange={e => updateStatus.mutate({ id: inq.id, status: e.target.value as InquiryStatus })}
-                  className="text-ui-10 bg-tea-bg border border-tea-border rounded px-1.5 py-0.5 text-tea-text-sec"
+                  disabled={updateStatus.isPending}
+                  aria-label={`Status for ${inq.name || inq.ref_number || 'inquiry'}`}
+                  onChange={e => accountId && submitStatusUpdate({ id: inq.id, status: e.target.value as InquiryStatus, accountId })}
+                  className="tap-target text-ui-10 bg-tea-bg border border-tea-border rounded px-1.5 py-0.5 text-tea-text-sec"
                 >
                   {Object.entries(STATUS_LABELS).map(([val, label]) => (
                     <option key={val} value={val}>{label}</option>

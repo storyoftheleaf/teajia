@@ -4,15 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { api, ApiError, hasToken } from '../lib/api';
 import { Icons } from '../components/Icons';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
-
-function formatCurrency(amount: number, currency: string): string {
-  const safe = Number.isFinite(amount) ? amount : 0;
-  try {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD', maximumFractionDigits: 2 }).format(safe);
-  } catch {
-    return `${currency || 'USD'} ${safe.toFixed(2)}`;
-  }
-}
+import { useRates } from '../admin/hooks/useAdminData';
+import { formatOrderAmount } from '../lib/orderMoney';
 
 function formatDate(value: string | null): string | null {
   if (!value) return null;
@@ -25,6 +18,7 @@ export default function OrderDetailPage() {
   const { id = '' } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const authed = hasToken();
+  const { data: rates = [] } = useRates();
 
   useEffect(() => {
     if (!authed) {
@@ -107,19 +101,19 @@ export default function OrderDetailPage() {
                   <div className="min-w-0">
                     <p className="text-ui-14 text-tea-text break-words">{item.name}</p>
                     <p className="text-ui-12 text-tea-text-sec mt-1">
-                      {item.quantity} × {formatCurrency(item.unit_price_usd, order.currency)}
+                      {item.quantity} × {formatOrderAmount(item.unit_price_usd, order.currency, rates)}
                     </p>
                   </div>
-                  <p className="text-ui-14 text-tea-text font-medium whitespace-nowrap">{formatCurrency(item.line_total_usd, order.currency)}</p>
+                  <p className="text-ui-14 text-tea-text font-medium whitespace-nowrap">{formatOrderAmount(item.line_total_usd, order.currency, rates)}</p>
                 </li>
               ))}
             </ul>
           </section>
 
           <section aria-label="Order totals" className="space-y-2 text-ui-14">
-            <div className="flex justify-between gap-4 text-tea-text-sec"><span>Subtotal</span><span>{formatCurrency(order.subtotal_amount_usd, order.currency)}</span></div>
-            <div data-testid="shipping-total" className="flex justify-between gap-4 text-tea-text-sec"><span>Shipping</span><span>{formatCurrency(order.shipping_amount_usd, order.currency)}</span></div>
-            <div className="flex justify-between gap-4 border-t border-tea-border pt-3 text-tea-text font-semibold"><span>Total</span><span>{formatCurrency(order.total_amount_usd, order.currency)}</span></div>
+            <div className="flex justify-between gap-4 text-tea-text-sec"><span>Subtotal</span><span>{formatOrderAmount(order.subtotal_amount_usd, order.currency, rates)}</span></div>
+            <div data-testid="shipping-total" className="flex justify-between gap-4 text-tea-text-sec"><span>Shipping</span><span>{formatOrderAmount(order.shipping_amount_usd, order.currency, rates)}</span></div>
+            <div className="flex justify-between gap-4 border-t border-tea-border pt-3 text-tea-text font-semibold"><span>Total</span><span>{formatOrderAmount(order.total_amount_usd, order.currency, rates)}</span></div>
           </section>
 
           <section className="border-t border-tea-border pt-6">

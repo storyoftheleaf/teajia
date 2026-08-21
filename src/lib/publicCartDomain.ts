@@ -2,6 +2,84 @@ import type { CartItem } from '../types';
 
 export const DEFAULT_STORE_SLUG = 'teajia-bali';
 
+function stableValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map((item) => stableValue(item));
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([, item]) => item !== undefined)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, item]) => [key, stableValue(item)]),
+    );
+  }
+  return value;
+}
+
+export function createInquiryPayloadKey(input: {
+  storeSlug: string;
+  name: string;
+  contact: string;
+  location: string;
+  notes: string;
+  cart: CartItem[];
+  totalUsd: number;
+  currency: string;
+}): string {
+  return JSON.stringify(stableValue({
+    storeSlug: input.storeSlug,
+    name: input.name.trim(),
+    contact: input.contact.trim(),
+    location: input.location.trim(),
+    notes: input.notes.trim(),
+    cart: input.cart,
+    totalUsd: input.totalUsd,
+    currency: input.currency.trim().toUpperCase(),
+  }));
+}
+
+export function shouldRotateInquiryIdentity(
+  persistedPayloadKey: string | null,
+  currentPayloadKey: string,
+  reopenedAfterPersistence: boolean,
+): boolean {
+  return persistedPayloadKey !== null
+    && (reopenedAfterPersistence || persistedPayloadKey !== currentPayloadKey);
+}
+
+export interface DeliveryPlaceholder {
+  opener: unknown;
+  location: { href: string };
+  close: () => void;
+}
+
+export function openDeliveryPlaceholder(
+  open: () => DeliveryPlaceholder | null = () => window.open('about:blank', '_blank') as DeliveryPlaceholder | null,
+): DeliveryPlaceholder | null {
+  const popup = open();
+  if (!popup) return null;
+  try {
+    popup.opener = null;
+    return popup;
+  } catch {
+    try { popup.close(); } catch { /* best effort */ }
+    return null;
+  }
+}
+
+export function navigateDeliveryPlaceholder(popup: DeliveryPlaceholder, href: string): boolean {
+  try {
+    popup.location.href = href;
+    return true;
+  } catch {
+    try { popup.close(); } catch { /* best effort */ }
+    return false;
+  }
+}
+
+export function copyDeliveryStep(isPersistedForPayload: boolean): 'persist' | 'copy' {
+  return isPersistedForPayload ? 'copy' : 'persist';
+}
+
 export function createTrackingToken(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
   let binary = '';
