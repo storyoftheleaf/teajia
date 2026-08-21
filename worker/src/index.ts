@@ -11515,10 +11515,14 @@ const handleGetInquiryByRef: Handler = async (_request, env, params) => {
     'SELECT * FROM inquiries WHERE ref_number = ? LIMIT 1'
   ).bind(ref).first() as any;
   if (!row) return json({ error: 'Not found' }, 404);
+  // This route is public and takes a reference of the form TJ-YYYYMMDD-NNN,
+  // where NNN is three digits — 900 guesses covers a whole day. It must
+  // therefore never return anything that identifies the customer. It answers
+  // only "what was ordered and where has it got to", which is all the order
+  // page needs; the customer already knows their own name and number.
+  // The remaining work is to move this lookup onto an unguessable token so
+  // the order contents stop being enumerable either. See TODO.md.
   return json({
-    customer_name: row.name,
-    customer_contact: row.email,
-    customer_location: row.phone,
     items_json: row.items,
     status: row.status,
     total_estimate_usd: row.total_usd,

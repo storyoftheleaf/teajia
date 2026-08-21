@@ -154,22 +154,6 @@ const OrderStatusPage: React.FC = () => {
             </span>
           </div>
 
-          {/* Customer details */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 pb-4 border-t border-tea-border text-ui-13">
-            <div>
-              <div className="label-caps text-tea-text-dim mb-1">Name</div>
-              <div className="text-tea-text">{inquiry?.customer_name || '—'}</div>
-            </div>
-            <div>
-              <div className="label-caps text-tea-text-dim mb-1">Contact</div>
-              <div className="text-tea-text break-words">{inquiry?.customer_contact || '—'}</div>
-            </div>
-            <div>
-              <div className="label-caps text-tea-text-dim mb-1">Location</div>
-              <div className="text-tea-text">{inquiry?.customer_location || '—'}</div>
-            </div>
-          </div>
-
           {/* Line items */}
           <div className="border-t border-tea-border">
             {items.map((item: any) => (
