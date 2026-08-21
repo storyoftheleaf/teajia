@@ -2090,6 +2090,19 @@ async function commitVoidInvoice(
   invoice: Record<string, any>,
   lineItems: any[],
 ) {
+  // Claim the invoice before restoring anything, exactly as the REST void does.
+  // Reading the invoice and committing the restore are not one operation, so
+  // two voids arriving together both restored the same stock. Voiding and
+  // fulfilling contend for the same invoice, so they share one lease.
+  const voidClaim = crypto.randomUUID();
+  const voidClaimed = await env.DB.prepare(
+    `UPDATE invoices SET fulfillment_claim_token = ?, fulfillment_claimed_at = datetime('now')
+     WHERE id = ? AND account_id = ? AND status != 'Void'
+       AND (fulfillment_claim_token IS NULL OR fulfillment_claimed_at IS NULL OR fulfillment_claimed_at < datetime('now', '-5 minutes'))
+     RETURNING id`
+  ).bind(voidClaim, m.invoiceId, m.accountId).first();
+  if (!voidClaimed) return { error: 'invoice_being_changed_elsewhere' };
+
   const stmts: D1PreparedStatement[] = [];
 
   if (invoice.inventory_deducted) {
@@ -2149,8 +2162,13 @@ async function commitVoidInvoice(
   );
   stmts.push(...buildSettlementReversalStatements(env, { accountId: m.accountId, invoiceId: m.invoiceId }));
   stmts.push(
-    env.DB.prepare("UPDATE invoices SET status = 'Void', inventory_deducted = 0 WHERE id = ? AND account_id = ?")
-      .bind(m.invoiceId, m.accountId)
+    // Still holding the claim taken above; releasing it here means a successful
+    // void never leaves the invoice leased.
+    env.DB.prepare(
+      `UPDATE invoices SET status = 'Void', inventory_deducted = 0,
+         fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL
+       WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?`
+    ).bind(m.invoiceId, m.accountId, voidClaim)
   );
   stmts.push(
     env.DB.prepare(
@@ -2163,7 +2181,16 @@ async function commitVoidInvoice(
     )
   );
 
-  await env.DB.batch(stmts);
+  try {
+    await env.DB.batch(stmts);
+  } catch (error) {
+    // The batch rolled back, so nothing changed — but the claim was taken
+    // outside it and would otherwise pin the invoice for five minutes.
+    await env.DB.prepare(
+      'UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?'
+    ).bind(m.invoiceId, m.accountId, voidClaim).run().catch(() => {});
+    throw error;
+  }
 
   return {
     committed: true,
@@ -2683,9 +2710,14 @@ async function commitFulfillInvoice(
 ) {
   if (!invoice.sold_by_user_id) return { error: 'invoice_seller_snapshot_missing' };
   const fulfillmentClaim = crypto.randomUUID();
+  // Same status clause as the REST fulfil handler, and load-bearing for the
+  // same reason: voiding resets inventory_deducted to 0, so without it a
+  // voided invoice could be fulfilled through this tool — deducting the stock
+  // a second time and quietly reversing the void.
   const claimed = await env.DB.prepare(
     `UPDATE invoices SET fulfillment_claim_token = ?, fulfillment_claimed_at = datetime('now')
      WHERE id = ? AND account_id = ? AND inventory_deducted = 0
+       AND status IN ('Draft', 'Pending')
        AND (fulfillment_claim_token IS NULL OR fulfillment_claimed_at IS NULL OR fulfillment_claimed_at < datetime('now', '-5 minutes'))
      RETURNING id`
   ).bind(fulfillmentClaim, m.invoiceId, m.accountId).first();
