@@ -6,6 +6,95 @@ import { describe, expect, it } from 'vitest';
 const migration = (name: string) => readFileSync(join(process.cwd(), 'worker/migrations', name), 'utf8');
 
 describe('Tea Master migration safety', () => {
+  it('ships account-confined grants, attribution snapshots and settlement history with schema parity', () => {
+    const canonical = new DatabaseSync(':memory:');
+    canonical.exec(readFileSync(join(process.cwd(), 'worker/schema.sql'), 'utf8'));
+    const migrated = new DatabaseSync(':memory:');
+    migrated.exec(`
+      PRAGMA foreign_keys=ON;
+      CREATE TABLE accounts(id TEXT PRIMARY KEY);
+      CREATE TABLE users(id TEXT PRIMARY KEY);
+      CREATE TABLE products(id TEXT PRIMARY KEY, account_id TEXT);
+      CREATE TABLE invoices(id TEXT PRIMARY KEY, account_id TEXT);
+      CREATE TABLE invoice_line_items(id TEXT PRIMARY KEY, account_id TEXT, invoice_id TEXT, product_id TEXT);
+      CREATE TABLE stock_holds(
+        id TEXT PRIMARY KEY,
+        account_id TEXT,
+        invoice_id TEXT,
+        product_id TEXT,
+        held_grams REAL DEFAULT 0
+      );
+      INSERT INTO stock_holds(id,account_id,invoice_id,product_id,held_grams)
+        VALUES ('legacy-valid','account-a','invoice-a','product-a',12),
+               ('legacy-null-account',NULL,'invoice-a','product-a',5),
+               ('legacy-null-quantity','account-a','invoice-a','product-a',NULL);
+    `);
+    migrated.exec(migration('126_tea_master_sales.sql'));
+
+    expect(migrated.prepare(`SELECT name,type,"notnull",dflt_value,pk FROM pragma_table_info('stock_holds') ORDER BY cid`).all())
+      .toEqual(canonical.prepare(`SELECT name,type,"notnull",dflt_value,pk FROM pragma_table_info('stock_holds') ORDER BY cid`).all());
+    for (const index of ['idx_stock_holds_invoice', 'idx_stock_holds_product']) {
+      expect(migrated.prepare(`SELECT name FROM pragma_index_info('${index}') ORDER BY seqno`).all())
+        .toEqual(canonical.prepare(`SELECT name FROM pragma_index_info('${index}') ORDER BY seqno`).all());
+    }
+    expect(migrated.prepare(`SELECT id,account_id,invoice_id,product_id,held_grams,expires_at FROM stock_holds ORDER BY id`).all())
+      .toEqual([{ id: 'legacy-valid', account_id: 'account-a', invoice_id: 'invoice-a', product_id: 'product-a', held_grams: 12, expires_at: null }]);
+    migrated.exec(`
+      INSERT INTO accounts(id) VALUES ('reservation-account');
+      INSERT INTO users(id) VALUES ('reservation-seller');
+      INSERT INTO products(id,account_id) VALUES ('reservation-product','reservation-account');
+      INSERT INTO invoices(id,account_id,sold_by_user_id) VALUES ('reservation-invoice','reservation-account','reservation-seller');
+      INSERT INTO stock_holds(id,account_id,invoice_id,product_id,held_grams,expires_at)
+        VALUES ('reservation-hold','reservation-account','reservation-invoice','reservation-product',10,datetime('now','+2 days'));
+    `);
+    expect(migrated.prepare(`SELECT held_grams, expires_at IS NOT NULL AS has_expiry FROM stock_holds WHERE id='reservation-hold'`).get())
+      .toEqual({ held_grams: 10, has_expiry: 1 });
+
+    for (const table of ['sales_grants', 'sales_settlements']) {
+      expect(migrated.prepare(`SELECT name, type, "notnull", dflt_value, pk FROM pragma_table_info('${table}')`).all())
+        .toEqual(canonical.prepare(`SELECT name, type, "notnull", dflt_value, pk FROM pragma_table_info('${table}')`).all());
+    }
+    for (const [table, columns] of [
+      ['invoices', ['sold_by_user_id', 'payment_recipient_user_id']],
+      ['invoice_line_items', ['stock_owner_user_id', 'sales_grant_id', 'owner_share_type', 'owner_share_value']],
+    ] as const) {
+      for (const column of columns) {
+        const canonicalColumn = canonical.prepare(
+          `SELECT name,type,"notnull",dflt_value,pk FROM pragma_table_info('${table}') WHERE name=?`
+        ).get(column);
+        expect(migrated.prepare(
+          `SELECT name,type,"notnull",dflt_value,pk FROM pragma_table_info('${table}') WHERE name=?`
+        ).get(column)).toEqual(canonicalColumn);
+        expect(canonicalColumn).toMatchObject({ name: column });
+      }
+    }
+    expect(migrated.prepare(`SELECT sql FROM sqlite_master WHERE type='index' AND name='idx_sales_grants_account_product_seller'`).get()).toBeTruthy();
+    expect(migrated.prepare(`SELECT sql FROM sqlite_master WHERE type='index' AND name='idx_sales_settlements_account_status'`).get()).toBeTruthy();
+    canonical.close();
+    migrated.close();
+  });
+
+  it('keeps fulfilled settlements after a grant is revoked', () => {
+    const db = new DatabaseSync(':memory:');
+    db.exec(readFileSync(join(process.cwd(), 'worker/schema.sql'), 'utf8'));
+    db.exec(`
+      INSERT INTO accounts(id, slug, name) VALUES ('account-a','account-a','Account A');
+      INSERT INTO users(id,email,name,password_hash) VALUES
+        ('owner-a','owner@a.test','Owner','x'),('seller-a','seller@a.test','Seller','x');
+      INSERT INTO products(id,account_id,type,product_name,owner_user_id) VALUES ('product-a','account-a','Tea','Tea','owner-a');
+      INSERT INTO invoices(id,account_id,invoice_number,sold_by_user_id) VALUES ('invoice-a','account-a','A-1','seller-a');
+      INSERT INTO sales_grants(id,account_id,product_id,seller_user_id,granted_by_user_id,owner_share_type,owner_share_value)
+        VALUES ('grant-a','account-a','product-a','seller-a','owner-a','percent',80);
+      INSERT INTO invoice_line_items(id,account_id,invoice_id,product_id,quantity,price_at_sale,stock_owner_user_id,sales_grant_id)
+        VALUES ('line-a','account-a','invoice-a','product-a',10,1,'owner-a','grant-a');
+      INSERT INTO sales_settlements(id,account_id,invoice_id,line_item_id,product_id,stock_owner_user_id,seller_user_id,grant_id,gross_amount,owner_amount,seller_amount)
+        VALUES ('settlement-a','account-a','invoice-a','line-a','product-a','owner-a','seller-a','grant-a',10,8,2);
+      UPDATE sales_grants SET revoked_at=datetime('now') WHERE id='grant-a';
+    `);
+    expect(db.prepare(`SELECT status, grant_id FROM sales_settlements WHERE id='settlement-a'`).get())
+      .toEqual({ status: 'owed', grant_id: 'grant-a' });
+    db.close();
+  });
   it('ships review notes and an append-only redacted payment audit ledger in the canonical schema', () => {
     const db = new DatabaseSync(':memory:');
     db.exec(readFileSync(join(process.cwd(), 'worker/schema.sql'), 'utf8'));

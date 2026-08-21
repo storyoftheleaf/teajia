@@ -13,6 +13,17 @@ import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type Co
 import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 import { deriveConfirmedInvoiceLine, repairCandidate, validateRetailInvoiceInput, type RetailInvoiceInput } from './invoiceDomain';
+import {
+  authorizeInvoiceLines,
+  buildInvoiceReservationStatements,
+  buildSettlementReversalStatements,
+  buildSettlementStatements,
+  resolveSalePermission,
+  resolvePaymentRecipientUserId,
+  SalesInvariantError,
+  validateInvoiceLineSnapshots,
+  type AuthorizedInvoiceLine,
+} from './teaMasterSales';
 import { buildEventArticleDraft } from './eventArticleDraft';
 import { candidateToApi, impressionToApi, parseCandidateInput } from './tastingNoteCuration';
 import { deliverVerificationCode } from './verificationDelivery';
@@ -32,6 +43,7 @@ import {
   wisdomNodeExists,
 } from './wisdomRelations';
 import { inquiryRequestFingerprint, isValidTrackingToken, normalizeCartInquiry, redactPublicInquiry, sha256Hex } from './inquiryDomain';
+import { isTeaType, TEA_TYPES } from '../../src/wisdom/vocabulary';
 
 interface Env {
   DB: D1Database;
@@ -3439,6 +3451,243 @@ function clampOffset(raw: string | null): number {
   return n;
 }
 
+function salesError(error: unknown): Response {
+  if (error instanceof SalesInvariantError) {
+    return restError(error.status, error.code.replaceAll('_', ' '), error.code, error.details);
+  }
+  console.error('Tea Master sales dependency failed:', error);
+  return restError(503, 'Sales dependency unavailable', 'sales_dependency_unavailable');
+}
+
+async function invoiceSellerAuthorizationContext(env: Env, accountId: string, invoice: Record<string, any>) {
+  const sellerUserId = String(invoice.sold_by_user_id || '');
+  if (!sellerUserId) throw new SalesInvariantError(409, 'invoice_seller_snapshot_missing');
+  try {
+    const user = await env.DB.prepare('SELECT platform_role FROM users WHERE id=?')
+      .bind(sellerUserId).first() as Record<string, any> | null;
+    if (!user) throw new SalesInvariantError(403, 'invoice_seller_not_authorized');
+    if (user.platform_role === 'platform_owner' || user.platform_role === 'platform_admin') {
+      return { actorUserId: sellerUserId, actorRole: 'owner' };
+    }
+    const membership = await env.DB.prepare(
+      `SELECT am.role,am.permissions,a.kind FROM account_members am
+       JOIN accounts a ON a.id=am.account_id
+       WHERE am.account_id=? AND am.user_id=? AND am.status='active'`
+    ).bind(accountId, sellerUserId).first() as Record<string, any> | null;
+    if (!membership) throw new SalesInvariantError(403, 'invoice_seller_not_authorized');
+    if (membership.role === 'owner') return { actorUserId: sellerUserId, actorRole: 'owner' };
+    const bundles = resolveBundles(membership.role, membership.kind || 'location', membership.permissions || null);
+    if (membership.role !== 'staff' || !bundles.includes('sell')) {
+      throw new SalesInvariantError(403, 'invoice_seller_not_authorized');
+    }
+    return { actorUserId: sellerUserId, actorRole: 'staff' };
+  } catch (error) {
+    if (error instanceof SalesInvariantError) throw error;
+    throw new SalesInvariantError(503, 'sales_authorization_unavailable');
+  }
+}
+
+const grantWriteBody = (body: Record<string, unknown>) => {
+  const shareType = body.owner_share_type === 'fixed' ? 'fixed' : body.owner_share_type === 'percent' || body.owner_share_type == null ? 'percent' : null;
+  const shareValue = body.owner_share_value == null ? 100 : Number(body.owner_share_value);
+  const priceFloor = body.price_floor == null ? null : Number(body.price_floor);
+  const quantityLimit = body.quantity_limit == null ? null : Number(body.quantity_limit);
+  if (!shareType || !Number.isFinite(shareValue) || shareValue < 0
+    || (priceFloor != null && (!Number.isFinite(priceFloor) || priceFloor < 0))
+    || (quantityLimit != null && (!Number.isFinite(quantityLimit) || quantityLimit <= 0))) {
+    throw new SalesInvariantError(400, 'invalid_grant_terms');
+  }
+  return { shareType, shareValue, priceFloor, quantityLimit };
+};
+
+async function salesGrantWriteAuthority(env: Env, ctx: AccountCtx, productId: string) {
+  let product: Record<string, any> | null;
+  try {
+    product = await env.DB.prepare('SELECT id,owner_user_id FROM products WHERE id=? AND account_id=?')
+      .bind(productId, ctx.accountId).first() as Record<string, any> | null;
+  } catch {
+    throw new SalesInvariantError(503, 'sales_dependency_unavailable');
+  }
+  if (!product) throw new SalesInvariantError(404, 'product_not_found');
+  if (ctx.role !== 'owner' && product.owner_user_id !== ctx.userId) {
+    throw new SalesInvariantError(403, 'grant_write_denied');
+  }
+  return product;
+}
+
+async function assertSellRecipient(env: Env, accountId: string, sellerUserId: string) {
+  let member: Record<string, any> | null;
+  try {
+    member = await env.DB.prepare(
+      `SELECT am.role,am.permissions,a.kind FROM account_members am JOIN accounts a ON a.id=am.account_id
+       WHERE am.account_id=? AND am.user_id=? AND am.status='active'`
+    ).bind(accountId, sellerUserId).first() as Record<string, any> | null;
+  } catch {
+    throw new SalesInvariantError(503, 'sales_dependency_unavailable');
+  }
+  if (!member) throw new SalesInvariantError(400, 'seller_not_active_member');
+  const bundles = resolveBundles(member.role, member.kind || 'location', member.permissions || null);
+  if (member.role !== 'owner' && !bundles.includes('sell')) throw new SalesInvariantError(400, 'seller_requires_sell_access');
+}
+
+const handleGetSalesGrants: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const productId = new URL(request.url).searchParams.get('product_id');
+  try {
+    const result = productId
+      ? await env.DB.prepare(`SELECT sg.*,p.owner_user_id,u.name AS seller_name,gu.name AS granted_by_name
+          FROM sales_grants sg JOIN products p ON p.id=sg.product_id AND p.account_id=sg.account_id
+          JOIN users u ON u.id=sg.seller_user_id JOIN users gu ON gu.id=sg.granted_by_user_id
+          WHERE sg.account_id=? AND sg.product_id=? ORDER BY sg.created_at DESC`).bind(ctx.accountId, productId).all()
+      : await env.DB.prepare(`SELECT sg.*,p.owner_user_id,u.name AS seller_name,gu.name AS granted_by_name
+          FROM sales_grants sg JOIN products p ON p.id=sg.product_id AND p.account_id=sg.account_id
+          JOIN users u ON u.id=sg.seller_user_id JOIN users gu ON gu.id=sg.granted_by_user_id
+          WHERE sg.account_id=? ORDER BY sg.created_at DESC`).bind(ctx.accountId).all();
+    const visible = ctx.role === 'owner' ? result.results : result.results.filter((row: any) => row.owner_user_id === ctx.userId || row.seller_user_id === ctx.userId);
+    return json(visible);
+  } catch (error) { return salesError(error); }
+};
+
+const handleCreateSalesGrant: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  try {
+    const body = await request.json() as Record<string, any>;
+    if (!body.product_id || !body.seller_user_id) throw new SalesInvariantError(400, 'grant_fields_required');
+    await salesGrantWriteAuthority(env, ctx, body.product_id);
+    await assertSellRecipient(env, ctx.accountId, body.seller_user_id);
+    const terms = grantWriteBody(body);
+    const id = crypto.randomUUID();
+    await env.DB.batch([
+      env.DB.prepare(
+        `UPDATE sales_grants SET revoked_at=COALESCE(revoked_at,datetime('now')),updated_at=datetime('now')
+         WHERE account_id=? AND product_id=? AND seller_user_id=? AND revoked_at IS NULL
+           AND (starts_at IS NULL OR starts_at<=datetime('now'))
+           AND (expires_at IS NULL OR expires_at>datetime('now'))`
+      ).bind(ctx.accountId, body.product_id, body.seller_user_id),
+      env.DB.prepare(
+      `INSERT INTO sales_grants
+       (id,account_id,product_id,seller_user_id,granted_by_user_id,price_floor,owner_share_type,owner_share_value,quantity_limit,starts_at,expires_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?)`
+      ).bind(id, ctx.accountId, body.product_id, body.seller_user_id, ctx.userId, terms.priceFloor,
+        terms.shareType, terms.shareValue, terms.quantityLimit, body.starts_at ?? null, body.expires_at ?? null),
+    ]);
+    const row = await env.DB.prepare('SELECT * FROM sales_grants WHERE id=? AND account_id=?').bind(id, ctx.accountId).first();
+    return json(row, 201);
+  } catch (error) { return salesError(error); }
+};
+
+const handleUpdateSalesGrant: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  try {
+    const current = await env.DB.prepare('SELECT * FROM sales_grants WHERE id=? AND account_id=?').bind(params.id, ctx.accountId).first() as Record<string, any> | null;
+    if (!current) throw new SalesInvariantError(404, 'grant_not_found');
+    await salesGrantWriteAuthority(env, ctx, current.product_id);
+    const body = await request.json() as Record<string, any>;
+    if (body.seller_user_id != null) await assertSellRecipient(env, ctx.accountId, String(body.seller_user_id));
+    const merged = { ...current, ...body };
+    const terms = grantWriteBody(merged);
+    await env.DB.prepare(
+      `UPDATE sales_grants SET seller_user_id=?,price_floor=?,owner_share_type=?,owner_share_value=?,quantity_limit=?,starts_at=?,expires_at=?,updated_at=datetime('now')
+       WHERE id=? AND account_id=?`
+    ).bind(merged.seller_user_id, terms.priceFloor, terms.shareType, terms.shareValue, terms.quantityLimit,
+      merged.starts_at ?? null, merged.expires_at ?? null, params.id, ctx.accountId).run();
+    return json(await env.DB.prepare('SELECT * FROM sales_grants WHERE id=? AND account_id=?').bind(params.id, ctx.accountId).first());
+  } catch (error) { return salesError(error); }
+};
+
+const handleRevokeSalesGrant: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  try {
+    const current = await env.DB.prepare('SELECT * FROM sales_grants WHERE id=? AND account_id=?').bind(params.id, ctx.accountId).first() as Record<string, any> | null;
+    if (!current) throw new SalesInvariantError(404, 'grant_not_found');
+    await salesGrantWriteAuthority(env, ctx, current.product_id);
+    await env.DB.prepare("UPDATE sales_grants SET revoked_at=COALESCE(revoked_at,datetime('now')),updated_at=datetime('now') WHERE id=? AND account_id=?")
+      .bind(params.id, ctx.accountId).run();
+    return json({ success: true });
+  } catch (error) { return salesError(error); }
+};
+
+const handleGetEligibleSalesProducts: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'sell');
+  if ('error' in ctx) return ctx.error;
+  try {
+    const rows = await env.DB.prepare(
+      `SELECT p.id AS product_id,COALESCE(p.given_name,p.product_name) AS product_name,
+        p.owner_user_id AS owner_id,u.name AS owner_name,p.stock_grams AS physical_quantity,
+        COALESCE((SELECT SUM(h.held_grams) FROM stock_holds h WHERE h.account_id=p.account_id AND h.product_id=p.id
+          AND (h.expires_at IS NULL OR h.expires_at>datetime('now'))),0) AS held_quantity,
+        sg.id AS grant_id,sg.price_floor
+       FROM products p LEFT JOIN users u ON u.id=p.owner_user_id
+       LEFT JOIN sales_grants sg ON sg.id=(
+         SELECT winner.id FROM sales_grants winner
+         WHERE winner.account_id=p.account_id AND winner.product_id=p.id AND winner.seller_user_id=?
+           AND winner.revoked_at IS NULL AND (winner.starts_at IS NULL OR winner.starts_at<=datetime('now'))
+           AND (winner.expires_at IS NULL OR winner.expires_at>datetime('now'))
+         ORDER BY winner.created_at DESC,winner.id DESC LIMIT 1
+       )
+       WHERE p.account_id=? AND p.status='Active'
+         AND p.type IN (${TEA_TYPES.map(() => '?').join(',')})
+       ORDER BY product_name`
+    ).bind(ctx.userId, ctx.accountId, ...TEA_TYPES).all();
+    const eligible = (rows.results as any[]).flatMap(row => {
+      const permission = resolveSalePermission({
+        actorRole: ctx.role, actorUserId: ctx.userId, stockOwnerUserId: row.owner_id,
+        activeGrant: row.grant_id ? { id: row.grant_id } as any : null,
+      });
+      if (!permission.allowed) return [];
+      const physical = Number(row.physical_quantity) || 0;
+      const held = Number(row.held_quantity) || 0;
+      return [{
+        product_id: row.product_id, product_name: row.product_name,
+        owner_id: row.owner_id ?? null, owner_name: row.owner_name ?? null,
+        physical_quantity: physical, held_quantity: held, available_quantity: physical - held,
+        price_floor: row.price_floor == null ? null : Number(row.price_floor),
+        grant_id: row.grant_id ?? null, permission_reason: permission.reason,
+      }];
+    });
+    return json(eligible);
+  } catch (error) { return salesError(error); }
+};
+
+const handleGetSalesSettlements: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const mine = new URL(request.url).searchParams.get('mine') === '1';
+  try {
+    const participantOnly = ctx.role !== 'owner' || mine;
+    const result = participantOnly
+      ? await env.DB.prepare(`SELECT ss.*,i.invoice_number,p.product_name,s.name AS seller_name,o.name AS stock_owner_name
+          FROM sales_settlements ss LEFT JOIN products p ON p.id=ss.product_id
+          JOIN invoices i ON i.id=ss.invoice_id AND i.account_id=ss.account_id
+          JOIN users s ON s.id=ss.seller_user_id LEFT JOIN users o ON o.id=ss.stock_owner_user_id
+          WHERE ss.account_id=? AND (ss.seller_user_id=? OR ss.stock_owner_user_id=?) ORDER BY ss.created_at DESC`).bind(ctx.accountId, ctx.userId, ctx.userId).all()
+      : await env.DB.prepare(`SELECT ss.*,i.invoice_number,p.product_name,s.name AS seller_name,o.name AS stock_owner_name
+          FROM sales_settlements ss LEFT JOIN products p ON p.id=ss.product_id
+          JOIN invoices i ON i.id=ss.invoice_id AND i.account_id=ss.account_id
+          JOIN users s ON s.id=ss.seller_user_id LEFT JOIN users o ON o.id=ss.stock_owner_user_id
+          WHERE ss.account_id=? ORDER BY ss.created_at DESC`).bind(ctx.accountId).all();
+    return json(result.results);
+  } catch (error) { return salesError(error); }
+};
+
+const handleMarkSalesSettlementPaid: Handler = async (request, env, params) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  const body = await request.json() as Record<string, unknown>;
+  if (body.status !== 'paid') return restError(400, 'Only paid status is accepted', 'invalid_settlement_status');
+  try {
+    const result = await env.DB.prepare(
+      "UPDATE sales_settlements SET status='paid',updated_at=datetime('now') WHERE id=? AND account_id=? AND status='owed'"
+    ).bind(params.id, ctx.accountId).run();
+    if (!Number(result.meta?.changes || 0)) return restError(404, 'Owed settlement not found', 'settlement_not_found');
+    return json({ success: true });
+  } catch (error) { return salesError(error); }
+};
+
 // ── Invoices ──
 const handleGetInvoices: Handler = async (request, env) => {
   const ctx = await requireAccount(request, env);
@@ -3539,14 +3788,16 @@ const handleCreateInvoice: Handler = async (request, env) => {
   }
   const ownershipError = await validateRetailInvoiceOwnership(env, accountId, input);
   if (ownershipError) return ownershipError;
-
   const id = crypto.randomUUID();
-
-  const lineItemStmts = input.lineItems.map(item =>
-    env.DB.prepare(
-      'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, custom_name, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?, ?, ?)'
-    ).bind(crypto.randomUUID(), accountId, id, item.product_id ?? null, item.custom_name ?? null, item.quantity, item.price_at_sale)
-  );
+  let authorizedLines: AuthorizedInvoiceLine[];
+  try {
+    authorizedLines = await authorizeInvoiceLines(env, {
+      accountId, actorUserId: ctx.userId, actorRole: ctx.role, lines: input.lineItems,
+    });
+  } catch (error) { return salesError(error); }
+  const stockOwners = [...new Set(authorizedLines.filter(line => line.product_id).map(line => line.stock_owner_user_id))];
+  const paymentRecipientUserId = stockOwners.length === 1 ? stockOwners[0] : null;
+  const status = input.status;
 
   // Bump invoice_seq and INSERT, retrying on the active-invoice-number unique
   // index collision (two concurrent creates can race to the same seq, or a
@@ -3561,9 +3812,20 @@ const handleCreateInvoice: Handler = async (request, env) => {
     const seq = seqRow?.invoice_seq ?? 1;
     invoiceNumber = formatInvoiceNumber(seqRow?.invoice_prefix || null, seq);
 
+    const lineItemStmts = authorizedLines.map((item) => {
+      const lineId = crypto.randomUUID();
+      item.id = lineId;
+      return env.DB.prepare(
+        `INSERT INTO invoice_line_items
+         (id,account_id,invoice_id,product_id,custom_name,quantity,price_at_sale,stock_owner_user_id,sales_grant_id,owner_share_type,owner_share_value)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?)`
+      ).bind(lineId, accountId, id, item.product_id, item.custom_name ?? null, item.quantity, item.price_at_sale,
+        item.stock_owner_user_id, item.sales_grant_id, item.owner_share_type, item.owner_share_value);
+    });
+
     const invoiceStmt = env.DB.prepare(
-      `INSERT INTO invoices (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes, source_event_id, payment_status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO invoices (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes, source_event_id, payment_status,sold_by_user_id,payment_recipient_user_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       id,
       accountId,
@@ -3577,7 +3839,9 @@ const handleCreateInvoice: Handler = async (request, env) => {
       0,
       input.notes,
       input.source_event_id,
-      input.payment_status
+      input.payment_status,
+      ctx.userId,
+      paymentRecipientUserId,
     );
 
     const logStmt = buildActivityLog(
@@ -3587,13 +3851,19 @@ const handleCreateInvoice: Handler = async (request, env) => {
     );
 
     try {
-      await env.DB.batch([invoiceStmt, ...lineItemStmts, logStmt]);
+      const reservationStmts = status === 'Pending' ? buildInvoiceReservationStatements(env, {
+        accountId, invoiceId: id, lines: authorizedLines,
+        expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+      }) : [];
+      await env.DB.batch([invoiceStmt, ...lineItemStmts, ...reservationStmts, logStmt]);
       committed = true;
     } catch (err: any) {
       lastErr = err;
       const msg = String(err?.message || err);
+      if (/insufficient available stock/i.test(msg)) return restError(409, 'Insufficient available stock', 'insufficient_available_stock');
       if (/UNIQUE|constraint/i.test(msg)) continue; // collision — bump seq and retry
-      throw err; // unrelated failure
+      console.error('handleCreateInvoice batch failed:', err);
+      return restError(503, 'Invoice write unavailable', 'invoice_write_unavailable');
     }
   }
   if (!committed) {
@@ -3624,6 +3894,94 @@ const handleGetInvoiceItems: Handler = async (request, env, params) => {
   return json(result.results);
 };
 
+const handleGetInvoiceAttribution: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+
+  try {
+    const invoice = await env.DB.prepare(
+      `SELECT i.id,i.sold_by_user_id,i.payment_recipient_user_id,i.fulfilled_at,
+        seller.name AS seller_name,recipient.name AS recipient_name,a.name AS account_name
+       FROM invoices i
+       JOIN accounts a ON a.id=i.account_id
+       LEFT JOIN users seller ON seller.id=i.sold_by_user_id
+       LEFT JOIN users recipient ON recipient.id=i.payment_recipient_user_id
+       WHERE i.id=? AND i.account_id=?`
+    ).bind(params.id, ctx.accountId).first() as Record<string, any> | null;
+    if (!invoice) return restError(404, 'Invoice not found', 'invoice_not_found');
+
+    const ownerParticipant = ctx.role === 'owner' || invoice.sold_by_user_id === ctx.userId
+      || Boolean(await env.DB.prepare(
+        'SELECT 1 FROM invoice_line_items WHERE invoice_id=? AND account_id=? AND stock_owner_user_id=? LIMIT 1'
+      ).bind(params.id, ctx.accountId, ctx.userId).first());
+    const settlementVisibility = ctx.role === 'owner' ? 'full' : ownerParticipant ? 'participant' : 'restricted';
+    const settlementJoin = ownerParticipant
+      ? `LEFT JOIN sales_settlements ss ON ss.line_item_id=ili.id AND ss.account_id=ili.account_id
+           AND (?='owner' OR ss.seller_user_id=? OR ss.stock_owner_user_id=?)`
+      : 'LEFT JOIN sales_settlements ss ON 1=0';
+    const itemBinds = ownerParticipant
+      ? [ctx.role, ctx.userId, ctx.userId, params.id, ctx.accountId]
+      : [params.id, ctx.accountId];
+    const items = await env.DB.prepare(
+      `SELECT ili.id AS line_item_id,ili.product_id,ili.stock_owner_user_id,
+        CASE WHEN ili.product_id IS NULL THEN NULL ELSE COALESCE(stock_owner.name,a.name) END AS stock_owner_name,
+        ss.status AS settlement_status
+       FROM invoice_line_items ili
+       JOIN accounts a ON a.id=ili.account_id
+       LEFT JOIN users stock_owner ON stock_owner.id=ili.stock_owner_user_id
+       ${settlementJoin}
+       WHERE ili.invoice_id=? AND ili.account_id=? ORDER BY ili.id`
+    ).bind(...itemBinds).all();
+
+    let fulfilledByName: string | null = null;
+    if (invoice.fulfilled_at && ctx.role === 'owner') {
+      const fulfillment = await env.DB.prepare(
+        `SELECT user_email FROM activity_logs
+         WHERE account_id=? AND entity_type='invoice' AND entity_id=? AND action='FULFILLMENT'
+         ORDER BY created_at DESC LIMIT 1`
+      ).bind(ctx.accountId, params.id).first() as { user_email?: string | null } | null;
+      if (fulfillment?.user_email) {
+        const user = await env.DB.prepare('SELECT name FROM users WHERE lower(email)=lower(?) LIMIT 1')
+          .bind(fulfillment.user_email).first() as { name?: string | null } | null;
+        fulfilledByName = user?.name || null;
+      }
+    }
+
+    const rawItems = items.results as Record<string, any>[];
+    const linkedItems = rawItems.filter(item => item.product_id);
+    const stockOwners = new Set(linkedItems.map(item => item.stock_owner_user_id || 'account'));
+    let paymentRecipientKind: 'person' | 'account' | 'mixed' | 'none' | 'unrecorded';
+    let paymentRecipientName: string | null = null;
+    if (invoice.payment_recipient_user_id) {
+      paymentRecipientKind = 'person';
+      paymentRecipientName = invoice.recipient_name || null;
+    } else if (linkedItems.length === 0) {
+      paymentRecipientKind = 'none';
+    } else if (stockOwners.size === 1 && stockOwners.has('account')) {
+      paymentRecipientKind = 'account';
+      paymentRecipientName = invoice.account_name;
+    } else if (stockOwners.size > 1) {
+      paymentRecipientKind = 'mixed';
+    } else {
+      paymentRecipientKind = 'unrecorded';
+    }
+
+    return json({
+      invoice_id: invoice.id,
+      seller_name: invoice.seller_name || null,
+      payment_recipient_name: paymentRecipientName,
+      payment_recipient_kind: paymentRecipientKind,
+      fulfilled_by_name: fulfilledByName,
+      fulfilled_at: invoice.fulfilled_at || null,
+      settlement_visibility: settlementVisibility,
+      items: rawItems.map(({ stock_owner_user_id: _stockOwnerUserId, ...item }) => item),
+    });
+  } catch (error) {
+    console.error('Invoice attribution unavailable:', error);
+    return restError(503, 'Invoice attribution unavailable', 'invoice_attribution_unavailable');
+  }
+};
+
 const handleUpdateInvoice: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'sell');
   if ('error' in ctx) return ctx.error;
@@ -3637,8 +3995,8 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
   if ('error' in validatedFields) return validatedFields.error;
   const lifecycleError = validateExplicitInvoiceLifecycle(body);
   if (lifecycleError) return lifecycleError;
-  const invoice = await env.DB.prepare('SELECT status, payment_status FROM invoices WHERE id = ? AND account_id = ?')
-    .bind(params.id, accountId).first() as { status: string | null; payment_status: string | null } | null;
+  const invoice = await env.DB.prepare('SELECT status, payment_status, id, sold_by_user_id FROM invoices WHERE id = ? AND account_id = ?')
+    .bind(params.id, accountId).first() as { id: string; status: string | null; payment_status: string | null; sold_by_user_id: string | null } | null;
   if (!invoice) return restError(404, 'Invoice not found', 'invoice_not_found');
   if (Object.prototype.hasOwnProperty.call(body, 'status')) {
     const currentStatus = invoice.status;
@@ -3685,16 +4043,68 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
   if (cols.length === 0) return json({ success: true });
   const sets = cols.map(c => `${c} = ?`).join(', ');
   const statusWrite = Object.prototype.hasOwnProperty.call(body, 'status');
-  const updateResult = await env.DB.prepare(
-    `UPDATE invoices SET ${sets} WHERE id = ? AND account_id = ?${statusWrite ? ' AND status = ?' : ''}`
-  ).bind(
-    ...cols.map(c => normalizedValues[c] ?? null),
-    params.id,
-    accountId,
-    ...(statusWrite ? [invoice.status] : []),
-  ).run();
-  if (statusWrite && Number(updateResult.meta?.changes || 0) === 0) {
-    return restError(409, 'Invoice changed before the status update could be applied', 'invoice_write_conflict');
+  let transitionClaim: string | null = null;
+  const releaseTransitionClaim = async () => {
+    if (!transitionClaim) return;
+    await env.DB.prepare(
+      'UPDATE invoices SET fulfillment_claim_token=NULL,fulfillment_claimed_at=NULL WHERE id=? AND account_id=? AND fulfillment_claim_token=?'
+    ).bind(params.id, accountId, transitionClaim).run();
+  };
+  try {
+    const statements: D1PreparedStatement[] = [];
+    if (invoice.status === 'Draft' && body.status === 'Pending') {
+      transitionClaim = crypto.randomUUID();
+      const claimed = await env.DB.prepare(
+        `UPDATE invoices SET fulfillment_claim_token = ?, fulfillment_claimed_at = datetime('now')
+         WHERE id = ? AND account_id = ? AND status = 'Draft' AND inventory_deducted = 0
+           AND (fulfillment_claim_token IS NULL OR fulfillment_claimed_at IS NULL OR fulfillment_claimed_at < datetime('now', '-5 minutes'))
+         RETURNING id`
+      ).bind(transitionClaim, params.id, accountId).first();
+      if (!claimed) return restError(409, 'Invoice changed before the status update could be applied', 'invoice_write_conflict');
+      const current = await env.DB.prepare(
+        'SELECT id,product_id,custom_name,quantity,price_at_sale FROM invoice_line_items WHERE invoice_id=? AND account_id=?'
+      ).bind(params.id, accountId).all();
+      const seller = invoice.sold_by_user_id
+        ? await invoiceSellerAuthorizationContext(env, accountId, invoice)
+        : { actorUserId: ctx.userId, actorRole: ctx.role };
+      const authorized = await authorizeInvoiceLines(env, { accountId, ...seller, lines: current.results as any[] });
+      for (const line of authorized) statements.push(env.DB.prepare(
+        `UPDATE invoice_line_items SET stock_owner_user_id = ?, sales_grant_id = ?, owner_share_type = ?, owner_share_value = ?
+         WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ?
+           AND status = 'Draft' AND inventory_deducted = 0 AND fulfillment_claim_token = ?)`
+      ).bind(line.stock_owner_user_id, line.sales_grant_id, line.owner_share_type, line.owner_share_value,
+        line.id, accountId, params.id, accountId, transitionClaim));
+      statements.push(...buildInvoiceReservationStatements(env, {
+        accountId, invoiceId: params.id, lines: authorized,
+        expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+        guard: { invoiceId: params.id, claimToken: transitionClaim, status: 'Draft', inventoryDeducted: 0 },
+      }));
+      statements.push(env.DB.prepare(
+        `UPDATE invoices SET sold_by_user_id = ?, payment_recipient_user_id = ? WHERE id = ? AND account_id = ?
+         AND status = 'Draft' AND inventory_deducted = 0 AND fulfillment_claim_token = ?`
+      ).bind(seller.actorUserId, resolvePaymentRecipientUserId(authorized), params.id, accountId, transitionClaim));
+    } else if (invoice.status === 'Pending' && body.status === 'Draft') {
+      statements.push(env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id=? AND account_id=?').bind(params.id, accountId));
+    }
+    const updateIndex = statements.length;
+    const transitionFence = transitionClaim
+      ? ' AND status = ? AND inventory_deducted = 0 AND fulfillment_claim_token = ?'
+      : (statusWrite ? ' AND status = ?' : '');
+    const transitionRelease = transitionClaim ? ', fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL' : '';
+    statements.push(env.DB.prepare(`UPDATE invoices SET ${sets}${transitionRelease} WHERE id = ? AND account_id = ?${transitionFence}`)
+      .bind(...cols.map(c => normalizedValues[c] ?? null), params.id, accountId,
+        ...(statusWrite ? [invoice.status] : []), ...(transitionClaim ? [transitionClaim] : [])));
+    const results = await env.DB.batch(statements);
+    if (statusWrite && Number(results[updateIndex]?.meta?.changes || 0) === 0) {
+      await releaseTransitionClaim().catch(() => {});
+      return restError(409, 'Invoice changed before the status update could be applied', 'invoice_write_conflict');
+    }
+  } catch (error) {
+    await releaseTransitionClaim().catch(() => {});
+    if (/insufficient available stock/i.test(String((error as Error)?.message || error))) {
+      return restError(409, 'Insufficient available stock', 'insufficient_available_stock');
+    }
+    return salesError(error);
   }
   await ensureContactRelationship(env, accountId, normalized.customer_id, 'buyer', 'workflow', 'invoice', params.id);
   return json({ success: true });
@@ -3743,11 +4153,12 @@ const handleFulfillInvoice: Handler = async (request, env) => {
     if (!['Draft', 'Pending'].includes(String(current.status))) return json({ error: 'Invoice status cannot be fulfilled' }, 409);
     return json({ error: 'Invoice fulfillment is already in progress' }, 409);
   }
-  const releaseClaim = () => env.DB.prepare(
+  const releaseClaim = async () => env.DB.prepare(
     'UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?'
   ).bind(invoice_id, accountId, fulfillmentClaim).run();
 
   let items: D1Result<Record<string, any>>;
+  const quantities = new Map<string, number>();
   const products = new Map<string, any>();
   try {
     items = await env.DB.prepare(
@@ -3755,10 +4166,13 @@ const handleFulfillInvoice: Handler = async (request, env) => {
     ).bind(invoice_id, accountId).all() as D1Result<Record<string, any>>;
 
     // Fetch current stock for all affected products — skip custom items (no product_id)
-    const productIds = [...new Set((items.results as any[]).filter(i => i.product_id).map(i => i.product_id as string))];
+    for (const item of items.results as any[]) {
+      if (item.product_id) quantities.set(item.product_id, (quantities.get(item.product_id) ?? 0) + Number(item.quantity || 0));
+    }
+    const productIds = [...quantities.keys()];
     for (const pid of productIds) {
       const p = await env.DB.prepare(
-        'SELECT id, stock_grams, low_stock_threshold, given_name, product_name, status, source_compass_entry_id FROM products WHERE id = ? AND account_id = ?'
+        'SELECT id, stock_grams, low_stock_threshold, given_name, product_name, status, source_compass_entry_id, owner_user_id FROM products WHERE id = ? AND account_id = ?'
       ).bind(pid, accountId).first();
       if (p) products.set(pid, p);
     }
@@ -3773,16 +4187,18 @@ const handleFulfillInvoice: Handler = async (request, env) => {
   // fulfill path previously did no availability check at all, so concurrent
   // fulfillments could drive stock negative. We 409 here on the common case;
   // the guarded UPDATE below defends against the narrow race window.
-  for (const item of items.results as any[]) {
-    if (!item.product_id) continue;
-    const product = products.get(item.product_id as string);
-    const available = product ? Number(product.stock_grams) || 0 : 0;
-    const qty = Number(item.quantity) || 0;
+  for (const [productId, qty] of quantities) {
+    const product = products.get(productId);
+    const otherHolds = await env.DB.prepare(
+      `SELECT COALESCE(SUM(held_grams),0) AS held FROM stock_holds
+       WHERE account_id=? AND product_id=? AND invoice_id!=? AND (expires_at IS NULL OR expires_at>datetime('now'))`
+    ).bind(accountId, productId, invoice_id).first() as any;
+    const available = (product ? Number(product.stock_grams) || 0 : 0) - (Number(otherHolds?.held) || 0);
     if (qty > available) {
       await releaseClaim().catch(() => {});
       return json({
         error: 'insufficient_stock',
-        product_id: item.product_id,
+        product_id: productId,
         requested: qty,
         available,
       }, 409);
@@ -3793,22 +4209,35 @@ const handleFulfillInvoice: Handler = async (request, env) => {
   // The non-negative-stock trigger aborts the whole batch if stock changed
   // after the pre-check. A termination before this batch leaves only the
   // leased claim, which can be reclaimed after five minutes.
-  const deductLines = (items.results as any[]).filter(i => i.product_id);
   const stmts: D1PreparedStatement[] = [];
+  if (!invoice.sold_by_user_id) {
+    invoice.sold_by_user_id = ctx.userId;
+    stmts.push(env.DB.prepare(
+      'UPDATE invoices SET sold_by_user_id=COALESCE(sold_by_user_id,?) WHERE id=? AND account_id=? AND fulfillment_claim_token=?'
+    ).bind(ctx.userId, invoice_id, accountId, fulfillmentClaim));
+  }
 
   for (const item of items.results as any[]) {
-    if (!item.product_id) continue; // custom line items have no stock to deduct
-    const product = products.get(item.product_id as string);
+    if (item.product_id && item.stock_owner_user_id == null && products.get(item.product_id)?.owner_user_id != null) {
+      item.stock_owner_user_id = products.get(item.product_id)?.owner_user_id;
+    }
+  }
+
+  for (const [productId, qty] of quantities) {
+    const product = products.get(productId);
     const currentStock = product ? Number(product.stock_grams) || 0 : 0;
-    const qty = Number(item.quantity) || 0;
     const newBalance = currentStock - qty;
     const threshold = product ? Number(product.low_stock_threshold) || 0 : 0;
 
     stmts.push(env.DB.prepare(
-      `UPDATE products SET stock_grams = stock_grams - ?
+      `UPDATE products SET stock_grams = CASE
+         WHEN stock_grams - COALESCE((SELECT SUM(held_grams) FROM stock_holds
+           WHERE account_id=? AND product_id=? AND invoice_id!=?
+             AND (expires_at IS NULL OR expires_at>datetime('now'))),0) >= ?
+         THEN stock_grams - ? ELSE -1 END
        WHERE id = ? AND account_id = ?
          AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ? AND status IN ('Draft', 'Pending') AND inventory_deducted = 0)`
-    ).bind(qty, item.product_id, accountId, invoice_id, accountId, fulfillmentClaim));
+    ).bind(accountId, productId, invoice_id, qty, qty, productId, accountId, invoice_id, accountId, fulfillmentClaim));
 
     // Listing mirror — clamp to 0 (mirror the wholesale path's MAX(0, COALESCE(...))
     // pattern) so a mirror that drifted below the products row can't go negative.
@@ -3816,24 +4245,26 @@ const handleFulfillInvoice: Handler = async (request, env) => {
       env.DB.prepare(
         `UPDATE product_listings SET stock_grams = MAX(0, COALESCE(stock_grams, 0) - ?), updated_at = datetime('now') WHERE id = ?
          AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ? AND status IN ('Draft', 'Pending') AND inventory_deducted = 0)`
-      ).bind(qty, `list_${item.product_id}`, invoice_id, accountId, fulfillmentClaim)
+      ).bind(qty, `list_${productId}`, invoice_id, accountId, fulfillmentClaim)
     );
     stmts.push(env.DB.prepare(
       `INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, source_invoice_id, source_invoice_number, user_email, note, account_id)
-       SELECT ?, ?, ?, ?, 'FULFILLMENT', ?, ?, ?, NULL, ?
-       WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ? AND status IN ('Draft', 'Pending') AND inventory_deducted = 0)`
-    ).bind(crypto.randomUUID(), item.product_id, -qty, newBalance, invoice_id, invoice.invoice_number, userEmail, accountId, invoice_id, accountId, fulfillmentClaim));
+       SELECT ?, ?, ?, p.stock_grams, 'FULFILLMENT', ?, ?, ?, NULL, ? FROM products p
+       WHERE p.id=? AND p.account_id=?
+         AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ? AND status IN ('Draft', 'Pending') AND inventory_deducted = 0)`
+    ).bind(crypto.randomUUID(), productId, -qty, invoice_id, invoice.invoice_number, userEmail, accountId,
+      productId, accountId, invoice_id, accountId, fulfillmentClaim));
 
     if (newBalance <= 0 && product && product.status !== 'Sold Out') {
       stmts.push(
         env.DB.prepare("UPDATE products SET status = 'Sold Out', sold_out_at = datetime('now') WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ? AND status IN ('Draft', 'Pending') AND inventory_deducted = 0)")
-          .bind(item.product_id, accountId, invoice_id, accountId, fulfillmentClaim)
+          .bind(productId, accountId, invoice_id, accountId, fulfillmentClaim)
       );
       stmts.push(env.DB.prepare("UPDATE product_listings SET status = 'Sold Out', updated_at = datetime('now') WHERE id = ? AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ? AND status IN ('Draft', 'Pending') AND inventory_deducted = 0)")
-        .bind(`list_${item.product_id}`, invoice_id, accountId, fulfillmentClaim));
+        .bind(`list_${productId}`, invoice_id, accountId, fulfillmentClaim));
       stmts.push(env.DB.prepare(`INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
         SELECT ?, 'PRODUCT_SOLD_OUT', ?, ?, 'product', ?, ? WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ? AND status IN ('Draft', 'Pending') AND inventory_deducted = 0)`)
-        .bind(crypto.randomUUID(), `${product.given_name || product.product_name} auto-archived (stock reached ${newBalance}g after fulfillment of ${invoice.invoice_number})`, userEmail, item.product_id, accountId, invoice_id, accountId, fulfillmentClaim));
+        .bind(crypto.randomUUID(), `${product.given_name || product.product_name} auto-archived (stock reached ${newBalance}g after fulfillment of ${invoice.invoice_number})`, userEmail, productId, accountId, invoice_id, accountId, fulfillmentClaim));
       // Set linked compass entry to depleted
       if (product.source_compass_entry_id) {
         stmts.push(
@@ -3843,10 +4274,10 @@ const handleFulfillInvoice: Handler = async (request, env) => {
       }
     } else if (threshold > 0 && newBalance < threshold && currentStock >= threshold && product) {
       // Low-stock alert when fulfillment drops stock below the configured threshold
-      const name = (product.given_name || product.product_name || item.product_id) as string;
+      const name = (product.given_name || product.product_name || productId) as string;
       stmts.push(env.DB.prepare(`INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
         SELECT ?, 'low_stock_alert', ?, ?, 'product', ?, ? WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ? AND status IN ('Draft', 'Pending') AND inventory_deducted = 0)`)
-        .bind(crypto.randomUUID(), JSON.stringify({ productName: name, stockGrams: newBalance, threshold }), userEmail, item.product_id, accountId, invoice_id, accountId, fulfillmentClaim));
+        .bind(crypto.randomUUID(), JSON.stringify({ productName: name, stockGrams: newBalance, threshold }), userEmail, productId, accountId, invoice_id, accountId, fulfillmentClaim));
     }
   }
 
@@ -3854,6 +4285,13 @@ const handleFulfillInvoice: Handler = async (request, env) => {
     env.DB.prepare("DELETE FROM stock_holds WHERE invoice_id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ? AND status IN ('Draft', 'Pending') AND inventory_deducted = 0)")
       .bind(invoice_id, accountId, invoice_id, accountId, fulfillmentClaim)
   );
+
+  try {
+    stmts.push(...buildSettlementStatements(env, { accountId, invoice, lines: items.results as any[] }));
+  } catch (error) {
+    await releaseClaim().catch(() => {});
+    return salesError(error);
+  }
 
   stmts.push(env.DB.prepare(
     `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
@@ -3875,6 +4313,9 @@ const handleFulfillInvoice: Handler = async (request, env) => {
   } catch (err: any) {
     console.error('handleFulfillInvoice batch failed:', err);
     await releaseClaim().catch(() => {});
+    if (/stock_grams cannot be negative/i.test(String(err?.message || err))) {
+      return json({ error: 'insufficient_stock' }, 409);
+    }
     return json({ error: 'Fulfillment failed — no changes were committed' }, 500);
   }
 
@@ -4180,7 +4621,7 @@ const handleVoidInvoice: Handler = async (request, env) => {
     if (!['Draft', 'Pending', 'Filled'].includes(String(current.status))) return json({ error: 'Invoice status cannot be voided' }, 409);
     return json({ error: 'Invoice lifecycle change is already in progress' }, 409);
   }
-  const releaseClaim = () => env.DB.prepare(
+  const releaseClaim = async () => env.DB.prepare(
     'UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?'
   ).bind(invoice_id, accountId, voidClaim).run();
   const expectedStatus = String(invoice.status);
@@ -4242,6 +4683,7 @@ const handleVoidInvoice: Handler = async (request, env) => {
       `DELETE FROM stock_holds WHERE invoice_id = ? AND account_id = ?
        AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ? AND status = ? AND inventory_deducted = ?)`
     ).bind(invoice_id, accountId, invoice_id, accountId, voidClaim, expectedStatus, expectedDeducted));
+    stmts.push(...buildSettlementReversalStatements(env, { accountId, invoiceId: invoice_id }));
 
     stmts.push(env.DB.prepare(
       `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
@@ -4304,7 +4746,7 @@ const handleSplitInvoice: Handler = async (request, env) => {
     if (current.status !== 'Pending') return json({ error: 'Only Pending invoices can be split' }, 400);
     return json({ error: 'Invoice lifecycle change is already in progress' }, 409);
   }
-  const releaseClaim = () => env.DB.prepare(
+  const releaseClaim = async () => env.DB.prepare(
     'UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?'
   ).bind(invoice_id, accountId, splitClaim).run();
 
@@ -4329,6 +4771,23 @@ const handleSplitInvoice: Handler = async (request, env) => {
       return json({ error: 'Selected line item not found on this invoice' }, 400);
     }
 
+  try {
+    const seller = await invoiceSellerAuthorizationContext(env, accountId, invoice);
+    await validateInvoiceLineSnapshots(env, {
+      accountId, sellerUserId: seller.actorUserId, sellerRole: seller.actorRole,
+      lines: allItems.results as AuthorizedInvoiceLine[],
+    });
+  } catch (error) {
+    await releaseClaim().catch(() => {});
+    return salesError(error);
+  }
+  const snapshotItems = allItems.results as AuthorizedInvoiceLine[];
+  const movedIds = new Set(line_item_ids);
+  const movedItems = snapshotItems.filter(item => item.id && movedIds.has(item.id));
+  const remainingItems = snapshotItems.filter(item => !item.id || !movedIds.has(item.id));
+  const movedPaymentRecipient = resolvePaymentRecipientUserId(movedItems);
+  const remainingPaymentRecipient = resolvePaymentRecipientUserId(remainingItems);
+
   const newId = crypto.randomUUID();
 
   // Allocate the split's invoice number, retrying on the active-invoice-number
@@ -4347,16 +4806,21 @@ const handleSplitInvoice: Handler = async (request, env) => {
     ).bind(attempt + 1, accountId, invoice_id, accountId, splitClaim));
 
     stmts.push(env.DB.prepare(
-      `INSERT INTO invoices (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes)
+      `INSERT INTO invoices (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes, sold_by_user_id, payment_recipient_user_id)
        SELECT ?, ?,
          CASE WHEN COALESCE(a.invoice_prefix, '') = '' THEN printf('%05d', a.invoice_seq)
               ELSE a.invoice_prefix || '-' || printf('%05d', a.invoice_seq) END,
-         ?, ?, ?, ?, 0, 'Pending', 0, ?
+         ?, ?, ?, ?, 0, 'Pending', 0, ?, ?, ?
        FROM accounts a WHERE a.id = ?
          AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND status = 'Pending'
            AND inventory_deducted = 0 AND fulfillment_claim_token = ?)`
     ).bind(newId, accountId, invoice.customer_name, invoice.customer_whatsapp, invoice.customer_id,
-      invoice.display_currency, invoice.notes, accountId, invoice_id, accountId, splitClaim));
+      invoice.display_currency, invoice.notes, invoice.sold_by_user_id, movedPaymentRecipient,
+      accountId, invoice_id, accountId, splitClaim));
+    stmts.push(env.DB.prepare(
+      `UPDATE invoices SET payment_recipient_user_id=? WHERE id=? AND account_id=? AND status='Pending'
+       AND inventory_deducted=0 AND fulfillment_claim_token=?`
+    ).bind(remainingPaymentRecipient, invoice_id, accountId, splitClaim));
 
     for (const itemId of line_item_ids) {
       stmts.push(env.DB.prepare(
@@ -4365,6 +4829,16 @@ const handleSplitInvoice: Handler = async (request, env) => {
            AND inventory_deducted = 0 AND fulfillment_claim_token = ?)`
       ).bind(newId, itemId, accountId, invoice_id, invoice_id, accountId, splitClaim));
     }
+
+    const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+    stmts.push(...buildInvoiceReservationStatements(env, {
+      accountId, invoiceId: invoice_id, lines: remainingItems, expiresAt,
+      guard: { invoiceId: invoice_id, claimToken: splitClaim, status: 'Pending', inventoryDeducted: 0 },
+    }));
+    stmts.push(...buildInvoiceReservationStatements(env, {
+      accountId, invoiceId: newId, lines: movedItems, expiresAt,
+      guard: { invoiceId: invoice_id, claimToken: splitClaim, status: 'Pending', inventoryDeducted: 0 },
+    }));
 
     stmts.push(env.DB.prepare(
       `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
@@ -4399,6 +4873,7 @@ const handleSplitInvoice: Handler = async (request, env) => {
     } catch (err: any) {
       lastErr = err;
       const msg = String(err?.message || err);
+      if (/insufficient available stock/i.test(msg)) return restError(409, 'Insufficient available stock', 'insufficient_available_stock');
       if (/UNIQUE|constraint/i.test(msg)) continue; // collision — bump seq and retry
       console.error('handleSplitInvoice batch failed:', err);
       await releaseClaim().catch(() => {});
@@ -4481,27 +4956,45 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
      RETURNING id`
   ).bind(editClaim, params.id, accountId).first();
   if (!claimed) return restError(409, 'Invoice is no longer available for editing', 'invoice_edit_conflict');
-  const releaseEditClaim = () => env.DB.prepare(
+  const releaseEditClaim = async () => env.DB.prepare(
     'UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?'
   ).bind(params.id, accountId, editClaim).run();
 
   const stmts: D1PreparedStatement[] = [];
+  let replacementPaymentRecipient: string | null | undefined;
 
   if (hasReplacementLines) {
+    let authorized: AuthorizedInvoiceLine[];
+    try {
+      const seller = await invoiceSellerAuthorizationContext(env, accountId, invoice as Record<string, any>);
+      authorized = await authorizeInvoiceLines(env, {
+        accountId, ...seller, lines: input.lineItems,
+      });
+    } catch (error) {
+      await releaseEditClaim().catch(() => {});
+      return salesError(error);
+    }
+    replacementPaymentRecipient = resolvePaymentRecipientUserId(authorized);
     stmts.push(env.DB.prepare(
       `DELETE FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?
        AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND status = 'Pending'
          AND inventory_deducted = 0 AND fulfillment_claim_token = ?)`
     ).bind(params.id, accountId, params.id, accountId, editClaim));
-    for (const item of input.lineItems) {
+    for (const item of authorized) {
       stmts.push(env.DB.prepare(
-        `INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, custom_name, quantity, price_at_sale)
-         SELECT ?, ?, ?, ?, ?, ?, ?
+        `INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, custom_name, quantity, price_at_sale, stock_owner_user_id, sales_grant_id, owner_share_type, owner_share_value)
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
          WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND status = 'Pending'
            AND inventory_deducted = 0 AND fulfillment_claim_token = ?)`
       ).bind(crypto.randomUUID(), accountId, params.id, item.product_id ?? null, item.custom_name ?? null, item.quantity, item.price_at_sale,
+        item.stock_owner_user_id, item.sales_grant_id, item.owner_share_type, item.owner_share_value,
         params.id, accountId, editClaim));
     }
+    stmts.push(...buildInvoiceReservationStatements(env, {
+      accountId, invoiceId: params.id, lines: authorized,
+      expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+      guard: { invoiceId: params.id, claimToken: editClaim, status: 'Pending', inventoryDeducted: 0 },
+    }));
   }
 
   const updates: string[] = [];
@@ -4519,6 +5012,10 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
     if (key === 'lineItems') continue;
     updates.push(`${key} = ?`);
     vals.push(normalizedValues[key] ?? null);
+  }
+  if (replacementPaymentRecipient !== undefined) {
+    updates.push('payment_recipient_user_id = ?');
+    vals.push(replacementPaymentRecipient);
   }
   if (updates.length > 0) {
     stmts.push(env.DB.prepare(
@@ -4590,7 +5087,7 @@ const handleLinkLineItem: Handler = async (request, env) => {
     }
     return json({ error: 'Invoice lifecycle change is already in progress' }, 409);
   }
-  const releaseClaim = () => env.DB.prepare(
+  const releaseClaim = async () => env.DB.prepare(
     'UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?'
   ).bind(invoice_id, accountId, linkClaim).run();
   const expectedStatus = String(invoice.status);
@@ -4620,13 +5117,62 @@ const handleLinkLineItem: Handler = async (request, env) => {
     return json({ error: 'Failed to link line item before any changes were committed' }, 500);
   }
 
+  let authorized: AuthorizedInvoiceLine;
+  try {
+    const seller = await invoiceSellerAuthorizationContext(env, accountId, invoice as Record<string, any>);
+    [authorized] = await authorizeInvoiceLines(env, {
+      accountId, ...seller,
+      lines: [{
+        id: line_item_id, product_id, custom_name: null,
+        quantity: Number(lineItem.quantity), price_at_sale: Number(lineItem.price_at_sale),
+      }],
+    });
+  } catch (error) {
+    await releaseClaim().catch(() => {});
+    return salesError(error);
+  }
+
   const stmts: D1PreparedStatement[] = [];
+  const current = await env.DB.prepare(
+    `SELECT id,product_id,custom_name,quantity,price_at_sale,stock_owner_user_id,sales_grant_id,owner_share_type,owner_share_value
+     FROM invoice_line_items WHERE invoice_id=? AND account_id=?`
+  ).bind(invoice_id, accountId).all();
+  const proposed = (current.results as any[]).map(item => item.id === line_item_id
+    ? { ...item, product_id, custom_name: null, stock_owner_user_id: authorized.stock_owner_user_id, sales_grant_id: authorized.sales_grant_id,
+        owner_share_type: authorized.owner_share_type, owner_share_value: authorized.owner_share_value }
+    : item);
+  let recipientLines = proposed as AuthorizedInvoiceLine[];
 
   stmts.push(env.DB.prepare(
-    `UPDATE invoice_line_items SET product_id = ?, custom_name = NULL WHERE id = ? AND invoice_id = ? AND account_id = ?
+    `UPDATE invoice_line_items SET product_id = ?, custom_name = NULL, stock_owner_user_id = ?, sales_grant_id = ?, owner_share_type = ?, owner_share_value = ? WHERE id = ? AND invoice_id = ? AND account_id = ?
      AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?
        AND status = ? AND inventory_deducted = ?)`
-  ).bind(product_id, line_item_id, invoice_id, accountId, invoice_id, accountId, linkClaim, expectedStatus, expectedDeducted));
+  ).bind(product_id, authorized.stock_owner_user_id, authorized.sales_grant_id, authorized.owner_share_type,
+    authorized.owner_share_value, line_item_id, invoice_id, accountId,
+    invoice_id, accountId, linkClaim, expectedStatus, expectedDeducted));
+
+  if (invoice.status === 'Pending') {
+    let allAuthorized: AuthorizedInvoiceLine[];
+    try {
+      const seller = await invoiceSellerAuthorizationContext(env, accountId, invoice as Record<string, any>);
+      allAuthorized = await authorizeInvoiceLines(env, {
+        accountId, ...seller, lines: proposed,
+      });
+    } catch (error) {
+      await releaseClaim().catch(() => {});
+      return salesError(error);
+    }
+    stmts.push(...buildInvoiceReservationStatements(env, {
+      accountId, invoiceId: invoice_id, lines: allAuthorized,
+      expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+      guard: { invoiceId: invoice_id, claimToken: linkClaim, status: expectedStatus, inventoryDeducted: expectedDeducted },
+    }));
+  }
+
+  stmts.push(env.DB.prepare(
+    `UPDATE invoices SET payment_recipient_user_id=? WHERE id=? AND account_id=? AND fulfillment_claim_token=?
+     AND status=? AND inventory_deducted=?`
+  ).bind(resolvePaymentRecipientUserId(recipientLines), invoice_id, accountId, linkClaim, expectedStatus, expectedDeducted));
 
   if (expectedDeducted) {
     const qty = Number(lineItem.quantity) || 0;
@@ -4681,6 +5227,15 @@ const handleLinkLineItem: Handler = async (request, env) => {
         ).bind(product.source_compass_entry_id, product_id, accountId, invoice_id, accountId, linkClaim, expectedStatus, expectedDeducted));
       }
     }
+    if (!invoice.sold_by_user_id) {
+      invoice.sold_by_user_id = ctx.userId;
+      stmts.push(env.DB.prepare('UPDATE invoices SET sold_by_user_id=COALESCE(sold_by_user_id,?) WHERE id=? AND account_id=?')
+        .bind(ctx.userId, invoice_id, accountId));
+    }
+    stmts.push(...buildSettlementStatements(env, {
+      accountId, invoice,
+      lines: [{ ...authorized, id: line_item_id }],
+    }));
   }
 
   const productName = (product.given_name || product.product_name) as string;
@@ -12821,11 +13376,6 @@ const handleCompleteEvent: Handler = async (request, env, params) => {
   const guard = await assertEventInAccount(env, params.id, accountId);
   if (guard) return guard;
 
-  // Mark event as completed
-  await env.DB.prepare(
-    `UPDATE events SET status = 'completed', updated_at = datetime('now') WHERE id = ? AND account_id = ?`
-  ).bind(params.id, accountId).run();
-
   // Get tea menu — if empty, skip invoice creation
   const menuRows = await env.DB.prepare(
     `SELECT etm.product_id, etm.brew_order FROM event_tea_menu etm
@@ -12833,6 +13383,9 @@ const handleCompleteEvent: Handler = async (request, env, params) => {
   ).bind(params.id).all();
 
   if (menuRows.results.length === 0) {
+    await env.DB.prepare(
+      `UPDATE events SET status = 'completed', updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+    ).bind(params.id, accountId).run();
     return json({ success: true, status: 'completed', invoices_created: 0 });
   }
 
@@ -12845,6 +13398,9 @@ const handleCompleteEvent: Handler = async (request, env, params) => {
 
   const attendees = attendeesRows.results as any[];
   if (attendees.length === 0) {
+    await env.DB.prepare(
+      `UPDATE events SET status = 'completed', updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+    ).bind(params.id, accountId).run();
     return json({ success: true, status: 'completed', invoices_created: 0 });
   }
 
@@ -12854,19 +13410,46 @@ const handleCompleteEvent: Handler = async (request, env, params) => {
   ).bind(params.id, accountId).all();
   const existingNames = new Set((existingInvoiceRows.results as any[]).map((r: any) => r.customer_name));
 
-  const stmts: D1PreparedStatement[] = [];
+  const newAttendees = attendees.filter(attendee => !existingNames.has(attendee.full_name));
+  if (newAttendees.length === 0) {
+    await env.DB.prepare(
+      `UPDATE events SET status = 'completed', updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+    ).bind(params.id, accountId).run();
+    return json({ success: true, status: 'completed', invoices_created: 0 });
+  }
+
+  const salesCtx = await requireBundle(request, env, 'sell');
+  if ('error' in salesCtx) return salesCtx.error;
+  let authorizedMenuLines: AuthorizedInvoiceLine[];
+  try {
+    authorizedMenuLines = await authorizeInvoiceLines(env, {
+      accountId,
+      actorUserId: salesCtx.userId,
+      actorRole: salesCtx.role,
+      lines: (menuRows.results as any[]).map(menuItem => ({
+        product_id: menuItem.product_id,
+        custom_name: null,
+        quantity: 1,
+        price_at_sale: 0,
+      })),
+    });
+  } catch (error) {
+    return salesError(error);
+  }
+  const paymentRecipientUserId = resolvePaymentRecipientUserId(authorizedMenuLines);
+  const stmts: D1PreparedStatement[] = [env.DB.prepare(
+    `UPDATE events SET status = 'completed', updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+  ).bind(params.id, accountId)];
   let invoicesCreated = 0;
 
-  for (const att of attendees) {
-    if (existingNames.has(att.full_name)) continue;
-
+  for (const att of newAttendees) {
     const invoiceId = crypto.randomUUID();
     const invoiceNumber = `EVT-${params.id.slice(0, 6).toUpperCase()}-${att.id.slice(0, 4).toUpperCase()}`;
 
     stmts.push(
       env.DB.prepare(
-        `INSERT INTO invoices (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, payment_status, source_event_id)
-         VALUES (?, ?, ?, ?, ?, ?, 'TWD', 0, 'Draft', 0, 'unpaid', ?)`
+        `INSERT INTO invoices (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, payment_status, source_event_id, sold_by_user_id, payment_recipient_user_id)
+         VALUES (?, ?, ?, ?, ?, ?, 'TWD', 0, 'Draft', 0, 'unpaid', ?, ?, ?)`
       ).bind(
         invoiceId,
         accountId,
@@ -12874,16 +13457,22 @@ const handleCompleteEvent: Handler = async (request, env, params) => {
         att.full_name,
         att.phone_number || null,
         att.customer_id || null,
-        params.id
+        params.id,
+        salesCtx.userId,
+        paymentRecipientUserId,
       )
     );
 
     // Add one line item per tea menu entry
-    for (const menuItem of menuRows.results as any[]) {
+    for (const line of authorizedMenuLines) {
       stmts.push(
         env.DB.prepare(
-          'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, custom_name, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?, ?, ?)'
-        ).bind(crypto.randomUUID(), accountId, invoiceId, menuItem.product_id, null, 1, 0)
+          `INSERT INTO invoice_line_items
+           (id,account_id,invoice_id,product_id,custom_name,quantity,price_at_sale,stock_owner_user_id,sales_grant_id,owner_share_type,owner_share_value)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?)`
+        ).bind(crypto.randomUUID(), accountId, invoiceId, line.product_id, line.custom_name ?? null,
+          line.quantity, line.price_at_sale, line.stock_owner_user_id, line.sales_grant_id,
+          line.owner_share_type, line.owner_share_value)
       );
     }
 
@@ -20492,7 +21081,7 @@ const handleConfirmCollectionPicks: Handler = async (request, env, params) => {
   const byItemId = new Map<string, any>();
   for (const r of (itemRows.results ?? []) as any[]) byItemId.set(r.id, r);
 
-  const lineItems: Array<{ product_id: string; custom_name: null; quantity: number; price_at_sale: number; label: string }> = [];
+  const lineItems: Array<{ product_id: string | null; custom_name: string | null; quantity: number; price_at_sale: number; label: string }> = [];
   for (const pick of picks) {
     const row = pick.item_id ? byItemId.get(pick.item_id) : null;
     if (!row || row.product_status !== 'Active') continue;
@@ -20509,9 +21098,10 @@ const handleConfirmCollectionPicks: Handler = async (request, env, params) => {
       catalogUnitPriceUsd: row.fixed_retail_price_usd == null ? null : Number(row.fixed_retail_price_usd),
     });
 
+    const mayRemainLinked = isTeaType(String(row.product_type || ''));
     lineItems.push({
-      product_id: row.product_id,
-      custom_name: null,
+      product_id: mayRemainLinked ? row.product_id : null,
+      custom_name: mayRemainLinked ? null : row.product_name,
       quantity: derived.quantity,
       price_at_sale: derived.unitPriceUsd,
       label: `${row.product_name} × ${derived.quantity}${isTeaware ? '' : 'g'}`,
@@ -22798,8 +23388,18 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/invoices', handleGetInvoices],
   ['POST', '/api/invoices', handleCreateInvoice],
   ['GET', '/api/invoices/:id/items', handleGetInvoiceItems],
+  ['GET', '/api/invoices/:id/attribution', handleGetInvoiceAttribution],
   ['PUT', '/api/invoices/:id', handleUpdateInvoice],
   ['DELETE', '/api/invoices/:id', handleDeleteInvoice],
+
+  // Same-account Tea Master sales authority and settlement ledger
+  ['GET', '/api/sales/grants', handleGetSalesGrants],
+  ['POST', '/api/sales/grants', handleCreateSalesGrant],
+  ['PUT', '/api/sales/grants/:id', handleUpdateSalesGrant],
+  ['DELETE', '/api/sales/grants/:id', handleRevokeSalesGrant],
+  ['GET', '/api/sales/eligible-products', handleGetEligibleSalesProducts],
+  ['GET', '/api/sales/settlements', handleGetSalesSettlements],
+  ['PUT', '/api/sales/settlements/:id', handleMarkSalesSettlementPaid],
 
   // Analytics
   ['GET', '/api/analytics/revenue', handleGetRevenueAnalytics],

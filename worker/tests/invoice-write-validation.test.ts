@@ -20,6 +20,7 @@ class InvoiceWriteDb {
     customer_whatsapp: null, customer_id: null, display_currency: 'USD', shipping_cost_usd: 0,
     status: 'Pending', notes: null, source_event_id: null, payment_status: 'unpaid', inventory_deducted: 0,
     fulfillment_claim_token: null as string | null, fulfillment_claimed_at: null as string | null,
+    sold_by_user_id: 'user-a', payment_recipient_user_id: null as string | null,
   }];
   lines = [{ id: 'line-a', account_id: 'account-a', invoice_id: 'invoice-a', product_id: 'product-a', custom_name: null, quantity: 1, price_at_sale: 5 }];
   products = [
@@ -46,6 +47,10 @@ class InvoiceWriteDb {
         }
         if (normalized.startsWith('update invoices set fulfillment_claim_token = ?')) {
           this.editClaimAttempts += 1;
+          if (normalized.includes("status = 'draft'") && this.genericStatusBeforeUpdate) {
+            this.invoices[0].status = this.genericStatusBeforeUpdate;
+            this.genericStatusBeforeUpdate = null;
+          }
           if (this.editStatusBeforeClaim) {
             this.invoices[0].status = this.editStatusBeforeClaim;
             this.editStatusBeforeClaim = null;
@@ -53,8 +58,9 @@ class InvoiceWriteDb {
           const invoice = this.invoices.find(row => row.id === values[1] && row.account_id === values[2]);
           const stale = invoice?.fulfillment_claim_token != null
             && (invoice.fulfillment_claimed_at == null || new Date(invoice.fulfillment_claimed_at).getTime() < Date.now() - 5 * 60_000);
-          if (!invoice || (invoice.status !== null && invoice.status !== 'Pending') || invoice.inventory_deducted !== 0 || (invoice.fulfillment_claim_token && !stale)) return null;
-          invoice.status = 'Pending';
+          const requiredStatus = normalized.includes("status = 'draft'") ? 'Draft' : 'Pending';
+          if (!invoice || (invoice.status !== null && invoice.status !== requiredStatus) || invoice.inventory_deducted !== 0 || (invoice.fulfillment_claim_token && !stale)) return null;
+          invoice.status = requiredStatus;
           invoice.fulfillment_claim_token = String(values[0]);
           invoice.fulfillment_claimed_at = new Date().toISOString();
           this.writes.push(record());
@@ -62,14 +68,15 @@ class InvoiceWriteDb {
         }
         this.reads.push(record());
         if (normalized.includes('select platform_role, session_version from users')) return { platform_role: null, session_version: 0 };
-        if (normalized === 'select platform_role from users where id = ?') return { platform_role: null };
+        if (normalized.startsWith('select platform_role from users where id')) return { platform_role: null };
         if (normalized.includes('from account_members am join accounts')) return { role: 'owner', permissions: '{}', kind: 'location' };
         if (normalized.includes('select status from accounts')) return { status: 'active' };
         if (normalized.includes('from invoices where id = ? and account_id = ?')) {
           return this.invoices.find(row => row.id === values[0] && row.account_id === values[1]) ?? null;
         }
-        if (normalized.startsWith('select id from products where id = ? and account_id = ?')) {
-          return this.products.find(row => row.id === values[0] && row.account_id === values[1]) ?? null;
+        if (normalized.includes('from products where id = ? and account_id = ?')) {
+          const product = this.products.find(row => row.id === values[0] && row.account_id === values[1]);
+          return product ? { ...product, owner_user_id: null, status: 'Active', type: 'Oolong' } : null;
         }
         if (normalized.startsWith('select id from customers where id = ? and account_id = ?')) {
           return this.customers.find(row => row.id === values[0] && row.account_id === values[1]) ?? null;
@@ -104,13 +111,21 @@ class InvoiceWriteDb {
           invoice.status = this.genericStatusBeforeUpdate;
           this.genericStatusBeforeUpdate = null;
         }
-        if (isGenericInvoiceUpdate && normalized.includes('and status = ?') && invoice.status !== values.at(-1)) {
+        const expectedStatusValue = normalized.includes('fulfillment_claim_token = ?') ? values.at(-2) : values.at(-1);
+        if (isGenericInvoiceUpdate && normalized.includes('and status = ?') && invoice.status !== expectedStatusValue) {
           return { success: true, meta: { changes: 0 } };
         }
         const fencedEdit = normalized.includes('fulfillment_claim_token = ?');
         if (fencedEdit) {
           const token = String(values.at(-1));
-          if (invoice.fulfillment_claim_token !== token || invoice.status !== 'Pending' || invoice.inventory_deducted !== 0) {
+          const requiredStatus = normalized.includes("status = 'pending'")
+            ? 'Pending'
+            : normalized.includes("status = 'draft'")
+              ? 'Draft'
+              : normalized.includes('status = ? and inventory_deducted = ?')
+                ? values.at(-3)
+                : expectedStatusValue;
+          if (invoice.fulfillment_claim_token !== token || invoice.status !== requiredStatus || invoice.inventory_deducted !== 0) {
             return { success: true, meta: { changes: 0 } };
           }
         }
@@ -263,8 +278,8 @@ describe('retail invoice write validation', () => {
     expect(invoiceInsert.values.slice(3, 13)).toEqual(['Buyer Name', null, 'customer-a', 'USD', 0, 'Pending', 0, null, null, 'unpaid']);
     const lineInserts = db.writes.filter(entry => entry.sql.startsWith('insert into invoice_line_items'));
     expect(lineInserts.map(entry => entry.values.slice(3))).toEqual([
-      ['product-a', null, 2, 4],
-      [null, 'Gift tin', 1, 3],
+      ['product-a', null, 2, 4, null, null, 'percent', 100],
+      [null, 'Gift tin', 1, 3, null, null, 'percent', 100],
     ]);
   });
 
@@ -349,7 +364,7 @@ describe('retail invoice write validation', () => {
     });
     expect(response.status).toBe(200);
     expect(db.writes.find(entry => entry.sql.startsWith('insert into invoice_line_items'))?.values.slice(3))
-      .toEqual([null, 'Private tasting fee', 1, 25, 'invoice-a', 'account-a', expect.any(String)]);
+      .toEqual([null, 'Private tasting fee', 1, 25, null, null, 'percent', 100, 'invoice-a', 'account-a', expect.any(String)]);
   });
 
   it('allows a header-only edit when unchanged legacy references are orphaned', async () => {
@@ -403,8 +418,8 @@ describe('retail invoice write validation', () => {
     db.invoices[0].status = persisted;
     const response = await request(db, 'PUT', '/api/invoices/invoice-a', { status: requested });
     expect(response.status).toBe(200);
-    expect(db.reads.some(entry => entry.sql.startsWith('select status, payment_status from invoices'))).toBe(true);
-    expect(db.writes.find(entry => entry.sql.startsWith('update invoices set'))?.values[0]).toBe(requested);
+    expect(db.reads.some(entry => entry.sql.startsWith('select status, payment_status'))).toBe(true);
+    expect(db.writes.filter(entry => entry.sql.startsWith('update invoices set')).some(entry => entry.values[0] === requested)).toBe(true);
   });
 
   it.each([

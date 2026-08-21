@@ -9,10 +9,11 @@ class SplitLinkDb {
     customer_whatsapp: null, customer_id: null, display_currency: 'USD', notes: null,
     status: 'Pending', inventory_deducted: 0, fulfillment_claim_token: null as string | null,
     fulfillment_claimed_at: null as string | null,
+    sold_by_user_id: 'owner-a', payment_recipient_user_id: null as string | null,
   };
   lines = [
-    { id: 'line-a', account_id: 'acct-a', invoice_id: 'invoice-a', product_id: null as string | null, custom_name: 'Custom', quantity: 40 },
-    { id: 'line-b', account_id: 'acct-a', invoice_id: 'invoice-a', product_id: 'product-b', custom_name: null, quantity: 20 },
+    { id: 'line-a', account_id: 'acct-a', invoice_id: 'invoice-a', product_id: null as string | null, custom_name: 'Custom', quantity: 40, price_at_sale: 1, stock_owner_user_id: null, sales_grant_id: null, owner_share_type: 'percent', owner_share_value: 100 },
+    { id: 'line-b', account_id: 'acct-a', invoice_id: 'invoice-a', product_id: 'product-b', custom_name: null, quantity: 20, price_at_sale: 1, stock_owner_user_id: null, sales_grant_id: null, owner_share_type: 'percent', owner_share_value: 100 },
   ];
   stock = 100;
   sequence = 1;
@@ -38,7 +39,7 @@ class SplitLinkDb {
       sql,
       bind: (...input: any[]) => { values = input; return statement; },
       first: async () => {
-        if (normalized === 'select platform_role from users where id = ?') return { platform_role: null };
+        if (normalized.startsWith('select platform_role from users where id')) return { platform_role: null };
         if (normalized.includes('from account_members am')) return { role: 'owner', permissions: '{}', kind: 'location' };
         if (normalized.includes('select status from accounts')) return { status: 'active' };
         if (normalized.startsWith('update invoices set fulfillment_claim_token = ?')) {
@@ -63,10 +64,10 @@ class SplitLinkDb {
           this.runMutableReadRace();
           return this.lines.find(line => line.id === values[0] && line.invoice_id === values[1] && line.account_id === values[2]) ?? null;
         }
-        if (normalized.includes('from products where id = ?')) {
+        if (normalized.includes('from products where id')) {
           this.productReads += 1;
-          return values[0] === 'product-a'
-            ? { id: 'product-a', stock_grams: this.stock, low_stock_threshold: 0, given_name: 'Tea', product_name: 'Tea', status: 'Active', source_compass_entry_id: null }
+          return ['product-a', 'product-b'].includes(String(values[0]))
+            ? { id: values[0], stock_grams: this.stock, low_stock_threshold: 0, given_name: 'Tea', product_name: 'Tea', status: 'Active', type: 'Oolong', owner_user_id: null, source_compass_entry_id: null }
             : null;
         }
         if (normalized.startsWith('update products set stock_grams = stock_grams - ?')) {
@@ -107,7 +108,7 @@ class SplitLinkDb {
           return { success: true, meta: { changes: line ? 1 : 0 } };
         }
         if (normalized.startsWith('update invoice_line_items set product_id = ?')) {
-          const line = this.lines.find(row => row.id === values[1] && row.invoice_id === values[2] && row.account_id === values[3]);
+          const line = this.lines.find(row => row.id === values[5] && row.invoice_id === values[6] && row.account_id === values[7]);
           if (line) { line.product_id = String(values[0]); line.custom_name = null; }
           return { success: true, meta: { changes: line ? 1 : 0 } };
         }

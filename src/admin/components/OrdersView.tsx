@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { api } from '../../lib/api';
+import { api, AUTH_TOKEN_CHANGED_EVENT, isTokenScopedToAccount } from '../../lib/api';
 import type { InvoiceWithItems, Product } from '../types';
 import { openWhatsAppStatus, buildQuickInvoiceDraftParam } from '../../lib/whatsapp';
 import { Loader2, Search, XCircle, Trash2, Eye, X, PackageCheck, Users, Scissors, Pencil, Package, MoreHorizontal, MessageCircle, Plus, Link2, StickyNote, Leaf, Check } from 'lucide-react';
@@ -13,6 +13,9 @@ import { SplitOrderModal } from './SplitOrderModal';
 import { EditOrderModal } from './EditOrderModal';
 import { QuickInvoiceModal } from './QuickInvoiceModal';
 import { Button } from '../../components/shared/Button';
+import { OrderAttribution } from './OrderAttribution';
+import { useAppStore } from '../../lib/store';
+import { SettlementLedger } from './SettlementLedger';
 
 const ROW_HEIGHT = 36;
 
@@ -108,9 +111,13 @@ export const OrdersView = () => {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToast();
+  const activeAccountId = useAppStore(state => state.activeAccountId);
+  const [tokenRevision, setTokenRevision] = useState(0);
+  const tokenScoped = isTokenScopedToAccount(activeAccountId);
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [viewingInvoice, setViewingInvoice] = useState<DbOrder | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [showSettlements, setShowSettlements] = useState(false);
   const { data: products = [] } = useProducts();
 
   // Confirm modal state
@@ -160,15 +167,35 @@ export const OrdersView = () => {
   // Timeline state for invoice detail
   const [invoiceTimeline, setInvoiceTimeline] = useState<ActivityLogEntry[]>([]);
 
+  useEffect(() => {
+    setViewingInvoice(null);
+    setInvoiceTimeline([]);
+  }, [activeAccountId]);
+
+  useEffect(() => {
+    const handleTokenChange = () => setTokenRevision(revision => revision + 1);
+    window.addEventListener(AUTH_TOKEN_CHANGED_EVENT, handleTokenChange);
+    return () => window.removeEventListener(AUTH_TOKEN_CHANGED_EVENT, handleTokenChange);
+  }, []);
+
   const [pageSize, setPageSize] = useState(50);
-  const { data: orders = [], isLoading, refetch } = useQuery<DbOrder[]>({
-    queryKey: ['orders', pageSize],
+  const ordersQuery = useQuery<DbOrder[]>({
+    queryKey: ['orders', activeAccountId, tokenRevision, pageSize],
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
+    enabled: tokenScoped,
     queryFn: async () => {
-      return await api.invoices.list(pageSize) as DbOrder[];
+      const requestAccount = activeAccountId;
+      const result = await api.invoices.list(pageSize) as DbOrder[];
+      if (useAppStore.getState().activeAccountId !== requestAccount || !isTokenScopedToAccount(requestAccount)) {
+        throw new Error('Account scope changed');
+      }
+      return result;
     }
   });
+  const orders = tokenScoped ? ordersQuery.data || [] : [];
+  const isLoading = !tokenScoped || ordersQuery.isPending;
+  const refetch = ordersQuery.refetch;
 
   // Pipeline summary
   const summary = useMemo(() => {
@@ -183,16 +210,23 @@ export const OrdersView = () => {
   }, [orders]);
 
   const handleView = async (invoice: DbOrder) => {
+    const requestAccount = activeAccountId;
+    const requestIsCurrent = () => useAppStore.getState().activeAccountId === requestAccount && isTokenScopedToAccount(requestAccount);
+    if (!requestIsCurrent()) return;
     try {
       const items = await api.invoices.getItems(invoice.id);
+      if (!requestIsCurrent()) return;
       setViewingInvoice({ ...invoice, items });
       // Fetch timeline
       try {
         const timeline = await api.activityLogs.list({ entity_id: invoice.id, limit: 20 });
+        if (!requestIsCurrent()) return;
         setInvoiceTimeline(timeline?.logs || []);
-      } catch { setInvoiceTimeline([]); }
+      } catch {
+        if (requestIsCurrent()) setInvoiceTimeline([]);
+      }
     } catch {
-      showToast("Could not load invoice details.", 'error');
+      if (requestIsCurrent()) showToast("Could not load invoice details.", 'error');
     }
   };
 
@@ -301,6 +335,17 @@ export const OrdersView = () => {
     return Math.floor(diff / (1000 * 60 * 60 * 24));
   };
 
+  if (showSettlements) return (
+    <div className="h-full min-w-0 overflow-auto bg-tea-bg pb-nav">
+      <div className="sticky top-0 z-sticky border-b border-tea-border bg-tea-bg/90 px-4 py-2 backdrop-blur-md md:px-6">
+        <div className="mx-auto flex min-h-[44px] w-full max-w-5xl items-center">
+          <button type="button" onClick={() => setShowSettlements(false)} className="tap-target text-ui-12 font-medium text-tea-text-sec hover:text-tea-text active:scale-[0.98]">Back to orders</button>
+        </div>
+      </div>
+      <SettlementLedger />
+    </div>
+  );
+
   if (isLoading) return <div className="p-12 text-center text-tea-text-sec font-serif italic"><Loader2 className="animate-spin inline" /></div>;
 
   return (
@@ -347,6 +392,14 @@ export const OrdersView = () => {
               Revenue: ${summary.filledTotal.toFixed(0)}
             </span>
           )}
+
+          <button
+            type="button"
+            onClick={() => setShowSettlements(true)}
+            className="tap-target shrink-0 px-2 text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text active:scale-[0.98]"
+          >
+            Settlements
+          </button>
 
           <button
             onClick={() => setShowQuickInvoice(true)}
@@ -742,6 +795,8 @@ export const OrdersView = () => {
 	                        <span className={`font-medium ${viewingInvoice.inventory_deducted ? 'text-tea-text' : 'text-tea-gold'}`}>{stockLabel(viewingInvoice)}</span>
 	                    </div>
                 </div>
+
+                {activeAccountId && <OrderAttribution invoiceId={viewingInvoice.id} accountId={activeAccountId} />}
 
                 {/* Source Event */}
                 {viewingInvoice.source_event_title && (

@@ -8,6 +8,7 @@ class FulfillmentDb {
   stock = 100;
   lineQuantity = 40;
   lineReads = 0;
+  otherHeldStock = 0;
   ledgers = 0;
   audits = 0;
   failBatch = false;
@@ -45,8 +46,15 @@ class FulfillmentDb {
       },
       run: async () => {
         if (normalized.includes('fulfillment_claim_token = ?') && !normalized.startsWith('update invoices set fulfillment_claim_token = ?') && !values.includes(this.invoice.fulfillment_claim_token)) return { success: true, meta: { changes: 0 }, results: [] };
-        if (normalized.startsWith('update products set stock_grams = stock_grams - ?')) { this.stock -= Number(values[0]); return { success: true, results: [{ stock_grams: this.stock }], meta: { changes: 1 } }; }
         if (normalized.startsWith('update products set stock_grams = stock_grams + ?')) { this.stock += Number(values[0]); return { success: true, meta: { changes: 1 } }; }
+        if (normalized.startsWith('update products set stock_grams = case')) {
+          const requested = Number(values[3]);
+          this.stock = this.stock - this.otherHeldStock >= requested
+            ? this.stock - Number(values[4])
+            : -1;
+          if (this.stock < 0) throw new Error('stock_grams cannot be negative');
+          return { success: true, results: [{ stock_grams: this.stock }], meta: { changes: 1 } };
+        }
         if (normalized.startsWith('insert into stock_ledger')) { this.ledgers += 1; return { success: true, meta: { changes: 1 } }; }
         if (normalized.startsWith('insert into activity_logs')) { this.audits += 1; return { success: true, meta: { changes: 1 } }; }
         if (normalized.startsWith("update invoices set status = 'filled'")) {
