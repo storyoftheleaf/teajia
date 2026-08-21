@@ -228,6 +228,36 @@ export interface AdminEventPostSession extends Record<string, unknown> {
   shared_tasting_notes: string[];
 }
 
+export type InquiryStatus = 'new' | 'seen' | 'replied' | 'closed';
+
+export interface InquiryItem {
+  id?: string;
+  name: string;
+  category?: string;
+  storeSlug?: string;
+  quantityGrams?: number;
+  qty?: number;
+  pricePerGram?: number;
+  totalPrice?: number;
+}
+
+export interface InquiryRecord {
+  id: string;
+  account_id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  items: InquiryItem[];
+  total_usd: number;
+  currency: string;
+  message: string | null;
+  source: string;
+  ref_number: string | null;
+  status: InquiryStatus;
+  created_at: string;
+  updated_at?: string | null;
+}
+
 export interface AuditLogEntry {
   id: string;
   action: string;
@@ -2717,22 +2747,17 @@ export const api = {
       return res.json();
     },
 
-    list: async (status?: string) => {
+    list: async (status?: InquiryStatus): Promise<{ inquiries: InquiryRecord[] }> => {
       const url = new URL(`${API_URL}/api/admin/inquiries`);
       if (status) url.searchParams.set('status', status);
-      const res = await fetchWithTimeout(url.toString(), {
-      });
-      if (!res.ok) return { inquiries: [] };
-      return res.json();
+      return authedFetch(url.toString());
     },
 
-    updateStatus: async (id: string, status: 'new' | 'seen' | 'replied' | 'closed') => {
-      const res = await fetchWithTimeout(`${API_URL}/api/admin/inquiries/${encodeURIComponent(id)}/status`, {
+    updateStatus: async (id: string, status: InquiryStatus): Promise<{ success: true }> => {
+      return authedFetch(`${API_URL}/api/admin/inquiries/${encodeURIComponent(id)}/status`, {
         method: 'PATCH',
         body: JSON.stringify({ status }),
       });
-      if (!res.ok) return null;
-      return res.json();
     },
   },
 

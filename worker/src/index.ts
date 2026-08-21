@@ -11491,7 +11491,7 @@ const handleCreateInquiry: Handler = async (request, env) => {
 };
 
 const handleGetInquiries: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'sell');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
   const url = new URL(request.url);
@@ -11527,7 +11527,7 @@ const handleGetInquiryByRef: Handler = async (_request, env, params) => {
 };
 
 const handleUpdateInquiryStatus: Handler = async (request, env, params) => {
-  const ctx = await requireBundle(request, env, 'gather');
+  const ctx = await requireBundle(request, env, 'sell');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
   const body = await request.json() as { status?: string };
