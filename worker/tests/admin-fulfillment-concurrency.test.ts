@@ -4,7 +4,7 @@ import worker from '../src/index';
 const JWT_SECRET = 'admin-fulfill-secret';
 
 class FulfillmentDb {
-  invoice = { id: 'invoice-a', account_id: 'acct-a', invoice_number: 'A-1', inventory_deducted: 0, fulfillment_claim_token: null as string | null, fulfillment_claimed_at: null as string | null, fulfilled_at: null as string | null };
+  invoice = { id: 'invoice-a', account_id: 'acct-a', invoice_number: 'A-1', status: 'Pending', inventory_deducted: 0, fulfillment_claim_token: null as string | null, fulfillment_claimed_at: null as string | null, fulfilled_at: null as string | null };
   stock = 100;
   otherHeldStock = 0;
   ledgers = 0;
@@ -23,7 +23,13 @@ class FulfillmentDb {
         if (normalized.startsWith('update invoices set fulfillment_claim_token = ?')) {
           const stale = this.invoice.fulfillment_claim_token != null && (this.invoice.fulfillment_claimed_at == null || new Date(this.invoice.fulfillment_claimed_at).getTime() < Date.now() - 5 * 60_000);
           if (this.invoice.inventory_deducted || (this.invoice.fulfillment_claim_token && !stale)) return null;
+          // Mirrors the real claim's status clause. Without modelling it here a
+          // test could pass while production still let a voided invoice through.
+          if (normalized.includes("status in ('draft', 'pending')") && !['Draft', 'Pending'].includes(this.invoice.status)) return null;
           this.invoice.fulfillment_claim_token = values[0]; this.invoice.fulfillment_claimed_at = new Date().toISOString(); return { id: this.invoice.id };
+        }
+        if (normalized.startsWith('select status, inventory_deducted from invoices')) {
+          return { status: this.invoice.status, inventory_deducted: this.invoice.inventory_deducted };
         }
         if (normalized.includes('select * from invoices where id = ?')) return { ...this.invoice };
         if (normalized.includes('from products where id = ?')) return { id: 'product-a', stock_grams: this.stock, low_stock_threshold: 0, product_name: 'Tea', status: 'Active', source_compass_entry_id: null };
@@ -96,5 +102,47 @@ describe('admin fulfillment claim', () => {
     const db = new FulfillmentDb(); db.stealLeaseBeforeBatch = true;
     expect((await fulfill(db)).status).toBe(409);
     expect(db.stock).toBe(60); expect(db.ledgers).toBe(1); expect(db.audits).toBe(1); expect(db.invoice.fulfilled_at).toBe('winner-time');
+  });
+
+  // Voiding restores the stock and sets inventory_deducted back to 0, which is
+  // right. It also used to leave the invoice satisfying the fulfilment claim,
+  // so a void could be undone by fulfilling again — deducting the same stock a
+  // second time and marking the invoice Filled.
+  it('refuses to fulfil a voided invoice, so a void cannot be reversed', async () => {
+    const db = new FulfillmentDb();
+    db.invoice.status = 'Void';
+
+    const response = await fulfill(db);
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ code: 'invoice_not_fulfillable', status: 'Void' });
+    expect(db.stock).toBe(100);              // no second deduction
+    expect(db.ledgers).toBe(0);
+    expect(db.invoice.status).toBe('Void');  // the void still stands
+    expect(db.invoice.fulfilled_at).toBeNull();
+  });
+
+  it('refuses to fulfil an invoice that is already Filled', async () => {
+    const db = new FulfillmentDb();
+    db.invoice.status = 'Filled';
+
+    const response = await fulfill(db);
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ code: 'invoice_not_fulfillable', status: 'Filled' });
+    expect(db.stock).toBe(100);
+  });
+
+  it('says which of the two reasons it refused for', async () => {
+    // A live lease is "try again"; a wrong status is "this will never work".
+    // Answering both with the same sentence made the second look transient.
+    const db = new FulfillmentDb();
+    db.invoice.fulfillment_claim_token = 'someone-else';
+    db.invoice.fulfillment_claimed_at = new Date().toISOString();
+
+    const response = await fulfill(db);
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ error: 'Invoice fulfillment is already in progress' });
   });
 });

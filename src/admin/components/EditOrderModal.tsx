@@ -19,6 +19,10 @@ interface LineItem {
   given_name: string;
   quantity: number;
   price_at_sale: number;
+  // A line item with no catalogue product carries its name here and nowhere
+  // else. Loading and saving must both carry it, or editing an order silently
+  // erases the name of every custom line on it.
+  custom_name?: string | null;
 }
 
 export const EditOrderModal: React.FC<EditOrderModalProps> = ({
@@ -62,6 +66,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
         given_name: item.given_name || '',
         quantity: Number(item.quantity) || 0,
         price_at_sale: Number(item.price_at_sale) || 0,
+        custom_name: item.custom_name ?? null,
       })));
       setFetching(false);
     }).catch(() => {
@@ -110,6 +115,10 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
           product_id: item.product_id,
           quantity: item.quantity,
           price_at_sale: item.price_at_sale,
+          // Saving replaces every line, so a custom line's name has to go back
+          // with it. Omitting this wrote NULL over the name of any line that
+          // was not a catalogue product.
+          ...(item.product_id ? {} : { custom_name: item.custom_name ?? undefined }),
         })),
         shipping_cost_usd: shippingCost,
         customer_name: customerName,
@@ -238,7 +247,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                   {items.map((item, index) => (
                     <div key={index} className="bg-tea-bg border border-tea-border rounded-md p-3">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-ui-14 text-tea-text truncate">{item.given_name || item.product_name}</span>
+                        <span className="text-ui-14 text-tea-text truncate">{item.given_name || item.product_name || item.custom_name}</span>
                         <button
                           onClick={() => removeItem(index)}
                           className="text-tea-text-sec hover:text-tea-text transition-colors p-0.5"

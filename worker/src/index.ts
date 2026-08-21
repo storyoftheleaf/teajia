@@ -4100,13 +4100,34 @@ const handleFulfillInvoice: Handler = async (request, env) => {
   }
 
   const fulfillmentClaim = crypto.randomUUID();
+  // The status clause is load-bearing, not decoration. Voiding sets
+  // inventory_deducted back to 0 (correctly — the stock went back), so without
+  // it a voided invoice still satisfies this claim: fulfilling it again
+  // deducted the same stock a second time and flipped the invoice back to
+  // Filled, quietly undoing the void and leaving stock short.
   const claimed = await env.DB.prepare(
     `UPDATE invoices SET fulfillment_claim_token = ?, fulfillment_claimed_at = datetime('now')
      WHERE id = ? AND account_id = ? AND inventory_deducted = 0
+       AND status IN ('Draft', 'Pending')
        AND (fulfillment_claim_token IS NULL OR fulfillment_claimed_at IS NULL OR fulfillment_claimed_at < datetime('now', '-5 minutes'))
      RETURNING id`
   ).bind(fulfillmentClaim, invoice_id, accountId).first();
-  if (!claimed) return json({ error: 'Invoice fulfillment is already in progress' }, 409);
+  if (!claimed) {
+    // Separate the two reasons — "someone else is mid-fulfil, try again" and
+    // "this invoice is not in a state that can be fulfilled" are different
+    // answers and the caller should not have to guess which it got.
+    const current = await env.DB.prepare(
+      'SELECT status, inventory_deducted FROM invoices WHERE id = ? AND account_id = ?'
+    ).bind(invoice_id, accountId).first() as any;
+    if (current && !['Draft', 'Pending'].includes(String(current.status))) {
+      return json({
+        error: `Invoice is ${current.status} and cannot be fulfilled`,
+        code: 'invoice_not_fulfillable',
+        status: current.status,
+      }, 409);
+    }
+    return json({ error: 'Invoice fulfillment is already in progress' }, 409);
+  }
   const releaseClaim = () => env.DB.prepare(
     'UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?'
   ).bind(invoice_id, accountId, fulfillmentClaim).run();
@@ -4514,6 +4535,21 @@ const handleVoidInvoice: Handler = async (request, env) => {
   if (!invoice) return json({ error: 'Invoice not found' }, 404);
   if (invoice.status === 'Void') return json({ error: 'Invoice is already voided' }, 400);
 
+  // Claim the invoice before restoring anything. The read above and the batch
+  // below are not one operation, so two voids arriving together both passed the
+  // already-voided check and both restored the same stock — the shop ended up
+  // with more grams than it ever had. Reuse the fulfilment lease: voiding and
+  // fulfilling contend for exactly the same invoice, so they must not hold
+  // separate locks.
+  const voidClaim = crypto.randomUUID();
+  const voidClaimed = await env.DB.prepare(
+    `UPDATE invoices SET fulfillment_claim_token = ?, fulfillment_claimed_at = datetime('now')
+     WHERE id = ? AND account_id = ? AND status != 'Void'
+       AND (fulfillment_claim_token IS NULL OR fulfillment_claimed_at IS NULL OR fulfillment_claimed_at < datetime('now', '-5 minutes'))
+     RETURNING id`
+  ).bind(voidClaim, invoice_id, accountId).first();
+  if (!voidClaimed) return json({ error: 'This invoice is being changed elsewhere. Try again in a moment.' }, 409);
+
   const stmts: D1PreparedStatement[] = [];
 
   if (invoice.inventory_deducted) {
@@ -4564,8 +4600,14 @@ const handleVoidInvoice: Handler = async (request, env) => {
   stmts.push(...buildSettlementReversalStatements(env, { accountId, invoiceId: invoice_id }));
 
   stmts.push(
-    env.DB.prepare("UPDATE invoices SET status = 'Void', inventory_deducted = 0 WHERE id = ? AND account_id = ?")
-      .bind(invoice_id, accountId)
+    // Still holding the claim taken above, so this cannot be the second of two
+    // concurrent voids. Releasing it in the same batch means the invoice is
+    // never left leased after a successful void.
+    env.DB.prepare(
+      `UPDATE invoices SET status = 'Void', inventory_deducted = 0,
+         fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL
+       WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?`
+    ).bind(invoice_id, accountId, voidClaim)
   );
   stmts.push(buildActivityLog(
     env, 'INVOICE_VOIDED',
@@ -4577,6 +4619,11 @@ const handleVoidInvoice: Handler = async (request, env) => {
     await env.DB.batch(stmts);
   } catch (err: any) {
     console.error('handleVoidInvoice batch failed:', err);
+    // The batch rolled back, so the invoice is unchanged — but the claim was
+    // taken outside it and would otherwise pin the invoice for five minutes.
+    await env.DB.prepare(
+      'UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?'
+    ).bind(invoice_id, accountId, voidClaim).run().catch(() => {});
     return json({ error: 'Void failed — no changes were committed' }, 500);
   }
   return json({ success: true });
