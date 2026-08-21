@@ -15,3 +15,6 @@ playwright-report/
 
 # Temporary third-party web research captures
 .firecrawl/
+
+# Agent critique scratch (never commit)
+.impeccable/
