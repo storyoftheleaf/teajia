@@ -110,10 +110,52 @@ hashed tracking token on this branch, whose migration must be renumbered from
 127 to 130. Landing it breaks existing `/order/TJ-...` links, which is a
 customer-facing decision rather than a purely technical one.
 
-## Where this stands
+## Where this stands — closed out 2026-08-22
 
-Three of the sixteen fixes are re-landed on main. Thirteen remain, listed above.
-Take each as intent and rebuild against current main — do not merge the branch.
+The branch is retired. Every one of the sixteen fixes was either re-landed on
+main by hand, or found to be already covered by work main had done since.
 
-When the rest are through, delete the branch and its worktree. Its tip is
-`19c2107a`.
+**Re-landed:** the admin inbox signs its own requests; the public order lookup
+takes an unguessable token and returns nothing identifying; a public cart is
+bound to one store; checkout contacts stay with their cart; a retried send is
+bound to its store and recognised as the same order rather than filed twice; the
+inbox is isolated per account and fenced during an account switch; customer order
+amounts are converted between currencies.
+
+**Already covered by main:** split-request validation, and the ownership check on
+split line items — main's version is stricter than the branch's. Per-line invoice
+validation is largely covered by the Tea Master authorisation path.
+
+**Superseded:** the legacy-edit fix patched a bug inside the branch's own helper,
+which main never adopted.
+
+**Two live bugs found while assessing the rest, both fixed and deployed:**
+
+1. A voided invoice could be fulfilled again. Voiding resets `inventory_deducted`
+   to 0 — correctly, the stock went back — but the fulfilment claim tested only
+   that flag, so a voided invoice still qualified. Fulfilling it deducted the same
+   stock a second time and marked it Filled, reversing the void silently. Present
+   on both the REST route and the MCP tool; both fixed, both now require
+   `status IN ('Draft','Pending')`. Voiding also took no lease, so two concurrent
+   voids both restored the same stock; it now shares fulfilment's lease.
+2. The Edit Order modal never carried `custom_name`, on load or on save. Since
+   saving replaces every line, editing an order wrote NULL over the name of any
+   line item that was not a catalogue product.
+
+**Still open** — recorded as their own to-do items, verified against main rather
+than inherited from this branch's framing:
+
+- Invoice update, update-items, split and link all read-then-write with nothing
+  held in between. Concurrent edits race and the loser's work vanishes silently.
+- `customer_id` is never checked against the account on any invoice write, and
+  there is no constraint behind it. Alongside: status and payment status take any
+  string on update, shipping cost is unchecked, a custom line can have no name.
+
+**The branch itself:** deleted, local and remote. Its final tip — including the
+34 files that had never been committed in its worktree — is preserved as the tag
+`retired/sales-system-rebuild` (`6b069211`), pushed to the remote. Recover
+anything from it with `git show retired/sales-system-rebuild:<path>`.
+
+The invoice tests the branch carried are NOT free coverage — they were written
+against helpers main never adopted. Their value is as a checklist of the race and
+validation cases worth covering when the open items above get done.
