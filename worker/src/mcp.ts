@@ -3640,7 +3640,7 @@ const TOOL_DEFS = [
   },
   {
     name: 'set_tea_visibility',
-    scope: 'catalog:write',
+    scope: 'stock:write',
     description: 'Show or hide a tea in the public shop listing WITHOUT archiving it. The product stays Active — this only flips shown_in_shop, so it lists in the shop or not while every record remains intact. Two-step preview/confirm.',
     inputSchema: {
       type: 'object',
