@@ -2595,8 +2595,8 @@ async function toolSetTeaVisibility(env: Env, auth: McpAuth, args: any) {
   if (!productId) throw new Error('product_id is required');
 
   const product = await env.DB.prepare(
-    'SELECT id, given_name, product_name, status, shown_in_shop FROM products WHERE id = ? AND account_id = ?'
-  ).bind(productId, auth.accountId).first() as
+    'SELECT id, given_name, product_name, status, shown_in_shop FROM products WHERE account_id = ? AND (id = ? OR id LIKE ?)'
+  ).bind(auth.accountId, productId, `${productId}-%`).first() as
     { id: string; given_name: string | null; product_name: string; status: string | null; shown_in_shop: number | null } | null;
   if (!product) return { error: 'not_found' };
 
@@ -2634,13 +2634,16 @@ async function commitSetTeaVisibility(
   productName: string,
 ) {
   const shown = m.shownInShop ? 1 : 0;
+  const idOrPrefix = m.productId;
+  const idLike = `${idOrPrefix}-%`;
   await env.DB.batch([
     env.DB.prepare(
-      "UPDATE products SET shown_in_shop = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?"
-    ).bind(shown, m.productId, m.accountId),
+      "UPDATE products SET shown_in_shop = ?, updated_at = datetime('now') WHERE account_id = ? AND (id = ? OR id LIKE ?)"
+    ).bind(shown, m.accountId, idOrPrefix, idLike),
     env.DB.prepare(
-      "UPDATE product_listings SET shown_in_shop = ?, updated_at = datetime('now') WHERE id = ?"
-    ).bind(shown, `list_${m.productId}`),
+      `UPDATE product_listings SET shown_in_shop = ?, updated_at = datetime('now')
+       WHERE id IN (SELECT 'list_' || id FROM products WHERE account_id = ? AND (id = ? OR id LIKE ?))`
+    ).bind(shown, m.accountId, idOrPrefix, idLike),
     env.DB.prepare(
       `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
        VALUES (?, 'SHOP_VISIBILITY_SET_MCP', ?, ?, 'product', ?, ?)`
