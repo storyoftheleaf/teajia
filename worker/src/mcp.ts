@@ -446,6 +446,7 @@ type PendingMutation =
   | { kind: 'link_vendor'; accountId: string; userEmail: string; customerId: string; productId: string; note: string | null }
   | { kind: 'unlink_vendor'; accountId: string; userEmail: string; customerId: string; productId: string }
   | { kind: 'set_archive_status'; accountId: string; userEmail: string; productId: string; archived: boolean; reason: string | null }
+  | { kind: 'set_tea_visibility'; accountId: string; userEmail: string; productId: string; shownInShop: boolean }
   | { kind: 'fulfill_invoice'; accountId: string; userEmail: string; actorUserId: string; invoiceId: string }
   | { kind: 'update_account_settings'; accountId: string; userEmail: string; fields: Record<string, string | null> }
   | { kind: 'update_exchange_rate'; accountId: string; userEmail: string; currency: string; rateVsUsd: number; previousRate: number }
@@ -2581,6 +2582,83 @@ async function commitSetArchiveStatus(
   };
 }
 
+// ── tool: set_tea_visibility (preview / confirm) ──
+// Toggles whether a tea is listed in the public shop (shown_in_shop) WITHOUT
+// changing its status. The product stays Active/archived-none — this only
+// pulls it off (or puts it back on) the storefront listing. Owner-tier only,
+// mirroring the REST PUT /api/products/:id/shown gate.
+async function toolSetTeaVisibility(env: Env, auth: McpAuth, args: any) {
+  const productId = String(args?.product_id || '').trim();
+  const shownInShop = Boolean(args?.shown_in_shop);
+  const confirm = args?.confirm ? String(args.confirm) : null;
+
+  if (!productId) throw new Error('product_id is required');
+
+  const product = await env.DB.prepare(
+    'SELECT id, given_name, product_name, status, shown_in_shop FROM products WHERE id = ? AND account_id = ?'
+  ).bind(productId, auth.accountId).first() as
+    { id: string; given_name: string | null; product_name: string; status: string | null; shown_in_shop: number | null } | null;
+  if (!product) return { error: 'not_found' };
+
+  const alreadyInTarget = product.shown_in_shop === (shownInShop ? 1 : 0);
+
+  if (!confirm) {
+    const token = await issueConfirmationToken(env, {
+      kind: 'set_tea_visibility', accountId: auth.accountId, userEmail: auth.userEmail,
+      productId, shownInShop,
+    }, auth.tokenId);
+    return {
+      preview: {
+        action: 'set_tea_visibility',
+        product: { id: productId, name: product.given_name || product.product_name },
+        current_shown_in_shop: product.shown_in_shop === 1,
+        requested_shown_in_shop: shownInShop,
+        already_in_target_state: alreadyInTarget,
+        note: 'status is NOT changed — the product remains Active/archived-none; this only flips its shop listing visibility.',
+      },
+      confirmation_token: token,
+      expires_in_seconds: PENDING_TTL_MS / 1000,
+    };
+  }
+
+  const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
+  if (!pending || pending.kind !== 'set_tea_visibility' || pending.productId !== productId) {
+    return { error: 'invalid_or_expired_confirmation_token' };
+  }
+  return commitSetTeaVisibility(env, pending, product.given_name || product.product_name);
+}
+
+async function commitSetTeaVisibility(
+  env: Env,
+  m: Extract<PendingMutation, { kind: 'set_tea_visibility' }>,
+  productName: string,
+) {
+  const shown = m.shownInShop ? 1 : 0;
+  await env.DB.batch([
+    env.DB.prepare(
+      "UPDATE products SET shown_in_shop = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?"
+    ).bind(shown, m.productId, m.accountId),
+    env.DB.prepare(
+      "UPDATE product_listings SET shown_in_shop = ?, updated_at = datetime('now') WHERE id = ?"
+    ).bind(shown, `list_${m.productId}`),
+    env.DB.prepare(
+      `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+       VALUES (?, 'SHOP_VISIBILITY_SET_MCP', ?, ?, 'product', ?, ?)`
+    ).bind(
+      crypto.randomUUID(),
+      `Product "${productName}" ${m.shownInShop ? 'shown in' : 'hidden from'} shop via MCP (status unchanged)`,
+      m.userEmail, m.productId, m.accountId,
+    ),
+  ]);
+  return {
+    committed: true,
+    action: 'set_tea_visibility',
+    product_id: m.productId,
+    product_name: productName,
+    shown_in_shop: m.shownInShop,
+  };
+}
+
 // ── tool: fulfill_invoice (preview / confirm) ──
 // Deducts stock for all unfulfilled line items on a Draft invoice. Refuses
 // if any line would underflow stock (negative balance).
@@ -3561,6 +3639,20 @@ const TOOL_DEFS = [
     },
   },
   {
+    name: 'set_tea_visibility',
+    scope: 'catalog:write',
+    description: 'Show or hide a tea in the public shop listing WITHOUT archiving it. The product stays Active — this only flips shown_in_shop, so it lists in the shop or not while every record remains intact. Two-step preview/confirm.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        product_id: { type: 'string', description: 'Product id from search_tea/get_tea.' },
+        shown_in_shop: { type: 'boolean', description: 'true to list in the shop; false to hide from the shop (status unchanged).' },
+        confirm: { type: 'string', description: 'Confirmation token from preview response.' },
+      },
+      required: ['product_id', 'shown_in_shop'],
+    },
+  },
+  {
     name: 'fulfill_invoice',
     scope: 'sales:write',
     description: 'Deduct stock for all line items on an existing Draft invoice and mark it Filled. Refuses with a clear error if any line would result in negative stock — fix stock first. Two-step preview/confirm.',
@@ -3653,7 +3745,7 @@ const IDEMPOTENT_TOOLS = new Set([
   'tag_customer', 'untag_customer', 'link_vendor', 'unlink_vendor',
   'set_archive_status', 'set_low_stock_threshold', 'mark_invoice_paid',
   'update_customer', 'update_invoice', 'update_tea_pricing',
-  'update_account_settings', 'update_exchange_rate',
+  'update_account_settings', 'update_exchange_rate', 'set_tea_visibility',
 ]);
 
 function annotationsFor(name: string) {
@@ -3690,6 +3782,7 @@ const AUDITED_TOOLS = new Set([
   // Wave 3
   'tag_customer', 'untag_customer', 'link_vendor', 'unlink_vendor',
   'set_archive_status', 'fulfill_invoice', 'update_account_settings', 'update_exchange_rate',
+  'set_tea_visibility',
   // Ported tools
   'create_tea', 'mark_invoice_paid',
 ]);
@@ -3765,6 +3858,7 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
     case 'link_vendor': result = mcpContent(await toolLinkVendor(env, auth, args)); break;
     case 'unlink_vendor': result = mcpContent(await toolUnlinkVendor(env, auth, args)); break;
     case 'set_archive_status': result = mcpContent(await toolSetArchiveStatus(env, auth, args)); break;
+    case 'set_tea_visibility': result = mcpContent(await toolSetTeaVisibility(env, auth, args)); break;
     case 'fulfill_invoice': result = mcpContent(await toolFulfillInvoice(env, auth, args)); break;
     case 'mark_invoice_paid': result = mcpContent(await toolMarkInvoicePaid(env, auth, args)); break;
     case 'update_account_settings': result = mcpContent(await toolUpdateAccountSettings(env, auth, args)); break;
