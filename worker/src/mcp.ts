@@ -505,8 +505,8 @@ async function consumeConfirmationToken(env: Env, token: string, tokenId: string
 // a dependency, but the corpus per account is in the low thousands at most,
 // so a hand-rolled prefix/contains/word-overlap scorer is plenty for voice.
 
-function normalize(s: string | null | undefined): string {
-  return (s || '').toLowerCase().replace(/[^a-z0-9一-鿿\s]/g, ' ').replace(/\s+/g, ' ').trim();
+function normalize(s: string | number | null | undefined): string {
+  return String(s ?? '').toLowerCase().replace(/[^a-z0-9一-鿿\s]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 // Stock added via MCP (voice/agent) lands in the account's catch-all "Unsorted"
