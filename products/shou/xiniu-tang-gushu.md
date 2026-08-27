@@ -18,8 +18,22 @@ tastingNotes:
   - "long finish"
 ---
 
-Xiniu Tang (犀牛塘), meaning "Rhinoceros Pond," is a named micro-origin inside the greater Yiwu tea area of Xishuangbanna. Each of Yiwu's small places carries its own signature of soil, elevation, and microclimate.
+A shou pu-erh from Xiniu Tang, a named micro-origin inside the greater Yiwu tea area.
 
-Ancient-tree leaf from Xiniu Tang, wo dui fermented and pressed into cake.
+Xiniu Tang (犀牛塘) means "Rhinoceros Pond." Yiwu is not a single place but a constellation of small origins, and each carries its own signature of soil, elevation, and microclimate. Processing gushu material from a single Yiwu micro-origin as shou is a considered choice, treating a raw-tea region with a ripe-tea method.
 
-Water fully boiled, a small pot, short infusions. The session opens slowly and holds through many pours.
+## Terroir
+
+Xiniu Tang, within Yiwu township, Mengla county, Xishuangbanna, Yunnan. The plot sits inside Yiwu's ancient forest belt at tropical elevation. Named Yiwu micro-origins like this one are prized because each holds a distinct character shaped by very local conditions rather than the broader regional average.
+
+## Processing
+
+Ancient-tree leaf from the Xiniu Tang gardens, wo dui fermented and stone-pressed into 357-gram cake form. The fermentation transforms the raw material directly into a ripe tea, standing in for the years of natural aging that Yiwu sheng would otherwise require.
+
+## Mood
+
+slow opening
+
+## Experience
+
+Fully boiled water, a small pot, short infusions. The session opens slowly and holds through many pours, the kind of cake that rewards patience rather than a quick tasting. Refined for a shou, and clearly carrying the source it came from. A tea to sit with rather than sample.

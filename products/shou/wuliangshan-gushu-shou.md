@@ -18,8 +18,22 @@ tastingNotes:
   - "mellow"
 ---
 
-Wuliang Mountain (无量山) sits in Jingdong County, Pu'er City, held between the Wuliang and Ailao ranges. The mountain is a living record of tea's evolution — wild types, natural hybrids, and old cultivars still standing side by side in the gardens.
+A shou pu-erh pressed from ancient-tree leaf grown on Wuliang Mountain in Jingdong County.
 
-The Yi people have tended these trees for centuries. By the Qing dynasty the Wuliang gardens covered more than 100,000 亩. This cake is ancient-tree leaf from those gardens, wo dui fermented and pressed.
+Wuliang is one of Yunnan's living archives of tea. Wild types, natural hybrids, and old cultivars still stand side by side in the same gardens, a record of the plant's own evolution. Gushu material from this mountain carries the weight of that lineage.
 
-A quiet session tea. Water fully boiled, short pours, a small pot. It settles the room.
+## Terroir
+
+Wuliang Mountain, Jingdong County, Pu'er City, held between the Wuliang and Ailao ranges in central Yunnan. The Yi people have tended these trees for centuries, and by the Qing dynasty the gardens here covered more than 100,000 亩. High elevation, biodiverse forest, and deep-rooted old trees define the material.
+
+## Processing
+
+Ancient-tree leaf from the Wuliang gardens, wo dui fermented in the traditional shou method and stone-pressed into 357-gram cake form. The wet-pile fermentation shortens the years of aging that raw pu-erh would require, transforming the leaf directly into a settled, drinkable state.
+
+## Mood
+
+held quiet
+
+## Experience
+
+A session tea. Fully boiled water, short pours from a small pot. It does not demand attention and it does not release it. The character is grounded rather than showy, the kind of cup you reach for when a room needs settling. It holds its shape across many infusions, which is its own quiet virtue.
