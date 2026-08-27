@@ -155,7 +155,10 @@ async function mockInventoryApi(page: Page) {
     body: JSON.stringify({ id: 'acct-bali', name: 'Teajia Bali', slug: 'teajia-bali' }),
   }));
   await page.route('**/api/batches**', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) }));
-  for (const endpoint of ['user/favorites', 'tea-discovery', 'compass/entries', 'tasting-journal', 'notes', 'customers']) {
+  // Admin sample surfaces load alongside the ledger. Left unmocked they reach
+  // the real worker, come back 401, and the app clears the session, so every
+  // assertion below fails on a signed-out shell rather than on the ledger.
+  for (const endpoint of ['admin/samples', 'admin/sample-sets', 'user/favorites', 'tea-discovery', 'compass/entries', 'tasting-journal', 'notes', 'customers']) {
     await page.route(`**/api/${endpoint}**`, route => route.fulfill({
       status: 200,
       contentType: 'application/json',

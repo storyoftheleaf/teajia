@@ -828,6 +828,30 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     [renderCols, inventoryMobileColWidths],
   );
   const mobileTableStyle = unifiedLayout ? { minWidth: mobileTableMinWidth } : undefined;
+
+  // A lifecycle heading ("Published", "Ready, private", …) is a label for the
+  // section beneath it, not a row of data, so it must read the same at every
+  // horizontal scroll position. Two parts make that true: the bar itself is as
+  // wide as the ledger (so it never ends mid-row leaving a torn edge), and its
+  // contents are pinned to the ledger's left edge with position:sticky. Sticky
+  // needs a real pixel width, and the ledger is narrower than the viewport
+  // whenever the action rail is open, so the width is measured rather than
+  // assumed to be 100vw.
+  const hScrollRef = useRef<HTMLDivElement>(null);
+  const [hScrollClientWidth, setHScrollClientWidth] = useState(0);
+  useEffect(() => {
+    const el = hScrollRef.current;
+    if (!mobileHScroll || !el || typeof ResizeObserver === 'undefined') {
+      setHScrollClientWidth(0);
+      return;
+    }
+    const measure = () => setHScrollClientWidth(el.clientWidth);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [mobileHScroll]);
+
   const renderColEl = (col: ColDef) =>
     unifiedLayout
       ? <col key={col.key} style={{ width: mobileColPxWidth(col.key) }} />
@@ -1414,9 +1438,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         ? 'sticky left-0 z-[21] bg-tea-surface'
         : '';
       return (
+        // A header label wider than its fixed column used to spill past the
+        // table's own edge, making the header row measurably wider than the rows
+        // beneath it. Clipping keeps every horizontal band exactly one ledger wide.
         <th
           aria-sort={ariaSort}
-          className={`relative font-sans ${isMobile ? 'text-ui-11 tracking-caps' : 'text-ui-10 tracking-[0.12em]'} uppercase text-tea-text-dim font-medium px-3 py-1 border-b border-tea-border ${align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'} ${stickyCls}`}
+          className={`relative overflow-hidden font-sans ${isMobile ? 'text-ui-11 tracking-caps' : 'text-ui-10 tracking-[0.12em]'} uppercase text-tea-text-dim font-medium px-3 py-1 border-b border-tea-border ${align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'} ${stickyCls}`}
         >
           <button
             type="button"
@@ -1953,6 +1980,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               {mobileSearchExpanded ? (
                 <div className="relative flex flex-1 min-w-0 items-center gap-2">
                   <Search size={15} className="shrink-0 text-tea-text-sec" aria-hidden="true" />
+                  {/* iOS zooms the page in when a focused field is under 16px
+                      and never zooms back out, so the field is 16px on a phone
+                      and returns to the header's 12px mono from md up. */}
                   <input
                     ref={mobileSearchInputRef}
                     value={searchQuery}
@@ -1960,7 +1990,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     onKeyDown={(event) => { if (event.key === 'Escape' || event.key === 'Enter') { setMobileSearchExpanded(false); requestAnimationFrame(() => mobileSearchTriggerRef.current?.focus()); } }}
                     aria-label={inventoryCategory === 'tea' ? 'Search tea or source' : 'Search teaware'}
                     placeholder={inventoryCategory === 'tea' ? 'Search tea or source…' : 'Search teaware…'}
-                    className="min-w-0 flex-1 bg-transparent font-mono text-ui-12 not-italic text-tea-text outline-none placeholder:text-tea-text-dim"
+                    className="min-w-0 flex-1 bg-transparent font-mono text-ui-16 md:text-ui-12 not-italic text-tea-text outline-none placeholder:text-tea-text-dim"
                   />
                   <button type="button" onClick={() => { setMobileSearchExpanded(false); requestAnimationFrame(() => mobileSearchTriggerRef.current?.focus()); }} aria-label="Close inventory search" className="tap-target text-tea-text-sec hover:text-tea-text"><XIcon size={15} /></button>
                   {matchingVendorSuggestions.length > 0 && (
@@ -2529,6 +2559,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               so vertical scrolling remains with inventory-scroll and continues
               to the viewport bottom behind the floating bottom navigation. */}
           <div
+            ref={hScrollRef}
             data-testid={mobileHScroll ? 'inventory-horizontal-scroll' : undefined}
             className={mobileHScroll ? 'overflow-x-auto overscroll-x-none hide-scrollbar-always' : ''}
           >
@@ -2594,13 +2625,23 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <button
                       onClick={() => toggleCollapsedGroup(groupKey)}
                       aria-expanded={!isCollapsed}
-                      className="w-full flex items-center gap-3 px-5 py-2.5 bg-tea-bg/60 border-b border-tea-border hover:bg-tea-accent-sub transition-colors text-left"
+                      style={mobileHScroll ? { minWidth: mobileTableMinWidth } : undefined}
+                      className="block w-full bg-tea-bg/60 border-b border-tea-border hover:bg-tea-accent-sub transition-colors text-left"
                     >
-                      {isCollapsed ? <ChevronRight size={14} className="text-tea-text-sec" /> : <ChevronDown size={14} className="text-tea-text-sec" />}
-                      <span className="font-display text-ui-15 text-tea-text">{groupLabel}</span>
-                      <span className="label-caps text-tea-text-dim">{items.length} items</span>
-                      <span className="font-serif text-ui-13 text-tea-text-sec tabular-nums ml-auto">{totalStock}{inventoryCategory === 'teaware' ? ' units' : 'g'}</span>
-                      <span className="font-serif text-ui-13 text-tea-text-sec tabular-nums">${fmtNum(totalRetail)}</span>
+                      {/* The bar runs the ledger's full width; this inner band
+                          is one ledger-width wide and pinned to the left, so
+                          the stage name and its totals hold their places while
+                          the columns swipe underneath. */}
+                      <span
+                        className={`flex items-center gap-3 px-5 py-2.5 ${mobileHScroll && hScrollClientWidth ? 'sticky left-0' : ''}`}
+                        style={mobileHScroll && hScrollClientWidth ? { width: hScrollClientWidth } : undefined}
+                      >
+                        {isCollapsed ? <ChevronRight size={14} className="shrink-0 text-tea-text-sec" /> : <ChevronDown size={14} className="shrink-0 text-tea-text-sec" />}
+                        <span className="font-display text-ui-15 text-tea-text">{groupLabel}</span>
+                        <span className="label-caps text-tea-text-dim">{items.length} items</span>
+                        <span className="font-serif text-ui-13 text-tea-text-sec tabular-nums ml-auto">{totalStock}{inventoryCategory === 'teaware' ? ' units' : 'g'}</span>
+                        <span className="font-serif text-ui-13 text-tea-text-sec tabular-nums">${fmtNum(totalRetail)}</span>
+                      </span>
                     </button>
                     {!isCollapsed && (
                       <table className="w-full table-fixed border-collapse inv-tight" style={mobileTableStyle}>
