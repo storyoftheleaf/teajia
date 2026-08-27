@@ -24402,6 +24402,61 @@ function resolveAllowedOrigin(origin: string): string | null {
   return null;
 }
 
+// ── Live exchange-rate sync (scheduled) ──
+// Map a live FX feed's ISO codes to the account's exchange_rates currency
+// display keys. The table uses 'Yuan' (CNY) and 'NT' (TWD) instead of ISO.
+const FX_FEED_CURRENCY_MAP: Record<string, string> = {
+  CNY: 'Yuan',
+  TWD: 'NT',
+  IDR: 'IDR',
+  MYR: 'MYR',
+  JPY: 'JPY',
+  AUD: 'AUD',
+  USD: 'USD',
+};
+
+// Refresh live rates from a free no-key feed (open.er-api.com), at most once
+// per 24h (gated on the USD row's last_updated). Stale rows are left untouched
+// on offline ticks so pricing never zeroes. Fails gently.
+async function syncLiveExchangeRates(env: Env): Promise<boolean> {
+  try {
+    const usdRow = await env.DB.prepare(
+      "SELECT last_updated FROM exchange_rates WHERE currency = 'USD'"
+    ).first() as { last_updated: string | null } | null;
+    if (usdRow?.last_updated) {
+      const last = new Date(usdRow.last_updated + 'Z').getTime();
+      if (Date.now() - last < 24 * 3600 * 1000) return false; // still fresh
+    }
+
+    const resp = await fetch('https://open.er-api.com/v6/latest/USD', {
+      headers: { 'User-Agent': 'teajia-worker/1.0' },
+    });
+    if (!resp.ok) return false;
+    const body: any = await resp.json();
+    if (body?.result !== 'success' || !body?.rates) return false;
+
+    const stmts: D1PreparedStatement[] = [];
+    for (const [feedCode, rateToUsd] of Object.entries(body.rates as Record<string, number>)) {
+      const key = FX_FEED_CURRENCY_MAP[feedCode];
+      if (!key || !Number.isFinite(rateToUsd) || rateToUsd <= 0) continue;
+      stmts.push(
+        env.DB.prepare(
+          `INSERT INTO exchange_rates (currency, rate_to_usd, last_updated)
+           VALUES (?, ?, datetime('now'))
+           ON CONFLICT(currency) DO UPDATE SET rate_to_usd = excluded.rate_to_usd, last_updated = datetime('now')`
+        ).bind(key, rateToUsd)
+      );
+    }
+    if (stmts.length > 0) {
+      await env.DB.batch(stmts);
+      console.info('Exchange rates refreshed', { count: stmts.length });
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -24605,5 +24660,9 @@ export default {
         await env.DB.batch(stmts);
       }
     }
+
+    // Refresh live exchange rates (folded into the existing hourly cron tick;
+    // internally gated to once per 24h so it isn't a separate job).
+    await syncLiveExchangeRates(env);
   },
 };

@@ -436,7 +436,7 @@ type PendingMutation =
   | { kind: 'record_sale'; accountId: string; userEmail: string; actorUserId: string; actorRole: string; lines: { productId: string; grams: number; pricePerGramUsd: number }[]; customerId: string | null; customerName: string; customerWhatsapp: string | null; notes: string | null }
   | { kind: 'create_customer'; accountId: string; userEmail: string; name: string; whatsapp: string | null; email: string | null; phone: string | null; notes: string | null; tags: string[] }
   | { kind: 'update_customer'; accountId: string; userEmail: string; customerId: string; fields: Record<string, string | null> }
-  | { kind: 'update_tea_pricing'; accountId: string; userEmail: string; productId: string; costAmount: number | null; costCurrency: string | null; retailPriceUsd: number | null; quantityPurchased: number | null; description: string | null; stockVerifiedAt: string | null }
+  | { kind: 'update_tea_pricing'; accountId: string; userEmail: string; productId: string; costAmount: number | null; costCurrency: string | null; retailPriceUsd: number | null; quantityPurchased: number | null; description: string | null; stockVerifiedAt: string | null; shippingRatePerKg: number | null }
   | { kind: 'set_low_stock_threshold'; accountId: string; userEmail: string; productId: string; thresholdGrams: number }
   | { kind: 'update_invoice'; accountId: string; userEmail: string; invoiceId: string; fields: Record<string, string | null> }
   | { kind: 'void_invoice'; accountId: string; userEmail: string; invoiceId: string; reason: string | null }
@@ -1795,8 +1795,9 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
   const hasNewQty = 'quantity_purchased' in (args || {});
   const hasNewDesc = typeof args?.description === 'string';
   const hasNewStockVerify = 'stock_verified' in (args || {});
-  if (!hasNewCost && !hasNewRetail && !hasNewQty && !hasNewDesc && !hasNewStockVerify) {
-    throw new Error('At least one of cost_amount, cost_currency, retail_price_usd, quantity_purchased, description, or stock_verified is required');
+  const hasNewShipping = 'shipping_rate_per_kg' in (args || {});
+  if (!hasNewCost && !hasNewRetail && !hasNewQty && !hasNewDesc && !hasNewStockVerify && !hasNewShipping) {
+    throw new Error('At least one of cost_amount, cost_currency, retail_price_usd, quantity_purchased, description, stock_verified, or shipping_rate_per_kg is required');
   }
 
   const costAmount: number | null = 'cost_amount' in (args || {}) ? Number(args.cost_amount) : null;
@@ -1804,6 +1805,7 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
   const retailPriceUsd: number | null = 'retail_price_usd' in (args || {}) ? Number(args.retail_price_usd) : null;
   const quantityPurchased: number | null = 'quantity_purchased' in (args || {}) ? Math.round(Number(args.quantity_purchased)) : null;
   const description: string | null = hasNewDesc ? String(args.description).slice(0, 2000) : null;
+  const shippingRatePerKg: number | null = hasNewShipping ? Number(args.shipping_rate_per_kg) : null;
   // stock_verified: true → mark verified now; false → clear it (needs verification); omit → leave unchanged
   const stockVerifiedAt: string | null = hasNewStockVerify
     ? (args.stock_verified ? new Date().toISOString() : null)
@@ -1812,6 +1814,7 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
   if (costAmount !== null && (!Number.isFinite(costAmount) || costAmount < 0)) throw new Error('cost_amount must be a non-negative number');
   if (retailPriceUsd !== null && (!Number.isFinite(retailPriceUsd) || retailPriceUsd < 0)) throw new Error('retail_price_usd must be a non-negative number');
   if (quantityPurchased !== null && (!Number.isFinite(quantityPurchased) || quantityPurchased < 0)) throw new Error('quantity_purchased must be a non-negative number');
+  if (shippingRatePerKg !== null && (!Number.isFinite(shippingRatePerKg) || shippingRatePerKg < 0)) throw new Error('shipping_rate_per_kg must be a non-negative number');
   // Distinguish "not supplied" (undefined) from "explicitly cleared" (null/'').
   const hasStockVerifyExplicit = hasNewStockVerify;
   const stockVerifyForPending: string | null | undefined = hasNewStockVerify || stockVerifiedAt !== undefined
@@ -1819,7 +1822,7 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
     : undefined;
 
   const product = await env.DB.prepare(
-    'SELECT id, given_name, product_name, cost_amount, cost_currency, fixed_retail_price_usd, quantity_purchased FROM products WHERE id = ? AND account_id = ?'
+    'SELECT id, given_name, product_name, cost_amount, cost_currency, fixed_retail_price_usd, quantity_purchased, shipping_rate_per_kg FROM products WHERE id = ? AND account_id = ?'
   ).bind(productId, auth.accountId).first() as Record<string, any> | null;
   if (!product) return { error: 'not_found' };
 
@@ -1854,7 +1857,7 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
 
     const token = await issueConfirmationToken(env, {
       kind: 'update_tea_pricing', accountId: auth.accountId, userEmail: auth.userEmail,
-      productId, costAmount, costCurrency, retailPriceUsd, quantityPurchased, description, stockVerifiedAt,
+      productId, costAmount, costCurrency, retailPriceUsd, quantityPurchased, description, stockVerifiedAt, shippingRatePerKg,
     }, auth.tokenId);
     return {
       preview: {
@@ -1865,6 +1868,7 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
           cost_currency: { old: product.cost_currency ?? null, new: costCurrency ?? product.cost_currency },
           retail_price_usd: { old: product.fixed_retail_price_usd ?? null, new: retailPriceUsd ?? product.fixed_retail_price_usd },
           quantity_purchased: { old: product.quantity_purchased ?? null, new: quantityPurchased ?? product.quantity_purchased },
+          shipping_rate_per_kg: { old: product.shipping_rate_per_kg ?? null, new: shippingRatePerKg ?? product.shipping_rate_per_kg ?? null },
           description: hasNewDesc ? { changed: true } : undefined,
           stock_verified: hasNewStockVerify ? { new: args.stock_verified } : undefined,
         },
@@ -1889,6 +1893,7 @@ async function commitUpdateTeaPricing(env: Env, m: Extract<PendingMutation, { ki
   if (m.costCurrency !== null) { cols.push('cost_currency'); vals.push(m.costCurrency); }
   if (m.retailPriceUsd !== null) { cols.push('fixed_retail_price_usd'); vals.push(m.retailPriceUsd); }
   if (m.quantityPurchased !== null) { cols.push('quantity_purchased'); vals.push(m.quantityPurchased); }
+  if (m.shippingRatePerKg !== null) { cols.push('shipping_rate_per_kg'); vals.push(m.shippingRatePerKg); }
   if (m.description !== null) { cols.push('description'); vals.push(m.description); }
   // Explicit stock-verification toggle: undefined = leave unchanged.
   if (m.stockVerifiedAt !== undefined) { cols.push('stock_verified_at'); vals.push(m.stockVerifiedAt); }
@@ -3544,6 +3549,7 @@ const TOOL_DEFS = [
         cost_currency: { type: 'string', description: 'Currency actually paid, e.g. CNY, MYR, NT, IDR, AUD, USD.' },
         retail_price_usd: { type: 'number', description: 'Fixed per-gram retail price in USD (optional; site auto-derives from cost if omitted).' },
         quantity_purchased: { type: 'number', description: 'Total grams purchased (e.g. 2490 for 7 x 357g cakes, 1000 for 1kg).' },
+        shipping_rate_per_kg: { type: 'number', description: 'Shipping freight per kg folded into COST basis (USD/kg). Default 10. Not a separate sales charge.' },
         description: { type: 'string', description: 'Customer-facing product description (origin/character) — never intake notes.' },
         stock_verified: { type: 'boolean', description: 'true = mark stock verified; false = set needs-verification flag. Omit to leave unchanged.' },
         confirm: { type: 'string', description: 'Confirmation token from preview response.' },

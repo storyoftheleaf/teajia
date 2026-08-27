@@ -18,24 +18,8 @@ tastingNotes:
   - "mellow"
 ---
 
-Mahei (麻黑) is among the earliest-famous villages in the Yiwu tea region, and its ancient-tree production is regarded as especially stable in both yield and quality — the whole village is wrapped in primeval forest.
+Mahei (麻黑) is a village inside the Yiwu tea region, ringed by ancient forest. Its old trees give a dependable, consistent leaf.
 
-This is Mahei's ancient-tree leaf finished as red tea (红茶), the large-leaf cultivar giving it a full, malty body that small-leaf reds cannot match.
+This is that leaf made as a red tea. The large-leaf Yunnan cultivar carries a body small-leaf reds rarely reach.
 
-## Terroir
-
-Mahei village, Yiwu township, Xishuangbanna, Yunnan, around 1,300 metres, surrounded by ancient tea forests. The village produces some of the most sought-after raw material in the pu-erh world, and it carries that character into its red tea.
-
-## Processing
-
-Full oxidation of Yiwu Mahei ancient-tree leaf. The large-leaf, old-tree base provides a bigger, more full-bodied foundation than small-leaf red teas, with a rich aroma and smooth texture.
-
-## Mood
-
-rich stillness
-
-## Experience
-
-Ancient-tree red tea is mellow and sweet with a lingering finish — rich and smooth, with the depth of old-tree material and the honeyed sweetness that marks Yi-Wu leaf.
-
-*Stock and tasting pending Adrian's verification.*
+Malt and honey. Smooth through the middle, a sweetness that settles on the tongue and stays. Porcelain or a gaiwan, water just off the boil, short infusions. The bowl holds warmth long after the session ends.
