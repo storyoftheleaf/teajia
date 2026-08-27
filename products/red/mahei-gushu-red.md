@@ -18,8 +18,8 @@ tastingNotes:
   - "mellow"
 ---
 
-Mahei (麻黑) is a village inside the Yiwu tea region, ringed by ancient forest. Its old trees give a dependable, consistent leaf.
+Mahei (麻黑) is a village inside the Yiwu tea region, ringed by ancient forest. The old trees here give a dependable, consistent leaf.
 
-This is that leaf made as a red tea. The large-leaf Yunnan cultivar carries a body small-leaf reds rarely reach.
+This is that leaf made as a red tea — large-leaf Yunnan cultivar, whole-leaf, oxidized in the traditional style.
 
-Malt and honey. Smooth through the middle, a sweetness that settles on the tongue and stays. Porcelain or a gaiwan, water just off the boil, short infusions. The bowl holds warmth long after the session ends.
+Porcelain or a gaiwan, water just off the boil, short infusions. The bowl holds warmth long after the session ends.
