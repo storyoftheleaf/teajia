@@ -1385,7 +1385,17 @@ function matchRoute(method: string, path: string, routes: [string, string, Handl
 
 // ── Product pricing calculation (mirrors the Postgres view) ──
 function addPricingFields(product: any, rates: Map<string, number>): any {
-  const rate = rates.get(product.cost_currency) || 1;
+  // Case-insensitive rate lookup: DB keys can be 'Yuan', 'CNY', 'NT', 'MYR' etc.
+  // and caller-provided cost_currency may be lower/upper/mixed. Exact key first,
+  // then a case-insensitive scan so 'YUAN' resolves to the 'Yuan' rate row.
+  const currency = product.cost_currency as string | null | undefined;
+  let rate = currency ? (rates.get(currency) ?? 1) : 1;
+  if (currency && !rates.has(currency)) {
+    const lc = currency.toLowerCase();
+    for (const [k, v] of rates) {
+      if (k.toLowerCase() === lc) { rate = v; break; }
+    }
+  }
   const isTeaware = product.type === 'Teaware';
 
   // For teaware, use quantity_units as the divisor (per-unit pricing)
