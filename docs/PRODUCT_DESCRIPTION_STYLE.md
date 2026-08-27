@@ -38,9 +38,17 @@ these — not the raw sections and not the internal notes.
    of the Yiwu region." / "Wuliang Mountain, in Jingdong County, Pu'er City…")
 2. **One line on the leaf/process** — ancient-tree, large-leaf, wo dui fermented,
    compressed into a cake, etc.
-3. **One or two lines on how it actually drinks** — body, sweetness, texture,
-   finish. Use honest, specific sensory terms (e.g. "thick", "honeyed",
-   "mineral", "camphor", "smooth", "mellow").
+3. **One line on how it sits** — body, weight, general nature (a full-bodied red,
+   a quiet settled shou). Use honest, specific sensory terms sparingly.
+
+## Tastes and flavors NEVER go in the description
+
+- Taste/flavor notes (malt, honey, camphor, earthy, smooth, mineral, sweet,
+  apricot, etc.) are **separate catalog data** — they belong in the product's
+  tasting field (`tastingNotes` / the tasting app), NOT woven into the
+  description prose.
+- The description carries **place, craft, and character**. If a line reads like
+  a tasting note, move it to the tasting field.
 
 ## NEVER put in a description (these are internal, not public)
 
