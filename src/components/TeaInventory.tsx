@@ -598,7 +598,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       )}
 
       {/* --- Inline Filter Bar + Content (full width) --- */}
-      <div className="max-w-full mx-auto px-4 md:px-6 lg:px-10 pt-4">
+      <div className="max-w-full mx-auto pt-4">
 
          <TeaShopViewTabs active={teaView} onChange={handleTeaViewChange} />
          <TeaShopViewRegion active={teaView} count={filteredInventory.length} showPast={showPast}>
@@ -611,42 +611,15 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
            <>
 
          {/* Sticky shop toolbar */}
-         <div className="sticky top-0 z-sticky -mx-4 px-4 md:-mx-6 md:px-6 lg:-mx-10 lg:px-10 bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border">
-           {/* Row 1: search + price weight */}
-           <div className="flex items-center gap-4 pt-3 pb-2">
-             <input
-               type="search"
-               value={searchText}
-               onChange={e => setSearchText(e.target.value)}
-               placeholder="search teas"
-               aria-label="Search teas"
-               className="flex-1 min-w-0 bg-transparent border-b border-tea-border text-tea-text text-sm placeholder:text-tea-text-dim py-1 pr-2 outline-none focus:border-tea-gold transition-colors"
-               style={{ fontFamily: 'var(--font-body)' }}
-             />
-             <div className="flex items-center gap-1.5 shrink-0">
-               <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec">Price</span>
-               <div className="flex items-center gap-0.5 border border-tea-border rounded-md overflow-hidden">
-                 {([50, 100] as const).map(g => (
-                   <button
-                     key={g}
-                     type="button"
-                     onClick={() => setShopPriceWeight(g)}
-                     className={`px-2 py-0.5 text-ui-10 uppercase tracking-wider transition-colors num ${
-                       shopPriceWeight === g
-                         ? 'bg-tea-gold/10 text-tea-gold'
-                         : 'text-tea-text-sec hover:text-tea-text'
-                     }`}
-                   >
-                     {g}g
-                   </button>
-                 ))}
-               </div>
-             </div>
-           </div>
-
-           {/* Row 2: type · feeling · sort · liked */}
-           <div className="flex items-center gap-4 pb-3 overflow-x-auto hide-scrollbar">
-
+         <div className="sticky top-0 z-sticky bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border">
+           {/*
+             One control band, not three. Search, price weight and the filters
+             each owned a row of their own, which put 351px of chrome above the
+             first tea on a 900px screen. They are one row now, wrapping rather
+             than scrolling, so nothing is asked of the reader before the shop
+             is visible.
+           */}
+           <div className="flex flex-wrap items-center gap-x-5 gap-y-1 py-2">
              {/* Filter group */}
              <div className="flex items-center gap-3 shrink-0">
                <button
@@ -698,18 +671,52 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                </button>
              </div>
 
-             {/* Actions group */}
-             <button
-               type="button"
-               onClick={() => setShopSavedOnly(!shopSavedOnly)}
-               aria-pressed={shopSavedOnly}
-               aria-label="Show only liked teas"
-               className={`ml-auto text-ui-10 uppercase tracking-[0.15em] min-h-[44px] shrink-0 transition-colors ${
-                 shopSavedOnly ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
-               }`}
-             >
-               Liked
-             </button>
+             <div className="flex w-full min-w-0 items-center gap-4 pb-1 sm:w-auto sm:flex-1 sm:justify-end sm:pb-0">
+               <label className="flex min-w-0 flex-1 items-center gap-2 rounded-md bg-tea-surface px-3 py-2 sm:flex-none sm:w-[250px]">
+                 <Icons.Search className="w-3.5 h-3.5 shrink-0 text-tea-text-dim" aria-hidden="true" />
+                 <input
+                   type="search"
+                   value={searchText}
+                   onChange={e => setSearchText(e.target.value)}
+                   placeholder="Search teas"
+                   aria-label="Search teas"
+                   className="w-full min-w-0 bg-transparent text-tea-text text-sm placeholder:text-tea-text-dim outline-none"
+                   style={{ fontFamily: 'var(--font-body)' }}
+                 />
+               </label>
+
+               <div className="flex items-center gap-1.5 shrink-0">
+                 <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec">Price</span>
+                 <div className="flex items-center gap-0.5 border border-tea-border rounded-md overflow-hidden">
+                   {([50, 100] as const).map(g => (
+                     <button
+                       key={g}
+                       type="button"
+                       onClick={() => setShopPriceWeight(g)}
+                       className={`px-2 py-0.5 text-ui-10 uppercase tracking-wider transition-colors num ${
+                         shopPriceWeight === g
+                           ? 'bg-tea-gold/10 text-tea-gold'
+                           : 'text-tea-text-sec hover:text-tea-text'
+                       }`}
+                     >
+                       {g}g
+                     </button>
+                   ))}
+                 </div>
+               </div>
+
+               <button
+                 type="button"
+                 onClick={() => setShopSavedOnly(!shopSavedOnly)}
+                 aria-pressed={shopSavedOnly}
+                 aria-label="Show only liked teas"
+                 className={`text-ui-10 uppercase tracking-[0.15em] min-h-[44px] shrink-0 transition-colors ${
+                   shopSavedOnly ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
+                 }`}
+               >
+                 Liked
+               </button>
+             </div>
            </div>
 
            {/* Inline-expanding options, flush below the toolbar, pushes content down */}
@@ -949,12 +956,6 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
          {/* Main content area (full width now) */}
          <div className="w-full">
-           <p
-             className="py-3 text-ui-10 text-tea-text-dim"
-             style={{ fontFamily: 'var(--font-body)' }}
-           >
-             {filteredInventory.length} {filteredInventory.length === 1 ? 'tea' : 'teas'} {showPast ? 'in the archive' : teaView === 'selection' ? 'in My selection' : 'shown'}
-           </p>
 
            {filteredInventory.length === 0 ? (
              <div className="py-24 text-center">
@@ -1027,7 +1028,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
       {/* Recently Viewed */}
       {teaView !== 'find' && recentlyViewedItems.length > 0 && filteredInventory.length > 0 && (
-        <div className="mt-10 px-3 md:px-4 lg:px-6">
+        <div className="mt-10">
           <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mb-3">Recently Viewed</p>
           <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2">
             {recentlyViewedItems.map(item => (

@@ -367,6 +367,61 @@ export const getTeaVividColor = (type: string): string =>
   TEA_TYPE_COLORS[resolveColorKey(type)]?.vivid ?? '#a3a3a3';
 
 
+/**
+ * Shop ledger tones: the liquor ground behind a product row.
+ *
+ * The shop has no photography, and one repeated glyph in every row is
+ * decoration rather than information. Instead each row carries the colour its
+ * tea actually brews: the type's `card` colour, resolved into three roles.
+ * Derived, never hand-listed, so a new tea type inherits the treatment without
+ * anyone adding a token.
+ *
+ * These are flat rgb() strings rather than CSS variables because the mix has to
+ * happen against the resolved background, and `color-mix()` is not safe on
+ * the older Safari versions this shop still sees. Pass the live theme.
+ */
+type Rgb = readonly [number, number, number];
+
+const THEME_GROUND: Record<'dark' | 'light', { bg: Rgb; text: Rgb; wash: number }> = {
+  // Mirrors --tea-bg-rgb / --tea-text-rgb in src/styles/tailwind.css.
+  dark:  { bg: [34, 32, 28],    text: [237, 228, 212], wash: 0.13 },
+  light: { bg: [244, 236, 224], text: [24, 19, 14],    wash: 0.10 },
+};
+
+const hexToRgb = (hex: string): Rgb => {
+  const h = hex.replace('#', '');
+  return [
+    parseInt(h.slice(0, 2), 16),
+    parseInt(h.slice(2, 4), 16),
+    parseInt(h.slice(4, 6), 16),
+  ] as const;
+};
+
+const mix = (a: Rgb, b: Rgb, amountOfB: number): string => {
+  const c = (i: 0 | 1 | 2) => Math.round(a[i] * (1 - amountOfB) + b[i] * amountOfB);
+  return `rgb(${c(0)}, ${c(1)}, ${c(2)})`;
+};
+
+export interface TeaLedgerTones {
+  /** Fades left to right across the row so the colour is ground, not a chip. */
+  wash: string;
+  /** Ground of the vintage block. */
+  markBg: string;
+  /** Vintage numerals, mixed to hold contrast on `markBg` in both themes. */
+  markFg: string;
+}
+
+export const getTeaLedgerTones = (type: string, theme: 'light' | 'dark'): TeaLedgerTones => {
+  const base = hexToRgb(getTeaColor(type));
+  const ground = THEME_GROUND[theme];
+  return {
+    wash: `rgba(${base[0]}, ${base[1]}, ${base[2]}, ${ground.wash})`,
+    markBg: mix(base, ground.bg, 0.7),
+    markFg: mix(base, ground.text, 0.5),
+  };
+};
+
+
 // ─────────────────────────────────────────────────────────────
 // 4. ALCOVE CARD PALETTE
 // ─────────────────────────────────────────────────────────────

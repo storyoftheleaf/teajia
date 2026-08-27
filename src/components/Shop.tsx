@@ -334,7 +334,7 @@ export const Shop: React.FC<ShopProps> = ({
   };
 
   const renderSets = () => (
-    <div className="max-w-full mx-auto px-3 md:px-4 lg:px-6 pt-4 animate-[fadeIn_0.5s_ease-out]">
+    <div className="max-w-full mx-auto pt-4 animate-[fadeIn_0.5s_ease-out]">
       {STARTER_TEA_SETS.length === 0 && STARTER_TEAWARE_SETS.length === 0 ? (
         <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
           <Icons.Box className="w-7 h-7 text-tea-text-dim" strokeWidth={1.25} />
@@ -513,7 +513,7 @@ export const Shop: React.FC<ShopProps> = ({
             .slice(0, 10);
           if (recentItems.length === 0) return null;
           return (
-            <div className="px-3 md:px-4 lg:px-6 pb-8 pt-6">
+            <div className="pb-8 pt-6">
               <p className="label-caps text-tea-text-dim mb-3">Recently Viewed</p>
               <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory">
                 {recentItems.map(item => {
