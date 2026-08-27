@@ -136,7 +136,7 @@
 
 :root {
   --tea-vignette-color: rgba(24, 19, 14, 0.12);
-  --teajia-sidebar-w: 14rem; /* default expanded, overwritten by LeftSidebar JS */
+  --teajia-sidebar-w: 13rem; /* default expanded, overwritten by LeftSidebar JS */
 
   /* The two state hues the pill block needed and the palette did not have.
 

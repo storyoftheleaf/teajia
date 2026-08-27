@@ -894,7 +894,7 @@ const AppContent = () => {
         isFocusedShareRoute
           ? 'lg:ml-0 lg:max-w-none'
           : isAdminRoute
-            ? (sidebarCollapsed ? 'lg:ml-14 lg:max-w-[calc(100vw-3.5rem)]' : 'lg:ml-56 lg:max-w-[calc(100vw-14rem)]')
+            ? (sidebarCollapsed ? 'lg:ml-14 lg:max-w-[calc(100vw-3.5rem)]' : 'lg:ml-52 lg:max-w-[calc(100vw-13rem)]')
             : 'lg:ml-0 lg:max-w-none lg:pb-24'
       } transition-[margin,max-width] duration-300`}>
 

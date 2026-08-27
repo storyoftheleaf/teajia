@@ -17,6 +17,14 @@ export interface AuthUser {
 /** A half-filled product captured by the AddProductModal auto-save. */
 export type DraftProduct = Partial<Product>;
 
+/**
+ * The two rooms of the desktop sidebar. 'browse' is the storefront (the same
+ * four sections the mobile tab bar carries); 'manage' is the workshop. Only
+ * one is visible at a time, which is what keeps the column from stacking two
+ * navigation systems on top of each other.
+ */
+export type SidebarRoom = 'browse' | 'manage';
+
 interface InventoryViewConfig {
   id: string;
   name: string;
@@ -76,6 +84,11 @@ interface AppState {
   // Sidebar
   sidebarCollapsed: boolean;
   toggleSidebarCollapsed: () => void;
+  // Which room the desktop sidebar is showing: the storefront a visitor
+  // browses, or the workshop the business is run from. Only one hierarchy is
+  // visible at a time; the switch lives under the account row.
+  sidebarRoom: SidebarRoom;
+  setSidebarRoom: (room: SidebarRoom) => void;
 
   // Shop display preferences
   shopPriceWeight: 25 | 50 | 100;
@@ -372,6 +385,8 @@ export const useAppStore = create<AppState>()(
       // Sidebar
       sidebarCollapsed: false,
       toggleSidebarCollapsed: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+      sidebarRoom: 'browse',
+      setSidebarRoom: (sidebarRoom) => set({ sidebarRoom }),
 
       shopPriceWeight: 50,
       setShopPriceWeight: (grams) => set({ shopPriceWeight: grams }),
@@ -647,6 +662,7 @@ export const useAppStore = create<AppState>()(
         activeAccountId: state.activeAccountId,
         // isDevAdmin intentionally excluded, never persisted to localStorage (security fix)
         sidebarCollapsed: state.sidebarCollapsed,
+        sidebarRoom: state.sidebarRoom,
         shopPriceWeight: state.shopPriceWeight,
         shopSort: state.shopSort,
         shopSavedOnly: state.shopSavedOnly,
