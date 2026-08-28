@@ -6,7 +6,6 @@ import { useAppStore } from '../../lib/store';
 import { api } from '../../lib/api';
 import { useTastingCount } from '../../hooks/useTastingCount';
 import { useShopPrice } from './shopPrice';
-import { getBrewingProfile } from '../../data/brewing-profiles';
 import { useProductEvents } from '../../hooks/useProductEvents';
 import { useStories } from '../../context/StoryContext';
 import { useAuth } from '../../hooks/useAuth';
@@ -26,8 +25,6 @@ import { AlcoveTableSection } from './alcove/AlcoveTableSection';
 import { AlcoveCommerceFooter } from './alcove/AlcoveCommerceFooter';
 import { SampleModal, CustomAmountModal, ImageOverlayModal } from './alcove/AlcoveModals';
 import { TeaReference, type TeaReferenceProduct } from '../wisdom/TeaReference';
-import { FactGrid } from '../wisdom/FactGrid';
-import { LABEL } from '../shared/typeRoles';
 import type { ProductImpression } from './ProductImpressions';
 import { resolveProductResearch } from '../../wisdom/productResearch';
 
@@ -410,7 +407,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       potentialResearch={potentialResearch}
     />
   );
-  const brewingProfile = item.category === 'tea' ? getBrewingProfile(item.type) : undefined;
 
   // 5. About this tea: story + terroir + craft as one reading chapter
   const aboutSection = (
@@ -426,7 +422,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   );
 
   /**
-   * 6. The plant, the maker, the brew: what the wisdom base knows.
+   * 6. The plant and the maker: what the wisdom base knows.
    *
    * Not the shop's voice. Every fact here is written once in the wisdom base
    * and improves on every product the day it is corrected, which is why it sits
@@ -437,24 +433,15 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
    * about the same tea. Both render nothing when the base knows nothing, which
    * is the common case for a garden tea sold under the shop's own name and is
    * correct.
+   *
+   * No brewing table: the old one came from a per-tea-TYPE lookup, so every
+   * oolong in the shop claimed the same water, steep, leaf, vessel and
+   * infusion count regardless of what the leaf actually wanted. A number that
+   * is not about this tea does not belong on this tea's page.
    */
   const referenceSection = (
     <div className="alcove-body-section mt-7">
       <TeaReference product={referenceProduct} />
-      {brewingProfile && (
-        <div className="mb-6">
-          <h3 className={`${LABEL} mb-2 mt-0 text-tea-text-dim`}>Brewing</h3>
-          <FactGrid
-            facts={[
-              { label: 'Water', value: brewingProfile.waterTemp },
-              { label: 'Steep', value: brewingProfile.steepTime },
-              { label: 'Leaf', value: brewingProfile.leafRatio },
-              { label: 'Vessel', value: brewingProfile.vessel },
-              { label: 'Infusions', value: brewingProfile.infusions },
-            ].filter(fact => Boolean(fact.value))}
-          />
-        </div>
-      )}
     </div>
   );
 
@@ -468,20 +455,16 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     />
   );
 
-  const whatsAppNote = (
-    <p className="m-0 mt-6 px-6 text-center font-sans text-ui-10 tracking-[0.04em] text-tea-text-dim">
-      Ordered over WhatsApp, Adrian confirms within a day
-    </p>
-  );
-
-  const commerceReassurance = (
-    <div className="flex min-h-[44px] items-center justify-between gap-3 border-t border-tea-border bg-tea-bg px-3.5">
+  /**
+   * The order-access strip on the page layout. It used to carry a promise
+   * about WhatsApp turnaround; nothing in the system guarantees that, so the
+   * claim is gone and the strip renders only when there is a control to hold.
+   */
+  const commerceReassurance = orderAccess ? (
+    <div className="flex min-h-[44px] items-center gap-3 border-t border-tea-border bg-tea-bg px-3.5">
       {orderAccess}
-      <p className="m-0 ml-auto text-right font-sans text-ui-10 tracking-[0.04em] text-tea-text-dim">
-        Ordered over WhatsApp, Adrian confirms within a day
-      </p>
     </div>
-  );
+  ) : null;
 
   // ── Page layout: the "quiet page" at /shop/product/:id on cold loads ─────
   if (layout === 'page') {
@@ -543,9 +526,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       {aboutSection}
       {referenceSection}
       {tableSection}
-      {/* How ordering works: lives in the scroll, not the pinned bar, so the
-          sticky footer stays as short as possible. */}
-      {whatsAppNote}
 
       {/* Breathing room above the pinned commerce footer */}
       <div aria-hidden="true" className="h-6" />

@@ -87,6 +87,12 @@ const config: Config = {
         'panel-backdrop': '65',
         'panel-modal': '70',
         nav: '75',
+        // Full-screen takeovers: a surface that replaces the whole app for as
+        // long as it is open (the tasting session). Above the tea card (70) and
+        // above the nav (75), because a takeover that any other layer can cover
+        // is worse than no takeover: you see the thing underneath while your
+        // taps land on the thing you cannot see.
+        takeover: '80',
       },
     },
   },

@@ -18,3 +18,10 @@ playwright-report/
 
 # Agent critique scratch (never commit)
 .impeccable/
+
+# Local sandbox database dumps (a copy of live product records, pulled on demand
+# by `npm run sandbox:refresh`). Never committed: they are large, they go stale,
+# and the sandbox is meant to be rebuilt, not tracked.
+worker/sandbox/*.sql
+worker/sandbox/*.json
+worker/sandbox/table-list.txt

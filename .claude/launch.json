@@ -2,10 +2,16 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "sandbox",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "sandbox"],
+      "port": 7777
+    },
+    {
       "name": "vite-frontend",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
-      "port": 3000
+      "port": 7777
     },
     {
       "name": "wrangler-api",

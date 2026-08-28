@@ -115,6 +115,23 @@ Worker secrets live in Infisical (project: Teajia, env: dev). The repo no longer
 
 **Full cross-project pattern docs:** [../i64os/docs/SECRETS.md](../i64os/docs/SECRETS.md) — covers all four projects, the two-Infisical-projects shape, prod boundary, and command cheat sheet.
 
+## Local sandbox — how to verify admin work yourself
+
+`npm run dev` points the site at the **live production API**, so anything you
+click in `/admin` edits the real shop. Never verify admin changes that way.
+
+Use the sandbox instead: `npm run sandbox` runs the API locally on 8787 against
+its own database plus the site on 7777 pointed at it. Sign in as `sandbox` /
+`sandbox` (owner-tier, both shops). The local database carries a copy of the
+product catalogue and **no users, customers, invoices or orders**, so clicking
+anything is free. Refresh the copy with `npm run sandbox:refresh`.
+
+Full notes, including the browser snippet that drops a session into storage
+without touching the sign-in form: [worker/sandbox/README.md](worker/sandbox/README.md).
+
+**Do not hand admin verification back to Adrian.** The sandbox exists so the
+agent can click the thing it just changed.
+
 ## Testing
 ```bash
 npm run test:mobile  # Playwright mobile audit — 26 tests at 390×844 (Mobile Chrome)

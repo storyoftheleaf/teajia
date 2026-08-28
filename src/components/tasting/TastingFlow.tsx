@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Circle, Leaf, Moon, Palette,
   X,
@@ -38,10 +38,8 @@ const sectionVariants = {
     opacity: 0,
   }),
   center: { x: 0, opacity: 1 },
-  exit: (direction: number) => ({
-    x: direction > 0 ? -60 : 60,
-    opacity: 0,
-  }),
+  // No exit variant on purpose. See the swap comment further down: sections are
+  // replaced outright, so nothing ever animates out.
 };
 
 const sectionTransition = {
@@ -86,26 +84,28 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
   const flow = useTastingFlow(value, onChange);
   const sections = ALL_SECTIONS;
 
-  // Track direction for slide animation internally
-  const prevSectionRef = useRef<SectionId>(activeSectionId);
-  const [[direction, animKey], setAnimState] = useState<[number, number]>([0, 0]);
-
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const contentRef = useRef<HTMLDivElement>(null);
 
   const activeIdx = sections.findIndex((s) => s.id === activeSectionId);
 
-  /* ─── Sync animation direction when controlled section changes ─── */
-
-  useEffect(() => {
-    if (prevSectionRef.current !== activeSectionId) {
-      const prevIdx = sections.findIndex((s) => s.id === prevSectionRef.current);
-      const newIdx = sections.findIndex((s) => s.id === activeSectionId);
-      setAnimState([newIdx > prevIdx ? 1 : -1, Date.now()]);
-      prevSectionRef.current = activeSectionId;
-    }
-  }, [activeSectionId, sections]);
+  /* ─── Slide direction ───────────────────────────────────────────────────
+   *
+   * Worked out during the render that changes section, NOT in an effect
+   * afterwards. The effect version stored a fresh timestamp beside the
+   * direction, and that timestamp was part of the panel's key, so one tap
+   * changed the key twice: once for the new section, then again a frame later.
+   * A ref read and written in render keeps one section change to one key
+   * change, which is what a keyed swap needs to be predictable. */
+  const prevSectionRef = useRef<SectionId>(activeSectionId);
+  const directionRef = useRef(0);
+  if (prevSectionRef.current !== activeSectionId) {
+    const prevIdx = sections.findIndex((s) => s.id === prevSectionRef.current);
+    directionRef.current = activeIdx > prevIdx ? 1 : -1;
+    prevSectionRef.current = activeSectionId;
+  }
+  const direction = directionRef.current;
 
   /* ─── Count helpers ─── */
 
@@ -233,26 +233,32 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
-          <AnimatePresence initial={false} custom={direction} mode="wait">
-            <motion.div
-              key={activeSection.id + animKey}
-              custom={direction}
-              variants={sectionVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={sectionTransition}
-              className="px-4 pb-4 pt-3"
+          {/* One panel, swapped by key, animating only on the way IN.
+
+              There is deliberately no exit animation and no presence wrapper
+              here. The previous form held the outgoing panel until its exit
+              finished before mounting the incoming one, and that handover never
+              completed: the tab you tapped lit up while the panel underneath
+              stayed on the first section forever, which made the whole bottom
+              tab row look dead. An entrance-only swap cannot wedge, because
+              nothing has to finish before the next section can appear. */}
+          <motion.div
+            key={activeSection.id}
+            custom={direction}
+            variants={sectionVariants}
+            initial="enter"
+            animate="center"
+            transition={sectionTransition}
+            className="px-4 pb-4 pt-3"
+          >
+            <p
+              className="text-ui-11 text-tea-text-dim italic mb-3"
+              style={{ fontFamily: 'var(--font-body)' }}
             >
-              <p
-                className="text-ui-11 text-tea-text-dim italic mb-3"
-                style={{ fontFamily: 'var(--font-body)' }}
-              >
-                {activeSection.subtitle}
-              </p>
-              {renderSectionContent(activeSection.id)}
-            </motion.div>
-          </AnimatePresence>
+              {activeSection.subtitle}
+            </p>
+            {renderSectionContent(activeSection.id)}
+          </motion.div>
         </div>
       </div>
 

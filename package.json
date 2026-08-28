@@ -6,6 +6,9 @@
   "scripts": {
     "dev": "lsof -ti:7777 >/dev/null 2>&1 || (infisical export --env=dev --format=dotenv --path=/ > .env.local && vite)",
     "dev:test": "VITE_API_URL=http://localhost:7777 vite",
+    "sandbox": "concurrently -n api,site -c magenta,cyan \"npm --prefix worker run sandbox\" \"npm run sandbox:site\"",
+    "sandbox:site": "VITE_API_URL=http://localhost:8787 vite --port 7777",
+    "sandbox:refresh": "npm --prefix worker run sandbox:refresh",
     "build": "node scripts/check-required-deployment-config.mjs --if-cloudflare-pages && vite build",
     "check:deploy-config": "node scripts/check-required-deployment-config.mjs",
     "lint:colors": "bash scripts/lint-colors.sh",
@@ -65,6 +68,7 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.27",
+    "concurrently": "^10.0.5",
     "postcss": "^8.5.8",
     "tailwindcss": "^3.4.19",
     "terser": "^5.44.1",

@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "infisical export --env=dev --format=dotenv --path=/ > .dev.vars && wrangler dev",
+    "sandbox": "infisical export --env=dev --format=dotenv --path=/ > .dev.vars && wrangler dev --port 8787",
+    "sandbox:refresh": "node sandbox/refresh.mjs",
+    "sandbox:seed": "node sandbox/seed-operator.mjs",
     "deploy": "wrangler deploy",
     "db:init": "wrangler d1 execute teajia-db --remote --file=./schema.sql",
     "db:seed": "wrangler d1 execute teajia-db --remote --file=./seed.sql"

@@ -414,7 +414,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   }, [wouldBuy, updateNoteFields, onSave, adminMode, tastingData, verdict]);
 
   return createPortal(
-    <div data-tasting-session-overlay className="fixed inset-0 z-priority lg:bg-black/75 lg:backdrop-blur-sm lg:flex lg:items-center lg:justify-center">
+    <div data-tasting-session-overlay className="fixed inset-0 z-takeover lg:bg-black/75 lg:backdrop-blur-sm lg:flex lg:items-center lg:justify-center">
     <motion.div
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}

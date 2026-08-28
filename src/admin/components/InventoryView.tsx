@@ -478,6 +478,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [moreViewsOpen, setMoreViewsOpen] = useState(false);
 
   // Feature 5: Record Panel
+  //
+  // `panelProduct` is the SELECTION (which record is open). It is a snapshot of
+  // the row as it was when the panel opened, so it must never be what the panel
+  // renders: every edit made inside the panel lands optimistically in
+  // `localProducts`, and a snapshot cannot see that. Reading the row back out of
+  // `localProducts` by id is what makes the panel's own toggles (purpose,
+  // In Shop, Shown, Starred, Curated, Sample size, Restockable, status) light up
+  // when you click them, and what keeps the derived Readiness and Publication
+  // lines honest. Use `livePanelProduct` for rendering, `panelProduct` for
+  // identity and lifecycle.
   const [panelProduct, setPanelProduct] = useState<Product | null>(null);
   const [sourcePanelProduct, setSourcePanelProduct] = useState<Product | null>(null);
   // Inline quick-edit, opened by a long-press on a row. Holds the id of the one
@@ -932,6 +942,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     effectiveIncomingByProductId,
     effectiveInventorySummaryStatus,
   ), [effectiveIncomingByProductId, effectiveInventorySummaryStatus]);
+  /** The open record as it stands right now, not as it stood when opened. */
+  const livePanelProduct = useMemo(
+    () => (panelProduct
+      ? localProducts.find(product => product.id === panelProduct.id) ?? panelProduct
+      : null),
+    [panelProduct, localProducts],
+  );
   const railCanPublish = useMemo(() => isInventorySelectionPublishable(
     localProducts.filter(product => selectedIds.has(product.id)),
     effectiveIncomingByProductId,
@@ -2835,33 +2852,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       <QrCodeModal isOpen={!!qrProduct} onClose={() => setQrProduct(null)} product={qrProduct} />
 
-      {/* Tea Details Modal (AlcoveCard) */}
-      <TeaDetailsModal
-        product={detailsProduct}
-        isOpen={!!detailsProduct}
-        onClose={() => setDetailsProduct(null)}
-        onAdd={(product, quantity) => {
-          addToCart(product, quantity);
-          setIsCartOpen(true);
-          showToast('Added to registry', 'success');
-        }}
-        currency={currency}
-        rates={rates}
-        isAdmin={true}
-        onEdit={(product) => {
-          setDetailsProduct(null);
-          setPanelProduct(product);
-        }}
-        onNext={detailsProduct ? (() => {
-          const idx = productIndexMap.get(detailsProduct.id) ?? -1;
-          if (idx < processedProducts.length - 1) setDetailsProduct(processedProducts[idx + 1]);
-        }) : undefined}
-        onPrev={detailsProduct ? (() => {
-          const idx = productIndexMap.get(detailsProduct.id) ?? -1;
-          if (idx > 0) setDetailsProduct(processedProducts[idx - 1]);
-        }) : undefined}
-      />
-
       <InventoryConfirmations
         showEnrichConfirm={showEnrichConfirm}
         onCloseEnrichConfirm={() => setShowEnrichConfirm(false)}
@@ -2922,7 +2912,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           routing, error revert) is preserved by passing handleProductUpdate
           via onUpdate. */}
       <ProductEditPanel
-        product={panelProduct}
+        product={livePanelProduct}
         rates={rates}
         onClose={() => setPanelProduct(null)}
         onUpdate={handleProductUpdate}
@@ -2931,8 +2921,38 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         filterLabel={filterType !== 'All' ? (VIEW_FILTER_LABELS[filterType] || filterType) : undefined}
         onShowStorePreview={(p) => setDetailsProduct(p)}
         onOpenStockMovement={stableStockMovement}
-        canPublish={panelProduct ? canPublishInventoryProduct(panelProduct) : false}
+        canPublish={livePanelProduct ? canPublishInventoryProduct(livePanelProduct) : false}
         rightOffset={panelRightOffset}
+      />
+
+      {/* Tea Details Modal (AlcoveCard): the shop preview the panel's "Shop"
+          button opens. It sits AFTER ProductEditPanel deliberately: both are
+          z-modal (40), per the admin overlay rule, so paint order is DOM order
+          and a preview rendered before the panel opens silently behind it. */}
+      <TeaDetailsModal
+        product={detailsProduct}
+        isOpen={!!detailsProduct}
+        onClose={() => setDetailsProduct(null)}
+        onAdd={(product, quantity) => {
+          addToCart(product, quantity);
+          setIsCartOpen(true);
+          showToast('Added to registry', 'success');
+        }}
+        currency={currency}
+        rates={rates}
+        isAdmin={true}
+        onEdit={(product) => {
+          setDetailsProduct(null);
+          setPanelProduct(product);
+        }}
+        onNext={detailsProduct ? (() => {
+          const idx = productIndexMap.get(detailsProduct.id) ?? -1;
+          if (idx < processedProducts.length - 1) setDetailsProduct(processedProducts[idx + 1]);
+        }) : undefined}
+        onPrev={detailsProduct ? (() => {
+          const idx = productIndexMap.get(detailsProduct.id) ?? -1;
+          if (idx > 0) setDetailsProduct(processedProducts[idx - 1]);
+        }) : undefined}
       />
 
       <AnimatePresence>

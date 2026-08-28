@@ -348,6 +348,13 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
     setAdminTastingItem(item);
   }, []);
   const handleTaste = useCallback((item: TeaItem) => {
+    // Close the product card FIRST, whoever is asking. Both destinations below
+    // are full-screen tasting surfaces, and the card is a taller layer than
+    // either of them, so leaving it open buries the session underneath: you see
+    // the card, your taps land on the session you cannot see, and the session's
+    // own bottom tab row is hidden behind the card's order bar. The admin branch
+    // used to return before this line, which is exactly how that happened.
+    closeProduct();
     // Admins editing their own shop almost always want to update the product's
     // tasting profile, not file a personal journal entry. Route them into the
     // admin editor instead. Customers still get the journaling flow.
@@ -355,9 +362,6 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       setAdminTastingItem(item);
       return;
     }
-    // Close the AlcoveModal via history: the product entry pops, so the
-    // modal cannot re-open behind the tasting session.
-    closeProduct();
     setTastingItem(item);
   }, [isAdmin, closeProduct]);
   const handleOrderFromTasting = useCallback((item: TastingItem) => {
