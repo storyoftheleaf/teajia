@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import type { Location } from 'react-router-dom';
+import type { InventoryItem } from '../types';
 import { Icons } from './Icons';
 import { TeawareAlcoveModal } from './shop/TeawareAlcoveModal';
 import { CardGridItem } from './shared/CardGridItem';
@@ -33,6 +34,29 @@ const CATEGORIES_META = [
   { id: 'decorative', label: 'Decorative' },
   { id: 'storage', label: 'Storage' },
 ];
+
+/**
+ * What to print under a teaware name.
+ *
+ * `variant` is filled with the product name for most teaware, so printing it
+ * raw repeated the title on every one of the rows. Prefer the category, which
+ * says something the name does not, and fall back to the variant only when it
+ * actually differs from the name.
+ */
+function teawareMeta(item: InventoryItem): string | null {
+  const name = (item.name || '').trim().toLowerCase();
+  const variant = (item.variant || '').trim();
+  if (item.subcategory?.trim()) return item.subcategory.trim();
+  if (variant && variant.toLowerCase() !== name) return variant;
+  return null;
+}
+
+/** Origin is stored as the literal "Unknown" for teaware with no recorded source. */
+function teawareOrigin(item: InventoryItem): string | null {
+  const origin = (item.origin || '').trim();
+  if (!origin || origin.toLowerCase() === 'unknown') return null;
+  return origin;
+}
 
 export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, externalInventory = [], hideHeader = false, isAdmin = false, adminProductMap, onAdminEdit, modalLocation }) => {
   const [activeCategory, setActiveCategory] = useState<string>('All');
@@ -215,9 +239,9 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                           }
                           badgesComponent={
                             <div className="flex items-center gap-1.5">
-                              <span className="card-grid-badge">{item.variant}</span>
-                              {item.origin && (
-                                <span className="text-ui-10 text-tea-text-sec italic">{item.origin}</span>
+                              {teawareMeta(item) && <span className="card-grid-badge">{teawareMeta(item)}</span>}
+                              {teawareOrigin(item) && (
+                                <span className="text-ui-10 text-tea-text-sec italic">{teawareOrigin(item)}</span>
                               )}
                             </div>
                           }
@@ -250,9 +274,9 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                     }
                     badgesComponent={
                       <div className="flex items-center gap-1.5">
-                        <span className="card-grid-badge">{item.variant}</span>
-                        {item.origin && (
-                          <span className="text-ui-10 text-tea-text-sec italic">{item.origin}</span>
+                        {teawareMeta(item) && <span className="card-grid-badge">{teawareMeta(item)}</span>}
+                        {teawareOrigin(item) && (
+                          <span className="text-ui-10 text-tea-text-sec italic">{teawareOrigin(item)}</span>
                         )}
                       </div>
                     }
@@ -309,14 +333,16 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                               </h3>
                             </div>
                             <div className="text-ui-13 mt-1 truncate flex items-center gap-2">
-                              <span className="text-ui-10 uppercase tracking-wider text-tea-text-sec">{item.variant}</span>
-                              {item.origin && (
+                              {teawareMeta(item) && (
+                                <span className="text-ui-10 uppercase tracking-wider text-tea-text-sec">{teawareMeta(item)}</span>
+                              )}
+                              {teawareOrigin(item) && (
                                 <><span className="text-tea-text-dim">·</span>
-                                <span className="font-body italic text-tea-text/40">{item.origin}</span></>
+                                <span className="font-body italic text-ui-11 text-tea-text-sec">{teawareOrigin(item)}</span></>
                               )}
                               {item.year && (
                                 <><span className="text-tea-text-dim">·</span>
-                                <span className="font-mono num text-ui-11 text-tea-gold/60">{item.year}</span></>
+                                <span className="num text-ui-11 text-tea-text-dim">{item.year}</span></>
                               )}
                             </div>
                           </div>
