@@ -4,7 +4,7 @@ chineseName: "廖福陈年散茶"
 type: Dark
 form: Loose Leaf
 year: Unknown
-origin: "Cangwu, Guangxi, China"
+origin: "Northern Vietnam wild tea trees, on the Yunnan border"
 grams: 250
 stock: Unknown
 cost: "3000 RMB"
@@ -12,27 +12,17 @@ vendor: "HangJia"
 personal: true
 tastingNotes:
   - "earthy sweetness"
-  - "betel nut"
-  - "smooth wood"
+  - "camphor"
+  - "aged wood"
   - "light cooling"
 ---
 
-Liao Fu loose-leaf dark tea from Guangxi. The Liao Fu name appears across several teas in the collection at different grades.
-
-This is the standard grade, a workhorse dark tea meant for daily drinking and blending rather than display. Without a specific year, its age is known only through the cup.
+An aged loose-leaf pu-erh (san cha) carrying the Liao Fu name — a Hong Kong tea house that began importing border-region tea from the Yunnan/northern Vietnam line in the 1960s.
 
 ## Terroir
 
-Guangxi province, southern China. Liao Fu production comes from the broader Guangxi dark tea tradition centered around Cangwu county and the Xijiang river system.
+Wild tea trees in the north of Vietnam, on the border with Yunnan. The leaf is the large-leaf assamica family (Shan Tuyet) that grows at high altitude in northern Vietnam's Ha Giang, Lao Cai, Yen Bai, and Son La provinces — the same large-leaf stock as Yunnan pu-erh. The Liao Fu name (廖福, Hong Kong house Liao Fu San) denotes this Vietnamese, Yunnan-border leaf puer traded through Hong Kong, not a Guangxi dark tea.
 
 ## Processing
 
-Post-fermented dark tea in the Guangxi tradition. Standard-grade Liao Fu was produced in quantity for regional consumption and export to Southeast Asia. The loose-leaf format ages differently than compressed forms.
-
-## Mood
-
-daily grounding
-
-## Experience
-
-Honest and uncomplicated. It brews dark, tastes of earth and a touch of betel nut, and has the mild cooling sensation that marks Guangxi dark tea. A good everyday tea that does its job without asking for attention.
+Loose-leaf (san cha) wild-tree puer in the raw/sheng tradition, aged in dry storage. Uncompressed loose leaf ages differently from cakes, and the long dark leaves retain a polished appearance. The exact age of this example is not dated; its character is known through decades of storage.
