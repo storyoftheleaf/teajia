@@ -193,7 +193,13 @@ export function TeaLedger({
                       </div>
                     </div>
 
-                    {/* The width the shop reclaimed goes to the curator's line
+                    {/* Not every tea carries a description, and without one
+                        this column does not render at all, which left the
+                        price sitting against the name in the middle of the
+                        row. The price rail pushes itself right instead of
+                        relying on this column to hold the space.
+
+                        The width the shop reclaimed goes to the curator's line
                         rather than to blank space. Desktop only: on a phone
                         the row stays two lines. Clamped at two lines, which
                         still fits inside the 52px vintage block, so the row
@@ -204,7 +210,7 @@ export function TeaLedger({
                       </p>
                     )}
 
-                    <div className="flex shrink-0 items-center gap-2">
+                    <div className="ml-auto flex shrink-0 items-center gap-2">
                       {isAdmin && onAdminEdit && (
                         <button
                           type="button"
