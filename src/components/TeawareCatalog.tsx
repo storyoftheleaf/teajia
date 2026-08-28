@@ -46,6 +46,17 @@ const CATEGORIES_META = [
 function teawareMeta(item: InventoryItem): string | null {
   const name = (item.name || '').trim().toLowerCase();
   const variant = (item.variant || '').trim();
+
+  // What the piece is made of and how much it holds are the two things a
+  // buyer weighs between two kettles, and neither is in the title.
+  const facts = [
+    item.material?.trim(),
+    item.capacityMl ? `${item.capacityMl}ml` : null,
+  ].filter(Boolean);
+  if (facts.length) return facts.join(' \u00b7 ');
+
+  // The category is a weak third: rows are already grouped under it, so it
+  // tends to restate the heading. Better than nothing, better than the name.
   if (item.subcategory?.trim()) return item.subcategory.trim();
   if (variant && variant.toLowerCase() !== name) return variant;
   return null;
