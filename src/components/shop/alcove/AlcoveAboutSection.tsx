@@ -1,26 +1,27 @@
 import React from 'react';
 import type { InventoryItem } from '../../../types';
 import { resolveTermLabel } from '../../../data/tastingTaxonomy';
-import { starredNotes } from '../../../lib/noteEntries';
-import { AlcoveSectionHeading } from './AlcoveSectionHeading';
 
 interface AlcoveAboutSectionProps {
   item: InventoryItem;
   magazineUrl?: string;
   /** Historical / cultural lore (item.lore). */
   mainStory: string;
-  /** Description prose (item.description). */
+  /** Personal / tasting notes (item.description). Rendered only when present. */
   introduction: string;
-  /** Experience prose (item.experience). */
+  /** Experience prose (item.experience). Rendered only when present. */
   feelingDescription: string;
   terroir: string;
   processing: string;
+  mood: string;
 }
 
 /**
- * "About this tea": the one reading chapter. Description, terroir, and craft
- * merge into continuous Lora prose, with the brewing profile as the practical
- * closing ledger row. Renders only when there is something to read.
+ * "About this tea": each populated field renders as its own labeled block
+ * (TERROIR / PROCESSING / MOOD / EXPERIENCE), not concatenated into one blob —
+ * so no section repeats and each reads clearly. `description` is treated as
+ * personal / tasting notes and only renders when it actually has content, so
+ * an empty or AI-authored-experience never clutters the page.
  */
 export const AlcoveAboutSection: React.FC<AlcoveAboutSectionProps> = ({
   item,
@@ -30,22 +31,19 @@ export const AlcoveAboutSection: React.FC<AlcoveAboutSectionProps> = ({
   feelingDescription,
   terroir,
   processing,
+  mood,
 }) => {
-  // When Adrian has starred voice notes, his impressions take over as the
-  // sensory description (they render in the Character band). Suppress the
-  // AI-leaning experience and introduction prose so they don't duplicate.
-  // Keep the historical lore, which is distinct cultural context.
-  const hasImpressions = starredNotes(item.tasting).length > 0;
-  const storyParts: string[] = [];
-  if (!hasImpressions && feelingDescription) storyParts.push(feelingDescription);
-  if (!hasImpressions && introduction) storyParts.push(introduction);
-  if (mainStory) storyParts.push(mainStory);
-  const fullStory = storyParts.join('\n\n');
-
   const brewingTerms = item.tasting?.brewing ?? [];
   const hasBrewing = brewingTerms.length > 0;
 
-  if (!fullStory && !terroir && !processing && !hasBrewing) return null;
+  const hasAny =
+    Boolean(introduction.trim()) ||
+    Boolean(mainStory.trim()) ||
+    Boolean(terroir.trim()) ||
+    Boolean(processing.trim()) ||
+    Boolean(mood.trim()) ||
+    Boolean(feelingDescription.trim());
+  if (!hasAny && !hasBrewing) return null;
 
   const paragraphClass =
     'm-0 whitespace-pre-line font-body text-ui-14 font-normal leading-[1.75] text-tea-text-sec [&+p]:mt-[9px]';
@@ -80,29 +78,38 @@ export const AlcoveAboutSection: React.FC<AlcoveAboutSectionProps> = ({
     return blocks;
   }
 
+  function labeledSection(label: string, body: string) {
+    if (!body.trim()) return null;
+    return (
+      <div className="[&:not(:first-child)]:mt-5 first:mt-0">
+        <p className={headingClass}>{label}</p>
+        <div className="mt-1.5">{renderMarkdown(body)}</div>
+      </div>
+    );
+  }
+
   return (
     <section aria-label="About this tea">
-      <AlcoveSectionHeading label="About this tea" className="mx-6 mb-3 mt-[22px]" />
+      {/* TERROIR / PROCESSING / MOOD / EXPERIENCE — each a clean subheader block */}
+      <div className="px-6">
+        {labeledSection('Terroir', terroir)}
+        {labeledSection('Processing', processing)}
+        {labeledSection('Mood', mood)}
+        {labeledSection('Experience', feelingDescription)}
+        {/* Historical / cultural lore, distinct section */}
+        {mainStory.trim() && (
+          <div className="[&:not(:first-child)]:mt-5 first:mt-0">
+            <p className={headingClass}>Lore</p>
+            <div className="mt-1.5">{renderMarkdown(mainStory)}</div>
+          </div>
+        )}
+      </div>
 
-      {(fullStory || terroir || processing) && (
-        <div className="px-6">
-          {fullStory &&
-            (magazineUrl ? (
-              <p className={paragraphClass}>
-                <a
-                  href={magazineUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="alcove-magazine-link"
-                >
-                  {fullStory}
-                </a>
-              </p>
-            ) : (
-              renderMarkdown(fullStory)
-            ))}
-          {terroir && renderMarkdown(terroir)}
-          {processing && renderMarkdown(processing)}
+      {/* DESCRIPTION — Adrian's personal / tasting notes. Only shown when present. */}
+      {introduction.trim() && (
+        <div className="mx-6 mt-5 border-t border-tea-border pt-4">
+          <p className={headingClass}>Adrian&apos;s notes</p>
+          <div className="mt-1.5">{renderMarkdown(introduction)}</div>
         </div>
       )}
 

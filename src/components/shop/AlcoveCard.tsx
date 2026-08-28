@@ -418,6 +418,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       feelingDescription={item.experience || ''}
       terroir={terroir}
       processing={processing}
+      mood={item.mood || ''}
     />
   );
 

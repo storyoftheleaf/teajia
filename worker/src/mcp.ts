@@ -436,7 +436,7 @@ type PendingMutation =
   | { kind: 'record_sale'; accountId: string; userEmail: string; actorUserId: string; actorRole: string; lines: { productId: string; grams: number; pricePerGramUsd: number }[]; customerId: string | null; customerName: string; customerWhatsapp: string | null; notes: string | null }
   | { kind: 'create_customer'; accountId: string; userEmail: string; name: string; whatsapp: string | null; email: string | null; phone: string | null; notes: string | null; tags: string[] }
   | { kind: 'update_customer'; accountId: string; userEmail: string; customerId: string; fields: Record<string, string | null> }
-  | { kind: 'update_tea_pricing'; accountId: string; userEmail: string; productId: string; costAmount: number | null; costCurrency: string | null; retailPriceUsd: number | null; quantityPurchased: number | null; description: string | null; stockVerifiedAt: string | null; shippingRatePerKg: number | null; tastingNotes: string[] | null; originCountry: string | null; originRegion: string | null }
+  | { kind: 'update_tea_pricing'; accountId: string; userEmail: string; productId: string; costAmount: number | null; costCurrency: string | null; retailPriceUsd: number | null; quantityPurchased: number | null; description: string | null; stockVerifiedAt: string | null; shippingRatePerKg: number | null; tastingNotes: string[] | null; originCountry: string | null; originRegion: string | null; clearFields: string[] | null }
   | { kind: 'set_low_stock_threshold'; accountId: string; userEmail: string; productId: string; thresholdGrams: number }
   | { kind: 'update_invoice'; accountId: string; userEmail: string; invoiceId: string; fields: Record<string, string | null> }
   | { kind: 'void_invoice'; accountId: string; userEmail: string; invoiceId: string; reason: string | null }
@@ -1813,6 +1813,11 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
     : null;
   const originCountry: string | null = args?.origin_country ? String(args.origin_country).trim() : null;
   const originRegion: string | null = args?.origin_region ? String(args.origin_region).trim() : null;
+  // Optional: list of text fields to clear to NULL (string fields only, whitelisted).
+  const CLEARABLE = new Set(['lore', 'experience', 'mood', 'terroir', 'processing_notes']);
+  const clearFields: string[] | null = Array.isArray(args?.clear_fields)
+    ? args.clear_fields.filter((f: any) => typeof f === 'string' && CLEARABLE.has(f)).slice(0, 10)
+    : null;
   // stock_verified: true → mark verified now; false → clear it (needs verification); omit → leave unchanged
   const stockVerifiedAt: string | null = hasNewStockVerify
     ? (args.stock_verified ? new Date().toISOString() : null)
@@ -1864,7 +1869,7 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
 
     const token = await issueConfirmationToken(env, {
       kind: 'update_tea_pricing', accountId: auth.accountId, userEmail: auth.userEmail,
-      productId, costAmount, costCurrency, retailPriceUsd, quantityPurchased, description, stockVerifiedAt, shippingRatePerKg, tastingNotes, originCountry, originRegion,
+      productId, costAmount, costCurrency, retailPriceUsd, quantityPurchased, description, stockVerifiedAt, shippingRatePerKg, tastingNotes, originCountry, originRegion, clearFields,
     }, auth.tokenId);
     return {
       preview: {
@@ -1908,6 +1913,9 @@ async function commitUpdateTeaPricing(env: Env, m: Extract<PendingMutation, { ki
   if (m.originCountry !== null) { cols.push('origin_country'); vals.push(m.originCountry); }
   if (m.originRegion !== null) { cols.push('origin_region'); vals.push(m.originRegion); }
   if (m.description !== null) { cols.push('description'); vals.push(m.description); }
+  if (m.clearFields && m.clearFields.length) {
+    for (const f of m.clearFields) { cols.push(f); vals.push(null); }
+  }
   // Explicit stock-verification toggle: undefined = leave unchanged.
   if (m.stockVerifiedAt !== undefined) { cols.push('stock_verified_at'); vals.push(m.stockVerifiedAt); }
 
