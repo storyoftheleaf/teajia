@@ -29,11 +29,3 @@ Mahei village, Yiwu township, Mengla county, Xishuangbanna. The village sits ins
 ## Processing
 
 Whole-leaf large-leaf Yunnan cultivar, fully oxidized in the traditional red-tea method and left loose. The oxidation carries the leaf away from the raw sheng character it would otherwise become, but the underlying old-tree material remains the source of the cup's structure.
-
-## Mood
-
-warm room
-
-## Experience
-
-An everyday red tea with a serious backbone. Porcelain or a gaiwan, water just off the boil, short infusions. The bowl holds warmth long after the session ends, and the leaf gives many pours without thinning. A cup made to be drunk across a whole afternoon.

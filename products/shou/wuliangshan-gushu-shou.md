@@ -29,11 +29,3 @@ Wuliang Mountain, Jingdong County, Pu'er City, held between the Wuliang and Aila
 ## Processing
 
 Ancient-tree leaf from the Wuliang gardens, wo dui fermented in the traditional shou method and stone-pressed into 357-gram cake form. The wet-pile fermentation shortens the years of aging that raw pu-erh would require, transforming the leaf directly into a settled, drinkable state.
-
-## Mood
-
-held quiet
-
-## Experience
-
-A session tea. Fully boiled water, short pours from a small pot. It does not demand attention and it does not release it. The character is grounded rather than showy, the kind of cup you reach for when a room needs settling. It holds its shape across many infusions, which is its own quiet virtue.

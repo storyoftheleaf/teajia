@@ -29,11 +29,3 @@ Xiniu Tang, within Yiwu township, Mengla county, Xishuangbanna, Yunnan. The plot
 ## Processing
 
 Ancient-tree leaf from the Xiniu Tang gardens, wo dui fermented and stone-pressed into 357-gram cake form. The fermentation transforms the raw material directly into a ripe tea, standing in for the years of natural aging that Yiwu sheng would otherwise require.
-
-## Mood
-
-slow opening
-
-## Experience
-
-Fully boiled water, a small pot, short infusions. The session opens slowly and holds through many pours, the kind of cake that rewards patience rather than a quick tasting. Refined for a shou, and clearly carrying the source it came from. A tea to sit with rather than sample.

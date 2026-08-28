@@ -41,6 +41,19 @@ these — not the raw sections and not the internal notes.
 3. **One line on how it sits** — body, weight, general nature (a full-bodied red,
    a quiet settled shou). Use honest, specific sensory terms sparingly.
 
+## The core rule — AI writes objective fact only; the subjective parts are human
+
+- **An AI only writes the objective sections:** the intro (what the tea
+  factually is), `## Terroir` (origin, place, elevation, craft of the land),
+  and `## Processing` (leaf type, method, process). These are verifiable facts.
+- **`## Mood` and `## Experience` are SUBJECTIVE and must be human-written.**
+  An "experience" is something the actual drinker felt; an AI has no genuine
+  subjective access to it, so an AI-authored Mood/Experience is fabrication.
+- **Leave `## Mood` / `## Experience` EMPTY (or absent) until Adrian writes
+  them.** Do not invent them, do not have a model guess them, no "to be
+  written" boilerplate.
+- The felt character of a cup belongs to the person who drank it.
+
 ## Tastes and flavors NEVER go in the description
 
 - Taste/flavor notes (malt, honey, camphor, earthy, smooth, mineral, sweet,
