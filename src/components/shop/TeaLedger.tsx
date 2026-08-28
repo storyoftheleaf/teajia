@@ -132,15 +132,21 @@ export function TeaLedger({
                     }
                   }}
                 >
-                  <div className="flex items-center gap-4 py-3 pr-1 transition-colors group-hover:bg-tea-text/5">
+                  <div className="flex items-center gap-5 py-3 pr-1 transition-colors group-hover:bg-tea-text/5">
                     {/* The vintage on its liquor ground. A tea with no year
                         recorded still gets the ground, so the column never
                         collapses and the list never looks broken. Roughly half
                         the catalogue has no year, so the empty case is the
-                        common one, not the exception. */}
+                        common one, not the exception.
+
+                        Sized to the text beside it rather than above it: at
+                        52px it stood taller than the name and origin together,
+                        so the block set the height of every row and read as a
+                        box pinned to the margin. At 44 the text sets the row
+                        and the block sits inside it. */}
                     <div
                       style={{ backgroundColor: rowTones.markBg, color: rowTones.markFg }}
-                      className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-[2px] font-display text-ui-17 font-medium tracking-[0.03em] tabular-nums"
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[2px] font-display text-ui-16 font-medium tracking-[0.03em] tabular-nums"
                       aria-hidden="true"
                     >
                       {item.year || null}
