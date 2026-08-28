@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Check, Loader2, ChevronDown } from 'lucide-react';
 import { InventoryItem, Account } from '../types';
 import { CollectionTab } from './shop/CollectionTab';
+import { CurrencySelect } from './shop/CurrencySelect';
 import { TeaInventory } from './TeaInventory';
 import { TeawareCatalog } from './TeawareCatalog';
 import { PageHeader } from './shared/PageHeader';
@@ -370,62 +371,67 @@ export const Shop: React.FC<ShopProps> = ({
         onCartClick={onCartClick}
         onAccountClick={onAccountClick}
         cartItemCount={cartItemCount}
-        rightContent={networkStores.length > 1 ? (
-          <AnchoredMenu
-            align="right"
-            width={180}
-            className="!bg-tea-elevated"
-            role="listbox"
-            open={storePickerOpen}
-            onOpenChange={setStorePickerOpen}
-            trigger={(props) => (
-              <button
-                {...props}
-                type="button"
-                aria-label={`Choose store, currently ${activeStoreLabel}`}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-ui-12 text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors"
+        rightContent={
+          <div className="flex items-center gap-1">
+            <CurrencySelect />
+            {networkStores.length > 1 ? (
+              <AnchoredMenu
+                align="right"
+                width={180}
+                className="!bg-tea-elevated"
+                role="listbox"
+                open={storePickerOpen}
+                onOpenChange={setStorePickerOpen}
+                trigger={(props) => (
+                  <button
+                    {...props}
+                    type="button"
+                    aria-label={`Choose store, currently ${activeStoreLabel}`}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-ui-12 text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors"
+                  >
+                    <Icons.Location className="w-3.5 h-3.5 text-tea-text-sec" />
+                    <span className="tracking-wide">{activeStoreLabel}</span>
+                    <ChevronDown className={`w-3 h-3 transition-transform ${storePickerOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                )}
               >
-                <Icons.Location className="w-3.5 h-3.5 text-tea-text-sec" />
-                <span className="tracking-wide">{activeStoreLabel}</span>
-                <ChevronDown className={`w-3 h-3 transition-transform ${storePickerOpen ? 'rotate-180' : ''}`} />
-              </button>
-            )}
-          >
-            {(close) => (
-              <>
-                {networkStores.map(store => {
-                  const isActive = store.slug === (shopStoreSlug || 'teajia-bali');
-                  return (
-                    <button
-                      type="button"
-                      key={store.slug}
-                      role="option"
-                      aria-selected={isActive}
-                      onClick={() => {
-                        setShopStoreSlug(store.slug === 'teajia-bali' ? null : store.slug);
-                        close();
-                      }}
-                      className={`w-full text-left px-3 py-2 flex items-center gap-2.5 text-ui-13 transition-colors ${
-                        isActive
-                          ? 'text-tea-text bg-tea-accent-sub'
-                          : 'text-tea-text hover:bg-tea-accent-sub'
-                      }`}
-                    >
-                      <Icons.Location className="w-3.5 h-3.5 shrink-0 text-tea-text-dim" />
-                      <div className="flex-1 min-w-0">
-                        <div className="truncate text-ui-13">{store.location_city || store.name}</div>
-                        {store.location_country && (
-                          <div className="text-ui-10 text-tea-text-dim truncate">{store.location_country}</div>
-                        )}
-                      </div>
-                      {isActive && <Check className="w-3.5 h-3.5 text-tea-gold shrink-0" aria-hidden="true" />}
-                    </button>
-                  );
-                })}
-              </>
-            )}
-          </AnchoredMenu>
-        ) : undefined}
+                {(close) => (
+                  <>
+                    {networkStores.map(store => {
+                      const isActive = store.slug === (shopStoreSlug || 'teajia-bali');
+                      return (
+                        <button
+                          type="button"
+                          key={store.slug}
+                          role="option"
+                          aria-selected={isActive}
+                          onClick={() => {
+                            setShopStoreSlug(store.slug === 'teajia-bali' ? null : store.slug);
+                            close();
+                          }}
+                          className={`w-full text-left px-3 py-2 flex items-center gap-2.5 text-ui-13 transition-colors ${
+                            isActive
+                              ? 'text-tea-text bg-tea-accent-sub'
+                              : 'text-tea-text hover:bg-tea-accent-sub'
+                          }`}
+                        >
+                          <Icons.Location className="w-3.5 h-3.5 shrink-0 text-tea-text-dim" />
+                          <div className="flex-1 min-w-0">
+                            <div className="truncate text-ui-13">{store.location_city || store.name}</div>
+                            {store.location_country && (
+                              <div className="text-ui-10 text-tea-text-dim truncate">{store.location_country}</div>
+                            )}
+                          </div>
+                          {isActive && <Check className="w-3.5 h-3.5 text-tea-gold shrink-0" aria-hidden="true" />}
+                        </button>
+                      );
+                    })}
+                  </>
+                )}
+              </AnchoredMenu>
+            ) : null}
+          </div>
+        }
       >
         <PageHeaderTabs
           tabs={TABS}
