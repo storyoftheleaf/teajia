@@ -18,7 +18,7 @@ Status: the base exists and the import reads from it. Fourteen surfaces still ca
 
 ## Active queue
 
-- [ ] **Retire the shop and public tea-type lists.** _(agent-runnable)_ `src/types.ts`, `ShopSearch`, `TeaInventory`, `tags.ts`, `designTokens`, `brewing-profiles` each carry their own list. Import from `src/wisdom` and wrap stored values in `normalizeTeaType`.
+- [ ] **Retire the shop and public tea-type lists.** _(agent-runnable)_ `src/types.ts`, `ShopSearch`, `TeaInventory`, `tags.ts`, `designTokens` each carry their own list. Import from `src/wisdom` and wrap stored values in `normalizeTeaType`.
 
 - [ ] **Retire the admin tea-type lists.** _(agent-runnable)_ `inventory/config.ts`, `CatalogView`, `CollectionEditView`, `InventoryEditor`, `themeUtils`, `TeaIllustration`, `intakeMapping` each carry their own. Same treatment.
 

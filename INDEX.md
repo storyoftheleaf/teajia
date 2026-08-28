@@ -200,7 +200,6 @@ src/  (872 files, 221,315 lines)
 │   │   ├── adviseProjects.ts  → adviseProjects
 │   │   ├── adviseTestimonials.ts  → AdviseTestimonial, adviseTestimonials
 │   │   ├── archiveResources.ts  → ARCHIVED_RESOURCES
-│   │   ├── brewing-profiles.ts  → BrewingProfile, BREWING_PROFILES, getBrewingProfile
 │   │   ├── commonTastingByStyle.ts  → COMMON_TASTING_BY_STYLE, getCommonTastingForType
 │   │   ├── communityWisdom.ts  → WisdomType, CommunityWisdomEntry, WISDOM_TYPE_LABELS, COMMUNITY_WISDOM
 │   │   ├── contributorCollections.ts  → ContributorCollection, CONTRIBUTOR_COLLECTIONS
