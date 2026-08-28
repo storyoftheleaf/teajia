@@ -108,7 +108,6 @@ export const Shop: React.FC<ShopProps> = ({
   const [storePickerOpen, setStorePickerOpen] = useState(false);
   const scrollRef = useScrollRestoration('scroll-shop');
 
-  const recentlyViewed = useAppStore(state => state.recentlyViewed);
   const shopStoreSlug = useAppStore(state => state.shopStoreSlug);
   const setShopStoreSlug = useAppStore(state => state.setShopStoreSlug);
 
@@ -335,7 +334,7 @@ export const Shop: React.FC<ShopProps> = ({
   };
 
   const renderSets = () => (
-    <div className="max-w-full mx-auto pt-4 animate-[fadeIn_0.5s_ease-out]">
+    <div className="max-w-full mx-auto pt-4 md:px-4 lg:px-6 animate-[fadeIn_0.5s_ease-out]">
       {STARTER_TEA_SETS.length === 0 && STARTER_TEAWARE_SETS.length === 0 ? (
         <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
           <Icons.Box className="w-7 h-7 text-tea-text-dim" strokeWidth={1.25} />
@@ -511,51 +510,11 @@ export const Shop: React.FC<ShopProps> = ({
 
         {!isError && activeTab === 'sets' && renderSets()}
 
-        {/* #34: Recently Viewed */}
-        {!isError && recentlyViewed.length > 0 && (() => {
-          const recentItems = recentlyViewed
-            .map(id => allInventory.find(item => item.id === id))
-            .filter((item): item is InventoryItem => item !== undefined)
-            .slice(0, 10);
-          if (recentItems.length === 0) return null;
-          return (
-            <div className="pb-8 pt-6">
-              <p className="label-caps text-tea-text-dim mb-3">Recently Viewed</p>
-              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory">
-                {recentItems.map(item => {
-                  const isTea = item.category === 'tea';
-                  const unitPrice = parseFloat((isTea ? item.price_per_gram : item.price_50g) || '0');
-                  const qty = isTea ? 50 : 1;
-                  return (
-                    <button
-                      type="button"
-                      key={item.id}
-                      onClick={() => onAddToCart(item, qty, unitPrice * qty)}
-                      aria-label={`Add ${item.name} to cart`}
-                      className="text-left flex-shrink-0 snap-start w-28 group focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg rounded-md"
-                    >
-                      <div className="w-28 h-28 bg-tea-surface border border-tea-border rounded-md overflow-hidden mb-2">
-                        {item.image ? (
-                          <img src={item.image} alt="" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.06]" loading="lazy" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Icons.Leaf className="w-8 h-8 text-tea-text-dim" aria-hidden="true" />
-                          </div>
-                        )}
-                      </div>
-                      <p className="font-display text-ui-13 text-tea-text leading-snug line-clamp-2">{item.name}</p>
-                      <p className="text-ui-10 text-tea-text-sec mt-0.5 font-mono tabular-nums">
-                        {isTea
-                          ? shopPrice.perGram(unitPrice)
-                          : `${shopPrice.total(unitPrice)} each`}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })()}
+        {/* Recently Viewed was two strips, one here and one inside the tea
+            list, both rendering at once on the tea tab. Both are gone: with no
+            photography the tiles were placeholder glyphs in a row of empty
+            boxes, which is the last thing a visitor saw on the shop floor.
+            Worth restoring when the products carry images. */}
       </div>
 
       {/* Cart access is now handled by the global CartIndicator in App.tsx */}

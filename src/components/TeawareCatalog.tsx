@@ -155,7 +155,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
         />
       ) : (
         /* Compact toolbar when embedded as a tab (hideHeader) */
-        <div className="flex items-center justify-between py-2">
+        <div className="flex items-center justify-between py-2 md:px-4 lg:px-6">
           <PageHeaderActions
             viewMode={viewMode}
             onViewModeChange={setViewMode}
@@ -167,7 +167,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
       )}
 
       {/* --- Inline Filter Chips + Content --- */}
-      <div className="max-w-full mx-auto pt-4">
+      <div className="max-w-full mx-auto pt-4 md:px-4 lg:px-6">
 
         {/* Category filter chips, matching tea's type chips */}
         <div className="mb-4 space-y-3">

@@ -8,7 +8,6 @@ import { AlcoveModal } from './shop/AlcoveModal';
 import { TastingEditorModal } from '../admin/components/TastingEditorModal';
 import { resolveTermLabel, resolveTermIcon, TASTING_TAXONOMY, TERM_MAP, type TastingCategoryId } from '../data/tastingTaxonomy';
 import { getCommonTastingForType } from '../data/commonTastingByStyle';
-import { TeaPlaceholder } from './shop/TeaPlaceholder';
 import { PageHeader } from './shared/PageHeader';
 import { PageHeaderTabs } from './shared/PageHeaderTabs';
 import { useShopPrice } from './shop/shopPrice';
@@ -334,11 +333,6 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   const clearTastingFilter = useCallback(() => setTastingFilter(null), []);
 
   // Recently viewed items resolved from inventory
-  const recentlyViewedItems = useMemo(() => {
-    return recentlyViewed
-      .map(id => inventory.find(item => item.id === id))
-      .filter(Boolean) as TeaItem[];
-  }, [recentlyViewed, inventory]);
 
   // Tasting Session State
   const [tastingItem, setTastingItem] = useState<TeaItem | null>(null);
@@ -602,7 +596,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       )}
 
       {/* --- Inline Filter Bar + Content (full width) --- */}
-      <div className="max-w-full mx-auto pt-4">
+      <div className="max-w-full mx-auto pt-4 md:px-4 lg:px-6">
 
          <TeaShopViewTabs active={teaView} onChange={handleTeaViewChange} />
          <TeaShopViewRegion active={teaView} count={filteredInventory.length} showPast={showPast}>
@@ -1030,33 +1024,6 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
          </TeaShopViewRegion>
       </div>
 
-      {/* Recently Viewed */}
-      {teaView !== 'find' && recentlyViewedItems.length > 0 && filteredInventory.length > 0 && (
-        <div className="mt-10">
-          <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mb-3">Recently Viewed</p>
-          <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2">
-            {recentlyViewedItems.map(item => (
-              <button
-                key={item.id}
-                onClick={() => openProduct(item)}
-                className="flex flex-col items-center shrink-0 group"
-                style={{ width: '72px' }}
-              >
-                <div className="w-14 h-14 rounded-md overflow-hidden bg-tea-elevated mb-1.5 group-hover:ring-1 group-hover:ring-tea-gold/30 transition-all">
-                  {item.image ? (
-                    <img src={item.image} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
-                  ) : (
-                    <TeaPlaceholder type={item.type} style={{ width: '100%', height: '100%' }} />
-                  )}
-                </div>
-                <span className="text-ui-10 text-tea-text-sec text-center leading-tight line-clamp-2 group-hover:text-tea-text transition-colors">
-                  {item.name}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Floating Compare Button */}
       {compareItems.length > 0 && (
