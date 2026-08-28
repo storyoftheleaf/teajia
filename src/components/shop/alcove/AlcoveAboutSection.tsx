@@ -49,6 +49,36 @@ export const AlcoveAboutSection: React.FC<AlcoveAboutSectionProps> = ({
 
   const paragraphClass =
     'm-0 whitespace-pre-line font-body text-ui-14 font-normal leading-[1.75] text-tea-text-sec [&+p]:mt-[9px]';
+  const headingClass =
+    'm-0 font-sans text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim [&:not(:first-child)]:mt-5 first:mt-0';
+
+  // Render prose that may carry simple `## Section` markdown headers as real
+  // labels instead of literal '##' characters. Split on lines that begin with
+  // '## '; those become heading rows, everything else stays a paragraph.
+  function renderMarkdown(text: string) {
+    const lines = text.split('\n');
+    const blocks: React.ReactNode[] = [];
+    let para: string[] = [];
+    let key = 0;
+    const flush = () => {
+      const content = para.join('\n').trim();
+      if (content) {
+        blocks.push(<p key={`p${key++}`} className={paragraphClass}>{content}</p>);
+      }
+      para = [];
+    };
+    for (const line of lines) {
+      if (/^#{1,3}\s+/.test(line)) {
+        flush();
+        const label = line.replace(/^#{1,3}\s+/, '').trim();
+        if (label) blocks.push(<p key={`h${key++}`} className={headingClass}>{label}</p>);
+      } else {
+        para.push(line);
+      }
+    }
+    flush();
+    return blocks;
+  }
 
   return (
     <section aria-label="About this tea">
@@ -69,10 +99,10 @@ export const AlcoveAboutSection: React.FC<AlcoveAboutSectionProps> = ({
                 </a>
               </p>
             ) : (
-              <p className={paragraphClass}>{fullStory}</p>
+              renderMarkdown(fullStory)
             ))}
-          {terroir && <p className={paragraphClass}>{terroir}</p>}
-          {processing && <p className={paragraphClass}>{processing}</p>}
+          {terroir && renderMarkdown(terroir)}
+          {processing && renderMarkdown(processing)}
         </div>
       )}
 
