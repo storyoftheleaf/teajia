@@ -82,7 +82,7 @@ worth deciding with him rather than for him:
 
 ## State when this was written
 Branch `import-destination-options`, 43 commits, open at
-https://github.com/technicianofthesacred/teajia/pull/284
+https://github.com/storyoftheleaf/teajia/pull/284
 
 All checks pass: 1,368 unit checks, the import and inventory browser tests, a clean build.
 
