@@ -89,14 +89,14 @@ class MovementStatement {
         this.db.ledger.push({ id, product_id, delta, balance_after, movement_unit, reason, movement_type, idempotency_key: null, user_email, note, batch_id, account_id, source_compass_entry_id, movement_fingerprint });
         return { meta: { changes: 1 } };
       }
-      const guard = this.values.at(-1); if (!this.db.products.values().some(row => row.stock_movement_guard === guard)) return { meta: { changes: 0 } };
+      const guard = this.values.at(-1); if (![...this.db.products.values()].some(row => row.stock_movement_guard === guard)) return { meta: { changes: 0 } };
       const [id, product_id, delta, balance_after, movement_unit, reason, movement_type, idempotency_key, source_invoice_id, source_invoice_number, user_email, note, batch_id, account_id, source_compass_entry_id, , movement_fingerprint] = this.values;
       if (this.db.ledger.some(row => row.account_id === account_id && row.idempotency_key === idempotency_key)) throw new Error('UNIQUE idempotency');
       this.db.ledger.push({ id, product_id, delta, balance_after, movement_unit, reason, movement_type, idempotency_key, source_invoice_id, source_invoice_number, user_email, note, batch_id, account_id, source_compass_entry_id, movement_fingerprint });
       return { meta: { changes: 1 } };
     }
     if ((sql.startsWith('insert into batches') || sql.startsWith('update inventory_receipt')) && sql.includes('stock_movement_guard')) {
-      const guard = this.values.at(-1); if (!this.db.products.values().some(row => row.stock_movement_guard === guard)) return { meta: { changes: 0 } };
+      const guard = this.values.at(-1); if (![...this.db.products.values()].some(row => row.stock_movement_guard === guard)) return { meta: { changes: 0 } };
       this.db.receiptSideEffects++; return { meta: { changes: 1 } };
     }
     return { meta: { changes: 1 } };
