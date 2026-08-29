@@ -160,7 +160,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
     {
       key: 'custom',
       label: 'Custom',
-      sub: customActive ? `${grams} g · ${priceFor(grams)}` : 'From 10 g',
+      sub: customActive ? `${grams} g · ${priceFor(grams)}` : 'Other amount',
       active: customActive,
       ariaLabel: 'Custom amount, including sample sizes',
       onSelect: () => setCustomMode(true),
