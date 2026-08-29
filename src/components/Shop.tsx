@@ -82,11 +82,13 @@ interface ShopProps {
   modalLocation?: Location;
 }
 
+// Text only. Four glyphs above four words said nothing the words did not, and
+// the icon carried no state the active underline was not already carrying.
 const TABS = [
-  { id: 'tea', label: 'Tea', icon: <Icons.Leaf className="w-4 h-4" /> },
-  { id: 'teaware', label: 'Teaware', icon: <Icons.Teapot className="w-4 h-4" /> },
-  { id: 'sets', label: 'Sets', icon: <Icons.Box className="w-4 h-4" /> },
-  { id: 'collection', label: 'Liked', icon: <Icons.Heart className="w-4 h-4" /> },
+  { id: 'tea', label: 'Tea' },
+  { id: 'teaware', label: 'Teaware' },
+  { id: 'sets', label: 'Sets' },
+  { id: 'collection', label: 'Liked' },
 ];
 
 export const Shop: React.FC<ShopProps> = ({
@@ -367,6 +369,7 @@ export const Shop: React.FC<ShopProps> = ({
       </Helmet>
       <PageHeader
         title="Shop"
+        subtitle="Sourced by hand, one lot at a time."
         onCartClick={onCartClick}
         onAccountClick={onAccountClick}
         cartItemCount={cartItemCount}

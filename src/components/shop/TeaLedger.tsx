@@ -52,6 +52,23 @@ function leadSentence(description: string): string {
   return end === -1 ? text : text.slice(0, end + 1);
 }
 
+/**
+ * One line of plain fact per type, sitting beside the heading it belongs to.
+ * Category facts, not brand voice: what the leaf went through, in the register
+ * the product descriptions use. Any of these is Adrian's to overwrite.
+ */
+const TYPE_NOTES: Record<string, string> = {
+  Green: 'Unoxidised, fired soon after picking',
+  Yellow: 'Fired, then smothered to mellow',
+  White: 'Withered and dried, barely handled',
+  Oolong: 'Partly oxidised, rolled and roasted',
+  Red: 'Oxidised whole leaf, warm and low',
+  Dark: 'Post-fermented, aged after pressing',
+  Sheng: 'Raw pu-erh, left to age on its own',
+  Shou: 'Ripened pu-erh, settled and dark',
+  Herbal: 'No tea leaf, brewed the same way',
+};
+
 export function TeaLedger({
   groups,
   activeType,
@@ -75,10 +92,17 @@ export function TeaLedger({
         return (
           <Fragment key={group.type}>
             {activeType === 'All' && specialFilter === 'None' && (
-              <div className="flex items-baseline justify-between pt-9 first:pt-2 pb-2.5">
-                <h2 className="font-display text-ui-26 font-normal tracking-[0.02em] text-tea-text">
-                  {group.type}
-                </h2>
+              <div className="flex items-baseline justify-between gap-4 pt-9 first:pt-2 pb-2.5">
+                <div className="flex min-w-0 items-baseline gap-3">
+                  <h2 className="font-display text-ui-26 font-normal tracking-[0.02em] text-tea-text">
+                    {group.type}
+                  </h2>
+                  {TYPE_NOTES[group.type] && (
+                    <p className="hidden truncate font-body text-ui-13 italic leading-snug text-tea-text-sec sm:block">
+                      {TYPE_NOTES[group.type]}
+                    </p>
+                  )}
+                </div>
                 <span className="num text-ui-11 text-tea-text-dim tabular-nums">
                   {String(group.items.length).padStart(2, '0')}
                 </span>
@@ -170,7 +194,7 @@ export function TeaLedger({
                           </span>
                         )}
                       </div>
-                      <div className="mt-1 truncate text-ui-11 tracking-[0.03em] text-tea-text-sec">
+                      <div className="mt-1 truncate font-sans text-ui-11 tracking-[0.04em] text-tea-text-sec">
                         {showType && (
                           <>
                             <span className="uppercase">{item.type}</span>

@@ -6,6 +6,8 @@ import { useTheme } from '../../context/ThemeContext';
 interface PageHeaderProps {
   children?: React.ReactNode;
   title?: string;
+  /** Sits beside the title on desktop, under it on a phone. */
+  subtitle?: string;
   rightContent?: React.ReactNode;
   toolbar?: React.ReactNode;
   className?: string;
@@ -19,6 +21,7 @@ interface PageHeaderProps {
 export const PageHeader: React.FC<PageHeaderProps> = ({
   children,
   title,
+  subtitle,
   rightContent,
   toolbar,
   className = '',
@@ -73,12 +76,19 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         {(title || hasUtilityButtons) && (
           <div className={`flex items-center justify-between transition-all duration-500 ease-out ${titlePadding}`}>
             {title && (
-              <h1
-                className={`font-serif font-normal text-tea-text leading-tight tracking-[0.02em] pl-1 lg:pl-0 ${titleSize}`}
-                style={{ fontFamily: 'var(--font-display)' }}
-              >
-                {title}
-              </h1>
+              <div className="flex min-w-0 flex-col gap-0.5 pl-1 lg:flex-row lg:items-baseline lg:gap-4 lg:pl-0">
+                <h1
+                  className={`font-serif font-normal text-tea-text leading-tight tracking-[0.02em] ${titleSize}`}
+                  style={{ fontFamily: 'var(--font-display)' }}
+                >
+                  {title}
+                </h1>
+                {subtitle && (
+                  <p className="truncate font-body text-ui-13 italic leading-snug text-tea-text-sec">
+                    {subtitle}
+                  </p>
+                )}
+              </div>
             )}
             <div className="flex items-center gap-2 ml-auto">
               {rightContent && (
