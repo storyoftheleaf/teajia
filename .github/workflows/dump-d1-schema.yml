@@ -10,17 +10,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Inspect key tables
+      - name: Dump live schema to artifact
         working-directory: worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          for t in products tea_reviews tea_samples tea_compass_entries d1_migrations; do
-            echo "=== $t columns ==="
-            npx wrangler d1 execute teajia-db --remote --json --command "PRAGMA table_info($t)" 2>/dev/null
-            echo "=== $t indexes ==="
-            npx wrangler d1 execute teajia-db --remote --json --command "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='$t'" 2>/dev/null
-          done
-          echo "=== d1_migrations rows ==="
-          npx wrangler d1 execute teajia-db --remote --json --command "SELECT name FROM d1_migrations ORDER BY name" 2>/dev/null
+          echo "-- LIVE SCHEMA DUMP --" > /tmp/live.sql
+          npx wrangler d1 execute teajia-db --remote --command "SELECT sql FROM sqlite_master WHERE sql IS NOT NULL ORDER BY name" 2>/dev/null | sed 's/^[[:space:]]*//' >> /tmp/live.sql
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-schema
+          path: /tmp/live.sql
