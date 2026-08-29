@@ -18,7 +18,7 @@ interface AlcoveAboutSectionProps {
 
 /**
  * "About this tea": each populated field renders as its own labeled block
- * (TERROIR / PROCESSING / MOOD / EXPERIENCE), not concatenated into one blob —
+ * (TERROIR / PROCESSING / MOOD / EXPERIENCE), not concatenated into one blob.
  * so no section repeats and each reads clearly. `description` is treated as
  * personal / tasting notes and only renders when it actually has content, so
  * an empty or AI-authored-experience never clutters the page.
@@ -90,7 +90,7 @@ export const AlcoveAboutSection: React.FC<AlcoveAboutSectionProps> = ({
 
   return (
     <section aria-label="About this tea">
-      {/* TERROIR / PROCESSING / MOOD / EXPERIENCE — each a clean subheader block */}
+      {/* TERROIR / PROCESSING / MOOD / EXPERIENCE. Each a clean subheader block. */}
       <div className="px-6">
         {labeledSection('Terroir', terroir)}
         {labeledSection('Processing', processing)}
@@ -105,7 +105,7 @@ export const AlcoveAboutSection: React.FC<AlcoveAboutSectionProps> = ({
         )}
       </div>
 
-      {/* DESCRIPTION — Adrian's personal / tasting notes. Only shown when present. */}
+      {/* DESCRIPTION. Adrian's personal / tasting notes. Only shown when present. */}
       {introduction.trim() && (
         <div className="mx-6 mt-5 border-t border-tea-border pt-4">
           <p className={headingClass}>Adrian&apos;s notes</p>
