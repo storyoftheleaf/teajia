@@ -41,15 +41,21 @@ function splitOrigin(origin: string): { near: string; mid: string; far: string }
 }
 
 /**
- * The lead sentence of the description, for the middle column. Descriptions are
- * written in house voice about place, craft and character (flavours live in
- * tasting_notes), so the first sentence is a curator's line, not a spec.
+ * One line for the middle column, and where to find it.
+ *
+ * `description` used to hold the factual write-up and now holds Adrian's
+ * personal notes, present on only some teas, so reading it alone left the
+ * middle of every row empty. Terroir leads instead: it is the field about
+ * place, and place is what this row is already saying. Processing is the
+ * fallback, then whatever personal note exists.
  */
-function leadSentence(description: string): string {
-  const text = description.trim();
-  if (!text) return '';
-  const end = text.search(/[.!?](\s|$)/);
-  return end === -1 ? text : text.slice(0, end + 1);
+function curatorLine(item: InventoryItem): string {
+  const source = [item.terroir, item.processingNotes, item.description]
+    .map(v => (v || '').trim())
+    .find(Boolean);
+  if (!source) return '';
+  const end = source.search(/[.!?](\s|$)/);
+  return end === -1 ? source : source.slice(0, end + 1);
 }
 
 /**
@@ -109,7 +115,7 @@ export function TeaLedger({
               </div>
             )}
             {activeType === 'All' && specialFilter === 'None' && (
-              <div className="h-px bg-tea-gold/20" aria-hidden="true" />
+              <div className="-mx-3 px-3 md:-mx-4 md:px-4 h-px bg-tea-gold/20" aria-hidden="true" />
             )}
 
             {group.items.map(item => {
@@ -135,7 +141,7 @@ export function TeaLedger({
                 : null;
 
               const origin = splitOrigin(item.origin || '');
-              const lead = leadSentence(item.description || '');
+              const lead = curatorLine(item);
               const tastingCount = tastingCounts.get(item.id) || 0;
 
               return (
@@ -147,8 +153,12 @@ export function TeaLedger({
                   style={{
                     backgroundImage: `linear-gradient(to right, ${rowTones.wash}, transparent 38%)`,
                   }}
-                  className="group border-b border-tea-border transition-colors cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/30"
+                  className="-mx-3 px-3 md:-mx-4 md:px-4 border-b border-tea-border transition-colors cursor-pointer hover:bg-tea-text/5 focus:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/30"
                   onClick={() => onOpenProduct(item)}
+                  /* The ground and the rule reach back across the shop's
+                     gutter, so the row is a field the content sits inside
+                     rather than a band that begins where the block begins.
+                     Same on both sides, so nothing lands on a rule's end. */
                   onKeyDown={event => {
                     if (event.key === 'Enter' || event.key === ' ') {
                       event.preventDefault();
@@ -156,7 +166,7 @@ export function TeaLedger({
                     }
                   }}
                 >
-                  <div className="flex items-center gap-5 py-3 pr-1 transition-colors group-hover:bg-tea-text/5">
+                  <div className="flex items-center gap-5 py-3 md:py-4">
                     {/* The vintage on its liquor ground. A tea with no year
                         recorded still gets the ground, so the column never
                         collapses and the list never looks broken. Roughly half

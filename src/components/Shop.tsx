@@ -338,7 +338,7 @@ export const Shop: React.FC<ShopProps> = ({
   };
 
   const renderSets = () => (
-    <div className="max-w-full mx-auto pt-4 md:px-4 lg:px-6 animate-[fadeIn_0.5s_ease-out]">
+    <div className="max-w-full mx-auto pt-4 px-3 md:px-4 animate-[fadeIn_0.5s_ease-out]">
       {STARTER_TEA_SETS.length === 0 && STARTER_TEAWARE_SETS.length === 0 ? (
         <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
           <Icons.Box className="w-7 h-7 text-tea-text-dim" strokeWidth={1.25} />
@@ -372,6 +372,7 @@ export const Shop: React.FC<ShopProps> = ({
       <PageHeader
         title="Shop"
         subtitle="Sourced by hand, one lot at a time."
+        gutter="mx-3 md:mx-4"
         onCartClick={onCartClick}
         onAccountClick={onAccountClick}
         cartItemCount={cartItemCount}
@@ -442,6 +443,8 @@ export const Shop: React.FC<ShopProps> = ({
           activeTab={activeTab}
           onChange={(tabId) => setActiveTab(tabId as ShopTab)}
           fit
+          hairlines={false}
+          gutter="mx-3 md:mx-4"
         />
       </PageHeader>
 

@@ -3,7 +3,7 @@ productName: "Mahei Gushu Red"
 chineseName: "麻黑古树红茶"
 type: Red
 form: Loose Leaf
-year: Unknown
+year: 2025
 origin: "Mahei, Yiwu, Xishuangbanna, Yunnan, China"
 grams: 1000
 stock: 100
@@ -11,6 +11,7 @@ stock_known_at: null
 cost: "470 Yuan"
 vendor: "Kunming Xiongda"
 restockable: true
+teaser: ""
 tastingNotes:
   - "malt"
   - "honey"
@@ -18,14 +19,16 @@ tastingNotes:
   - "mellow"
 ---
 
-A red tea made from ancient-tree leaf grown in Mahei village, inside the greater Yiwu region.
+A red tea from the old caravan mountains where imperial tribute was once picked.
 
-Mahei (麻黑) is one of Yiwu's respected small origins, a village ringed by old forest and known for the reliability of its old trees. Processing Yiwu gushu material as a red tea instead of sheng is an unusual choice that pushes the leaf in a different direction while keeping the source intact.
+## Lore
+
+Mahei is a small village a short distance north of Yiwu town, tucked inside one of the Qing dynasty's Six Famous Tea Mountains. The Dai name for the wider area means 'place where beautiful snakes live', and its leaf once traveled out as tribute to the emperor.
 
 ## Terroir
 
-Mahei village, Yiwu township, Mengla county, Xishuangbanna. The village sits inside the historic Yiwu tea forests at moderate tropical elevation. Old-growth trees, deep root systems, and the biodiverse forest floor produce leaf of the same lineage that built Yiwu's reputation in the sheng world.
+The country here sits between roughly 910 and 1700 meters along the border with Laos, with forest coverage reaching about 88%. Tea across the region grows as Yunnan assamica under a high canopy, in gardens once linked to the old caravan trails that carried leaf toward the capital. The area is known for aged forest stands.
 
 ## Processing
 
-Whole-leaf large-leaf Yunnan cultivar, fully oxidized in the traditional red-tea method and left loose. The oxidation carries the leaf away from the raw sheng character it would otherwise become, but the underlying old-tree material remains the source of the cup's structure.
+Made from Yunnan assamica leaf, fully oxidized in the traditional hong cha (red tea) method. Kept as loose leaf.

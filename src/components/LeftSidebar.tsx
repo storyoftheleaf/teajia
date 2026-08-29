@@ -7,6 +7,7 @@ import { Section } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore, selectHasBundle, selectIsOwnerTier } from '../lib/store';
+import type { SidebarRoom } from '../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 // Phosphor (Light weight), refined hairlines, replaces the generic lucide
 // stock icons in the admin nav. Browse keeps its hand-drawn brand icons.
@@ -21,6 +22,13 @@ import { useSampleCartStore } from '../samples/sampleCartStore';
 import { ADMIN_CONNECTION_ROUTES, getVisibleAdminItemIds } from './navigationConnections';
 
 const PHOSPHOR_WEIGHT = 'light' as const;
+
+// The two rooms of the column. Only one hierarchy is visible at a time; the
+// switch sits under the account row (a marked button on the collapsed rail).
+const ROOMS: { id: SidebarRoom; label: string }[] = [
+  { id: 'browse', label: 'Browse' },
+  { id: 'manage', label: 'Manage' },
+];
 
 const GRAIN = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
 
@@ -155,7 +163,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const navigate = useNavigate();
   const currentPath = location.pathname;
   const isAdminRoute = currentPath.startsWith('/admin');
-  const { sidebarCollapsed: collapsed, toggleSidebarCollapsed, activeAccount } = useAppStore();
+  const { sidebarCollapsed: collapsed, toggleSidebarCollapsed, activeAccount, sidebarRoom, setSidebarRoom } = useAppStore();
   // Bundle gates for the network destinations (Step 2-6 of NETWORK_ROLLOUT_PLAN).
   // Reactive subscriptions so they update when memberships hydrate post-mount.
   const hasCatalog = useAppStore(s => selectHasBundle(s, 'catalog'));
@@ -168,7 +176,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
   // Sync sidebar width to CSS variable for full-screen panel offsets
   useEffect(() => {
-    document.documentElement.style.setProperty('--teajia-sidebar-w', collapsed ? '3.5rem' : '14rem');
+    document.documentElement.style.setProperty('--teajia-sidebar-w', collapsed ? '3.5rem' : '13rem');
   }, [collapsed]);
 
   // Cart badge pulse on item count increase
@@ -277,12 +285,46 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     : null;
   const locationLine = activeAccount?.location_city || activeAccount?.location_country || null;
 
+  // ── Rooms ─────────────────────────────────────────────────────────────────
+  // The column shows one hierarchy at a time. `manage` is the workshop; the
+  // browse room is the storefront, which on desktop is served by the floating
+  // tab bar, so browse here is the way back out to it rather than a second
+  // permanent list stacked under the admin one.
+  const curatorItems: NavItem[] = canCreateCollections
+    ? [{ id: 'collections', label: 'Collections', icon: <Stack size={18} weight={PHOSPHOR_WEIGHT} />, path: '/admin/collections' }]
+    : [];
+  // Settings leaves the list for the footer strip; it is a destination you
+  // reach a few times a month, not one you scan past twenty times a day.
+  const manageItems = visibleAdminItems.length > 0
+    ? visibleAdminItems.filter(item => item.id !== 'settings')
+    : curatorItems;
+  const hasSettingsRoute = visibleAdminItems.some(item => item.id === 'settings');
+  const hasManageRoom = auth.isAuthenticated && manageItems.length > 0;
+  const room: SidebarRoom = hasManageRoom ? sidebarRoom : 'browse';
+
+  // Landing on an admin route puts you in the workshop. Picking a room by hand
+  // does not navigate, so it survives until the next navigation, at which point
+  // the room and the route agree again.
+  useEffect(() => {
+    if (isAdminRoute) setSidebarRoom('manage');
+  }, [currentPath, isAdminRoute, setSidebarRoom]);
+
+  const accountInitial = (userName?.trim()?.[0] ?? '').toUpperCase();
+  const accountMetaLine = auth.isAuthenticated
+    ? [userName, locationLine].filter(Boolean).join(' · ')
+    : 'Sign in';
+
+  const iconButtonClass = (active: boolean) =>
+    `flex items-center justify-center w-11 h-11 rounded-md transition-colors duration-200 hover:bg-tea-gold/6 ${
+      active ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
+    }`;
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <LayoutGroup>
       <aside
-        className={`hidden lg:flex flex-col ${collapsed ? 'w-14' : 'w-56'} text-tea-text fixed left-0 overflow-y-auto hide-scrollbar border-r border-tea-border transition-all duration-300 z-sticky top-0 h-screen select-none`}
+        className={`hidden lg:flex flex-col ${collapsed ? 'w-14' : 'w-52'} text-tea-text fixed left-0 overflow-hidden border-r border-tea-border transition-all duration-300 z-sticky top-0 h-screen select-none`}
         style={{
           background: theme === 'dark' ? '#13100a' : 'var(--tea-surface)',
           boxShadow: '2px 0 16px rgb(var(--tea-bg-rgb) / 0.22)',
@@ -296,14 +338,11 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
         <div className="relative z-10 flex flex-col flex-1 min-h-0">
 
-          {/* ── Logo zone: Brand + Collapse toggle (expanded only) ──────────── */}
-          <div
-            className={`flex items-center shrink-0 h-14 border-b border-tea-border ${collapsed ? 'justify-center' : ''}`}
-          >
-            {/* Brand button, navigates home */}
+          {/* ── Brand ──────────────────────────────────────────────────────── */}
+          <div className={`flex items-center shrink-0 h-14 border-b border-tea-border ${collapsed ? 'justify-center' : ''}`}>
             <button
               onClick={() => { if (isAdminRoute) { navigate('/'); } else { onNavigate('HOME'); window.scrollTo({ top: 0, behavior: 'smooth' }); } }}
-              className={`relative flex items-center ${collapsed ? 'justify-center w-full h-full' : 'gap-3 px-5 h-full flex-1 min-w-0'} transition-colors duration-200 group ${
+              className={`relative flex items-center ${collapsed ? 'justify-center w-full h-full' : 'gap-3 px-4 h-full flex-1 min-w-0'} transition-colors duration-200 group ${
                 activeSection === 'HOME' && !isAdminRoute ? '' : 'hover:bg-tea-gold/6'
               }`}
               title="Home"
@@ -316,7 +355,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 />
               )}
               <LogoEmblem
-                size={collapsed ? 26 : 34}
+                size={collapsed ? 26 : 30}
                 color={theme === 'dark' ? '#c0b49a' : '#18130e'}
                 className={`shrink-0 transition-opacity duration-200 ${
                   activeSection === 'HOME' && !isAdminRoute ? 'opacity-100' : 'opacity-70 group-hover:opacity-100'
@@ -331,41 +370,14 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 </span>
               )}
             </button>
-
-            {/* Collapse trigger, expanded mode only; in collapsed mode the
-                expand toggle sits directly below the logo (next block) so the
-                control lives in the same top zone regardless of state. */}
-            {!collapsed && (
-              <button
-                onClick={toggleSidebarCollapsed}
-                className="shrink-0 px-3 h-full flex items-center text-tea-text-sec hover:text-tea-text transition-colors duration-200"
-                title="Collapse sidebar"
-                aria-label="Collapse sidebar"
-              >
-                <CaretLeft size={14} weight="bold" />
-              </button>
-            )}
           </div>
 
-          {/* Expand toggle, collapsed mode only, directly under the logo.
-              Keeps the collapse/expand control co-located in the header zone. */}
-          {collapsed && (
-            <button
-              onClick={toggleSidebarCollapsed}
-              className="w-full h-8 flex items-center justify-center border-b border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/6 transition-colors duration-200"
-              title="Expand sidebar"
-              aria-label="Expand sidebar"
-            >
-              <CaretRight size={14} weight="bold" />
-            </button>
-          )}
-
-          {/* ── Account Identity ──────────────────────────────────────────── */}
+          {/* ── Account, one row ───────────────────────────────────────────── */}
           <button
             onClick={onAccountClick}
-            className={`relative w-full flex items-center min-h-[48px] ${
-              collapsed ? 'justify-center px-2' : 'gap-3 px-5'
-            } py-3 border-b border-tea-border transition-colors duration-200 group ${
+            className={`relative w-full flex items-center shrink-0 min-h-[52px] ${
+              collapsed ? 'justify-center px-2' : 'gap-3 px-4'
+            } py-2 border-b border-tea-border transition-colors duration-200 group ${
               activeSection === 'YOUR_TABLE' ? '' : 'hover:bg-tea-gold/6'
             }`}
             title="Your Table"
@@ -377,16 +389,20 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 transition={{ type: 'spring', stiffness: 350, damping: 30 }}
               />
             )}
-            {collapsed && (
-              <Icons.User
-                className={`shrink-0 w-[18px] h-[18px] transition-colors duration-200 ${
-                  activeSection === 'YOUR_TABLE' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
-                }`}
-                strokeWidth={1.75}
-              />
-            )}
+            <span
+              className={`shrink-0 flex items-center justify-center w-7 h-7 rounded-full border border-tea-border transition-colors duration-200 ${
+                activeSection === 'YOUR_TABLE' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
+              }`}
+              aria-hidden="true"
+            >
+              {accountInitial ? (
+                <span className="font-display text-ui-15 leading-none">{accountInitial}</span>
+              ) : (
+                <Icons.User className="w-[15px] h-[15px]" strokeWidth={1.75} />
+              )}
+            </span>
             {!collapsed && (
-              <div className="min-w-0 flex-1 text-left">
+              <span className="min-w-0 flex-1 text-left flex flex-col gap-0.5">
                 <span
                   className={`${TYPOGRAPHY_CLASSES.navSidebar} block transition-colors duration-200 ${
                     activeSection === 'YOUR_TABLE' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
@@ -394,25 +410,15 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 >
                   Your Table
                 </span>
-                <span className={`${TYPOGRAPHY_CLASSES.accountMeta} text-tea-text-sec block mt-1`}>
-                  {userName ?? 'Sign in'}
+                <span className={`${TYPOGRAPHY_CLASSES.accountMeta} text-tea-text-sec block truncate`}>
+                  {accountMetaLine}
                 </span>
-                {locationLine && (
-                  <span className={`${TYPOGRAPHY_CLASSES.accountMeta} text-tea-text-sec block mt-0.5`}>
-                    ◉ {locationLine}
-                  </span>
-                )}
-                {!auth.isAuthenticated && (
-                  <span className="font-display text-ui-13 italic tracking-[0.02em] leading-[1.3] text-tea-text-sec block mt-1">
-                    your practice, kept
-                  </span>
-                )}
-              </div>
+              </span>
             )}
           </button>
 
-          {/* ── Search ────────────────────────────────────────────────────── */}
-          <div className={`${collapsed ? 'px-1.5 py-2' : 'px-3 py-2'} border-b border-tea-border`}>
+          {/* ── Search ─────────────────────────────────────────────────────── */}
+          <div className={`${collapsed ? 'px-1.5 py-2' : 'px-3 py-2'} border-b border-tea-border shrink-0`}>
             <button
               onClick={onSearchClick}
               className={`w-full flex items-center ${
@@ -434,138 +440,155 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             </button>
           </div>
 
-          {/* ── Browse Nav ────────────────────────────────────────────────── */}
-          {!collapsed && (
-            <div className="px-5 pt-4 pb-1.5">
-              <span className={`${TYPOGRAPHY_CLASSES.navSidebarGroup} text-tea-text-dim`}>
-                Browse
-              </span>
+          {/* ── Room switch ────────────────────────────────────────────────── */}
+          {hasManageRoom && !collapsed && (
+            <div className="px-3 py-3 shrink-0">
+              <div className="flex gap-[3px] p-[3px] rounded-md border border-tea-border bg-tea-gold/6">
+                {ROOMS.map(r => (
+                  <button
+                    key={r.id}
+                    onClick={() => setSidebarRoom(r.id)}
+                    aria-pressed={room === r.id}
+                    className={`flex-1 flex items-center justify-center min-h-[44px] rounded-md font-sans text-ui-11 font-semibold uppercase tracking-[0.14em] transition-colors duration-200 ${
+                      room === r.id ? 'bg-tea-gold/10 text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
+                    }`}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
-          <nav className={`flex flex-col ${collapsed ? 'pt-3 pb-3 px-1.5' : 'pb-3 px-3'} gap-0.5`}>
-            {browseItems.map((item, index) => {
-              // A path-override item (Read → /read) is active when on that path
-              // and navigates there; section items switch the section view.
-              const isActive = !isAdminRoute && (
-                item.path ? currentPath.startsWith(item.path) : activeSection === item.section
-              );
-              return (
-                <NavButton
-                  key={item.id}
-                  item={item}
-                  isActive={isActive}
-                  onClick={() => {
-                    if (item.path) {
-                      // Only scroll-in-place when already on the index page
-                      // itself (e.g. /read). On a sub-path article (/read/...
-                      // or /article/...) let the <Link> navigate back to the
-                      // index so "Read" returns to the Read homepage.
-                      if (currentPath === item.path) {
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+          {/* Collapsed rail: one marked button naming the room you are in, so a
+              column of icons never leaves you guessing which set you are seeing. */}
+          {hasManageRoom && collapsed && (
+            <button
+              onClick={() => setSidebarRoom(room === 'manage' ? 'browse' : 'manage')}
+              className="w-full flex flex-col items-center justify-center gap-1 py-2.5 border-b border-tea-border text-tea-gold hover:bg-tea-gold/6 transition-colors duration-200 shrink-0"
+              title={room === 'manage' ? 'In Manage, switch to Browse' : 'In Browse, switch to Manage'}
+            >
+              {room === 'manage'
+                ? <Briefcase size={17} weight={PHOSPHOR_WEIGHT} />
+                : <Storefront size={17} weight={PHOSPHOR_WEIGHT} />}
+              <span className="font-sans text-ui-8 font-semibold uppercase tracking-[0.16em] leading-none">
+                {room === 'manage' ? 'Manage' : 'Browse'}
+              </span>
+            </button>
+          )}
+
+          {/* ── The room ───────────────────────────────────────────────────── */}
+          <motion.div
+            key={room}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+            className="flex-1 min-h-0 overflow-y-auto hide-scrollbar"
+          >
+
+            {room === 'browse' && (
+              <nav className={`flex flex-col ${collapsed ? 'pt-3 pb-3 px-1.5' : 'pt-2 pb-3 px-3'} gap-0.5`}>
+                {browseItems.map((item, index) => {
+                  const isActive = !isAdminRoute && (
+                    item.path ? currentPath.startsWith(item.path) : activeSection === item.section
+                  );
+                  return (
+                    <NavButton
+                      key={item.id}
+                      item={item}
+                      isActive={isActive}
+                      onClick={() => {
+                        if (item.path) {
+                          if (currentPath === item.path) {
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }
+                          return;
+                        }
+                        if (!item.section) return;
+                        if (!isAdminRoute && item.section === activeSection) {
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                          return;
+                        }
+                        onNavigate(item.section);
+                      }}
+                      delay={0}
+                      collapsed={collapsed}
+                    />
+                  );
+                })}
+
+                {/* Cart, adjacent to Shop, separated by a thin rule */}
+                <div className="mt-1 pt-1 border-t border-tea-border">
+                  <motion.div
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
+                  >
+                    <button
+                      onClick={onCartClick}
+                      className={`relative w-full flex items-center min-h-[44px] ${
+                        collapsed ? 'justify-center px-2' : 'gap-3 px-4'
+                      } rounded-md transition-colors duration-200 group hover:bg-tea-gold/6`}
+                      title="Cart"
+                      aria-label={
+                        cartItemCount > 0 ? `Cart, ${cartItemCount} item${cartItemCount !== 1 ? 's' : ''}` : 'Cart'
                       }
-                      return; // <Link> handles navigation when not already there
-                    }
-                    if (!item.section) return;
-                    if (!isAdminRoute && item.section === activeSection) {
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                      return;
-                    }
-                    onNavigate(item.section);
-                  }}
-                  delay={index * 40}
-                  collapsed={collapsed}
-                />
-              );
-            })}
-
-            {/* Cart, lives adjacent to Shop, separated by a thin rule */}
-            <div className="mt-1 pt-1 border-t border-tea-border">
-              <motion.div
-                initial={{ opacity: 0, x: -6 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: (browseItems.length * 40) / 1000, duration: 0.25, ease: 'easeOut' }}
-              >
-                <button
-                  onClick={onCartClick}
-                  className={`relative w-full flex items-center min-h-[44px] ${
-                    collapsed ? 'justify-center px-2' : 'gap-3 px-4'
-                  } rounded-md transition-colors duration-200 group hover:bg-tea-gold/6`}
-                  title="Cart"
-                  aria-label={
-                    cartItemCount > 0 ? `Cart, ${cartItemCount} item${cartItemCount !== 1 ? 's' : ''}` : 'Cart'
-                  }
-                >
-                  {collapsed ? (
-                    <div className="relative shrink-0">
-                      <ShoppingCart
-                        size={18}
-                        weight={PHOSPHOR_WEIGHT}
-                        className="text-tea-text-sec group-hover:text-tea-text transition-colors duration-200"
-                      />
-                      {cartItemCount > 0 && (
-                        <div
-                          className={`absolute -top-2 -right-2.5 w-4 h-4 cta-solid text-ui-10 font-bold rounded-full flex items-center justify-center leading-none ${
-                            badgeAnimating ? 'cart-badge-pulse' : ''
-                          }`}
-                          aria-hidden="true"
-                        >
-                          {cartItemCount > 9 ? '9+' : cartItemCount}
+                    >
+                      {collapsed ? (
+                        <div className="relative shrink-0">
+                          <ShoppingCart
+                            size={18}
+                            weight={PHOSPHOR_WEIGHT}
+                            className="text-tea-text-sec group-hover:text-tea-text transition-colors duration-200"
+                          />
+                          {cartItemCount > 0 && (
+                            <div
+                              className={`absolute -top-2 -right-2.5 w-4 h-4 cta-solid text-ui-10 font-bold rounded-full flex items-center justify-center leading-none ${
+                                badgeAnimating ? 'cart-badge-pulse' : ''
+                              }`}
+                              aria-hidden="true"
+                            >
+                              {cartItemCount > 9 ? '9+' : cartItemCount}
+                            </div>
+                          )}
                         </div>
+                      ) : (
+                        <>
+                          <ShoppingCart
+                            size={18}
+                            weight={PHOSPHOR_WEIGHT}
+                            className="text-tea-text-sec group-hover:text-tea-text transition-colors duration-200 shrink-0"
+                          />
+                          <span className={`${TYPOGRAPHY_CLASSES.navSidebar} text-tea-text-sec group-hover:text-tea-text transition-colors duration-200`}>
+                            Cart
+                          </span>
+                          {cartItemCount > 0 && (
+                            <span
+                              className={`ml-auto w-5 h-5 cta-solid text-ui-10 font-bold rounded-full flex items-center justify-center shrink-0 leading-none ${
+                                badgeAnimating ? 'cart-badge-pulse' : ''
+                              }`}
+                              aria-hidden="true"
+                            >
+                              {cartItemCount > 9 ? '9+' : cartItemCount}
+                            </span>
+                          )}
+                          {sampleCount > 0 && (
+                            <span className={`${cartItemCount > 0 ? 'ml-2' : 'ml-auto'} flex items-center gap-1 text-ui-10 text-tea-gold/70`}>
+                              <SampleIcon className="w-[10px] h-[10px]" />
+                              {sampleCount}
+                            </span>
+                          )}
+                        </>
                       )}
-                    </div>
-                  ) : (
-                    <>
-                      <ShoppingCart
-                        size={18}
-                        weight={PHOSPHOR_WEIGHT}
-                        className="text-tea-text-sec group-hover:text-tea-text transition-colors duration-200 shrink-0"
-                      />
-                      <span className={`${TYPOGRAPHY_CLASSES.navSidebar} text-tea-text-sec group-hover:text-tea-text transition-colors duration-200`}>
-                        Cart
-                      </span>
-                      {cartItemCount > 0 && (
-                        <span
-                          className={`ml-auto w-5 h-5 cta-solid text-ui-10 font-bold rounded-full flex items-center justify-center shrink-0 leading-none ${
-                            badgeAnimating ? 'cart-badge-pulse' : ''
-                          }`}
-                          aria-hidden="true"
-                        >
-                          {cartItemCount > 9 ? '9+' : cartItemCount}
-                        </span>
-                      )}
-                      {sampleCount > 0 && (
-                        <span className={`${cartItemCount > 0 ? 'ml-2' : 'ml-auto'} flex items-center gap-1 text-ui-10 text-tea-gold/70`}>
-                          <SampleIcon className="w-[10px] h-[10px]" />
-                          {sampleCount}
-                        </span>
-                      )}
-                    </>
-                  )}
-                </button>
-              </motion.div>
-            </div>
-          </nav>
+                    </button>
+                  </motion.div>
+                </div>
+              </nav>
+            )}
 
-          {/* ── Admin Nav ─────────────────────────────────────────────────── */}
-          <AnimatePresence>
-            {auth.isAuthenticated && visibleAdminItems.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                {!collapsed && (
-                  <div className="px-5 pt-5 pb-1.5">
-                    <span className={`${TYPOGRAPHY_CLASSES.navSidebarGroup} text-tea-text-dim`}>
-                      Manage
-                    </span>
-                  </div>
-                )}
-                <nav
-                  className={`flex flex-col gap-0.5 ${collapsed ? 'px-1.5 pt-3 pb-3' : 'px-3 pb-3'}`}
-                >
-                {visibleAdminItems.map((item, index) => {
+            {room === 'manage' && (
+              <nav className={`flex flex-col gap-0.5 ${collapsed ? 'px-1.5 pt-3 pb-3' : 'px-3 pt-2 pb-3'}`}>
+                {manageItems.map((item, index) => {
                   const hasChildren = (item.children?.length ?? 0) > 0;
                   const isAnyChildActive = item.children?.some(c => currentPath === c.path) ?? false;
                   const isParentExact = currentPath === item.path;
@@ -577,16 +600,14 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                       key={item.id}
                       initial={{ opacity: 0, x: -6 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 40 / 1000, duration: 0.25, ease: 'easeOut' }}
+                      transition={{ duration: 0.2, ease: 'easeOut' }}
                     >
-                      {/* Parent row, single click target. Children auto-reveal
-                          when parent or one of its children is active. */}
                       <Link
                         to={item.path!}
-                        className={`relative flex items-center min-h-[36px] ${
-                          collapsed ? 'justify-center px-2' : 'gap-2.5 px-4'
+                        className={`relative flex items-center min-h-[40px] ${
+                          collapsed ? 'justify-center px-2' : 'gap-3 px-4'
                         } rounded-md transition-colors duration-200 group ${
-                          (showActive || isAnyChildActive) ? '' : 'hover:bg-tea-gold/6'
+                          (showActive || isAnyChildActive) ? 'bg-tea-gold/8' : 'hover:bg-tea-gold/6'
                         }`}
                         title={item.label}
                       >
@@ -602,11 +623,11 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                             ? 'text-tea-gold'
                             : 'text-tea-text-sec group-hover:text-tea-text'
                         }`}>
-                          {React.cloneElement(item.icon as React.ReactElement<{ size?: number }>, { size: 16 })}
+                          {React.cloneElement(item.icon as React.ReactElement<{ size?: number }>, { size: 18 })}
                         </div>
                         {!collapsed && (
                           <span
-                            className={`${TYPOGRAPHY_CLASSES.navSidebarChild} text-left transition-colors duration-200 ${
+                            className={`${TYPOGRAPHY_CLASSES.navSidebar} text-left transition-colors duration-200 ${
                               (showActive || isAnyChildActive) ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
                             }`}
                           >
@@ -615,9 +636,12 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                         )}
                       </Link>
 
-                      {/* Children, reveal reactively when parent context is active */}
+                      {/* Collapsing the column unmounts the children outright rather
+                          than animating them out: a height transition would render
+                          them clipped to single letters inside the 56px rail for the
+                          length of the exit. */}
                       <AnimatePresence initial={false}>
-                        {showChildren && (
+                        {!collapsed && showChildren && (
                           <motion.div
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: 'auto', opacity: 1 }}
@@ -651,121 +675,47 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                     </motion.div>
                   );
                 })}
-                </nav>
-              </motion.div>
+              </nav>
             )}
-          </AnimatePresence>
+          </motion.div>
 
-          {/* ── Curator Nav (Collections only, for Members with curator capability) ── */}
-          <AnimatePresence>
-            {auth.isAuthenticated && !auth.isAdmin && canCreateCollections && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                {!collapsed && (
-                  <div className="px-5 pt-5 pb-1.5">
-                    <span className={`${TYPOGRAPHY_CLASSES.navSidebarGroup} text-tea-text-dim`}>
-                      Curate
-                    </span>
-                  </div>
-                )}
-                <nav className={`flex flex-col gap-0.5 ${collapsed ? 'px-1.5 pt-3 pb-3' : 'px-3 pb-3'}`}>
-                  <motion.div
-                    initial={{ opacity: 0, x: -6 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0, duration: 0.25, ease: 'easeOut' }}
-                  >
-                    <Link
-                      to="/admin/collections"
-                      className={`relative flex items-center min-h-[36px] ${
-                        collapsed ? 'justify-center px-2' : 'gap-2.5 px-4'
-                      } rounded-md transition-colors duration-200 group ${
-                        currentPath.startsWith('/admin/collections') ? '' : 'hover:bg-tea-gold/6'
-                      }`}
-                      title="Collections"
-                    >
-                      {currentPath.startsWith('/admin/collections') && (
-                        <motion.div
-                          layoutId="nav-indicator"
-                          className="absolute left-0 inset-y-0 w-[2px] bg-tea-gold"
-                          transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-                        />
-                      )}
-                      <div className={`shrink-0 transition-colors duration-200 ${
-                        currentPath.startsWith('/admin/collections')
-                          ? 'text-tea-gold'
-                          : 'text-tea-text-sec group-hover:text-tea-text'
-                      }`}>
-                        <Stack size={16} weight={PHOSPHOR_WEIGHT} />
-                      </div>
-                      {!collapsed && (
-                        <span className={`${TYPOGRAPHY_CLASSES.navSidebarChild} text-left transition-colors duration-200 ${
-                          currentPath.startsWith('/admin/collections') ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
-                        }`}>
-                          Collections
-                        </span>
-                      )}
-                    </Link>
-                  </motion.div>
-                </nav>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <div className="flex-1" />
-
-          {/* ── Utility footer ────────────────────────────────────────────── */}
+          {/* ── Utility footer: marks, not rows ────────────────────────────── */}
           <div
-            className={`py-3 ${collapsed ? 'px-1.5' : 'px-3'} border-t border-tea-border shrink-0`}
+            className={`shrink-0 border-t border-tea-border flex items-center ${
+              collapsed ? 'flex-col gap-1 py-2 px-1.5' : 'justify-between px-3 py-2'
+            }`}
           >
-            {/* Our Spaces + theme toggle */}
-            <div className={`flex items-center ${collapsed ? 'flex-col gap-1' : 'justify-between gap-2'}`}>
-                <Link
-                  to="/spaces"
-                  className={`flex items-center min-h-[44px] ${
-                    collapsed ? 'justify-center px-2' : 'flex-1 gap-3 px-4'
-                  } rounded-md transition-colors duration-200 group hover:bg-tea-gold/6`}
-                  title="Our spaces"
-                >
-                  <MapPin
-                    size={18}
-                    weight={PHOSPHOR_WEIGHT}
-                    className={`shrink-0 transition-colors duration-200 ${
-                      currentPath === '/spaces'
-                        ? 'text-tea-gold'
-                        : 'text-tea-text-sec group-hover:text-tea-text'
-                    }`}
-                  />
-                  {!collapsed && (
-                    <span
-                      className={`${TYPOGRAPHY_CLASSES.navSidebar} transition-colors duration-200 ${
-                        currentPath === '/spaces' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
-                      }`}
-                    >
-                      Our spaces
-                    </span>
-                  )}
-                </Link>
-                <button
-                  type="button"
-                  onClick={(e) => toggleTheme(e)}
-                  className={`flex items-center justify-center min-h-[44px] min-w-[44px] rounded-md transition-colors duration-200 text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/6 ${
-                    collapsed ? 'px-2' : 'px-3'
-                  }`}
-                  title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                  aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                >
-                  {theme === 'dark' ? (
-                    <Sun size={18} weight={PHOSPHOR_WEIGHT} />
-                  ) : (
-                    <Moon size={18} weight={PHOSPHOR_WEIGHT} />
-                  )}
-                </button>
-            </div>
-
+            <Link to="/spaces" className={iconButtonClass(currentPath === '/spaces')} title="Our spaces" aria-label="Our spaces">
+              <MapPin size={18} weight={PHOSPHOR_WEIGHT} />
+            </Link>
+            {hasSettingsRoute && (
+              <Link
+                to="/admin/settings"
+                className={iconButtonClass(currentPath.startsWith('/admin/settings'))}
+                title="Settings"
+                aria-label="Settings"
+              >
+                <GearSix size={18} weight={PHOSPHOR_WEIGHT} />
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={(e) => toggleTheme(e)}
+              className={iconButtonClass(false)}
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {theme === 'dark' ? <Sun size={18} weight={PHOSPHOR_WEIGHT} /> : <Moon size={18} weight={PHOSPHOR_WEIGHT} />}
+            </button>
+            <button
+              type="button"
+              onClick={toggleSidebarCollapsed}
+              className={iconButtonClass(false)}
+              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {collapsed ? <CaretRight size={16} weight="bold" /> : <CaretLeft size={16} weight="bold" />}
+            </button>
           </div>
 
         </div>

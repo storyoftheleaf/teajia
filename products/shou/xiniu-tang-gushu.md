@@ -10,6 +10,7 @@ stock: 357
 cost: "320 Yuan"
 vendor: "Kunming Xiongda"
 restockable: true
+teaser: ""
 tastingNotes:
   - "thick honey"
   - "aged earth"
@@ -18,14 +19,16 @@ tastingNotes:
   - "long finish"
 ---
 
-A shou pu-erh from Xiniu Tang, a named micro-origin inside the greater Yiwu tea area.
+Rhinoceros Pond leaf, ripened from ancient trees deep in the Yiwu forest belt.
 
-Xiniu Tang (犀牛塘) means "Rhinoceros Pond." Yiwu is not a single place but a constellation of small origins, and each carries its own signature of soil, elevation, and microclimate. Processing gushu material from a single Yiwu micro-origin as shou is a considered choice, treating a raw-tea region with a ripe-tea method.
+## Lore
+
+Xiniu Tang (犀牛塘), 'Rhinoceros Pond', is a named origin site inside a greater tea country once counted among the Qing dynasty's Six Famous Tea Mountains. The Dai name for the region means 'place where beautiful snakes live'.
 
 ## Terroir
 
-Xiniu Tang, within Yiwu township, Mengla county, Xishuangbanna, Yunnan. The plot sits inside Yiwu's ancient forest belt at tropical elevation. Named Yiwu micro-origins like this one are prized because each holds a distinct character shaped by very local conditions rather than the broader regional average.
+The land runs from about 910 to 1700 meters along the border with Laos, with forest coverage near 88%. Ancient trees grow inside a broad protected canopy, and the whole area is known for old gushu stands.
 
 ## Processing
 
-Ancient-tree leaf from the Xiniu Tang gardens, wo dui fermented and stone-pressed into 357-gram cake form. The fermentation transforms the raw material directly into a ripe tea, standing in for the years of natural aging that Yiwu sheng would otherwise require.
+Gushu leaf, wo dui fermented into ripe shou.

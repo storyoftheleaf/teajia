@@ -8,6 +8,15 @@ interface PageHeaderProps {
   title?: string;
   /** Sits beside the title on desktop, under it on a phone. */
   subtitle?: string;
+  /**
+   * Extra horizontal inset, so a page whose body carries its own gutter can put
+   * its header on the same vertical edge. The bar's background still runs the
+   * full width; only its contents and its bottom rule move.
+   *
+   * Pass MARGIN classes, not padding: these rows already carry px-4/6/10, and a
+   * second padding class on the same axis replaces it rather than adding to it.
+   */
+  gutter?: string;
   rightContent?: React.ReactNode;
   toolbar?: React.ReactNode;
   className?: string;
@@ -22,6 +31,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   children,
   title,
   subtitle,
+  gutter = '',
   rightContent,
   toolbar,
   className = '',
@@ -48,18 +58,18 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 
   // Static title, no longer collapses on scroll since header flows with page
   const titleSize = 'text-2xl lg:text-3xl';
-  const titlePadding = `${onBack ? 'pt-2' : 'pt-3'} pb-2 px-4 md:px-6 lg:pt-0 lg:pb-0 lg:h-16 lg:px-10`;
+  const titlePadding = `${onBack ? 'pt-2' : 'pt-3'} pb-2 px-4 md:px-6 lg:pt-0 lg:pb-0 lg:h-16 lg:px-10 ${gutter}`;
 
   const hasUtilityButtons = onCartClick || onAccountClick;
 
   return (
     <div
-      className={`sticky top-[env(safe-area-inset-top)] z-dropdown -mx-4 md:-mx-6 lg:-mx-10 transition-all duration-500 ease-out bg-tea-bg/90 backdrop-blur-md rounded-none border-b border-tea-border ${className}`}
+      className={`sticky top-[env(safe-area-inset-top)] z-dropdown -mx-4 md:-mx-6 lg:-mx-10 transition-all duration-500 ease-out bg-tea-bg/90 backdrop-blur-md rounded-none ${className}`}
     >
       <div className="w-full">
         {/* Back navigation, inside the glass */}
         {onBack && (
-          <div className="px-4 pt-3 md:px-6 lg:px-10">
+          <div className={`px-4 pt-3 md:px-6 lg:px-10 ${gutter}`}>
             <button
               onClick={onBack}
               className="tap-target !justify-start gap-1.5 group rounded-md hover:bg-tea-text/5 px-2 py-1 -ml-2 transition-colors"
@@ -142,10 +152,17 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 
         {/* Toolbar row, below tabs, inside the glass */}
         {toolbar && (
-          <div className="px-4 py-2 md:px-6 lg:px-10" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
+          <div className={`px-4 py-2 md:px-6 lg:px-10 ${gutter}`} style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
             {toolbar}
           </div>
         )}
+
+        {/* The bar's ground runs the full width so scrolling content passes
+            under it, but its rule sits on the content edge, so every rule down
+            the page begins and ends on the same two vertical lines. */}
+        <div className="px-4 md:px-6 lg:px-10">
+          <div className="h-px bg-tea-border" />
+        </div>
       </div>
     </div>
   );

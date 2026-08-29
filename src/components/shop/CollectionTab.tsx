@@ -242,7 +242,7 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
   const isEmpty = !hasSaved && !hasShelf;
 
   return (
-    <div className="max-w-5xl mx-auto py-6 md:px-4 lg:px-6 animate-[fadeIn_0.5s_ease-out]">
+    <div className="max-w-5xl mx-auto py-6 px-3 md:px-4 animate-[fadeIn_0.5s_ease-out]">
       <AlcoveModal
         item={viewItem}
         items={allDisplayItems}

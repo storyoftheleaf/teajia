@@ -596,7 +596,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       )}
 
       {/* --- Inline Filter Bar + Content (full width) --- */}
-      <div className="max-w-full mx-auto pt-4 md:px-4 lg:px-6">
+      <div className="max-w-full mx-auto pt-4 px-3 md:px-4">
 
          <TeaShopViewTabs active={teaView} onChange={handleTeaViewChange} />
          <TeaShopViewRegion active={teaView} count={filteredInventory.length} showPast={showPast}>
@@ -609,7 +609,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
            <>
 
          {/* Sticky shop toolbar */}
-         <div className="sticky top-0 z-sticky bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border">
+         <div className="sticky top-0 z-sticky -mx-3 px-3 md:-mx-4 md:px-4 bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border">
            {/*
              One control band, not three. Search, price weight and the filters
              each owned a row of their own, which put 351px of chrome above the
@@ -1009,15 +1009,9 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
              />
            )}
 
-           {teaView === 'all' && (
-             <button
-               type="button"
-               onClick={() => setShowPast(previous => !previous)}
-               className={`${LINK} tap-target mt-6 text-ui-11 text-tea-text-sec`}
-             >
-               {showPast ? 'Return to available teas' : 'Past teas · sold out archive'}
-             </button>
-           )}
+           {/* The archive link is gone at Adrian's word. `showPast` stays wired
+               so the sold-out view can be reached again from one line, and so
+               the empty state can still offer a way back out of it. */}
          </div>
            </>
          )}

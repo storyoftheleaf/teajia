@@ -353,16 +353,31 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
   // 1. Identity: centered serif header, hanzi as real text
   const identityHeader = (
-    <AlcoveIdentityHeader
-      item={item}
-      productName={productName}
-      givenName={givenName}
-      teaType={teaType}
-      chineseCharacters={chineseCharacters}
-      typeColor={typeColor}
-      isAdmin={isAdmin}
-      onNavigateSource={() => navigate(`/admin/people?tab=sources&search=${encodeURIComponent(item.supplier!)}`)}
-    />
+    <div className="relative">
+      {/* Says "Edit tasting" rather than "Edit" because the product page also
+          carries a plain Edit in its top bar, which opens the full record.
+          Two controls both labelled Edit, inches apart, is the confusion. */}
+      {isAdmin && onEditProductTasting && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onEditProductTasting(item); }}
+          className="tap-target absolute right-3 top-3 z-10 font-sans text-ui-9 uppercase tracking-[0.15em] text-tea-text-dim transition-colors hover:text-tea-gold"
+          aria-label="Edit tasting notes"
+        >
+          Edit tasting
+        </button>
+      )}
+      <AlcoveIdentityHeader
+        item={item}
+        productName={productName}
+        givenName={givenName}
+        teaType={teaType}
+        chineseCharacters={chineseCharacters}
+        typeColor={typeColor}
+        isAdmin={isAdmin}
+        onNavigateSource={() => navigate(`/admin/people?tab=sources&search=${encodeURIComponent(item.supplier!)}`)}
+      />
+    </div>
   );
 
   // 2. Facts ledger: Origin / Harvest / Liquor
@@ -402,8 +417,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     <AlcoveCharacterBand
       item={item}
       legacyNotes={notes}
-      isAdmin={isAdmin}
-      onEditProductTasting={onEditProductTasting}
       onTermClick={onTermClick}
       potentialResearch={potentialResearch}
     />

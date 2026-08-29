@@ -7944,10 +7944,17 @@ function makePublicXrefHandler(tableName: string, fkColumn: string, sourceTable?
       `SELECT p.id, p.type, p.given_name, p.chinese_name, p.product_name, p.year,
               public_account.slug AS account_slug,
               '/shop/product/' || COALESCE(p.slug, p.id) || '?store=' || public_account.slug AS public_path,
-              p.origin_country, p.origin_region, p.stock_grams, p.description,
-              p.tasting_notes, p.image_url, p.additional_images, p.status,
-              p.is_personal, p.can_reorder, p.is_curated, p.lore,
-              p.show_wisdom, p.processing_notes, p.terroir, p.mood, p.experience,
+              p.origin_country, p.origin_region, p.stock_grams,
+              COALESCE(tp.description, p.description) AS description,
+              COALESCE(tp.tasting_notes, p.tasting_notes) AS tasting_notes,
+              p.image_url, p.additional_images, p.status,
+              p.is_personal, p.can_reorder, p.is_curated,
+              COALESCE(tp.lore, p.lore) AS lore,
+              p.show_wisdom,
+              COALESCE(tp.processing_notes, p.processing_notes) AS processing_notes,
+              COALESCE(tp.terroir, p.terroir) AS terroir,
+              COALESCE(tp.mood, p.mood) AS mood,
+              COALESCE(tp.experience, p.experience) AS experience,
               p.cost_amount, p.cost_currency, p.quantity_purchased,
               p.shipping_rate_per_kg, p.fixed_retail_price_usd,
               p.material, p.capacity_ml, p.teaware_category, p.quantity_units, p.tasting, p.tasting_source,
@@ -7960,6 +7967,7 @@ function makePublicXrefHandler(tableName: string, fkColumn: string, sourceTable?
        FROM ${tableName} xr
        ${sourceJoin}
        JOIN products p ON xr.product_id = p.id
+       LEFT JOIN tea_profiles tp ON tp.id = 'prof_' || p.id
        JOIN accounts public_account ON public_account.id = p.account_id
          AND public_account.status = 'active' AND public_account.public_enabled = 1
        WHERE xr.${fkColumn} = ?
@@ -17731,15 +17739,21 @@ async function fetchPublicProductsForAccount(
   const [ratesResult, result] = await env.DB.batch([
     env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates'),
     env.DB.prepare(
-      `SELECT id, slug, type, given_name, chinese_name, product_name, year,
-              origin_country, origin_region, stock_grams, description,
-              tasting_notes, image_url, additional_images, status,
-              is_personal, can_reorder, is_curated, lore, show_wisdom,
-              processing_notes, terroir, mood, experience,
-              cost_amount, cost_currency, quantity_purchased,
-              shipping_rate_per_kg, fixed_retail_price_usd,
-              material, capacity_ml, teaware_category, quantity_units, tasting, tasting_source,
-              cultivar,
+      `SELECT p.id, p.slug, p.type, p.given_name, p.chinese_name, p.product_name, p.year,
+              p.origin_country, p.origin_region, p.stock_grams,
+              COALESCE(tp.description, p.description) AS description,
+              COALESCE(tp.tasting_notes, p.tasting_notes) AS tasting_notes,
+              p.image_url, p.additional_images, p.status,
+              p.is_personal, p.can_reorder, p.is_curated,
+              COALESCE(tp.lore, p.lore) AS lore, p.show_wisdom,
+              COALESCE(tp.processing_notes, p.processing_notes) AS processing_notes,
+              COALESCE(tp.terroir, p.terroir) AS terroir,
+              COALESCE(tp.mood, p.mood) AS mood,
+              COALESCE(tp.experience, p.experience) AS experience,
+              p.cost_amount, p.cost_currency, p.quantity_purchased,
+              p.shipping_rate_per_kg, p.fixed_retail_price_usd,
+              p.material, p.capacity_ml, p.teaware_category, p.quantity_units, p.tasting, p.tasting_source,
+              p.cultivar,
               (SELECT COUNT(*) > 0 FROM collection_items ci
                  JOIN collections c ON c.id = ci.collection_id
                  JOIN collection_publications cp ON cp.collection_id = c.id
@@ -17747,6 +17761,7 @@ async function fetchPublicProductsForAccount(
                   AND cp.target_type = 'shop'
                   AND cp.unpublished_at IS NULL) AS is_featured
        FROM products p
+       LEFT JOIN tea_profiles tp ON tp.id = 'prof_' || p.id
        WHERE p.is_public = 1 AND p.shown_in_shop = 1 AND p.status = 'Active' AND p.account_id = ?1${productFilter}
        ORDER BY p.created_at DESC`
     ).bind(...(productId ? [accountId, productId] : [accountId])),

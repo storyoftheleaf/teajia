@@ -436,7 +436,7 @@ type PendingMutation =
   | { kind: 'record_sale'; accountId: string; userEmail: string; actorUserId: string; actorRole: string; lines: { productId: string; grams: number; pricePerGramUsd: number }[]; customerId: string | null; customerName: string; customerWhatsapp: string | null; notes: string | null }
   | { kind: 'create_customer'; accountId: string; userEmail: string; name: string; whatsapp: string | null; email: string | null; phone: string | null; notes: string | null; tags: string[] }
   | { kind: 'update_customer'; accountId: string; userEmail: string; customerId: string; fields: Record<string, string | null> }
-  | { kind: 'update_tea_pricing'; accountId: string; userEmail: string; productId: string; costAmount: number | null; costCurrency: string | null; retailPriceUsd: number | null; quantityPurchased: number | null; description: string | null; stockVerifiedAt: string | null; shippingRatePerKg: number | null; tastingNotes: string[] | null; originCountry: string | null; originRegion: string | null; clearFields: string[] | null }
+  | { kind: 'update_tea_pricing'; accountId: string; userEmail: string; productId: string; costAmount: number | null; costCurrency: string | null; retailPriceUsd: number | null; quantityPurchased: number | null; year: number | null; description: string | null; lore: string | null; terroir: string | null; processingNotes: string | null; stockVerifiedAt: string | null; shippingRatePerKg: number | null; tastingNotes: string[] | null; originCountry: string | null; originRegion: string | null; clearFields: string[] | null }
   | { kind: 'set_low_stock_threshold'; accountId: string; userEmail: string; productId: string; thresholdGrams: number }
   | { kind: 'update_invoice'; accountId: string; userEmail: string; invoiceId: string; fields: Record<string, string | null> }
   | { kind: 'void_invoice'; accountId: string; userEmail: string; invoiceId: string; reason: string | null }
@@ -1800,15 +1800,23 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
   const hasNewShipping = 'shipping_rate_per_kg' in (args || {});
   const hasNewTasting = Array.isArray(args?.tasting_notes);
   const hasNewOrigin = 'origin_country' in (args || {}) || 'origin_region' in (args || {});
-  if (!hasNewCost && !hasNewRetail && !hasNewQty && !hasNewDesc && !hasNewStockVerify && !hasNewShipping && !hasNewTasting && !hasNewOrigin) {
-    throw new Error('At least one of cost_amount, cost_currency, retail_price_usd, quantity_purchased, description, stock_verified, shipping_rate_per_kg, tasting_notes, or origin_country/origin_region is required');
+  const hasNewLore = typeof args?.lore === 'string';
+  const hasNewTerroir = typeof args?.terroir === 'string';
+  const hasNewProcessing = typeof args?.processing_notes === 'string';
+  const hasNewYear = 'year' in (args || {});
+  if (!hasNewCost && !hasNewRetail && !hasNewQty && !hasNewYear && !hasNewDesc && !hasNewStockVerify && !hasNewShipping && !hasNewTasting && !hasNewOrigin && !hasNewLore && !hasNewTerroir && !hasNewProcessing) {
+    throw new Error('At least one of cost_amount, cost_currency, retail_price_usd, quantity_purchased, year, description, lore, terroir, processing_notes, stock_verified, shipping_rate_per_kg, tasting_notes, or origin_country/origin_region is required');
   }
 
   const costAmount: number | null = 'cost_amount' in (args || {}) ? Number(args.cost_amount) : null;
   const costCurrency: string | null = args?.cost_currency ? String(args.cost_currency).toUpperCase().trim() : null;
   const retailPriceUsd: number | null = 'retail_price_usd' in (args || {}) ? Number(args.retail_price_usd) : null;
   const quantityPurchased: number | null = 'quantity_purchased' in (args || {}) ? Math.round(Number(args.quantity_purchased)) : null;
+  const year: number | null = hasNewYear ? Math.round(Number(args.year)) : null;
   const description: string | null = hasNewDesc ? String(args.description).slice(0, 2000) : null;
+  const lore: string | null = hasNewLore ? String(args.lore).slice(0, 4000) : null;
+  const terroir: string | null = hasNewTerroir ? String(args.terroir).slice(0, 4000) : null;
+  const processingNotes: string | null = hasNewProcessing ? String(args.processing_notes).slice(0, 4000) : null;
   const shippingRatePerKg: number | null = hasNewShipping ? Number(args.shipping_rate_per_kg) : null;
   const tastingNotes: string[] | null = hasNewTasting
     ? args.tasting_notes.slice(0, 12).map((t: any) => String(t).trim()).filter(Boolean).slice(0, 8)
@@ -1871,7 +1879,7 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
 
     const token = await issueConfirmationToken(env, {
       kind: 'update_tea_pricing', accountId: auth.accountId, userEmail: auth.userEmail,
-      productId, costAmount, costCurrency, retailPriceUsd, quantityPurchased, description, stockVerifiedAt, shippingRatePerKg, tastingNotes, originCountry, originRegion, clearFields,
+      productId, costAmount, costCurrency, retailPriceUsd, quantityPurchased, year, description, lore, terroir, processingNotes, stockVerifiedAt, shippingRatePerKg, tastingNotes, originCountry, originRegion, clearFields,
     }, auth.tokenId);
     return {
       preview: {
@@ -1882,11 +1890,15 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
           cost_currency: { old: product.cost_currency ?? null, new: costCurrency ?? product.cost_currency },
           retail_price_usd: { old: product.fixed_retail_price_usd ?? null, new: retailPriceUsd ?? product.fixed_retail_price_usd },
           quantity_purchased: { old: product.quantity_purchased ?? null, new: quantityPurchased ?? product.quantity_purchased },
+          year: { old: product.year ?? null, new: year ?? product.year },
           shipping_rate_per_kg: { old: product.shipping_rate_per_kg ?? null, new: shippingRatePerKg ?? product.shipping_rate_per_kg ?? null },
           tasting_notes: hasNewTasting ? { new: tastingNotes } : undefined,
           origin_country: hasNewOrigin && originCountry !== null ? { new: originCountry } : undefined,
           origin_region: hasNewOrigin && originRegion !== null ? { new: originRegion } : undefined,
           description: hasNewDesc ? { changed: true } : undefined,
+          lore: hasNewLore ? { changed: true } : undefined,
+          terroir: hasNewTerroir ? { changed: true } : undefined,
+          processing_notes: hasNewProcessing ? { changed: true } : undefined,
           stock_verified: hasNewStockVerify ? { new: args.stock_verified } : undefined,
         },
         margin_warning: marginWarning,
@@ -1910,11 +1922,15 @@ async function commitUpdateTeaPricing(env: Env, m: Extract<PendingMutation, { ki
   if (m.costCurrency !== null) { cols.push('cost_currency'); vals.push(m.costCurrency); }
   if (m.retailPriceUsd !== null) { cols.push('fixed_retail_price_usd'); vals.push(m.retailPriceUsd); }
   if (m.quantityPurchased !== null) { cols.push('quantity_purchased'); vals.push(m.quantityPurchased); }
+  if (m.year !== null) { cols.push('year'); vals.push(m.year); }
   if (m.shippingRatePerKg !== null) { cols.push('shipping_rate_per_kg'); vals.push(m.shippingRatePerKg); }
   if (m.tastingNotes !== null) { cols.push('tasting_notes'); vals.push(JSON.stringify(m.tastingNotes)); }
   if (m.originCountry !== null) { cols.push('origin_country'); vals.push(m.originCountry); }
   if (m.originRegion !== null) { cols.push('origin_region'); vals.push(m.originRegion); }
   if (m.description !== null) { cols.push('description'); vals.push(m.description); }
+  if (m.lore !== null) { cols.push('lore'); vals.push(m.lore); }
+  if (m.terroir !== null) { cols.push('terroir'); vals.push(m.terroir); }
+  if (m.processingNotes !== null) { cols.push('processing_notes'); vals.push(m.processingNotes); }
   if (m.clearFields && m.clearFields.length) {
     for (const f of m.clearFields) { cols.push(f); vals.push(null); }
   }
@@ -1924,9 +1940,50 @@ async function commitUpdateTeaPricing(env: Env, m: Extract<PendingMutation, { ki
   if (cols.length === 0) return { committed: true, action: 'update_tea_pricing', changes: 0 };
 
   const sets = cols.map(c => `${c} = ?`).join(', ');
-  await env.DB.batch([
+
+  // Mirror the About (canonical) content to tea_profiles — the single source the
+  // storefront reads via the COALESCE joins. Without this, edits to the products
+  // row silently never reach the customer-facing card (the divergence the
+  // COALESCE refactor exists to prevent).
+  const profileCols = [
+    'name', 'chinese_name', 'type', 'form', 'origin_country', 'origin_region',
+    'harvest_year', 'description', 'lore', 'processing_notes', 'terroir', 'mood',
+    'experience', 'tasting_notes', 'image_url',
+  ];
+  const profileSets: string[] = [];
+  const profileVals: any[] = [];
+  for (const c of cols) {
+    if (c === 'description') { profileSets.push('description = ?'); profileVals.push(profileCols.includes(c) ? vals[cols.indexOf(c)] : null); }
+    else if (c === 'lore') { profileSets.push('lore = ?'); profileVals.push(vals[cols.indexOf(c)]); }
+    else if (c === 'processing_notes') { profileSets.push('processing_notes = ?'); profileVals.push(vals[cols.indexOf(c)]); }
+    else if (c === 'terroir') { profileSets.push('terroir = ?'); profileVals.push(vals[cols.indexOf(c)]); }
+    else if (c === 'mood') { profileSets.push('mood = ?'); profileVals.push(vals[cols.indexOf(c)]); }
+    else if (c === 'experience') { profileSets.push('experience = ?'); profileVals.push(vals[cols.indexOf(c)]); }
+    else if (c === 'tasting_notes') { profileSets.push('tasting_notes = ?'); profileVals.push(vals[cols.indexOf(c)]); }
+    else if (c === 'origin_country') { profileSets.push('origin_country = ?'); profileVals.push(vals[cols.indexOf(c)]); }
+    else if (c === 'origin_region') { profileSets.push('origin_region = ?'); profileVals.push(vals[cols.indexOf(c)]); }
+    // harvest_year is TEXT on purpose, so it can hold "2024 spring" as well as a
+    // bare year. The tool takes year as a number, and binding a number to a TEXT
+    // column stores it as a real, which reads back as "2019.0".
+    else if (c === 'year') {
+      const y = vals[cols.indexOf(c)];
+      profileSets.push('harvest_year = ?');
+      profileVals.push(typeof y === 'number' ? String(y) : y);
+    }
+  }
+
+  const stmts: D1PreparedStatement[] = [
     env.DB.prepare(`UPDATE products SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
       .bind(...vals, m.productId, m.accountId),
+  ];
+  if (profileSets.length > 0) {
+    profileSets.push("updated_at = datetime('now')");
+    stmts.push(
+      env.DB.prepare(`UPDATE tea_profiles SET ${profileSets.join(', ')} WHERE id = ?`)
+        .bind(...profileVals, `prof_${m.productId}`)
+    );
+  }
+  stmts.push(
     env.DB.prepare(
       `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
        VALUES (?, 'PRICING_UPDATED_MCP', ?, ?, 'product', ?, ?)`
@@ -1935,7 +1992,9 @@ async function commitUpdateTeaPricing(env: Env, m: Extract<PendingMutation, { ki
       `Pricing/data updated via MCP for product ${m.productId}: ${cols.join(', ')}`,
       m.userEmail, m.productId, m.accountId,
     ),
-  ]);
+  );
+
+  await env.DB.batch(stmts);
   return {
     committed: true,
     action: 'update_tea_pricing',
@@ -3572,9 +3631,13 @@ const TOOL_DEFS = [
         cost_currency: { type: 'string', description: 'Currency actually paid, e.g. CNY, MYR, NT, IDR, AUD, USD.' },
         retail_price_usd: { type: 'number', description: 'Fixed per-gram retail price in USD (optional; site auto-derives from cost if omitted).' },
         quantity_purchased: { type: 'number', description: 'Total grams purchased (e.g. 2490 for 7 x 357g cakes, 1000 for 1kg).' },
+        year: { type: 'number', description: 'Harvest/vintage year (e.g. 2025, 2019). Maps to harvest_year on the reference.' },
         shipping_rate_per_kg: { type: 'number', description: 'Shipping freight per kg folded into COST basis (USD/kg). Default 10. Not a separate sales charge.' },
         tasting_notes: { type: 'array', items: { type: 'string' }, description: 'Flavor/taste terms for the catalog tasting field (NOT the description). Up to 8.' },
-        description: { type: 'string', description: 'Customer-facing product description (origin/character — NOT flavors; keep place/craft/character only).' },
+        description: { type: 'string', description: 'Customer-facing "About this tea" (origin/character — NOT flavors; personal note space, shows only when present).' },
+        lore: { type: 'string', description: 'Real, sourced historical/cultural background (terse, never fabricated).' },
+        terroir: { type: 'string', description: 'Origin/terroir section copy (objective).' },
+        processing_notes: { type: 'string', description: 'Processing/craft section copy (objective).' },
         origin_country: { type: 'string', description: 'Harvest country (not the trading house), e.g. Vietnam.' },
         origin_region: { type: 'string', description: 'Harvest region, e.g. Northern Vietnam wild tea trees, on the Yunnan border.' },
         stock_verified: { type: 'boolean', description: 'true = mark stock verified; false = set needs-verification flag. Omit to leave unchanged.' },

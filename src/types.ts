@@ -51,6 +51,9 @@ export interface TastingData {
   // can star/edit/curate specific notes for public display.
   notes?: (string | NoteEntry)[];
   voiceNote?: string;           // legacy single concatenated note
+  /** One-line editorial teaser for the product page. Shown at the top of
+   *  About this tea, only when present. Entered from the tasting section. */
+  teaser?: string;
 
   // Brewing context (session conditions)
   brewingTemp?: number;      // Celsius

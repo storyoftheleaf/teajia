@@ -54,6 +54,30 @@ these — not the raw sections and not the internal notes.
   written" boilerplate.
 - The felt character of a cup belongs to the person who drank it.
 
+## Lore / History — real only, never fabricated, and terse
+
+- **Lore is acceptable ONLY when it is real and can be sourced** (village history,
+  origin of a name, cultural/regional background that is documented). It is an
+  educational tea card, not a book.
+- **NEVER fabricate lore.** If the objective history for a tea is not known and
+  cannot be researched from a real source, do NOT write it — leave the field
+  empty. An invented story is worse than no story.
+- **Write it tersely**: 1–3 short factual sentences. Do not tell a narrative,
+  do not editorialize, do not pad for prose. Every sentence must carry a
+  verifiable fact.
+- **This is different from the subjective sections (feelings, mood, character
+  descriptions) which cannot be AI-authored.** Lore is objective background the
+  AI CAN write IF sourced. Keep the two clearly separate.
+
+## NON-NEGOTIABLE: no fabrication (false advertising) — apply to every tea (2026-08-29)
+
+- **NEVER write a processing, pressing, cake-form, harvest-year, or production detail that is not verified.** A tea page is customer-facing: an invented "stone-pressed", "357g cake", or vintage is FALSE ADVERTISING. If a fact isn't confirmed, OMIT it entirely — never guess.
+- Use ONLY the verified facts for that tea. When in doubt about processing/pressing, state only what is known (e.g. "wo dui fermented" if verified; do NOT add "stone-pressed").
+- **NO em-dashes (—) anywhere, ever, on any writing.** Do not use them. Avoid hyphens where an alternative reads cleaner.
+- **Minimize word repetition.** Repeating a place name (e.g. "Yiwu") 3+ times across sections is sloppy. Use it once per section, then "the area", "this micro-origin", "the region".
+- **Terse, plain, educational tea card** — not a book. Short sentences. Flag unverified facts to Adrian rather than writing them.
+- Writing quality is high-stakes (false-advertising risk). Use a strong model (Opus, headless) for the drafting, then verify every claim against the known facts.
+
 ## Tastes and flavors NEVER go in the description
 
 - Taste/flavor notes (malt, honey, camphor, earthy, smooth, mineral, sweet,

@@ -35,8 +35,10 @@ export const AlcoveAboutSection: React.FC<AlcoveAboutSectionProps> = ({
 }) => {
   const brewingTerms = item.tasting?.brewing ?? [];
   const hasBrewing = brewingTerms.length > 0;
+  const teaser = item.tasting?.teaser?.trim() || '';
 
   const hasAny =
+    Boolean(teaser) ||
     Boolean(introduction.trim()) ||
     Boolean(mainStory.trim()) ||
     Boolean(terroir.trim()) ||
@@ -90,19 +92,24 @@ export const AlcoveAboutSection: React.FC<AlcoveAboutSectionProps> = ({
 
   return (
     <section aria-label="About this tea">
-      {/* TERROIR / PROCESSING / MOOD / EXPERIENCE. Each a clean subheader block. */}
       <div className="px-6">
-        {labeledSection('Terroir', terroir)}
-        {labeledSection('Processing', processing)}
-        {labeledSection('Mood', mood)}
-        {labeledSection('Experience', feelingDescription)}
-        {/* Historical / cultural lore, distinct section */}
+        {/* Teaser first: the user-entered one-liner, shown only when present. */}
+        {teaser && (
+          <p className="m-0 font-display text-ui-18 leading-[1.45] text-tea-text [text-wrap:balance]">
+            {teaser}
+          </p>
+        )}
+        {/* Order: Lore (when present), then Terroir, Processing, Mood, Experience. */}
         {mainStory.trim() && (
           <div className="[&:not(:first-child)]:mt-5 first:mt-0">
             <p className={headingClass}>Lore</p>
             <div className="mt-1.5">{renderMarkdown(mainStory)}</div>
           </div>
         )}
+        {labeledSection('Terroir', terroir)}
+        {labeledSection('Processing', processing)}
+        {labeledSection('Mood', mood)}
+        {labeledSection('Experience', feelingDescription)}
       </div>
 
       {/* DESCRIPTION. Adrian's personal / tasting notes. Only shown when present. */}
