@@ -527,6 +527,9 @@ export interface InventoryItem {
   category: 'tea' | 'ware';
   subcategory?: string; // For teaware (brewing, serving, etc.)
   type: string; // e.g. "Green", "Teapot"
+  /** Physical form: 'Loose' | 'Cake' | 'Brick' | 'Tuo' | 'Ball' | 'Bag' | ... .
+   *  Drives which whole-piece amount the shop offers (a cake is 357 g). */
+  form?: string;
   name: string;
   year: string;
   origin: string;
@@ -583,6 +586,8 @@ export type PublicProductType = TeaType | typeof NON_TEA_TYPES[number];
 export interface PublicProduct {
   id: string;
   type: PublicProductType;
+  /** Physical form. Public because it is how the leaf is sold, not a cost fact. */
+  form?: string;
   givenName: string;
   chineseName?: string;
   productName: string;

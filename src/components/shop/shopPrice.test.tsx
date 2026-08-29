@@ -25,8 +25,6 @@ const footerProps = {
   isSoldOut: false,
   grams: 50,
   setGrams: () => {},
-  sampleMode: false,
-  setSampleMode: () => {},
   customMode: false,
   setCustomMode: () => {},
   sliderMax: 100,

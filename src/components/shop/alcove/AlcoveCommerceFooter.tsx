@@ -16,8 +16,6 @@ interface AlcoveCommerceFooterProps {
   isSoldOut: boolean;
   grams: number;
   setGrams: (g: number) => void;
-  sampleMode: boolean;
-  setSampleMode: (v: boolean) => void;
   customMode: boolean;
   setCustomMode: (v: boolean) => void;
   sliderMax: number;
@@ -49,8 +47,17 @@ interface AlcoveCommerceFooterProps {
   variant?: 'pinned' | 'rail';
 }
 
-/** Sessions from grams. A session is ~5 g of leaf. */
-const sessionsFor = (grams: number) => Math.round(grams / 5);
+/**
+ * Forms that are sold as one whole pressed piece, and what one piece weighs.
+ * Mirrors DEFAULT_GRAMS in TeaCompass/types.ts, kept local so the shop footer
+ * does not pull the whole tea-wisdom module into the customer bundle.
+ */
+const WHOLE_PIECE: Record<string, { label: string; grams: number }> = {
+  Cake: { label: 'Cake', grams: 357 },
+  Brick: { label: 'Brick', grams: 250 },
+  Tuo: { label: 'Tuo', grams: 100 },
+  Ball: { label: 'Ball', grams: 100 },
+};
 
 const STOCK_DOT: React.CSSProperties = {
   width: 5,
@@ -82,8 +89,6 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
   isSoldOut,
   grams,
   setGrams,
-  sampleMode,
-  setSampleMode,
   customMode,
   setCustomMode,
   sliderMax,
@@ -114,38 +119,51 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
 
   const selectWeight = (g: number) => {
     setGrams(g);
-    setSampleMode(false);
     setCustomMode(false);
   };
 
-  // The custom cell stays lit after the modal commits an off-preset amount,
-  // so the chosen quantity always has a visible home in the strip.
+  const priceFor = (g: number) =>
+    formatPrice ? formatPrice(pricePerGram, g) : fmtShopPrice(pricePerGram * g);
+
+  // A whole cake / brick / tuo is one of the amounts a reader actually buys, so
+  // it earns a cell of its own whenever there is enough leaf to press one.
+  const wholePiece = isTea ? WHOLE_PIECE[item.form ?? ''] : undefined;
   const gramPresetKeys = [50, 100].filter(p => p <= sliderMax);
-  const customActive =
-    customMode || (!sampleMode && isTea && !gramPresetKeys.includes(grams));
+  const wholePieceCell =
+    wholePiece && wholePiece.grams <= sliderMax && !gramPresetKeys.includes(wholePiece.grams)
+      ? wholePiece
+      : undefined;
+
+  // Sample sizes live behind Custom rather than in the strip: the strip is for
+  // the amounts most readers buy, and a 10 g taste is an ask, not a default.
+  const stripGrams = [...gramPresetKeys, ...(wholePieceCell ? [wholePieceCell.grams] : [])];
+  const customActive = customMode || (isTea && !stripGrams.includes(grams));
 
   const teaCells: SegCell[] = [
-    {
-      key: 'sample',
-      label: 'Sample',
-      sub: '10 g',
-      active: sampleMode,
-      onSelect: () => { setSampleMode(true); setCustomMode(false); },
-    },
-    ...gramPresetKeys.map((p, i) => ({
+    ...gramPresetKeys.map(p => ({
       key: String(p),
       label: `${p} g`,
-      sub: `≈ ${sessionsFor(p)}${i === 0 ? ' sessions' : ''}`,
-      active: !sampleMode && !customActive && grams === p,
+      sub: priceFor(p),
+      active: !customActive && grams === p,
       onSelect: () => selectWeight(p),
     })),
+    ...(wholePieceCell
+      ? [{
+          key: 'whole-piece',
+          label: wholePieceCell.label,
+          sub: `${wholePieceCell.grams} g · ${priceFor(wholePieceCell.grams)}`,
+          active: !customActive && grams === wholePieceCell.grams,
+          ariaLabel: `One whole ${wholePieceCell.label.toLowerCase()}, ${wholePieceCell.grams} grams`,
+          onSelect: () => selectWeight(wholePieceCell.grams),
+        }]
+      : []),
     {
       key: 'custom',
       label: 'Custom',
-      sub: customActive && !customMode ? `${grams} g` : ' ',
+      sub: customActive ? `${grams} g · ${priceFor(grams)}` : 'From 10 g',
       active: customActive,
-      ariaLabel: 'Custom amount',
-      onSelect: () => { setCustomMode(true); setSampleMode(false); },
+      ariaLabel: 'Custom amount, including sample sizes',
+      onSelect: () => setCustomMode(true),
     },
   ];
 
@@ -309,26 +327,17 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
             <span className="alcove-order-verb">Sold Out</span>
           ) : added ? (
             <span className="alcove-order-verb">Added ✓</span>
-          ) : sampleMode ? (
-            <>
-              <span className="alcove-order-verb">Add to order</span>
-              {pricePerGram > 0 && (
-                <span className="alcove-order-amt">
-                  {formatPrice ? formatPrice(pricePerGram, 10) : fmtShopPrice(pricePerGram * 10)}
-                  {' · 10 g'}
-                </span>
-              )}
-            </>
           ) : (
             <>
               <span className="alcove-order-verb">Add to order</span>
+              {/* The total is what the reader is deciding about; the rate is a
+                  footnote to it, not its equal. */}
               <span className="alcove-order-amt">
-                {formatPrice ? total : `$${total}`}
-                {isTea && pricePerGram > 0 && completeRateLabel && (
-                  <> · {completeRateLabel}</>
-                )}
-                {!isTea && grams > 1 && pricePerGram > 0 && completeRateLabel && (
-                  <> · {completeRateLabel}</>
+                <span className="alcove-order-total">
+                  {formatPrice ? total : `$${total}`}
+                </span>
+                {pricePerGram > 0 && completeRateLabel && (isTea || grams > 1) && (
+                  <span className="alcove-order-rate">{completeRateLabel}</span>
                 )}
               </span>
             </>

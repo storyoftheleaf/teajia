@@ -64,7 +64,6 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({
   const [quantity, setQuantity] = useState(1);
   // Footer plumbing: teaware has no sample/custom cells, but the shared
   // footer contract expects the state pair.
-  const [sampleMode, setSampleMode] = useState(false);
   const [customMode, setCustomMode] = useState(false);
   const [added, setAdded] = useState(false);
   const [imageExpanded, setImageExpanded] = useState(false);
@@ -182,8 +181,6 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({
           isSoldOut={isSoldOut}
           grams={quantity}
           setGrams={setQuantity}
-          sampleMode={sampleMode}
-          setSampleMode={setSampleMode}
           customMode={customMode}
           setCustomMode={setCustomMode}
           sliderMax={maxStock}

@@ -179,8 +179,19 @@ interface CustomAmountModalProps {
   customInput: string;
   setCustomInput: (v: string) => void;
   setGrams: (g: number) => void;
+  /** Per-gram price in the base currency, for the live running total. */
+  pricePerGram?: number;
+  /** Formats a gram amount into the currency the reader chose. */
+  formatTotal?: (grams: number) => string;
+  /** Opens the sample-request flow. Sample sizes live here, not in the strip. */
+  onRequestSample?: () => void;
 }
 
+/**
+ * Custom amount, and the only door to a sample. The quantity strip carries the
+ * amounts people buy; a taste is an ask, so it sits one step in, next to the
+ * free-entry field it belongs with.
+ */
 export const CustomAmountModal: React.FC<CustomAmountModalProps> = ({
   open,
   onClose,
@@ -188,9 +199,23 @@ export const CustomAmountModal: React.FC<CustomAmountModalProps> = ({
   customInput,
   setCustomInput,
   setGrams,
+  pricePerGram = 0,
+  formatTotal,
+  onRequestSample,
 }) => {
   const dialogRef = useDialog(open, onClose);
   if (!open) return null;
+
+  const quickAmounts = [10, 25, 50, 100, 250, 357].filter(g => g <= sliderMax);
+  const entered = parseInt(customInput);
+  const enteredValid = !isNaN(entered) && entered >= 5 && entered <= sliderMax;
+  const priceOf = (g: number) =>
+    formatTotal ? formatTotal(g) : `$${Math.ceil(pricePerGram * g)}`;
+  const commit = (g: number) => {
+    setCustomInput(String(g));
+    setGrams(Math.min(g, sliderMax));
+    onClose();
+  };
 
   return (
     <div
@@ -202,8 +227,31 @@ export const CustomAmountModal: React.FC<CustomAmountModalProps> = ({
       className="alcove-modal-backdrop fixed inset-0 z-priority flex items-center justify-center p-4"
     >
       <div onClick={e => e.stopPropagation()} className="alcove-modal-panel max-w-[320px]">
-        <p className={`${HEADING} m-0 mb-4 text-tea-text`}>Custom amount</p>
-        <div className="mb-5 flex items-center gap-2">
+        <p className={`${HEADING} m-0 mb-1 text-tea-text`}>Custom amount</p>
+        <p className={`${BODY} m-0 mb-4 text-tea-text-sec`}>
+          Sample sizes start at 10 g.
+        </p>
+
+        {/* Common amounts, each carrying its price, so the choice is made here
+            rather than by typing a number and watching the button change. */}
+        {quickAmounts.length > 0 && (
+          <div className="mb-4 flex flex-wrap gap-1.5">
+            {quickAmounts.map(g => (
+              <button
+                key={g}
+                type="button"
+                onClick={() => commit(g)}
+                className="alcove-amount-chip"
+                aria-label={`${g} grams${pricePerGram > 0 ? `, ${priceOf(g)}` : ''}`}
+              >
+                <span className={NUMERAL}>{g} g</span>
+                {pricePerGram > 0 && <small className={NUMERAL}>{priceOf(g)}</small>}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="mb-2 flex items-center gap-2">
           <input
             type="number"
             min={5}
@@ -222,6 +270,20 @@ export const CustomAmountModal: React.FC<CustomAmountModalProps> = ({
           />
           <span className={`${BODY} ${NUMERAL} text-tea-text-sec`}>g</span>
         </div>
+        <p className={`${BODY} ${NUMERAL} m-0 mb-5 min-h-[18px] text-tea-text-sec`}>
+          {enteredValid && pricePerGram > 0 ? priceOf(entered) : '\u00a0'}
+        </p>
+
+        {onRequestSample && (
+          <button
+            type="button"
+            onClick={() => { onClose(); onRequestSample(); }}
+            className={`alcove-modal-quiet ${LABEL} mb-4`}
+          >
+            Request a sample instead
+          </button>
+        )}
+
         {/* Cancel left, commit right. */}
         <div className="flex gap-2">
           <button type="button" onClick={onClose} className={`alcove-modal-cancel ${LABEL}`}>

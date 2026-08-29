@@ -2406,7 +2406,7 @@ const handleGetProducts: Handler = async (request, env) => {
 
 // Public-safe fields whitelist
 const PUBLIC_FIELDS = [
-  'id', 'type', 'given_name', 'chinese_name', 'product_name', 'year',
+  'id', 'type', 'form', 'given_name', 'chinese_name', 'product_name', 'year',
   'origin_country', 'origin_region', 'retail_price_per_gram_usd',
   'fixed_retail_price_usd', 'stock_grams', 'description', 'tasting_notes',
   'image_url', 'additional_images', 'status', 'is_personal', 'can_reorder', 'is_featured', 'is_curated',
@@ -17662,7 +17662,8 @@ async function fetchPublicProductsForAccount(
   const [ratesResult, result] = await env.DB.batch([
     env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates'),
     env.DB.prepare(
-      `SELECT p.id, p.type, p.given_name, p.chinese_name, p.product_name, p.year,
+      `SELECT p.id, p.type, COALESCE(tp.form, p.form) AS form,
+              p.given_name, p.chinese_name, p.product_name, p.year,
               p.origin_country, p.origin_region, p.stock_grams,
               COALESCE(tp.description, p.description) AS description,
               COALESCE(tp.tasting_notes, p.tasting_notes) AS tasting_notes,

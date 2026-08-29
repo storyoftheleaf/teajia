@@ -118,6 +118,7 @@ export const productToInventoryItem = (product: Product): InventoryItem => {
     id: product.id,
     category: isTeaware ? 'ware' : 'tea',
     type: product.type,
+    form: product.form,
     name: product.givenName,
     variant: product.productName,
     year: product.year ? String(product.year) : '',
