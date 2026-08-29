@@ -147,8 +147,12 @@ export function TeaLedger({
                   style={{
                     backgroundImage: `linear-gradient(to right, ${rowTones.wash}, transparent 38%)`,
                   }}
-                  className="group border-b border-tea-border transition-colors cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/30"
+                  className="-ml-3 border-b border-tea-border pl-3 transition-colors cursor-pointer hover:bg-tea-text/5 focus:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/30"
                   onClick={() => onOpenProduct(item)}
+                  /* The row's ground reaches 12px past the block on the left,
+                     so the block sits inside a field of colour rather than
+                     welded to the edge of it. The block itself stays on the
+                     content line with the type headings above it. */
                   onKeyDown={event => {
                     if (event.key === 'Enter' || event.key === ' ') {
                       event.preventDefault();
@@ -156,7 +160,7 @@ export function TeaLedger({
                     }
                   }}
                 >
-                  <div className="flex items-center gap-5 py-3 pr-1 transition-colors group-hover:bg-tea-text/5">
+                  <div className="flex items-center gap-5 py-3 pr-4">
                     {/* The vintage on its liquor ground. A tea with no year
                         recorded still gets the ground, so the column never
                         collapses and the list never looks broken. Roughly half
