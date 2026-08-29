@@ -436,7 +436,7 @@ type PendingMutation =
   | { kind: 'record_sale'; accountId: string; userEmail: string; actorUserId: string; actorRole: string; lines: { productId: string; grams: number; pricePerGramUsd: number }[]; customerId: string | null; customerName: string; customerWhatsapp: string | null; notes: string | null }
   | { kind: 'create_customer'; accountId: string; userEmail: string; name: string; whatsapp: string | null; email: string | null; phone: string | null; notes: string | null; tags: string[] }
   | { kind: 'update_customer'; accountId: string; userEmail: string; customerId: string; fields: Record<string, string | null> }
-  | { kind: 'update_tea_pricing'; accountId: string; userEmail: string; productId: string; costAmount: number | null; costCurrency: string | null; retailPriceUsd: number | null; quantityPurchased: number | null; description: string | null; lore: string | null; terroir: string | null; processingNotes: string | null; stockVerifiedAt: string | null; shippingRatePerKg: number | null; tastingNotes: string[] | null; originCountry: string | null; originRegion: string | null; clearFields: string[] | null }
+  | { kind: 'update_tea_pricing'; accountId: string; userEmail: string; productId: string; costAmount: number | null; costCurrency: string | null; retailPriceUsd: number | null; quantityPurchased: number | null; year: number | null; description: string | null; lore: string | null; terroir: string | null; processingNotes: string | null; stockVerifiedAt: string | null; shippingRatePerKg: number | null; tastingNotes: string[] | null; originCountry: string | null; originRegion: string | null; clearFields: string[] | null }
   | { kind: 'set_low_stock_threshold'; accountId: string; userEmail: string; productId: string; thresholdGrams: number }
   | { kind: 'update_invoice'; accountId: string; userEmail: string; invoiceId: string; fields: Record<string, string | null> }
   | { kind: 'void_invoice'; accountId: string; userEmail: string; invoiceId: string; reason: string | null }
@@ -1801,14 +1801,16 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
   const hasNewLore = typeof args?.lore === 'string';
   const hasNewTerroir = typeof args?.terroir === 'string';
   const hasNewProcessing = typeof args?.processing_notes === 'string';
-  if (!hasNewCost && !hasNewRetail && !hasNewQty && !hasNewDesc && !hasNewStockVerify && !hasNewShipping && !hasNewTasting && !hasNewOrigin && !hasNewLore && !hasNewTerroir && !hasNewProcessing) {
-    throw new Error('At least one of cost_amount, cost_currency, retail_price_usd, quantity_purchased, description, lore, terroir, processing_notes, stock_verified, shipping_rate_per_kg, tasting_notes, or origin_country/origin_region is required');
+  const hasNewYear = 'year' in (args || {});
+  if (!hasNewCost && !hasNewRetail && !hasNewQty && !hasNewYear && !hasNewDesc && !hasNewStockVerify && !hasNewShipping && !hasNewTasting && !hasNewOrigin && !hasNewLore && !hasNewTerroir && !hasNewProcessing) {
+    throw new Error('At least one of cost_amount, cost_currency, retail_price_usd, quantity_purchased, year, description, lore, terroir, processing_notes, stock_verified, shipping_rate_per_kg, tasting_notes, or origin_country/origin_region is required');
   }
 
   const costAmount: number | null = 'cost_amount' in (args || {}) ? Number(args.cost_amount) : null;
   const costCurrency: string | null = args?.cost_currency ? String(args.cost_currency).toUpperCase().trim() : null;
   const retailPriceUsd: number | null = 'retail_price_usd' in (args || {}) ? Number(args.retail_price_usd) : null;
   const quantityPurchased: number | null = 'quantity_purchased' in (args || {}) ? Math.round(Number(args.quantity_purchased)) : null;
+  const year: number | null = hasNewYear ? Math.round(Number(args.year)) : null;
   const description: string | null = hasNewDesc ? String(args.description).slice(0, 2000) : null;
   const lore: string | null = hasNewLore ? String(args.lore).slice(0, 4000) : null;
   const terroir: string | null = hasNewTerroir ? String(args.terroir).slice(0, 4000) : null;
@@ -1875,7 +1877,7 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
 
     const token = await issueConfirmationToken(env, {
       kind: 'update_tea_pricing', accountId: auth.accountId, userEmail: auth.userEmail,
-      productId, costAmount, costCurrency, retailPriceUsd, quantityPurchased, description, lore, terroir, processingNotes, stockVerifiedAt, shippingRatePerKg, tastingNotes, originCountry, originRegion, clearFields,
+      productId, costAmount, costCurrency, retailPriceUsd, quantityPurchased, year, description, lore, terroir, processingNotes, stockVerifiedAt, shippingRatePerKg, tastingNotes, originCountry, originRegion, clearFields,
     }, auth.tokenId);
     return {
       preview: {
@@ -1886,6 +1888,7 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
           cost_currency: { old: product.cost_currency ?? null, new: costCurrency ?? product.cost_currency },
           retail_price_usd: { old: product.fixed_retail_price_usd ?? null, new: retailPriceUsd ?? product.fixed_retail_price_usd },
           quantity_purchased: { old: product.quantity_purchased ?? null, new: quantityPurchased ?? product.quantity_purchased },
+          year: { old: product.year ?? null, new: year ?? product.year },
           shipping_rate_per_kg: { old: product.shipping_rate_per_kg ?? null, new: shippingRatePerKg ?? product.shipping_rate_per_kg ?? null },
           tasting_notes: hasNewTasting ? { new: tastingNotes } : undefined,
           origin_country: hasNewOrigin && originCountry !== null ? { new: originCountry } : undefined,
@@ -1917,6 +1920,7 @@ async function commitUpdateTeaPricing(env: Env, m: Extract<PendingMutation, { ki
   if (m.costCurrency !== null) { cols.push('cost_currency'); vals.push(m.costCurrency); }
   if (m.retailPriceUsd !== null) { cols.push('fixed_retail_price_usd'); vals.push(m.retailPriceUsd); }
   if (m.quantityPurchased !== null) { cols.push('quantity_purchased'); vals.push(m.quantityPurchased); }
+  if (m.year !== null) { cols.push('year'); vals.push(m.year); }
   if (m.shippingRatePerKg !== null) { cols.push('shipping_rate_per_kg'); vals.push(m.shippingRatePerKg); }
   if (m.tastingNotes !== null) { cols.push('tasting_notes'); vals.push(JSON.stringify(m.tastingNotes)); }
   if (m.originCountry !== null) { cols.push('origin_country'); vals.push(m.originCountry); }
@@ -1956,6 +1960,7 @@ async function commitUpdateTeaPricing(env: Env, m: Extract<PendingMutation, { ki
     else if (c === 'tasting_notes') { profileSets.push('tasting_notes = ?'); profileVals.push(vals[cols.indexOf(c)]); }
     else if (c === 'origin_country') { profileSets.push('origin_country = ?'); profileVals.push(vals[cols.indexOf(c)]); }
     else if (c === 'origin_region') { profileSets.push('origin_region = ?'); profileVals.push(vals[cols.indexOf(c)]); }
+    else if (c === 'year') { profileSets.push('harvest_year = ?'); profileVals.push(vals[cols.indexOf(c)]); }
   }
 
   const stmts: D1PreparedStatement[] = [
@@ -3617,6 +3622,7 @@ const TOOL_DEFS = [
         cost_currency: { type: 'string', description: 'Currency actually paid, e.g. CNY, MYR, NT, IDR, AUD, USD.' },
         retail_price_usd: { type: 'number', description: 'Fixed per-gram retail price in USD (optional; site auto-derives from cost if omitted).' },
         quantity_purchased: { type: 'number', description: 'Total grams purchased (e.g. 2490 for 7 x 357g cakes, 1000 for 1kg).' },
+        year: { type: 'number', description: 'Harvest/vintage year (e.g. 2025, 2019). Maps to harvest_year on the reference.' },
         shipping_rate_per_kg: { type: 'number', description: 'Shipping freight per kg folded into COST basis (USD/kg). Default 10. Not a separate sales charge.' },
         tasting_notes: { type: 'array', items: { type: 'string' }, description: 'Flavor/taste terms for the catalog tasting field (NOT the description). Up to 8.' },
         description: { type: 'string', description: 'Customer-facing "About this tea" (origin/character — NOT flavors; personal note space, shows only when present).' },
