@@ -370,7 +370,7 @@ export const Shop: React.FC<ShopProps> = ({
       <PageHeader
         title="Shop"
         subtitle="Sourced by hand, one lot at a time."
-        gutter="md:px-4 lg:px-6"
+        gutter="md:mx-4 lg:mx-6"
         onCartClick={onCartClick}
         onAccountClick={onAccountClick}
         cartItemCount={cartItemCount}
@@ -442,7 +442,7 @@ export const Shop: React.FC<ShopProps> = ({
           onChange={(tabId) => setActiveTab(tabId as ShopTab)}
           fit
           hairlines={false}
-          gutter="md:px-4 lg:px-6"
+          gutter="md:mx-4 lg:mx-6"
         />
       </PageHeader>
 

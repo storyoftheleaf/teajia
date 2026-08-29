@@ -9,9 +9,12 @@ interface PageHeaderProps {
   /** Sits beside the title on desktop, under it on a phone. */
   subtitle?: string;
   /**
-   * Extra horizontal padding, so a page whose body carries its own gutter can
-   * put its header on the same vertical edge. The bar's background still runs
-   * the full width; only its contents and its bottom rule move.
+   * Extra horizontal inset, so a page whose body carries its own gutter can put
+   * its header on the same vertical edge. The bar's background still runs the
+   * full width; only its contents and its bottom rule move.
+   *
+   * Pass MARGIN classes, not padding: these rows already carry px-4/6/10, and a
+   * second padding class on the same axis replaces it rather than adding to it.
    */
   gutter?: string;
   rightContent?: React.ReactNode;
