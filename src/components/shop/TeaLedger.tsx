@@ -41,15 +41,21 @@ function splitOrigin(origin: string): { near: string; mid: string; far: string }
 }
 
 /**
- * The lead sentence of the description, for the middle column. Descriptions are
- * written in house voice about place, craft and character (flavours live in
- * tasting_notes), so the first sentence is a curator's line, not a spec.
+ * One line for the middle column, and where to find it.
+ *
+ * `description` used to hold the factual write-up and now holds Adrian's
+ * personal notes, present on only some teas, so reading it alone left the
+ * middle of every row empty. Terroir leads instead: it is the field about
+ * place, and place is what this row is already saying. Processing is the
+ * fallback, then whatever personal note exists.
  */
-function leadSentence(description: string): string {
-  const text = description.trim();
-  if (!text) return '';
-  const end = text.search(/[.!?](\s|$)/);
-  return end === -1 ? text : text.slice(0, end + 1);
+function curatorLine(item: InventoryItem): string {
+  const source = [item.terroir, item.processingNotes, item.description]
+    .map(v => (v || '').trim())
+    .find(Boolean);
+  if (!source) return '';
+  const end = source.search(/[.!?](\s|$)/);
+  return end === -1 ? source : source.slice(0, end + 1);
 }
 
 /**
@@ -135,7 +141,7 @@ export function TeaLedger({
                 : null;
 
               const origin = splitOrigin(item.origin || '');
-              const lead = leadSentence(item.description || '');
+              const lead = curatorLine(item);
               const tastingCount = tastingCounts.get(item.id) || 0;
 
               return (
