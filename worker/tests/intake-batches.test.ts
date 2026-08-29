@@ -4,7 +4,7 @@ import { mcpFetch } from '../src/mcp';
 // Verifies that stock arrivals created through MCP (voice/agent) are stamped with
 // an intake batch — specifically the account's catch-all "Unsorted" batch — so a
 // tea is never batch-less and the inventory "Unsorted" filter holds everything not
-// assigned to a named shipment. See worker/migrations/078_intake_batches.sql.
+// assigned to a named shipment. See worker/migrations.archived/078_intake_batches.sql.
 
 const ACCOUNT_ID = 'acc_test';
 const TOKEN = 'tjmcp_test';

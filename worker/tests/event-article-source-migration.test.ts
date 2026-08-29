@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
-const migration = readFileSync(new URL('../migrations/114_event_article_source.sql', import.meta.url), 'utf8');
+const migration = readFileSync(new URL('../migrations.archived/114_event_article_source.sql', import.meta.url), 'utf8');
 const canonical = readFileSync(new URL('../schema.sql', import.meta.url), 'utf8');
 const through114 = readFileSync(new URL('./fixtures/schema-through-114.sql', import.meta.url), 'utf8');
 const dirs: string[] = [];

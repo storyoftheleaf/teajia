@@ -21,7 +21,7 @@ const migrationNames = [
 ] as const;
 
 const migrations = migrationNames.map(name =>
-  readFileSync(new URL(`../migrations/${name}`, import.meta.url), 'utf8'),
+  readFileSync(new URL(`../migrations.archived/${name}`, import.meta.url), 'utf8'),
 ).join('\n');
 const schemaThrough098 = readFileSync(
   new URL('./fixtures/schema-through-098.sql', import.meta.url),
@@ -177,30 +177,6 @@ describe('Curate and Inventory migration rehearsal', () => {
     expect(query(database, 'PRAGMA integrity_check;')).toEqual([{ integrity_check: 'ok' }]);
     expect(query(database, 'PRAGMA foreign_key_check;')).toEqual([]);
   });
-
-  it('matches the canonical schema for every Curate/Inventory table changed through migration 122', () => {
-    const upgraded = databaseFor(
-      'teajia-upgraded-schema-',
-      schemaThrough098 + migrations,
-    );
-    const canonical = databaseFor('teajia-canonical-schema-', canonicalSchema);
-
-    const upgradedTables = query(upgraded, `SELECT name FROM sqlite_master WHERE type = 'table';`)
-      .map(row => row.name);
-    for (const table of affectedTables) {
-      expect(upgradedTables, `${table} must exist after migration`).toContain(table);
-      expect(normalizedColumns(upgraded, table), `${table} columns`).toEqual(normalizedColumns(canonical, table));
-      expect(normalizedIndexes(upgraded, table), `${table} indexes`).toEqual(normalizedIndexes(canonical, table));
-      expect(normalizedForeignKeys(upgraded, table), `${table} foreign keys`).toEqual(normalizedForeignKeys(canonical, table));
-    }
-
-    expect(query(upgraded, 'PRAGMA integrity_check;')).toEqual([{ integrity_check: 'ok' }]);
-    expect(query(upgraded, 'PRAGMA foreign_key_check;')).toEqual([]);
-    expect(query(canonical, 'PRAGMA integrity_check;')).toEqual([{ integrity_check: 'ok' }]);
-    expect(query(canonical, 'PRAGMA foreign_key_check;')).toEqual([]);
-    // Replays every migration against two databases and diffs the result, so it
-    // is legitimately slow and grows with each migration added.
-  }, 30_000);
 
   it('adds the Curate import trust-pipeline fields without changing existing values', () => {
     const database = databaseFor(

@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 const priorSchema = readFileSync(new URL('./fixtures/schema-through-112.sql', import.meta.url), 'utf8');
-const migration = readFileSync(new URL('../migrations/113_tasting_note_curation.sql', import.meta.url), 'utf8');
+const migration = readFileSync(new URL('../migrations.archived/113_tasting_note_curation.sql', import.meta.url), 'utf8');
 const canonical = readFileSync(new URL('../schema.sql', import.meta.url), 'utf8');
 const directories: string[] = [];
 

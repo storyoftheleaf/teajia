@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import worker from '../src/index';
 
 const SECRET = 'wisdom-verification-secret';
-const migration = readFileSync(new URL('../migrations/123_wisdom_verifications.sql', import.meta.url), 'utf8');
+const migration = readFileSync(new URL('../migrations.archived/123_wisdom_verifications.sql', import.meta.url), 'utf8');
 const temporaryDirectories: string[] = [];
 
 afterEach(() => {

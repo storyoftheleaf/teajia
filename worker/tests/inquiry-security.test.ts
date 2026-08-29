@@ -8,8 +8,8 @@ import worker from '../src/index';
 // an edit to 130 that D1 would never re-run. These assertions cover the pair,
 // which together are the schema the code actually expects.
 const migrationSql = [
-  '../migrations/130_secure_inquiry_tracking.sql',
-  '../migrations/131_inquiry_request_fingerprint.sql',
+  '../migrations.archived/130_secure_inquiry_tracking.sql',
+  '../migrations.archived/131_inquiry_request_fingerprint.sql',
 ].map((file) => readFileSync(new URL(file, import.meta.url), 'utf8')).join('\n');
 
 type InquiryRow = Record<string, unknown> & {

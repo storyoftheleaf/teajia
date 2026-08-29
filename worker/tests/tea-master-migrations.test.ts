@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { describe, expect, it } from 'vitest';
 
-const migration = (name: string) => readFileSync(join(process.cwd(), 'worker/migrations', name), 'utf8');
+const migration = (name: string) => readFileSync(join(process.cwd(), 'worker/migrations.archived', name), 'utf8');
 
 describe('Tea Master migration safety', () => {
   it('ships account-confined grants, attribution snapshots and settlement history with schema parity', () => {

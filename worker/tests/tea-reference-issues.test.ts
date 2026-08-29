@@ -332,7 +332,7 @@ describe('Tea Reference revision issue API', () => {
 
 describe('Tea Reference issue migration 123', () => {
   it('is replay-safe, matches the canonical schema, and enforces account-scoped open duplicate uniqueness', () => {
-    const migration = readFileSync(new URL('../migrations/123_tea_reference_issues.sql', import.meta.url), 'utf8');
+    const migration = readFileSync(new URL('../migrations.archived/123_tea_reference_issues.sql', import.meta.url), 'utf8');
     const canonical = readFileSync(new URL('../schema.sql', import.meta.url), 'utf8');
     const makeDb = (sql: string) => {
       const dir = mkdtempSync(join(tmpdir(), 'teajia-reference-issues-'));

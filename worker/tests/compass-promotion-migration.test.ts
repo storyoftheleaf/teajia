@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
-const migration = readFileSync(new URL('../migrations/106_compass_promotion_identity.sql', import.meta.url), 'utf8');
+const migration = readFileSync(new URL('../migrations.archived/106_compass_promotion_identity.sql', import.meta.url), 'utf8');
 const temporaryDirectories: string[] = [];
 
 afterEach(() => {

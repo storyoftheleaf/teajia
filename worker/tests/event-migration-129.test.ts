@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const workerDir = join(process.cwd(), 'worker');
-const migration = (name: string) => readFileSync(join(workerDir, 'migrations', name), 'utf8');
+const migration = (name: string) => readFileSync(join(workerDir, 'migrations.archived', name), 'utf8');
 
 function pre127Database(): DatabaseSync {
   const db = new DatabaseSync(':memory:');
