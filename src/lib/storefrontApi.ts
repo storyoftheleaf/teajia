@@ -53,6 +53,9 @@ async function fetchJson<T>(path: string): Promise<T> {
 export function normalizeProduct(p: any): PublicProduct {
   return {
     id: p.id,
+    // Undefined for rows created before the slug migration; links fall back
+    // to the id, which the API still resolves.
+    slug: p.slug || undefined,
     type: (p.type || 'Misc') as PublicProductType,
     givenName: p.given_name || '',
     chineseName: p.chinese_name || '',

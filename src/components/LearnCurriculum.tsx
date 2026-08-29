@@ -7,6 +7,7 @@ import { CardContainer } from './shared/CardContainer';
 import { LEARN_CURRICULUM, LEARN_PATHS } from '../constants';
 import { useProductReferences } from './reader/ProductReferences';
 import { api } from '../lib/api';
+import { buildPublicProductHref } from '../lib/publicProductNavigation';
 
 interface LearnCurriculumProps {
   onStoryClick: (story: Story) => void;
@@ -54,7 +55,7 @@ const ModuleExplore: React.FC<{ moduleId: string }> = ({ moduleId }) => {
         {products.map(product => (
           <button
             key={product.id}
-            onClick={() => navigate(`/shop/product/${encodeURIComponent(product.id)}`)}
+            onClick={() => navigate(buildPublicProductHref({ id: product.id, slug: product.slug }))}
             className="flex items-center gap-2 text-left w-full py-1 group/explore"
           >
             {product.image && (

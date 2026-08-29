@@ -8,6 +8,7 @@ export function publicProductToInventoryItem(p: PublicProduct): InventoryItem {
   const isTea = p.type !== 'Teaware' && p.type !== 'Misc';
   return {
     id: p.id,
+    slug: p.slug,
     category: isTea ? 'tea' : 'ware',
     type: p.type,
     name: p.givenName || p.productName,

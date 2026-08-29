@@ -17,6 +17,7 @@ import {
   SPACE,
   SectionHead,
 } from './wisdomShared';
+import { buildPublicProductHref } from '../../lib/publicProductNavigation';
 
 interface FactGroup {
   label: string;
@@ -77,7 +78,7 @@ export const ReferenceFactSections: React.FC<{
       {matchingProducts.map(product => (
         <HoldingRow
           key={product.id}
-          to={`/shop/product/${encodeURIComponent(product.id)}`}
+          to={buildPublicProductHref({ id: product.id, slug: product.slug })}
           name={product.givenName || product.productName}
           chineseName={product.chineseName}
           cells={[

@@ -548,6 +548,8 @@ function scoreMatch(query: string, fields: (string | null | undefined)[]): numbe
 
 type ProductRow = {
   id: string;
+  // Readable public address. Null only for rows predating 132_product_slugs.
+  slug: string | null;
   given_name: string | null;
   product_name: string;
   chinese_name: string | null;
@@ -4680,12 +4682,12 @@ function publicProductSummary(p: ProductRow & { description?: string | null; tas
     origin: [p.origin_region, p.origin_country].filter(Boolean).join(', ') || null,
     price_per_gram_usd: p.fixed_retail_price_usd ?? null,
     in_stock: Number(p.stock_grams || 0) > 0,
-    shop_url: `${PUBLIC_SITE_ORIGIN}/shop/product/${p.id}`,
+    shop_url: `${PUBLIC_SITE_ORIGIN}/shop/product/${p.slug || p.id}`,
   };
 }
 
 const PUBLIC_PRODUCT_COLS =
-  `id, given_name, product_name, chinese_name, type, form, year,
+  `id, slug, given_name, product_name, chinese_name, type, form, year,
    origin_country, origin_region, vendor, stock_grams, quantity_units,
    low_stock_threshold, fixed_retail_price_usd, status`;
 
@@ -4785,7 +4787,7 @@ async function publicPrepareOrder(env: Env, account: PublicAccount, args: any) {
       price_per_gram_usd: price,
       line_total_usd: price != null && grams > 0 ? Math.round(price * grams * 100) / 100 : null,
       in_stock: Number(match.stock_grams || 0) > 0,
-      shop_url: `${PUBLIC_SITE_ORIGIN}/shop/product/${match.id}`,
+      shop_url: `${PUBLIC_SITE_ORIGIN}/shop/product/${match.slug || match.id}`,
     });
   }
 

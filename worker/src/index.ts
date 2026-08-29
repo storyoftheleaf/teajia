@@ -1032,7 +1032,15 @@ function buildProductMirrorStmts(
     const profileCol = PROFILE_MIRROR_COLUMNS[bodyKey];
     if (!profileCol) continue;
     profileCols.push(`${profileCol} = ?`);
-    profileVals.push(body[bodyKey] ?? null);
+    // harvest_year is TEXT on purpose, so it can hold "2024 spring" as well as
+    // a bare year. products.year arrives as a JS number, and binding a number
+    // to a TEXT column stores it as a real, which reads back as "2019.0".
+    const raw = body[bodyKey] ?? null;
+    profileVals.push(
+      profileCol === 'harvest_year' && typeof raw === 'number'
+        ? String(raw)
+        : raw
+    );
   }
   if (body.status !== undefined) {
     profileCols.push('status = ?');
@@ -1100,6 +1108,64 @@ function buildListingStatusMirror(
   return env.DB.prepare(
     `UPDATE product_listings SET status = ?, sold_out_at = ?, updated_at = datetime('now') WHERE id = ?`
   ).bind(listingStatus, productStatus === 'Sold Out' ? new Date().toISOString() : null, `list_${productId}`);
+}
+
+// The public web address for a product. Derived from the name the product page
+// actually shows as its heading (the given name when it is real and different,
+// otherwise the product name), so a shared link reads as the tea rather than a
+// machine id.
+//
+// Collision ladder, matching the 132 backfill: bare name, then name + year,
+// then a counter. Minted once at creation and never rewritten afterwards, so a
+// later rename cannot break links that are already out in the world.
+//
+// Distinct from tea_profiles.slug, which is the network-wide identifier and
+// keeps its account-disambiguating suffix. See 132_product_slugs.sql.
+function slugifyProductName(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/['\u2018\u2019`"]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+async function mintProductSlug(
+  env: Env, body: Record<string, any>, productId: string, reserved?: Set<string>
+): Promise<string> {
+  const givenName = String(body.given_name ?? '').trim();
+  const productName = String(body.product_name ?? '').trim();
+  const display = givenName
+    && givenName.toLowerCase() !== 'unknown'
+    && givenName !== productName
+      ? givenName : productName;
+  const base = slugifyProductName(display) || productId.slice(0, 8);
+  const year = body.year ? slugifyProductName(String(body.year)) : '';
+
+  // Slugs are unique across the whole table (one address space for the site),
+  // so this deliberately does NOT filter by account. One round trip fetches
+  // every address already sharing this stem.
+  const { results } = await env.DB.prepare(
+    "SELECT slug FROM products WHERE slug = ?1 OR slug LIKE ?1 || '-%'"
+  ).bind(base).all();
+  const taken = new Set((results as { slug: string | null }[]).map(r => r.slug).filter(Boolean) as string[]);
+  // A bulk import batches its INSERTs, so rows in the same batch must not be
+  // handed the same address before any of them reach the database.
+  if (reserved) for (const r of reserved) taken.add(r);
+
+  const claim = (candidate: string) => { reserved?.add(candidate); return candidate; };
+  if (!taken.has(base)) return claim(base);
+  if (year) {
+    const withYear = `${base}-${year}`;
+    if (!taken.has(withYear)) return claim(withYear);
+    for (let n = 2; n < 200; n += 1) {
+      if (!taken.has(`${withYear}-${n}`)) return claim(`${withYear}-${n}`);
+    }
+  }
+  for (let n = 2; n < 200; n += 1) {
+    if (!taken.has(`${base}-${n}`)) return claim(`${base}-${n}`);
+  }
+  // Unreachable in practice; the id suffix is a last-resort guarantee.
+  return claim(`${base}-${productId.slice(0, 6)}`);
 }
 
 // Build INSERT statements for the profile + listing pair when a new tea product
@@ -2406,7 +2472,8 @@ const handleGetProducts: Handler = async (request, env) => {
 
 // Public-safe fields whitelist
 const PUBLIC_FIELDS = [
-  'id', 'type', 'given_name', 'chinese_name', 'product_name', 'year',
+  // slug is the readable public address; id stays so old links keep resolving.
+  'id', 'slug', 'type', 'given_name', 'chinese_name', 'product_name', 'year',
   'origin_country', 'origin_region', 'retail_price_per_gram_usd',
   'fixed_retail_price_usd', 'stock_grams', 'description', 'tasting_notes',
   'image_url', 'additional_images', 'status', 'is_personal', 'can_reorder', 'is_featured', 'is_curated',
@@ -2442,7 +2509,7 @@ const handleGetPublicProduct: Handler = async (_request, env, params) => {
 const handleProductSitemap: Handler = async (_request, env) => {
   const appOrigin = (env.APP_URL || 'https://www.teajia.com').replace(/\/$/, '');
   const { results } = await env.DB.prepare(
-    `SELECT id, updated_at FROM products
+    `SELECT COALESCE(slug, id) AS id, updated_at FROM products
      WHERE is_public = 1 AND shown_in_shop = 1 AND status = 'Active' AND account_id = ?
      ORDER BY created_at DESC`
   ).bind(BALI_ACCOUNT_ID).all();
@@ -2637,6 +2704,7 @@ const handleCreateProduct: Handler = async (request, env) => {
   });
   if (incomingCreateError) return incomingCreateError;
   const id = crypto.randomUUID();
+  body.slug = await mintProductSlug(env, body, id);
   const cols = Object.keys(body);
   const placeholders = cols.map(() => '?').join(', ');
   const insertProduct = env.DB.prepare(`INSERT INTO products (id, ${cols.join(', ')}) VALUES (?, ${placeholders})`)
@@ -2723,6 +2791,9 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
   const existingById = new Map((existingProducts.results as any[]).map(p => [p.id, p]));
 
   const newLines: Array<{ id: string; clientRowId: string | null; statements: D1PreparedStatement[]; movementInput: StockMovementInput | null }> = [];
+  // Addresses handed out earlier in this import, so two identically named rows
+  // in the same file cannot both claim the same one before either is written.
+  const reservedSlugs = new Set<string>();
   const replayBalances: Array<{ id: string; input: StockMovementInput }> = [];
   const skipped: string[] = [];
   const results: Array<{ client_row_id: string | null; status: 'inserted' | 'replayed' | 'skipped'; reason?: string }> = [];
@@ -2795,6 +2866,7 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
       const vkey = (body.vendor as string).trim().toLowerCase();
       if (vendorCache[vkey]) body.vendor_id = vendorCache[vkey];
     }
+    body.slug = await mintProductSlug(env, body, id, reservedSlugs);
     const cols = Object.keys(body);
     const placeholders = cols.map(() => '?').join(', ');
     const lineStatements: D1PreparedStatement[] = [
@@ -6452,6 +6524,7 @@ const handleListMyProfileFavorites: Handler = async (request, env) => {
     `WITH eligible_listings AS (
        SELECT pl.profile_id, pl.account_id AS source_account_id,
               pl.id AS source_listing_id, pl.legacy_product_id AS source_product_id,
+              p.slug AS source_product_slug,
               a.slug AS source_account_slug,
               ROW_NUMBER() OVER (
                 PARTITION BY pl.profile_id
@@ -6468,7 +6541,7 @@ const handleListMyProfileFavorites: Handler = async (request, env) => {
      SELECT tp.id, tp.name, tp.chinese_name, tp.type, tp.harvest_year,
             tp.origin_region, tp.origin_country, tp.image_url,
             eligible.source_account_id, eligible.source_listing_id, eligible.source_product_id,
-            '/shop/product/' || eligible.source_product_id || '?store=' || eligible.source_account_slug AS public_path
+            '/shop/product/' || COALESCE(eligible.source_product_slug, eligible.source_product_id) || '?store=' || eligible.source_account_slug AS public_path
        FROM tea_profiles tp
        JOIN eligible_listings eligible ON eligible.profile_id = tp.id AND eligible.listing_rank = 1
       WHERE tp.status = 'published' AND tp.network_visible = 1
@@ -7159,7 +7232,7 @@ const handleGetPublicWisdomRelated: Handler = async (_request, env, params) => {
     ).bind(params.nodeType, params.nodeId).all(),
     env.DB.prepare(
       `SELECT tp.id, tp.name,
-              '/shop/product/' || pl.legacy_product_id || '?store=' || listing_account.slug AS href,
+              '/shop/product/' || COALESCE(p.slug, pl.legacy_product_id) || '?store=' || listing_account.slug AS href,
               tp.image_url,
               trim(COALESCE(tp.type, '') || CASE WHEN tp.origin_region IS NOT NULL THEN ' · ' || tp.origin_region ELSE '' END) AS detail
          FROM wisdom_relations wr JOIN tea_profiles tp ON tp.id = wr.target_id
@@ -7870,7 +7943,7 @@ function makePublicXrefHandler(tableName: string, fkColumn: string, sourceTable?
     const productStatement = env.DB.prepare(
       `SELECT p.id, p.type, p.given_name, p.chinese_name, p.product_name, p.year,
               public_account.slug AS account_slug,
-              '/shop/product/' || p.id || '?store=' || public_account.slug AS public_path,
+              '/shop/product/' || COALESCE(p.slug, p.id) || '?store=' || public_account.slug AS public_path,
               p.origin_country, p.origin_region, p.stock_grams, p.description,
               p.tasting_notes, p.image_url, p.additional_images, p.status,
               p.is_personal, p.can_reorder, p.is_curated, p.lore,
@@ -11988,6 +12061,7 @@ const handleApproveCellarPlacement: Handler = async (request, env, params) => {
     shown_in_shop: 0,
     owner_user_id: item.owner_user_id,
   };
+  body.slug = await mintProductSlug(env, body, productId);
   const cols = Object.keys(body);
   const placeholders = cols.map(() => '?').join(', ');
   const insertProduct = env.DB.prepare(
@@ -12966,11 +13040,12 @@ const handleAcceptReceiptProposal: Handler = async (request, env, params) => {
   } else {
     const name = String(proposal.product_name || 'Unnamed item');
     const type = String(proposal.product_type || (decoded.unit === 'unit' ? 'Teaware' : 'Misc'));
+    const slug = await mintProductSlug(env, { product_name: name, given_name: name }, productId);
     statements.push(env.DB.prepare(`INSERT INTO products
-      (id, account_id, type, product_name, given_name, status, stock_grams, quantity_units,
+      (id, account_id, type, product_name, given_name, slug, status, stock_grams, quantity_units,
        inventory_purpose, is_sample, is_personal, stock_known_at, is_public, shown_in_shop, source_compass_entry_id, owner_user_id)
-      VALUES (?, ?, ?, ?, ?, 'Draft', ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)`)
-      .bind(productId, ctx.accountId, type, name, name, inventory.stock_grams ?? 0, inventory.quantity_units,
+      VALUES (?, ?, ?, ?, ?, ?, 'Draft', ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)`)
+      .bind(productId, ctx.accountId, type, name, name, slug, inventory.stock_grams ?? 0, inventory.quantity_units,
         inventory.inventory_purpose, inventory.is_sample, inventory.is_personal, now, proposal.compass_entry_id ?? null, ctx.userId));
     statements.push(...buildProductMirrorInserts(env, productId, ctx.accountId, {
       product_name: name, type, status: 'Draft', stock_grams: inventory.stock_grams ?? 0,
@@ -17650,11 +17725,13 @@ async function fetchPublicProductsForAccount(
   accountId: string,
   productId?: string
 ): Promise<Record<string, unknown>[]> {
-  const productFilter = productId ? ' AND p.id = ?2' : '';
+  // Accepts either the readable slug or the legacy UUID, so every link ever
+  // shared keeps resolving. Callers pass whatever was in the URL.
+  const productFilter = productId ? ' AND (p.id = ?2 OR p.slug = ?2)' : '';
   const [ratesResult, result] = await env.DB.batch([
     env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates'),
     env.DB.prepare(
-      `SELECT id, type, given_name, chinese_name, product_name, year,
+      `SELECT id, slug, type, given_name, chinese_name, product_name, year,
               origin_country, origin_region, stock_grams, description,
               tasting_notes, image_url, additional_images, status,
               is_personal, can_reorder, is_curated, lore, show_wisdom,
@@ -19706,7 +19783,7 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
   const productsRes = await env.DB.prepare(
     `SELECT DISTINCT p.id, p.product_name, p.given_name, p.chinese_name, p.image_url,
             a.slug AS account_slug,
-            '/shop/product/' || p.id || '?store=' || a.slug AS public_path
+            '/shop/product/' || COALESCE(p.slug, p.id) || '?store=' || a.slug AS public_path
        FROM contributor_accounts ca
        JOIN accounts a ON a.id = ca.account_id
        JOIN product_listings pl ON pl.account_id = ca.account_id
@@ -19806,7 +19883,7 @@ const handleGetPublicProfileFavorites: Handler = async (_request, env, params) =
               tp.slug, tp.name, tp.chinese_name, tp.type, tp.form, tp.origin_country,
               tp.origin_region, tp.varietal, tp.harvest_year, tp.description, tp.image_url,
               a.slug AS source_account_slug, a.name AS source_account_name,
-              '/shop/product/' || pl.legacy_product_id || '?store=' || a.slug AS public_path,
+              '/shop/product/' || COALESCE(p.slug, pl.legacy_product_id) || '?store=' || a.slug AS public_path,
               ROW_NUMBER() OVER (
                 PARTITION BY pf.contributor_id, pf.tea_profile_id
                 ORDER BY CASE

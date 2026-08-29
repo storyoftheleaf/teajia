@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { useLocation, useNavigate, type Location } from 'react-router-dom';
 import type { InventoryItem } from '../types';
+import { buildPublicProductHref, findProductByRouteParam } from '../lib/publicProductNavigation';
 
 /** Matches /shop/product/:id (one segment, no trailing slash). */
 export const PRODUCT_PATH_RE = /^\/shop\/product\/([^/]+)$/;
@@ -34,17 +35,19 @@ export function useProductModalRoute(inventory: InventoryItem[], routeLocation?:
 
   const background = (location.state as BackgroundState | null)?.background;
   const match = PRODUCT_PATH_RE.exec(location.pathname);
-  const productId = background && match ? decodeURIComponent(match[1]) : null;
+  // The segment may be the readable address or a legacy id; the resolver takes
+  // either, so old links opened from history still find their tea.
+  const productKey = background && match ? decodeURIComponent(match[1]) : null;
 
   const viewItem = useMemo(
-    () => (productId ? inventory.find(i => i.id === productId) ?? null : null),
-    [productId, inventory],
+    () => findProductByRouteParam(inventory, productKey ?? undefined),
+    [productKey, inventory],
   );
 
   /** Card tap: push the product URL with the current location as background. */
   const openProduct = useCallback(
     (item: InventoryItem) => {
-      navigate(`/shop/product/${encodeURIComponent(item.id)}`, {
+      navigate(buildPublicProductHref({ id: item.id, slug: item.slug }), {
         state: { background: background ?? location },
       });
     },
@@ -55,7 +58,7 @@ export function useProductModalRoute(inventory: InventoryItem[], routeLocation?:
   const navigateWithinModal = useCallback(
     (item: InventoryItem) => {
       if (!background) return;
-      navigate(`/shop/product/${encodeURIComponent(item.id)}`, {
+      navigate(buildPublicProductHref({ id: item.id, slug: item.slug }), {
         replace: true,
         state: { background },
       });

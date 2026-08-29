@@ -27,6 +27,7 @@ import { SampleModal, CustomAmountModal, ImageOverlayModal } from './alcove/Alco
 import { TeaReference, type TeaReferenceProduct } from '../wisdom/TeaReference';
 import type { ProductImpression } from './ProductImpressions';
 import { resolveProductResearch } from '../../wisdom/productResearch';
+import { buildPublicProductHref } from '../../lib/publicProductNavigation';
 
 interface AlcoveCardProps {
   item: InventoryItem;
@@ -254,7 +255,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   // Share handler: uses Web Share API with clipboard fallback.
   const handleShare = async () => {
     const shareText = `${item.name}, ${item.origin || ''} ${teaType} from Teajia`;
-    const shareUrl = new URL(publicHref || `/shop/product/${encodeURIComponent(item.id)}`, window.location.origin).toString();
+    const shareUrl = new URL(publicHref || buildPublicProductHref({ id: item.id, slug: item.slug }), window.location.origin).toString();
 
     if (navigator.share) {
       try {

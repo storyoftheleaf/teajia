@@ -150,10 +150,12 @@ CREATE TABLE IF NOT EXISTS products (
     sourced_by TEXT,
     roasted_by TEXT,
     vouched_by TEXT,
+    slug TEXT,                                  -- Public web address. See 132_product_slugs.sql
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now')),  -- Tracks admin edits for smart export
     last_synced_at TEXT                         -- Last time markdown sync touched this row
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_products_slug ON products(slug);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_products_account_compass_identity
   ON products(account_id, source_compass_entry_id)
   WHERE source_compass_entry_id IS NOT NULL;

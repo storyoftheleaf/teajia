@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useInventory } from '../../context/InventoryContext';
 import { InventoryItem } from '../../types';
+import { buildPublicProductHref } from '../../lib/publicProductNavigation';
 
 /**
  * ProductReferences, shared "quiet footnote" colophon primitive for
@@ -107,7 +108,7 @@ export const ProductReferences: React.FC<ProductReferencesProps> = ({
           return (
             <li key={product.id}>
               <a
-                href={`/shop/product/${encodeURIComponent(product.id)}`}
+                href={buildPublicProductHref({ id: product.id, slug: product.slug })}
                 onClick={e => e.stopPropagation()}
                 className="group inline-flex flex-wrap items-baseline gap-x-2 font-serif text-ui-13 leading-snug text-tea-text hover:text-tea-gold transition-colors"
               >

@@ -31,6 +31,8 @@ import { fetchNetworkStores } from '../lib/storefrontApi';
 
 import type { StarterSet } from '../types';
 import type { Product } from '../admin/types';
+import { api } from '../lib/api';
+import { buildProductUpdatePayload } from '../admin/productUpdatePayload';
 
 const AddProductModal = lazy(() => import('../admin/components/AddProductModal').then(m => ({ default: m.AddProductModal })));
 const ProductEditPanel = lazy(() => import('../admin/components/ProductEditPanel').then(m => ({ default: m.ProductEditPanel })));
@@ -546,8 +548,14 @@ export const Shop: React.FC<ShopProps> = ({
               product={editingProduct}
               rates={rates}
               onClose={() => { setEditingProduct(null); refetchProducts(); }}
-              onUpdate={(id, field, value) => {
-                // Optimistic local update so the panel reflects the change immediately
+              onUpdate={async (id, field, value) => {
+                // Persist FIRST. The panel treats a supplied onUpdate as the
+                // whole save path and does not fall back to its own writer, so
+                // a handler that only touched local state silently discarded
+                // every edit made from the public shop.
+                const payload = buildProductUpdatePayload(field, value);
+                if (payload) await api.products.updateByDomain(id, payload);
+                // Then reflect it, so the field does not snap back on re-render.
                 setEditingProduct(prev => (prev && prev.id === id ? { ...prev, [field]: value } : prev));
               }}
             />

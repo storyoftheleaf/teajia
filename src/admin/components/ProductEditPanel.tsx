@@ -22,6 +22,7 @@ import { CollectionPill } from './collections/CollectionPill';
 import { AutocompleteInput } from '../../components/TeaCompass/AutocompleteInput';
 import { buildVarietyDataMap, getTeaVarietySuggestions } from '../../data/teaVarieties';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
+import { buildProductUpdatePayload } from '../productUpdatePayload';
 import { getThemeColor } from '../themeUtils';
 import { TEA_TYPES } from '../../wisdom';
 import { effectivePurpose, getEffectivePublication, getTeaReadiness } from './inventory/domain';
@@ -874,56 +875,9 @@ const SlotMenuItem = ({
 /* Field → DB column mapping (shared between panel and inventory)      */
 /* ------------------------------------------------------------------ */
 
-export function buildProductUpdatePayload(field: keyof Product, value: any): Record<string, any> | null {
-  switch (field) {
-    case 'stockGrams': return { stock_grams: Number(value) };
-    case 'costAmount': return { cost_amount: Number(value) };
-    case 'pricePerGramUSD': return { fixed_retail_price_usd: Number(value) };
-    case 'productName': return { product_name: value };
-    case 'originRegion': return { origin_region: value };
-    case 'year': return { year: Number(value) };
-    case 'isFeatured': return { is_featured: value };
-    case 'isPublic': return { is_public: value };
-    case 'showWisdom': return { show_wisdom: value };
-    case 'recheckStock': return { recheck_stock: value ? 1 : 0 };
-    case 'stockVerifiedAt': return { stock_verified_at: value };
-    case 'material': return { material: value };
-    case 'capacityMl': return { capacity_ml: Number(value) };
-    case 'teawareCategory': return { teaware_category: value };
-    case 'quantityUnits': return { quantity_units: Number(value) };
-    case 'experience': return { experience: value };
-    case 'description': return { description: value };
-    case 'mood': return { mood: value };
-    case 'moodTags': return { mood_tags: JSON.stringify(value || []) };
-    case 'flavorTags': return { flavor_tags: JSON.stringify(value || []) };
-    case 'tastingNotes': return { tasting_notes: JSON.stringify(value) };
-    case 'lore': return { lore: value };
-    case 'givenName': return { given_name: value };
-    case 'chineseName': return { chinese_name: value };
-    case 'form': return { form: value };
-    case 'originCountry': return { origin_country: value };
-    case 'vendor': return { vendor: value };
-    case 'type': return { type: value };
-    case 'status': return { status: value };
-    case 'imageUrl': return { image_url: value };
-    case 'processingNotes': return { processing_notes: value };
-    case 'terroir': return { terroir: value };
-    case 'isPersonal': return { is_personal: value ? 1 : 0 };
-    case 'canReorder': return { can_reorder: value ? 1 : 0 };
-    case 'isCurated': return { is_curated: value ? 1 : 0 };
-    case 'isSample': return { is_sample: value ? 1 : 0 };
-    case 'inventoryPurpose': return { inventory_purpose: value };
-    case 'isCustomWisdom': return { is_custom_wisdom: value ? 1 : 0 };
-    case 'fixedRetailPriceUSD': return { fixed_retail_price_usd: value ? Number(value) : null };
-    case 'shippingRatePerKg': return { shipping_rate_per_kg: Number(value) };
-    case 'quantityPurchased': return { quantity_purchased: Number(value) };
-    case 'lowStockThreshold': return { low_stock_threshold: Number(value) };
-    case 'costCurrency': return { cost_currency: value };
-    case 'additionalImages': return { additional_images: JSON.stringify(value || []) };
-    case 'bagPhotoUrl': return { bag_photo_url: value || null };
-    default: return null;
-  }
-}
+// Re-exported so `import { ..., buildProductUpdatePayload } from './ProductEditPanel'`
+// keeps working; the implementation lives in its own module now.
+export { buildProductUpdatePayload } from '../productUpdatePayload';
 
 /* ------------------------------------------------------------------ */
 /* ProductEditPanel: the inventory sidebar, now reusable              */

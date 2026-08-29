@@ -1,6 +1,6 @@
 import React from 'react';
 import type { InventoryItem } from '../../../types';
-import { Heart, Pencil, QrCode } from 'lucide-react';
+import { Heart, Pencil, FlaskConical } from 'lucide-react';
 import { fmtShopPrice } from '../../../utils/formatNumber';
 
 interface StockStatus {
@@ -252,7 +252,10 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
                 aria-pressed={inSampleCart}
                 title={inSampleCart ? 'In sample pack' : 'Add to sample pack'}
               >
-                <QrCode size={13} />
+                {/* Sample pack, not a QR code. This carried the QrCode glyph
+                    for a while, which read on the public page as a stray QR
+                    button; the real QR generator lives in the edit panel. */}
+                <FlaskConical size={13} />
               </button>
             </>
           )}

@@ -53,7 +53,7 @@
 ### /shop
 - Tea + teaware grid, Flavor Map (coming), product filtering
 - **Sub-routes:**
-  - `/shop/product/:id` — Opens AlcoveModal with full detail
+  - `/shop/product/:slug` opens AlcoveModal with full detail. The segment is the readable name from `products.slug`; the legacy UUID still resolves (see `worker/migrations/132_product_slugs.sql`)
   - Product detail: rich lore, tasting notes, origin, brewing parameters, taste-alike discovery
   - Teaware detail: specifications, usage guides
 - **Status:** WIRED (Flavor Map coming)

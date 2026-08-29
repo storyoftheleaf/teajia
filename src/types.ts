@@ -521,6 +521,9 @@ export interface CartItem {
 // Unified Inventory Type
 export interface InventoryItem {
   id: string;
+  /** Readable public address, e.g. "mahei-gushu-red". Absent on rows that
+   *  predate the slug migration; links fall back to the id. */
+  slug?: string;
   category: 'tea' | 'ware';
   subcategory?: string; // For teaware (brewing, serving, etc.)
   type: string; // e.g. "Green", "Teapot"
@@ -579,6 +582,8 @@ export type PublicProductType = TeaType | typeof NON_TEA_TYPES[number];
 
 export interface PublicProduct {
   id: string;
+  /** Readable public address. See InventoryItem.slug. */
+  slug?: string;
   type: PublicProductType;
   givenName: string;
   chineseName?: string;

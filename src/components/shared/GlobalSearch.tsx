@@ -8,6 +8,7 @@ import { useStories } from '../../context/StoryContext';
 import { useInventory } from '../../context/InventoryContext';
 import { ContentType } from '../../types';
 import { api } from '../../lib/api';
+import { buildPublicProductHref } from '../../lib/publicProductNavigation';
 
 // ── Result types ──────────────────────────────────────────────
 
@@ -213,7 +214,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
         category: item.category === 'ware' ? 'Teaware' : item.type,
         image: item.image,
         // Plain navigation to the real product page (cold load, no modal).
-        action: () => navigateAndClose(`/shop/product/${encodeURIComponent(item.id)}`),
+        action: () => navigateAndClose(buildPublicProductHref({ id: item.id, slug: item.slug })),
       };
     });
 

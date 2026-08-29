@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, lazy, Suspense } from 'react';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { AnimatePresence } from 'framer-motion';
@@ -15,8 +15,18 @@ import { EmblemLoader } from '../components/shared/EmblemLoader';
 import type { InventoryItem } from '../types';
 import type { Product } from '../admin/types';
 import { useAppStore } from '../lib/store';
-import { buildPublicProductHref } from '../lib/publicProductNavigation';
+import { buildPublicProductHref, findProductByRouteParam } from '../lib/publicProductNavigation';
 import { LABEL, NUMERAL } from '../components/shared/typeRoles';
+import { useProducts, useRates } from '../admin/hooks/useAdminData';
+import { ToastProvider } from '../admin/components/Toast';
+import { api } from '../lib/api';
+import { buildProductUpdatePayload } from '../admin/productUpdatePayload';
+
+// The same panel the inventory section uses. Lazy so a reader who never signs
+// in never downloads the editor.
+const ProductEditPanel = lazy(() =>
+  import('../admin/components/ProductEditPanel').then(m => ({ default: m.ProductEditPanel }))
+);
 
 interface ProductPageProps {
   onAddToCart?: (item: InventoryItem, qty: number, total: number) => void;
@@ -75,7 +85,9 @@ const PUBLISHED_CURRENCY = 'USD';
  * commerce bar fixed above the bottom nav.
  */
 export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartClick, cartItemCount = 0 }) => {
-  const { id } = useParams<{ id: string }>();
+  // Named :id for the route, but it now carries the readable address on new
+  // links and a legacy UUID on old ones. The resolver accepts either.
+  const { id: routeKey } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const persistedStoreSlug = useAppStore(state => state.shopStoreSlug);
@@ -84,12 +96,23 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   const { inventory, isLoading, refetch: refetchInventory } = useInventory();
   const { isAdmin } = useAuth();
 
-  const item = useMemo(() => inventory.find(i => i.id === id), [inventory, id]);
+  const item = useMemo(() => findProductByRouteParam(inventory, routeKey), [inventory, routeKey]);
 
   // Tasting session (customers) / product tasting editor (admins): same
   // behaviors the shop grids attach to the modal card.
   const [tastingItem, setTastingItem] = useState<InventoryItem | null>(null);
   const [adminTastingItem, setAdminTastingItem] = useState<InventoryItem | null>(null);
+
+  // Editing this tea in place. The admin catalogue is fetched only when signed
+  // in as an admin, so a reader's cold load never fires an authenticated
+  // request it would only get a 401 from.
+  const { data: adminProducts = [], refetch: refetchAdminProducts } = useProducts({ enabled: isAdmin });
+  const { data: rates = [] } = useRates();
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const adminRecord = useMemo(
+    () => (isAdmin && item ? adminProducts.find((p: Product) => p.id === item.id) ?? null : null),
+    [isAdmin, item, adminProducts],
+  );
 
   const handleTaste = useCallback((tasteItem: InventoryItem) => {
     if (isAdmin) {
@@ -172,7 +195,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   // plant, so the two documents describe one entity, not two look-alikes.
   const siteOrigin = typeof window === 'undefined' ? '' : window.location.origin;
   const cultivarUrl = lineageCultivar ? `${siteOrigin}${cultivarPath(lineageCultivar.id)}` : null;
-  const productHref = buildPublicProductHref({ id: item.id }, storeSlug);
+  const productHref = buildPublicProductHref({ id: item.id, slug: item.slug }, storeSlug);
   const productUrl = `${siteOrigin}${productHref}`;
 
   // The crumb between the shop and this tea, resolved through the same
@@ -322,8 +345,9 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
 
-      {/* Back: page nav, top-left */}
-      <div className="mx-auto w-full max-w-[1080px] pt-4 pb-2">
+      {/* Back stays top-left per the page-nav rule; Edit takes the opposite
+          corner so the one destructive-ish control is never next to escape. */}
+      <div className="mx-auto w-full max-w-[1080px] pt-4 pb-2 flex items-center justify-between gap-4">
         <Link
           to={shopHref}
           className="inline-flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors text-sm"
@@ -331,6 +355,17 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
           <Icons.Back className="w-4 h-4" />
           <span className="uppercase tracking-[0.12em] text-xs">Back to Shop</span>
         </Link>
+        {adminRecord && (
+          <button
+            type="button"
+            onClick={() => setEditingProduct(adminRecord)}
+            className="tap-target inline-flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors text-sm"
+            aria-label={`Edit ${item.name}`}
+          >
+            <Icons.Edit className="w-4 h-4" />
+            <span className="uppercase tracking-[0.12em] text-xs">Edit</span>
+          </button>
+        )}
       </div>
 
       {/* The quiet page: same blocks and behaviors as the modal card */}
@@ -356,7 +391,10 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
               // Already on this product's page: just close the session.
               setTastingItem(null);
               if (ordered.id !== item.id) {
-                navigate(buildPublicProductHref({ id: ordered.id }, storeSlug));
+                // A TastingItem carries only an id, so resolve it back to the
+                // catalogue row to get its readable address.
+                const orderedItem = findProductByRouteParam(inventory, ordered.id);
+                navigate(buildPublicProductHref({ id: ordered.id, slug: orderedItem?.slug }, storeSlug));
               }
             }}
           />
@@ -373,6 +411,36 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
             refetchInventory();
           }}
         />
+      )}
+
+      {/* Admin: the full inventory edit panel, in place. Same component and
+          same fields as the inventory section, so there is one editor to keep
+          right rather than two that drift. */}
+      {editingProduct && (
+        <ToastProvider>
+          <Suspense fallback={null}>
+            <ProductEditPanel
+              product={editingProduct}
+              rates={rates}
+              onClose={() => {
+                setEditingProduct(null);
+                refetchAdminProducts();
+                // The public page reads its own catalogue, so pull the edit
+                // through to what the reader sees.
+                refetchInventory();
+              }}
+              onUpdate={async (id, field, value) => {
+                // Persist FIRST: the panel treats a supplied onUpdate as the
+                // entire save path and will not fall back to its own writer.
+                // This lands in products, tea_profiles and product_listings
+                // together, through the domain update routes.
+                const payload = buildProductUpdatePayload(field, value);
+                if (payload) await api.products.updateByDomain(id, payload);
+                setEditingProduct(prev => (prev && prev.id === id ? { ...prev, [field]: value } : prev));
+              }}
+            />
+          </Suspense>
+        </ToastProvider>
       )}
     </div>
   );

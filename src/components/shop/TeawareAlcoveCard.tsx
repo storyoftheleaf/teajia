@@ -14,6 +14,7 @@ import { AlcoveSectionHeading } from './alcove/AlcoveSectionHeading';
 import { AlcoveCommerceFooter } from './alcove/AlcoveCommerceFooter';
 import { ImageOverlayModal } from './alcove/AlcoveModals';
 import { TeaPlaceholder } from './TeaPlaceholder';
+import { buildPublicProductHref } from '../../lib/publicProductNavigation';
 
 interface TeawareAlcoveCardProps {
   item: InventoryItem;
@@ -76,7 +77,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({
   // Share handler: canonical product page URL, Web Share API with clipboard fallback
   const handleShare = async () => {
     const shareText = `${item.name}, ${item.type} from Teajia`;
-    const shareUrl = `${window.location.origin}/shop/product/${encodeURIComponent(item.id)}`;
+    const shareUrl = `${window.location.origin}${buildPublicProductHref({ id: item.id, slug: item.slug })}`;
 
     if (navigator.share) {
       try {
