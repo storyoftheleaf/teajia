@@ -11,6 +11,7 @@ stock_known_at: null
 cost: "470 Yuan"
 vendor: "Kunming Xiongda"
 restockable: true
+teaser: ""
 tastingNotes:
   - "malt"
   - "honey"
@@ -18,16 +19,16 @@ tastingNotes:
   - "mellow"
 ---
 
-A red tea made from ancient-tree leaf grown in Mahei village, inside the greater Yiwu region.
-
-## Terroir
-
-Mahei is a village inside the Yiwu tea region, ringed by ancient forest. The area is known for the reliability of its old trees.
-
-## Processing
-
-Made from large-leaf Yunnan cultivar leaf off ancient trees. Fully oxidized by the traditional hong cha method and left as loose leaf.
+A red tea from the old caravan mountains where imperial tribute was once picked.
 
 ## Lore
 
-Mahei's old trees have long been trusted for their steady character season after season.
+Mahei is a small village a short distance north of Yiwu town, tucked inside one of the Qing dynasty's Six Famous Tea Mountains. The Dai name for the wider area means 'place where beautiful snakes live', and its leaf once traveled out as tribute to the emperor.
+
+## Terroir
+
+The country here sits between roughly 910 and 1700 meters along the border with Laos, with forest coverage reaching about 88%. Tea across the region grows as Yunnan assamica under a high canopy, in gardens once linked to the old caravan trails that carried leaf toward the capital. The area is known for aged forest stands.
+
+## Processing
+
+Made from Yunnan assamica leaf, fully oxidized in the traditional hong cha (red tea) method. Kept as loose leaf.
