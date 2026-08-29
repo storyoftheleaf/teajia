@@ -183,14 +183,13 @@ interface CustomAmountModalProps {
   pricePerGram?: number;
   /** Formats a gram amount into the currency the reader chose. */
   formatTotal?: (grams: number) => string;
-  /** Opens the sample-request flow. Sample sizes live here, not in the strip. */
-  onRequestSample?: () => void;
+  /** The whole pressed piece, when the tea is one, so it reads "Cake" here too. */
+  wholePiece?: { label: string; grams: number };
 }
 
 /**
- * Custom amount, and the only door to a sample. The quantity strip carries the
- * amounts people buy; a taste is an ask, so it sits one step in, next to the
- * free-entry field it belongs with.
+ * Custom amount. The strip carries the amounts most readers buy; everything
+ * else, a 10 g taste included, is entered or picked here.
  */
 export const CustomAmountModal: React.FC<CustomAmountModalProps> = ({
   open,
@@ -201,12 +200,25 @@ export const CustomAmountModal: React.FC<CustomAmountModalProps> = ({
   setGrams,
   pricePerGram = 0,
   formatTotal,
-  onRequestSample,
+  wholePiece,
 }) => {
   const dialogRef = useDialog(open, onClose);
   if (!open) return null;
 
-  const quickAmounts = [10, 25, 50, 100, 250, 357].filter(g => g <= sliderMax);
+  // Plain weights, then the whole piece under its own name: 357 g of a cake is
+  // a cake, and reads as one.
+  const quickAmounts: { grams: number; label: string; sub?: string }[] = [
+    ...[10, 25, 50, 100, 250]
+      .filter(g => g <= sliderMax)
+      .map(g => ({ grams: g, label: `${g} g` })),
+    ...(wholePiece && wholePiece.grams <= sliderMax
+      ? [{
+          grams: wholePiece.grams,
+          label: wholePiece.label,
+          sub: `${wholePiece.grams} g`,
+        }]
+      : []),
+  ];
   const entered = parseInt(customInput);
   const enteredValid = !isNaN(entered) && entered >= 5 && entered <= sliderMax;
   const priceOf = (g: number) =>
@@ -227,25 +239,26 @@ export const CustomAmountModal: React.FC<CustomAmountModalProps> = ({
       className="alcove-modal-backdrop fixed inset-0 z-priority flex items-center justify-center p-4"
     >
       <div onClick={e => e.stopPropagation()} className="alcove-modal-panel max-w-[320px]">
-        <p className={`${HEADING} m-0 mb-1 text-tea-text`}>Custom amount</p>
-        <p className={`${BODY} m-0 mb-4 text-tea-text-sec`}>
-          Sample sizes start at 10 g.
-        </p>
+        <p className={`${HEADING} m-0 mb-4 text-tea-text`}>Custom amount</p>
 
         {/* Common amounts, each carrying its price, so the choice is made here
             rather than by typing a number and watching the button change. */}
         {quickAmounts.length > 0 && (
           <div className="mb-4 flex flex-wrap gap-1.5">
-            {quickAmounts.map(g => (
+            {quickAmounts.map(a => (
               <button
-                key={g}
+                key={a.grams}
                 type="button"
-                onClick={() => commit(g)}
+                onClick={() => commit(a.grams)}
                 className="alcove-amount-chip"
-                aria-label={`${g} grams${pricePerGram > 0 ? `, ${priceOf(g)}` : ''}`}
+                aria-label={`${a.label}, ${a.grams} grams${pricePerGram > 0 ? `, ${priceOf(a.grams)}` : ''}`}
               >
-                <span className={NUMERAL}>{g} g</span>
-                {pricePerGram > 0 && <small className={NUMERAL}>{priceOf(g)}</small>}
+                <span className={NUMERAL}>{a.label}</span>
+                {pricePerGram > 0 && (
+                  <small className={NUMERAL}>
+                    {a.sub ? `${a.sub} · ${priceOf(a.grams)}` : priceOf(a.grams)}
+                  </small>
+                )}
               </button>
             ))}
           </div>
@@ -273,16 +286,6 @@ export const CustomAmountModal: React.FC<CustomAmountModalProps> = ({
         <p className={`${BODY} ${NUMERAL} m-0 mb-5 min-h-[18px] text-tea-text-sec`}>
           {enteredValid && pricePerGram > 0 ? priceOf(entered) : '\u00a0'}
         </p>
-
-        {onRequestSample && (
-          <button
-            type="button"
-            onClick={() => { onClose(); onRequestSample(); }}
-            className={`alcove-modal-quiet ${LABEL} mb-4`}
-          >
-            Request a sample instead
-          </button>
-        )}
 
         {/* Cancel left, commit right. */}
         <div className="flex gap-2">

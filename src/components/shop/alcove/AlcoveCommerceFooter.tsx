@@ -52,7 +52,7 @@ interface AlcoveCommerceFooterProps {
  * Mirrors DEFAULT_GRAMS in TeaCompass/types.ts, kept local so the shop footer
  * does not pull the whole tea-wisdom module into the customer bundle.
  */
-const WHOLE_PIECE: Record<string, { label: string; grams: number }> = {
+export const WHOLE_PIECE: Record<string, { label: string; grams: number }> = {
   Cake: { label: 'Cake', grams: 357 },
   Brick: { label: 'Brick', grams: 250 },
   Tuo: { label: 'Tuo', grams: 100 },

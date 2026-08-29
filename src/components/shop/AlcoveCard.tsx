@@ -22,7 +22,7 @@ import { AlcoveFactsLedger } from './alcove/AlcoveFactsLedger';
 import { AlcoveCharacterBand } from './alcove/AlcoveCharacterBand';
 import { AlcoveAboutSection } from './alcove/AlcoveAboutSection';
 import { AlcoveTableSection } from './alcove/AlcoveTableSection';
-import { AlcoveCommerceFooter } from './alcove/AlcoveCommerceFooter';
+import { AlcoveCommerceFooter, WHOLE_PIECE } from './alcove/AlcoveCommerceFooter';
 import { SampleModal, CustomAmountModal, ImageOverlayModal } from './alcove/AlcoveModals';
 import { TeaReference, type TeaReferenceProduct } from '../wisdom/TeaReference';
 import type { ProductImpression } from './ProductImpressions';
@@ -336,7 +336,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         setGrams={setGrams}
         pricePerGram={pricePerGram}
         formatTotal={(g) => resolvedFormatPrice(pricePerGram, g)}
-        onRequestSample={handleSampleClick}
+        wholePiece={WHOLE_PIECE[item.form ?? '']}
       />
       <ImageOverlayModal
         open={imageExpanded}
