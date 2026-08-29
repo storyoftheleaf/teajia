@@ -1,4 +1,4 @@
-name: D1 Baseline Probe (full error)
+name: D1 Baseline Probe (file-based)
 on:
   workflow_dispatch:
 
@@ -10,32 +10,36 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Find exact failing statement
+      - name: Find real failing statement (full SQL via file)
         working-directory: worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           python3 - <<'EOF'
-          import subprocess
+          import subprocess, os
           sql = open('migrations/0000_initial_schema.sql').read()
-          stmts = [s.strip() for s in sql.split(';') if s.strip() and not s.strip().startswith('--')]
-          print(f"TOTAL single statements: {len(stmts)}")
-          # Run each statement individually (they are all IF NOT EXISTS => no-op on live; safe)
+          # split on ';\n' boundaries (statement terminator followed by newline)
+          import re
+          parts = re.split(r';\s*\n\s*', sql)
+          stmts = [p.strip().strip(';') for p in parts if p.strip() and not p.strip().startswith('--')]
+          print(f"TOTAL statements: {len(stmts)}")
           for i, s in enumerate(stmts):
+              # write full statement to temp file (no truncation)
+              fn = f"/tmp/stmt{i}.sql"
+              open(fn,'w').write(s + ";\n")
               try:
                   r = subprocess.run(
-                      ["npx","wrangler","d1","execute","teajia-db","--remote","--command",s[:4000]],
+                      ["npx","wrangler","d1","execute","teajia-db","--remote","--file",fn],
                       capture_output=True, text=True, timeout=30)
                   if r.returncode != 0:
-                      # capture FULL stderr
-                      print(f"FAIL[{i+1}] " + s.replace(chr(10),' ')[:140])
+                      out=(r.stdout or "")+(r.stderr or "")
+                      print(f"FAIL[{i+1}] " + s.replace(chr(10),' ')[:100])
                       print("---ERR_START---")
-                      print((r.stderr or r.stdout)[-1500:])
+                      print(out[-1200:])
                       print("---ERR_END---")
-                      break  # first failure is enough
+                      break
               except subprocess.TimeoutExpired:
-                  print(f"TIMEOUT[{i+1}] " + s.replace(chr(10),' ')[:140])
-                  break
+                  print(f"TIMEOUT[{i+1}] " + s[:100]); break
           print("PROBE DONE")
           EOF
