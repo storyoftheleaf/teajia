@@ -436,7 +436,7 @@ type PendingMutation =
   | { kind: 'record_sale'; accountId: string; userEmail: string; actorUserId: string; actorRole: string; lines: { productId: string; grams: number; pricePerGramUsd: number }[]; customerId: string | null; customerName: string; customerWhatsapp: string | null; notes: string | null }
   | { kind: 'create_customer'; accountId: string; userEmail: string; name: string; whatsapp: string | null; email: string | null; phone: string | null; notes: string | null; tags: string[] }
   | { kind: 'update_customer'; accountId: string; userEmail: string; customerId: string; fields: Record<string, string | null> }
-  | { kind: 'update_tea_pricing'; accountId: string; userEmail: string; productId: string; costAmount: number | null; costCurrency: string | null; retailPriceUsd: number | null; quantityPurchased: number | null; year: number | null; description: string | null; lore: string | null; terroir: string | null; processingNotes: string | null; stockVerifiedAt: string | null; shippingRatePerKg: number | null; tastingNotes: string[] | null; originCountry: string | null; originRegion: string | null; clearFields: string[] | null }
+  | { kind: 'update_tea_pricing'; accountId: string; userEmail: string; productId: string; costAmount: number | null; costCurrency: string | null; retailPriceUsd: number | null; quantityPurchased: number | null; year: number | null; status: string | null; description: string | null; lore: string | null; terroir: string | null; processingNotes: string | null; stockVerifiedAt: string | null; shippingRatePerKg: number | null; tastingNotes: string[] | null; originCountry: string | null; originRegion: string | null; clearFields: string[] | null }
   | { kind: 'set_low_stock_threshold'; accountId: string; userEmail: string; productId: string; thresholdGrams: number }
   | { kind: 'update_invoice'; accountId: string; userEmail: string; invoiceId: string; fields: Record<string, string | null> }
   | { kind: 'void_invoice'; accountId: string; userEmail: string; invoiceId: string; reason: string | null }
@@ -1804,8 +1804,10 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
   const hasNewTerroir = typeof args?.terroir === 'string';
   const hasNewProcessing = typeof args?.processing_notes === 'string';
   const hasNewYear = 'year' in (args || {});
-  if (!hasNewCost && !hasNewRetail && !hasNewQty && !hasNewYear && !hasNewDesc && !hasNewStockVerify && !hasNewShipping && !hasNewTasting && !hasNewOrigin && !hasNewLore && !hasNewTerroir && !hasNewProcessing) {
-    throw new Error('At least one of cost_amount, cost_currency, retail_price_usd, quantity_purchased, year, description, lore, terroir, processing_notes, stock_verified, shipping_rate_per_kg, tasting_notes, or origin_country/origin_region is required');
+  const hasNewStatus = typeof args?.status === 'string';
+  const status: string | null = hasNewStatus ? String(args.status).trim() : null;
+  if (!hasNewCost && !hasNewRetail && !hasNewQty && !hasNewYear && !hasNewStatus && !hasNewDesc && !hasNewStockVerify && !hasNewShipping && !hasNewTasting && !hasNewOrigin && !hasNewLore && !hasNewTerroir && !hasNewProcessing) {
+    throw new Error('At least one of cost_amount, cost_currency, retail_price_usd, quantity_purchased, year, status, description, lore, terroir, processing_notes, stock_verified, shipping_rate_per_kg, tasting_notes, or origin_country/origin_region is required');
   }
 
   const costAmount: number | null = 'cost_amount' in (args || {}) ? Number(args.cost_amount) : null;
@@ -1879,7 +1881,7 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
 
     const token = await issueConfirmationToken(env, {
       kind: 'update_tea_pricing', accountId: auth.accountId, userEmail: auth.userEmail,
-      productId, costAmount, costCurrency, retailPriceUsd, quantityPurchased, year, description, lore, terroir, processingNotes, stockVerifiedAt, shippingRatePerKg, tastingNotes, originCountry, originRegion, clearFields,
+      productId, costAmount, costCurrency, retailPriceUsd, quantityPurchased, year, status, description, lore, terroir, processingNotes, stockVerifiedAt, shippingRatePerKg, tastingNotes, originCountry, originRegion, clearFields,
     }, auth.tokenId);
     return {
       preview: {
@@ -1891,6 +1893,7 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
           retail_price_usd: { old: product.fixed_retail_price_usd ?? null, new: retailPriceUsd ?? product.fixed_retail_price_usd },
           quantity_purchased: { old: product.quantity_purchased ?? null, new: quantityPurchased ?? product.quantity_purchased },
           year: { old: product.year ?? null, new: year ?? product.year },
+          status: { old: product.status ?? null, new: status ?? product.status },
           shipping_rate_per_kg: { old: product.shipping_rate_per_kg ?? null, new: shippingRatePerKg ?? product.shipping_rate_per_kg ?? null },
           tasting_notes: hasNewTasting ? { new: tastingNotes } : undefined,
           origin_country: hasNewOrigin && originCountry !== null ? { new: originCountry } : undefined,
@@ -1923,6 +1926,7 @@ async function commitUpdateTeaPricing(env: Env, m: Extract<PendingMutation, { ki
   if (m.retailPriceUsd !== null) { cols.push('fixed_retail_price_usd'); vals.push(m.retailPriceUsd); }
   if (m.quantityPurchased !== null) { cols.push('quantity_purchased'); vals.push(m.quantityPurchased); }
   if (m.year !== null) { cols.push('year'); vals.push(m.year); }
+  if (m.status !== null) { cols.push('status'); vals.push(m.status); }
   if (m.shippingRatePerKg !== null) { cols.push('shipping_rate_per_kg'); vals.push(m.shippingRatePerKg); }
   if (m.tastingNotes !== null) { cols.push('tasting_notes'); vals.push(JSON.stringify(m.tastingNotes)); }
   if (m.originCountry !== null) { cols.push('origin_country'); vals.push(m.originCountry); }
@@ -1981,6 +1985,13 @@ async function commitUpdateTeaPricing(env: Env, m: Extract<PendingMutation, { ki
     stmts.push(
       env.DB.prepare(`UPDATE tea_profiles SET ${profileSets.join(', ')} WHERE id = ?`)
         .bind(...profileVals, `prof_${m.productId}`)
+    );
+  }
+  // Keep the listing in sync when status changes (mirrors the void/restock path).
+  if (m.status !== null) {
+    stmts.push(
+      env.DB.prepare("UPDATE product_listings SET status = ?, updated_at = datetime('now') WHERE id = ?")
+        .bind(m.status, `list_${m.productId}`)
     );
   }
   stmts.push(
@@ -3632,6 +3643,7 @@ const TOOL_DEFS = [
         retail_price_usd: { type: 'number', description: 'Fixed per-gram retail price in USD (optional; site auto-derives from cost if omitted).' },
         quantity_purchased: { type: 'number', description: 'Total grams purchased (e.g. 2490 for 7 x 357g cakes, 1000 for 1kg).' },
         year: { type: 'number', description: 'The year of the tea (e.g. 2025, 2019). Maps to the reference year.' },
+        status: { type: 'string', description: 'Product status, e.g. Active or Sold Out. Keeps products + listing in sync.' },
         shipping_rate_per_kg: { type: 'number', description: 'Shipping freight per kg folded into COST basis (USD/kg). Default 10. Not a separate sales charge.' },
         tasting_notes: { type: 'array', items: { type: 'string' }, description: 'Flavor/taste terms for the catalog tasting field (NOT the description). Up to 8.' },
         description: { type: 'string', description: 'Customer-facing "About this tea" (origin/character — NOT flavors; personal note space, shows only when present).' },
