@@ -2457,6 +2457,10 @@ input[type="number"]::-webkit-outer-spin-button {
   border-radius: 0;
   cursor: pointer;
   transition: background-color 150ms ease;
+  /* The bar is the reference for its own contents: when the action cluster
+     beside it leaves too little room, the rate stands down rather than
+     clipping mid-glyph. */
+  container-type: inline-size;
 }
 .alcove-order-verb {
   font-size: 10px;
@@ -2468,13 +2472,34 @@ input[type="number"]::-webkit-outer-spin-button {
   white-space: nowrap;
 }
 .alcove-order-amt {
-  font-size: 11px;
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  min-width: 0;
   font-weight: 400;
   color: #18130e;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+/* What the order costs. The one figure the reader is deciding about, so it
+   outweighs both the verb beside it and the rate that follows it. */
+.alcove-order-total {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+/* The per-gram rate, kept as a footnote to the total rather than its equal.
+   Fixed blend rather than opacity so the contrast on gold stays predictable. */
+.alcove-order-rate {
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: rgba(24, 19, 14, 0.72);
+}
+@container (max-width: 220px) {
+  .alcove-order-rate { display: none; }
 }
 .alcove-order-btn:hover:not(:disabled) { background: var(--tea-gold-lt); }
 .alcove-order-btn:active:not(:disabled) { background: var(--tea-gold-lt); }
@@ -2988,6 +3013,55 @@ input[type="number"]::-webkit-outer-spin-button {
   transition: color 150ms ease;
 }
 .alcove-modal-cancel:hover { color: var(--tea-text); }
+
+/* Quick amounts inside the custom-amount dialog. Each carries its own price,
+   so the decision is made in the dialog rather than by watching the bar. */
+.alcove-amount-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-width: 58px;
+  min-height: 44px;
+  padding: 4px 10px;
+  border: 1px solid var(--tea-border);
+  border-radius: 4px;
+  background: none;
+  color: var(--tea-text-sec);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease, background-color 150ms ease;
+}
+.alcove-amount-chip small {
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: var(--tea-text-dim);
+  transition: color 150ms ease;
+}
+.alcove-amount-chip:hover {
+  color: var(--tea-text);
+  border-color: var(--tea-gold);
+  background: rgb(var(--tea-gold-rgb) / 0.06);
+}
+.alcove-amount-chip:hover small { color: var(--tea-text-sec); }
+
+/* Secondary route out of the dialog: the sample request. Text weight, so it
+   never competes with Confirm. */
+.alcove-modal-quiet {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  background: none;
+  border: none;
+  color: var(--tea-text-sec);
+  text-align: center;
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+.alcove-modal-quiet:hover { color: var(--tea-gold-lt); }
 
 /* Image viewer. */
 .alcove-viewer {

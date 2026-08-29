@@ -150,7 +150,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const favorited = favoriteTeas.includes(item.id);
   const tastingCount = useTastingCount(item.id);
   const [grams, setGrams] = useState(50);
-  const [sampleMode, setSampleMode] = useState(false);
   const [customMode, setCustomMode] = useState(false);
   const [customInput, setCustomInput] = useState('');
   const [added, setAdded] = useState(false);
@@ -241,10 +240,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
   const handleAdd = () => {
     if (isSoldOut) return;
-    if (sampleMode) {
-      handleSampleClick();
-      return;
-    }
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
     if (onAddToCart) {
@@ -291,8 +286,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       isSoldOut={isSoldOut}
       grams={grams}
       setGrams={setGrams}
-      sampleMode={sampleMode}
-      setSampleMode={setSampleMode}
       customMode={customMode}
       setCustomMode={setCustomMode}
       sliderMax={sliderMax}
@@ -341,6 +334,9 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         customInput={customInput}
         setCustomInput={setCustomInput}
         setGrams={setGrams}
+        pricePerGram={pricePerGram}
+        formatTotal={(g) => resolvedFormatPrice(pricePerGram, g)}
+        onRequestSample={handleSampleClick}
       />
       <ImageOverlayModal
         open={imageExpanded}

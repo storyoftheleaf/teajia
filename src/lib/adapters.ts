@@ -11,6 +11,7 @@ export function publicProductToInventoryItem(p: PublicProduct): InventoryItem {
     slug: p.slug,
     category: isTea ? 'tea' : 'ware',
     type: p.type,
+    form: p.form,
     name: p.givenName || p.productName,
     year: p.year ? String(p.year) : '',
     origin: [p.originRegion, p.originCountry].filter(Boolean).join(', '),

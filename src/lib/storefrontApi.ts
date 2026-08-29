@@ -57,6 +57,7 @@ export function normalizeProduct(p: any): PublicProduct {
     // to the id, which the API still resolves.
     slug: p.slug || undefined,
     type: (p.type || 'Misc') as PublicProductType,
+    form: p.form || undefined,
     givenName: p.given_name || '',
     chineseName: p.chinese_name || '',
     productName: p.product_name || '',

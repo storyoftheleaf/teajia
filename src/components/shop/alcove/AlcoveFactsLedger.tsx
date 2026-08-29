@@ -35,7 +35,7 @@ export const AlcoveFactsLedger: React.FC<AlcoveFactsLedgerProps> = ({
   const rows: LedgerRow[] = rowsProp ? [...rowsProp] : [];
 
   if (!rowsProp && origin) rows.push({ key: 'origin', label: 'Origin', value: origin });
-  if (!rowsProp && harvest) rows.push({ key: 'harvest', label: 'Harvest', value: String(harvest) });
+  if (!rowsProp && harvest) rows.push({ key: 'year', label: 'Year', value: String(harvest) });
 
   const liquorHex = liquorTermId ? LIQUOR_COLORS[liquorTermId] : undefined;
   if (!rowsProp && liquorTermId && liquorHex) {
