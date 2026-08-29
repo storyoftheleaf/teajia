@@ -42,7 +42,7 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
   // The prominent title is the GIVEN name when there is one (a human-assigned
   // name for the tea, e.g. "Silent Forest"). Fall back to the product name.
   // A given name that is empty, "unknown", or identical to the product name is
-  // not a real name — hide it and use the product name.
+  // not a real name. Hide it and use the product name.
   const hasGivenName = Boolean(givenName.trim()) && !/^unknown$/i.test(givenName.trim());
   const title = hasGivenName && givenName.trim() !== productName.trim() ? givenName : productName;
   // When the given name is not the title, keep it at the end of the sub-line so
