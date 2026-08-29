@@ -15,6 +15,15 @@ interface PageHeaderTabsProps {
   className?: string;
   /** Fit a small primary tab set inside the viewport instead of scrolling it. */
   fit?: boolean;
+  /**
+   * The faint rules above and below the tab row. They run the full width of the
+   * bar, so on a page whose rules sit on a content edge they are the two lines
+   * that cannot be made to agree with the rest. Off, the header's own rule
+   * below carries the separation.
+   */
+  hairlines?: boolean;
+  /** Extra horizontal padding, to match a page body that carries its own gutter. */
+  gutter?: string;
 }
 
 export const PageHeaderTabs: React.FC<PageHeaderTabsProps> = ({
@@ -23,10 +32,12 @@ export const PageHeaderTabs: React.FC<PageHeaderTabsProps> = ({
   onChange,
   className = '',
   fit = false,
+  hairlines = true,
+  gutter = '',
 }) => {
   return (
     <LayoutGroup>
-    <div className={`w-full ${fit ? 'px-3 md:px-6 lg:px-10 overflow-hidden' : 'px-4 md:px-6 lg:px-10 overflow-x-auto hide-scrollbar'} ${className}`} style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub)' }}>
+    <div className={`w-full ${fit ? 'px-3 md:px-6 lg:px-10 overflow-hidden' : 'px-4 md:px-6 lg:px-10 overflow-x-auto hide-scrollbar'} ${gutter} ${className}`} style={hairlines ? { boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub)' } : undefined}>
       <div className={`flex items-center ${fit ? 'w-full min-w-0 justify-between gap-1.5 md:justify-start md:gap-10' : 'gap-7 md:gap-10 min-w-max'}`}>
         {tabs.map((tab) => (
           <button

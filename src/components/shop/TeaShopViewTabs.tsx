@@ -43,7 +43,7 @@ export function TeaShopViewTabs({ active, onChange }: TeaShopViewTabsProps) {
     <div
       role="group"
       aria-label="Tea shop views"
-      className="flex flex-wrap items-end gap-x-4 border-b border-tea-border sm:gap-x-6"
+      className="flex flex-wrap items-end gap-x-4 sm:gap-x-6"
     >
       {TEA_SHOP_VIEWS.map(view => {
         const isActive = view.id === active;

@@ -1009,15 +1009,9 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
              />
            )}
 
-           {teaView === 'all' && (
-             <button
-               type="button"
-               onClick={() => setShowPast(previous => !previous)}
-               className={`${LINK} tap-target mt-6 text-ui-11 text-tea-text-sec`}
-             >
-               {showPast ? 'Return to available teas' : 'Past teas · sold out archive'}
-             </button>
-           )}
+           {/* The archive link is gone at Adrian's word. `showPast` stays wired
+               so the sold-out view can be reached again from one line, and so
+               the empty state can still offer a way back out of it. */}
          </div>
            </>
          )}
