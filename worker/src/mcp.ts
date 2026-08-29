@@ -1922,9 +1922,42 @@ async function commitUpdateTeaPricing(env: Env, m: Extract<PendingMutation, { ki
   if (cols.length === 0) return { committed: true, action: 'update_tea_pricing', changes: 0 };
 
   const sets = cols.map(c => `${c} = ?`).join(', ');
-  await env.DB.batch([
+
+  // Mirror the About (canonical) content to tea_profiles — the single source the
+  // storefront reads via the COALESCE joins. Without this, edits to the products
+  // row silently never reach the customer-facing card (the divergence the
+  // COALESCE refactor exists to prevent).
+  const profileCols = [
+    'name', 'chinese_name', 'type', 'form', 'origin_country', 'origin_region',
+    'harvest_year', 'description', 'lore', 'processing_notes', 'terroir', 'mood',
+    'experience', 'tasting_notes', 'image_url',
+  ];
+  const profileSets: string[] = [];
+  const profileVals: any[] = [];
+  for (const c of cols) {
+    if (c === 'description') { profileSets.push('description = ?'); profileVals.push(profileCols.includes(c) ? vals[cols.indexOf(c)] : null); }
+    else if (c === 'lore') { profileSets.push('lore = ?'); profileVals.push(vals[cols.indexOf(c)]); }
+    else if (c === 'processing_notes') { profileSets.push('processing_notes = ?'); profileVals.push(vals[cols.indexOf(c)]); }
+    else if (c === 'terroir') { profileSets.push('terroir = ?'); profileVals.push(vals[cols.indexOf(c)]); }
+    else if (c === 'mood') { profileSets.push('mood = ?'); profileVals.push(vals[cols.indexOf(c)]); }
+    else if (c === 'experience') { profileSets.push('experience = ?'); profileVals.push(vals[cols.indexOf(c)]); }
+    else if (c === 'tasting_notes') { profileSets.push('tasting_notes = ?'); profileVals.push(vals[cols.indexOf(c)]); }
+    else if (c === 'origin_country') { profileSets.push('origin_country = ?'); profileVals.push(vals[cols.indexOf(c)]); }
+    else if (c === 'origin_region') { profileSets.push('origin_region = ?'); profileVals.push(vals[cols.indexOf(c)]); }
+  }
+
+  const stmts: D1PreparedStatement[] = [
     env.DB.prepare(`UPDATE products SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
       .bind(...vals, m.productId, m.accountId),
+  ];
+  if (profileSets.length > 0) {
+    profileSets.push("updated_at = datetime('now')");
+    stmts.push(
+      env.DB.prepare(`UPDATE tea_profiles SET ${profileSets.join(', ')} WHERE id = ?`)
+        .bind(...profileVals, `prof_${m.productId}`)
+    );
+  }
+  stmts.push(
     env.DB.prepare(
       `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
        VALUES (?, 'PRICING_UPDATED_MCP', ?, ?, 'product', ?, ?)`
@@ -1933,7 +1966,9 @@ async function commitUpdateTeaPricing(env: Env, m: Extract<PendingMutation, { ki
       `Pricing/data updated via MCP for product ${m.productId}: ${cols.join(', ')}`,
       m.userEmail, m.productId, m.accountId,
     ),
-  ]);
+  );
+
+  await env.DB.batch(stmts);
   return {
     committed: true,
     action: 'update_tea_pricing',
