@@ -90,7 +90,7 @@ test('a private section note appears publicly only after edited promotion', asyn
   await page.goto('/shop/product/product-1');
   await expect(page.locator('h1', { hasText: 'Spring Sencha' })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText('Apricot over warm stone')).toHaveCount(0);
-  await expect(page.getByText(/— A\. · Spring table/)).toHaveCount(0);
+  await expect(page.getByText(/A\. · Spring table/)).toHaveCount(0);
 
   await page.goto('/account/journal');
   await page.locator('button.w-full.text-left').filter({ hasText: 'Spring Sencha' }).click();
@@ -114,7 +114,7 @@ test('a private section note appears publicly only after edited promotion', asyn
   await page.goto('/shop/product/product-1');
   await expect(page.locator('h1', { hasText: 'Spring Sencha' })).toBeVisible();
   await expect(page.getByText('Apricot over warm stone')).toBeVisible();
-  await expect(page.getByText('— A. · Spring table')).toBeVisible();
+  await expect(page.getByText('A. · Spring table')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);
 });
 

@@ -3,8 +3,8 @@ import { test, expect } from '@playwright/test';
 const ROUTES = [
   { path: '/', label: 'Home' },
   { path: '/shop', label: 'Shop' },
-  { path: '/magazine', label: 'Magazine' },
-  { path: '/learn', label: 'Learn' },
+  { path: '/read', label: 'Read' },
+  { path: '/craft', label: 'Craft' },
   { path: '/about', label: 'About' },
 ];
 
@@ -64,8 +64,12 @@ test('shop toolbar uses compact price controls with liked on the far right', asy
   expect(toolbarBox).not.toBeNull();
   expect(likedBox).not.toBeNull();
   expect(sortBox).not.toBeNull();
-  expect(toolbarBox!.x).toBeLessThanOrEqual(1);
-  expect(toolbarBox!.x + toolbarBox!.width).toBeGreaterThanOrEqual(656);
+  // The block sits in an even field rather than running to the glass, so check
+  // the inset is small and equal on both sides instead of expecting edge to edge.
+  const leftInset = toolbarBox!.x;
+  const rightInset = 657 - (toolbarBox!.x + toolbarBox!.width);
+  expect(leftInset).toBeLessThanOrEqual(24);
+  expect(Math.abs(leftInset - rightInset)).toBeLessThanOrEqual(1);
   expect(likedBox!.x).toBeGreaterThan(sortBox!.x);
   expect(likedBox!.x + likedBox!.width).toBeGreaterThan(toolbarBox!.x + toolbarBox!.width - 72);
 });
@@ -106,7 +110,7 @@ test('home section links navigate to their matching sections', async ({ page }) 
   await page.setViewportSize({ width: 1280, height: 720 });
   const links = [
     { name: 'Source your tea.', path: '/shop' },
-    { name: 'Discover the stories.', path: '/magazine' },
+    { name: 'Discover the stories.', path: '/read' },
     { name: 'Deepen your practice.', path: '/craft' },
     { name: 'Create the spaces to share.', path: '/advise' },
   ];

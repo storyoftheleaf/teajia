@@ -115,15 +115,23 @@ test.describe('refined public shop', () => {
     await expect(page).toHaveURL(/\/shop\/product\/tea-1$/);
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
-    const modalOrder = dialog.getByRole('button', { name: /Add to order.*\$0\.15\/g/i });
+    // The button always carries the total. The per-gram rate beside it is a
+    // footnote the design hides once the button's container drops under 220px,
+    // which it does at this width, so assert it in the markup rather than on
+    // screen.
+    const modalOrder = dialog.getByRole('button', { name: /Add to order/i });
     await expect(modalOrder).toBeVisible();
+    await expect(modalOrder).toContainText('$8');
+    await expect(modalOrder.locator('.alcove-order-rate')).toHaveText('$0.15/g');
     await modalOrder.click();
 
     await page.goto('/shop/product/tea-1', { waitUntil: 'domcontentloaded' });
     const orderAccess = page.getByRole('button', { name: /Open order with 1 item/ });
-    const coldOrder = page.getByRole('button', { name: /Add to order.*\$0\.15\/g/i });
+    const coldOrder = page.getByRole('button', { name: /Add to order/i });
     await expect(orderAccess).toBeVisible();
     await expect(coldOrder).toBeVisible();
+    await expect(coldOrder).toContainText('$8');
+    await expect(coldOrder.locator('.alcove-order-rate')).toHaveText('$0.15/g');
     expect(await coldOrder.evaluate(element => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1);
     if ((await page.viewportSize())!.width < 1024) {
       const [orderBox, navBox] = await Promise.all([

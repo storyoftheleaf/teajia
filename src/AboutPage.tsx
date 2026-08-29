@@ -23,11 +23,9 @@ export default function AboutPage() {
 
       {/* Hero image — full-width editorial strip */}
       <div className="aspect-[3/2] md:aspect-[16/7] bg-tea-elevated rounded-xl mb-12 md:mb-16 overflow-hidden border border-tea-border">
-        <img
-          src=""
-          alt="TeajiA — the practice"
-          className="w-full h-full object-cover"
-        />
+        {/* Photograph slot: "TeajiA — the practice". Left as an empty frame on purpose.
+            Rendering an img with an empty src makes the browser refetch the
+            whole page, so the image arrives with the photograph, not before. */}
       </div>
 
       {/* What TeajiA is */}
@@ -46,18 +44,14 @@ export default function AboutPage() {
       {/* Editorial image pair — sourcing / origin context */}
       <div className="mb-16 md:mb-20 grid grid-cols-2 gap-3 md:gap-4">
         <div className="aspect-[4/3] bg-tea-elevated rounded-xl overflow-hidden border border-tea-border">
-          <img
-            src=""
-            alt="Origin sourcing"
-            className="w-full h-full object-cover"
-          />
+          {/* Photograph slot: "Origin sourcing". Left as an empty frame on purpose.
+              Rendering an img with an empty src makes the browser refetch the
+              whole page, so the image arrives with the photograph, not before. */}
         </div>
         <div className="aspect-[4/3] bg-tea-elevated rounded-xl overflow-hidden border border-tea-border">
-          <img
-            src=""
-            alt="Tea session"
-            className="w-full h-full object-cover"
-          />
+          {/* Photograph slot: "Tea session". Left as an empty frame on purpose.
+              Rendering an img with an empty src makes the browser refetch the
+              whole page, so the image arrives with the photograph, not before. */}
         </div>
       </div>
 
@@ -110,11 +104,9 @@ export default function AboutPage() {
 
       {/* Wide contextual image */}
       <div className="mb-16 md:mb-20 aspect-[3/1] bg-tea-elevated rounded-xl overflow-hidden border border-tea-border">
-        <img
-          src=""
-          alt="The practice"
-          className="w-full h-full object-cover"
-        />
+        {/* Photograph slot: "The practice". Left as an empty frame on purpose.
+            Rendering an img with an empty src makes the browser refetch the
+            whole page, so the image arrives with the photograph, not before. */}
       </div>
 
       {/* Pull quote */}
