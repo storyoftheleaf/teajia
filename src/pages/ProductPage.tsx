@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback, lazy, Suspense } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { AnimatePresence } from 'framer-motion';
@@ -17,16 +17,9 @@ import type { Product } from '../admin/types';
 import { useAppStore } from '../lib/store';
 import { buildPublicProductHref, findProductByRouteParam } from '../lib/publicProductNavigation';
 import { LABEL, NUMERAL } from '../components/shared/typeRoles';
-import { useProducts, useRates } from '../admin/hooks/useAdminData';
-import { ToastProvider } from '../admin/components/Toast';
+import { useProducts } from '../admin/hooks/useAdminData';
 import { api } from '../lib/api';
-import { buildProductUpdatePayload } from '../admin/productUpdatePayload';
 
-// The same panel the inventory section uses. Lazy so a reader who never signs
-// in never downloads the editor.
-const ProductEditPanel = lazy(() =>
-  import('../admin/components/ProductEditPanel').then(m => ({ default: m.ProductEditPanel }))
-);
 
 interface ProductPageProps {
   onAddToCart?: (item: InventoryItem, qty: number, total: number) => void;
@@ -106,9 +99,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   // Editing this tea in place. The admin catalogue is fetched only when signed
   // in as an admin, so a reader's cold load never fires an authenticated
   // request it would only get a 401 from.
-  const { data: adminProducts = [], refetch: refetchAdminProducts } = useProducts({ enabled: isAdmin });
-  const { data: rates = [] } = useRates();
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const { data: adminProducts = [] } = useProducts({ enabled: isAdmin });
   const adminRecord = useMemo(
     () => (isAdmin && item ? adminProducts.find((p: Product) => p.id === item.id) ?? null : null),
     [isAdmin, item, adminProducts],
@@ -131,9 +122,13 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
     navigate(`/shop?${next.toString()}`);
   }, [navigate, storeSlug]);
 
-  // Minimal Product shape TastingEditorModal needs, mapped from InventoryItem.
+  // The tasting overlay now also carries the tea's details form, which needs
+  // the whole record. Use the real one when the admin catalogue has loaded and
+  // fall back to this minimal shape so the tasting questions still open if it
+  // has not.
   const adminTastingProductShim: Product | null = useMemo(() => {
     if (!adminTastingItem) return null;
+    if (adminRecord && adminRecord.id === adminTastingItem.id) return adminRecord;
     return {
       id: adminTastingItem.id,
       givenName: adminTastingItem.name,
@@ -142,7 +137,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
       imageUrl: adminTastingItem.image || '',
       tasting: adminTastingItem.tasting,
     } as Product;
-  }, [adminTastingItem]);
+  }, [adminTastingItem, adminRecord]);
 
   // Inventory still loading on a cold load: hold the frame, don't 404 early.
   if (!item && isLoading) {
@@ -345,9 +340,9 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
 
-      {/* Back stays top-left per the page-nav rule; Edit takes the opposite
-          corner so the one destructive-ish control is never next to escape. */}
-      <div className="mx-auto w-full max-w-[1080px] pt-4 pb-2 flex items-center justify-between gap-4">
+      {/* Back: page nav, top-left. Editing lives on the card's own Edit, which
+          opens this tea's details inside the tasting overlay. */}
+      <div className="mx-auto w-full max-w-[1080px] pt-4 pb-2">
         <Link
           to={shopHref}
           className="inline-flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors text-sm"
@@ -355,17 +350,6 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
           <Icons.Back className="w-4 h-4" />
           <span className="uppercase tracking-[0.12em] text-xs">Back to Shop</span>
         </Link>
-        {adminRecord && (
-          <button
-            type="button"
-            onClick={() => setEditingProduct(adminRecord)}
-            className="tap-target inline-flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors text-sm"
-            aria-label={`Edit ${item.name}`}
-          >
-            <Icons.Edit className="w-4 h-4" />
-            <span className="uppercase tracking-[0.12em] text-xs">Edit</span>
-          </button>
-        )}
       </div>
 
       {/* The quiet page: same blocks and behaviors as the modal card */}
@@ -405,7 +389,12 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
       {adminTastingItem && adminTastingProductShim && (
         <TastingEditorModal
           product={adminTastingProductShim}
-          onClose={() => setAdminTastingItem(null)}
+          // Edit on the card means "change this tea", so land on its details,
+          // but only once the full record is in hand.
+          canEditDetails={!!adminRecord}
+          startOnDetails
+          onDetailsChanged={refetchInventory}
+          onClose={() => { setAdminTastingItem(null); refetchInventory(); }}
           onSaved={() => {
             setAdminTastingItem(null);
             refetchInventory();
@@ -413,35 +402,6 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
         />
       )}
 
-      {/* Admin: the full inventory edit panel, in place. Same component and
-          same fields as the inventory section, so there is one editor to keep
-          right rather than two that drift. */}
-      {editingProduct && (
-        <ToastProvider>
-          <Suspense fallback={null}>
-            <ProductEditPanel
-              product={editingProduct}
-              rates={rates}
-              onClose={() => {
-                setEditingProduct(null);
-                refetchAdminProducts();
-                // The public page reads its own catalogue, so pull the edit
-                // through to what the reader sees.
-                refetchInventory();
-              }}
-              onUpdate={async (id, field, value) => {
-                // Persist FIRST: the panel treats a supplied onUpdate as the
-                // entire save path and will not fall back to its own writer.
-                // This lands in products, tea_profiles and product_listings
-                // together, through the domain update routes.
-                const payload = buildProductUpdatePayload(field, value);
-                if (payload) await api.products.updateByDomain(id, payload);
-                setEditingProduct(prev => (prev && prev.id === id ? { ...prev, [field]: value } : prev));
-              }}
-            />
-          </Suspense>
-        </ToastProvider>
-      )}
     </div>
   );
 };

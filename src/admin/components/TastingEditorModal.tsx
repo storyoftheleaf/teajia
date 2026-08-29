@@ -3,6 +3,7 @@ import { AnimatePresence } from 'framer-motion';
 import type { Product } from '../types';
 import type { TastingData } from '../../types';
 import { TastingSession } from '../../components/tasting/TastingSession';
+import { ProductDetailsEditor } from './ProductDetailsEditor';
 import { buildTastingSyncPayload, deriveMoodFromFeeling } from '../../lib/tastingUtils';
 import { api } from '../../lib/api';
 import { useToast } from './Toast';
@@ -13,12 +14,28 @@ interface TastingEditorModalProps {
   onClose: () => void;
   onSaved?: (product: Product, tastingData: TastingData, derivedMood: string) => void;
   allProducts?: Product[];
+  /**
+   * Offer the tea's details form alongside the tasting questions.
+   *
+   * Off by default on purpose. Several callers pass a minimal Product built
+   * from a card rather than the real record, and a details form filled from
+   * that would show empty fields for copy that actually exists. Only turn it
+   * on where the whole record is in hand.
+   */
+  canEditDetails?: boolean;
+  /** Open on the tea's details rather than the tasting questions. */
+  startOnDetails?: boolean;
+  /** Fires when a details field is written, so the page behind can refresh. */
+  onDetailsChanged?: () => void;
 }
 
 export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
   product,
   onClose,
   onSaved,
+  canEditDetails = false,
+  startOnDetails = false,
+  onDetailsChanged,
 }) => {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
@@ -129,6 +146,19 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
         onClose={onClose}
         onSave={handleSave}
         onWriteDescription={handleWriteDescription}
+        startOnDetails={canEditDetails && startOnDetails}
+        detailsPanel={canEditDetails ? (
+          <ProductDetailsEditor
+            product={product}
+            onChanged={() => {
+              // The tea changed, so anything showing it is now stale.
+              queryClient.invalidateQueries({
+                predicate: q => Array.isArray(q.queryKey) && q.queryKey[0] === 'products',
+              });
+              onDetailsChanged?.();
+            }}
+          />
+        ) : undefined}
       />
     </AnimatePresence>
   );

@@ -350,17 +350,17 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   // 1. Identity: centered serif header, hanzi as real text
   const identityHeader = (
     <div className="relative">
-      {/* Says "Edit tasting" rather than "Edit" because the product page also
-          carries a plain Edit in its top bar, which opens the full record.
-          Two controls both labelled Edit, inches apart, is the confusion. */}
+      {/* The one door for an admin standing on a tea: it opens the tasting
+          overlay on that tea's own details, with the tasting questions one
+          step across. There is deliberately no second Edit elsewhere. */}
       {isAdmin && onEditProductTasting && (
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onEditProductTasting(item); }}
           className="tap-target absolute right-3 top-3 z-10 font-sans text-ui-9 uppercase tracking-[0.15em] text-tea-text-dim transition-colors hover:text-tea-gold"
-          aria-label="Edit tasting notes"
+          aria-label="Edit this tea"
         >
-          Edit tasting
+          Edit
         </button>
       )}
       <AlcoveIdentityHeader

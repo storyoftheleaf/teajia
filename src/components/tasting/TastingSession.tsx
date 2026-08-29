@@ -86,6 +86,15 @@ interface TastingSessionProps {
   onWriteDescription?: (text: string) => void | Promise<void>;
   /** When true, creates a live draft tea_review even in non-adminMode (for admin co-tasting on SamplePage) */
   writeDraftReview?: boolean;
+  /**
+   * ADMIN ONLY: the form for editing the tea's own details (its name, year,
+   * the words on its page). Passed in rather than built here so the customer
+   * bundle never carries the admin editor. When present, the header offers a
+   * way across to it.
+   */
+  detailsPanel?: React.ReactNode;
+  /** Open straight on the details form instead of the tasting questions. */
+  startOnDetails?: boolean;
 }
 
 const TeaLeafRating: React.FC<{ rating: number }> = ({ rating }) => (
@@ -112,6 +121,7 @@ function generateDescription(data: TastingData): string {
 
 export const TastingSession: React.FC<TastingSessionProps> = ({
   item, onClose, onSave, onAfterSave, adminMode = false, initialData, showVerdict = false, onOrderTea, onCreatePO, onWriteDescription, writeDraftReview = false,
+  detailsPanel, startOnDetails = false,
 }) => {
   const { addTasting, updateTasting, upsertTastingByProductId, activeAccountId, activeAccount, tastingJournal } = useAppStore();
   const { addNote } = useNotesStore();
@@ -130,7 +140,9 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
 
   const [tastingData, setTastingData] = useState<TastingData>(initialData ?? existingEntry?.note.tasting ?? {});
   const [isContinuing, setIsContinuing] = useState(!!existingEntry);
-  const [phase, setPhase] = useState<'tasting' | 'saved'>('tasting');
+  const [phase, setPhase] = useState<'tasting' | 'saved' | 'details'>(
+    detailsPanel && startOnDetails ? 'details' : 'tasting',
+  );
 
   useScrollLock(true);
 
@@ -448,6 +460,18 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
           </div>
         </div>
 
+        {/* Across to the tea's own details, and back. Only ever rendered for an
+            admin, because only an admin is given a details form to cross to. */}
+        {detailsPanel && (
+          <button
+            type="button"
+            onClick={() => setPhase(phase === 'details' ? 'tasting' : 'details')}
+            className="tap-target min-h-11 shrink-0 px-2 text-ui-12 font-medium text-tea-text-sec transition-colors hover:text-tea-text"
+          >
+            {phase === 'details' ? 'Tasting' : 'Edit'}
+          </button>
+        )}
+
         {phase === 'tasting' && (
           <button
             type="button"
@@ -457,6 +481,18 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
             className="tap-target min-h-11 shrink-0 px-2 text-ui-12 font-medium text-tea-gold transition-colors hover:text-tea-gold-lt disabled:text-tea-text-sec disabled:cursor-not-allowed"
           >
             {saveState === 'saving' ? 'Saving…' : saveState === 'error' ? 'Retry' : 'Save'}
+          </button>
+        )}
+
+        {/* The details form writes each field as you leave it, so Done is a
+            way out rather than a second commit that could disagree with it. */}
+        {phase === 'details' && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="tap-target min-h-11 shrink-0 px-2 text-ui-12 font-medium text-tea-gold transition-colors hover:text-tea-gold-lt"
+          >
+            Done
           </button>
         )}
 
@@ -470,8 +506,18 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
         </button>
       </div>
 
+      {/* Details sits OUTSIDE the transition group below. Adding a third branch
+          inside a mode="wait" group left the incoming tasting view stuck at
+          opacity 0, because its enter animation never ran while the group was
+          still resolving the outgoing one. */}
+      {phase === 'details' && (
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          {detailsPanel}
+        </div>
+      )}
+
       <AnimatePresence mode="wait">
-        {phase === 'tasting' ? (
+        {phase === 'details' ? null : phase === 'tasting' ? (
 
           /* ── Tasting phase ── */
           <motion.div
