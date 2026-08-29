@@ -3,7 +3,7 @@ productName: "Wuliangshan Gushu Shou"
 chineseName: "无量山古树熟茶"
 type: Shou
 form: Cake
-year: Unknown
+year: 2019
 origin: "Wuliang Mountain, Jingdong County, Pu'er City, Yunnan, China"
 grams: 357
 stock: 100

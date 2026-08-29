@@ -3,7 +3,7 @@ productName: "Mahei Gushu Red"
 chineseName: "麻黑古树红茶"
 type: Red
 form: Loose Leaf
-year: Unknown
+year: 2025
 origin: "Mahei, Yiwu, Xishuangbanna, Yunnan, China"
 grams: 1000
 stock: 100
