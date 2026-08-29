@@ -3048,20 +3048,6 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 .alcove-amount-chip:hover small { color: var(--tea-text-sec); }
 
-/* Secondary route out of the dialog: the sample request. Text weight, so it
-   never competes with Confirm. */
-.alcove-modal-quiet {
-  display: block;
-  width: 100%;
-  min-height: 44px;
-  background: none;
-  border: none;
-  color: var(--tea-text-sec);
-  text-align: center;
-  cursor: pointer;
-  transition: color 150ms ease;
-}
-.alcove-modal-quiet:hover { color: var(--tea-gold-lt); }
 
 /* Image viewer. */
 .alcove-viewer {
