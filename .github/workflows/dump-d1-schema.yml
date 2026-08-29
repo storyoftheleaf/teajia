@@ -10,15 +10,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Dump remote D1 schema via SQL
+      - name: Inspect key tables
         working-directory: worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          echo "=== ALL TABLES ==="
-          npx wrangler d1 execute teajia-db --remote --json --command "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name" 2>/dev/null
-          echo "=== ALL TABLE DDL ==="
-          npx wrangler d1 execute teajia-db --remote --json --command "SELECT name, sql FROM sqlite_master WHERE type='table' AND sql IS NOT NULL ORDER BY name" 2>/dev/null
-          echo "=== ALL INDEXES ==="
-          npx wrangler d1 execute teajia-db --remote --json --command "SELECT name, sql FROM sqlite_master WHERE type='index' AND sql IS NOT NULL AND name NOT LIKE 'sqlite_%' ORDER BY name" 2>/dev/null
+          for t in products tea_reviews tea_samples tea_compass_entries d1_migrations; do
+            echo "=== $t columns ==="
+            npx wrangler d1 execute teajia-db --remote --json --command "PRAGMA table_info($t)" 2>/dev/null
+            echo "=== $t indexes ==="
+            npx wrangler d1 execute teajia-db --remote --json --command "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='$t'" 2>/dev/null
+          done
+          echo "=== d1_migrations rows ==="
+          npx wrangler d1 execute teajia-db --remote --json --command "SELECT name FROM d1_migrations ORDER BY name" 2>/dev/null
