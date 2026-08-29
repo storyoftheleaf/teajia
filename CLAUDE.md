@@ -139,6 +139,17 @@ npm run test:mobile  # Playwright mobile audit — 26 tests at 390×844 (Mobile 
 Catches: JS crashes (error boundaries), 404 pages, JS console errors, horizontal overflow.
 Requires dev server already running (`npm run dev`). Takes ~90 seconds.
 
+The browsers are NOT installed by `npm install` on this machine: npm blocks the
+install scripts that would fetch them, so a fresh checkout fails every test in a
+millisecond with "Executable doesn't exist". Run this once per machine:
+
+```bash
+npx playwright install chromium
+```
+
+Run the suite with the sandbox disabled; Playwright cannot manage its own browser
+processes inside it and every test dies on `kill EPERM`.
+
 **Run `npm run test:mobile` before pushing any change that touches:**
 - `src/components/AccountPanel/` — panel views, navigation, sub-views
 - `src/pages/` — any account route page
