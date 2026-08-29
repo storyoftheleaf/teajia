@@ -20,8 +20,6 @@ interface AlcoveCharacterBandProps {
   item: InventoryItem;
   /** Legacy free-text tags (item.tags): taste-line fallback when no structured flavor terms exist. */
   legacyNotes: string[];
-  isAdmin?: boolean;
-  onEditProductTasting?: (item: InventoryItem) => void;
   onTermClick?: (termId: string, categoryId: string) => void;
   potentialResearch?: ProductResearchResolution | null;
 }
@@ -84,8 +82,6 @@ const TermLine: React.FC<{
 export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
   item,
   legacyNotes,
-  isAdmin,
-  onEditProductTasting,
   onTermClick,
   potentialResearch,
 }) => {
@@ -119,23 +115,13 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
   const hasTerms = tasteTerms.length > 0 || feelingTerms.length > 0;
   const hasAny = hasTerms || starred.length > 0 || Boolean(potentialResearch);
 
-  // No sensory data and no admin editor: no band, no empty heading.
-  if (!hasAny && !(isAdmin && onEditProductTasting)) return null;
+  // No sensory data: no band, no empty heading. (The admin "Edit" affordance
+  // lives on the card's top edge, not here, so an empty tasting shows nothing.)
+  if (!hasAny) return null;
 
   return (
     <section aria-label="Character" className="alcove-band relative mt-[22px] px-6 pb-[18px] pt-4">
       <AlcoveSectionHeading label="Character" className="mb-3" />
-
-      {isAdmin && onEditProductTasting && (
-        <button
-          type="button"
-          onClick={e => { e.stopPropagation(); onEditProductTasting(item); }}
-          className="tap-target absolute right-2 top-1 font-sans text-ui-9 uppercase tracking-[0.15em] text-tea-text-dim transition-colors hover:text-tea-gold"
-          aria-label="Edit product tasting"
-        >
-          Edit tasting
-        </button>
-      )}
 
       {hasTerms && (
         <div className="text-center [&_.grp+.grp]:mt-3">
