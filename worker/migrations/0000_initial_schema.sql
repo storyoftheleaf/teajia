@@ -1,11 +1,6 @@
 -- Teajia D1 baseline from live remote schema dump (2026-08-29)
 -- tables -> indexes -> triggers, all IF NOT EXISTS
 
-CREATE TABLE IF NOT EXISTS _cf_KV (
-        key TEXT PRIMARY KEY,
-        value BLOB
-      ) WITHOUT ROWID;
-
 CREATE TABLE IF NOT EXISTS account_applications (
   id                    TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
   applicant_email       TEXT NOT NULL,
@@ -944,13 +939,6 @@ CREATE TABLE IF NOT EXISTS notes (
 
   created_at       TEXT NOT NULL DEFAULT (datetime('now'))
 , deleted INTEGER DEFAULT 0);
-
-CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
-  text,
-  author_name,
-  content='notes',
-  content_rowid='rowid'
-);
 
 CREATE TABLE IF NOT EXISTS oauth_authorize_requests (
   id TEXT PRIMARY KEY,                    

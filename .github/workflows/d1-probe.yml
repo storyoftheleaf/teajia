@@ -1,0 +1,41 @@
+name: D1 Baseline Statement Probe
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Probe each baseline statement against remote
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          # Split baseline into statements and run each against remote, report first failure
+          python3 - <<'EOF'
+          import re, subprocess, os
+          sql = open('migrations/0000_initial_schema.sql').read()
+          # statements split on ';' at top level (rough)
+          stmts = [s.strip() for s in sql.split(';') if s.strip() and not s.startswith('--')]
+          print(f"TOTAL statements: {len(stmts)}")
+          first = ""
+          for i, s in enumerate(stmts):
+              r = subprocess.run(
+                  ["npx","wrangler","d1","execute","teajia-db","--remote","--command",s[:500]],
+                  capture_output=True, text=True)
+              if r.returncode != 0 or "ERROR" in r.stderr or "SQLITE" in r.stdout:
+                  print(f"FAIL stmt[{i+1}]: {s[:120]}")
+                  print(f"  -> {r.stderr.strip()[-200:] or r.stdout.strip()[-200:]}")
+                  if not first: first = s
+                  # continue to find all
+              else:
+                  # only print a few OK to limit noise
+                  pass
+          print(f"FIRST_FAILING (if any): {first[:120]}")
+          print("PROBE DONE")
+          EOF
