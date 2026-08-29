@@ -115,7 +115,7 @@ export function TeaLedger({
               </div>
             )}
             {activeType === 'All' && specialFilter === 'None' && (
-              <div className="md:-mx-4 md:px-4 lg:-mx-6 lg:px-6 h-px bg-tea-gold/20" aria-hidden="true" />
+              <div className="-mx-3 px-3 md:-mx-4 md:px-4 h-px bg-tea-gold/20" aria-hidden="true" />
             )}
 
             {group.items.map(item => {
@@ -153,7 +153,7 @@ export function TeaLedger({
                   style={{
                     backgroundImage: `linear-gradient(to right, ${rowTones.wash}, transparent 38%)`,
                   }}
-                  className="md:-mx-4 md:px-4 lg:-mx-6 lg:px-6 border-b border-tea-border transition-colors cursor-pointer hover:bg-tea-text/5 focus:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/30"
+                  className="-mx-3 px-3 md:-mx-4 md:px-4 border-b border-tea-border transition-colors cursor-pointer hover:bg-tea-text/5 focus:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/30"
                   onClick={() => onOpenProduct(item)}
                   /* The ground and the rule reach back across the shop's
                      gutter, so the row is a field the content sits inside
@@ -166,7 +166,7 @@ export function TeaLedger({
                     }
                   }}
                 >
-                  <div className="flex items-center gap-5 py-3">
+                  <div className="flex items-center gap-5 py-3 md:py-4">
                     {/* The vintage on its liquor ground. A tea with no year
                         recorded still gets the ground, so the column never
                         collapses and the list never looks broken. Roughly half

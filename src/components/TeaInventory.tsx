@@ -596,7 +596,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       )}
 
       {/* --- Inline Filter Bar + Content (full width) --- */}
-      <div className="max-w-full mx-auto pt-4 md:px-4 lg:px-6">
+      <div className="max-w-full mx-auto pt-4 px-3 md:px-4">
 
          <TeaShopViewTabs active={teaView} onChange={handleTeaViewChange} />
          <TeaShopViewRegion active={teaView} count={filteredInventory.length} showPast={showPast}>
@@ -609,7 +609,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
            <>
 
          {/* Sticky shop toolbar */}
-         <div className="sticky top-0 z-sticky md:-mx-4 md:px-4 lg:-mx-6 lg:px-6 bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border">
+         <div className="sticky top-0 z-sticky -mx-3 px-3 md:-mx-4 md:px-4 bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border">
            {/*
              One control band, not three. Search, price weight and the filters
              each owned a row of their own, which put 351px of chrome above the
