@@ -54,6 +54,21 @@ these — not the raw sections and not the internal notes.
   written" boilerplate.
 - The felt character of a cup belongs to the person who drank it.
 
+## Lore / History — real only, never fabricated, and terse
+
+- **Lore is acceptable ONLY when it is real and can be sourced** (village history,
+  origin of a name, cultural/regional background that is documented). It is an
+  educational tea card, not a book.
+- **NEVER fabricate lore.** If the objective history for a tea is not known and
+  cannot be researched from a real source, do NOT write it — leave the field
+  empty. An invented story is worse than no story.
+- **Write it tersely**: 1–3 short factual sentences. Do not tell a narrative,
+  do not editorialize, do not pad for prose. Every sentence must carry a
+  verifiable fact.
+- **This is different from the subjective sections (feelings, mood, character
+  descriptions) which cannot be AI-authored.** Lore is objective background the
+  AI CAN write IF sourced. Keep the two clearly separate.
+
 ## Tastes and flavors NEVER go in the description
 
 - Taste/flavor notes (malt, honey, camphor, earthy, smooth, mineral, sweet,
