@@ -20,12 +20,14 @@ tastingNotes:
 
 A red tea made from ancient-tree leaf grown in Mahei village, inside the greater Yiwu region.
 
-Mahei (麻黑) is one of Yiwu's respected small origins, a village ringed by old forest and known for the reliability of its old trees. Processing Yiwu gushu material as a red tea instead of sheng is an unusual choice that pushes the leaf in a different direction while keeping the source intact.
-
 ## Terroir
 
-Mahei village, Yiwu township, Mengla county, Xishuangbanna. The village sits inside the historic Yiwu tea forests at moderate tropical elevation. Old-growth trees, deep root systems, and the biodiverse forest floor produce leaf of the same lineage that built Yiwu's reputation in the sheng world.
+Mahei is a village inside the Yiwu tea region, ringed by ancient forest. The area is known for the reliability of its old trees.
 
 ## Processing
 
-Whole-leaf large-leaf Yunnan cultivar, fully oxidized in the traditional red-tea method and left loose. The oxidation carries the leaf away from the raw sheng character it would otherwise become, but the underlying old-tree material remains the source of the cup's structure.
+Made from large-leaf Yunnan cultivar leaf off ancient trees. Fully oxidized by the traditional hong cha method and left as loose leaf.
+
+## Lore
+
+Mahei's old trees have long been trusted for their steady character season after season.
