@@ -160,7 +160,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         {/* The bar's ground runs the full width so scrolling content passes
             under it, but its rule sits on the content edge, so every rule down
             the page begins and ends on the same two vertical lines. */}
-        <div className={`px-4 md:px-6 lg:px-10 ${gutter}`}>
+        <div className="px-4 md:px-6 lg:px-10">
           <div className="h-px bg-tea-border" />
         </div>
       </div>

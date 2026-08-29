@@ -115,7 +115,7 @@ export function TeaLedger({
               </div>
             )}
             {activeType === 'All' && specialFilter === 'None' && (
-              <div className="h-px bg-tea-gold/20" aria-hidden="true" />
+              <div className="md:-mx-4 md:px-4 lg:-mx-6 lg:px-6 h-px bg-tea-gold/20" aria-hidden="true" />
             )}
 
             {group.items.map(item => {
@@ -153,12 +153,12 @@ export function TeaLedger({
                   style={{
                     backgroundImage: `linear-gradient(to right, ${rowTones.wash}, transparent 38%)`,
                   }}
-                  className="-ml-3 pl-3 transition-colors cursor-pointer hover:bg-tea-text/5 focus:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/30"
+                  className="md:-mx-4 md:px-4 lg:-mx-6 lg:px-6 border-b border-tea-border transition-colors cursor-pointer hover:bg-tea-text/5 focus:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/30"
                   onClick={() => onOpenProduct(item)}
-                  /* The row's ground reaches 12px past the block on the left,
-                     so the block sits inside a field of colour rather than
-                     welded to the edge of it. The block itself stays on the
-                     content line with the type headings above it. */
+                  /* The ground and the rule reach back across the shop's
+                     gutter, so the row is a field the content sits inside
+                     rather than a band that begins where the block begins.
+                     Same on both sides, so nothing lands on a rule's end. */
                   onKeyDown={event => {
                     if (event.key === 'Enter' || event.key === ' ') {
                       event.preventDefault();
@@ -166,7 +166,7 @@ export function TeaLedger({
                     }
                   }}
                 >
-                  <div className="flex items-center gap-5 border-b border-tea-border py-3 pr-4">
+                  <div className="flex items-center gap-5 py-3">
                     {/* The vintage on its liquor ground. A tea with no year
                         recorded still gets the ground, so the column never
                         collapses and the list never looks broken. Roughly half

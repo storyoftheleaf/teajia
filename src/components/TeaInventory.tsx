@@ -609,7 +609,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
            <>
 
          {/* Sticky shop toolbar */}
-         <div className="sticky top-0 z-sticky bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border">
+         <div className="sticky top-0 z-sticky md:-mx-4 md:px-4 lg:-mx-6 lg:px-6 bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border">
            {/*
              One control band, not three. Search, price weight and the filters
              each owned a row of their own, which put 351px of chrome above the
