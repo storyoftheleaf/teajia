@@ -3622,7 +3622,7 @@ const TOOL_DEFS = [
         cost_currency: { type: 'string', description: 'Currency actually paid, e.g. CNY, MYR, NT, IDR, AUD, USD.' },
         retail_price_usd: { type: 'number', description: 'Fixed per-gram retail price in USD (optional; site auto-derives from cost if omitted).' },
         quantity_purchased: { type: 'number', description: 'Total grams purchased (e.g. 2490 for 7 x 357g cakes, 1000 for 1kg).' },
-        year: { type: 'number', description: 'Harvest/vintage year (e.g. 2025, 2019). Maps to harvest_year on the reference.' },
+        year: { type: 'number', description: 'The year of the tea (e.g. 2025, 2019). Maps to the reference year.' },
         shipping_rate_per_kg: { type: 'number', description: 'Shipping freight per kg folded into COST basis (USD/kg). Default 10. Not a separate sales charge.' },
         tasting_notes: { type: 'array', items: { type: 'string' }, description: 'Flavor/taste terms for the catalog tasting field (NOT the description). Up to 8.' },
         description: { type: 'string', description: 'Customer-facing "About this tea" (origin/character — NOT flavors; personal note space, shows only when present).' },
