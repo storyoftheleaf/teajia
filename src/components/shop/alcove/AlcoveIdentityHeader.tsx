@@ -39,7 +39,15 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
   const typeLabel = typeLabelProp ?? (teaType
     ? /tea/i.test(teaType) ? teaType : `${teaType} tea`
     : '');
-  const subLine = [givenName, typeLabel].filter(Boolean).join(' · ');
+  // The prominent title is the GIVEN name when there is one (a human-assigned
+  // name for the tea, e.g. "Silent Forest"). Fall back to the product name.
+  // A given name that is empty, "unknown", or identical to the product name is
+  // not a real name — hide it and use the product name.
+  const hasGivenName = Boolean(givenName.trim()) && !/^unknown$/i.test(givenName.trim());
+  const title = hasGivenName && givenName.trim() !== productName.trim() ? givenName : productName;
+  // When the given name is not the title, keep it at the end of the sub-line so
+  // the distinguishing descriptor is not lost.
+  const subLine = [givenName.trim() !== productName.trim() ? givenName : '', typeLabel].filter(Boolean).join(' · ');
 
   return (
     <header className="px-6 pt-7 pb-5 text-center">
@@ -47,7 +55,7 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
         id={`alcove-title-${item.id}`}
         className="m-0 font-display text-ui-28 font-normal leading-[1.12] tracking-[0.01em] text-tea-text [text-wrap:balance]"
       >
-        {productName}
+        {title}
       </h1>
       {chineseCharacters && (
         <p
