@@ -18,7 +18,7 @@
     "audit:shop-catalogue": "node scripts/audit-shop-catalogue.mjs",
     "intake:findings": "node scripts/intake-findings.mjs",
     "incidents:export": "node scripts/export-incident-queue.mjs",
-    "test:worker": "vitest run worker/tests --exclude='**/.claude/worktrees/**' --exclude='**/.worktrees/**' --testTimeout=20000",
+    "test:worker": "NODE_OPTIONS=--experimental-sqlite vitest run worker/tests --exclude='**/.claude/worktrees/**' --exclude='**/.worktrees/**' --testTimeout=20000",
     "test:china-scan": "node --test scripts/check-china-dependencies.test.mjs",
     "audit:china": "node scripts/check-china-dependencies.mjs .",
     "test:recovery": "playwright test --config=playwright.recovery.config.ts",

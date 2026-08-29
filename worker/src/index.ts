@@ -1144,9 +1144,10 @@ async function mintProductSlug(
   // Slugs are unique across the whole table (one address space for the site),
   // so this deliberately does NOT filter by account. One round trip fetches
   // every address already sharing this stem.
+  const likePattern = `${base}-%`;
   const { results } = await env.DB.prepare(
-    "SELECT slug FROM products WHERE slug = ?1 OR slug LIKE ?1 || '-%'"
-  ).bind(base).all();
+    "SELECT slug FROM products WHERE slug = ? OR slug LIKE ?"
+  ).bind(base, likePattern).all();
   const taken = new Set((results as { slug: string | null }[]).map(r => r.slug).filter(Boolean) as string[]);
   // A bulk import batches its INSERTs, so rows in the same batch must not be
   // handed the same address before any of them reach the database.
