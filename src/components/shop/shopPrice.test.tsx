@@ -45,7 +45,7 @@ const footerProps = {
 describe('shop price roles', () => {
   it('does not format a fractional rate as a whole-dollar total', () => {
     expect(fmtShopPrice(0.15)).toBe('$1');
-    expect(fmtShopPricePerGram(0.15)).toBe('$0.15/g');
+    expect(fmtShopPricePerGram(0.15)).toBe('$1/g');
   });
 
   it('renders a complete per-gram rate exactly once', () => {

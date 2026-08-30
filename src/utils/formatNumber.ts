@@ -65,10 +65,9 @@ export function fmtShopPrice(amount: number): string {
   return '$' + fmtNum(Math.ceil(amount), 0);
 }
 
-/** Customer-facing price-per-gram, rounded up to whole cents: "$0.85/g" */
+/** Customer-facing price-per-gram, always rounded UP to whole dollars: "$1/g" */
 export function fmtShopPricePerGram(amount: number): string {
-  const cents = Math.ceil(amount * 100) / 100;
-  return '$' + fmtNum(cents, 2) + '/g';
+  return '$' + fmtNum(Math.ceil(amount), 0) + '/g';
 }
 
 /** Record-currency price-per-gram: "$0.85/g". Books, ledgers, invoices only. */

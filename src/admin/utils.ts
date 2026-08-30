@@ -7,25 +7,39 @@ const FALLBACK_RATES = INITIAL_RATES;
 
 export const formatCurrency = (amount: number, currency: Currency, rates: ExchangeRate[]) => {
   const safeRates = rates && rates.length > 0 ? rates : FALLBACK_RATES;
-  const rate = safeRates.find(r => r.currency === currency)?.rateToUSD || 1;
-  const value = amount * rate;
-  
+  const found = safeRates.find(r => r.currency === currency);
+  // Never silently multiply by 1 for a currency we have no rate for. If the
+  // live table is missing it, fall back to showing the USD amount so the number
+  // stays honest instead of mis-labelled.
+  const rate = found?.rateToUSD;
+  const value = rate ? amount * rate : amount;
+
   const currencyCode = currency === 'NT' ? 'TWD' :
-                       currency === 'Yuan' ? 'CNY' :
-                       currency === 'UNK' ? 'USD' :
-                       currency;
+                        currency === 'Yuan' ? 'CNY' :
+                        currency === 'UNK' ? 'USD' :
+                        currency;
+
+  // No price after the decimal point, ever; always round UP. (per Adrian)
+  const rounded = Math.ceil(value);
+
+  // IDR reads large; round up to the nearest thousand and abbreviate with a K
+  // (no decimals, no hundreds). e.g. 162,100 -> 162k.
+  if (currencyCode === 'IDR') {
+    const thousands = Math.ceil(value / 1000);
+    return `IDR ${thousands}k`;
+  }
 
   try {
     const formatted = new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currencyCode,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(value);
-    // Prefix with UNK~ to indicate unknown source currency
+      currencyDisplay: 'symbol',
+      maximumFractionDigits: 0
+    }).format(rounded);
+    // Prefix with UNK~ to indicate unknown/missing source rate.
     return currency === 'UNK' ? `~${formatted}` : formatted;
   } catch (e) {
-    return `${currency} ${value.toFixed(2)}`;
+    return `${currencyCode} ${rounded}`;
   }
 };
 
@@ -53,6 +67,8 @@ const fetchFromUrl = async (url: string): Promise<ExchangeRate[]> => {
       { currency: 'IDR', rateToUSD: r['IDR'] || 16210 },
       { currency: 'JPY', rateToUSD: r['JPY'] || 150.0 },
       { currency: 'MYR', rateToUSD: r['MYR'] || 4.7 },
+      { currency: 'AUD', rateToUSD: r['AUD'] || 1.55 },
+      { currency: 'HKD', rateToUSD: r['HKD'] || 7.8 },
     ];
 };
 

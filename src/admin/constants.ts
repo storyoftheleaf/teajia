@@ -6,7 +6,9 @@ export const INITIAL_RATES: ExchangeRate[] = [
   { currency: 'Yuan', rateToUSD: 7.2 },
   { currency: 'IDR', rateToUSD: 16210 },
   { currency: 'JPY', rateToUSD: 150.0 },
-  { currency: 'MYR', rateToUSD: 4.7 }
+  { currency: 'MYR', rateToUSD: 4.7 },
+  { currency: 'AUD', rateToUSD: 1.55 },
+  { currency: 'HKD', rateToUSD: 7.8 }
 ];
 
 // Shared status pill styles used by list views (Collections, Magazine, etc.).
