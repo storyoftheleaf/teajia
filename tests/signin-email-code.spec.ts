@@ -33,7 +33,7 @@ test('password is the default non-Google sign-in path and email code remains ava
 
   expect(requests).toEqual([{ contact: 'member@example.com', method: 'email', purpose: 'signin' }]);
   await page.getByLabel('Verification code').fill('123456');
-  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
 
   await expect(page).toHaveURL('/read');
   expect(await page.evaluate(() => localStorage.getItem('teajia_token'))).toBe(jwt);
@@ -99,7 +99,7 @@ test('permanent delivery failure hides retry and confirmation failure keeps the 
 
   await page.getByRole('button', { name: 'Email me a code' }).click();
   await page.getByLabel('Verification code').fill('123456');
-  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page.getByRole('alert')).toHaveText('Invalid or expired verification code');
   await expect(page.getByLabel('Verification code')).toBeEditable();
   await expect(page.getByLabel('Verification code')).toHaveValue('123456');

@@ -853,14 +853,16 @@ const AppContent = () => {
   // controls, so there's nothing for the bar to overlap.)
   const isImmersiveRead = isImmersiveReadRoute;
 
-  // LeftSidebar only mounts on admin routes now, so its useEffect that sets
-  // --teajia-sidebar-w doesn't fire on public routes, reset to 0px here so
-  // sidebar-inset overlays don't get a phantom offset from the last admin visit.
+  // The sidebar sets --teajia-sidebar-w while it is mounted, and it now mounts
+  // on public routes too. This only has to zero the variable where the sidebar
+  // genuinely is not there, which is the focused share route: zeroing it on
+  // every non-admin route would leave sidebar-inset overlays flush to the
+  // window edge and sitting under the sidebar.
   useEffect(() => {
-    if (!isAdminRoute || isFocusedShareRoute) {
+    if (isFocusedShareRoute) {
       document.documentElement.style.setProperty('--teajia-sidebar-w', '0px');
     }
-  }, [isAdminRoute, isFocusedShareRoute]);
+  }, [isFocusedShareRoute]);
 
   return (
     <div className={`${isAdminRoute ? 'h-dvh overflow-hidden' : 'min-h-dvh overflow-x-clip'} bg-tea-bg text-tea-text relative selection:bg-tea-gold selection:text-tea-bg font-serif flex flex-col lg:flex-row transition-colors duration-300 pt-[env(safe-area-inset-top)]`}>
@@ -877,25 +879,27 @@ const AppContent = () => {
       {/* Pull to Refresh Indicator */}
       {!isFocusedShareRoute && !isImmersiveRead && <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />}
 
-      {/* Desktop nav: LeftSidebar for admin tool palette; public/editorial
-          routes use the same floating BottomTabBar that mobile uses (now
-          rendered at all breakpoints below, constrained-width centered on
-          desktop). One bar, one mental model across breakpoints. */}
-      {!isFocusedShareRoute && isAdminRoute && (
+      {/* Desktop navigation is the sidebar, on every route rather than only on
+          admin. The floating bar used to carry the desk as well, on the argument
+          that one bar across every width is one mental model; in practice it
+          put navigation along the bottom edge of a desk screen, which is not
+          where the design puts it. The bar is now what it was drawn as: the
+          phone's navigation. */}
+      {!isFocusedShareRoute && (
         <LeftSidebar activeSection={activeSection} onNavigate={setActiveSection} onAccountClick={handleOpenAccount} onCartClick={handleOpenCart} onSearchClick={() => { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} cartItemCount={cart.length} topOffset={showAdminBar} />
       )}
 
-      {/* Main Content Area, admin keeps the sidebar offset; public goes
-          full-width with the bottom bar floating below. lg:pb-24 on public
-          desktop clears the floating bar's resting height (52px bar +
-          12px gap + safe-area). Pages with internal scroll containers can
-          add their own pb-nav-gap utility. */}
+      {/* Main Content Area. Every route now clears the sidebar on the desk,
+          public included: it used to run full width under a floating bar, and
+          with the bar gone that left the content sitting under the sidebar.
+          Below lg the sidebar is not there and the bar is, which is what
+          pb-nav-gap-lg on main is for. */}
       <div className={`flex-1 min-w-0 min-h-0 flex flex-col relative ${
         isFocusedShareRoute
           ? 'lg:ml-0 lg:max-w-none'
-          : isAdminRoute
-            ? (sidebarCollapsed ? 'lg:ml-14 lg:max-w-[calc(100vw-3.5rem)]' : 'lg:ml-52 lg:max-w-[calc(100vw-13rem)]')
-            : 'lg:ml-0 lg:max-w-none lg:pb-24'
+          : sidebarCollapsed
+            ? 'lg:ml-14 lg:max-w-[calc(100vw-3.5rem)]'
+            : 'lg:ml-52 lg:max-w-[calc(100vw-13rem)]'
       } transition-[margin,max-width] duration-300`}>
 
       {isAdminRoute ? (

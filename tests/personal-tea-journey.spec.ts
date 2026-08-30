@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openYourTable } from './helpers/navigation';
 
 function makeFakeJWT(payload: object): string {
   const encode = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');
@@ -64,7 +65,7 @@ test.describe('personal tea journeys', () => {
     await prepare(page);
 
     await page.goto('/');
-    await page.getByRole('button', { name: 'Your Table', exact: true }).click();
+    await openYourTable(page);
     await page.getByRole('button', { name: /remember/i }).click();
     await expect(page).toHaveURL(/\/account\/collection$/);
     await expect(page.getByText(favoriteTea, { exact: true })).toBeVisible();

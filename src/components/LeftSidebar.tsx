@@ -324,6 +324,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   return (
     <LayoutGroup>
       <aside
+        data-testid="left-sidebar"
+        aria-label="Main navigation"
         className={`hidden lg:flex flex-col ${collapsed ? 'w-14' : 'w-52'} text-tea-text fixed left-0 overflow-hidden border-r border-tea-border transition-all duration-300 z-sticky top-0 h-screen select-none`}
         style={{
           background: theme === 'dark' ? '#13100a' : 'var(--tea-surface)',

@@ -21,6 +21,7 @@ import { test, expect, type Page, type BrowserContext } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import { openYourTable } from './helpers/navigation';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SHOTS_DIR = path.join(__dirname, '../test-results/operator-multi-store');
@@ -220,9 +221,8 @@ for (const vp of VIEWPORTS) {
       await mockApi(context);
       await goto(page, '/store/teajia-taiwan');
 
-      // Open AccountPanel via the standard person-icon button.
-      const trigger = page.locator('button[aria-label="Your Table"]').first();
-      if (await trigger.count() > 0) await trigger.click();
+      // Open AccountPanel from whichever navigation this width shows.
+      await openYourTable(page);
       await page.waitForTimeout(600);
 
       await shot(page, '02-panel-on-C', vp.label);
@@ -252,8 +252,7 @@ for (const vp of VIEWPORTS) {
       // Open panel, then close — make sure returning to the storefront keeps
       // the page rendering. This is the surface area for the bug described
       // in finding #27 ("currency/storefront context may misalign").
-      const trigger = page.locator('button[aria-label="Your Table"]').first();
-      if (await trigger.count() > 0) await trigger.click();
+      await openYourTable(page);
       await page.waitForTimeout(400);
       // Press escape to close — the panel listens for it.
       await page.keyboard.press('Escape');

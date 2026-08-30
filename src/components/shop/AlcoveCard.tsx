@@ -629,9 +629,11 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           {commerceFooter('docked')}
           {commerceReassurance}
         </div>
-        {/* Clearance for the fixed bar's own height; the bottom nav clearance
-            itself comes from the app shell's pb-nav-gap-lg on <main>. */}
-        <div aria-hidden="true" className="h-40 lg:hidden" />
+        {/* Clearance for the fixed bar's own height, at both widths: on the
+            phone the app shell's pb-nav-gap-lg covers the navigation and this
+            covers the bar above it, and on the desk there is no navigation but
+            the bar is still fixed, so the reading needs to end above it. */}
+        <div aria-hidden="true" className="h-40 lg:h-28" />
 
         {modals}
       </article>

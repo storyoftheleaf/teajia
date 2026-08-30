@@ -22,6 +22,7 @@ import { test, expect, type Page, type BrowserContext } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import { openYourTable } from './helpers/navigation';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SHOTS_DIR = path.join(__dirname, '../test-results/account-switcher-multi-location');
@@ -123,7 +124,7 @@ async function goto(page: Page, route: string) {
 }
 
 async function openPanel(page: Page) {
-  await page.locator('button[aria-label="Your Table"]').first().click();
+  await openYourTable(page);
   await page.waitForTimeout(500);
 }
 

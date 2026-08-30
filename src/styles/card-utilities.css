@@ -3618,18 +3618,20 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 @media (min-width: 1024px) {
   .commerce-dock {
-    /* One bar everywhere. It used to dissolve into a third column here, which
-       gave the page two places to buy the same tea and squeezed the reading
-       into what was left. On the desk the navigation is a centred 760px pill
-       rather than a full-width one, so the bar takes exactly those insets and
-       goes on sitting on its top edge: the assembly is the same object at
-       every width, just narrower here. */
-    left: 50%;
-    right: auto;
-    width: min(760px, calc(100vw - 64px));
-    transform: translateX(-50%);
+    /* One bar everywhere, but on the desk it has nothing beneath it to share
+       an edge with: the navigation is the sidebar here now. So it closes its
+       own shape, rounded all round and resting above the foot of the window,
+       and it clears the sidebar rather than centring on the window. */
+    left: auto;
+    right: 2.5rem;
+    width: min(760px, calc(100vw - 18rem));
+    bottom: 1.5rem;
     margin: 0;
+    border: 1px solid rgb(var(--tea-gold-rgb) / 0.14);
+    border-radius: 30px;
+    box-shadow: 0 10px 30px rgb(0 0 0 / 0.5);
   }
+  .commerce-dock .alcove-dock-strip { border-radius: 30px; }
 }
 
 /* The navigation squares its top only while something is docked to it.
