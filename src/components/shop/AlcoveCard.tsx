@@ -380,7 +380,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
   // 1. Identity: centered serif header, hanzi as real text
   const identityHeader = (
-    <div className="relative">
+    <div className="relative lg:h-full">
       {/* The one door for an admin standing on a tea: it opens the tasting
           overlay on that tea's own details, with the tasting questions one
           step across. There is deliberately no second Edit elsewhere. */}
@@ -595,7 +595,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             The label is a panel rather than a header here, which is what lets
             this page hold up on a tea with no photograph at all. */}
         <div className="lg:grid lg:grid-cols-[minmax(340px,30%)_minmax(0,1fr)_264px] lg:items-stretch lg:gap-0">
-          <div className="lg:flex lg:flex-col lg:border-r lg:border-tea-border lg:pb-8">
+          <div className="lg:h-full lg:border-r lg:border-tea-border">
             {identityHeader}
           </div>
 

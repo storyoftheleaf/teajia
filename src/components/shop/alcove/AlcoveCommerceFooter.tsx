@@ -479,7 +479,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
 
         <button
           type="button"
-          className="alcove-order-btn"
+          className={`alcove-order-btn${isRail ? ' alcove-order-btn--rail' : ''}`}
           onClick={handleAdd}
           disabled={isSoldOut}
           data-state={added ? 'added' : isSoldOut ? 'sold-out' : 'default'}
@@ -490,7 +490,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
             <span className="alcove-order-verb">Added ✓</span>
           ) : (
             <>
-              <span className="alcove-order-verb">Add to order</span>
+              <span className="alcove-order-verb">{isRail ? 'Add' : 'Add to order'}</span>
               {/* The total is what the reader is deciding about; the rate is a
                   footnote to it, not its equal. */}
               <span className="alcove-order-amt">

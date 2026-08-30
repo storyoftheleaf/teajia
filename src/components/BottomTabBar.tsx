@@ -218,7 +218,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         aria-label="Main navigation"
         data-testid="bottom-tab-bar"
         onContextMenu={(e) => e.preventDefault()}
-        className={`fixed z-nav flex rounded-full transition-transform duration-200 select-none overflow-hidden left-4 right-4 lg:left-1/2 lg:right-auto lg:w-[min(760px,calc(100vw-64px))] lg:-translate-x-1/2 animate-[slideUp_0.4s_ease-out] lg:animate-none ${
+        className={`bottom-nav-bar fixed z-nav flex rounded-full transition-transform duration-200 select-none overflow-hidden left-4 right-4 lg:left-1/2 lg:right-auto lg:w-[min(760px,calc(100vw-64px))] lg:-translate-x-1/2 animate-[slideUp_0.4s_ease-out] lg:animate-none ${
           isOnAdmin ? 'lg:hidden' : ''
         } ${shouldHide ? 'translate-y-[calc(100%+24px)]' : 'translate-y-0'}`}
         style={{
@@ -228,7 +228,6 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           backdropFilter: 'blur(20px) saturate(180%)',
           WebkitBackdropFilter: 'blur(20px) saturate(180%)',
           border: '1px solid rgb(var(--tea-border-rgb) / 0.6)',
-          boxShadow: '0 10px 32px rgb(0 0 0 / 0.45), 0 2px 8px rgb(0 0 0 / 0.25), inset 0 1px 0 rgb(var(--tea-gold-rgb) / 0.06)',
           WebkitTapHighlightColor: 'transparent',
           WebkitTouchCallout: 'none',
           WebkitUserSelect: 'none',

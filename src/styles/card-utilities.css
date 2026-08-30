@@ -2589,6 +2589,17 @@ input[type="number"]::-webkit-outer-spin-button {
 @container (max-width: 220px) {
   .alcove-order-rate { display: none; }
 }
+/* In the rail the order action is a pill sized to its words, centred, as on
+   the board. A full-width slab there read as a banner across the column
+   rather than as one thing to press. */
+.alcove-order-btn--rail {
+  flex: 0 0 auto;
+  align-self: center;
+  min-width: 132px;
+  padding: 0 26px;
+  border-radius: 999px;
+}
+
 .alcove-order-btn:hover:not(:disabled) { background: var(--tea-plate-tan-lift); }
 .alcove-order-btn:active:not(:disabled) { background: var(--tea-plate-tan-lift); }
 .alcove-order-btn[data-state="added"] { background: var(--tea-leaf); }
@@ -3437,6 +3448,25 @@ input[type="number"]::-webkit-outer-spin-button {
 /* The navigation squares its top only while something is docked to it.
    `:has()` keeps this in CSS rather than threading a flag through the app,
    and the bar and the nav stay components that know nothing of each other. */
+/* The navigation's own shadow. It lived in an inline style, which no rule can
+   override, so the docked case below could never take effect. */
+.bottom-nav-bar {
+  box-shadow:
+    0 10px 32px rgb(0 0 0 / 0.45),
+    0 2px 8px rgb(0 0 0 / 0.25),
+    inset 0 1px 0 rgb(var(--tea-gold-rgb) / 0.06);
+}
+
+/* While something is docked above it, the navigation's shadow must not reach
+   upward. A 32px blur spreads in every direction, so it was washing across the
+   bar above and gradienting the order block from light at the top to dark at
+   the bottom edge. That gradient was the shadow, not the block. A negative
+   spread pulls the shadow box in before it blurs and the downward offset
+   carries the rest below the bar, so nothing reaches over the top edge. */
+body:has(.commerce-dock) .bottom-nav-bar {
+  box-shadow: 0 14px 26px -10px rgb(0 0 0 / 0.5);
+}
+
 body:has(.commerce-dock) [data-testid='bottom-tab-bar'] {
   /* The bottom stays exactly the pill it always was. 9999px only reads as a
      pill because all four corners compete for the same 52px and the browser

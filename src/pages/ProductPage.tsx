@@ -324,8 +324,13 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
     ],
   };
 
+  // No fade on the page root. Anything whose visibility depends on an
+  // animation running to completion is one throttled tab or one interrupted
+  // frame away from a page that never fully appears, and this one was found
+  // sitting at 11% opacity. The route change already carries its own
+  // crossfade, so the page itself simply exists.
   return (
-    <div className="paper-ground w-full animate-[fadeIn_0.5s_ease-out]">
+    <div className="paper-ground w-full">
       <Helmet>
         <title>{`${item.name} · Teajia`}</title>
         <meta name="description" content={metaDescription} />
@@ -342,14 +347,32 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
 
       {/* Back: page nav, top-left. Editing lives on the card's own Edit, which
           opens this tea's details inside the tasting overlay. */}
-      <div className="mx-auto w-full max-w-[1080px] pt-4 pb-2">
+      {/* The page's own bar: where you came from on the left, where you are
+          going on the right, one hairline under both. */}
+      <div className="mb-1 flex w-full items-center justify-between gap-4 border-b border-tea-border px-1 py-3.5">
         <Link
           to={shopHref}
-          className="inline-flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors text-sm"
+          aria-label="Back to shop"
+          className="tap-target inline-flex items-center gap-2 font-sans text-ui-11 uppercase tracking-[0.16em] text-tea-text-sec transition-colors hover:text-tea-text"
         >
-          <Icons.Back className="w-4 h-4" />
-          <span className="uppercase tracking-[0.12em] text-xs">Back to Shop</span>
+          <Icons.Back className="h-3.5 w-3.5" />
+          <span>Shop</span>
+          {crumbType && (
+            <>
+              <span aria-hidden="true" className="text-tea-text-dim">/</span>
+              <span>{crumbType}</span>
+            </>
+          )}
         </Link>
+        {onCartClick && (
+          <button
+            type="button"
+            onClick={onCartClick}
+            className="tap-target font-sans text-ui-11 uppercase tracking-[0.16em] text-tea-text-sec transition-colors hover:text-tea-text"
+          >
+            View order{cartItemCount > 0 && <span className="ml-2 text-tea-gold">{cartItemCount}</span>}
+          </button>
+        )}
       </div>
 
       {/* The quiet page: same blocks and behaviors as the modal card */}

@@ -73,7 +73,7 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
     <header
       className={
         onPlate
-          ? 'label-plate mx-4 mt-2 flex flex-col justify-center px-7 pb-8 pt-20 text-center sm:mx-5 lg:mx-6 lg:mb-8 lg:min-h-[560px] lg:flex-1 lg:pb-14 lg:pt-14'
+          ? 'label-plate m-3 flex flex-col justify-end px-7 pb-9 pt-20 text-center lg:m-4 lg:h-full lg:min-h-[620px] lg:justify-center lg:pb-16 lg:pt-16'
           : 'px-6 pt-7 pb-5 text-center'
       }
     >
