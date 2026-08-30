@@ -18,10 +18,14 @@
  * Because it is a line rather than a table, any amount someone types prices
  * itself on the same curve, with no separate custom rule to keep in step.
  *
- * SHIPPED DARK. `handlingUsd` is 0, so every price is exactly what it was
- * before this file existed and `sizesG` is the pair the shop already offered.
- * Setting the handling amount and widening the sizes turns the whole ladder on
- * at once, everywhere it is read from.
+ * LIVE. Two dollars an order, spread. On this shop's inexpensive tea that is
+ * twenty-eight cents a gram at twenty-five grams easing to twenty at a whole
+ * cake, a spread of forty percent; on a tea at five dollars a gram the same
+ * two dollars is one and a half percent, which is the whole reason it is a
+ * fixed amount and not a percentage.
+ *
+ * Every price on the site reads through here, so changing these three numbers
+ * moves the ladder everywhere at once.
  */
 
 export interface TeaPricingConfig {
@@ -43,13 +47,6 @@ export interface TeaPricingConfig {
 }
 
 export const TEA_PRICING: TeaPricingConfig = {
-  handlingUsd: 0,
-  sizesG: [50, 100],
-  minTotalUsd: 0,
-};
-
-/** The full ladder, for when the shop is ready to turn it on. */
-export const TEA_PRICING_LADDER: TeaPricingConfig = {
   handlingUsd: 2,
   sizesG: [10, 25, 50, 100, 200],
   minTotalUsd: 5,

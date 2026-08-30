@@ -78,7 +78,7 @@ export const QUIET_LINK =
 /**
  * The spacing grammar, on a strict ratio, written once so it cannot drift.
  *
- * The page background is rgb(34,32,28) and the panel fill the reference used to
+ * The page background is rgb(51,38,23) and the panel fill the reference used to
  * reach for is rgb(50,46,41). That is 1.21:1 in dark mode and 1.15:1 in light,
  * and a surface step is only perceptible from about 1.4. Every rounded panel
  * and every one-pixel edge on these pages was therefore doing nothing but

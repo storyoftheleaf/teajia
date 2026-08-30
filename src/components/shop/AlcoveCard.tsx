@@ -594,7 +594,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             beside it, and the order as a narrow rail that rides down with it.
             The label is a panel rather than a header here, which is what lets
             this page hold up on a tea with no photograph at all. */}
-        <div className="lg:grid lg:grid-cols-[minmax(340px,30%)_minmax(0,1fr)_264px] lg:items-stretch lg:gap-0">
+        <div className="lg:grid lg:grid-cols-[minmax(0,520px)_minmax(0,1fr)_320px] lg:items-stretch lg:gap-0">
           <div className="lg:h-full lg:border-r lg:border-tea-border">
             {identityHeader}
           </div>

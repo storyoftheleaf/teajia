@@ -349,11 +349,11 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
           opens this tea's details inside the tasting overlay. */}
       {/* The page's own bar: where you came from on the left, where you are
           going on the right, one hairline under both. */}
-      <div className="mb-1 flex w-full items-center justify-between gap-4 border-b border-tea-border px-1 py-3.5">
+      <div className="mb-1 flex h-[60px] w-full items-center justify-between gap-4 border-b border-tea-border px-2 lg:px-10">
         <Link
           to={shopHref}
           aria-label="Back to shop"
-          className="tap-target inline-flex items-center gap-2 font-sans text-ui-11 uppercase tracking-[0.16em] text-tea-text-sec transition-colors hover:text-tea-text"
+          className="tap-target inline-flex items-center gap-2 font-sans text-ui-12 uppercase tracking-[0.14em] text-tea-text-sec transition-colors hover:text-tea-text"
         >
           <Icons.Back className="h-3.5 w-3.5" />
           <span>Shop</span>
@@ -368,7 +368,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
           <button
             type="button"
             onClick={onCartClick}
-            className="tap-target font-sans text-ui-11 uppercase tracking-[0.16em] text-tea-text-sec transition-colors hover:text-tea-text"
+            className="tap-target font-sans text-ui-12 uppercase tracking-[0.14em] text-tea-text-sec transition-colors hover:text-tea-text"
           >
             View order{cartItemCount > 0 && <span className="ml-2 text-tea-gold">{cartItemCount}</span>}
           </button>

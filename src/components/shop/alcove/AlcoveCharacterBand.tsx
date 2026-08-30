@@ -60,10 +60,10 @@ const TermLine: React.FC<{
     sentenceCase ? text.charAt(0).toUpperCase() + text.slice(1).toLowerCase() : text;
   return (
   <div className="grp">
-    <div className="font-sans text-ui-9 uppercase tracking-[0.24em] indent-[0.24em] text-tea-text-dim">
+    <div className="font-sans text-ui-10 uppercase tracking-[0.24em] indent-[0.24em] text-tea-text-dim">
       {label}
     </div>
-    <div className="mt-[3px] font-display text-[19px] leading-[1.4] text-tea-text">
+    <div className="mx-auto mt-[10px] max-w-[360px] font-display text-[22px] leading-[1.45] text-tea-text">
       {terms.map((term, i) => (
         <React.Fragment key={term.termId}>
           {i > 0 && (

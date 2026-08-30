@@ -210,6 +210,9 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
   const publicCart = useAppStore(st => st.publicCart);
   const orderTotalUsd = publicCart.reduce((sum, line) => sum + (line.totalPrice ?? 0), 0);
   const [amountsOpen, setAmountsOpen] = useState(false);
+  // The rail has the room, so the amounts stand open in it and the toggle is
+  // only for the surfaces that do not: the phone bar and the quick-view card.
+  const amountsShown = isRail || amountsOpen;
   const amountsId = `alcove-amounts-${item.id}`;
   const activeCell = cells.find(c => c.active);
 
@@ -230,12 +233,12 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
           {activeCell ? activeCell.label : 'Amount'}
         </span>
         {activeCell?.sub && (
-          <span className="font-sans text-ui-11 tabular-nums text-tea-text-dim">{activeCell.sub}</span>
+          <span className="font-sans text-ui-12 tabular-nums text-tea-text-dim">{activeCell.sub}</span>
         )}
       </span>
       <span
         aria-hidden="true"
-        className="font-sans text-ui-9 text-tea-text-sec"
+        className="font-sans text-ui-11 text-tea-text-sec"
       >
         {amountsOpen ? '\u25B4' : '\u25BE'}
       </span>
@@ -259,7 +262,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
         <div className="mb-2.5 flex items-center justify-center gap-[7px]">
           <span aria-hidden="true" style={{ ...STOCK_DOT, background: stockStatus.color }} />
           <span
-            className="font-sans text-ui-9 uppercase tracking-[0.16em]"
+            className="font-sans text-ui-11 uppercase tracking-[0.16em]"
             style={{ color: stockStatus.color }}
           >
             {stockStatus.label}
@@ -283,18 +286,18 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
           line: what is currently chosen, and the way to change it. */}
       {!isSoldOut && cells.length > 0 && (
         <div className={isDocked ? '' : 'mb-1.5'}>
-          {isDocked && onChooseAmount ? null : amountToggle}
+          {isRail || (isDocked && onChooseAmount) ? null : amountToggle}
 
-          {amountsOpen && (
+          {amountsShown && (
             <div
               id={amountsId}
               role="group"
               aria-label="Amount"
-              className="mt-1.5 border border-tea-border"
+              className={isRail ? 'border border-tea-border' : 'mt-1.5 border border-tea-border'}
             >
-              <div className="flex items-baseline justify-between gap-3 px-3.5 pb-2 pt-3">
-                <span className="font-sans text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim">How much</span>
-                <span className="font-sans text-ui-10 tracking-[0.04em] text-tea-text-dim">
+              <div className={`flex items-baseline justify-between gap-2 ${isRail ? 'px-3.5 pb-2 pt-3' : 'px-3.5 pb-2 pt-3'}`}>
+                <span className={`whitespace-nowrap font-sans uppercase tracking-[0.16em] text-tea-text-dim ${isRail ? 'text-ui-11' : 'text-ui-10'}`}>How much</span>
+                <span className={`whitespace-nowrap font-sans tracking-[0.02em] text-tea-text-dim ${isRail ? 'text-ui-10' : 'text-ui-10'}`}>
                   less a gram, the more you take
                 </span>
               </div>
@@ -314,20 +317,20 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
                     }
                     setAmountsOpen(false);
                   }}
-                  className={`tap-target flex min-h-[44px] w-full items-center gap-3 border-t border-tea-border px-3.5 text-left transition-colors ${
-                    cell.active ? 'bg-tea-gold/8' : 'hover:bg-tea-gold/6'
-                  }`}
+                  className={`tap-target flex w-full items-center border-t border-tea-border text-left transition-colors ${
+                    isRail ? 'min-h-[42px] gap-2.5 px-3.5' : 'min-h-[44px] gap-3 px-3.5'
+                  } ${cell.active ? 'bg-tea-gold/8' : 'hover:bg-tea-gold/6'}`}
                 >
-                  <span aria-hidden="true" className="w-3.5 shrink-0 text-ui-11 text-tea-gold">
+                  <span aria-hidden="true" className={`shrink-0 text-tea-gold ${isRail ? 'w-3 text-ui-11' : 'w-3.5 text-ui-11'}`}>
                     {cell.active ? '\u2713' : ''}
                   </span>
-                  <span className={`flex-1 font-display text-ui-15 tabular-nums ${cell.active ? 'text-tea-text' : 'text-tea-text-sec'}`}>
+                  <span className={`flex-1 whitespace-nowrap font-display tabular-nums ${isRail ? 'text-ui-15' : 'text-ui-15'} ${cell.active ? 'text-tea-text' : 'text-tea-text-sec'}`}>
                     {cell.label}
                   </span>
                   {cell.perGram && (
-                    <span className="shrink-0 font-sans text-ui-11 tabular-nums text-tea-text-dim">{cell.perGram}</span>
+                    <span className={`shrink-0 whitespace-nowrap font-sans tabular-nums text-tea-text-dim ${isRail ? 'text-ui-11' : 'text-ui-11'}`}>{cell.perGram}</span>
                   )}
-                  <span className={`w-16 shrink-0 text-right font-display text-ui-15 tabular-nums ${cell.active ? 'text-tea-gold-lt' : 'text-tea-text-sec'}`}>
+                  <span className={`shrink-0 text-right font-display tabular-nums ${isRail ? 'w-14 text-ui-15' : 'w-16 text-ui-15'} ${cell.active ? 'text-tea-gold-lt' : 'text-tea-text-sec'}`}>
                     {cell.sub || '\u203A'}
                   </span>
                 </button>
@@ -342,7 +345,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
           the right. There is nothing left to add, because choosing an amount
           in the list above already added it. */}
       {isDocked && onChooseAmount ? (
-        <div className="flex min-h-[44px] items-stretch gap-0">
+        <div className="flex min-h-[46px] items-stretch gap-0 overflow-hidden">
           <div className="flex shrink-0 items-center gap-0.5 pr-1.5">
             <button
               type="button"
@@ -368,7 +371,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
           <button
             type="button"
             onClick={onOpenOrder}
-            className="tap-target -my-2.5 -mr-3.5 flex shrink-0 items-center gap-2.5 px-4 transition-opacity hover:opacity-90"
+            className="tap-target -mr-3.5 flex shrink-0 items-center gap-2.5 self-stretch px-4 transition-opacity hover:opacity-90"
             style={{ background: 'var(--tea-plate-tan)' }}
             aria-label="Open your order"
           >

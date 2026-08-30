@@ -149,7 +149,7 @@
      component should be reaching for with a `text-` class.
 
      Both are measured against their own page background, not eyeballed:
-     #e0a63f on #22201c is 7.5:1, #8a5510 on #f4ece0 is 5.3:1. */
+     #e0a63f on #332617 is 6.9:1, #8a5510 on #f4ece0 is 5.3:1. */
   --tea-warn: #e0a63f;
   --tea-warn-rgb: 224 166 63;
 
@@ -2341,24 +2341,52 @@ input[type="number"]::-webkit-outer-spin-button {
    already carry rather than introducing a second texture system, and it
    blends with overlay so it moves lightness only. Screen or lighten would
    lift the warm espresso toward flat grey and pull the colour out of it. */
+/* The two texture layers below blend with mix-blend-mode: overlay, and overlay
+   only works when there is something under it to modulate. That is the whole
+   reason this page kept coming out grey.
+
+   `isolation: isolate` here made this element a stacking context, so the layers
+   blended against ITS backdrop instead of the page's. The element is inset by
+   the main column's padding, so outside its box the backdrop was empty, overlay
+   had nothing to work on, and the layers fell back to painting grey paper flat.
+   That is why the gutters read as grey stripes beside a brown page, and why
+   warming the token never reached them.
+
+   Without the isolation the layers sit in the root stacking context, one step
+   below the content and one step above the page ground, and blend against the
+   real background. Overlay against it resolves to a per-channel scale, which is
+   hue-preserving, so the ground stays brown edge to edge. Nothing else paints
+   at this depth, which is what made the isolation safe to remove. Do not give
+   this element a background of its own: at z-index -1 the layers paint BELOW an
+   element background, so an opaque one would hide them completely. */
 .paper-ground {
   position: relative;
-  isolation: isolate;
+  min-height: 100vh;
 }
-.paper-ground::before {
+/* Two layers, at the artboard's own settings: the paper stock at 400px and
+   0.22, then the fine grain at 200px and 0.28, both overlay so they move
+   lightness and leave the hue. The paper is what gives the ground its body;
+   grain alone read as noise over a flat colour, which is why the page looked
+   thinner than the board. Both fixed to the viewport so neither has an edge. */
+.paper-ground::before,
+.paper-ground::after {
   content: '';
-  /* Fixed to the viewport, not to this element's box. Bounded to the content
-     it lightened a content-shaped rectangle out of the page: an edge down each
-     side and another under the last section, which is one of the seams that
-     made the page read as panels rather than one sheet. Paper has no edge. */
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
+  mix-blend-mode: overlay;
+}
+.paper-ground::before {
+  background-image: url('/textures/label-paper.jpg');
+  background-size: 400px 400px;
+  filter: grayscale(1);
+  opacity: 0.22;
+}
+.paper-ground::after {
   background-image: var(--alcove-grain);
   background-size: 200px 200px;
   opacity: 0.28;
-  mix-blend-mode: overlay;
 }
 
 /* The label plate: the tea's name on a field of the label stock, with a
@@ -2369,9 +2397,25 @@ input[type="number"]::-webkit-outer-spin-button {
   isolation: isolate;
   overflow: hidden;
   background-color: #d6c49c;
-  background-image: var(--label-plate-image, none), var(--label-plate-wash);
-  background-size: cover, cover;
-  background-position: center, center;
+}
+/* The label stock itself, ported from the artboard rather than approximated:
+   the same fractal field posterised into soft strata, run through an SVG
+   filter defined once in the app shell, with a cream veil over it at the
+   board's own 0.34. A CSS gradient could carry the colour but not the cloud,
+   which is the difference between a printed label and a painted panel. */
+.label-plate__stock {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background: #8a8a8a;
+  filter: url(#teajia-label-stock);
+}
+.label-plate__veil {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: rgba(238, 229, 208, 0.34);
 }
 .label-plate::before {
   content: '';
@@ -2390,7 +2434,7 @@ input[type="number"]::-webkit-outer-spin-button {
 .label-plate::after {
   content: '';
   position: absolute;
-  inset: 12px;
+  inset: 24px;
   pointer-events: none;
   border: 1px solid rgba(36, 29, 19, 0.26);
 }
@@ -2595,10 +2639,28 @@ input[type="number"]::-webkit-outer-spin-button {
 .alcove-order-btn--rail {
   flex: 0 0 auto;
   align-self: center;
-  min-width: 132px;
-  padding: 0 26px;
-  border-radius: 999px;
+  min-width: 0;
+  min-height: 42px;
+  padding: 0 24px;
+  gap: 8px;
+  /* Not a capsule. Everything around it is square, so the radius is half the
+     height and no more: it reads as a softened rectangle, which is what the
+     design file draws. */
+  border-radius: 21px;
+  /* Outlined, not filled. In the rail the tan slab was the loudest thing on a
+     page whose whole argument is restraint, and it sat directly under a column
+     of prices it was repeating. A keyline carries the same action at a
+     fraction of the voice. */
+  background: none;
+  border: 1px solid rgb(var(--tea-gold-rgb) / 0.55);
 }
+.alcove-order-btn--rail:hover:not(:disabled),
+.alcove-order-btn--rail:active:not(:disabled) {
+  background: rgb(var(--tea-gold-rgb) / 0.1);
+}
+.alcove-order-btn--rail .alcove-order-verb { color: var(--tea-text); }
+.alcove-order-btn--rail .alcove-order-total { color: var(--tea-text); }
+.alcove-order-btn--rail .alcove-order-rate { display: none; }
 
 .alcove-order-btn:hover:not(:disabled) { background: var(--tea-plate-tan-lift); }
 .alcove-order-btn:active:not(:disabled) { background: var(--tea-plate-tan-lift); }
@@ -3889,9 +3951,9 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] {
      panels read as the same material as the rest of the site, not a
      darker near-miss cousin. Update these in lockstep with the tea dark
      values if those change. */
-  --admin-bg:           #22201c;  /* = --tea-bg */
-  --admin-surface:      #322e29;  /* = --tea-surface */
-  --admin-elevated:     #423d36;  /* = --tea-elevated (hover / active) */
+  --admin-bg:           #332617;  /* = --tea-bg */
+  --admin-surface:      #443420;  /* = --tea-surface */
+  --admin-elevated:     #56432a;  /* = --tea-elevated (hover / active) */
   --admin-input-bg:     #4d473e;  /* one notch above elevated so inputs read raised, same warm family */
   --admin-border:       rgb(168 135 77 / 0.14);  /* = --tea-border (gold-tinted, not cream) */
   --admin-border-hover: rgb(168 135 77 / 0.24);

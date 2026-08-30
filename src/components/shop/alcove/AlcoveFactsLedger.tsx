@@ -78,12 +78,12 @@ export const AlcoveFactsLedger: React.FC<AlcoveFactsLedgerProps> = ({
       {rows.map(row => (
         <div
           key={row.key}
-          className="grid grid-cols-[92px_1fr] items-baseline border-b border-tea-border py-2.5"
+          className="grid grid-cols-[88px_1fr] items-baseline border-b border-tea-border py-[11px]"
         >
-          <dt className="font-sans text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim">
+          <dt className="font-sans text-ui-11 uppercase tracking-[0.18em] text-tea-text-dim">
             {row.label}
           </dt>
-          <dd className="m-0 text-right font-body text-[14.5px] leading-[1.6] text-tea-text">
+          <dd className="m-0 text-right font-body text-ui-15 leading-[1.5] text-tea-text">
             {row.value}
           </dd>
         </div>

@@ -384,7 +384,7 @@ type Rgb = readonly [number, number, number];
 
 const THEME_GROUND: Record<'dark' | 'light', { bg: Rgb; text: Rgb; wash: number }> = {
   // Mirrors --tea-bg-rgb / --tea-text-rgb in src/styles/tailwind.css.
-  dark:  { bg: [34, 32, 28],    text: [237, 228, 212], wash: 0.13 },
+  dark:  { bg: [51, 38, 23],    text: [237, 228, 212], wash: 0.13 },
   light: { bg: [244, 236, 224], text: [24, 19, 14],    wash: 0.10 },
 };
 

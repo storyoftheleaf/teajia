@@ -68,13 +68,26 @@ nav[aria-label="Admin navigation"] * {
     linear-gradient(172deg, #e2d0a6 0%, #cfb98c 54%, #d9c79c 100%);
 
   /* Outdoor-legibility tuned: background lifted off near-black so reflected
-     glare can't lift it past the text; muted tokens raised well above AA. */
-  --tea-bg: #22201c;
-  --tea-bg-rgb: 34 32 28;
-  --tea-surface: #322e29;
-  --tea-surface-rgb: 50 46 41;
-  --tea-elevated: #423d36;
-  --tea-elevated-rgb: 66 61 54;
+     glare can't lift it past the text; muted tokens raised well above AA.
+
+     The three dark grounds are BROWN, not warm grey. They used to sit six to
+     twelve points apart on red-minus-blue, which is a neutral wearing a warm
+     name: against the cream of a tea label the eye reads it as grey and the
+     whole interface goes cold. They now run twenty-eight, thirty-six and
+     forty-four points apart, which is far enough that the ground reads as the
+     colour of the tea rather than the colour of the screen. Eighteen points was
+     tried first and was invisible next to the old value, so the move is
+     deliberately large.
+
+     The lift costs some contrast and stays well clear of the floor: body text
+     is 11.6:1 on the ground and the dim token is 5.9:1, against the 4.5:1 the
+     outdoor-legibility tuning above is protecting. */
+  --tea-bg: #332617;
+  --tea-bg-rgb: 51 38 23;
+  --tea-surface: #443420;
+  --tea-surface-rgb: 68 52 32;
+  --tea-elevated: #56432a;
+  --tea-elevated-rgb: 86 67 42;
   --tea-text: #ede4d4;
   --tea-text-rgb: 237 228 212;
   /* Raised floor for outdoor / low-light legibility */
@@ -143,12 +156,12 @@ nav[aria-label="Admin navigation"] * {
 /* Force dark tokens on any nested .dark wrapper (e.g. Journal, always dark) */
 :root.light .dark, .light .dark {
   color-scheme: dark;
-  --tea-bg: #22201c;
-  --tea-bg-rgb: 34 32 28;
-  --tea-surface: #322e29;
-  --tea-surface-rgb: 50 46 41;
-  --tea-elevated: #423d36;
-  --tea-elevated-rgb: 66 61 54;
+  --tea-bg: #332617;
+  --tea-bg-rgb: 51 38 23;
+  --tea-surface: #443420;
+  --tea-surface-rgb: 68 52 32;
+  --tea-elevated: #56432a;
+  --tea-elevated-rgb: 86 67 42;
   --tea-text: #ede4d4;
   --tea-text-rgb: 237 228 212;
   --tea-text-sec: #ddd2bd;

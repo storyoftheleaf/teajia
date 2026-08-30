@@ -41,6 +41,47 @@ interface AlcoveIdentityHeaderProps {
  * Tea name in Cormorant, hanzi as real text (the watermark is retired),
  * then a tracked sub-line with the type-color dot.
  */
+/**
+ * The label stock, ported verbatim from the design file.
+ *
+ * A fractal field posterised into soft strata by three table transfers, one
+ * per channel, which is what puts the cloud in it; then a second, finer
+ * turbulence composited over as the speckle in the paper. The tables are
+ * lifted so any crop of it lands in the cream family rather than wherever the
+ * noise happens to sit.
+ *
+ * Rendered once per plate. It costs a filter pass, which is why the element it
+ * paints is a fixed background layer rather than anything that reflows.
+ */
+const LabelStockFilter: React.FC = () => (
+  <svg width="0" height="0" aria-hidden="true" focusable="false" style={{ position: 'absolute' }}>
+    <defs>
+      <filter id="teajia-label-stock" x="0" y="0" width="100%" height="100%" colorInterpolationFilters="sRGB">
+        <feTurbulence type="fractalNoise" baseFrequency="0.0016 0.0030" numOctaves={6} seed={29} result="f" />
+        <feColorMatrix
+          in="f"
+          type="matrix"
+          values="0.34 0.33 0.33 0 0  0.34 0.33 0.33 0 0  0.34 0.33 0.33 0 0  0 0 0 0 1"
+          result="l"
+        />
+        <feComponentTransfer in="l" result="b">
+          <feFuncR type="table" tableValues="0.60 1.00 0.68 1.00 0.76 1.00" />
+          <feFuncG type="table" tableValues="0.50 0.95 0.59 0.97 0.68 0.99" />
+          <feFuncB type="table" tableValues="0.34 0.79 0.43 0.84 0.53 0.89" />
+        </feComponentTransfer>
+        <feTurbulence type="turbulence" baseFrequency="0.19" numOctaves={3} seed={8} result="c" />
+        <feColorMatrix
+          in="c"
+          type="matrix"
+          values="0 0 0 0 1  0 0 0 0 0.98  0 0 0 0 0.93  0.8 0.2 0.2 0 -0.58"
+          result="ck"
+        />
+        <feComposite in="ck" in2="b" operator="over" />
+      </filter>
+    </defs>
+  </svg>
+);
+
 export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
   item,
   productName,
@@ -77,10 +118,17 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
           : 'px-6 pt-7 pb-5 text-center'
       }
     >
+      {onPlate && (
+        <>
+          <LabelStockFilter />
+          <span aria-hidden="true" className="label-plate__stock" />
+          <span aria-hidden="true" className="label-plate__veil" />
+        </>
+      )}
       <h1
         id={`alcove-title-${item.id}`}
         className={`m-0 font-display font-normal leading-[1.04] tracking-[0.01em] [text-wrap:balance] ${
-          onPlate ? 'plate-ink text-[36px] lg:text-[40px]' : 'text-ui-28 leading-[1.12] text-tea-text'
+          onPlate ? 'plate-ink text-[40px] lg:text-[58px]' : 'text-ui-28 leading-[1.12] text-tea-text'
         }`}
       >
         {title}
@@ -89,7 +137,7 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
         <p
           lang="zh"
           className={`m-0 font-calligraphy leading-none tracking-[0.3em] indent-[0.3em] ${
-            onPlate ? 'plate-ink-sec mt-[13px] text-ui-20' : 'mt-[7px] text-ui-17 text-tea-gold-lt'
+            onPlate ? 'plate-ink-sec mt-[18px] text-[21px] lg:text-[27px]' : 'mt-[7px] text-ui-17 text-tea-gold-lt'
           }`}
         >
           {chineseCharacters}
@@ -113,7 +161,7 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
         <>
           <div aria-hidden="true" className="mx-auto mt-7 h-px w-8 bg-[rgba(36,29,19,0.35)]" />
           {standfirst && (
-            <p className="plate-ink-sec mx-auto mt-7 max-w-[34ch] font-body text-ui-15 italic leading-[1.65]">
+            <p className="plate-ink-sec mx-auto mt-8 max-w-[340px] font-body text-ui-17 italic leading-[1.65]">
               {standfirst}
             </p>
           )}
