@@ -365,6 +365,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
             ? <ProductOrderAccess onCartClick={onCartClick} cartItemCount={cartItemCount} />
             : undefined
         }
+        onOpenOrder={onCartClick}
         isAdmin={isAdmin}
         onEditProductTasting={isAdmin ? (editItem) => setAdminTastingItem(editItem) : undefined}
       />

@@ -92,9 +92,16 @@ export function useShopPrice(): ShopPrice {
     [localised, currency, rates],
   );
 
+  // A rate needs its precision. formatCurrency rounds up and drops decimals,
+  // which is right for a total and wrong for a per-gram figure: it turns every
+  // tea under a unit a gram into "1/g". Convert the rate, then format it with
+  // the same cent precision the dollar path uses.
   const perGram = useCallback(
-    (usdPerGram: number) =>
-      localised ? `${formatCurrency(usdPerGram, currency, rates)}/g` : fmtShopPricePerGram(usdPerGram),
+    (usdPerGram: number) => {
+      if (!localised) return fmtShopPricePerGram(usdPerGram);
+      const converted = formatCurrency(usdPerGram * 100, currency, rates);
+      return `${converted} / 100 g`;
+    },
     [localised, currency, rates],
   );
 

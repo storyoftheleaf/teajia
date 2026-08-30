@@ -65,9 +65,19 @@ export function fmtShopPrice(amount: number): string {
   return '$' + fmtNum(Math.ceil(amount), 0);
 }
 
-/** Customer-facing price-per-gram, always rounded UP to whole dollars: "$1/g" */
+/**
+ * Customer-facing price-per-gram, rounded up to the cent: "$0.20/g".
+ *
+ * Totals stay whole dollars, which is what no-decimal pricing is for: nobody
+ * should be asked for $12.50. A RATE is a different quantity. Rounding it up
+ * to whole dollars turned every tea under a dollar a gram into "$1/g", so a
+ * shou at twenty cents advertised five times its rate, and the ladder that
+ * shows the rate easing as the amount grows collapsed into one number repeated
+ * down the column. Cents here, whole dollars everywhere a reader actually pays.
+ */
 export function fmtShopPricePerGram(amount: number): string {
-  return '$' + fmtNum(Math.ceil(amount), 0) + '/g';
+  const cents = Math.ceil(amount * 100) / 100;
+  return '$' + fmtNum(cents, 2) + '/g';
 }
 
 /** Record-currency price-per-gram: "$0.85/g". Books, ledgers, invoices only. */

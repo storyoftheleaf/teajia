@@ -52,6 +52,8 @@ interface AlcoveCardProps {
   publicHref?: string;
   /** Product-page-only control kept beside ordering reassurance. */
   orderAccess?: React.ReactNode;
+  /** Opens the order. The page bar's tan block is the only caller. */
+  onOpenOrder?: () => void;
   /**
    * 'card' (default) is the modal quiet card inside AlcoveShell (internal
    * scroll, pinned commerce bar). 'page' is the standalone product-page
@@ -87,7 +89,7 @@ function hexToRgbString(hex: string): string | undefined {
   return `${(int >> 16) & 255} ${(int >> 8) & 255} ${int & 255}`;
 }
 
-export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting, publicHref, orderAccess, layout = 'card' }) => {
+export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting, publicHref, orderAccess, onOpenOrder, layout = 'card' }) => {
   const navigate = useNavigate();
   const { favoriteTeas, toggleFavoriteTea, activeAccountId } = useAppStore();
 
@@ -249,6 +251,20 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   // Collect all available images (main + additional), max 3
   const allImages = [photoUrl, ...(item.additionalImages || [])].filter(Boolean).slice(0, 3);
 
+  /**
+   * Choosing an amount on the page bar puts it straight in the order.
+   * It takes the grams explicitly rather than reading state, because the
+   * state set a line earlier has not landed by the time this runs.
+   */
+  const handleChooseAmount = (g: number) => {
+    if (isSoldOut) return;
+    setGrams(g);
+    setCustomMode(false);
+    if (onAddToCart) {
+      onAddToCart(item, g, Math.ceil(quoteGrams(pricePerGram, g, { wholePieceGrams }).totalUsd));
+    }
+  };
+
   const handleAdd = () => {
     if (isSoldOut) return;
     setAdded(true);
@@ -316,6 +332,9 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       handleShare={handleShare}
       handleAdd={handleAdd}
       formatPrice={resolvedFormatPrice}
+      formatPerGram={shopPrice.perGram}
+      onChooseAmount={variant === 'docked' ? handleChooseAmount : undefined}
+      onOpenOrder={variant === 'docked' ? onOpenOrder : undefined}
       variant={variant}
     />
   );
