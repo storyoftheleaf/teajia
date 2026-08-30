@@ -5,7 +5,7 @@ export type StockBearingFinalizeDisposition = Exclude<FinalizeImportDisposition,
 
 export type FinalizeDisposition = 'created' | 'reused';
 export interface FinalizeResolution { id: string; disposition: FinalizeDisposition }
-export interface CurateFinalizeBatch { id: string; accountId: string; journeyId: string | null; journeyName: string | null; reviewState: string }
+export interface CurateFinalizeBatch { id: string; accountId: string; journeyId: string | null; journeyName: string | null; reviewState: string; shippingRatePerKg: number }
 export interface CurateFinalizeGroup { id: string; vendorId: string | null; vendorName: string | null; position: number }
 export interface CurateFinalizeItem {
   id: string; groupId: string; category: 'tea' | 'teaware'; name: string;
@@ -16,6 +16,7 @@ export interface CurateFinalizeItem {
   quantity: number | null; unit: FinalizeUnit | null; packCount: number | null;
   lineCost: number | null; currency: string | null; unitCost: number | null;
   lineCostExact?: string | null; unitCostExact?: string | null;
+  transportMode: string | null;
   purpose: FinalizePurpose | null; blockingFields: string[];
 }
 export interface CurateFinalizeData { batch: CurateFinalizeBatch; groups: CurateFinalizeGroup[]; items: CurateFinalizeItem[] }
@@ -32,6 +33,7 @@ export interface FinalizeReceiptLineInput {
   purpose: FinalizePurpose; originalCostAmount: number | null; originalCostCurrency: string;
   originalUnitCost: number | null; packCount: number;
   originalCostAmountExact?: string; originalUnitCostExact?: string;
+  transportMode: string | null;
 }
 export interface FinalizeReceiptLine extends FinalizeReceiptLineInput { id: string; receiptId?: string }
 export interface FinalizeReceipt { id: string; groupId: string; lines: FinalizeReceiptLine[] }
@@ -54,7 +56,7 @@ export interface CurateImportFinalizeContext {
   reserveFinalization(batchId: string, idempotencyKey: string): Promise<void>;
   releaseFinalization(batchId: string, idempotencyKey: string): Promise<void>;
   ensureIdentity(item: CurateFinalizeItem, batch: CurateFinalizeBatch): Promise<FinalizeResolution>;
-  ensureProduct(item: CurateFinalizeItem, compassEntryId: string, identityDisposition: FinalizeDisposition): Promise<FinalizeResolution>;
+  ensureProduct(item: CurateFinalizeItem, compassEntryId: string, identityDisposition: FinalizeDisposition, batch: CurateFinalizeBatch): Promise<FinalizeResolution>;
   createReceipt(group: CurateFinalizeGroup, lines: FinalizeReceiptLineInput[], idempotencyKey: string, journeyId: string | null): Promise<FinalizeReceipt>;
   receiveLine(line: FinalizeReceiptLine, idempotencyKey: string): Promise<{ movementId: string }>;
   complete(batchId: string, idempotencyKey: string, result: CurateFinalizeResult): Promise<void>;
@@ -171,7 +173,7 @@ export async function finalizeCurateImport(ctx: CurateImportFinalizeContext, bat
   const resolved = new Map<string, { item: CurateFinalizeItem; identity: FinalizeResolution; holding: FinalizeResolution | null }>();
   for (const item of data.items) {
     const identity = await ctx.ensureIdentity(item, data.batch);
-    const holding = isStockBearingDisposition(item.disposition) ? await ctx.ensureProduct(item, identity.id, identity.disposition) : null;
+    const holding = isStockBearingDisposition(item.disposition) ? await ctx.ensureProduct(item, identity.id, identity.disposition, data.batch) : null;
     resolved.set(item.id, { item, identity, holding });
   }
   const receipts: FinalizeResultReceipt[] = [];
@@ -193,6 +195,7 @@ export async function finalizeCurateImport(ctx: CurateImportFinalizeContext, bat
         quantity: item.quantity!, unit: item.unit!, purpose: item.purpose!, packCount: item.packCount!,
         originalCostAmount: item.lineCost, originalCostCurrency: item.currency!, originalUnitCost: item.unitCost,
         originalCostAmountExact: exactCostOrFallback(item.lineCostExact, item.lineCost), originalUnitCostExact: exactCostOrFallback(item.unitCostExact, item.unitCost),
+        transportMode: item.transportMode,
       };
     });
     if (!lines.length) continue;

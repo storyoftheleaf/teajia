@@ -1133,6 +1133,7 @@ function parsedFinalizeItem(row: Record<string, unknown>) {
     unitCost: typeof parsed.unitCost === 'number' ? parsed.unitCost : null,
     unitCostExact: typeof parsed.unitCostExact === 'string' ? parsed.unitCostExact : null,
     purpose: purpose === 'working' || purpose === 'sample' || purpose === 'personal' ? purpose : null,
+    transportMode: typeof row.transport_mode === 'string' ? row.transport_mode : null,
     blockingFields: [...new Set(blockingFields)],
   } as const;
 }
@@ -1160,8 +1161,10 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
           const validVendor = typeof row.resolved_vendor_customer_id === 'string' && Array.isArray(tags) && tags.includes('vendor');
           return { id: String(row.id), vendorId: validVendor ? String(row.resolved_vendor_customer_id) : null, vendorName: typeof row.vendor_name === 'string' ? row.vendor_name : null, position: Number(row.position) };
         });
+        const rawRate = Number(batch.shipping_rate_per_kg ?? 0);
+        const shippingRatePerKg = rawRate > 0 ? rawRate : 10.0;
         return {
-          batch: { id: batchId, accountId: ctx.accountId, journeyId, journeyName: journey ? [journey.name, journey.season, journey.year].filter(value => value != null && value !== '').join(' · ') : null, reviewState: String(batch.review_state) },
+          batch: { id: batchId, accountId: ctx.accountId, journeyId, journeyName: journey ? [journey.name, journey.season, journey.year].filter(value => value != null && value !== '').join(' · ') : null, reviewState: String(batch.review_state), shippingRatePerKg },
           groups, items: itemRows.results.map(parsedFinalizeItem),
         } as CurateFinalizeData;
       },
