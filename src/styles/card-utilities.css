@@ -3394,7 +3394,11 @@ input[type="number"]::-webkit-outer-spin-button {
   background: rgb(var(--tea-bg-rgb) / 0.97);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  box-shadow: 0 10px 32px rgb(0 0 0 / 0.45), inset 0 1px 0 rgb(var(--tea-gold-rgb) / 0.06);
+  /* No shadow. The navigation below already casts one for the whole assembly,
+     and a second cast downward from here fell across the navigation and the
+     order block, greying the tan and drawing a dark halo round the corners
+     that read as the bar being clipped. One object, one shadow. */
+  box-shadow: none;
 }
 @media (min-width: 1024px) {
   .commerce-dock {
@@ -3414,7 +3418,12 @@ input[type="number"]::-webkit-outer-spin-button {
    `:has()` keeps this in CSS rather than threading a flag through the app,
    and the bar and the nav stay components that know nothing of each other. */
 body:has(.commerce-dock) [data-testid='bottom-tab-bar'] {
-  border-radius: 0 0 9999px 9999px;
+  /* The bottom stays exactly the pill it always was. 9999px only reads as a
+     pill because all four corners compete for the same 52px and the browser
+     scales them together; ask for it on two corners alone and the bottom
+     radius grows to the full height, bowing the corners out and cropping
+     what sits in them. 26px is what the pill resolves to, stated. */
+  border-radius: 0 0 26px 26px;
 }
 @media (min-width: 1024px) {
   body:has(.commerce-dock) [data-testid='bottom-tab-bar'] {
