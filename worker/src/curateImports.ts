@@ -2026,6 +2026,80 @@ export async function acceptCurateImportItem(_request: Request, env: ImportEnv, 
   return response({ ...itemRow(updated), ...(linkedChanges ? {} : { already_accepted: true }) }, linkedChanges ? 201 : 200);
 }
 
+// THOSE askable fields (R9): only these may be filled via the in-flow chat /
+// operator answer. Everything else is never-askable (library/verified only).
+const CHAT_ASKABLE_FIELDS = new Set([
+  'vendor', 'origin_country', 'purchase_location', 'shipping_mode', 'pack_count',
+  'weight_grams', 'price_paid', 'cost_currency', 'purchase_date',
+]);
+
+// T1: POST /api/curate/imports/:id/chat — in-flow conversational dial for a
+// specific item (or the draft). Each answer doubles as an audit record and
+// writes back to the item's parsed_json with an evidenceRef in the same txn.
+export async function curateImportChat(request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
+  const batch = await scopedBatch(env, params.id, ctx.accountId);
+  if (!batch) return response({ error: 'Import not found' }, 404);
+  if (batchIsTerminal(batch)) return terminalResponse();
+  let body: Record<string, unknown>;
+  try { body = object(await request.json()) ?? {}; } catch { return response({ error: 'Invalid JSON' }, 400); }
+  const role = String(body.role ?? '').toLowerCase();
+  if (role !== 'assistant' && role !== 'agent' && role !== 'operator' && role !== 'system') return response({ error: 'Invalid role' }, 400);
+  const origin = String(body.origin ?? '').toLowerCase();
+  if (origin !== 'web' && origin !== 'agent' && origin !== 'system') return response({ error: 'Invalid origin' }, 400);
+  const bodyText = typeof body.body === 'string' && body.body.trim() ? String(body.body) : null;
+  if (!bodyText) return response({ error: 'body is required' }, 400);
+
+  // Optional item scope.
+  let itemId: string | null = body.item_id != null ? String(body.item_id) : null;
+  if (itemId) {
+    const item = await scopedItem(env, params.id, itemId, ctx.accountId);
+    if (!item) return response({ error: 'Import item not found' }, 404);
+  }
+
+  // R9: asks_field / answers_field must be in the askable whitelist.
+  const asksField = body.asks_field != null ? String(body.asks_field) : null;
+  const answersField = body.answers_field != null ? String(body.answers_field) : null;
+  if (asksField && !CHAT_ASKABLE_FIELDS.has(asksField)) return response({ error: 'Field is not askable in chat', code: 'field_not_askable', field: asksField }, 400);
+  if (answersField && !CHAT_ASKABLE_FIELDS.has(answersField)) return response({ error: 'Field is not askable in chat', code: 'field_not_askable', field: answersField }, 400);
+  const answerKind = body.answer_kind != null ? String(body.answer_kind) : null;
+  if (answerKind && !['value', 'unknown', 'skip'].includes(answerKind)) return response({ error: 'Invalid answer_kind' }, 400);
+
+  const messageId = crypto.randomUUID();
+  const stmts: D1PreparedStatement[] = [
+    env.DB.prepare(
+      `INSERT INTO curate_import_chat_messages (id, import_id, item_id, role, body, asks_field, answers_field, answer_value, answer_kind, origin, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(messageId, params.id, itemId, role === 'agent' ? 'assistant' : role, bodyText, asksField, answersField,
+      body.answer_value != null ? (typeof body.answer_value === 'string' ? body.answer_value : JSON.stringify(body.answer_value)) : null,
+      answerKind, origin, ctx.userId),
+  ];
+
+  // Write the answer back into the item, if one is provided.
+  if (answersField && itemId && answerKind !== 'skip') {
+    const item = (await scopedItem(env, params.id, itemId, ctx.accountId)) as Record<string, unknown>;
+    const parsed = (typeof item?.parsed_data_json === 'string' ? JSON.parse(item.parsed_data_json as string) : {}) as Record<string, unknown>;
+    const value = answerKind === 'unknown' ? null : body.answer_value;
+    parsed[answersField] = typeof value === 'string' && /^[\w.\-]+$/.test(value) ? value : value;
+    const evidenceRefs = Array.isArray(parsed.evidenceRefs) ? parsed.evidenceRefs : [];
+    evidenceRefs.push(answerKind === 'unknown' ? `chat:${messageId}:unknown` : `chat:${messageId}`);
+    parsed.evidenceRefs = evidenceRefs;
+    stmts.push(
+      env.DB.prepare(
+        `UPDATE curate_import_items SET parsed_data_json = ?, version = version + 1, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+      ).bind(JSON.stringify(parsed), itemId, ctx.accountId)
+    );
+  }
+
+  const results = await env.DB.batch(stmts);
+  await refreshImportBatchState(env, params.id, ctx.accountId);
+  let itemVersion: number | null = null;
+  if (answersField && itemId) {
+    const updated = await scopedItem(env, params.id, itemId, ctx.accountId);
+    itemVersion = Number(updated?.version ?? null) || null;
+  }
+  return response({ message_id: messageId, role, origin, item_version: itemVersion, item_id: itemId });
+}
+
 export async function mergeCurateImportItem(request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
   const batch = await scopedBatch(env, params.id, ctx.accountId);
   if (!batch) return response({ error: 'Import not found' }, 404);

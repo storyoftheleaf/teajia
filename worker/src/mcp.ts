@@ -38,6 +38,7 @@ import {
   analyzeCurateImport,
   getCurateImport,
   updateCurateImportItem,
+  curateImportChat,
   finalizeCurateImportRequest,
   type CurateImportContext,
   type CurateFinalizeMovement,
@@ -3523,26 +3524,38 @@ async function toolIntakeUpdateItem(env: Env, auth: McpAuth, args: any) {
   return data;
 }
 
-// intake_ask and intake_answer wrap POST /api/curate/imports/:id/chat (THEN-T1).
-// That endpoint does not exist yet — stubs return not_implemented so the tool
-// is discoverable and the schema is locked in advance.
-
-async function toolIntakeAsk(_env: Env, _auth: McpAuth, args: any) {
+// intake_ask and intake_answer wrap POST /api/curate/imports/:id/chat (T1).
+async function toolIntakeAsk(env: Env, auth: McpAuth, args: any) {
   const importId = String(args?.import_id ?? '').trim();
-  return {
-    error: 'not_implemented',
-    message: 'intake_ask requires the /chat endpoint (THEN-T1), which has not shipped yet.',
-    import_id: importId || null,
-  };
+  const itemId = args?.item_id != null ? String(args.item_id) : null;
+  const asksField = args?.asks_field ? String(args.asks_field) : null;
+  const bodyText = args?.body ? String(args.body) : '';
+  if (!importId) return { error: 'import_id is required' };
+  if (!bodyText) return { error: 'body is required' };
+  const req = new Request(`http://localhost/api/curate/imports/${importId}/chat`, { method: 'POST', body: JSON.stringify({ item_id: itemId, role: 'assistant', asks_field: asksField, body: bodyText, origin: 'agent' }) });
+  const ctx: CurateImportContext = { accountId: auth.accountId, userId: auth.userId };
+  const res = await curateImportChat(req, env as any, ctx, { id: importId });
+  const data = await res.json() as any;
+  if (!res.ok) return { error: data.error ?? 'chat_ask_failed', code: data.code, field: data.field, details: data };
+  return data;
 }
 
-async function toolIntakeAnswer(_env: Env, _auth: McpAuth, args: any) {
+async function toolIntakeAnswer(env: Env, auth: McpAuth, args: any) {
   const importId = String(args?.import_id ?? '').trim();
-  return {
-    error: 'not_implemented',
-    message: 'intake_answer requires the /chat endpoint (THEN-T1), which has not shipped yet.',
-    import_id: importId || null,
-  };
+  const itemId = args?.item_id != null ? String(args.item_id) : null;
+  const answersField = args?.answers_field ? String(args.answers_field) : null;
+  const bodyText = args?.body ? String(args.body) : '';
+  const answerValue = args?.answer_value ?? null;
+  const answerKind = args?.answer_kind ? String(args.answer_kind) : 'value';
+  if (!importId) return { error: 'import_id is required' };
+  if (!answersField) return { error: 'answers_field is required' };
+  if (!bodyText) return { error: 'body is required' };
+  const req = new Request(`http://localhost/api/curate/imports/${importId}/chat`, { method: 'POST', body: JSON.stringify({ item_id: itemId, role: 'operator', answers_field: answersField, answer_value: answerValue, answer_kind: answerKind, body: bodyText, origin: 'agent' }) });
+  const ctx: CurateImportContext = { accountId: auth.accountId, userId: auth.userId };
+  const res = await curateImportChat(req, env as any, ctx, { id: importId });
+  const data = await res.json() as any;
+  if (!res.ok) return { error: data.error ?? 'chat_answer_failed', code: data.code, field: data.field, details: data };
+  return data;
 }
 
 async function toolIntakeFinalize(env: Env, auth: McpAuth, args: any) {

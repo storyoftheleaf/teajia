@@ -6,7 +6,7 @@ import {
 import {
   abandonCurateImport, acceptCurateImportItem, addCurateImportItem, addCurateImportSource, analyzeCurateImport, createCurateImport, getCurateImport,
   createVendorForCurateImportGroup, finalizeCurateImportRequest, getCurateImportEvidence, listIncompleteCurateImports, mergeCurateImportItem,
-  setCurateImportJourney, updateCurateImportGroup, updateCurateImportItem, uploadCurateImportEvidence,
+  setCurateImportJourney, updateCurateImportGroup, updateCurateImportItem, uploadCurateImportEvidence, curateImportChat,
   type CurateImportContext,
 } from './curateImports';
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
@@ -24271,6 +24271,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/curate/imports/:id/sources/:sourceId/content', withCurateImportAccount(getCurateImportEvidence)],
   ['POST', '/api/curate/imports/:id/sources', withCurateImportAccount(addCurateImportSource, true)],
   ['PUT', '/api/curate/imports/:id/items/:itemId', withCurateImportAccount(updateCurateImportItem, true)],
+  ['POST', '/api/curate/imports/:id/chat', withCurateImportAccount(curateImportChat, true)],
   ['POST', '/api/curate/imports/:id/items/:itemId/accept', withCurateImportAccount(acceptCurateImportItem, true)],
   ['POST', '/api/curate/imports/:id/items/:itemId/merge', withCurateImportAccount(mergeCurateImportItem, true)],
   ['GET', '/api/compass/entries', handleGetCompassEntries],

@@ -1063,6 +1063,22 @@ CREATE TABLE IF NOT EXISTS curate_import_items (
   FOREIGN KEY (source_id) REFERENCES curate_import_sources(id) ON DELETE SET NULL
 );
 CREATE INDEX IF NOT EXISTS idx_curate_import_items_batch ON curate_import_items(account_id, batch_id, position);
+CREATE TABLE IF NOT EXISTS curate_import_chat_messages (
+  id            TEXT PRIMARY KEY,
+  import_id     TEXT NOT NULL REFERENCES curate_import_batches(id) ON DELETE CASCADE,
+  item_id       TEXT REFERENCES curate_import_items(id) ON DELETE CASCADE,
+  role          TEXT NOT NULL CHECK (role IN ('system','agent','operator','assistant')),
+  body          TEXT NOT NULL,
+  asks_field    TEXT,
+  answers_field TEXT,
+  answer_value  TEXT,   -- JSON-encoded scalar
+  answer_kind   TEXT CHECK (answer_kind IN ('value','unknown','skip')),
+  origin        TEXT NOT NULL CHECK (origin IN ('web','agent','system')),
+  created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+  created_by    TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_curate_chat_import ON curate_import_chat_messages(import_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_curate_chat_item   ON curate_import_chat_messages(item_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_curate_import_items_compass ON curate_import_items(account_id, compass_entry_id);
 
 CREATE TABLE IF NOT EXISTS curate_import_vendor_groups (

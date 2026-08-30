@@ -2958,4 +2958,16 @@ describe('Curate import provenance API', () => {
       expect(response.status, `${method} ${path}`).toBe(404);
     }
   });
+
+  it('rejects chat answers for never-askable fields (R9) with 400', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Chat R9' }) });
+    const { batch } = await created.json() as any;
+    const response = await request(db, `/api/curate/imports/${batch.id}/chat`, {
+      method: 'POST', body: JSON.stringify({ role: 'operator', origin: 'web', body: 'yiwu village', answers_field: 'origin_region', answer_value: 'Yiwu', answer_kind: 'value', item_id: null }),
+    }, 'account-a', 'user-a');
+    expect(response.status).toBe(400);
+    const data = await response.json() as any;
+    expect(data.code).toBe('field_not_askable');
+  });
 });
