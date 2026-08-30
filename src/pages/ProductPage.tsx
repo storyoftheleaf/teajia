@@ -360,7 +360,11 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
         onTermClick={handleTermClick}
         onTaste={handleTaste}
         publicHref={productHref}
-        orderAccess={<ProductOrderAccess onCartClick={onCartClick} cartItemCount={cartItemCount} />}
+        orderAccess={
+          onCartClick && cartItemCount > 0
+            ? <ProductOrderAccess onCartClick={onCartClick} cartItemCount={cartItemCount} />
+            : undefined
+        }
         isAdmin={isAdmin}
         onEditProductTasting={isAdmin ? (editItem) => setAdminTastingItem(editItem) : undefined}
       />

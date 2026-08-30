@@ -4,6 +4,12 @@ import { resolveTermLabel, LIQUOR_COLORS } from '../../../data/tastingTaxonomy';
 interface AlcoveFactsLedgerProps {
   origin?: string;
   harvest?: string | number;
+  /**
+   * Elevation as the wisdom base offers it, label and all. The base
+   * distinguishes a tea-growing elevation from a county's, so its own wording
+   * travels with the figure rather than being flattened to "Elevation" here.
+   */
+  elevation?: { label: string; value: string } | null;
   /** First liquor-color term id from item.tasting. Row renders only when present. */
   liquorTermId?: string;
   /**
@@ -30,12 +36,14 @@ export const AlcoveFactsLedger: React.FC<AlcoveFactsLedgerProps> = ({
   origin,
   harvest,
   liquorTermId,
+  elevation,
   rows: rowsProp,
 }) => {
   const rows: LedgerRow[] = rowsProp ? [...rowsProp] : [];
 
   if (!rowsProp && origin) rows.push({ key: 'origin', label: 'Origin', value: origin });
   if (!rowsProp && harvest) rows.push({ key: 'year', label: 'Year', value: String(harvest) });
+  if (!rowsProp && elevation) rows.push({ key: 'elevation', label: elevation.label, value: elevation.value });
 
   const liquorHex = liquorTermId ? LIQUOR_COLORS[liquorTermId] : undefined;
   if (!rowsProp && liquorTermId && liquorHex) {

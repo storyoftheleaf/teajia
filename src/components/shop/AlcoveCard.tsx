@@ -28,6 +28,9 @@ import { TeaReference, type TeaReferenceProduct } from '../wisdom/TeaReference';
 import type { ProductImpression } from './ProductImpressions';
 import { resolveProductResearch } from '../../wisdom/productResearch';
 import { buildPublicProductHref } from '../../lib/publicProductNavigation';
+import { quoteGrams } from '../../lib/teaPricing';
+import { resolveLineage } from '../wisdom/TeaLineage';
+import { regionElevationPresentation } from '../../wisdom/regions';
 
 interface AlcoveCardProps {
   item: InventoryItem;
@@ -183,9 +186,12 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
   const sliderMin = 5;
   const sliderMax = Math.max(sliderMin, Math.floor(item.stock_g || 0));
+  // One whole pressed piece ships as it is, so it is the one amount that
+  // carries no handling. Everything priced below reads this.
+  const wholePieceGrams = item.category === 'tea' ? WHOLE_PIECE[item.form ?? '']?.grams : undefined;
   // Numeric total (base currency), passed to onAddToCart. Display strings
   // are formatted separately; never parse a formatted string back to a number.
-  const numericTotal = Math.ceil(pricePerGram * grams);
+  const numericTotal = Math.ceil(quoteGrams(pricePerGram, grams, { wholePieceGrams }).totalUsd);
 
   /**
    * Every figure on this card, in the currency the reader chose.
@@ -199,7 +205,12 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
    * no longer carry a dollar-only fallback branch of their own.
    */
   const shopPrice = useShopPrice();
-  const resolvedFormatPrice = formatPrice ?? ((usdPerGram: number, g: number) => shopPrice.total(usdPerGram * g));
+  // The shop's own formatter is where the pricing curve is applied, because
+  // every surface reads its total through here. An admin override formats
+  // against its own rate table and keeps that job untouched.
+  const resolvedFormatPrice = formatPrice
+    ?? ((usdPerGram: number, g: number) =>
+      shopPrice.total(quoteGrams(usdPerGram, g, { wholePieceGrams }).totalUsd));
   const total = resolvedFormatPrice(pricePerGram, grams);
   // A rate is a complete display value. Public prices use the rate formatter;
   // admin overrides add their unit here, at the card boundary, exactly once.
@@ -278,7 +289,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
   // ── Shared blocks: one composition, two layouts ──────────────────────────
 
-  const commerceFooter = (variant: 'pinned' | 'rail') => (
+  const commerceFooter = (variant: 'pinned' | 'rail' | 'docked') => (
     <AlcoveCommerceFooter
       item={item}
       alcoveBg={alcoveBg}
@@ -377,12 +388,32 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     </div>
   );
 
-  // 2. Facts ledger: Origin / Harvest / Liquor
+  // 2. Facts ledger: what the shop and the wisdom base together know.
+  //
+  // One row read as an accident rather than as restraint: a tea with no
+  // recorded year and no liquor colour showed Origin alone under a heading.
+  // The wisdom base already holds the elevation of the place this tea comes
+  // from, written once and improving on every tea the day it is corrected, so
+  // the ledger asks it rather than leaving the space empty. Its own label
+  // comes through with it, because a county elevation and a tea-growing
+  // elevation are not the same claim and the base is careful about which it
+  // is offering.
+  const ledgerRegion = item.category === 'tea'
+    ? resolveLineage({
+        name: item.name,
+        chineseName: item.chineseName,
+        origin: item.origin,
+        cultivar: item.cultivar,
+      }).region
+    : null;
+  const ledgerElevation = regionElevationPresentation(ledgerRegion);
+
   const factsLedger = (
     <AlcoveFactsLedger
       origin={item.origin}
       harvest={item.year}
       liquorTermId={liquorTermId}
+      elevation={ledgerElevation}
     />
   );
 
@@ -416,6 +447,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       legacyNotes={notes}
       onTermClick={onTermClick}
       potentialResearch={potentialResearch}
+      onTaste={onTaste}
     />
   );
 
@@ -473,7 +505,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
    * claim is gone and the strip renders only when there is a control to hold.
    */
   const commerceReassurance = orderAccess ? (
-    <div className="flex min-h-[44px] items-center gap-3 border-t border-tea-border bg-tea-bg px-3.5">
+    <div className="flex min-h-[44px] items-center gap-3 border-t border-tea-border px-3.5">
       {orderAccess}
     </div>
   ) : null;
@@ -505,10 +537,11 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           </div>
         </div>
 
-        {/* Below lg the commerce module is a fixed bar sitting just above the
-            mobile bottom nav (bottom-nav utility, never inline calc). */}
-        <div className="fixed inset-x-0 bottom-nav z-sticky border-b border-tea-border lg:hidden">
-          {commerceFooter('pinned')}
+        {/* Below lg the commerce module docks onto the top edge of the bottom
+            navigation so the two read as one object (commerce-dock, which owns
+            the geometry and squares the nav's top corners while it is there). */}
+        <div className="commerce-dock z-nav lg:hidden">
+          {commerceFooter('docked')}
           {commerceReassurance}
         </div>
         {/* Clearance for the fixed bar's own height; the bottom nav clearance

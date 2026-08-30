@@ -22,6 +22,14 @@ interface AlcoveCharacterBandProps {
   legacyNotes: string[];
   onTermClick?: (termId: string, categoryId: string) => void;
   potentialResearch?: ProductResearchResolution | null;
+  /**
+   * Recording a tasting belongs here rather than beside the order button.
+   * The lines above say what the shop found in the cup; the invitation
+   * underneath is to add what you found, and it is one tap from the tea you
+   * are already looking at. Next to Add to order it was competing with a
+   * purchase, and it is the one action you take after the tea is yours.
+   */
+  onTaste?: (item: InventoryItem) => void;
 }
 
 const POTENTIAL_LABELS: Record<string, string> = {
@@ -84,6 +92,7 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
   legacyNotes,
   onTermClick,
   potentialResearch,
+  onTaste,
 }) => {
   const tasting = item.tasting;
 
@@ -113,7 +122,7 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
   const starred = starredNotes(tasting);
   const hasVisibleStructuredTerms = flavorTerms.length > 0 || feelingTerms.length > 0;
   const hasTerms = tasteTerms.length > 0 || feelingTerms.length > 0;
-  const hasAny = hasTerms || starred.length > 0 || Boolean(potentialResearch);
+  const hasAny = hasTerms || starred.length > 0 || Boolean(potentialResearch) || Boolean(onTaste);
 
   // No sensory data: no band, no empty heading. (The admin "Edit" affordance
   // lives on the card's top edge, not here, so an empty tasting shows nothing.)
@@ -137,6 +146,21 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
           {item.tastingSource === 'source' && hasVisibleStructuredTerms && (
             <p className="mt-2 font-sans text-ui-11 text-tea-text-dim">Source-described profile</p>
           )}
+        </div>
+      )}
+
+      {onTaste && (
+        <div className="mt-4 text-center">
+          <button
+            type="button"
+            onClick={e => {
+              e.stopPropagation();
+              onTaste(item);
+            }}
+            className="tap-target inline-flex min-h-[44px] items-center border border-tea-border px-5 font-sans text-ui-10 uppercase tracking-[0.18em] text-tea-text-sec transition-colors hover:border-tea-gold/40 hover:text-tea-text"
+          >
+            Add your tasting
+          </button>
         </div>
       )}
 

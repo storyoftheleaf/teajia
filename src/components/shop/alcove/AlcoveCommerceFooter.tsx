@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { InventoryItem } from '../../../types';
 import { Heart, Pencil, FlaskConical } from 'lucide-react';
 import { fmtShopPrice } from '../../../utils/formatNumber';
+import { offeredSizes, quoteGrams } from '../../../lib/teaPricing';
 
 interface StockStatus {
   label: string;
@@ -39,12 +40,14 @@ interface AlcoveCommerceFooterProps {
   handleAdd: () => void;
   formatPrice?: (pricePerGram: number, grams: number) => string;
   /**
-   * 'pinned' (default) is the card's bottom bar: top hairline + solid card bg.
-   * 'rail' is the product page's desktop order module: the enclosing box owns
-   * the border, the background stays transparent, and the action row stacks
-   * vertically with a full-width order button.
+   * 'pinned' (default) is the modal card's bottom bar: top hairline + solid
+   * card bg. 'rail' is the product page's desktop order module: the enclosing
+   * box owns the border, the background stays transparent, and the action row
+   * stacks vertically with a full-width order button. 'docked' is the phone
+   * page's bar sitting on the navigation's top edge, where the dock owns the
+   * border, the blur and the background, so this draws neither.
    */
-  variant?: 'pinned' | 'rail';
+  variant?: 'pinned' | 'rail' | 'docked';
 }
 
 /**
@@ -113,6 +116,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
 }) => {
   const isTea = item.category === 'tea';
   const isRail = variant === 'rail';
+  const isDocked = variant === 'docked';
   const completeRateLabel = rateLabel ?? (perGramDisplay
     ? `${formatPrice ? perGramDisplay : `$${perGramDisplay}`}${isTea ? '/g' : ' each'}`
     : '');
@@ -122,41 +126,40 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
     setCustomMode(false);
   };
 
+  // Every figure a reader sees comes through here, so the ladder and the
+  // add-to-order total can never drift apart. An admin override formats
+  // against its own rate table and keeps that job.
   const priceFor = (g: number) =>
-    formatPrice ? formatPrice(pricePerGram, g) : fmtShopPrice(pricePerGram * g);
+    formatPrice
+      ? formatPrice(pricePerGram, g)
+      : fmtShopPrice(quoteGrams(pricePerGram, g, { wholePieceGrams: wholePiece?.grams }).totalUsd);
 
   // A whole cake / brick / tuo is one of the amounts a reader actually buys, so
-  // it earns a cell of its own whenever there is enough leaf to press one.
+  // it earns a cell of its own whenever there is enough leaf to press one, and
+  // it is the one amount that carries no handling.
   const wholePiece = isTea ? WHOLE_PIECE[item.form ?? ''] : undefined;
-  const gramPresetKeys = [50, 100].filter(p => p <= sliderMax);
-  const wholePieceCell =
-    wholePiece && wholePiece.grams <= sliderMax && !gramPresetKeys.includes(wholePiece.grams)
-      ? wholePiece
-      : undefined;
 
-  // Sample sizes live behind Custom rather than in the strip: the strip is for
-  // the amounts most readers buy, and a 10 g taste is an ask, not a default.
-  const stripGrams = [...gramPresetKeys, ...(wholePieceCell ? [wholePieceCell.grams] : [])];
+  // Which sizes this tea shows, and what each costs, both from one place.
+  const sizeQuotes = isTea
+    ? offeredSizes(pricePerGram, sliderMax, { wholePieceGrams: wholePiece?.grams })
+    : [];
+  const stripGrams = sizeQuotes.map(q => q.grams);
   const customActive = customMode || (isTea && !stripGrams.includes(grams));
 
   const teaCells: SegCell[] = [
-    ...gramPresetKeys.map(p => ({
-      key: String(p),
-      label: `${p} g`,
-      sub: priceFor(p),
-      active: !customActive && grams === p,
-      onSelect: () => selectWeight(p),
-    })),
-    ...(wholePieceCell
-      ? [{
-          key: 'whole-piece',
-          label: wholePieceCell.label,
-          sub: `${wholePieceCell.grams} g · ${priceFor(wholePieceCell.grams)}`,
-          active: !customActive && grams === wholePieceCell.grams,
-          ariaLabel: `One whole ${wholePieceCell.label.toLowerCase()}, ${wholePieceCell.grams} grams`,
-          onSelect: () => selectWeight(wholePieceCell.grams),
-        }]
-      : []),
+    ...sizeQuotes.map(q => {
+      const isWhole = q.whole && wholePiece != null;
+      return {
+        key: isWhole ? 'whole-piece' : String(q.grams),
+        label: isWhole ? wholePiece!.label : `${q.grams} g`,
+        sub: isWhole ? `${q.grams} g · ${priceFor(q.grams)}` : priceFor(q.grams),
+        active: !customActive && grams === q.grams,
+        ariaLabel: isWhole
+          ? `One whole ${wholePiece!.label.toLowerCase()}, ${q.grams} grams`
+          : undefined,
+        onSelect: () => selectWeight(q.grams),
+      };
+    }),
     {
       key: 'custom',
       label: 'Custom',
@@ -190,9 +193,11 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
       className={
         isRail
           ? 'relative px-3.5 pb-3 pt-3.5'
-          : 'relative z-[3] flex-shrink-0 border-t border-tea-border px-3.5 pb-2 pt-2.5'
+          : isDocked
+            ? 'relative z-[3] flex-shrink-0 px-3.5 pb-2.5 pt-2.5'
+            : 'relative z-[3] flex-shrink-0 border-t border-tea-border px-3.5 pb-2 pt-2.5'
       }
-      style={isRail ? undefined : { background: alcoveBg }}
+      style={isRail || isDocked ? undefined : { background: alcoveBg }}
     >
       {/* Stock line, only when it carries a warning. "In stock" is implied by
           an enabled order button, and the pinned bar pays for every row. */}
@@ -326,22 +331,6 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
               {shareCopied ? 'Copied' : 'Share'}
             </span>
           </button>
-          {onTaste && (
-            <>
-              {DIVIDER}
-              <button
-                type="button"
-                className="alcove-icon-btn"
-                onClick={e => {
-                  e.stopPropagation();
-                  onTaste(item);
-                }}
-                aria-label="Start tasting session"
-              >
-                <span>Taste</span>
-              </button>
-            </>
-          )}
           {isAdmin && onEdit && (
             <>
               {DIVIDER}
