@@ -63,11 +63,11 @@ const TermLine: React.FC<{
     <div className="font-sans text-ui-10 uppercase tracking-[0.24em] indent-[0.24em] text-tea-text-dim">
       {label}
     </div>
-    <div className="mx-auto mt-[10px] max-w-[360px] font-display text-[22px] leading-[1.45] text-tea-text">
+    <div className="mx-auto mt-3 max-w-[300px] font-display text-[21px] leading-[1.65] text-tea-text lg:max-w-[360px] lg:text-[22px]">
       {terms.map((term, i) => (
         <React.Fragment key={term.termId}>
           {i > 0 && (
-            <span aria-hidden="true" className="px-2 text-ui-15 text-tea-gold-lt">
+            <span aria-hidden="true" className="px-[7px] text-tea-gold-lt">
               ·
             </span>
           )}
@@ -143,7 +143,7 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
       className={`alcove-band relative px-6 ${open ? 'alcove-band--open mt-9 pb-2 pt-0' : 'mt-[22px] pb-[18px] pt-4'}`}
     >
       {open ? (
-        <div aria-hidden="true" className="alcove-rule mb-5" />
+        <div aria-hidden="true" className="alcove-rule mb-4" />
       ) : (
         <AlcoveSectionHeading label="Character" className="mb-3" />
       )}
@@ -157,7 +157,7 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
             <TermLine label="Feel" terms={feelingTerms} onTermClick={onTermClick} sentenceCase={open} />
           )}
           {open && feelingTerms.length === 0 && (
-            <p className="mt-3 font-body text-ui-13 italic text-tea-text-dim">no feeling terms recorded yet</p>
+            <p className="mt-[13px] font-body text-ui-14 italic text-tea-text-dim/55">no feeling terms recorded yet</p>
           )}
           {item.tastingSource === 'common' && hasVisibleStructuredTerms && (
             <p className="mt-2 font-sans text-ui-11 text-tea-text-dim">Potential profile</p>
@@ -176,11 +176,11 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
               e.stopPropagation();
               onTaste(item);
             }}
-            className="tap-target inline-flex min-h-[44px] items-center border border-tea-border px-5 font-sans text-ui-10 uppercase tracking-[0.18em] text-tea-text-sec transition-colors hover:border-tea-gold/40 hover:text-tea-text"
+            className="tap-target inline-flex min-h-[38px] items-center border border-tea-gold/34 px-[18px] py-[9px] font-sans text-ui-10 uppercase tracking-[0.18em] text-tea-text-sec transition-colors hover:border-tea-gold/60 hover:text-tea-text"
           >
             Add your tasting
           </button>
-          {open && <div aria-hidden="true" className="alcove-rule mt-8" />}
+          {open && <div aria-hidden="true" className="alcove-rule mt-5 lg:mt-[18px]" />}
         </div>
       )}
 

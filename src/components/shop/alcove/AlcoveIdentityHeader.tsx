@@ -114,7 +114,7 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
     <header
       className={
         onPlate
-          ? 'label-plate m-3 flex flex-col justify-end px-7 pb-9 pt-20 text-center lg:m-4 lg:h-full lg:min-h-[620px] lg:justify-center lg:pb-16 lg:pt-16'
+          ? 'label-plate mx-[18px] mt-2 flex h-[396px] flex-col justify-end px-7 pb-[38px] text-center lg:m-0 lg:h-full lg:min-h-[900px] lg:justify-start lg:px-[62px] lg:pb-0 lg:pt-[300px]'
           : 'px-6 pt-7 pb-5 text-center'
       }
     >
@@ -127,7 +127,7 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
       )}
       <h1
         id={`alcove-title-${item.id}`}
-        className={`m-0 font-display font-normal leading-[1.04] tracking-[0.01em] [text-wrap:balance] ${
+        className={`m-0 font-display font-normal leading-[1.02] tracking-[0.005em] [text-wrap:balance] lg:leading-none ${
           onPlate ? 'plate-ink text-[40px] lg:text-[58px]' : 'text-ui-28 leading-[1.12] text-tea-text'
         }`}
       >
@@ -136,8 +136,8 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
       {chineseCharacters && (
         <p
           lang="zh"
-          className={`m-0 font-calligraphy leading-none tracking-[0.3em] indent-[0.3em] ${
-            onPlate ? 'plate-ink-sec mt-[18px] text-[21px] lg:text-[27px]' : 'mt-[7px] text-ui-17 text-tea-gold-lt'
+          className={`m-0 font-calligraphy leading-none tracking-[0.3em] indent-[0.3em] lg:tracking-[0.32em] lg:indent-[0.32em] ${
+            onPlate ? 'plate-ink-sec mt-[13px] text-[19px] lg:mt-6 lg:text-[27px]' : 'mt-[7px] text-ui-17 text-tea-gold-lt'
           }`}
         >
           {chineseCharacters}
@@ -145,30 +145,32 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
       )}
       {subLine && (
         <p
-          className={`m-0 flex flex-wrap items-center justify-center gap-x-2 font-sans uppercase tracking-[0.2em] ${
-            onPlate ? 'plate-ink-sec mt-[15px] text-ui-10' : 'mt-[11px] text-ui-10 text-tea-text-sec'
+          className={`m-0 flex flex-wrap items-center justify-center font-sans uppercase tracking-[0.22em] ${
+            onPlate
+              ? 'plate-ink-sec mt-[15px] gap-x-2 text-ui-10 lg:mt-[22px] lg:gap-x-[9px] lg:text-ui-11'
+              : 'mt-[11px] gap-x-2 text-ui-10 text-tea-text-sec'
           }`}
         >
           <span
             aria-hidden="true"
-            className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
+            className={`inline-block shrink-0 rounded-full ${onPlate ? 'h-1.5 w-1.5 lg:h-[7px] lg:w-[7px]' : 'h-1.5 w-1.5'}`}
             style={{ background: typeColor }}
           />
           <span>{subLine}</span>
         </p>
       )}
-      {onPlate && (standfirst || footNote) && (
-        <>
-          <div aria-hidden="true" className="mx-auto mt-7 h-px w-8 bg-[rgba(36,29,19,0.35)]" />
-          {standfirst && (
-            <p className="plate-ink-sec mx-auto mt-8 max-w-[340px] font-body text-ui-17 italic leading-[1.65]">
-              {standfirst}
-            </p>
-          )}
-          {footNote && (
-            <p className="plate-ink-sec mt-9 font-sans text-ui-10 uppercase tracking-[0.2em]">{footNote}</p>
-          )}
-        </>
+      {onPlate && standfirst && (
+        <div className="hidden lg:block">
+          <div aria-hidden="true" className="mx-auto mt-[38px] h-px w-[34px] bg-[rgba(36,29,19,0.4)]" />
+          <p className="plate-ink-body mx-auto mt-8 max-w-[340px] font-body text-ui-17 italic leading-[1.65]">
+            {standfirst}
+          </p>
+        </div>
+      )}
+      {onPlate && footNote && (
+        <p className="plate-ink-sec absolute inset-x-0 bottom-[58px] m-0 hidden font-sans text-ui-10 uppercase tracking-[0.22em] tabular-nums lg:block">
+          {footNote}
+        </p>
       )}
 
       {/* Vendor / Source: admin-only link to source profile */}

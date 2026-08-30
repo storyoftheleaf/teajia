@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { InventoryItem } from '../../../types';
-import { Heart, Pencil, FlaskConical, Share2 } from 'lucide-react';
-import { fmtShopPrice } from '../../../utils/formatNumber';
+import { Heart, Pencil, FlaskConical, Share } from 'lucide-react';
+import { fmtShopPrice, fmtShopPricePerGram } from '../../../utils/formatNumber';
 import { offeredSizes, quoteGrams } from '../../../lib/teaPricing';
 import { useAppStore } from '../../../lib/store';
 
@@ -90,6 +90,8 @@ interface SegCell {
   sub: string;
   /** The rate this amount works out to, shown beside its total in the list. */
   perGram?: string;
+  /** What the amount is for, under its weight. Omitted for unusual sizes. */
+  caption?: string;
   /** The weight this cell stands for, when it stands for a fixed one. */
   chooseGrams?: number;
   active: boolean;
@@ -137,8 +139,23 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
   const isTea = item.category === 'tea';
   const isRail = variant === 'rail';
   const isDocked = variant === 'docked';
+  /* The rate beside the total is the rate you are ACTUALLY paying, not the
+     shelf rate. With handling folded into the curve those two diverge: 50 g of
+     a $0.15/g tea comes to $9.50, which is $0.19 a gram, and a button reading
+     "$10" next to "$0.15/g" is contradicting itself in the same breath. The
+     ladder above already quotes effective rates, so this quotes the same one
+     for whatever amount is currently chosen. An explicit rateLabel from an
+     admin override still wins. */
+  const effectivePerGram =
+    isTea && pricePerGram > 0 && grams > 0
+      ? quoteGrams(pricePerGram, grams, { wholePieceGrams: WHOLE_PIECE[item.form ?? '']?.grams }).perGramUsd
+      : pricePerGram;
   const completeRateLabel = rateLabel ?? (perGramDisplay
-    ? `${formatPrice ? perGramDisplay : `$${perGramDisplay}`}${isTea ? '/g' : ' each'}`
+    ? isTea
+      ? formatPerGram
+        ? formatPerGram(effectivePerGram)
+        : fmtShopPricePerGram(effectivePerGram)
+      : `${formatPrice ? perGramDisplay : `$${perGramDisplay}`} each`
     : '');
 
   const selectWeight = (g: number) => {
@@ -166,6 +183,19 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
   const stripGrams = sizeQuotes.map(q => q.grams);
   const customActive = customMode || (isTea && !stripGrams.includes(grams));
 
+  /* What each amount is FOR, in the words the design file uses. A price list
+     that says only "25 g" makes the reader do the arithmetic of their own
+     week; this says how long it lasts, which is the actual question. Keyed by
+     the standard sizes, so a tea with an unusual size simply shows no caption
+     rather than a wrong one. */
+  const SIZE_CAPTION: Record<number, string> = {
+    10: 'a few sittings',
+    25: 'enough to know it',
+    50: 'a fortnight of it',
+    100: 'a month',
+    200: 'a season',
+  };
+
   const teaCells: SegCell[] = [
     ...sizeQuotes.map(q => {
       const isWhole = q.whole && wholePiece != null;
@@ -173,6 +203,9 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
         key: isWhole ? 'whole-piece' : String(q.grams),
         label: isWhole ? `The ${wholePiece!.label.toLowerCase()}` : `${q.grams} g`,
         sub: priceFor(q.grams),
+        caption: isWhole
+          ? `${q.grams} g, unbroken, keeps ageing`
+          : SIZE_CAPTION[q.grams],
         perGram: formatPerGram ? formatPerGram(q.perGramUsd) : undefined,
         chooseGrams: q.grams,
         active: !customActive && grams === q.grams,
@@ -186,6 +219,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
       key: 'custom',
       label: customActive ? `${grams} g` : 'Other amount',
       sub: customActive ? priceFor(grams) : '',
+      caption: 'any weight, priced on the same curve',
       active: customActive,
       ariaLabel: 'Custom amount, including sample sizes',
       onSelect: () => setCustomMode(true),
@@ -317,20 +351,45 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
                     }
                     setAmountsOpen(false);
                   }}
-                  className={`tap-target flex w-full items-center border-t border-tea-border text-left transition-colors ${
-                    isRail ? 'min-h-[42px] gap-2.5 px-3.5' : 'min-h-[44px] gap-3 px-3.5'
-                  } ${cell.active ? 'bg-tea-gold/8' : 'hover:bg-tea-gold/6'}`}
+                  className={`tap-target flex w-full items-baseline border-t border-tea-border text-left transition-colors ${
+                    isRail ? 'min-h-[44px] gap-2 px-3.5' : 'min-h-[52px] gap-2.5 px-3.5'
+                  } ${cell.active ? 'bg-tea-gold/8 shadow-[inset_0_0_0_1px_rgb(var(--tea-gold-rgb)/0.5)]' : 'hover:bg-tea-gold/6'}`}
                 >
-                  <span aria-hidden="true" className={`shrink-0 text-tea-gold ${isRail ? 'w-3 text-ui-11' : 'w-3.5 text-ui-11'}`}>
-                    {cell.active ? '\u2713' : ''}
-                  </span>
-                  <span className={`flex-1 whitespace-nowrap font-display tabular-nums ${isRail ? 'text-ui-15' : 'text-ui-15'} ${cell.active ? 'text-tea-text' : 'text-tea-text-sec'}`}>
-                    {cell.label}
+                  <span className="min-w-0 flex-1 text-left">
+                    <span
+                      className={`block whitespace-nowrap font-display tabular-nums ${
+                        isRail ? 'text-ui-15' : 'text-ui-16'
+                      } ${cell.active ? 'text-tea-text' : 'text-tea-text-sec'}`}
+                    >
+                      {cell.label}
+                    </span>
+                    {cell.active ? (
+                      <span className="mt-[3px] block font-sans text-ui-10 uppercase tracking-[0.16em] text-tea-leaf">
+                        {'\u2713'} in your order
+                      </span>
+                    ) : (
+                      cell.caption && (
+                        <span className="mt-0.5 block font-body text-ui-12 leading-[1.35] text-tea-text-dim">
+                          {cell.caption}
+                        </span>
+                      )
+                    )}
                   </span>
                   {cell.perGram && (
-                    <span className={`shrink-0 whitespace-nowrap font-sans tabular-nums text-tea-text-dim ${isRail ? 'text-ui-11' : 'text-ui-11'}`}>{cell.perGram}</span>
+                    <span className={`shrink-0 text-right ${isRail ? 'w-[58px]' : 'w-[74px]'}`}>
+                      <span
+                        className={`block whitespace-nowrap font-sans tabular-nums ${
+                          isRail ? 'text-ui-13' : 'text-ui-15'
+                        } ${cell.active ? 'text-tea-gold-lt' : 'text-tea-text-dim'}`}
+                      >
+                        {cell.perGram.replace(/\s*\/\s*g$/, '')}
+                      </span>
+                      <span className="mt-px block font-sans text-ui-9 uppercase tracking-[0.14em] text-tea-text-dim/70">
+                        a gram
+                      </span>
+                    </span>
                   )}
-                  <span className={`shrink-0 text-right font-display tabular-nums ${isRail ? 'w-14 text-ui-15' : 'w-16 text-ui-15'} ${cell.active ? 'text-tea-gold-lt' : 'text-tea-text-sec'}`}>
+                  <span className={`shrink-0 text-right font-display tabular-nums ${isRail ? 'w-[52px] text-ui-15' : 'w-[66px] text-ui-16'} ${cell.active ? 'text-tea-gold-lt' : 'text-tea-text-sec'}`}>
                     {cell.sub || '\u203A'}
                   </span>
                 </button>
@@ -340,48 +399,66 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
         </div>
       )}
 
-      {/* The docked bar carries three things and no Add button: keeping and
-          sending on the left, what you chose in the middle, and the order on
-          the right. There is nothing left to add, because choosing an amount
-          in the list above already added it. */}
+      {/* The docked strip has exactly two states and never both at once.
+          Before an amount is chosen it says what the tea starts at and offers
+          the one way in, a filled block flush to the right edge. Once an
+          amount is chosen that block is gone: the amount and its total take
+          the space, and the whole line is the way back to change it, because
+          choosing in the list above already added it and there is nothing
+          left to confirm. */}
       {isDocked && onChooseAmount ? (
-        <div className="flex min-h-[46px] items-stretch gap-0 overflow-hidden">
-          <div className="flex shrink-0 items-center gap-0.5 pr-1.5">
+        <div className="alcove-dock-strip">
+          <div className="flex shrink-0 items-center">
             <button
               type="button"
-              className="alcove-icon-btn tap-target"
+              className="alcove-dock-icon tap-target"
               data-active={favorited}
               onClick={() => toggleFavoriteTea(item.id)}
               aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
               aria-pressed={favorited}
             >
-              <Heart size={14} color="currentColor" fill={favorited ? 'currentColor' : 'none'} strokeWidth={1.6} />
+              <Heart size={17} color="currentColor" fill={favorited ? 'currentColor' : 'none'} strokeWidth={1.4} />
             </button>
+            <button type="button" className="alcove-dock-icon tap-target" onClick={handleShare} aria-label="Share">
+              <Share size={17} strokeWidth={1.4} />
+            </button>
+            <span aria-hidden="true" className="alcove-dock-divider" />
+          </div>
+          {activeCell ? (
             <button
               type="button"
-              className="alcove-icon-btn tap-target"
-              onClick={handleShare}
-              aria-label="Share"
+              onClick={() => setAmountsOpen(open => !open)}
+              aria-expanded={amountsOpen}
+              aria-controls={amountsId}
+              className="tap-target flex min-w-0 flex-1 items-center justify-start gap-2 self-stretch whitespace-nowrap pr-[18px] text-left"
             >
-              <Share2 size={14} strokeWidth={1.6} />
-            </button>
-          </div>
-          <span aria-hidden="true" className="my-2 w-px shrink-0 bg-tea-border" />
-          {amountToggle}
-          <button
-            type="button"
-            onClick={onOpenOrder}
-            className="tap-target -mr-3.5 flex shrink-0 items-center gap-2.5 self-stretch px-4 transition-opacity hover:opacity-90"
-            style={{ background: 'var(--tea-plate-tan)' }}
-            aria-label="Open your order"
-          >
-            <span className="font-sans text-ui-10 uppercase tracking-[0.16em] text-tea-bg">Your order</span>
-            {orderTotalUsd > 0 && (
-              <span className="font-display text-ui-17 tabular-nums text-tea-bg">
-                {resolvedTotal(orderTotalUsd)}
+              <span className="font-display text-ui-20 tabular-nums text-tea-text">{activeCell.label}</span>
+              {activeCell.sub && (
+                <span className="font-sans text-ui-14 tabular-nums text-tea-text-dim">{activeCell.sub}</span>
+              )}
+              <span aria-hidden="true" className="font-sans text-ui-9 text-tea-text-dim">
+                {amountsOpen ? '\u25B4' : '\u25BE'}
               </span>
-            )}
-          </button>
+            </button>
+          ) : (
+            <>
+              <span className="flex min-w-0 flex-1 items-baseline gap-[7px] whitespace-nowrap">
+                <span className="font-sans text-ui-11 uppercase tracking-[0.16em] text-tea-text-dim">from</span>
+                <span className="font-display text-ui-20 tabular-nums text-tea-text">
+                  {cells.length > 0 ? cells[0].sub : ''}
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setAmountsOpen(open => !open)}
+                aria-expanded={amountsOpen}
+                aria-controls={amountsId}
+                className="alcove-dock-cta tap-target"
+              >
+                How much
+              </button>
+            </>
+          )}
         </div>
       ) : (
       <div className={isRail ? 'flex flex-col gap-2' : 'flex gap-2'}>

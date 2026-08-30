@@ -119,23 +119,31 @@ test.describe('refined public shop', () => {
     // footnote the design hides once the button's container drops under 220px,
     // which it does at this width, so assert it in the markup rather than on
     // screen.
+    // Both figures come off the pricing curve, which folds handling into the
+    // total: 50 g of a $0.15/g tea is $7.50 of leaf plus $2, so $9.50 shown as
+    // $10, and the rate the buyer actually pays is $0.19 a gram, not the shelf
+    // $0.15. The button quotes the effective rate so its two halves agree.
     const modalOrder = dialog.getByRole('button', { name: /Add to order/i });
     await expect(modalOrder).toBeVisible();
-    await expect(modalOrder).toContainText('$8');
-    await expect(modalOrder.locator('.alcove-order-rate')).toHaveText('$0.15/g');
+    await expect(modalOrder).toContainText('$10');
+    await expect(modalOrder.locator('.alcove-order-rate')).toHaveText('$0.19/g');
     await modalOrder.click();
 
+    // The full page has no Add button and should not grow one. Choosing an
+    // amount in the list IS adding it, so the docked strip carries what is
+    // chosen and the way to change it, and the order itself is reached from
+    // the bar at the top. A second Add here would be asking twice.
     await page.goto('/shop/product/tea-1', { waitUntil: 'domcontentloaded' });
     const orderAccess = page.getByRole('button', { name: /Open order with 1 item/ });
-    const coldOrder = page.getByRole('button', { name: /Add to order/i });
+    const coldAmount = page.locator('.alcove-dock-strip button[aria-expanded]');
     await expect(orderAccess).toBeVisible();
-    await expect(coldOrder).toBeVisible();
-    await expect(coldOrder).toContainText('$8');
-    await expect(coldOrder.locator('.alcove-order-rate')).toHaveText('$0.15/g');
-    expect(await coldOrder.evaluate(element => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1);
+    await expect(page.getByRole('button', { name: /Add to order/i })).toHaveCount(0);
+    await expect(coldAmount).toBeVisible();
+    await expect(coldAmount).toContainText('$10');
+    expect(await coldAmount.evaluate(element => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1);
     if ((await page.viewportSize())!.width < 1024) {
       const [orderBox, navBox] = await Promise.all([
-        orderAccess.boundingBox(),
+        page.locator('.alcove-dock-strip').boundingBox(),
         page.getByTestId('bottom-tab-bar').boundingBox(),
       ]);
       expect(orderBox).not.toBeNull();

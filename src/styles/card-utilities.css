@@ -149,7 +149,7 @@
      component should be reaching for with a `text-` class.
 
      Both are measured against their own page background, not eyeballed:
-     #e0a63f on #332617 is 6.9:1, #8a5510 on #f4ece0 is 5.3:1. */
+     #e0a63f on #22201c is 7.5:1, #8a5510 on #f4ece0 is 5.3:1. */
   --tea-warn: #e0a63f;
   --tea-warn-rgb: 224 166 63;
 
@@ -2431,13 +2431,21 @@ input[type="number"]::-webkit-outer-spin-button {
      out looking like putty. Overlay moves lightness and leaves the hue. */
   mix-blend-mode: overlay;
 }
+/* The keyline is inset 12px on the phone board and 24px on the desktop one:
+   the panel is 396px tall in the hand and full-column on the desk, so a single
+   inset would crowd one and float in the other. */
 .label-plate::after {
   content: '';
   position: absolute;
-  inset: 24px;
-  pointer-events: none;
+  inset: 12px;
   border: 1px solid rgba(36, 29, 19, 0.26);
 }
+@media (min-width: 1024px) {
+  .label-plate::after { inset: 24px; }
+}
+/* The plate's third ink. The name is near-black, the sub-lines are the mid
+   brown, and the shop's own sentence sits between them. */
+.plate-ink-body { color: #4a3a22; }
 
 /* Ink, for type set on the plate. Never the page's text tokens: the plate
    is a light surface inside a dark interface, so it carries its own pair. */
@@ -2460,7 +2468,7 @@ input[type="number"]::-webkit-outer-spin-button {
   border-bottom: 0;
 }
 .alcove-rule {
-  width: 30px;
+  width: 26px;
   height: 1px;
   margin-inline: auto;
   background: rgb(var(--tea-gold-rgb) / 0.55);
@@ -3481,18 +3489,70 @@ input[type="number"]::-webkit-outer-spin-button {
   left: 1rem;
   right: 1rem;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 12px + 52px);
-  border: 1px solid rgb(var(--tea-border-rgb) / 0.6);
-  border-bottom: 0;
+  /* Square top, and it must stay square: this and the navigation below are one
+     object, and the design file draws the assembly with a flat seam and a
+     rounded base. The base belongs to the navigation, so nothing is rounded
+     here. */
+  border: 1px solid rgb(var(--tea-gold-rgb) / 0.14);
+  /* The seam between the two halves. Visible on purpose: without it the strip
+     and the navigation read as one undifferentiated slab. */
+  border-bottom: 1px solid rgb(var(--tea-gold-rgb) / 0.38);
   border-radius: 0;
-  background: rgb(var(--tea-bg-rgb) / 0.97);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: #1e1c18;
   /* No shadow. The navigation below already casts one for the whole assembly,
      and a second cast downward from here fell across the navigation and the
      order block, greying the tan and drawing a dark halo round the corners
      that read as the bar being clipped. One object, one shadow. */
   box-shadow: none;
+  padding: 0;
 }
+
+/* The strip itself: 58px, its own darker wash over the assembly's ground. */
+.alcove-dock-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 58px;
+  padding-left: 12px;
+  background: rgb(0 0 0 / 0.22);
+}
+.alcove-dock-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  color: var(--tea-text-dim);
+  transition: color 0.15s ease;
+}
+.alcove-dock-icon:hover,
+.alcove-dock-icon[data-active='true'] { color: var(--tea-gold-lt); }
+.alcove-dock-divider {
+  width: 1px;
+  height: 18px;
+  margin: 0 8px 0 4px;
+  background: rgb(var(--tea-gold-rgb) / 0.26);
+}
+/* The one way in, before an amount is chosen. It runs to the strip's right
+   edge rather than floating inside it, which is what stops it reading as a
+   button dropped onto a bar. */
+.alcove-dock-cta {
+  flex: 0 0 auto;
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 26px;
+  white-space: nowrap;
+  background: var(--tea-plate-tan);
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: #241d13;
+  transition: background 0.15s ease;
+}
+.alcove-dock-cta:hover { background: var(--tea-plate-tan-lift); }
 @media (min-width: 1024px) {
   .commerce-dock {
     position: static;
@@ -3951,9 +4011,9 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] {
      panels read as the same material as the rest of the site, not a
      darker near-miss cousin. Update these in lockstep with the tea dark
      values if those change. */
-  --admin-bg:           #332617;  /* = --tea-bg */
-  --admin-surface:      #443420;  /* = --tea-surface */
-  --admin-elevated:     #56432a;  /* = --tea-elevated (hover / active) */
+  --admin-bg:           #22201c;  /* = --tea-bg */
+  --admin-surface:      #322e29;  /* = --tea-surface */
+  --admin-elevated:     #423d36;  /* = --tea-elevated (hover / active) */
   --admin-input-bg:     #4d473e;  /* one notch above elevated so inputs read raised, same warm family */
   --admin-border:       rgb(168 135 77 / 0.14);  /* = --tea-border (gold-tinted, not cream) */
   --admin-border-hover: rgb(168 135 77 / 0.24);

@@ -217,9 +217,14 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const total = resolvedFormatPrice(pricePerGram, grams);
   // A rate is a complete display value. Public prices use the rate formatter;
   // admin overrides add their unit here, at the card boundary, exactly once.
+  // The public rate is the EFFECTIVE one for the amount currently chosen, not
+  // the shelf rate: handling is folded into the curve, so 50 g of a $0.15/g
+  // tea costs $0.19 a gram, and quoting $0.15 beside a $10 total would have
+  // the same button disagreeing with itself. The ladder quotes effective
+  // rates too, so both read off the same curve.
   const rateLabel = formatPrice
     ? `${formatPrice(pricePerGram, 1)}/g`
-    : shopPrice.perGram(pricePerGram);
+    : shopPrice.perGram(quoteGrams(pricePerGram, grams, { wholePieceGrams }).perGramUsd);
 
   const stockStatus = getStockStatus(item.stock_g);
   const isSoldOut = stockStatus.level === 'out';
