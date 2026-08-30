@@ -64,6 +64,11 @@
   Normalized error: `http_500`
   Evidence: [server-post-api-tasting-journal-sync-500-http-500-c6566bdc.json](evidence/server-post-api-tasting-journal-sync-500-http-500-c6566bdc.json)
 
+- [ ] `server_post_api_transcribe_503_http_503` — **high**
+  1 occurrence · first 2026-08-29T23:55:45Z · last 2026-08-29T23:55:45Z
+  Normalized error: `http_503`
+  Evidence: [server-post-api-transcribe-503-http-503-800d953b.json](evidence/server-post-api-transcribe-503-http-503-800d953b.json)
+
 - [ ] `server_post_api_verify_request_503_http_503` — **high**
   1 occurrence · first 2026-08-11T02:46:51Z · last 2026-08-11T02:46:51Z
   Normalized error: `http_503`
