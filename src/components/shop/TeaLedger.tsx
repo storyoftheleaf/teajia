@@ -178,13 +178,35 @@ export function TeaLedger({
                         so the block set the height of every row and read as a
                         box pinned to the margin. At 44 the text sets the row
                         and the block sits inside it. */}
-                    <div
-                      style={{ backgroundColor: rowTones.markBg, color: rowTones.markFg }}
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[2px] font-display text-ui-16 font-medium tracking-[0.03em] tabular-nums"
-                      aria-hidden="true"
-                    >
-                      {item.year || null}
-                    </div>
+                    {/* For an owner the vintage block is also the way in to
+                        editing. It used to be a pencil in the row's right-hand
+                        cluster, which cost the tea's name about 28px on a
+                        phone and truncated names that had no other reason to
+                        truncate. The block is already 44px of dead surface
+                        sitting at the head of the row, so it does the job
+                        without spending any width at all. */}
+                    {isAdmin && onAdminEdit ? (
+                      <button
+                        type="button"
+                        style={{ backgroundColor: rowTones.markBg, color: rowTones.markFg }}
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[2px] font-display text-ui-16 font-medium tracking-[0.03em] tabular-nums transition-opacity hover:opacity-80"
+                        onClick={event => {
+                          event.stopPropagation();
+                          onAdminEdit(item.id);
+                        }}
+                        aria-label={`Edit ${item.name}`}
+                      >
+                        {item.year || null}
+                      </button>
+                    ) : (
+                      <div
+                        style={{ backgroundColor: rowTones.markBg, color: rowTones.markFg }}
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[2px] font-display text-ui-16 font-medium tracking-[0.03em] tabular-nums"
+                        aria-hidden="true"
+                      >
+                        {item.year || null}
+                      </div>
+                    )}
 
                     <div className="min-w-0 flex-1 lg:flex-none lg:w-[300px]">
                       <div className="flex items-center gap-2">
@@ -245,25 +267,19 @@ export function TeaLedger({
                     )}
 
                     <div className="ml-auto flex shrink-0 items-center gap-2">
-                      {isAdmin && onAdminEdit && (
-                        <button
-                          type="button"
-                          onClick={event => {
-                            event.stopPropagation();
-                            onAdminEdit(item.id);
-                          }}
-                          aria-label={`Edit ${item.name}`}
-                          className="tap-target p-1 text-tea-text-sec hover:text-tea-text transition-colors"
-                        >
-                          <Icons.Edit className="w-4 h-4" aria-hidden="true" />
-                        </button>
-                      )}
-                      <div className="min-w-[76px] whitespace-nowrap text-right">
-                        <div className="num text-ui-16 font-medium tabular-nums text-tea-text">
+                      {/* Price over its unit, divided by a hairline, rather than
+                          "$11 / 50g" run out on one line. Every row in the list
+                          carries the same unit, so spelling it inline repeated
+                          it down the whole column and made the widest thing in
+                          the row the part that never changes. Stacked, the
+                          column is about 20px narrower and the figures line up
+                          as figures. */}
+                      <div className="min-w-[52px] whitespace-nowrap text-right">
+                        <div className="num border-b border-tea-border pb-[3px] text-ui-16 font-medium tabular-nums text-tea-text">
                           {formatPrice(priceAtWeight)}
-                          <span className="num ml-1 text-ui-11 font-normal text-tea-text-dim">
-                            /&nbsp;{priceWeight}g
-                          </span>
+                        </div>
+                        <div className="num pt-[3px] text-ui-10 tabular-nums text-tea-text-dim">
+                          {priceWeight} g
                         </div>
                         {stockNote && (
                           <div className="mt-0.5 text-ui-9 uppercase tracking-[0.1em] text-tea-gold-lt">

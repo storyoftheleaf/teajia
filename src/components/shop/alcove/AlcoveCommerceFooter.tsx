@@ -467,12 +467,16 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
             <button
               type="button"
               onClick={onOpenOrder}
-              className="alcove-dock-cta tap-target items-center"
-              data-wide-only="true"
+              className="alcove-dock-cta tap-target inline-flex items-center"
               aria-label="Open your order"
             >
-              Your order
-              <span className="ml-3 font-display text-ui-17 tabular-nums">{resolvedTotal(orderTotalUsd)}</span>
+              {/* "Your order" on a bar with the room, "Order" on one without.
+                  The block itself stays at every width. */}
+              <span className="hidden sm:inline">Your order</span>
+              <span className="sm:hidden">Order</span>
+              <span className="ml-2.5 font-display text-ui-17 tabular-nums sm:ml-3">
+                {resolvedTotal(orderTotalUsd)}
+              </span>
             </button>
           ) : (
             <button
@@ -480,8 +484,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
               onClick={() => setAmountsOpen(open => !open)}
               aria-expanded={amountsOpen}
               aria-controls={amountsId}
-              className="alcove-dock-cta tap-target items-center"
-              data-wide-only={activeCell ? 'true' : undefined}
+              className="alcove-dock-cta tap-target inline-flex items-center"
             >
               How much
             </button>

@@ -3520,23 +3520,36 @@ input[type="number"]::-webkit-outer-spin-button {
   mix-blend-mode: overlay;
   background-attachment: fixed;
 }
-/* Stronger here than on the page, and the arithmetic is why. Overlay on a
-   backdrop darker than mid-grey resolves to 2 x backdrop x source, so the
-   darker the surface the less any of it survives: at the page's 0.22 the bar's
-   near-black ground moves by about one value and the tooth is invisible. These
-   are the strengths at which the same sheet actually reads on it. */
+/* The page's own strengths, not stronger ones. Cranking these to 0.55 and 0.4
+   did make the tooth obvious on a near-black bar, and that was the mistake: at
+   that weight overlay stops reading as paper under the surface and starts
+   reading as haze over it. Same sheet means same numbers; the bar is
+   translucent now, so the paper has the page showing through it to work with. */
 .paper-surface::before,
 .bottom-nav-bar::before {
   background-image: url('/textures/label-paper.jpg');
   background-size: 400px 400px;
   filter: grayscale(1);
-  opacity: 0.55;
+  opacity: 0.22;
 }
 .paper-surface::after,
 .bottom-nav-bar::after {
   background-image: var(--alcove-grain);
   background-size: 200px 200px;
-  opacity: 0.4;
+  opacity: 0.28;
+}
+
+/* The seam. With both halves the same material the join needs stating, and
+   one hairline states it without turning the assembly back into two boxes. */
+.commerce-dock::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  height: 1px;
+  background: rgb(var(--tea-gold-rgb) / 0.3);
 }
 
 .commerce-dock {
@@ -3544,23 +3557,20 @@ input[type="number"]::-webkit-outer-spin-button {
   left: 1rem;
   right: 1rem;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 12px + 52px);
-  /* Square top, and it must stay square: this and the navigation below are one
-     object, and the design file draws the assembly with a flat seam and a
-     rounded base. The base belongs to the navigation, so nothing is rounded
-     here. */
-  border: 1px solid rgb(var(--tea-gold-rgb) / 0.14);
-  /* The seam between the two halves. Visible on purpose: without it the strip
-     and the navigation read as one undifferentiated slab. */
-  border-bottom: 1px solid rgb(var(--tea-gold-rgb) / 0.38);
+  /* The same material as the navigation it sits on, to the value: same
+     translucent ground, same blur, same keyline. It used to be an opaque slab
+     in a different brown, which is why the two read as two objects stacked
+     rather than one bar with two jobs, however carefully their corners lined
+     up. Square here because the assembly's rounded base belongs to the
+     navigation below. */
+  border: 1px solid rgb(var(--tea-border-rgb) / 0.6);
+  border-bottom: 0;
   border-radius: 0;
-  /* The strip's own black wash is folded in here rather than painted by the
-     strip: two opaque layers would put the paper under the top one and the
-     bar would go flat again. One ground, one paper. */
-  background: #1e1c18;
-  /* No shadow. The navigation below already casts one for the whole assembly,
-     and a second cast downward from here fell across the navigation and the
-     order block, greying the tan and drawing a dark halo round the corners
-     that read as the bar being clipped. One object, one shadow. */
+  background: rgb(var(--tea-bg-rgb) / 0.92);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  /* No shadow. The navigation below casts one for the whole assembly, and a
+     second cast from here fell across it and across the order block. */
   box-shadow: none;
   padding: 0;
 }
@@ -3608,30 +3618,45 @@ input[type="number"]::-webkit-outer-spin-button {
   transition: background 0.15s ease;
 }
 .alcove-dock-cta:hover { background: var(--tea-plate-tan-lift); }
-/* Hiding this on a narrow bar cannot be done with Tailwind's `hidden`: these
-   buttons also carry .tap-target, which sets display and sits later in the
-   cascade than the utilities, so `hidden` silently loses and the block stayed
-   on the phone. An attribute selector here outranks both. */
-.alcove-dock-cta[data-wide-only='true'] { display: none; }
-@media (min-width: 640px) {
-  .alcove-dock-cta[data-wide-only='true'] { display: inline-flex; }
+/* The block never disappears. It used to hide below 640px, which meant the one
+   way into the price list vanished on exactly the screens that have no room to
+   show the list any other way. It gives up padding instead. */
+@media (max-width: 639px) {
+  .alcove-dock-cta { padding: 0 16px; }
 }
 @media (min-width: 1024px) {
   .commerce-dock {
-    /* One bar everywhere, but on the desk it has nothing beneath it to share
-       an edge with: the navigation is the sidebar here now. So it closes its
-       own shape, rounded all round and resting above the foot of the window,
-       and it clears the sidebar rather than centring on the window. */
-    left: auto;
-    right: 2.5rem;
-    width: min(760px, calc(100vw - 18rem));
-    bottom: 1.5rem;
-    margin: 0;
-    border: 1px solid rgb(var(--tea-gold-rgb) / 0.14);
-    border-radius: 30px;
-    box-shadow: 0 10px 30px rgb(0 0 0 / 0.5);
+    /* Exactly where the navigation sits on every other width, and exactly the
+       shape: centred, capped at 760px, resting 12px off the floor, closed all
+       round. A bar in an arbitrary corner of a desk window reads as something
+       that came loose; a bar in the place the app already puts its floating
+       bar reads as the app. */
+    /* Centred on the reading, not on the window. The navigation used to centre
+       on the viewport because nothing sat beside it; there is a sidebar there
+       now, and centring on the window puts the bar visibly left of the column
+       it belongs to. The sidebar publishes its own width, and it changes when
+       it collapses, so the offset is read from that rather than assumed. */
+    left: var(--teajia-sidebar-w, 0px);
+    right: 0;
+    width: min(760px, calc(100vw - var(--teajia-sidebar-w, 0px) - 64px));
+    margin-inline: auto;
+    transform: none;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+    border: 1px solid rgb(var(--tea-border-rgb) / 0.6);
+    border-radius: 9999px;
+    box-shadow:
+      0 10px 32px rgb(0 0 0 / 0.45),
+      0 2px 8px rgb(0 0 0 / 0.25),
+      inset 0 1px 0 rgb(var(--tea-gold-rgb) / 0.06);
   }
-  .commerce-dock .alcove-dock-strip { border-radius: 30px; }
+  /* Closed all round, so there is no seam to draw and the ends must follow. */
+  .commerce-dock::after { display: none; }
+  .commerce-dock .alcove-dock-strip { border-radius: 9999px; }
+  .commerce-dock .alcove-dock-cta {
+    border-top-right-radius: 9999px;
+    border-bottom-right-radius: 9999px;
+    padding-right: 30px;
+  }
 }
 
 /* The navigation squares its top only while something is docked to it.
