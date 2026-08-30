@@ -55,9 +55,9 @@ nav[aria-label="Admin navigation"] * {
   /* Stand-in for the tea-label stock: soft warm strata in the same family.
      Set --label-plate-image to the real photograph and this sits under it. */
   --label-plate-wash:
-    radial-gradient(140% 90% at 28% 22%, rgba(238, 231, 214, 0.5) 0%, rgba(238, 231, 214, 0) 62%),
-    radial-gradient(110% 80% at 74% 78%, rgba(176, 165, 143, 0.34) 0%, rgba(176, 165, 143, 0) 66%),
-    linear-gradient(172deg, #d7cfba 0%, #cfc6ae 52%, #d4ccb6 100%);
+    radial-gradient(140% 90% at 28% 22%, rgba(247, 233, 200, 0.55) 0%, rgba(247, 233, 200, 0) 62%),
+    radial-gradient(110% 80% at 74% 78%, rgba(163, 128, 82, 0.4) 0%, rgba(163, 128, 82, 0) 66%),
+    linear-gradient(172deg, #e2d0a6 0%, #cfb98c 54%, #d9c79c 100%);
 
   /* Outdoor-legibility tuned: background lifted off near-black so reflected
      glare can't lift it past the text; muted tokens raised well above AA. */

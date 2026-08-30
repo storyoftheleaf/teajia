@@ -2364,7 +2364,7 @@ input[type="number"]::-webkit-outer-spin-button {
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  background-color: #d3cab4;
+  background-color: #d6c49c;
   background-image: var(--label-plate-image, none), var(--label-plate-wash);
   background-size: cover, cover;
   background-position: center, center;
@@ -2377,8 +2377,11 @@ input[type="number"]::-webkit-outer-spin-button {
   pointer-events: none;
   background-image: var(--alcove-grain);
   background-size: 180px 180px;
-  opacity: 0.62;
-  mix-blend-mode: multiply;
+  opacity: 0.34;
+  /* Overlay, never multiply. Multiplying a grey noise map over a warm stock
+     darkens it and drains the brown out of it, which is how a tan label came
+     out looking like putty. Overlay moves lightness and leaves the hue. */
+  mix-blend-mode: overlay;
 }
 .label-plate::after {
   content: '';
