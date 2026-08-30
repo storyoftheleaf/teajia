@@ -616,8 +616,17 @@ const CANONICAL_EXTENSION_FIELDS = new Set([
   'vendorResolution', 'identityResolution', 'holdingResolution',
 ]);
 
+// Snake_case answer fields written to parsed_data by the in-flow chat
+// (curateImportChat) and preloaded by THEN-T4 silent-fill inference. They ride
+// alongside the analysis schema and must survive canonical round-trips —
+// strip them before schema validation, then reattach.
+const CHAT_ASKABLE_FIELDS = new Set([
+  'vendor', 'origin_country', 'purchase_location', 'shipping_mode', 'pack_count',
+  'weight_grams', 'price_paid', 'cost_currency', 'purchase_date',
+]);
+
 function analysisItemFields(value: Record<string, unknown>): Record<string, unknown> {
-  return Object.fromEntries(Object.entries(value).filter(([key]) => !CANONICAL_EXTENSION_FIELDS.has(key)));
+  return Object.fromEntries(Object.entries(value).filter(([key]) => !CANONICAL_EXTENSION_FIELDS.has(key) && !CHAT_ASKABLE_FIELDS.has(key)));
 }
 
 function canonicalStoredItem(
@@ -641,7 +650,8 @@ function canonicalStoredItem(
   });
   const blockers = Array.isArray(analysis.blockingFields) ? analysis.blockingFields.filter((field): field is string => typeof field === 'string' && field !== 'acquired' && field !== 'disposition') : [];
   if (canonical.disposition == null) blockers.push('disposition');
-  return { ...analysis, ...canonical, blockingFields: [...new Set(blockers)] };
+  const chatAnswers = Object.fromEntries(Object.entries(value).filter(([key]) => CHAT_ASKABLE_FIELDS.has(key)));
+  return { ...analysis, ...canonical, ...chatAnswers, blockingFields: [...new Set(blockers)] };
 }
 
 type PersistedAnalysisAnnotations = {
@@ -2036,13 +2046,6 @@ export async function acceptCurateImportItem(_request: Request, env: ImportEnv, 
   await refreshImportBatchState(env, params.id, ctx.accountId);
   return response({ ...itemRow(updated), ...(linkedChanges ? {} : { already_accepted: true }) }, linkedChanges ? 201 : 200);
 }
-
-// THOSE askable fields (R9): only these may be filled via the in-flow chat /
-// operator answer. Everything else is never-askable (library/verified only).
-const CHAT_ASKABLE_FIELDS = new Set([
-  'vendor', 'origin_country', 'purchase_location', 'shipping_mode', 'pack_count',
-  'weight_grams', 'price_paid', 'cost_currency', 'purchase_date',
-]);
 
 // T1: POST /api/curate/imports/:id/chat — in-flow conversational dial for a
 // specific item (or the draft). Each answer doubles as an audit record and

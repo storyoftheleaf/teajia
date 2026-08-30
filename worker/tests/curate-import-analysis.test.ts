@@ -804,7 +804,8 @@ describe('Curate import analysis domain', () => {
 describe('inferSilentFills (THEN-T4)', () => {
   const baseItem = {
     sourceItemId: 'item-1', category: 'tea' as const, originalName: '云南古树生普',
-    englishName: 'Yunnan Ancient Tree Raw Pu'er', packWeight: 500,
+    englishName: "Yunnan Ancient Tree Raw Pu'er",
+    packWeight: 500,
     weightUnit: 'g' as const, packCount: 2, priceAmount: '380', currency: 'CNY',
     priceBasis: 'per_pack' as const, confidence: {}, uncertainty: {}, evidenceRefs: ['source-1:0-18'],
     acquired: true, duplicateResolution: 'new' as const,
