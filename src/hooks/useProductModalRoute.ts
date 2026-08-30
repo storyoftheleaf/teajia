@@ -11,19 +11,22 @@ interface BackgroundState {
 }
 
 /**
- * One URL, two containers (the Instagram pattern): /shop/product/:id renders
- * as the AlcoveModal over the still-mounted shop when the navigation state
- * carries a `background` location, and as the standalone ProductPage on cold
- * loads (no background state).
+ * /shop/product/:id is one address with one rendering: the product page.
  *
- * This hook is the modal side, used by the shop grid components. A card tap
- * calls openProduct(item), which pushes /shop/product/:id with
- * { state: { background: currentLocation } } so App.tsx keeps rendering the
- * shop underneath. Grid scroll and filter state survive untouched. Swipes
- * inside the modal replace the entry (background carried along), so one Back
- * always closes the modal. viewItem is derived from the URL instead of local
- * state, so back/forward can never desync and the old cold-deep-link
- * "back-button reopens the modal" trap is structurally impossible.
+ * It used to be two. A tap in the shop pushed the same URL with the current
+ * location as `background` state, and App rendered a swipeable card over the
+ * still-mounted grid; only a cold load got the real page. That meant the same
+ * address showed two different designs depending on how you arrived at it, and
+ * every improvement to the page was invisible to anyone who got there by
+ * tapping, which is almost everyone. Adrian chose the page and accepted the
+ * cost, which is the swipe between teas.
+ *
+ * openProduct now pushes without the background state, so nothing opens as a
+ * modal. The `background` plumbing below is deliberately intact: it still
+ * governs how Close behaves for any entry that carries one (history from
+ * before this change, and the shared-collection surface), and viewItem still
+ * derives from the URL rather than local state, so back and forward cannot
+ * desync.
  */
 export function useProductModalRoute(inventory: InventoryItem[], routeLocation?: Location) {
   const contextLocation = useLocation();
@@ -44,14 +47,12 @@ export function useProductModalRoute(inventory: InventoryItem[], routeLocation?:
     [productKey, inventory],
   );
 
-  /** Card tap: push the product URL with the current location as background. */
+  /** Card tap: push the product URL as a real navigation, no background. */
   const openProduct = useCallback(
     (item: InventoryItem) => {
-      navigate(buildPublicProductHref({ id: item.id, slug: item.slug }), {
-        state: { background: background ?? location },
-      });
+      navigate(buildPublicProductHref({ id: item.id, slug: item.slug }));
     },
-    [navigate, background, location],
+    [navigate],
   );
 
   /** Swipe/arrow inside the modal: replace so Back still closes in one step. */

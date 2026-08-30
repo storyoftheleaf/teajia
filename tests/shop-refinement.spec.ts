@@ -110,59 +110,58 @@ test.describe('refined public shop', () => {
     await expect(page.getByRole('button', { name: 'View Moonlight White' })).toBeVisible();
   });
 
-  test('opens a tea and keeps truthful rate and order access on a cold product page', async ({ page }) => {
+  test('opens a tea into the product page, with one rendering per address', async ({ page }) => {
+    // Tapping a tea used to push the same address with a background location,
+    // which rendered a swipeable card over the grid; only a cold load got the
+    // real page. One address now has one rendering, so there is no dialog and
+    // no second Add button: choosing an amount in the list IS adding it, and
+    // the order itself is reached from the bar at the top.
     await page.getByRole('button', { name: 'View Moonlight White' }).click();
     await expect(page).toHaveURL(/\/shop\/product\/tea-1$/);
-    const dialog = page.getByRole('dialog');
-    await expect(dialog).toBeVisible();
-    // The button always carries the total. The per-gram rate beside it is a
-    // footnote the design hides once the button's container drops under 220px,
-    // which it does at this width, so assert it in the markup rather than on
-    // screen.
-    // Both figures come off the pricing curve, which folds handling into the
-    // total: 50 g of a $0.15/g tea is $7.50 of leaf plus $2, so $9.50 shown as
-    // $10, and the rate the buyer actually pays is $0.19 a gram, not the shelf
-    // $0.15. The button quotes the effective rate so its two halves agree.
-    const modalOrder = dialog.getByRole('button', { name: /Add to order/i });
-    await expect(modalOrder).toBeVisible();
-    await expect(modalOrder).toContainText('$10');
-    await expect(modalOrder.locator('.alcove-order-rate')).toHaveText('$0.19/g');
-    await modalOrder.click();
-
-    // The full page has no Add button and should not grow one. Choosing an
-    // amount in the list IS adding it, so the docked strip carries what is
-    // chosen and the way to change it, and the order itself is reached from
-    // the bar at the top. A second Add here would be asking twice.
-    await page.goto('/shop/product/tea-1', { waitUntil: 'domcontentloaded' });
-    const orderAccess = page.getByRole('button', { name: /Open order with 1 item/ });
-    const coldAmount = page.locator('.alcove-dock-strip button[aria-expanded]');
-    await expect(orderAccess).toBeVisible();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.locator('.label-plate')).toBeVisible();
     await expect(page.getByRole('button', { name: /Add to order/i })).toHaveCount(0);
-    await expect(coldAmount).toBeVisible();
-    await expect(coldAmount).toContainText('$10');
-    expect(await coldAmount.evaluate(element => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1);
+
+    const amount = page.locator('.alcove-dock-strip button[aria-expanded]:not(.alcove-dock-cta)');
+    await expect(amount).toBeVisible();
+    // The figure comes off the pricing curve, which folds handling into the
+    // total: 50 g of a $0.15/g tea is $7.50 of leaf plus $2, so $9.50 shown as
+    // $10. The rate the buyer actually pays is $0.19 a gram, not the shelf
+    // $0.15, and the list quotes that same effective rate.
+    await expect(amount).toContainText('$10');
+    expect(await amount.evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
+
+    // Nothing is in the order yet, so there is no order to open; what must be
+    // reachable is the way in, and it must be reachable at every width. It used
+    // to hide below 640px, which removed it on exactly the screens with no room
+    // to show the price list any other way.
+    await expect(page.locator('.alcove-dock-cta')).toBeVisible();
     if ((await page.viewportSize())!.width < 1024) {
-      const [orderBox, navBox] = await Promise.all([
+      const [barBox, navBox] = await Promise.all([
         page.locator('.alcove-dock-strip').boundingBox(),
         page.getByTestId('bottom-tab-bar').boundingBox(),
       ]);
-      expect(orderBox).not.toBeNull();
+      expect(barBox).not.toBeNull();
       expect(navBox).not.toBeNull();
-      expect(orderBox!.y + orderBox!.height).toBeLessThanOrEqual(navBox!.y + 1);
+      expect(barBox!.y + barBox!.height).toBeLessThanOrEqual(navBox!.y + 1);
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
   });
 
-  test('opens teaware as a modal and closes it with browser Back', async ({ page }) => {
+  test('opens teaware into the product page and returns with browser Back', async ({ page }) => {
     await page.getByRole('button', { name: 'Teaware', exact: true }).click();
     await page.getByRole('heading', { name: 'Field Gaiwan', exact: true }).click();
 
     await expect(page).toHaveURL(/\/shop\/product\/ware-1$/);
-    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.locator('.label-plate')).toBeVisible();
 
+    // Back is a real history step now rather than a modal dismissal, and it
+    // still has to land on the shop with the right tab showing. The tab is in
+    // the address for exactly this: the shop no longer stays mounted under a
+    // modal, so without it Back would drop a teaware browser onto Tea.
     await page.goBack();
-    await expect(page).toHaveURL(/\/shop$/);
-    await expect(page.getByRole('dialog')).toBeHidden();
+    await expect(page).toHaveURL(/\/shop\?tab=teaware$/);
     await expect(page.getByRole('heading', { name: 'Field Gaiwan', exact: true })).toBeVisible();
   });
 });

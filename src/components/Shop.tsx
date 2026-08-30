@@ -107,7 +107,16 @@ export const Shop: React.FC<ShopProps> = ({
   onRetry,
   modalLocation,
 }) => {
-  const [activeTab, setActiveTab] = useState<ShopTab>('tea');
+  /* The tab lives in the address. It used to be local state, which was fine
+     while opening a tea kept the shop mounted underneath as a modal: coming
+     back restored everything because nothing had unmounted. Opening a tea is a
+     real navigation now, so anyone who browsed Teaware, opened a piece and
+     pressed Back landed on Tea and lost their place. Written with replace, so
+     switching tabs never adds a history step of its own. */
+  const [activeTab, setActiveTabState] = useState<ShopTab>(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get('tab');
+    return fromUrl === 'teaware' || fromUrl === 'sets' || fromUrl === 'collection' ? fromUrl : 'tea';
+  });
   const [isAddingToCart, setIsAddingToCart] = useState<Record<string, boolean>>({});
   const [addedProductId, setAddedProductId] = useState<string | null>(null);
   const [storePickerOpen, setStorePickerOpen] = useState(false);
@@ -118,6 +127,16 @@ export const Shop: React.FC<ShopProps> = ({
 
   // URL param support: ?store=slug overrides persisted selection
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const setActiveTab = useCallback((tab: ShopTab) => {
+    setActiveTabState(tab);
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (tab === 'tea') next.delete('tab');
+      else next.set('tab', tab);
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
   const urlStore = searchParams.get('store');
   useEffect(() => {
     if (urlStore && urlStore !== shopStoreSlug) {
