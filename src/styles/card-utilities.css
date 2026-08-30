@@ -2347,7 +2347,11 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 .paper-ground::before {
   content: '';
-  position: absolute;
+  /* Fixed to the viewport, not to this element's box. Bounded to the content
+     it lightened a content-shaped rectangle out of the page: an edge down each
+     side and another under the last section, which is one of the seams that
+     made the page read as panels rather than one sheet. Paper has no edge. */
+  position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
@@ -2400,6 +2404,22 @@ input[type="number"]::-webkit-outer-spin-button {
   background: rgb(var(--tea-text-rgb) / 0.04);
   border-top: 1px solid var(--tea-border);
   border-bottom: 1px solid var(--tea-border);
+}
+
+/* On the page the character is not a panel. A tinted box with a rule above and
+   below cut the reading in half and turned one sheet into stacked cards. Here
+   it is air and a short centred rule at each end, which separates it without
+   drawing a container round it. */
+.alcove-band--open {
+  background: none;
+  border-top: 0;
+  border-bottom: 0;
+}
+.alcove-rule {
+  width: 30px;
+  height: 1px;
+  margin-inline: auto;
+  background: rgb(var(--tea-gold-rgb) / 0.55);
 }
 
 /* Character-band term: inline serif text button. Hit area extended

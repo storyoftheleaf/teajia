@@ -486,6 +486,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       onTermClick={onTermClick}
       potentialResearch={potentialResearch}
       onTaste={onTaste}
+      open={layout === 'page'}
     />
   );
 

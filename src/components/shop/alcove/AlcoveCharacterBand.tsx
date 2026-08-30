@@ -30,6 +30,8 @@ interface AlcoveCharacterBandProps {
    * purchase, and it is the one action you take after the tea is yours.
    */
   onTaste?: (item: InventoryItem) => void;
+  /** The standalone page sets the character in air rather than in a panel. */
+  open?: boolean;
 }
 
 const POTENTIAL_LABELS: Record<string, string> = {
@@ -51,7 +53,12 @@ const TermLine: React.FC<{
   label: string;
   terms: TermRef[];
   onTermClick?: (termId: string, categoryId: string) => void;
-}> = ({ label, terms, onTermClick }) => (
+  /** Title Case reads as a database. A sentence reads as someone writing. */
+  sentenceCase?: boolean;
+}> = ({ label, terms, onTermClick, sentenceCase }) => {
+  const cased = (text: string) =>
+    sentenceCase ? text.charAt(0).toUpperCase() + text.slice(1).toLowerCase() : text;
+  return (
   <div className="grp">
     <div className="font-sans text-ui-9 uppercase tracking-[0.24em] indent-[0.24em] text-tea-text-dim">
       {label}
@@ -70,16 +77,17 @@ const TermLine: React.FC<{
               className="alcove-term-btn"
               onClick={() => onTermClick(term.termId, term.categoryId)}
             >
-              {term.label}
+              {cased(term.label)}
             </button>
           ) : (
-            <span>{term.label}</span>
+            <span>{cased(term.label)}</span>
           )}
         </React.Fragment>
       ))}
     </div>
   </div>
-);
+  );
+};
 
 /**
  * "Character": the one chapter that gathers everything sensory: the taste
@@ -93,6 +101,7 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
   onTermClick,
   potentialResearch,
   onTaste,
+  open = false,
 }) => {
   const tasting = item.tasting;
 
@@ -129,16 +138,26 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
   if (!hasAny) return null;
 
   return (
-    <section aria-label="Character" className="alcove-band relative mt-[22px] px-6 pb-[18px] pt-4">
-      <AlcoveSectionHeading label="Character" className="mb-3" />
+    <section
+      aria-label="Character"
+      className={`alcove-band relative px-6 ${open ? 'alcove-band--open mt-9 pb-2 pt-0' : 'mt-[22px] pb-[18px] pt-4'}`}
+    >
+      {open ? (
+        <div aria-hidden="true" className="alcove-rule mb-5" />
+      ) : (
+        <AlcoveSectionHeading label="Character" className="mb-3" />
+      )}
 
       {hasTerms && (
         <div className="text-center [&_.grp+.grp]:mt-3">
           {tasteTerms.length > 0 && (
-            <TermLine label="Taste" terms={tasteTerms} onTermClick={onTermClick} />
+            <TermLine label={open ? 'Tastes of' : 'Taste'} terms={tasteTerms} onTermClick={onTermClick} sentenceCase={open} />
           )}
           {feelingTerms.length > 0 && (
-            <TermLine label="Feel" terms={feelingTerms} onTermClick={onTermClick} />
+            <TermLine label="Feel" terms={feelingTerms} onTermClick={onTermClick} sentenceCase={open} />
+          )}
+          {open && feelingTerms.length === 0 && (
+            <p className="mt-3 font-body text-ui-13 italic text-tea-text-dim">no feeling terms recorded yet</p>
           )}
           {item.tastingSource === 'common' && hasVisibleStructuredTerms && (
             <p className="mt-2 font-sans text-ui-11 text-tea-text-dim">Potential profile</p>
@@ -161,6 +180,7 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
           >
             Add your tasting
           </button>
+          {open && <div aria-hidden="true" className="alcove-rule mt-8" />}
         </div>
       )}
 

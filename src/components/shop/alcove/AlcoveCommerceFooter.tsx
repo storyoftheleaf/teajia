@@ -382,6 +382,39 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
         </div>
       ) : (
       <div className={isRail ? 'flex flex-col gap-2' : 'flex gap-2'}>
+        {isRail ? (
+          /* Words, stacked. A heart is guessable and a conical flask is not:
+             a first-time reader takes it for chemistry or for nothing. The
+             sidebar and the navigation are text only, so words here are the
+             house style rather than an exception to it. */
+          <div className="order-2 flex flex-col items-center gap-1 pt-1">
+            <button
+              type="button"
+              onClick={() => toggleFavoriteTea(item.id)}
+              aria-pressed={favorited}
+              className="tap-target min-h-[36px] font-sans text-ui-10 uppercase tracking-[0.16em] text-tea-text-sec transition-colors hover:text-tea-text"
+            >
+              {favorited ? 'Saved' : 'Save it'}
+            </button>
+            {isTea && (
+              <button
+                type="button"
+                onClick={toggleSampleCart}
+                aria-pressed={inSampleCart}
+                className="tap-target min-h-[36px] font-sans text-ui-10 uppercase tracking-[0.16em] text-tea-text-sec transition-colors hover:text-tea-text"
+              >
+                {inSampleCart ? 'In sample list' : 'Add to sample list'}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleShare}
+              className="tap-target min-h-[36px] font-sans text-ui-10 uppercase tracking-[0.16em] text-tea-text-sec transition-colors hover:text-tea-text"
+            >
+              {shareCopied ? 'Copied' : 'Share'}
+            </button>
+          </div>
+        ) : (
         <div className="flex min-h-[44px] shrink-0 items-center justify-center border border-tea-border px-1.5">
           <button
             type="button"
@@ -442,6 +475,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
             </>
           )}
         </div>
+        )}
 
         <button
           type="button"
