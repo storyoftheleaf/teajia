@@ -69,11 +69,8 @@ describe('Curate import analysis domain', () => {
       chineseName: null,
       type: null,
       form: null,
-      year: null,
       originCountry: null,
-      originRegion: null,
       classification: null,
-      description: null,
       inventoryPurpose: null,
     };
     const decoded = decodeImportAnalysisProposal({
@@ -154,8 +151,7 @@ describe('Curate import analysis domain', () => {
   });
 
   it.each([
-    { year: '2020' }, { year: 10000 }, { form: 42 }, { classification: 'x'.repeat(501) },
-    { description: 'x'.repeat(5001) }, { originRegion: [] },
+    { form: 42 }, { classification: 'x'.repeat(501) },
   ])('strictly validates optional metadata: %j', override => {
     expect(() => decodeImportAnalysisProposal(proposal(override as never))).toThrow(/Invalid/);
   });
@@ -229,26 +225,6 @@ describe('Curate import analysis domain', () => {
     expect(prompt).toContain('Never infer priceBasis');
     expect(prompt).toMatch(/priceAmount.*decimal string/i);
     expect(prompt).toContain('call the submitted material a record or records, never evidence');
-  });
-
-  it('keeps Yi Bang description and processing notes as distinct analyzed facts', () => {
-    const decoded = decodeImportAnalysisProposal(proposal({
-      producer: 'Yunnan Sourcing',
-      description: 'A spring 2025 raw pu-erh cake from Yi Bang made from a primitive small-leaf population.',
-      processingNotes: 'Hand wok fixed, stone pressed, and dried at low temperature.',
-      validation: { description: 'source_fact', processingNotes: 'source_fact' },
-    } as never));
-
-    expect(decoded.groups[0].items[0]).toMatchObject({
-      producer: 'Yunnan Sourcing',
-      description: 'A spring 2025 raw pu-erh cake from Yi Bang made from a primitive small-leaf population.',
-      processingNotes: 'Hand wok fixed, stone pressed, and dried at low temperature.',
-      validation: { description: 'source_fact', processingNotes: 'source_fact' },
-    });
-    expect(buildImportAnalysisPrompt(
-      { sources: [{ id: 'source-yi-bang', kind: 'paste', text: yiBangRecord }] },
-      { vendors: [], journeys: [] },
-    )).toMatch(/processingNotes.*processing facts/i);
   });
 
   it('rejects unknown and cross-category provider tasting terms', () => {
@@ -326,8 +302,6 @@ describe('Curate import analysis domain', () => {
     const normalized = normalizeImportProposal(buildImportRecordFallbackProposal(hints)).groups[0].items[0];
 
     expect(normalized).toMatchObject({
-      description: expect.stringContaining('Full-mouthed and pungently aromatic'),
-      processingNotes: expect.stringContaining('hand-fixed in a copper wok'),
       tasting: { flavor: expect.arrayContaining(['honey', 'citrus']) },
       tastingSource: 'source',
       validation: { tasting: 'source_fact', tastingSource: 'source_fact' },
@@ -523,10 +497,10 @@ describe('Curate import analysis domain', () => {
 
   it('records absent optional metadata as not_present without blocking the item', () => {
     const normalized = normalizeImportProposal(proposal({
-      validation: { year: 'not_present', originRegion: 'not_present', translation: 'validated' },
+      validation: { type: 'not_present', classification: 'not_present', translation: 'validated' },
     } as never)).groups[0].items[0];
-    expect(normalized.validation).toMatchObject({ year: 'not_present', originRegion: 'not_present' });
-    expect(normalized.blockingFields).not.toEqual(expect.arrayContaining(['year', 'originRegion']));
+    expect(normalized.validation).toMatchObject({ type: 'not_present', classification: 'not_present' });
+    expect(normalized.blockingFields).not.toEqual(expect.arrayContaining(['type', 'classification']));
   });
 
   it('retains explicit facts but keeps an unlabeled item price basis unknown and the record incomplete', () => {
@@ -555,13 +529,11 @@ describe('Curate import analysis domain', () => {
 
   it('automatically marks every absent optional enrichment field not_present', () => {
     const normalized = normalizeImportProposal(proposal({
-      chineseName: null, type: null, form: null, year: null, originCountry: null,
-      originRegion: null, classification: null, description: null,
+      chineseName: null, type: null, form: null, originCountry: null, classification: null,
     } as never)).groups[0].items[0];
 
     expect(normalized.validation).toMatchObject({
-      type: 'not_present', form: 'not_present', year: 'not_present', originCountry: 'not_present',
-      originRegion: 'not_present', classification: 'not_present', description: 'not_present',
+      type: 'not_present', form: 'not_present', originCountry: 'not_present', classification: 'not_present',
     });
   });
 
