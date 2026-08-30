@@ -2,11 +2,12 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Upload, FileSpreadsheet, Image as ImageIcon, Loader2, Check,
   AlertTriangle, ChevronDown, ChevronRight, Trash2, Tag, Store,
-  Sparkles, Layers, ArrowRight, Inbox, Receipt, Truck,
+  Sparkles, Layers, ArrowRight, Inbox, Receipt, Truck, RotateCw,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Papa from 'papaparse';
 import { api } from '../../lib/api';
+import type { CurateImportDetail } from '../../lib/api';
 import { useToast } from '../components/Toast';
 import { BatchPicker } from '../components/BatchPicker';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
@@ -42,55 +43,127 @@ const nextId = () => `src-${Date.now()}-${uid++}`;
 
 type Rate = { currency: string; rateToUSD: number };
 
-// ── Pre-commit persistence ──────────────────────────────────────────────────
-// The whole staging set (parsed rows, mappings, triage, batch) is mirrored to
-// localStorage so a reload mid-triage restores it. It's cleared on commit (when
-// sources empties) and on Clear all.
-const STORAGE_KEY = 'teajia_intake_workspace_v1';
-interface Persisted { sources: Source[]; items: StagedItem[]; batchId: string | null; savePurchaseRecord: boolean; shippingTotal: number; shippingCurrency: string; }
-
-function loadState(): Persisted | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const p = JSON.parse(raw) as Persisted;
-    // Drop image sources that were still extracting when the tab closed, their
-    // in-flight upload/extract didn't finish, so there's nothing to restore.
-    const sources = (p.sources || []).filter((s) => s.kind !== 'image' || s.status === 'ready');
-    const keep = new Set(sources.map((s) => s.id));
-    const items = (p.items || []).filter((i) => keep.has(i.sourceId));
-    return { sources, items, batchId: p.batchId ?? null, savePurchaseRecord: p.savePurchaseRecord ?? true, shippingTotal: p.shippingTotal ?? 0, shippingCurrency: p.shippingCurrency ?? '' };
-  } catch {
-    return null;
-  }
-}
-
 const CURRENCIES = ['USD', 'NT', 'Yuan', 'HKD', 'JPY', 'MYR', 'IDR', 'AUD'];
 
 export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] }> = ({ onRefresh, rates = [] }) => {
   const { showToast } = useToast();
   const navigate = useNavigate();
-  const initial = useMemo(() => loadState(), []);
-  const [sources, setSources] = useState<Source[]>(initial?.sources ?? []);
-  const [items, setItems] = useState<StagedItem[]>(initial?.items ?? []);
-  const [batchId, setBatchId] = useState<string | null>(initial?.batchId ?? null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const importId = searchParams.get('importId');
+
+  const [sources, setSources] = useState<Source[]>([]);
+  const [items, setItems] = useState<StagedItem[]>([]);
+  // Intake batch (BatchPicker), separate concept from the curate-import draft (importId).
+  const [batchId, setBatchId] = useState<string | null>(null);
   const [committing, setCommitting] = useState(false);
-  const [savePurchaseRecord, setSavePurchaseRecord] = useState(initial?.savePurchaseRecord ?? true);
-  const [shippingTotal, setShippingTotal] = useState<number>(initial?.shippingTotal ?? 0);
-  const [shippingCurrency, setShippingCurrency] = useState<string>(initial?.shippingCurrency ?? '');
+  const [savePurchaseRecord, setSavePurchaseRecord] = useState(true);
+  const [shippingTotal, setShippingTotal] = useState<number>(0);
+  const [shippingCurrency, setShippingCurrency] = useState<string>('');
   const [isDragging, setIsDragging] = useState(false);
+  const [incompleteImports, setIncompleteImports] = useState<CurateImportDetail[]>([]);
   const dragDepth = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const createAttempted = useRef(false);
+  const hydratedForImport = useRef<string | null>(null);
 
-  // Mirror staging to localStorage; clear it once everything is gone.
+  // Ensure a server-side curate-import draft exists: create one when the URL
+  // has no ?importId=, then reflect it back into the URL so a reload finds it.
   useEffect(() => {
+    if (importId || createAttempted.current) return;
+    createAttempted.current = true;
+    let cancelled = false;
+    (async () => {
+      try {
+        const detail = await api.curateImports.create({ title: 'Intake', source_kind: 'paste' });
+        if (cancelled) return;
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('importId', detail.batch.id);
+          return next;
+        }, { replace: true });
+      } catch {
+        // Non-fatal, the workspace still functions locally; allow a later retry.
+        createAttempted.current = false;
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [importId, setSearchParams]);
+
+  // Hydrate local staging from the server draft the first time we land on an id.
+  // Local edits are the source of truth once staged, so we never overwrite
+  // non-empty staging.
+  useEffect(() => {
+    if (!importId || hydratedForImport.current === importId) return;
+    hydratedForImport.current = importId;
+    let cancelled = false;
+    (async () => {
+      try {
+        const detail = await api.curateImports.get(importId);
+        if (cancelled) return;
+        hydrateFromDetail(detail);
+      } catch {
+        /* non-fatal, batch may not exist yet (freshly created) */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [importId]);
+
+  // Load the resume list so the user can jump between incomplete drafts across
+  // devices / tabs.
+  const refreshIncomplete = useCallback(async () => {
     try {
-      if (sources.length === 0) { localStorage.removeItem(STORAGE_KEY); return; }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ sources, items, batchId, savePurchaseRecord, shippingTotal, shippingCurrency }));
-    } catch {
-      /* quota exceeded / serialization: non-fatal, staging just won't survive reload */
-    }
-  }, [sources, items, batchId, savePurchaseRecord, shippingTotal, shippingCurrency]);
+      const res = await api.curateImports.listIncomplete();
+      setIncompleteImports(res.imports || []);
+    } catch { /* non-fatal */ }
+  }, []);
+  useEffect(() => { void refreshIncomplete(); }, [refreshIncomplete, importId]);
+
+  const hydrateFromDetail = useCallback((detail: CurateImportDetail) => {
+    setSources((prev) => {
+      if (prev.length) return prev;
+      const hydrated: Source[] = [];
+      for (const s of detail.sources) {
+        if (s.kind === 'photo' || s.kind === 'file') {
+          const meta = (s.metadata || {}) as Record<string, unknown>;
+          const name = String(meta.filename || meta.name || s.r2_object_key || s.kind);
+          hydrated.push({ id: s.id, kind: 'image', name, status: 'ready' });
+        }
+      }
+      return hydrated;
+    });
+    setItems((prev) => {
+      if (prev.length) return prev;
+      const hydrated: StagedItem[] = [];
+      for (const it of detail.items) {
+        const parsed = (it.parsed_data || {}) as Record<string, unknown>;
+        const name = it.name || String(parsed.englishName || parsed.originalName || 'Unnamed');
+        const sourceId = it.source_id || '';
+        if (!sourceId) continue;
+        hydrated.push({
+          id: it.id, sourceId, givenName: name,
+          chineseName: String(parsed.chineseName || ''), productName: '',
+          type: 'Misc', form: null, year: '',
+          originCountry: '', originRegion: '', vendor: '',
+          costAmount: 0, costCurrency: 'UNK',
+          stockGrams: 0, quantityPurchased: 0, quantityUnits: 0, teawareCategory: '',
+          sizeEstimate: 0, description: '', imageUrl: '',
+          isPersonal: false, needsReview: true, include: true, order: {},
+        });
+      }
+      return hydrated;
+    });
+  }, []);
+
+  const resumeImport = useCallback((id: string) => {
+    if (id === importId) return;
+    hydratedForImport.current = null;
+    setSources([]); setItems([]);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('importId', id);
+      return next;
+    }, { replace: true });
+  }, [importId, setSearchParams]);
 
   const clearAll = useCallback(() => { setSources([]); setItems([]); }, []);
 
@@ -142,6 +215,13 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
     } else if (file.type.startsWith('image/')) {
       const src: ImageSource = { id: nextId(), kind: 'image', name: file.name, status: 'extracting' };
       setSources((prev) => [...prev, src]);
+      // Best-effort mirror to the server draft so the source is durably attached
+      // to the batch (visible on resume). Failure is silent, extraction below
+      // still runs and remains the display path.
+      if (importId) {
+        const clientEvidenceId = (typeof crypto !== 'undefined' && 'randomUUID' in crypto) ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+        api.curateImports.uploadEvidence(importId, file, clientEvidenceId).catch(() => null);
+      }
       try {
         const [imageUrl, result] = await Promise.all([
           api.uploadImage(file).catch(() => ''),
@@ -157,7 +237,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
     } else {
       showToast(`Unsupported file: ${file.name}`, 'error');
     }
-  }, [ingestSheet, replaceSourceItems, showToast]);
+  }, [ingestSheet, replaceSourceItems, showToast, importId]);
 
   const handleFiles = useCallback((files: FileList | File[]) => {
     Array.from(files).forEach((f) => { void parseFile(f); });
@@ -292,6 +372,9 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
         'success',
       );
       onRefresh?.();
+      // Close the server draft so it leaves the resume list; failure is silent
+      // because the products landed regardless.
+      if (importId) await api.curateImports.abandon(importId).catch(() => null);
       setSources([]); setItems([]);
       navigate('/admin/capture');
     } catch (e: any) {
@@ -299,7 +382,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
     } finally {
       setCommitting(false);
     }
-  }, [included, committing, batchId, savePurchaseRecord, sources, rates, sourceName, convert, shareShip, shipCur, showToast, onRefresh, navigate]);
+  }, [included, committing, batchId, savePurchaseRecord, rates, sourceName, convert, shareShip, shipCur, showToast, onRefresh, navigate, importId]);
 
   const hasContent = sources.length > 0;
 
@@ -368,7 +451,12 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
 
       {/* Body */}
       <div className="flex-1 min-h-0 overflow-auto pb-nav-gap">
-        <div className="px-4 md:px-7 py-5">
+        <div className="px-4 md:px-7 py-5 space-y-4">
+          <ResumePicker
+            imports={incompleteImports}
+            currentImportId={importId}
+            onResume={resumeImport}
+          />
           {!hasContent ? (
             <HeroDropzone onBrowse={() => fileInputRef.current?.click()} dragging={isDragging} />
           ) : (
@@ -794,6 +882,46 @@ const ItemsTable: React.FC<{
           })}
         </div>
       ))}
+    </div>
+  );
+};
+
+// ─── Resume picker ───────────────────────────────────────────────────────────
+// Server drafts other than the current one that are still open, so the operator
+// can pick up a batch started on another device or tab.
+const ResumePicker: React.FC<{
+  imports: CurateImportDetail[];
+  currentImportId: string | null;
+  onResume: (id: string) => void;
+}> = ({ imports, currentImportId, onResume }) => {
+  const others = imports.filter((d) => d.batch.id !== currentImportId);
+  if (others.length === 0) return null;
+  return (
+    <div className="admin-card px-4 py-3">
+      <div className="flex items-center gap-2 mb-2">
+        <RotateCw size={12} className="text-tea-gold" />
+        <span className="label-caps text-tea-text-dim">Resume incomplete intake</span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {others.map((detail) => {
+          const label = detail.batch.title?.trim() || 'Untitled draft';
+          const count = detail.items.length + detail.sources.length;
+          return (
+            <button
+              key={detail.batch.id}
+              type="button"
+              onClick={() => onResume(detail.batch.id)}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-tea-elevated border border-tea-border hover:border-tea-text-sec text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors tap-target"
+              title={`Resume "${label}"`}
+            >
+              <span className="truncate max-w-[200px]">{label}</span>
+              <span className="text-ui-10 text-tea-text-dim">
+                {count} item{count !== 1 ? 's' : ''}
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 };
