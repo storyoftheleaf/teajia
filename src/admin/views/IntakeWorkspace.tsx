@@ -3,6 +3,7 @@ import {
   Upload, FileSpreadsheet, Image as ImageIcon, Loader2, Check,
   AlertTriangle, ChevronDown, ChevronRight, Trash2, Tag, Store,
   Sparkles, Layers, ArrowRight, Inbox, Receipt, Truck, RotateCw,
+  MessageCircle,
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Papa from 'papaparse';
@@ -17,6 +18,7 @@ import {
   stagedToProduct, isReadyItem, extractedToStaged,
 } from '../lib/intakeMapping';
 import { assertSupportedIntakeFile, readXlsxIntakeFile } from '../lib/xlsxIntake';
+import { IntakeChatSheet, type ChatAnswer } from '../components/IntakeChatSheet';
 
 interface SheetSource {
   id: string;
@@ -175,6 +177,31 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
   const updateItem = useCallback((id: string, patch: Partial<StagedItem>) => {
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
   }, []);
+
+  // ── In-flow "Ask about this tea" chat sheet (THEN-T2) ─────────────────────
+  // Held here (not in ItemsTable) so an open sheet survives item re-renders and
+  // so the answer can flow back into the staged item via updateItem.
+  const [chatItemId, setChatItemId] = useState<string | null>(null);
+  const chatItem = useMemo(
+    () => (chatItemId ? items.find((i) => i.id === chatItemId) : null) || null,
+    [chatItemId, items],
+  );
+  const handleChatAnswer = useCallback((answer: ChatAnswer) => {
+    if (!chatItemId) return;
+    if (answer.kind !== 'value' || answer.value == null) return;
+    const patch: Partial<StagedItem> = {};
+    switch (answer.field) {
+      case 'vendor':          patch.vendor = String(answer.value); break;
+      case 'origin_country':  patch.originCountry = String(answer.value); break;
+      case 'price_paid':      patch.costAmount = Number(answer.value) || 0; break;
+      case 'cost_currency':   patch.costCurrency = String(answer.value); break;
+      case 'weight_grams':    patch.stockGrams = Number(answer.value) || 0; break;
+      // pack_count, purchase_date, purchase_location and shipping_mode have no
+      // direct StagedItem field; they still persist on the server (parsed_data).
+      default: break;
+    }
+    if (Object.keys(patch).length) updateItem(chatItemId, patch);
+  }, [chatItemId, updateItem]);
 
   // ── Parsing ──────────────────────────────────────────────────────────────
   const ingestSheet = useCallback((name: string, rows: Record<string, any>[]) => {
@@ -488,6 +515,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
                   <ItemsTable
                     items={items}
                     onUpdate={updateItem}
+                    onAsk={setChatItemId}
                     sourceName={sourceName}
                     shippingActive={shippingTotal > 0}
                     shipCur={shipCur}
@@ -539,6 +567,16 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
             </button>
           </div>
         </div>
+      )}
+
+      {chatItem && importId && (
+        <IntakeChatSheet
+          importId={importId}
+          itemId={chatItem.id}
+          itemLabel={chatItem.givenName || chatItem.productName || 'Unnamed item'}
+          onClose={() => setChatItemId(null)}
+          onAnswered={handleChatAnswer}
+        />
       )}
     </div>
   );
@@ -775,11 +813,12 @@ const ShippingSplit: React.FC<{
 const ItemsTable: React.FC<{
   items: StagedItem[];
   onUpdate: (id: string, patch: Partial<StagedItem>) => void;
+  onAsk: (id: string) => void;
   sourceName: (id: string) => string;
   shippingActive: boolean;
   shipCur: string;
   shareShip: (it: StagedItem) => number;
-}> = ({ items, onUpdate, sourceName, shippingActive, shipCur, shareShip }) => {
+}> = ({ items, onUpdate, onAsk, sourceName, shippingActive, shipCur, shareShip }) => {
   const allOn = items.every((i) => i.include);
   const toggleAll = () => items.forEach((i) => onUpdate(i.id, { include: !allOn }));
 
@@ -864,6 +903,16 @@ const ItemsTable: React.FC<{
                 </div>
 
                 <div className="flex items-center gap-2 ml-auto flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => onAsk(it.id)}
+                    className="tap-target inline-flex items-center gap-1 text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors"
+                    title="Ask about this tea"
+                    aria-label="Ask about this tea"
+                  >
+                    <MessageCircle size={12} />
+                    <span className="hidden md:inline">Ask</span>
+                  </button>
                   <Segmented
                     size="sm"
                     value={it.isPersonal ? 'personal' : 'sale'}

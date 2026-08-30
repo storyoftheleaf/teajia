@@ -2719,6 +2719,17 @@ export const api = {
       authedFetch(`${API_URL}/api/curate/imports/${batchId}/items/${itemId}/accept`, { method: 'POST', retryTimeouts: true }),
     mergeItem: (batchId: string, itemId: string, compassEntryId: string): Promise<CurateImportItem> =>
       authedFetch(`${API_URL}/api/curate/imports/${batchId}/items/${itemId}/merge`, { method: 'POST', body: JSON.stringify({ compass_entry_id: compassEntryId }), retryTimeouts: true }),
+    chat: (importId: string, body: {
+      item_id?: string | null;
+      role: 'operator' | 'assistant' | 'agent' | 'system';
+      body: string;
+      asks_field?: string | null;
+      answers_field?: string | null;
+      answer_value?: string | number | boolean | null;
+      answer_kind?: 'value' | 'unknown' | 'skip';
+      origin?: 'web' | 'agent' | 'system';
+    }): Promise<{ message_id: string; role: string; origin: string; item_version: number | null; item_id: string | null }> =>
+      authedFetch(`${API_URL}/api/curate/imports/${importId}/chat`, { method: 'POST', body: JSON.stringify({ origin: 'web', ...body }), retryTimeouts: true }),
   },
 
   inquiries: {
