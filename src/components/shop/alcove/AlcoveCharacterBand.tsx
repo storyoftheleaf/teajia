@@ -176,7 +176,7 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
               e.stopPropagation();
               onTaste(item);
             }}
-            className="tap-target inline-flex min-h-[38px] items-center border border-tea-gold/34 px-[18px] py-[9px] font-sans text-ui-10 uppercase tracking-[0.18em] text-tea-text-sec transition-colors hover:border-tea-gold/60 hover:text-tea-text"
+            className="alcove-tasting-btn tap-target inline-flex min-h-[38px] items-center px-[18px] py-[9px] font-sans text-ui-10 uppercase tracking-[0.18em] text-tea-text-sec transition-colors hover:text-tea-text"
           >
             Add your tasting
           </button>

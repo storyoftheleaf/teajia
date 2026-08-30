@@ -2447,6 +2447,12 @@ input[type="number"]::-webkit-outer-spin-button {
    brown, and the shop's own sentence sits between them. */
 .plate-ink-body { color: #4a3a22; }
 
+/* The tasting invitation's keyline, at the design file's exact value. Written
+   here because Tailwind has no /34 opacity step, and asking for one silently
+   falls back to the framework's default border grey, which is near white. */
+.alcove-tasting-btn { border: 1px solid rgb(var(--tea-gold-rgb) / 0.34); }
+.alcove-tasting-btn:hover { border-color: rgb(var(--tea-gold-rgb) / 0.6); }
+
 /* Ink, for type set on the plate. Never the page's text tokens: the plate
    is a light surface inside a dark interface, so it carries its own pair. */
 .plate-ink { color: #241d13; }
@@ -3484,6 +3490,55 @@ input[type="number"]::-webkit-outer-spin-button {
    The seam between them is deliberate and visible. It is the only line in
    the assembly, and it separates the two jobs: handling this tea above,
    going somewhere below. */
+/* The page's paper, for an object that paints its own ground.
+   .paper-ground puts the paper behind everything at the page level; anything
+   with an opaque background of its own sits on top of it and is the one thing
+   on screen made of a different material. This lays the same two layers back
+   over such a surface, blending against ITS background rather than the page's.
+   background-attachment: fixed keeps the grain aligned to the viewport, so the
+   bar looks like a window onto the same sheet rather than a patch of its own.
+   The layers sit at z-index -1, which inside a stacking context paints above
+   the element's own background and below its content. Both surfaces already
+   set a z-index, so they are stacking contexts and the layers cannot escape
+   behind an ancestor. Forcing position on every child would have been the
+   other way to order this, and it would have quietly broken any child that
+   needed to be absolutely placed. */
+.paper-surface { position: relative; }
+/* The navigation is the bar's other half, so it is made of the same sheet.
+   Applied here rather than as a class on the component, which owns the site's
+   navigation and should not be edited for a finish. */
+.paper-surface::before,
+.paper-surface::after,
+.bottom-nav-bar::before,
+.bottom-nav-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  mix-blend-mode: overlay;
+  background-attachment: fixed;
+}
+/* Stronger here than on the page, and the arithmetic is why. Overlay on a
+   backdrop darker than mid-grey resolves to 2 x backdrop x source, so the
+   darker the surface the less any of it survives: at the page's 0.22 the bar's
+   near-black ground moves by about one value and the tooth is invisible. These
+   are the strengths at which the same sheet actually reads on it. */
+.paper-surface::before,
+.bottom-nav-bar::before {
+  background-image: url('/textures/label-paper.jpg');
+  background-size: 400px 400px;
+  filter: grayscale(1);
+  opacity: 0.55;
+}
+.paper-surface::after,
+.bottom-nav-bar::after {
+  background-image: var(--alcove-grain);
+  background-size: 200px 200px;
+  opacity: 0.4;
+}
+
 .commerce-dock {
   position: fixed;
   left: 1rem;
@@ -3498,6 +3553,9 @@ input[type="number"]::-webkit-outer-spin-button {
      and the navigation read as one undifferentiated slab. */
   border-bottom: 1px solid rgb(var(--tea-gold-rgb) / 0.38);
   border-radius: 0;
+  /* The strip's own black wash is folded in here rather than painted by the
+     strip: two opaque layers would put the paper under the top one and the
+     bar would go flat again. One ground, one paper. */
   background: #1e1c18;
   /* No shadow. The navigation below already casts one for the whole assembly,
      and a second cast downward from here fell across the navigation and the
@@ -3514,7 +3572,6 @@ input[type="number"]::-webkit-outer-spin-button {
   gap: 10px;
   height: 58px;
   padding-left: 12px;
-  background: rgb(0 0 0 / 0.22);
 }
 .alcove-dock-icon {
   display: inline-flex;
@@ -3539,8 +3596,6 @@ input[type="number"]::-webkit-outer-spin-button {
 .alcove-dock-cta {
   flex: 0 0 auto;
   align-self: stretch;
-  display: inline-flex;
-  align-items: center;
   padding: 0 26px;
   white-space: nowrap;
   background: var(--tea-plate-tan);
@@ -3553,17 +3608,27 @@ input[type="number"]::-webkit-outer-spin-button {
   transition: background 0.15s ease;
 }
 .alcove-dock-cta:hover { background: var(--tea-plate-tan-lift); }
+/* Hiding this on a narrow bar cannot be done with Tailwind's `hidden`: these
+   buttons also carry .tap-target, which sets display and sits later in the
+   cascade than the utilities, so `hidden` silently loses and the block stayed
+   on the phone. An attribute selector here outranks both. */
+.alcove-dock-cta[data-wide-only='true'] { display: none; }
+@media (min-width: 640px) {
+  .alcove-dock-cta[data-wide-only='true'] { display: inline-flex; }
+}
 @media (min-width: 1024px) {
   .commerce-dock {
-    position: static;
-    left: auto;
+    /* One bar everywhere. It used to dissolve into a third column here, which
+       gave the page two places to buy the same tea and squeezed the reading
+       into what was left. On the desk the navigation is a centred 760px pill
+       rather than a full-width one, so the bar takes exactly those insets and
+       goes on sitting on its top edge: the assembly is the same object at
+       every width, just narrower here. */
+    left: 50%;
     right: auto;
-    bottom: auto;
-    border: 0;
-    background: none;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    box-shadow: none;
+    width: min(760px, calc(100vw - 64px));
+    transform: translateX(-50%);
+    margin: 0;
   }
 }
 

@@ -595,11 +595,14 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   if (layout === 'page') {
     return (
       <article className="mx-auto w-full max-w-[1280px]">
-        {/* Three columns on lg: the label standing full height, the reading
-            beside it, and the order as a narrow rail that rides down with it.
-            The label is a panel rather than a header here, which is what lets
-            this page hold up on a tea with no photograph at all. */}
-        <div className="lg:grid lg:grid-cols-[minmax(0,520px)_minmax(0,1fr)_320px] lg:items-stretch lg:gap-0">
+        {/* Two columns on lg: the label standing full height, and the reading
+            taking everything else. There was a third, a narrow order rail, and
+            it was the page's weakest idea: it gave one tea two places to buy
+            it and took 320px off the reading to do so. Ordering is the bar at
+            the foot now, the same object the phone gets. The label is a panel
+            rather than a header here, which is what lets this page hold up on
+            a tea with no photograph at all. */}
+        <div className="lg:grid lg:grid-cols-[minmax(0,520px)_minmax(0,1fr)] lg:items-stretch lg:gap-0">
           <div className="lg:h-full lg:border-r lg:border-tea-border">
             {identityHeader}
           </div>
@@ -615,19 +618,14 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             {threadSection}
           </div>
 
-          {/* The order, beside the reading rather than before it */}
-          <div className="hidden lg:block lg:border-l lg:border-tea-border lg:pt-6">
-            <div className="mx-5 border border-tea-border">
-              {commerceFooter('rail')}
-              {commerceReassurance}
-            </div>
-          </div>
         </div>
 
-        {/* Below lg the commerce module docks onto the top edge of the bottom
-            navigation so the two read as one object (commerce-dock, which owns
-            the geometry and squares the nav's top corners while it is there). */}
-        <div className="commerce-dock z-nav lg:hidden">
+        {/* One order bar at every width. Below lg it docks onto the top edge of
+            the bottom navigation so the two read as one object; on lg it rests
+            at the foot of the reading instead, since there is no navigation
+            there to join. commerce-dock owns both geometries, and squares the
+            nav's top corners while it is sitting on it. */}
+        <div className="commerce-dock paper-surface z-nav">
           {commerceFooter('docked')}
           {commerceReassurance}
         </div>

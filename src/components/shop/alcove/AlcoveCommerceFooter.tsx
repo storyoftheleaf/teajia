@@ -285,7 +285,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
         isRail
           ? 'relative px-3.5 pb-3 pt-3.5'
           : isDocked
-            ? 'relative z-[3] flex-shrink-0 px-3.5 pb-2.5 pt-2.5'
+            ? 'relative z-[3] flex-shrink-0'
             : 'relative z-[3] flex-shrink-0 border-t border-tea-border px-3.5 pb-2 pt-2.5'
       }
       style={isRail || isDocked ? undefined : { background: alcoveBg }}
@@ -327,7 +327,13 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
               id={amountsId}
               role="group"
               aria-label="Amount"
-              className={isRail ? 'border border-tea-border' : 'mt-1.5 border border-tea-border'}
+              className={
+                isRail
+                  ? 'border border-tea-border'
+                  : isDocked
+                    ? 'border-b border-tea-border px-3.5 pb-1 pt-1'
+                    : 'mt-1.5 border border-tea-border'
+              }
             >
               <div className={`flex items-baseline justify-between gap-2 ${isRail ? 'px-3.5 pb-2 pt-3' : 'px-3.5 pb-2 pt-3'}`}>
                 <span className={`whitespace-nowrap font-sans uppercase tracking-[0.16em] text-tea-text-dim ${isRail ? 'text-ui-11' : 'text-ui-10'}`}>How much</span>
@@ -441,23 +447,44 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
               </span>
             </button>
           ) : (
-            <>
-              <span className="flex min-w-0 flex-1 items-baseline gap-[7px] whitespace-nowrap">
-                <span className="font-sans text-ui-11 uppercase tracking-[0.16em] text-tea-text-dim">from</span>
-                <span className="font-display text-ui-20 tabular-nums text-tea-text">
-                  {cells.length > 0 ? cells[0].sub : ''}
-                </span>
+            /* Nothing chosen yet, so the bar says what the tea starts at
+               rather than sitting empty until someone opens the list. */
+            <span className="flex min-w-0 flex-1 items-baseline gap-[7px] whitespace-nowrap">
+              <span className="font-sans text-ui-11 uppercase tracking-[0.16em] text-tea-text-dim">from</span>
+              <span className="font-display text-ui-20 tabular-nums text-tea-text">
+                {cells.length > 0 ? cells[0].sub : ''}
               </span>
-              <button
-                type="button"
-                onClick={() => setAmountsOpen(open => !open)}
-                aria-expanded={amountsOpen}
-                aria-controls={amountsId}
-                className="alcove-dock-cta tap-target"
-              >
-                How much
-              </button>
-            </>
+            </span>
+          )}
+          {/* The bar always ends in a block, and which one depends on whether
+              there is an order yet: "How much" opens the list, and once
+              something is in the order it carries the order instead. On a
+              343px phone there is only room for it when nothing is chosen,
+              which is exactly what the design file draws; wider bars keep it,
+              because a 760px bar with 600px of nothing in it is not restraint,
+              it is an unfinished object. */}
+          {orderTotalUsd > 0 ? (
+            <button
+              type="button"
+              onClick={onOpenOrder}
+              className="alcove-dock-cta tap-target items-center"
+              data-wide-only="true"
+              aria-label="Open your order"
+            >
+              Your order
+              <span className="ml-3 font-display text-ui-17 tabular-nums">{resolvedTotal(orderTotalUsd)}</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setAmountsOpen(open => !open)}
+              aria-expanded={amountsOpen}
+              aria-controls={amountsId}
+              className="alcove-dock-cta tap-target items-center"
+              data-wide-only={activeCell ? 'true' : undefined}
+            >
+              How much
+            </button>
           )}
         </div>
       ) : (
