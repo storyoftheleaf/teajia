@@ -11,7 +11,11 @@ export type ImportConfidenceField =
   | 'acquisitionState' | 'acquired' | 'duplicateResolution' | 'chineseName'
   | 'type' | 'form' | 'originCountry'
   | 'classification' | 'inventoryPurpose'
-  | 'tasting' | 'tastingSource';
+  | 'tasting' | 'tastingSource'
+  // Canonical/verified fields: allowed at rest and on client PUTs from library
+  // or receipt-labeled sources, but never emitted by the LLM (R9: no
+  // fabrication of provenance from a receipt).
+  | 'year' | 'originRegion' | 'cultivar' | 'producer' | 'description' | 'processingNotes';
 export type ImportValidationState = 'source_fact' | 'ai_interpretation' | 'canonical_match' | 'validated' | 'not_present' | 'uncertain';
 export type ImportAnalysisConfidence = Partial<Record<ImportConfidenceField, number>>;
 export type ImportAnalysisValidation = Partial<Record<ImportConfidenceField, ImportValidationState>>;
@@ -115,8 +119,14 @@ export interface ImportRecordHints {
     chineseName?: string | null;
     type?: string | null;
     form?: string | null;
+    year?: number | null;
     originCountry?: string | null;
+    originRegion?: string | null;
     classification?: string | null;
+    cultivar?: string | null;
+    producer?: string | null;
+    description?: string | null;
+    processingNotes?: string | null;
     tasting?: TastingData | null;
     tastingSource?: 'source' | null;
   }>;
@@ -133,23 +143,36 @@ export interface ImportRecordHints {
 }
 
 const nullable = (schema: Record<string, unknown>) => ({ anyOf: [schema, { type: 'null' }] });
-const CONFIDENCE_FIELDS = [
+// LLM_CONFIDENCE_FIELDS are the fields the model is allowed to score. Kept
+// tight per R9: no provenance fields the model would be tempted to fabricate
+// from a receipt (year, origin sub-region, cultivar, producer, description,
+// processing notes).
+const LLM_CONFIDENCE_FIELDS = [
   'vendor', 'identity', 'translation', 'englishName', 'nameTranslation', 'originalName', 'category',
   'packWeight', 'weightUnit', 'quantity', 'packCount', 'priceBasis', 'price', 'priceAmount', 'currency',
   'acquisitionState', 'acquired', 'duplicateResolution', 'chineseName', 'type', 'form',
   'originCountry', 'classification', 'inventoryPurpose',
   'tasting', 'tastingSource',
 ] as const satisfies readonly ImportConfidenceField[];
+// Canonical fields carried through decode from library/labeled-record hints or
+// client review PUTs; never populated from LLM output.
+const CANONICAL_CONFIDENCE_FIELDS = [
+  'year', 'originRegion', 'cultivar', 'producer', 'description', 'processingNotes',
+] as const satisfies readonly ImportConfidenceField[];
+const CONFIDENCE_FIELDS = [
+  ...LLM_CONFIDENCE_FIELDS,
+  ...CANONICAL_CONFIDENCE_FIELDS,
+] as const satisfies readonly ImportConfidenceField[];
 const confidenceSchema = {
   type: 'object',
-  properties: Object.fromEntries(CONFIDENCE_FIELDS.map(field => [field, nullable({ type: 'number' })])),
-  required: [...CONFIDENCE_FIELDS],
+  properties: Object.fromEntries(LLM_CONFIDENCE_FIELDS.map(field => [field, nullable({ type: 'number' })])),
+  required: [...LLM_CONFIDENCE_FIELDS],
   additionalProperties: false,
 };
 const validationSchema = {
   type: 'object',
-  properties: Object.fromEntries(CONFIDENCE_FIELDS.map(field => [field, nullable({ type: 'string', enum: ['source_fact', 'ai_interpretation', 'canonical_match', 'validated', 'not_present', 'uncertain'] })])),
-  required: [...CONFIDENCE_FIELDS],
+  properties: Object.fromEntries(LLM_CONFIDENCE_FIELDS.map(field => [field, nullable({ type: 'string', enum: ['source_fact', 'ai_interpretation', 'canonical_match', 'validated', 'not_present', 'uncertain'] })])),
+  required: [...LLM_CONFIDENCE_FIELDS],
   additionalProperties: false,
 };
 const tastingSchema = nullable({
@@ -171,8 +194,8 @@ const tastingSchema = nullable({
 });
 const itemUncertaintySchema = {
   type: 'object',
-  properties: Object.fromEntries(CONFIDENCE_FIELDS.map(field => [field, nullable({ type: 'string' })])),
-  required: [...CONFIDENCE_FIELDS],
+  properties: Object.fromEntries(LLM_CONFIDENCE_FIELDS.map(field => [field, nullable({ type: 'string' })])),
+  required: [...LLM_CONFIDENCE_FIELDS],
   additionalProperties: false,
 };
 const groupUncertaintySchema = {
@@ -257,7 +280,12 @@ export const IMPORT_ANALYSIS_OUTPUT_SCHEMA = {
   additionalProperties: false,
 } as const;
 
-const IMPORT_ITEM_INPUT_FIELDS = ['sourceItemId', 'category', 'originalName', 'englishName', 'packWeight', 'weightUnit', 'packCount', 'priceAmount', 'currency', 'priceBasis', 'confidence', 'validation', 'uncertainty', 'evidenceRefs', 'acquired', 'duplicateResolution', 'proposedCompassEntryId', 'proposedProductId', 'chineseName', 'type', 'form', 'originCountry', 'classification', 'tasting', 'tastingSource', 'inventoryPurpose'] as const;
+// LLM_ITEM_INPUT_FIELDS are the fields the model may emit; kept in sync with
+// IMPORT_ANALYSIS_OUTPUT_SCHEMA. IMPORT_ITEM_INPUT_FIELDS extends that with the
+// canonical extras that flow in from labeled-record hints, canonical library
+// matches, or a reviewer's PUT (never fabricated by the LLM).
+const LLM_ITEM_INPUT_FIELDS = ['sourceItemId', 'category', 'originalName', 'englishName', 'packWeight', 'weightUnit', 'packCount', 'priceAmount', 'currency', 'priceBasis', 'confidence', 'validation', 'uncertainty', 'evidenceRefs', 'acquired', 'duplicateResolution', 'proposedCompassEntryId', 'proposedProductId', 'chineseName', 'type', 'form', 'originCountry', 'classification', 'tasting', 'tastingSource', 'inventoryPurpose'] as const;
+const IMPORT_ITEM_INPUT_FIELDS = [...LLM_ITEM_INPUT_FIELDS, 'year', 'originRegion', 'cultivar', 'producer', 'description', 'processingNotes'] as const;
 const IMPORT_ITEM_DERIVED_FIELDS = ['totalQuantityGrams', 'totalUnits', 'priceAmountExact', 'lineCost', 'lineCostExact', 'unitCost', 'unitCostExact', 'blockingFields'] as const;
 
 function record(value: unknown, field: string): Record<string, unknown> {
@@ -300,6 +328,11 @@ function optionalText(value: unknown, field: string, max: number): string | null
   return value.trim() || null;
 }
 
+function optionalYear(value: unknown): number | null {
+  if (value == null) return null;
+  if (!Number.isInteger(value) || Number(value) < 1000 || Number(value) > 3000) throw new Error('Invalid year');
+  return Number(value);
+}
 
 function stringRecord(value: unknown, field: string, allowed?: readonly string[]): Record<string, string> {
   const source = record(value, field);
@@ -371,8 +404,14 @@ function decodeItem(value: unknown, groupIndex: number, itemIndex: number): Impo
   return {
     chineseName: optionalText(input.chineseName, 'chineseName', 500),
     type: optionalText(input.type, 'type', 200), form: optionalText(input.form, 'form', 200),
+    year: optionalYear(input.year),
     originCountry: optionalText(input.originCountry, 'originCountry', 200),
+    originRegion: optionalText(input.originRegion, 'originRegion', 500),
     classification: optionalText(input.classification, 'classification', 500),
+    cultivar: optionalText(input.cultivar, 'cultivar', 200),
+    producer: optionalText(input.producer, 'producer', 200),
+    description: optionalText(input.description, 'description', 5000),
+    processingNotes: optionalText(input.processingNotes, 'processingNotes', 5000),
     tasting, tastingSource: tasting ? 'source' : null,
     inventoryPurpose: optionalText(input.inventoryPurpose, 'inventoryPurpose', 100),
     sourceItemId: string(input.sourceItemId, 'sourceItemId')!, category,
@@ -454,7 +493,7 @@ const MATERIAL_VALIDATION_BLOCKERS: Partial<Record<ImportConfidenceField, string
   priceAmount: 'priceAmount', currency: 'currency', acquisitionState: 'acquired', acquired: 'acquired',
   duplicateResolution: 'duplicateResolution',
 };
-const OPTIONAL_METADATA_FIELDS = ['chineseName', 'type', 'form', 'originCountry', 'classification'] as const;
+const OPTIONAL_METADATA_FIELDS = ['chineseName', 'type', 'form', 'year', 'originCountry', 'originRegion', 'classification', 'cultivar', 'producer', 'description', 'processingNotes'] as const;
 const HAN = /\p{Script=Han}/u;
 const DETERMINISTIC_TRANSLATIONS: Record<string, string> = {
   陈年六堡茶: 'Aged Liu Bao Tea',
@@ -828,6 +867,8 @@ function labeledTeaRecord(sourceId: string, lines: ImportRecordLine[]): ImportRe
   const price = prices.value.match(/\b(USD|CNY|EUR|GBP|AUD|IDR|TWD)\s+(\d+(?:\.\d+)?)\s+for\s+one\s+\d+(?:\.\d+)?\s*(?:g|kg)\b/iu);
   if (!weight || !price) return null;
   const origin = facts.get('origin')?.value ?? null;
+  const material = facts.get('plant material')?.value ?? null;
+  const harvest = facts.get('harvest')?.value?.match(/\b(\d{4})\b/u);
   const typeValue = facts.get('type')?.value ?? '';
   const excerptRef = `${sourceId}:${excerpt.valueStart}-${excerpt.valueStart + excerpt.value.length}`;
   const tastingEvidenceRef = `${sourceId}:${description.valueStart}-${description.valueStart + description.value.length}`;
@@ -852,7 +893,13 @@ function labeledTeaRecord(sourceId: string, lines: ImportRecordLine[]): ImportRe
     supplierExplicit: true,
     type: /(?:raw\s+pu-?erh|sheng)/iu.test(typeValue) ? 'Sheng' : null,
     form: /\bcake\b/iu.test(format.value) ? 'Cake' : null,
+    year: harvest ? Number(harvest[1]) : null,
     originCountry: origin?.match(/(?:^|,\s*)(China)\s*$/iu)?.[1] ?? null,
+    originRegion: origin?.replace(/,\s*China\s*$/iu, '') ?? null,
+    cultivar: material?.match(/^(primitive small-leaf population)\b/iu)?.[1] ?? material,
+    producer: facts.get('producer/brand')?.value ?? null,
+    description: description.value,
+    processingNotes: facts.get('processing notes')?.value ?? null,
     tasting,
     tastingSource: tasting ? 'source' : null,
   };

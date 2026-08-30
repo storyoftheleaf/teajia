@@ -1961,7 +1961,21 @@ export async function updateCurateImportItem(request: Request, env: ImportEnv, c
   if (updates.length) {
     updates.push('manually_corrected_fields_json = ?'); values.push(JSON.stringify([...manualFields].sort()));
     updates.push("updated_at = datetime('now')");
-    const changed = await env.DB.prepare(`UPDATE curate_import_items SET ${updates.join(', ')} WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`).bind(...values, params.itemId, ctx.accountId, params.id, ctx.accountId).run();
+    // Optimistic concurrency (X1): bump the version and, if the caller sent
+    // If-Match, refuse to overwrite a row that moved on.
+    updates.push('version = version + 1');
+    const ifMatch = request.headers.get('If-Match');
+    const suppliedVersion = ifMatch != null && ifMatch !== '' && ifMatch !== '*' ? Number(ifMatch) : null;
+    let where = "id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)";
+    const stmtValues = [...values];
+    if (suppliedVersion != null && Number.isFinite(suppliedVersion)) { where += " AND version = ?"; stmtValues.push(Math.floor(suppliedVersion)); }
+    stmtValues.push(params.itemId, ctx.accountId, params.id, ctx.accountId);
+    const changed = await env.DB.prepare(`UPDATE curate_import_items SET ${updates.join(', ')} WHERE ${where}`).bind(...stmtValues).run();
+    if (suppliedVersion != null && Number.isFinite(suppliedVersion) && !(changed.meta.changes ?? 0)) {
+      const row = await env.DB.prepare('SELECT version FROM curate_import_items WHERE id = ? AND account_id = ?').bind(params.itemId, ctx.accountId).first<Record<string, unknown>>();
+      if (row && Number(row.version) !== suppliedVersion) return response({ error: 'Item was updated concurrently', code: 'version_conflict', current_version: Number(row.version) }, 409);
+      return terminalResponse();
+    }
     if (!(changed.meta.changes ?? 0)) return terminalResponse();
   }
   await refreshImportBatchState(env, params.id, ctx.accountId);

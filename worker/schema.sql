@@ -1053,6 +1053,7 @@ CREATE TABLE IF NOT EXISTS curate_import_items (
   reserved_compass_entry_id TEXT NOT NULL,
   vendor_group_id TEXT REFERENCES curate_import_vendor_groups(id) ON DELETE SET NULL,
   transport_mode TEXT CHECK (transport_mode IN ('air','sea','land','courier','unknown')),
+  version INTEGER NOT NULL DEFAULT 1,
   manually_corrected_fields_json TEXT NOT NULL DEFAULT '[]',
   reviewed_by_user_id TEXT,
   reviewed_at TEXT,
