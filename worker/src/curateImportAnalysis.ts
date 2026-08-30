@@ -1202,6 +1202,79 @@ export function buildImportRecordFallbackProposal(hints: ImportRecordHints): Imp
   };
 }
 
+// --- THEN-T4: inference-first silent fill ---
+
+export interface SilentFillSource {
+  id: string;
+  text?: string | null;
+}
+
+const RECEIPT_DATE_LABEL_RE = /(?:^|\s)(?:date|order\s+date|purchase\s+date|ordered|日期|订单日期|下单时间)\s*[:：]/iu;
+const ISO_DATE_STANDALONE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const ISO_DATE_INLINE_RE = /\b(\d{4})-(\d{2})-(\d{2})\b/;
+const CN_DATE_RE = /(\d{4})年(\d{1,2})月(\d{1,2})日/u;
+
+function extractReceiptDates(sources: SilentFillSource[]): string[] {
+  const dates = new Set<string>();
+  for (const source of sources) {
+    if (!source.text) continue;
+    for (const raw of source.text.split(/\r?\n/)) {
+      const line = raw.trim();
+      if (!line) continue;
+      const labeled = RECEIPT_DATE_LABEL_RE.test(line);
+      const iso = line.match(ISO_DATE_INLINE_RE);
+      const cn = line.match(CN_DATE_RE);
+      if (labeled && iso) {
+        dates.add(`${iso[1]}-${iso[2]}-${iso[3]}`);
+      } else if (labeled && cn) {
+        dates.add(`${cn[1]}-${cn[2].padStart(2, '0')}-${cn[3].padStart(2, '0')}`);
+      } else if (ISO_DATE_STANDALONE_RE.test(line)) {
+        dates.add(line);
+      }
+    }
+  }
+  return [...dates];
+}
+
+// Infers ASKABLE chat-field values from already-extracted analysis data.
+// Only fills: vendor, origin_country, pack_count, weight_grams, price_paid,
+// cost_currency, purchase_date. Never fills R9 fields (origin_region, mountain,
+// cultivar, year, producer, description, processingNotes).
+// Does NOT check for existing values — caller must apply with null-guard.
+export function inferSilentFills(
+  item: NormalizedImportItem,
+  group: { proposedVendorName: string | null; vendorConfidence: number | null; uncertainty?: Record<string, string> },
+  evidenceSources?: SilentFillSource[],
+): { fills: Record<string, string | number>; evidenceRef: string | null } {
+  const fills: Record<string, string | number> = {};
+  const primaryRef = item.evidenceRefs.length > 0 ? item.evidenceRefs[0] : null;
+  const primarySourceId = primaryRef ? primaryRef.split(':')[0] : null;
+  if (!primarySourceId) return { fills, evidenceRef: null };
+
+  if (item.currency != null) fills.cost_currency = item.currency;
+  if (item.priceAmountExact != null) fills.price_paid = item.priceAmountExact;
+  if (item.packCount != null && item.packCount > 0) fills.pack_count = item.packCount;
+  if (item.totalQuantityGrams != null && item.totalQuantityGrams > 0) fills.weight_grams = item.totalQuantityGrams;
+
+  const originCountry = item.originCountry;
+  if (typeof originCountry === 'string' && originCountry) fills.origin_country = originCountry;
+
+  const vendorUncertain = Object.prototype.hasOwnProperty.call(group.uncertainty ?? {}, 'vendor');
+  if (!vendorUncertain && group.vendorConfidence != null && group.vendorConfidence >= 0.9 && group.proposedVendorName != null) {
+    fills.vendor = group.proposedVendorName;
+  }
+
+  if (evidenceSources) {
+    const dates = extractReceiptDates(evidenceSources);
+    if (dates.length === 1) fills.purchase_date = dates[0];
+  }
+
+  return {
+    fills,
+    evidenceRef: Object.keys(fills).length > 0 ? `analyze:${primarySourceId}` : null,
+  };
+}
+
 export function buildImportAnalysisPrompt(evidence: ImportEvidenceForAnalysis, candidates: ImportMatchCandidates): string {
   const evidenceText = evidence.sources.map(source => source.text ?? '').join(' ').normalize('NFKD').toLowerCase();
   const bounded = <T extends { name: string | null }>(values: T[]) => values.map((value, index) => ({ value, index, relevant: Boolean(value.name && evidenceText.includes(value.name.normalize('NFKD').toLowerCase())) }))

@@ -890,7 +890,10 @@ describe('Curate import provenance API', () => {
     })]);
     const parsed = body.items[0].parsed_data;
     expect(parsed.tastingSource).not.toBe('common');
-    expect(parsed.evidenceRefs).toHaveLength(2);
+    // Two original evidence refs (excerpt + tasting), plus THEN-T4 adds one
+    // silent-fill evidenceRef (analyze:<sourceId>) for the inferred cost/weight.
+    expect(parsed.evidenceRefs.length).toBe(3);
+    expect(parsed.evidenceRefs.some((ref: string) => String(ref).startsWith('analyze:'))).toBe(true);
     const reviewed = buildImportCorrectionParsedData(parsed, {
       englishName: parsed.englishName, originalName: parsed.originalName, type: parsed.type, classification: parsed.classification,
       year: parsed.year, form: parsed.form, originCountry: parsed.originCountry, originRegion: parsed.originRegion,

@@ -1,6 +1,6 @@
 import { compassValuesFromImport } from './compassCodec';
 import { validateCurateContextPair } from './curateContextValidation';
-import { applyImportRecordHints, buildImportAnalysisPrompt, buildImportRecordFallbackProposal, buildImportRecordHints, decodeImportAnalysisProposal, IMPORT_ANALYSIS_OUTPUT_SCHEMA, normalizeImportProposal, renormalizeImportItemData, type ImportAnalysisProposal, type ImportMatchCandidates } from './curateImportAnalysis';
+import { applyImportRecordHints, buildImportAnalysisPrompt, buildImportRecordFallbackProposal, buildImportRecordHints, decodeImportAnalysisProposal, IMPORT_ANALYSIS_OUTPUT_SCHEMA, inferSilentFills, normalizeImportProposal, renormalizeImportItemData, type ImportAnalysisProposal, type ImportMatchCandidates } from './curateImportAnalysis';
 import { canonicalImportToCompassValues, canonicalImportToProductValues, normalizeCanonicalImportRecord } from './curateImportCanonical';
 import {
   buildGroqTextInput, buildGroqVisionInput, exactEvidenceExcerpt, normalizeImportSources,
@@ -1025,6 +1025,17 @@ export async function analyzeCurateImport(request: Request, env: ImportEnv, ctx:
           vendorId: resolvedVendor,
           vendorName: group.proposedVendorName,
         });
+        // THEN-T4: deterministic silent fill for ASKABLE fields
+        {
+          const { fills: silentFills, evidenceRef: silentRef } = inferSilentFills(normalizedParsed, group, analyzedSources);
+          const pd = normalizedParsed as Record<string, unknown>;
+          for (const [key, value] of Object.entries(silentFills)) {
+            if (pd[key] == null) pd[key] = value;
+          }
+          if (silentRef && !normalizedParsed.evidenceRefs.includes(silentRef)) {
+            normalizedParsed.evidenceRefs.push(silentRef);
+          }
+        }
         const name = manualFields.includes('name') ? existing?.name : (normalizedParsed.englishName ?? normalizedParsed.originalName ?? null);
         const category = manualFields.includes('category') ? existing?.category : proposed.category;
         const uncertainty = manualFields.includes('uncertainty') ? parseJson(existing?.uncertainty_json, {}) : proposed.uncertainty;

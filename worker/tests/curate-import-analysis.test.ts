@@ -6,8 +6,10 @@ import {
   buildImportRecordHints,
   decodeImportAnalysisProposal,
   IMPORT_ANALYSIS_OUTPUT_SCHEMA,
+  inferSilentFills,
   normalizeImportProposal,
   type ImportAnalysisProposal,
+  type SilentFillSource,
 } from '../src/curateImportAnalysis';
 
 const item = {
@@ -796,5 +798,125 @@ describe('Curate import analysis domain', () => {
     expect(prompt).not.toContain('vendor-50');
     expect(prompt).not.toContain('journey-50');
     expect(prompt).not.toContain('identity-50');
+  });
+});
+
+describe('inferSilentFills (THEN-T4)', () => {
+  const baseItem = {
+    sourceItemId: 'item-1', category: 'tea' as const, originalName: '云南古树生普',
+    englishName: 'Yunnan Ancient Tree Raw Pu'er', packWeight: 500,
+    weightUnit: 'g' as const, packCount: 2, priceAmount: '380', currency: 'CNY',
+    priceBasis: 'per_pack' as const, confidence: {}, uncertainty: {}, evidenceRefs: ['source-1:0-18'],
+    acquired: true, duplicateResolution: 'new' as const,
+  };
+
+  function normalizedFrom(overrides: Partial<typeof baseItem> = {}) {
+    return normalizeImportProposal({
+      overview: 'test', language: 'zh',
+      groups: [{ key: 'g', proposedVendorName: null, items: [{ ...baseItem, ...overrides }] }],
+    }).groups[0].items[0];
+  }
+
+  const noVendor = { proposedVendorName: null, vendorConfidence: null, uncertainty: {} };
+
+  it('fills cost_currency, price_paid, pack_count, weight_grams from analyzed item', () => {
+    const item = normalizedFrom();
+    const { fills, evidenceRef } = inferSilentFills(item, noVendor);
+    expect(fills.cost_currency).toBe('CNY');
+    expect(fills.price_paid).toBe('380');
+    expect(fills.pack_count).toBe(2);
+    expect(fills.weight_grams).toBe(1000);
+    expect(evidenceRef).toBe('analyze:source-1');
+  });
+
+  it('fills origin_country from originCountry', () => {
+    const item = normalizedFrom({ originCountry: 'China' } as any);
+    const { fills } = inferSilentFills(item, noVendor);
+    expect(fills.origin_country).toBe('China');
+  });
+
+  it('does not fill origin_country when not present', () => {
+    const item = normalizedFrom();
+    const { fills } = inferSilentFills(item, noVendor);
+    expect(fills.origin_country).toBeUndefined();
+  });
+
+  it('fills vendor when vendorConfidence >= 0.9 and no vendor uncertainty', () => {
+    const item = normalizedFrom();
+    const { fills } = inferSilentFills(item, { proposedVendorName: 'Chen Family Tea', vendorConfidence: 1, uncertainty: {} });
+    expect(fills.vendor).toBe('Chen Family Tea');
+  });
+
+  it('does not fill vendor when vendorConfidence < 0.9', () => {
+    const item = normalizedFrom();
+    const { fills } = inferSilentFills(item, { proposedVendorName: 'Chen Family Tea', vendorConfidence: 0.7, uncertainty: {} });
+    expect(fills.vendor).toBeUndefined();
+  });
+
+  it('does not fill vendor when vendor uncertainty is set', () => {
+    const item = normalizedFrom();
+    const { fills } = inferSilentFills(item, { proposedVendorName: 'Chen Family Tea', vendorConfidence: 1, uncertainty: { vendor: 'Unconfirmed' } });
+    expect(fills.vendor).toBeUndefined();
+  });
+
+  it('does not fill vendor when vendorConfidence is null', () => {
+    const item = normalizedFrom();
+    const { fills } = inferSilentFills(item, { proposedVendorName: 'Chen Family Tea', vendorConfidence: null, uncertainty: {} });
+    expect(fills.vendor).toBeUndefined();
+  });
+
+  it('fills purchase_date from a labeled ISO date line in evidence', () => {
+    const item = normalizedFrom();
+    const sources: SilentFillSource[] = [{ id: 'source-1', text: 'Date: 2024-03-15\n云南古树生普 500g ×2 ¥380' }];
+    const { fills } = inferSilentFills(item, noVendor, sources);
+    expect(fills.purchase_date).toBe('2024-03-15');
+  });
+
+  it('fills purchase_date from a labeled Chinese date line in evidence', () => {
+    const item = normalizedFrom();
+    const sources: SilentFillSource[] = [{ id: 'source-1', text: '日期：2024年3月5日\n云南古树生普 500g ×2 ¥380' }];
+    const { fills } = inferSilentFills(item, noVendor, sources);
+    expect(fills.purchase_date).toBe('2024-03-05');
+  });
+
+  it('fills purchase_date from a standalone ISO date line', () => {
+    const item = normalizedFrom();
+    const sources: SilentFillSource[] = [{ id: 'source-1', text: '2024-03-15\n云南古树生普 500g ×2 ¥380' }];
+    const { fills } = inferSilentFills(item, noVendor, sources);
+    expect(fills.purchase_date).toBe('2024-03-15');
+  });
+
+  it('does not fill purchase_date when multiple dates are found', () => {
+    const item = normalizedFrom();
+    const sources: SilentFillSource[] = [{ id: 'source-1', text: 'Date: 2024-03-15\nDate: 2024-04-01\n云南古树生普 500g ×2 ¥380' }];
+    const { fills } = inferSilentFills(item, noVendor, sources);
+    expect(fills.purchase_date).toBeUndefined();
+  });
+
+  it('does not fill purchase_date when no date in evidence', () => {
+    const item = normalizedFrom();
+    const sources: SilentFillSource[] = [{ id: 'source-1', text: '云南古树生普 500g ×2 ¥380' }];
+    const { fills } = inferSilentFills(item, noVendor, sources);
+    expect(fills.purchase_date).toBeUndefined();
+  });
+
+  it('returns null evidenceRef and empty fills when evidenceRefs is empty', () => {
+    const item = { ...normalizedFrom(), evidenceRefs: [] };
+    const { fills, evidenceRef } = inferSilentFills(item, noVendor);
+    expect(fills).toEqual({});
+    expect(evidenceRef).toBeNull();
+  });
+
+  it('does not fill weight_grams for count-unit items (teaware)', () => {
+    const item = normalizedFrom({ weightUnit: 'count' as any, packWeight: 3, packCount: 2, category: 'teaware' as const });
+    const { fills } = inferSilentFills(item, noVendor);
+    expect(fills.weight_grams).toBeUndefined();
+  });
+
+  it('never fills R9 fields (origin_region, cultivar, year, producer, description, processingNotes)', () => {
+    const item = normalizedFrom({ originCountry: 'China' } as any);
+    const { fills } = inferSilentFills(item, noVendor);
+    const forbidden = ['origin_region', 'mountain', 'cultivar', 'year', 'producer', 'description', 'processing_notes'];
+    for (const field of forbidden) expect(fills[field]).toBeUndefined();
   });
 });
