@@ -29,6 +29,7 @@ import type { ProductImpression } from './ProductImpressions';
 import { resolveProductResearch } from '../../wisdom/productResearch';
 import { buildPublicProductHref } from '../../lib/publicProductNavigation';
 import { quoteGrams } from '../../lib/teaPricing';
+import { resolveTermLabel } from '../../data/tastingTaxonomy';
 import { resolveLineage } from '../wisdom/TeaLineage';
 import { regionElevationPresentation } from '../../wisdom/regions';
 
@@ -431,7 +432,17 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         cultivar: item.cultivar,
       }).region
     : null;
-  const ledgerElevation = regionElevationPresentation(ledgerRegion);
+  const ledgerElevationRaw = regionElevationPresentation(ledgerRegion);
+  // The base's long label exists to stop a county's geographic range being read
+  // as a tea-growing claim. Where the figure IS scoped to tea growing there is
+  // nothing to guard against, so the ledger can say Elevation and stay honest.
+  // Anything else keeps the qualifier it came with.
+  const ledgerElevation = ledgerElevationRaw
+    ? {
+        ...ledgerElevationRaw,
+        label: ledgerRegion?.elevation?.scope === 'tea_growing' ? 'Elevation' : ledgerElevationRaw.label,
+      }
+    : null;
 
   const factsLedger = (
     <AlcoveFactsLedger
@@ -439,6 +450,8 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       harvest={item.year}
       liquorTermId={liquorTermId}
       elevation={ledgerElevation}
+      forestCover={ledgerRegion?.forestCover}
+      treeCharacter={ledgerRegion?.treeCharacter}
     />
   );
 
@@ -514,6 +527,43 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     </div>
   );
 
+  /**
+   * Follow the thread.
+   *
+   * The page used to stop dead at the end of the last chapter. These are the
+   * threads this tea is actually on, each one a real filter on the shop rather
+   * than a decorative tag: where it comes from, what it is, and the one taste
+   * word the reader is most likely to be chasing. Nothing here is invented, so
+   * a tea with no recorded taste simply shows fewer threads.
+   */
+  const shopStoreSlug = useAppStore.getState().shopStoreSlug;
+  const threadBase = shopStoreSlug ? `/shop?store=${encodeURIComponent(shopStoreSlug)}&` : '/shop?';
+  const threadOriginName = (item.origin ?? '').split(',')[0]?.trim();
+  const firstFlavor = item.tasting?.flavor?.[0];
+  const threads = [
+    ...(threadOriginName ? [{ key: 'origin', label: `More from ${threadOriginName}`, href: `${threadBase}origin=${encodeURIComponent(threadOriginName)}` }] : []),
+    ...(teaType ? [{ key: 'type', label: `Other ${teaType.toLowerCase()}`, href: `${threadBase}type=${encodeURIComponent(teaType)}` }] : []),
+    ...(firstFlavor ? [{ key: 'flavor', label: resolveTermLabel(firstFlavor), href: `${threadBase}flavor=${encodeURIComponent(firstFlavor)}` }] : []),
+  ];
+
+  const threadSection = threads.length > 0 ? (
+    <div className="alcove-body-section mt-8 border-t border-tea-border pt-5">
+      <p className="m-0 font-sans text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim">Follow the thread</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {threads.map(t => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => navigate(t.href)}
+            className="tap-target inline-flex min-h-[38px] items-center bg-tea-gold/8 px-3.5 font-body text-ui-14 text-tea-text transition-colors hover:bg-tea-gold/6"
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  ) : null;
+
   // 7. From the table: impression, events, journal, tasting count
   const tableSection = (
     <AlcoveTableSection
@@ -556,6 +606,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             {aboutSection}
             {referenceSection}
             {tableSection}
+            {threadSection}
           </div>
 
           {/* The order, beside the reading rather than before it */}

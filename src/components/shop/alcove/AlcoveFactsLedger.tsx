@@ -10,6 +10,10 @@ interface AlcoveFactsLedgerProps {
    * travels with the figure rather than being flattened to "Elevation" here.
    */
   elevation?: { label: string; value: string } | null;
+  /** How much of the growing country is under forest, from the wisdom base. */
+  forestCover?: string;
+  /** What the trees are: ancient stands, planted terraces, and so on. */
+  treeCharacter?: string;
   /** First liquor-color term id from item.tasting. Row renders only when present. */
   liquorTermId?: string;
   /**
@@ -37,6 +41,8 @@ export const AlcoveFactsLedger: React.FC<AlcoveFactsLedgerProps> = ({
   harvest,
   liquorTermId,
   elevation,
+  forestCover,
+  treeCharacter,
   rows: rowsProp,
 }) => {
   const rows: LedgerRow[] = rowsProp ? [...rowsProp] : [];
@@ -44,6 +50,8 @@ export const AlcoveFactsLedger: React.FC<AlcoveFactsLedgerProps> = ({
   if (!rowsProp && origin) rows.push({ key: 'origin', label: 'Origin', value: origin });
   if (!rowsProp && harvest) rows.push({ key: 'year', label: 'Year', value: String(harvest) });
   if (!rowsProp && elevation) rows.push({ key: 'elevation', label: elevation.label, value: elevation.value });
+  if (!rowsProp && forestCover) rows.push({ key: 'forest', label: 'Forest', value: forestCover });
+  if (!rowsProp && treeCharacter) rows.push({ key: 'trees', label: 'Trees', value: treeCharacter });
 
   const liquorHex = liquorTermId ? LIQUOR_COLORS[liquorTermId] : undefined;
   if (!rowsProp && liquorTermId && liquorHex) {

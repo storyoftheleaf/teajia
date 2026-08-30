@@ -42,6 +42,23 @@ const lookupKey = (value: string) => value.normalize('NFKD').toLowerCase().repla
  */
 const REVIEWED_REGION_SEMANTICS: Record<string, Partial<Region>> = {
   china: { level: 'country' },
+  // Yiwu, from the shop's own field record rather than a citation: these are
+  // the figures Adrian writes about the country his Yiwu teas come from, held
+  // once here so every Yiwu tea reads the same and one correction fixes all of
+  // them. Scoped to tea growing because that is what the record describes, and
+  // the note says plainly where it came from so it is never mistaken for a
+  // government range.
+  yiwu: {
+    level: 'county',
+    parentId: 'yunnan',
+    elevation: {
+      value: '910 to 1700 m',
+      scope: 'tea_growing',
+      note: 'From the shop\'s own record of the growing country, not a published survey.',
+    },
+    forestCover: '88% coverage',
+    treeCharacter: 'Ancient, gushu stands',
+  },
   anhui: { level: 'province', parentId: 'china' },
   'lu-an-city-anhui': { level: 'prefecture', parentId: 'anhui' },
   'jinzhai-county-lu-an': {
@@ -111,13 +128,38 @@ for (const region of REGIONS) {
 }
 
 /** Resolves a written region to a known place, or null when it is not one we hold. */
-export function findRegion(value: string | null | undefined): Region | null {
-  if (!value?.trim()) return null;
+function lookupOne(value: string): Region | null {
   const key = lookupKey(value);
   const direct = REGION_INDEX.get(key);
   if (direct) return direct;
   const alias = REGION_ALIASES[key];
   return alias ? REGION_INDEX.get(lookupKey(alias)) ?? null : null;
+}
+
+/**
+ * The region a record names.
+ *
+ * Origins are written as a path, "Yiwu, Yunnan, China", and this only ever
+ * looked up the whole string, so it collapsed to "yiwuyunnanchina" and matched
+ * nothing. Every tea written that way resolved to no region at all, which is
+ * why pages that ask the wisdom base about the place came back empty even when
+ * the place was described in it.
+ *
+ * Now the parts are tried in turn, most specific first, so the county wins over
+ * the province and the province over the country. Still exact lookups against
+ * the index and the alias table: a part either names a region the base holds or
+ * it does not, and nothing is guessed from a near miss.
+ */
+export function findRegion(value: string | null | undefined): Region | null {
+  if (!value?.trim()) return null;
+  const whole = lookupOne(value);
+  if (whole) return whole;
+  for (const part of value.split(/[,/]/)) {
+    if (!part.trim()) continue;
+    const hit = lookupOne(part);
+    if (hit) return hit;
+  }
+  return null;
 }
 
 /** The country a region sits in, for records that name only the region. */

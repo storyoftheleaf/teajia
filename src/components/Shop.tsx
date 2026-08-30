@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useLocation, useSearchParams, type Location } from 'react-router-dom';
+import { resolveTermLabel } from '../data/tastingTaxonomy';
 import { PRODUCT_PATH_RE } from '../hooks/useProductModalRoute';
 import { useQuery } from '@tanstack/react-query';
 
@@ -126,6 +127,48 @@ export const Shop: React.FC<ShopProps> = ({
       setSearchParams(searchParams, { replace: true });
     }
   }, [urlStore]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /**
+   * Threads from a product page: ?origin=, ?type=, ?flavor=, ?feel=.
+   *
+   * The product page has linked here with flavor and feel for a long time and
+   * nothing read them, so every taste word on a tea was a link to an unfiltered
+   * shop. These are exact matches against what the record holds, not a search:
+   * a thread either lands on teas that share the thing or it lands nowhere, and
+   * landing nowhere says so rather than quietly showing everything.
+   */
+  const threadOrigin = searchParams.get('origin');
+  const threadType = searchParams.get('type');
+  const threadFlavor = searchParams.get('flavor');
+  const threadFeel = searchParams.get('feel');
+  const thread = threadOrigin ?? threadType ?? threadFlavor ?? threadFeel;
+
+  const threadLabel = threadOrigin
+    ? `From ${threadOrigin}`
+    : threadType
+      ? `${threadType} tea`
+      : threadFlavor
+        ? resolveTermLabel(threadFlavor)
+        : threadFeel
+          ? resolveTermLabel(threadFeel)
+          : '';
+
+  const clearThread = () => {
+    const next = new URLSearchParams(searchParams);
+    for (const key of ['origin', 'type', 'flavor', 'feel']) next.delete(key);
+    setSearchParams(next, { replace: true });
+  };
+
+  const threadedTea = useMemo(() => {
+    if (!thread) return teaInventory;
+    return teaInventory.filter(item => {
+      if (threadOrigin && !(item.origin ?? '').toLowerCase().includes(threadOrigin.toLowerCase())) return false;
+      if (threadType && (item.type ?? '').toLowerCase() !== threadType.toLowerCase()) return false;
+      if (threadFlavor && !(item.tasting?.flavor ?? []).includes(threadFlavor)) return false;
+      if (threadFeel && !(item.tasting?.feeling ?? []).includes(threadFeel)) return false;
+      return true;
+    });
+  }, [teaInventory, thread, threadOrigin, threadType, threadFlavor, threadFeel]);
 
   // Product URLs are handled by real routing now: grid taps push
   // /shop/product/:id with background state (modal over this component) and
@@ -492,9 +535,27 @@ export const Shop: React.FC<ShopProps> = ({
           />
         )}
 
+        {thread && activeTab === 'tea' && (
+          <div className="mx-auto mb-4 flex w-full max-w-[1200px] items-center gap-3 px-4">
+            <span className="font-sans text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim">Following</span>
+            <button
+              type="button"
+              onClick={clearThread}
+              className="tap-target inline-flex min-h-[36px] items-center gap-2 bg-tea-gold/8 px-3 font-sans text-ui-12 text-tea-text transition-colors hover:bg-tea-gold/6"
+              aria-label={`Stop following ${threadLabel}`}
+            >
+              <span>{threadLabel}</span>
+              <span aria-hidden="true" className="text-tea-text-sec">&times;</span>
+            </button>
+            <span className="font-sans text-ui-11 tabular-nums text-tea-text-dim">
+              {threadedTea.length} {threadedTea.length === 1 ? 'tea' : 'teas'}
+            </span>
+          </div>
+        )}
+
         {!isError && !(isLoading && teaInventory.length === 0) && activeTab === 'tea' && (
           <TeaInventory
-            inventory={teaInventory}
+            inventory={threadedTea}
             onAddToCart={onAddToCart}
             hideHeader
             isAdmin={isAdmin}

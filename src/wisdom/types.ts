@@ -56,6 +56,18 @@ export interface Region {
   /** Legacy context-free data. New reviewed records should use `elevation`. */
   altitude?: string;
   climate?: string;
+  /**
+   * How much of the place is under forest, as a reader-facing phrase. Kept
+   * beside elevation because for an old-growth origin the canopy is the fact
+   * that explains the tea, and it belongs to the place rather than to any one
+   * garden in it.
+   */
+  forestCover?: string;
+  /**
+   * What the tea trees themselves are, in a phrase: ancient stands, planted
+   * terraces, and so on. A claim about the population, not about a cultivar.
+   */
+  treeCharacter?: string;
   /** Qualified place or trade context, when a citation supports it. */
   description?: string;
 }
