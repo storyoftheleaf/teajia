@@ -1,12 +1,12 @@
 # Teajia Product Collection
 
-**268 products** across 9 categories.
+**275 products** across 9 categories.
 
 ## Contents
 
-- [Sheng](#sheng) (31)
-- [Shou](#shou) (30)
-- [Dark](#dark) (20)
+- [Sheng](#sheng) (32)
+- [Shou](#shou) (32)
+- [Dark](#dark) (24)
 - [Oolong](#oolong) (40)
 - [Red](#red) (15)
 - [White](#white) (10)
@@ -47,6 +47,7 @@
 - [Yesheng Wild Tea](sheng/yesheng-wild-tea.md) 野生茶
 - [Yi-Wu Sunshine — Yi-Wu Sheng 2006 (2006)](sheng/yi-wu-sheng-2006-2006.md) 易武生茶
 - [Yiwu Gushu (2008)](sheng/yiwu-gushu-2008.md) 易武古树生普洱
+- [Yuandu Sheng — Raw Puerh 1980s](sheng/yuandu-sheng.md) 原度生
 
 ## Shou
 
@@ -80,6 +81,8 @@
 - [Yiwu Mahei Gushu](shou/yiwu-mahei-gushu.md) 易武麻黑古树熟茶
 - [Yiwu Monkey Black Gushu (2015)](shou/yiwu-monkey-black-gushu-2015.md) 易武猴黑古树熟茶
 - [Wuliangshan Gushu Shou](shou/wuliangshan-gushu-shou.md) 无量山古树熟茶
+- [Ripe Puerh Loose (1990s)](shou/ripe-puerh-loose-1990s.md) 熟普散茶
+- [Huangpian Ripe (1990s)](shou/huangpian-ripe.md) 黄片熟
 
 ## Dark
 
@@ -103,6 +106,10 @@
 - [Wild Ancha 2023 (2023)](dark/wild-ancha-2023-2023.md) 荒野安化茶
 - [Wild Ancha 2023 (2024)](dark/wild-ancha-2023-2024.md) 荒野安化茶
 - [Yiwu Mushroom](dark/yiwu-mushroom.md) 易武蘑菇形普洱
+- [Malaysian Returned Liu Bao (1990s)](dark/malaysian-returned-liu-bao.md) 马来回流六堡茶
+- [San He Liu Bao (1990s)](dark/san-he-liu-bao.md) 三鹤六堡茶
+- [Large Basket Liu Bao (1990s)](dark/large-basket-liu-bao.md) 大篓六堡茶
+- [Small Basket Liu Bao (1990s)](dark/small-basket-liu-bao.md) 小篓六堡茶
 
 ## Oolong
 
