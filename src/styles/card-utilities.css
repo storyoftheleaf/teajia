@@ -2332,6 +2332,67 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* Faint tonal band: the quiet card's only differentiation device. */
+/* ============================================
+   Paper ground and the label plate
+   ============================================
+
+   The reading ground. Barely visible on purpose: on a bright screen you
+   notice it, in sun you do not. It reuses the grain the alcove panels
+   already carry rather than introducing a second texture system, and it
+   blends with overlay so it moves lightness only. Screen or lighten would
+   lift the warm espresso toward flat grey and pull the colour out of it. */
+.paper-ground {
+  position: relative;
+  isolation: isolate;
+}
+.paper-ground::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: var(--alcove-grain);
+  background-size: 200px 200px;
+  opacity: 0.28;
+  mix-blend-mode: overlay;
+}
+
+/* The label plate: the tea's name on a field of the label stock, with a
+   keyline drawn inside its edge the way a printed label carries one.
+   Swap --label-plate-image for the real texture and nothing else moves. */
+.label-plate {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background-color: #d3cab4;
+  background-image: var(--label-plate-image, none), var(--label-plate-wash);
+  background-size: cover, cover;
+  background-position: center, center;
+}
+.label-plate::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: var(--alcove-grain);
+  background-size: 180px 180px;
+  opacity: 0.62;
+  mix-blend-mode: multiply;
+}
+.label-plate::after {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  pointer-events: none;
+  border: 1px solid rgba(36, 29, 19, 0.26);
+}
+
+/* Ink, for type set on the plate. Never the page's text tokens: the plate
+   is a light surface inside a dark interface, so it carries its own pair. */
+.plate-ink { color: #241d13; }
+.plate-ink-sec { color: #6b5636; }
+
 .alcove-band {
   background: rgb(var(--tea-text-rgb) / 0.04);
   border-top: 1px solid var(--tea-border);

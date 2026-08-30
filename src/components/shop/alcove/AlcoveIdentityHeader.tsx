@@ -18,6 +18,14 @@ interface AlcoveIdentityHeaderProps {
   typeLabel?: string;
   isAdmin?: boolean;
   onNavigateSource: () => void;
+  /**
+   * 'plain' is the modal card's header, type straight onto the card.
+   * 'plate' sets the same identity on a field of the label stock, the way
+   * the tea's own printed label reads in the hand. The plate is a LIGHT
+   * surface inside a dark interface, so its type uses the plate ink pair
+   * rather than the page's text tokens.
+   */
+  variant?: 'plain' | 'plate';
 }
 
 /**
@@ -35,7 +43,9 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
   typeLabel: typeLabelProp,
   isAdmin,
   onNavigateSource,
+  variant = 'plain',
 }) => {
+  const onPlate = variant === 'plate';
   const typeLabel = typeLabelProp ?? (teaType
     ? /tea/i.test(teaType) ? teaType : `${teaType} tea`
     : '');
@@ -50,23 +60,37 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
   const subLine = [givenName.trim() !== productName.trim() ? givenName : '', typeLabel].filter(Boolean).join(' · ');
 
   return (
-    <header className="px-6 pt-7 pb-5 text-center">
+    <header
+      className={
+        onPlate
+          ? 'label-plate mx-4 mt-2 px-7 pb-8 pt-20 text-center sm:mx-5 lg:mx-6 lg:pt-16'
+          : 'px-6 pt-7 pb-5 text-center'
+      }
+    >
       <h1
         id={`alcove-title-${item.id}`}
-        className="m-0 font-display text-ui-28 font-normal leading-[1.12] tracking-[0.01em] text-tea-text [text-wrap:balance]"
+        className={`m-0 font-display font-normal leading-[1.04] tracking-[0.01em] [text-wrap:balance] ${
+          onPlate ? 'plate-ink text-[36px] lg:text-[40px]' : 'text-ui-28 leading-[1.12] text-tea-text'
+        }`}
       >
         {title}
       </h1>
       {chineseCharacters && (
         <p
           lang="zh"
-          className="m-0 mt-[7px] font-calligraphy text-ui-17 leading-none text-tea-gold-lt tracking-[0.34em] indent-[0.34em]"
+          className={`m-0 font-calligraphy leading-none tracking-[0.3em] indent-[0.3em] ${
+            onPlate ? 'plate-ink-sec mt-[13px] text-ui-20' : 'mt-[7px] text-ui-17 text-tea-gold-lt'
+          }`}
         >
           {chineseCharacters}
         </p>
       )}
       {subLine && (
-        <p className="m-0 mt-[11px] flex flex-wrap items-center justify-center gap-x-2 font-sans text-ui-10 uppercase tracking-[0.18em] text-tea-text-sec">
+        <p
+          className={`m-0 flex flex-wrap items-center justify-center gap-x-2 font-sans uppercase tracking-[0.2em] ${
+            onPlate ? 'plate-ink-sec mt-[15px] text-ui-10' : 'mt-[11px] text-ui-10 text-tea-text-sec'
+          }`}
+        >
           <span
             aria-hidden="true"
             className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"

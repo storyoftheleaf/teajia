@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { InventoryItem } from '../../../types';
 import { Heart, Pencil, FlaskConical } from 'lucide-react';
 import { fmtShopPrice } from '../../../utils/formatNumber';
@@ -178,6 +178,12 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
   }));
 
   const cells = isTea ? teaCells : teawareCells;
+  // Resting the amounts closed is the point: the price list appears when
+  // someone goes to choose, not before. Opening is local to this footer, so
+  // the card and the page rail each keep their own.
+  const [amountsOpen, setAmountsOpen] = useState(false);
+  const amountsId = `alcove-amounts-${item.id}`;
+  const activeCell = cells.find(c => c.active);
 
   return (
     <div
@@ -212,30 +218,62 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
           </p>
         )}
 
-      {/* Segmented quantity strip */}
+      {/* The amounts, behind one tap.
+          Standing them open put the whole price list permanently on screen,
+          which reads as a rate card rather than a shop. Resting, this is one
+          line: what is currently chosen, and the way to change it. */}
       {!isSoldOut && cells.length > 0 && (
-        <div
-          role="group"
-          aria-label="Amount"
-          className="mb-1.5 flex border border-tea-border"
-        >
-          {cells.map(cell => (
-            <button
-              key={cell.key}
-              type="button"
-              className="alcove-seg-btn"
-              data-active={cell.active}
-              aria-pressed={cell.active}
-              aria-label={cell.ariaLabel}
-              onClick={() => {
-                if (navigator.vibrate) navigator.vibrate(8);
-                cell.onSelect();
-              }}
+        <div className="mb-1.5">
+          <button
+            type="button"
+            onClick={() => setAmountsOpen(open => !open)}
+            aria-expanded={amountsOpen}
+            aria-controls={amountsId}
+            className="tap-target flex min-h-[44px] w-full items-center justify-between gap-3 border border-tea-border px-3 transition-colors hover:border-tea-gold/40"
+          >
+            <span className="flex items-baseline gap-2">
+              <span className="font-display text-ui-17 tabular-nums text-tea-text">
+                {activeCell ? activeCell.label : 'Amount'}
+              </span>
+              {activeCell?.sub && (
+                <span className="font-sans text-ui-11 tabular-nums text-tea-text-dim">{activeCell.sub}</span>
+              )}
+            </span>
+            <span
+              aria-hidden="true"
+              className="font-sans text-ui-9 text-tea-text-sec"
             >
-              <span>{cell.label}</span>
-              <small>{cell.sub}</small>
-            </button>
-          ))}
+              {amountsOpen ? '\u25B4' : '\u25BE'}
+            </span>
+          </button>
+
+          {amountsOpen && (
+            <div
+              id={amountsId}
+              role="group"
+              aria-label="Amount"
+              className="mt-1.5 flex border border-tea-border"
+            >
+              {cells.map(cell => (
+                <button
+                  key={cell.key}
+                  type="button"
+                  className="alcove-seg-btn"
+                  data-active={cell.active}
+                  aria-pressed={cell.active}
+                  aria-label={cell.ariaLabel}
+                  onClick={() => {
+                    if (navigator.vibrate) navigator.vibrate(8);
+                    cell.onSelect();
+                    setAmountsOpen(false);
+                  }}
+                >
+                  <span>{cell.label}</span>
+                  <small>{cell.sub}</small>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

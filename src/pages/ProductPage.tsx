@@ -325,7 +325,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   };
 
   return (
-    <div className="w-full animate-[fadeIn_0.5s_ease-out]">
+    <div className="paper-ground w-full animate-[fadeIn_0.5s_ease-out]">
       <Helmet>
         <title>{`${item.name} · Teajia`}</title>
         <meta name="description" content={metaDescription} />

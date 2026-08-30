@@ -365,6 +365,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       )}
       <AlcoveIdentityHeader
         item={item}
+        variant={layout === 'page' ? 'plate' : 'plain'}
         productName={productName}
         givenName={givenName}
         teaType={teaType}
