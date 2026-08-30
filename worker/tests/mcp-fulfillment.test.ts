@@ -667,3 +667,41 @@ describe('MCP invoice fulfillment', () => {
     expect(result.items_fulfilled).toBe(1);
   });
 });
+
+describe('MCP intake tools registration', () => {
+  const INTAKE_TOOLS = [
+    'intake_start',
+    'intake_add_source',
+    'intake_analyze',
+    'intake_get_draft',
+    'intake_update_item',
+    'intake_ask',
+    'intake_answer',
+    'intake_finalize',
+  ];
+
+  it('registers all 8 intake tools in TOOL_DEFS', () => {
+    for (const name of INTAKE_TOOLS) {
+      expect(mcpSource).toContain(`name: '${name}'`);
+    }
+  });
+
+  it('dispatches all 8 intake tools in the switch', () => {
+    for (const name of INTAKE_TOOLS) {
+      expect(mcpSource).toContain(`case '${name}':`);
+    }
+  });
+
+  it('marks intake_get_draft as read-only', () => {
+    expect(mcpSource).toContain("'intake_get_draft'");
+    // Verify it appears in READ_ONLY_TOOLS
+    const readOnlyBlock = mcpSource.slice(mcpSource.indexOf('const READ_ONLY_TOOLS'), mcpSource.indexOf('const DESTRUCTIVE_TOOLS'));
+    expect(readOnlyBlock).toContain('intake_get_draft');
+  });
+
+  it('imports curate-import handlers from curateImports', () => {
+    expect(mcpSource).toContain("from './curateImports'");
+    expect(mcpSource).toContain('createCurateImport');
+    expect(mcpSource).toContain('finalizeCurateImportRequest');
+  });
+});

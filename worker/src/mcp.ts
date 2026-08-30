@@ -32,6 +32,16 @@ import {
   buildSettlementStatements,
   SalesInvariantError,
 } from './teaMasterSales';
+import {
+  createCurateImport,
+  addCurateImportSource,
+  analyzeCurateImport,
+  getCurateImport,
+  updateCurateImportItem,
+  finalizeCurateImportRequest,
+  type CurateImportContext,
+  type CurateFinalizeMovement,
+} from './curateImports';
 
 type Env = {
   DB: D1Database;
@@ -40,6 +50,15 @@ type Env = {
   OAUTH_AUTHORIZE_LIMITER?: RateLimiterBinding;
   // The wider Env interface in index.ts has many more fields — only the ones
   // the MCP server actually reads are listed here so this module is portable.
+  // Optional fields forwarded to intake (curate-import) tools:
+  ANTHROPIC_API_KEY?: string;
+  GROQ_API_KEY?: string;
+  CURATE_IMPORT_ANALYSIS_MODEL?: string;
+  CURATE_IMPORT_FALLBACK_MODEL?: string;
+  CURATE_IMPORT_GROQ_VISION_MODEL?: string;
+  MEDIA_BUCKET?: unknown;
+  AI?: unknown;
+  IMAGES?: unknown;
 };
 
 type RateLimiterBinding = { limit: (opts: { key: string }) => Promise<{ success: boolean }> };
@@ -451,7 +470,9 @@ type PendingMutation =
   | { kind: 'update_account_settings'; accountId: string; userEmail: string; fields: Record<string, string | null> }
   | { kind: 'update_exchange_rate'; accountId: string; userEmail: string; currency: string; rateVsUsd: number; previousRate: number }
   | { kind: 'create_tea'; accountId: string; userEmail: string; product: NewTeaInput }
-  | { kind: 'mark_invoice_paid'; accountId: string; userEmail: string; actorUserId: string; actorRole: string; invoiceId: string; invoiceNumber: string; paymentMethod: string; fulfillStock: boolean };
+  | { kind: 'mark_invoice_paid'; accountId: string; userEmail: string; actorUserId: string; actorRole: string; invoiceId: string; invoiceNumber: string; paymentMethod: string; fulfillStock: boolean }
+  // ── Intake (Curate-import) ──
+  | { kind: 'intake_finalize'; accountId: string; userEmail: string; userId: string; importId: string; idempotencyKey: string };
 
 const PENDING_TTL_MS = 5 * 60 * 1000;
 
@@ -3408,6 +3429,214 @@ async function commitUpdateExchangeRate(env: Env, m: Extract<PendingMutation, { 
   };
 }
 
+// ── Intake (Curate-import) tools ────────────────────────────────────────────
+//
+// Thin wrappers over the existing curate-import REST handlers in
+// curateImports.ts. Business logic lives there; these tools just construct
+// synthetic Requests from MCP args, call the handler, and relay the result.
+
+async function toolIntakeStart(env: Env, auth: McpAuth, args: any) {
+  const title = (args?.title ? String(args.title).trim() : '') || `MCP import ${new Date().toISOString().slice(0, 10)}`;
+  const pastedText: string | null = args?.pasted_text ? String(args.pasted_text) : null;
+  const body: Record<string, unknown> = {
+    idempotency_key: crypto.randomUUID(),
+    title,
+  };
+  if (pastedText) { body.pasted_text = pastedText; body.source_kind = 'paste'; }
+  const req = new Request('http://localhost/api/curate/imports', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const ctx: CurateImportContext = { accountId: auth.accountId, userId: auth.userId };
+  const res = await createCurateImport(req, env as any, ctx);
+  const data = await res.json() as any;
+  if (!res.ok) return { error: data.error ?? 'create_failed', details: data };
+  return { import_id: data.batch?.id ?? null, ...data };
+}
+
+async function toolIntakeAddSource(env: Env, auth: McpAuth, args: any) {
+  const importId = String(args?.import_id ?? '').trim();
+  if (!importId) return { error: 'import_id is required' };
+  const kind = String(args?.kind ?? 'paste').trim();
+  const body: Record<string, unknown> = { kind, idempotency_key: crypto.randomUUID() };
+  if (args?.pasted_text) body.pasted_text = String(args.pasted_text);
+  if (args?.r2_object_key) body.r2_object_key = String(args.r2_object_key);
+  const req = new Request(`http://localhost/api/curate/imports/${importId}/sources`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const ctx: CurateImportContext = { accountId: auth.accountId, userId: auth.userId };
+  const res = await addCurateImportSource(req, env as any, ctx, { id: importId });
+  const data = await res.json() as any;
+  if (!res.ok) return { error: data.error ?? 'add_source_failed', details: data };
+  return data;
+}
+
+async function toolIntakeAnalyze(env: Env, auth: McpAuth, args: any) {
+  const importId = String(args?.import_id ?? '').trim();
+  if (!importId) return { error: 'import_id is required' };
+  const body: Record<string, unknown> = {};
+  if (Array.isArray(args?.source_ids)) body.source_ids = args.source_ids;
+  const req = new Request(`http://localhost/api/curate/imports/${importId}/analyze`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const ctx: CurateImportContext = { accountId: auth.accountId, userId: auth.userId };
+  const res = await analyzeCurateImport(req, env as any, ctx, { id: importId });
+  const data = await res.json() as any;
+  if (!res.ok) return { error: data.error ?? 'analyze_failed', details: data };
+  return data;
+}
+
+async function toolIntakeGetDraft(env: Env, auth: McpAuth, args: any) {
+  const importId = String(args?.import_id ?? '').trim();
+  if (!importId) return { error: 'import_id is required' };
+  const req = new Request(`http://localhost/api/curate/imports/${importId}`, { method: 'GET' });
+  const ctx: CurateImportContext = { accountId: auth.accountId, userId: auth.userId };
+  const res = await getCurateImport(req, env as any, ctx, { id: importId });
+  const data = await res.json() as any;
+  if (!res.ok) return { error: data.error ?? 'not_found', details: data };
+  return data;
+}
+
+async function toolIntakeUpdateItem(env: Env, auth: McpAuth, args: any) {
+  const importId = String(args?.import_id ?? '').trim();
+  const itemId = String(args?.item_id ?? '').trim();
+  if (!importId) return { error: 'import_id is required' };
+  if (!itemId) return { error: 'item_id is required' };
+  const updates = args?.updates != null && typeof args.updates === 'object' ? args.updates : {};
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (args?.version != null) headers['If-Match'] = String(args.version);
+  const req = new Request(`http://localhost/api/curate/imports/${importId}/items/${itemId}`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify(updates),
+  });
+  const ctx: CurateImportContext = { accountId: auth.accountId, userId: auth.userId };
+  const res = await updateCurateImportItem(req, env as any, ctx, { id: importId, itemId });
+  const data = await res.json() as any;
+  if (res.status === 409) return { error: 'version_conflict', code: data.code ?? 'version_conflict', current_version: data.current_version, message: data.error };
+  if (!res.ok) return { error: data.error ?? 'update_failed', details: data };
+  return data;
+}
+
+// intake_ask and intake_answer wrap POST /api/curate/imports/:id/chat (THEN-T1).
+// That endpoint does not exist yet — stubs return not_implemented so the tool
+// is discoverable and the schema is locked in advance.
+
+async function toolIntakeAsk(_env: Env, _auth: McpAuth, args: any) {
+  const importId = String(args?.import_id ?? '').trim();
+  return {
+    error: 'not_implemented',
+    message: 'intake_ask requires the /chat endpoint (THEN-T1), which has not shipped yet.',
+    import_id: importId || null,
+  };
+}
+
+async function toolIntakeAnswer(_env: Env, _auth: McpAuth, args: any) {
+  const importId = String(args?.import_id ?? '').trim();
+  return {
+    error: 'not_implemented',
+    message: 'intake_answer requires the /chat endpoint (THEN-T1), which has not shipped yet.',
+    import_id: importId || null,
+  };
+}
+
+async function toolIntakeFinalize(env: Env, auth: McpAuth, args: any) {
+  const importId = String(args?.import_id ?? '').trim();
+  if (!importId) return { error: 'import_id is required' };
+  const confirm = args?.confirm ? String(args.confirm) : null;
+
+  if (!confirm) {
+    // Preview phase — fetch draft and summarise what will be created.
+    const req = new Request(`http://localhost/api/curate/imports/${importId}`, { method: 'GET' });
+    const ctx: CurateImportContext = { accountId: auth.accountId, userId: auth.userId };
+    const res = await getCurateImport(req, env as any, ctx, { id: importId });
+    const draft = await res.json() as any;
+    if (!res.ok) return { error: draft.error ?? 'import_not_found', details: draft };
+    const items: any[] = Array.isArray(draft.items) ? draft.items : [];
+    const byDisposition: Record<string, number> = {};
+    for (const item of items) {
+      const d = String(item.parsed_data?.disposition ?? 'library_only');
+      byDisposition[d] = (byDisposition[d] ?? 0) + 1;
+    }
+    const token = await issueConfirmationToken(env, {
+      kind: 'intake_finalize',
+      accountId: auth.accountId,
+      userEmail: auth.userEmail,
+      userId: auth.userId,
+      importId,
+      idempotencyKey: crypto.randomUUID(),
+    }, auth.tokenId);
+    return {
+      preview: {
+        action: 'intake_finalize',
+        import_id: importId,
+        title: draft.batch?.title ?? null,
+        review_state: draft.batch?.review_state ?? null,
+        item_count: items.length,
+        by_disposition: byDisposition,
+        note: 'Finalizing creates Draft products + Curate identities for all non-abandoned items. Stock movements are created for received/in_transit dispositions.',
+      },
+      confirmation_token: token,
+      expires_in_seconds: PENDING_TTL_MS / 1000,
+    };
+  }
+
+  // Confirm phase
+  const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
+  if (!pending || pending.kind !== 'intake_finalize' || pending.importId !== importId || pending.accountId !== auth.accountId) {
+    return { error: 'invalid_or_expired_confirmation_token' };
+  }
+  return commitIntakeFinalize(env, pending as Extract<PendingMutation, { kind: 'intake_finalize' }>);
+}
+
+async function commitIntakeFinalize(env: Env, m: Extract<PendingMutation, { kind: 'intake_finalize' }>) {
+  const ctx: CurateImportContext = { accountId: m.accountId, userId: m.userId };
+
+  const receiveLine: CurateFinalizeMovement = async (line, idempotencyKey) => {
+    // Idempotency guard — replay safe under concurrent confirm calls.
+    const prior = await env.DB.prepare(
+      'SELECT id FROM stock_ledger WHERE account_id = ? AND idempotency_key = ?'
+    ).bind(m.accountId, idempotencyKey).first<{ id: string }>();
+    if (prior) return { movementId: prior.id };
+
+    const amountCol = line.unit === 'g' ? 'stock_grams' : 'quantity_units';
+    const product = await env.DB.prepare(
+      `SELECT ${amountCol} FROM products WHERE id = ? AND account_id = ?`
+    ).bind(line.productId, m.accountId).first<Record<string, number>>();
+    const current = product ? Number(product[amountCol] ?? 0) : 0;
+    const balanceAfter = current + line.quantity;
+    const movementId = crypto.randomUUID();
+    const fingerprint = JSON.stringify({ quantity: line.quantity, unit: line.unit, source_compass_entry_id: line.compassEntryId });
+
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO stock_ledger (id, account_id, product_id, delta, balance_after, reason, movement_type, movement_unit, idempotency_key, inventory_receipt_line_id, source_compass_entry_id, note, movement_fingerprint)
+         VALUES (?, ?, ?, ?, ?, 'RECEIPT', 'receipt', ?, ?, ?, ?, 'Curate import finalized via MCP', ?)`
+      ).bind(movementId, m.accountId, line.productId, line.quantity, balanceAfter,
+        line.unit === 'g' ? 'gram' : 'unit', idempotencyKey, line.id, line.compassEntryId ?? null, fingerprint),
+      env.DB.prepare(
+        `UPDATE products SET ${amountCol} = ?, stock_known_at = datetime('now'), updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+      ).bind(balanceAfter, line.productId, m.accountId),
+    ]);
+    return { movementId };
+  };
+
+  const req = new Request(`http://localhost/api/curate/imports/${m.importId}/finalize`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idempotency_key: m.idempotencyKey }),
+  });
+  const res = await finalizeCurateImportRequest(req, env as any, ctx, { id: m.importId }, receiveLine);
+  const data = await res.json() as any;
+  if (!res.ok) return { error: data.error ?? 'finalize_failed', ...data };
+  return { committed: true, action: 'intake_finalize', import_id: m.importId, ...data };
+}
+
 // ── tool registry / JSON-RPC dispatch ──
 
 const TOOL_DEFS = [
@@ -3848,6 +4077,119 @@ const TOOL_DEFS = [
       required: ['currency', 'rate_vs_usd'],
     },
   },
+  // ── Intake (Curate-import) ──
+  {
+    name: 'intake_start',
+    scope: 'stock:write',
+    description: 'Create a new Curate import draft. Optionally supply a title and/or pasted text (e.g. a vendor list or invoice photo OCR). Returns import_id — pass it to intake_add_source, intake_analyze, and eventually intake_finalize.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Human-readable label for this import (optional — defaults to today\'s date).' },
+        pasted_text: { type: 'string', description: 'Raw text to attach as the first source (vendor list, invoice text, WeChat paste, etc.).' },
+      },
+    },
+  },
+  {
+    name: 'intake_add_source',
+    scope: 'stock:write',
+    description: 'Add a source document to an existing Curate import draft. Use this to attach additional text (e.g. a second invoice page) or reference an already-uploaded R2 object key.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        import_id: { type: 'string', description: 'Import batch ID returned by intake_start.' },
+        kind: { type: 'string', description: 'Source kind: wechat | invoice | vendor_list | photo | file | paste.', default: 'paste' },
+        pasted_text: { type: 'string', description: 'Raw text content for this source.' },
+        r2_object_key: { type: 'string', description: 'R2 object key for a previously uploaded file.' },
+      },
+      required: ['import_id', 'kind'],
+    },
+  },
+  {
+    name: 'intake_analyze',
+    scope: 'stock:write',
+    description: 'Run LLM analysis on a Curate import draft, extracting structured tea/teaware records from its sources. Pass source_ids to re-analyze specific sources only. Analysis runs asynchronously — poll intake_get_draft to check analysis_state.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        import_id: { type: 'string', description: 'Import batch ID.' },
+        source_ids: { type: 'array', items: { type: 'string' }, description: 'Limit analysis to these source IDs (omit to analyze all).' },
+      },
+      required: ['import_id'],
+    },
+  },
+  {
+    name: 'intake_get_draft',
+    scope: 'inventory:read',
+    description: 'Fetch the full Curate import draft including batch metadata, sources, vendor groups, and all items with their parsed_data, uncertainty, version, and review_state. Use this to inspect analysis results and item versions before editing.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        import_id: { type: 'string', description: 'Import batch ID.' },
+      },
+      required: ['import_id'],
+    },
+  },
+  {
+    name: 'intake_update_item',
+    scope: 'stock:write',
+    description: 'Update fields on a single item in a Curate import draft. Supply version (from intake_get_draft) as the If-Match optimistic-concurrency token — the call returns version_conflict (409) if the item was updated concurrently. Pass updates as a flat object with any of: name, raw_text, parsed_data, uncertainty, reviewed_fields, confidence, review_state, category, position, source_id.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        import_id: { type: 'string', description: 'Import batch ID.' },
+        item_id: { type: 'string', description: 'Item ID from intake_get_draft.' },
+        version: { type: 'number', description: 'Current item version for optimistic concurrency (from intake_get_draft item.version). Omit to force-overwrite.' },
+        updates: { type: 'object', description: 'Fields to update: name, raw_text, parsed_data, uncertainty, reviewed_fields, confidence, review_state, category, position, source_id.' },
+      },
+      required: ['import_id', 'item_id', 'updates'],
+    },
+  },
+  {
+    name: 'intake_ask',
+    scope: 'stock:write',
+    description: 'Post a clarifying question (ask) on a Curate import draft or specific item. NOTE: the chat endpoint (THEN-T1) has not shipped yet — this tool currently returns not_implemented.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        import_id: { type: 'string', description: 'Import batch ID.' },
+        item_id: { type: 'string', description: 'Optional item to attach the question to.' },
+        asks_field: { type: 'string', description: 'The field or aspect being asked about.' },
+        body: { type: 'string', description: 'The question body.' },
+      },
+      required: ['import_id', 'asks_field', 'body'],
+    },
+  },
+  {
+    name: 'intake_answer',
+    scope: 'stock:write',
+    description: 'Post an answer to a pending ask on a Curate import draft. NOTE: the chat endpoint (THEN-T1) has not shipped yet — this tool currently returns not_implemented.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        import_id: { type: 'string', description: 'Import batch ID.' },
+        item_id: { type: 'string', description: 'Optional item the answer applies to.' },
+        answers_field: { type: 'string', description: 'The field or aspect being answered.' },
+        answer_value: { description: 'The answer value (any JSON type).' },
+        answer_kind: { type: 'string', description: 'Kind of answer: value | skip | uncertain.' },
+        body: { type: 'string', description: 'Free-text explanation or context.' },
+      },
+      required: ['import_id', 'answers_field', 'answer_value', 'answer_kind', 'body'],
+    },
+  },
+  {
+    name: 'intake_finalize',
+    scope: 'stock:write',
+    description: 'Finalize a Curate import draft, creating Draft products and Curate identities for all non-abandoned items. Items with received/in_transit disposition also generate inventory receipts and stock movements. Two-step preview/confirm: first call returns a preview + confirmation_token, second call with confirm: <token> commits.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        import_id: { type: 'string', description: 'Import batch ID.' },
+        confirm: { type: 'string', description: 'Confirmation token from the preview response.' },
+      },
+      required: ['import_id'],
+    },
+  },
 ] as const;
 
 function mcpContent(payload: unknown) {
@@ -3872,6 +4214,7 @@ function mcpContent(payload: unknown) {
 const READ_ONLY_TOOLS = new Set([
   'search_tea', 'get_tea', 'list_low_stock', 'find_customer',
   'get_customer', 'get_account_context', 'list_invoices', 'get_invoice', 'sales_summary',
+  'intake_get_draft',
 ]);
 // Tools whose commit can destroy or reverse value. void_invoice and
 // remove_stock unwind stock/sales; update_exchange_rate moves every account's
@@ -3883,6 +4226,7 @@ const IDEMPOTENT_TOOLS = new Set([
   'set_archive_status', 'set_low_stock_threshold', 'mark_invoice_paid',
   'update_customer', 'update_invoice', 'update_tea_pricing',
   'update_account_settings', 'update_exchange_rate', 'set_tea_visibility',
+  'intake_analyze', 'intake_update_item',
 ]);
 
 function annotationsFor(name: string) {
@@ -4000,6 +4344,15 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
     case 'mark_invoice_paid': result = mcpContent(await toolMarkInvoicePaid(env, auth, args)); break;
     case 'update_account_settings': result = mcpContent(await toolUpdateAccountSettings(env, auth, args)); break;
     case 'update_exchange_rate': result = mcpContent(await toolUpdateExchangeRate(env, auth, args)); break;
+    // Intake (Curate-import) tools
+    case 'intake_start': result = mcpContent(await toolIntakeStart(env, auth, args)); break;
+    case 'intake_add_source': result = mcpContent(await toolIntakeAddSource(env, auth, args)); break;
+    case 'intake_analyze': result = mcpContent(await toolIntakeAnalyze(env, auth, args)); break;
+    case 'intake_get_draft': result = mcpContent(await toolIntakeGetDraft(env, auth, args)); break;
+    case 'intake_update_item': result = mcpContent(await toolIntakeUpdateItem(env, auth, args)); break;
+    case 'intake_ask': result = mcpContent(await toolIntakeAsk(env, auth, args)); break;
+    case 'intake_answer': result = mcpContent(await toolIntakeAnswer(env, auth, args)); break;
+    case 'intake_finalize': result = mcpContent(await toolIntakeFinalize(env, auth, args)); break;
     default: throw new Error(`Unknown tool: ${name}`);
   }
   await logMcpToolCall(env, auth, name, args, result);
