@@ -466,7 +466,7 @@ type PendingMutation =
   | { kind: 'link_vendor'; accountId: string; userEmail: string; customerId: string; productId: string; note: string | null }
   | { kind: 'unlink_vendor'; accountId: string; userEmail: string; customerId: string; productId: string }
   | { kind: 'set_archive_status'; accountId: string; userEmail: string; productId: string; archived: boolean; reason: string | null }
-  | { kind: 'set_tea_visibility'; accountId: string; userEmail: string; productId: string; shownInShop: boolean }
+  | { kind: 'set_tea_visibility'; accountId: string; userEmail: string; productId: string; shownInShop: boolean; personal?: boolean }
   | { kind: 'fulfill_invoice'; accountId: string; userEmail: string; actorUserId: string; invoiceId: string }
   | { kind: 'update_account_settings'; accountId: string; userEmail: string; fields: Record<string, string | null> }
   | { kind: 'update_exchange_rate'; accountId: string; userEmail: string; currency: string; rateVsUsd: number; previousRate: number }
@@ -2734,6 +2734,7 @@ async function commitSetArchiveStatus(
 async function toolSetTeaVisibility(env: Env, auth: McpAuth, args: any) {
   const productId = String(args?.product_id || '').trim();
   const shownInShop = Boolean(args?.shown_in_shop);
+  const personal = Boolean(args?.personal);
   const confirm = args?.confirm ? String(args.confirm) : null;
 
   if (!productId) throw new Error('product_id is required');
@@ -2749,7 +2750,7 @@ async function toolSetTeaVisibility(env: Env, auth: McpAuth, args: any) {
   if (!confirm) {
     const token = await issueConfirmationToken(env, {
       kind: 'set_tea_visibility', accountId: auth.accountId, userEmail: auth.userEmail,
-      productId, shownInShop,
+      productId, shownInShop, personal,
     }, auth.tokenId);
     return {
       preview: {
@@ -2757,6 +2758,7 @@ async function toolSetTeaVisibility(env: Env, auth: McpAuth, args: any) {
         product: { id: productId, name: product.given_name || product.product_name },
         current_shown_in_shop: product.shown_in_shop === 1,
         requested_shown_in_shop: shownInShop,
+        marks_personal_collection: personal,
         already_in_target_state: alreadyInTarget,
         note: 'status is NOT changed — the product remains Active/archived-none; this only flips its shop listing visibility.',
       },
@@ -2778,22 +2780,35 @@ async function commitSetTeaVisibility(
   productName: string,
 ) {
   const shown = m.shownInShop ? 1 : 0;
+  const personal = m.personal ? 1 : 0;
   const idOrPrefix = m.productId;
   const idLike = `${idOrPrefix}-%`;
+  // When marking personal collection, the tea is also pulled off the public
+  // shop (is_public=0) and tagged inventory_purpose='personal', is_personal=1.
+  const inventoryPurpose = m.personal ? 'personal' : null;
   await env.DB.batch([
     env.DB.prepare(
-      "UPDATE products SET shown_in_shop = ?, updated_at = datetime('now') WHERE account_id = ? AND (id = ? OR id LIKE ?)"
-    ).bind(shown, m.accountId, idOrPrefix, idLike),
+      `UPDATE products SET shown_in_shop = ?,
+         is_personal = CASE WHEN ? = 1 THEN 1 ELSE is_personal END,
+         is_public = CASE WHEN ? = 1 THEN 0 ELSE is_public END,
+         inventory_purpose = CASE WHEN ? = 1 THEN 'personal' ELSE inventory_purpose END,
+         updated_at = datetime('now')
+       WHERE account_id = ? AND (id = ? OR id LIKE ?)`
+    ).bind(shown, personal, personal, personal, m.accountId, idOrPrefix, idLike),
     env.DB.prepare(
-      `UPDATE product_listings SET shown_in_shop = ?, updated_at = datetime('now')
+      `UPDATE product_listings SET shown_in_shop = ?,
+         is_personal = CASE WHEN ? = 1 THEN 1 ELSE is_personal END,
+         is_public = CASE WHEN ? = 1 THEN 0 ELSE is_public END,
+         inventory_purpose = CASE WHEN ? = 1 THEN 'personal' ELSE inventory_purpose END,
+         updated_at = datetime('now')
        WHERE id IN (SELECT 'list_' || id FROM products WHERE account_id = ? AND (id = ? OR id LIKE ?))`
-    ).bind(shown, m.accountId, idOrPrefix, idLike),
+    ).bind(shown, personal, personal, personal, m.accountId, idOrPrefix, idLike),
     env.DB.prepare(
       `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
        VALUES (?, 'SHOP_VISIBILITY_SET_MCP', ?, ?, 'product', ?, ?)`
     ).bind(
       crypto.randomUUID(),
-      `Product "${productName}" ${m.shownInShop ? 'shown in' : 'hidden from'} shop via MCP (status unchanged)`,
+      `Product "${productName}" ${m.shownInShop ? 'shown in' : 'hidden from'} shop via MCP${m.personal ? ' and marked personal collection' : ''} (status unchanged)`,
       m.userEmail, m.productId, m.accountId,
     ),
   ]);
@@ -2803,6 +2818,7 @@ async function commitSetTeaVisibility(
     product_id: m.productId,
     product_name: productName,
     shown_in_shop: m.shownInShop,
+    personal_collection: m.personal ? true : undefined,
   };
 }
 
@@ -4020,12 +4036,13 @@ const TOOL_DEFS = [
   {
     name: 'set_tea_visibility',
     scope: 'stock:write',
-    description: 'Show or hide a tea in the public shop listing WITHOUT archiving it. The product stays Active — this only flips shown_in_shop, so it lists in the shop or not while every record remains intact. Two-step preview/confirm.',
+    description: 'Show or hide a tea in the public shop listing WITHOUT archiving it. The product stays Active — this only flips shown_in_shop, so it lists in the shop or not while every record remains intact. Pass personal=true to ALSO mark the tea as personal collection (is_personal=1, inventory_purpose=personal, is_public=0) — use for taking a tea off the store and into the owner\'s personal collection. Two-step preview/confirm.',
     inputSchema: {
       type: 'object',
       properties: {
         product_id: { type: 'string', description: 'Product id from search_tea/get_tea.' },
         shown_in_shop: { type: 'boolean', description: 'true to list in the shop; false to hide from the shop (status unchanged).' },
+        personal: { type: 'boolean', description: 'Optional. Also mark the tea as personal collection (is_personal=1, inventory_purpose=personal, is_public=0).' },
         confirm: { type: 'string', description: 'Confirmation token from preview response.' },
       },
       required: ['product_id', 'shown_in_shop'],
