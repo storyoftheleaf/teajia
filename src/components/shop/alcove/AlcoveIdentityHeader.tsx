@@ -26,6 +26,14 @@ interface AlcoveIdentityHeaderProps {
    * rather than the page's text tokens.
    */
   variant?: 'plain' | 'plate';
+  /**
+   * The shop's own sentence about this tea, set in italic under the rule.
+   * Only on the plate, and only when the record carries one: an empty
+   * standfirst is better than an invented one.
+   */
+  standfirst?: string;
+  /** How the tea is sold, at the foot of the plate. */
+  footNote?: string;
 }
 
 /**
@@ -44,6 +52,8 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
   isAdmin,
   onNavigateSource,
   variant = 'plain',
+  standfirst,
+  footNote,
 }) => {
   const onPlate = variant === 'plate';
   const typeLabel = typeLabelProp ?? (teaType
@@ -63,7 +73,7 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
     <header
       className={
         onPlate
-          ? 'label-plate mx-4 mt-2 px-7 pb-8 pt-20 text-center sm:mx-5 lg:mx-6 lg:pt-16'
+          ? 'label-plate mx-4 mt-2 flex flex-col justify-center px-7 pb-8 pt-20 text-center sm:mx-5 lg:mx-6 lg:mb-8 lg:min-h-[560px] lg:flex-1 lg:pb-14 lg:pt-14'
           : 'px-6 pt-7 pb-5 text-center'
       }
     >
@@ -99,6 +109,20 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
           <span>{subLine}</span>
         </p>
       )}
+      {onPlate && (standfirst || footNote) && (
+        <>
+          <div aria-hidden="true" className="mx-auto mt-7 h-px w-8 bg-[rgba(36,29,19,0.35)]" />
+          {standfirst && (
+            <p className="plate-ink-sec mx-auto mt-7 max-w-[34ch] font-body text-ui-15 italic leading-[1.65]">
+              {standfirst}
+            </p>
+          )}
+          {footNote && (
+            <p className="plate-ink-sec mt-9 font-sans text-ui-10 uppercase tracking-[0.2em]">{footNote}</p>
+          )}
+        </>
+      )}
+
       {/* Vendor / Source: admin-only link to source profile */}
       {item.supplier && isAdmin && (
         <div className="pt-1">

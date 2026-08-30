@@ -396,6 +396,12 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       <AlcoveIdentityHeader
         item={item}
         variant={layout === 'page' ? 'plate' : 'plain'}
+        footNote={
+          layout === 'page' && wholePieceGrams
+            ? `One whole ${(WHOLE_PIECE[item.form ?? '']?.label ?? '').toLowerCase()} · ${wholePieceGrams} g`
+            : undefined
+        }
+        standfirst={layout === 'page' ? introduction : undefined}
         productName={productName}
         givenName={givenName}
         teaType={teaType}
@@ -532,27 +538,32 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   // ── Page layout: the "quiet page" at /shop/product/:id on cold loads ─────
   if (layout === 'page') {
     return (
-      <article className="mx-auto w-full max-w-[1080px]">
-        <div className="lg:grid lg:grid-cols-[340px_minmax(0,1fr)]">
-          {/* Left rail: identity, facts, and the order module */}
-          <div className="lg:border-r lg:border-tea-border lg:pb-8">
+      <article className="mx-auto w-full max-w-[1280px]">
+        {/* Three columns on lg: the label standing full height, the reading
+            beside it, and the order as a narrow rail that rides down with it.
+            The label is a panel rather than a header here, which is what lets
+            this page hold up on a tea with no photograph at all. */}
+        <div className="lg:grid lg:grid-cols-[minmax(340px,30%)_minmax(0,1fr)_264px] lg:items-stretch lg:gap-0">
+          <div className="lg:flex lg:flex-col lg:border-r lg:border-tea-border lg:pb-8">
             {identityHeader}
-            {factsLedger}
-            {/* Desktop order rail: hairline box; the commerce module stacks
-                vertically inside it (order button full width). */}
-            <div className="mx-6 mt-6 hidden border border-tea-border lg:block">
-              {commerceFooter('rail')}
-              {commerceReassurance}
-            </div>
           </div>
 
-          {/* Right column: the reading content */}
-          <div className="lg:pt-3">
+          {/* The reading, with what the shop knows at the top of it */}
+          <div className="lg:min-w-0 lg:px-7 lg:pt-6">
+            {factsLedger}
             {gallery}
             {characterBand}
             {aboutSection}
             {referenceSection}
             {tableSection}
+          </div>
+
+          {/* The order, beside the reading rather than before it */}
+          <div className="hidden lg:block lg:border-l lg:border-tea-border lg:pt-6">
+            <div className="mx-5 border border-tea-border">
+              {commerceFooter('rail')}
+              {commerceReassurance}
+            </div>
           </div>
         </div>
 

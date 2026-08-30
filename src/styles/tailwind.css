@@ -52,6 +52,9 @@ nav[aria-label="Admin navigation"] * {
      browner and less yellow, so a solid block of it can never read as a
      louder version of the gold used for links and marks. */
   --tea-plate-tan: #a08a66;
+  /* One step up for press and hover, so the state change is felt without
+     the button jumping into a different colour family. */
+  --tea-plate-tan-lift: #b09a76;
 
   /* Fine grain, shared by the paper ground and the label plate. Same figure
      as TEXTURES.alcoveGrain in designTokens, held here so CSS can reach it. */
