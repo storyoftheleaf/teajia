@@ -339,6 +339,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       handleAdd={handleAdd}
       formatPrice={resolvedFormatPrice}
       formatPerGram={shopPrice.perGram}
+      formatRate={shopPrice.rate}
       onChooseAmount={variant === 'docked' ? handleChooseAmount : undefined}
       onOpenOrder={variant === 'docked' ? onOpenOrder : undefined}
       variant={variant}

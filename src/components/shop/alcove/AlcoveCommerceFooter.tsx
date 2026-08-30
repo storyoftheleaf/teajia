@@ -43,6 +43,13 @@ interface AlcoveCommerceFooterProps {
   /** Formats a rate. Separate from formatPrice because a rate keeps its cents. */
   formatPerGram?: (usdPerGram: number) => string;
   /**
+   * The rate split from its unit. Needed because the unit is not always the
+   * gram: a currency where a gram costs a few units is quoted per 100 g, and
+   * the list sets figure and unit on two lines, so it has to be told which
+   * unit it got rather than read it off the end of a formatted string.
+   */
+  formatRate?: (usdPerGram: number) => { value: string; unit: string };
+  /**
    * Choosing an amount IS adding it, on the page bar. The row already carries
    * the amount, the rate and the total, so the tap is an informed decision and
    * asking for a second yes afterwards is asking someone to agree with
@@ -90,6 +97,8 @@ interface SegCell {
   sub: string;
   /** The rate this amount works out to, shown beside its total in the list. */
   perGram?: string;
+  /** The same rate as figure and unit, for the list's two-line cell. */
+  rate?: { value: string; unit: string };
   /** What the amount is for, under its weight. Omitted for unusual sizes. */
   caption?: string;
   /** The weight this cell stands for, when it stands for a fixed one. */
@@ -132,6 +141,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
   handleAdd,
   formatPrice,
   formatPerGram,
+  formatRate,
   onChooseAmount,
   onOpenOrder,
   variant = 'pinned',
@@ -207,6 +217,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
           ? `${q.grams} g, unbroken, keeps ageing`
           : SIZE_CAPTION[q.grams],
         perGram: formatPerGram ? formatPerGram(q.perGramUsd) : undefined,
+        rate: formatRate ? formatRate(q.perGramUsd) : undefined,
         chooseGrams: q.grams,
         active: !customActive && grams === q.grams,
         ariaLabel: isWhole
@@ -358,44 +369,50 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
                     setAmountsOpen(false);
                   }}
                   className={`tap-target flex w-full items-baseline border-t border-tea-border text-left transition-colors ${
-                    isRail ? 'min-h-[44px] gap-2 px-3.5' : 'min-h-[52px] gap-2.5 px-3.5'
+                    isRail ? 'min-h-[40px] gap-2 px-3.5' : 'min-h-[44px] gap-3 px-3.5'
                   } ${cell.active ? 'bg-tea-gold/8 shadow-[inset_0_0_0_1px_rgb(var(--tea-gold-rgb)/0.5)]' : 'hover:bg-tea-gold/6'}`}
                 >
                   <span className="min-w-0 flex-1 text-left">
                     <span
                       className={`block whitespace-nowrap font-display tabular-nums ${
-                        isRail ? 'text-ui-15' : 'text-ui-16'
+                        isRail ? 'text-ui-14' : 'text-ui-15'
                       } ${cell.active ? 'text-tea-text' : 'text-tea-text-sec'}`}
                     >
                       {cell.label}
                     </span>
                     {cell.active ? (
-                      <span className="mt-[3px] block font-sans text-ui-10 uppercase tracking-[0.16em] text-tea-leaf">
+                      <span className="mt-px block font-sans text-ui-9 uppercase tracking-[0.16em] text-tea-leaf">
                         {'\u2713'} in your order
                       </span>
                     ) : (
                       cell.caption && (
-                        <span className="mt-0.5 block font-body text-ui-12 leading-[1.35] text-tea-text-dim">
+                        <span className="mt-px block font-body text-ui-11 leading-[1.3] text-tea-text-dim">
                           {cell.caption}
                         </span>
                       )
                     )}
                   </span>
-                  {cell.perGram && (
-                    <span className={`shrink-0 text-right ${isRail ? 'w-[58px]' : 'w-[74px]'}`}>
+                  {/* No fixed width on either figure. They used to be pinned at
+                      74px and 66px, which holds "$0.28" and "$7" and nothing
+                      else: in a currency quoted per 100 g the rate is
+                      "NT$7,283" and it ran straight over the total. These size
+                      to their own content and the amount column absorbs the
+                      rest. */}
+                  {cell.rate && (
+                    <span className="shrink-0 text-right">
                       <span
                         className={`block whitespace-nowrap font-sans tabular-nums ${
-                          isRail ? 'text-ui-13' : 'text-ui-15'
+                          isRail ? 'text-ui-12' : 'text-ui-13'
                         } ${cell.active ? 'text-tea-gold-lt' : 'text-tea-text-dim'}`}
                       >
-                        {cell.perGram.replace(/\s*\/\s*g$/, '')}
+                        {cell.rate.value}
                       </span>
-                      <span className="mt-px block font-sans text-ui-9 uppercase tracking-[0.14em] text-tea-text-dim/70">
-                        a gram
+                      <span className="mt-px block whitespace-nowrap font-sans text-ui-9 uppercase tracking-[0.14em] text-tea-text-dim/70">
+                        {cell.rate.unit}
                       </span>
                     </span>
                   )}
-                  <span className={`shrink-0 text-right font-display tabular-nums ${isRail ? 'w-[52px] text-ui-15' : 'w-[66px] text-ui-16'} ${cell.active ? 'text-tea-gold-lt' : 'text-tea-text-sec'}`}>
+                  <span className={`shrink-0 whitespace-nowrap text-right font-display tabular-nums ${isRail ? 'text-ui-14' : 'text-ui-15'} ${cell.active ? 'text-tea-gold-lt' : 'text-tea-text-sec'}`}>
                     {cell.sub || '\u203A'}
                   </span>
                 </button>
@@ -431,19 +448,33 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
             <span aria-hidden="true" className="alcove-dock-divider" />
           </div>
           {activeCell ? (
+            /* The amount is a control and has to look like one. Bare type in
+               the middle of a bar is something to read, not something to press,
+               and nothing said this was where you change how much you are
+               buying. A keyline, a fill, the caret and the word for what
+               pressing it does, which together say it without a tour. */
             <button
               type="button"
               onClick={() => setAmountsOpen(open => !open)}
               aria-expanded={amountsOpen}
               aria-controls={amountsId}
-              className="tap-target flex min-w-0 flex-1 items-center justify-start gap-2 self-stretch whitespace-nowrap pr-[18px] text-left"
+              aria-label={`Change amount, currently ${activeCell.label}`}
+              className="alcove-dock-amount tap-target"
             >
-              <span className="font-display text-ui-20 tabular-nums text-tea-text">{activeCell.label}</span>
+              <span className="font-display text-ui-17 tabular-nums text-tea-text">{activeCell.label}</span>
               {activeCell.sub && (
-                <span className="font-sans text-ui-14 tabular-nums text-tea-text-dim">{activeCell.sub}</span>
+                <span className="whitespace-nowrap font-sans text-ui-13 tabular-nums text-tea-text-dim">{activeCell.sub}</span>
               )}
-              <span aria-hidden="true" className="font-sans text-ui-9 text-tea-text-dim">
-                {amountsOpen ? '\u25B4' : '\u25BE'}
+              <span className="ml-auto flex shrink-0 items-center gap-1.5 pl-2">
+                {/* The word is worth about 55px, which a phone bar does not
+                    have to spare and would take out of the price. The keyline
+                    and the caret carry it there. */}
+                <span className="hidden font-sans text-ui-9 uppercase tracking-[0.14em] text-tea-text-dim sm:inline">
+                  Change
+                </span>
+                <span aria-hidden="true" className="font-sans text-ui-9 text-tea-text-dim">
+                  {amountsOpen ? '\u25B4' : '\u25BE'}
+                </span>
               </span>
             </button>
           ) : (
@@ -477,6 +508,24 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
               <span className="ml-2.5 font-display text-ui-17 tabular-nums sm:ml-3">
                 {resolvedTotal(orderTotalUsd)}
               </span>
+            </button>
+          ) : activeCell ? (
+            /* "Purchase", because that is what pressing it does. It read "How
+               much", which is a question about the amount and so competed with
+               the control beside it that actually sets the amount: two things
+               asking the same question and neither committing. This one
+               commits, putting the amount showing to its left into the order
+               and opening it. */
+            <button
+              type="button"
+              onClick={() => {
+                if (onChooseAmount && activeCell.chooseGrams != null) onChooseAmount(activeCell.chooseGrams);
+                else activeCell.onSelect();
+                onOpenOrder?.();
+              }}
+              className="alcove-dock-cta tap-target inline-flex items-center"
+            >
+              Purchase
             </button>
           ) : (
             <button

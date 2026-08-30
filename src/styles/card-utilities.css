@@ -3557,6 +3557,7 @@ input[type="number"]::-webkit-outer-spin-button {
   left: 1rem;
   right: 1rem;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 12px + 52px);
+  color-scheme: dark;
   /* The same material as the navigation it sits on, to the value: same
      translucent ground, same blur, same keyline. It used to be an opaque slab
      in a different brown, which is why the two read as two objects stacked
@@ -3566,7 +3567,12 @@ input[type="number"]::-webkit-outer-spin-button {
   border: 1px solid rgb(var(--tea-border-rgb) / 0.6);
   border-bottom: 0;
   border-radius: 0;
-  background: rgb(var(--tea-bg-rgb) / 0.92);
+  /* Darker than the page rather than the same value at 92%. This is the one
+     surface that sits over the reading rather than in it, and a ground a shade
+     off the page's own reads as a pane of the page that happens to float.
+     Near-black separates it, and the price list inside it stops competing with
+     the tea behind it. */
+  background: rgb(9 8 7 / 0.9);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   /* No shadow. The navigation below casts one for the whole assembly, and a
@@ -3580,7 +3586,7 @@ input[type="number"]::-webkit-outer-spin-button {
   display: flex;
   align-items: center;
   gap: 10px;
-  height: 58px;
+  height: 52px;
   padding-left: 12px;
 }
 .alcove-dock-icon {
@@ -3603,6 +3609,32 @@ input[type="number"]::-webkit-outer-spin-button {
 /* The one way in, before an amount is chosen. It runs to the strip's right
    edge rather than floating inside it, which is what stops it reading as a
    button dropped onto a bar. */
+/* The amount picker. A keyline and a fill, so the middle of the bar reads as
+   a field you can press rather than a figure you can only look at. Square,
+   because everything around it is. */
+.alcove-dock-amount {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  align-self: center;
+  min-height: 36px;
+  padding: 0 10px;
+  margin-right: 10px;
+  white-space: nowrap;
+  text-align: left;
+  border: 1px solid rgb(var(--tea-gold-rgb) / 0.28);
+  border-radius: 2px;
+  background: rgb(var(--tea-gold-rgb) / 0.06);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.alcove-dock-amount:hover,
+.alcove-dock-amount[aria-expanded='true'] {
+  border-color: rgb(var(--tea-gold-rgb) / 0.5);
+  background: rgb(var(--tea-gold-rgb) / 0.1);
+}
+
 .alcove-dock-cta {
   flex: 0 0 auto;
   align-self: stretch;

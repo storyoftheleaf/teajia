@@ -77,6 +77,18 @@ export interface ShopPrice {
   total: (usd: number) => string;
   /** A rate, carrying its own `/g`. */
   perGram: (usdPerGram: number) => string;
+  /**
+   * The same rate, split from the unit it is quoted in.
+   *
+   * `perGram` bakes the unit into the string, and the unit is not always the
+   * gram: a currency where a gram costs a few units is quoted per 100 g
+   * instead, because "NT$73/g" rounds away everything that distinguishes one
+   * tea from another. Anything that wants to set the figure and its unit
+   * apart, on two lines or in two columns, has to be told which unit it got
+   * rather than parse it back out of the string. Parsing it back out is what
+   * put "a gram" under a per-100 g figure on the price list.
+   */
+  rate: (usdPerGram: number) => { value: string; unit: string };
 }
 
 export function useShopPrice(): ShopPrice {
@@ -105,5 +117,16 @@ export function useShopPrice(): ShopPrice {
     [localised, currency, rates],
   );
 
-  return useMemo(() => ({ localised, code, total, perGram }), [localised, code, total, perGram]);
+  const rate = useCallback(
+    (usdPerGram: number) =>
+      localised
+        ? { value: formatCurrency(usdPerGram * 100, currency, rates), unit: 'per 100 g' }
+        : { value: fmtShopPricePerGram(usdPerGram).replace(/\s*\/\s*g$/, ''), unit: 'a gram' },
+    [localised, currency, rates],
+  );
+
+  return useMemo(
+    () => ({ localised, code, total, perGram, rate }),
+    [localised, code, total, perGram, rate],
+  );
 }
