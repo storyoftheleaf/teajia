@@ -586,11 +586,13 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
    * about WhatsApp turnaround; nothing in the system guarantees that, so the
    * claim is gone and the strip renders only when there is a control to hold.
    */
-  const commerceReassurance = orderAccess ? (
-    <div className="flex min-h-[44px] items-center gap-3 border-t border-tea-border px-3.5">
-      {orderAccess}
-    </div>
-  ) : null;
+  /* The order bar's right-hand block IS the way to the order, and it carries
+     the total. A second row under it repeating "View order" was 45px of the
+     screen spent saying the same thing twice, and it only appeared once there
+     was an order, which is exactly when the block above it was already
+     shouting. The crumb bar at the top of the page carries the same link for
+     anyone who has scrolled away from the bar. */
+  const commerceReassurance = null; 
 
   // ── Page layout: the "quiet page" at /shop/product/:id on cold loads ─────
   if (layout === 'page') {
@@ -603,7 +605,13 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             the foot now, the same object the phone gets. The label is a panel
             rather than a header here, which is what lets this page hold up on
             a tea with no photograph at all. */}
-        <div className="lg:grid lg:grid-cols-[minmax(0,520px)_minmax(0,1fr)] lg:items-stretch lg:gap-0">
+        {/* The label takes a SHARE of the page, not a fixed 520px. 520 is what
+            the design file draws at 1440, where it is 36% and reads as an
+            accent beside the reading; pinned, the same number is 57% of a
+            900px window and the tea's own words end up in a gutter. As a
+            percentage it stays 520 at 1440 and gets out of the way below it,
+            capped so it never grows past what the file draws. */}
+        <div className="lg:grid lg:grid-cols-[minmax(0,min(36%,520px))_minmax(0,1fr)] lg:items-stretch lg:gap-0">
           <div className="lg:h-full lg:border-r lg:border-tea-border">
             {identityHeader}
           </div>

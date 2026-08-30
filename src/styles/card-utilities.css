@@ -3675,7 +3675,11 @@ input[type="number"]::-webkit-outer-spin-button {
     transform: none;
     bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
     border: 1px solid rgb(var(--tea-border-rgb) / 0.6);
-    border-radius: 9999px;
+    /* Square top, rounded base, the same silhouette the assembly has on the
+       phone. It was a full pill here, which put a rounded edge along the top
+       of a bar that nothing sits on top of, and read as a capsule dropped onto
+       the page rather than the foot of it. */
+    border-radius: 0 0 26px 26px;
     box-shadow:
       0 10px 32px rgb(0 0 0 / 0.45),
       0 2px 8px rgb(0 0 0 / 0.25),
@@ -3683,11 +3687,9 @@ input[type="number"]::-webkit-outer-spin-button {
   }
   /* Closed all round, so there is no seam to draw and the ends must follow. */
   .commerce-dock::after { display: none; }
-  .commerce-dock .alcove-dock-strip { border-radius: 9999px; }
+  .commerce-dock .alcove-dock-strip { border-radius: 0 0 26px 26px; }
   .commerce-dock .alcove-dock-cta {
-    border-top-right-radius: 9999px;
-    border-bottom-right-radius: 9999px;
-    padding-right: 30px;
+    border-bottom-right-radius: 26px;
   }
 }
 

@@ -60,10 +60,30 @@ const TermLine: React.FC<{
     sentenceCase ? text.charAt(0).toUpperCase() + text.slice(1).toLowerCase() : text;
   return (
   <div className="grp">
-    <div className="font-sans text-ui-10 uppercase tracking-[0.24em] indent-[0.24em] text-tea-text-dim">
-      {label}
-    </div>
-    <div className="mx-auto mt-3 max-w-[300px] font-display text-[21px] leading-[1.65] text-tea-text lg:max-w-[360px] lg:text-[22px]">
+    {/* On the page, label and terms are ONE line. They used to be a caps line,
+        then a 21px serif block running to three or five lines, then an
+        empty-state note, then a boxed button: five stacked things and a couple
+        of hundred pixels to say a tea tastes of five flavours. The label now
+        sits inline at the head of the sentence and the terms run on after it,
+        wrapping only when they must. The card keeps the stacked form, where
+        the block is the point and there is nothing competing with it. */}
+    {!sentenceCase && (
+      <div className="font-sans text-ui-10 uppercase tracking-[0.24em] indent-[0.24em] text-tea-text-dim">
+        {label}
+      </div>
+    )}
+    <div
+      className={
+        sentenceCase
+          ? 'mx-auto max-w-[560px] text-balance font-display text-ui-16 leading-[1.55] text-tea-text'
+          : 'mx-auto mt-3 max-w-[300px] font-display text-[21px] leading-[1.65] text-tea-text lg:max-w-[360px] lg:text-[22px]'
+      }
+    >
+      {sentenceCase && (
+        <span className="mr-2 font-sans text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim">
+          {label}
+        </span>
+      )}
       {terms.map((term, i) => (
         <React.Fragment key={term.termId}>
           {i > 0 && (
@@ -143,21 +163,18 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
       className={`alcove-band relative px-6 ${open ? 'alcove-band--open mt-9 pb-2 pt-0' : 'mt-[22px] pb-[18px] pt-4'}`}
     >
       {open ? (
-        <div aria-hidden="true" className="alcove-rule mb-4" />
+        <div aria-hidden="true" className="alcove-rule mb-3.5" />
       ) : (
         <AlcoveSectionHeading label="Character" className="mb-3" />
       )}
 
       {hasTerms && (
-        <div className="text-center [&_.grp+.grp]:mt-3">
+        <div className={open ? "text-center [&_.grp+.grp]:mt-1.5" : "text-center [&_.grp+.grp]:mt-3"}>
           {tasteTerms.length > 0 && (
             <TermLine label={open ? 'Tastes of' : 'Taste'} terms={tasteTerms} onTermClick={onTermClick} sentenceCase={open} />
           )}
           {feelingTerms.length > 0 && (
             <TermLine label="Feel" terms={feelingTerms} onTermClick={onTermClick} sentenceCase={open} />
-          )}
-          {open && feelingTerms.length === 0 && (
-            <p className="mt-[13px] font-body text-ui-14 italic text-tea-text-dim/55">no feeling terms recorded yet</p>
           )}
           {item.tastingSource === 'common' && hasVisibleStructuredTerms && (
             <p className="mt-2 font-sans text-ui-11 text-tea-text-dim">Potential profile</p>
@@ -169,18 +186,21 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
       )}
 
       {onTaste && (
-        <div className="mt-4 text-center">
+        <div className={open ? 'mt-2 text-center' : 'mt-4 text-center'}>
           <button
             type="button"
             onClick={e => {
               e.stopPropagation();
               onTaste(item);
             }}
-            className="alcove-tasting-btn tap-target inline-flex min-h-[38px] items-center px-[18px] py-[9px] font-sans text-ui-10 uppercase tracking-[0.18em] text-tea-text-sec transition-colors hover:text-tea-text"
+            className={
+              open
+                ? 'tap-target inline-flex min-h-[32px] items-center font-sans text-ui-10 uppercase tracking-[0.16em] text-tea-text-dim underline decoration-tea-gold/40 underline-offset-4 transition-colors hover:text-tea-text hover:decoration-tea-gold'
+                : 'alcove-tasting-btn tap-target inline-flex min-h-[38px] items-center px-[18px] py-[9px] font-sans text-ui-10 uppercase tracking-[0.18em] text-tea-text-sec transition-colors hover:text-tea-text'
+            }
           >
             Add your tasting
           </button>
-          {open && <div aria-hidden="true" className="alcove-rule mt-5 lg:mt-[18px]" />}
         </div>
       )}
 
