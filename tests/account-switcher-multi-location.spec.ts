@@ -129,9 +129,19 @@ async function openPanel(page: Page) {
 }
 
 async function openLocationSwitcher(page: Page) {
-  // The Operator footer has a "Switch location" row.
-  const row = page.getByRole('button', { name: /switch location/i }).first();
-  await expect(row, 'Switch location row should be present (memberCount >= 2)').toBeVisible();
+  // No longer a "Switch location" row in a footer. The panel's home is a grid
+  // of verbs now, and switching is the "switch" tile, shown only to someone
+  // with more than one table. (There is also a small account chip at the top
+  // of the panel, but that opens a short list rather than this full view with
+  // its search and zones, which is what these tests are about.)
+  // The tile carries its verb and its hint as separate lines, so match on
+  // both rather than on one assembled name. The count is what keeps this clear
+  // of "Switch account" and "Switch to light mode".
+  const row = page.getByRole('button')
+    .filter({ hasText: /^switch/i })
+    .filter({ hasText: /\d+ tables?/i })
+    .first();
+  await expect(row, 'Switch tile should be present (memberCount >= 2)').toBeVisible();
   await row.click();
   await page.waitForTimeout(400);
 }
