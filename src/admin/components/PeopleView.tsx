@@ -9,6 +9,7 @@ import { TeamView } from '../views/TeamView';
 import { PurchaseOrdersPage } from '../views/PurchaseOrdersPage';
 import { ContactTagsView } from '../views/ContactTagsView';
 import { useAppStore } from '../store';
+import { useAppStore as useMainStore, selectHasBundle, selectIsOwnerTier } from '../../lib/store';
 import { api } from '../../lib/api';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
@@ -26,9 +27,16 @@ export const PeopleView: React.FC<PeopleViewProps> = ({
 }) => {
   const { isDevAdmin } = useAppStore();
   const effectiveRole = userRole || (isDevAdmin ? 'owner' : 'user');
+  // The role handed down here is the global account type, and everyone invited
+  // to run a shop carries the ordinary one, so four of these six tabs went
+  // missing for the very people who own the shop. Their standing in this shop
+  // is the question that belongs here.
+  const ownsThisShop = useMainStore(selectIsOwnerTier);
+  const hasStockAccess = useMainStore(s => selectHasBundle(s, 'stock'));
+  const hasMembersAccess = useMainStore(s => selectHasBundle(s, 'members'));
 
-  const canSeeSources = sourcesAccess.includes(effectiveRole);
-  const canSeeTeam = effectiveRole === 'owner';
+  const canSeeSources = ownsThisShop || hasStockAccess || sourcesAccess.includes(effectiveRole);
+  const canSeeTeam = ownsThisShop || hasMembersAccess || effectiveRole === 'owner';
 
   const tabs: { id: PeopleTab; label: string; icon: React.ReactNode; visible: boolean }[] = [
     { id: 'customers',       label: 'Contacts',        icon: <Users size={14} />,        visible: true },

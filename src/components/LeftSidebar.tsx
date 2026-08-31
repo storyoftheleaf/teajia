@@ -169,6 +169,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const hasCatalog = useAppStore(s => selectHasBundle(s, 'catalog'));
   const hasSell = useAppStore(s => selectHasBundle(s, 'sell'));
   const hasPublish = useAppStore(s => selectHasBundle(s, 'publish'));
+  const hasStock = useAppStore(s => selectHasBundle(s, 'stock'));
+  const hasGather = useAppStore(s => selectHasBundle(s, 'gather'));
+  const hasMembers = useAppStore(s => selectHasBundle(s, 'members'));
   const platformRole = useAppStore(s => s.platformRole);
   const isOwnerTier = useAppStore(selectIsOwnerTier);
   const canCreateCollections = auth.user?.canCreateCollections ?? false;
@@ -270,8 +273,16 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     },
   ];
   const visibleAdminItemIds = new Set(getVisibleAdminItemIds(
-    auth.isAdmin,
-    hasPublish,
+    {
+      isAdmin: auth.isAdmin,
+      isOwnerTier,
+      hasCatalog,
+      hasStock,
+      hasSell,
+      hasGather,
+      hasPublish,
+      hasMembers,
+    },
     adminItems.map(item => item.id),
   ));
   const visibleAdminItems = adminItems.filter(item => visibleAdminItemIds.has(item.id));
