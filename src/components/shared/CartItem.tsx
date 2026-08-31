@@ -47,7 +47,22 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
     !!item.variant &&
     item.variant.trim().toLowerCase() !== item.name.trim().toLowerCase();
 
-  const rate = displayRate(item.pricePerGram);
+  /**
+   * What this amount actually works out to a gram, not the catalogue rate.
+   *
+   * A line carries a flat handling amount (`TEA_PRICING.handlingUsd`) that a
+   * whole pressed piece skips, so the real rate falls as the amount rises and
+   * the shop's own Quote type says so: "What that works out to a gram. Falls
+   * as grams rise." Printing `item.pricePerGram` here showed a figure that
+   * never moved while the weights beside it did, which reads as the rate being
+   * fixed and the buying-more advantage being invisible.
+   *
+   * `totalPrice` is the curve-applied line total the store computes, so the
+   * division below is the same arithmetic as `quoteGrams`, after its rounding.
+   */
+  const effectivePerGram =
+    item.quantityGrams > 0 ? item.totalPrice / item.quantityGrams : item.pricePerGram;
+  const rate = displayRate(effectivePerGram);
   const onPresetList = PRESETS.includes(item.quantityGrams);
   const otherIsLive = showOther || (isTea && !onPresetList);
 
