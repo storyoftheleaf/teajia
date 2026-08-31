@@ -238,8 +238,8 @@
 
 /* ============================================
    Numeric Display, consistent across entire site
-   Uses IBM Plex Mono with tabular (equal-width),
-   lining (uniform-height) figures for clean alignment.
+   Lora with tabular (equal-width), lining (flat, uniform-height)
+   figures. Every price, weight and quantity on the site comes through here.
    ============================================ */
 
 .num {
@@ -247,7 +247,7 @@
   font-weight: 500;
   font-variant-numeric: tabular-nums lining-nums;
   font-feature-settings: 'tnum' 1, 'lnum' 1;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.005em;
 }
 
 /* Hide number input spinners globally */
@@ -341,7 +341,9 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 .card-grid-price {
-  font-family: 'IBM Plex Mono', 'Menlo', 'Courier New', monospace;
+  /* Was naming a face directly and so missed every change made to the shared
+     numeral setting. Reads it now, like every other price on the site. */
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums lining-nums;
   font-size: 0.75rem;
   color: var(--tea-gold);
@@ -2149,8 +2151,13 @@ input[type="number"]::-webkit-outer-spin-button {
 /* What's inside item row */
 
 /* Price comparison */
+/* Both were asking for a face the site has never loaded, so they rendered in
+   whatever monospace the device happened to have: Menlo on a Mac, something
+   else on a phone. Two prices sitting next to each other in different fonts
+   depending on who was looking. Both read the shared numeral setting now. */
 .set-price-original {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums lining-nums;
   font-size: 0.8125rem;
   color: var(--tea-text-dim);
   text-decoration: line-through;
@@ -2158,10 +2165,13 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 .set-price-current {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums lining-nums;
   font-size: 1.125rem;
   color: var(--tea-gold);
-  font-weight: 600;
+  /* 500, not 600: the numeral face only ships two weights and the heavier one
+     is what made the old price shout over the tea's name. */
+  font-weight: 500;
 }
 
 .set-discount {

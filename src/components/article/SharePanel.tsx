@@ -190,7 +190,7 @@ async function renderPosterToCanvas(comp: ShareComposition, article: DbArticle):
   };
   const displayFam = root.getPropertyValue('--font-display').trim() || "'Cormorant Garamond', Georgia, serif";
   const bodyFam    = root.getPropertyValue('--font-body').trim()    || "'Lora', serif";
-  const monoFam    = root.getPropertyValue('--font-mono').trim()    || "'IBM Plex Mono', monospace";
+  const monoFam    = root.getPropertyValue('--font-mono').trim()    || "'Lora', Georgia, serif";
 
   const setDisplay = (size: number, style = 'normal') => { ctx.font = `${style} 400 ${size}px ${displayFam}`; };
   const setBody    = (size: number, style = 'normal') => { ctx.font = `${style} 400 ${size}px ${bodyFam}`; };

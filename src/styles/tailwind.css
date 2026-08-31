@@ -108,8 +108,11 @@ nav[aria-label="Admin navigation"] * {
   --font-serif: 'Lora', 'Lora Fallback', 'Noto Serif SC', Georgia, serif;
   --font-body: 'Lora', 'Lora Fallback', 'Noto Serif SC', Georgia, serif;
   --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
-  /* Mono rebound to Plus Jakarta Sans 500 with tabular-nums, clean geometric numerals, no dotted zero */
-  --font-mono: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  /* The numeral face. Lora, the same face as body text, so a price reads as
+     part of the line beside it. Its figures sit flat on the baseline. Named
+     `mono` for history only, nothing here is monospaced. See FONT_STACKS in
+     designTokens for the measurements and for why never Cormorant. */
+  --font-mono: 'Lora', Georgia, serif;
 
 }
 
@@ -427,10 +430,32 @@ p {
 
 .font-body {
   font-family: 'Lora', 'Noto Serif SC', Georgia, serif;
+  /* Same reason as .font-display above: a figure inside a paragraph must not
+     hang below the line. Welded here rather than added per style, so a number
+     written into body prose next month is flat without anyone asking. */
+  font-variant-numeric: lining-nums;
+  font-feature-settings: 'lnum' 1;
 }
 
 .font-caption {
   font-family: 'Plus Jakarta Sans', 'Noto Serif SC', system-ui, sans-serif;
+}
+
+/* ── The numeral rule ────────────────────────────────────────────────────────
+   Figures sit flat on the baseline. Everywhere, without exception.
+
+   Welded to the face itself rather than added style by style. Before this,
+   the flat set was requested by the `.num` helper alone, and three price
+   styles that named a font directly never got it. Anything reaching for the
+   numeral face now gets flat, equal-width figures whether it asks or not.
+
+   Lora's figures are flat already, so this is belt and braces: it is what
+   holds if the face is ever swapped for one that carries an old-style set,
+   which is the trap Cormorant would have walked into. */
+.font-mono {
+  font-family: 'Lora', Georgia, serif;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
 }
 
 .font-calligraphy {
@@ -580,9 +605,11 @@ p {
   border-radius: 50%;
   background: rgba(184, 146, 78, 0.15);
   color: var(--tea-gold);
-  font-family: 'IBM Plex Mono', monospace;
+  /* A step number is a number. Reads the shared numeral setting. */
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums lining-nums;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   flex-shrink: 0;
 }
 

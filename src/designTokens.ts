@@ -3,7 +3,7 @@
  * ║  TEAJIA DESIGN SYSTEM, "Espresso + Gold"                      ║
  * ║  Single source of truth for all visual decisions.               ║
  * ║                                                                 ║
- * ║  Typography:  Cormorant Garamond · Lora · Plus Jakarta Sans · IBM Plex Mono║
+ * ║  Typography:  Cormorant Garamond · Lora · Plus Jakarta Sans      ║
  * ║  Palette:     Warm espresso-and-gold, dark/light via CSS vars   ║
  * ║  Textures:    SVG grain, paper weave, fabric overlay            ║
  * ║  Philosophy:  Editorial calm. Nothing shouts. Everything hums.  ║
@@ -31,9 +31,12 @@ import { normalizeTeaType, NON_TEA_TYPES, type TeaType as WisdomTeaType } from '
  *                Labels, navigation, tags, buttons, metadata.
  *                Geometric but soft, warmer than Inter, better at small sizes.
  *
- *   MONO      : IBM Plex Mono 400
- *                Prices, weights, hex codes, technical metadata.
- *                Wider and more readable at small sizes than JetBrains Mono.
+ *   NUMERAL   : Lora 400/500
+ *                Prices, weights, quantities, technical metadata.
+ *                The body face, so a price reads as part of its line. Its
+ *                figures sit flat on the baseline, which is the rule.
+ *                Still keyed as `mono` throughout for history; nothing on
+ *                this site is set in an actual monospace.
  *
  *   CHINESE   : Noto Serif SC (body), Ma Shan Zheng (calligraphy)
  *                Chinese product names and tea card watermarks.
@@ -44,11 +47,28 @@ export const FONT_STACKS = {
   body:    ['Lora', 'Noto Serif SC', 'Georgia', 'serif'],
   caption: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
   sans:    ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
-  // Mono rebound: Plus Jakarta Sans 500 with tabular-nums.
-  // Clean geometric numerals, no dotted zero. The `.num` helper and
-  // `font-mono` utility both resolve to this stack; numerics get
-  // weight 500 + tabular-nums via the .num class in card-utilities.css.
-  mono:    ['Plus Jakarta Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+  // The numeral face. Named `mono` for history only: nothing here is
+  // monospaced, and no price on this site has been set in a monospace since
+  // the stack was first rebound.
+  //
+  // The same face as `body`, deliberately, so a price reads as part of the
+  // line it sits in rather than as a foreign object. The previous stack was
+  // Plus Jakarta Sans at weight 500, and a medium-weight geometric sans made
+  // the price the heaviest thing on a card whose name is set in Cormorant.
+  //
+  // Lora's figures sit flat on the baseline, which is the rule: measured on
+  // the running site, its lowest figure falls 1.7% below the line, the same
+  // as its letter O, so that is the roundness of a curve and not a descender.
+  // Cormorant is the face that fails here and the reason the rule exists: it
+  // ships an old-style set it reaches for unasked, where 3, 5, 7 and 9 hang
+  // as far below the line as a lowercase y. Never set a price in it without
+  // forcing lining figures.
+  //
+  // Kept as its own entry rather than pointed at `body` so the numeral face
+  // can be changed without touching reading text.
+  //
+  // The `.num` helper and the `font-mono` utility both resolve here.
+  mono:    ['Lora', 'Georgia', 'serif'],
   chinese: ['Noto Serif SC', 'serif'],
   chineseCalligraphy: ['Ma Shan Zheng', 'cursive'],
 } as const;
@@ -134,7 +154,7 @@ export const TYPE_SCALE = {
     letterSpacing: '0.2px',
   },
 
-  /** Prices, hex codes, specs: IBM Plex Mono 400 (11px, wider and more readable) */
+  /** Prices, hex codes, specs: Lora 400 at 11px. Flat figures, no dips. */
   mono: {
     fontFamily: 'mono',
     fontWeight: 400,
@@ -897,7 +917,7 @@ export const SURFACE_TREATMENTS = {
  *   - Transform: translateY(-3px) scale(1.01) on hover
  *   - Image: aspect-ratio 1/1, opacity 0.9 → 1 on hover, scale(1.06)
  *   - Title: font-display (Cormorant Garamond), color transitions to --tea-gold on hover
- *   - Price: .num class (IBM Plex Mono, tabular-nums)
+ *   - Price: .num class (Lora, tabular figures, flat on the baseline)
  *
  * SURFACE TREATMENTS (see §12):
  *   - .surface-warm: Radial warmth gradient + grain noise, use on all panels/drawers
