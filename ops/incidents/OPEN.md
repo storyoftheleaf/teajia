@@ -84,6 +84,16 @@
   Normalized error: `timeout`
   Evidence: [network-get-api-products-public-none-timeout-d036fd27.json](evidence/network-get-api-products-public-none-timeout-d036fd27.json)
 
+- [ ] `network_get_api_public_xref_products_a3e29766_eaa5_49c1_9ac7_15fc9d0fe3d2_articl` — **medium**
+  1 occurrence · first 2026-08-30T18:08:14Z · last 2026-08-30T18:08:14Z
+  Normalized error: `transport_failure`
+  Evidence: [network-get-api-public-xref-products-a3e29766-eaa5-49c1-9ac7-15fc9d0fe3d2-articl-1dc0c41e.json](evidence/network-get-api-public-xref-products-a3e29766-eaa5-49c1-9ac7-15fc9d0fe3d2-articl-1dc0c41e.json)
+
+- [ ] `network_get_api_s_teajia_bali_none_transport_failure` — **medium**
+  1 occurrence · first 2026-08-30T19:22:40Z · last 2026-08-30T19:22:40Z
+  Normalized error: `transport_failure`
+  Evidence: [network-get-api-s-teajia-bali-none-transport-failure-234e7567.json](evidence/network-get-api-s-teajia-bali-none-transport-failure-234e7567.json)
+
 - [ ] `network_put_api_user_favorites_none_timeout` — **medium**
   1 occurrence · first 2026-07-27T06:42:19Z · last 2026-07-27T06:42:19Z
   Normalized error: `timeout`
