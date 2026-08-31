@@ -11,17 +11,16 @@ cost: "180 CNY"
 vendor: "楚桓茶业"
 tastingNotes: []
 ---
-
-This is a raw puerh, called sheng, from Yunnan in southwest China. Sheng is the original way: the leaf is killed with heat, rolled, and dried, then left to age for years on its own. A sheng from the 1980s has been quietly becoming itself for four decades, the briskness of a young leaf long gone, the cup settled and mellow. It carries the character of proper humid aging, warm and full-bodied, from a place that knows how. It was expertly stored in Guangzhou.
+A raw puerh (sheng) from Yunnan, aged since the 1980s.
 
 ## Lore
 
-Puerh comes from Yunnan in southwest China, and sheng is the raw style, kill-green and sun-dried, meant to age naturally over decades with no shortcut piling. Forty years of that aging is what this 1980s lot brings to the cup.
+The seller's name 原度 (yuandu) points to the age of the leaf rather than any story we can verify. What is honest to say is this: forty years ago someone set this raw puerh aside to become itself, and it has.
 
 ## Terroir
 
-Yunnan is the historical heart of puerh, a large mountainous province in southern China. Its highlands have long produced the broad-leaf tea puerh is made from.
+Puerh comes from Yunnan, a mountainous province in southwest China. The highlands there grow the broad-leaf tea plants that puerh is made from, and the region has been the historical heart of the style for centuries.
 
 ## Processing
 
-This is raw sheng puerh from the 1980s, aged naturally rather than pushed through an accelerated fermentation. A sheng of this age has had decades to settle, the edges of youth long gone, deepened by proper humid aging into a warm, full-bodied cup.
+Sheng is the raw, original style of puerh: fresh leaves are heated to stop oxidation (kill-green), rolled, sun-dried, and then left to age naturally over decades, with no wet piling shortcut. This lot has had four decades of slow, humid aging behind it, so the briskness and bitterness of a young sheng are long gone and the cup drinks warm, mellow, and full-bodied.

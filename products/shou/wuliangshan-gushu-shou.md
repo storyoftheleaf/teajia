@@ -18,17 +18,16 @@ tastingNotes:
   - "woody"
   - "mellow"
 ---
-
-A ripe puer from mountain gardens the Yi people have tended for centuries.
+A ripe puerh (shou) made from ancient-tree leaf on Wuliang Mountain, central Yunnan.
 
 ## Lore
 
-Wuliang Mountain rises in central Yunnan, held between its own range and the neighboring Ailao. The Yi have kept these gardens for generations; by the Qing dynasty the plantings covered more than 100,000 mu.
+Wuliang Mountain rises in central Yunnan, held between its own range and the neighboring Ailao. The Yi people have kept these gardens for generations, and by the Qing dynasty the plantings covered more than 100,000 mu.
 
 ## Terroir
 
-The slopes lie in Jingdong County, at the heart of central Yunnan's old tea country. Ancient trees stand across the mountainsides, an inheritance of long local stewardship. The area is known for gushu leaf from those stands.
+The slopes lie in Jingdong County, Pu'er City, at the heart of Yunnan's old tea country. Ancient trees, called gushu, stand across the mountainsides as an inheritance of long local stewardship.
 
 ## Processing
 
-Gushu leaf, wo dui fermented into ripe shou.
+A ripe puerh, pressed into cake in 2019. Ripe puerh (shou) is made by wet piling the leaf under damp heat, a technique developed in the early 1970s that speeds fermentation so the tea drinks dark, smooth, thick, and earthy without long aging.

@@ -11,17 +11,16 @@ cost: "200 CNY"
 vendor: "楚桓茶业"
 tastingNotes: []
 ---
-
-This is liu bao, a post-fermented dark tea from Guangxi in southern China, kept in a small bamboo basket lined with bamboo leaves. Its small size makes this lot a modest, intimate cup, and it carries the character of Hong Kong aging done properly: the slow, humid transformation that Southeast Asian warehouses have brought to liu bao for generations, lending depth and roundness a dry room cannot. It drinks dark and smooth, generously sweet. This small-basket lot was expertly stored in Guangzhou.
+A liu bao (六堡) dark tea from Guangxi, aged in a small bamboo basket.
 
 ## Lore
 
-Small-basket format keeps the liu bao tradition at a modest scale, loose leaf in bamboo lined with bamboo leaves. The gentle, humid aging used for this lot follows the way Southeast Asian warehouses have handled liu bao for generations.
+Liu bao has been packed into small bamboo baskets lined with bamboo leaves for generations, a modest household format that traveled the river trade out of Wuzhou. Along that same route it became the daily tea of Cantonese and Malaysian tin miners, who valued it for how it drank after long humid storage.
 
 ## Terroir
 
-Liu bao comes from Guangxi in southern China, made along the Xijiang river system around Cangwu and Wuzhou. The region is warm and humid with red, slightly acidic soil, the subtropical setting that suits post-fermented dark tea.
+Liu bao comes from Guangxi in southern China, made along the Xijiang river system around Cangwu and Wuzhou. The area is warm and humid with red, slightly acidic soil, the subtropical setting that suits dark tea.
 
 ## Processing
 
-The leaf is wet-piled, the step where heat and moisture build and microbes slowly transform it, then packed into a small bamboo basket lined with bamboo leaves. This one was aged with the character of Hong Kong humid aging done properly, the kind of slow transformation that deepens and rounds dark tea in a way a dry room cannot.
+Liu bao is a hei cha, a dark tea, not a puerh. After the leaf is picked and pan-fired it goes through wet piling, a step where heat and moisture build up and microbes slowly transform the tea, then it is packed loose into a small bamboo basket lined with bamboo leaves. This lot then spent years in Hong Kong humid storage, the slow warehouse aging Southeast Asia is known for, which deepens and rounds dark tea in a way a dry room cannot. It drinks dark, smooth, mellow, and gently sweet.

@@ -11,13 +11,16 @@ cost: "385 CNY"
 vendor: "广易茶文化"
 tastingNotes: []
 ---
+A liu bao (六堡) dark tea from Guangxi, kept the old way in a large bamboo basket.
 
-Liu bao is a dark tea from Guangxi. Large-basket aging is the old way: loose leaf packed into bamboo baskets lined with bamboo leaves, sealed to breathe.
+## Lore
+
+Basket storage is the old way of keeping liu bao. Instead of pressing the leaf into cakes, it is packed loose into bamboo baskets lined with bamboo leaves, sometimes reaching fifty kilograms to a basket. The basket breathes, and the bamboo slowly lends its character to the tea over the decades it rests.
 
 ## Terroir
 
-Guangxi province, southern China, centered in the Cangwu and Wuzhou area along the Xijiang river system, where the warm humid climate and microbial environment define liu bao's character.
+Liu bao comes from Guangxi in southern China, made along the Xijiang river system around Cangwu and Wuzhou. The area is warm and humid with red, slightly acidic soil, a setting that suits the long maturing a dark tea needs.
 
 ## Processing
 
-Wo dui fermented liu bao, then packed loose into a large bamboo basket lined with bamboo leaves for long aging. The bamboo lining becomes the micro-environment, slowly flavoring the tea over decades in a way cedar or camphor storage cannot. This 1990s lot was expertly stored in Guangzhou.
+Liu bao is a hei cha, a dark tea from Guangxi, and not a puerh. The leaf is first wet-piled, called wo dui, the step where heat and moisture build and microbes slowly transform it. Aged in the basket for decades, the style generally drinks dark, smooth, and gently sweet. This lot is from the 1990s, stored in Guangzhou.

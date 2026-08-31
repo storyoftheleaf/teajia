@@ -11,13 +11,16 @@ cost: "400 CNY"
 vendor: "广易茶文化"
 tastingNotes: []
 ---
+A ripe puerh (shou) from Yunnan, kept loose rather than pressed into a cake.
 
-Puerh comes from Yunnan. Shou is the ripe style, developed in the early 1970s, made through a controlled wet piling that gives dark, smooth tea faster than raw.
+## Lore
+
+Puerh is made in two styles. Raw, called sheng, ages slowly on its own for decades. Ripe, called shou, was developed in the early 1970s to reach a similar dark, smooth cup much sooner.
 
 ## Terroir
 
-Yunnan province, southern China, the historical heart of puerh production.
+Yunnan, in southwest China, is the homeland of puerh. It is a large mountainous province whose broad-leaf tea trees and varied highlands are where the style was born.
 
 ## Processing
 
-Wo dui fermented shou puerh from the 1990s, pressed-free and kept loose. Loose shou skips the press, so time works on it differently: more air, no compression, a quieter path than a cake takes. This lot was expertly stored in Guangzhou.
+Shou is finished with a controlled wet piling, known as wo dui, that gently ferments the leaf into something dark, thick, and earthy. This lot is from the 1990s and was kept loose rather than pressed into a cake, so more air moves through it and it ages on a quieter, more even path. Stored in Guangzhou.
