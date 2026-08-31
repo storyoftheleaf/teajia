@@ -108,20 +108,64 @@ So the invitation is the thing to build, and it has to be able to invite a
 **person** with no shop at all. Everything else in this flow is assembly of
 surfaces that already exist. This is the one genuinely new piece.
 
-## Still open, and still Adrian's to answer
+## Decided by Adrian, 2026-08-31 (second pass)
 
-1. **What is the minimum before someone can take money?** A customer can only pay
-   when the profile is published AND a payment method is marked public. Should
-   the system refuse to call someone a tea master until both are true, or let
-   them exist unpaid and simply show no pay link? This is what connects
-   onboarding to the order work already shipped.
-2. **Who approves a profile, and against what?** Publishing has an approval step
+**3. Money never moves through Teajia, and that is the design, not a gap.** The
+pay page is a directory of ways to pay a person: pay me here, or here, or here.
+Nothing is processed, held, or forwarded. This is why there is no gateway and
+why there will not be one.
+
+The consequence, already true in the shipped code and worth keeping true: **paid
+is always a human's word.** A customer reporting a transfer is a report and
+nothing more; only the tea master confirming it against their own bank makes it
+money. Every surface holds that line today.
+
+**4. A tea master may have a store without payment methods. They may not open it
+to buyers.** Adrian's words: a tea master can have a store, "you just can't
+invite anyone to buy anything on it until he sets up his payment method."
+
+So payment methods gate **selling**, not **existing**. Someone can be invited,
+build a profile, have a store, add teas, and arrange the whole thing, and the
+only thing withheld is the ability to let a customer order.
+
+### Where that gate belongs, and what is missing today
+
+Two places, and neither checks anything now:
+
+- **`accounts.public_enabled`** is what makes a store visible and shoppable, and
+  it is a bare checkbox in `src/admin/views/AccountSettingsView.tsx` and
+  `PlatformAdminView.tsx`. Nothing anywhere asks whether the person being paid
+  can actually be paid. This is the primary gate: a store should not be able to
+  go public until the payment recipient has at least one published payment
+  method.
+- **Checkout** blocks only when the store has neither a WhatsApp number nor a
+  contact email (`resolveContactChannels` in `src/lib/contact.ts`, used by
+  `PublicCart`). It does not look at payment methods at all. This is the backstop
+  for a store that went public and then had its payment methods removed.
+
+**The hole this closes.** Today a store can be flipped public with no way to pay
+anyone. A customer can browse it, fill a cart, check out, and reach the end of
+the order with nowhere to send money. The order surfaces shipped on 2026-08-31
+degrade quietly in that case, showing no pay link, which is correct behaviour but
+means the failure is invisible until a real customer hits it. Adrian's rule moves
+that discovery to the moment the tea master tries to open the shop, where it
+belongs.
+
+When building this, make the refusal say what is missing and link straight to
+where it is fixed. A disabled toggle with no explanation is the version that
+generates a message to Adrian instead of preventing one.
+
+## Still open
+
+Two, neither blocking:
+
+1. **Who approves a profile, and against what?** Publishing has an approval step
    with no written standard behind it. Invitation-only makes this less urgent,
    since Adrian has already vouched for the person by inviting them, and the
    honest answer may be that an invited tea master needs no second gate.
-3. **Where does a half-set-up tea master live?** Your Table adapts by role and
+2. **Where does a half-set-up tea master live?** Your Table adapts by role and
    already carries the attention list, so it is the obvious home. It does not
-   currently know about a person who has been invited but is not finished.
+   currently know about a person who has been invited but has not finished.
 
 ## How to approach the work
 
