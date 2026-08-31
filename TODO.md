@@ -4,20 +4,13 @@
 
 ## Untriaged
 
+- [ ] **Two places now decide whether a tea master can be paid.** _(band: agent-runnable)_ _(effort: moderate)_
+  Left for whoever is building tea master onboarding. That work adds a check asking whether an account has a published payment method, to stop a shop opening with nowhere to send money. The order path already answers a version of that question when it decides whether to put a pay link on an invoice, and the two are not the same shape: one is a yes or no for a whole shop, the other is a link for a single order. So this is not a duplicate to delete, it is a pair to keep honest. It is worth naming because the order code carried exactly this problem until 2026-08-31, when the same money rule was written in two files and the screen and the voice quietly disagreed about what counted as paid. If both checks stay, say in each one that the other exists and how it differs.
+
+  Measured 2026-08-31, and only true while it is: that branch has 786 lines of work saved nowhere but its own folder, no commit, and is 17 changes behind. It was test-applied against main as it stood after the order work landed and it fits with no conflicts, so rebasing is safe whenever it is picked back up. Commit before anything else touches it.
+
 - [ ] **There is no way for someone to set themselves up as a tea master.** _(band: you-required)_ _(effort: deep)_ → Plan: [tea-master-onboarding.md](todo/plans/tea-master-onboarding.md)
   A tea master is one thing to you and two unconnected things to the system: an account you create by hand, and a profile they create themselves that holds their payment links. Nothing walks anyone from one to the other, and nothing can even submit an application, though the inbox to review them exists. Decided 2026-08-31: invitation only for now, and a tea master does not need a shop. That makes the person the trunk and the shop a branch, and it means the one genuinely new piece is an invitation that can make someone a tea master with no shop at all. Nothing today does that: the join code is for tea session guests, and the team invite adds a member to a shop that already exists.
-
-- [ ] **Events, wholesale and sample orders still cannot take a payment the way shop orders can.** _(band: agent-runnable)_ _(effort: deep)_ → Plan: [order-process-handoff.md](todo/plans/order-process-handoff.md)
-  Four ways to be owed money, one of them modernised. An event seat is tracked in a bare column with no history and no pay link, and wholesale writes invoices already marked paid that the ledger cannot see. Route event money through the invoices the close-out already creates rather than adding a second payments table.
-
-- [ ] **The pay page never says what it is being paid for.** _(band: you-required)_ _(effort: moderate)_ → Plan: [order-process-handoff.md](todo/plans/order-process-handoff.md)
-  A customer sees an amount, a code and transfer details, but not their order. Someone with two open orders cannot tell which one they are paying. The page is public and reachable by URL, so how much it may show is a privacy call worth making deliberately before building.
-
-- [ ] **A sample request is only recorded when the sample matches a tea in the shop.** _(band: agent-runnable)_ _(effort: moderate)_ → Plan: [order-process-handoff.md](todo/plans/order-process-handoff.md)
-  Every inquiry line must resolve to a real product, so sample requests for anything else stay a plain WhatsApp message with no record. Letting a line be a named custom line would close it, but that loosens validation on a public write path and needs its own thought.
-
-- [ ] **An order can still be sent carrying a line priced at nothing.** _(band: agent-runnable)_ _(effort: quick)_ → Plan: [order-process-handoff.md](todo/plans/order-process-handoff.md)
-  A retired tea converts to a zero-priced line on purpose, so nothing is silently dropped. It now shows up in the attention list, but nothing refuses to send it. A draft carrying one should not become pending without an explicit acknowledgement.
 
 - [ ] **A saved inventory view can be created but never deleted.** _(band: you-required)_ _(effort: quick)_
   The view rail was redesigned into four purpose lenses plus a Flagged menu, and the per-view delete control did not come across. `deleteView` is still in the store and still wired into InventoryView, so only the affordance is missing. Two tests in `tests/inventory-purpose-views.spec.ts` are skipped against this and name it, so they turn back on when the control returns. Where it belongs in the new rail is a design call.
