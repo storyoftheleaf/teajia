@@ -25,6 +25,9 @@ Add only genuinely new observations here. During triage, move each accepted item
 
 <!-- Use: - [ ] **Short outcome.** Why it matters and the evidence that it is not already covered. -->
 
+- [ ] **The two pages where a customer handles money are never opened in a browser by any test.** _(band: agent-runnable)_ _(effort: moderate)_
+  Neither the payment page nor a customer's own order page has any browser-level check at phone size, and the mobile suite covers neither route. That gap is not theoretical: on 2026-08-31 the order summary on the payment page sized itself to the longest tea name and pushed the amount 208px off a 375px screen, so a customer could not see what they were paying for. A build, the full test suite and an adversarial review all passed it, because static markup cannot measure a layout and the page reported no sideways scroll. It was found by opening the live page on a phone, by hand, and fixed in one line. Until something opens these two routes at 390x844 and asserts no horizontal overflow, the next one of these ships the same way.
+
 - [ ] **The admin browser specs fail about one run in four, on timing, and nobody sees it.** _(band: agent-runnable)_ _(effort: moderate)_
   Measured 2026-08-31 against origin/main's own copy of `OrdersView.behavior.test.ts`, with no local changes in the file: four consecutive runs gave three greens and one failure, always a 5-second test timeout rather than a wrong assertion. Running several of these browser-backed files at once makes it worse: four together failed three of four, one at a time all four passed. They also never run in CI. A suite that fails at random and is watched by nobody teaches everyone to ignore it, so either the waits need to stop racing the default 5s timeout or the files need to run serially with a longer one. Separately from whether they belong in CI at all.
 
