@@ -85,6 +85,8 @@
 - [Ripe Puerh Loose (1990s)](shou/ripe-puerh-loose-1990s.md) 熟普散茶
 - [Huangpian Ripe (1990s)](shou/huangpian-ripe.md) 黄片熟
 - [1990 Ripe Puerh Brick (1990)](shou/1990-ripe-puerh-brick.md) 1990年砖熟普
+- [Aged Ripe Pu-erh](shou/aged-ripe-pu-erh-tea.md) 陈年旧熟普
+- [Aged Northern Vietnam Ripe Pu-erh](shou/aged-northern-vietnam-ripe-pu-erh-tea.md) 北越旧熟普
 
 ## Dark
 
@@ -113,6 +115,7 @@
 - [Large Basket Liu Bao (1990s)](dark/large-basket-liu-bao.md) 大篓六堡茶
 - [Small Basket Liu Bao (1990s)](dark/small-basket-liu-bao.md) 小篓六堡茶
 - [1990 Bamboo Leaf Old Tea (1990)](dark/1990-bamboo-leaf-old-tea.md) 1990年竹叶老茶
+- [Aged Liu Bao Tea](dark/aged-liu-bao-tea.md) 陈年六堡茶
 
 ## Oolong
 
