@@ -1,9 +1,6 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useMemo } from 'react';
 import type { Location } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
-import { AlcoveModal } from './AlcoveModal';
 import { TeaPlaceholder } from './TeaPlaceholder';
-import { TastingSession, type TastingItem } from '../tasting/TastingSession';
 import { Icons } from '../Icons';
 import { SectionDivider } from '../shared/SectionDivider';
 import { useProductModalRoute } from '../../hooks/useProductModalRoute';
@@ -186,24 +183,10 @@ const ItemCard: React.FC<{
 };
 
 export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddToCart, modalLocation }) => {
-  const [tastingItem, setTastingItem] = useState<InventoryItem | null>(null);
-  // Alcove modal driven by the URL (/shop/product/:id + background state).
-  const { viewItem, openProduct, navigateWithinModal, closeProduct } = useProductModalRoute(inventory, modalLocation);
+  const { openProduct } = useProductModalRoute(inventory, modalLocation);
 
   const favoriteTeas = useAppStore(state => state.favoriteTeas);
   const toggleFavoriteTea = useAppStore(state => state.toggleFavoriteTea);
-
-  const handleTaste = useCallback((item: InventoryItem) => {
-    // Close the AlcoveModal via history so it cannot re-open behind the
-    // tasting session.
-    closeProduct();
-    setTastingItem(item);
-  }, [closeProduct]);
-
-  const handleOrderFromTasting = useCallback((item: TastingItem) => {
-    setTastingItem(null);
-    openProduct(item as InventoryItem); // item is always a full InventoryItem at runtime
-  }, [openProduct]);
 
   // Saved items, resolved from favorite IDs
   const savedItems = useMemo(
@@ -231,40 +214,15 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
     [inventory, favoriteTeas]
   );
 
-  // All items for modal navigation
-  const allDisplayItems = useMemo(
-    () => [...savedItems, ...shelfItems],
-    [savedItems, shelfItems]
-  );
-
   const hasSaved = savedItems.length > 0;
   const hasShelf = shelfItems.length > 0;
   const isEmpty = !hasSaved && !hasShelf;
 
   return (
     <div className="max-w-5xl mx-auto py-6 px-3 md:px-4 animate-[fadeIn_0.5s_ease-out]">
-      <AlcoveModal
-        item={viewItem}
-        items={allDisplayItems}
-        onClose={closeProduct}
-        onItemChange={navigateWithinModal}
-        onAddToCart={(item, qty, total) => {
-          onAddToCart(item, qty, total);
-          closeProduct();
-        }}
-        onTaste={handleTaste}
-      />
-
-      <AnimatePresence>
-        {tastingItem && (
-          <TastingSession
-            item={tastingItem}
-            onClose={() => setTastingItem(null)}
-            onOrderTea={handleOrderFromTasting}
-          />
-        )}
-      </AnimatePresence>
-
+      {/* The swipe-between-teas card used to open here. Tapping a tea is a real
+          navigation to the product page now, one address with one rendering, so
+          this never received an item again. Removed rather than left dark. */}
       {/* Page intro */}
       <div className="mb-8">
         <div className="w-12 h-[1px] bg-tea-gold mb-4" />

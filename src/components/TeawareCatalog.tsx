@@ -3,7 +3,6 @@ import React, { useState, useMemo } from 'react';
 import type { Location } from 'react-router-dom';
 import type { InventoryItem } from '../types';
 import { Icons } from './Icons';
-import { TeawareAlcoveModal } from './shop/TeawareAlcoveModal';
 import { CardGridItem } from './shared/CardGridItem';
 import { CardImage } from './shared/CardImage';
 import { PageHeader } from './shared/PageHeader';
@@ -74,7 +73,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
   const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('LIST');
 
   // Alcove modal driven by the URL (/shop/product/:id + background state).
-  const { viewItem, openProduct, navigateWithinModal, closeProduct } = useProductModalRoute(externalInventory, modalLocation);
+  const { openProduct } = useProductModalRoute(externalInventory, modalLocation);
 
   // The grid and the card it opens must quote one currency. `TeawareAlcoveCard`
   // has read `useShopPrice` since round seven; this catalogue still called the
@@ -125,20 +124,9 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
   return (
     <div className="w-full pb-32 animate-[fadeIn_0.5s_ease-out]">
 
-      {/* --- DETAIL MODAL --- */}
-      <TeawareAlcoveModal
-        item={viewItem}
-        items={externalInventory}
-        onClose={closeProduct}
-        onItemChange={navigateWithinModal}
-        onAddToCart={(item, quantity, total) => {
-          if (onAddToCart) onAddToCart(item, quantity, total);
-          closeProduct();
-        }}
-        isAdmin={isAdmin}
-        onEdit={onAdminEdit ? (item) => onAdminEdit(item.id) : undefined}
-      />
-
+      {/* The swipe-between-teas card used to open here. Tapping a tea is a real
+          navigation to the product page now, one address with one rendering, so
+          this never received an item again. Removed rather than left dark. */}
       {/* --- HEADER --- */}
       {!hideHeader ? (
         <PageHeader

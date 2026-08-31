@@ -66,7 +66,6 @@ const SURFACES = [
   './AlcoveCard.tsx',
   './AlcoveModal.tsx',
   './TeawareAlcoveCard.tsx',
-  './TeawareAlcoveModal.tsx',
   './ProductReviews.tsx',
   './CompareView.tsx',
   './CollectionTab.tsx',

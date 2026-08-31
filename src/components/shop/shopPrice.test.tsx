@@ -44,8 +44,13 @@ const footerProps = {
 
 describe('shop price roles', () => {
   it('does not format a fractional rate as a whole-dollar total', () => {
+    // A total rounds up to the next whole unit, because that is how the shop
+    // has always quoted totals. A RATE keeps its cents, which is what this
+    // test's own name asks for and what its second line used to contradict:
+    // rounding the rate made every tea under a dollar a gram read as "$1/g",
+    // so a $0.20 tea and a $0.95 tea quoted the same price.
     expect(fmtShopPrice(0.15)).toBe('$1');
-    expect(fmtShopPricePerGram(0.15)).toBe('$1/g');
+    expect(fmtShopPricePerGram(0.15)).toBe('$0.15/g');
   });
 
   it('renders a complete per-gram rate exactly once', () => {

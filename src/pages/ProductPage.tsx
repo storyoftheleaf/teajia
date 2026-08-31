@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { AnimatePresence } from 'framer-motion';
@@ -90,6 +90,18 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   const { isAdmin } = useAuth();
 
   const item = useMemo(() => findProductByRouteParam(inventory, routeKey), [inventory, routeKey]);
+
+  /*
+   * Recently viewed is recorded here because here is where a tea is opened.
+   * It used to be recorded by the shop's modal card, and when the shop started
+   * opening this page instead the modal stopped appearing, so nothing recorded
+   * anything and the shop's recently-viewed ordering quietly went dead. It is
+   * the page's job now.
+   */
+  const addRecentlyViewed = useAppStore(state => state.addRecentlyViewed);
+  useEffect(() => {
+    if (item?.id) addRecentlyViewed(item.id);
+  }, [item?.id, addRecentlyViewed]);
 
   // Tasting session (customers) / product tasting editor (admins): same
   // behaviors the shop grids attach to the modal card.

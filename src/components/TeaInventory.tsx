@@ -4,8 +4,6 @@ import { useLocation, useSearchParams, type Location } from 'react-router-dom';
 import { Icons } from './Icons';
 import { X } from 'lucide-react';
 import { AddToSampleButton } from './samples/AddToSampleButton';
-import { AlcoveModal } from './shop/AlcoveModal';
-import { TastingEditorModal } from '../admin/components/TastingEditorModal';
 import { resolveTermLabel, resolveTermIcon, TASTING_TAXONOMY, TERM_MAP, type TastingCategoryId } from '../data/tastingTaxonomy';
 import { getCommonTastingForType } from '../data/commonTastingByStyle';
 import { PageHeader } from './shared/PageHeader';
@@ -18,8 +16,6 @@ import { useAppStore } from '../lib/store';
 import { useProductModalRoute, PRODUCT_PATH_RE } from '../hooks/useProductModalRoute';
 import { CompareView } from './shop/CompareView';
 import { useTastingCounts } from '../hooks/useTastingCount';
-import { TastingSession, type TastingItem } from './tasting/TastingSession';
-import { AnimatePresence } from 'framer-motion';
 import type { Product } from '../admin/types';
 import { TeaFinder } from './shop/TeaFinder';
 import { TeaLedger } from './shop/TeaLedger';
@@ -233,7 +229,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   }, [filterSource]);
 
   // User Interaction State, persisted via Zustand store
-  const { favoriteTeas, toggleFavoriteTea, compareItems, recentlyViewed, addRecentlyViewed, shopPriceWeight, setShopPriceWeight, shopSort, setShopSort, shopSavedOnly, setShopSavedOnly } = useAppStore();
+  const { favoriteTeas, toggleFavoriteTea, compareItems, recentlyViewed, shopPriceWeight, setShopPriceWeight, shopSort, setShopSort, shopSavedOnly, setShopSavedOnly } = useAppStore();
   const userFavorites = useMemo(() => new Set(favoriteTeas), [favoriteTeas]);
   const [showCompare, setShowCompare] = useState(false);
 
@@ -313,66 +309,18 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeType, activeRegion, activeFeeling, tastingFilter, activeMoodTags, activeFlavorTags, location.pathname]);
 
-  // Alcove modal, driven by the URL. A card tap pushes /shop/product/:id with
-  // the current location as background state; viewItem is derived from that
-  // URL, so it is always fresh after an inventory refetch and back/forward can
-  // never desync from the modal. See useProductModalRoute.
-  const { viewItem, openProduct, navigateWithinModal, closeProduct } = useProductModalRoute(inventory, modalLocation);
-
-  // Track recently viewed whenever a product opens (modal or swipe).
-  useEffect(() => {
-    if (viewItem) addRecentlyViewed(viewItem.id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewItem?.id]);
-
-  const handleTermClick = useCallback((termId: string, categoryId: string) => {
-    setTastingFilter({ termId, categoryId });
-    closeProduct(); // close the modal
-  }, [closeProduct]);
+  // A card tap is a real navigation to the product page. Recording a tea as
+  // recently viewed moved there with it, because that is where a tea is opened
+  // now.
+  const { openProduct } = useProductModalRoute(inventory, modalLocation);
 
   const clearTastingFilter = useCallback(() => setTastingFilter(null), []);
 
   // Recently viewed items resolved from inventory
 
-  // Tasting Session State
-  const [tastingItem, setTastingItem] = useState<TeaItem | null>(null);
-  // Admin: edit the product's own tasting profile (writes to products.tasting with source='owner')
-  const [adminTastingItem, setAdminTastingItem] = useState<TeaItem | null>(null);
-  const handleEditProductTasting = useCallback((item: TeaItem) => {
-    setAdminTastingItem(item);
-  }, []);
-  const handleTaste = useCallback((item: TeaItem) => {
-    // Close the product card FIRST, whoever is asking. Both destinations below
-    // are full-screen tasting surfaces, and the card is a taller layer than
-    // either of them, so leaving it open buries the session underneath: you see
-    // the card, your taps land on the session you cannot see, and the session's
-    // own bottom tab row is hidden behind the card's order bar. The admin branch
-    // used to return before this line, which is exactly how that happened.
-    closeProduct();
-    // Admins editing their own shop almost always want to update the product's
-    // tasting profile, not file a personal journal entry. Route them into the
-    // admin editor instead. Customers still get the journaling flow.
-    if (isAdmin) {
-      setAdminTastingItem(item);
-      return;
-    }
-    setTastingItem(item);
-  }, [isAdmin, closeProduct]);
-  const handleOrderFromTasting = useCallback((item: TastingItem) => {
-    setTastingItem(null);
-    openProduct(item as TeaItem); // item is always a full TeaItem at runtime
-  }, [openProduct]);
-  const adminTastingProductShim: Product | null = useMemo(() => {
-    if (!adminTastingItem) return null;
-    return {
-      id: adminTastingItem.id,
-      givenName: adminTastingItem.name,
-      productName: adminTastingItem.variant || adminTastingItem.name,
-      type: adminTastingItem.type as Product['type'],
-      imageUrl: adminTastingItem.image || '',
-      tasting: adminTastingItem.tasting,
-    } as Product;
-  }, [adminTastingItem]);
+  /* The tasting session and the admin tasting editor used to open from the
+     swipe card, which was their only door. Both live on the product page now,
+     which is where a tea opens, so the grid no longer carries them. */
 
   // Filter Logic
   const filteredInventory = useMemo(() => {
@@ -535,42 +483,9 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   return (
     <div className="w-full pb-32 animate-[fadeIn_0.5s_ease-out]">
 
-      {/* --- Alcove Detail Modal --- */}
-      <AlcoveModal
-        item={viewItem}
-        items={filteredInventory}
-        onClose={closeProduct}
-        onItemChange={navigateWithinModal}
-        onAddToCart={(item, quantity, total) => {
-          if (onAddToCart) onAddToCart(item, quantity, total);
-          closeProduct();
-        }}
-        onTermClick={handleTermClick}
-        onTaste={handleTaste}
-        isAdmin={isAdmin}
-        onEditProductTasting={isAdmin ? handleEditProductTasting : undefined}
-      />
-
-      {/* Tasting Session Modal */}
-      <AnimatePresence>
-        {tastingItem && (
-          <TastingSession
-            item={tastingItem}
-            onClose={() => setTastingItem(null)}
-            onOrderTea={handleOrderFromTasting}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Admin: product-tasting editor (writes to products.tasting with source='owner') */}
-      {adminTastingItem && adminTastingProductShim && (
-        <TastingEditorModal
-          product={adminTastingProductShim}
-          onClose={() => setAdminTastingItem(null)}
-          onSaved={() => setAdminTastingItem(null)}
-        />
-      )}
-
+      {/* The swipe-between-teas card used to open here. Tapping a tea is a real
+          navigation to the product page now, one address with one rendering, so
+          this never received an item again. Removed rather than left dark. */}
       {!hideHeader && (
         <PageHeader
           title="Tea Ledger"
