@@ -5,6 +5,10 @@
 > resumed and completed safely no matter what happens to sessions/processes.
 > It is git-tracked (so it survives) and should be read FIRST by any agent or
 > human resuming this work.
+>
+> **2026-08-31:** the Guangzhou 7-tea intake (this month's stock purchase) is
+> COMPLETE. Keys live in `docs/ops/` — see `GUANGZHOU_INTAKE_HANDOFF.md`
+> (About-push + pricing-fix + personal-filing final state) first.
 
 ---
 
