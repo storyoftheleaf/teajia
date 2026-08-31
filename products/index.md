@@ -1,10 +1,10 @@
 # Teajia Product Collection
 
-**275 products** across 9 categories.
+**276 products** across 9 categories.
 
 ## Contents
 
-- [Sheng](#sheng) (32)
+- [Sheng](#sheng) (33)
 - [Shou](#shou) (32)
 - [Dark](#dark) (24)
 - [Oolong](#oolong) (40)
@@ -48,6 +48,7 @@
 - [Yi-Wu Sunshine — Yi-Wu Sheng 2006 (2006)](sheng/yi-wu-sheng-2006-2006.md) 易武生茶
 - [Yiwu Gushu (2008)](sheng/yiwu-gushu-2008.md) 易武古树生普洱
 - [Yuandu Sheng — Raw Puerh 1980s](sheng/yuandu-sheng.md) 原度生
+- [2004 Yiwu Raw Puerh (2004)](sheng/2004-yiwu-raw-puerh.md) 2004年易武生普
 
 ## Shou
 
@@ -83,6 +84,7 @@
 - [Wuliangshan Gushu Shou](shou/wuliangshan-gushu-shou.md) 无量山古树熟茶
 - [Ripe Puerh Loose (1990s)](shou/ripe-puerh-loose-1990s.md) 熟普散茶
 - [Huangpian Ripe (1990s)](shou/huangpian-ripe.md) 黄片熟
+- [1990 Ripe Puerh Brick (1990)](shou/1990-ripe-puerh-brick.md) 1990年砖熟普
 
 ## Dark
 
@@ -110,6 +112,7 @@
 - [San He Liu Bao (1990s)](dark/san-he-liu-bao.md) 三鹤六堡茶
 - [Large Basket Liu Bao (1990s)](dark/large-basket-liu-bao.md) 大篓六堡茶
 - [Small Basket Liu Bao (1990s)](dark/small-basket-liu-bao.md) 小篓六堡茶
+- [1990 Bamboo Leaf Old Tea (1990)](dark/1990-bamboo-leaf-old-tea.md) 1990年竹叶老茶
 
 ## Oolong
 
