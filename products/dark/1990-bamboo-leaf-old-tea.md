@@ -22,7 +22,7 @@ The area sits in the Xijiang river basin, subtropical, with red acidic soils. Th
 
 ## Processing
 
-Liu bao is a post-fermented dark tea from Guangxi, in the same family as ripe puerh and Fu brick. Aged examples drink dark and smooth, gently mellow. Traditionally it is packed loose in bamboo baskets lined with bamboo leaves, a quiet micro-environment that supports slow transformation. This loose lot comes to us from the Guangzhou tea trade.
+Liu bao is a post-fermented dark tea from Guangxi, in the same family as ripe puerh and Fu brick. Aged examples drink dark and smooth, gently mellow. Traditionally it is packed loose in bamboo baskets lined with bamboo leaves, a quiet micro-environment that supports slow transformation. This one has aged further than other 1990s liu bao, carrying more development than its decade usually shows. It comes to us from the Guangzhou tea trade.
 
 ## Mood
 
