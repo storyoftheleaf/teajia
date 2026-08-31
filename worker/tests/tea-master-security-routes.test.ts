@@ -691,15 +691,6 @@ describe('Tea Master route security', () => {
 
   it('cross-links a public shelf only to the shelf owner\'s published contributor identity', async () => {
     const db = database(); seedIdentity(db);
-    db.sqlite.exec(`ALTER TABLE users ADD COLUMN shelf_enabled INTEGER NOT NULL DEFAULT 0;
-      ALTER TABLE users ADD COLUMN shelf_slug TEXT;
-      ALTER TABLE users ADD COLUMN shelf_title TEXT;
-      ALTER TABLE users ADD COLUMN shelf_whatsapp TEXT;
-      CREATE TABLE personal_cellar_items (
-        id TEXT PRIMARY KEY, owner_user_id TEXT, name TEXT, type TEXT, year TEXT, origin TEXT,
-        grams REAL, image_url TEXT, shelf_published INTEGER DEFAULT 0,
-        placement_status TEXT DEFAULT 'private', created_at TEXT DEFAULT (datetime('now'))
-      );`);
     db.sqlite.prepare(`UPDATE users SET shelf_enabled=1, shelf_slug='mei-shelf' WHERE id='user-one'`).run();
     db.sqlite.prepare(`INSERT INTO contributors
       (id, account_id, user_id, display_name, is_published)

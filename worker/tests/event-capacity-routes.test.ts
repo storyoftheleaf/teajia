@@ -14,10 +14,6 @@ type SeedOptions = {
 function seedCapacityDb(options: SeedOptions = {}) {
   const db = new SqliteD1();
   databases.push(db);
-  // These legacy event columns exist in deployed databases but predate the
-  // checked-in schema snapshot used by SqliteD1.
-  db.sqlite.exec('ALTER TABLE event_attendees ADD COLUMN show_in_guest_list INTEGER DEFAULT 0');
-  db.sqlite.exec("ALTER TABLE customers ADD COLUMN contact_preference TEXT DEFAULT 'whatsapp'");
   seedIdentity(db, {
     userId: 'host-a',
     accountId: 'account-a',

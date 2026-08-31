@@ -5,6 +5,8 @@ import { describe, expect, it } from 'vitest';
 
 const workerDir = join(process.cwd(), 'worker');
 const migration = (name: string) => readFileSync(join(workerDir, 'migrations.archived', name), 'utf8');
+/** A migration still in the live forward set, not yet folded into the archive. */
+const forward = (name: string) => readFileSync(join(workerDir, 'migrations', name), 'utf8');
 
 function pre127Database(): DatabaseSync {
   const db = new DatabaseSync(':memory:');
@@ -517,6 +519,11 @@ describe('migration 129', () => {
   it('keeps event parent column order and attributes aligned with the migrated schema', () => {
     const migrated = pre127Database();
     applyMigration127(migrated);
+    // Forward migrations that touch these tables have to be replayed too, or
+    // the snapshot and the migration chain drift apart on the first one that
+    // adds a column. That drift is what let a query for a column production
+    // never had reach the live site unnoticed.
+    migrated.exec(forward('0004_event_guest_list_flag.sql'));
     const canonical = new DatabaseSync(':memory:');
     canonical.exec(readFileSync(join(workerDir, 'schema.sql'), 'utf8'));
 

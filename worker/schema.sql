@@ -1985,3 +1985,576 @@ CREATE INDEX IF NOT EXISTS idx_tea_reference_issues_open_account_page
 CREATE UNIQUE INDEX IF NOT EXISTS idx_tea_reference_issues_open_duplicate
   ON tea_reference_issues(account_id, page_id, section_key, category, normalized_note)
   WHERE status = 'open';
+
+-- ---------------------------------------------------------------------------
+-- Caught up with production, 2026-08-31.
+--
+-- This file is the baseline every worker test runs against (tests/helpers/
+-- sqliteD1.ts loads it), and build-plan.md requires each migration to be
+-- reflected here. That had slipped: production had 32 tables and 35 columns
+-- this file did not, so any query touching them could only be tested against
+-- a hand-written fake that answers by matching SQL text. A fake will happily
+-- answer a question naming a column that does not exist, which is how four
+-- customer pages shipped broken and stayed broken.
+--
+-- The definitions below are production's own, read back from its schema.
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS account_applications (
+  id                    TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  applicant_email       TEXT NOT NULL,
+  applicant_name        TEXT,
+  proposed_account_kind TEXT NOT NULL,        
+  note                  TEXT,
+  status                TEXT NOT NULL DEFAULT 'pending',
+                                              
+  decided_by_user_id    TEXT REFERENCES users(id),
+  decided_at            TEXT,
+  decision_note         TEXT,
+  created_at            TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS account_wholesale_overrides (
+  profile_id          TEXT NOT NULL REFERENCES tea_profiles(id),
+  buyer_account_id    TEXT NOT NULL REFERENCES accounts(id),
+  margin_pct_override INTEGER NOT NULL,
+  created_at          TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (profile_id, buyer_account_id)
+);
+
+CREATE TABLE IF NOT EXISTS anonymous_verdicts (
+  id TEXT PRIMARY KEY,
+  browser_token TEXT NOT NULL,
+  table_token TEXT NOT NULL,
+  source_entry_id TEXT,
+  verdict TEXT NOT NULL,
+  notes TEXT,
+  tasting_data TEXT,
+  claimed_by_user_id TEXT,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS connection_invites (
+  id TEXT PRIMARY KEY,
+  from_user_id TEXT NOT NULL,
+  to_user_id TEXT NOT NULL,
+  pending_share_id TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at TEXT NOT NULL,
+  resolved_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS customer_tags (
+    id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL,
+    customer_id TEXT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+    tag TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS customer_tea_discovery (
+  user_id          TEXT PRIMARY KEY,          
+  account_id       TEXT,                       
+  answers          TEXT NOT NULL DEFAULT '{}', 
+  level            TEXT,                       
+  disposition_id   TEXT,
+  disposition_name TEXT,
+  completed_at     TEXT,
+  created_at       TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at       TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS d1_migrations(
+		id         INTEGER PRIMARY KEY AUTOINCREMENT,
+		name       TEXT UNIQUE,
+		applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS feature_status (
+  feature_id   TEXT PRIMARY KEY,           
+
+  
+  stage        TEXT NOT NULL DEFAULT 'needs_testing',
+
+  
+  works        TEXT NOT NULL DEFAULT 'unknown',
+
+  
+  tested       INTEGER NOT NULL DEFAULT 0,
+
+  
+  visual       TEXT NOT NULL DEFAULT 'unknown',
+
+  
+  notes        TEXT NOT NULL DEFAULT '',
+
+  updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS member_connections (
+  id TEXT PRIMARY KEY,
+  user_id_a TEXT NOT NULL,
+  user_id_b TEXT NOT NULL,
+  source TEXT NOT NULL,
+  source_ref TEXT,
+  created_at TEXT NOT NULL,
+  UNIQUE(user_id_a, user_id_b)
+);
+
+CREATE TABLE IF NOT EXISTS note_sessions (
+  id           TEXT PRIMARY KEY,
+  account_id   TEXT NOT NULL REFERENCES accounts(id),
+  title        TEXT,                        
+  session_date TEXT NOT NULL,              
+  location     TEXT,
+  created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS notes (
+  id               TEXT PRIMARY KEY,
+  account_id       TEXT NOT NULL REFERENCES accounts(id),
+
+  
+  tea_key          TEXT,            
+  compass_entry_id TEXT,            
+  session_id       TEXT REFERENCES note_sessions(id),
+
+  
+  text             TEXT NOT NULL,
+  source_type      TEXT NOT NULL DEFAULT 'manual',  
+  tasting_id       TEXT,                             
+  tasting_snapshot TEXT,                             
+
+  
+  author_id        TEXT NOT NULL,
+  author_name      TEXT NOT NULL,
+
+  
+  visibility       TEXT NOT NULL DEFAULT 'private',  
+
+  created_at       TEXT NOT NULL DEFAULT (datetime('now'))
+, deleted INTEGER DEFAULT 0);
+
+CREATE TABLE IF NOT EXISTS personal_cellar_items (
+  id                TEXT PRIMARY KEY,
+  owner_user_id     TEXT NOT NULL,            
+  name              TEXT NOT NULL,
+  type              TEXT,                      
+  year              INTEGER,
+  origin            TEXT,
+  notes             TEXT,
+  grams             REAL NOT NULL DEFAULT 0,   
+  image_url         TEXT,
+
+  
+  
+  
+  
+  placement_status      TEXT NOT NULL DEFAULT 'private',
+  placement_account_id  TEXT,                  
+  linked_product_id     TEXT,                  
+
+  
+  shelf_published   INTEGER NOT NULL DEFAULT 0,
+
+  created_at        TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at        TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS profile_suggestion_fields (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  suggestion_id TEXT NOT NULL REFERENCES profile_suggestions(id) ON DELETE CASCADE,
+  -- Which canonical field. Whitelisted in the worker, not in SQL.
+  -- See PROFILE_SUGGESTABLE_FIELDS in worker/src/index.ts.
+  field_name TEXT NOT NULL,
+  -- Snapshot of the canonical value at suggestion time so the curator can
+  -- see "current vs proposed" even if canonical drifts before review.
+  current_value TEXT,
+  proposed_value TEXT NOT NULL,
+  -- Per-field decision. status='pending' until the curator decides.
+  status TEXT NOT NULL DEFAULT 'pending',  -- pending | accepted | rejected
+  -- Optional curator note shown back to the partner when the decision lands.
+  -- No rationale on the partner side (the change is the argument), but the
+  -- curator can leave a note explaining a rejection if they want.
+  reject_note TEXT,
+  decided_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS profile_suggestions (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  -- Which profile is being suggested against
+  profile_id TEXT NOT NULL REFERENCES tea_profiles(id),
+  -- Who suggested (account-level + user-level for attribution)
+  suggested_by_account_id TEXT NOT NULL REFERENCES accounts(id),
+  suggested_by_user_id TEXT NOT NULL REFERENCES users(id),
+  -- Bundle status. Per-field decisions live in profile_suggestion_fields;
+  -- this rolls up the overall verdict.
+  --   pending             — no fields decided yet
+  --   partial             — some fields decided, others still pending
+  --   resolved            — every field has a decision (accepted or rejected)
+  --   withdrawn           — partner withdrew before any decision
+  status TEXT NOT NULL DEFAULT 'pending',
+  -- Curator review timestamps + actor (when the bundle becomes resolved)
+  reviewed_by_user_id TEXT REFERENCES users(id),
+  reviewed_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS purchase_orders (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  vendor_name TEXT,
+  vendor_id TEXT,
+  vendor_contact TEXT,
+  items_json TEXT NOT NULL DEFAULT '[]',
+  total_usd REAL NOT NULL DEFAULT 0,
+  display_currency TEXT NOT NULL DEFAULT 'USD',
+  status TEXT NOT NULL DEFAULT 'pending',
+  message_text TEXT,
+  notes TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  token TEXT UNIQUE,
+  expires_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS saved_collections (
+  id            TEXT PRIMARY KEY,
+  user_id       TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  collection_id TEXT NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
+  via_slug      TEXT,                       -- publication slug they arrived through
+  source        TEXT NOT NULL DEFAULT 'saved', -- 'received' | 'saved'
+  created_at    TEXT NOT NULL,
+  updated_at    TEXT NOT NULL,
+  UNIQUE (user_id, collection_id)
+);
+
+CREATE TABLE IF NOT EXISTS story_content (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL DEFAULT 'acc_teajia_bali',
+  story_slug TEXT NOT NULL,
+  state TEXT NOT NULL DEFAULT 'published',   -- 'published' | 'draft'
+  content TEXT NOT NULL DEFAULT '{}',
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS story_content_versions (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL DEFAULT 'acc_teajia_bali',
+  story_slug TEXT NOT NULL,
+  content TEXT NOT NULL,
+  label TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS story_photos (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL DEFAULT 'acc_teajia_bali',
+  story_slug TEXT NOT NULL,
+  frame_slot TEXT NOT NULL,
+  image_url TEXT NOT NULL,
+  crop TEXT NOT NULL DEFAULT '{"scale":1,"x":0.5,"y":0.5}',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS table_share_tokens (
+  id TEXT PRIMARY KEY,
+  token TEXT UNIQUE NOT NULL,
+  source_entry_id TEXT NOT NULL,
+  account_id TEXT NOT NULL,
+  created_by_user_id TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS tasting_join_codes (
+  code TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL REFERENCES tasting_sessions(id) ON DELETE CASCADE,
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  created_by_user_id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  revoked_at TEXT,
+  redemption_count INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS tasting_session_members (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL REFERENCES tasting_sessions(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL,
+  user_name TEXT,
+  joined_at TEXT NOT NULL,
+  UNIQUE(session_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS tasting_session_teas (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL REFERENCES tasting_sessions(id) ON DELETE CASCADE,
+  product_id TEXT REFERENCES products(id),
+  compass_entry_id TEXT,
+  tea_name TEXT,
+  tea_key TEXT,
+  tea_metadata TEXT,
+  position INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS tasting_session_verdicts (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL REFERENCES tasting_sessions(id) ON DELETE CASCADE,
+  session_tea_id TEXT NOT NULL REFERENCES tasting_session_teas(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL,
+  verdict TEXT,
+  tasting_data TEXT,
+  notes TEXT,
+  submitted_at TEXT NOT NULL,
+  UNIQUE(session_tea_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS tasting_sessions (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  created_by_user_id TEXT NOT NULL,
+  title TEXT,
+  status TEXT NOT NULL DEFAULT 'active',
+  invite_token TEXT UNIQUE,
+  max_participants INTEGER NOT NULL DEFAULT 8,
+  created_at TEXT NOT NULL,
+  completed_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS user_favorites (
+  user_id TEXT NOT NULL,
+  account_id TEXT,
+  item_id TEXT NOT NULL,
+  created_at TEXT DEFAULT (datetime('now')),
+  UNIQUE(user_id, account_id, item_id)
+);
+
+CREATE TABLE IF NOT EXISTS user_taste_profile (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  account_id TEXT NOT NULL,
+  verdict_counts TEXT NOT NULL DEFAULT '{}',
+  total_tastings INTEGER NOT NULL DEFAULT 0,
+  last_updated TEXT NOT NULL,
+  UNIQUE(user_id, account_id)
+);
+
+CREATE TABLE IF NOT EXISTS wholesale_margin_defaults (
+  trust_tier TEXT PRIMARY KEY,        -- 'basic' | 'verified' | 'partner' | 'tea_master'
+  default_margin_pct INTEGER NOT NULL,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS wholesale_order_items (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  order_id TEXT NOT NULL REFERENCES wholesale_orders(id) ON DELETE CASCADE,
+
+  -- The supplier's listing being purchased. We carry profile_id as a
+  -- denormalization so the buyer can see what tea this is even after the
+  -- supplier archives their listing or changes its content.
+  supplier_listing_id TEXT NOT NULL REFERENCES product_listings(id),
+  profile_id          TEXT NOT NULL REFERENCES tea_profiles(id),
+
+  -- The buyer's matching listing (optional). NULL when they don't yet carry
+  -- this profile. Set on receive — that's when stock lands in their inventory,
+  -- which means we either find an existing listing or create one.
+  buyer_listing_id TEXT REFERENCES product_listings(id),
+
+  -- Quantity and snapshotted pricing. unit_price_amount is per-gram in
+  -- unit_price_currency at submit time; line_total = grams * unit_price_amount.
+  grams              REAL NOT NULL,
+  unit_price_amount  REAL NOT NULL,
+  unit_price_currency TEXT NOT NULL,
+  line_total         REAL NOT NULL,
+
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS wholesale_orders (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+
+  -- Parties
+  supplier_account_id TEXT NOT NULL REFERENCES accounts(id),
+  buyer_account_id    TEXT NOT NULL REFERENCES accounts(id),
+
+  -- Lifecycle
+  status TEXT NOT NULL DEFAULT 'draft',
+  -- draft | submitted | replied | confirmed | shipped | received | cancelled
+
+  -- Currency: the buyer's display currency, locked at draft creation.
+  -- Per-line snapshots in wholesale_order_items.unit_price_currency may differ
+  -- (e.g. supplier prices in IDR but the buyer agreed in AUD); the order's
+  -- summary currency is what totals roll up to and what invoices are issued in.
+  currency TEXT NOT NULL DEFAULT 'USD',
+
+  -- Money. NULL until first item is added. shipping_amount NULL until
+  -- supplier confirms (they set the freight quote then).
+  subtotal_amount REAL,
+  shipping_amount REAL,
+  total_amount    REAL,
+
+  -- Logistics
+  shipping_address TEXT,         -- buyer's drop-off address (free-form)
+  tracking_number  TEXT,         -- set by supplier on ship
+  carrier          TEXT,         -- e.g. 'Pos Indonesia', 'DHL', 'Toll'
+
+  -- Notes from each side. Buyer's note is set on submit; supplier's note on
+  -- confirm or reply.
+  buyer_notes      TEXT,
+  supplier_notes   TEXT,
+
+  -- Side-effect side: invoice ids generated on receive. Both sides get one.
+  -- These are FK-style references but we don't enforce REFERENCES because
+  -- invoices is in a different scoping context (account-scoped per row).
+  invoice_id_supplier TEXT,
+  invoice_id_buyer    TEXT,
+
+  -- Audit timestamps for each transition. NULL until that transition fires.
+  -- Used by the timeline (Surface 9) to render the diary-entry log.
+  submitted_at TEXT,
+  replied_at   TEXT,
+  confirmed_at TEXT,
+  shipped_at   TEXT,
+  received_at  TEXT,
+  cancelled_at TEXT,
+  cancelled_by_account_id TEXT REFERENCES accounts(id),
+  cancel_reason TEXT,
+
+  -- Nudge tracking (per Surface 9 stuck-state handling).
+  -- last_nudge_at + nudge_count let us throttle "send a nudge" actions so
+  -- a buyer can't spam-nudge the supplier.
+  last_nudge_at TEXT,
+  nudge_count   INTEGER NOT NULL DEFAULT 0,
+
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS wisdom_entry_verifications (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  entry_kind TEXT NOT NULL CHECK (entry_kind IN ('cultivar', 'region', 'producer', 'style', 'mark', 'namedTea')),
+  entry_id TEXT NOT NULL,
+  content_hash TEXT NOT NULL CHECK (
+    length(content_hash) = 64
+    AND content_hash NOT GLOB '*[^0-9a-f]*'
+  ),
+  verified_by_user_id TEXT NOT NULL,
+  verified_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (account_id, entry_kind, entry_id)
+);
+
+-- Columns production added to tables this file already defined.
+ALTER TABLE collection_publications ADD COLUMN recipient_seen_at TEXT;
+ALTER TABLE collections ADD COLUMN curator_user_id TEXT;
+ALTER TABLE collections ADD COLUMN curator_display_name TEXT;
+ALTER TABLE collections ADD COLUMN is_featured_collection INTEGER;
+ALTER TABLE customers ADD COLUMN contact_preference TEXT;
+ALTER TABLE customers ADD COLUMN notification_prefs TEXT;
+ALTER TABLE customers ADD COLUMN tea_preferences TEXT;
+ALTER TABLE customers ADD COLUMN verification_code TEXT;
+ALTER TABLE customers ADD COLUMN verification_expires TEXT;
+ALTER TABLE customers ADD COLUMN type TEXT;
+ALTER TABLE customers ADD COLUMN user_id TEXT;
+ALTER TABLE customers ADD COLUMN user_linked_at TEXT;
+ALTER TABLE customers ADD COLUMN contacts TEXT;
+ALTER TABLE customers ADD COLUMN business_card_photo TEXT;
+ALTER TABLE customers ADD COLUMN storefront_photo TEXT;
+ALTER TABLE customers ADD COLUMN latitude REAL;
+ALTER TABLE customers ADD COLUMN longitude REAL;
+ALTER TABLE customers ADD COLUMN line TEXT;
+ALTER TABLE newsletter_subscribers ADD COLUMN source TEXT;
+ALTER TABLE platform_audit_log ADD COLUMN account_id TEXT;
+ALTER TABLE platform_audit_log ADD COLUMN actor_account_id TEXT;
+ALTER TABLE products ADD COLUMN liquor_color TEXT;
+ALTER TABLE products ADD COLUMN wholesale_price REAL;
+ALTER TABLE products ADD COLUMN catalog_visible INTEGER;
+ALTER TABLE products ADD COLUMN imported_from_product_id TEXT;
+ALTER TABLE products ADD COLUMN imported_via_publication_id TEXT;
+ALTER TABLE products ADD COLUMN piece_weight_g INTEGER;
+ALTER TABLE tea_reviews ADD COLUMN profile_id TEXT;
+ALTER TABLE teaware_collection ADD COLUMN account_id TEXT;
+ALTER TABLE teaware_photos ADD COLUMN account_id TEXT;
+ALTER TABLE users ADD COLUMN google_id TEXT;
+ALTER TABLE users ADD COLUMN phone TEXT;
+ALTER TABLE users ADD COLUMN can_create_collections INTEGER;
+ALTER TABLE users ADD COLUMN shelf_enabled INTEGER;
+ALTER TABLE users ADD COLUMN shelf_slug TEXT;
+ALTER TABLE users ADD COLUMN shelf_title TEXT;
+ALTER TABLE users ADD COLUMN shelf_whatsapp TEXT;
+
+-- Whether an RSVP wants their first name on the public guest list. Written by
+-- the public RSVP insert, read by the public event page. See migration
+-- 0004_event_guest_list_flag.sql.
+ALTER TABLE event_attendees ADD COLUMN show_in_guest_list INTEGER DEFAULT 0;
+
+-- Indexes belonging to the tables added above.
+CREATE INDEX IF NOT EXISTS idx_user_favorites_user ON user_favorites(user_id);
+CREATE INDEX IF NOT EXISTS idx_note_sessions_account ON note_sessions(account_id);
+CREATE INDEX IF NOT EXISTS idx_note_sessions_date    ON note_sessions(account_id, session_date);
+CREATE INDEX IF NOT EXISTS idx_notes_account        ON notes(account_id);
+CREATE INDEX IF NOT EXISTS idx_notes_tea_key        ON notes(tea_key);
+CREATE INDEX IF NOT EXISTS idx_notes_compass_entry  ON notes(compass_entry_id);
+CREATE INDEX IF NOT EXISTS idx_notes_session        ON notes(session_id);
+CREATE INDEX IF NOT EXISTS idx_notes_tasting        ON notes(tasting_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_customer_tags_unique
+    ON customer_tags(account_id, customer_id, tag);
+CREATE INDEX IF NOT EXISTS idx_customer_tags_tag
+    ON customer_tags(account_id, tag);
+CREATE INDEX IF NOT EXISTS idx_suggestions_profile  ON profile_suggestions(profile_id);
+CREATE INDEX IF NOT EXISTS idx_suggestions_status   ON profile_suggestions(status);
+CREATE INDEX IF NOT EXISTS idx_suggestions_account  ON profile_suggestions(suggested_by_account_id);
+CREATE INDEX IF NOT EXISTS idx_suggestion_fields_suggestion ON profile_suggestion_fields(suggestion_id);
+CREATE INDEX IF NOT EXISTS idx_suggestion_fields_status     ON profile_suggestion_fields(status);
+CREATE INDEX IF NOT EXISTS idx_wholesale_orders_supplier ON wholesale_orders(supplier_account_id, status);
+CREATE INDEX IF NOT EXISTS idx_wholesale_orders_buyer    ON wholesale_orders(buyer_account_id, status);
+CREATE INDEX IF NOT EXISTS idx_wholesale_orders_status   ON wholesale_orders(status);
+CREATE INDEX IF NOT EXISTS idx_wholesale_items_order    ON wholesale_order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_wholesale_items_supplier ON wholesale_order_items(supplier_listing_id);
+CREATE INDEX IF NOT EXISTS idx_wholesale_items_profile  ON wholesale_order_items(profile_id);
+CREATE INDEX IF NOT EXISTS idx_account_applications_status ON account_applications(status);
+CREATE INDEX IF NOT EXISTS idx_account_applications_email  ON account_applications(applicant_email);
+CREATE INDEX IF NOT EXISTS idx_join_codes_session ON tasting_join_codes(session_id);
+CREATE INDEX IF NOT EXISTS idx_join_codes_active ON tasting_join_codes(session_id, expires_at, revoked_at);
+CREATE INDEX IF NOT EXISTS idx_tasting_sessions_account ON tasting_sessions(account_id);
+CREATE INDEX IF NOT EXISTS idx_tasting_sessions_status ON tasting_sessions(status);
+CREATE INDEX IF NOT EXISTS idx_session_teas_session ON tasting_session_teas(session_id);
+CREATE INDEX IF NOT EXISTS idx_session_teas_product ON tasting_session_teas(product_id);
+CREATE INDEX IF NOT EXISTS idx_session_members_session ON tasting_session_members(session_id);
+CREATE INDEX IF NOT EXISTS idx_session_verdicts_session ON tasting_session_verdicts(session_id);
+CREATE INDEX IF NOT EXISTS idx_user_taste_profile_user ON user_taste_profile(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_taste_profile_account ON user_taste_profile(account_id);
+CREATE INDEX IF NOT EXISTS idx_table_share_tokens_token ON table_share_tokens(token);
+CREATE INDEX IF NOT EXISTS idx_table_share_tokens_entry ON table_share_tokens(source_entry_id);
+CREATE INDEX IF NOT EXISTS idx_anonymous_verdicts_browser ON anonymous_verdicts(browser_token);
+CREATE INDEX IF NOT EXISTS idx_anonymous_verdicts_table ON anonymous_verdicts(table_token);
+CREATE INDEX IF NOT EXISTS idx_member_connections_a ON member_connections(user_id_a);
+CREATE INDEX IF NOT EXISTS idx_member_connections_b ON member_connections(user_id_b);
+CREATE INDEX IF NOT EXISTS idx_connection_invites_from ON connection_invites(from_user_id);
+CREATE INDEX IF NOT EXISTS idx_connection_invites_to ON connection_invites(to_user_id);
+CREATE INDEX IF NOT EXISTS idx_purchase_orders_account ON purchase_orders(account_id);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user ON refresh_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_saved_collections_user ON saved_collections(user_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_saved_collections_collection ON saved_collections(collection_id);
+CREATE INDEX IF NOT EXISTS idx_customer_tea_discovery_account
+  ON customer_tea_discovery(account_id);
+CREATE INDEX IF NOT EXISTS idx_cellar_owner ON personal_cellar_items(owner_user_id);
+CREATE INDEX IF NOT EXISTS idx_cellar_placement ON personal_cellar_items(placement_account_id, placement_status);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_story_photos_slug_slot
+  ON story_photos(account_id, story_slug, frame_slot);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_story_content_slug_state
+  ON story_content(account_id, story_slug, state);
+CREATE INDEX IF NOT EXISTS idx_story_versions_slug
+  ON story_content_versions(account_id, story_slug, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_wisdom_verifications_account_entry
+  ON wisdom_entry_verifications(account_id, entry_kind, entry_id);

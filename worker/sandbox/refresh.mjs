@@ -279,10 +279,32 @@ for (const object of [...liveObjects].sort()) {
   if (!localObjects.has(object)) problems.push(`missing ${object}`);
 }
 
+// The other direction, which is not a sandbox fault at all. The sandbox has
+// this repo's migrations applied on top of live, so a column here that live
+// lacks means a migration was written and never run against production. That
+// gap is invisible from inside the app until a customer hits the page: the
+// tests pass, because they run on this repo's schema, while the live site
+// answers 500 on every read of the column. It cost two outages to learn, so it
+// is reported loudly and separately rather than folded in with the rest.
+const unapplied = [];
+for (const table of Object.keys(localColumns).sort()) {
+  if (!liveColumns[table]) { unapplied.push(`table  ${table}`); continue; }
+  const ahead = [...localColumns[table]].filter(col => !liveColumns[table].has(col));
+  if (ahead.length) unapplied.push(`${table}: ${ahead.join(', ')}`);
+}
+
 if (problems.length) {
   console.error(`\n${problems.length} difference(s) from live:`);
   for (const problem of problems) console.error(`  ${problem}`);
   console.error('\nThe sandbox is NOT a faithful copy. Endpoints will fail here that work live.');
+  process.exit(1);
+}
+
+if (unapplied.length) {
+  console.error('\nProduction is BEHIND this repo. A migration here has not been run against live,');
+  console.error('so the live site fails on anything reading these while the tests stay green:');
+  for (const item of unapplied) console.error(`  ${item}`);
+  console.error('\nApply the outstanding migration to production, then rebuild.\n');
   process.exit(1);
 }
 const columnCount = Object.values(liveColumns).reduce((n, set) => n + set.size, 0);
