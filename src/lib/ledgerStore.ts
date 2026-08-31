@@ -79,7 +79,7 @@ interface LedgerState {
   getOrCreatePurchaseTransaction: (vendorName: string, currency: Currency, vendorId?: string) => string;
 }
 
-export const useLedgerStore = create<LedgerState>()(
+const createdLedgerStore = create<LedgerState>()(
   persist(
     (set, get) => ({
       transactions: [],
@@ -251,3 +251,20 @@ export const useLedgerStore = create<LedgerState>()(
     }
   )
 );
+
+
+/**
+ * One store per page, however many times this module is evaluated.
+ *
+ * Vite serves a hot-updated module under a new URL (`?t=<timestamp>`), so a
+ * second evaluation is a second store with its own empty state. The app keeps
+ * whichever copy it loaded first; anything reaching the module by its plain
+ * path afterwards gets the other one, writes into it, and watches the screen
+ * not change. Binding the store to the page rather than to the module
+ * evaluation makes every copy the same store.
+ */
+const USELEDGERSTORE_KEY = '__teajia_useLedgerStore';
+type UseLedgerStoreHandle = typeof createdLedgerStore;
+const useLedgerStoreScope = globalThis as unknown as Record<string, UseLedgerStoreHandle | undefined>;
+export const useLedgerStore: UseLedgerStoreHandle =
+  useLedgerStoreScope[USELEDGERSTORE_KEY] ?? (useLedgerStoreScope[USELEDGERSTORE_KEY] = createdLedgerStore);

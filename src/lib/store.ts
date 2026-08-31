@@ -271,7 +271,7 @@ const scopedStateReset = () => ({
   cartLastAddedAt: null,
 });
 
-export const useAppStore = create<AppState>()(
+const createdAppStore = create<AppState>()(
   persist(
     (set) => ({
       // Admin Cart / Transaction Builder
@@ -753,3 +753,20 @@ export const useAppStore = create<AppState>()(
     }
   )
 );
+
+
+/**
+ * One store per page, however many times this module is evaluated.
+ *
+ * Vite serves a hot-updated module under a new URL (`?t=<timestamp>`), so a
+ * second evaluation is a second store with its own empty state. The app keeps
+ * whichever copy it loaded first; anything reaching the module by its plain
+ * path afterwards gets the other one, writes into it, and watches the screen
+ * not change. Binding the store to the page rather than to the module
+ * evaluation makes every copy the same store.
+ */
+const USEAPPSTORE_KEY = '__teajia_useAppStore';
+type UseAppStoreHandle = typeof createdAppStore;
+const useAppStoreScope = globalThis as unknown as Record<string, UseAppStoreHandle | undefined>;
+export const useAppStore: UseAppStoreHandle =
+  useAppStoreScope[USEAPPSTORE_KEY] ?? (useAppStoreScope[USEAPPSTORE_KEY] = createdAppStore);

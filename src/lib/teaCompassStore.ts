@@ -229,7 +229,7 @@ function snapshotCompassDrafts(state: PersistedCompassDrafts): Required<Persiste
 const SESSION_GAP_MS = 6 * 60 * 60 * 1000; // 6 hours
 const UNSCOPED_LEGACY_ACCOUNT = '__legacy_unscoped__';
 
-export const useTeaCompassStore = create<TeaCompassState>()(
+const createdTeaCompassStore = create<TeaCompassState>()(
   persist(
     (set, get) => ({
       entries: [],
@@ -705,3 +705,23 @@ export function migrateCompassPersistedState(persistedState: unknown, version: n
         }
         return previous;
 }
+
+
+/**
+ * One store per page, however many times this module is evaluated.
+ *
+ * Vite serves a hot-updated module under a new URL (`?t=<timestamp>`), so a
+ * second evaluation is a second `create()` and a second, empty state. The app
+ * keeps whichever copy it loaded first; anything that reaches the module by its
+ * plain path afterwards gets the other one, writes into it, and watches the
+ * screen not change. That is not only a test problem: an HMR edit during a
+ * capture session drops the entries the operator has open.
+ *
+ * Binding the store to the page rather than to the module evaluation makes
+ * every copy the same store.
+ */
+const TEA_COMPASS_STORE_KEY = '__teajia_teaCompassStore';
+type TeaCompassStoreHandle = typeof createdTeaCompassStore;
+const globalScope = globalThis as unknown as Record<string, TeaCompassStoreHandle | undefined>;
+export const useTeaCompassStore: TeaCompassStoreHandle =
+  globalScope[TEA_COMPASS_STORE_KEY] ?? (globalScope[TEA_COMPASS_STORE_KEY] = createdTeaCompassStore);

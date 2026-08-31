@@ -442,7 +442,7 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
   );
 }
 
-export const useSampleStore = createSampleStore();
+const createdSampleStore = createSampleStore();
 
 function mergeSamplePersistedState(
   persistedState: unknown,
@@ -483,3 +483,20 @@ function mergeSamplePersistedState(
     dataByAccount,
   };
 }
+
+
+/**
+ * One store per page, however many times this module is evaluated.
+ *
+ * Vite serves a hot-updated module under a new URL (`?t=<timestamp>`), so a
+ * second evaluation is a second store with its own empty state. The app keeps
+ * whichever copy it loaded first; anything reaching the module by its plain
+ * path afterwards gets the other one, writes into it, and watches the screen
+ * not change. Binding the store to the page rather than to the module
+ * evaluation makes every copy the same store.
+ */
+const USESAMPLESTORE_KEY = '__teajia_useSampleStore';
+type UseSampleStoreHandle = typeof createdSampleStore;
+const useSampleStoreScope = globalThis as unknown as Record<string, UseSampleStoreHandle | undefined>;
+export const useSampleStore: UseSampleStoreHandle =
+  useSampleStoreScope[USESAMPLESTORE_KEY] ?? (useSampleStoreScope[USESAMPLESTORE_KEY] = createdSampleStore);
