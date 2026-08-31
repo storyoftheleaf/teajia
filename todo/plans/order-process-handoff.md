@@ -42,19 +42,22 @@ record answers "what is owed" everywhere.
 
 Effort: about two days. Band: agent-runnable.
 
-### 2. The payment rules are written twice
+### 2. The payment rules are written twice — DONE 2026-08-31
 
-Already filed in `TODO.md` with the full list of the eleven mirrored functions.
-`worker/src/invoiceDomain.ts` exists and has no dependency on `index.ts`, so the
-ledger functions can move there and both files import them. The mcp.ts call sites
-were written expecting this.
+The eleven mirrored pieces moved into `worker/src/invoiceDomain.ts`, which
+imports neither `index.ts` nor `mcp.ts`, and both now import from it:
+PAYMENT_EPSILON, the text limits and caps, roundUsd, paymentTextField,
+formatInvoiceNumber, loadInvoiceLedgerTotals, invoiceMoney, loadLedgerInvoice,
+reconcileLedgerWithColumn, recomputeInvoicePaymentStatus. The two hand-written
+invoice-number formats in mcp.ts went with them. No "keep in sync" note is left
+in the worker.
 
-The same pass should close the one place the two implementations differ today:
-`whats_waiting`'s unpriced query still requires `status = 'Draft'` on its
-zero-price half, where `/api/attention` catches a zero-priced Pending order too.
-The screen currently shows a superset of what the voice reports.
-
-Effort: half a day. Band: agent-runnable.
+The divergence is closed: `whats_waiting` required `status = 'Draft'` across
+BOTH halves of its unpriced question, so a Pending order carrying a line priced
+at nothing was on the screen and not in the spoken answer.
+`worker/tests/attention-parity.test.ts` asks both surfaces the same question
+across five states and asserts they answer identically; reverting the mcp.ts
+predicate makes exactly the zero-priced-Pending case fail.
 
 ### 3. The pay page does not say what it is being paid for
 
@@ -128,15 +131,17 @@ What remains only costs a reader of the code. Not worth a session on its own.
   the checkout path contains a space it does not decode, and `shopPrice` has a
   stale expectation. Both predate this work.
 
-## Deploy state
+## Deploy state — DONE, and the warning below was already out of date
 
-The site is live. **Still to do, in this order and no other:**
+This section said the migrations and the worker deploy were still to do by hand.
+They were not. `.github/workflows/deploy-worker.yml` applies D1 migrations and
+deploys the worker on every push to main that touches `worker/**`, and has done
+since 2026-06-01 (see `todo/plans/deploy-db-migrations.md`).
 
-1. Apply `worker/migrations/0001_order_process.sql` and
-   `worker/migrations/0002_invoice_payments.sql` to the production database.
-2. Deploy the worker by hand (pushing to main does not deploy it).
+Measured 2026-08-31: the run for `feat(orders): close the loop from request to
+payment` finished with "Apply D1 migrations" and "Deploy to Cloudflare Workers"
+both green, and `https://teajia-api.lightcodes.workers.dev/api/attention` answers
+401 rather than the 404 an unknown route gets, so the new worker is serving.
 
-Deploying the worker before the migrations would put code live that queries a
-column and a table production does not have, and every order surface would fail.
-Until both are done the site runs on the old API: the new features are simply
-absent, which is the degraded state the surfaces were built to tolerate.
+The ordering warning still holds for anything applied by hand: migrations before
+the worker, never the other way round.
