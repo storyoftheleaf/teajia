@@ -108,6 +108,10 @@ test.beforeEach(async ({ page }) => {
   updateRequests.length = 0;
   await install(page);
   await page.goto('/admin/stock');
+  // The lens row is seeded by an effect after mount, so for a moment it is
+  // empty and 'Working' does not exist yet. Waiting for the row to be complete
+  // rather than for one button in it: at 5s this failed about one run in three.
+  await expect(purposeLenses(page).getByRole('button')).toHaveCount(4, { timeout: 15_000 });
   await expect(purposeRow(page).getByRole('button', { name: 'Working', exact: true })).toBeVisible();
 });
 
