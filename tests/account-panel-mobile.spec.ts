@@ -7,6 +7,7 @@
  */
 
 import { test, expect, type Page } from '@playwright/test';
+import { findScreenEdgeOverruns } from './helpers/screenEdge';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -352,6 +353,27 @@ async function assertPageHealthy(page: Page, label: string, consoleErrors: strin
   // Overflow
   const ov = await overflow(page);
   expect(ov.has, `${label}: horizontal overflow +${ov.extra}px`).toBe(false);
+
+  // The check above asks whether the PAGE is wider than the screen. This one
+  // asks whether anything a person can see reaches past its right edge, which
+  // is a different question and the one that catches more. An element
+  // overrunning its grid track is absorbed without the document growing at all:
+  // on 2026-08-31 an order summary rendered 551px inside a 311px column and
+  // carried the amount 208px off a 375px phone while the document stayed
+  // exactly 375px wide. This page was swept, that assertion ran, and it was
+  // blind to it by construction.
+  //
+  // Surveyed across all twenty routes below before being promoted here, and
+  // clean on every one. See tests/helpers/screenEdge.ts for what counts as
+  // visible and why the blunter version of this check was too noisy to keep.
+  const overruns = await findScreenEdgeOverruns(page);
+  const worst = overruns[0] ?? null;
+  expect(
+    worst,
+    worst
+      ? `${label}: <${worst.tag} class="${worst.cls}"> reaches ${worst.past}px past the right edge (${worst.why}), showing "${worst.text}"`
+      : '',
+  ).toBeNull();
 
   // Error boundary crash
   const bodyText = await page.locator('body').innerText();

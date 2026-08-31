@@ -23,6 +23,7 @@
  */
 
 import { test, expect, type Page } from '@playwright/test';
+import { assertNothingRunsOffScreen } from './helpers/screenEdge';
 
 const TOKEN = 'A7kQ_customer-tracking-token-000000000001';
 const INVOICE_REF = 'INV-2201';
@@ -98,55 +99,6 @@ async function goto(page: Page, route: string) {
   // and they fail naming what was missing rather than reporting no element on a
   // page that had not begun rendering.
   await page.locator('main [role="status"]').waitFor({ state: 'detached', timeout: 20_000 }).catch(() => {});
-}
-
-/**
- * The widest element reaching past the right edge of the screen.
- *
- * Elements inside something deliberately scrollable sideways are skipped: a
- * wide table in its own scroller is a design, not a defect. Fixed and absolute
- * elements are skipped too, because drawers and sheets legitimately park
- * off-screen until they are opened.
- */
-async function widestOverrun(page: Page) {
-  return page.evaluate(() => {
-    const viewport = window.innerWidth;
-    let worst: { tag: string; cls: string; text: string; past: number } | null = null;
-    for (const el of Array.from(document.querySelectorAll('main *'))) {
-      const rect = el.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0) continue;
-      const past = Math.round(rect.right - viewport);
-      if (past <= 2) continue;
-      let node: Element | null = el;
-      let excused = false;
-      while (node) {
-        const style = getComputedStyle(node);
-        if (style.position === 'fixed' || style.position === 'absolute') { excused = true; break; }
-        if (node !== el && (style.overflowX === 'auto' || style.overflowX === 'scroll')) { excused = true; break; }
-        node = node.parentElement;
-      }
-      if (excused) continue;
-      if (!worst || past > worst.past) {
-        worst = {
-          tag: el.tagName.toLowerCase(),
-          cls: (el.getAttribute('class') || '').slice(0, 90),
-          text: (el.textContent || '').trim().slice(0, 60),
-          past,
-        };
-      }
-    }
-    return worst;
-  });
-}
-
-async function assertNothingRunsOffScreen(page: Page, label: string) {
-  const worst = await widestOverrun(page);
-  expect(
-    worst,
-    worst
-      ? `${label}: <${worst.tag} class="${worst.cls}"> reaches ${worst.past}px past the right edge, showing "${worst.text}"`
-      : '',
-  ).toBeNull();
 }
 
 test.describe('the pages where a customer handles money', () => {
