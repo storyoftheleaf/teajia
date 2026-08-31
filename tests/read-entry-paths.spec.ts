@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openYourTable } from './helpers/navigation';
 
 const LIVE_ARTICLE = {
   id: 'live-story',
@@ -73,7 +74,10 @@ test('retired article destinations stay absent from public entry points', async 
     await expect(page.getByRole('heading', { name: 'Live Story' })).toHaveCount(0);
   }
   await page.goto('/read');
-  await page.locator('#main-content').getByRole('button', { name: 'Your Table' }).click();
+  // Your Table is reached from the navigation, not from a button inside the
+  // Read page: that entry point is gone. What still has to hold is that the
+  // retired reading destinations are absent once the panel is open.
+  await openYourTable(page);
   await expect(page.getByRole('link', { name: 'Saved stories' })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Reading history' })).toHaveCount(0);
 });

@@ -25,6 +25,9 @@
 - [ ] **An admin boot fetches the sample list four times and sample sets three times.** _(band: agent-runnable)_ _(effort: moderate)_
   `sampleRepository.hydrate()` and `sampleRepository.sync()` each call `sampleSets.list` and `samples.list`, a third call sits further down the same file, and `teaCompassSync` pulls `samples.list` again. Two admin boots measure 41 API reads where the guard in `tests/admin-chunk-failure-production.spec.ts` was written expecting 24. Nothing is looping; the same two endpoints are simply requested by several callers that do not share a result. Worth one deliberate pass to give them a shared read.
 
+- [ ] **The Curate sourcing surface now carries three type sizes where it was specified as two.** _(band: you-required)_ _(effort: quick)_
+  `curate-floating-label` sets its uppercase field labels at 10px, and they are everywhere in Source, so the scale is 10/12/16 rather than the 12/16 the surface was built to. The browser guard in `tests/compass-capture.spec.ts` has been updated to what is true today so it keeps working, with the reason written beside it. Whether a 10px label belongs there, or should be 12, is a design call.
+
 Add only genuinely new observations here. During triage, move each accepted item into exactly one owning track or discard it. Do not duplicate track items here.
 
 <!-- Use: - [ ] **Short outcome.** Why it matters and the evidence that it is not already covered. -->
