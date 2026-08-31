@@ -6,14 +6,19 @@ import { fetchWithTimeout } from '../lib/api';
 const FALLBACK_RATES = INITIAL_RATES;
 
 /**
- * `exact` is for a rate rather than a total.
+ * `rate` is for a per-unit figure rather than a total.
  *
  * The IDR path below rounds up to the nearest thousand and prints "k", which
  * is right for a line total and destroys a per-gram figure: 9,215 rupiah a
- * gram becomes "10k". Pass `exact` and the number is grouped in full, with
- * cents when it is small enough to need them.
+ * gram becomes "10k". A rate is quoted to the nearest cent and no finer, and
+ * a currency whose unit is small enough to put a rate in the thousands keeps
+ * one decimal on the thousands rather than trailing digits nobody reads:
+ *
+ *     $0.57      under ten units, so cents
+ *     NT$18      tens, where the cents are noise
+ *     IDR 9.2k   thousands, abbreviated with one decimal
  */
-export const formatCurrency = (amount: number, currency: Currency, rates: ExchangeRate[], opts?: { exact?: boolean }) => {
+export const formatCurrency = (amount: number, currency: Currency, rates: ExchangeRate[], opts?: { rate?: boolean }) => {
   const safeRates = rates && rates.length > 0 ? rates : FALLBACK_RATES;
   const found = safeRates.find(r => r.currency === currency);
   // Never silently multiply by 1 for a currency we have no rate for. If the
@@ -32,25 +37,31 @@ export const formatCurrency = (amount: number, currency: Currency, rates: Exchan
 
   // IDR reads large; round up to the nearest thousand and abbreviate with a K
   // (no decimals, no hundreds). e.g. 162,100 -> 162k.
-  if (currencyCode === 'IDR' && !opts?.exact) {
+  if (currencyCode === 'IDR' && !opts?.rate) {
     const thousands = Math.ceil(value / 1000);
     return `IDR ${thousands}k`;
   }
 
-  if (opts?.exact) {
-    // Cents only where a gram costs less than ten units. Above that the minor
-    // unit is noise, and on JPY it is a unit that does not exist.
-    const digits = Math.abs(value) < 10 ? 2 : 0;
+  if (opts?.rate) {
+    const abs = Math.abs(value);
+    // Cents only under ten units. Above that the minor unit is noise, and on
+    // JPY it is a unit that does not exist.
+    const digits = abs < 10 ? 2 : 0;
+    const scaled = abs >= 1000 ? value / 1000 : value;
+    const fractionDigits = abs >= 1000 ? 1 : digits;
     try {
-      return new Intl.NumberFormat('en-US', {
+      const formatted = new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: currencyCode,
         currencyDisplay: 'symbol',
-        minimumFractionDigits: digits,
-        maximumFractionDigits: digits,
-      }).format(value);
+        minimumFractionDigits: fractionDigits,
+        maximumFractionDigits: fractionDigits,
+      }).format(scaled);
+      // A rounded thousand reads better without its empty decimal.
+      return abs >= 1000 ? `${formatted.replace(/\.0$/, '')}k` : formatted;
     } catch {
-      return `${currencyCode} ${value.toFixed(digits)}`;
+      const plain = `${currencyCode} ${scaled.toFixed(fractionDigits)}`;
+      return abs >= 1000 ? `${plain.replace(/\.0$/, '')}k` : plain;
     }
   }
 

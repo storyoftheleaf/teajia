@@ -135,11 +135,14 @@ export function useShopPrice(): ShopPrice {
    * order panel needs the gram itself: the amount buttons are grams, the rate
    * beside them moves as those grams change, and quoting a hundred of them
    * makes the reader do arithmetic to connect the two.
+   *
+   * Quoted to the nearest cent and no finer. Trailing precision on a rate is
+   * a number nobody reads and a promise the shop does not make.
    */
   const perGramExact = useCallback(
     (usdPerGram: number) =>
       localised
-        ? formatCurrency(usdPerGram, currency, rates, { exact: true })
+        ? formatCurrency(usdPerGram, currency, rates, { rate: true })
         : fmtShopPricePerGram(usdPerGram).replace(/\s*\/\s*g$/, ''),
     [localised, currency, rates],
   );
