@@ -592,3 +592,38 @@ describe('the order summary never reaches durable storage', () => {
     expect(key![0]).toContain('context.reference');
   });
 });
+
+/**
+ * The one class that keeps the block inside the phone.
+ *
+ * The summary is a grid item, and a grid item defaults to min-width:auto, which
+ * refuses to shrink below its own content. Without min-w-0 the row sizes itself
+ * to the longest tea name, every truncate inside it becomes decorative, and the
+ * quantity is carried off the right edge of the screen. Measured on the live
+ * page at 375px before this was added: the block rendered 551px wide inside a
+ * 311px column and the amount sat 208px past the edge of the phone.
+ *
+ * Static markup cannot measure a layout, so this asserts the cause rather than
+ * the symptom. It is here because the symptom is invisible to every other test
+ * in this file and was found only by opening the real page at phone width.
+ */
+describe('the summary stays inside a phone', () => {
+  it('keeps min-w-0 on the block, or the quantity leaves the screen', () => {
+    const html = renderToStaticMarkup(
+      <PaymentOrderSummary summary={{ lines: [{ name: 'A very long tea name indeed', quantity: '357g' }], placedOn: null }} />,
+    );
+    const root = html.match(/<div[^>]*data-testid="payment-order-summary"[^>]*>/);
+    expect(root, 'the summary root has been renamed or removed').not.toBeNull();
+    expect(root![0]).toContain('min-w-0');
+  });
+
+  it('keeps the name shrinkable and the quantity unshrinkable', () => {
+    const html = renderToStaticMarkup(
+      <PaymentOrderSummary summary={{ lines: [{ name: 'Da Hong Pao', quantity: '30g' }], placedOn: null }} />,
+    );
+    // The name gives way, the amount never does. Reversing these would truncate
+    // the number the customer is checking rather than the label beside it.
+    expect(html).toContain('min-w-0 flex-1 truncate');
+    expect(html).toContain('shrink-0');
+  });
+});

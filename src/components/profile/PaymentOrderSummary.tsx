@@ -29,7 +29,13 @@ export function PaymentOrderSummary({ summary }: { summary: PaymentOrderSummaryD
   const remaining = summary.lines.length - shown.length;
 
   return (
-    <div data-testid="payment-order-summary" className="border-t border-tea-border pt-5 sm:col-span-2">
+    // min-w-0 is load-bearing, not decoration. This block is a grid item, and a
+    // grid item defaults to min-width:auto, which refuses to shrink below its
+    // own content: without it the row sizes to the longest tea name, the truncate
+    // below never engages, and on a 375px phone the quantity is pushed clean off
+    // the screen. Measured on the live page: the amount sat 208px past the right
+    // edge before this class, and inside it after.
+    <div data-testid="payment-order-summary" className="min-w-0 border-t border-tea-border pt-5 sm:col-span-2">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <p className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-dim`}>This payment covers</p>
         {summary.placedOn && (
