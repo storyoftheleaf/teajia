@@ -1,8 +1,9 @@
 import React from 'react';
-import type { InventoryItem } from '../../../types';
+import type { CustomerTasting, InventoryItem } from '../../../types';
 import { resolveTermLabel, TASTING_CATEGORY_ORDER } from '../../../data/tastingTaxonomy';
 import { starredNotes } from '../../../lib/noteEntries';
 import { AlcoveSectionHeading } from './AlcoveSectionHeading';
+import { AlcoveTastingPlate } from './AlcoveTastingPlate';
 import type { ProductResearchResolution } from '../../../wisdom/productResearch';
 
 /** Converts a string to Title Case */
@@ -30,6 +31,12 @@ interface AlcoveCharacterBandProps {
    * purchase, and it is the one action you take after the tea is yours.
    */
   onTaste?: (item: InventoryItem) => void;
+  /**
+   * This reader's own entry for this tea, when they have written one. The plate
+   * shows it back to them instead of asking again: there is one entry per tea,
+   * so a second visit edits rather than adds.
+   */
+  tastingEntry?: CustomerTasting | null;
   /** The standalone page sets the character in air rather than in a panel. */
   open?: boolean;
 }
@@ -121,6 +128,7 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
   onTermClick,
   potentialResearch,
   onTaste,
+  tastingEntry = null,
   open = false,
 }) => {
   const tasting = item.tasting;
@@ -151,7 +159,8 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
   const starred = starredNotes(tasting);
   const hasVisibleStructuredTerms = flavorTerms.length > 0 || feelingTerms.length > 0;
   const hasTerms = tasteTerms.length > 0 || feelingTerms.length > 0;
-  const hasAny = hasTerms || starred.length > 0 || Boolean(potentialResearch) || Boolean(onTaste);
+  const hasCharacterContent = hasTerms || starred.length > 0;
+  const hasAny = hasCharacterContent || Boolean(potentialResearch) || Boolean(onTaste);
 
   // No sensory data: no band, no empty heading. (The admin "Edit" affordance
   // lives on the card's top edge, not here, so an empty tasting shows nothing.)
@@ -160,13 +169,21 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
   return (
     <section
       aria-label="Character"
-      className={`alcove-band relative px-6 ${open ? 'alcove-band--open mt-9 pb-2 pt-0' : 'mt-[22px] pb-[18px] pt-4'}`}
+      className={`alcove-band relative px-6 ${
+        open
+          ? `alcove-band--open mt-9 pt-0 ${onTaste ? 'pb-5' : 'pb-2'}`
+          : `mt-[22px] pt-4 ${onTaste ? 'pb-6' : 'pb-[18px]'}`
+      }`}
     >
-      {open ? (
-        <div aria-hidden="true" className="alcove-rule mb-3.5" />
-      ) : (
-        <AlcoveSectionHeading label="Character" className="mb-3" />
-      )}
+      {/* The rule and the heading separate the character from the ledger above.
+          With no terms and no starred note there is nothing to separate, and the
+          page was drawing a 26px hairline over a bare invitation. */}
+      {hasCharacterContent &&
+        (open ? (
+          <div aria-hidden="true" className="alcove-rule mb-3.5" />
+        ) : (
+          <AlcoveSectionHeading label="Character" className="mb-3" />
+        ))}
 
       {hasTerms && (
         <div className={open ? "text-center [&_.grp+.grp]:mt-1.5" : "text-center [&_.grp+.grp]:mt-3"}>
@@ -186,21 +203,8 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
       )}
 
       {onTaste && (
-        <div className={open ? 'mt-2 text-center' : 'mt-4 text-center'}>
-          <button
-            type="button"
-            onClick={e => {
-              e.stopPropagation();
-              onTaste(item);
-            }}
-            className={
-              open
-                ? 'tap-target inline-flex min-h-[32px] items-center font-sans text-ui-10 uppercase tracking-[0.16em] text-tea-text-dim underline decoration-tea-gold/40 underline-offset-4 transition-colors hover:text-tea-text hover:decoration-tea-gold'
-                : 'alcove-tasting-btn tap-target inline-flex min-h-[38px] items-center px-[18px] py-[9px] font-sans text-ui-10 uppercase tracking-[0.18em] text-tea-text-sec transition-colors hover:text-tea-text'
-            }
-          >
-            Add your tasting
-          </button>
+        <div className={hasCharacterContent ? 'mt-4' : ''}>
+          <AlcoveTastingPlate entry={tastingEntry} onTaste={() => onTaste(item)} />
         </div>
       )}
 

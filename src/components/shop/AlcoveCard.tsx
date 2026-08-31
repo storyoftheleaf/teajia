@@ -4,7 +4,7 @@ import { useScrollFade } from './alcove/hooks/useScrollFade';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../lib/store';
 import { api } from '../../lib/api';
-import { useTastingCount } from '../../hooks/useTastingCount';
+import { useTastingCount, useTastingEntry } from '../../hooks/useTastingCount';
 import { useShopPrice } from './shopPrice';
 import { useProductEvents } from '../../hooks/useProductEvents';
 import { useStories } from '../../context/StoryContext';
@@ -155,6 +155,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
   const favorited = favoriteTeas.includes(item.id);
   const tastingCount = useTastingCount(item.id);
+  const tastingEntry = useTastingEntry(item.id);
   const [grams, setGrams] = useState(50);
   const [customMode, setCustomMode] = useState(false);
   const [customInput, setCustomInput] = useState('');
@@ -528,6 +529,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       onTermClick={onTermClick}
       potentialResearch={potentialResearch}
       onTaste={onTaste}
+      tastingEntry={tastingEntry}
       open={layout === 'page'}
     />
   );

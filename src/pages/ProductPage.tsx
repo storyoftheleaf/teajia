@@ -376,13 +376,30 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
             </>
           )}
         </Link>
+        {/* The way to the order. As plain caps at the far corner it read as a
+            crumb rather than a control and was routinely missed, so it carries
+            a tint, the bag, and a filled count that is the only solid shape in
+            the bar. */}
         {onCartClick && (
           <button
             type="button"
             onClick={onCartClick}
-            className="tap-target font-sans text-ui-12 uppercase tracking-[0.14em] text-tea-text-sec transition-colors hover:text-tea-text"
+            aria-label={
+              cartItemCount > 0
+                ? `Open order with ${cartItemCount} ${cartItemCount === 1 ? 'item' : 'items'}`
+                : 'Open order'
+            }
+            className="tap-target inline-flex shrink-0 items-center gap-[9px] bg-tea-gold/10 py-2 pl-3 pr-2.5 font-sans text-ui-11 font-medium uppercase tracking-[0.14em] text-tea-text transition-colors hover:bg-tea-gold/[0.17]"
           >
-            View order{cartItemCount > 0 && <span className="ml-2 text-tea-gold">{cartItemCount}</span>}
+            <Icons.Bag className="h-[15px] w-[15px] shrink-0 text-tea-gold-lt" aria-hidden="true" />
+            <span>View order</span>
+            {cartItemCount > 0 && (
+              <span
+                className={`cta-solid inline-flex h-[19px] min-w-[19px] items-center justify-center px-1 text-ui-11 font-semibold ${NUMERAL}`}
+              >
+                {cartItemCount}
+              </span>
+            )}
           </button>
         )}
       </div>
