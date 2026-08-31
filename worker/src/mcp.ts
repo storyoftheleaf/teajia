@@ -3008,29 +3008,65 @@ async function commitUpdateTeaCatalog(
   m: Extract<PendingMutation, { kind: 'update_tea_catalog' }>,
   productName: string,
 ) {
-  const sets: string[] = [];
-  const binds: (string | null)[] = [];
-  for (const [col, val] of Object.entries(m.fields)) {
-    sets.push(`${col} = ?`);
-    binds.push(val);
-  }
-  binds.push(m.accountId, m.productId, `${m.productId}-%`);
   const now = new Date().toISOString();
   const changed = Object.keys(m.fields);
 
-  await env.DB.batch([
-    env.DB.prepare(`UPDATE products SET ${sets.join(', ')}, updated_at = ? WHERE account_id = ? AND (id = ? OR id LIKE ?)`)
-      .bind(...binds.slice(0, -3), now, ...binds.slice(-3)),
+  // Map catalog body keys to products columns, then to tea_profiles columns.
+  // tea_profiles mirrors by id = 'prof_' + productId, using its own column
+  // names (name, harvest_year, chinese_name, type, form, origin_*). This is
+  // the same mirror contract update_tea_pricing uses (mcp.ts ~line 2008).
+  const profileMap: Record<string, string> = {
+    product_name: 'name',
+    given_name: 'name',
+    chinese_name: 'chinese_name',
+    type: 'type',
+    form: 'form',
+    origin_country: 'origin_country',
+    origin_region: 'origin_region',
+    year: 'harvest_year',
+    altitude: 'altitude',
+    cultivar: 'varietal',
+    teaware_category: 'teaware_category',
+    material: 'material',
+    capacity_ml: 'capacity_ml',
+  };
+
+  const prodSets: string[] = [];
+  const prodBinds: (string | null)[] = [];
+  const profSets: string[] = [];
+  const profBinds: (string | null)[] = [];
+  for (const [col, val] of Object.entries(m.fields)) {
+    prodSets.push(`${col} = ?`);
+    prodBinds.push(val);
+    const profCol = profileMap[col];
+    if (profCol) {
+      profSets.push(`${profCol} = ?`);
+      profBinds.push(col === 'year' && val ? String(val) : val);
+    }
+  }
+  prodSets.push("updated_at = datetime('now')");
+  profSets.push("updated_at = datetime('now')");
+
+  const stmts: D1PreparedStatement[] = [
     env.DB.prepare(
-      `INSERT INTO tea_profiles (product_id, account_id, ${changed.join(', ')}, created_at, updated_at)
-       VALUES (?, ?, ${changed.map(() => '?').join(', ')}, ?, ?)
-       ON CONFLICT(product_id) DO UPDATE SET ${changed.map((c) => `${c} = excluded.${c}`).join(', ')}, updated_at = excluded.updated_at`
-    ).bind(m.productId, m.accountId, ...changed.map((c) => m.fields[c]), now, now),
+      `UPDATE products SET ${prodSets.join(', ')} WHERE id = ? AND account_id = ?`
+    ).bind(...prodBinds, m.productId, m.accountId),
+  ];
+  if (profSets.length > 0) {
+    stmts.push(
+      env.DB.prepare(
+        `UPDATE tea_profiles SET ${profSets.join(', ')} WHERE id = ?`
+      ).bind(...profBinds, `prof_${m.productId}`)
+    );
+  }
+  stmts.push(
     env.DB.prepare(
-      `INSERT INTO activity_logs (account_id, user_email, action, entity_type, entity_id, detail, created_at)
-       VALUES (?, ?, 'PRODUCT_CATALOG_UPDATE_MCP', 'product', ?, ?, ?)`
-    ).bind(m.accountId, m.userEmail, m.productId, JSON.stringify({ fields: m.fields }), now),
-  ]);
+      `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+       VALUES (?, 'PRODUCT_CATALOG_UPDATE_MCP', ?, ?, 'product', ?, ?)`
+    ).bind(crypto.randomUUID(), JSON.stringify({ fields: m.fields }), m.userEmail, m.productId, m.accountId)
+  );
+
+  await env.DB.batch(stmts);
 
   return {
     committed: true,
