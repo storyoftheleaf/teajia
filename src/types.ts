@@ -745,6 +745,12 @@ export interface Account {
   whatsapp_number?: string;
   contact_email?: string;
   public_enabled?: boolean;
+  /**
+   * Whether money can still reach anyone at this store. Served only on the
+   * public store payload, so it is absent everywhere else and absence must
+   * never be read as "no": only an explicit false stops a checkout.
+   */
+  can_be_paid?: boolean;
   is_platform_owner?: boolean;
   invoice_prefix?: string;
   // BYOK presence flags (the encrypted secret itself is never sent to the client).

@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { CartItem as PublicCartItem } from '../../types';
 import { buildOrderMessage } from '../../lib/whatsapp';
-import { CONTACT_UNAVAILABLE, resolveContactChannels } from '../../lib/contact';
+import { CONTACT_UNAVAILABLE, STORE_CANNOT_BE_PAID, resolveContactChannels } from '../../lib/contact';
 import { useAppStore } from '../../lib/store';
 import { useRates } from '../../admin/hooks/useAdminData';
 import { useShopPrice } from '../shop/shopPrice';
@@ -38,6 +38,13 @@ export interface PublicCartProps {
    */
   whatsappNumber?: string;
   contactEmail?: string;
+  /**
+   * Whether money can still reach anyone at this store. Undefined means the
+   * question was not asked (the platform's own shop, or a store payload that
+   * predates the flag), and an unasked question must never read as a refusal,
+   * so ONLY an explicit false stops a checkout.
+   */
+  canBePaid?: boolean;
   onClose?: () => void;
 }
 
@@ -51,7 +58,7 @@ const STEPS = [
   { key: 'CONFIRM' as const, label: 'Review' },
 ];
 
-export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, cart, onRemoveItem, onUpdateQuantity, onAddItem, isOpen, whatsappNumber, contactEmail, onClose }) => {
+export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, cart, onRemoveItem, onUpdateQuantity, onAddItem, isOpen, whatsappNumber, contactEmail, canBePaid, onClose }) => {
   const [step, setStep] = useState<CheckoutStep>('CART');
   const [details, setDetails] = useState({ name: '', contact: '', location: '', notes: '' });
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -266,6 +273,13 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
 
   const contactChannels = useMemo(() => resolveContactChannels({ whatsappNumber, email: contactEmail, subject: `Tea Order - ${details.name}`, message: outgoingMessage }), [whatsappNumber, contactEmail, details.name, outgoingMessage]);
 
+  /**
+   * The backstop behind the gate on opening a store. Sending is refused rather
+   * than the buttons being hidden, so the reason is said out loud once the
+   * customer tries, instead of a checkout that quietly does nothing.
+   */
+  const storeCannotBePaid = canBePaid === false;
+
   // ── Handlers ─────────────────────────────────────────────────────────────
 
   const handleRemoveWithUndo = (id: string) => {
@@ -358,6 +372,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
     // Validate the resolved phone before opening WhatsApp. buildWhatsAppUrl
     // silently falls back to a recipient-less wa.me link when digits < 7,
     // which sends nothing, surface a clear error and offer email instead.
+    if (storeCannotBePaid) { setCheckoutError(STORE_CANNOT_BE_PAID); return; }
     if (!contactChannels.whatsapp) {
       setCheckoutError("This store doesn't have WhatsApp ordering set up. Please use Email or Copy text below to send your order.");
       return;
@@ -366,12 +381,14 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
   };
 
   const handleEmail = () => {
+    if (storeCannotBePaid) { setCheckoutError(STORE_CANNOT_BE_PAID); return; }
     if (!contactChannels.email) { setCheckoutError(CONTACT_UNAVAILABLE); return; }
     deliverToWindow('email', contactChannels.email.href);
   };
 
   const handleCopy = () => {
     if (isPersisting) return;
+    if (storeCannotBePaid) { setCheckoutError(STORE_CANNOT_BE_PAID); return; }
     if (copyDeliveryStep(isPersistedForPayload) === 'persist') {
       setCheckoutError(null);
       setIsPersisting(true);

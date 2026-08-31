@@ -1398,6 +1398,7 @@ const AppContent = () => {
          onAddItem={addToPublicCart}
          whatsappNumber={checkoutContactStore?.whatsapp_number}
          contactEmail={checkoutContactStore?.contact_email}
+         canBePaid={checkoutContactStore?.can_be_paid}
       />
     </div>
   );
