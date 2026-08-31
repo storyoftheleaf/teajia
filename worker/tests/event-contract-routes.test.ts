@@ -206,6 +206,40 @@ describe('public RSVP update contract', () => {
   });
 });
 
+describe('public event page', () => {
+  // This page answered 500 on the live site for as long as anyone had looked,
+  // because its guest-list query named two columns production does not have:
+  // show_in_guest_list, which was missing entirely, and updated_at, which has
+  // never existed on event_attendees in this repo either. SQLite rejects the
+  // whole statement either way, so the page failed rather than showing no
+  // guests. Nothing covered the route, and the fake databases used elsewhere
+  // would have answered both questions happily.
+  it('serves an event, and lists only the guests who opted in', async () => {
+    const db = seedEventContractDb();
+    for (const [id, name, phone, status, optIn, at] of [
+      ['guest-early', 'Ama Toh', '1', 'confirmed', 1, '2020-01-01T00:00:00Z'],
+      ['guest-late', 'Bo Lin', '2', 'confirmed', 1, '2020-01-02T00:00:00Z'],
+      ['guest-private', 'Cai Wen', '3', 'confirmed', 0, '2020-01-03T00:00:00Z'],
+      ['guest-waiting', 'Dai Xu', '4', 'waitlist', 1, '2020-01-04T00:00:00Z'],
+    ] as const) {
+      db.sqlite.prepare(`INSERT INTO event_attendees
+        (id, event_id, account_id, full_name, phone_number, status, magic_token,
+         show_in_guest_list, created_at)
+        VALUES (?, 'event-a', 'account-a', ?, ?, ?, ?, ?, ?)`)
+        .run(id, name, phone, status, `token-${id}`, optIn, at);
+    }
+
+    const response = await worker.fetch(
+      new Request('https://worker.test/api/events/cliff-tea/public'),
+      { DB: db as any, JWT_SECRET } as any,
+    );
+    expect(response.status).toBe(200);
+    // Opted in and confirmed only, oldest first. First names, as the page shows.
+    expect((await response.json() as any).confirmed_names).toEqual(['Ama', 'Bo']);
+    db.close();
+  });
+});
+
 const JWT_SECRET = 'event-contract-secret';
 
 function seedEventContractDb() {

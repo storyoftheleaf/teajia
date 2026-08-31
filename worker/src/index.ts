@@ -10537,11 +10537,13 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
   const confirmedCount = Number(count?.accepted || 0);
   const offeredCount = Number(count?.offered || 0);
 
-  // First names of guests who opted in to the public guest list
+  // First names of guests who opted in to the public guest list.
+  // Ordered by created_at: event_attendees has no updated_at, and never has,
+  // in this repo or in production. Asking for it made this whole page 500.
   const guestListRows = await env.DB.prepare(
     `SELECT full_name FROM event_attendees
      WHERE event_id = ? AND status = 'confirmed' AND show_in_guest_list = 1
-     ORDER BY updated_at ASC LIMIT 20`
+     ORDER BY created_at ASC LIMIT 20`
   ).bind(event.id).all();
   const confirmedNames = (guestListRows.results ?? []).map(
     (r) => (r.full_name as string).split(' ')[0]
