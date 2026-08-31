@@ -46,10 +46,9 @@ const ADMIN_ITEM_ACCESS: Record<string, (access: AdminNavAccess) => boolean> = {
   magazine: access => access.hasPublish,
   wisdom: access => access.hasPublish,
   network: access => access.hasCatalog || access.hasSell,
-  // Settings currently lands on People, so it is offered to whoever People is
-  // offered to. Where it ought to land is a separate question.
-  settings: access =>
-    access.hasSell || access.hasGather || access.hasMembers || access.hasStock || access.hasPublish,
+  // Settings now lands on the shop's own settings, so it follows the same rule
+  // as that screen rather than the one it used to be misrouted to.
+  settings: access => access.isOwnerTier,
 };
 
 /**

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BowlSteam, CalendarBlank, Heart, Tray, ArrowsLeftRight, Wrench, Path, BookOpen, Compass, Package, NotePencil, IdentificationCard, Receipt } from '@phosphor-icons/react';
+import { BowlSteam, CalendarBlank, Heart, Tray, ArrowsLeftRight, Wrench, Path, BookOpen, Compass, Package, NotePencil, IdentificationCard, Receipt, Storefront, UsersThree } from '@phosphor-icons/react';
 import { ADMIN_CONNECTION_ROUTES } from '../navigationConnections';
 import { NeedsAttention, daysWord } from './primitives';
 import type { TeaMasterReadiness } from '../readiness/teaMasterReadiness';
@@ -399,6 +399,26 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
       hint: 'create an article',
       icon: <NotePencil {...ICON_PROPS} />,
       onClick: () => { onClose(); navigate('/admin/magazine'); },
+    } as LaunchpadTile] : []),
+    ...(isOwner ? [{
+      // The shop's own record: its name, its contact, its currency, and the
+      // control that opens it to buyers. Reachable from here because the setup
+      // card that used to point at it goes away once setup is finished, and a
+      // tea master still needs to come back and change a tagline in a year.
+      id: 'table-settings',
+      verb: 'table settings',
+      hint: 'your shop\u2019s own details',
+      icon: <Storefront {...ICON_PROPS} />,
+      onClick: () => { onClose(); navigate('/admin/account-settings'); },
+    } as LaunchpadTile] : []),
+    ...(isOwner ? [{
+      // Inviting someone to help was reachable only through screens a tea
+      // master could not open, so in practice nobody could add their own staff.
+      id: 'helpers',
+      verb: 'helpers',
+      hint: 'who can help run this',
+      icon: <UsersThree {...ICON_PROPS} />,
+      onClick: () => { onClose(); navigate('/admin/access'); },
     } as LaunchpadTile] : []),
     ...(isOwner ? [{
       id: 'tea-masters',

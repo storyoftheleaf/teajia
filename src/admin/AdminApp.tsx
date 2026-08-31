@@ -626,7 +626,11 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="sources" element={<Navigate to="/admin/people" replace />} />
               <Route path="orders" element={<Navigate to="/admin/activity?tab=orders" replace />} />
               <Route path="records" element={<Navigate to="/admin/activity?tab=log" replace />} />
-              <Route path="settings" element={<Navigate to="/admin/people" replace />} />
+              {/* The only control in the app labelled Settings used to land on
+                  Contacts, which answers a different question entirely. It goes
+                  to the shop's own settings now, which is what the word means
+                  here. */}
+              <Route path="settings" element={<Navigate to="/admin/account-settings" replace />} />
 
               <Route path="*" element={<Navigate to="home" replace />} />
           </Routes>
