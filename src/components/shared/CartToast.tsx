@@ -35,7 +35,7 @@ export const CartToast: React.FC<CartToastProps> = ({
         <motion.div
           role="status"
           aria-live="polite"
-          className="fixed bottom-nav-gap lg:bottom-8 left-1/2 lg:left-auto lg:right-8 lg:translate-x-0 -translate-x-1/2 z-toast pointer-events-none"
+          className="cart-toast fixed bottom-nav-gap lg:bottom-8 left-1/2 lg:left-auto lg:right-8 lg:translate-x-0 -translate-x-1/2 z-toast pointer-events-none"
           initial={{ y: 16, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 8, opacity: 0 }}

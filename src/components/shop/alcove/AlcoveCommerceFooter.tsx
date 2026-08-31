@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import type { InventoryItem } from '../../../types';
 import { Heart, Pencil, FlaskConical, Share } from 'lucide-react';
 import { fmtShopPrice, fmtShopPricePerGram } from '../../../utils/formatNumber';
-import { offeredSizes, quoteGrams } from '../../../lib/teaPricing';
+import { offeredSizes, quoteGrams, WHOLE_PIECE } from '../../../lib/teaPricing';
 import { useAppStore } from '../../../lib/store';
 
 interface StockStatus {
@@ -49,6 +49,8 @@ interface AlcoveCommerceFooterProps {
    * unit it got rather than read it off the end of a formatted string.
    */
   formatRate?: (usdPerGram: number) => { value: string; unit: string };
+  /** Formats a plain USD total, for figures that are already totals. */
+  formatTotal?: (usd: number) => string;
   /**
    * Choosing an amount IS adding it, on the page bar. The row already carries
    * the amount, the rate and the total, so the tap is an informed decision and
@@ -59,6 +61,14 @@ interface AlcoveCommerceFooterProps {
   onChooseAmount?: (grams: number) => void;
   /** Opens the order. Only meaningful alongside onChooseAmount. */
   onOpenOrder?: () => void;
+  /**
+   * Commit the amount currently chosen to the order, carrying BOTH the weight
+   * and the total the reader was just shown. The card used to recompute the
+   * total from its own copy of the weight, and the two drifted: the bar quoted
+   * $42 and the order stored $40, because one of them had lost the handling
+   * the pricing curve folds in. Whatever the bar displayed is what gets added.
+   */
+  onAdd?: (grams: number, totalUsd: number) => void;
   /**
    * 'pinned' (default) is the modal card's bottom bar: top hairline + solid
    * card bg. 'rail' is the product page's desktop order module: the enclosing
@@ -75,12 +85,8 @@ interface AlcoveCommerceFooterProps {
  * Mirrors DEFAULT_GRAMS in TeaCompass/types.ts, kept local so the shop footer
  * does not pull the whole tea-wisdom module into the customer bundle.
  */
-export const WHOLE_PIECE: Record<string, { label: string; grams: number }> = {
-  Cake: { label: 'Cake', grams: 357 },
-  Brick: { label: 'Brick', grams: 250 },
-  Tuo: { label: 'Tuo', grams: 100 },
-  Ball: { label: 'Ball', grams: 100 },
-};
+
+export { WHOLE_PIECE };
 
 const STOCK_DOT: React.CSSProperties = {
   width: 5,
@@ -142,8 +148,10 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
   formatPrice,
   formatPerGram,
   formatRate,
+  formatTotal,
   onChooseAmount,
   onOpenOrder,
+  onAdd,
   variant = 'pinned',
 }) => {
   const isTea = item.category === 'tea';
@@ -251,10 +259,19 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
   // Resting the amounts closed is the point: the price list appears when
   // someone goes to choose, not before. Opening is local to this footer, so
   // the card and the page rail each keep their own.
-  const resolvedTotal = (usd: number) => (formatPrice ? formatPrice(usd, 1) : fmtShopPrice(usd));
+  /* A cart total is a total, not a rate times a weight. This used to call
+     formatPrice(total, 1), which runs the figure through the pricing curve as
+     though it were a per-gram price for one gram, and so added the handling fee
+     to it a second time. */
+  const resolvedTotal = (usd: number) => (formatTotal ? formatTotal(usd) : fmtShopPrice(usd));
+  /* What Add commits, from the same call the list and the bar display. */
+  const addTotalUsd = isTea
+    ? quoteGrams(pricePerGram, grams, { wholePieceGrams: WHOLE_PIECE[item.form ?? '']?.grams }).totalUsd
+    : pricePerGram * grams;
   const publicCart = useAppStore(st => st.publicCart);
   const orderTotalUsd = publicCart.reduce((sum, line) => sum + (line.totalPrice ?? 0), 0);
   const [amountsOpen, setAmountsOpen] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
   // The rail has the room, so the amounts stand open in it and the toggle is
   // only for the surfaces that do not: the phone bar and the quick-view card.
   const amountsShown = isRail || amountsOpen;
@@ -487,55 +504,39 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
               </span>
             </span>
           )}
-          {/* The bar always ends in a block, and which one depends on whether
-              there is an order yet: "How much" opens the list, and once
-              something is in the order it carries the order instead. On a
-              343px phone there is only room for it when nothing is chosen,
-              which is exactly what the design file draws; wider bars keep it,
-              because a 760px bar with 600px of nothing in it is not restraint,
-              it is an unfinished object. */}
-          {orderTotalUsd > 0 ? (
+          {/* Two controls, not one. The block used to be a single thing that
+              meant whatever the state made it mean, and because choosing an
+              amount also added it, there was nothing left for it to do except
+              open the order. Adding is its own act now: Add commits the amount
+              showing to its left, and the order sits beyond it as the way to
+              what has already been committed. The order only appears once
+              there is one, which is what keeps a 343px bar from carrying four
+              controls at the same time. */}
+          <button
+            type="button"
+            onClick={() => {
+              if (navigator.vibrate) navigator.vibrate(8);
+              setJustAdded(true);
+              window.setTimeout(() => setJustAdded(false), 1600);
+              onAdd?.(grams, addTotalUsd);
+            }}
+            disabled={isSoldOut}
+            className="alcove-dock-add tap-target inline-flex items-center"
+            data-state={justAdded ? 'added' : 'default'}
+          >
+            {justAdded ? 'Added' : 'Add'}
+          </button>
+          {orderTotalUsd > 0 && (
             <button
               type="button"
               onClick={onOpenOrder}
               className="alcove-dock-cta tap-target inline-flex items-center"
               aria-label="Open your order"
             >
-              {/* "Your order" on a bar with the room, "Order" on one without.
-                  The block itself stays at every width. */}
               <span className="hidden sm:inline">Your order</span>
-              <span className="sm:hidden">Order</span>
-              <span className="ml-2.5 font-display text-ui-17 tabular-nums sm:ml-3">
+              <span className="font-display text-ui-17 tabular-nums sm:ml-3">
                 {resolvedTotal(orderTotalUsd)}
               </span>
-            </button>
-          ) : activeCell ? (
-            /* "Purchase", because that is what pressing it does. It read "How
-               much", which is a question about the amount and so competed with
-               the control beside it that actually sets the amount: two things
-               asking the same question and neither committing. This one
-               commits, putting the amount showing to its left into the order
-               and opening it. */
-            <button
-              type="button"
-              onClick={() => {
-                if (onChooseAmount && activeCell.chooseGrams != null) onChooseAmount(activeCell.chooseGrams);
-                else activeCell.onSelect();
-                onOpenOrder?.();
-              }}
-              className="alcove-dock-cta tap-target inline-flex items-center"
-            >
-              Purchase
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setAmountsOpen(open => !open)}
-              aria-expanded={amountsOpen}
-              aria-controls={amountsId}
-              className="alcove-dock-cta tap-target inline-flex items-center"
-            >
-              How much
             </button>
           )}
         </div>

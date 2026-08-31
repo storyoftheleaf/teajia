@@ -3585,25 +3585,34 @@ input[type="number"]::-webkit-outer-spin-button {
 .alcove-dock-strip {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   height: 52px;
-  padding-left: 12px;
+  padding-left: 10px;
 }
+@media (min-width: 640px) {
+  .alcove-dock-strip { gap: 10px; padding-left: 12px; }
+}
+/* Keeping and sending are the secondary pair, and on a phone they were taking
+   101px of a 358px bar, which is 28% of it, so the amount beside them spilled
+   past its own keyline. 30px each here, 34 where there is room. */
 .alcove-dock-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   color: var(--tea-text-dim);
   transition: color 0.15s ease;
 }
 .alcove-dock-icon:hover,
 .alcove-dock-icon[data-active='true'] { color: var(--tea-gold-lt); }
+@media (min-width: 640px) {
+  .alcove-dock-icon { width: 34px; height: 34px; }
+}
 .alcove-dock-divider {
   width: 1px;
   height: 18px;
-  margin: 0 8px 0 4px;
+  margin: 0 6px 0 2px;
   background: rgb(var(--tea-gold-rgb) / 0.26);
 }
 /* The one way in, before an amount is chosen. It runs to the strip's right
@@ -3635,10 +3644,11 @@ input[type="number"]::-webkit-outer-spin-button {
   background: rgb(var(--tea-gold-rgb) / 0.1);
 }
 
-.alcove-dock-cta {
+/* Add: the commit, and the only filled thing in the bar. */
+.alcove-dock-add {
   flex: 0 0 auto;
   align-self: stretch;
-  padding: 0 26px;
+  padding: 0 18px;
   white-space: nowrap;
   background: var(--tea-plate-tan);
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
@@ -3649,7 +3659,31 @@ input[type="number"]::-webkit-outer-spin-button {
   color: #241d13;
   transition: background 0.15s ease;
 }
-.alcove-dock-cta:hover { background: var(--tea-plate-tan-lift); }
+@media (min-width: 640px) {
+  .alcove-dock-add { padding: 0 24px; }
+}
+.alcove-dock-add:hover:not(:disabled) { background: var(--tea-plate-tan-lift); }
+.alcove-dock-add[data-state='added'] { background: var(--tea-leaf); color: #ede4d4; }
+.alcove-dock-add:disabled { background: var(--tea-accent-sub); color: var(--tea-text-sec); cursor: not-allowed; }
+
+/* The order: the destination, not the action, so it carries a keyline rather
+   than a fill and never competes with Add for the eye. */
+.alcove-dock-cta {
+  flex: 0 0 auto;
+  align-self: stretch;
+  padding: 0 26px;
+  white-space: nowrap;
+  border-left: 1px solid rgb(var(--tea-gold-rgb) / 0.28);
+  background: none;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--tea-text);
+  transition: background 0.15s ease;
+}
+.alcove-dock-cta:hover { background: rgb(var(--tea-gold-rgb) / 0.1); }
 /* The block never disappears. It used to hide below 640px, which meant the one
    way into the price list vanished on exactly the screens that have no room to
    show the list any other way. It gives up padding instead. */
@@ -3675,11 +3709,12 @@ input[type="number"]::-webkit-outer-spin-button {
     transform: none;
     bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
     border: 1px solid rgb(var(--tea-border-rgb) / 0.6);
-    /* Square top, rounded base, the same silhouette the assembly has on the
-       phone. It was a full pill here, which put a rounded edge along the top
-       of a bar that nothing sits on top of, and read as a capsule dropped onto
-       the page rather than the foot of it. */
-    border-radius: 0 0 26px 26px;
+    /* Rounded at both ends, the top matching the base. On the phone the top
+       is square because the navigation closes the assembly underneath it; here
+       the bar is the whole object and a square top with a rounded bottom read
+       as half a shape. Not a full pill: 26px is the base's own radius, so the
+       corners are the same corner four times rather than a capsule. */
+    border-radius: 26px;
     box-shadow:
       0 10px 32px rgb(0 0 0 / 0.45),
       0 2px 8px rgb(0 0 0 / 0.25),
@@ -3687,9 +3722,27 @@ input[type="number"]::-webkit-outer-spin-button {
   }
   /* Closed all round, so there is no seam to draw and the ends must follow. */
   .commerce-dock::after { display: none; }
-  .commerce-dock .alcove-dock-strip { border-radius: 0 0 26px 26px; }
-  .commerce-dock .alcove-dock-cta {
+  .commerce-dock .alcove-dock-strip { border-radius: 26px; }
+  .commerce-dock .alcove-dock-cta,
+  .commerce-dock .alcove-dock-add:last-child {
+    border-top-right-radius: 26px;
     border-bottom-right-radius: 26px;
+    padding-right: 26px;
+  }
+}
+
+/* The confirmation has to clear the order bar as well as the navigation.
+   bottom-nav-gap clears a 52px navigation and nothing else, so on a product
+   page the toast opened underneath the order bar sitting on top of that
+   navigation and the reader saw the top third of it. The same :has() the
+   navigation uses to square its corners tells the toast there is a bar in the
+   way: 52px of bar plus 12px of air above it. */
+body:has(.commerce-dock) .cart-toast {
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 140px);
+}
+@media (min-width: 1024px) {
+  body:has(.commerce-dock) .cart-toast {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 76px);
   }
 }
 

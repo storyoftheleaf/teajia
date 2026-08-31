@@ -518,6 +518,13 @@ export interface CartItem {
   quantityGrams: number;
   pricePerGram: number;
   totalPrice: number;
+  /**
+   * The weight of one unbroken piece of this tea, when it is pressed into one.
+   * Carried on the line because the pricing curve exempts a whole piece from
+   * the handling fee, and the cart has to be able to recompute a line total
+   * when a quantity changes without reaching back into the catalogue.
+   */
+  wholePieceGrams?: number;
   image?: string;
 }
 

@@ -4,6 +4,21 @@ import { CartItem as AdminCartItem, Currency, Product } from '../admin/types';
 import { Account, AccountMembership, CartItem as PublicCartItem, CustomerTasting, PlatformRole } from '../types';
 import type { TeaDiscoveryProfile } from '../components/TeaDiscovery/types';
 import { canAddToStoreCart } from './publicCartDomain';
+import { quoteGrams } from './teaPricing';
+
+/**
+ * What one cart line costs.
+ *
+ * Every path here used to write `pricePerGram * grams`, which is not the price:
+ * the curve folds a handling fee into everything except an unbroken piece, so
+ * the shop quoted $42 for 200g and the cart stored $40, and a second add or a
+ * quantity change silently rewrote a correct total into a wrong one. Teaware is
+ * priced per piece and has no curve, so it keeps the multiplication.
+ */
+function lineTotal(item: PublicCartItem, grams: number): number {
+  if (item.category !== 'tea') return item.pricePerGram * grams;
+  return Math.ceil(quoteGrams(item.pricePerGram, grams, { wholePieceGrams: item.wholePieceGrams }).totalUsd);
+}
 
 export interface AuthUser {
   email: string;
@@ -330,12 +345,15 @@ export const useAppStore = create<AppState>()(
             return {
               publicCart: state.publicCart.map((c) =>
                 c.id === item.id
-                  ? { ...c, quantityGrams: newGrams, totalPrice: c.pricePerGram * newGrams }
+                  ? { ...c, quantityGrams: newGrams, totalPrice: lineTotal(c, newGrams) }
                   : c
               ),
             };
           }
-          return { publicCart: [...state.publicCart, { ...item, totalPrice: item.pricePerGram * item.quantityGrams }], cartLastAddedAt: Date.now() };
+          return {
+            publicCart: [...state.publicCart, { ...item, totalPrice: lineTotal(item, item.quantityGrams) }],
+            cartLastAddedAt: Date.now(),
+          };
         }),
 
       removeFromPublicCart: (id) =>
@@ -347,7 +365,7 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           publicCart: state.publicCart.map((item) =>
             item.id === id
-              ? { ...item, quantityGrams: grams, totalPrice: item.pricePerGram * grams }
+              ? { ...item, quantityGrams: grams, totalPrice: lineTotal(item, grams) }
               : item
           ),
         })),

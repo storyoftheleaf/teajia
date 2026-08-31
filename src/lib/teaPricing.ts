@@ -109,3 +109,20 @@ export function offeredSizes(
   }
   return quotes;
 }
+
+
+/**
+ * The weight of one unbroken piece, by the form a tea is pressed into.
+ *
+ * Lives here rather than in the commerce footer because the pricing curve is
+ * what needs it: a whole piece is the one amount that carries no handling fee,
+ * so the cart, the card and the bar all have to agree on how heavy one is.
+ * Kept as a small table rather than read from the tea-wisdom module, which
+ * would pull that whole module into the customer bundle.
+ */
+export const WHOLE_PIECE: Record<string, { label: string; grams: number }> = {
+  Cake: { label: 'Cake', grams: 357 },
+  Brick: { label: 'Brick', grams: 250 },
+  Tuo: { label: 'Tuo', grams: 100 },
+  Ball: { label: 'Ball', grams: 100 },
+};

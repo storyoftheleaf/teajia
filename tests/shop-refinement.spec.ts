@@ -131,11 +131,22 @@ test.describe('refined public shop', () => {
     await expect(amount).toContainText('$10');
     expect(await amount.evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
 
-    // Nothing is in the order yet, so there is no order to open; what must be
-    // reachable is the way in, and it must be reachable at every width. It used
-    // to hide below 640px, which removed it on exactly the screens with no room
-    // to show the price list any other way.
-    await expect(page.locator('.alcove-dock-cta')).toBeVisible();
+    // Choosing an amount chooses it; Add commits it. Both controls are in the
+    // bar at every width. Nothing is in the order yet, so there is nothing to
+    // open and the order block is correctly absent.
+    await expect(page.locator('.alcove-dock-add')).toBeVisible();
+    await expect(page.locator('.alcove-dock-cta')).toHaveCount(0);
+
+    // Changing the amount must not buy anything. This bought a bag every time.
+    await amount.click();
+    await page.locator('[role="group"] button').nth(3).click();
+    await expect(page.locator('.alcove-dock-cta')).toHaveCount(0);
+
+    // Add commits once, and the order then carries exactly what the bar showed.
+    const shown = (await amount.textContent()) ?? '';
+    const shownTotal = shown.match(/\$[\d,]+/)?.[0] ?? '';
+    await page.locator('.alcove-dock-add').click();
+    await expect(page.locator('.alcove-dock-cta')).toContainText(shownTotal);
     if ((await page.viewportSize())!.width < 1024) {
       const [barBox, navBox] = await Promise.all([
         page.locator('.alcove-dock-strip').boundingBox(),

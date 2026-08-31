@@ -262,13 +262,23 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
    * It takes the grams explicitly rather than reading state, because the
    * state set a line earlier has not landed by the time this runs.
    */
+  /* Choosing an amount CHOOSES it. It used to add to the order as well, on the
+     argument that picking is the same act as adding, and the result was that
+     changing your mind from 50 g to 100 g left both in the order: every
+     adjustment bought another bag. Selection and purchase are two acts now,
+     and the bar carries one control for each. */
   const handleChooseAmount = (g: number) => {
     if (isSoldOut) return;
     setGrams(g);
     setCustomMode(false);
-    if (onAddToCart) {
-      onAddToCart(item, g, Math.ceil(quoteGrams(pricePerGram, g, { wholePieceGrams }).totalUsd));
-    }
+  };
+
+  /* Adds exactly what the bar was showing: the bar passes both the weight and
+     the total it displayed, so the order can never store a different figure
+     from the one the reader agreed to. */
+  const handleAddAmount = (g: number, totalUsd: number) => {
+    if (isSoldOut) return;
+    if (onAddToCart) onAddToCart(item, g, Math.ceil(totalUsd));
   };
 
   const handleAdd = () => {
@@ -340,7 +350,9 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       formatPrice={resolvedFormatPrice}
       formatPerGram={shopPrice.perGram}
       formatRate={shopPrice.rate}
+      formatTotal={shopPrice.total}
       onChooseAmount={variant === 'docked' ? handleChooseAmount : undefined}
+      onAdd={variant === 'docked' ? handleAddAmount : undefined}
       onOpenOrder={variant === 'docked' ? onOpenOrder : undefined}
       variant={variant}
     />

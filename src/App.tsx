@@ -192,6 +192,7 @@ import type { PanelView } from './components/AccountPanel/types';
 import { GlobalSearch } from './components/shared/GlobalSearch';
 import { LeftSidebar } from './components/LeftSidebar';
 import { BottomTabBar } from './components/BottomTabBar';
+import { WHOLE_PIECE } from './lib/teaPricing';
 import { AdvisePage } from './components/AdvisePage';
 import AboutPage from './AboutPage';
 import Footer from './components/shared/Footer';
@@ -545,6 +546,7 @@ const AppContent = () => {
       quantityGrams: qty,
       pricePerGram,
       totalPrice: total,
+      wholePieceGrams: item.category === 'tea' ? WHOLE_PIECE[item.form ?? '']?.grams : undefined,
       image: item.image,
     };
     const currentCart = useAppStore.getState().publicCart;
