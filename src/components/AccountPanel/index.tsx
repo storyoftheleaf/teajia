@@ -12,7 +12,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { selectHasBundle, useAppStore } from '../../lib/store';
 
 import { api, setToken, hydrateAccountStateFromToken, isTokenScopedToAccount, API_URL, clearPendingSignup, restorePendingSignup, type PendingSignup } from '../../lib/api';
-import { fetchStoreEvents, fetchStoreProducts } from '../../lib/storefrontApi';
+import { fetchStoreEvents } from '../../lib/storefrontApi';
 import { hydrateTastingJournal } from '../../lib/tastingJournalSync';
 import type { Currency } from '../../admin/types';
 import type { AccountMembership } from '../../types';
@@ -24,9 +24,9 @@ import { CellarView } from './CellarView';
 import { ReaderView } from './ReaderView';
 import { LaunchpadView } from './LaunchpadView';
 import { THREADS, profileThreads } from '../TeaDiscovery/threads';
-import { StaffView } from './StaffView';
 import { AccountSwitcherChip } from './AccountSwitcherChip';
-import { buildFirstDoorReadiness } from './workflows';
+import { buildTeaMasterReadiness, type ShopReadinessInput, type TeaMasterReadiness } from '../readiness/teaMasterReadiness';
+import { usePersonReadiness } from '../readiness/usePersonReadiness';
 
 interface AccountPanelProps {
   onClose: () => void;
@@ -687,19 +687,27 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
   });
 
   const canOperateCurrentTable = membershipRole === 'owner' || auth.isAdmin;
-  const { data: storeProducts = [] } = useQuery({
-    queryKey: ['panel-store-products', activeSlug],
-    queryFn: () => fetchStoreProducts(activeSlug),
-    enabled: !!activeSlug && canOperateCurrentTable,
+  // The shop half of "am I set up yet". The storefront read above only sees a
+  // store that is already public, which is exactly the store this question is
+  // never about, so the shop's own record and its own stock are read instead.
+  const shopAccountQuery = useQuery({
+    queryKey: ['panel-shop-account', activeAccountId],
+    queryFn: () => api.accounts.get(activeAccountId!),
+    enabled: !!activeAccountId && canOperateCurrentTable,
     staleTime: 1000 * 60 * 5,
     retry: false,
   });
 
-  const { data: wholesaleOrderCount = 0 } = useQuery({
-    queryKey: ['panel-wholesale-order-count', activeAccountId],
+  const shopStockQuery = useQuery({
+    queryKey: ['panel-shop-sellable-count', activeAccountId],
     queryFn: async () => {
-      const res = await api.wholesale.listOrders({ role: 'buyer' });
-      return res.orders.length;
+      const products = await api.products.list() as any[];
+      return products.filter(product =>
+        product.status !== 'Archived'
+        && product.is_public !== false
+        && (Number(product.stock_grams) > 0 || Number(product.quantity_units) > 0)
+        && (Number(product.retail_price_per_gram_usd) > 0 || Number(product.fixed_retail_price_usd) > 0)
+      ).length;
     },
     enabled: !!activeAccountId && canOperateCurrentTable,
     staleTime: 1000 * 60 * 5,
@@ -715,15 +723,19 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     queryFn: () => api.me.journey(),
   });
 
-  const { data: pendingCount = 0 } = useQuery({
-    queryKey: ['panel-pending-count'],
+  // One read, two answers: what is still pending, and whether this shop has ever
+  // taken an order at all. The second is a setup question and the first is a
+  // daily one, but asking twice would be two calls for one list.
+  const invoiceCountsQuery = useQuery({
+    queryKey: ['panel-invoice-counts'],
     enabled: isStaff,
     staleTime: 1000 * 60 * 2,
     queryFn: async () => {
-      const invoices = await api.invoices.list(200);
-      return (invoices as any[]).filter(i => i.status === 'Pending').length;
+      const invoices = await api.invoices.list(200) as any[];
+      return { total: invoices.length, pending: invoices.filter(i => i.status === 'Pending').length };
     },
   });
+  const pendingCount = invoiceCountsQuery.data?.pending ?? 0;
 
   // What needs Adrian: the four kinds of waiting work, gathered server-side
   // and already ordered oldest first. Only ever fetched for a reader who can
@@ -777,71 +789,42 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     return upcomingEvents.filter(ev => new Date(ev.eventDate).toDateString() === today).length;
   }, [upcomingEvents]);
 
-  const isAustraliaDoor = useMemo(() => {
-    const haystack = [
-      activeSlug,
-      activeAccount?.name,
-      activeAccount?.location_city,
-      activeAccount?.location_country,
-      activeLocationStr,
-    ].filter(Boolean).join(' ').toLowerCase();
-    return ['australia', 'melbourne', 'sydney', 'brisbane', 'perth', 'adelaide'].some(term => haystack.includes(term));
-  }, [activeSlug, activeAccount?.name, activeAccount?.location_city, activeAccount?.location_country, activeLocationStr]);
+  // ── Am I set up yet ─────────────────────────────────────────────────────
+  // Being a tea master is one thing to a person and two things to the system,
+  // and until now nothing knew about both halves at once. The person's side is
+  // read from their own profile; the shop's side only exists when a shop is
+  // attached, because a tea master can be paid while selling nothing.
+  const person = usePersonReadiness(auth.isAuthenticated);
 
-  const isFirstDoorCandidate = useMemo(() => {
-    if (!canOperateCurrentTable) return false;
-    const hasOperationalHistory =
-      storeEvents.length > 0 ||
-      pendingCount > 0 ||
-      inboundUnreadCount > 0 ||
-      Boolean(activeAccount?.public_enabled);
-    return isAustraliaDoor || (activeMembership?.account_kind === 'location' && !hasOperationalHistory);
+  const shopReadiness = useMemo<ShopReadinessInput | null>(() => {
+    if (!canOperateCurrentTable) return null;
+    const shopAccount = shopAccountQuery.data;
+    if (!shopAccount) return null;
+    return {
+      name: shopAccount.name ?? null,
+      hasCurrency: Boolean(shopAccount.currency_default),
+      hasContact: Boolean(shopAccount.whatsapp_number || shopAccount.contact_email),
+      sellableProductCount: shopStockQuery.data ?? 0,
+      isPublicEnabled: Boolean(shopAccount.public_enabled),
+      orderCount: invoiceCountsQuery.data?.total ?? 0,
+    };
+  }, [canOperateCurrentTable, shopAccountQuery.data, shopStockQuery.data, invoiceCountsQuery.data]);
+
+  const teaMasterReadiness = useMemo<TeaMasterReadiness | null>(() => {
+    // Nothing is claimed before it is measured: a half-answered read looks the
+    // same as a finished setup, and the wrong one of those hides the card.
+    if (!person.isLoaded) return null;
+    if (canOperateCurrentTable && !(shopAccountQuery.isSuccess && shopStockQuery.isSuccess && invoiceCountsQuery.isSuccess)) return null;
+    // A signed-in customer is not being asked to become a tea master.
+    if (!person.hasProfile && !canOperateCurrentTable) return null;
+    return buildTeaMasterReadiness({ person, shop: shopReadiness });
   }, [
-    activeMembership?.account_kind,
-    activeAccount?.public_enabled,
     canOperateCurrentTable,
-    inboundUnreadCount,
-    isAustraliaDoor,
-    pendingCount,
-    storeEvents.length,
-  ]);
-
-  const firstDoorReadiness = useMemo(() => {
-    const sellableProductCount = storeProducts.filter(product => {
-      const price = product.category === 'tea'
-        ? Number(product.price_per_gram || product.price_50g || 0)
-        : Number(product.pricePerUnit || product.price_50g || 0);
-      const stock = product.category === 'tea'
-        ? Number(product.stock_g || 0)
-        : Number(product.quantityUnits ?? product.stock_g ?? 0);
-      return price > 0 && stock > 0;
-    }).length;
-
-    return buildFirstDoorReadiness({
-      accountName: activeAccount?.name ?? activeMembership?.account_name ?? null,
-      locationLabel: activeLocationStr || getLocationFromSlug(activeSlug),
-      currencyLabel: activeDisplayCurrency || getCurrencyFromSlug(activeSlug),
-      hasContact: Boolean(activeAccount?.whatsapp_number || activeAccount?.contact_email),
-      isPublicEnabled: Boolean(activeAccount?.public_enabled),
-      publicProductCount: storeProducts.length,
-      sellableProductCount,
-      wholesaleOrderCount,
-      eventCount: storeEvents.length,
-      memberCount: memberships.length,
-    });
-  }, [
-    activeAccount?.contact_email,
-    activeAccount?.name,
-    activeAccount?.public_enabled,
-    activeAccount?.whatsapp_number,
-    activeDisplayCurrency,
-    activeLocationStr,
-    activeMembership?.account_name,
-    activeSlug,
-    memberships.length,
-    storeEvents.length,
-    storeProducts,
-    wholesaleOrderCount,
+    invoiceCountsQuery.isSuccess,
+    person,
+    shopAccountQuery.isSuccess,
+    shopReadiness,
+    shopStockQuery.isSuccess,
   ]);
 
   const displayedEvents = eventListFilter === 'open' ? openSeatEvents : eventListFilter === 'past' ? pastEvents : upcomingEvents;
@@ -1494,6 +1477,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 accountName={activeAccount?.name ?? null}
                 locationLabel={activeLocationStr || null}
                 isOwner={membershipRole === 'owner' || auth.isAdmin}
+                isPlatformOwner={auth.isAdmin}
                 canPublish={canPublish}
                 canSell={canSell}
                 membershipsCount={memberships.length}
@@ -1506,6 +1490,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 dispositionName={dispositionName}
                 nextEvent={nextEvent ?? null}
                 attentionItems={attentionItems}
+                readiness={teaMasterReadiness}
                 onClose={onClose}
                 onOpenJournal={() => setPanelView('journal')}
                 onOpenEvents={() => setPanelView('events')}

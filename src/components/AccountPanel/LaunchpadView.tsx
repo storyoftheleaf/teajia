@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { BowlSteam, CalendarBlank, Heart, Tray, ArrowsLeftRight, Wrench, Path, BookOpen, Compass, Package, NotePencil, IdentificationCard, Receipt } from '@phosphor-icons/react';
 import { ADMIN_CONNECTION_ROUTES } from '../navigationConnections';
 import { NeedsAttention, daysWord } from './primitives';
+import type { TeaMasterReadiness } from '../readiness/teaMasterReadiness';
 import type { AttentionItem } from '../../lib/api';
 
 interface LaunchpadTile {
@@ -26,6 +27,12 @@ interface LaunchpadViewProps {
 
   // Tier
   isOwner: boolean;
+  /**
+   * The global account type, which is a narrower thing than owning this shop.
+   * An invited tea master owns their table without being platform staff, and
+   * the two tiles gated on this open pages that admit platform staff only.
+   */
+  isPlatformOwner: boolean;
   canPublish: boolean;
   canSell: boolean;
   membershipsCount: number;
@@ -50,6 +57,13 @@ interface LaunchpadViewProps {
    * only `[]` earns the calm line.
    */
   attentionItems?: AttentionItem[] | null;
+  /**
+   * What is left before this person is set up as a tea master, both halves of
+   * it. `null` when it is not known yet, or when the reader is not a tea master
+   * and is not becoming one. Disappears entirely once nothing is left: this is
+   * a setup aid, not a permanent dashboard.
+   */
+  readiness?: TeaMasterReadiness | null;
 
   // Actions
   onClose: () => void;
@@ -210,6 +224,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
   accountName,
   locationLabel,
   isOwner,
+  isPlatformOwner,
   canPublish,
   canSell,
   membershipsCount,
@@ -222,6 +237,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
   dispositionName,
   nextEvent,
   attentionItems = null,
+  readiness = null,
   onClose,
   onOpenJournal,
   onOpenEvents,
@@ -269,6 +285,10 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
   // The frontispiece speaks the queue when it knows it, and stays on the old
   // voice when it does not, so it never claims a calm it has not measured.
   const frontispiece = waiting == null ? dayStatus : buildWaitingLine(waiting);
+
+  // Nothing to finish means nothing to show. A completed checklist that stays on
+  // screen turns a setup aid into wallpaper.
+  const setupNext = readiness && !readiness.isComplete ? readiness.nextStep : null;
 
   // The attention block is the one place the panel counts this work. When it
   // is showing, the workshop tile drops its badge rather than offering a
@@ -394,14 +414,16 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
       icon: <Compass {...ICON_PROPS} />,
       onClick: () => { onClose(); navigate(ADMIN_CONNECTION_ROUTES.wisdom); },
     } as LaunchpadTile] : []),
-    ...(isOwner ? [{
+    // Both destination pages admit platform staff only and say so on arrival,
+    // so offering them to a shop owner is offering a door that refuses them.
+    ...(isPlatformOwner ? [{
       id: 'briefing',
       verb: 'walk-throughs',
       hint: 'run it, test it',
       icon: <Compass {...ICON_PROPS} />,
       onClick: () => { onClose(); navigate('/account/briefing'); },
     } as LaunchpadTile] : []),
-    ...(isOwner ? [{
+    ...(isPlatformOwner ? [{
       id: 'docs',
       verb: 'library',
       hint: 'everything we built',
@@ -448,6 +470,33 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
           {frontispiece}
         </div>
       </div>
+
+      {/* ── Setting up ────────────────────────────────────────────────────
+          The first surface that knows about both halves of being a tea master:
+          the person who can be paid, and the shop that sells. Present only
+          while something is left, and gone the moment it is finished. */}
+      {setupNext && readiness && (
+        <section className="mb-10" aria-label="Setting up as a Tea Master">
+          <div className="font-sans text-ui-11 text-tea-text-dim uppercase tracking-[0.18em] mb-2">
+            Setting up
+          </div>
+          <button
+            onClick={() => { onClose(); navigate(setupNext.route); }}
+            className="w-full rounded-xl border border-tea-border bg-tea-surface px-4 py-4 text-left transition-colors hover:bg-tea-gold/6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+          >
+            <span className="block font-sans text-ui-12 text-tea-text-sec">
+              {readiness.completeCount} of {readiness.totalCount} steps done
+            </span>
+            <span className="mt-1.5 block font-display text-ui-17 text-tea-text">
+              {setupNext.label}
+            </span>
+            <span className="mt-1 block font-sans text-ui-12 text-tea-text-sec leading-[1.5]">
+              {setupNext.detail}
+            </span>
+          </button>
+        </section>
+      )}
 
       {/* ── What needs you ────────────────────────────────────────────────
           One list for work the shop announces in four separate places,

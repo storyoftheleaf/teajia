@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { LaunchpadView } from './LaunchpadView';
+import { buildTeaMasterReadiness } from '../readiness/teaMasterReadiness';
 
 const baseProps = {
   user: { name: 'Rayi', email: 'rayi@example.test' },
@@ -181,5 +182,67 @@ describe('Launchpad: what needs you', () => {
     // With no queue showing, the tile keeps its own long-standing voice.
     const withoutQueue = renderWaiting([], { isOwner: true, canSell: true });
     expect(withoutQueue).toContain('all settled');
+  });
+});
+
+// ── Setting up ────────────────────────────────────────────────────────────
+// The first surface that knows about the person and the shop at once. What it
+// has to get right: it counts both halves, it names the next thing, and it
+// leaves when there is nothing left.
+
+const renderSetup = (readiness: unknown) => renderToStaticMarkup(
+  <MemoryRouter>
+    {React.createElement(LaunchpadView, {
+      ...baseProps,
+      isOwner: true,
+      canPublish: false,
+      canSell: false,
+      readiness,
+    } as never)}
+  </MemoryRouter>,
+);
+
+const unfinished = buildTeaMasterReadiness({
+  person: { hasProfile: true, identityReady: true, isPublished: true, publishedPaymentMethods: 0 },
+  shop: null,
+});
+
+describe('Launchpad: setting up as a tea master', () => {
+  it('counts both halves and names the next thing to do', () => {
+    const html = renderSetup(unfinished);
+    expect(html).toContain('Setting up');
+    expect(html).toContain('2 of 3 steps done');
+    expect(html).toContain('A way to pay you');
+    expect(html).toContain('Add at least one payment method and make it public.');
+  });
+
+  it('leaves once nothing is left, rather than standing as a finished checklist', () => {
+    const html = renderSetup(buildTeaMasterReadiness({
+      person: { hasProfile: true, identityReady: true, isPublished: true, publishedPaymentMethods: 2 },
+      shop: null,
+    }));
+    expect(html).not.toContain('Setting up');
+    expect(html).not.toContain('steps done');
+  });
+
+  it('says nothing at all while the answer is still unknown', () => {
+    const html = renderSetup(null);
+    expect(html).not.toContain('Setting up');
+  });
+
+  it('carries the shop steps once a shop is attached', () => {
+    const html = renderSetup(buildTeaMasterReadiness({
+      person: { hasProfile: true, identityReady: true, isPublished: true, publishedPaymentMethods: 1 },
+      shop: {
+        name: 'Rayi',
+        hasCurrency: true,
+        hasContact: true,
+        sellableProductCount: 0,
+        isPublicEnabled: false,
+        orderCount: 0,
+      },
+    }));
+    expect(html).toContain('4 of 7 steps done');
+    expect(html).toContain('Tea for sale');
   });
 });

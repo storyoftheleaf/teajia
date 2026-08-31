@@ -253,6 +253,28 @@ describe('profile interfaces', () => {
     ]);
   });
 
+  it('leaves the selling items out for a tea master who has no store at all', () => {
+    const shopless = { ...profile, associations: [] };
+
+    expect(profileReadiness(shopless, { publicFavorites: 2, paymentMethods: 1 }).map(item => item.id))
+      .toEqual(['profile', 'favorites', 'payments']);
+  });
+
+  it('lets a shopless tea master finish every item on the list', () => {
+    const shopless = { ...profile, associations: [] };
+
+    expect(profileReadiness(shopless, { publicFavorites: 1, paymentMethods: 1 }).every(item => item.ready)).toBe(true);
+    expect(profileReadiness(shopless, { publicFavorites: 0, paymentMethods: 0 }).filter(item => !item.ready).map(item => item.id))
+      .toEqual(['favorites', 'payments']);
+  });
+
+  it('counts an attached store as met rather than asking for a second one', () => {
+    const noSelectionYet = profileReadiness(profile, { publicFavorites: 0, paymentMethods: 0 });
+
+    expect(noSelectionYet.find(item => item.id === 'associations')).toMatchObject({ ready: true });
+    expect(noSelectionYet.find(item => item.id === 'selection')).toMatchObject({ ready: false });
+  });
+
   it('uses only a hosted master account as the primary Tea Master selection home', () => {
     expect(primaryTeaMasterAccount([
       { account_id: 'guest', account_slug: 'guest-shop', account_name: 'Guest Shop', public_role: 'Guest', is_host: true, account_kind: 'location' },

@@ -266,6 +266,16 @@ export interface ProfileReadinessItem {
   ready: boolean;
 }
 
+/**
+ * What is left before this profile is finished.
+ *
+ * A tea master does not need a shop. They can hold a profile and be paid while
+ * selling nothing, so the two items that only mean anything once a shop is
+ * attached, the shop associations and the selection drawn from them, are left
+ * out entirely for a person with no shop rather than shown as permanently
+ * unmet. Otherwise a shopless tea master reads a five item list where two items
+ * can never complete, which is not a checklist.
+ */
 export function profileReadiness(
   profile: SelfProfile,
   counts: { publicFavorites: number; paymentMethods: number },
@@ -273,10 +283,13 @@ export function profileReadiness(
   const associationCount = profile.associations.length;
   const selectionCount = profile.selection_count ?? 0;
   const identityReady = Boolean(profile.display_name.trim() && profile.beginnings?.trim());
+  const sellsSomewhere = associationCount > 0;
   return [
     { id: 'profile', label: 'Public identity', detail: identityReady ? 'Core profile is complete' : 'Add a name and biography', ready: identityReady },
-    { id: 'associations', label: 'Accounts', detail: associationCount === 1 ? '1 associated account' : `${associationCount} associated accounts`, ready: associationCount > 0 },
-    { id: 'selection', label: 'Tea selection', detail: selectionCount === 1 ? '1 tea selected' : `${selectionCount} teas selected`, ready: selectionCount > 0 },
+    ...(sellsSomewhere ? [
+      { id: 'associations' as const, label: 'Accounts', detail: associationCount === 1 ? '1 associated account' : `${associationCount} associated accounts`, ready: true },
+      { id: 'selection' as const, label: 'Tea selection', detail: selectionCount === 1 ? '1 tea selected' : `${selectionCount} teas selected`, ready: selectionCount > 0 },
+    ] : []),
     { id: 'favorites', label: 'Public favorites', detail: `${counts.publicFavorites} shared`, ready: counts.publicFavorites > 0 },
     { id: 'payments', label: 'Payments', detail: counts.paymentMethods === 1 ? '1 public method' : `${counts.paymentMethods} public methods`, ready: counts.paymentMethods > 0 },
   ];

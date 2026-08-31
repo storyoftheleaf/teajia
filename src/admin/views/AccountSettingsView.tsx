@@ -3,8 +3,11 @@ import { CheckCircle2, Circle, Copy, ExternalLink, Loader2, Save, AlertTriangle,
 import { api } from '../../lib/api';
 import { useAppStore } from '../store';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
+import { useLaunchAudit, type LaunchAudit } from '../hooks/useLaunchAudit';
+import { usePersonReadiness } from '../../components/readiness/usePersonReadiness';
+import { storeOpeningRefusal, type StoreOpeningRefusal } from '../../components/readiness/storeOpening';
+import type { PersonReadinessInput } from '../../components/readiness/teaMasterReadiness';
 import type { Account, AccountMember, AccountRole } from '../../types';
-import type { TeaEvent } from '../../types/events';
 
 function useCurrentRole(): AccountRole | null {
   const { memberships, activeAccountId } = useAppStore();
@@ -18,68 +21,6 @@ interface AccountSettingsViewProps {
   embedded?: boolean;
 }
 
-type LaunchProductAudit = {
-  total: number;
-  publicCount: number;
-  priced: number;
-  stocked: number;
-  withImages: number;
-  withType: number;
-  readyPublic: number;
-};
-
-type LaunchTeamAudit = {
-  total: number;
-  owners: number;
-  activeMembers: number;
-  pendingInvites: number;
-  membersWithoutBundles: number;
-};
-
-type LaunchAudit = {
-  loading: boolean;
-  error: string | null;
-  products: LaunchProductAudit;
-  team: LaunchTeamAudit;
-  events: {
-    total: number;
-    upcoming: number;
-  };
-  orders: {
-    total: number;
-    pending: number;
-  };
-};
-
-const EMPTY_LAUNCH_AUDIT: LaunchAudit = {
-  loading: true,
-  error: null,
-  products: {
-    total: 0,
-    publicCount: 0,
-    priced: 0,
-    stocked: 0,
-    withImages: 0,
-    withType: 0,
-    readyPublic: 0,
-  },
-  team: {
-    total: 0,
-    owners: 0,
-    activeMembers: 0,
-    pendingInvites: 0,
-    membersWithoutBundles: 0,
-  },
-  events: {
-    total: 0,
-    upcoming: 0,
-  },
-  orders: {
-    total: 0,
-    pending: 0,
-  },
-};
-
 export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedded = false }) => {
   const { activeAccountId, setActiveAccount } = useAppStore();
   const currentRole = useCurrentRole();
@@ -91,7 +32,19 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
   const [error, setError] = useState<string | null>(null);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [copiedStorefront, setCopiedStorefront] = useState(false);
-  const [launchAudit, setLaunchAudit] = useState<LaunchAudit>(EMPTY_LAUNCH_AUDIT);
+  const [refusal, setRefusal] = useState<StoreOpeningRefusal | null>(null);
+
+  const { audit: launchAudit, refresh: loadLaunchAudit } = useLaunchAudit(activeAccountId, Boolean(account));
+  // The person the shop would pay. The gate on the server asks about the shop's
+  // host tea master; the person standing on this screen is its owner, so this
+  // is the same question asked from where it can be answered without a second
+  // endpoint. Only used to describe the storefront stage, never to permit it.
+  //
+  // Read only for the owner, because for anyone else it is somebody else's
+  // profile answering a question about this shop, and a wrong answer here reads
+  // as a shop that cannot take money when it can.
+  const ownerReadiness = usePersonReadiness(Boolean(activeAccountId) && canEdit);
+  const person = canEdit ? ownerReadiness : null;
 
   useEffect(() => {
     if (!activeAccountId) return;
@@ -116,94 +69,6 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
     };
   }, [activeAccountId, setActiveAccount]);
 
-  const loadLaunchAudit = async () => {
-    if (!activeAccountId) return;
-    setLaunchAudit((prev) => ({ ...prev, loading: true, error: null }));
-    try {
-      const [productsRaw, accessRaw, eventsRaw, invoicesRaw] = await Promise.allSettled([
-        api.products.list(),
-        api.accounts.getAccess(activeAccountId),
-        api.events.listAdmin(),
-        api.invoices.list(100),
-      ]);
-
-      const products = productsRaw.status === 'fulfilled' && Array.isArray(productsRaw.value)
-        ? productsRaw.value as any[]
-        : [];
-      const members = accessRaw.status === 'fulfilled'
-        ? accessRaw.value.members || []
-        : [];
-      const events = eventsRaw.status === 'fulfilled' && Array.isArray(eventsRaw.value)
-        ? eventsRaw.value as TeaEvent[]
-        : [];
-      const invoices = invoicesRaw.status === 'fulfilled' && Array.isArray(invoicesRaw.value)
-        ? invoicesRaw.value as any[]
-        : [];
-
-      const activeProducts = products.filter((p) => p.status !== 'Archived');
-      const publicProducts = activeProducts.filter((p) => p.is_public !== false);
-      const pricedProducts = activeProducts.filter((p) =>
-        Number(p.retail_price_per_gram_usd) > 0 || Number(p.fixed_retail_price_usd) > 0
-      );
-      const stockedProducts = activeProducts.filter((p) =>
-        Number(p.stock_grams) > 0 || Number(p.quantity_units) > 0
-      );
-      const imageProducts = activeProducts.filter((p) => Boolean(p.image_url));
-      const typedProducts = activeProducts.filter((p) => Boolean(p.type));
-      const readyPublicProducts = publicProducts.filter((p) =>
-        (Number(p.stock_grams) > 0 || Number(p.quantity_units) > 0)
-        && (Number(p.retail_price_per_gram_usd) > 0 || Number(p.fixed_retail_price_usd) > 0)
-        && Boolean(p.product_name)
-      );
-      const now = Date.now();
-      const upcomingEvents = events.filter((event: any) => {
-        const date = new Date(event.eventDate || event.event_date || event.date || '').getTime();
-        return Number.isFinite(date) && date >= now && event.status !== 'archived';
-      });
-
-      setLaunchAudit({
-        loading: false,
-        error: null,
-        products: {
-          total: activeProducts.length,
-          publicCount: publicProducts.length,
-          priced: pricedProducts.length,
-          stocked: stockedProducts.length,
-          withImages: imageProducts.length,
-          withType: typedProducts.length,
-          readyPublic: readyPublicProducts.length,
-        },
-        team: {
-          total: members.length,
-          owners: members.filter((m: AccountMember) => m.role === 'owner').length,
-          activeMembers: members.filter((m: AccountMember) => m.status !== 'invited').length,
-          pendingInvites: members.filter((m: AccountMember) => m.status === 'invited' || (m.invited_at && !m.joined_at)).length,
-          membersWithoutBundles: members.filter((m: AccountMember) => m.role === 'staff' && (m.bundles?.length || 0) === 0).length,
-        },
-        events: {
-          total: events.length,
-          upcoming: upcomingEvents.length,
-        },
-        orders: {
-          total: invoices.length,
-          pending: invoices.filter((invoice) => invoice.status === 'Pending').length,
-        },
-      });
-    } catch (err: any) {
-      setLaunchAudit((prev) => ({
-        ...prev,
-        loading: false,
-        error: err?.message || 'Could not load launch status.',
-      }));
-    }
-  };
-
-  useEffect(() => {
-    if (!activeAccountId || !account) return;
-    void loadLaunchAudit();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeAccountId, account?.id]);
-
   const update = <K extends keyof Account>(key: K, value: Account[K]) => {
     setAccount((prev) => (prev ? { ...prev, [key]: value } : prev));
   };
@@ -214,6 +79,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
     setSaving(true);
     setError(null);
     setSaveMsg(null);
+    setRefusal(null);
     try {
       const updated = await api.accounts.update(activeAccountId, {
         name: account.name,
@@ -233,7 +99,16 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
       setActiveAccount(updated);
       setSaveMsg('Saved.');
     } catch (err: any) {
-      setError(err?.message || 'Failed to save');
+      const refused = storeOpeningRefusal(err);
+      if (refused) {
+        // Nothing was saved, so the checkbox is put back where the server left
+        // it. A ticked box over a closed shop is the lie this whole gate exists
+        // to prevent.
+        setAccount((prev) => (prev ? { ...prev, public_enabled: false } : prev));
+        setRefusal(refused);
+      } else {
+        setError(err?.message || 'Failed to save');
+      }
     } finally {
       setSaving(false);
     }
@@ -293,6 +168,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
         copied={copiedStorefront}
         onCopy={copyStorefrontUrl}
         onRefresh={loadLaunchAudit}
+        person={person}
       />
 
       {!canEdit && (
@@ -303,6 +179,18 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
       {error && (
         <div className="mb-4 px-4 py-3 rounded-md bg-tea-error/10 border border-tea-error/40 text-ui-12 text-tea-error">
           {error}
+        </div>
+      )}
+      {refusal && (
+        <div role="alert" className="mb-4 px-4 py-3 rounded-md bg-tea-surface border border-tea-border">
+          <p className="text-ui-13 text-tea-text leading-[1.5]">The shop was not opened. {refusal.message}</p>
+          <a
+            href={refusal.route}
+            className="tap-target mt-2 inline-flex items-center gap-1.5 text-ui-12 text-tea-gold hover:text-tea-gold-lt transition-colors"
+          >
+            {refusal.fix}
+            <ArrowRight size={11} />
+          </a>
         </div>
       )}
       {saveMsg && (
@@ -494,7 +382,9 @@ const LaunchReadinessPanel: React.FC<{
   copied: boolean;
   onCopy: () => void;
   onRefresh: () => void;
-}> = ({ account, audit, storefrontUrl, copied, onCopy, onRefresh }) => {
+  /** Null when the viewer is not the owner, so nothing is claimed about them. */
+  person: PersonReadinessInput | null;
+}> = ({ account, audit, storefrontUrl, copied, onCopy, onRefresh, person }) => {
   const profileReady = !!account.public_enabled
     && !!account.location_country
     && !!account.currency_default
@@ -503,9 +393,15 @@ const LaunchReadinessPanel: React.FC<{
     && !!account.description;
   const teamReady = audit.team.owners > 0 && audit.team.membersWithoutBundles === 0;
   const inventoryReady = audit.products.readyPublic > 0;
+  // Being paid is part of opening the shop, not a separate concern: the server
+  // now refuses to make a store public until the person it pays holds a public
+  // payment method behind a published profile. The stage says so rather than
+  // letting the refusal be the first anyone hears of it.
+  const canBePaid = !person || (person.isPublished && person.publishedPaymentMethods > 0);
   const storefrontReady = !!account.public_enabled
     && audit.products.readyPublic > 0
-    && (!!account.whatsapp_number || !!account.contact_email);
+    && (!!account.whatsapp_number || !!account.contact_email)
+    && canBePaid;
   const saleReady = storefrontReady && audit.orders.total > 0;
   const eventReady = audit.events.upcoming > 0;
 
@@ -562,15 +458,21 @@ const LaunchReadinessPanel: React.FC<{
       label: 'Storefront',
       done: storefrontReady,
       detail: storefrontReady
-        ? 'The public page has products and a contact path.'
-        : 'Preview the public page and fix missing stock or contact before sharing.',
-      action: 'Open storefront',
-      href: storefrontUrl,
-      external: true,
+        ? 'The public page has products, a contact path, and somewhere for money to go.'
+        : canBePaid
+          ? 'Preview the public page and fix missing stock or contact before sharing.'
+          : 'The shop cannot open until customers have somewhere to send payment.',
+      action: canBePaid ? 'Open storefront' : 'Set up payment',
+      href: canBePaid ? storefrontUrl : '/account/profile',
+      external: canBePaid,
       checks: [
         { label: 'Public page enabled', done: !!account.public_enabled },
         { label: 'Public products available', done: audit.products.readyPublic > 0 },
         { label: 'Checkout/contact route exists', done: !!account.whatsapp_number || !!account.contact_email },
+        ...(person ? [
+          { label: 'Your Tea Master profile is published', done: person.isPublished },
+          { label: 'A public payment method to be paid through', done: person.publishedPaymentMethods > 0 },
+        ] : []),
       ],
     },
     {
@@ -686,7 +588,6 @@ const LaunchReadinessPanel: React.FC<{
         </div>
         <div className="flex flex-wrap gap-2 justify-start md:justify-end lg:self-end">
           {[
-            { label: 'Open playbook', href: '/admin/launch-playbook' },
             { label: 'Import stock', href: '/admin/stock' },
             { label: 'Review access', href: '/admin/access' },
           ].map(step => (
