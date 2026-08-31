@@ -1450,12 +1450,32 @@ function matchRoute(method: string, path: string, routes: [string, string, Handl
   return null;
 }
 
+// ── Currency canonicalization ──
+// The exchange_rates table keys CNY as 'Yuan' (not the ISO code 'CNY'). Callers
+// may pass 'CNY', 'CN¥', 'RMB', 'yuán', etc. Map every alias to the canonical
+// key so the rate always resolves and pricing never silently falls back to USD.
+const CURRENCY_ALIASES: Record<string, string> = {
+  'cny': 'Yuan',
+  'rmb': 'Yuan',
+  'renminbi': 'Yuan',
+  'yuan': 'Yuan',
+  'yuán': 'Yuan',
+  '¥': 'Yuan',
+  'cn¥': 'Yuan',
+  'mop': 'HKD',       // Macau pataca trades near the HK dollar; treat as HKD
+  'cnh': 'Yuan',      // offshore yuan — same rate family
+};
+function canonicalCurrency(cur: string | null | undefined): string | null {
+  if (!cur) return null;
+  return CURRENCY_ALIASES[cur.toLowerCase()] ?? cur;
+}
+
 // ── Product pricing calculation (mirrors the Postgres view) ──
 function addPricingFields(product: any, rates: Map<string, number>): any {
-  // Case-insensitive rate lookup: DB keys can be 'Yuan', 'CNY', 'NT', 'MYR' etc.
-  // and caller-provided cost_currency may be lower/upper/mixed. Exact key first,
-  // then a case-insensitive scan so 'YUAN' resolves to the 'Yuan' rate row.
-  const currency = product.cost_currency as string | null | undefined;
+  // Case-insensitive rate lookup with alias normalization, so 'CNY' resolves to
+  // the 'Yuan' row. Exact key first, then case-insensitive, then alias map.
+  const rawCurrency = product.cost_currency as string | null | undefined;
+  const currency = canonicalCurrency(rawCurrency);
   let rate = currency ? (rates.get(currency) ?? 1) : 1;
   if (currency && !rates.has(currency)) {
     const lc = currency.toLowerCase();
