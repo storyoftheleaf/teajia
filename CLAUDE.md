@@ -160,6 +160,36 @@ like app bugs: on 2026-08-31 that alone accounted for eight false failures and
 several hours chasing them. If a test fails only when you have been developing,
 check which server is on 7777 before believing it.
 
+**A free port is not the same as your port.** The warning above is about 7777,
+but the shape of it applies to any port, and the second half is worse because it
+does not look like a failure. Adrian runs five or six sessions on this repo at
+once and each has its own worktree, so a dev server answering on the port you
+picked may be serving a different checkout entirely. On 2026-08-31 a browser run
+started on 7788 to avoid disturbing 7777, got a healthy server and three passing
+tests, and every one of them had exercised another session's copy of the code.
+Reintroducing the defect under test changed nothing, which is the tell: a
+mutation that cannot fail its own test means the test is not looking at your
+work. Confirm the server is yours before believing a result:
+
+```bash
+for p in $(lsof -ti:PORT); do lsof -p "$p" | awk '$4=="cwd"{print $NF}'; done
+```
+
+The stronger habit is to make the code prove it: request the file you changed
+from the server and check the change is in the response, then run. That is one
+command and it converts "the server is up" into "the server is serving my work".
+
+When you do need a server of your own, `PLAYWRIGHT_BASE_URL` skips the config's
+managed one entirely, so you can point the suite at a port you started and
+verified without touching anyone else's:
+
+```bash
+cd "/Users/adrianrasmussen/Documents/Files/2 Areas/Coding/teajia" && VITE_API_URL=http://localhost:7802 npx vite --port 7802 --strictPort
+```
+
+Kill only what you started. Another session's dev server is another session's
+verification in progress.
+
 A build is also a prerequisite for two specs: `china-reachability` and
 `admin-chunk-failure-production` read `dist/sw.js` and `dist/_headers`, so run
 `npm run build` first or they fail on a stale or missing `dist`.
