@@ -4,6 +4,18 @@
 
 ## Untriaged
 
+- [ ] **Events, wholesale and sample orders still cannot take a payment the way shop orders can.** _(band: agent-runnable)_ _(effort: deep)_ → Plan: [order-process-handoff.md](todo/plans/order-process-handoff.md)
+  Four ways to be owed money, one of them modernised. An event seat is tracked in a bare column with no history and no pay link, and wholesale writes invoices already marked paid that the ledger cannot see. Route event money through the invoices the close-out already creates rather than adding a second payments table.
+
+- [ ] **The pay page never says what it is being paid for.** _(band: you-required)_ _(effort: moderate)_ → Plan: [order-process-handoff.md](todo/plans/order-process-handoff.md)
+  A customer sees an amount, a code and transfer details, but not their order. Someone with two open orders cannot tell which one they are paying. The page is public and reachable by URL, so how much it may show is a privacy call worth making deliberately before building.
+
+- [ ] **A sample request is only recorded when the sample matches a tea in the shop.** _(band: agent-runnable)_ _(effort: moderate)_ → Plan: [order-process-handoff.md](todo/plans/order-process-handoff.md)
+  Every inquiry line must resolve to a real product, so sample requests for anything else stay a plain WhatsApp message with no record. Letting a line be a named custom line would close it, but that loosens validation on a public write path and needs its own thought.
+
+- [ ] **An order can still be sent carrying a line priced at nothing.** _(band: agent-runnable)_ _(effort: quick)_ → Plan: [order-process-handoff.md](todo/plans/order-process-handoff.md)
+  A retired tea converts to a zero-priced line on purpose, so nothing is silently dropped. It now shows up in the attention list, but nothing refuses to send it. A draft carrying one should not become pending without an explicit acknowledgement.
+
 Add only genuinely new observations here. During triage, move each accepted item into exactly one owning track or discard it. Do not duplicate track items here.
 
 <!-- Use: - [ ] **Short outcome.** Why it matters and the evidence that it is not already covered. -->
