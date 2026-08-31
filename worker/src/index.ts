@@ -2787,7 +2787,7 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
 
   // The whole import attaches to one intake batch (defaults to Unsorted).
   if (batch_id) {
-    const batch = await env.DB.prepare('SELECT id FROM intake_batches WHERE id = ? AND account_id = ?').bind(batch_id, accountId).first();
+    const batch = await env.DB.prepare('SELECT id FROM batches WHERE id = ? AND account_id = ?').bind(batch_id, accountId).first();
     if (!batch) return restError(400, 'Intake batch does not belong to the active account', 'batch_account_mismatch');
   }
   const importBatchId = batch_id || await defaultBatchId(env, accountId);
@@ -8697,8 +8697,8 @@ const handleGetCustomerTeas: Handler = async (request, env, params) => {
           COALESCE(p.id, 'custom:' || etm.id) as id,
           COALESCE(p.product_name, etm.custom_name) as product_name,
           COALESCE(p.given_name, etm.custom_name) as given_name,
-          p.chinese_name, COALESCE(p.type, etm.tea_type) as type, p.image_url,
-          p.origin_country, COALESCE(p.origin_region, etm.origin_region) as origin_region,
+          p.chinese_name, p.type, p.image_url,
+          p.origin_country, p.origin_region,
           0 as total_quantity, 0 as order_count,
           NULL as first_purchased, NULL as last_purchased
         FROM event_tasting_notes etn
@@ -8783,7 +8783,7 @@ const handleGetCustomerJourney: Handler = async (request, env, params) => {
       // Types + impressions tasted at events — fills portrait even when no invoices exist
       env.DB.prepare(`
         SELECT
-          COALESCE(p.type, etm.tea_type) as type,
+          p.type,
           COALESCE(p.given_name, etm.custom_name) as given_name,
           COALESCE(p.product_name, etm.custom_name) as product_name,
           etn.impression, e.title as event_title, e.slug as event_slug, e.event_date
@@ -8793,7 +8793,7 @@ const handleGetCustomerJourney: Handler = async (request, env, params) => {
         LEFT JOIN products p ON p.id = etm.product_id
         JOIN events e ON e.id = ea.event_id
         WHERE ea.customer_id = ? AND ea.account_id = ?
-          AND (COALESCE(p.type, etm.tea_type) IS NULL OR COALESCE(p.type, etm.tea_type) != 'Teaware')
+          AND (p.type IS NULL OR p.type != 'Teaware')
         ORDER BY e.event_date DESC
       `).bind(params.id, accountId).all(),
 
@@ -20418,8 +20418,8 @@ const handleGetMyJourney: Handler = async (request, env) => {
     const notes = await env.DB.prepare(
       `SELECT etn.impression, etn.is_favorite, etn.tea_menu_id,
               COALESCE(etm.custom_name, p.given_name, p.product_name) as tea_name,
-              COALESCE(p.type, etm.tea_type) as type,
-              COALESCE(p.origin_region, etm.origin_region) as origin_region,
+              p.type,
+              p.origin_region,
               e.title as event_title, e.event_date
        FROM event_tasting_notes etn
        LEFT JOIN event_tea_menu etm ON etm.id = etn.tea_menu_id

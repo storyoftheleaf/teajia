@@ -105,6 +105,39 @@ describe('customer account reads', () => {
     expect((await journey.json() as any).compass).toHaveLength(2);
   });
 
+  it('reads the journey of someone who has actually attended an event', async () => {
+    const db = database();
+    const { userId, accountId } = seedIdentity(db, { userId: 'attendee', accountId: 'acc-attendee' });
+
+    // This is the branch an empty account never reaches, and it was still
+    // broken after the first round of fixes: the query behind it is assembled
+    // at runtime, so it is invisible to a check that reads whole statements,
+    // and it asked event_tea_menu for a type and a region it does not have.
+    db.sqlite.exec(`
+      INSERT INTO customers (id, account_id, name, email, user_id)
+        VALUES ('cust-j', '${accountId}', 'Journeyer', 'attendee@test.dev', '${userId}');
+      INSERT INTO products (id, account_id, product_name, given_name, type, origin_region)
+        VALUES ('prod-j', '${accountId}', 'Bei Dou', 'North Star', 'Yancha', 'Wuyi');
+      INSERT INTO events (id, account_id, slug, title, event_date, status)
+        VALUES ('ev-j', '${accountId}', 'north-star', 'North Star', '2026-04-01', 'active');
+      INSERT INTO event_attendees
+        (id, event_id, account_id, customer_id, full_name, phone_number, status, attended, magic_token)
+        VALUES ('att-j', 'ev-j', '${accountId}', 'cust-j', 'Journeyer', '9', 'confirmed', 1, 'tok-j');
+      INSERT INTO event_tea_menu (id, event_id, account_id, product_id, brew_order)
+        VALUES ('menu-j', 'ev-j', '${accountId}', 'prod-j', 1);
+      INSERT INTO event_tasting_notes
+        (id, account_id, event_id, attendee_id, tea_menu_id, impression)
+        VALUES ('note-j', '${accountId}', 'ev-j', 'att-j', 'menu-j', 'Cool granite');
+    `);
+
+    const response = await read(db, '/api/me/journey', userId, accountId);
+    expect(response.status).toBe(200);
+    const journey = await response.json() as any;
+    expect(journey.sessionsAttended).toBe(1);
+    expect(journey.totalTeas).toBe(1);
+    expect(journey.teaTypeMap).toMatchObject({ Yancha: 1 });
+  });
+
   it('reads a sample tasting through the set it belongs to', async () => {
     const db = database();
     const { userId, accountId, email } = seedIdentity(db, { userId: 'sampler', accountId: 'acc-sampler' });

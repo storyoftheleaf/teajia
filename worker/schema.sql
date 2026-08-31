@@ -2493,6 +2493,14 @@ ALTER TABLE users ADD COLUMN shelf_slug TEXT;
 ALTER TABLE users ADD COLUMN shelf_title TEXT;
 ALTER TABLE users ADD COLUMN shelf_whatsapp TEXT;
 
+-- The tea-review columns the routes write and read. See migration
+-- 0005_tea_review_fields.sql.
+ALTER TABLE tea_reviews ADD COLUMN voice_notes TEXT;
+ALTER TABLE tea_reviews ADD COLUMN source_sample_id TEXT;
+ALTER TABLE tea_reviews ADD COLUMN verdict TEXT;
+ALTER TABLE tea_reviews ADD COLUMN would_buy INTEGER DEFAULT 0;
+ALTER TABLE tea_reviews ADD COLUMN status TEXT DEFAULT 'submitted';
+
 -- Whether an RSVP wants their first name on the public guest list. Written by
 -- the public RSVP insert, read by the public event page. See migration
 -- 0004_event_guest_list_flag.sql.
