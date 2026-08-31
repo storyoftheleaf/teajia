@@ -62,34 +62,66 @@ first question below, and nothing else can be settled before it.
 - **The network directory exists** at `/find-a-table`, with per-store
   storefronts. The public side of being a tea master is mostly built.
 
-## The questions Adrian has to answer first
+## Decided by Adrian, 2026-08-31
 
-These are curation and brand calls, not technical ones. Front-load them in one
-conversation before any building, and do not let an agent guess a default.
+**Two answers settle the shape. Do not re-open them.**
 
-1. **Is this invitation-only, or can someone ask?** Teajia's stated position is
-   that Adrian's curation is the engine, and the vision documents are explicit
-   that this is not a franchise. A public "become a tea master" form may be the
-   wrong shape entirely, and the honest answer might be that the application
-   inbox stays closed and onboarding is always a conversation Adrian starts.
-   Everything below changes depending on this answer.
-2. **Can someone be a tea master without a shop?** A writer, a host, a person
-   whose profile and payment links exist but who sells nothing. The data model
-   already allows it, since a contributor profile does not require an account.
-   If yes, the flow forks early and "add teas for sale" is an optional branch.
-3. **What is the minimum before someone can take money?** Right now a customer
-   can only pay if the profile is published AND a payment method is marked
-   public. Should the system refuse to let a shop open without that, or allow it
-   and simply have no pay link? This is the question that connects onboarding to
-   the work just shipped.
-4. **Who approves, and against what?** There is an approval step on publishing a
-   profile and a decision step on applications, but no written standard for
-   either. If the flow becomes self-service, that standard has to exist or
-   Adrian becomes the bottleneck he was trying to avoid.
-5. **Where does the person live while they are half set up?** Your Table is the
-   obvious home, since it already adapts by role and already carries the
-   attention list. But a half-onboarded tea master is a role that surface does
-   not currently know about.
+**1. Invitation only, for now.** Nobody applies. Do NOT build a public
+"become a tea master" form, and do not open the `account_applications` inbox to
+the outside. Adrian starts every one of these. His words were "as of now", so
+build the invitation so it could later be pointed at an application queue, but
+do not build the queue.
+
+**2. A tea master does not need a shop.** A person can be a tea master, hold a
+public profile, and be paid, while selling nothing. This one is load-bearing and
+it inverts the current arrangement.
+
+### What those two answers do to the design
+
+Today a person becomes real by being added to a shop Adrian already made:
+`account_members`, invited from the admin team screen. The shop comes first and
+the person is an afterthought. Adrian's answers say the opposite. **The person is
+the trunk and the shop is a branch.**
+
+So the flow is: invitation, then the person sets themselves up as a tea master
+(profile, payment links, published), and only then, if they sell, a shop is
+attached and teas go into it. "Add teas for sale" is the optional second half,
+not the spine.
+
+That also confirms the payment links are in the right place. They hang off the
+person, which is exactly right if a person can be paid without a shop. Nothing
+about the payment work needs moving; it needs a path leading to it.
+
+### The gap this opens, and it is the real one
+
+**There is no invitation that makes someone a tea master.** Two things exist and
+neither is it:
+
+- `/join` and `/join/:code` are for **tea session guests**, not operators. The
+  code redeems into a tasting session and returns a session id. Do not extend it;
+  it is a different thing wearing a similar word.
+- The team invite in the admin adds a person to **an account that already
+  exists**, as a member with a role. That presumes a shop, which Adrian has just
+  said a tea master does not need.
+
+So the invitation is the thing to build, and it has to be able to invite a
+**person** with no shop at all. Everything else in this flow is assembly of
+surfaces that already exist. This is the one genuinely new piece.
+
+## Still open, and still Adrian's to answer
+
+1. **What is the minimum before someone can take money?** A customer can only pay
+   when the profile is published AND a payment method is marked public. Should
+   the system refuse to call someone a tea master until both are true, or let
+   them exist unpaid and simply show no pay link? This is what connects
+   onboarding to the order work already shipped.
+2. **Who approves a profile, and against what?** Publishing has an approval step
+   with no written standard behind it. Invitation-only makes this less urgent,
+   since Adrian has already vouched for the person by inviting them, and the
+   honest answer may be that an invited tea master needs no second gate.
+3. **Where does a half-set-up tea master live?** Your Table adapts by role and
+   already carries the attention list, so it is the obvious home. It does not
+   currently know about a person who has been invited but is not finished.
 
 ## How to approach the work
 
@@ -102,8 +134,8 @@ conversation before any building, and do not let an agent guess a default.
   dispatched agent producing a flow nobody agreed to.
 - **Do not build a public application form as the opening move.** It presumes
   the answer to question one, and it is the piece most likely to be wrong.
-- **The cheapest honest first step, whatever the answers, is a single surface
-  that tells one person what is left before they can trade** — profile drafted,
+- **The first surface to build is the one that tells an invited person what is
+  left before they can be paid** — profile drafted,
   profile published, account linked, stock present, payment method public. That
   surface is useful under every answer above, it makes the two identities visible
   as one thing for the first time, and the readiness pieces already exist to feed
