@@ -6,6 +6,13 @@
 > It is git-tracked (so it survives) and should be read FIRST by any agent or
 > human resuming this work.
 >
+> **THE TEMPLATE (single source):** before creating ANY tea, read
+> `docs/ops/TEAJA_TEMPLATE_AND_STORAGE.md` — the one canonical product template
+> (file shape, field rules, hard copy rules, MCP write path, publish flow,
+> vendor wiring). Live examples: `products/dark/aged-liu-bao-tea.md`,
+> `products/shou/aged-ripe-pu-erh-tea.md`,
+> `products/shou/aged-northern-vietnam-ripe-pu-erh-tea.md`.
+>
 > **2026-08-31:** the Guangzhou 7-tea intake (this month's stock purchase) is
 > COMPLETE. Keys live in `docs/ops/` — see `GUANGZHOU_INTAKE_HANDOFF.md`
 > (About-push + pricing-fix + personal-filing final state) first.
