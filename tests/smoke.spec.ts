@@ -43,6 +43,19 @@ test('no horizontal overflow on mobile', async ({ page }) => {
 
 test('shop toolbar uses compact price controls with liked on the far right', async ({ page }) => {
   await page.setViewportSize({ width: 657, height: 734 });
+  // The toolbar only renders once there is a catalogue to filter, and this
+  // suite runs against a server whose API points at itself, so the real
+  // request answers with the application shell and the shop stays empty. Two
+  // teas are enough to bring the controls out, and mocking them also stops
+  // this depending on whatever the live shop happens to be selling today.
+  await page.route('**/api/products/public', route => route.fulfill({ json: [
+    { id: 'smoke-1', product_name: 'Smoke Oolong', type: 'Oolong', category: 'tea', form: 'Loose',
+      retail_price_per_gram_usd: 0.2, stock_grams: 120, is_public: 1, shown_in_shop: 1,
+      origin_country: 'China', origin_region: 'Fujian', year: 2025 },
+    { id: 'smoke-2', product_name: 'Smoke Sheng', type: 'Sheng', category: 'tea', form: 'Cake',
+      retail_price_per_gram_usd: 0.3, stock_grams: 357, is_public: 1, shown_in_shop: 1,
+      origin_country: 'China', origin_region: 'Yunnan', year: 2024 },
+  ] }));
   await page.goto('/shop');
   await page.waitForLoadState('domcontentloaded');
 

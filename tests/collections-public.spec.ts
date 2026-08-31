@@ -16,6 +16,15 @@ test.describe('/c/:slug — public collection page', () => {
   test('unknown slug renders the editorial not-found state without overflow or errors', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
 
+    // The page's answer to an unknown slug is driven by the API's 404. The
+    // browser suite runs against a server whose API points at itself, so an
+    // unmocked call answers with the application shell instead: the page saw a
+    // 200 of HTML, could not read it, and rendered the error boundary the test
+    // is specifically asserting against. Say what the API would say.
+    await page.route('**/api/public/c/**', route => route.fulfill({
+      status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'Not found' }),
+    }));
+
     const consoleErrors: string[] = [];
     const pageErrors: string[] = [];
     page.on('console', msg => {

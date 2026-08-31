@@ -146,14 +146,17 @@ test('share — the magazine SharePanel opens from the colophon in the immersive
   expect(errors.filter((e) => !e.includes('favicon') && !/40[13]/.test(e))).toEqual([]);
 });
 
-test('immersive reader is chrome-less but carries a back control', async ({ page }) => {
+test('immersive reader keeps the app navigation and carries its own back control', async ({ page }) => {
   await page.goto('/article/the-rock-remembers');
   await expect(page.getByTestId('immersive-article')).toBeVisible();
 
-  // The full-bleed immersive reader suppresses the app bottom tab bar...
-  await expect(page.getByTestId('bottom-tab-bar')).toHaveCount(0);
+  // The reader used to suppress the bottom bar. It deliberately does not any
+  // more (see the note beside the BottomTabBar render in App, and the commit
+  // that made the DB reader chrome-consistent with /read): a reader who has
+  // finished an article should be able to go anywhere in the app without
+  // first going back. The layout stays full-bleed either way.
+  await expect(page.getByTestId('bottom-tab-bar')).toBeVisible();
 
-  // ...and instead carries its own minimal back control so the read is never a trap.
-  const back = page.getByTestId('immersive-back');
-  await expect(back).toBeVisible();
+  // And it still carries its own back control, so the read is never a trap.
+  await expect(page.getByTestId('immersive-back')).toBeVisible();
 });
