@@ -45,6 +45,13 @@ storage, which is faster and repeatable:
 
 Storage survives reloads, so this is normally a once-per-browser step.
 
+## A new worktree starts with nothing
+
+The local database is not in git, so a fresh clone or a new worktree has no
+tables at all. Starting the API against that empty file used to answer a wall
+of 500s that read like broken application code. It now refuses to start and
+names the fix instead, so run the rebuild below first.
+
 ## What is in the database
 
 Everything needed for a product screen to look real, and nothing else:
@@ -67,11 +74,16 @@ The copy goes stale as the real shop changes. To pull a fresh one:
 cd "/Users/adrianrasmussen/Documents/Files/2 Areas/Coding/teajia" && npm run sandbox:refresh
 ```
 
-Takes a couple of minutes. It re-reads the live structure, re-copies the product
-rows, rebuilds the local database, and re-seeds the operator. Safe to run any
-time: it only ever READS from live.
+Takes a couple of minutes. It throws the local database away, re-reads the live
+structure, re-copies the product rows, rebuilds, and re-seeds the operator. Safe
+to run any time: it only ever READS from live, and the only thing it deletes is
+the local copy it is about to replace.
 
-## Two things that will bite whoever edits the refresh script
+Every rebuild ends by comparing the result against live, table by table and
+column by column, plus every index and trigger. Any difference prints and the
+script exits non-zero. A quiet finish is a measurement, not a hope.
+
+## Four things that will bite whoever edits the refresh script
 
 1. **The live database contains full-text search tables, and the export endpoint
    refuses to run on a database that has any.** The script works around this by
@@ -85,10 +97,33 @@ time: it only ever READS from live.
    from the dump, and every sandbox request that reads it fails. After loading
    the dump the script applies each numbered migration on top; a column live
    already has reports "duplicate column name" and is skipped. That is expected
-   output, not a failure.
+   output, not a failure. Each migration is applied **one statement at a time**:
+   handed a whole file, the first duplicate column aborts the rest, and the
+   columns the later statements would have added go missing silently.
+4. **`wrangler d1 export` writes CREATE TABLE and nothing else.** Live's 253
+   indexes and 15 triggers are absent from the dump, so the script reads them
+   back out of live's `sqlite_master` and replays them. Skipping this is not a
+   performance question: an upsert whose `ON CONFLICT` target is a unique index
+   fails outright without it, and the triggers that maintain
+   `contact_relationships` silently do nothing.
+
+## What the sandbox is good for, and what it caught
+
+It is worth being clear about which way the evidence points when an endpoint
+fails here. On 2026-08-31 three endpoints (`/api/me/profile`, `/api/me/queue`,
+`/api/me/wishlist`) and part of a fourth (`/api/me/journey`) answered 500 in the
+sandbox. The schema was checked against live column by column: it matched. The
+queries were asking for a `deleted_at` on `tea_compass_entries` that production
+does not have either, and joining `tea_samples` on `sample_set_id` when the
+column is `set_id`. All four were broken in production and had been for some
+time; nothing in the live site reads those routes loudly enough to notice.
+
+So: a 500 here is a claim about the code until the schema comparison says
+otherwise, and the rebuild now runs that comparison for you.
 
 ## Files
 
 - `refresh.mjs`: pulls a fresh copy from live and rebuilds everything
+- `check-db.mjs`: refuses to start the API against an empty database (run by `npm run sandbox`)
 - `seed-operator.mjs`: creates the sandbox operator (run by refresh; also standalone)
 - `*.sql`, `*.json`: the pulled dumps, gitignored and disposable

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "infisical export --env=dev --format=dotenv --path=/ > .dev.vars && wrangler dev",
-    "sandbox": "infisical export --env=dev --format=dotenv --path=/ > .dev.vars && wrangler dev --port 8787",
+    "sandbox": "node sandbox/check-db.mjs && infisical export --env=dev --format=dotenv --path=/ > .dev.vars && wrangler dev --port 8787",
     "sandbox:refresh": "node sandbox/refresh.mjs",
     "sandbox:seed": "node sandbox/seed-operator.mjs",
     "deploy": "wrangler deploy",
