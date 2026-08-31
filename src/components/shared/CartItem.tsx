@@ -21,15 +21,20 @@ const PRESETS = [25, 50, 100, 250];
  * No bronze anywhere in the row; the accent is spent once per panel, on the
  * request button.
  *
- * Compacted round two. The thumbnail is gone, so the name starts at the edge
- * of the block and the price can come back to the title line: the collision
- * the old rule was written against was the remove X, and remove is a word now,
- * down beside View tea. That folds the closing price row into the header and
- * takes roughly forty pixels off every tea, which is the difference between
- * two teas fitting on a phone and two teas scrolling.
+ * Compacted to three lines and a control strip. The thumbnail is gone, so the
+ * name starts at the edge of the block and the price sits beside it: the
+ * collision the old separate price row was written against was the remove X,
+ * and remove is a word now, at the far end of the amount label.
+ *
+ * The name is the link to the tea. A "View tea" line spent a whole row of
+ * control on the thing the reader was going to tap anyway.
  *
  * The rate rides the metadata line for the same reason. It is a fact about the
  * tea, not a second price.
+ *
+ * A tea is 181px this way, against 262px when it had a thumbnail and its own
+ * rows for the price and the links, which is what lets two teas sit on a phone
+ * screen without scrolling.
  */
 export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQuantity, onNavigate }) => {
   const { total: displayPrice, rate: displayRate } = useShopPrice();
@@ -52,7 +57,17 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
     <div className="bg-tea-surface rounded-[3px] px-4 pt-3.5 pb-3 flex flex-col gap-3">
       <div className="flex flex-col gap-1">
         <div className="flex items-baseline justify-between gap-3">
-          <h3 className="font-display text-[23px] leading-[1.1] text-tea-text truncate">{item.name}</h3>
+          {/* The name is the link. A separate "View tea" line was a whole row
+              of control for a thing the reader was already going to tap. */}
+          <h3 className="min-w-0 truncate">
+            <Link
+              to={`/shop/product/${item.id}`}
+              onClick={onNavigate}
+              className="font-display text-[23px] leading-[1.1] text-tea-text hover:text-tea-gold-lt transition-colors"
+            >
+              {item.name}
+            </Link>
+          </h3>
           <span className="num text-ui-15 text-tea-text shrink-0">{displayPrice(item.totalPrice)}</span>
         </div>
 
@@ -69,29 +84,25 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
           </div>
         )}
 
-        <div className="flex items-center gap-3.5">
-          <Link
-            to={`/shop/product/${item.id}`}
-            onClick={onNavigate}
-            className="font-serif text-[12.5px] text-tea-text hover:text-tea-gold-lt underline decoration-tea-border hover:decoration-tea-gold-lt underline-offset-[5px] transition-colors tap-target"
-          >
-            View tea
-          </Link>
+      </div>
+
+      {/* The amount, recessed into the panel ground so the control reads as a control */}
+      <div className="bg-tea-bg rounded-[3px] px-3.5 pt-0.5 pb-1.5 flex flex-col gap-0.5">
+        {/* Remove rides the far end of the label line. It is the one thing on
+            the block that undoes rather than adjusts, so it sits apart from
+            the weights without spending a row of its own. */}
+        <div className="flex items-center justify-between gap-3">
+          <span className="font-serif italic text-[12.5px] text-tea-text-dim">
+            {isTea ? 'How much of this tea' : 'How many'}
+          </span>
           <button
             onClick={() => onRemove(item.id)}
-            className="font-serif text-[12.5px] text-tea-text-sec hover:text-tea-error transition-colors tap-target"
+            className="font-serif text-[12.5px] text-tea-text-sec hover:text-tea-error transition-colors tap-target justify-end"
             aria-label={`Remove ${item.name} from cart`}
           >
             Remove
           </button>
         </div>
-      </div>
-
-      {/* The amount, recessed into the panel ground so the control reads as a control */}
-      <div className="bg-tea-bg rounded-[3px] px-3.5 pt-2 pb-1.5 flex flex-col gap-0.5">
-        <span className="font-serif italic text-[12.5px] text-tea-text-dim">
-          {isTea ? 'How much of this tea' : 'How many'}
-        </span>
 
         {isTea ? (
           <div className="flex items-center justify-between gap-1">
