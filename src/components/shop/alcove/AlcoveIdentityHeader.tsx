@@ -21,9 +21,9 @@ interface AlcoveIdentityHeaderProps {
   /**
    * 'plain' is the modal card's header, type straight onto the card.
    * 'plate' sets the same identity on a field of the label stock, the way
-   * the tea's own printed label reads in the hand. The plate is a LIGHT
-   * surface inside a dark interface, so its type uses the plate ink pair
-   * rather than the page's text tokens.
+   * the tea's own printed label reads in the hand. The plate is its own
+   * surface, cream on parchment and printed black on the dark page, so its
+   * type uses the plate ink classes rather than the page's text tokens.
    */
   variant?: 'plain' | 'plate';
   /**
@@ -50,8 +50,19 @@ interface AlcoveIdentityHeaderProps {
  * lifted so any crop of it lands in the cream family rather than wherever the
  * noise happens to sit.
  *
+ * Two of them, because the plate is cream on parchment and printed black on
+ * the dark page, and card-utilities.css picks by theme. The night stock is the
+ * SAME field with the tables remapped into the black: each channel keeps its
+ * six-step shape, so the cloud survives at a floor about a twentieth of the
+ * cream's. Glazing the cream one down instead was the obvious move and the
+ * wrong one, because an overlay heavy enough to reach black collapses the span to
+ * roughly a single value and leaves a flat panel. The speckle goes with it,
+ * warmed down to a dim fibre so it reads as the paper rather than dust.
+ *
  * Rendered once per plate. It costs a filter pass, which is why the element it
- * paints is a fixed background layer rather than anything that reflows.
+ * paints is a fixed background layer rather than anything that reflows; the
+ * unused one costs nothing, since a filter def is only evaluated where a
+ * `filter: url(...)` actually references it.
  */
 const LabelStockFilter: React.FC = () => (
   <svg width="0" height="0" aria-hidden="true" focusable="false" style={{ position: 'absolute' }}>
@@ -74,6 +85,28 @@ const LabelStockFilter: React.FC = () => (
           in="c"
           type="matrix"
           values="0 0 0 0 1  0 0 0 0 0.98  0 0 0 0 0.93  0.8 0.2 0.2 0 -0.58"
+          result="ck"
+        />
+        <feComposite in="ck" in2="b" operator="over" />
+      </filter>
+      <filter id="teajia-label-stock-night" x="0" y="0" width="100%" height="100%" colorInterpolationFilters="sRGB">
+        <feTurbulence type="fractalNoise" baseFrequency="0.0016 0.0030" numOctaves={6} seed={29} result="f" />
+        <feColorMatrix
+          in="f"
+          type="matrix"
+          values="0.34 0.33 0.33 0 0  0.34 0.33 0.33 0 0  0.34 0.33 0.33 0 0  0 0 0 0 1"
+          result="l"
+        />
+        <feComponentTransfer in="l" result="b">
+          <feFuncR type="table" tableValues="0.0300 0.1320 0.0504 0.1320 0.0708 0.1320" />
+          <feFuncG type="table" tableValues="0.0240 0.0938 0.0380 0.0969 0.0519 0.1000" />
+          <feFuncB type="table" tableValues="0.0150 0.0567 0.0234 0.0614 0.0326 0.0660" />
+        </feComponentTransfer>
+        <feTurbulence type="turbulence" baseFrequency="0.19" numOctaves={3} seed={8} result="c" />
+        <feColorMatrix
+          in="c"
+          type="matrix"
+          values="0 0 0 0 0.6  0 0 0 0 0.55  0 0 0 0 0.45  0.8 0.2 0.2 0 -0.7"
           result="ck"
         />
         <feComposite in="ck" in2="b" operator="over" />
@@ -137,7 +170,7 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
         <p
           lang="zh"
           className={`m-0 font-calligraphy leading-none tracking-[0.3em] indent-[0.3em] lg:tracking-[0.32em] lg:indent-[0.32em] ${
-            onPlate ? 'plate-ink-sec mt-[13px] text-[19px] lg:mt-6 lg:text-[clamp(18px,1.9vw,27px)]' : 'mt-[7px] text-ui-17 text-tea-gold-lt'
+            onPlate ? 'plate-ink-han mt-[13px] text-[19px] lg:mt-6 lg:text-[clamp(18px,1.9vw,27px)]' : 'mt-[7px] text-ui-17 text-tea-gold-lt'
           }`}
         >
           {chineseCharacters}
@@ -161,7 +194,7 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
       )}
       {onPlate && standfirst && (
         <div className="hidden lg:block">
-          <div aria-hidden="true" className="mx-auto mt-[38px] h-px w-[34px] bg-[rgba(36,29,19,0.4)]" />
+          <div aria-hidden="true" className="plate-rule mx-auto mt-[38px] h-px w-[34px]" />
           <p className="plate-ink-body mx-auto mt-8 max-w-[340px] font-body text-ui-17 italic leading-[1.65]">
             {standfirst}
           </p>

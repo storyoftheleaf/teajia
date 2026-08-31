@@ -2391,32 +2391,62 @@ input[type="number"]::-webkit-outer-spin-button {
 
 /* The label plate: the tea's name on a field of the label stock, with a
    keyline drawn inside its edge the way a printed label carries one.
-   Swap --label-plate-image for the real texture and nothing else moves. */
+
+   The plate is printed in the dark and lit in the light, and the two are
+   different objects. On parchment the cream stock is the label, so light mode
+   keeps it exactly as it was drawn. On the #22201c page the same cream was
+   the brightest thing on the screen and, at 36% of the width, read as a lit
+   wall rather than a label. Dark mode prints it instead: the same stock
+   remapped into the black (see the night filter in AlcoveIdentityHeader) with
+   one warm sheen falling down the panel, so the surface reads as a lacquered
+   board catching a single light.
+
+   Dark is the base here, the way the tokens are, and .light restores the
+   cream. Everything below comes in that order. */
 .label-plate {
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  background-color: #d6c49c;
+  background-color: #141009;
 }
+.light .label-plate { background-color: #d6c49c; }
 /* The label stock itself, ported from the artboard rather than approximated:
    the same fractal field posterised into soft strata, run through an SVG
-   filter defined once in the app shell, with a cream veil over it at the
-   board's own 0.34. A CSS gradient could carry the colour but not the cloud,
-   which is the difference between a printed label and a painted panel. */
+   filter defined once in the app shell. A CSS gradient could carry the colour
+   but not the cloud, which is the difference between a printed label and a
+   painted panel.
+
+   The black is a SECOND filter, not this one glazed down. The texture lives in
+   the six-step transfer tables, and a glaze heavy enough to reach black
+   flattens their span to about one value: black with nothing in it. The night
+   filter remaps the tables instead: the floor sets the tone, the span keeps
+   the cloud. */
 .label-plate__stock {
   position: absolute;
   inset: 0;
   z-index: -2;
   background: #8a8a8a;
-  filter: url(#teajia-label-stock);
+  filter: url(#teajia-label-stock-night);
 }
+.light .label-plate__stock { filter: url(#teajia-label-stock); }
+/* Dark: the sheen, which is what gives a near-black surface a top and a
+   bottom. Light: the cream veil, at the board's own 0.34. */
 .label-plate__veil {
   position: absolute;
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background: rgba(238, 229, 208, 0.34);
+  background:
+    linear-gradient(
+      176deg,
+      rgba(255, 241, 214, 0.085) 0%,
+      rgba(255, 241, 214, 0.02) 24%,
+      rgba(0, 0, 0, 0) 52%,
+      rgba(0, 0, 0, 0.3) 100%
+    ),
+    radial-gradient(70% 40% at 50% 6%, rgba(255, 238, 205, 0.07) 0%, rgba(255, 238, 205, 0) 70%);
 }
+.light .label-plate__veil { background: rgba(238, 229, 208, 0.34); }
 .label-plate::before {
   content: '';
   position: absolute;
@@ -2425,12 +2455,15 @@ input[type="number"]::-webkit-outer-spin-button {
   pointer-events: none;
   background-image: var(--alcove-grain);
   background-size: 180px 180px;
-  opacity: 0.34;
-  /* Overlay, never multiply. Multiplying a grey noise map over a warm stock
-     darkens it and drains the brown out of it, which is how a tan label came
-     out looking like putty. Overlay moves lightness and leaves the hue. */
-  mix-blend-mode: overlay;
+  opacity: 0.18;
+  /* Soft-light on the black plate: overlay against a near-black ground barely
+     moves it, and multiply only dirties it. */
+  mix-blend-mode: soft-light;
 }
+/* Overlay, never multiply, on the cream. Multiplying a grey noise map over a
+   warm stock darkens it and drains the brown out of it, which is how a tan
+   label came out looking like putty. Overlay moves lightness, leaves the hue. */
+.light .label-plate::before { opacity: 0.34; mix-blend-mode: overlay; }
 /* The keyline is inset 12px on the phone board and 24px on the desktop one:
    the panel is 396px tall in the hand and full-column on the desk, so a single
    inset would crowd one and float in the other. */
@@ -2438,14 +2471,20 @@ input[type="number"]::-webkit-outer-spin-button {
   content: '';
   position: absolute;
   inset: 12px;
-  border: 1px solid rgba(36, 29, 19, 0.26);
+  border: 1px solid rgb(var(--tea-gold-rgb) / 0.3);
 }
+.light .label-plate::after { border-color: rgba(36, 29, 19, 0.26); }
 @media (min-width: 1024px) {
   .label-plate::after { inset: 24px; }
 }
-/* The plate's third ink. The name is near-black, the sub-lines are the mid
-   brown, and the shop's own sentence sits between them. */
-.plate-ink-body { color: #4a3a22; }
+/* The rule above the shop's own sentence, which sits on the plate and so
+   follows the plate's ink rather than the page's border token. */
+.plate-rule { background: rgb(var(--tea-gold-rgb) / 0.4); }
+.light .plate-rule { background: rgba(36, 29, 19, 0.4); }
+/* The plate's third ink: the shop's own sentence, between the name and the
+   sub-lines. */
+.plate-ink-body { color: var(--tea-text-sec); }
+.light .plate-ink-body { color: #4a3a22; }
 
 /* The tasting invitation's keyline, at the design file's exact value. Written
    here because Tailwind has no /34 opacity step, and asking for one silently
@@ -2453,10 +2492,16 @@ input[type="number"]::-webkit-outer-spin-button {
 .alcove-tasting-btn { border: 1px solid rgb(var(--tea-gold-rgb) / 0.34); }
 .alcove-tasting-btn:hover { border-color: rgb(var(--tea-gold-rgb) / 0.6); }
 
-/* Ink, for type set on the plate. Never the page's text tokens: the plate
-   is a light surface inside a dark interface, so it carries its own pair. */
-.plate-ink { color: #241d13; }
-.plate-ink-sec { color: #6b5636; }
+/* Ink, for type set on the plate. The plate carries its own inks either way,
+   because it is its own surface: near-black on the cream stock in light, and
+   the page's own warm pair on the printed black in dark, where the hanzi takes
+   the gold the way a printed label sets a second colour. */
+.plate-ink { color: var(--tea-text); }
+.plate-ink-sec { color: var(--tea-text-sec); }
+.plate-ink-han { color: var(--tea-gold-lt); }
+.light .plate-ink { color: #241d13; }
+.light .plate-ink-sec { color: #6b5636; }
+.light .plate-ink-han { color: #6b5636; }
 
 .alcove-band {
   background: rgb(var(--tea-text-rgb) / 0.04);
