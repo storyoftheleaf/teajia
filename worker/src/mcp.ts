@@ -2704,26 +2704,31 @@ async function commitUpsertVendorContact(
   m: Extract<PendingMutation, { kind: 'upsert_vendor_contact' }>,
   existingId: string | null,
 ) {
+  // The live customers table has NO `wechat` column (only added `line` via
+  // archive migration 098; index.ts's `wechat` reference is a latent bug that
+  // drops the value). WeChat is stored durably in the existing `contacts`
+  // JSON array instead, alongside the real phone/whatsapp columns.
+  const contacts: any[] = m.wechat ? [{ type: 'wechat', value: m.wechat }] : [];
   let customerId: string;
   if (existingId) {
     customerId = existingId;
     await env.DB.prepare(
-      `UPDATE customers SET company = ?, phone = ?, whatsapp = ?, wechat = ?, address = ?,
-         city = ?, country = ?, source = ?, notes = ?, tags = ?, updated_at = datetime('now')
+      `UPDATE customers SET company = ?, phone = ?, whatsapp = ?, address = ?,
+         city = ?, country = ?, source = ?, notes = ?, contacts = ?, tags = ?, updated_at = datetime('now')
        WHERE id = ? AND account_id = ?`
     ).bind(
-      m.company, m.phone, m.whatsapp, m.wechat, m.address, m.city, m.country,
-      m.source, m.notes, JSON.stringify(['vendor']), customerId, m.accountId,
+      m.company, m.phone, m.whatsapp, m.address, m.city, m.country,
+      m.source, m.notes, JSON.stringify(contacts), JSON.stringify(['vendor']), customerId, m.accountId,
     ).run();
   } else {
     customerId = crypto.randomUUID();
     await env.DB.prepare(
-      `INSERT INTO customers (id, account_id, type, name, company, phone, whatsapp, wechat,
-         address, city, country, source, notes, tags, created_at, updated_at)
+      `INSERT INTO customers (id, account_id, type, name, company, phone, whatsapp,
+         address, city, country, source, notes, contacts, tags, created_at, updated_at)
        VALUES (?, ?, 'vendor', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '["vendor"]', datetime('now'), datetime('now'))`
     ).bind(
-      customerId, m.accountId, m.name, m.company, m.phone, m.whatsapp, m.wechat,
-      m.address, m.city, m.country, m.source, m.notes,
+      customerId, m.accountId, m.name, m.company, m.phone, m.whatsapp,
+      m.address, m.city, m.country, m.source, m.notes, JSON.stringify(contacts),
     ).run();
   }
   await env.DB.prepare(
@@ -2740,6 +2745,7 @@ async function commitUpsertVendorContact(
     mode: existingId ? 'updated' : 'created',
     vendor_id: customerId,
     vendor_name: m.name,
+    wechat_stored_in: 'contacts',
   };
 }
 
