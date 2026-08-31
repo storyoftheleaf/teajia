@@ -59,6 +59,7 @@ import {
   analyzeCurateImport,
   getCurateImport,
   updateCurateImportItem,
+  updateCurateImportGroup,
   curateImportChat,
   finalizeCurateImportRequest,
   type CurateImportContext,
@@ -5037,6 +5038,24 @@ async function toolIntakeUpdateItem(env: Env, auth: McpAuth, args: any) {
   return data;
 }
 
+async function toolIntakeSetGroupVendor(env: Env, auth: McpAuth, args: any) {
+  const importId = String(args?.import_id ?? '').trim();
+  const groupId = String(args?.group_id ?? '').trim();
+  if (!importId) return { error: 'import_id is required' };
+  if (!groupId) return { error: 'group_id is required' };
+  const vendorCustomerId = args?.vendor_customer_id != null ? String(args.vendor_customer_id).trim() : null;
+  const req = new Request(`http://localhost/api/curate/imports/${importId}/groups/${groupId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ resolved_vendor_customer_id: vendorCustomerId }),
+  });
+  const ctx: CurateImportContext = { accountId: auth.accountId, userId: auth.userId };
+  const res = await updateCurateImportGroup(req, env as any, ctx, { id: importId, groupId });
+  const data = await res.json() as any;
+  if (!res.ok) return { error: data.error ?? 'update_group_failed', details: data };
+  return data;
+}
+
 // intake_ask and intake_answer wrap POST /api/curate/imports/:id/chat (T1).
 async function toolIntakeAsk(env: Env, auth: McpAuth, args: any) {
   const importId = String(args?.import_id ?? '').trim();
@@ -5710,6 +5729,20 @@ const TOOL_DEFS = [
     },
   },
   {
+    name: 'intake_set_group_vendor',
+    scope: 'stock:write',
+    description: 'Assign a vendor customer to a Curate import lot\'s vendor group, unblocking intake_finalize for stock-bearing items. Scoped to stock:write so the operator token can resolve vendor groups (the owner-tier REST bundle auth is not granted). Direct-handler wrapper over PUT /api/curate/imports/:id/groups/:groupId.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        import_id: { type: 'string', description: 'Import batch ID.' },
+        group_id: { type: 'string', description: 'Vendor group ID from intake_get_draft (groups[].id).' },
+        vendor_customer_id: { type: 'string', description: 'Customer id of the vendor (from upsert_vendor_contact or find_customer). Pass null to clear.' },
+      },
+      required: ['import_id', 'group_id', 'vendor_customer_id'],
+    },
+  },
+  {
     name: 'intake_ask',
     scope: 'stock:write',
     description: 'Post a clarifying question (ask) on a Curate import draft or specific item. NOTE: the chat endpoint (THEN-T1) has not shipped yet — this tool currently returns not_implemented.',
@@ -5895,7 +5928,7 @@ const IDEMPOTENT_TOOLS = new Set([
   'set_archive_status', 'set_low_stock_threshold', 'mark_invoice_paid',
   'update_customer', 'update_invoice', 'update_tea_pricing',
   'update_account_settings', 'update_exchange_rate', 'set_tea_visibility',
-  'intake_analyze', 'intake_update_item',
+  'intake_analyze', 'intake_update_item', 'intake_set_group_vendor',
   // Round three. A second convert of the same request lands on the same order
   // (the claim is guarded and returns 409), and a second confirm of the same
   // payment row changes nothing and counts nothing twice.
@@ -6032,6 +6065,7 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
     case 'intake_analyze': result = mcpContent(await toolIntakeAnalyze(env, auth, args)); break;
     case 'intake_get_draft': result = mcpContent(await toolIntakeGetDraft(env, auth, args)); break;
     case 'intake_update_item': result = mcpContent(await toolIntakeUpdateItem(env, auth, args)); break;
+    case 'intake_set_group_vendor': result = mcpContent(await toolIntakeSetGroupVendor(env, auth, args)); break;
     case 'intake_ask': result = mcpContent(await toolIntakeAsk(env, auth, args)); break;
     case 'intake_answer': result = mcpContent(await toolIntakeAnswer(env, auth, args)); break;
     case 'intake_finalize': result = mcpContent(await toolIntakeFinalize(env, auth, args)); break;
