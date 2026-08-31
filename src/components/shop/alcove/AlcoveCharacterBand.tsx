@@ -30,7 +30,7 @@ interface AlcoveCharacterBandProps {
    * are already looking at. Next to Add to order it was competing with a
    * purchase, and it is the one action you take after the tea is yours.
    */
-  onTaste?: (item: InventoryItem) => void;
+  onTaste?: (item: InventoryItem, intent?: 'edit' | 'notes') => void;
   /**
    * This reader's own entry for this tea, when they have written one. The plate
    * shows it back to them instead of asking again: there is one entry per tea,
@@ -204,7 +204,7 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
 
       {onTaste && (
         <div className={hasCharacterContent ? 'mt-4' : ''}>
-          <AlcoveTastingPlate entry={tastingEntry} onTaste={() => onTaste(item)} />
+          <AlcoveTastingPlate entry={tastingEntry} onTaste={intent => onTaste(item, intent)} />
         </div>
       )}
 

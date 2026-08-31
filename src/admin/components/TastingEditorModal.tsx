@@ -25,6 +25,8 @@ interface TastingEditorModalProps {
   canEditDetails?: boolean;
   /** Open on the tea's details rather than the tasting questions. */
   startOnDetails?: boolean;
+  /** Open on the notes workspace with the mic ready. */
+  startOnNotes?: boolean;
   /** Fires when a details field is written, so the page behind can refresh. */
   onDetailsChanged?: () => void;
 }
@@ -34,7 +36,8 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
   onClose,
   onSaved,
   canEditDetails = false,
-  startOnDetails = false,
+  startOnDetails,
+  startOnNotes = false,
   onDetailsChanged,
 }) => {
   const { showToast } = useToast();
@@ -142,6 +145,7 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
           teaKey: product.teaKey,
         }}
         adminMode
+        startOnNotes={startOnNotes}
         initialData={product.tasting || {}}
         onClose={onClose}
         onSave={handleSave}

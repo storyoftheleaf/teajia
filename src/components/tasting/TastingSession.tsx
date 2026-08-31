@@ -95,6 +95,12 @@ interface TastingSessionProps {
   detailsPanel?: React.ReactNode;
   /** Open straight on the details form instead of the tasting questions. */
   startOnDetails?: boolean;
+  /**
+   * Open straight on the notes workspace, mic ready. The product page uses this
+   * so speaking about a tea is one tap from the tea, rather than an edit and
+   * then a hunt along the taskbar for the NOTE word.
+   */
+  startOnNotes?: boolean;
 }
 
 const TeaLeafRating: React.FC<{ rating: number }> = ({ rating }) => (
@@ -121,7 +127,7 @@ function generateDescription(data: TastingData): string {
 
 export const TastingSession: React.FC<TastingSessionProps> = ({
   item, onClose, onSave, onAfterSave, adminMode = false, initialData, showVerdict = false, onOrderTea, onCreatePO, onWriteDescription, writeDraftReview = false,
-  detailsPanel, startOnDetails = false,
+  detailsPanel, startOnDetails = false, startOnNotes = false,
 }) => {
   const { addTasting, updateTasting, upsertTastingByProductId, activeAccountId, activeAccount, tastingJournal } = useAppStore();
   const { addNote } = useNotesStore();
@@ -174,7 +180,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   const isFreshTasting = !!freshReason.trim();
 
   const [activeSectionId, setActiveSectionId] = useState<SectionId>('body');
-  const [showNote, setShowNote] = useState(false);
+  const [showNote, setShowNote] = useState(startOnNotes);
   const [descriptionDraft, setDescriptionDraft] = useState('');
   const [savingDescription, setSavingDescription] = useState(false);
   const [sectionCounts, setSectionCounts] = useState<Record<SectionId, number>>({
@@ -717,11 +723,12 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
             )}
 
             {/* Structured sections, or the Notes workspace when the NOTE tab is active */}
+            {/* No fade at the foot of the scroller. A 24px transparent-to-ground
+                gradient sat directly above the taskbar's hairline, and on the last
+                card in a list it read as a smudge of shading under the card rather
+                than as a hint that the list continues. The hairline already says
+                where the content stops. */}
             <div className="flex-1 min-h-0 overflow-hidden relative">
-              <div
-                className="absolute bottom-0 left-0 right-0 h-6 pointer-events-none z-10"
-                style={{ background: 'linear-gradient(to bottom, transparent, var(--tea-bg))' }}
-              />
               {showNote ? (
                 <NotesPanel
                   notes={normalizeNotes(tastingData)}

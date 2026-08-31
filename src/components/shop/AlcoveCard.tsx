@@ -46,7 +46,7 @@ interface AlcoveCardProps {
   /** Custom price formatter (admin uses formatCurrency with rates) */
   formatPrice?: (pricePerGram: number, grams: number) => string;
   /** Called when user wants to start a tasting session */
-  onTaste?: (item: InventoryItem) => void;
+  onTaste?: (item: InventoryItem, intent?: 'edit' | 'notes') => void;
   /** Admin-only: called to open the product tasting editor (writes to the product's own tasting field). */
   onEditProductTasting?: (item: InventoryItem) => void;
   /** Canonical public route, including store context on standalone pages. */

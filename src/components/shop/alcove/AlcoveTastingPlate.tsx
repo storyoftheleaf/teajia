@@ -1,13 +1,26 @@
 import React from 'react';
 import type { CustomerTasting } from '../../../types';
 import { resolveTermLabel } from '../../../data/tastingTaxonomy';
+import { starredNotes } from '../../../lib/noteEntries';
 
 interface AlcoveTastingPlateProps {
   /** This reader's entry for this tea, or null when they have not written one. */
   entry: CustomerTasting | null;
-  /** Opens the tasting session (writing the first one, or editing the one there). */
-  onTaste: () => void;
+  /**
+   * Opens the tasting session. 'notes' opens it on the notes workspace with the
+   * mic ready; 'edit' opens the questions.
+   */
+  onTaste: (intent?: 'edit' | 'notes') => void;
 }
+
+/**
+ * The two words in the plate's corner. Deliberately not tap-target: it sets a
+ * 44px min-height on the element, which turned a two-word label into a 44px row
+ * and made the plate a third taller than it needed to be. The pressable area is
+ * grown with a pseudo-element instead, so the header keeps its own line box.
+ */
+const CORNER_LINK =
+  "relative font-sans text-ui-10 uppercase tracking-[0.14em] text-tea-text-sec underline decoration-tea-gold/40 underline-offset-[3px] transition-colors after:absolute after:-inset-x-2 after:-top-4 after:-bottom-4 after:content-[''] hover:text-tea-text hover:decoration-tea-gold";
 
 /** The leaf that marks the plate. Drawn, so it scales and takes the accent. */
 const LeafMark: React.FC = () => (
@@ -47,8 +60,18 @@ export const AlcoveTastingPlate: React.FC<AlcoveTastingPlateProps> = ({ entry, o
   const terms = note?.tasting?.flavor?.length
     ? note.tasting.flavor
     : note?.tasting?.feeling ?? [];
+  /*
+   * What the plate says in your own words, in order of how deliberately you
+   * chose it. A starred note is the one you picked out of the session and asked
+   * to be shown, so it wins; the entry's paragraph is the fallback. Starring
+   * had no effect anywhere on this page before: the character band reads the
+   * shop's own record, so a reader could star a note in the session and watch
+   * nothing happen with it.
+   */
+  const starred = starredNotes(note?.tasting)[0]?.text?.trim();
   const personalNote = note?.personalNote?.trim();
-  const hasSomethingToShow = terms.length > 0 || Boolean(personalNote);
+  const spokenLine = starred || personalNote;
+  const hasSomethingToShow = terms.length > 0 || Boolean(spokenLine);
 
   // An entry that exists but holds nothing readable is not worth a plate of its
   // own: the invitation is still the honest thing to show.
@@ -58,7 +81,7 @@ export const AlcoveTastingPlate: React.FC<AlcoveTastingPlateProps> = ({ entry, o
         type="button"
         onClick={e => {
           e.stopPropagation();
-          onTaste();
+          onTaste('edit');
         }}
         className="flex min-h-[52px] w-full items-center gap-[13px] bg-tea-gold/8 px-4 text-left transition-colors hover:bg-tea-gold/10"
       >
@@ -98,20 +121,29 @@ export const AlcoveTastingPlate: React.FC<AlcoveTastingPlateProps> = ({ entry, o
         <span className="font-sans text-ui-10 font-medium uppercase tracking-[0.2em] text-tea-text-dim">
           Your tasting
         </span>
-        {/* Not tap-target: it sets min-height 44px on the element, which turned
-            this two-word corner label into a 44px row and made the plate a third
-            taller than it needed to be. The pressable area is grown with a
-            pseudo-element instead, so the header keeps its own line box. */}
-        <button
-          type="button"
-          onClick={e => {
-            e.stopPropagation();
-            onTaste();
-          }}
-          className="relative font-sans text-ui-10 uppercase tracking-[0.14em] text-tea-text-sec underline decoration-tea-gold/40 underline-offset-[3px] transition-colors after:absolute after:-inset-x-2 after:-top-4 after:-bottom-4 after:content-[''] hover:text-tea-text hover:decoration-tea-gold"
-        >
-          Edit
-        </button>
+        <span className="flex shrink-0 items-baseline gap-3">
+          <button
+            type="button"
+            onClick={e => {
+              e.stopPropagation();
+              onTaste('notes');
+            }}
+            className={CORNER_LINK}
+          >
+            Note
+          </button>
+          <span aria-hidden="true" className="h-[11px] w-px self-center bg-tea-border" />
+          <button
+            type="button"
+            onClick={e => {
+              e.stopPropagation();
+              onTaste('edit');
+            }}
+            className={CORNER_LINK}
+          >
+            Edit
+          </button>
+        </span>
       </div>
 
       {terms.length > 0 && (
@@ -129,9 +161,9 @@ export const AlcoveTastingPlate: React.FC<AlcoveTastingPlateProps> = ({ entry, o
         </p>
       )}
 
-      {personalNote && (
+      {spokenLine && (
         <p className="m-0 mt-[7px] line-clamp-2 font-body text-ui-13 italic leading-[1.55] text-tea-text-sec">
-          {personalNote}
+          {spokenLine}
         </p>
       )}
 

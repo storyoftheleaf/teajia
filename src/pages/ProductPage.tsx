@@ -117,7 +117,16 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
     [isAdmin, item, adminProducts],
   );
 
-  const handleTaste = useCallback((tasteItem: InventoryItem) => {
+  /*
+   * Speaking about a tea is one tap from the tea. The plate offers Note beside
+   * Edit, and the intent rides through so the session opens on the notes
+   * workspace rather than on the questions with the NOTE word to be hunted for
+   * along the taskbar.
+   */
+  const [tastingOpensOnNotes, setTastingOpensOnNotes] = useState(false);
+
+  const handleTaste = useCallback((tasteItem: InventoryItem, intent?: 'edit' | 'notes') => {
+    setTastingOpensOnNotes(intent === 'notes');
     if (isAdmin) {
       setAdminTastingItem(tasteItem);
       return;
@@ -427,6 +436,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
         {tastingItem && (
           <TastingSession
             item={tastingItem}
+            startOnNotes={tastingOpensOnNotes}
             onClose={() => setTastingItem(null)}
             onOrderTea={(ordered: TastingItem) => {
               // Already on this product's page: just close the session.
@@ -445,6 +455,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
       {/* Admin: product tasting editor, same modal used from the admin panel */}
       {adminTastingItem && adminTastingProductShim && (
         <TastingEditorModal
+          startOnNotes={tastingOpensOnNotes}
           product={adminTastingProductShim}
           // Edit on the card means "change this tea", so land on its details,
           // but only once the full record is in hand.
