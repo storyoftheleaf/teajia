@@ -5,7 +5,7 @@ import { Section } from '../types';
 
 import { useLongPress } from '../hooks/useLongPress';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAppStore } from '../lib/store';
+import { useAppStore, selectHasBundle, selectIsOwnerTier } from '../lib/store';
 import { useAuth } from '../hooks/useAuth';
 
 
@@ -50,7 +50,16 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   const { activeAccount, upcomingEventsCount } = useAppStore();
   const auth = useAuth();
   const isAdmin = auth.isAdmin;
-  const isStaff = auth.user?.role === 'staff' || auth.user?.role === 'admin' || auth.user?.role === 'owner';
+  // Which set of tabs someone gets is a question about what they may do here,
+  // not about the global account type. Every invited shop owner carries the
+  // ordinary type, so asking the type handed them the visitor's tabs and took
+  // away stock, sales and people on the one device they run the shop from.
+  const hasStockBundle = useAppStore(s => selectHasBundle(s, 'stock'));
+  const hasSellBundle = useAppStore(s => selectHasBundle(s, 'sell'));
+  const isOwnerTier = useAppStore(selectIsOwnerTier);
+  const isStaff = hasSellBundle
+    || auth.user?.role === 'staff' || auth.user?.role === 'admin' || auth.user?.role === 'owner';
+  const runsAShop = isAdmin || (isOwnerTier && (hasStockBundle || hasSellBundle));
   const locationAbbr = activeAccount?.location_country?.slice(0, 2).toUpperCase()
     ?? activeAccount?.location_city?.slice(0, 2).toUpperCase()
     ?? null;
@@ -58,7 +67,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   // Admin tab definitions (path-based routing)
   type AdminTab = { id: string; label: string; path: string };
   const [adminLeftTabs, adminRightTabs] = ((): [AdminTab[], AdminTab[]] => {
-    if (isAdmin) return [
+    if (runsAShop) return [
       [{ id: 'compass',   label: 'curate',   path: '/admin/compass' },
        { id: 'inventory', label: 'stock',    path: '/admin/stock' }],
       [{ id: 'activity',  label: 'sales',    path: '/admin/activity' },

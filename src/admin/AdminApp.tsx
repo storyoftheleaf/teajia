@@ -43,7 +43,6 @@ const DashboardView = lazy(() => import('./components/DashboardView').then((m) =
 import { NoMembershipGate } from './components/NoMembershipGate';
 import { shouldShowNoMembershipGate } from './membershipGate';
 import { AccountSettingsView } from './views/AccountSettingsView';
-import { StoreLaunchPlaybookView } from './views/StoreLaunchPlaybookView';
 import { PlatformAdminView } from './views/PlatformAdminView';
 import { AccessView } from './views/AccessView';
 import { PlatformAccessView } from './views/PlatformAccessView';
@@ -74,7 +73,6 @@ import { VendorProfileView } from './views/VendorProfileView';
 import { ProductStoryView } from './views/ProductStoryView';
 import { PlatformAuditLogPage } from './views/PlatformAuditLogPage';
 import { MovementStockView } from './views/MovementStockView';
-import { AccountActivityView } from './views/AccountActivityView';
 import { MagazineView } from './views/MagazineView';
 import { ContributorsView } from './views/ContributorsView';
 import { CollectionsView } from './views/CollectionsView';
@@ -548,7 +546,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="activity-logs" element={<Navigate to="/admin/activity?tab=log" replace />} />
               <Route path="people" element={<ProtectedRoute hasAccess={canUsePeople} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PeopleView userRole={userRole || 'user'} /></PageTransition></ProtectedRoute>} />
               <Route path="people/:customerId" element={<ProtectedRoute hasAccess={canUsePeople} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CustomerProfilePage /></PageTransition></ProtectedRoute>} />
-              <Route path="contact-tags" element={<ProtectedRoute hasAccess={isStaff} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ContactTagsView /></PageTransition></ProtectedRoute>} />
+              <Route path="contact-tags" element={<ProtectedRoute hasAccess={canUsePeople} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ContactTagsView /></PageTransition></ProtectedRoute>} />
 
               {/* Management: admin, owner. Canonical route is /admin/stock;
                   /admin/inventory redirects to it (query string preserved for ?panel= deep links). */}
@@ -576,17 +574,23 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               } />
               <Route path="inventory" element={<Navigate to={`/admin/stock${location.search}`} replace />} />
               <Route path="intake" element={<ProtectedRoute hasAccess={canManageInventory} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><IntakeWorkspace onRefresh={refetchProducts} rates={rates} /></PageTransition></ProtectedRoute>} />
-              <Route path="dashboard" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><DashboardView products={products} isLoading={loading} /></PageTransition></ProtectedRoute>} />
-              <Route path="vendors/:vendorId" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><VendorProfileView /></PageTransition></ProtectedRoute>} />
-              <Route path="products/:id/story" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ProductStoryView /></PageTransition></ProtectedRoute>} />
+              <Route path="dashboard" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><DashboardView products={products} isLoading={loading} /></PageTransition></ProtectedRoute>} />
+              <Route path="vendors/:vendorId" element={<ProtectedRoute hasAccess={canManageInventory} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><VendorProfileView /></PageTransition></ProtectedRoute>} />
+              <Route path="products/:id/story" element={<ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ProductStoryView /></PageTransition></ProtectedRoute>} />
               <Route path="purchase-orders" element={<Navigate to="/admin/people?tab=purchase-orders" replace />} />
               <Route path="team" element={<Navigate to="/admin/access" replace />} />
+              {/* The admin copy of the launch playbook was retired: it repeated the
+                  Launch Center step for step, but kept its ticks in the browser, so
+                  it could tell someone they were done when they were not. The public
+                  page it shared a component with is untouched. Anyone holding the old
+                  link lands on the checklist that reads live data instead. */}
+              <Route path="launch-playbook" element={<Navigate to="/admin/account-settings" replace />} />
               <Route path="access" element={<ProtectedRoute hasAccess={hasMembersBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><AccessView /></PageTransition></ProtectedRoute>} />
-              <Route path="access/platform" element={<ProtectedRoute hasAccess={isAdmin && !!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAccessView /></PageTransition></ProtectedRoute>} />
-              <Route path="currency" element={<ProtectedRoute hasAccess={isAdmin && !!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CurrencyRatesView /></PageTransition></ProtectedRoute>} />
-              <Route path="mcp-tokens" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><MCPTokensView /></PageTransition></ProtectedRoute>} />
-              <Route path="oauth-consent" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><OAuthConsentView /></PageTransition></ProtectedRoute>} />
-              <Route path="oauth-consent/:requestId" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><OAuthConsentView /></PageTransition></ProtectedRoute>} />
+              <Route path="access/platform" element={<ProtectedRoute hasAccess={!!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAccessView /></PageTransition></ProtectedRoute>} />
+              <Route path="currency" element={<ProtectedRoute hasAccess={!!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CurrencyRatesView /></PageTransition></ProtectedRoute>} />
+              <Route path="mcp-tokens" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><MCPTokensView /></PageTransition></ProtectedRoute>} />
+              <Route path="oauth-consent" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><OAuthConsentView /></PageTransition></ProtectedRoute>} />
+              <Route path="oauth-consent/:requestId" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><OAuthConsentView /></PageTransition></ProtectedRoute>} />
               <Route path="wisdom" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><WisdomView /></PageTransition></ProtectedRoute>} />
               {/* Network hub, single page with tabbed surfaces */}
               <Route path="network" element={<ProtectedRoute hasAccess={canUseNetwork} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><NetworkLanding /></PageTransition></ProtectedRoute>} />
@@ -600,12 +604,10 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="network/wholesale/new" element={<ProtectedRoute hasAccess={hasSellBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><WholesaleOrderDraft /></PageTransition></ProtectedRoute>} />
               <Route path="network/wholesale/:orderId" element={<ProtectedRoute hasAccess={hasSellBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><WholesaleOrderDraft /></PageTransition></ProtectedRoute>} />
               <Route path="network/wholesale/:orderId/timeline" element={<ProtectedRoute hasAccess={hasSellBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><WholesaleOrderTimeline /></PageTransition></ProtectedRoute>} />
-              <Route path="launch-playbook" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><StoreLaunchPlaybookView /></PageTransition></ProtectedRoute>} />
-              <Route path="account-settings" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><AccountSettingsView /></PageTransition></ProtectedRoute>} />
-              <Route path="activity" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><AccountActivityView /></PageTransition></ProtectedRoute>} />
-              <Route path="platform" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAdminView /></PageTransition></ProtectedRoute>} />
-              <Route path="platform/audit-log" element={<ProtectedRoute hasAccess={isAdmin && !!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAuditLogPage /></PageTransition></ProtectedRoute>} />
-              <Route path="platform/all-stock" element={<ProtectedRoute hasAccess={isAdmin && !!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><MovementStockView /></PageTransition></ProtectedRoute>} />
+              <Route path="account-settings" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><AccountSettingsView /></PageTransition></ProtectedRoute>} />
+              <Route path="platform" element={<ProtectedRoute hasAccess={!!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAdminView /></PageTransition></ProtectedRoute>} />
+              <Route path="platform/audit-log" element={<ProtectedRoute hasAccess={!!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAuditLogPage /></PageTransition></ProtectedRoute>} />
+              <Route path="platform/all-stock" element={<ProtectedRoute hasAccess={!!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><MovementStockView /></PageTransition></ProtectedRoute>} />
               <Route path="magazine" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><MagazineView /></PageTransition></ProtectedRoute>} />
               <Route path="contributors" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ContributorsView /></PageTransition></ProtectedRoute>} />
               <Route path="collections" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CollectionsView /></PageTransition></ProtectedRoute>} />
