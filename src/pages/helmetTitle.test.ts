@@ -1,5 +1,6 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -24,7 +25,11 @@ import { describe, expect, it } from 'vitest';
  * literal, `<title>{`${item.name} · Teajia`}</title>`.
  */
 
-const SRC = new URL('../', import.meta.url).pathname;
+// fileURLToPath, not .pathname: a URL percent-encodes, so a checkout under a
+// folder with a space in its name yields '/2%20Areas/' and every read fails with
+// ENOENT. The test then reports as a failure of the source it never managed to
+// open. That is where this actually lives, so it is where it is decoded.
+const SRC = fileURLToPath(new URL('../', import.meta.url));
 
 function tsxFiles(dir: string): string[] {
   return readdirSync(dir).flatMap(entry => {

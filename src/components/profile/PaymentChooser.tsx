@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { ArrowSquareOut, Check, CopySimple, QrCode } from '@phosphor-icons/react';
 import { QRCodeSVG } from 'qrcode.react';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
+import { PaymentOrderSummary } from './PaymentOrderSummary';
 import { formatLocalAmount, localAmountNote } from './profileDomain';
-import type { PaymentContext, PaymentLocalAmount, PaymentMethod } from './types';
+import type { PaymentContext, PaymentLocalAmount, PaymentMethod, PaymentOrderSummaryData } from './types';
 
 interface PaymentChooserProps {
   contributorName: string;
@@ -19,6 +20,12 @@ interface PaymentChooserProps {
   local?: PaymentLocalAmount | null;
   accountName?: string | null;
   resolution?: 'account' | 'default';
+  /**
+   * The order behind the tracking token, when the customer arrived from their
+   * own order page. Null on every link that carries no token, which is every
+   * link a tea master sends by hand, and the page must be identical then.
+   */
+  summary?: PaymentOrderSummaryData | null;
 }
 
 function CopyButton({ value, label }: { value: string; label: string }) {
@@ -40,7 +47,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
   );
 }
 
-export function PaymentChooser({ contributorName, methods, destination, context, local, accountName, resolution }: PaymentChooserProps) {
+export function PaymentChooser({ contributorName, methods, destination, context, local, accountName, resolution, summary }: PaymentChooserProps) {
   const visibleMethods = methods.filter(method => method.is_published).sort((a, b) => a.position - b.position);
   // Only rendered beside a real dollar figure. An approximation floating on its
   // own would become the amount the customer thinks they owe.
@@ -48,7 +55,7 @@ export function PaymentChooser({ contributorName, methods, destination, context,
   const localNote = localFigure ? localAmountNote(local, context) : null;
   return (
     <div className="space-y-10">
-      {(context.amount || context.currency || context.reference) && (
+      {(context.amount || context.currency || context.reference || summary) && (
         <section aria-label="Payment details" className="grid gap-4 border-y border-tea-border py-5 sm:grid-cols-2">
           {context.amount && (
             <div>
@@ -80,6 +87,11 @@ export function PaymentChooser({ contributorName, methods, destination, context,
               <div className="mt-2 flex items-center gap-3"><strong className="text-ui-14 font-medium text-tea-text">{context.reference}</strong><CopyButton value={context.reference} label="reference" /></div>
             </div>
           )}
+          {/* Second tier of the same band, because what the payment covers is
+              the third face of the fact the amount and the reference already
+              state. It sits under the amount rather than above it so the figure
+              the customer came to read stays the first thing on the page. */}
+          <PaymentOrderSummary summary={summary ?? null} />
         </section>
       )}
 

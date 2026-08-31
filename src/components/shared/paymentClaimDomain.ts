@@ -109,6 +109,45 @@ export function accountSlugFromPayUrl(payUrl?: string | null): string | null {
 }
 
 /**
+ * The person being paid, read back off the link the worker built.
+ *
+ * It is the path segment, not a query parameter, because the recipient is who
+ * the payment page IS rather than something it was told. Compared against the
+ * page's own slug, it is what stops a customer's order being summarised above a
+ * different tea master's bank details on a hand-edited link.
+ */
+export function recipientSlugFromPayUrl(payUrl?: string | null): string | null {
+  if (!payUrl) return null;
+  try {
+    const url = new URL(payUrl, 'https://teajia.com');
+    const match = url.pathname.match(/^\/people\/([^/]+)\/pay\/?$/);
+    return match ? decodeURIComponent(match[1]) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The reference the payment page will print, read back off the link the worker
+ * built.
+ *
+ * It is the invoice number, which is a fresh number from the account's own
+ * sequence and is NOT the order's ref_number. Anything comparing what an order
+ * says about itself against what a payment page says has to compare these two,
+ * or it compares two identifiers that never match and concludes every order is
+ * the wrong one.
+ */
+export function referenceFromPayUrl(payUrl?: string | null): string | null {
+  if (!payUrl) return null;
+  try {
+    const url = new URL(payUrl, 'https://teajia.com');
+    return url.searchParams.get('reference');
+  } catch {
+    return null;
+  }
+}
+
+/**
  * The line shown when a report is already waiting.
  *
  * Deliberately says nothing about the order being paid, settled, cleared or

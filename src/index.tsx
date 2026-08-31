@@ -29,8 +29,21 @@ const persister = createSyncStoragePersister({
 
 // Don't persist sensitive or auth-shaped queries. Anything containing these
 // substrings in its query key is excluded from disk.
+//
+// Substring matching is a blunt instrument and it has already come close to
+// biting: 'me' matches any key containing the word "payment", so a query can be
+// excluded from disk by pure luck and then quietly included again the next time
+// someone renames it. Prefer the exact-match list below for anything whose
+// exclusion actually matters.
 const NEVER_PERSIST = ['auth', 'session', 'me', 'magic'];
-const NEVER_PERSIST_ADMIN_KEYS = ['customers', 'activity_logs', 'stock_ledger', 'tea-reference-issues'];
+// Matched against the FIRST element of the key, exactly. Nothing here reaches
+// disk. 'profile-payment-order' carries a customer's order contents on the
+// public payment page and must not outlive the tab, which is the whole reason
+// its token is handed over in session storage rather than anywhere durable.
+const NEVER_PERSIST_KEYS = [
+  'customers', 'activity_logs', 'stock_ledger', 'tea-reference-issues',
+  'profile-payment-order',
+];
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -50,7 +63,7 @@ root.render(
             shouldDehydrateQuery: (q) => {
               const keyStr = JSON.stringify(q.queryKey).toLowerCase();
               const firstKey = Array.isArray(q.queryKey) ? String(q.queryKey[0] ?? '') : '';
-              if (NEVER_PERSIST_ADMIN_KEYS.includes(firstKey)) return false;
+              if (NEVER_PERSIST_KEYS.includes(firstKey)) return false;
               if (firstKey === 'products' && q.queryKey[1] !== 'public') return false;
               return q.state.status === 'success' && !NEVER_PERSIST.some(s => keyStr.includes(s));
             },

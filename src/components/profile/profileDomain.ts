@@ -1,8 +1,11 @@
+import { referenceFromPayUrl } from '../shared/paymentClaimDomain';
 import type {
   FavoriteTea,
   FavoriteWrite,
   PaymentContext,
   PaymentLocalAmount,
+  PaymentOrderLine,
+  PaymentOrderSummaryData,
   ProfileAssociation,
   ProfileFavorite,
   SelfProfile,
@@ -177,6 +180,83 @@ export function buildPaymentPageUrl(
   // silently drop the customer's own currency when they switch between stores.
   if (context?.display) url.searchParams.set('display', context.display);
   return url.toString();
+}
+
+const TRACKING_TOKEN_PATTERN = /^[A-Za-z0-9_-]{32,128}$/;
+
+/**
+ * The same shape the worker will accept, checked before the request leaves.
+ *
+ * A hand edited or truncated token should be an absence on this page, not a
+ * 404 the customer never sees but the console does.
+ */
+export function isTrackingTokenShaped(value: string | null | undefined): value is string {
+  return typeof value === 'string' && TRACKING_TOKEN_PATTERN.test(value);
+}
+
+/**
+ * The date in the order page's own words, because this block exists to be
+ * recognised rather than read. Different formatting of the same date reads as
+ * a different date.
+ */
+export function formatOrderPlacedOn(raw: unknown): string | null {
+  if (typeof raw !== 'string' || !raw.trim()) return null;
+  const placed = new Date(raw);
+  if (Number.isNaN(placed.getTime())) return null;
+  return placed.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+/**
+ * The order behind the token, read back without trusting any of it.
+ *
+ * Everything here fails to null rather than to a partial block. A summary that
+ * renders half an order beside a real amount is more convincing than no
+ * summary and worse than one, so anything unexpected in the payload ends the
+ * attempt: a payload that is not an object, items that will not parse, an
+ * empty order, or a reference that disagrees with the one already printed on
+ * this page. That last case is the whole feature inverted: one order's teas
+ * shown beside another order's balance.
+ *
+ * The order's own ref_number is deliberately not what gets compared. The
+ * reference on the payment page is the invoice number, drawn from the
+ * account's invoice sequence when the request was priced, so the two
+ * identifiers never match and a check between them would suppress every
+ * summary that has ever existed. The honest comparison is against the
+ * reference in the order's own pay link, which is where the page's reference
+ * came from in the first place.
+ */
+export function toPaymentOrderSummary(
+  raw: unknown,
+  pageReference: string | null,
+): PaymentOrderSummaryData | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const order = raw as Record<string, unknown>;
+
+  const payment = order.payment as { pay_url?: string | null } | null | undefined;
+  const ref = referenceFromPayUrl(payment?.pay_url)?.trim() ?? '';
+  if (pageReference && ref !== pageReference.trim()) return null;
+
+  let parsed: unknown;
+  try {
+    parsed = typeof order.items_json === 'string' ? JSON.parse(order.items_json) : order.items_json;
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(parsed) || parsed.length === 0) return null;
+
+  const lines: PaymentOrderLine[] = [];
+  for (const entry of parsed) {
+    if (!entry || typeof entry !== 'object') return null;
+    const line = entry as Record<string, unknown>;
+    const name = typeof line.name === 'string' ? line.name.trim() : '';
+    const grams = Number(line.quantityGrams);
+    if (!name || !Number.isFinite(grams) || grams <= 0) return null;
+    // The two forms the order page uses, kept identical to it. A customer who
+    // read "100g" a screen ago should read "100g" here, not "100 grams".
+    lines.push({ name, quantity: line.category === 'tea' ? `${grams}g` : `×${grams}` });
+  }
+
+  return { lines, placedOn: formatOrderPlacedOn(order.created_at) };
 }
 
 export interface ProfileReadinessItem {

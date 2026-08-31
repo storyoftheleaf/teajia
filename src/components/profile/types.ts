@@ -167,3 +167,14 @@ export interface ProfileFavoritesResponse {
 export interface PaymentMethodsResponse {
   methods: PaymentMethod[];
 }
+
+export interface PaymentOrderLine {
+  name: string;
+  /** Already formatted for display: "100g" for tea, "×2" for anything else. */
+  quantity: string;
+}
+
+export interface PaymentOrderSummaryData {
+  lines: PaymentOrderLine[];
+  placedOn: string | null;
+}

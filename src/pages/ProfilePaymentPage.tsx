@@ -1,9 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft } from '@phosphor-icons/react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { PaymentChooser } from '../components/profile/PaymentChooser';
-import { buildPaymentPageUrl, normalizeLocalAmount, parsePaymentContext } from '../components/profile/profileDomain';
+import { buildPaymentPageUrl, isTrackingTokenShaped, normalizeLocalAmount, parsePaymentContext, toPaymentOrderSummary } from '../components/profile/profileDomain';
+import { accountSlugFromPayUrl, recipientSlugFromPayUrl } from '../components/shared/paymentClaimDomain';
+import { recallPayOrderToken } from '../components/shared/payOrderHandoff';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 import { api } from '../lib/api';
 
@@ -23,8 +25,72 @@ export default function ProfilePaymentPage() {
   });
   const destination = buildPaymentPageUrl(slug, accountSlug, undefined, context);
 
+  // The customer's own key, handed over in session storage by the order page
+  // they came from and deliberately kept out of `context`. Every field in
+  // `context` is rebuilt by buildPaymentPageUrl into the QR code and the "Copy
+  // payment page link" button at the foot of this page, so a token living
+  // there would be handed to whoever the customer shares the page with.
+  // Reading it from a separate store makes that impossible rather than merely
+  // unlikely, and keeps it out of the address bar, the history entry and our
+  // own edge access log at the same time.
+  const trackingToken = useMemo(() => recallPayOrderToken(context.reference), [context.reference]);
+  const summaryQuery = useQuery({
+    // Keyed on the reference, NEVER on the token. This app persists its query
+    // cache to local storage, which unlike the session store survives a browser
+    // restart and is shared across tabs. A token in the key would be written
+    // there with the rest of the key, and a filter that happens to exclude it
+    // today is a rule someone has to keep remembering. Keeping the token out of
+    // the key makes that impossible instead. The reference identifies exactly
+    // one order, so it is the correct key on its own merits too.
+    queryKey: ['profile-payment-order', context.reference],
+    queryFn: () => api.inquiries.getByTrackingToken(trackingToken as string),
+    enabled: isTrackingTokenShaped(trackingToken),
+    // One attempt. A token that does not resolve is a stale link, not a blip,
+    // and this block is a courtesy on a page that is complete without it.
+    retry: false,
+    staleTime: 60_000,
+  });
+  // The lookup is keyed on the token alone, with no account and no recipient in
+  // the query, so nothing else stops one order from being summarised above
+  // somebody else's transfer details. That is the wrong-recipient mistake this
+  // feature exists to prevent, so anything that does not match suppresses the
+  // block entirely.
+  //
+  // Both halves of the link are checked. The shop catches an order from one
+  // store shown beside another store's details. The recipient catches the
+  // hand-edited case: same shop, same reference, different person's bank
+  // account, which would otherwise read as a confirmed correct page.
+  const orderPayUrl = summaryQuery.data?.payment?.pay_url;
+  const sameAccount = (accountSlugFromPayUrl(orderPayUrl) || null) === (accountSlug || null);
+  const sameRecipient = (recipientSlugFromPayUrl(orderPayUrl) || null) === (slug || null);
+  const summary = useMemo(
+    () => (summaryQuery.data && sameAccount && sameRecipient
+      ? toPaymentOrderSummary(summaryQuery.data, context.reference)
+      : null),
+    [summaryQuery.data, sameAccount, sameRecipient, context.reference],
+  );
+
   useEffect(() => { if (query.data) document.title = `Pay ${query.data.contributor.display_name} · Teajia`; }, [query.data]);
 
+  // A page carrying somebody's order contents has no business in a search
+  // index or a link preview cache. The directive is added only while a summary
+  // is on screen, so the plain payment link a tea master sends by hand is
+  // unchanged.
+  useEffect(() => {
+    if (!summary) return;
+    const tag = document.createElement('meta');
+    tag.name = 'robots';
+    tag.content = 'noindex';
+    document.head.appendChild(tag);
+    return () => { tag.remove(); };
+  }, [summary]);
+
+  // The summary is deliberately NOT waited for. Holding the page until it
+  // arrives would mean a slow or hanging lookup hides the bank details from
+  // somebody trying to pay, to avoid a block appearing above them a moment
+  // later. The transfer details are the page; the summary is a courtesy on it,
+  // and a courtesy never gets to delay the thing it decorates. The amount and
+  // the reference sit above the insertion point and do not move.
   if (query.isLoading) return <PaymentPageLoading />;
   if (query.isError || !query.data) return <Unavailable message={query.error instanceof Error ? query.error.message : 'The payment methods could not be loaded.'} onRetry={() => query.refetch()} />;
   const data = query.data;
@@ -46,7 +112,7 @@ export default function ProfilePaymentPage() {
           </nav>
         )}
       </header>
-      <div className="mt-12"><PaymentChooser contributorName={data.contributor.display_name} methods={data.methods} destination={destination} context={context} local={normalizeLocalAmount(data.context?.local)} accountName={data.account?.name} resolution={data.resolution} /></div>
+      <div className="mt-12"><PaymentChooser contributorName={data.contributor.display_name} methods={data.methods} destination={destination} context={context} local={normalizeLocalAmount(data.context?.local)} accountName={data.account?.name} resolution={data.resolution} summary={summary} /></div>
     </main>
   );
 }

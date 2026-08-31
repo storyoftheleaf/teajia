@@ -2963,7 +2963,12 @@ export const api = {
       // own filing word and is NOT what the customer should be shown.
       journey: OrderJourney;
     } | null> => {
-      const res = await fetchWithTimeout(`${API_URL}/api/inquiries/${encodeURIComponent(token)}`);
+      // The plaintext token is in the path, and the incident reporter files the
+      // path it failed on. A signed-in customer hitting a 5xx here would come to
+      // rest with their private order key in the incident ledger, which platform
+      // admins read. The signature already carries category, method and status,
+      // so the identifier adds nothing the report needs.
+      const res = await fetchWithTimeout(`${API_URL}/api/inquiries/${encodeURIComponent(token)}`, { reportIncident: false });
       if (res.status === 404) return null;
       if (!res.ok) {
         const error = await res.json().catch(() => null) as { error?: string } | null;

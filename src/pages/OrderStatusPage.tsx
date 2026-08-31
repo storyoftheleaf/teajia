@@ -224,7 +224,7 @@ const OrderStatusPage: React.FC = () => {
               <OrderJourneyStatus journey={journey}>
                 {offersPayment && (
                   <div className="space-y-4">
-                    <PayOrderAction payment={inquiry.payment} reference={inquiry.ref_number} />
+                    <PayOrderAction payment={inquiry.payment} reference={inquiry.ref_number} trackingToken={trackingToken} />
                     {/* The quieter half: what a customer does after the transfer has
                         left their bank. Reached by a tracking token, never a login, so
                         it knocks on the public claim door. */}
