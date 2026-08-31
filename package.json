@@ -22,7 +22,7 @@
     "test:china-scan": "node --test scripts/check-china-dependencies.test.mjs",
     "audit:china": "node scripts/check-china-dependencies.mjs .",
     "test:recovery": "playwright test --config=playwright.recovery.config.ts",
-    "test:mobile": "playwright test tests/account-panel-mobile.spec.ts --project='Mobile Chrome' --reporter=list",
+    "test:mobile": "playwright test tests/account-panel-mobile.spec.ts tests/customer-money-mobile.spec.ts --project='Mobile Chrome' --reporter=list",
     "test:platform-hardening": "node --test scripts/platform-hardening.test.mjs",
     "test:tea-reference-capture": "node --test scripts/tea-reference-capture/tests/*.test.mjs",
     "test:tea-reference-pages": "node --test scripts/tea-reference-markdown/tests/*.test.mjs",
