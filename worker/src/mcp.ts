@@ -496,6 +496,7 @@ type PendingMutation =
   | { kind: 'link_vendor'; accountId: string; userEmail: string; customerId: string; productId: string; note: string | null }
   | { kind: 'unlink_vendor'; accountId: string; userEmail: string; customerId: string; productId: string }
   | { kind: 'upsert_vendor_contact'; accountId: string; userEmail: string; name: string; company: string | null; phone: string | null; whatsapp: string | null; wechat: string | null; address: string | null; city: string | null; country: string | null; source: string | null; notes: string | null }
+  | { kind: 'remove_vendor_contact'; accountId: string; userEmail: string; customerId: string }
   | { kind: 'link_vendor_products'; accountId: string; userEmail: string; customerId: string; productIds: string[]; note: string | null }
   | { kind: 'set_archive_status'; accountId: string; userEmail: string; productId: string; archived: boolean; reason: string | null }
   | { kind: 'set_tea_visibility'; accountId: string; userEmail: string; productId: string; shownInShop: boolean; personal?: boolean; isPublic?: boolean }
@@ -2780,6 +2781,74 @@ async function commitUpsertVendorContact(
     vendor_id: customerId,
     vendor_name: m.name,
     wechat_stored_in: 'contacts',
+  };
+}
+
+// ── tool: remove_vendor_contact (preview / confirm) ──
+// Delete a vendor (customer tagged "vendor") that is no longer referenced.
+// Guarded: refuses if any product still links to it as vendor_id, any invoice
+// still references it, or any curate vendor group resolves to it. Scoped to
+// stock:write so the operator can clean up duplicate/abandoned vendor rows.
+async function toolRemoveVendorContact(env: Env, auth: McpAuth, args: any) {
+  const customerId = String(args?.customer_id || '').trim();
+  const confirm = args?.confirm ? String(args.confirm) : null;
+  if (!customerId) throw new Error('customer_id is required');
+
+  const customer = await env.DB.prepare(
+    'SELECT id, name, tags FROM customers WHERE id = ? AND account_id = ?'
+  ).bind(customerId, auth.accountId).first() as { id: string; name: string; tags: string | null } | null;
+  if (!customer) return { error: 'not_found' };
+
+  let tags: string[] = [];
+  try { tags = Array.isArray(JSON.parse(customer.tags || '[]')) ? JSON.parse(customer.tags || '[]') : []; } catch { tags = []; }
+  const [productLinks, invoiceLinks, groupLinks] = await Promise.all([
+    env.DB.prepare('SELECT COUNT(*) AS n FROM products WHERE vendor_id = ? AND account_id = ?').bind(customerId, auth.accountId).first<{ n: number }>(),
+    env.DB.prepare('SELECT COUNT(*) AS n FROM invoices WHERE customer_id = ? AND account_id = ?').bind(customerId, auth.accountId).first<{ n: number }>(),
+    env.DB.prepare('SELECT COUNT(*) AS n FROM curate_import_vendor_groups WHERE resolved_vendor_customer_id = ? AND account_id = ?').bind(customerId, auth.accountId).first<{ n: number }>(),
+  ]);
+  const productCount = Number(productLinks?.n ?? 0);
+  const invoiceCount = Number(invoiceLinks?.n ?? 0);
+  const groupCount = Number(groupLinks?.n ?? 0);
+  const referenced = productCount > 0 || invoiceCount > 0 || groupCount > 0;
+
+  if (!confirm) {
+    const token = await issueConfirmationToken(env, {
+      kind: 'remove_vendor_contact', accountId: auth.accountId, userEmail: auth.userEmail, customerId,
+    }, auth.tokenId);
+    return {
+      preview: {
+        action: 'remove_vendor_contact',
+        vendor: { id: customerId, name: customer.name, is_vendor_tagged: tags.includes('vendor') },
+        references: { products: productCount, invoices: invoiceCount, vendor_groups: groupCount },
+        will_refuse: referenced,
+        note: referenced ? 'This vendor is still referenced and will be refused on confirm.' : 'No references — the customer row will be deleted.',
+      },
+      confirmation_token: token,
+      expires_in_seconds: PENDING_TTL_MS / 1000,
+    };
+  }
+
+  const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
+  if (!pending || pending.kind !== 'remove_vendor_contact' || pending.customerId !== customerId) {
+    return { error: 'invalid_or_expired_confirmation_token' };
+  }
+  if (referenced) return { error: 'vendor_still_referenced', references: { products: productCount, invoices: invoiceCount, vendor_groups: groupCount } };
+
+  await env.DB.prepare('DELETE FROM customers WHERE id = ? AND account_id = ?')
+    .bind(customerId, auth.accountId).run();
+  await env.DB.prepare(
+    `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+     VALUES (?, 'VENDOR_CONTACT_REMOVE_MCP', ?, ?, 'customer', ?, ?)`
+  ).bind(
+    crypto.randomUUID(),
+    `Vendor contact removed for "${customer.name}" via MCP`,
+    auth.userEmail, customerId, auth.accountId,
+  ).run();
+  return {
+    committed: true,
+    action: 'remove_vendor_contact',
+    vendor_id: customerId,
+    vendor_name: customer.name,
   };
 }
 
@@ -5564,6 +5633,19 @@ const TOOL_DEFS = [
     },
   },
   {
+    name: 'remove_vendor_contact',
+    scope: 'stock:write',
+    description: 'Delete a vendor (customer tagged "vendor") that is no longer referenced. Refuses if any product links to it as vendor, any invoice references it, or any curate import vendor group resolves to it. Two-step preview/confirm. Use to clean up duplicate/abandoned vendor rows created by mistake.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        customer_id: { type: 'string', description: 'Customer id of the vendor to remove (from find_customer or get_customer).' },
+        confirm: { type: 'string', description: 'Confirmation token from preview response.' },
+      },
+      required: ['customer_id'],
+    },
+  },
+  {
     name: 'link_vendor_products',
     scope: 'stock:write',
     description: 'Batch-link one vendor (customer) to one or more products by setting their vendor_id. Two-step preview/confirm. Scoped to stock:write so the operator can attach a vendor to several intake teas at once.',
@@ -5932,7 +6014,7 @@ const DESTRUCTIVE_TOOLS = new Set(['void_invoice', 'remove_stock', 'update_excha
 // Confirming twice with the same args lands in the same end state.
 const IDEMPOTENT_TOOLS = new Set([
   'tag_customer', 'untag_customer', 'link_vendor', 'unlink_vendor',
-  'upsert_vendor_contact', 'link_vendor_products',
+  'upsert_vendor_contact', 'remove_vendor_contact', 'link_vendor_products',
   'set_archive_status', 'set_low_stock_threshold', 'mark_invoice_paid',
   'update_customer', 'update_invoice', 'update_tea_pricing',
   'update_account_settings', 'update_exchange_rate', 'set_tea_visibility',
@@ -5980,7 +6062,7 @@ const AUDITED_TOOLS = new Set([
   'update_invoice', 'void_invoice',
   // Wave 3
   'tag_customer', 'untag_customer', 'link_vendor', 'unlink_vendor',
-  'upsert_vendor_contact', 'link_vendor_products',
+  'upsert_vendor_contact', 'remove_vendor_contact', 'link_vendor_products',
   'set_archive_status', 'fulfill_invoice', 'update_account_settings', 'update_exchange_rate',
   'set_tea_visibility',
   // Ported tools
@@ -6060,6 +6142,7 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
     case 'link_vendor': result = mcpContent(await toolLinkVendor(env, auth, args)); break;
     case 'unlink_vendor': result = mcpContent(await toolUnlinkVendor(env, auth, args)); break;
     case 'upsert_vendor_contact': result = mcpContent(await toolUpsertVendorContact(env, auth, args)); break;
+    case 'remove_vendor_contact': result = mcpContent(await toolRemoveVendorContact(env, auth, args)); break;
     case 'link_vendor_products': result = mcpContent(await toolLinkVendorProducts(env, auth, args)); break;
     case 'set_archive_status': result = mcpContent(await toolSetArchiveStatus(env, auth, args)); break;
     case 'set_tea_visibility': result = mcpContent(await toolSetTeaVisibility(env, auth, args)); break;
