@@ -125,20 +125,26 @@ Visibility levels: `private` (just the author) | `account` (that account's team)
 
 ## Onboarding a New Store
 
-1. Platform owner (Adrian) inserts an `accounts` row: id, slug, name, location, timezone, currency_default, invoice_prefix, whatsapp_number, contact_email, `public_enabled=1`
-2. Platform owner creates the first user (signup or admin create) and adds them as owner: `POST /api/accounts/:id/members { email, role: 'owner' }`
-3. New owner claims their invite, logs in, lands on their account, sees empty inventory
-4. Owner updates account profile at `/admin/account-settings` (logo, tagline, WhatsApp, contact, description)
-5. Owner imports opening stock via Admin → Inventory → ⋮ → Import CSV, OR (Phase 2) browses Adrian's wholesale catalog
-6. Owner invites team at `/admin/team` (email + role picker)
-7. Owner creates first event
-8. Store is live at `teajia.app/store/:slug`
+Corrected 2026-08-31 against the code. The hand-written SQL below was how this
+worked once; it is not how it works now, and following it produces a store that
+is public before anyone can be paid.
 
-**Sample seed SQL for a new account:**
-```sql
-INSERT INTO accounts (id, slug, name, location_city, location_country, timezone, currency_default, invoice_prefix, public_enabled, tagline)
-VALUES ('acc_<id>', '<slug>', '<Display Name>', '<City>', '<Country>', '<Timezone>', '<USD|AUD|...>', '<PREFIX>', 1, '<Tagline>');
-```
+1. Adrian invites the tea master from Members & Access at `/admin/access/platform`
+   ("Invite a Tea Master"). One action creates the store, makes the person its
+   owner, mints a claim link, and emails it. There is no public application form
+   and no way to apply: invitation is the only route in, by decision.
+2. The store is born private, and cannot be created any other way.
+3. The invited person claims the link, sets a password, and lands on their own
+   table, where a setup list tells them what is left.
+4. They fill in the store's details, import opening stock, and invite their own
+   staff from Members & Access.
+5. They create their Tea Master profile and publish at least one payment method.
+   Until that exists the store cannot be opened: a public store with no way to be
+   paid is the one state that reaches a customer as a dead end.
+6. They open the store from their own store settings, and it goes live at
+   `/store/:slug` and in the directory at `/find-a-table`.
+
+Steps 5 and 6 are enforced by the server, not merely advised.
 
 ## Australia Launch Checklist
 
@@ -158,7 +164,7 @@ VALUES ('acc_<id>', '<slug>', '<Display Name>', '<City>', '<Country>', '<Timezon
 - **Phase 1A — shipped this branch.** Accounts, members, row-level scoping, Bali + Australia seed, per-store storefronts at `/store/:slug`, network directory at `/find-a-table`, team management, tea_reviews, invite flow.
 - **Phase 1B — next.** Promote `tea_key` to a canonical `tea_profiles` table. Wholesale catalog flow from Adrian's account to partner accounts. Product content carried from profile with local override.
 - **Phase 2.** Shipping-enabled cross-store visibility via `accounts.ships_to_countries` + opt-in toggle. Wholesale order pipeline. Cross-store fulfillment.
-- **Phase 3.** Self-service operator onboarding. Network map UI with geo. Co-branding options.
+- **Phase 3.** Network map UI with geo. Co-branding options. (Self-service onboarding was dropped: invitation only, by decision 2026-08-31.)
 - **Phase 4.** Guest portability (one guest identity across the network). Magazine contributor workflow. Verification badges.
 
 ## Known Limitations (Phase 1A)
@@ -181,7 +187,7 @@ VALUES ('acc_<id>', '<slug>', '<Display Name>', '<City>', '<Country>', '<Timezon
 | `src/lib/store.ts` | Zustand: `memberships`, `activeAccountId`, `activeAccount` |
 | `src/lib/storefrontApi.ts` | Public storefront fetchers (no auth) |
 | `src/types.ts` | `Account`, `AccountRole`, `AccountMembership`, `AccountMember` |
-| `src/admin/AdminApp.tsx` | Login → hydrate, `NoMembershipGate`, `/admin/team`, `/admin/account-settings` routes |
+| `src/admin/AdminApp.tsx` | Login → hydrate, `NoMembershipGate`, `/admin/access`, `/admin/account-settings` routes (`/admin/team` is now a redirect to `/admin/access`) |
 | `src/admin/components/AccountSwitcher.tsx` | Dropdown switcher in sidebar |
 | `src/admin/views/TeamView.tsx` | Team management (invite, role edit, remove) |
 | `src/admin/views/AccountSettingsView.tsx` | Account profile editor |
