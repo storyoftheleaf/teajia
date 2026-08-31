@@ -17704,20 +17704,139 @@ const ACCOUNT_UPDATE_FIELDS = new Set([
   'invoice_prefix', 'ships_to_countries',
 ]);
 
+// ─── Opening a store to buyers ───────────────────────────────────────────────
+// A tea master may build, stock and arrange a store while it is private. What a
+// store may not do is take an order with nowhere to send the money. So the gate
+// sits on public_enabled rather than on checkout: the refusal belongs at the
+// moment the shop is opened, where the person who can fix it is standing, not at
+// the end of a stranger's order where nobody sees it.
+//
+// Payability is asked exactly the way the pay page asks it, so the gate cannot
+// pass a store whose pay page would then fail:
+//   - the recipient's profile must be published, because the pay page serves
+//     only published contributors,
+//   - and they must hold a published method scoped to this store or a personal
+//     one, which is the set resolvePublishedPaymentMethods hands a buyer here.
+//
+// publicPaymentAvailability is deliberately NOT reused. It counts a scoped
+// method only when its account is ALREADY public, so asked about the one store
+// being opened it answers no every time.
+
+type StorePayabilityGap = 'no_recipient' | 'profile_not_published' | 'no_payment_method';
+
+// Every way a person can be the one this store pays, mirroring the order the
+// invoice payment chain resolves them in. A store with no host, no face, no
+// owning profile and no owner member has nobody to pay.
+const STORE_RECIPIENT_CANDIDATES = `
+  SELECT c.id, c.is_published FROM contributors c
+    JOIN contributor_accounts ca ON ca.contributor_id = c.id
+   WHERE ca.account_id = ? AND ca.is_host = 1
+  UNION
+  SELECT c.id, c.is_published FROM contributors c WHERE c.face_of_account_id = ?
+  UNION
+  SELECT c.id, c.is_published FROM contributors c WHERE c.account_id = ?
+  UNION
+  SELECT c.id, c.is_published FROM contributors c
+    JOIN account_members am ON am.user_id = c.user_id
+   WHERE am.account_id = ? AND am.role = 'owner' AND am.status = 'active'
+`;
+
+async function storePayabilityGap(env: Env, accountId: string): Promise<StorePayabilityGap | null> {
+  const candidates = await env.DB.prepare(STORE_RECIPIENT_CANDIDATES)
+    .bind(accountId, accountId, accountId, accountId)
+    .all<Record<string, any>>();
+  const rows = candidates.results ?? [];
+  if (rows.length === 0) return 'no_recipient';
+
+  const published = rows.filter(row => Number(row.is_published) === 1).map(row => String(row.id));
+  if (published.length === 0) return 'profile_not_published';
+
+  const placeholders = published.map(() => '?').join(', ');
+  const method = await env.DB.prepare(
+    `SELECT 1
+       FROM payment_methods
+      WHERE is_published = 1
+        AND (account_id = ? OR account_id IS NULL)
+        AND contributor_id IN (${placeholders})
+      LIMIT 1`
+  ).bind(accountId, ...published).first();
+
+  return method ? null : 'no_payment_method';
+}
+
+// The refusal says what is missing and carries a code the settings screen
+// branches on to link straight to where it is fixed. A disabled control with no
+// explanation is the version that generates a message to Adrian instead of
+// preventing one.
+const STORE_PAYABILITY_REFUSALS: Record<StorePayabilityGap, { message: string; code: string }> = {
+  no_recipient: {
+    message: 'No Tea Master profile is linked to this store, so there is nobody for a customer to pay. Create yours before opening the shop.',
+    code: 'store_has_no_payment_recipient',
+  },
+  profile_not_published: {
+    message: 'Publish your Tea Master profile before opening the shop, so customers have somewhere to pay.',
+    code: 'store_recipient_profile_unpublished',
+  },
+  no_payment_method: {
+    message: 'Add a published payment method before opening the shop, so customers have somewhere to pay.',
+    code: 'store_has_no_payment_method',
+  },
+};
+
+// Fires only on the moment a closed store is opened.
+//
+// The settings screen sends every field on every save, the public flag included,
+// so guarding on "the flag is true" would refuse an ordinary tagline edit on a
+// shop that is already open, and lock a tea master out of the very screen they
+// would fix the problem on. A store already serving customers is the backstop's
+// job, not this one's: checkout stops there instead.
+async function storeOpeningError(env: Env, accountId: string, nextPublicEnabled: unknown): Promise<Response | null> {
+  if (!truthyFlag(nextPublicEnabled)) return null;
+
+  const current = await env.DB.prepare('SELECT public_enabled FROM accounts WHERE id = ?')
+    .bind(accountId).first<Record<string, any>>();
+  if (Number(current?.public_enabled) === 1) return null;
+
+  const gap = await storePayabilityGap(env, accountId);
+  if (!gap) return null;
+  const refusal = STORE_PAYABILITY_REFUSALS[gap];
+  return restError(409, refusal.message, refusal.code, { missing: gap });
+}
+
+// public_enabled is written straight through from the request body with no
+// coercion, so "false", 0 and absent all have to read as off here.
+function truthyFlag(value: unknown): boolean {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value === 1;
+  if (typeof value === 'string') return value === 'true' || value === '1';
+  return false;
+}
+
 const handleUpdateAccount: Handler = async (request, env, params) => {
   const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
   if (params.id !== ctx.accountId) return restError(403, 'Account access denied', 'account_access_denied');
 
   const body = await request.json() as Record<string, any>;
+  if ('public_enabled' in body) {
+    const guard = await storeOpeningError(env, params.id, body.public_enabled);
+    if (guard) return guard;
+  }
   const validated = validatedUpdateFields(body, ACCOUNT_UPDATE_FIELDS);
   if ('error' in validated) return validated.error;
   const cols = validated.fields;
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
   const sets = cols.map(c => `${c} = ?`).join(', ');
+  // The store settings screen sends public_enabled as a true/false, and SQLite
+  // takes numbers, strings and null but not booleans, so the flag has to become
+  // a 1 or a 0 before it is bound. Applied to every field rather than to this
+  // one by name, so the next boolean added to the whitelist is safe on arrival.
   await env.DB.prepare(
     `UPDATE accounts SET ${sets}, updated_at = datetime('now') WHERE id = ?`
-  ).bind(...cols.map(c => body[c] ?? null), params.id).run();
+  ).bind(...cols.map(c => {
+    const value = body[c] ?? null;
+    return typeof value === 'boolean' ? (value ? 1 : 0) : value;
+  }), params.id).run();
 
   const acc = await env.DB.prepare('SELECT * FROM accounts WHERE id = ?').bind(params.id).first() as any;
   if (acc) {
@@ -19263,9 +19382,13 @@ const handlePlatformCreateAccount: Handler = async (request, env) => {
     body.timezone || 'UTC',
     body.whatsapp_number || null,
     body.contact_email || null,
-    // Born PRIVATE: a new store must be explicitly published, never public by
-    // default with an empty catalog. Only opt-in (=== true) makes it public.
-    body.public_enabled === true ? 1 : 0,
+    // Born PRIVATE, with no way to ask for anything else. A store created this
+    // second has no linked tea master and so no published payment method, which
+    // is the one state a public store may never be in: a customer could fill a
+    // cart and reach the end of an order with nowhere to send the money. Opening
+    // it is a second, separate act through the account update endpoint, which
+    // checks payability before it lets the shop open.
+    0,
     now, now
   ).run();
 
@@ -19667,7 +19790,14 @@ const handleGetPublicAccount: Handler = async (_request, env, params) => {
      WHERE slug = ? AND public_enabled = 1 AND status = 'active'`
   ).bind(params.slug).first();
   if (!acc) return json({ error: 'Store not found' }, 404);
-  return cachedJson(acc, 300);
+  // The backstop behind the gate on opening a store. That gate refuses to make a
+  // store public until it can be paid, but a store already open can lose its
+  // payment methods afterwards, and nothing walks back through open shops. So
+  // the shop says here whether money can still reach anyone, and checkout stops
+  // rather than letting a customer finish an order into nothing. A plain yes or
+  // no: it names no person and no method, so it is safe on a public payload.
+  const gap = await storePayabilityGap(env, String(acc.id));
+  return cachedJson({ ...acc, can_be_paid: gap === null }, 300);
 };
 
 // Shared helper: fetch public products for an account (mirrors PUBLIC_FIELDS

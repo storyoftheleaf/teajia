@@ -610,7 +610,7 @@ const AuditPanel: React.FC = () => {
 
 // ── New Account form ──────────────────────────────────────────────────────────
 
-const EMPTY_FORM = { name: '', slug: '', invoice_prefix: '', location_city: '', location_country: '', currency_default: 'USD', timezone: 'UTC', whatsapp_number: '', contact_email: '', owner_email: '', public_enabled: true };
+const EMPTY_FORM = { name: '', slug: '', invoice_prefix: '', location_city: '', location_country: '', currency_default: 'USD', timezone: 'UTC', whatsapp_number: '', contact_email: '', owner_email: '' };
 
 const NewAccountPanel: React.FC<{ onCreated: () => void }> = ({ onCreated }) => {
   const { showToast } = useToast();
@@ -740,14 +740,15 @@ const NewAccountPanel: React.FC<{ onCreated: () => void }> = ({ onCreated }) => 
           hint="A new user is created if this email doesn't exist. An invite link will be generated." />
       </div>
 
-      <label className="flex items-center gap-3 px-1 cursor-pointer">
-        <input type="checkbox" checked={form.public_enabled} onChange={e => setForm(p => ({ ...p, public_enabled: e.target.checked }))}
-          className="w-4 h-4 rounded accent-[var(--tea-gold)]" />
-        <div>
-          <p className="text-tea-text text-sm">Public storefront enabled</p>
-          <p className="text-tea-text-sec text-ui-12">Visible at /find-a-table and in the network directory</p>
-        </div>
-      </label>
+      {/* No public toggle here on purpose. A store created this second has no
+          tea master linked to it yet, so it has no way to be paid, and a public
+          store with no way to be paid is the one state that reaches a customer
+          as a dead end. The owner opens it from their own store settings once
+          they can take money. */}
+      <p className="px-1 text-ui-12 text-tea-text-sec">
+        The store is created private. Its owner opens it to customers from their own
+        store settings, once they can be paid.
+      </p>
 
       <button type="submit" disabled={busy || !form.name || !form.slug || !form.invoice_prefix}
         className="w-full py-3 cta-solid text-ui-11 font-semibold uppercase tracking-[0.08em] rounded-xl disabled:opacity-40 flex items-center justify-center gap-2 transition-colors">

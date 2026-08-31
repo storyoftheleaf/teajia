@@ -30,6 +30,7 @@ type PublicProps = {
   /** Optional per-store override; falls back to platform default when absent. */
   whatsappNumber?: string;
   contactEmail?: string;
+  canBePaid?: boolean;
 };
 
 type CartPanelProps = { isOpen: boolean; onClose: () => void } & (AdminProps | PublicProps);
@@ -191,6 +192,7 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
                 isOpen={isOpen}
                 whatsappNumber={props.whatsappNumber}
                 contactEmail={props.contactEmail}
+                canBePaid={props.canBePaid}
                 onClose={onClose}
               />
             </div>

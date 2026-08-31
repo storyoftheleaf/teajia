@@ -3862,7 +3862,6 @@ export const api = {
       timezone?: string;
       whatsapp_number?: string;
       contact_email?: string;
-      public_enabled?: boolean;
       owner_email?: string;
     }): Promise<{ account_id: string; slug: string; invite_link: string | null }> => {
       return authedFetch(`${API_URL}/api/platform/accounts`, {
