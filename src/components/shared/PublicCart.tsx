@@ -656,7 +656,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
               </form>
 
               {recoveredCart && (
-                <p className="text-center text-xs text-tea-gold italic">Recovered your previous order request</p>
+                <p className="text-center font-serif italic text-[12.5px] text-tea-text-dim">Recovered your previous order request</p>
               )}
             </div>
           )}
@@ -666,7 +666,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
             <div className="space-y-6 relative z-[1]">
               <div className="text-center mb-2">
                 <h3 className="font-serif text-lg text-tea-text mb-1">Review your order</h3>
-                <p className="text-xs text-tea-text-sec">Please review before sending.</p>
+                <p className="font-serif italic text-[12.5px] text-tea-text-dim">Please review before sending.</p>
               </div>
 
               {/* Single editorial block, top + bottom hairline rules, internal sections divided by rules only */}
@@ -712,8 +712,8 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
 
                 {/* Total */}
                 <div className="py-4 flex justify-between items-baseline">
-                  <span className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">Total estimate</span>
-                  <span className="num text-xl font-serif text-tea-gold">{displayPrice(reviewTotal)}</span>
+                  <span className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-dim">Total estimate</span>
+                  <span className="num text-ui-20 text-tea-text">{displayPrice(reviewTotal)}</span>
                 </div>
               </div>
 
@@ -791,7 +791,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                   variant="primary"
                   fullWidth
                   icon={<Icons.Message className="w-4 h-4" />}
-                  className="py-4 uppercase tracking-[0.2em] text-xs rounded-none"
+                  className="h-[52px] !rounded-[2px] !font-serif !tracking-normal text-ui-14"
                 >
                   Send via WhatsApp
                 </Button>}
@@ -799,7 +799,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                   {contactChannels.email && <button
                     onClick={handleEmail}
                     disabled={isPersisting}
-                    className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text underline underline-offset-[6px] decoration-tea-border hover:decoration-tea-gold transition-colors min-h-[44px]"
+                    className="font-serif text-[12.5px] text-tea-text-sec hover:text-tea-text underline underline-offset-[5px] decoration-tea-border hover:decoration-tea-text/50 transition-colors min-h-[44px]"
                   >
                     Email
                   </button>}
@@ -807,7 +807,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                   <button
                     onClick={handleCopy}
                     disabled={isPersisting}
-                    className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text underline underline-offset-[6px] decoration-tea-border hover:decoration-tea-gold transition-colors min-h-[44px]"
+                    className="font-serif text-[12.5px] text-tea-text-sec hover:text-tea-text underline underline-offset-[5px] decoration-tea-border hover:decoration-tea-text/50 transition-colors min-h-[44px]"
                   >
                     {copyReady && isPersistedForPayload ? 'Copy saved order' : 'Copy text'}
                   </button>
@@ -815,7 +815,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                 {contactChannels.unavailable && <p className="text-center text-sm text-tea-text-sec">{CONTACT_UNAVAILABLE}</p>}
               </div>
 
-              <p className="text-center text-xs text-tea-text-sec italic">
+              <p className="text-center font-serif italic text-[12.5px] leading-[1.6] text-tea-text-dim">
                 Sending this message will initiate your order request with Teajia.
               </p>
             </div>
