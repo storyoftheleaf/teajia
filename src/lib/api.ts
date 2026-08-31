@@ -241,6 +241,146 @@ export interface InquiryItem {
   totalPrice?: number;
 }
 
+// Who this order is paid to, and the link that takes the customer to their
+// transfer details. Resolved worker-side so every surface renders the same
+// link. `pay_url` is null whenever `has_methods` is false: that tea master has
+// published no transfer details, and no button should be rendered.
+export interface InvoicePayment {
+  recipient_slug: string | null;
+  recipient_name: string | null;
+  pay_url: string | null;
+  has_methods: boolean;
+  /** Line items plus shipping, in USD. There is no total column on invoices. */
+  total_usd: number;
+  /** Sum of CONFIRMED payments only. A customer's report is never counted here. */
+  paid_usd: number;
+  /**
+   * Total minus paid, never below zero, and what `pay_url` now asks for. After
+   * a confirmed part payment the link asks for the balance, not the total.
+   * `pay_url` is null once this reaches zero.
+   */
+  outstanding_usd: number;
+  /** Reports the customer has sent that are still waiting to be confirmed. */
+  claims_pending: number;
+}
+
+/**
+ * Where an order actually stands, in the words the customer reads.
+ *
+ * DERIVED worker-side from what is true (whether the request became an order,
+ * that order's status, what the ledger says is outstanding, and whether it has
+ * been sent), not read off a status word somebody has to remember to change.
+ * The old tracking page read the operator's own filing column and so could say
+ * "inquiry received" about a parcel already in the post.
+ *
+ * `label` and `detail` are written once, in the worker. No surface writes its
+ * own words for a stage, and none falls back to a status word when `journey` is
+ * missing: it renders no stage at all instead.
+ */
+export interface OrderJourney {
+  stage: 'received' | 'confirmed' | 'awaiting_payment' | 'part_paid'
+       | 'paid' | 'sent' | 'closed';
+  /** What the customer reads. */
+  label: string;
+  /** One supporting line, or null. */
+  detail: string | null;
+  /** When this stage began, ISO. */
+  at: string | null;
+}
+
+/**
+ * One thing waiting on the tea master, from `GET /api/attention`.
+ *
+ * Four kinds in one list ordered by how long each has waited, so the surface
+ * answers "who has waited longest" rather than "what exists". `href` is always
+ * an app path, navigated with the router, never an absolute URL.
+ */
+export interface AttentionItem {
+  kind: 'request' | 'unpriced' | 'claim' | 'unsent';
+  id: string;
+  /** Plain and human, and it names the person or the order. */
+  label: string;
+  /** How long it has waited. Lowercase, written to follow a comma. */
+  meta: string | null;
+  /** The sort key, ISO. A request waits from when it arrived, a claim from when
+   *  it was reported, an unsent order from when it was fully paid. */
+  waiting_since: string;
+  href: string;
+  /** What a person says back: the request reference or the order number. */
+  reference?: string | null;
+}
+
+export interface AttentionResponse {
+  items: AttentionItem[];
+  counts: { requests: number; unpriced: number; claims: number; unsent: number };
+}
+
+/**
+ * One row of `invoice_payments`, the record of a single payment against an order.
+ *
+ * Two kinds of row land here and the difference is the point of the feature.
+ * `claimed_by: 'customer'` with `status: 'claimed'` is a REPORT: the customer
+ * said they sent a transfer, and nothing about what the order is owed has
+ * changed. `claimed_by: 'operator'` with `status: 'confirmed'` is money that
+ * was seen to arrive. Only confirmed rows count toward `paid_usd`.
+ */
+export type InvoicePaymentStatus = 'claimed' | 'confirmed' | 'rejected';
+export type InvoicePaymentSource = 'customer' | 'operator';
+
+export interface InvoicePaymentRecord {
+  id: string;
+  invoice_id: string;
+  account_id: string;
+  amount_usd: number;
+  amount_original?: number | null;
+  currency?: string | null;
+  payment_method_id?: string | null;
+  method_label?: string | null;
+  reference?: string | null;
+  note?: string | null;
+  status: InvoicePaymentStatus;
+  claimed_by: InvoicePaymentSource;
+  claimed_at: string;
+  confirmed_by_user_id?: string | null;
+  confirmed_at?: string | null;
+  created_at: string;
+}
+
+/** What every ledger write hands back: the recomputed state of the invoice. */
+export interface InvoicePaymentOutcome {
+  payment_status: 'unpaid' | 'partial' | 'paid';
+  total_usd: number;
+  paid_usd: number;
+  outstanding_usd: number;
+  claims_pending: number;
+}
+
+/** Body of POST /api/invoices/:id/payments, an operator recording money by hand. */
+export interface RecordPaymentInput {
+  amount_usd: number;
+  method_label?: string;
+  reference?: string;
+  note?: string;
+}
+
+/**
+ * Body of the two payment-claim endpoints. Every field is optional: an omitted
+ * amount defaults to the whole outstanding balance. An amount above the balance
+ * by more than a cent is refused.
+ */
+export interface PaymentClaimInput {
+  amount?: number;
+  currency?: string;
+  method?: string;
+  reference?: string;
+  note?: string;
+}
+
+export interface PaymentClaimResult {
+  claim_id: string;
+  claims_pending: number;
+}
+
 export interface InquiryRecord {
   id: string;
   account_id: string;
@@ -256,6 +396,8 @@ export interface InquiryRecord {
   status: InquiryStatus;
   created_at: string;
   updated_at?: string | null;
+  // Set once the request has been turned into a Draft invoice.
+  converted_invoice_id?: string | null;
 }
 
 export interface AuditLogEntry {
@@ -1669,7 +1811,7 @@ export const api = {
   },
 
   invoices: {
-    list: async (limit = 50, offset = 0, includeDeleted = false) => {
+    list: async (limit = 50, offset = 0, includeDeleted = false): Promise<Array<Record<string, any> & { payment: InvoicePayment | null }>> => {
       const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
       if (includeDeleted) params.set('include_deleted', '1');
       return authedFetch(`${API_URL}/api/invoices?${params}`)
@@ -1685,6 +1827,19 @@ export const api = {
     },
     getAttribution: async (id: string): Promise<InvoiceAttribution> => {
       return authedFetch(`${API_URL}/api/invoices/${encodeURIComponent(id)}/attribution`)
+    },
+    // Every payment against this order, newest first: the operator's own
+    // records and the reports customers have sent in, in one list.
+    getPayments: async (id: string): Promise<InvoicePaymentRecord[]> => {
+      return authedFetch(`${API_URL}/api/invoices/${encodeURIComponent(id)}/payments`)
+    },
+    // Money the operator has seen arrive. Lands confirmed in one step, and the
+    // invoice's payment_status is recomputed from the ledger before returning.
+    recordPayment: async (id: string, input: RecordPaymentInput): Promise<InvoicePaymentOutcome & { payment_id: string }> => {
+      return authedFetch(`${API_URL}/api/invoices/${encodeURIComponent(id)}/payments`, {
+        method: 'POST',
+        body: JSON.stringify(input),
+      });
     },
     update: async (id: string, data: Record<string, any>) => {
       return authedFetch(`${API_URL}/api/invoices/${id}`, {
@@ -1702,6 +1857,42 @@ export const api = {
       return authedFetch(`${API_URL}/api/invoices/${id}`, {
         method: 'DELETE',
       });
+    },
+  },
+
+  /**
+   * Acting on one payment row. Both calls recompute the invoice's payment
+   * status from the ledger and hand back the result, so a caller never has to
+   * work out the new numbers itself.
+   *
+   * Both are idempotent. Confirming a payment that is already confirmed changes
+   * nothing and counts nothing twice; `changed` says whether this call was the
+   * one that moved it.
+   */
+  invoicePayments: {
+    confirm: async (id: string): Promise<InvoicePaymentOutcome & { success: true; changed: boolean }> => {
+      return authedFetch(`${API_URL}/api/invoice-payments/${encodeURIComponent(id)}/confirm`, {
+        method: 'POST',
+      });
+    },
+    reject: async (id: string): Promise<InvoicePaymentOutcome & { success: true; changed: boolean }> => {
+      return authedFetch(`${API_URL}/api/invoice-payments/${encodeURIComponent(id)}/reject`, {
+        method: 'POST',
+      });
+    },
+  },
+
+  /**
+   * What needs the tea master, across four kinds, oldest waiting first.
+   *
+   * Its own namespace because the resource is the queue, not any one invoice.
+   * A successful empty list is a real answer and means the table is clear; a
+   * failure throws rather than resolving to an empty list, so a surface can
+   * never tell Adrian nothing is waiting because a read went wrong.
+   */
+  attention: {
+    list: async (): Promise<AttentionResponse> => {
+      return authedFetch(`${API_URL}/api/attention`);
     },
   },
 
@@ -2765,6 +2956,12 @@ export const api = {
       total_estimate_usd: number;
       currency: string;
       created_at: string;
+      // Null until the request has been priced into an invoice. There is
+      // nothing to pay before that.
+      payment: InvoicePayment | null;
+      // Where the order stands, derived. `status` above is still the operator's
+      // own filing word and is NOT what the customer should be shown.
+      journey: OrderJourney;
     } | null> => {
       const res = await fetchWithTimeout(`${API_URL}/api/inquiries/${encodeURIComponent(token)}`);
       if (res.status === 404) return null;
@@ -2781,11 +2978,36 @@ export const api = {
       return authedFetch(url.toString());
     },
 
+    // Turns a saved order request into a Draft invoice. Once only: a second call
+    // throws an ApiError with status 409 whose `data.invoice_id` is the invoice
+    // the request already became.
+    convert: async (id: string): Promise<{ invoice_id: string; invoice_number: string }> => {
+      return authedFetch(`${API_URL}/api/inquiries/${encodeURIComponent(id)}/convert`, {
+        method: 'POST',
+      });
+    },
+
     updateStatus: async (id: string, status: InquiryStatus): Promise<{ success: true }> => {
       return authedFetch(`${API_URL}/api/admin/inquiries/${encodeURIComponent(id)}/status`, {
         method: 'PATCH',
         body: JSON.stringify({ status }),
       });
+    },
+
+    // A customer on their tracking page saying they have sent payment. This is
+    // a report: it moves no money and settles nothing until the tea house
+    // confirms it. Scoped by the tracking token, like getByTrackingToken.
+    reportPayment: async (token: string, input: PaymentClaimInput = {}): Promise<PaymentClaimResult> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/orders/${encodeURIComponent(token)}/payment-claim`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => null) as { error?: string } | null;
+        throw new Error(error?.error || 'That could not be sent. Please try again.');
+      }
+      return res.json();
     },
   },
 
@@ -3893,13 +4115,28 @@ export const api = {
         currency: string;
         created_at: string;
         line_items_count: number;
+        payment: InvoicePayment | null;
+        journey: OrderJourney | null;
       }>;
     }> => {
       const res = await fetchWithTimeout(`${API_URL}/api/me/orders`, { headers: authHeaders() });
       return handleResponse(res);
     },
-    order: async (id: string): Promise<CustomerOrderDetail> => {
+    order: async (id: string): Promise<CustomerOrderDetail & {
+      payment: InvoicePayment | null;
+      journey: OrderJourney | null;
+    }> => {
       const res = await fetchWithTimeout(`${API_URL}/api/me/orders/${encodeURIComponent(id)}`, { headers: authHeaders() });
+      return handleResponse(res);
+    },
+    // The signed-in twin of inquiries.reportPayment. Same boundary: a report,
+    // never a settlement.
+    reportOrderPayment: async (id: string, input: PaymentClaimInput = {}): Promise<PaymentClaimResult> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/me/orders/${encodeURIComponent(id)}/payment-claim`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify(input),
+      });
       return handleResponse(res);
     },
     samples: async (): Promise<{
@@ -4309,11 +4546,21 @@ export const api = {
         favorites: (Array.isArray(favoritesResponse?.favorites) ? favoritesResponse.favorites : []).map((row: any) => normalizeProfileFavorite(row, true)),
       };
     },
-    getPublicPaymentMethods: async (slug: string, accountSlug?: string | null): Promise<PublicPaymentMethodsResponse> => {
+    getPublicPaymentMethods: async (
+      slug: string,
+      accountSlug?: string | null,
+      // The payment details off the pay link. `amount` is the dollar figure
+      // that is owed and stays authoritative; `display` is the currency the
+      // customer was quoted in, and asks the worker for an approximation of
+      // that same money in it. Both are forwarded, never computed here.
+      context?: { amount?: string | null; display?: string | null },
+    ): Promise<PublicPaymentMethodsResponse> => {
       const params = new URLSearchParams();
       // The public route contract calls this context "account". The current
       // Worker also accepts it under its compatibility name, "store".
       if (accountSlug) { params.set('account', accountSlug); params.set('store', accountSlug); }
+      if (context?.amount) params.set('amount', context.amount);
+      if (context?.display) params.set('display', context.display);
       const suffix = params.size ? `?${params.toString()}` : '';
       const data = await fetchWithTimeout(`${API_URL}/api/public/people/${encodeURIComponent(slug)}/payment-methods${suffix}`).then(handleResponse);
       const rows = Array.isArray(data?.methods) ? data.methods : Array.isArray(data?.payment_methods) ? data.payment_methods : [];
@@ -4348,6 +4595,10 @@ export const api = {
         resolution: data?.resolution === 'account' ? 'account' : 'default',
         hasAnyMethod: data?.has_any_method === true,
         methods: rows.map(normalizePaymentMethod),
+        // Passed through rather than rebuilt. This mapper hand-writes its
+        // result, so a field the worker adds reaches nothing until it is named
+        // here, and dropping one raises no type error at all.
+        context: data?.context ?? null,
       };
     },
   },

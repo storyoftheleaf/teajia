@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ClipboardList, BarChart3, ScrollText, Inbox, MessageSquare, RefreshCw } from 'lucide-react';
 import { OrdersView } from './OrdersView';
 import { RecordsView } from './SoldItemsView';
@@ -8,11 +8,13 @@ import { PendingView } from './PendingView';
 import { usePendingAttendees } from '../hooks/useEventData';
 import {
   api,
+  ApiError,
   AUTH_TOKEN_CHANGED_EVENT,
   isTokenScopedToAccount,
   type InquiryRecord,
   type InquiryStatus,
 } from '../../lib/api';
+import { useToast } from './Toast';
 import { Product } from '../types';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { useAppStore } from '../../lib/store';
@@ -37,6 +39,28 @@ function usePendingCount() {
   // is never poisoned by a raw-data queryFn registered here first.
   const { data: rsvps = [] } = usePendingAttendees();
   return (orders?.length ?? 0) + rsvps.length;
+}
+
+/**
+ * How many orders carry a payment the customer has reported and Adrian has not
+ * confirmed. This is the count that puts a number on the Orders tab, so a report
+ * arriving is visible from the same place the rest of the admin's work is.
+ *
+ * It cannot ride the pending-summary cache above: that query filters to Pending
+ * orders, and a report can land on a Filled order that is only part paid.
+ */
+function useClaimsPendingCount(accountId: string | null, tokenRevision: number) {
+  const ready = Boolean(accountId) && isTokenScopedToAccount(accountId);
+  const { data } = useQuery({
+    queryKey: ['invoices-claims-summary', accountId, tokenRevision],
+    staleTime: 60_000,
+    enabled: ready,
+    queryFn: async () => {
+      const rows = await api.invoices.list(200);
+      return rows.filter(row => (Number(row.payment?.claims_pending) || 0) > 0).length;
+    },
+  });
+  return ready ? data ?? 0 : 0;
 }
 
 export const ActivityView: React.FC<ActivityViewProps> = ({ products }) => {
@@ -69,10 +93,11 @@ export const ActivityView: React.FC<ActivityViewProps> = ({ products }) => {
     },
   });
   const newInquiryCount = !inquiryAccountReady || inquiryCountQuery.isError ? undefined : inquiryCountQuery.data?.length;
+  const claimsPendingCount = useClaimsPendingCount(activeAccountId, tokenRevision);
 
   const tabs: { id: ActivityTab; label: string; icon: React.ReactNode; badge?: number; countUnavailable?: boolean }[] = [
     { id: 'pending', label: 'Pending', icon: <Inbox size={15} />, badge: pendingCount },
-    { id: 'orders', label: 'Orders', icon: <ClipboardList size={15} /> },
+    { id: 'orders', label: 'Orders', icon: <ClipboardList size={15} />, badge: claimsPendingCount || undefined },
     {
       id: 'inquiries',
       label: 'Inquiries',
@@ -112,7 +137,7 @@ export const ActivityView: React.FC<ActivityViewProps> = ({ products }) => {
                 {tab.icon}
                 {tab.label}
                 {tab.badge != null && tab.badge > 0 && (
-                  <span aria-label={`Inquiry count ${tab.badge}`} className="ml-1.5 text-tea-text-dim font-mono tabular-nums">
+                  <span aria-label={`${tab.label} count ${tab.badge}`} className="ml-1.5 text-tea-text-dim font-mono tabular-nums">
                     ({tab.badge})
                   </span>
                 )}
@@ -174,7 +199,15 @@ const STATUS_COLORS: Record<InquiryStatus, string> = {
 
 function InquiriesView({ accountId, accountReady }: { accountId: string | null; accountReady: boolean }) {
   const qc = useQueryClient();
+  const navigate = useNavigate();
+  const { showToast } = useToast();
   const [filter, setFilter] = React.useState<'all' | InquiryStatus>('all');
+  /**
+   * Inquiries converted in this session, so the card flips the moment the
+   * request returns rather than waiting on the list refetch. The server field
+   * is the source of truth; this only covers the gap.
+   */
+  const [convertedHere, setConvertedHere] = React.useState<Record<string, string>>({});
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['admin-inquiries', accountId, filter],
@@ -206,8 +239,59 @@ function InquiriesView({ accountId, accountReady }: { accountId: string | null; 
     },
   });
 
+  /**
+   * Open the order an inquiry became. `?tab=orders&search=` is how the admin
+   * already reaches one order from elsewhere, so this reuses it rather than
+   * inventing a route. The invoice number reads better in the search box; the
+   * id is the fallback when only that is known, which is why the orders list
+   * matches on id too.
+   */
+  const openOrder = (reference: string) => {
+    navigate(`/admin/activity?tab=orders&search=${encodeURIComponent(reference)}`);
+  };
+
+  const convert = useMutation({
+    mutationFn: async ({ id, accountId: initiatingAccountId }: { id: string; accountId: string }) => {
+      if (!isTokenScopedToAccount(initiatingAccountId)) {
+        throw new Error('Account switch is still completing');
+      }
+      try {
+        const result = await api.inquiries.convert(id);
+        return { ...result, alreadyConverted: false };
+      } catch (err) {
+        // Two admin windows, one inquiry. The second one is not an error: the
+        // order it wanted already exists, so treat it as arriving second.
+        if (err instanceof ApiError && err.status === 409 && typeof err.data?.invoice_id === 'string') {
+          return { invoice_id: err.data.invoice_id, invoice_number: '', alreadyConverted: true };
+        }
+        throw err;
+      }
+    },
+    onSuccess: (result, variables) => {
+      setConvertedHere(prev => ({ ...prev, [variables.id]: result.invoice_id }));
+      qc.invalidateQueries({ queryKey: ['admin-inquiries', variables.accountId] });
+      qc.invalidateQueries({ queryKey: ['inquiries-new-count', variables.accountId] });
+      qc.invalidateQueries({ queryKey: ['orders'] });
+      qc.invalidateQueries({ queryKey: ['invoices-pending-summary'] });
+      showToast(
+        result.alreadyConverted
+          ? 'This inquiry was already turned into an order. Opening it.'
+          : `Order ${result.invoice_number} created from this inquiry.`,
+        'success',
+      );
+      openOrder(result.invoice_number || result.invoice_id);
+    },
+  });
+
+  const submitConvert = (variables: { id: string; accountId: string }) => {
+    convert.reset();
+    convert.mutate(variables);
+  };
+
   React.useEffect(() => {
     updateStatus.reset();
+    convert.reset();
+    setConvertedHere({});
   }, [accountId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const submitStatusUpdate = (variables: { id: string; status: InquiryStatus; accountId: string }) => {
@@ -286,7 +370,16 @@ function InquiriesView({ accountId, accountReady }: { accountId: string | null; 
       )}
 
       <div className="space-y-3">
-        {inquiries.map((inq: InquiryRecord) => (
+        {inquiries.map((inq: InquiryRecord) => {
+          const convertedInvoiceId = inq.converted_invoice_id ?? convertedHere[inq.id] ?? null;
+          const isConverting = convert.isPending && convert.variables?.id === inq.id;
+          const convertFailed = convert.isError
+            && convert.variables?.id === inq.id
+            && convert.variables?.accountId === accountId;
+          const convertErrorMessage = convert.error instanceof Error && convert.error.message
+            ? convert.error.message
+            : 'Could not turn this inquiry into an order.';
+          return (
           <div key={inq.id} className="bg-tea-surface border border-tea-border rounded-xl p-4 space-y-3">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -338,9 +431,46 @@ function InquiriesView({ accountId, accountReady }: { accountId: string | null; 
               <p className="text-tea-text-sec text-xs border-t border-tea-border pt-2">{inq.message}</p>
             )}
 
-            <p className="text-tea-text-dim text-ui-10">{new Date(inq.created_at).toLocaleString()}</p>
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-tea-border pt-2">
+              <p className="text-tea-text-dim text-ui-10">{new Date(inq.created_at).toLocaleString()}</p>
+              {convertedInvoiceId ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-ui-10 text-tea-text-sec">Turned into an order</span>
+                  <button
+                    type="button"
+                    onClick={() => openOrder(convertedInvoiceId)}
+                    className="tap-target text-ui-10 uppercase tracking-caps text-tea-text-sec hover:text-tea-text transition-colors"
+                  >
+                    Open order
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled={isConverting || !accountId}
+                  onClick={() => accountId && submitConvert({ id: inq.id, accountId })}
+                  className="tap-target text-ui-10 uppercase tracking-caps text-tea-text-sec hover:text-tea-text disabled:text-tea-text-dim transition-colors"
+                >
+                  {isConverting ? 'Turning into order…' : 'Turn into order'}
+                </button>
+              )}
+            </div>
+
+            {convertFailed && (
+              <div role="alert" className="border-t border-tea-border pt-2">
+                <p className="text-ui-11 text-tea-text-sec">{convertErrorMessage}</p>
+                <button
+                  type="button"
+                  onClick={() => accountId && submitConvert({ id: inq.id, accountId })}
+                  className={`${TYPOGRAPHY_CLASSES.link} tap-target mt-1 text-tea-gold hover:text-tea-gold-lt`}
+                >
+                  Try again
+                </button>
+              </div>
+            )}
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

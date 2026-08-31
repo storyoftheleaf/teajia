@@ -1,11 +1,15 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, hasToken } from '../lib/api';
 import { Icons } from '../components/Icons';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 import { useRates } from '../admin/hooks/useAdminData';
 import { formatOrderAmount } from '../lib/orderMoney';
+import { PayOrderAction } from '../components/shared/PayOrderAction';
+import { ReportPaymentAction } from '../components/shared/ReportPaymentAction';
+import { OrderJourneyStatus } from '../components/shared/OrderJourneyStatus';
+import { normalizeJourney, showsPaymentActions } from '../components/shared/orderJourneyDomain';
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -13,17 +17,11 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function statusTone(status: string): string {
-  const s = status.toLowerCase();
-  if (s === 'fulfilled' || s === 'paid' || s === 'complete' || s === 'completed') return 'text-tea-gold';
-  if (s === 'void' || s === 'cancelled' || s === 'canceled') return 'text-tea-text-dim';
-  return 'text-tea-text-sec';
-}
-
 export default function OrderHistoryPage() {
   const navigate = useNavigate();
   const authed = hasToken();
   const { data: rates = [] } = useRates();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!authed) {
@@ -84,20 +82,26 @@ export default function OrderHistoryPage() {
 
       {!isLoading && !isError && orders.length > 0 && (
         <ul className="space-y-2">
-          {orders.map(order => (
+          {orders.map(order => {
+            // Same derived stage the detail page reads, so a customer moving
+            // between the two never sees the order described two ways.
+            const journey = normalizeJourney(order.journey);
+            const offersPayment = showsPaymentActions(journey, order.payment);
+            return (
             <li key={order.id}>
               <button
                 type="button"
                 onClick={() => navigate(`/account/orders/${encodeURIComponent(order.id)}`)}
                 className="w-full min-h-11 rounded border border-tea-border bg-tea-surface px-4 py-3 flex items-center justify-between gap-4 text-left hover:border-tea-gold/30 transition-colors"
-                aria-label={`${order.invoice_number}, ${order.status}, ${formatOrderAmount(order.total_amount_usd, order.currency, rates)}`}
+                aria-label={`${order.invoice_number}, ${journey?.label ?? order.status}, ${formatOrderAmount(order.total_amount_usd, order.currency, rates)}`}
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-mono text-ui-13 text-tea-text">{order.invoice_number}</span>
-                    <span className={`text-ui-11 uppercase tracking-[0.1em] ${statusTone(order.status)}`}>
-                      {order.status}
-                    </span>
+                    {/* The invoice word (Draft, Pending, Filled) is Adrian's own
+                        filing. The row shows the customer's stage instead, and
+                        shows nothing at all when there is no stage to show. */}
+                    <OrderJourneyStatus journey={journey} variant="inline" />
                   </div>
                   <p className="text-ui-12 text-tea-text-sec mt-1">
                     {formatDate(order.created_at)}
@@ -113,8 +117,28 @@ export default function OrderHistoryPage() {
                   <Icons.ChevronRight className="w-4 h-4 text-tea-text-sec" aria-hidden="true" />
                 </div>
               </button>
+              {/* Outside the row button, never inside it: a link nested in a
+                  button is not a thing a browser can resolve. Gated on the
+                  stage as well as the balance, so a closed order never carries
+                  an invitation to send money against it. */}
+              {offersPayment && (
+                <>
+                  <PayOrderAction payment={order.payment} reference={order.invoice_number} className="mt-2 px-4" />
+                  {/* Collapsed to a single line until it is used, so a list of
+                      orders stays a list rather than a column of forms. */}
+                  <ReportPaymentAction
+                    payment={order.payment}
+                    source={{ kind: 'account', invoiceId: order.id }}
+                    onReported={() => {
+                      void queryClient.invalidateQueries({ queryKey: ['me', 'orders'] });
+                    }}
+                    className="mt-2 px-4"
+                  />
+                </>
+              )}
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </div>

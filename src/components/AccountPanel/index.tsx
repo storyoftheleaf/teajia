@@ -725,6 +725,20 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     },
   });
 
+  // What needs Adrian: the four kinds of waiting work, gathered server-side
+  // and already ordered oldest first. Only ever fetched for a reader who can
+  // actually sell for this table, so a customer never receives the queue.
+  const { data: attention, isSuccess: attentionLoaded } = useQuery({
+    queryKey: ['panel-attention', activeAccountId],
+    enabled: auth.isAuthenticated && canSell,
+    staleTime: 1000 * 60,
+    retry: false,
+    queryFn: () => api.attention.list(),
+  });
+  // `null` until the read succeeds, so the panel never claims a calm it has
+  // not measured. An empty array is a real answer; a failed read is not.
+  const attentionItems = attentionLoaded ? attention.items : null;
+
   const { data: inboundUnreadCount = 0 } = useQuery({
     queryKey: ['panel-inbound-unread'],
     enabled: isStaff,
@@ -1491,6 +1505,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 collectionCount={favoriteTeas.length}
                 dispositionName={dispositionName}
                 nextEvent={nextEvent ?? null}
+                attentionItems={attentionItems}
                 onClose={onClose}
                 onOpenJournal={() => setPanelView('journal')}
                 onOpenEvents={() => setPanelView('events')}

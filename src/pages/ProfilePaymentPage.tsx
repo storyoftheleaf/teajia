@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft } from '@phosphor-icons/react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { PaymentChooser } from '../components/profile/PaymentChooser';
-import { buildPaymentPageUrl, parsePaymentContext } from '../components/profile/profileDomain';
+import { buildPaymentPageUrl, normalizeLocalAmount, parsePaymentContext } from '../components/profile/profileDomain';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 import { api } from '../lib/api';
 
@@ -12,7 +12,15 @@ export default function ProfilePaymentPage() {
   const [search] = useSearchParams();
   const accountSlug = search.get('account') || search.get('store');
   const context = parsePaymentContext(search);
-  const query = useQuery({ queryKey: ['profile', slug, 'public-payment-methods', accountSlug], queryFn: () => api.profile.getPublicPaymentMethods(slug, accountSlug), enabled: Boolean(slug) });
+  // The amount and the customer's currency travel with the request, because the
+  // conversion is the worker's to make: it holds the live rate table and the
+  // hour it was refreshed, and a rate worked out on this side would be a second
+  // opinion about money.
+  const query = useQuery({
+    queryKey: ['profile', slug, 'public-payment-methods', accountSlug, context.amount, context.display],
+    queryFn: () => api.profile.getPublicPaymentMethods(slug, accountSlug, { amount: context.amount, display: context.display }),
+    enabled: Boolean(slug),
+  });
   const destination = buildPaymentPageUrl(slug, accountSlug, undefined, context);
 
   useEffect(() => { if (query.data) document.title = `Pay ${query.data.contributor.display_name} · Teajia`; }, [query.data]);
@@ -38,7 +46,7 @@ export default function ProfilePaymentPage() {
           </nav>
         )}
       </header>
-      <div className="mt-12"><PaymentChooser contributorName={data.contributor.display_name} methods={data.methods} destination={destination} context={context} accountName={data.account?.name} resolution={data.resolution} /></div>
+      <div className="mt-12"><PaymentChooser contributorName={data.contributor.display_name} methods={data.methods} destination={destination} context={context} local={normalizeLocalAmount(data.context?.local)} accountName={data.account?.name} resolution={data.resolution} /></div>
     </main>
   );
 }

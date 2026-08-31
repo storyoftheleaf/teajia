@@ -3,17 +3,15 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Search } from 'lucide-react';
 import { api } from '../lib/api';
 import { useShopPrice } from '../components/shop/shopPrice';
+import { PayOrderAction } from '../components/shared/PayOrderAction';
+import { ReportPaymentAction } from '../components/shared/ReportPaymentAction';
+import { shouldOfferPaymentClaim } from '../components/shared/paymentClaimDomain';
+import { OrderJourneyStatus } from '../components/shared/OrderJourneyStatus';
+import { normalizeJourney, showsPaymentActions } from '../components/shared/orderJourneyDomain';
 import { createAsyncResultGuard } from '../lib/orderTrackingDomain';
 
 const inputClass =
   'w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
-
-const STATUS_LABEL: Record<string, string> = {
-  pending: 'Inquiry received',
-  confirmed: 'Order confirmed',
-  shipped: 'Shipped',
-  completed: 'Completed',
-};
 
 const OrderStatusPage: React.FC = () => {
   const { ref: trackingToken } = useParams<{ ref: string }>();
@@ -23,6 +21,9 @@ const OrderStatusPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [lookupToken, setLookupToken] = useState('');
+  // Bumped when the customer reports a payment, so the page picks up the
+  // pending-claim count the worker now holds rather than the one it loaded with.
+  const [reloadKey, setReloadKey] = useState(0);
 
   // Above the loading early return, as every hook in this app must be. The
   // basket that produced this order was quoted in the reader's currency, so the
@@ -56,7 +57,7 @@ const OrderStatusPage: React.FC = () => {
         setLoading(false);
       });
     return () => guard.cancel();
-  }, [trackingToken]);
+  }, [trackingToken, reloadKey]);
 
   const handleLookup = (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,7 +82,16 @@ const OrderStatusPage: React.FC = () => {
   } catch {
     items = [];
   }
-  const status = inquiry?.status || 'pending';
+  // The stage the worker derived from the order itself, replacing the four
+  // fixed words this page used to read off a column Adrian sets by hand in a
+  // different place from where he works the order.
+  const journey = normalizeJourney(inquiry?.journey);
+  // Two gates, and both must open. The balance rules from round two decide
+  // whether there is anything to settle; the stage decides whether settling it
+  // is still a thing this order can do at all.
+  const offersPayment =
+    showsPaymentActions(journey, inquiry?.payment) &&
+    Boolean(inquiry?.payment?.pay_url || shouldOfferPaymentClaim(inquiry?.payment));
   const formatStoredUsd = (amount: number) => {
     const safe = Number.isFinite(amount) ? amount : 0;
     if (inquiry?.currency === shopPrice.code) return shopPrice.total(safe);
@@ -163,8 +173,10 @@ const OrderStatusPage: React.FC = () => {
         <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
           <div className="flex items-baseline justify-between mb-3 flex-wrap gap-2">
             <h3 className="h3">Order {inquiry.ref_number}</h3>
+            {/* Placed, and only placed. The stage the order is at now is the
+                journey block below, which is derived rather than typed. */}
             <span className="label-caps text-tea-text-dim">
-              {STATUS_LABEL[status] || status} ·{' '}
+              Placed{' '}
               {new Date(inquiry?.created_at || Date.now()).toLocaleDateString(undefined, {
                 month: 'short',
                 day: 'numeric',
@@ -203,9 +215,31 @@ const OrderStatusPage: React.FC = () => {
             Requested display currency: {inquiry.currency || 'USD'}
           </p>
 
-          <p className="text-ui-12 text-tea-text-sec mt-4 leading-relaxed">
-            We'll confirm availability, pricing, and shipping personally over WhatsApp.
-          </p>
+          {/* The line that used to sit here promised a WhatsApp conversation
+              about availability and pricing whatever had happened to the order,
+              so it was still promising it after the tea had been posted. The
+              stage below says what is actually true, and says it once. */}
+          {(journey || offersPayment) && (
+            <div className="mt-5 pt-5 border-t border-tea-border">
+              <OrderJourneyStatus journey={journey}>
+                {offersPayment && (
+                  <div className="space-y-4">
+                    <PayOrderAction payment={inquiry.payment} reference={inquiry.ref_number} />
+                    {/* The quieter half: what a customer does after the transfer has
+                        left their bank. Reached by a tracking token, never a login, so
+                        it knocks on the public claim door. */}
+                    {trackingToken && (
+                      <ReportPaymentAction
+                        payment={inquiry.payment}
+                        source={{ kind: 'tracking', trackingToken }}
+                        onReported={() => setReloadKey(k => k + 1)}
+                      />
+                    )}
+                  </div>
+                )}
+              </OrderJourneyStatus>
+            </div>
+          )}
         </div>
       )}
     </div>

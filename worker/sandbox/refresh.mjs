@@ -19,7 +19,7 @@
  *    breaks foreign keys on load. They are re-ordered parents-first below.
  */
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -85,6 +85,27 @@ for (const table of DATA_TABLES) {
 step('Building the local database');
 wrangler(['execute', DB, '--local', '--file', schemaPath, '-y']);
 wrangler(['execute', DB, '--local', '--file', orderedPath, '-y']);
+
+// The structure above is a copy of LIVE, which can sit behind the repo's own
+// forward migrations: a column added here but not yet applied to production is
+// missing from the dump, and every sandbox run fails on it. Apply the numbered
+// migrations on top. 0000 is the squashed baseline (already in the dump), and a
+// column the live schema already has reports "duplicate column name", which is
+// the expected no-op rather than a failure.
+step('Applying forward migrations the live schema has not caught up with');
+const migrationsDir = join(HERE, '..', 'migrations');
+for (const file of readdirSync(migrationsDir).filter(name => name.endsWith('.sql')).sort()) {
+  if (file.startsWith('0000_')) continue;
+  try {
+    execFileSync('npx', ['wrangler', 'd1', 'execute', DB, '--local', '--file', join(migrationsDir, file), '-y'],
+      { cwd: join(HERE, '..'), encoding: 'utf8', stdio: ['ignore', 'ignore', 'pipe'] });
+    console.log(`  ${file}: applied`);
+  } catch (error) {
+    const detail = String(error.stderr || error.message);
+    if (/duplicate column name|already exists/i.test(detail)) console.log(`  ${file}: already in the live structure`);
+    else throw error;
+  }
+}
 
 step('Seeding the sandbox operator');
 execFileSync('node', [join(HERE, 'seed-operator.mjs')], { stdio: 'inherit' });

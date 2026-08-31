@@ -42,6 +42,15 @@ export interface WhatsAppMessageOptions {
   currency?: string;
   /** Admin draft prefill URL, appended to inquiry messages so the operator can tap it to open a pre-filled invoice form. */
   adminDraftUrl?: string;
+  /**
+   * The customer's payment page for this order, already built by the worker with
+   * the amount, currency, reference and store on it.
+   *
+   * Optional, and last: a message that carries it ends on the one thing the
+   * reader can act on. Absent, the message is exactly what it was before, which
+   * is what every existing caller still gets.
+   */
+  payUrl?: string;
 }
 
 function encodeBase64UrlJson(data: unknown): string {
@@ -128,6 +137,10 @@ export function buildOrderMessage(opts: WhatsAppMessageOptions): string {
     lines.push('', 'Please confirm availability and pricing.');
   }
 
+  // Appended outside the branches so it is the final line of every message type,
+  // after the reference the reader will quote on the transfer.
+  if (opts.payUrl) lines.push('', `Pay here: ${opts.payUrl}`);
+
   return lines.join('\n');
 }
 
@@ -139,6 +152,13 @@ export function buildStatusMessage(opts: {
   items?: WhatsAppOrderItem[];
   total?: string;
   note?: string;
+  /**
+   * Same optional pay link as `buildOrderMessage`, for the same reason.
+   *
+   * The admin sends a customer their order through this builder, not the order
+   * builder, so the link has to reach both or it reaches nobody.
+   */
+  payUrl?: string;
 }): string {
   const lines: string[] = [];
 
@@ -163,6 +183,7 @@ export function buildStatusMessage(opts: {
   if (opts.total) lines.push('', `Total: ${opts.total}`);
   if (opts.note) lines.push('', opts.note);
   lines.push('', 'Thank you for choosing Teajia.');
+  if (opts.payUrl) lines.push('', `Pay here: ${opts.payUrl}`);
 
   return lines.join('\n');
 }

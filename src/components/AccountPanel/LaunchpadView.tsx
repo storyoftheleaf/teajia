@@ -2,6 +2,8 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BowlSteam, CalendarBlank, Heart, Tray, ArrowsLeftRight, Wrench, Path, BookOpen, Compass, Package, NotePencil, IdentificationCard, Receipt } from '@phosphor-icons/react';
 import { ADMIN_CONNECTION_ROUTES } from '../navigationConnections';
+import { NeedsAttention, daysWord } from './primitives';
+import type { AttentionItem } from '../../lib/api';
 
 interface LaunchpadTile {
   id: string;
@@ -38,6 +40,16 @@ interface LaunchpadViewProps {
   /** Tea Discovery disposition name, if the onboarding quiz has been taken. */
   dispositionName: string | null;
   nextEvent: { eventDate: string } | null;
+  /**
+   * Everything the order system is holding for this operator: unanswered
+   * requests, orders still to price, reported payments nobody has checked,
+   * paid orders not yet sent. Derived in `index.tsx` and passed down.
+   *
+   * `null` means we do not know yet (still loading, the read failed, or this
+   * reader has no operator standing). Only `[]` means nothing is waiting, and
+   * only `[]` earns the calm line.
+   */
+  attentionItems?: AttentionItem[] | null;
 
   // Actions
   onClose: () => void;
@@ -67,6 +79,69 @@ function formatRelativeShort(iso: string | null): string {
 function formatEventDay(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+// ── What needs you ────────────────────────────────────────────────────────
+// The order system announces work in four places. This gathers it into one
+// list, oldest waiter first, and each row says what kind of waiting it is so
+// it can be understood without being opened.
+
+/** At most this many rows; the rest are named by the frontispiece and live in Orders. */
+const ATTENTION_ROW_CAP = 6;
+
+/** Past this, a wait has gone on long enough to earn the bronze dot. */
+const URGENT_AFTER_HOURS = 48;
+
+const ATTENTION_NOTE: Record<AttentionItem['kind'], string> = {
+  request: 'nobody has answered',
+  unpriced: 'waiting to be priced',
+  claim: 'payment reported, unchecked',
+  unsent: 'paid, not sent',
+};
+
+function hoursWaiting(iso: string, now: number): number {
+  const started = new Date(iso).getTime();
+  if (Number.isNaN(started)) return 0;
+  return Math.max(0, (now - started) / 3600000);
+}
+
+/**
+ * How long it has waited, as a phrase that can follow a comma.
+ * Used for the frontispiece, and as the row meta when the server sends none.
+ */
+export function waitPhrase(iso: string, now: number = Date.now()): string {
+  const hours = hoursWaiting(iso, now);
+  if (hours < 1) return 'in the last hour';
+  if (hours < 24) {
+    const h = Math.floor(hours);
+    return h === 1 ? 'for an hour' : `for ${daysWord(h)} hours`;
+  }
+  const days = Math.floor(hours / 24);
+  if (days === 1) return 'since yesterday';
+  if (days < 7) return `for ${daysWord(days)} days`;
+  const weeks = Math.floor(days / 7);
+  return weeks === 1 ? 'for over a week' : `for over ${daysWord(weeks)} weeks`;
+}
+
+/**
+ * The frontispiece line when we know what is waiting. A sentence, never a
+ * count sitting on its own, and warm when the list is empty.
+ */
+export function buildWaitingLine(items: AttentionItem[], now: number = Date.now()): string {
+  if (items.length === 0) return 'the table is clear.';
+  const oldest = items.reduce((a, b) =>
+    new Date(a.waiting_since).getTime() <= new Date(b.waiting_since).getTime() ? a : b,
+  );
+  const phrase = waitPhrase(oldest.waiting_since, now);
+  if (items.length === 1) return `one waiting, ${phrase}.`;
+  return `${daysWord(items.length)} waiting, the oldest ${phrase}.`;
+}
+
+/** Oldest waiter first, across all four kinds rather than grouped by kind. */
+export function sortByWaiting(items: AttentionItem[]): AttentionItem[] {
+  return [...items].sort(
+    (a, b) => new Date(a.waiting_since).getTime() - new Date(b.waiting_since).getTime(),
+  );
 }
 
 const Tile: React.FC<LaunchpadTile> = ({ verb, hint, icon, badge, accent, onClick }) => (
@@ -146,6 +221,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
   collectionCount,
   dispositionName,
   nextEvent,
+  attentionItems = null,
   onClose,
   onOpenJournal,
   onOpenEvents,
@@ -170,6 +246,34 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
         : inboundUnreadCount > 0
           ? inboundUnreadCount === 1 ? 'one share to open.' : `${inboundUnreadCount} shares to open.`
           : 'a quiet day.';
+
+  // ── What needs you ──────────────────────────────────────────────────────
+  // Only an operator ever receives a queue. A member or a signed-in customer
+  // is handed `null` and never sees any of this.
+  const waiting = React.useMemo(
+    () => (attentionItems ? sortByWaiting(attentionItems) : null),
+    [attentionItems],
+  );
+  const shownWaiting = waiting ? waiting.slice(0, ATTENTION_ROW_CAP) : [];
+  const waitingIsTruncated = waiting != null && waiting.length > ATTENTION_ROW_CAP;
+
+  const attentionRows = shownWaiting.map(item => ({
+    id: `${item.kind}-${item.id}`,
+    label: item.label,
+    note: ATTENTION_NOTE[item.kind],
+    meta: item.meta ?? waitPhrase(item.waiting_since),
+    urgent: hoursWaiting(item.waiting_since, Date.now()) >= URGENT_AFTER_HOURS,
+    onClick: () => { onClose(); navigate(item.href); },
+  }));
+
+  // The frontispiece speaks the queue when it knows it, and stays on the old
+  // voice when it does not, so it never claims a calm it has not measured.
+  const frontispiece = waiting == null ? dayStatus : buildWaitingLine(waiting);
+
+  // The attention block is the one place the panel counts this work. When it
+  // is showing, the workshop tile drops its badge rather than offering a
+  // second, differently-scoped tally of the same shop.
+  const attentionIsShowing = waiting != null && waiting.length > 0;
 
   // Tile definitions
   const tiles: LaunchpadTile[] = [
@@ -259,12 +363,14 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
     ...(isOwner ? [{
       id: 'workshop',
       verb: 'workshop',
-      hint: pendingInvoiceCount > 0
-        ? pendingInvoiceCount === 1 ? 'one invoice pending' : `${pendingInvoiceCount} invoices pending`
-        : 'all settled',
+      hint: attentionIsShowing
+        ? 'tools & records'
+        : pendingInvoiceCount > 0
+          ? pendingInvoiceCount === 1 ? 'one invoice pending' : `${pendingInvoiceCount} invoices pending`
+          : 'all settled',
       icon: <Wrench {...ICON_PROPS} />,
-      badge: pendingInvoiceCount > 0 ? pendingInvoiceCount : undefined,
-      accent: pendingInvoiceCount > 0,
+      badge: !attentionIsShowing && pendingInvoiceCount > 0 ? pendingInvoiceCount : undefined,
+      accent: !attentionIsShowing && pendingInvoiceCount > 0,
       onClick: () => { onClose(); navigate('/admin/dashboard'); },
     } as LaunchpadTile] : []),
     ...(canPublish ? [{
@@ -339,9 +445,32 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
           {today}
         </div>
         <div className="font-display italic text-[18px] text-tea-text mt-2">
-          {dayStatus}
+          {frontispiece}
         </div>
       </div>
+
+      {/* ── What needs you ────────────────────────────────────────────────
+          One list for work the shop announces in four separate places,
+          oldest waiter first. Each row says what kind of waiting it is, so
+          it reads without being opened. Absent entirely when nothing is
+          waiting, the frontispiece above carries that. */}
+      {attentionRows.length > 0 && (
+        <section className="mb-10" aria-label="What needs you">
+          <div className="font-sans text-ui-11 text-tea-text-dim uppercase tracking-[0.18em] mb-2">
+            What needs you
+          </div>
+          <NeedsAttention items={attentionRows} className="" />
+          {waitingIsTruncated && (
+            <button
+              onClick={() => { onClose(); navigate('/admin/activity?tab=orders'); }}
+              className="mt-3 py-2 -my-0.5 font-display italic text-ui-15 text-tea-text-sec hover:text-tea-text transition-colors"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
+            >
+              the rest are in orders.
+            </button>
+          )}
+        </section>
+      )}
 
       {/* ── Tile grid ─────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 lg:gap-3">

@@ -2,13 +2,21 @@ import { useState } from 'react';
 import { ArrowSquareOut, Check, CopySimple, QrCode } from '@phosphor-icons/react';
 import { QRCodeSVG } from 'qrcode.react';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
-import type { PaymentContext, PaymentMethod } from './types';
+import { formatLocalAmount, localAmountNote } from './profileDomain';
+import type { PaymentContext, PaymentLocalAmount, PaymentMethod } from './types';
 
 interface PaymentChooserProps {
   contributorName: string;
   methods: PaymentMethod[];
   destination: string;
   context: PaymentContext;
+  /**
+   * The approximate figure in the customer's own currency, already converted
+   * and already validated. Null whenever no honest conversion exists, in which
+   * case nothing extra is rendered: no placeholder, no line saying a rate was
+   * unavailable, no invitation to work it out themselves.
+   */
+  local?: PaymentLocalAmount | null;
   accountName?: string | null;
   resolution?: 'account' | 'default';
 }
@@ -32,8 +40,12 @@ function CopyButton({ value, label }: { value: string; label: string }) {
   );
 }
 
-export function PaymentChooser({ contributorName, methods, destination, context, accountName, resolution }: PaymentChooserProps) {
+export function PaymentChooser({ contributorName, methods, destination, context, local, accountName, resolution }: PaymentChooserProps) {
   const visibleMethods = methods.filter(method => method.is_published).sort((a, b) => a.position - b.position);
+  // Only rendered beside a real dollar figure. An approximation floating on its
+  // own would become the amount the customer thinks they owe.
+  const localFigure = context.amount ? formatLocalAmount(local) : null;
+  const localNote = localFigure ? localAmountNote(local, context) : null;
   return (
     <div className="space-y-10">
       {(context.amount || context.currency || context.reference) && (
@@ -41,7 +53,25 @@ export function PaymentChooser({ contributorName, methods, destination, context,
           {context.amount && (
             <div>
               <p className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-dim`}>Amount</p>
-              <div className="mt-2 flex items-center gap-3"><strong className="font-mono text-ui-20 font-medium text-tea-text">{context.currency ? `${context.currency} ` : ''}{context.amount}</strong><CopyButton value={`${context.currency ? `${context.currency} ` : ''}${context.amount}`} label="amount" /></div>
+              {/* The dollar figure is the debt and is the only one that can be
+                  copied. An approximation with a copy button beside it is an
+                  invitation to paste it into a transfer. */}
+              <div className="mt-2 flex items-center gap-3"><strong data-testid="payment-amount" className="font-mono text-ui-20 font-medium tabular-nums text-tea-text">{context.currency ? `${context.currency} ` : ''}{context.amount}</strong><CopyButton value={`${context.currency ? `${context.currency} ` : ''}${context.amount}`} label="amount" /></div>
+              {localFigure && (
+                <>
+                  {/* Same mono face and the same left edge as the figure above.
+                      Every ISO code is three letters, so the digits of the two
+                      amounts line up by place value without a second column. */}
+                  <p data-testid="payment-local-amount" className="mt-2 font-mono text-ui-14 tabular-nums text-tea-text-sec">
+                    About {localFigure}
+                  </p>
+                  {localNote && (
+                    <p data-testid="payment-local-note" className="mt-1.5 max-w-[46ch] text-ui-12 leading-relaxed text-tea-text-dim">
+                      {localNote}
+                    </p>
+                  )}
+                </>
+              )}
             </div>
           )}
           {context.reference && (

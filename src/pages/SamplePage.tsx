@@ -588,13 +588,16 @@ const SamplePage: React.FC = () => {
         )}
       </div>
 
-      {/* Customer: order modal */}
+      {/* Customer: order modal. `productId` is what makes the request a
+          recorded order rather than a message: it is set only when the sample
+          maps to a tea the shop actually sells. */}
       <SampleOrderModal
         isOpen={showOrderModal}
         onClose={() => setShowOrderModal(false)}
         sampleName={sample.name}
         sampleId={sample.id}
         teaType={sample.type}
+        productId={sample.productId}
       />
 
       {/* Admin: purchase order modal, prefilled with sample vendor + item */}

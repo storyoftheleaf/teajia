@@ -49,6 +49,7 @@ import {
   type WisdomVerificationEntryKind,
 } from './wisdomVerification';
 import {
+  isSupportedPaymentCurrency,
   normalizeLanguages,
   parsePublicPaymentContext,
   projectPublicPaymentMethod,
@@ -3836,6 +3837,1374 @@ const handleMarkSalesSettlementPaid: Handler = async (request, env, params) => {
   } catch (error) { return salesError(error); }
 };
 
+// ── Payment resolution ───────────────────────────────────────────────────────
+// "Who gets paid for this invoice", and the link that takes the customer to
+// their transfer details. The chain, in order:
+//   invoices.payment_recipient_user_id → invoices.sold_by_user_id →
+//   accounts.owner_user_id, then users.id → contributors.user_id → the
+//   contributor slug (contributors.id IS the slug).
+// A link is only built when that contributor is published AND has at least one
+// published payment method that the public page would actually show. Anything
+// less carries no link at all, because a dead pay link is worse than none.
+
+export interface InvoicePaymentInfo {
+  recipient_slug: string | null;
+  recipient_name: string | null;
+  pay_url: string | null;
+  has_methods: boolean;
+  /** Line items plus shipping, in USD. There is no total column on invoices. */
+  total_usd: number;
+  /** Sum of CONFIRMED payments only. A customer's report is never counted here. */
+  paid_usd: number;
+  /** Total minus paid, never below zero. This is what the pay link asks for. */
+  outstanding_usd: number;
+  /** Rows still sitting at status 'claimed', waiting on the operator. */
+  claims_pending: number;
+}
+
+export interface PayableInvoice {
+  id: string;
+  account_id: string | null;
+  invoice_number?: string | null;
+  // Settled orders keep their recipient but lose the link: see below.
+  status?: string | null;
+  payment_status?: string | null;
+  /**
+   * The label the shop shows this order's prices under. The AMOUNT stays USD:
+   * price_at_sale and shipping_cost_usd are USD columns and this is only a
+   * label. It rides on the pay link as `&display=` so the pay page can show the
+   * customer roughly what that is in their own money beside the dollar figure.
+   */
+  display_currency?: string | null;
+  payment_recipient_user_id?: string | null;
+  sold_by_user_id?: string | null;
+  // Pass the already-computed line total when the caller has one (the list
+  // queries do). Otherwise it is summed here, once for the whole page.
+  total_usd?: number | null;
+  shipping_cost_usd?: number | null;
+}
+
+const NO_PAYMENT: InvoicePaymentInfo = {
+  recipient_slug: null,
+  recipient_name: null,
+  pay_url: null,
+  has_methods: false,
+  total_usd: 0,
+  paid_usd: 0,
+  outstanding_usd: 0,
+  claims_pending: 0,
+};
+
+/** Money is compared and stored to the cent. Anything under this is settled. */
+const PAYMENT_EPSILON = 0.01;
+
+function roundUsd(value: number): number {
+  return Math.round((Number(value) || 0) * 100) / 100;
+}
+
+interface InvoiceLedgerTotals {
+  paid_usd: number;
+  claims_pending: number;
+}
+
+/**
+ * What the payment ledger holds for a set of invoices: money actually confirmed,
+ * and how many customer reports are still waiting.
+ *
+ * One query per chunk, never one per invoice. D1 caps bound parameters at 100,
+ * so a page of 200 orders is read in three queries rather than 200.
+ */
+async function loadInvoiceLedgerTotals(
+  env: Env,
+  invoiceIds: string[],
+): Promise<Map<string, InvoiceLedgerTotals>> {
+  const totals = new Map<string, InvoiceLedgerTotals>();
+  const unique = [...new Set(invoiceIds.filter(Boolean))];
+  for (let start = 0; start < unique.length; start += 90) {
+    const chunk = unique.slice(start, start + 90);
+    const result = await env.DB.prepare(
+      `SELECT invoice_id,
+              SUM(CASE WHEN status = 'confirmed' THEN amount_usd ELSE 0 END) AS paid_usd,
+              SUM(CASE WHEN status = 'claimed' THEN 1 ELSE 0 END) AS claims_pending
+         FROM invoice_payments
+        WHERE invoice_id IN (${chunk.map(() => '?').join(', ')})
+        GROUP BY invoice_id`
+    ).bind(...chunk).all();
+    for (const row of (result.results ?? []) as Array<Record<string, any>>) {
+      totals.set(row.invoice_id as string, {
+        paid_usd: roundUsd(Number(row.paid_usd || 0)),
+        claims_pending: Number(row.claims_pending || 0),
+      });
+    }
+  }
+  return totals;
+}
+
+interface InvoiceMoney {
+  total_usd: number;
+  paid_usd: number;
+  outstanding_usd: number;
+  claims_pending: number;
+}
+
+/**
+ * The three numbers plus the pending count, for one invoice.
+ *
+ * The ledger is the record of what has been received. `invoices.payment_status`
+ * is the operator's word, and two paths still write it without leaving a ledger
+ * row: the generic invoice update, and the MCP `mark_invoice_paid` tool. A
+ * column that says paid with nothing behind it is read here as fully paid, so a
+ * customer is never shown a live pay link for money that has already arrived.
+ * This only ever RAISES paid to meet the column; it never lowers it, so a
+ * confirmed payment can never be hidden by a stale status word. The reverse
+ * direction is handled on the write side by reconcileLedgerWithColumn.
+ */
+function invoiceMoney(
+  totalUsd: number,
+  paymentStatus: string | null | undefined,
+  ledger: InvoiceLedgerTotals | undefined,
+): InvoiceMoney {
+  const total = roundUsd(totalUsd);
+  let paid = roundUsd(ledger?.paid_usd ?? 0);
+  if (String(paymentStatus || '').toLowerCase() === 'paid' && paid < total - PAYMENT_EPSILON) {
+    paid = total;
+  }
+  return {
+    total_usd: total,
+    paid_usd: paid,
+    outstanding_usd: Math.max(0, roundUsd(total - paid)),
+    claims_pending: ledger?.claims_pending ?? 0,
+  };
+}
+
+function appOrigin(env: Env): string {
+  return (env.APP_URL || 'https://www.teajia.com').replace(/\/$/, '');
+}
+
+function buildPayUrl(
+  env: Env,
+  slug: string,
+  accountSlug: string | null,
+  amountUsd: number,
+  reference: string | null,
+  displayCurrency: string | null = null,
+): string {
+  const url = new URL(`/people/${encodeURIComponent(slug)}/pay`, appOrigin(env));
+  if (accountSlug) url.searchParams.set('account', accountSlug);
+  // The OUTSTANDING balance, not the invoice total. After a confirmed part
+  // payment this link must ask for what is left, or the customer transfers the
+  // whole amount a second time.
+  if (Number.isFinite(amountUsd) && amountUsd > 0) {
+    url.searchParams.set('amount', amountUsd.toFixed(2));
+    // The amount is USD: price_at_sale and shipping_cost_usd are USD columns,
+    // and invoices.display_currency is only the label the shop shows them
+    // under. Sending that label as the payment currency would tell a payer to
+    // transfer 35 IDR for a 35 dollar order, so the link always says USD.
+    if (isSupportedPaymentCurrency('USD')) url.searchParams.set('currency', 'USD');
+    // ...and separately, the currency the customer was quoted in. The dollar
+    // figure stays the one that is owed; `display` only asks the pay page to
+    // show an approximation of it beside the dollars, so someone transferring
+    // in Rupiah knows roughly what to expect to leave their account. Dropped
+    // when it is USD (nothing to convert) or outside the set the pay page will
+    // accept, so a link never lands on that page's error state.
+    const display = String(displayCurrency || '').trim().toUpperCase();
+    if (display && display !== 'USD' && isSupportedPaymentCurrency(display)) {
+      url.searchParams.set('display', display);
+    }
+  }
+  const ref = (reference || '').trim();
+  // Same guard the public page puts on ?reference= (parsePublicPaymentContext):
+  // no angle brackets, no control characters, 72 characters at most.
+  const refIsSafe = Boolean(ref) && ref.length <= 72
+    && ![...ref].some(char => char === '<' || char === '>' || char.charCodeAt(0) < 32);
+  if (refIsSafe) url.searchParams.set('reference', ref);
+  return url.toString();
+}
+
+// Resolve a whole page of invoices in a fixed number of queries. Never call
+// resolveInvoicePayment in a loop over a list: that is the N+1 this exists to
+// prevent.
+async function resolveInvoicePayments(
+  env: Env,
+  invoices: PayableInvoice[],
+): Promise<Map<string, InvoicePaymentInfo>> {
+  const resolved = new Map<string, InvoicePaymentInfo>();
+  const rows = invoices.filter(invoice => invoice.id && invoice.account_id);
+  for (const invoice of invoices) resolved.set(invoice.id, { ...NO_PAYMENT });
+  if (rows.length === 0) return resolved;
+
+  // 1. Totals for any invoice the caller did not already price.
+  const needTotals = rows.filter(invoice => invoice.total_usd == null).map(invoice => invoice.id);
+  const lineTotals = new Map<string, number>();
+  if (needTotals.length > 0) {
+    const totalRows = await env.DB.prepare(
+      `SELECT invoice_id, SUM(quantity * price_at_sale) AS line_total
+         FROM invoice_line_items
+        WHERE invoice_id IN (${needTotals.map(() => '?').join(', ')})
+        GROUP BY invoice_id`
+    ).bind(...needTotals).all();
+    for (const row of (totalRows.results ?? []) as Array<Record<string, any>>) {
+      lineTotals.set(row.invoice_id as string, Number(row.line_total || 0));
+    }
+  }
+
+  // 1b. The payment ledger for the same page, in the same fixed query budget.
+  //     The money is a fact about the invoice, not about who gets paid, so it
+  //     is seeded onto every entry now. Every early return below still carries
+  //     the three numbers even when no recipient or no transfer details resolve.
+  const ledger = await loadInvoiceLedgerTotals(env, rows.map(invoice => invoice.id));
+  const money = new Map<string, InvoiceMoney>();
+  for (const invoice of rows) {
+    const lineTotal = invoice.total_usd != null
+      ? Number(invoice.total_usd)
+      : Number(lineTotals.get(invoice.id) || 0);
+    money.set(invoice.id, invoiceMoney(
+      lineTotal + Number(invoice.shipping_cost_usd || 0),
+      invoice.payment_status,
+      ledger.get(invoice.id),
+    ));
+    resolved.set(invoice.id, { ...NO_PAYMENT, ...money.get(invoice.id)! });
+  }
+
+  // 2. The invoices' accounts (slug for the ?account= param, owner as the last
+  //    step of the recipient chain).
+  const accountIds = [...new Set(rows.map(invoice => invoice.account_id as string))];
+  const accountResult = await env.DB.prepare(
+    `SELECT id, slug, name, owner_user_id, public_enabled, status
+       FROM accounts WHERE id IN (${accountIds.map(() => '?').join(', ')})`
+  ).bind(...accountIds).all();
+  const accounts = new Map<string, Record<string, any>>();
+  for (const row of (accountResult.results ?? []) as Array<Record<string, any>>) {
+    accounts.set(row.id as string, row);
+  }
+
+  // 3. The recipient user for each invoice, then the contributor rows for them.
+  const recipientByInvoice = new Map<string, string>();
+  for (const invoice of rows) {
+    const account = accounts.get(invoice.account_id as string);
+    const userId = invoice.payment_recipient_user_id
+      || invoice.sold_by_user_id
+      || (account?.owner_user_id as string | null)
+      || null;
+    if (userId) recipientByInvoice.set(invoice.id, userId);
+  }
+  const userIds = [...new Set(recipientByInvoice.values())];
+  if (userIds.length === 0) return resolved;
+
+  const contributorResult = await env.DB.prepare(
+    `SELECT id, user_id, display_name, account_id, face_of_account_id
+       FROM contributors
+      WHERE is_published = 1 AND user_id IN (${userIds.map(() => '?').join(', ')})`
+  ).bind(...userIds).all();
+  const contributorsByUser = new Map<string, Array<Record<string, any>>>();
+  for (const row of (contributorResult.results ?? []) as Array<Record<string, any>>) {
+    const list = contributorsByUser.get(row.user_id as string) ?? [];
+    list.push(row);
+    contributorsByUser.set(row.user_id as string, list);
+  }
+  if (contributorsByUser.size === 0) return resolved;
+
+  const contributorIds = [...new Set(
+    [...contributorsByUser.values()].flat().map(row => row.id as string),
+  )];
+
+  // 4. Published methods and store links for that contributor set, one query each.
+  const [methodResult, linkResult] = await Promise.all([
+    env.DB.prepare(
+      `SELECT id, contributor_id, account_id, method_type, label, recipient_name,
+              account_identifier, instructions, external_url, qr_image_url, position, is_published
+         FROM payment_methods
+        WHERE is_published = 1 AND contributor_id IN (${contributorIds.map(() => '?').join(', ')})
+        ORDER BY position, label`
+    ).bind(...contributorIds).all(),
+    env.DB.prepare(
+      `SELECT ca.contributor_id, ca.account_id
+         FROM contributor_accounts ca
+         JOIN accounts a ON a.id = ca.account_id
+        WHERE a.public_enabled = 1 AND a.status = 'active'
+          AND ca.contributor_id IN (${contributorIds.map(() => '?').join(', ')})`
+    ).bind(...contributorIds).all(),
+  ]);
+  const methodsByContributor = new Map<string, PaymentMethodRow[]>();
+  for (const row of (methodResult.results ?? []) as unknown as PaymentMethodRow[]) {
+    const list = methodsByContributor.get(row.contributor_id) ?? [];
+    list.push(row);
+    methodsByContributor.set(row.contributor_id, list);
+  }
+  const storeLinks = new Set<string>();
+  for (const row of (linkResult.results ?? []) as Array<Record<string, any>>) {
+    storeLinks.add(`${row.contributor_id}::${row.account_id}`);
+  }
+
+  for (const invoice of rows) {
+    const userId = recipientByInvoice.get(invoice.id);
+    if (!userId) continue;
+    const candidates = contributorsByUser.get(userId);
+    if (!candidates || candidates.length === 0) continue;
+    const accountId = invoice.account_id as string;
+    // One user can hold several contributor rows. Prefer the one that belongs
+    // to (or fronts, or is linked to) the store this invoice came from.
+    const contributor = candidates.find(row => row.account_id === accountId)
+      || candidates.find(row => row.face_of_account_id === accountId)
+      || candidates.find(row => storeLinks.has(`${row.id}::${accountId}`))
+      || candidates[0];
+    const contributorId = contributor.id as string;
+    const recipientName = (contributor.display_name as string | null) || null;
+
+    // The public page only accepts ?account= for a store the contributor is
+    // actually linked to; anything else 404s there. Without the link we fall
+    // back to their personal default methods, exactly as that page does.
+    const linked = storeLinks.has(`${contributorId}::${accountId}`);
+    const account = accounts.get(accountId);
+    const methods = resolvePublishedPaymentMethods(
+      methodsByContributor.get(contributorId) ?? [],
+      linked ? accountId : null,
+    );
+    const amounts = money.get(invoice.id) ?? { total_usd: 0, paid_usd: 0, outstanding_usd: 0, claims_pending: 0 };
+    if (methods.length === 0) {
+      resolved.set(invoice.id, {
+        ...amounts,
+        recipient_slug: contributorId,
+        recipient_name: recipientName,
+        pay_url: null,
+        has_methods: false,
+      });
+      continue;
+    }
+
+    // An order with nothing outstanding, or a voided one, must not offer a live
+    // pay button: there is nothing left to pay. The recipient stays visible so
+    // the admin can still see who the money went to. A part-paid order keeps
+    // its link, and that link now asks for the balance rather than the total.
+    // This is the only place the decision is made, so every surface inherits it.
+    const settled = amounts.outstanding_usd <= 0 || String(invoice.status || '') === 'Void';
+    if (settled) {
+      resolved.set(invoice.id, {
+        ...amounts,
+        recipient_slug: contributorId,
+        recipient_name: recipientName,
+        pay_url: null,
+        has_methods: true,
+      });
+      continue;
+    }
+
+    resolved.set(invoice.id, {
+      ...amounts,
+      recipient_slug: contributorId,
+      recipient_name: recipientName,
+      pay_url: buildPayUrl(
+        env,
+        contributorId,
+        linked ? ((account?.slug as string | null) ?? null) : null,
+        amounts.outstanding_usd,
+        invoice.invoice_number ?? null,
+        invoice.display_currency ?? null,
+      ),
+      has_methods: true,
+    });
+  }
+
+  return resolved;
+}
+
+async function resolveInvoicePayment(env: Env, invoice: PayableInvoice): Promise<InvoicePaymentInfo> {
+  const resolved = await resolveInvoicePayments(env, [invoice]);
+  return resolved.get(invoice.id) ?? NO_PAYMENT;
+}
+
+// ── The order journey ────────────────────────────────────────────────────────
+// What the customer is told about where their order stands, DERIVED from what
+// is actually true rather than read off a status word somebody has to remember
+// to change.
+//
+// The old page read `inquiries.status`, which is the operator's own filing
+// (new / seen / replied / closed) and is set in a different screen from the one
+// where the order is worked. So an order could be priced, paid and sent while
+// the customer's page still said the request had been received. The page built
+// to stop "where is my tea" messages was causing them.
+//
+// The four facts the stage is derived from: whether the request became an
+// invoice, that invoice's status, what the ledger says is outstanding, and
+// fulfilled_at. `inquiries.status` is NOT repointed and NOT deleted: it stays
+// for the operator's filing, and a manual `shipped` or `completed` still wins
+// over a lesser derived stage, so nothing set by hand is thrown away.
+
+export type OrderJourneyStage =
+  | 'received' | 'confirmed' | 'awaiting_payment' | 'part_paid'
+  | 'paid' | 'sent' | 'closed';
+
+export interface OrderJourney {
+  stage: OrderJourneyStage;
+  /** What the customer reads. */
+  label: string;
+  /** One supporting line, or null. */
+  detail: string | null;
+  /** When this stage began, ISO. */
+  at: string | null;
+}
+
+/**
+ * How far along each stage is. Used for one thing only: deciding whether a
+ * status the operator set by hand is AHEAD of what the facts derive, in which
+ * case it wins. A manual word never drags an order backwards.
+ */
+const JOURNEY_RANK: Record<OrderJourneyStage, number> = {
+  received: 0,
+  confirmed: 1,
+  awaiting_payment: 2,
+  part_paid: 3,
+  paid: 4,
+  sent: 5,
+  closed: 6,
+};
+
+/** The operator's filing words that mean something the derivation cannot see. */
+const MANUAL_JOURNEY_STAGE: Record<string, OrderJourneyStage> = {
+  shipped: 'sent',
+  completed: 'closed',
+};
+
+export interface JourneyMoney {
+  total_usd: number;
+  paid_usd: number;
+  outstanding_usd: number;
+  claims_pending: number;
+}
+
+export interface JourneyInvoice {
+  status: string | null;
+  created_at: string | null;
+  payment_date: string | null;
+  fulfilled_at: string | null;
+  money: JourneyMoney;
+}
+
+export interface JourneyInput {
+  /** When the customer asked. Null for an order raised in the admin directly. */
+  requestedAt: string | null;
+  /** inquiries.status, untouched and still the operator's own. */
+  manualStatus: string | null;
+  /** Null means the request has not been priced into an order yet. */
+  invoice: JourneyInvoice | null;
+}
+
+/**
+ * The words the customer reads while they wait for tea they have paid for.
+ * Calm, plain, and never a promise the shop has not made.
+ */
+function journeyCopy(
+  stage: OrderJourneyStage,
+  input: JourneyInput,
+): { label: string; detail: string | null } {
+  const amounts = input.invoice?.money;
+  const cancelled = String(input.invoice?.status || '') === 'Void';
+  switch (stage) {
+    case 'received':
+      // Carries the promise the tracking page used to make on every order at
+      // every stage. It belongs here, where it is still true, and nowhere else.
+      return {
+        label: 'Request received',
+        detail: 'We have your request. Someone will confirm what is in stock, what it comes to, '
+          + 'and how it reaches you, personally over WhatsApp.',
+      };
+    case 'confirmed':
+      return {
+        label: 'Order confirmed',
+        detail: 'Your order is being put together. We will write with the total and the shipping '
+          + 'before anything is due.',
+      };
+    case 'awaiting_payment':
+      return {
+        label: 'Awaiting payment',
+        detail: amounts && amounts.outstanding_usd > 0
+          ? `${formatMoney(amounts.outstanding_usd, 'USD')} is due on this order.`
+          : null,
+      };
+    case 'part_paid':
+      return {
+        label: 'Part paid',
+        detail: amounts
+          ? `${formatMoney(amounts.paid_usd, 'USD')} received. ${formatMoney(amounts.outstanding_usd, 'USD')} still to come.`
+          : null,
+      };
+    case 'paid':
+      return {
+        label: 'Paid in full',
+        detail: 'Thank you. Your order is being prepared for sending.',
+      };
+    case 'sent':
+      return {
+        label: 'Sent',
+        detail: 'Your order is on its way to you.',
+      };
+    case 'closed':
+      // One stage, two truths. A cancelled order and a finished one are both
+      // closed, and a customer must never read one as the other.
+      return cancelled
+        ? {
+            label: 'Order cancelled',
+            detail: 'This order has been cancelled. Write to us if that is not right.',
+          }
+        : {
+            label: 'Complete',
+            detail: 'This order is finished. Thank you.',
+          };
+  }
+}
+
+/**
+ * When the stage the order is in began.
+ *
+ * Normalised through toIsoTime because these columns are written two ways:
+ * SQLite's own `datetime('now')` has no zone, and `new Date().toISOString()`
+ * does. Handed to a dateline unnormalised, the first is read as local time and
+ * the date the customer sees is wrong by their own offset.
+ */
+function journeyAt(stage: OrderJourneyStage, input: JourneyInput): string | null {
+  const invoice = input.invoice;
+  const requested = toIsoTime(input.requestedAt);
+  if (!invoice) return requested;
+  const created = toIsoTime(invoice.created_at);
+  const paid = toIsoTime(invoice.payment_date);
+  const sent = toIsoTime(invoice.fulfilled_at);
+  switch (stage) {
+    case 'received':
+      return requested;
+    case 'confirmed':
+    case 'awaiting_payment':
+      return created ?? requested;
+    case 'part_paid':
+    case 'paid':
+      return paid ?? created ?? requested;
+    case 'sent':
+    case 'closed':
+      return sent ?? paid ?? created ?? requested;
+  }
+}
+
+/** The derivation, before the operator's own word is allowed to lift it. */
+function derivedStage(invoice: JourneyInvoice | null): OrderJourneyStage {
+  if (!invoice) return 'received';
+  if (String(invoice.status || '') === 'Void') return 'closed';
+  if (invoice.fulfilled_at) return 'sent';
+  if (String(invoice.status || '') === 'Draft') return 'confirmed';
+  const { total_usd: total, paid_usd: paid, outstanding_usd: outstanding } = invoice.money;
+  // An order with no lines and no shipping has not been priced yet, whatever
+  // the arithmetic says about its balance. Zero outstanding on zero total is
+  // not a paid order.
+  if (total <= 0) return 'confirmed';
+  if (outstanding <= 0) return 'paid';
+  return paid > 0 ? 'part_paid' : 'awaiting_payment';
+}
+
+export function deriveOrderJourney(input: JourneyInput): OrderJourney {
+  let stage = derivedStage(input.invoice);
+  const manual = MANUAL_JOURNEY_STAGE[String(input.manualStatus || '').toLowerCase()];
+  // Only ever forwards. A word set by hand can say the parcel left before the
+  // system knows it; it can never say an order is earlier than the facts.
+  if (manual && JOURNEY_RANK[manual] > JOURNEY_RANK[stage]) stage = manual;
+
+  const copy = journeyCopy(stage, input);
+  let detail = copy.detail;
+  // The exact moment the review was about: they transferred the money, said so,
+  // and the page still says the balance is due. Say why.
+  const pending = input.invoice?.money.claims_pending ?? 0;
+  if (pending > 0 && (stage === 'awaiting_payment' || stage === 'part_paid')) {
+    const reported = 'You have told us a payment is on its way. We will confirm it once it reaches the account.';
+    detail = detail ? `${detail} ${reported}` : reported;
+  }
+  return { stage, label: copy.label, detail, at: journeyAt(stage, input) };
+}
+
+/** One order as the journey needs it. The money arrives from the payment map. */
+export interface JourneyInvoiceRow {
+  id: string;
+  status: string | null;
+  created_at: string | null;
+  payment_date: string | null;
+  fulfilled_at: string | null;
+}
+
+const NO_JOURNEY_MONEY: JourneyMoney = {
+  total_usd: 0, paid_usd: 0, outstanding_usd: 0, claims_pending: 0,
+};
+
+/**
+ * Journeys for a whole page of orders, batched exactly as
+ * resolveInvoicePayments batches: the ledger work is already done by the time
+ * this is called, so it is reused rather than queried a second time, and the
+ * only query left is the one that finds the request each order came from.
+ * Chunked at 90 ids because D1 caps bound parameters at 100.
+ */
+async function resolveOrderJourneys(
+  env: Env,
+  invoices: JourneyInvoiceRow[],
+  payments: Map<string, InvoicePaymentInfo>,
+): Promise<Map<string, OrderJourney>> {
+  const journeys = new Map<string, OrderJourney>();
+  const ids = [...new Set(invoices.map(invoice => invoice.id).filter(Boolean))];
+  if (ids.length === 0) return journeys;
+
+  // The request behind each order carries two things nothing else has: when the
+  // customer first asked, and the operator's own filing word.
+  const requests = new Map<string, { requestedAt: string | null; manualStatus: string | null }>();
+  for (let start = 0; start < ids.length; start += 90) {
+    const chunk = ids.slice(start, start + 90);
+    const result = await env.DB.prepare(
+      `SELECT converted_invoice_id, status, created_at
+         FROM inquiries
+        WHERE converted_invoice_id IN (${chunk.map(() => '?').join(', ')})`
+    ).bind(...chunk).all();
+    for (const row of (result.results ?? []) as Array<Record<string, any>>) {
+      requests.set(row.converted_invoice_id as string, {
+        requestedAt: (row.created_at as string | null) ?? null,
+        manualStatus: (row.status as string | null) ?? null,
+      });
+    }
+  }
+
+  for (const invoice of invoices) {
+    const request = requests.get(invoice.id);
+    journeys.set(invoice.id, deriveOrderJourney({
+      requestedAt: request?.requestedAt ?? null,
+      manualStatus: request?.manualStatus ?? null,
+      invoice: {
+        status: invoice.status,
+        created_at: invoice.created_at,
+        payment_date: invoice.payment_date,
+        fulfilled_at: invoice.fulfilled_at,
+        money: payments.get(invoice.id) ?? NO_JOURNEY_MONEY,
+      },
+    }));
+  }
+  return journeys;
+}
+
+// ── Payment ledger ───────────────────────────────────────────────────────────
+// invoice_payments is the record of money against an order. Two kinds of row
+// land in it, and keeping them apart is the whole point of the feature:
+//
+//   ('customer','claimed')    a customer says they sent a transfer. A REPORT.
+//                             It moves no money, changes no status, touches no
+//                             stock. A customer can never move an invoice
+//                             toward paid.
+//   ('operator','confirmed')  the operator saw the money arrive. Only these
+//                             count toward paid_usd.
+//
+// invoices.payment_status stays, and stays authoritative for every existing
+// reader in the codebase. It is now DERIVED: rewritten from the confirmed rows
+// after every ledger write, alongside payment_date and payment_method, so the
+// admin lists, the invoices list and the MCP tools all keep reading something
+// true without being repointed at this table.
+
+interface LedgerInvoice {
+  id: string;
+  account_id: string;
+  invoice_number: string | null;
+  status: string | null;
+  payment_status: string | null;
+  payment_date: string | null;
+  payment_method: string | null;
+  customer_name: string | null;
+  customer_id: string | null;
+  total_usd: number;
+}
+
+/** The invoice as the ledger needs it, priced. There is no total column. */
+async function loadLedgerInvoice(
+  env: Env,
+  invoiceId: string,
+  accountId?: string | null,
+): Promise<LedgerInvoice | null> {
+  const bindings = accountId ? [invoiceId, accountId] : [invoiceId];
+  const row = await env.DB.prepare(
+    `SELECT i.id, i.account_id, i.invoice_number, i.status, i.payment_status,
+            i.payment_date, i.payment_method, i.customer_name, i.customer_id,
+            i.shipping_cost_usd,
+            COALESCE((SELECT SUM(quantity * price_at_sale)
+                        FROM invoice_line_items WHERE invoice_id = i.id), 0) AS line_total
+       FROM invoices i
+      WHERE i.id = ? AND i.deleted_at IS NULL${accountId ? ' AND i.account_id = ?' : ''}
+      LIMIT 1`
+  ).bind(...bindings).first() as Record<string, any> | null;
+  if (!row) return null;
+  return {
+    id: row.id as string,
+    account_id: row.account_id as string,
+    invoice_number: (row.invoice_number as string | null) ?? null,
+    status: (row.status as string | null) ?? null,
+    payment_status: (row.payment_status as string | null) ?? null,
+    payment_date: (row.payment_date as string | null) ?? null,
+    payment_method: (row.payment_method as string | null) ?? null,
+    customer_name: (row.customer_name as string | null) ?? null,
+    customer_id: (row.customer_id as string | null) ?? null,
+    total_usd: roundUsd(Number(row.line_total || 0) + Number(row.shipping_cost_usd || 0)),
+  };
+}
+
+/**
+ * Absorb a settlement that was recorded on the column and nowhere else.
+ *
+ * Two paths still write invoices.payment_status without leaving a ledger row:
+ * the generic invoice update (PUT /api/invoices/:id, how the admin marks an
+ * order paid by hand) and the MCP `mark_invoice_paid` tool, which lives in
+ * mcp.ts and is not ours to change. Left alone, the first ledger write on such
+ * an invoice would recompute from an empty ledger and drag a paid order back to
+ * unpaid, silently losing money the operator had already accounted for. That is
+ * the desynchronisation this function exists to prevent.
+ *
+ * So before any ledger mutation, a 'paid' column with nothing behind it becomes
+ * what it always meant: a confirmed operator payment for the shortfall, keeping
+ * whatever date and method the invoice carried. After this the ledger is the
+ * record, and the recompute is safe.
+ *
+ * It runs BEFORE the mutation on purpose. Running it after would make a
+ * rejection impossible to land: the reject empties the ledger, the column still
+ * says paid, and the reconciliation would put the money straight back.
+ */
+async function reconcileLedgerWithColumn(env: Env, invoice: LedgerInvoice): Promise<void> {
+  if (String(invoice.payment_status || '').toLowerCase() !== 'paid') return;
+  if (!(invoice.total_usd > 0)) return;
+  const ledger = await loadInvoiceLedgerTotals(env, [invoice.id]);
+  const shortfall = roundUsd(invoice.total_usd - (ledger.get(invoice.id)?.paid_usd ?? 0));
+  if (shortfall <= PAYMENT_EPSILON) return;
+  const when = invoice.payment_date || new Date().toISOString();
+  await env.DB.prepare(
+    `INSERT INTO invoice_payments
+       (id, invoice_id, account_id, amount_usd, currency, method_label, note,
+        status, claimed_by, claimed_at, confirmed_at)
+     VALUES (?, ?, ?, ?, 'USD', ?, ?, 'confirmed', 'operator', ?, ?)`
+  ).bind(
+    crypto.randomUUID(), invoice.id, invoice.account_id, shortfall,
+    invoice.payment_method || null,
+    'Settled on the order before this was recorded as a payment.',
+    when, when,
+  ).run();
+}
+
+interface LedgerRecompute extends InvoiceMoney {
+  payment_status: 'unpaid' | 'partial' | 'paid';
+}
+
+/**
+ * Rewrite payment_status, payment_date and payment_method from the confirmed
+ * rows. Called after every ledger mutation and never on a read: a read that
+ * writes would fire once per row of every orders page.
+ */
+async function recomputeInvoicePaymentStatus(env: Env, invoice: LedgerInvoice): Promise<LedgerRecompute> {
+  const [ledger, latest] = await Promise.all([
+    loadInvoiceLedgerTotals(env, [invoice.id]),
+    env.DB.prepare(
+      `SELECT method_label, confirmed_at, claimed_at
+         FROM invoice_payments
+        WHERE invoice_id = ? AND status = 'confirmed'
+        ORDER BY COALESCE(confirmed_at, claimed_at) DESC, created_at DESC
+        LIMIT 1`
+    ).bind(invoice.id).first() as Promise<Record<string, any> | null>,
+  ]);
+  const totals = ledger.get(invoice.id) ?? { paid_usd: 0, claims_pending: 0 };
+  const paid = roundUsd(totals.paid_usd);
+  const total = invoice.total_usd;
+  const paymentStatus: 'unpaid' | 'partial' | 'paid' =
+    total > 0 && paid >= total - PAYMENT_EPSILON ? 'paid'
+      : paid > 0 ? 'partial'
+        : 'unpaid';
+  const paymentDate = latest
+    ? ((latest.confirmed_at as string | null) || (latest.claimed_at as string | null))
+    : null;
+  const paymentMethod = latest ? ((latest.method_label as string | null) || null) : null;
+  await env.DB.prepare(
+    `UPDATE invoices SET payment_status = ?, payment_date = ?, payment_method = ?
+      WHERE id = ? AND account_id = ?`
+  ).bind(paymentStatus, paymentDate, paymentMethod, invoice.id, invoice.account_id).run();
+  return {
+    payment_status: paymentStatus,
+    total_usd: total,
+    paid_usd: paid,
+    outstanding_usd: Math.max(0, roundUsd(total - paid)),
+    claims_pending: totals.claims_pending,
+  };
+}
+
+// Everything a payment row can carry from a request body, length-capped. These
+// strings reach an email and a pay-page reference, so control characters are
+// stripped rather than escaped away later.
+const PAYMENT_TEXT_LIMITS = { currency: 8, method: 80, reference: 140, note: 600 } as const;
+/** The most a single payment may be. A fat finger, not a real transfer. */
+const PAYMENT_AMOUNT_CEILING = 1_000_000;
+/** How far above the balance a claim may sit: rounding, not a second payment. */
+const CLAIM_TOLERANCE_USD = 0.01;
+
+function paymentTextField(value: unknown, max: number): string | null {
+  if (typeof value !== 'string') return null;
+  const clean = value.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
+  return clean ? clean.slice(0, max) : null;
+}
+
+interface PaymentInputFields {
+  amount: number | null;
+  amountOriginal: number | null;
+  currency: string | null;
+  methodLabel: string | null;
+  reference: string | null;
+  note: string | null;
+}
+
+function readPaymentInput(body: Record<string, unknown>): PaymentInputFields | { error: string } {
+  const rawAmount = body.amount_usd ?? body.amount;
+  let amount: number | null = null;
+  if (rawAmount != null && rawAmount !== '') {
+    const parsed = Number(rawAmount);
+    if (!Number.isFinite(parsed)) return { error: 'Amount must be a number' };
+    amount = roundUsd(parsed);
+    if (amount <= 0) return { error: 'Amount must be more than zero' };
+    if (amount > PAYMENT_AMOUNT_CEILING) return { error: 'Amount is too large' };
+  }
+  const rawOriginal = body.amount_original;
+  let amountOriginal: number | null = null;
+  if (rawOriginal != null && rawOriginal !== '') {
+    const parsed = Number(rawOriginal);
+    if (Number.isFinite(parsed) && parsed > 0 && parsed < PAYMENT_AMOUNT_CEILING) amountOriginal = parsed;
+  }
+  return {
+    amount,
+    amountOriginal,
+    currency: paymentTextField(body.currency, PAYMENT_TEXT_LIMITS.currency),
+    methodLabel: paymentTextField(body.method_label ?? body.method, PAYMENT_TEXT_LIMITS.method),
+    reference: paymentTextField(body.reference, PAYMENT_TEXT_LIMITS.reference),
+    note: paymentTextField(body.note, PAYMENT_TEXT_LIMITS.note),
+  };
+}
+
+async function insertInvoicePayment(env: Env, args: {
+  invoice: LedgerInvoice;
+  fields: PaymentInputFields;
+  amount: number;
+  claimedBy: 'customer' | 'operator';
+  status: 'claimed' | 'confirmed';
+  confirmedByUserId?: string | null;
+}): Promise<string> {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const confirmed = args.status === 'confirmed';
+  await env.DB.prepare(
+    `INSERT INTO invoice_payments
+       (id, invoice_id, account_id, amount_usd, amount_original, currency,
+        method_label, reference, note, status, claimed_by, claimed_at,
+        confirmed_by_user_id, confirmed_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    id, args.invoice.id, args.invoice.account_id, args.amount,
+    args.fields.amountOriginal, args.fields.currency,
+    args.fields.methodLabel, args.fields.reference, args.fields.note,
+    args.status, args.claimedBy, now,
+    confirmed ? (args.confirmedByUserId ?? null) : null,
+    confirmed ? now : null,
+  ).run();
+  return id;
+}
+
+async function auditInvoicePayment(
+  env: Env,
+  ctx: AccountCtx,
+  invoice: LedgerInvoice,
+  action: string,
+  message: string,
+  details: Record<string, any>,
+): Promise<void> {
+  try {
+    await buildActivityLog(env, action, message, ctx.email, 'invoice', invoice.id, invoice.account_id).run();
+  } catch { /* logging must never fail the money move */ }
+  // Neighbouring invoice writes name platform actions with dots, not the
+  // SCREAMING_CASE the activity log uses.
+  const platformAction = `invoice.${action.replace(/^INVOICE_/, '').toLowerCase()}`;
+  await auditPlatformActingWrite(env, ctx, platformAction, 'invoice', invoice.id, details);
+}
+
+// ── Customer payment claims ──────────────────────────────────────────────────
+// The customer end of the ledger. Both entrances land here, and neither writes
+// anything but a report.
+
+async function createCustomerPaymentClaim(
+  env: Env,
+  invoice: LedgerInvoice,
+  body: Record<string, unknown>,
+  who: { name: string | null; contact: string | null },
+): Promise<Response> {
+  const fields = readPaymentInput(body);
+  if ('error' in fields) return restError(400, fields.error, 'invalid_payment_amount');
+
+  if (String(invoice.status || '') === 'Void') {
+    return restError(409, 'This order has been cancelled', 'invoice_void');
+  }
+  const ledger = await loadInvoiceLedgerTotals(env, [invoice.id]);
+  const money = invoiceMoney(invoice.total_usd, invoice.payment_status, ledger.get(invoice.id));
+  if (money.outstanding_usd <= 0) {
+    return restError(409, 'This order has nothing left to pay', 'nothing_outstanding');
+  }
+  const amount = fields.amount ?? money.outstanding_usd;
+  if (amount > money.outstanding_usd + CLAIM_TOLERANCE_USD) {
+    return restError(400, 'That is more than the balance on this order', 'amount_above_outstanding');
+  }
+
+  // A claim writes a report and nothing else. payment_status, payment_date,
+  // payment_method and stock are all deliberately untouched: only an operator
+  // confirming the transfer moves an invoice toward paid.
+  const claimId = await insertInvoicePayment(env, {
+    invoice, fields, amount, claimedBy: 'customer', status: 'claimed',
+  });
+  const claimsPending = (ledger.get(invoice.id)?.claims_pending ?? 0) + 1;
+
+  sendPaymentClaimEmail(env, {
+    accountId: invoice.account_id,
+    invoiceNumber: invoice.invoice_number,
+    customerName: who.name || invoice.customer_name || 'A customer',
+    contact: who.contact,
+    amountUsd: amount,
+    outstandingUsd: money.outstanding_usd,
+    method: fields.methodLabel,
+    reference: fields.reference,
+    note: fields.note,
+  }).catch(() => { /* a mail failure must never fail the claim */ });
+
+  return json({ claim_id: claimId, claims_pending: claimsPending }, 201);
+}
+
+// POST /api/orders/:ref/payment-claim — public, scoped by the tracking token
+// exactly as GET /api/inquiries/:ref is. Unauthenticated write, so it is rate
+// limited on the Cloudflare-set client IP.
+const handleCreateOrderPaymentClaim: Handler = async (request, env, params) => {
+  // CF-Connecting-IP is set by Cloudflare and cannot be spoofed by the client;
+  // never fall back to X-Forwarded-For for a rate-limit key.
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  if (!checkRateLimit(`payclaim:${ip}`, 6, 600000)) {
+    return restError(429, 'Too many payment reports. Try again shortly.', 'rate_limited');
+  }
+  const token = params.ref;
+  if (!isValidTrackingToken(token)) return json({ error: 'Not found' }, 404);
+  const tokenHash = await sha256Hex(token);
+  const inquiry = await env.DB.prepare(
+    `SELECT id, account_id, name, email, phone, converted_invoice_id
+       FROM inquiries WHERE tracking_token_hash = ? LIMIT 1`
+  ).bind(tokenHash).first() as Record<string, any> | null;
+  // Nothing to pay until the request has been priced into an invoice.
+  if (!inquiry?.converted_invoice_id) return json({ error: 'Not found' }, 404);
+  const invoice = await loadLedgerInvoice(
+    env, inquiry.converted_invoice_id as string, inquiry.account_id as string,
+  );
+  if (!invoice) return json({ error: 'Not found' }, 404);
+  const body = await request.json().catch(() => ({})) as Record<string, unknown>;
+  return createCustomerPaymentClaim(env, invoice, body, {
+    name: (inquiry.name as string | null) || invoice.customer_name,
+    contact: (inquiry.email as string | null) || (inquiry.phone as string | null) || null,
+  });
+};
+
+// POST /api/me/orders/:id/payment-claim — signed in, scoped the way
+// handleGetMyOrders scopes: the same ownership predicate, no wider.
+const handleCreateMyOrderPaymentClaim: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
+  if (!checkRateLimit(`payclaim-user:${userId}`, 12, 600000)) {
+    return restError(429, 'Too many payment reports. Try again shortly.', 'rate_limited');
+  }
+  const ownership = await loadMyOrderOwnership(env, userId, accountId);
+  const owned = await env.DB.prepare(
+    `SELECT i.id FROM invoices i
+      WHERE i.id = ? AND i.account_id = ? AND i.deleted_at IS NULL
+        AND i.status NOT IN ('Draft', 'Void') AND ${ownership.predicate}
+      LIMIT 1`
+  ).bind(params.id, accountId, ...ownership.bindings).first();
+  if (!owned) return json({ error: 'Order not found' }, 404);
+  const invoice = await loadLedgerInvoice(env, params.id, accountId);
+  if (!invoice) return json({ error: 'Order not found' }, 404);
+  const body = await request.json().catch(() => ({})) as Record<string, unknown>;
+  return createCustomerPaymentClaim(env, invoice, body, {
+    name: ctx.name || invoice.customer_name,
+    contact: ctx.email || null,
+  });
+};
+
+// ── Operator side of the ledger ──────────────────────────────────────────────
+
+// GET /api/invoices/:id/payments — the payment history on one order.
+const handleGetInvoicePayments: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'sell');
+  if ('error' in ctx) return ctx.error;
+  const result = await env.DB.prepare(
+    `SELECT id, invoice_id, account_id, amount_usd, amount_original, currency,
+            payment_method_id, method_label, reference, note, status, claimed_by,
+            claimed_at, confirmed_by_user_id, confirmed_at, created_at
+       FROM invoice_payments
+      WHERE invoice_id = ? AND account_id = ?
+      ORDER BY claimed_at DESC, created_at DESC`
+  ).bind(params.id, ctx.accountId).all();
+  return json(result.results ?? []);
+};
+
+// POST /api/invoices/:id/payments — the operator records money they have seen.
+// One step: the row lands confirmed, and the invoice is recomputed from it.
+const handleRecordInvoicePayment: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'sell');
+  if ('error' in ctx) return ctx.error;
+  const invoice = await loadLedgerInvoice(env, params.id, ctx.accountId);
+  if (!invoice) return restError(404, 'Invoice not found', 'invoice_not_found');
+  if (String(invoice.status || '') === 'Void') {
+    return restError(409, 'A void order cannot take a payment', 'invoice_void');
+  }
+  const body = await request.json().catch(() => ({})) as Record<string, unknown>;
+  const fields = readPaymentInput(body);
+  if ('error' in fields) return restError(400, fields.error, 'invalid_payment_amount');
+  if (fields.amount == null) return restError(400, 'Amount is required', 'invalid_payment_amount');
+
+  // The operator is trusted with the number. An overpayment is a real thing
+  // that happens with transfer fees, and the balance simply floors at zero.
+  await reconcileLedgerWithColumn(env, invoice);
+  const paymentId = await insertInvoicePayment(env, {
+    invoice, fields, amount: fields.amount,
+    claimedBy: 'operator', status: 'confirmed', confirmedByUserId: ctx.userId,
+  });
+  const result = await recomputeInvoicePaymentStatus(env, invoice);
+  await auditInvoicePayment(
+    env, ctx, invoice, 'INVOICE_PAYMENT_RECORDED',
+    `Payment of ${fields.amount.toFixed(2)} USD recorded on invoice ${invoice.invoice_number ?? invoice.id}`,
+    { payment_id: paymentId, amount_usd: fields.amount, payment_status: result.payment_status },
+  );
+  return json({ payment_id: paymentId, ...result }, 201);
+};
+
+/**
+ * Confirm or reject one payment row.
+ *
+ * The transition is guarded the way the convert claim is: the states we believe
+ * we are moving out of sit in the WHERE clause, so two clicks racing each other
+ * produce one change and one no-op. Confirming an already-confirmed payment
+ * changes nothing and counts nothing twice; it still returns the current truth
+ * so the caller's screen settles on the right numbers either way.
+ */
+async function transitionInvoicePayment(
+  request: Request,
+  env: Env,
+  paymentId: string,
+  next: 'confirmed' | 'rejected',
+): Promise<Response> {
+  const ctx = await requireBundle(request, env, 'sell');
+  if ('error' in ctx) return ctx.error;
+  const row = await env.DB.prepare(
+    `SELECT id, invoice_id, amount_usd, method_label, status FROM invoice_payments
+      WHERE id = ? AND account_id = ? LIMIT 1`
+  ).bind(paymentId, ctx.accountId).first() as Record<string, any> | null;
+  if (!row) return restError(404, 'Payment not found', 'payment_not_found');
+  const invoice = await loadLedgerInvoice(env, row.invoice_id as string, ctx.accountId);
+  if (!invoice) return restError(404, 'Invoice not found', 'invoice_not_found');
+
+  await reconcileLedgerWithColumn(env, invoice);
+
+  const now = new Date().toISOString();
+  const update = next === 'confirmed'
+    ? env.DB.prepare(
+        `UPDATE invoice_payments
+            SET status = 'confirmed', confirmed_by_user_id = ?, confirmed_at = ?
+          WHERE id = ? AND account_id = ? AND status IN ('claimed', 'rejected')`
+      ).bind(ctx.userId, now, paymentId, ctx.accountId)
+    // A rejection records who decided, but clears confirmed_at: that column
+    // means "when this became money", and a rejected report never did.
+    : env.DB.prepare(
+        `UPDATE invoice_payments
+            SET status = 'rejected', confirmed_by_user_id = ?, confirmed_at = NULL
+          WHERE id = ? AND account_id = ? AND status IN ('claimed', 'confirmed')`
+      ).bind(ctx.userId, paymentId, ctx.accountId);
+  const changed = Number((await update.run()).meta?.changes || 0) > 0;
+
+  const result = await recomputeInvoicePaymentStatus(env, invoice);
+  if (changed) {
+    const amount = Number(row.amount_usd || 0).toFixed(2);
+    await auditInvoicePayment(
+      env, ctx, invoice,
+      next === 'confirmed' ? 'INVOICE_PAYMENT_CONFIRMED' : 'INVOICE_PAYMENT_REJECTED',
+      `Payment of ${amount} USD ${next} on invoice ${invoice.invoice_number ?? invoice.id}`,
+      { payment_id: paymentId, amount_usd: Number(row.amount_usd || 0), payment_status: result.payment_status },
+    );
+    // Only on a confirmation, and only on the transition: confirming an already
+    // confirmed payment changes nothing, so it must not write again either.
+    // A rejection is a conversation to have, not a template to send.
+    if (next === 'confirmed') {
+      sendPaymentConfirmedEmail(env, {
+        invoice,
+        amountUsd: Number(row.amount_usd || 0),
+        outstandingUsd: result.outstanding_usd,
+        method: (row.method_label as string | null) || null,
+      }).catch(() => { /* a mail failure must never fail the confirmation */ });
+    }
+  }
+  return json({ success: true, changed, payment_id: paymentId, status: next, ...result });
+}
+
+const handleConfirmInvoicePayment: Handler = (request, env, params) =>
+  transitionInvoicePayment(request, env, params.id, 'confirmed');
+
+const handleRejectInvoicePayment: Handler = (request, env, params) =>
+  transitionInvoicePayment(request, env, params.id, 'rejected');
+
+// ── What needs Adrian ────────────────────────────────────────────────────────
+// One list, four kinds, oldest waiting first ACROSS the kinds rather than
+// grouped by them. That ordering is the whole value of the surface: it answers
+// "who has waited longest", not "what exists". Grouped by kind it would be four
+// lists nobody reads.
+//
+// This feeds Your Table, the portal Adrian actually opens, so the budget is one
+// query per kind and no N+1 across orders. Each query carries its own true count
+// in a window function, so a capped list still reports how many there really are.
+//
+// The four rules are shared with `whats_waiting` in mcp.ts, which cannot import
+// them (index.ts imports mcp.ts, so importing back would close a module cycle)
+// and mirrors them instead. Where they differ it is written down in
+// todo/plans/order-process-notes.md, never left to be discovered.
+
+export type AttentionKind = 'request' | 'unpriced' | 'claim' | 'unsent';
+
+export interface AttentionItem {
+  kind: AttentionKind;
+  id: string;
+  /** Plain and human, and it names the person or the order. */
+  label: string;
+  /** How long it has waited. Lowercase, written to follow a comma. */
+  meta: string | null;
+  /** The sort key, ISO. Per kind: when it arrived, when it was reported, when it was paid. */
+  waiting_since: string;
+  /** An app path, never an absolute URL: the panel navigates it with the router. */
+  href: string;
+  /** What a person says back: the request reference or the order number. */
+  reference: string | null;
+}
+
+/** Per kind. A list longer than this is not a list, it is a backlog. */
+const ATTENTION_KIND_LIMIT = 25;
+/** After the four are merged. The oldest survive, which is the point. */
+const ATTENTION_TOTAL_LIMIT = 50;
+
+/**
+ * SQLite writes `datetime('now')` as "2026-08-31 09:12:00" with no zone, while
+ * everything written from JS is already ISO. Left mixed, `new Date(value)` reads
+ * the first as LOCAL time and every dateline in the interface is wrong by the
+ * reader's offset. Both are UTC, so both leave here saying so.
+ */
+function toIsoTime(value: string | null | undefined): string | null {
+  const raw = String(value ?? '').trim();
+  if (!raw) return null;
+  if (raw.includes('T')) return raw;
+  const normalized = `${raw.replace(' ', 'T')}Z`;
+  return Number.isNaN(Date.parse(normalized)) ? raw : normalized;
+}
+
+/** "waiting 3 days". Lowercase and able to follow a comma, as the panel asks. */
+function waitingPhrase(since: string | null): string | null {
+  const iso = toIsoTime(since);
+  if (!iso) return null;
+  const started = Date.parse(iso);
+  if (Number.isNaN(started)) return null;
+  const hours = Math.floor((Date.now() - started) / 3_600_000);
+  if (hours < 1) return 'waiting under an hour';
+  if (hours < 24) return `waiting ${hours} hour${hours === 1 ? '' : 's'}`;
+  const days = Math.floor(hours / 24);
+  return `waiting ${days} day${days === 1 ? '' : 's'}`;
+}
+
+function attentionPerson(name: unknown): string {
+  const clean = String(name ?? '').trim();
+  return clean || 'a customer';
+}
+
+function attentionOrderRef(row: Record<string, any>): string {
+  return String(row.invoice_number || '').trim() || 'an order';
+}
+
+/** The one link ActivityView already builds for an order, line 250 of that file. */
+function attentionOrderHref(invoiceNumber: string | null): string {
+  const ref = String(invoiceNumber || '').trim();
+  return ref
+    ? `/admin/activity?tab=orders&search=${encodeURIComponent(ref)}`
+    : '/admin/activity?tab=orders';
+}
+
+/**
+ * GET /api/attention — admin, account scoped.
+ *
+ * The four reads run together and NOTHING here catches a query failure. An
+ * empty list is a real answer that Your Table renders as a calm one, so a
+ * partial failure returning `{ items: [] }` would tell Adrian the table is
+ * clear while a customer sits unanswered. A throw becomes a 500 at the router,
+ * which the panel handles by staying quiet. Silence is the honest failure.
+ */
+const handleGetAttention: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'sell');
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const [requestRows, unpricedRows, claimRows, unsentRows] = await Promise.all([
+    // A request nobody has answered. `replied` and `closed` have been answered;
+    // a converted one has become an order and belongs to the unpriced kind.
+    env.DB.prepare(
+      `SELECT id, name, ref_number, created_at, COUNT(*) OVER () AS total_count
+         FROM inquiries
+        WHERE account_id = ?
+          AND converted_invoice_id IS NULL
+          AND COALESCE(status, 'new') IN ('new', 'seen')
+        ORDER BY created_at ASC
+        LIMIT ?`
+    ).bind(accountId, ATTENTION_KIND_LIMIT).all(),
+
+    // An order that cannot be paid for as it stands: a converted request still
+    // sitting as a draft, or any live order carrying a line priced at nothing.
+    // A plain draft the operator is mid-composing does not nag, and a shipped
+    // order is water under the bridge.
+    env.DB.prepare(
+      `SELECT i.id, i.invoice_number, i.customer_name, i.status, i.created_at,
+              EXISTS (SELECT 1 FROM invoice_line_items l
+                       WHERE l.invoice_id = i.id AND l.price_at_sale <= 0) AS zero_line,
+              COUNT(*) OVER () AS total_count
+         FROM invoices i
+        WHERE i.account_id = ?
+          AND i.deleted_at IS NULL
+          AND i.status <> 'Void'
+          AND i.fulfilled_at IS NULL
+          AND (
+            EXISTS (SELECT 1 FROM invoice_line_items l
+                     WHERE l.invoice_id = i.id AND l.price_at_sale <= 0)
+            OR (i.status = 'Draft'
+                AND EXISTS (SELECT 1 FROM inquiries q WHERE q.converted_invoice_id = i.id))
+          )
+        ORDER BY i.created_at ASC
+        LIMIT ?`
+    ).bind(accountId, ATTENTION_KIND_LIMIT).all(),
+
+    // A customer has said they sent money and nobody has been to look yet. A
+    // report is not a payment: this row has moved nothing.
+    env.DB.prepare(
+      `SELECT p.id, p.amount_usd, p.claimed_at, p.method_label,
+              i.invoice_number, i.customer_name,
+              COUNT(*) OVER () AS total_count
+         FROM invoice_payments p
+         JOIN invoices i ON i.id = p.invoice_id
+        WHERE p.account_id = ? AND p.status = 'claimed' AND i.deleted_at IS NULL
+        ORDER BY p.claimed_at ASC
+        LIMIT ?`
+    ).bind(accountId, ATTENTION_KIND_LIMIT).all(),
+
+    // Paid for and still here. Settled by the same rule invoiceMoney reads on
+    // every other surface, so a `paid` column with an empty ledger still counts
+    // as paid and the order still shows up as waiting to be sent. It waits from
+    // the moment the money landed, not from when it was ordered.
+    env.DB.prepare(
+      `SELECT i.id, i.invoice_number, i.customer_name, i.created_at,
+              COALESCE(p.last_paid_at, i.payment_date, i.created_at) AS paid_at,
+              COUNT(*) OVER () AS total_count
+         FROM invoices i
+         LEFT JOIN (
+           SELECT invoice_id, SUM(quantity * price_at_sale) AS line_total
+             FROM invoice_line_items WHERE account_id = ? GROUP BY invoice_id
+         ) t ON t.invoice_id = i.id
+         LEFT JOIN (
+           SELECT invoice_id, SUM(amount_usd) AS paid_usd,
+                  MAX(COALESCE(confirmed_at, claimed_at)) AS last_paid_at
+             FROM invoice_payments
+            WHERE account_id = ? AND status = 'confirmed'
+            GROUP BY invoice_id
+         ) p ON p.invoice_id = i.id
+        WHERE i.account_id = ?
+          AND i.deleted_at IS NULL
+          AND i.fulfilled_at IS NULL
+          AND i.status NOT IN ('Void', 'Draft')
+          AND (COALESCE(t.line_total, 0) + COALESCE(i.shipping_cost_usd, 0)) > 0
+          AND (
+            i.payment_status = 'paid'
+            OR COALESCE(p.paid_usd, 0)
+                 >= COALESCE(t.line_total, 0) + COALESCE(i.shipping_cost_usd, 0) - 0.01
+          )
+        ORDER BY paid_at ASC
+        LIMIT ?`
+    ).bind(accountId, accountId, accountId, ATTENTION_KIND_LIMIT).all(),
+  ]);
+
+  const items: AttentionItem[] = [];
+  const counts = { requests: 0, unpriced: 0, claims: 0, unsent: 0 };
+  /** The window function's count survives the LIMIT; the row count would not. */
+  const trueCount = (rows: Array<Record<string, any>>) =>
+    rows.length === 0 ? 0 : Number(rows[0].total_count || rows.length);
+
+  const requests = (requestRows.results ?? []) as Array<Record<string, any>>;
+  counts.requests = trueCount(requests);
+  for (const row of requests) {
+    const since = toIsoTime(row.created_at) ?? new Date().toISOString();
+    items.push({
+      kind: 'request',
+      id: String(row.id),
+      label: `Order request from ${attentionPerson(row.name)}`,
+      meta: waitingPhrase(since),
+      waiting_since: since,
+      href: '/admin/activity?tab=inquiries',
+      reference: (row.ref_number as string | null) || null,
+    });
+  }
+
+  const unpriced = (unpricedRows.results ?? []) as Array<Record<string, any>>;
+  counts.unpriced = trueCount(unpriced);
+  for (const row of unpriced) {
+    const since = toIsoTime(row.created_at) ?? new Date().toISOString();
+    const who = attentionPerson(row.customer_name);
+    items.push({
+      kind: 'unpriced',
+      id: String(row.id),
+      label: Number(row.zero_line || 0) > 0
+        ? `Order ${attentionOrderRef(row)} for ${who} has a line with no price`
+        : `Order ${attentionOrderRef(row)} for ${who} is still a draft`,
+      meta: waitingPhrase(since),
+      waiting_since: since,
+      href: attentionOrderHref(row.invoice_number as string | null),
+      reference: (row.invoice_number as string | null) || null,
+    });
+  }
+
+  const claims = (claimRows.results ?? []) as Array<Record<string, any>>;
+  counts.claims = trueCount(claims);
+  for (const row of claims) {
+    const since = toIsoTime(row.claimed_at) ?? new Date().toISOString();
+    items.push({
+      kind: 'claim',
+      id: String(row.id),
+      label: `${attentionPerson(row.customer_name)} reports paying `
+        + `${formatMoney(Number(row.amount_usd || 0), 'USD')} on ${attentionOrderRef(row)}`,
+      meta: waitingPhrase(since),
+      waiting_since: since,
+      href: attentionOrderHref(row.invoice_number as string | null),
+      reference: (row.invoice_number as string | null) || null,
+    });
+  }
+
+  const unsent = (unsentRows.results ?? []) as Array<Record<string, any>>;
+  counts.unsent = trueCount(unsent);
+  for (const row of unsent) {
+    const since = toIsoTime(row.paid_at) ?? toIsoTime(row.created_at) ?? new Date().toISOString();
+    items.push({
+      kind: 'unsent',
+      id: String(row.id),
+      label: `Order ${attentionOrderRef(row)} for ${attentionPerson(row.customer_name)} `
+        + 'is paid and not yet sent',
+      meta: waitingPhrase(since),
+      waiting_since: since,
+      href: attentionOrderHref(row.invoice_number as string | null),
+      reference: (row.invoice_number as string | null) || null,
+    });
+  }
+
+  // Across the kinds, not within them. Whoever has waited longest is first,
+  // whatever kind of waiting it is.
+  items.sort((left, right) => left.waiting_since.localeCompare(right.waiting_since));
+  return json({ items: items.slice(0, ATTENTION_TOTAL_LIMIT), counts });
+};
+
 // ── Invoices ──
 const handleGetInvoices: Handler = async (request, env) => {
   const ctx = await requireAccount(request, env);
@@ -3862,7 +5231,21 @@ const handleGetInvoices: Handler = async (request, env) => {
      ${whereClause}
      ORDER BY i.created_at DESC LIMIT ? OFFSET ?`
   ).bind(accountId, limit, offset).all();
-  return json(result.results);
+
+  // One payment resolution for the whole page, never one per row.
+  const rows = (result.results ?? []) as Array<Record<string, any>>;
+  const payments = await resolveInvoicePayments(env, rows.map(row => ({
+    id: row.id as string,
+    account_id: row.account_id as string | null,
+    invoice_number: row.invoice_number as string | null,
+    status: row.status as string | null,
+    payment_status: row.payment_status as string | null,
+    payment_recipient_user_id: row.payment_recipient_user_id as string | null,
+    sold_by_user_id: row.sold_by_user_id as string | null,
+    total_usd: Number(row.computed_total || 0),
+    shipping_cost_usd: Number(row.shipping_cost_usd || 0),
+  })));
+  return json(rows.map(row => ({ ...row, payment: payments.get(row.id as string) ?? null })));
 };
 
 // Canonical invoice-number formatter. ONE source of truth shared across
@@ -4404,23 +5787,50 @@ const handleFulfillInvoice: Handler = async (request, env) => {
     }
   }
 
-  // Send order confirmation email to customer (non-blocking, best-effort)
-  const customerEmail = (invoice as any).customer_email as string | null;
+  // Send order confirmation email to customer (non-blocking, best-effort).
+  // invoices carries no email column, so the address comes from the linked
+  // customer record. Without that link there is nobody to write to.
   const customerName  = (invoice as any).customer_name  as string | null;
+  const customerEmail = ((invoice as any).customer_email as string | null)
+    || ((invoice as any).customer_id
+      ? ((await env.DB.prepare('SELECT email FROM customers WHERE id = ? AND account_id = ?')
+          .bind((invoice as any).customer_id, accountId)
+          .first() as { email: string | null } | null)?.email ?? null)
+      : null);
   if (customerEmail && env.SENDER_EMAIL) {
     const invoiceNumber = (invoice as any).invoice_number as string;
-    const amountUsd     = (invoice as any).amount_usd     as number | null;
     const lineItems = (items.results as any[]).map(i => ({
-      name: i.product_name || i.given_name || 'Item',
-      qty:  i.quantity_grams ? `${i.quantity_grams}g` : (i.quantity != null ? `×${i.quantity}` : ''),
+      name: i.product_name || i.given_name || i.custom_name || 'Item',
+      qty:  i.quantity_grams ? `${i.quantity_grams}g` : (i.quantity != null ? `x${i.quantity}` : ''),
     }));
-    const orderUrl = `https://teajia.app/order/${invoice_id}`;
+    // invoices has no total column: the amount is the sum of the lines plus shipping.
+    const lineTotalUsd = (items.results as any[]).reduce(
+      (sum, i) => sum + (Number(i.quantity) || 0) * (Number(i.price_at_sale) || 0), 0,
+    );
+    const amountUsd = lineTotalUsd + (Number((invoice as any).shipping_cost_usd) || 0);
+    const origin = appOrigin(env);
+    // The order page at /order/:ref is keyed by the customer's tracking token,
+    // which is stored only as a hash and cannot be rebuilt here. Their order
+    // history is the link that always resolves.
+    const orderUrl = `${origin}/account/orders`;
+    const payment = await resolveInvoicePayment(env, {
+      id: invoice_id,
+      account_id: accountId,
+      invoice_number: invoiceNumber,
+      status: 'Filled',
+      payment_status: (invoice as any).payment_status as string | null,
+      payment_recipient_user_id: (invoice as any).payment_recipient_user_id as string | null,
+      sold_by_user_id: (invoice as any).sold_by_user_id as string | null,
+      total_usd: lineTotalUsd,
+      shipping_cost_usd: Number((invoice as any).shipping_cost_usd) || 0,
+    }).catch(() => null);
     sendEmail(env, customerEmail, `Your Teajia order ${invoiceNumber} is confirmed`, fulfillmentEmailHtml(
       customerName || 'there',
       invoiceNumber,
       lineItems,
       amountUsd,
       orderUrl,
+      payment?.pay_url ?? null,
     )).catch(() => { /* non-critical */ });
   }
 
@@ -7401,9 +8811,30 @@ const handleGetCustomerOrders: Handler = async (request, env, params) => {
 
   try {
     const orders = await env.DB.prepare(
-      'SELECT * FROM invoices WHERE customer_id = ? AND account_id = ? ORDER BY created_at DESC'
+      `SELECT i.*, COALESCE(t.line_total, 0) AS computed_total
+         FROM invoices i
+         LEFT JOIN (
+           SELECT invoice_id, SUM(quantity * price_at_sale) AS line_total
+           FROM invoice_line_items GROUP BY invoice_id
+         ) t ON t.invoice_id = i.id
+        WHERE i.customer_id = ? AND i.account_id = ?
+        ORDER BY i.created_at DESC`
     ).bind(params.id, accountId).all();
-    return json(orders.results);
+    // The customer profile's Recent Orders list wants a pay link like every
+    // other invoice-shaped response. One resolution for the whole list.
+    const rows = (orders.results ?? []) as Array<Record<string, any>>;
+    const payments = await resolveInvoicePayments(env, rows.map(row => ({
+      id: row.id as string,
+      account_id: row.account_id as string | null,
+      invoice_number: row.invoice_number as string | null,
+      status: row.status as string | null,
+      payment_status: row.payment_status as string | null,
+      payment_recipient_user_id: row.payment_recipient_user_id as string | null,
+      sold_by_user_id: row.sold_by_user_id as string | null,
+      total_usd: Number(row.computed_total || 0),
+      shipping_cost_usd: Number(row.shipping_cost_usd || 0),
+    })));
+    return json(rows.map(row => ({ ...row, payment: payments.get(row.id as string) ?? null })));
   } catch {
     return json([]);
   }
@@ -11686,6 +13117,22 @@ const handleCreateInquiry: Handler = async (request, env) => {
         normalized.value.totalUsd, normalized.value.currency, message, source,
         normalized.value.refNumber, tokenHash, requestFingerprint,
       ).run();
+      // Tell the store, and tell the customer. Best-effort: the order is saved
+      // either way, and a mail failure must never fail it.
+      sendOrderRequestEmails(env, {
+        accountId,
+        source,
+        customerName: name,
+        contact,
+        phone,
+        location: location || null,
+        itemsJson: normalized.value.itemsJson,
+        totalUsd: normalized.value.totalUsd,
+        currency: normalized.value.currency,
+        message,
+        reference: normalized.value.refNumber,
+        trackingToken: normalized.value.trackingToken,
+      }).catch(() => { /* non-critical */ });
       return json({
         id,
         ref_number: normalized.value.refNumber,
@@ -11739,6 +13186,20 @@ const handleCreateInquiry: Handler = async (request, env) => {
       throw err;
     }
   }
+  sendOrderRequestEmails(env, {
+    accountId,
+    source,
+    customerName: name,
+    contact,
+    phone,
+    location: null,
+    itemsJson: itemsStr,
+    totalUsd,
+    currency: body.currency || 'USD',
+    message,
+    reference: refNumber || id,
+    trackingToken: null,
+  }).catch(() => { /* non-critical */ });
   return json({ id, ref_number: refNumber, source, success: true }, 201);
 };
 
@@ -11765,11 +13226,54 @@ const handleGetInquiryByRef: Handler = async (_request, env, params) => {
   if (!isValidTrackingToken(token)) return json({ error: 'Not found' }, 404);
   const tokenHash = await sha256Hex(token);
   const row = await env.DB.prepare(
-    `SELECT ref_number, items, status, total_usd, currency, created_at
+    `SELECT ref_number, items, status, total_usd, currency, created_at, converted_invoice_id
      FROM inquiries WHERE tracking_token_hash = ? LIMIT 1`
   ).bind(tokenHash).first() as any;
   if (!row) return json({ error: 'Not found' }, 404);
-  return json(redactPublicInquiry(row));
+
+  // There is nothing to pay until the request has been priced into an invoice,
+  // so the pay link only appears once it has been converted.
+  let payment: InvoicePaymentInfo | null = null;
+  // What the customer is TOLD about where their order stands. Derived from the
+  // order itself, not from row.status: that column is the operator's filing and
+  // is set in a different screen from the one where the order is worked, which
+  // is how this page came to say "inquiry received" about a parcel in the post.
+  // The request is already in hand here, so no second query finds it.
+  let journeyInvoice: JourneyInvoice | null = null;
+  if (row.converted_invoice_id) {
+    const invoice = await env.DB.prepare(
+      `SELECT id, account_id, invoice_number, shipping_cost_usd, status, payment_status,
+              display_currency, payment_date, fulfilled_at, created_at,
+              payment_recipient_user_id, sold_by_user_id
+         FROM invoices WHERE id = ? AND deleted_at IS NULL`
+    ).bind(row.converted_invoice_id).first() as Record<string, any> | null;
+    if (invoice) {
+      payment = await resolveInvoicePayment(env, {
+        id: invoice.id as string,
+        account_id: invoice.account_id as string | null,
+        invoice_number: invoice.invoice_number as string | null,
+        status: invoice.status as string | null,
+        payment_status: invoice.payment_status as string | null,
+        display_currency: invoice.display_currency as string | null,
+        payment_recipient_user_id: invoice.payment_recipient_user_id as string | null,
+        sold_by_user_id: invoice.sold_by_user_id as string | null,
+        shipping_cost_usd: Number(invoice.shipping_cost_usd || 0),
+      });
+      journeyInvoice = {
+        status: (invoice.status as string | null) ?? null,
+        created_at: (invoice.created_at as string | null) ?? null,
+        payment_date: (invoice.payment_date as string | null) ?? null,
+        fulfilled_at: (invoice.fulfilled_at as string | null) ?? null,
+        money: payment,
+      };
+    }
+  }
+  const journey = deriveOrderJourney({
+    requestedAt: (row.created_at as string | null) ?? null,
+    manualStatus: (row.status as string | null) ?? null,
+    invoice: journeyInvoice,
+  });
+  return json({ ...redactPublicInquiry(row), payment, journey });
 };
 
 const handleUpdateInquiryStatus: Handler = async (request, env, params) => {
@@ -11787,6 +13291,168 @@ const handleUpdateInquiryStatus: Handler = async (request, env, params) => {
   ).bind(status, params.id, accountId).run();
   if (!res.meta.changes) return json({ error: 'Inquiry not found' }, 404);
   return json({ success: true });
+};
+
+// POST /api/inquiries/:id/convert turns a saved order request into a Draft
+// invoice the operator can price, send and fulfil. The inquiry keeps a pointer
+// to the invoice it became, so this is a once-only move.
+const handleConvertInquiry: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'sell');
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const userEmail = getUserEmail(request);
+
+  const inquiry = await env.DB.prepare(
+    `SELECT id, account_id, name, email, phone, items, currency, message, ref_number, converted_invoice_id
+       FROM inquiries WHERE id = ? AND account_id = ?`
+  ).bind(params.id, accountId).first() as Record<string, any> | null;
+  if (!inquiry) return json({ error: 'Inquiry not found' }, 404);
+  if (inquiry.converted_invoice_id) {
+    return json({ error: 'This request is already an order', invoice_id: inquiry.converted_invoice_id as string }, 409);
+  }
+
+  let items: Array<Record<string, any>> = [];
+  try {
+    const parsed = JSON.parse(String(inquiry.items || '[]'));
+    if (Array.isArray(parsed)) items = parsed.filter(item => item && typeof item === 'object');
+  } catch {
+    items = [];
+  }
+  if (items.length === 0) return json({ error: 'This request has no items to price' }, 400);
+
+  // Products the shop still carries keep their link and their current price.
+  // Anything that no longer resolves becomes a named custom line at zero, so
+  // nothing is dropped and the operator prices it by hand.
+  const productIds = [...new Set(items.map(item => String(item.id || '')).filter(Boolean))];
+  const productRows = productIds.length
+    ? await env.DB.prepare(
+      `SELECT id, type, fixed_retail_price_usd,
+              COALESCE(given_name, product_name) AS product_name
+         FROM products
+        WHERE account_id = ? AND id IN (${productIds.map(() => '?').join(', ')})`
+    ).bind(accountId, ...productIds).all()
+    : { results: [] as unknown[] };
+  const products = new Map<string, Record<string, any>>();
+  for (const row of (productRows.results ?? []) as Array<Record<string, any>>) {
+    products.set(row.id as string, row);
+  }
+
+  const lineItems = items.map(item => {
+    const product = products.get(String(item.id || ''));
+    const rawQuantity = Number(item.quantityGrams ?? item.qty ?? 1);
+    const quantity = Math.max(1, Math.round(Number.isFinite(rawQuantity) ? rawQuantity : 1));
+    const name = String(item.name || product?.product_name || 'Item');
+    if (!product) {
+      return { product_id: null, custom_name: name, quantity, price_at_sale: 0 };
+    }
+    // Same linking rule as the collection-picks path: teas stay linked to the
+    // product row, teaware is carried as a named line.
+    const mayRemainLinked = isTeaType(String(product.type || ''));
+    const catalogPrice = product.fixed_retail_price_usd == null ? null : Number(product.fixed_retail_price_usd);
+    const fallbackPrice = Number(item.pricePerGram);
+    const price = catalogPrice != null && Number.isFinite(catalogPrice)
+      ? catalogPrice
+      : (Number.isFinite(fallbackPrice) && fallbackPrice >= 0 ? fallbackPrice : 0);
+    return {
+      product_id: mayRemainLinked ? (product.id as string) : null,
+      custom_name: mayRemainLinked ? null : (product.product_name as string) || name,
+      quantity,
+      price_at_sale: price,
+    };
+  });
+
+  const customerName = String(inquiry.name || 'Customer');
+  const contact = String(inquiry.email || '').trim();
+  const phone = String(inquiry.phone || '').trim();
+  const contactIsEmail = contact.includes('@');
+  const customerWhatsapp = phone || (contactIsEmail ? null : contact) || null;
+  const customer = await env.DB.prepare(
+    `SELECT id FROM customers
+      WHERE account_id = ?
+        AND ((? <> '' AND lower(email) = lower(?)) OR (? <> '' AND whatsapp = ?))
+      LIMIT 1`
+  ).bind(
+    accountId,
+    contactIsEmail ? contact : '', contactIsEmail ? contact : '',
+    customerWhatsapp || '', customerWhatsapp || '',
+  ).first() as { id: string } | null;
+
+  const invoiceId = crypto.randomUUID();
+  const notes = [
+    `From order request ${inquiry.ref_number || inquiry.id}. Review the prices and send.`,
+    inquiry.message ? `Customer note: ${String(inquiry.message)}` : null,
+  ].filter(Boolean).join('\n');
+
+  const lineStmts = lineItems.map(line => env.DB.prepare(
+    'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, custom_name, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).bind(crypto.randomUUID(), accountId, invoiceId, line.product_id, line.custom_name, line.quantity, line.price_at_sale));
+
+  // Allocate an invoice number from the account's sequence, retrying on the
+  // active-invoice-number unique index collision, the same loop the collection
+  // picks path uses, so the visible number format never drifts.
+  let invoiceNumber = '';
+  let committed = false;
+  let claimed = false;
+  let lastErr: any = null;
+  for (let attempt = 0; attempt < 3 && !committed; attempt++) {
+    const seqRow = await env.DB.prepare(
+      'UPDATE accounts SET invoice_seq = invoice_seq + 1 WHERE id = ? RETURNING invoice_seq, invoice_prefix'
+    ).bind(accountId).first() as { invoice_seq: number; invoice_prefix: string | null } | null;
+    const seq = seqRow?.invoice_seq ?? 1;
+    invoiceNumber = formatInvoiceNumber(seqRow?.invoice_prefix || null, seq);
+
+    const invoiceStmt = env.DB.prepare(
+      `INSERT INTO invoices (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes, payment_status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Draft', 0, ?, 'unpaid')`
+    ).bind(
+      invoiceId, accountId, invoiceNumber, customerName, customerWhatsapp,
+      customer?.id ?? null, String(inquiry.currency || 'USD'), 0, notes,
+    );
+    // Guarded so a double click cannot convert the same request twice.
+    const claimStmt = env.DB.prepare(
+      `UPDATE inquiries SET converted_invoice_id = ?, status = 'replied'
+        WHERE id = ? AND account_id = ? AND converted_invoice_id IS NULL`
+    ).bind(invoiceId, params.id, accountId);
+    const logStmt = buildActivityLog(
+      env, 'INVOICE_CREATED',
+      `Draft invoice ${invoiceNumber} created from order request ${inquiry.ref_number || inquiry.id} for ${customerName} (${lineItems.length} item${lineItems.length === 1 ? '' : 's'})`,
+      userEmail, 'invoice', invoiceId, accountId,
+    );
+
+    try {
+      const results = await env.DB.batch([invoiceStmt, ...lineStmts, claimStmt, logStmt]);
+      claimed = Number(results[results.length - 2]?.meta?.changes || 0) > 0;
+      committed = true;
+    } catch (err: any) {
+      lastErr = err;
+      if (/UNIQUE|constraint/i.test(String(err?.message || err))) continue;
+      console.error('handleConvertInquiry batch failed:', err);
+      return json({ error: 'Could not create the order. Nothing was changed.' }, 500);
+    }
+  }
+  if (!committed) {
+    console.error('handleConvertInquiry: invoice create failed after retries:', lastErr);
+    return json({ error: 'Could not allocate a unique invoice number. Please retry.' }, 409);
+  }
+
+  if (!claimed) {
+    // A concurrent convert won the claim. Undo the invoice this call made so
+    // the request has exactly one order behind it, and point at the winner.
+    await env.DB.batch([
+      env.DB.prepare('DELETE FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?').bind(invoiceId, accountId),
+      env.DB.prepare('DELETE FROM invoices WHERE id = ? AND account_id = ?').bind(invoiceId, accountId),
+    ]).catch(() => { /* leave the orphan rather than fail the response */ });
+    const winner = await env.DB.prepare(
+      'SELECT converted_invoice_id FROM inquiries WHERE id = ? AND account_id = ?'
+    ).bind(params.id, accountId).first() as { converted_invoice_id: string | null } | null;
+    return json({ error: 'This request is already an order', invoice_id: winner?.converted_invoice_id ?? null }, 409);
+  }
+
+  if (customer?.id) {
+    await ensureContactRelationship(env, accountId, customer.id, 'buyer', 'workflow', 'invoice', invoiceId);
+  }
+
+  return json({ invoice_id: invoiceId, invoice_number: invoiceNumber });
 };
 
 // ── User Favorites (customer-facing; scoped to the currently active
@@ -16741,6 +18407,7 @@ function fulfillmentEmailHtml(
   lineItems: { name: string; qty: string }[],
   amountUsd: number | null,
   orderUrl: string,
+  payUrl: string | null = null,
 ): string {
   const rows = lineItems.map(i =>
     `<tr><td style="padding:6px 0;border-bottom:1px solid #e8e0d4;font-size:14px;color:#3a2e24">${i.name}</td>` +
@@ -16749,6 +18416,16 @@ function fulfillmentEmailHtml(
   const totalRow = amountUsd != null
     ? `<tr><td style="padding:10px 0 0;font-size:14px;font-weight:bold;color:#3a2e24">Total</td>` +
       `<td style="padding:10px 0 0;font-size:14px;font-weight:bold;color:#3a2e24;text-align:right">$${amountUsd.toFixed(2)}</td></tr>`
+    : '';
+  // Only rendered when the tea master this order is paid to has published
+  // transfer details. Without them there is no link and no button.
+  const payBlock = payUrl
+    ? `<p style="margin:0 0 24px">
+    <a href="${payUrl}" style="display:inline-block;padding:12px 24px;background:#a8874d;color:#f5f0eb;text-decoration:none;font-size:13px;letter-spacing:0.08em">
+      Pay for this order
+    </a>
+    <span style="font-size:12px;color:#9a8672;padding-left:12px">Reference ${orderRef}</span>
+  </p>`
     : '';
   return `<!DOCTYPE html>
 <html>
@@ -16765,8 +18442,9 @@ function fulfillmentEmailHtml(
   <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #e8e0d4;margin-bottom:24px">
     ${rows}${totalRow}
   </table>
-  <a href="${orderUrl}" style="display:inline-block;padding:12px 24px;background:#a8874d;color:#fff;text-decoration:none;font-size:13px;letter-spacing:0.08em">
-    View Order Status
+  ${payBlock}
+  <a href="${orderUrl}" style="display:inline-block;padding:12px 24px;background:#a8874d;color:#f5f0eb;text-decoration:none;font-size:13px;letter-spacing:0.08em">
+    View your orders
   </a>
   <p style="font-size:12px;color:#9a8672;margin-top:32px;line-height:1.6">
     Questions? Reply to this email or message us on WhatsApp.<br>
@@ -16776,6 +18454,425 @@ function fulfillmentEmailHtml(
 </table>
 </body>
 </html>`;
+}
+
+// ── Order-request emails ─────────────────────────────────────────────────────
+// Two mails leave the shop the moment a customer sends an order request: one to
+// the store so nobody has to watch a screen for it, one to the customer so the
+// request does not vanish into a WhatsApp thread. Both are best-effort: a mail
+// failure must never fail the order.
+
+function emailEscape(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function formatMoney(amount: number, currency: string): string {
+  const safe = Number.isFinite(amount) ? amount : 0;
+  try {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 2 }).format(safe);
+  } catch {
+    return `${currency} ${safe.toFixed(2)}`;
+  }
+}
+
+interface OrderRequestLine {
+  name: string;
+  quantity: string;
+  amountUsd: number;
+}
+
+function orderRequestLines(itemsJson: string): OrderRequestLine[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(itemsJson || '[]');
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  return parsed.filter(item => item && typeof item === 'object').map(item => {
+    const line = item as Record<string, unknown>;
+    const grams = Number(line.quantityGrams ?? line.qty ?? 0);
+    const isWare = line.category === 'ware';
+    return {
+      name: String(line.name || 'Item'),
+      quantity: Number.isFinite(grams) && grams > 0 ? (isWare ? `x${grams}` : `${grams}g`) : '',
+      amountUsd: Number(line.totalPrice) || 0,
+    };
+  });
+}
+
+function orderRequestRows(lines: OrderRequestLine[], rate: number, currency: string): string {
+  return lines.map(line =>
+    `<tr><td style="padding:6px 0;border-bottom:1px solid #e8e0d4;font-size:14px;color:#3a2e24">${emailEscape(line.name)}` +
+    (line.quantity ? ` <span style="color:#9a8672">${emailEscape(line.quantity)}</span>` : '') + `</td>` +
+    `<td style="padding:6px 0;border-bottom:1px solid #e8e0d4;font-size:14px;color:#7a6a56;text-align:right">${emailEscape(formatMoney(line.amountUsd * rate, currency))}</td></tr>`
+  ).join('');
+}
+
+// To the store: everything needed to answer without opening the admin, and a
+// link straight to the requests tab when they want to act on it.
+function inquiryNotificationEmailHtml(input: {
+  storeName: string;
+  customerName: string;
+  contactLines: Array<{ label: string; value: string }>;
+  lines: OrderRequestLine[];
+  rate: number;
+  currency: string;
+  totalUsd: number;
+  message: string | null;
+  reference: string;
+  adminUrl: string;
+}): string {
+  const rows = orderRequestRows(input.lines, input.rate, input.currency);
+  const totalRow = `<tr><td style="padding:10px 0 0;font-size:14px;font-weight:bold;color:#3a2e24">Total</td>` +
+    `<td style="padding:10px 0 0;font-size:14px;font-weight:bold;color:#3a2e24;text-align:right">${emailEscape(formatMoney(input.totalUsd * input.rate, input.currency))}</td></tr>` +
+    (input.currency === 'USD' ? '' :
+      `<tr><td style="padding:2px 0 0;font-size:12px;color:#9a8672">In USD</td>` +
+      `<td style="padding:2px 0 0;font-size:12px;color:#9a8672;text-align:right">${emailEscape(formatMoney(input.totalUsd, 'USD'))}</td></tr>`);
+  const contact = input.contactLines.map(line =>
+    `<p style="font-size:13px;color:#7a6a56;margin:0 0 4px">${emailEscape(line.label)}: <span style="color:#3a2e24">${emailEscape(line.value)}</span></p>`
+  ).join('');
+  const note = input.message
+    ? `<p style="font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#9a8672;margin:24px 0 6px">Their message</p>` +
+      `<p style="font-size:14px;color:#3a2e24;line-height:1.6;margin:0 0 8px;white-space:pre-wrap">${emailEscape(input.message)}</p>`
+    : '';
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f5f0eb;font-family:Georgia,serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:0 auto;padding:40px 24px">
+<tr><td>
+  <p style="font-size:22px;font-weight:bold;color:#3a2e24;margin:0 0 4px">${emailEscape(input.storeName)}</p>
+  <p style="font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#9a8672;margin:0 0 32px">New order request</p>
+  <p style="font-size:15px;color:#3a2e24;margin:0 0 12px">${emailEscape(input.customerName)} has sent an order request.</p>
+  ${contact}
+  <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #e8e0d4;margin:24px 0">
+    ${rows}${totalRow}
+  </table>
+  ${note}
+  <p style="font-size:13px;color:#7a6a56;margin:0 0 24px">Reference <strong style="color:#3a2e24">${emailEscape(input.reference)}</strong></p>
+  <a href="${emailEscape(input.adminUrl)}" style="display:inline-block;padding:12px 24px;background:#a8874d;color:#f5f0eb;text-decoration:none;font-size:13px;letter-spacing:0.08em">
+    Open the request
+  </a>
+</td></tr>
+</table>
+</body>
+</html>`;
+}
+
+// To the customer: we have it, here is what you asked for, here is where to
+// watch it. No payment promises: there is no invoice yet at this point.
+function orderAcknowledgementEmailHtml(input: {
+  storeName: string;
+  customerName: string;
+  lines: OrderRequestLine[];
+  rate: number;
+  currency: string;
+  totalUsd: number;
+  reference: string;
+  trackingUrl: string | null;
+}): string {
+  const rows = orderRequestRows(input.lines, input.rate, input.currency);
+  const totalRow = `<tr><td style="padding:10px 0 0;font-size:14px;font-weight:bold;color:#3a2e24">Total</td>` +
+    `<td style="padding:10px 0 0;font-size:14px;font-weight:bold;color:#3a2e24;text-align:right">${emailEscape(formatMoney(input.totalUsd * input.rate, input.currency))}</td></tr>`;
+  const track = input.trackingUrl
+    ? `<a href="${emailEscape(input.trackingUrl)}" style="display:inline-block;padding:12px 24px;background:#a8874d;color:#f5f0eb;text-decoration:none;font-size:13px;letter-spacing:0.08em">
+    Follow your order
+  </a>`
+    : '';
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f5f0eb;font-family:Georgia,serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:0 auto;padding:40px 24px">
+<tr><td>
+  <p style="font-size:22px;font-weight:bold;color:#3a2e24;margin:0 0 4px">${emailEscape(input.storeName)}</p>
+  <p style="font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#9a8672;margin:0 0 32px">Order received</p>
+  <p style="font-size:15px;color:#3a2e24;margin:0 0 8px">Hello ${emailEscape(input.customerName)},</p>
+  <p style="font-size:14px;color:#7a6a56;line-height:1.6;margin:0 0 24px">
+    Your order request has reached us. Someone will write to you shortly to confirm what is in stock and arrange payment.
+  </p>
+  <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #e8e0d4;margin-bottom:24px">
+    ${rows}${totalRow}
+  </table>
+  <p style="font-size:13px;color:#7a6a56;margin:0 0 24px">Your reference is <strong style="color:#3a2e24">${emailEscape(input.reference)}</strong>. Please quote it when you write to us.</p>
+  ${track}
+  <p style="font-size:12px;color:#9a8672;margin-top:32px;line-height:1.6">
+    Reply to this message any time.
+  </p>
+</td></tr>
+</table>
+</body>
+</html>`;
+}
+
+// Fire-and-forget from the create-inquiry handler. Never throws: a mail failure
+// must not fail an order that is already saved.
+async function sendOrderRequestEmails(env: Env, input: {
+  accountId: string;
+  source: string;
+  customerName: string;
+  contact: string;
+  phone: string | null;
+  location: string | null;
+  itemsJson: string;
+  totalUsd: number;
+  currency: string;
+  message: string | null;
+  reference: string;
+  trackingToken: string | null;
+}): Promise<void> {
+  if (!env.SENDER_EMAIL || !env.RESEND_API_KEY) return;
+
+  const lines = orderRequestLines(input.itemsJson);
+  // A consult with nothing in it is a conversation, not an order.
+  if (input.source === 'consult' && lines.length === 0) return;
+
+  const [account, rateRow] = await Promise.all([
+    env.DB.prepare('SELECT name, contact_email FROM accounts WHERE id = ?')
+      .bind(input.accountId).first() as Promise<{ name?: string | null; contact_email?: string | null } | null>,
+    env.DB.prepare('SELECT rate_to_usd FROM exchange_rates WHERE currency = ?')
+      .bind(input.currency).first() as Promise<{ rate_to_usd?: number | null } | null>,
+  ]);
+
+  const storeName = account?.name || 'Teajia';
+  const currency = input.currency || 'USD';
+  // Stored amounts are USD; exchange_rates holds units per USD.
+  const rate = currency === 'USD' ? 1 : Number(rateRow?.rate_to_usd || 0) || 1;
+  const displayCurrency = currency === 'USD' || rate !== 1 ? currency : 'USD';
+  const origin = appOrigin(env);
+  const contactIsEmail = input.contact.includes('@');
+
+  const ownerRecipient = (account?.contact_email || '').trim() || (env.SENDER_EMAIL || '').trim();
+  if (ownerRecipient) {
+    const contactLines: Array<{ label: string; value: string }> = [];
+    if (contactIsEmail) contactLines.push({ label: 'Email', value: input.contact });
+    else if (input.contact) contactLines.push({ label: 'Contact', value: input.contact });
+    if (input.phone) contactLines.push({ label: 'WhatsApp or phone', value: input.phone });
+    if (input.location) contactLines.push({ label: 'Location', value: input.location });
+
+    const subject = `${storeName}: order request from ${input.customerName}, ${formatMoney(input.totalUsd * rate, displayCurrency)}`;
+    await sendEmail(env, ownerRecipient, subject, inquiryNotificationEmailHtml({
+      storeName,
+      customerName: input.customerName,
+      contactLines,
+      lines,
+      rate,
+      currency: displayCurrency,
+      totalUsd: input.totalUsd,
+      message: input.message,
+      reference: input.reference,
+      adminUrl: `${origin}/admin/activity?tab=inquiries`,
+    }));
+  }
+
+  if (contactIsEmail) {
+    await sendEmail(env, input.contact, `${storeName}: we have your order ${input.reference}`, orderAcknowledgementEmailHtml({
+      storeName,
+      customerName: input.customerName,
+      lines,
+      rate,
+      currency: displayCurrency,
+      totalUsd: input.totalUsd,
+      reference: input.reference,
+      // /order/:ref is keyed by the tracking token, which is the only value
+      // that resolves there. The ref number does not.
+      trackingUrl: input.trackingToken ? `${origin}/order/${encodeURIComponent(input.trackingToken)}` : null,
+    }));
+  }
+}
+
+
+// To the store: a customer says they have sent money. Everything needed to go
+// and look at the bank, then one button that lands on the order to confirm it.
+// A report is not a payment, and no wording here pretends otherwise.
+function paymentClaimEmailHtml(input: {
+  storeName: string;
+  customerName: string;
+  contact: string | null;
+  invoiceNumber: string | null;
+  amountUsd: number;
+  outstandingUsd: number;
+  method: string | null;
+  reference: string | null;
+  note: string | null;
+  adminUrl: string;
+}): string {
+  const detail = (label: string, value: string | null) => (value
+    ? `<tr><td style="padding:6px 0;border-bottom:1px solid #e8e0d4;font-size:13px;color:#9a8672">${emailEscape(label)}</td>` +
+      `<td style="padding:6px 0;border-bottom:1px solid #e8e0d4;font-size:14px;color:#3a2e24;text-align:right">${emailEscape(value)}</td></tr>`
+    : '');
+  const note = input.note
+    ? `<p style="font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#9a8672;margin:24px 0 6px">Their note</p>` +
+      `<p style="font-size:14px;color:#3a2e24;line-height:1.6;margin:0;white-space:pre-wrap">${emailEscape(input.note)}</p>`
+    : '';
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f5f0eb;font-family:Georgia,serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:0 auto;padding:40px 24px">
+<tr><td>
+  <p style="font-size:22px;font-weight:bold;color:#3a2e24;margin:0 0 4px">${emailEscape(input.storeName)}</p>
+  <p style="font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#9a8672;margin:0 0 32px">Payment reported</p>
+  <p style="font-size:15px;color:#3a2e24;margin:0 0 12px">${emailEscape(input.customerName)} says they have sent payment for order ${emailEscape(input.invoiceNumber || '')}.</p>
+  <p style="font-size:14px;color:#7a6a56;line-height:1.6;margin:0 0 24px">
+    Nothing has changed on the order. Check the transfer arrived, then confirm it.
+  </p>
+  <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #e8e0d4;margin-bottom:8px">
+    ${detail('They say they sent', formatMoney(input.amountUsd, 'USD'))}
+    ${detail('Balance on the order', formatMoney(input.outstandingUsd, 'USD'))}
+    ${detail('Method', input.method)}
+    ${detail('Their reference', input.reference)}
+    ${detail('Contact', input.contact)}
+  </table>
+  ${note}
+  <p style="font-size:13px;color:#7a6a56;margin:24px 0">&nbsp;</p>
+  <a href="${emailEscape(input.adminUrl)}" style="display:inline-block;padding:12px 24px;background:#a8874d;color:#f5f0eb;text-decoration:none;font-size:13px;letter-spacing:0.08em">
+    Open the order
+  </a>
+</td></tr>
+</table>
+</body>
+</html>`;
+}
+
+// Fire-and-forget from the claim handlers. Never throws: a mail failure must
+// not fail a report that is already saved.
+async function sendPaymentClaimEmail(env: Env, input: {
+  accountId: string;
+  invoiceNumber: string | null;
+  customerName: string;
+  contact: string | null;
+  amountUsd: number;
+  outstandingUsd: number;
+  method: string | null;
+  reference: string | null;
+  note: string | null;
+}): Promise<void> {
+  if (!env.SENDER_EMAIL || !env.RESEND_API_KEY) return;
+  const account = await env.DB.prepare('SELECT name, contact_email FROM accounts WHERE id = ?')
+    .bind(input.accountId).first() as { name?: string | null; contact_email?: string | null } | null;
+  const recipient = (account?.contact_email || '').trim() || (env.SENDER_EMAIL || '').trim();
+  if (!recipient) return;
+  const storeName = account?.name || 'Teajia';
+  // /admin/orders redirects to the activity page's orders tab, which reads
+  // ?search=, so this lands on the one order rather than the whole list.
+  const adminUrl = `${appOrigin(env)}/admin/activity?tab=orders`
+    + (input.invoiceNumber ? `&search=${encodeURIComponent(input.invoiceNumber)}` : '');
+  await sendEmail(
+    env,
+    recipient,
+    `${storeName}: ${input.customerName} reports paying ${formatMoney(input.amountUsd, 'USD')}`
+      + (input.invoiceNumber ? ` on ${input.invoiceNumber}` : ''),
+    paymentClaimEmailHtml({ ...input, storeName, adminUrl }),
+  );
+}
+
+// To the customer: their money arrived. A customer who transfers to a stranger
+// overseas, says so, and is then confirmed heard nothing at all until the tea
+// shipped. This is the one message that closes that silence, and it says three
+// things and no more: what was received, what is still owing, what happens next.
+function paymentConfirmedEmailHtml(input: {
+  storeName: string;
+  customerName: string;
+  invoiceNumber: string | null;
+  amountUsd: number;
+  outstandingUsd: number;
+  method: string | null;
+  ordersUrl: string;
+}): string {
+  const settled = input.outstandingUsd <= 0;
+  const detail = (label: string, value: string | null) => (value
+    ? `<tr><td style="padding:6px 0;border-bottom:1px solid #e8e0d4;font-size:13px;color:#9a8672">${emailEscape(label)}</td>` +
+      `<td style="padding:6px 0;border-bottom:1px solid #e8e0d4;font-size:14px;color:#3a2e24;text-align:right">${emailEscape(value)}</td></tr>`
+    : '');
+  const next = settled
+    ? 'Your order is paid in full. We will pack it and write to you again once it is on its way.'
+    : `${emailEscape(formatMoney(input.outstandingUsd, 'USD'))} is still due on this order. `
+      + 'Send it whenever you are ready and we will confirm that in the same way.';
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f5f0eb;font-family:Georgia,serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:0 auto;padding:40px 24px">
+<tr><td>
+  <p style="font-size:22px;font-weight:bold;color:#3a2e24;margin:0 0 4px">${emailEscape(input.storeName)}</p>
+  <p style="font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#9a8672;margin:0 0 32px">Payment received</p>
+  <p style="font-size:15px;color:#3a2e24;margin:0 0 8px">Hello ${emailEscape(input.customerName)},</p>
+  <p style="font-size:14px;color:#7a6a56;line-height:1.6;margin:0 0 24px">
+    Your payment has arrived and is recorded against order
+    <strong style="color:#3a2e24">${emailEscape(input.invoiceNumber || '')}</strong>. Thank you.
+  </p>
+  <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #e8e0d4;margin-bottom:24px">
+    ${detail('Received', formatMoney(input.amountUsd, 'USD'))}
+    ${detail('Method', input.method)}
+    ${detail('Still owing', settled ? 'Nothing' : formatMoney(input.outstandingUsd, 'USD'))}
+  </table>
+  <p style="font-size:14px;color:#7a6a56;line-height:1.6;margin:0 0 24px">${next}</p>
+  <a href="${emailEscape(input.ordersUrl)}" style="display:inline-block;padding:12px 24px;background:#a8874d;color:#f5f0eb;text-decoration:none;font-size:13px;letter-spacing:0.08em">
+    See your order
+  </a>
+  <p style="font-size:12px;color:#9a8672;margin-top:32px;line-height:1.6">
+    Reply to this message any time.
+  </p>
+</td></tr>
+</table>
+</body>
+</html>`;
+}
+
+/**
+ * Fire-and-forget from the confirm handler. Never throws: a mail failure must
+ * never fail a confirmation that has already moved money on the order.
+ *
+ * Sends only when the customer has an email address. `invoices` carries no
+ * email column, so it is resolved from the linked customer record, and failing
+ * that from the request the order came from, which is the only address a
+ * customer who checked out without an account ever gave.
+ */
+async function sendPaymentConfirmedEmail(env: Env, input: {
+  invoice: LedgerInvoice;
+  amountUsd: number;
+  outstandingUsd: number;
+  method: string | null;
+}): Promise<void> {
+  if (!env.SENDER_EMAIL || !env.RESEND_API_KEY) return;
+  const [account, customer, inquiry] = await Promise.all([
+    env.DB.prepare('SELECT name FROM accounts WHERE id = ?')
+      .bind(input.invoice.account_id).first() as Promise<{ name?: string | null } | null>,
+    input.invoice.customer_id
+      ? env.DB.prepare('SELECT name, email FROM customers WHERE id = ? AND account_id = ?')
+        .bind(input.invoice.customer_id, input.invoice.account_id)
+        .first() as Promise<{ name?: string | null; email?: string | null } | null>
+      : Promise.resolve(null),
+    env.DB.prepare('SELECT name, email FROM inquiries WHERE converted_invoice_id = ? AND account_id = ? LIMIT 1')
+      .bind(input.invoice.id, input.invoice.account_id)
+      .first() as Promise<{ name?: string | null; email?: string | null } | null>,
+  ]);
+  const to = (customer?.email || '').trim() || (inquiry?.email || '').trim();
+  if (!to || !to.includes('@')) return;
+  const storeName = account?.name || 'Teajia';
+  const customerName = (input.invoice.customer_name || customer?.name || inquiry?.name || 'there').trim();
+  await sendEmail(
+    env,
+    to,
+    `${storeName}: payment received${input.invoice.invoice_number ? ` for ${input.invoice.invoice_number}` : ''}`,
+    paymentConfirmedEmailHtml({
+      storeName,
+      customerName,
+      invoiceNumber: input.invoice.invoice_number,
+      amountUsd: input.amountUsd,
+      outstandingUsd: input.outstandingUsd,
+      method: input.method,
+      // The tracking token is stored only as a hash and cannot be rebuilt here.
+      // Their order history is the link that always resolves.
+      ordersUrl: `${appOrigin(env)}/account/orders`,
+    }),
+  );
 }
 
 function inviteEmailHtml(inviteUrl: string, accountName: string): string {
@@ -18018,7 +20115,8 @@ const handleGetMyOrders: Handler = async (request, env) => {
     `SELECT i.id, i.invoice_number, i.status, i.display_currency, i.created_at,
             COALESCE(t.line_total, 0) as line_total,
             COALESCE(t.line_count, 0) as line_count,
-            i.shipping_cost_usd
+            i.shipping_cost_usd, i.payment_status, i.payment_date, i.fulfilled_at,
+            i.payment_recipient_user_id, i.sold_by_user_id
      FROM invoices i
      LEFT JOIN (
        SELECT invoice_id, account_id,
@@ -18037,7 +20135,31 @@ const handleGetMyOrders: Handler = async (request, env) => {
     accountId, ...ownership.bindings
   ).all();
 
-  const orders = (result.results as Record<string, any>[]).map(r => ({
+  // One payment resolution for the whole page, never one per row.
+  const rows = (result.results ?? []) as Record<string, any>[];
+  const payments = await resolveInvoicePayments(env, rows.map(row => ({
+    id: row.id as string,
+    account_id: accountId,
+    invoice_number: row.invoice_number as string | null,
+    status: row.status as string | null,
+    payment_status: row.payment_status as string | null,
+    display_currency: row.display_currency as string | null,
+    payment_recipient_user_id: row.payment_recipient_user_id as string | null,
+    sold_by_user_id: row.sold_by_user_id as string | null,
+    total_usd: Number(row.line_total || 0),
+    shipping_cost_usd: Number(row.shipping_cost_usd || 0),
+  })));
+  // The ledger the payment resolution just loaded is handed straight on rather
+  // than read again: one more query for the whole page, not one per order.
+  const journeys = await resolveOrderJourneys(env, rows.map(row => ({
+    id: row.id as string,
+    status: row.status as string | null,
+    created_at: row.created_at as string | null,
+    payment_date: row.payment_date as string | null,
+    fulfilled_at: row.fulfilled_at as string | null,
+  })), payments);
+
+  const orders = rows.map(r => ({
     id: r.id as string,
     invoice_number: r.invoice_number as string,
     status: (r.status as string) || 'Draft',
@@ -18045,6 +20167,8 @@ const handleGetMyOrders: Handler = async (request, env) => {
     currency: (r.display_currency as string) || 'USD',
     created_at: r.created_at as string,
     line_items_count: Number(r.line_count || 0),
+    payment: payments.get(r.id as string) ?? null,
+    journey: journeys.get(r.id as string) ?? null,
   }));
 
   return json({ orders });
@@ -18057,7 +20181,8 @@ const handleGetMyOrderDetail: Handler = async (request, env, params) => {
   const ownership = await loadMyOrderOwnership(env, userId, accountId);
   const invoice = await env.DB.prepare(
     `SELECT i.id, i.invoice_number, i.status, i.created_at, i.payment_date,
-            i.fulfilled_at, i.display_currency, i.shipping_cost_usd
+            i.fulfilled_at, i.display_currency, i.shipping_cost_usd, i.payment_status,
+            i.payment_recipient_user_id, i.sold_by_user_id
      FROM invoices i
      WHERE i.id = ? AND i.account_id = ? AND i.deleted_at IS NULL
        AND i.status NOT IN ('Draft', 'Void') AND ${ownership.predicate}
@@ -18083,13 +20208,37 @@ const handleGetMyOrderDetail: Handler = async (request, env, params) => {
   }));
   const subtotal = items.reduce((sum, item) => sum + item.line_total_usd, 0);
   const shipping = Number(invoice.shipping_cost_usd || 0);
-  const account = await env.DB.prepare(
-    'SELECT whatsapp_number, contact_email FROM accounts WHERE id = ?'
-  ).bind(accountId).first() as { whatsapp_number?: string | null; contact_email?: string | null } | null;
+  const [account, payment] = await Promise.all([
+    env.DB.prepare(
+      'SELECT whatsapp_number, contact_email FROM accounts WHERE id = ?'
+    ).bind(accountId).first() as Promise<{ whatsapp_number?: string | null; contact_email?: string | null } | null>,
+    resolveInvoicePayment(env, {
+      id: invoice.id as string,
+      account_id: accountId,
+      invoice_number: invoice.invoice_number as string | null,
+      status: invoice.status as string | null,
+      payment_status: invoice.payment_status as string | null,
+      display_currency: invoice.display_currency as string | null,
+      payment_recipient_user_id: invoice.payment_recipient_user_id as string | null,
+      sold_by_user_id: invoice.sold_by_user_id as string | null,
+      total_usd: subtotal,
+      shipping_cost_usd: shipping,
+    }),
+  ]);
+
+  const journeys = await resolveOrderJourneys(env, [{
+    id: invoice.id as string,
+    status: invoice.status as string | null,
+    created_at: invoice.created_at as string | null,
+    payment_date: (invoice.payment_date as string | null) ?? null,
+    fulfilled_at: (invoice.fulfilled_at as string | null) ?? null,
+  }], new Map([[invoice.id as string, payment]]));
 
   return json({
     id: invoice.id,
     invoice_number: invoice.invoice_number,
+    payment,
+    journey: journeys.get(invoice.id as string) ?? null,
     status: invoice.status,
     created_at: invoice.created_at,
     payment_date: invoice.payment_date ?? null,
@@ -19956,6 +22105,63 @@ const handleGetPublicProfileFavorites: Handler = async (_request, env, params) =
   return cachedJson({ favorites: rows.results ?? [] }, 60);
 };
 
+// ── The local figure on the pay page ─────────────────────────────────────────
+// An order is priced in USD: price_at_sale and shipping_cost_usd are dollar
+// columns, and display_currency is only the label the shop shows them under.
+// So the pay link keeps asking in dollars, and this is an AID beside that
+// number, never a replacement for it: roughly what leaves the payer's account
+// in their own money, carrying the moment the rate was read so the page can say
+// plainly that it is an approximation.
+
+interface PaymentLocalAmount {
+  currency: string;
+  amount: string;
+  rate: number;
+  as_of: string;
+}
+
+/**
+ * Null whenever there is nothing honest to say: no amount in the link, the
+ * currency is already USD, the pay page's own list does not accept it, or the
+ * hourly rate table has never heard of it. A missing figure is better than a
+ * made-up one.
+ */
+async function resolveLocalPaymentAmount(
+  env: Env,
+  amountUsd: string | null,
+  displayCurrency: string | null,
+): Promise<PaymentLocalAmount | null> {
+  const currency = String(displayCurrency || '').trim().toUpperCase();
+  if (!currency || currency === 'USD') return null;
+  if (!isSupportedPaymentCurrency(currency)) return null;
+  const usd = Number(amountUsd);
+  if (!Number.isFinite(usd) || usd <= 0) return null;
+
+  const row = await env.DB.prepare(
+    'SELECT rate_to_usd, last_updated FROM exchange_rates WHERE currency = ?'
+  ).bind(currency).first() as { rate_to_usd?: number | null; last_updated?: string | null } | null;
+  const rate = Number(row?.rate_to_usd);
+  // exchange_rates holds units of the currency per one USD, refreshed hourly by
+  // the existing cron. A rate of 1 on a non-USD currency is a placeholder row,
+  // not a peg, and converting through it would print the dollar figure twice.
+  if (!Number.isFinite(rate) || rate <= 0 || rate === 1) return null;
+
+  // Rupiah and Yen are quoted whole; dollars and euros to the cent. Ask Intl
+  // rather than keeping a second list of which is which.
+  let digits = 2;
+  try {
+    digits = new Intl.NumberFormat('en-US', { style: 'currency', currency })
+      .resolvedOptions().maximumFractionDigits ?? 2;
+  } catch { digits = 2; }
+
+  return {
+    currency,
+    amount: (usd * rate).toFixed(digits),
+    rate,
+    as_of: toIsoTime(row?.last_updated) ?? new Date().toISOString(),
+  };
+}
+
 const handleGetPublicPaymentMethods: Handler = async (request, env, params) => {
   const contributor = await env.DB.prepare('SELECT id, display_name, portrait_url, avatar_url FROM contributors WHERE id = ? AND is_published = 1')
     .bind(params.slug).first<Record<string, any>>();
@@ -19983,6 +22189,12 @@ const handleGetPublicPaymentMethods: Handler = async (request, env, params) => {
   const selectedPaymentRows = resolvePublishedPaymentMethods(rows.results as unknown as PaymentMethodRow[], account?.id ?? null);
   const methods = selectedPaymentRows.map(projectPublicPaymentMethod);
   const context = parsePublicPaymentContext(url.searchParams);
+  // `display` rides on the pay link beside `currency`, and is deliberately NOT
+  // parsed by parsePublicPaymentContext: that function decides what is OWED,
+  // and this is only what the same money looks like in the payer's own.
+  const local = await resolveLocalPaymentAmount(
+    env, context.amount, url.searchParams.get('display'),
+  );
   return json({
     contributor: { id: contributor.id, display_name: contributor.display_name, portrait_url: contributor.portrait_url || contributor.avatar_url || null },
     store: account ? { slug: account.slug, name: account.name } : null,
@@ -19990,7 +22202,7 @@ const handleGetPublicPaymentMethods: Handler = async (request, env, params) => {
     has_any_method: paymentAvailability.hasAnyMethod,
     available_accounts: paymentAvailability.accounts,
     payment_methods: methods,
-    context: { ...context, display_only: true },
+    context: { ...context, display_only: true, local },
   });
 };
 
@@ -23985,6 +26197,13 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/invoices', handleGetInvoices],
   ['POST', '/api/invoices', handleCreateInvoice],
   ['GET', '/api/invoices/:id/items', handleGetInvoiceItems],
+  ['GET', '/api/invoices/:id/payments', handleGetInvoicePayments],
+  ['POST', '/api/invoices/:id/payments', handleRecordInvoicePayment],
+  ['POST', '/api/invoice-payments/:id/confirm', handleConfirmInvoicePayment],
+  ['POST', '/api/invoice-payments/:id/reject', handleRejectInvoicePayment],
+
+  // What needs Adrian, across four kinds, oldest waiting first.
+  ['GET', '/api/attention', handleGetAttention],
   ['GET', '/api/invoices/:id/attribution', handleGetInvoiceAttribution],
   ['PUT', '/api/invoices/:id', handleUpdateInvoice],
   ['DELETE', '/api/invoices/:id', handleDeleteInvoice],
@@ -24229,6 +26448,8 @@ const routes: [string, string, Handler][] = [
   // Cart Inquiries
   ['POST', '/api/inquiries', handleCreateInquiry],
   ['GET', '/api/inquiries/:ref', handleGetInquiryByRef],
+  ['POST', '/api/orders/:ref/payment-claim', handleCreateOrderPaymentClaim],
+  ['POST', '/api/inquiries/:id/convert', handleConvertInquiry],
   ['GET', '/api/admin/inquiries', handleGetInquiries],
   ['PATCH', '/api/admin/inquiries/:id/status', handleUpdateInquiryStatus],
 
@@ -24408,6 +26629,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/me/journey', handleGetMyJourney],
   ['GET', '/api/me/orders', handleGetMyOrders],
   ['GET', '/api/me/orders/:id', handleGetMyOrderDetail],
+  ['POST', '/api/me/orders/:id/payment-claim', handleCreateMyOrderPaymentClaim],
   ['GET', '/api/me/samples', handleGetMySamples],
   ['GET', '/api/members/search', handleMemberSearch],
 

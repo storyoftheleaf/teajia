@@ -3,6 +3,7 @@ import { X, Pencil, Loader2, Plus, Trash2, Search } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useProducts } from '../hooks/useAdminData';
 import Fuse from 'fuse.js';
+import { OrderPayLink } from './OrderPayLink';
 
 interface EditOrderModalProps {
   isOpen: boolean;
@@ -170,6 +171,12 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
             <div className="py-8 text-center text-tea-text-sec"><Loader2 className="animate-spin inline" size={20} /></div>
           ) : (
             <div className="space-y-6">
+              <OrderPayLink
+                payment={invoice?.payment}
+                invoiceNumber={invoice?.invoice_number}
+                layout="block"
+              />
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block label-caps text-tea-text-sec mb-1.5">Customer</label>

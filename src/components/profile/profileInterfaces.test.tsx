@@ -212,6 +212,7 @@ describe('profile interfaces', () => {
       amount: '180000',
       currency: 'IDR',
       reference: 'Tea session',
+      display: null,
       errors: [],
     });
     expect(parsePaymentContext(new URLSearchParams('amount=-1&currency=bitcoin&reference=' + 'x'.repeat(100))))
@@ -223,14 +224,14 @@ describe('profile interfaces', () => {
       'adrian',
       'teajia',
       'https://teajia.com',
-      { amount: '180000', currency: 'IDR', reference: 'Tea session', errors: [] },
+      { amount: '180000', currency: 'IDR', reference: 'Tea session', display: null, errors: [] },
     );
     const html = renderToStaticMarkup(
       <PaymentChooser
         contributorName="Adrian Rasmussen"
         methods={methods}
         destination={destination}
-        context={{ amount: '180000', currency: 'IDR', reference: 'Tea session', errors: [] }}
+        context={{ amount: '180000', currency: 'IDR', reference: 'Tea session', display: null, errors: [] }}
       />,
     );
 
@@ -290,7 +291,7 @@ describe('profile interfaces', () => {
         contributorName="Adrian Rasmussen"
         methods={[{ ...methods[0], id: 'private-bank', label: 'Private bank', is_published: false }]}
         destination="https://teajia.com/people/adrian/pay"
-        context={{ amount: null, currency: null, reference: null, errors: [] }}
+        context={{ amount: null, currency: null, reference: null, display: null, errors: [] }}
       />,
     );
 

@@ -1,8 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShoppingCart, MessageCircle } from 'lucide-react';
 import { buildOrderMessage, buildWhatsAppUrl } from '../../lib/whatsapp';
+import { api } from '../../lib/api';
+import {
+  DEFAULT_STORE_SLUG,
+  createHumanOrderRef,
+  createTrackingToken,
+  navigateDeliveryPlaceholder,
+  openDeliveryPlaceholder,
+} from '../../lib/publicCartDomain';
 
 interface SampleOrderModalProps {
   isOpen: boolean;
@@ -10,6 +19,17 @@ interface SampleOrderModalProps {
   sampleName: string;
   sampleId: string;
   teaType?: string;
+  /**
+   * The catalogue product this sample stands for, when it has one.
+   *
+   * It is what decides whether this screen is a recorded order or a
+   * conversation. A saved order request must name products the store actually
+   * sells, so a sample that maps to one is an order the tea house can be told
+   * about, priced and turned into an invoice. A sample with no product is a
+   * vendor portion nobody has listed yet, and asking about it is a question,
+   * not a purchase.
+   */
+  productId?: string;
 }
 
 const QUANTITY_PRESETS = ['50g', '100g', '250g'];
@@ -20,6 +40,7 @@ export const SampleOrderModal: React.FC<SampleOrderModalProps> = ({
   sampleName,
   sampleId,
   teaType,
+  productId,
 }) => {
   const [quantity, setQuantity] = useState('50g');
   const [customQty, setCustomQty] = useState('');
@@ -30,6 +51,8 @@ export const SampleOrderModal: React.FC<SampleOrderModalProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [refNumber, setRefNumber] = useState('');
+  const [trackingToken, setTrackingToken] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -42,63 +65,131 @@ export const SampleOrderModal: React.FC<SampleOrderModalProps> = ({
       setSubmitting(false);
       setSubmitted(false);
       setRefNumber('');
+      setTrackingToken('');
+      setError(null);
     }
   }, [isOpen]);
 
   const resolvedQty = isCustom ? customQty : quantity;
 
+  /**
+   * The quantity as a number, floored at one gram.
+   *
+   * The custom field is free text ("half a cake", "a bit to try"), and a saved
+   * order line must carry a positive quantity or the server refuses the whole
+   * request. One gram is a placeholder the operator prices over; the words the
+   * customer actually typed still travel in the note and the message.
+   */
+  const requestedGrams = Math.max(1, parseInt(resolvedQty, 10) || 1);
+
+  /**
+   * The items this request stands for, in the shape every other saved order
+   * uses. A sample carries no price yet, which is what the request is asking
+   * about, so the figures are zero and the draft invoice this becomes is priced
+   * by hand. Zero is the honest number; "TBD" was never a number at all.
+   */
+  const buildItems = (product: string) => ([{
+    id: product,
+    name: sampleName,
+    variant: teaType || '',
+    category: 'tea' as const,
+    storeSlug: DEFAULT_STORE_SLUG,
+    quantityGrams: requestedGrams,
+    pricePerGram: 0,
+    totalPrice: 0,
+  }]);
+
+  const buildMessage = (ref: string) => buildOrderMessage({
+    type: 'inquiry',
+    ref,
+    customerName: name.trim(),
+    customerContact: whatsapp.trim(),
+    customerLocation: location.trim() || undefined,
+    notes: `Sample request from the sample page. Reference sample: ${sampleId}.`,
+    items: [{
+      name: sampleName,
+      variant: teaType,
+      quantity: requestedGrams,
+      unit: 'g',
+      price: 'To be quoted',
+      total: 'To be quoted',
+    }],
+    subtotal: 'To be quoted',
+    total: 'To be quoted',
+  });
+
+  /**
+   * Saved first, opened second, whenever there is something to save.
+   *
+   * This screen used to mint its own reference, open WhatsApp and keep nothing:
+   * the tea house heard about the order only if the customer finished sending
+   * the message, and the reference printed on the confirmation matched no
+   * record anywhere. When the sample maps to a tea the store sells it now files
+   * the same order request the cart files, on the same reference and tracking
+   * token, and only then opens the message.
+   *
+   * When it does not map to one, there is no order to file: a saved request
+   * names products the store sells, and this tea is not one of them yet. That
+   * case stays a message, and the confirmation says so rather than showing a
+   * reference nothing stands behind.
+   */
   const handleSubmit = async () => {
     if (!name.trim() || !whatsapp.trim() || !resolvedQty) return;
+    if (submitting || submitted) return;
+
+    // Opened before the await, as the cart does: a window opened from inside a
+    // promise callback is a popup as far as the browser is concerned.
+    const popup = openDeliveryPlaceholder();
+    if (!popup) {
+      setError('Your browser blocked the delivery window. Allow popups for Teajia, then try again.');
+      return;
+    }
+
+    const product = productId?.trim();
+    const ref = createHumanOrderRef();
     setSubmitting(true);
+    setError(null);
 
-    const ref = `SAM-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+    if (product) {
+      const token = createTrackingToken();
+      try {
+        await api.inquiries.create({
+          tracking_token: token,
+          ref_number: ref,
+          store_slug: DEFAULT_STORE_SLUG,
+          customer_name: name.trim(),
+          customer_contact: whatsapp.trim(),
+          customer_location: location.trim() || undefined,
+          notes: `Sample request for ${sampleName}${teaType ? ` (${teaType})` : ''}, ${resolvedQty}. Sample id ${sampleId}.`,
+          items_json: JSON.stringify(buildItems(product)),
+          total_estimate_usd: 0,
+          currency: 'USD',
+          source: 'whatsapp',
+        });
+      } catch (err) {
+        try { popup.close(); } catch { /* best effort */ }
+        setSubmitting(false);
+        const detail = err instanceof Error ? err.message : '';
+        setError(`We couldn't save your request${detail ? `: ${detail}` : '.'} Please try again.`);
+        return;
+      }
+      setTrackingToken(token);
+    }
+
     setRefNumber(ref);
-
-    // Open WhatsApp immediately, primary action on this platform
     const phone = import.meta.env.VITE_WHATSAPP_NUMBER || '';
-    const message = buildOrderMessage({
-      type: 'inquiry',
-      ref,
-      customerName: name.trim(),
-      customerContact: whatsapp.trim(),
-      customerLocation: location.trim() || undefined,
-      items: [{
-        name: sampleName,
-        variant: teaType,
-        quantity: parseInt(resolvedQty, 10) || 0,
-        unit: 'g',
-        price: 'TBD',
-        total: 'TBD',
-      }],
-      subtotal: 'TBD',
-      total: 'TBD',
-    });
-    window.open(buildWhatsAppUrl(phone, message), '_blank');
-
+    if (!navigateDeliveryPlaceholder(popup, buildWhatsAppUrl(phone, buildMessage(ref)))) {
+      setError(product
+        ? 'Your request was saved, but WhatsApp could not be opened. Use Resend message below.'
+        : 'WhatsApp could not be opened. Use Resend message below.');
+    }
     setSubmitting(false);
     setSubmitted(true);
   };
 
   const handleWhatsAppResend = () => {
     const phone = import.meta.env.VITE_WHATSAPP_NUMBER || '';
-    const message = buildOrderMessage({
-      type: 'inquiry',
-      ref: refNumber,
-      customerName: name,
-      customerContact: whatsapp,
-      customerLocation: location || undefined,
-      items: [{
-        name: sampleName,
-        variant: teaType,
-        quantity: parseInt(resolvedQty, 10) || 0,
-        unit: 'g',
-        price: 'TBD',
-        total: 'TBD',
-      }],
-      subtotal: 'TBD',
-      total: 'TBD',
-    });
-    window.open(buildWhatsAppUrl(phone, message), '_blank');
+    window.open(buildWhatsAppUrl(phone, buildMessage(refNumber)), '_blank');
   };
 
   const canSubmit = name.trim() && whatsapp.trim() && resolvedQty;
@@ -228,6 +319,10 @@ export const SampleOrderModal: React.FC<SampleOrderModalProps> = ({
                     />
                   </div>
 
+                  {error && (
+                    <p role="alert" className="text-ui-12 text-tea-text-sec">{error}</p>
+                  )}
+
                   {/* Actions */}
                   <div className="flex gap-3 pt-1 pb-1">
                     <button
@@ -261,13 +356,33 @@ export const SampleOrderModal: React.FC<SampleOrderModalProps> = ({
                     <MessageCircle size={22} className="text-[#25D366]" />
                   </div>
                   <h3 className="text-base text-tea-text mb-1" style={{ fontFamily: 'var(--font-display)' }}>
-                    WhatsApp Opened
+                    {trackingToken ? 'Request saved' : 'Message ready'}
                   </h3>
                   <p className="text-xs text-tea-text-sec mb-1">
                     {sampleName} · {resolvedQty}
                   </p>
-                  <p className="text-ui-11 text-tea-text-dim font-mono mb-1">{refNumber}</p>
-                  <p className="text-ui-11 text-tea-text-dim mb-6">Send the message to complete your request.</p>
+                  {trackingToken && (
+                    <p className="text-ui-11 text-tea-text-dim font-mono mb-1">{refNumber}</p>
+                  )}
+                  <p className="text-ui-11 text-tea-text-dim mb-3">
+                    {trackingToken
+                      ? 'The tea house has it. Send the WhatsApp message to start the conversation.'
+                      : 'This tea is not in the shop yet, so the request starts as a conversation. Send the message and it will be answered by hand.'}
+                  </p>
+                  {error && (
+                    <p role="alert" className="text-ui-12 text-tea-text-sec mb-3">{error}</p>
+                  )}
+                  {trackingToken && (
+                    <p className="mb-6">
+                      <Link
+                        to={`/order/${encodeURIComponent(trackingToken)}`}
+                        onClick={onClose}
+                        className="tap-target inline-flex items-center text-ui-12 text-tea-text-sec underline decoration-tea-border underline-offset-4 hover:text-tea-text transition-colors"
+                      >
+                        Track this request
+                      </Link>
+                    </p>
+                  )}
 
                   <div className="flex flex-col gap-2">
                     <button

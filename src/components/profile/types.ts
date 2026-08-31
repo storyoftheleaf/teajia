@@ -109,7 +109,29 @@ export interface PaymentContext {
   amount: string | null;
   currency: string | null;
   reference: string | null;
+  /**
+   * The currency the customer actually transfers in, off `&display=` on the pay
+   * link. Never the currency the order is owed in, which stays `currency` and
+   * stays authoritative. Null when the link carried none, when it carried one
+   * that is not supported, or when it carried the same currency the order is
+   * already priced in.
+   */
+  display: string | null;
   errors: string[];
+}
+
+/**
+ * The worker's conversion of the amount owed into the customer's own currency.
+ *
+ * An approximation, and labelled as one wherever it is rendered. `rate` and
+ * `as_of` are what make that claim honest rather than a disclaimer: the figure
+ * came from a rate that was true at a stated moment and has been drifting since.
+ */
+export interface PaymentLocalAmount {
+  currency: string;
+  amount: string;
+  rate: number;
+  as_of: string;
 }
 
 export interface PublicFavoritesResponse {
@@ -123,6 +145,13 @@ export interface PublicPaymentMethodsResponse {
   resolution?: 'account' | 'default';
   hasAnyMethod?: boolean;
   methods: PaymentMethod[];
+  /**
+   * What the worker made of the payment details on the link it was called with.
+   * `local` is null whenever the conversion could not honestly be made: an
+   * unknown or unsupported currency, no live rate, or a link already priced in
+   * the currency the customer would transfer in.
+   */
+  context?: { local: PaymentLocalAmount | null } | null;
 }
 
 export interface SelfProfileResponse {

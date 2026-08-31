@@ -36,6 +36,13 @@ const SUPPORTED_PAYMENT_CURRENCIES = new Set([
   'AUD', 'CNY', 'EUR', 'GBP', 'HKD', 'IDR', 'JPY', 'MYR', 'SGD', 'TWD', 'USD',
 ]);
 
+// The public pay page rejects any currency outside this set (parsePublicPaymentContext
+// below, and its mirror in src/components/profile/profileDomain.ts). Anything that
+// builds a pay link must ask here first, so a link never lands on an error state.
+export function isSupportedPaymentCurrency(value: unknown): boolean {
+  return typeof value === 'string' && SUPPORTED_PAYMENT_CURRENCIES.has(value.trim().toUpperCase());
+}
+
 export function normalizeLanguages(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   const unique = new Set<string>();

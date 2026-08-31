@@ -1,11 +1,15 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError, hasToken } from '../lib/api';
 import { Icons } from '../components/Icons';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 import { useRates } from '../admin/hooks/useAdminData';
 import { formatOrderAmount } from '../lib/orderMoney';
+import { PayOrderAction } from '../components/shared/PayOrderAction';
+import { ReportPaymentAction } from '../components/shared/ReportPaymentAction';
+import { OrderJourneyStatus } from '../components/shared/OrderJourneyStatus';
+import { normalizeJourney, showsPaymentActions } from '../components/shared/orderJourneyDomain';
 
 function formatDate(value: string | null): string | null {
   if (!value) return null;
@@ -19,6 +23,7 @@ export default function OrderDetailPage() {
   const navigate = useNavigate();
   const authed = hasToken();
   const { data: rates = [] } = useRates();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!authed) {
@@ -37,6 +42,8 @@ export default function OrderDetailPage() {
 
   const order = query.data;
   const isMissing = query.error instanceof ApiError && query.error.status === 404;
+  const journey = normalizeJourney(order?.journey);
+  const offersPayment = showsPaymentActions(journey, order?.payment);
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-8 pb-nav-gap-lg animate-[fadeIn_0.5s_ease-out]">
@@ -82,10 +89,11 @@ export default function OrderDetailPage() {
         <div className="space-y-8">
           <header>
             <p className={`${TYPOGRAPHY_CLASSES.label} text-tea-gold mb-2`}>Order reference</p>
-            <div className="flex items-start justify-between gap-4 flex-wrap">
-              <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>Order {order.invoice_number}</h1>
-              <span className="text-ui-11 uppercase tracking-[0.1em] text-tea-text-sec">{order.status}</span>
-            </div>
+            {/* The raw invoice word used to sit beside the number here: Draft,
+                Pending, Filled, Void. Those are Adrian's own filing, not an
+                answer to "where is my tea", and the derived stage below says
+                the same thing in words written for the person reading. */}
+            <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>Order {order.invoice_number}</h1>
             <dl className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2 text-ui-13">
               <div><dt className="text-tea-text-dim">Placed</dt><dd className="text-tea-text">{formatDate(order.created_at)}</dd></div>
               {order.payment_date && <div><dt className="text-tea-text-dim">Paid</dt><dd className="text-tea-text">{formatDate(order.payment_date)}</dd></div>}
@@ -115,6 +123,28 @@ export default function OrderDetailPage() {
             <div data-testid="shipping-total" className="flex justify-between gap-4 text-tea-text-sec"><span>Shipping</span><span>{formatOrderAmount(order.shipping_amount_usd, order.currency, rates)}</span></div>
             <div className="flex justify-between gap-4 border-t border-tea-border pt-3 text-tea-text font-semibold"><span>Total</span><span>{formatOrderAmount(order.total_amount_usd, order.currency, rates)}</span></div>
           </section>
+
+          {/* No heading around this: the block renders nothing when there is no
+              stage and no way to pay, and a standing heading would announce an
+              absence the customer cannot act on. The payment controls sit inside
+              the stage rather than beside it, so an order waiting for payment
+              carries the way to pay directly under the line that says so. */}
+          <OrderJourneyStatus journey={journey}>
+            {offersPayment && (
+              <div className="space-y-4">
+                <PayOrderAction payment={order.payment} reference={order.invoice_number} />
+                {/* Signed in, so the report addresses the invoice directly rather
+                    than a tracking token. Same absence rule as the button above it. */}
+                <ReportPaymentAction
+                  payment={order.payment}
+                  source={{ kind: 'account', invoiceId: id }}
+                  onReported={() => {
+                    void queryClient.invalidateQueries({ queryKey: ['me', 'orders'] });
+                  }}
+                />
+              </div>
+            )}
+          </OrderJourneyStatus>
 
           <section className="border-t border-tea-border pt-6">
             <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text mb-2`}>Questions about this order?</h2>

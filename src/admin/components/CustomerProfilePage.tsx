@@ -13,6 +13,7 @@ import { useToast } from './Toast';
 import { RecommendationModal } from './RecommendationModal';
 import { QuickInvoiceModal } from './QuickInvoiceModal';
 import { ContactTagEditor } from './contactTags/ContactTagEditor';
+import { OrderPayRecipientLine } from './OrderPayLink';
 import { STATUS_PILL_BASE, STATUS_PILL_VARIANTS, type StatusPillVariant } from '../constants';
 import { THREADS, threadsFromStored } from '../../components/TeaDiscovery/threads';
 
@@ -665,6 +666,10 @@ export const CustomerProfilePage: React.FC = () => {
                           {new Date(order.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </p>
                       )}
+                      {/* Who this order is paid to, from the same component the
+                          orders list uses. Renders nothing when the response
+                          carries no payment object. */}
+                      <OrderPayRecipientLine payment={order.payment} className="text-ui-10 mt-0.5" />
                     </div>
                     {order.total != null && (
                       <span className="font-mono text-ui-13 text-tea-text tabular-nums">

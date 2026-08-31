@@ -78,3 +78,108 @@ describe('Launchpad operating-program entrances', () => {
     expect(html).not.toContain('sales &amp; fulfillment');
   });
 });
+
+// ── What needs you ────────────────────────────────────────────────────────
+// The judgement this surface has to get right: only an operator receives the
+// queue, it is ordered by how long each thing has waited rather than grouped
+// by kind, and nothing waiting is a calm sentence rather than a zero.
+
+const HOUR = 3600000;
+const at = (hoursAgo: number) => new Date(Date.now() - hoursAgo * HOUR).toISOString();
+
+const waitingFixture = [
+  {
+    kind: 'claim' as const,
+    id: 'c1',
+    label: 'Mira reported a transfer',
+    meta: null,
+    waiting_since: at(5),
+    href: '/admin/activity?tab=orders',
+  },
+  {
+    kind: 'request' as const,
+    id: 'r1',
+    label: 'Yusuf asked about the Dancong',
+    meta: null,
+    waiting_since: at(80),
+    href: '/admin/activity?tab=inquiries',
+  },
+  {
+    kind: 'unsent' as const,
+    id: 's1',
+    label: 'TJ-1042 for Hana',
+    meta: null,
+    waiting_since: at(30),
+    href: '/admin/activity?tab=orders',
+  },
+];
+
+const renderWaiting = (
+  attentionItems: unknown,
+  tier: { isOwner?: boolean; canPublish?: boolean; canSell?: boolean } = {},
+) => renderToStaticMarkup(
+  <MemoryRouter>
+    {React.createElement(LaunchpadView, {
+      ...baseProps,
+      isOwner: tier.isOwner ?? false,
+      canPublish: tier.canPublish ?? false,
+      canSell: tier.canSell ?? false,
+      attentionItems,
+    } as never)}
+  </MemoryRouter>,
+);
+
+describe('Launchpad: what needs you', () => {
+  it('never hands a customer the operator queue', () => {
+    // A signed-in customer is passed null, the panel is given nothing to show.
+    const html = renderWaiting(null);
+    expect(html).not.toContain('What needs you');
+    expect(html).not.toContain('Yusuf asked about the Dancong');
+    expect(html).not.toContain('nobody has answered');
+  });
+
+  it('orders by how long each thing has waited, not by kind', () => {
+    const html = renderWaiting(waitingFixture, { isOwner: true, canSell: true });
+    const oldestFirst = html.indexOf('Yusuf asked about the Dancong');
+    const middle = html.indexOf('TJ-1042 for Hana');
+    const newest = html.indexOf('Mira reported a transfer');
+    expect(oldestFirst).toBeGreaterThan(-1);
+    expect(oldestFirst).toBeLessThan(middle);
+    expect(middle).toBeLessThan(newest);
+  });
+
+  it('says what kind of waiting each row is, so a row reads without opening it', () => {
+    const html = renderWaiting(waitingFixture, { isOwner: true, canSell: true });
+    expect(html).toContain('nobody has answered');
+    expect(html).toContain('payment reported, unchecked');
+    expect(html).toContain('paid, not sent');
+  });
+
+  it('speaks the queue in the frontispiece as a sentence, not a count', () => {
+    const html = renderWaiting(waitingFixture, { isOwner: true, canSell: true });
+    expect(html).toContain('three waiting, the oldest for three days.');
+  });
+
+  it('renders the calm state when nothing is waiting, and no zero', () => {
+    const html = renderWaiting([], { isOwner: true, canSell: true });
+    expect(html).toContain('the table is clear.');
+    expect(html).not.toContain('What needs you');
+    expect(html).not.toContain('0 waiting');
+    expect(html).not.toContain('nothing to do');
+  });
+
+  it('keeps the day voice while the queue is still unknown', () => {
+    // Loading or a failed read must not be reported as a clear table.
+    const html = renderWaiting(null, { isOwner: true, canSell: true });
+    expect(html).toContain('a quiet day.');
+    expect(html).not.toContain('the table is clear.');
+  });
+
+  it('stops the workshop tile counting the same shop twice', () => {
+    const withQueue = renderWaiting(waitingFixture, { isOwner: true, canSell: true });
+    expect(withQueue).toContain('tools &amp; records');
+    // With no queue showing, the tile keeps its own long-standing voice.
+    const withoutQueue = renderWaiting([], { isOwner: true, canSell: true });
+    expect(withoutQueue).toContain('all settled');
+  });
+});

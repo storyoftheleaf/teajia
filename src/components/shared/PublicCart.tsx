@@ -68,6 +68,22 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
   const [persistedPayloadKey, setPersistedPayloadKey] = useState<string | null>(null);
   const [copyReady, setCopyReady] = useState(false);
   const [isPersisting, setIsPersisting] = useState(false);
+  /**
+   * What was actually sent, kept after the cart it came from is emptied.
+   *
+   * The cart used to survive its own checkout, so a customer could send the same
+   * order a second time by tapping again. Emptying it is the fix, but the review
+   * screen, the outgoing message and the copy-to-clipboard text all read from the
+   * cart, so emptying it alone would blank the screen at the exact moment the
+   * customer is looking for confirmation. This snapshot is taken the instant the
+   * server accepts the order, and every one of those three reads from it
+   * afterwards.
+   */
+  const [placedOrder, setPlacedOrder] = useState<{
+    items: PublicCartItem[];
+    totalUsd: number;
+    message: string;
+  } | null>(null);
   const wasOpen = useRef(isOpen);
 
   // Undo state for removed items
@@ -76,6 +92,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
   // Multi-currency support
   const currency = useAppStore(s => s.currency);
   const setCurrency = useAppStore(s => s.setCurrency);
+  const clearPublicCart = useAppStore(s => s.clearPublicCart);
   const { data: rates = [] } = useRates();
 
   /**
@@ -127,6 +144,9 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
         setSuccessMessage(null);
         setCheckoutError(null);
         setRecoveredCart(false);
+        // Dropping the snapshot releases the identity guard below, so the next
+        // basket opens on a fresh reference rather than the sent order's.
+        setPlacedOrder(null);
       }, 500);
       return () => clearTimeout(t);
     }
@@ -187,10 +207,17 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
   useEffect(() => {
     const reopened = isOpen && !wasOpen.current;
     wasOpen.current = isOpen;
+    // An emptied cart after a sent order is the result of that order, not an
+    // edit to it. Rotating here would discard the tracking token and the success
+    // message the customer is currently reading.
+    if (placedOrder && cart.length === 0) return;
+    // Tea back in the cart after a sent order is a new order. Release the
+    // snapshot so the next one gets its own reference.
+    if (placedOrder) setPlacedOrder(null);
     if (shouldRotateInquiryIdentity(persistedPayloadKey, currentPayloadKey, reopened)) {
       rotateInquiryIdentity();
     }
-  }, [isOpen, persistedPayloadKey, currentPayloadKey, rotateInquiryIdentity]);
+  }, [isOpen, persistedPayloadKey, currentPayloadKey, rotateInquiryIdentity, placedOrder, cart.length]);
 
   const orderMessage = useMemo(() => buildOrderMessage({
     type: 'inquiry',
@@ -218,7 +245,26 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
     subtotal: shopPrice.total(subtotal),
     total: shopPrice.total(subtotal),
   }), [cart, details, subtotal, orderRef, shopPrice]);
-  const contactChannels = useMemo(() => resolveContactChannels({ whatsappNumber, email: contactEmail, subject: `Tea Order - ${details.name}`, message: orderMessage }), [whatsappNumber, contactEmail, details.name, orderMessage]);
+
+  /**
+   * The three reads that used to depend on the cart still being full.
+   *
+   * Once an order is placed the cart is empty on purpose, so the review block,
+   * the message the alternate channels carry, and the clipboard text all come
+   * from the snapshot instead. Before that they come from the live cart, exactly
+   * as they always did.
+   */
+  const outgoingMessage = placedOrder ? placedOrder.message : orderMessage;
+  const reviewItems = placedOrder ? placedOrder.items : cart;
+  const reviewTotal = placedOrder ? placedOrder.totalUsd : subtotal;
+  /**
+   * Whether this order is already on the server. The payload key stops matching
+   * the moment the cart is emptied, so the snapshot is what answers this after a
+   * send: without it, a second tap would file the order a second time.
+   */
+  const isPersistedForPayload = !!trackingToken && (!!placedOrder || persistedPayloadKey === currentPayloadKey);
+
+  const contactChannels = useMemo(() => resolveContactChannels({ whatsappNumber, email: contactEmail, subject: `Tea Order - ${details.name}`, message: outgoingMessage }), [whatsappNumber, contactEmail, details.name, outgoingMessage]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
@@ -263,6 +309,11 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
       });
     setTrackingToken(result.tracking_token);
     setPersistedPayloadKey(currentPayloadKey);
+    // Only past this line, with the server's answer in hand, is the basket spent.
+    // A failed create throws above and leaves the cart untouched to try again.
+    setPlacedOrder({ items: cart, totalUsd: subtotal, message: orderMessage });
+    clearPublicCart();
+    try { sessionStorage.removeItem('teajia_cartState'); } catch { /* best effort */ }
     return result;
   };
 
@@ -288,7 +339,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
       }
     };
 
-    if (persistedPayloadKey === currentPayloadKey && trackingToken) {
+    if (isPersistedForPayload) {
       navigate();
       return;
     }
@@ -321,7 +372,6 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
 
   const handleCopy = () => {
     if (isPersisting) return;
-    const isPersistedForPayload = persistedPayloadKey === currentPayloadKey && !!trackingToken;
     if (copyDeliveryStep(isPersistedForPayload) === 'persist') {
       setCheckoutError(null);
       setIsPersisting(true);
@@ -338,7 +388,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
     setCheckoutError(null);
     let copyPromise: Promise<void>;
     try {
-      copyPromise = navigator.clipboard.writeText(orderMessage);
+      copyPromise = navigator.clipboard.writeText(outgoingMessage);
     } catch {
       setCheckoutError('Your order is saved, but the text could not be copied. Check clipboard permission and tap again.');
       return;
@@ -629,7 +679,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                 {/* Order items */}
                 <div className="py-4 space-y-3">
                   <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Order</p>
-                  {cart.map(item => (
+                  {reviewItems.map(item => (
                     <div key={item.id} className="flex justify-between items-baseline text-sm gap-4">
                       <div className="min-w-0">
                         <span className="text-tea-text font-serif">{item.name}</span>
@@ -645,7 +695,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                 {/* Total */}
                 <div className="py-4 flex justify-between items-baseline">
                   <span className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">Total estimate</span>
-                  <span className="num text-xl font-serif text-tea-gold">{displayPrice(subtotal)}</span>
+                  <span className="num text-xl font-serif text-tea-gold">{displayPrice(reviewTotal)}</span>
                 </div>
               </div>
 
@@ -706,7 +756,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                 </div>
               )}
 
-              {trackingToken && !successMessage?.show && persistedPayloadKey === currentPayloadKey && (
+              {trackingToken && !successMessage?.show && isPersistedForPayload && (
                 <div className="cart-fade-in text-center text-ui-12 text-tea-text-sec space-y-1" role="status">
                   <p>{copyReady ? 'Order saved. Tap Copy saved order to place the text on your clipboard.' : 'Order saved.'}</p>
                   <a href={`/order/${trackingToken}`} className="font-mono text-tea-text underline underline-offset-4 decoration-tea-border hover:decoration-tea-gold transition-colors">
@@ -741,7 +791,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                     disabled={isPersisting}
                     className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text underline underline-offset-[6px] decoration-tea-border hover:decoration-tea-gold transition-colors min-h-[44px]"
                   >
-                    {copyReady && persistedPayloadKey === currentPayloadKey ? 'Copy saved order' : 'Copy text'}
+                    {copyReady && isPersistedForPayload ? 'Copy saved order' : 'Copy text'}
                   </button>
                 </div>
                 {contactChannels.unavailable && <p className="text-center text-sm text-tea-text-sec">{CONTACT_UNAVAILABLE}</p>}
@@ -807,7 +857,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
         )}
         {step === 'CONFIRM' && (
           <div className="flex flex-col gap-3">
-            {successMessage?.show && onClose && (
+            {(successMessage?.show || placedOrder) && onClose && (
               <Button
                 onClick={onClose}
                 variant="primary"
@@ -817,14 +867,19 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                 Done
               </Button>
             )}
-            <Button
-              onClick={() => setStep('INQUIRY')}
-              variant="secondary"
-              fullWidth
-              className="py-3 uppercase tracking-[0.2em] text-xs"
-            >
-              Edit Details
-            </Button>
+            {/* Editing stops being offered once the order is with us: the basket
+                it was built from is spent, so stepping back would show an empty
+                form and invite a second order for the same tea. */}
+            {!placedOrder && (
+              <Button
+                onClick={() => setStep('INQUIRY')}
+                variant="secondary"
+                fullWidth
+                className="py-3 uppercase tracking-[0.2em] text-xs"
+              >
+                Edit Details
+              </Button>
+            )}
           </div>
         )}
       </div>

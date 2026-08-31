@@ -43,12 +43,20 @@ import {
   type CurateImportContext,
   type CurateFinalizeMovement,
 } from './curateImports';
+// A leaf module shared with index.ts, so no cycle. convert_order_request needs
+// the same tea-versus-teaware rule the REST convert applies to its lines.
+import { isTeaType } from '../../src/wisdom/vocabulary';
 
 type Env = {
   DB: D1Database;
   JWT_SECRET: string;
   OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
   OAUTH_AUTHORIZE_LIMITER?: RateLimiterBinding;
+  // Not yet provisioned in wrangler.toml — requested from the worker/schema
+  // owner in todo/plans/order-process-notes.md (same [[unsafe.bindings]]
+  // ratelimit pattern as PUBLIC_MCP_LIMITER/OAUTH_REGISTER_LIMITER). Optional
+  // so this file works before and after that binding lands.
+  PUBLIC_PREPARE_ORDER_LIMITER?: RateLimiterBinding;
   // The wider Env interface in index.ts has many more fields — only the ones
   // the MCP server actually reads are listed here so this module is portable.
   // Optional fields forwarded to intake (curate-import) tools:
@@ -474,6 +482,10 @@ type PendingMutation =
   | { kind: 'update_exchange_rate'; accountId: string; userEmail: string; currency: string; rateVsUsd: number; previousRate: number }
   | { kind: 'create_tea'; accountId: string; userEmail: string; product: NewTeaInput }
   | { kind: 'mark_invoice_paid'; accountId: string; userEmail: string; actorUserId: string; actorRole: string; invoiceId: string; invoiceNumber: string; paymentMethod: string; fulfillStock: boolean }
+  // ── Round three: the order process ──
+  | { kind: 'convert_order_request'; accountId: string; userEmail: string; inquiryId: string; reference: string | null; customerName: string }
+  | { kind: 'confirm_payment'; accountId: string; userEmail: string; actorUserId: string; paymentId: string; invoiceId: string; invoiceNumber: string | null; customerName: string | null; amountUsd: number }
+  | { kind: 'record_payment'; accountId: string; userEmail: string; actorUserId: string; invoiceId: string; invoiceNumber: string | null; customerName: string | null; amountUsd: number; method: string | null; reference: string | null; note: string | null }
   // ── Intake (Curate-import) ──
   | { kind: 'intake_finalize'; accountId: string; userEmail: string; userId: string; importId: string; idempotencyKey: string };
 
@@ -3441,6 +3453,1486 @@ async function commitMarkInvoicePaid(env: Env, m: Extract<PendingMutation, { kin
   };
 }
 
+// ============================================================================
+// Round three: the order process, reachable by voice.
+//
+// Order requests arriving, turning one into a real order, customers reporting
+// payments, confirming them. All of that existed only behind a screen. The
+// tools below put it on this server so the shop can be run by talking to it.
+//
+// ── Why this mirrors index.ts instead of importing it ──
+//
+// index.ts imports THIS module (mcpFetch, publicMcpFetch, the OAuth handlers),
+// so importing back would close a module cycle. That is the same constraint
+// that produced the inline invoice-number format in commitRecordSale above and
+// the note at the top of this file about not importing index.ts. Every mirrored
+// rule below names the function in index.ts it came from, so the two can be
+// diffed. KEEP IN SYNC. If those rules ever move into a leaf module
+// (worker/src/invoiceDomain.ts is the obvious home) delete these copies and
+// import them instead.
+// ============================================================================
+
+/** Money is compared and stored to the cent. Mirrors PAYMENT_EPSILON, index.ts. */
+const MCP_PAYMENT_EPSILON = 0.01;
+/** The most a single payment may be. A fat finger, not a real transfer. */
+const MCP_PAYMENT_AMOUNT_CEILING = 1_000_000;
+/** Mirrors PAYMENT_TEXT_LIMITS, index.ts. */
+const MCP_PAYMENT_TEXT_LIMITS = { currency: 8, method: 80, reference: 140, note: 600 } as const;
+
+/** Mirrors roundUsd, index.ts. */
+function roundUsd(value: number): number {
+  return Math.round((Number(value) || 0) * 100) / 100;
+}
+
+/** An amount as it should be heard rather than read. */
+function usdWords(value: number): string {
+  return `${roundUsd(value).toFixed(2)} US dollars`;
+}
+
+/** Mirrors paymentTextField, index.ts. */
+function mcpPaymentText(value: unknown, max: number): string | null {
+  if (typeof value !== 'string') return null;
+  const clean = value.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
+  return clean ? clean.slice(0, max) : null;
+}
+
+// SQLite writes datetime('now') as "YYYY-MM-DD HH:MM:SS" with no zone marker,
+// and it is always UTC. Parsed naively that reads as local time, and an order
+// that arrived an hour ago can be reported as waiting since tomorrow.
+function parseSqlTime(value: string | null | undefined): number | null {
+  if (!value) return null;
+  const raw = String(value).trim();
+  const iso = /[TZ]|[+-]\d{2}:?\d{2}$/.test(raw) ? raw : `${raw.replace(' ', 'T')}Z`;
+  const ms = Date.parse(iso);
+  return Number.isFinite(ms) ? ms : null;
+}
+
+function toIsoTime(value: string | null | undefined): string | null {
+  const ms = parseSqlTime(value);
+  return ms == null ? null : new Date(ms).toISOString();
+}
+
+/** How long something has been waiting, in words a person would say. */
+function waitedFor(value: string | null | undefined): string {
+  const ms = parseSqlTime(value);
+  if (ms == null) return 'an unknown time';
+  const minutes = Math.max(0, Math.round((Date.now() - ms) / 60000));
+  if (minutes < 2) return 'just now';
+  if (minutes < 60) return `${minutes} minutes`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'}`;
+  const days = Math.round(hours / 24);
+  if (days < 14) return `${days} day${days === 1 ? '' : 's'}`;
+  const weeks = Math.round(days / 7);
+  if (weeks < 9) return `${weeks} weeks`;
+  const months = Math.round(days / 30);
+  return `${months} month${months === 1 ? '' : 's'}`;
+}
+
+/** "one", "two things", "three of the four": small counts read better as words. */
+const SMALL_NUMBERS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+function countWord(n: number): string {
+  return n >= 0 && n < SMALL_NUMBERS.length ? SMALL_NUMBERS[n] : String(n);
+}
+
+/** "a, b and c", a list as it is spoken rather than as it is printed. */
+function spokenList(parts: (string | null)[]): string {
+  const kept = parts.filter(Boolean) as string[];
+  if (kept.length === 0) return '';
+  if (kept.length === 1) return kept[0];
+  return `${kept.slice(0, -1).join(', ')} and ${kept[kept.length - 1]}`;
+}
+
+/**
+ * The trailing qualifiers on a money sentence, comma-joined with no "and".
+ * "40.00 US dollars by Bank transfer, reference ABC123, 2 days ago" reads
+ * correctly aloud; the same parts through spokenList would land on
+ * "reference ABC123 and 2 days ago", which does not.
+ */
+function spokenClause(parts: (string | null)[]): string {
+  return (parts.filter(Boolean) as string[]).join(', ');
+}
+
+/** A fragment used as the start of a sentence. */
+function startSentence(text: string): string {
+  return text ? `${text.charAt(0).toUpperCase()}${text.slice(1)}` : text;
+}
+
+interface InvoiceLedgerTotals { paid_usd: number; claims_pending: number }
+
+/**
+ * What the payment ledger holds for a set of invoices: money actually
+ * confirmed, and how many customer reports are still waiting.
+ *
+ * Mirrors loadInvoiceLedgerTotals, index.ts, including the 90-id chunk, which
+ * exists because D1 caps bound parameters at 100.
+ */
+async function loadInvoiceLedgerTotals(
+  env: Env,
+  invoiceIds: string[],
+): Promise<Map<string, InvoiceLedgerTotals>> {
+  const totals = new Map<string, InvoiceLedgerTotals>();
+  const unique = [...new Set(invoiceIds.filter(Boolean))];
+  for (let start = 0; start < unique.length; start += 90) {
+    const chunk = unique.slice(start, start + 90);
+    const result = await env.DB.prepare(
+      `SELECT invoice_id,
+              SUM(CASE WHEN status = 'confirmed' THEN amount_usd ELSE 0 END) AS paid_usd,
+              SUM(CASE WHEN status = 'claimed' THEN 1 ELSE 0 END) AS claims_pending
+         FROM invoice_payments
+        WHERE invoice_id IN (${chunk.map(() => '?').join(', ')})
+        GROUP BY invoice_id`
+    ).bind(...chunk).all();
+    for (const row of (result.results ?? []) as Array<Record<string, any>>) {
+      totals.set(row.invoice_id as string, {
+        paid_usd: roundUsd(Number(row.paid_usd || 0)),
+        claims_pending: Number(row.claims_pending || 0),
+      });
+    }
+  }
+  return totals;
+}
+
+interface InvoiceMoney {
+  total_usd: number;
+  paid_usd: number;
+  outstanding_usd: number;
+  claims_pending: number;
+}
+
+/**
+ * The three numbers plus the pending count, for one invoice.
+ *
+ * Mirrors invoiceMoney, index.ts. A payment_status column that says paid with
+ * nothing behind it is read as fully paid, which only ever RAISES paid to meet
+ * the column and never lowers it, so a confirmed payment can never be hidden by
+ * a stale status word. mark_invoice_paid in this same file is one of the two
+ * paths that writes that column without a ledger row, which is exactly why the
+ * rule exists.
+ */
+function invoiceMoney(
+  totalUsd: number,
+  paymentStatus: string | null | undefined,
+  ledger: InvoiceLedgerTotals | undefined,
+): InvoiceMoney {
+  const total = roundUsd(totalUsd);
+  let paid = roundUsd(ledger?.paid_usd ?? 0);
+  if (String(paymentStatus || '').toLowerCase() === 'paid' && paid < total - MCP_PAYMENT_EPSILON) {
+    paid = total;
+  }
+  return {
+    total_usd: total,
+    paid_usd: paid,
+    outstanding_usd: Math.max(0, roundUsd(total - paid)),
+    claims_pending: ledger?.claims_pending ?? 0,
+  };
+}
+
+interface LedgerInvoice {
+  id: string;
+  account_id: string;
+  invoice_number: string | null;
+  status: string | null;
+  payment_status: string | null;
+  payment_date: string | null;
+  payment_method: string | null;
+  customer_name: string | null;
+  customer_id: string | null;
+  total_usd: number;
+}
+
+/** The invoice as the ledger needs it, priced. Mirrors loadLedgerInvoice, index.ts. */
+async function loadLedgerInvoice(
+  env: Env,
+  invoiceId: string,
+  accountId: string,
+): Promise<LedgerInvoice | null> {
+  const row = await env.DB.prepare(
+    `SELECT i.id, i.account_id, i.invoice_number, i.status, i.payment_status,
+            i.payment_date, i.payment_method, i.customer_name, i.customer_id,
+            i.shipping_cost_usd,
+            COALESCE((SELECT SUM(quantity * price_at_sale)
+                        FROM invoice_line_items WHERE invoice_id = i.id), 0) AS line_total
+       FROM invoices i
+      WHERE i.id = ? AND i.deleted_at IS NULL AND i.account_id = ?
+      LIMIT 1`
+  ).bind(invoiceId, accountId).first() as Record<string, any> | null;
+  if (!row) return null;
+  return {
+    id: row.id as string,
+    account_id: row.account_id as string,
+    invoice_number: (row.invoice_number as string | null) ?? null,
+    status: (row.status as string | null) ?? null,
+    payment_status: (row.payment_status as string | null) ?? null,
+    payment_date: (row.payment_date as string | null) ?? null,
+    payment_method: (row.payment_method as string | null) ?? null,
+    customer_name: (row.customer_name as string | null) ?? null,
+    customer_id: (row.customer_id as string | null) ?? null,
+    total_usd: roundUsd(Number(row.line_total || 0) + Number(row.shipping_cost_usd || 0)),
+  };
+}
+
+/**
+ * Absorb a settlement recorded on the column and nowhere else, before any
+ * ledger write. Mirrors reconcileLedgerWithColumn, index.ts.
+ *
+ * mark_invoice_paid (this file) and the generic invoice update both write
+ * invoices.payment_status without leaving a payment row. Left alone, the first
+ * ledger write on such an invoice would recompute from an empty ledger and drag
+ * a paid order back to unpaid. This turns that column-only settlement into a
+ * real confirmed operator row for the shortfall first.
+ *
+ * It runs BEFORE the mutation on purpose. After would make a rejection
+ * impossible to land: the reject empties the ledger, the column still says
+ * paid, and the reconciliation would put the money straight back.
+ */
+async function reconcileLedgerWithColumn(env: Env, invoice: LedgerInvoice): Promise<void> {
+  if (String(invoice.payment_status || '').toLowerCase() !== 'paid') return;
+  if (!(invoice.total_usd > 0)) return;
+  const ledger = await loadInvoiceLedgerTotals(env, [invoice.id]);
+  const shortfall = roundUsd(invoice.total_usd - (ledger.get(invoice.id)?.paid_usd ?? 0));
+  if (shortfall <= MCP_PAYMENT_EPSILON) return;
+  const when = invoice.payment_date || new Date().toISOString();
+  await env.DB.prepare(
+    `INSERT INTO invoice_payments
+       (id, invoice_id, account_id, amount_usd, currency, method_label, note,
+        status, claimed_by, claimed_at, confirmed_at)
+     VALUES (?, ?, ?, ?, 'USD', ?, ?, 'confirmed', 'operator', ?, ?)`
+  ).bind(
+    crypto.randomUUID(), invoice.id, invoice.account_id, shortfall,
+    invoice.payment_method || null,
+    'Settled on the order before this was recorded as a payment.',
+    when, when,
+  ).run();
+}
+
+interface LedgerRecompute extends InvoiceMoney {
+  payment_status: 'unpaid' | 'partial' | 'paid';
+}
+
+/**
+ * Rewrite payment_status, payment_date and payment_method from the confirmed
+ * rows. Mirrors recomputeInvoicePaymentStatus, index.ts. Called after every
+ * ledger mutation and never on a read.
+ */
+async function recomputeInvoicePaymentStatus(env: Env, invoice: LedgerInvoice): Promise<LedgerRecompute> {
+  const [ledger, latest] = await Promise.all([
+    loadInvoiceLedgerTotals(env, [invoice.id]),
+    env.DB.prepare(
+      `SELECT method_label, confirmed_at, claimed_at
+         FROM invoice_payments
+        WHERE invoice_id = ? AND status = 'confirmed'
+        ORDER BY COALESCE(confirmed_at, claimed_at) DESC, created_at DESC
+        LIMIT 1`
+    ).bind(invoice.id).first() as Promise<Record<string, any> | null>,
+  ]);
+  const totals = ledger.get(invoice.id) ?? { paid_usd: 0, claims_pending: 0 };
+  const paid = roundUsd(totals.paid_usd);
+  const total = invoice.total_usd;
+  const paymentStatus: 'unpaid' | 'partial' | 'paid' =
+    total > 0 && paid >= total - MCP_PAYMENT_EPSILON ? 'paid'
+      : paid > 0 ? 'partial'
+        : 'unpaid';
+  const paymentDate = latest
+    ? ((latest.confirmed_at as string | null) || (latest.claimed_at as string | null))
+    : null;
+  const paymentMethod = latest ? ((latest.method_label as string | null) || null) : null;
+  await env.DB.prepare(
+    `UPDATE invoices SET payment_status = ?, payment_date = ?, payment_method = ?
+      WHERE id = ? AND account_id = ?`
+  ).bind(paymentStatus, paymentDate, paymentMethod, invoice.id, invoice.account_id).run();
+  return {
+    payment_status: paymentStatus,
+    total_usd: total,
+    paid_usd: paid,
+    outstanding_usd: Math.max(0, roundUsd(total - paid)),
+    claims_pending: totals.claims_pending,
+  };
+}
+
+/** Mirrors ensureContactRelationship, index.ts, for the one kind convert needs. */
+async function ensureBuyerRelationship(
+  env: Env,
+  accountId: string,
+  customerId: string | null,
+  invoiceId: string,
+): Promise<void> {
+  if (!customerId) return;
+  try {
+    await env.DB.prepare(
+      `INSERT OR IGNORE INTO contact_relationships
+        (id, account_id, customer_id, kind, source, source_entity_type, source_entity_id)
+       VALUES (?, ?, ?, 'buyer', 'workflow', 'invoice', ?)`
+    ).bind(crypto.randomUUID(), accountId, customerId, invoiceId).run();
+  } catch {
+    // Keep the convert alive if a local database has not run migration 069 yet.
+  }
+}
+
+/** One activity_logs row, best effort. Money must never fail because logging did. */
+async function logOrderProcessActivity(
+  env: Env,
+  args: { accountId: string; userEmail: string; action: string; details: string; invoiceId: string },
+): Promise<void> {
+  try {
+    await env.DB.prepare(
+      `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+       VALUES (?, ?, ?, ?, 'invoice', ?, ?)`
+    ).bind(
+      crypto.randomUUID(), args.action, args.details,
+      args.userEmail, args.invoiceId, args.accountId,
+    ).run();
+  } catch { /* never fail the money move on a log */ }
+}
+
+// ── What needs Adrian ────────────────────────────────────────────────────────
+//
+// The same four questions Agent W's GET /api/attention answers, in the same
+// shape (kind, id, label, meta, waiting_since, href), so the spoken answer and
+// the screen can never disagree about what is waiting. It is a second copy of
+// those queries only because of the import cycle described above; the rules are
+// the frozen contract in todo/plans/order-process-round-3.md, not new ones.
+//
+// One query per kind, capped, never an N+1 across orders.
+
+type AttentionKind = 'request' | 'unpriced' | 'claim' | 'unsent';
+
+interface AttentionItem {
+  kind: AttentionKind;
+  id: string;
+  label: string;
+  meta: string | null;
+  waiting_since: string;
+  href: string;
+  /** Not in W's REST shape. The identifier a voice caller would say back. */
+  reference: string | null;
+}
+
+interface AttentionResult {
+  items: AttentionItem[];
+  counts: { requests: number; unpriced: number; claims: number; unsent: number };
+}
+
+/** How many rows each kind may contribute before the list is simply "lots". */
+const ATTENTION_PER_KIND_CAP = 50;
+
+function countInquiryItems(raw: unknown): number {
+  try {
+    const parsed = JSON.parse(String(raw || '[]'));
+    return Array.isArray(parsed) ? parsed.length : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** Where a kind opens in the admin. Mirrors the links ActivityView already uses. */
+function attentionHref(kind: AttentionKind, invoiceNumber: string | null): string {
+  if (kind === 'request') return '/admin/activity?tab=inquiries';
+  return invoiceNumber
+    ? `/admin/activity?tab=orders&search=${encodeURIComponent(invoiceNumber)}`
+    : '/admin/activity?tab=orders';
+}
+
+async function gatherAttention(env: Env, accountId: string): Promise<AttentionResult> {
+  // 1. request. An order request nobody has answered. 'replied' and 'closed'
+  //    have been answered; a converted request has become an order and is now
+  //    the unpriced kind's problem, not this one's.
+  const requestRows = await env.DB.prepare(
+    `SELECT id, name, ref_number, items, created_at
+       FROM inquiries
+      WHERE account_id = ?
+        AND converted_invoice_id IS NULL
+        AND COALESCE(status, 'new') IN ('new', 'seen')
+      ORDER BY created_at ASC
+      LIMIT ?`
+  ).bind(accountId, ATTENTION_PER_KIND_CAP).all();
+
+  // 2. unpriced. A converted order still Draft, or one carrying a zero-priced
+  //    line. Either way a number is missing and the customer cannot be asked
+  //    for money yet.
+  const unpricedRows = await env.DB.prepare(
+    `SELECT i.id, i.invoice_number, i.customer_name, i.created_at,
+            (SELECT COUNT(*) FROM invoice_line_items l
+              WHERE l.invoice_id = i.id AND COALESCE(l.price_at_sale, 0) <= 0) AS zero_lines
+       FROM invoices i
+      WHERE i.account_id = ?
+        AND i.deleted_at IS NULL
+        AND i.status = 'Draft'
+        AND (EXISTS (SELECT 1 FROM inquiries q
+                      WHERE q.converted_invoice_id = i.id AND q.account_id = i.account_id)
+             OR EXISTS (SELECT 1 FROM invoice_line_items l
+                         WHERE l.invoice_id = i.id AND COALESCE(l.price_at_sale, 0) <= 0))
+      ORDER BY i.created_at ASC
+      LIMIT ?`
+  ).bind(accountId, ATTENTION_PER_KIND_CAP).all();
+
+  // 3. claim. A customer has reported a payment nobody has checked. A REPORT,
+  //    not money. Only confirm_payment turns one into a settled payment.
+  const claimRows = await env.DB.prepare(
+    `SELECT p.id, p.invoice_id, p.amount_usd, p.method_label, p.reference, p.claimed_at,
+            i.invoice_number, i.customer_name
+       FROM invoice_payments p
+       LEFT JOIN invoices i ON i.id = p.invoice_id
+      WHERE p.account_id = ? AND p.status = 'claimed'
+      ORDER BY p.claimed_at ASC
+      LIMIT ?`
+  ).bind(accountId, ATTENTION_PER_KIND_CAP).all();
+
+  // 4. unsent. Fully paid and not yet fulfilled. The narrowing clause keeps
+  //    this off every unpaid order in the account; the settled test itself is
+  //    invoiceMoney's, applied below so the column-says-paid rule holds here
+  //    exactly as it does on every other read.
+  const unsentRows = await env.DB.prepare(
+    `SELECT i.id, i.invoice_number, i.customer_name, i.payment_status,
+            i.payment_date, i.created_at, i.shipping_cost_usd,
+            COALESCE((SELECT SUM(quantity * price_at_sale)
+                        FROM invoice_line_items WHERE invoice_id = i.id), 0) AS line_total
+       FROM invoices i
+      WHERE i.account_id = ?
+        AND i.deleted_at IS NULL
+        AND i.status <> 'Void'
+        AND i.fulfilled_at IS NULL
+        AND (COALESCE(i.payment_status, 'unpaid') IN ('paid', 'partial')
+             OR EXISTS (SELECT 1 FROM invoice_payments ip
+                         WHERE ip.invoice_id = i.id AND ip.status = 'confirmed'))
+      ORDER BY COALESCE(i.payment_date, i.created_at) ASC
+      LIMIT 200`
+  ).bind(accountId).all();
+
+  const unsentCandidates = (unsentRows.results ?? []) as Array<Record<string, any>>;
+  const unsentLedger = await loadInvoiceLedgerTotals(env, unsentCandidates.map(r => r.id as string));
+
+  const items: AttentionItem[] = [];
+
+  for (const row of (requestRows.results ?? []) as Array<Record<string, any>>) {
+    const who = String(row.name || 'someone');
+    const ref = (row.ref_number as string | null) || null;
+    const lines = countInquiryItems(row.items);
+    items.push({
+      kind: 'request',
+      id: row.id as string,
+      label: `Order request from ${who}${ref ? `, reference ${ref}` : ''}`,
+      meta: startSentence(`${lines === 1 ? 'one item' : `${countWord(lines)} items`}, waiting ${waitedFor(row.created_at as string)}`),
+      waiting_since: toIsoTime(row.created_at as string) ?? new Date().toISOString(),
+      href: attentionHref('request', null),
+      reference: ref,
+    });
+  }
+
+  for (const row of (unpricedRows.results ?? []) as Array<Record<string, any>>) {
+    const number = (row.invoice_number as string | null) || null;
+    const zero = Number(row.zero_lines || 0);
+    items.push({
+      kind: 'unpriced',
+      id: row.id as string,
+      label: `Order ${number ?? 'with no number'} for ${String(row.customer_name || 'a customer')} still needs pricing`,
+      meta: startSentence(zero > 0
+        ? `${countWord(zero)} line${zero === 1 ? '' : 's'} at no price, waiting ${waitedFor(row.created_at as string)}`
+        : `still a draft, waiting ${waitedFor(row.created_at as string)}`),
+      waiting_since: toIsoTime(row.created_at as string) ?? new Date().toISOString(),
+      href: attentionHref('unpriced', number),
+      reference: number,
+    });
+  }
+
+  for (const row of (claimRows.results ?? []) as Array<Record<string, any>>) {
+    const number = (row.invoice_number as string | null) || null;
+    const who = String(row.customer_name || 'A customer');
+    const method = (row.method_label as string | null) || null;
+    const ref = (row.reference as string | null) || null;
+    items.push({
+      kind: 'claim',
+      id: row.id as string,
+      label: `${who} says they paid ${usdWords(Number(row.amount_usd || 0))} on order ${number ?? 'with no number'}`,
+      meta: startSentence(spokenClause([
+        method ? `${method}` : null,
+        ref ? `reference ${ref}` : null,
+        `reported ${waitedFor(row.claimed_at as string)} ago`,
+      ])),
+      waiting_since: toIsoTime(row.claimed_at as string) ?? new Date().toISOString(),
+      href: attentionHref('claim', number),
+      reference: number,
+    });
+  }
+
+  for (const row of unsentCandidates) {
+    const total = roundUsd(Number(row.line_total || 0) + Number(row.shipping_cost_usd || 0));
+    const money = invoiceMoney(total, row.payment_status as string | null, unsentLedger.get(row.id as string));
+    if (!(money.total_usd > 0) || money.outstanding_usd > 0) continue;
+    const number = (row.invoice_number as string | null) || null;
+    const since = (row.payment_date as string | null) || (row.created_at as string | null);
+    items.push({
+      kind: 'unsent',
+      id: row.id as string,
+      label: `Order ${number ?? 'with no number'} for ${String(row.customer_name || 'a customer')} is paid and not sent`,
+      meta: `${usdWords(money.paid_usd)} received, waiting ${waitedFor(since)}`,
+      waiting_since: toIsoTime(since) ?? new Date().toISOString(),
+      href: attentionHref('unsent', number),
+      reference: number,
+    });
+    if (items.filter(item => item.kind === 'unsent').length >= ATTENTION_PER_KIND_CAP) break;
+  }
+
+  // Oldest waiter first, across all four kinds.
+  items.sort((a, b) => a.waiting_since.localeCompare(b.waiting_since));
+
+  return {
+    items,
+    counts: {
+      requests: items.filter(item => item.kind === 'request').length,
+      unpriced: items.filter(item => item.kind === 'unpriced').length,
+      claims: items.filter(item => item.kind === 'claim').length,
+      unsent: items.filter(item => item.kind === 'unsent').length,
+    },
+  };
+}
+
+// ── tool: whats_waiting ──
+//
+// The headline. It answers "what needs me right now" in words, oldest first,
+// across all four kinds. Everything else in this round exists to act on one of
+// the lines it reads out.
+async function toolWhatsWaiting(env: Env, accountId: string, args: any) {
+  const limit = Math.min(Math.max(Number(args?.limit) || 8, 1), 40);
+  const kindArg = args?.kind ? String(args.kind).trim().toLowerCase() : '';
+  const wanted: AttentionKind | null =
+    kindArg === 'request' || kindArg === 'unpriced' || kindArg === 'claim' || kindArg === 'unsent'
+      ? kindArg
+      : null;
+
+  const { items: all, counts } = await gatherAttention(env, accountId);
+  const filtered = wanted ? all.filter(item => item.kind === wanted) : all;
+  const shown = filtered.slice(0, limit);
+  const total = filtered.length;
+
+  if (total === 0) {
+    return {
+      spoken: wanted
+        ? `Nothing of that kind is waiting on you.`
+        : `Nothing is waiting on you right now. No unanswered order requests, no unpriced orders, no reported payments and nothing paid waiting to be sent.`,
+      items: [], counts, total: 0, shown: 0,
+    };
+  }
+
+  const breakdown = spokenList([
+    counts.requests ? `${countWord(counts.requests)} order request${counts.requests === 1 ? '' : 's'}` : null,
+    counts.unpriced ? `${countWord(counts.unpriced)} order${counts.unpriced === 1 ? '' : 's'} to price` : null,
+    counts.claims ? `${countWord(counts.claims)} reported payment${counts.claims === 1 ? '' : 's'} to check` : null,
+    counts.unsent ? `${countWord(counts.unsent)} paid order${counts.unsent === 1 ? '' : 's'} to send` : null,
+  ]);
+
+  const lines = [
+    startSentence(`${countWord(total)} thing${total === 1 ? ' is' : 's are'} waiting on you.`),
+    wanted ? '' : `${startSentence(breakdown)}.`,
+    'Oldest first.',
+    ...shown.map((item, index) => `${index + 1}. ${item.label}. ${item.meta ?? ''}`.trim()),
+    total > shown.length ? startSentence(`${countWord(total - shown.length)} more after that.`) : '',
+  ].filter(Boolean);
+
+  return {
+    spoken: lines.join('\n'),
+    items: shown,
+    counts,
+    total,
+    shown: shown.length,
+  };
+}
+
+// ── tool: list_order_requests ──
+//
+// What has come in, with who, what and how long ago. The reference is what a
+// voice caller says back to convert_order_request, so it leads every line.
+async function toolListOrderRequests(env: Env, accountId: string, args: any) {
+  const limit = Math.min(Math.max(Number(args?.limit) || 10, 1), 50);
+  const statusArg = args?.status ? String(args.status).trim().toLowerCase() : 'unanswered';
+
+  // Every column is qualified: the query joins invoices, which carries its own
+  // `status`, so a bare one is ambiguous and the whole tool returns nothing.
+  const wheres: string[] = ['i.account_id = ?'];
+  const binds: any[] = [accountId];
+  if (statusArg === 'unanswered') {
+    wheres.push("i.converted_invoice_id IS NULL AND COALESCE(i.status, 'new') IN ('new', 'seen')");
+  } else if (statusArg === 'converted') {
+    wheres.push('i.converted_invoice_id IS NOT NULL');
+  } else if (['new', 'seen', 'replied', 'closed'].includes(statusArg)) {
+    wheres.push("COALESCE(i.status, 'new') = ?");
+    binds.push(statusArg);
+  } else if (statusArg !== 'all') {
+    return { error: 'unknown_status', spoken: `I do not know the request status "${statusArg}". Try unanswered, new, seen, replied, closed, converted or all.` };
+  }
+
+  const { results } = await env.DB.prepare(
+    `SELECT i.id, i.name, i.email, i.phone, i.ref_number, i.items, i.total_usd,
+            i.currency, i.message, COALESCE(i.status, 'new') AS status,
+            i.created_at, i.converted_invoice_id, i.source,
+            inv.invoice_number AS converted_invoice_number
+       FROM inquiries i
+       LEFT JOIN invoices inv ON inv.id = i.converted_invoice_id
+      WHERE ${wheres.join(' AND ')}
+      ORDER BY i.created_at DESC
+      LIMIT ?`
+  ).bind(...binds, limit).all();
+
+  const requests = ((results ?? []) as Array<Record<string, any>>).map(row => {
+    let items: Array<Record<string, any>> = [];
+    try {
+      const parsed = JSON.parse(String(row.items || '[]'));
+      if (Array.isArray(parsed)) items = parsed.filter(item => item && typeof item === 'object');
+    } catch { /* an unreadable cart is an empty one, never a thrown tool call */ }
+    return {
+      request_id: row.id as string,
+      reference: (row.ref_number as string | null) || null,
+      name: (row.name as string | null) || null,
+      email: (row.email as string | null) || null,
+      phone: (row.phone as string | null) || null,
+      status: row.status as string,
+      source: (row.source as string | null) || null,
+      message: (row.message as string | null) || null,
+      created_at: toIsoTime(row.created_at as string),
+      waited: waitedFor(row.created_at as string),
+      already_converted: Boolean(row.converted_invoice_id),
+      converted_invoice_id: (row.converted_invoice_id as string | null) || null,
+      converted_invoice_number: (row.converted_invoice_number as string | null) || null,
+      item_count: items.length,
+      items: items.slice(0, 20).map(item => ({
+        product_id: String(item.id || '') || null,
+        name: String(item.name || 'Item'),
+        grams: Number(item.quantityGrams ?? item.qty ?? 1) || 1,
+      })),
+      customer_total_usd: Number(row.total_usd || 0) || 0,
+    };
+  });
+
+  if (requests.length === 0) {
+    return {
+      spoken: statusArg === 'unanswered'
+        ? 'No order requests are waiting for an answer.'
+        : `No order requests match ${statusArg}.`,
+      requests: [], count: 0, status: statusArg,
+    };
+  }
+
+  const lines = requests.map(request => {
+    const what = request.items.length
+      ? spokenList(request.items.slice(0, 4).map(item => `${item.name} ${item.grams} gram${item.grams === 1 ? '' : 's'}`))
+      : 'no items listed';
+    const tail = request.already_converted
+      ? `Already an order, ${request.converted_invoice_number ?? 'number unknown'}.`
+      : `Not answered yet. ${request.waited} old.`;
+    return `${request.name || 'Someone'}${request.reference ? `, reference ${request.reference}` : ''}. ${what}. ${tail}`;
+  });
+
+  return {
+    spoken: [
+      startSentence(`${countWord(requests.length)} order request${requests.length === 1 ? '' : 's'}${statusArg === 'unanswered' ? ' waiting for an answer' : ''}.`),
+      ...lines,
+    ].join('\n'),
+    requests,
+    count: requests.length,
+    status: statusArg,
+  };
+}
+
+// ── tool: list_payment_claims ──
+//
+// Who says they have paid, how much, by what method and the reference they
+// quoted. These are REPORTS. Nothing here is money until confirm_payment says
+// so, and the spoken text says that out loud rather than trusting the model to
+// remember it.
+async function toolListPaymentClaims(env: Env, accountId: string, args: any) {
+  const limit = Math.min(Math.max(Number(args?.limit) || 10, 1), 50);
+  const statusArg = args?.status ? String(args.status).trim().toLowerCase() : 'claimed';
+  if (!['claimed', 'confirmed', 'rejected', 'all'].includes(statusArg)) {
+    return { error: 'unknown_status', spoken: `I do not know the payment status "${statusArg}". Try claimed, confirmed, rejected or all.` };
+  }
+
+  const wheres: string[] = ['p.account_id = ?'];
+  const binds: any[] = [accountId];
+  if (statusArg !== 'all') { wheres.push('p.status = ?'); binds.push(statusArg); }
+  if (args?.invoice_id) { wheres.push('p.invoice_id = ?'); binds.push(String(args.invoice_id).trim()); }
+  if (args?.invoice_number) { wheres.push('i.invoice_number = ?'); binds.push(String(args.invoice_number).trim()); }
+
+  const { results } = await env.DB.prepare(
+    `SELECT p.id, p.invoice_id, p.amount_usd, p.amount_original, p.currency,
+            p.method_label, p.reference, p.note, p.status, p.claimed_by,
+            p.claimed_at, p.confirmed_at,
+            i.invoice_number, i.customer_name, i.status AS invoice_status,
+            i.payment_status, i.shipping_cost_usd,
+            COALESCE((SELECT SUM(quantity * price_at_sale)
+                        FROM invoice_line_items WHERE invoice_id = i.id), 0) AS line_total
+       FROM invoice_payments p
+       LEFT JOIN invoices i ON i.id = p.invoice_id
+      WHERE ${wheres.join(' AND ')}
+      ORDER BY p.claimed_at ASC, p.created_at ASC
+      LIMIT ?`
+  ).bind(...binds, limit).all();
+
+  const rows = (results ?? []) as Array<Record<string, any>>;
+  const ledger = await loadInvoiceLedgerTotals(env, rows.map(row => row.invoice_id as string));
+
+  const claims = rows.map(row => {
+    const total = roundUsd(Number(row.line_total || 0) + Number(row.shipping_cost_usd || 0));
+    const money = invoiceMoney(total, row.payment_status as string | null, ledger.get(row.invoice_id as string));
+    return {
+      payment_id: row.id as string,
+      invoice_id: row.invoice_id as string,
+      invoice_number: (row.invoice_number as string | null) || null,
+      customer_name: (row.customer_name as string | null) || null,
+      amount_usd: roundUsd(Number(row.amount_usd || 0)),
+      amount_original: row.amount_original == null ? null : Number(row.amount_original),
+      currency: (row.currency as string | null) || null,
+      method: (row.method_label as string | null) || null,
+      reference: (row.reference as string | null) || null,
+      note: (row.note as string | null) || null,
+      status: row.status as string,
+      reported_by: row.claimed_by as string,
+      reported_at: toIsoTime(row.claimed_at as string),
+      waited: waitedFor(row.claimed_at as string),
+      confirmed_at: toIsoTime(row.confirmed_at as string | null),
+      order_total_usd: money.total_usd,
+      order_paid_usd: money.paid_usd,
+      order_outstanding_usd: money.outstanding_usd,
+    };
+  });
+
+  if (claims.length === 0) {
+    return {
+      spoken: statusArg === 'claimed'
+        ? 'No payments have been reported and left unchecked.'
+        : `No payments match ${statusArg}.`,
+      claims: [], count: 0, status: statusArg,
+    };
+  }
+
+  const lines = claims.map(claim => [
+    spokenClause([
+      `${claim.customer_name || 'A customer'} says they sent ${usdWords(claim.amount_usd)} on order ${claim.invoice_number ?? 'with no number'}${claim.method ? ` by ${claim.method}` : ''}`,
+      claim.reference ? `reference ${claim.reference}` : null,
+      `${claim.waited} ago`,
+    ]) + '.',
+    `That order is ${usdWords(claim.order_total_usd)} with ${usdWords(claim.order_outstanding_usd)} still owing.`,
+    `Payment id ${claim.payment_id}.`,
+  ].join(' '));
+
+  return {
+    spoken: [
+      startSentence(statusArg === 'claimed'
+        ? `${countWord(claims.length)} reported payment${claims.length === 1 ? '' : 's'} waiting to be checked. A report is not money until you confirm it.`
+        : `${countWord(claims.length)} payment${claims.length === 1 ? '' : 's'} with status ${statusArg}.`),
+      ...lines,
+      statusArg === 'claimed'
+        ? 'Confirm them one at a time with confirm_payment, using the payment id.'
+        : '',
+    ].filter(Boolean).join('\n'),
+    claims,
+    count: claims.length,
+    status: statusArg,
+  };
+}
+
+// ── tool: convert_order_request (preview / confirm) ──
+//
+// Turns an order request into a real Draft order. Mirrors handleConvertInquiry
+// in index.ts line for line, including the 409 when the request is already an
+// order and the concurrent-claim unwind, so a voice convert and a click convert
+// land in exactly the same place.
+
+interface ConvertedLine {
+  product_id: string | null;
+  custom_name: string | null;
+  quantity: number;
+  price_at_sale: number;
+  name: string;
+}
+
+/** Mirrors the line resolution in handleConvertInquiry, index.ts. */
+async function resolveOrderRequestLines(
+  env: Env,
+  accountId: string,
+  rawItems: unknown,
+): Promise<ConvertedLine[] | null> {
+  let items: Array<Record<string, any>> = [];
+  try {
+    const parsed = JSON.parse(String(rawItems || '[]'));
+    if (Array.isArray(parsed)) items = parsed.filter(item => item && typeof item === 'object');
+  } catch {
+    items = [];
+  }
+  if (items.length === 0) return null;
+
+  const productIds = [...new Set(items.map(item => String(item.id || '')).filter(Boolean))];
+  const productRows = productIds.length
+    ? await env.DB.prepare(
+      `SELECT id, type, fixed_retail_price_usd,
+              COALESCE(given_name, product_name) AS product_name
+         FROM products
+        WHERE account_id = ? AND id IN (${productIds.map(() => '?').join(', ')})`
+    ).bind(accountId, ...productIds).all()
+    : { results: [] as unknown[] };
+  const products = new Map<string, Record<string, any>>();
+  for (const row of (productRows.results ?? []) as Array<Record<string, any>>) {
+    products.set(row.id as string, row);
+  }
+
+  return items.map(item => {
+    const product = products.get(String(item.id || ''));
+    const rawQuantity = Number(item.quantityGrams ?? item.qty ?? 1);
+    const quantity = Math.max(1, Math.round(Number.isFinite(rawQuantity) ? rawQuantity : 1));
+    const name = String(item.name || product?.product_name || 'Item');
+    // Anything the shop no longer carries becomes a named custom line at zero,
+    // so nothing is dropped and the price is set by hand.
+    if (!product) {
+      return { product_id: null, custom_name: name, quantity, price_at_sale: 0, name };
+    }
+    // Same linking rule as the collection-picks path: teas stay linked to the
+    // product row, teaware is carried as a named line.
+    const mayRemainLinked = isTeaType(String(product.type || ''));
+    const catalogPrice = product.fixed_retail_price_usd == null ? null : Number(product.fixed_retail_price_usd);
+    const fallbackPrice = Number(item.pricePerGram);
+    const price = catalogPrice != null && Number.isFinite(catalogPrice)
+      ? catalogPrice
+      : (Number.isFinite(fallbackPrice) && fallbackPrice >= 0 ? fallbackPrice : 0);
+    return {
+      product_id: mayRemainLinked ? (product.id as string) : null,
+      custom_name: mayRemainLinked ? null : (product.product_name as string) || name,
+      quantity,
+      price_at_sale: price,
+      name: (product.product_name as string) || name,
+    };
+  });
+}
+
+async function toolConvertOrderRequest(env: Env, auth: McpAuth, args: any) {
+  const confirm = args?.confirm ? String(args.confirm) : null;
+  if (confirm) {
+    const suppliedId = args?.request_id ? String(args.request_id).trim() : '';
+    const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
+    if (
+      !pending ||
+      pending.kind !== 'convert_order_request' ||
+      (suppliedId && pending.inquiryId !== suppliedId)
+    ) {
+      return {
+        error: 'invalid_or_expired_confirmation_token',
+        spoken: 'That confirmation has already been used or has expired. Ask again and I will read the request back before creating anything.',
+      };
+    }
+    return commitConvertOrderRequest(env, pending);
+  }
+
+  const requestId = args?.request_id ? String(args.request_id).trim() : '';
+  const reference = args?.reference ? String(args.reference).trim() : '';
+  if (!requestId && !reference) {
+    return { error: 'request_id_or_reference_required', spoken: 'Tell me which order request, by its id or its reference.' };
+  }
+
+  const inquiry = requestId
+    ? await env.DB.prepare(
+      `SELECT id, name, email, phone, items, currency, message, ref_number, converted_invoice_id, created_at
+         FROM inquiries WHERE id = ? AND account_id = ?`
+    ).bind(requestId, auth.accountId).first() as Record<string, any> | null
+    : await env.DB.prepare(
+      `SELECT id, name, email, phone, items, currency, message, ref_number, converted_invoice_id, created_at
+         FROM inquiries WHERE ref_number = ? AND account_id = ?
+        ORDER BY created_at DESC LIMIT 1`
+    ).bind(reference, auth.accountId).first() as Record<string, any> | null;
+
+  if (!inquiry) {
+    return {
+      error: 'order_request_not_found',
+      request_id: requestId || null,
+      reference: reference || null,
+      spoken: `I cannot find an order request ${requestId ? `with that id` : `with reference ${reference}`}.`,
+    };
+  }
+  // Same 409 the REST route returns, carrying the invoice it already became.
+  if (inquiry.converted_invoice_id) {
+    const existing = await env.DB.prepare(
+      'SELECT invoice_number FROM invoices WHERE id = ? AND account_id = ?'
+    ).bind(inquiry.converted_invoice_id, auth.accountId).first() as { invoice_number: string | null } | null;
+    return {
+      error: 'already_converted',
+      status: 409,
+      invoice_id: inquiry.converted_invoice_id as string,
+      invoice_number: existing?.invoice_number ?? null,
+      spoken: `That request is already an order${existing?.invoice_number ? `, ${existing.invoice_number}` : ''}. Nothing was created.`,
+    };
+  }
+
+  const lines = await resolveOrderRequestLines(env, auth.accountId, inquiry.items);
+  if (!lines) {
+    return {
+      error: 'no_items_to_price',
+      status: 400,
+      spoken: 'That request has no items to price, so there is nothing to turn into an order.',
+    };
+  }
+
+  const total = roundUsd(lines.reduce((sum, line) => sum + line.quantity * line.price_at_sale, 0));
+  const unpriced = lines.filter(line => !(line.price_at_sale > 0));
+
+  const token = await issueConfirmationToken(env, {
+    kind: 'convert_order_request',
+    accountId: auth.accountId,
+    userEmail: auth.userEmail,
+    inquiryId: inquiry.id as string,
+    reference: (inquiry.ref_number as string | null) || null,
+    customerName: String(inquiry.name || 'Customer'),
+  }, auth.tokenId);
+
+  const spoken = [
+    `Turning order request ${inquiry.ref_number || inquiry.id} from ${inquiry.name || 'a customer'} into a draft order.`,
+    startSentence(`${countWord(lines.length)} line${lines.length === 1 ? '' : 's'}: ${spokenList(lines.slice(0, 6).map(line => `${line.name} ${line.quantity} gram${line.quantity === 1 ? '' : 's'}`))}${lines.length > 6 ? `, and ${countWord(lines.length - 6)} more` : ''}.`),
+    total > 0 ? `That prices at ${usdWords(total)} from the catalogue.` : 'Nothing on it has a catalogue price yet.',
+    unpriced.length
+      ? startSentence(`${countWord(unpriced.length)} line${unpriced.length === 1 ? '' : 's'} land${unpriced.length === 1 ? 's' : ''} at no price for you to set: ${spokenList(unpriced.slice(0, 6).map(line => line.name))}.`)
+      : '',
+    'Nothing has changed yet. Call convert_order_request again with the confirmation token to create the draft.',
+  ].filter(Boolean).join(' ');
+
+  return {
+    spoken,
+    preview: {
+      action: 'convert_order_request',
+      request_id: inquiry.id,
+      reference: inquiry.ref_number ?? null,
+      customer_name: inquiry.name ?? null,
+      customer_email: inquiry.email ?? null,
+      customer_message: inquiry.message ?? null,
+      line_count: lines.length,
+      lines: lines.map(line => ({
+        name: line.name,
+        grams: line.quantity,
+        price_per_gram_usd: line.price_at_sale,
+        line_total_usd: roundUsd(line.quantity * line.price_at_sale),
+        linked_to_product: Boolean(line.product_id),
+      })),
+      priced_total_usd: total,
+      unpriced_line_count: unpriced.length,
+      becomes: 'a Draft order you still have to price and send',
+    },
+    confirmation_token: token,
+    expires_in_seconds: PENDING_TTL_MS / 1000,
+  };
+}
+
+async function commitConvertOrderRequest(env: Env, m: Extract<PendingMutation, { kind: 'convert_order_request' }>) {
+  const inquiry = await env.DB.prepare(
+    `SELECT id, name, email, phone, items, currency, message, ref_number, converted_invoice_id
+       FROM inquiries WHERE id = ? AND account_id = ?`
+  ).bind(m.inquiryId, m.accountId).first() as Record<string, any> | null;
+  if (!inquiry) {
+    return { error: 'order_request_not_found', spoken: 'That order request is no longer there. Nothing was created.' };
+  }
+  if (inquiry.converted_invoice_id) {
+    const existing = await env.DB.prepare(
+      'SELECT invoice_number FROM invoices WHERE id = ? AND account_id = ?'
+    ).bind(inquiry.converted_invoice_id, m.accountId).first() as { invoice_number: string | null } | null;
+    return {
+      error: 'already_converted',
+      status: 409,
+      invoice_id: inquiry.converted_invoice_id as string,
+      invoice_number: existing?.invoice_number ?? null,
+      spoken: `That request is already an order${existing?.invoice_number ? `, ${existing.invoice_number}` : ''}. Nothing was created.`,
+    };
+  }
+
+  const lines = await resolveOrderRequestLines(env, m.accountId, inquiry.items);
+  if (!lines) {
+    return { error: 'no_items_to_price', status: 400, spoken: 'That request has no items to price. Nothing was created.' };
+  }
+
+  const customerName = String(inquiry.name || 'Customer');
+  const contact = String(inquiry.email || '').trim();
+  const phone = String(inquiry.phone || '').trim();
+  const contactIsEmail = contact.includes('@');
+  const customerWhatsapp = phone || (contactIsEmail ? null : contact) || null;
+  const customer = await env.DB.prepare(
+    `SELECT id FROM customers
+      WHERE account_id = ?
+        AND ((? <> '' AND lower(email) = lower(?)) OR (? <> '' AND whatsapp = ?))
+      LIMIT 1`
+  ).bind(
+    m.accountId,
+    contactIsEmail ? contact : '', contactIsEmail ? contact : '',
+    customerWhatsapp || '', customerWhatsapp || '',
+  ).first() as { id: string } | null;
+
+  const invoiceId = crypto.randomUUID();
+  const notes = [
+    `From order request ${inquiry.ref_number || inquiry.id}. Review the prices and send.`,
+    inquiry.message ? `Customer note: ${String(inquiry.message)}` : null,
+  ].filter(Boolean).join('\n');
+
+  const lineStmts = lines.map(line => env.DB.prepare(
+    'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, custom_name, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).bind(crypto.randomUUID(), m.accountId, invoiceId, line.product_id, line.custom_name, line.quantity, line.price_at_sale));
+
+  // Invoice number from the account's sequence, retried on the unique index
+  // collision. Inline format, keep in sync with formatInvoiceNumber in index.ts.
+  let invoiceNumber = '';
+  let committed = false;
+  let claimed = false;
+  let lastErr: any = null;
+  for (let attempt = 0; attempt < 3 && !committed; attempt++) {
+    const seqRow = await env.DB.prepare(
+      'UPDATE accounts SET invoice_seq = invoice_seq + 1 WHERE id = ? RETURNING invoice_seq, invoice_prefix'
+    ).bind(m.accountId).first() as { invoice_seq: number; invoice_prefix: string | null } | null;
+    const seq = seqRow?.invoice_seq ?? 1;
+    const pfx = seqRow?.invoice_prefix || '';
+    invoiceNumber = pfx ? `${pfx}-${String(seq).padStart(5, '0')}` : String(seq).padStart(5, '0');
+
+    const invoiceStmt = env.DB.prepare(
+      `INSERT INTO invoices (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes, payment_status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Draft', 0, ?, 'unpaid')`
+    ).bind(
+      invoiceId, m.accountId, invoiceNumber, customerName, customerWhatsapp,
+      customer?.id ?? null, String(inquiry.currency || 'USD'), 0, notes,
+    );
+    // Guarded so two converts of the same request cannot both win.
+    const claimStmt = env.DB.prepare(
+      `UPDATE inquiries SET converted_invoice_id = ?, status = 'replied'
+        WHERE id = ? AND account_id = ? AND converted_invoice_id IS NULL`
+    ).bind(invoiceId, m.inquiryId, m.accountId);
+    const logStmt = env.DB.prepare(
+      `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+       VALUES (?, 'INVOICE_CREATED', ?, ?, 'invoice', ?, ?)`
+    ).bind(
+      crypto.randomUUID(),
+      `Draft invoice ${invoiceNumber} created from order request ${inquiry.ref_number || inquiry.id} for ${customerName} (${lines.length} item${lines.length === 1 ? '' : 's'}) via MCP`,
+      m.userEmail, invoiceId, m.accountId,
+    );
+
+    try {
+      const results = await env.DB.batch([invoiceStmt, ...lineStmts, claimStmt, logStmt]);
+      claimed = Number(results[results.length - 2]?.meta?.changes || 0) > 0;
+      committed = true;
+    } catch (err: any) {
+      lastErr = err;
+      if (/UNIQUE|constraint/i.test(String(err?.message || err))) continue;
+      console.error('commitConvertOrderRequest batch failed:', err);
+      return { error: 'convert_failed', spoken: 'The order could not be created. Nothing was changed.' };
+    }
+  }
+  if (!committed) {
+    console.error('commitConvertOrderRequest: invoice create failed after retries:', lastErr);
+    return { error: 'invoice_number_collision', spoken: 'I could not allocate an order number. Nothing was changed. Try again.' };
+  }
+
+  if (!claimed) {
+    // A concurrent convert won the claim. Undo this call's invoice so the
+    // request has exactly one order behind it, and point at the winner.
+    await env.DB.batch([
+      env.DB.prepare('DELETE FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?').bind(invoiceId, m.accountId),
+      env.DB.prepare('DELETE FROM invoices WHERE id = ? AND account_id = ?').bind(invoiceId, m.accountId),
+    ]).catch(() => { /* leave the orphan rather than fail the response */ });
+    const winner = await env.DB.prepare(
+      'SELECT converted_invoice_id FROM inquiries WHERE id = ? AND account_id = ?'
+    ).bind(m.inquiryId, m.accountId).first() as { converted_invoice_id: string | null } | null;
+    return {
+      error: 'already_converted',
+      status: 409,
+      invoice_id: winner?.converted_invoice_id ?? null,
+      spoken: 'That request became an order while I was working. Nothing was created twice.',
+    };
+  }
+
+  await ensureBuyerRelationship(env, m.accountId, customer?.id ?? null, invoiceId);
+
+  const total = roundUsd(lines.reduce((sum, line) => sum + line.quantity * line.price_at_sale, 0));
+  const unpriced = lines.filter(line => !(line.price_at_sale > 0)).length;
+
+  return {
+    committed: true,
+    action: 'convert_order_request',
+    request_id: m.inquiryId,
+    reference: m.reference,
+    invoice_id: invoiceId,
+    invoice_number: invoiceNumber,
+    status: 'Draft',
+    line_count: lines.length,
+    priced_total_usd: total,
+    unpriced_line_count: unpriced,
+    spoken: [
+      `Order ${invoiceNumber} created for ${customerName} as a draft.`,
+      total > 0 ? `It prices at ${usdWords(total)}.` : '',
+      unpriced ? startSentence(`${countWord(unpriced)} line${unpriced === 1 ? '' : 's'} still need${unpriced === 1 ? 's' : ''} a price.`) : '',
+      'Nothing has been sent to the customer.',
+    ].filter(Boolean).join(' '),
+  };
+}
+
+// ── tool: confirm_payment (preview / confirm) ──
+//
+// A customer's report becomes money here and nowhere else. Mirrors
+// transitionInvoicePayment(…, 'confirmed') in index.ts: reconcile the column
+// into the ledger first, then a guarded UPDATE so two confirms produce one
+// change and one no-op, then recompute the invoice from the confirmed rows.
+//
+// One payment id per call, always. There is deliberately no "confirm every
+// pending claim" argument: a sweep is how a misheard number becomes several
+// wrong ones.
+async function toolConfirmPayment(env: Env, auth: McpAuth, args: any) {
+  const confirm = args?.confirm ? String(args.confirm) : null;
+  if (confirm) {
+    const suppliedId = args?.payment_id ? String(args.payment_id).trim() : '';
+    const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
+    if (
+      !pending ||
+      pending.kind !== 'confirm_payment' ||
+      (suppliedId && pending.paymentId !== suppliedId)
+    ) {
+      return {
+        error: 'invalid_or_expired_confirmation_token',
+        spoken: 'That confirmation has already been used or has expired. No money was recorded. Ask again and I will read the amount back first.',
+      };
+    }
+    return commitConfirmPayment(env, pending);
+  }
+
+  const paymentId = args?.payment_id ? String(args.payment_id).trim() : '';
+  if (!paymentId) {
+    return {
+      error: 'payment_id_required',
+      spoken: 'Tell me which reported payment, by its payment id. Run list_payment_claims to see them. I will not confirm more than one at a time.',
+    };
+  }
+
+  const row = await env.DB.prepare(
+    `SELECT id, invoice_id, amount_usd, method_label, reference, note, status, claimed_by, claimed_at
+       FROM invoice_payments WHERE id = ? AND account_id = ? LIMIT 1`
+  ).bind(paymentId, auth.accountId).first() as Record<string, any> | null;
+  if (!row) {
+    return { error: 'payment_not_found', payment_id: paymentId, spoken: 'I cannot find a reported payment with that id.' };
+  }
+  if (row.status === 'confirmed') {
+    return {
+      error: 'already_confirmed',
+      payment_id: paymentId,
+      spoken: `That payment of ${usdWords(Number(row.amount_usd || 0))} is already confirmed. Nothing to do.`,
+    };
+  }
+
+  const invoice = await loadLedgerInvoice(env, row.invoice_id as string, auth.accountId);
+  if (!invoice) {
+    return { error: 'invoice_not_found', payment_id: paymentId, spoken: 'The order behind that payment is gone. Nothing was recorded.' };
+  }
+
+  const ledger = await loadInvoiceLedgerTotals(env, [invoice.id]);
+  const money = invoiceMoney(invoice.total_usd, invoice.payment_status, ledger.get(invoice.id));
+  const amount = roundUsd(Number(row.amount_usd || 0));
+  const owingAfter = Math.max(0, roundUsd(money.outstanding_usd - amount));
+  const who = invoice.customer_name || 'the customer';
+  const orderName = invoice.invoice_number ?? invoice.id;
+
+  const token = await issueConfirmationToken(env, {
+    kind: 'confirm_payment',
+    accountId: auth.accountId,
+    userEmail: auth.userEmail,
+    actorUserId: auth.userId,
+    paymentId,
+    invoiceId: invoice.id,
+    invoiceNumber: invoice.invoice_number,
+    customerName: invoice.customer_name,
+    amountUsd: amount,
+  }, auth.tokenId);
+
+  // The money preview. Order, customer, amount, and what the order will owe
+  // afterwards, in that order, so a misheard number is caught here rather than
+  // after it has been recorded as received.
+  const spoken = [
+    `Confirming a reported payment.`,
+    `Order ${orderName} for ${who}.`,
+    `The order is ${usdWords(money.total_usd)}, with ${usdWords(money.paid_usd)} confirmed so far and ${usdWords(money.outstanding_usd)} owing.`,
+    spokenClause([
+      `${who} reported ${usdWords(amount)}${row.method_label ? ` by ${row.method_label}` : ''}`,
+      row.reference ? `reference ${row.reference}` : null,
+      `${waitedFor(row.claimed_at as string)} ago`,
+    ]) + '.',
+    owingAfter > 0
+      ? `Confirming it records ${usdWords(amount)} as received and leaves ${usdWords(owingAfter)} owing.`
+      : `Confirming it records ${usdWords(amount)} as received and leaves nothing owing, so the order is marked paid.`,
+    `Nothing has changed yet. Call confirm_payment again with the confirmation token to record it.`,
+  ].join(' ');
+
+  return {
+    spoken,
+    preview: {
+      action: 'confirm_payment',
+      payment_id: paymentId,
+      invoice_id: invoice.id,
+      invoice_number: invoice.invoice_number,
+      customer_name: invoice.customer_name,
+      reported_by: row.claimed_by,
+      reported_at: toIsoTime(row.claimed_at as string),
+      method: (row.method_label as string | null) || null,
+      reference: (row.reference as string | null) || null,
+      amount_usd: amount,
+      order_total_usd: money.total_usd,
+      confirmed_before_usd: money.paid_usd,
+      outstanding_before_usd: money.outstanding_usd,
+      outstanding_after_usd: owingAfter,
+      becomes: owingAfter > 0 ? 'partial' : 'paid',
+    },
+    confirmation_token: token,
+    expires_in_seconds: PENDING_TTL_MS / 1000,
+  };
+}
+
+async function commitConfirmPayment(env: Env, m: Extract<PendingMutation, { kind: 'confirm_payment' }>) {
+  const row = await env.DB.prepare(
+    `SELECT id, invoice_id, amount_usd, status FROM invoice_payments
+      WHERE id = ? AND account_id = ? LIMIT 1`
+  ).bind(m.paymentId, m.accountId).first() as Record<string, any> | null;
+  if (!row) {
+    return { error: 'payment_not_found', spoken: 'That reported payment is no longer there. Nothing was recorded.' };
+  }
+  // The amount is what the preview read out. If it has moved since, refuse
+  // rather than confirm a number nobody heard.
+  if (roundUsd(Number(row.amount_usd || 0)) !== roundUsd(m.amountUsd)) {
+    return {
+      error: 'payment_changed_since_preview',
+      spoken: `That payment is now ${usdWords(Number(row.amount_usd || 0))}, not the ${usdWords(m.amountUsd)} I read back. Nothing was recorded. Ask again.`,
+    };
+  }
+
+  const invoice = await loadLedgerInvoice(env, row.invoice_id as string, m.accountId);
+  if (!invoice) {
+    return { error: 'invoice_not_found', spoken: 'The order behind that payment is gone. Nothing was recorded.' };
+  }
+
+  await reconcileLedgerWithColumn(env, invoice);
+
+  const now = new Date().toISOString();
+  const update = await env.DB.prepare(
+    `UPDATE invoice_payments
+        SET status = 'confirmed', confirmed_by_user_id = ?, confirmed_at = ?
+      WHERE id = ? AND account_id = ? AND status IN ('claimed', 'rejected')`
+  ).bind(m.actorUserId, now, m.paymentId, m.accountId).run();
+  const changed = Number(update.meta?.changes || 0) > 0;
+
+  const result = await recomputeInvoicePaymentStatus(env, invoice);
+  if (changed) {
+    await logOrderProcessActivity(env, {
+      accountId: m.accountId, userEmail: m.userEmail,
+      action: 'INVOICE_PAYMENT_CONFIRMED',
+      details: `Payment of ${roundUsd(m.amountUsd).toFixed(2)} USD confirmed on invoice ${invoice.invoice_number ?? invoice.id} via MCP`,
+      invoiceId: invoice.id,
+    });
+  }
+
+  const orderName = invoice.invoice_number ?? invoice.id;
+  return {
+    committed: true,
+    action: 'confirm_payment',
+    changed,
+    payment_id: m.paymentId,
+    invoice_id: invoice.id,
+    invoice_number: invoice.invoice_number,
+    status: 'confirmed',
+    ...result,
+    spoken: changed
+      ? [
+        `Recorded. ${usdWords(m.amountUsd)} confirmed on order ${orderName}.`,
+        result.outstanding_usd > 0
+          ? `${usdWords(result.outstanding_usd)} still owing, so the order is part paid.`
+          : `Nothing owing. The order is paid and now waiting to be sent.`,
+      ].join(' ')
+      : `That payment was already settled by something else. Order ${orderName} owes ${usdWords(result.outstanding_usd)}. Nothing was counted twice.`,
+  };
+}
+
+// ── tool: record_payment (preview / confirm) ──
+//
+// Money Adrian saw arrive, with no customer report behind it. Mirrors
+// handleRecordInvoicePayment in index.ts: the row lands confirmed in one step
+// and the invoice is recomputed from it.
+//
+// There is no "the most recent unpaid order" fallback here, unlike
+// mark_invoice_paid above. Guessing which order a spoken amount belongs to is
+// not a guess money should make.
+async function toolRecordPayment(env: Env, auth: McpAuth, args: any) {
+  const confirm = args?.confirm ? String(args.confirm) : null;
+  if (confirm) {
+    const suppliedId = args?.invoice_id ? String(args.invoice_id).trim() : '';
+    const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
+    if (
+      !pending ||
+      pending.kind !== 'record_payment' ||
+      (suppliedId && pending.invoiceId !== suppliedId)
+    ) {
+      return {
+        error: 'invalid_or_expired_confirmation_token',
+        spoken: 'That confirmation has already been used or has expired. No money was recorded. Ask again and I will read the amount back first.',
+      };
+    }
+    return commitRecordPayment(env, pending);
+  }
+
+  const invoiceId = args?.invoice_id ? String(args.invoice_id).trim() : '';
+  const invoiceNumber = args?.invoice_number ? String(args.invoice_number).trim() : '';
+  if (!invoiceId && !invoiceNumber) {
+    return { error: 'invoice_id_or_number_required', spoken: 'Tell me which order this payment is for, by its id or its order number.' };
+  }
+
+  const rawAmount = args?.amount_usd ?? args?.amount;
+  if (rawAmount == null || rawAmount === '') {
+    return { error: 'amount_required', spoken: 'Tell me how much arrived, in US dollars.' };
+  }
+  const parsedAmount = Number(rawAmount);
+  if (!Number.isFinite(parsedAmount)) {
+    return { error: 'invalid_payment_amount', spoken: 'That amount is not a number I can record.' };
+  }
+  const amount = roundUsd(parsedAmount);
+  if (amount <= 0) {
+    return { error: 'invalid_payment_amount', spoken: 'A payment has to be more than zero.' };
+  }
+  if (amount > MCP_PAYMENT_AMOUNT_CEILING) {
+    return { error: 'invalid_payment_amount', spoken: 'That amount is too large to be a real transfer. Nothing was recorded.' };
+  }
+
+  let resolvedId = invoiceId;
+  if (!resolvedId) {
+    const matches = await env.DB.prepare(
+      `SELECT id FROM invoices WHERE invoice_number = ? AND account_id = ? AND deleted_at IS NULL`
+    ).bind(invoiceNumber, auth.accountId).all();
+    const rows = (matches.results ?? []) as Array<Record<string, any>>;
+    if (rows.length > 1) {
+      return {
+        error: 'duplicate_invoice_number',
+        invoice_number: invoiceNumber,
+        spoken: `More than one order carries the number ${invoiceNumber}. Give me the order id instead. Nothing was recorded.`,
+      };
+    }
+    resolvedId = (rows[0]?.id as string) || '';
+  }
+
+  const invoice = resolvedId ? await loadLedgerInvoice(env, resolvedId, auth.accountId) : null;
+  if (!invoice) {
+    return {
+      error: 'invoice_not_found',
+      invoice_id: invoiceId || null,
+      invoice_number: invoiceNumber || null,
+      spoken: `I cannot find that order. Nothing was recorded.`,
+    };
+  }
+  if (String(invoice.status || '') === 'Void') {
+    return { error: 'invoice_void', spoken: 'That order is void, so it cannot take a payment.' };
+  }
+
+  const ledger = await loadInvoiceLedgerTotals(env, [invoice.id]);
+  const money = invoiceMoney(invoice.total_usd, invoice.payment_status, ledger.get(invoice.id));
+  const owingAfter = Math.max(0, roundUsd(money.outstanding_usd - amount));
+  const overpaid = roundUsd(amount - money.outstanding_usd);
+  const method = mcpPaymentText(args?.method ?? args?.method_label, MCP_PAYMENT_TEXT_LIMITS.method);
+  const reference = mcpPaymentText(args?.reference, MCP_PAYMENT_TEXT_LIMITS.reference);
+  const note = mcpPaymentText(args?.note, MCP_PAYMENT_TEXT_LIMITS.note);
+  const who = invoice.customer_name || 'the customer';
+  const orderName = invoice.invoice_number ?? invoice.id;
+
+  const token = await issueConfirmationToken(env, {
+    kind: 'record_payment',
+    accountId: auth.accountId,
+    userEmail: auth.userEmail,
+    actorUserId: auth.userId,
+    invoiceId: invoice.id,
+    invoiceNumber: invoice.invoice_number,
+    customerName: invoice.customer_name,
+    amountUsd: amount,
+    method, reference, note,
+  }, auth.tokenId);
+
+  // The second money preview. Same order of facts as confirm_payment: order,
+  // customer, amount, and what the order will owe afterwards.
+  const spoken = [
+    `Recording a payment you have seen.`,
+    `Order ${orderName} for ${who}.`,
+    `The order is ${usdWords(money.total_usd)}, with ${usdWords(money.paid_usd)} confirmed so far and ${usdWords(money.outstanding_usd)} owing.`,
+    spokenClause([
+      `Recording ${usdWords(amount)}${method ? ` by ${method}` : ''}`,
+      reference ? `reference ${reference}` : null,
+    ]) + '.',
+    overpaid > MCP_PAYMENT_EPSILON
+      ? `That is ${usdWords(overpaid)} more than the balance, so the order will owe nothing and be marked paid.`
+      : owingAfter > 0
+        ? `That leaves ${usdWords(owingAfter)} owing.`
+        : `That leaves nothing owing, so the order is marked paid.`,
+    `Nothing has changed yet. Call record_payment again with the confirmation token to record it.`,
+  ].join(' ');
+
+  return {
+    spoken,
+    preview: {
+      action: 'record_payment',
+      invoice_id: invoice.id,
+      invoice_number: invoice.invoice_number,
+      customer_name: invoice.customer_name,
+      amount_usd: amount,
+      method, reference, note,
+      order_total_usd: money.total_usd,
+      confirmed_before_usd: money.paid_usd,
+      outstanding_before_usd: money.outstanding_usd,
+      outstanding_after_usd: owingAfter,
+      overpayment_usd: overpaid > MCP_PAYMENT_EPSILON ? overpaid : 0,
+      becomes: owingAfter > 0 ? 'partial' : 'paid',
+    },
+    confirmation_token: token,
+    expires_in_seconds: PENDING_TTL_MS / 1000,
+  };
+}
+
+async function commitRecordPayment(env: Env, m: Extract<PendingMutation, { kind: 'record_payment' }>) {
+  const invoice = await loadLedgerInvoice(env, m.invoiceId, m.accountId);
+  if (!invoice) {
+    return { error: 'invoice_not_found', spoken: 'That order is gone. Nothing was recorded.' };
+  }
+  if (String(invoice.status || '') === 'Void') {
+    return { error: 'invoice_void', spoken: 'That order is void, so it cannot take a payment. Nothing was recorded.' };
+  }
+
+  // The operator is trusted with the number. An overpayment is a real thing
+  // that happens with transfer fees, and the balance simply floors at zero.
+  await reconcileLedgerWithColumn(env, invoice);
+
+  const paymentId = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await env.DB.prepare(
+    `INSERT INTO invoice_payments
+       (id, invoice_id, account_id, amount_usd, amount_original, currency,
+        method_label, reference, note, status, claimed_by, claimed_at,
+        confirmed_by_user_id, confirmed_at)
+     VALUES (?, ?, ?, ?, NULL, 'USD', ?, ?, ?, 'confirmed', 'operator', ?, ?, ?)`
+  ).bind(
+    paymentId, invoice.id, invoice.account_id, roundUsd(m.amountUsd),
+    m.method, m.reference, m.note, now, m.actorUserId, now,
+  ).run();
+
+  const result = await recomputeInvoicePaymentStatus(env, invoice);
+  await logOrderProcessActivity(env, {
+    accountId: m.accountId, userEmail: m.userEmail,
+    action: 'INVOICE_PAYMENT_RECORDED',
+    details: `Payment of ${roundUsd(m.amountUsd).toFixed(2)} USD recorded on invoice ${invoice.invoice_number ?? invoice.id} via MCP`,
+    invoiceId: invoice.id,
+  });
+
+  const orderName = invoice.invoice_number ?? invoice.id;
+  return {
+    committed: true,
+    action: 'record_payment',
+    payment_id: paymentId,
+    invoice_id: invoice.id,
+    invoice_number: invoice.invoice_number,
+    amount_usd: roundUsd(m.amountUsd),
+    ...result,
+    spoken: [
+      `Recorded. ${usdWords(m.amountUsd)} on order ${orderName}.`,
+      result.outstanding_usd > 0
+        ? `${usdWords(result.outstanding_usd)} still owing, so the order is part paid.`
+        : `Nothing owing. The order is paid and now waiting to be sent.`,
+    ].join(' '),
+  };
+}
+
 // ── tool: update_account_settings (preview / confirm) ──
 // Wraps PUT /api/accounts/:id for the active account. Owner-tier only.
 const ACCOUNT_SETTINGS_FIELDS = ['account_name', 'default_currency', 'contact_email', 'contact_phone'] as const;
@@ -4442,6 +5934,87 @@ const TOOL_DEFS = [
       required: ['import_id'],
     },
   },
+  // ── Round three: the order process ──
+  {
+    name: 'whats_waiting',
+    scope: 'sales:read',
+    description: 'What needs you right now, oldest first, in words: order requests nobody has answered, orders still unpriced, payments customers have reported and nobody has checked, and orders paid but not yet sent. Start here when asked "what needs me", "what is waiting" or "what should I do first".',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: { type: 'number', description: 'How many waiting items to read out (default 8, max 40). The counts always cover everything.', default: 8 },
+        kind: { type: 'string', description: 'Narrow to one kind: request, unpriced, claim or unsent. Omit for all four.' },
+      },
+    },
+  },
+  {
+    name: 'list_order_requests',
+    scope: 'sales:read',
+    description: 'Order requests that have come in, with who sent them, what they asked for and how long ago. Use the reference it returns with convert_order_request.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', description: 'unanswered (default), new, seen, replied, closed, converted, or all.', default: 'unanswered' },
+        limit: { type: 'number', description: 'Max requests to return (default 10, max 50).', default: 10 },
+      },
+    },
+  },
+  {
+    name: 'convert_order_request',
+    scope: 'sales:write',
+    description: 'Turn an order request into a real Draft order, pricing what the shop still carries from the catalogue and leaving anything it does not as a named line at no price. Two-step preview/confirm: the first call reads the lines back and returns a confirmation_token, the second call with confirm: <token> creates the draft. Refuses a request that is already an order, and says which order it became. Nothing is sent to the customer.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        request_id: { type: 'string', description: 'The order request id, from list_order_requests or whats_waiting.' },
+        reference: { type: 'string', description: 'The request reference the customer was given, if the id is not to hand.' },
+        confirm: { type: 'string', description: 'Confirmation token from the preview response.' },
+      },
+    },
+  },
+  {
+    name: 'list_payment_claims',
+    scope: 'sales:read',
+    description: 'Payments customers say they have sent: who, how much, by what method, the reference they quoted, and what the order still owes. These are REPORTS, not money. Only confirm_payment turns one into a settled payment.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', description: 'claimed (default, the ones waiting on you), confirmed, rejected, or all.', default: 'claimed' },
+        invoice_id: { type: 'string', description: 'Narrow to one order by id.' },
+        invoice_number: { type: 'string', description: 'Narrow to one order by its visible number.' },
+        limit: { type: 'number', description: 'Max reports to return (default 10, max 50).', default: 10 },
+      },
+    },
+  },
+  {
+    name: 'confirm_payment',
+    scope: 'sales:write',
+    description: 'Confirm ONE payment a customer reported, turning their report into money received. Two-step preview/confirm: the first call reads back the order, the customer, the amount and what the order will owe afterwards, and returns a confirmation_token; the second call with confirm: <token> records it. Takes exactly one payment_id and will not confirm several reports at once.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        payment_id: { type: 'string', description: 'The reported payment to confirm, from list_payment_claims or whats_waiting.' },
+        confirm: { type: 'string', description: 'Confirmation token from the preview response.' },
+      },
+    },
+  },
+  {
+    name: 'record_payment',
+    scope: 'sales:write',
+    description: 'Record money you saw arrive on an order, with no customer report behind it. Two-step preview/confirm: the first call reads back the order, the customer, the amount and what the order will owe afterwards, and returns a confirmation_token; the second call with confirm: <token> records it. The order must be named explicitly; there is no "most recent unpaid order" guess.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        invoice_id: { type: 'string', description: 'The order id.' },
+        invoice_number: { type: 'string', description: 'The visible order number, if the id is not to hand.' },
+        amount_usd: { type: 'number', description: 'How much arrived, in US dollars.' },
+        method: { type: 'string', description: 'How it arrived, e.g. "Bank transfer" or "Cash".' },
+        reference: { type: 'string', description: 'The transfer reference, if there is one.' },
+        note: { type: 'string', description: 'Anything else worth keeping on the record.' },
+        confirm: { type: 'string', description: 'Confirmation token from the preview response.' },
+      },
+    },
+  },
 ] as const;
 
 function mcpContent(payload: unknown) {
@@ -4460,6 +6033,26 @@ function mcpContent(payload: unknown) {
   };
 }
 
+// The order-process tools are spoken back to a person, so their text part is a
+// sentence rather than the JSON `mcpContent` emits. The structured half is
+// unchanged and still carries every id, amount and timestamp, so a client that
+// reads `structuredContent` loses nothing by the text being readable aloud.
+//
+// A payload with no `spoken` field falls through to `mcpContent`, so this is
+// safe to point any tool at.
+function mcpSpokenContent(payload: unknown) {
+  const isObject = typeof payload === 'object' && payload !== null;
+  const spoken = isObject && typeof (payload as any).spoken === 'string'
+    ? (payload as any).spoken.trim()
+    : '';
+  if (!spoken) return mcpContent(payload);
+  return {
+    content: [{ type: 'text', text: spoken }],
+    structuredContent: payload as Record<string, unknown>,
+    isError: 'error' in (payload as any),
+  };
+}
+
 // MCP tool annotations (2025-06-18) — behavioural hints clients use to decide
 // what needs a human confirmation prompt and how to present a tool. Derived
 // from sets rather than hand-written on each def to keep TOOL_DEFS lean.
@@ -4467,6 +6060,9 @@ const READ_ONLY_TOOLS = new Set([
   'search_tea', 'get_tea', 'list_low_stock', 'find_customer',
   'get_customer', 'get_account_context', 'list_invoices', 'get_invoice', 'sales_summary',
   'intake_get_draft',
+  // Round three. These four read and nothing else; whats_waiting in particular
+  // must be safe for a client to call on its own to answer "what needs me".
+  'whats_waiting', 'list_order_requests', 'list_payment_claims',
 ]);
 // Tools whose commit can destroy or reverse value. void_invoice and
 // remove_stock unwind stock/sales; update_exchange_rate moves every account's
@@ -4480,6 +6076,14 @@ const IDEMPOTENT_TOOLS = new Set([
   'update_customer', 'update_invoice', 'update_tea_pricing',
   'update_account_settings', 'update_exchange_rate', 'set_tea_visibility',
   'intake_analyze', 'intake_update_item',
+  // Round three. A second convert of the same request lands on the same order
+  // (the claim is guarded and returns 409), and a second confirm of the same
+  // payment row changes nothing and counts nothing twice.
+  //
+  // record_payment is deliberately NOT here: every confirmed call inserts
+  // another payment row, so twice is twice the money. That is what a client
+  // needs to know before it retries a call whose response it did not see.
+  'convert_order_request', 'confirm_payment',
 ]);
 
 function annotationsFor(name: string) {
@@ -4520,6 +6124,8 @@ const AUDITED_TOOLS = new Set([
   'set_tea_visibility',
   // Ported tools
   'create_tea', 'mark_invoice_paid',
+  // Round three
+  'convert_order_request', 'confirm_payment', 'record_payment',
 ]);
 
 async function logMcpToolCall(env: Env, auth: McpAuth, toolName: string, args: any, result: unknown) {
@@ -4609,6 +6215,14 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
     case 'intake_ask': result = mcpContent(await toolIntakeAsk(env, auth, args)); break;
     case 'intake_answer': result = mcpContent(await toolIntakeAnswer(env, auth, args)); break;
     case 'intake_finalize': result = mcpContent(await toolIntakeFinalize(env, auth, args)); break;
+    // Round three: the order process. These answer out loud, so their text
+    // part is the sentence rather than the JSON.
+    case 'whats_waiting': result = mcpSpokenContent(await toolWhatsWaiting(env, auth.accountId, args)); break;
+    case 'list_order_requests': result = mcpSpokenContent(await toolListOrderRequests(env, auth.accountId, args)); break;
+    case 'convert_order_request': result = mcpSpokenContent(await toolConvertOrderRequest(env, auth, args)); break;
+    case 'list_payment_claims': result = mcpSpokenContent(await toolListPaymentClaims(env, auth.accountId, args)); break;
+    case 'confirm_payment': result = mcpSpokenContent(await toolConfirmPayment(env, auth, args)); break;
+    case 'record_payment': result = mcpSpokenContent(await toolRecordPayment(env, auth, args)); break;
     default: throw new Error(`Unknown tool: ${name}`);
   }
   await logMcpToolCall(env, auth, name, args, result);
@@ -4617,8 +6231,8 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
 
 const SERVER_INFO = {
   name: 'teajia-inventory',
-  version: '0.4.0',
-  description: 'Voice-controlled inventory + invoicing for Teajia. Read tools cover tea search, account context, customer dossiers, invoice lookup/listing, and sales summaries. Write tools cover creating teas, stock adjustments, creating/voiding/fulfilling invoices, marking invoices paid, customer create/update/tag, vendor linking, catalog archive + pricing, and (with owner-tier tokens) account settings and exchange rates.',
+  version: '0.5.0',
+  description: 'Voice-controlled inventory, invoicing and the order process for Teajia. Ask whats_waiting first: it answers what needs you right now across order requests nobody has answered, orders still unpriced, payments customers have reported, and orders paid but not sent. Read tools also cover tea search, account context, customer dossiers, invoice lookup/listing, order requests, payment reports and sales summaries. Write tools cover turning an order request into a draft order, confirming a reported payment, recording a payment you saw arrive, creating teas, stock adjustments, creating/voiding/fulfilling invoices, marking invoices paid, customer create/update/tag, vendor linking, catalog archive + pricing, and (with owner-tier tokens) account settings and exchange rates.',
 };
 
 // Default to the current rev (structured output + tool annotations). We echo
@@ -5431,11 +7045,43 @@ async function publicBrowseCatalog(env: Env, accountId: string, args: any) {
   };
 }
 
+// Cap on the number of basket lines an unauthenticated caller can submit in
+// one call, and the length of any customer-supplied string we persist. Item
+// identity/name fields are also clamped before they reach the fuzzy matcher
+// so a very long junk string can't inflate scoring cost.
+const PUBLIC_PREPARE_ORDER_MAX_ITEMS = 20;
+const PUBLIC_PREPARE_ORDER_MAX_STR = 200;
+
+function clampStr(value: unknown, max: number): string {
+  const s = typeof value === 'string' ? value.trim() : '';
+  return s.length > max ? s.slice(0, max) : s;
+}
+
+// Same human-reference format the customer-facing cart uses (createHumanOrderRef
+// in src/lib/publicCartDomain.ts) so a prepared-order reference reads like every
+// other order reference in the shop, not a different scheme.
+function createPreparedOrderRef(): string {
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(now.getUTCDate()).padStart(2, '0');
+  const suffix = crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
+  return `TJ-${year}${month}${day}-${suffix}`;
+}
+
 // Build a WhatsApp checkout link prefilled with the requested teas. The model
 // assembles the basket; the human conversation closes it. Items resolve by id
 // or by fuzzy name. Returns the link plus a readable summary and shop URLs.
+//
+// Also records what was prepared as an `inquiries` row (source 'ai_prepared')
+// so a basket an AI assistant assembled isn't invisible to the shop just
+// because the customer hasn't sent the WhatsApp message yet — see
+// todo/plans/order-process-round-2.md item 4. Persisting is a bonus, never a
+// gate: the customer must get their WhatsApp link even if the DB write fails,
+// and this path never emails the shop owner (a prepared basket may never be
+// sent; only a real inquiry/order should land in his inbox).
 async function publicPrepareOrder(env: Env, account: PublicAccount, args: any) {
-  const rawItems = Array.isArray(args?.items) ? args.items : [];
+  const rawItems = (Array.isArray(args?.items) ? args.items : []).slice(0, PUBLIC_PREPARE_ORDER_MAX_ITEMS);
   if (rawItems.length === 0) throw new Error('items must be a non-empty array of { id|name, grams }');
   if (!account.whatsapp_number) return { error: 'whatsapp_unavailable', message: 'This shop has no WhatsApp number configured for checkout.' };
 
@@ -5453,16 +7099,17 @@ async function publicPrepareOrder(env: Env, account: PublicAccount, args: any) {
   for (const raw of rawItems) {
     const grams = Math.max(0, Number(raw?.grams) || 0);
     let match: ProductRow | undefined;
-    const id = raw?.id ? String(raw.id).trim() : '';
+    const id = raw?.id ? clampStr(raw.id, 100) : '';
+    const name = raw?.name ? clampStr(raw.name, 100) : '';
     if (id) {
       match = products.find(p => p.id === id);
-    } else if (raw?.name) {
+    } else if (name) {
       const scored = products
-        .map(p => ({ p, score: scoreMatch(String(raw.name), [p.given_name, p.product_name, p.chinese_name, p.year]) }))
+        .map(p => ({ p, score: scoreMatch(name, [p.given_name, p.product_name, p.chinese_name, p.year]) }))
         .sort((a, b) => b.score - a.score);
       if (scored[0]?.score > 0.4) match = scored[0].p;
     }
-    if (!match) { unresolved.push(String(raw?.name || raw?.id || '(unknown)')); continue; }
+    if (!match) { unresolved.push(name || id || '(unknown)'); continue; }
     const price = match.fixed_retail_price_usd ?? null;
     lines.push({
       id: match.id,
@@ -5478,20 +7125,55 @@ async function publicPrepareOrder(env: Env, account: PublicAccount, args: any) {
   if (lines.length === 0) return { error: 'no_items_resolved', unresolved };
 
   const estimatedTotal = lines.reduce((s, l) => s + (l.line_total_usd || 0), 0);
+  const roundedTotal = estimatedTotal > 0 ? Math.round(estimatedTotal * 100) / 100 : 0;
   const msgLines = [
     `Hello! I'd like to order from ${account.name}:`,
     ...lines.map(l => `• ${l.grams ? l.grams + 'g ' : ''}${l.name}${l.price_per_gram_usd != null && l.grams ? ` — ~$${l.line_total_usd} USD` : ''}`),
-    estimatedTotal > 0 ? `Estimated total: ~$${Math.round(estimatedTotal * 100) / 100} USD (please confirm)` : '',
+    estimatedTotal > 0 ? `Estimated total: ~$${roundedTotal} USD (please confirm)` : '',
   ].filter(Boolean);
   const message = msgLines.join('\n');
   const digits = account.whatsapp_number.replace(/\D/g, '');
+
+  // Contact details are optional here (unlike the cart/consult inquiry paths,
+  // which require a name plus a contact string) — this row is a trace of what
+  // an AI assembled, not a request the customer necessarily sent. Persisting
+  // is best-effort; a D1 failure must not stop the customer getting their link.
+  let reference: string | null = null;
+  try {
+    const id = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+    const refNumber = createPreparedOrderRef();
+    const customerName = clampStr(args?.name, PUBLIC_PREPARE_ORDER_MAX_STR);
+    const customerEmail = clampStr(args?.email, PUBLIC_PREPARE_ORDER_MAX_STR);
+    const customerPhone = clampStr(args?.phone, PUBLIC_PREPARE_ORDER_MAX_STR) || null;
+    const itemsJson = JSON.stringify(lines.map(l => ({
+      id: l.id,
+      name: l.name,
+      category: 'tea',
+      storeSlug: account.slug,
+      quantityGrams: l.grams,
+      pricePerGram: l.price_per_gram_usd ?? 0,
+      totalPrice: l.line_total_usd ?? 0,
+    })));
+    await env.DB.prepare(
+      `INSERT INTO inquiries
+       (id, account_id, name, email, phone, items, total_usd, currency, message, source, ref_number)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      id, account.id, customerName, customerEmail, customerPhone,
+      itemsJson, roundedTotal, 'USD', null, 'ai_prepared', refNumber,
+    ).run();
+    reference = refNumber;
+  } catch {
+    // Persistence is a bonus, never a gate — fall through with reference: null.
+  }
 
   return {
     whatsapp_url: `https://wa.me/${digits}?text=${encodeURIComponent(message)}`,
     message_preview: message,
     lines,
-    estimated_total_usd: estimatedTotal > 0 ? Math.round(estimatedTotal * 100) / 100 : null,
+    estimated_total_usd: estimatedTotal > 0 ? roundedTotal : null,
     unresolved: unresolved.length ? unresolved : undefined,
+    reference,
     note: 'This opens a WhatsApp message to the shop — checkout is completed in conversation, not automatically. Prices are estimates; the shop confirms final pricing, shipping, and availability.',
   };
 }
@@ -5528,13 +7210,13 @@ const PUBLIC_TOOL_DEFS = [
   },
   {
     name: 'prepare_order',
-    description: 'Assemble a WhatsApp checkout link for a basket of teas (each item is { id or name, grams }). Returns a wa.me link prefilled with the order and an estimated total. Checkout is completed by a human in the WhatsApp conversation — this tool never places an order itself.',
+    description: 'Assemble a WhatsApp checkout link for a basket of teas (each item is { id or name, grams }). Returns a wa.me link prefilled with the order and an estimated total, plus a reference number for the prepared basket. Checkout is completed by a human in the WhatsApp conversation — this tool never places an order itself, and the shop is not notified until the customer actually sends that message.',
     inputSchema: {
       type: 'object',
       properties: {
         items: {
           type: 'array',
-          description: 'Teas to order. Each: { id?, name?, grams }. Provide id (from search_tea) when known, else name.',
+          description: 'Teas to order. Each: { id?, name?, grams }. Provide id (from search_tea) when known, else name. Max 20 items.',
           items: {
             type: 'object',
             properties: {
@@ -5544,6 +7226,9 @@ const PUBLIC_TOOL_DEFS = [
             },
           },
         },
+        name: { type: 'string', description: 'Optional: customer name, if known.' },
+        email: { type: 'string', description: 'Optional: customer email, if known.' },
+        phone: { type: 'string', description: 'Optional: customer phone, if known.' },
       },
       required: ['items'],
     },
@@ -5569,8 +7254,54 @@ function publicRateOk(ip: string): boolean {
   return e.count <= PUBLIC_RATE_LIMIT;
 }
 
+// prepare_order writes an `inquiries` row, unlike the other public tools, so
+// it gets a tighter budget on top of the general PUBLIC_RATE gate above.
+// Two layers, same shapes already used elsewhere in this file/route:
+//   1. In-memory per-isolate map (this Map) — always active today, same
+//      best-effort pattern as PUBLIC_RATE. Not a security boundary: it resets
+//      on cold start and doesn't span isolates.
+//   2. An optional durable Cloudflare Rate Limiting binding
+//      (PUBLIC_PREPARE_ORDER_LIMITER), same [[unsafe.bindings]] "ratelimit"
+//      shape and optional-binding pattern as OAUTH_REGISTER_LIMITER /
+//      OAUTH_AUTHORIZE_LIMITER above and PUBLIC_MCP_LIMITER in index.ts. Not
+//      yet provisioned in wrangler.toml (requested in
+//      todo/plans/order-process-notes.md) — engages automatically once it is.
+const PUBLIC_PREPARE_ORDER_RATE = new Map<string, { count: number; resetAt: number }>();
+const PUBLIC_PREPARE_ORDER_RATE_LIMIT = 5;
+const PUBLIC_PREPARE_ORDER_RATE_WINDOW_MS = 60 * 1000;
+function publicPrepareOrderRateOk(ip: string): boolean {
+  const now = Date.now();
+  const e = PUBLIC_PREPARE_ORDER_RATE.get(ip);
+  if (!e || e.resetAt < now) { PUBLIC_PREPARE_ORDER_RATE.set(ip, { count: 1, resetAt: now + PUBLIC_PREPARE_ORDER_RATE_WINDOW_MS }); return true; }
+  e.count += 1;
+  return e.count <= PUBLIC_PREPARE_ORDER_RATE_LIMIT;
+}
+
+async function publicPrepareOrderRateCheck(env: Env, ip: string): Promise<boolean> {
+  if (!publicPrepareOrderRateOk(ip)) return false;
+  if (env.PUBLIC_PREPARE_ORDER_LIMITER) {
+    try {
+      const { success } = await env.PUBLIC_PREPARE_ORDER_LIMITER.limit({ key: ip });
+      if (!success) return false;
+    } catch {
+      // A rate-limiter service hiccup must not block a real customer's
+      // WhatsApp link — the in-memory gate above already ran.
+    }
+  }
+  return true;
+}
+
+// prepare_order now performs a best-effort DB write (see publicPrepareOrder),
+// so it no longer gets the blanket read-only/idempotent annotation the other
+// three public tools share — an MCP client that inspects annotations should
+// see this one truthfully.
 function publicToolDefs() {
-  return PUBLIC_TOOL_DEFS.map(t => ({ ...t, annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false } }));
+  return PUBLIC_TOOL_DEFS.map(t => ({
+    ...t,
+    annotations: t.name === 'prepare_order'
+      ? { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false }
+      : { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  }));
 }
 
 export async function publicMcpFetch(request: Request, env: Env): Promise<Response> {
@@ -5615,7 +7346,10 @@ export async function publicMcpFetch(request: Request, env: Env): Promise<Respon
           case 'search_tea': payload = await publicSearchTea(env, account.id, args); break;
           case 'get_tea': payload = await publicGetTea(env, account.id, args); break;
           case 'browse_catalog': payload = await publicBrowseCatalog(env, account.id, args); break;
-          case 'prepare_order': payload = await publicPrepareOrder(env, account, args); break;
+          case 'prepare_order':
+            if (!(await publicPrepareOrderRateCheck(env, ip))) return rpcError(id, -32000, 'Rate limit exceeded for order preparation — slow down.');
+            payload = await publicPrepareOrder(env, account, args);
+            break;
           default: return rpcError(id, -32601, `Unknown tool: ${name}`);
         }
         return rpcResult(id, mcpContent(payload));

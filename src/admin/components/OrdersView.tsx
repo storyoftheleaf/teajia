@@ -14,6 +14,8 @@ import { EditOrderModal } from './EditOrderModal';
 import { QuickInvoiceModal } from './QuickInvoiceModal';
 import { Button } from '../../components/shared/Button';
 import { OrderAttribution } from './OrderAttribution';
+import { OrderPayLink, OrderPayRecipientLine, OrderPayCopyButton } from './OrderPayLink';
+import { OrderClaimsFlag, OrderPaymentsPanel } from './OrderPayments';
 import { useAppStore } from '../../lib/store';
 import { SettlementLedger } from './SettlementLedger';
 
@@ -230,6 +232,19 @@ export const OrdersView = () => {
     }
   };
 
+  // A confirmed or rejected payment rewrites what the order is owed, and those
+  // three numbers live on the invoice rather than on the payments list. Pull the
+  // list again and fold the fresh row into the open modal, keeping the line
+  // items already loaded into it.
+  const refreshViewedInvoice = async () => {
+    const result = await refetch();
+    setViewingInvoice((prev) => {
+      if (!prev) return prev;
+      const fresh = (result.data || []).find((order) => order.id === prev.id);
+      return fresh ? { ...prev, ...fresh, items: prev.items } : prev;
+    });
+  };
+
   // Promote a Draft (e.g. created from a collection recipient's confirmed picks)
   // into a normal Pending order, so it can be edited and fulfilled.
   const acceptDraft = async (invoice: DbOrder) => {
@@ -284,6 +299,7 @@ export const OrdersView = () => {
             ref: inv.invoice_number,
             customerName: inv.customer_name,
             items,
+            payUrl: inv.payment?.pay_url ?? undefined,
           });
         }
       } else if (confirmState.type === 'void') {
@@ -327,6 +343,10 @@ export const OrdersView = () => {
     if (statusFilter !== 'all' && o.status !== statusFilter) return false;
     if (!search) return true;
     const q = search.toLowerCase();
+    // The invoice id is matched exactly as well as by name or number: an
+    // inquiry that has already been converted knows only the id of the order
+    // it became, and "open that order" has to land on it.
+    if (o.id?.toLowerCase() === q) return true;
     return o.customer_name?.toLowerCase().includes(q) || o.invoice_number?.toLowerCase().includes(q);
   });
 
@@ -504,6 +524,7 @@ export const OrdersView = () => {
                           <Users size={12} className="opacity-0 group-hover/cust:opacity-100 transition-opacity text-tea-text-sec flex-shrink-0" />
                           <span className="truncate">{order.customer_name}</span>
                         </button>
+                        <OrderPayRecipientLine payment={order.payment} className="text-ui-9" />
                       </td>
                       <td className="px-4 align-middle overflow-hidden text-right border-l border-tea-border">
                         <div>
@@ -528,6 +549,7 @@ export const OrdersView = () => {
 	                              <span className={order.payment_status === 'paid' ? 'text-tea-text' : 'text-tea-gold/90'}>
 	                                {order.payment_status === 'paid' ? 'paid' : order.payment_status === 'partial' ? 'partial' : 'unpaid'}
 	                              </span>
+	                              <OrderClaimsFlag payment={order.payment} />
 	                              <span className="text-tea-text-dim mx-1">·</span>
 	                              <span className={order.inventory_deducted ? 'text-tea-text-sec' : 'text-tea-gold/90'}>
 	                                {order.inventory_deducted ? 'stock gone' : 'stock pending'}
@@ -578,6 +600,7 @@ export const OrdersView = () => {
                               />
                             </>
                           )}
+                          <OrderPayCopyButton payment={order.payment} invoiceNumber={order.invoice_number} />
                           <Button
                             variant="ghost"
                             size="sm"
@@ -691,6 +714,7 @@ export const OrdersView = () => {
                           <span className={order.payment_status === 'paid' ? 'text-tea-text-sec' : 'text-tea-gold/90'}>
                             {order.payment_status === 'paid' ? 'paid' : order.payment_status === 'partial' ? 'partial' : 'unpaid'}
                           </span>
+                          <OrderClaimsFlag payment={order.payment} />
                           <span className="text-tea-text-dim mx-1">·</span>
                           <span className={order.inventory_deducted ? 'text-tea-text-sec' : 'text-tea-gold/90'}>
                             {order.inventory_deducted ? 'stock gone' : 'stock pending'}
@@ -698,6 +722,13 @@ export const OrdersView = () => {
                         </span>
                       )}
                     </div>
+
+                    <OrderPayLink
+                      payment={order.payment}
+                      invoiceNumber={order.invoice_number}
+                      layout="inline"
+                      className="mt-2"
+                    />
 
                     {/* Action gutter */}
                     <div className="flex items-center gap-2 mt-3 pt-3 border-t border-tea-border">
@@ -797,6 +828,26 @@ export const OrdersView = () => {
                 </div>
 
                 {activeAccountId && <OrderAttribution invoiceId={viewingInvoice.id} accountId={activeAccountId} />}
+
+                <OrderPayLink
+                  payment={viewingInvoice.payment}
+                  invoiceNumber={viewingInvoice.invoice_number}
+                  layout="block"
+                  className="mb-6"
+                />
+
+                {/* Payments live here, on the order detail, rather than in
+                    EditOrderModal. That modal holds an unsaved form for the line
+                    items of a Pending order; money should not be committed from
+                    inside an edit that has not been saved, and a Filled order
+                    never opens it at all. */}
+                <OrderPaymentsPanel
+                  invoiceId={viewingInvoice.id}
+                  invoiceNumber={viewingInvoice.invoice_number}
+                  payment={viewingInvoice.payment}
+                  onChanged={() => { void refreshViewedInvoice(); }}
+                  className="mb-6"
+                />
 
                 {/* Source Event */}
                 {viewingInvoice.source_event_title && (
@@ -973,6 +1024,7 @@ export const OrdersView = () => {
                           customerName: viewingInvoice.customer_name,
                           items,
                           total: `$${total} USD`,
+                          payUrl: viewingInvoice.payment?.pay_url ?? undefined,
                         });
                       }}
                       className="w-full py-3 border border-tea-border rounded-xl text-xs uppercase tracking-[0.2em] text-tea-text-sec hover:text-tea-text hover:bg-tea-surface flex items-center justify-center gap-2 transition-all"

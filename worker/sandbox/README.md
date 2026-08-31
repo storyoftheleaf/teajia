@@ -80,6 +80,12 @@ time: it only ever READS from live.
 2. **Exported rows arrive grouped by table in an order that breaks foreign
    keys.** The script re-orders them parents-first before loading. If you add a
    table to the copied list, put it after whatever it points at.
+3. **The copied structure is LIVE's, which can sit behind this repo.** A column
+   added in `worker/migrations/` but not yet applied to production is missing
+   from the dump, and every sandbox request that reads it fails. After loading
+   the dump the script applies each numbered migration on top; a column live
+   already has reports "duplicate column name" and is skipped. That is expected
+   output, not a failure.
 
 ## Files
 

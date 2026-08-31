@@ -22,6 +22,10 @@ api.invoices.getItems = (invoiceId) => new Promise((resolve, reject) => itemRequ
   invoiceId, accountId: getTokenClaims()?.active_account_id || null, resolve,
   reject: () => reject(new Error('Items unavailable')),
 }));
+// The invoice detail carries a payments panel. These tests are about account
+// scoping, not money, so the panel gets an empty list rather than reaching the
+// network when the modal opens.
+api.invoices.getPayments = async () => [];
 api.activityLogs.list = (params = {}) => new Promise((resolve, reject) => timelineRequests.push({
   invoiceId: params.entity_id || '', accountId: getTokenClaims()?.active_account_id || null, resolve,
   reject: () => reject(new Error('Timeline unavailable')),

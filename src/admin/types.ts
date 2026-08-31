@@ -94,6 +94,70 @@ export interface Product {
   sessionReserveGrams?: number; // Stock below this threshold shows a soft low-availability warning on the public shop
 }
 
+/**
+ * Who a customer pays for one invoice, resolved server-side.
+ *
+ * Adrian runs a network of tea masters, so the transfer details a customer
+ * lands on belong to whoever sold the tea, not to the platform. The worker
+ * walks the recipient chain and builds the link once, so every surface renders
+ * the same URL. `pay_url` is null whenever `has_methods` is false: a recipient
+ * with no published transfer details carries no link, and no surface may
+ * render a dead one.
+ */
+export interface InvoicePayment {
+  recipient_slug: string | null;
+  recipient_name: string | null;
+  pay_url: string | null;
+  has_methods: boolean;
+  /** Line items plus shipping, in USD. */
+  total_usd: number;
+  /** Sum of CONFIRMED payments only. A customer's report is never counted here. */
+  paid_usd: number;
+  /** Total minus paid, never below zero. What the pay link now asks for. */
+  outstanding_usd: number;
+  /** How many customer reports are still waiting for Adrian to confirm them. */
+  claims_pending: number;
+}
+
+/**
+ * One row of `invoice_payments`, the record of a single payment against an order.
+ *
+ * Two kinds of row land here and the difference is the point of the feature.
+ * `claimed_by: 'customer'` with `status: 'claimed'` is a REPORT: the customer
+ * pressed "I've sent payment" and nothing about what the order is owed has
+ * changed. `claimed_by: 'operator'` with `status: 'confirmed'` is money Adrian
+ * saw arrive. Only confirmed rows count toward `paid_usd`, and no surface may
+ * render a claim as though it were settled.
+ */
+export type InvoicePaymentStatus = 'claimed' | 'confirmed' | 'rejected';
+export type InvoicePaymentSource = 'customer' | 'operator';
+
+export interface InvoicePaymentRecord {
+  id: string;
+  invoice_id: string;
+  amount_usd: number;
+  amount_original?: number | null;
+  currency?: string | null;
+  payment_method_id?: string | null;
+  method_label?: string | null;
+  reference?: string | null;
+  note?: string | null;
+  status: InvoicePaymentStatus;
+  claimed_by: InvoicePaymentSource;
+  claimed_at: string;
+  confirmed_by_user_id?: string | null;
+  confirmed_at?: string | null;
+  created_at: string;
+}
+
+/** Body of POST /api/invoices/:id/payments, an operator recording money by hand. */
+export interface RecordPaymentInput {
+  amount_usd: number;
+  method_label?: string;
+  reference?: string;
+  note?: string;
+}
+
 export interface Invoice {
   id: string;
   invoice_number: string;
@@ -114,6 +178,8 @@ export interface Invoice {
   source_publication_id?: string | null;
   deleted_at?: string;
   created_at: string;
+  /** Null when no recipient could be resolved for this invoice at all. */
+  payment?: InvoicePayment | null;
 }
 
 export interface InvoiceItem {

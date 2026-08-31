@@ -1,10 +1,5 @@
 -- Teajia D1 baseline from live remote schema dump (2026-08-29), rebuilt correctly
 
-CREATE TABLE IF NOT EXISTS _cf_KV (
-        key TEXT PRIMARY KEY,
-        value BLOB
-      ) WITHOUT ROWID;
-
 CREATE TABLE IF NOT EXISTS account_applications (
   id                    TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
   applicant_email       TEXT NOT NULL,
@@ -785,7 +780,7 @@ CREATE TABLE IF NOT EXISTS inquiries (
   currency TEXT DEFAULT 'USD',
   message TEXT,
   status TEXT NOT NULL DEFAULT 'new', 
-  created_at TEXT NOT NULL DEFAULT (datetime('now')), source TEXT NOT NULL DEFAULT 'cart', ref_number TEXT, tracking_token_hash TEXT, request_fingerprint TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')), source TEXT NOT NULL DEFAULT 'cart', ref_number TEXT, tracking_token_hash TEXT, request_fingerprint TEXT, converted_invoice_id TEXT,
   FOREIGN KEY (account_id) REFERENCES accounts(id)
 );
 
@@ -841,6 +836,51 @@ CREATE TABLE IF NOT EXISTS invoice_line_items (
     quantity INTEGER NOT NULL,
     price_at_sale REAL NOT NULL
 , account_id TEXT, custom_name TEXT, stock_owner_user_id TEXT REFERENCES users(id), sales_grant_id TEXT REFERENCES sales_grants(id), owner_share_type TEXT NOT NULL DEFAULT 'percent' CHECK(owner_share_type IN ('percent','fixed')), owner_share_value REAL NOT NULL DEFAULT 100);
+
+-- Money gets its own records.
+--
+-- Before this table the system knew only a status word on the invoice, which
+-- could say "partial" without storing how much, and could never hold a
+-- customer's report of a transfer separately from money actually seen. One row
+-- per payment fixes both and gives a payment history for free.
+--
+-- The whole boundary of the feature lives in two columns. `claimed_by` says who
+-- put the row there, `status` says whether it is money. A customer writes
+-- ('customer','claimed') and that changes nothing about what the order is owed.
+-- Only a ('*','confirmed') row counts toward paid, and only an operator can
+-- move a row into that state.
+CREATE TABLE IF NOT EXISTS invoice_payments (
+  id                  TEXT PRIMARY KEY,
+  invoice_id          TEXT NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
+  account_id          TEXT NOT NULL REFERENCES accounts(id),
+  amount_usd          REAL NOT NULL CHECK (amount_usd > 0),
+  amount_original     REAL,
+  currency            TEXT,
+  payment_method_id   TEXT REFERENCES payment_methods(id),
+  method_label        TEXT,
+  reference           TEXT,
+  note                TEXT,
+  status              TEXT NOT NULL DEFAULT 'claimed'
+                        CHECK (status IN ('claimed','confirmed','rejected')),
+  claimed_by          TEXT NOT NULL CHECK (claimed_by IN ('customer','operator')),
+  claimed_at          TEXT NOT NULL DEFAULT (datetime('now')),
+  confirmed_by_user_id TEXT REFERENCES users(id),
+  confirmed_at        TEXT,
+  created_at          TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Two reads exist and these are them.
+--
+-- 1. "What has been paid on these invoices" — the aggregate every invoice-shaped
+--    response now runs once per page, keyed by invoice with the status in the
+--    index so the conditional sums never touch the table.
+CREATE INDEX IF NOT EXISTS idx_invoice_payments_invoice
+  ON invoice_payments(invoice_id, status);
+
+-- 2. "Which reports are still waiting on me" — the admin lists pending claims
+--    across every order in the account, so account plus status leads.
+CREATE INDEX IF NOT EXISTS idx_invoice_payments_account_status
+  ON invoice_payments(account_id, status, claimed_at DESC);
 
 CREATE TABLE IF NOT EXISTS invoice_line_repairs (
   id TEXT PRIMARY KEY,
@@ -2118,6 +2158,9 @@ CREATE INDEX IF NOT EXISTS idx_inquiries_account_ref
 CREATE INDEX IF NOT EXISTS idx_inquiries_account_source ON inquiries(account_id, source, created_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_inquiries_ref_number ON inquiries(ref_number);
+CREATE INDEX IF NOT EXISTS idx_inquiries_converted_invoice
+  ON inquiries(converted_invoice_id)
+  WHERE converted_invoice_id IS NOT NULL;
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_inquiries_tracking_token_hash
   ON inquiries(tracking_token_hash)
