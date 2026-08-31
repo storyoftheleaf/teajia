@@ -9,21 +9,21 @@ grams: 357
 stock: 357
 cost: "700 CNY"
 vendor: "静趣礼承 Jingqu Licheng (D & T Collectors)"
-tastingNotes: []
+tastingNotes:
+  - "mineral"
+  - "woody"
 ---
 
-## Lore
-
-Yiwu (易武) is one of the Six Famous Tea Mountains of Xishuangbanna, Yunnan. The name has meant puerh country for centuries, and Yiwu cakes once traveled the historic Tea Horse Road north from the region.
+A raw (sheng) puerh cake from Yiwu, Yunnan, pressed in 2004 and roughly twenty years into its aging arc.
 
 ## Terroir
 
-The area is known for large-leaf arboreal tea trees growing among broadleaf forest. Elevations run roughly 910 to 1700 meters, and the district is famous for deep, mellow raw puerh.
+Yiwu sits in Xishuangbanna and counts among the Six Famous Tea Mountains of Yunnan. The area is known for large-leaf arboreal tea trees growing among broadleaf forest, with elevations running roughly 910 to 1700 meters. The district is famous for deep raw puerh.
 
 ## Processing
 
-Sheng puerh is raw puerh from Yunnan, pressed into a cake and left to age over decades. Young sheng drinks brisk; with age it turns quiet and woody, and this cake is about twenty years along that arc. The leaves were fired, rolled and sun-dried, then left to rest in Guangzhou's tea trade.
+Sheng puerh is kill-greened, rolled, sun-dried, and pressed, then left to age naturally over decades. Young sheng drinks brisk; with time it turns woody and settled. At two decades in, this cake sits well along that arc.
 
-## Mood
+## Lore
 
-## Experience
+Yiwu has meant puerh country for centuries, and its cakes once traveled the historic Tea Horse Road north from the region. This one rested in Guangzhou's tea trade.

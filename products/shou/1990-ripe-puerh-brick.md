@@ -9,21 +9,22 @@ grams: 500
 stock: 500
 cost: "800 CNY"
 vendor: "静趣礼承 Jingqu Licheng (D & T Collectors)"
-tastingNotes: []
+tastingNotes:
+  - "mineral"
+  - "woody"
+  - "smooth"
 ---
 
-## Lore
-
-Shou puerh was born in Yunnan. Its wet piling method, called wo dui, stabilized in the early 1970s. This brick was pressed in 1990 and is now over thirty years old.
+A 1990 ripe puerh from Yunnan, pressed as a brick. It carries more strength than an average shou, a firmer body that came out of how it was processed.
 
 ## Terroir
 
-Yunnan is the home of puerh. The province's identity is tied to its material, place, and tradition. Large-leaf tea trees grow across the southern part of the province.
+Yunnan is the home of puerh, its identity tied to material, place, and tradition. Large-leaf tea trees grow across the province's south. This brick rested in Guangzhou's tea trade through the decades that followed.
 
 ## Processing
 
-Ripe puerh is a Yunnan style. Leaves are piled damp so warmth and microbes slowly work them into something smooth and mellow, a method that settled into place in the early 1970s. This brick carries a little more strength than an average cooked puerh, a firmer body set by how it was processed, and the brick form lets it age densely and slowly. It rested in Guangzhou's tea trade through the intervening decades.
+Ripe puerh is made by wet piling, or wo dui: leaves piled so heat and moisture build and microbes slowly work on them. Pressed as a brick, the leaves age densely and slowly, and this one is over thirty years old. It drinks dark and smooth, ready without the long wait raw puerh needs.
 
-## Mood
+## Lore
 
-## Experience
+The wet-pile method for shou puerh was developed in Yunnan in the early 1970s.

@@ -9,21 +9,21 @@ grams: 100
 stock: 100
 cost: "360 CNY"
 vendor: "静趣礼承 Jingqu Licheng (D & T Collectors)"
-tastingNotes: []
+tastingNotes:
+  - "earthy"
+  - "woody"
 ---
 
-## Lore
-
-Liu bao is named for Liu Bao village in Cangwu County, Wuzhou. It was carried out of Guangxi down the Tea Ship Route to Guangzhou, Hong Kong and Southeast Asia, where migrant tin miners drank it daily.
+A 1990 liu bao (六堡) dark tea from Guangxi, loose leaf. Slightly more developed than most surviving 1990s liu bao.
 
 ## Terroir
 
-The area sits in the Xijiang river basin, subtropical, with red acidic soils. The plant is a medium-leaf Guangxi cultivar.
+Liu bao takes its name from Liu Bao village in Cangwu County, Wuzhou, Guangxi. The area sits in the Xijiang river basin, subtropical, with red acidic soils. The plant is a medium-leaf Guangxi cultivar.
 
 ## Processing
 
-Liu bao is a post-fermented dark tea from Guangxi, packed loose in bamboo baskets lined with bamboo leaves. The leaves rest in that quiet micro-environment and slowly transform. This one is a bit more aged than others of the 90s, showing more development than a 1990s liu bao usually does. It reached us through the Guangzhou tea trade.
+Liu bao is a post-fermented dark tea, in the same family as ripe puerh and Fu brick, not a Yunnan tea. It is traditionally packed loose in bamboo baskets with a bamboo-leaf lining that supports slow transformation. As a class, aged liu bao drinks dark, thick, and smooth, with mineral and woody character.
 
-## Mood
+## Lore
 
-## Experience
+Liu bao was carried out of Guangxi down the old river trade to Guangzhou, Hong Kong and Southeast Asia, where migrant labourers drank it daily. This lot comes to us from the Guangzhou tea trade.
