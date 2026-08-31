@@ -45,7 +45,15 @@ The handwritten notes (Australia/Bali split) list: 93盒云南×20, 参香散块
 receipts' 93金瓜/93青, 98小沱, 70s小黄印, 80s老生茶, 58年茶. The receipts may be
 the purchase backing for part of that packing list.
 
-## Status
+## SALES + STOCK-VERIFY MODEL (Adrian 2026-08-31)
+- 1993 Y562 sells ONLY in whole 100 g boxes (100/200/300...), NO samples.
+- STOCK-VERIFICATION: stock_grams entered at intake IS the real on-hand count
+  Adrian reported — never zeroed/blank while unverified. The "needs
+  verification" state is ONLY a backend notation (stock_verified_at NULL /
+  stock_verified=false) meaning the count could be inaccurate until physically
+  rechecked. Sell/quote normally from the recorded count; keep the flag until
+  Adrian confirms, then flip stock_verified:true. Never write "needs
+  verification" into customer-facing copy.
 Not yet wired into inventory. Need Adrian per-lot: what he actually holds,
 cost basis per lot, store (Bali/Australia) vs personal collection, any output.
 High-value vintage alerts: 58s tea, 70s Small Yellow Mark, 80s tea nuggets.
