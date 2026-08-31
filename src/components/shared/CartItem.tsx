@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CartItem as PublicCartItemType } from '../../types';
+import { offeredSizes } from '../../lib/teaPricing';
 import { useShopPrice } from '../shop/shopPrice';
 
 interface CartItemProps {
@@ -10,8 +11,6 @@ interface CartItemProps {
   /** Closes the cart panel when the row navigates to the product page. */
   onNavigate?: () => void;
 }
-
-const PRESETS = [25, 50, 100, 250];
 
 /**
  * One tea in the order panel.
@@ -63,7 +62,32 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
   const effectivePerGram =
     item.quantityGrams > 0 ? item.totalPrice / item.quantityGrams : item.pricePerGram;
   const rateLabel = `${perGramExact(effectivePerGram)} per gram`;
-  const onPresetList = PRESETS.includes(item.quantityGrams);
+
+  /**
+   * The amounts the shelf offers this tea in, not a second list beside it.
+   *
+   * These were four numbers typed into this file, and they had drifted: the
+   * cart offered 250g where the shop's ladder ends at 200, and never offered
+   * the whole pressed piece, which is the one amount that skips the handling
+   * and is therefore the best rate a reader can get.
+   *
+   * `offeredSizes` is the same function the product page's buy footer calls,
+   * so the rungs and the minimum-order rule stay in step by construction.
+   * Stock is the one input the cart does not carry, and passing Infinity is
+   * honest about that: this is what the shelf offers, and whether there is
+   * enough leaf is settled in the conversation the panel opens.
+   */
+  const presets = useMemo(
+    () =>
+      isTea
+        ? offeredSizes(item.pricePerGram, Number.POSITIVE_INFINITY, {
+            wholePieceGrams: item.wholePieceGrams,
+          }).map(q => q.grams)
+        : [],
+    [isTea, item.pricePerGram, item.wholePieceGrams],
+  );
+
+  const onPresetList = presets.includes(item.quantityGrams);
   const otherIsLive = showOther || (isTea && !onPresetList);
 
   const setGrams = (grams: number) => onUpdateQuantity(item.id, Math.min(9999, Math.max(1, grams)));
@@ -120,8 +144,8 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
         </div>
 
         {isTea ? (
-          <div className="flex items-center justify-between gap-1">
-            {PRESETS.map(g => {
+          <div className="flex flex-wrap items-center justify-between gap-x-1 gap-y-0">
+            {presets.map(g => {
               const on = g === item.quantityGrams;
               return (
                 <button
