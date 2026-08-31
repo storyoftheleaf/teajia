@@ -4,6 +4,9 @@
 
 ## Untriaged
 
+- [ ] **There is no way for someone to set themselves up as a tea master.** _(band: you-required)_ _(effort: deep)_ → Plan: [tea-master-onboarding.md](todo/plans/tea-master-onboarding.md)
+  A tea master is one thing to you and two unconnected things to the system: an account you create by hand, and a profile they create themselves that holds their payment links. Nothing walks anyone from one to the other, and nothing can even submit an application, though the inbox to review them exists. The first decisions are yours, not an agent's: whether this is invitation-only, and whether someone can be a tea master without a shop.
+
 - [ ] **Events, wholesale and sample orders still cannot take a payment the way shop orders can.** _(band: agent-runnable)_ _(effort: deep)_ → Plan: [order-process-handoff.md](todo/plans/order-process-handoff.md)
   Four ways to be owed money, one of them modernised. An event seat is tracked in a bare column with no history and no pay link, and wholesale writes invoices already marked paid that the ledger cannot see. Route event money through the invoices the close-out already creates rather than adding a second payments table.
 
