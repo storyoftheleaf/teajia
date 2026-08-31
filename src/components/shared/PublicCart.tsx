@@ -482,6 +482,16 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
             1 USD = {rates.find(r => r.currency === currency)?.rateToUSD.toFixed(2)} {currency}
           </div>
         )}
+        {/*
+          The house terms sit at the top, where they frame the whole panel,
+          rather than in the footer where they were three lines of prose
+          between the total and the only button on the screen.
+        */}
+        {step === 'CART' && !isEmpty && (
+          <p className="px-4 pb-2.5 font-serif italic text-[11.5px] leading-[1.5] text-tea-text-dim">
+            We confirm every order personally. Pricing and shipping are settled by message.
+          </p>
+        )}
       </div>
 
       {/* Scrollable content */}
@@ -839,11 +849,6 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                   )}
                 </div>
               </div>
-            )}
-            {!isEmpty && (
-              <p className="font-serif italic text-[12.5px] leading-[1.6] text-tea-text-dim">
-                We confirm every order personally. Availability, pricing and shipping are settled by message.
-              </p>
             )}
             <Button
               onClick={() => !isEmpty && setStep('INQUIRY')}
