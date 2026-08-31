@@ -424,10 +424,16 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
 
   return (
     <>
-      {/* Step indicator + currency selector, hairline rules, single bronze for active step */}
+      {/*
+        Steps set as type, centred, with the currency at the trailing edge.
+        The bronze that used to mark the active step is gone: the accent is
+        spent once per panel, on the request button, so the current step is
+        carried by full-strength cream against dim.
+      */}
       <div className="flex-shrink-0 bg-tea-surface border-b border-tea-border">
-        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-tea-border">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
+        <div className="flex items-center gap-3 px-4 pb-2">
+          <span className="w-12 shrink-0" aria-hidden="true" />
+          <div className="flex-1 flex items-center justify-center gap-3 min-w-0">
             {STEPS.map((s, i) => {
               const isActive = step === s.key;
               const isPast = currentStepIndex > i;
@@ -438,8 +444,8 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                     type="button"
                     onClick={() => canJump && setStep(s.key)}
                     disabled={!canJump}
-                    className={`text-ui-11 uppercase tracking-[0.15em] transition-colors duration-300 whitespace-nowrap min-h-[44px] py-3 ${
-                      isActive ? 'text-tea-gold' : isPast ? 'text-tea-text-sec hover:text-tea-text cursor-pointer' : 'text-tea-text-sec/70 cursor-default'
+                    className={`font-serif text-[12.5px] transition-colors duration-300 whitespace-nowrap min-h-[44px] ${
+                      isActive ? 'text-tea-text' : isPast ? 'text-tea-text-sec hover:text-tea-text cursor-pointer' : 'text-tea-text-dim cursor-default'
                     }`}
                     aria-current={isActive ? 'step' : undefined}
                   >
@@ -452,43 +458,47 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
               );
             })}
           </div>
-          {rates.length > 0 && (
-            <select
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value as any)}
-              className="bg-transparent border-none text-ui-11 text-tea-text-sec outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 cursor-pointer hover:text-tea-text transition-colors shrink-0"
-              aria-label="Currency"
-            >
-              {rates.map(r => (
-                <option key={r.currency} value={r.currency}>{r.currency}</option>
-              ))}
-            </select>
-          )}
+          <div className="w-12 shrink-0 flex justify-end">
+            {rates.length > 0 && (
+              <select
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value as any)}
+                className="num bg-transparent border-none text-ui-11 text-tea-text-sec outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 cursor-pointer hover:text-tea-text transition-colors shrink-0"
+                aria-label="Currency"
+              >
+                {rates.map(r => (
+                  <option key={r.currency} value={r.currency}>{r.currency}</option>
+                ))}
+              </select>
+            )}
+          </div>
         </div>
-        {/* Exchange rate info, shown when non-USD currency is selected */}
+        {/*
+          The rate, once. This line used to repeat the footer total, so the
+          basket was priced twice on one screen, forty pixels apart.
+        */}
         {rates.length > 0 && currency !== 'USD' && (
-          <div className="px-4 py-2 text-right text-ui-10 text-tea-text-sec">
-            <div className="flex items-center justify-end gap-2">
-              <span>1 USD = {rates.find(r => r.currency === currency)?.rateToUSD.toFixed(2)} {currency}</span>
-              <span className="block w-px h-3 bg-tea-border" aria-hidden="true" />
-              <span className="num font-serif">Total: {displayPrice(subtotal)}</span>
-            </div>
+          <div className="px-4 pb-1.5 text-right num text-ui-10 text-tea-text-dim">
+            1 USD = {rates.find(r => r.currency === currency)?.rateToUSD.toFixed(2)} {currency}
           </div>
         )}
       </div>
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto relative tea-card-scroll">
-        <div className="px-5 py-5 min-h-full">
+        <div className={`min-h-full ${step === 'CART' ? 'p-3.5' : 'px-5 py-5'}`}>
 
           {/* Undo toast */}
           {undoItem && (
             <div className="relative z-20 mb-4 cart-slide-up">
-              <div className="flex items-center justify-between bg-tea-bg border border-tea-border text-tea-text px-4 py-3 rounded-md">
-                <span className="text-xs">{undoItem.item.name} removed</span>
+              {/* Same paper as a tea, and the control is a word rather than a
+                  tracked-out caps label, so the toast belongs to the list it
+                  interrupts instead of announcing itself. */}
+              <div className="flex items-center justify-between gap-3 bg-tea-surface text-tea-text px-4 py-2 rounded-[3px]">
+                <span className="font-serif text-[12.5px] text-tea-text-sec">{undoItem.item.name} removed</span>
                 <button
                   onClick={handleUndo}
-                  className="text-tea-text text-xs uppercase tracking-[0.15em] underline underline-offset-4 decoration-tea-border hover:decoration-tea-gold ml-4 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  className="font-serif text-[12.5px] text-tea-text underline decoration-tea-border hover:decoration-tea-text/50 underline-offset-[5px] transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                 >
                   Undo
                 </button>
@@ -498,9 +508,9 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
 
           {/* Step 1: Cart items */}
           {step === 'CART' && (
-            <div className="relative z-[1]">
+            <div className="relative z-[1] flex flex-col gap-2.5">
               {isEmpty ? (
-                <div className="text-center py-20">
+                <div className="bg-tea-surface rounded-[3px] text-center py-20 px-5">
                   <span className="block w-8 h-px mx-auto mb-6 bg-tea-border" aria-hidden="true" />
                   <p className="font-serif italic text-base text-tea-text leading-snug max-w-[24ch] mx-auto">
                     The cart is quiet. The kettle is patient.
@@ -508,7 +518,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                   <a
                     href="/shop"
                     onClick={onClose}
-                    className="inline-block mt-6 text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec hover:text-tea-gold underline underline-offset-[6px] decoration-tea-border hover:decoration-tea-gold transition-colors min-h-[44px] py-3"
+                    className="inline-block mt-6 font-serif text-[12.5px] text-tea-text-sec hover:text-tea-text underline decoration-tea-border hover:decoration-tea-text/50 underline-offset-[5px] transition-colors min-h-[44px] py-3"
                   >
                     Browse the shop
                   </a>
@@ -520,6 +530,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                     item={item}
                     onRemove={handleRemoveWithUndo}
                     onUpdateQuantity={onUpdateQuantity}
+                    onNavigate={onClose}
                   />
                 ))
               )}
@@ -806,32 +817,40 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
       </div>
 
       {/* Footer */}
-      <div className="p-6 border-t border-tea-border bg-tea-surface relative z-20 shrink-0">
+      <div className="px-5 pt-4 pb-5 border-t border-tea-border bg-tea-surface relative z-20 shrink-0">
         {step === 'CART' && (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
+            {/* No total on an empty cart. The localised formatter renders zero
+                as "IDR 0k", which is a price for nothing. */}
             {!isEmpty && (
-              <p className="text-xs text-tea-text-sec leading-relaxed font-serif italic">
-                We confirm every order personally. Availability, pricing, and shipping are settled by message. This is a service, not a checkout.
-              </p>
-            )}
-            <div className="flex justify-between items-baseline font-serif text-tea-text">
-              <span className="text-xl">Total</span>
-              <span className="num text-xl">{displayPrice(subtotal)}</span>
-            </div>
-            {!isEmpty && (
-              <div className="flex items-center justify-between text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec -mt-2">
-                <span>{cart.length} {cart.length === 1 ? 'item' : 'items'}</span>
-                <span className="num">
-                  {cart.filter(i => i.category === 'tea').reduce((g, i) => g + i.quantityGrams, 0)}g
-                </span>
+              <div className="flex flex-col gap-1.5">
+                <div className="flex justify-between items-baseline text-tea-text">
+                  <span className="font-display text-[23px]">Total</span>
+                  <span className="num text-ui-20">{displayPrice(subtotal)}</span>
+                </div>
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim">
+                    {cart.length} {cart.length === 1 ? 'tea' : 'teas'}
+                    {' · '}
+                    {cart.filter(i => i.category === 'tea').reduce((g, i) => g + i.quantityGrams, 0)}g
+                  </span>
+                  {currency !== 'USD' && (
+                    <span className="num text-ui-10 text-tea-text-dim">approx. USD {Math.round(subtotal)}</span>
+                  )}
+                </div>
               </div>
+            )}
+            {!isEmpty && (
+              <p className="font-serif italic text-[12.5px] leading-[1.6] text-tea-text-dim">
+                We confirm every order personally. Availability, pricing and shipping are settled by message.
+              </p>
             )}
             <Button
               onClick={() => !isEmpty && setStep('INQUIRY')}
               disabled={isEmpty}
               variant="primary"
               fullWidth
-              className="py-4 uppercase tracking-[0.2em] text-xs rounded-none"
+              className="h-[52px] !rounded-[2px] !font-serif !tracking-normal text-ui-14"
             >
               Request order
             </Button>

@@ -143,12 +143,14 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
         ) : props.mode === 'public' ? (
           <div className="flex flex-col flex-1 min-h-0">
             {/* Drag handle, mobile only */}
-            <div data-drag-handle className="md:hidden flex justify-center py-3 cursor-grab active:cursor-grabbing touch-pan-x shrink-0">
+            <div data-drag-handle className="md:hidden flex justify-center py-2 cursor-grab active:cursor-grabbing touch-pan-x shrink-0">
               <div className={`h-1 rounded-full transition-all duration-150 ${isDragging ? 'bg-tea-gold w-16' : 'bg-tea-text-sec/30 w-10'}`} />
             </div>
 
-            {/* Header: Close top-left, matching AccountPanel rule */}
-            <div className="flex items-center px-4 py-2.5 border-b border-tea-border bg-tea-surface shrink-0">
+            {/* Header: Close top-left, matching AccountPanel rule. The title
+                sits centred in the same row so the panel names itself without
+                spending a third band of chrome above the steps. */}
+            <div className="flex items-center gap-3 px-4 py-1.5 bg-tea-surface shrink-0">
               <button
                 onClick={onClose}
                 className="min-w-[44px] min-h-[44px] flex items-center justify-center -ml-2"
@@ -156,6 +158,8 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
               >
                 <Icons.Close className="w-5 h-5 text-tea-text-sec hover:text-tea-text transition-colors" />
               </button>
+              <span className="flex-1 text-center font-display text-[23px] leading-none text-tea-text">Your order</span>
+              <span className="min-w-[44px] shrink-0" aria-hidden="true" />
             </div>
 
             {/* Content */}

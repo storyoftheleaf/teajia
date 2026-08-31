@@ -4,20 +4,38 @@
     {
       "name": "sandbox",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "sandbox"],
+      "runtimeArgs": [
+        "run",
+        "sandbox"
+      ],
       "port": 7777
     },
     {
       "name": "vite-frontend",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 7777
     },
     {
       "name": "wrangler-api",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 8787
+    },
+    {
+      "name": "sandbox-alt",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "sandbox:site:alt"
+      ],
+      "port": 7788
     }
   ]
 }

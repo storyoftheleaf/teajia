@@ -46,6 +46,13 @@ export default defineConfig(({ command, mode }) => {
       strictPort: true,
       host: 'localhost',
       cors: true,
+      // Opt-in same-origin API proxy. The worker's CORS allowlist is pinned to
+      // port 7777, so a second sandbox site on any other port cannot reach it
+      // directly. Set TEAJIA_API_PROXY=http://localhost:8787 to route /api
+      // through this server instead, which sidesteps CORS entirely.
+      proxy: process.env.TEAJIA_API_PROXY
+        ? { '/api': { target: process.env.TEAJIA_API_PROXY, changeOrigin: true } }
+        : undefined,
       watch: {
         usePolling: true,
         interval: 500,
