@@ -12,7 +12,26 @@ import {
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
 import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
-import { deriveConfirmedInvoiceLine, repairCandidate } from './invoiceDomain';
+import { deriveConfirmedInvoiceLine, repairCandidate, formatInvoiceNumber } from './invoiceDomain';
+import {
+  PAYMENT_EPSILON,
+  PAYMENT_AMOUNT_CEILING,
+  CLAIM_TOLERANCE_USD,
+  PAYMENT_TEXT_LIMITS,
+  roundUsd,
+  paymentTextField,
+  loadInvoiceLedgerTotals,
+  invoiceMoney,
+  loadLedgerInvoice,
+  reconcileLedgerWithColumn,
+  recomputeInvoicePaymentStatus,
+} from './invoiceDomain';
+import type {
+  InvoiceLedgerTotals,
+  InvoiceMoney,
+  LedgerInvoice,
+  LedgerRecompute,
+} from './invoiceDomain';
 import {
   authorizeInvoiceLines,
   buildInvoiceReservationStatements,
@@ -3876,88 +3895,6 @@ const NO_PAYMENT: InvoicePaymentInfo = {
   claims_pending: 0,
 };
 
-/** Money is compared and stored to the cent. Anything under this is settled. */
-const PAYMENT_EPSILON = 0.01;
-
-function roundUsd(value: number): number {
-  return Math.round((Number(value) || 0) * 100) / 100;
-}
-
-interface InvoiceLedgerTotals {
-  paid_usd: number;
-  claims_pending: number;
-}
-
-/**
- * What the payment ledger holds for a set of invoices: money actually confirmed,
- * and how many customer reports are still waiting.
- *
- * One query per chunk, never one per invoice. D1 caps bound parameters at 100,
- * so a page of 200 orders is read in three queries rather than 200.
- */
-async function loadInvoiceLedgerTotals(
-  env: Env,
-  invoiceIds: string[],
-): Promise<Map<string, InvoiceLedgerTotals>> {
-  const totals = new Map<string, InvoiceLedgerTotals>();
-  const unique = [...new Set(invoiceIds.filter(Boolean))];
-  for (let start = 0; start < unique.length; start += 90) {
-    const chunk = unique.slice(start, start + 90);
-    const result = await env.DB.prepare(
-      `SELECT invoice_id,
-              SUM(CASE WHEN status = 'confirmed' THEN amount_usd ELSE 0 END) AS paid_usd,
-              SUM(CASE WHEN status = 'claimed' THEN 1 ELSE 0 END) AS claims_pending
-         FROM invoice_payments
-        WHERE invoice_id IN (${chunk.map(() => '?').join(', ')})
-        GROUP BY invoice_id`
-    ).bind(...chunk).all();
-    for (const row of (result.results ?? []) as Array<Record<string, any>>) {
-      totals.set(row.invoice_id as string, {
-        paid_usd: roundUsd(Number(row.paid_usd || 0)),
-        claims_pending: Number(row.claims_pending || 0),
-      });
-    }
-  }
-  return totals;
-}
-
-interface InvoiceMoney {
-  total_usd: number;
-  paid_usd: number;
-  outstanding_usd: number;
-  claims_pending: number;
-}
-
-/**
- * The three numbers plus the pending count, for one invoice.
- *
- * The ledger is the record of what has been received. `invoices.payment_status`
- * is the operator's word, and two paths still write it without leaving a ledger
- * row: the generic invoice update, and the MCP `mark_invoice_paid` tool. A
- * column that says paid with nothing behind it is read here as fully paid, so a
- * customer is never shown a live pay link for money that has already arrived.
- * This only ever RAISES paid to meet the column; it never lowers it, so a
- * confirmed payment can never be hidden by a stale status word. The reverse
- * direction is handled on the write side by reconcileLedgerWithColumn.
- */
-function invoiceMoney(
-  totalUsd: number,
-  paymentStatus: string | null | undefined,
-  ledger: InvoiceLedgerTotals | undefined,
-): InvoiceMoney {
-  const total = roundUsd(totalUsd);
-  let paid = roundUsd(ledger?.paid_usd ?? 0);
-  if (String(paymentStatus || '').toLowerCase() === 'paid' && paid < total - PAYMENT_EPSILON) {
-    paid = total;
-  }
-  return {
-    total_usd: total,
-    paid_usd: paid,
-    outstanding_usd: Math.max(0, roundUsd(total - paid)),
-    claims_pending: ledger?.claims_pending ?? 0,
-  };
-}
-
 function appOrigin(env: Env): string {
   return (env.APP_URL || 'https://www.teajia.com').replace(/\/$/, '');
 }
@@ -4479,150 +4416,6 @@ async function resolveOrderJourneys(
 // admin lists, the invoices list and the MCP tools all keep reading something
 // true without being repointed at this table.
 
-interface LedgerInvoice {
-  id: string;
-  account_id: string;
-  invoice_number: string | null;
-  status: string | null;
-  payment_status: string | null;
-  payment_date: string | null;
-  payment_method: string | null;
-  customer_name: string | null;
-  customer_id: string | null;
-  total_usd: number;
-}
-
-/** The invoice as the ledger needs it, priced. There is no total column. */
-async function loadLedgerInvoice(
-  env: Env,
-  invoiceId: string,
-  accountId?: string | null,
-): Promise<LedgerInvoice | null> {
-  const bindings = accountId ? [invoiceId, accountId] : [invoiceId];
-  const row = await env.DB.prepare(
-    `SELECT i.id, i.account_id, i.invoice_number, i.status, i.payment_status,
-            i.payment_date, i.payment_method, i.customer_name, i.customer_id,
-            i.shipping_cost_usd,
-            COALESCE((SELECT SUM(quantity * price_at_sale)
-                        FROM invoice_line_items WHERE invoice_id = i.id), 0) AS line_total
-       FROM invoices i
-      WHERE i.id = ? AND i.deleted_at IS NULL${accountId ? ' AND i.account_id = ?' : ''}
-      LIMIT 1`
-  ).bind(...bindings).first() as Record<string, any> | null;
-  if (!row) return null;
-  return {
-    id: row.id as string,
-    account_id: row.account_id as string,
-    invoice_number: (row.invoice_number as string | null) ?? null,
-    status: (row.status as string | null) ?? null,
-    payment_status: (row.payment_status as string | null) ?? null,
-    payment_date: (row.payment_date as string | null) ?? null,
-    payment_method: (row.payment_method as string | null) ?? null,
-    customer_name: (row.customer_name as string | null) ?? null,
-    customer_id: (row.customer_id as string | null) ?? null,
-    total_usd: roundUsd(Number(row.line_total || 0) + Number(row.shipping_cost_usd || 0)),
-  };
-}
-
-/**
- * Absorb a settlement that was recorded on the column and nowhere else.
- *
- * Two paths still write invoices.payment_status without leaving a ledger row:
- * the generic invoice update (PUT /api/invoices/:id, how the admin marks an
- * order paid by hand) and the MCP `mark_invoice_paid` tool, which lives in
- * mcp.ts and is not ours to change. Left alone, the first ledger write on such
- * an invoice would recompute from an empty ledger and drag a paid order back to
- * unpaid, silently losing money the operator had already accounted for. That is
- * the desynchronisation this function exists to prevent.
- *
- * So before any ledger mutation, a 'paid' column with nothing behind it becomes
- * what it always meant: a confirmed operator payment for the shortfall, keeping
- * whatever date and method the invoice carried. After this the ledger is the
- * record, and the recompute is safe.
- *
- * It runs BEFORE the mutation on purpose. Running it after would make a
- * rejection impossible to land: the reject empties the ledger, the column still
- * says paid, and the reconciliation would put the money straight back.
- */
-async function reconcileLedgerWithColumn(env: Env, invoice: LedgerInvoice): Promise<void> {
-  if (String(invoice.payment_status || '').toLowerCase() !== 'paid') return;
-  if (!(invoice.total_usd > 0)) return;
-  const ledger = await loadInvoiceLedgerTotals(env, [invoice.id]);
-  const shortfall = roundUsd(invoice.total_usd - (ledger.get(invoice.id)?.paid_usd ?? 0));
-  if (shortfall <= PAYMENT_EPSILON) return;
-  const when = invoice.payment_date || new Date().toISOString();
-  await env.DB.prepare(
-    `INSERT INTO invoice_payments
-       (id, invoice_id, account_id, amount_usd, currency, method_label, note,
-        status, claimed_by, claimed_at, confirmed_at)
-     VALUES (?, ?, ?, ?, 'USD', ?, ?, 'confirmed', 'operator', ?, ?)`
-  ).bind(
-    crypto.randomUUID(), invoice.id, invoice.account_id, shortfall,
-    invoice.payment_method || null,
-    'Settled on the order before this was recorded as a payment.',
-    when, when,
-  ).run();
-}
-
-interface LedgerRecompute extends InvoiceMoney {
-  payment_status: 'unpaid' | 'partial' | 'paid';
-}
-
-/**
- * Rewrite payment_status, payment_date and payment_method from the confirmed
- * rows. Called after every ledger mutation and never on a read: a read that
- * writes would fire once per row of every orders page.
- */
-async function recomputeInvoicePaymentStatus(env: Env, invoice: LedgerInvoice): Promise<LedgerRecompute> {
-  const [ledger, latest] = await Promise.all([
-    loadInvoiceLedgerTotals(env, [invoice.id]),
-    env.DB.prepare(
-      `SELECT method_label, confirmed_at, claimed_at
-         FROM invoice_payments
-        WHERE invoice_id = ? AND status = 'confirmed'
-        ORDER BY COALESCE(confirmed_at, claimed_at) DESC, created_at DESC
-        LIMIT 1`
-    ).bind(invoice.id).first() as Promise<Record<string, any> | null>,
-  ]);
-  const totals = ledger.get(invoice.id) ?? { paid_usd: 0, claims_pending: 0 };
-  const paid = roundUsd(totals.paid_usd);
-  const total = invoice.total_usd;
-  const paymentStatus: 'unpaid' | 'partial' | 'paid' =
-    total > 0 && paid >= total - PAYMENT_EPSILON ? 'paid'
-      : paid > 0 ? 'partial'
-        : 'unpaid';
-  const paymentDate = latest
-    ? ((latest.confirmed_at as string | null) || (latest.claimed_at as string | null))
-    : null;
-  const paymentMethod = latest ? ((latest.method_label as string | null) || null) : null;
-  await env.DB.prepare(
-    `UPDATE invoices SET payment_status = ?, payment_date = ?, payment_method = ?
-      WHERE id = ? AND account_id = ?`
-  ).bind(paymentStatus, paymentDate, paymentMethod, invoice.id, invoice.account_id).run();
-  return {
-    payment_status: paymentStatus,
-    total_usd: total,
-    paid_usd: paid,
-    outstanding_usd: Math.max(0, roundUsd(total - paid)),
-    claims_pending: totals.claims_pending,
-  };
-}
-
-// Everything a payment row can carry from a request body, length-capped. These
-// strings reach an email and a pay-page reference, so control characters are
-// stripped rather than escaped away later.
-const PAYMENT_TEXT_LIMITS = { currency: 8, method: 80, reference: 140, note: 600 } as const;
-/** The most a single payment may be. A fat finger, not a real transfer. */
-const PAYMENT_AMOUNT_CEILING = 1_000_000;
-/** How far above the balance a claim may sit: rounding, not a second payment. */
-const CLAIM_TOLERANCE_USD = 0.01;
-
-function paymentTextField(value: unknown, max: number): string | null {
-  if (typeof value !== 'string') return null;
-  const clean = value.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
-  return clean ? clean.slice(0, max) : null;
-}
-
 interface PaymentInputFields {
   amount: number | null;
   amountOriginal: number | null;
@@ -5044,7 +4837,7 @@ const handleGetAttention: Handler = async (request, env) => {
     env.DB.prepare(
       `SELECT i.id, i.invoice_number, i.customer_name, i.status, i.created_at,
               EXISTS (SELECT 1 FROM invoice_line_items l
-                       WHERE l.invoice_id = i.id AND l.price_at_sale <= 0) AS zero_line,
+                       WHERE l.invoice_id = i.id AND COALESCE(l.price_at_sale, 0) <= 0) AS zero_line,
               COUNT(*) OVER () AS total_count
          FROM invoices i
         WHERE i.account_id = ?
@@ -5053,9 +4846,10 @@ const handleGetAttention: Handler = async (request, env) => {
           AND i.fulfilled_at IS NULL
           AND (
             EXISTS (SELECT 1 FROM invoice_line_items l
-                     WHERE l.invoice_id = i.id AND l.price_at_sale <= 0)
+                     WHERE l.invoice_id = i.id AND COALESCE(l.price_at_sale, 0) <= 0)
             OR (i.status = 'Draft'
-                AND EXISTS (SELECT 1 FROM inquiries q WHERE q.converted_invoice_id = i.id))
+                AND EXISTS (SELECT 1 FROM inquiries q
+                             WHERE q.converted_invoice_id = i.id AND q.account_id = i.account_id))
           )
         ORDER BY i.created_at ASC
         LIMIT ?`
@@ -5234,11 +5028,6 @@ const handleGetInvoices: Handler = async (request, env) => {
 // mcp.ts so the visible number format never drifts between code paths. Applies
 // consistent 5-digit zero-padding and the account's invoice_prefix (e.g.
 // "TJB-00042"). An empty/null prefix yields just the padded sequence.
-export function formatInvoiceNumber(accountPrefix: string | null, seq: number): string {
-  const padded = String(seq).padStart(5, '0');
-  return accountPrefix ? `${accountPrefix}-${padded}` : padded;
-}
-
 const handleCreateInvoice: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'sell');
   if ('error' in ctx) return ctx.error;
