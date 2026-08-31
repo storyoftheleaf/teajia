@@ -59,6 +59,11 @@ interface AlcoveIdentityHeaderProps {
  * roughly a single value and leaves a flat panel. The speckle goes with it,
  * warmed down to a dim fibre so it reads as the paper rather than dust.
  *
+ * The night tables carry a further 20% off the saturation, each endpoint moved
+ * a fifth of the way to its own luminance, which is why they are not round
+ * numbers. Keeping the span and only draining the chroma is the point: the
+ * brown reads less like a stain and the cloud is untouched.
+ *
  * Rendered once per plate. It costs a filter pass, which is why the element it
  * paints is a fixed background layer rather than anything that reflows; the
  * unused one costs nothing, since a filter def is only evaluated where a
@@ -98,15 +103,15 @@ const LabelStockFilter: React.FC = () => (
           result="l"
         />
         <feComponentTransfer in="l" result="b">
-          <feFuncR type="table" tableValues="0.0300 0.1320 0.0504 0.1320 0.0708 0.1320" />
-          <feFuncG type="table" tableValues="0.0240 0.0938 0.0380 0.0969 0.0519 0.1000" />
-          <feFuncB type="table" tableValues="0.0150 0.0567 0.0234 0.0614 0.0326 0.0660" />
+          <feFuncR type="table" tableValues="0.0289 0.1265 0.0484 0.1265 0.0679 0.1265" />
+          <feFuncG type="table" tableValues="0.0241 0.0946 0.0382 0.0978 0.0523 0.1009" />
+          <feFuncB type="table" tableValues="0.0169 0.0634 0.0262 0.0685 0.0365 0.0737" />
         </feComponentTransfer>
         <feTurbulence type="turbulence" baseFrequency="0.19" numOctaves={3} seed={8} result="c" />
         <feColorMatrix
           in="c"
           type="matrix"
-          values="0 0 0 0 0.6  0 0 0 0 0.55  0 0 0 0 0.45  0.8 0.2 0.2 0 -0.7"
+          values="0 0 0 0 0.59  0 0 0 0 0.55  0 0 0 0 0.47  0.8 0.2 0.2 0 -0.7"
           result="ck"
         />
         <feComposite in="ck" in2="b" operator="over" />

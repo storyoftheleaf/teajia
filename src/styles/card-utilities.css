@@ -2407,7 +2407,7 @@ input[type="number"]::-webkit-outer-spin-button {
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  background-color: #141009;
+  background-color: #13100a;
 }
 .light .label-plate { background-color: #d6c49c; }
 /* The label stock itself, ported from the artboard rather than approximated:
@@ -2439,12 +2439,12 @@ input[type="number"]::-webkit-outer-spin-button {
   background:
     linear-gradient(
       176deg,
-      rgba(255, 241, 214, 0.085) 0%,
-      rgba(255, 241, 214, 0.02) 24%,
+      rgba(252, 241, 220, 0.085) 0%,
+      rgba(252, 241, 220, 0.02) 24%,
       rgba(0, 0, 0, 0) 52%,
       rgba(0, 0, 0, 0.3) 100%
     ),
-    radial-gradient(70% 40% at 50% 6%, rgba(255, 238, 205, 0.07) 0%, rgba(255, 238, 205, 0) 70%);
+    radial-gradient(70% 40% at 50% 6%, rgba(252, 238, 212, 0.07) 0%, rgba(252, 238, 212, 0) 70%);
 }
 .light .label-plate__veil { background: rgba(238, 229, 208, 0.34); }
 .label-plate::before {
