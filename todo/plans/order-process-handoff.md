@@ -3,10 +3,10 @@
 Shipped 2026-08-31 on `main` as `feat(orders): close the loop from request to payment`.
 Three rounds of work are live. This is the handoff for the remainder.
 
-Read first, in order: `order-process.md`, `order-process-round-2.md`,
-`order-process-round-3.md` (what was built and why), then
-`order-process-notes.md` (the cross-agent record, including deviations and open
-questions that were deliberately not resolved).
+Read first, in order, all now in `todo/plans/archive/`: `order-process.md`,
+`order-process-round-2.md`, `order-process-round-3.md` (what was built and why),
+then `order-process-notes.md` (the cross-agent record, including deviations and
+open questions that were deliberately not resolved).
 
 ## State of play
 
