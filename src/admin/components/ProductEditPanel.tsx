@@ -1433,6 +1433,23 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                     <FieldCell label="Form">
                       <GhostSelect variant="bordered" ariaLabel="Form" value={product.form || ''} onSave={(val) => handleUpdate(product.id, 'form', val)} options={['Loose', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other']} />
                     </FieldCell>
+                    {/* Only pressed tea has a piece, and only this tells the
+                        shop how heavy it is. Left blank the shop offers no
+                        whole piece, which beats offering the standard weight
+                        for the form: tuos run from 5 g to 250 g, and a whole
+                        piece is the one amount exempt from the handling fee,
+                        so a guessed weight is a guessed price. */}
+                    {product.form && ['Cake', 'Tuo', 'Brick', 'Ball'].includes(product.form) && (
+                      <FieldCell label="One piece weighs (g)">
+                        <GhostInput
+                          variant="bordered"
+                          value={product.pieceWeightG != null ? String(product.pieceWeightG) : ''}
+                          onSave={(val) => handleUpdate(product.id, 'pieceWeightG', val)}
+                          type="number"
+                          className="tabular-nums"
+                        />
+                      </FieldCell>
+                    )}
                   </>
                 )}
                 <FieldCell label="Year">

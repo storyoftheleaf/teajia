@@ -35,6 +35,7 @@ export function buildProductUpdatePayload(field: keyof Product, value: any): Rec
     case 'givenName': return { given_name: value };
     case 'chineseName': return { chinese_name: value };
     case 'form': return { form: value };
+    case 'pieceWeightG': return { piece_weight_g: value === '' || value == null ? null : Number(value) };
     case 'originCountry': return { origin_country: value };
     case 'vendor': return { vendor: value };
     case 'type': return { type: value };

@@ -515,7 +515,37 @@ export interface CartItem {
   category: 'tea' | 'ware';
   storeSlug: string;
   storeName: string;
+  /**
+   * The total weight on this line: `packGrams` multiplied by `packs`.
+   *
+   * Kept as the total, and not as the pack size, because every reader of a
+   * line already means "how much tea is this" by it: the order's gram total,
+   * the request message, the rate the panel divides out. A line that predates
+   * packing has no `packs` and is one pack of this weight, so the two agree.
+   */
   quantityGrams: number;
+  /**
+   * The weight of ONE pack, and how many of them.
+   *
+   * The order used to hold a weight per tea and nothing else, so asking for
+   * two 25 g packs was impossible: the second one merged into the first and
+   * came back as a single 50 g pack at the 50 g price, which is a cheaper
+   * price for a thing the shop was not being asked to send. Two small packs
+   * are not one big one, and the discount is for the big one.
+   *
+   * Optional so a cart saved before packing still loads; absent means one
+   * pack of `quantityGrams`.
+   */
+  packGrams?: number;
+  packs?: number;
+  /**
+   * What makes this line itself: the tea and its pack size.
+   *
+   * A tea can now be on the order twice, as 25 g and as 100 g, so the tea's
+   * own id no longer picks out a row. Absent on carts saved before packing,
+   * where the id still does.
+   */
+  lineKey?: string;
   pricePerGram: number;
   totalPrice: number;
   /**
@@ -547,6 +577,15 @@ export interface InventoryItem {
   /** Physical form: 'Loose' | 'Cake' | 'Brick' | 'Tuo' | 'Ball' | 'Bag' | ... .
    *  Drives which whole-piece amount the shop offers (a cake is 357 g). */
   form?: string;
+  /**
+   * What one pressed piece of this tea weighs.
+   *
+   * Entered per tea, because a tuo can be 5 g or 250 g and the word "tuo" does
+   * not say which. Absent means nobody has said, and the shop then offers no
+   * whole piece rather than assuming the common size: a whole piece is exempt
+   * from the handling fee, so guessing the weight quietly guesses the price.
+   */
+  pieceWeightG?: number;
   name: string;
   year: string;
   origin: string;
@@ -607,6 +646,15 @@ export interface PublicProduct {
   type: PublicProductType;
   /** Physical form. Public because it is how the leaf is sold, not a cost fact. */
   form?: string;
+  /**
+   * What one pressed piece of this tea weighs.
+   *
+   * Entered per tea, because a tuo can be 5 g or 250 g and the word "tuo" does
+   * not say which. Absent means nobody has said, and the shop then offers no
+   * whole piece rather than assuming the common size: a whole piece is exempt
+   * from the handling fee, so guessing the weight quietly guesses the price.
+   */
+  pieceWeightG?: number;
   givenName: string;
   chineseName?: string;
   productName: string;

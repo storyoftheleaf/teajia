@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { useAppStore } from '../../lib/store';
 import { useRates } from '../../admin/hooks/useAdminData';
 import { formatCurrency } from '../../admin/utils';
+import type { Currency, ExchangeRate } from '../../admin/types';
 import { fmtShopPrice, fmtShopPricePerGram } from '../../utils/formatNumber';
 
 /**
@@ -65,6 +66,34 @@ import { fmtShopPrice, fmtShopPricePerGram } from '../../utils/formatNumber';
  * `useRates()` directly *and* `useShopPrice()`. Harmless for the same dedupe
  * reason, but they are the two files that should read the table once.
  */
+/**
+ * A formatted figure with the currency's own name taken off the front.
+ *
+ * Every formatter in the shop prefixes the currency, which is right for a
+ * figure standing on its own and wrong for a column of six under a heading
+ * that already names it. Keeps a leading minus or the `~` that marks a rate
+ * we do not actually hold, because both of those change what the number
+ * means.
+ */
+const stripCode = (formatted: string) => formatted.replace(/^([~-]?)[^0-9]*/, '$1');
+
+/**
+ * One gram, in the reader's currency.
+ *
+ * The rule Rupiah carries is that no price is ever a fraction of a rupiah, and
+ * the decimal in "10.4k" is not one: that figure is 10,400 rupiah, whole. This
+ * briefly rounded the whole rate up to the thousand to honour the rule, and
+ * paid for it in the one column the rule was not about: with every rate landing
+ * on a whole thousand, 25 g and 50 g both read "10k" and the tuo and 200 g both
+ * read "9k", so the column whose entire job is to show the price falling as the
+ * pack grows showed it standing still.
+ *
+ * `formatCurrency`'s rate path keeps one decimal on the thousands, which is a
+ * hundred rupiah of precision and no fraction of anything.
+ */
+const quoteRate = (usdPerGram: number, currency: Currency, rates: ExchangeRate[]) =>
+  formatCurrency(usdPerGram, currency, rates, { rate: true });
+
 export interface ShopPrice {
   /** True when the reader is being shown something other than the shop's USD. */
   localised: boolean;
@@ -75,18 +104,29 @@ export interface ShopPrice {
   code: string;
   /** A total, rounded up to a whole unit, as the shop has always quoted totals. */
   total: (usd: number) => string;
+  /**
+   * The same total, with the currency's own name taken off the front.
+   *
+   * The order panel names its currency once, in a picker beside its heading,
+   * and every figure under that heading is quoted in it. Repeating "IDR" on
+   * eleven figures in a list six rows long is eleven readings of a word the
+   * reader chose themselves, and it pushed the numbers into a ragged right
+   * margin where no two of them started in the same place.
+   */
+  plainTotal: (usd: number) => string;
   /** A rate, carrying its own `/g`. */
   perGram: (usdPerGram: number) => string;
   /**
-   * The same rate, split from the unit it is quoted in.
+   * The same rate, split from the unit it is quoted in, and with the currency
+   * name taken off as `plainTotal` does.
    *
-   * `perGram` bakes the unit into the string, and the unit is not always the
-   * gram: a currency where a gram costs a few units is quoted per 100 g
-   * instead, because "NT$73/g" rounds away everything that distinguishes one
-   * tea from another. Anything that wants to set the figure and its unit
-   * apart, on two lines or in two columns, has to be told which unit it got
-   * rather than parse it back out of the string. Parsing it back out is what
-   * put "a gram" under a per-100 g figure on the price list.
+   * Always a gram. This used to step up to 100 g in a currency where a gram
+   * costs thousands of units, on the reasoning that "IDR 13k/g" rounds away
+   * what separates one tea from another. It does not: it rounds away the
+   * hundreds, and in Rupiah the hundreds are not a price. What the step-up
+   * actually cost was the reader's arithmetic, because the amounts beside it
+   * are grams, so a per-100 g rate asked them to divide before they could
+   * connect the two columns they were reading.
    */
   rate: (usdPerGram: number) => { value: string; unit: string };
   /** One gram in the reader's currency, without the abbreviation `total` uses. */
@@ -113,17 +153,23 @@ export function useShopPrice(): ShopPrice {
   const perGram = useCallback(
     (usdPerGram: number) => {
       if (!localised) return fmtShopPricePerGram(usdPerGram);
-      const converted = formatCurrency(usdPerGram * 100, currency, rates);
-      return `${converted} / 100 g`;
+      return `${quoteRate(usdPerGram, currency, rates)} / g`;
     },
     [localised, currency, rates],
   );
 
+  const plainTotal = useCallback(
+    (usd: number) => stripCode(total(usd)),
+    [total],
+  );
+
   const rate = useCallback(
-    (usdPerGram: number) =>
-      localised
-        ? { value: formatCurrency(usdPerGram * 100, currency, rates), unit: 'per 100 g' }
-        : { value: fmtShopPricePerGram(usdPerGram).replace(/\s*\/\s*g$/, ''), unit: 'a gram' },
+    (usdPerGram: number) => ({
+      value: localised
+        ? stripCode(quoteRate(usdPerGram, currency, rates))
+        : stripCode(fmtShopPricePerGram(usdPerGram).replace(/\s*\/\s*g$/, '')),
+      unit: 'per gram',
+    }),
     [localised, currency, rates],
   );
 
@@ -142,13 +188,13 @@ export function useShopPrice(): ShopPrice {
   const perGramExact = useCallback(
     (usdPerGram: number) =>
       localised
-        ? formatCurrency(usdPerGram, currency, rates, { rate: true })
+        ? quoteRate(usdPerGram, currency, rates)
         : fmtShopPricePerGram(usdPerGram).replace(/\s*\/\s*g$/, ''),
     [localised, currency, rates],
   );
 
   return useMemo(
-    () => ({ localised, code, total, perGram, rate, perGramExact }),
-    [localised, code, total, perGram, rate, perGramExact],
+    () => ({ localised, code, total, plainTotal, perGram, rate, perGramExact }),
+    [localised, code, total, plainTotal, perGram, rate, perGramExact],
   );
 }

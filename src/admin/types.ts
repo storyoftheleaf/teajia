@@ -32,6 +32,16 @@ export interface Product {
   id: string;
   type: ProductType;
   form?: TeaForm; // Physical form: Loose, Cake, Tuo, Brick, etc.
+  /**
+   * What one pressed piece weighs, in grams.
+   *
+   * The shop used to read this off the form alone: a Tuo was 100 g. Tuos run
+   * from about 5 g to 250 g, and the shop's own 1998 Small Tuo is 5 g, so its
+   * page offered a 100 g piece nobody could buy at a price the curve had
+   * already discounted. Whoever buys the tea enters this; blank means the shop
+   * offers no whole piece rather than guessing one.
+   */
+  pieceWeightG?: number;
   givenName: string;
   chineseName?: string;
   productName: string; // The botanical/cultivar name

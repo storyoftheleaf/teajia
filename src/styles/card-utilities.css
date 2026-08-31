@@ -3617,11 +3617,15 @@ input[type="number"]::-webkit-outer-spin-button {
      translucent ground, same blur, same keyline. It used to be an opaque slab
      in a different brown, which is why the two read as two objects stacked
      rather than one bar with two jobs, however carefully their corners lined
-     up. Square here because the assembly's rounded base belongs to the
-     navigation below. */
+     up. The base is square because the assembly's rounded base belongs to
+     the navigation below; the top is not, because this is the top of the
+     whole assembly and a square edge there reads as a slab the screen cut
+     off. Clipped, so whichever half is currently on top, the price list or
+     the strip, takes the corner. */
   border: 1px solid rgb(var(--tea-border-rgb) / 0.6);
   border-bottom: 0;
-  border-radius: 0;
+  border-radius: 16px 16px 0 0;
+  overflow: hidden;
   /* Darker than the page rather than the same value at 92%. This is the one
      surface that sits over the reading rather than in it, and a ground a shade
      off the page's own reads as a pane of the page that happens to float.
@@ -3685,7 +3689,7 @@ input[type="number"]::-webkit-outer-spin-button {
   align-self: center;
   min-height: 36px;
   padding: 0 10px;
-  margin-right: 10px;
+  overflow: hidden;
   white-space: nowrap;
   text-align: left;
   border: 1px solid rgb(var(--tea-gold-rgb) / 0.28);
@@ -3702,48 +3706,99 @@ input[type="number"]::-webkit-outer-spin-button {
 /* Add: the commit, and the only filled thing in the bar. */
 .alcove-dock-add {
   flex: 0 0 auto;
-  align-self: stretch;
-  padding: 0 18px;
+  align-self: center;
+  min-height: 36px;
+  padding: 0 16px;
   white-space: nowrap;
-  background: var(--tea-plate-tan);
-  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-  font-size: 11px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
-  color: #241d13;
-  transition: background 0.15s ease;
-}
-@media (min-width: 640px) {
-  .alcove-dock-add { padding: 0 24px; }
-}
-.alcove-dock-add:hover:not(:disabled) { background: var(--tea-plate-tan-lift); }
-.alcove-dock-add[data-state='added'] { background: var(--tea-leaf); color: #ede4d4; }
-.alcove-dock-add:disabled { background: var(--tea-accent-sub); color: var(--tea-text-sec); cursor: not-allowed; }
-
-/* The order: the destination, not the action, so it carries a keyline rather
-   than a fill and never competes with Add for the eye. */
-.alcove-dock-cta {
-  flex: 0 0 auto;
-  align-self: stretch;
-  padding: 0 26px;
-  white-space: nowrap;
-  border-left: 1px solid rgb(var(--tea-gold-rgb) / 0.28);
-  background: none;
+  /* The same keyline, radius and wash as the amount picker beside it. It was
+     a solid tan block, which is the heaviest thing in the assembly sitting
+     next to the lightest, and the pair read as a button that had landed on a
+     bar rather than two halves of one control. Matching them makes the bar
+     one object: choose here, commit there. */
+  border: 1px solid rgb(var(--tea-gold-rgb) / 0.28);
+  border-radius: 2px;
+  background: rgb(var(--tea-gold-rgb) / 0.06);
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-size: 11px;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.16em;
   color: var(--tea-text);
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+@media (min-width: 640px) {
+  .alcove-dock-add { padding: 0 22px; }
+}
+/* Nothing to the right of it, so it keeps itself off the edge. */
+.alcove-dock-add:last-child { margin-right: 10px; }
+/* Four controls on a 375px bar. The two that are a fixed word each give up
+   their padding first, because what has to survive the squeeze is the amount
+   and its price. */
+@media (max-width: 639px) {
+  .alcove-dock-add { padding: 0 11px; letter-spacing: 0.1em; }
+  /* Every pixel the pair of icons gives back is a pixel the amount keeps. */
+  .alcove-dock-strip { gap: 6px; padding-left: 8px; }
+  .alcove-dock-divider { margin: 0 3px 0 1px; }
+}
+.alcove-dock-add:hover:not(:disabled) {
+  border-color: rgb(var(--tea-gold-rgb) / 0.5);
+  background: rgb(var(--tea-gold-rgb) / 0.1);
+}
+.alcove-dock-add[data-state='added'] {
+  border-color: var(--tea-leaf);
+  background: rgb(var(--tea-gold-rgb) / 0.06);
+  color: var(--tea-leaf);
+}
+.alcove-dock-add:disabled {
+  border-color: var(--tea-border);
+  background: none;
+  color: var(--tea-text-sec);
+  cursor: not-allowed;
+}
+
+/* Checkout: the destination, not the action, so it carries a keyline rather
+   than a fill and never competes with Add for the eye. Two lines, the word
+   over the total: the total alone was a number in the corner of a bar with
+   nothing saying it was the way out of the page. */
+.alcove-dock-cta {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  align-self: stretch;
+  padding: 0 22px;
+  white-space: nowrap;
+  border-left: 1px solid rgb(var(--tea-gold-rgb) / 0.28);
+  background: none;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  text-transform: uppercase;
+  color: var(--tea-text);
   transition: background 0.15s ease;
+}
+.alcove-dock-cta-verb {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  line-height: 1;
+}
+/* Smaller than the word above it. The total is what the reader is being
+   reassured about; the word is what they are being told they can do. */
+.alcove-dock-cta-total {
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  color: var(--tea-text-sec);
 }
 .alcove-dock-cta:hover { background: rgb(var(--tea-gold-rgb) / 0.1); }
 /* The block never disappears. It used to hide below 640px, which meant the one
    way into the price list vanished on exactly the screens that have no room to
    show the list any other way. It gives up padding instead. */
 @media (max-width: 639px) {
-  .alcove-dock-cta { padding: 0 16px; }
+  .alcove-dock-cta { padding: 0 12px; gap: 2px; }
+  .alcove-dock-cta-verb { font-size: 10px; letter-spacing: 0.1em; }
+  .alcove-dock-cta-total { font-size: 12px; }
 }
 @media (min-width: 1024px) {
   .commerce-dock {
@@ -3778,12 +3833,14 @@ input[type="number"]::-webkit-outer-spin-button {
   /* Closed all round, so there is no seam to draw and the ends must follow. */
   .commerce-dock::after { display: none; }
   .commerce-dock .alcove-dock-strip { border-radius: 26px; }
-  .commerce-dock .alcove-dock-cta,
-  .commerce-dock .alcove-dock-add:last-child {
+  .commerce-dock .alcove-dock-cta {
     border-top-right-radius: 26px;
     border-bottom-right-radius: 26px;
     padding-right: 26px;
   }
+  /* Add keeps its own small radius here: it is a control inside the bar now,
+     not the bar's right-hand end. */
+  .commerce-dock .alcove-dock-add:last-child { margin-right: 14px; }
 }
 
 /* The confirmation has to clear the order bar as well as the navigation.

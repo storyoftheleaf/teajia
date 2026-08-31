@@ -2,6 +2,14 @@ export interface WhatsAppOrderItem {
   name: string;
   variant?: string;
   quantity: number;
+  /**
+   * How many packs of `quantity` are wanted. Absent or 1 is a single pack.
+   *
+   * The message IS the order here, so it has to distinguish two 25 g packs
+   * from one 50 g pack: they weigh the same and they are not the same request,
+   * and only one of them earns the bigger pack's price.
+   */
+  packs?: number;
   unit: string; // 'g', 'units', etc.
   price: string; // pre-formatted price string
   total: string; // pre-formatted total string
@@ -96,7 +104,8 @@ export function buildOrderMessage(opts: WhatsAppMessageOptions): string {
     lines.push("Hello, I'd like to order:", '');
     opts.items.forEach(item => {
       const variant = item.variant ? ` (${item.variant})` : '';
-      lines.push(`${item.name}${variant}: ${item.quantity}${item.unit} × ${item.price}`);
+      const packs = item.packs && item.packs > 1 ? `${item.packs} × ` : '';
+      lines.push(`${item.name}${variant}: ${packs}${item.quantity}${item.unit} × ${item.price}`);
     });
     lines.push('');
     lines.push(`Total: ${opts.total}`);

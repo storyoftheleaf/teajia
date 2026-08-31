@@ -2501,6 +2501,11 @@ const PUBLIC_FIELDS = [
   'image_url', 'additional_images', 'status', 'is_personal', 'can_reorder', 'is_featured', 'is_curated',
   'lore', 'show_wisdom', 'processing_notes', 'terroir', 'mood', 'experience',
   'material', 'capacity_ml', 'teaware_category', 'quantity_units', 'tasting', 'tasting_source',
+  // What one pressed piece weighs. Public because the shop sells the piece:
+  // it is how the tea arrives, and it is the one amount the pricing curve
+  // exempts from handling. The app used to infer it from `form`, which is a
+  // standard rather than a fact and was wrong on the first tuo it met.
+  'piece_weight_g',
   // The plant. Public because it is a pointer into the open wisdom base rather
   // than a fact about the business: the shop stores the cultivar's written name
   // and the base resolves it to a page. No cost, supply or margin travels with
@@ -2940,6 +2945,7 @@ const PRODUCT_CATALOG_UPDATE_COLUMNS = new Set([
   'material', 'capacity_ml', 'teaware_category', 'description', 'notes', 'tags', 'moods',
   'tasting_notes', 'brewing_notes', 'tasting', 'tasting_source', 'lore', 'processing_notes',
   'terroir', 'mood', 'experience', 'image_url', 'additional_images', 'bag_photo_url', 'quantity_units',
+  'piece_weight_g',
   'tea_key', 'source_compass_entry_id',
 ]);
 
@@ -3368,7 +3374,7 @@ const handleGetCatalog: Handler = async (request, env) => {
             p.description, p.tasting_notes, p.image_url, p.additional_images, p.lore,
             p.show_wisdom, p.processing_notes, p.terroir, p.mood, p.experience,
             p.tea_key, p.tasting, p.status, p.is_curated, p.material,
-            p.capacity_ml, p.teaware_category, p.quantity_units, p.stock_grams, p.wholesale_price,
+            p.capacity_ml, p.teaware_category, p.quantity_units, p.piece_weight_g, p.stock_grams, p.wholesale_price,
             (SELECT COUNT(*) > 0 FROM collection_items ci
                JOIN collections c ON c.id = ci.collection_id
                JOIN collection_publications cp ON cp.collection_id = c.id
@@ -3401,6 +3407,7 @@ const handleGetCatalog: Handler = async (request, env) => {
       status: p.status, is_featured: p.is_featured, is_curated: p.is_curated,
       material: p.material, capacity_ml: p.capacity_ml, teaware_category: p.teaware_category,
       quantity_units: p.quantity_units,
+      piece_weight_g: p.piece_weight_g,
       is_available: (p.stock_grams || 0) > 0,
     };
     if (trust_tier === 'verified' || trust_tier === 'partner') {
@@ -9230,7 +9237,8 @@ function makePublicXrefHandler(tableName: string, fkColumn: string, sourceTable?
               COALESCE(tp.experience, p.experience) AS experience,
               p.cost_amount, p.cost_currency, p.quantity_purchased,
               p.shipping_rate_per_kg, p.fixed_retail_price_usd,
-              p.material, p.capacity_ml, p.teaware_category, p.quantity_units, p.tasting, p.tasting_source,
+              p.material, p.capacity_ml, p.teaware_category, p.quantity_units, p.piece_weight_g,
+              p.tasting, p.tasting_source,
               (SELECT COUNT(*) > 0 FROM collection_items ci2
                  JOIN collections c2 ON c2.id = ci2.collection_id
                  JOIN collection_publications cp2 ON cp2.collection_id = c2.id
@@ -19827,7 +19835,8 @@ async function fetchPublicProductsForAccount(
               COALESCE(tp.experience, p.experience) AS experience,
               p.cost_amount, p.cost_currency, p.quantity_purchased,
               p.shipping_rate_per_kg, p.fixed_retail_price_usd,
-              p.material, p.capacity_ml, p.teaware_category, p.quantity_units, p.tasting, p.tasting_source,
+              p.material, p.capacity_ml, p.teaware_category, p.quantity_units, p.piece_weight_g,
+              p.tasting, p.tasting_source,
               p.cultivar,
               (SELECT COUNT(*) > 0 FROM collection_items ci
                  JOIN collections c ON c.id = ci.collection_id

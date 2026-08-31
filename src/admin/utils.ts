@@ -47,8 +47,16 @@ export const formatCurrency = (amount: number, currency: Currency, rates: Exchan
     // Cents only under ten units. Above that the minor unit is noise, and on
     // JPY it is a unit that does not exist.
     const digits = abs < 10 ? 2 : 0;
-    const scaled = abs >= 1000 ? value / 1000 : value;
     const fractionDigits = abs >= 1000 ? 1 : digits;
+    // Up, at whatever precision is being shown, because the shop never rounds
+    // a price down. The decimal in "IDR 10.4k" is not a fraction of a rupiah,
+    // it is 10,400 of them, so the figure keeps it; what gets rounded away is
+    // everything finer, and that goes up. The epsilon is there so a figure
+    // that is already exact at this precision does not climb a step on float
+    // noise alone.
+    const scaled = abs >= 1000 ? value / 1000 : value;
+    const step = 10 ** fractionDigits;
+    const raised = Math.ceil(scaled * step - 1e-9) / step;
     try {
       const formatted = new Intl.NumberFormat('en-US', {
         style: 'currency',
@@ -56,11 +64,11 @@ export const formatCurrency = (amount: number, currency: Currency, rates: Exchan
         currencyDisplay: 'symbol',
         minimumFractionDigits: fractionDigits,
         maximumFractionDigits: fractionDigits,
-      }).format(scaled);
+      }).format(raised);
       // A rounded thousand reads better without its empty decimal.
       return abs >= 1000 ? `${formatted.replace(/\.0$/, '')}k` : formatted;
     } catch {
-      const plain = `${currencyCode} ${scaled.toFixed(fractionDigits)}`;
+      const plain = `${currencyCode} ${raised.toFixed(fractionDigits)}`;
       return abs >= 1000 ? `${plain.replace(/\.0$/, '')}k` : plain;
     }
   }
@@ -171,6 +179,7 @@ export const productToInventoryItem = (product: Product): InventoryItem => {
     category: isTeaware ? 'ware' : 'tea',
     type: product.type,
     form: product.form,
+    pieceWeightG: product.pieceWeightG,
     name: product.givenName,
     variant: product.productName,
     year: product.year ? String(product.year) : '',

@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import type { InventoryItem } from '../../../types';
 import { Heart, Pencil, FlaskConical, Share } from 'lucide-react';
 import { fmtShopPrice, fmtShopPricePerGram } from '../../../utils/formatNumber';
-import { offeredSizes, quoteGrams, WHOLE_PIECE } from '../../../lib/teaPricing';
+import { offeredSizes, quoteGrams, wholePieceOf } from '../../../lib/teaPricing';
 import { useAppStore } from '../../../lib/store';
+import { ShopCurrencyPicker } from '../ShopCurrencyPicker';
 
 interface StockStatus {
   label: string;
@@ -52,6 +53,16 @@ interface AlcoveCommerceFooterProps {
   /** Formats a plain USD total, for figures that are already totals. */
   formatTotal?: (usd: number) => string;
   /**
+   * The same total with the currency's own name taken off the front, for the
+   * figures inside the price list.
+   *
+   * The list names its currency once, in the picker beside its heading, so the
+   * six rows under it are bare numbers that can share a left edge. Absent on
+   * the admin surfaces, which format against their own rate table and keep
+   * quoting it on every figure.
+   */
+  formatPlainTotal?: (usd: number) => string;
+  /**
    * Choosing an amount IS adding it, on the page bar. The row already carries
    * the amount, the rate and the total, so the tap is an informed decision and
    * asking for a second yes afterwards is asking someone to agree with
@@ -80,13 +91,7 @@ interface AlcoveCommerceFooterProps {
   variant?: 'pinned' | 'rail' | 'docked';
 }
 
-/**
- * Forms that are sold as one whole pressed piece, and what one piece weighs.
- * Mirrors DEFAULT_GRAMS in TeaCompass/types.ts, kept local so the shop footer
- * does not pull the whole tea-wisdom module into the customer bundle.
- */
-
-export { WHOLE_PIECE };
+export { wholePieceOf };
 
 const STOCK_DOT: React.CSSProperties = {
   width: 5,
@@ -100,7 +105,16 @@ const DIVIDER = <span aria-hidden="true" className="h-3 w-px shrink-0 bg-tea-bor
 interface SegCell {
   key: string;
   label: string;
+  /** The line total, bare, for the list that names its currency in its heading. */
   sub: string;
+  /**
+   * The same total carrying its currency, for the bar.
+   *
+   * The bar is on screen with the list shut, and the list's picker is what
+   * names the currency, so a figure repeated out here with the name stripped
+   * off is a number with nothing saying what it is.
+   */
+  subFull: string;
   /** The rate this amount works out to, shown beside its total in the list. */
   perGram?: string;
   /** The same rate as figure and unit, for the list's two-line cell. */
@@ -149,6 +163,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
   formatPerGram,
   formatRate,
   formatTotal,
+  formatPlainTotal,
   onChooseAmount,
   onOpenOrder,
   onAdd,
@@ -166,7 +181,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
      admin override still wins. */
   const effectivePerGram =
     isTea && pricePerGram > 0 && grams > 0
-      ? quoteGrams(pricePerGram, grams, { wholePieceGrams: WHOLE_PIECE[item.form ?? '']?.grams }).perGramUsd
+      ? quoteGrams(pricePerGram, grams, { wholePieceGrams: wholePieceOf(item.form, item.pieceWeightG)?.grams }).perGramUsd
       : pricePerGram;
   const completeRateLabel = rateLabel ?? (perGramDisplay
     ? isTea
@@ -189,10 +204,19 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
       ? formatPrice(pricePerGram, g)
       : fmtShopPrice(quoteGrams(pricePerGram, g, { wholePieceGrams: wholePiece?.grams }).totalUsd);
 
-  // A whole cake / brick / tuo is one of the amounts a reader actually buys, so
-  // it earns a cell of its own whenever there is enough leaf to press one, and
-  // it is the one amount that carries no handling.
-  const wholePiece = isTea ? WHOLE_PIECE[item.form ?? ''] : undefined;
+  /* The same figure, without the currency's name on the front. Same curve,
+     same call: this is priceFor with the label stripped, not a second way of
+     working out what a weight costs. */
+  const plainPriceFor = (g: number) =>
+    formatPlainTotal
+      ? formatPlainTotal(quoteGrams(pricePerGram, g, { wholePieceGrams: wholePiece?.grams }).totalUsd)
+      : priceFor(g);
+
+  /* A whole cake / brick / tuo earns a cell of its own, but only when the tea
+     itself says how heavy one is and one is worth buying whole. A 5 g tuo is
+     how the tea is packed, not an amount: nobody orders one, they order 25 g
+     and receive five. */
+  const wholePiece = isTea ? wholePieceOf(item.form, item.pieceWeightG) : undefined;
 
   // Which sizes this tea shows, and what each costs, both from one place.
   const sizeQuotes = isTea
@@ -219,10 +243,11 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
       const isWhole = q.whole && wholePiece != null;
       return {
         key: isWhole ? 'whole-piece' : String(q.grams),
-        label: isWhole ? `The ${wholePiece!.label.toLowerCase()}` : `${q.grams} g`,
-        sub: priceFor(q.grams),
+        label: isWhole ? `The ${wholePiece!.label.toLowerCase()}` : `${q.grams}g`,
+        sub: plainPriceFor(q.grams),
+        subFull: priceFor(q.grams),
         caption: isWhole
-          ? `${q.grams} g, unbroken, keeps ageing`
+          ? `${q.grams}g, unbroken, keeps ageing`
           : SIZE_CAPTION[q.grams],
         perGram: formatPerGram ? formatPerGram(q.perGramUsd) : undefined,
         rate: formatRate ? formatRate(q.perGramUsd) : undefined,
@@ -236,8 +261,9 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
     }),
     {
       key: 'custom',
-      label: customActive ? `${grams} g` : 'Other amount',
-      sub: customActive ? priceFor(grams) : '',
+      label: customActive ? `${grams}g` : 'Other amount',
+      sub: customActive ? plainPriceFor(grams) : '',
+      subFull: customActive ? priceFor(grams) : '',
       caption: 'any weight, priced on the same curve',
       active: customActive,
       ariaLabel: 'Custom amount, including sample sizes',
@@ -250,7 +276,8 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
   const teawareCells: SegCell[] = presets.map(p => ({
     key: String(p),
     label: p === 1 ? '1 piece' : `${p} pieces`,
-    sub: formatPrice ? formatPrice(pricePerGram, p) : fmtShopPrice(pricePerGram * p),
+    sub: formatPlainTotal ? formatPlainTotal(pricePerGram * p) : formatPrice ? formatPrice(pricePerGram, p) : fmtShopPrice(pricePerGram * p),
+    subFull: formatPrice ? formatPrice(pricePerGram, p) : fmtShopPrice(pricePerGram * p),
     active: grams === p,
     onSelect: () => setGrams(p),
   }));
@@ -266,10 +293,21 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
   const resolvedTotal = (usd: number) => (formatTotal ? formatTotal(usd) : fmtShopPrice(usd));
   /* What Add commits, from the same call the list and the bar display. */
   const addTotalUsd = isTea
-    ? quoteGrams(pricePerGram, grams, { wholePieceGrams: WHOLE_PIECE[item.form ?? '']?.grams }).totalUsd
+    ? quoteGrams(pricePerGram, grams, { wholePieceGrams: wholePiece?.grams }).totalUsd
     : pricePerGram * grams;
   const publicCart = useAppStore(st => st.publicCart);
   const orderTotalUsd = publicCart.reduce((sum, line) => sum + (line.totalPrice ?? 0), 0);
+  /* What the order actually holds of THIS tea, which is not the same fact as
+     which row is highlighted. A tea can be on the order at more than one pack
+     size, so this is every line of it added up, and it is stated as packs
+     because packs are what the shop is being asked to send. */
+  const orderedPacks = publicCart
+    .filter(line => line.id === item.id)
+    .map(line => ({ grams: line.packGrams ?? line.quantityGrams, packs: line.packs ?? 1 }));
+  const inOrderGrams = orderedPacks.reduce((sum, p) => sum + p.grams * p.packs, 0);
+  const inOrderLabel = orderedPacks
+    .map(p => (p.packs > 1 ? `${p.packs} \u00d7 ${p.grams}g` : `${p.grams}g`))
+    .join(' and ');
   const [amountsOpen, setAmountsOpen] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
   // The rail has the room, so the amounts stand open in it and the toggle is
@@ -294,8 +332,8 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
         <span className="font-display text-ui-17 tabular-nums text-tea-text">
           {activeCell ? activeCell.label : 'Amount'}
         </span>
-        {activeCell?.sub && (
-          <span className="font-sans text-ui-12 tabular-nums text-tea-text-dim">{activeCell.sub}</span>
+        {activeCell?.subFull && (
+          <span className="font-sans text-ui-12 tabular-nums text-tea-text-dim">{activeCell.subFull}</span>
         )}
       </span>
       <span
@@ -355,20 +393,41 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
               id={amountsId}
               role="group"
               aria-label="Amount"
+              /* Closed at the top, open at the bottom. The list grows upward
+                 out of the bar, so its top edge is the top edge of the whole
+                 assembly and a square one there reads as a panel that got cut
+                 off by the screen. The bottom stays square because the bar is
+                 immediately under it. */
               className={
                 isRail
-                  ? 'border border-tea-border'
+                  ? 'overflow-hidden rounded-t-[12px] border border-tea-border'
                   : isDocked
                     ? 'border-b border-tea-border px-3.5 pb-1 pt-1'
-                    : 'mt-1.5 border border-tea-border'
+                    : 'mt-1.5 overflow-hidden rounded-t-[12px] border border-tea-border'
               }
             >
-              <div className={`flex items-baseline justify-between gap-2 ${isRail ? 'px-3.5 pb-2 pt-3' : 'px-3.5 pb-2 pt-3'}`}>
-                <span className={`whitespace-nowrap font-sans uppercase tracking-[0.16em] text-tea-text-dim ${isRail ? 'text-ui-11' : 'text-ui-10'}`}>How much</span>
-                <span className={`whitespace-nowrap font-sans tracking-[0.02em] text-tea-text-dim ${isRail ? 'text-ui-10' : 'text-ui-10'}`}>
-                  less a gram, the more you take
+              {/* The heading, the currency, and what the list is telling you.
+                  The currency sits with the heading rather than on each of the
+                  eleven figures below it: said once it is a control, said
+                  eleven times it is noise holding the columns apart. */}
+              <div className="flex items-center justify-between gap-2 px-3.5 pb-2 pt-3">
+                <span className="flex items-center gap-2">
+                  <span className={`whitespace-nowrap font-sans uppercase tracking-[0.16em] text-tea-text-dim ${isRail ? 'text-ui-11' : 'text-ui-10'}`}>How much</span>
+                  {formatPlainTotal && <ShopCurrencyPicker />}
+                </span>
+                <span className="min-w-0 truncate text-right font-sans text-ui-10 tracking-[0.02em] text-tea-text-dim">
+                  Quantity provides a lower price.
                 </span>
               </div>
+              {/* Said once, where it is true. Adding the same tea again puts
+                  the weight onto the line already there rather than starting a
+                  second one, so this is a running total and the reader can
+                  watch it move when they press Add. */}
+              {inOrderGrams > 0 && (
+                <p className="m-0 px-3.5 pb-2 font-sans text-ui-10 tracking-[0.02em] text-tea-gold-lt">
+                  {inOrderLabel} of this already in your order
+                </p>
+              )}
               {cells.map(cell => (
                 <button
                   key={cell.key}
@@ -398,8 +457,15 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
                       {cell.label}
                     </span>
                     {cell.active ? (
-                      <span className="mt-px block font-sans text-ui-9 uppercase tracking-[0.16em] text-tea-leaf">
-                        {'\u2713'} in your order
+                      /* The highlighted row is the amount CHOSEN. It used to
+                         say "in your order", which was true only in an earlier
+                         design where choosing was adding; a separate Add came
+                         in afterwards and the words stayed behind, so the list
+                         claimed an order existed the moment a size was tapped,
+                         with an empty basket underneath. What is really in the
+                         order is stated once, above, where it can be true. */
+                      <span className="mt-px block font-sans text-ui-9 uppercase tracking-[0.16em] text-tea-gold-lt">
+                        {'\u2713'} your amount
                       </span>
                     ) : (
                       cell.caption && (
@@ -409,14 +475,14 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
                       )
                     )}
                   </span>
-                  {/* No fixed width on either figure. They used to be pinned at
-                      74px and 66px, which holds "$0.28" and "$7" and nothing
-                      else: in a currency quoted per 100 g the rate is
-                      "NT$7,283" and it ran straight over the total. These size
-                      to their own content and the amount column absorbs the
-                      rest. */}
+                  {/* Two columns of numbers, each starting on its own left
+                      edge, because a column of prices is read down and a ragged
+                      left edge is read one figure at a time. Fixed widths are
+                      what make the edge, and they hold now that the currency is
+                      named once above rather than repeated on every figure:
+                      "1295k" fits where "IDR 1295k" never did. */}
                   {cell.rate && (
-                    <span className="shrink-0 text-right">
+                    <span className={`shrink-0 text-left ${isRail ? 'w-[62px]' : 'w-[68px]'}`}>
                       <span
                         className={`block whitespace-nowrap font-sans tabular-nums ${
                           isRail ? 'text-ui-12' : 'text-ui-13'
@@ -429,7 +495,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
                       </span>
                     </span>
                   )}
-                  <span className={`shrink-0 whitespace-nowrap text-right font-display tabular-nums ${isRail ? 'text-ui-14' : 'text-ui-15'} ${cell.active ? 'text-tea-gold-lt' : 'text-tea-text-sec'}`}>
+                  <span className={`shrink-0 whitespace-nowrap text-left font-display tabular-nums ${isRail ? 'w-[58px] text-ui-14' : 'w-[64px] text-ui-15'} ${cell.active ? 'text-tea-gold-lt' : 'text-tea-text-sec'}`}>
                     {cell.sub || '\u203A'}
                   </span>
                 </button>
@@ -478,11 +544,24 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
               aria-label={`Change amount, currently ${activeCell.label}`}
               className="alcove-dock-amount tap-target"
             >
-              <span className="font-display text-ui-17 tabular-nums text-tea-text">{activeCell.label}</span>
-              {activeCell.sub && (
-                <span className="whitespace-nowrap font-sans text-ui-13 tabular-nums text-tea-text-dim">{activeCell.sub}</span>
+              <span className="shrink-0 font-display text-ui-17 tabular-nums text-tea-text">{activeCell.label}</span>
+              {/* On a 343px bar there is room for four controls or for three
+                  and a price, and the two icons alone hold 93px of it because
+                  a tap target has a floor. So the price steps aside for
+                  Checkout, which is carrying money of its own two inches to
+                  the right; with no order there yet, Checkout is not on the
+                  bar and this is where the figure lives. Wider screens show
+                  both. */}
+              {activeCell.subFull && (
+                <span
+                  className={`min-w-0 truncate font-sans text-ui-13 tabular-nums text-tea-text-dim ${
+                    orderTotalUsd > 0 ? 'hidden sm:inline' : ''
+                  }`}
+                >
+                  {orderTotalUsd > 0 ? activeCell.sub : activeCell.subFull}
+                </span>
               )}
-              <span className="ml-auto flex shrink-0 items-center gap-1.5 pl-2">
+              <span className="ml-auto flex shrink-0 items-center gap-1.5 pl-1.5">
                 {/* The word is worth about 55px, which a phone bar does not
                     have to spare and would take out of the price. The keyline
                     and the caret carry it there. */}
@@ -500,7 +579,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
             <span className="flex min-w-0 flex-1 items-baseline gap-[7px] whitespace-nowrap">
               <span className="font-sans text-ui-11 uppercase tracking-[0.16em] text-tea-text-dim">from</span>
               <span className="font-display text-ui-20 tabular-nums text-tea-text">
-                {cells.length > 0 ? cells[0].sub : ''}
+                {cells.length > 0 ? cells[0].subFull : ''}
               </span>
             </span>
           )}
@@ -527,14 +606,20 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
             {justAdded ? 'Added' : 'Add'}
           </button>
           {orderTotalUsd > 0 && (
+            /* A figure on its own is something to read. The word above it is
+               what makes it a way out of the page, and the word has to be the
+               larger of the two: the total is the reassurance, not the
+               instruction. This is also the one figure in the assembly that
+               keeps its currency, because the list's picker is behind a tap
+               and the bar is not. */
             <button
               type="button"
               onClick={onOpenOrder}
-              className="alcove-dock-cta tap-target inline-flex items-center"
-              aria-label="Open your order"
+              className="alcove-dock-cta tap-target"
+              aria-label={`Checkout, ${resolvedTotal(orderTotalUsd)}`}
             >
-              <span className="hidden sm:inline">Your order</span>
-              <span className="font-display text-ui-17 tabular-nums sm:ml-3">
+              <span className="alcove-dock-cta-verb">Checkout</span>
+              <span className="alcove-dock-cta-total font-display tabular-nums">
                 {resolvedTotal(orderTotalUsd)}
               </span>
             </button>

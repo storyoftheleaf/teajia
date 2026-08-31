@@ -34,6 +34,7 @@ export const useProducts = (options?: { enabled?: boolean }) => {
         id: p.id,
         type: p.type,
         form: p.form || undefined,
+        pieceWeightG: p.piece_weight_g == null ? undefined : Number(p.piece_weight_g),
         givenName: p.given_name || '',
         chineseName: p.chinese_name || '',
         productName: p.product_name,

@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { CartItem as PublicCartItem } from '../../types';
+import { lineKeyOf } from '../../lib/store';
 import { buildOrderMessage } from '../../lib/whatsapp';
 import { CONTACT_UNAVAILABLE, STORE_CANNOT_BE_PAID, resolveContactChannels } from '../../lib/contact';
 import { useAppStore } from '../../lib/store';
@@ -27,8 +28,9 @@ export interface PublicCartProps {
   storeSlug: string;
   storeName: string;
   cart: PublicCartItem[];
-  onRemoveItem: (id: string) => void;
-  onUpdateQuantity: (id: string, grams: number) => void;
+  onRemoveItem: (lineKey: string) => void;
+  onUpdateQuantity: (lineKey: string, grams: number) => void;
+  onUpdatePacks: (lineKey: string, packs: number) => void;
   onAddItem: (item: PublicCartItem) => void;
   isOpen: boolean;
   /**
@@ -58,7 +60,7 @@ const STEPS = [
   { key: 'CONFIRM' as const, label: 'Review' },
 ];
 
-export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, cart, onRemoveItem, onUpdateQuantity, onAddItem, isOpen, whatsappNumber, contactEmail, canBePaid, onClose }) => {
+export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, cart, onRemoveItem, onUpdateQuantity, onUpdatePacks, onAddItem, isOpen, whatsappNumber, contactEmail, canBePaid, onClose }) => {
   const [step, setStep] = useState<CheckoutStep>('CART');
   const [details, setDetails] = useState({ name: '', contact: '', location: '', notes: '' });
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -237,7 +239,10 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
     items: cart.map(item => ({
       name: item.name,
       variant: item.variant,
-      quantity: item.quantityGrams,
+      /* What the shop is being asked to send. Two 25 g packs is not 50 g,
+         and the message is the order, so it has to say which. */
+      quantity: item.packGrams ?? item.quantityGrams,
+      packs: item.packs ?? 1,
       unit: item.category === 'tea' ? 'g' : '\u00d7',
       // The same figures the reader has been looking at for three steps. These
       // were the raw dollar formatters while the totals beside them were
@@ -282,13 +287,13 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
-  const handleRemoveWithUndo = (id: string) => {
-    const item = cart.find(c => c.id === id);
+  const handleRemoveWithUndo = (lineKey: string) => {
+    const item = cart.find(c => lineKeyOf(c) === lineKey);
     if (!item) return;
     if (undoItem) clearTimeout(undoItem.timeout);
     const timeout = setTimeout(() => setUndoItem(null), 10000);
     setUndoItem({ item, timeout });
-    onRemoveItem(id);
+    onRemoveItem(lineKey);
   };
 
   const handleUndo = () => {
@@ -549,10 +554,11 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
               ) : (
                 cart.map(item => (
                   <CartItemRow
-                    key={item.id}
+                    key={lineKeyOf(item)}
                     item={item}
                     onRemove={handleRemoveWithUndo}
                     onUpdateQuantity={onUpdateQuantity}
+                    onUpdatePacks={onUpdatePacks}
                     onNavigate={onClose}
                   />
                 ))
@@ -725,7 +731,9 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                       <div className="min-w-0">
                         <span className="text-tea-text font-serif">{item.name}</span>
                         <span className="text-tea-text-sec text-ui-13 ml-2 num">
-                          {item.category === 'tea' ? `${item.quantityGrams}g` : `×${item.quantityGrams}`}
+                          {item.category === 'tea'
+                            ? `${(item.packs ?? 1) > 1 ? `${item.packs} × ` : ''}${item.packGrams ?? item.quantityGrams}g`
+                            : `×${item.quantityGrams}`}
                         </span>
                       </div>
                       <span className="num text-tea-text shrink-0">{displayPrice(item.totalPrice)}</span>
@@ -862,7 +870,9 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                 <span className="flex items-baseline gap-2.5 min-w-0">
                   <span className="font-display text-[23px]">Total</span>
                   <span className="text-ui-11 uppercase tracking-[0.18em] text-tea-text-dim truncate">
-                    {cart.length} {cart.length === 1 ? 'tea' : 'teas'}
+                    {/* Teas, not rows. One tea ordered as a 25 g pack and a
+                        100 g pack is two rows and still one tea. */}
+                    {new Set(cart.map(i => i.id)).size} {new Set(cart.map(i => i.id)).size === 1 ? 'tea' : 'teas'}
                     {' · '}
                     {cart.filter(i => i.category === 'tea').reduce((g, i) => g + i.quantityGrams, 0)}g
                   </span>

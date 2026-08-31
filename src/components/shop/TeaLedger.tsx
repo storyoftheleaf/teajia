@@ -279,7 +279,7 @@ export function TeaLedger({
                           {formatPrice(priceAtWeight)}
                         </div>
                         <div className="num pt-[3px] text-ui-10 tabular-nums text-tea-text-dim">
-                          {priceWeight} g
+                          {priceWeight}g
                         </div>
                         {stockNote && (
                           <div className="mt-0.5 text-ui-9 uppercase tracking-[0.1em] text-tea-gold-lt">

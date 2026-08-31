@@ -192,7 +192,7 @@ import type { PanelView } from './components/AccountPanel/types';
 import { GlobalSearch } from './components/shared/GlobalSearch';
 import { LeftSidebar } from './components/LeftSidebar';
 import { BottomTabBar } from './components/BottomTabBar';
-import { WHOLE_PIECE } from './lib/teaPricing';
+import { wholePieceOf } from './lib/teaPricing';
 import { AdvisePage } from './components/AdvisePage';
 import AboutPage from './AboutPage';
 import Footer from './components/shared/Footer';
@@ -250,6 +250,7 @@ const AppContent = () => {
     publicCart: cart,
     isPublicCartOpen: isCartOpen,
     addToPublicCart,
+    updatePublicCartPacks,
     removeFromPublicCart,
     updatePublicCartQuantity,
     setIsPublicCartOpen: setIsCartOpen,
@@ -544,9 +545,13 @@ const AppContent = () => {
       storeSlug: browsingStoreSlug,
       storeName: browsingStoreName,
       quantityGrams: qty,
+      /* One pack of this weight. The store adds a second pack rather than a
+         heavier one when the same size is added again. */
+      packGrams: qty,
+      packs: 1,
       pricePerGram,
       totalPrice: total,
-      wholePieceGrams: item.category === 'tea' ? WHOLE_PIECE[item.form ?? '']?.grams : undefined,
+      wholePieceGrams: item.category === 'tea' ? wholePieceOf(item.form, item.pieceWeightG)?.grams : undefined,
       type: item.type,
       image: item.image,
     };
@@ -587,12 +592,16 @@ const AppContent = () => {
     setCartToast({ itemName: item.name, cartCount: freshCart.length });
   };
 
-  const handleRemoveFromCart = (id: string) => {
-    removeFromPublicCart(id);
+  const handleRemoveFromCart = (lineKey: string) => {
+    removeFromPublicCart(lineKey);
   };
 
-  const handleUpdateCartQuantity = (id: string, grams: number) => {
-    updatePublicCartQuantity(id, grams);
+  const handleUpdateCartQuantity = (lineKey: string, grams: number) => {
+    updatePublicCartQuantity(lineKey, grams);
+  };
+
+  const handleUpdateCartPacks = (lineKey: string, packs: number) => {
+    updatePublicCartPacks(lineKey, packs);
   };
 
   const handleCardClick = (story: Story) => {
@@ -1395,6 +1404,7 @@ const AppContent = () => {
          cart={cart}
          onRemoveItem={handleRemoveFromCart}
          onUpdateQuantity={handleUpdateCartQuantity}
+         onUpdatePacks={handleUpdateCartPacks}
          onAddItem={addToPublicCart}
          whatsappNumber={checkoutContactStore?.whatsapp_number}
          contactEmail={checkoutContactStore?.contact_email}

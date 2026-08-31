@@ -24,8 +24,9 @@ type PublicProps = {
   storeSlug: string;
   storeName: string;
   cart: PublicCartItem[];
-  onRemoveItem: (id: string) => void;
-  onUpdateQuantity: (id: string, grams: number) => void;
+  onRemoveItem: (lineKey: string) => void;
+  onUpdateQuantity: (lineKey: string, grams: number) => void;
+  onUpdatePacks: (lineKey: string, packs: number) => void;
   onAddItem: (item: PublicCartItem) => void;
   /** Optional per-store override; falls back to platform default when absent. */
   whatsappNumber?: string;
@@ -188,6 +189,7 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
                 cart={props.cart}
                 onRemoveItem={props.onRemoveItem}
                 onUpdateQuantity={props.onUpdateQuantity}
+                onUpdatePacks={props.onUpdatePacks}
                 onAddItem={props.onAddItem}
                 isOpen={isOpen}
                 whatsappNumber={props.whatsappNumber}

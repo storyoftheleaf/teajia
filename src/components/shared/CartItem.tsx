@@ -5,11 +5,14 @@ import { getTeaLedgerTones } from '../../designTokens';
 import { useTheme } from '../../context/ThemeContext';
 import { offeredSizes } from '../../lib/teaPricing';
 import { useShopPrice } from '../shop/shopPrice';
+import { lineKeyOf } from '../../lib/store';
 
 interface CartItemProps {
   item: PublicCartItemType;
-  onRemove: (id: string) => void;
-  onUpdateQuantity: (id: string, grams: number) => void;
+  onRemove: (lineKey: string) => void;
+  /** Sets the PACK size. How many packs is its own control. */
+  onUpdateQuantity: (lineKey: string, grams: number) => void;
+  onUpdatePacks: (lineKey: string, packs: number) => void;
   /** Closes the cart panel when the row navigates to the product page. */
   onNavigate?: () => void;
 }
@@ -37,12 +40,17 @@ interface CartItemProps {
  * rows for the price and the links, which is what lets two teas sit on a phone
  * screen without scrolling.
  */
-export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQuantity, onNavigate }) => {
+export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQuantity, onUpdatePacks, onNavigate }) => {
   const { total: displayPrice, perGramExact } = useShopPrice();
   const { theme } = useTheme();
   const [showOther, setShowOther] = useState(false);
 
   const isTea = item.category === 'tea';
+  /* The weight of one pack and how many, with a line saved before packing
+     reading as the single pack it has always been. */
+  const packGrams = item.packGrams ?? item.quantityGrams;
+  const packs = item.packs ?? 1;
+  const lineKey = lineKeyOf(item);
 
   // Suppress the variant when it only repeats the product name.
   const showVariant =
@@ -90,10 +98,11 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
     [isTea, item.pricePerGram, item.wholePieceGrams],
   );
 
-  const onPresetList = presets.includes(item.quantityGrams);
+  const onPresetList = presets.includes(packGrams);
   const otherIsLive = showOther || (isTea && !onPresetList);
 
-  const setGrams = (grams: number) => onUpdateQuantity(item.id, Math.min(9999, Math.max(1, grams)));
+  const setGrams = (grams: number) => onUpdateQuantity(lineKey, Math.min(9999, Math.max(1, grams)));
+  const setPacks = (next: number) => onUpdatePacks(lineKey, Math.min(99, Math.max(1, next)));
 
   /**
    * The colour the tea brews, washed across the head of its block.
@@ -153,10 +162,10 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
             the weights without spending a row of its own. */}
         <div className="flex items-center justify-between gap-3">
           <span className="font-serif italic text-ui-14 text-tea-text-dim">
-            {isTea ? 'How much of this tea' : 'How many'}
+            {isTea ? 'How big a pack' : 'How many'}
           </span>
           <button
-            onClick={() => onRemove(item.id)}
+            onClick={() => onRemove(lineKey)}
             className="font-serif text-ui-14 text-tea-text-sec hover:text-tea-error transition-colors tap-target justify-end"
             aria-label={`Remove ${item.name} from cart`}
           >
@@ -171,7 +180,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
         {isTea ? (
           <div className="flex flex-wrap items-center justify-between gap-x-1 gap-y-0">
             {presets.map(g => {
-              const on = g === item.quantityGrams;
+              const on = g === packGrams;
               return (
                 <button
                   key={g}
@@ -223,7 +232,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
               inputMode="numeric"
               min={1}
               max={9999}
-              value={item.quantityGrams}
+              value={packGrams}
               onChange={(e) => {
                 const v = parseInt(e.target.value, 10);
                 if (!isNaN(v)) setGrams(v);
@@ -235,6 +244,44 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
               className="num w-[84px] bg-transparent border-0 border-b border-tea-text/50 text-ui-17 text-tea-text text-center py-1 focus:outline-none focus:border-tea-gold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
           </div>
+        )}
+
+        {/* How many of that pack.
+            Someone who wants two 25 g packs is not asking for 50 g: they are
+            asking for two things to open, or one to keep and one to give away.
+            The order used to have no way to say it, so the second pack merged
+            into the first and came back as a single heavier one at the heavier
+            one's cheaper price. Each pack is priced as a pack. */}
+        {isTea && (
+          <>
+            <span className="block h-px bg-tea-border" aria-hidden="true" />
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-serif italic text-ui-14 text-tea-text-dim">How many packs</span>
+              <span className="flex items-center gap-4">
+                {packs > 1 && (
+                  <span className="num text-ui-12 text-tea-text-dim">{packGrams * packs}g in all</span>
+                )}
+                <span className="flex items-center gap-3">
+                  <button
+                    onClick={() => setPacks(packs - 1)}
+                    disabled={packs <= 1}
+                    className="num text-ui-16 text-tea-text-sec transition-colors hover:text-tea-text disabled:text-tea-text-dim disabled:hover:text-tea-text-dim tap-target"
+                    aria-label={`One fewer pack of ${item.name}`}
+                  >
+                    &minus;
+                  </button>
+                  <span className="num text-ui-17 text-tea-text" aria-live="polite">{packs}</span>
+                  <button
+                    onClick={() => setPacks(packs + 1)}
+                    className="num text-ui-16 text-tea-text-sec hover:text-tea-text transition-colors tap-target"
+                    aria-label={`One more pack of ${item.name}`}
+                  >
+                    +
+                  </button>
+                </span>
+              </span>
+            </div>
+          </>
         )}
       </div>
     </div>

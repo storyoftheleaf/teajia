@@ -210,12 +210,12 @@ export const CustomAmountModal: React.FC<CustomAmountModalProps> = ({
   const quickAmounts: { grams: number; label: string; sub?: string }[] = [
     ...[10, 25, 50, 100, 250]
       .filter(g => g <= sliderMax)
-      .map(g => ({ grams: g, label: `${g} g` })),
+      .map(g => ({ grams: g, label: `${g}g` })),
     ...(wholePiece && wholePiece.grams <= sliderMax
       ? [{
           grams: wholePiece.grams,
           label: wholePiece.label,
-          sub: `${wholePiece.grams} g`,
+          sub: `${wholePiece.grams}g`,
         }]
       : []),
   ];

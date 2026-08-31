@@ -15,9 +15,50 @@ import { quoteGrams } from './teaPricing';
  * quantity change silently rewrote a correct total into a wrong one. Teaware is
  * priced per piece and has no curve, so it keeps the multiplication.
  */
-function lineTotal(item: PublicCartItem, grams: number): number {
-  if (item.category !== 'tea') return item.pricePerGram * grams;
-  return Math.ceil(quoteGrams(item.pricePerGram, grams, { wholePieceGrams: item.wholePieceGrams }).totalUsd);
+/**
+ * What one pack of this tea costs, at that pack's weight.
+ *
+ * The curve is applied per PACK, not to the line's total weight, and that is
+ * the whole point of packing: the discount is for a bigger pack, so two 25 g
+ * packs cost two 25 g prices. Running the combined 50 g through the curve is
+ * what quietly turned a two-pack order into a one-pack price.
+ */
+function packTotal(item: PublicCartItem, packGrams: number): number {
+  if (item.category !== 'tea') return item.pricePerGram * packGrams;
+  return Math.ceil(quoteGrams(item.pricePerGram, packGrams, { wholePieceGrams: item.wholePieceGrams }).totalUsd);
+}
+
+function lineTotal(item: PublicCartItem, packGrams: number, packs: number): number {
+  return packTotal(item, packGrams) * packs;
+}
+
+/** The pack size of a line, defaulting a pre-packing line to its whole weight. */
+const packSizeOf = (item: PublicCartItem) => item.packGrams ?? item.quantityGrams;
+/** How many packs, defaulting a pre-packing line to one. */
+const packCountOf = (item: PublicCartItem) => item.packs ?? 1;
+
+/**
+ * What makes an order line itself.
+ *
+ * The tea alone no longer does: 25 g and 100 g of one tea are two different
+ * things to send, so they are two rows. A line saved before packing carries no
+ * key and is still found by its tea's id, which is what it was.
+ */
+export const cartLineKey = (id: string, packGrams: number) => `${id}|${packGrams}`;
+export const lineKeyOf = (item: PublicCartItem) => item.lineKey ?? cartLineKey(item.id, packSizeOf(item));
+
+/** A line rebuilt around a pack size and a count, with every derived figure redone. */
+function withPacking(item: PublicCartItem, packGrams: number, packs: number): PublicCartItem {
+  const count = Math.min(99, Math.max(1, Math.round(packs)));
+  const size = Math.min(9999, Math.max(1, Math.round(packGrams)));
+  return {
+    ...item,
+    packGrams: size,
+    packs: count,
+    lineKey: cartLineKey(item.id, size),
+    quantityGrams: size * count,
+    totalPrice: lineTotal(item, size, count),
+  };
 }
 
 export interface AuthUser {
@@ -72,8 +113,11 @@ interface AppState {
   publicCart: PublicCartItem[];
   isPublicCartOpen: boolean;
   addToPublicCart: (item: PublicCartItem) => void;
-  removeFromPublicCart: (id: string) => void;
-  updatePublicCartQuantity: (id: string, grams: number) => void;
+  /** How many packs on one line. Keyed by line, not by tea: see cartLineKey. */
+  updatePublicCartPacks: (key: string, packs: number) => void;
+  removeFromPublicCart: (key: string) => void;
+  /** Sets the PACK size on a line, leaving the number of packs alone. */
+  updatePublicCartQuantity: (key: string, grams: number) => void;
   clearPublicCart: () => void;
   setIsPublicCartOpen: (isOpen: boolean) => void;
 
@@ -339,34 +383,66 @@ const createdAppStore = create<AppState>()(
           if (!canAddToStoreCart(state.publicCart, item).allowed) {
             return state;
           }
-          const existing = state.publicCart.find((c) => c.id === item.id);
+          /* Adding the same tea at the same pack size is asking for another
+             pack of it, not for a heavier one. At a different size it is a
+             different thing to send, so it opens its own row. */
+          const size = packSizeOf(item);
+          const key = cartLineKey(item.id, size);
+          const existing = state.publicCart.find((c) => lineKeyOf(c) === key);
           if (existing) {
-            const newGrams = existing.quantityGrams + item.quantityGrams;
             return {
               publicCart: state.publicCart.map((c) =>
-                c.id === item.id
-                  ? { ...c, quantityGrams: newGrams, totalPrice: lineTotal(c, newGrams) }
+                lineKeyOf(c) === key
+                  ? withPacking(c, size, packCountOf(c) + packCountOf(item))
                   : c
               ),
+              cartLastAddedAt: Date.now(),
             };
           }
           return {
-            publicCart: [...state.publicCart, { ...item, totalPrice: lineTotal(item, item.quantityGrams) }],
+            publicCart: [...state.publicCart, withPacking(item, size, packCountOf(item))],
             cartLastAddedAt: Date.now(),
           };
         }),
 
-      removeFromPublicCart: (id) =>
+      removeFromPublicCart: (key) =>
         set((state) => ({
-          publicCart: state.publicCart.filter((item) => item.id !== id),
+          publicCart: state.publicCart.filter((item) => lineKeyOf(item) !== key),
         })),
 
-      updatePublicCartQuantity: (id, grams) =>
+      /* Changing the weight changes the PACK, and says nothing about how many
+         packs. Someone moving 2 x 25 g up to 50 g is asking for two 50 g
+         packs; if they wanted one they can say so on the count beside it. */
+      updatePublicCartQuantity: (key, grams) =>
+        set((state) => {
+          const target = state.publicCart.find((item) => lineKeyOf(item) === key);
+          if (!target) return state;
+          const repacked = withPacking(target, grams, packCountOf(target));
+          /* Resizing onto a size this tea is already on the order at is one
+             row, not two rows the reader has to reconcile by hand. */
+          const collision = state.publicCart.find(
+            (item) => lineKeyOf(item) !== key && lineKeyOf(item) === repacked.lineKey,
+          );
+          if (collision) {
+            return {
+              publicCart: state.publicCart
+                .filter((item) => lineKeyOf(item) !== key)
+                .map((item) =>
+                  lineKeyOf(item) === repacked.lineKey
+                    ? withPacking(item, packSizeOf(repacked), packCountOf(item) + packCountOf(repacked))
+                    : item,
+                ),
+            };
+          }
+          return {
+            publicCart: state.publicCart.map((item) => (lineKeyOf(item) === key ? repacked : item)),
+          };
+        }),
+
+      updatePublicCartPacks: (key, packs) =>
         set((state) => ({
           publicCart: state.publicCart.map((item) =>
-            item.id === id
-              ? { ...item, quantityGrams: grams, totalPrice: lineTotal(item, grams) }
-              : item
+            lineKeyOf(item) === key ? withPacking(item, packSizeOf(item), packs) : item
           ),
         })),
 

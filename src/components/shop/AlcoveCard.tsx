@@ -22,7 +22,7 @@ import { AlcoveFactsLedger } from './alcove/AlcoveFactsLedger';
 import { AlcoveCharacterBand } from './alcove/AlcoveCharacterBand';
 import { AlcoveAboutSection } from './alcove/AlcoveAboutSection';
 import { AlcoveTableSection } from './alcove/AlcoveTableSection';
-import { AlcoveCommerceFooter, WHOLE_PIECE } from './alcove/AlcoveCommerceFooter';
+import { AlcoveCommerceFooter, wholePieceOf } from './alcove/AlcoveCommerceFooter';
 import { SampleModal, CustomAmountModal, ImageOverlayModal } from './alcove/AlcoveModals';
 import { TeaReference, type TeaReferenceProduct } from '../wisdom/TeaReference';
 import type { ProductImpression } from './ProductImpressions';
@@ -191,7 +191,8 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const sliderMax = Math.max(sliderMin, Math.floor(item.stock_g || 0));
   // One whole pressed piece ships as it is, so it is the one amount that
   // carries no handling. Everything priced below reads this.
-  const wholePieceGrams = item.category === 'tea' ? WHOLE_PIECE[item.form ?? '']?.grams : undefined;
+  const wholePiece = item.category === 'tea' ? wholePieceOf(item.form, item.pieceWeightG) : undefined;
+  const wholePieceGrams = wholePiece?.grams;
   // Numeric total (base currency), passed to onAddToCart. Display strings
   // are formatted separately; never parse a formatted string back to a number.
   const numericTotal = Math.ceil(quoteGrams(pricePerGram, grams, { wholePieceGrams }).totalUsd);
@@ -351,6 +352,11 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       formatPerGram={shopPrice.perGram}
       formatRate={shopPrice.rate}
       formatTotal={shopPrice.total}
+      /* Only on the public path. An admin override formats against its own
+         rate table and keeps naming its currency on every figure; the price
+         list strips the name only when it is the one naming it, once, in the
+         picker beside its heading. */
+      formatPlainTotal={formatPrice ? undefined : shopPrice.plainTotal}
       onChooseAmount={variant === 'docked' ? handleChooseAmount : undefined}
       onAdd={variant === 'docked' ? handleAddAmount : undefined}
       onOpenOrder={variant === 'docked' ? onOpenOrder : undefined}
@@ -385,7 +391,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         setGrams={setGrams}
         pricePerGram={pricePerGram}
         formatTotal={(g) => resolvedFormatPrice(pricePerGram, g)}
-        wholePiece={WHOLE_PIECE[item.form ?? '']}
+        wholePiece={wholePiece}
       />
       <ImageOverlayModal
         open={imageExpanded}
@@ -435,7 +441,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         variant={layout === 'page' ? 'plate' : 'plain'}
         footNote={
           layout === 'page' && wholePieceGrams
-            ? `One whole ${(WHOLE_PIECE[item.form ?? '']?.label ?? '').toLowerCase()} · ${wholePieceGrams} g`
+            ? `One whole ${(wholePiece?.label ?? '').toLowerCase()} · ${wholePieceGrams}g`
             : undefined
         }
         standfirst={layout === 'page' ? introduction : undefined}

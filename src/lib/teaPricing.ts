@@ -112,17 +112,43 @@ export function offeredSizes(
 
 
 /**
- * The weight of one unbroken piece, by the form a tea is pressed into.
+ * What a pressed form is CALLED. Not what it weighs.
  *
- * Lives here rather than in the commerce footer because the pricing curve is
- * what needs it: a whole piece is the one amount that carries no handling fee,
- * so the cart, the card and the bar all have to agree on how heavy one is.
- * Kept as a small table rather than read from the tea-wisdom module, which
- * would pull that whole module into the customer bundle.
+ * This table used to carry a weight per form too: a Cake was 357 g, a Brick
+ * 250 g, a Tuo 100 g. Those are the common sizes of each, and the shop
+ * presented them as facts about the tea in front of the reader. The 1998 Small
+ * Tuo is pressed in 5 g pieces, so its page offered "The tuo, 100 g, unbroken,
+ * keeps ageing", an amount that does not exist, at a price the curve had
+ * already discounted, because a whole piece is the one amount exempt from the
+ * handling fee. A guessed weight is a guessed price.
+ *
+ * The weight is `pieceWeightG` on the tea now, entered by whoever bought it.
+ * When nobody has entered one there is no whole-piece amount, which is the
+ * honest state: the shop does not know.
  */
-export const WHOLE_PIECE: Record<string, { label: string; grams: number }> = {
-  Cake: { label: 'Cake', grams: 357 },
-  Brick: { label: 'Brick', grams: 250 },
-  Tuo: { label: 'Tuo', grams: 100 },
-  Ball: { label: 'Ball', grams: 100 },
+export const PRESSED_FORM_LABEL: Record<string, string> = {
+  Cake: 'Cake',
+  Brick: 'Brick',
+  Tuo: 'Tuo',
+  Ball: 'Ball',
 };
+
+/**
+ * The whole piece a reader can actually buy, if there is one.
+ *
+ * A piece lighter than the smallest amount on the ladder is not an amount, it
+ * is how the tea is packed: nobody buys one 5 g tuo, they buy 25 g and receive
+ * five of them. So it earns a row only when one piece is at least the smallest
+ * thing the shop sells.
+ */
+export function wholePieceOf(
+  form: string | undefined,
+  pieceWeightG: number | undefined,
+  config: TeaPricingConfig = TEA_PRICING,
+): { label: string; grams: number } | undefined {
+  const label = form ? PRESSED_FORM_LABEL[form] : undefined;
+  if (!label || !pieceWeightG || pieceWeightG <= 0) return undefined;
+  const smallestOffered = Math.min(...config.sizesG);
+  if (pieceWeightG < smallestOffered) return undefined;
+  return { label, grams: pieceWeightG };
+}

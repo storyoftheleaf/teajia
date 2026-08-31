@@ -1,0 +1,12 @@
+-- What one pressed piece of a tea actually weighs.
+--
+-- The shop had no such column, so the app guessed it from the one word in
+-- `form`: a Cake was 357 g, a Brick 250 g, a Tuo 100 g. Those are standards,
+-- not facts. The 1998 Small Tuo is pressed in 5 g pieces, and the shop offered
+-- "The tuo, 100 g, unbroken" on its page: an amount that does not exist, at a
+-- price the pricing curve had already discounted, because a whole piece is the
+-- one amount exempt from the handling fee. A wrong weight here is a wrong
+-- price, not just a wrong label.
+--
+-- Null means unknown, and unknown now shows nothing rather than a standard.
+ALTER TABLE products ADD COLUMN piece_weight_g INTEGER;
