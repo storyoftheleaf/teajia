@@ -432,7 +432,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
       */}
       <div className="flex-shrink-0 bg-tea-surface border-b border-tea-border">
         <div className="flex items-center gap-3 px-4 pb-2">
-          <span className="w-12 shrink-0" aria-hidden="true" />
+          <span className="w-16 shrink-0" aria-hidden="true" />
           <div className="flex-1 flex items-center justify-center gap-3 min-w-0">
             {STEPS.map((s, i) => {
               const isActive = step === s.key;
@@ -444,7 +444,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                     type="button"
                     onClick={() => canJump && setStep(s.key)}
                     disabled={!canJump}
-                    className={`font-serif text-[12.5px] transition-colors duration-300 whitespace-nowrap min-h-[44px] ${
+                    className={`font-serif text-ui-15 transition-colors duration-300 whitespace-nowrap min-h-[44px] ${
                       isActive ? 'text-tea-text' : isPast ? 'text-tea-text-dim hover:text-tea-text cursor-pointer' : 'text-tea-text-dim cursor-default'
                     }`}
                     aria-current={isActive ? 'step' : undefined}
@@ -458,18 +458,24 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
               );
             })}
           </div>
-          <div className="w-12 shrink-0 flex justify-end">
+          <div className="w-16 shrink-0 flex justify-end">
             {rates.length > 0 && (
-              <select
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value as any)}
-                className="num bg-transparent border-none text-ui-11 text-tea-text-sec outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 cursor-pointer hover:text-tea-text transition-colors shrink-0"
-                aria-label="Currency"
-              >
-                {rates.map(r => (
-                  <option key={r.currency} value={r.currency}>{r.currency}</option>
-                ))}
-              </select>
+              <div className="relative inline-flex items-center gap-1.5 rounded-[3px] border border-tea-border pl-2.5 pr-2 py-1.5 hover:border-tea-gold transition-colors">
+                <span className="num text-ui-13 text-tea-text">{currency}</span>
+                <svg viewBox="0 0 10 6" className="w-2.5 h-1.5 text-tea-text-sec" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" aria-hidden="true">
+                  <path d="M1 1.5 L5 4.5 L9 1.5" />
+                </svg>
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value as any)}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  aria-label="Currency"
+                >
+                  {rates.map(r => (
+                    <option key={r.currency} value={r.currency}>{r.currency}</option>
+                  ))}
+                </select>
+              </div>
             )}
           </div>
         </div>
@@ -478,7 +484,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
           basket was priced twice on one screen, forty pixels apart.
         */}
         {rates.length > 0 && currency !== 'USD' && (
-          <div className="px-4 pb-1.5 text-right num text-ui-10 text-tea-text-dim">
+          <div className="px-4 pb-1.5 text-right num text-ui-12 text-tea-text-dim">
             1 USD = {rates.find(r => r.currency === currency)?.rateToUSD.toFixed(2)} {currency}
           </div>
         )}
@@ -495,10 +501,10 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                   tracked-out caps label, so the toast belongs to the list it
                   interrupts instead of announcing itself. */}
               <div className="flex items-center justify-between gap-3 bg-tea-surface text-tea-text px-4 py-2 rounded-[3px]">
-                <span className="font-serif text-[12.5px] text-tea-text-sec">{undoItem.item.name} removed</span>
+                <span className="font-serif text-ui-14 text-tea-text-sec">{undoItem.item.name} removed</span>
                 <button
                   onClick={handleUndo}
-                  className="font-serif text-[12.5px] text-tea-text underline decoration-tea-border hover:decoration-tea-text/50 underline-offset-[5px] transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  className="font-serif text-ui-14 text-tea-text underline decoration-tea-border hover:decoration-tea-text/50 underline-offset-[5px] transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                 >
                   Undo
                 </button>
@@ -518,7 +524,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                   <a
                     href="/shop"
                     onClick={onClose}
-                    className="inline-block mt-6 font-serif text-[12.5px] text-tea-text-sec hover:text-tea-text underline decoration-tea-border hover:decoration-tea-text/50 underline-offset-[5px] transition-colors min-h-[44px] py-3"
+                    className="inline-block mt-6 font-serif text-ui-15 text-tea-text-sec hover:text-tea-text underline decoration-tea-border hover:decoration-tea-text/50 underline-offset-[5px] transition-colors min-h-[44px] py-3"
                   >
                     Browse the shop
                   </a>
@@ -547,12 +553,12 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                 you. The line they replace ("your order request will be
                 generated automatically") described the machinery instead.
               */}
-              <p className="font-serif italic text-ui-13 leading-[1.6] text-tea-text-sec mb-4">
+              <p className="font-serif italic text-ui-15 leading-[1.6] text-tea-text-sec mb-4">
                 We confirm every order personally. Pricing and shipping are settled by message.
               </p>
               <form onSubmit={handleFormSubmit} className="space-y-4 p-4 bg-tea-surface rounded-md border border-tea-border" id="inquiry-form">
                 <div>
-                  <label htmlFor="inquiry-name" className="block text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec mb-1">
+                  <label htmlFor="inquiry-name" className="block text-ui-12 uppercase tracking-[0.15em] text-tea-text-sec mb-1">
                     Name *
                   </label>
                   <div className="relative">
@@ -575,12 +581,12 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                     )}
                   </div>
                   {touched.name && errors.name && (
-                    <p role="alert" className="text-tea-error text-xs mt-1">{errors.name}</p>
+                    <p role="alert" className="text-tea-error text-ui-13 mt-1">{errors.name}</p>
                   )}
                 </div>
 
                 <div>
-                  <label htmlFor="inquiry-contact" className="block text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec mb-1">
+                  <label htmlFor="inquiry-contact" className="block text-ui-12 uppercase tracking-[0.15em] text-tea-text-sec mb-1">
                     Contact *
                   </label>
                   <div className="relative">
@@ -604,15 +610,15 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                     )}
                   </div>
                   {touched.contact && errors.contact && (
-                    <p role="alert" className="text-tea-error text-xs mt-1">{errors.contact}</p>
+                    <p role="alert" className="text-tea-error text-ui-13 mt-1">{errors.contact}</p>
                   )}
                 </div>
 
                 <div>
-                  <label htmlFor="inquiry-location" className="block text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec mb-0.5">
+                  <label htmlFor="inquiry-location" className="block text-ui-12 uppercase tracking-[0.15em] text-tea-text-sec mb-0.5">
                     Shipping Location *
                   </label>
-                  <p className="text-ui-11 text-tea-text-dim mb-1">City, Country (e.g. Tokyo, Japan)</p>
+                  <p className="text-ui-12 text-tea-text-dim mb-1">City, Country (e.g. Tokyo, Japan)</p>
                   <div className="relative">
                     <input
                       id="inquiry-location"
@@ -633,12 +639,12 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                     )}
                   </div>
                   {touched.location && errors.location && (
-                    <p role="alert" className="text-tea-error text-xs mt-1">{errors.location}</p>
+                    <p role="alert" className="text-tea-error text-ui-13 mt-1">{errors.location}</p>
                   )}
                 </div>
 
                 <div>
-                  <label htmlFor="inquiry-notes" className="block text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec mb-1">
+                  <label htmlFor="inquiry-notes" className="block text-ui-12 uppercase tracking-[0.15em] text-tea-text-sec mb-1">
                     Special Requests (Optional)
                   </label>
                   <textarea
@@ -656,7 +662,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
               </form>
 
               {recoveredCart && (
-                <p className="text-center font-serif italic text-[12.5px] text-tea-text-dim">Recovered your previous order request</p>
+                <p className="text-center font-serif italic text-ui-14 text-tea-text-dim">Recovered your previous order request</p>
               )}
             </div>
           )}
@@ -666,42 +672,42 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
             <div className="space-y-6 relative z-[1]">
               <div className="text-center mb-2">
                 <h3 className="font-serif text-lg text-tea-text mb-1">Review your order</h3>
-                <p className="font-serif italic text-[12.5px] text-tea-text-dim">Please review before sending.</p>
+                <p className="font-serif italic text-ui-14 text-tea-text-dim">Please review before sending.</p>
               </div>
 
               {/* Single editorial block, top + bottom hairline rules, internal sections divided by rules only */}
               <div className="border-y border-tea-border divide-y divide-tea-border">
                 {/* Customer details */}
                 <dl className="py-4 space-y-2.5">
-                  <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-3">Recipient</p>
+                  <p className="text-ui-12 uppercase tracking-[0.2em] text-tea-text-sec mb-3">Recipient</p>
                   <div className="flex justify-between gap-4">
-                    <dt className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec">Name</dt>
-                    <dd className="text-sm text-tea-text">{details.name}</dd>
+                    <dt className="text-ui-12 uppercase tracking-[0.15em] text-tea-text-sec">Name</dt>
+                    <dd className="text-ui-15 text-tea-text">{details.name}</dd>
                   </div>
                   <div className="flex justify-between gap-4">
-                    <dt className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec">Contact</dt>
-                    <dd className="text-sm text-tea-text">{details.contact}</dd>
+                    <dt className="text-ui-12 uppercase tracking-[0.15em] text-tea-text-sec">Contact</dt>
+                    <dd className="text-ui-15 text-tea-text">{details.contact}</dd>
                   </div>
                   <div className="flex justify-between gap-4">
-                    <dt className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec">Location</dt>
-                    <dd className="text-sm text-tea-text">{details.location}</dd>
+                    <dt className="text-ui-12 uppercase tracking-[0.15em] text-tea-text-sec">Location</dt>
+                    <dd className="text-ui-15 text-tea-text">{details.location}</dd>
                   </div>
                   {details.notes && (
                     <div className="flex justify-between gap-4">
-                      <dt className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec">Notes</dt>
-                      <dd className="text-sm text-tea-text text-right max-w-[60%]">{details.notes}</dd>
+                      <dt className="text-ui-12 uppercase tracking-[0.15em] text-tea-text-sec">Notes</dt>
+                      <dd className="text-ui-15 text-tea-text text-right max-w-[60%]">{details.notes}</dd>
                     </div>
                   )}
                 </dl>
 
                 {/* Order items */}
                 <div className="py-4 space-y-3">
-                  <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Order</p>
+                  <p className="text-ui-12 uppercase tracking-[0.2em] text-tea-text-sec">Order</p>
                   {reviewItems.map(item => (
-                    <div key={item.id} className="flex justify-between items-baseline text-sm gap-4">
+                    <div key={item.id} className="flex justify-between items-baseline text-ui-15 gap-4">
                       <div className="min-w-0">
                         <span className="text-tea-text font-serif">{item.name}</span>
-                        <span className="text-tea-text-sec text-ui-11 ml-2 num">
+                        <span className="text-tea-text-sec text-ui-13 ml-2 num">
                           {item.category === 'tea' ? `${item.quantityGrams}g` : `×${item.quantityGrams}`}
                         </span>
                       </div>
@@ -717,7 +723,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                 </div>
               </div>
 
-              <p className="text-ui-11 text-tea-text-sec text-center font-mono">{orderRef}</p>
+              <p className="text-ui-13 text-tea-text-sec text-center font-mono">{orderRef}</p>
 
               {/* Persistent success message, editorial confirmation, no green */}
               {successMessage?.show && (
@@ -799,7 +805,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                   {contactChannels.email && <button
                     onClick={handleEmail}
                     disabled={isPersisting}
-                    className="font-serif text-[12.5px] text-tea-text-sec hover:text-tea-text underline underline-offset-[5px] decoration-tea-border hover:decoration-tea-text/50 transition-colors min-h-[44px]"
+                    className="font-serif text-ui-15 text-tea-text-sec hover:text-tea-text underline underline-offset-[5px] decoration-tea-border hover:decoration-tea-text/50 transition-colors min-h-[44px]"
                   >
                     Email
                   </button>}
@@ -807,7 +813,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                   <button
                     onClick={handleCopy}
                     disabled={isPersisting}
-                    className="font-serif text-[12.5px] text-tea-text-sec hover:text-tea-text underline underline-offset-[5px] decoration-tea-border hover:decoration-tea-text/50 transition-colors min-h-[44px]"
+                    className="font-serif text-ui-15 text-tea-text-sec hover:text-tea-text underline underline-offset-[5px] decoration-tea-border hover:decoration-tea-text/50 transition-colors min-h-[44px]"
                   >
                     {copyReady && isPersistedForPayload ? 'Copy saved order' : 'Copy text'}
                   </button>
@@ -815,7 +821,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                 {contactChannels.unavailable && <p className="text-center text-sm text-tea-text-sec">{CONTACT_UNAVAILABLE}</p>}
               </div>
 
-              <p className="text-center font-serif italic text-[12.5px] leading-[1.6] text-tea-text-dim">
+              <p className="text-center font-serif italic text-ui-14 leading-[1.6] text-tea-text-dim">
                 Sending this message will initiate your order request with Teajia.
               </p>
             </div>
@@ -836,13 +842,13 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                   <span className="num text-ui-20">{displayPrice(subtotal)}</span>
                 </div>
                 <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim">
+                  <span className="text-ui-11 uppercase tracking-[0.18em] text-tea-text-dim">
                     {cart.length} {cart.length === 1 ? 'tea' : 'teas'}
                     {' · '}
                     {cart.filter(i => i.category === 'tea').reduce((g, i) => g + i.quantityGrams, 0)}g
                   </span>
                   {currency !== 'USD' && (
-                    <span className="num text-ui-10 text-tea-text-dim">approx. USD {Math.round(subtotal)}</span>
+                    <span className="num text-ui-12 text-tea-text-dim">approx. USD {Math.round(subtotal)}</span>
                   )}
                 </div>
               </div>

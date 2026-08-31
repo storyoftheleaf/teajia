@@ -5,7 +5,15 @@ import { fetchWithTimeout } from '../lib/api';
 
 const FALLBACK_RATES = INITIAL_RATES;
 
-export const formatCurrency = (amount: number, currency: Currency, rates: ExchangeRate[]) => {
+/**
+ * `exact` is for a rate rather than a total.
+ *
+ * The IDR path below rounds up to the nearest thousand and prints "k", which
+ * is right for a line total and destroys a per-gram figure: 9,215 rupiah a
+ * gram becomes "10k". Pass `exact` and the number is grouped in full, with
+ * cents when it is small enough to need them.
+ */
+export const formatCurrency = (amount: number, currency: Currency, rates: ExchangeRate[], opts?: { exact?: boolean }) => {
   const safeRates = rates && rates.length > 0 ? rates : FALLBACK_RATES;
   const found = safeRates.find(r => r.currency === currency);
   // Never silently multiply by 1 for a currency we have no rate for. If the
@@ -24,9 +32,26 @@ export const formatCurrency = (amount: number, currency: Currency, rates: Exchan
 
   // IDR reads large; round up to the nearest thousand and abbreviate with a K
   // (no decimals, no hundreds). e.g. 162,100 -> 162k.
-  if (currencyCode === 'IDR') {
+  if (currencyCode === 'IDR' && !opts?.exact) {
     const thousands = Math.ceil(value / 1000);
     return `IDR ${thousands}k`;
+  }
+
+  if (opts?.exact) {
+    // Cents only where a gram costs less than ten units. Above that the minor
+    // unit is noise, and on JPY it is a unit that does not exist.
+    const digits = Math.abs(value) < 10 ? 2 : 0;
+    try {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currencyCode,
+        currencyDisplay: 'symbol',
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+      }).format(value);
+    } catch {
+      return `${currencyCode} ${value.toFixed(digits)}`;
+    }
   }
 
   try {

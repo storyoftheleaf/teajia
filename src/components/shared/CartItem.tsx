@@ -37,7 +37,7 @@ const PRESETS = [25, 50, 100, 250];
  * screen without scrolling.
  */
 export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQuantity, onNavigate }) => {
-  const { total: displayPrice, rate: displayRate } = useShopPrice();
+  const { total: displayPrice, perGramExact } = useShopPrice();
   const [showOther, setShowOther] = useState(false);
 
   const isTea = item.category === 'tea';
@@ -62,7 +62,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
    */
   const effectivePerGram =
     item.quantityGrams > 0 ? item.totalPrice / item.quantityGrams : item.pricePerGram;
-  const rate = displayRate(effectivePerGram);
+  const rateLabel = `${perGramExact(effectivePerGram)} per gram`;
   const onPresetList = PRESETS.includes(item.quantityGrams);
   const otherIsLive = showOther || (isTea && !onPresetList);
 
@@ -83,18 +83,18 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
               {item.name}
             </Link>
           </h3>
-          <span className="num text-ui-15 text-tea-text shrink-0">{displayPrice(item.totalPrice)}</span>
+          <span className="num text-ui-17 text-tea-text shrink-0">{displayPrice(item.totalPrice)}</span>
         </div>
 
         {/* Uppercase is metadata only, and the rate is metadata: it describes
             the tea, while the only price on the block is the one above. */}
         {(showVariant || isTea) && (
           <div className="flex items-baseline justify-between gap-3">
-            <span className="text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim truncate">
+            <span className="text-ui-11 uppercase tracking-[0.18em] text-tea-text-dim truncate">
               {showVariant ? item.variant : ''}
             </span>
             {isTea && (
-              <span className="num text-ui-10 text-tea-text-dim shrink-0">{rate.value} {rate.unit}</span>
+              <span className="num text-ui-12 text-tea-text-dim shrink-0">{rateLabel}</span>
             )}
           </div>
         )}
@@ -107,12 +107,12 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
             the block that undoes rather than adjusts, so it sits apart from
             the weights without spending a row of its own. */}
         <div className="flex items-center justify-between gap-3">
-          <span className="font-serif italic text-[12.5px] text-tea-text-dim">
+          <span className="font-serif italic text-ui-14 text-tea-text-dim">
             {isTea ? 'How much of this tea' : 'How many'}
           </span>
           <button
             onClick={() => onRemove(item.id)}
-            className="font-serif text-[12.5px] text-tea-text-sec hover:text-tea-error transition-colors tap-target justify-end"
+            className="font-serif text-ui-14 text-tea-text-sec hover:text-tea-error transition-colors tap-target justify-end"
             aria-label={`Remove ${item.name} from cart`}
           >
             Remove
@@ -128,7 +128,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
                   key={g}
                   onClick={() => { setShowOther(false); setGrams(g); }}
                   aria-pressed={on}
-                  className={`num min-h-[44px] flex items-center text-ui-13 underline-offset-[6px] transition-colors ${
+                  className={`num min-h-[44px] flex items-center text-ui-16 underline-offset-[6px] transition-colors ${
                     on ? 'text-tea-text underline decoration-tea-text/50' : 'text-tea-text-dim no-underline hover:text-tea-text'
                   }`}
                 >
@@ -138,7 +138,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
             })}
             <button
               onClick={() => setShowOther(v => !v)}
-              className={`font-serif min-h-[44px] flex items-center text-[12.5px] transition-colors ${
+              className={`font-serif min-h-[44px] flex items-center text-ui-14 transition-colors ${
                 otherIsLive ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text'
               }`}
             >
@@ -154,7 +154,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
             >
               &minus;
             </button>
-            <span className="num text-ui-15 text-tea-text">{item.quantityGrams}</span>
+            <span className="num text-ui-17 text-tea-text">{item.quantityGrams}</span>
             <button
               onClick={() => setGrams(item.quantityGrams + 1)}
               className="num text-ui-16 text-tea-text-sec hover:text-tea-text transition-colors tap-target"
@@ -167,7 +167,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
 
         {isTea && otherIsLive && (
           <div className="flex items-baseline gap-2 pb-1.5">
-            <label htmlFor={`grams-${item.id}`} className="font-serif text-[12.5px] text-tea-text-dim">Grams</label>
+            <label htmlFor={`grams-${item.id}`} className="font-serif text-ui-14 text-tea-text-dim">Grams</label>
             <input
               id={`grams-${item.id}`}
               type="number"
@@ -183,7 +183,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
                 const v = parseInt(e.target.value, 10);
                 if (isNaN(v) || v < 1) setGrams(1);
               }}
-              className="num w-[74px] bg-transparent border-0 border-b border-tea-text/50 text-ui-15 text-tea-text text-center py-1 focus:outline-none focus:border-tea-gold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              className="num w-[84px] bg-transparent border-0 border-b border-tea-text/50 text-ui-17 text-tea-text text-center py-1 focus:outline-none focus:border-tea-gold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
           </div>
         )}

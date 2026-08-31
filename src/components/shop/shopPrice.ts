@@ -89,6 +89,8 @@ export interface ShopPrice {
    * put "a gram" under a per-100 g figure on the price list.
    */
   rate: (usdPerGram: number) => { value: string; unit: string };
+  /** One gram in the reader's currency, without the abbreviation `total` uses. */
+  perGramExact: (usdPerGram: number) => string;
 }
 
 export function useShopPrice(): ShopPrice {
@@ -125,8 +127,25 @@ export function useShopPrice(): ShopPrice {
     [localised, currency, rates],
   );
 
+  /**
+   * One gram, quoted in full.
+   *
+   * `rate` above steps up to a hundred grams in a localised currency because
+   * `formatCurrency` abbreviates and would round a per-gram figure away. The
+   * order panel needs the gram itself: the amount buttons are grams, the rate
+   * beside them moves as those grams change, and quoting a hundred of them
+   * makes the reader do arithmetic to connect the two.
+   */
+  const perGramExact = useCallback(
+    (usdPerGram: number) =>
+      localised
+        ? formatCurrency(usdPerGram, currency, rates, { exact: true })
+        : fmtShopPricePerGram(usdPerGram).replace(/\s*\/\s*g$/, ''),
+    [localised, currency, rates],
+  );
+
   return useMemo(
-    () => ({ localised, code, total, perGram, rate }),
-    [localised, code, total, perGram, rate],
+    () => ({ localised, code, total, perGram, rate, perGramExact }),
+    [localised, code, total, perGram, rate, perGramExact],
   );
 }
