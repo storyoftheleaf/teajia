@@ -22,6 +22,9 @@
 - [ ] **A saved inventory view can be created but never deleted.** _(band: you-required)_ _(effort: quick)_
   The view rail was redesigned into four purpose lenses plus a Flagged menu, and the per-view delete control did not come across. `deleteView` is still in the store and still wired into InventoryView, so only the affordance is missing. Two tests in `tests/inventory-purpose-views.spec.ts` are skipped against this and name it, so they turn back on when the control returns. Where it belongs in the new rail is a design call.
 
+- [ ] **An admin boot fetches the sample list four times and sample sets three times.** _(band: agent-runnable)_ _(effort: moderate)_
+  `sampleRepository.hydrate()` and `sampleRepository.sync()` each call `sampleSets.list` and `samples.list`, a third call sits further down the same file, and `teaCompassSync` pulls `samples.list` again. Two admin boots measure 41 API reads where the guard in `tests/admin-chunk-failure-production.spec.ts` was written expecting 24. Nothing is looping; the same two endpoints are simply requested by several callers that do not share a result. Worth one deliberate pass to give them a shared read.
+
 Add only genuinely new observations here. During triage, move each accepted item into exactly one owning track or discard it. Do not duplicate track items here.
 
 <!-- Use: - [ ] **Short outcome.** Why it matters and the evidence that it is not already covered. -->

@@ -23,10 +23,17 @@ test('built service worker and headers retain the China-safe policy', async () =
   expect(headers).not.toContain('teajia-api.lightcodes.workers.dev');
   expect(headers).toContain('/api/verify/request');
   expect(headers).toContain('Cache-Control: no-store');
-  expect(sw).toContain('/api/');
-  expect(sw).toContain('/media/');
-  expect(sw).toMatch(/startsWith\(["']\/api\/["']\)[\s\S]{0,500}["']GET["']/);
+  // The caching service worker is gone. It was replaced by a self-destroying
+  // one (vite.config VitePWA selfDestroying) because a stale shell could
+  // reference an AdminApp chunk from a superseded deploy and loop. So the
+  // China-safe policy is no longer "the worker must not cache the API": there
+  // is nothing doing any caching, which is a stronger version of the same
+  // promise. What still has to hold is that the worker actively clears what
+  // earlier ones left behind, and that nothing in it reaches a blocked host.
+  expect(sw).toContain('self.registration.unregister()');
+  expect(sw).toContain('self.caches.keys()');
   expect(sw).not.toMatch(/fonts\.(?:googleapis|gstatic)/);
+  expect(sw).not.toContain('teajia-api.lightcodes.workers.dev');
 });
 
 test('email-only store exposes an addressed mail handoff on mobile', async ({ page }) => {
