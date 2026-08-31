@@ -19,9 +19,11 @@ const C = {
   dim: 'var(--tea-footer-ink-dim)',
   hair: 'var(--tea-border)',
 } as const;
+// `mono` is no longer a monospace: the footer band sets its small capitals in
+// the same label face as the rest of the site. Name kept, face changed.
 const F = {
-  display: "'Cormorant Garamond',serif",
-  mono: "'IBM Plex Mono',monospace",
+  display: 'var(--font-display)',
+  mono: 'var(--font-sans)',
 } as const;
 
 const links: { label: string; to?: string; href?: string }[] = [

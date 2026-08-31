@@ -196,7 +196,7 @@ const EditablePhoto: React.FC<Props> = ({
         ) : (placeholder ?? null)}
 
         {label && !liveEdit && (
-          <div style={{ position: 'absolute', left: 14, bottom: 12, fontFamily: "'IBM Plex Mono',monospace", fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#a8874d' }}>
+          <div style={{ position: 'absolute', left: 14, bottom: 12, fontFamily: 'var(--font-sans)', fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#a8874d' }}>
             {label}
           </div>
         )}
@@ -237,14 +237,14 @@ const EditablePhoto: React.FC<Props> = ({
         {/* Upload error + retry */}
         {liveEdit && uploadError && !busy && (
           <button type="button" onClick={retryUpload}
-            style={{ position: 'absolute', inset: 0, zIndex: 7, background: 'rgba(20,16,11,0.85)', border: 'none', color: '#f3ead9', cursor: 'pointer', fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, letterSpacing: '0.08em' }}>
+            style={{ position: 'absolute', inset: 0, zIndex: 7, background: 'rgba(20,16,11,0.85)', border: 'none', color: '#f3ead9', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 12, letterSpacing: '0.08em' }}>
             upload failed · tap to retry
           </button>
         )}
 
         {/* Owner hint / dropzone label */}
         {liveEdit && !busy && !uploadError && (
-          <div style={{ position: 'absolute', top: 8, right: 8, fontFamily: "'IBM Plex Mono',monospace", fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#cdc0a8', background: 'rgba(20,16,11,0.72)', padding: '4px 8px', borderRadius: 2, pointerEvents: 'none' }}>
+          <div style={{ position: 'absolute', top: 8, right: 8, fontFamily: 'var(--font-sans)', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#cdc0a8', background: 'rgba(20,16,11,0.72)', padding: '4px 8px', borderRadius: 2, pointerEvents: 'none' }}>
             {photo ? (TOUCH ? 'tap to set focus' : 'drag focus · paste') : (TOUCH ? 'add a photo' : 'drop / paste / pick')}
           </div>
         )}
@@ -253,13 +253,13 @@ const EditablePhoto: React.FC<Props> = ({
         {liveEdit && !photo && !showLibrary && (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 12 }}>
             {TOUCH && (
-              <label style={{ minWidth: 160, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(168,135,77,0.5)', borderRadius: 4, color: '#f3ead9', background: 'rgba(168,135,77,0.18)', fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
+              <label style={{ minWidth: 160, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(168,135,77,0.5)', borderRadius: 4, color: '#f3ead9', background: 'rgba(168,135,77,0.18)', fontFamily: 'var(--font-sans)', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
                 take a photo
                 <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); }} />
               </label>
             )}
-            <label style={{ minWidth: 160, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(168,135,77,0.35)', borderRadius: 4, color: '#cdc0a8', background: 'rgba(20,16,11,0.5)', fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
+            <label style={{ minWidth: 160, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(168,135,77,0.35)', borderRadius: 4, color: '#cdc0a8', background: 'rgba(20,16,11,0.5)', fontFamily: 'var(--font-sans)', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
               {TOUCH ? 'choose from photos' : 'drop, paste, or choose'}
               <input type="file" accept="image/*" style={{ display: 'none' }}
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); }} />
@@ -270,7 +270,7 @@ const EditablePhoto: React.FC<Props> = ({
         {/* Reuse a photo already used elsewhere on this story */}
         {liveEdit && !photo && usedImages.length > 0 && (
           <button type="button" onClick={() => setShowLibrary((s) => !s)}
-            style={{ position: 'absolute', bottom: 8, left: 8, zIndex: 3, fontFamily: "'IBM Plex Mono',monospace", fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#cdc0a8', background: 'rgba(20,16,11,0.8)', border: 'none', borderRadius: 2, padding: '4px 8px', cursor: 'pointer' }}>
+            style={{ position: 'absolute', bottom: 8, left: 8, zIndex: 3, fontFamily: 'var(--font-sans)', fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#cdc0a8', background: 'rgba(20,16,11,0.8)', border: 'none', borderRadius: 2, padding: '4px 8px', cursor: 'pointer' }}>
             {showLibrary ? 'close' : 'reuse a photo'}
           </button>
         )}
@@ -292,11 +292,11 @@ const EditablePhoto: React.FC<Props> = ({
         <div style={fill
           ? { position: 'absolute', left: 16, right: 16, bottom: 16, zIndex: 5, padding: 10, border: '1px solid rgba(168,135,77,0.3)', borderRadius: 4, background: 'rgba(20,16,11,0.92)', display: 'flex', alignItems: 'center', gap: 10 }
           : { marginTop: 8, padding: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: '#cdc0a8' }}>Zoom</span>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 10, color: '#cdc0a8' }}>Zoom</span>
           <input type="range" min={1} max={3} step={0.02} value={photo.crop.scale}
             onChange={(e) => setScale(parseFloat(e.target.value))} style={{ flex: 1, accentColor: '#a8874d' }} />
           <button type="button" onClick={() => setPhoto(slot, null)}
-            style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#80735f', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+            style={{ fontFamily: 'var(--font-sans)', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#80735f', background: 'transparent', border: 'none', cursor: 'pointer' }}>
             remove
           </button>
         </div>

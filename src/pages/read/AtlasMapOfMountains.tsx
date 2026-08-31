@@ -279,7 +279,7 @@ const AtlasMapOfMountains: React.FC = () => {
                   </g>
                   <path d="M32 6 L37 32 L32 30 L27 32 Z" fill="rgba(168,135,77,0.7)"/>
                   <path d="M32 58 L27 32 L32 34 L37 32 Z" fill="rgba(168,135,77,0.3)"/>
-                  <text x="32" y="20" textAnchor="middle" fontFamily="'IBM Plex Mono',monospace" fontSize="8" fill="#cdc0a8">N</text>
+                  <text x="32" y="20" textAnchor="middle" fontFamily='var(--font-sans)' fontSize="8" fill="#cdc0a8">N</text>
                 </svg>
               </div>
 

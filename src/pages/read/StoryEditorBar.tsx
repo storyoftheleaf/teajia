@@ -40,7 +40,7 @@ const barWrap = (editing: boolean): React.CSSProperties => {
       borderRadius: 10,
       backdropFilter: editing ? 'blur(10px)' : 'none',
       WebkitBackdropFilter: editing ? 'blur(10px)' : 'none',
-      fontFamily: "'IBM Plex Mono',monospace",
+      fontFamily: 'var(--font-sans)',
     };
   }
   return {
@@ -59,12 +59,12 @@ const barWrap = (editing: boolean): React.CSSProperties => {
     borderRadius: 6,
     backdropFilter: editing ? 'blur(10px)' : 'none',
     WebkitBackdropFilter: editing ? 'blur(10px)' : 'none',
-    fontFamily: "'IBM Plex Mono',monospace",
+    fontFamily: 'var(--font-sans)',
   };
 };
 
 const pill = (active = false): React.CSSProperties => ({
-  fontFamily: "'IBM Plex Mono',monospace",
+  fontFamily: 'var(--font-sans)',
   fontSize: IS_TOUCH ? 12 : 11,
   letterSpacing: '0.08em',
   textTransform: 'uppercase',
@@ -116,7 +116,7 @@ const StoryEditorBar: React.FC = () => {
           type="button"
           onClick={() => setEditing(true)}
           style={{
-            fontFamily: "'IBM Plex Mono',monospace",
+            fontFamily: 'var(--font-sans)',
             fontSize: 10,
             letterSpacing: '0.14em',
             textTransform: 'uppercase',
@@ -204,7 +204,7 @@ const StoryEditorBar: React.FC = () => {
               key={v.id}
               type="button"
               onClick={async () => { await restore(v.id); setShowHistory(false); }}
-              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 6px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(168,135,77,0.12)', color: '#cdc0a8', cursor: 'pointer', fontFamily: "'IBM Plex Mono',monospace", fontSize: 11 }}
+              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 6px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(168,135,77,0.12)', color: '#cdc0a8', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 11 }}
             >
               {new Date(v.created_at + 'Z').toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
               <span style={{ color: '#80735f' }}> · restore</span>
@@ -220,7 +220,7 @@ const StoryEditorBar: React.FC = () => {
             <div style={{ fontSize: 11, color: '#80735f' }}>Every frame has a photo. Nicely done.</div>
           ) : emptyFrames.map((f) => (
             <button key={f.slot} type="button" onClick={() => jumpTo(f.slot)}
-              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 6px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(168,135,77,0.12)', color: '#cdc0a8', cursor: 'pointer', fontFamily: "'IBM Plex Mono',monospace", fontSize: 11 }}>
+              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 6px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(168,135,77,0.12)', color: '#cdc0a8', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 11 }}>
               {f.label}<span style={{ color: '#80735f' }}> · jump</span>
             </button>
           ))}
@@ -228,7 +228,7 @@ const StoryEditorBar: React.FC = () => {
       )}
 
       {toast && (
-        <div style={{ alignSelf: IS_TOUCH ? 'stretch' : 'flex-end', textAlign: 'center', padding: '10px 14px', borderRadius: 4, background: 'rgba(168,135,77,0.95)', color: '#14100b', fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, letterSpacing: '0.06em' }}>
+        <div style={{ alignSelf: IS_TOUCH ? 'stretch' : 'flex-end', textAlign: 'center', padding: '10px 14px', borderRadius: 4, background: 'rgba(168,135,77,0.95)', color: '#14100b', fontFamily: 'var(--font-sans)', fontSize: 12, letterSpacing: '0.06em' }}>
           {toast}
         </div>
       )}

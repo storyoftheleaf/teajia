@@ -75,11 +75,23 @@ export const C = {
   goldLt: 'var(--tj-gold-lt,#c6a667)',
 } as const;
 
+/**
+ * The reader's faces, read from the site's own tokens rather than spelled out
+ * here. Seventeen articles import this, and until now four of them also wrote
+ * a font name inline instead of coming through it, which is the same
+ * hand-copying that left two prices asking for a font the site never loaded.
+ *
+ * `mono` is no longer a monospace. The reader used to set its furniture (the
+ * kicker, the running head, the section markers, the colophon, the map
+ * altitudes) in a real typewriter, and that is now the same small-capital face
+ * as every other label on the site. The key keeps its name because seventeen
+ * files call it; the face it returns is what changed.
+ */
 export const F = {
-  display: "'Cormorant Garamond',serif",
-  body: "'Lora',Georgia,serif",
-  ui: "'Plus Jakarta Sans',sans-serif",
-  mono: "'IBM Plex Mono',monospace",
+  display: 'var(--font-display)',
+  body: 'var(--font-body)',
+  ui: 'var(--font-sans)',
+  mono: 'var(--font-sans)',
   cn: "'Noto Serif SC',serif",
 } as const;
 

@@ -129,7 +129,7 @@ const RitualSevenSteeps: React.FC = () => {
       <div style="flex:1 1 64px; display:flex; flex-direction:column; align-items:center; gap:10px; min-width:60px;">
         <span style="width:clamp(34px,7vw,52px); height:clamp(34px,7vw,52px); border-radius:50%; background:${color}; box-shadow:0 0 0 1px rgba(168,135,77,0.3), inset 0 -6px 12px rgba(0,0,0,0.28), inset 0 5px 9px rgba(255,255,255,0.22);"></span>
         <span style="font-family:'Noto Serif SC',serif; font-size:17px; color:#cdc0a8; line-height:1;">${CN_NUMS[i]}</span>
-        <span style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:0.08em; color:#80735f;">${d.times[i]}s</span>
+        <span style="font-family:var(--font-sans); font-size:9.5px; letter-spacing:0.08em; color:#80735f;">${d.times[i]}s</span>
       </div>`).join('');
   }, []);
 

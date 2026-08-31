@@ -255,10 +255,10 @@ const EditSheet: React.FC<{
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(10,8,5,0.55)' }} />
       <div style={{ position: 'relative', background: '#15110b', borderTop: '1px solid rgba(168,135,77,0.35)', borderTopLeftRadius: 14, borderTopRightRadius: 14, padding: 14, paddingBottom: 'max(14px, env(safe-area-inset-bottom))', maxHeight: '72vh', display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#a8874d' }}>{label || 'Edit text'}</span>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#a8874d' }}>{label || 'Edit text'}</span>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" onClick={onClose} style={{ minHeight: 44, padding: '0 14px', background: 'transparent', border: '1px solid rgba(168,135,77,0.3)', borderRadius: 4, color: '#cdc0a8', fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, cursor: 'pointer' }}>cancel</button>
-            <button type="button" onClick={() => onSave(val.trimEnd())} style={{ minHeight: 44, padding: '0 18px', background: '#a8874d', border: 'none', borderRadius: 4, color: '#14100b', fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, letterSpacing: '0.06em', cursor: 'pointer' }}>done</button>
+            <button type="button" onClick={onClose} style={{ minHeight: 44, padding: '0 14px', background: 'transparent', border: '1px solid rgba(168,135,77,0.3)', borderRadius: 4, color: '#cdc0a8', fontFamily: 'var(--font-sans)', fontSize: 12, cursor: 'pointer' }}>cancel</button>
+            <button type="button" onClick={() => onSave(val.trimEnd())} style={{ minHeight: 44, padding: '0 18px', background: '#a8874d', border: 'none', borderRadius: 4, color: '#14100b', fontFamily: 'var(--font-sans)', fontSize: 12, letterSpacing: '0.06em', cursor: 'pointer' }}>done</button>
           </div>
         </div>
         <textarea
