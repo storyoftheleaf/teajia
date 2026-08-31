@@ -2725,7 +2725,7 @@ async function commitUpsertVendorContact(
     await env.DB.prepare(
       `INSERT INTO customers (id, account_id, type, name, company, phone, whatsapp,
          address, city, country, source, notes, contacts, tags, created_at, updated_at)
-       VALUES (?, ?, 'vendor', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '["vendor"]', datetime('now'), datetime('now'))`
+       VALUES (?, ?, 'vendor', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '["vendor"]', datetime('now'), datetime('now'))`
     ).bind(
       customerId, m.accountId, m.name, m.company, m.phone, m.whatsapp,
       m.address, m.city, m.country, m.source, m.notes, JSON.stringify(contacts),
