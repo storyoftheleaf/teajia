@@ -87,6 +87,17 @@ async function install(page: Page) {
       await r.fulfill({ json: [] });
     }
   });
+  // Linked invoice lines are checked against the sales-eligibility list before
+  // a draft will save. That gate arrived after this fixture was written, so the
+  // request fell through to the catch-all 501, the modal reported that sales
+  // inventory could not be verified, and the draft never saved: the test read
+  // as "the panel will not close" when the real answer was "the panel refused,
+  // correctly, because nothing said this tea could be sold".
+  await page.route('**/api/sales/eligible-products', r => r.fulfill({ json: [{
+    product_id: 'tea-1', product_name: 'Cloud Oolong', owner_id: null, owner_name: null,
+    physical_quantity: 1000, held_quantity: 0, available_quantity: 1000,
+    price_floor: null, grant_id: null, permission_reason: 'account_owner',
+  }] }));
   await page.route('**/api/stock-ledger**', r => {
     const url = new URL(r.request().url());
     const offset = Number(url.searchParams.get('offset') || 0);
@@ -179,11 +190,11 @@ test('only the rendered stock number opens the compact stock adjustment', async 
   expect(linkBox!.width).toBeLessThanOrEqual(renderedTextWidth + 2);
 
   await stockCell.click({ position: { x: 4, y: cellBox!.height / 2 } });
-  await expect(page.getByRole('dialog', { name: 'Change stock — Cloud Oolong' })).toHaveCount(0);
+  await expect(page.getByRole('dialog', { name: 'Change stock: Cloud Oolong' })).toHaveCount(0);
   await expect(row).toHaveAttribute('aria-selected', 'true');
 
   await stockLink.click();
-  await expect(page.getByRole('dialog', { name: 'Change stock — Cloud Oolong' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Change stock: Cloud Oolong' })).toBeVisible();
 });
 
 test('only the rendered source words open a closeable source panel without leaving Stock', async ({ page }) => {
@@ -197,14 +208,14 @@ test('only the rendered source words open a closeable source panel without leavi
   expect(linkBox!.width).toBeLessThan(cellBox!.width - 8);
 
   await sourceCell.click({ position: { x: cellBox!.width - 4, y: cellBox!.height / 2 } });
-  await expect(page.getByRole('dialog', { name: 'Source — Cloud Mountain' })).toHaveCount(0);
+  await expect(page.getByRole('dialog', { name: 'Source: Cloud Mountain' })).toHaveCount(0);
   await expect(row).toHaveAttribute('aria-selected', 'true');
 
   await sourceLink.click();
   await expect(page).toHaveURL(/\/admin\/stock(?:\?|$)/);
-  await expect(page.getByRole('dialog', { name: 'Source — Cloud Mountain' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Source: Cloud Mountain' })).toBeVisible();
   await page.getByRole('button', { name: 'Close source panel' }).click();
-  await expect(page.getByRole('dialog', { name: 'Source — Cloud Mountain' })).toHaveCount(0);
+  await expect(page.getByRole('dialog', { name: 'Source: Cloud Mountain' })).toHaveCount(0);
   await expect(page).toHaveURL(/\/admin\/stock(?:\?|$)/);
 });
 
@@ -220,7 +231,7 @@ test('the tea name and selection-rail Edit both open the full product editor', a
 
 test('normal stock interaction opens explicit movement actions and previews before/after', async ({ page }) => {
   await page.getByRole('button', { name: 'Change stock for Cloud Oolong' }).click();
-  await expect(page.getByRole('dialog', { name: 'Change stock — Cloud Oolong' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Change stock: Cloud Oolong' })).toBeVisible();
   const movementButtons = page.getByRole('group', { name: 'Movement type' });
   await expect(page.getByRole('combobox', { name: 'Movement type' })).toHaveCount(0);
   for (const label of ['Receive', 'Sample use', 'Gift', 'Waste', 'Return', 'Recount', 'Transfer']) {
@@ -243,7 +254,7 @@ test('normal stock interaction opens explicit movement actions and previews befo
 
 test('stock adjustment opens as a compact task with optional details and history collapsed', async ({ page }) => {
   await page.getByRole('button', { name: 'Change stock for Cloud Oolong' }).click();
-  const dialog = page.getByRole('dialog', { name: 'Change stock — Cloud Oolong' });
+  const dialog = page.getByRole('dialog', { name: 'Change stock: Cloud Oolong' });
   const box = await dialog.boundingBox();
   const viewport = page.viewportSize();
 
@@ -389,7 +400,7 @@ test('quick edit opens Recount and full product edit opens movements without abs
 
   await page.getByRole('button', { name: 'Open Cloud Oolong editor' }).click();
   await page.locator('[role="dialog"][aria-hidden="false"]').getByRole('button', { name: 'Change stock for Cloud Oolong' }).click();
-  await expect(page.getByRole('dialog', { name: 'Change stock — Cloud Oolong' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Change stock: Cloud Oolong' })).toBeVisible();
   expect(absoluteStockWrites).toHaveLength(0);
 });
 
@@ -413,7 +424,7 @@ test('stock panel stays compact, closes without breaking scroll, and returns foc
   const trigger = page.getByRole('button', { name: 'Change stock for Cloud Oolong' });
   await trigger.focus();
   await trigger.click();
-  const dialog = page.getByRole('dialog', { name: 'Change stock — Cloud Oolong' });
+  const dialog = page.getByRole('dialog', { name: 'Change stock: Cloud Oolong' });
   const box = await dialog.boundingBox();
   expect(box?.width).toBeLessThan((page.viewportSize()?.width || 390) - 20);
   expect(box?.height).toBeLessThan((page.viewportSize()?.height || 720) - 40);
@@ -428,7 +439,7 @@ test('stock movement dialog traps keyboard focus and Escape restores its trigger
   const trigger = page.getByRole('button', { name: 'Change stock for Cloud Oolong' });
   await trigger.focus();
   await trigger.click();
-  const dialog = page.getByRole('dialog', { name: 'Change stock — Cloud Oolong' });
+  const dialog = page.getByRole('dialog', { name: 'Change stock: Cloud Oolong' });
   const close = page.getByRole('button', { name: 'Close stock movement' });
   await expect(close).toBeFocused();
   await close.press('Shift+Tab');

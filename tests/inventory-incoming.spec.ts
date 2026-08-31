@@ -3,7 +3,22 @@ import { test, expect } from '@playwright/test';
 test('Incoming shows expected separately and supports partial receiving', async ({ page }) => {
   const enc = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');
   const token = `${enc({ alg: 'HS256', typ: 'JWT' })}.${enc({ sub: 'admin', email: 'admin@test', role: 'owner', exp: Math.floor(Date.now()/1000)+86400, active_account_id: 'acct', memberships: [{ account_id: 'acct', role: 'owner' }] })}.sig`;
-  await page.addInitScript(value => localStorage.setItem('teajia_token', value), token);
+  // Nothing may escape to the real API: an unmocked call used to leave the
+  // shell waiting on the network, and a session that never settles renders as
+  // a signed-out one.
+  await page.route('**/api/**', route => route.fulfill({ status: 501, json: { error: `Unhandled ${route.request().method()} ${new URL(route.request().url()).pathname}` } }));
+  // A token alone no longer opens an admin route: the shell also needs the
+  // account it is acting for. Without it the app decides there is no session
+  // and redirects to sign-in, so both tests here were asserting against the
+  // sign-in page rather than against the receipts panel.
+  await page.addInitScript(value => {
+    localStorage.clear();
+    localStorage.setItem('teajia_token', value);
+    localStorage.setItem('teajia-storage', JSON.stringify({ version: 2, state: {
+      activeAccountId: 'acct', activeUserId: 'admin',
+      memberships: [{ account_id: 'acct', account_name: 'Test', role: 'owner' }],
+    } }));
+  }, token);
   await page.route('**/api/auth/me', route => route.fulfill({ json: { id: 'admin', email: 'admin@test', role: 'owner' } }));
   await page.route('**/api/auth/refresh', route => route.fulfill({ json: { token } }));
   await page.route('**/api/products', route => route.fulfill({ json: [] }));
@@ -40,7 +55,22 @@ test('Incoming shows expected separately and supports partial receiving', async 
 test('receipt deep link loads closed receipts and shows the exact finalized receipt', async ({ page }) => {
   const enc = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');
   const token = `${enc({ alg: 'HS256', typ: 'JWT' })}.${enc({ sub: 'admin', email: 'admin@test', role: 'owner', exp: Math.floor(Date.now()/1000)+86400, active_account_id: 'acct', memberships: [{ account_id: 'acct', role: 'owner' }] })}.sig`;
-  await page.addInitScript(value => localStorage.setItem('teajia_token', value), token);
+  // Nothing may escape to the real API: an unmocked call used to leave the
+  // shell waiting on the network, and a session that never settles renders as
+  // a signed-out one.
+  await page.route('**/api/**', route => route.fulfill({ status: 501, json: { error: `Unhandled ${route.request().method()} ${new URL(route.request().url()).pathname}` } }));
+  // A token alone no longer opens an admin route: the shell also needs the
+  // account it is acting for. Without it the app decides there is no session
+  // and redirects to sign-in, so both tests here were asserting against the
+  // sign-in page rather than against the receipts panel.
+  await page.addInitScript(value => {
+    localStorage.clear();
+    localStorage.setItem('teajia_token', value);
+    localStorage.setItem('teajia-storage', JSON.stringify({ version: 2, state: {
+      activeAccountId: 'acct', activeUserId: 'admin',
+      memberships: [{ account_id: 'acct', account_name: 'Test', role: 'owner' }],
+    } }));
+  }, token);
   await page.route('**/api/auth/me', route => route.fulfill({ json: { id: 'admin', email: 'admin@test', role: 'owner' } }));
   await page.route('**/api/auth/refresh', route => route.fulfill({ json: { token } }));
   await page.route('**/api/products', route => route.fulfill({ json: [] }));
