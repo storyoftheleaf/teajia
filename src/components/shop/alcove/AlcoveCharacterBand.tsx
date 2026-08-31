@@ -156,10 +156,32 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
           categoryId: 'flavor',
         }));
 
-  const starred = starredNotes(tasting);
+  /*
+   * Every voice on this tea, in one grammar.
+   *
+   * The shop's own starred notes are Adrian's or a promoted community line. The
+   * reader's own starred note is theirs, and it belongs in the same place: a
+   * note you star is a note you asked to see against the tea, and reading it as
+   * a quote beside the taste line is what "star" was always promising. It stays
+   * on their screen rather than the shop's, because starring is not publishing
+   * someone else's words on a product page.
+   */
+  const shopStarred = starredNotes(tasting).map(note => ({
+    note,
+    attribution: note.sourceAuthor
+      ? note.sourceAuthor.initial || note.sourceAuthor.accountName || 'Community'
+      : 'Adrian',
+    key: `shop-${note.id}`,
+  }));
+  const ownStarred = starredNotes(tastingEntry?.note?.tasting).map(note => ({
+    note,
+    attribution: 'You',
+    key: `own-${note.id}`,
+  }));
+  const quotes = [...shopStarred, ...ownStarred];
   const hasVisibleStructuredTerms = flavorTerms.length > 0 || feelingTerms.length > 0;
   const hasTerms = tasteTerms.length > 0 || feelingTerms.length > 0;
-  const hasCharacterContent = hasTerms || starred.length > 0;
+  const hasCharacterContent = hasTerms || quotes.length > 0;
   const hasAny = hasCharacterContent || Boolean(potentialResearch) || Boolean(onTaste);
 
   // No sensory data: no band, no empty heading. (The admin "Edit" affordance
@@ -202,33 +224,28 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
         </div>
       )}
 
+      {quotes.map(({ note, attribution, key }, i) => (
+        <figure
+          key={key}
+          className={`mx-0 mb-0 px-1 text-center ${i === 0 && hasTerms ? 'mt-3.5' : i === 0 ? 'mt-1' : 'mt-3.5'}`}
+        >
+          <blockquote className="m-0 font-display text-ui-17 not-italic leading-[1.5] text-tea-text">
+            &ldquo;{note.text}&rdquo;
+          </blockquote>
+          <figcaption className="mt-2 font-sans text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim">
+            {attribution}
+          </figcaption>
+        </figure>
+      ))}
+
       {onTaste && (
         <div className={hasCharacterContent ? 'mt-4' : ''}>
           <AlcoveTastingPlate entry={tastingEntry} onTaste={intent => onTaste(item, intent)} />
         </div>
       )}
 
-      {starred.map((note, i) => {
-        const attribution = note.sourceAuthor
-          ? note.sourceAuthor.initial || note.sourceAuthor.accountName || 'Community'
-          : 'Adrian';
-        return (
-          <figure
-            key={note.id}
-            className={`mx-0 mb-0 px-1 text-center ${i === 0 && hasTerms ? 'mt-3.5' : i === 0 ? 'mt-1' : 'mt-3.5'}`}
-          >
-            <blockquote className="m-0 font-display text-ui-17 not-italic leading-[1.5] text-tea-text">
-              &ldquo;{note.text}&rdquo;
-            </blockquote>
-            <figcaption className="mt-2 font-sans text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim">
-              {attribution}
-            </figcaption>
-          </figure>
-        );
-      })}
-
       {potentialResearch && (
-        <div className={`border-t border-tea-border px-1 text-center ${hasTerms || starred.length ? 'mt-4 pt-4' : 'pt-1'}`}>
+        <div className={`border-t border-tea-border px-1 text-center ${hasTerms || quotes.length ? 'mt-4 pt-4' : 'pt-1'}`}>
           <p className="font-sans text-ui-9 uppercase tracking-[0.24em] indent-[0.24em] text-tea-text-dim">
             Potential character
           </p>

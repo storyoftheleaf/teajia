@@ -61,17 +61,14 @@ export const AlcoveTastingPlate: React.FC<AlcoveTastingPlateProps> = ({ entry, o
     ? note.tasting.flavor
     : note?.tasting?.feeling ?? [];
   /*
-   * What the plate says in your own words, in order of how deliberately you
-   * chose it. A starred note is the one you picked out of the session and asked
-   * to be shown, so it wins; the entry's paragraph is the fallback. Starring
-   * had no effect anywhere on this page before: the character band reads the
-   * shop's own record, so a reader could star a note in the session and watch
-   * nothing happen with it.
+   * The plate carries the line you did NOT star: your own paragraph on this tea,
+   * which is a private working note. A starred note is the opposite gesture, so
+   * it is read out as a quote in the character band above rather than repeated
+   * here a hundred pixels away from itself.
    */
-  const starred = starredNotes(note?.tasting)[0]?.text?.trim();
   const personalNote = note?.personalNote?.trim();
-  const spokenLine = starred || personalNote;
-  const hasSomethingToShow = terms.length > 0 || Boolean(spokenLine);
+  const starredCount = starredNotes(note?.tasting).length;
+  const hasSomethingToShow = terms.length > 0 || Boolean(personalNote) || starredCount > 0;
 
   // An entry that exists but holds nothing readable is not worth a plate of its
   // own: the invitation is still the honest thing to show.
@@ -161,9 +158,9 @@ export const AlcoveTastingPlate: React.FC<AlcoveTastingPlateProps> = ({ entry, o
         </p>
       )}
 
-      {spokenLine && (
+      {personalNote && (
         <p className="m-0 mt-[7px] line-clamp-2 font-body text-ui-13 italic leading-[1.55] text-tea-text-sec">
-          {spokenLine}
+          {personalNote}
         </p>
       )}
 
