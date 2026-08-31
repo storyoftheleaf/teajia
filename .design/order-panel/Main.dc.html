@@ -72,7 +72,7 @@
     </sc-if>
 
     <sc-for list="{{items}}" as="item" hint-placeholder-count="2">
-      <div class="paper" style="padding: 14px 16px 12px 16px; display: flex; flex-direction: column; gap: 12px; background-image: linear-gradient(to right, {{item.wash}}, transparent 38%);">
+      <div class="paper" style="padding: 14px 16px 12px 16px; display: flex; flex-direction: column; gap: 12px; background-image: linear-gradient(to right, {{item.wash}}, transparent 72%);">
         <div style="display: flex; flex-direction: column; gap: 4px;">
           <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
             <div style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 23px; line-height: 1.1;">{{item.name}}</div>
@@ -128,11 +128,11 @@
 <script data-dc-script data-props='{}'>
 // The colour each tea brews, the shop ledger's own tones at its own strength.
 const WASH = {
-  Red: 'rgba(166, 123, 112, 0.13)',
-  Sheng: 'rgba(152, 166, 123, 0.13)',
-  Shou: 'rgba(92, 84, 78, 0.13)',
-  White: 'rgba(214, 211, 205, 0.13)',
-  Green: 'rgba(133, 159, 133, 0.13)',
+  Red: 'rgba(166, 123, 112, 0.34)',
+  Sheng: 'rgba(152, 166, 123, 0.34)',
+  Shou: 'rgba(92, 84, 78, 0.34)',
+  White: 'rgba(214, 211, 205, 0.34)',
+  Green: 'rgba(133, 159, 133, 0.34)',
 };
 
 const HANDLING = 32420; // 2 USD of handling, at the rate this artboard quotes

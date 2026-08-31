@@ -411,11 +411,26 @@ export interface TeaLedgerTones {
   markFg: string;
 }
 
-export const getTeaLedgerTones = (type: string, theme: 'light' | 'dark'): TeaLedgerTones => {
+/**
+ * `washStrength` multiplies the wash alpha for surfaces that are not the
+ * shop's own ground.
+ *
+ * The shop row washes onto `tea-bg`; the order panel washes onto `tea-surface`,
+ * which is sixteen points lighter, so the same alpha lands with markedly less
+ * contrast and the colour stops being readable at a glance, which is its only
+ * job. Same tones, more of them, rather than a second set of colours to keep
+ * in step.
+ */
+export const getTeaLedgerTones = (
+  type: string,
+  theme: 'light' | 'dark',
+  washStrength = 1,
+): TeaLedgerTones => {
   const base = hexToRgb(getTeaColor(type));
   const ground = THEME_GROUND[theme];
+  const alpha = Math.min(1, ground.wash * washStrength);
   return {
-    wash: `rgba(${base[0]}, ${base[1]}, ${base[2]}, ${ground.wash})`,
+    wash: `rgba(${base[0]}, ${base[1]}, ${base[2]}, ${alpha})`,
     markBg: mix(base, ground.bg, 0.7),
     markFg: mix(base, ground.text, 0.5),
   };

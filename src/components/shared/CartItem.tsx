@@ -102,13 +102,18 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
    * who learned the colours browsing reads them again here without being
    * taught twice. Ground rather than a chip: a swatch would be a second thing
    * to look at, and this is meant to be understood at a glance, not examined.
+   *
+   * Stronger than the shop's, and reaching further across the block, because
+   * this block sits on `tea-surface` rather than the shop's darker `tea-bg`:
+   * at the shop's own alpha the colour was there and unreadable, which is the
+   * one thing a glance cue cannot be.
    */
-  const wash = item.type ? getTeaLedgerTones(item.type, theme).wash : null;
+  const wash = item.type ? getTeaLedgerTones(item.type, theme, 2.6).wash : null;
 
   return (
     <div
       className="bg-tea-surface rounded-[3px] px-4 pt-3.5 pb-3 flex flex-col gap-3"
-      style={wash ? { backgroundImage: `linear-gradient(to right, ${wash}, transparent 38%)` } : undefined}
+      style={wash ? { backgroundImage: `linear-gradient(to right, ${wash}, transparent 72%)` } : undefined}
     >
       <div className="flex flex-col gap-1">
         <div className="flex items-baseline justify-between gap-3">
