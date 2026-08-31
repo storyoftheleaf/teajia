@@ -11707,16 +11707,11 @@ const handleDeleteEvent: Handler = async (request, env, params) => {
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
-  // F8: Release all stock holds for this event before archiving
-  const eventHoldKey = `event:${params.id}`;
-  await env.DB.batch([
-    env.DB.prepare(
-      'DELETE FROM stock_holds WHERE invoice_id = ? AND account_id = ?'
-    ).bind(eventHoldKey, accountId),
-    env.DB.prepare(
-      `UPDATE events SET status = 'archived', updated_at = datetime('now') WHERE id = ? AND account_id = ?`
-    ).bind(params.id, accountId),
-  ]);
+  // No stock holds to release: the menu save that would have created them is
+  // gone, and it never created any.
+  await env.DB.prepare(
+    `UPDATE events SET status = 'archived', updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+  ).bind(params.id, accountId).run();
 
   return json({ success: true });
 };
@@ -12490,44 +12485,13 @@ const handleUpsertTeaMenu: Handler = async (request, env, params) => {
     await env.DB.batch(stmts);
   }
 
-  // F8: Refresh stock holds for this event's tea menu based on seat count
-  // We use invoice_id = 'event:{event_id}' as a stable sentinel to track event holds
-  try {
-    const eventRow = await env.DB.prepare(
-      'SELECT total_capacity FROM events WHERE id = ? AND account_id = ?'
-    ).bind(params.id, accountId).first() as any;
-
-    const seatCount = Number(eventRow?.total_capacity) || 0;
-    if (seatCount > 0) {
-      const menuRows = await env.DB.prepare(
-        `SELECT etm.product_id, p.serving_grams FROM event_tea_menu etm
-         LEFT JOIN products p ON p.id = etm.product_id AND p.account_id = etm.account_id
-         WHERE etm.event_id = ? AND etm.account_id = ? AND etm.product_id IS NOT NULL`
-      ).bind(params.id, accountId).all();
-
-      const eventHoldKey = `event:${params.id}`;
-      // Clear existing event holds then re-create from current menu
-      const holdStmts: D1PreparedStatement[] = [
-        env.DB.prepare(
-          'DELETE FROM stock_holds WHERE invoice_id = ? AND account_id = ?'
-        ).bind(eventHoldKey, accountId),
-      ];
-
-      for (const row of menuRows.results as any[]) {
-        const servingGrams = Number(row.serving_grams) || 5;
-        const heldGrams = seatCount * servingGrams;
-        holdStmts.push(
-          env.DB.prepare(
-            'INSERT INTO stock_holds (id, account_id, invoice_id, product_id, held_grams) VALUES (?, ?, ?, ?, ?)'
-          ).bind(crypto.randomUUID(), accountId, eventHoldKey, row.product_id, heldGrams)
-        );
-      }
-
-      await env.DB.batch(holdStmts);
-    }
-  } catch {
-    // Stock reservation is non-critical — don't fail the menu upsert if it errors
-  }
+  // Saving a tea menu used to reserve stock here, a seat count multiplied by a
+  // per-product serving size. It never once ran: products has no serving_grams
+  // column and never has, so the first query threw and the catch below it
+  // swallowed the failure silently. Removed rather than repaired (Adrian's
+  // call, 2026-08-31): making it work would start holding tea back from the
+  // shop, and nothing has missed it. No rows were ever written, so there is
+  // nothing to clean up.
 
   return json({ success: true, count: stmts.length });
 };
