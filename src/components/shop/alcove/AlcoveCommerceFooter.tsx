@@ -410,12 +410,14 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
                   The currency sits with the heading rather than on each of the
                   eleven figures below it: said once it is a control, said
                   eleven times it is noise holding the columns apart. */}
-              <div className="flex items-center justify-between gap-2 px-3.5 pb-2 pt-3">
+              <div className="flex items-start justify-between gap-2 px-3.5 pb-2 pt-3">
                 <span className="flex items-center gap-2">
                   <span className={`whitespace-nowrap font-sans uppercase tracking-[0.16em] text-tea-text-dim ${isRail ? 'text-ui-11' : 'text-ui-10'}`}>How much</span>
                   {formatPlainTotal && <ShopCurrencyPicker />}
                 </span>
-                <span className="min-w-0 truncate text-right font-sans text-ui-10 tracking-[0.02em] text-tea-text-dim">
+                {/* Wraps rather than truncates. Cut off at "a lower pri..."
+                    the sentence loses the only word that says what happens. */}
+                <span className="min-w-0 text-right font-sans text-ui-10 leading-[1.35] tracking-[0.02em] text-tea-text-dim">
                   Quantity provides a lower price.
                 </span>
               </div>
