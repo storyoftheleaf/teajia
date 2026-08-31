@@ -9,6 +9,13 @@
 > **2026-08-31:** the Guangzhou 7-tea intake (this month's stock purchase) is
 > COMPLETE. Keys live in `docs/ops/` — see `GUANGZHOU_INTAKE_HANDOFF.md`
 > (About-push + pricing-fix + personal-filing final state) first.
+>
+> **2026-08-31 (later):** the Huang Wei intake (3 teas → Bali, per-500g price
+> list, vendor Huang Wei / Weeee36 / Guangzhou) is COMPLETE and LIVE on the
+> public Bali shop. See `docs/ops/HUANG_WEI_INTAKE_HANDOFF.md`. Root fixes that
+> now make operator-side intake publishing + vendor cleanup permanent:
+> `intake_set_group_vendor` (81510678), `set_tea_visibility(is_public=true)`
+> (2aa61ab6), `remove_vendor_contact` (d05ad175).
 
 ---
 
