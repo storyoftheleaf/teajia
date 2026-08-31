@@ -31,6 +31,7 @@ import {
   buildSettlementReversalStatements,
   buildSettlementStatements,
   SalesInvariantError,
+  canonicalCurrency,
 } from './teaMasterSales';
 import {
   createCurateImport,
@@ -683,7 +684,8 @@ async function toolCreateTea(env: Env, auth: McpAuth, args: any) {
     vendor: args?.vendor ? String(args.vendor).trim() : null,
     stockGrams,
     costAmount,
-    costCurrency: args?.cost_currency ? String(args.cost_currency).trim().toUpperCase() : 'USD',
+    costCurrency: canonicalCurrency(args?.cost_currency
+      ? String(args.cost_currency).trim().toUpperCase() : '') || 'USD',
     fixedRetailPriceUsd,
     lowStockThreshold,
     notes: args?.notes ? String(args.notes).slice(0, 1000) : null,

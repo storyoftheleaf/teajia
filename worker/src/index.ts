@@ -22,6 +22,7 @@ import {
   resolvePaymentRecipientUserId,
   SalesInvariantError,
   validateInvoiceLineSnapshots,
+  canonicalCurrency,
   type AuthorizedInvoiceLine,
 } from './teaMasterSales';
 import { buildEventArticleDraft } from './eventArticleDraft';
@@ -1449,26 +1450,6 @@ function matchRoute(method: string, path: string, routes: [string, string, Handl
     if (match) return { handler, params };
   }
   return null;
-}
-
-// ── Currency canonicalization ──
-// The exchange_rates table keys CNY as 'Yuan' (not the ISO code 'CNY'). Callers
-// may pass 'CNY', 'CN¥', 'RMB', 'yuán', etc. Map every alias to the canonical
-// key so the rate always resolves and pricing never silently falls back to USD.
-const CURRENCY_ALIASES: Record<string, string> = {
-  'cny': 'Yuan',
-  'rmb': 'Yuan',
-  'renminbi': 'Yuan',
-  'yuan': 'Yuan',
-  'yuán': 'Yuan',
-  '¥': 'Yuan',
-  'cn¥': 'Yuan',
-  'mop': 'HKD',       // Macau pataca trades near the HK dollar; treat as HKD
-  'cnh': 'Yuan',      // offshore yuan — same rate family
-};
-function canonicalCurrency(cur: string | null | undefined): string | null {
-  if (!cur) return null;
-  return CURRENCY_ALIASES[cur.toLowerCase()] ?? cur;
 }
 
 // ── Product pricing calculation (mirrors the Postgres view) ──
