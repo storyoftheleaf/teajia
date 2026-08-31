@@ -498,6 +498,7 @@ type PendingMutation =
   | { kind: 'upsert_vendor_contact'; accountId: string; userEmail: string; name: string; company: string | null; phone: string | null; whatsapp: string | null; wechat: string | null; address: string | null; city: string | null; country: string | null; source: string | null; notes: string | null }
   | { kind: 'remove_vendor_contact'; accountId: string; userEmail: string; customerId: string }
   | { kind: 'link_vendor_products'; accountId: string; userEmail: string; customerId: string; productIds: string[]; note: string | null }
+  | { kind: 'update_tea_catalog'; accountId: string; userEmail: string; productId: string; fields: Record<string, string | null> }
   | { kind: 'set_archive_status'; accountId: string; userEmail: string; productId: string; archived: boolean; reason: string | null }
   | { kind: 'set_tea_visibility'; accountId: string; userEmail: string; productId: string; shownInShop: boolean; personal?: boolean; isPublic?: boolean }
   | { kind: 'fulfill_invoice'; accountId: string; userEmail: string; actorUserId: string; invoiceId: string }
@@ -2932,6 +2933,111 @@ async function commitLinkVendorProducts(
     vendor_id: m.customerId,
     linked_product_ids: m.productIds,
     product_count: rows.length,
+  };
+}
+
+// ── tool: update_tea_catalog (preview / confirm) ──
+// Edit catalog/identity fields (type, form, given_name, chinese_name,
+// product_name, origin_country, origin_region, year, altitude, cultivar,
+// teaware_category, material, capacity_ml) on an existing tea. Mirrors
+// products + tea_profiles. Scoped stock:write so the operator token can use it.
+const CATALOG_FIELDS: Record<string, string> = {
+  product_name: 'product_name',
+  given_name: 'given_name',
+  chinese_name: 'chinese_name',
+  type: 'type',
+  form: 'form',
+  origin_country: 'origin_country',
+  origin_region: 'origin_region',
+  year: 'year',
+  altitude: 'altitude',
+  cultivar: 'cultivar',
+  teaware_category: 'teaware_category',
+  material: 'material',
+  capacity_ml: 'capacity_ml',
+};
+
+async function toolUpdateTeaCatalog(env: Env, auth: McpAuth, args: any) {
+  if (!args?.product_id) return { error: 'product_id is required' };
+  const productId = String(args.product_id);
+  const fields: Record<string, string | null> = {};
+  for (const [bodyKey, col] of Object.entries(CATALOG_FIELDS)) {
+    if (args[bodyKey] !== undefined) {
+      fields[col] = args[bodyKey] === null ? null : String(args[bodyKey]);
+    }
+  }
+  const keys = Object.keys(fields);
+  if (keys.length === 0) return { error: 'no_catalog_fields_supplied' };
+
+  const row = await env.DB.prepare(
+    `SELECT id, given_name, product_name, type, form, status FROM products WHERE account_id = ? AND (id = ? OR id LIKE ?)`
+  ).bind(auth.accountId, productId, `${productId}-%`).first();
+  if (!row) return { error: 'product_not_found' };
+
+  const isConfirm = args?.confirm != null;
+  if (!isConfirm) {
+    const token = await issueConfirmationToken(env, {
+      kind: 'update_tea_catalog',
+      accountId: auth.accountId,
+      userEmail: auth.userEmail,
+      productId: row.id as string,
+      fields,
+    }, auth.tokenId);
+    return {
+      preview: true,
+      confirmation_token: token,
+      product_id: row.id,
+      product: (row.given_name || row.product_name) as string,
+      current: {
+        type: row.type,
+        form: row.form,
+      },
+      will_update: Object.fromEntries(keys.map((c) => [c, fields[c]])),
+    };
+  }
+
+  const pending = await consumeConfirmationToken(env, args.confirm, auth.tokenId);
+  if (!pending || pending.kind !== 'update_tea_catalog' || pending.productId !== row.id) {
+    return { error: 'invalid_or_expired_confirmation_token' };
+  }
+  return commitUpdateTeaCatalog(env, pending, (row.given_name || row.product_name) as string);
+}
+
+async function commitUpdateTeaCatalog(
+  env: Env,
+  m: Extract<PendingMutation, { kind: 'update_tea_catalog' }>,
+  productName: string,
+) {
+  const sets: string[] = [];
+  const binds: (string | null)[] = [];
+  for (const [col, val] of Object.entries(m.fields)) {
+    sets.push(`${col} = ?`);
+    binds.push(val);
+  }
+  binds.push(m.accountId, m.productId, `${m.productId}-%`);
+  const now = new Date().toISOString();
+  const changed = Object.keys(m.fields);
+
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE products SET ${sets.join(', ')}, updated_at = ? WHERE account_id = ? AND (id = ? OR id LIKE ?)`)
+      .bind(...binds.slice(0, -3), now, ...binds.slice(-3)),
+    env.DB.prepare(
+      `INSERT INTO tea_profiles (product_id, account_id, ${changed.join(', ')}, created_at, updated_at)
+       VALUES (?, ?, ${changed.map(() => '?').join(', ')}, ?, ?)
+       ON CONFLICT(product_id) DO UPDATE SET ${changed.map((c) => `${c} = excluded.${c}`).join(', ')}, updated_at = excluded.updated_at`
+    ).bind(m.productId, m.accountId, ...changed.map((c) => m.fields[c]), now, now),
+    env.DB.prepare(
+      `INSERT INTO activity_logs (account_id, user_email, action, entity_type, entity_id, detail, created_at)
+       VALUES (?, ?, 'PRODUCT_CATALOG_UPDATE_MCP', 'product', ?, ?, ?)`
+    ).bind(m.accountId, m.userEmail, m.productId, JSON.stringify({ fields: m.fields }), now),
+  ]);
+
+  return {
+    committed: true,
+    action: 'update_tea_catalog',
+    product_id: m.productId,
+    product: productName,
+    updated_fields: changed,
   };
 }
 
@@ -5661,6 +5767,32 @@ const TOOL_DEFS = [
     },
   },
   {
+    name: 'update_tea_catalog',
+    scope: 'stock:write',
+    description: 'Edit catalog/identity fields (type, form, product_name, given_name, chinese_name, origin_country, origin_region, year, altitude, cultivar, teaware_category, material, capacity_ml) on an existing tea. Mirrors products and tea_profiles. Two-step preview/confirm. Scoped to stock:write so the operator can correct type/form on intake teas.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        product_id: { type: 'string', description: 'Product id (full 36-char UUID) from search_tea/get_tea.' },
+        type: { type: 'string', description: 'Tea type/category, e.g. Shou Puer, Sheng Puer, Dark, Oolong.' },
+        form: { type: 'string', description: 'Physical form, e.g. Loose Leaf, Brick, Tuo, Cake.' },
+        product_name: { type: 'string', description: 'Full display product name.' },
+        given_name: { type: 'string', description: 'Short given name shown in listings.' },
+        chinese_name: { type: 'string', description: 'Chinese name (if any).' },
+        origin_country: { type: 'string', description: 'Country of origin.' },
+        origin_region: { type: 'string', description: 'Region/area of origin.' },
+        year: { type: 'string', description: 'Vintage year as a string (e.g. "1990s", "1993").' },
+        altitude: { type: 'string', description: 'Altitude in meters.' },
+        cultivar: { type: 'string', description: 'Cultivar/plant variety.' },
+        teaware_category: { type: 'string', description: 'Teaware category if teaware.' },
+        material: { type: 'string', description: 'Material (teaware).' },
+        capacity_ml: { type: 'string', description: 'Capacity in ml (teaware).' },
+        confirm: { type: 'string', description: 'Confirmation token from preview response.' },
+      },
+      required: ['product_id'],
+    },
+  },
+  {
     name: 'set_archive_status',
     scope: 'catalog:write',
     description: 'Archive or un-archive a tea product. Archiving removes it from public shop listings. Two-step preview/confirm. Shows current and new status before committing.',
@@ -6015,6 +6147,7 @@ const DESTRUCTIVE_TOOLS = new Set(['void_invoice', 'remove_stock', 'update_excha
 const IDEMPOTENT_TOOLS = new Set([
   'tag_customer', 'untag_customer', 'link_vendor', 'unlink_vendor',
   'upsert_vendor_contact', 'remove_vendor_contact', 'link_vendor_products',
+  'update_tea_catalog',
   'set_archive_status', 'set_low_stock_threshold', 'mark_invoice_paid',
   'update_customer', 'update_invoice', 'update_tea_pricing',
   'update_account_settings', 'update_exchange_rate', 'set_tea_visibility',
@@ -6063,6 +6196,7 @@ const AUDITED_TOOLS = new Set([
   // Wave 3
   'tag_customer', 'untag_customer', 'link_vendor', 'unlink_vendor',
   'upsert_vendor_contact', 'remove_vendor_contact', 'link_vendor_products',
+  'update_tea_catalog',
   'set_archive_status', 'fulfill_invoice', 'update_account_settings', 'update_exchange_rate',
   'set_tea_visibility',
   // Ported tools
@@ -6144,6 +6278,7 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
     case 'upsert_vendor_contact': result = mcpContent(await toolUpsertVendorContact(env, auth, args)); break;
     case 'remove_vendor_contact': result = mcpContent(await toolRemoveVendorContact(env, auth, args)); break;
     case 'link_vendor_products': result = mcpContent(await toolLinkVendorProducts(env, auth, args)); break;
+    case 'update_tea_catalog': result = mcpContent(await toolUpdateTeaCatalog(env, auth, args)); break;
     case 'set_archive_status': result = mcpContent(await toolSetArchiveStatus(env, auth, args)); break;
     case 'set_tea_visibility': result = mcpContent(await toolSetTeaVisibility(env, auth, args)); break;
     case 'fulfill_invoice': result = mcpContent(await toolFulfillInvoice(env, auth, args)); break;
