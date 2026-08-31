@@ -214,7 +214,7 @@ test('the tea name and selection-rail Edit both open the full product editor', a
 
   await page.getByRole('button', { name: 'Close product panel' }).click();
   await page.locator('tr[data-product-id="tea-1"]').dispatchEvent('click');
-  await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit' }).click();
+  await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Cloud Oolong' })).toBeVisible();
 });
 

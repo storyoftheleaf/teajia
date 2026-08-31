@@ -2164,7 +2164,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               const lensBtn = (active: boolean) => `tap-target relative font-display text-ui-16 font-medium leading-none whitespace-nowrap ${active ? 'text-tea-gold after:absolute after:inset-x-0 after:-bottom-1 after:h-0.5 after:bg-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`;
               return (
                 <div data-testid="inventory-purpose-row" data-inventory-header-row className="static flex h-12 w-full max-w-full items-center gap-2 md:gap-5 px-3 md:px-4 border-b border-tea-border whitespace-nowrap overflow-visible">
-                  <div className="flex items-center gap-2 md:gap-5 min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [mask-image:linear-gradient(to_right,#000_86%,transparent)] md:[mask-image:none]">
+                  <div data-testid="inventory-purpose-lenses" className="flex items-center gap-2 md:gap-5 min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [mask-image:linear-gradient(to_right,#000_86%,transparent)] md:[mask-image:none]">
                     {purposeViews.map(view => <button key={view.id} type="button" onClick={() => selectView(view)} aria-pressed={activeViewId === view.id} className={lensBtn(activeViewId === view.id)}>{view.name || VIEW_FILTER_LABELS[view.filterType] || view.filterType}</button>)}
                   </div>
 

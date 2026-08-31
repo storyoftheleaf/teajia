@@ -19,6 +19,9 @@
 - [ ] **An order can still be sent carrying a line priced at nothing.** _(band: agent-runnable)_ _(effort: quick)_ → Plan: [order-process-handoff.md](todo/plans/order-process-handoff.md)
   A retired tea converts to a zero-priced line on purpose, so nothing is silently dropped. It now shows up in the attention list, but nothing refuses to send it. A draft carrying one should not become pending without an explicit acknowledgement.
 
+- [ ] **A saved inventory view can be created but never deleted.** _(band: you-required)_ _(effort: quick)_
+  The view rail was redesigned into four purpose lenses plus a Flagged menu, and the per-view delete control did not come across. `deleteView` is still in the store and still wired into InventoryView, so only the affordance is missing. Two tests in `tests/inventory-purpose-views.spec.ts` are skipped against this and name it, so they turn back on when the control returns. Where it belongs in the new rail is a design call.
+
 Add only genuinely new observations here. During triage, move each accepted item into exactly one owning track or discard it. Do not duplicate track items here.
 
 <!-- Use: - [ ] **Short outcome.** Why it matters and the evidence that it is not already covered. -->
