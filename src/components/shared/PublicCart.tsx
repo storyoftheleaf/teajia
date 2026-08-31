@@ -445,7 +445,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                     onClick={() => canJump && setStep(s.key)}
                     disabled={!canJump}
                     className={`font-serif text-[12.5px] transition-colors duration-300 whitespace-nowrap min-h-[44px] ${
-                      isActive ? 'text-tea-text' : isPast ? 'text-tea-text-sec hover:text-tea-text cursor-pointer' : 'text-tea-text-dim cursor-default'
+                      isActive ? 'text-tea-text' : isPast ? 'text-tea-text-dim hover:text-tea-text cursor-pointer' : 'text-tea-text-dim cursor-default'
                     }`}
                     aria-current={isActive ? 'step' : undefined}
                   >
@@ -481,16 +481,6 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
           <div className="px-4 pb-1.5 text-right num text-ui-10 text-tea-text-dim">
             1 USD = {rates.find(r => r.currency === currency)?.rateToUSD.toFixed(2)} {currency}
           </div>
-        )}
-        {/*
-          The house terms sit at the top, where they frame the whole panel,
-          rather than in the footer where they were three lines of prose
-          between the total and the only button on the screen.
-        */}
-        {step === 'CART' && !isEmpty && (
-          <p className="px-4 pb-2.5 font-serif italic text-[11.5px] leading-[1.5] text-tea-text-dim">
-            We confirm every order personally. Pricing and shipping are settled by message.
-          </p>
         )}
       </div>
 
@@ -550,8 +540,15 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
           {/* Step 2: Inquiry Form */}
           {step === 'INQUIRY' && (
             <div className="space-y-6 relative z-[1]">
-              <p className="font-serif text-sm text-tea-text-sec italic mb-4">
-                Fill in your details below. Your order request will be generated automatically.
+              {/*
+                The house terms live here rather than in the cart footer. This
+                is the step that raises the question they answer: the order is
+                settled in conversation, which is why it needs a way to reach
+                you. The line they replace ("your order request will be
+                generated automatically") described the machinery instead.
+              */}
+              <p className="font-serif italic text-ui-13 leading-[1.6] text-tea-text-sec mb-4">
+                We confirm every order personally. Pricing and shipping are settled by message.
               </p>
               <form onSubmit={handleFormSubmit} className="space-y-4 p-4 bg-tea-surface rounded-md border border-tea-border" id="inquiry-form">
                 <div>
@@ -873,9 +870,9 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
               disabled={!isFormValid}
               variant="primary"
               fullWidth
-              className="py-4 uppercase tracking-[0.2em] text-xs rounded-none"
+              className="h-[52px] !rounded-[2px] !font-serif !tracking-normal text-ui-14"
             >
-              Review Order
+              Review order
             </Button>
           </div>
         )}
@@ -886,7 +883,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                 onClick={onClose}
                 variant="primary"
                 fullWidth
-                className="py-4 uppercase tracking-[0.2em] text-xs rounded-none"
+                className="h-[52px] !rounded-[2px] !font-serif !tracking-normal text-ui-14"
               >
                 Done
               </Button>
@@ -899,9 +896,9 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                 onClick={() => setStep('INQUIRY')}
                 variant="secondary"
                 fullWidth
-                className="py-3 uppercase tracking-[0.2em] text-xs"
+                className="h-[48px] !rounded-[2px] !font-serif !tracking-normal text-ui-14"
               >
-                Edit Details
+                Edit details
               </Button>
             )}
           </div>
