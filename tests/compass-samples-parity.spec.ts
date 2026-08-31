@@ -139,7 +139,7 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     await openCompass(page);
     await page.getByRole('button', { name: 'Sample list (1)' }).first().click();
     await page.getByRole('button', { name: 'Save as sample batch' }).click();
-    await expect(page.getByText('Saved as sample batch — list cleared')).toBeVisible();
+    await expect(page.getByText('Saved as sample batch. List cleared.')).toBeVisible();
     await page.getByRole('button', { name: 'Close Samples workspace' }).click();
     await page.getByRole('tab', { name: 'Library', exact: true }).click();
     await page.getByRole('button', { name: /To taste/ }).click();
@@ -210,7 +210,7 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     await expect(page.getByText('1 tea · 10g').filter({ visible: true })).toBeVisible();
     const firstSetId = await page.evaluate(() => JSON.parse(localStorage.getItem('teajia-samples') || '{}').state.sampleSets[0].id);
     await page.getByRole('button', { name: 'Retry saving sample batch' }).click();
-    await expect(page.getByText('Saved as sample batch — list cleared')).toBeVisible();
+    await expect(page.getByText('Saved as sample batch. List cleared.')).toBeVisible();
     const savedSetIds = await page.evaluate(() => JSON.parse(localStorage.getItem('teajia-samples') || '{}').state.sampleSets.map((set: { id: string }) => set.id));
     expect(savedSetIds).toEqual([firstSetId]);
   });
@@ -255,7 +255,7 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.getByRole('button', { name: 'Sample list (1)' }).first().click();
     await page.getByRole('button', { name: 'Retry saved batch' }).click();
-    await expect(page.getByText('Saved as sample batch — list cleared')).toBeVisible();
+    await expect(page.getByText('Saved as sample batch. List cleared.')).toBeVisible();
     expect(compassRequestCount(page, 'POST /api/admin/sample-sets')).toBe(1);
     expect(compassRequestCount(page, 'POST /api/admin/samples')).toBe(1);
     const afterRetry = await page.evaluate(() => JSON.parse(localStorage.getItem('teajia-sample-cart') || '{}').state);
@@ -323,7 +323,7 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     await missingRow.getByRole('button', { name: 'Remove' }).click();
     await expect(page.getByText('1 tea · 10g').filter({ visible: true })).toBeVisible();
     await page.getByRole('button', { name: 'Save as sample batch' }).click();
-    await expect(page.getByText('Saved as sample batch — list cleared')).toBeVisible();
+    await expect(page.getByText('Saved as sample batch. List cleared.')).toBeVisible();
     expect(compassRequestCount(page, `DELETE /api/admin/sample-sets/${blocked.setId}`)).toBe(1);
     expect(compassRequestCount(page, 'POST /api/admin/sample-sets')).toBe(2);
     expect(compassRequestCount(page, 'POST /api/admin/samples')).toBe(3);

@@ -18,6 +18,11 @@ const workerImportParsedDataKeys = new Set([
   'priceAmount', 'priceAmountExact', 'currency', 'priceBasis', 'confidence', 'uncertainty', 'evidenceRefs', 'acquired',
   'duplicateResolution', 'proposedCompassEntryId', 'proposedProductId', 'chineseName', 'type', 'form',
   'year', 'originCountry', 'originRegion', 'classification', 'cultivar', 'description', 'inventoryPurpose', 'disposition',
+  // The worker takes these too (curateImportAnalysis IMPORT_ITEM_INPUT_FIELDS).
+  // They were added to the review row after this list was written, so every
+  // save carried a key the mock called unknown, answered 400, and left the row
+  // open. Seven tests read that as a dialog that would not finalize.
+  'producer', 'processingNotes', 'validation', 'tasting', 'tastingSource',
   'sourceId', 'sourceExcerpt', 'sourceLanguage', 'provenance', 'fieldProvenance', 'vendorResolution', 'identityResolution', 'holdingResolution',
 ]);
 const evidenceOrdinalByPage = new WeakMap<Page, { ordinal: number; injectSecondFailure: boolean }>();
