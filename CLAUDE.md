@@ -150,6 +150,24 @@ npx playwright install chromium
 Run the suite with the sandbox disabled; Playwright cannot manage its own browser
 processes inside it and every test dies on `kill EPERM`.
 
+**Stop `npm run dev` before running the browser suite.** The config starts
+`npm run dev:test`, which points `VITE_API_URL` at the dev server itself so
+every API call lands on a Playwright mock. It also sets
+`reuseExistingServer`, so if your ordinary dev server is already on 7777 the
+suite silently runs against the LIVE API instead. Tests that mock auth then
+have their fake tokens rejected by the real worker and fail in ways that look
+like app bugs: on 2026-08-31 that alone accounted for eight false failures and
+several hours chasing them. If a test fails only when you have been developing,
+check which server is on 7777 before believing it.
+
+A build is also a prerequisite for two specs: `china-reachability` and
+`admin-chunk-failure-production` read `dist/sw.js` and `dist/_headers`, so run
+`npm run build` first or they fail on a stale or missing `dist`.
+
+```bash
+cd "/Users/adrianrasmussen/Documents/Files/2 Areas/Coding/teajia" && lsof -ti:7777 | xargs kill 2>/dev/null; npm run build && npm run test:mobile
+```
+
 **Run `npm run test:mobile` before pushing any change that touches:**
 - `src/components/AccountPanel/` — panel views, navigation, sub-views
 - `src/pages/` — any account route page
