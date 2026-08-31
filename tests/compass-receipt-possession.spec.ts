@@ -91,7 +91,12 @@ test('unbagging clears both sample representations', async ({ page }) => {
     const entry = { ...createEmptyEntry('tea'), id: 'bagged-entry', name: 'Bagged tea', isSample: true, sampleState: 'requested', status: 'noted' };
     useTeaCompassStore.setState({ entries: [entry], pendingEntries: [], activeEntryId: entry.id });
   });
-  await page.getByRole('button', { name: 'Bagged' }).filter({ visible: true }).first().click();
+  // There is no 'Bagged' toggle any more: that vocabulary went with the sample
+  // states, which are requested / received / tasted. Taking a tea back out of
+  // the sample list is done from the list itself, which is also where the two
+  // representations are actually reconciled.
+  await page.getByRole('button', { name: /Sample list/ }).first().click();
+  await page.getByRole('button', { name: 'Remove Bagged tea from Sample list' }).click();
   expect(await page.evaluate(async () => {
     const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
     const { entryIsSample } = await import('/src/components/TeaCompass/types.ts');

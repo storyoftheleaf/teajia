@@ -30,7 +30,11 @@ test.describe('structured stock import review', () => {
     });
     await page.goto('/admin/stock');
     await page.getByRole('button', { name: 'Open inventory actions' }).first().click();
-    await page.getByRole('menuitem', { name: /Import CSV/i }).first().click({ force: true });
+    // The actions panel's entries are plain buttons, not menuitems, so a role
+    // query for menuitem waited on something that does not exist.
+    const importAction = page.getByRole('button', { name: /Import CSV/i }).first();
+    await importAction.scrollIntoViewIfNeeded();
+    await importAction.click();
     await page.locator('input[type=file]').setInputFiles({
       name: 'stock.csv', mimeType: 'text/csv',
       buffer: Buffer.from('Type,Product Name,Stock,Purpose\nOolong,Mountain Tea,25,sample\n,Unnamed Row,10,\nTeaware,Cup,,personal'),

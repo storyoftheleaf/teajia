@@ -229,10 +229,17 @@ test.describe('Curate Library decisions and retrieval', () => {
     });
     await page.getByRole('button', { name: /River Stone/ }).click();
     const createAction = page.getByRole('button', { name: 'Create Inventory record' });
-    await expect(createAction).toHaveClass(/tap-target/);
+    // The control is a .pill now rather than a .tap-target. Both carry the
+    // 44px floor, so assert the floor itself: which class delivers it is an
+    // implementation detail, and the reason this assertion exists is the
+    // target size.
+    await expect.poll(async () => (await createAction.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
     await createAction.click();
     await expect(page.getByRole('button', { name: /View in Inventory/ })).toBeVisible();
-    await expect(page.getByRole('button', { name: /View in Inventory/ })).toHaveClass(/tap-target/);
+    // Same as above: .pill carries the same 44px floor, so measure the floor.
+    await expect
+      .poll(async () => (await page.getByRole('button', { name: /View in Inventory/ }).boundingBox())?.height ?? 0)
+      .toBeGreaterThanOrEqual(44);
     expect(promotions).toBe(1);
     await page.getByRole('button', { name: /View in Inventory/ }).click();
     await expect(page).toHaveURL(/\/admin\/stock\?panel=inventory-river/);

@@ -143,7 +143,10 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     await page.getByRole('button', { name: 'Close Samples workspace' }).click();
     await page.getByRole('tab', { name: 'Library', exact: true }).click();
     await page.getByRole('button', { name: /To taste/ }).click();
-    await expect(page.getByText('Requested', { exact: true }).first()).toBeVisible();
+    // The Library renders more than one card layout, and only the one the
+    // current width uses is on screen; .first() was picking a hidden copy on
+    // the desk.
+    await expect(page.getByText('Requested', { exact: true }).filter({ visible: true }).first()).toBeVisible();
     const setName = await page.evaluate(async () => {
       // @ts-expect-error Vite source modules are available in Playwright.
       const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
@@ -190,7 +193,7 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     await page.getByRole('tab', { name: 'Library', exact: true }).click();
     await page.getByRole('button', { name: /To taste/ }).click();
     await expect(page.getByRole('button', { name: /Sample list —/ })).toBeVisible();
-    await expect(page.getByText('Tasted', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('Tasted', { exact: true }).filter({ visible: true }).first()).toBeVisible();
   });
 
   test('a failed portion write keeps the list and retries the same batch', async ({ page }) => {

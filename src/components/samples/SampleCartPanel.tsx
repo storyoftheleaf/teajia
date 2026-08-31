@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { FlaskConical, Printer, MessageCircle, BookOpen, Trash2, X, Check } from 'lucide-react';
 import { useSampleCartStore } from '../../samples/sampleCartStore';
 import { useSampleStore } from '../../samples/sampleStore';
@@ -92,6 +92,28 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
   const addSampleSet = useSampleStore((s) => s.addSampleSet);
   const accountScopeId = useSampleStore((s) => s.accountScopeId);
   const discardSampleSet = useSampleStore((s) => s.discardSampleSet);
+
+  /**
+   * Taking a tea out of the Sample list has to take it out of both places.
+   *
+   * A tea in the list is represented twice: as a row in the sample cart, and
+   * as marks on its Curate entry (isSample, sampleState, sampleSetId). The
+   * remove control only cleared the row, so the entry went on calling itself a
+   * requested sample while belonging to no list at all, and the Library kept
+   * showing it as one. The undo path a hundred lines below already clears both,
+   * which is what this now matches.
+   */
+  const removeSample = useCallback((itemId: string, compassEntryId?: string | null) => {
+    removeItem(itemId);
+    if (!compassEntryId) return;
+    const entry = useTeaCompassStore.getState().entries.find((candidate) => candidate.id === compassEntryId);
+    if (!entry) return;
+    useTeaCompassStore.getState().updateEntry(compassEntryId, {
+      isSample: false,
+      sampleState: null,
+      sampleSetId: undefined,
+    });
+  }, [removeItem]);
 
   const [savedConfirm, setSavedConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -354,7 +376,7 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
                         </div>
                         <button
                           type="button"
-                          onClick={() => removeItem(item.id)}
+                          onClick={() => removeSample(item.id, item.compassEntryId)}
                           disabled={operationLocked}
                           className="tap-target shrink-0 inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated transition-colors disabled:opacity-40"
                           aria-label={`Remove ${item.name || 'sample'} from Sample list`}

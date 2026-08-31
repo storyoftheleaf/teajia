@@ -1,5 +1,6 @@
 // tests/immersive-article.spec.ts
 import { test, expect } from '@playwright/test';
+import { primaryNav } from './helpers/navigation';
 
 const ARTICLE = {
   id: 'test-immersive', slug: 'the-rock-remembers', title: 'The Rock Remembers',
@@ -155,7 +156,9 @@ test('immersive reader keeps the app navigation and carries its own back control
   // that made the DB reader chrome-consistent with /read): a reader who has
   // finished an article should be able to go anywhere in the app without
   // first going back. The layout stays full-bleed either way.
-  await expect(page.getByTestId('bottom-tab-bar')).toBeVisible();
+  // Whichever navigation the width shows: the floating bar on a phone, the
+  // sidebar on the desk.
+  await expect(primaryNav(page)).toBeVisible();
 
   // And it still carries its own back control, so the read is never a trap.
   await expect(page.getByTestId('immersive-back')).toBeVisible();

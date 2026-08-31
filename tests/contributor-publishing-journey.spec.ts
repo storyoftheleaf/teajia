@@ -89,7 +89,10 @@ test('synthetic contributor and article publish through the complete workflow', 
   await page.getByRole('button', { name: 'Add link' }).click();
   await page.getByLabel('Link 1 label').fill(contributorFixture.links[0].label);
   await page.getByLabel('Link 1 URL').fill(contributorFixture.links[0].url);
-  await page.getByText('Public host for Teajia Bali').click();
+  // Host status is not set while creating a contributor any more: it moved to
+  // a flag on a per-account association, and that section only appears once the
+  // contributor exists. Nothing later in this journey depends on the flag, so
+  // the step simply goes.
   await page.getByLabel('Private contact').focus();
   await page.getByLabel('Private contact').selectOption('fixture-contact');
   await page.getByLabel('Where to find them').fill('Synthetic account association.');
