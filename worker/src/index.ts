@@ -19844,14 +19844,18 @@ const handleGetMyProfile: Handler = async (request, env) => {
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
 
+  // No `deleted_at IS NULL` here, and none in the queue or wishlist reads below.
+  // That filter is the invoices pattern; compass entries have never had the
+  // column, and are removed with a real DELETE (see handleDeleteCompassEntry).
+  // Asking for it made every one of these reads a 500 rather than an empty list.
   const [profile, queueCount, wishlistCount, connectionCount] = await Promise.all([
     env.DB.prepare('SELECT * FROM user_taste_profile WHERE user_id = ? AND account_id = ?')
       .bind(userId, accountId).first() as Promise<Record<string, any> | null>,
     env.DB.prepare(
-      "SELECT COUNT(*) as c FROM tea_compass_entries WHERE user_id = ? AND account_id = ? AND status = 'available_to_taste' AND deleted_at IS NULL"
+      "SELECT COUNT(*) as c FROM tea_compass_entries WHERE user_id = ? AND account_id = ? AND status = 'available_to_taste'"
     ).bind(userId, accountId).first<{ c: number }>(),
     env.DB.prepare(
-      "SELECT COUNT(*) as c FROM tea_compass_entries WHERE user_id = ? AND account_id = ? AND status = 'want' AND deleted_at IS NULL"
+      "SELECT COUNT(*) as c FROM tea_compass_entries WHERE user_id = ? AND account_id = ? AND status = 'want'"
     ).bind(userId, accountId).first<{ c: number }>(),
     env.DB.prepare(
       'SELECT COUNT(*) as c FROM member_connections WHERE user_id_a = ? OR user_id_b = ?'
@@ -19879,7 +19883,7 @@ const handleGetMyQueue: Handler = async (request, env) => {
   const { accountId, userId } = ctx;
 
   const result = await env.DB.prepare(
-    "SELECT * FROM tea_compass_entries WHERE user_id = ? AND account_id = ? AND status = 'available_to_taste' AND deleted_at IS NULL ORDER BY taste_order DESC, updated_at DESC"
+    "SELECT * FROM tea_compass_entries WHERE user_id = ? AND account_id = ? AND status = 'available_to_taste' ORDER BY updated_at DESC"
   ).bind(userId, accountId).all();
 
   return json({ entries: result.results });
@@ -19891,7 +19895,7 @@ const handleGetMyWishlist: Handler = async (request, env) => {
   const { accountId, userId } = ctx;
 
   const result = await env.DB.prepare(
-    "SELECT * FROM tea_compass_entries WHERE user_id = ? AND account_id = ? AND status = 'want' AND deleted_at IS NULL ORDER BY updated_at DESC"
+    "SELECT * FROM tea_compass_entries WHERE user_id = ? AND account_id = ? AND status = 'want' ORDER BY updated_at DESC"
   ).bind(userId, accountId).all();
 
   return json({ entries: result.results });
@@ -20206,7 +20210,7 @@ const handleGetMyJourney: Handler = async (request, env) => {
               ts.name, ts.chinese_name, ts.type, ts.origin_region, ts.id as sample_id
        FROM tea_sample_tastings tst
        JOIN tea_samples ts ON ts.id = tst.sample_id
-       JOIN tea_sample_sets tss ON tss.id = ts.sample_set_id AND tss.account_id = ?
+       JOIN tea_sample_sets tss ON tss.id = ts.set_id AND tss.account_id = ?
        WHERE tst.taster_id = ? OR tst.taster_id = ?
        ORDER BY tst.created_at DESC LIMIT 30`
     ).bind(accountId, userId, userEmail).all(),
