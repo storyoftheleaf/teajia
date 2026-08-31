@@ -93,7 +93,14 @@ describe('purpose-aware verification routes', () => {
     const plainDigest = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(issuedCode)))].map(byte => byte.toString(16).padStart(2, '0')).join('');
     expect(db.challenges[0].code_hash).not.toBe(plainDigest);
     expect(mathRandom).not.toHaveBeenCalled();
-    expect(new Date(db.challenges[0].expires_at).getTime() - new Date(db.challenges[0].created_at).getTime()).toBeCloseTo(600_000, -2);
+    // Ten minutes. The two timestamps come from separate clock reads inside the
+    // handler, so the gap drifts by however long the machine took in between.
+    // toBeCloseTo(600_000, -2) allowed 50ms of that and failed on a loaded
+    // machine, which says nothing about the property under test and costs
+    // whoever sees it a diversion into a security test that was never wrong.
+    const ttl = new Date(db.challenges[0].expires_at).getTime()
+      - new Date(db.challenges[0].created_at).getTime();
+    expect(Math.abs(ttl - 600_000)).toBeLessThan(5_000);
     const confirmed = await api(db, 'confirm', { contact: 'member@example.com', code: issuedCode, purpose: 'signin' });
     expect(confirmed).toMatchObject({ status: 200, body: { token: expect.any(String), memberships: [expect.objectContaining({ account_id: 'account-1' })], active_account_id: 'account-1' } });
     expect((await api(db, 'confirm', { contact: 'member@example.com', code: issuedCode, purpose: 'signin' })).status).toBe(401);
