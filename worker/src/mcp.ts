@@ -465,6 +465,8 @@ type PendingMutation =
   | { kind: 'untag_customer'; accountId: string; userEmail: string; customerId: string; tag: string }
   | { kind: 'link_vendor'; accountId: string; userEmail: string; customerId: string; productId: string; note: string | null }
   | { kind: 'unlink_vendor'; accountId: string; userEmail: string; customerId: string; productId: string }
+  | { kind: 'upsert_vendor_contact'; accountId: string; userEmail: string; name: string; company: string | null; phone: string | null; whatsapp: string | null; wechat: string | null; address: string | null; city: string | null; country: string | null; source: string | null; notes: string | null }
+  | { kind: 'link_vendor_products'; accountId: string; userEmail: string; customerId: string; productIds: string[]; note: string | null }
   | { kind: 'set_archive_status'; accountId: string; userEmail: string; productId: string; archived: boolean; reason: string | null }
   | { kind: 'set_tea_visibility'; accountId: string; userEmail: string; productId: string; shownInShop: boolean; personal?: boolean }
   | { kind: 'fulfill_invoice'; accountId: string; userEmail: string; actorUserId: string; invoiceId: string }
@@ -2647,6 +2649,183 @@ async function commitUnlinkVendor(
   };
 }
 
+// ── tool: upsert_vendor_contact (preview / confirm) ──
+// Create a new vendor (customer tagged "vendor") with full contact details, or
+// update an existing vendor by name. Scoped to stock:write (unlike the
+// owner-tier link_vendor/unlink_vendor tools) so the operator token can
+// persist vendor/source contacts for intake lots.
+async function toolUpsertVendorContact(env: Env, auth: McpAuth, args: any) {
+  const name = String(args?.name || '').trim().slice(0, 200);
+  const confirm = args?.confirm ? String(args.confirm) : null;
+  const company = args?.company != null ? String(args.company).trim().slice(0, 200) || null : null;
+  const phone = args?.phone != null ? String(args.phone).trim().slice(0, 50) || null : null;
+  const whatsapp = args?.whatsapp != null ? String(args.whatsapp).trim().slice(0, 50) || null : null;
+  const wechat = args?.wechat != null ? String(args.wechat).trim().slice(0, 100) || null : null;
+  const address = args?.address != null ? String(args.address).trim().slice(0, 500) || null : null;
+  const city = args?.city != null ? String(args.city).trim().slice(0, 200) || null : null;
+  const country = args?.country != null ? String(args.country).trim().slice(0, 100) || null : null;
+  const source = args?.source != null ? String(args.source).trim().slice(0, 200) || null : null;
+  const notes = args?.notes != null ? String(args.notes).trim().slice(0, 4000) || null : null;
+
+  if (!name) throw new Error('name is required');
+
+  const existing = await env.DB.prepare(
+    'SELECT id, name FROM customers WHERE LOWER(name) = ? AND account_id = ?'
+  ).bind(name.toLowerCase(), auth.accountId).first() as { id: string; name: string } | null;
+
+  if (!confirm) {
+    const token = await issueConfirmationToken(env, {
+      kind: 'upsert_vendor_contact', accountId: auth.accountId, userEmail: auth.userEmail,
+      name, company, phone, whatsapp, wechat, address, city, country, source, notes,
+    }, auth.tokenId);
+    return {
+      preview: {
+        action: 'upsert_vendor_contact',
+        vendor_name: name,
+        mode: existing ? 'update_existing' : 'create_new',
+        existing_id: existing ? existing.id : null,
+        company, phone, whatsapp, wechat, address, city, country, source,
+        has_notes: !!notes,
+      },
+      confirmation_token: token,
+      expires_in_seconds: PENDING_TTL_MS / 1000,
+    };
+  }
+
+  const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
+  if (!pending || pending.kind !== 'upsert_vendor_contact' || pending.name !== name) {
+    return { error: 'invalid_or_expired_confirmation_token' };
+  }
+  return commitUpsertVendorContact(env, pending, existing?.id ?? null);
+}
+
+async function commitUpsertVendorContact(
+  env: Env,
+  m: Extract<PendingMutation, { kind: 'upsert_vendor_contact' }>,
+  existingId: string | null,
+) {
+  let customerId: string;
+  if (existingId) {
+    customerId = existingId;
+    await env.DB.prepare(
+      `UPDATE customers SET company = ?, phone = ?, whatsapp = ?, wechat = ?, address = ?,
+         city = ?, country = ?, source = ?, notes = ?, tags = ?, updated_at = datetime('now')
+       WHERE id = ? AND account_id = ?`
+    ).bind(
+      m.company, m.phone, m.whatsapp, m.wechat, m.address, m.city, m.country,
+      m.source, m.notes, JSON.stringify(['vendor']), customerId, m.accountId,
+    ).run();
+  } else {
+    customerId = crypto.randomUUID();
+    await env.DB.prepare(
+      `INSERT INTO customers (id, account_id, type, name, company, phone, whatsapp, wechat,
+         address, city, country, source, notes, tags, created_at, updated_at)
+       VALUES (?, ?, 'vendor', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '["vendor"]', datetime('now'), datetime('now'))`
+    ).bind(
+      customerId, m.accountId, m.name, m.company, m.phone, m.whatsapp, m.wechat,
+      m.address, m.city, m.country, m.source, m.notes,
+    ).run();
+  }
+  await env.DB.prepare(
+    `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+     VALUES (?, 'VENDOR_CONTACT_UPSERT_MCP', ?, ?, 'customer', ?, ?)`
+  ).bind(
+    crypto.randomUUID(),
+    `Vendor contact ${existingId ? 'updated' : 'created'} for "${m.name}" via MCP${m.source ? ' (source: ' + m.source + ')' : ''}`,
+    m.userEmail, customerId, m.accountId,
+  ).run();
+  return {
+    committed: true,
+    action: 'upsert_vendor_contact',
+    mode: existingId ? 'updated' : 'created',
+    vendor_id: customerId,
+    vendor_name: m.name,
+  };
+}
+
+// ── tool: link_vendor_products (preview / confirm) ──
+// Batch-link an existing vendor (customer) to one or more products. Scoped to
+// stock:write so the operator can attach a vendor to several intake teas at once.
+async function toolLinkVendorProducts(env: Env, auth: McpAuth, args: any) {
+  const customerId = String(args?.customer_id || '').trim();
+  const productIds: string[] = Array.isArray(args?.product_ids)
+    ? [...new Set((args.product_ids as unknown[]).map((p: unknown) => String(p).trim()).filter(Boolean))] as string[]
+    : [];
+  const note = args?.note ? String(args.note).slice(0, 500) : null;
+  const confirm = args?.confirm ? String(args.confirm) : null;
+
+  if (!customerId) throw new Error('customer_id is required');
+  if (productIds.length === 0) throw new Error('product_ids must be a non-empty array');
+
+  const customer = await env.DB.prepare('SELECT id, name FROM customers WHERE id = ? AND account_id = ?')
+    .bind(customerId, auth.accountId).first() as { id: string; name: string } | null;
+  if (!customer) return { error: 'customer_not_found' };
+
+  const placeholders = productIds.map(() => '?').join(', ');
+  const products = await env.DB.prepare(
+    `SELECT id, given_name, product_name, vendor_id FROM products
+     WHERE account_id = ? AND id IN (${placeholders})`
+  ).bind(auth.accountId, ...productIds).all() as any;
+  const rows = (products.results || []) as { id: string; given_name: string | null; product_name: string; vendor_id: string | null }[];
+  if (rows.length === 0) return { error: 'products_not_found' };
+  const foundIds = new Set(rows.map(r => r.id));
+  const missing = productIds.filter(id => !foundIds.has(id));
+
+  if (!confirm) {
+    const token = await issueConfirmationToken(env, {
+      kind: 'link_vendor_products', accountId: auth.accountId, userEmail: auth.userEmail,
+      customerId, productIds, note,
+    }, auth.tokenId);
+    return {
+      preview: {
+        action: 'link_vendor_products',
+        customer: { id: customerId, name: customer.name },
+        products: rows.map(r => ({ id: r.id, name: r.given_name || r.product_name, current_vendor_id: r.vendor_id })),
+        product_count: rows.length,
+        missing_product_ids: missing.length ? missing : undefined,
+        note,
+      },
+      confirmation_token: token,
+      expires_in_seconds: PENDING_TTL_MS / 1000,
+    };
+  }
+
+  const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
+  if (!pending || pending.kind !== 'link_vendor_products' || pending.customerId !== customerId) {
+    return { error: 'invalid_or_expired_confirmation_token' };
+  }
+  return commitLinkVendorProducts(env, pending, rows, customer.name);
+}
+
+async function commitLinkVendorProducts(
+  env: Env,
+  m: Extract<PendingMutation, { kind: 'link_vendor_products' }>,
+  rows: { id: string; given_name: string | null; product_name: string }[],
+  customerName: string,
+) {
+  const statements: D1PreparedStatement[] = rows.map(r =>
+    env.DB.prepare("UPDATE products SET vendor_id = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?")
+      .bind(m.customerId, r.id, m.accountId)
+  );
+  statements.push(env.DB.prepare(
+    `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+     VALUES (?, 'VENDORS_LINKED_MCP', ?, ?, 'customer', ?, ?)`
+  ).bind(
+    crypto.randomUUID(),
+    `Vendor "${customerName}" linked to ${rows.length} product(s) via MCP${m.note ? ': ' + m.note : ''}`,
+    m.userEmail, m.customerId, m.accountId,
+  ));
+  await env.DB.batch(statements as any);
+  return {
+    committed: true,
+    action: 'link_vendor_products',
+    vendor_name: customerName,
+    vendor_id: m.customerId,
+    linked_product_ids: m.productIds,
+    product_count: rows.length,
+  };
+}
+
 // ── tool: set_archive_status (preview / confirm) ──
 async function toolSetArchiveStatus(env: Env, auth: McpAuth, args: any) {
   const productId = String(args?.product_id || '').trim();
@@ -4019,6 +4198,43 @@ const TOOL_DEFS = [
     },
   },
   {
+    name: 'upsert_vendor_contact',
+    scope: 'stock:write',
+    description: 'Create or update a vendor (customer tagged "vendor") with full contact details: name, company, phone, whatsapp, wechat, address, city, country, source, notes. Two-step preview/confirm. Scoped to stock:write so the operator can persist vendor/source contacts for intake lots (unlike the owner-tier link_vendor tool).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Vendor name (e.g. "Boyuan Tea Shop" or "Ruan Ying"). Matches existing by name for update.' },
+        company: { type: 'string', description: 'Company / store name.' },
+        phone: { type: 'string', description: 'Phone number.' },
+        whatsapp: { type: 'string', description: 'WhatsApp number.' },
+        wechat: { type: 'string', description: 'WeChat ID.' },
+        address: { type: 'string', description: 'Physical/store address.' },
+        city: { type: 'string', description: 'City.' },
+        country: { type: 'string', description: 'Country.' },
+        source: { type: 'string', description: 'Source tag, e.g. "Guangzhou Puer Masters" or a receipt reference.' },
+        notes: { type: 'string', description: 'Free-text notes.' },
+        confirm: { type: 'string', description: 'Confirmation token from preview response.' },
+      },
+      required: ['name'],
+    },
+  },
+  {
+    name: 'link_vendor_products',
+    scope: 'stock:write',
+    description: 'Batch-link one vendor (customer) to one or more products by setting their vendor_id. Two-step preview/confirm. Scoped to stock:write so the operator can attach a vendor to several intake teas at once.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        customer_id: { type: 'string', description: 'Customer id of the vendor (from upsert_vendor_contact response or find_customer).' },
+        product_ids: { type: 'array', items: { type: 'string' }, description: 'Product ids (full 36-char UUIDs) to link to this vendor.' },
+        note: { type: 'string', description: 'Optional sourcing note for the relationship.' },
+        confirm: { type: 'string', description: 'Confirmation token from preview response.' },
+      },
+      required: ['customer_id', 'product_ids'],
+    },
+  },
+  {
     name: 'set_archive_status',
     scope: 'catalog:write',
     description: 'Archive or un-archive a tea product. Archiving removes it from public shop listings. Two-step preview/confirm. Shows current and new status before committing.',
@@ -4253,6 +4469,7 @@ const DESTRUCTIVE_TOOLS = new Set(['void_invoice', 'remove_stock', 'update_excha
 // Confirming twice with the same args lands in the same end state.
 const IDEMPOTENT_TOOLS = new Set([
   'tag_customer', 'untag_customer', 'link_vendor', 'unlink_vendor',
+  'upsert_vendor_contact', 'link_vendor_products',
   'set_archive_status', 'set_low_stock_threshold', 'mark_invoice_paid',
   'update_customer', 'update_invoice', 'update_tea_pricing',
   'update_account_settings', 'update_exchange_rate', 'set_tea_visibility',
@@ -4292,6 +4509,7 @@ const AUDITED_TOOLS = new Set([
   'update_invoice', 'void_invoice',
   // Wave 3
   'tag_customer', 'untag_customer', 'link_vendor', 'unlink_vendor',
+  'upsert_vendor_contact', 'link_vendor_products',
   'set_archive_status', 'fulfill_invoice', 'update_account_settings', 'update_exchange_rate',
   'set_tea_visibility',
   // Ported tools
@@ -4368,6 +4586,8 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
     case 'untag_customer': result = mcpContent(await toolUntagCustomer(env, auth, args)); break;
     case 'link_vendor': result = mcpContent(await toolLinkVendor(env, auth, args)); break;
     case 'unlink_vendor': result = mcpContent(await toolUnlinkVendor(env, auth, args)); break;
+    case 'upsert_vendor_contact': result = mcpContent(await toolUpsertVendorContact(env, auth, args)); break;
+    case 'link_vendor_products': result = mcpContent(await toolLinkVendorProducts(env, auth, args)); break;
     case 'set_archive_status': result = mcpContent(await toolSetArchiveStatus(env, auth, args)); break;
     case 'set_tea_visibility': result = mcpContent(await toolSetTeaVisibility(env, auth, args)); break;
     case 'fulfill_invoice': result = mcpContent(await toolFulfillInvoice(env, auth, args)); break;
