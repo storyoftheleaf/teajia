@@ -1,0 +1,228 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Lora:ital,wght@0,400;1,400&family=Plus+Jakarta+Sans:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #22201c; }
+    a { color: #ede4d4; text-decoration: none; }
+    a:hover { color: #bfa06a; }
+    /* Matches .num in card-utilities.css: tabular + LINING figures.
+       Cormorant ships old-style figures that hang below the baseline,
+       so no price, weight or total is ever set in the display face. */
+    .num {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      font-variant-numeric: tabular-nums lining-nums;
+      font-feature-settings: 'tnum' 1, 'lnum' 1;
+      letter-spacing: 0.01em;
+    }
+    /* Uppercase is metadata only: origin, type, year. Never an instruction. */
+    .meta { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; text-transform: uppercase; letter-spacing: 0.18em; font-size: 11px; color: #b3a283; }
+    .lora { font-family: 'Lora', Georgia, serif; }
+    .pick { background: none; border: 0; padding: 0; cursor: pointer; min-height: 44px; display: flex; align-items: center; font-size: 16px; }
+    .pick:focus-visible { outline: 2px solid rgba(168,135,77,0.5); outline-offset: 2px; }
+    .otherfield { width: 74px; background: transparent; border: 0; border-bottom: 1px solid rgba(237,228,212,0.5); color: #ede4d4; font-size: 15px; padding: 4px 0; text-align: center; appearance: textfield; }
+    .otherfield::-webkit-outer-spin-button, .otherfield::-webkit-inner-spin-button { appearance: none; margin: 0; }
+    .otherfield:focus { outline: none; border-bottom-color: #a8874d; }
+    .cta { border: 0; width: 100%; background: #a8874d; border-radius: 2px; height: 52px; cursor: pointer; font-size: 14px; color: #22201c; }
+    .cta:disabled { background: rgba(168,135,77,0.25); color: rgba(237,228,212,0.45); cursor: default; }
+    /* Three grounds, all existing tokens: bg #22201c is the well, surface #322e29
+       is the paper each tea sits on, and the amount strip drops back to the well
+       so the control reads as recessed rather than drawn. */
+    .paper { background: #322e29; border-radius: 3px; }
+    .well { background: #22201c; border-radius: 3px; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; background: #22201c; color: #ede4d4; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden;">
+
+  <!-- Header sits on the paper tone so the panel has a lid. -->
+  <div style="flex-shrink: 0; background: #322e29; border-bottom: 1px solid rgba(168,135,77,0.14); padding: 18px 20px 16px 20px; display: flex; flex-direction: column; gap: 16px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#ddd2bd" stroke-width="1.4" stroke-linecap="round"><path d="M3.5 3.5 L12.5 12.5 M12.5 3.5 L3.5 12.5"/></svg>
+      <span style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 23px; line-height: 1;">Your order</span>
+      <span style="display: inline-flex; align-items: center; gap: 6px; border: 1px solid rgba(168,135,77,0.14); border-radius: 3px; padding: 6px 8px 6px 10px;">
+        <span class="num" style="font-size: 13px; color: #ede4d4;">IDR</span>
+        <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="#ddd2bd" stroke-width="1.4" stroke-linecap="round"><path d="M1 1.5 L5 4.5 L9 1.5"/></svg>
+      </span>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: center; gap: 12px;">
+      <span class="lora" style="font-size: 15px; color: #ede4d4;">Cart</span>
+      <span style="display: block; width: 16px; height: 1px; background: rgba(168,135,77,0.14);"></span>
+      <span class="lora" style="font-size: 15px; color: #b3a283;">Details</span>
+      <span style="display: block; width: 16px; height: 1px; background: rgba(168,135,77,0.14);"></span>
+      <span class="lora" style="font-size: 15px; color: #b3a283;">Review</span>
+    </div>
+  </div>
+
+  <!-- Teas laid on the paper tone, the well showing between them. -->
+  <div style="flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px;">
+
+    <sc-if value="{{isEmpty}}" hint-placeholder-val="{{ false }}">
+      <div class="paper" style="padding: 80px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 22px;">
+        <span style="display: block; width: 32px; height: 1px; background: rgba(168,135,77,0.14);"></span>
+        <p class="lora" style="margin: 0; font-style: italic; font-size: 16px; line-height: 1.45; color: #ede4d4; max-width: 24ch;">The cart is quiet. The kettle is patient.</p>
+        <span class="lora" style="font-size: 12.5px; color: #b3a283; border-bottom: 1px solid rgba(168,135,77,0.14); padding-bottom: 3px;">Browse the shop</span>
+      </div>
+    </sc-if>
+
+    <sc-for list="{{items}}" as="item" hint-placeholder-count="2">
+      <div class="paper" style="padding: 14px 16px 12px 16px; display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+            <div style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 23px; line-height: 1.1;">{{item.name}}</div>
+            <span class="num" style="font-size: 17px; color: #ede4d4; flex-shrink: 0;">{{item.linePrice}}</span>
+          </div>
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+            <span class="meta">{{item.meta}}</span>
+            <span class="num" style="font-size: 12px; color: #b3a283; flex-shrink: 0;">{{item.perGramLabel}}</span>
+          </div>
+        </div>
+
+        <!-- The amount, recessed into the well so the control reads as a control. -->
+        <div class="well" style="padding: 2px 14px 6px 14px; display: flex; flex-direction: column; gap: 2px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+            <span class="lora" style="font-style: italic; font-size: 14px; color: #b3a283;">How much of this tea</span>
+            <button class="lora pick" onClick="{{item.remove}}" style="color: #ddd2bd; font-size: 14px;">Remove</button>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
+            <sc-for list="{{item.presets}}" as="p" hint-placeholder-count="4">
+              <button class="num pick" onClick="{{p.pick}}" style="color: {{p.color}}; text-decoration: {{p.rule}}; text-decoration-color: rgba(237,228,212,0.5); text-underline-offset: 6px;">{{p.label}}</button>
+            </sc-for>
+            <button class="lora pick" onClick="{{item.toggleOther}}" style="color: {{item.otherColor}}; font-size: 14px;">Other</button>
+          </div>
+          <sc-if value="{{item.showOther}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; align-items: baseline; gap: 8px; padding-bottom: 6px;">
+              <span class="lora" style="font-size: 12.5px; color: #b3a283;">Grams</span>
+              <input class="num otherfield" type="number" min="1" max="9999" value="{{item.grams}}" onChange="{{item.setOther}}" aria-label="Grams">
+            </div>
+          </sc-if>
+        </div>
+
+      </div>
+    </sc-for>
+
+  </div>
+
+  <!-- Footer back on the paper tone. The button is the only saturated bronze. -->
+  <div style="flex-shrink: 0; background: #322e29; padding: 18px 20px 22px 20px; border-top: 1px solid rgba(168,135,77,0.14); display: flex; flex-direction: column; gap: 15px;">
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+        <span style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 23px;">Total</span>
+        <span class="num" style="font-size: 20px; color: #ede4d4;">{{total}}</span>
+      </div>
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+        <span class="meta">{{summary}}</span>
+        <span class="num" style="font-size: 10px; color: #b3a283;">{{approx}}</span>
+      </div>
+    </div>
+    <button class="cta lora" disabled="{{isEmpty}}">Request order</button>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{}'>
+const HANDLING = 32420; // 2 USD of handling, at the rate this artboard quotes
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      items: [
+        { id: 'mahei', name: 'Mahei Gushu Red', monogram: 'M', meta: 'Yunnan · Aged red · 2019', perGram: 3764, grams: 250, presets: [25, 50, 100, 250] },
+        { id: 'xiniu', name: 'Xiniu Tang Gushu', monogram: 'X', meta: 'Yunnan · Raw sheng · 2021', perGram: 3550, grams: 100, presets: [25, 50, 100, 250] },
+      ],
+      otherFor: null,
+    };
+  }
+
+  group(n) {
+    return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  idr(n) {
+    return 'IDR ' + this.group(n / 1000) + 'k';
+  }
+
+  /** The tea, plus the flat handling every line but a whole piece pays. */
+  line(it) {
+    return it.grams * it.perGram + HANDLING;
+  }
+
+  setGrams(id, grams) {
+    this.setState({
+      items: this.state.items.map(function (x) {
+        return x.id === id ? Object.assign({}, x, { grams: grams }) : x;
+      }),
+    });
+  }
+
+  renderVals() {
+    const self = this;
+    const items = this.state.items.map(function (it) {
+      const isOther = self.state.otherFor === it.id;
+      const onList = it.presets.indexOf(it.grams) !== -1;
+      return {
+        id: it.id,
+        name: it.name,
+        meta: it.meta,
+        grams: it.grams,
+        // A line carries a flat handling amount, so the rate a reader is
+        // actually paying falls as the amount rises. Showing the catalogue
+        // rate here left a figure that never moved beside weights that did.
+        // A rate is quoted to the nearest cent and no finer. In a currency where
+        // a gram runs to thousands, that means one decimal on the thousands.
+        perGramLabel: 'IDR ' + (Math.round(self.line(it) / it.grams / 100) / 10) + 'k per gram',
+        linePrice: self.idr(self.line(it)),
+        showOther: isOther,
+        otherColor: isOther || !onList ? '#ede4d4' : '#b3a283',
+        presets: it.presets.map(function (g) {
+          const on = g === it.grams;
+          return {
+            label: g + 'g',
+            color: on ? '#ede4d4' : '#b3a283',
+            rule: on ? 'underline' : 'none',
+            pick: function () {
+              self.setState({ otherFor: null });
+              self.setGrams(it.id, g);
+            },
+          };
+        }),
+        toggleOther: function () {
+          self.setState({ otherFor: self.state.otherFor === it.id ? null : it.id });
+        },
+        setOther: function (e) {
+          const v = parseInt(e.target.value, 10);
+          self.setGrams(it.id, isNaN(v) ? 1 : Math.min(9999, Math.max(1, v)));
+        },
+        remove: function () {
+          self.setState({
+            items: self.state.items.filter(function (x) { return x.id !== it.id; }),
+            otherFor: null,
+          });
+        },
+      };
+    });
+
+    const totalIdr = this.state.items.reduce(function (a, x) { return a + self.line(x); }, 0);
+    const totalGrams = this.state.items.reduce(function (a, x) { return a + x.grams; }, 0);
+    const count = this.state.items.length;
+
+    return {
+      items: items,
+      isEmpty: count === 0,
+      total: count === 0 ? 'IDR 0' : this.idr(totalIdr),
+      summary: count === 1 ? '1 tea · ' + totalGrams + 'g' : count + ' teas · ' + totalGrams + 'g',
+      approx: 'approx. USD ' + Math.round(totalIdr / 17749.33),
+    };
+  }
+}
+</script>
+</body>
+</html>

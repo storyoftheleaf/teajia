@@ -1,0 +1,33 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Order panel",
+      "is_interactive": true
+    }
+  ],
+  "annotations": [
+    {
+      "id": "note-1",
+      "x": 470,
+      "y": 0,
+      "w": 380,
+      "text": "COMPACTED\n\nNo thumbnail, so the name starts at the edge and the price sits beside it. The rate rides the metadata line under it, because it describes the tea rather than being a second price.\n\nThe name itself is the link to the tea, and Remove sits at the far end of the amount label, so the block spends no row on chrome.\n\nA tea is 181 pixels this way against 262 at the start. Two teas sit on a phone screen with a third of the list still empty."
+    },
+    {
+      "id": "note-2",
+      "x": 470,
+      "y": 250,
+      "w": 380,
+      "text": "THE RATE IS THE MECHANIC\n\nEvery line carries a flat handling amount that a whole pressed piece skips, so what a gram costs falls as the amount rises. The panel used to print the shelf rate, a figure that never moved while the weights beside it did.\n\nQuoted a gram, because the buttons beside it are grams, and rounded to the nearest cent and no finer: IDR 10.4k down to 9.2k across the ladder, or $0.64 to $0.57, NT$21 to NT$18.\n\nThe currency is a control with a border and a chevron, and the type across all three steps went up two or three steps of the scale to be readable on a phone held at arm's length."
+    }
+  ],
+  "launch": {
+    "view": "focused",
+    "file": "Main.dc.html"
+  }
+}
