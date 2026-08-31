@@ -57,6 +57,23 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
     }
   }, [isOpen]);
 
+  /**
+   * The page's own docked bar stands down while this panel is open.
+   *
+   * The product page's order bar is `z-nav` (75) and this panel is `z-modal`
+   * (40), so the bar was drawing over an open order panel: the reader saw the
+   * price of the tea they were looking at floating on top of the order they
+   * were editing. Raising the panel would put it over the navigation too,
+   * which is a different and worse answer. The panel is the thing that knows
+   * it is covering the page, so it is the thing that says so, and any other
+   * surface that docks a bar inherits the fix.
+   */
+  useEffect(() => {
+    if (!isOpen) return;
+    document.body.classList.add('cart-panel-open');
+    return () => document.body.classList.remove('cart-panel-open');
+  }, [isOpen]);
+
   // Focus return on close
   const triggerRef = useRef<HTMLElement | null>(null);
   useEffect(() => {

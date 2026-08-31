@@ -4398,3 +4398,10 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] {
   border-top: 1px solid rgba(90, 70, 40, 0.08);
   box-shadow: inset 0 1px 0 rgba(244, 236, 224, 0.4);
 }
+
+/* The order panel covers the page, so the page's docked commerce bar stands
+   down while it is open. The bar is z-nav (75) and the panel is z-modal (40),
+   so without this it draws over the panel. See CartPanel's effect. */
+body.cart-panel-open .commerce-dock {
+  display: none;
+}

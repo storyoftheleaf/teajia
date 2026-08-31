@@ -547,6 +547,7 @@ const AppContent = () => {
       pricePerGram,
       totalPrice: total,
       wholePieceGrams: item.category === 'tea' ? WHOLE_PIECE[item.form ?? '']?.grams : undefined,
+      type: item.type,
       image: item.image,
     };
     const currentCart = useAppStore.getState().publicCart;

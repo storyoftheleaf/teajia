@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CartItem as PublicCartItemType } from '../../types';
+import { getTeaLedgerTones } from '../../designTokens';
+import { useTheme } from '../../context/ThemeContext';
 import { offeredSizes } from '../../lib/teaPricing';
 import { useShopPrice } from '../shop/shopPrice';
 
@@ -37,6 +39,7 @@ interface CartItemProps {
  */
 export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQuantity, onNavigate }) => {
   const { total: displayPrice, perGramExact } = useShopPrice();
+  const { theme } = useTheme();
   const [showOther, setShowOther] = useState(false);
 
   const isTea = item.category === 'tea';
@@ -92,8 +95,21 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
 
   const setGrams = (grams: number) => onUpdateQuantity(item.id, Math.min(9999, Math.max(1, grams)));
 
+  /**
+   * The colour the tea brews, washed across the head of its block.
+   *
+   * Same tones and same left-to-right fade as a shop ledger row, so a reader
+   * who learned the colours browsing reads them again here without being
+   * taught twice. Ground rather than a chip: a swatch would be a second thing
+   * to look at, and this is meant to be understood at a glance, not examined.
+   */
+  const wash = item.type ? getTeaLedgerTones(item.type, theme).wash : null;
+
   return (
-    <div className="bg-tea-surface rounded-[3px] px-4 pt-3.5 pb-3 flex flex-col gap-3">
+    <div
+      className="bg-tea-surface rounded-[3px] px-4 pt-3.5 pb-3 flex flex-col gap-3"
+      style={wash ? { backgroundImage: `linear-gradient(to right, ${wash}, transparent 38%)` } : undefined}
+    >
       <div className="flex flex-col gap-1">
         <div className="flex items-baseline justify-between gap-3">
           {/* The name is the link. A separate "View tea" line was a whole row
@@ -126,7 +142,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
       </div>
 
       {/* The amount, recessed into the panel ground so the control reads as a control */}
-      <div className="bg-tea-bg rounded-[3px] px-3.5 pt-0.5 pb-1.5 flex flex-col gap-0.5">
+      <div className="bg-tea-bg rounded-[3px] px-3.5 pt-0.5 pb-1.5 flex flex-col gap-1">
         {/* Remove rides the far end of the label line. It is the one thing on
             the block that undoes rather than adjusts, so it sits apart from
             the weights without spending a row of its own. */}
@@ -142,6 +158,10 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
             Remove
           </button>
         </div>
+
+        {/* A hairline under the label, so the amounts read as their own row
+            rather than as more of the sentence above them. */}
+        <span className="block h-px bg-tea-border" aria-hidden="true" />
 
         {isTea ? (
           <div className="flex flex-wrap items-center justify-between gap-x-1 gap-y-0">

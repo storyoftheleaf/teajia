@@ -72,7 +72,7 @@
     </sc-if>
 
     <sc-for list="{{items}}" as="item" hint-placeholder-count="2">
-      <div class="paper" style="padding: 14px 16px 12px 16px; display: flex; flex-direction: column; gap: 12px;">
+      <div class="paper" style="padding: 14px 16px 12px 16px; display: flex; flex-direction: column; gap: 12px; background-image: linear-gradient(to right, {{item.wash}}, transparent 38%);">
         <div style="display: flex; flex-direction: column; gap: 4px;">
           <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
             <div style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 23px; line-height: 1.1;">{{item.name}}</div>
@@ -90,6 +90,7 @@
             <span class="lora" style="font-style: italic; font-size: 14px; color: #b3a283;">How much of this tea</span>
             <button class="lora pick" onClick="{{item.remove}}" style="color: #ddd2bd; font-size: 14px;">Remove</button>
           </div>
+          <span style="display: block; height: 1px; background: rgba(168,135,77,0.14);"></span>
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
             <sc-for list="{{item.presets}}" as="p" hint-placeholder-count="4">
               <button class="num pick" onClick="{{p.pick}}" style="color: {{p.color}}; text-decoration: {{p.rule}}; text-decoration-color: rgba(237,228,212,0.5); text-underline-offset: 6px;">{{p.label}}</button>
@@ -111,15 +112,12 @@
 
   <!-- Footer back on the paper tone. The button is the only saturated bronze. -->
   <div style="flex-shrink: 0; background: #322e29; padding: 18px 20px 22px 20px; border-top: 1px solid rgba(168,135,77,0.14); display: flex; flex-direction: column; gap: 15px;">
-    <div style="display: flex; flex-direction: column; gap: 6px;">
-      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+    <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+      <span style="display: flex; align-items: baseline; gap: 10px; min-width: 0;">
         <span style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 23px;">Total</span>
-        <span class="num" style="font-size: 20px; color: #ede4d4;">{{total}}</span>
-      </div>
-      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
         <span class="meta">{{summary}}</span>
-        <span class="num" style="font-size: 10px; color: #b3a283;">{{approx}}</span>
-      </div>
+      </span>
+      <span class="num" style="font-size: 20px; color: #ede4d4; flex-shrink: 0;">{{total}}</span>
     </div>
     <button class="cta lora" disabled="{{isEmpty}}">Request order</button>
   </div>
@@ -128,6 +126,15 @@
 </x-dc>
 
 <script data-dc-script data-props='{}'>
+// The colour each tea brews, the shop ledger's own tones at its own strength.
+const WASH = {
+  Red: 'rgba(166, 123, 112, 0.13)',
+  Sheng: 'rgba(152, 166, 123, 0.13)',
+  Shou: 'rgba(92, 84, 78, 0.13)',
+  White: 'rgba(214, 211, 205, 0.13)',
+  Green: 'rgba(133, 159, 133, 0.13)',
+};
+
 const HANDLING = 32420; // 2 USD of handling, at the rate this artboard quotes
 
 class Component extends DCLogic {
@@ -135,8 +142,8 @@ class Component extends DCLogic {
     super(props);
     this.state = {
       items: [
-        { id: 'mahei', name: 'Mahei Gushu Red', meta: 'Yunnan · Aged red · 2019', perGram: 3764, grams: 100, presets: [10, 25, 50, 100, 200] },
-        { id: 'xiniu', name: 'Xiniu Tang Gushu', meta: 'Yunnan · Raw sheng · 2021', perGram: 3550, grams: 100, presets: [10, 25, 50, 100, 200, 357] },
+        { id: 'mahei', name: 'Mahei Gushu Red', type: 'Red', meta: 'Yunnan · Aged red · 2019', perGram: 3764, grams: 100, presets: [10, 25, 50, 100, 200] },
+        { id: 'xiniu', name: 'Xiniu Tang Gushu', type: 'Sheng', meta: 'Yunnan · Raw sheng · 2021', perGram: 3550, grams: 100, presets: [10, 25, 50, 100, 200, 357] },
       ],
       otherFor: null,
     };
@@ -178,6 +185,7 @@ class Component extends DCLogic {
         // rate here left a figure that never moved beside weights that did.
         // A rate is quoted to the nearest cent and no finer. In a currency where
         // a gram runs to thousands, that means one decimal on the thousands.
+        wash: WASH[it.type] || 'transparent',
         perGramLabel: 'IDR ' + (Math.round(self.line(it) / it.grams / 100) / 10) + 'k per gram',
         linePrice: self.idr(self.line(it)),
         showOther: isOther,

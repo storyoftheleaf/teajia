@@ -16,7 +16,7 @@
       "x": 470,
       "y": 0,
       "w": 380,
-      "text": "COMPACTED\n\nNo thumbnail, so the name starts at the edge and the price sits beside it. The rate rides the metadata line under it, because it describes the tea rather than being a second price.\n\nThe name itself is the link to the tea, and Remove sits at the far end of the amount label, so the block spends no row on chrome.\n\nA tea is 181 pixels this way against 262 at the start. Two teas sit on a phone screen with a third of the list still empty."
+      "text": "COMPACTED\n\nNo thumbnail, so the name starts at the edge and the price sits beside it. The name itself is the link to the tea, and Remove sits at the far end of the amount label, so the block spends no row on chrome.\n\nEach block is washed in the colour its tea brews, the same left-to-right ground a shop row carries, so the type reads at a glance without a swatch to look at.\n\nA hairline under the label separates what the control is called from the amounts themselves, and the total is one line: the word, what the basket holds, the figure."
     },
     {
       "id": "note-2",

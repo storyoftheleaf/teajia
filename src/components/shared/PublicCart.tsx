@@ -833,24 +833,29 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
       <div className="px-5 pt-4 pb-5 border-t border-tea-border bg-tea-surface relative z-20 shrink-0">
         {step === 'CART' && (
           <div className="flex flex-col gap-3">
-            {/* No total on an empty cart. The localised formatter renders zero
-                as "IDR 0k", which is a price for nothing. */}
+            {/*
+              One line, not three. What the basket holds is a qualifier on the
+              total, so it sits beside the word rather than under it, and the
+              dollar approximation only appears when the reader is not already
+              reading dollars. An empty cart shows no total at all: the
+              localised formatter renders zero as "IDR 0k", a price for nothing.
+            */}
             {!isEmpty && (
-              <div className="flex flex-col gap-1.5">
-                <div className="flex justify-between items-baseline text-tea-text">
+              <div className="flex items-baseline justify-between gap-3 text-tea-text">
+                <span className="flex items-baseline gap-2.5 min-w-0">
                   <span className="font-display text-[23px]">Total</span>
-                  <span className="num text-ui-20">{displayPrice(subtotal)}</span>
-                </div>
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-ui-11 uppercase tracking-[0.18em] text-tea-text-dim">
+                  <span className="text-ui-11 uppercase tracking-[0.18em] text-tea-text-dim truncate">
                     {cart.length} {cart.length === 1 ? 'tea' : 'teas'}
                     {' · '}
                     {cart.filter(i => i.category === 'tea').reduce((g, i) => g + i.quantityGrams, 0)}g
                   </span>
+                </span>
+                <span className="flex flex-col items-end shrink-0">
+                  <span className="num text-ui-20">{displayPrice(subtotal)}</span>
                   {currency !== 'USD' && (
                     <span className="num text-ui-12 text-tea-text-dim">approx. USD {Math.round(subtotal)}</span>
                   )}
-                </div>
+                </span>
               </div>
             )}
             <Button
