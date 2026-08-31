@@ -22,7 +22,7 @@ every product from this lot). All prices CNY. Store: Bali (acc_teajia_bali).
 | Tea | CN | qty/g | CNY | Hook |
 |---|---|---|---|---|
 | 2004 Yiwu Raw Puerh `e949b585-5f07-411b-82fb-7da7355edc77` | 2004年易武生普 | Cake 357g | 700 | the micro-origin (Yiwu, Six Famous Tea Mountains) + position on the sheng age arc (~20 yrs, brisk→quiet/woody) |
-| 1990 Ripe Puerh Brick `28436463-2272-4f68-83e1-b6d86f798be2` | 1990年砖熟普 | Brick 450g | 800 | the FORM: pressed as a brick it ages densely and slowly (vs loose/cake shou); era marker 1990, 30+ yrs |
+| 1990 Ripe Puerh Brick `28436463-2272-4f68-83e1-b6d86f798be2` | 1990年砖熟普 | Brick 450g | 800 | the FORM: pressed as a brick it ages densely and slowly (vs loose/cake shou); **a little more strength than the average ripe puerh, firmer body from how it was processed** (Adrian-verified 2026-08-31); era marker 1990, 30+ yrs |
 | 1990 Bamboo Leaf Old Tea (liubao) `7400ece7-a8ed-4328-b462-ac18178b9dfa` | 1990年竹叶老茶 | Loose 100g | 360 | **MORE AGED than other 1990s liu bao** (Adrian-verified); cause NOT stated (location/heat unknown — do NOT claim humid/AC/Guangzhou storage) |
 
 ## The liubao differentiator — CAUSE UNKNOWN (do NOT re-invent)

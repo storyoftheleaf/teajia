@@ -22,7 +22,7 @@ Yunnan is the home of puerh. The province's identity is tied to its material, pl
 
 ## Processing
 
-Ripe puerh is a dark tea. As a class it drinks smooth and mellow, and is ready to enjoy without long waiting. Pressed as a brick, it ages densely and slowly. It rested in Guangzhou's tea trade through the intervening decades.
+Ripe puerh is a dark tea. As a class it drinks smooth and mellow, and is ready to enjoy without long waiting. This brick has a little more strength than the average ripe puerh, a firmer body that comes from how it was processed. Pressed as a brick, it ages densely and slowly. It rested in Guangzhou's tea trade through the intervening decades.
 
 ## Mood
 
