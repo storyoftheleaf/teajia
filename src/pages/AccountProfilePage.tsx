@@ -69,9 +69,15 @@ export default function AccountProfilePage() {
           <section aria-labelledby="profile-readiness-heading" className="space-y-5">
             <div>
               <h2 id="profile-readiness-heading" className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Tea Master home</h2>
-              <p className="mt-2 max-w-[64ch] text-ui-13 text-tea-text-sec">Your profile is the global identity. Your primary Tea Master account is the operational home for its own stock and public tea selection; guest associations remain collaborations.</p>
+              {/* A tea master does not need a store, so the store sentence only
+                  appears to someone who has one. */}
+              <p className="mt-2 max-w-[64ch] text-ui-13 text-tea-text-sec">{profile.associations.length > 0
+                ? 'Your profile is the global identity. Your primary Tea Master account is the operational home for its own stock and public tea selection; guest associations remain collaborations.'
+                : 'Your profile is the global identity. It stands on its own: you can be found and paid here without selling anything. A store can be attached later.'}</p>
             </div>
-            <ul className="grid gap-px overflow-hidden rounded-md border border-tea-border bg-tea-border sm:grid-cols-2 lg:grid-cols-5">
+            {/* A tea master with no store sees three items, not five, so the
+                wide layout follows the list rather than leaving two gaps. */}
+            <ul className={`grid gap-px overflow-hidden rounded-md border border-tea-border bg-tea-border sm:grid-cols-2 ${readiness.length > 3 ? 'lg:grid-cols-5' : 'lg:grid-cols-3'}`}>
               {readiness.map(item => (
                 <li key={item.id} className="min-w-0 bg-tea-surface px-4 py-4">
                   <span className="flex items-center gap-2 text-ui-12 font-medium text-tea-text">{item.ready ? <CheckCircle size={16} className="shrink-0 text-tea-gold" aria-hidden="true" /> : <Circle size={16} className="shrink-0 text-tea-text-dim" aria-hidden="true" />}{item.label}</span>
