@@ -124,9 +124,11 @@ export const OrdersView = () => {
 
   // Confirm modal state
   const [confirmState, setConfirmState] = useState<{
-    type: 'fulfill' | 'void' | 'delete';
+    type: 'fulfill' | 'void' | 'delete' | 'accept-unpriced';
     invoice: DbOrder;
     stockImpact?: { name: string; current: number; after: number }[];
+    /** Lines still at no price, named, when the server refused to send. */
+    unpricedLines?: string[];
   } | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
 
@@ -247,13 +249,25 @@ export const OrdersView = () => {
 
   // Promote a Draft (e.g. created from a collection recipient's confirmed picks)
   // into a normal Pending order, so it can be edited and fulfilled.
-  const acceptDraft = async (invoice: DbOrder) => {
+  const acceptDraft = async (invoice: DbOrder, allowUnpriced = false) => {
     try {
-      await api.invoices.update(invoice.id, { status: 'Pending' });
+      await api.invoices.update(invoice.id, {
+        status: 'Pending',
+        ...(allowUnpriced ? { allow_unpriced_lines: true } : {}),
+      });
       setViewingInvoice((prev) => prev ? { ...prev, status: 'Pending' } : null);
+      setConfirmState(null);
       refetch();
       showToast(`Order ${invoice.invoice_number} accepted, ready to review and fulfil.`, 'success');
     } catch (err: any) {
+      // A line still at no price is a question, not a fault. Converting leaves
+      // a retired tea at zero on purpose, so the operator is the one who knows
+      // whether it is meant to be free.
+      if (err?.data?.code === 'invoice_has_unpriced_lines') {
+        const lines = Array.isArray(err.data?.details?.lines) ? err.data.details.lines as string[] : [];
+        setConfirmState({ type: 'accept-unpriced', invoice, unpricedLines: lines });
+        return;
+      }
       showToast(err?.message || 'Could not accept this draft. Try again.', 'error');
     }
   };
@@ -281,7 +295,13 @@ export const OrdersView = () => {
     if (!confirmState) return;
     setConfirmLoading(true);
     try {
-      if (confirmState.type === 'fulfill') {
+      if (confirmState.type === 'accept-unpriced') {
+        // acceptDraft reports its own outcome and reopens this dialog if the
+        // server refuses again, so nothing else runs for this branch. Falling
+        // through to the shared cleanup below is what stops the button
+        // spinning.
+        await acceptDraft(confirmState.invoice, true);
+      } else if (confirmState.type === 'fulfill') {
         await api.rpc.fulfillInvoice(confirmState.invoice.id);
         showToast('Order fulfilled. Stock deducted.', 'success');
         queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -1073,20 +1093,39 @@ export const OrdersView = () => {
         title={
           confirmState?.type === 'fulfill' ? `Fulfill ${confirmState.invoice?.invoice_number}?`
           : confirmState?.type === 'void' ? `Void ${confirmState?.invoice?.invoice_number}?`
+          : confirmState?.type === 'accept-unpriced' ? `Send ${confirmState.invoice?.invoice_number} with nothing charged?`
           : `Delete ${confirmState?.invoice?.invoice_number}?`
         }
         description={
           confirmState?.type === 'fulfill' ? 'This will deduct stock from inventory for all items in this order.'
           : confirmState?.type === 'void' ? `This will mark the invoice as void.${confirmState?.invoice?.inventory_deducted ? ' Stock will be restored.' : ''}`
+          : confirmState?.type === 'accept-unpriced'
+            ? 'The customer will be asked for nothing for these. Price them first if that is not what you meant.'
           : 'This will soft-delete this voided invoice. It can be recovered later.'
         }
         confirmLabel={
           confirmState?.type === 'fulfill' ? 'Fulfill & Deduct Stock'
           : confirmState?.type === 'void' ? 'Void Order'
+          : confirmState?.type === 'accept-unpriced' ? 'Send anyway'
           : 'Delete'
         }
-        variant={confirmState?.type === 'fulfill' ? 'default' : 'destructive'}
+        variant={confirmState?.type === 'fulfill' || confirmState?.type === 'accept-unpriced' ? 'default' : 'destructive'}
       >
+        {/* The lines that carry no price, by name */}
+        {confirmState?.type === 'accept-unpriced' && !!confirmState.unpricedLines?.length && (
+          <div className="bg-tea-surface border border-tea-border rounded-xl p-4">
+            <h4 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-3">No price set</h4>
+            <div className="space-y-2">
+              {confirmState.unpricedLines.map((line, i) => (
+                <div key={i} className="flex justify-between text-xs">
+                  <span className="text-tea-text truncate mr-2">{line}</span>
+                  <span className="num text-tea-text-sec shrink-0">0</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Stock Impact Preview for Fulfillment */}
         {confirmState?.type === 'fulfill' && confirmState.stockImpact && (
           <div className="bg-tea-surface border border-tea-border rounded-xl p-4">

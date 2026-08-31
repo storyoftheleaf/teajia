@@ -87,9 +87,15 @@ export const SampleOrderModal: React.FC<SampleOrderModalProps> = ({
    * uses. A sample carries no price yet, which is what the request is asking
    * about, so the figures are zero and the draft invoice this becomes is priced
    * by hand. Zero is the honest number; "TBD" was never a number at all.
+   *
+   * When the sample maps to a tea the store sells, the line names it. When it
+   * does not, the line is a custom one carrying only the name: the same shape
+   * converting produces for a tea that has since been retired. Either way the
+   * request is saved, which is the whole point: before this, a sample of
+   * something not yet listed left no record anywhere.
    */
-  const buildItems = (product: string) => ([{
-    id: product,
+  const buildItems = (product: string | null) => ([{
+    ...(product ? { id: product } : { custom: true as const }),
     name: sampleName,
     variant: teaType || '',
     category: 'tea' as const,
@@ -124,14 +130,13 @@ export const SampleOrderModal: React.FC<SampleOrderModalProps> = ({
    * This screen used to mint its own reference, open WhatsApp and keep nothing:
    * the tea house heard about the order only if the customer finished sending
    * the message, and the reference printed on the confirmation matched no
-   * record anywhere. When the sample maps to a tea the store sells it now files
-   * the same order request the cart files, on the same reference and tracking
-   * token, and only then opens the message.
+   * record anywhere. It now files the same order request the cart files, on the
+   * same reference and tracking token, and only then opens the message.
    *
-   * When it does not map to one, there is no order to file: a saved request
-   * names products the store sells, and this tea is not one of them yet. That
-   * case stays a message, and the confirmation says so rather than showing a
-   * reference nothing stands behind.
+   * That holds whether or not the sample maps to a tea the store sells. One
+   * that does names the product; one that does not is saved as a named custom
+   * line, so the request reaches the tea house either way and the reference on
+   * the confirmation always stands for a real record.
    */
   const handleSubmit = async () => {
     if (!name.trim() || !whatsapp.trim() || !resolvedQty) return;
@@ -145,43 +150,39 @@ export const SampleOrderModal: React.FC<SampleOrderModalProps> = ({
       return;
     }
 
-    const product = productId?.trim();
+    const product = productId?.trim() || null;
     const ref = createHumanOrderRef();
     setSubmitting(true);
     setError(null);
 
-    if (product) {
-      const token = createTrackingToken();
-      try {
-        await api.inquiries.create({
-          tracking_token: token,
-          ref_number: ref,
-          store_slug: DEFAULT_STORE_SLUG,
-          customer_name: name.trim(),
-          customer_contact: whatsapp.trim(),
-          customer_location: location.trim() || undefined,
-          notes: `Sample request for ${sampleName}${teaType ? ` (${teaType})` : ''}, ${resolvedQty}. Sample id ${sampleId}.`,
-          items_json: JSON.stringify(buildItems(product)),
-          total_estimate_usd: 0,
-          currency: 'USD',
-          source: 'whatsapp',
-        });
-      } catch (err) {
-        try { popup.close(); } catch { /* best effort */ }
-        setSubmitting(false);
-        const detail = err instanceof Error ? err.message : '';
-        setError(`We couldn't save your request${detail ? `: ${detail}` : '.'} Please try again.`);
-        return;
-      }
-      setTrackingToken(token);
+    const token = createTrackingToken();
+    try {
+      await api.inquiries.create({
+        tracking_token: token,
+        ref_number: ref,
+        store_slug: DEFAULT_STORE_SLUG,
+        customer_name: name.trim(),
+        customer_contact: whatsapp.trim(),
+        customer_location: location.trim() || undefined,
+        notes: `Sample request for ${sampleName}${teaType ? ` (${teaType})` : ''}, ${resolvedQty}. Sample id ${sampleId}.`,
+        items_json: JSON.stringify(buildItems(product)),
+        total_estimate_usd: 0,
+        currency: 'USD',
+        source: 'whatsapp',
+      });
+    } catch (err) {
+      try { popup.close(); } catch { /* best effort */ }
+      setSubmitting(false);
+      const detail = err instanceof Error ? err.message : '';
+      setError(`We couldn't save your request${detail ? `: ${detail}` : '.'} Please try again.`);
+      return;
     }
+    setTrackingToken(token);
 
     setRefNumber(ref);
     const phone = import.meta.env.VITE_WHATSAPP_NUMBER || '';
     if (!navigateDeliveryPlaceholder(popup, buildWhatsAppUrl(phone, buildMessage(ref)))) {
-      setError(product
-        ? 'Your request was saved, but WhatsApp could not be opened. Use Resend message below.'
-        : 'WhatsApp could not be opened. Use Resend message below.');
+      setError('Your request was saved, but WhatsApp could not be opened. Use Resend message below.');
     }
     setSubmitting(false);
     setSubmitted(true);
@@ -356,18 +357,14 @@ export const SampleOrderModal: React.FC<SampleOrderModalProps> = ({
                     <MessageCircle size={22} className="text-[#25D366]" />
                   </div>
                   <h3 className="text-base text-tea-text mb-1" style={{ fontFamily: 'var(--font-display)' }}>
-                    {trackingToken ? 'Request saved' : 'Message ready'}
+                    Request saved
                   </h3>
                   <p className="text-xs text-tea-text-sec mb-1">
                     {sampleName} · {resolvedQty}
                   </p>
-                  {trackingToken && (
-                    <p className="text-ui-11 text-tea-text-dim font-mono mb-1">{refNumber}</p>
-                  )}
+                  <p className="text-ui-11 text-tea-text-dim font-mono mb-1">{refNumber}</p>
                   <p className="text-ui-11 text-tea-text-dim mb-3">
-                    {trackingToken
-                      ? 'The tea house has it. Send the WhatsApp message to start the conversation.'
-                      : 'This tea is not in the shop yet, so the request starts as a conversation. Send the message and it will be answered by hand.'}
+                    The tea house has it. Send the WhatsApp message to start the conversation.
                   </p>
                   {error && (
                     <p role="alert" className="text-ui-12 text-tea-text-sec mb-3">{error}</p>

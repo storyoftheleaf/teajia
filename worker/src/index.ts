@@ -12,7 +12,7 @@ import {
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
 import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
-import { deriveConfirmedInvoiceLine, repairCandidate, formatInvoiceNumber } from './invoiceDomain';
+import { deriveConfirmedInvoiceLine, repairCandidate, formatInvoiceNumber, loadUsdRates, amountToUsd } from './invoiceDomain';
 import {
   PAYMENT_EPSILON,
   PAYMENT_AMOUNT_CEILING,
@@ -91,7 +91,7 @@ import {
   resolveTeaReferenceIssues,
 } from './teaReferenceIssues';
 import { isTeaType, TEA_TYPES } from '../../src/wisdom/vocabulary';
-import { inquiryRequestFingerprint, isValidTrackingToken, normalizeCartInquiry, redactPublicInquiry, sha256Hex } from './inquiryDomain';
+import { catalogProductIds, INQUIRY_MAX_NOTE, inquiryRequestFingerprint, isValidTrackingToken, normalizeCartInquiry, redactPublicInquiry, sha256Hex } from './inquiryDomain';
 
 interface Env {
   DB: D1Database;
@@ -5232,6 +5232,37 @@ const handleGetInvoiceAttribution: Handler = async (request, env, params) => {
   }
 };
 
+/**
+ * What to call each of these lines when telling the operator about them.
+ *
+ * A line carries either a product or its own name; a linked product may since
+ * have been renamed, so the catalogue is read rather than trusting the line.
+ */
+async function namesForLines(
+  env: Env,
+  accountId: string,
+  lines: Array<Record<string, any>>,
+): Promise<string[]> {
+  const productIds = [...new Set(
+    lines.map(line => line.product_id).filter((id): id is string => typeof id === 'string' && !!id)
+  )];
+  const names = new Map<string, string>();
+  if (productIds.length > 0) {
+    const rows = await env.DB.prepare(
+      `SELECT id, COALESCE(given_name, product_name) AS name FROM products
+        WHERE account_id = ? AND id IN (${productIds.map(() => '?').join(', ')})`
+    ).bind(accountId, ...productIds).all();
+    for (const row of (rows.results ?? []) as Array<Record<string, any>>) {
+      names.set(String(row.id), String(row.name || 'A line'));
+    }
+  }
+  return lines.map(line =>
+    (line.product_id ? names.get(String(line.product_id)) : null)
+    || (line.custom_name ? String(line.custom_name) : null)
+    || 'A line'
+  );
+}
+
 const handleUpdateInvoice: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'sell');
   if ('error' in ctx) return ctx.error;
@@ -5252,6 +5283,26 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
       const current = await env.DB.prepare(
         'SELECT id,product_id,custom_name,quantity,price_at_sale FROM invoice_line_items WHERE invoice_id=? AND account_id=?'
       ).bind(params.id, accountId).all();
+
+      // Sending is where a draft becomes a real ask for money. A line still at
+      // zero would ask the customer for too little, so say so and let the
+      // operator decide, rather than sending it quietly.
+      if (body.allow_unpriced_lines !== true) {
+        const unpriced = ((current.results ?? []) as Array<Record<string, any>>)
+          .filter(line => !(Number(line.price_at_sale) > 0));
+        if (unpriced.length > 0) {
+          const names = await namesForLines(env, accountId, unpriced);
+          return restError(
+            409,
+            names.length === 1
+              ? `"${names[0]}" has no price. Price it, or send anyway to give it away.`
+              : `${names.length} lines have no price. Price them, or send anyway to give them away.`,
+            'invoice_has_unpriced_lines',
+            { lines: names },
+          );
+        }
+      }
+
       const seller = invoice.sold_by_user_id
         ? await invoiceSellerAuthorizationContext(env, accountId, invoice)
         : { actorUserId: ctx.userId, actorRole: ctx.role };
@@ -12833,9 +12884,9 @@ const handleCreateInquiry: Handler = async (request, env) => {
     if (!accountId) return json({ error: 'Store not found' }, 404);
     const tokenHash = await sha256Hex(normalized.value.trackingToken);
     const location = typeof body.customer_location === 'string' ? body.customer_location.trim() : '';
-    const notes = typeof body.notes === 'string'
+    const notes = (typeof body.notes === 'string'
       ? body.notes.trim()
-      : typeof body.message === 'string' ? body.message.trim() : '';
+      : typeof body.message === 'string' ? body.message.trim() : '').slice(0, INQUIRY_MAX_NOTE);
     const requestFingerprint = await inquiryRequestFingerprint({
       accountId,
       storeSlug: normalized.value.storeSlug,
@@ -12865,13 +12916,18 @@ const handleCreateInquiry: Handler = async (request, env) => {
       }, 200);
     }
 
-    const productIds = [...new Set(normalized.value.items.map((item) => String((item as Record<string, unknown>).id)))];
-    const placeholders = productIds.map(() => '?').join(', ');
-    const availableProducts = await env.DB.prepare(
-      `SELECT id FROM products WHERE account_id = ? AND id IN (${placeholders})`
-    ).bind(accountId, ...productIds).all();
-    if (availableProducts.results.length !== productIds.length) {
-      return json({ error: 'Store or items not found' }, 404);
+    // Only catalogue lines are checked against the catalogue. A custom line
+    // names a tea the store does not list yet; converting already turns one
+    // into a named line at no price, exactly as it does for a retired tea.
+    const productIds = catalogProductIds(normalized.value.items);
+    if (productIds.length > 0) {
+      const placeholders = productIds.map(() => '?').join(', ');
+      const availableProducts = await env.DB.prepare(
+        `SELECT id FROM products WHERE account_id = ? AND id IN (${placeholders})`
+      ).bind(accountId, ...productIds).all();
+      if (availableProducts.results.length !== productIds.length) {
+        return json({ error: 'Store or items not found' }, 404);
+      }
     }
 
     const id = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
@@ -25042,9 +25098,12 @@ const handleTransitionWholesaleOrder: Handler = async (request, env, params) => 
     if (order.status !== 'shipped') {
       return json({ error: `Cannot receive from ${order.status}.` }, 400);
     }
-    // Side effects fire — see processReceiveSideEffects below.
-    const sideEffectStmts = await processReceiveSideEffects(env, order, userId);
-    stmts.push(...sideEffectStmts);
+    // Side effects fire — see processReceiveSideEffects below. It refuses when
+    // the order's money cannot be stated in dollars, and nothing has been
+    // written at that point, so the order simply stays shipped.
+    const sideEffects = await processReceiveSideEffects(env, order, userId);
+    if ('error' in sideEffects) return sideEffects.error;
+    stmts.push(...sideEffects.stmts);
     stmts.push(env.DB.prepare(
       `UPDATE wholesale_orders
        SET status = 'received', received_at = ?, updated_at = ?
@@ -25082,9 +25141,13 @@ const handleTransitionWholesaleOrder: Handler = async (request, env, params) => 
 //   3. Generate two invoice rows (one per account)
 //
 // All in one batch so it commits atomically.
+type ReceiveSideEffects =
+  | { stmts: D1PreparedStatement[] }
+  | { error: Response };
+
 async function processReceiveSideEffects(
   env: Env, order: WholesaleOrderRow, _actorUserId: string
-): Promise<D1PreparedStatement[]> {
+): Promise<ReceiveSideEffects> {
   const items = await env.DB.prepare(
     `SELECT id, supplier_listing_id, profile_id, grams, unit_price_amount, unit_price_currency, line_total
      FROM wholesale_order_items WHERE order_id = ?`
@@ -25149,6 +25212,18 @@ async function processReceiveSideEffects(
   // Supplier's outgoing invoice (account = supplier; customer = buyer account name)
   // Buyer's incoming invoice (account = buyer; customer = supplier account name)
   // Both reference the wholesale_order via `notes` for audit traceability.
+  //
+  // These used to be written with status 'Paid', no line items, and
+  // payment_status left at its default. 'Paid' is not one of the four statuses
+  // the app knows, so the row rendered under a status that cannot exist; the
+  // two money columns on it contradicted each other; and with no lines the
+  // order was worth nothing, so the payment ledger, the pay link and the
+  // attention list could not see the money at all.
+  //
+  // They are ordinary invoices now. 'Filled' with fulfilled_at set, because
+  // receiving IS the goods changing hands, and 'unpaid', because receiving tea
+  // is not paying for it. Wholesale settles through the same ledger, pay link
+  // and confirm-a-payment flow as every other order.
   const supplierAccount = await env.DB.prepare(
     'SELECT name, invoice_prefix FROM accounts WHERE id = ?'
   ).bind(order.supplier_account_id).first() as { name: string; invoice_prefix: string | null };
@@ -25162,33 +25237,89 @@ async function processReceiveSideEffects(
   const buyerPrefix = buyerAccount?.invoice_prefix || 'WS';
   const orderShortId = order.id.slice(0, 8).toUpperCase();
 
-  stmts.push(env.DB.prepare(
-    `INSERT INTO invoices (account_id, id, invoice_number, customer_name, display_currency, status, notes)
-     VALUES (?, ?, ?, ?, ?, 'Paid', ?)`
-  ).bind(
-    order.supplier_account_id, supplierInvoiceId,
-    `${supplierPrefix}-WS-${orderShortId}`,
-    buyerAccount?.name || 'Wholesale buyer',
-    order.currency,
-    `Wholesale order ${order.id}. See wholesale_orders table.`
-  ));
-  stmts.push(env.DB.prepare(
-    `INSERT INTO invoices (account_id, id, invoice_number, customer_name, display_currency, status, notes)
-     VALUES (?, ?, ?, ?, ?, 'Paid', ?)`
-  ).bind(
-    order.buyer_account_id, buyerInvoiceId,
-    `${buyerPrefix}-WS-${orderShortId}`,
-    supplierAccount?.name || 'Wholesale supplier',
-    order.currency,
-    `Wholesale order ${order.id}. See wholesale_orders table.`
-  ));
+  // Every money column on an invoice is USD, while a wholesale line is
+  // snapshotted in whatever the two parties agreed in. Converting here is what
+  // stops a rupiah price being invoiced as dollars.
+  const usdRates = await loadUsdRates(env);
+  const profileNames = new Map<string, string>();
+  const profileIds = [...new Set((items.results as any[]).map(item => String(item.profile_id)))];
+  if (profileIds.length > 0) {
+    const named = await env.DB.prepare(
+      `SELECT id, name FROM tea_profiles WHERE id IN (${profileIds.map(() => '?').join(', ')})`
+    ).bind(...profileIds).all();
+    for (const row of (named.results ?? []) as Array<Record<string, any>>) {
+      profileNames.set(String(row.id), String(row.name || 'Tea'));
+    }
+  }
+
+  const wholesaleLines = (items.results as any[]).map(item => {
+    const grams = Math.max(1, Math.round(Number(item.grams) || 0));
+    const perGram = amountToUsd(Number(item.unit_price_amount) || 0, item.unit_price_currency, usdRates);
+    return {
+      name: profileNames.get(String(item.profile_id)) || 'Wholesale tea',
+      currency: String(item.unit_price_currency || ''),
+      grams,
+      unitPriceUsd: perGram.usd,
+      rateFound: perGram.rateFound,
+    };
+  });
+  const shipping = amountToUsd(Number(order.shipping_amount) || 0, order.currency, usdRates);
+
+  // A currency with no rate would be invoiced at par, which is how a price in
+  // rupiah becomes a bill in dollars. There is no safe way to guess it and no
+  // later moment where anyone would notice, because these invoices are created
+  // already fulfilled and the attention list rightly leaves sent orders alone.
+  // So the receive is refused while somebody is here to fix it.
+  const missing = [...new Set([
+    ...wholesaleLines.filter(line => !line.rateFound).map(line => line.currency),
+    ...(shipping.rateFound ? [] : [String(order.currency || '')]),
+  ].filter(Boolean))];
+  if (missing.length > 0) {
+    return {
+      error: restError(
+        409,
+        `No exchange rate for ${missing.join(' or ')}, so this order cannot be priced in dollars. Add the rate in settings, then receive it.`,
+        'wholesale_missing_exchange_rate',
+        { currencies: missing },
+      ),
+    };
+  }
+  const shippingUsd = shipping.usd;
+
+  for (const [invoiceId, accountId, counterparty, prefix] of [
+    [supplierInvoiceId, order.supplier_account_id, buyerAccount?.name || 'Wholesale buyer', supplierPrefix],
+    [buyerInvoiceId, order.buyer_account_id, supplierAccount?.name || 'Wholesale supplier', buyerPrefix],
+  ] as Array<[string, string, string, string]>) {
+    stmts.push(env.DB.prepare(
+      `INSERT INTO invoices
+         (account_id, id, invoice_number, customer_name, display_currency,
+          shipping_cost_usd, status, inventory_deducted, fulfilled_at, payment_status, notes)
+       VALUES (?, ?, ?, ?, ?, ?, 'Filled', 1, datetime('now'), 'unpaid', ?)`
+    ).bind(
+      accountId, invoiceId,
+      `${prefix}-WS-${orderShortId}`,
+      counterparty,
+      order.currency,
+      shippingUsd,
+      `Wholesale order ${order.id}. See wholesale_orders table.`
+    ));
+    for (const line of wholesaleLines) {
+      stmts.push(env.DB.prepare(
+        `INSERT INTO invoice_line_items
+           (id, account_id, invoice_id, custom_name, quantity, price_at_sale)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      ).bind(
+        crypto.randomUUID(), accountId, invoiceId, line.name, line.grams, line.unitPriceUsd,
+      ));
+    }
+  }
 
   // Persist the invoice ids back onto the order
   stmts.push(env.DB.prepare(
     `UPDATE wholesale_orders SET invoice_id_supplier = ?, invoice_id_buyer = ? WHERE id = ?`
   ).bind(supplierInvoiceId, buyerInvoiceId, order.id));
 
-  return stmts;
+  return { stmts };
 }
 
 // POST /api/wholesale/orders/:id/nudge

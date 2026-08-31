@@ -20,27 +20,51 @@ against his bank, and the order keeps a real payment history. What the customer
 sees is derived from the order rather than maintained by hand. What needs Adrian
 gathers into one list in Your Table. Six MCP tools reach all of it by voice.
 
-## The five remaining, in the order worth doing them
+## Where this stands
 
-### 1. Events, wholesale and samples do not use the payment layer
+Four of the five are done, plus the deploy steps that were already done before
+this handoff was written. **One remains, and it is the one that needs Adrian:**
+item 3, what the pay page is allowed to say about the order, because the page is
+public and reached by URL. Everything below is kept in place with its outcome
+written into it, so the reasoning behind each decision stays readable.
 
-**Why it matters.** There are four ways to be owed money in this system and only
-one of them was modernised. An event attendee who owes for a seat is tracked in
-`event_attendees.payment_status`, a bare column with no ledger, no history, no
-pay link and no way for them to report a transfer. Wholesale generates invoices
-already marked `'Paid'` on receive, which is a lie the ledger cannot see.
+## The five, in the order they were worth doing
 
-**The shape.** `invoice_payments` is invoice-scoped and already correct. Events
-close out into real invoices (`EVT-` numbers) at `worker/src/index.ts` around the
-event close-out region, so the cheapest honest fix is to route event money
-through those invoices rather than the attendee column, and let the existing
-ledger do the work. Wholesale needs its `'Paid'` insert to write a matching
-ledger row, exactly as `reconcileLedgerWithColumn` does for the legacy path.
+### 1. Events, wholesale and samples do not use the payment layer — DONE 2026-08-31
 
-**Do not** add a second payments table. The whole point of the ledger is that one
-record answers "what is owed" everywhere.
+**Wholesale was worse than described, and is fixed.** The two invoices written on
+receive carried `status = 'Paid'`, which is not one of the four statuses the app
+knows (Draft, Pending, Filled, Void), so the row rendered under a status that
+cannot exist. `payment_status` was left at its default `'unpaid'`, so the two
+money columns on the same row contradicted each other. And there were **no line
+items at all**, so the order was worth nothing and the ledger, the pay link and
+the attention list could not see the money.
 
-Effort: about two days. Band: agent-runnable.
+They are ordinary invoices now: real lines from `wholesale_order_items`,
+converted to dollars, `'Filled'` with `fulfilled_at` set because receiving IS the
+goods changing hands, and `'unpaid'` because receiving tea is not paying for it.
+Wholesale settles through the same ledger, pay link and confirm flow as
+everything else. Receiving is now REFUSED when a line's currency has no exchange
+rate, because a received invoice is created already fulfilled and would never
+resurface as unpriced: the zero would sit there silently, which is exactly the
+7x-mispricing class of failure. The refusal names the currency and nothing
+half-lands.
+
+**The events half of this item was wrong.** It was read off the schema.
+`event_attendees.payment_status` exists with a five-value CHECK constraint and
+**nothing in the worker reads or writes it** — the only reference anywhere is a
+test asserting the constraint rejects a bad value. Event money already runs
+through ordinary `EVT-` invoices, which are created `'Draft'` / `'unpaid'` with
+line items and therefore already use the ledger. There is no second record to
+reconcile. What IS true about events: they carry no seat price anywhere in the
+schema, so every line closes out at zero and the operator prices each attendee's
+order by hand. That is a product gap, not a payment-layer one.
+
+The dead column is left in place (dropping a column on D1 is not worth the risk)
+but it is a trap: a future session will find it and wire something to it. Filed
+in `TODO.md`.
+
+**Samples: done, see item 4.**
 
 ### 2. The payment rules are written twice — DONE 2026-08-31
 
@@ -74,33 +98,28 @@ customer already has. Decide that boundary before building.
 Effort: half a day. Band: agent-runnable, but the privacy boundary is a judgement
 call worth confirming with Adrian.
 
-### 4. A sample request is only recorded when the sample maps to a tea in the shop
+### 4. A sample request is only recorded when the sample maps to a tea in the shop — DONE 2026-08-31
 
-`POST /api/inquiries` requires every line to carry an `id` resolving to a real
-product in the account (`worker/src/inquiryDomain.ts`, and the handler in
-`index.ts`). `SampleOrderModal` therefore records only when `sample.productId`
-exists; other sample requests stay a plain WhatsApp message with no record, which
-is the exact gap that was closed everywhere else.
+A line may now be a named custom line with no product, the shape
+`handleConvertInquiry` already produces for a retired tea. The sample screen files
+a request either way, so the reference on the confirmation always stands for a
+real record.
 
-The fix is to let an inquiry line be a named custom line with no product, the way
-`handleConvertInquiry` already handles a retired tea. **This loosens validation on
-a public write path**, so it needs its own thought: cap the name, keep the item
-cap, and keep the rate limit.
+The validation loosening was fenced, and the fencing turned out to matter more
+than expected: the product-id requirement had been doing duty as the anti-junk
+gate on an unauthenticated write, and **there was no item cap and no length limit
+on the free-text note at all**. So a custom line must now SAY it is custom (a
+mistyped product id is refused, never a silent custom line), an order carries at
+most 50 lines, a line name at most 120 characters, and the note at most 2000.
+Three of those four are tighter than what shipped before.
 
-Effort: an hour of code, longer to be sure the validation change is safe.
-Band: agent-runnable.
+### 5. An order can still be sent carrying a zero-priced line — DONE 2026-08-31
 
-### 5. An order can still be sent carrying a zero-priced line
-
-When a converted request contains a tea that has been retired, the line arrives
-at zero. That is deliberate, so nothing is silently dropped. Nothing stops the
-invoice going out at that price.
-
-Such an order now appears in the attention list as unpriced, so it is visible.
-What is missing is a refusal at the point of sending: a Draft carrying a
-zero-priced line should not become Pending without an explicit acknowledgement.
-
-Effort: an hour. Band: agent-runnable.
+Draft to Pending is the only path that makes an order a real ask, and it now
+refuses while any line sits at no price. The refusal names the lines, so the
+orders screen asks about them by name and "Send anyway" is one click for the case
+where a line really is meant to be free. It is a question, not a block: the
+operator is the one who knows.
 
 ### The sixth, low value
 

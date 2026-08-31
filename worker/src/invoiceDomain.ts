@@ -1,3 +1,4 @@
+import { canonicalCurrency } from './teaMasterSales';
 export interface ConfirmedInvoiceLineInput {
   quantity: number;
   recommendedQuantity: number | null;
@@ -357,4 +358,54 @@ export async function recomputeInvoicePaymentStatus(
     outstanding_usd: Math.max(0, roundUsd(total - paid)),
     claims_pending: totals.claims_pending,
   };
+}
+
+// ── Turning a quoted amount into the dollars an invoice stores ───────────────
+//
+// Every money column on invoices and invoice_line_items is USD. Prices quoted
+// elsewhere (a wholesale line agreed in rupiah, a supplier's per-gram price in
+// yuan) have to land here as dollars or the order asks for the wrong number.
+//
+// exchange_rates.rate_to_usd is units PER dollar, so the conversion divides.
+// Aliases matter: a row stored as 'CNY' never matches the rate table's 'Yuan'
+// key, and an unmatched currency silently prices at par. That is the mistake
+// that put a 7x error into the catalogue, so it is made once, here.
+
+export async function loadUsdRates(env: { DB: D1Database }): Promise<Map<string, number>> {
+  const result = await env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates').all();
+  const rates = new Map<string, number>();
+  for (const row of (result.results ?? []) as Array<Record<string, any>>) {
+    const rate = Number(row.rate_to_usd);
+    if (Number.isFinite(rate) && rate > 0) rates.set(String(row.currency), rate);
+  }
+  return rates;
+}
+
+/**
+ * `amount` in `currency`, as dollars.
+ *
+ * An unknown currency converts at par and says so, so a caller can refuse
+ * rather than quietly invoice the wrong number. USD and a missing currency are
+ * both already dollars and are never "unknown".
+ */
+export function amountToUsd(
+  amount: number,
+  currency: string | null | undefined,
+  rates: Map<string, number>,
+): { usd: number; rateFound: boolean } {
+  const value = Number(amount);
+  if (!Number.isFinite(value)) return { usd: 0, rateFound: true };
+
+  const canonical = canonicalCurrency(currency);
+  if (!canonical || canonical.toUpperCase() === 'USD') return { usd: roundUsd(value), rateFound: true };
+
+  let rate = rates.get(canonical);
+  if (rate === undefined) {
+    const lower = canonical.toLowerCase();
+    for (const [key, candidate] of rates) {
+      if (key.toLowerCase() === lower) { rate = candidate; break; }
+    }
+  }
+  if (rate === undefined || !(rate > 0)) return { usd: roundUsd(value), rateFound: false };
+  return { usd: roundUsd(value / rate), rateFound: true };
 }

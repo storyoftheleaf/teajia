@@ -23,6 +23,15 @@ Add only genuinely new observations here. During triage, move each accepted item
 
 <!-- Use: - [ ] **Short outcome.** Why it matters and the evidence that it is not already covered. -->
 
+- [ ] **The admin browser specs fail about one run in four, on timing, and nobody sees it.** _(band: agent-runnable)_ _(effort: moderate)_
+  Measured 2026-08-31 against origin/main's own copy of `OrdersView.behavior.test.ts`, with no local changes in the file: four consecutive runs gave three greens and one failure, always a 5-second test timeout rather than a wrong assertion. Running several of these browser-backed files at once makes it worse: four together failed three of four, one at a time all four passed. They also never run in CI. A suite that fails at random and is watched by nobody teaches everyone to ignore it, so either the waits need to stop racing the default 5s timeout or the files need to run serially with a longer one. Separately from whether they belong in CI at all.
+
+- [ ] **Events have no seat price, so every close-out lands as a pile of zero-priced orders.** _(band: you-required)_ _(effort: moderate)_
+  Measured 2026-08-31. Closing an event writes one `EVT-` invoice per attendee who came, with one line per tea on the menu, and every line is priced at zero because there is nowhere in the schema to put what a seat costs: the events table has no price, fee or contribution column. Those orders are real and ledger-backed, so the money flow itself is fine, but Adrian prices each attendee by hand afterwards and until he does they all sit on Your Table as unpriced. Deciding what an event charges for, per seat or per tea poured, is a product call before it is a schema one.
+
+- [ ] **A dead attendee payment column is waiting to be mistaken for the real thing.** _(band: agent-runnable)_ _(effort: quick)_
+  `event_attendees.payment_status` carries a five-value CHECK constraint and a test guarding it, and nothing in the worker reads or writes it. Verified 2026-08-31 across the worker, the frontend and the tests: the only reference is the constraint test. Event money runs through the `EVT-` invoices instead. It was already read once as the live record of what an attendee owes, which sent a piece of the order-process handoff after a problem that did not exist. Either drop it or annotate it, but do not leave it looking authoritative.
+
 - [ ] **Only 3 of 120 shop products say what physical form they are.** _(band: you-required)_ _(effort: moderate)_
   Measured 2026-08-29 against the live public catalogue. The shop now offers a whole pressed piece as its own amount (Cake 357 g, Brick 250 g, Tuo and Ball 100 g), read from each product's `form` field, but 117 of the 120 public products have `form` empty so the option never appears for them. Across the whole products table 55 rows are marked Cake and 124 are blank, so most of the missing values are on records that exist but were never filled in. Filling the field in the admin is what turns the option on; no code change is needed.
 

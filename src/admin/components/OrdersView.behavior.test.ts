@@ -77,3 +77,67 @@ describe('OrdersView account request behavior', () => {
     expect(await page.getByText('Account A secret timeline', { exact: true }).count()).toBe(0);
   });
 });
+
+describe('accepting a draft that still has a line with no price', () => {
+  const draft = () => ({
+    id: 'account-a-invoice', invoice_number: 'INV-A', customer_name: 'Account A buyer', customer_id: null,
+    status: 'Draft', payment_status: 'unpaid', payment_method: null, inventory_deducted: false,
+    computed_total: 0, shipping_cost_usd: 0, display_currency: 'USD',
+    created_at: '2026-08-10T08:00:00Z', notes: null,
+  });
+
+  async function openDraft() {
+    await open();
+    await page.evaluate(() => (window as any).ordersViewTest.refuseUnpricedOnce(['Retired Da Hong Pao']));
+    await expect.poll(() => page.evaluate(() => (window as any).ordersViewTest.orderAccounts())).toEqual(['account-a']);
+    await page.evaluate(value => (window as any).ordersViewTest.resolveOrders(0, [value]), draft());
+    await page.getByRole('button', { name: 'INV-A' }).click();
+    await expect.poll(() => page.evaluate(() => (window as any).ordersViewTest.itemAccounts())).toEqual(['account-a']);
+    await page.evaluate(() => (window as any).ordersViewTest.resolveItems(0, [
+      { id: 'line-a', custom_name: 'Retired Da Hong Pao', quantity: 30, price_at_sale: 0 },
+    ]));
+    await page.getByRole('button', { name: /Accept & Make Order/i }).click();
+  }
+
+  it('asks about it by name instead of reporting a fault', async () => {
+    await openDraft();
+
+    // The refusal is a question the operator can answer, so it reaches them as
+    // a confirm naming the line, not as a red error toast they cannot act on.
+    await expect.poll(() => page.getByRole('button', { name: 'Send anyway' }).count()).toBe(1);
+    const dialog = await page.locator('h3', { hasText: 'nothing charged' }).first().textContent();
+    expect(dialog).toContain('INV-A');
+    expect(await page.getByText('Retired Da Hong Pao').count()).toBeGreaterThan(0);
+    expect(await page.getByText('No price set').count()).toBe(1);
+  });
+
+  it('sends it only after the operator says so, and says so explicitly', async () => {
+    await openDraft();
+    await page.getByRole('button', { name: 'Send anyway' }).click();
+
+    await expect.poll(() => page.evaluate(() => (window as any).ordersViewTest.acceptCalls().length)).toBe(2);
+    const calls = await page.evaluate(() => (window as any).ordersViewTest.acceptCalls());
+    // The first attempt carried no permission, which is what got it refused.
+    expect(calls[0]).toEqual({ status: 'Pending' });
+    // The second carries it, and only because a person clicked.
+    expect(calls[1]).toEqual({ status: 'Pending', allow_unpriced_lines: true });
+
+    // The dialog closes rather than sitting there mid-send.
+    await expect.poll(() => page.getByText('Send INV-A with nothing charged?').count()).toBe(0);
+  });
+
+  it('leaves a priced draft alone', async () => {
+    await open();
+    await expect.poll(() => page.evaluate(() => (window as any).ordersViewTest.orderAccounts())).toEqual(['account-a']);
+    await page.evaluate(value => (window as any).ordersViewTest.resolveOrders(0, [value]), draft());
+    await page.getByRole('button', { name: 'INV-A' }).click();
+    await expect.poll(() => page.evaluate(() => (window as any).ordersViewTest.itemAccounts())).toEqual(['account-a']);
+    await page.evaluate(() => (window as any).ordersViewTest.resolveItems(0, [
+      { id: 'line-a', custom_name: 'Da Hong Pao', quantity: 30, price_at_sale: 1 },
+    ]));
+    await page.getByRole('button', { name: /Accept & Make Order/i }).click();
+
+    await expect.poll(() => page.evaluate(() => (window as any).ordersViewTest.acceptCalls().length)).toBe(1);
+    expect(await page.getByText('Send INV-A with nothing charged?').count()).toBe(0);
+  });
+});

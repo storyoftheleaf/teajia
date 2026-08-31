@@ -347,3 +347,92 @@ describe('private inquiry tracking', () => {
     expect((await get(db, SECOND_TOKEN)).status).toBe(200);
   });
 });
+
+/**
+ * A tea the shop does not list yet still leaves a record.
+ *
+ * Every line used to have to name a product in the catalogue, so a sample of
+ * something poured at a session but never listed could not be saved at all: the
+ * request stayed a WhatsApp message, and the reference printed on the
+ * confirmation stood for nothing. That product-id requirement was also doing
+ * duty as the anti-junk gate on an unauthenticated write, so the tests below
+ * cover both halves — the case that must now be accepted, and the fences that
+ * replace what the requirement was quietly providing.
+ */
+describe('a request for a tea the shop does not list', () => {
+  const customLine = (overrides: Record<string, unknown> = {}) => ({
+    custom: true, name: 'Something poured at the session', category: 'tea', storeSlug: 'bali',
+    quantityGrams: 5, pricePerGram: 0, totalPrice: 0, ...overrides,
+  });
+
+  it('is saved, so the tea house hears about it', async () => {
+    const db = new InquiryDb();
+    const response = await post(db, createPayload({ items: [customLine()], total_estimate_usd: 0 }));
+
+    expect(response.status).toBe(201);
+    expect(db.inquiries).toHaveLength(1);
+    // Saved under the store it was asked of, with the line's own name intact —
+    // converting turns that into a named line at no price, the same shape it
+    // already produces for a tea that has since been retired.
+    expect(db.inquiries[0].account_id).toBe('account-bali');
+    expect(String(db.inquiries[0].items)).toContain('Something poured at the session');
+  });
+
+  it('is saved alongside lines that do name a product', async () => {
+    const db = new InquiryDb();
+    const catalogue = (createPayload().items as Array<Record<string, unknown>>)[0];
+    const response = await post(db, createPayload({ items: [catalogue, customLine()] }));
+
+    expect(response.status).toBe(201);
+    expect(db.inquiries).toHaveLength(1);
+  });
+
+  it('still refuses a line naming a product the store does not sell', async () => {
+    const db = new InquiryDb();
+    const response = await post(db, createPayload({
+      items: [{ ...(createPayload().items as Array<Record<string, unknown>>)[0], id: 'missing-tea' }],
+    }));
+
+    // The loosening is for lines that say they are custom, never for a
+    // mistyped product id quietly becoming one.
+    expect(response.status).toBe(404);
+    expect(db.inquiries).toHaveLength(0);
+  });
+
+  it('refuses a line that claims to be custom and names a product anyway', async () => {
+    const db = new InquiryDb();
+    const response = await post(db, createPayload({ items: [customLine({ id: 'tea-1' })] }));
+
+    expect(response.status).toBe(400);
+    expect(db.inquiries).toHaveLength(0);
+  });
+
+  it('caps how many lines one request may carry', async () => {
+    const db = new InquiryDb();
+    const response = await post(db, createPayload({
+      items: Array.from({ length: 51 }, (_, index) => customLine({ name: `Tea ${index}` })),
+    }));
+
+    expect(response.status).toBe(400);
+    expect(db.inquiries).toHaveLength(0);
+  });
+
+  it('caps how long a line may name itself', async () => {
+    const db = new InquiryDb();
+    const response = await post(db, createPayload({ items: [customLine({ name: 'x'.repeat(121) })] }));
+
+    expect(response.status).toBe(400);
+    expect(db.inquiries).toHaveLength(0);
+  });
+
+  it('caps the free-text note, which had no limit before custom lines existed', async () => {
+    const db = new InquiryDb();
+    const response = await post(db, createPayload({
+      items: [customLine()],
+      notes: 'y'.repeat(5000),
+    }));
+
+    expect(response.status).toBe(201);
+    expect(String(db.inquiries[0].message)).toHaveLength(2000);
+  });
+});
