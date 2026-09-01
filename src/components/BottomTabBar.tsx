@@ -236,7 +236,12 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           background: 'rgb(var(--tea-bg-rgb) / 0.92)',
           backdropFilter: 'blur(20px) saturate(180%)',
           WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-          border: '1px solid rgb(var(--tea-border-rgb) / 0.6)',
+          /* Gold at 0.18, matching the order bar that docks on top of this
+             one. It used to read `rgb(var(--tea-border-rgb) / 0.6)`, and
+             `--tea-border-rgb` is defined nowhere in the app, so the whole
+             declaration was invalid: `border-style` stayed `none` and the
+             capsule has never actually drawn the edge described here. */
+          border: '1px solid rgb(var(--tea-gold-rgb) / 0.18)',
           WebkitTapHighlightColor: 'transparent',
           WebkitTouchCallout: 'none',
           WebkitUserSelect: 'none',

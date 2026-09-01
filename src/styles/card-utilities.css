@@ -3622,7 +3622,12 @@ input[type="number"]::-webkit-outer-spin-button {
      whole assembly and a square edge there reads as a slab the screen cut
      off. Clipped, so whichever half is currently on top, the price list or
      the strip, takes the corner. */
-  border: 1px solid rgb(var(--tea-border-rgb) / 0.6);
+  /* Gold at 0.18, the assembly's one keyline. This used to read
+     `rgb(var(--tea-border-rgb) / 0.6)`, and `--tea-border-rgb` is defined
+     nowhere in the app, so the whole declaration was invalid and the bar drew
+     no border at all: `border-style` stayed at its `none` default and the
+     shape's edge was whatever the ground happened to do against the page. */
+  border: 1px solid rgb(var(--tea-gold-rgb) / 0.18);
   border-bottom: 0;
   border-radius: 16px 16px 0 0;
   overflow: hidden;
@@ -3830,7 +3835,7 @@ input[type="number"]::-webkit-outer-spin-button {
     margin-inline: auto;
     transform: none;
     bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
-    border: 1px solid rgb(var(--tea-border-rgb) / 0.6);
+    border: 1px solid rgb(var(--tea-gold-rgb) / 0.18);
     /* Rounded at both ends, the top matching the base. On the phone the top
        is square because the navigation closes the assembly underneath it; here
        the bar is the whole object and a square top with a rounded bottom read
@@ -3872,13 +3877,8 @@ input[type="number"]::-webkit-outer-spin-button {
 .cart-toast-band {
   color-scheme: dark;
   overflow: hidden;
-  /* Not `rgb(var(--tea-border-rgb) / 0.6)`, which is what the navigation and
-     the order bar both ask for: `--tea-border-rgb` is defined nowhere in the
-     app, so that whole declaration is invalid and those two have been drawing
-     no keyline at all. Left alone there, since fixing it changes how the
-     navigation looks and that is not this change's business, but not copied
-     into a new surface. `--tea-border` is gold at 0.14; 0.18 is the same
-     colour carrying the same weight against a near-black ground. */
+  /* The same keyline the navigation and the order bar draw, so the three
+     objects that share this corner of the phone share an edge. */
   border: 1px solid rgb(var(--tea-gold-rgb) / 0.18);
   border-radius: 16px;
   background: rgb(9 8 7 / 0.9);
