@@ -608,22 +608,23 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
             {justAdded ? 'Added' : 'Add'}
           </button>
           {orderTotalUsd > 0 && (
-            /* A figure on its own is something to read. The word above it is
-               what makes it a way out of the page, and the word has to be the
-               larger of the two: the total is the reassurance, not the
-               instruction. This is also the one figure in the assembly that
-               keeps its currency, because the list's picker is behind a tap
-               and the bar is not. */
+            /* The total leads and the word sits under it. What the reader
+               wants off this corner of the bar is the number, so the number is
+               the larger of the two and the first thing the eye lands on;
+               Checkout underneath is what turns it from a figure into a way
+               out of the page. This is also the one figure in the assembly
+               that keeps its currency, because the list's picker is behind a
+               tap and the bar is not. */
             <button
               type="button"
               onClick={onOpenOrder}
               className="alcove-dock-cta tap-target"
               aria-label={`Checkout, ${resolvedTotal(orderTotalUsd)}`}
             >
-              <span className="alcove-dock-cta-verb">Checkout</span>
               <span className="alcove-dock-cta-total font-display tabular-nums">
                 {resolvedTotal(orderTotalUsd)}
               </span>
+              <span className="alcove-dock-cta-verb">Checkout</span>
             </button>
           )}
         </div>

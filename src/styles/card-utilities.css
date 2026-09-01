@@ -3777,19 +3777,31 @@ input[type="number"]::-webkit-outer-spin-button {
   color: var(--tea-text);
   transition: background 0.15s ease;
 }
+/* The second line now, so it steps back a tone. Two lines of full-strength
+   text with the smaller one in caps compete; the number has to win. */
 .alcove-dock-cta-verb {
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.16em;
   line-height: 1;
-}
-/* Smaller than the word above it. The total is what the reader is being
-   reassured about; the word is what they are being told they can do. */
-.alcove-dock-cta-total {
-  font-size: 13px;
-  letter-spacing: 0.04em;
-  line-height: 1;
   color: var(--tea-text-sec);
+}
+/* The top line, and the larger of the two. The total is what the reader is
+   coming to this corner of the bar for; Checkout underneath says what to do
+   with it. */
+.alcove-dock-cta-total {
+  font-size: 16px;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  color: var(--tea-text);
+  /* Cormorant ships an old-style figure set and reaches for it unasked, so 3,
+     5, 7 and 9 hang as far below the line as a lowercase y. `tabular-nums`
+     alone does not turn that off. At 13px the sag read as a quirk; at 16px it
+     reads as a price falling off the bar. This is the same pair the `.num`
+     helper sets, and DESIGN's own rule: never set a price in Cormorant
+     without forcing lining figures. */
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
 }
 .alcove-dock-cta:hover { background: rgb(var(--tea-gold-rgb) / 0.1); }
 /* The block never disappears. It used to hide below 640px, which meant the one
@@ -3798,7 +3810,7 @@ input[type="number"]::-webkit-outer-spin-button {
 @media (max-width: 639px) {
   .alcove-dock-cta { padding: 0 12px; gap: 2px; }
   .alcove-dock-cta-verb { font-size: 10px; letter-spacing: 0.1em; }
-  .alcove-dock-cta-total { font-size: 12px; }
+  .alcove-dock-cta-total { font-size: 15px; }
 }
 @media (min-width: 1024px) {
   .commerce-dock {
