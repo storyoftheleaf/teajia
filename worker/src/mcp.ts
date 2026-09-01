@@ -68,6 +68,7 @@ import {
 // A leaf module shared with index.ts, so no cycle. convert_order_request needs
 // the same tea-versus-teaware rule the REST convert applies to its lines.
 import { isTeaType } from '../../src/wisdom/vocabulary';
+import { mergeProductTasting, readStoredTasting, tastingHasTerms, tastingTermLabel } from './curateImportTasting';
 
 type Env = {
   DB: D1Database;
@@ -499,6 +500,7 @@ type PendingMutation =
   | { kind: 'remove_vendor_contact'; accountId: string; userEmail: string; customerId: string }
   | { kind: 'link_vendor_products'; accountId: string; userEmail: string; customerId: string; productIds: string[]; note: string | null }
   | { kind: 'update_tea_catalog'; accountId: string; userEmail: string; productId: string; fields: Record<string, string | null> }
+  | { kind: 'set_tasting'; accountId: string; userEmail: string; productId: string; tasting: Record<string, unknown>; touched: string[] }
   | { kind: 'set_archive_status'; accountId: string; userEmail: string; productId: string; archived: boolean; reason: string | null }
   | { kind: 'set_tea_visibility'; accountId: string; userEmail: string; productId: string; shownInShop: boolean; personal?: boolean; isPublic?: boolean }
   | { kind: 'fulfill_invoice'; accountId: string; userEmail: string; actorUserId: string; invoiceId: string }
@@ -2933,6 +2935,140 @@ async function commitLinkVendorProducts(
     vendor_id: m.customerId,
     linked_product_ids: m.productIds,
     product_count: rows.length,
+  };
+}
+
+// ── tool: set_tasting (preview / confirm) ──
+//
+// The shop's own sensory claim about a tea: what it tastes of, what it feels
+// like, its body, its finish, the colour of the liquor. This is the one field
+// on a product that is written in Adrian's voice about a cup he has actually
+// drunk, which is why it is owner-tier and why it stamps `tasting_source`
+// as 'owner' the same way the admin editor does.
+//
+// Two things this tool is careful about, both of which would be silent:
+//
+// 1. It MERGES. `products.tasting` also carries the starred notes that the
+//    product page reads out as quotes, the teaser line, and the brewing terms.
+//    Writing the column wholesale from five arrays would delete all of them
+//    without a word. Only the categories actually supplied are touched.
+//
+// 2. It refuses unknown terms rather than dropping them. A term id that is not
+//    in the taxonomy renders on the page as its raw id, so silently discarding
+//    one would publish a shorter claim than the caller asked for and say
+//    nothing. `normalizeImportTasting` is the same validator the Curate import
+//    path uses; there is deliberately not a second copy of the vocabulary here.
+//
+// Brewing is not settable here. The shared validator does not accept it, and
+// widening the vocabulary for one tool would change what the import path
+// accepts too.
+const TASTING_CATEGORY_ARGS: Record<string, string> = {
+  flavor: 'flavor',
+  feeling: 'feeling',
+  body: 'body',
+  finish: 'finish',
+  liquor_color: 'liquor-color',
+};
+
+function readStoredTastingForPreview(raw: unknown): Record<string, unknown> {
+  return readStoredTasting(raw);
+}
+
+function termList(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((t): t is string => typeof t === 'string') : [];
+}
+
+function readableTerms(value: unknown): string {
+  const terms = termList(value);
+  return terms.length ? terms.map(tastingTermLabel).join(' · ') : '(none)';
+}
+
+async function toolSetTasting(env: Env, auth: McpAuth, args: any) {
+  const productId = String(args?.product_id || '').trim();
+  const confirm = args?.confirm ? String(args.confirm) : null;
+  if (!productId) throw new Error('product_id is required');
+
+  // Which categories the caller actually spoke about. Supplying an empty array
+  // is how you clear one; omitting it leaves it exactly as it was.
+  const supplied: Record<string, string[]> = {};
+  for (const [argKey, category] of Object.entries(TASTING_CATEGORY_ARGS)) {
+    if (args?.[argKey] === undefined) continue;
+    if (!Array.isArray(args[argKey])) throw new Error(`${argKey} must be an array of term ids`);
+    supplied[category] = args[argKey].map((t: any) => String(t).trim()).filter(Boolean);
+  }
+  const touched = Object.keys(supplied);
+  if (touched.length === 0) {
+    throw new Error(`At least one of ${Object.keys(TASTING_CATEGORY_ARGS).join(', ')} is required`);
+  }
+
+  const product = await env.DB.prepare(
+    'SELECT id, given_name, product_name, tasting, tasting_source FROM products WHERE id = ? AND account_id = ?'
+  ).bind(productId, auth.accountId).first() as Record<string, any> | null;
+  if (!product) return { error: 'not_found' };
+
+  // Validation and the merge both live in the taxonomy module, so the vocabulary
+  // has one home in the worker and the merge can be tested without a database.
+  const current = readStoredTastingForPreview(product.tasting);
+  const { next } = mergeProductTasting(product.tasting, supplied);
+
+  if (!confirm) {
+    const token = await issueConfirmationToken(env, {
+      kind: 'set_tasting', accountId: auth.accountId, userEmail: auth.userEmail,
+      productId: product.id as string, tasting: next, touched,
+    }, auth.tokenId);
+    const changes: Record<string, { old: string; new: string }> = {};
+    for (const category of touched) {
+      changes[category] = { old: readableTerms(current[category]), new: readableTerms(next[category]) };
+    }
+    // Say out loud what is being kept, so nobody has to trust that the merge
+    // happened: these are the parts of the tasting this call does not touch.
+    const preserved = Object.keys(current).filter(key => !touched.includes(key));
+    return {
+      preview: {
+        action: 'set_tasting',
+        product: { id: product.id, name: product.given_name || product.product_name },
+        changes,
+        untouched: preserved.length ? preserved : undefined,
+        tasting_source: { old: product.tasting_source ?? null, new: tastingHasTerms(next) ? 'owner' : null },
+        note: 'Saved as the shop\'s own tasting, in your voice, and shown to customers without a "potential profile" qualifier.',
+      },
+      confirmation_token: token,
+      expires_in_seconds: PENDING_TTL_MS / 1000,
+    };
+  }
+
+  const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
+  if (!pending || pending.kind !== 'set_tasting' || pending.productId !== product.id) {
+    return { error: 'invalid_or_expired_confirmation_token' };
+  }
+  return commitSetTasting(env, pending);
+}
+
+async function commitSetTasting(env: Env, m: Extract<PendingMutation, { kind: 'set_tasting' }>) {
+  // tasting_source follows the admin's own rule: terms present means the shop
+  // is making the claim, nothing present means there is no claim to attribute.
+  const source = tastingHasTerms(m.tasting) ? 'owner' : null;
+
+  await env.DB.batch([
+    env.DB.prepare(
+      "UPDATE products SET tasting = ?, tasting_source = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?"
+    ).bind(JSON.stringify(m.tasting), source, m.productId, m.accountId),
+    env.DB.prepare(
+      `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+       VALUES (?, 'TASTING_UPDATED_MCP', ?, ?, 'product', ?, ?)`
+    ).bind(
+      crypto.randomUUID(),
+      `Tasting set via MCP for product ${m.productId}: ${m.touched.join(', ')}`,
+      m.userEmail, m.productId, m.accountId,
+    ),
+  ]);
+
+  return {
+    committed: true,
+    action: 'set_tasting',
+    product_id: m.productId,
+    updated_categories: m.touched,
+    tasting_source: source,
   };
 }
 
@@ -5829,6 +5965,24 @@ const TOOL_DEFS = [
     },
   },
   {
+    name: 'set_tasting',
+    scope: 'catalog:write',
+    description: "Set the shop's own tasting for a tea: what it tastes of, how it feels, its body, finish and liquor colour. Two-step preview/confirm. Terms must be taxonomy ids (e.g. honey, stone-fruit, hui-gan, amber); unknown ids are refused, not dropped. Only the categories you supply change, so starred notes, the teaser and brewing survive. Pass an empty array to clear one category. Saves as the shop's own claim (tasting_source 'owner'), which is what removes the 'potential profile' qualifier on the product page.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        product_id: { type: 'string', description: 'Product id from search_tea/get_tea.' },
+        flavor: { type: 'array', items: { type: 'string' }, description: 'Taste term ids, e.g. ["honey","dried-fruit","malt","cocoa"]. Shown as the first line of the character card.' },
+        feeling: { type: 'array', items: { type: 'string' }, description: 'Feeling term ids, e.g. ["grounding","feeling-warming"]. Shown under the taste line.' },
+        body: { type: 'array', items: { type: 'string' }, description: 'Body term ids, e.g. ["medium","silky"].' },
+        finish: { type: 'array', items: { type: 'string' }, description: 'Finish term ids, e.g. ["coating","finish-long","hui-gan"].' },
+        liquor_color: { type: 'array', items: { type: 'string' }, description: 'Liquor colour term id, e.g. ["amber"].' },
+        confirm: { type: 'string', description: 'Confirmation token from preview response.' },
+      },
+      required: ['product_id'],
+    },
+  },
+  {
     name: 'set_archive_status',
     scope: 'catalog:write',
     description: 'Archive or un-archive a tea product. Archiving removes it from public shop listings. Two-step preview/confirm. Shows current and new status before committing.',
@@ -6184,7 +6338,7 @@ const IDEMPOTENT_TOOLS = new Set([
   'tag_customer', 'untag_customer', 'link_vendor', 'unlink_vendor',
   'upsert_vendor_contact', 'remove_vendor_contact', 'link_vendor_products',
   'update_tea_catalog',
-  'set_archive_status', 'set_low_stock_threshold', 'mark_invoice_paid',
+  'set_archive_status', 'set_low_stock_threshold', 'mark_invoice_paid', 'set_tasting',
   'update_customer', 'update_invoice', 'update_tea_pricing',
   'update_account_settings', 'update_exchange_rate', 'set_tea_visibility',
   'intake_analyze', 'intake_update_item', 'intake_set_group_vendor',
@@ -6227,7 +6381,7 @@ function visibleToolDefs(auth: McpAuth) {
 const AUDITED_TOOLS = new Set([
   'record_sale', 'add_stock', 'remove_stock',
   'create_customer', 'update_customer',
-  'update_tea_pricing', 'set_low_stock_threshold',
+  'update_tea_pricing', 'set_low_stock_threshold', 'set_tasting',
   'update_invoice', 'void_invoice',
   // Wave 3
   'tag_customer', 'untag_customer', 'link_vendor', 'unlink_vendor',
@@ -6303,6 +6457,7 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
     case 'create_customer': result = mcpContent(await toolCreateCustomer(env, auth, args)); break;
     case 'update_customer': result = mcpContent(await toolUpdateCustomer(env, auth, args)); break;
     case 'update_tea_pricing': result = mcpContent(await toolUpdateTeaPricing(env, auth, args)); break;
+    case 'set_tasting': result = mcpContent(await toolSetTasting(env, auth, args)); break;
     case 'set_low_stock_threshold': result = mcpContent(await toolSetLowStockThreshold(env, auth, args)); break;
     case 'update_invoice': result = mcpContent(await toolUpdateInvoice(env, auth, args)); break;
     case 'void_invoice': result = mcpContent(await toolVoidInvoice(env, auth, args)); break;
