@@ -20,6 +20,9 @@ const config: Config = {
         'tea-bg': 'rgb(var(--tea-bg-rgb) / <alpha-value>)',
         'tea-surface': 'rgb(var(--tea-surface-rgb) / <alpha-value>)',
         'tea-elevated': 'rgb(var(--tea-elevated-rgb) / <alpha-value>)',
+        // A step BELOW the ground, for panels set into the page rather than
+        // lifted off it. Every other surface token is lighter than tea-bg.
+        'tea-sunken': 'rgb(var(--tea-sunken-rgb) / <alpha-value>)',
         'tea-text': 'rgb(var(--tea-text-rgb) / <alpha-value>)',
         'tea-text-sec': 'rgb(var(--tea-text-sec-rgb) / <alpha-value>)',
         'tea-text-dim': 'rgb(var(--tea-text-dim-rgb) / <alpha-value>)',

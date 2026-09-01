@@ -19,6 +19,9 @@ import { AlcoveShell } from './alcove/AlcoveShell';
 import { AlcoveGallery } from './alcove/AlcoveGallery';
 import { AlcoveIdentityHeader } from './alcove/AlcoveIdentityHeader';
 import { AlcoveFactsLedger } from './alcove/AlcoveFactsLedger';
+import { AlcoveOriginLine } from './alcove/AlcoveOriginLine';
+import { AlcoveSectionHeading } from './alcove/AlcoveSectionHeading';
+import { AlcoveTastingPlate } from './alcove/AlcoveTastingPlate';
 import { AlcoveCharacterBand } from './alcove/AlcoveCharacterBand';
 import { AlcoveAboutSection } from './alcove/AlcoveAboutSection';
 import { AlcoveTableSection } from './alcove/AlcoveTableSection';
@@ -487,6 +490,21 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       }
     : null;
 
+  /*
+   * The page states where the tea is from as one floating block under the
+   * label; the card still states it as a ledger, because a glance wants rows
+   * and a page wants a place. Same facts, same source, two registers.
+   */
+  const originLine = (
+    <AlcoveOriginLine
+      origin={item.origin}
+      harvest={item.year}
+      elevation={ledgerElevation}
+      forestCover={ledgerRegion?.forestCover}
+      treeCharacter={ledgerRegion?.treeCharacter}
+    />
+  );
+
   const factsLedger = (
     <AlcoveFactsLedger
       origin={item.origin}
@@ -528,15 +546,32 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       legacyNotes={notes}
       onTermClick={onTermClick}
       potentialResearch={potentialResearch}
-      onTaste={onTaste}
+      onTaste={layout === 'page' ? undefined : onTaste}
       tastingEntry={tastingEntry}
       open={layout === 'page'}
     />
   );
 
+  /*
+   * Your own tasting, on the page. It used to live inside the character band,
+   * which put your words inside the shop's claim about the tea. It stands on
+   * its own now, directly above the reading, so the record says what the tea
+   * is and this says what you did with it.
+   */
+  const tastingRow = onTaste ? (
+    <div className="mx-5 mt-6">
+      <AlcoveTastingPlate
+        variant="standalone"
+        entry={tastingEntry}
+        onTaste={intent => onTaste(item, intent)}
+      />
+    </div>
+  ) : null;
+
   // 5. About this tea: story + terroir + craft as one reading chapter
   const aboutSection = (
     <AlcoveAboutSection
+      variant={layout === 'page' ? 'page' : 'card'}
       item={item}
       magazineUrl={magazineUrl}
       mainStory={mainStory}
@@ -592,9 +627,9 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   ];
 
   const threadSection = threads.length > 0 ? (
-    <div className="alcove-body-section mt-8 border-t border-tea-border pt-5">
-      <p className="m-0 font-sans text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim">Follow the thread</p>
-      <div className="mt-3 flex flex-wrap gap-2">
+    <div className="alcove-body-section mt-10 lg:mt-12">
+      <AlcoveSectionHeading label="Follow the thread" size="lg" className="mb-[18px] lg:mb-5" />
+      <div className="flex flex-wrap justify-center gap-2">
         {threads.map(t => (
           <button
             key={t.key}
@@ -655,11 +690,12 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           </div>
 
           {/* The reading, with what the shop knows at the top of it */}
-          <div className="lg:min-w-0 lg:px-7 lg:pt-6">
-            {factsLedger}
+          <div className="lg:min-w-0 lg:px-7 lg:pt-2">
+            {originLine}
             {gallery}
             {characterBand}
-            {aboutSection}
+            {tastingRow}
+            <div className="mt-10 lg:mt-12">{aboutSection}</div>
             {referenceSection}
             {tableSection}
             {threadSection}

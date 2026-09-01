@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { CustomerTasting } from '../../../types';
 import { resolveTermLabel } from '../../../data/tastingTaxonomy';
 import { starredNotes } from '../../../lib/noteEntries';
@@ -11,6 +11,14 @@ interface AlcoveTastingPlateProps {
    * mic ready; 'edit' opens the questions.
    */
   onTaste: (intent?: 'edit' | 'notes') => void;
+  /**
+   * 'inline' is the quiet card's plate, sitting inside the character band.
+   * 'standalone' is the product page's row: it stands on its own directly
+   * above the reading, in its own keyline, because the record above it says
+   * what the TEA is and this says what YOU did with it. Two claims of
+   * different kinds should not share one box.
+   */
+  variant?: 'inline' | 'standalone';
 }
 
 /**
@@ -55,7 +63,32 @@ const LeafMark: React.FC = () => (
  * purpose: the tint alone carries it, so the reading column keeps its habit of
  * holding no bordered objects.
  */
-export const AlcoveTastingPlate: React.FC<AlcoveTastingPlateProps> = ({ entry, onTaste }) => {
+/** The disclosure caret on the standalone row. Drawn, so it takes the accent. */
+const Caret: React.FC<{ open: boolean }> = ({ open }) => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    className="ml-auto shrink-0 text-tea-gold-lt"
+  >
+    <path d={open ? 'M6 14.5 12 8.5 18 14.5' : 'M6 9.5 12 15.5 18 9.5'} />
+  </svg>
+);
+
+export const AlcoveTastingPlate: React.FC<AlcoveTastingPlateProps> = ({ entry, onTaste, variant = 'inline' }) => {
+  /*
+   * Closed by default, on purpose. The row's job on a reading page is to say
+   * that your entry EXISTS and to get out of the way; the words you wrote are
+   * one tap under it. Open by default would put your own paragraph between the
+   * tea and its lore every single visit.
+   */
+  const [open, setOpen] = useState(false);
   const note = entry?.note;
   const terms = note?.tasting?.flavor?.length
     ? note.tasting.flavor
@@ -69,6 +102,123 @@ export const AlcoveTastingPlate: React.FC<AlcoveTastingPlateProps> = ({ entry, o
   const personalNote = note?.personalNote?.trim();
   const starredCount = starredNotes(note?.tasting).length;
   const hasSomethingToShow = terms.length > 0 || Boolean(personalNote) || starredCount > 0;
+
+  const standalone = variant === 'standalone';
+
+  // "Tasted" dates the sitting, not the last edit, so it takes the first
+  // record's date and falls back to the entry's own timestamp.
+  const tastedAt = entry?.tastings[0]?.createdAt ?? note?.updatedAt;
+  const tastedLabel = tastedAt
+    ? new Date(tastedAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    : null;
+
+  if (standalone) {
+    // Nothing written: one row, one invitation, an arrow that means forward.
+    if (!entry || !hasSomethingToShow) {
+      return (
+        <button
+          type="button"
+          onClick={e => {
+            e.stopPropagation();
+            onTaste('edit');
+          }}
+          className="alcove-note-row flex min-h-[46px] w-full items-center gap-3 px-4 text-left transition-colors"
+        >
+          <LeafMark />
+          <span className="font-display text-[19px] font-medium leading-none text-tea-text">
+            Add your tasting
+          </span>
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            className="ml-auto shrink-0 text-tea-gold-lt"
+          >
+            <path d="M5 12h13" />
+            <path d="M12.5 6.5 18 12l-5.5 5.5" />
+          </svg>
+        </button>
+      );
+    }
+
+    // Written: the same row shows what you called it, and opens onto the rest.
+    return (
+      <div>
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={e => {
+            e.stopPropagation();
+            setOpen(v => !v);
+          }}
+          className="alcove-note-row flex min-h-[46px] w-full items-center gap-3 px-4 text-left transition-colors"
+        >
+          <LeafMark />
+          <span className="min-w-0 flex-1 truncate">
+            <span className="mr-2.5 font-sans text-ui-9 font-medium uppercase tracking-[0.18em] text-tea-text-dim">
+              Yours
+            </span>
+            <span className="font-display text-[19px] font-medium text-tea-text">
+              {terms.map((termId, i) => (
+                <React.Fragment key={termId}>
+                  {i > 0 && (
+                    <span aria-hidden="true" className="px-[7px] text-tea-gold-lt">
+                      ·
+                    </span>
+                  )}
+                  {resolveTermLabel(termId)}
+                </React.Fragment>
+              ))}
+            </span>
+          </span>
+          <Caret open={open} />
+        </button>
+
+        {open && (
+          <div className="alcove-note-open px-4 pb-4 pt-3.5">
+            {personalNote && (
+              <p className="m-0 font-body text-ui-14 italic leading-[1.62] text-tea-text-sec">
+                {personalNote}
+              </p>
+            )}
+            {tastedLabel && (
+              <p className={`m-0 font-sans text-ui-9 uppercase tracking-[0.18em] text-tea-text-dim ${personalNote ? 'mt-3' : ''}`}>
+                Tasted {tastedLabel}
+              </p>
+            )}
+            <div className="mt-3.5 flex gap-4">
+              <button
+                type="button"
+                onClick={e => {
+                  e.stopPropagation();
+                  onTaste('notes');
+                }}
+                className={CORNER_LINK}
+              >
+                Note
+              </button>
+              <button
+                type="button"
+                onClick={e => {
+                  e.stopPropagation();
+                  onTaste('edit');
+                }}
+                className={CORNER_LINK}
+              >
+                Edit
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   // An entry that exists but holds nothing readable is not worth a plate of its
   // own: the invitation is still the honest thing to show.
@@ -104,13 +254,6 @@ export const AlcoveTastingPlate: React.FC<AlcoveTastingPlateProps> = ({ entry, o
       </button>
     );
   }
-
-  // "Tasted" dates the sitting, not the last edit, so it takes the first
-  // record's date and falls back to the entry's own timestamp.
-  const tastedAt = entry.tastings[0]?.createdAt ?? note?.updatedAt;
-  const tastedLabel = tastedAt
-    ? new Date(tastedAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-    : null;
 
   return (
     <div className="bg-tea-gold/8 px-4 pb-3.5 pt-3">

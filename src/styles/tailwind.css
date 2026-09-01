@@ -78,6 +78,12 @@ nav[aria-label="Admin navigation"] * {
   --tea-bg-rgb: 34 32 28;
   --tea-surface: #322e29;
   --tea-surface-rgb: 50 46 41;
+  /* One step BELOW the ground, not above it. The record card on a product page
+     is a panel set INTO the page rather than lifted off it, which is what lets
+     a keyline read as an edge instead of a shadow. There was no such token:
+     every existing surface is lighter than --tea-bg. */
+  --tea-sunken: #1e1b17;
+  --tea-sunken-rgb: 30 27 23;
   --tea-elevated: #423d36;
   --tea-elevated-rgb: 66 61 54;
   --tea-text: #ede4d4;
@@ -130,6 +136,8 @@ nav[aria-label="Admin navigation"] * {
   --tea-bg-rgb: 244 236 224;
   --tea-surface: #e4ddd3;
   --tea-surface-rgb: 228 221 211;
+  --tea-sunken: #eae0d0;
+  --tea-sunken-rgb: 234 224 208;
   --tea-elevated: #d5c8b4;
   --tea-elevated-rgb: 213 200 180;
   --tea-text: #18130e;
@@ -164,6 +172,12 @@ nav[aria-label="Admin navigation"] * {
   --tea-bg-rgb: 34 32 28;
   --tea-surface: #322e29;
   --tea-surface-rgb: 50 46 41;
+  /* One step BELOW the ground, not above it. The record card on a product page
+     is a panel set INTO the page rather than lifted off it, which is what lets
+     a keyline read as an edge instead of a shadow. There was no such token:
+     every existing surface is lighter than --tea-bg. */
+  --tea-sunken: #1e1b17;
+  --tea-sunken-rgb: 30 27 23;
   --tea-elevated: #423d36;
   --tea-elevated-rgb: 66 61 54;
   --tea-text: #ede4d4;

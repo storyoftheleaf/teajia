@@ -1,6 +1,7 @@
 import React from 'react';
 import type { InventoryItem } from '../../../types';
 import { resolveTermLabel } from '../../../data/tastingTaxonomy';
+import { AlcoveSectionHeading } from './AlcoveSectionHeading';
 
 interface AlcoveAboutSectionProps {
   item: InventoryItem;
@@ -14,6 +15,16 @@ interface AlcoveAboutSectionProps {
   terroir: string;
   processing: string;
   mood: string;
+  /**
+   * 'card' is the quiet modal card, where a chapter label is a 10px whisper
+   * over 14px prose because the whole card is a glance.
+   *
+   * 'page' is the product page, where this section IS the page: the label
+   * becomes the centred rule-and-word mark that names a chapter, and the prose
+   * steps up to reading size in reading ink. The 14px secondary text was the
+   * single thing that made the page feel thin.
+   */
+  variant?: 'card' | 'page';
 }
 
 /**
@@ -32,6 +43,7 @@ export const AlcoveAboutSection: React.FC<AlcoveAboutSectionProps> = ({
   terroir,
   processing,
   mood,
+  variant = 'card',
 }) => {
   const brewingTerms = item.tasting?.brewing ?? [];
   const hasBrewing = brewingTerms.length > 0;
@@ -47,10 +59,28 @@ export const AlcoveAboutSection: React.FC<AlcoveAboutSectionProps> = ({
     Boolean(feelingDescription.trim());
   if (!hasAny && !hasBrewing) return null;
 
-  const paragraphClass =
-    'm-0 whitespace-pre-line font-body text-ui-14 font-normal leading-[1.75] text-tea-text-sec [&+p]:mt-[9px]';
-  const headingClass =
-    'm-0 font-sans text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim [&:not(:first-child)]:mt-5 first:mt-0';
+  const onPage = variant === 'page';
+
+  const paragraphClass = onPage
+    ? 'm-0 whitespace-pre-line font-body text-[16.5px] font-normal leading-[1.82] text-tea-text-sec [text-wrap:pretty] [&+p]:mt-3 lg:text-ui-17'
+    : 'm-0 whitespace-pre-line font-body text-ui-14 font-normal leading-[1.75] text-tea-text-sec [&+p]:mt-[9px]';
+
+  /*
+   * Inside the prose, a `## ` line is the author's own title for the passage.
+   * On the card it stays a small caps label; on the page it becomes a real
+   * heading in the display serif, which is the one line the reader lands on
+   * after the chapter mark.
+   */
+  const headingClass = onPage
+    ? 'm-0 font-display text-[23px] font-medium leading-[1.26] text-tea-text [text-wrap:balance] [&:not(:first-child)]:mt-7 first:mt-0 lg:text-[25px]'
+    : 'm-0 font-sans text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim [&:not(:first-child)]:mt-5 first:mt-0';
+
+  /** The chapter's own name: a whisper on the card, a marked rule on the page. */
+  function sectionLabel(label: string) {
+    return onPage
+      ? <AlcoveSectionHeading label={label} size="lg" className="mb-[18px] lg:mb-5" />
+      : <p className={headingClass}>{label}</p>;
+  }
 
   // Render prose that may carry simple `## Section` markdown headers as real
   // labels instead of literal '##' characters. Split on lines that begin with
@@ -83,9 +113,9 @@ export const AlcoveAboutSection: React.FC<AlcoveAboutSectionProps> = ({
   function labeledSection(label: string, body: string) {
     if (!body.trim()) return null;
     return (
-      <div className="[&:not(:first-child)]:mt-5 first:mt-0">
-        <p className={headingClass}>{label}</p>
-        <div className="mt-1.5">{renderMarkdown(body)}</div>
+      <div className={onPage ? '[&:not(:first-child)]:mt-9 first:mt-0 lg:[&:not(:first-child)]:mt-11' : '[&:not(:first-child)]:mt-5 first:mt-0'}>
+        {sectionLabel(label)}
+        <div className={onPage ? '' : 'mt-1.5'}>{renderMarkdown(body)}</div>
       </div>
     );
   }
@@ -95,15 +125,19 @@ export const AlcoveAboutSection: React.FC<AlcoveAboutSectionProps> = ({
       <div className="px-5">
         {/* Teaser first: the user-entered one-liner, shown only when present. */}
         {teaser && (
-          <p className="m-0 font-display text-ui-18 leading-[1.45] text-tea-text [text-wrap:balance]">
+          <p
+            className={`m-0 font-display leading-[1.45] text-tea-text [text-wrap:balance] ${
+              onPage ? 'mb-9 text-center text-ui-20 lg:mb-11 lg:text-[23px]' : 'text-ui-18'
+            }`}
+          >
             {teaser}
           </p>
         )}
         {/* Order: Lore (when present), then Terroir, Processing, Mood, Experience. */}
         {mainStory.trim() && (
-          <div className="[&:not(:first-child)]:mt-5 first:mt-0">
-            <p className={headingClass}>Lore</p>
-            <div className="mt-1.5">{renderMarkdown(mainStory)}</div>
+          <div className={onPage ? '[&:not(:first-child)]:mt-9 first:mt-0 lg:[&:not(:first-child)]:mt-11' : '[&:not(:first-child)]:mt-5 first:mt-0'}>
+            {sectionLabel('Lore')}
+            <div className={onPage ? '' : 'mt-1.5'}>{renderMarkdown(mainStory)}</div>
           </div>
         )}
         {labeledSection('Terroir', terroir)}
@@ -114,9 +148,9 @@ export const AlcoveAboutSection: React.FC<AlcoveAboutSectionProps> = ({
 
       {/* DESCRIPTION. Adrian's personal / tasting notes. Only shown when present. */}
       {introduction.trim() && (
-        <div className="mx-5 mt-5 border-t border-tea-border pt-4">
-          <p className={headingClass}>Adrian&apos;s notes</p>
-          <div className="mt-1.5">{renderMarkdown(introduction)}</div>
+        <div className={onPage ? 'mx-5 mt-9 lg:mt-11' : 'mx-5 mt-5 border-t border-tea-border pt-4'}>
+          {sectionLabel('Adrian\u2019s notes')}
+          <div className={onPage ? '' : 'mt-1.5'}>{renderMarkdown(introduction)}</div>
         </div>
       )}
 

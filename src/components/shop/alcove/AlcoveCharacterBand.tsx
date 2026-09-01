@@ -188,6 +188,132 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
   // lives on the card's top edge, not here, so an empty tasting shows nothing.)
   if (!hasAny) return null;
 
+  /*
+   * The page's record card.
+   *
+   * What the tea IS, held in one keyline: what it tastes of, what it feels
+   * like, and what has been said about it, each on its own band.
+   *
+   * No TASTE and FEEL labels. They were 9px caps sitting inline in front of a
+   * 21px serif line, which collapsed into a ragged hanging indent the moment
+   * the terms wrapped on a phone. Size and colour separate the two lines now:
+   * taste leads, feel follows a hairline at a smaller size in a quieter ink.
+   * The words are the point, so the words are all that is there.
+   *
+   * Your own tasting is NOT in here. It sits on its own above the reading,
+   * because this card is the shop's claim about the tea and that is yours.
+   */
+  if (open) {
+    const termLine = (
+      terms: TermRef[],
+      className: string,
+    ) => (
+      <p className={`m-0 [text-wrap:balance] ${className}`}>
+        {terms.map((term, i) => (
+          <React.Fragment key={term.termId}>
+            {i > 0 && (
+              <span aria-hidden="true" className="px-[7px] text-tea-gold-lt lg:px-[9px]">
+                ·
+              </span>
+            )}
+            {onTermClick ? (
+              <button
+                type="button"
+                className="alcove-term-btn"
+                onClick={() => onTermClick(term.termId, term.categoryId)}
+              >
+                {term.label}
+              </button>
+            ) : (
+              <span>{term.label}</span>
+            )}
+          </React.Fragment>
+        ))}
+      </p>
+    );
+
+    const sourceNote =
+      item.tastingSource === 'common' && hasVisibleStructuredTerms
+        ? 'Potential profile'
+        : item.tastingSource === 'source' && hasVisibleStructuredTerms
+          ? 'Source-described profile'
+          : null;
+
+    return (
+      <section aria-label="Character" className="mx-5 mt-7">
+        <div className="alcove-record">
+          {tasteTerms.length > 0 && (
+            <div className="alcove-record-band px-4 py-4 text-center lg:px-6 lg:py-[19px]">
+              {termLine(
+                tasteTerms,
+                'font-display text-[19px] leading-[1.3] text-tea-text lg:text-[25px]',
+              )}
+            </div>
+          )}
+          {feelingTerms.length > 0 && (
+            <div className="alcove-record-band px-4 py-4 text-center lg:px-6 lg:py-[19px]">
+              {termLine(
+                feelingTerms,
+                'font-display text-ui-16 leading-[1.3] text-tea-text-dim lg:text-[19px]',
+              )}
+            </div>
+          )}
+          {sourceNote && (
+            <div className="alcove-record-band px-4 py-2.5 text-center lg:px-6">
+              <p className="m-0 font-sans text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim">
+                {sourceNote}
+              </p>
+            </div>
+          )}
+          {quotes.map(({ note, attribution, key }) => (
+            <figure key={key} className="alcove-record-band m-0 px-4 py-4 text-center lg:px-6 lg:py-[19px]">
+              <blockquote className="m-0 font-body text-[15.5px] italic leading-[1.66] text-tea-text-sec lg:text-ui-16">
+                &ldquo;{note.text}&rdquo;
+              </blockquote>
+              <figcaption className="mt-[7px] font-sans text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim">
+                {attribution}
+              </figcaption>
+            </figure>
+          ))}
+          {potentialResearch && (
+            <div className="alcove-record-band px-4 py-4 text-center lg:px-6">
+              <p className="m-0 font-sans text-ui-9 uppercase tracking-[0.24em] indent-[0.24em] text-tea-text-dim">
+                Potential character
+              </p>
+              <div className="mt-2.5 flex flex-wrap justify-center gap-x-6 gap-y-3">
+                {TASTING_CATEGORY_ORDER.map(category => {
+                  const terms = potentialResearch.profile.tasting[category];
+                  if (!terms?.length) return null;
+                  return (
+                    <div key={category} className="max-w-full">
+                      <p className="font-sans text-ui-9 uppercase tracking-[0.15em] text-tea-text-dim">
+                        {POTENTIAL_LABELS[category]}
+                      </p>
+                      <p className="mt-1 font-display text-ui-17 leading-[1.4] text-tea-text">
+                        {terms.map(resolveTermLabel).join(' · ')}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="mt-3 font-sans text-ui-11 leading-relaxed text-tea-text-sec">
+                Cited shared research
+                {potentialResearch.sources.length > 0 && ` from ${potentialResearch.sources.map(source => source.publisher).join(', ')}`}
+                {'. '}
+                <a
+                  href={wisdomEntryPath(potentialResearch)}
+                  className="inline-flex min-h-[44px] items-center rounded-md underline decoration-tea-text-dim underline-offset-4 transition-colors hover:text-tea-gold hover:decoration-tea-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
+                >
+                  Research context
+                </a>
+              </p>
+            </div>
+          )}
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section
       aria-label="Character"

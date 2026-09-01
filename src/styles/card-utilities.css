@@ -4559,3 +4559,35 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] {
 body.cart-panel-open .commerce-dock {
   display: none;
 }
+
+/* The record card on the product page: what the tea IS, held in one keyline.
+   Written here rather than as Tailwind classes because the design calls for
+   gold at 0.3 and 0.2, and Tailwind's opacity scale has neither step; asking
+   for one silently falls back to the framework's default border grey, which is
+   near white. Same reason .alcove-tasting-btn lives here. */
+.alcove-record {
+  border: 1px solid rgb(var(--tea-gold-rgb) / 0.3);
+  background: var(--tea-sunken);
+}
+.alcove-record-band + .alcove-record-band {
+  border-top: 1px solid rgb(var(--tea-gold-rgb) / 0.2);
+}
+
+/* Your own tasting: a row that stands on its own above the reading, rather
+   than a plate nested inside the record. The record says what the tea is; this
+   says what you did with it, so it is a separate object with its own edge. */
+.alcove-note-row {
+  border: 1px solid rgb(var(--tea-gold-rgb) / 0.28);
+  background: rgb(var(--tea-gold-rgb) / 0.06);
+}
+.alcove-note-row:hover {
+  border-color: rgb(var(--tea-gold-rgb) / 0.5);
+  background: rgb(var(--tea-gold-rgb) / 0.1);
+}
+/* The drawer under it. Shares the row's edge rather than drawing a second one,
+   so the pair reads as one object opened. */
+.alcove-note-open {
+  border: 1px solid rgb(var(--tea-gold-rgb) / 0.28);
+  border-top: 0;
+  background: rgb(var(--tea-gold-rgb) / 0.06);
+}
