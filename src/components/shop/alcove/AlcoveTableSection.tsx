@@ -42,7 +42,7 @@ export const AlcoveTableSection: React.FC<AlcoveTableSectionProps> = ({
 
   return (
     <section aria-label="From the table">
-      <AlcoveSectionHeading label="From the table" className="mx-6 mb-3 mt-[22px]" />
+      <AlcoveSectionHeading label="From the table" className="mx-5 mb-3 mt-[22px]" />
 
       {impression && (
         <figure className="mx-0 mb-0 mt-0.5 px-[26px] text-center">
@@ -57,7 +57,7 @@ export const AlcoveTableSection: React.FC<AlcoveTableSectionProps> = ({
       )}
 
       {hasRows && (
-        <div className={`mx-6 ${impression ? 'mt-3' : ''}`}>
+        <div className={`mx-5 ${impression ? 'mt-3' : ''}`}>
           {events.map(evt => {
             const eventDate = new Date(evt.event_date);
             const formattedDate = eventDate.toLocaleDateString('en-US', {

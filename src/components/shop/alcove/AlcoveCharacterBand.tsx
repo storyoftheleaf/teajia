@@ -191,7 +191,7 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
   return (
     <section
       aria-label="Character"
-      className={`alcove-band relative px-6 ${
+      className={`alcove-band relative px-5 ${
         open
           ? `alcove-band--open mt-9 pt-0 ${onTaste ? 'pb-5' : 'pb-2'}`
           : `mt-[22px] pt-4 ${onTaste ? 'pb-6' : 'pb-[18px]'}`

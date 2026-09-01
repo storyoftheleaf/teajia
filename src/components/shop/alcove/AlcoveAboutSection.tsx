@@ -92,7 +92,7 @@ export const AlcoveAboutSection: React.FC<AlcoveAboutSectionProps> = ({
 
   return (
     <section aria-label="About this tea">
-      <div className="px-6">
+      <div className="px-5">
         {/* Teaser first: the user-entered one-liner, shown only when present. */}
         {teaser && (
           <p className="m-0 font-display text-ui-18 leading-[1.45] text-tea-text [text-wrap:balance]">
@@ -114,14 +114,14 @@ export const AlcoveAboutSection: React.FC<AlcoveAboutSectionProps> = ({
 
       {/* DESCRIPTION. Adrian's personal / tasting notes. Only shown when present. */}
       {introduction.trim() && (
-        <div className="mx-6 mt-5 border-t border-tea-border pt-4">
+        <div className="mx-5 mt-5 border-t border-tea-border pt-4">
           <p className={headingClass}>Adrian&apos;s notes</p>
           <div className="mt-1.5">{renderMarkdown(introduction)}</div>
         </div>
       )}
 
       {hasBrewing && (
-        <div className="mx-6 mt-3.5 grid grid-cols-[92px_1fr] items-start py-2.5">
+        <div className="mx-5 mt-3.5 grid grid-cols-[92px_1fr] items-start py-2.5">
           <div className="pt-[3px] font-sans text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim">
             Brewing
           </div>

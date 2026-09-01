@@ -3849,6 +3849,35 @@ input[type="number"]::-webkit-outer-spin-button {
    navigation and the reader saw the top third of it. The same :has() the
    navigation uses to square its corners tells the toast there is a bar in the
    way: 52px of bar plus 12px of air above it. */
+/* The confirmation's own material. It is deliberately the order bar's, to the
+   value: same near-black translucent ground, same blur, same keyline, same
+   lift. The two are never on screen together for long, but they occupy the
+   same corner one after the other, and a confirmation drawn in tea-surface
+   with a generic shadow read as a different app's toast landing on the bar.
+   The corner is 16px rather than the bar's 26px because this band is a single
+   short row rather than a control strip; a full pill on a 56px-tall object
+   turns the ends into semicircles and pushes the text off centre. */
+.cart-toast-band {
+  color-scheme: dark;
+  overflow: hidden;
+  /* Not `rgb(var(--tea-border-rgb) / 0.6)`, which is what the navigation and
+     the order bar both ask for: `--tea-border-rgb` is defined nowhere in the
+     app, so that whole declaration is invalid and those two have been drawing
+     no keyline at all. Left alone there, since fixing it changes how the
+     navigation looks and that is not this change's business, but not copied
+     into a new surface. `--tea-border` is gold at 0.14; 0.18 is the same
+     colour carrying the same weight against a near-black ground. */
+  border: 1px solid rgb(var(--tea-gold-rgb) / 0.18);
+  border-radius: 16px;
+  background: rgb(9 8 7 / 0.9);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow:
+    0 10px 32px rgb(0 0 0 / 0.45),
+    0 2px 8px rgb(0 0 0 / 0.25),
+    inset 0 1px 0 rgb(var(--tea-gold-rgb) / 0.06);
+}
+
 body:has(.commerce-dock) .cart-toast {
   bottom: calc(env(safe-area-inset-bottom, 0px) + 140px);
 }

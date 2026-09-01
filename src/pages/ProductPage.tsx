@@ -370,7 +370,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
           opens this tea's details inside the tasting overlay. */}
       {/* The page's own bar: where you came from on the left, where you are
           going on the right, one hairline under both. */}
-      <div className="mb-1 flex h-[60px] w-full items-center justify-between gap-4 border-b border-tea-border px-2 lg:px-10">
+      <div className="mb-1 flex h-[60px] w-full items-center justify-between gap-4 border-b border-tea-border px-5 lg:px-10">
         <Link
           to={shopHref}
           aria-label="Back to shop"

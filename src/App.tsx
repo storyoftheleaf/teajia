@@ -205,7 +205,7 @@ import { SessionExpiredNotice } from './components/shared/SessionExpiredNotice';
 import { NetworkErrorNotice } from './components/shared/NetworkErrorNotice';
 import { PreloadIndicator } from './components/shared/PreloadIndicator';
 import { CartFlyAnimation } from './components/shared/CartFlyAnimation';
-import { CartToast } from './components/shared/CartToast';
+import { CartToast, type CartToastTone } from './components/shared/CartToast';
 import { WalkthroughDock } from './components/shared/WalkthroughDock';
 import { ScrollProgressBar, shouldShowGlobalScrollProgress } from './components/shared/ScrollProgressBar';
 import { AnimatedRoutes } from './components/shared/AnimatedRoutes';
@@ -437,7 +437,7 @@ const AppContent = () => {
 
   // UI Feedback State
   const [toast, setToast] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
-  const [cartToast, setCartToast] = useState<{ itemName: string; cartCount: number } | null>(null);
+  const [cartToast, setCartToast] = useState<{ itemName: string; detail?: string; tone?: CartToastTone; cartCount: number } | null>(null);
   const [flyAnimation, setFlyAnimation] = useState<{ x: number; y: number; image?: string } | null>(null);
 
   // Listen for cart open event from Account section
@@ -525,7 +525,9 @@ const AppContent = () => {
 
   const handleAddToCart = (item: InventoryItem, qty: number, total: number) => {
     if (item.stock_g !== undefined && item.stock_g <= 0) {
-      setCartToast({ itemName: `${item.name} is sold out`, cartCount: useAppStore.getState().publicCart.length });
+      /* Reported, not confirmed. The band carries its own label per tone, so
+         the name stays the name and the state stops being smuggled into it. */
+      setCartToast({ itemName: item.name, tone: 'unavailable', cartCount: useAppStore.getState().publicCart.length });
       return;
     }
 
@@ -589,7 +591,15 @@ const AppContent = () => {
     addToPublicCart(cartItem);
     // Show cart toast, read fresh count from store (Zustand updates synchronously)
     const freshCart = useAppStore.getState().publicCart;
-    setCartToast({ itemName: item.name, cartCount: freshCart.length });
+    setCartToast({
+      itemName: item.name,
+      /* The size that was actually added. Two 50g packs of the same tea are
+         the commonest thing a reader does here, and a confirmation that only
+         names the tea cannot tell them apart. Teaware is sold by the piece,
+         so it has no weight to state. */
+      detail: item.category === 'tea' ? `${qty} g` : undefined,
+      cartCount: freshCart.length,
+    });
   };
 
   const handleRemoveFromCart = (lineKey: string) => {
@@ -865,6 +875,16 @@ const AppContent = () => {
   // controls, so there's nothing for the bar to overlap.)
   const isImmersiveRead = isImmersiveReadRoute;
 
+  // The product page owns its own gutter, so the shell must not add a second
+  // one. Its reading used to sit 40px in from the edge of a phone, the
+  // shell's 16px plus the alcove's own 24px, which is nine per cent of the
+  // screen given away on each side of a column of prose that needs every
+  // character it can get. The page's blocks are inset 20px from their own
+  // edge; with the shell flush below lg that is the whole gutter, half what it
+  // was. On lg the shell's px-10 stays: there the reading is a centred column
+  // with room to spare and the outer margin is doing real work.
+  const isProductPage = /^\/shop\/product\//.test(location.pathname);
+
   // The sidebar sets --teajia-sidebar-w while it is mounted, and it now mounts
   // on public routes too. This only has to zero the variable where the sidebar
   // genuinely is not there, which is the focused share route: zeroing it on
@@ -928,7 +948,7 @@ const AppContent = () => {
         </Suspense>
       ) : (
       <>
-      <main id="main-content" className={`${isFocusedShareRoute || isImmersiveRead ? 'px-0 pb-0' : 'px-4 md:px-6 lg:px-10 pb-nav-gap-lg lg:pb-8'} pt-0 lg:pt-0 min-h-screen w-full flex-1 transition-opacity duration-300`}>
+      <main id="main-content" className={`${isFocusedShareRoute || isImmersiveRead ? 'px-0 pb-0' : `${isProductPage ? 'px-0 lg:px-10' : 'px-4 md:px-6 lg:px-10'} pb-nav-gap-lg lg:pb-8`} pt-0 lg:pt-0 min-h-screen w-full flex-1 transition-opacity duration-300`}>
           <AnimatePresence mode="wait">
           {viewState === 'BROWSE' && (
             <AnimatedRoutes location={displayLocation}>
@@ -1351,9 +1371,11 @@ const AppContent = () => {
 
       {/* Preload indicator moved to Reader's ImagePreloaderProvider scope */}
 
-      {/* Cart "View Cart" toast */}
+      {/* The add-to-cart confirmation band */}
       <CartToast
         itemName={cartToast?.itemName ?? ''}
+        detail={cartToast?.detail}
+        tone={cartToast?.tone}
         cartCount={cartToast?.cartCount ?? 0}
         isVisible={!!cartToast}
         onViewCart={handleViewCartFromToast}

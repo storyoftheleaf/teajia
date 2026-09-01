@@ -152,8 +152,8 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
     <header
       className={
         onPlate
-          ? 'label-plate mx-[18px] mt-2 flex h-[396px] flex-col justify-end px-7 pb-[38px] text-center lg:m-0 lg:h-full lg:min-h-[900px] lg:justify-start lg:px-[clamp(22px,4.3vw,62px)] lg:pb-0 lg:pt-[clamp(120px,20vw,300px)]'
-          : 'px-6 pt-7 pb-5 text-center'
+          ? 'label-plate mx-5 mt-2 flex h-[396px] flex-col justify-end px-7 pb-[38px] text-center lg:m-0 lg:h-full lg:min-h-[900px] lg:justify-start lg:px-[clamp(22px,4.3vw,62px)] lg:pb-0 lg:pt-[clamp(120px,20vw,300px)]'
+          : 'px-5 pt-7 pb-5 text-center'
       }
     >
       {onPlate && (

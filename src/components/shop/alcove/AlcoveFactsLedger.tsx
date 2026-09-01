@@ -74,7 +74,7 @@ export const AlcoveFactsLedger: React.FC<AlcoveFactsLedgerProps> = ({
   if (rows.length === 0) return null;
 
   return (
-    <dl className="mx-6 my-0 border-t border-tea-border">
+    <dl className="mx-5 my-0 border-t border-tea-border">
       {rows.map(row => (
         <div
           key={row.key}
