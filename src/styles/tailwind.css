@@ -98,6 +98,13 @@ nav[aria-label="Admin navigation"] * {
   /* Derived from --tea-gold-rgb at canonical alpha, keeps border/glow in sync with accent */
   --tea-border: rgb(var(--tea-gold-rgb) / 0.14);
   --tea-accent-sub: rgb(var(--tea-gold-rgb) / 0.16);
+  /* The keyline the floating bottom assembly draws around itself: the
+     navigation capsule, the order bar docked on top of it, and the
+     add-to-cart confirmation above that. Stronger on dark, where a near-black
+     bar sits on a dark page and the edge is the only thing separating them;
+     on light the bar is already at full contrast against pale paper and the
+     same weight would read as an outline drawn around it. */
+  --tea-keyline: rgb(var(--tea-gold-rgb) / 0.28);
   --tea-leaf: #5A6E5A;
   /* Warmed from oxblood #8a3a32 to terracotta, reds now read on espresso */
   --tea-error: #c46a5a;
@@ -143,6 +150,8 @@ nav[aria-label="Admin navigation"] * {
   /* Derived from --tea-gold-rgb at canonical alpha (light mode uses slightly higher to read on parchment) */
   --tea-border: rgb(var(--tea-gold-rgb) / 0.16);
   --tea-accent-sub: rgb(var(--tea-gold-rgb) / 0.12);
+  /* See the dark block: quieter here, where the bar already separates. */
+  --tea-keyline: rgb(var(--tea-gold-rgb) / 0.18);
   --tea-leaf: #4a5e4a;
   --tea-error: #732a23;
   --tea-error-rgb: 115 42 35;
@@ -171,6 +180,7 @@ nav[aria-label="Admin navigation"] * {
   --tea-readgold-rgb: 168 135 77;
   --tea-border: rgb(var(--tea-gold-rgb) / 0.14);
   --tea-accent-sub: rgb(var(--tea-gold-rgb) / 0.16);
+  --tea-keyline: rgb(var(--tea-gold-rgb) / 0.28);
   --tea-leaf: #5A6E5A;
   --tea-error: #c46a5a;
   --tea-error-rgb: 196 106 90;

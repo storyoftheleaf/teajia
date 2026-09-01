@@ -236,12 +236,13 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           background: 'rgb(var(--tea-bg-rgb) / 0.92)',
           backdropFilter: 'blur(20px) saturate(180%)',
           WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-          /* Gold at 0.18, matching the order bar that docks on top of this
-             one. It used to read `rgb(var(--tea-border-rgb) / 0.6)`, and
-             `--tea-border-rgb` is defined nowhere in the app, so the whole
-             declaration was invalid: `border-style` stayed `none` and the
-             capsule has never actually drawn the edge described here. */
-          border: '1px solid rgb(var(--tea-gold-rgb) / 0.18)',
+          /* The assembly's keyline, the same one the order bar that docks on
+             top of this draws, defined per theme in tailwind.css. It used to
+             read `rgb(var(--tea-border-rgb) / 0.6)`, and `--tea-border-rgb`
+             is defined nowhere in the app, so the whole declaration was
+             invalid: `border-style` stayed `none` and the capsule never
+             actually drew the edge described here. */
+          border: '1px solid var(--tea-keyline)',
           WebkitTapHighlightColor: 'transparent',
           WebkitTouchCallout: 'none',
           WebkitUserSelect: 'none',

@@ -3622,12 +3622,13 @@ input[type="number"]::-webkit-outer-spin-button {
      whole assembly and a square edge there reads as a slab the screen cut
      off. Clipped, so whichever half is currently on top, the price list or
      the strip, takes the corner. */
-  /* Gold at 0.18, the assembly's one keyline. This used to read
-     `rgb(var(--tea-border-rgb) / 0.6)`, and `--tea-border-rgb` is defined
-     nowhere in the app, so the whole declaration was invalid and the bar drew
-     no border at all: `border-style` stayed at its `none` default and the
-     shape's edge was whatever the ground happened to do against the page. */
-  border: 1px solid rgb(var(--tea-gold-rgb) / 0.18);
+  /* The assembly's one keyline, defined per theme in tailwind.css. This used
+     to read `rgb(var(--tea-border-rgb) / 0.6)`, and `--tea-border-rgb` is
+     defined nowhere in the app, so the whole declaration was invalid and the
+     bar drew no border at all: `border-style` stayed at its `none` default
+     and the shape's edge was whatever the ground happened to do against the
+     page. */
+  border: 1px solid var(--tea-keyline);
   border-bottom: 0;
   border-radius: 16px 16px 0 0;
   overflow: hidden;
@@ -3835,7 +3836,7 @@ input[type="number"]::-webkit-outer-spin-button {
     margin-inline: auto;
     transform: none;
     bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
-    border: 1px solid rgb(var(--tea-gold-rgb) / 0.18);
+    border: 1px solid var(--tea-keyline);
     /* Rounded at both ends, the top matching the base. On the phone the top
        is square because the navigation closes the assembly underneath it; here
        the bar is the whole object and a square top with a rounded bottom read
@@ -3879,7 +3880,7 @@ input[type="number"]::-webkit-outer-spin-button {
   overflow: hidden;
   /* The same keyline the navigation and the order bar draw, so the three
      objects that share this corner of the phone share an edge. */
-  border: 1px solid rgb(var(--tea-gold-rgb) / 0.18);
+  border: 1px solid var(--tea-keyline);
   border-radius: 16px;
   background: rgb(9 8 7 / 0.9);
   backdrop-filter: blur(20px) saturate(180%);
