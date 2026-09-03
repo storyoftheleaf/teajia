@@ -40,10 +40,16 @@ export const CurrencySelect: React.FC = () => {
           {...props}
           type="button"
           aria-label={`Choose display currency, currently ${active.code}`}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-ui-12 text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors"
+          /* A control, and it has to look like one. It read as two dim words
+             and a chevron floating in the header, which is the same treatment
+             as the metadata under a title, so the one thing on this row that
+             re-prices the whole shop was the quietest thing on it. A keyline,
+             a faint wash and full-strength type: the same grammar the amount
+             picker on a product page uses, for the same job. */
+          className="tap-target inline-flex items-center gap-1.5 rounded-[3px] border border-tea-border bg-tea-gold/6 px-2.5 py-1.5 text-ui-12 text-tea-text transition-colors hover:border-tea-gold hover:bg-tea-gold/8"
         >
-          <span className="font-mono tracking-wide">{active.symbol}</span>
-          <span className="tracking-wide">{active.code}</span>
+          <span className="font-mono tracking-wide text-tea-text-sec">{active.symbol}</span>
+          <span className="tracking-[0.06em]">{active.code}</span>
           <Icons.ChevronDown className="w-3.5 h-3.5 text-tea-text-sec" />
         </button>
       )}

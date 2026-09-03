@@ -453,9 +453,9 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
         carried by full-strength cream against dim.
       */}
       <div className="flex-shrink-0 bg-tea-surface border-b border-tea-border">
-        <div className="flex items-center gap-3 px-4 pb-2">
-          <span className="w-16 shrink-0" aria-hidden="true" />
-          <div className="flex-1 flex items-center justify-center gap-3 min-w-0">
+        <div className="flex items-center gap-3 px-4 pb-1">
+          <span className="w-14 shrink-0" aria-hidden="true" />
+          <div className="flex-1 flex items-center justify-center gap-2.5 min-w-0">
             {STEPS.map((s, i) => {
               const isActive = step === s.key;
               const isPast = currentStepIndex > i;
@@ -466,7 +466,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                     type="button"
                     onClick={() => canJump && setStep(s.key)}
                     disabled={!canJump}
-                    className={`font-serif text-ui-15 transition-colors duration-300 whitespace-nowrap min-h-[44px] ${
+                    className={`font-serif text-ui-14 transition-colors duration-300 whitespace-nowrap min-h-[36px] ${
                       isActive ? 'text-tea-text' : isPast ? 'text-tea-text-dim hover:text-tea-text cursor-pointer' : 'text-tea-text-dim cursor-default'
                     }`}
                     aria-current={isActive ? 'step' : undefined}
@@ -474,16 +474,16 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                     {s.label}
                   </button>
                   {i < STEPS.length - 1 && (
-                    <span className="block w-4 h-px bg-tea-border" aria-hidden="true" />
+                    <span className="block w-3 h-px bg-tea-border" aria-hidden="true" />
                   )}
                 </React.Fragment>
               );
             })}
           </div>
-          <div className="w-16 shrink-0 flex justify-end">
+          <div className="w-14 shrink-0 flex justify-end">
             {rates.length > 0 && (
-              <div className="relative inline-flex items-center gap-1.5 rounded-[3px] border border-tea-border pl-2.5 pr-2 py-1.5 hover:border-tea-gold transition-colors">
-                <span className="num text-ui-13 text-tea-text">{currency}</span>
+              <div className="relative inline-flex items-center gap-1 rounded-[3px] border border-tea-border pl-2 pr-1.5 py-1 hover:border-tea-gold transition-colors">
+                <span className="num text-ui-12 text-tea-text">{currency}</span>
                 <svg viewBox="0 0 10 6" className="w-2.5 h-1.5 text-tea-text-sec" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" aria-hidden="true">
                   <path d="M1 1.5 L5 4.5 L9 1.5" />
                 </svg>
@@ -502,14 +502,11 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
           </div>
         </div>
         {/*
-          The rate, once. This line used to repeat the footer total, so the
-          basket was priced twice on one screen, forty pixels apart.
+          No exchange rate on this band. It was a line of chrome stating a
+          conversion nobody is being asked to do: every figure below is already
+          quoted in the currency named in the picker beside these steps, and a
+          reader who wants the arithmetic has the picker.
         */}
-        {rates.length > 0 && currency !== 'USD' && (
-          <div className="px-4 pb-1.5 text-right num text-ui-12 text-tea-text-dim">
-            1 USD = {rates.find(r => r.currency === currency)?.rateToUSD.toFixed(2)} {currency}
-          </div>
-        )}
       </div>
 
       {/* Scrollable content */}
@@ -855,21 +852,23 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
       </div>
 
       {/* Footer */}
-      <div className="px-5 pt-4 pb-5 border-t border-tea-border bg-tea-surface relative z-20 shrink-0">
+      <div className="px-5 pt-2.5 pb-3 border-t border-tea-border bg-tea-surface relative z-20 shrink-0">
         {step === 'CART' && (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2">
             {/*
-              One line, not three. What the basket holds is a qualifier on the
-              total, so it sits beside the word rather than under it, and the
-              dollar approximation only appears when the reader is not already
-              reading dollars. An empty cart shows no total at all: the
-              localised formatter renders zero as "IDR 0k", a price for nothing.
+              One line, one figure. What the basket holds is a qualifier on the
+              total, so it sits beside the word rather than under it. The dollar
+              approximation is gone: the reader picked the currency they are
+              reading in, and a second total under the first in a currency they
+              did not ask for is a number to reconcile rather than a fact they
+              needed. An empty cart shows no total at all, because the localised
+              formatter renders zero as "IDR 0k", a price for nothing.
             */}
             {!isEmpty && (
               <div className="flex items-baseline justify-between gap-3 text-tea-text">
                 <span className="flex items-baseline gap-2.5 min-w-0">
-                  <span className="font-display text-[23px]">Total</span>
-                  <span className="text-ui-11 uppercase tracking-[0.18em] text-tea-text-dim truncate">
+                  <span className="font-display text-ui-20">Total</span>
+                  <span className="text-ui-10 uppercase tracking-[0.18em] text-tea-text-dim truncate">
                     {/* Teas, not rows. One tea ordered as a 25 g pack and a
                         100 g pack is two rows and still one tea. */}
                     {new Set(cart.map(i => i.id)).size} {new Set(cart.map(i => i.id)).size === 1 ? 'tea' : 'teas'}
@@ -877,12 +876,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                     {cart.filter(i => i.category === 'tea').reduce((g, i) => g + i.quantityGrams, 0)}g
                   </span>
                 </span>
-                <span className="flex flex-col items-end shrink-0">
-                  <span className="num text-ui-20">{displayPrice(subtotal)}</span>
-                  {currency !== 'USD' && (
-                    <span className="num text-ui-12 text-tea-text-dim">approx. USD {Math.round(subtotal)}</span>
-                  )}
-                </span>
+                <span className="num text-ui-20 shrink-0">{displayPrice(subtotal)}</span>
               </div>
             )}
             <Button
@@ -890,7 +884,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
               disabled={isEmpty}
               variant="primary"
               fullWidth
-              className="h-[52px] !rounded-[2px] !font-serif !tracking-normal text-ui-14"
+              className="h-[46px] !rounded-[2px] !font-serif !tracking-normal text-ui-14"
             >
               Request order
             </Button>

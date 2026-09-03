@@ -523,8 +523,19 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
          ) : (
            <>
 
-         {/* Sticky shop toolbar */}
-         <div className="sticky top-0 z-sticky -mx-3 px-3 md:-mx-4 md:px-4 bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border">
+         {/* Sticky shop toolbar.
+             It rests on the underside of the page header rather than on the
+             top of the viewport. Sticking at 0 put it on the same line as the
+             header, which is also sticky and also full-bleed, so as soon as
+             the page moved the two bands occupied the same 110px and one was
+             drawn over the other: the tabs vanished behind Type / Place /
+             Featured. The header publishes its own measured height as
+             --page-header-h, and the fallback is 0 for any page that has no
+             header to sit under. */}
+         <div
+           className="sticky z-dropdown -mx-3 px-3 md:-mx-4 md:px-4 bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border"
+           style={{ top: 'calc(var(--page-header-h, 0px) + env(safe-area-inset-top, 0px))' }}
+         >
            {/*
              One control band, not three. Search, price weight and the filters
              each owned a row of their own, which put 351px of chrome above the

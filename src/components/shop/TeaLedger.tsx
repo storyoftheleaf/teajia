@@ -266,7 +266,7 @@ export function TeaLedger({
                       </p>
                     )}
 
-                    <div className="ml-auto flex shrink-0 items-center gap-2">
+                    <div className="ml-auto flex shrink-0 items-center gap-3.5">
                       {/* Price over its unit, divided by a hairline, rather than
                           "$11 / 50g" run out on one line. Every row in the list
                           carries the same unit, so spelling it inline repeated
@@ -292,7 +292,14 @@ export function TeaLedger({
                         onClick={event => onToggleFavorite(item.id, event)}
                         aria-pressed={isFavorite}
                         aria-label={isFavorite ? `Unlike ${item.name}` : `Like ${item.name}`}
-                        className={`tap-target p-1 transition-colors ${isFavorite ? 'text-tea-text hover:text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}
+                        /* Out on the row's own right edge. It sat a full
+                           gutter in from it, so a column of hearts ran down
+                           the middle of the white space rather than down the
+                           margin, and the price column beside it lost the air
+                           that would have separated the two. The negative
+                           margin spends the row's padding rather than the
+                           tap target, which stays 44px. */
+                        className={`tap-target -mr-2 p-1 transition-colors ${isFavorite ? 'text-tea-text hover:text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}
                       >
                         <Icons.Heart className="w-4 h-4" filled={isFavorite} aria-hidden="true" />
                       </button>

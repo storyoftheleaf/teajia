@@ -25,10 +25,10 @@ interface CartItemProps {
  * No bronze anywhere in the row; the accent is spent once per panel, on the
  * request button.
  *
- * Compacted to three lines and a control strip. The thumbnail is gone, so the
- * name starts at the edge of the block and the price sits beside it: the
+ * Compacted to two lines and a single control line. The thumbnail is gone, so
+ * the name starts at the edge of the block and the price sits beside it: the
  * collision the old separate price row was written against was the remove X,
- * and remove is a word now, at the far end of the amount label.
+ * and remove is a word now, inside the drawer that Edit quantity opens.
  *
  * The name is the link to the tea. A "View tea" line spent a whole row of
  * control on the thing the reader was going to tap anyway.
@@ -44,6 +44,9 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
   const { total: displayPrice, perGramExact } = useShopPrice();
   const { theme } = useTheme();
   const [showOther, setShowOther] = useState(false);
+  /* Pack size is behind a tap; how many packs is not. The line at rest is the
+     common edit, and this opens the rarer one. */
+  const [editOpen, setEditOpen] = useState(false);
 
   const isTea = item.category === 'tea';
   /* The weight of one pack and how many, with a line saved before packing
@@ -155,133 +158,135 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
 
       </div>
 
-      {/* The amount, recessed into the panel ground so the control reads as a control */}
-      <div className="bg-tea-bg rounded-[3px] px-3.5 pt-0.5 pb-1.5 flex flex-col gap-1">
-        {/* Remove rides the far end of the label line. It is the one thing on
-            the block that undoes rather than adjusts, so it sits apart from
-            the weights without spending a row of its own. */}
+      {/* The amount, recessed into the panel ground so the control reads as a
+          control.
+
+          One line at rest. It used to be three: a "How big a pack" label with
+          Remove on its far end, a row of weights, and a "How many packs" row
+          with its stepper, which is 128px of control under every tea in the
+          order and put two teas past the bottom of a phone screen. What a
+          reader is doing here nine times out of ten is changing how MANY, so
+          the stepper stays on the line; changing the pack SIZE is the rarer
+          act and lives one tap down, behind the two stacked words that say
+          what pressing them does. */}
+      <div className="bg-tea-bg rounded-[3px] px-3 py-1">
         <div className="flex items-center justify-between gap-3">
-          <span className="font-serif italic text-ui-14 text-tea-text-dim">
-            {isTea ? 'How big a pack' : 'How many'}
-          </span>
+          {/* Two tight lines, one word over the other, so the control is as
+              wide as the longer word rather than as wide as the phrase. */}
           <button
-            onClick={() => onRemove(lineKey)}
-            className="font-serif text-ui-14 text-tea-text-sec hover:text-tea-error transition-colors tap-target justify-end"
-            aria-label={`Remove ${item.name} from cart`}
+            onClick={() => setEditOpen(v => !v)}
+            aria-expanded={editOpen}
+            aria-controls={`edit-qty-${lineKey}`}
+            className="tap-target justify-start items-center gap-1.5 -ml-1 px-1 text-left text-tea-text-sec hover:text-tea-text transition-colors"
           >
-            Remove
+            <span className="flex flex-col font-serif italic text-ui-12 leading-[1.05]">
+              <span>Edit</span>
+              <span>quantity</span>
+            </span>
+            <span aria-hidden="true" className="text-ui-9">{editOpen ? '\u25B4' : '\u25BE'}</span>
           </button>
+
+          <div className="flex items-center gap-3 shrink-0">
+            {/* The pack this line is built from, stated where the stepper can
+                be read against it: two of a 50g pack, not two of nothing. */}
+            {isTea && (
+              <span className="num text-ui-14 text-tea-text-sec">{packGrams}g</span>
+            )}
+            <span className="flex items-center gap-3">
+              <button
+                onClick={() => (isTea ? setPacks(packs - 1) : setGrams(item.quantityGrams - 1))}
+                disabled={isTea && packs <= 1}
+                className="num text-ui-16 text-tea-text-sec transition-colors hover:text-tea-text disabled:text-tea-text-dim disabled:hover:text-tea-text-dim tap-target"
+                aria-label={isTea ? `One fewer pack of ${item.name}` : 'Decrease quantity'}
+              >
+                &minus;
+              </button>
+              <span className="num text-ui-17 text-tea-text" aria-live="polite">
+                {isTea ? packs : item.quantityGrams}
+              </span>
+              <button
+                onClick={() => (isTea ? setPacks(packs + 1) : setGrams(item.quantityGrams + 1))}
+                className="num text-ui-16 text-tea-text-sec hover:text-tea-text transition-colors tap-target"
+                aria-label={isTea ? `One more pack of ${item.name}` : 'Increase quantity'}
+              >
+                +
+              </button>
+            </span>
+          </div>
         </div>
 
-        {/* A hairline under the label, so the amounts read as their own row
-            rather than as more of the sentence above them. */}
-        <span className="block h-px bg-tea-border" aria-hidden="true" />
+        {/* The drawer: the pack sizes the shelf offers, the free-entry weight,
+            and the one control on the block that undoes rather than adjusts. */}
+        {editOpen && (
+          <div id={`edit-qty-${lineKey}`} className="pb-1">
+            <span className="block h-px bg-tea-border" aria-hidden="true" />
 
-        {isTea ? (
-          <div className="flex flex-wrap items-center justify-between gap-x-1 gap-y-0">
-            {presets.map(g => {
-              const on = g === packGrams;
-              return (
+            {isTea && (
+              <div className="flex flex-wrap items-center justify-between gap-x-1 gap-y-0">
+                {presets.map(g => {
+                  const on = g === packGrams;
+                  return (
+                    <button
+                      key={g}
+                      onClick={() => { setShowOther(false); setGrams(g); }}
+                      aria-pressed={on}
+                      className={`num min-h-[44px] flex items-center text-ui-16 underline-offset-[6px] transition-colors ${
+                        on ? 'text-tea-text underline decoration-tea-text/50' : 'text-tea-text-dim no-underline hover:text-tea-text'
+                      }`}
+                    >
+                      {g}g
+                    </button>
+                  );
+                })}
                 <button
-                  key={g}
-                  onClick={() => { setShowOther(false); setGrams(g); }}
-                  aria-pressed={on}
-                  className={`num min-h-[44px] flex items-center text-ui-16 underline-offset-[6px] transition-colors ${
-                    on ? 'text-tea-text underline decoration-tea-text/50' : 'text-tea-text-dim no-underline hover:text-tea-text'
+                  onClick={() => setShowOther(v => !v)}
+                  className={`font-serif min-h-[44px] flex items-center text-ui-14 transition-colors ${
+                    otherIsLive ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text'
                   }`}
                 >
-                  {g}g
+                  Other
                 </button>
-              );
-            })}
-            <button
-              onClick={() => setShowOther(v => !v)}
-              className={`font-serif min-h-[44px] flex items-center text-ui-14 transition-colors ${
-                otherIsLive ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text'
-              }`}
-            >
-              Other
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-4 min-h-[44px]">
-            <button
-              onClick={() => setGrams(item.quantityGrams - 1)}
-              className="num text-ui-16 text-tea-text-sec hover:text-tea-text transition-colors tap-target"
-              aria-label="Decrease quantity"
-            >
-              &minus;
-            </button>
-            <span className="num text-ui-17 text-tea-text">{item.quantityGrams}</span>
-            <button
-              onClick={() => setGrams(item.quantityGrams + 1)}
-              className="num text-ui-16 text-tea-text-sec hover:text-tea-text transition-colors tap-target"
-              aria-label="Increase quantity"
-            >
-              +
-            </button>
-          </div>
-        )}
+              </div>
+            )}
 
-        {isTea && otherIsLive && (
-          <div className="flex items-baseline gap-2 pb-1.5">
-            <label htmlFor={`grams-${item.id}`} className="font-serif text-ui-14 text-tea-text-dim">Grams</label>
-            <input
-              id={`grams-${item.id}`}
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={9999}
-              value={packGrams}
-              onChange={(e) => {
-                const v = parseInt(e.target.value, 10);
-                if (!isNaN(v)) setGrams(v);
-              }}
-              onBlur={(e) => {
-                const v = parseInt(e.target.value, 10);
-                if (isNaN(v) || v < 1) setGrams(1);
-              }}
-              className="num w-[84px] bg-transparent border-0 border-b border-tea-text/50 text-ui-17 text-tea-text text-center py-1 focus:outline-none focus:border-tea-gold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-            />
-          </div>
-        )}
+            {isTea && otherIsLive && (
+              <div className="flex items-baseline gap-2 pb-1.5">
+                <label htmlFor={`grams-${item.id}`} className="font-serif text-ui-14 text-tea-text-dim">Grams</label>
+                <input
+                  id={`grams-${item.id}`}
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={9999}
+                  value={packGrams}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value, 10);
+                    if (!isNaN(v)) setGrams(v);
+                  }}
+                  onBlur={(e) => {
+                    const v = parseInt(e.target.value, 10);
+                    if (isNaN(v) || v < 1) setGrams(1);
+                  }}
+                  className="num w-[84px] bg-transparent border-0 border-b border-tea-text/50 text-ui-17 text-tea-text text-center py-1 focus:outline-none focus:border-tea-gold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+              </div>
+            )}
 
-        {/* How many of that pack.
-            Someone who wants two 25 g packs is not asking for 50 g: they are
-            asking for two things to open, or one to keep and one to give away.
-            The order used to have no way to say it, so the second pack merged
-            into the first and came back as a single heavier one at the heavier
-            one's cheaper price. Each pack is priced as a pack. */}
-        {isTea && (
-          <>
-            <span className="block h-px bg-tea-border" aria-hidden="true" />
             <div className="flex items-center justify-between gap-3">
-              <span className="font-serif italic text-ui-14 text-tea-text-dim">How many packs</span>
-              <span className="flex items-center gap-4">
-                {packs > 1 && (
-                  <span className="num text-ui-12 text-tea-text-dim">{packGrams * packs}g in all</span>
-                )}
-                <span className="flex items-center gap-3">
-                  <button
-                    onClick={() => setPacks(packs - 1)}
-                    disabled={packs <= 1}
-                    className="num text-ui-16 text-tea-text-sec transition-colors hover:text-tea-text disabled:text-tea-text-dim disabled:hover:text-tea-text-dim tap-target"
-                    aria-label={`One fewer pack of ${item.name}`}
-                  >
-                    &minus;
-                  </button>
-                  <span className="num text-ui-17 text-tea-text" aria-live="polite">{packs}</span>
-                  <button
-                    onClick={() => setPacks(packs + 1)}
-                    className="num text-ui-16 text-tea-text-sec hover:text-tea-text transition-colors tap-target"
-                    aria-label={`One more pack of ${item.name}`}
-                  >
-                    +
-                  </button>
-                </span>
+              {/* What the packs come to together, said only when there is more
+                  than one of them and there is arithmetic to save. */}
+              <span className="num text-ui-12 text-tea-text-dim">
+                {isTea && packs > 1 ? `${packGrams * packs}g in all` : ''}
               </span>
+              <button
+                onClick={() => onRemove(lineKey)}
+                className="font-serif text-ui-14 text-tea-text-sec hover:text-tea-error transition-colors tap-target justify-end"
+                aria-label={`Remove ${item.name} from cart`}
+              >
+                Remove
+              </button>
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>

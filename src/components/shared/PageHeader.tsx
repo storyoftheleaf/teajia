@@ -25,6 +25,13 @@ interface PageHeaderProps {
   onCartClick?: () => void;
   onAccountClick?: () => void;
   cartItemCount?: number;
+  /**
+   * The magnifier in the utility cluster. On a surface whose own body carries
+   * a search field, or whose bottom navigation already opens search, this is
+   * the same door drawn twice, and the second one costs 44px of a phone header
+   * that a title is trying to fit into.
+   */
+  showSearch?: boolean;
 }
 
 export const PageHeader: React.FC<PageHeaderProps> = ({
@@ -39,12 +46,42 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   backLabel,
   onCartClick,
   onAccountClick,
-  cartItemCount = 0
+  cartItemCount = 0,
+  showSearch = true
 }) => {
   const { progress, isAtTop } = useScrollDirection();
   const { theme, toggleTheme } = useTheme();
   const [badgeAnimating, setBadgeAnimating] = useState(false);
   const prevCountRef = React.useRef(cartItemCount);
+
+  /**
+   * How tall this bar is, published to the page as `--page-header-h`.
+   *
+   * A second sticky band further down the page (the shop's filter toolbar) has
+   * to come to rest UNDER this one, and it had no way to know how tall this one
+   * is: it stuck at `top: 0`, which is the same line this bar occupies, so on
+   * any scroll the two bands landed on each other and the higher z-index won.
+   * That is the overlap where the tabs disappear behind Type / Place / Featured.
+   *
+   * Measured rather than assumed, because the height changes with the title,
+   * the tabs, the toolbar row and the breakpoint. Cleared on unmount so a page
+   * without a header does not inherit the last one's height.
+   */
+  const barRef = React.useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = barRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const publish = () => {
+      document.documentElement.style.setProperty('--page-header-h', `${Math.round(el.getBoundingClientRect().height)}px`);
+    };
+    publish();
+    const ro = new ResizeObserver(publish);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      document.documentElement.style.removeProperty('--page-header-h');
+    };
+  }, []);
 
   // Trigger pulse when cart count increases
   useEffect(() => {
@@ -63,8 +100,12 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   const hasUtilityButtons = onCartClick || onAccountClick;
 
   return (
+    /* z-sticky, not z-dropdown. The page's own sticky bands sit at z-sticky, so
+       a header one step below them came to rest behind the band it is supposed
+       to be above. */
     <div
-      className={`sticky top-[env(safe-area-inset-top)] z-dropdown -mx-4 md:-mx-6 lg:-mx-10 transition-all duration-500 ease-out bg-tea-bg/90 backdrop-blur-md rounded-none ${className}`}
+      ref={barRef}
+      className={`sticky top-[env(safe-area-inset-top)] z-sticky -mx-4 md:-mx-6 lg:-mx-10 transition-all duration-500 ease-out bg-tea-bg/90 backdrop-blur-md rounded-none ${className}`}
     >
       <div className="w-full">
         {/* Back navigation, inside the glass */}
@@ -109,15 +150,17 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
               {hasUtilityButtons && (
                 <div className="flex items-center gap-1.5 lg:hidden">
                   {/* Search trigger, mobile */}
-                  <button
-                    onClick={() => {
-                      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }));
-                    }}
-                    className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl hover:bg-tea-text/5 text-tea-text-sec"
-                    aria-label="Search"
-                  >
-                    <Icons.Search className="w-5 h-5" />
-                  </button>
+                  {showSearch && (
+                    <button
+                      onClick={() => {
+                        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }));
+                      }}
+                      className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl hover:bg-tea-text/5 text-tea-text-sec"
+                      aria-label="Search"
+                    >
+                      <Icons.Search className="w-5 h-5" />
+                    </button>
+                  )}
                   {onCartClick && (
                     <button
                       onClick={onCartClick}

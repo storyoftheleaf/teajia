@@ -436,7 +436,13 @@ export const Shop: React.FC<ShopProps> = ({
         subtitle="Sourced by hand, one lot at a time."
         gutter="mx-3 md:mx-4"
         onCartClick={onCartClick}
-        onAccountClick={onAccountClick}
+        /* No magnifier and no table on this header. The shop's own body carries
+           a search field forty pixels below this row, and the navigation at the
+           foot of the screen carries both search and the table, so drawing them
+           here is the same door three times and it costs the currency control
+           the room to be seen. The order stays: it is the only one of the three
+           the shop itself is about. */
+        showSearch={false}
         cartItemCount={cartItemCount}
         rightContent={
           <div className="flex items-center gap-1">
