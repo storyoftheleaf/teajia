@@ -1,0 +1,13 @@
+-- Whether a tea leaves the shop only as whole units.
+--
+-- Most tea is weighed out, so any amount is a real amount. Some is not: the
+-- 1993 Y562 is a sealed 100 g box and the shop cannot open one. Until now the
+-- ladder offered 10 g of it, priced it, and would have taken the order, which
+-- is worse than a wrong price. The reader was told they could have something
+-- the shop had no way to send.
+--
+-- 1 means the amounts offered are whole multiples of `piece_weight_g`, and one
+-- unit is the minimum order. 0, the default, is every tea that came before:
+-- weighed out on the ordinary ladder. Without a `piece_weight_g` the flag does
+-- nothing, because there is no unit weight to count in.
+ALTER TABLE products ADD COLUMN sold_in_whole_units INTEGER NOT NULL DEFAULT 0;

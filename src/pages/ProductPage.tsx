@@ -17,6 +17,7 @@ import type { Product } from '../admin/types';
 import { useAppStore } from '../lib/store';
 import { buildPublicProductHref, findProductByRouteParam } from '../lib/publicProductNavigation';
 import { LABEL, NUMERAL } from '../components/shared/typeRoles';
+import { sellUnitOf } from '../lib/teaPricing';
 import { useProducts } from '../admin/hooks/useAdminData';
 import { api } from '../lib/api';
 
@@ -232,9 +233,18 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
    * aggregate so a crawler that wants a single number gets an honest range
    * instead of an invented midpoint. The presets mirror AlcoveCard's, which is
    * what the reader is given controls for.
+   *
+   * A tea sold in sealed units quotes those units instead. Publishing a 25 g
+   * offer for a tea that only exists as a 100 g box would put an amount nobody
+   * can buy into the structured data, where a crawler repeats it.
    */
   const sliderMax = Math.max(5, Math.floor(item.stock_g || 0));
-  const presets = [25, 50, 100, 250].filter(p => p <= sliderMax);
+  const sellUnit = item.category === 'tea'
+    ? sellUnitOf(item.form, item.pieceWeightG, item.soldInWholeUnits)
+    : undefined;
+  const presets = sellUnit
+    ? [1, 2, 3, 4].map(n => n * sellUnit.grams).filter(p => p <= sliderMax)
+    : [25, 50, 100, 250].filter(p => p <= sliderMax);
   const offerCurrency = PUBLISHED_CURRENCY;
   const offerPrice = (usd: number) => usd.toFixed(2);
   const availability = isSoldOut ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock';

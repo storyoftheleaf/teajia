@@ -1019,6 +1019,7 @@ const LISTING_MIRROR_COLUMNS: Record<string, string> = {
   quantity_purchased:    'quantity_purchased',
   source_compass_entry_id:'source_compass_entry_id',
   stock_verified_at:     'stock_verified_at',
+  sold_in_whole_units:   'sold_in_whole_units',
   is_personal:           'is_personal',
   can_reorder:           'can_reorder',
   is_public:             'is_public',
@@ -2506,6 +2507,10 @@ const PUBLIC_FIELDS = [
   // exempts from handling. The app used to infer it from `form`, which is a
   // standard rather than a fact and was wrong on the first tuo it met.
   'piece_weight_g',
+  // Whether that piece is the ONLY way this tea is sold. Public because it
+  // decides which amounts the shop may offer at all: a sealed box has no 25 g
+  // rung, and a reader who cannot see that picks an amount nobody can send.
+  'sold_in_whole_units',
   // The plant. Public because it is a pointer into the open wisdom base rather
   // than a fact about the business: the shop stores the cultivar's written name
   // and the base resolves it to a page. No cost, supply or margin travels with
@@ -2696,7 +2701,7 @@ const handleCreateProduct: Handler = async (request, env) => {
   }
   if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
   // Convert booleans to integers for SQLite
-  for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit', 'shown_in_shop']) {
+  for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit', 'shown_in_shop', 'sold_in_whole_units']) {
     if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
   }
 
@@ -2883,7 +2888,7 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
     if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
     if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
-    for (const boolKey of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit', 'shown_in_shop']) {
+    for (const boolKey of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit', 'shown_in_shop', 'sold_in_whole_units']) {
       if (body[boolKey] !== undefined) body[boolKey] = body[boolKey] ? 1 : 0;
     }
     // Stock spine step 1: stamp the creating user as owner unless specified.
@@ -2945,7 +2950,7 @@ const PRODUCT_CATALOG_UPDATE_COLUMNS = new Set([
   'material', 'capacity_ml', 'teaware_category', 'description', 'notes', 'tags', 'moods',
   'tasting_notes', 'brewing_notes', 'tasting', 'tasting_source', 'lore', 'processing_notes',
   'terroir', 'mood', 'experience', 'image_url', 'additional_images', 'bag_photo_url', 'quantity_units',
-  'piece_weight_g',
+  'piece_weight_g', 'sold_in_whole_units',
   'tea_key', 'source_compass_entry_id',
 ]);
 
@@ -3054,7 +3059,7 @@ async function applyProductUpdate(
     body.tasting_source = body.tasting && Object.keys(body.tasting).length > 0 ? 'owner' : null;
   }
   if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
-  for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit', 'shown_in_shop']) {
+  for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit', 'shown_in_shop', 'sold_in_whole_units']) {
     if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
   }
 

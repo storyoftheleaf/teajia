@@ -482,7 +482,11 @@ const createdAppStore = create<AppState>()(
       sidebarRoom: 'browse',
       setSidebarRoom: (sidebarRoom) => set({ sidebarRoom }),
 
-      shopPriceWeight: 50,
+      // The shop quotes 100 g. Fifty was the old default and it flattered the
+      // cheap end of the shelf: a 50 g figure on a tea whose smallest real
+      // amount is a sealed 100 g box quoted half a price nobody can pay. A jin
+      // is what the trade counts in and 100 g is the honest tenth of it.
+      shopPriceWeight: 100,
       setShopPriceWeight: (grams) => set({ shopPriceWeight: grams }),
       shopSort: 'featured',
       setShopSort: (sort) => set({ shopSort: sort }),
@@ -775,7 +779,11 @@ const createdAppStore = create<AppState>()(
       //     deliberate customization.
       // v3: public cart rows became store-bound. Ambiguous legacy rows are
       //     discarded rather than silently assigning them to a store.
-      version: 3,
+      // v4: the shop's price basis moved from 50 g to 100 g. A stored 50 is
+      //     almost always the old default rather than a choice, since the
+      //     control is two buttons most readers never touch, so it is lifted
+      //     once. Anyone who did choose 50 clicks it again and it sticks.
+      version: 4,
       migrate: (persistedState, version) => {
         if (!persistedState || typeof persistedState !== 'object') return persistedState as AppState;
         if (version < 1) {
@@ -823,6 +831,10 @@ const createdAppStore = create<AppState>()(
                   typeof item.storeSlug === 'string' && item.storeSlug.length > 0,
               )
             : [];
+        }
+        if (version < 4) {
+          const prev = persistedState as { shopPriceWeight?: number };
+          if (prev.shopPriceWeight === 50) prev.shopPriceWeight = 100;
         }
         return persistedState as AppState;
       },

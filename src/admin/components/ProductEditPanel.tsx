@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   X as XIcon, ChevronLeft, ChevronRight, ChevronDown, QrCode, Eye, EyeOff, Star, Sparkles,
   FlaskConical, RefreshCw, Pencil, Plus, Loader2, Check, Globe, Receipt, BookOpen,
-  Camera, Upload, Crop, Download, MoreHorizontal, Trash2, Wand2, Mic, Square, Store,
+  Camera, Upload, Crop, Download, MoreHorizontal, Trash2, Wand2, Mic, Square, Store, Package,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { SquareCropModal } from '../../components/shared/SquareCropModal';
@@ -1370,6 +1370,18 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               <button onClick={() => handleUpdate(product.id, 'canReorder', !product.canReorder)} className={`admin-pill ${product.canReorder ? 'admin-pill-on' : ''}`} title="Restockable when sold out">
                 <RefreshCw size={10} /> Restockable
               </button>
+              {/* Sealed tea. The shop cannot open the box, so the amounts it
+                  offers become whole multiples of one unit and one unit is the
+                  minimum order. Needs a unit weight beside it to mean anything;
+                  turning it on is what makes that field appear. */}
+              <button
+                aria-label="Sold only in whole units"
+                onClick={() => handleUpdate(product.id, 'soldInWholeUnits', !product.soldInWholeUnits)}
+                className={`admin-pill ${product.soldInWholeUnits ? 'admin-pill-on' : ''}`}
+                title="Sold only as whole sealed units. The shop offers multiples of one unit and nothing smaller."
+              >
+                <Package size={10} /> Whole units only
+              </button>
               <CollectionPill productId={product.id} />
             </div>
 
@@ -1439,8 +1451,13 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                         for the form: tuos run from 5 g to 250 g, and a whole
                         piece is the one amount exempt from the handling fee,
                         so a guessed weight is a guessed price. */}
-                    {product.form && ['Cake', 'Tuo', 'Brick', 'Ball'].includes(product.form) && (
-                      <FieldCell label="One piece weighs (g)">
+                    {/* A sealed tea has a piece too, whatever its form: the
+                        1993 Y562 is loose leaf in a 100 g box. So the weight
+                        field appears for a pressed form OR for anything marked
+                        sold-in-units, since without a weight the flag has
+                        nothing to count in. */}
+                    {((product.form && ['Cake', 'Tuo', 'Brick', 'Ball'].includes(product.form)) || product.soldInWholeUnits) && (
+                      <FieldCell label={product.soldInWholeUnits ? 'One unit weighs (g)' : 'One piece weighs (g)'}>
                         <GhostInput
                           variant="bordered"
                           value={product.pieceWeightG != null ? String(product.pieceWeightG) : ''}

@@ -31,7 +31,7 @@ import { TeaReference, type TeaReferenceProduct } from '../wisdom/TeaReference';
 import type { ProductImpression } from './ProductImpressions';
 import { resolveProductResearch } from '../../wisdom/productResearch';
 import { buildPublicProductHref } from '../../lib/publicProductNavigation';
-import { quoteGrams } from '../../lib/teaPricing';
+import { minimumOrderGrams, quoteGrams, sellUnitOf, snapToUnit } from '../../lib/teaPricing';
 import { resolveTermLabel } from '../../data/tastingTaxonomy';
 import { resolveLineage } from '../wisdom/TeaLineage';
 import { regionElevationPresentation } from '../../wisdom/regions';
@@ -159,7 +159,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const favorited = favoriteTeas.includes(item.id);
   const tastingCount = useTastingCount(item.id);
   const tastingEntry = useTastingEntry(item.id);
-  const [grams, setGrams] = useState(50);
+  const [chosenGrams, setGrams] = useState(50);
   const [customMode, setCustomMode] = useState(false);
   const [customInput, setCustomInput] = useState('');
   const [added, setAdded] = useState(false);
@@ -191,12 +191,25 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       .map(story => ({ id: story.id, slug: story.slug || story.id, title: story.title }));
   }, [xrefArticleResponse, stories, item.id]);
 
-  const sliderMin = 5;
+  // A tea sold in sealed units has no amount below one unit, so that is where
+  // its slider starts. Everything else starts at the shop's ordinary floor.
+  const sellUnit = item.category === 'tea'
+    ? sellUnitOf(item.form, item.pieceWeightG, item.soldInWholeUnits)
+    : undefined;
+  const unitGrams = sellUnit?.grams;
+  const sliderMin = minimumOrderGrams(unitGrams);
   const sliderMax = Math.max(sliderMin, Math.floor(item.stock_g || 0));
   // One whole pressed piece ships as it is, so it is the one amount that
-  // carries no handling. Everything priced below reads this.
-  const wholePiece = item.category === 'tea' ? wholePieceOf(item.form, item.pieceWeightG) : undefined;
+  // carries no handling. A sealed unit is the same fact, so it reads the same
+  // way. Everything priced below reads this.
+  const wholePiece = item.category === 'tea'
+    ? (sellUnit ?? wholePieceOf(item.form, item.pieceWeightG))
+    : undefined;
   const wholePieceGrams = wholePiece?.grams;
+  // The amount actually on offer. A sealed tea rounds whatever was chosen up
+  // to the next whole unit here, once, so every price, label and button below
+  // reads an amount the shop can send rather than each guarding for itself.
+  const grams = unitGrams ? snapToUnit(chosenGrams, unitGrams, sliderMax) : chosenGrams;
   // Numeric total (base currency), passed to onAddToCart. Display strings
   // are formatted separately; never parse a formatted string back to a number.
   const numericTotal = Math.ceil(quoteGrams(pricePerGram, grams, { wholePieceGrams }).totalUsd);
@@ -396,6 +409,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         pricePerGram={pricePerGram}
         formatTotal={(g) => resolvedFormatPrice(pricePerGram, g)}
         wholePiece={wholePiece}
+        unitGrams={unitGrams}
       />
       <ImageOverlayModal
         open={imageExpanded}
