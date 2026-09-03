@@ -85,12 +85,16 @@ High-value vintage alerts: 58s tea, 70s Small Yellow Mark, 80s tea nuggets.
   wants this vendor+contact recorded as a source/contact on teajia.com so it
   persists. See teajia-site-ops for building/connecting the vendor/source model.
 
-## Reconciliation — ginseng = 80s tea nuggets (2026-08-30)
-Adrian ordered "参香散块 ginseng-fragrance loose" (bought quite a bit, ~1 kg
+## Reconciliation — ginseng = 80s Ginseng Puer (was "tea nuggets"; renamed 2026-08-31)
+Adrian ordered by "参香散块 ginseng-fragrance loose" (bought quite a bit, ~1 kg
 total). It does NOT appear by that name on the receipts. Adrian confirmed the
-matching line is **80老茶头 (1980s Tea Nuggets), 2 jin (~1 kg) @ 800 CNY/500g =
-1,600 CNY** on receipt 695. So "ginseng nuggets/loose" === 80s tea nuggets row.
-NOT 25 jin (he did not buy 25 jin of anything; the true qty is 2 jin).
+matching line is **80老茶头 (now: 1980s Ginseng Puer), 2 jin (~1 kg) @ 800
+CNY/500g = 1,600 CNY** on receipt 695. So "ginseng nuggets/loose" === the
+80老茶头 row. NOT 25 jin (he did not buy 25 jin of anything; the true qty is 2
+jin).
+- NOT cha tou / NOT infused. Broken fragments of aged puerh cakes, flavor reads
+  as natural ginseng. Live product renamed to **1980s Ginseng Puer** (chinese
+  80年代人参普洱, type Shou Puer). Chinese name is 人参普洱, NEVER 老茶头.
 
 ## 1998 Raw Small Tuo — quantity (2026-08-30)
 Adrian: "1998 Raw Small Tuo, 1 box, is **500 g**." So 1 box = 500 g (not a
