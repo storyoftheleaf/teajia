@@ -544,8 +544,13 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
              is visible.
            */}
            <div className="flex flex-wrap items-center gap-x-5 gap-y-1 py-2">
-             {/* Filter group */}
-             <div className="flex items-center gap-3 shrink-0">
+             {/* Filter group.
+                 Full width on a phone so its trailing edge IS the row's
+                 trailing edge, which is what lets the liked toggle pin itself
+                 to the far right of this line rather than floating after the
+                 last filter word. Natural width from sm up, where the whole
+                 band is one line already. */}
+             <div className="flex w-full items-center gap-3 sm:w-auto sm:shrink-0">
                <button
                  type="button"
                  onClick={() => setOpenFilter(prev => prev === 'type' ? null : 'type')}
@@ -593,6 +598,32 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                  <span>{SORT_OPTIONS.find(o => o.id === shopSort)?.label || 'Sort'}</span>
                  <Icons.ChevronDown className={`w-3 h-3 transition-transform ${openFilter === 'sort' ? 'rotate-180' : ''}`} aria-hidden="true" />
                </button>
+
+               {/* Liked, as the mark itself.
+                   It was the word LIKED at the end of the second line, which
+                   cost that line about 60px and put a filter down among the
+                   search field and the price basis, where it read as one more
+                   piece of chrome rather than as a filter that is either on or
+                   off. Up here it is the same heart the reader pressed on the
+                   tea, at the far end of the row the other filters are in, and
+                   it says its state three ways at once: filled, gold, and
+                   sitting on a gold wash. That is smaller than the word and
+                   easier to catch at a glance, which is the whole point of a
+                   filter you can leave switched on by accident. */}
+               <button
+                 type="button"
+                 onClick={() => setShopSavedOnly(!shopSavedOnly)}
+                 aria-pressed={shopSavedOnly}
+                 aria-label={shopSavedOnly ? 'Showing only liked teas. Show all teas' : 'Show only liked teas'}
+                 title={shopSavedOnly ? 'Showing liked teas only' : 'Show liked teas only'}
+                 className={`tap-target ml-auto shrink-0 rounded-md px-1.5 transition-colors sm:ml-1 ${
+                   shopSavedOnly
+                     ? 'bg-tea-gold/8 text-tea-gold'
+                     : 'text-tea-text-sec hover:text-tea-text'
+                 }`}
+               >
+                 <Icons.Heart className="w-4 h-4" filled={shopSavedOnly} aria-hidden="true" />
+               </button>
              </div>
 
              <div className="flex w-full min-w-0 items-center gap-4 pb-1 sm:w-auto sm:flex-1 sm:justify-end sm:pb-0">
@@ -628,18 +659,6 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                    ))}
                  </div>
                </div>
-
-               <button
-                 type="button"
-                 onClick={() => setShopSavedOnly(!shopSavedOnly)}
-                 aria-pressed={shopSavedOnly}
-                 aria-label="Show only liked teas"
-                 className={`text-ui-10 uppercase tracking-[0.15em] min-h-[44px] shrink-0 transition-colors ${
-                   shopSavedOnly ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
-                 }`}
-               >
-                 Liked
-               </button>
              </div>
            </div>
 
