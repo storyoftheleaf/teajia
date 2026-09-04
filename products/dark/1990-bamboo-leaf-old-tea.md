@@ -7,7 +7,7 @@ year: 1990
 origin: "Guangxi, Cangwu (liubao), China"
 grams: 100
 stock: 100
-cost: "360 CNY"
+cost: "180 CNY"
 vendor: "静趣礼承 Jingqu Licheng (D & T Collectors)"
 tastingNotes:
   - "earthy"

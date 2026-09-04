@@ -59,6 +59,7 @@ export function normalizeProduct(p: any): PublicProduct {
     type: (p.type || 'Misc') as PublicProductType,
     form: p.form || undefined,
     pieceWeightG: p.piece_weight_g != null ? Number(p.piece_weight_g) : undefined,
+    soldInWholeUnits: !!p.sold_in_whole_units,
     givenName: p.given_name || '',
     chineseName: p.chinese_name || '',
     productName: p.product_name || '',

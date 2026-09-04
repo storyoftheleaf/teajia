@@ -586,6 +586,14 @@ export interface InventoryItem {
    * from the handling fee, so guessing the weight quietly guesses the price.
    */
   pieceWeightG?: number;
+  /**
+   * Whether this tea is sold ONLY as whole units of `pieceWeightG`.
+   *
+   * A sealed box cannot be opened, so the amounts offered are multiples of one
+   * unit and one unit is the minimum order. False, the ordinary case, is tea
+   * weighed out on the shop's usual ladder.
+   */
+  soldInWholeUnits?: boolean;
   name: string;
   year: string;
   origin: string;
@@ -655,6 +663,11 @@ export interface PublicProduct {
    * from the handling fee, so guessing the weight quietly guesses the price.
    */
   pieceWeightG?: number;
+  /**
+   * Whether this tea is sold ONLY as whole units of `pieceWeightG`. Public
+   * because it decides which amounts a reader may choose at all.
+   */
+  soldInWholeUnits?: boolean;
   givenName: string;
   chineseName?: string;
   productName: string;

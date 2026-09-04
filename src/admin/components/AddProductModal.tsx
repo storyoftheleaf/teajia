@@ -5,6 +5,7 @@ import { Currency, Product, ExchangeRate, ProductType } from '../types';
 import { TEA_TYPES, NON_TEA_TYPES } from '../../wisdom';
 import type { TastingData } from '../../types';
 import { calculatePricing } from '../utils';
+import { DEFAULT_SHIPPING_RATE_PER_KG_USD, shippingRateUsdFor } from '../../lib/shippingRate';
 import { TeaIllustration } from './TeaIllustration';
 import { TastingSession } from '../../components/tasting/TastingSession';
 import { resolveTermLabel, resolveTermIcon, flattenTastingNotes } from '../../data/tastingTaxonomy';
@@ -312,7 +313,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     stockGrams: '',
     quantityPurchased: '', 
     costAmount: '', // BASE Cost (Source Currency)
-    shippingRateUSD: '13', // INPUT IS ALWAYS USD NOW, $13/kg default
+    // Always entered in USD, from the shop's one default rather than a
+    // literal typed here, which is how this form came to say 13 while the
+    // intake path said 10.
+    shippingRateUSD: String(DEFAULT_SHIPPING_RATE_PER_KG_USD),
     costCurrency: 'USD' as Currency,
     vendor: '',
     description: '',
@@ -393,7 +397,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     if (isOpen && initialData) {
       // Calculate USD shipping from stored Source Currency value
       const rate = rates.find(r => r.currency === initialData.costCurrency)?.rateToUSD || 1;
-      const shipUSD = initialData.shippingRatePerKg ? (initialData.shippingRatePerKg / rate) : 13;
+      const shipUSD = shippingRateUsdFor(initialData.shippingRatePerKg, rate);
 
       setFormData({
         type: initialData.type,
@@ -456,7 +460,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         stockGrams: '',
         quantityPurchased: '',
         costAmount: '',
-        shippingRateUSD: '13', // Explicit Default $13 USD per kg
+        shippingRateUSD: String(DEFAULT_SHIPPING_RATE_PER_KG_USD),
         costCurrency: 'USD',
         vendor: '',
         description: '',

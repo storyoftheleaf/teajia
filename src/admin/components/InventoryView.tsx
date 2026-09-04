@@ -12,6 +12,7 @@ import Papa from 'papaparse';
 import { api } from '../../lib/api';
 import { calculatePricing } from '../utils';
 import { Product } from '../types';
+import { defaultShippingRateInCurrency } from '../../lib/shippingRate';
 import { QrCodeModal } from './QrCodeModal';
 import { useRates } from '../hooks/useAdminData';
 import { useToast } from './Toast';
@@ -987,6 +988,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const processedProductsRef = useRef(processedProducts);
   const productIndexMapRef = useRef(productIndexMap);
   const ratesRef = useRef(rates);
+  /* Units of a tea's cost currency per USD, for the freight column, which is
+     labelled in dollars and must not print a yuan figure under that label. */
+  const costRateToUsd = useCallback(
+    (p: Product) => rates.find(r => r.currency === (p.costCurrency || 'USD'))?.rateToUSD || 1,
+    [rates],
+  );
   const isEditModeRef = useRef(isEditMode);
   const panelProductRef = useRef(panelProduct);
   useLayoutEffect(() => { selectedIdsRef.current = selectedIds; }, [selectedIds]);
@@ -1093,7 +1100,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         const isTeaware = updated.type === 'Teaware';
         const calc = calculatePricing(
           Number(field === 'costAmount' ? value : p.costAmount) || 0,
-          Number(field === 'shippingRatePerKg' ? value : p.shippingRatePerKg) || 13,
+          Number(field === 'shippingRatePerKg' ? value : p.shippingRatePerKg)
+            || defaultShippingRateInCurrency(ratesRef.current.find(r => r.currency === (p.costCurrency || 'USD'))?.rateToUSD || 1),
           Number(field === 'quantityPurchased' ? value : p.quantityPurchased) || 0,
           (String(field === 'costCurrency' ? value : p.costCurrency) || 'USD') as import('../types').Currency,
           ratesRef.current,
@@ -2680,6 +2688,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   isSelected={selectedIds.has(product.id)}
                                   focusedCol={focusedCell?.row === globalIdx ? (focusedCell.col ?? null) : null}
                                   isEditMode={isEditMode}
+                                  costRateToUsd={costRateToUsd}
                                   visibleCols={renderCols}
                                   splitViewCols={renderSplitCols}
                                   splitView={splitView}
@@ -2765,6 +2774,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               isSelected={selectedIds.has(product.id)}
                               focusedCol={focusedCell?.row === globalIdx ? (focusedCell.col ?? null) : null}
                               isEditMode={isEditMode}
+                              costRateToUsd={costRateToUsd}
                               visibleCols={renderCols}
                               splitViewCols={renderSplitCols}
                               splitView={splitView}

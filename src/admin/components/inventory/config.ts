@@ -58,6 +58,11 @@ export const TEA_COLUMN_DEFS = [
   { key: 'verified', label: 'Verified', defaultWidth: 'w-[7%]' },
   { key: 'costAmount', label: 'Cost', defaultWidth: 'w-[8%]' },
   { key: 'costPerGramUSD', label: 'Cost/g', defaultWidth: 'w-[8%]' },
+  // Freight, in USD per kilo, the way Adrian quotes it. On the list rather
+  // than only inside the edit panel because it is part of what a tea cost and
+  // it used to be invisible: unentered rates priced at nothing while the
+  // panel showed a number that was never stored.
+  { key: 'shippingRatePerKg', label: 'Ship $/kg', defaultWidth: 'w-[8%]' },
   { key: 'pricePerGramUSD', label: 'Retail', defaultWidth: 'w-[8%]' },
   { key: 'vendor', label: 'Source', defaultWidth: 'w-[12%]' },
   { key: 'form', label: 'Leaf', defaultWidth: 'w-[10%]' },

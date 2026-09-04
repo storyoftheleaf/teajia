@@ -42,6 +42,11 @@ export interface Product {
    * offers no whole piece rather than guessing one.
    */
   pieceWeightG?: number;
+  /**
+   * Sold only as whole units of `pieceWeightG`. The 1993 Y562 is a sealed
+   * 100 g box: there is no 25 g of it, so the shop must not offer one.
+   */
+  soldInWholeUnits?: boolean;
   givenName: string;
   chineseName?: string;
   productName: string; // The botanical/cultivar name

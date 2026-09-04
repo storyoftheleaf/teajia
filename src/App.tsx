@@ -192,7 +192,7 @@ import type { PanelView } from './components/AccountPanel/types';
 import { GlobalSearch } from './components/shared/GlobalSearch';
 import { LeftSidebar } from './components/LeftSidebar';
 import { BottomTabBar } from './components/BottomTabBar';
-import { wholePieceOf } from './lib/teaPricing';
+import { sellUnitOf, wholePieceOf } from './lib/teaPricing';
 import { AdvisePage } from './components/AdvisePage';
 import AboutPage from './AboutPage';
 import Footer from './components/shared/Footer';
@@ -553,7 +553,11 @@ const AppContent = () => {
       packs: 1,
       pricePerGram,
       totalPrice: total,
-      wholePieceGrams: item.category === 'tea' ? wholePieceOf(item.form, item.pieceWeightG)?.grams : undefined,
+      /* A sealed unit ships as it is, exactly as an unbroken cake does, so the
+         cart prices it the same way. */
+      wholePieceGrams: item.category === 'tea'
+        ? (sellUnitOf(item.form, item.pieceWeightG, item.soldInWholeUnits) ?? wholePieceOf(item.form, item.pieceWeightG))?.grams
+        : undefined,
       type: item.type,
       image: item.image,
     };
