@@ -37,7 +37,11 @@ export const PageHeaderTabs: React.FC<PageHeaderTabsProps> = ({
 }) => {
   return (
     <LayoutGroup>
-    <div className={`w-full ${fit ? 'px-3 md:px-6 lg:px-10 overflow-hidden' : 'px-4 md:px-6 lg:px-10 overflow-x-auto hide-scrollbar'} ${gutter} ${className}`} style={hairlines ? { boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub)' } : undefined}>
+    /* Same px as the title row above it. The fit row carried px-3 against the
+       header's px-4, so the last tab ended four pixels outboard of every other
+       thing in the bar: LIKED sat proud of the title, the currency chip and the
+       rule under the row, and read as pushed against the edge of the screen. */
+    <div className={`w-full ${fit ? 'px-4 md:px-6 lg:px-10 overflow-hidden' : 'px-4 md:px-6 lg:px-10 overflow-x-auto hide-scrollbar'} ${gutter} ${className}`} style={hairlines ? { boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub)' } : undefined}>
       <div className={`flex items-center ${fit ? 'w-full min-w-0 justify-between gap-1.5 md:justify-start md:gap-10' : 'gap-7 md:gap-10 min-w-max'}`}>
         {tabs.map((tab) => (
           <button

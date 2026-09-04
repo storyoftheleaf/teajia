@@ -543,7 +543,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
              than scrolling, so nothing is asked of the reader before the shop
              is visible.
            */}
-           <div className="flex flex-wrap items-center gap-x-5 gap-y-1 py-2">
+           <div className="flex flex-wrap items-center gap-x-5 gap-y-0 py-1">
              {/* Filter group.
                  Full width on a phone so its trailing edge IS the row's
                  trailing edge, which is what lets the liked toggle pin itself
@@ -626,8 +626,8 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                </button>
              </div>
 
-             <div className="flex w-full min-w-0 items-center gap-4 pb-1 sm:w-auto sm:flex-1 sm:justify-end sm:pb-0">
-               <label className="flex min-w-0 flex-1 items-center gap-2 rounded-md bg-tea-surface px-3 py-2 sm:flex-none sm:w-[250px]">
+             <div className="flex w-full min-w-0 items-center gap-4 pb-0.5 sm:w-auto sm:flex-1 sm:justify-end sm:pb-0">
+               <label className="flex min-w-0 flex-1 items-center gap-2 rounded-md bg-tea-surface px-3 py-1.5 sm:flex-none sm:w-[250px]">
                  <Icons.Search className="w-3.5 h-3.5 shrink-0 text-tea-text-dim" aria-hidden="true" />
                  <input
                    type="search"
