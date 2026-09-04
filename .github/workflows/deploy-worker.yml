@@ -36,7 +36,12 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # 10 was too tight and killed deploys silently. Two `npm ci` runs plus the
+    # worker suite sit around six or seven minutes and occasionally cross ten:
+    # runs 158 and 160 on 2026-09-04 both died at exactly the limit, which
+    # GitHub reports as "cancelled", so it reads like somebody stopped it
+    # rather than like a failure worth looking at.
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
