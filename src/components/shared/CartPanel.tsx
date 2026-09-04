@@ -166,10 +166,13 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
               <div className={`h-1 rounded-full transition-all duration-150 ${isDragging ? 'bg-tea-gold w-16' : 'bg-tea-text-sec/30 w-10'}`} />
             </div>
 
-            {/* Header: Close top-left, matching AccountPanel rule. The title
-                sits centred in the same row so the panel names itself without
-                spending a third band of chrome above the steps. */}
-            <div className="flex items-center gap-3 px-4 py-1.5 bg-tea-surface shrink-0">
+            {/* Header: Close top-left, matching AccountPanel rule.
+                The panel used to name itself "Your order" in 23px display type
+                across the middle of this row. The step underneath already says
+                Cart, and the footer says Total: three bands of chrome telling
+                the reader the same thing before the first tea. The close sits
+                on the row alone now, and the row is as tall as the close. */}
+            <div className="flex items-center px-4 pt-0.5 bg-tea-surface shrink-0">
               <button
                 onClick={onClose}
                 className="min-w-[44px] min-h-[44px] flex items-center justify-center -ml-2"
@@ -177,8 +180,6 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
               >
                 <Icons.Close className="w-5 h-5 text-tea-text-sec hover:text-tea-text transition-colors" />
               </button>
-              <span className="flex-1 text-center font-display text-[23px] leading-none text-tea-text">Your order</span>
-              <span className="min-w-[44px] shrink-0" aria-hidden="true" />
             </div>
 
             {/* Content */}

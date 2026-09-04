@@ -3762,10 +3762,11 @@ input[type="number"]::-webkit-outer-spin-button {
   cursor: not-allowed;
 }
 
-/* Checkout: the destination, not the action, so it carries a keyline rather
-   than a fill and never competes with Add for the eye. Two lines, the word
-   over the total: the total alone was a number in the corner of a bar with
-   nothing saying it was the way out of the page. */
+/* Cart: the destination, not the action, so it carries a keyline rather than
+   a fill and never competes with Add for the eye. One line now. It used to
+   stack the order total over the word, which put a third price on a bar
+   already quoting an amount and a rate; the total belongs in the order, beside
+   the lines that make it up. */
 .alcove-dock-cta {
   display: flex;
   flex: 0 0 auto;
@@ -3783,40 +3784,23 @@ input[type="number"]::-webkit-outer-spin-button {
   color: var(--tea-text);
   transition: background 0.15s ease;
 }
-/* The second line now, so it steps back a tone. Two lines of full-strength
-   text with the smaller one in caps compete; the number has to win. */
+/* The only line, so it carries full strength. It stepped back a tone while it
+   was the caption under a total; with the total gone, a dim word alone in the
+   corner reads as disabled. */
 .alcove-dock-cta-verb {
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.16em;
   line-height: 1;
-  color: var(--tea-text-sec);
-}
-/* The top line, and the larger of the two. The total is what the reader is
-   coming to this corner of the bar for; Checkout underneath says what to do
-   with it. */
-.alcove-dock-cta-total {
-  font-size: 16px;
-  letter-spacing: 0.02em;
-  line-height: 1;
   color: var(--tea-text);
-  /* Cormorant ships an old-style figure set and reaches for it unasked, so 3,
-     5, 7 and 9 hang as far below the line as a lowercase y. `tabular-nums`
-     alone does not turn that off. At 13px the sag read as a quirk; at 16px it
-     reads as a price falling off the bar. This is the same pair the `.num`
-     helper sets, and DESIGN's own rule: never set a price in Cormorant
-     without forcing lining figures. */
-  font-variant-numeric: tabular-nums lining-nums;
-  font-feature-settings: 'tnum' 1, 'lnum' 1;
 }
 .alcove-dock-cta:hover { background: rgb(var(--tea-gold-rgb) / 0.1); }
 /* The block never disappears. It used to hide below 640px, which meant the one
    way into the price list vanished on exactly the screens that have no room to
    show the list any other way. It gives up padding instead. */
 @media (max-width: 639px) {
-  .alcove-dock-cta { padding: 0 12px; gap: 2px; }
+  .alcove-dock-cta { padding: 0 14px; gap: 2px; }
   .alcove-dock-cta-verb { font-size: 10px; letter-spacing: 0.1em; }
-  .alcove-dock-cta-total { font-size: 15px; }
 }
 @media (min-width: 1024px) {
   .commerce-dock {

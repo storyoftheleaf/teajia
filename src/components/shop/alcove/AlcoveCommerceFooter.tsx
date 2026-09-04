@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { InventoryItem } from '../../../types';
 import { Heart, Pencil, FlaskConical, Share } from 'lucide-react';
 import { fmtShopPrice, fmtShopPricePerGram } from '../../../utils/formatNumber';
@@ -331,8 +331,38 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
   const inOrderLabel = orderedPacks
     .map(p => (p.packs > 1 ? `${p.packs} \u00d7 ${p.grams}g` : `${p.grams}g`))
     .join(' and ');
+  /* What the chosen amount works out to a gram, short enough to live on a
+     phone bar: "28.8k/g". The bar used to carry the line TOTAL here, which
+     said the same thing as the total two inches to its right and told the
+     reader nothing about whether this rung of the ladder was a good one. The
+     rate is the fact that changes as the amount changes, so it is the one
+     worth the space. */
+  const dockRate =
+    formatRate && isTea && effectivePerGram > 0
+      ? `${formatRate(effectivePerGram).value}/g`
+      : completeRateLabel;
   const [amountsOpen, setAmountsOpen] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
+  /* A list this tall covers the page it was opened from, so the way out has to
+     be the whole rest of the screen. Tapping anywhere outside the assembly
+     shuts it, and so does Escape; without either, the only way back to the tea
+     was to find the caret again. */
+  const rootRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!amountsOpen) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setAmountsOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setAmountsOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown, true);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown, true);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [amountsOpen]);
   // The rail has the room, so the amounts stand open in it and the toggle is
   // only for the surfaces that do not: the phone bar and the quick-view card.
   const amountsShown = isRail || amountsOpen;
@@ -370,6 +400,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
 
   return (
     <div
+      ref={rootRef}
       className={
         isRail
           ? 'relative px-3.5 pb-3 pt-3.5'
@@ -429,20 +460,23 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
                     : 'mt-1.5 overflow-hidden rounded-t-[12px] border border-tea-border'
               }
             >
-              {/* The heading, the currency, and what the list is telling you.
-                  The currency sits with the heading rather than on each of the
-                  eleven figures below it: said once it is a control, said
-                  eleven times it is noise holding the columns apart. */}
-              <div className="flex items-start justify-between gap-2 px-3.5 pb-2 pt-3">
-                <span className="flex items-center gap-2">
-                  <span className={`whitespace-nowrap font-sans uppercase tracking-[0.16em] text-tea-text-dim ${isRail ? 'text-ui-11' : 'text-ui-10'}`}>How much</span>
-                  {formatPlainTotal && <ShopCurrencyPicker />}
-                </span>
+              {/* What the list is telling you, and the currency it tells it
+                  in. The sentence leads because it is the reason to read the
+                  rows; the currency is a control, so it sits at the trailing
+                  edge where the other controls on this page sit. Said once
+                  here rather than on each of the eleven figures below: said
+                  eleven times it is noise holding the columns apart.
+
+                  "How much" is gone from this row. The sentence under it named
+                  the same thing in words a reader can act on, so the caps
+                  label was a heading over a heading. */}
+              <div className="flex items-center justify-between gap-2 px-3.5 pb-2 pt-3">
                 {/* Wraps rather than truncates. Cut off at "a lower pri..."
                     the sentence loses the only word that says what happens. */}
-                <span className="min-w-0 text-right font-sans text-ui-10 leading-[1.35] tracking-[0.02em] text-tea-text-dim">
+                <span className="min-w-0 font-sans text-ui-10 leading-[1.35] tracking-[0.02em] text-tea-text-dim">
                   Quantity provides a lower price.
                 </span>
+                {formatPlainTotal && <ShopCurrencyPicker />}
               </div>
               {/* Said once, where it is true. Adding the same tea again puts
                   the weight onto the line already there rather than starting a
@@ -570,30 +604,16 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
               className="alcove-dock-amount tap-target"
             >
               <span className="shrink-0 font-display text-ui-17 tabular-nums text-tea-text">{activeCell.label}</span>
-              {/* On a 343px bar there is room for four controls or for three
-                  and a price, and the two icons alone hold 93px of it because
-                  a tap target has a floor. So the price steps aside for
-                  Checkout, which is carrying money of its own two inches to
-                  the right; with no order there yet, Checkout is not on the
-                  bar and this is where the figure lives. Wider screens show
-                  both. */}
-              {activeCell.subFull && (
-                <span
-                  className={`min-w-0 truncate font-sans text-ui-13 tabular-nums text-tea-text-dim ${
-                    orderTotalUsd > 0 ? 'hidden sm:inline' : ''
-                  }`}
-                >
-                  {orderTotalUsd > 0 ? activeCell.sub : activeCell.subFull}
-                </span>
-              )}
-              <span className="ml-auto flex shrink-0 items-center gap-1.5 pl-1.5">
-                {/* The word is worth about 55px, which a phone bar does not
-                    have to spare and would take out of the price. The keyline
-                    and the caret carry it there. */}
-                <span className="hidden font-sans text-ui-9 uppercase tracking-[0.14em] text-tea-text-dim sm:inline">
-                  Change
-                </span>
-                <span aria-hidden="true" className="font-sans text-ui-9 text-tea-text-dim">
+              {/* The rate rides the trailing edge of the control, so the two
+                  figures on the bar sit on their own edges: the amount on the
+                  left, what it costs a gram on the right. */}
+              <span className="ml-auto flex min-w-0 shrink items-center gap-1.5 pl-1.5">
+                {dockRate && (
+                  <span className="min-w-0 truncate font-sans text-ui-12 tabular-nums text-tea-text-dim">
+                    {dockRate}
+                  </span>
+                )}
+                <span aria-hidden="true" className="shrink-0 font-sans text-ui-9 text-tea-text-dim">
                   {amountsOpen ? '\u25B4' : '\u25BE'}
                 </span>
               </span>
@@ -631,23 +651,19 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
             {justAdded ? 'Added' : 'Add'}
           </button>
           {orderTotalUsd > 0 && (
-            /* The total leads and the word sits under it. What the reader
-               wants off this corner of the bar is the number, so the number is
-               the larger of the two and the first thing the eye lands on;
-               Checkout underneath is what turns it from a figure into a way
-               out of the page. This is also the one figure in the assembly
-               that keeps its currency, because the list's picker is behind a
-               tap and the bar is not. */
+            /* The way to what has already been committed, and nothing else.
+               It used to lead with the order total, which put a third price on
+               a bar that was already quoting an amount and a rate, and the
+               figure a reader glanced at was as often the tea's as the order's.
+               The order's total belongs in the order, where the lines that
+               make it up are; out here the word is enough. */
             <button
               type="button"
               onClick={onOpenOrder}
               className="alcove-dock-cta tap-target"
-              aria-label={`Checkout, ${resolvedTotal(orderTotalUsd)}`}
+              aria-label={`Open cart, ${resolvedTotal(orderTotalUsd)}`}
             >
-              <span className="alcove-dock-cta-total font-display tabular-nums">
-                {resolvedTotal(orderTotalUsd)}
-              </span>
-              <span className="alcove-dock-cta-verb">Checkout</span>
+              <span className="alcove-dock-cta-verb">Cart</span>
             </button>
           )}
         </div>
