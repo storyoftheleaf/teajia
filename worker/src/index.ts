@@ -26963,6 +26963,23 @@ export default {
   },
 
   async scheduled(_event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
+    /* Rates first, and on their own.
+     *
+     * This used to be the last statement in the tick, after recording cleanup
+     * and event reminders, neither of which is wrapped end to end. A throw
+     * anywhere above it, on any hour, meant the refresh never ran, and the
+     * failure is invisible: prices keep rendering, just off an older dollar.
+     * Every public price is computed through these rates, so this is the one
+     * piece of the tick that must not depend on the rest of it succeeding.
+     * It gates itself to once per 24h internally, so running first costs
+     * nothing on the other twenty-three ticks.
+     */
+    try {
+      await syncLiveExchangeRates(env);
+    } catch (err) {
+      console.error('Exchange rate refresh failed', err);
+    }
+
     // Retry audio is temporary. Delete the object before its ledger row so a
     // failed R2 deletion remains visible and will be retried on the next tick.
     if (env.MEDIA_BUCKET) {
@@ -27035,8 +27052,5 @@ export default {
       }
     }
 
-    // Refresh live exchange rates (folded into the existing hourly cron tick;
-    // internally gated to once per 24h so it isn't a separate job).
-    await syncLiveExchangeRates(env);
   },
 };
