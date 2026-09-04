@@ -28,8 +28,26 @@ tables (`products`, `invoices`, `invoice_line_items`, `customers`,
 
 ```bash
 cd worker
+npm run ship
+```
+
+`ship` applies pending migrations and THEN deploys the Worker, in that order,
+because the order is not a preference: a migration that adds a column the new
+Worker selects has to land first, or every query against that table fails
+between the two commands. Migrations alone are still:
+
+```bash
+cd worker
 wrangler d1 migrations apply teajia-db --remote
 ```
+
+**Never apply a migration with `wrangler d1 execute --file=`.** It runs the SQL
+but writes nothing to D1's ledger, so the file still counts as pending. The next
+`migrations apply` runs it a second time, and since SQLite has no
+`ALTER TABLE ... ADD COLUMN IF NOT EXISTS`, a column-adding migration fails with
+`duplicate column name` and takes the rest of the batch down with it. If it has
+already happened, mark the file applied by hand in `d1_migrations` rather than
+letting the next apply trip over it.
 
 Then **fold the change into `schema.sql`** so the canonical source stays
 current (e.g. migrations 086–088 are already reflected there).
