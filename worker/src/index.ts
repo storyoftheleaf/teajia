@@ -10,6 +10,7 @@ import {
   type CurateImportContext,
 } from './curateImports';
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
+import { DEFAULT_SHIPPING_RATE_PER_KG_USD } from './shippingRate';
 import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 import { deriveConfirmedInvoiceLine, repairCandidate, formatInvoiceNumber, loadUsdRates, amountToUsd } from './invoiceDomain';
@@ -1498,9 +1499,26 @@ function addPricingFields(product: any, rates: Map<string, number>): any {
 
   if (qty > 0) {
     const costPerUnit = product.cost_amount / qty;
-    // Shipping per gram only applies to tea, not teaware
-    const shippingPerUnit = isTeaware ? 0 : (product.shipping_rate_per_kg || 0) / 1000;
-    costPerUnitUSD = (costPerUnit + shippingPerUnit) / (rate || 1);
+    /* Freight is part of what a tea cost, so it belongs in the basis the
+       markup multiplies: it is money out, and a shop that recovers it at 1×
+       while everything else runs at 3× is quietly selling its own postage at
+       cost. It has always been inside the multiplier here; what was wrong was
+       the rate.
+
+       The column is written in the COST currency, because a rate entered
+       beside a CNY invoice is a CNY rate. The fallback is in USD, so the two
+       are converted separately rather than added and divided together.
+
+       A rate of 0 means nobody entered one, not free freight, so it takes the
+       default. Nothing ships from Yunnan for nothing, and a product created
+       outside the intake path stored 0 and quietly sold with no freight in it
+       at all. Teaware is the one real zero: it is priced per piece, and its
+       freight is already in that price. */
+    const storedRatePerKg = Number(product.shipping_rate_per_kg) || 0;
+    const shippingPerGramUSD = isTeaware
+      ? 0
+      : (storedRatePerKg > 0 ? storedRatePerKg / (rate || 1) : DEFAULT_SHIPPING_RATE_PER_KG_USD) / 1000;
+    costPerUnitUSD = costPerUnit / (rate || 1) + shippingPerGramUSD;
   }
 
   if (qty > 0) {

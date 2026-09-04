@@ -58,7 +58,7 @@ Independent of NEXT/THEN except where noted. All three items ship as one PR.
   ALTER TABLE curate_import_batches ADD COLUMN shipping_rate_per_kg REAL NOT NULL DEFAULT 10.0;
   ```
 - `worker/src/index.ts` `handleBulkCreateProducts` (~:2740) and the finalize handler that calls it:
-  - When computing `cost_amount`, if `shipping_rate_per_kg` is unset on the batch, use `10.0` USD/kg.
+  - When computing `cost_amount`, if `shipping_rate_per_kg` is unset on the batch, use the shop default (`DEFAULT_SHIPPING_RATE_PER_KG_USD` in `worker/src/shippingRate.ts`, currently 12 USD/kg). The `DEFAULT 10.0` in the migration above is historical: SQLite cannot alter a column default in place, so batch inserts now write the constant explicitly.
   - Persist `transport_mode` into the product row or a linked purchase-lot row (whichever exists — do NOT invent a new table; store `transport_mode` on `curate_import_items` and emit into `stock_ledger.note` as `transport=<mode>`).
 - `IntakeWorkspace.tsx` — surface a `transport_mode` select (Air / Sea / Land / Courier / Unknown), default Unknown. Show a subtle "Shipping: $10/kg default — override" chip on the batch.
 
