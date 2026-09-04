@@ -247,6 +247,16 @@ A held write scope implicitly grants its read scope, so pre-`sales:read` tokens 
 
 **Protocol:** `2025-06-18` (negotiated down to the client's requested version); results carry both text and `structuredContent`; tool defs carry read-only/destructive/idempotent annotations.
 
+### Connecting a Claude session to it
+`.mcp.json` (committed) points a session at `https://api.teajia.com/mcp` and reads the token from **`TEAJIA_MCP_TOKEN`**. The file carries the variable, never the value: mint an owner-tier token at `/admin/mcp-tokens` (shown once) and put it where that surface keeps secrets.
+
+- **Claude Code locally** — Infisical, same as every other Teajia secret: `infisical secrets set TEAJIA_MCP_TOKEN=...` in Terminal, then launch under `infisical run`. Never in the file, never in chat.
+- **Claude Code on the web / a cloud session** — the environment's variables, set where the environment was created (claude.ai/code → environment settings). A cloud session ALSO needs `api.teajia.com` on its network allowlist, or the connection fails at the proxy with no route rather than with an auth error, which reads like a broken token and is not one.
+
+Connected, a session can do the admin work directly instead of describing it: set visibility, correct a cost, read the live catalogue. Without it a session is blind to the live shop and can only ask Adrian to paste, which on 2026-09-04 cost most of an afternoon in round trips over a migration ledger.
+
+**What a session cannot reach from a cloud sandbox by default:** `api.teajia.com`, `api.cloudflare.com` and `registry.npmjs.org` are all off the allowlist, so no MCP, no `wrangler`, no `npm install`, which means no `npm run lint` and no `npm run test:worker` either. Deploys do not need any of it (CI holds the Cloudflare credentials and runs migrations then deploy on every push to `main` touching `worker/**`); diagnosis does. To give a cloud session Cloudflare directly, add `CLOUDFLARE_API_TOKEN` (Workers Scripts: Edit + D1: Edit) and `CLOUDFLARE_ACCOUNT_ID` to the environment and allow those hosts.
+
 **Implementation:** [worker/src/mcp.ts](worker/src/mcp.ts) (JSON-RPC handlers, tool defs, OAuth, public server), [src/admin/views/MCPTokensView.tsx](src/admin/views/MCPTokensView.tsx) (token management), [src/admin/views/OAuthConsentView.tsx](src/admin/views/OAuthConsentView.tsx) (OAuth consent).
 
 **Schema:** [066_mcp_tokens.sql](worker/migrations/066_mcp_tokens.sql) (tokens as SHA-256 hash; `last_used_at` bumped on auth), [074_mcp_confirmation_tickets.sql](worker/migrations/074_mcp_confirmation_tickets.sql) (durable confirm tickets), [067_oauth.sql](worker/migrations/067_oauth.sql) + [082_oauth_authorize_requests.sql](worker/migrations/082_oauth_authorize_requests.sql) (OAuth + scoped grants + mobile-safe consent passing).

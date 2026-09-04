@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "teajia": {
+      "type": "http",
+      "url": "https://api.teajia.com/mcp",
+      "headers": {
+        "Authorization": "Bearer ${TEAJIA_MCP_TOKEN}"
+      }
+    }
+  }
+}
