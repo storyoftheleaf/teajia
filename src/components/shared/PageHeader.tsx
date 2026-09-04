@@ -95,7 +95,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 
   // Static title, no longer collapses on scroll since header flows with page
   const titleSize = 'text-2xl lg:text-3xl';
-  const titlePadding = `${onBack ? 'pt-2' : 'pt-3'} pb-2 px-4 md:px-6 lg:pt-0 lg:pb-0 lg:h-16 lg:px-10 ${gutter}`;
+  const titlePadding = `${onBack ? 'pt-1.5' : 'pt-2'} pb-1 px-4 md:px-6 lg:pt-0 lg:pb-0 lg:h-16 lg:px-10 ${gutter}`;
 
   const hasUtilityButtons = onCartClick || onAccountClick;
 
@@ -134,8 +134,13 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                 >
                   {title}
                 </h1>
+                {/* Only where it sits beside the title and can be read whole.
+                    Stacked under the title on a phone it had one line and no
+                    room, so it arrived as "Sourced by hand, on…", which is a
+                    line of chrome carrying no sentence: the reader learns
+                    nothing and the header is 18px taller for it. */}
                 {subtitle && (
-                  <p className="truncate font-body text-ui-13 italic leading-snug text-tea-text-sec">
+                  <p className="hidden truncate font-body text-ui-13 italic leading-snug text-tea-text-sec lg:block">
                     {subtitle}
                   </p>
                 )}
@@ -148,7 +153,13 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                 </div>
               )}
               {hasUtilityButtons && (
-                <div className="flex items-center gap-1.5 lg:hidden">
+                /* The cluster's own right edge, not the last button's box.
+                   A 44px tap target centres a 20px glyph, so the icon was
+                   floating 12px inside the line every other element in the bar
+                   ends on, and the cart read as not quite reaching the corner.
+                   The negative margin spends that centring padding; the target
+                   stays 44px. */
+                <div className="-mr-3 flex items-center gap-1.5 lg:hidden">
                   {/* Search trigger, mobile */}
                   {showSearch && (
                     <button
