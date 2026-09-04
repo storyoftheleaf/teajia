@@ -100,6 +100,61 @@ describe('rounding an amount to something sendable', () => {
   });
 });
 
+describe('the discount curve stops at one whole thing', () => {
+  // The curve spreads one handling amount across the grams in an order, so the
+  // rate eases as the amount grows. That reasoning runs out at the piece:
+  // nothing is opened to send a cake, so a cake is the cheapest a gram gets,
+  // and two cakes are two of those. The shop was doing the opposite, quoting
+  // 200 g of a 100 g box below the box itself.
+  const CAKE = 357;
+  const RATE = 0.2;
+
+  it('charges no handling on any number of whole pieces', () => {
+    for (const n of [1, 2, 3]) {
+      const q = quoteGrams(RATE, CAKE * n, { wholePieceGrams: CAKE });
+      expect(q.whole).toBe(true);
+      expect(q.totalUsd).toBeCloseTo(RATE * CAKE * n, 10);
+    }
+  });
+
+  it('never lets a bigger order beat one piece on rate', () => {
+    const one = quoteGrams(RATE, CAKE, { wholePieceGrams: CAKE });
+    for (const n of [2, 3, 4]) {
+      const many = quoteGrams(RATE, CAKE * n, { wholePieceGrams: CAKE });
+      expect(many.perGramUsd).toBeCloseTo(one.perGramUsd, 10);
+    }
+  });
+
+  it('is the shop 100 g box, which used to cost more per gram than two of itself', () => {
+    const box = 100;
+    const one = quoteGrams(RATE, box, { wholePieceGrams: box });
+    const two = quoteGrams(RATE, box * 2, { wholePieceGrams: box });
+    expect(two.perGramUsd).toBeCloseTo(one.perGramUsd, 10);
+    expect(two.totalUsd).toBeCloseTo(one.totalUsd * 2, 10);
+  });
+
+  it('still charges handling below one piece, where the leaf is weighed out', () => {
+    const half = quoteGrams(RATE, 50, { wholePieceGrams: CAKE });
+    expect(half.whole).toBe(false);
+    expect(half.totalUsd).toBeCloseTo(RATE * 50 + TEA_PRICING.handlingUsd, 10);
+    expect(half.perGramUsd).toBeGreaterThan(quoteGrams(RATE, CAKE, { wholePieceGrams: CAKE }).perGramUsd);
+  });
+
+  it('charges it once on a remainder above a piece, which is weighed out too', () => {
+    const q = quoteGrams(RATE, CAKE + 40, { wholePieceGrams: CAKE });
+    expect(q.whole).toBe(false);
+    expect(q.totalUsd).toBeCloseTo(RATE * (CAKE + 40) + TEA_PRICING.handlingUsd, 10);
+  });
+
+  it('leaves loose leaf on the curve all the way up, having no piece to stop at', () => {
+    const small = quoteGrams(RATE, 25, {});
+    const large = quoteGrams(RATE, 400, {});
+    expect(small.whole).toBe(false);
+    expect(large.whole).toBe(false);
+    expect(large.perGramUsd).toBeLessThan(small.perGramUsd);
+  });
+});
+
 describe('what a sealed unit costs', () => {
   it('carries no handling, because nothing is opened or repacked', () => {
     const one = quoteGrams(PER_GRAM, UNIT, { wholePieceGrams: UNIT });

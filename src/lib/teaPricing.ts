@@ -73,9 +73,20 @@ export interface Quote {
 /**
  * Price one amount of one tea.
  *
- * `wholePieceGrams` is the weight of an unbroken cake, brick or tuo when the
- * tea is sold as one. Asking for exactly that weight is asking for the piece
- * itself, so it ships as it is and carries no handling.
+ * `wholePieceGrams` is the weight of one whole thing: an unbroken cake, brick
+ * or tuo, or a sealed box. It is where the discount curve STOPS.
+ *
+ * The curve exists to spread one fixed handling amount across however many
+ * grams are in the order, so the rate eases as the amount grows. That reasoning
+ * runs out at the whole piece. Nothing is weighed, opened or repacked to send
+ * one cake, so one cake is the cheapest a gram of that tea can be, and two
+ * cakes is two of those: the same rate, twice. Letting the curve keep falling
+ * past the piece was discounting the shop for work it never does, which is how
+ * the 100 g box came to cost more per gram than two of itself.
+ *
+ * So: whole pieces carry no handling, at any number of them. A remainder on top
+ * of them is a weighed amount and carries the handling, once. Below one piece,
+ * and for loose leaf that has no piece at all, the curve is unchanged.
  */
 export function quoteGrams(
   pricePerGramUsd: number,
@@ -83,7 +94,12 @@ export function quoteGrams(
   opts: { wholePieceGrams?: number; config?: TeaPricingConfig } = {},
 ): Quote {
   const cfg = opts.config ?? TEA_PRICING;
-  const whole = opts.wholePieceGrams != null && grams === opts.wholePieceGrams;
+  const piece = opts.wholePieceGrams;
+  const pieces = piece != null && piece > 0 ? Math.floor(grams / piece) : 0;
+  const remainder = pieces > 0 ? grams - pieces * piece! : grams;
+  // Whole means nothing had to be opened for this order, which is what the
+  // handling amount pays for. One piece, or four, or none plus a remainder.
+  const whole = pieces > 0 && remainder === 0;
   const totalUsd = pricePerGramUsd * grams + (whole ? 0 : cfg.handlingUsd);
   return {
     grams,

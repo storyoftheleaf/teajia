@@ -255,7 +255,11 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
 
   const teaCells: SegCell[] = [
     ...sizeQuotes.map(q => {
-      const isWhole = q.whole && wholePiece != null;
+      /* The piece's OWN cell, not merely an amount that carries no handling.
+         Two cakes are whole too now, and they are not "the cake": they would
+         take its key and its name, and React would be handed the same key
+         twice down one strip. */
+      const isWhole = wholePiece != null && q.grams === wholePiece.grams;
       // How many sealed units this rung is, for the teas that come that way.
       const units = sellUnit ? Math.round(q.grams / sellUnit.grams) : 0;
       return {
@@ -473,8 +477,15 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
               <div className="flex items-center justify-between gap-2 px-3.5 pb-2 pt-3">
                 {/* Wraps rather than truncates. Cut off at "a lower pri..."
                     the sentence loses the only word that says what happens. */}
+                {/* True for loose leaf all the way up. For a tea that comes
+                    as a piece the rate stops falling at one of them, because
+                    nothing is opened to send it, so the sentence says where
+                    the bottom is rather than promising a discount that no
+                    longer arrives. */}
                 <span className="min-w-0 font-sans text-ui-10 leading-[1.35] tracking-[0.02em] text-tea-text-dim">
-                  Quantity provides a lower price.
+                  {wholePiece
+                    ? `Quantity provides a lower price, down to one ${wholePiece.label.toLowerCase()}.`
+                    : 'Quantity provides a lower price.'}
                 </span>
                 {formatPlainTotal && <ShopCurrencyPicker />}
               </div>
