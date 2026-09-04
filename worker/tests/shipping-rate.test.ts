@@ -89,19 +89,43 @@ describe('nothing else in the shop decides the rate', () => {
     expect(description![1]).toContain(`${DEFAULT_SHIPPING_RATE_PER_KG_USD} USD/kg`);
   });
 
-  it('fills the Add Product form in with the same number', () => {
-    // The form cannot import the worker's module, so it carries the figure as
-    // a string. This is what keeps the two from drifting apart, which is how
-    // the form came to say 13 while the intake path said 10.
-    const modal = read('../../src/admin/components/AddProductModal.tsx');
-    const literals = [...modal.matchAll(/shippingRateUSD:\s*'(\d+(?:\.\d+)?)'/g)].map(m => m[1]);
-    expect(literals.length, 'the Add Product form no longer sets a shipping default').toBeGreaterThan(0);
-    for (const value of literals) {
-      expect(Number(value)).toBe(DEFAULT_SHIPPING_RATE_PER_KG_USD);
+  it('agrees with the app-side copy of the number', () => {
+    // The two builds share no module, so the app carries its own constant in
+    // src/lib/shippingRate.ts. This is the join that keeps them equal.
+    const app = read('../../src/lib/shippingRate.ts');
+    const declared = app.match(/DEFAULT_SHIPPING_RATE_PER_KG_USD\s*=\s*(\d+(?:\.\d+)?)/);
+    expect(declared, 'src/lib/shippingRate.ts lost its constant').toBeTruthy();
+    expect(Number(declared![1])).toBe(DEFAULT_SHIPPING_RATE_PER_KG_USD);
+  });
+
+  it('shows the rate in the inventory rather than applying it invisibly', () => {
+    // Adrian's rule: the default is entered and shown, not hidden. A tea with
+    // nothing recorded still prices at the default, so the row and the panel
+    // must print that number rather than a blank or a dash, which would read
+    // as free.
+    const config = read('../../src/admin/components/inventory/config.ts');
+    expect(config, 'the inventory lost its freight column').toContain("key: 'shippingRatePerKg'");
+    const row = read('../../src/admin/components/inventory/InventoryRow.tsx');
+    expect(row).toContain("case 'shippingRatePerKg'");
+    expect(row).toContain('shippingRateUsdFor');
+  });
+
+  it('leaves no admin surface pinning a rate of its own', () => {
+    // The Add Product form once filled in 13 and the edit panel fell back to
+    // 13, both under a "$/kg" label, while the shop was charging something
+    // else. Every admin surface reads the constant now.
+    const surfaces: Array<[string, string]> = [
+      ['AddProductModal.tsx', read('../../src/admin/components/AddProductModal.tsx')],
+      ['ProductEditPanel.tsx', read('../../src/admin/components/ProductEditPanel.tsx')],
+      ['InventoryView.tsx', read('../../src/admin/components/InventoryView.tsx')],
+      ['InventoryRow.tsx', read('../../src/admin/components/inventory/InventoryRow.tsx')],
+    ];
+    const pinned = /(shippingRatePerKg|shippingRateUSD)\s*(?:\?\?|\|\||[:=])\s*'?(\d+(?:\.\d+)?)'?/g;
+    const offences: string[] = [];
+    for (const [name, source] of surfaces) {
+      for (const match of source.matchAll(pinned)) offences.push(`${name}: ${match[0]}`);
     }
-    const fallback = modal.match(/initialData\.shippingRatePerKg\s*\/\s*rate\)\s*:\s*(\d+(?:\.\d+)?)/);
-    expect(fallback, 'the form lost its shipping fallback').toBeTruthy();
-    expect(Number(fallback![1])).toBe(DEFAULT_SHIPPING_RATE_PER_KG_USD);
+    expect(offences, 'an admin surface pinned its own freight rate; read the constant instead').toEqual([]);
   });
 
   it('leaves no second hardcoded default anywhere in the worker', () => {

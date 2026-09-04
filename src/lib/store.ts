@@ -288,7 +288,7 @@ export function selectActiveDraftProduct(
   return state.draftProductByAccountId[state.activeAccountId] ?? null;
 }
 
-const DEFAULT_INVENTORY_COLUMNS = ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount', 'pricePerGramUSD', 'vendor', 'form'];
+const DEFAULT_INVENTORY_COLUMNS = ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount', 'shippingRatePerKg', 'pricePerGramUSD', 'vendor', 'form'];
 const DEFAULT_INVENTORY_SORT_CONFIG = [{ key: 'type', direction: 'asc' as const }];
 
 const scopedStateReset = () => ({
@@ -779,11 +779,14 @@ const createdAppStore = create<AppState>()(
       //     deliberate customization.
       // v3: public cart rows became store-bound. Ambiguous legacy rows are
       //     discarded rather than silently assigning them to a store.
+      // v5: the inventory gained a freight column. It never existed before, so
+      //     a persisted column list from an earlier version simply omits it and
+      //     it can never render. Appended, never reordered, like v2 did.
       // v4: the shop's price basis moved from 50 g to 100 g. A stored 50 is
       //     almost always the old default rather than a choice, since the
       //     control is two buttons most readers never touch, so it is lifted
       //     once. Anyone who did choose 50 clicks it again and it sticks.
-      version: 4,
+      version: 5,
       migrate: (persistedState, version) => {
         if (!persistedState || typeof persistedState !== 'object') return persistedState as AppState;
         if (version < 1) {
@@ -835,6 +838,25 @@ const createdAppStore = create<AppState>()(
         if (version < 4) {
           const prev = persistedState as { shopPriceWeight?: number };
           if (prev.shopPriceWeight === 50) prev.shopPriceWeight = 100;
+        }
+        if (version < 5) {
+          const prev = persistedState as Record<string, unknown> & {
+            inventoryColumns?: string[];
+            savedViews?: InventoryViewConfig[];
+          };
+          const withShipping = (cols: string[] | undefined): string[] => {
+            const base = Array.isArray(cols) ? [...cols] : [...DEFAULT_INVENTORY_COLUMNS];
+            if (!base.includes('shippingRatePerKg')) base.push('shippingRatePerKg');
+            return base;
+          };
+          prev.inventoryColumns = withShipping(prev.inventoryColumns);
+          if (Array.isArray(prev.savedViews)) {
+            prev.savedViews = prev.savedViews.map((v) =>
+              v.filterType === 'All' && !v.id.includes('teaware')
+                ? { ...v, columns: withShipping(v.columns) }
+                : v
+            );
+          }
         }
         return persistedState as AppState;
       },

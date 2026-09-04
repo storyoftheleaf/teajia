@@ -23,6 +23,7 @@ import { AutocompleteInput } from '../../components/TeaCompass/AutocompleteInput
 import { buildVarietyDataMap, getTeaVarietySuggestions } from '../../data/teaVarieties';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { buildProductUpdatePayload } from '../productUpdatePayload';
+import { defaultShippingRateInCurrency, shippingRateUsdFor } from '../../lib/shippingRate';
 import { getThemeColor } from '../themeUtils';
 import { TEA_TYPES } from '../../wisdom';
 import { effectivePurpose, getEffectivePublication, getTeaReadiness } from './inventory/domain';
@@ -1129,12 +1130,24 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
 
   const titleId = product ? `panel-title-${product.id}` : undefined;
 
+  /* Units of the tea's cost currency per USD, the one number that turns a
+     freight rate entered in dollars into the figure the column stores. 1 when
+     the table has no rate for it, which keeps the arithmetic honest rather
+     than silently scaling by nothing. */
+  const costRateToUsd = useMemo(() => {
+    const currency = (product?.costCurrency || 'USD') as Currency;
+    return rates.find(r => r.currency === currency)?.rateToUSD || 1;
+  }, [product?.costCurrency, rates]);
+
   // Memoize pricing calc, only recompute when relevant fields change
   const pricingCalc = useMemo(() => {
     if (!product) return null;
     return calculatePricing(
       product.costAmount || 0,
-      product.shippingRatePerKg || 13,
+      // The stored rate is in the tea's own cost currency, which is what
+      // calculatePricing wants. Nothing recorded means the shop default, and
+      // the readout below must show the same freight the shelf is charging.
+      product.shippingRatePerKg ?? defaultShippingRateInCurrency(costRateToUsd),
       product.quantityPurchased || 0,
       (product.costCurrency || 'USD') as Currency,
       rates,
@@ -1545,7 +1558,19 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                       <GhostInput variant="bordered" value={product.quantityPurchased || 0} onSave={(val) => handleUpdate(product.id, 'quantityPurchased', val)} type="number" className="tabular-nums" />
                     </FieldCell>
                     <FieldCell label="Ship $/kg">
-                      <GhostInput variant="bordered" value={product.shippingRatePerKg || 13} onSave={(val) => handleUpdate(product.id, 'shippingRatePerKg', val)} type="number" className="tabular-nums" />
+                      {/* Entered and shown in USD, matching the label and the
+                          Add Product form. A tea with nothing recorded shows the
+                          shop's default rather than a blank, because the default
+                          is what it is actually being charged. Saved back in the
+                          tea's own cost currency, which is how the column is
+                          stored. */}
+                      <GhostInput
+                        variant="bordered"
+                        value={shippingRateUsdFor(product.shippingRatePerKg, costRateToUsd)}
+                        onSave={(val) => handleUpdate(product.id, 'shippingRatePerKg', (Number(val) || 0) * costRateToUsd)}
+                        type="number"
+                        className="tabular-nums"
+                      />
                     </FieldCell>
                   </FieldGrid>
                   {pricingCalc && pricingCalc.suggestedRetailUSD > 0 && (() => {
