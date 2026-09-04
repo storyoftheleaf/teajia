@@ -10,6 +10,7 @@ import {
   type CurateImportContext,
 } from './curateImports';
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
+import { shippingPerGramUsd } from './shippingRate';
 import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 import { deriveConfirmedInvoiceLine, repairCandidate, formatInvoiceNumber, loadUsdRates, amountToUsd } from './invoiceDomain';
@@ -1019,6 +1020,7 @@ const LISTING_MIRROR_COLUMNS: Record<string, string> = {
   quantity_purchased:    'quantity_purchased',
   source_compass_entry_id:'source_compass_entry_id',
   stock_verified_at:     'stock_verified_at',
+  sold_in_whole_units:   'sold_in_whole_units',
   is_personal:           'is_personal',
   can_reorder:           'can_reorder',
   is_public:             'is_public',
@@ -1258,7 +1260,9 @@ function buildProductMirrorInserts(
     body.stock_grams ?? 0, body.low_stock_threshold ?? 100, body.recheck_stock ?? 0,
     body.fixed_retail_price_usd ?? null, body.markup_multiplier ?? 2.5,
     body.vendor ?? null, body.vendor_id ?? null, body.cost_amount ?? 0, body.cost_currency ?? 'USD',
-    body.shipping_rate_per_kg ?? 0, body.quantity_purchased ?? null, body.source_compass_entry_id ?? null,
+    // NULL, not 0: nobody has entered a rate, so pricing applies the shop
+    // default. A stored 0 is Adrian saying this one ships free.
+    body.shipping_rate_per_kg ?? null, body.quantity_purchased ?? null, body.source_compass_entry_id ?? null,
     body.stock_verified_at ?? null,
     body.is_personal ?? 0, body.can_reorder ?? 0, body.is_public ?? 1, body.is_featured ?? 0,
     body.is_curated ?? 0, body.is_sample ?? 0, body.in_transit ?? 0,
@@ -1497,9 +1501,14 @@ function addPricingFields(product: any, rates: Map<string, number>): any {
 
   if (qty > 0) {
     const costPerUnit = product.cost_amount / qty;
-    // Shipping per gram only applies to tea, not teaware
-    const shippingPerUnit = isTeaware ? 0 : (product.shipping_rate_per_kg || 0) / 1000;
-    costPerUnitUSD = (costPerUnit + shippingPerUnit) / (rate || 1);
+    /* Freight belongs in the basis the markup multiplies, and the rate itself
+       is decided in one place. See worker/src/shippingRate.ts for both, and
+       for why a NULL rate is not the same as a rate of zero. */
+    costPerUnitUSD = costPerUnit / (rate || 1) + shippingPerGramUsd({
+      storedRatePerKg: product.shipping_rate_per_kg,
+      rateToUsd: rate,
+      isTeaware,
+    });
   }
 
   if (qty > 0) {
@@ -2506,6 +2515,10 @@ const PUBLIC_FIELDS = [
   // exempts from handling. The app used to infer it from `form`, which is a
   // standard rather than a fact and was wrong on the first tuo it met.
   'piece_weight_g',
+  // Whether that piece is the ONLY way this tea is sold. Public because it
+  // decides which amounts the shop may offer at all: a sealed box has no 25 g
+  // rung, and a reader who cannot see that picks an amount nobody can send.
+  'sold_in_whole_units',
   // The plant. Public because it is a pointer into the open wisdom base rather
   // than a fact about the business: the shop stores the cultivar's written name
   // and the base resolves it to a page. No cost, supply or margin travels with
@@ -2696,7 +2709,7 @@ const handleCreateProduct: Handler = async (request, env) => {
   }
   if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
   // Convert booleans to integers for SQLite
-  for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit', 'shown_in_shop']) {
+  for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit', 'shown_in_shop', 'sold_in_whole_units']) {
     if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
   }
 
@@ -2883,7 +2896,7 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
     if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
     if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
-    for (const boolKey of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit', 'shown_in_shop']) {
+    for (const boolKey of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit', 'shown_in_shop', 'sold_in_whole_units']) {
       if (body[boolKey] !== undefined) body[boolKey] = body[boolKey] ? 1 : 0;
     }
     // Stock spine step 1: stamp the creating user as owner unless specified.
@@ -2945,7 +2958,7 @@ const PRODUCT_CATALOG_UPDATE_COLUMNS = new Set([
   'material', 'capacity_ml', 'teaware_category', 'description', 'notes', 'tags', 'moods',
   'tasting_notes', 'brewing_notes', 'tasting', 'tasting_source', 'lore', 'processing_notes',
   'terroir', 'mood', 'experience', 'image_url', 'additional_images', 'bag_photo_url', 'quantity_units',
-  'piece_weight_g',
+  'piece_weight_g', 'sold_in_whole_units',
   'tea_key', 'source_compass_entry_id',
 ]);
 
@@ -3054,7 +3067,7 @@ async function applyProductUpdate(
     body.tasting_source = body.tasting && Object.keys(body.tasting).length > 0 ? 'owner' : null;
   }
   if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
-  for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit', 'shown_in_shop']) {
+  for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit', 'shown_in_shop', 'sold_in_whole_units']) {
     if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
   }
 
@@ -26752,6 +26765,19 @@ function resolveAllowedOrigin(origin: string): string | null {
 // ── Live exchange-rate sync (scheduled) ──
 // Map a live FX feed's ISO codes to the account's exchange_rates currency
 // display keys. The table uses 'Yuan' (CNY) and 'NT' (TWD) instead of ISO.
+/**
+ * What the feed calls a currency, against what this shop calls it.
+ *
+ * Every currency a tea can be COSTED in has to appear here, because a rate
+ * that never refreshes is a rate that quietly goes stale, and a stale rate
+ * renders exactly like a current one. HKD was missing, so the twenty-seven
+ * lots bought in Hong Kong dollars were priced off whatever the table was
+ * seeded with, for as long as nobody checked.
+ *
+ * Pinned by `worker/tests/exchange-rate-feed.test.ts` against the Currency
+ * union the app allows, so adding a currency to the shop and forgetting it
+ * here fails rather than passes.
+ */
 const FX_FEED_CURRENCY_MAP: Record<string, string> = {
   CNY: 'Yuan',
   TWD: 'NT',
@@ -26759,6 +26785,7 @@ const FX_FEED_CURRENCY_MAP: Record<string, string> = {
   MYR: 'MYR',
   JPY: 'JPY',
   AUD: 'AUD',
+  HKD: 'HKD',
   USD: 'USD',
 };
 

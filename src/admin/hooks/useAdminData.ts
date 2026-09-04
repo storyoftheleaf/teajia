@@ -35,6 +35,7 @@ export const useProducts = (options?: { enabled?: boolean }) => {
         type: p.type,
         form: p.form || undefined,
         pieceWeightG: p.piece_weight_g == null ? undefined : Number(p.piece_weight_g),
+        soldInWholeUnits: !!p.sold_in_whole_units,
         givenName: p.given_name || '',
         chineseName: p.chinese_name || '',
         productName: p.product_name,

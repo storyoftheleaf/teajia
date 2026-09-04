@@ -180,6 +180,7 @@ export const productToInventoryItem = (product: Product): InventoryItem => {
     type: product.type,
     form: product.form,
     pieceWeightG: product.pieceWeightG,
+    soldInWholeUnits: product.soldInWholeUnits,
     name: product.givenName,
     variant: product.productName,
     year: product.year ? String(product.year) : '',

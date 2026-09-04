@@ -7,6 +7,7 @@ import { getThemeTextColor } from '../../themeUtils';
 import { TYPE_OPTIONS } from './config';
 import type { ColDef } from './types';
 import { stripMatchingYear } from './helpers';
+import { shippingRateUsdFor } from '../../../lib/shippingRate';
 
 export interface InventoryRowProps {
   product: Product;
@@ -23,6 +24,13 @@ export interface InventoryRowProps {
   alignLeft?: boolean;
   /** Restores the exact pre-horizontal-swipe mobile row typography/content. */
   legacyMobileLayout?: boolean;
+  /**
+   * Units of a tea's cost currency per USD, so the freight column can show
+   * the rate in dollars the way its label promises. Optional, and 1 when
+   * absent, which is right for a USD tea and is the only case a caller
+   * without an exchange table can honestly render.
+   */
+  costRateToUsd?: (product: Product) => number;
   rowHeight: number;
   isPanelOpen: boolean;
   isDropdownOpen: boolean;
@@ -49,7 +57,7 @@ export interface InventoryRowProps {
 function InventoryRowBase(props: InventoryRowProps) {
   const {
     product, globalIdx, isSelected, focusedCol, isEditMode, visibleCols, splitViewCols,
-    splitView, stickyFirstCol, alignLeft, legacyMobileLayout, rowHeight, isPanelOpen, isDropdownOpen,
+    splitView, stickyFirstCol, alignLeft, legacyMobileLayout, costRateToUsd, rowHeight, isPanelOpen, isDropdownOpen,
     onRowClick, onLongPressSelect, onLongPressQuickEdit, onProductUpdate, onSelectionAwareUpdate,
     onOpenPanel, onToggleDropdown, onStockHistory, onStockMovement, onRestock, onDeleteRequest, showToast, onOpenSource,
   } = props;
@@ -249,6 +257,18 @@ function InventoryRowBase(props: InventoryRowProps) {
           <span>{product.costPerGramUSD > 0 ? fmtNum(product.costPerGramUSD) : '—'}</span>
         </td>
       );
+      /* Freight, shown in USD per kilo like the label says. A tea with
+         nothing recorded shows the shop default rather than a dash, because
+         the default is what it is actually being charged; the dash would say
+         "free", which is the reading that cost real money. */
+      case 'shippingRatePerKg': {
+        const shipUsd = shippingRateUsdFor(product.shippingRatePerKg, costRateToUsd?.(product) ?? 1);
+        return (
+          <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${numTone}`}>
+            <span>{product.type === 'Teaware' ? '—' : fmtNum(shipUsd)}</span>
+          </td>
+        );
+      }
       case 'pricePerGramUSD': {
         const sellingPrice = product.fixedRetailPriceUSD ?? product.pricePerGramUSD;
         // Price-override marker: a soft bronze, not the brightest tone, the
@@ -402,6 +422,7 @@ export const InventoryRow = React.memo(InventoryRowBase, (prev, next) =>
   prev.stickyFirstCol === next.stickyFirstCol &&
   prev.legacyMobileLayout === next.legacyMobileLayout &&
   prev.alignLeft === next.alignLeft &&
+  prev.costRateToUsd === next.costRateToUsd &&
   prev.rowHeight === next.rowHeight &&
   prev.isPanelOpen === next.isPanelOpen &&
   prev.isDropdownOpen === next.isDropdownOpen

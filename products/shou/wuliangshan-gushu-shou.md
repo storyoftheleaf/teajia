@@ -5,7 +5,7 @@ type: Shou
 form: Cake
 year: 2019
 origin: "Wuliang Mountain, Jingdong County, Pu'er City, Yunnan, China"
-grams: 357
+grams: 2499
 stock: 100
 stock_known_at: null
 cost: "1260 Yuan"

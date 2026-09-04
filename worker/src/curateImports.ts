@@ -1,4 +1,5 @@
 import { compassValuesFromImport } from './compassCodec';
+import { DEFAULT_SHIPPING_RATE_PER_KG_USD } from './shippingRate';
 import { validateCurateContextPair } from './curateContextValidation';
 import { applyImportRecordHints, buildImportAnalysisPrompt, buildImportRecordFallbackProposal, buildImportRecordHints, decodeImportAnalysisProposal, IMPORT_ANALYSIS_OUTPUT_SCHEMA, inferSilentFills, normalizeImportProposal, renormalizeImportItemData, type ImportAnalysisProposal, type ImportMatchCandidates } from './curateImportAnalysis';
 import { canonicalImportToCompassValues, canonicalImportToProductValues, normalizeCanonicalImportRecord } from './curateImportCanonical';
@@ -1182,8 +1183,14 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
           const validVendor = typeof row.resolved_vendor_customer_id === 'string' && Array.isArray(tags) && tags.includes('vendor');
           return { id: String(row.id), vendorId: validVendor ? String(row.resolved_vendor_customer_id) : null, vendorName: typeof row.vendor_name === 'string' ? row.vendor_name : null, position: Number(row.position) };
         });
-        const rawRate = Number(batch.shipping_rate_per_kg ?? 0);
-        const shippingRatePerKg = rawRate > 0 ? rawRate : 10.0;
+        /* Same rule as a product's own rate: nothing recorded means nobody
+           said, and the shop default applies; a number was said, and is
+           obeyed. See worker/src/shippingRate.ts. */
+        const recorded = batch.shipping_rate_per_kg;
+        const rawRate = recorded == null ? null : Number(recorded);
+        const shippingRatePerKg = rawRate != null && Number.isFinite(rawRate)
+          ? rawRate
+          : DEFAULT_SHIPPING_RATE_PER_KG_USD;
         return {
           batch: { id: batchId, accountId: ctx.accountId, journeyId, journeyName: journey ? [journey.name, journey.season, journey.year].filter(value => value != null && value !== '').join(' · ') : null, reviewState: String(batch.review_state), shippingRatePerKg },
           groups, items: itemRows.results.map(parsedFinalizeItem),
@@ -1376,9 +1383,12 @@ export async function createCurateImport(request: Request, env: ImportEnv, ctx: 
       : response({ error: 'idempotency_key already used for a different import' }, 409);
     const batchId = crypto.randomUUID();
     const statements: D1PreparedStatement[] = [env.DB.prepare(
-      `INSERT INTO curate_import_batches (id, account_id, created_by_user_id, title, review_state, journey_id, visit_id, client_idempotency_key, request_fingerprint)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(batchId, ctx.accountId, ctx.userId, title, 'pending', journeyId, visitId, idempotencyKey, fingerprint)];
+      /* The rate is written in rather than left to the column default, which
+         SQLite fixed at 10 when the table was made and cannot be altered in
+         place. One constant decides it for every door into the shop. */
+      `INSERT INTO curate_import_batches (id, account_id, created_by_user_id, title, review_state, journey_id, visit_id, client_idempotency_key, request_fingerprint, shipping_rate_per_kg)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(batchId, ctx.accountId, ctx.userId, title, 'pending', journeyId, visitId, idempotencyKey, fingerprint, DEFAULT_SHIPPING_RATE_PER_KG_USD)];
     let initialSourceId: string | null = null;
     if (pastedText != null) {
       initialSourceId = crypto.randomUUID();

@@ -62,6 +62,16 @@ Read `docs/COLOR_RULES.md` before writing any component styles.
 - **Tap targets**: any interactive icon/button under 44×44 must add the `tap-target` class (defined in `card-utilities.css`). It enforces the WCAG 2.5.5 floor without resizing the visible element — it adds invisible padding around the click area.
 - Run `npm run lint:colors` before every commit. No exceptions.
 
+## Freight is charged on every tea, at one rate, from one file
+**12 USD/kg, and it is inside the ×3.** Freight is money out, so it belongs in the cost basis the markup multiplies; recovering it at 1× while the rest of the shelf runs at 3× is selling your own postage at cost. `DEFAULT_SHIPPING_RATE_PER_KG_USD` in [worker/src/shippingRate.ts](worker/src/shippingRate.ts) is the only place the number lives, and `shippingPerGramUsd()` beside it is the only place the arithmetic lives.
+
+- **NULL means nobody entered a rate, and the default applies. A number means Adrian entered it, and it is obeyed — zero included.** Those are two different states and the schema must keep them apart: never write `?? 0` for a missing rate, and never read a missing rate as free freight. Migration `0007` NULLed the legacy zeros that had been doing both jobs.
+- **The per-product column is written in the tea's OWN cost currency**, because a rate entered beside a CNY invoice is a CNY rate. The default is USD. They are converted separately, never added and divided together.
+- **Teaware is the one true zero.** It prices per piece with freight already inside that price.
+- **It is entered and shown, never applied invisibly.** The rate is a column in the inventory list (`Ship $/kg`) and a field in the product edit panel, both in USD the way Adrian quotes it, both converting to the tea's cost currency on save. A tea with nothing recorded displays the shop default rather than a blank or a dash, because the default is what it is actually being charged and a dash reads as free. Migration `0008` wrote the default onto every tea that had none, which changed no price and made the charge visible.
+- This went wrong once and cost real money: products defaulted to 0, the intake batch to 10, the Add Product form filled in 13, the agent tool documented 10. Four answers, so the same tea landed at a different cost depending on which door it came through, and every hand-entered product sold with no freight in it at all. A missing cost looks exactly like a cheap tea, which is why nobody saw it.
+- Enforced by [worker/tests/shipping-rate.test.ts](worker/tests/shipping-rate.test.ts) (`npm run test:worker`). It pins the arithmetic AND scans the source: a second hardcoded default anywhere in the worker fails it, as does the Add Product form drifting from the constant, or the MCP tool description naming a different number. If you need to change the rate, change the constant — the test tells you everywhere else that has to follow.
+
 ## InventoryView height chain — DO NOT BREAK
 The inventory page (`src/admin/components/InventoryView.tsx`) scrolls via an internal `flex-1 overflow-auto` container, NOT via the document. That container only works if every ancestor passes a definite height down. The chain is:
 

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import type { InventoryItem } from '../../../types';
 import { Heart, Pencil, FlaskConical, Share } from 'lucide-react';
 import { fmtShopPrice, fmtShopPricePerGram } from '../../../utils/formatNumber';
-import { offeredSizes, quoteGrams, wholePieceOf } from '../../../lib/teaPricing';
+import { offeredSizes, quoteGrams, sellUnitOf, wholePieceOf } from '../../../lib/teaPricing';
 import { useAppStore } from '../../../lib/store';
 import { ShopCurrencyPicker } from '../ShopCurrencyPicker';
 
@@ -170,8 +170,29 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
   variant = 'pinned',
 }) => {
   const isTea = item.category === 'tea';
+  /* "One box", "two boxes". Sealed tea is counted, not weighed, so the strip
+     says how many of the thing rather than how many grams, and the gram figure
+     moves to the caption where it belongs. */
+  const pluralUnit = (label: string) => {
+    const word = label.toLowerCase();
+    return /(s|x|z|ch|sh)$/.test(word) ? `${word}es` : `${word}s`;
+  };
+  const unitLabel = (count: number, label: string) => {
+    const spelled = ['', 'One', 'Two', 'Three', 'Four'][count] || String(count);
+    return `${spelled} ${count === 1 ? label.toLowerCase() : pluralUnit(label)}`;
+  };
   const isRail = variant === 'rail';
   const isDocked = variant === 'docked';
+  /* A whole cake / brick / tuo earns a cell of its own, but only when the tea
+     itself says how heavy one is and one is worth buying whole. A 5 g tuo is
+     how the tea is packed, not an amount: nobody orders one, they order 25 g
+     and receive five.
+
+     A sealed unit is the same fact from the other side: one indivisible thing
+     the shop sends as it is. It takes that cell too, and it also replaces the
+     ladder, because for such a tea the units ARE the sizes. */
+  const sellUnit = isTea ? sellUnitOf(item.form, item.pieceWeightG, item.soldInWholeUnits) : undefined;
+  const wholePiece = sellUnit ?? (isTea ? wholePieceOf(item.form, item.pieceWeightG) : undefined);
   /* The rate beside the total is the rate you are ACTUALLY paying, not the
      shelf rate. With handling folded into the curve those two diverge: 50 g of
      a $0.15/g tea comes to $9.50, which is $0.19 a gram, and a button reading
@@ -181,7 +202,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
      admin override still wins. */
   const effectivePerGram =
     isTea && pricePerGram > 0 && grams > 0
-      ? quoteGrams(pricePerGram, grams, { wholePieceGrams: wholePieceOf(item.form, item.pieceWeightG)?.grams }).perGramUsd
+      ? quoteGrams(pricePerGram, grams, { wholePieceGrams: wholePiece?.grams }).perGramUsd
       : pricePerGram;
   const completeRateLabel = rateLabel ?? (perGramDisplay
     ? isTea
@@ -212,15 +233,9 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
       ? formatPlainTotal(quoteGrams(pricePerGram, g, { wholePieceGrams: wholePiece?.grams }).totalUsd)
       : priceFor(g);
 
-  /* A whole cake / brick / tuo earns a cell of its own, but only when the tea
-     itself says how heavy one is and one is worth buying whole. A 5 g tuo is
-     how the tea is packed, not an amount: nobody orders one, they order 25 g
-     and receive five. */
-  const wholePiece = isTea ? wholePieceOf(item.form, item.pieceWeightG) : undefined;
-
   // Which sizes this tea shows, and what each costs, both from one place.
   const sizeQuotes = isTea
-    ? offeredSizes(pricePerGram, sliderMax, { wholePieceGrams: wholePiece?.grams })
+    ? offeredSizes(pricePerGram, sliderMax, { wholePieceGrams: wholePiece?.grams, unitGrams: sellUnit?.grams })
     : [];
   const stripGrams = sizeQuotes.map(q => q.grams);
   const customActive = customMode || (isTea && !stripGrams.includes(grams));
@@ -240,15 +255,25 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
 
   const teaCells: SegCell[] = [
     ...sizeQuotes.map(q => {
-      const isWhole = q.whole && wholePiece != null;
+      /* The piece's OWN cell, not merely an amount that carries no handling.
+         Two cakes are whole too now, and they are not "the cake": they would
+         take its key and its name, and React would be handed the same key
+         twice down one strip. */
+      const isWhole = wholePiece != null && q.grams === wholePiece.grams;
+      // How many sealed units this rung is, for the teas that come that way.
+      const units = sellUnit ? Math.round(q.grams / sellUnit.grams) : 0;
       return {
         key: isWhole ? 'whole-piece' : String(q.grams),
-        label: isWhole ? `The ${wholePiece!.label.toLowerCase()}` : `${q.grams}g`,
+        label: sellUnit
+          ? unitLabel(units, sellUnit.label)
+          : isWhole ? `The ${wholePiece!.label.toLowerCase()}` : `${q.grams}g`,
         sub: plainPriceFor(q.grams),
         subFull: priceFor(q.grams),
-        caption: isWhole
-          ? `${q.grams}g, unbroken, keeps ageing`
-          : SIZE_CAPTION[q.grams],
+        caption: sellUnit
+          ? `${q.grams}g, sealed${units === 1 ? ', the smallest amount there is' : ''}`
+          : isWhole
+            ? `${q.grams}g, unbroken, keeps ageing`
+            : SIZE_CAPTION[q.grams],
         perGram: formatPerGram ? formatPerGram(q.perGramUsd) : undefined,
         rate: formatRate ? formatRate(q.perGramUsd) : undefined,
         chooseGrams: q.grams,
@@ -264,9 +289,11 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
       label: customActive ? `${grams}g` : 'Other amount',
       sub: customActive ? plainPriceFor(grams) : '',
       subFull: customActive ? priceFor(grams) : '',
-      caption: 'any weight, priced on the same curve',
+      caption: sellUnit
+        ? `more than four, in whole ${pluralUnit(sellUnit.label)}`
+        : 'any weight, priced on the same curve',
       active: customActive,
-      ariaLabel: 'Custom amount, including sample sizes',
+      ariaLabel: sellUnit ? 'A larger number of units' : 'Custom amount, including sample sizes',
       onSelect: () => setCustomMode(true),
     },
   ];
@@ -450,8 +477,15 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
               <div className="flex items-center justify-between gap-2 px-3.5 pb-2 pt-3">
                 {/* Wraps rather than truncates. Cut off at "a lower pri..."
                     the sentence loses the only word that says what happens. */}
+                {/* True for loose leaf all the way up. For a tea that comes
+                    as a piece the rate stops falling at one of them, because
+                    nothing is opened to send it, so the sentence says where
+                    the bottom is rather than promising a discount that no
+                    longer arrives. */}
                 <span className="min-w-0 font-sans text-ui-10 leading-[1.35] tracking-[0.02em] text-tea-text-dim">
-                  Quantity provides a lower price.
+                  {wholePiece
+                    ? `Quantity provides a lower price, down to one ${wholePiece.label.toLowerCase()}.`
+                    : 'Quantity provides a lower price.'}
                 </span>
                 {formatPlainTotal && <ShopCurrencyPicker />}
               </div>
@@ -660,7 +694,10 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
             >
               {favorited ? 'Saved' : 'Save it'}
             </button>
-            {isTea && (
+            {/* No sample of a sealed tea. A sample is a few grams off a larger
+                amount, and there is no larger amount to take it off: the shop
+                would have to open the box it just said it cannot open. */}
+            {isTea && !sellUnit && (
               <button
                 type="button"
                 onClick={toggleSampleCart}
@@ -695,7 +732,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
               strokeWidth={1.6}
             />
           </button>
-          {isAdmin && isTea && (
+          {isAdmin && isTea && !sellUnit && (
             <>
               {DIVIDER}
               <button

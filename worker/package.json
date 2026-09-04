@@ -9,6 +9,7 @@
     "sandbox:refresh": "node sandbox/refresh.mjs",
     "sandbox:seed": "node sandbox/seed-operator.mjs",
     "deploy": "wrangler deploy",
+    "ship": "wrangler d1 migrations apply teajia-db --remote && wrangler deploy",
     "db:init": "wrangler d1 execute teajia-db --remote --file=./schema.sql",
     "db:seed": "wrangler d1 execute teajia-db --remote --file=./seed.sql"
   },

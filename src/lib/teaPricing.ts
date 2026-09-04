@@ -52,6 +52,14 @@ export const TEA_PRICING: TeaPricingConfig = {
   minTotalUsd: 5,
 };
 
+/**
+ * How many whole units a unit-sold tea offers before the reader is left to
+ * type a number. Four covers one to four boxes, which is the range anybody
+ * picks off a strip; beyond that they are buying by the case and should say
+ * how many.
+ */
+const UNIT_RUNGS = 4;
+
 export interface Quote {
   grams: number;
   /** Total in the record currency, before any display rounding. */
@@ -65,9 +73,20 @@ export interface Quote {
 /**
  * Price one amount of one tea.
  *
- * `wholePieceGrams` is the weight of an unbroken cake, brick or tuo when the
- * tea is sold as one. Asking for exactly that weight is asking for the piece
- * itself, so it ships as it is and carries no handling.
+ * `wholePieceGrams` is the weight of one whole thing: an unbroken cake, brick
+ * or tuo, or a sealed box. It is where the discount curve STOPS.
+ *
+ * The curve exists to spread one fixed handling amount across however many
+ * grams are in the order, so the rate eases as the amount grows. That reasoning
+ * runs out at the whole piece. Nothing is weighed, opened or repacked to send
+ * one cake, so one cake is the cheapest a gram of that tea can be, and two
+ * cakes is two of those: the same rate, twice. Letting the curve keep falling
+ * past the piece was discounting the shop for work it never does, which is how
+ * the 100 g box came to cost more per gram than two of itself.
+ *
+ * So: whole pieces carry no handling, at any number of them. A remainder on top
+ * of them is a weighed amount and carries the handling, once. Below one piece,
+ * and for loose leaf that has no piece at all, the curve is unchanged.
  */
 export function quoteGrams(
   pricePerGramUsd: number,
@@ -75,7 +94,12 @@ export function quoteGrams(
   opts: { wholePieceGrams?: number; config?: TeaPricingConfig } = {},
 ): Quote {
   const cfg = opts.config ?? TEA_PRICING;
-  const whole = opts.wholePieceGrams != null && grams === opts.wholePieceGrams;
+  const piece = opts.wholePieceGrams;
+  const pieces = piece != null && piece > 0 ? Math.floor(grams / piece) : 0;
+  const remainder = pieces > 0 ? grams - pieces * piece! : grams;
+  // Whole means nothing had to be opened for this order, which is what the
+  // handling amount pays for. One piece, or four, or none plus a remainder.
+  const whole = pieces > 0 && remainder === 0;
   const totalUsd = pricePerGramUsd * grams + (whole ? 0 : cfg.handlingUsd);
   return {
     grams,
@@ -83,6 +107,31 @@ export function quoteGrams(
     perGramUsd: grams > 0 ? totalUsd / grams : pricePerGramUsd,
     whole,
   };
+}
+
+/**
+ * The smallest amount of this tea anyone can order.
+ *
+ * One unit when it is sold in units; otherwise the smallest rung the shop
+ * offers, which is what every weight control on the site already assumed.
+ */
+export function minimumOrderGrams(unitGrams?: number, config: TeaPricingConfig = TEA_PRICING): number {
+  return unitGrams && unitGrams > 0 ? unitGrams : Math.min(...config.sizesG);
+}
+
+/**
+ * Round an amount to something the shop can actually send.
+ *
+ * Rounds UP to the next whole unit, never down: rounding down would quietly
+ * hand back less tea than was asked for. Never above what is in stock, and
+ * never below one unit.
+ */
+export function snapToUnit(grams: number, unitGrams: number, stockG: number): number {
+  if (!unitGrams || unitGrams <= 0) return grams;
+  const units = Math.max(1, Math.ceil(grams / unitGrams));
+  const wanted = units * unitGrams;
+  const affordableUnits = Math.max(1, Math.floor(stockG / unitGrams));
+  return Math.min(wanted, affordableUnits * unitGrams);
 }
 
 /**
@@ -95,9 +144,23 @@ export function quoteGrams(
 export function offeredSizes(
   pricePerGramUsd: number,
   stockG: number,
-  opts: { wholePieceGrams?: number; config?: TeaPricingConfig } = {},
+  opts: { wholePieceGrams?: number; unitGrams?: number; config?: TeaPricingConfig } = {},
 ): Quote[] {
   const cfg = opts.config ?? TEA_PRICING;
+
+  // A tea sold in whole units has no ladder of its own: the rungs ARE the
+  // units, because half a sealed box is not a thing the shop can send. The
+  // minimum-total rule is skipped here on purpose. One box is the smallest
+  // order that exists, so dropping it for being cheap would leave the tea
+  // listed with nothing to buy.
+  if (opts.unitGrams && opts.unitGrams > 0) {
+    const unit = opts.unitGrams;
+    const affordable = Math.floor(stockG / unit);
+    const rungs = Math.min(affordable, UNIT_RUNGS);
+    return Array.from({ length: Math.max(0, rungs) }, (_, i) =>
+      quoteGrams(pricePerGramUsd, unit * (i + 1), opts));
+  }
+
   const quotes = cfg.sizesG
     .filter(g => g <= stockG)
     .map(g => quoteGrams(pricePerGramUsd, g, opts))
@@ -151,4 +214,36 @@ export function wholePieceOf(
   const smallestOffered = Math.min(...config.sizesG);
   if (pieceWeightG < smallestOffered) return undefined;
   return { label, grams: pieceWeightG };
+}
+
+/**
+ * A tea that leaves the shop only as whole units, and what one unit weighs.
+ *
+ * Most tea is weighed out: any amount is a real amount, and the ladder below
+ * offers the sizes worth offering. Some tea is not. The 1993 Y562 is a sealed
+ * 100 g box and the shop has no way to open one, so 25 g of it was an amount
+ * that could be chosen, priced and ordered, and then could not be sent. That
+ * is a worse failure than a wrong price: the reader is told they can have
+ * something they cannot.
+ *
+ * `soldInWholeUnits` is the operator saying so, and `pieceWeightG` is what one
+ * unit weighs, the same column the pressed forms already use, because a box
+ * and a cake are the same fact from the shop's side: one indivisible thing.
+ * Without a weight there is no unit, which is the honest state rather than a
+ * guess.
+ */
+export const WHOLE_UNIT_LABEL: Record<string, string> = {
+  ...PRESSED_FORM_LABEL,
+  Box: 'Box',
+  Bag: 'Bag',
+  Basket: 'Basket',
+};
+
+export function sellUnitOf(
+  form: string | undefined,
+  pieceWeightG: number | undefined,
+  soldInWholeUnits: boolean | undefined,
+): { label: string; grams: number } | undefined {
+  if (!soldInWholeUnits || !pieceWeightG || pieceWeightG <= 0) return undefined;
+  return { label: (form && WHOLE_UNIT_LABEL[form]) || 'Unit', grams: pieceWeightG };
 }

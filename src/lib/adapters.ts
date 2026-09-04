@@ -13,6 +13,7 @@ export function publicProductToInventoryItem(p: PublicProduct): InventoryItem {
     type: p.type,
     form: p.form,
     pieceWeightG: p.pieceWeightG,
+    soldInWholeUnits: p.soldInWholeUnits,
     name: p.givenName || p.productName,
     year: p.year ? String(p.year) : '',
     origin: [p.originRegion, p.originCountry].filter(Boolean).join(', '),

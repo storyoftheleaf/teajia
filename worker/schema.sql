@@ -108,7 +108,7 @@ CREATE TABLE IF NOT EXISTS products (
     stock_movement_guard TEXT,
     cost_amount REAL DEFAULT 0,
     cost_currency TEXT DEFAULT 'USD',
-    shipping_rate_per_kg REAL DEFAULT 0,
+    shipping_rate_per_kg REAL DEFAULT NULL, -- NULL = unentered, takes the shop default; 0 = Adrian said free
     quantity_purchased INTEGER,
     session_reserve_grams INTEGER,
     low_stock_threshold INTEGER DEFAULT 100,
@@ -582,7 +582,7 @@ CREATE TABLE IF NOT EXISTS product_listings (
   vendor_id TEXT,
   cost_amount REAL DEFAULT 0,
   cost_currency TEXT DEFAULT 'USD',
-  shipping_rate_per_kg REAL DEFAULT 0,
+  shipping_rate_per_kg REAL DEFAULT NULL, -- NULL = unentered, takes the shop default; 0 = Adrian said free
   quantity_purchased INTEGER,
   source_compass_entry_id TEXT,
   stock_verified_at TEXT,
@@ -1045,7 +1045,7 @@ CREATE TABLE IF NOT EXISTS curate_import_batches (
   analysis_attempt_token TEXT,
   finalize_idempotency_key TEXT,
   finalize_result_json TEXT,
-  shipping_rate_per_kg REAL NOT NULL DEFAULT 10.0,
+  shipping_rate_per_kg REAL NOT NULL DEFAULT 12.0, -- the shop default, see worker/src/shippingRate.ts
   completed_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -2482,6 +2482,9 @@ ALTER TABLE products ADD COLUMN catalog_visible INTEGER;
 ALTER TABLE products ADD COLUMN imported_from_product_id TEXT;
 ALTER TABLE products ADD COLUMN imported_via_publication_id TEXT;
 ALTER TABLE products ADD COLUMN piece_weight_g INTEGER;
+-- Whether that piece is the only way the tea is sold. See migration 0006 and
+-- worker/src/shippingRate.ts's neighbour, sellUnitOf, for what it decides.
+ALTER TABLE products ADD COLUMN sold_in_whole_units INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE tea_reviews ADD COLUMN profile_id TEXT;
 ALTER TABLE teaware_collection ADD COLUMN account_id TEXT;
 ALTER TABLE teaware_photos ADD COLUMN account_id TEXT;

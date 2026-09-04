@@ -3,6 +3,7 @@ import type { InventoryItem } from '../../../types';
 import { X, Loader2 } from 'lucide-react';
 import { useFocusTrap } from '../../../hooks/useFocusTrap';
 import { BODY, HEADING, LABEL, LABEL_NUMERAL, NUMERAL } from '../../shared/typeRoles';
+import { minimumOrderGrams, snapToUnit } from '../../../lib/teaPricing';
 
 /**
  * Escape closes, and the browser's own focus does not leak out of an open
@@ -185,6 +186,13 @@ interface CustomAmountModalProps {
   formatTotal?: (grams: number) => string;
   /** The whole pressed piece, when the tea is one, so it reads "Cake" here too. */
   wholePiece?: { label: string; grams: number };
+  /**
+   * What one sealed unit weighs, when the tea is sold only in whole ones.
+   * Set, this is both the floor and the step: the quick amounts become
+   * multiples of it and anything typed rounds up to the next whole unit,
+   * because a shop that cannot open the box cannot send 130 g of it.
+   */
+  unitGrams?: number;
 }
 
 /**
@@ -201,31 +209,48 @@ export const CustomAmountModal: React.FC<CustomAmountModalProps> = ({
   pricePerGram = 0,
   formatTotal,
   wholePiece,
+  unitGrams,
 }) => {
   const dialogRef = useDialog(open, onClose);
   if (!open) return null;
 
+  // Held as a local const so the narrowing survives into the callbacks below.
+  const unit = unitGrams && unitGrams > 0 ? unitGrams : undefined;
+  const floor = minimumOrderGrams(unit);
+
   // Plain weights, then the whole piece under its own name: 357 g of a cake is
-  // a cake, and reads as one.
-  const quickAmounts: { grams: number; label: string; sub?: string }[] = [
-    ...[10, 25, 50, 100, 250]
-      .filter(g => g <= sliderMax)
-      .map(g => ({ grams: g, label: `${g}g` })),
-    ...(wholePiece && wholePiece.grams <= sliderMax
-      ? [{
-          grams: wholePiece.grams,
-          label: wholePiece.label,
-          sub: `${wholePiece.grams}g`,
-        }]
-      : []),
-  ];
+  // a cake, and reads as one. A tea sold sealed skips that ladder entirely and
+  // counts units instead, because none of those weights exist for it.
+  const quickAmounts: { grams: number; label: string; sub?: string }[] = unit
+    ? Array.from({ length: 6 }, (_, i) => (i + 1) * unit)
+        .filter(g => g <= sliderMax)
+        .map(g => ({
+          grams: g,
+          label: `${Math.round(g / unit)} × ${wholePiece?.label.toLowerCase() ?? 'unit'}`,
+          sub: `${g}g`,
+        }))
+    : [
+        ...[10, 25, 50, 100, 250]
+          .filter(g => g <= sliderMax)
+          .map(g => ({ grams: g, label: `${g}g` })),
+        ...(wholePiece && wholePiece.grams <= sliderMax
+          ? [{
+              grams: wholePiece.grams,
+              label: wholePiece.label,
+              sub: `${wholePiece.grams}g`,
+            }]
+          : []),
+      ];
   const entered = parseInt(customInput);
-  const enteredValid = !isNaN(entered) && entered >= 5 && entered <= sliderMax;
+  const enteredValid = !isNaN(entered) && entered >= floor && entered <= sliderMax;
   const priceOf = (g: number) =>
     formatTotal ? formatTotal(g) : `$${Math.ceil(pricePerGram * g)}`;
   const commit = (g: number) => {
-    setCustomInput(String(g));
-    setGrams(Math.min(g, sliderMax));
+    // Round to something the shop can actually send BEFORE it is shown back,
+    // so the reader never reads one number here and another on the button.
+    const sendable = unit ? snapToUnit(g, unit, sliderMax) : Math.min(g, sliderMax);
+    setCustomInput(String(sendable));
+    setGrams(sendable);
     onClose();
   };
 
@@ -267,9 +292,9 @@ export const CustomAmountModal: React.FC<CustomAmountModalProps> = ({
         <div className="mb-2 flex items-center gap-2">
           <input
             type="number"
-            min={5}
+            min={floor}
             max={sliderMax}
-            step={5}
+            step={unit ?? 5}
             value={customInput}
             onChange={e => {
               setCustomInput(e.target.value);
