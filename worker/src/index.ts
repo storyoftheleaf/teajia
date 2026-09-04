@@ -26765,6 +26765,19 @@ function resolveAllowedOrigin(origin: string): string | null {
 // ── Live exchange-rate sync (scheduled) ──
 // Map a live FX feed's ISO codes to the account's exchange_rates currency
 // display keys. The table uses 'Yuan' (CNY) and 'NT' (TWD) instead of ISO.
+/**
+ * What the feed calls a currency, against what this shop calls it.
+ *
+ * Every currency a tea can be COSTED in has to appear here, because a rate
+ * that never refreshes is a rate that quietly goes stale, and a stale rate
+ * renders exactly like a current one. HKD was missing, so the twenty-seven
+ * lots bought in Hong Kong dollars were priced off whatever the table was
+ * seeded with, for as long as nobody checked.
+ *
+ * Pinned by `worker/tests/exchange-rate-feed.test.ts` against the Currency
+ * union the app allows, so adding a currency to the shop and forgetting it
+ * here fails rather than passes.
+ */
 const FX_FEED_CURRENCY_MAP: Record<string, string> = {
   CNY: 'Yuan',
   TWD: 'NT',
@@ -26772,6 +26785,7 @@ const FX_FEED_CURRENCY_MAP: Record<string, string> = {
   MYR: 'MYR',
   JPY: 'JPY',
   AUD: 'AUD',
+  HKD: 'HKD',
   USD: 'USD',
 };
 
