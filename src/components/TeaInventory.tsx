@@ -616,7 +616,20 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                  aria-pressed={shopSavedOnly}
                  aria-label={shopSavedOnly ? 'Showing only liked teas. Show all teas' : 'Show only liked teas'}
                  title={shopSavedOnly ? 'Showing liked teas only' : 'Show liked teas only'}
-                 className={`tap-target ml-auto shrink-0 rounded-md px-1.5 transition-colors sm:ml-1 ${
+                 /* The heart itself lands on the gutter, like the cart in the
+                    bar above it.
+
+                    It cannot be done the cart's way. The cart is a bare glyph,
+                    so pulling its 44px box right moves the glyph and nothing
+                    else; this one carries a visible gold chip when it is on,
+                    and pulling that right would hang the chip past the line
+                    instead. So the chip shrinks to hug the glyph and the tap
+                    area leaves the layout: `after` is an invisible 52px pad
+                    around a 28px control, which keeps the WCAG floor without
+                    the control being 44px wide on screen. The remaining 6px of
+                    chip padding is what the -mr-1.5 spends, so the heart's own
+                    right edge is the line and only the wash overhangs it. */
+                 className={`relative ml-auto -mr-1.5 inline-flex shrink-0 items-center justify-center rounded-md p-1.5 transition-colors after:absolute after:-left-3 after:-right-3 after:-top-3 after:-bottom-3 after:content-[''] sm:ml-1 ${
                    shopSavedOnly
                      ? 'bg-tea-gold/8 text-tea-gold'
                      : 'text-tea-text-sec hover:text-tea-text'
