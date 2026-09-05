@@ -11,6 +11,7 @@ import {
 } from './curateImports';
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
 import { shippingPerGramUsd, resolveShopFreightDefault } from './shippingRate';
+import { FX_FEED_CURRENCY_MAP, refreshedCurrencyName } from './exchangeRateFeed';
 import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 import { deriveConfirmedInvoiceLine, repairCandidate, formatInvoiceNumber, loadUsdRates, amountToUsd } from './invoiceDomain';
@@ -17847,6 +17848,28 @@ const handleUpdateAccount: Handler = async (request, env, params) => {
     const guard = await storeOpeningError(env, params.id, body.public_enabled);
     if (guard) return guard;
   }
+  /* The freight rate is converted to USD on every request, so it is only as
+     live as the exchange row it converts through. A currency the daily refresh
+     does not cover would still price, and would still look right, and would
+     never move again. Refused here rather than accepted and left to drift, and
+     stored under the exchange table's own name so it resolves on read. */
+  if ('default_shipping_rate_currency' in body && body.default_shipping_rate_currency != null) {
+    const name = refreshedCurrencyName(body.default_shipping_rate_currency);
+    if (!name) {
+      return restError(400,
+        `Freight currency must be one the shop keeps current: ${[...new Set(Object.values(FX_FEED_CURRENCY_MAP))].join(', ')}`,
+        'freight_currency_not_refreshed');
+    }
+    body.default_shipping_rate_currency = name;
+  }
+  if ('default_shipping_rate_per_kg' in body && body.default_shipping_rate_per_kg != null) {
+    const n = Number(body.default_shipping_rate_per_kg);
+    if (!Number.isFinite(n) || n < 0) {
+      return restError(400, 'Freight rate must be a non-negative number', 'freight_rate_invalid');
+    }
+    body.default_shipping_rate_per_kg = n;
+  }
+
   const validated = validatedUpdateFields(body, ACCOUNT_UPDATE_FIELDS);
   if ('error' in validated) return validated.error;
   const cols = validated.fields;
@@ -26817,17 +26840,6 @@ function resolveAllowedOrigin(origin: string): string | null {
  * union the app allows, so adding a currency to the shop and forgetting it
  * here fails rather than passes.
  */
-const FX_FEED_CURRENCY_MAP: Record<string, string> = {
-  CNY: 'Yuan',
-  TWD: 'NT',
-  IDR: 'IDR',
-  MYR: 'MYR',
-  JPY: 'JPY',
-  AUD: 'AUD',
-  HKD: 'HKD',
-  USD: 'USD',
-};
-
 // Refresh live rates from a free no-key feed (open.er-api.com), at most once
 // per 24h (gated on the USD row's last_updated). Stale rows are left untouched
 // on offline ticks so pricing never zeroes. Fails gently.

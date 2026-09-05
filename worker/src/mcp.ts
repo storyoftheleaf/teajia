@@ -26,6 +26,7 @@
 // still fire). Nothing in this file touches D1 in a way that bypasses the
 // admin UI's invariants.
 
+import { REFRESHED_CURRENCIES, refreshedCurrencyName } from './exchangeRateFeed';
 import {
   authorizeInvoiceLines,
   buildSettlementReversalStatements,
@@ -5171,6 +5172,17 @@ async function toolUpdateAccountSettings(env: Env, auth: McpAuth, args: any) {
   if (freight !== undefined && freight !== null) {
     const n = Number(freight);
     if (!Number.isFinite(n) || n < 0) throw new Error('default_shipping_rate_per_kg must be a non-negative number');
+  }
+  /* And the currency has to be one the daily refresh covers, or the conversion
+     silently freezes at whatever it was the day it was set. Normalised to the
+     exchange table's own name so the rate resolves on read. */
+  const freightCurrency = requestedFields.default_shipping_rate_currency;
+  if (freightCurrency !== undefined && freightCurrency !== null) {
+    const name = refreshedCurrencyName(freightCurrency);
+    if (!name) {
+      throw new Error(`default_shipping_rate_currency must be one the shop keeps current: ${[...REFRESHED_CURRENCIES].join(', ')}`);
+    }
+    requestedFields.default_shipping_rate_currency = name;
   }
 
   // Only allow editing the auth token's own account (or if platform_owner, any account).

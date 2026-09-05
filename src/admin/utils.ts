@@ -103,16 +103,30 @@ const fetchFromUrl = async (url: string): Promise<ExchangeRate[]> => {
     
     const data = await res.json();
     const r = data.rates || data.conversion_rates;
+    const fetchedAt = new Date().toISOString();
+
+    /* A currency the feed did not return falls back to its seeded figure and is
+       stamped as never refreshed, rather than being handed back wearing this
+       fetch's timestamp. The old `r['CNY'] || 7.2` did the opposite: it
+       returned a two-year-old guess indistinguishable from a live rate, which
+       is exactly how the shop came to price everything through an IDR rate
+       nobody had touched. */
+    const rate = (feedCode: string, shopKey: Currency): ExchangeRate => {
+      const value = Number(r?.[feedCode]);
+      if (Number.isFinite(value) && value > 0) return { currency: shopKey, rateToUSD: value, lastUpdated: fetchedAt };
+      const seeded = INITIAL_RATES.find(s => s.currency === shopKey);
+      return { currency: shopKey, rateToUSD: seeded?.rateToUSD ?? 1, lastUpdated: null };
+    };
 
     return [
-      { currency: 'USD', rateToUSD: 1 },
-      { currency: 'NT', rateToUSD: r['TWD'] || 32.3 },
-      { currency: 'Yuan', rateToUSD: r['CNY'] || 7.2 },
-      { currency: 'IDR', rateToUSD: r['IDR'] || 16210 },
-      { currency: 'JPY', rateToUSD: r['JPY'] || 150.0 },
-      { currency: 'MYR', rateToUSD: r['MYR'] || 4.7 },
-      { currency: 'AUD', rateToUSD: r['AUD'] || 1.55 },
-      { currency: 'HKD', rateToUSD: r['HKD'] || 7.8 },
+      { currency: 'USD', rateToUSD: 1, lastUpdated: fetchedAt },
+      rate('TWD', 'NT'),
+      rate('CNY', 'Yuan'),
+      rate('IDR', 'IDR'),
+      rate('JPY', 'JPY'),
+      rate('MYR', 'MYR'),
+      rate('AUD', 'AUD'),
+      rate('HKD', 'HKD'),
     ];
 };
 

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { FALLBACK_SHIPPING_RATE_CURRENCY } from '../src/shippingRate';
 
 /**
  * Every currency a tea can be bought in gets refreshed, every day.
@@ -22,6 +23,7 @@ import { fileURLToPath } from 'node:url';
 const read = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
 
 const worker = read('../src/index.ts');
+const feed = read('../src/exchangeRateFeed.ts');
 const adminTypes = read('../../src/admin/types.ts');
 
 /** The currencies the app lets an operator record a cost in. */
@@ -36,7 +38,7 @@ function shopCurrencies(): string[] {
 
 /** The shop-side names the feed map can produce. */
 function refreshedCurrencies(): string[] {
-  const block = worker.match(/const FX_FEED_CURRENCY_MAP[^=]*=\s*\{([\s\S]*?)\n\};/);
+  const block = feed.match(/const FX_FEED_CURRENCY_MAP[^=]*=\s*\{([\s\S]*?)\n\};/);
   if (!block) throw new Error('FX_FEED_CURRENCY_MAP moved or was renamed');
   return [...block[1].matchAll(/[A-Z]{3}:\s*'([^']+)'/g)].map(m => m[1]);
 }
@@ -66,6 +68,25 @@ describe('the daily rate refresh', () => {
     const body = fn![0];
     expect(body).toMatch(/if\s*\(!resp\.ok\)\s*return false/);
     expect(body).toMatch(/rateToUsd\s*<=\s*0\)\s*continue/);
+  });
+
+  it('covers the currency the shop quotes its freight in', () => {
+    // The freight rate is a yuan figure converted to USD on every request, so
+    // it is only as live as its exchange row. A freight currency outside the
+    // refresh would still price and would still look right, and would never
+    // move again — the HKD failure, but on the one number that touches the cost
+    // basis of every tea in the shop.
+    expect(refreshedCurrencies()).toContain(FALLBACK_SHIPPING_RATE_CURRENCY);
+  });
+
+  it('refuses a freight currency it does not keep current', () => {
+    // Checked at both doors that can set it, since a value stored through
+    // either one is read by the same pricing path.
+    expect(worker, 'the account update route accepts any freight currency')
+      .toContain('freight_currency_not_refreshed');
+    const mcp = read('../src/mcp.ts');
+    expect(mcp, 'update_account_settings accepts any freight currency')
+      .toContain('refreshedCurrencyName(freightCurrency)');
   });
 
   it('never lets the feed move the dollar off one', () => {

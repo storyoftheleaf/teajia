@@ -106,7 +106,10 @@ export const useRates = () => {
         const data = await api.rates.list();
         dbRates = (data || []).map((r: any) => ({
           currency: r.currency,
-          rateToUSD: Number(r.rate_to_usd)
+          rateToUSD: Number(r.rate_to_usd),
+          // Carried so a surface can say how old the number is. The shop
+          // converts its freight rate through this on every request.
+          lastUpdated: r.last_updated ?? null,
         }));
       } catch {
         // Fall through to live rates

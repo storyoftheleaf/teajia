@@ -96,12 +96,16 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
     if (!freightIsValid) return 'Enter a number, or leave it empty to use the platform default.';
     if (freightNumber === null) return 'Empty means the platform default applies.';
     const currency = account?.default_shipping_rate_currency ?? FALLBACK_SHIPPING_RATE_CURRENCY;
-    const rate = rates.find(r => r.currency === currency)?.rateToUSD;
-    if (!rate || rate <= 0) return `Per kilo, in ${currency}. No live rate for ${currency} yet.`;
-    const perKgUsd = freightNumber / rate;
+    const row = rates.find(r => r.currency === currency);
+    if (!row || !(row.rateToUSD > 0)) {
+      return `Per kilo, in ${currency}. There is no exchange rate for ${currency}, so this cannot be converted `
+        + 'and every tea on it is priced through the fallback instead.';
+    }
+    const perKgUsd = freightNumber / row.rateToUSD;
     const perGramOnShelf = (perKgUsd / 1000) * 3;
-    return `${freightNumber} ${currency}/kg is $${(Math.round(perKgUsd * 100) / 100).toFixed(2)} USD/kg at today's rate, `
-      + `adding $${perGramOnShelf.toFixed(3)} per gram to the shelf price after the markup. `
+    return `${freightNumber} ${currency}/kg is $${(Math.round(perKgUsd * 100) / 100).toFixed(2)} USD/kg `
+      + `at ${row.rateToUSD} to the dollar, adding $${perGramOnShelf.toFixed(3)} per gram to the shelf price `
+      + `after the markup. ${describeRateAge(row.lastUpdated)} `
       + 'Applies to every tea that has not had a rate entered on it.';
   })();
 
@@ -1077,6 +1081,30 @@ const TransferOwnershipSection: React.FC<{
     </div>
   );
 };
+
+/**
+ * Say how old the exchange rate is, in the same breath as the number it produced.
+ *
+ * The freight rate is quoted in yuan and converted on every request, so the
+ * conversion is only as live as this row. A rate nobody has refreshed looks
+ * exactly like a current one, which is how the shop spent months pricing
+ * Indonesia through a figure 8% off the market without anyone noticing. The
+ * worker refreshes these daily on its cron; this line is how you find out when
+ * it has stopped.
+ */
+function describeRateAge(lastUpdated: string | null | undefined): string {
+  if (!lastUpdated) {
+    return 'That rate has never been refreshed from the live feed, so it is a seeded figure, not today\'s.';
+  }
+  const then = new Date(/[Z+]/.test(lastUpdated) ? lastUpdated : `${lastUpdated}Z`).getTime();
+  if (!Number.isFinite(then)) return 'The age of that rate could not be read.';
+  const hours = (Date.now() - then) / 3600000;
+  if (hours < 0) return 'That rate is stamped in the future, which means something is wrong with the refresh.';
+  if (hours < 1) return 'Rate refreshed within the hour.';
+  if (hours < 36) return `Rate refreshed ${Math.round(hours)} hours ago.`;
+  const days = Math.round(hours / 24);
+  return `Rate last refreshed ${days} days ago, so the daily refresh has stopped and this conversion is drifting.`;
+}
 
 // ─── Field helpers ────────────────────────────────────────────────────────────
 

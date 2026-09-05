@@ -213,6 +213,17 @@ export interface InvoiceDisplayItem extends InvoiceItem {
 export interface ExchangeRate {
   currency: Currency;
   rateToUSD: number; // 1 USD = X Currency
+  /**
+   * When this rate was last refreshed, ISO. Null means it was never refreshed:
+   * a seeded figure standing in for a live one.
+   *
+   * Carried because a stale rate looks exactly like a current one, and every
+   * price in the shop is computed through it. The shop's freight rate is
+   * quoted in yuan and converted on every request, so a yuan rate nobody has
+   * updated quietly moves what the shelf charges away from what the freight
+   * actually costs.
+   */
+  lastUpdated?: string | null;
 }
 
 export interface CartItem extends InvoiceDisplayItem {
