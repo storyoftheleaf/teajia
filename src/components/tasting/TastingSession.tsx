@@ -19,6 +19,7 @@ import { NotesPanel } from './NotesPanel';
 import { normalizeNotes, notesAsStrings } from '../../lib/noteEntries';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { useVoiceCapture } from '../../hooks/useVoiceCapture';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { SampleIcon } from '../Icons';
 
 export interface TastingItem {
@@ -125,6 +126,37 @@ function generateDescription(data: TastingData): string {
   return parts.length ? parts.join('. ') + '.' : '';
 }
 
+/**
+ * A comparable fingerprint of a tasting, used only to answer "has anything
+ * actually changed since this panel opened?".
+ *
+ * Key order and empty values are normalised away, because a zone that hands
+ * back `{ flavor: [] }` on mount has changed nothing a person would recognise
+ * as an edit. Without that, opening a tea you have already tasted and closing
+ * it again would ask you to save work you never did, and a prompt that fires
+ * when nothing changed teaches people to dismiss it without reading.
+ */
+function tastingFingerprint(value: unknown): string {
+  const norm = (v: unknown): unknown => {
+    if (v === null || v === undefined) return undefined;
+    if (Array.isArray(v)) {
+      const items = v.map(norm).filter(x => x !== undefined);
+      return items.length ? items : undefined;
+    }
+    if (typeof v === 'object') {
+      const out: Record<string, unknown> = {};
+      for (const key of Object.keys(v as Record<string, unknown>).sort()) {
+        const nv = norm((v as Record<string, unknown>)[key]);
+        if (nv !== undefined) out[key] = nv;
+      }
+      return Object.keys(out).length ? out : undefined;
+    }
+    if (typeof v === 'string' && v.trim() === '') return undefined;
+    return v;
+  };
+  return JSON.stringify(norm(value) ?? null);
+}
+
 export const TastingSession: React.FC<TastingSessionProps> = ({
   item, onClose, onSave, onAfterSave, adminMode = false, initialData, showVerdict = false, onOrderTea, onCreatePO, onWriteDescription, writeDraftReview = false,
   detailsPanel, startOnDetails = false, startOnNotes = false,
@@ -144,7 +176,14 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     return tastingJournal.find(e => e.productId === item.id && !e.archived) ?? null;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- only on mount
 
-  const [tastingData, setTastingData] = useState<TastingData>(initialData ?? existingEntry?.note.tasting ?? {});
+  const openedWith = initialData ?? existingEntry?.note.tasting ?? {};
+  const [tastingData, setTastingData] = useState<TastingData>(openedWith);
+  // The state the panel opened in. Closing compares against this, not against
+  // "is there any data at all", so a tea you have tasted before closes on the
+  // first tap instead of asking about work you did in an earlier session.
+  const baselineRef = useRef<string>(tastingFingerprint(openedWith));
+  const [closePrompt, setClosePrompt] = useState(false);
+  const closePromptRef = useFocusTrap<HTMLDivElement>(closePrompt, { initialFocus: '[data-close-prompt-save]' });
   const [isContinuing, setIsContinuing] = useState(!!existingEntry);
   const [phase, setPhase] = useState<'tasting' | 'saved' | 'details'>(
     detailsPanel && startOnDetails ? 'details' : 'tasting',
@@ -293,22 +332,32 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   const verdictRequired = showVerdict && !adminMode;
   const canSave = hasNotes && (saveState === 'idle' || saveState === 'error') && (!verdictRequired || verdict !== null);
 
+  // Dirty means "different from how it opened", which is the only question the
+  // close button needs answered.
+  const isDirty =
+    phase === 'tasting' &&
+    saveState !== 'saved' &&
+    tastingFingerprint(tastingData) !== baselineRef.current;
+
   const handleCloseRequest = useCallback(() => {
-    const hasUnsavedWork = phase === 'tasting' && hasNotes && saveState !== 'saved';
-    if (hasUnsavedWork && !window.confirm('Discard unsaved tasting changes?')) return;
-    onClose();
-  }, [hasNotes, onClose, phase, saveState]);
+    if (!isDirty) { onClose(); return; }
+    setClosePrompt(true);
+  }, [isDirty, onClose]);
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') handleCloseRequest();
+      if (event.key !== 'Escape') return;
+      // Escape backs out of the prompt first, so it can never be the key that
+      // throws away the work it is asking about.
+      if (closePrompt) { setClosePrompt(false); return; }
+      handleCloseRequest();
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [handleCloseRequest]);
+  }, [handleCloseRequest, closePrompt]);
 
-  const handleSave = useCallback(async () => {
-    if (!canSave) return;
+  const handleSave = useCallback(async (): Promise<boolean> => {
+    if (!canSave) return false;
     setSaveState('saving');
 
     try {
@@ -382,7 +431,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
       }
     } catch {
       setSaveState('error');
-      return;
+      return false;
     }
 
     setSaveState('saved');
@@ -397,7 +446,17 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
       saveTimerRef.current = setTimeout(() => onClose(), 2000);
     }
     // Customer: stays open until user taps Done
+    return true;
   }, [item, tastingData, verdict, wouldBuy, addTasting, onSave, onAfterSave, adminMode, activeAccountId, activeAccount, canSave, onClose, onCreatePO, onWriteDescription, phase]);
+
+  // The prompt's Save is a way OUT, so a successful write closes rather than
+  // landing on the confirmation screen the person was already trying to leave.
+  const handleSaveAndClose = useCallback(async () => {
+    const saved = await handleSave();
+    if (!saved) { setClosePrompt(false); return; }
+    setClosePrompt(false);
+    onClose();
+  }, [handleSave, onClose]);
 
   const updateNoteFields = useCallback((updates: { verdict?: Verdict; wouldBuy?: boolean }) => {
     if (!savedEntryId) return;
@@ -1188,6 +1247,76 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
         )}
       </AnimatePresence>
     </motion.div>
+
+      {/* Leaving with unsaved work. Rendered inside the takeover's own stacking
+          context rather than portalled to the body, so it cannot end up beneath
+          the panel it belongs to. */}
+      <AnimatePresence>
+        {closePrompt && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="absolute inset-0 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+            onClick={() => setClosePrompt(false)}
+          >
+            <motion.div
+              ref={closePromptRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="tasting-close-prompt-title"
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.98 }}
+              transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
+              className="w-full max-w-[360px] rounded-xl border border-tea-border bg-tea-surface p-5 shadow-lg"
+              onClick={e => e.stopPropagation()}
+            >
+              <h2
+                id="tasting-close-prompt-title"
+                className="text-lg text-tea-text"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                Save this tasting?
+              </h2>
+              <p className="mt-2 text-ui-13 leading-relaxed text-tea-text-sec">
+                {canSave
+                  ? 'You have changes that are not saved yet.'
+                  : 'You have changes that are not saved yet, and this tasting still needs a verdict before it can be saved.'}
+              </p>
+
+              <div className="mt-5 flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => setClosePrompt(false)}
+                  className="tap-target min-h-11 px-1 text-ui-13 font-medium text-tea-text-sec transition-colors hover:text-tea-text"
+                >
+                  Cancel
+                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setClosePrompt(false); onClose(); }}
+                    className="tap-target min-h-11 px-3 text-ui-13 font-medium text-tea-text-sec transition-colors hover:text-tea-text"
+                  >
+                    Discard
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveAndClose}
+                    disabled={!canSave}
+                    data-close-prompt-save
+                    className="tap-target min-h-11 rounded-xl cta-solid px-5 text-ui-13 font-semibold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {saveState === 'saving' ? 'Saving\u2026' : 'Save'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>,
     document.body
   );

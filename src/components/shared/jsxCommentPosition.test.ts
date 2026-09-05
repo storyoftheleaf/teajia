@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
  * This shipped. On 2026-09-04 a four-line note about tab gutters was written
  * directly under `<LayoutGroup>` in PageHeaderTabs, where everything is
  * children, and the whole paragraph appeared on the live shop between the
- * title and the tabs — in Cormorant, at reading size, above the first tea.
+ * title and the tabs, in Cormorant, at reading size, above the first tea.
  *
  * Nothing caught it. It is valid JSX, so `tsc` compiles it and the Cloudflare
  * build succeeds. It throws no console error and causes no overflow, so the

@@ -1656,8 +1656,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // Edit button now). Plain click = single-select, replacing any prior selection;
   // clicking the already-single-selected row deselects it. Cmd/Ctrl-click and
   // shift-click ADD to the selection (toggle / range). Long-press on mobile adds
-  // too (stableLongPressSelect). When the panel happens to be open, a plain click
-  // closes it and re-selects, so the row stays information-first.
+  // too (stableLongPressSelect).
+  //
+  // WHILE THE PANEL IS OPEN the row body means something different: it moves the
+  // panel to that tea, the same motion as the panel's own prev/next arrows. The
+  // panel is a lens on one record, so clicking down the list should walk the lens
+  // along; closing it on every click made the list unbrowsable once open, and
+  // there was nothing to gain from it because panel edits write per field as you
+  // leave them rather than waiting on a save.
   const stableRowClick = useCallback((productId: string, globalIdx: number, e: React.MouseEvent) => {
     if (isEditModeRef.current) return;
     if (e.metaKey || e.ctrlKey) {
@@ -1669,8 +1675,22 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       toggleSelectId(productId, globalIdx, true);
       return;
     }
-    // Plain click, single-select replace. Close the panel if it was open.
-    if (panelProductRef.current) setPanelProduct(null);
+    const openPanelId = panelProductRef.current?.id ?? null;
+    if (openPanelId) {
+      // Clicking the tea already in the panel is a no-op: the way out is the
+      // panel's own close, not a second tap on the row that is being shown.
+      if (openPanelId === productId) return;
+      const next = processedProductsRef.current.find(product => product.id === productId);
+      if (next) {
+        setPanelProduct(next);
+        setSelectedIds(new Set([productId]));
+        lastSelectedIdxRef.current = globalIdx;
+        return;
+      }
+      // A row we cannot resolve to a record: fall through to the old behavior
+      // rather than leaving the panel showing a tea that is no longer listed.
+      setPanelProduct(null);
+    }
     const isOnlySelected = selectedIdsRef.current.size === 1 && selectedIdsRef.current.has(productId);
     if (isOnlySelected) {
       setSelectedIds(new Set());
