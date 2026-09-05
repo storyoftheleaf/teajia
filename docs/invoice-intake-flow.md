@@ -90,7 +90,8 @@ single judgment call, not a long quiz.
 - **Which country / where** you purchased it.
 - The **shipping method / how you brought it in** — because this matters for the
   **shipping rate**: if it came by sea (boat) vs air, the landed-cost shipping may need
-  adjusting, not the default. Shipping is folded into cost (R7 default = 10 USD/kg).
+  adjusting, not the default. Shipping is folded into cost (the shop default is
+  `DEFAULT_SHIPPING_RATE_PER_KG_USD` in `worker/src/shippingRate.ts`, 12 USD/kg).
 - Anything you know about the tea (region/mountain, age, character, what you were told).
 
 **Hard rule — partial knowledge is fine:**

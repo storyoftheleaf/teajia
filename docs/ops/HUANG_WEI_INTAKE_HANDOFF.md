@@ -19,6 +19,15 @@ Total 2300 CNY. Retail per gram (live rate ~6.74, ×3): Liu Bao $0.34, Ripe $0.3
 N. Vietnam $0.25. Shipping 10/kg folded into cost. Stock needs-verification
 (`stock_verified_at` NULL per receipt-intake rule).
 
+> **Stale freight rate (2026-09-05).** These three went in at the old intake
+> default of 10 USD/kg. The shop rate is now 12 USD/kg, from
+> `DEFAULT_SHIPPING_RATE_PER_KG_USD` in `worker/src/shippingRate.ts`. Migration
+> `0008` only filled rows that had *no* rate, so an entered 10 was left
+> standing and these teas still price 2 USD/kg of freight light — about 0.6 US
+> cents per gram off the shelf price once the ×3 is applied. Correct them in
+> the inventory's `Ship $/kg` column, or leave them if 10 is what the freight
+> on that shipment actually cost.
+
 ## Intake record
 - Draft `150bfe7b-6686-47fc-9433-76759f08b132` finalized (review_state
   `completed`, 2026-08-31 06:02 UTC). All items `inventoryPurpose=working`,

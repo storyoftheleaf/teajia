@@ -128,6 +128,31 @@ describe('nothing else in the shop decides the rate', () => {
     expect(offences, 'an admin surface pinned its own freight rate; read the constant instead').toEqual([]);
   });
 
+  it('leaves no instruction naming a different rate', () => {
+    // The four answers were not all in code. The intake flow doc told an
+    // operator the default was 10 while the shop charged something else, and a
+    // doc is a door too: it is what the next session reads before it writes.
+    // Records of what was done in the past are exempt, since correcting a
+    // record is falsifying it; these are the files that instruct.
+    const docs: Array<[string, string]> = [
+      ['invoice-intake-flow.md', read('../../docs/invoice-intake-flow.md')],
+      ['build-plan.md', read('../../docs/build-plan.md')],
+      ['CLAUDE.md', read('../../CLAUDE.md')],
+    ];
+    const rate = /\$?(\d+(?:\.\d+)?)\s*(?:USD\s*)?\/\s*kg/gi;
+    const offences: string[] = [];
+    for (const [name, source] of docs) {
+      for (const match of source.matchAll(rate)) {
+        if (Number(match[1]) === DEFAULT_SHIPPING_RATE_PER_KG_USD) continue;
+        // The migration's frozen `DEFAULT 10.0` is described as historical
+        // where it appears; SQLite cannot alter a column default in place.
+        if (/historical/i.test(source.slice(Math.max(0, match.index! - 240), match.index! + 240))) continue;
+        offences.push(`${name}: ${match[0]}`);
+      }
+    }
+    expect(offences, 'a doc teaches a freight rate the shop does not charge').toEqual([]);
+  });
+
   it('leaves no second hardcoded default anywhere in the worker', () => {
     // Any file that both names the rate and pins a number to it, other than
     // the module that owns the number.
