@@ -999,7 +999,8 @@ async function toolGetAccountContext(env: Env, accountId: string) {
   const acct = await env.DB.prepare(
     `SELECT id, name, slug, currency_default, invoice_prefix, invoice_seq,
             whatsapp_number, contact_email, location_city, location_country,
-            timezone, status
+            timezone, status,
+            default_shipping_rate_per_kg, default_shipping_rate_currency
        FROM accounts WHERE id = ?`
   ).bind(accountId).first() as Record<string, any> | null;
   if (!acct) return { error: 'account_not_found' };
@@ -1031,6 +1032,11 @@ async function toolGetAccountContext(env: Env, accountId: string) {
       location: [acct.location_city, acct.location_country].filter(Boolean).join(', ') || null,
       timezone: acct.timezone,
       status: acct.status,
+      /* The shop's freight rate, so a model quoting a price knows what is
+         already inside the cost basis and does not add postage a second time.
+         Null means this shop has never set one and the fallback applies. */
+      freight_rate_per_kg: acct.default_shipping_rate_per_kg ?? null,
+      freight_rate_currency: acct.default_shipping_rate_currency ?? null,
     },
     counts: counts ?? {},
     exchange_rates: rates,
@@ -1888,7 +1894,13 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
   const originCountry: string | null = args?.origin_country ? String(args.origin_country).trim() : null;
   const originRegion: string | null = args?.origin_region ? String(args.origin_region).trim() : null;
   // Optional: list of text fields to clear to NULL (string fields only, whitelisted).
-  const CLEARABLE = new Set(['lore', 'experience', 'mood', 'terroir', 'processing_notes']);
+  /* shipping_rate_per_kg is clearable because clearing it is a real instruction:
+     it hands the tea back to the shop rate, which then follows the shop rate
+     forever. Writing 12, or 85, or any number is the opposite — it pins the tea
+     to that figure and it goes stale the day the shop renegotiates. There is no
+     other way to say it through this tool: a passed zero means free freight,
+     and Number(null) is zero. */
+  const CLEARABLE = new Set(['lore', 'experience', 'mood', 'terroir', 'processing_notes', 'shipping_rate_per_kg']);
   const clearFields: string[] | null = Array.isArray(args?.clear_fields)
     ? args.clear_fields.filter((f: any) => typeof f === 'string' && CLEARABLE.has(f)).slice(0, 10)
     : null;
@@ -5110,7 +5122,13 @@ async function commitRecordPayment(env: Env, m: Extract<PendingMutation, { kind:
 
 // ── tool: update_account_settings (preview / confirm) ──
 // Wraps PUT /api/accounts/:id for the active account. Owner-tier only.
-const ACCOUNT_SETTINGS_FIELDS = ['account_name', 'default_currency', 'contact_email', 'contact_phone'] as const;
+const ACCOUNT_SETTINGS_FIELDS = [
+  'account_name', 'default_currency', 'contact_email', 'contact_phone',
+  // Freight. Here as well as in Store Settings so the rate can be changed by
+  // voice or by an agent from the shipping quote itself, which is where the
+  // new number actually arrives. See worker/src/shippingRate.ts.
+  'default_shipping_rate_per_kg', 'default_shipping_rate_currency',
+] as const;
 type AccountSettingsField = typeof ACCOUNT_SETTINGS_FIELDS[number];
 
 // Maps our MCP-friendly field names to the actual accounts table columns.
@@ -5119,6 +5137,8 @@ const ACCOUNT_FIELD_MAP: Record<AccountSettingsField, string> = {
   default_currency: 'currency_default',
   contact_email: 'contact_email',
   contact_phone: 'whatsapp_number',
+  default_shipping_rate_per_kg: 'default_shipping_rate_per_kg',
+  default_shipping_rate_currency: 'default_shipping_rate_currency',
 };
 
 async function toolUpdateAccountSettings(env: Env, auth: McpAuth, args: any) {
@@ -5129,11 +5149,28 @@ async function toolUpdateAccountSettings(env: Env, auth: McpAuth, args: any) {
   const requestedFields: Partial<Record<AccountSettingsField, string | null>> = {};
   for (const f of ACCOUNT_SETTINGS_FIELDS) {
     if (f in (args || {})) {
-      requestedFields[f] = args[f] ? String(args[f]).trim() : null;
+      /* A rate of zero is free freight, which is a thing Adrian can mean. The
+         falsy check below would have turned it into NULL, and NULL means
+         nobody has set a rate, so the shop would have gone back to charging
+         the default. Same NULL-versus-zero distinction as the per-product
+         column; see worker/src/shippingRate.ts. */
+      const value = args[f];
+      requestedFields[f] = (value === null || value === undefined || value === '')
+        ? null
+        : String(value).trim();
     }
   }
   if (Object.keys(requestedFields).length === 0) {
-    throw new Error('At least one setting field is required (account_name, default_currency, contact_email, contact_phone)');
+    throw new Error(`At least one setting field is required (${ACCOUNT_SETTINGS_FIELDS.join(', ')})`);
+  }
+  /* A freight rate is money, so it is checked here rather than trusted to the
+     column type. A non-number would land as NULL and quietly turn into "this
+     shop has never set a rate", which prices every untouched tea off the
+     fallback instead of Adrian's. */
+  const freight = requestedFields.default_shipping_rate_per_kg;
+  if (freight !== undefined && freight !== null) {
+    const n = Number(freight);
+    if (!Number.isFinite(n) || n < 0) throw new Error('default_shipping_rate_per_kg must be a non-negative number');
   }
 
   // Only allow editing the auth token's own account (or if platform_owner, any account).
@@ -5591,7 +5628,7 @@ const TOOL_DEFS = [
   {
     name: 'get_account_context',
     scope: 'inventory:read',
-    description: 'Orientation for the active account: name, default currency, invoice prefix + next invoice number, WhatsApp checkout number, exchange rates, and live counts (active products, low-stock, unpaid invoices, customers). Call this first when you need to quote prices or reason about currency.',
+    description: 'Orientation for the active account: name, default currency, invoice prefix + next invoice number, WhatsApp checkout number, exchange rates, the shop freight rate, and live counts (active products, low-stock, unpaid invoices, customers). Call this first when you need to quote prices or reason about currency.',
     inputSchema: { type: 'object', properties: {} },
   },
   {
@@ -5772,7 +5809,7 @@ const TOOL_DEFS = [
         quantity_purchased: { type: 'number', description: 'Total grams purchased (e.g. 2490 for 7 x 357g cakes, 1000 for 1kg).' },
         year: { type: 'number', description: 'The year of the tea (e.g. 2025, 2019). Maps to the reference year.' },
         status: { type: 'string', description: 'Product status, e.g. Active or Sold Out. Keeps products + listing in sync.' },
-        shipping_rate_per_kg: { type: 'number', description: 'Shipping freight per kg folded into the COST basis, so the markup multiplies it too. Written in the tea\'s OWN cost currency, not USD: on a tea bought in CNY, pass the CNY rate. Omit it and the shop applies its default of 12 USD/kg. Not a separate sales charge.' },
+        shipping_rate_per_kg: { type: 'number', description: 'Shipping freight per kg folded into the COST basis, so the markup multiplies it too. Written in the tea\'s OWN cost currency, not USD: on a tea bought in CNY, pass the CNY rate. Setting it PINS this tea to that figure; to hand it back to the shop rate (85 Yuan/kg, converted live) pass "shipping_rate_per_kg" in clear_fields instead. Not a separate sales charge.' },
         tasting_notes: { type: 'array', items: { type: 'string' }, description: 'Flavor/taste terms for the catalog tasting field (NOT the description). Up to 8.' },
         description: { type: 'string', description: 'Customer-facing "About this tea" (origin/character — NOT flavors; personal note space, shows only when present).' },
         lore: { type: 'string', description: 'Real, sourced historical/cultural background (terse, never fabricated).' },
@@ -5781,6 +5818,7 @@ const TOOL_DEFS = [
         origin_country: { type: 'string', description: 'Harvest country (not the trading house), e.g. Vietnam.' },
         origin_region: { type: 'string', description: 'Harvest region, e.g. Northern Vietnam wild tea trees, on the Yunnan border.' },
         stock_verified: { type: 'boolean', description: 'true = mark stock verified; false = set needs-verification flag. Omit to leave unchanged.' },
+        clear_fields: { type: 'array', items: { type: 'string' }, description: 'Fields to blank rather than set: lore, experience, mood, terroir, processing_notes, shipping_rate_per_kg. Clearing shipping_rate_per_kg hands the tea back to the shop freight rate and it follows that rate from then on; anything else is ignored.' },
         confirm: { type: 'string', description: 'Confirmation token from preview response.' },
       },
       required: ['product_id'],
@@ -6045,7 +6083,7 @@ const TOOL_DEFS = [
   {
     name: 'update_account_settings',
     scope: 'admin:write',
-    description: 'Update basic account settings (name, default currency, contact email/phone). Two-step preview/confirm. Owner-tier only. Defaults to the active account if account_id is not specified.',
+    description: 'Update basic account settings (name, default currency, contact email/phone) and the shop freight rate. Two-step preview/confirm. Owner-tier only. Defaults to the active account if account_id is not specified.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -6054,6 +6092,8 @@ const TOOL_DEFS = [
         default_currency: { type: 'string', description: '3-letter ISO currency code, e.g. AUD.' },
         contact_email: { type: 'string', description: 'Primary contact email for the account.' },
         contact_phone: { type: 'string', description: 'WhatsApp / primary phone number for the account.' },
+        default_shipping_rate_per_kg: { type: 'number', description: 'Shop freight per kg, applied to every tea that has no rate of its own. Quoted in default_shipping_rate_currency and converted to USD live. Folded into the COST basis, so the markup multiplies it. Shop default is 85 Yuan/kg.' },
+        default_shipping_rate_currency: { type: 'string', description: 'Currency the freight rate is quoted in: Yuan, USD, HKD. Must exist in the exchange rate table.' },
         confirm: { type: 'string', description: 'Confirmation token from preview response.' },
       },
     },

@@ -23,7 +23,8 @@ import { AutocompleteInput } from '../../components/TeaCompass/AutocompleteInput
 import { buildVarietyDataMap, getTeaVarietySuggestions } from '../../data/teaVarieties';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { buildProductUpdatePayload } from '../productUpdatePayload';
-import { defaultShippingRateInCurrency, shippingRateUsdFor } from '../../lib/shippingRate';
+import { shopRateInCurrency, shippingRateUsdFor } from '../../lib/shippingRate';
+import { useShopFreightDefault } from '../hooks/useAdminData';
 import { getThemeColor } from '../themeUtils';
 import { TEA_TYPES } from '../../wisdom';
 import { effectivePurpose, getEffectivePublication, getTeaReadiness } from './inventory/domain';
@@ -944,6 +945,11 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   const navigate = useNavigate();
   const { showToast } = useToast();
   const panelQueryClient = useQueryClient();
+  /* The shop's own freight rate, for teas that have not entered one. Read from
+     the hook rather than passed down, because it is one cached row and every
+     surface that shows this field needs the same answer. */
+  const shopFreight = useShopFreightDefault();
+
   // Stock spine step 2: only the location owner curates what shows in the shop.
   const isOwnerTier = useAppStore(selectIsOwnerTier);
   const activeUserId = useAppStore((state) => state.activeUserId);
@@ -1147,7 +1153,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
       // The stored rate is in the tea's own cost currency, which is what
       // calculatePricing wants. Nothing recorded means the shop default, and
       // the readout below must show the same freight the shelf is charging.
-      product.shippingRatePerKg ?? defaultShippingRateInCurrency(costRateToUsd),
+      product.shippingRatePerKg ?? shopRateInCurrency(shopFreight.perKgUsd, costRateToUsd),
       product.quantityPurchased || 0,
       (product.costCurrency || 'USD') as Currency,
       rates,
@@ -1566,7 +1572,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                           stored. */}
                       <GhostInput
                         variant="bordered"
-                        value={shippingRateUsdFor(product.shippingRatePerKg, costRateToUsd)}
+                        value={shippingRateUsdFor(product.shippingRatePerKg, costRateToUsd, shopFreight.perKgUsd)}
                         onSave={(val) => handleUpdate(product.id, 'shippingRatePerKg', (Number(val) || 0) * costRateToUsd)}
                         type="number"
                         className="tabular-nums"

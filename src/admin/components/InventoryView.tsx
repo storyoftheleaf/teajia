@@ -12,9 +12,9 @@ import Papa from 'papaparse';
 import { api } from '../../lib/api';
 import { calculatePricing } from '../utils';
 import { Product } from '../types';
-import { defaultShippingRateInCurrency } from '../../lib/shippingRate';
+import { shopRateInCurrency } from '../../lib/shippingRate';
 import { QrCodeModal } from './QrCodeModal';
-import { useRates } from '../hooks/useAdminData';
+import { useRates, useShopFreightDefault } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { useAppStore } from '../store';
 import { useAppStore as useCustomerAppStore } from '../../lib/store';
@@ -683,6 +683,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
 
   const { data: rates = [] } = useRates();
+  const shopFreight = useShopFreightDefault();
 
   const {
     activeColumnDefs,
@@ -988,6 +989,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const processedProductsRef = useRef(processedProducts);
   const productIndexMapRef = useRef(productIndexMap);
   const ratesRef = useRef(rates);
+  const shopFreightRef = useRef(shopFreight.perKgUsd);
   /* Units of a tea's cost currency per USD, for the freight column, which is
      labelled in dollars and must not print a yuan figure under that label. */
   const costRateToUsd = useCallback(
@@ -998,6 +1000,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const panelProductRef = useRef(panelProduct);
   useLayoutEffect(() => { selectedIdsRef.current = selectedIds; }, [selectedIds]);
   useLayoutEffect(() => { processedProductsRef.current = processedProducts; }, [processedProducts]);
+  useLayoutEffect(() => { shopFreightRef.current = shopFreight.perKgUsd; }, [shopFreight.perKgUsd]);
   useLayoutEffect(() => { productIndexMapRef.current = productIndexMap; }, [productIndexMap]);
   useLayoutEffect(() => { ratesRef.current = rates; }, [rates]);
   useLayoutEffect(() => { isEditModeRef.current = isEditMode; }, [isEditMode]);
@@ -1101,7 +1104,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         const calc = calculatePricing(
           Number(field === 'costAmount' ? value : p.costAmount) || 0,
           Number(field === 'shippingRatePerKg' ? value : p.shippingRatePerKg)
-            || defaultShippingRateInCurrency(ratesRef.current.find(r => r.currency === (p.costCurrency || 'USD'))?.rateToUSD || 1),
+            || shopRateInCurrency(shopFreightRef.current, ratesRef.current.find(r => r.currency === (p.costCurrency || 'USD'))?.rateToUSD || 1),
           Number(field === 'quantityPurchased' ? value : p.quantityPurchased) || 0,
           (String(field === 'costCurrency' ? value : p.costCurrency) || 'USD') as import('../types').Currency,
           ratesRef.current,
@@ -2689,6 +2692,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   focusedCol={focusedCell?.row === globalIdx ? (focusedCell.col ?? null) : null}
                                   isEditMode={isEditMode}
                                   costRateToUsd={costRateToUsd}
+                                  shopFreightPerKgUsd={shopFreight.perKgUsd}
                                   visibleCols={renderCols}
                                   splitViewCols={renderSplitCols}
                                   splitView={splitView}
@@ -2775,6 +2779,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               focusedCol={focusedCell?.row === globalIdx ? (focusedCell.col ?? null) : null}
                               isEditMode={isEditMode}
                               costRateToUsd={costRateToUsd}
+                              shopFreightPerKgUsd={shopFreight.perKgUsd}
                               visibleCols={renderCols}
                               splitViewCols={renderSplitCols}
                               splitView={splitView}

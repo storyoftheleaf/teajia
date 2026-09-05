@@ -3,6 +3,7 @@ import { api, getTokenClaims } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
 import { Product, ExchangeRate, Customer } from '../types';
 import { INITIAL_RATES } from '../constants';
+import { shopFreightDefaultFrom, type ShopFreightDefault } from '../../lib/shippingRate';
 import { fetchLiveRates } from '../utils';
 
 const useAccountQueryScope = () => {
@@ -129,6 +130,44 @@ export const useRates = () => {
     staleTime: 1000 * 60 * 60 * 6, // 6-hour TTL, rates don't change frequently
     initialData: INITIAL_RATES
   });
+};
+
+/**
+ * The shop's freight rate, resolved to USD against live rates.
+ *
+ * Every admin surface that shows or edits a per-tea shipping rate needs this,
+ * because a tea with nothing entered is charged the shop rate and must display
+ * it rather than a blank. It is one row and it changes rarely, so it is cached
+ * for the session and refetched on the same terms as the rates it converts
+ * through.
+ *
+ * `initialData` is the fallback rather than undefined, so no surface ever
+ * renders a dash where a live charge belongs. That reads as free freight, which
+ * is the exact misreading this whole area exists to prevent.
+ */
+export const useShopFreightDefault = (): ShopFreightDefault => {
+  const { accountScope, userScope } = useAccountQueryScope();
+  const activeAccountId = useAppStore((state) => state.activeAccountId);
+  const { data: rates } = useRates();
+  const lookup = (currency: string) => rates?.find(r => r.currency === currency)?.rateToUSD;
+
+  const { data: account } = useQuery({
+    queryKey: ['shop-freight-default', accountScope, userScope],
+    enabled: Boolean(activeAccountId),
+    staleTime: 1000 * 60 * 30,
+    refetchOnWindowFocus: false,
+    queryFn: async () => {
+      if (!activeAccountId) return null;
+      try {
+        return await api.accounts.get(activeAccountId);
+      } catch {
+        // A shop that cannot read its own settings still charges freight.
+        return null;
+      }
+    },
+  });
+
+  return shopFreightDefaultFrom(account, lookup);
 };
 
 // Fetch Customers

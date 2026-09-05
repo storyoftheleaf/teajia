@@ -803,6 +803,14 @@ export interface Account {
   location_country?: string;
   timezone?: string;
   currency_default?: string;
+  /**
+   * Freight per kilo, quoted in `default_shipping_rate_currency` because that
+   * is the currency it is actually paid in. Folded into the cost basis the
+   * markup multiplies, and converted to USD live. Null means this shop has
+   * never set one, and the fallback in `src/lib/shippingRate.ts` applies.
+   */
+  default_shipping_rate_per_kg?: number | null;
+  default_shipping_rate_currency?: string | null;
   whatsapp_number?: string;
   contact_email?: string;
   public_enabled?: boolean;

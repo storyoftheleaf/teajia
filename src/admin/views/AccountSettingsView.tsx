@@ -4,6 +4,8 @@ import { api } from '../../lib/api';
 import { useAppStore } from '../store';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { useLaunchAudit, type LaunchAudit } from '../hooks/useLaunchAudit';
+import { useRates } from '../hooks/useAdminData';
+import { FALLBACK_SHIPPING_RATE_CURRENCY } from '../../lib/shippingRate';
 import { usePersonReadiness } from '../../components/readiness/usePersonReadiness';
 import { storeOpeningRefusal, type StoreOpeningRefusal } from '../../components/readiness/storeOpening';
 import type { PersonReadinessInput } from '../../components/readiness/teaMasterReadiness';
@@ -73,9 +75,43 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
     setAccount((prev) => (prev ? { ...prev, [key]: value } : prev));
   };
 
+  const { data: rates = [] } = useRates();
+
+  /* The freight rate is typed, so it is held as text while the cursor is in it.
+     Running every keystroke through Number() turns "8." into "8" and deletes
+     the decimal point out from under the person typing it. Null means the field
+     has not been touched since the account loaded. */
+  const [freightText, setFreightText] = useState<string | null>(null);
+  const freightValue = freightText ?? (
+    account?.default_shipping_rate_per_kg == null ? '' : String(account.default_shipping_rate_per_kg)
+  );
+  const freightNumber = freightValue.trim() === '' ? null : Number(freightValue);
+  const freightIsValid = freightNumber === null || (Number.isFinite(freightNumber) && freightNumber >= 0);
+
+  /* What the typed rate is worth today, so the number is legible without a
+     calculator. Freight is inside the cost basis the markup multiplies, so the
+     line says what it adds to a gram on the shelf, which is the figure that
+     actually moves when this field changes. */
+  const freightHint = (() => {
+    if (!freightIsValid) return 'Enter a number, or leave it empty to use the platform default.';
+    if (freightNumber === null) return 'Empty means the platform default applies.';
+    const currency = account?.default_shipping_rate_currency ?? FALLBACK_SHIPPING_RATE_CURRENCY;
+    const rate = rates.find(r => r.currency === currency)?.rateToUSD;
+    if (!rate || rate <= 0) return `Per kilo, in ${currency}. No live rate for ${currency} yet.`;
+    const perKgUsd = freightNumber / rate;
+    const perGramOnShelf = (perKgUsd / 1000) * 3;
+    return `${freightNumber} ${currency}/kg is $${(Math.round(perKgUsd * 100) / 100).toFixed(2)} USD/kg at today's rate, `
+      + `adding $${perGramOnShelf.toFixed(3)} per gram to the shelf price after the markup. `
+      + 'Applies to every tea that has not had a rate entered on it.';
+  })();
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!account || !activeAccountId) return;
+    if (!freightIsValid) {
+      setError('Freight rate must be a number, or empty.');
+      return;
+    }
     setSaving(true);
     setError(null);
     setSaveMsg(null);
@@ -94,9 +130,14 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
         whatsapp_number: account.whatsapp_number,
         contact_email: account.contact_email,
         public_enabled: account.public_enabled,
+        default_shipping_rate_per_kg: freightNumber,
+        default_shipping_rate_currency: account.default_shipping_rate_currency,
       });
       setAccount(updated);
       setActiveAccount(updated);
+      // Hand the field back to the saved value, so it shows what the shop is
+      // actually charging rather than what was last typed at it.
+      setFreightText(null);
       setSaveMsg('Saved.');
     } catch (err: any) {
       const refused = storeOpeningRefusal(err);
@@ -304,6 +345,28 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
               onChange={(v) => update('currency_default', v)}
               disabled={disabled}
               placeholder="AUD"
+            />
+            {/* Freight. It belongs on this screen and not in code because it is
+                a negotiated number: it changes when the forwarder's price
+                changes, and a rate that needs a deploy to edit is a rate that
+                stays wrong. Quoted in the currency it is paid in, because a
+                yuan rate translated to dollars once goes stale the moment the
+                yuan moves. */}
+            <Field
+              label="Freight Rate per kg"
+              value={freightValue}
+              onChange={(v) => setFreightText(v)}
+              disabled={disabled}
+              placeholder="85"
+              hint={freightHint}
+            />
+            <Field
+              label="Freight Currency"
+              value={account.default_shipping_rate_currency ?? ''}
+              onChange={(v) => update('default_shipping_rate_currency', v.trim() === '' ? null : v.trim())}
+              disabled={disabled}
+              placeholder="Yuan"
+              hint="The currency the freight rate above is quoted in. Yuan, USD, HKD."
             />
             <Field
               label="Timezone"

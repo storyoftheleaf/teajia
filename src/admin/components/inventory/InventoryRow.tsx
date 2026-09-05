@@ -31,6 +31,8 @@ export interface InventoryRowProps {
    * without an exchange table can honestly render.
    */
   costRateToUsd?: (product: Product) => number;
+  /** The shop's freight rate in USD/kg, for teas that have not entered one. */
+  shopFreightPerKgUsd: number;
   rowHeight: number;
   isPanelOpen: boolean;
   isDropdownOpen: boolean;
@@ -57,7 +59,7 @@ export interface InventoryRowProps {
 function InventoryRowBase(props: InventoryRowProps) {
   const {
     product, globalIdx, isSelected, focusedCol, isEditMode, visibleCols, splitViewCols,
-    splitView, stickyFirstCol, alignLeft, legacyMobileLayout, costRateToUsd, rowHeight, isPanelOpen, isDropdownOpen,
+    splitView, stickyFirstCol, alignLeft, legacyMobileLayout, costRateToUsd, shopFreightPerKgUsd, rowHeight, isPanelOpen, isDropdownOpen,
     onRowClick, onLongPressSelect, onLongPressQuickEdit, onProductUpdate, onSelectionAwareUpdate,
     onOpenPanel, onToggleDropdown, onStockHistory, onStockMovement, onRestock, onDeleteRequest, showToast, onOpenSource,
   } = props;
@@ -262,7 +264,7 @@ function InventoryRowBase(props: InventoryRowProps) {
          the default is what it is actually being charged; the dash would say
          "free", which is the reading that cost real money. */
       case 'shippingRatePerKg': {
-        const shipUsd = shippingRateUsdFor(product.shippingRatePerKg, costRateToUsd?.(product) ?? 1);
+        const shipUsd = shippingRateUsdFor(product.shippingRatePerKg, costRateToUsd?.(product) ?? 1, shopFreightPerKgUsd);
         return (
           <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${numTone}`}>
             <span>{product.type === 'Teaware' ? '—' : fmtNum(shipUsd)}</span>
@@ -423,6 +425,7 @@ export const InventoryRow = React.memo(InventoryRowBase, (prev, next) =>
   prev.legacyMobileLayout === next.legacyMobileLayout &&
   prev.alignLeft === next.alignLeft &&
   prev.costRateToUsd === next.costRateToUsd &&
+  prev.shopFreightPerKgUsd === next.shopFreightPerKgUsd &&
   prev.rowHeight === next.rowHeight &&
   prev.isPanelOpen === next.isPanelOpen &&
   prev.isDropdownOpen === next.isDropdownOpen

@@ -10,7 +10,7 @@ import {
   type CurateImportContext,
 } from './curateImports';
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
-import { shippingPerGramUsd } from './shippingRate';
+import { shippingPerGramUsd, resolveShopFreightDefault } from './shippingRate';
 import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 import { deriveConfirmedInvoiceLine, repairCandidate, formatInvoiceNumber, loadUsdRates, amountToUsd } from './invoiceDomain';
@@ -1476,18 +1476,42 @@ function matchRoute(method: string, path: string, routes: [string, string, Handl
 }
 
 // ── Product pricing calculation (mirrors the Postgres view) ──
-function addPricingFields(product: any, rates: Map<string, number>): any {
-  // Case-insensitive rate lookup with alias normalization, so 'CNY' resolves to
-  // the 'Yuan' row. Exact key first, then case-insensitive, then alias map.
-  const rawCurrency = product.cost_currency as string | null | undefined;
+/**
+ * Case-insensitive rate lookup with alias normalization, so 'CNY' resolves to
+ * the 'Yuan' row. Exact key first, then case-insensitive, then alias map.
+ *
+ * Shared by product pricing and by the shop's freight default, because a rate
+ * that resolves for one and silently falls back to 1 for the other would price
+ * a yuan figure as dollars.
+ */
+function lookupRateToUsd(rates: Map<string, number>, rawCurrency: string | null | undefined): number | undefined {
   const currency = canonicalCurrency(rawCurrency);
-  let rate = currency ? (rates.get(currency) ?? 1) : 1;
-  if (currency && !rates.has(currency)) {
-    const lc = currency.toLowerCase();
-    for (const [k, v] of rates) {
-      if (k.toLowerCase() === lc) { rate = v; break; }
-    }
+  if (!currency) return undefined;
+  const exact = rates.get(currency);
+  if (exact !== undefined) return exact;
+  const lc = currency.toLowerCase();
+  for (const [k, v] of rates) {
+    if (k.toLowerCase() === lc) return v;
   }
+  return undefined;
+}
+
+/**
+ * The shop's own freight rate, converted to USD at today's rate.
+ *
+ * Read per request rather than cached: it is one indexed row, and a rate that
+ * kept serving the old number after Adrian changed it in Store Settings would
+ * be the same class of bug this whole area exists to stop.
+ */
+async function shopFreightPerKgUsd(env: Env, accountId: string, rates: Map<string, number>): Promise<number> {
+  const account = await env.DB.prepare(
+    'SELECT default_shipping_rate_per_kg, default_shipping_rate_currency FROM accounts WHERE id = ?'
+  ).bind(accountId).first() as { default_shipping_rate_per_kg?: number | null; default_shipping_rate_currency?: string | null } | null;
+  return resolveShopFreightDefault(account, c => lookupRateToUsd(rates, c)).perKgUsd;
+}
+
+function addPricingFields(product: any, rates: Map<string, number>, shopDefaultPerKgUsd: number): any {
+  const rate = lookupRateToUsd(rates, product.cost_currency as string | null | undefined) ?? 1;
   const isTeaware = product.type === 'Teaware';
 
   // For teaware, use quantity_units as the divisor (per-unit pricing)
@@ -1508,6 +1532,7 @@ function addPricingFields(product: any, rates: Map<string, number>): any {
       storedRatePerKg: product.shipping_rate_per_kg,
       rateToUsd: rate,
       isTeaware,
+      shopDefaultPerKgUsd,
     });
   }
 
@@ -2479,6 +2504,7 @@ const handleGetProducts: Handler = async (request, env) => {
   for (const r of ratesResult.results as any[]) {
     rates.set(r.currency as string, r.rate_to_usd as number);
   }
+  const shopDefaultPerKgUsd = await shopFreightPerKgUsd(env, accountId, rates);
 
   const products = (result.results as any[]).map(p => {
     // Override the legacy is_featured column with the derived shop-collection
@@ -2496,7 +2522,7 @@ const handleGetProducts: Handler = async (request, env) => {
     if (typeof p.tasting === 'string') {
       try { p.tasting = JSON.parse(p.tasting); } catch { p.tasting = {}; }
     }
-    return addPricingFields(p, rates);
+    return addPricingFields(p, rates, shopDefaultPerKgUsd);
   });
   return json(products);
 };
@@ -9236,6 +9262,8 @@ function makePublicXrefHandler(tableName: string, fkColumn: string, sourceTable?
     const productStatement = env.DB.prepare(
       `SELECT p.id, p.type, p.given_name, p.chinese_name, p.product_name, p.year,
               public_account.slug AS account_slug,
+              public_account.default_shipping_rate_per_kg AS account_freight_per_kg,
+              public_account.default_shipping_rate_currency AS account_freight_currency,
               '/shop/product/' || COALESCE(p.slug, p.id) || '?store=' || public_account.slug AS public_path,
               p.origin_country, p.origin_region, p.stock_grams,
               COALESCE(tp.description, p.description) AS description,
@@ -9289,7 +9317,14 @@ function makePublicXrefHandler(tableName: string, fkColumn: string, sourceTable?
       if (typeof p.tasting === 'string') {
         try { p.tasting = JSON.parse(p.tasting); } catch { p.tasting = {}; }
       }
-      const withPricing = addPricingFields(p, rates);
+      /* One response can carry teas from more than one shop, so the freight
+         default is read per row from the owning account rather than once for
+         the request. Both aliases fall outside PUBLIC_FIELDS and so never
+         reach the response. */
+      const withPricing = addPricingFields(p, rates, resolveShopFreightDefault(
+        { default_shipping_rate_per_kg: p.account_freight_per_kg, default_shipping_rate_currency: p.account_freight_currency },
+        c => lookupRateToUsd(rates, c),
+      ).perKgUsd);
       const safe: Record<string, unknown> = {};
       for (const key of PUBLIC_FIELDS) {
         if (key in withPricing) safe[key] = (withPricing as Record<string, unknown>)[key];
@@ -17689,6 +17724,9 @@ const ACCOUNT_UPDATE_FIELDS = new Set([
   'location_city', 'location_country', 'timezone', 'currency_default',
   'whatsapp_number', 'contact_email', 'public_enabled', 'public_shop_path',
   'invoice_prefix', 'ships_to_countries',
+  // Freight. Quoted in the currency it is paid in, converted to USD live, and
+  // folded into the cost basis the markup multiplies. See worker/src/shippingRate.ts.
+  'default_shipping_rate_per_kg', 'default_shipping_rate_currency',
 ]);
 
 // ─── Opening a store to buyers ───────────────────────────────────────────────
@@ -19833,6 +19871,7 @@ async function fetchPublicProductsForAccount(
   for (const r of ratesResult.results as any[]) {
     rates.set(r.currency as string, r.rate_to_usd as number);
   }
+  const shopDefaultPerKgUsd = await shopFreightPerKgUsd(env, accountId, rates);
   return (result.results as any[]).map(p => {
     if (typeof p.tasting_notes === 'string') {
       try { p.tasting_notes = JSON.parse(p.tasting_notes); } catch { p.tasting_notes = []; }
@@ -19843,7 +19882,7 @@ async function fetchPublicProductsForAccount(
     if (typeof p.tasting === 'string') {
       try { p.tasting = JSON.parse(p.tasting); } catch { p.tasting = {}; }
     }
-    const withPricing = addPricingFields(p, rates);
+    const withPricing = addPricingFields(p, rates, shopDefaultPerKgUsd);
     const safe: Record<string, unknown> = {};
     for (const key of PUBLIC_FIELDS) {
       if (key in withPricing) safe[key] = (withPricing as Record<string, unknown>)[key];

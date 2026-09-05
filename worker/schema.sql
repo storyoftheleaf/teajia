@@ -35,6 +35,11 @@ CREATE TABLE IF NOT EXISTS accounts (
     is_platform_owner INTEGER DEFAULT 0,
     host_contributor_id TEXT,
     ships_to_countries TEXT DEFAULT '[]',
+    -- Freight, quoted in the currency it is paid in and converted to USD live.
+    -- NULL means this shop has never set one and the code fallback applies; see
+    -- worker/src/shippingRate.ts and migration 0009.
+    default_shipping_rate_per_kg REAL,
+    default_shipping_rate_currency TEXT,
     -- BYOK: per-account OpenAI API key. Encrypted with AES-GCM in the worker
     -- via KEY_ENCRYPTION_SECRET (see migration 065). Plaintext is never stored.
     openai_api_key_encrypted TEXT,

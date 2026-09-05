@@ -5,7 +5,8 @@ import { Currency, Product, ExchangeRate, ProductType } from '../types';
 import { TEA_TYPES, NON_TEA_TYPES } from '../../wisdom';
 import type { TastingData } from '../../types';
 import { calculatePricing } from '../utils';
-import { DEFAULT_SHIPPING_RATE_PER_KG_USD, shippingRateUsdFor } from '../../lib/shippingRate';
+import { shippingRateUsdFor } from '../../lib/shippingRate';
+import { useShopFreightDefault } from '../hooks/useAdminData';
 import { TeaIllustration } from './TeaIllustration';
 import { TastingSession } from '../../components/tasting/TastingSession';
 import { resolveTermLabel, resolveTermIcon, flattenTastingNotes } from '../../data/tastingTaxonomy';
@@ -301,6 +302,13 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   } | null>(null);
   const [compassSourceLoading, setCompassSourceLoading] = useState(false);
 
+  /* The shop's freight rate, in USD, for the prefill and for a tea that has not
+     entered one of its own. Rounded for display: the stored rate is quoted in
+     yuan, so its dollar value is a repeating figure and a form field is not the
+     place to show fourteen decimal places of it. */
+  const shopFreight = useShopFreightDefault();
+  const shopFreightUsdText = String(Math.round(shopFreight.perKgUsd * 100) / 100);
+
   const [formData, setFormData] = useState({
     type: 'Dark',
     form: '',
@@ -313,10 +321,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     stockGrams: '',
     quantityPurchased: '', 
     costAmount: '', // BASE Cost (Source Currency)
-    // Always entered in USD, from the shop's one default rather than a
-    // literal typed here, which is how this form came to say 13 while the
-    // intake path said 10.
-    shippingRateUSD: String(DEFAULT_SHIPPING_RATE_PER_KG_USD),
+    // Always entered in USD, from the shop's own rate rather than a literal
+    // typed here, which is how this form came to say 13 while the intake path
+    // said 10.
+    shippingRateUSD: shopFreightUsdText,
     costCurrency: 'USD' as Currency,
     vendor: '',
     description: '',
@@ -397,7 +405,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     if (isOpen && initialData) {
       // Calculate USD shipping from stored Source Currency value
       const rate = rates.find(r => r.currency === initialData.costCurrency)?.rateToUSD || 1;
-      const shipUSD = shippingRateUsdFor(initialData.shippingRatePerKg, rate);
+      const shipUSD = shippingRateUsdFor(initialData.shippingRatePerKg, rate, shopFreight.perKgUsd);
 
       setFormData({
         type: initialData.type,
@@ -460,7 +468,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         stockGrams: '',
         quantityPurchased: '',
         costAmount: '',
-        shippingRateUSD: String(DEFAULT_SHIPPING_RATE_PER_KG_USD),
+        shippingRateUSD: shopFreightUsdText,
         costCurrency: 'USD',
         vendor: '',
         description: '',
