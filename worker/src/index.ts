@@ -3064,6 +3064,24 @@ const PRODUCT_CREATE_COLUMNS = new Set([
 ]);
 
 const PRODUCT_CREATE_STOCK_COLUMNS = new Set([...PRODUCT_STOCK_UPDATE_COLUMNS, 'quantity_units']);
+
+/**
+ * The commercial fields that still need the `sell` bundle when CREATING.
+ *
+ * `cost_amount` and `cost_currency` are not among them, and they are the only
+ * two that come out. Stating the cost is mandatory on create, and a mandatory
+ * field cannot also sit behind a capability: that combination does not mean
+ * "you may not price this tea", it means a Catalog-only helper cannot add a tea
+ * at all, which is not a rule anybody chose. It appeared the moment the cost
+ * became required and is the kind of thing only a test notices.
+ *
+ * Everything discretionary stays gated. A retail price, a markup, a wholesale
+ * price and a freight rate are all decisions about what the shop charges, and
+ * none of them is required to bring a tea into existence.
+ */
+const PRODUCT_CREATE_COMMERCIAL_COLUMNS = new Set(
+  [...PRODUCT_COMMERCIAL_UPDATE_COLUMNS].filter(c => c !== 'cost_amount' && c !== 'cost_currency'),
+);
 const PRODUCT_CREATE_PUBLICATION_COLUMNS = new Set(
   [...PRODUCT_PUBLICATION_UPDATE_COLUMNS].filter(column => column !== 'is_personal' && column !== 'is_sample'),
 );
@@ -3074,7 +3092,7 @@ function validateProductCreateCapabilities(ctx: AccountCtx, body: Record<string,
   if (supplied(PRODUCT_CREATE_STOCK_COLUMNS) && missing('stock')) {
     return restError(403, 'Stock capability required for supplied fields', 'insufficient_bundle', { required_bundle: 'stock' });
   }
-  if (supplied(PRODUCT_COMMERCIAL_UPDATE_COLUMNS) && missing('sell')) {
+  if (supplied(PRODUCT_CREATE_COMMERCIAL_COLUMNS) && missing('sell')) {
     return restError(403, 'Sell capability required for supplied fields', 'insufficient_bundle', { required_bundle: 'sell' });
   }
   // Nothing exists yet to inherit a currency from, so the payload has to say.
