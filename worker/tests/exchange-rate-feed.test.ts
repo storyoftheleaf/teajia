@@ -137,6 +137,39 @@ describe('the daily rate refresh', () => {
     expect(hook, 'useRates no longer reads /api/rates').toContain('api.rates.list()');
   });
 
+  it('refreshes on every tick rather than once a day', () => {
+    // A 24-hour gate meant one good read bought a whole day of not looking, so
+    // the table was only ever as current as the moment the gate happened to
+    // open. The cron is hourly and the feed is free.
+    const fn = worker.match(/async function syncLiveExchangeRates[\s\S]*?\n\}/);
+    expect(fn, 'syncLiveExchangeRates moved or was renamed').toBeTruthy();
+    expect(fn![0], 'the refresh is gated again; it should run every tick')
+      .not.toMatch(/24\s*\*\s*3600|86400000|24\s*\*\s*60\s*\*\s*60/);
+  });
+
+  it('keeps yesterday rate rather than letting the shop go down', () => {
+    // Adrian's rule, and the one I got backwards once: if the rates cannot be
+    // read today, yesterday's rate is better than the whole system going down.
+    // Two halves to it. The worker never clears a stored row on a bad fetch,
+    // and the browser falls back to the last rates it actually saw rather than
+    // to an empty list.
+    const fn = worker.match(/async function syncLiveExchangeRates[\s\S]*?\n\}/)![0];
+    expect(fn, 'a failed refresh must leave the stored rows standing')
+      .not.toMatch(/DELETE\s+FROM\s+exchange_rates|UPDATE\s+exchange_rates\s+SET\s+rate_to_usd\s*=\s*0/i);
+
+    const hook = read('../../src/admin/hooks/useAdminData.ts');
+    expect(hook, 'a failed rate read must fall back to the last known rates')
+      .toContain('loadLastKnownRates');
+    expect(hook, 'a successful read must be remembered for the next bad minute')
+      .toContain('saveLastKnownRates');
+
+    // And what it falls back to has to be a remembered reading, never a typed
+    // figure. The seeds it replaced were from 2024 and 8% out on IDR.
+    const cache = read('../../src/admin/lastKnownRates.ts');
+    expect(cache, 'the fallback invented a rate instead of remembering one')
+      .not.toMatch(/(IDR|CNY|Yuan|HKD|JPY|MYR|NT|TWD)\s*:\s*\d/);
+  });
+
   it('never lets the feed move the dollar off one', () => {
     // USD is what the feed is quoted against. A fetched value for it could
     // only ever be noise in the one row that must stay exactly 1.

@@ -126,10 +126,19 @@ export const calculatePricing = (
   rates: ExchangeRate[],
   isTeaware = false
 ) => {
-  /* No rate, no price. A missing rate used to become 1, which does not fail: it
-     reads a yuan cost as dollars and hands back a figure seven times too big,
-     which the x3 then triples. Returning zeros makes the surface print a dash,
-     which is what "we do not know" should look like. */
+  /* No rate, no price, and this should now be unreachable.
+     
+     A missing rate used to become 1, which does not fail: it reads a yuan cost
+     as dollars and hands back a figure seven times too big, which the x3 then
+     triples. Returning zeros makes the surface print a dash, which is what "we
+     do not know" should look like, and a dash is the one honest thing to show
+     when the alternative is a wrong number.
+     
+     It should not happen any more, because the rate list no longer empties: a
+     failed read falls back to the last rates this browser actually saw
+     (admin/lastKnownRates.ts), so a bad minute leaves prices standing at
+     yesterday's rate rather than blanking them. This stays as the floor under
+     that, for a currency genuinely absent from the shop's table. */
   const rateObj = (rates || []).find(r => r.currency === currency);
   const rateToUSD = rateObj?.rateToUSD;
   if (!rateToUSD || rateToUSD <= 0) {

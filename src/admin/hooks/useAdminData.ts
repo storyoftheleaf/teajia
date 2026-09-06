@@ -3,6 +3,7 @@ import { api, getTokenClaims } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
 import { Product, ExchangeRate, Customer } from '../types';
 import { shopFreightDefaultFrom, type ShopFreightDefault } from '../../lib/shippingRate';
+import { loadLastKnownRates, saveLastKnownRates } from '../lastKnownRates';
 
 const useAccountQueryScope = () => {
   const activeAccountId = useAppStore((state) => state.activeAccountId);
@@ -96,18 +97,24 @@ export const useProducts = (options?: { enabled?: boolean }) => {
  * The shop's exchange rates. One table, one refresh, one number.
  *
  * `/api/rates` serves the `exchange_rates` rows in D1, which the worker
- * refreshes daily from a single feed and which every price it computes goes
+ * refreshes hourly from a single feed and which every price it computes goes
  * through: the cost basis, the freight rate, the x3. The browser converts an
  * already-computed USD figure for display, so it has to read the same rate the
- * shelf was priced at.
+ * shelf was priced at. That is the one read; there is no second feed in front
+ * of it and no invented table behind it.
  *
- * There is no seeded table behind this and no second feed in front of it. An
- * empty array is the honest answer when the rates cannot be read, and every
- * consumer treats it that way: `useShopPrice` stops localising and shows the
- * shop's own USD, `formatCurrency` prints the dollar figure rather than
- * mislabelling it. A shop briefly quoting dollars is a small problem. A shop
- * quoting rupiah at a rate from 2024 is a real one, and it does not look like
- * a problem at all, which is why it lasted.
+ * What is behind it is the last successful read of this same table, kept in the
+ * browser. Adrian's rule: if the rates cannot be read today, yesterday's rate is
+ * better than the whole system going down. So a failed request changes nothing
+ * on screen, and a cold boot renders immediately from what the shop last said
+ * rather than waiting on the network.
+ *
+ * The difference from what this used to do matters. It used to fall back to
+ * hardcoded 2024 figures, which is not yesterday's rate, it is a guess wearing
+ * the same clothes: IDR sat at 16210 against a market of 17.5k and nothing
+ * distinguished it from a live number. A cached rate is a real rate that was
+ * true recently and carries the date it was read. Only a browser that has never
+ * once reached the API has nothing, and then the shop quotes its own USD.
  *
  * The key and the staleTime are a contract with the twelve components that read
  * this through `useShopPrice`. See the note in src/components/shop/shopPrice.ts
@@ -120,19 +127,29 @@ export const useRates = () => {
     queryFn: async () => {
       try {
         const data = await api.rates.list();
-        return (data || []).map((r: any) => ({
+        const live = (data || []).map((r: any) => ({
           currency: r.currency,
           rateToUSD: Number(r.rate_to_usd),
           // Carried so a surface can say how old the number is. The shop
           // converts its freight rate through this on every request.
           lastUpdated: r.last_updated ?? null,
         })).filter((r: ExchangeRate) => Number.isFinite(r.rateToUSD) && r.rateToUSD > 0) as ExchangeRate[];
+        if (live.length > 0) {
+          saveLastKnownRates(live);
+          return live;
+        }
+        // An empty table is not an answer worth adopting over a real one.
+        return loadLastKnownRates();
       } catch {
-        return [] as ExchangeRate[];
+        return loadLastKnownRates();
       }
     },
-    staleTime: 1000 * 60 * 60 * 6, // 6-hour TTL, rates don't change frequently
-    initialData: [] as ExchangeRate[],
+    // Matched to the worker's hourly refresh. Six hours meant a reader could be
+    // holding a rate five hours older than the one the shelf was priced at, for
+    // no saving worth having: this is one small request an hour, and the cached
+    // copy covers the gap when it fails.
+    staleTime: 1000 * 60 * 60,
+    initialData: loadLastKnownRates,
   });
 };
 

@@ -26865,14 +26865,19 @@ function resolveAllowedOrigin(origin: string): string | null {
 // on offline ticks so pricing never zeroes. Fails gently.
 async function syncLiveExchangeRates(env: Env): Promise<boolean> {
   try {
-    const usdRow = await env.DB.prepare(
-      "SELECT last_updated FROM exchange_rates WHERE currency = 'USD'"
-    ).first() as { last_updated: string | null } | null;
-    if (usdRow?.last_updated) {
-      const last = new Date(usdRow.last_updated + 'Z').getTime();
-      if (Date.now() - last < 24 * 3600 * 1000) return false; // still fresh
-    }
-
+    /* Every tick, not once a day.
+     *
+     * This used to skip the fetch when the last successful write was under 24
+     * hours old, which sounds thrifty and is not: one good read bought a whole
+     * day of not looking, so the table could only ever be as current as the
+     * moment the gate happened to open. The cron runs hourly, the feed is free
+     * and needs no key, and an upsert writing the same number twice costs
+     * nothing. Refreshing every tick keeps the table within an hour of the
+     * feed, and a failed hour is simply retried the next one.
+     *
+     * Nothing in here deletes or zeroes a rate. Every early return below leaves
+     * the stored rows exactly as they were, because yesterday's rate keeps the
+     * shop selling and no rate at all does not. */
     const resp = await fetch('https://open.er-api.com/v6/latest/USD', {
       headers: { 'User-Agent': 'teajia-worker/1.0' },
     });
