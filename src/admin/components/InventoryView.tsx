@@ -1214,15 +1214,44 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     }
   }, [deleteTarget, setLocalProducts, showToast, onRefresh]);
 
+  /*
+   * The export is the only way to see the whole shelf at once, so it carries
+   * what a pricing question actually needs rather than a readable summary.
+   *
+   * It used to be seven columns: type, both names, stock, cost, retail, origin.
+   * Every one of them true and none of them enough. A cost of 1200 says nothing
+   * without its currency, and the difference between 1200 USD and 1200 CNY is
+   * seven times the money. A retail price cannot be checked without the batch
+   * it was divided by. And nothing showed whether a tea carried its own freight
+   * rate or was following the shop's, which is the difference between a price
+   * that moves when the rate is renegotiated and one that does not.
+   *
+   * The id is first because it is what makes a row actionable: with it, a
+   * correction can be made against the exact record rather than a name that
+   * might match two teas.
+   */
   const handleExport = () => {
     const csv = Papa.unparse(processedProducts.map(p => ({
+        ID: p.id,
         Type: p.type,
+        Year: p.year ?? '',
         'Given Name': p.givenName,
+        'Chinese Name': p.chineseName ?? '',
         'Product Name': p.productName,
+        Origin: p.originRegion,
+        Vendor: p.vendor ?? '',
         Stock: p.stockGrams,
         Cost: p.costAmount,
-        Retail: p.pricePerGramUSD,
-        Origin: p.originRegion
+        'Cost Currency': p.costCurrency,
+        'Batch g': p.quantityPurchased,
+        // Blank means the tea has no rate of its own and follows the shop's.
+        // A number is a rate pinned to this tea, in the tea's own cost currency.
+        'Ship rate (own currency)': p.shippingRatePerKg ?? '',
+        'Ship rate source': p.shippingRatePerKg == null ? 'shop' : 'pinned to tea',
+        'Retail /g USD': p.pricePerGramUSD,
+        'Cost /g USD': p.costPerGramUSD,
+        Public: p.isPublic ? 'yes' : 'no',
+        'In shop': p.shownInShop ? 'yes' : 'no',
     })));
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');

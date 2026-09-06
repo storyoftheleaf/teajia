@@ -131,7 +131,12 @@ export const GhostInput = ({
       id={id}
       aria-label={ariaLabel}
       type={type}
-      value={localValue || ''}
+      /* A zero is a value, not an absence. `localValue || ''` blanked it, so a
+         freight rate of zero (Adrian saying this tea ships free) looked exactly
+         like a field nobody had filled in, in the one control that tells those
+         two apart. Same for a stock or a cost of zero anywhere else this input
+         is used. */
+      value={localValue === 0 ? '0' : (localValue ?? '')}
       onChange={(e) => setLocalValue(e.target.value)}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
@@ -1563,7 +1568,17 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                     <FieldCell label="Batch g">
                       <GhostInput variant="bordered" value={product.quantityPurchased || 0} onSave={(val) => handleUpdate(product.id, 'quantityPurchased', val)} type="number" className="tabular-nums" />
                     </FieldCell>
-                    <FieldCell label="Ship $/kg">
+                    <FieldCell
+                      label="Ship $/kg"
+                      labelAdornment={product.shippingRatePerKg != null ? (
+                        <span
+                          title="Pinned to this tea. Clear the field to follow the shop rate."
+                          className="text-tea-gold leading-none"
+                        >
+                          •<span className="sr-only"> pinned to this tea; clear the field to follow the shop rate</span>
+                        </span>
+                      ) : undefined}
+                    >
                       {/* Entered and shown in USD, matching the label and the
                           Add Product form. A tea with nothing recorded shows the
                           shop's rate rather than a blank, because that is what
@@ -1573,10 +1588,14 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                           Clearing the field is a real instruction, not a typo:
                           it hands the tea back to the shop rate so it follows
                           that rate as it changes, where any figure typed here
-                          pins the tea to it. A typed 0 still means free. The
-                          line under the field says which of the two is in
-                          force, because the number alone cannot: an inherited
-                          85 and a pinned 85 read identically. */}
+                          pins the tea to it. A typed 0 still means free.
+
+                          The dot on the label marks a tea that owns its rate,
+                          matching the inventory column, because the number
+                          alone cannot say it: an inherited 85 and a pinned 85
+                          read identically. It sits on the LABEL because
+                          FieldCell lays its children out in a row, so anything
+                          added beside the input lands next to it and wraps. */}
                       <GhostInput
                         variant="bordered"
                         value={shippingRateUsdFor(product.shippingRatePerKg, costRateToUsd, shopFreight.perKgUsd)}
@@ -1588,11 +1607,6 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                         type="number"
                         className="tabular-nums"
                       />
-                      <p className="mt-1 text-ui-11 text-tea-text-sec leading-[1.4]">
-                        {product.shippingRatePerKg == null
-                          ? 'Following the shop rate.'
-                          : 'Pinned to this tea. Clear the field to follow the shop rate.'}
-                      </p>
                     </FieldCell>
                   </FieldGrid>
                   {pricingCalc && pricingCalc.suggestedRetailUSD > 0 && (() => {
