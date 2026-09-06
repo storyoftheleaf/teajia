@@ -1,5 +1,5 @@
 import { compassValuesFromImport } from './compassCodec';
-import { DEFAULT_SHIPPING_RATE_PER_KG_USD } from './shippingRate';
+import { FALLBACK_SHIPPING_RATE_PER_KG } from './shippingRate';
 import { validateCurateContextPair } from './curateContextValidation';
 import { applyImportRecordHints, buildImportAnalysisPrompt, buildImportRecordFallbackProposal, buildImportRecordHints, decodeImportAnalysisProposal, IMPORT_ANALYSIS_OUTPUT_SCHEMA, inferSilentFills, normalizeImportProposal, renormalizeImportItemData, type ImportAnalysisProposal, type ImportMatchCandidates } from './curateImportAnalysis';
 import { canonicalImportToCompassValues, canonicalImportToProductValues, normalizeCanonicalImportRecord } from './curateImportCanonical';
@@ -1184,13 +1184,22 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
           return { id: String(row.id), vendorId: validVendor ? String(row.resolved_vendor_customer_id) : null, vendorName: typeof row.vendor_name === 'string' ? row.vendor_name : null, position: Number(row.position) };
         });
         /* Same rule as a product's own rate: nothing recorded means nobody
-           said, and the shop default applies; a number was said, and is
-           obeyed. See worker/src/shippingRate.ts. */
+           said, and the shop rate applies; a number was said, and is obeyed.
+           The shop rate now lives on the account rather than in code, so it is
+           read from there and the constant is only the floor beneath it. See
+           worker/src/shippingRate.ts. */
+        const shopFreight = await env.DB.prepare(
+          'SELECT default_shipping_rate_per_kg FROM accounts WHERE id = ?'
+        ).bind(ctx.accountId).first() as { default_shipping_rate_per_kg?: number | null } | null;
+        const shopRate = shopFreight?.default_shipping_rate_per_kg;
+        const shopRatePerKg = shopRate != null && Number.isFinite(Number(shopRate))
+          ? Number(shopRate)
+          : FALLBACK_SHIPPING_RATE_PER_KG;
         const recorded = batch.shipping_rate_per_kg;
         const rawRate = recorded == null ? null : Number(recorded);
         const shippingRatePerKg = rawRate != null && Number.isFinite(rawRate)
           ? rawRate
-          : DEFAULT_SHIPPING_RATE_PER_KG_USD;
+          : shopRatePerKg;
         return {
           batch: { id: batchId, accountId: ctx.accountId, journeyId, journeyName: journey ? [journey.name, journey.season, journey.year].filter(value => value != null && value !== '').join(' · ') : null, reviewState: String(batch.review_state), shippingRatePerKg },
           groups, items: itemRows.results.map(parsedFinalizeItem),
@@ -1383,12 +1392,15 @@ export async function createCurateImport(request: Request, env: ImportEnv, ctx: 
       : response({ error: 'idempotency_key already used for a different import' }, 409);
     const batchId = crypto.randomUUID();
     const statements: D1PreparedStatement[] = [env.DB.prepare(
-      /* The rate is written in rather than left to the column default, which
-         SQLite fixed at 10 when the table was made and cannot be altered in
-         place. One constant decides it for every door into the shop. */
+      /* NULL rather than a number, which is the same rule as everywhere else:
+         nobody has said what freight this batch carries, so the shop rate
+         applies and keeps applying as it changes. Writing a figure here would
+         pin the batch to whatever the rate was the day it was created, and it
+         cannot be left to the column default either, which SQLite fixed at 10
+         when the table was made and cannot alter in place. */
       `INSERT INTO curate_import_batches (id, account_id, created_by_user_id, title, review_state, journey_id, visit_id, client_idempotency_key, request_fingerprint, shipping_rate_per_kg)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(batchId, ctx.accountId, ctx.userId, title, 'pending', journeyId, visitId, idempotencyKey, fingerprint, DEFAULT_SHIPPING_RATE_PER_KG_USD)];
+    ).bind(batchId, ctx.accountId, ctx.userId, title, 'pending', journeyId, visitId, idempotencyKey, fingerprint, null)];
     let initialSourceId: string | null = null;
     if (pastedText != null) {
       initialSourceId = crypto.randomUUID();

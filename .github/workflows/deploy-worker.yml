@@ -61,6 +61,23 @@ jobs:
       - name: Worker tests
         run: npm run test:worker
 
+      # Build the worker before touching the database.
+      #
+      # vitest only transpiles the files a test actually imports, so nothing in
+      # the suite has an opinion about a module no test loads. On 2026-09-06 a
+      # renamed export left `curateImports.ts` importing a name that no longer
+      # existed: 1198 tests passed, migration 0009 applied to the live database,
+      # and the deploy then died in esbuild. The schema was ahead of the code
+      # for as long as the fix took.
+      #
+      # `--dry-run` runs the same bundle the deploy runs and writes nothing
+      # anywhere, so it costs seconds and needs no credentials. It sits above
+      # the migration step deliberately: a bundle that cannot build must stop
+      # the run before the database moves.
+      - name: Build worker (dry run)
+        working-directory: worker
+        run: npx wrangler deploy --dry-run --outdir=/tmp/worker-build
+
       # (The one-off 097 tracker reconcile was removed 2026-07-11: migration 097
       # is now applied and recorded in d1_migrations, so the redundant ALTERs only
       # logged "duplicate column" noise on every deploy.)
