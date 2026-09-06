@@ -150,10 +150,17 @@ describe('nothing else in the shop decides the rate', () => {
   it('reads the rate from the shop rather than from code, everywhere it prices', () => {
     // A call site that forgot the argument would silently price off whatever
     // the compiler let through. Every one of them passes it explicitly.
-    const calls = [...worker.matchAll(/addPricingFields\([^)]*\)/g)].map(m => m[0]);
-    expect(calls.length, 'addPricingFields moved or was renamed').toBeGreaterThan(1);
+    //
+    // The `function` group is how the declaration is told from the calls. It
+    // has to be captured rather than looked for inside the match: the match
+    // starts at the name, so the keyword sits just outside it, and a check for
+    // it in the matched text never fires. That is what failed CI on the first
+    // run of this file, which is the guard working, on itself.
+    const found = [...worker.matchAll(/(function\s+)?addPricingFields\(([^)]*)\)/g)];
+    const calls = found.filter(m => !m[1]).map(m => m[0]);
+    expect(found.some(m => m[1]), 'addPricingFields moved or was renamed').toBe(true);
+    expect(calls.length, 'nothing calls addPricingFields any more').toBeGreaterThan(0);
     for (const call of calls) {
-      if (call.includes('function ')) continue;
       expect(call, `a pricing call site takes no shop rate: ${call}`).toMatch(/rates,\s*(shopDefaultPerKgUsd|resolveShopFreightDefault)/);
     }
   });
