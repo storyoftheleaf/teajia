@@ -13,6 +13,7 @@ import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type Co
 import { shippingPerGramUsd, resolveShopFreightDefault } from './shippingRate';
 import { FX_FEED_CURRENCY_MAP, refreshedCurrencyName } from './exchangeRateFeed';
 import { SHOP_MARKUP_MULTIPLIER, CURATOR_FALLBACK_MARKUP } from './markup';
+import { costNeedsCurrency, COST_CURRENCY_REQUIRED } from './costCurrency';
 import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 import { deriveConfirmedInvoiceLine, repairCandidate, formatInvoiceNumber, loadUsdRates, amountToUsd } from './invoiceDomain';
@@ -3086,39 +3087,21 @@ async function validateProductOwnerAssignment(env: Env, ctx: AccountCtx, body: R
 }
 
 /**
- * A cost is a number and a currency, or it is not a cost.
- *
- * `cost_currency` carries `DEFAULT 'USD'`, which means a row that never stated
- * one is indistinguishable from a row that chose dollars. That is the same
- * disease as reading a missing rate as zero, one level up: absence answered
- * with a guess, and here the guess is worth seven times the money. A 1200 CNY
- * invoice recorded as 1200 USD prices the tea at seven times its cost, and
- * nothing in the schema objects, because 1200 is a perfectly good number.
- *
- * So a write that sets an amount must say what the amount is in. The row's
- * existing currency counts, since most edits change a price on a tea whose
- * currency was settled long ago; what is refused is the case where neither the
- * payload nor the row has ever said, which is the only one that can quietly
- * invent dollars.
+ * The REST shape of the shared rule in worker/src/costCurrency.ts. The rule
+ * itself lives there so the MCP door reads the same copy rather than a second
+ * opinion; this only turns it into an HTTP refusal.
  */
 function costMissingItsCurrency(
   body: Record<string, unknown>,
   existingCurrency: string | null | undefined,
 ): Response | null {
-  const settingAmount = Object.prototype.hasOwnProperty.call(body, 'cost_amount')
-    && body.cost_amount !== null && body.cost_amount !== undefined && Number(body.cost_amount) !== 0;
-  if (!settingAmount) return null;
-  const stated = (value: unknown) => {
-    if (typeof value !== 'string') return false;
-    const trimmed = value.trim();
-    // 'UNK' is the shop's own sentinel for a currency nobody recorded. It is
-    // not an answer to "what is this cost in".
-    return trimmed !== '' && trimmed.toUpperCase() !== 'UNK';
-  };
-  if (stated(body.cost_currency) || stated(existingCurrency)) return null;
-  return restError(400,
-    'A cost needs the currency it was paid in. Send cost_currency with cost_amount.',
-    'cost_currency_required');
+  if (!Object.prototype.hasOwnProperty.call(body, 'cost_amount')) return null;
+  const needed = costNeedsCurrency({
+    amount: body.cost_amount,
+    payloadCurrency: body.cost_currency,
+    existingCurrency,
+  });
+  return needed ? restError(400, COST_CURRENCY_REQUIRED, 'cost_currency_required') : null;
 }
 
 async function applyProductUpdate(

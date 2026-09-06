@@ -100,6 +100,38 @@ describe('every column default is a decision somebody wrote down', () => {
     expect(tables.length, 'another table now defaults its tenant; give it no default instead').toBeLessThanOrEqual(4);
   });
 
+  it('never lets an insert into those tables omit the account it belongs to', () => {
+    // This is the fix that matters. The default is only ever reachable by an
+    // INSERT that does not name account_id, so that, not the default, is the
+    // failure. Every existing insert names it; this keeps the next one honest.
+    //
+    // Removing the defaults instead would mean rebuilding four live tables,
+    // which SQLite requires for a default change, and the live column shape
+    // cannot be verified from a sandbox. A blind `INSERT INTO new SELECT *` is
+    // how a table of articles gets lost. Recorded in TODO.md with what to check
+    // first; this guard makes the wait safe rather than merely tolerable.
+    const TENANT_DEFAULTED = ['articles', 'story_content', 'story_content_versions', 'story_photos'];
+    const sources: Array<[string, string]> = [
+      ['index.ts', readFileSync(fileURLToPath(new URL('../src/index.ts', import.meta.url)), 'utf8')],
+      ['mcp.ts', readFileSync(fileURLToPath(new URL('../src/mcp.ts', import.meta.url)), 'utf8')],
+      ['wordforgeArticleDraft.ts', readFileSync(fileURLToPath(new URL('../src/wordforgeArticleDraft.ts', import.meta.url)), 'utf8')],
+    ];
+    const offences: string[] = [];
+    for (const [name, source] of sources) {
+      for (const table of TENANT_DEFAULTED) {
+        // The column list of each INSERT, up to the closing paren before VALUES
+        // or SELECT. A multi-line list is normal here, hence [\s\S].
+        const inserts = source.matchAll(new RegExp(`INSERT\\s+(?:OR\\s+\\w+\\s+)?INTO\\s+${table}\\s*\\(([\\s\\S]*?)\\)`, 'gi'));
+        for (const match of inserts) {
+          if (!/\baccount_id\b/.test(match[1])) {
+            offences.push(`${name}: INSERT INTO ${table} without account_id`);
+          }
+        }
+      }
+    }
+    expect(offences, 'an insert would fall through to the default tenant and land in the wrong shop').toEqual([]);
+  });
+
   it('carries no debt that nobody has written down', () => {
     // The DEBT entries are deliberate and each names its escape route. This
     // asserts they stay explained rather than quietly becoming normal.

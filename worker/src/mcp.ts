@@ -26,6 +26,7 @@
 // still fire). Nothing in this file touches D1 in a way that bypasses the
 // admin UI's invariants.
 
+import { costNeedsCurrency, currencyStated, COST_CURRENCY_REQUIRED } from './costCurrency';
 import { REFRESHED_CURRENCIES, refreshedCurrencyName } from './exchangeRateFeed';
 import {
   authorizeInvoiceLines,
@@ -697,6 +698,11 @@ async function toolCreateTea(env: Env, auth: McpAuth, args: any) {
     ? null
     : Math.max(0, Number(args.fixed_retail_price_usd) || 0);
   const lowStockThreshold = Math.max(0, Math.round(Number(args?.low_stock_threshold ?? 100) || 0));
+  /* Nothing exists yet to inherit a currency from, so the call has to say. See
+     worker/src/costCurrency.ts; the same rule refuses the REST create. */
+  if (costNeedsCurrency({ amount: costAmount, payloadCurrency: args?.cost_currency })) {
+    throw new Error(COST_CURRENCY_REQUIRED);
+  }
 
   const product: NewTeaInput = {
     productName,
@@ -710,8 +716,13 @@ async function toolCreateTea(env: Env, auth: McpAuth, args: any) {
     vendor: args?.vendor ? String(args.vendor).trim() : null,
     stockGrams,
     costAmount,
-    costCurrency: canonicalCurrency(args?.cost_currency
-      ? String(args.cost_currency).trim().toUpperCase() : '') || 'USD',
+    /* No `|| 'USD'`. A tea created with a cost and no currency used to be
+       stored as dollars on the agent's say-so, which is the one door where
+       nobody is looking at a form to notice. Refused below instead; a tea
+       created with no cost at all keeps NULL, which is honest. */
+    costCurrency: currencyStated(args?.cost_currency)
+      ? canonicalCurrency(String(args.cost_currency).trim().toUpperCase())
+      : null,
     fixedRetailPriceUsd,
     lowStockThreshold,
     notes: args?.notes ? String(args.notes).slice(0, 1000) : null,
@@ -1939,6 +1950,17 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
     'SELECT id, given_name, product_name, cost_amount, cost_currency, fixed_retail_price_usd, quantity_purchased, shipping_rate_per_kg FROM products WHERE id = ? AND account_id = ?'
   ).bind(productId, auth.accountId).first() as Record<string, any> | null;
   if (!product) return { error: 'not_found' };
+  /* An amount needs a unit. The row's own currency counts, since most calls
+     move a cost on a tea whose currency was settled long ago; what is refused
+     is a cost landing where neither the call nor the row has ever said. Same
+     rule the REST door uses, from worker/src/costCurrency.ts. */
+  if (costNeedsCurrency({
+    amount: costAmount,
+    payloadCurrency: costCurrency,
+    existingCurrency: product.cost_currency,
+  })) {
+    throw new Error(COST_CURRENCY_REQUIRED);
+  }
 
   if (!confirm) {
     const oldRetail = Number(product.fixed_retail_price_usd || 0);
