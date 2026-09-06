@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { SHOP_MARKUP_MULTIPLIER, CURATOR_FALLBACK_MARKUP } from '../src/markup';
+import { currencyStated, costNeedsCurrency } from '../src/costCurrency';
 
 /**
  * Two failures that are one failure, and neither is arithmetic.
@@ -60,11 +61,13 @@ describe('the markup has one home', () => {
   });
 
   it('names the curator fallback rather than leaving it a bare literal', () => {
-    // Deliberately not the shop markup, and deliberately unchanged: altering it
-    // would change what curators charge and nobody asked for that. Naming it is
-    // what makes the difference a decision somebody can find and question.
-    expect(CURATOR_FALLBACK_MARKUP).toBe(2.5);
-    expect(CURATOR_FALLBACK_MARKUP).not.toBe(SHOP_MARKUP_MULTIPLIER);
+    // It was 2.5 while the shop ran at three, so the same tea carried two
+    // prices depending on which surface asked. Adrian settled it on 2026-09-06:
+    // three, everywhere. So what this pins is no longer a DIFFERENCE, it is the
+    // sameness, read from the shop's own constant rather than typed again. It
+    // stays named so that letting curators price differently one day has a
+    // place to land instead of a literal buried in a route.
+    expect(CURATOR_FALLBACK_MARKUP).toBe(SHOP_MARKUP_MULTIPLIER);
   });
 });
 
@@ -84,8 +87,27 @@ describe('a cost says what it is in', () => {
   it('does not accept the shop own not-recorded sentinel as an answer', () => {
     // 'UNK' is what this codebase writes when nobody said. Letting it through
     // would make the guard a formality that types dollars for you.
+    //
+    // The rule moved out of the worker into `costCurrency.ts` so the agent door
+    // could be held to it too, so this asks the rule itself rather than reading
+    // the sentinel out of one function's text. That is the stronger question:
+    // scanning for the string only ever proved somebody had typed it.
+    expect(currencyStated('UNK')).toBe(false);
+    expect(currencyStated('unk')).toBe(false);
+    expect(currencyStated('  ')).toBe(false);
+    expect(currencyStated('Yuan')).toBe(true);
+
+    // And it is the rule the refusal actually consults: an amount whose only
+    // stated currency is the sentinel still needs one.
+    expect(costNeedsCurrency({ amount: 1200, payloadCurrency: 'UNK' })).toBe(true);
+    expect(costNeedsCurrency({ amount: 1200, payloadCurrency: 'Yuan' })).toBe(false);
+  });
+
+  it('routes the worker refusal through that shared rule', () => {
+    // Two doors with two copies of one rule is the shape that gave this shop
+    // four freight rates at once.
     const fn = worker.match(/function costMissingItsCurrency[\s\S]*?\n\}/);
     expect(fn, 'costMissingItsCurrency moved or was renamed').toBeTruthy();
-    expect(fn![0]).toContain("'UNK'");
+    expect(fn![0]).toContain('costNeedsCurrency');
   });
 });
