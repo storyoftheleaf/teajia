@@ -189,6 +189,35 @@ describe('nothing else in the shop decides the rate', () => {
     expect(row).toContain('shippingRateUsdFor');
   });
 
+  it('lets a pinned rate be cleared, and never confuses clearing with free', () => {
+    // The one control that edits this field could not express "unset". Emptying
+    // it ran through `Number(val) || 0` and saved a rate of ZERO, which is the
+    // exact NULL-versus-zero confusion this whole area exists to prevent,
+    // sitting in the only place a person can change it. So there was no way to
+    // hand a tea back to the shop rate, and trying made it ship free.
+    const payload = read('../../src/admin/productUpdatePayload.ts');
+    const clause = payload.match(/case 'shippingRatePerKg':[\s\S]*?\n\s*case /);
+    expect(clause, 'the freight case moved or was renamed').toBeTruthy();
+    expect(clause![0], 'an empty freight field no longer clears the rate').toMatch(/===\s*''|trim\(\)\s*===\s*''/);
+    expect(clause![0], 'clearing must send null, not a number').toContain('null');
+
+    const panel = read('../../src/admin/components/ProductEditPanel.tsx');
+    expect(panel, 'the edit panel turns an empty freight field into a number again')
+      .not.toMatch(/'shippingRatePerKg',\s*\(Number\(val\)\s*\|\|\s*0\)/);
+  });
+
+  it('shows which teas own their rate and which are borrowing the shop one', () => {
+    // A number cannot say this by itself: a tea pinned to 85 and a tea
+    // following a shop rate of 85 print the same figure, and only one of them
+    // stops following when the rate is renegotiated. That is how four teas sat
+    // pinned to a rate nobody had looked at since intake.
+    const row = read('../../src/admin/components/inventory/InventoryRow.tsx');
+    expect(row, 'the inventory cannot distinguish a pinned rate from an inherited one')
+      .toMatch(/shippingRatePerKg\s*!=\s*null/);
+    // And not by a mark alone.
+    expect(row, 'the distinction is carried only visually').toMatch(/sr-only|title=/);
+  });
+
   it('leaves no admin surface pinning a rate of its own', () => {
     // The Add Product form once filled in 13 and the edit panel fell back to
     // 13, both under a "$/kg" label, while the shop was charging something

@@ -51,7 +51,16 @@ export function buildProductUpdatePayload(field: keyof Product, value: any): Rec
     case 'inventoryPurpose': return { inventory_purpose: value };
     case 'isCustomWisdom': return { is_custom_wisdom: value ? 1 : 0 };
     case 'fixedRetailPriceUSD': return { fixed_retail_price_usd: value ? Number(value) : null };
-    case 'shippingRatePerKg': return { shipping_rate_per_kg: Number(value) };
+    /* Empty means unset, and unset is not zero. Clearing the field hands the
+       tea back to the shop freight rate and it follows that rate from then on;
+       a typed 0 is Adrian saying this one ships free. Number('') is 0, so
+       without this the only way to clear a rate was to accidentally make it
+       free. See worker/src/shippingRate.ts. */
+    case 'shippingRatePerKg':
+      return {
+        shipping_rate_per_kg:
+          value === null || value === undefined || String(value).trim() === '' ? null : Number(value),
+      };
     case 'quantityPurchased': return { quantity_purchased: Number(value) };
     case 'lowStockThreshold': return { low_stock_threshold: Number(value) };
     case 'costCurrency': return { cost_currency: value };

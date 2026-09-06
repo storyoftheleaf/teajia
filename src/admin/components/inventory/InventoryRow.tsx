@@ -260,14 +260,33 @@ function InventoryRowBase(props: InventoryRowProps) {
         </td>
       );
       /* Freight, shown in USD per kilo like the label says. A tea with
-         nothing recorded shows the shop default rather than a dash, because
-         the default is what it is actually being charged; the dash would say
-         "free", which is the reading that cost real money. */
+         nothing recorded shows the shop rate rather than a dash, because that
+         is what it is actually being charged; the dash would say "free", which
+         is the reading that cost real money.
+
+         A pinned rate carries a dot. Sorting the column finds the odd numbers,
+         but it cannot find a tea pinned to the same figure the shop happens to
+         charge today, and that tea stops following the shop the next time the
+         rate is renegotiated. The dot is the only thing in the list that
+         separates a rate this tea owns from one it is borrowing, and the title
+         says it in words so it is not carried by a mark alone. */
       case 'shippingRatePerKg': {
         const shipUsd = shippingRateUsdFor(product.shippingRatePerKg, costRateToUsd?.(product) ?? 1, shopFreightPerKgUsd);
+        const pinned = product.type !== 'Teaware' && product.shippingRatePerKg != null;
         return (
-          <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${numTone}`}>
+          <td
+            key={colKey}
+            id={cellId(colIndex)}
+            title={product.type === 'Teaware'
+              ? 'Teaware ships inside its per-piece price'
+              : pinned
+                ? 'Pinned to this tea. Clear it in the edit panel to follow the shop rate.'
+                : 'Following the shop rate'}
+            className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${numTone}`}
+          >
             <span>{product.type === 'Teaware' ? '—' : fmtNum(shipUsd)}</span>
+            {pinned && <span aria-hidden className="ml-1 text-tea-gold">•</span>}
+            {pinned && <span className="sr-only"> (pinned to this tea)</span>}
           </td>
         );
       }

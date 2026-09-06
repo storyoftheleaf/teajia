@@ -1566,17 +1566,33 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                     <FieldCell label="Ship $/kg">
                       {/* Entered and shown in USD, matching the label and the
                           Add Product form. A tea with nothing recorded shows the
-                          shop's default rather than a blank, because the default
-                          is what it is actually being charged. Saved back in the
-                          tea's own cost currency, which is how the column is
-                          stored. */}
+                          shop's rate rather than a blank, because that is what
+                          it is actually being charged. Saved back in the tea's
+                          own cost currency, which is how the column is stored.
+
+                          Clearing the field is a real instruction, not a typo:
+                          it hands the tea back to the shop rate so it follows
+                          that rate as it changes, where any figure typed here
+                          pins the tea to it. A typed 0 still means free. The
+                          line under the field says which of the two is in
+                          force, because the number alone cannot: an inherited
+                          85 and a pinned 85 read identically. */}
                       <GhostInput
                         variant="bordered"
                         value={shippingRateUsdFor(product.shippingRatePerKg, costRateToUsd, shopFreight.perKgUsd)}
-                        onSave={(val) => handleUpdate(product.id, 'shippingRatePerKg', (Number(val) || 0) * costRateToUsd)}
+                        onSave={(val) => handleUpdate(
+                          product.id,
+                          'shippingRatePerKg',
+                          String(val).trim() === '' ? null : (Number(val) || 0) * costRateToUsd,
+                        )}
                         type="number"
                         className="tabular-nums"
                       />
+                      <p className="mt-1 text-ui-11 text-tea-text-sec leading-[1.4]">
+                        {product.shippingRatePerKg == null
+                          ? 'Following the shop rate.'
+                          : 'Pinned to this tea. Clear the field to follow the shop rate.'}
+                      </p>
                     </FieldCell>
                   </FieldGrid>
                   {pricingCalc && pricingCalc.suggestedRetailUSD > 0 && (() => {
