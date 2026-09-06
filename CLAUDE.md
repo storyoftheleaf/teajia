@@ -286,17 +286,12 @@ See `docs/CONSOLIDATED_DIRECTION.md` (single directional list) and `docs/tracks/
 
 ## Desktop / mobile layout principles
 - **Mobile:** AccountPanel (person icon, top-right) is the primary engagement hub — everything personal lives there.
-- **Desktop:** LeftSidebar is the navigation system. Account Identity card sits directly below the logo (top of sidebar), not buried at the bottom. Cart lives in the sidebar utility footer.
-- The sidebar nav (Read, Learn, Consult, Shop) and the mobile bottom tab bar are the same four sections rendered differently — keep them in sync.
-- Sidebar uses micro-caps section labels (`BROWSE`, `MANAGE`, `CURATE`) via `TYPOGRAPHY_CLASSES.navSidebarGroup` in `text-tea-text-dim`. Labels — not dividers — carry grouping; the earlier dividers-only attempt failed legibility in sun.
-- Sidebar nav labels are Cormorant Garamond display serif (`TYPOGRAPHY_CLASSES.navSidebar` = `font-display text-ui-15 font-medium`). The serif carries the editorial-tea-brand feel — the sans-serif experiment lost soul. Outdoor-sun legibility is a real tradeoff accepted for this surface.
-- Inactive sidebar icons use `text-tea-text-sec`, NEVER `text-tea-gold/55` — gold is reserved for the active state, brand, and badges, so the eye can find the active row without competing brass tint on every icon.
-- Hover state on sidebar items: `hover:bg-tea-gold/6`, active: `bg-tea-gold/8`. Both steps are added by `tailwind.config.ts` (`opacity: { 6, 8 }`); Tailwind's own scale jumps 5 to 10, so removing them silently deletes every faint wash in the app.
-- Browse rows are `min-h-[44px]` (customer-facing breathing room); admin rows are tighter at `min-h-[36px]` with `text-ui-12` (tool palette density). Same height for both flattens the hierarchy.
-- Sidebar background is flat `#13100a` in dark mode (no gradient) and `var(--tea-surface)` in light. Gradients on a 56–224px wide column read as banding.
-- Collapse toggle: icon only (ChevronsLeft/Right), no text label.
-- Grain texture at `opacity: 0.025` on sidebar — narrow surface = pixel-noise risk at higher opacities.
-- Homepage hero: emblem 76px mobile, 108px desktop. Headline `lg:text-[48px] lg:max-w-[560px]`.
+- **Desktop (redesigned 2026-09-06):** LeftSidebar is TWO floating pods cut from the mobile bar, inset 12px from the top, left and bottom, 208px wide (56px as one capsule when collapsed). Every pod wears the `.nav-pod` material in `card-utilities.css`, which is the mobile bar's own recipe: page tone at 92%, blur, one keyline, label paper, grain, the same shadow. No flat fill, no border-right, no separate grain layer. Changing the bar's material changes the pods with it, on purpose.
+- Pod 1 is the place: emblem + LogoText wordmark, then `browse / manage` as a lowercase serif tab pair with a 1px bronze underline under the active room (only when the signed-in account has a Manage room), search, the room's words, spacer, cart. Pod 2 is the person: the Your Table row, then a foot row of four icon marks (connections, settings when the account has one, light/dark, collapse). The foot row is icon space; never put a word there.
+- The sidebar nav (Read, Craft, Advise, Shop) and the mobile bottom tab bar are the same four sections rendered differently — keep them in sync. Nav words are lowercase Cormorant like the mobile tabs; the active word is bronze with the mobile bar's glow filter. No left indicator bars, no hover or active washes on rows, no icons beside expanded words (icons live only in the collapsed capsule).
+- Browse rows are 52px with a hairline `bg-tea-border` between consecutive rows; manage rows are 42px with `text-ui-16` words and the children column under the active parent.
+- "Connections" is the label on the foot link that still opens the spaces page until the connections page exists (see TODO).
+- Homepage hero: emblem 76px mobile, 108px desktop. Headline `lg:text-[48px] lg:max-w-[560px]`. The hero overlay centres in the space beside the sidebar (`sidebar-inset`), not the full viewport.
 - Source/Discover/Deepen/Create lines are navigation buttons — show underline + arrow on hover.
 
 ## DO NOT build
