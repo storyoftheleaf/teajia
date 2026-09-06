@@ -1246,6 +1246,9 @@ function buildProductMirrorInserts(
     INSERT INTO product_listings (
       id, account_id, profile_id,
       stock_grams, low_stock_threshold, recheck_stock,
+      /* markup_multiplier is written as NULL when unstated: the row follows the
+         shop markup rather than carrying a copy of it that can drift. See
+         worker/src/markup.ts. */
       fixed_retail_price_usd, markup_multiplier,
       vendor, vendor_id, cost_amount, cost_currency,
       shipping_rate_per_kg, quantity_purchased, source_compass_entry_id,
@@ -1260,7 +1263,7 @@ function buildProductMirrorInserts(
   `).bind(
     `list_${productId}`, accountId, `prof_${productId}`,
     body.stock_grams ?? 0, body.low_stock_threshold ?? 100, body.recheck_stock ?? 0,
-    body.fixed_retail_price_usd ?? null, body.markup_multiplier ?? CURATOR_FALLBACK_MARKUP,
+    body.fixed_retail_price_usd ?? null, body.markup_multiplier ?? null,
     body.vendor ?? null, body.vendor_id ?? null, body.cost_amount ?? 0, body.cost_currency ?? 'USD',
     // NULL, not 0: nobody has entered a rate, so pricing applies the shop
     // default. A stored 0 is Adrian saying this one ships free.

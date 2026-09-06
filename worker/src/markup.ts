@@ -24,16 +24,14 @@
 export const SHOP_MARKUP_MULTIPLIER = 3;
 
 /**
- * What a curator's own listing multiplies by when its row says nothing.
+ * The curator listing path reads `products.markup_multiplier` and falls back to
+ * this when a row says nothing. It was 2.5 while the shop ran at three, so the
+ * same tea carried two prices depending on which surface asked. Adrian settled
+ * it on 2026-09-06: three, everywhere.
  *
- * Deliberately NOT the shop markup, and deliberately left at the figure that
- * was already in the code, because changing it would change what curators
- * charge and nobody has asked for that. It is named here rather than left as a
- * bare `?? 2.5` so that the difference is a decision somebody can find and
- * question, instead of a literal two thousand lines into a route.
- *
- * Worth questioning: `products.markup_multiplier` also DEFAULTS to 2.5, so this
- * fallback almost never fires, and the column's default is itself a copied
- * default of exactly the kind this module exists to stop. Recorded in TODO.md.
+ * Kept as a named export rather than deleted so the two call sites still read
+ * something that says what it is, and so a future decision to let curators
+ * price differently has a place to land instead of a literal typed into a
+ * route. It is the shop markup today, and the test pins that.
  */
-export const CURATOR_FALLBACK_MARKUP = 2.5;
+export const CURATOR_FALLBACK_MARKUP = SHOP_MARKUP_MULTIPLIER;
