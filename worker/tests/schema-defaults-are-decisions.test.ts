@@ -64,7 +64,15 @@ const UNIT_DEFAULTS: Record<string, string> = {
   // DEBT. A cost or a price whose unit was guessed prices the row wrong by
   // whatever the exchange rate is. costMissingItsCurrency() in the worker now
   // refuses a write that does not state one; the defaults themselves remain.
-  cost_currency: 'DEBT: a guessed unit on a figure the shelf price is computed from',
+  //
+  // The default cannot simply be dropped, because dropping it would not tell
+  // anyone which of the existing rows had been answered — 'USD' from a choice
+  // and 'USD' from the default are the same three letters. Migration 0014 adds
+  // `cost_currency_source` for exactly that: every write from here forward is
+  // marked as an answer, so what stays unmarked is the backlog, and
+  // `list_unstated_costs` / `set_cost_currency` are how it gets worked off. The
+  // default goes when the backlog reaches zero and not before.
+  cost_currency: 'DEBT: a guessed unit on a figure the shelf price is computed from; 0014 makes the guesses findable',
   purchase_currency: 'DEBT: a guessed unit on a recorded purchase',
   price_currency: "DEBT: a guessed unit, and it guesses NT",
   currency: 'DEBT: a guessed unit on a money row',

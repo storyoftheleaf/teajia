@@ -32,7 +32,8 @@ import { transferToolModule } from './mcpTools/transfer';
 import { curationTools } from './mcpTools/curation';
 import { eventsToolModule } from './mcpTools/events';
 import { writingToolModule } from './mcpTools/writing';
-import { costNeedsCurrency, currencyStated, COST_CURRENCY_REQUIRED } from './costCurrency';
+import { costCurrencyTools } from './mcpTools/costCurrency';
+import { costNeedsCurrency, currencyStated, CURRENCY_SOURCE_STATED, COST_CURRENCY_REQUIRED } from './costCurrency';
 import { REFRESHED_CURRENCIES, refreshedCurrencyName } from './exchangeRateFeed';
 import {
   authorizeInvoiceLines,
@@ -791,7 +792,13 @@ function buildCreateTeaMirrorInserts(env: Env, productId: string, m: Extract<Pen
     `).bind(
       `list_${productId}`, m.accountId, `prof_${productId}`,
       p.stockGrams, p.lowStockThreshold,
-      p.fixedRetailPriceUsd, 2.5,
+      /* markup_multiplier NULL, not 2.5. The column was created DEFAULT 2.5
+         while the shop priced at three, so every row carrying it disagreed with
+         the shelf; migration 0013 cleared them and the REST create writes NULL
+         for the same reason. Typing the old default back in here would rebuild
+         the fault one tea at a time, through the door with no form and nobody
+         watching. NULL means the listing follows SHOP_MARKUP_MULTIPLIER. */
+      p.fixedRetailPriceUsd, null,
       p.vendor, p.costAmount, p.costCurrency,
       p.stockGrams,
       1, listingStatus,
@@ -2042,7 +2049,12 @@ async function commitUpdateTeaPricing(env: Env, m: Extract<PendingMutation, { ki
   const cols: string[] = [];
   const vals: any[] = [];
   if (m.costAmount !== null) { cols.push('cost_amount'); vals.push(m.costAmount); }
-  if (m.costCurrency !== null) { cols.push('cost_currency'); vals.push(m.costCurrency); }
+  if (m.costCurrency !== null) {
+    cols.push('cost_currency'); vals.push(m.costCurrency);
+    /* The call said what the money was in, so the row stops being one of the
+       rows nobody ever asked. See migration 0014. */
+    cols.push('cost_currency_source'); vals.push(CURRENCY_SOURCE_STATED);
+  }
   if (m.retailPriceUsd !== null) { cols.push('fixed_retail_price_usd'); vals.push(m.retailPriceUsd); }
   if (m.quantityPurchased !== null) { cols.push('quantity_purchased'); vals.push(m.quantityPurchased); }
   if (m.year !== null) { cols.push('year'); vals.push(m.year); }
@@ -6492,6 +6504,7 @@ const TOOL_MODULES: ToolModule[] = [
   curationTools,
   eventsToolModule,
   writingToolModule,
+  costCurrencyTools,
 ];
 
 const { defs: MODULE_TOOL_DEFS, handlers: MODULE_TOOL_HANDLERS } = combineToolModules(TOOL_MODULES);

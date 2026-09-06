@@ -52,3 +52,33 @@ export function costNeedsCurrency(opts: {
   if (!settingAmount) return false;
   return !currencyStated(opts.payloadCurrency) && !currencyStated(opts.existingCurrency);
 }
+
+/**
+ * What `cost_currency_source` records (migration 0014).
+ *
+ * `cost_currency` carries `DEFAULT 'USD'`, so on every row written before this
+ * rule existed, "Adrian chose dollars" and "nobody was ever asked" are the same
+ * three letters. That is not repairable from the row, and Adrian's own reading
+ * of the shelf is that MOST of those teas were not paid for in dollars. So the
+ * column does not try to fix the past; it makes the past legible, by marking
+ * every row written from here forward as an actual answer. What is left
+ * unmarked is the backlog, and it can then be found, counted and corrected.
+ */
+export const CURRENCY_SOURCE_STATED = 'stated';
+/** Reconciled against a record of what was actually paid, not merely typed. */
+export const CURRENCY_SOURCE_RECOVERED = 'recovered';
+
+/**
+ * Mark a write as having stated its currency.
+ *
+ * Server-side only, and the caller's own value is dropped first: provenance a
+ * caller can set is not provenance. `'stated'` has to mean "a currency arrived
+ * with this write", which is a fact this process observed, not a claim it was
+ * handed. The parallel `tasting_source` is deliberately caller-settable because
+ * community aggregation needs to say whose voice a tasting is; nothing needs to
+ * say that on Adrian's behalf about a currency.
+ */
+export function stampCostCurrencySource(body: Record<string, unknown>): void {
+  delete body.cost_currency_source;
+  if (currencyStated(body.cost_currency)) body.cost_currency_source = CURRENCY_SOURCE_STATED;
+}

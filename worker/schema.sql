@@ -113,6 +113,7 @@ CREATE TABLE IF NOT EXISTS products (
     stock_movement_guard TEXT,
     cost_amount REAL DEFAULT 0,
     cost_currency TEXT DEFAULT 'USD',
+    cost_currency_source TEXT, -- migration 0014: NULL = nobody ever stated the currency, so the DEFAULT above may be a guess
     shipping_rate_per_kg REAL DEFAULT NULL, -- NULL = unentered, takes the shop default; 0 = Adrian said free
     quantity_purchased INTEGER,
     session_reserve_grams INTEGER,
@@ -587,6 +588,7 @@ CREATE TABLE IF NOT EXISTS product_listings (
   vendor_id TEXT,
   cost_amount REAL DEFAULT 0,
   cost_currency TEXT DEFAULT 'USD',
+  cost_currency_source TEXT, -- migration 0014: NULL = nobody ever stated the currency, so the DEFAULT above may be a guess
   shipping_rate_per_kg REAL DEFAULT NULL, -- NULL = unentered, takes the shop default; 0 = Adrian said free
   quantity_purchased INTEGER,
   source_compass_entry_id TEXT,

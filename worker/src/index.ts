@@ -13,7 +13,7 @@ import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type Co
 import { shippingPerGramUsd, resolveShopFreightDefault } from './shippingRate';
 import { FX_FEED_CURRENCY_MAP, refreshedCurrencyName } from './exchangeRateFeed';
 import { SHOP_MARKUP_MULTIPLIER, CURATOR_FALLBACK_MARKUP } from './markup';
-import { costNeedsCurrency, COST_CURRENCY_REQUIRED } from './costCurrency';
+import { costNeedsCurrency, stampCostCurrencySource, COST_CURRENCY_REQUIRED } from './costCurrency';
 import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 import { deriveConfirmedInvoiceLine, repairCandidate, formatInvoiceNumber, loadUsdRates, amountToUsd } from './invoiceDomain';
@@ -1024,6 +1024,7 @@ const LISTING_MIRROR_COLUMNS: Record<string, string> = {
   vendor_id:             'vendor_id',
   cost_amount:           'cost_amount',
   cost_currency:         'cost_currency',
+  cost_currency_source:  'cost_currency_source',
   shipping_rate_per_kg:  'shipping_rate_per_kg',
   quantity_purchased:    'quantity_purchased',
   source_compass_entry_id:'source_compass_entry_id',
@@ -2714,6 +2715,9 @@ const handleCreateProduct: Handler = async (request, env) => {
   }
   const capabilityError = validateProductCreateCapabilities(ctx, body);
   if (capabilityError) return capabilityError;
+  /* After the unknown-field check, so `cost_currency_source` is not a field a
+     caller may send: it records that this process saw a currency arrive. */
+  stampCostCurrencySource(body);
   const ownerError = await validateProductOwnerAssignment(env, ctx, body);
   if (ownerError) return ownerError;
   const canPublish = ctx.isPlatform || ctx.role === 'owner' || ctx.bundles.includes('publish');
@@ -3131,6 +3135,7 @@ async function applyProductUpdate(
     const costRefusal = costMissingItsCurrency(body, existingCost?.cost_currency);
     if (costRefusal) return costRefusal;
   }
+  stampCostCurrencySource(body);
   if (body.inventory_purpose !== undefined || body.is_sample !== undefined || body.is_personal !== undefined) {
     try { Object.assign(body, decodeInventoryPurposeWrite(body)); }
     catch (error) { return json({ error: (error as Error).message }, 400); }
@@ -3275,7 +3280,12 @@ async function applyProductUpdate(
     }
   }
 
-  const cols = Object.keys(body).filter(k => allowedColumns.has(k));
+  /* `cost_currency_source` is in no caller-facing column set on purpose, so it
+     is writable only because this function set it two hundred lines up. */
+  const writableColumns = body.cost_currency_source !== undefined
+    ? new Set([...allowedColumns, 'cost_currency_source'])
+    : allowedColumns;
+  const cols = Object.keys(body).filter(k => writableColumns.has(k));
   if (cols.length === 0) return json({ success: true });
   const sets = cols.map(c => `${c} = ?`).join(', ');
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { SHOP_MARKUP_MULTIPLIER, CURATOR_FALLBACK_MARKUP } from '../src/markup';
 import { currencyStated, costNeedsCurrency } from '../src/costCurrency';
@@ -26,7 +26,8 @@ import { currencyStated, costNeedsCurrency } from '../src/costCurrency';
  * amount now has to say what the amount is in.
  */
 
-const read = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
+const here = (rel: string) => fileURLToPath(new URL(rel, import.meta.url));
+const read = (rel: string) => readFileSync(here(rel), 'utf8');
 const worker = read('../src/index.ts');
 
 describe('the markup has one home', () => {
@@ -58,6 +59,33 @@ describe('the markup has one home', () => {
       for (const match of source.matchAll(literal)) offences.push(`${name}: ${match[0]}`);
     }
     expect(offences, 'a second markup appeared; read it from worker/src/markup.ts').toEqual([]);
+  });
+
+  it('leaves the old default nowhere in the worker, not even as a bind value', () => {
+    /* The scan above reads two files and looks for a multiplier next to a word
+       like `cost`. Both limits let one through: `mcp.ts` was never read, and
+       `create_tea`'s listing INSERT passed the markup positionally —
+       `p.fixedRetailPriceUsd, 2.5,` — which is not next to any word at all. So
+       every tea added through the agent door was born carrying the default
+       migration 0013 had just cleared off the whole shelf, one row at a time,
+       through the door with no form and nobody watching.
+
+       2.5 is now a number with no business being typed in the worker: the shop
+       multiplies by three and the curator fallback is named in markup.ts. So
+       the honest guard is the flat one. Comments are stripped first, because
+       the reason a number is gone has to stay writable. */
+    const stripComments = (source: string) =>
+      source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+    const offences: string[] = [];
+    for (const name of readdirSync(here('../src')).filter(f => f.endsWith('.ts') && f !== 'markup.ts')) {
+      const source = stripComments(read(`../src/${name}`));
+      for (const match of source.matchAll(/(?<![\d.])2\.5(?![\d])/g)) {
+        const line = source.slice(0, match.index).split('\n').length;
+        offences.push(`${name}:${line}`);
+      }
+    }
+    expect(offences, 'the pre-0013 markup was typed back into the worker; write NULL and let it read SHOP_MARKUP_MULTIPLIER')
+      .toEqual([]);
   });
 
   it('names the curator fallback rather than leaving it a bare literal', () => {
