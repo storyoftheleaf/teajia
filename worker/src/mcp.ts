@@ -27,6 +27,11 @@
 // admin UI's invariants.
 
 import { combineToolModules, type ToolModule } from './mcpTools/registry';
+import { PENDING_TTL_MS as TICKET_PENDING_TTL_MS } from './mcpTools/tickets';
+import { transferToolModule } from './mcpTools/transfer';
+import { curationTools } from './mcpTools/curation';
+import { eventsToolModule } from './mcpTools/events';
+import { writingToolModule } from './mcpTools/writing';
 import { costNeedsCurrency, currencyStated, COST_CURRENCY_REQUIRED } from './costCurrency';
 import { REFRESHED_CURRENCIES, refreshedCurrencyName } from './exchangeRateFeed';
 import {
@@ -518,7 +523,9 @@ type PendingMutation =
   // ── Intake (Curate-import) ──
   | { kind: 'intake_finalize'; accountId: string; userEmail: string; userId: string; importId: string; idempotencyKey: string };
 
-const PENDING_TTL_MS = 5 * 60 * 1000;
+/* Defined in mcpTools/tickets.ts so the built-in tools and the module tools
+   cannot drift on how long a confirmation stays good. */
+const PENDING_TTL_MS = TICKET_PENDING_TTL_MS;
 
 // Confirmation tickets are persisted in D1 (mcp_confirmation_tickets), NOT in
 // module memory: Cloudflare may route the preview call and the confirm call to
@@ -6442,14 +6449,32 @@ const IDEMPOTENT_TOOLS = new Set([
   'convert_order_request', 'confirm_payment',
 ]);
 
-function annotationsFor(name: string) {
-  const readOnly = READ_ONLY_TOOLS.has(name);
-  return {
+/**
+ * The hints a client reads before deciding whether it may call a tool
+ * unprompted. For the built-in tools they come from the three sets above. A
+ * module declares its own beside the tool it describes, which is the only place
+ * a reader can check a hint against the handler it belongs to, so a declared
+ * hint wins over the computed default.
+ *
+ * This mattered immediately: the seam used to overwrite a module's annotations
+ * with the computed ones, so every module tool was advertised as a writing tool
+ * whatever it actually did, and a careful client refuses to call a writing tool
+ * on its own. A read-only tool nobody may call is not a tool.
+ */
+function annotationsFor(tool: { name: string; scope?: string; annotations?: Record<string, unknown> }) {
+  /* A tool held behind a `:read` scope cannot write, because the scope check
+     ran before the handler did. So read-only is derivable for module tools and
+     does not need a second hand-kept list to fall out of step with the first.
+     READ_ONLY_TOOLS stays authoritative for the built-in tools it was written
+     for, several of which sit behind write scopes for other reasons. */
+  const readOnly = READ_ONLY_TOOLS.has(tool.name) || (tool.scope?.endsWith(':read') ?? false);
+  const computed = {
     readOnlyHint: readOnly,
-    destructiveHint: DESTRUCTIVE_TOOLS.has(name),
-    idempotentHint: !readOnly && IDEMPOTENT_TOOLS.has(name),
+    destructiveHint: DESTRUCTIVE_TOOLS.has(tool.name),
+    idempotentHint: !readOnly && IDEMPOTENT_TOOLS.has(tool.name),
     openWorldHint: false,
   };
+  return tool.annotations ? { ...computed, ...tool.annotations } : computed;
 }
 
 /**
@@ -6459,10 +6484,15 @@ function annotationsFor(name: string) {
  * written at once. The existing tools above are deliberately left where they
  * are; the point is to stop this file growing, not to rewrite what ships.
  *
- * Empty for now. Add a module here and its tools are scoped, listed and
+ * Add a module here and its tools are scoped, listed, annotated, audited and
  * dispatched by the same code that serves the built-in ones.
  */
-const TOOL_MODULES: ToolModule[] = [];
+const TOOL_MODULES: ToolModule[] = [
+  transferToolModule,
+  curationTools,
+  eventsToolModule,
+  writingToolModule,
+];
 
 const { defs: MODULE_TOOL_DEFS, handlers: MODULE_TOOL_HANDLERS } = combineToolModules(TOOL_MODULES);
 
@@ -6482,7 +6512,10 @@ function visibleToolDefs(auth: McpAuth) {
       if (OWNER_TIER_SCOPES.has(scope) && !OWNER_TIERS.has(auth.creatorTier)) return false;
       return true;
     })
-    .map(({ scope: _scope, ...tool }) => ({ ...tool, annotations: annotationsFor(tool.name) }));
+    .map(tool => {
+      const { scope: _scope, ...rest } = tool;
+      return { ...rest, annotations: annotationsFor(tool) };
+    });
 }
 
 const AUDITED_TOOLS = new Set([
@@ -6502,8 +6535,20 @@ const AUDITED_TOOLS = new Set([
   'convert_order_request', 'confirm_payment', 'record_payment',
 ]);
 
+/**
+ * Every module tool that is not read-only, by construction rather than by a
+ * second hand-maintained list. AUDITED_TOOLS above names the built-in tools one
+ * at a time, which is fine for a list that grew a few entries at a time and is
+ * a trap for a seam: a module added later would be dispatched, listed and
+ * scoped by this file and silently missing from its audit trail, and nobody
+ * finds a hole in a log by looking at it.
+ */
+const MODULE_AUDITED_TOOLS = new Set(
+  MODULE_TOOL_DEFS.filter(def => !annotationsFor(def).readOnlyHint).map(def => def.name),
+);
+
 async function logMcpToolCall(env: Env, auth: McpAuth, toolName: string, args: any, result: unknown) {
-  const shouldAudit = AUDITED_TOOLS.has(toolName) && (
+  const shouldAudit = (AUDITED_TOOLS.has(toolName) || MODULE_AUDITED_TOOLS.has(toolName)) && (
     toolName === 'record_sale' ||
     typeof args?.confirm === 'string'
   );
