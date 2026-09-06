@@ -2,7 +2,6 @@ import { useQuery } from '@tanstack/react-query';
 import { api, getTokenClaims } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
 import { Product, ExchangeRate, Customer } from '../types';
-import { INITIAL_RATES } from '../constants';
 import { shopFreightDefaultFrom, type ShopFreightDefault } from '../../lib/shippingRate';
 
 const useAccountQueryScope = () => {
@@ -98,15 +97,17 @@ export const useProducts = (options?: { enabled?: boolean }) => {
  *
  * `/api/rates` serves the `exchange_rates` rows in D1, which the worker
  * refreshes daily from a single feed and which every price it computes goes
- * through: the cost basis, the freight rate, the ×3. The browser converts an
+ * through: the cost basis, the freight rate, the x3. The browser converts an
  * already-computed USD figure for display, so it has to read the same rate the
- * shelf was priced at. It used to fetch its own from a different vendor and
- * merge that underneath, which meant a currency missing from D1 was displayed
- * at a rate the worker had never seen.
+ * shelf was priced at.
  *
- * INITIAL_RATES fills anything still missing and is the floor when the API is
- * unreachable. Every one of them carries `lastUpdated: null`, so a surface can
- * say out loud that it is showing a seeded figure rather than today's.
+ * There is no seeded table behind this and no second feed in front of it. An
+ * empty array is the honest answer when the rates cannot be read, and every
+ * consumer treats it that way: `useShopPrice` stops localising and shows the
+ * shop's own USD, `formatCurrency` prints the dollar figure rather than
+ * mislabelling it. A shop briefly quoting dollars is a small problem. A shop
+ * quoting rupiah at a rate from 2024 is a real one, and it does not look like
+ * a problem at all, which is why it lasted.
  *
  * The key and the staleTime are a contract with the twelve components that read
  * this through `useShopPrice`. See the note in src/components/shop/shopPrice.ts
@@ -117,28 +118,21 @@ export const useRates = () => {
   return useQuery({
     queryKey: ['rates', accountScope, userScope],
     queryFn: async () => {
-      let dbRates: ExchangeRate[] = [];
       try {
         const data = await api.rates.list();
-        dbRates = (data || []).map((r: any) => ({
+        return (data || []).map((r: any) => ({
           currency: r.currency,
           rateToUSD: Number(r.rate_to_usd),
           // Carried so a surface can say how old the number is. The shop
           // converts its freight rate through this on every request.
           lastUpdated: r.last_updated ?? null,
-        })).filter((r: ExchangeRate) => Number.isFinite(r.rateToUSD) && r.rateToUSD > 0);
+        })).filter((r: ExchangeRate) => Number.isFinite(r.rateToUSD) && r.rateToUSD > 0) as ExchangeRate[];
       } catch {
-        // Seeded rates below, marked unrefreshed, rather than no prices at all.
+        return [] as ExchangeRate[];
       }
-
-      const rateMap = new Map<string, ExchangeRate>();
-      INITIAL_RATES.forEach(r => rateMap.set(r.currency, r));
-      dbRates.forEach(r => rateMap.set(r.currency, r));
-
-      return Array.from(rateMap.values()) as ExchangeRate[];
     },
     staleTime: 1000 * 60 * 60 * 6, // 6-hour TTL, rates don't change frequently
-    initialData: INITIAL_RATES
+    initialData: [] as ExchangeRate[],
   });
 };
 

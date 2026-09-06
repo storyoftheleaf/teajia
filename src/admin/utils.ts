@@ -1,9 +1,13 @@
 import { Currency, ExchangeRate, Product } from './types';
 import type { InventoryItem } from '../types';
-import { INITIAL_RATES } from './constants';
 import { fetchWithTimeout } from '../lib/api';
 
-const FALLBACK_RATES = INITIAL_RATES;
+/*
+ * There is no fallback rate table. An empty rate list means the shop could not
+ * read its rates, and the honest response to that is to show the USD figure
+ * rather than convert it through a number nobody refreshed. Both functions
+ * below do exactly that.
+ */
 
 /**
  * `rate` is for a per-unit figure rather than a total.
@@ -19,8 +23,7 @@ const FALLBACK_RATES = INITIAL_RATES;
  *     IDR 9.2k   thousands, abbreviated with one decimal
  */
 export const formatCurrency = (amount: number, currency: Currency, rates: ExchangeRate[], opts?: { rate?: boolean }) => {
-  const safeRates = rates && rates.length > 0 ? rates : FALLBACK_RATES;
-  const found = safeRates.find(r => r.currency === currency);
+  const found = (rates || []).find(r => r.currency === currency);
   // Never silently multiply by 1 for a currency we have no rate for. If the
   // live table is missing it, fall back to showing the USD amount so the number
   // stays honest instead of mis-labelled.
@@ -108,8 +111,10 @@ export const formatCurrency = (amount: number, currency: Currency, rates: Exchan
  * with the price the order is actually reconciled at.
  *
  * One table, one refresh, one number: `useRates` in admin/hooks/useAdminData.ts
- * reads `/api/rates` and nothing else, with INITIAL_RATES as the visible-seed
- * floor when even that is unreachable.
+ * reads `/api/rates` and nothing else, and returns an empty list when it cannot.
+ * There is no seeded table behind it, because the seed was wrong (IDR 16210
+ * against a market of 17.5k) and a wrong price shown confidently is worse than
+ * no price. Empty means every surface shows the shop's own USD instead.
  */
 
 
@@ -121,11 +126,15 @@ export const calculatePricing = (
   rates: ExchangeRate[],
   isTeaware = false
 ) => {
-  const safeRates = rates && rates.length > 0 ? rates : FALLBACK_RATES;
-
-  // 1. Get Rate (Units of Currency per 1 USD)
-  const rateObj = safeRates.find(r => r.currency === currency);
-  const rateToUSD = rateObj ? rateObj.rateToUSD : 1;
+  /* No rate, no price. A missing rate used to become 1, which does not fail: it
+     reads a yuan cost as dollars and hands back a figure seven times too big,
+     which the x3 then triples. Returning zeros makes the surface print a dash,
+     which is what "we do not know" should look like. */
+  const rateObj = (rates || []).find(r => r.currency === currency);
+  const rateToUSD = rateObj?.rateToUSD;
+  if (!rateToUSD || rateToUSD <= 0) {
+    return { totalShipping: 0, costPerGramSource: 0, trueCostUSD: 0, suggestedRetailUSD: 0, rateUsed: 0 };
+  }
 
   // 2. Calculate Total Cost in Source Currency
   // For tea: shipping is per KG, convert grams to KG. For teaware: no per-kg shipping.

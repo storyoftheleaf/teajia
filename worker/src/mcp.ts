@@ -1016,9 +1016,24 @@ async function toolGetAccountContext(env: Env, accountId: string) {
         (SELECT COUNT(*) FROM customers WHERE account_id = ?1) AS customers`
   ).bind(accountId).first() as Record<string, any> | null;
 
-  const { results: rates } = await env.DB.prepare(
-    'SELECT currency, rate_to_usd FROM exchange_rates ORDER BY currency'
+  /* With last_updated, because the age of a rate is the thing that goes wrong
+     and it is invisible in the number itself. Every price in the shop converts
+     through these, so "when was this refreshed" has to be answerable in one
+     call rather than by reading the database by hand. */
+  const { results: rateRows } = await env.DB.prepare(
+    'SELECT currency, rate_to_usd, last_updated FROM exchange_rates ORDER BY currency'
   ).all();
+  const rates = (rateRows as Array<Record<string, any>>).map(r => {
+    const stamp = r.last_updated ? new Date(`${String(r.last_updated).replace(' ', 'T')}Z`).getTime() : NaN;
+    const ageHours = Number.isFinite(stamp) ? (Date.now() - stamp) / 3600000 : null;
+    return {
+      currency: r.currency,
+      rate_to_usd: r.rate_to_usd,
+      last_updated: r.last_updated ?? null,
+      // The daily refresh runs every 24h, so past 36 it has missed at least one.
+      stale: ageHours === null || ageHours > 36,
+    };
+  });
 
   return {
     account: {
@@ -5640,7 +5655,7 @@ const TOOL_DEFS = [
   {
     name: 'get_account_context',
     scope: 'inventory:read',
-    description: 'Orientation for the active account: name, default currency, invoice prefix + next invoice number, WhatsApp checkout number, exchange rates, the shop freight rate, and live counts (active products, low-stock, unpaid invoices, customers). Call this first when you need to quote prices or reason about currency.',
+    description: 'Orientation for the active account: name, default currency, invoice prefix + next invoice number, WhatsApp checkout number, exchange rates with the age of each and a stale flag, the shop freight rate, and live counts (active products, low-stock, unpaid invoices, customers). Call this first when you need to quote prices or reason about currency.',
     inputSchema: { type: 'object', properties: {} },
   },
   {

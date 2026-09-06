@@ -1512,8 +1512,28 @@ async function shopFreightPerKgUsd(env: Env, accountId: string, rates: Map<strin
 }
 
 function addPricingFields(product: any, rates: Map<string, number>, shopDefaultPerKgUsd: number): any {
-  const rate = lookupRateToUsd(rates, product.cost_currency as string | null | undefined) ?? 1;
+  /* A named cost currency with no rate is not a rate of 1. Reading a 380 yuan
+     cost as 380 dollars is a seven-fold error that the x3 then triples, and it
+     arrives looking like an expensive tea rather than like a fault. Nothing to
+     convert with means no price: the surfaces print a dash, which is what not
+     knowing should look like.
+
+     A cost with no currency recorded at all is the separate, older case. It
+     means nobody wrote one down, which by this shop's convention is USD, and
+     'UNK' is the sentinel the admin uses for it. That still converts at 1,
+     because that is what it has always meant, not because a rate is missing. */
+  const declared = product.cost_currency as string | null | undefined;
+  const unrecorded = !declared || String(declared).trim() === '' || String(declared).toUpperCase() === 'UNK';
+  const rate = unrecorded ? 1 : lookupRateToUsd(rates, declared);
   const isTeaware = product.type === 'Teaware';
+  if (!rate || rate <= 0) {
+    return {
+      ...product,
+      stock_grams: Math.round(product.stock_grams || 0),
+      cost_per_gram_usd: 0,
+      retail_price_per_gram_usd: 0,
+    };
+  }
 
   // For teaware, use quantity_units as the divisor (per-unit pricing)
   // For tea, use quantity_purchased (per-gram pricing)
@@ -1529,7 +1549,7 @@ function addPricingFields(product: any, rates: Map<string, number>, shopDefaultP
     /* Freight belongs in the basis the markup multiplies, and the rate itself
        is decided in one place. See worker/src/shippingRate.ts for both, and
        for why a NULL rate is not the same as a rate of zero. */
-    costPerUnitUSD = costPerUnit / (rate || 1) + shippingPerGramUsd({
+    costPerUnitUSD = costPerUnit / rate + shippingPerGramUsd({
       storedRatePerKg: product.shipping_rate_per_kg,
       rateToUsd: rate,
       isTeaware,
@@ -26859,6 +26879,21 @@ async function syncLiveExchangeRates(env: Env): Promise<boolean> {
     if (!resp.ok) return false;
     const body: any = await resp.json();
     if (body?.result !== 'success' || !body?.rates) return false;
+
+    /* Every currency the shop actually holds has to be covered, not just the
+       ones someone remembered to map. A row in exchange_rates outside the map
+       is never refreshed and never complains: HKD sat like that for months
+       while twenty-seven Hong Kong lots priced off a seeded figure. So the
+       stored rows are read back and anything unmapped is logged by name, which
+       is the only signal that would have caught it. */
+    const held = await env.DB.prepare('SELECT currency FROM exchange_rates').all();
+    const mapped = new Set(Object.values(FX_FEED_CURRENCY_MAP));
+    const unrefreshed = (held.results as Array<{ currency: string }>)
+      .map(r => r.currency)
+      .filter(c => !mapped.has(c));
+    if (unrefreshed.length > 0) {
+      console.error('Exchange rates held but never refreshed', { currencies: unrefreshed });
+    }
 
     const stmts: D1PreparedStatement[] = [];
     for (const [feedCode, rateToUsd] of Object.entries(body.rates as Record<string, number>)) {

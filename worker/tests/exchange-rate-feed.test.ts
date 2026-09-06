@@ -116,16 +116,16 @@ describe('the daily rate refresh', () => {
   });
 
   it('keeps one rate table, so two of them cannot drift apart', () => {
-    // src/utils/currency.ts carried its own: CNY 7.25, IDR 16250, HKD 7.75,
-    // against the shop's 7.2, 16210, 7.8, keyed by ISO code where the shop keys
-    // CNY as 'Yuan'. Neither table looked wrong on its own, which is the whole
-    // problem with having two.
+    // There were three: src/utils/currency.ts at CNY 7.25 / IDR 16250, the
+    // admin seed constants at 7.2 / 16210, and D1. None looked wrong on its
+    // own, and the two in the app were both years out of date. The app holds
+    // none now: an unread rate table is an empty list, and an empty list makes
+    // the shop quote its own USD rather than a number from 2024.
     const appSources = listSources(fileURLToPath(new URL('../../src', import.meta.url)));
-    const seedFile = 'admin/constants.ts';
-    const offenders = appSources.filter(([name, source]) =>
-      name !== seedFile && /(CNY|Yuan)\s*:\s*\d+(\.\d+)?\s*,[\s\S]{0,80}(TWD|NT)\s*:\s*\d+/.test(source));
+    const offenders = appSources.filter(([, source]) =>
+      /(CNY|Yuan)\s*:\s*\d+(\.\d+)?\s*,[\s\S]{0,80}(TWD|NT)\s*:\s*\d+/.test(source));
     expect(offenders.map(([name]) => name),
-      `only ${seedFile} may hold a table of exchange rates`).toEqual([]);
+      'no file in the app may hold a table of exchange rates; there is one, in D1').toEqual([]);
   });
 
   it('prices the storefront through that one table', () => {
