@@ -102,6 +102,24 @@ Two of those were in the same 70-line file, in opposite directions, and `fixed_r
 - **A zero must render as a zero.** `GhostInput` used `value || ''`, so a stored 0 showed as an empty field: free and unset looked identical in the one control that tells them apart.
 - Enforced by [worker/tests/entered-number.test.ts](worker/tests/entered-number.test.ts): a bare `Number(value)` in a case, a truthiness-gated conversion, or two cases writing one column by different rules all fail the suite.
 
+## A default is READ at use time, never COPIED into rows
+**The markup is `SHOP_MARKUP_MULTIPLIER` in [worker/src/markup.ts](worker/src/markup.ts), and it is three.** Cost plus freight, times three. Adrian's number.
+
+It had four homes before that file existed: `costPerUnitUSD * 3.0` in the worker's pricing, `trueCostUSD * 3` in the admin's preview of that same price, a `markup_multiplier` column defaulting to **2.5** on every product, and a `?? 2.5` in the create path. The shelf ran at three while a column on each of those rows said two and a half. This is the freight bug exactly, on a different number, and it was still live while freight was being fixed.
+
+- **Copied defaults drift; read defaults cannot.** Migration `0008` wrote `12` into 340 rows and turned one fact into 340 that could disagree; `0010` undid it. A default belongs in one place and is read when it is used.
+- **A negotiated number is a setting; a fixed one is a constant, in one place.** Freight moved onto the account because it changes when Adrian renegotiates. The markup has not been asked to vary, so it stays a constant, but only one.
+- `CURATOR_FALLBACK_MARKUP` (2.5) is deliberately not the shop markup and deliberately unchanged: altering it would change what curators charge and nobody asked for that. It is *named* so the difference is a decision someone can find and question. `products.markup_multiplier` also defaults to 2.5, which is itself a copied default; noted in `TODO.md`.
+- Enforced by [worker/tests/one-number-one-home.test.ts](worker/tests/one-number-one-home.test.ts): a single-digit multiplier beside a cost or price, or a `markup ?? n`, fails the suite.
+
+## A number without its unit is not a number
+**A cost is an amount and a currency, or it is not a cost.** `cost_currency` carries `DEFAULT 'USD'`, so a row that never stated one is indistinguishable from a row that chose dollars. That is absence answered with a guess, and here the guess is worth seven times the money: a ¥1,200 invoice stored as $1,200 prices the tea sevenfold and the schema has no objection, because 1200 is a perfectly good number. This is how the 1993 Y562 came to show a cost of $1,200 against notes that say 60 CNY × 20 boxes.
+
+- **Every door that writes `cost_amount` must say what it is in.** `costMissingItsCurrency()` in `worker/src/index.ts` refuses otherwise, on create and on update, so the admin, the MCP and the intake path are all covered by one rule.
+- **The update path reads the row first**, because most edits move an amount on a tea whose currency was settled long ago. What is refused is only the case where neither the payload nor the row has ever said.
+- **`UNK` is not an answer.** It is this codebase's sentinel for a currency nobody recorded; accepting it would make the guard a formality that types dollars for you.
+- Existing rows cannot be repaired retroactively: a defaulted `'USD'` is now indistinguishable from a chosen one. The inventory CSV export carries `Cost Currency` so the shelf can be audited by eye.
+
 ## InventoryView height chain — DO NOT BREAK
 The inventory page (`src/admin/components/InventoryView.tsx`) scrolls via an internal `flex-1 overflow-auto` container, NOT via the document. That container only works if every ancestor passes a definite height down. The chain is:
 

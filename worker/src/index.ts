@@ -12,6 +12,7 @@ import {
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
 import { shippingPerGramUsd, resolveShopFreightDefault } from './shippingRate';
 import { FX_FEED_CURRENCY_MAP, refreshedCurrencyName } from './exchangeRateFeed';
+import { SHOP_MARKUP_MULTIPLIER, CURATOR_FALLBACK_MARKUP } from './markup';
 import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 import { deriveConfirmedInvoiceLine, repairCandidate, formatInvoiceNumber, loadUsdRates, amountToUsd } from './invoiceDomain';
@@ -1259,7 +1260,7 @@ function buildProductMirrorInserts(
   `).bind(
     `list_${productId}`, accountId, `prof_${productId}`,
     body.stock_grams ?? 0, body.low_stock_threshold ?? 100, body.recheck_stock ?? 0,
-    body.fixed_retail_price_usd ?? null, body.markup_multiplier ?? 2.5,
+    body.fixed_retail_price_usd ?? null, body.markup_multiplier ?? CURATOR_FALLBACK_MARKUP,
     body.vendor ?? null, body.vendor_id ?? null, body.cost_amount ?? 0, body.cost_currency ?? 'USD',
     // NULL, not 0: nobody has entered a rate, so pricing applies the shop
     // default. A stored 0 is Adrian saying this one ships free.
@@ -1558,7 +1559,7 @@ function addPricingFields(product: any, rates: Map<string, number>, shopDefaultP
   }
 
   if (qty > 0) {
-    retailPricePerUnitUSD = costPerUnitUSD * 3.0;
+    retailPricePerUnitUSD = costPerUnitUSD * SHOP_MARKUP_MULTIPLIER;
   }
 
   return {
@@ -3056,6 +3057,9 @@ function validateProductCreateCapabilities(ctx: AccountCtx, body: Record<string,
   if (supplied(PRODUCT_COMMERCIAL_UPDATE_COLUMNS) && missing('sell')) {
     return restError(403, 'Sell capability required for supplied fields', 'insufficient_bundle', { required_bundle: 'sell' });
   }
+  // Nothing exists yet to inherit a currency from, so the payload has to say.
+  const createCostRefusal = costMissingItsCurrency(body, null);
+  if (createCostRefusal) return createCostRefusal;
   if (supplied(PRODUCT_CREATE_PUBLICATION_COLUMNS) && missing('publish')) {
     return restError(403, 'Publish capability required for supplied fields', 'insufficient_bundle', { required_bundle: 'publish' });
   }
@@ -3078,6 +3082,42 @@ async function validateProductOwnerAssignment(env: Env, ctx: AccountCtx, body: R
   return null;
 }
 
+/**
+ * A cost is a number and a currency, or it is not a cost.
+ *
+ * `cost_currency` carries `DEFAULT 'USD'`, which means a row that never stated
+ * one is indistinguishable from a row that chose dollars. That is the same
+ * disease as reading a missing rate as zero, one level up: absence answered
+ * with a guess, and here the guess is worth seven times the money. A 1200 CNY
+ * invoice recorded as 1200 USD prices the tea at seven times its cost, and
+ * nothing in the schema objects, because 1200 is a perfectly good number.
+ *
+ * So a write that sets an amount must say what the amount is in. The row's
+ * existing currency counts, since most edits change a price on a tea whose
+ * currency was settled long ago; what is refused is the case where neither the
+ * payload nor the row has ever said, which is the only one that can quietly
+ * invent dollars.
+ */
+function costMissingItsCurrency(
+  body: Record<string, unknown>,
+  existingCurrency: string | null | undefined,
+): Response | null {
+  const settingAmount = Object.prototype.hasOwnProperty.call(body, 'cost_amount')
+    && body.cost_amount !== null && body.cost_amount !== undefined && Number(body.cost_amount) !== 0;
+  if (!settingAmount) return null;
+  const stated = (value: unknown) => {
+    if (typeof value !== 'string') return false;
+    const trimmed = value.trim();
+    // 'UNK' is the shop's own sentinel for a currency nobody recorded. It is
+    // not an answer to "what is this cost in".
+    return trimmed !== '' && trimmed.toUpperCase() !== 'UNK';
+  };
+  if (stated(body.cost_currency) || stated(existingCurrency)) return null;
+  return restError(400,
+    'A cost needs the currency it was paid in. Send cost_currency with cost_amount.',
+    'cost_currency_required');
+}
+
 async function applyProductUpdate(
   request: Request,
   env: Env,
@@ -3092,6 +3132,14 @@ async function applyProductUpdate(
   const userEmail = getUserEmail(request);
   const body = await request.json() as Record<string, any>;
   delete body.account_id;
+  /* A cost needs the currency it was paid in. Read before write, because most
+     edits move an amount on a tea whose currency was settled long ago. */
+  if (Object.prototype.hasOwnProperty.call(body, 'cost_amount')) {
+    const existingCost = await env.DB.prepare('SELECT cost_currency FROM products WHERE id = ? AND account_id = ?')
+      .bind(params.id, accountId).first() as { cost_currency?: string | null } | null;
+    const costRefusal = costMissingItsCurrency(body, existingCost?.cost_currency);
+    if (costRefusal) return costRefusal;
+  }
   if (body.inventory_purpose !== undefined || body.is_sample !== undefined || body.is_personal !== undefined) {
     try { Object.assign(body, decodeInventoryPurposeWrite(body)); }
     catch (error) { return json({ error: (error as Error).message }, 400); }
@@ -24217,7 +24265,7 @@ const handleNetworkCatalog: Handler = async (request, env) => {
       // Cost-based: cost_per_gram (in cost_currency) * markup → retail in cost_currency.
       // Then convert to curator currency for display.
       const costCurrency = (p.curator_cost_currency as string) || 'USD';
-      const markup = (p.curator_markup_multiplier as number) ?? 2.5;
+      const markup = (p.curator_markup_multiplier as number) ?? CURATOR_FALLBACK_MARKUP;
       // cost_amount is the total cost for quantity_purchased; without that here,
       // we treat cost_amount as already per-gram. This matches how the legacy
       // products API returns it (see addPricingFields). Acceptable for browse.

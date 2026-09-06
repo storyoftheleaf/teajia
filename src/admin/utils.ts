@@ -1,6 +1,7 @@
 import { Currency, ExchangeRate, Product } from './types';
 import type { InventoryItem } from '../types';
 import { fetchWithTimeout } from '../lib/api';
+import { SHOP_MARKUP_MULTIPLIER } from '../lib/markup';
 
 /*
  * There is no fallback rate table. An empty rate list means the shop could not
@@ -157,7 +158,7 @@ export const calculatePricing = (
   const trueCostUSD = (rateToUSD && rateToUSD > 0) ? costPerUnitSource / rateToUSD : 0;
 
   // 5. Suggested Retail (3x Markup)
-  const suggestedRetailUSD = trueCostUSD * 3;
+  const suggestedRetailUSD = trueCostUSD * SHOP_MARKUP_MULTIPLIER;
 
   return {
     totalShipping,

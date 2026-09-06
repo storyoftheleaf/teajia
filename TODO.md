@@ -4,6 +4,9 @@
 
 ## Untriaged
 
+- [ ] **`products.markup_multiplier` defaults to 2.5 and the shop prices at 3, so every row carries a number the shelf ignores.** _(band: you-required)_ _(effort: moderate)_
+  Found 2026-09-06 while giving the markup one home. The shop multiplies cost plus freight by 3 (`SHOP_MARKUP_MULTIPLIER`), but the column on every product says 2.5, and the curator listing path actually reads it. So a tea can have two prices depending on which surface asks, and if anyone ever set `markup_multiplier` expecting the shop to honour it, the shop would ignore it. Two decisions needed, both Adrian's: whether a curator listing is *meant* to run at a lower multiple than the shop, and whether the column should default to NULL (meaning "use the shop's") rather than copying 2.5 into every row. SQLite cannot alter a column default in place, so changing it needs a migration and a create-path change together.
+
 - [ ] **Confirm the Y562 actually lost its pinned freight rate, since migration 0011 matched it by name.** _(band: you-required)_ _(effort: quick)_
   Adrian confirmed on 2026-09-06 that it should follow the shop rate. The session doing it had no live database access and so no product id, so `0011` matches on the export mark `Y562` or on 吉幸 across the three name columns. If the tea is recorded under neither, the migration succeeded and changed nothing, silently. The check takes a second: open the inventory, look at `Ship $/kg`, and see whether the Y562 still carries a dot. A dot means it kept its own rate and needs its id read off the live database. No dot means it is following the shop rate like everything else. Anything else still wearing a dot is a rate somebody entered on purpose, and stays until Adrian says otherwise.
 
