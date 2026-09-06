@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { CustomerTasting } from '../../../types';
 import { resolveTermLabel } from '../../../data/tastingTaxonomy';
-import { starredNotes } from '../../../lib/noteEntries';
+import { normalizeNotes } from '../../../lib/noteEntries';
 
 interface AlcoveTastingPlateProps {
   /** This reader's entry for this tea, or null when they have not written one. */
@@ -94,14 +94,15 @@ export const AlcoveTastingPlate: React.FC<AlcoveTastingPlateProps> = ({ entry, o
     ? note.tasting.flavor
     : note?.tasting?.feeling ?? [];
   /*
-   * The plate carries the line you did NOT star: your own paragraph on this tea,
-   * which is a private working note. A starred note is the opposite gesture, so
-   * it is read out as a quote in the character band above rather than repeated
-   * here a hundred pixels away from itself.
+   * Your own paragraph on this tea, and the plate's main body. Any separate
+   * notes from the sitting read underneath it. All of it is private to you.
    */
   const personalNote = note?.personalNote?.trim();
-  const starredCount = starredNotes(note?.tasting).length;
-  const hasSomethingToShow = terms.length > 0 || Boolean(personalNote) || starredCount > 0;
+  // Everything you wrote in the sitting, starred or not. Starring was a way to
+  // offer a note for publication; the shop reads every note now, so the mark
+  // means nothing here and all of them simply read back.
+  const ownNotes = normalizeNotes(note?.tasting);
+  const hasSomethingToShow = terms.length > 0 || Boolean(personalNote) || ownNotes.length > 0;
 
   const standalone = variant === 'standalone';
 
@@ -115,41 +116,53 @@ export const AlcoveTastingPlate: React.FC<AlcoveTastingPlateProps> = ({ entry, o
   if (standalone) {
     // Nothing written: one row, one invitation, an arrow that means forward.
     if (!entry || !hasSomethingToShow) {
+      /*
+       * An invitation is not a field, so it does not take a field's width. It
+       * sits as a small centred box in the same bronze as the written row, and
+       * only grows to a full row once there is something in it to read.
+       */
       return (
-        <button
-          type="button"
-          onClick={e => {
-            e.stopPropagation();
-            onTaste('edit');
-          }}
-          className="alcove-note-row flex min-h-[46px] w-full items-center gap-3 px-4 text-left transition-colors"
-        >
-          <LeafMark />
-          <span className="font-display text-[19px] font-medium leading-none text-tea-text">
-            Add your tasting
-          </span>
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.4"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-            className="ml-auto shrink-0 text-tea-gold-lt"
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={e => {
+              e.stopPropagation();
+              onTaste('edit');
+            }}
+            className="alcove-note-row inline-flex min-h-[44px] items-center gap-2.5 px-[18px] transition-colors"
           >
-            <path d="M5 12h13" />
-            <path d="M12.5 6.5 18 12l-5.5 5.5" />
-          </svg>
-        </button>
+            <LeafMark />
+            <span className="font-display text-ui-17 font-medium leading-none text-tea-text">
+              Add your tasting
+            </span>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              className="shrink-0 text-tea-gold-lt"
+            >
+              <path d="M5 12h13" />
+              <path d="M12.5 6.5 18 12l-5.5 5.5" />
+            </svg>
+          </button>
+        </div>
       );
     }
 
-    // Written: the same row shows what you called it, and opens onto the rest.
+    /*
+     * Written: the same row shows what you called it, and opens onto the rest.
+     * It is wider than the invitation because it carries words and a drawer,
+     * but it is still your note rather than the page, so it stays inside a
+     * reading measure instead of running the full width of the record.
+     */
     return (
-      <div>
+      <div className="mx-auto w-full max-w-[430px]">
         <button
           type="button"
           aria-expanded={open}
@@ -157,27 +170,35 @@ export const AlcoveTastingPlate: React.FC<AlcoveTastingPlateProps> = ({ entry, o
             e.stopPropagation();
             setOpen(v => !v);
           }}
-          className="alcove-note-row flex min-h-[46px] w-full items-center gap-3 px-4 text-left transition-colors"
+          className="alcove-note-row relative flex min-h-[46px] w-full items-center justify-center px-3.5 transition-colors"
         >
-          <LeafMark />
-          <span className="min-w-0 flex-1 truncate">
-            <span className="mr-2.5 font-sans text-ui-9 font-medium uppercase tracking-[0.18em] text-tea-text-dim">
+          {/*
+            What you tasted is the line, so it sits on the centre of the box the
+            way the shop's own taste line sits on the centre of the record. The
+            leaf and the word saying whose it is are a mark in the margin, held
+            out of the flow so they cannot push the words off centre.
+          */}
+          <span className="pointer-events-none absolute left-3.5 flex items-center gap-[7px]">
+            <LeafMark />
+            <span className="font-sans text-ui-8 uppercase tracking-[0.2em] text-tea-text-dim">
               Yours
             </span>
-            <span className="font-display text-[19px] font-medium text-tea-text">
-              {terms.map((termId, i) => (
-                <React.Fragment key={termId}>
-                  {i > 0 && (
-                    <span aria-hidden="true" className="px-[7px] text-tea-gold-lt">
-                      ·
-                    </span>
-                  )}
-                  {resolveTermLabel(termId)}
-                </React.Fragment>
-              ))}
-            </span>
           </span>
-          <Caret open={open} />
+          <span className="min-w-0 truncate px-[72px] text-center font-display text-ui-17 font-medium text-tea-text">
+            {terms.map((termId, i) => (
+              <React.Fragment key={termId}>
+                {i > 0 && (
+                  <span aria-hidden="true" className="px-[7px] text-tea-gold-lt">
+                    ·
+                  </span>
+                )}
+                {resolveTermLabel(termId)}
+              </React.Fragment>
+            ))}
+          </span>
+          <span className="pointer-events-none absolute right-3.5">
+            <Caret open={open} />
+          </span>
         </button>
 
         {open && (
@@ -186,6 +207,23 @@ export const AlcoveTastingPlate: React.FC<AlcoveTastingPlateProps> = ({ entry, o
               <p className="m-0 font-body text-ui-14 italic leading-[1.62] text-tea-text-sec">
                 {personalNote}
               </p>
+            )}
+            {/*
+              The rest of what you wrote during the sitting. It is yours and it
+              stays here: nothing you write is offered anywhere, and nothing
+              reaches a product page unless the shop reads it and chooses it.
+            */}
+            {ownNotes.length > 0 && (
+              <div className={personalNote ? 'mt-3.5' : ''}>
+                {ownNotes.map(note => (
+                  <p
+                    key={note.id}
+                    className="m-0 mt-1.5 font-body text-ui-14 italic leading-[1.62] text-tea-text-sec first:mt-0"
+                  >
+                    &ldquo;{note.text}&rdquo;
+                  </p>
+                ))}
+              </div>
             )}
             {tastedLabel && (
               <p className={`m-0 font-sans text-ui-9 uppercase tracking-[0.18em] text-tea-text-dim ${personalNote ? 'mt-3' : ''}`}>

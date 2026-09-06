@@ -9,7 +9,6 @@ describe('product writing reverse links', () => {
     const html = renderToStaticMarkup(
       <MemoryRouter>
         <AlcoveTableSection
-          impressions={[]}
           events={[]}
           tastingCount={0}
           relatedArticles={[{ id: 'article-1', slug: 'rou-gui-field-note', title: 'Rou Gui field note' }]}

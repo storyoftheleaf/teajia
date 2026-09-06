@@ -74,6 +74,30 @@ Add only genuinely new observations here. During triage, move each accepted item
 
 - [ ] **On mobile, Adjust and the overflow menu are two separate sheets that could be one.** Also from the dropped `wip/inventory-mobile-sheet`. The concept is sound and is still unbuilt on main, but the branch's code is unusable — `InventoryView.tsx` has since gained wisdom-entry filtering, an inventory-summary endpoint and tasting-journal wiring that the branch predates. Treat this as a fresh build from the idea, not a merge.
 
+## Later — the tasting notes loop
+
+Shipped 2026-09-05: the shop's tasting and a customer's tasting are two separate
+records, and the only bridge is the Tasting Notes room, where the shop reads
+every note anyone wrote and chooses what a tea carries. These four are the rest
+of that loop. None of them blocks it working; the first one gates telling
+anybody about it.
+
+- [ ] **A customer is not told that what they write can be published.** _(band: you-required)_ _(effort: quick)_
+  Tasting Notes now shows the shop every note anyone has written, and publishing one puts their sentence on a public product page under a name the shop types. Nothing in the tasting screen says so. That is a consent question, not a screen: it wants a line where someone writes, and a decision about whether they can ask for a published note to come down.
+
+
+- [ ] **The old offer-led review queue is still wired up and now contradicts the new one.** _(band: agent-runnable)_ _(effort: quick)_
+  The queue inside the Add Product window reads only notes a customer put forward themselves, which is the model that was just replaced. Customers no longer put anything forward, so it will sit empty and mislead whoever finds it. Its editing controls are good and worth keeping somewhere; the list behind it is the part that is now wrong.
+
+
+- [ ] **A published customer note names a person who has no page to go to.** _(band: you-required)_ _(effort: moderate)_
+  Promoted notes carry a name and a line of detail, both typed by hand at the moment of publishing rather than read from the person. Contributor profiles already exist for tea makers, so the shape is there. Whether a customer becomes a public profile, and what appears on it, is a decision about the shop's relationship to its customers, not a wiring job.
+
+
+- [ ] **No tea in the shop has a tasting entered, so the record never renders on the live site.** _(band: you-required)_ _(effort: moderate)_
+  Measured 2026-09-05: all 133 public products carry an empty tasting record, and none names a source. What shows today is the old free-text tag list falling back into the taste line. Everything downstream of a tasting is therefore invisible in production: the feel line, the shop's starred note, the potential-profile qualifier. The structured tasting can be written from the admin panel or spoken through the agent tools; what is missing is the sitting-down and doing it, tea by tea.
+
+
 ## Historical queue
 
 The pre-consolidation root queue is preserved at [docs/_archive/session-artifacts-2026-07/ROOT_TODO.md](docs/_archive/session-artifacts-2026-07/ROOT_TODO.md). Its valid work was reconciled into the July tracks; it is not an active checklist.

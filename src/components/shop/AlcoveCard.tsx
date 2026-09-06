@@ -562,6 +562,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       potentialResearch={potentialResearch}
       onTaste={layout === 'page' ? undefined : onTaste}
       tastingEntry={tastingEntry}
+      impressions={impressions}
       open={layout === 'page'}
     />
   );
@@ -661,7 +662,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   // 7. From the table: impression, events, journal, tasting count
   const tableSection = (
     <AlcoveTableSection
-      impressions={impressions}
       events={productEvents ?? []}
       relatedArticles={relatedArticles}
       tastingCount={tastingCount}

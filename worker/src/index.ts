@@ -59,7 +59,7 @@ import {
   type ReservePartySeatsInput,
   type ReservePartySeatsResult,
 } from './eventDomain';
-import { candidateToApi, impressionToApi, parseCandidateInput } from './tastingNoteCuration';
+import { candidateToApi, impressionToApi, journalRowToNotes, parseCandidateInput } from './tastingNoteCuration';
 import { deliverVerificationCode } from './verificationDelivery';
 import { INCIDENT_STATUSES, incidentToApi, normalizeIncidentInput, upsertIncident, type IncidentStatus } from './incidents';
 import {
@@ -16890,6 +16890,131 @@ const handleUnstarTastingNote: Handler = async (request, env, params) => {
   return json({ success: true });
 };
 
+/**
+ * Everything customers have written about this shop's teas, in one place.
+ *
+ * The shop reads all of it and chooses; a customer does not nominate their own
+ * writing. That is the whole difference between this and the candidates list
+ * below it, which only ever held notes someone put forward themselves.
+ *
+ * Notes already promoted or dismissed come back marked rather than hidden, so
+ * a decision is visible and reversible in the reading rather than silently
+ * vanishing from the list.
+ */
+const handleListCustomerTastingNotes: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'publish');
+  if ('error' in ctx) return ctx.error;
+  const [journals, decided] = await Promise.all([
+    env.DB.prepare(
+      `SELECT j.id, j.product_id, j.user_id, j.note, j.tasting, j.personal_note, j.created_at,
+              COALESCE(p.given_name, p.product_name, j.product_name) AS product_name,
+              u.id AS author_user_id,
+              COALESCE(NULLIF(u.name, ''), u.username, j.user_id) AS author_name
+         FROM customer_tasting_journal j
+         LEFT JOIN products p ON p.id = j.product_id AND p.account_id = j.account_id
+         LEFT JOIN users u ON u.email = j.user_id
+        WHERE j.account_id = ?1 AND COALESCE(j.archived, 0) = 0 AND j.product_id IS NOT NULL
+        ORDER BY j.created_at DESC
+        LIMIT 500`
+    ).bind(ctx.accountId).all<Record<string, any>>(),
+    env.DB.prepare(
+      `SELECT journal_entry_id, note_key, status FROM tasting_note_candidates
+        WHERE account_id = ?1 AND status IN ('promoted', 'dismissed')`
+    ).bind(ctx.accountId).all<Record<string, any>>(),
+  ]);
+  const resolved = new Map<string, 'promoted' | 'dismissed'>();
+  for (const row of decided.results) {
+    resolved.set(`${row.journal_entry_id}::${row.note_key}`, row.status);
+  }
+  const notes = journals.results.flatMap(row => journalRowToNotes(row, resolved));
+  return json(notes);
+};
+
+/**
+ * Publishes one customer note as an impression, straight from the journal.
+ *
+ * A candidate row is still written, because it is the record of the decision:
+ * who wrote it, which note it was, what it was edited to, and who published it.
+ * The difference from the older path is that the shop creates it at the moment
+ * of promoting rather than the customer creating it by offering.
+ */
+const handlePromoteCustomerTastingNote: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'publish');
+  if ('error' in ctx) return ctx.error;
+  let body: Record<string, unknown>;
+  try {
+    const parsed = await request.json();
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('invalid');
+    body = parsed as Record<string, unknown>;
+  } catch {
+    return json({ error: 'Invalid JSON body' }, 400);
+  }
+  const journalEntryId = typeof body.journal_entry_id === 'string' ? body.journal_entry_id : '';
+  const noteKey = typeof body.note_key === 'string' ? body.note_key : '';
+  const sourceText = typeof body.source_text === 'string' ? body.source_text.trim() : '';
+  const text = typeof body.edited_text === 'string' ? body.edited_text.trim() : sourceText;
+  const attributionName = typeof body.attribution_name === 'string' ? body.attribution_name.trim() : '';
+  const attributionDetail = typeof body.attribution_detail === 'string' && body.attribution_detail.trim()
+    ? body.attribution_detail.trim() : null;
+  const dismiss = body.dismiss === true;
+  if (!journalEntryId || !noteKey || !sourceText) return json({ error: 'journal_entry_id, note_key and source_text are required' }, 400);
+  if (!dismiss && (!text || !attributionName)) return json({ error: 'Final text and attribution name are required' }, 400);
+
+  const journal = await env.DB.prepare(
+    `SELECT j.id, j.product_id, u.id AS author_user_id
+       FROM customer_tasting_journal j
+       LEFT JOIN users u ON u.email = j.user_id
+      WHERE j.id = ? AND j.account_id = ?`
+  ).bind(journalEntryId, ctx.accountId).first<Record<string, any>>();
+  if (!journal?.product_id) return json({ error: 'Journal entry not found' }, 404);
+  // The candidate table records who wrote the note, so a journal whose author
+  // no longer resolves to a user cannot be published under anyone's name.
+  if (!journal.author_user_id) return json({ error: 'This note has no author on file and cannot be published' }, 409);
+
+  const existing = await env.DB.prepare(
+    `SELECT id, status FROM tasting_note_candidates
+      WHERE account_id = ? AND journal_entry_id = ? AND note_key = ?`
+  ).bind(ctx.accountId, journalEntryId, noteKey).first<Record<string, any>>();
+  if (existing && existing.status !== 'starred') return json({ error: 'This note has already been decided' }, 409);
+
+  const now = new Date().toISOString();
+  const candidateId = existing?.id ?? crypto.randomUUID();
+  if (dismiss) {
+    await env.DB.prepare(`
+      INSERT INTO tasting_note_candidates
+        (id, account_id, journal_entry_id, note_key, product_id, author_user_id, source_text, status, created_at, updated_at, dismissed_at, dismissed_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'dismissed', ?, ?, ?, ?)
+      ON CONFLICT(author_user_id, journal_entry_id, note_key) DO UPDATE SET
+        status = 'dismissed', dismissed_at = excluded.dismissed_at, dismissed_by = excluded.dismissed_by, updated_at = excluded.updated_at
+    `).bind(candidateId, ctx.accountId, journalEntryId, noteKey, journal.product_id, journal.author_user_id, sourceText, now, now, now, ctx.userId).run();
+    return json({ status: 'dismissed', journalEntryId, noteKey });
+  }
+
+  const impressionId = crypto.randomUUID();
+  const results = await env.DB.batch([
+    env.DB.prepare(`
+      INSERT INTO tasting_note_candidates
+        (id, account_id, journal_entry_id, note_key, product_id, author_user_id, source_text, status, created_at, updated_at, edited_text, attribution_name, attribution_detail, promoted_at, promoted_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'promoted', ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(author_user_id, journal_entry_id, note_key) DO UPDATE SET
+        status = 'promoted', edited_text = excluded.edited_text, attribution_name = excluded.attribution_name,
+        attribution_detail = excluded.attribution_detail, promoted_at = excluded.promoted_at,
+        promoted_by = excluded.promoted_by, updated_at = excluded.updated_at
+    `).bind(candidateId, ctx.accountId, journalEntryId, noteKey, journal.product_id, journal.author_user_id, sourceText, now, now, text, attributionName, attributionDetail, now, ctx.userId),
+    env.DB.prepare(`
+      INSERT INTO product_impressions
+        (id, account_id, product_id, candidate_id, text, attribution_name, attribution_detail, published_at, published_by, created_at)
+      SELECT ?, ?, ?, c.id, ?, ?, ?, ?, ?, ?
+        FROM tasting_note_candidates c
+       WHERE c.account_id = ? AND c.journal_entry_id = ? AND c.note_key = ? AND c.status = 'promoted'
+      ON CONFLICT(candidate_id) DO UPDATE SET
+        text = excluded.text, attribution_name = excluded.attribution_name, attribution_detail = excluded.attribution_detail
+    `).bind(impressionId, ctx.accountId, journal.product_id, text, attributionName, attributionDetail, now, ctx.userId, now, ctx.accountId, journalEntryId, noteKey),
+  ]);
+  if (!results[1]?.meta.changes) return json({ error: 'Promotion could not be completed', retryable: true }, 500);
+  return json({ status: 'promoted', productId: journal.product_id, text, attributionName, attributionDetail, publishedAt: now }, 201);
+};
+
 const handleListTastingNoteCandidates: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
@@ -26669,6 +26794,8 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/tasting-journal/:id/candidates/:noteKey', handleStarTastingNote],
   ['DELETE', '/api/tasting-journal/:id/candidates/:noteKey', handleUnstarTastingNote],
   ['DELETE', '/api/tasting-journal/:id', handleDeleteTastingEntry],
+  ['GET', '/api/admin/customer-tasting-notes', handleListCustomerTastingNotes],
+  ['POST', '/api/admin/customer-tasting-notes/decide', handlePromoteCustomerTastingNote],
   ['GET', '/api/admin/tasting-note-candidates', handleListTastingNoteCandidates],
   ['PUT', '/api/admin/tasting-note-candidates/:id', handleUpdateTastingNoteCandidate],
   ['POST', '/api/admin/tasting-note-candidates/:id/dismiss', handleDismissTastingNoteCandidate],

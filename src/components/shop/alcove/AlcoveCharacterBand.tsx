@@ -2,6 +2,7 @@ import React from 'react';
 import type { CustomerTasting, InventoryItem } from '../../../types';
 import { resolveTermLabel, TASTING_CATEGORY_ORDER } from '../../../data/tastingTaxonomy';
 import { starredNotes } from '../../../lib/noteEntries';
+import type { ProductImpression } from '../ProductImpressions';
 import { AlcoveSectionHeading } from './AlcoveSectionHeading';
 import { AlcoveTastingPlate } from './AlcoveTastingPlate';
 import type { ProductResearchResolution } from '../../../wisdom/productResearch';
@@ -37,6 +38,12 @@ interface AlcoveCharacterBandProps {
    * so a second visit edits rather than adds.
    */
   tastingEntry?: CustomerTasting | null;
+  /**
+   * Customer notes the shop has promoted, fetched once by the card and handed
+   * down. Passed rather than fetched here so the band stays a pure render and
+   * one page does not open two identical requests.
+   */
+  impressions?: ProductImpression[];
   /** The standalone page sets the character in air rather than in a panel. */
   open?: boolean;
 }
@@ -129,6 +136,7 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
   potentialResearch,
   onTaste,
   tastingEntry = null,
+  impressions = [],
   open = false,
 }) => {
   const tasting = item.tasting;
@@ -157,28 +165,34 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
         }));
 
   /*
-   * Every voice on this tea, in one grammar.
+   * What has been said about this tea, and only what the shop chose to publish.
    *
-   * The shop's own starred notes are Adrian's or a promoted community line. The
-   * reader's own starred note is theirs, and it belongs in the same place: a
-   * note you star is a note you asked to see against the tea, and reading it as
-   * a quote beside the taste line is what "star" was always promising. It stays
-   * on their screen rather than the shop's, because starring is not publishing
-   * someone else's words on a product page.
+   * Two sources, one grammar. The shop's own starred notes are Adrian writing
+   * about his tea. The impressions are customers' notes he read in the review
+   * queue and promoted, each going out under the name he set. Both are
+   * published claims on a public product page, which is what earns them a place
+   * on the record.
+   *
+   * The reader's OWN note is deliberately absent. It used to appear here
+   * captioned "You", which put a private journal line inside the shop's account
+   * of the tea and made a page look reviewed when nobody had reviewed it. It
+   * belongs on their own plate below, beside the terms they chose.
    */
   const shopStarred = starredNotes(tasting).map(note => ({
-    note,
+    text: note.text,
     attribution: note.sourceAuthor
       ? note.sourceAuthor.initial || note.sourceAuthor.accountName || 'Community'
       : 'Adrian',
+    detail: null as string | null,
     key: `shop-${note.id}`,
   }));
-  const ownStarred = starredNotes(tastingEntry?.note?.tasting).map(note => ({
-    note,
-    attribution: 'You',
-    key: `own-${note.id}`,
+  const promoted = impressions.map(impression => ({
+    text: impression.text,
+    attribution: impression.attributionName,
+    detail: impression.attributionDetail,
+    key: `said-${impression.id}`,
   }));
-  const quotes = [...shopStarred, ...ownStarred];
+  const quotes = [...shopStarred, ...promoted];
   const hasVisibleStructuredTerms = flavorTerms.length > 0 || feelingTerms.length > 0;
   const hasTerms = tasteTerms.length > 0 || feelingTerms.length > 0;
   const hasCharacterContent = hasTerms || quotes.length > 0;
@@ -241,40 +255,57 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
 
     return (
       <section aria-label="Character" className="mx-5 mt-7">
+        {/*
+          Two things, not a stack of boxes.
+
+          The character is ONE block: what it tastes of, and under it what it
+          feels like. They are two readings of a single cup, so a keyline
+          between them made the record look like a form with two fields. Size
+          and ink separate them instead, the way the card already did.
+
+          Under that, one rule, and then what has been said about it. Everything
+          below the rule is somebody's sentence with a name under it, which is a
+          different kind of claim from a term and deserves the only division on
+          the card.
+        */}
         <div className="alcove-record">
-          {tasteTerms.length > 0 && (
-            <div className="alcove-record-band px-4 py-4 text-center lg:px-6 lg:py-[19px]">
-              {termLine(
-                tasteTerms,
-                'font-display text-[19px] leading-[1.3] text-tea-text lg:text-[25px]',
+          {hasTerms && (
+            <div className="px-4 py-[18px] text-center lg:px-6 lg:py-6">
+              {tasteTerms.length > 0 &&
+                termLine(
+                  tasteTerms,
+                  'font-display text-[19px] leading-[1.3] text-tea-text lg:text-[25px]',
+                )}
+              {feelingTerms.length > 0 && (
+                <div className={tasteTerms.length > 0 ? 'mt-2.5 lg:mt-3' : ''}>
+                  {termLine(
+                    feelingTerms,
+                    'font-display text-ui-16 leading-[1.3] text-tea-text-dim lg:text-[19px]',
+                  )}
+                </div>
+              )}
+              {sourceNote && (
+                <p className="m-0 mt-3 font-sans text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim">
+                  {sourceNote}
+                </p>
               )}
             </div>
           )}
-          {feelingTerms.length > 0 && (
-            <div className="alcove-record-band px-4 py-4 text-center lg:px-6 lg:py-[19px]">
-              {termLine(
-                feelingTerms,
-                'font-display text-ui-16 leading-[1.3] text-tea-text-dim lg:text-[19px]',
-              )}
+          {quotes.length > 0 && (
+            <div className={`px-4 py-[18px] lg:px-6 lg:py-6 ${hasTerms ? 'alcove-record-said' : ''}`}>
+              {quotes.map(({ text, attribution, detail, key }, i) => (
+                <figure key={key} className={`m-0 text-center ${i > 0 ? 'mt-5 lg:mt-6' : ''}`}>
+                  <blockquote className="m-0 font-body text-[15.5px] italic leading-[1.66] text-tea-text-sec lg:text-ui-16">
+                    &ldquo;{text}&rdquo;
+                  </blockquote>
+                  <figcaption className="mt-[7px] font-sans text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim">
+                    {attribution}
+                    {detail && <span className="normal-case tracking-[0.06em]">{`, ${detail}`}</span>}
+                  </figcaption>
+                </figure>
+              ))}
             </div>
           )}
-          {sourceNote && (
-            <div className="alcove-record-band px-4 py-2.5 text-center lg:px-6">
-              <p className="m-0 font-sans text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim">
-                {sourceNote}
-              </p>
-            </div>
-          )}
-          {quotes.map(({ note, attribution, key }) => (
-            <figure key={key} className="alcove-record-band m-0 px-4 py-4 text-center lg:px-6 lg:py-[19px]">
-              <blockquote className="m-0 font-body text-[15.5px] italic leading-[1.66] text-tea-text-sec lg:text-ui-16">
-                &ldquo;{note.text}&rdquo;
-              </blockquote>
-              <figcaption className="mt-[7px] font-sans text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim">
-                {attribution}
-              </figcaption>
-            </figure>
-          ))}
           {potentialResearch && (
             <div className="alcove-record-band px-4 py-4 text-center lg:px-6">
               <p className="m-0 font-sans text-ui-9 uppercase tracking-[0.24em] indent-[0.24em] text-tea-text-dim">
@@ -350,16 +381,17 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
         </div>
       )}
 
-      {quotes.map(({ note, attribution, key }, i) => (
+      {quotes.map(({ text, attribution, detail, key }, i) => (
         <figure
           key={key}
           className={`mx-0 mb-0 px-1 text-center ${i === 0 && hasTerms ? 'mt-3.5' : i === 0 ? 'mt-1' : 'mt-3.5'}`}
         >
           <blockquote className="m-0 font-display text-ui-17 not-italic leading-[1.5] text-tea-text">
-            &ldquo;{note.text}&rdquo;
+            &ldquo;{text}&rdquo;
           </blockquote>
           <figcaption className="mt-2 font-sans text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim">
             {attribution}
+            {detail && <span className="normal-case tracking-[0.06em]">{`, ${detail}`}</span>}
           </figcaption>
         </figure>
       ))}

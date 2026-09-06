@@ -1654,12 +1654,17 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 </>
               )}
 
-              {/* Stock. State label + colored value preserved. */}
+              {/* Stock. The box holds the number and nothing else: it is a value
+                  field that happens to be pressable, and the name of the action
+                  sat inside it wrapping onto a second line, which read as part
+                  of the reading rather than as a thing to press. The arrow says
+                  it opens; the panel it opens is titled. */}
               {inventoryCategory === 'teaware' ? (
                 <FieldGrid cols={2}>
                   <FieldCell label="Units">
-                    <button type="button" aria-label={`Change stock for ${product.productName || product.givenName}`} onClick={(event) => onOpenStockMovement?.(product, event.currentTarget)} className="tap-target admin-input w-full text-left tabular-nums hover:border-tea-gold transition-colors">
-                      {product.quantityUnits ?? 0} units · Record movement
+                    <button type="button" aria-label={`Change stock for ${product.productName || product.givenName}`} onClick={(event) => onOpenStockMovement?.(product, event.currentTarget)} className="tap-target admin-input flex w-full items-center justify-between gap-2 text-left tabular-nums hover:border-tea-gold transition-colors">
+                      <span>{product.quantityUnits ?? 0} units</span>
+                      <span aria-hidden="true" className="shrink-0 text-admin-text-dim">→</span>
                     </button>
                   </FieldCell>
                   <FieldCell label="Capacity ml">
@@ -1687,9 +1692,10 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                         type="button"
                         aria-label={`Change stock for ${product.productName || product.givenName}`}
                         onClick={(event) => onOpenStockMovement?.(product, event.currentTarget)}
-                        className={`tap-target admin-input w-full text-left tabular-nums hover:border-tea-gold transition-colors ${isOut ? '!text-tea-error' : ''}`}
+                        className={`tap-target admin-input flex w-full items-center justify-between gap-2 text-left tabular-nums hover:border-tea-gold transition-colors ${isOut ? '!text-tea-error' : ''}`}
                       >
-                        {stock}g · Record movement
+                        <span>{stock}g</span>
+                        <span aria-hidden="true" className="shrink-0 text-admin-text-dim">→</span>
                       </button>
                     </FieldCell>
                     <FieldCell label="Low alert g">

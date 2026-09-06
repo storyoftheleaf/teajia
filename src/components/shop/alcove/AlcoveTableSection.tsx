@@ -1,11 +1,9 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { ProductEvent } from '../../../hooks/useProductEvents';
-import type { ProductImpression } from '../ProductImpressions';
 import { AlcoveSectionHeading } from './AlcoveSectionHeading';
 
 interface AlcoveTableSectionProps {
-  impressions: ProductImpression[];
   events: ProductEvent[];
   relatedArticles: Array<{ id: string; slug: string; title: string; subtitle?: string | null; author_name?: string | null }>;
   tastingCount: number;
@@ -23,41 +21,32 @@ const RowText: React.FC<{ title: string; meta: string }> = ({ title, meta }) => 
 );
 
 /**
- * "From the table" gathers what has already happened around this tea: a first
- * impression quote, event rows, journal rows, and the personal tasting-count
- * line. Renders only when any of that exists. No thumbnails, text rows only.
+ * "From the table" gathers what has already happened around this tea: event
+ * rows, journal rows, and the personal tasting-count line. Renders only when
+ * any of that exists. No thumbnails, text rows only.
+ *
+ * The promoted customer quote used to lead this section. It reads as a curated
+ * review, so it belongs on the tea's record beside the shop's own note, under
+ * the one rule that separates terms from sentences, rather than half a page
+ * lower among the events it was never part of.
  */
 export const AlcoveTableSection: React.FC<AlcoveTableSectionProps> = ({
-  impressions,
   events,
   relatedArticles,
   tastingCount,
 }) => {
   const navigate = useNavigate();
 
-  const impression = impressions[0];
   const hasRows = events.length > 0 || relatedArticles.length > 0;
 
-  if (!impression && !hasRows && tastingCount === 0) return null;
+  if (!hasRows && tastingCount === 0) return null;
 
   return (
     <section aria-label="From the table">
       <AlcoveSectionHeading label="From the table" className="mx-5 mb-3 mt-[22px]" />
 
-      {impression && (
-        <figure className="mx-0 mb-0 mt-0.5 px-[26px] text-center">
-          <blockquote className="m-0 font-display text-ui-15 not-italic leading-[1.5] text-tea-text">
-            &ldquo;{impression.text}&rdquo;
-          </blockquote>
-          <figcaption className="mt-2 font-sans text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim">
-            {impression.attributionName}
-            {impression.attributionDetail ? ` · ${impression.attributionDetail}` : ''}
-          </figcaption>
-        </figure>
-      )}
-
       {hasRows && (
-        <div className={`mx-5 ${impression ? 'mt-3' : ''}`}>
+        <div className="mx-5">
           {events.map(evt => {
             const eventDate = new Date(evt.event_date);
             const formattedDate = eventDate.toLocaleDateString('en-US', {
@@ -93,7 +82,7 @@ export const AlcoveTableSection: React.FC<AlcoveTableSectionProps> = ({
 
       {/* Personal tasting count: quiet centered line linking to the journal */}
       {tastingCount > 0 && (
-        <div className={`flex justify-center ${impression || hasRows ? 'mt-2' : ''}`}>
+        <div className={`flex justify-center ${hasRows ? 'mt-2' : ''}`}>
           <button
             type="button"
             onClick={() => navigate('/account?tab=journal')}

@@ -4582,6 +4582,12 @@ body.cart-panel-open .commerce-dock {
 .alcove-record-band + .alcove-record-band {
   border-top: 1px solid rgb(var(--tea-gold-rgb) / 0.2);
 }
+/* The one division on the record: terms above, sentences below. Taste and feel
+   share a block with no rule between them, so this line means "a different kind
+   of claim starts here" rather than "next field". */
+.alcove-record-said {
+  border-top: 1px solid rgb(var(--tea-gold-rgb) / 0.2);
+}
 
 /* Your own tasting: a row that stands on its own above the reading, rather
    than a plate nested inside the record. The record says what the tea is; this

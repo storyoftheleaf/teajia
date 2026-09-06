@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Check, Leaf, Sparkles, Mic, Loader2,
   Heart, ThumbsUp, Minus, ThumbsDown, ShoppingCart,
@@ -21,6 +22,7 @@ import { useScrollLock } from '../../hooks/useScrollLock';
 import { useVoiceCapture } from '../../hooks/useVoiceCapture';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { SampleIcon } from '../Icons';
+import { useAuth } from '../../hooks/useAuth';
 
 export interface TastingItem {
   id: string;
@@ -185,6 +187,18 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   const [closePrompt, setClosePrompt] = useState(false);
   const closePromptRef = useFocusTrap<HTMLDivElement>(closePrompt, { initialFocus: '[data-close-prompt-save]' });
   const [isContinuing, setIsContinuing] = useState(!!existingEntry);
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+  /*
+   * A tasting written without an account lives in this browser and nowhere
+   * else: it does not reach the shop, it does not survive a new phone, and it
+   * is gone the day the browser is cleared. So the confirmation says that
+   * plainly and offers the account, at the one moment the account is worth
+   * something to them. Their work is already saved locally before they are
+   * asked, and signing in merges it up, so nobody loses a tasting by saying no.
+   */
+  const guestTasting = !adminMode && !isAuthenticated;
+
   const [phase, setPhase] = useState<'tasting' | 'saved' | 'details'>(
     detailsPanel && startOnDetails ? 'details' : 'tasting',
   );
@@ -1028,7 +1042,11 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                 {adminMode ? 'Profile Saved' : 'Tasting Saved'}
               </div>
               <div className="text-xs text-tea-text-dim">
-                {adminMode ? 'Product tasting profile updated' : 'Added to your journal'}
+                {adminMode
+                  ? 'Product tasting profile updated'
+                  : guestTasting
+                    ? 'Saved on this device only'
+                    : 'Added to your journal'}
               </div>
 
               {tastingData.quality != null && (
@@ -1053,6 +1071,35 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                 </div>
               )}
             </div>
+
+            {/*
+              The invitation, placed where the account first means something:
+              they have just written about a tea and would like to keep it.
+              Not a wall in front of the tasting, which would cost them the
+              writing they came to do.
+            */}
+            {guestTasting && (
+              <div className="mx-auto mb-4 max-w-[420px] rounded-xl border border-tea-gold/25 bg-tea-gold/6 p-4 text-center">
+                <p className="m-0 font-display text-ui-16 leading-snug text-tea-text">
+                  Keep your tastings
+                </p>
+                <p className="m-0 mt-1.5 font-body text-ui-12 leading-relaxed text-tea-text-sec">
+                  An account keeps this tasting when you change device or clear
+                  your browser, and gathers every tea you have sat with in one
+                  journal.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/signup?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`)}
+                  className="tap-target cta-solid mt-3 inline-flex items-center rounded-md px-4 py-2 text-ui-12 font-medium"
+                >
+                  Create an account
+                </button>
+                <p className="m-0 mt-2 font-sans text-ui-10 uppercase tracking-[0.14em] text-tea-text-dim">
+                  Your tasting comes with you
+                </p>
+              </div>
+            )}
 
             {(tastingData.cleanliness || tastingData.clarity || tastingData.body?.length || tastingData.huiGan || tastingData.tangGan) && (
               <div className="rounded-xl p-4 mb-3 bg-tea-surface/50">

@@ -51,6 +51,7 @@ import { StaleRatesBanner } from './components/StaleRatesBanner';
 import { MCPTokensView } from './views/MCPTokensView';
 import { OAuthConsentView } from './views/OAuthConsentView';
 import { WisdomView } from './views/WisdomView';
+import CustomerNotesView from './views/CustomerNotesView';
 import { TEA_REFERENCE_PREVIEW_ENABLED } from '../wisdom/reference/previewMode';
 import { EventsManager } from './components/EventsManager';
 import { EventDetail } from './components/EventDetail';
@@ -598,6 +599,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="mcp-tokens" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><MCPTokensView /></PageTransition></ProtectedRoute>} />
               <Route path="oauth-consent" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><OAuthConsentView /></PageTransition></ProtectedRoute>} />
               <Route path="oauth-consent/:requestId" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><OAuthConsentView /></PageTransition></ProtectedRoute>} />
+              <Route path="tasting-notes" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CustomerNotesView /></PageTransition></ProtectedRoute>} />
               <Route path="wisdom" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><WisdomView /></PageTransition></ProtectedRoute>} />
               {/* Network hub, single page with tabbed surfaces */}
               <Route path="network" element={<ProtectedRoute hasAccess={canUseNetwork} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><NetworkLanding /></PageTransition></ProtectedRoute>} />

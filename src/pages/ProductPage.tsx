@@ -88,7 +88,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   const storeSlug = searchParams.get('store')?.trim() || persistedStoreSlug;
   const shopHref = storeSlug ? `/shop?store=${encodeURIComponent(storeSlug)}` : '/shop';
   const { inventory, isLoading, refetch: refetchInventory } = useInventory();
-  const { isAdmin } = useAuth();
+  const { isAdmin, isAuthenticated } = useAuth();
 
   const item = useMemo(() => findProductByRouteParam(inventory, routeKey), [inventory, routeKey]);
 
@@ -132,8 +132,23 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
       setAdminTastingItem(tasteItem);
       return;
     }
+    /*
+     * A tasting is kept, so it needs somewhere to be kept. Signed out there is
+     * no journal to write into: the entry would live in this browser, never
+     * reach the shop, and be gone with the next cleared cache. So the door is
+     * the account, and they come straight back to this tea afterwards.
+     *
+     * Only the shop asks this. A guest tasting a sample the shop posted, or
+     * sitting at a table at an event, is somewhere else entirely and is not
+     * sent to a sign-up form mid-session.
+     */
+    if (!isAuthenticated) {
+      const back = `${window.location.pathname}${window.location.search}`;
+      navigate(`/signup?returnTo=${encodeURIComponent(back)}`);
+      return;
+    }
     setTastingItem(tasteItem);
-  }, [isAdmin]);
+  }, [isAdmin, isAuthenticated, navigate]);
 
   // Tasting-term cross-reference: send the reader into the filtered shop.
   const handleTermClick = useCallback((termId: string, categoryId: string) => {

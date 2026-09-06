@@ -3146,6 +3146,31 @@ export const api = {
     dismiss: (id: string) => authedFetch(`${API_URL}/api/admin/tasting-note-candidates/${id}/dismiss`, { method: 'POST' }),
   },
 
+  /**
+   * Every note customers have written about this shop's teas, and the shop's
+   * decision on each. The shop reads all of it and chooses; nothing here waits
+   * on a customer nominating their own writing.
+   */
+  customerTastingNotes: {
+    list: () => authedFetch(`${API_URL}/api/admin/customer-tasting-notes`),
+    promote: (data: {
+      journal_entry_id: string;
+      note_key: string;
+      source_text: string;
+      edited_text: string;
+      attribution_name: string;
+      attribution_detail?: string;
+    }) => authedFetch(`${API_URL}/api/admin/customer-tasting-notes/decide`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    dismiss: (data: { journal_entry_id: string; note_key: string; source_text: string }) =>
+      authedFetch(`${API_URL}/api/admin/customer-tasting-notes/decide`, {
+        method: 'POST',
+        body: JSON.stringify({ ...data, dismiss: true }),
+      }),
+  },
+
   productImpressions: {
     list: async (productId: string) => handleResponse(await fetchWithTimeout(`${API_URL}/api/products/${encodeURIComponent(productId)}/impressions`)),
   },
