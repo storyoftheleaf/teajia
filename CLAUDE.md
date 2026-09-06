@@ -86,6 +86,22 @@ Read `docs/COLOR_RULES.md` before writing any component styles.
 - **Daily, retried hourly.** The gate reads the timestamp of the last *successful* write, so a good day costs one fetch and skips the other twenty-three ticks, while a failure leaves the timestamp old and is retried on the next tick an hour later. Gating on the attempt instead would turn one bad minute into a full day of yesterday's dollar. Twenty-three hours, not twenty-four: the cron fires on the hour, and a full day would walk the refresh forward until it skipped one.
 - Enforced by [worker/tests/exchange-rate-feed.test.ts](worker/tests/exchange-rate-feed.test.ts): a currency-feed host anywhere under `src` fails it, as does a second table of rates, a refresh that stops being daily or stops retrying hourly, `useShopPrice` ceasing to read the shared table, a fallback that invents a number, or the stale warning being unmounted.
 
+## Nothing entered is NULL. Anything entered is the number, zero included.
+**One rule, at one boundary: `enteredNumber()` in [src/admin/productUpdatePayload.ts](src/admin/productUpdatePayload.ts).** Every admin edit passes through that switch on its way to a column that is nullable in the schema, and that is the only place where absence and zero can be confused *permanently*, because it is where a form becomes a stored fact.
+
+JavaScript makes the wrong thing easy here: `Number('')` is 0, `Number(null)` is 0, and an empty input is falsy exactly like a typed zero. So the natural way to write the conversion turns "I cleared this field" into "the value is zero", and money does not survive it. **A freight rate of zero is free shipping. A cost of zero is a free tea. A retail override of zero is a giveaway. None of them mean unset.**
+
+The same confusion cost this shop three separate bugs that looked unrelated:
+- Products defaulted freight to 0, so every hand-entered tea sold with no freight in its price. A missing cost looks exactly like a cheap tea, which is why nobody saw it.
+- Clearing the `Ship $/kg` field saved 0, so the only way to unpin a tea from its own rate made it ship free instead.
+- The retail override ran it backwards with `value ? Number(value) : null`. A deliberate 0 is falsy, so setting a price of zero became no price at all.
+
+Two of those were in the same 70-line file, in opposite directions, and `fixed_retail_price_usd` was written by **two** cases that disagreed with each other. Two doors to one column with different rules is the shape that gave the shop four freight rates at once.
+
+- **Scoped deliberately.** This is not a ban on `Number()` in a codebase that uses it 300+ times, most of them harmlessly on a total about to be displayed. It is a ban at this one switch.
+- **A zero must render as a zero.** `GhostInput` used `value || ''`, so a stored 0 showed as an empty field: free and unset looked identical in the one control that tells them apart.
+- Enforced by [worker/tests/entered-number.test.ts](worker/tests/entered-number.test.ts): a bare `Number(value)` in a case, a truthiness-gated conversion, or two cases writing one column by different rules all fail the suite.
+
 ## InventoryView height chain — DO NOT BREAK
 The inventory page (`src/admin/components/InventoryView.tsx`) scrolls via an internal `flex-1 overflow-auto` container, NOT via the document. That container only works if every ancestor passes a definite height down. The chain is:
 
