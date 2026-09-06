@@ -212,6 +212,12 @@ describe('reads', () => {
 
 // ── confirmation tickets ──
 
+/*
+ * The mechanism is covered where it lives, in one-ticket-one-home.test.ts.
+ * What these cover is this module's use of it: that every mutating tool here
+ * actually goes through it, with its own kind, its own account and its own
+ * issuing token, rather than growing a shortcut.
+ */
 describe('confirmation tickets', () => {
   it('spends once and refuses the replay', async () => {
     const db = makeDb();
@@ -274,10 +280,12 @@ describe('create_event', () => {
 
   it('refuses a blank string where a value was expected', async () => {
     const db = makeDb();
+    // A title of spaces is refused flatly; a clearable field is refused with
+    // the way to actually blank it.
     await expect(call('create_event', db, { slug: 'a', title: '   ', event_date: '2099-01-01T00:00:00Z', total_capacity: 4 }))
-      .rejects.toThrow(/title is required/);
+      .rejects.toThrow(/title cannot be blank$/);
     await expect(call('create_event', db, { slug: 'a', title: 'A', event_date: '2099-01-01T00:00:00Z', total_capacity: 4, location_name: '' }))
-      .rejects.toThrow(/location_name cannot be blank/);
+      .rejects.toThrow(/location_name cannot be blank — list it in clear_fields/);
   });
 
   it('creates a draft, never a published event', async () => {

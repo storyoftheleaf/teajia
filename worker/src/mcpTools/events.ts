@@ -477,8 +477,14 @@ function readEventFields(args: any): Record<string, unknown> {
     const value = enteredText(args?.[key]);
     if (value === undefined) continue;
     // An empty string reaching a column is the shape that makes a title look
-    // set and read as nothing. Blanking is `clear_fields`, said out loud.
-    if (value === null) throw new Error(`${key} cannot be blank — list it in clear_fields to remove it`);
+    // set and read as nothing. Blanking a field that may be blank is
+    // `clear_fields`, said out loud; a field that may not be blank is simply
+    // refused, and the message does not offer advice that would also fail.
+    if (value === null) {
+      throw new Error(CLEARABLE.has(key)
+        ? `${key} cannot be blank — list it in clear_fields to remove it`
+        : `${key} cannot be blank`);
+    }
     fields[key] = value;
   }
   for (const key of COUNT_FIELDS) {
