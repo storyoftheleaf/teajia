@@ -4,6 +4,21 @@
 
 ## Untriaged
 
+- [ ] **The new MCP modules had to copy three things out of `index.ts`, because `index.ts` cannot be imported from them.** _(band: agent-runnable)_ _(effort: moderate)_
+  `index.ts` imports `mcp.ts`, which imports the modules under `worker/src/mcpTools/`, so a module importing back is a cycle. Three helpers got copied rather than shared, which is one fact with two homes and the exact shape migrations `0010` and `0013` exist to undo: `EVENT_STATUS_BY_LIFECYCLE` (a test parses `index.ts`'s source and fails on drift, which is a splint and not a fix), and `slugify` plus `articleToApi` in `writing.ts` — a slug is an article's public address, and two functions producing different ones is a link that works from one door only.
+
+  The fix is to hoist each into a domain module both sides can import: the event map into `eventDomain.ts`, the article helpers into a module of their own. While hoisting the event map, move `cascadeWaitlist` too: it is unexported in `index.ts`, and three RSVP tools (deny, waitlist, cancel) were deliberately NOT built because a second copy of a promotion rule means a guest promised a seat and never told.
+
+- [ ] **Most teas on the shelf have a cost currency nobody ever stated, and Adrian's own reading is that most were not paid for in dollars.** _(band: you-required)_ _(effort: moderate)_
+  Migration `0014` added `cost_currency_source`, so a row nobody answered is now findable: every write that states a currency is stamped `'stated'` server-side, and what stays NULL is the backlog. It cannot be repaired by reading, because a defaulted `'USD'` and a chosen `'USD'` are the same three letters.
+
+  The work is one answer per VENDOR, not per tea. `list_unstated_costs` groups the unanswered rows with the count and what any intake receipt recorded; `set_cost_currency` applies one answer to a whole vendor behind preview/confirm. Both need a session connected to the MCP (`TEAJIA_MCP_TOKEN` in the environment plus `api.teajia.com` on its network allowlist). Without that, the inventory CSV carries a **Cost currency stated?** column and the backlog is the block of noes.
+
+- [ ] **A cost of zero means a free tea, and the column still defaults to it.** _(band: agent-runnable)_ _(effort: moderate)_
+  `products.cost_amount` is `REAL DEFAULT 0`, and on money a default of 0 is the dangerous one precisely because it is a plausible figure: it does not read as "nobody said", it reads as free, and the shelf prices it at zero times three. Registered as DEBT in `MONEY_DEFAULTS` in `worker/tests/schema-defaults-are-decisions.test.ts`.
+
+  **Already unreachable through the code**, as of 2026-09-06: the Add Product form, the bulk create and `create_tea` all REQUIRE a cost (absence refused, a typed 0 kept, since a gift is real), and the three doors that genuinely cannot know one — a receipt proposal, a cellar placement, an inbound import — name the column explicitly as NULL. `worker/tests/a-tea-arrives-with-its-cost.test.ts` holds all six. So the default now only reaches a row inserted straight from `schema.sql`. Removing it means a table rebuild, same constraint and same caution as the tenant defaults above.
+
 - [ ] **Four tables default their tenant to Bali, so a row inserted without an account silently belongs to one shop.** _(band: you-required)_ _(effort: moderate)_
   **Guarded 2026-09-06, not yet removed.** The default is only reachable by an INSERT that does not name `account_id`, so that is the actual failure and `worker/tests/schema-defaults-are-decisions.test.ts` now fails any insert into these four tables that omits it. Every existing insert names it. Removing the defaults means rebuilding four tables, which is what SQLite requires for a default change, and the live column shape cannot be verified from a cloud sandbox — a blind `INSERT INTO new SELECT *` against a table of articles is how articles get lost. Do it with the MCP connected, or from a machine that can read the live schema: confirm each table's real columns first, then rebuild, then drop.
 

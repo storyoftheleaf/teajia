@@ -178,10 +178,14 @@ describe('every column default is a decision somebody wrote down', () => {
   it('carries no debt that nobody has written down', () => {
     // The DEBT entries are deliberate and each names its escape route. This
     // asserts they stay explained rather than quietly becoming normal.
-    const debts = [...Object.entries(NUMERIC_DEFAULTS), ...Object.entries(UNIT_DEFAULTS)]
+    /* All THREE registries. MONEY_DEFAULTS was added later and left out of this
+       roll-up, which meant a debt could be recorded in one breath and exempted
+       from the guard that keeps debts explained in the next. A registry the
+       auditor does not read is a comment. */
+    const debts = [...Object.entries(NUMERIC_DEFAULTS), ...Object.entries(UNIT_DEFAULTS), ...Object.entries(MONEY_DEFAULTS)]
       .filter(([, reason]) => reason.startsWith('DEBT'));
     expect(debts.length, 'debt entries vanished; either they were fixed (update this) or the registry was gutted')
-      .toBeGreaterThanOrEqual(7);
+      .toBeGreaterThanOrEqual(8);
     for (const [column, reason] of debts) {
       expect(reason.length, `${column} is marked DEBT with no explanation`).toBeGreaterThan(30);
     }
