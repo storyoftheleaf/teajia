@@ -26,6 +26,7 @@
 // still fire). Nothing in this file touches D1 in a way that bypasses the
 // admin UI's invariants.
 
+import { combineToolModules, type ToolModule } from './mcpTools/registry';
 import { costNeedsCurrency, currencyStated, COST_CURRENCY_REQUIRED } from './costCurrency';
 import { REFRESHED_CURRENCIES, refreshedCurrencyName } from './exchangeRateFeed';
 import {
@@ -6451,12 +6452,29 @@ function annotationsFor(name: string) {
   };
 }
 
+/**
+ * Tool groups added after this file got long, each in its own module under
+ * mcpTools/. See that folder's registry.ts for why: every tool used to touch
+ * this file in four places, which is fine for one tool and unmergeable for six
+ * written at once. The existing tools above are deliberately left where they
+ * are; the point is to stop this file growing, not to rewrite what ships.
+ *
+ * Empty for now. Add a module here and its tools are scoped, listed and
+ * dispatched by the same code that serves the built-in ones.
+ */
+const TOOL_MODULES: ToolModule[] = [];
+
+const { defs: MODULE_TOOL_DEFS, handlers: MODULE_TOOL_HANDLERS } = combineToolModules(TOOL_MODULES);
+
 function toolDefFor(name: string) {
-  return TOOL_DEFS.find(tool => tool.name === name);
+  return TOOL_DEFS.find(tool => tool.name === name)
+    ?? MODULE_TOOL_DEFS.find(tool => tool.name === name);
 }
 
 function visibleToolDefs(auth: McpAuth) {
-  return TOOL_DEFS
+  // Module tools are listed on the same terms as the built-in ones. A tool that
+  // dispatches but never appears in tools/list is a tool nobody can find.
+  return [...TOOL_DEFS, ...MODULE_TOOL_DEFS]
     .filter(tool => {
       const scope = tool.scope as McpScope;
       if (!hasMcpScope(auth, scope)) return false;
@@ -6583,7 +6601,15 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
     case 'list_payment_claims': result = mcpSpokenContent(await toolListPaymentClaims(env, auth.accountId, args)); break;
     case 'confirm_payment': result = mcpSpokenContent(await toolConfirmPayment(env, auth, args)); break;
     case 'record_payment': result = mcpSpokenContent(await toolRecordPayment(env, auth, args)); break;
-    default: throw new Error(`Unknown tool: ${name}`);
+    default: {
+      /* A module tool reaches here having already passed the same scope and
+         owner-tier checks as everything above, because those run off the tool
+         definition and a module's definition is in the same list. */
+      const handler = MODULE_TOOL_HANDLERS[name];
+      if (!handler) throw new Error(`Unknown tool: ${name}`);
+      result = mcpContent(await handler(env, auth, args));
+      break;
+    }
   }
   await logMcpToolCall(env, auth, name, args, result);
   return result;
