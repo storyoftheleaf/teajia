@@ -24,6 +24,7 @@ import { afterEach, describe, expect, it } from 'vitest';
  */
 
 const migration = readFileSync(new URL('../migrations/0010_freight_follows_the_shop_again.sql', import.meta.url), 'utf8');
+const y562Migration = readFileSync(new URL('../migrations/0011_y562_follows_the_shop_rate.sql', import.meta.url), 'utf8');
 const temporaryDirectories: string[] = [];
 
 afterEach(() => {
@@ -65,6 +66,74 @@ function migrate(rows: Row[]): Map<string, number | null> {
     'SELECT id, shipping_rate_per_kg AS rate FROM products ORDER BY id']).toString() || '[]');
   return new Map(out.map((r: any) => [r.id, r.rate === null ? null : Number(r.rate)]));
 }
+
+interface NamedRow { id: string; name: string; type: string; rate: number | null }
+
+/**
+ * 0011 matches by name, because the session that wrote it had no live database
+ * and so no id for the tea. That makes the match itself the thing to test: it
+ * has to find the tea however it happens to be recorded, and touch nothing else.
+ */
+function migrateByName(rows: NamedRow[]): Map<string, number | null> {
+  const directory = mkdtempSync(join(tmpdir(), 'teajia-y562-'));
+  temporaryDirectories.push(directory);
+  const database = join(directory, 'migration.sqlite');
+  const seed = rows.map(r =>
+    `INSERT INTO products VALUES ('${r.id}', NULL, NULL, '${r.name}', '${r.type}', ${r.rate === null ? 'NULL' : r.rate});`
+  ).join('\n');
+  const script = `
+    CREATE TABLE products (id TEXT PRIMARY KEY, given_name TEXT, chinese_name TEXT, product_name TEXT, type TEXT, shipping_rate_per_kg REAL);
+    CREATE TABLE product_listings (id TEXT PRIMARY KEY, legacy_product_id TEXT, shipping_rate_per_kg REAL);
+    ${seed}
+    ${y562Migration}
+    ${y562Migration}
+  `;
+  writeFileSync(join(directory, 'migration.sql'), script);
+  execFileSync('sqlite3', [database], { input: script });
+  const out = JSON.parse(execFileSync('sqlite3', ['-json', database,
+    'SELECT id, shipping_rate_per_kg AS rate FROM products ORDER BY id']).toString() || '[]');
+  return new Map(out.map((r: any) => [r.id, r.rate === null ? null : Number(r.rate)]));
+}
+
+describe('migration 0011, the Y562 joins them', () => {
+  const PINNED = 6 * 7.16;
+
+  it('finds the tea however it happens to be recorded', () => {
+    // Latin mark, Chinese name, both, and lowercase. Nobody knows which of
+    // these the shop actually holds, which is exactly why all four must work.
+    const result = migrateByName([
+      { id: 'both', name: '1993 Zhongcha Jixing Y562', type: 'Shou', rate: PINNED },
+      { id: 'chinese-only', name: '中茶吉幸 1993 Ripe Puerh Box', type: 'Shou', rate: PINNED },
+      { id: 'mark-only', name: 'Y562', type: 'Shou', rate: PINNED },
+      { id: 'lowercase', name: '1993 y562 loose ripe', type: 'Shou', rate: PINNED },
+    ]);
+    for (const id of ['both', 'chinese-only', 'mark-only', 'lowercase']) {
+      expect(result.get(id), `${id} was not matched`).toBeNull();
+    }
+  });
+
+  it('does not take a longer number with the mark inside it', () => {
+    // 'Y562' as a substring also matches 'Y5620'. No such tea exists here, but
+    // a migration that edits money should not lean on that.
+    const result = migrateByName([
+      { id: 'y5620', name: 'Y5620 something else', type: 'Dark', rate: 13 },
+    ]);
+    expect(result.get('y5620')).toBe(13);
+  });
+
+  it('leaves other rates, and teaware, alone', () => {
+    const result = migrateByName([
+      { id: 'deliberate-30', name: 'Some Other Tea', type: 'Dark', rate: 30 },
+      { id: 'deliberate-free', name: 'Free Freight Tea', type: 'Dark', rate: 0 },
+      { id: 'teaware', name: 'Y562 commemorative cup', type: 'Teaware', rate: PINNED },
+      { id: 'already-following', name: 'Plain tea', type: 'Dark', rate: null },
+    ]);
+    expect(result.get('deliberate-30')).toBe(30);
+    expect(result.get('deliberate-free')).toBe(0);
+    expect(result.get('teaware'), 'teaware prices per piece with freight inside it').not.toBeNull();
+    expect(result.get('already-following')).toBeNull();
+  });
+});
 
 describe('migration 0010, freight follows the shop again', () => {
   it('clears what 0008 wrote, even though the exchange rate has moved since', () => {
