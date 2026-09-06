@@ -325,7 +325,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     // Always entered in USD, from the shop's own rate rather than a literal
     // typed here, which is how this form came to say 13 while the intake path
     // said 10.
-    shippingRateUSD: shopFreightUsdText,
+    shippingRateUSD: '',
     costCurrency: 'USD' as Currency,
     vendor: '',
     description: '',
@@ -406,7 +406,13 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     if (isOpen && initialData) {
       // Calculate USD shipping from stored Source Currency value
       const rate = rates.find(r => r.currency === initialData.costCurrency)?.rateToUSD || 1;
-      const shipUSD = shippingRateUsdFor(initialData.shippingRatePerKg, rate, shopFreight.perKgUsd);
+      /* Only a rate the SOURCE tea owned is carried onto the copy.
+         `shippingRateUsdFor` resolves to the shop rate when a tea has none, so
+         pre-filling its answer pinned the duplicate to today's shop rate even
+         though the original was following it. */
+      const shipUSD = initialData.shippingRatePerKg == null
+        ? null
+        : shippingRateUsdFor(initialData.shippingRatePerKg, rate, shopFreight.perKgUsd);
 
       setFormData({
         type: initialData.type,
@@ -420,7 +426,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         stockGrams: initialData.stockGrams.toString(),
         quantityPurchased: initialData.quantityPurchased.toString(),
         costAmount: initialData.costAmount.toString(),
-        shippingRateUSD: shipUSD.toFixed(2), // Pre-fill calculated USD
+        shippingRateUSD: shipUSD == null ? '' : shipUSD.toFixed(2),
         costCurrency: initialData.costCurrency === 'UNK' ? 'UNK' : (initialData.costCurrency as Currency) || 'USD',
         vendor: initialData.vendor || '',
         description: initialData.description,
@@ -469,7 +475,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         stockGrams: '',
         quantityPurchased: '',
         costAmount: '',
-        shippingRateUSD: shopFreightUsdText,
+        shippingRateUSD: '',
         costCurrency: 'USD',
         vendor: '',
         description: '',
@@ -517,7 +523,12 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   // LIVE CALCULATOR LOGIC
   const calc = useMemo(() => {
     // Convert USD shipping rate to source currency for calculatePricing
-    const shippingSourcePerKg = (parseFloat(formData.shippingRateUSD) || 0) * currentRate;
+    /* A blank field is not free freight, it is the shop rate, so the live
+       preview shows the price the tea will actually carry rather than one
+       missing its postage. */
+    const shippingEntered = enteredNumber(formData.shippingRateUSD);
+    const shippingUsd = shippingEntered == null ? shopFreight.perKgUsd : shippingEntered;
+    const shippingSourcePerKg = shippingUsd * currentRate;
 
     return calculatePricing(
         parseFloat(formData.costAmount) || 0,
@@ -527,7 +538,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         rates,
         formData.type === 'Teaware'
     );
-  }, [formData.costAmount, formData.shippingRateUSD, formData.quantityPurchased, formData.costCurrency, formData.type, rates, currentRate]);
+  }, [formData.costAmount, formData.shippingRateUSD, formData.quantityPurchased, formData.costCurrency, formData.type, rates, currentRate, shopFreight.perKgUsd]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const value = e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value;
@@ -636,7 +647,13 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     setLoading(true);
 
     try {
-        const shippingSourceToSave = (parseFloat(formData.shippingRateUSD) || 0) * currentRate;
+        /* Blank means NULL, which is "follow the shop rate", not 0, which is
+           "this tea ships free". `parseFloat('') || 0` collapsed the two, so
+           every tea added here shipped at whatever was typed or free, and there
+           was no way to say "just use the shop's". Same rule the edit panel was
+           given on 2026-09-06; this form was missed. */
+        const shippingUsdEntered = enteredNumber(formData.shippingRateUSD);
+        const shippingSourceToSave = shippingUsdEntered == null ? null : shippingUsdEntered * currentRate;
 
         const payload = {
             type: formData.type,
@@ -1004,7 +1021,13 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                   <input
                     name="shippingRateUSD" type="number" step="0.01" value={formData.shippingRateUSD} onChange={handleChange}
                     className={`${inputStyle} tabular-nums text-right`}
-                    placeholder="13.00"
+                    {/* The shop's live rate, as a PLACEHOLDER rather than a
+                        value: leaving it alone follows the shop, so a
+                        renegotiated rate moves this tea with it. It used to
+                        read 13.00, one of the four different freight rates this
+                        shop was charging at once, and a number it never
+                        charged. */}
+                    placeholder={shopFreightUsdText}
                     inputMode="decimal"
                     onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
                   />

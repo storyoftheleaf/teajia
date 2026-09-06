@@ -248,6 +248,32 @@ describe('nothing else in the shop decides the rate', () => {
     expect(offences, 'an admin surface pinned its own freight rate; read the constant instead').toEqual([]);
   });
 
+  it('lets the Add Product form follow the shop rate instead of pinning one', () => {
+    /* Three faults in one field, all of them the same fault. The form
+       PRE-FILLED the shop's rate as a VALUE, so every tea added by hand was
+       pinned to whatever the rate happened to be that day and stopped following
+       a renegotiation, with a gold dot claiming Adrian had chosen it. Clearing
+       the field ran `parseFloat('') || 0` and saved ZERO, which is free
+       shipping, so there was no way to say "just use the shop's". And the
+       placeholder still advertised 13.00, one of the four rates this shop was
+       charging at once and a number it never actually charged.
+
+       The rule the edit panel was given on 2026-09-06, which this form missed:
+       NULL means follow the shop, 0 means Adrian said free. */
+    const form = read('../../src/admin/components/AddProductModal.tsx');
+
+    expect(form, 'a blank freight field is saved as free shipping again')
+      .not.toMatch(/parseFloat\(formData\.shippingRateUSD\)\s*\|\|\s*0/);
+    expect(form, 'the freight field no longer goes through the entered-vs-absent boundary')
+      .toMatch(/enteredNumber\(formData\.shippingRateUSD\)/);
+
+    /* The shop rate belongs in the placeholder, never in the value: a value is
+       a decision the tea then carries, a placeholder is what it will follow. */
+    const field = form.slice(form.indexOf('name="shippingRateUSD"'));
+    expect(field.slice(0, 800), 'the freight placeholder names a rate rather than reading the shop\'s')
+      .not.toMatch(/placeholder="\d/);
+  });
+
   it('leaves no instruction naming a different rate', () => {
     // The four answers were not all in code. The intake flow doc told an
     // operator the default was 10 while the shop charged something else, and a
