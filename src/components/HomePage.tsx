@@ -168,7 +168,7 @@ const CharacterRevealCapture: React.FC = () => {
       {/* Fixed overlay, pointer-events-none so scroll passes through; interactive children opt back in */}
       {isVisible && (
         <div
-          className="fixed inset-0 z-overlay flex flex-col items-center justify-center px-5 pt-[env(safe-area-inset-top)] pb-nav-gap pointer-events-none sm:px-6 lg:pb-24"
+          className="fixed inset-0 sidebar-inset z-overlay flex flex-col items-center justify-center px-5 pt-[env(safe-area-inset-top)] pb-nav-gap pointer-events-none sm:px-6 lg:pb-24"
         >
           <div className="flex w-full max-w-[880px] flex-col items-center">
           {/* Logo, drops from top */}

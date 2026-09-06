@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { motion, LayoutGroup, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Icons } from './Icons';
-import { LogoEmblem } from './Logos';
+import { LogoEmblem, LogoText } from './Logos';
 import { Section } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../hooks/useAuth';
@@ -24,13 +24,22 @@ import { ADMIN_CONNECTION_ROUTES, getVisibleAdminItemIds } from './navigationCon
 const PHOSPHOR_WEIGHT = 'light' as const;
 
 // The two rooms of the column. Only one hierarchy is visible at a time; the
-// switch sits under the account row (a marked button on the collapsed rail).
+// switch sits centred at the top of the middle pod (a marked button on the
+// collapsed rail).
 const ROOMS: { id: SidebarRoom; label: string }[] = [
   { id: 'browse', label: 'Browse' },
   { id: 'manage', label: 'Manage' },
 ];
 
-const GRAIN = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
+// Both pods and the collapsed rail capsule share the `.nav-pod` recipe in
+// card-utilities.css, the same material as BottomTabBar's floating capsule:
+// same translucent wash, same blur, same keyline, same paper + grain, same
+// shadow. Desktop and mobile navigation read as one object family because
+// they are cut from the same sheet.
+
+const Hairline: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <div className={`h-px bg-tea-border mx-[22px] shrink-0 ${className}`} />
+);
 
 interface SubNavItem {
   id: string;
@@ -50,90 +59,45 @@ interface NavItem {
   children?: SubNavItem[];
 }
 
-// ── NavButton ──────────────────────────────────────────────────────────────
-// Mount-only fade (motion.div initial/animate fires once, not on re-renders).
-// Active indicator uses shared layoutId="nav-indicator", separate from the
-// logo and account indicators so the bar never jumps between different heights.
-const NavButton: React.FC<{
+// ── NavRow ─────────────────────────────────────────────────────────────────
+// A single browse/manage row inside the middle pod. Expanded rows are words
+// only (icons stay in the collapsed rail, where words don't fit); the active
+// state is the same gold + glow treatment BottomTabBar uses for its tabs, so
+// desktop and mobile read as one navigation system rather than two designs.
+const NavRow: React.FC<{
   item: NavItem;
   isActive: boolean;
   onClick: () => void;
-  delay?: number;
-  collapsed?: boolean;
-}> = ({ item, isActive, onClick, delay = 0, collapsed = false }) => {
-  // Icons appear in both modes, muted gold anchor in expanded mode so the
-  // eye has a landmark per row without losing the editorial text-first feel.
-  const iconEl = (
-    <div className={`shrink-0 transition-colors duration-200 ${
-      isActive
-        ? 'text-tea-gold'
-        : collapsed
-          ? 'text-tea-text-sec group-hover:text-tea-text'
-          : 'text-tea-text-sec group-hover:text-tea-text'
-    }`}>
-      {item.icon}
-    </div>
-  );
+  minHeight: number;
+  textClass: string;
+}> = ({ item, isActive, onClick, minHeight, textClass }) => {
+  const labelClass = `${textClass} text-left lowercase transition-colors duration-200 ${
+    isActive ? 'text-tea-gold font-semibold' : 'text-tea-text-sec group-hover:text-tea-text'
+  }`;
+  const labelStyle: React.CSSProperties = isActive
+    ? { filter: 'drop-shadow(0 0 8px rgb(var(--tea-gold-rgb) / 0.75)) drop-shadow(0 0 18px rgb(var(--tea-gold-rgb) / 0.32))' }
+    : {};
 
-  const labelEl = !collapsed && (
-    <span
-      className={`${TYPOGRAPHY_CLASSES.navSidebar} text-left transition-colors duration-200 ${
-        isActive ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
-      }`}
-    >
-      {item.label}
+  const badgeEl = item.badge !== undefined && item.badge > 0 && (
+    <span className="ml-auto text-ui-11 font-semibold text-tea-gold shrink-0">
+      {item.badge > 9 ? '9+' : item.badge}
     </span>
   );
 
-  const badgeEl = item.badge !== undefined && item.badge > 0 && (
-    collapsed ? (
-      <span className="absolute -top-1 -right-1 w-4 h-4 cta-solid text-ui-10 font-bold rounded-full flex items-center justify-center leading-none">
-        {item.badge > 9 ? '9+' : item.badge}
-      </span>
-    ) : (
-      <span className="ml-auto w-5 h-5 cta-solid text-ui-10 font-bold rounded-full flex items-center justify-center shrink-0 leading-none">
-        {item.badge > 9 ? '9+' : item.badge}
-      </span>
-    )
-  );
-
-  const indicatorEl = isActive && (
-    <motion.div
-      layoutId="nav-indicator"
-      className="absolute left-0 inset-y-0 w-[2px] bg-tea-gold"
-      transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-    />
-  );
-
-  const baseClass = `relative flex items-center min-h-[44px] ${
-    collapsed ? 'justify-center px-2' : 'gap-3 px-4'
-  } rounded-md transition-colors duration-200 group ${
-    isActive ? '' : 'hover:bg-tea-gold/6'
-  }`;
-
+  const baseClass = `w-full flex items-center justify-between gap-3 px-[28px] group`;
   const inner = (
     <>
-      {iconEl}
-      {labelEl}
+      <span className={labelClass} style={labelStyle}>{item.label}</span>
       {badgeEl}
-      {indicatorEl}
     </>
   );
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: -6 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: delay / 1000, duration: 0.25, ease: 'easeOut' }}
-    >
-      {item.action ? (
-        <button onClick={item.action} className={`w-full ${baseClass}`}>{inner}</button>
-      ) : item.path ? (
-        <Link to={item.path} onClick={onClick} className={baseClass}>{inner}</Link>
-      ) : (
-        <button onClick={onClick} className={`w-full ${baseClass}`}>{inner}</button>
-      )}
-    </motion.div>
+  return item.action ? (
+    <button onClick={item.action} className={baseClass} style={{ minHeight }}>{inner}</button>
+  ) : item.path ? (
+    <Link to={item.path} onClick={onClick} className={baseClass} style={{ minHeight }}>{inner}</Link>
+  ) : (
+    <button onClick={onClick} className={baseClass} style={{ minHeight }}>{inner}</button>
   );
 };
 
@@ -177,9 +141,12 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const canCreateCollections = auth.user?.canCreateCollections ?? false;
   const sampleCount = useSampleCartStore(s => s.items.length);
 
-  // Sync sidebar width to CSS variable for full-screen panel offsets
+  // Sync sidebar width to CSS variable for full-screen panel offsets. The
+  // capsule column's own width IS the aside's width (pod + 12px insets each
+  // side), so this one value is both the aside width and the gap a panel or
+  // the mobile commerce dock needs to clear.
   useEffect(() => {
-    document.documentElement.style.setProperty('--teajia-sidebar-w', collapsed ? '3.5rem' : '13rem');
+    document.documentElement.style.setProperty('--teajia-sidebar-w', collapsed ? '5rem' : '14.5rem');
   }, [collapsed]);
 
   // Cart badge pulse on item count increase
@@ -325,396 +292,152 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     ? [userName, locationLine].filter(Boolean).join(' · ')
     : 'Sign in';
 
-  const iconButtonClass = (active: boolean) =>
-    `flex items-center justify-center w-11 h-11 rounded-md transition-colors duration-200 hover:bg-tea-gold/6 ${
+  const railIconClass = (active: boolean) =>
+    `tap-target flex items-center justify-center w-full transition-colors duration-200 ${
       active ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
     }`;
 
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <LayoutGroup>
-      <aside
-        data-testid="left-sidebar"
-        aria-label="Main navigation"
-        className={`hidden lg:flex flex-col ${collapsed ? 'w-14' : 'w-52'} text-tea-text fixed left-0 overflow-hidden border-r border-tea-border transition-all duration-300 z-sticky top-0 h-screen select-none`}
-        style={{
-          background: theme === 'dark' ? '#13100a' : 'var(--tea-surface)',
-          boxShadow: '2px 0 16px rgb(var(--tea-bg-rgb) / 0.22)',
-        }}
-      >
-        {/* Grain texture, minimal in dark mode (narrow surface, pixel-noise risk) */}
-        <div
-          className="absolute inset-0 pointer-events-none z-0"
-          style={{ opacity: 0.025, backgroundImage: GRAIN, backgroundSize: '120px' }}
-        />
+    <aside
+      data-testid="left-sidebar"
+      aria-label="Main navigation"
+      className={`hidden lg:flex flex-col fixed left-0 top-0 h-screen z-sticky select-none transition-all duration-300 ${
+        collapsed ? 'w-20' : 'w-[14.5rem]'
+      }`}
+    >
+      <div className="flex flex-col h-full w-full p-3 gap-[10px]">
 
-        <div className="relative z-10 flex flex-col flex-1 min-h-0">
-
-          {/* ── Brand ──────────────────────────────────────────────────────── */}
-          <div className={`flex items-center shrink-0 h-14 border-b border-tea-border ${collapsed ? 'justify-center' : ''}`}>
+        {collapsed ? (
+          // ── Collapsed: one capsule pod, the whole rail ──────────────────
+          <div className="nav-pod rounded-[28px] flex-1 min-h-0 flex flex-col items-center">
+            {/* Brand */}
             <button
               onClick={() => { if (isAdminRoute) { navigate('/'); } else { onNavigate('HOME'); window.scrollTo({ top: 0, behavior: 'smooth' }); } }}
-              className={`relative flex items-center ${collapsed ? 'justify-center w-full h-full' : 'gap-3 px-4 h-full flex-1 min-w-0'} transition-colors duration-200 group ${
-                activeSection === 'HOME' && !isAdminRoute ? '' : 'hover:bg-tea-gold/6'
-              }`}
+              className="w-full flex items-center justify-center h-[72px] shrink-0 group"
               title="Home"
             >
-              {activeSection === 'HOME' && !isAdminRoute && (
-                <motion.div
-                  layoutId="logo-indicator"
-                  className="absolute left-0 inset-y-0 w-[2px] bg-tea-gold"
-                  transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-                />
-              )}
               <LogoEmblem
-                size={collapsed ? 26 : 30}
+                size={26}
                 color={theme === 'dark' ? '#c0b49a' : '#18130e'}
                 className={`shrink-0 transition-opacity duration-200 ${
                   activeSection === 'HOME' && !isAdminRoute ? 'opacity-100' : 'opacity-70 group-hover:opacity-100'
                 }`}
               />
-              {!collapsed && (
-                <span
-                  className="text-ui-20 text-tea-text tracking-[0.1em] transition-colors duration-200"
-                  style={{ fontFamily: 'var(--font-display)', fontWeight: 300 }}
-                >
-                  Teajia
-                </span>
-              )}
             </button>
-          </div>
 
-          {/* ── Account, one row ───────────────────────────────────────────── */}
-          <button
-            onClick={onAccountClick}
-            className={`relative w-full flex items-center shrink-0 min-h-[52px] ${
-              collapsed ? 'justify-center px-2' : 'gap-3 px-4'
-            } py-2 border-b border-tea-border transition-colors duration-200 group ${
-              activeSection === 'YOUR_TABLE' ? '' : 'hover:bg-tea-gold/6'
-            }`}
-            title="Your Table"
-          >
-            {activeSection === 'YOUR_TABLE' && (
-              <motion.div
-                layoutId="account-indicator"
-                className="absolute left-0 inset-y-0 w-[2px] bg-tea-gold"
-                transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-              />
-            )}
-            <span
-              className={`shrink-0 flex items-center justify-center w-7 h-7 rounded-full border border-tea-border transition-colors duration-200 ${
-                activeSection === 'YOUR_TABLE' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
-              }`}
-              aria-hidden="true"
-            >
-              {accountInitial ? (
-                <span className="font-display text-ui-15 leading-none">{accountInitial}</span>
-              ) : (
-                <Icons.User className="w-[15px] h-[15px]" strokeWidth={1.75} />
-              )}
-            </span>
-            {!collapsed && (
-              <span className="min-w-0 flex-1 text-left flex flex-col gap-0.5">
-                <span
-                  className={`${TYPOGRAPHY_CLASSES.navSidebar} block transition-colors duration-200 ${
-                    activeSection === 'YOUR_TABLE' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
-                  }`}
-                >
-                  Your Table
-                </span>
-                <span className={`${TYPOGRAPHY_CLASSES.accountMeta} text-tea-text-sec block truncate`}>
-                  {accountMetaLine}
-                </span>
-              </span>
-            )}
-          </button>
-
-          {/* ── Search ─────────────────────────────────────────────────────── */}
-          <div className={`${collapsed ? 'px-1.5 py-2' : 'px-3 py-2'} border-b border-tea-border shrink-0`}>
+            {/* Search */}
             <button
               onClick={onSearchClick}
-              className={`w-full flex items-center ${
-                collapsed ? 'justify-center px-2 min-h-[40px]' : 'gap-3 px-3 min-h-[36px]'
-              } rounded-md transition-colors duration-200 group hover:bg-tea-gold/6`}
+              className={railIconClass(false)}
+              style={{ minHeight: 44 }}
               title="Search (⌘K)"
+              aria-label="Search"
             >
-              <Icons.Search className="w-4 h-4 text-tea-text-sec group-hover:text-tea-text transition-colors shrink-0" strokeWidth={1.75} />
-              {!collapsed && (
+              <Icons.Search className="w-[18px] h-[18px]" strokeWidth={1.5} />
+            </button>
+
+            {hasManageRoom && (
+              <>
+                <Hairline className="w-6 mx-0 my-2" />
+                <button
+                  onClick={() => setSidebarRoom(room === 'manage' ? 'browse' : 'manage')}
+                  className={railIconClass(true)}
+                  style={{ minHeight: 44 }}
+                  title={room === 'manage' ? 'In Manage, switch to Browse' : 'In Browse, switch to Manage'}
+                  aria-label={room === 'manage' ? 'In Manage, switch to Browse' : 'In Browse, switch to Manage'}
+                >
+                  {room === 'manage'
+                    ? <Briefcase size={18} weight={PHOSPHOR_WEIGHT} />
+                    : <Storefront size={18} weight={PHOSPHOR_WEIGHT} />}
+                </button>
+              </>
+            )}
+
+            <Hairline className="w-6 mx-0 my-2" />
+
+            {/* Room content, icons only */}
+            <div className="flex-1 min-h-0 w-full overflow-y-auto hide-scrollbar flex flex-col items-center">
+              {room === 'browse' && (
                 <>
-                  <span className={`${TYPOGRAPHY_CLASSES.accountMeta} text-tea-text-sec group-hover:text-tea-text transition-colors flex-1 text-left`}>
-                    Search
-                  </span>
-                  <kbd className="text-ui-11 text-tea-text-sec border border-tea-border rounded px-1.5 py-0.5 font-mono shrink-0">
-                    ⌘K
-                  </kbd>
+                  {browseItems.map(item => {
+                    const isActive = !isAdminRoute && (
+                      item.path ? currentPath.startsWith(item.path) : activeSection === item.section
+                    );
+                    const onClick = () => {
+                      if (item.path) {
+                        if (currentPath === item.path) window.scrollTo({ top: 0, behavior: 'smooth' });
+                        return;
+                      }
+                      if (!item.section) return;
+                      if (!isAdminRoute && item.section === activeSection) {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        return;
+                      }
+                      onNavigate(item.section);
+                    };
+                    return item.path ? (
+                      <Link key={item.id} to={item.path} onClick={onClick} className={railIconClass(isActive)} style={{ minHeight: 44 }} title={item.label} aria-label={item.label}>
+                        {item.icon}
+                      </Link>
+                    ) : (
+                      <button key={item.id} onClick={onClick} className={railIconClass(isActive)} style={{ minHeight: 44 }} title={item.label} aria-label={item.label}>
+                        {item.icon}
+                      </button>
+                    );
+                  })}
+                  <Hairline className="w-6 mx-0 my-2" />
+                  <button
+                    onClick={onCartClick}
+                    className={`relative ${railIconClass(false)}`}
+                    style={{ minHeight: 44 }}
+                    title="Cart"
+                    aria-label={cartItemCount > 0 ? `Cart, ${cartItemCount} item${cartItemCount !== 1 ? 's' : ''}` : 'Cart'}
+                  >
+                    <ShoppingCart size={18} weight={PHOSPHOR_WEIGHT} />
+                    {cartItemCount > 0 && (
+                      <div
+                        className={`absolute top-1 right-2 w-4 h-4 cta-solid text-ui-10 font-bold rounded-full flex items-center justify-center leading-none ${
+                          badgeAnimating ? 'cart-badge-pulse' : ''
+                        }`}
+                        aria-hidden="true"
+                      >
+                        {cartItemCount > 9 ? '9+' : cartItemCount}
+                      </div>
+                    )}
+                  </button>
                 </>
               )}
-            </button>
-          </div>
 
-          {/* ── Room switch ────────────────────────────────────────────────── */}
-          {hasManageRoom && !collapsed && (
-            <div className="px-3 py-3 shrink-0">
-              <div className="flex gap-[3px] p-[3px] rounded-md border border-tea-border bg-tea-gold/6">
-                {ROOMS.map(r => (
-                  <button
-                    key={r.id}
-                    onClick={() => setSidebarRoom(r.id)}
-                    aria-pressed={room === r.id}
-                    className={`flex-1 flex items-center justify-center min-h-[44px] rounded-md font-sans text-ui-11 font-semibold uppercase tracking-[0.14em] transition-colors duration-200 ${
-                      room === r.id ? 'bg-tea-gold/10 text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
-                    }`}
-                  >
-                    {r.label}
-                  </button>
-                ))}
-              </div>
+              {room === 'manage' && manageItems.map(item => {
+                const isAnyChildActive = item.children?.some(c => currentPath === c.path) ?? false;
+                const isParentExact = currentPath === item.path;
+                const isActive = (isParentExact && !isAnyChildActive) || isAnyChildActive;
+                return (
+                  <Link key={item.id} to={item.path!} className={railIconClass(isActive)} style={{ minHeight: 44 }} title={item.label} aria-label={item.label}>
+                    {React.cloneElement(item.icon as React.ReactElement<{ size?: number }>, { size: 18 })}
+                  </Link>
+                );
+              })}
             </div>
-          )}
 
-          {/* Collapsed rail: one marked button naming the room you are in, so a
-              column of icons never leaves you guessing which set you are seeing. */}
-          {hasManageRoom && collapsed && (
-            <button
-              onClick={() => setSidebarRoom(room === 'manage' ? 'browse' : 'manage')}
-              className="w-full flex flex-col items-center justify-center gap-1 py-2.5 border-b border-tea-border text-tea-gold hover:bg-tea-gold/6 transition-colors duration-200 shrink-0"
-              title={room === 'manage' ? 'In Manage, switch to Browse' : 'In Browse, switch to Manage'}
-            >
-              {room === 'manage'
-                ? <Briefcase size={17} weight={PHOSPHOR_WEIGHT} />
-                : <Storefront size={17} weight={PHOSPHOR_WEIGHT} />}
-              <span className="font-sans text-ui-8 font-semibold uppercase tracking-[0.16em] leading-none">
-                {room === 'manage' ? 'Manage' : 'Browse'}
-              </span>
-            </button>
-          )}
+            <Hairline className="w-6 mx-0 my-2" />
 
-          {/* ── The room ───────────────────────────────────────────────────── */}
-          <motion.div
-            key={room}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="flex-1 min-h-0 overflow-y-auto hide-scrollbar"
-          >
-
-            {room === 'browse' && (
-              <nav className={`flex flex-col ${collapsed ? 'pt-3 pb-3 px-1.5' : 'pt-2 pb-3 px-3'} gap-0.5`}>
-                {browseItems.map((item, index) => {
-                  const isActive = !isAdminRoute && (
-                    item.path ? currentPath.startsWith(item.path) : activeSection === item.section
-                  );
-                  return (
-                    <NavButton
-                      key={item.id}
-                      item={item}
-                      isActive={isActive}
-                      onClick={() => {
-                        if (item.path) {
-                          if (currentPath === item.path) {
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                          }
-                          return;
-                        }
-                        if (!item.section) return;
-                        if (!isAdminRoute && item.section === activeSection) {
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                          return;
-                        }
-                        onNavigate(item.section);
-                      }}
-                      delay={0}
-                      collapsed={collapsed}
-                    />
-                  );
-                })}
-
-                {/* Cart, adjacent to Shop, separated by a thin rule */}
-                <div className="mt-1 pt-1 border-t border-tea-border">
-                  <motion.div
-                    initial={{ opacity: 0, x: -6 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.2, ease: 'easeOut' }}
-                  >
-                    <button
-                      onClick={onCartClick}
-                      className={`relative w-full flex items-center min-h-[44px] ${
-                        collapsed ? 'justify-center px-2' : 'gap-3 px-4'
-                      } rounded-md transition-colors duration-200 group hover:bg-tea-gold/6`}
-                      title="Cart"
-                      aria-label={
-                        cartItemCount > 0 ? `Cart, ${cartItemCount} item${cartItemCount !== 1 ? 's' : ''}` : 'Cart'
-                      }
-                    >
-                      {collapsed ? (
-                        <div className="relative shrink-0">
-                          <ShoppingCart
-                            size={18}
-                            weight={PHOSPHOR_WEIGHT}
-                            className="text-tea-text-sec group-hover:text-tea-text transition-colors duration-200"
-                          />
-                          {cartItemCount > 0 && (
-                            <div
-                              className={`absolute -top-2 -right-2.5 w-4 h-4 cta-solid text-ui-10 font-bold rounded-full flex items-center justify-center leading-none ${
-                                badgeAnimating ? 'cart-badge-pulse' : ''
-                              }`}
-                              aria-hidden="true"
-                            >
-                              {cartItemCount > 9 ? '9+' : cartItemCount}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <>
-                          <ShoppingCart
-                            size={18}
-                            weight={PHOSPHOR_WEIGHT}
-                            className="text-tea-text-sec group-hover:text-tea-text transition-colors duration-200 shrink-0"
-                          />
-                          <span className={`${TYPOGRAPHY_CLASSES.navSidebar} text-tea-text-sec group-hover:text-tea-text transition-colors duration-200`}>
-                            Cart
-                          </span>
-                          {cartItemCount > 0 && (
-                            <span
-                              className={`ml-auto w-5 h-5 cta-solid text-ui-10 font-bold rounded-full flex items-center justify-center shrink-0 leading-none ${
-                                badgeAnimating ? 'cart-badge-pulse' : ''
-                              }`}
-                              aria-hidden="true"
-                            >
-                              {cartItemCount > 9 ? '9+' : cartItemCount}
-                            </span>
-                          )}
-                          {sampleCount > 0 && (
-                            <span className={`${cartItemCount > 0 ? 'ml-2' : 'ml-auto'} flex items-center gap-1 text-ui-10 text-tea-gold/70`}>
-                              <SampleIcon className="w-[10px] h-[10px]" />
-                              {sampleCount}
-                            </span>
-                          )}
-                        </>
-                      )}
-                    </button>
-                  </motion.div>
-                </div>
-              </nav>
-            )}
-
-            {room === 'manage' && (
-              <nav className={`flex flex-col gap-0.5 ${collapsed ? 'px-1.5 pt-3 pb-3' : 'px-3 pt-2 pb-3'}`}>
-                {manageItems.map((item, index) => {
-                  const hasChildren = (item.children?.length ?? 0) > 0;
-                  const isAnyChildActive = item.children?.some(c => currentPath === c.path) ?? false;
-                  const isParentExact = currentPath === item.path;
-                  const showActive = isParentExact && !isAnyChildActive;
-                  const showChildren = !collapsed && hasChildren && (isParentExact || isAnyChildActive);
-
-                  return (
-                    <motion.div
-                      key={item.id}
-                      initial={{ opacity: 0, x: -6 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.2, ease: 'easeOut' }}
-                    >
-                      <Link
-                        to={item.path!}
-                        className={`relative flex items-center min-h-[40px] ${
-                          collapsed ? 'justify-center px-2' : 'gap-3 px-4'
-                        } rounded-md transition-colors duration-200 group ${
-                          (showActive || isAnyChildActive) ? 'bg-tea-gold/8' : 'hover:bg-tea-gold/6'
-                        }`}
-                        title={item.label}
-                      >
-                        {(showActive || isAnyChildActive) && (
-                          <motion.div
-                            layoutId="nav-indicator"
-                            className="absolute left-0 inset-y-0 w-[2px] bg-tea-gold"
-                            transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-                          />
-                        )}
-                        <div className={`shrink-0 transition-colors duration-200 ${
-                          (showActive || isAnyChildActive)
-                            ? 'text-tea-gold'
-                            : 'text-tea-text-sec group-hover:text-tea-text'
-                        }`}>
-                          {React.cloneElement(item.icon as React.ReactElement<{ size?: number }>, { size: 18 })}
-                        </div>
-                        {!collapsed && (
-                          <span
-                            className={`${TYPOGRAPHY_CLASSES.navSidebar} text-left transition-colors duration-200 ${
-                              (showActive || isAnyChildActive) ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
-                            }`}
-                          >
-                            {item.label}
-                          </span>
-                        )}
-                      </Link>
-
-                      {/* Collapsing the column unmounts the children outright rather
-                          than animating them out: a height transition would render
-                          them clipped to single letters inside the 56px rail for the
-                          length of the exit. */}
-                      <AnimatePresence initial={false}>
-                        {!collapsed && showChildren && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.18, ease: 'easeInOut' }}
-                            className="overflow-hidden"
-                          >
-                            <div className="ml-3.5 flex flex-col mt-0.5 mb-1 border-l border-tea-border pl-2.5">
-                              {item.children!.map(child => (
-                                <Link
-                                  key={child.id}
-                                  to={child.path}
-                                  className={`relative flex items-center px-2 py-1 rounded-md transition-colors duration-150 min-h-[30px] group ${
-                                    currentPath === child.path
-                                      ? 'text-tea-gold bg-tea-gold/8'
-                                      : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/5'
-                                  }`}
-                                >
-                                  {currentPath === child.path && (
-                                    <div className="absolute -left-2.5 inset-y-0 w-[2px] bg-tea-gold/60" />
-                                  )}
-                                  <span className={TYPOGRAPHY_CLASSES.navSidebarChild}>
-                                    {child.label}
-                                  </span>
-                                </Link>
-                              ))}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </motion.div>
-                  );
-                })}
-              </nav>
-            )}
-          </motion.div>
-
-          {/* ── Utility footer: marks, not rows ────────────────────────────── */}
-          <div
-            className={`shrink-0 border-t border-tea-border flex items-center ${
-              collapsed ? 'flex-col gap-1 py-2 px-1.5' : 'justify-between px-3 py-2'
-            }`}
-          >
-            <Link to="/spaces" className={iconButtonClass(currentPath === '/spaces')} title="Our spaces" aria-label="Our spaces">
+            {/* Footer marks, icons */}
+            <Link to="/spaces" className={railIconClass(currentPath === '/spaces')} style={{ minHeight: 44 }} title="Connections" aria-label="Connections">
               <MapPin size={18} weight={PHOSPHOR_WEIGHT} />
             </Link>
             {hasSettingsRoute && (
-              <Link
-                to="/admin/settings"
-                className={iconButtonClass(currentPath.startsWith('/admin/settings'))}
-                title="Settings"
-                aria-label="Settings"
-              >
+              <Link to="/admin/settings" className={railIconClass(currentPath.startsWith('/admin/settings'))} style={{ minHeight: 44 }} title="Settings" aria-label="Settings">
                 <GearSix size={18} weight={PHOSPHOR_WEIGHT} />
               </Link>
             )}
             <button
               type="button"
               onClick={(e) => toggleTheme(e)}
-              className={iconButtonClass(false)}
+              className={railIconClass(false)}
+              style={{ minHeight: 44 }}
               title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
               aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             >
@@ -723,16 +446,310 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             <button
               type="button"
               onClick={toggleSidebarCollapsed}
-              className={iconButtonClass(false)}
-              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              className={railIconClass(false)}
+              style={{ minHeight: 44 }}
+              title="Expand sidebar"
+              aria-label="Expand sidebar"
             >
-              {collapsed ? <CaretRight size={16} weight="bold" /> : <CaretLeft size={16} weight="bold" />}
+              <CaretRight size={16} weight="bold" />
+            </button>
+
+            <Hairline className="w-6 mx-0 my-2" />
+
+            {/* Account, bottom */}
+            <button
+              onClick={onAccountClick}
+              className="w-full flex items-center justify-center pb-3 pt-1 shrink-0 group"
+              title="Your Table"
+              aria-label="Your Table"
+            >
+              <span
+                className={`shrink-0 flex items-center justify-center w-7 h-7 rounded-full border transition-colors duration-200 ${
+                  activeSection === 'YOUR_TABLE' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
+                }`}
+                style={{ borderColor: 'var(--tea-keyline)' }}
+                aria-hidden="true"
+              >
+                {accountInitial ? (
+                  <span className="font-display text-ui-15 leading-none">{accountInitial}</span>
+                ) : (
+                  <Icons.User className="w-[15px] h-[15px]" strokeWidth={1.75} />
+                )}
+              </span>
             </button>
           </div>
+        ) : (
+          <>
+            {/* ── Pod 1: brand, room switch, search, the room ───────────── */}
+            <div className="nav-pod rounded-[28px] flex-1 min-h-0 flex flex-col">
+              <button
+                onClick={() => { if (isAdminRoute) { navigate('/'); } else { onNavigate('HOME'); window.scrollTo({ top: 0, behavior: 'smooth' }); } }}
+                className="flex items-center gap-3 group shrink-0"
+                style={{ padding: '16px 22px 12px' }}
+                title="Home"
+              >
+                <LogoEmblem
+                  size={28}
+                  color={theme === 'dark' ? '#c0b49a' : '#18130e'}
+                  className={`shrink-0 transition-opacity duration-200 ${
+                    activeSection === 'HOME' && !isAdminRoute ? 'opacity-100' : 'opacity-70 group-hover:opacity-100'
+                  }`}
+                />
+                <LogoText
+                  size="sm"
+                  color={activeSection === 'HOME' && !isAdminRoute ? 'var(--tea-gold)' : 'var(--tea-text)'}
+                  className="transition-colors duration-200 shrink-0"
+                />
+              </button>
 
-        </div>
-      </aside>
-    </LayoutGroup>
+              {hasManageRoom && (
+                <div className="flex gap-[22px] shrink-0" style={{ padding: '2px 24px 14px' }}>
+                  {ROOMS.map(r => (
+                    <button
+                      key={r.id}
+                      onClick={() => setSidebarRoom(r.id)}
+                      aria-pressed={room === r.id}
+                      className={`font-display text-ui-15 font-medium tracking-[0.04em] lowercase pb-[3px] border-b transition-colors duration-200 ${
+                        room === r.id ? 'text-tea-gold border-tea-gold' : 'text-tea-text-dim hover:text-tea-text border-transparent'
+                      }`}
+                    >
+                      {r.label.toLowerCase()}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <button
+                onClick={onSearchClick}
+                className="flex items-center gap-3 group shrink-0"
+                style={{ minHeight: 44, padding: '0 24px' }}
+                title="Search (⌘K)"
+              >
+                <Icons.Search className="w-4 h-4 text-tea-text-sec group-hover:text-tea-text transition-colors shrink-0" strokeWidth={1.75} />
+                <span className={`${TYPOGRAPHY_CLASSES.accountMeta} text-tea-text-sec group-hover:text-tea-text transition-colors flex-1 text-left`}>
+                  Search
+                </span>
+                <kbd className="text-ui-11 text-tea-text-sec shrink-0">⌘K</kbd>
+              </button>
+
+              <Hairline />
+
+              <motion.div
+                key={room}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.18, ease: 'easeOut' }}
+                className="flex-1 min-h-0 overflow-y-auto hide-scrollbar flex flex-col"
+              >
+                {room === 'browse' && (
+                  <nav className="flex flex-col flex-1 min-h-0">
+                    {browseItems.map((item, index) => {
+                      const isActive = !isAdminRoute && (
+                        item.path ? currentPath.startsWith(item.path) : activeSection === item.section
+                      );
+                      return (
+                        <React.Fragment key={item.id}>
+                          {index > 0 && <Hairline />}
+                          <NavRow
+                            item={item}
+                            isActive={isActive}
+                            minHeight={52}
+                            textClass={TYPOGRAPHY_CLASSES.navSidebar}
+                            onClick={() => {
+                              if (item.path) {
+                                if (currentPath === item.path) {
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }
+                                return;
+                              }
+                              if (!item.section) return;
+                              if (!isAdminRoute && item.section === activeSection) {
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                                return;
+                              }
+                              onNavigate(item.section);
+                            }}
+                          />
+                        </React.Fragment>
+                      );
+                    })}
+
+                    <div className="flex-1" />
+                    <Hairline />
+
+                    {/* Cart, bottom of the browse room */}
+                    <button
+                      onClick={onCartClick}
+                      className="w-full flex items-center gap-3 justify-between group"
+                      style={{ minHeight: 52, padding: '0 28px' }}
+                      title="Cart"
+                      aria-label={cartItemCount > 0 ? `Cart, ${cartItemCount} item${cartItemCount !== 1 ? 's' : ''}` : 'Cart'}
+                    >
+                      <span className={`${TYPOGRAPHY_CLASSES.navSidebar} lowercase text-tea-text-sec group-hover:text-tea-text transition-colors duration-200`}>
+                        Cart
+                      </span>
+                      <span className="flex items-center gap-2">
+                        {sampleCount > 0 && (
+                          <span className="flex items-center gap-1 text-ui-10 text-tea-gold/70">
+                            <SampleIcon className="w-[10px] h-[10px]" />
+                            {sampleCount}
+                          </span>
+                        )}
+                        {cartItemCount > 0 && (
+                          <span
+                            className={`text-ui-11 font-semibold text-tea-gold ${badgeAnimating ? 'cart-badge-pulse' : ''}`}
+                            aria-hidden="true"
+                          >
+                            {cartItemCount > 9 ? '9+' : cartItemCount}
+                          </span>
+                        )}
+                      </span>
+                    </button>
+                  </nav>
+                )}
+
+                {room === 'manage' && (
+                  <nav className="flex flex-col flex-1 min-h-0">
+                    {manageItems.map((item, index) => {
+                      const hasChildren = (item.children?.length ?? 0) > 0;
+                      const isAnyChildActive = item.children?.some(c => currentPath === c.path) ?? false;
+                      const isParentExact = currentPath === item.path;
+                      const showActive = isParentExact && !isAnyChildActive;
+                      const showChildren = hasChildren && (isParentExact || isAnyChildActive);
+
+                      return (
+                        <React.Fragment key={item.id}>
+                          {index > 0 && <Hairline />}
+                          <NavRow
+                            item={item}
+                            isActive={showActive || isAnyChildActive}
+                            minHeight={42}
+                            textClass="font-display text-ui-16 font-medium tracking-[0.04em] leading-[1.3]"
+                            onClick={() => {}}
+                          />
+
+                          {/* Collapsing the column unmounts the children outright rather
+                              than animating them out: a height transition would render
+                              them clipped to single letters inside the 56px rail for the
+                              length of the exit. */}
+                          <AnimatePresence initial={false}>
+                            {showChildren && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.18, ease: 'easeInOut' }}
+                                className="overflow-hidden"
+                              >
+                                <div className="flex flex-col border-l border-tea-border" style={{ marginLeft: 28, paddingLeft: 12, paddingBottom: 8 }}>
+                                  {item.children!.map(child => (
+                                    <Link
+                                      key={child.id}
+                                      to={child.path}
+                                      className={`relative flex items-center min-h-[26px] transition-colors duration-150 ${
+                                        currentPath === child.path ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
+                                      }`}
+                                    >
+                                      <span className={`${TYPOGRAPHY_CLASSES.navSidebarChild} lowercase`}>
+                                        {child.label}
+                                      </span>
+                                    </Link>
+                                  ))}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </React.Fragment>
+                      );
+                    })}
+                    <div className="flex-1" />
+                  </nav>
+                )}
+              </motion.div>
+            </div>
+
+            {/* ── Pod 2: Your Table, connections + marks ────────────────── */}
+            <div className="nav-pod rounded-[28px] flex flex-col shrink-0">
+              <button
+                onClick={onAccountClick}
+                className="flex items-center gap-3 group"
+                style={{ padding: '16px 22px 14px' }}
+                title="Your Table"
+              >
+                <span
+                  className={`shrink-0 flex items-center justify-center w-7 h-7 rounded-full border transition-colors duration-200 ${
+                    activeSection === 'YOUR_TABLE' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
+                  }`}
+                  style={{ borderColor: 'var(--tea-keyline)' }}
+                  aria-hidden="true"
+                >
+                  {accountInitial ? (
+                    <span className="font-display text-ui-15 leading-none">{accountInitial}</span>
+                  ) : (
+                    <Icons.User className="w-[15px] h-[15px]" strokeWidth={1.75} />
+                  )}
+                </span>
+                <span className="min-w-0 flex-1 text-left flex flex-col gap-0.5">
+                  <span
+                    className={`${TYPOGRAPHY_CLASSES.navSidebar} lowercase block transition-colors duration-200 ${
+                      activeSection === 'YOUR_TABLE' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
+                    }`}
+                  >
+                    Your Table
+                  </span>
+                  <span className={`${TYPOGRAPHY_CLASSES.accountMeta} text-tea-text-sec block truncate`}>
+                    {accountMetaLine}
+                  </span>
+                </span>
+              </button>
+
+              <Hairline />
+
+              <div className="flex items-center justify-between shrink-0" style={{ height: 44, padding: '0 22px' }}>
+                <Link
+                  to="/spaces"
+                  className="font-display text-ui-15 font-medium tracking-[0.04em] lowercase text-tea-text-sec hover:text-tea-text transition-colors duration-200"
+                  title="Connections"
+                  aria-label="Connections"
+                >
+                  connections
+                </Link>
+                <div className="flex items-center gap-3">
+                  {hasSettingsRoute && (
+                    <Link
+                      to="/admin/settings"
+                      className="tap-target flex items-center justify-center text-tea-text-dim hover:text-tea-text transition-colors duration-200"
+                      title="Settings"
+                      aria-label="Settings"
+                    >
+                      <GearSix size={16} weight={PHOSPHOR_WEIGHT} />
+                    </Link>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => toggleTheme(e)}
+                    className="tap-target flex items-center justify-center text-tea-text-dim hover:text-tea-text transition-colors duration-200"
+                    title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                    aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                  >
+                    {theme === 'dark' ? <Sun size={16} weight={PHOSPHOR_WEIGHT} /> : <Moon size={16} weight={PHOSPHOR_WEIGHT} />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={toggleSidebarCollapsed}
+                    className="tap-target flex items-center justify-center text-tea-text-dim hover:text-tea-text transition-colors duration-200"
+                    title="Collapse sidebar"
+                    aria-label="Collapse sidebar"
+                  >
+                    <CaretLeft size={16} weight={PHOSPHOR_WEIGHT} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+      </div>
+    </aside>
   );
 };

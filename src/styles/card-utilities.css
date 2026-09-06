@@ -136,7 +136,7 @@
 
 :root {
   --tea-vignette-color: rgba(24, 19, 14, 0.12);
-  --teajia-sidebar-w: 13rem; /* default expanded, overwritten by LeftSidebar JS */
+  --teajia-sidebar-w: 14.5rem; /* default expanded, overwritten by LeftSidebar JS */
 
   /* The two state hues the pill block needed and the palette did not have.
 
@@ -3565,7 +3565,9 @@ input[type="number"]::-webkit-outer-spin-button {
 .paper-surface::before,
 .paper-surface::after,
 .bottom-nav-bar::before,
-.bottom-nav-bar::after {
+.bottom-nav-bar::after,
+.nav-pod::before,
+.nav-pod::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -3581,17 +3583,41 @@ input[type="number"]::-webkit-outer-spin-button {
    reading as haze over it. Same sheet means same numbers; the bar is
    translucent now, so the paper has the page showing through it to work with. */
 .paper-surface::before,
-.bottom-nav-bar::before {
+.bottom-nav-bar::before,
+.nav-pod::before {
   background-image: url('/textures/label-paper.jpg');
   background-size: 400px 400px;
   filter: grayscale(1);
   opacity: 0.22;
 }
 .paper-surface::after,
-.bottom-nav-bar::after {
+.bottom-nav-bar::after,
+.nav-pod::after {
   background-image: var(--alcove-grain);
   background-size: 200px 200px;
   opacity: 0.28;
+}
+
+/* The left sidebar's pods and the collapsed rail capsule, carrying the exact
+   same material as the mobile bottom nav bar (.bottom-nav-bar): same
+   translucent ground, same blur, same keyline, same paper + grain overlays,
+   same drop shadow. Desktop and mobile navigation read as one object family
+   because they are cut from the same sheet. `isolation: isolate` gives the
+   pod its own stacking context so the z-index:-1 overlays above paint above
+   the pod's own background and below its (unpositioned) children, the same
+   trick `.bottom-nav-bar` gets for free from its `z-nav` utility class. */
+.nav-pod {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: rgb(var(--tea-bg-rgb) / 0.92);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--tea-keyline);
+  box-shadow:
+    0 10px 32px rgb(0 0 0 / 0.45),
+    0 2px 8px rgb(0 0 0 / 0.25),
+    inset 0 1px 0 rgb(var(--tea-gold-rgb) / 0.06);
 }
 
 /* The seam. With both halves the same material the join needs stating, and
