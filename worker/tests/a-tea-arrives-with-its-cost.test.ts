@@ -126,6 +126,29 @@ describe('a door that cannot know the cost says so, rather than letting the defa
     expect(door.slice(0, 2000)).toMatch(/'cost_amount'/);
   });
 
+  it('the compass promotion carries the entry price or nothing, never a zero or a dollar', () => {
+    /* A tea Adrian scouted without a price became a tea that cost nothing:
+       `Number(entry.price_amount ?? 0) || 0`. And `entry.price_currency ?? 'USD'`
+       answered a missing unit with a guess, on a column that is itself
+       `DEFAULT 'NT'`, so its silence was never evidence of anything. Both
+       halves travel together or neither does: an amount with no currency is
+       not a cost, and storing one would be read at a rate of 1. */
+    const door = worker.slice(worker.indexOf('handlePromoteCompassEntry'));
+    const body = door.slice(0, 4000);
+    expect(body).not.toMatch(/Number\(entry\.price_amount \?\? 0\)/);
+    expect(body).not.toMatch(/entry\.price_currency \?\? 'USD'/);
+    expect(body).toMatch(/currencyStated\(entry\.price_currency\)/);
+    expect(body).toMatch(/cost_amount: null, cost_currency: null/);
+  });
+
+  it('the margin warning declines rather than assume dollars', () => {
+    /* A warning computed from a guessed currency is a confident number about
+       money that is wrong by whatever the rate is. The block already declines
+       when there is no rate; an unstated currency is the same case earlier. */
+    expect(mcp).not.toMatch(/product\.cost_currency \?\? 'USD'/);
+    expect(mcp).toMatch(/if \(!currencyStated\(newCostCurrency\)\)/);
+  });
+
   it('the listing mirror copies what it was given instead of inventing a cost or a currency', () => {
     expect(worker).not.toMatch(/body\.cost_amount \?\? 0/);
     expect(worker).not.toMatch(/body\.cost_currency \?\? 'USD'/);

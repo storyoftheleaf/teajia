@@ -13,7 +13,7 @@ import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type Co
 import { shippingPerGramUsd, resolveShopFreightDefault } from './shippingRate';
 import { FX_FEED_CURRENCY_MAP, refreshedCurrencyName } from './exchangeRateFeed';
 import { SHOP_MARKUP_MULTIPLIER, CURATOR_FALLBACK_MARKUP } from './markup';
-import { costNeedsCurrency, createMissingCost, stampCostCurrencySource, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
+import { costNeedsCurrency, createMissingCost, currencyStated, stampCostCurrencySource, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
 import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 import { deriveConfirmedInvoiceLine, repairCandidate, formatInvoiceNumber, loadUsdRates, amountToUsd } from './invoiceDomain';
@@ -14491,8 +14491,23 @@ const handlePromoteCompassEntry: Handler = async (request, env, params) => {
     vendor_id: vendorId,
     stock_grams: stockGrams,
     stock_known_at: new Date().toISOString(),
-    cost_amount: Number(entry.price_amount ?? 0) || 0,
-    cost_currency: entry.price_currency ?? 'USD',
+    /* Carried from the compass entry, or NULL, and never a zero or a dollar
+       this shop invented.
+
+       `Number(entry.price_amount ?? 0) || 0` made an entry Adrian scouted
+       without a price into a tea that cost nothing, and `?? 'USD'` answered a
+       missing unit with a guess. Both halves have to travel together or
+       neither does: an amount with no currency is not a cost, and this entry's
+       own `price_currency` is itself `DEFAULT 'NT'`, so its silence is not
+       evidence of anything.
+
+       No `cost_currency_source` stamp for the same reason. What arrives here
+       is what the compass row happens to hold, which is not the same as Adrian
+       having answered the question. It stays in the backlog that
+       `list_unstated_costs` reports. */
+    ...(entry.price_amount != null && currencyStated(entry.price_currency)
+      ? { cost_amount: Number(entry.price_amount), cost_currency: entry.price_currency }
+      : { cost_amount: null, cost_currency: null }),
     quantity_purchased: null,
     quantity_units: quantityUnits,
     material: entry.material ?? null,

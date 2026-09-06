@@ -2003,10 +2003,17 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
     // non-USD costs (e.g. a 7.2-Yuan cost is ~$1, not $7.2). Convention:
     // exchange_rates.rate_to_usd is units-per-USD, so USD = amount / rate_to_usd.
     const newCostAmount = costAmount ?? Number(product.cost_amount || 0);
-    const newCostCurrency = (costCurrency ?? product.cost_currency ?? 'USD') as string;
+    /* No `?? 'USD'`. A row whose currency nobody ever stated is not a row
+       priced in dollars, and a margin warning computed from that guess is a
+       confident number about money that is wrong by whatever the exchange rate
+       is. The rest of this block already declines rather than guess when there
+       is no rate; an unstated currency is the same situation one step earlier. */
+    const newCostCurrency = (costCurrency ?? product.cost_currency ?? null) as string | null;
 
     let costUsd: number | null;
-    if (newCostCurrency === 'USD') {
+    if (!currencyStated(newCostCurrency)) {
+      costUsd = null;
+    } else if (newCostCurrency === 'USD') {
       costUsd = newCostAmount;
     } else {
       const rateRow = await env.DB.prepare(
