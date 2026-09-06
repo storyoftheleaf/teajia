@@ -1146,7 +1146,10 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
      the table has no rate for it, which keeps the arithmetic honest rather
      than silently scaling by nothing. */
   const costRateToUsd = useMemo(() => {
-    const currency = (product?.costCurrency || 'USD') as Currency;
+    /* 'UNK' rather than 'USD', so a cost with no recorded currency cannot be
+       converted and the surface shows a dash. Guessing dollars here is what
+       turned a 1,200 CNY invoice into a $1,200 tea. */
+    const currency = (product?.costCurrency || 'UNK') as Currency;
     return rates.find(r => r.currency === currency)?.rateToUSD || 1;
   }, [product?.costCurrency, rates]);
 
@@ -1160,7 +1163,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
       // the readout below must show the same freight the shelf is charging.
       product.shippingRatePerKg ?? shopRateInCurrency(shopFreight.perKgUsd, costRateToUsd),
       product.quantityPurchased || 0,
-      (product.costCurrency || 'USD') as Currency,
+      (product.costCurrency || 'UNK') as Currency,
       rates,
       product.type === 'Teaware'
     );
@@ -1549,12 +1552,21 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   <FieldRowFull label="Cost">
                     <div className="flex items-center gap-2 w-full">
                       <label className="relative shrink-0 cursor-pointer w-[88px]">
+                        {/* A currency nobody recorded shows as "—", not as USD.
+                            `|| 'USD'` here answered an absence with a guess and
+                            then displayed the guess as fact, which is how a
+                            1,200 CNY invoice reads as $1,200 on this very
+                            screen. The amount was right; only the unit was
+                            invented, and it was invented twice: once by the
+                            column's DEFAULT 'USD' and again by this line. */}
                         <select
-                          value={product.costCurrency || 'USD'}
+                          value={product.costCurrency || 'UNK'}
                           onChange={(e) => handleUpdate(product.id, 'costCurrency', e.target.value)}
-                          className="admin-input w-full h-9 py-2 pl-2.5 pr-6 text-ui-14 uppercase tracking-[0.06em] leading-tight cursor-pointer appearance-none"
+                          className={`admin-input w-full h-9 py-2 pl-2.5 pr-6 text-ui-14 uppercase tracking-[0.06em] leading-tight cursor-pointer appearance-none${product.costCurrency ? '' : ' text-tea-error'}`}
                           aria-label="Cost currency"
+                          title={product.costCurrency ? undefined : 'No currency recorded. The cost above is a number with no unit.'}
                         >
+                          <option value="UNK" className="bg-admin-surface text-admin-text">—</option>
                           {['USD', 'NT', 'Yuan', 'IDR', 'JPY', 'MYR', 'HKD'].map(c => (
                             <option key={c} value={c} className="bg-admin-surface text-admin-text">{c === 'Yuan' ? 'CNY' : c}</option>
                           ))}
@@ -1654,7 +1666,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                               </div>
                               {/* Breakdown */}
                               <div className="space-y-2 pt-2 border-t border-admin-border">
-                                <div className="flex justify-between text-ui-12"><span className="text-admin-text-sec">Source cost/g</span><span className="text-admin-text tabular-nums">{calc.costPerGramSource.toFixed(3)} {product.costCurrency || 'USD'}</span></div>
+                                <div className="flex justify-between text-ui-12"><span className="text-admin-text-sec">Source cost/g</span><span className="text-admin-text tabular-nums">{calc.costPerGramSource.toFixed(3)} {product.costCurrency || '—'}</span></div>
                                 <div className="flex justify-between text-ui-12"><span className="text-admin-text-sec">Exchange rate</span><span className="text-admin-text tabular-nums">{calc.rateUsed}</span></div>
                                 <div className="flex justify-between text-ui-12"><span className="text-admin-text-sec">True cost (USD)</span><span className="text-admin-text tabular-nums font-semibold">${calc.trueCostUSD.toFixed(3)}/g</span></div>
                                 <div className="flex justify-between text-ui-12"><span className="text-admin-text-sec">3× markup</span><span className="text-admin-text tabular-nums font-medium">${calc.suggestedRetailUSD.toFixed(2)}/g</span></div>

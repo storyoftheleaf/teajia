@@ -195,11 +195,23 @@ describe('nothing else in the shop decides the rate', () => {
     // exact NULL-versus-zero confusion this whole area exists to prevent,
     // sitting in the only place a person can change it. So there was no way to
     // hand a tea back to the shop rate, and trying made it ship free.
+    // Pinned to the behaviour, not to the shape of the code that provides it.
+    // This assertion used to match the inline `=== ''` check that lived in this
+    // case, and it failed the moment that check moved into the shared
+    // `enteredNumber` helper: the rule was still enforced, more widely than
+    // before, and the guard called it a regression. A test that fails when its
+    // subject gets better is a test that will be deleted rather than heeded.
     const payload = read('../../src/admin/productUpdatePayload.ts');
     const clause = payload.match(/case 'shippingRatePerKg':[\s\S]*?\n\s*case /);
     expect(clause, 'the freight case moved or was renamed').toBeTruthy();
-    expect(clause![0], 'an empty freight field no longer clears the rate').toMatch(/===\s*''|trim\(\)\s*===\s*''/);
-    expect(clause![0], 'clearing must send null, not a number').toContain('null');
+    expect(clause![0], 'the freight case no longer routes through the one rule for an unentered number')
+      .toContain('enteredNumber(value)');
+    // And that helper is what says an empty field is null rather than zero.
+    // Its own behaviour is pinned in worker/tests/entered-number.test.ts.
+    const helper = payload.match(/export function enteredNumber[\s\S]*?\n\}/);
+    expect(helper, 'enteredNumber moved or was renamed').toBeTruthy();
+    expect(helper![0], 'an empty field no longer reads as nothing said').toMatch(/trim\(\)\s*===\s*''/);
+    expect(helper![0], 'clearing must send null, not a number').toContain('return null');
 
     const panel = read('../../src/admin/components/ProductEditPanel.tsx');
     expect(panel, 'the edit panel turns an empty freight field into a number again')
