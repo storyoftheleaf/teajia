@@ -1,7 +1,7 @@
 
 // Tea type vocabulary lives in the shared wisdom base (src/wisdom) — re-exported
-// here so existing consumers (e.g. admin-panel/InventoryEditor.tsx) keep working
-// without importing from ../wisdom directly. Do not redeclare this list.
+// here so existing consumers keep working without importing from ../wisdom
+// directly. Do not redeclare this list.
 import { NON_TEA_TYPES, type TeaType } from './wisdom';
 export { TEA_TYPES, type TeaType, NON_TEA_TYPES } from './wisdom';
 

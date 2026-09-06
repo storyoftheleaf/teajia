@@ -4,7 +4,6 @@ import { useAppStore } from '../../lib/store';
 import { Product, ExchangeRate, Customer } from '../types';
 import { INITIAL_RATES } from '../constants';
 import { shopFreightDefaultFrom, type ShopFreightDefault } from '../../lib/shippingRate';
-import { fetchLiveRates } from '../utils';
 
 const useAccountQueryScope = () => {
   const activeAccountId = useAppStore((state) => state.activeAccountId);
@@ -94,14 +93,31 @@ export const useProducts = (options?: { enabled?: boolean }) => {
   });
 };
 
-// Fetch Exchange Rates
+/**
+ * The shop's exchange rates. One table, one refresh, one number.
+ *
+ * `/api/rates` serves the `exchange_rates` rows in D1, which the worker
+ * refreshes daily from a single feed and which every price it computes goes
+ * through: the cost basis, the freight rate, the ×3. The browser converts an
+ * already-computed USD figure for display, so it has to read the same rate the
+ * shelf was priced at. It used to fetch its own from a different vendor and
+ * merge that underneath, which meant a currency missing from D1 was displayed
+ * at a rate the worker had never seen.
+ *
+ * INITIAL_RATES fills anything still missing and is the floor when the API is
+ * unreachable. Every one of them carries `lastUpdated: null`, so a surface can
+ * say out loud that it is showing a seeded figure rather than today's.
+ *
+ * The key and the staleTime are a contract with the twelve components that read
+ * this through `useShopPrice`. See the note in src/components/shop/shopPrice.ts
+ * before changing either.
+ */
 export const useRates = () => {
   const { accountScope, userScope } = useAccountQueryScope();
   return useQuery({
     queryKey: ['rates', accountScope, userScope],
     queryFn: async () => {
       let dbRates: ExchangeRate[] = [];
-
       try {
         const data = await api.rates.list();
         dbRates = (data || []).map((r: any) => ({
@@ -110,23 +126,14 @@ export const useRates = () => {
           // Carried so a surface can say how old the number is. The shop
           // converts its freight rate through this on every request.
           lastUpdated: r.last_updated ?? null,
-        }));
+        })).filter((r: ExchangeRate) => Number.isFinite(r.rateToUSD) && r.rateToUSD > 0);
       } catch {
-        // Fall through to live rates
+        // Seeded rates below, marked unrefreshed, rather than no prices at all.
       }
 
-      // Fetch Live Rates (API)
-      const liveRates = await fetchLiveRates();
-
-      // Merge: Database overrides API, API fills gaps
       const rateMap = new Map<string, ExchangeRate>();
-
-      liveRates.forEach(r => rateMap.set(r.currency, r));
+      INITIAL_RATES.forEach(r => rateMap.set(r.currency, r));
       dbRates.forEach(r => rateMap.set(r.currency, r));
-
-      INITIAL_RATES.forEach(r => {
-          if (!rateMap.has(r.currency)) rateMap.set(r.currency, r);
-      });
 
       return Array.from(rateMap.values()) as ExchangeRate[];
     },

@@ -89,64 +89,29 @@ export const formatCurrency = (amount: number, currency: Currency, rates: Exchan
 
 // --- CURRENCY SERVICES ---
 
-const PRIMARY_API = 'https://api.exchangerate-api.com/v4/latest/USD';
-const BACKUP_API = 'https://open.er-api.com/v6/latest/USD';
-const API_KEY = import.meta.env.VITE_EXCHANGE_RATE_API_KEY;
+/*
+ * There is no browser-side currency feed any more, deliberately.
+ *
+ * There used to be one: a commercial rate API with a free one behind it,
+ * fetched on every admin and shop boot, merged under whatever `/api/rates`
+ * returned. Two vendors, two schedules, and a shop where the number the
+ * customer read and the number the shelf was priced at came from different
+ * places. The hostnames are deliberately not written here: a guard in
+ * worker/tests/exchange-rate-feed.test.ts fails on any currency-feed host
+ * appearing anywhere under src, and naming the old ones would defeat it.
+ *
+ * The worker refreshes `exchange_rates` in D1 daily from one feed, and every
+ * price the worker computes (cost basis, freight, the x3) goes through that
+ * table. The browser only ever converts an already-computed USD figure for
+ * display. So the browser reading a fresher or different rate than the worker
+ * does not make the shop more current, it makes the displayed price disagree
+ * with the price the order is actually reconciled at.
+ *
+ * One table, one refresh, one number: `useRates` in admin/hooks/useAdminData.ts
+ * reads `/api/rates` and nothing else, with INITIAL_RATES as the visible-seed
+ * floor when even that is unreachable.
+ */
 
-const fetchFromUrl = async (url: string): Promise<ExchangeRate[]> => {
-    const fetchUrl = API_KEY && url.includes('exchangerate-api.com') 
-        ? `https://v6.exchangerate-api.com/v6/${API_KEY}/latest/USD` 
-        : url;
-        
-    const res = await fetchWithTimeout(fetchUrl, { background: true });
-    if (!res.ok) throw new Error(`Failed to fetch from ${fetchUrl}`);
-    
-    const data = await res.json();
-    const r = data.rates || data.conversion_rates;
-    const fetchedAt = new Date().toISOString();
-
-    /* A currency the feed did not return falls back to its seeded figure and is
-       stamped as never refreshed, rather than being handed back wearing this
-       fetch's timestamp. The old `r['CNY'] || 7.2` did the opposite: it
-       returned a two-year-old guess indistinguishable from a live rate, which
-       is exactly how the shop came to price everything through an IDR rate
-       nobody had touched. */
-    const rate = (feedCode: string, shopKey: Currency): ExchangeRate => {
-      const value = Number(r?.[feedCode]);
-      if (Number.isFinite(value) && value > 0) return { currency: shopKey, rateToUSD: value, lastUpdated: fetchedAt };
-      const seeded = INITIAL_RATES.find(s => s.currency === shopKey);
-      return { currency: shopKey, rateToUSD: seeded?.rateToUSD ?? 1, lastUpdated: null };
-    };
-
-    return [
-      { currency: 'USD', rateToUSD: 1, lastUpdated: fetchedAt },
-      rate('TWD', 'NT'),
-      rate('CNY', 'Yuan'),
-      rate('IDR', 'IDR'),
-      rate('JPY', 'JPY'),
-      rate('MYR', 'MYR'),
-      rate('AUD', 'AUD'),
-      rate('HKD', 'HKD'),
-    ];
-};
-
-export const fetchLiveRates = async (): Promise<ExchangeRate[]> => {
-  try {
-    ratesAreFallback = false;
-    return await fetchFromUrl(PRIMARY_API);
-  } catch (primaryError) {
-    try {
-        ratesAreFallback = false;
-        return await fetchFromUrl(BACKUP_API);
-    } catch (backupError) {
-        console.warn("Currency API unavailable, using offline fallback rates.");
-        ratesAreFallback = true;
-        return FALLBACK_RATES;
-    }
-  }
-};
-
-export let ratesAreFallback = false;
 
 export const calculatePricing = (
   costAmount: number,

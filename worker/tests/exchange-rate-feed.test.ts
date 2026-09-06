@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { FALLBACK_SHIPPING_RATE_CURRENCY } from '../src/shippingRate';
 
@@ -21,6 +22,18 @@ import { FALLBACK_SHIPPING_RATE_CURRENCY } from '../src/shippingRate';
  */
 
 const read = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
+
+/** Every TypeScript source under a directory, as [path relative to src, text]. */
+function listSources(root: string, prefix = ''): Array<[string, string]> {
+  const out: Array<[string, string]> = [];
+  for (const entry of readdirSync(root, { withFileTypes: true })) {
+    if (entry.name === 'node_modules' || entry.name.startsWith('.')) continue;
+    const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) out.push(...listSources(join(root, entry.name), rel));
+    else if (/\.tsx?$/.test(entry.name)) out.push([rel, readFileSync(join(root, entry.name), 'utf8')]);
+  }
+  return out;
+}
 
 const worker = read('../src/index.ts');
 const feed = read('../src/exchangeRateFeed.ts');
@@ -87,6 +100,41 @@ describe('the daily rate refresh', () => {
     const mcp = read('../src/mcp.ts');
     expect(mcp, 'update_account_settings accepts any freight currency')
       .toContain('refreshedCurrencyName(freightCurrency)');
+  });
+
+  it('is the only live rate pass in the app', () => {
+    // The browser used to fetch its own rates from a second vendor and merge
+    // them under whatever /api/rates returned. The worker prices every tea
+    // through the D1 table; the browser only converts an already-computed USD
+    // figure for display. So a browser reading a different feed does not make
+    // the shop more current, it makes the price the customer reads disagree
+    // with the price their order is reconciled at.
+    const appSources = listSources(fileURLToPath(new URL('../../src', import.meta.url)));
+    const offenders = appSources.filter(([, source]) =>
+      /(exchangerate-api\.com|open\.er-api\.com|exchangerate\.host|api\.frankfurter)/.test(source));
+    expect(offenders.map(([name]) => name), 'a second currency feed appeared in the app').toEqual([]);
+  });
+
+  it('keeps one rate table, so two of them cannot drift apart', () => {
+    // src/utils/currency.ts carried its own: CNY 7.25, IDR 16250, HKD 7.75,
+    // against the shop's 7.2, 16210, 7.8, keyed by ISO code where the shop keys
+    // CNY as 'Yuan'. Neither table looked wrong on its own, which is the whole
+    // problem with having two.
+    const appSources = listSources(fileURLToPath(new URL('../../src', import.meta.url)));
+    const seedFile = 'admin/constants.ts';
+    const offenders = appSources.filter(([name, source]) =>
+      name !== seedFile && /(CNY|Yuan)\s*:\s*\d+(\.\d+)?\s*,[\s\S]{0,80}(TWD|NT)\s*:\s*\d+/.test(source));
+    expect(offenders.map(([name]) => name),
+      `only ${seedFile} may hold a table of exchange rates`).toEqual([]);
+  });
+
+  it('prices the storefront through that one table', () => {
+    // useShopPrice is what twelve customer-facing components read. If it ever
+    // stops reading useRates, the shop is converting through something else.
+    const shopPrice = read('../../src/components/shop/shopPrice.ts');
+    expect(shopPrice, 'the storefront no longer reads the shared rate table').toContain('useRates');
+    const hook = read('../../src/admin/hooks/useAdminData.ts');
+    expect(hook, 'useRates no longer reads /api/rates').toContain('api.rates.list()');
   });
 
   it('never lets the feed move the dollar off one', () => {
