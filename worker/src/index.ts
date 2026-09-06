@@ -26922,6 +26922,41 @@ async function syncLiveExchangeRates(env: Env): Promise<boolean> {
   }
 }
 
+/** Past this many days without a refresh, the rates are a problem worth naming. */
+export const STALE_RATES_AFTER_DAYS = 3;
+
+/**
+ * Say out loud when the rates have stopped being refreshed.
+ *
+ * The shop keeps selling on an old rate deliberately: yesterday's rate beats no
+ * price at all. What that trade needs is a floor, because the same property
+ * that makes it safe for a day makes it invisible for a month. A rate carries
+ * no sign of its own age, and every price on the site is computed through one.
+ *
+ * Logged rather than thrown: a stale rate is not a reason to fail a tick that
+ * still has work to do. The admin shows the same condition on screen, which is
+ * where it will actually be read.
+ */
+async function reportStaleExchangeRates(env: Env): Promise<void> {
+  const { results } = await env.DB.prepare(
+    'SELECT currency, last_updated FROM exchange_rates'
+  ).all();
+  const now = Date.now();
+  const stale: Array<{ currency: string; days: number | null }> = [];
+  for (const row of results as Array<{ currency: string; last_updated: string | null }>) {
+    if (!row.last_updated) { stale.push({ currency: row.currency, days: null }); continue; }
+    const at = new Date(`${String(row.last_updated).replace(' ', 'T')}Z`).getTime();
+    if (!Number.isFinite(at)) { stale.push({ currency: row.currency, days: null }); continue; }
+    const days = (now - at) / 86400000;
+    if (days > STALE_RATES_AFTER_DAYS) stale.push({ currency: row.currency, days: Math.round(days) });
+  }
+  if (stale.length === 0) return;
+  console.error('Exchange rates are stale; every price on the site converts through these', {
+    threshold_days: STALE_RATES_AFTER_DAYS,
+    currencies: stale,
+  });
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -27062,13 +27097,21 @@ export default {
      * failure is invisible: prices keep rendering, just off an older dollar.
      * Every public price is computed through these rates, so this is the one
      * piece of the tick that must not depend on the rest of it succeeding.
-     * It gates itself to once per 24h internally, so running first costs
-     * nothing on the other twenty-three ticks.
+     * It runs on every tick, and writing the same number twice costs nothing.
      */
     try {
       await syncLiveExchangeRates(env);
     } catch (err) {
       console.error('Exchange rate refresh failed', err);
+    }
+    /* One failed hour is nothing; a week of them is a shop quoting last week's
+       dollar. Nothing about a stale rate is visible in the number itself, so
+       the age has to be said out loud somewhere. Checked after the attempt, so
+       it reports the age that actually stands. */
+    try {
+      await reportStaleExchangeRates(env);
+    } catch (err) {
+      console.error('Exchange rate staleness check failed', err);
     }
 
     // Retry audio is temporary. Delete the object before its ledger row so a

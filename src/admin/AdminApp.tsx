@@ -47,6 +47,7 @@ import { PlatformAdminView } from './views/PlatformAdminView';
 import { AccessView } from './views/AccessView';
 import { PlatformAccessView } from './views/PlatformAccessView';
 import { CurrencyRatesView } from './views/CurrencyRatesView';
+import { StaleRatesBanner } from './components/StaleRatesBanner';
 import { MCPTokensView } from './views/MCPTokensView';
 import { OAuthConsentView } from './views/OAuthConsentView';
 import { WisdomView } from './views/WisdomView';
@@ -482,6 +483,12 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
   return (
     <div className="flex flex-col flex-1 min-h-0 h-full bg-tea-bg text-tea-text font-sans selection:bg-tea-gold/30">
       <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />
+
+      {/* Sibling of <main>, never a wrapper around it: the InventoryView height
+          chain runs through main's flex-1 and an extra layer would collapse the
+          scroll container. Renders nothing unless the rates have actually
+          stopped. */}
+      <StaleRatesBanner />
 
       {/* Account / location switching lives inside Your Table (AccountPanel),
           not in a sticky admin bar. See AccountSwitcherChip there. The old

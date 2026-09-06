@@ -170,6 +170,30 @@ describe('the daily rate refresh', () => {
       .not.toMatch(/(IDR|CNY|Yuan|HKD|JPY|MYR|NT|TWD)\s*:\s*\d/);
   });
 
+  it('says out loud when the refresh has stopped for days', () => {
+    // The shop keeping yesterday's rate is deliberate. The floor under that is
+    // that a rate carries no sign of its own age, so a trade that is safe for a
+    // day is invisible for a month: Indonesia priced 8% under the market for
+    // months with nothing on any screen saying so.
+    expect(worker, 'the tick no longer checks how old the rates are')
+      .toContain('reportStaleExchangeRates');
+
+    const banner = read('../../src/admin/components/StaleRatesBanner.tsx');
+    const shell = read('../../src/admin/AdminApp.tsx');
+    expect(shell, 'the stale-rate warning is not mounted, so nobody sees it')
+      .toContain('<StaleRatesBanner />');
+    expect(banner, 'the warning does not lead anywhere it can be fixed')
+      .toContain('/admin/currency');
+
+    // Both halves must agree on how many days is too many, or the log and the
+    // screen tell different stories about the same table.
+    const workerDays = worker.match(/STALE_RATES_AFTER_DAYS\s*=\s*(\d+)/);
+    const bannerDays = banner.match(/STALE_RATES_AFTER_DAYS\s*=\s*(\d+)/);
+    expect(workerDays, 'the worker lost its staleness threshold').toBeTruthy();
+    expect(bannerDays, 'the banner lost its staleness threshold').toBeTruthy();
+    expect(Number(bannerDays![1])).toBe(Number(workerDays![1]));
+  });
+
   it('never lets the feed move the dollar off one', () => {
     // USD is what the feed is quoted against. A fetched value for it could
     // only ever be noise in the one row that must stay exactly 1.
