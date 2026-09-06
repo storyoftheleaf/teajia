@@ -1,0 +1,22 @@
+-- The personal tasting journal gets the column its own save has always written.
+--
+-- `customer_tasting_journal` was created without `compass_entry_id`, but both
+-- inserts that serve the tasting session name it, and the reader hands it back
+-- out as `compassEntryId`. So every write to the journal has been answered with
+-- `no such column` since the table was created, and on 2026-09-06 the live
+-- table held zero rows: not one tasting note has ever reached the server.
+--
+-- It went unseen for so long because the save was written to ignore a failed
+-- sync, so nothing surfaced. A note appeared to save, because it did save, into
+-- that one browser and nowhere else. Clearing the browser or opening the site
+-- on a second device lost the lot, silently, which is the worst shape a data
+-- loss can take: it looks exactly like nothing happening.
+--
+-- Adding the column rather than dropping it from the inserts, because the field
+-- is the one that says which compass entry a tasting came from, and the read
+-- path already expects to find it. Removing it would make the journal forget
+-- where an entry came from, which is a real loss to fix a typo's worth of bug.
+--
+-- Nullable and unindexed on purpose: existing rows have no answer for it, and
+-- the two writes that set it already pass NULL when there is no compass entry.
+ALTER TABLE customer_tasting_journal ADD COLUMN compass_entry_id TEXT;
