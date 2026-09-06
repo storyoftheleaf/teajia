@@ -13,7 +13,7 @@ import { TYPOGRAPHY_CLASSES } from '../designTokens';
 // stock icons in the admin nav. Browse keeps its hand-drawn brand icons.
 import {
   CalendarBlank, SquaresFour, Briefcase, Leaf, Coffee, Storefront, UsersThree,
-  FolderOpen, CaretLeft, CaretRight, UserCheck, MapPin,
+  FolderOpen, CaretLeft, CaretRight, UserCheck,
   BookOpen, Package, ShoppingCart, Sun, Moon, Stack, Camera, Compass,
   GearSix, Globe,
 } from '@phosphor-icons/react';
@@ -426,7 +426,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
             {/* Footer marks, icons */}
             <Link to="/spaces" className={railIconClass(currentPath === '/spaces')} style={{ minHeight: 44 }} title="Connections" aria-label="Connections">
-              <MapPin size={18} weight={PHOSPHOR_WEIGHT} />
+              <UsersThree size={18} weight={PHOSPHOR_WEIGHT} />
             </Link>
             {hasSettingsRoute && (
               <Link to="/admin/settings" className={railIconClass(currentPath.startsWith('/admin/settings'))} style={{ minHeight: 44 }} title="Settings" aria-label="Settings">
@@ -708,42 +708,40 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               <div className="flex items-center justify-between shrink-0" style={{ height: 44, padding: '0 22px' }}>
                 <Link
                   to="/spaces"
-                  className="font-display text-ui-15 font-medium tracking-[0.04em] lowercase text-tea-text-sec hover:text-tea-text transition-colors duration-200"
+                  className="tap-target flex items-center justify-center text-tea-text-dim hover:text-tea-text transition-colors duration-200"
                   title="Connections"
                   aria-label="Connections"
                 >
-                  connections
+                  <UsersThree size={16} weight={PHOSPHOR_WEIGHT} />
                 </Link>
-                <div className="flex items-center gap-3">
-                  {hasSettingsRoute && (
-                    <Link
-                      to="/admin/settings"
-                      className="tap-target flex items-center justify-center text-tea-text-dim hover:text-tea-text transition-colors duration-200"
-                      title="Settings"
-                      aria-label="Settings"
-                    >
-                      <GearSix size={16} weight={PHOSPHOR_WEIGHT} />
-                    </Link>
-                  )}
-                  <button
-                    type="button"
-                    onClick={(e) => toggleTheme(e)}
+                {hasSettingsRoute && (
+                  <Link
+                    to="/admin/settings"
                     className="tap-target flex items-center justify-center text-tea-text-dim hover:text-tea-text transition-colors duration-200"
-                    title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                    aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                    title="Settings"
+                    aria-label="Settings"
                   >
-                    {theme === 'dark' ? <Sun size={16} weight={PHOSPHOR_WEIGHT} /> : <Moon size={16} weight={PHOSPHOR_WEIGHT} />}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={toggleSidebarCollapsed}
-                    className="tap-target flex items-center justify-center text-tea-text-dim hover:text-tea-text transition-colors duration-200"
-                    title="Collapse sidebar"
-                    aria-label="Collapse sidebar"
-                  >
-                    <CaretLeft size={16} weight={PHOSPHOR_WEIGHT} />
-                  </button>
-                </div>
+                    <GearSix size={16} weight={PHOSPHOR_WEIGHT} />
+                  </Link>
+                )}
+                <button
+                  type="button"
+                  onClick={(e) => toggleTheme(e)}
+                  className="tap-target flex items-center justify-center text-tea-text-dim hover:text-tea-text transition-colors duration-200"
+                  title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                  aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                >
+                  {theme === 'dark' ? <Sun size={16} weight={PHOSPHOR_WEIGHT} /> : <Moon size={16} weight={PHOSPHOR_WEIGHT} />}
+                </button>
+                <button
+                  type="button"
+                  onClick={toggleSidebarCollapsed}
+                  className="tap-target flex items-center justify-center text-tea-text-dim hover:text-tea-text transition-colors duration-200"
+                  title="Collapse sidebar"
+                  aria-label="Collapse sidebar"
+                >
+                  <CaretLeft size={16} weight={PHOSPHOR_WEIGHT} />
+                </button>
               </div>
             </div>
           </>
