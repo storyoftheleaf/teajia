@@ -200,7 +200,12 @@ export interface AccountMembership {
 }
 
 export type Bundle = 'catalog' | 'stock' | 'publish' | 'gather' | 'sell' | 'members';
-export const ALL_BUNDLES: Bundle[] = ['catalog', 'stock', 'publish', 'gather', 'sell', 'members'];
+// Not exported, and neither is any other value in this file. The Workers
+// runtime reads every named export of the entry module as an entrypoint, so a
+// plain array or number here is offered to it as a request handler and it
+// refuses to start: "not of type 'function or ExportedHandler'". Types are
+// erased before the runtime sees them, so those stay exported; values do not.
+const ALL_BUNDLES: Bundle[] = ['catalog', 'stock', 'publish', 'gather', 'sell', 'members'];
 
 export type PlatformRole = 'platform_owner' | 'platform_admin' | null;
 
@@ -27098,7 +27103,7 @@ async function syncLiveExchangeRates(env: Env): Promise<boolean> {
 }
 
 /** Past this many days without a refresh, the rates are a problem worth naming. */
-export const STALE_RATES_AFTER_DAYS = 3;
+const STALE_RATES_AFTER_DAYS = 3;
 
 /**
  * Say out loud when the rates have stopped being refreshed.

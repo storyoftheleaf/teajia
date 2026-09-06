@@ -152,6 +152,23 @@ npm run preview      # preview production build
 # deploy via Cloudflare Pages CI on push to main
 ```
 
+### The worker entry exports a handler, and no bare constants
+
+The Workers runtime reads every named export of `worker/src/index.ts` as an
+entrypoint, so `export const STALE_RATES_AFTER_DAYS = 3` is offered to it as a
+request handler and it refuses to start: *"not of type 'function or
+ExportedHandler'"*. Functions and classes are valid entrypoints and stay
+exported; types are erased before the runtime sees them. Only `const`, `let` and
+`var` are refused, by [worker/tests/entry-exports-only-the-handler.test.ts](worker/tests/entry-exports-only-the-handler.test.ts).
+
+**It does not fail where you would look for it.** `wrangler deploy` and its dry
+run only BUILD the bundle, so the deploy goes green and the live API keeps
+answering. What breaks is `wrangler dev`, which actually boots the runtime, and
+that is the local sandbox: the one tool that lets an agent click an admin change
+instead of handing it to Adrian. On 2026-09-06 one exported number took the
+sandbox down for every session while CI stayed green all day, so nothing
+announced it and the only symptom was verification quietly becoming impossible.
+
 ### The worker builds before the database moves
 
 `deploy-worker.yml` runs, in order: worker tests, **`wrangler deploy --dry-run`**, D1 migrations, deploy. The dry run is there because vitest only transpiles the files a test imports, so it has no opinion about a module no test loads. On 2026-09-06 a renamed export left `curateImports.ts` importing a name that no longer existed: 1198 tests passed, migration `0009` applied to the live database, and the deploy then died in esbuild, leaving the schema ahead of the code. The dry run builds the same bundle, writes nothing, needs no credentials, and must stay **above** the migration step.
