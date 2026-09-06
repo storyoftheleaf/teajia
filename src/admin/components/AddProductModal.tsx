@@ -18,6 +18,7 @@ import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { TeaReviewsPanel } from './TeaReviewsPanel';
 import { StockLedgerPanel } from './StockLedgerPanel';
 import { ConfirmModal } from './ConfirmModal';
+import { enteredNumber } from '../productUpdatePayload';
 
 interface AddProductModalProps {
   isOpen: boolean;
@@ -572,6 +573,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   const [legacyNotesOpen, setLegacyNotesOpen] = useState(false);
   const [showDraftBanner, setShowDraftBanner] = useState(false);
   const [nameError, setNameError] = useState(false);
+  const [costError, setCostError] = useState(false);
   const [autoFillSource, setAutoFillSource] = useState<string | null>(null);
   const autoFillSnapshotRef = useRef<typeof formData | null>(null);
 
@@ -619,6 +621,18 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    /* A blank cost is refused here rather than sent as zero. `parseFloat('')`
+       is NaN and `NaN || 0` is 0, so the natural conversion turned "he did not
+       fill this in" into "the tea was free" and the shelf priced it at zero
+       times three. A missing cost looks exactly like a cheap tea, which is why
+       nothing about it read as a fault. The worker refuses it too; this is so
+       the refusal lands on the field instead of as an error toast. */
+    if (formData.costAmount.trim() === '') {
+      setCostError(true);
+      showToast('What did this cost? Enter 0 if it was a gift.', 'error');
+      document.getElementById('product-cost-input')?.focus();
+      return;
+    }
     setLoading(true);
 
     try {
@@ -635,7 +649,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             origin_region: formData.originRegion,
             stock_grams: parseInt(formData.stockGrams) || 0,
             quantity_purchased: parseInt(formData.quantityPurchased) || 0,
-            cost_amount: parseFloat(formData.costAmount) || 0,
+            /* Not `parseFloat(x) || 0`: that is the conversion that turns a
+               blank into a free tea. The field is required above, so this only
+               ever carries what was actually typed, 0 included. */
+            cost_amount: enteredNumber(formData.costAmount),
             shipping_rate_per_kg: shippingSourceToSave,
             cost_currency: formData.costCurrency,
             vendor: formData.vendor,
@@ -956,9 +973,17 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                       <option value="MYR" className="bg-tea-surface text-tea-text">MYR</option>
                     </select>
                     <input
-                      name="costAmount" type="number" step="0.01" value={formData.costAmount} onChange={handleChange}
+                      id="product-cost-input"
+                      name="costAmount" type="number" step="0.01" value={formData.costAmount}
+                      onChange={(e) => { handleChange(e); if (costError && e.target.value.trim()) setCostError(false); }}
+                      required
+                      aria-required="true"
+                      aria-invalid={costError || undefined}
                       className="flex-1 min-w-0 bg-transparent py-1.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec tabular-nums text-right"
-                      placeholder="0.00"
+                      {/* Not "0.00". A zero placeholder in an empty required
+                          field reads as a value already sitting there, which is
+                          the confusion this whole rule exists to end. */}
+                      placeholder="required"
                       inputMode="decimal"
                       onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
                     />

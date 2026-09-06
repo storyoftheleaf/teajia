@@ -56,6 +56,30 @@ const NUMERIC_DEFAULTS: Record<string, string> = {
   low_stock_threshold: 'DEBT: policy number; a shop-wide floor copied onto every product',
 };
 
+/**
+ * Money columns carrying a numeric default, INCLUDING a default of 0.
+ *
+ * The scan above deliberately skips 0 and 1, which is right for a counter and a
+ * flag and wrong for money. On an amount, 0 is the dangerous value precisely
+ * because it is a real, plausible figure: it does not read as "nobody said", it
+ * reads as FREE, and the shelf prices it accordingly. `products.cost_amount`
+ * was `DEFAULT 0` and four separate doors were letting it answer.
+ */
+const MONEY_DEFAULTS: Record<string, string> = {
+  // Honest zeros: each starts a row that genuinely has none of this yet.
+  shipping_cost_usd: 'an invoice with no shipping charged really did cost nothing to ship',
+  total_usd: 'a running total, zero before a single line exists',
+  total_tastings: 'a count of things that have happened, and none have',
+  // DEBT, and the one that cost money. 0 on a cost is a free tea, not an
+  // unrecorded one. Every door now either REQUIRES the cost (the form, the bulk
+  // create, create_tea) or names the column NULL (the receipt proposal, the
+  // cellar placement, the inbound import), so nothing in the code can reach
+  // this default any more; it survives only for a row inserted straight from
+  // schema.sql. SQLite cannot alter a default in place, so removing it is a
+  // table rebuild, which is its own migration.
+  cost_amount: 'DEBT: 0 means free, not unrecorded; every door now requires it or writes NULL',
+};
+
 /** Currency columns, which are units rather than values. */
 const UNIT_DEFAULTS: Record<string, string> = {
   currency_default: "the shop's OWN setting; this is where the answer lives, not a guess",
@@ -83,6 +107,17 @@ function found(pattern: RegExp): string[] {
 }
 
 describe('every column default is a decision somebody wrote down', () => {
+  it('names every money default, zero included, because 0 on an amount means free', () => {
+    /* Narrowed away from `capacity` and `count`: a seat count and a tally are
+       not money, and a default of 0 on them is an honest empty start. */
+    const columns = [...schema.matchAll(
+      /^\s*([a-z_]*(?:cost|price|amount|paid|total|subtotal|balance|fee)[a-z_]*)\s+(?:REAL|INTEGER|NUMERIC)[^,\n]*?DEFAULT\s+(-?\d+(?:\.\d+)?)/gmi,
+    )].map(m => m[1]).filter(c => !/capacity|count/.test(c));
+    const unnamed = [...new Set(columns)].filter(c => !(c in MONEY_DEFAULTS) && !(c in NUMERIC_DEFAULTS));
+    expect(unnamed, 'a money column was given a default; 0 there means free, not unknown. Say why in MONEY_DEFAULTS or use NULL')
+      .toEqual([]);
+  });
+
   it('names every numeric default that is not 0 or 1', () => {
     const columns = [...schema.matchAll(/^\s*([a-z_]+)\s+(?:REAL|INTEGER|NUMERIC)[^,\n]*?DEFAULT\s+(-?\d+(?:\.\d+)?)/gmi)]
       .filter(m => !['0', '1', '0.0', '1.0'].includes(m[2]))

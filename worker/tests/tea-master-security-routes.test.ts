@@ -574,7 +574,7 @@ describe('Tea Master route security', () => {
     const response = await call(db, '/api/products', {
       method: 'POST',
       body: {
-        product_name: 'Incoming tea', type: 'Oolong', stock_grams: 0,
+        product_name: 'Incoming tea', cost_amount: 0, cost_currency: 'USD', type: 'Oolong', stock_grams: 0,
         in_transit: true, in_transit_grams: 100, is_public: true, shown_in_shop: true,
       },
     });
@@ -589,7 +589,7 @@ describe('Tea Master route security', () => {
     const response = await call(db, '/api/products', {
       method: 'POST',
       body: {
-        product_name: 'Private incoming tea', type: 'Oolong', stock_grams: 0,
+        product_name: 'Private incoming tea', cost_amount: 0, cost_currency: 'USD', type: 'Oolong', stock_grams: 0,
         in_transit: true, in_transit_grams: 100,
       },
     });

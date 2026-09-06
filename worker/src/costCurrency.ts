@@ -82,3 +82,55 @@ export function stampCostCurrencySource(body: Record<string, unknown>): void {
   delete body.cost_currency_source;
   if (currencyStated(body.cost_currency)) body.cost_currency_source = CURRENCY_SOURCE_STATED;
 }
+
+/**
+ * A tea cannot be added without saying what it cost.
+ *
+ * `costNeedsCurrency` above answers a narrower question: an amount that is
+ * being written needs a unit. It deliberately lets a write with NO amount
+ * through, because most edits do not touch the cost. On CREATE that leniency is
+ * the whole problem, because the column is `cost_amount REAL DEFAULT 0`: a
+ * create that simply omits the field does not fail, it stores ZERO, and zero is
+ * a free tea. The shelf then prices it at zero times three.
+ *
+ * Nothing about that reads as a fault. A missing cost looks exactly like a
+ * cheap tea, which is why the identical shape went unnoticed on freight until
+ * it had cost real money. Adrian's instruction is that the price is not
+ * optional when he adds a tea, and that the agent door is not allowed a lesser
+ * requirement than the form.
+ *
+ * WHAT IS REFUSED IS ABSENCE, NOT ZERO. A tea that genuinely cost nothing is a
+ * real thing: a gift, a sample sent by a vendor. Typing 0 says so and is
+ * accepted. Leaving the field alone says nothing and is refused. That is the
+ * same rule `enteredNumber()` enforces on every admin edit, applied at the one
+ * moment a row comes into existence, and it is the reason a door may not
+ * convert a blank into a number on the way here: `parseFloat(x) || 0` turns
+ * "he did not say" into "it was free" before this function ever sees it.
+ *
+ * The three intake doors are deliberately NOT held to this. A receipt proposal,
+ * a cellar placement and an inbound import each land a tea whose cost this shop
+ * genuinely does not know, and forcing them to invent one would be worse than
+ * the bug. They must write NULL, which means "not recorded", rather than let
+ * the column's default answer 0, which means "free".
+ */
+export const COST_REQUIRED_ON_CREATE =
+  'A tea needs what it cost. Send cost_amount (0 is a valid answer for a gift; leaving it out is not) '
+  + 'and cost_currency.';
+
+/** Which half is missing, or null when the create may proceed. */
+export function createMissingCost(opts: {
+  amount: unknown;
+  currency: unknown;
+}): 'amount' | 'currency' | null {
+  const { amount } = opts;
+  /* Absent, or a blank that a form would have turned into 0. Number('') is 0
+     and so is Number(null), so the check has to happen before the conversion,
+     not after it. */
+  if (amount === null || amount === undefined) return 'amount';
+  if (typeof amount === 'string' && amount.trim() === '') return 'amount';
+  const numeric = Number(amount);
+  if (!Number.isFinite(numeric)) return 'amount';
+  if (numeric < 0) return 'amount';
+  if (!currencyStated(opts.currency)) return 'currency';
+  return null;
+}

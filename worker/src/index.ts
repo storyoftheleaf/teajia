@@ -13,7 +13,7 @@ import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type Co
 import { shippingPerGramUsd, resolveShopFreightDefault } from './shippingRate';
 import { FX_FEED_CURRENCY_MAP, refreshedCurrencyName } from './exchangeRateFeed';
 import { SHOP_MARKUP_MULTIPLIER, CURATOR_FALLBACK_MARKUP } from './markup';
-import { costNeedsCurrency, stampCostCurrencySource, COST_CURRENCY_REQUIRED } from './costCurrency';
+import { costNeedsCurrency, createMissingCost, stampCostCurrencySource, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
 import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 import { deriveConfirmedInvoiceLine, repairCandidate, formatInvoiceNumber, loadUsdRates, amountToUsd } from './invoiceDomain';
@@ -1271,7 +1271,14 @@ function buildProductMirrorInserts(
     `list_${productId}`, accountId, `prof_${productId}`,
     body.stock_grams ?? 0, body.low_stock_threshold ?? 100, body.recheck_stock ?? 0,
     body.fixed_retail_price_usd ?? null, body.markup_multiplier ?? null,
-    body.vendor ?? null, body.vendor_id ?? null, body.cost_amount ?? 0, body.cost_currency ?? 'USD',
+    body.vendor ?? null, body.vendor_id ?? null,
+    /* NULL, not 0 and not 'USD'. The mirror is fed by every create door
+       including the three intake ones, which land teas whose cost this shop
+       does not know. `?? 0` made the listing say the tea was free and
+       `?? 'USD'` made it say the nothing was paid in dollars, so the mirror
+       reimplemented both halves of the schema default it exists to copy. A row
+       that was never told a cost says so. */
+    body.cost_amount ?? null, body.cost_currency ?? null,
     // NULL, not 0: nobody has entered a rate, so pricing applies the shop
     // default. A stored 0 is Adrian saying this one ships free.
     body.shipping_rate_per_kg ?? null, body.quantity_purchased ?? null, body.source_compass_entry_id ?? null,
@@ -3079,6 +3086,26 @@ function validateProductCreateCapabilities(ctx: AccountCtx, body: Record<string,
   if ((Object.prototype.hasOwnProperty.call(body, 'owner_user_id') || supplied(PRODUCT_VISIBILITY_UPDATE_COLUMNS))
       && !ctx.isPlatform && ctx.role !== 'owner') {
     return restError(403, 'Owner capability required for supplied fields', 'owner_assignment_denied');
+  }
+  /* A tea is not added without saying what it cost. `cost_amount` is
+     `REAL DEFAULT 0`, so a create that omits the field does not fail: it stores
+     zero, which is a free tea, and the shelf prices it at zero times three. A
+     missing cost looks exactly like a cheap tea, which is why the same shape
+     ran unseen on freight until it had cost real money.
+
+     Absence is what is refused, not zero. A tea that genuinely cost nothing is
+     a real thing and typing 0 says so. The three intake doors are held to a
+     different rule for the same reason: they land teas whose cost this shop
+     does not know, and they write NULL rather than let the default answer.
+
+     LAST, after every capability check above, and deliberately so. A caller who
+     may not create this product at all should be told that, not handed a list
+     of what else their payload was missing: the authorisation answer is the
+     true one, and it is the one that does not describe a form they are not
+     allowed to fill in. */
+  const missingCost = createMissingCost({ amount: body.cost_amount, currency: body.cost_currency });
+  if (missingCost) {
+    return restError(400, COST_REQUIRED_ON_CREATE, 'cost_required', { missing: missingCost });
   }
   return null;
 }
@@ -13673,6 +13700,12 @@ const handleApproveCellarPlacement: Handler = async (request, env, params) => {
     is_public: 0,
     shown_in_shop: 0,
     owner_user_id: item.owner_user_id,
+    /* Stated as NULL rather than omitted. This is somebody else's tea, stored
+       at Adrian's location: this shop did not buy it and has no cost for it,
+       which is not the same as it having been free. Omitted, the column default
+       would say free, and the row would price at zero the moment the owner
+       lists it. */
+    cost_amount: null,
   };
   body.slug = await mintProductSlug(env, body, productId);
   const cols = Object.keys(body);
@@ -14654,10 +14687,15 @@ const handleAcceptReceiptProposal: Handler = async (request, env, params) => {
     const name = String(proposal.product_name || 'Unnamed item');
     const type = String(proposal.product_type || (decoded.unit === 'unit' ? 'Teaware' : 'Misc'));
     const slug = await mintProductSlug(env, { product_name: name, given_name: name }, productId);
+    /* `cost_amount` is named as NULL rather than left out. Left out, the column
+       default answers 0, and 0 is a free tea: the draft lands priced at zero
+       times three and nobody sees it, because it is created hidden. This door
+       genuinely does not know the cost yet, and NULL is how a row says that. */
     statements.push(env.DB.prepare(`INSERT INTO products
       (id, account_id, type, product_name, given_name, slug, status, stock_grams, quantity_units,
-       inventory_purpose, is_sample, is_personal, stock_known_at, is_public, shown_in_shop, source_compass_entry_id, owner_user_id)
-      VALUES (?, ?, ?, ?, ?, ?, 'Draft', ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)`)
+       inventory_purpose, is_sample, is_personal, stock_known_at, is_public, shown_in_shop, source_compass_entry_id, owner_user_id,
+       cost_amount)
+      VALUES (?, ?, ?, ?, ?, ?, 'Draft', ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, NULL)`)
       .bind(productId, ctx.accountId, type, name, name, slug, inventory.stock_grams ?? 0, inventory.quantity_units,
         inventory.inventory_purpose, inventory.is_sample, inventory.is_personal, now, proposal.compass_entry_id ?? null, ctx.userId));
     statements.push(...buildProductMirrorInserts(env, productId, ctx.accountId, {
@@ -23642,13 +23680,20 @@ const handleImportInboundItems: Handler = async (request, env, params) => {
   for (const src of sourceRows.results as any[]) {
     const id = newId('prd');
     imported.push({ source_id: src.id, new_id: id });
+    /* `cost_amount` is NULL, stated rather than omitted. COPY_COLS deliberately
+       leaves the source shop's cost behind, because what THEY paid is not what
+       this shop paid and is protected besides. Omitting the column entirely
+       would let the default answer 0, which does not read as "we did not copy
+       a cost" but as "this tea was free". */
     const cols = [
       'id', 'account_id', 'status', 'is_public', 'stock_grams', 'fixed_retail_price_usd',
+      'cost_amount',
       'imported_from_product_id', 'imported_via_publication_id',
       ...COPY_COLS,
     ];
     const vals = [
       id, ctx.accountId, 'Draft', 0, 0, null,
+      null,
       src.id, params.pubId,
       ...COPY_COLS.map(c => src[c] ?? null),
     ];

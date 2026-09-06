@@ -33,7 +33,7 @@ import { curationTools } from './mcpTools/curation';
 import { eventsToolModule } from './mcpTools/events';
 import { writingToolModule } from './mcpTools/writing';
 import { costCurrencyTools } from './mcpTools/costCurrency';
-import { costNeedsCurrency, currencyStated, CURRENCY_SOURCE_STATED, COST_CURRENCY_REQUIRED } from './costCurrency';
+import { costNeedsCurrency, createMissingCost, currencyStated, CURRENCY_SOURCE_STATED, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
 import { REFRESHED_CURRENCIES, refreshedCurrencyName } from './exchangeRateFeed';
 import {
   authorizeInvoiceLines,
@@ -702,13 +702,29 @@ async function toolCreateTea(env: Env, auth: McpAuth, args: any) {
   const productName = String(args?.product_name ?? args?.name ?? '').trim();
   if (!productName) throw new Error('product_name is required');
   const stockGrams = Math.max(0, Math.round(Number(args?.stock_grams ?? args?.grams ?? 0) || 0));
-  const costAmount = Math.max(0, Number(args?.cost_amount ?? 0) || 0);
+
+  /* Asked of the RAW argument, before any conversion, and this ordering is the
+     whole point. `Number(args?.cost_amount ?? 0) || 0` used to run first, which
+     turned "the call said nothing" into "the tea cost zero" and then handed
+     that zero to the currency guard, which correctly let it pass because a
+     zero amount needs no unit. So the agent door created free teas in silence
+     while the form was being held to a rule it was not.
+
+     Adrian's instruction: the price is not optional when a tea is added, and
+     this door does not get a lesser requirement than the one with a form and
+     someone watching. Absence is refused; a typed 0 is a gift and is kept. */
+  const missingCost = createMissingCost({ amount: args?.cost_amount, currency: args?.cost_currency });
+  if (missingCost) throw new Error(`${COST_REQUIRED_ON_CREATE} (missing: ${missingCost})`);
+
+  const costAmount = Math.max(0, Number(args.cost_amount));
   const fixedRetailPriceUsd = args?.fixed_retail_price_usd == null
     ? null
     : Math.max(0, Number(args.fixed_retail_price_usd) || 0);
   const lowStockThreshold = Math.max(0, Math.round(Number(args?.low_stock_threshold ?? 100) || 0));
-  /* Nothing exists yet to inherit a currency from, so the call has to say. See
-     worker/src/costCurrency.ts; the same rule refuses the REST create. */
+  /* Belt and braces: the rule above already refuses an unstated currency on
+     create, and this is the same shared rule the update path uses. Keeping the
+     call here means removing the create check above cannot quietly reopen the
+     currency hole as well as the cost one. */
   if (costNeedsCurrency({ amount: costAmount, payloadCurrency: args?.cost_currency })) {
     throw new Error(COST_CURRENCY_REQUIRED);
   }
@@ -5742,7 +5758,12 @@ const TOOL_DEFS = [
   {
     name: 'create_tea',
     scope: 'stock:write',
-    description: 'Create a new tea/product row in Teajia inventory. Two-step preview/confirm. Use this when the tea does not already exist yet; use add_stock for later restocks of an existing tea.',
+    description:
+      'Create a new tea/product row in Teajia inventory. Two-step preview/confirm. Use this when the tea '
+      + 'does not already exist yet; use add_stock for later restocks of an existing tea. '
+      + 'cost_amount and cost_currency are REQUIRED and are not guessed: a cost stored without them is '
+      + 'stored as zero, which is a free tea, and the shelf prices it accordingly. If you do not know what '
+      + 'the tea cost or what it was paid in, ask rather than assuming dollars.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -5756,15 +5777,26 @@ const TOOL_DEFS = [
         origin_region: { type: 'string' },
         vendor: { type: 'string' },
         stock_grams: { type: 'number', description: 'Opening stock in grams. Writes a PURCHASE_RECEIPT ledger entry when > 0.' },
-        cost_amount: { type: 'number', description: 'Cost per the chosen currency.' },
-        cost_currency: { type: 'string', default: 'USD' },
+        cost_amount: {
+          type: 'number',
+          description:
+            'REQUIRED. What the batch cost, in cost_currency. 0 is a valid answer for a gift or a free '
+            + 'sample; omitting it is not, and is refused rather than stored as zero.',
+        },
+        cost_currency: {
+          type: 'string',
+          description:
+            'REQUIRED. The currency that cost was actually paid in: Yuan, NT, IDR, MYR, JPY, AUD, HKD, USD. '
+            + 'There is deliberately no default. A yuan invoice recorded as dollars prices the tea about '
+            + 'seven times too high and nothing objects, because the number itself is fine.',
+        },
         fixed_retail_price_usd: { type: 'number', description: 'Optional fixed retail price; omit to use markup-based pricing.' },
         low_stock_threshold: { type: 'number', default: 100 },
         notes: { type: 'string', description: 'Optional description/notes.' },
         status: { type: 'string', description: 'Product status (Active, Draft, Archived).', default: 'Active' },
         confirm: { type: 'string', description: 'Confirmation token from the preview response. Omit on first call.' },
       },
-      required: ['product_name'],
+      required: ['product_name', 'cost_amount', 'cost_currency'],
     },
   },
   {

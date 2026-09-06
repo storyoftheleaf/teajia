@@ -27,7 +27,7 @@ describe('inventory purpose compatibility', () => {
 
   it('mirrors canonical purpose and known-stock state for single create and update', async () => {
     const db = ReceiptDb.seeded();
-    const created = await receiptRequest(db, '/api/products', { method: 'POST', body: JSON.stringify({ product_name: 'Mirror Tea', type: 'Oolong', inventory_purpose: 'sample', stock_grams: 0 }) });
+    const created = await receiptRequest(db, '/api/products', { method: 'POST', body: JSON.stringify({ product_name: 'Mirror Tea', cost_amount: 0, cost_currency: 'USD', type: 'Oolong', inventory_purpose: 'sample', stock_grams: 0 }) });
     expect(created.status).toBe(201);
     const { id } = await created.json() as any;
     expect(db.products.get(id)).toMatchObject({ inventory_purpose: 'sample', is_sample: 1, is_personal: 0 });
@@ -42,7 +42,7 @@ describe('inventory purpose compatibility', () => {
     db.bundles = ['catalog'];
     const created = await receiptRequest(db, '/api/products', {
       method: 'POST',
-      body: JSON.stringify({ product_name: 'Unpublished Tea', type: 'Oolong' }),
+      body: JSON.stringify({ product_name: 'Unpublished Tea', cost_amount: 0, cost_currency: 'USD', type: 'Oolong' }),
     });
     expect(created.status).toBe(201);
     const { id } = await created.json() as { id: string };
@@ -53,14 +53,14 @@ describe('inventory purpose compatibility', () => {
 
   it('mirrors canonical purpose and known-stock state for bulk/CSV create', async () => {
     const db = ReceiptDb.seeded();
-    const response = await receiptRequest(db, '/api/products/bulk', { method: 'POST', body: JSON.stringify({ products: [{ product_name: 'CSV Tea', type: 'Red', inventory_purpose: 'working', stock_grams: 25 }] }) });
+    const response = await receiptRequest(db, '/api/products/bulk', { method: 'POST', body: JSON.stringify({ products: [{ product_name: 'CSV Tea', cost_amount: 0, cost_currency: 'USD', type: 'Red', inventory_purpose: 'working', stock_grams: 25 }] }) });
     expect(response.status).toBe(200);
     const product = [...db.products.values()].find(row => row.product_name === 'CSV Tea')!;
     expect(db.listings.get(`list_${product.id}`)).toMatchObject({ inventory_purpose: 'working', stock_known_at: product.stock_known_at, stock_grams: 25 });
 
-    const replay = await receiptRequest(db, '/api/products/bulk', { method: 'POST', body: JSON.stringify({ receipt_label: 'Invoice 88', products: [{ product_name: 'Retry Tea', type: 'Red', inventory_purpose: 'sample', stock_grams: 10 }] }) });
+    const replay = await receiptRequest(db, '/api/products/bulk', { method: 'POST', body: JSON.stringify({ receipt_label: 'Invoice 88', products: [{ product_name: 'Retry Tea', cost_amount: 0, cost_currency: 'USD', type: 'Red', inventory_purpose: 'sample', stock_grams: 10 }] }) });
     expect(replay.status).toBe(200);
-    const retryAgain = await receiptRequest(db, '/api/products/bulk', { method: 'POST', body: JSON.stringify({ receipt_label: 'Invoice 88', products: [{ product_name: 'Retry Tea', type: 'Red', inventory_purpose: 'sample', stock_grams: 10 }] }) });
+    const retryAgain = await receiptRequest(db, '/api/products/bulk', { method: 'POST', body: JSON.stringify({ receipt_label: 'Invoice 88', products: [{ product_name: 'Retry Tea', cost_amount: 0, cost_currency: 'USD', type: 'Red', inventory_purpose: 'sample', stock_grams: 10 }] }) });
     expect(retryAgain.status).toBe(200);
     expect(await retryAgain.json()).toMatchObject({ inserted: 0, replayed: 1, movements: 1 });
     expect([...db.products.values()].filter(row => row.product_name === 'Retry Tea')).toHaveLength(1);
@@ -72,8 +72,8 @@ describe('inventory purpose compatibility', () => {
     const response = await receiptRequest(db, '/api/products/bulk', { method: 'POST', body: JSON.stringify({
       receipt_label: 'WeChat delivery 14',
       products: [
-        { product_name: 'Field Sample', type: 'White', inventory_purpose: 'sample', stock_grams: 8 },
-        { product_name: 'Travel Cup', type: 'Teaware', quantity_units: 2 },
+        { product_name: 'Field Sample', cost_amount: 0, cost_currency: 'USD', type: 'White', inventory_purpose: 'sample', stock_grams: 8 },
+        { product_name: 'Travel Cup', cost_amount: 0, cost_currency: 'USD', type: 'Teaware', quantity_units: 2 },
       ],
     }) });
     const result = await response.json() as any;
@@ -87,7 +87,7 @@ describe('inventory purpose compatibility', () => {
   it('rolls back product, mirrors, and opening ledger together when a confirmed line fails', async () => {
     const db = ReceiptDb.seeded();
     db.failBatchAt = 3;
-    const response = await receiptRequest(db, '/api/products/bulk', { method: 'POST', body: JSON.stringify({ receipt_label: 'Atomic line', products: [{ product_name: 'Atomic Tea', type: 'Oolong', stock_grams: 20 }] }) });
+    const response = await receiptRequest(db, '/api/products/bulk', { method: 'POST', body: JSON.stringify({ receipt_label: 'Atomic line', products: [{ product_name: 'Atomic Tea', cost_amount: 0, cost_currency: 'USD', type: 'Oolong', stock_grams: 20 }] }) });
     expect(response.status).toBe(500);
     expect([...db.products.values()].some(row => row.product_name === 'Atomic Tea')).toBe(false);
     expect([...db.profiles.values()].some(row => row.product_name === 'Atomic Tea')).toBe(false);
@@ -97,7 +97,7 @@ describe('inventory purpose compatibility', () => {
 
   it('scopes deterministic import identity to the active account', async () => {
     const db = ReceiptDb.seeded();
-    const payload = JSON.stringify({ receipt_label: 'Shared invoice', products: [{ product_name: 'Account Tea', type: 'Red', stock_grams: 4 }] });
+    const payload = JSON.stringify({ receipt_label: 'Shared invoice', products: [{ product_name: 'Account Tea', cost_amount: 0, cost_currency: 'USD', type: 'Red', stock_grams: 4 }] });
     expect((await receiptRequest(db, '/api/products/bulk', { method: 'POST', body: payload })).status).toBe(200);
     expect((await receiptRequest(db, '/api/products/bulk', { method: 'POST', body: payload, accountId: 'account-b' })).status).toBe(200);
     expect([...db.products.values()].filter(row => row.product_name === 'Account Tea').map(row => row.account_id).sort()).toEqual(['account-a', 'account-b']);
@@ -106,20 +106,20 @@ describe('inventory purpose compatibility', () => {
   it('stamps known stock only for explicit numeric stock and rejects malformed stock', async () => {
     const db = ReceiptDb.seeded();
     const response = await receiptRequest(db, '/api/products/bulk', { method: 'POST', body: JSON.stringify({ products: [
-      { product_name: 'Unknown Stock', type: 'White' },
-      { product_name: 'Known Empty', type: 'White', stock_grams: 0 },
+      { product_name: 'Unknown Stock', cost_amount: 0, cost_currency: 'USD', type: 'White' },
+      { product_name: 'Known Empty', cost_amount: 0, cost_currency: 'USD', type: 'White', stock_grams: 0 },
     ] }) });
     expect(response.status).toBe(200);
     expect([...db.products.values()].find(row => row.product_name === 'Unknown Stock')).not.toHaveProperty('stock_known_at');
     expect([...db.products.values()].find(row => row.product_name === 'Known Empty')?.stock_known_at).toBeTruthy();
-    const malformed = await receiptRequest(db, '/api/products/bulk', { method: 'POST', body: JSON.stringify({ products: [{ product_name: 'Bad Stock', type: 'White', stock_grams: 'many' }] }) });
+    const malformed = await receiptRequest(db, '/api/products/bulk', { method: 'POST', body: JSON.stringify({ products: [{ product_name: 'Bad Stock', cost_amount: 0, cost_currency: 'USD', type: 'White', stock_grams: 'many' }] }) });
     expect(malformed.status).toBe(400);
     expect([...db.products.values()].some(row => row.product_name === 'Bad Stock')).toBe(false);
   });
 
   it('converges concurrent retries on one account-scoped product and ledger line', async () => {
     const db = ReceiptDb.seeded();
-    const body = JSON.stringify({ receipt_label: 'Race receipt', products: [{ product_name: 'Race Tea', type: 'Sheng', stock_grams: 12 }] });
+    const body = JSON.stringify({ receipt_label: 'Race receipt', products: [{ product_name: 'Race Tea', cost_amount: 0, cost_currency: 'USD', type: 'Sheng', stock_grams: 12 }] });
     const responses = await Promise.all([
       receiptRequest(db, '/api/products/bulk', { method: 'POST', body }),
       receiptRequest(db, '/api/products/bulk', { method: 'POST', body }),
