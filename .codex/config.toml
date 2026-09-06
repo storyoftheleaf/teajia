@@ -1,0 +1,3 @@
+[mcp_servers.teajia]
+url = "https://api.teajia.com/mcp"
+bearer_token_env_var = "TEAJIA_MCP_TOKEN"
