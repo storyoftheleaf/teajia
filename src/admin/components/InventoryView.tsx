@@ -1243,6 +1243,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         Stock: p.stockGrams,
         Cost: p.costAmount,
         'Cost Currency': p.costCurrency,
+        /* Whether that currency is an ANSWER or just the column default. Blank
+           means nobody ever stated it, which is the column to sort by when
+           auditing the shelf: a cost read as dollars that was really yuan is
+           seven times too big and looks like an expensive tea, not a fault. */
+        'Cost currency stated?': p.costCurrencySource ? 'yes' : 'no, may be the default',
         'Batch g': p.quantityPurchased,
         // Blank means the tea has no rate of its own and follows the shop's.
         // A number is a rate pinned to this tea, in the tea's own cost currency.

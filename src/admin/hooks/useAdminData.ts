@@ -55,7 +55,12 @@ export const useProducts = (options?: { enabled?: boolean }) => {
         status: p.status,
         vendor: p.vendor,
         vendorId: p.vendor_id || undefined,
-        costCurrency: p.cost_currency || 'USD',
+        /* 'UNK', not 'USD'. This is the display boundary and inventing dollars
+           here is the same fault the schema default is: a row with no currency
+           recorded would render as a dollar cost and price accordingly. 'UNK'
+           is the shop's sentinel for a currency nobody recorded. */
+        costCurrency: p.cost_currency || 'UNK',
+        costCurrencySource: p.cost_currency_source ?? null,
         quantityPurchased: Number(p.quantity_purchased) || 0,
         shippingRatePerKg: Number(p.shipping_rate_per_kg) || 0,
         fixedRetailPriceUSD: p.fixed_retail_price_usd ? Number(p.fixed_retail_price_usd) : null,

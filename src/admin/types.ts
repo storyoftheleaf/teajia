@@ -67,6 +67,10 @@ export interface Product {
   vendorId?: string;
   status: 'Active' | 'Archived' | 'Sold Out' | 'Draft';
   costCurrency: Currency;
+  /* NULL means nobody ever stated what this cost was paid in, so `costCurrency`
+     may only be the column's DEFAULT of 'USD' rather than an answer. See
+     migration 0014 and the freight/currency sections of CLAUDE.md. */
+  costCurrencySource?: 'stated' | 'recovered' | null;
   quantityPurchased: number; // The amount purchased corresponding to the costAmount
   shippingRatePerKg?: number; // Shipping cost per kg in source currency
   fixedRetailPriceUSD?: number | null; // Explicit override price
