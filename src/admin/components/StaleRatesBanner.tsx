@@ -14,9 +14,9 @@ import { useRates } from '../hooks/useAdminData';
  * priced Indonesia 8% under the market for months with nothing on any screen to
  * say so.
  *
- * Three days, because the refresh runs hourly. One missed hour is nothing and
- * one missed day is a bad afternoon at the feed; three days is a thing that has
- * stopped and will not start on its own.
+ * Three days, because the refresh runs daily and retries hourly when it fails.
+ * One missed day is a bad afternoon at the feed, and the retry usually catches
+ * it; three days is a thing that has stopped and will not start on its own.
  *
  * Actionable rather than decorative: it opens the screen where a rate can be
  * corrected by hand, which is the whole reason to be told.

@@ -16,7 +16,7 @@
  * can say how old it is; an invented one cannot.
  *
  * Per browser, so it does not travel and does not need to. The durable copy is
- * `exchange_rates` in D1, refreshed hourly by the worker.
+ * `exchange_rates` in D1, refreshed daily by the worker.
  */
 import type { ExchangeRate } from './types';
 

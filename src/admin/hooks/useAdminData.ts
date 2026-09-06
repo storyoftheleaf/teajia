@@ -97,7 +97,7 @@ export const useProducts = (options?: { enabled?: boolean }) => {
  * The shop's exchange rates. One table, one refresh, one number.
  *
  * `/api/rates` serves the `exchange_rates` rows in D1, which the worker
- * refreshes hourly from a single feed and which every price it computes goes
+ * refreshes daily from a single feed and which every price it computes goes
  * through: the cost basis, the freight rate, the x3. The browser converts an
  * already-computed USD figure for display, so it has to read the same rate the
  * shelf was priced at. That is the one read; there is no second feed in front
@@ -144,10 +144,10 @@ export const useRates = () => {
         return loadLastKnownRates();
       }
     },
-    // Matched to the worker's hourly refresh. Six hours meant a reader could be
-    // holding a rate five hours older than the one the shelf was priced at, for
-    // no saving worth having: this is one small request an hour, and the cached
-    // copy covers the gap when it fails.
+    // Matched to the worker's daily refresh. There is nothing to gain by asking
+    // more often than the table changes, and a session open across the daily
+    // boundary should still pick the new rate up, so: one hour of cache on a
+    // number that moves once a day.
     staleTime: 1000 * 60 * 60,
     initialData: loadLastKnownRates,
   });

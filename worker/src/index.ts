@@ -22153,7 +22153,7 @@ interface PaymentLocalAmount {
 /**
  * Null whenever there is nothing honest to say: no amount in the link, the
  * currency is already USD, the pay page's own list does not accept it, or the
- * hourly rate table has never heard of it. A missing figure is better than a
+ * daily rate table has never heard of it. A missing figure is better than a
  * made-up one.
  */
 async function resolveLocalPaymentAmount(
@@ -22171,7 +22171,7 @@ async function resolveLocalPaymentAmount(
     'SELECT rate_to_usd, last_updated FROM exchange_rates WHERE currency = ?'
   ).bind(currency).first() as { rate_to_usd?: number | null; last_updated?: string | null } | null;
   const rate = Number(row?.rate_to_usd);
-  // exchange_rates holds units of the currency per one USD, refreshed hourly by
+  // exchange_rates holds units of the currency per one USD, refreshed daily by
   // the existing cron. A rate of 1 on a non-USD currency is a placeholder row,
   // not a peg, and converting through it would print the dollar figure twice.
   if (!Number.isFinite(rate) || rate <= 0 || rate === 1) return null;
@@ -26865,19 +26865,33 @@ function resolveAllowedOrigin(origin: string): string | null {
 // on offline ticks so pricing never zeroes. Fails gently.
 async function syncLiveExchangeRates(env: Env): Promise<boolean> {
   try {
-    /* Every tick, not once a day.
+    /* Once a day, and retried hourly until it lands.
      *
-     * This used to skip the fetch when the last successful write was under 24
-     * hours old, which sounds thrifty and is not: one good read bought a whole
-     * day of not looking, so the table could only ever be as current as the
-     * moment the gate happened to open. The cron runs hourly, the feed is free
-     * and needs no key, and an upsert writing the same number twice costs
-     * nothing. Refreshing every tick keeps the table within an hour of the
-     * feed, and a failed hour is simply retried the next one.
+     * The gate reads the timestamp of the last SUCCESSFUL write, which is what
+     * makes those two things one rule rather than a compromise. On a good day
+     * the shop fetches once and skips the other twenty-three ticks. On a bad
+     * one nothing is written, so the timestamp stays old, so the next tick an
+     * hour later tries again: a failure costs an hour, never a day.
+     *
+     * Twenty-three hours rather than twenty-four, because the cron fires on the
+     * hour. A full day would put the next eligible tick just past the boundary
+     * and the refresh would walk forward an hour each day until it skipped one.
+     *
+     * The feed publishes daily, so this is as current as the source gets.
      *
      * Nothing in here deletes or zeroes a rate. Every early return below leaves
      * the stored rows exactly as they were, because yesterday's rate keeps the
      * shop selling and no rate at all does not. */
+    const usdRow = await env.DB.prepare(
+      "SELECT last_updated FROM exchange_rates WHERE currency = 'USD'"
+    ).first() as { last_updated: string | null } | null;
+    if (usdRow?.last_updated) {
+      const last = new Date(`${String(usdRow.last_updated).replace(' ', 'T')}Z`).getTime();
+      // An unreadable timestamp falls through and refreshes, which is the safe
+      // direction: a wasted fetch costs nothing, a wedged gate costs every price.
+      if (Number.isFinite(last) && Date.now() - last < 23 * 3600 * 1000) return false;
+    }
+
     const resp = await fetch('https://open.er-api.com/v6/latest/USD', {
       headers: { 'User-Agent': 'teajia-worker/1.0' },
     });

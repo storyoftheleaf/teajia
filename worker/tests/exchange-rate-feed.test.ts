@@ -137,14 +137,28 @@ describe('the daily rate refresh', () => {
     expect(hook, 'useRates no longer reads /api/rates').toContain('api.rates.list()');
   });
 
-  it('refreshes on every tick rather than once a day', () => {
-    // A 24-hour gate meant one good read bought a whole day of not looking, so
-    // the table was only ever as current as the moment the gate happened to
-    // open. The cron is hourly and the feed is free.
+  it('refreshes once a day, and retries hourly until it lands', () => {
+    // Two halves of one rule, and they only work together. The gate reads the
+    // last SUCCESSFUL write, so a good day costs one fetch and a bad one is
+    // retried on the next hourly tick rather than waiting out a full day.
+    // Gating on the attempt instead would turn a single bad minute into
+    // twenty-four hours of the shop quoting yesterday's dollar.
     const fn = worker.match(/async function syncLiveExchangeRates[\s\S]*?\n\}/);
     expect(fn, 'syncLiveExchangeRates moved or was renamed').toBeTruthy();
-    expect(fn![0], 'the refresh is gated again; it should run every tick')
-      .not.toMatch(/24\s*\*\s*3600|86400000|24\s*\*\s*60\s*\*\s*60/);
+    const body = fn![0];
+    expect(body, 'the daily gate is gone; the feed would be fetched every hour')
+      .toMatch(/23\s*\*\s*3600|82800000/);
+    // The gate has to sit above the fetch, or it is not a gate.
+    expect(body.indexOf('last_updated'), 'the gate reads nothing')
+      .toBeGreaterThan(-1);
+    expect(body.indexOf('last_updated')).toBeLessThan(body.indexOf('await fetch('));
+    // And the timestamp it reads must only ever be written on success, which
+    // the upsert below the fetch is what guarantees.
+    expect(body.indexOf('await fetch(')).toBeLessThan(body.indexOf('INSERT INTO exchange_rates'));
+
+    const cron = read('../wrangler.toml').match(/crons\s*=\s*\[([^\]]*)\]/);
+    expect(cron, 'no cron trigger').toBeTruthy();
+    expect(cron![1], 'the retry needs an hourly tick to retry on').toContain('0 * * * *');
   });
 
   it('keeps yesterday rate rather than letting the shop go down', () => {
