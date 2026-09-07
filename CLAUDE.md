@@ -388,12 +388,14 @@ A held write scope implicitly grants its read scope, so pre-`sales:read` tokens 
 - **Claude Code locally** — Infisical, same as every other Teajia secret. Two commands, once:
 
   ```
-  infisical secrets set TEAJIA_MCP_TOKEN=<the token> --env=dev --path=/
+  cd "/Users/adrianrasmussen/Documents/Files/2 Areas/Coding/teajia" && infisical secrets set --env=dev --path=/ TEAJIA_MCP_TOKEN=<the token>
   ```
 
   ```
   npm run mcp:check
   ```
+
+  The folder leads because Infisical resolves the project from `.infisical.json` in the repo, and run from `~` it stops to ask for one. The flags precede the assignment so that a newline arriving with a pasted token ends the command rather than leaving `--env=dev --path=/` to run as a command of its own, which is what happened the first time this was handed over.
 
   Then start sessions with `npm run claude`, which is `infisical run --env=dev --path=/ -- claude`: the variable reaches the process, `.mcp.json` substitutes it, and the value never lands in a file. Never in the file, never in chat.
 - **Claude Code on the web / a cloud session** — the environment's variables, set where the environment was created (claude.ai/code → environment settings). A cloud session ALSO needs `api.teajia.com` on its network allowlist, or the connection fails at the proxy with no route rather than with an auth error, which reads like a broken token and is not one.

@@ -165,8 +165,14 @@
         <div class="num">02</div>
         <div class="step-body">
           <h3>Put it in Infisical</h3>
-          <p>In Terminal, in the teajia folder, paste the token in place of the amber part:</p>
-          <div class="cmd">infisical secrets set TEAJIA_MCP_TOKEN=<span class="ph">&lt;paste it here&gt;</span> --env=dev --path=/</div>
+          <p>One paste in Terminal, from anywhere. Replace the amber part with the token:</p>
+          <div class="cmd">cd "/Users/adrianrasmussen/Documents/Files/2 Areas/Coding/teajia" &amp;&amp; infisical secrets set --env=dev --path=/ TEAJIA_MCP_TOKEN=<span class="ph">PASTE_THE_TOKEN_HERE</span></div>
+          <p>
+            The folder is in front because Infisical reads which project it belongs to from a
+            file in the repo; run it from your home folder and it asks you to name a project.
+            The token goes last so that a newline riding along with the paste just ends the
+            line, instead of leaving the settings behind to run as a command of their own.
+          </p>
           <p>
             That is the same place every other Teajia secret lives. Nothing is written to a
             file in the repo, and the token never has to be typed again.
@@ -178,7 +184,7 @@
         <div class="num">03</div>
         <div class="step-body">
           <h3>Ask the shop what it can do</h3>
-          <div class="cmd">npm run mcp:check</div>
+          <div class="cmd">cd "/Users/adrianrasmussen/Documents/Files/2 Areas/Coding/teajia" &amp;&amp; npm run mcp:check</div>
           <p class="caption">
             Prints the connection, the number of tools, and the list of scopes the shop
             actually grants. It never prints the token.
@@ -241,7 +247,15 @@
       </div>
       <div>
         <dt>TEAJIA_MCP_TOKEN is not set</dt>
-        <dd>Step two has not run, or it went to a different Infisical project. Run it again from the teajia folder.</dd>
+        <dd>Step two has not run, or it went to a different Infisical project. Run it again with the folder in front.</dd>
+      </div>
+      <div>
+        <dt>Please either run infisical init&hellip;</dt>
+        <dd>Step two ran outside the teajia folder. The <code>cd</code> at the front of that line is what answers it.</dd>
+      </div>
+      <div>
+        <dt>zsh: command not found: --env=dev</dt>
+        <dd>The line broke in two. Paste it again as one line, with the token at the end.</dd>
       </div>
     </dl>
   </section>
