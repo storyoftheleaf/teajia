@@ -1,0 +1,305 @@
+<title>Why It Says Zero</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+  :root {
+    --paper: #EFF0EA; --surface: #E6E8DF; --ink: #1B1E19; --ink-2: #4A5045;
+    --ink-3: #6E7568; --rule: #D3D6C9; --rule-firm: #B9BDAE;
+    --amber: #8A5E15; --moss: #5A6357; --rust: #8C4A2F;
+    --sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    --cond: "IBM Plex Sans Condensed", "IBM Plex Sans", ui-sans-serif, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #171814; --surface: #1E211B; --ink: #E9EBE2; --ink-2: #B4BAAC;
+      --ink-3: #8A9083; --rule: #2E3129; --rule-firm: #414639;
+      --amber: #D2A24C; --moss: #98A190; --rust: #C4795A;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #171814; --surface: #1E211B; --ink: #E9EBE2; --ink-2: #B4BAAC;
+    --ink-3: #8A9083; --rule: #2E3129; --rule-firm: #414639;
+    --amber: #D2A24C; --moss: #98A190; --rust: #C4795A;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--paper); color: var(--ink); font-family: var(--sans);
+    font-size: 16.5px; line-height: 1.62; margin: 0; padding: 0 20px 96px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  .prose { max-width: 64ch; }
+
+  header { padding: 44px 0 0; }
+  .docket {
+    display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: baseline;
+    font-family: var(--cond); font-size: 12px; font-weight: 600;
+    letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-3);
+    padding-bottom: 14px; border-bottom: 1px solid var(--rule-firm);
+  }
+  h1 {
+    font-family: var(--cond); font-weight: 600;
+    font-size: clamp(32px, 5.6vw, 46px); line-height: 1.06;
+    letter-spacing: -0.014em; text-wrap: balance; margin: 26px 0 0;
+  }
+  .standfirst { font-size: 18.5px; line-height: 1.55; color: var(--ink-2); margin: 16px 0 0; max-width: 58ch; }
+
+  section { margin: 48px 0 0; }
+  h2 {
+    font-family: var(--cond); font-size: 13px; font-weight: 600;
+    letter-spacing: 0.11em; text-transform: uppercase; color: var(--ink-3);
+    margin: 0 0 16px; padding-bottom: 9px; border-bottom: 1px solid var(--rule);
+  }
+  h3 {
+    font-family: var(--cond); font-weight: 600; font-size: clamp(20px, 3vw, 25px);
+    line-height: 1.2; margin: 0 0 12px; text-wrap: balance; max-width: 32ch;
+  }
+  p { margin: 0 0 14px; }
+  p:last-child { margin-bottom: 0; }
+  strong { font-weight: 500; }
+  code {
+    font-family: var(--mono); font-size: 0.87em; background: var(--surface);
+    border: 1px solid var(--rule); padding: 0.08em 0.34em; border-radius: 2px; white-space: nowrap;
+  }
+  a { color: var(--amber); text-decoration: underline; text-underline-offset: 2px; }
+
+  .thesis {
+    border-left: 2px solid var(--amber); padding: 2px 0 2px 22px; margin: 32px 0 0;
+    max-width: 62ch; font-size: 18px; line-height: 1.55;
+  }
+  .thesis em { font-style: normal; color: var(--amber); font-weight: 500; }
+
+  /* ── the arithmetic, shown ─────────────────────────────────── */
+
+  .sum { background: var(--surface); border: 1px solid var(--rule-firm); padding: 18px 20px; margin: 18px 0 0; max-width: 60ch; }
+  .sum .line {
+    font-family: var(--mono); font-size: 15px; display: flex; flex-wrap: wrap;
+    gap: 4px 10px; align-items: baseline; padding: 5px 0; font-variant-numeric: tabular-nums;
+  }
+  .sum .line + .line { border-top: 1px solid var(--rule); }
+  .sum .who { color: var(--ink-3); flex: 1 1 auto; font-family: var(--sans); font-size: 14.5px; }
+  .sum .val { color: var(--ink); }
+  .sum .val.bad { color: var(--rust); font-weight: 500; }
+  .sum .val.good { color: var(--moss); font-weight: 500; }
+
+  /* ── column comparison ────────────────────────────────────── */
+
+  .scroll { overflow-x: auto; margin-top: 6px; }
+  table { width: 100%; min-width: 620px; border-collapse: collapse; font-size: 14.5px; }
+  thead th {
+    font-family: var(--cond); font-size: 11px; font-weight: 600; letter-spacing: 0.09em;
+    text-transform: uppercase; color: var(--ink-3); text-align: left;
+    padding: 0 12px 9px; border-bottom: 1px solid var(--rule-firm); white-space: nowrap;
+  }
+  thead th.now  { color: var(--rust); }
+  thead th.next { color: var(--moss); }
+  tbody td { padding: 11px 12px; border-bottom: 1px solid var(--rule); vertical-align: baseline; }
+  tbody tr:last-child td { border-bottom: 1px solid var(--rule-firm); }
+  td.n { font-family: var(--mono); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  td.n.now { color: var(--rust); }
+  td.n.next { color: var(--moss); font-weight: 500; }
+  td.q { color: var(--ink-2); font-size: 14px; }
+  .pin { color: var(--amber); }
+
+  .ask { border: 1px solid var(--amber); padding: 22px 24px; margin: 22px 0 0; }
+  .ask h3 { color: var(--amber); font-size: clamp(19px, 2.6vw, 23px); margin-bottom: 10px; }
+  .ask p { max-width: 58ch; }
+  .ask .look {
+    font-family: var(--cond); font-size: 12px; font-weight: 600; letter-spacing: 0.09em;
+    text-transform: uppercase; color: var(--ink-3); margin: 16px 0 6px;
+  }
+  .ask ul { margin: 0; padding-left: 20px; }
+  .ask li { margin: 0 0 8px; max-width: 58ch; color: var(--ink-2); font-size: 15.5px; }
+  .ask li:last-child { margin-bottom: 0; }
+
+  .ruled { border-top: 2px solid var(--rule-firm); padding-top: 14px; margin-top: 22px; }
+  .ruled h4 {
+    font-family: var(--cond); font-size: 12px; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--moss); margin: 0 0 8px;
+  }
+  .ruled p { font-size: 15px; color: var(--ink-2); max-width: 62ch; }
+
+  footer {
+    margin: 54px 0 0; padding-top: 16px; border-top: 1px solid var(--rule);
+    font-size: 14px; color: var(--ink-3); max-width: 62ch;
+  }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="docket">
+      <span>Teajia</span>
+      <span>Freight</span>
+      <span>Not yet changed</span>
+    </div>
+    <h1>Why it says zero</h1>
+    <p class="standfirst">
+      You are almost certainly right, and for a better reason than the one you gave. Putting the currency
+      back on that column does not just read better. It is what makes this fault visible at all.
+    </p>
+
+    <div class="thesis">
+      That column is in dollars, but the number behind it is stored in <em>each tea's own buying
+      currency</em>. So a tea bought in rupiah with 12 in that column is charging twelve
+      <em>rupiah</em> a kilo, which is a fourteen-thousandth of a cent, which prints as
+      <strong>0.00</strong> and looks like a rounding artefact rather than free freight.
+    </div>
+  </header>
+
+  <section class="prose">
+    <h2>The arithmetic that produces your zero</h2>
+    <p>
+      Take a tea you bought in Bali, priced in rupiah, carrying 12 in the freight column because
+      something wrote 12 there:
+    </p>
+    <div class="sum">
+      <div class="line"><span class="who">Stored on the tea</span><span class="val">12</span></div>
+      <div class="line"><span class="who">Read as, because the column is in the tea's own currency</span><span class="val">Rp 12 per kilo</span></div>
+      <div class="line"><span class="who">Divided by today's rupiah rate</span><span class="val">÷ 16,300</span></div>
+      <div class="line"><span class="who">Which is, per kilo</span><span class="val bad">$0.0007</span></div>
+      <div class="line"><span class="who">Rounded to two decimals for the column</span><span class="val bad">0.00</span></div>
+      <div class="line"><span class="who">What it should be, at 85 yuan</span><span class="val good">$11.89</span></div>
+    </div>
+    <p style="margin-top:18px">
+      The tea ships free and the column tells you so in a way nobody would read as a warning. Every one
+      of these bugs this week has had that shape: a wrong number that looks like a normal one.
+    </p>
+  </section>
+
+  <section>
+    <h2>What the column would look like with the currency on it</h2>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>The tea</th>
+            <th>Bought in</th>
+            <th>Stored</th>
+            <th class="now">Column today</th>
+            <th class="next">With the unit</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="q">Following the shop rate, as most do</td>
+            <td class="q">Yuan</td>
+            <td class="n">nothing</td>
+            <td class="n now">11.89</td>
+            <td class="n next">¥85</td>
+          </tr>
+          <tr>
+            <td class="q">Bought in Bali, carrying a 12</td>
+            <td class="q">IDR</td>
+            <td class="n">12</td>
+            <td class="n now">0.00 <span class="pin">•</span></td>
+            <td class="n next">Rp 12 <span class="pin">•</span></td>
+          </tr>
+          <tr>
+            <td class="q">The 1993 Y562, as you found it</td>
+            <td class="q">whatever it says</td>
+            <td class="n">0</td>
+            <td class="n now">0.00 <span class="pin">•</span></td>
+            <td class="n next">¥0 <span class="pin">•</span></td>
+          </tr>
+          <tr>
+            <td class="q">Genuinely pinned in dollars</td>
+            <td class="q">USD</td>
+            <td class="n">13</td>
+            <td class="n now">13.00 <span class="pin">•</span></td>
+            <td class="n next">$13 <span class="pin">•</span></td>
+          </tr>
+          <tr>
+            <td class="q">Teaware, which ships inside its piece price</td>
+            <td class="q">any</td>
+            <td class="n">n/a</td>
+            <td class="n now">–</td>
+            <td class="n next">–</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="max-width:62ch; margin-top:18px">
+      Read the right-hand column down. <strong>Rp 12</strong> is obviously wrong at a glance in a way
+      <strong>0.00</strong> never was. That is the argument for your change, and it is a better one than
+      readability.
+    </p>
+    <p style="max-width:62ch">
+      The cost of it: the column can no longer be compared straight down, because it will mix units. That
+      was the original reason for dollars. My judgement is that the trade is worth it, because most rows
+      will read ¥85 and the ones that do not are exactly the ones you need to notice. Say the word and I
+      will build it.
+    </p>
+  </section>
+
+  <section>
+    <h2>Before I change anything, one look</h2>
+    <div class="ask">
+      <h3>What does the Cost currency say on the rows showing zero?</h3>
+      <p>
+        This splits two very different faults, and I cannot tell them apart from here because I cannot
+        read your database.
+      </p>
+      <p class="look">If it says IDR, or any currency far from the dollar</p>
+      <ul>
+        <li>
+          Then it is the arithmetic above, the teas are shipping free, and the fix is data: put the right
+          rate on them, or clear it so they follow the shop's 85 yuan.
+        </li>
+      </ul>
+      <p class="look">If it says Yuan or USD and the column still reads 0.00</p>
+      <ul>
+        <li>
+          Then the teas are carrying a literal zero, meaning somebody or something said “this ships
+          free”, and that is a different repair with a different migration.
+        </li>
+      </ul>
+      <p style="margin-top:16px">
+        If it is easier, hit <strong>Export</strong> on the stock list and send me the file. It carries
+        the cost currency, the stored rate and whether the rate is pinned or followed, for every tea, and
+        it would settle all of this in one go instead of three questions.
+      </p>
+    </div>
+  </section>
+
+  <section class="prose">
+    <h2>What I found while looking, which is live now</h2>
+
+    <div class="ruled">
+      <h4>A fifth freight rate, in the import path</h4>
+      <p>
+        <code>curate_import_batches.shipping_rate_per_kg</code> is declared
+        <code>NOT NULL DEFAULT 12.0</code>. Twelve was the old shop rate in dollars, from before freight
+        moved onto the account as 85 yuan. Every Curate import batch is born carrying it, and it is
+        copied onto every tea in that batch, into a column that means the tea's own currency. That is the
+        four-freight-rates bug still running in the one door nobody re-checked, and it is where a 12
+        comes from.
+      </p>
+      <p>
+        Because the column is <code>NOT NULL</code> it cannot even record “nobody said”, so the shop rate
+        can never apply to an imported tea.
+      </p>
+    </div>
+
+    <div class="ruled">
+      <h4>Why the Y562 still has its dot</h4>
+      <p>
+        Yesterday's migration had two clauses. The second one clears a 1993 tea that is shipping free.
+        If that tea is still pinned after it ran, then the first clause did not match its name and the
+        second did not match its year, which means <strong>the Year column on that row is not
+        1993</strong>. Worth a glance while you are there.
+      </p>
+      <p>
+        You do not have to wait for me either way: open the tea, clear the <strong>Ship $/kg</strong>
+        field so it is empty, save. That writes “follow the shop rate” now, and the dot should go.
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    Nothing on this page has been changed yet. The currency on the column, and whatever the zeros turn
+    out to be, both wait on your answer to the one question above.
+  </footer>
+
+</div>

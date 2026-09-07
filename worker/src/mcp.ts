@@ -676,6 +676,11 @@ type NewTeaInput = {
   stockGrams: number;
   costAmount: number;
   costCurrency: string;
+  /* NULL means Adrian did not say, so the tea follows the shop rate (85 Yuan/kg
+     as of 2026-09) and keeps following it when he renegotiates. A number pins
+     this tea, in its OWN cost currency, which is the same rule the column has
+     everywhere else. */
+  shippingRatePerKg: number | null;
   fixedRetailPriceUsd: number | null;
   lowStockThreshold: number;
   notes: string | null;
@@ -717,6 +722,18 @@ async function toolCreateTea(env: Env, auth: McpAuth, args: any) {
   if (missingCost) throw new Error(`${COST_REQUIRED_ON_CREATE} (missing: ${missingCost})`);
 
   const costAmount = Math.max(0, Number(args.cost_amount));
+  /* Freight, optional and read the same way every other nullable number is:
+     absent means nobody said, which is the shop rate, NOT zero. `?? null`
+     before any coercion, because Number(undefined) is NaN and Number(null) is
+     0, and a 0 here is Adrian saying this one tea ships free. */
+  const rawShipping = args?.shipping_rate_per_kg;
+  const shippingRatePerKg = rawShipping === undefined || rawShipping === null
+    || (typeof rawShipping === 'string' && rawShipping.trim() === '')
+    ? null
+    : Number(rawShipping);
+  if (shippingRatePerKg !== null && !Number.isFinite(shippingRatePerKg)) {
+    throw new Error('shipping_rate_per_kg must be a number, or left out to follow the shop rate');
+  }
   const fixedRetailPriceUsd = args?.fixed_retail_price_usd == null
     ? null
     : Math.max(0, Number(args.fixed_retail_price_usd) || 0);
@@ -745,6 +762,7 @@ async function toolCreateTea(env: Env, auth: McpAuth, args: any) {
        stored as dollars on the agent's say-so, which is the one door where
        nobody is looking at a form to notice. Refused below instead; a tea
        created with no cost at all keeps NULL, which is honest. */
+    shippingRatePerKg,
     costCurrency: currencyStated(args?.cost_currency)
       ? canonicalCurrency(String(args.cost_currency).trim().toUpperCase())
       : null,
@@ -846,6 +864,11 @@ async function commitCreateTea(env: Env, m: Extract<PendingMutation, { kind: 'cr
     low_stock_threshold: m.product.lowStockThreshold,
     fixed_retail_price_usd: m.product.fixedRetailPriceUsd,
   };
+  /* Named only when a rate was given. Left out, the column keeps its NULL,
+     which is what "follow the shop rate" is stored as. Writing NULL explicitly
+     would do the same thing here, but naming a column to say nothing is the
+     habit that put a number on every row in the first place. */
+  if (m.product.shippingRatePerKg !== null) cols.shipping_rate_per_kg = m.product.shippingRatePerKg;
   const names = Object.keys(cols);
 
   const stmts: D1PreparedStatement[] = [
@@ -5796,6 +5819,15 @@ const TOOL_DEFS = [
             'REQUIRED. The currency that cost was actually paid in: Yuan, NT, IDR, MYR, JPY, AUD, HKD, USD. '
             + 'There is deliberately no default. A yuan invoice recorded as dollars prices the tea about '
             + 'seven times too high and nothing objects, because the number itself is fine.',
+        },
+        shipping_rate_per_kg: {
+          type: 'number',
+          description:
+            'OPTIONAL, and usually left out. Leave it out and the tea follows the shop freight rate '
+            + '(85 Yuan/kg, converted live), which is what Adrian pays to air-freight from China, and it '
+            + 'keeps following that rate when he renegotiates it. Pass a number ONLY when this particular '
+            + "tea cost more or less to ship. Written in the tea's OWN cost currency, not USD: on a tea "
+            + 'bought in CNY, pass the CNY rate. A 0 means this tea genuinely ships free.',
         },
         fixed_retail_price_usd: { type: 'number', description: 'Optional fixed retail price; omit to use markup-based pricing.' },
         low_stock_threshold: { type: 'number', default: 100 },

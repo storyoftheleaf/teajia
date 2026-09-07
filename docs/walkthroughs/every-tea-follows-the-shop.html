@@ -1,0 +1,244 @@
+<title>Every Tea Follows The Shop</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+  :root {
+    --paper: #EFF0EA; --surface: #E6E8DF; --ink: #1B1E19; --ink-2: #4A5045;
+    --ink-3: #6E7568; --rule: #D3D6C9; --rule-firm: #B9BDAE;
+    --amber: #8A5E15; --moss: #5A6357; --rust: #8C4A2F;
+    --sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    --cond: "IBM Plex Sans Condensed", "IBM Plex Sans", ui-sans-serif, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #171814; --surface: #1E211B; --ink: #E9EBE2; --ink-2: #B4BAAC;
+      --ink-3: #8A9083; --rule: #2E3129; --rule-firm: #414639;
+      --amber: #D2A24C; --moss: #98A190; --rust: #C4795A;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #171814; --surface: #1E211B; --ink: #E9EBE2; --ink-2: #B4BAAC;
+    --ink-3: #8A9083; --rule: #2E3129; --rule-firm: #414639;
+    --amber: #D2A24C; --moss: #98A190; --rust: #C4795A;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--paper); color: var(--ink); font-family: var(--sans);
+    font-size: 16.5px; line-height: 1.62; margin: 0; padding: 0 20px 96px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  .prose { max-width: 64ch; }
+
+  header { padding: 44px 0 0; }
+  .docket {
+    display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: baseline;
+    font-family: var(--cond); font-size: 12px; font-weight: 600;
+    letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-3);
+    padding-bottom: 14px; border-bottom: 1px solid var(--rule-firm);
+  }
+  .docket .val { font-family: var(--mono); font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--ink-2); }
+
+  h1 {
+    font-family: var(--cond); font-weight: 600;
+    font-size: clamp(32px, 5.6vw, 46px); line-height: 1.06;
+    letter-spacing: -0.014em; text-wrap: balance; margin: 26px 0 0;
+  }
+  .standfirst { font-size: 18.5px; line-height: 1.55; color: var(--ink-2); margin: 16px 0 0; max-width: 58ch; }
+
+  .rulebox {
+    border-left: 2px solid var(--amber); padding: 2px 0 2px 22px; margin: 30px 0 0;
+    max-width: 62ch; font-size: 18px; line-height: 1.55;
+  }
+  .rulebox em { font-style: normal; color: var(--amber); font-weight: 500; }
+
+  section { margin: 48px 0 0; }
+  h2 {
+    font-family: var(--cond); font-size: 13px; font-weight: 600;
+    letter-spacing: 0.11em; text-transform: uppercase; color: var(--ink-3);
+    margin: 0 0 16px; padding-bottom: 9px; border-bottom: 1px solid var(--rule);
+  }
+  p { margin: 0 0 14px; }
+  p:last-child { margin-bottom: 0; }
+  strong { font-weight: 500; }
+  code {
+    font-family: var(--mono); font-size: 0.87em; background: var(--surface);
+    border: 1px solid var(--rule); padding: 0.08em 0.34em; border-radius: 2px; white-space: nowrap;
+  }
+
+  .scroll { overflow-x: auto; }
+  table { width: 100%; min-width: 620px; border-collapse: collapse; font-size: 14.5px; }
+  thead th {
+    font-family: var(--cond); font-size: 11px; font-weight: 600; letter-spacing: 0.09em;
+    text-transform: uppercase; color: var(--ink-3); text-align: left;
+    padding: 0 12px 9px; border-bottom: 1px solid var(--rule-firm); white-space: nowrap;
+  }
+  tbody td { padding: 11px 12px; border-bottom: 1px solid var(--rule); vertical-align: baseline; }
+  tbody tr:last-child td { border-bottom: 1px solid var(--rule-firm); }
+  td.n { font-family: var(--mono); white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+  td.n.after { color: var(--moss); font-weight: 500; }
+  td.n.kept { color: var(--ink-3); }
+  td.q { color: var(--ink-2); font-size: 14px; }
+  tbody tr.moved td:first-child { box-shadow: inset 2px 0 0 var(--moss); }
+
+  .say {
+    background: var(--surface); border: 1px solid var(--rule-firm);
+    padding: 16px 18px; margin: 14px 0 0; max-width: 62ch;
+  }
+  .say .lbl {
+    font-family: var(--cond); font-size: 10.5px; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--ink-3); display: block; margin-bottom: 6px;
+  }
+  .say p { font-size: 16px; margin: 0; color: var(--ink); }
+  .say p + p { margin-top: 10px; }
+
+  .pair { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .pair > div { border-top: 2px solid var(--rule-firm); padding-top: 13px; }
+  .pair h3 {
+    font-family: var(--cond); font-size: 12px; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--amber); margin: 0 0 8px;
+  }
+  .pair p { font-size: 14.5px; color: var(--ink-2); margin: 0; }
+
+  .warn { border-left: 2px solid var(--rust); padding: 1px 0 1px 18px; margin: 16px 0 0; max-width: 62ch; }
+  .warn p { font-size: 15px; color: var(--ink-2); }
+  .warn strong { color: var(--rust); font-weight: 500; }
+
+  footer {
+    margin: 54px 0 0; padding-top: 16px; border-top: 1px solid var(--rule);
+    font-size: 14px; color: var(--ink-3); max-width: 62ch;
+  }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="docket">
+      <span>Migration <span class="val">0016</span></span>
+      <span>Database <span class="val">teajia-db</span></span>
+      <span>Plus <span class="val">create_tea</span></span>
+    </div>
+    <h1>Every tea follows the shop</h1>
+    <p class="standfirst">
+      Your rule, made true on the whole shelf at once. No tea keeps a freight rate of its own, so the
+      zeros and the gold dots both go, and the shop rate applies to everything.
+    </p>
+
+    <div class="rulebox">
+      85 yuan a kilo, air from China, is <em>the</em> rate. It is one number, in one place, converted to
+      dollars live. Renegotiate it and every tea moves with it, because none of them carry a copy.
+    </div>
+  </header>
+
+  <section class="prose">
+    <h2>Why every rate goes, including the ones that look deliberate</h2>
+    <p>
+      Three separate doors wrote freight rates onto teas that nobody chose, and all three are now fixed
+      but all three had already written rows:
+    </p>
+    <p>
+      The Add Product form pre-filled the shop rate <strong>as a value</strong>, so every tea you added
+      by hand was stamped with that day's number and stopped following it. Clearing that field saved a
+      <strong>zero</strong>, meaning ships free, so the only way to unpin a tea was also the way to make
+      it free. And migration <code>0008</code> wrote a figure onto every tea that had none, which
+      <code>0010</code> only partly undid.
+    </p>
+    <p>
+      After that, a rate sitting on a row is not evidence that anyone chose it. So the honest move is to
+      clear all of them and let you re-pin the few that genuinely differ, which is a sentence now rather
+      than a form.
+    </p>
+    <div class="warn">
+      <p>
+        <strong>No price can go down from this.</strong> A tea that was shipping free starts carrying
+        freight, and freight sits inside the cost basis the markup multiplies. If a tea really does ship
+        free, tell the shop and it goes back to zero.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2>What it does, run against your real schema</h2>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>The row</th><th>Rate before</th><th>Rate after</th><th>Listing after</th><th>Meaning</th></tr>
+        </thead>
+        <tbody>
+          <tr class="moved">
+            <td class="q">A tea that was shipping free</td>
+            <td class="n">0</td><td class="n after">cleared</td><td class="n after">cleared</td>
+            <td class="q">Now charged 85 ¥/kg</td>
+          </tr>
+          <tr class="moved">
+            <td class="q">A tea carrying a 12</td>
+            <td class="n">12</td><td class="n after">cleared</td><td class="n after">cleared</td>
+            <td class="q">Now charged 85 ¥/kg</td>
+          </tr>
+          <tr class="moved">
+            <td class="q">A tea pinned at 85</td>
+            <td class="n">85</td><td class="n after">cleared</td><td class="n after">cleared</td>
+            <td class="q">Same price, but it follows now</td>
+          </tr>
+          <tr>
+            <td class="q">A tea already following</td>
+            <td class="n">none</td><td class="n after">unchanged</td><td class="n after">unchanged</td>
+            <td class="q">Nothing to do</td>
+          </tr>
+          <tr>
+            <td class="q">Teaware</td>
+            <td class="n">0</td><td class="n kept">0, kept</td><td class="n kept">0, kept</td>
+            <td class="q">Freight is inside the piece price</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="max-width:62ch; margin-top:16px; color:var(--ink-2); font-size:15px">
+      Seeded shapes against a copy of the real schema, not your shelf, since this sandbox cannot reach
+      your database. Running it twice changes nothing the second time.
+    </p>
+    <p style="max-width:62ch; color:var(--ink-2); font-size:15px">
+      The third row is the one worth noticing: a tea pinned at 85 and a tea following a shop rate of 85
+      print the same number today and behave differently the day you renegotiate. Only one of them moves.
+    </p>
+  </section>
+
+  <section>
+    <h2>Adjusting one tea, which is now a sentence</h2>
+    <div class="pair">
+      <div>
+        <h3>As you add it</h3>
+        <p>
+          <code>create_tea</code> takes a freight rate now. Leave it out and the tea follows the 85.
+          Give a number only when that tea cost more or less to ship.
+        </p>
+      </div>
+      <div>
+        <h3>Afterwards</h3>
+        <p>
+          <code>update_tea_pricing</code> already did this. It can also hand a tea back to the shop
+          rate, which is what clearing it means.
+        </p>
+      </div>
+    </div>
+
+    <div class="say">
+      <span class="lbl">Say something like</span>
+      <p>“Add the 2019 Bulang, 400g, cost 1,200 yuan, and this one shipped at 110 a kilo.”</p>
+      <p>“The Bulang actually shipped at 95.”</p>
+      <p>“Put the Bulang back on the shop freight rate.”</p>
+    </div>
+
+    <p style="max-width:62ch; margin-top:16px; color:var(--ink-2); font-size:15px">
+      The rate you give is in that tea's own buying currency, so a tea bought in yuan takes the yuan
+      figure. A zero means that tea genuinely ships free, and leaving it out is not a zero.
+    </p>
+  </section>
+
+  <footer>
+    This page is the record rather than a question. You said the default is 85 yuan and that you would
+    adjust the exceptions yourself, so the migration goes with it rather than waiting on another answer.
+  </footer>
+
+</div>

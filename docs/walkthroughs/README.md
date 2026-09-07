@@ -13,6 +13,8 @@ second artifact at a new address and the link Adrian already has goes stale.
 | Five quiet wrong prices | [five-quiet-wrong-prices.html](five-quiet-wrong-prices.html) | https://claude.ai/code/artifact/083130a4-7cb0-4e93-9a1e-de2542632ebe |
 | Thirty-one new commands | [thirty-one-new-commands.html](thirty-one-new-commands.html) | https://claude.ai/code/artifact/ac742916-fe65-475f-b175-fcfa6449903f |
 | The gold dot and the token | [gold-dot-and-token.html](gold-dot-and-token.html) | https://claude.ai/code/artifact/bdc53b23-362e-4430-851a-ba34398d3757 |
+| Every tea follows the shop | [every-tea-follows-the-shop.html](every-tea-follows-the-shop.html) | https://claude.ai/code/artifact/5b19cf9b-92fb-4e0a-ae08-2afbc06fa567 |
+| Why it says zero | [why-it-says-zero.html](why-it-says-zero.html) | https://claude.ai/code/artifact/aed27f0a-0743-4492-838f-8a1e10dbd92c |
 | Y562 freight clearance | [y562-freight-clearance.html](y562-freight-clearance.html) | https://claude.ai/code/artifact/547ee5e7-b1db-4d4e-9028-199e7c8d5c53 |
 
 The Y562 page is the worked example the migration rule in `CLAUDE.md` points at:
