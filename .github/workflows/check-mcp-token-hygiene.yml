@@ -1,0 +1,39 @@
+name: Check MCP token hygiene
+
+# The MCP token check answers a question about a credential without ever
+# printing it. That property is invisible when it breaks: the script keeps
+# working and the answer stays right, while the token lands in a terminal
+# buffer, a scrollback, and whatever screenshot gets pasted next. So it is
+# guarded, and the guard runs on its own rather than riding a workflow whose
+# paths do not include this script.
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/check-mcp-token.mjs'
+      - 'scripts/check-mcp-token.test.mjs'
+      - '.github/workflows/check-mcp-token-hygiene.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/check-mcp-token.mjs'
+      - 'scripts/check-mcp-token.test.mjs'
+      - '.github/workflows/check-mcp-token-hygiene.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hygiene:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+
+      - name: The token never reaches stdout
+        run: node --test scripts/check-mcp-token.test.mjs

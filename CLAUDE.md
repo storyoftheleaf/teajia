@@ -385,8 +385,20 @@ A held write scope implicitly grants its read scope, so pre-`sales:read` tokens 
 ### Connecting a Claude session to it
 `.mcp.json` (committed) points a session at `https://api.teajia.com/mcp` and reads the token from **`TEAJIA_MCP_TOKEN`**. The file carries the variable, never the value: mint an owner-tier token at `/admin/mcp-tokens` (shown once) and put it where that surface keeps secrets.
 
-- **Claude Code locally** — Infisical, same as every other Teajia secret: `infisical secrets set TEAJIA_MCP_TOKEN=...` in Terminal, then launch under `infisical run`. Never in the file, never in chat.
+- **Claude Code locally** — Infisical, same as every other Teajia secret. Two commands, once:
+
+  ```
+  infisical secrets set TEAJIA_MCP_TOKEN=<the token> --env=dev --path=/
+  ```
+
+  ```
+  npm run mcp:check
+  ```
+
+  Then start sessions with `npm run claude`, which is `infisical run --env=dev --path=/ -- claude`: the variable reaches the process, `.mcp.json` substitutes it, and the value never lands in a file. Never in the file, never in chat.
 - **Claude Code on the web / a cloud session** — the environment's variables, set where the environment was created (claude.ai/code → environment settings). A cloud session ALSO needs `api.teajia.com` on its network allowlist, or the connection fails at the proxy with no route rather than with an auth error, which reads like a broken token and is not one.
+
+**Tick `catalog:write` when minting, or the token connects and cannot change a price.** The three owner-tier boxes at `/admin/mcp-tokens` are UNTICKED by default (`SCOPE_DEFS` in `MCPTokensView.tsx`), and a token cannot be widened afterwards, so the default mint produces a token that passes every connection test and fails the one job it was minted for. `npm run mcp:check` exists for exactly that gap: it lists the scopes the shop actually grants the token, refuses to print the token itself, and distinguishes a shop refusal (JSON body, `401`) from a proxy refusal (no body, same status), because blaming the token for a blocked allowlist sends you to mint a second one that fails identically.
 
 Connected, a session can do the admin work directly instead of describing it: set visibility, correct a cost, read the live catalogue. Without it a session is blind to the live shop and can only ask Adrian to paste, which on 2026-09-04 cost most of an afternoon in round trips over a migration ledger.
 
