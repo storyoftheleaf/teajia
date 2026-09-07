@@ -1,0 +1,444 @@
+<title>Five Quiet Wrong Prices</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+  :root {
+    --paper:      #EFF0EA;
+    --surface:    #E6E8DF;
+    --ink:        #1B1E19;
+    --ink-2:      #4A5045;
+    --ink-3:      #6E7568;
+    --rule:       #D3D6C9;
+    --rule-firm:  #B9BDAE;
+    --amber:      #8A5E15;
+    --moss:       #5A6357;
+    --rust:       #8C4A2F;
+
+    --sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    --cond: "IBM Plex Sans Condensed", "IBM Plex Sans", ui-sans-serif, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #171814; --surface: #1E211B; --ink: #E9EBE2; --ink-2: #B4BAAC;
+      --ink-3: #8A9083; --rule: #2E3129; --rule-firm: #414639;
+      --amber: #D2A24C; --moss: #98A190; --rust: #C4795A;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #171814; --surface: #1E211B; --ink: #E9EBE2; --ink-2: #B4BAAC;
+    --ink-3: #8A9083; --rule: #2E3129; --rule-firm: #414639;
+    --amber: #D2A24C; --moss: #98A190; --rust: #C4795A;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.62;
+    margin: 0;
+    padding: 0 20px 96px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 900px; margin: 0 auto; }
+  .prose { max-width: 66ch; }
+
+  header { padding: 44px 0 0; }
+
+  .docket {
+    display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: baseline;
+    font-family: var(--cond); font-size: 12px; font-weight: 600;
+    letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-3);
+    padding-bottom: 14px; border-bottom: 1px solid var(--rule-firm);
+  }
+  .docket .val {
+    font-family: var(--mono); font-weight: 400; letter-spacing: 0;
+    text-transform: none; color: var(--ink-2);
+  }
+
+  h1 {
+    font-family: var(--cond); font-weight: 600;
+    font-size: clamp(32px, 5.6vw, 48px); line-height: 1.06;
+    letter-spacing: -0.014em; text-wrap: balance; margin: 26px 0 0;
+  }
+
+  .standfirst {
+    font-size: 18.5px; line-height: 1.55; color: var(--ink-2);
+    margin: 16px 0 0; max-width: 58ch;
+  }
+
+  section { margin: 46px 0 0; }
+
+  h2 {
+    font-family: var(--cond); font-size: 13px; font-weight: 600;
+    letter-spacing: 0.11em; text-transform: uppercase; color: var(--ink-3);
+    margin: 0 0 18px; padding-bottom: 9px; border-bottom: 1px solid var(--rule);
+  }
+
+  p { margin: 0 0 15px; }
+  p:last-child { margin-bottom: 0; }
+  strong { font-weight: 500; }
+
+  code {
+    font-family: var(--mono); font-size: 0.87em;
+    background: var(--surface); border: 1px solid var(--rule);
+    padding: 0.08em 0.34em; border-radius: 2px; white-space: nowrap;
+  }
+
+  a { color: var(--amber); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
+  a:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+  /* ── the one idea ─────────────────────────────────────────── */
+
+  .thesis {
+    border-left: 2px solid var(--amber);
+    padding: 2px 0 2px 22px;
+    margin: 34px 0 0;
+    max-width: 62ch;
+    font-size: 18px;
+    line-height: 1.55;
+    color: var(--ink);
+  }
+  .thesis em { font-style: normal; color: var(--amber); font-weight: 500; }
+
+  /* ── findings ─────────────────────────────────────────────── */
+
+  .finding { border-top: 1px solid var(--rule); padding: 22px 0 0; margin: 0 0 30px; }
+  .finding:first-of-type { border-top: 1px solid var(--rule-firm); }
+
+  .cost {
+    font-family: var(--cond); font-size: 11.5px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--amber);
+    margin: 0 0 6px;
+  }
+
+  .finding h3 {
+    font-family: var(--cond); font-weight: 600;
+    font-size: clamp(20px, 3vw, 25px); line-height: 1.2;
+    letter-spacing: -0.008em; margin: 0 0 12px; text-wrap: balance;
+    max-width: 30ch;
+  }
+
+  .then-now { display: grid; gap: 16px 28px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); max-width: 74ch; }
+  .then-now h4 {
+    font-family: var(--cond); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase; margin: 0 0 6px;
+  }
+  .then h4 { color: var(--rust); }
+  .now h4  { color: var(--moss); }
+  .then-now p { font-size: 15px; line-height: 1.55; color: var(--ink-2); margin: 0; }
+
+  /* ── shipped ledger ───────────────────────────────────────── */
+
+  .scroll { overflow-x: auto; }
+  table { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 14.5px; }
+  thead th {
+    font-family: var(--cond); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-3);
+    text-align: left; padding: 0 12px 9px; border-bottom: 1px solid var(--rule-firm);
+    white-space: nowrap;
+  }
+  tbody td { padding: 11px 12px; border-bottom: 1px solid var(--rule); vertical-align: baseline; }
+  tbody tr:last-child td { border-bottom: 1px solid var(--rule-firm); }
+  td.ref { font-family: var(--mono); color: var(--ink-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  td.when { font-family: var(--mono); color: var(--ink-3); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+  /* ── your move ────────────────────────────────────────────── */
+
+  .yours { border: 1px solid var(--rule-firm); background: var(--surface); padding: 22px 24px; }
+  .yours h2 { border-bottom: 0; padding-bottom: 0; margin-bottom: 14px; }
+  .task { display: flex; gap: 14px; align-items: baseline; padding: 12px 0; border-top: 1px solid var(--rule); }
+  .task:first-of-type { border-top: 0; padding-top: 0; }
+  .task .n {
+    font-family: var(--mono); font-size: 13px; color: var(--amber);
+    flex: 0 0 auto; font-variant-numeric: tabular-nums;
+  }
+  .task div { max-width: 60ch; }
+  .task p { font-size: 15px; color: var(--ink-2); margin: 5px 0 0; }
+  .task strong { color: var(--ink); }
+  .dot {
+    display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+    background: var(--amber); vertical-align: 0.12em; margin: 0 1px;
+  }
+
+  .also { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+  .also div { border-top: 2px solid var(--rule-firm); padding-top: 13px; }
+  .also h3 {
+    font-family: var(--cond); font-size: 12px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--amber); margin: 0 0 8px;
+  }
+  .also p { font-size: 14.5px; color: var(--ink-2); margin: 0; }
+
+  footer {
+    margin: 52px 0 0; padding-top: 16px; border-top: 1px solid var(--rule);
+    font-size: 13.5px; color: var(--ink-3);
+  }
+  footer a { color: var(--ink-2); }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="docket">
+      <span>Teajia</span>
+      <span>Shipped <span class="val">2026-09-06</span></span>
+      <span>Commits <span class="val">16</span></span>
+      <span>Migrations <span class="val">0013 · 0014 · 0015</span></span>
+      <span>Tests <span class="val">1,403 passing</span></span>
+    </div>
+
+    <h1>Five quiet wrong prices</h1>
+    <p class="standfirst">
+      All of them live on your shelf. None of them looked like a fault, because every one of them
+      produced a perfectly plausible number.
+    </p>
+
+    <div class="thesis">
+      Each was the same shape: a <em>default answering a question nobody had asked</em>. The schema said
+      dollars when nobody had said dollars, said zero when nobody had said a cost, said 2.5 when the shop
+      charged three. A wrong price that looks wrong gets fixed in a day. These read as an expensive tea,
+      or a cheap one.
+    </div>
+  </header>
+
+  <section>
+    <h2>What was wrong, worst first</h2>
+
+    <div class="finding">
+      <p class="cost">About seven times too much</p>
+      <h3>A cost with no currency was read as dollars</h3>
+      <div class="then-now">
+        <div class="then">
+          <h4>What it was doing</h4>
+          <p>
+            <code>cost_currency</code> defaults to USD, so a tea bought for ¥1,200 could sit in the
+            database as $1,200 and nothing objects, because 1,200 is a fine number. The ×3 then triples
+            the error. It surfaces as an expensive tea, never as a fault. That is exactly how the 1993
+            Y562 came to show a cost of $1,200 against notes saying 60 CNY a box.
+          </p>
+        </div>
+        <div class="now">
+          <h4>What it is now</h4>
+          <p>
+            Every door that writes a cost has to say what it was paid in, the agent door included. The
+            old rows cannot be repaired by reading, because a defaulted USD and a chosen USD are the same
+            three letters, so instead they are now <strong>findable</strong>, and there are tools to
+            answer them one vendor at a time.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="finding">
+      <p class="cost">Free</p>
+      <h3>A tea added without a cost was stored as costing nothing</h3>
+      <div class="then-now">
+        <div class="then">
+          <h4>What it was doing</h4>
+          <p>
+            <code>cost_amount</code> defaults to 0, and zero is not “unknown”, it is free. Four doors each
+            handled it differently. The worst was the agent door: it turned a missing cost into a zero
+            <em>before</em> the currency check ran, so the check saw a zero, correctly decided a zero
+            needs no currency, and waved it through. It was creating free teas in silence.
+          </p>
+        </div>
+        <div class="now">
+          <h4>What it is now</h4>
+          <p>
+            The cost is required to add a tea, at the form, the bulk import and by voice alike. What is
+            refused is <strong>absence</strong>, not zero: a gift really did cost nothing and typing 0
+            says so. The three paths that genuinely cannot know a cost now record “not known” instead of
+            letting the default say “free”.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="finding">
+      <p class="cost">Your postage, at your expense</p>
+      <h3>The Add Product form pinned every tea you added by hand</h3>
+      <div class="then-now">
+        <div class="then">
+          <h4>What it was doing</h4>
+          <p>
+            It pre-filled the shop's freight rate as a <em>value</em>. So every tea you added was stamped
+            with that day's rate, stopped following it when you renegotiated, and wore the gold dot
+            claiming you had chosen to pin it. Clearing the field saved a zero, meaning free shipping, so
+            there was no way to say “just use the shop's”. And its placeholder still read 13.00, a rate
+            this shop has never charged.
+          </p>
+        </div>
+        <div class="now">
+          <h4>What it is now</h4>
+          <p>
+            The shop's live rate is the <strong>placeholder</strong>, which is what an untouched field
+            will follow. Leaving it alone means the tea follows 85&nbsp;¥/kg and keeps following it. The
+            price preview now charges a blank field at the shop rate instead of showing a price with no
+            postage in it.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="finding">
+      <p class="cost">Two prices for one tea</p>
+      <h3>A column on every product said 2.5 while your shelf charged three</h3>
+      <div class="then-now">
+        <div class="then">
+          <h4>What it was doing</h4>
+          <p>
+            The markup had four homes at once. Shop pricing multiplied by three, but a
+            <code>markup_multiplier</code> column on every row said 2.5, and the curator listing path read
+            that column. So the same tea carried two different prices depending on which surface asked.
+          </p>
+        </div>
+        <div class="now">
+          <h4>What it is now</h4>
+          <p>
+            Three, in one place, read when it is used rather than copied onto rows. Migration
+            <code>0013</code> cleared the rows still holding the old default rather than writing 3 into
+            hundreds of them, because writing a policy number onto every row is the fault, not the fix.
+            Curator listings moved to three; nothing on the shop shelf moved.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="finding">
+      <p class="cost">One tea, shipping free</p>
+      <h3>The 1993 Y562 was carrying a freight rate of zero</h3>
+      <div class="then-now">
+        <div class="then">
+          <h4>What it was doing</h4>
+          <p>
+            Migration <code>0011</code> cleared it at 13:12. The bug where clearing that field saved a
+            zero was not fixed until 13:25. Anything that touched the tea in those thirteen minutes wrote
+            the zero back, and a zero there means you said it ships free.
+          </p>
+        </div>
+        <div class="now">
+          <h4>What it is now</h4>
+          <p>
+            Cleared again by migration <code>0015</code>, in two clauses so it lands whichever of the two
+            stories is true. <a href="https://claude.ai/code/artifact/547ee5e7-b1db-4d4e-9028-199e7c8d5c53">The
+            full walkthrough of that one</a> shows every row shape it touches and every one it leaves
+            alone.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>What is live on the shop now</h2>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Change</th><th>Reference</th><th>Applied</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>The markup is three everywhere, including curator listings</td>
+            <td class="ref">0013</td>
+            <td class="when">14:10</td>
+          </tr>
+          <tr>
+            <td>A cost whose currency nobody stated is findable</td>
+            <td class="ref">0014</td>
+            <td class="when">14:39</td>
+          </tr>
+          <tr>
+            <td>The 1993 Y562 stops shipping free</td>
+            <td class="ref">0015</td>
+            <td class="when">15:10</td>
+          </tr>
+          <tr>
+            <td>A cost is required to add a tea, at every door</td>
+            <td class="ref">worker</td>
+            <td class="when">15:00</td>
+          </tr>
+          <tr>
+            <td>The Add Product form follows the shop's freight rate</td>
+            <td class="ref">console</td>
+            <td class="when">14:52</td>
+          </tr>
+          <tr>
+            <td>Thirty-one new things you can ask the shop to do</td>
+            <td class="ref">worker</td>
+            <td class="when">14:30</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Also shipped</h2>
+    <div class="also">
+      <div>
+        <h3>Thirty-one new commands</h3>
+        <p>
+          Stock moved between your shops, collections and photos, events and RSVPs, articles and samples,
+          and the two that work the currency backlog.
+          <a href="https://claude.ai/code/artifact/ac742916-fe65-475f-b175-fcfa6449903f">The full list</a>.
+        </p>
+      </div>
+      <div>
+        <h3>You see migrations first</h3>
+        <p>
+          A migration is the one thing that changes your shop without you ever seeing it. From now on,
+          anything that moves rows gets a page and a link before it is pushed, never a paste of SQL.
+        </p>
+      </div>
+      <div>
+        <h3>The export tells you what is unanswered</h3>
+        <p>
+          The inventory CSV now carries a <strong>Cost currency stated?</strong> column. Sort by it and
+          the backlog is the block of noes.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="yours">
+    <h2>What still needs you</h2>
+
+    <div class="task">
+      <span class="n">01</span>
+      <div>
+        <strong>Check the Y562's freight in the inventory.</strong>
+        <p>
+          Look at the <strong>Ship&nbsp;$/kg</strong> column for that tea. A gold dot
+          <span class="dot" aria-hidden="true"></span> means it still owns its own rate and migration
+          <code>0015</code> did not reach it, in which case I need the product id off that row. No dot
+          means it is following the shop's 85&nbsp;¥/kg like everything else.
+        </p>
+      </div>
+    </div>
+
+    <div class="task">
+      <span class="n">02</span>
+      <div>
+        <strong>Connect a session to the shop, so the currency backlog can actually be worked.</strong>
+        <p>
+          Mint an owner-tier token at <code>/admin/mcp-tokens</code>, put it in the claude.ai/code
+          environment settings as <code>TEAJIA_MCP_TOKEN</code>, and add <code>api.teajia.com</code> to
+          that environment's network allowlist. Both halves, or it fails at the proxy in a way that looks
+          like a bad token and is not one. Until then the backlog can be seen in the CSV but not fixed in
+          bulk.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    Every change above is on <code>main</code> and deployed. Sixteen commits, three migrations applied to
+    the live database, 1,403 tests passing.
+    <a href="https://github.com/storyoftheleaf/teajia/commits/main">The commits</a>.
+  </footer>
+
+</div>

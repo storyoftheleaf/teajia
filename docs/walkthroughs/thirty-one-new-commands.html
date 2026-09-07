@@ -1,0 +1,324 @@
+<title>Thirty-One New Commands</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+  :root {
+    --paper:      #EFF0EA;
+    --surface:    #E6E8DF;
+    --ink:        #1B1E19;
+    --ink-2:      #4A5045;
+    --ink-3:      #6E7568;
+    --rule:       #D3D6C9;
+    --rule-firm:  #B9BDAE;
+    --amber:      #8A5E15;
+    --moss:       #5A6357;
+    --rust:       #8C4A2F;
+
+    --sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    --cond: "IBM Plex Sans Condensed", "IBM Plex Sans", ui-sans-serif, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #171814; --surface: #1E211B; --ink: #E9EBE2; --ink-2: #B4BAAC;
+      --ink-3: #8A9083; --rule: #2E3129; --rule-firm: #414639;
+      --amber: #D2A24C; --moss: #98A190; --rust: #C4795A;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #171814; --surface: #1E211B; --ink: #E9EBE2; --ink-2: #B4BAAC;
+    --ink-3: #8A9083; --rule: #2E3129; --rule-firm: #414639;
+    --amber: #D2A24C; --moss: #98A190; --rust: #C4795A;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper); color: var(--ink); font-family: var(--sans);
+    font-size: 16px; line-height: 1.62; margin: 0; padding: 0 20px 96px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 900px; margin: 0 auto; }
+
+  header { padding: 44px 0 0; }
+
+  .docket {
+    display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: baseline;
+    font-family: var(--cond); font-size: 12px; font-weight: 600;
+    letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-3);
+    padding-bottom: 14px; border-bottom: 1px solid var(--rule-firm);
+  }
+  .docket .val {
+    font-family: var(--mono); font-weight: 400; letter-spacing: 0;
+    text-transform: none; color: var(--ink-2);
+  }
+
+  h1 {
+    font-family: var(--cond); font-weight: 600;
+    font-size: clamp(32px, 5.6vw, 48px); line-height: 1.06;
+    letter-spacing: -0.014em; text-wrap: balance; margin: 26px 0 0;
+  }
+
+  .standfirst {
+    font-size: 18.5px; line-height: 1.55; color: var(--ink-2);
+    margin: 16px 0 0; max-width: 60ch;
+  }
+
+  .gate {
+    border-left: 2px solid var(--rust);
+    padding: 2px 0 2px 22px; margin: 30px 0 0; max-width: 62ch;
+    font-size: 16px; color: var(--ink-2);
+  }
+  .gate strong { color: var(--ink); font-weight: 500; }
+
+  section { margin: 46px 0 0; }
+
+  h2 {
+    font-family: var(--cond); font-size: 13px; font-weight: 600;
+    letter-spacing: 0.11em; text-transform: uppercase; color: var(--ink-3);
+    margin: 0 0 6px; padding-bottom: 9px; border-bottom: 1px solid var(--rule);
+  }
+  .groupnote { font-size: 15px; color: var(--ink-2); margin: 0 0 18px; max-width: 64ch; }
+
+  code {
+    font-family: var(--mono); font-size: 0.87em;
+    background: var(--surface); border: 1px solid var(--rule);
+    padding: 0.08em 0.34em; border-radius: 2px; white-space: nowrap;
+  }
+
+  a { color: var(--amber); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
+  a:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+  /* ── the command list ─────────────────────────────────────── */
+
+  .cmds { display: grid; gap: 0; }
+
+  .cmd {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 20px;
+    align-items: baseline;
+    padding: 13px 0;
+    border-top: 1px solid var(--rule);
+  }
+  .cmd:first-child { border-top: 1px solid var(--rule-firm); }
+  .cmd:last-child { border-bottom: 1px solid var(--rule-firm); }
+
+  .say { font-size: 16px; color: var(--ink); }
+  .say .name {
+    font-family: var(--mono); font-size: 13px; color: var(--ink-3);
+    display: block; margin-top: 3px;
+  }
+
+  .tag {
+    font-family: var(--cond); font-size: 10.5px; font-weight: 600;
+    letter-spacing: 0.09em; text-transform: uppercase; white-space: nowrap;
+    align-self: center;
+  }
+  .tag.reads   { color: var(--moss); }
+  .tag.confirm { color: var(--amber); }
+
+  /* ── notes ────────────────────────────────────────────────── */
+
+  .notes { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .notes div { border-top: 2px solid var(--rule-firm); padding-top: 13px; }
+  .notes h3 {
+    font-family: var(--cond); font-size: 12px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--amber); margin: 0 0 8px;
+  }
+  .notes p { font-size: 14.5px; color: var(--ink-2); margin: 0; }
+
+  .wont { border: 1px solid var(--rule-firm); background: var(--surface); padding: 22px 24px; }
+  .wont h2 { border-bottom: 0; padding-bottom: 0; margin-bottom: 12px; }
+  .wont ul { margin: 0; padding-left: 20px; }
+  .wont li { font-size: 15px; color: var(--ink-2); margin: 0 0 9px; max-width: 62ch; }
+  .wont li:last-child { margin-bottom: 0; }
+  .wont strong { color: var(--ink); font-weight: 500; }
+
+  footer {
+    margin: 52px 0 0; padding-top: 16px; border-top: 1px solid var(--rule);
+    font-size: 13.5px; color: var(--ink-3);
+  }
+  footer a { color: var(--ink-2); }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="docket">
+      <span>Teajia</span>
+      <span>Added <span class="val">2026-09-06</span></span>
+      <span>New <span class="val">31</span></span>
+      <span>Existing <span class="val">53</span></span>
+    </div>
+
+    <h1>Thirty-one new commands</h1>
+    <p class="standfirst">
+      Things you can now ask the shop to do out loud, on top of the fifty-three it already answered to.
+      Say them however you like; the names underneath are only what the machine calls them.
+    </p>
+
+    <div class="gate">
+      <strong>None of these work until a session is connected.</strong> Mint an owner-tier token at
+      <code>/admin/mcp-tokens</code>, set it as <code>TEAJIA_MCP_TOKEN</code> in the claude.ai/code
+      environment, and add <code>api.teajia.com</code> to that environment's network allowlist. Both
+      halves, or it fails at the proxy in a way that reads like a bad token and is not one.
+    </div>
+  </header>
+
+  <section>
+    <h2>Fixing what a tea cost</h2>
+    <p class="groupnote">
+      The two that work the currency backlog. One answer per vendor, because that is how you actually
+      know it.
+    </p>
+    <div class="cmds">
+      <div class="cmd">
+        <div class="say">“Which teas have a cost currency nobody ever stated?”
+          <span class="name">list_unstated_costs</span></div>
+        <span class="tag reads">Reads only</span>
+      </div>
+      <div class="cmd">
+        <div class="say">“Everything from Yunnan Co was paid in yuan.”
+          <span class="name">set_cost_currency</span></div>
+        <span class="tag confirm">Asks first</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Moving stock between your shops</h2>
+    <p class="groupnote">
+      Lands on both shelves or on neither. It will not create the tea in the receiving shop: a new row
+      needs a cost, a currency and a freight rate, and the source's are what <em>that</em> shop paid.
+    </p>
+    <div class="cmds">
+      <div class="cmd">
+        <div class="say">“Which shops can I move stock to?”
+          <span class="name">list_transferable_accounts</span></div>
+        <span class="tag reads">Reads only</span>
+      </div>
+      <div class="cmd">
+        <div class="say">“Move 200g of the Bulang to the other shop.”
+          <span class="name">transfer_stock</span></div>
+        <span class="tag confirm">Asks first</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Collections and photographs</h2>
+    <p class="groupnote">
+      An ambiguous tea name is refused rather than resolved to the first match, because for a photograph
+      that means the picture lands on the wrong tea in silence.
+    </p>
+    <div class="cmds">
+      <div class="cmd"><div class="say">“What collections do I have?”<span class="name">list_collections</span></div><span class="tag reads">Reads only</span></div>
+      <div class="cmd"><div class="say">“Start a collection called Autumn Oolongs.”<span class="name">create_collection</span></div><span class="tag confirm">Asks first</span></div>
+      <div class="cmd"><div class="say">“Put the Dancong in it.”<span class="name">add_tea_to_collection</span></div><span class="tag confirm">Asks first</span></div>
+      <div class="cmd"><div class="say">“Take the Dancong out again.”<span class="name">remove_tea_from_collection</span></div><span class="tag confirm">Asks first</span></div>
+      <div class="cmd"><div class="say">“Publish that collection to the shop.”<span class="name">publish_collection</span></div><span class="tag confirm">Asks first</span></div>
+      <div class="cmd"><div class="say">“Take it back down.”<span class="name">unpublish_collection</span></div><span class="tag confirm">Asks first</span></div>
+      <div class="cmd"><div class="say">“Use this photo for the Bulang.”<span class="name">set_tea_image</span></div><span class="tag confirm">Asks first</span></div>
+      <div class="cmd"><div class="say">“Add these two photos to it as well.”<span class="name">add_tea_images</span></div><span class="tag confirm">Asks first</span></div>
+      <div class="cmd"><div class="say">“Drop the third photo.”<span class="name">remove_tea_image</span></div><span class="tag confirm">Asks first</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Sessions and who is coming</h2>
+    <p class="groupnote">
+      Seats are counted properly: capacity cannot be lowered below seats already held, and a session with
+      no room says so before you promise anyone anything.
+    </p>
+    <div class="cmds">
+      <div class="cmd"><div class="say">“What sessions are coming up?”<span class="name">list_events</span></div><span class="tag reads">Reads only</span></div>
+      <div class="cmd"><div class="say">“Tell me about Saturday's.”<span class="name">get_event</span></div><span class="tag reads">Reads only</span></div>
+      <div class="cmd"><div class="say">“Who is on the list for it?”<span class="name">list_event_rsvps</span></div><span class="tag reads">Reads only</span></div>
+      <div class="cmd"><div class="say">“Set up a session for the fourteenth, ten seats.”<span class="name">create_event</span></div><span class="tag confirm">Asks first</span></div>
+      <div class="cmd"><div class="say">“Change it to twelve seats.”<span class="name">update_event</span></div><span class="tag confirm">Asks first</span></div>
+      <div class="cmd"><div class="say">“Publish it. Or close registration. Or cancel it.”<span class="name">set_event_lifecycle</span></div><span class="tag confirm">Asks first</span></div>
+      <div class="cmd"><div class="say">“Put Mei down for two seats.”<span class="name">record_event_rsvp</span></div><span class="tag confirm">Asks first</span></div>
+      <div class="cmd"><div class="say">“Confirm her.”<span class="name">approve_event_rsvp</span></div><span class="tag confirm">Asks first</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Writing and samples</h2>
+    <p class="groupnote">
+      Articles publish under your byline, so writing them is owner-tier work. A sample's tasting notes are
+      the taster's own words and are never read back out here.
+    </p>
+    <div class="cmds">
+      <div class="cmd"><div class="say">“What have I got in the journal?”<span class="name">list_articles</span></div><span class="tag reads">Reads only</span></div>
+      <div class="cmd"><div class="say">“Read me the one about Bulang.”<span class="name">get_article</span></div><span class="tag reads">Reads only</span></div>
+      <div class="cmd"><div class="say">“Start a draft about the autumn harvest.”<span class="name">create_article_draft</span></div><span class="tag confirm">Asks first</span></div>
+      <div class="cmd"><div class="say">“Change its opening paragraph.”<span class="name">update_article_draft</span></div><span class="tag confirm">Asks first</span></div>
+      <div class="cmd"><div class="say">“Publish it.”<span class="name">set_article_published</span></div><span class="tag confirm">Asks first</span></div>
+      <div class="cmd"><div class="say">“Write up Saturday's session as a draft.”<span class="name">draft_article_from_event</span></div><span class="tag confirm">Asks first</span></div>
+      <div class="cmd"><div class="say">“What sample sets are out?”<span class="name">list_sample_sets</span></div><span class="tag reads">Reads only</span></div>
+      <div class="cmd"><div class="say">“Which samples are in that one?”<span class="name">list_samples</span></div><span class="tag reads">Reads only</span></div>
+      <div class="cmd"><div class="say">“How did that sample go?”<span class="name">get_sample</span></div><span class="tag reads">Reads only</span></div>
+      <div class="cmd"><div class="say">“Mark that sample as sent.”<span class="name">set_sample_status</span></div><span class="tag confirm">Asks first</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>How the ones marked “asks first” behave</h2>
+    <div class="notes">
+      <div>
+        <h3>It shows you before it does it</h3>
+        <p>
+          Anything that changes something answers twice. The first time it tells you what would happen and
+          how many rows it touches. Only the second call commits it, and only with the token from that
+          preview.
+        </p>
+      </div>
+      <div>
+        <h3>A confirmation cannot be spent twice</h3>
+        <p>
+          Nor handed to a different command, nor used by a different token, nor applied to a different
+          shop. It commits exactly what the preview showed you, not whatever happens to match by then.
+        </p>
+      </div>
+      <div>
+        <h3>Ambiguity is refused, never guessed</h3>
+        <p>
+          Two teas matching what you said, two invoices in different currencies, a collection that would
+          be emptied: all reported back rather than resolved on your behalf.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="wont">
+    <h2>What was deliberately not built</h2>
+    <ul>
+      <li>
+        <strong>Denying, waitlisting or cancelling an RSVP.</strong> The admin path also promotes the
+        first waitlisted party into the freed seat. A second copy of that rule is how a guest gets
+        promised a seat and never told.
+      </li>
+      <li>
+        <strong>Recording a sample tasting.</strong> The real path also tags the customer and mirrors into
+        reviews. Half of that from here would be a second door onto one act, with different rules.
+      </li>
+      <li>
+        <strong>Reading a taster's own notes back.</strong> They are a customer's words and their email is
+        the identifier, which is not what an inventory-reading token covers. You get the aggregate.
+      </li>
+      <li>
+        <strong>Creating a tea in the receiving shop on a transfer.</strong> A new row needs a cost, a
+        currency and a freight rate, and copying the source shop's is exactly the fault the rest of this
+        week was spent removing.
+      </li>
+    </ul>
+  </section>
+
+  <footer>
+    Thirty-one tools across five modules, each behind the scope your token holds.
+    <a href="https://claude.ai/code/artifact/083130a4-7cb0-4e93-9a1e-de2542632ebe">What else shipped that day</a>.
+  </footer>
+
+</div>

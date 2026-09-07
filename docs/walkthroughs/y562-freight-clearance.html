@@ -1,0 +1,484 @@
+<title>Y562 Freight Clearance</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+  :root {
+    --paper:      #EFF0EA;
+    --surface:    #E6E8DF;
+    --ink:        #1B1E19;
+    --ink-2:      #4A5045;
+    --ink-3:      #6E7568;
+    --rule:       #D3D6C9;
+    --rule-firm:  #B9BDAE;
+    --amber:      #8A5E15;
+    --amber-soft: #EADFC5;
+    --moss:       #5A6357;
+    --rust:       #8C4A2F;
+
+    --sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    --cond: "IBM Plex Sans Condensed", "IBM Plex Sans", ui-sans-serif, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #171814;
+      --surface:    #1E211B;
+      --ink:        #E9EBE2;
+      --ink-2:      #B4BAAC;
+      --ink-3:      #8A9083;
+      --rule:       #2E3129;
+      --rule-firm:  #414639;
+      --amber:      #D2A24C;
+      --amber-soft: #33291A;
+      --moss:       #98A190;
+      --rust:       #C4795A;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:      #171814;
+    --surface:    #1E211B;
+    --ink:        #E9EBE2;
+    --ink-2:      #B4BAAC;
+    --ink-3:      #8A9083;
+    --rule:       #2E3129;
+    --rule-firm:  #414639;
+    --amber:      #D2A24C;
+    --amber-soft: #33291A;
+    --moss:       #98A190;
+    --rust:       #C4795A;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0 20px 96px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 940px; margin: 0 auto; }
+  .prose { max-width: 66ch; }
+
+  /* ── masthead ─────────────────────────────────────────────── */
+
+  header { padding: 44px 0 0; }
+
+  .docket {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 22px;
+    align-items: baseline;
+    font-family: var(--cond);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--rule-firm);
+  }
+  .docket .val { font-family: var(--mono); font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--ink-2); }
+
+  h1 {
+    font-family: var(--cond);
+    font-weight: 600;
+    font-size: clamp(30px, 5.2vw, 44px);
+    line-height: 1.08;
+    letter-spacing: -0.012em;
+    text-wrap: balance;
+    margin: 26px 0 0;
+  }
+
+  .standfirst {
+    font-size: 18px;
+    line-height: 1.55;
+    color: var(--ink-2);
+    margin: 14px 0 0;
+    max-width: 60ch;
+  }
+
+  /* ── status strip ─────────────────────────────────────────── */
+
+  .status {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    margin: 32px 0 0;
+    border: 1px solid var(--rule-firm);
+    background: var(--surface);
+  }
+  .status div {
+    flex: 1 1 190px;
+    padding: 14px 18px;
+    border-right: 1px solid var(--rule);
+  }
+  .status div:last-child { border-right: 0; }
+  .status dt {
+    font-family: var(--cond);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 0 0 5px;
+  }
+  .status dd {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── sections ─────────────────────────────────────────────── */
+
+  section { margin: 46px 0 0; }
+
+  h2 {
+    font-family: var(--cond);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 0 0 16px;
+    padding-bottom: 9px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  p { margin: 0 0 15px; }
+  p:last-child { margin-bottom: 0; }
+
+  .lede { font-size: 17px; }
+
+  strong { font-weight: 500; color: var(--ink); }
+  em { font-style: normal; color: var(--amber); font-weight: 500; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.88em;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    padding: 0.08em 0.34em;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+
+  /* ── the table ────────────────────────────────────────────── */
+
+  .scroll { overflow-x: auto; margin: 0 -2px; }
+
+  table {
+    width: 100%;
+    min-width: 640px;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  thead th {
+    font-family: var(--cond);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    text-align: left;
+    padding: 0 12px 9px;
+    border-bottom: 1px solid var(--rule-firm);
+    white-space: nowrap;
+  }
+  thead th.num { text-align: right; }
+
+  tbody td {
+    padding: 11px 12px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: baseline;
+  }
+  tbody tr:last-child td { border-bottom: 1px solid var(--rule-firm); }
+
+  td.shape { color: var(--ink); }
+  td.shape span { display: block; color: var(--ink-3); font-size: 12.5px; line-height: 1.45; margin-top: 2px; }
+
+  td.num {
+    font-family: var(--mono);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: var(--ink-2);
+  }
+  td.num.moved { color: var(--amber); font-weight: 500; }
+
+  .verdict {
+    font-family: var(--cond);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .verdict.cleared { color: var(--amber); }
+  .verdict.kept    { color: var(--moss); }
+
+  /* a hairline down the left of rows the migration changed */
+  tbody tr.moved td:first-child { box-shadow: inset 2px 0 0 var(--amber); }
+
+  .tablenote {
+    font-size: 13.5px;
+    color: var(--ink-3);
+    margin: 14px 0 0;
+    max-width: 66ch;
+  }
+
+  /* ── the two clauses ──────────────────────────────────────── */
+
+  .clauses { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); }
+  .clause { border-top: 2px solid var(--rule-firm); padding-top: 13px; }
+  .clause h3 {
+    font-family: var(--cond);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin: 0 0 8px;
+  }
+  .clause p { font-size: 14.5px; color: var(--ink-2); margin: 0; }
+
+  /* ── the check ────────────────────────────────────────────── */
+
+  .check {
+    border: 1px solid var(--rule-firm);
+    background: var(--surface);
+    padding: 20px 22px;
+  }
+  .check h2 { border-bottom: 0; padding-bottom: 0; margin-bottom: 10px; }
+  .dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--amber);
+    vertical-align: 0.12em;
+    margin: 0 1px;
+  }
+
+  a {
+    color: var(--amber);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+  }
+  a:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+  footer {
+    margin: 52px 0 0;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule);
+    font-size: 13.5px;
+    color: var(--ink-3);
+  }
+  footer a { color: var(--ink-2); }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="docket">
+      <span>Migration <span class="val">0015</span></span>
+      <span>Database <span class="val">teajia-db</span></span>
+      <span>Run <span class="val">185</span></span>
+      <span>Applied <span class="val">2026-09-06 15:10 UTC</span></span>
+    </div>
+
+    <h1>The 1993 Y562 stops shipping free</h1>
+    <p class="standfirst">
+      One tea was carrying a freight rate of zero. Zero is not “nobody entered a rate”, it is
+      “this tea ships free”, so the shop was paying its postage out of the margin.
+    </p>
+
+    <dl class="status">
+      <div>
+        <dt>What it changes</dt>
+        <dd>shipping_rate_per_kg</dd>
+      </div>
+      <div>
+        <dt>From</dt>
+        <dd>0 &nbsp;·&nbsp; ships free</dd>
+      </div>
+      <div>
+        <dt>To</dt>
+        <dd>NULL &nbsp;·&nbsp; follows 85 ¥/kg</dd>
+      </div>
+      <div>
+        <dt>Re-runnable</dt>
+        <dd>yes, no-op</dd>
+      </div>
+    </dl>
+  </header>
+
+  <section class="prose">
+    <h2>Why it had to run twice</h2>
+    <p class="lede">
+      Migration <code>0011</code> already cleared this tea, at <strong>13:12</strong> today. The bug where
+      <em>clearing</em> the Ship&nbsp;$/kg field saved a rate of zero was not fixed until <strong>13:25</strong>.
+    </p>
+    <p>
+      So there is a thirteen-minute window in which any save touching that tea wrote a zero back over
+      what <code>0011</code> had just cleared. I could not read your live database from this session to
+      find out whether that is what happened, or whether <code>0011</code> never matched the tea at all
+      because it is filed under a name holding neither <code>Y562</code> nor <code>吉幸</code>.
+    </p>
+    <p>So the migration covers both, in two clauses.</p>
+
+    <div class="clauses">
+      <div class="clause">
+        <h3>Clause A · by name</h3>
+        <p>
+          The identification you confirmed this morning, run again. This is the fix if <code>0011</code>
+          did match and something later overwrote it.
+        </p>
+      </div>
+      <div class="clause">
+        <h3>Clause B · by fingerprint</h3>
+        <p>
+          A 1993 tea, not teaware, currently shipping free. This is the fix if <code>0011</code> never
+          reached the tea in the first place.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>What it touches, and what it leaves alone</h2>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Shape of the row</th>
+            <th class="num">Rate before</th>
+            <th class="num">Rate after</th>
+            <th class="num">Listing after</th>
+            <th>Verdict</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="moved">
+            <td class="shape">1993 Y562, name matches
+              <span>Clause A finds it</span></td>
+            <td class="num">0</td>
+            <td class="num moved">NULL</td>
+            <td class="num moved">NULL</td>
+            <td><span class="verdict cleared">Cleared</span></td>
+          </tr>
+          <tr class="moved">
+            <td class="shape">1993 tea, name does not match, year stored as a number
+              <span>Clause B finds it</span></td>
+            <td class="num">0</td>
+            <td class="num moved">NULL</td>
+            <td class="num moved">NULL</td>
+            <td><span class="verdict cleared">Cleared</span></td>
+          </tr>
+          <tr class="moved">
+            <td class="shape">Same, year stored as “&nbsp;1993&nbsp;” with spaces
+              <span>Clause B finds it</span></td>
+            <td class="num">0</td>
+            <td class="num moved">NULL</td>
+            <td class="num moved">NULL</td>
+            <td><span class="verdict cleared">Cleared</span></td>
+          </tr>
+          <tr>
+            <td class="shape">A 1993 tea with a real freight rate
+              <span>A number somebody entered on purpose</span></td>
+            <td class="num">85</td>
+            <td class="num">85</td>
+            <td class="num">85</td>
+            <td><span class="verdict kept">Untouched</span></td>
+          </tr>
+          <tr>
+            <td class="shape">1993 teaware, ships free
+              <span>Teaware is the one true zero</span></td>
+            <td class="num">0</td>
+            <td class="num">0</td>
+            <td class="num">0</td>
+            <td><span class="verdict kept">Untouched</span></td>
+          </tr>
+          <tr>
+            <td class="shape">A 2020 tea shipping free
+              <span>Not 1993, so out of scope</span></td>
+            <td class="num">0</td>
+            <td class="num">0</td>
+            <td class="num">0</td>
+            <td><span class="verdict kept">Untouched</span></td>
+          </tr>
+          <tr>
+            <td class="shape">A tea named “Y5620”
+              <span>The near-miss guard holds</span></td>
+            <td class="num">0</td>
+            <td class="num">0</td>
+            <td class="num">0</td>
+            <td><span class="verdict kept">Untouched</span></td>
+          </tr>
+          <tr>
+            <td class="shape">A tea with no year recorded
+              <span>Absence is not a match</span></td>
+            <td class="num">0</td>
+            <td class="num">0</td>
+            <td class="num">0</td>
+            <td><span class="verdict kept">Untouched</span></td>
+          </tr>
+          <tr>
+            <td class="shape">A 2015 tea whose listing rate had drifted
+              <span>Real drift, but not this migration’s business</span></td>
+            <td class="num">NULL</td>
+            <td class="num">NULL</td>
+            <td class="num">42</td>
+            <td><span class="verdict kept">Untouched</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="tablenote">
+      These are seeded shapes, not your shelf. I built each one against a copy of the real schema and ran
+      the migration over it, because your live database is not readable from this session. Running it
+      twice changed nothing the second time.
+    </p>
+  </section>
+
+  <section class="prose">
+    <h2>The one thing testing caught</h2>
+    <p>
+      I first wrote the year match as text, comparing against <code>'1993'</code>. Run against the seeded
+      database, it matched a year stored as the string and <strong>missed</strong> one stored as a number,
+      which a driver can land as <code>1993.0</code>.
+    </p>
+    <p>
+      That column is text, but three different doors have written it three different ways over the years.
+      A text comparison misses two of them by doing nothing at all, which is the failure that looks
+      exactly like success. It compares as a number now.
+    </p>
+  </section>
+
+  <section class="check prose">
+    <h2>Your check</h2>
+    <p>
+      Open the inventory and look at the <strong>Ship&nbsp;$/kg</strong> column for that tea. A gold dot
+      <span class="dot" aria-hidden="true"></span> means the tea owns its rate. No dot means it is
+      following the shop’s 85&nbsp;¥/kg like everything else.
+    </p>
+    <p style="margin-bottom:0">
+      If the dot is still there, neither clause reached it, and I will need the product id off that row.
+    </p>
+  </section>
+
+  <footer>
+    Applied to the live database in run 185 · four commands, 13.4&nbsp;ms ·
+    <a href="https://github.com/storyoftheleaf/teajia/commit/8f3df81d">commit 8f3df81d</a> ·
+    <a href="https://github.com/storyoftheleaf/teajia/blob/main/worker/migrations/0015_the_y562_stops_shipping_free.sql">the migration itself</a>
+  </footer>
+
+</div>

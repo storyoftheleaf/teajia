@@ -1,0 +1,399 @@
+<title>The Gold Dot and the Token</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+  :root {
+    --paper: #EFF0EA; --surface: #E6E8DF; --ink: #1B1E19; --ink-2: #4A5045;
+    --ink-3: #6E7568; --rule: #D3D6C9; --rule-firm: #B9BDAE;
+    --amber: #8A5E15; --moss: #5A6357; --rust: #8C4A2F;
+    --sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    --cond: "IBM Plex Sans Condensed", "IBM Plex Sans", ui-sans-serif, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #171814; --surface: #1E211B; --ink: #E9EBE2; --ink-2: #B4BAAC;
+      --ink-3: #8A9083; --rule: #2E3129; --rule-firm: #414639;
+      --amber: #D2A24C; --moss: #98A190; --rust: #C4795A;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #171814; --surface: #1E211B; --ink: #E9EBE2; --ink-2: #B4BAAC;
+    --ink-3: #8A9083; --rule: #2E3129; --rule-firm: #414639;
+    --amber: #D2A24C; --moss: #98A190; --rust: #C4795A;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--paper); color: var(--ink); font-family: var(--sans);
+    font-size: 16.5px; line-height: 1.62; margin: 0; padding: 0 20px 96px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 780px; margin: 0 auto; }
+
+  header { padding: 44px 0 0; }
+  .docket {
+    display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: baseline;
+    font-family: var(--cond); font-size: 12px; font-weight: 600;
+    letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-3);
+    padding-bottom: 14px; border-bottom: 1px solid var(--rule-firm);
+  }
+  .docket .val { font-family: var(--mono); font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--ink-2); }
+
+  h1 {
+    font-family: var(--cond); font-weight: 600;
+    font-size: clamp(32px, 5.6vw, 46px); line-height: 1.06;
+    letter-spacing: -0.014em; text-wrap: balance; margin: 26px 0 0;
+  }
+  .standfirst { font-size: 18.5px; line-height: 1.55; color: var(--ink-2); margin: 16px 0 0; max-width: 56ch; }
+
+  p { margin: 0 0 14px; }
+  p:last-child { margin-bottom: 0; }
+  strong { font-weight: 500; }
+  code {
+    font-family: var(--mono); font-size: 0.87em; background: var(--surface);
+    border: 1px solid var(--rule); padding: 0.08em 0.34em; border-radius: 2px;
+  }
+  a { color: var(--amber); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
+  a:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+  /* ── task heading ─────────────────────────────────────────── */
+
+  .task-head { margin: 54px 0 0; padding-bottom: 12px; border-bottom: 2px solid var(--rule-firm); }
+  .task-head .kicker {
+    font-family: var(--cond); font-size: 11.5px; font-weight: 600;
+    letter-spacing: 0.11em; text-transform: uppercase; color: var(--amber); margin: 0 0 6px;
+  }
+  .task-head h2 {
+    font-family: var(--cond); font-weight: 600;
+    font-size: clamp(24px, 4vw, 32px); line-height: 1.14;
+    letter-spacing: -0.01em; margin: 0; text-wrap: balance;
+  }
+  .task-head .est { font-family: var(--mono); font-size: 13px; color: var(--ink-3); margin: 8px 0 0; }
+
+  /* ── steps ────────────────────────────────────────────────── */
+
+  ol.steps { list-style: none; margin: 26px 0 0; padding: 0; counter-reset: step; }
+  ol.steps > li {
+    counter-increment: step;
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 0 16px;
+    padding: 0 0 26px;
+  }
+  ol.steps > li::before {
+    content: counter(step);
+    font-family: var(--mono); font-size: 15px; color: var(--amber);
+    line-height: 1.5; font-variant-numeric: tabular-nums;
+    border-top: 2px solid var(--amber); padding-top: 8px;
+  }
+  ol.steps > li > div { border-top: 1px solid var(--rule); padding-top: 9px; }
+  ol.steps > li h3 {
+    font-size: 17.5px; font-weight: 500; line-height: 1.4;
+    margin: 0 0 8px; color: var(--ink); max-width: 46ch;
+  }
+  ol.steps > li p { font-size: 15.5px; color: var(--ink-2); max-width: 60ch; }
+
+  .seen {
+    background: var(--surface); border: 1px solid var(--rule);
+    padding: 11px 14px; margin: 10px 0 0; max-width: 60ch;
+  }
+  .seen .lbl {
+    font-family: var(--cond); font-size: 10.5px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3);
+    display: block; margin-bottom: 4px;
+  }
+  .seen p { font-size: 15px; margin: 0; }
+
+  .warn { border-left: 2px solid var(--rust); padding: 1px 0 1px 18px; margin: 12px 0 0; max-width: 60ch; }
+  .warn p { font-size: 15px; color: var(--ink-2); }
+  .warn strong { color: var(--rust); font-weight: 500; }
+
+  .go {
+    display: inline-block; font-family: var(--cond); font-size: 13px; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    border: 1px solid var(--amber); color: var(--amber);
+    padding: 8px 15px; margin: 4px 0 2px; text-decoration: none;
+  }
+  .go:hover { background: var(--amber); color: var(--paper); }
+
+  /* the dot, drawn as it actually appears: a bullet after a number */
+  .cell {
+    font-family: var(--mono); font-size: 15px; color: var(--ink);
+    background: var(--paper); border: 1px solid var(--rule-firm);
+    padding: 5px 11px; display: inline-block; margin: 2px 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .cell .pin { color: var(--amber); }
+
+  /* ── outcome fork ─────────────────────────────────────────── */
+
+  .fork { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); margin: 4px 0 0; }
+  .fork > div { border-top: 2px solid var(--rule-firm); padding-top: 12px; }
+  .fork h4 {
+    font-family: var(--cond); font-size: 12px; font-weight: 600;
+    letter-spacing: 0.09em; text-transform: uppercase; margin: 0 0 7px;
+  }
+  .fork .good h4 { color: var(--moss); }
+  .fork .more h4 { color: var(--amber); }
+  .fork p { font-size: 15px; color: var(--ink-2); margin: 0; }
+
+  footer {
+    margin: 56px 0 0; padding-top: 16px; border-top: 1px solid var(--rule);
+    font-size: 14px; color: var(--ink-3); max-width: 62ch;
+  }
+  footer a { color: var(--ink-2); }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="docket">
+      <span>Teajia</span>
+      <span>Two jobs</span>
+      <span>About <span class="val">12 minutes</span> in total</span>
+    </div>
+    <h1>The gold dot and the token</h1>
+    <p class="standfirst">
+      Both are yours because neither can be done from a session that cannot reach your shop. The first
+      is a look. The second is what stops the second one being true.
+    </p>
+  </header>
+
+  <!-- ══ TASK ONE ══════════════════════════════════════════════ -->
+
+  <div class="task-head">
+    <p class="kicker">Job one</p>
+    <h2>Check the Y562 is following the shop's freight rate</h2>
+    <p class="est">Two minutes. Easier on a laptop than a phone, for one reason in step 3.</p>
+  </div>
+
+  <ol class="steps">
+    <li>
+      <div>
+        <h3>Open your stock list</h3>
+        <p>
+          It is at <code>/admin/stock</code>. The old <code>/admin/inventory</code> address still works,
+          it just forwards here.
+        </p>
+        <a class="go" href="https://www.teajia.com/admin/stock">Open the stock list</a>
+      </div>
+    </li>
+
+    <li>
+      <div>
+        <h3>Find the tea</h3>
+        <p>
+          Type <strong>Y562</strong> into the search box at the top, the one that says “Search tea or
+          source”. If nothing comes back, try <strong>1993</strong>, and that on its own tells us
+          something: it would mean the tea is filed under a name with no Y562 in it, which is one of the
+          two reasons the migration needed two clauses.
+        </p>
+      </div>
+    </li>
+
+    <li>
+      <div>
+        <h3>Look at the “Ship $/kg” column</h3>
+        <p>
+          On a laptop it is between Cost/g and Retail. <strong>On a phone you will have to swipe the
+          table sideways</strong>, because that column is not one of the first ones on the mobile
+          layout. That is the only reason this is easier on a laptop.
+        </p>
+        <div class="warn">
+          <p>
+            <strong>The number is not the answer.</strong> A tea pinned to 85 and a tea following a shop
+            rate of 85 print exactly the same figure. That is the whole reason the dot exists.
+          </p>
+        </div>
+      </div>
+    </li>
+
+    <li>
+      <div>
+        <h3>Look for a small gold dot just after the number</h3>
+        <p>This is the entire test. Two cells, side by side, as they appear in that column:</p>
+        <div class="seen">
+          <span class="lbl">Following the shop rate, which is what you want</span>
+          <p><span class="cell">11.89</span></p>
+        </div>
+        <div class="seen">
+          <span class="lbl">Pinned to this tea, which means the migration did not reach it</span>
+          <p><span class="cell">11.89 <span class="pin">•</span></span></p>
+        </div>
+        <p style="margin-top:12px">
+          If you would rather read it than squint at it: hover the cell on a laptop, or press and hold it
+          on a phone, and it says either <strong>“Following the shop rate”</strong> or
+          <strong>“Pinned to this tea. Clear it in the edit panel to follow the shop rate.”</strong>
+        </p>
+      </div>
+    </li>
+
+    <li>
+      <div>
+        <h3>Then one of two things</h3>
+        <div class="fork">
+          <div class="good">
+            <h4>No dot</h4>
+            <p>
+              Done. The tea follows 85&nbsp;¥/kg and keeps following it when you renegotiate. Nothing
+              else to do; go to job two.
+            </p>
+          </div>
+          <div class="more">
+            <h4>There is a dot</h4>
+            <p>
+              Click the tea's name to open the edit panel, clear the <strong>Ship $/kg</strong> field so
+              it is empty, and save. That now writes “follow the shop” rather than “ships free”, which is
+              exactly the bug that was fixed yesterday afternoon. The dot should disappear. Tell me
+              either way.
+            </p>
+          </div>
+        </div>
+      </div>
+    </li>
+  </ol>
+
+  <!-- ══ TASK TWO ══════════════════════════════════════════════ -->
+
+  <div class="task-head">
+    <p class="kicker">Job two</p>
+    <h2>Connect a session to the shop, once, permanently</h2>
+    <p class="est">Ten minutes. Two halves, and it fails quietly if you do only one.</p>
+  </div>
+
+  <ol class="steps">
+    <li>
+      <div>
+        <h3>Open the token page</h3>
+        <p>
+          It is at <code>/admin/mcp-tokens</code> and the heading reads <strong>Voice &amp; agent
+          access</strong>. Owner only, so sign in as yourself.
+        </p>
+        <a class="go" href="https://www.teajia.com/admin/mcp-tokens">Open the token page</a>
+      </div>
+    </li>
+
+    <li>
+      <div>
+        <h3>Click “Mint a new token” and give it a label</h3>
+        <p>
+          The label is only for you, so you can tell later which token is which and revoke the right one.
+          Something like <strong>Claude on the web</strong>. It will not let you continue without one.
+        </p>
+      </div>
+    </li>
+
+    <li>
+      <div>
+        <h3>Tick <code>catalog:write</code>. This is the step people get wrong</h3>
+        <p>
+          You will see three groups of checkboxes. The read ones and the two operator ones are already
+          ticked. The three under <strong>Write: Owner</strong> are <strong>not</strong>.
+        </p>
+        <div class="warn">
+          <p>
+            <strong>Take the defaults and the currency backlog will not work.</strong> Reading the
+            backlog needs <code>inventory:read</code>, which is on. But actually *fixing* a vendor's
+            currency needs <code>catalog:write</code>, which is off. You would get a list you cannot act
+            on, and the refusal would look like a broken tool rather than a missing tick.
+          </p>
+        </div>
+        <p style="margin-top:12px">
+          Tick <code>catalog:write</code>. The other two owner scopes are for customer records and
+          account settings; leave them off unless you want them, they are easy to grant later with a new
+          token.
+        </p>
+      </div>
+    </li>
+
+    <li>
+      <div>
+        <h3>Copy the token. You get one look at it</h3>
+        <p>
+          It is shown once and never again, because only its fingerprint is stored. If you lose it,
+          nothing is broken, you just mint another and revoke this one.
+        </p>
+        <div class="warn">
+          <p>
+            <strong>Do not paste it into a chat with me.</strong> Not this one, not any session. It goes
+            straight into the settings field in the next step and nowhere else.
+          </p>
+        </div>
+      </div>
+    </li>
+
+    <li>
+      <div>
+        <h3>Put it in the environment, as <code>TEAJIA_MCP_TOKEN</code></h3>
+        <p>
+          Go to <strong>claude.ai/code</strong>, open the settings for the environment these Teajia
+          sessions run in, and add an environment variable named exactly
+          <code>TEAJIA_MCP_TOKEN</code> with the token as its value.
+        </p>
+        <a class="go" href="https://claude.ai/code">Open claude.ai/code</a>
+      </div>
+    </li>
+
+    <li>
+      <div>
+        <h3>In the same settings, allow <code>api.teajia.com</code> on the network</h3>
+        <p>
+          This is the half that gets forgotten. The sandbox blocks outbound traffic to anything not on
+          its allowlist, and your API is not on it by default.
+        </p>
+        <div class="warn">
+          <p>
+            <strong>Without this the token looks broken and is not.</strong> The connection is refused at
+            the proxy before it ever reaches your shop, so what comes back is a routing failure, not an
+            authentication one. That reads exactly like a bad token, and you would spend the afternoon
+            re-minting a token that was fine all along.
+          </p>
+        </div>
+      </div>
+    </li>
+
+    <li>
+      <div>
+        <h3>Start a new session</h3>
+        <p>
+          Environment settings are read when a session boots, so this one will not pick them up.
+          Open a fresh session on the Teajia repo.
+        </p>
+      </div>
+    </li>
+
+    <li>
+      <div>
+        <h3>Test it with a question, not a change</h3>
+        <p>Say, in the new session:</p>
+        <div class="seen">
+          <span class="lbl">Ask this</span>
+          <p>“Which teas have a cost currency nobody ever stated?”</p>
+        </div>
+        <div class="fork" style="margin-top:14px">
+          <div class="good">
+            <h4>It answers</h4>
+            <p>
+              You get your vendors, with a count of unanswered teas under each and what any intake
+              receipt recorded. You are connected. From there it is one sentence per vendor.
+            </p>
+          </div>
+          <div class="more">
+            <h4>It cannot reach the shop</h4>
+            <p>
+              Almost always the allowlist rather than the token. Tell me what it said and I can tell
+              which of the two halves is missing from the shape of the error.
+            </p>
+          </div>
+        </div>
+      </div>
+    </li>
+  </ol>
+
+  <footer>
+    Once job two is done, the currency backlog becomes a conversation instead of a spreadsheet: you say
+    “everything from Yunnan Co was paid in yuan”, it shows you how many teas move and what their prices
+    become, and you say yes. <a href="https://claude.ai/code/artifact/ac742916-fe65-475f-b175-fcfa6449903f">The other thirty commands</a> come with it.
+  </footer>
+
+</div>
