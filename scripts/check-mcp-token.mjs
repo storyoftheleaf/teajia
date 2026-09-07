@@ -61,8 +61,9 @@ async function main() {
     console.error('TEAJIA_MCP_TOKEN is not set in this shell.');
     console.error('');
     console.error('Mint one at https://www.teajia.com/admin/mcp-tokens (owner tier), tick');
-    console.error('catalog:write, then store it with:');
-    console.error('  infisical secrets set TEAJIA_MCP_TOKEN=<the token> --env=dev --path=/');
+    console.error('catalog:write and admin:write, then store it with:');
+    console.error('  infisical secrets set --env=dev --path=/ TEAJIA_MCP_TOKEN=<the token>');
+    console.error('(run from this folder, and keep the token last on the line)');
     console.error('and run this again under `npm run mcp:check`, which loads it from Infisical.');
     process.exit(1);
   }

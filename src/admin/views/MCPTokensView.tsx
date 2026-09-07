@@ -320,6 +320,17 @@ const MintForm: React.FC<MintFormProps> = ({ onCancel, onMinted }) => {
     setSelectedScopes(prev => ({ ...prev, [scope]: !prev[scope] }));
   };
 
+  const applyPreset = (keep: (def: ScopeDef) => boolean) => {
+    setSelectedScopes(Object.fromEntries(SCOPE_DEFS.map(s => [s.scope, keep(s)])));
+  };
+
+  // A token's scopes are fixed at mint, so the one thing this form must never
+  // do is let a default decide silently. The owner boxes stay off by default
+  // because a token gets pasted into somebody else's client, but leaving them
+  // off has a consequence, and the consequence is stated here rather than
+  // discovered later at the moment the token is asked to change a price.
+  const ownerGranted = SCOPE_DEFS.some(d => d.group === 'owner' && selectedScopes[d.scope]);
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = label.trim();
@@ -369,7 +380,32 @@ const MintForm: React.FC<MintFormProps> = ({ onCancel, onMinted }) => {
       />
 
       <div className="mb-5">
-        <div className="text-tea-text-sec text-ui-12 uppercase tracking-[0.12em] mb-3">Scopes</div>
+        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 mb-3">
+          <span className="text-tea-text-sec text-ui-12 uppercase tracking-[0.12em]">Scopes</span>
+          <span className="flex items-baseline gap-3">
+            <button
+              type="button"
+              onClick={() => applyPreset(() => true)}
+              className="text-tea-text-sec hover:text-tea-gold text-ui-11 underline underline-offset-2 transition-colors tap-target"
+            >
+              Everything
+            </button>
+            <button
+              type="button"
+              onClick={() => applyPreset(d => d.group === 'read')}
+              className="text-tea-text-sec hover:text-tea-gold text-ui-11 underline underline-offset-2 transition-colors tap-target"
+            >
+              Read only
+            </button>
+            <button
+              type="button"
+              onClick={() => applyPreset(d => d.defaultChecked)}
+              className="text-tea-text-sec hover:text-tea-gold text-ui-11 underline underline-offset-2 transition-colors tap-target"
+            >
+              Reset
+            </button>
+          </span>
+        </div>
         <div className="space-y-4">
           {scopeGroups.map(group => {
             const defs = SCOPE_DEFS.filter(s => s.group === group.key);
@@ -397,6 +433,14 @@ const MintForm: React.FC<MintFormProps> = ({ onCancel, onMinted }) => {
                     </label>
                   ))}
                 </div>
+                {group.key === 'owner' && !ownerGranted && (
+                  <div className="mt-2 text-tea-text-sec text-ui-11 leading-relaxed">
+                    None of these are on. This token will read the shelf and sell from it,
+                    but it will not be able to change a price, correct a cost currency,
+                    edit a customer, or move the shop's freight rate. Scopes are fixed when
+                    the token is minted, so a token cannot be widened later.
+                  </div>
+                )}
               </div>
             );
           })}
