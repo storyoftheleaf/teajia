@@ -16,6 +16,7 @@ second artifact at a new address and the link Adrian already has goes stale.
 | Every tea follows the shop | [every-tea-follows-the-shop.html](every-tea-follows-the-shop.html) | https://claude.ai/code/artifact/5b19cf9b-92fb-4e0a-ae08-2afbc06fa567 |
 | Why it says zero | [why-it-says-zero.html](why-it-says-zero.html) | https://claude.ai/code/artifact/aed27f0a-0743-4492-838f-8a1e10dbd92c |
 | Y562 freight clearance | [y562-freight-clearance.html](y562-freight-clearance.html) | https://claude.ai/code/artifact/547ee5e7-b1db-4d4e-9028-199e7c8d5c53 |
+| The token and its scopes | [the-token-and-its-scopes.html](the-token-and-its-scopes.html) | https://claude.ai/code/artifact/7536e163-0f1d-4493-a95d-20e0dbb4b33f |
 
 The Y562 page is the worked example the migration rule in `CLAUDE.md` points at:
 a migration that moves rows gets a page like that one, and Adrian gets the link,

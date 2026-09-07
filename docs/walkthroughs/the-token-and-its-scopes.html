@@ -1,0 +1,255 @@
+<title>The Token And Its Scopes</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+  :root {
+    --paper: #EFF0EA; --surface: #E6E8DF; --ink: #1B1E19; --ink-2: #4A5045;
+    --ink-3: #6E7568; --rule: #D3D6C9; --rule-firm: #B9BDAE;
+    --amber: #8A5E15; --moss: #5A6357; --rust: #8C4A2F;
+    --shell: #DEE1D5;
+    --sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    --cond: "IBM Plex Sans Condensed", "IBM Plex Sans", ui-sans-serif, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #171814; --surface: #1E211B; --ink: #E9EBE2; --ink-2: #B4BAAC;
+      --ink-3: #8A9083; --rule: #2E3129; --rule-firm: #414639;
+      --amber: #D2A24C; --moss: #98A190; --rust: #C4795A;
+      --shell: #22251D;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #171814; --surface: #1E211B; --ink: #E9EBE2; --ink-2: #B4BAAC;
+    --ink-3: #8A9083; --rule: #2E3129; --rule-firm: #414639;
+    --amber: #D2A24C; --moss: #98A190; --rust: #C4795A;
+    --shell: #22251D;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--paper); color: var(--ink); font-family: var(--sans);
+    font-size: 16.5px; line-height: 1.62; margin: 0; padding: 0 20px 96px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+
+  header { padding: 44px 0 0; }
+  .docket {
+    display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: baseline;
+    font-family: var(--cond); font-size: 12px; font-weight: 600;
+    letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-3);
+    padding-bottom: 14px; border-bottom: 1px solid var(--rule-firm);
+  }
+  .docket .val { font-family: var(--mono); font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--ink-2); }
+
+  h1 {
+    font-family: var(--cond); font-weight: 600;
+    font-size: clamp(32px, 5.6vw, 46px); line-height: 1.06;
+    letter-spacing: -0.014em; text-wrap: balance; margin: 26px 0 0;
+  }
+  .standfirst { font-size: 18.5px; line-height: 1.55; color: var(--ink-2); margin: 16px 0 0; max-width: 58ch; }
+
+  section { margin: 48px 0 0; }
+  h2 {
+    font-family: var(--cond); font-size: 13px; font-weight: 600;
+    letter-spacing: 0.11em; text-transform: uppercase; color: var(--ink-3);
+    margin: 0 0 18px; padding-bottom: 9px; border-bottom: 1px solid var(--rule);
+  }
+  p { margin: 0 0 14px; max-width: 64ch; }
+  p:last-child { margin-bottom: 0; }
+  strong { font-weight: 500; }
+  code {
+    font-family: var(--mono); font-size: 0.87em; background: var(--surface);
+    border: 1px solid var(--rule); padding: 0.08em 0.34em; border-radius: 2px; white-space: nowrap;
+  }
+
+  /* Three steps, in order, because you cannot store a token you have not
+     minted or check one you have not stored. */
+  ol.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 30px; }
+  ol.steps > li { display: grid; grid-template-columns: 44px 1fr; gap: 0 16px; align-items: start; }
+  .num {
+    font-family: var(--mono); font-size: 13px; color: var(--amber);
+    border-top: 2px solid var(--amber); padding-top: 8px; line-height: 1;
+  }
+  .step-body { border-top: 1px solid var(--rule-firm); padding-top: 8px; min-width: 0; }
+  .step-body h3 {
+    font-family: var(--cond); font-size: 19px; font-weight: 600;
+    letter-spacing: -0.006em; margin: 0 0 8px;
+  }
+  .step-body p { font-size: 15.5px; color: var(--ink-2); margin: 0 0 12px; }
+  .step-body p:last-child { margin-bottom: 0; }
+
+  .cmd {
+    background: var(--shell); border: 1px solid var(--rule-firm);
+    font-family: var(--mono); font-size: 13.5px; line-height: 1.5;
+    padding: 12px 14px; margin: 0 0 12px; overflow-x: auto; white-space: pre;
+    color: var(--ink);
+  }
+  .cmd .ph { color: var(--amber); }
+  .caption { font-size: 13.5px; color: var(--ink-3); margin: -4px 0 12px; }
+
+  a { color: var(--amber); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+  .scroll { overflow-x: auto; }
+  table { width: 100%; min-width: 640px; border-collapse: collapse; font-size: 14.5px; }
+  thead th {
+    font-family: var(--cond); font-size: 11px; font-weight: 600; letter-spacing: 0.09em;
+    text-transform: uppercase; color: var(--ink-3); text-align: left;
+    padding: 0 12px 9px; border-bottom: 1px solid var(--rule-firm); white-space: nowrap;
+  }
+  tbody td { padding: 11px 12px; border-bottom: 1px solid var(--rule); vertical-align: baseline; }
+  tbody tr:last-child td { border-bottom: 1px solid var(--rule-firm); }
+  td.s { font-family: var(--mono); font-size: 13px; white-space: nowrap; color: var(--ink-2); }
+  td.d { white-space: nowrap; font-size: 13px; font-family: var(--cond); letter-spacing: 0.06em; text-transform: uppercase; }
+  td.d.on { color: var(--moss); }
+  td.d.off { color: var(--rust); font-weight: 500; }
+  td.q { color: var(--ink-2); font-size: 14px; }
+  tbody tr.want td:first-child { box-shadow: inset 2px 0 0 var(--amber); }
+  tbody tr.want td.s { color: var(--ink); font-weight: 500; }
+
+  .warn { border-left: 2px solid var(--rust); padding: 1px 0 1px 18px; margin: 18px 0 0; }
+  .warn p { font-size: 15px; color: var(--ink-2); }
+  .warn strong { color: var(--rust); font-weight: 500; }
+
+  dl.says { margin: 0; display: grid; gap: 0; }
+  dl.says > div { display: grid; grid-template-columns: minmax(200px, 1fr) 2fr; gap: 4px 22px; padding: 13px 0; border-bottom: 1px solid var(--rule); }
+  dl.says > div:first-child { border-top: 1px solid var(--rule-firm); }
+  dl.says dt { font-family: var(--mono); font-size: 13px; color: var(--ink); line-height: 1.5; }
+  dl.says dd { margin: 0; font-size: 14.5px; color: var(--ink-2); }
+  @media (max-width: 560px) {
+    dl.says > div { grid-template-columns: 1fr; }
+    ol.steps > li { grid-template-columns: 30px 1fr; gap: 0 12px; }
+  }
+
+  footer {
+    margin: 54px 0 0; padding-top: 16px; border-top: 1px solid var(--rule);
+    font-size: 14px; color: var(--ink-3); max-width: 64ch;
+  }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="docket">
+      <span>Shop <span class="val">api.teajia.com/mcp</span></span>
+      <span>Secret <span class="val">TEAJIA_MCP_TOKEN</span></span>
+      <span>Kept in <span class="val">Infisical</span></span>
+    </div>
+    <h1>The token and its scopes</h1>
+    <p class="standfirst">
+      Minting it is yours: the shop shows it once and nobody else can see it, me included.
+      Everything either side of that is now one command.
+    </p>
+  </header>
+
+  <section>
+    <h2>Three steps, in order</h2>
+    <ol class="steps">
+
+      <li>
+        <div class="num">01</div>
+        <div class="step-body">
+          <h3>Mint it, and tick two extra boxes</h3>
+          <p>
+            <a href="https://www.teajia.com/admin/mcp-tokens">www.teajia.com/admin/mcp-tokens</a>,
+            name it something like <em>laptop</em>, and before you press the button tick
+            <strong>catalog:write</strong> and <strong>admin:write</strong>. The five ordinary
+            boxes are already ticked; those two are not, and a token cannot be widened
+            afterwards. Copy the token when it appears. It is shown once.
+          </p>
+        </div>
+      </li>
+
+      <li>
+        <div class="num">02</div>
+        <div class="step-body">
+          <h3>Put it in Infisical</h3>
+          <p>In Terminal, in the teajia folder, paste the token in place of the amber part:</p>
+          <div class="cmd">infisical secrets set TEAJIA_MCP_TOKEN=<span class="ph">&lt;paste it here&gt;</span> --env=dev --path=/</div>
+          <p>
+            That is the same place every other Teajia secret lives. Nothing is written to a
+            file in the repo, and the token never has to be typed again.
+          </p>
+        </div>
+      </li>
+
+      <li>
+        <div class="num">03</div>
+        <div class="step-body">
+          <h3>Ask the shop what it can do</h3>
+          <div class="cmd">npm run mcp:check</div>
+          <p class="caption">
+            Prints the connection, the number of tools, and the list of scopes the shop
+            actually grants. It never prints the token.
+          </p>
+          <p>
+            After that, start sessions with <code>npm run claude</code> instead of
+            <code>claude</code>. That is the part that hands the token to the session, so a
+            session can go and change a cost itself rather than asking you to.
+          </p>
+        </div>
+      </li>
+
+    </ol>
+  </section>
+
+  <section>
+    <h2>What each box buys you, and which two are off</h2>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Scope</th><th>At mint</th><th>What it lets a sentence do</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="s">inventory:read</td><td class="d on">Ticked</td><td class="q">Look up a tea, read stock, read the shop's settings</td></tr>
+          <tr><td class="s">customers:read</td><td class="d on">Ticked</td><td class="q">Find a customer</td></tr>
+          <tr><td class="s">sales:read</td><td class="d on">Ticked</td><td class="q">Read invoices and sales totals</td></tr>
+          <tr><td class="s">stock:write</td><td class="d on">Ticked</td><td class="q">Add a tea, move stock, set a price or a freight rate on one tea</td></tr>
+          <tr><td class="s">sales:write</td><td class="d on">Ticked</td><td class="q">Raise, fill and void invoices</td></tr>
+          <tr class="want"><td class="s">catalog:write</td><td class="d off">Not ticked</td><td class="q">Fix a whole vendor's cost currency, publish tasting notes, archive</td></tr>
+          <tr><td class="s">customers:write</td><td class="d off">Not ticked</td><td class="q">Create and edit customer records</td></tr>
+          <tr class="want"><td class="s">admin:write</td><td class="d off">Not ticked</td><td class="q">Change the shop's freight rate and the exchange rates</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="warn">
+      <p>
+        <strong>The trap is that a half-scoped token looks perfect.</strong> It connects, it
+        lists tools, it answers questions about the shelf. It just cannot touch a price, and
+        you find that out at the moment you ask it to. That is the whole reason step three
+        prints scopes instead of the word connected.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2>If step three says something else</h2>
+    <dl class="says">
+      <div>
+        <dt>The shop refused the token</dt>
+        <dd>Revoked, mistyped, or the paste lost its tail. Mint another and redo step two.</dd>
+      </div>
+      <div>
+        <dt>Something between here and the shop refused</dt>
+        <dd>Not the token. A network is blocking api.teajia.com, which is the normal state of a cloud session until that address is allowed.</dd>
+      </div>
+      <div>
+        <dt>This token cannot change a price</dt>
+        <dd>catalog:write was left unticked. Mint another with it on; the old one keeps working for everything else, or revoke it.</dd>
+      </div>
+      <div>
+        <dt>TEAJIA_MCP_TOKEN is not set</dt>
+        <dd>Step two has not run, or it went to a different Infisical project. Run it again from the teajia folder.</dd>
+      </div>
+    </dl>
+  </section>
+
+  <footer>
+    I cannot mint this for you and would not want to hold it if I could. The value goes from
+    the shop to your clipboard to Infisical, and from there straight into a session's memory
+    when one starts. It is not in the repo, not in a commit, and not in this chat.
+  </footer>
+
+</div>
