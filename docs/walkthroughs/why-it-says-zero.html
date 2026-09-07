@@ -114,6 +114,13 @@
   .ask li:last-child { margin-bottom: 0; }
 
   .ruled { border-top: 2px solid var(--rule-firm); padding-top: 14px; margin-top: 22px; }
+  .ruled.corrected { border-top-color: var(--rust); }
+  .corrflag {
+    display: inline-block; font-family: var(--cond); font-size: 10.5px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--rust);
+    border: 1px solid var(--rust); padding: 1px 6px; margin-left: 10px; vertical-align: 2px;
+  }
+  .struck { text-decoration: line-through; color: var(--ink-3); }
   .ruled h4 {
     font-family: var(--cond); font-size: 12px; font-weight: 600; letter-spacing: 0.1em;
     text-transform: uppercase; color: var(--moss); margin: 0 0 8px;
@@ -235,6 +242,15 @@
 
   <section>
     <h2>Before I change anything, one look</h2>
+    <div class="ruled corrected" style="margin-top:0">
+      <h4>Settled without the answer <span class="corrflag">Overtaken</span></h4>
+      <p>
+        You gave a better one: everything is air-freighted from China at 85 yuan, and you adjust the
+        exceptions yourself. Migration <code>0016</code> cleared the freight rate off every tea except
+        teaware, so which fault the zeros were stopped mattering. The question below is left as the
+        record of what was being asked, and it was the wrong thing to ask you for.
+      </p>
+    </div>
     <div class="ask">
       <h3>What does the Cost currency say on the rows showing zero?</h3>
       <p>
@@ -266,24 +282,32 @@
   <section class="prose">
     <h2>What I found while looking, which is live now</h2>
 
-    <div class="ruled">
-      <h4>A fifth freight rate, in the import path</h4>
+    <div class="ruled corrected">
+      <h4>A fifth freight rate, in the import path <span class="corrflag">Corrected</span></h4>
       <p>
-        <code>curate_import_batches.shipping_rate_per_kg</code> is declared
-        <code>NOT NULL DEFAULT 12.0</code>. Twelve was the old shop rate in dollars, from before freight
-        moved onto the account as 85 yuan. Every Curate import batch is born carrying it, and it is
-        copied onto every tea in that batch, into a column that means the tea's own currency. That is the
-        four-freight-rates bug still running in the one door nobody re-checked, and it is where a 12
-        comes from.
+        <span class="struck">It is copied onto every tea in that batch, and it is where a 12 comes
+        from.</span> That was wrong and I checked it afterwards: nothing reads
+        <code>batch.shippingRatePerKg</code>. The number sits on the batch row and goes no further, so
+        it never reached a tea and it is not where your twelves came from. I have left the claim
+        visible rather than quietly deleting it, because you read this page and acted on it.
       </p>
       <p>
-        Because the column is <code>NOT NULL</code> it cannot even record “nobody said”, so the shop rate
-        can never apply to an imported tea.
+        What is true is the smaller half. <code>curate_import_batches.shipping_rate_per_kg</code> is
+        declared <code>NOT NULL DEFAULT 12.0</code>: twelve was the old shop rate in dollars, from
+        before freight moved onto the account as 85 yuan, so every import batch is still born carrying
+        a rate the shop stopped charging. It is dead weight rather than a live fault, and it is on the
+        list to remove.
       </p>
     </div>
 
-    <div class="ruled">
-      <h4>Why the Y562 still has its dot</h4>
+    <div class="ruled corrected">
+      <h4>Why the Y562 still has its dot <span class="corrflag">Overtaken</span></h4>
+      <p>
+        Settled since, by a bigger change. Migration <code>0016</code> cleared the freight rate off
+        every tea except teaware, so the Y562 follows the shop's 85 yuan along with the rest of the
+        shelf and its dot is gone whatever its Year column says. Nothing below is left to do; it stands
+        as the record of what the question was.
+      </p>
       <p>
         Yesterday's migration had two clauses. The second one clears a 1993 tea that is shipping free.
         If that tea is still pinned after it ran, then the first clause did not match its name and the
@@ -298,8 +322,10 @@
   </section>
 
   <footer>
-    Nothing on this page has been changed yet. The currency on the column, and whatever the zeros turn
-    out to be, both wait on your answer to the one question above.
+    Written before any of it moved, and kept as written. Since then migration <code>0016</code> put the
+    whole shelf on the shop's 85 yuan, the import-path claim above turned out to be wrong and is marked
+    so, and the Y562 question answered itself. Two blocks are struck through rather than deleted,
+    because you read this page as it stood.
   </footer>
 
 </div>
