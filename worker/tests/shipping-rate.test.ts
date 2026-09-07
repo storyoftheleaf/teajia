@@ -127,11 +127,41 @@ describe('nothing else in the shop decides the rate', () => {
     expect(worker).toContain('body.shipping_rate_per_kg ?? null');
   });
 
-  it('states the same number in the agent tool that writes it', () => {
+  it('states the same number in every agent tool that writes it', () => {
+    /* EVERY such tool, and the whole of each description. This used to read one
+       quoted literal after the first `description:` it found, which broke twice
+       over the moment a second tool gained the field: it only ever checked one
+       of them, and a description written as concatenated lines (which is how a
+       long one has to be written) was truncated at the first segment, so the
+       number sitting on line two was invisible to it.
+
+       The field is found by brace matching rather than by a pattern over the
+       text, because the thing being asserted is a property of each field, and
+       counting braces is the only way to know where one ends. */
     const mcp = read('../src/mcp.ts');
-    const description = mcp.match(/shipping_rate_per_kg:\s*\{\s*type:\s*'number',\s*description:\s*'((?:[^'\\]|\\.)*)'/);
-    expect(description, 'the update_tea_pricing shipping field lost its description').toBeTruthy();
-    expect(description![1]).toContain(`${FALLBACK_SHIPPING_RATE_PER_KG}`);
+    const fields: string[] = [];
+    const marker = /shipping_rate_per_kg:\s*\{/g;
+    for (let m = marker.exec(mcp); m; m = marker.exec(mcp)) {
+      let i = mcp.indexOf('{', m.index);
+      let depth = 0;
+      const start = i;
+      for (; i < mcp.length; i++) {
+        if (mcp[i] === '{') depth++;
+        else if (mcp[i] === '}' && --depth === 0) break;
+      }
+      const field = mcp.slice(start, i + 1);
+      /* Schema properties only. The same key also names an audit diff
+         (`{ old, new }`) that describes nothing and is not a thing the model
+         reads, so requiring a rate in it would be requiring a comment. */
+      if (/type:\s*'number'/.test(field)) fields.push(field);
+    }
+
+    expect(fields.length, 'no agent tool exposes a shipping rate any more').toBeGreaterThan(0);
+    for (const field of fields) {
+      expect(field, 'an agent shipping field lost its description').toMatch(/description:/);
+      expect(field, `an agent shipping field does not say what the shop charges: ${field.slice(0, 80)}`)
+        .toContain(`${FALLBACK_SHIPPING_RATE_PER_KG}`);
+    }
   });
 
   it('lets the rate be changed without a deploy', () => {
