@@ -9,6 +9,11 @@
 
   The fix is to hoist each into a domain module both sides can import: the event map into `eventDomain.ts`, the article helpers into a module of their own. While hoisting the event map, move `cascadeWaitlist` too: it is unexported in `index.ts`, and three RSVP tools (deny, waitlist, cancel) were deliberately NOT built because a second copy of a promotion rule means a guest promised a seat and never told.
 
+- [ ] **A fifth freight rate still exists, on the import batch, and it cannot mean "nobody said".** _(band: agent-runnable)_ _(effort: moderate)_
+  `curate_import_batches.shipping_rate_per_kg` was added by migration `0001` as `REAL NOT NULL DEFAULT 10.0`, from before freight moved onto the account as 85 yuan. `schema.sql` declares the same column `DEFAULT 12.0`, so the test fixtures and the live database disagree about it, which is its own small drift.
+
+  Nothing updates it and nothing reads it onto a product, so it is inert, and as of 2026-09-07 the route neither writes nor trusts it: the INSERT omits the column and the finalize payload reports the shop rate instead. What remains is to remove it. `NOT NULL` on a policy number is the shape this whole sequence exists to delete, because a column that cannot record absence can never be trusted to record presence. Dropping it also changes the finalize payload, so check no client reads `shippingRatePerKg` from it first (nothing under `src/` does today).
+
 - [ ] **Most teas on the shelf have a cost currency nobody ever stated, and Adrian's own reading is that most were not paid for in dollars.** _(band: you-required)_ _(effort: moderate)_
   Migration `0014` added `cost_currency_source`, so a row nobody answered is now findable: every write that states a currency is stamped `'stated'` server-side, and what stays NULL is the backlog. It cannot be repaired by reading, because a defaulted `'USD'` and a chosen `'USD'` are the same three letters.
 

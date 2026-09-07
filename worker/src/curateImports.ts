@@ -1195,11 +1195,15 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
         const shopRatePerKg = shopRate != null && Number.isFinite(Number(shopRate))
           ? Number(shopRate)
           : FALLBACK_SHIPPING_RATE_PER_KG;
-        const recorded = batch.shipping_rate_per_kg;
-        const rawRate = recorded == null ? null : Number(recorded);
-        const shippingRatePerKg = rawRate != null && Number.isFinite(rawRate)
-          ? rawRate
-          : shopRatePerKg;
+        /* The stored column is NOT read. It is `NOT NULL DEFAULT 10.0` (added
+           by migration 0001), so it cannot hold "nobody said": every batch that
+           has ever existed carries either that stale default or a number
+           written before freight moved onto the account. A column that cannot
+           express absence cannot be trusted to mean presence, which is the same
+           reasoning that took the markup and the product freight rate off their
+           rows. Nothing anywhere consumes this value, so the batch reports what
+           it is actually charged, which is the shop rate. */
+        const shippingRatePerKg = shopRatePerKg;
         return {
           batch: { id: batchId, accountId: ctx.accountId, journeyId, journeyName: journey ? [journey.name, journey.season, journey.year].filter(value => value != null && value !== '').join(' · ') : null, reviewState: String(batch.review_state), shippingRatePerKg },
           groups, items: itemRows.results.map(parsedFinalizeItem),
@@ -1392,15 +1396,23 @@ export async function createCurateImport(request: Request, env: ImportEnv, ctx: 
       : response({ error: 'idempotency_key already used for a different import' }, 409);
     const batchId = crypto.randomUUID();
     const statements: D1PreparedStatement[] = [env.DB.prepare(
-      /* NULL rather than a number, which is the same rule as everywhere else:
-         nobody has said what freight this batch carries, so the shop rate
-         applies and keeps applying as it changes. Writing a figure here would
-         pin the batch to whatever the rate was the day it was created, and it
-         cannot be left to the column default either, which SQLite fixed at 10
-         when the table was made and cannot alter in place. */
-      `INSERT INTO curate_import_batches (id, account_id, created_by_user_id, title, review_state, journey_id, visit_id, client_idempotency_key, request_fingerprint, shipping_rate_per_kg)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(batchId, ctx.accountId, ctx.userId, title, 'pending', journeyId, visitId, idempotencyKey, fingerprint, null)];
+      /* The freight column is not named here, and that is the whole fix.
+         It was changed to bind NULL on 2026-09-06, for the right reason: nobody
+         has said what freight a batch carries, so the shop rate should apply
+         and keep applying as it changes. But migration 0001 declared the column
+         `NOT NULL DEFAULT 10.0`, and SQLite refuses an explicit NULL into a
+         NOT NULL column rather than falling back to its default. So every
+         attempt to start a Curate import since that change has died on a
+         constraint error. No test caught it because none exercised this INSERT.
+
+         Omitting the column lets the default supply a value, which is what
+         makes the insert legal again. The value is inert: nothing updates this
+         column, nothing reads it onto a product, and the finalize payload now
+         reports the shop rate instead of it. The column itself should go; it is
+         a fifth freight rate that cannot mean "unset". See TODO.md. */
+      `INSERT INTO curate_import_batches (id, account_id, created_by_user_id, title, review_state, journey_id, visit_id, client_idempotency_key, request_fingerprint)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(batchId, ctx.accountId, ctx.userId, title, 'pending', journeyId, visitId, idempotencyKey, fingerprint)];
     let initialSourceId: string | null = null;
     if (pastedText != null) {
       initialSourceId = crypto.randomUUID();
