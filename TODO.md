@@ -4,6 +4,8 @@
 
 ## Untriaged
 
+- [ ] Run the prime-time audit: every lane, verified findings, one ranked page _(band: agent-runnable)_ _(effort: deep)_ → Plan: [prime-time-audit.md](todo/plans/prime-time-audit.md)
+
 - [ ] **The new MCP modules had to copy three things out of `index.ts`, because `index.ts` cannot be imported from them.** _(band: agent-runnable)_ _(effort: moderate)_
   `index.ts` imports `mcp.ts`, which imports the modules under `worker/src/mcpTools/`, so a module importing back is a cycle. Three helpers got copied rather than shared, which is one fact with two homes and the exact shape migrations `0010` and `0013` exist to undo: `EVENT_STATUS_BY_LIFECYCLE` (a test parses `index.ts`'s source and fails on drift, which is a splint and not a fix), and `slugify` plus `articleToApi` in `writing.ts` — a slug is an article's public address, and two functions producing different ones is a link that works from one door only.
 
