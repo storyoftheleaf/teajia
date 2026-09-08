@@ -54,7 +54,7 @@ export function fallbackShopFreightDefault(fallbackRateToUsd: number): ShopFreig
  */
 export function shopFreightDefaultFrom(
   account: { default_shipping_rate_per_kg?: number | null; default_shipping_rate_currency?: string | null } | null | undefined,
-  rateToUsd: (currency: string) => number | undefined,
+  rateToUsd: (currency: string) => number | null | undefined,
 ): ShopFreightDefault {
   const stored = account?.default_shipping_rate_per_kg;
   const set = stored !== null && stored !== undefined && Number.isFinite(Number(stored));
@@ -67,10 +67,16 @@ export function shopFreightDefaultFrom(
   return { perKg, currency, perKgUsd: perKg / rate };
 }
 
-/** What the shop charges per kilo, in the currency a tea was bought in. */
-export function shopRateInCurrency(shopDefaultPerKgUsd: number, rateToUsd: number): number {
-  const rate = rateToUsd > 0 ? rateToUsd : 1;
-  return shopDefaultPerKgUsd * rate;
+/**
+ * What the shop charges per kilo, in the currency a tea was bought in.
+ *
+ * Null when the tea's currency has no rate, because there is no honest figure
+ * to give: multiplying by 1 would hand back a dollar number wearing a yuan
+ * label, and the caller would store it.
+ */
+export function shopRateInCurrency(shopDefaultPerKgUsd: number, rateToUsd: number | null): number | null {
+  if (rateToUsd === null || !(rateToUsd > 0)) return null;
+  return shopDefaultPerKgUsd * rateToUsd;
 }
 
 /**
@@ -78,16 +84,22 @@ export function shopRateInCurrency(shopDefaultPerKgUsd: number, rateToUsd: numbe
  *
  * A tea with nothing recorded shows the shop default rather than a blank or a
  * zero: it is what the tea is actually being charged, so it is what the
- * operator should see. An entered rate is shown as entered, zero included.
+ * operator should see, and the shop default is already in dollars, so it needs
+ * no rate at all. An entered rate is shown as entered, zero included.
+ *
+ * Null when the tea owns a rate and its currency has no rate to convert it
+ * through. The stored figure is in the tea's own currency, so under a column
+ * labelled in dollars the only honest output is a dash. Dividing by 1 printed
+ * a pinned 85 yuan as $85.00, which is nearly seven times what it costs.
  */
 export function shippingRateUsdFor(
   storedRatePerKg: number | null | undefined,
-  rateToUsd: number,
+  rateToUsd: number | null,
   shopDefaultPerKgUsd: number,
-): number {
-  const rate = rateToUsd > 0 ? rateToUsd : 1;
+): number | null {
   if (storedRatePerKg === null || storedRatePerKg === undefined) return shopDefaultPerKgUsd;
   const stored = Number(storedRatePerKg);
   if (!Number.isFinite(stored)) return shopDefaultPerKgUsd;
-  return stored / rate;
+  if (rateToUsd === null || !(rateToUsd > 0)) return null;
+  return stored / rateToUsd;
 }

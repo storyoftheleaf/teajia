@@ -9,7 +9,25 @@ export type ProductType = TeaType | 'Teaware' | 'Misc' | 'MISSING_TYPE';
 // doesn't (Rolled, Powder, Other), composed on top rather than redeclared.
 export type TeaForm = WisdomTeaForm | 'Rolled' | 'Powder' | 'Other';
 
+/** The keys the shop's exchange table uses. Not ISO codes: CNY is 'Yuan'. */
 export type Currency = 'USD' | 'NT' | 'Yuan' | 'IDR' | 'JPY' | 'MYR' | 'HKD' | 'AUD' | 'UNK';
+
+/**
+ * What a stored cost currency column can actually hold.
+ *
+ * `Currency` is the list of nine keys the exchange table uses. The database
+ * holds more than nine: teas written by doors that uppercased a currency
+ * instead of canonicalising it carry 'CNY' and 'YUAN', which name the same
+ * money as 'Yuan' and match none of the nine. Typing those columns as
+ * `Currency` was a claim the data does not support, and it showed: every call
+ * site that touched one had to cast, and the exact `===` lookups underneath
+ * quietly resolved them to a rate of 1.
+ *
+ * So the type says the true thing, and `canonicalCurrency` in
+ * `src/lib/currency.ts` is how you get from a stored spelling to a shop key.
+ * Never compare one of these to a `Currency` with `===`.
+ */
+export type StoredCurrency = Currency | (string & {});
 
 export type InventoryPurpose = 'working' | 'sample' | 'personal';
 export type ReceiptAcquisitionKind = 'purchase' | 'free_sample' | 'gift' | 'transfer' | 'other';
@@ -66,7 +84,9 @@ export interface Product {
   vendor?: string;
   vendorId?: string;
   status: 'Active' | 'Archived' | 'Sold Out' | 'Draft';
-  costCurrency: Currency;
+  /* Whatever the row says, which is not always one of the shop's nine keys.
+     Resolve it with `canonicalCurrency` before comparing or looking up a rate. */
+  costCurrency: StoredCurrency;
   /* NULL means nobody ever stated what this cost was paid in, so `costCurrency`
      may only be the column's DEFAULT of 'USD' rather than an answer. See
      migration 0014 and the freight/currency sections of CLAUDE.md. */

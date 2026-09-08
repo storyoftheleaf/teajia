@@ -6,6 +6,7 @@ import { TEA_TYPES, NON_TEA_TYPES } from '../../wisdom';
 import type { TastingData } from '../../types';
 import { calculatePricing } from '../utils';
 import { shippingRateUsdFor } from '../../lib/shippingRate';
+import { canonicalCurrency, rateToUsd } from '../../lib/currency';
 import { useShopFreightDefault } from '../hooks/useAdminData';
 import { TeaIllustration } from './TeaIllustration';
 import { TastingSession } from '../../components/tasting/TastingSession';
@@ -396,16 +397,18 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     onClose();
   };
 
-  // Helper to get exchange rate for current form selection
+  // Helper to get exchange rate for current form selection. Null, not 1, for a
+  // currency the shop has no rate for: the freight field below converts through
+  // it on the way in, and a rate of 1 would store a dollar figure as yuan.
   const currentRate = useMemo(() => {
-    return rates.find(r => r.currency === formData.costCurrency)?.rateToUSD || 1;
+    return rateToUsd(rates, formData.costCurrency);
   }, [formData.costCurrency, rates]);
 
   useEffect(() => {
     if (isOpen) setTastingExplicitlyEdited(false);
     if (isOpen && initialData) {
       // Calculate USD shipping from stored Source Currency value
-      const rate = rates.find(r => r.currency === initialData.costCurrency)?.rateToUSD || 1;
+      const rate = rateToUsd(rates, initialData.costCurrency);
       /* Only a rate the SOURCE tea owned is carried onto the copy.
          `shippingRateUsdFor` resolves to the shop rate when a tea has none, so
          pre-filling its answer pinned the duplicate to today's shop rate even
@@ -427,7 +430,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         quantityPurchased: initialData.quantityPurchased.toString(),
         costAmount: initialData.costAmount.toString(),
         shippingRateUSD: shipUSD == null ? '' : shipUSD.toFixed(2),
-        costCurrency: initialData.costCurrency === 'UNK' ? 'UNK' : (initialData.costCurrency as Currency) || 'USD',
+        /* Canonicalised, or duplicating one of the teas recorded as 'CNY'
+           matched no option in the select and the copy silently came back as
+           whatever the browser picked first. */
+        costCurrency: (canonicalCurrency(initialData.costCurrency) as Currency) || 'USD',
         vendor: initialData.vendor || '',
         description: initialData.description,
         imageUrl: initialData.imageUrl || '',
@@ -528,7 +534,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
        missing its postage. */
     const shippingEntered = enteredNumber(formData.shippingRateUSD);
     const shippingUsd = shippingEntered == null ? shopFreight.perKgUsd : shippingEntered;
-    const shippingSourcePerKg = shippingUsd * currentRate;
+    // No rate means calculatePricing declines below, so this zero never reaches
+    // a figure the operator reads.
+    const shippingSourcePerKg = shippingUsd * (currentRate ?? 0);
 
     return calculatePricing(
         parseFloat(formData.costAmount) || 0,
@@ -652,8 +660,15 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
            every tea added here shipped at whatever was typed or free, and there
            was no way to say "just use the shop's". Same rule the edit panel was
            given on 2026-09-06; this form was missed. */
+        /* And NULL again when there is no rate to convert the entered dollars
+           into the tea's own currency, because the column is stored in that
+           currency. Multiplying by 1 would pin the tea to a number nobody
+           chose, in a unit nobody meant. Following the shop rate is the honest
+           answer to "we cannot convert this". */
         const shippingUsdEntered = enteredNumber(formData.shippingRateUSD);
-        const shippingSourceToSave = shippingUsdEntered == null ? null : shippingUsdEntered * currentRate;
+        const shippingSourceToSave = shippingUsdEntered == null || currentRate === null
+          ? null
+          : shippingUsdEntered * currentRate;
 
         const payload = {
             type: formData.type,

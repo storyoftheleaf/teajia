@@ -13,6 +13,7 @@ import { api } from '../../lib/api';
 import { calculatePricing } from '../utils';
 import { Product } from '../types';
 import { shopRateInCurrency } from '../../lib/shippingRate';
+import { rateToUsd } from '../../lib/currency';
 import { QrCodeModal } from './QrCodeModal';
 import { useRates, useShopFreightDefault } from '../hooks/useAdminData';
 import { useToast } from './Toast';
@@ -991,9 +992,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const ratesRef = useRef(rates);
   const shopFreightRef = useRef(shopFreight.perKgUsd);
   /* Units of a tea's cost currency per USD, for the freight column, which is
-     labelled in dollars and must not print a yuan figure under that label. */
+     labelled in dollars and must not print a yuan figure under that label.
+     Null when the shop has no rate for the tea's currency, never 1: a rate of
+     1 is what printed a yuan cost as dollars on every 'CNY' tea in the list. */
   const costRateToUsd = useCallback(
-    (p: Product) => rates.find(r => r.currency === (p.costCurrency || 'USD'))?.rateToUSD || 1,
+    (p: Product) => rateToUsd(rates, p.costCurrency || 'USD'),
     [rates],
   );
   const isEditModeRef = useRef(isEditMode);
@@ -1101,12 +1104,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       const updated = { ...p, [field]: value };
       if (needsRetailCalc) {
         const isTeaware = updated.type === 'Teaware';
+        const nextCurrency = String(field === 'costCurrency' ? value : p.costCurrency) || 'USD';
         const calc = calculatePricing(
           Number(field === 'costAmount' ? value : p.costAmount) || 0,
           Number(field === 'shippingRatePerKg' ? value : p.shippingRatePerKg)
-            || shopRateInCurrency(shopFreightRef.current, ratesRef.current.find(r => r.currency === (p.costCurrency || 'USD'))?.rateToUSD || 1),
+            || shopRateInCurrency(shopFreightRef.current, rateToUsd(ratesRef.current, nextCurrency))
+            || 0,
           Number(field === 'quantityPurchased' ? value : p.quantityPurchased) || 0,
-          (String(field === 'costCurrency' ? value : p.costCurrency) || 'USD') as import('../types').Currency,
+          nextCurrency,
           ratesRef.current,
           isTeaware
         );

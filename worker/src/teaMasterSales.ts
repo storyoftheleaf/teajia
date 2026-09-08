@@ -1,24 +1,14 @@
 import { isTeaType } from '../../src/wisdom/vocabulary';
 
-// ── Currency canonicalization ──
-// The exchange_rates table keys CNY as 'Yuan' (not the ISO code 'CNY'). Callers
-// may pass 'CNY', 'CN¥', 'RMB', 'yuán', etc. Map every alias to the canonical
-// key so the rate always resolves and pricing never silently falls back to USD.
-const CURRENCY_ALIASES: Record<string, string> = {
-  'cny': 'Yuan',
-  'rmb': 'Yuan',
-  'renminbi': 'Yuan',
-  'yuan': 'Yuan',
-  'yuán': 'Yuan',
-  '¥': 'Yuan',
-  'cn¥': 'Yuan',
-  'mop': 'HKD',       // Macau pataca trades near the HK dollar; treat as HKD
-  'cnh': 'Yuan',      // offshore yuan — same rate family
-};
-export function canonicalCurrency(cur: string | null | undefined): string | null {
-  if (!cur) return null;
-  return CURRENCY_ALIASES[cur.toLowerCase()] ?? cur;
-}
+/* ── Currency canonicalization ──
+   The map moved to `src/lib/currency.ts` so the admin reads the same one. It
+   used to live here, which meant the worker resolved 'CNY' to the 'Yuan' rate
+   and the admin, having no access to it, resolved 'CNY' to a rate of 1 and
+   showed a yuan cost as dollars. Re-exported rather than repointed at eight
+   call sites, because one home is the point and moving the import lines is not.
+   `worker/tests/one-currency-map-one-home.test.ts` fails if a second map
+   appears. */
+export { canonicalCurrency } from '../../src/lib/currency';
 
 export type SalePermissionReason = 'account_owner' | 'location_stock' | 'own_stock' | 'active_grant' | 'grant_required';
 

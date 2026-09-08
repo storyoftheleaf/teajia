@@ -3,6 +3,7 @@ import { api, getTokenClaims } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
 import { Product, ExchangeRate, Customer } from '../types';
 import { shopFreightDefaultFrom, type ShopFreightDefault } from '../../lib/shippingRate';
+import { rateToUsd } from '../../lib/currency';
 import { loadLastKnownRates, saveLastKnownRates } from '../lastKnownRates';
 
 const useAccountQueryScope = () => {
@@ -175,7 +176,9 @@ export const useShopFreightDefault = (): ShopFreightDefault => {
   const { accountScope, userScope } = useAccountQueryScope();
   const activeAccountId = useAppStore((state) => state.activeAccountId);
   const { data: rates } = useRates();
-  const lookup = (currency: string) => rates?.find(r => r.currency === currency)?.rateToUSD;
+  // Canonicalised, so a shop quoting its freight in 'CNY' resolves to the
+  // 'Yuan' rate directly instead of falling through to the fallback currency's.
+  const lookup = (currency: string) => rateToUsd(rates, currency);
 
   const { data: account } = useQuery({
     queryKey: ['shop-freight-default', accountScope, userScope],

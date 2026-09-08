@@ -1,7 +1,8 @@
-import { Currency, ExchangeRate, Product } from './types';
+import { Currency, ExchangeRate, Product, StoredCurrency } from './types';
 import type { InventoryItem } from '../types';
 import { fetchWithTimeout } from '../lib/api';
 import { SHOP_MARKUP_MULTIPLIER } from '../lib/markup';
+import { isUnrecordedCurrency, isoCurrencyCode, rateToUsd } from '../lib/currency';
 
 /*
  * There is no fallback rate table. An empty rate list means the shop could not
@@ -23,18 +24,17 @@ import { SHOP_MARKUP_MULTIPLIER } from '../lib/markup';
  *     NT$18      tens, where the cents are noise
  *     IDR 9.2k   thousands, abbreviated with one decimal
  */
-export const formatCurrency = (amount: number, currency: Currency, rates: ExchangeRate[], opts?: { rate?: boolean }) => {
-  const found = (rates || []).find(r => r.currency === currency);
+export const formatCurrency = (amount: number, currency: StoredCurrency, rates: ExchangeRate[], opts?: { rate?: boolean }) => {
   // Never silently multiply by 1 for a currency we have no rate for. If the
   // live table is missing it, fall back to showing the USD amount so the number
-  // stays honest instead of mis-labelled.
-  const rate = found?.rateToUSD;
+  // stays honest instead of mis-labelled. A stored 'CNY' is the 'Yuan' row, so
+  // the lookup canonicalises rather than matching the string exactly.
+  const rate = rateToUsd(rates, currency);
   const value = rate ? amount * rate : amount;
 
-  const currencyCode = currency === 'NT' ? 'TWD' :
-                        currency === 'Yuan' ? 'CNY' :
-                        currency === 'UNK' ? 'USD' :
-                        currency;
+  // The label is the ISO code for the shop key, and a currency with no rate is
+  // shown in dollars because that is the number actually being printed.
+  const currencyCode = rate === null ? 'USD' : isoCurrencyCode(currency);
 
   // No price after the decimal point, ever; always round UP. (per Adrian)
   const rounded = Math.ceil(value);
@@ -123,7 +123,7 @@ export const calculatePricing = (
   costAmount: number,
   shippingRatePerKg: number,
   quantity: number, // grams for tea, units for teaware
-  currency: Currency,
+  currency: StoredCurrency,
   rates: ExchangeRate[],
   isTeaware = false
 ) => {
@@ -139,9 +139,18 @@ export const calculatePricing = (
      failed read falls back to the last rates this browser actually saw
      (admin/lastKnownRates.ts), so a bad minute leaves prices standing at
      yesterday's rate rather than blanking them. This stays as the floor under
-     that, for a currency genuinely absent from the shop's table. */
-  const rateObj = (rates || []).find(r => r.currency === currency);
-  const rateToUSD = rateObj?.rateToUSD;
+     that, for a currency genuinely absent from the shop's table.
+
+     "Absent" means absent, not spelled differently. A tea recorded as 'CNY' is
+     a yuan tea and the table's 'Yuan' row is its rate; matching the string
+     exactly made 22 real teas price at nothing at all.
+
+     Absent is also not the same as never recorded. A cost with no currency on
+     it at all converts at 1, this shop's older convention meaning dollars, and
+     the worker's own pricing has always read it that way. This preview declined
+     instead, so the panel showed a dash for a tea the shelf was pricing and
+     selling, which is the admin disagreeing with the shop about the same tea. */
+  const rateToUSD = isUnrecordedCurrency(currency) ? 1 : rateToUsd(rates, currency);
   if (!rateToUSD || rateToUSD <= 0) {
     return { totalShipping: 0, costPerGramSource: 0, trueCostUSD: 0, suggestedRetailUSD: 0, rateUsed: 0 };
   }

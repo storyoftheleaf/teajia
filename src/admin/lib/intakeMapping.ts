@@ -10,6 +10,7 @@
 import { TEA_TYPES, NON_TEA_TYPES, normalizeTeaType, type TeaType, type TeaForm as WisdomTeaForm } from '../../wisdom';
 import { recognizeForm, recognizeType } from '../../wisdom/recognition';
 import { enteredCostCell } from '../productUpdatePayload';
+import { currencyInText, knownCurrency } from '../../lib/currency';
 
 export type TargetGroup = 'item' | 'order' | 'ignore';
 
@@ -145,32 +146,28 @@ export function parseNum(v: unknown): number {
 // Sniff a currency token out of free text (a price cell like "700 NT$" or a
 // header like "Unit Price (HK$)"). Bare "$" is intentionally ignored as too
 // ambiguous. Returns a known currency code or '' if none found.
+//
+// The eight-currency ladder that used to live here was a second copy of the
+// shared alias map written as includes() calls, which is why the guard that
+// looks for a second map did not see it. It reads the one map now; '' rather
+// than null is kept because the caller chains these with `||`.
 export function detectCurrencyToken(s: unknown): string {
-  if (!s) return '';
-  const u = String(s).toUpperCase();
-  if (u.includes('NT$') || /\bNTD?\b/.test(u) || /\bTWD\b/.test(u)) return 'NT';
-  if (u.includes('RMB') || u.includes('CNY') || u.includes('YUAN') || u.includes('¥')) return 'Yuan';
-  if (u.includes('HK$') || /\bHKD\b/.test(u)) return 'HKD';
-  if (/\bJPY\b/.test(u) || u.includes('YEN')) return 'JPY';
-  if (/\bMYR\b/.test(u) || /\bRM\b/.test(u)) return 'MYR';
-  if (/\bIDR\b/.test(u) || /\bRP\b/.test(u)) return 'IDR';
-  if (/\bAUD\b/.test(u) || u.includes('A$')) return 'AUD';
-  if (u.includes('US$') || /\bUSD\b/.test(u)) return 'USD';
-  return '';
+  return currencyInText(s) ?? '';
 }
 
+/**
+ * A currency column read as one of the shop's own keys.
+ *
+ * `UNK` is what an unrecognised cell becomes, and it is not a currency: it is
+ * this codebase's sentinel for one nobody recorded, which the server refuses by
+ * name. That sentinel is the only thing left here. Which spellings mean which
+ * money is the shared map's answer, and it used to be this file's as well, in a
+ * list that had drifted: 'MOP', 'CNH' and 'RENMINBI' resolved in the worker and
+ * became UNK here.
+ */
 export function normalizeCurrency(raw: unknown): string {
   if (isMissing(raw)) return 'UNK';
-  const c = String(raw).toUpperCase().trim();
-  if (['NT', 'NT$', 'TWD', 'NTD'].includes(c)) return 'NT';
-  if (['RMB', 'CNY', 'YUAN', '¥'].includes(c)) return 'Yuan';
-  if (['USD', '$', 'US$'].includes(c)) return 'USD';
-  if (['HKD', 'HK$', 'HK'].includes(c)) return 'HKD';
-  if (['IDR', 'RP'].includes(c)) return 'IDR';
-  if (['JPY', 'YEN', 'EN'].includes(c)) return 'JPY';
-  if (['MYR', 'RM'].includes(c)) return 'MYR';
-  if (['AUD', 'A$'].includes(c)) return 'AUD';
-  return 'UNK';
+  return knownCurrency(String(raw)) ?? 'UNK';
 }
 
 // Teaware/Misc are not tea types, so they're composed on top of the shared

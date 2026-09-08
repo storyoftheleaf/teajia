@@ -28,7 +28,14 @@ export const CURRENCY_SYMBOLS: Record<CostCurrency, string> = {
   JPY: 'JP¥',
 };
 
-export const CURRENCY_NAMES: Record<CostCurrency, string> = {
+/**
+ * AUD sits outside `CostCurrency` (the type a product's own cost is entered
+ * in), because the shop holds an Australian rate for the dashboard's currency
+ * exposure without ever asking a product to name AUD as its cost currency.
+ * The full-name lookup still has to answer for it, so this map's key type is
+ * wider than the type above by exactly that one entry.
+ */
+export const CURRENCY_NAMES: Record<CostCurrency | 'AUD', string> = {
   USD: 'US Dollar',
   IDR: 'Indonesian Rupiah',
   CNY: 'Chinese Yuan',
@@ -36,6 +43,7 @@ export const CURRENCY_NAMES: Record<CostCurrency, string> = {
   MYR: 'Malaysian Ringgit',
   HKD: 'Hong Kong Dollar',
   JPY: 'Japanese Yen',
+  AUD: 'Australian Dollar',
 };
 
 /**
