@@ -15,8 +15,6 @@ Ranked in [docs/AUDIT-2026-09.md](docs/AUDIT-2026-09.md). Each line is one root 
   JOBO-2, MONEY-5, MONEY-10. The row correction moves prices in admin readouts, so it goes to Adrian as a page first.
 - [ ] The shop grid price omits the handling fee the ladder charges; use one quote for both _(band: you-required)_ _(effort: quick)_
   JOBC-1. Recommendation: the grid uses `quoteGrams()` for its default weight. Adrian decides whether that is the number he wants shown.
-- [ ] Rate-limit and length-cap the inquiry and newsletter endpoints, and make an absent limiter binding refuse rather than allow _(band: agent-runnable)_ _(effort: moderate)_
-  SEC-1, SEC-2, SEC-5.
 - [ ] The wholesale catalogue quotes cost times markup as a per-gram price without dividing by quantity _(band: agent-runnable)_ _(effort: quick)_
   MONEY-3: 89 of 92 reachable listings, up to 2,500x.
 - [ ] Draft articles are readable at their direct URL; gate the fourteen article pages on publish status _(band: agent-runnable)_ _(effort: moderate)_

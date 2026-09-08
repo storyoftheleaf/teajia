@@ -73,7 +73,7 @@ describe('private transcription persistence', () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('upstream detail', { status: 503 })));
     const form = new FormData();
     form.set('file', new File([new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, 1, 2])], 'recording.webm', { type: 'audio/webm' }));
-    const failed = await worker.fetch(await request('/api/transcribe', 'POST', form), { DB: db, MEDIA_BUCKET: bucket, JWT_SECRET: SECRET, GROQ_API_KEY: 'groq' } as any);
+    const failed = await worker.fetch(await request('/api/transcribe', 'POST', form), { DB: db, MEDIA_BUCKET: bucket, JWT_SECRET: SECRET, GROQ_API_KEY: 'groq', PROVIDER_LIMITER: { limit: async () => ({ success: true }) } } as any);
     expect(failed.status).toBe(502);
     const failure = await failed.json() as any;
     expect(failure).toMatchObject({ code: 'provider_error', recording_id: expect.any(String), retryable: true });
@@ -81,7 +81,7 @@ describe('private transcription persistence', () => {
     expect(bucket.objects.has(db.recording.object_key)).toBe(true);
 
     vi.stubGlobal('fetch', vi.fn(async () => Response.json({ text: 'Recovered transcript' })));
-    const retried = await worker.fetch(await request(`/api/transcriptions/${failure.recording_id}/retry`), { DB: db, MEDIA_BUCKET: bucket, JWT_SECRET: SECRET, GROQ_API_KEY: 'groq' } as any);
+    const retried = await worker.fetch(await request(`/api/transcriptions/${failure.recording_id}/retry`), { DB: db, MEDIA_BUCKET: bucket, JWT_SECRET: SECRET, GROQ_API_KEY: 'groq', PROVIDER_LIMITER: { limit: async () => ({ success: true }) } } as any);
     expect(await retried.json()).toMatchObject({ text: 'Recovered transcript', recording_id: failure.recording_id });
     expect(bucket.objects.size).toBe(0);
   });
@@ -90,7 +90,7 @@ describe('private transcription persistence', () => {
     const db = new Db(); const bucket = new Bucket();
     db.recording = { id: 'rec-1', account_id: 'account-1', user_id: 'user-1', object_key: 'private-recordings/account-1/user-1/rec-1.webm', mime_type: 'audio/webm' };
     bucket.objects.set(db.recording.object_key, { bytes: new Uint8Array([0x1a, 0x45, 0xdf, 0xa3]).buffer, type: 'audio/webm' });
-    const env = { DB: db, MEDIA_BUCKET: bucket, JWT_SECRET: SECRET, GROQ_API_KEY: 'groq' } as any;
+    const env = { DB: db, MEDIA_BUCKET: bucket, JWT_SECRET: SECRET, GROQ_API_KEY: 'groq', PROVIDER_LIMITER: { limit: async () => ({ success: true }) } } as any;
 
     expect((await worker.fetch(await request('/api/transcriptions/rec-1/retry', 'POST', undefined, 'account-2'), env)).status).toBe(404);
     expect((await worker.fetch(new Request(`https://test.dev/api/media/${db.recording.object_key}`), env)).status).toBe(404);
@@ -117,7 +117,7 @@ describe('private transcription persistence', () => {
     const form = new FormData();
     form.set('file', new File([new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, 1, 2])], 'recording.webm', { type: 'audio/webm' }));
 
-    const response = await worker.fetch(await request('/api/transcribe', 'POST', form), { DB: db, MEDIA_BUCKET: bucket, JWT_SECRET: SECRET, GROQ_API_KEY: 'groq' } as any);
+    const response = await worker.fetch(await request('/api/transcribe', 'POST', form), { DB: db, MEDIA_BUCKET: bucket, JWT_SECRET: SECRET, GROQ_API_KEY: 'groq', PROVIDER_LIMITER: { limit: async () => ({ success: true }) } } as any);
 
     expect(response.status).toBe(500);
     expect(bucket.objects.has(db.recording.object_key)).toBe(true);

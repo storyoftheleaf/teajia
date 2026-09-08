@@ -113,12 +113,21 @@ function createPayload(overrides: Record<string, unknown> = {}) {
   };
 }
 
+// A durable rate limiter binding is required in production (audit SEC-1); an
+// absent one now refuses rather than allows. These functional tests are about
+// the inquiry logic, not the limiter, so every call carries an always-open
+// fake binding. The limiter's own behavior (429 on exhaustion, 503 on an
+// absent binding) is covered by inquiry-rate-and-length.test.ts.
+function alwaysOpenLimiter() {
+  return { limit: async () => ({ success: true }) };
+}
+
 async function post(db: InquiryDb, payload: Record<string, unknown>) {
   return worker.fetch(new Request('https://api.test/api/inquiries', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
-  }), { DB: db } as never, {} as never);
+  }), { DB: db, INQUIRY_LIMITER: alwaysOpenLimiter() } as never, {} as never);
 }
 
 async function get(db: InquiryDb, tokenOrRef: string) {

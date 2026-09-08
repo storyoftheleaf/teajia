@@ -2,9 +2,11 @@
 
 Finished work, moved here from TODO.md. Nothing is deleted; lineage is kept.
 
-## Prime-time audit (2026-09-09)
+## Prime-time audit
 
 - [x] Stamp cost currency provenance on all eight write paths and both listing mirrors, BEFORE the per-vendor backlog is run, done 2026-09-09, "stamp a stated cost currency at every door". MONEY-6, JOBO2-2. Two doors stamped and four did not, so a tea imported with a correct HKD cost sat in `list_unstated_costs` and a vendor-wide answer of yuan would have overwritten it and moved its shelf price. A fifth fault was found in the same place: the update path stamped BEFORE its unknown-field gate, so all three product command routes refused any edit naming a cost currency with a 400 about a column the server had just added itself. One helper decides the answer now, the mirrors copy it rather than re-deriving it, and the guard refuses a new insert that names a currency without it.
+
+- [x] Rate-limit and length-cap the inquiry and newsletter endpoints, and make an absent limiter binding refuse rather than allow. Done 2026-09-09, commit "fix(inquiries): rate-limit and length-cap the public write endpoints". SEC-1, SEC-2, SEC-5. `POST /api/inquiries` and `POST /api/newsletter/subscribe` now key a durable limiter (`INQUIRY_LIMITER`, `NEWSLETTER_LIMITER`, both declared in `worker/wrangler.toml`) off the client IP, and every field on both endpoints is capped, the consult branch's `vision`/`interests`/`referral`/`location`/`whatsapp` included, which is the field that had stored a 2 MB message uncapped. `enforceDurableLimit` in `worker/src/index.ts` now refuses (503, naming the missing binding in a `console.error`) when a caller's binding is absent instead of allowing the request through; all fifteen existing callers were confirmed to already carry a `wrangler.toml` declaration before this changed, and their tests were given a fake open binding so the class fix does not regress their own coverage.
 
 ## Orders and payments
 
