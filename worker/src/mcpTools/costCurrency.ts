@@ -42,6 +42,7 @@
  * rate is; that is his call, not a migration's, and certainly not a join's.
  */
 import { isRefreshedCurrency, refreshedCurrencyName, REFRESHED_CURRENCIES } from '../exchangeRateFeed';
+import { sameCurrency } from '../../../src/lib/currency';
 import { CURRENCY_SOURCE_STATED } from '../costCurrency';
 import type { ToolAuth, ToolDefinition, ToolEnv, ToolHandler, ToolModule } from './registry';
 import { INVALID_TICKET, consumeTicket, issueTicket, previewEnvelope } from './tickets';
@@ -171,7 +172,11 @@ const listUnstatedCosts: ToolHandler = async (env, auth, args) => {
     if (ev?.conflicting) g.conflicting_receipts += 1;
     if (ev?.currency) {
       g.receipt_says.add(ev.currency);
-      if (ev.currency.toLowerCase() !== String(p.cost_currency ?? '').toLowerCase()) {
+      /* Compared canonically. The receipt records ISO ('CNY'), the row records
+         the shop's key ('Yuan'), and those are the same money: reading them as
+         a disagreement would show Adrian a conflict on every Chinese tea and
+         teach him to ignore the one column that is honest evidence. */
+      if (!sameCurrency(ev.currency, p.cost_currency)) {
         g.receipt_disagrees_with_stored += 1;
       }
     }

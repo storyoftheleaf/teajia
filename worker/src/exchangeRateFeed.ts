@@ -14,6 +14,8 @@
  * currency — the shop's freight rate above all, which is converted to USD on
  * every request — checks it against this list first.
  */
+import { canonicalCurrency } from '../../src/lib/currency';
+
 export const FX_FEED_CURRENCY_MAP: Record<string, string> = {
   CNY: 'Yuan',
   TWD: 'NT',
@@ -35,18 +37,22 @@ export const REFRESHED_CURRENCIES: ReadonlySet<string> = new Set(Object.values(F
  * refusing them on capitalisation would teach them to work around the check.
  */
 export function isRefreshedCurrency(currency: string | null | undefined): boolean {
-  if (!currency) return false;
-  const lc = String(currency).trim().toLowerCase();
-  for (const name of REFRESHED_CURRENCIES) {
-    if (name.toLowerCase() === lc) return true;
-  }
-  return false;
+  return refreshedCurrencyName(currency) !== null;
 }
 
-/** The refreshed name matching a typed one, so what gets stored resolves later. */
+/**
+ * The refreshed name matching a typed one, so what gets stored resolves later.
+ *
+ * Through the alias map, or an operator answering "CNY" to what a cost was paid
+ * in was told the shop keeps no live rate for it, while the shop was refreshing
+ * that exact rate every day under the name 'Yuan'. A refusal that is not true
+ * teaches people to work around the check.
+ */
 export function refreshedCurrencyName(currency: string | null | undefined): string | null {
   if (!currency) return null;
-  const lc = String(currency).trim().toLowerCase();
+  const canonical = canonicalCurrency(String(currency).trim());
+  if (!canonical) return null;
+  const lc = canonical.toLowerCase();
   for (const name of REFRESHED_CURRENCIES) {
     if (name.toLowerCase() === lc) return name;
   }

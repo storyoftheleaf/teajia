@@ -16,6 +16,7 @@
 
 import { TEA_TYPES, NON_TEA_TYPES } from '../../wisdom';
 import { enteredCostCell } from '../productUpdatePayload';
+import { knownCurrency } from '../../lib/currency';
 
 /** A staged line as the review grid holds it: every cell still a string. */
 export interface CsvStagingRow {
@@ -84,17 +85,16 @@ const parseOptionalCount = (val: unknown): number | null =>
  * this codebase's sentinel for one nobody recorded, which the server refuses by
  * name. That refusal is now per row, so a single unreadable cell costs its own
  * line and not the file.
+ *
+ * The sentinel is all that is left here. Which spellings mean which money is
+ * the shared map's answer, in `src/lib/currency.ts`. This file kept a six-line
+ * copy of it written as includes() lists, which had lost AUD and MYR entirely:
+ * a sheet whose currency column said AUD was read as a currency nobody
+ * recorded, and every row of it was refused by the server by name.
  */
 export const normalizeImportCurrency = (raw: unknown): string => {
   if (isMissingOrUnknown(raw)) return 'UNK';
-  const c = raw!.toString().toUpperCase().trim();
-  if (['NT', 'TWD'].includes(c)) return 'NT';
-  if (['RMB', 'CNY', 'YUAN'].includes(c)) return 'Yuan';
-  if (['USD', '$'].includes(c)) return 'USD';
-  if (['IDR', 'RP'].includes(c)) return 'IDR';
-  if (['JPY', 'YEN'].includes(c)) return 'JPY';
-  if (['HKD', 'HK'].includes(c)) return 'HKD';
-  return 'UNK';
+  return knownCurrency(raw!.toString()) ?? 'UNK';
 };
 
 const VALID_FORMS = ['Loose', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other'];

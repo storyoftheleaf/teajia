@@ -19,6 +19,8 @@ import {
 } from '../lib/intakeMapping';
 import { enteredCostCell } from '../productUpdatePayload';
 import { plainCostWords } from '../../lib/costRefusalWords';
+import { rateToUsd } from '../../lib/currency';
+import { freightRefusalWords, splitByConvertibleFreight } from '../lib/intakeFreight';
 import { assertSupportedIntakeFile, readXlsxIntakeFile } from '../lib/xlsxIntake';
 import { IntakeChatSheet, type ChatAnswer } from '../components/IntakeChatSheet';
 
@@ -332,8 +334,11 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
   // ── Shipping proration ──────────────────────────────────────────────────────
   // Spread one total shipping cost across the included items by estimated size:
   // each item's share = shippingTotal × (its size ÷ total size).
-  const rateFor = useCallback((cur: string) => rates.find((r) => r.currency === cur)?.rateToUSD || 1, [rates]);
-  const convert = useCallback((amt: number, from: string, to: string) => (amt / rateFor(from)) * rateFor(to), [rateFor]);
+  /* The share each line carries, and who cannot be given one, in
+     admin/lib/intakeFreight.ts. It answered NaN here, with a comment saying
+     that surfaces as a dash; it did not, it surfaced as a line stored cheaper
+     than it was bought. It lives out there now because a rule nothing can call
+     is a rule nothing can check. */
   const dominantCurrency = useMemo(() => {
     const t: Record<string, number> = {};
     included.forEach((i) => { if (i.costCurrency !== 'UNK') t[i.costCurrency] = (t[i.costCurrency] || 0) + 1; });
@@ -351,9 +356,6 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
     if (included.length === 0 || committing) return;
     setCommitting(true);
     try {
-      const products = included.map((it) =>
-        stagedToProduct(it, convert(shareShip(it), shipCur, it.costCurrency === 'UNK' ? shipCur : it.costCurrency)),
-      );
       const chunk = 50;
       let inserted = 0;
       let skipped = 0;
@@ -361,6 +363,27 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
          price is refused by name, so the reasons are collected and shown
          instead of being counted as something they are not. */
       const skipReasons = new Set<string>();
+
+      /* A line whose share of the shipping cannot be converted into its own
+         currency is refused here, before anything is sent. Adding it without
+         the share would store the tea cheaper than it was bought and say
+         nothing, which is the same silence a cost of zero used to keep. The
+         line is named by its currency, because that is what the operator has to
+         fix: give the shop a rate for it, or say what the tea was really paid
+         in. Nothing is refused when there is no shipping to spread. */
+      const { priced, unconvertible } = splitByConvertibleFreight(included, shipCur, shareShip, rates);
+      if (unconvertible.size > 0) {
+        skipped += [...unconvertible.values()].reduce((a, b) => a + b, 0);
+        skipReasons.add(freightRefusalWords(unconvertible));
+      }
+      const products = priced.map(({ it, extra }) => stagedToProduct(it, extra));
+      if (products.length === 0) {
+        // Nothing to send, so nothing is cleared. The staged lines stay on
+        // screen with the reason above them, which is the only state from which
+        // the operator can act on it.
+        showToast([...skipReasons].join(' ') || 'Nothing to import.', 'error');
+        return;
+      }
       for (let i = 0; i < products.length; i += chunk) {
         const res: any = await api.products.bulkCreate(products.slice(i, i + chunk), batchId ?? undefined);
         inserted += res?.inserted ?? products.slice(i, i + chunk).length;
@@ -379,9 +402,15 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
       if (savePurchaseRecord) {
         // One purchase record per vendor/store, an order sheet routinely spans
         // many stores, so a single PO per file would lump them together wrongly.
-        const rateFor = (cur: string) => rates.find((r) => r.currency === cur)?.rateToUSD || 1;
+        /* This one writes a purchase record, so a rate of 1 does not merely
+           display wrong, it records a yuan total as dollars against a vendor.
+           A line whose currency has no rate contributes nothing to the total
+           rather than contributing a made-up figure. */
+        const rateFor = (cur: string) => rateToUsd(rates, cur);
         const groups = new Map<string, StagedItem[]>();
-        for (const it of included) {
+        // The lines that were actually sent. A tea refused above was not
+        // bought through this import, so it is not in this import's order.
+        for (const { it } of priced) {
           const key = it.vendor.trim() || sourceName(it.sourceId).replace(/\.[^.]+$/, '') || 'Unknown vendor';
           if (!groups.has(key)) groups.set(key, []);
           groups.get(key)!.push(it);
@@ -392,8 +421,11 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
           const totalUSD = lines.reduce((sum, l) => {
             const qty = l.quantityPurchased || l.quantityUnits || l.stockGrams || 1;
             // A line with no recorded price adds nothing to the order total,
-            // which is what not knowing costs.
-            return sum + ((l.costAmount ?? 0) * qty) / rateFor(l.costCurrency);
+            // which is what not knowing costs. Same for a line whose currency
+            // the shop cannot resolve.
+            const rate = rateFor(l.costCurrency);
+            if (rate === null) return sum;
+            return sum + ((l.costAmount ?? 0) * qty) / rate;
           }, 0);
           // dominant non-UNK currency for display
           const tally: Record<string, number> = {};
@@ -437,7 +469,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
     } finally {
       setCommitting(false);
     }
-  }, [included, committing, batchId, savePurchaseRecord, rates, sourceName, convert, shareShip, shipCur, showToast, onRefresh, navigate, importId]);
+  }, [included, committing, batchId, savePurchaseRecord, rates, sourceName, shareShip, shipCur, showToast, onRefresh, navigate, importId]);
 
   const hasContent = sources.length > 0;
 

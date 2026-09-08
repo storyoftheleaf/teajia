@@ -5,6 +5,19 @@ import type { TooltipProps } from 'recharts';
 import { Loader2, DollarSign, PieChart as PieIcon, MapPin, TrendingUp, AlertCircle, UserPlus, Clock } from 'lucide-react';
 import { Product, Customer } from '../types';
 import { useRates } from '../hooks/useAdminData';
+import { isoCurrencyCode } from '../../lib/currency';
+import { inventoryMetrics } from '../lib/inventoryMetrics';
+
+/** Spelled out beside the code, on desktop, where there is room for it. */
+const CURRENCY_FULL_NAMES: Record<string, string> = {
+  TWD: ' (New Taiwan Dollar)',
+  CNY: ' (Chinese Yuan)',
+  IDR: ' (Indonesian Rupiah)',
+  JPY: ' (Japanese Yen)',
+  MYR: ' (Malaysian Ringgit)',
+  HKD: ' (Hong Kong Dollar)',
+  AUD: ' (Australian Dollar)',
+};
 import { fmtRecordDollars, fmtPct, fmtNum } from '../../utils/formatNumber';
 import { api } from '../../lib/api';
 
@@ -49,66 +62,13 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
     navigate(`/admin/stock?search=${encodeURIComponent(value)}`);
   }, [navigate]);
 
-  const metrics = useMemo(() => {
-    if (isLoading || products.length === 0) return null;
-
-    let totalCostUSD = 0;
-    let totalRetailUSD = 0;
-    let currencyExposure: Record<string, number> = {};
-    let regionValue: Record<string, number> = {};
-    let typeValue: Record<string, number> = {};
-
-    products.forEach(p => {
-        // Skip archived items for valuation
-        if (p.status === 'Archived') return;
-
-        // 1. Currency Conversion Logic
-        // We use the raw cost_amount stored in the product (in source currency)
-        // Convert it to USD using the *current* real-time rate
-        const rateObj = rates.find(r => r.currency === p.costCurrency);
-        const rateToUSD = rateObj ? rateObj.rateToUSD : 1;
-        
-        // Calculate Cost per gram in USD based on CURRENT rates (removes "weirdness" of stale DB calculations)
-        // Logic: (Total Batch Cost / Total Batch Weight) / Rate
-        const validBatchWeight = p.quantityPurchased > 0 ? p.quantityPurchased : 1;
-        const costPerGramRaw = p.costAmount / validBatchWeight;
-        const costPerGramUSD = costPerGramRaw / rateToUSD;
-        
-        const itemTotalCostUSD = costPerGramUSD * p.stockGrams;
-        const itemTotalRetailUSD = (p.fixedRetailPriceUSD ?? p.pricePerGramUSD) * p.stockGrams;
-
-        totalCostUSD += itemTotalCostUSD;
-        totalRetailUSD += itemTotalRetailUSD;
-
-        // 2. Currency Exposure (Track Raw Spending in USD Terms)
-        // Group by Source Currency to see "How much money do I have trapped in NTD?"
-        const currencyKey = p.costCurrency || 'USD';
-        currencyExposure[currencyKey] = (currencyExposure[currencyKey] || 0) + itemTotalCostUSD;
-
-        // 3. Region Value
-        const region = p.originRegion || 'Unknown';
-        regionValue[region] = (regionValue[region] || 0) + itemTotalRetailUSD;
-
-        // 4. Type Value
-        const type = p.type || 'Misc';
-        typeValue[type] = (typeValue[type] || 0) + itemTotalRetailUSD;
-    });
-
-    return {
-        totalCostUSD,
-        totalRetailUSD,
-        potentialProfit: totalRetailUSD - totalCostUSD,
-        currencyExposure: Object.entries(currencyExposure)
-            .map(([name, value]) => ({ name, value }))
-            .sort((a, b) => b.value - a.value),
-        regionValue: Object.entries(regionValue)
-            .map(([name, value]) => ({ name, value }))
-            .sort((a, b) => b.value - a.value)
-            .slice(0, 8), // Top 8 regions
-        typeValue: Object.entries(typeValue)
-            .map(([name, value]) => ({ name, value }))
-    };
-  }, [products, rates, isLoading]);
+  /* The arithmetic is in admin/lib/inventoryMetrics.ts. It reads two sides
+     with two different rules, and both of them are money, so they live where a
+     test can ask them what they do rather than only read what they say. */
+  const metrics = useMemo(
+    () => (isLoading || products.length === 0 ? null : inventoryMetrics(products, rates)),
+    [products, rates, isLoading],
+  );
 
   const customerMetrics = useMemo(() => {
     if (!customers.length) return null;
@@ -245,18 +205,14 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
                   <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-tea-elevated text-tea-text-sec font-display flex items-center justify-center text-ui-11">
                     {rate.currency}
                   </div>
+                  {/* The ISO code through the shared helper, which is the one
+                      place that knows 'Yuan' is CNY and 'NT' is TWD. It was
+                      written out again here, and a mapping written twice is
+                      the shape that lets the two drift. */}
                   <span className="text-ui-13 md:text-ui-14 text-tea-text">
-                    {rate.currency === 'NT' ? 'TWD' :
-                     rate.currency === 'Yuan' ? 'CNY' :
-                     rate.currency === 'IDR' ? 'IDR' :
-                     rate.currency === 'JPY' ? 'JPY' :
-                     rate.currency === 'MYR' ? 'MYR' : rate.currency}
+                    {isoCurrencyCode(rate.currency)}
                     <span className="hidden md:inline">
-                      {rate.currency === 'NT' ? ' (New Taiwan Dollar)' :
-                       rate.currency === 'Yuan' ? ' (Chinese Yuan)' :
-                       rate.currency === 'IDR' ? ' (Indonesian Rupiah)' :
-                       rate.currency === 'JPY' ? ' (Japanese Yen)' :
-                       rate.currency === 'MYR' ? ' (Malaysian Ringgit)' : ''}
+                      {CURRENCY_FULL_NAMES[isoCurrencyCode(rate.currency)] ?? ''}
                     </span>
                   </span>
                 </div>

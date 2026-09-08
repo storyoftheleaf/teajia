@@ -95,6 +95,7 @@ import {
   resolveTeaReferenceIssues,
 } from './teaReferenceIssues';
 import { isTeaType, TEA_TYPES } from '../../src/wisdom/vocabulary';
+import { isUnrecordedCurrency } from '../../src/lib/currency';
 import { catalogProductIds, INQUIRY_MAX_NOTE, inquiryRequestFingerprint, isValidTrackingToken, normalizeCartInquiry, redactPublicInquiry, sha256Hex } from './inquiryDomain';
 
 interface Env {
@@ -1549,8 +1550,11 @@ function addPricingFields(product: any, rates: Map<string, number>, shopDefaultP
      'UNK' is the sentinel the admin uses for it. That still converts at 1,
      because that is what it has always meant, not because a rate is missing. */
   const declared = product.cost_currency as string | null | undefined;
-  const unrecorded = !declared || String(declared).trim() === '' || String(declared).toUpperCase() === 'UNK';
-  const rate = unrecorded ? 1 : lookupRateToUsd(rates, declared);
+  // The reading of "nobody said" lives beside the alias map, because the admin
+  // dashboard has to take the same one or the shelf and the dashboard disagree
+  // about the same teas. It was written out here in full, which is how a rule
+  // gets two homes.
+  const rate = isUnrecordedCurrency(declared) ? 1 : lookupRateToUsd(rates, declared);
   const isTeaware = product.type === 'Teaware';
   if (!rate || rate <= 0) {
     return {
