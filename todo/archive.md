@@ -2,6 +2,10 @@
 
 Finished work, moved here from TODO.md. Nothing is deleted; lineage is kept.
 
+## Prime-time audit
+
+- [x] The wholesale catalogue quotes cost times markup as a per-gram price without dividing by quantity - done 2026-09-09 (fix(network-catalog): divide the curator's cost by quantity before the markup). MONEY-3: 89 of 92 reachable listings, up to 2,500x. `handleNetworkCatalog` now selects `product_listings.quantity_purchased` and divides `curator_cost_amount` by it before applying the markup, matching the shape `addPricingFields` already used for the shop's own catalogue. A profile with no recorded quantity now returns no cost-based price rather than pricing the whole batch as a single gram. Covered by `worker/tests/network-catalog-per-gram.test.ts`.
+
 ## Orders and payments
 
 - [x] The phone suite watches the screen edge, not just the page width - done 2026-08-31. The old check compared the whole page against the screen, so an element overrunning its column was absorbed without the page growing and passed unseen: the order summary rendered 551px inside a 311px column and carried the amount 208px off a 375px phone while the page measured exactly 375px. The new check asks whether anything a person can see reaches past the right edge, counting text and painted backgrounds only, because the blunt version flagged a shop tab strip whose box overhangs by 12px while painting nothing there. Surveyed across all twenty swept routes first and clean on every one, then promoted into the shared health assertion so it covers them all rather than the two money pages it started on.

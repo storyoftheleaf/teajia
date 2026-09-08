@@ -19,8 +19,6 @@ Ranked in [docs/AUDIT-2026-09.md](docs/AUDIT-2026-09.md). Each line is one root 
   JOBC-1. Recommendation: the grid uses `quoteGrams()` for its default weight. Adrian decides whether that is the number he wants shown.
 - [ ] Rate-limit and length-cap the inquiry and newsletter endpoints, and make an absent limiter binding refuse rather than allow _(band: agent-runnable)_ _(effort: moderate)_
   SEC-1, SEC-2, SEC-5.
-- [ ] The wholesale catalogue quotes cost times markup as a per-gram price without dividing by quantity _(band: agent-runnable)_ _(effort: quick)_
-  MONEY-3: 89 of 92 reachable listings, up to 2,500x.
 - [ ] Draft articles are readable at their direct URL; gate the fourteen article pages on publish status _(band: agent-runnable)_ _(effort: moderate)_
   JOBC-2.
 - [ ] Remove the streak counter from the Learn curriculum, and give `create_tea` a real tea type default _(band: agent-runnable)_ _(effort: quick)_
