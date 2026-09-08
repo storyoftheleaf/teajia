@@ -2868,7 +2868,7 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     if (unknownFields.length > 0) {
       return restError(400, 'Unsupported fields for product creation', 'validation_failed', { fields: unknownFields });
     }
-    const capabilityError = validateProductCreateCapabilities(ctx, raw);
+    const capabilityError = validateProductCreateCapabilities(ctx, raw, { costRefusedPerRow: true });
     if (capabilityError) return capabilityError;
     const ownerError = await validateProductOwnerAssignment(env, ctx, raw);
     if (ownerError) return ownerError;
@@ -2966,6 +2966,30 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     if (name && existingByNaturalKey.has(key)) {
       skipped.push(body.product_name || body.given_name || 'unknown');
       results.push({ client_row_id: clientRowId, status: 'skipped', reason: 'A product with this type and name already exists' });
+      continue;
+    }
+    /* A tea is not added without saying what it cost, asked of the RAW row and
+       before the name is claimed below.
+
+       Raw, because a blank cell arrives as '' and the stripped body no longer
+       shows the difference between a column somebody emptied and one they never
+       mapped; the agent door learned the same lesson, that a guard handed a
+       converted value cannot tell absence from an answer.
+
+       Per row, because this door is a spreadsheet. Refusing the request would
+       throw away every complete row in the file over one empty price cell, and
+       the import screens already carry a per-row reason back to the review
+       surface, so the operator sees which lines still need a figure and the
+       rest of the import lands. The single create refuses the whole request
+       because there a request IS one tea.
+
+       Before the name is claimed, because a row that does not land must not
+       hold its name against a later row in the same file that does say what it
+       cost. */
+    const costRefusal = productCreateCostRefusal(raw);
+    if (costRefusal) {
+      skipped.push(body.product_name || body.given_name || 'unknown');
+      results.push({ client_row_id: clientRowId, status: 'skipped', reason: costRefusal.message });
       continue;
     }
     existingByNaturalKey.set(key, body); // Prevent duplicates within the same batch
@@ -3100,7 +3124,30 @@ const PRODUCT_CREATE_PUBLICATION_COLUMNS = new Set(
   [...PRODUCT_PUBLICATION_UPDATE_COLUMNS].filter(column => column !== 'is_personal' && column !== 'is_sample'),
 );
 
-function validateProductCreateCapabilities(ctx: AccountCtx, body: Record<string, unknown>): Response | null {
+/**
+ * A tea is not added without saying what it cost, as an HTTP refusal.
+ *
+ * Its own function because the two create doors have to answer differently in
+ * shape while answering identically in substance. The single create refuses the
+ * request. The bulk create refuses the ROW, because a spreadsheet is many teas
+ * and one blank price cell must not throw away the forty-nine rows that did say
+ * what they cost. Same rule, same words, same named half.
+ */
+function productCreateCostRefusal(body: Record<string, unknown>): { missing: string; message: string } | null {
+  const missing = createMissingCost({ amount: body.cost_amount, currency: body.cost_currency });
+  if (!missing) return null;
+  return { missing, message: `${COST_REQUIRED_ON_CREATE} (missing: ${missing})` };
+}
+
+function validateProductCreateCapabilities(
+  ctx: AccountCtx,
+  body: Record<string, unknown>,
+  /* The bulk door asks for its cost refusal one row at a time, further down,
+     so that a batch is not lost to a single blank cell. Every capability check
+     below still runs here, for every row, before any row is written: the
+     authorisation answer comes first, and it comes for the whole request. */
+  options: { costRefusedPerRow?: boolean } = {},
+): Response | null {
   const supplied = (columns: Set<string>) => [...columns].some(column => Object.prototype.hasOwnProperty.call(body, column));
   const missing = (bundle: Bundle) => !ctx.isPlatform && ctx.role !== 'owner' && !ctx.bundles.includes(bundle);
   if (supplied(PRODUCT_CREATE_STOCK_COLUMNS) && missing('stock')) {
@@ -3135,9 +3182,10 @@ function validateProductCreateCapabilities(ctx: AccountCtx, body: Record<string,
      of what else their payload was missing: the authorisation answer is the
      true one, and it is the one that does not describe a form they are not
      allowed to fill in. */
-  const missingCost = createMissingCost({ amount: body.cost_amount, currency: body.cost_currency });
-  if (missingCost) {
-    return restError(400, COST_REQUIRED_ON_CREATE, 'cost_required', { missing: missingCost });
+  if (options.costRefusedPerRow) return null;
+  const costRefusal = productCreateCostRefusal(body);
+  if (costRefusal) {
+    return restError(400, COST_REQUIRED_ON_CREATE, 'cost_required', { missing: costRefusal.missing });
   }
   return null;
 }

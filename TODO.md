@@ -9,8 +9,6 @@ Ranked in [docs/AUDIT-2026-09.md](docs/AUDIT-2026-09.md). Each line is one root 
 - [ ] Every new tea ships free and carries the old markup through five of six doors, because the live table still defaults to 0 and 2.5 _(band: agent-runnable)_ _(effort: deep)_ → Plan: [freight-default-lives-in-the-table.md](todo/plans/freight-default-lives-in-the-table.md)
 - [ ] Nothing on a push to main runs the type check, the build or the full test suites; add the gate that would have caught the two-day outage _(band: agent-runnable)_ _(effort: moderate)_
   TEST-1, TEST-2: `deploy-frontend.yml` is manual, `playwright.yml` runs 2 of 48 specs, no hooks.
-- [ ] A blank cost becomes zero at four client doors (CSV, xlsx, sample graduation, Tea Compass), and the agent-door guard test cannot go red _(band: agent-runnable)_ _(effort: moderate)_
-  MONEY-4, JOBO2-1, MONEY-12.
 - [ ] 21 live teas carry a currency label the admin cannot resolve; canonicalise once in the admin, stop `update_tea_pricing` uppercasing, and correct the rows _(band: agent-runnable)_ _(effort: moderate)_
   JOBO-2, MONEY-5, MONEY-10. The row correction moves prices in admin readouts, so it goes to Adrian as a page first.
 - [ ] The shop grid price omits the handling fee the ladder charges; use one quote for both _(band: you-required)_ _(effort: quick)_

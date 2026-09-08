@@ -6,6 +6,7 @@ import { useToast } from './Toast';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { BatchPicker } from './BatchPicker';
 import { TEA_TYPES, NON_TEA_TYPES } from '../../wisdom';
+import { enteredCostCell } from '../productUpdatePayload';
 
 interface StagingRow {
   id: string;
@@ -108,7 +109,10 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
     // 2. Draft Logic (Incomplete Data)
     const missingGrams = isMissingOrUnknown(row.grams);
     const missingStock = isMissingOrUnknown(row.stockAmount);
-    const missingCost = isMissingOrUnknown(row.costAmount) || isMissingOrUnknown(row.currency);
+    /* Read by the same helper the row's payload is built with, so the badge in
+       the review grid and the figure that goes on the wire cannot disagree
+       about whether a price was written. */
+    const missingCost = enteredCostCell(row.costAmount) === null || isMissingOrUnknown(row.currency);
 
     if (missingGrams || missingStock || missingCost) {
         status = 'Draft';
@@ -316,8 +320,15 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
 
         const stock = parseOptionalNum(r.stockAmount);
         const qtyPurchased = parseNum(r.grams);
-        const cost = parseNum(r.costAmount);
-        
+        /* A blank price cell is not a free tea. `parseNum` ends in `|| 0`, so
+           it turned "this column was empty" into "it cost nothing" before the
+           row ever left the browser, and the worker's own guard then saw a well
+           formed zero and let it through. Null here is dropped by the cleaning
+           loop below, so the column is not named at all and the server refuses
+           the row by name. A typed 0 still travels as 0: a vendor's free sample
+           is a real thing and typing 0 says so. */
+        const cost = enteredCostCell(r.costAmount);
+
         // 3. Handle Year (preserve "1980s" style, pass "Unknown" as null)
         let year: string | null = null;
         if (r.year && !isMissingOrUnknown(r.year)) {

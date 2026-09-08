@@ -367,8 +367,17 @@ export function compassEntryToProductDraft(entry: TeaCompassEntry): Record<strin
     origin_region: entry.originRegion || '',
     stock_grams: stockGrams,
     quantity_purchased: quantityPurchased,
-    cost_amount: entry.buyTotal ?? entry.priceAmount ?? 0,
-    cost_currency: entry.priceCurrency || 'NT',
+    /* Both halves travel together or neither does. `?? 0` said an entry with
+       no price recorded was a tea that cost nothing, and `|| 'NT'` answered a
+       missing unit with Taiwan dollars on a column that is itself
+       `DEFAULT 'NT'`, so its silence was never evidence of anything. An amount
+       with no currency is not a cost either: stored, it would be read at a rate
+       of 1. Null on both is refused by the server, by name, and the operator
+       records the price on the compass entry and promotes again. The worker's
+       own promotion door was given exactly this rule; this is the client half
+       of it. */
+    cost_amount: entry.buyTotal ?? entry.priceAmount ?? null,
+    cost_currency: entry.priceCurrency || null,
     vendor: entry.vendorName || '',
     status: 'Draft',
     is_public: false,

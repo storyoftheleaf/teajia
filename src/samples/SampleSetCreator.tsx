@@ -868,8 +868,19 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
             is_personal: false,
             can_reorder: true,
             stock_grams: 0,
-            cost_amount: 0,
-            cost_currency: 'NT',
+            /* No cost travels from here, because a sample carries none: the
+               record has a name, a weight and a source, and nothing about what
+               was paid. `cost_amount: 0` said the tea was free and
+               `cost_currency: 'NT'` picked Taiwan dollars for a figure nobody
+               had entered, so every sample graduated this way landed on the
+               shelf at zero times three. Saying nothing is refused by the
+               server, by name, which is the honest outcome: a tea is not added
+               without saying what it cost.
+
+               The path that works is the one above: a sample added in this
+               screen gets a compass entry, and the price recorded there comes
+               through `compassEntryToProductDraft`. This branch is the fallback
+               for a sample whose entry has gone missing. */
             source_compass_entry_id: sample.compassEntryId || null,
             tea_key: sample.teaKey || null,
           };
@@ -885,7 +896,12 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
         }
       }
     } catch (err) {
-      alert('Failed to create product. Try again.');
+      /* Say what the server said. "Try again" is advice that cannot work when
+         the refusal is that the tea has no recorded price: the operator needs
+         to be told which figure is missing so they can record it on the compass
+         entry and graduate again. */
+      const reason = err instanceof Error && err.message ? err.message : '';
+      alert(reason ? `Could not graduate this sample. ${reason}` : 'Could not graduate this sample.');
     }
   }, [compassEntries, updateSample, updateCompassEntry]);
 
