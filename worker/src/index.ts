@@ -98,8 +98,9 @@ import { isTeaType, TEA_TYPES } from '../../src/wisdom/vocabulary';
 import {
   catalogProductIds, INQUIRY_MAX_CONTACT, INQUIRY_MAX_INTEREST_LABEL, INQUIRY_MAX_INTERESTS,
   INQUIRY_MAX_LOCATION, INQUIRY_MAX_NAME, INQUIRY_MAX_NOTE, INQUIRY_MAX_PHONE, INQUIRY_MAX_REF_NUMBER,
-  INQUIRY_MAX_REFERRAL, INQUIRY_MAX_VISION, inquiryFieldTooLong, inquiryRequestFingerprint,
-  isValidTrackingToken, NEWSLETTER_MAX_EMAIL, normalizeCartInquiry, redactPublicInquiry, sha256Hex,
+  INQUIRY_MAX_REFERRAL, INQUIRY_MAX_REQUEST_BYTES, INQUIRY_MAX_VISION, inquiryFieldTooLong,
+  inquiryRequestFingerprint, isValidTrackingToken, NEWSLETTER_MAX_EMAIL, NEWSLETTER_MAX_REQUEST_BYTES,
+  normalizeCartInquiry, redactPublicInquiry, sha256Hex,
 } from './inquiryDomain';
 
 interface Env {
@@ -149,7 +150,8 @@ interface Env {
   // Set via `wrangler secret put KEY_ENCRYPTION_SECRET` to any high-entropy string.
   KEY_ENCRYPTION_SECRET?: string;
   // Edge rate limiter for the public MCP. Bound via [[unsafe.bindings]] in
-  // wrangler.toml. Optional so local dev (no binding) still runs.
+  // wrangler.toml, and required: an absent binding refuses the request
+  // rather than running this unauthenticated endpoint with no brake.
   PUBLIC_MCP_LIMITER?: { limit: (opts: { key: string }) => Promise<{ success: boolean }> };
   // Edge rate limiter for auth (login/signup). Same shape as PUBLIC_MCP_LIMITER.
   // Optional so local dev (no binding) still runs; the in-memory checkRateLimit
@@ -1432,7 +1434,7 @@ function restError(
 // Every caller below is declared as an [[unsafe.bindings]] ratelimit entry in
 // wrangler.toml (checked at the same time this refused-on-absence rule was
 // added, audit SEC-5), and miniflare's ratelimit plugin simulates the binding
-// locally too, so an absent binding here is never "this is local dev" — it is
+// locally too, so an absent binding here is never "this is local dev", it is
 // a deploy that lost its rate limiter. Allowing that silently is what let 25
 // of 25 anonymous inquiry posts through with nothing timing them out.
 // bindingName is only for the log line; it does not change behavior.
@@ -12995,6 +12997,8 @@ const handleNewsletterSubscribe: Handler = async (request, env) => {
   const subscribeIp = request.headers.get('CF-Connecting-IP') || 'unknown';
   const limited = await enforceDurableLimit(env.NEWSLETTER_LIMITER, 'NEWSLETTER_LIMITER', `newsletter:${subscribeIp}`);
   if (limited) return limited;
+  const preReadError = validateContentLength(request, NEWSLETTER_MAX_REQUEST_BYTES);
+  if (preReadError) return preReadError;
 
   const body = await request.json() as Record<string, any>;
   const email = (body.email || '').trim().toLowerCase();
@@ -13033,6 +13037,8 @@ const handleCreateInquiry: Handler = async (request, env) => {
   const inquiryIp = request.headers.get('CF-Connecting-IP') || 'unknown';
   const limited = await enforceDurableLimit(env.INQUIRY_LIMITER, 'INQUIRY_LIMITER', `inquiry:${inquiryIp}`);
   if (limited) return limited;
+  const preReadError = validateContentLength(request, INQUIRY_MAX_REQUEST_BYTES);
+  if (preReadError) return preReadError;
 
   const body = await request.json() as Record<string, any>;
   const source = typeof body.source === 'string' && body.source.trim() ? body.source.trim().slice(0, 50) : 'cart';
@@ -27377,22 +27383,15 @@ export default {
     // Public, unauthenticated, read-only MCP for the shopping public — catalog
     // browse + WhatsApp checkout-link builder. No account data or costs exposed.
     if (url.pathname === '/mcp/public') {
-      // Edge rate limit per client IP. The binding is absent in local dev, so
-      // this is a no-op there; in production it caps abuse at the edge before
-      // any D1 work happens.
-      if (env.PUBLIC_MCP_LIMITER) {
-        const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
-        const { success } = await env.PUBLIC_MCP_LIMITER.limit({ key: ip });
-        if (!success) {
-          return cors(
-            new Response(
-              JSON.stringify({ error: 'rate_limited', message: 'Too many requests. Slow down and try again shortly.' }),
-              { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '10' } },
-            ),
-            corsOrigin,
-          );
-        }
-      }
+      // Edge rate limit per client IP, keyed the same way as every other
+      // durable limiter. This endpoint is public and unauthenticated, so
+      // it had no fallback below it (audit SEC-5, same class as
+      // enforceDurableLimit's absent-binding fix): a missing binding is a
+      // broken deploy, not local dev, and must refuse rather than run the
+      // catalog and checkout-link tools with no brake at all.
+      const mcpPublicIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+      const mcpPublicLimited = await enforceDurableLimit(env.PUBLIC_MCP_LIMITER, 'PUBLIC_MCP_LIMITER', `public-mcp:${mcpPublicIp}`);
+      if (mcpPublicLimited) return cors(mcpPublicLimited, corsOrigin);
       return cors(await publicMcpFetch(request, env), corsOrigin);
     }
 

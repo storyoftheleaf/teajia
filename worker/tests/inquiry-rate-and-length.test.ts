@@ -23,12 +23,16 @@ class FakeLimiter {
 
 class WritesOnlyDb {
   rows: Record<string, unknown>[] = [];
+  // Fixed answer for the cart branch's own account lookup (getPublicAccountIdBySlug),
+  // so a cart payload can reach its post-lookup field checks (Location, Phone)
+  // instead of stopping at "Store not found" first.
+  accountId = 'acc_cart_test';
   prepare(sql: string) {
     const normalized = sql.replace(/\s+/g, ' ').trim().toLowerCase();
     let values: unknown[] = [];
     const statement = {
       bind: (...next: unknown[]) => { values = next; return statement; },
-      first: async () => null,
+      first: async () => (normalized.startsWith('select id from accounts') ? { id: this.accountId } : null),
       all: async () => ({ results: [] }),
       run: async () => {
         const table = normalized.startsWith('insert into inquiries') ? 'inquiries'
@@ -51,6 +55,25 @@ function consultPayload(overrides: Record<string, unknown> = {}) {
     name: 'A Customer',
     email: 'customer@example.com',
     vision: 'A short, ordinary consult message.',
+    ...overrides,
+  };
+}
+
+function cartPayload(overrides: Record<string, unknown> = {}) {
+  return {
+    source: 'cart',
+    name: 'A Customer',
+    email: 'customer@example.com',
+    store_slug: 'bali',
+    tracking_token: 'a'.repeat(40),
+    ref_number: 'REF-0001',
+    total_estimate_usd: 10,
+    currency: 'USD',
+    customer_location: 'Bali',
+    phone: '+62 812 0000 0000',
+    items: [
+      { custom: true, name: 'Custom Tea', category: 'tea', quantityGrams: 50, pricePerGram: 0.2, totalPrice: 10, storeSlug: 'bali' },
+    ],
     ...overrides,
   };
 }
@@ -143,6 +166,26 @@ describe('inquiry and newsletter rate limiting (SEC-1, SEC-2)', () => {
     expect(db.rows).toHaveLength(0);
   });
 
+  it.each([
+    { field: 'customer_location', label: 'Location', value: 'x'.repeat(201) },
+    { field: 'phone', label: 'Phone', value: 'x'.repeat(51) },
+    { field: 'ref_number', label: 'Order reference', value: 'x'.repeat(101) },
+  ])('refuses an over-length cart $field with a 4xx naming the field', async ({ field, label, value }) => {
+    const db = new WritesOnlyDb();
+    const response = await postInquiry(db, cartPayload({ [field]: value }), openLimiter());
+    expect(response.status).toBe(400);
+    const body = await response.json() as { error: string };
+    expect(body.error).toContain(label);
+    expect(db.rows).toHaveLength(0);
+  });
+
+  it('still accepts and stores an ordinary cart inquiry once past the caps', async () => {
+    const db = new WritesOnlyDb();
+    const response = await postInquiry(db, cartPayload(), openLimiter());
+    expect(response.status).toBe(201);
+    expect(db.rows.filter((row) => row.table === 'inquiries')).toHaveLength(1);
+  });
+
   it('refuses too many interests and an over-length interest, each naming the problem', async () => {
     const db = new WritesOnlyDb();
     const tooMany = await postInquiry(db, consultPayload({
@@ -163,6 +206,38 @@ describe('inquiry and newsletter rate limiting (SEC-1, SEC-2)', () => {
     });
     expect(response.status).toBe(400);
     expect((await response.json() as { error: string }).error).toContain('Email');
+    expect(db.rows).toHaveLength(0);
+  });
+
+  it('refuses an inquiry whose declared Content-Length is far beyond any legitimate payload, before parsing it', async () => {
+    const db = new WritesOnlyDb();
+    const response = await worker.fetch(new Request('https://api.test/api/inquiries', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'CF-Connecting-IP': '203.0.113.20',
+        'Content-Length': String(2 * 1024 * 1024),
+      },
+      body: JSON.stringify(consultPayload()),
+    }), { DB: db, ...openLimiter() } as never, {} as never);
+    expect(response.status).toBe(413);
+    expect((await response.json() as { error: string }).error).toBe('Upload too large');
+    expect(db.rows).toHaveLength(0);
+  });
+
+  it('refuses a newsletter signup whose declared Content-Length is far beyond a legitimate payload, before parsing it', async () => {
+    const db = new WritesOnlyDb();
+    const response = await worker.fetch(new Request('https://api.test/api/newsletter/subscribe', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'CF-Connecting-IP': '203.0.113.21',
+        'Content-Length': String(2 * 1024 * 1024),
+      },
+      body: JSON.stringify({ email: 'customer@example.com' }),
+    }), { DB: db, NEWSLETTER_LIMITER: { limit: async () => ({ success: true }) } } as never, {} as never);
+    expect(response.status).toBe(413);
+    expect((await response.json() as { error: string }).error).toBe('Upload too large');
     expect(db.rows).toHaveLength(0);
   });
 

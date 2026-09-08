@@ -6925,8 +6925,16 @@ function corsJson(data: unknown, status = 200): Response {
   });
 }
 
-async function enforceOAuthLimit(binding: RateLimiterBinding | undefined, request: Request): Promise<Response | null> {
-  if (!binding) return null;
+// Both callers' bindings (OAUTH_REGISTER_LIMITER, OAUTH_AUTHORIZE_LIMITER) are
+// declared in wrangler.toml, so an absent binding here is a broken deploy,
+// not local dev, matching the class fix applied to enforceDurableLimit in
+// index.ts (audit SEC-5). These two endpoints are unauthenticated by design,
+// which is exactly why a silent "let it through" here is not an option.
+async function enforceOAuthLimit(binding: RateLimiterBinding | undefined, bindingName: string, request: Request): Promise<Response | null> {
+  if (!binding) {
+    console.error(`Rate limiter binding ${bindingName} is not configured; refusing this request rather than allowing unlimited traffic.`);
+    return corsJson({ error: 'temporarily_unavailable', error_description: 'Rate limit service unavailable' }, 503);
+  }
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
   try {
     const result = await binding.limit({ key: ip });
@@ -7031,7 +7039,7 @@ export function oauthAuthorizationServerMetadata(request: Request): Response {
 // https://claude.ai/..., etc.), so this does not break legitimate clients.
 export async function oauthRegister(request: Request, env: Env): Promise<Response> {
   if (request.method !== 'POST') return corsJson({ error: 'invalid_request', error_description: 'POST required' }, 405);
-  const limited = await enforceOAuthLimit(env.OAUTH_REGISTER_LIMITER, request);
+  const limited = await enforceOAuthLimit(env.OAUTH_REGISTER_LIMITER, 'OAUTH_REGISTER_LIMITER', request);
   if (limited) return limited;
 
   const declaredLength = Number(request.headers.get('content-length') || 0);
@@ -7136,7 +7144,7 @@ const AUTHORIZE_REQUEST_TTL_MS = 15 * 60 * 1000;
 
 export async function oauthAuthorize(request: Request, env: Env): Promise<Response> {
   if (request.method !== 'GET') return corsJson({ error: 'invalid_request', error_description: 'GET required' }, 405);
-  const limited = await enforceOAuthLimit(env.OAUTH_AUTHORIZE_LIMITER, request);
+  const limited = await enforceOAuthLimit(env.OAUTH_AUTHORIZE_LIMITER, 'OAUTH_AUTHORIZE_LIMITER', request);
   if (limited) return limited;
   const url = new URL(request.url);
   const q = url.searchParams;
