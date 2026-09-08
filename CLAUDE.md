@@ -274,6 +274,31 @@ npm run test:mobile  # Playwright mobile audit — 26 tests at 390×844 (Mobile 
 Catches: JS crashes (error boundaries), 404 pages, JS console errors, horizontal overflow.
 Requires dev server already running (`npm run dev`). Takes ~90 seconds.
 
+### What actually runs on a push to main
+
+Until 2026-09-09, nothing did. `deploy-frontend.yml` was `workflow_dispatch` only
+and `playwright.yml` ran two of 48 browser specs, so a syntax error unreachable
+from those two specs landed green: two JSX comments placed inside an element's
+attribute list in `AddProductModal.tsx` broke `tsc`, `vite build` and every
+Cloudflare Pages build for two days (six production deploys failed in a row),
+because the dev server transpiles a file only when a visited route imports it,
+and neither mobile spec opens the admin route that does. Fixed in `2f1b7ea3`.
+
+`.github/workflows/playwright.yml` is now the gate, on every push and pull
+request to main. Its `checks` job runs `npm run lint` (tsc), `npm run
+lint:colors`, `npm run build` and `npm run test:worker`, which is the class of
+check that would have caught the outage: none of them depend on a route being
+visited. `mobile` and `e2e` cover browser behavior; `e2e` builds first (two
+specs read `dist/` directly) and runs the full suite on the Desktop Chrome and
+Mobile Chrome projects, the two `tests/inventory-scroll.spec.ts` names
+explicitly. `china-scan`, `platform-hardening` and `recovery` wire in the
+three suites (`test:china-scan`, `test:platform-hardening`, `test:recovery`)
+that previously had no CI lane at all. `tea-reference-preview.spec.ts` and
+`tea-reference-revision-workflow.spec.ts` stay out of CI: `playwright.config.ts`
+already excludes them, because they need a server started under
+`--mode tea-reference-preview` and a private `TEA_REFERENCE_HANDOFF_PATH` file
+that does not exist in the CI environment.
+
 The browsers are NOT installed by `npm install` on this machine: npm blocks the
 install scripts that would fetch them, so a fresh checkout fails every test in a
 millisecond with "Executable doesn't exist". Run this once per machine:
