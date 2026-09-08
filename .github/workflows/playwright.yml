@@ -1,5 +1,20 @@
 name: Playwright
 
+# Until 2026-09-09 this workflow ran two of 48 browser specs and nothing on a
+# push to main ran tsc, the color lint or the production build. A syntax
+# error unreachable from those two specs landed green: two JSX comments
+# placed inside an element's attribute list in AddProductModal.tsx broke
+# tsc, vite build and every Cloudflare Pages build for two days (six
+# production deploys failed in a row), because the dev server transpiles a
+# file only when a visited route imports it, and neither of the two mobile
+# specs opens the admin route that does. Fixed in 2f1b7ea3; this file is
+# the gate that would have caught it.
+#
+# `checks` is that gate: tsc, the color lint, the production build and the
+# worker test suite, on every push and pull request to main. `mobile` and
+# `e2e` cover browser behavior; `china-scan`, `platform-hardening` and
+# `recovery` wire in the three suites that had no CI lane at all.
+
 on:
   pull_request:
   push:
@@ -9,7 +24,54 @@ concurrency:
   group: playwright-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # Debt list, dated 2026-09-09. The first run of the full suite (this same
+  # workflow's first version) surfaced six tests that fail deterministically
+  # on main, independent of any change here: they were simply never run in
+  # CI before this file existed. `e2e` excludes them with --grep-invert so a
+  # real regression is not buried in known noise; `known-failing` runs the
+  # same six with --grep and continue-on-error so they stay visible on every
+  # run instead of going quiet. The fix is to repair the test or the page it
+  # exercises, then delete that test's title from this regex in the same
+  # commit. Titles, not file:line, because a line number drifts and a title
+  # does not.
+  KNOWN_FAILING_E2E: "tasting overlay exposes Save, clears the global nav, and protects unsaved work|lifecycle sections and personal tasting actions stay distinct|navigation stays anchored while only the ledger scrolls horizontally|opens a tea into the product page, with one rendering per address|shop toolbar uses compact price controls with liked on the far right|a private section note appears publicly only after edited promotion"
+
 jobs:
+  checks:
+    # The lane the outage needed. Nothing here touches a browser: tsc sees
+    # every file whether or not a route imports it, the build is the same
+    # bundle Cloudflare Pages produces, and the worker suite is the API's
+    # own contract.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install worker dependencies
+        working-directory: worker
+        run: npm ci
+
+      - name: Type check
+        run: npm run lint
+
+      - name: Color rules
+        run: npm run lint:colors
+
+      - name: Build
+        run: npm run build
+
+      - name: Worker tests
+        run: npm run test:worker
+
   mobile:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -29,3 +91,176 @@ jobs:
 
       - name: Mobile regression suite
         run: npm run test:mobile
+
+  e2e:
+    # Every spec the default config can run. Two projects, not three:
+    # inventory-scroll.spec.ts names "Desktop Chrome" and "Mobile Chrome"
+    # explicitly and skips the plain "chromium" project as redundant with
+    # them (its own comment says so), so chromium adds runtime without
+    # adding coverage. Two specs read dist/ directly (china-reachability,
+    # admin-chunk-failure-production), so the build runs before Playwright.
+    # tea-reference-preview.spec.ts and tea-reference-revision-workflow.spec.ts
+    # are left out: playwright.config.ts already excludes them via
+    # testIgnore because they need the dev server started under
+    # `--mode tea-reference-preview`, and the preview spec also needs a
+    # private, non-CI TEA_REFERENCE_HANDOFF_PATH file that does not exist
+    # in this environment. They run by hand via test:tea-reference-browser
+    # and test:tea-reference-revision-browser.
+    #
+    # Excludes the six titles in KNOWN_FAILING_E2E (see the workflow-level
+    # env comment above): everything else in every spec here still runs and
+    # blocks the merge, including the rest of inventory-scroll.spec.ts.
+    #
+    # Sharded four ways. Measured 2026-09-09 under the same CI settings this
+    # job uses (playwright.config.ts forces workers to 1 and retries to 2
+    # when CI is set): the playwright command alone took 35.0 minutes on an
+    # M-series Mac for 640 passed / 18 skipped, before npm ci, browser
+    # install and the 34 s build. This repo is private, so ubuntu-latest is
+    # the 2 vCPU tier and a single unsharded job would run well past an
+    # hour, over the old 30-minute cap. Arithmetic for timeout-minutes: 35
+    # minutes divided across 4 shards is 8.75 minutes of playwright time per
+    # shard on the Mac; doubled for the slower 2 vCPU tier is 17.5 minutes;
+    # plus npm ci, chromium install and the build (roughly 3 to 5 minutes
+    # combined on this tier) rounds to about 22 minutes; 25 leaves margin
+    # for CI variance without approaching the old unsharded runtime. Each
+    # shard still applies KNOWN_FAILING_E2E, since --shard partitions the
+    # already-filtered test list. workers is left at the config's own
+    # default (1 in CI): each matrix shard is its own runner with its own
+    # webServer process (playwright.config.ts starts one dev server per
+    # job), so there is no server shared between shards for a raised
+    # worker count to contend over, and this stays out of
+    # playwright.config.ts (not this item's file) either way.
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build
+        run: npm run build
+
+      - name: Full browser suite (shard ${{ matrix.shard }}/4)
+        run: npx playwright test --project="Desktop Chrome" --project="Mobile Chrome" --grep-invert "$KNOWN_FAILING_E2E" --shard=${{ matrix.shard }}/4 --reporter=list
+
+  known-failing:
+    # The same six tests named in KNOWN_FAILING_E2E, on their own, with
+    # continue-on-error so this job never blocks a merge but still shows a
+    # visible pass or fail on every run. Watch this job: the day it turns
+    # green is the day someone can delete a title from the regex above.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Known-failing suite
+        run: npx playwright test --project="Desktop Chrome" --project="Mobile Chrome" --grep "$KNOWN_FAILING_E2E" --reporter=list
+
+  china-scan:
+    # node:test only, no browser, no server: safe and cheap to run on every
+    # push and pull request.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: China dependency scan
+        run: npm run test:china-scan
+
+  platform-hardening:
+    # Also node:test only, no browser: workflow-pinning, package.json
+    # wiring and a handful of dead-code checks, none of them needing a
+    # built bundle.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Platform hardening checks
+        run: npm run test:platform-hardening
+
+  recovery:
+    # admin-chunk-failure-production.spec.ts again, this time against a
+    # real production build served by `vite preview` (playwright.recovery
+    # .config.ts's own webServer runs `npm run build && npm run preview`),
+    # so the built chunk hashes and the self-destroying service worker are
+    # exercised as they actually ship, not as the dev server approximates
+    # them in the `e2e` job above.
+    #
+    # That webServer command has a 120-second budget for the build plus
+    # preview startup, timed out of a bare checkout on whatever tier the
+    # runner lands on. The checks job's own build step measured 34 s, but
+    # that was on the faster hardware this account has seen; a cold build
+    # on the 2 vCPU tier this private repo actually gets could run close to
+    # or past 120 s before preview even starts. A Build step below runs
+    # `npm run build` once before Playwright starts, under this job's own
+    # 15-minute budget rather than the webServer's 120-second one, so npm's
+    # dependency pre-bundle and the OS file cache are warm by the time the
+    # webServer command repeats `npm run build`: playwright.recovery
+    # .config.ts is left untouched, its command still rebuilds, but that
+    # second build is reading files the runner already pulled into cache
+    # seconds earlier instead of racing cold. If a cold-vs-warm CI run
+    # shows this still isn't enough margin, raise the config's own
+    # timeout with the measurement in a comment there.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build
+        run: npm run build
+
+      - name: Production recovery suite
+        run: npm run test:recovery

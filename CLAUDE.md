@@ -279,6 +279,50 @@ npm run test:mobile  # Playwright mobile audit — 26 tests at 390×844 (Mobile 
 Catches: JS crashes (error boundaries), 404 pages, JS console errors, horizontal overflow.
 Requires dev server already running (`npm run dev`). Takes ~90 seconds.
 
+### What actually runs on a push to main
+
+Until 2026-09-09, nothing did. `deploy-frontend.yml` was `workflow_dispatch` only
+and `playwright.yml` ran two of 48 browser specs, so a syntax error unreachable
+from those two specs landed green: two JSX comments placed inside an element's
+attribute list in `AddProductModal.tsx` broke `tsc`, `vite build` and every
+Cloudflare Pages build for two days (six production deploys failed in a row),
+because the dev server transpiles a file only when a visited route imports it,
+and neither mobile spec opens the admin route that does. Fixed in `2f1b7ea3`.
+
+`.github/workflows/playwright.yml` is now the gate, on every push and pull
+request to main. Its `checks` job runs `npm run lint` (tsc), `npm run
+lint:colors`, `npm run build` and `npm run test:worker`, which is the class of
+check that would have caught the outage: none of them depend on a route being
+visited. `npm run lint` covers `src` only, not `worker/tsconfig.json`, and
+`wrangler deploy --dry-run` in the deploy workflow builds with esbuild, which
+strips types rather than checking them, so a type error in a worker file no
+test imports still lands green today; `tsc -p worker/tsconfig.json` reports
+35 pre-existing errors, filed as an Untriaged TODO line rather than fixed
+here. `mobile` and `e2e` cover browser behavior; `e2e` builds first (two
+specs read `dist/` directly) and runs the full suite on the Desktop Chrome and
+Mobile Chrome projects, the two `tests/inventory-scroll.spec.ts` names
+explicitly, sharded four ways (`--shard=N/4`, `fail-fast: false`) because the
+unsharded suite measured 35 minutes of playwright time alone on faster
+hardware than this private repo's 2 vCPU runner tier gets, past the 30-minute
+cap the job used to carry; each shard still applies `KNOWN_FAILING_E2E`.
+`china-scan`, `platform-hardening` and `recovery` wire in the three suites
+(`test:china-scan`, `test:platform-hardening`, `test:recovery`) that
+previously had no CI lane at all; `recovery` runs `npm run build` once before
+Playwright starts so `playwright.recovery.config.ts`'s own
+`npm run build && npm run preview` webServer warms into its 120-second budget
+instead of racing it cold on a bare checkout. `tea-reference-preview.spec.ts`
+and `tea-reference-revision-workflow.spec.ts` stay out of CI:
+`playwright.config.ts` already excludes them, because they need a server
+started under `--mode tea-reference-preview` and a private
+`TEA_REFERENCE_HANDOFF_PATH` file that does not exist in the CI environment.
+
+Six tests fail on main independent of this gate; `e2e` excludes their titles via
+the workflow-level `KNOWN_FAILING_E2E` regex so they cannot block a merge, and
+the separate `known-failing` job runs the same six with `continue-on-error`
+so they stay visible instead of going quiet. A title is removed from that
+regex in the same commit that fixes the test or the page it exercises, never
+on its own.
+
 The browsers are NOT installed by `npm install` on this machine: npm blocks the
 install scripts that would fetch them, so a fresh checkout fails every test in a
 millisecond with "Executable doesn't exist". Run this once per machine:
