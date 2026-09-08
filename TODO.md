@@ -7,8 +7,6 @@
 Ranked in [docs/AUDIT-2026-09.md](docs/AUDIT-2026-09.md). Each line is one root cause; the ids point at the verified findings.
 
 - [ ] Every new tea ships free and carries the old markup through five of six doors, because the live table still defaults to 0 and 2.5 _(band: agent-runnable)_ _(effort: deep)_ → Plan: [freight-default-lives-in-the-table.md](todo/plans/freight-default-lives-in-the-table.md)
-- [ ] Nothing on a push to main runs the type check, the build or the full test suites; add the gate that would have caught the two-day outage _(band: agent-runnable)_ _(effort: moderate)_
-  TEST-1, TEST-2: `deploy-frontend.yml` is manual, `playwright.yml` runs 2 of 48 specs, no hooks.
 - [ ] A blank cost becomes zero at four client doors (CSV, xlsx, sample graduation, Tea Compass), and the agent-door guard test cannot go red _(band: agent-runnable)_ _(effort: moderate)_
   MONEY-4, JOBO2-1, MONEY-12.
 - [ ] 21 live teas carry a currency label the admin cannot resolve; canonicalise once in the admin, stop `update_tea_pricing` uppercasing, and correct the rows _(band: agent-runnable)_ _(effort: moderate)_
@@ -28,6 +26,18 @@ Everything below the ten is in the report's "Later" bucket: false-success delete
 
 - [ ] A wholesale listing with no recorded quantity can be added to a draft order at a unit price of zero _(band: agent-runnable)_ _(effort: quick)_
   `WholesaleOrderDraft.tsx` reads `profile.wholesale_price_per_gram_caller ?? 0`. The catalogue now returns null for a cost-based listing whose `quantity_purchased` is missing (it used to quote the total cost as a per-gram price), so that null reaches the draft as a free tea. Nothing entered is NULL, and a null price should refuse to be added, not become 0. Found by the item 8 reviewer on 2026-09-09.
+- [ ] Closing the tasting overlay shows two buttons both named Save, so it is not clear which one actually saves _(band: agent-runnable)_ _(effort: quick)_
+  `tests/compass-capture.spec.ts:498`, sits in `KNOWN_FAILING_E2E` until fixed. The toolbar's icon Save and a "Save this tasting?" dialog's Save button are both visible at once, so the test's exact-name locator resolves to two elements. Looks like a real page defect, not a stale test: any user, not just Playwright, cannot tell the two apart.
+- [ ] Selecting a stocked tea row on the stock page no longer shows Record tasting or Edit product tasting profile in the selection toolbar _(band: agent-runnable)_ _(effort: quick)_
+  `tests/inventory-scroll.spec.ts:220`, sits in `KNOWN_FAILING_E2E` until fixed. Unclear yet whether the toolbar genuinely dropped these actions or the test is asserting an old shape; needs a look at the current selection toolbar before deciding which side is wrong.
+- [ ] The currency select on the stock page loads with nothing chosen instead of defaulting to USD _(band: agent-runnable)_ _(effort: quick)_
+  `tests/inventory-scroll.spec.ts:275`, sits in `KNOWN_FAILING_E2E` until fixed. This reads as a real page defect: an operator opening `/admin/stock` sees a blank currency picker rather than the USD default the page is supposed to start on.
+- [ ] A tea's product page shows the amount control reading "50g0.19/g" instead of the expected "$10" price _(band: agent-runnable)_ _(effort: quick)_
+  `tests/shop-refinement.spec.ts:113`, sits in `KNOWN_FAILING_E2E` until fixed. Looks like a real formatting regression on the product page's amount control rather than a stale assertion, since the rendered text is missing the dollar figure entirely.
+- [ ] The shop's sticky search toolbar does not appear at the top of the page _(band: agent-runnable)_ _(effort: quick)_
+  `tests/smoke.spec.ts:44`, sits in `KNOWN_FAILING_E2E` until fixed. This reads as a real page defect: a shopper scrolling the catalogue loses the search bar instead of it staying pinned to the top.
+- [ ] Promoting a private tasting note to public does not show the byline a reader expects underneath it _(band: agent-runnable)_ _(effort: quick)_
+  `tests/tasting-note-curation.spec.ts:87`, sits in `KNOWN_FAILING_E2E` until fixed. Unclear yet whether promotion genuinely dropped the byline or the test names text that changed elsewhere; needs a look at the promoted note on the page before deciding which side is wrong.
 
 - [ ] An agent price edit leaves the partner listing quoting the old cost currency _(band: agent-runnable)_ _(effort: quick)_
   `commitUpdateTeaPricing` in `worker/src/mcp.ts` stamps `products.cost_currency_source` but writes no `cost_amount`, `cost_currency` or `cost_currency_source` to `product_listings`, so after `update_tea_pricing` the listing row still carries the old cost with a NULL mark. Found by the item 5 reviewer on 2026-09-09; `set_cost_currency` handles the same mirror correctly and is the pattern to copy. No backlog risk, because `list_unstated_costs` reads `products`.
