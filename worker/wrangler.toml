@@ -112,3 +112,19 @@ name = "OAUTH_AUTHORIZE_LIMITER"
 type = "ratelimit"
 namespace_id = "1008"
 simple = { limit = 30, period = 60 }
+
+# Public checkout inquiry (audit SEC-1). Same shape as RSVP_LIMITER: keyed per
+# client IP in code, 10 per 60s, generous enough for a real shopper filling
+# the cart and the consult form back to back, tight enough to stop a script.
+[[unsafe.bindings]]
+name = "INQUIRY_LIMITER"
+type = "ratelimit"
+namespace_id = "1009"
+simple = { limit = 10, period = 60 }
+
+# Public newsletter signup (audit SEC-2). Keyed per client IP in code.
+[[unsafe.bindings]]
+name = "NEWSLETTER_LIMITER"
+type = "ratelimit"
+namespace_id = "1010"
+simple = { limit = 5, period = 60 }

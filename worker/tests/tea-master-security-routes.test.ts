@@ -168,6 +168,7 @@ describe('Tea Master route security', () => {
     }), {
       DB: db as any, JWT_SECRET: SECRET,
       MEDIA_BUCKET: { put: async () => ({}) } as any,
+      PROVIDER_LIMITER: { limit: async () => ({ success: true }) } as any,
     } as any);
     expect(response.status).toBe(201);
     expect(await response.json()).toMatchObject({ slot: 'avatar', approval_state: 'pending' });

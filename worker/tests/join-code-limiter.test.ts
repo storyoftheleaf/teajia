@@ -31,11 +31,18 @@ describe('join-code durable limiter', () => {
     expect(verify.keys).toEqual([]);
   });
 
-  it('fails closed on binding exceptions but permits missing local bindings', async () => {
+  it('fails closed on binding exceptions and on an absent binding alike', async () => {
     expect(await redeem({ JOIN_CODE_LIMITER: new FakeLimiter([new Error('offline')]) })).toEqual({
       status: 503,
       body: { error: 'Rate limit service unavailable', code: 'rate_limit_unavailable' },
     });
-    expect((await redeem()).status).toBe(400);
+    // A binding this route never receives (a deploy that lost the wrangler.toml
+    // entry, or a test that forgot to fake it) is now refused, not allowed
+    // through: the same shape of bug this audit found on the inquiry and
+    // newsletter endpoints (SEC-1, SEC-2, SEC-5).
+    expect(await redeem()).toEqual({
+      status: 503,
+      body: { error: 'Rate limit service unavailable', code: 'rate_limit_unavailable' },
+    });
   });
 });

@@ -21,7 +21,7 @@ async function duplicate(env: Record<string, unknown> = {}) {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'CF-Connecting-IP': '203.0.113.8' },
     body: JSON.stringify({ full_name: 'Guest', email: 'guest@example.com' }),
-  }), { DB: new RsvpDb(), JWT_SECRET: 'secret', ...env } as any);
+  }), { DB: new RsvpDb(), JWT_SECRET: 'secret', RSVP_LIMITER: { limit: async () => ({ success: true }) }, ...env } as any);
   return { status: response.status, body: await response.json() as any };
 }
 
