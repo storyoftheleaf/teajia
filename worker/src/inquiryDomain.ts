@@ -32,6 +32,20 @@ export const INQUIRY_MAX_INTEREST_LABEL = 80;
 /** RFC 5321's own ceiling on a full email address, applied to the newsletter form too. */
 export const NEWSLETTER_MAX_EMAIL = 254;
 
+/**
+ * A pre-read cap on the whole request body, checked from the Content-Length
+ * header before the body is parsed into memory at all. The per-field caps
+ * above still run after parsing and are the real gate on what gets stored;
+ * this one exists so a request that lies about being small cannot make the
+ * worker read a multi-megabyte body into memory just to find that out. Set
+ * with real headroom above the worst legitimate payload (a full cart of
+ * INQUIRY_MAX_ITEMS lines, or the consult form's longest fields), not tight
+ * to it, because it only needs to catch abuse, not shave bytes off a normal
+ * request.
+ */
+export const INQUIRY_MAX_REQUEST_BYTES = 32 * 1024;
+export const NEWSLETTER_MAX_REQUEST_BYTES = 4 * 1024;
+
 /** A field over its cap, named so the caller can say which one. Null when fine. */
 export function inquiryFieldTooLong(field: string, value: string, max: number): string | null {
   return value.length > max ? `${field} may be at most ${max} characters` : null;

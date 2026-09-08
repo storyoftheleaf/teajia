@@ -85,10 +85,13 @@ type Env = {
   JWT_SECRET: string;
   OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
   OAUTH_AUTHORIZE_LIMITER?: RateLimiterBinding;
-  // Not yet provisioned in wrangler.toml — requested from the worker/schema
-  // owner in todo/plans/order-process-notes.md (same [[unsafe.bindings]]
-  // ratelimit pattern as PUBLIC_MCP_LIMITER/OAUTH_REGISTER_LIMITER). Optional
-  // so this file works before and after that binding lands.
+  // Edge rate limiter for the public prepare_order tool, which unlike the
+  // other public tools performs a DB write. Same [[unsafe.bindings]]
+  // ratelimit pattern as PUBLIC_MCP_LIMITER/OAUTH_REGISTER_LIMITER, and now
+  // declared in wrangler.toml. It is typed optional so this module still
+  // compiles when the field is omitted from a narrower test env, but the
+  // check at its call site refuses the request when the binding is actually
+  // absent at runtime (audit SEC-1/SEC-5) rather than allowing it.
   PUBLIC_PREPARE_ORDER_LIMITER?: RateLimiterBinding;
   // The wider Env interface in index.ts has many more fields — only the ones
   // the MCP server actually reads are listed here so this module is portable.
@@ -6994,8 +6997,16 @@ function corsJson(data: unknown, status = 200): Response {
   });
 }
 
-async function enforceOAuthLimit(binding: RateLimiterBinding | undefined, request: Request): Promise<Response | null> {
-  if (!binding) return null;
+// Both callers' bindings (OAUTH_REGISTER_LIMITER, OAUTH_AUTHORIZE_LIMITER) are
+// declared in wrangler.toml, so an absent binding here is a broken deploy,
+// not local dev, matching the class fix applied to enforceDurableLimit in
+// index.ts (audit SEC-5). These two endpoints are unauthenticated by design,
+// which is exactly why a silent "let it through" here is not an option.
+async function enforceOAuthLimit(binding: RateLimiterBinding | undefined, bindingName: string, request: Request): Promise<Response | null> {
+  if (!binding) {
+    console.error(`Rate limiter binding ${bindingName} is not configured; refusing this request rather than allowing unlimited traffic.`);
+    return corsJson({ error: 'temporarily_unavailable', error_description: 'Rate limit service unavailable' }, 503);
+  }
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
   try {
     const result = await binding.limit({ key: ip });
@@ -7100,7 +7111,7 @@ export function oauthAuthorizationServerMetadata(request: Request): Response {
 // https://claude.ai/..., etc.), so this does not break legitimate clients.
 export async function oauthRegister(request: Request, env: Env): Promise<Response> {
   if (request.method !== 'POST') return corsJson({ error: 'invalid_request', error_description: 'POST required' }, 405);
-  const limited = await enforceOAuthLimit(env.OAUTH_REGISTER_LIMITER, request);
+  const limited = await enforceOAuthLimit(env.OAUTH_REGISTER_LIMITER, 'OAUTH_REGISTER_LIMITER', request);
   if (limited) return limited;
 
   const declaredLength = Number(request.headers.get('content-length') || 0);
@@ -7205,7 +7216,7 @@ const AUTHORIZE_REQUEST_TTL_MS = 15 * 60 * 1000;
 
 export async function oauthAuthorize(request: Request, env: Env): Promise<Response> {
   if (request.method !== 'GET') return corsJson({ error: 'invalid_request', error_description: 'GET required' }, 405);
-  const limited = await enforceOAuthLimit(env.OAUTH_AUTHORIZE_LIMITER, request);
+  const limited = await enforceOAuthLimit(env.OAUTH_AUTHORIZE_LIMITER, 'OAUTH_AUTHORIZE_LIMITER', request);
   if (limited) return limited;
   const url = new URL(request.url);
   const q = url.searchParams;
@@ -7857,15 +7868,17 @@ function publicRateOk(ip: string): boolean {
 // prepare_order writes an `inquiries` row, unlike the other public tools, so
 // it gets a tighter budget on top of the general PUBLIC_RATE gate above.
 // Two layers, same shapes already used elsewhere in this file/route:
-//   1. In-memory per-isolate map (this Map) — always active today, same
+//   1. In-memory per-isolate map (this Map), always active today, same
 //      best-effort pattern as PUBLIC_RATE. Not a security boundary: it resets
 //      on cold start and doesn't span isolates.
-//   2. An optional durable Cloudflare Rate Limiting binding
-//      (PUBLIC_PREPARE_ORDER_LIMITER), same [[unsafe.bindings]] "ratelimit"
-//      shape and optional-binding pattern as OAUTH_REGISTER_LIMITER /
-//      OAUTH_AUTHORIZE_LIMITER above and PUBLIC_MCP_LIMITER in index.ts. Not
-//      yet provisioned in wrangler.toml (requested in
-//      todo/plans/order-process-notes.md) — engages automatically once it is.
+//   2. A durable Cloudflare Rate Limiting binding (PUBLIC_PREPARE_ORDER_LIMITER),
+//      same [[unsafe.bindings]] "ratelimit" shape as OAUTH_REGISTER_LIMITER /
+//      OAUTH_AUTHORIZE_LIMITER above and INQUIRY_LIMITER / NEWSLETTER_LIMITER
+//      in index.ts, and now declared in wrangler.toml. An absent binding here
+//      is a broken deploy, not local dev (audit SEC-1/SEC-5, the same class
+//      fixed on enforceDurableLimit and enforceOAuthLimit), so
+//      publicPrepareOrderRateCheck refuses the request with 503 rather than
+//      quietly running on the in-memory layer alone.
 const PUBLIC_PREPARE_ORDER_RATE = new Map<string, { count: number; resetAt: number }>();
 const PUBLIC_PREPARE_ORDER_RATE_LIMIT = 5;
 const PUBLIC_PREPARE_ORDER_RATE_WINDOW_MS = 60 * 1000;
@@ -7877,18 +7890,22 @@ function publicPrepareOrderRateOk(ip: string): boolean {
   return e.count <= PUBLIC_PREPARE_ORDER_RATE_LIMIT;
 }
 
-async function publicPrepareOrderRateCheck(env: Env, ip: string): Promise<boolean> {
-  if (!publicPrepareOrderRateOk(ip)) return false;
-  if (env.PUBLIC_PREPARE_ORDER_LIMITER) {
-    try {
-      const { success } = await env.PUBLIC_PREPARE_ORDER_LIMITER.limit({ key: ip });
-      if (!success) return false;
-    } catch {
-      // A rate-limiter service hiccup must not block a real customer's
-      // WhatsApp link — the in-memory gate above already ran.
-    }
+type PublicPrepareOrderRateResult = 'ok' | 'rate_limited' | 'unavailable';
+
+async function publicPrepareOrderRateCheck(env: Env, ip: string): Promise<PublicPrepareOrderRateResult> {
+  if (!publicPrepareOrderRateOk(ip)) return 'rate_limited';
+  if (!env.PUBLIC_PREPARE_ORDER_LIMITER) {
+    console.error('Rate limiter binding PUBLIC_PREPARE_ORDER_LIMITER is not configured; refusing this request rather than allowing unlimited traffic.');
+    return 'unavailable';
   }
-  return true;
+  try {
+    const { success } = await env.PUBLIC_PREPARE_ORDER_LIMITER.limit({ key: ip });
+    if (!success) return 'rate_limited';
+  } catch {
+    // A rate-limiter service hiccup must not block a real customer's
+    // WhatsApp link. The in-memory gate above already ran.
+  }
+  return 'ok';
 }
 
 // prepare_order now performs a best-effort DB write (see publicPrepareOrder),
@@ -7946,10 +7963,15 @@ export async function publicMcpFetch(request: Request, env: Env): Promise<Respon
           case 'search_tea': payload = await publicSearchTea(env, account.id, args); break;
           case 'get_tea': payload = await publicGetTea(env, account.id, args); break;
           case 'browse_catalog': payload = await publicBrowseCatalog(env, account.id, args); break;
-          case 'prepare_order':
-            if (!(await publicPrepareOrderRateCheck(env, ip))) return rpcError(id, -32000, 'Rate limit exceeded for order preparation — slow down.');
+          case 'prepare_order': {
+            const rateResult = await publicPrepareOrderRateCheck(env, ip);
+            if (rateResult === 'unavailable') {
+              return json({ jsonrpc: '2.0', id, error: { code: -32000, message: 'Rate limit service unavailable' } }, 503);
+            }
+            if (rateResult === 'rate_limited') return rpcError(id, -32000, 'Rate limit exceeded for order preparation. Slow down.');
             payload = await publicPrepareOrder(env, account, args);
             break;
+          }
           default: return rpcError(id, -32601, `Unknown tool: ${name}`);
         }
         return rpcResult(id, mcpContent(payload));
