@@ -2,6 +2,10 @@
 
 Finished work, moved here from TODO.md. Nothing is deleted; lineage is kept.
 
+## Prime-time audit
+
+- [x] Rate-limit and length-cap the inquiry and newsletter endpoints, and make an absent limiter binding refuse rather than allow — done 2026-09-09, commit "fix(inquiries): rate-limit and length-cap the public write endpoints". SEC-1, SEC-2, SEC-5. `POST /api/inquiries` and `POST /api/newsletter/subscribe` now key a durable limiter (`INQUIRY_LIMITER`, `NEWSLETTER_LIMITER`, both declared in `worker/wrangler.toml`) off the client IP, and every field on both endpoints is capped, the consult branch's `vision`/`interests`/`referral`/`location`/`whatsapp` included, which is the field that had stored a 2 MB message uncapped. `enforceDurableLimit` in `worker/src/index.ts` now refuses (503, naming the missing binding in a `console.error`) when a caller's binding is absent instead of allowing the request through; all fifteen existing callers were confirmed to already carry a `wrangler.toml` declaration before this changed, and their tests were given a fake open binding so the class fix does not regress their own coverage.
+
 ## Orders and payments
 
 - [x] The phone suite watches the screen edge, not just the page width - done 2026-08-31. The old check compared the whole page against the screen, so an element overrunning its column was absorbed without the page growing and passed unseen: the order summary rendered 551px inside a 311px column and carried the amount 208px off a 375px phone while the page measured exactly 375px. The new check asks whether anything a person can see reaches past the right edge, counting text and painted backgrounds only, because the blunt version flagged a shop tab strip whose box overhangs by 12px while painting nothing there. Surveyed across all twenty swept routes first and clean on every one, then promoted into the shared health assertion so it covers them all rather than the two money pages it started on.
