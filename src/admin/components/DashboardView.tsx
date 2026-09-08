@@ -5,6 +5,18 @@ import type { TooltipProps } from 'recharts';
 import { Loader2, DollarSign, PieChart as PieIcon, MapPin, TrendingUp, AlertCircle, UserPlus, Clock } from 'lucide-react';
 import { Product, Customer } from '../types';
 import { useRates } from '../hooks/useAdminData';
+import { canonicalCurrency, isoCurrencyCode, rateToUsd } from '../../lib/currency';
+
+/** Spelled out beside the code, on desktop, where there is room for it. */
+const CURRENCY_FULL_NAMES: Record<string, string> = {
+  TWD: ' (New Taiwan Dollar)',
+  CNY: ' (Chinese Yuan)',
+  IDR: ' (Indonesian Rupiah)',
+  JPY: ' (Japanese Yen)',
+  MYR: ' (Malaysian Ringgit)',
+  HKD: ' (Hong Kong Dollar)',
+  AUD: ' (Australian Dollar)',
+};
 import { fmtRecordDollars, fmtPct, fmtNum } from '../../utils/formatNumber';
 import { api } from '../../lib/api';
 
@@ -65,9 +77,15 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
         // 1. Currency Conversion Logic
         // We use the raw cost_amount stored in the product (in source currency)
         // Convert it to USD using the *current* real-time rate
-        const rateObj = rates.find(r => r.currency === p.costCurrency);
-        const rateToUSD = rateObj ? rateObj.rateToUSD : 1;
-        
+        /* Canonicalised, and skipped rather than counted at 1. A tea recorded
+           as 'CNY' is a yuan tea; counting its cost as dollars overstated the
+           shelf's value nearly sevenfold on every one of them, and a total is
+           the one place a wrong number looks most like a right one. A tea
+           whose currency the shop has no rate for is left out of the totals
+           entirely, because there is no dollar figure for it to contribute. */
+        const rateToUSD = rateToUsd(rates, p.costCurrency);
+        if (rateToUSD === null) return;
+
         // Calculate Cost per gram in USD based on CURRENT rates (removes "weirdness" of stale DB calculations)
         // Logic: (Total Batch Cost / Total Batch Weight) / Rate
         const validBatchWeight = p.quantityPurchased > 0 ? p.quantityPurchased : 1;
@@ -82,7 +100,9 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
 
         // 2. Currency Exposure (Track Raw Spending in USD Terms)
         // Group by Source Currency to see "How much money do I have trapped in NTD?"
-        const currencyKey = p.costCurrency || 'USD';
+        // Canonicalised, or 'CNY' and 'Yuan' split one pile of money into two
+        // lines and neither of them says how much is in China.
+        const currencyKey = canonicalCurrency(p.costCurrency) || 'USD';
         currencyExposure[currencyKey] = (currencyExposure[currencyKey] || 0) + itemTotalCostUSD;
 
         // 3. Region Value
@@ -245,18 +265,14 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
                   <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-tea-elevated text-tea-text-sec font-display flex items-center justify-center text-ui-11">
                     {rate.currency}
                   </div>
+                  {/* The ISO code through the shared helper, which is the one
+                      place that knows 'Yuan' is CNY and 'NT' is TWD. It was
+                      written out again here, and a mapping written twice is
+                      the shape that lets the two drift. */}
                   <span className="text-ui-13 md:text-ui-14 text-tea-text">
-                    {rate.currency === 'NT' ? 'TWD' :
-                     rate.currency === 'Yuan' ? 'CNY' :
-                     rate.currency === 'IDR' ? 'IDR' :
-                     rate.currency === 'JPY' ? 'JPY' :
-                     rate.currency === 'MYR' ? 'MYR' : rate.currency}
+                    {isoCurrencyCode(rate.currency)}
                     <span className="hidden md:inline">
-                      {rate.currency === 'NT' ? ' (New Taiwan Dollar)' :
-                       rate.currency === 'Yuan' ? ' (Chinese Yuan)' :
-                       rate.currency === 'IDR' ? ' (Indonesian Rupiah)' :
-                       rate.currency === 'JPY' ? ' (Japanese Yen)' :
-                       rate.currency === 'MYR' ? ' (Malaysian Ringgit)' : ''}
+                      {CURRENCY_FULL_NAMES[isoCurrencyCode(rate.currency)] ?? ''}
                     </span>
                   </span>
                 </div>

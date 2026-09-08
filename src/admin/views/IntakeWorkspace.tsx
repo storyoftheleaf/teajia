@@ -19,6 +19,7 @@ import {
 } from '../lib/intakeMapping';
 import { enteredCostCell } from '../productUpdatePayload';
 import { plainCostWords } from '../../lib/costRefusalWords';
+import { rateToUsd } from '../../lib/currency';
 import { assertSupportedIntakeFile, readXlsxIntakeFile } from '../lib/xlsxIntake';
 import { IntakeChatSheet, type ChatAnswer } from '../components/IntakeChatSheet';
 
@@ -332,7 +333,12 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
   // ── Shipping proration ──────────────────────────────────────────────────────
   // Spread one total shipping cost across the included items by estimated size:
   // each item's share = shippingTotal × (its size ÷ total size).
-  const rateFor = useCallback((cur: string) => rates.find((r) => r.currency === cur)?.rateToUSD || 1, [rates]);
+  /* Canonicalised, and NaN rather than 1 for a currency the shop has no rate
+     for. Freight prorated at a rate of 1 spreads a yuan figure across the batch
+     as though it were dollars, which is a wrong number that looks right; NaN
+     surfaces as a dash, which is what "we cannot convert this" should look
+     like. */
+  const rateFor = useCallback((cur: string) => rateToUsd(rates, cur) ?? NaN, [rates]);
   const convert = useCallback((amt: number, from: string, to: string) => (amt / rateFor(from)) * rateFor(to), [rateFor]);
   const dominantCurrency = useMemo(() => {
     const t: Record<string, number> = {};
@@ -379,7 +385,11 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
       if (savePurchaseRecord) {
         // One purchase record per vendor/store, an order sheet routinely spans
         // many stores, so a single PO per file would lump them together wrongly.
-        const rateFor = (cur: string) => rates.find((r) => r.currency === cur)?.rateToUSD || 1;
+        /* This one writes a purchase record, so a rate of 1 does not merely
+           display wrong, it records a yuan total as dollars against a vendor.
+           A line whose currency has no rate contributes nothing to the total
+           rather than contributing a made-up figure. */
+        const rateFor = (cur: string) => rateToUsd(rates, cur);
         const groups = new Map<string, StagedItem[]>();
         for (const it of included) {
           const key = it.vendor.trim() || sourceName(it.sourceId).replace(/\.[^.]+$/, '') || 'Unknown vendor';
@@ -392,8 +402,11 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
           const totalUSD = lines.reduce((sum, l) => {
             const qty = l.quantityPurchased || l.quantityUnits || l.stockGrams || 1;
             // A line with no recorded price adds nothing to the order total,
-            // which is what not knowing costs.
-            return sum + ((l.costAmount ?? 0) * qty) / rateFor(l.costCurrency);
+            // which is what not knowing costs. Same for a line whose currency
+            // the shop cannot resolve.
+            const rate = rateFor(l.costCurrency);
+            if (rate === null) return sum;
+            return sum + ((l.costAmount ?? 0) * qty) / rate;
           }, 0);
           // dominant non-UNK currency for display
           const tally: Record<string, number> = {};

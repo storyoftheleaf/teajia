@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Sparkles, X } from 'lucide-react';
 import type { TeaCompassEntry } from './types';
+import { canonicalCurrency } from '../../lib/currency';
 
 interface DetectedIntent {
   type: 'price' | 'grams' | 'year';
@@ -13,9 +14,12 @@ const PRICE_PATTERN = /(?:(NT\$|NT|USD|\$|¥|CNY|MYR|IDR|HKD|RM|Rp)\s*(\d+(?:[.,
 const GRAMS_PATTERN = /\b(\d+)\s*g(?:rams?)?\b/gi;
 const YEAR_PATTERN = /\b(19[5-9]\d|20[0-2]\d)\b/g;
 
-const CURRENCY_MAP: Record<string, string> = {
-  'NT$': 'NT', 'NT': 'NT', 'USD': 'USD', '$': 'USD', '¥': 'Yuan',
-  'CNY': 'Yuan', 'MYR': 'MYR', 'RM': 'MYR', 'IDR': 'IDR', 'Rp': 'IDR', 'HKD': 'HKD',
+/* The symbols nobody else writes: a bare '$' and the two Southeast Asian
+   shorthands an operator types into the compass. Everything else, including
+   every spelling of yuan, goes through the shared map below, because a third
+   copy of that mapping is a third chance for the shop's key to be missed. */
+const COMPASS_ONLY_SYMBOLS: Record<string, string> = {
+  '$': 'USD', 'RM': 'MYR', 'Rp': 'IDR',
 };
 
 function detectIntents(text: string): DetectedIntent[] {
@@ -29,7 +33,7 @@ function detectIntents(text: string): DetectedIntent[] {
     const sym = match[1] || match[4];
     const raw = (match[2] || match[3]).replace(',', '.');
     const amount = parseFloat(raw);
-    const currency = CURRENCY_MAP[sym] || 'NT';
+    const currency = COMPASS_ONLY_SYMBOLS[sym] ?? canonicalCurrency(sym) ?? 'NT';
     const key = `price-${amount}-${currency}`;
     if (!seen.has(key) && !isNaN(amount)) {
       seen.add(key);

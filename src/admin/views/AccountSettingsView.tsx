@@ -6,6 +6,7 @@ import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { useLaunchAudit, type LaunchAudit } from '../hooks/useLaunchAudit';
 import { useRates } from '../hooks/useAdminData';
 import { FALLBACK_SHIPPING_RATE_CURRENCY } from '../../lib/shippingRate';
+import { rateToUsd, sameCurrency } from '../../lib/currency';
 import { usePersonReadiness } from '../../components/readiness/usePersonReadiness';
 import { storeOpeningRefusal, type StoreOpeningRefusal } from '../../components/readiness/storeOpening';
 import type { PersonReadinessInput } from '../../components/readiness/teaMasterReadiness';
@@ -96,15 +97,19 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
     if (!freightIsValid) return 'Enter a number, or leave it empty to use the platform default.';
     if (freightNumber === null) return 'Empty means the platform default applies.';
     const currency = account?.default_shipping_rate_currency ?? FALLBACK_SHIPPING_RATE_CURRENCY;
-    const row = rates.find(r => r.currency === currency);
-    if (!row || !(row.rateToUSD > 0)) {
+    /* Canonicalised, or a shop that had quoted its freight in 'CNY' was told
+       there is no rate for it while the shelf was busy converting it through
+       the 'Yuan' row. Same money, two spellings, and only one of them matched. */
+    const rate = rateToUsd(rates, currency);
+    const row = rates.find(r => sameCurrency(r.currency, currency));
+    if (rate === null || !row) {
       return `Per kilo, in ${currency}. There is no exchange rate for ${currency}, so this cannot be converted `
         + 'and every tea on it is priced through the fallback instead.';
     }
-    const perKgUsd = freightNumber / row.rateToUSD;
+    const perKgUsd = freightNumber / rate;
     const perGramOnShelf = (perKgUsd / 1000) * 3;
     return `${freightNumber} ${currency}/kg is $${(Math.round(perKgUsd * 100) / 100).toFixed(2)} USD/kg `
-      + `at ${row.rateToUSD} to the dollar, adding $${perGramOnShelf.toFixed(3)} per gram to the shelf price `
+      + `at ${rate} to the dollar, adding $${perGramOnShelf.toFixed(3)} per gram to the shelf price `
       + `after the markup. ${describeRateAge(row.lastUpdated)} `
       + 'Applies to every tea that has not had a rate entered on it.';
   })();
