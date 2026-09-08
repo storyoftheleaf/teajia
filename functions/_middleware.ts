@@ -14,6 +14,23 @@
 //
 // Humans still get the normal SPA + client-side Helmet title updates; this only
 // changes the first HTML response, which is all a scraper ever reads.
+//
+// STATIC_META alone used to be enough to decide what a /read/* path shows a
+// crawler. It is not, now that the ten drafts among these pages are gated
+// from a human visitor by src/pages/read/publishGate.ts (JOBC-2): before this
+// import, this file injected every draft's real title, description and og:*
+// tags for any crawler or share-card scraper regardless of publish status, so
+// a search result or a WhatsApp preview could name and describe an unreleased
+// piece even though the SPA itself sent that same visitor to ReadNotFound.
+// ARTICLE_LIVE is the single source both sides read now. It lives in
+// src/pages/read/articleLive.ts rather than publishGate.ts itself: this
+// function runs in the Cloudflare Pages Workers runtime, not a browser, and
+// publishGate.ts pulls in React, the Zustand store and the token client
+// (a localStorage read) to build its own React hook, none of which belong in
+// an edge bundle that only needs one plain object. articleLive.ts carries
+// nothing but that object and a pure function, so importing it here adds
+// nothing else to the bundle.
+import { ARTICLE_LIVE } from '../src/pages/read/articleLive';
 
 interface Meta {
   title: string;
@@ -29,7 +46,10 @@ const DEFAULT_IMAGE = `${SITE}/og-image.png`;
 // Per-page meta for the hand-coded /read/* story pages. Titles/descriptions
 // taken verbatim from each story component. Add a line here when a new story
 // ships. Keys are the exact path (no trailing slash).
-const STATIC_META: Record<string, Meta> = {
+//
+// Exported for functions/_middleware.test.ts, which checks this map against
+// ARTICLE_LIVE for every /read/ path they share.
+export const STATIC_META: Record<string, Meta> = {
   '/read': {
     title: 'The Art of Tea · Read · Teajia',
     description: 'An editorial reading room for the world of tea: interviews, visual stories, and field notes.',
@@ -95,6 +115,39 @@ const STATIC_META: Record<string, Meta> = {
     description: 'How a homesick cup and reclaimed timber became a tea house at the far end of the world.',
   },
 };
+
+// What a crawler gets instead of a draft's own meta, for any /read/ path
+// ARTICLE_LIVE names and does not mark live. Same title and description
+// src/pages/read/ReadNotFound.tsx renders for a human visitor at that same
+// URL, so a search snippet or a share-card preview says the same thing the
+// page itself now says, instead of naming and describing an unpublished
+// piece.
+const NOT_FOUND_META: Meta = {
+  title: 'Not found · Teajia',
+  description: 'The page you are looking for does not exist or may have been moved.',
+};
+
+/**
+ * The static-page half of onRequest's meta lookup, pulled out on its own so
+ * it can be unit-tested without HTMLRewriter (a Workers-runtime global with
+ * no vitest polyfill; onRequest's own tests never exercised the rewrite path
+ * before this file gated /read/ paths, only the earlier proxy/fail-closed
+ * branches that return before reaching it).
+ *
+ * A /read/ path ARTICLE_LIVE names and does not mark live is a draft: this
+ * swaps its real meta for the same not-found meta a human visitor's browser
+ * renders there (see src/pages/read/ReadNotFound.tsx). A path STATIC_META
+ * carries but ARTICLE_LIVE has never heard of, /read itself and
+ * /read/leaf-to-liquor, is not one of the fourteen gated pieces and keeps
+ * its own meta unconditionally, the same as publishGate.ts treats it.
+ */
+export function resolveStaticReadMeta(path: string): Meta | null {
+  const meta = STATIC_META[path] || null;
+  if (meta && Object.prototype.hasOwnProperty.call(ARTICLE_LIVE, path) && !ARTICLE_LIVE[path]) {
+    return NOT_FOUND_META;
+  }
+  return meta;
+}
 
 interface Env { WORKER_ORIGIN?: string }
 
@@ -286,7 +339,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   // Only consider GET navigations to HTML; let assets/api pass straight through.
   if (request.method !== 'GET') return next();
 
-  let meta: Meta | null = STATIC_META[path] || null;
+  let meta: Meta | null = resolveStaticReadMeta(path);
 
   // Dynamic DB-backed article — only pay the API call for crawlers.
   if (!meta && path.startsWith('/article/')) {
