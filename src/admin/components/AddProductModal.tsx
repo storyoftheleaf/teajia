@@ -997,9 +997,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                       aria-required="true"
                       aria-invalid={costError || undefined}
                       className="flex-1 min-w-0 bg-transparent py-1.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec tabular-nums text-right"
-                      {/* Not "0.00". A zero placeholder in an empty required
-                          field reads as a value already sitting there, which is
-                          the confusion this whole rule exists to end. */}
+                      // Not "0.00". A zero placeholder in an empty required
+                      // field reads as a value already sitting there, which is
+                      // the confusion this whole rule exists to end.
                       placeholder="required"
                       inputMode="decimal"
                       onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
@@ -1021,12 +1021,12 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                   <input
                     name="shippingRateUSD" type="number" step="0.01" value={formData.shippingRateUSD} onChange={handleChange}
                     className={`${inputStyle} tabular-nums text-right`}
-                    {/* The shop's live rate, as a PLACEHOLDER rather than a
-                        value: leaving it alone follows the shop, so a
-                        renegotiated rate moves this tea with it. It used to
-                        read 13.00, one of the four different freight rates this
-                        shop was charging at once, and a number it never
-                        charged. */}
+                    // The shop's live rate, as a PLACEHOLDER rather than a
+                    // value: leaving it alone follows the shop, so a
+                    // renegotiated rate moves this tea with it. It used to
+                    // read 13.00, one of the four different freight rates this
+                    // shop was charging at once, and a number it never
+                    // charged.
                     placeholder={shopFreightUsdText}
                     inputMode="decimal"
                     onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
