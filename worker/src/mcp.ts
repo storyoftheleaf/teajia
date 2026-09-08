@@ -33,6 +33,7 @@ import { curationTools } from './mcpTools/curation';
 import { eventsToolModule } from './mcpTools/events';
 import { writingToolModule } from './mcpTools/writing';
 import { costCurrencyTools } from './mcpTools/costCurrency';
+import { resolveShopFreightDefault, shippingPerGramUsd } from './shippingRate';
 import { costNeedsCurrency, createMissingCost, currencyStated, costCurrencySourceFor, CURRENCY_SOURCE_STATED, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
 import { REFRESHED_CURRENCIES, refreshedCurrencyName } from './exchangeRateFeed';
 import {
@@ -2017,7 +2018,7 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
     : undefined;
 
   const product = await env.DB.prepare(
-    'SELECT id, given_name, product_name, cost_amount, cost_currency, fixed_retail_price_usd, quantity_purchased, shipping_rate_per_kg FROM products WHERE id = ? AND account_id = ?'
+    'SELECT id, type, given_name, product_name, cost_amount, cost_currency, fixed_retail_price_usd, quantity_purchased, shipping_rate_per_kg FROM products WHERE id = ? AND account_id = ?'
   ).bind(productId, auth.accountId).first() as Record<string, any> | null;
   if (!product) return { error: 'not_found' };
   /* An amount needs a unit. The row's own currency counts, since most calls
@@ -2041,7 +2042,20 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
     // must be converted before comparison or the warning is meaningless for
     // non-USD costs (e.g. a 7.2-Yuan cost is ~$1, not $7.2). Convention:
     // exchange_rates.rate_to_usd is units-per-USD, so USD = amount / rate_to_usd.
+    //
+    // And retail_price_usd is PER GRAM while cost_amount is the TOTAL paid for
+    // quantity_purchased grams, so the total has to be divided by the grams
+    // before the two can be compared. Until 2026-09-09 it was not: a 2,000 g
+    // cake bought for 1,200 yuan was read as 166 dollars a gram instead of
+    // 0.08, and the preview told the operator a 0.50 dollar price was a loss
+    // of 33,000 percent. Same shape addPricingFields divides out in index.ts,
+    // and the same fault handleNetworkCatalog carried (audit MONEY-3). Freight
+    // is in the basis too, as it is everywhere else the shop prices a gram.
     const newCostAmount = costAmount ?? Number(product.cost_amount || 0);
+    const newQuantity = quantityPurchased ?? Number(product.quantity_purchased || 0);
+    const newShippingRatePerKg: number | null = clearFields?.includes('shipping_rate_per_kg')
+      ? null
+      : (shippingRatePerKg ?? product.shipping_rate_per_kg ?? null);
     /* No `?? 'USD'`. A row whose currency nobody ever stated is not a row
        priced in dollars, and a margin warning computed from that guess is a
        confident number about money that is wrong by whatever the exchange rate
@@ -2049,19 +2063,32 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
        is no rate; an unstated currency is the same situation one step earlier. */
     const newCostCurrency = (costCurrency ?? product.cost_currency ?? null) as string | null;
 
-    let costUsd: number | null;
-    if (!currencyStated(newCostCurrency)) {
-      costUsd = null;
-    } else if (newCostCurrency === 'USD') {
-      costUsd = newCostAmount;
-    } else {
-      const rateRow = await env.DB.prepare(
-        'SELECT rate_to_usd FROM exchange_rates WHERE currency = ?'
-      ).bind(newCostCurrency).first() as { rate_to_usd: number } | null;
+    let costUsd: number | null = null;
+    if (currencyStated(newCostCurrency) && newQuantity > 0) {
+      /* One read of the rate table serves both the cost currency and the shop
+         freight rate. Table keys are canonical names ('Yuan', not 'CNY'), which
+         is what stated cost currencies are stored as. */
+      const rateRows = await env.DB.prepare(
+        'SELECT currency, rate_to_usd FROM exchange_rates'
+      ).all() as { results?: Array<{ currency: string; rate_to_usd: number }> };
+      const rates = new Map<string, number>();
+      for (const row of rateRows.results ?? []) {
+        if (Number.isFinite(row.rate_to_usd) && row.rate_to_usd > 0) rates.set(row.currency, row.rate_to_usd);
+      }
+      const rateToUsd = newCostCurrency === 'USD' ? 1 : rates.get(newCostCurrency!);
       // No rate row → skip the warning rather than emit a false one.
-      costUsd = rateRow && Number.isFinite(rateRow.rate_to_usd) && rateRow.rate_to_usd > 0
-        ? newCostAmount / rateRow.rate_to_usd
-        : null;
+      if (rateToUsd) {
+        const account = await env.DB.prepare(
+          'SELECT default_shipping_rate_per_kg, default_shipping_rate_currency FROM accounts WHERE id = ?'
+        ).bind(auth.accountId).first() as { default_shipping_rate_per_kg?: number | null; default_shipping_rate_currency?: string | null } | null;
+        const shopFreight = resolveShopFreightDefault(account, currency => rates.get(currency));
+        costUsd = (newCostAmount / newQuantity) / rateToUsd + shippingPerGramUsd({
+          storedRatePerKg: newShippingRatePerKg,
+          rateToUsd,
+          isTeaware: product.type === 'Teaware',
+          shopDefaultPerKgUsd: shopFreight.perKgUsd,
+        });
+      }
     }
 
     const marginWarning = costUsd !== null && newRetail > 0 && (newRetail - costUsd) / newRetail < 0.3

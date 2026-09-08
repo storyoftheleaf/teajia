@@ -402,7 +402,10 @@ describe('a door that cannot know the cost says so, rather than letting the defa
        money that is wrong by whatever the rate is. The block already declines
        when there is no rate; an unstated currency is the same case earlier. */
     expect(mcp).not.toMatch(/product\.cost_currency \?\? 'USD'/);
-    expect(mcp).toMatch(/if \(!currencyStated\(newCostCurrency\)\)/);
+    /* The guard is the gate on the whole computation: no stated currency, or
+       no grams to divide the batch total by, and costUsd stays null. The
+       per-gram half is driven, not scanned, in mcp-margin-warning-per-gram. */
+    expect(mcp).toMatch(/if \(currencyStated\(newCostCurrency\) && newQuantity > 0\)/);
   });
 
   it('the listing mirror copies what it was given instead of inventing a cost or a currency', () => {
