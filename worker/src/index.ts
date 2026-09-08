@@ -95,7 +95,12 @@ import {
   resolveTeaReferenceIssues,
 } from './teaReferenceIssues';
 import { isTeaType, TEA_TYPES } from '../../src/wisdom/vocabulary';
-import { catalogProductIds, INQUIRY_MAX_NOTE, inquiryRequestFingerprint, isValidTrackingToken, normalizeCartInquiry, redactPublicInquiry, sha256Hex } from './inquiryDomain';
+import {
+  catalogProductIds, INQUIRY_MAX_CONTACT, INQUIRY_MAX_INTEREST_LABEL, INQUIRY_MAX_INTERESTS,
+  INQUIRY_MAX_LOCATION, INQUIRY_MAX_NAME, INQUIRY_MAX_NOTE, INQUIRY_MAX_PHONE, INQUIRY_MAX_REF_NUMBER,
+  INQUIRY_MAX_REFERRAL, INQUIRY_MAX_VISION, inquiryFieldTooLong, inquiryRequestFingerprint,
+  isValidTrackingToken, NEWSLETTER_MAX_EMAIL, normalizeCartInquiry, redactPublicInquiry, sha256Hex,
+} from './inquiryDomain';
 
 interface Env {
   DB: D1Database;
@@ -156,6 +161,10 @@ interface Env {
   RSVP_LIMITER?: RateLimiterBinding;
   OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
   OAUTH_AUTHORIZE_LIMITER?: RateLimiterBinding;
+  // Edge rate limiter for the public checkout inquiry endpoint (audit SEC-1).
+  INQUIRY_LIMITER?: RateLimiterBinding;
+  // Edge rate limiter for the public newsletter signup (audit SEC-2).
+  NEWSLETTER_LIMITER?: RateLimiterBinding;
   // Scoped machine credential used only by the repository incident-queue exporter.
   INCIDENT_EXPORT_TOKEN?: string;
   WORDFORGE_INTEGRATION_TOKEN?: string;
@@ -1420,8 +1429,18 @@ function restError(
   return json({ error, ...(code ? { code } : {}), ...(details ? { details } : {}) }, status);
 }
 
-async function enforceDurableLimit(binding: RateLimiterBinding | undefined, key: string): Promise<Response | null> {
-  if (!binding) return null; // Wrangler local development has no native binding.
+// Every caller below is declared as an [[unsafe.bindings]] ratelimit entry in
+// wrangler.toml (checked at the same time this refused-on-absence rule was
+// added, audit SEC-5), and miniflare's ratelimit plugin simulates the binding
+// locally too, so an absent binding here is never "this is local dev" — it is
+// a deploy that lost its rate limiter. Allowing that silently is what let 25
+// of 25 anonymous inquiry posts through with nothing timing them out.
+// bindingName is only for the log line; it does not change behavior.
+async function enforceDurableLimit(binding: RateLimiterBinding | undefined, bindingName: string, key: string): Promise<Response | null> {
+  if (!binding) {
+    console.error(`Rate limiter binding ${bindingName} is not configured; refusing this request rather than allowing unlimited traffic.`);
+    return restError(503, 'Rate limit service unavailable', 'rate_limit_unavailable');
+  }
   try {
     const result = await binding.limit({ key });
     return result.success ? null : restError(429, 'Too many requests', 'rate_limited');
@@ -1848,7 +1867,7 @@ const handleVerifySignupEmail: Handler = async (request, env) => {
 // to restart signup for an existing identity.
 const handleResendSignupVerification: Handler = async (request, env) => {
   const verifyIp = request.headers.get('CF-Connecting-IP') || 'unknown';
-  const limited = await enforceDurableLimit(env.VERIFY_LIMITER, `signup-resend:${verifyIp}`);
+  const limited = await enforceDurableLimit(env.VERIFY_LIMITER, 'VERIFY_LIMITER', `signup-resend:${verifyIp}`);
   if (limited) return limited;
 
   const body = await request.json().catch(() => ({})) as { email?: string; signup_token?: string };
@@ -9764,7 +9783,7 @@ const handleGenerateWisdom: Handler = async (request, env) => {
 const handleGenerateChineseName: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${ctx.accountId}:${ctx.userId}:chinese-name`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${ctx.accountId}:${ctx.userId}:chinese-name`);
   if (limited) return limited;
 
   if (!env.ANTHROPIC_API_KEY) {
@@ -9843,7 +9862,7 @@ const handleGenerateChineseName: Handler = async (request, env) => {
 const handleTranscribe: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${ctx.accountId}:${ctx.userId}:transcribe`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${ctx.accountId}:${ctx.userId}:transcribe`);
   if (limited) return limited;
 
   if (!env.GROQ_API_KEY) {
@@ -9921,7 +9940,7 @@ async function transcribePrivateRecording(env: Env, file: File): Promise<{ text:
 const handleRetryTranscription: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${ctx.accountId}:${ctx.userId}:transcribe-retry`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${ctx.accountId}:${ctx.userId}:transcribe-retry`);
   if (limited) return limited;
   if (!env.GROQ_API_KEY) return restError(503, 'Transcription provider unavailable', 'provider_unavailable');
   const row = await env.DB.prepare(
@@ -9992,7 +10011,7 @@ const handleMigrateTasting: Handler = async (request, env) => {
   const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${userId}:migrate-tasting`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${accountId}:${userId}:migrate-tasting`);
   if (limited) return limited;
 
   if (!env.ANTHROPIC_API_KEY) {
@@ -10166,7 +10185,7 @@ const handleUploadImage: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${userId}:upload-image`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${accountId}:${userId}:upload-image`);
   if (limited) return limited;
 
   if (!env.MEDIA_BUCKET) {
@@ -10220,7 +10239,7 @@ const handleUploadImage: Handler = async (request, env) => {
 const handleUploadMyProfileImage: Handler = async (request, env) => {
   const owned = await requireOwnContributor(request, env);
   if ('error' in owned) return owned.error;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${owned.ctx.userId}:profile-image`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${owned.ctx.userId}:profile-image`);
   if (limited) return limited;
   if (!env.MEDIA_BUCKET) return json({ error: 'R2 media bucket not configured' }, 503);
   if (!(request.headers.get('Content-Type') || '').includes('multipart/form-data')) {
@@ -10412,7 +10431,7 @@ const handleEnhanceProductImage: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${userId}:enhance-product-image`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${accountId}:${userId}:enhance-product-image`);
   if (limited) return limited;
 
   if (!env.MEDIA_BUCKET) return json({ error: 'R2 media bucket not configured' }, 503);
@@ -10594,7 +10613,7 @@ const handleExtractFromImage: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${userId}:extract-image`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${accountId}:${userId}:extract-image`);
   if (limited) return limited;
 
   // Prefer Claude (the production ANTHROPIC_API_KEY is live); fall back to
@@ -10938,7 +10957,7 @@ const handleListPublicEvents: Handler = async (_request, env, _params) => {
 
 const handleRSVP: Handler = async (request, env, params) => {
   const rsvpIp = request.headers.get('CF-Connecting-IP') || 'unknown';
-  const limited = await enforceDurableLimit(env.RSVP_LIMITER, `${rsvpIp}:create`);
+  const limited = await enforceDurableLimit(env.RSVP_LIMITER, 'RSVP_LIMITER', `${rsvpIp}:create`);
   if (limited) return limited;
   // Public RSVP — resolve the event's account so all inserts (customer,
   // attendee, activity log) are attributed to the right store.
@@ -11609,7 +11628,7 @@ const handleFindRSVP: Handler = async (request, env, params) => {
   // Rate limit: this endpoint accepts a bare phone number / email, so it must
   // not be brute-forceable. Durable limiter when bound; in-memory fallback.
   const frIp = request.headers.get('CF-Connecting-IP') || 'unknown';
-  const limited = await enforceDurableLimit(env.RSVP_LIMITER, `${frIp}:recover`);
+  const limited = await enforceDurableLimit(env.RSVP_LIMITER, 'RSVP_LIMITER', `${frIp}:recover`);
   if (limited) return limited;
 
   let lookupField: string;
@@ -12789,7 +12808,7 @@ const handleUploadFlyer: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${userId}:upload-flyer`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${accountId}:${userId}:upload-flyer`);
   if (limited) return limited;
 
   if (!env.MEDIA_BUCKET) {
@@ -13003,7 +13022,7 @@ const handleUploadVenuePhoto: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${ctx.userId}:upload-venue-photo`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${accountId}:${ctx.userId}:upload-venue-photo`);
   if (limited) return limited;
   const preReadError = validateContentLength(request, MAX_IMAGE_BYTES);
   if (preReadError) return preReadError;
@@ -13042,8 +13061,14 @@ const handleGetVenueEvents: Handler = async (request, env, params) => {
 // Public: newsletter signup. We tag the subscription with an optional
 // store_slug from the body, and resolve it to account_id for scoping.
 const handleNewsletterSubscribe: Handler = async (request, env) => {
+  const subscribeIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const limited = await enforceDurableLimit(env.NEWSLETTER_LIMITER, 'NEWSLETTER_LIMITER', `newsletter:${subscribeIp}`);
+  if (limited) return limited;
+
   const body = await request.json() as Record<string, any>;
   const email = (body.email || '').trim().toLowerCase();
+  const emailLengthError = inquiryFieldTooLong('Email', email, NEWSLETTER_MAX_EMAIL);
+  if (emailLengthError) return json({ error: emailLengthError }, 400);
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return json({ error: 'Invalid email address' }, 400);
   }
@@ -13074,8 +13099,12 @@ const handleGetNewsletterSubscribers: Handler = async (request, env) => {
 // ── Cart Inquiries ──────────────────────────────────────────────────────────
 
 const handleCreateInquiry: Handler = async (request, env) => {
+  const inquiryIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const limited = await enforceDurableLimit(env.INQUIRY_LIMITER, 'INQUIRY_LIMITER', `inquiry:${inquiryIp}`);
+  if (limited) return limited;
+
   const body = await request.json() as Record<string, any>;
-  const source = typeof body.source === 'string' && body.source.trim() ? body.source.trim() : 'cart';
+  const source = typeof body.source === 'string' && body.source.trim() ? body.source.trim().slice(0, 50) : 'cart';
   const nameValue = body.customer_name || body.name;
   const contactValue = body.customer_contact || body.email;
   const name = typeof nameValue === 'string' ? nameValue.trim() : '';
@@ -13084,6 +13113,10 @@ const handleCreateInquiry: Handler = async (request, env) => {
   if (!name || !contact) {
     return json({ error: 'Name and contact are required' }, 400);
   }
+  const nameError = inquiryFieldTooLong('Name', name, INQUIRY_MAX_NAME);
+  if (nameError) return json({ error: nameError }, 400);
+  const contactError = inquiryFieldTooLong('Contact', contact, INQUIRY_MAX_CONTACT);
+  if (contactError) return json({ error: contactError }, 400);
 
   let itemsStr: string;
   let totalUsd: number;
@@ -13093,9 +13126,34 @@ const handleCreateInquiry: Handler = async (request, env) => {
   if (source === 'consult') {
     const vision = typeof body.vision === 'string' ? body.vision.trim() : '';
     if (!vision) return json({ error: 'Message is required' }, 400);
-    const interests: string[] = Array.isArray(body.interests) ? body.interests : [];
+    const visionError = inquiryFieldTooLong('Message', vision, INQUIRY_MAX_VISION);
+    if (visionError) return json({ error: visionError }, 400);
+
+    const interestsRaw: unknown[] = Array.isArray(body.interests) ? body.interests : [];
+    if (interestsRaw.length > INQUIRY_MAX_INTERESTS) {
+      return json({ error: `Interests may be at most ${INQUIRY_MAX_INTERESTS} items` }, 400);
+    }
+    if (!interestsRaw.every((item) => typeof item === 'string')) {
+      return json({ error: 'Every interest must be text' }, 400);
+    }
+    const interests = interestsRaw as string[];
+    for (const interest of interests) {
+      const interestError = inquiryFieldTooLong('An interest', interest, INQUIRY_MAX_INTEREST_LABEL);
+      if (interestError) return json({ error: interestError }, 400);
+    }
+
     const referral = typeof body.referral === 'string' ? body.referral.trim() : '';
+    const referralError = inquiryFieldTooLong('Referral', referral, INQUIRY_MAX_REFERRAL);
+    if (referralError) return json({ error: referralError }, 400);
+
     const location = typeof body.location === 'string' ? body.location.trim() : '';
+    const locationError = inquiryFieldTooLong('Location', location, INQUIRY_MAX_LOCATION);
+    if (locationError) return json({ error: locationError }, 400);
+
+    const whatsapp = typeof body.whatsapp === 'string' ? body.whatsapp.trim() : '';
+    const whatsappError = inquiryFieldTooLong('WhatsApp', whatsapp, INQUIRY_MAX_PHONE);
+    if (whatsappError) return json({ error: whatsappError }, 400);
+
     const parts = [vision];
     if (interests.length > 0) parts.push(`Interests: ${interests.join(', ')}`);
     if (location) parts.push(`Location: ${location}`);
@@ -13103,7 +13161,7 @@ const handleCreateInquiry: Handler = async (request, env) => {
     message = parts.join('\n\n');
     itemsStr = '[]';
     totalUsd = 0;
-    phone = typeof body.whatsapp === 'string' ? body.whatsapp.trim() || null : null;
+    phone = whatsapp || null;
   } else {
     const normalized = normalizeCartInquiry(body);
     if (!normalized.ok) return json({ error: normalized.error }, 400);
@@ -13112,6 +13170,11 @@ const handleCreateInquiry: Handler = async (request, env) => {
     if (!accountId) return json({ error: 'Store not found' }, 404);
     const tokenHash = await sha256Hex(normalized.value.trackingToken);
     const location = typeof body.customer_location === 'string' ? body.customer_location.trim() : '';
+    const locationError = inquiryFieldTooLong('Location', location, INQUIRY_MAX_LOCATION);
+    if (locationError) return json({ error: locationError }, 400);
+    const phoneCandidate = typeof body.phone === 'string' ? body.phone.trim() : '';
+    const phoneError = inquiryFieldTooLong('Phone', phoneCandidate, INQUIRY_MAX_PHONE);
+    if (phoneError) return json({ error: phoneError }, 400);
     const notes = (typeof body.notes === 'string'
       ? body.notes.trim()
       : typeof body.message === 'string' ? body.message.trim() : '').slice(0, INQUIRY_MAX_NOTE);
@@ -13160,7 +13223,7 @@ const handleCreateInquiry: Handler = async (request, env) => {
 
     const id = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
     message = notes || null;
-    phone = (typeof body.phone === 'string' ? body.phone.trim() : '') || location || null;
+    phone = phoneCandidate || location || null;
     try {
       await env.DB.prepare(
         `INSERT INTO inquiries
@@ -13219,23 +13282,29 @@ const handleCreateInquiry: Handler = async (request, env) => {
     if (!accountId) return json({ error: 'Store not found' }, 404);
   }
   const id = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
-  const refNumber = (typeof body.ref_number === 'string' && body.ref_number.trim()) ? body.ref_number.trim() : null;
+  const rawRefNumber = (typeof body.ref_number === 'string' && body.ref_number.trim()) ? body.ref_number.trim() : null;
+  if (rawRefNumber) {
+    const refNumberError = inquiryFieldTooLong('Order reference', rawRefNumber, INQUIRY_MAX_REF_NUMBER);
+    if (refNumberError) return json({ error: refNumberError }, 400);
+  }
+  const refNumber = rawRefNumber;
+  const currency = typeof body.currency === 'string' && body.currency.trim() ? body.currency.trim().slice(0, 10) : 'USD';
 
   // `source` added in migration 045; `ref_number` added in migration 076. Fall
   // back through older schemas so deployments that haven't migrated yet still work.
   try {
     await env.DB.prepare(
       'INSERT INTO inquiries (id, account_id, name, email, phone, items, total_usd, currency, message, source, ref_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).bind(id, accountId, name, contact, phone, itemsStr, totalUsd, body.currency || 'USD', message, source, refNumber).run();
+    ).bind(id, accountId, name, contact, phone, itemsStr, totalUsd, currency, message, source, refNumber).run();
   } catch (err: any) {
     if (typeof err?.message === 'string' && err.message.includes('ref_number')) {
       await env.DB.prepare(
         'INSERT INTO inquiries (id, account_id, name, email, phone, items, total_usd, currency, message, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-      ).bind(id, accountId, name, contact, phone, itemsStr, totalUsd, body.currency || 'USD', message, source).run();
+      ).bind(id, accountId, name, contact, phone, itemsStr, totalUsd, currency, message, source).run();
     } else if (typeof err?.message === 'string' && err.message.includes('source')) {
       await env.DB.prepare(
         'INSERT INTO inquiries (id, account_id, name, email, phone, items, total_usd, currency, message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-      ).bind(id, accountId, name, contact, phone, itemsStr, totalUsd, body.currency || 'USD', message).run();
+      ).bind(id, accountId, name, contact, phone, itemsStr, totalUsd, currency, message).run();
     } else {
       throw err;
     }
@@ -13249,7 +13318,7 @@ const handleCreateInquiry: Handler = async (request, env) => {
     location: null,
     itemsJson: itemsStr,
     totalUsd,
-    currency: body.currency || 'USD',
+    currency: currency,
     message,
     reference: refNumber || id,
     trackingToken: null,
@@ -16167,7 +16236,7 @@ async function verifyVerificationCode(code: string, signatureHex: string, secret
 // POST /api/verify/request
 const handleVerifyRequest: Handler = async (request, env) => {
   const verifyIp = request.headers.get('CF-Connecting-IP') || 'unknown';
-  const limited = await enforceDurableLimit(env.VERIFY_LIMITER, verifyIp);
+  const limited = await enforceDurableLimit(env.VERIFY_LIMITER, 'VERIFY_LIMITER', verifyIp);
   if (limited) return limited;
 
   const body = await request.json().catch(() => ({})) as { contact?: string; purpose?: 'signin' | 'event'; method?: 'email' };
@@ -21355,7 +21424,7 @@ const handleRedeemJoinCode: Handler = async (request, env) => {
   // CF-Connecting-IP is Cloudflare-set and unspoofable; never fall back to the
   // client-controlled X-Forwarded-For header for a rate-limit key.
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
-  const limited = await enforceDurableLimit(env.JOIN_CODE_LIMITER, ip);
+  const limited = await enforceDurableLimit(env.JOIN_CODE_LIMITER, 'JOIN_CODE_LIMITER', ip);
   if (limited) return limited;
 
   const body = await request.json() as { code?: string; first_name?: string; email?: string };

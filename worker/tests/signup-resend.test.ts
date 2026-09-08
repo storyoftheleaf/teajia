@@ -160,7 +160,7 @@ async function call(db: ResendDb, path: string, body: Record<string, unknown>, e
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': '203.0.113.8' },
     body: JSON.stringify(body),
-  }), { DB: db, JWT_SECRET: SECRET, DEV_RETURN_VERIFY_CODES: 'true', ...extraEnv } as any);
+  }), { DB: db, JWT_SECRET: SECRET, DEV_RETURN_VERIFY_CODES: 'true', VERIFY_LIMITER: { limit: async () => ({ success: true }) }, ...extraEnv } as any);
   return { response, body: await response.json() as any };
 }
 

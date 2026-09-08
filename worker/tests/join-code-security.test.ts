@@ -34,7 +34,7 @@ describe('join-code identity boundary', () => {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'CF-Connecting-IP': '203.0.113.9' },
       body: JSON.stringify({ code: '123456', first_name: 'Attacker', email: 'owner@example.com' }),
-    }), { DB: db, JWT_SECRET: 'secret' } as any);
+    }), { DB: db, JWT_SECRET: 'secret', JOIN_CODE_LIMITER: { limit: async () => ({ success: true }) } } as any);
 
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({

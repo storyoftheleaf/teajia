@@ -50,7 +50,7 @@ class VerificationDb {
 
 let ipSequence = 0;
 async function api(db: VerificationDb, path: 'request' | 'confirm', body: any, env: Record<string, unknown> = {}) {
-  const response = await worker.fetch(new Request(`https://test.dev/api/verify/${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': `verification-${++ipSequence}` }, body: JSON.stringify(body) }), { DB: db, JWT_SECRET: 'jwt-secret', RESEND_API_KEY: 'resend-secret', SENDER_EMAIL: 'verify@teajia.test', ...env } as any);
+  const response = await worker.fetch(new Request(`https://test.dev/api/verify/${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': `verification-${++ipSequence}` }, body: JSON.stringify(body) }), { DB: db, JWT_SECRET: 'jwt-secret', RESEND_API_KEY: 'resend-secret', SENDER_EMAIL: 'verify@teajia.test', VERIFY_LIMITER: { limit: async () => ({ success: true }) }, ...env } as any);
   return { status: response.status, body: await response.json() as any };
 }
 
