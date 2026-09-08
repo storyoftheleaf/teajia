@@ -5,42 +5,17 @@ import { api } from '../../lib/api';
 import { useToast } from './Toast';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { BatchPicker } from './BatchPicker';
-import { TEA_TYPES, NON_TEA_TYPES } from '../../wisdom';
+import { enteredCostCell } from '../productUpdatePayload';
+import { plainCostWords } from '../../lib/costRefusalWords';
+/* The row-to-payload conversion lives in its own module so it can be CALLED.
+   While it sat in this file the only guard on it was a scan of this file's
+   source, and a scan cannot go red: appending `?? 0` to the cost reader turned
+   every blank price cell back into a free tea with the suite still green. */
+import {
+  csvRowToProduct, isMissingOrUnknown, type CsvStagingRow,
+} from '../lib/csvImportRows';
 
-interface StagingRow {
-  id: string;
-  type: string;
-  givenName: string;
-  chineseName: string;
-  productName: string;
-  form: string;
-  year: string;
-  grams: string; // Grams / Quantity Purchased
-  costAmount: string; // Raw cost amount
-  currency: string; // Raw currency code
-  stockAmount: string;
-  vendor: string;
-  originCountry: string;
-  originRegion: string;
-  status: string; // 'Active' or 'Draft'
-  isPersonal: boolean;
-  purpose: 'working' | 'sample' | 'personal';
-  canReorder: boolean;
-  description: string;
-  lore: string;
-  tastingNotes: string;
-  processingNotes: string;
-  terroir: string;
-  mood: string;
-  experience: string;
-  material: string;
-  capacityMl: string;
-  teawareCategory: string;
-  quantityUnits: string;
-  isValid: boolean;
-  errors: string[];
-  serverIssue?: string;
-}
+type StagingRow = CsvStagingRow;
 
 // Helper to normalize and find keys
 const getSafeValue = (row: any, keys: string[]) => {
@@ -86,13 +61,6 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
     }
   }, [isOpen]);
 
-  // Helper to check if a value is effectively "missing" based on user requirements
-  const isMissingOrUnknown = (val: string) => {
-    if (!val) return true;
-    const v = val.toString().toLowerCase().trim();
-    return v === '' || v === 'unknown' || v === 'nan' || v === 'null' || v === 'undefined';
-  };
-
   const validateRow = (row: StagingRow): { isValid: boolean, status: string, errors: string[] } => {
     const errors: string[] = [];
     let status = 'Active';
@@ -108,7 +76,10 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
     // 2. Draft Logic (Incomplete Data)
     const missingGrams = isMissingOrUnknown(row.grams);
     const missingStock = isMissingOrUnknown(row.stockAmount);
-    const missingCost = isMissingOrUnknown(row.costAmount) || isMissingOrUnknown(row.currency);
+    /* Read by the same helper the row's payload is built with, so the badge in
+       the review grid and the figure that goes on the wire cannot disagree
+       about whether a price was written. */
+    const missingCost = enteredCostCell(row.costAmount) === null || isMissingOrUnknown(row.currency);
 
     if (missingGrams || missingStock || missingCost) {
         status = 'Draft';
@@ -293,101 +264,9 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
         );
     };
 
-    // Sanitize and Prepare Data
-    const preparedRows = rowsToInsert.map(r => {
-        // 1. Handle Types
-        // Teaware/Misc composed on top of the shared wisdom vocabulary. See docs/TEA_WISDOM_BASE.md.
-        const validTypes: string[] = [...TEA_TYPES, ...NON_TEA_TYPES];
-        // Remap retired types to Herbal
-        const retiredToHerbal = ['matcha', 'flower'];
-        let typeToSave = retiredToHerbal.includes((r.type || '').toLowerCase()) ? 'Herbal' : r.type;
-        const matchedType = validTypes.find(t => t.toLowerCase() === (typeToSave || '').toLowerCase());
-        if (matchedType) typeToSave = matchedType;
-        else if (!typeToSave) typeToSave = 'Misc'; // Default to Misc if missing, logically safer than erroring
-
-        // 2. Handle Numbers (Strip commas, currency symbols)
-        const parseNum = (val: string) => {
-            if (isMissingOrUnknown(val)) return 0;
-            // Remove everything except numbers, dots, and negative signs
-            const cleanStr = val.toString().replace(/[^0-9.-]/g, '');
-            return parseFloat(cleanStr) || 0;
-        };
-        const parseOptionalNum = (val: string) => isMissingOrUnknown(val) ? null : parseNum(val);
-
-        const stock = parseOptionalNum(r.stockAmount);
-        const qtyPurchased = parseNum(r.grams);
-        const cost = parseNum(r.costAmount);
-        
-        // 3. Handle Year (preserve "1980s" style, pass "Unknown" as null)
-        let year: string | null = null;
-        if (r.year && !isMissingOrUnknown(r.year)) {
-             year = r.year.toString().trim();
-        }
-
-        // 4. Handle Currency
-        let curr = 'UNK';
-        if (!isMissingOrUnknown(r.currency)) {
-            const c = r.currency.toUpperCase().trim();
-            if (['NT', 'TWD'].includes(c)) curr = 'NT';
-            else if (['RMB', 'CNY', 'YUAN'].includes(c)) curr = 'Yuan';
-            else if (['USD', '$'].includes(c)) curr = 'USD';
-            else if (['IDR', 'RP'].includes(c)) curr = 'IDR';
-            else if (['JPY', 'YEN'].includes(c)) curr = 'JPY';
-            else if (['HKD', 'HK'].includes(c)) curr = 'HKD';
-        }
-
-        // Validate form against known values
-        const validForms = ['Loose', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other'];
-        const matchedForm = validForms.find(f => f.toLowerCase() === (r.form || '').toLowerCase());
-        const hasWisdom = !!(r.lore || r.tastingNotes || r.mood || r.experience);
-
-        // Build the row object, then strip out null/empty values to avoid
-        // sending columns the DB might not have yet
-        const row: Record<string, any> = {
-          type: typeToSave,
-          given_name: r.givenName || null,
-          chinese_name: r.chineseName || null,
-          product_name: r.productName || r.givenName || 'Unnamed Product',
-          form: matchedForm || null,
-          year: year,
-          origin_country: r.originCountry || 'Unknown',
-          origin_region: r.originRegion || null,
-          quantity_purchased: qtyPurchased,
-          cost_amount: cost,
-          cost_currency: curr,
-          vendor: r.vendor || null,
-          description: r.description || null,
-          status: r.status,
-          is_personal: !!r.isPersonal,
-          inventory_purpose: r.purpose,
-          can_reorder: !!r.canReorder,
-          lore: r.lore || null,
-          tasting_notes: r.tastingNotes ? r.tastingNotes.split(',').map((s: string) => s.trim()).filter(Boolean) : null,
-          processing_notes: r.processingNotes || null,
-          terroir: r.terroir || null,
-          mood: r.mood || null,
-          experience: r.experience || null,
-          is_custom_wisdom: false,
-          show_wisdom: hasWisdom,
-          material: r.material || null,
-          capacity_ml: parseNum(r.capacityMl) || null,
-          teaware_category: r.teawareCategory || null,
-          client_row_id: r.id,
-        };
-        if (r.type.toLowerCase() === 'teaware') {
-          const units = parseOptionalNum(r.quantityUnits);
-          if (units !== null) row.quantity_units = units;
-        } else if (stock !== null) {
-          row.stock_grams = stock;
-        }
-
-        // Remove null/empty entries so the API only sends columns with real data
-        const cleaned: Record<string, any> = {};
-        for (const [k, v] of Object.entries(row)) {
-          if (v !== null && v !== undefined && v !== '') cleaned[k] = v;
-        }
-        return cleaned;
-    });
+    /* Sanitize and prepare, in `csvRowToProduct`, which is exported so a test
+       can call it with a blank price cell and read back what it sends. */
+    const preparedRows = rowsToInsert.map(csvRowToProduct);
 
     // Batch Insert
     const BATCH_SIZE = 50;
@@ -403,7 +282,9 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
             for (const result of outcome.results || []) {
               if (!result.client_row_id) continue;
               if (result.status === 'inserted' || result.status === 'replayed') confirmedIds.add(result.client_row_id);
-              else if (result.status === 'skipped') skippedReasons.set(result.client_row_id, result.reason || 'Not imported');
+              /* The reason lands on the line in the review grid, where a person
+                 reads it, so it arrives in words rather than in column names. */
+              else if (result.status === 'skipped') skippedReasons.set(result.client_row_id, plainCostWords(result.reason) || 'Not imported');
             }
             processedCount = confirmedIds.size;
             setUploadProgress(processedCount);

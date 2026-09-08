@@ -17,6 +17,8 @@ import {
   autoMap, loadRememberedMapping, rememberMapping, rowToStaged,
   stagedToProduct, isReadyItem, extractedToStaged,
 } from '../lib/intakeMapping';
+import { enteredCostCell } from '../productUpdatePayload';
+import { plainCostWords } from '../../lib/costRefusalWords';
 import { assertSupportedIntakeFile, readXlsxIntakeFile } from '../lib/xlsxIntake';
 import { IntakeChatSheet, type ChatAnswer } from '../components/IntakeChatSheet';
 
@@ -146,7 +148,9 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
           chineseName: String(parsed.chineseName || ''), productName: '',
           type: 'Misc', form: null, year: '',
           originCountry: '', originRegion: '', vendor: '',
-          costAmount: 0, costCurrency: 'UNK',
+          // Null, not 0: a resumed import has not been told a price yet, and 0
+          // would say every one of its teas was free.
+          costAmount: null, costCurrency: 'UNK',
           stockGrams: 0, quantityPurchased: 0, quantityUnits: 0, teawareCategory: '',
           sizeEstimate: 0, description: '', imageUrl: '',
           isPersonal: false, needsReview: true, include: true, order: {},
@@ -193,7 +197,9 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
     switch (answer.field) {
       case 'vendor':          patch.vendor = String(answer.value); break;
       case 'origin_country':  patch.originCountry = String(answer.value); break;
-      case 'price_paid':      patch.costAmount = Number(answer.value) || 0; break;
+      // `Number(x) || 0` here answered "I do not know" with "it was free". An
+      // answer of 0 is kept, because a gift is a real tea.
+      case 'price_paid':      patch.costAmount = enteredCostCell(answer.value); break;
       case 'cost_currency':   patch.costCurrency = String(answer.value); break;
       case 'weight_grams':    patch.stockGrams = Number(answer.value) || 0; break;
       // pack_count, purchase_date, purchase_location and shipping_mode have no
@@ -351,10 +357,24 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
       const chunk = 50;
       let inserted = 0;
       let skipped = 0;
+      /* Not every skip is a duplicate any more: a line whose sheet named no
+         price is refused by name, so the reasons are collected and shown
+         instead of being counted as something they are not. */
+      const skipReasons = new Set<string>();
       for (let i = 0; i < products.length; i += chunk) {
         const res: any = await api.products.bulkCreate(products.slice(i, i + chunk), batchId ?? undefined);
         inserted += res?.inserted ?? products.slice(i, i + chunk).length;
         skipped += res?.skipped ?? 0;
+        for (const row of res?.results ?? []) {
+          /* In words, not in column names. The server answers the two doors in
+             its own vocabulary, `cost_amount` and a `(missing: amount)` marker,
+             which is the right contract between two pieces of code and the
+             wrong sentence to put in front of Adrian: it hands him the bug
+             report instead of the thing to do next. `plainCostWords` reads that
+             marker, because which half is missing is a fact only the server
+             has, and says it the way the Add Product form says it. */
+          if (row?.status === 'skipped' && row?.reason) skipReasons.add(plainCostWords(String(row.reason)));
+        }
       }
       if (savePurchaseRecord) {
         // One purchase record per vendor/store, an order sheet routinely spans
@@ -368,10 +388,12 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
         }
         for (const [vendor, lines] of groups) {
           // nothing to record if there's neither cost nor logistics
-          if (!lines.some((l) => l.costAmount > 0 || Object.keys(l.order).length > 0)) continue;
+          if (!lines.some((l) => (l.costAmount ?? 0) > 0 || Object.keys(l.order).length > 0)) continue;
           const totalUSD = lines.reduce((sum, l) => {
             const qty = l.quantityPurchased || l.quantityUnits || l.stockGrams || 1;
-            return sum + (l.costAmount * qty) / rateFor(l.costCurrency);
+            // A line with no recorded price adds nothing to the order total,
+            // which is what not knowing costs.
+            return sum + ((l.costAmount ?? 0) * qty) / rateFor(l.costCurrency);
           }, 0);
           // dominant non-UNK currency for display
           const tally: Record<string, number> = {};
@@ -394,9 +416,15 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
           }).catch(() => null);
         }
       }
+      /* The count, then what to do about it. A toast that only counts skips
+         leaves the operator to guess which lines and why, and "duplicate" was
+         the guess it used to make for every one of them. */
+      const skipNote = skipped > 0
+        ? ` · ${skipped} not added.${skipReasons.size > 0 ? ` ${[...skipReasons].join(' ')}` : ''}`
+        : '';
       showToast(
-        `Added ${inserted} item${inserted !== 1 ? 's' : ''} as drafts${skipped > 0 ? ` · ${skipped} duplicate${skipped !== 1 ? 's' : ''} skipped` : ''}`,
-        'success',
+        `Added ${inserted} item${inserted !== 1 ? 's' : ''} as drafts${skipNote}`,
+        skipped > 0 ? 'error' : 'success',
       );
       onRefresh?.();
       // Close the server draft so it leaves the resume list; failure is silent
@@ -881,7 +909,7 @@ const ItemsTable: React.FC<{
                   <div className="flex items-center gap-2 mt-0.5 text-ui-10 text-tea-text-dim">
                     <span className="truncate">{it.type}</span>
                     {it.vendor && <><span className="opacity-40">·</span><span className="truncate max-w-[140px]">{it.vendor}</span></>}
-                    {it.costAmount > 0 && <><span className="opacity-40">·</span><span className="font-mono">{it.costAmount} {it.costCurrency}</span></>}
+                    {(it.costAmount ?? 0) > 0 && <><span className="opacity-40">·</span><span className="font-mono">{it.costAmount} {it.costCurrency}</span></>}
                     {shippingActive && (
                       <>
                         <span className="opacity-40">·</span>
