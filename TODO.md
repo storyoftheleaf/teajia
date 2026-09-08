@@ -2,9 +2,33 @@
 
 > This is a small inbox, not the roadmap. The authoritative priorities are [docs/CONSOLIDATED_DIRECTION.md](docs/CONSOLIDATED_DIRECTION.md), and the only active build checklists are in [docs/tracks/](docs/tracks/).
 
-## Untriaged
+## Prime-time audit — the ten that matter (2026-09-09)
 
-- [ ] Run the prime-time audit: every lane, verified findings, one ranked page _(band: agent-runnable)_ _(effort: deep)_ → Plan: [prime-time-audit.md](todo/plans/prime-time-audit.md)
+Ranked in [docs/AUDIT-2026-09.md](docs/AUDIT-2026-09.md). Each line is one root cause; the ids point at the verified findings.
+
+- [ ] Every new tea ships free and carries the old markup through five of six doors, because the live table still defaults to 0 and 2.5 _(band: agent-runnable)_ _(effort: deep)_ → Plan: [freight-default-lives-in-the-table.md](todo/plans/freight-default-lives-in-the-table.md)
+- [ ] Nothing on a push to main runs the type check, the build or the full test suites; add the gate that would have caught the two-day outage _(band: agent-runnable)_ _(effort: moderate)_
+  TEST-1, TEST-2: `deploy-frontend.yml` is manual, `playwright.yml` runs 2 of 48 specs, no hooks.
+- [ ] A blank cost becomes zero at four client doors (CSV, xlsx, sample graduation, Tea Compass), and the agent-door guard test cannot go red _(band: agent-runnable)_ _(effort: moderate)_
+  MONEY-4, JOBO2-1, MONEY-12.
+- [ ] 21 live teas carry a currency label the admin cannot resolve; canonicalise once in the admin, stop `update_tea_pricing` uppercasing, and correct the rows _(band: agent-runnable)_ _(effort: moderate)_
+  JOBO-2, MONEY-5, MONEY-10. The row correction moves prices in admin readouts, so it goes to Adrian as a page first.
+- [ ] Stamp cost currency provenance on all eight write paths and both listing mirrors, BEFORE the per-vendor backlog is run _(band: agent-runnable)_ _(effort: moderate)_
+  MONEY-6, JOBO2-2. Blocks the 2026-09-07 yuan decision: the backlog tool would rewrite correctly stated HKD rows today.
+- [ ] The shop grid price omits the handling fee the ladder charges; use one quote for both _(band: you-required)_ _(effort: quick)_
+  JOBC-1. Recommendation: the grid uses `quoteGrams()` for its default weight. Adrian decides whether that is the number he wants shown.
+- [ ] Rate-limit and length-cap the inquiry and newsletter endpoints, and make an absent limiter binding refuse rather than allow _(band: agent-runnable)_ _(effort: moderate)_
+  SEC-1, SEC-2, SEC-5.
+- [ ] The wholesale catalogue quotes cost times markup as a per-gram price without dividing by quantity _(band: agent-runnable)_ _(effort: quick)_
+  MONEY-3: 89 of 92 reachable listings, up to 2,500x.
+- [ ] Draft articles are readable at their direct URL; gate the fourteen article pages on publish status _(band: agent-runnable)_ _(effort: moderate)_
+  JOBC-2.
+- [ ] Remove the streak counter from the Learn curriculum, and give `create_tea` a real tea type default _(band: agent-runnable)_ _(effort: quick)_
+  OPS-3, MONEY-8.
+
+Everything below the ten is in the report's "Later" bucket: false-success deletes, the unfiltered wisdom read, eager home imports and the 2 MB admin chunk, the unpaginated customers list, duplicated slug and sha256 helpers, 99 orphan files, the 36 px AccountPanel controls, the off-scale radius, three High npm advisories, the 57-day-old docs index.
+
+## Untriaged
 
 - [ ] **The new MCP modules had to copy three things out of `index.ts`, because `index.ts` cannot be imported from them.** _(band: agent-runnable)_ _(effort: moderate)_
   `index.ts` imports `mcp.ts`, which imports the modules under `worker/src/mcpTools/`, so a module importing back is a cycle. Three helpers got copied rather than shared, which is one fact with two homes and the exact shape migrations `0010` and `0013` exist to undo: `EVENT_STATUS_BY_LIFECYCLE` (a test parses `index.ts`'s source and fails on drift, which is a splint and not a fix), and `slugify` plus `articleToApi` in `writing.ts` — a slug is an article's public address, and two functions producing different ones is a link that works from one door only.
