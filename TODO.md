@@ -17,8 +17,6 @@ Ranked in [docs/AUDIT-2026-09.md](docs/AUDIT-2026-09.md). Each line is one root 
   JOBC-1. Recommendation: the grid uses `quoteGrams()` for its default weight. Adrian decides whether that is the number he wants shown.
 - [ ] Rate-limit and length-cap the inquiry and newsletter endpoints, and make an absent limiter binding refuse rather than allow _(band: agent-runnable)_ _(effort: moderate)_
   SEC-1, SEC-2, SEC-5.
-- [ ] The wholesale catalogue quotes cost times markup as a per-gram price without dividing by quantity _(band: agent-runnable)_ _(effort: quick)_
-  MONEY-3: 89 of 92 reachable listings, up to 2,500x.
 - [ ] Draft articles are readable at their direct URL; gate the fourteen article pages on publish status _(band: agent-runnable)_ _(effort: moderate)_
   JOBC-2.
 - [ ] Give `create_tea` a real tea type default _(band: agent-runnable)_ _(effort: quick)_
@@ -27,6 +25,9 @@ Ranked in [docs/AUDIT-2026-09.md](docs/AUDIT-2026-09.md). Each line is one root 
 Everything below the ten is in the report's "Later" bucket: false-success deletes, the unfiltered wisdom read, eager home imports and the 2 MB admin chunk, the unpaginated customers list, duplicated slug and sha256 helpers, 99 orphan files, the 36 px AccountPanel controls, the off-scale radius, three High npm advisories, the 57-day-old docs index.
 
 ## Untriaged
+
+- [ ] A wholesale listing with no recorded quantity can be added to a draft order at a unit price of zero _(band: agent-runnable)_ _(effort: quick)_
+  `WholesaleOrderDraft.tsx` reads `profile.wholesale_price_per_gram_caller ?? 0`. The catalogue now returns null for a cost-based listing whose `quantity_purchased` is missing (it used to quote the total cost as a per-gram price), so that null reaches the draft as a free tea. Nothing entered is NULL, and a null price should refuse to be added, not become 0. Found by the item 8 reviewer on 2026-09-09.
 
 - [ ] An agent price edit leaves the partner listing quoting the old cost currency _(band: agent-runnable)_ _(effort: quick)_
   `commitUpdateTeaPricing` in `worker/src/mcp.ts` stamps `products.cost_currency_source` but writes no `cost_amount`, `cost_currency` or `cost_currency_source` to `product_listings`, so after `update_tea_pricing` the listing row still carries the old cost with a NULL mark. Found by the item 5 reviewer on 2026-09-09; `set_cost_currency` handles the same mirror correctly and is the pattern to copy. No backlog risk, because `list_unstated_costs` reads `products`.

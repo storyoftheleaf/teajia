@@ -24259,7 +24259,8 @@ const handleNetworkCatalog: Handler = async (request, env) => {
         cl.fixed_retail_price_usd AS curator_fixed_retail_usd,
         cl.cost_amount            AS curator_cost_amount,
         cl.cost_currency          AS curator_cost_currency,
-        cl.markup_multiplier      AS curator_markup_multiplier
+        cl.markup_multiplier      AS curator_markup_multiplier,
+        cl.quantity_purchased     AS curator_quantity_purchased
       FROM tea_profiles p
       JOIN accounts a  ON a.id  = p.curated_by_account_id
       JOIN accounts ao ON ao.id = p.originated_by_account_id
@@ -24364,19 +24365,27 @@ const handleNetworkCatalog: Handler = async (request, env) => {
       }
     } else if (p.curator_cost_amount != null && p.curator_cost_amount > 0) {
       // Cost-based: cost_per_gram (in cost_currency) * markup → retail in cost_currency.
-      // Then convert to curator currency for display.
+      // Then convert to curator currency for display. cost_amount is the total
+      // cost for quantity_purchased, the same shape addPricingFields divides
+      // out for the shop's own catalogue, so this must divide by it too before
+      // the markup is applied. A cake bought for 1,200 CNY as 2,000 g of leaf
+      // costs 0.6 CNY a gram, not 1,200: skipping the division here once
+      // quoted a network listing at 2,000 times its real price.
       const costCurrency = (p.curator_cost_currency as string) || 'USD';
       const markup = (p.curator_markup_multiplier as number) ?? CURATOR_FALLBACK_MARKUP;
-      // cost_amount is the total cost for quantity_purchased; without that here,
-      // we treat cost_amount as already per-gram. This matches how the legacy
-      // products API returns it (see addPricingFields). Acceptable for browse.
-      const retailInCostCurrency = (p.curator_cost_amount as number) * markup;
-      const converted = convert(retailInCostCurrency, costCurrency, curatorCurrency);
-      if (converted === null) {
-        retailPricePerGramCurator = retailInCostCurrency;
-        fxUnavailable = true;
-      } else {
-        retailPricePerGramCurator = converted;
+      const quantityPurchased = p.curator_quantity_purchased as number | null;
+      // No recorded quantity means no honest per-gram cost to derive from;
+      // leave the price null rather than treating the total cost as per-gram.
+      if (quantityPurchased && quantityPurchased > 0) {
+        const costPerGramInCostCurrency = (p.curator_cost_amount as number) / quantityPurchased;
+        const retailInCostCurrency = costPerGramInCostCurrency * markup;
+        const converted = convert(retailInCostCurrency, costCurrency, curatorCurrency);
+        if (converted === null) {
+          retailPricePerGramCurator = retailInCostCurrency;
+          fxUnavailable = true;
+        } else {
+          retailPricePerGramCurator = converted;
+        }
       }
     }
 
