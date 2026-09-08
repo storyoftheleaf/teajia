@@ -4,7 +4,7 @@
 
 **What done looks like:** one page (`docs/AUDIT-2026-09.md` plus a published artifact) with a readiness score per area, every finding verified by a second agent, ranked P0 to P3, and the top ten already filed as todo lines with plan files where they earn one.
 
-**How it runs:** the old overnight `nohup` script is retired. This runs as a Workflow in a live Claude Code session: a script that fans out agents by lane, pipelines each lane's findings straight into a verifier, then hands the verified set to the conductor for synthesis. It needs the laptop awake and the window open for roughly three hours. It does not need Adrian.
+**How it runs:** the old overnight `nohup` script is retired. This runs as a Workflow in a live Claude Code session: a script that fans out agents by lane, pipelines each lane's findings straight into a verifier, then hands the verified set to the conductor for synthesis. It needs the laptop awake and the window open for roughly four hours. It does not need Adrian.
 
 ## What already exists, so the audit reads it instead of rebuilding it
 
@@ -57,11 +57,39 @@ Output: five JSON lists in the scratchpad. No opinions.
 - Haiku greps: `as any`, `@ts-ignore`, empty `catch {}`, `console.log` in production paths, `TODO`/`FIXME`/`HACK`, duplicate helpers, orphan files (the two dead `LoginScreen.tsx`), exports nothing imports.
 - Sonnet reads the hotspots: the 27k-line worker entry and the 7.9k-line `mcp.ts`, the InventoryView height chain, the store, `api.ts`. Reports what is duplicated, what is dead, what will break the next person, with the cost of leaving it.
 
-### Lane 4 — UX and UI (Sonnet with the browser, sandbox on)
-- Walk every route from lane 0 at 390 wide and at desktop, light and dark. One screenshot per route per state, saved to the scratchpad.
-- Per route: horizontal overflow, error boundary text, 404, console errors, bottom-nav clearance, tap targets under 44, cancel/back/close placement against the table in `CLAUDE.md`, banned tokens, empty state, loading state, dead links, stub pages reachable from live links.
-- Then the `impeccable` audit skill on the five surfaces that matter most for launch: home, shop, product page, sign-in, admin inventory. Scored findings, P0 to P3.
-- Copy: unclear labels and error messages, collected for one `clarify` pass later. Not fixed in the audit.
+### Lane 4A — Every screen, mechanically (Sonnet with the browser, sandbox on)
+- Walk every route from lane 0 at 390 wide and at desktop, light and dark, signed out, signed in as a customer, signed in as owner. One screenshot per route per state, saved to the scratchpad.
+- Per screen: horizontal overflow, error boundary text, 404, console errors, bottom-nav clearance, tap targets under 44, cancel/back/close placement against the table in `CLAUDE.md`, banned tokens, empty state, loading state, dead links, stub pages reachable from live links, images that never arrive, text that clips or wraps badly, anything that renders twice.
+
+### Lane 4B — Every job, end to end, hunting glitches (Sonnet with the browser, sandbox on)
+This is the lane the first draft was missing. Not screens: jobs. The agent does each one as the person would, then does it again rudely: double-click the button, hit back mid-way, refresh in the middle, rotate the phone, switch currency, go offline for ten seconds, let the session token expire, open the same thing in two tabs.
+
+Customer jobs:
+1. Land on home, find a tea, read its page, change currency, add to cart, open the WhatsApp checkout link, come back. Cart still there? Price still right?
+2. Sign up, get the OTP (sandbox echoes it), sign in, land where you were going. Sign out. Sign in again with Google's link (as far as the sandbox allows).
+3. Open Your Table: journal, favourites, cellar, orders, samples. Add a tasting, edit it, delete it. Open every sub-view and use the back button, not the X.
+4. RSVP to an event, cancel it, plus-one it.
+5. Read an article, share it, open a magazine page, swipe through it.
+
+Operator jobs (owner on both shops):
+6. Add a tea by the form with a cost in yuan, add stock, see it on the shelf at cost plus freight times three. Edit the price. Archive it. Unarchive it. Duplicate it.
+7. Record a sale, fulfil the invoice, mark paid, void one. Stock moved once, not twice.
+8. Intake a CSV, then an xlsx. Fix a row that failed.
+9. Switch account, act as the Australia shop, confirm nothing from Bali shows. Switch back.
+10. Curate: capture a tea, transcribe a note, attach a photo, sync.
+11. Mint an MCP token, run one preview and confirm through it.
+12. Inventory view: scroll on mobile, filter, sort, open the edit panel, save, close. The height chain.
+
+For every job the agent records: did it complete, how many taps, where it hesitated, what looked wrong, what broke, and what state it left behind. A job that works only if you do it in the right order is a glitch. A screen that shows yesterday's data until you refresh is a glitch. A form that loses what you typed on a validation error is a glitch. A modal that will not close with the back button on a phone is a glitch.
+
+Also collected here, because they only show up while doing something: stale React Query caches after a write, optimistic updates that revert, scroll position lost on back, focus not returned after a modal, keyboard covering the input on iOS sizes, scroll lock leaking after a sheet closes, toasts stacking, spinners that never stop, the same request fired twice, deep links that cold-load wrong (the Track 1 owner-controls bug is one instance; find the class).
+
+### Lane 4C — Does it feel finished (Sonnet, then the design skills)
+- `critique` on the whole customer path and the whole operator path: hierarchy, cognitive load, what a stranger does first, where they would give up. Persona test as a first-time tea buyer on a phone and as Jesse running the Australia shop on a laptop.
+- `audit` (the scored one) on the eight surfaces that decide launch: home, shop, product, sign-in, Your Table, admin inventory, product edit panel, invoice.
+- Consistency across surfaces: type scale, spacing rhythm, button placement, the four cancel/back/close rules, dark mode parity, empty and error states written in one voice. Every inconsistency listed with both screenshots side by side.
+- Copy: every label, error message and empty state that a stranger would not understand, in one list for a `clarify` pass later. Not fixed in the audit.
+- Against `visual-taste`: anything that reads as generic interface, glass, gradient text, icon soup, white ground, or celebration copy.
 
 ### Lane 5 — Tests and CI (Sonnet)
 - Subtract lane 0's test map from lane 0's route and tool lists: what has zero coverage.
@@ -97,12 +125,12 @@ Every lane's findings go to a verifier in batches of five, as soon as the lane f
 | Step | Wall clock |
 |---|---|
 | Lane 0 inventory | 15 min |
-| Lanes 1 to 7 in parallel | 60 to 90 min (lane 4 is the long one) |
+| Lanes 1 to 7 in parallel | 90 to 120 min (4B is the long one: twelve jobs, each done twice) |
 | Verification, overlapping with lanes | finishes 20 min after the last lane |
 | Synthesis and publishing | 30 to 45 min |
-| **Total** | **about 3 hours** |
+| **Total** | **about 3.5 to 4 hours** |
 
-Agents: 1 inventory, 7 lanes, roughly 6 to 10 verifier batches, so 14 to 18 agents. That is over the 15-agent guideline by a little, deliberately: the verifiers are what make the page trustworthy.
+Agents: 1 inventory, 9 lanes, roughly 8 to 12 verifier batches, so 18 to 22 agents. That is over the 15-agent guideline by a little, deliberately: the verifiers are what make the page trustworthy.
 
 ## What the audit will not do
 
