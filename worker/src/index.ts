@@ -1257,7 +1257,7 @@ function buildProductMirrorInserts(
          shop markup rather than carrying a copy of it that can drift. See
          worker/src/markup.ts. */
       fixed_retail_price_usd, markup_multiplier,
-      vendor, vendor_id, cost_amount, cost_currency,
+      vendor, vendor_id, cost_amount, cost_currency, cost_currency_source,
       shipping_rate_per_kg, quantity_purchased, source_compass_entry_id,
       stock_verified_at,
       is_personal, can_reorder, is_public, is_featured, is_curated, is_sample, in_transit,
@@ -1266,7 +1266,7 @@ function buildProductMirrorInserts(
       tasting, tasting_source,
       owner_user_id, shown_in_shop, inventory_purpose, stock_known_at,
       legacy_product_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     `list_${productId}`, accountId, `prof_${productId}`,
     body.stock_grams ?? 0, body.low_stock_threshold ?? 100, body.recheck_stock ?? 0,
@@ -1279,6 +1279,14 @@ function buildProductMirrorInserts(
        reimplemented both halves of the schema default it exists to copy. A row
        that was never told a cost says so. */
     body.cost_amount ?? null, body.cost_currency ?? null,
+    /* The provenance is COPIED from the product row, never re-derived from the
+       currency sitting next to it. The update mirror already carried this
+       column; leaving it off the create mirror meant even a stamped single
+       create produced a listing saying nobody had answered. Copying is also the
+       only correct rule: the compass promotion writes a currency it took from a
+       compass entry and deliberately does not stamp it, and a mirror that read
+       the currency would stamp the listing while the product stayed honest. */
+    body.cost_currency_source ?? null,
     // NULL, not 0: nobody has entered a rate, so pricing applies the shop
     // default. A stored 0 is Adrian saying this one ships free.
     body.shipping_rate_per_kg ?? null, body.quantity_purchased ?? null, body.source_compass_entry_id ?? null,
@@ -2918,6 +2926,12 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     delete body.account_id;
     delete body.client_row_id;
     body.account_id = accountId;
+    /* The same stamp the single create writes. Without it an import that named
+       its currency correctly still landed with the column NULL, which is how a
+       row says nobody was ever asked, so `list_unstated_costs` would offer it
+       up and a vendor-wide `set_cost_currency` would rewrite a stated HKD cost
+       to yuan and move that tea's shelf price by the exchange rate. */
+    stampCostCurrencySource(body);
     // Bulk/structured import is ingestion, not a publication action. Force the
     // product and its listing/profile mirrors private even for account owners
     // and even if an untrusted import payload asks to publish.
@@ -3180,7 +3194,6 @@ async function applyProductUpdate(
     const costRefusal = costMissingItsCurrency(body, existingCost?.cost_currency);
     if (costRefusal) return costRefusal;
   }
-  stampCostCurrencySource(body);
   if (body.inventory_purpose !== undefined || body.is_sample !== undefined || body.is_personal !== undefined) {
     try { Object.assign(body, decodeInventoryPurposeWrite(body)); }
     catch (error) { return json({ error: (error as Error).message }, 400); }
@@ -3222,6 +3235,15 @@ async function applyProductUpdate(
       }, 400);
     }
   }
+  /* After the unknown-field check, exactly as the create path does it, and for
+     two reasons that pull the same way. `cost_currency_source` is in no
+     caller-facing column set, so a caller may not send one: it records that
+     this process saw a currency arrive. And stamping BEFORE the check handed
+     that check a field it was bound to reject, so the three command routes
+     refused any edit that stated a cost currency: a 400 naming
+     `cost_currency_source`, on the very route the product edit panel sends a
+     cost change to. The stamp cannot run before the gate it fails. */
+  stampCostCurrencySource(body);
 
   const ownedProduct = await env.DB.prepare('SELECT id FROM products WHERE id = ? AND account_id = ?')
     .bind(params.id, accountId).first();

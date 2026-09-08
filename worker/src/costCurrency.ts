@@ -69,18 +69,37 @@ export const CURRENCY_SOURCE_STATED = 'stated';
 export const CURRENCY_SOURCE_RECOVERED = 'recovered';
 
 /**
- * Mark a write as having stated its currency.
+ * What provenance a write carries, given the currency it is writing.
  *
- * Server-side only, and the caller's own value is dropped first: provenance a
- * caller can set is not provenance. `'stated'` has to mean "a currency arrived
+ * This is the one place the answer is decided, because the doors that write a
+ * cost do not share a shape: three build a `body` object of columns, one builds
+ * a bind list, and two are listing mirrors that copy a product row. Each of
+ * them reached its own conclusion before this existed, and the conclusion four
+ * of them reached was silence: a tea imported with a correctly stated HKD cost
+ * landed with the column NULL, which is what "nobody ever answered" is stored
+ * as, so `list_unstated_costs` offered it up and `set_cost_currency` would have
+ * rewritten it to yuan and moved its price by the exchange rate.
+ *
+ * Server-side only, in every form. `'stated'` has to mean "a currency arrived
  * with this write", which is a fact this process observed, not a claim it was
  * handed. The parallel `tasting_source` is deliberately caller-settable because
  * community aggregation needs to say whose voice a tasting is; nothing needs to
  * say that on Adrian's behalf about a currency.
  */
+export function costCurrencySourceFor(currency: unknown): string | null {
+  return currencyStated(currency) ? CURRENCY_SOURCE_STATED : null;
+}
+
+/**
+ * The same answer, stamped onto a column bag on its way to an INSERT or UPDATE.
+ *
+ * The caller's own value is dropped first, for the reason above: provenance a
+ * caller can set is not provenance.
+ */
 export function stampCostCurrencySource(body: Record<string, unknown>): void {
   delete body.cost_currency_source;
-  if (currencyStated(body.cost_currency)) body.cost_currency_source = CURRENCY_SOURCE_STATED;
+  const source = costCurrencySourceFor(body.cost_currency);
+  if (source) body.cost_currency_source = source;
 }
 
 /**

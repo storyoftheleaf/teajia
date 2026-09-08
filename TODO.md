@@ -13,8 +13,6 @@ Ranked in [docs/AUDIT-2026-09.md](docs/AUDIT-2026-09.md). Each line is one root 
   MONEY-4, JOBO2-1, MONEY-12.
 - [ ] 21 live teas carry a currency label the admin cannot resolve; canonicalise once in the admin, stop `update_tea_pricing` uppercasing, and correct the rows _(band: agent-runnable)_ _(effort: moderate)_
   JOBO-2, MONEY-5, MONEY-10. The row correction moves prices in admin readouts, so it goes to Adrian as a page first.
-- [ ] Stamp cost currency provenance on all eight write paths and both listing mirrors, BEFORE the per-vendor backlog is run _(band: agent-runnable)_ _(effort: moderate)_
-  MONEY-6, JOBO2-2. Blocks the 2026-09-07 yuan decision: the backlog tool would rewrite correctly stated HKD rows today.
 - [ ] The shop grid price omits the handling fee the ladder charges; use one quote for both _(band: you-required)_ _(effort: quick)_
   JOBC-1. Recommendation: the grid uses `quoteGrams()` for its default weight. Adrian decides whether that is the number he wants shown.
 - [ ] Rate-limit and length-cap the inquiry and newsletter endpoints, and make an absent limiter binding refuse rather than allow _(band: agent-runnable)_ _(effort: moderate)_
