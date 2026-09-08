@@ -128,3 +128,15 @@ name = "NEWSLETTER_LIMITER"
 type = "ratelimit"
 namespace_id = "1010"
 simple = { limit = 5, period = 60 }
+
+# Public prepare_order MCP tool (audit SEC-1 class, found on review round two):
+# it writes an inquiries row like the cart and consult endpoints above, so it
+# gets the same durable, cross-isolate limiter. 5 per 60s to match the
+# in-memory PUBLIC_PREPARE_ORDER_RATE_LIMIT already enforced in code, tighter
+# than INQUIRY_LIMITER because this tool is reachable with no name or contact
+# at all.
+[[unsafe.bindings]]
+name = "PUBLIC_PREPARE_ORDER_LIMITER"
+type = "ratelimit"
+namespace_id = "1011"
+simple = { limit = 5, period = 60 }
