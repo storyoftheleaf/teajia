@@ -102,13 +102,27 @@ describe('the markup has one home', () => {
 describe('a cost says what it is in', () => {
   it('is refused at every door that can write an amount', () => {
     expect(worker, 'the cost currency guard is gone').toContain('cost_currency_required');
-    // Both doors: creating a product, and updating one. The update path reads
-    // the row first, because most edits move an amount on a tea whose currency
-    // was settled long ago.
-    // Calls, not the declaration: create and update are two separate doors and
-    // a guard on only one of them is a guard on neither.
-    const calls = [...worker.matchAll(/(?<!function )costMissingItsCurrency\(/g)];
-    expect(calls.length, 'only one write path checks the currency').toBeGreaterThanOrEqual(2);
+    /* THREE doors, not two, and they no longer reach the rule the same way.
+       Creating one tea, creating fifty from a spreadsheet, and updating one.
+
+       The create half now goes through `productCreateCostRefusal`, which asks
+       `createMissingCost` for BOTH halves at once and is strictly the harder
+       question: it refuses an absent amount as well as an unstated unit. It had
+       to become one function because the two answers have different SHAPES. The
+       currency half used to be asked for the whole request, above the row loop,
+       so a fifty-row import carrying one currency token the map could not read
+       was refused entire and landed nothing. The bulk door refuses the row; the
+       single door refuses the request; the words and the named half are the
+       same either way.
+
+       The update path keeps `costMissingItsCurrency`, because it asks a
+       narrower question on purpose: it reads the row first, since most edits
+       move an amount on a tea whose currency was settled long ago.
+
+       Calls, not declarations. A guard on one door is a guard on none. */
+    const reachesTheRule = [...worker.matchAll(/(?<!function )(?:costMissingItsCurrency|productCreateCostRefusal)\(/g)];
+    expect(reachesTheRule.length, 'a door that writes an amount does not reach the rule')
+      .toBeGreaterThanOrEqual(3);
     expect(worker).toContain('SELECT cost_currency FROM products WHERE id = ?');
   });
 

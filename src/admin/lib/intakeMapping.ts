@@ -9,6 +9,7 @@
 
 import { TEA_TYPES, NON_TEA_TYPES, normalizeTeaType, type TeaType, type TeaForm as WisdomTeaForm } from '../../wisdom';
 import { recognizeForm, recognizeType } from '../../wisdom/recognition';
+import { enteredCostCell } from '../productUpdatePayload';
 
 export type TargetGroup = 'item' | 'order' | 'ignore';
 
@@ -127,18 +128,18 @@ const MISSING = new Set(['', 'unknown', 'nan', 'null', 'undefined', 'n/a', '-'])
 export const isMissing = (v: unknown): boolean =>
   v == null || MISSING.has(String(v).toLowerCase().trim());
 
+/**
+ * A cell read as a count: grams, units, a quantity. Nothing written is nothing
+ * of it, which for a count is 0 and reads correctly on every surface.
+ *
+ * MONEY IS NOT A COUNT, and must not come through here. Zero grams is an empty
+ * shelf; zero cost is a free tea, and the shelf prices it at zero times three.
+ * The reader itself is shared (`enteredCostCell` handles "4+8", "~235", "2,100"
+ * and "NT$300" the way this always did); what differs is only what absence
+ * means, and this is the one place that says it means zero.
+ */
 export function parseNum(v: unknown): number {
-  if (isMissing(v)) return 0;
-  // handle "4+8", "3+3+3+3", "~235", "2,100", "NT$300"
-  const str = String(v).replace(/[~≈]/g, '');
-  if (/\+/.test(str)) {
-    return str.split('+').reduce((sum, part) => {
-      const n = parseFloat(part.replace(/[^0-9.-]/g, ''));
-      return sum + (Number.isFinite(n) ? n : 0);
-    }, 0);
-  }
-  const n = parseFloat(str.replace(/[^0-9.-]/g, ''));
-  return Number.isFinite(n) ? n : 0;
+  return enteredCostCell(v) ?? 0;
 }
 
 // Sniff a currency token out of free text (a price cell like "700 NT$" or a
@@ -207,7 +208,8 @@ export interface StagedItem {
   originCountry: string;
   originRegion: string;
   vendor: string;
-  costAmount: number;
+  /** Null when the sheet said nothing. Never 0 for that: 0 is a free tea. */
+  costAmount: number | null;
   costCurrency: string;
   stockGrams: number;
   quantityPurchased: number;
@@ -374,7 +376,9 @@ export function rowToStaged(
     originCountry: String(mappedValue(row, mapping, 'origin_country') || '').trim(),
     originRegion: String(mappedValue(row, mapping, 'origin_region') || '').trim(),
     vendor: String(mappedValue(row, mapping, 'vendor') || '').trim(),
-    costAmount: parseNum(mappedValue(row, mapping, 'cost_amount')),
+    // Not parseNum: a price column the sheet left empty is a cost nobody
+    // recorded, and 0 would say the tea was free.
+    costAmount: enteredCostCell(mappedValue(row, mapping, 'cost_amount')),
     costCurrency: resolveCurrency(row, mapping, mappedValue(row, mapping, 'cost_amount')),
     stockGrams,
     quantityPurchased,
@@ -394,7 +398,7 @@ export function rowToStaged(
 export function isReadyItem(it: StagedItem): boolean {
   const hasName = !!(it.givenName || it.productName);
   const hasType = it.type !== 'Misc';
-  const hasCost = it.costAmount > 0;
+  const hasCost = (it.costAmount ?? 0) > 0;
   const hasStock = it.stockGrams > 0 || it.quantityPurchased > 0 || it.quantityUnits > 0;
   return hasName && hasType && hasCost && hasStock && !it.needsReview;
 }
@@ -415,7 +419,14 @@ export function stagedToProduct(it: StagedItem, extraCost = 0): Record<string, a
     year: it.year && !isMissing(it.year) ? it.year : null,
     origin_country: it.originCountry || 'Unknown',
     origin_region: it.originRegion || null,
-    cost_amount: Math.round((it.costAmount + (extraCost || 0)) * 100) / 100,
+    /* An item whose sheet named no price carries no cost onto the wire. The
+       cleaning loop below drops the null, so the column is not named and the
+       worker refuses the row rather than storing a zero that reads as free.
+       Freight cannot rescue it either: a share of shipping added to a cost
+       nobody recorded is not a landed cost, it is the shipping on its own. */
+    cost_amount: it.costAmount === null
+      ? null
+      : Math.round((it.costAmount + (extraCost || 0)) * 100) / 100,
     cost_currency: it.costCurrency,
     vendor: it.vendor || null,
     description: it.description || null,
@@ -475,7 +486,9 @@ export function extractedToStaged(
     originCountry: String(data.originCountry || '').trim(),
     originRegion: String(data.originRegion || '').trim(),
     vendor: String(data.vendor || '').trim(),
-    costAmount: parseNum(data.costAmount),
+    // Same rule on the vision path: a photograph with no price on it is a cost
+    // nobody recorded, not a tea that was free.
+    costAmount: enteredCostCell(data.costAmount),
     costCurrency: normalizeCurrency(data.costCurrency),
     stockGrams: type === 'Teaware' ? 0 : qty,
     quantityPurchased: qty,

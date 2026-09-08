@@ -2868,7 +2868,7 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     if (unknownFields.length > 0) {
       return restError(400, 'Unsupported fields for product creation', 'validation_failed', { fields: unknownFields });
     }
-    const capabilityError = validateProductCreateCapabilities(ctx, raw);
+    const capabilityError = validateProductCreateCapabilities(ctx, raw, { costRefusedPerRow: true });
     if (capabilityError) return capabilityError;
     const ownerError = await validateProductOwnerAssignment(env, ctx, raw);
     if (ownerError) return ownerError;
@@ -2966,6 +2966,36 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     if (name && existingByNaturalKey.has(key)) {
       skipped.push(body.product_name || body.given_name || 'unknown');
       results.push({ client_row_id: clientRowId, status: 'skipped', reason: 'A product with this type and name already exists' });
+      continue;
+    }
+    /* A tea is not added without saying what it cost, asked of the RAW row and
+       before the name is claimed below.
+
+       Raw, because a blank cell arrives as '' and the stripped body no longer
+       shows the difference between a column somebody emptied and one they never
+       mapped; the agent door learned the same lesson, that a guard handed a
+       converted value cannot tell absence from an answer.
+
+       Per row, because this door is a spreadsheet. Refusing the request would
+       throw away every complete row in the file over one empty price cell, and
+       the import screens already carry a per-row reason back to the review
+       surface, so the operator sees which lines still need a figure and the
+       rest of the import lands. The single create refuses the whole request
+       because there a request IS one tea.
+
+       BOTH halves, amount and currency. The currency half was the one still
+       asked for the whole request, and the CSV import writes `UNK` for any
+       currency token its map does not recognise, so a fifty-row file with one
+       unreadable currency cell landed nothing at all and said only that a cost
+       needs a currency. Half a rule per row is not the rule.
+
+       Before the name is claimed, because a row that does not land must not
+       hold its name against a later row in the same file that does say what it
+       cost. */
+    const costRefusal = productCreateCostRefusal(raw);
+    if (costRefusal) {
+      skipped.push(body.product_name || body.given_name || 'unknown');
+      results.push({ client_row_id: clientRowId, status: 'skipped', reason: costRefusal.message });
       continue;
     }
     existingByNaturalKey.set(key, body); // Prevent duplicates within the same batch
@@ -3100,7 +3130,45 @@ const PRODUCT_CREATE_PUBLICATION_COLUMNS = new Set(
   [...PRODUCT_PUBLICATION_UPDATE_COLUMNS].filter(column => column !== 'is_personal' && column !== 'is_sample'),
 );
 
-function validateProductCreateCapabilities(ctx: AccountCtx, body: Record<string, unknown>): Response | null {
+/**
+ * A tea is not added without saying what it cost, as an HTTP refusal.
+ *
+ * Its own function because the two create doors have to answer differently in
+ * shape while answering identically in substance. The single create refuses the
+ * request. The bulk create refuses the ROW, because a spreadsheet is many teas
+ * and one blank price cell must not throw away the forty-nine rows that did say
+ * what they cost. Same rule, same words, same named half.
+ *
+ * BOTH halves are decided here, and that is the point. The currency half used
+ * to be asked in `validateProductCreateCapabilities` above, for the whole
+ * request, which meant a fifty-row spreadsheet carrying one cell the currency
+ * map could not read was refused entire and landed nothing. The CSV import
+ * writes `UNK` for any currency token it does not recognise, so that was not a
+ * hypothetical row: it is what the import screen sends. One rule cannot be half
+ * per-row and half per-request, so it is one function and both doors call it.
+ */
+function productCreateCostRefusal(
+  body: Record<string, unknown>,
+): { missing: 'amount' | 'currency'; code: string; message: string } | null {
+  const missing = createMissingCost({ amount: body.cost_amount, currency: body.cost_currency });
+  if (!missing) return null;
+  /* The currency half keeps the words and the code it has always answered with,
+     so a client that already reads `cost_currency_required` still reads it, and
+     the row reason and the request error are the same sentence. */
+  const words = missing === 'currency' ? COST_CURRENCY_REQUIRED : COST_REQUIRED_ON_CREATE;
+  const code = missing === 'currency' ? 'cost_currency_required' : 'cost_required';
+  return { missing, code, message: `${words} (missing: ${missing})` };
+}
+
+function validateProductCreateCapabilities(
+  ctx: AccountCtx,
+  body: Record<string, unknown>,
+  /* The bulk door asks for its cost refusal one row at a time, further down,
+     so that a batch is not lost to a single blank cell. Every capability check
+     below still runs here, for every row, before any row is written: the
+     authorisation answer comes first, and it comes for the whole request. */
+  options: { costRefusedPerRow?: boolean } = {},
+): Response | null {
   const supplied = (columns: Set<string>) => [...columns].some(column => Object.prototype.hasOwnProperty.call(body, column));
   const missing = (bundle: Bundle) => !ctx.isPlatform && ctx.role !== 'owner' && !ctx.bundles.includes(bundle);
   if (supplied(PRODUCT_CREATE_STOCK_COLUMNS) && missing('stock')) {
@@ -3109,9 +3177,6 @@ function validateProductCreateCapabilities(ctx: AccountCtx, body: Record<string,
   if (supplied(PRODUCT_CREATE_COMMERCIAL_COLUMNS) && missing('sell')) {
     return restError(403, 'Sell capability required for supplied fields', 'insufficient_bundle', { required_bundle: 'sell' });
   }
-  // Nothing exists yet to inherit a currency from, so the payload has to say.
-  const createCostRefusal = costMissingItsCurrency(body, null);
-  if (createCostRefusal) return createCostRefusal;
   if (supplied(PRODUCT_CREATE_PUBLICATION_COLUMNS) && missing('publish')) {
     return restError(403, 'Publish capability required for supplied fields', 'insufficient_bundle', { required_bundle: 'publish' });
   }
@@ -3134,10 +3199,14 @@ function validateProductCreateCapabilities(ctx: AccountCtx, body: Record<string,
      may not create this product at all should be told that, not handed a list
      of what else their payload was missing: the authorisation answer is the
      true one, and it is the one that does not describe a form they are not
-     allowed to fill in. */
-  const missingCost = createMissingCost({ amount: body.cost_amount, currency: body.cost_currency });
-  if (missingCost) {
-    return restError(400, COST_REQUIRED_ON_CREATE, 'cost_required', { missing: missingCost });
+     allowed to fill in. The currency half is asked here too, for the same
+     reason: it used to run above the capability checks, which told a caller who
+     could not publish what else was wrong with a form they were not allowed to
+     fill in. */
+  if (options.costRefusedPerRow) return null;
+  const costRefusal = productCreateCostRefusal(body);
+  if (costRefusal) {
+    return restError(400, costRefusal.message, costRefusal.code, { missing: costRefusal.missing });
   }
   return null;
 }

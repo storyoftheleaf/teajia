@@ -9,8 +9,6 @@ Ranked in [docs/AUDIT-2026-09.md](docs/AUDIT-2026-09.md). Each line is one root 
 - [ ] Every new tea ships free and carries the old markup through five of six doors, because the live table still defaults to 0 and 2.5 _(band: agent-runnable)_ _(effort: deep)_ → Plan: [freight-default-lives-in-the-table.md](todo/plans/freight-default-lives-in-the-table.md)
 - [ ] Nothing on a push to main runs the type check, the build or the full test suites; add the gate that would have caught the two-day outage _(band: agent-runnable)_ _(effort: moderate)_
   TEST-1, TEST-2: `deploy-frontend.yml` is manual, `playwright.yml` runs 2 of 48 specs, no hooks.
-- [ ] A blank cost becomes zero at four client doors (CSV, xlsx, sample graduation, Tea Compass), and the agent-door guard test cannot go red _(band: agent-runnable)_ _(effort: moderate)_
-  MONEY-4, JOBO2-1, MONEY-12.
 - [ ] 21 live teas carry a currency label the admin cannot resolve; canonicalise once in the admin, stop `update_tea_pricing` uppercasing, and correct the rows _(band: agent-runnable)_ _(effort: moderate)_
   JOBO-2, MONEY-5, MONEY-10. The row correction moves prices in admin readouts, so it goes to Adrian as a page first.
 - [ ] The shop grid price omits the handling fee the ladder charges; use one quote for both _(band: you-required)_ _(effort: quick)_
@@ -26,8 +24,16 @@ Everything below the ten is in the report's "Later" bucket: false-success delete
 
 ## Untriaged
 
+- [ ] Nothing checks that a cost refusal reaches the operator in plain words _(band: agent-runnable)_ _(effort: quick)_
+  `plainCostWords` in `src/lib/costRefusalWords.ts` is unit-tested, but removing the call from `CsvImportModal.tsx`, `IntakeWorkspace.tsx` or `SampleSetCreator.tsx` leaves the whole suite green, so the raw server string with column names could reach a screen again in silence. One assertion per call site. Found by the item 3 reviewer on 2026-09-09.
+- [ ] The Tea Compass capture card opens on Taiwan dollars, and an untouched default is stamped as a stated currency _(band: agent-runnable)_ _(effort: quick)_
+  `createEmptyEntry` in `src/components/TeaCompass/types.ts` sets `priceCurrency` to NT with `touchedFields` empty; promotion sends it and the server marks `cost_currency_source` as stated, so a row nobody answered is excluded from `list_unstated_costs` for good. Adrian's 2026-09-07 rule is yuan for the whole shelf. Default to Yuan, or leave it unset until the picker is touched so the server's refusal does the asking. Found by the item 3 reviewer on 2026-09-09.
+
 - [ ] A wholesale listing with no recorded quantity can be added to a draft order at a unit price of zero _(band: agent-runnable)_ _(effort: quick)_
   `WholesaleOrderDraft.tsx` reads `profile.wholesale_price_per_gram_caller ?? 0`. The catalogue now returns null for a cost-based listing whose `quantity_purchased` is missing (it used to quote the total cost as a per-gram price), so that null reaches the draft as a free tea. Nothing entered is NULL, and a null price should refuse to be added, not become 0. Found by the item 8 reviewer on 2026-09-09.
+
+- [ ] Wiring product editing back on would write a zero over a cost nobody recorded _(band: agent-runnable)_ _(effort: quick)_
+  `AddProductModal` hydrates its edit form with `initialData.costAmount.toString()`, and `useAdminData.ts` builds that field as `Number(p.cost_amount) || 0`, so a product whose cost is NULL arrives in the form as "0" and saving would store a free tea over "nobody said". It is inert TODAY only because nothing passes `initialData`: `AdminApp.tsx` holds an `editingProduct` state that is only ever set back to null, and `Shop.tsx` renders the modal for new items only. Found while fixing the blank-cost doors on 2026-09-09. Sits beside MONEY-9 (the inventory grid's live preview reads a deliberate 0 freight as unset): both are the absent-versus-zero rule failing on the READ side, where `enteredNumber` never runs.
 
 - [ ] An agent price edit leaves the partner listing quoting the old cost currency _(band: agent-runnable)_ _(effort: quick)_
   `commitUpdateTeaPricing` in `worker/src/mcp.ts` stamps `products.cost_currency_source` but writes no `cost_amount`, `cost_currency` or `cost_currency_source` to `product_listings`, so after `update_tea_pricing` the listing row still carries the old cost with a NULL mark. Found by the item 5 reviewer on 2026-09-09; `set_cost_currency` handles the same mirror correctly and is the pattern to copy. No backlog risk, because `list_unstated_costs` reads `products`.
