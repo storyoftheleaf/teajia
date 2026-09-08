@@ -13,6 +13,7 @@
  * ¥1,200 invoice stored as $1,200 prices the tea sevenfold, and nothing objects,
  * because 1200 is a perfectly good number.
  */
+import { canonicalCurrency } from '../../src/lib/currency';
 
 /** The message every door gives, so the same refusal reads the same way. */
 export const COST_CURRENCY_REQUIRED =
@@ -100,6 +101,27 @@ export function stampCostCurrencySource(body: Record<string, unknown>): void {
   delete body.cost_currency_source;
   const source = costCurrencySourceFor(body.cost_currency);
   if (source) body.cost_currency_source = source;
+}
+
+/**
+ * Turn whatever a caller wrote for cost_currency into the shop's own spelling,
+ * in place on the column bag headed for an INSERT or UPDATE.
+ *
+ * `canonicalCurrency` already carries the one alias map (src/lib/currency.ts):
+ * 'cny' and 'CNY' both become 'Yuan', because the exchange table is keyed by
+ * that literal string and anything typed differently reads as a currency with
+ * no rate. This is the single place a write-side column bag is passed through
+ * it, so REST create, bulk create, an ordinary update, and the compass
+ * promotion all store the same spelling for the same money, and the listing
+ * mirror copies whichever one they wrote.
+ *
+ * A currency that was never stated is left alone: canonicalising 'UNK' or a
+ * blank would either invent a spelling for a sentinel or turn nothing into
+ * something, and that question belongs to `currencyStated`, not to this.
+ */
+export function canonicalizeCostCurrency(body: Record<string, unknown>): void {
+  if (!currencyStated(body.cost_currency)) return;
+  body.cost_currency = canonicalCurrency(String(body.cost_currency).trim());
 }
 
 /**

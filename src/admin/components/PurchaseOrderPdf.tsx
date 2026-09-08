@@ -11,6 +11,7 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Font } from '@react-pdf/renderer';
 import { CartItem, ExchangeRate, Currency } from '../types';
+import { isoCurrencyCode, rateToUsd } from '../../lib/currency';
 
 Font.register({
   family: 'Plus Jakarta Sans',
@@ -110,8 +111,11 @@ const styles = StyleSheet.create({
   }
 });
 
+/* Through the ISO code, because the shop keys yuan as 'Yuan' and the Taiwan
+   dollar as 'NT', and Intl throws a RangeError on both. That threw inside the
+   PDF renderer, so the operator got no purchase order at all. */
 const format = (num: number, currency: string) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(num);
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: isoCurrencyCode(currency) }).format(num);
 
 interface PurchaseOrderPdfProps {
   poNumber: string;
@@ -126,10 +130,15 @@ interface PurchaseOrderPdfProps {
 export const PurchaseOrderPdfDocument: React.FC<PurchaseOrderPdfProps> = ({
   poNumber, vendorName, vendorContact, cart, rates, currency, shipping,
 }) => {
-  const rate = rates.find(r => r.currency === currency)?.rateToUSD || 1;
+  /* A rate of 1 for a currency the shop cannot resolve prints dollar figures
+     under a foreign label, on a document that goes to a vendor. So the lookup
+     canonicalises ('CNY' is the 'Yuan' row) and, where there really is no rate,
+     the order is drawn in USD rather than mislabelled. */
+  const rate = rateToUsd(rates, currency);
+  const drawnIn: string = rate === null ? 'USD' : currency;
   const subtotal = cart.reduce((acc, item) => acc + (item.quantity * item.priceAtSale), 0);
   const total = subtotal + shipping;
-  const conv = (usd: number) => usd * (currency === 'USD' ? 1 : rate);
+  const conv = (usd: number) => (rate === null || drawnIn === 'USD' ? usd : usd * rate);
 
   return (
     <Document>
@@ -166,8 +175,8 @@ export const PurchaseOrderPdfDocument: React.FC<PurchaseOrderPdfProps> = ({
                 <Text style={{ color: '#666', fontSize: 8 }}>{item.product.productName}</Text>
               </View>
               <Text style={styles.colQty}>{item.quantity} {item.product.type === 'Teaware' ? 'u' : 'g'}</Text>
-              <Text style={styles.colRate}>{format(conv(item.priceAtSale), currency)}</Text>
-              <Text style={styles.colTotal}>{format(conv(item.quantity * item.priceAtSale), currency)}</Text>
+              <Text style={styles.colRate}>{format(conv(item.priceAtSale), drawnIn)}</Text>
+              <Text style={styles.colTotal}>{format(conv(item.quantity * item.priceAtSale), drawnIn)}</Text>
             </View>
           ))}
         </View>
@@ -175,17 +184,17 @@ export const PurchaseOrderPdfDocument: React.FC<PurchaseOrderPdfProps> = ({
         <View style={styles.totals}>
           <View style={styles.totalRow}>
             <Text>Subtotal</Text>
-            <Text>{format(conv(subtotal), currency)}</Text>
+            <Text>{format(conv(subtotal), drawnIn)}</Text>
           </View>
           {shipping > 0 && (
             <View style={styles.totalRow}>
               <Text>Shipping</Text>
-              <Text>{format(conv(shipping), currency)}</Text>
+              <Text>{format(conv(shipping), drawnIn)}</Text>
             </View>
           )}
           <View style={styles.grandTotal}>
             <Text>Total</Text>
-            <Text>{format(conv(total), currency)}</Text>
+            <Text>{format(conv(total), drawnIn)}</Text>
           </View>
         </View>
 

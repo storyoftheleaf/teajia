@@ -534,7 +534,18 @@ function requiresSeparateEnglishName(originalName: string, englishName: string |
     || Boolean(englishName && comparable(originalName) !== comparable(englishName));
 }
 
-function canonicalCurrency(value: string | null): string | null {
+/**
+ * The ISO code this string is, or null when it is not one.
+ *
+ * Deliberately NOT the shared `canonicalCurrency`, which it was named after and
+ * is the opposite of: that one translates a spelling into whatever the shop
+ * keys money under, including its two non-ISO names, and passes an unknown
+ * through. This one refuses anything that is not a real ISO code, because a
+ * provider's import record is only complete when the currency it states is one,
+ * and a yen sign is not. Two functions of one name, one importing the other's
+ * file, is how a caller ends up with the wrong answer and no error.
+ */
+function isoCurrencyCodeOrNull(value: string | null): string | null {
   if (!value || value === '¥' || value === '￥') return null;
   const code = value.trim().toUpperCase();
   return ISO_4217_CODES.has(code) ? code : null;
@@ -604,7 +615,7 @@ export function normalizeImportProposal(value: ImportAnalysisProposal): Normaliz
         for (const field of OPTIONAL_METADATA_FIELDS) {
           if (item[field] == null && validation[field] == null) validation[field] = 'not_present';
         }
-        const currency = canonicalCurrency(item.currency);
+        const currency = isoCurrencyCodeOrNull(item.currency);
         const block = (field: string) => { if (!blockingFields.includes(field)) blockingFields.push(field); };
         if (item.packWeight == null || item.packWeight <= 0) blockingFields.push('packWeight');
         if (item.weightUnit == null) blockingFields.push('weightUnit');
@@ -1016,7 +1027,7 @@ export function buildImportRecordHints(evidence: ImportEvidenceForAnalysis): Imp
   hints.complete = hints.items.length > 0
     && unexplainedLines === 0
     && hints.items.every(item => item.arithmeticMatches)
-    && hints.items.every(item => canonicalCurrency(item.currency) != null)
+    && hints.items.every(item => isoCurrencyCodeOrNull(item.currency) != null)
     && hints.annotations.every(annotation => annotation.arithmeticMatches !== false);
   return hints;
 }

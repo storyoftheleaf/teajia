@@ -7,14 +7,15 @@
 Ranked in [docs/AUDIT-2026-09.md](docs/AUDIT-2026-09.md). Each line is one root cause; the ids point at the verified findings.
 
 - [ ] Every new tea ships free and carries the old markup through five of six doors, because the live table still defaults to 0 and 2.5 _(band: agent-runnable)_ _(effort: deep)_ → Plan: [freight-default-lives-in-the-table.md](todo/plans/freight-default-lives-in-the-table.md)
-- [ ] 21 live teas carry a currency label the admin cannot resolve; canonicalise once in the admin, stop `update_tea_pricing` uppercasing, and correct the rows _(band: agent-runnable)_ _(effort: moderate)_
-  JOBO-2, MONEY-5, MONEY-10. The row correction moves prices in admin readouts, so it goes to Adrian as a page first.
 - [ ] The shop grid price omits the handling fee the ladder charges; use one quote for both _(band: you-required)_ _(effort: quick)_
   JOBC-1. Recommendation: the grid uses `quoteGrams()` for its default weight. Adrian decides whether that is the number he wants shown.
 
 Everything below the ten is in the report's "Later" bucket: false-success deletes, the unfiltered wisdom read, eager home imports and the 2 MB admin chunk, the unpaginated customers list, duplicated slug and sha256 helpers, 99 orphan files, the 36 px AccountPanel controls, the off-scale radius, three High npm advisories, the 57-day-old docs index.
 
 ## Untriaged
+
+- [ ] Customer-facing money surfaces still show the wrong figure for a yuan or Taiwan-dollar order, even after the write side canonicalises _(band: agent-runnable)_ _(effort: moderate)_
+  `src/lib/orderMoney.ts` shows USD for a Yuan invoice in order history; the worker's local payment amount lookup keys `'CNY'`/`'TWD'` against a table keyed `'Yuan'`/`'NT'`, so a yuan shopper sees no local figure at all; `SourcesView` and the Tea Compass `OrderSummary` each keep their own currency symbol table; and the worker's `formatMoney` for order emails hands `'Yuan'` straight to `Intl`, which throws on the shop's own key. All four degrade honestly rather than mis-price anything, which is why this round left them alone: they are the customer-facing half of the same currency-spelling class that round three fixed on the write side (see CLAUDE.md's "A number without its unit is not a number"), and touching customer-facing display is Adrian's call, not a code-fix call. Found by the item 4 round-three reviewer on 2026-09-09.
 
 - [ ] The long-read browser check reads the page before the article has loaded, so it passes whether or not the article is there _(band: agent-runnable)_ _(effort: quick)_
   `tests/immersive-read.spec.ts` waits a fixed 700 ms and then reads the body; at that moment the lazy article chunk has not arrived and neither the article nor the not-found page is on screen, so its three draft-route tests were vacuous before the publish gate and still are. Replace the sleep with auto-retrying assertions the way `tests/read-publish-gate.spec.ts` does. Found by the item 9 reviewer on 2026-09-09.

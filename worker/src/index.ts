@@ -13,7 +13,7 @@ import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type Co
 import { shippingPerGramUsd, resolveShopFreightDefault } from './shippingRate';
 import { FX_FEED_CURRENCY_MAP, refreshedCurrencyName } from './exchangeRateFeed';
 import { SHOP_MARKUP_MULTIPLIER, CURATOR_FALLBACK_MARKUP } from './markup';
-import { costNeedsCurrency, createMissingCost, currencyStated, stampCostCurrencySource, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
+import { costNeedsCurrency, createMissingCost, currencyStated, stampCostCurrencySource, canonicalizeCostCurrency, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
 import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 import { deriveConfirmedInvoiceLine, repairCandidate, formatInvoiceNumber, loadUsdRates, amountToUsd } from './invoiceDomain';
@@ -95,6 +95,7 @@ import {
   resolveTeaReferenceIssues,
 } from './teaReferenceIssues';
 import { isTeaType, TEA_TYPES } from '../../src/wisdom/vocabulary';
+import { isUnrecordedCurrency } from '../../src/lib/currency';
 import {
   catalogProductIds, INQUIRY_MAX_CONTACT, INQUIRY_MAX_INTEREST_LABEL, INQUIRY_MAX_INTERESTS,
   INQUIRY_MAX_LOCATION, INQUIRY_MAX_NAME, INQUIRY_MAX_NOTE, INQUIRY_MAX_PHONE, INQUIRY_MAX_REF_NUMBER,
@@ -1583,8 +1584,11 @@ function addPricingFields(product: any, rates: Map<string, number>, shopDefaultP
      'UNK' is the sentinel the admin uses for it. That still converts at 1,
      because that is what it has always meant, not because a rate is missing. */
   const declared = product.cost_currency as string | null | undefined;
-  const unrecorded = !declared || String(declared).trim() === '' || String(declared).toUpperCase() === 'UNK';
-  const rate = unrecorded ? 1 : lookupRateToUsd(rates, declared);
+  // The reading of "nobody said" lives beside the alias map, because the admin
+  // dashboard has to take the same one or the shelf and the dashboard disagree
+  // about the same teas. It was written out here in full, which is how a rule
+  // gets two homes.
+  const rate = isUnrecordedCurrency(declared) ? 1 : lookupRateToUsd(rates, declared);
   const isTeaware = product.type === 'Teaware';
   if (!rate || rate <= 0) {
     return {
@@ -2767,6 +2771,11 @@ const handleCreateProduct: Handler = async (request, env) => {
   /* After the unknown-field check, so `cost_currency_source` is not a field a
      caller may send: it records that this process saw a currency arrive. */
   stampCostCurrencySource(body);
+  /* The shop's own spelling, once, here: 'cny' and 'CNY' both become 'Yuan'
+     before the row or its mirror ever sees them. Order does not matter against
+     the stamp above; it only matters that this runs before the INSERT and
+     before buildProductMirrorInserts, both of which read body.cost_currency. */
+  canonicalizeCostCurrency(body);
   const ownerError = await validateProductOwnerAssignment(env, ctx, body);
   if (ownerError) return ownerError;
   const canPublish = ctx.isPlatform || ctx.role === 'owner' || ctx.bundles.includes('publish');
@@ -2966,6 +2975,10 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
        up and a vendor-wide `set_cost_currency` would rewrite a stated HKD cost
        to yuan and move that tea's shelf price by the exchange rate. */
     stampCostCurrencySource(body);
+    // The same canonicalisation the single create runs, per row: a spreadsheet
+    // cell reading 'hkd' or 'cny' is stored as 'HKD' or 'Yuan', the spelling the
+    // exchange table and every other door already agree on.
+    canonicalizeCostCurrency(body);
     // Bulk/structured import is ingestion, not a publication action. Force the
     // product and its listing/profile mirrors private even for account owners
     // and even if an untrusted import payload asks to publish.
@@ -3347,6 +3360,11 @@ async function applyProductUpdate(
      `cost_currency_source`, on the very route the product edit panel sends a
      cost change to. The stamp cannot run before the gate it fails. */
   stampCostCurrencySource(body);
+  // The same canonicalisation the create doors run, so an edit through the
+  // product edit panel or /commercial cannot re-introduce a raw spelling that
+  // create already refuses to store. Runs before the UPDATE and before
+  // buildProductMirrorStmts, both of which read body.cost_currency.
+  canonicalizeCostCurrency(body);
 
   const ownedProduct = await env.DB.prepare('SELECT id FROM products WHERE id = ? AND account_id = ?')
     .bind(params.id, accountId).first();
@@ -14722,6 +14740,11 @@ const handlePromoteCompassEntry: Handler = async (request, env, params) => {
     tea_key: entry.tea_key ?? null,
     source_compass_entry_id: entry.id,
   };
+  // The same canonicalisation every other write door runs, so a compass entry
+  // carrying 'cny' or 'hkd' promotes to the shop's own spelling instead of a
+  // currency the exchange table has no row for. No-op when the entry's
+  // currency was never stated, which is what leaves cost_currency NULL above.
+  canonicalizeCostCurrency(cols);
 
   const colNames = Object.keys(cols);
   const placeholders = colNames.map(() => '?').join(', ');

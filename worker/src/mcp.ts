@@ -35,7 +35,7 @@ import { writingToolModule } from './mcpTools/writing';
 import { costCurrencyTools } from './mcpTools/costCurrency';
 import { resolveShopFreightDefault, shippingPerGramUsd } from './shippingRate';
 import { costNeedsCurrency, createMissingCost, currencyStated, costCurrencySourceFor, CURRENCY_SOURCE_STATED, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
-import { REFRESHED_CURRENCIES, refreshedCurrencyName } from './exchangeRateFeed';
+import { REFRESHED_CURRENCIES, refreshedCurrencyName, isRefreshedCurrency } from './exchangeRateFeed';
 import {
   authorizeInvoiceLines,
   buildSettlementReversalStatements,
@@ -802,8 +802,12 @@ async function toolCreateTea(env: Env, auth: McpAuth, args: any) {
        nobody is looking at a form to notice. Refused below instead; a tea
        created with no cost at all keeps NULL, which is honest. */
     shippingRatePerKg,
+    /* No `.toUpperCase()` before the map. It is redundant, since the lookup
+       lower-cases both sides, and it is what a reader copies to the next door,
+       which is how `update_tea_pricing` came to uppercase and canonicalise
+       nothing at all. */
     costCurrency: currencyStated(args?.cost_currency)
-      ? canonicalCurrency(String(args.cost_currency).trim().toUpperCase())
+      ? canonicalCurrency(String(args.cost_currency).trim())
       : null,
     fixedRetailPriceUsd,
     lowStockThreshold,
@@ -2015,7 +2019,15 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
   }
 
   const costAmount: number | null = 'cost_amount' in (args || {}) ? Number(args.cost_amount) : null;
-  const costCurrency: string | null = args?.cost_currency ? String(args.cost_currency).toUpperCase().trim() : null;
+  /* Canonicalised, not uppercased. Uppercasing is what wrote 'CNY' and 'YUAN'
+     onto 22 teas: it turns a valid answer into a label the exchange table has
+     no row for, so the shelf priced them (the worker canonicalises on read)
+     while every admin readout of them fell back to a rate of 1 and showed a
+     yuan cost as dollars. `create_tea` two thousand lines up already did this
+     correctly; this door did not, and it is the one that keeps making them. */
+  const costCurrency: string | null = args?.cost_currency
+    ? canonicalCurrency(String(args.cost_currency).trim())
+    : null;
   const retailPriceUsd: number | null = 'retail_price_usd' in (args || {}) ? Number(args.retail_price_usd) : null;
   const quantityPurchased: number | null = 'quantity_purchased' in (args || {}) ? Math.round(Number(args.quantity_purchased)) : null;
   const year: number | null = hasNewYear ? Math.round(Number(args.year)) : null;
@@ -5468,11 +5480,20 @@ async function toolUpdateExchangeRate(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const currency = args?.currency ? String(args.currency).toUpperCase().trim() : '';
+  /* Canonicalised, because the row this edits is keyed by the shop's own name.
+     'CNY' is a perfectly good way to say yuan and it used to come back
+     `currency_not_found` while the shop was pricing 22 teas through the 'Yuan'
+     row it could not see. The ISO check runs on what was TYPED, so garbage is
+     still refused; a shop key like 'Yuan' or 'NT' is accepted because the table
+     really does hold it. */
+  const typed = args?.currency ? String(args.currency).trim() : '';
+  const currency = canonicalCurrency(typed) ?? '';
   const rateVsUsd = Number(args?.rate_vs_usd);
   const confirm = args?.confirm ? String(args.confirm) : null;
 
-  if (!currency || !/^[A-Z]{3}$/.test(currency)) throw new Error('currency must be a valid 3-letter ISO code (e.g. CNY, AUD)');
+  if (!currency || (!/^[A-Za-z]{3}$/.test(typed) && !isRefreshedCurrency(currency))) {
+    throw new Error('currency must be a valid 3-letter ISO code (e.g. CNY, AUD) or one of the shop\'s own keys (Yuan, NT)');
+  }
   if (!Number.isFinite(rateVsUsd) || rateVsUsd <= 0) throw new Error('rate_vs_usd must be a positive number (units of currency per 1 USD)');
 
   const existing = await env.DB.prepare(
