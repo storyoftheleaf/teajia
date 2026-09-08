@@ -33,7 +33,7 @@ import { curationTools } from './mcpTools/curation';
 import { eventsToolModule } from './mcpTools/events';
 import { writingToolModule } from './mcpTools/writing';
 import { costCurrencyTools } from './mcpTools/costCurrency';
-import { costNeedsCurrency, createMissingCost, currencyStated, CURRENCY_SOURCE_STATED, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
+import { costNeedsCurrency, createMissingCost, currencyStated, costCurrencySourceFor, CURRENCY_SOURCE_STATED, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
 import { REFRESHED_CURRENCIES, refreshedCurrencyName } from './exchangeRateFeed';
 import {
   authorizeInvoiceLines,
@@ -786,7 +786,10 @@ async function toolCreateTea(env: Env, auth: McpAuth, args: any) {
 // tea. Ported inline from index.ts's buildProductMirrorInserts (mcp.ts
 // deliberately does not import index.ts) — kept narrow to the fields create_tea
 // supplies. Teaware is never created through this tool, so no teaware branch.
-function buildCreateTeaMirrorInserts(env: Env, productId: string, m: Extract<PendingMutation, { kind: 'create_tea' }>): D1PreparedStatement[] {
+function buildCreateTeaMirrorInserts(
+  env: Env, productId: string, m: Extract<PendingMutation, { kind: 'create_tea' }>,
+  costCurrencySource: string | null,
+): D1PreparedStatement[] {
   const p = m.product;
   const baseSlug = String(p.productName + (p.year ? `-${p.year}` : '') || productId)
     .toLowerCase().replace(/['']/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -818,11 +821,11 @@ function buildCreateTeaMirrorInserts(env: Env, productId: string, m: Extract<Pen
         id, account_id, profile_id,
         stock_grams, low_stock_threshold,
         fixed_retail_price_usd, markup_multiplier,
-        vendor, cost_amount, cost_currency,
+        vendor, cost_amount, cost_currency, cost_currency_source,
         quantity_purchased,
         is_public, status,
         tasting, legacy_product_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       `list_${productId}`, m.accountId, `prof_${productId}`,
       p.stockGrams, p.lowStockThreshold,
@@ -834,6 +837,11 @@ function buildCreateTeaMirrorInserts(env: Env, productId: string, m: Extract<Pen
          watching. NULL means the listing follows SHOP_MARKUP_MULTIPLIER. */
       p.fixedRetailPriceUsd, null,
       p.vendor, p.costAmount, p.costCurrency,
+      /* Handed in rather than worked out here, so this row and the products row
+         cannot reach different answers about whether the currency was actually
+         stated. The backlog reads products, but a mirror that drifts from it
+         has stopped being a mirror. */
+      costCurrencySource,
       p.stockGrams,
       1, listingStatus,
       '{}', productId,
@@ -869,13 +877,21 @@ async function commitCreateTea(env: Env, m: Extract<PendingMutation, { kind: 'cr
      would do the same thing here, but naming a column to say nothing is the
      habit that put a number on every row in the first place. */
   if (m.product.shippingRatePerKg !== null) cols.shipping_rate_per_kg = m.product.shippingRatePerKg;
+  /* The agent door is exactly the one with no form and nobody watching, and it
+     was writing a currency the caller had stated while leaving the provenance
+     column NULL. NULL means nobody was ever asked, so the tea joined the
+     backlog `set_cost_currency` corrects, and a vendor-wide answer of yuan
+     would have overwritten a stated currency and repriced the tea. Computed
+     once here and handed to the mirror, so the two rows cannot diverge. */
+  const costCurrencySource = costCurrencySourceFor(m.product.costCurrency);
+  if (costCurrencySource) cols.cost_currency_source = costCurrencySource;
   const names = Object.keys(cols);
 
   const stmts: D1PreparedStatement[] = [
     env.DB.prepare(
       `INSERT INTO products (${names.join(', ')}) VALUES (${names.map(() => '?').join(', ')})`
     ).bind(...names.map(name => cols[name])),
-    ...buildCreateTeaMirrorInserts(env, id, m),
+    ...buildCreateTeaMirrorInserts(env, id, m, costCurrencySource),
   ];
 
   if (m.product.stockGrams > 0) {

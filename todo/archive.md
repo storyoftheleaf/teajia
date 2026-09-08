@@ -2,6 +2,10 @@
 
 Finished work, moved here from TODO.md. Nothing is deleted; lineage is kept.
 
+## Prime-time audit (2026-09-09)
+
+- [x] Stamp cost currency provenance on all eight write paths and both listing mirrors, BEFORE the per-vendor backlog is run, done 2026-09-09, "stamp a stated cost currency at every door". MONEY-6, JOBO2-2. Two doors stamped and four did not, so a tea imported with a correct HKD cost sat in `list_unstated_costs` and a vendor-wide answer of yuan would have overwritten it and moved its shelf price. A fifth fault was found in the same place: the update path stamped BEFORE its unknown-field gate, so all three product command routes refused any edit naming a cost currency with a 400 about a column the server had just added itself. One helper decides the answer now, the mirrors copy it rather than re-deriving it, and the guard refuses a new insert that names a currency without it.
+
 ## Orders and payments
 
 - [x] The phone suite watches the screen edge, not just the page width - done 2026-08-31. The old check compared the whole page against the screen, so an element overrunning its column was absorbed without the page growing and passed unseen: the order summary rendered 551px inside a 311px column and carried the amount 208px off a 375px phone while the page measured exactly 375px. The new check asks whether anything a person can see reaches past the right edge, counting text and painted backgrounds only, because the blunt version flagged a shop tab strip whose box overhangs by 12px while painting nothing there. Surveyed across all twenty swept routes first and clean on every one, then promoted into the shared health assertion so it covers them all rather than the two money pages it started on.
