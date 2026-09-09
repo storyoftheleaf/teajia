@@ -6,9 +6,6 @@
 
 Ranked in [docs/AUDIT-2026-09.md](docs/AUDIT-2026-09.md). Each line is one root cause; the ids point at the verified findings.
 
-- [ ] The shop grid price omits the handling fee the ladder charges; use one quote for both _(band: you-required)_ _(effort: quick)_
-  JOBC-1. Recommendation: the grid uses `quoteGrams()` for its default weight. Adrian decides whether that is the number he wants shown.
-
 Everything below the ten is in the report's "Later" bucket: false-success deletes, the unfiltered wisdom read, eager home imports and the 2 MB admin chunk, the unpaginated customers list, duplicated slug and sha256 helpers, 99 orphan files, the 36 px AccountPanel controls, the off-scale radius, three High npm advisories, the 57-day-old docs index.
 
 ## Untriaged
