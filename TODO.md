@@ -6,7 +6,6 @@
 
 Ranked in [docs/AUDIT-2026-09.md](docs/AUDIT-2026-09.md). Each line is one root cause; the ids point at the verified findings.
 
-- [ ] Every new tea ships free and carries the old markup through five of six doors, because the live table still defaults to 0 and 2.5 _(band: agent-runnable)_ _(effort: deep)_ → Plan: [freight-default-lives-in-the-table.md](todo/plans/freight-default-lives-in-the-table.md)
 - [ ] The shop grid price omits the handling fee the ladder charges; use one quote for both _(band: you-required)_ _(effort: quick)_
   JOBC-1. Recommendation: the grid uses `quoteGrams()` for its default weight. Adrian decides whether that is the number he wants shown.
 
@@ -20,6 +19,10 @@ Everything below the ten is in the report's "Later" bucket: false-success delete
 - [ ] The long-read browser check reads the page before the article has loaded, so it passes whether or not the article is there _(band: agent-runnable)_ _(effort: quick)_
   `tests/immersive-read.spec.ts` waits a fixed 700 ms and then reads the body; at that moment the lazy article chunk has not arrived and neither the article nor the not-found page is on screen, so its three draft-route tests were vacuous before the publish gate and still are. Replace the sleep with auto-retrying assertions the way `tests/read-publish-gate.spec.ts` does. Found by the item 9 reviewer on 2026-09-09.
 
+- [ ] `npm run sandbox:site:alt` cannot open the admin at all _(band: agent-runnable)_ _(effort: quick)_
+  It runs vite with `VITE_API_URL=` empty so `/api` goes through the vite proxy, but `isConfigured` in `src/lib/api.ts` is `!!API_URL`, and an empty `VITE_API_URL` makes it false, so `/admin/*` renders the "Setup Required" card instead of the app. Setting `VITE_API_URL` to the site's own origin works. Found while rehearsing migration 0018 on 2026-09-09.
+- [ ] Four columns on `products` and `product_listings` disagree between `worker/schema.sql` and the migration ledger _(band: agent-runnable)_ _(effort: moderate)_
+  Measured 2026-09-09 while writing migration 0018: `products.year` is INTEGER in the ledger and TEXT in schema.sql; `products.updated_at` has no default in the ledger and `datetime('now')` in schema.sql; `products.account_id` is nullable in the ledger and NOT NULL in schema.sql; `products.catalog_visible` is `NOT NULL DEFAULT 0` in the ledger and nullable with no default in schema.sql. 0018 corrected the three money columns only. `worker/tests/helpers/migratedSqlite.ts` seeds a database from the ledger, which is how these were found and how a guard for them would be written.
 - [ ] Nothing checks that a cost refusal reaches the operator in plain words _(band: agent-runnable)_ _(effort: quick)_
   `plainCostWords` in `src/lib/costRefusalWords.ts` is unit-tested, but removing the call from `CsvImportModal.tsx`, `IntakeWorkspace.tsx` or `SampleSetCreator.tsx` leaves the whole suite green, so the raw server string with column names could reach a screen again in silence. One assertion per call site. Found by the item 3 reviewer on 2026-09-09.
 - [ ] The Tea Compass capture card opens on Taiwan dollars, and an untouched default is stamped as a stated currency _(band: agent-runnable)_ _(effort: quick)_
