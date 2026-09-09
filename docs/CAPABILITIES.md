@@ -2,7 +2,7 @@
 
 > **GENERATED — do not edit by hand.** Rerun
 > `npx tsx scripts/gen-capabilities-portable.ts`. It reads the code, so it cannot drift.
-> Generated 2026-09-07T04:34:48.837Z.
+> Generated 2026-09-09T06:10:00.301Z.
 
 **At a glance:** 35 commands · 95 pages · migration head `022_member_connections.sql`.
 

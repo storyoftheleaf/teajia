@@ -482,11 +482,10 @@ const createdAppStore = create<AppState>()(
       sidebarRoom: 'browse',
       setSidebarRoom: (sidebarRoom) => set({ sidebarRoom }),
 
-      // The shop quotes 100 g. Fifty was the old default and it flattered the
-      // cheap end of the shelf: a 50 g figure on a tea whose smallest real
-      // amount is a sealed 100 g box quoted half a price nobody can pay. A jin
-      // is what the trade counts in and 100 g is the honest tenth of it.
-      shopPriceWeight: 100,
+      // The shop quotes 50 g by default; the toolbar toggle switches to 100 g.
+      // Adrian's call (2026-09-09): 50 g is the amount most people actually
+      // buy, so it is the figure the shelf should lead with.
+      shopPriceWeight: 50,
       setShopPriceWeight: (grams) => set({ shopPriceWeight: grams }),
       shopSort: 'featured',
       setShopSort: (sort) => set({ shopSort: sort }),
@@ -834,10 +833,6 @@ const createdAppStore = create<AppState>()(
                   typeof item.storeSlug === 'string' && item.storeSlug.length > 0,
               )
             : [];
-        }
-        if (version < 4) {
-          const prev = persistedState as { shopPriceWeight?: number };
-          if (prev.shopPriceWeight === 50) prev.shopPriceWeight = 100;
         }
         if (version < 5) {
           const prev = persistedState as Record<string, unknown> & {
