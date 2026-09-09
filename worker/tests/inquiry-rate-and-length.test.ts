@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import worker from '../src/index';
+import { INQUIRY_MAX_REQUEST_BYTES, NEWSLETTER_MAX_REQUEST_BYTES } from '../src/inquiryDomain';
 
 /**
  * SEC-1, SEC-2, SEC-5: the checkout inquiry and newsletter endpoints had no
@@ -238,6 +239,54 @@ describe('inquiry and newsletter rate limiting (SEC-1, SEC-2)', () => {
     }), { DB: db, NEWSLETTER_LIMITER: { limit: async () => ({ success: true }) } } as never, {} as never);
     expect(response.status).toBe(413);
     expect((await response.json() as { error: string }).error).toBe('Upload too large');
+    expect(db.rows).toHaveLength(0);
+  });
+
+  // A JSON body carries no multipart wrapper, so it gets none of the 1 MiB
+  // multipart allowance. Before this fix, validateContentLength added that
+  // allowance to every caller regardless of body shape, so a 32 KiB inquiry
+  // cap actually admitted 1,081,344 bytes and a 4 KiB newsletter cap admitted
+  // 1,052,672. These sizes sit strictly between the stated cap and 1 MiB,
+  // which the 2 MiB tests above cannot distinguish: 2 MiB is over both
+  // thresholds, so a wrongly-inflated cap and a correct one look identical
+  // there.
+  it('refuses an inquiry body between its stated cap and the old 1 MiB multipart allowance', async () => {
+    const db = new WritesOnlyDb();
+    const oversizedBody = 100 * 1024;
+    expect(oversizedBody).toBeGreaterThan(INQUIRY_MAX_REQUEST_BYTES);
+    const response = await worker.fetch(new Request('https://api.test/api/inquiries', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'CF-Connecting-IP': '203.0.113.20',
+        'Content-Length': String(oversizedBody),
+      },
+      body: JSON.stringify(consultPayload()),
+    }), { DB: db, ...openLimiter() } as never, {} as never);
+    expect(response.status).toBe(413);
+    const body = await response.json() as { error: string; details: { max_bytes: number } };
+    expect(body.error).toBe('Upload too large');
+    expect(body.details.max_bytes).toBe(INQUIRY_MAX_REQUEST_BYTES);
+    expect(db.rows).toHaveLength(0);
+  });
+
+  it('refuses a newsletter body between its stated cap and the old 1 MiB multipart allowance', async () => {
+    const db = new WritesOnlyDb();
+    const oversizedBody = 16 * 1024;
+    expect(oversizedBody).toBeGreaterThan(NEWSLETTER_MAX_REQUEST_BYTES);
+    const response = await worker.fetch(new Request('https://api.test/api/newsletter/subscribe', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'CF-Connecting-IP': '203.0.113.21',
+        'Content-Length': String(oversizedBody),
+      },
+      body: JSON.stringify({ email: 'customer@example.com' }),
+    }), { DB: db, NEWSLETTER_LIMITER: { limit: async () => ({ success: true }) } } as never, {} as never);
+    expect(response.status).toBe(413);
+    const body = await response.json() as { error: string; details: { max_bytes: number } };
+    expect(body.error).toBe('Upload too large');
+    expect(body.details.max_bytes).toBe(NEWSLETTER_MAX_REQUEST_BYTES);
     expect(db.rows).toHaveLength(0);
   });
 

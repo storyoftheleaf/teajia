@@ -10592,12 +10592,19 @@ const MULTIPART_OVERHEAD_BYTES = 1024 * 1024;
 const IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const AUDIO_MIME_TYPES = new Set(['audio/webm', 'audio/ogg', 'audio/wav', 'audio/x-wav', 'audio/mpeg', 'audio/mp4', 'video/webm']);
 
-function validateContentLength(request: Request, maxFileBytes: number): Response | null {
+// overheadBytes defaults to the multipart wrapper allowance, so every
+// existing multipart caller (image, audio, flyer, venue photo uploads) is
+// unchanged. The two JSON callers (newsletter, inquiry) pass 0: a JSON body
+// has no multipart envelope around it, so the allowance was letting a body
+// over 1 MiB past a cap stated in kilobytes. max_bytes in the 413 always
+// reports maxFileBytes, which is the number actually enforced once the
+// caller's overhead is 0.
+function validateContentLength(request: Request, maxFileBytes: number, overheadBytes: number = MULTIPART_OVERHEAD_BYTES): Response | null {
   const raw = request.headers.get('content-length');
   if (!raw) return null;
   const length = Number(raw);
   if (!Number.isSafeInteger(length) || length < 0) return restError(400, 'Invalid Content-Length', 'invalid_content_length');
-  return length > maxFileBytes + MULTIPART_OVERHEAD_BYTES
+  return length > maxFileBytes + overheadBytes
     ? restError(413, 'Upload too large', 'upload_too_large', { max_bytes: maxFileBytes })
     : null;
 }
@@ -13079,7 +13086,7 @@ const handleNewsletterSubscribe: Handler = async (request, env) => {
   const subscribeIp = request.headers.get('CF-Connecting-IP') || 'unknown';
   const limited = await enforceDurableLimit(env.NEWSLETTER_LIMITER, 'NEWSLETTER_LIMITER', `newsletter:${subscribeIp}`);
   if (limited) return limited;
-  const preReadError = validateContentLength(request, NEWSLETTER_MAX_REQUEST_BYTES);
+  const preReadError = validateContentLength(request, NEWSLETTER_MAX_REQUEST_BYTES, 0);
   if (preReadError) return preReadError;
 
   const body = await request.json() as Record<string, any>;
@@ -13119,7 +13126,7 @@ const handleCreateInquiry: Handler = async (request, env) => {
   const inquiryIp = request.headers.get('CF-Connecting-IP') || 'unknown';
   const limited = await enforceDurableLimit(env.INQUIRY_LIMITER, 'INQUIRY_LIMITER', `inquiry:${inquiryIp}`);
   if (limited) return limited;
-  const preReadError = validateContentLength(request, INQUIRY_MAX_REQUEST_BYTES);
+  const preReadError = validateContentLength(request, INQUIRY_MAX_REQUEST_BYTES, 0);
   if (preReadError) return preReadError;
 
   const body = await request.json() as Record<string, any>;
