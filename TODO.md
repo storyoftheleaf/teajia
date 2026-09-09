@@ -13,8 +13,6 @@ Ranked in [docs/AUDIT-2026-09.md](docs/AUDIT-2026-09.md). Each line is one root 
   JOBC-1. Recommendation: the grid uses `quoteGrams()` for its default weight. Adrian decides whether that is the number he wants shown.
 - [ ] Rate-limit and length-cap the inquiry and newsletter endpoints, and make an absent limiter binding refuse rather than allow _(band: agent-runnable)_ _(effort: moderate)_
   SEC-1, SEC-2, SEC-5.
-- [ ] Give `create_tea` a real tea type default _(band: agent-runnable)_ _(effort: quick)_
-  MONEY-8.
 
 Everything below the ten is in the report's "Later" bucket: false-success deletes, the unfiltered wisdom read, eager home imports and the 2 MB admin chunk, the unpaginated customers list, duplicated slug and sha256 helpers, 99 orphan files, the 36 px AccountPanel controls, the off-scale radius, three High npm advisories, the 57-day-old docs index.
 

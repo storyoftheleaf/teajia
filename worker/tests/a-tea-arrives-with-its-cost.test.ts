@@ -225,7 +225,7 @@ describe('every door that adds a tea is driven, not read', () => {
     const db = database();
     await mintMcpToken(db, ['stock:write']);
     const rpc = await callTool(db, 'create_tea', {
-      product_name: 'Agent Nameless', type: 'Pu-erh', cost_currency: 'HKD', stock_grams: 357,
+      product_name: 'Agent Nameless', type: 'Sheng', cost_currency: 'HKD', stock_grams: 357,
     });
     expect(rpc.result, 'create_tea accepted a tea with no cost').toBeUndefined();
     expect(rpc.error.message).toContain('cost_amount');
@@ -242,7 +242,7 @@ describe('every door that adds a tea is driven, not read', () => {
     const db = database();
     await mintMcpToken(db, ['stock:write']);
     const rpc = await callTool(db, 'create_tea', {
-      product_name: 'Agent Blank', type: 'Pu-erh', cost_amount: '', cost_currency: 'HKD', stock_grams: 357,
+      product_name: 'Agent Blank', type: 'Sheng', cost_amount: '', cost_currency: 'HKD', stock_grams: 357,
     });
     expect(rpc.result, 'a blank cost was read as a free tea').toBeUndefined();
     expect(rpc.error.message).toContain('missing: amount');
@@ -253,7 +253,7 @@ describe('every door that adds a tea is driven, not read', () => {
     const db = database();
     await mintMcpToken(db, ['stock:write']);
     const args = {
-      product_name: 'Agent Gift', type: 'Pu-erh', cost_amount: 0, cost_currency: 'HKD', stock_grams: 100,
+      product_name: 'Agent Gift', type: 'Sheng', cost_amount: 0, cost_currency: 'HKD', stock_grams: 100,
     };
     const preview = toolPayload(await callTool(db, 'create_tea', args));
     const committed = toolPayload(await callTool(db, 'create_tea', { ...args, confirm: preview.confirmation_token }));
