@@ -3,6 +3,7 @@ import {
   TEA_PRICING,
   minimumOrderGrams,
   offeredSizes,
+  quoteForDisplay,
   quoteGrams,
   sellUnitOf,
   snapToUnit,
@@ -165,5 +166,53 @@ describe('what a sealed unit costs', () => {
   it('still reads as a whole piece for pressed tea, which is unchanged', () => {
     expect(wholePieceOf('Cake', 357)).toEqual({ label: 'Cake', grams: 357 });
     expect(wholePieceOf('Tuo', 5)).toBeUndefined();
+  });
+});
+
+/**
+ * The one figure the shop grid, the product page's ladder, the cart and the
+ * order total all name for a chosen weight. The grid used to work this out
+ * on its own with a bare multiplication, which is the same shape of bug the
+ * whole-piece curve above exists to prevent, just for the handling fee
+ * instead of the discount: it disagreed with everything downstream of it by
+ * exactly the $2 the ladder adds and the grid did not.
+ */
+describe('quoteForDisplay, the one quote every surface reads', () => {
+  it('matches quoteGrams for ordinary loose leaf, handling fee included', () => {
+    const q = quoteForDisplay(0.25, 100, { stockG: 1000 });
+    expect(q.totalUsd).toBe(quoteGrams(0.25, 100, {}).totalUsd);
+    expect(q.totalUsd).toBe(27); // 0.25 * 100 + the $2 handling fee
+    expect(q.grams).toBe(100);
+  });
+
+  it('rounds a sealed unit tea up to the unit it can actually send', () => {
+    // Asked for 50g of a tea sold only in 100g boxes, the reader cannot be
+    // quoted 50g: the shop cannot open the box. The same rounding the
+    // product page's own slider applies before it ever prices anything.
+    const q = quoteForDisplay(0.6, 50, {
+      form: 'Box',
+      pieceWeightG: 100,
+      soldInWholeUnits: true,
+      stockG: 1000,
+    });
+    expect(q.grams).toBe(100);
+    expect(q.whole).toBe(true);
+    expect(q.totalUsd).toBe(60); // one box, no handling fee
+  });
+
+  it('never rounds a sealed unit tea past what is on the shelf', () => {
+    const q = quoteForDisplay(0.6, 250, {
+      form: 'Box',
+      pieceWeightG: 100,
+      soldInWholeUnits: true,
+      stockG: 150,
+    });
+    expect(q.grams).toBe(100);
+  });
+
+  it('charges the handling fee below a pressed piece, same as the ladder', () => {
+    const q = quoteForDisplay(0.2, 50, { form: 'Cake', pieceWeightG: 357, stockG: 1000 });
+    expect(q.whole).toBe(false);
+    expect(q.totalUsd).toBeCloseTo(0.2 * 50 + TEA_PRICING.handlingUsd, 10);
   });
 });

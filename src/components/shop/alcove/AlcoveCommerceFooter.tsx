@@ -565,7 +565,10 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
                       </span>
                     </span>
                   )}
-                  <span className={`shrink-0 whitespace-nowrap text-left font-display tabular-nums ${isRail ? 'w-[58px] text-ui-14' : 'w-[64px] text-ui-15'} ${cell.active ? 'text-tea-gold-lt' : 'text-tea-text-sec'}`}>
+                  <span
+                    data-testid={`amount-total-${cell.key}`}
+                    className={`shrink-0 whitespace-nowrap text-left font-display tabular-nums ${isRail ? 'w-[58px] text-ui-14' : 'w-[64px] text-ui-15'} ${cell.active ? 'text-tea-gold-lt' : 'text-tea-text-sec'}`}
+                  >
                     {cell.sub || '\u203A'}
                   </span>
                 </button>

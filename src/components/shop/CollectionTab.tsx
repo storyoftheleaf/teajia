@@ -7,6 +7,7 @@ import { useProductModalRoute } from '../../hooks/useProductModalRoute';
 import { useAppStore } from '../../lib/store';
 import type { InventoryItem } from '../../types';
 import { useShopPrice } from './shopPrice';
+import { quoteForDisplay } from '../../lib/teaPricing';
 import { AddToSampleButton } from '../samples/AddToSampleButton';
 import { BODY, HEADING, LABEL, NUMERAL } from '../shared/typeRoles';
 
@@ -51,6 +52,18 @@ const ItemCard: React.FC<{
   const isTea = item.category === 'tea';
   const isSoldOut = item.stock_g <= 0;
   const notes = item.tags || [];
+  // The same quote the product page's ladder, the cart and the order total
+  // already read. This card used to multiply price per gram by 50 directly,
+  // which left out the handling fee, so a saved tea read one price here and
+  // a higher one on the page it opens.
+  const quote = isTea
+    ? quoteForDisplay(pricePerGram, 50, {
+        form: item.form,
+        pieceWeightG: item.pieceWeightG,
+        soldInWholeUnits: item.soldInWholeUnits,
+        stockG: item.stock_g,
+      })
+    : undefined;
 
   return (
     <div
@@ -132,9 +145,9 @@ const ItemCard: React.FC<{
           <div className="mt-auto flex items-center gap-3">
             <div>
               <span className={`${BODY} ${NUMERAL} text-tea-gold`}>
-                {isTea ? shopPrice.total(pricePerGram * 50) : shopPrice.total(priceUnit)}
+                {isTea && quote ? shopPrice.total(quote.totalUsd) : shopPrice.total(priceUnit)}
               </span>
-              <span className={`${BODY} ml-1 text-tea-text-sec`}>{isTea ? '/ 50g' : 'each'}</span>
+              <span className={`${BODY} ml-1 text-tea-text-sec`}>{isTea && quote ? `/ ${quote.grams}g` : 'each'}</span>
             </div>
             <div className="ml-auto flex items-center gap-2">
               {isTea && (
@@ -159,8 +172,8 @@ const ItemCard: React.FC<{
                 onClick={(e) => {
                   e.stopPropagation();
                   if (isSoldOut) return;
-                  if (isTea) {
-                    onAddToCart(item, 50, Math.round(pricePerGram * 50 * 100) / 100);
+                  if (isTea && quote) {
+                    onAddToCart(item, quote.grams, Math.ceil(quote.totalUsd));
                   } else {
                     onAddToCart(item, 1, priceUnit);
                   }

@@ -17,7 +17,7 @@ import type { Product } from '../admin/types';
 import { useAppStore } from '../lib/store';
 import { buildPublicProductHref, findProductByRouteParam } from '../lib/publicProductNavigation';
 import { LABEL, NUMERAL } from '../components/shared/typeRoles';
-import { sellUnitOf } from '../lib/teaPricing';
+import { quoteGrams, sellUnitOf, wholePieceOf } from '../lib/teaPricing';
 import { useProducts } from '../admin/hooks/useAdminData';
 import { api } from '../lib/api';
 
@@ -260,13 +260,26 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   const presets = sellUnit
     ? [1, 2, 3, 4].map(n => n * sellUnit.grams).filter(p => p <= sliderMax)
     : [25, 50, 100, 250].filter(p => p <= sliderMax);
+  // A sealed unit is a whole piece from the curve's own side; a pressed cake,
+  // brick or tuo that is not sold in units is the same fact by weight. Either
+  // way this is the figure `quoteGrams` needs to know when a preset carries no
+  // handling fee.
+  const wholePiece = item.category === 'tea'
+    ? (sellUnit ?? wholePieceOf(item.form, item.pieceWeightG))
+    : undefined;
   const offerCurrency = PUBLISHED_CURRENCY;
   const offerPrice = (usd: number) => usd.toFixed(2);
+  // The same curve the ladder, the cart and the order total read. This graph
+  // used to state cost times grams with no handling fee, so a crawler quoted
+  // a price the page itself does not charge, which is the mismatch schema.org
+  // rich results are built to flag.
+  const quotedTotal = (gramsOffered: number) =>
+    quoteGrams(pricePerGram, gramsOffered, { wholePieceGrams: wholePiece?.grams }).totalUsd;
   const availability = isSoldOut ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock';
   const quantityOffers = presets.map(gramsOffered => ({
     '@type': 'Offer',
     '@id': `${productUrl}#offer-${gramsOffered}g`,
-    price: offerPrice(pricePerGram * gramsOffered),
+    price: offerPrice(quotedTotal(gramsOffered)),
     priceCurrency: offerCurrency,
     // GRM is the UN/CEFACT code for a gram, the unit every control on this
     // page is denominated in.
@@ -277,7 +290,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   }));
   // Sold out or stocked under the smallest preset, there is no quantity to
   // quote, so the page states a price for one gram rather than for nothing.
-  const smallestOfferPrice = offerPrice(pricePerGram * (presets[0] ?? 1));
+  const smallestOfferPrice = offerPrice(quotedTotal(presets[0] ?? 1));
 
   // JSON-LD structured data for SEO. A graph, not a single node: the product,
   // and the plant it is made from, addressed so the plant can be followed.
@@ -326,7 +339,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
               '@type': 'AggregateOffer',
               priceCurrency: offerCurrency,
               lowPrice: smallestOfferPrice,
-              highPrice: offerPrice(pricePerGram * presets[presets.length - 1]),
+              highPrice: offerPrice(quotedTotal(presets[presets.length - 1])),
               offerCount: quantityOffers.length,
               availability,
               offers: quantityOffers,
