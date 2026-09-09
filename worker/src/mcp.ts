@@ -77,7 +77,7 @@ import {
 } from './curateImports';
 // A leaf module shared with index.ts, so no cycle. convert_order_request needs
 // the same tea-versus-teaware rule the REST convert applies to its lines.
-import { isTeaType } from '../../src/wisdom/vocabulary';
+import { isTeaType, normalizeTeaType, TEA_TYPES } from '../../src/wisdom/vocabulary';
 import { mergeProductTasting, readStoredTasting, tastingHasTerms, tastingTermLabel } from './curateImportTasting';
 
 type Env = {
@@ -688,6 +688,31 @@ type NewTeaInput = {
   status: string;
 };
 
+/* A tea is not added without a real type either, for the same reason it is not
+   added without a real cost: `type` used to default an omitted value to 'Tea'
+   and the tool's own description told the model to try 'Pu-erh', and neither
+   word is a tea type. `TEA_TYPES` (worker/src/mcp.ts imports it from the same
+   vocabulary module `authorizeInvoiceLines` checks against, worker/src/
+   teaMasterSales.ts) is Green, White, Yellow, Oolong, Red, Dark, Sheng, Shou,
+   Herbal, so a tea created with the old default looked like an ordinary row
+   right up until the first attempt to sell it, which is where
+   `product_not_sale_eligible` first said no.
+
+   Absence is refused, the same way an absent cost is refused, rather than
+   answered with a guess: a default type is a claim about what a tea IS, and
+   `create_tea` has no more business inventing that than it has inventing a
+   price. A recognised alias (any spelling `normalizeTeaType` already resolves,
+   e.g. 'Black' or 'Wulong') is accepted and stored under its canonical word,
+   because refusing a spelling the vocabulary module itself understands would
+   make this tool stricter than the rule it exists to enforce. Bare 'Pu-erh'
+   stays refused on purpose: the vocabulary module's own comment says it
+   "cannot be resolved to Sheng or Shou without a human", and a tool must not
+   guess what that comment says a person should decide. */
+const TEA_TYPE_REQUIRED =
+  `A tea needs a real type. Send type as one of: ${TEA_TYPES.join(', ')}. `
+  + 'Use Red for Chinese hong cha, and Sheng or Shou rather than a generic puerh label: '
+  + 'puerh alone cannot be resolved without knowing whether it is raw or ripe.';
+
 // ── tool: create_tea (preview / confirm) ──
 //
 // Creates a new tea product. To stay consistent with main's product-creation
@@ -708,6 +733,16 @@ async function toolCreateTea(env: Env, auth: McpAuth, args: any) {
   const productName = String(args?.product_name ?? args?.name ?? '').trim();
   if (!productName) throw new Error('product_name is required');
   const stockGrams = Math.max(0, Math.round(Number(args?.stock_grams ?? args?.grams ?? 0) || 0));
+
+  /* Resolved through the same vocabulary `authorizeInvoiceLines` reads, not
+     asked whether it merely looks like a string. An omitted type used to
+     become 'Tea'; refusing it here is the same choice `createMissingCost`
+     makes for an omitted cost, just below: absence is refused, not guessed. */
+  const rawType = args?.type != null ? String(args.type).trim() : '';
+  const resolvedType = normalizeTeaType(rawType);
+  if (!resolvedType) {
+    throw new Error(`${TEA_TYPE_REQUIRED} (received: ${rawType || 'nothing'})`);
+  }
 
   /* Asked of the RAW argument, before any conversion, and this ordering is the
      whole point. `Number(args?.cost_amount ?? 0) || 0` used to run first, which
@@ -751,7 +786,7 @@ async function toolCreateTea(env: Env, auth: McpAuth, args: any) {
     productName,
     givenName: args?.given_name ? String(args.given_name).trim() : productName,
     chineseName: args?.chinese_name ? String(args.chinese_name).trim() : null,
-    type: args?.type ? String(args.type).trim() : 'Tea',
+    type: resolvedType,
     form: args?.form ? String(args.form).trim() : null,
     year: args?.year != null ? String(args.year).trim() : null,
     originCountry: args?.origin_country ? String(args.origin_country).trim() : null,
@@ -5843,7 +5878,14 @@ const TOOL_DEFS = [
         product_name: { type: 'string', description: 'Required display/product name.' },
         given_name: { type: 'string', description: 'Optional shorter name shown in the UI. Defaults to product_name.' },
         chinese_name: { type: 'string' },
-        type: { type: 'string', description: 'Tea type (e.g. "Pu-erh", "Oolong").', default: 'Tea' },
+        type: {
+          type: 'string',
+          enum: [...TEA_TYPES],
+          description:
+            'REQUIRED. One of: Green, White, Yellow, Oolong, Red, Dark, Sheng, Shou, Herbal. There is '
+            + 'deliberately no default. Use Red for Chinese hong cha, and Sheng or Shou rather than a '
+            + 'generic puerh label: a bare "puerh" cannot be resolved to raw or ripe without asking.',
+        },
         form: { type: 'string', description: 'Physical form (e.g. "Cake", "Loose").' },
         year: { type: 'string', description: 'Harvest/production year.' },
         origin_country: { type: 'string' },
@@ -5878,7 +5920,7 @@ const TOOL_DEFS = [
         status: { type: 'string', description: 'Product status (Active, Draft, Archived).', default: 'Active' },
         confirm: { type: 'string', description: 'Confirmation token from the preview response. Omit on first call.' },
       },
-      required: ['product_name', 'cost_amount', 'cost_currency'],
+      required: ['product_name', 'type', 'cost_amount', 'cost_currency'],
     },
   },
   {

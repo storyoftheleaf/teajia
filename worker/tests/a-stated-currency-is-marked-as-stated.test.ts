@@ -165,7 +165,7 @@ describe('every door that states a currency marks it, on the product and on its 
     const db = database();
     await mintMcpToken(db, ['stock:write']);
     const args = {
-      product_name: 'Agent Sheng', type: 'Pu-erh',
+      product_name: 'Agent Sheng', type: 'Sheng',
       cost_amount: 1200, cost_currency: 'HKD', stock_grams: 357,
     };
     const preview = await callTool(db, 'create_tea', args);
