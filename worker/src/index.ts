@@ -14,6 +14,7 @@ import { shippingPerGramUsd, resolveShopFreightDefault } from './shippingRate';
 import { FX_FEED_CURRENCY_MAP, refreshedCurrencyName } from './exchangeRateFeed';
 import { SHOP_MARKUP_MULTIPLIER, CURATOR_FALLBACK_MARKUP } from './markup';
 import { costNeedsCurrency, createMissingCost, currencyStated, stampCostCurrencySource, canonicalizeCostCurrency, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
+import { nameProductColumns } from './productDefaults';
 import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 import { deriveConfirmedInvoiceLine, repairCandidate, formatInvoiceNumber, loadUsdRates, amountToUsd } from './invoiceDomain';
@@ -2864,6 +2865,11 @@ const handleCreateProduct: Handler = async (request, env) => {
   if (incomingCreateError) return incomingCreateError;
   const id = crypto.randomUUID();
   body.slug = await mintProductSlug(env, body, id);
+  /* Freight, markup and cost are named even when the caller said nothing about
+     them, because the live table answers 0, 2.5 and 0 for a column an INSERT
+     leaves out and every one of those is a decision nobody made. See
+     worker/src/productDefaults.ts. */
+  nameProductColumns(body);
   const cols = Object.keys(body);
   const placeholders = cols.map(() => '?').join(', ');
   const insertProduct = env.DB.prepare(`INSERT INTO products (id, ${cols.join(', ')}) VALUES (?, ${placeholders})`)
@@ -3066,6 +3072,12 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
       if (vendorCache[vkey]) body.vendor_id = vendorCache[vkey];
     }
     body.slug = await mintProductSlug(env, body, id, reservedSlugs);
+    /* After the strip above, not before it. This door builds its body by
+       dropping every null, undefined and empty-string value, so a cleared
+       freight cell arrived as '' and left as nothing at all: the column was
+       omitted, the live table answered 0, and the tea shipped free. There was
+       no way for this door to send a deliberate NULL. Now there is. */
+    nameProductColumns(body);
     const cols = Object.keys(body);
     const placeholders = cols.map(() => '?').join(', ');
     const lineStatements: D1PreparedStatement[] = [
@@ -13930,6 +13942,11 @@ const handleApproveCellarPlacement: Handler = async (request, env, params) => {
     cost_amount: null,
   };
   body.slug = await mintProductSlug(env, body, productId);
+  /* And the freight rate and markup for the same reason the cost is NULL: this
+     shop did not buy the tea, so it has no rate of its own to carry, and the
+     shop rate is what applies the moment the owner lists it. Omitted, the live
+     table would have said free at 2.5x. */
+  nameProductColumns(body);
   const cols = Object.keys(body);
   const placeholders = cols.map(() => '?').join(', ');
   const insertProduct = env.DB.prepare(
@@ -14746,6 +14763,10 @@ const handlePromoteCompassEntry: Handler = async (request, env, params) => {
   // currency was never stated, which is what leaves cost_currency NULL above.
   canonicalizeCostCurrency(cols);
 
+  /* A compass entry records what Adrian saw, not what it cost to bring here. It
+     carries no freight rate and no markup, so both are NULL and the tea follows
+     the shop on each. Omitted they would have been 0 and 2.5. */
+  nameProductColumns(cols);
   const colNames = Object.keys(cols);
   const placeholders = colNames.map(() => '?').join(', ');
   // The unique encounter identity plus one D1 batch makes promotion atomic:
@@ -14932,12 +14953,16 @@ const handleAcceptReceiptProposal: Handler = async (request, env, params) => {
     /* `cost_amount` is named as NULL rather than left out. Left out, the column
        default answers 0, and 0 is a free tea: the draft lands priced at zero
        times three and nobody sees it, because it is created hidden. This door
-       genuinely does not know the cost yet, and NULL is how a row says that. */
+       genuinely does not know the cost yet, and NULL is how a row says that.
+       `shipping_rate_per_kg` and `markup_multiplier` are named for the same
+       reason and were the two this comment used to leave out: the live table
+       answers 0 and 2.5 for a column an INSERT does not mention, which is a tea
+       that ships free at a markup the shop stopped using. */
     statements.push(env.DB.prepare(`INSERT INTO products
       (id, account_id, type, product_name, given_name, slug, status, stock_grams, quantity_units,
        inventory_purpose, is_sample, is_personal, stock_known_at, is_public, shown_in_shop, source_compass_entry_id, owner_user_id,
-       cost_amount)
-      VALUES (?, ?, ?, ?, ?, ?, 'Draft', ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, NULL)`)
+       cost_amount, shipping_rate_per_kg, markup_multiplier)
+      VALUES (?, ?, ?, ?, ?, ?, 'Draft', ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, NULL, NULL, NULL)`)
       .bind(productId, ctx.accountId, type, name, name, slug, inventory.stock_grams ?? 0, inventory.quantity_units,
         inventory.inventory_purpose, inventory.is_sample, inventory.is_personal, now, proposal.compass_entry_id ?? null, ctx.userId));
     statements.push(...buildProductMirrorInserts(env, productId, ctx.accountId, {
@@ -23926,16 +23951,20 @@ const handleImportInboundItems: Handler = async (request, env, params) => {
        leaves the source shop's cost behind, because what THEY paid is not what
        this shop paid and is protected besides. Omitting the column entirely
        would let the default answer 0, which does not read as "we did not copy
-       a cost" but as "this tea was free". */
+       a cost" but as "this tea was free".
+       `shipping_rate_per_kg` and `markup_multiplier` are the same argument and
+       were missing from it. The other shop's freight deal is theirs, so this
+       row carries none and follows Adrian's; left out, the table would have
+       said the tea ships free and prices at 2.5x. */
     const cols = [
       'id', 'account_id', 'status', 'is_public', 'stock_grams', 'fixed_retail_price_usd',
-      'cost_amount',
+      'cost_amount', 'shipping_rate_per_kg', 'markup_multiplier',
       'imported_from_product_id', 'imported_via_publication_id',
       ...COPY_COLS,
     ];
     const vals = [
       id, ctx.accountId, 'Draft', 0, 0, null,
-      null,
+      null, null, null,
       src.id, params.pubId,
       ...COPY_COLS.map(c => src[c] ?? null),
     ];
@@ -24723,12 +24752,20 @@ const handleCarryListing: Handler = async (request, env) => {
   //    id uses lower(hex(randomblob(16))) — same DEFAULT the schema uses; generated inline
   //    in the INSERT rather than via JS crypto to keep id generation in one place (D1).
   //    is_public = 1: carried teas default to publicly listed; partner can hide later.
+  //    cost_amount, shipping_rate_per_kg and markup_multiplier are named as
+  //    NULL. Carrying somebody else's tea says nothing about what this shop
+  //    paid for it, what freight it bore, or how it should be marked up, and
+  //    the live table answers 0, 0 and 2.5 to a column an INSERT leaves out.
+  //    That is a free tea, shipped free, priced at a multiplier the shop
+  //    stopped using. NULL is how the row says nobody has entered anything.
   const insertResult = await env.DB.prepare(`
     INSERT INTO product_listings
       (id, account_id, profile_id, stock_grams, fixed_retail_price_usd,
-       listing_photos, status, is_public, inventory_purpose, stock_known_at)
+       listing_photos, status, is_public, inventory_purpose, stock_known_at,
+       cost_amount, shipping_rate_per_kg, markup_multiplier)
     VALUES
-      (lower(hex(randomblob(16))), ?, ?, ?, ?, ?, 'active', 1, 'working', ?)
+      (lower(hex(randomblob(16))), ?, ?, ?, ?, ?, 'active', 1, 'working', ?,
+       NULL, NULL, NULL)
     RETURNING id
   `).bind(accountId, profileId, stockGrams, fixedRetailPriceUsd, listingPhotos, new Date().toISOString()).first() as
     { id: string } | null;
@@ -25869,11 +25906,21 @@ async function processReceiveSideEffects(
     } else {
       // Auto-create a new listing for the buyer. Defaults: status=active, is_public=1.
       // No price set — buyer will refine on the listing edit page.
+      //
+      // "No price set" has to be written down to be true. cost_amount,
+      // shipping_rate_per_kg and markup_multiplier are named NULL, because the
+      // live table answers 0, 0 and 2.5 for a column an INSERT does not
+      // mention: a wholesale receipt would have landed on the buyer's shelf as
+      // a free tea, shipped free, at a markup nobody chose. What the buyer paid
+      // for this line is on the wholesale order; it is not copied here, because
+      // one number in two places is how the shop came to have four freight
+      // rates at once.
       buyerListingId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
       stmts.push(env.DB.prepare(
         `INSERT INTO product_listings
-           (id, account_id, profile_id, stock_grams, listing_photos, status, is_public)
-         VALUES (?, ?, ?, ?, '[]', 'active', 1)`
+           (id, account_id, profile_id, stock_grams, listing_photos, status, is_public,
+            cost_amount, shipping_rate_per_kg, markup_multiplier)
+         VALUES (?, ?, ?, ?, '[]', 'active', 1, NULL, NULL, NULL)`
       ).bind(buyerListingId, order.buyer_account_id, item.profile_id, grams));
     }
     // Link the order item to whichever buyer listing now holds the stock

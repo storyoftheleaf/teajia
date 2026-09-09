@@ -865,10 +865,11 @@ function buildCreateTeaMirrorInserts(
         stock_grams, low_stock_threshold,
         fixed_retail_price_usd, markup_multiplier,
         vendor, cost_amount, cost_currency, cost_currency_source,
+        shipping_rate_per_kg,
         quantity_purchased,
         is_public, status,
         tasting, legacy_product_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       `list_${productId}`, m.accountId, `prof_${productId}`,
       p.stockGrams, p.lowStockThreshold,
@@ -885,6 +886,12 @@ function buildCreateTeaMirrorInserts(
          stated. The backlog reads products, but a mirror that drifts from it
          has stopped being a mirror. */
       costCurrencySource,
+      /* The rate the products row carries, or NULL for the same reason the
+         markup above is NULL. The mirror named the markup and not the freight,
+         so a tea added by voice had a listing that shipped free even when the
+         caller had stated a rate: the live column answers 0 to an INSERT that
+         omits it, and 0 is Adrian saying this one ships for nothing. */
+      p.shippingRatePerKg,
       p.stockGrams,
       1, listingStatus,
       '{}', productId,
@@ -915,11 +922,22 @@ async function commitCreateTea(env: Env, m: Extract<PendingMutation, { kind: 'cr
     low_stock_threshold: m.product.lowStockThreshold,
     fixed_retail_price_usd: m.product.fixedRetailPriceUsd,
   };
-  /* Named only when a rate was given. Left out, the column keeps its NULL,
-     which is what "follow the shop rate" is stored as. Writing NULL explicitly
-     would do the same thing here, but naming a column to say nothing is the
-     habit that put a number on every row in the first place. */
-  if (m.product.shippingRatePerKg !== null) cols.shipping_rate_per_kg = m.product.shippingRatePerKg;
+  /* Named ALWAYS, and NULL when no rate was given.
+     This used to be written only when a rate arrived, on the reasoning that a
+     column left out keeps its NULL. That reasoning was checked against
+     worker/schema.sql, which says `shipping_rate_per_kg REAL DEFAULT NULL`, and
+     the live column says `DEFAULT 0`: created that way by migration 0000 and
+     never rebuilt, because SQLite cannot alter a default in place and the four
+     migrations since only wrote over existing rows. So every tea added by voice
+     landed pinned at zero, which is Adrian saying this one ships free, and its
+     freight never entered the cost basis the x3 multiplies.
+     `markup_multiplier` is the same fault on the other number: the live default
+     is 2.5, which migration 0013 cleared off the whole shelf, and the curator
+     listing path reads the column. Both are stated now, so the row means what
+     it says whatever the table would have answered. Migration 0018 clears the
+     defaults; this line is what makes that a second line of defence. */
+  cols.shipping_rate_per_kg = m.product.shippingRatePerKg;
+  cols.markup_multiplier = null;
   /* The agent door is exactly the one with no form and nobody watching, and it
      was writing a currency the caller had stated while leaving the provenance
      column NULL. NULL means nobody was ever asked, so the tea joined the

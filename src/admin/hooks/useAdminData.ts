@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api, getTokenClaims } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
 import { Product, ExchangeRate, Customer } from '../types';
-import { shopFreightDefaultFrom, type ShopFreightDefault } from '../../lib/shippingRate';
+import { shopFreightDefaultFrom, storedRatePerKg, type ShopFreightDefault } from '../../lib/shippingRate';
 import { rateToUsd } from '../../lib/currency';
 import { loadLastKnownRates, saveLastKnownRates } from '../lastKnownRates';
 
@@ -63,7 +63,17 @@ export const useProducts = (options?: { enabled?: boolean }) => {
         costCurrency: p.cost_currency || 'UNK',
         costCurrencySource: p.cost_currency_source ?? null,
         quantityPurchased: Number(p.quantity_purchased) || 0,
-        shippingRatePerKg: Number(p.shipping_rate_per_kg) || 0,
+        /* NULL stays NULL. `Number(x) || 0` turned every tea that follows the
+           shop rate into a tea pinned at zero, in the admin's own model, and
+           that is the only thing in the inventory list Adrian can see: the cell
+           printed a dash with a gold dot beside it and a title saying the tea
+           was "pinned to this tea in Yuan", about a tea nobody had pinned. The
+           dot is the ONLY thing separating a rate a tea owns from one it is
+           borrowing, so it was saying the opposite of the truth on every row.
+           Three call sites downstream (the CSV export's "Ship rate source"
+           column, the Add Product modal, the edit panel) were already written
+           to read a null here and had never once been handed one. */
+        shippingRatePerKg: storedRatePerKg(p.shipping_rate_per_kg),
         fixedRetailPriceUSD: p.fixed_retail_price_usd ? Number(p.fixed_retail_price_usd) : null,
         isPersonal: !!p.is_personal,
         canReorder: !!p.can_reorder,

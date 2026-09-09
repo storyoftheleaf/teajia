@@ -24,6 +24,28 @@
 export const FALLBACK_SHIPPING_RATE_PER_KG = 85;
 export const FALLBACK_SHIPPING_RATE_CURRENCY = 'Yuan';
 
+/**
+ * A stored per-product rate, on its way from the API into the admin's model.
+ *
+ * NULL means nobody entered one and the tea follows the shop rate. A number
+ * means Adrian entered it and it is obeyed, zero included. Those two have to
+ * stay tellable apart at this boundary, because the gold dot in the inventory
+ * list is drawn from exactly this being null or not, and the dot is the only
+ * thing separating a rate a tea owns from one it is borrowing.
+ *
+ * It exists as a named function because the obvious way to write it is
+ * `Number(p.shipping_rate_per_kg) || 0`, which is what the admin did: every tea
+ * following the shop rate arrived in the model pinned at zero, so the whole
+ * shelf rendered with a gold dot and a title claiming a rate nobody had set.
+ * `Number(null)` is 0 and 0 is falsy, so the natural code says "free" twice
+ * over for a column whose honest answer is "nobody said".
+ */
+export function storedRatePerKg(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 /** A shop's freight default, as the admin holds it. */
 export interface ShopFreightDefault {
   /** The rate as quoted, in `currency`. */

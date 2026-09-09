@@ -92,7 +92,12 @@ export interface Product {
      migration 0014 and the freight/currency sections of CLAUDE.md. */
   costCurrencySource?: 'stated' | 'recovered' | null;
   quantityPurchased: number; // The amount purchased corresponding to the costAmount
-  shippingRatePerKg?: number; // Shipping cost per kg in source currency
+  /* Shipping cost per kg in the tea's own cost currency. NULL means nobody
+     entered one and the tea follows the shop rate; a number means Adrian
+     entered it and it is obeyed, zero included. The two must stay tellable
+     apart here, because the gold dot in the inventory list is drawn from
+     exactly this being null or not. */
+  shippingRatePerKg?: number | null;
   fixedRetailPriceUSD?: number | null; // Explicit override price
   isPersonal: boolean; // Personal collection flag
   canReorder: boolean; // Restockable flag

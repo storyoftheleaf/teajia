@@ -6,7 +6,6 @@
 
 Ranked in [docs/AUDIT-2026-09.md](docs/AUDIT-2026-09.md). Each line is one root cause; the ids point at the verified findings.
 
-- [ ] Every new tea ships free and carries the old markup through five of six doors, because the live table still defaults to 0 and 2.5 _(band: agent-runnable)_ _(effort: deep)_ → Plan: [freight-default-lives-in-the-table.md](todo/plans/freight-default-lives-in-the-table.md)
 - [ ] The shop grid price omits the handling fee the ladder charges; use one quote for both _(band: you-required)_ _(effort: quick)_
   JOBC-1. Recommendation: the grid uses `quoteGrams()` for its default weight. Adrian decides whether that is the number he wants shown.
 
@@ -14,12 +13,21 @@ Everything below the ten is in the report's "Later" bucket: false-success delete
 
 ## Untriaged
 
+- [ ] A browser that once saw an empty rate list keeps it, and the Ship $/kg column then prints the yuan figure as dollars _(band: agent-runnable)_ _(effort: moderate)_
+  `useRates` in `src/admin/hooks/useAdminData.ts` seeds from the last-known rates with an hour of freshness, and the persisted query cache restores an empty array on every load, so the rates never refetch; `shopFreightDefaultFrom` then falls back to a rate of 1 and the column shows 85.00 under a dollar heading, a sevenfold error on every row. Pre-existing; the freight-default fix made it visible where a dash used to hide it. Clearing the browser's stored query cache cures it once. Found by the item 1 reviewer on 2026-09-09.
+- [ ] The freight-default rehearsal names seven child tables by hand where the database has thirteen _(band: agent-runnable)_ _(effort: quick)_
+  The migration rehearsal test's list of tables pointing at products is hand-typed (7) while `PRAGMA foreign_key_list` finds 15 edges across 13 tables; the six missing are all no-action and survived the reviewer's independent run byte for byte, but the comment claims completeness the list does not have. Derive the list from the pragma at test time. Found by the item 1 reviewer on 2026-09-09.
+
 - [ ] Customer-facing money surfaces still show the wrong figure for a yuan or Taiwan-dollar order, even after the write side canonicalises _(band: agent-runnable)_ _(effort: moderate)_
   `src/lib/orderMoney.ts` shows USD for a Yuan invoice in order history; the worker's local payment amount lookup keys `'CNY'`/`'TWD'` against a table keyed `'Yuan'`/`'NT'`, so a yuan shopper sees no local figure at all; `SourcesView` and the Tea Compass `OrderSummary` each keep their own currency symbol table; and the worker's `formatMoney` for order emails hands `'Yuan'` straight to `Intl`, which throws on the shop's own key. All four degrade honestly rather than mis-price anything, which is why this round left them alone: they are the customer-facing half of the same currency-spelling class that round three fixed on the write side (see CLAUDE.md's "A number without its unit is not a number"), and touching customer-facing display is Adrian's call, not a code-fix call. Found by the item 4 round-three reviewer on 2026-09-09.
 
 - [ ] The long-read browser check reads the page before the article has loaded, so it passes whether or not the article is there _(band: agent-runnable)_ _(effort: quick)_
   `tests/immersive-read.spec.ts` waits a fixed 700 ms and then reads the body; at that moment the lazy article chunk has not arrived and neither the article nor the not-found page is on screen, so its three draft-route tests were vacuous before the publish gate and still are. Replace the sleep with auto-retrying assertions the way `tests/read-publish-gate.spec.ts` does. Found by the item 9 reviewer on 2026-09-09.
 
+- [ ] `npm run sandbox:site:alt` cannot open the admin at all _(band: agent-runnable)_ _(effort: quick)_
+  It runs vite with `VITE_API_URL=` empty so `/api` goes through the vite proxy, but `isConfigured` in `src/lib/api.ts` is `!!API_URL`, and an empty `VITE_API_URL` makes it false, so `/admin/*` renders the "Setup Required" card instead of the app. Setting `VITE_API_URL` to the site's own origin works. Found while rehearsing migration 0018 on 2026-09-09.
+- [ ] Four columns on `products` and `product_listings` disagree between `worker/schema.sql` and the migration ledger _(band: agent-runnable)_ _(effort: moderate)_
+  Measured 2026-09-09 while writing migration 0018: `products.year` is INTEGER in the ledger and TEXT in schema.sql; `products.updated_at` has no default in the ledger and `datetime('now')` in schema.sql; `products.account_id` is nullable in the ledger and NOT NULL in schema.sql; `products.catalog_visible` is `NOT NULL DEFAULT 0` in the ledger and nullable with no default in schema.sql. 0018 corrected the three money columns only. `worker/tests/helpers/migratedSqlite.ts` seeds a database from the ledger, which is how these were found and how a guard for them would be written.
 - [ ] Nothing checks that a cost refusal reaches the operator in plain words _(band: agent-runnable)_ _(effort: quick)_
   `plainCostWords` in `src/lib/costRefusalWords.ts` is unit-tested, but removing the call from `CsvImportModal.tsx`, `IntakeWorkspace.tsx` or `SampleSetCreator.tsx` leaves the whole suite green, so the raw server string with column names could reach a screen again in silence. One assertion per call site. Found by the item 3 reviewer on 2026-09-09.
 - [ ] The Tea Compass capture card opens on Taiwan dollars, and an untouched default is stamped as a stated currency _(band: agent-runnable)_ _(effort: quick)_

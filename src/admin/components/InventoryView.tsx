@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Papa from 'papaparse';
 import { api } from '../../lib/api';
 import { calculatePricing } from '../utils';
+import { enteredNumber } from '../productUpdatePayload';
 import { Product } from '../types';
 import { shopRateInCurrency } from '../../lib/shippingRate';
 import { rateToUsd } from '../../lib/currency';
@@ -1107,9 +1108,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         const nextCurrency = String(field === 'costCurrency' ? value : p.costCurrency) || 'USD';
         const calc = calculatePricing(
           Number(field === 'costAmount' ? value : p.costAmount) || 0,
-          Number(field === 'shippingRatePerKg' ? value : p.shippingRatePerKg)
-            || shopRateInCurrency(shopFreightRef.current, rateToUsd(ratesRef.current, nextCurrency))
-            || 0,
+          /* `??`, not `||`. The shop rate applies when nobody entered one, and
+             that is what NULL means; a typed 0 is Adrian saying this tea ships
+             free and has to survive to the preview, or the number he sees while
+             editing is not the number he just entered. */
+          (field === 'shippingRatePerKg' ? enteredNumber(value) : p.shippingRatePerKg)
+            ?? shopRateInCurrency(shopFreightRef.current, rateToUsd(ratesRef.current, nextCurrency))
+            ?? 0,
           Number(field === 'quantityPurchased' ? value : p.quantityPurchased) || 0,
           nextCurrency,
           ratesRef.current,
