@@ -136,37 +136,42 @@ interface LiveDefault {
   clearedBy?: { migration: string; was: string };
 }
 
+const CLEARED_BY_0018 = { migration: '0018_the_table_stops_saying_free.sql', was: '' };
+const clearedBy = (was: string) => ({ ...CLEARED_BY_0018, was });
+
 const LIVE_DEFAULTS: LiveDefault[] = [
   {
-    table: 'products', column: 'shipping_rate_per_kg', dflt: '0',
-    reason: 'DEBT: 0 on a freight rate is Adrian saying this tea ships free, not "nobody entered one". '
-      + 'schema.sql has said NULL here since 0007 and been wrong; the code names the column at every door '
-      + '(worker/src/productDefaults.ts) and migration 0018 removes the default itself.',
+    table: 'products', column: 'shipping_rate_per_kg', dflt: null, clearedBy: clearedBy('0'),
+    reason: '0 on a freight rate is Adrian saying this tea ships free, not "nobody entered one", and it '
+      + 'was the default for every INSERT that did not name the column. schema.sql said NULL here from '
+      + '0007 onward and was wrong the whole time; 0018 made the file true.',
   },
   {
-    table: 'products', column: 'markup_multiplier', dflt: '2.5',
-    reason: 'DEBT: the multiplier the shop stopped using. 0013 cleared it off the rows and could not touch '
-      + 'the default; the curator listing path reads the column, so a row carrying it prices differently '
-      + 'from the shelf. Named at every door, removed by 0018.',
+    table: 'products', column: 'markup_multiplier', dflt: null, clearedBy: clearedBy('2.5'),
+    reason: 'The multiplier the shop stopped using. 0013 cleared it off the rows and could not touch the '
+      + 'default; the curator listing path reads the column, so a row carrying it priced differently from '
+      + 'the shelf. NULL now, which reads SHOP_MARKUP_MULTIPLIER.',
   },
   {
-    table: 'products', column: 'cost_amount', dflt: '0',
-    reason: 'DEBT: 0 on an amount is a free tea, not an unrecorded one. Every door now requires the cost '
-      + 'or names the column NULL, so nothing in the code reaches this; removed by 0018.',
+    table: 'products', column: 'cost_amount', dflt: null, clearedBy: clearedBy('0'),
+    reason: '0 on an amount is a free tea, not an unrecorded one, and the shelf priced it at zero times '
+      + 'three. Every door already required the cost or named the column NULL; 0018 removed the last way '
+      + 'to reach it.',
   },
   {
-    table: 'product_listings', column: 'shipping_rate_per_kg', dflt: '0',
-    reason: 'DEBT: the same rate on the mirror, and the listing is what a partner shop actually prices from.',
+    table: 'product_listings', column: 'shipping_rate_per_kg', dflt: null, clearedBy: clearedBy('0'),
+    reason: 'The same rate on the mirror, and the listing is the row a partner shop actually prices from, '
+      + 'so a free-shipping default here reached a second shelf as well as this one.',
   },
   {
-    table: 'product_listings', column: 'markup_multiplier', dflt: '2.5',
-    reason: 'DEBT: the same multiplier on the mirror, and this is the copy the curator listing path reads, '
-      + 'so a listing carrying it prices the same tea differently from the shop shelf.',
+    table: 'product_listings', column: 'markup_multiplier', dflt: null, clearedBy: clearedBy('2.5'),
+    reason: 'The same multiplier on the mirror, and this is the copy the curator listing path reads, so a '
+      + 'listing carrying it priced the same tea differently from the shop shelf.',
   },
   {
-    table: 'product_listings', column: 'cost_amount', dflt: '0',
-    reason: 'DEBT: the same free tea on the mirror. Carrying a tea, receiving a wholesale order and the '
-      + 'create mirrors all reach this column, and a cost of zero times three is a price of zero.',
+    table: 'product_listings', column: 'cost_amount', dflt: null, clearedBy: clearedBy('0'),
+    reason: 'The same free tea on the mirror. Carrying a tea, receiving a wholesale order and both create '
+      + 'mirrors reach this column, and a cost of zero times three is a price of zero.',
   },
   {
     table: 'products', column: 'cost_currency', dflt: "'USD'",

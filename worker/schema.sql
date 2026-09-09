@@ -111,15 +111,15 @@ CREATE TABLE IF NOT EXISTS products (
     vendor TEXT,
     stock_grams INTEGER DEFAULT 0,
     stock_movement_guard TEXT,
-    cost_amount REAL DEFAULT 0,
+    cost_amount REAL, -- migration 0018: no default. 0 here is a free tea, not an unrecorded one
     cost_currency TEXT DEFAULT 'USD',
     cost_currency_source TEXT, -- migration 0014: NULL = nobody ever stated the currency, so the DEFAULT above may be a guess
-    shipping_rate_per_kg REAL DEFAULT NULL, -- NULL = unentered, takes the shop default; 0 = Adrian said free
+    shipping_rate_per_kg REAL, -- migration 0018: no default. NULL = unentered, takes the shop rate; 0 = Adrian said free
     quantity_purchased INTEGER,
     session_reserve_grams INTEGER,
     low_stock_threshold INTEGER DEFAULT 100,
     recheck_stock INTEGER DEFAULT 0,
-    markup_multiplier REAL DEFAULT 2.5,
+    markup_multiplier REAL, -- migration 0018: no default. NULL = follows SHOP_MARKUP_MULTIPLIER
     fixed_retail_price_usd REAL,
     is_personal INTEGER DEFAULT 0,
     can_reorder INTEGER DEFAULT 0,
@@ -583,13 +583,13 @@ CREATE TABLE IF NOT EXISTS product_listings (
   low_stock_threshold INTEGER DEFAULT 100,
   recheck_stock INTEGER DEFAULT 0,
   fixed_retail_price_usd REAL,
-  markup_multiplier REAL DEFAULT 2.5,
+  markup_multiplier REAL, -- migration 0018: no default. NULL = follows SHOP_MARKUP_MULTIPLIER
   vendor TEXT,
   vendor_id TEXT,
-  cost_amount REAL DEFAULT 0,
+  cost_amount REAL, -- migration 0018: no default. 0 here is a free tea, not an unrecorded one
   cost_currency TEXT DEFAULT 'USD',
   cost_currency_source TEXT, -- migration 0014: NULL = nobody ever stated the currency, so the DEFAULT above may be a guess
-  shipping_rate_per_kg REAL DEFAULT NULL, -- NULL = unentered, takes the shop default; 0 = Adrian said free
+  shipping_rate_per_kg REAL, -- migration 0018: no default. NULL = unentered, takes the shop rate; 0 = Adrian said free
   quantity_purchased INTEGER,
   source_compass_entry_id TEXT,
   stock_verified_at TEXT,
