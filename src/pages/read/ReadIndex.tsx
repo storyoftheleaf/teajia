@@ -17,14 +17,13 @@ import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
-import { useAppStore } from '../../lib/store';
-import { getTokenClaims } from '../../lib/api';
 import type { DbArticle } from '../../types';
 import {
   C, F, ImmersiveRoot, ProgressTrack,
   useReadingProgress, useImmersiveChrome, useReveals,
   ACCENTS,
 } from './immersive';
+import { isArticleVisible, useIsReadOwner } from './publishGate';
 
 // ── Seed-article filter (kept from original ReadIndex) ───────────────────────
 const SEED_ARTICLE_TITLES = new Set([
@@ -49,10 +48,14 @@ function numberWord(n: number): string {
 // ── Curated contents index data ──────────────────────────────────────────────
 // Faithfully converted from the design's groups() controller method.
 // Hrefs repointed to real /read/* routes (all design-file refs removed).
-// `live` is the publish gate. A visitor sees only `live: true` pieces; the
-// owner sees every piece (drafts dimmed + tagged). Flip a piece live by adding
-// `live: true` to its row below, that one change publishes it. Nothing else.
-type IndexItem = { n: string; rubric: string; title: string; dek: string; href: string; live?: boolean };
+// The publish gate itself (which hrefs are live) moved to articleLive.ts, and
+// every surface that names an article asks it the same question through
+// `isArticleVisible`: this index's contents list and its feature covers, the
+// article's own route, the rail at the foot of each piece, and the crawler
+// meta the Pages function writes. A visitor sees only a piece marked live; the
+// owner sees every piece (drafts dimmed and tagged). Flip a piece live there,
+// and it publishes everywhere in one edit.
+type IndexItem = { n: string; rubric: string; title: string; dek: string; href: string };
 type IndexGroup = { label: string; glyph: string; items: IndexItem[] };
 
 const INDEX_GROUPS: IndexGroup[] = [
@@ -60,10 +63,10 @@ const INDEX_GROUPS: IndexGroup[] = [
     label: 'The interactive issue',
     glyph: '◇',
     items: [
-      { n: 'N°05', rubric: 'Ritual',    title: 'Seven Steeps',           dek: 'The same leaves, brewed seven ways, scroll to pour.',          href: '/read/ritual', live: true },
-      { n: 'N°06', rubric: 'Geography', title: 'A Map of Mountains',     dek: 'An interactive atlas of China’s tea terroir.',             href: '/read/atlas', live: true },
+      { n: 'N°05', rubric: 'Ritual',    title: 'Seven Steeps',           dek: 'The same leaves, brewed seven ways, scroll to pour.',          href: '/read/ritual' },
+      { n: 'N°06', rubric: 'Geography', title: 'A Map of Mountains',     dek: 'An interactive atlas of China’s tea terroir.',             href: '/read/atlas' },
       { n: 'N°07', rubric: 'History',   title: 'Ten Thousand Mornings',  dek: 'Five thousand years of tea, along one moving line.',           href: '/read/history' },
-      { n: 'N°08', rubric: 'Tasting',   title: 'The Vocabulary of Taste',dek: 'A turning flavour wheel and a tasting radar.',                 href: '/read/tasting', live: true },
+      { n: 'N°08', rubric: 'Tasting',   title: 'The Vocabulary of Taste',dek: 'A turning flavour wheel and a tasting radar.',                 href: '/read/tasting' },
     ],
   },
   {
@@ -73,7 +76,7 @@ const INDEX_GROUPS: IndexGroup[] = [
       { n: 'N°02', rubric: 'Conversation', title: 'The Rock Remembers', dek: 'A Wuyi roaster on fire, patience and lineage.',               href: '/read/rock-remembers' },
       { n: 'N°03', rubric: 'Conversation', title: 'Earth, Water, Fire', dek: 'A Jingdezhen potter on the vessels that hold tea.',           href: '/read/earth-water-fire' },
       { n: 'N°09', rubric: 'A Tea House',  title: 'Quiet Hours',        dek: 'Building a Melbourne tea house, told in two voices.',         href: '/read/tea-house' },
-      { n: 'N°15', rubric: 'The Craft',    title: 'Porcelain and Tea',  dek: 'Shangyin Qiwu on repair, patience and mending what we love.', href: '/read/porcelain-and-tea', live: true },
+      { n: 'N°15', rubric: 'The Craft',    title: 'Porcelain and Tea',  dek: 'Shangyin Qiwu on repair, patience and mending what we love.', href: '/read/porcelain-and-tea' },
     ],
   },
   {
@@ -149,7 +152,7 @@ const IndexRow: React.FC<{ item: IndexItem; draft?: boolean }> = ({ item, draft 
 // tagged); a visitor sees only live rows. A group with no visible rows for the
 // current audience renders nothing.
 const GroupBlock: React.FC<{ group: IndexGroup; isAdmin: boolean }> = ({ group, isAdmin }) => {
-  const visible = isAdmin ? group.items : group.items.filter((it) => it.live);
+  const visible = group.items.filter((it) => isArticleVisible(it.href, isAdmin));
   if (visible.length === 0) return null;
   return (
     <div style={{ marginTop: 38 }}>
@@ -166,7 +169,7 @@ const GroupBlock: React.FC<{ group: IndexGroup; isAdmin: boolean }> = ({ group, 
         </span>
       </div>
       {visible.map((item) => (
-        <IndexRow key={item.href} item={item} draft={isAdmin && !item.live} />
+        <IndexRow key={item.href} item={item} draft={isAdmin && !isArticleVisible(item.href, false)} />
       ))}
     </div>
   );
@@ -303,31 +306,10 @@ const ROOM_RESPONSIVE_STYLE = `
 const ReadIndex: React.FC = () => {
   useImmersiveChrome(ACCENTS[0]);
 
-  // Owner login gate, real auth, never a toggle. Read the signed-in role
-  // straight from the stored token's claims: this works on the standalone Read
-  // page (which doesn't run the admin login flow, so the store's platformRole
-  // isn't populated here) and has no hydration-timing race. The dev-admin
-  // toggle stays as a fallback for local development.
-  const isDevAdmin = useAppStore((s) => s.isDevAdmin);
-  const isAdmin = React.useMemo(() => {
-    const claims = getTokenClaims();
-    // Top-level `role` is the legacy field; current JWTs carry the real role
-    // inside `memberships[].role`, so check both. Any owner/admin membership
-    // (or platform owner/admin) unlocks the drafts.
-    const topRole = claims?.role;
-    const platformRole = claims?.platform_role;
-    const memberRole = (claims?.memberships ?? []).some(
-      (m) => m.role === 'owner',
-    );
-    return (
-      topRole === 'owner' ||
-      topRole === 'admin' ||
-      memberRole ||
-      platformRole === 'platform_owner' ||
-      platformRole === 'platform_admin' ||
-      isDevAdmin
-    );
-  }, [isDevAdmin]);
+  // Owner login gate, real auth, never a toggle. Shared with the article
+  // routes themselves in publishGate.ts, so the index and the direct URL
+  // agree on who counts as the owner.
+  const isAdmin = useIsReadOwner();
 
   // Published articles from the DB, machinery kept from original ReadIndex.
   // The primary content surface is now the curated 14-piece index, but the
@@ -348,12 +330,15 @@ const ReadIndex: React.FC = () => {
   // How many pieces the current audience can see. A visitor counts only live
   // pieces; the owner counts all of them. Drives the masthead + contents labels.
   const allItems = INDEX_GROUPS.flatMap((g) => g.items);
-  const liveCount = allItems.filter((it) => it.live).length;
+  const liveCount = allItems.filter((it) => isArticleVisible(it.href, false)).length;
   const shownCount = isAdmin ? allItems.length : liveCount;
   const piecesLabel = `${numberWord(shownCount)} ${shownCount === 1 ? 'piece' : 'pieces'}`;
-  // Is the piece at this route published (live) yet? Used to gate the feature
-  // covers for visitors while the owner always sees the full designed rail.
-  const isLive = (href: string) => allItems.some((it) => it.href === href && it.live);
+  // May the current audience see the piece at this route. Used to gate the
+  // feature covers, so a visitor is never shown a cover for something they
+  // cannot open while the owner always sees the full designed rail. It is the
+  // same call the route, the rail at the foot of each article and the crawler
+  // meta make, rather than a fourth spelling of one question.
+  const canSee = (href: string) => isArticleVisible(href, isAdmin);
 
   const rootRef = useReveals([isAdmin]);
   const progress = useReadingProgress();
@@ -428,15 +413,15 @@ const ReadIndex: React.FC = () => {
               piece is live; the owner always sees the full designed rail. When
               a visitor has no live featured pieces, the rail hides entirely so
               the page never shows a broken or empty feature. */}
-          <aside className="tj-rail" style={{ position: 'sticky', top: 88, display: (isAdmin || isLive('/read/porcelain-and-tea') || isLive('/read/legend') || isLive('/read/tea-house')) ? 'block' : 'none' }}>
+          <aside className="tj-rail" style={{ position: 'sticky', top: 88, display: (canSee('/read/porcelain-and-tea') || canSee('/read/legend') || canSee('/read/tea-house')) ? 'block' : 'none' }}>
             <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.26em', textTransform: 'uppercase', color: C.dim, marginBottom: 18 }}>
               This issue
             </div>
 
-            {(isAdmin || isLive('/read/porcelain-and-tea')) && <LeadCover />}
+            {canSee('/read/porcelain-and-tea') && <LeadCover />}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 14 }}>
-              {(isAdmin || isLive('/read/legend')) && (
+              {canSee('/read/legend') && (
               <SecondaryCover
                 to="/read/legend"
                 kicker="Legend · N°13"
@@ -452,7 +437,7 @@ const ReadIndex: React.FC = () => {
                 }
               />
               )}
-              {(isAdmin || isLive('/read/tea-house')) && (
+              {canSee('/read/tea-house') && (
               <SecondaryCover
                 to="/read/tea-house"
                 kicker="A Tea House · N°09"

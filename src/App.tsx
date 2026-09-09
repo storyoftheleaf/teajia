@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspens
 import { Routes, Route, Navigate, useLocation, useNavigate, useParams, type Location } from 'react-router-dom';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import { TEA_REFERENCE_ROUTE_PATHS } from './wisdom/reference/previewMode';
+import { useArticleAccess } from './pages/read/publishGate';
 
 // Retry a failed chunk load in place. A transient fetch failure is common on a
 // jumpy/firewalled connection, especially for the large admin bundle.
@@ -57,6 +58,32 @@ function ArticleRouteSwitch() {
   }
   return <ArticlePage />;
 }
+
+// The publish gate for every /read/* article route. `useArticleAccess` reads
+// the same ARTICLE_LIVE map ReadIndex's contents list reads, so a route not
+// marked live there renders ReadNotFound instead of its children for a
+// visitor, and renders normally for a signed-in owner or editor. Before this
+// existed, the fourteen article page components had no gate at all: a route
+// with no `live` entry was still fully public at its own URL. (JOBC-2)
+//
+// `children` is the lazy page element itself; React only mounts a lazy
+// component when it actually renders, so a blocked route never triggers that
+// chunk's fetch, it renders ReadNotFound's own (separately lazy) chunk
+// instead.
+const ArticleGate: React.FC<{ href: string; children: React.ReactNode }> = ({ href, children }) => {
+  const allowed = useArticleAccess(href);
+  if (!allowed) {
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<EmblemLoader />}>
+          <ReadNotFound />
+        </Suspense>
+      </ErrorBoundary>
+    );
+  }
+  return <>{children}</>;
+};
+
 const SharedCollection = lazy(() => import('./components/SharedCollection').then(m => ({ default: m.SharedCollection })));
 const EventLanding = lazy(() => import('./components/events/EventLanding'));
 const EventRecapPage = lazy(() => import('./pages/EventRecapPage'));
@@ -125,6 +152,7 @@ const RitualSevenSteeps = lazy(() => import('./pages/read/RitualSevenSteeps'));
 const TastingVocabularyOfTaste = lazy(() => import('./pages/read/TastingVocabularyOfTaste'));
 const TeaHouseQuietHours = lazy(() => import('./pages/read/TeaHouseQuietHours'));
 const CraftRenewalPorcelain = lazy(() => import('./pages/read/CraftRenewalPorcelain'));
+const ReadNotFound = lazy(() => import('./pages/read/ReadNotFound'));
 const PublicCollectionPage = lazy(() => import('./pages/PublicCollectionPage'));
 const ContributorProfilePage = lazy(() => import('./pages/ContributorProfilePage'));
 const AccountProfilePage = lazy(() => import('./pages/AccountProfilePage'));
@@ -1008,48 +1036,79 @@ const AppContent = () => {
                 <Route path="/read/leaf-to-liquor/:template" element={
                   <ErrorBoundary><Suspense fallback={<EmblemLoader />}><LeafToLiquor /></Suspense></ErrorBoundary>
                 } />
+                {/* Every route below is gated: a draft renders ReadNotFound for a
+                    visitor and the article for a signed-in owner or editor. See
+                    ArticleGate above and src/pages/read/publishGate.ts. (JOBC-2) */}
                 <Route path="/read/rock-remembers" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><RockRemembers /></Suspense></ErrorBoundary>
+                  <ArticleGate href="/read/rock-remembers">
+                    <ErrorBoundary><Suspense fallback={<EmblemLoader />}><RockRemembers /></Suspense></ErrorBoundary>
+                  </ArticleGate>
                 } />
                 <Route path="/read/earth-water-fire" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><EarthWaterFire /></Suspense></ErrorBoundary>
+                  <ArticleGate href="/read/earth-water-fire">
+                    <ErrorBoundary><Suspense fallback={<EmblemLoader />}><EarthWaterFire /></Suspense></ErrorBoundary>
+                  </ArticleGate>
                 } />
                 <Route path="/read/before-the-mist" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><BeforeTheMist /></Suspense></ErrorBoundary>
+                  <ArticleGate href="/read/before-the-mist">
+                    <ErrorBoundary><Suspense fallback={<EmblemLoader />}><BeforeTheMist /></Suspense></ErrorBoundary>
+                  </ArticleGate>
                 } />
                 {/* The 10 templates ported from the Tea Article Redesign design project. */}
                 <Route path="/read/atlas" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><AtlasMapOfMountains /></Suspense></ErrorBoundary>
+                  <ArticleGate href="/read/atlas">
+                    <ErrorBoundary><Suspense fallback={<EmblemLoader />}><AtlasMapOfMountains /></Suspense></ErrorBoundary>
+                  </ArticleGate>
                 } />
                 <Route path="/read/craft" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><CraftPotThatRemembers /></Suspense></ErrorBoundary>
+                  <ArticleGate href="/read/craft">
+                    <ErrorBoundary><Suspense fallback={<EmblemLoader />}><CraftPotThatRemembers /></Suspense></ErrorBoundary>
+                  </ArticleGate>
                 } />
                 <Route path="/read/porcelain-and-tea" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><CraftRenewalPorcelain /></Suspense></ErrorBoundary>
+                  <ArticleGate href="/read/porcelain-and-tea">
+                    <ErrorBoundary><Suspense fallback={<EmblemLoader />}><CraftRenewalPorcelain /></Suspense></ErrorBoundary>
+                  </ArticleGate>
                 } />
                 <Route path="/read/essay" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><EssayLongWayToCup /></Suspense></ErrorBoundary>
+                  <ArticleGate href="/read/essay">
+                    <ErrorBoundary><Suspense fallback={<EmblemLoader />}><EssayLongWayToCup /></Suspense></ErrorBoundary>
+                  </ArticleGate>
                 } />
                 <Route path="/read/field-notes" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><FieldNotesTwoRoomsBali /></Suspense></ErrorBoundary>
+                  <ArticleGate href="/read/field-notes">
+                    <ErrorBoundary><Suspense fallback={<EmblemLoader />}><FieldNotesTwoRoomsBali /></Suspense></ErrorBoundary>
+                  </ArticleGate>
                 } />
                 <Route path="/read/field-study" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><FieldStudyWaterBeforeLeaf /></Suspense></ErrorBoundary>
+                  <ArticleGate href="/read/field-study">
+                    <ErrorBoundary><Suspense fallback={<EmblemLoader />}><FieldStudyWaterBeforeLeaf /></Suspense></ErrorBoundary>
+                  </ArticleGate>
                 } />
                 <Route path="/read/history" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><HistoryTenThousandMornings /></Suspense></ErrorBoundary>
+                  <ArticleGate href="/read/history">
+                    <ErrorBoundary><Suspense fallback={<EmblemLoader />}><HistoryTenThousandMornings /></Suspense></ErrorBoundary>
+                  </ArticleGate>
                 } />
                 <Route path="/read/legend" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><LegendImmortalsCliff /></Suspense></ErrorBoundary>
+                  <ArticleGate href="/read/legend">
+                    <ErrorBoundary><Suspense fallback={<EmblemLoader />}><LegendImmortalsCliff /></Suspense></ErrorBoundary>
+                  </ArticleGate>
                 } />
                 <Route path="/read/ritual" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><RitualSevenSteeps /></Suspense></ErrorBoundary>
+                  <ArticleGate href="/read/ritual">
+                    <ErrorBoundary><Suspense fallback={<EmblemLoader />}><RitualSevenSteeps /></Suspense></ErrorBoundary>
+                  </ArticleGate>
                 } />
                 <Route path="/read/tasting" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><TastingVocabularyOfTaste /></Suspense></ErrorBoundary>
+                  <ArticleGate href="/read/tasting">
+                    <ErrorBoundary><Suspense fallback={<EmblemLoader />}><TastingVocabularyOfTaste /></Suspense></ErrorBoundary>
+                  </ArticleGate>
                 } />
                 <Route path="/read/tea-house" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><TeaHouseQuietHours /></Suspense></ErrorBoundary>
+                  <ArticleGate href="/read/tea-house">
+                    <ErrorBoundary><Suspense fallback={<EmblemLoader />}><TeaHouseQuietHours /></Suspense></ErrorBoundary>
+                  </ArticleGate>
                 } />
                 <Route path="/craft" element={
                   <ErrorBoundary>
