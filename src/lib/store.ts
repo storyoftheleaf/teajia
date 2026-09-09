@@ -785,7 +785,10 @@ const createdAppStore = create<AppState>()(
       //     almost always the old default rather than a choice, since the
       //     control is two buttons most readers never touch, so it is lifted
       //     once. Anyone who did choose 50 clicks it again and it sticks.
-      version: 5,
+      // v6: reverses v4. The shelf leads with 50 g again, and by the same
+      //     reasoning a stored 100 is the old default rather than a choice,
+      //     so it is lowered once. The toggle is still one click either way.
+      version: 6,
       migrate: (persistedState, version) => {
         if (!persistedState || typeof persistedState !== 'object') return persistedState as AppState;
         if (version < 1) {
@@ -852,6 +855,10 @@ const createdAppStore = create<AppState>()(
                 : v
             );
           }
+        }
+        if (version < 6) {
+          const prev = persistedState as { shopPriceWeight?: number };
+          if (prev.shopPriceWeight === 100) prev.shopPriceWeight = 50;
         }
         return persistedState as AppState;
       },
