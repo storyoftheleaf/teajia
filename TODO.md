@@ -13,8 +13,6 @@ Ranked in [docs/AUDIT-2026-09.md](docs/AUDIT-2026-09.md). Each line is one root 
   JOBC-1. Recommendation: the grid uses `quoteGrams()` for its default weight. Adrian decides whether that is the number he wants shown.
 - [ ] Rate-limit and length-cap the inquiry and newsletter endpoints, and make an absent limiter binding refuse rather than allow _(band: agent-runnable)_ _(effort: moderate)_
   SEC-1, SEC-2, SEC-5.
-- [ ] Draft articles are readable at their direct URL; gate the fourteen article pages on publish status _(band: agent-runnable)_ _(effort: moderate)_
-  JOBC-2.
 - [ ] Give `create_tea` a real tea type default _(band: agent-runnable)_ _(effort: quick)_
   MONEY-8.
 
@@ -50,6 +48,9 @@ Everything below the ten is in the report's "Later" bucket: false-success delete
 
 - [ ] An agent price edit leaves the partner listing quoting the old cost currency _(band: agent-runnable)_ _(effort: quick)_
   `commitUpdateTeaPricing` in `worker/src/mcp.ts` stamps `products.cost_currency_source` but writes no `cost_amount`, `cost_currency` or `cost_currency_source` to `product_listings`, so after `update_tea_pricing` the listing row still carries the old cost with a NULL mark. Found by the item 5 reviewer on 2026-09-09; `set_cost_currency` handles the same mirror correctly and is the pattern to copy. No backlog risk, because `list_unstated_costs` reads `products`.
+
+- [ ] **The publish gate hides a draft from a visitor; it does not withhold the draft's content.** _(band: agent-runnable)_ _(effort: moderate)_
+  JOBC-2 hides a draft from a visitor everywhere it is named: the route, the contents index, the rail at the foot of each piece, and the crawler-facing head meta all read one map now. It does not make a draft private, and the difference matters before anything is written here that Adrian would mind a stranger reading. The piece's full text still ships to every browser regardless of the gate: `dist/assets/RockRemembers-*.js` carries the whole interview, readable by anyone who opens the network tab, whether or not the route ever renders it. And the owner check runs in the browser, so a visitor who writes a JWT with the right membership claims into `localStorage` themselves, no real sign-in required, sees every draft the way a real owner does. Round three narrowed WHICH claims count, so a curator who owns their own shop is no longer let in by accident, but a forged token is still a forged token because nothing verifies the signature client-side. Closing either hole means the server deciding: a read path that does not send an unpublished piece's content at all, and an owner check made against a verified token rather than a parsed one. That is its own piece of work, not a follow-on to a routing fix.
 
 - [ ] **The new MCP modules had to copy three things out of `index.ts`, because `index.ts` cannot be imported from them.** _(band: agent-runnable)_ _(effort: moderate)_
   `index.ts` imports `mcp.ts`, which imports the modules under `worker/src/mcpTools/`, so a module importing back is a cycle. Three helpers got copied rather than shared, which is one fact with two homes and the exact shape migrations `0010` and `0013` exist to undo: `EVENT_STATUS_BY_LIFECYCLE` (a test parses `index.ts`'s source and fails on drift, which is a splint and not a fix), and `slugify` plus `articleToApi` in `writing.ts` — a slug is an article's public address, and two functions producing different ones is a link that works from one door only.
