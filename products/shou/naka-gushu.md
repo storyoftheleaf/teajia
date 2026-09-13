@@ -4,7 +4,7 @@ chineseName: "那卡古树熟茶"
 type: Shou
 form: Cake
 year: Unknown
-origin: "Menghai, Yunnan, China"
+origin: "Mengsong, Menghai, Yunnan, China"
 grams: 714
 stock: 714
 cost: "270 Yuan"
@@ -18,16 +18,16 @@ tastingNotes:
   - "clean finish"
 ---
 
-A ripe puerh (shou) pressed into a cake from old-tree leaf at Naka village, on Nannuo Mountain in Menghai county, Yunnan.
+A ripe puerh (shou) pressed into a cake from old-tree leaf at Naka, a Lahu village in Mengsong township, Menghai county, Yunnan.
 
 ## Lore
 
-Naka 那卡 is a village on Nannuo Mountain. Its tea gardens are cultivated by Lahu families. The area's leaf has a name in the trade for its aroma.
+Naka (那卡) is a Lahu village in Mengsong township, Menghai county, in Xishuangbanna, Yunnan. Its leaf is the tea most associated with the Mengsong tea area and is known throughout Menghai county. Lahu families here also make bamboo-tube tea, a local method of packing fresh leaf into a bamboo tube and roasting it, noted since the Qing period; that tradition is not the format of this cake.
 
 ## Terroir
 
-Nannuo sits in Menghai county, part of Xishuangbanna in southern Yunnan, China. The village stands at roughly 1,600 metres. Nannuo is one of the mountains named in the wider Xishuangbanna tea geography. This cake is made from gushu leaf, meaning old-tree leaf picked from trees far older than the bushes of a plantation.
+The village sits on the eastern side of Huazhu Liangzi mountain, at roughly 1,660 metres. It keeps more than 600 mu of continuous old tea gardens (one mu is about 667 square metres). The trees run between roughly 300 and 500 years old. Leaf from trees this age is called gushu, meaning old-tree: picked from trees far older than the bushes of a plantation.
 
 ## Processing
 
-The cake is a ripe puerh, called shou. Shou is made by wo dui, a method in which damp leaf is heaped so heat and microbes ferment it. Wo dui was developed in Yunnan in the early 1970s. The process turns the leaf dark and makes the tea drinkable young. The cup pours a dark liquor and drinks full-bodied and earthy. Because so much of the fresh leaf is changed, most of its original aromatics fall away, and what carries through is the quality of the material itself.
+This cake is made in the ripe puerh style, called shou in Chinese. Shou is Yunnan's dark, wet-piled tea. The picked leaf is heaped damp so heat and microbes ferment it, a step called wo dui, or wet piling. The method was developed in Yunnan in the early 1970s and turns the leaf dark so the tea is drinkable young. After fermentation the leaf is pressed into a cake. In the cup the liquor pours dark and drinks full-bodied and earthy; because the pile process works the leaf heavily, what carries through in a ripe tea is the quality of the starting material rather than the aromatics of the fresh leaf.

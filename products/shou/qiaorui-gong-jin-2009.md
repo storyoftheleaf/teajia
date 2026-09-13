@@ -1,5 +1,5 @@
 ---
-productName: "Qiaorui Gong Jin"
+productName: "Nanqiao Ruigong Brick"
 chineseName: "乔瑞贡金砖"
 type: Shou
 form: Brick
