@@ -5,9 +5,9 @@ type: Sheng
 form: Cake
 year: 2008
 origin: "Yiwu, Yunnan, China"
-grams: 357
+grams: 1071
 stock: 1071
-cost: "160 Yuan"
+cost: "480 Yuan"
 vendor: "Kunming Xiongda"
 restockable: true
 tastingNotes:

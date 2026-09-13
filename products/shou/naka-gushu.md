@@ -5,9 +5,9 @@ type: Shou
 form: Cake
 year: Unknown
 origin: "Menghai, Yunnan, China"
-grams: 357
+grams: 714
 stock: 714
-cost: "135 Yuan"
+cost: "270 Yuan"
 vendor: "Kunming Xiongda"
 restockable: true
 tastingNotes:
