@@ -18,22 +18,16 @@ tastingNotes:
   - "clean finish"
 ---
 
-Naka (那卡) is a village in Menghai county known for producing pu-erh with a distinctive, almost floral character unusual for the region.
+A ripe puerh (shou) pressed into a cake from old-tree leaf at Naka village, on Nannuo Mountain in Menghai county, Yunnan.
 
-Gushu (ancient tree) material from Naka is prized for its aromatic complexity. Processing this as shou rather than sheng is an unconventional choice that preserves some of Naka's signature character through fermentation.
+## Lore
+
+Naka 那卡 is a village on Nannuo Mountain. Its tea gardens are cultivated by Lahu families. The area's leaf has a name in the trade for its aroma.
 
 ## Terroir
 
-Naka village, Menghai county, Xishuangbanna, Yunnan. Naka sits at approximately 1,600 meters on Nannuo Mountain, one of the ancient six tea mountains. The Lahu ethnic minority has cultivated tea here for generations, and the ancient gardens are surrounded by forest.
+Nannuo sits in Menghai county, part of Xishuangbanna in southern Yunnan, China. The village stands at roughly 1,600 metres. Nannuo is one of the mountains named in the wider Xishuangbanna tea geography. This cake is made from gushu leaf, meaning old-tree leaf picked from trees far older than the bushes of a plantation.
 
 ## Processing
 
-Ancient-tree leaf from Naka village, wo dui fermented and pressed into cake. Naka's naturally aromatic leaf retains some of its distinctive character even through the heavy transformation of shou processing, creating a ripe tea with unusual refinement.
-
-## Mood
-
-quiet fragrance
-
-## Experience
-
-A shou with unexpected grace. The floral note that Naka is famous for survives the fermentation as a ghost, a lightness beneath the earth and sweetness. Cleaner and more refined than most shou. Drinks like a tea that remembers what it used to be.
+The cake is a ripe puerh, called shou. Shou is made by wo dui, a method in which damp leaf is heaped so heat and microbes ferment it. Wo dui was developed in Yunnan in the early 1970s. The process turns the leaf dark and makes the tea drinkable young. The cup pours a dark liquor and drinks full-bodied and earthy. Because so much of the fresh leaf is changed, most of its original aromatics fall away, and what carries through is the quality of the material itself.

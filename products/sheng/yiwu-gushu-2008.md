@@ -18,22 +18,16 @@ tastingNotes:
   - "thick body"
 ---
 
-A 2008 ancient-tree sheng from Yiwu, the most revered origin in the pu-erh world.
+A raw (sheng) puerh from old-tree leaf, pressed into a cake in 2008 in the Yiwu tea area of Yunnan.
 
-At eighteen years old, this tea is entering the transitional phase where raw pu-erh begins to shed its youth and develop the aged character that makes Yiwu legendary. Gushu (ancient tree) material from Yiwu represents the pinnacle of sheng raw material.
+## Lore
+
+Yiwu 易武 sits in eastern Xishuangbanna, Yunnan. The town became an important collection and distribution point for tea from the old Six Famous Tea Mountains, connecting local leaf with wider merchant networks.
 
 ## Terroir
 
-Yiwu township, Mengla county, Xishuangbanna, Yunnan. Yiwu's ancient tea forests sit at moderate elevation in a tropical environment. The deep root systems of old-growth trees and the rich, biodiverse soil create leaf with a sweetness, thickness, and complexity that plantation tea cannot approach.
+The name Yiwu can point to a township, a market centre, or a much wider tea area. A Yiwu label is therefore a regional claim, not tied to one village.
 
 ## Processing
 
-Sun-dried large-leaf Yunnan maocha from ancient Yiwu trees, stone-pressed into 357-gram cake form. Eighteen years of natural aging have begun the transformation from bright, astringent youth into something deeper and sweeter. The tea is mid-transition.
-
-## Mood
-
-becoming
-
-## Experience
-
-In transition. The green sharpness of youth is fading but the deep aged character has not fully arrived. What is present is beautiful: honey and camphor and a thickness in the body that signals exceptional raw material. In five more years this will be extraordinary. Right now it is a glimpse of what is coming.
+Raw puerh, called sheng, is made by heating the fresh leaves to stop them oxidising, rolling them, and drying them in the sun into a loose leaf called maocha. The maocha is then pressed into a cake. Sheng is not fermented in a pile, so it ages slowly on its own over the years. Young sheng drinks brisk and bitter. With age the leaf settles, and the cup turns darker and firmer. This cake was pressed in 2008, close to two decades old, past its sharp youth but not yet an old tea.
