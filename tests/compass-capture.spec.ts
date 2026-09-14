@@ -1,5 +1,5 @@
 /** Curate preservation contract: field capture stays one tap away and non-linear. */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { expectNoUnhandledCompassApi, installCompassHarness, openCompass } from './helpers/compassHarness';
 
 test.describe('Curate field capture preservation', () => {

@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 
 const enc = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');
 const token = `${enc({ alg: 'HS256', typ: 'JWT' })}.${enc({ sub: 'u1', email: 'owner@test.dev', role: 'owner', platform_role: 'platform_owner', active_account_id: 'acct-bali', memberships: [{ account_id: 'acct-bali', account_name: 'Teajia Bali', role: 'owner', slug: 'teajia-bali' }], exp: Math.floor(Date.now() / 1000) + 86400 })}.sig`;

@@ -3,7 +3,7 @@
 // hand-built long-reads. Which navigation depends on the width: the floating
 // bar is the phone's, and above 1024px the sidebar is the desk's. The bar used
 // to carry both, which put navigation along the bottom edge of a desk screen.
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 
 async function expectNavigation(page: Page) {
   const wide = (page.viewportSize()?.width ?? 0) >= 1024;

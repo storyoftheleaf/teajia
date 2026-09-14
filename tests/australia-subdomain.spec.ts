@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 // The Australia subdomain (au.teajia.com) maps to the Teajia Australia store.
 // Host->slug mapping lives in src/lib/storeHost.ts (unit-covered separately).

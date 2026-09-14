@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 
 const SERVICES = [
   ['design', 'Tea House Design & Curation', '$5,000 – $100,000+', 'From concept through opening. Design, curation, tea selection, training, and operations.'],

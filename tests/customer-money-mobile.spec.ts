@@ -22,7 +22,7 @@
  * actually has when they cannot see the number they came to read.
  */
 
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 import { assertNothingRunsOffScreen } from './helpers/screenEdge';
 
 const TOKEN = 'A7kQ_customer-tracking-token-000000000001';

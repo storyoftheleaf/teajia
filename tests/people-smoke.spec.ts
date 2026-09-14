@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 const profileFixture = {
   id: 'publishing-fixture', account_id: 'acct', display_name: 'Publishing Fixture', role: 'Writer', is_published: 1,

@@ -6,7 +6,7 @@
 //     reader (renderBlock), with a phone/desktop width toggle.
 // Runs against the dev server on :7777 via a dev-only harness route that mounts
 // the real ArticleEditorModal, so no admin auth shell is required.
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 const HARNESS = '/design/article-editor';
 

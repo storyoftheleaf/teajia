@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 const encode = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');
 const token = `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode({ sub: 'owner', role: 'owner', active_account_id: 'acct', memberships: [{ account_id: 'acct', role: 'owner' }], exp: Math.floor(Date.now() / 1000) + 3600 })}.sig`;
