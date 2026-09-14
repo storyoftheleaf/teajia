@@ -1,6 +1,6 @@
 ---
 productName: "Nanqiao Ruigong Brick"
-chineseName: "乔瑞贡金砖"
+chineseName: "南峤瑞贡金砖"
 type: Shou
 form: Brick
 year: 2009
