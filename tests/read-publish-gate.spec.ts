@@ -5,7 +5,7 @@
 // App.tsx: a draft is not-found for a visitor, live for a signed-in owner,
 // and a live piece stays public either way.
 
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 
 function makeFakeJWT(payload: object): string {
   const enc = (s: string) => Buffer.from(s).toString('base64url');

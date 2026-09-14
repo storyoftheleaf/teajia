@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 
 const token = [
   btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' })),

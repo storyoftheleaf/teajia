@@ -2,7 +2,7 @@
 // Verifies the public Read index respects the curated publication boundary:
 // explicitly live pieces are listed, while drafts and the retained article
 // query are not accidentally exposed in the public register.
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 const PUBLISHED = [
   { id: 'a1', slug: 'a-quiet-steep', title: 'A Quiet Steep', subtitle: 'On the patience of the second infusion.', category: 'Reflection', status: 'published', tags: [], blocks: [], cover_image_url: '', created_at: '2026-06-18', updated_at: '2026-06-18' },

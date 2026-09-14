@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { installCompassHarness, openCompass } from './helpers/compassHarness';
 
 test('free 10g sample defaults to reviewed sample receipt and only accept changes Inventory', async ({ page }) => {

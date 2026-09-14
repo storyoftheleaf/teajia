@@ -6,7 +6,7 @@
  * the payload — it never verifies the signature — so any three-part token works.
  */
 
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 import { findScreenEdgeOverruns } from './helpers/screenEdge';
 import * as fs from 'fs';
 import * as path from 'path';

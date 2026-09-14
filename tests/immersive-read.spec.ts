@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@playwright/test';
+import { test, expect, Page } from './fixtures';
 
 // Verifies the immersive Read-section long-reads: no overflow, no crash,
 // no 404, no unexpected console errors, plus a screenshot per state.

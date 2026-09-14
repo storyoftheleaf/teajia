@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 const jwt = [
   btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' })),

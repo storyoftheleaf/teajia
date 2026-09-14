@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { expect, test, type Locator, type Page, type Request, type TestInfo } from '@playwright/test';
+import { expect, test, type Locator, type Page, type Request, type TestInfo } from './fixtures';
 
 function fakeJwt(payload: object): string {
   const encode = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');
