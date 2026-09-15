@@ -83,7 +83,8 @@ jobs:
             if [ "$(git rev-list --parents -n1 HEAD | wc -w)" -ge 3 ]; then
               head="$(git rev-parse HEAD^2)"
               if [ "$(git rev-parse 'HEAD^{tree}')" = "$(git rev-parse "${head}^{tree}")" ]; then
-                wf="$(basename "${{ github.workflow_ref }}" | cut -d@ -f1)"
+                # workflow_ref is owner/repo/.github/workflows/<file>@refs/heads/<branch>
+                wf="${{ github.workflow_ref }}"; wf="${wf%%@*}"; wf="${wf##*/}"
                 green="$(gh run list --workflow="$wf" --commit="$head" --json conclusion --jq '[.[] | select(.conclusion=="success")] | length' 2>&1 || true)"
                 case "$green" in ''|*[!0-9]*) echo "gate: run lookup failed: $green"; green=0;; esac
                 if [ "${green:-0}" -gt 0 ]; then run=false; why="merge of $head, same tree, already green"; else why="merge of $head, same tree, but no green run on it"; fi
