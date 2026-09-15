@@ -61,6 +61,11 @@ jobs:
   gate:
     runs-on: ubuntu-latest
     timeout-minutes: 3
+    # The default token cannot list runs; without this the lookup silently
+    # returns nothing and the gate never skips (seen on the first merge).
+    permissions:
+      actions: read
+      contents: read
     outputs:
       run: ${{ steps.decide.outputs.run }}
     steps:
@@ -78,7 +83,9 @@ jobs:
             if [ "$(git rev-list --parents -n1 HEAD | wc -w)" -ge 3 ]; then
               head="$(git rev-parse HEAD^2)"
               if [ "$(git rev-parse 'HEAD^{tree}')" = "$(git rev-parse "${head}^{tree}")" ]; then
-                green="$(gh run list --workflow="${{ github.workflow }}" --commit="$head" --json conclusion --jq '[.[] | select(.conclusion=="success")] | length' 2>/dev/null || echo 0)"
+                wf="$(basename "${{ github.workflow_ref }}" | cut -d@ -f1)"
+                green="$(gh run list --workflow="$wf" --commit="$head" --json conclusion --jq '[.[] | select(.conclusion=="success")] | length' 2>&1 || true)"
+                case "$green" in ''|*[!0-9]*) echo "gate: run lookup failed: $green"; green=0;; esac
                 if [ "${green:-0}" -gt 0 ]; then run=false; why="merge of $head, same tree, already green"; else why="merge of $head, same tree, but no green run on it"; fi
               else
                 why="merge whose tree differs from the PR head"
