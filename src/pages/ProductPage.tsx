@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { AnimatePresence } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import { useInventory } from '../context/InventoryContext';
 import { useAuth } from '../hooks/useAuth';
 import { Icons } from '../components/Icons';
@@ -103,6 +104,18 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   useEffect(() => {
     if (item?.id) addRecentlyViewed(item.id);
   }, [item?.id, addRecentlyViewed]);
+
+  // Surface 3 / Lane F: published creators whose public tea selection
+  // includes this product. Public read, so it is safe to fire before the
+  // reader has signed in, and quiet when nobody has selected the tea --
+  // enabled only once an item has resolved, never fired on a 404.
+  const selectedByQuery = useQuery({
+    queryKey: ['product-selected-by', item?.id],
+    queryFn: () => api.products.getSelectedBy(item!.id),
+    enabled: Boolean(item?.id),
+    staleTime: 1000 * 60 * 5,
+  });
+  const selectedBy = selectedByQuery.data?.selected_by ?? [];
 
   // Tasting session (customers) / product tasting editor (admins): same
   // behaviors the shop grids attach to the modal card.
@@ -489,6 +502,24 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
           />
         )}
       </AnimatePresence>
+
+      {/* Selected by: quiet, text-only, and absent entirely when nobody has
+          publicly favorited this tea -- never a placeholder section. */}
+      {selectedBy.length > 0 && (
+        <section aria-label="Selected by" className="mx-5 mt-8 border-t border-tea-border pt-6 lg:mx-10">
+          <p className="font-sans text-ui-11 uppercase tracking-[0.14em] text-tea-text-sec">Selected by</p>
+          <ul className="mt-3 space-y-3">
+            {selectedBy.map(creator => (
+              <li key={creator.slug}>
+                <Link to={`/people/${creator.slug}`} className="text-ui-14 text-tea-text transition-colors hover:text-tea-gold">
+                  {creator.business_name || creator.display_name}
+                </Link>
+                {creator.why && <p className="mt-1 text-ui-13 text-tea-text-sec">{creator.why}</p>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* Admin: product tasting editor, same modal used from the admin panel */}
       {adminTastingItem && adminTastingProductShim && (
