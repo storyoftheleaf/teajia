@@ -144,3 +144,104 @@ export function projectPublicFavorite<TTea extends PublicTeaProjection>(
     tea,
   };
 }
+
+// contributors.links, retyped by migration 0021 from a flat {label, url}
+// pair to a typed link with a fixed platform vocabulary. A WeChat entry
+// carries an id rather than a url, and only a WeChat entry ever carries a
+// QR image, which is why the old shape could not say either.
+export const CONTRIBUTOR_LINK_PLATFORMS = ['wechat', 'instagram', 'website', 'other'] as const;
+export type ContributorLinkPlatform = typeof CONTRIBUTOR_LINK_PLATFORMS[number];
+
+export interface ContributorLink {
+  platform: ContributorLinkPlatform;
+  value: string;
+  qr_image_url: string | null;
+}
+
+const LINK_VALUE_LIMIT = 200;
+
+function isContributorLinkPlatform(value: unknown): value is ContributorLinkPlatform {
+  return typeof value === 'string' && (CONTRIBUTOR_LINK_PLATFORMS as readonly string[]).includes(value);
+}
+
+/**
+ * Reads the stored `links` column back into typed rows. Anything that does
+ * not carry a recognised platform and a value is dropped rather than thrown,
+ * the same "read at use time" stance the rest of this file takes with
+ * malformed JSON: a bad row should not take the whole profile down.
+ */
+export function parseStoredContributorLinks(raw: string | null | undefined): ContributorLink[] {
+  if (!raw) return [];
+  let parsed: unknown;
+  try { parsed = JSON.parse(raw); } catch { return []; }
+  if (!Array.isArray(parsed)) return [];
+  const result: ContributorLink[] = [];
+  for (const item of parsed) {
+    if (!item || typeof item !== 'object') continue;
+    const platform = (item as Record<string, unknown>).platform;
+    const value = (item as Record<string, unknown>).value;
+    if (!isContributorLinkPlatform(platform) || typeof value !== 'string' || !value.trim()) continue;
+    const qr = (item as Record<string, unknown>).qr_image_url;
+    result.push({ platform, value, qr_image_url: typeof qr === 'string' && qr.trim() ? qr : null });
+  }
+  return result;
+}
+
+/**
+ * Validates a write to `links` in the new shape. Returns the typed array,
+ * not a pre-stringified column value, so the caller decides when to
+ * `JSON.stringify` it, the same contract `normalizeLanguages` already uses
+ * for the `languages` column.
+ */
+export function normalizeContributorLinks(value: unknown): { value?: ContributorLink[]; error?: string } {
+  if (value === undefined) return {};
+  if (!Array.isArray(value)) return { error: 'links must be an array' };
+  const normalized: ContributorLink[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== 'object') return { error: 'Each link must have a platform and a value' };
+    const rawPlatform = (item as Record<string, unknown>).platform;
+    if (!isContributorLinkPlatform(rawPlatform)) {
+      return { error: `Each link's platform must be one of ${CONTRIBUTOR_LINK_PLATFORMS.join(', ')}` };
+    }
+    const rawValue = typeof (item as Record<string, unknown>).value === 'string'
+      ? ((item as Record<string, unknown>).value as string).trim()
+      : '';
+    if (!rawValue || rawValue.length > LINK_VALUE_LIMIT) {
+      return { error: 'Each link must have a value' };
+    }
+    if (rawPlatform === 'website') {
+      let url: URL;
+      try { url = new URL(rawValue); } catch { return { error: 'A website link needs a valid https URL as its value' }; }
+      if (url.protocol !== 'https:') return { error: 'A website link needs a valid https URL as its value' };
+    }
+    let qrImageUrl: string | null = null;
+    const rawQr = (item as Record<string, unknown>).qr_image_url;
+    if (rawQr !== undefined && rawQr !== null) {
+      if (typeof rawQr !== 'string') return { error: 'qr_image_url must be a string or null' };
+      const trimmedQr = rawQr.trim();
+      if (trimmedQr) {
+        let qrUrl: URL;
+        try { qrUrl = new URL(trimmedQr); } catch { return { error: 'qr_image_url must be a valid https URL' }; }
+        if (qrUrl.protocol !== 'https:') return { error: 'qr_image_url must be a valid https URL' };
+        qrImageUrl = qrUrl.toString();
+      }
+    }
+    normalized.push({ platform: rawPlatform, value: rawValue, qr_image_url: qrImageUrl });
+  }
+  return { value: normalized };
+}
+
+// contributor_gallery_images (migration 0020): one row per photo, same
+// row-per-item shape as FavoriteRow and PaymentMethodRow above.
+export interface GalleryImageRow {
+  id: string;
+  contributor_id: string;
+  image_url: string;
+  caption: string | null;
+  position: number;
+}
+
+export function projectPublicGalleryImage(image: GalleryImageRow) {
+  const { id, image_url, caption, position } = image;
+  return { id, image_url, caption, position };
+}

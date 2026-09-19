@@ -197,6 +197,7 @@ CREATE TABLE IF NOT EXISTS contributors (
     face_of_account_id TEXT REFERENCES accounts(id),
     contact_customer_id TEXT,
     display_name TEXT NOT NULL,
+    business_name TEXT,
     chinese_name TEXT,
     role TEXT,
     pronouns TEXT,
@@ -217,6 +218,8 @@ CREATE TABLE IF NOT EXISTS contributors (
     pouring_today_product_id TEXT,
     pouring_today_note TEXT,
     where_to_find_text TEXT,
+    -- {platform, value, qr_image_url?}[]; platform is one of wechat, instagram,
+    -- website, other. Migration 0021 rewrote the old {label, url}[] rows.
     links TEXT NOT NULL DEFAULT '[]',
     is_published INTEGER NOT NULL DEFAULT 0,
     unpublished_at TEXT,
@@ -668,6 +671,22 @@ CREATE TABLE IF NOT EXISTS profile_favorites (
   CHECK ((source_product_id IS NULL AND source_listing_id IS NULL) OR source_account_id IS NOT NULL)
 );
 CREATE INDEX IF NOT EXISTS idx_profile_favorites_public ON profile_favorites(contributor_id, is_public, position);
+
+-- Photos of a tea master at work, not a headshot. One row per image, same
+-- shape as profile_favorites and payment_methods above, so adding or
+-- removing one picture never rewrites the whole set. 3 to 5 images is the
+-- editorial ceiling; the admin editor enforces that, not this table.
+CREATE TABLE IF NOT EXISTS contributor_gallery_images (
+  id TEXT PRIMARY KEY,
+  contributor_id TEXT NOT NULL REFERENCES contributors(id) ON DELETE CASCADE,
+  image_url TEXT NOT NULL,
+  caption TEXT CHECK (caption IS NULL OR length(caption) <= 280),
+  position INTEGER NOT NULL DEFAULT 0 CHECK (position >= 0),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_contributor_gallery_images_contributor
+  ON contributor_gallery_images(contributor_id, position);
 
 CREATE TABLE IF NOT EXISTS payment_methods (
   id TEXT PRIMARY KEY,
