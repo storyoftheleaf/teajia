@@ -101,6 +101,7 @@ run(`DELETE FROM profile_favorites WHERE contributor_id IN (${CONTRIBUTOR_IDS.ma
 run(`DELETE FROM payment_methods WHERE contributor_id IN (${CONTRIBUTOR_IDS.map(q).join(', ')})`);
 run(`DELETE FROM contributor_accounts WHERE contributor_id IN (${CONTRIBUTOR_IDS.map(q).join(', ')})`);
 run(`DELETE FROM contributors WHERE id IN (${CONTRIBUTOR_IDS.map(q).join(', ')})`);
+run(`DELETE FROM account_members WHERE user_id IN (${USERS.map(u => q(u.id)).join(', ')})`);
 run(`DELETE FROM users WHERE id IN (${USERS.map(u => q(u.id)).join(', ')})`);
 
 // -- 2. Users (contributors.user_id needs a row to point at) -----------------
@@ -108,6 +109,15 @@ run(`DELETE FROM users WHERE id IN (${USERS.map(u => q(u.id)).join(', ')})`);
 for (const user of USERS) {
   run(`INSERT INTO users (id, email, name, password_hash, role, session_version, created_at)
        VALUES (${q(user.id)}, ${q(user.email)}, ${q(user.name)}, ${q(FIXTURE_PASSWORD_HASH)}, 'user', 0, datetime('now'))`);
+}
+
+// -- 2b. account_members (validateContributorReferences in worker/src/index.ts
+//        requires an active member row for this account before the admin
+//        editor will accept a contributor's user_id on save) ---------------
+
+for (const user of USERS) {
+  run(`INSERT INTO account_members (id, account_id, user_id, role, joined_at, status)
+       VALUES (lower(hex(randomblob(16))), ${q(ACCOUNT_ID)}, ${q(user.id)}, 'viewer', datetime('now'), 'active')`);
 }
 
 // -- 3. Contributors ----------------------------------------------------------
