@@ -98,36 +98,43 @@ describe('Lane A schema: business_name, contributor_gallery_images, typed links'
 });
 
 describe('migration 0021: links learn their platform', () => {
-  function seedLinksRow(links: unknown) {
+  const migrationSql = readFileSync(
+    fileURLToPath(new URL('../migrations/0021_links_learn_their_platform.sql', import.meta.url)),
+    'utf8',
+  );
+
+  function seedLinksRow(links: unknown, runs = 1) {
     const db = new DatabaseSync(':memory:');
-    db.exec(schema.replace(/CREATE INDEX[^;]*;/g, m => m)); // full schema, indexes included
+    db.exec(schema);
     db.exec(`
       INSERT INTO accounts (id, slug, name) VALUES ('acc-a', 'acc-a', 'Acc A');
       INSERT INTO contributors (id, account_id, display_name, links)
       VALUES ('person-a', 'acc-a', 'Person A', '${JSON.stringify(links).replace(/'/g, "''")}');
     `);
-    const migrationSql = readFileSync(
-      fileURLToPath(new URL('../migrations/0021_links_learn_their_platform.sql', import.meta.url)),
-      'utf8',
-    );
-    db.exec(migrationSql);
+    for (let i = 0; i < runs; i += 1) db.exec(migrationSql);
     const row = db.prepare(`SELECT links FROM contributors WHERE id='person-a'`).get() as { links: string };
     db.close();
     return JSON.parse(row.links);
   }
 
-  it('rewrites a generic https link to platform website, keeping the url as the value', () => {
+  it('rewrites a generic https link to platform website, keeping the url as the value and dropping no label', () => {
     expect(seedLinksRow([{ label: 'Website', url: 'https://cloudmountaintea.com' }])).toEqual([
       { platform: 'website', value: 'https://cloudmountaintea.com' },
     ]);
   });
 
-  it('rewrites a known-social-platform link to platform other, keeping the label as the value', () => {
+  it('rewrites a known-social-platform link to platform other, keeping the url as the value and the old label alongside it', () => {
     expect(seedLinksRow([{ label: 'Instagram', url: 'https://instagram.com/amarateas' }])).toEqual([
-      { platform: 'other', value: 'Instagram' },
+      { platform: 'other', value: 'https://instagram.com/amarateas', label: 'Instagram' },
     ]);
     expect(seedLinksRow([{ label: 'WeChat', url: 'https://wechat.com/qr/abc123' }])).toEqual([
-      { platform: 'other', value: 'WeChat' },
+      { platform: 'other', value: 'https://wechat.com/qr/abc123', label: 'WeChat' },
+    ]);
+  });
+
+  it('never drops the address: a known-social-platform link with no label still keeps its url', () => {
+    expect(seedLinksRow([{ label: '', url: 'https://instagram.com/nolabel' }])).toEqual([
+      { platform: 'other', value: 'https://instagram.com/nolabel' },
     ]);
   });
 
@@ -141,13 +148,27 @@ describe('migration 0021: links learn their platform', () => {
     ]);
   });
 
-  it('converts a mixed row entry by entry, each on its own rule', () => {
+  it('converts a mixed row entry by entry, each on its own rule, address intact on both', () => {
     expect(seedLinksRow([
       { label: 'Website', url: 'https://cloudmountaintea.com' },
       { label: 'WeChat', url: 'https://wechat.com/qr/abc123' },
     ])).toEqual([
       { platform: 'website', value: 'https://cloudmountaintea.com' },
-      { platform: 'other', value: 'WeChat' },
+      { platform: 'other', value: 'https://wechat.com/qr/abc123', label: 'WeChat' },
+    ]);
+  });
+
+  it('is a true no-op the second time it runs, including on rows that now carry a label', () => {
+    const links = [
+      { label: 'Website', url: 'https://cloudmountaintea.com' },
+      { label: 'Instagram', url: 'https://instagram.com/amarateas' },
+    ];
+    const oncePassed = seedLinksRow(links, 1);
+    const twicePassed = seedLinksRow(links, 2);
+    expect(twicePassed).toEqual(oncePassed);
+    expect(twicePassed).toEqual([
+      { platform: 'website', value: 'https://cloudmountaintea.com' },
+      { platform: 'other', value: 'https://instagram.com/amarateas', label: 'Instagram' },
     ]);
   });
 });
@@ -199,6 +220,27 @@ describe('profileDomain: typed contributor links', () => {
     expect(parseStoredContributorLinks(undefined)).toEqual([]);
     expect(parseStoredContributorLinks('not json')).toEqual([]);
     expect(parseStoredContributorLinks('{}')).toEqual([]);
+  });
+
+  it('carries an optional label through both a write and a read', () => {
+    const written = normalizeContributorLinks([
+      { platform: 'other', value: 'https://instagram.com/amarateas', label: 'Instagram' },
+    ]);
+    expect(written.error).toBeUndefined();
+    expect(written.value).toEqual([
+      { platform: 'other', value: 'https://instagram.com/amarateas', label: 'Instagram', qr_image_url: null },
+    ]);
+    const roundTripped = parseStoredContributorLinks(JSON.stringify(written.value));
+    expect(roundTripped).toEqual([
+      { platform: 'other', value: 'https://instagram.com/amarateas', qr_image_url: null, label: 'Instagram' },
+    ]);
+  });
+
+  it('omits label entirely rather than storing an empty one', () => {
+    const result = normalizeContributorLinks([{ platform: 'other', value: 'https://instagram.com/amarateas', label: '  ' }]);
+    expect(result.error).toBeUndefined();
+    expect(result.value?.[0]).not.toHaveProperty('label');
+    expect(parseStoredContributorLinks(JSON.stringify([{ platform: 'other', value: 'x', label: '' }]))[0]).not.toHaveProperty('label');
   });
 });
 

@@ -155,6 +155,11 @@ export type ContributorLinkPlatform = typeof CONTRIBUTOR_LINK_PLATFORMS[number];
 export interface ContributorLink {
   platform: ContributorLinkPlatform;
   value: string;
+  // The old label ("WeChat", "Instagram"), carried forward when migration
+  // 0021 rewrote a link it could not confidently name a platform for. Never
+  // required on a write: a link created straight in the new shape has no
+  // label to lose.
+  label?: string;
   qr_image_url: string | null;
 }
 
@@ -182,7 +187,10 @@ export function parseStoredContributorLinks(raw: string | null | undefined): Con
     const value = (item as Record<string, unknown>).value;
     if (!isContributorLinkPlatform(platform) || typeof value !== 'string' || !value.trim()) continue;
     const qr = (item as Record<string, unknown>).qr_image_url;
-    result.push({ platform, value, qr_image_url: typeof qr === 'string' && qr.trim() ? qr : null });
+    const rawLabel = (item as Record<string, unknown>).label;
+    const link: ContributorLink = { platform, value, qr_image_url: typeof qr === 'string' && qr.trim() ? qr : null };
+    if (typeof rawLabel === 'string' && rawLabel.trim()) link.label = rawLabel.trim();
+    result.push(link);
   }
   return result;
 }
@@ -226,7 +234,14 @@ export function normalizeContributorLinks(value: unknown): { value?: Contributor
         qrImageUrl = qrUrl.toString();
       }
     }
-    normalized.push({ platform: rawPlatform, value: rawValue, qr_image_url: qrImageUrl });
+    const rawLabel = (item as Record<string, unknown>).label;
+    if (rawLabel !== undefined && rawLabel !== null && typeof rawLabel !== 'string') {
+      return { error: 'label must be a string or null' };
+    }
+    const trimmedLabel = typeof rawLabel === 'string' ? rawLabel.trim() : '';
+    const link: ContributorLink = { platform: rawPlatform, value: rawValue, qr_image_url: qrImageUrl };
+    if (trimmedLabel) link.label = trimmedLabel;
+    normalized.push(link);
   }
   return { value: normalized };
 }
