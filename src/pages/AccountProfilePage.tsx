@@ -95,6 +95,7 @@ export default function AccountProfilePage() {
           <ProfileEditor
             profile={profile}
             onSave={value => updateProfile.mutateAsync(value).then(() => undefined)}
+            onSaveGallery={images => api.profile.updateGalleryImages(images).then(() => refreshProfile()).then(() => undefined)}
             onUnpublish={() => api.profile.unpublishSelf().then(() => refreshProfile()).then(() => undefined)}
             onUploadPortrait={image => api.profile.uploadImage(image, 'portrait')}
           />
@@ -157,7 +158,7 @@ function NewProfileForm({ name, onCreate }: { name: string; onCreate: (value: Se
   const submit = async (event: React.FormEvent) => {
     event.preventDefault(); setSaving(true); setError(null);
     try {
-      await onCreate({ id: slug, display_name: displayName, beginnings: bio, chinese_name: null, now_text: null, location_line: null, languages: [], avatar_url: null, portrait_url: null, links: [] });
+      await onCreate({ id: slug, display_name: displayName, business_name: null, beginnings: bio, chinese_name: null, now_text: null, location_line: null, languages: [], avatar_url: null, portrait_url: null, links: [] });
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'The profile draft could not be created.'); }
     finally { setSaving(false); }
   };

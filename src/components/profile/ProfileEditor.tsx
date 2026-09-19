@@ -1,13 +1,41 @@
 import { useEffect, useRef, useState } from 'react';
-import { Camera, Check, Link as LinkIcon, Plus, Trash, UserCircle } from '@phosphor-icons/react';
+import { Camera, Check, Link as LinkIcon, UserCircle } from '@phosphor-icons/react';
 import { SquareCropModal } from '../shared/SquareCropModal';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { profileStatus } from './profileDomain';
-import type { ProfileLink, SelfProfile, SelfProfileUpdate } from './types';
+import {
+  CONTRIBUTOR_LINK_PLATFORMS,
+  type ContributorLinkPlatform,
+  type ProfileGalleryImage,
+  type ProfileLink,
+  type SelfProfile,
+  type SelfProfileUpdate,
+} from './types';
+
+const GALLERY_IMAGE_LIMIT = 8;
+
+function linkPlatformLabel(platform: ContributorLinkPlatform): string {
+  switch (platform) {
+    case 'wechat': return 'WeChat';
+    case 'instagram': return 'Instagram';
+    case 'website': return 'Website';
+    default: return 'Other';
+  }
+}
+
+function linkValueLabel(platform: ContributorLinkPlatform): string {
+  switch (platform) {
+    case 'wechat': return 'WeChat ID';
+    case 'instagram': return 'Instagram handle';
+    case 'website': return 'Website URL';
+    default: return 'Value';
+  }
+}
 
 interface ProfileEditorProps {
   profile: SelfProfile;
   onSave: (value: SelfProfileUpdate) => Promise<void>;
+  onSaveGallery: (images: ProfileGalleryImage[]) => Promise<void>;
   onUnpublish: () => Promise<void>;
   onUploadPortrait?: (image: Blob) => Promise<string>;
 }
@@ -18,6 +46,7 @@ const labelClass = `${TYPOGRAPHY_CLASSES.label} mb-2 block text-tea-text-sec`;
 function toUpdate(profile: SelfProfile): SelfProfileUpdate {
   return {
     display_name: profile.display_name,
+    business_name: profile.business_name,
     chinese_name: profile.chinese_name,
     beginnings: profile.beginnings,
     now_text: profile.now_text,
@@ -29,7 +58,7 @@ function toUpdate(profile: SelfProfile): SelfProfileUpdate {
   };
 }
 
-export function ProfileEditor({ profile, onSave, onUnpublish, onUploadPortrait }: ProfileEditorProps) {
+export function ProfileEditor({ profile, onSave, onSaveGallery, onUnpublish, onUploadPortrait }: ProfileEditorProps) {
   const [draft, setDraft] = useState(profile);
   const [cropSource, setCropSource] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
@@ -79,6 +108,10 @@ export function ProfileEditor({ profile, onSave, onUnpublish, onUploadPortrait }
     setError(null);
     try {
       await onSave(toUpdate(draft));
+      // Sent every save, empty array included: a full-array replace is
+      // idempotent, and this is the only way an emptied gallery is ever
+      // recorded as empty rather than left holding its last saved rows.
+      await onSaveGallery(draft.gallery_images);
       setSaved(true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'The profile could not be saved.');
@@ -101,6 +134,22 @@ export function ProfileEditor({ profile, onSave, onUnpublish, onUploadPortrait }
 
   const updateLink = (index: number, patch: Partial<ProfileLink>) => {
     setField('links', draft.links.map((link, position) => position === index ? { ...link, ...patch } : link));
+  };
+
+  const updateGalleryImage = (index: number, patch: Partial<ProfileGalleryImage>) => {
+    setField('gallery_images', draft.gallery_images.map((image, position) => position === index ? { ...image, ...patch } : image));
+  };
+  const addGalleryImage = () => {
+    if (draft.gallery_images.length >= GALLERY_IMAGE_LIMIT) return;
+    setField('gallery_images', [...draft.gallery_images, { image_url: '', caption: null }]);
+  };
+  const removeGalleryImage = (index: number) => setField('gallery_images', draft.gallery_images.filter((_, position) => position !== index));
+  const moveGalleryImage = (index: number, nextIndex: number) => {
+    if (nextIndex < 0 || nextIndex >= draft.gallery_images.length) return;
+    const reordered = [...draft.gallery_images];
+    const [moved] = reordered.splice(index, 1);
+    reordered.splice(nextIndex, 0, moved);
+    setField('gallery_images', reordered);
   };
 
   const confirmCrop = async (image: Blob) => {
@@ -185,7 +234,11 @@ export function ProfileEditor({ profile, onSave, onUnpublish, onUploadPortrait }
               <input required value={draft.display_name} onChange={event => setField('display_name', event.target.value)} className={inputClass} />
             </label>
             <label>
-              <span className={labelClass}>Chinese name</span>
+              <span className={labelClass}>Business name</span>
+              <input value={draft.business_name ?? ''} onChange={event => setField('business_name', event.target.value || null)} className={inputClass} placeholder="Trades as, if different from your name" />
+            </label>
+            <label>
+              <span className={labelClass}>Name in own script</span>
               <input value={draft.chinese_name ?? ''} onChange={event => setField('chinese_name', event.target.value || null)} className={inputClass} />
             </label>
             <label>
@@ -221,22 +274,51 @@ export function ProfileEditor({ profile, onSave, onUnpublish, onUploadPortrait }
         <fieldset className="space-y-4 border-0 p-0">
           <legend className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Links</legend>
           {draft.links.map((link, index) => (
-            <div key={`${index}-${link.url}`} className="grid gap-3 border-t border-tea-border pt-4 sm:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)_44px]">
-              <label>
-                <span className={labelClass}>Label</span>
-                <input value={link.label} onChange={event => updateLink(index, { label: event.target.value })} className={inputClass} />
-              </label>
-              <label>
-                <span className={labelClass}>URL</span>
-                <input type="url" value={link.url} onChange={event => updateLink(index, { url: event.target.value })} className={inputClass} />
-              </label>
-              <button type="button" aria-label={`Remove ${link.label || 'link'}`} onClick={() => setField('links', draft.links.filter((_, position) => position !== index))} className="tap-target self-end text-tea-text-sec transition-colors hover:text-tea-text">
-                <Trash size={18} aria-hidden="true" />
-              </button>
+            <div key={index} className="space-y-2 border-t border-tea-border pt-4">
+              <div className="grid gap-3 sm:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)_auto]">
+                <label>
+                  <span className={labelClass}>Platform</span>
+                  <select value={link.platform} onChange={event => updateLink(index, { platform: event.target.value as ContributorLinkPlatform })} className={inputClass}>
+                    {CONTRIBUTOR_LINK_PLATFORMS.map(platform => <option key={platform} value={platform}>{linkPlatformLabel(platform)}</option>)}
+                  </select>
+                </label>
+                <label>
+                  <span className={labelClass}>{linkValueLabel(link.platform)}</span>
+                  <input value={link.value} onChange={event => updateLink(index, { value: event.target.value })} className={inputClass} placeholder={link.platform === 'website' ? 'https://' : linkValueLabel(link.platform)} />
+                </label>
+                <button type="button" aria-label={`Remove ${linkPlatformLabel(link.platform)} link`} onClick={() => setField('links', draft.links.filter((_, position) => position !== index))} className="tap-target self-end text-ui-13 text-tea-text-sec transition-colors hover:text-tea-text">
+                  Remove
+                </button>
+              </div>
+              {link.platform === 'wechat' && (
+                <label className="block"><span className={labelClass}>QR image URL (optional)</span><input value={link.qr_image_url ?? ''} onChange={event => updateLink(index, { qr_image_url: event.target.value || null })} className={inputClass} placeholder="https://" /></label>
+              )}
+              {link.platform === 'other' && (
+                <label className="block"><span className={labelClass}>Label (optional)</span><input value={link.label ?? ''} onChange={event => updateLink(index, { label: event.target.value })} className={inputClass} /></label>
+              )}
             </div>
           ))}
-          <button type="button" onClick={() => setField('links', [...draft.links, { label: '', url: '' }])} className="tap-target inline-flex items-center gap-2 text-ui-13 text-tea-text-sec transition-colors hover:text-tea-text">
-            <Plus size={17} aria-hidden="true" /> Add link
+          <button type="button" onClick={() => setField('links', [...draft.links, { platform: 'website', value: '', qr_image_url: null }])} className="tap-target text-ui-13 text-tea-text-sec transition-colors hover:text-tea-text">
+            Add link
+          </button>
+        </fieldset>
+
+        <fieldset className="space-y-4 border-0 p-0">
+          <legend className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Gallery</legend>
+          <p className="text-ui-12 text-tea-text-dim">Photos of you at work, ordered. Up to {GALLERY_IMAGE_LIMIT}.</p>
+          {draft.gallery_images.map((image, index) => (
+            <div key={image.id ?? index} className="space-y-2 border-t border-tea-border pt-4">
+              <label><span className={labelClass}>Image URL</span><input value={image.image_url} onChange={event => updateGalleryImage(index, { image_url: event.target.value })} className={inputClass} placeholder="https://" /></label>
+              <label className="block"><span className={`${labelClass} flex justify-between`}><span>Caption (optional)</span><span>{image.caption?.length ?? 0}/280</span></span><input value={image.caption ?? ''} maxLength={280} onChange={event => updateGalleryImage(index, { caption: event.target.value || null })} className={inputClass} /></label>
+              <div className="flex items-center justify-end gap-4 text-ui-13 text-tea-text-sec">
+                <button type="button" disabled={index === 0} onClick={() => moveGalleryImage(index, index - 1)} className="tap-target transition-colors hover:text-tea-text disabled:opacity-30">Move up</button>
+                <button type="button" disabled={index === draft.gallery_images.length - 1} onClick={() => moveGalleryImage(index, index + 1)} className="tap-target transition-colors hover:text-tea-text disabled:opacity-30">Move down</button>
+                <button type="button" onClick={() => removeGalleryImage(index)} className="tap-target transition-colors hover:text-tea-text">Remove</button>
+              </div>
+            </div>
+          ))}
+          <button type="button" onClick={addGalleryImage} disabled={draft.gallery_images.length >= GALLERY_IMAGE_LIMIT} className="tap-target text-ui-13 text-tea-text-sec transition-colors hover:text-tea-text disabled:opacity-50">
+            Add photo
           </button>
         </fieldset>
 

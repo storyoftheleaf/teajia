@@ -75,6 +75,7 @@ import {
 } from './wisdomVerification';
 import {
   isSupportedPaymentCurrency,
+  normalizeContributorLinks,
   normalizeLanguages,
   parsePublicPaymentContext,
   parseStoredContributorLinks,
@@ -7369,7 +7370,13 @@ const handleListAdminContributors: Handler = async (request, env) => {
       ORDER BY co.display_name ASC`
   ).bind(accountId, accountId).all();
 
-  return json({ contributors: (rows.results ?? []).map(row => adminContributorDraftPreview(row as Record<string, any>)) });
+  const galleryByContributor = await contributorGalleryImagesByIds(env, (rows.results ?? []).map(row => (row as Record<string, any>).id as string));
+  return json({
+    contributors: (rows.results ?? []).map(row => ({
+      ...adminContributorDraftPreview(row as Record<string, any>),
+      gallery_images: galleryByContributor.get((row as Record<string, any>).id as string) ?? [],
+    })),
+  });
 };
 
 // Publish-bundle-safe identity choices for article author/subject fields. This
@@ -7389,33 +7396,30 @@ const handleListContributorOptions: Handler = async (request, env) => {
 };
 
 const CONTRIBUTOR_WRITE_FIELDS = [
-  'display_name', 'chinese_name', 'role', 'pronouns', 'location_line', 'active_since',
+  'display_name', 'business_name', 'chinese_name', 'role', 'pronouns', 'location_line', 'active_since',
   'beginnings', 'now_text', 'now_stamp', 'now_updated_at', 'inspirations', 'closing', 'avatar_url',
   'portrait_url', 'portrait_caption', 'voice_clip_url', 'voice_clip_caption',
   'pouring_today_product_id', 'pouring_today_note', 'where_to_find_text', 'user_id',
 ] as const;
 
 const PROFILE_SELF_FIELDS = [
-  'display_name', 'chinese_name', 'pronouns', 'location_line', 'active_since', 'languages',
+  'display_name', 'business_name', 'chinese_name', 'pronouns', 'location_line', 'active_since', 'languages',
   'beginnings', 'now_text', 'now_stamp', 'now_updated_at', 'inspirations', 'closing',
   'avatar_url', 'portrait_url', 'portrait_caption', 'voice_clip_url', 'voice_clip_caption',
   'pouring_today_product_id', 'pouring_today_note', 'where_to_find_text', 'links',
 ] as const;
 
+// Delegates to normalizeContributorLinks (worker/src/profileDomain.ts), the
+// one typed-link validator shared with the public read path
+// (parseStoredContributorLinks) and the Lane A migration. Every write of
+// contributors.links -- admin, self-serve draft, or a fresh profile -- goes
+// through this single function so the column never disagrees with itself
+// about what shape a link is.
 function parseContributorLinks(value: unknown): { value?: string; error?: string } {
   if (value === undefined) return {};
-  if (!Array.isArray(value)) return { error: 'links must be an array' };
-  const normalized: Array<{ label: string; url: string }> = [];
-  for (const item of value) {
-    if (!item || typeof item !== 'object') return { error: 'Each link must have a label and https URL' };
-    const label = typeof (item as any).label === 'string' ? (item as any).label.trim() : '';
-    const rawUrl = typeof (item as any).url === 'string' ? (item as any).url.trim() : '';
-    let url: URL;
-    try { url = new URL(rawUrl); } catch { return { error: 'Each link must have a label and https URL' }; }
-    if (!label || url.protocol !== 'https:') return { error: 'Each link must have a label and https URL' };
-    normalized.push({ label, url: url.toString() });
-  }
-  return { value: JSON.stringify(normalized) };
+  const result = normalizeContributorLinks(value);
+  if (result.error) return { error: result.error };
+  return { value: JSON.stringify(result.value ?? []) };
 }
 
 function parseContributorWrite(body: Record<string, unknown>) {
@@ -7442,6 +7446,84 @@ function adminContributor(row: Record<string, any>) {
   let links: unknown[] = [];
   try { links = JSON.parse(row.links || '[]'); } catch { links = []; }
   return { ...row, links };
+}
+
+// Gallery images (contributor_gallery_images): a row-per-photo collection,
+// the same shape payment_methods and profile_favorites already use. It is
+// applied immediately through its own endpoint rather than folded into the
+// contributor_profile_drafts review flow -- that flow diffs scalar columns
+// on `contributors`, a shape a separate ordered table cannot express, and
+// every other row-per-item collection here (contributor_accounts,
+// payment_methods) already bypasses the draft review the same way.
+const CONTRIBUTOR_GALLERY_IMAGE_LIMIT = 8;
+const GALLERY_CAPTION_LIMIT = 280;
+
+function parseGalleryImages(value: unknown): { value?: Array<{ image_url: string; caption: string | null }>; error?: string } {
+  if (!Array.isArray(value)) return { error: 'gallery_images must be an array' };
+  if (value.length > CONTRIBUTOR_GALLERY_IMAGE_LIMIT) {
+    return { error: `gallery_images may hold at most ${CONTRIBUTOR_GALLERY_IMAGE_LIMIT} photos` };
+  }
+  const normalized: Array<{ image_url: string; caption: string | null }> = [];
+  for (const item of value) {
+    if (!item || typeof item !== 'object') return { error: 'Each gallery image must be an object' };
+    const rawUrl = typeof (item as any).image_url === 'string' ? (item as any).image_url.trim() : '';
+    let url: URL;
+    try { url = new URL(rawUrl); } catch { return { error: 'Each gallery image needs a valid http(s) image_url' }; }
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+      return { error: 'Each gallery image needs a valid http(s) image_url' };
+    }
+    const rawCaption = (item as any).caption;
+    if (rawCaption !== undefined && rawCaption !== null && typeof rawCaption !== 'string') {
+      return { error: 'caption must be a string or null' };
+    }
+    const trimmedCaption = typeof rawCaption === 'string' ? rawCaption.trim() : '';
+    if (trimmedCaption.length > GALLERY_CAPTION_LIMIT) {
+      return { error: `caption must be ${GALLERY_CAPTION_LIMIT} characters or fewer` };
+    }
+    normalized.push({ image_url: url.toString(), caption: trimmedCaption || null });
+  }
+  return { value: normalized };
+}
+
+function replaceGalleryImagesStatements(env: Env, contributorId: string, images: Array<{ image_url: string; caption: string | null }>): D1PreparedStatement[] {
+  const statements: D1PreparedStatement[] = [
+    env.DB.prepare('DELETE FROM contributor_gallery_images WHERE contributor_id = ?').bind(contributorId),
+  ];
+  images.forEach((image, index) => {
+    statements.push(env.DB.prepare(
+      `INSERT INTO contributor_gallery_images (id, contributor_id, image_url, caption, position, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))`
+    ).bind(crypto.randomUUID(), contributorId, image.image_url, image.caption, index));
+  });
+  return statements;
+}
+
+async function contributorGalleryImages(env: Env, contributorId: string) {
+  const rows = await env.DB.prepare(
+    `SELECT id, contributor_id, image_url, caption, position
+       FROM contributor_gallery_images
+      WHERE contributor_id = ?
+      ORDER BY position ASC`
+  ).bind(contributorId).all();
+  return (rows.results as GalleryImageRow[] ?? []).map(projectPublicGalleryImage);
+}
+
+async function contributorGalleryImagesByIds(env: Env, contributorIds: string[]) {
+  const map = new Map<string, ReturnType<typeof projectPublicGalleryImage>[]>();
+  if (!contributorIds.length) return map;
+  const placeholders = contributorIds.map(() => '?').join(', ');
+  const rows = await env.DB.prepare(
+    `SELECT id, contributor_id, image_url, caption, position
+       FROM contributor_gallery_images
+      WHERE contributor_id IN (${placeholders})
+      ORDER BY contributor_id, position ASC`
+  ).bind(...contributorIds).all();
+  for (const row of (rows.results as GalleryImageRow[] ?? [])) {
+    const list = map.get(row.contributor_id) ?? [];
+    list.push(projectPublicGalleryImage(row));
+    map.set(row.contributor_id, list);
+  }
+  return map;
 }
 
 function contributorHostStatements(env: Env, accountId: string, contributorId: string, requestedAccountId: string | null, currentAccountId: string | null) {
@@ -7541,7 +7623,14 @@ const handleCreateAdminContributor: Handler = async (request, env) => {
   }
   try { await env.DB.batch(statements); } catch (error) { return contributorDatabaseError(error); }
   const row = await env.DB.prepare('SELECT * FROM contributors WHERE id = ? AND account_id = ?').bind(id, ctx.accountId).first<Record<string, any>>();
-  return json({ contributor: adminContributor(row || { id, account_id: ctx.accountId, ...parsed.values, is_published: 0 }) }, 201);
+  return json({
+    contributor: {
+      ...adminContributor(row || { id, account_id: ctx.accountId, ...parsed.values, is_published: 0 }),
+      // Nothing to attach yet: a brand-new contributor has no gallery rows
+      // until a follow-up PUT .../gallery-images call creates them.
+      gallery_images: [],
+    },
+  }, 201);
 };
 
 const handleGetAdminContributor: Handler = async (request, env, params) => {
@@ -7566,7 +7655,8 @@ const handleGetAdminContributor: Handler = async (request, env, params) => {
          WHERE ca.contributor_id = co.id AND ca.account_id = ?
       ))`
   ).bind(params.id, ctx.accountId, ctx.accountId).first<Record<string, any>>();
-  return row ? json({ contributor: adminContributorDraftPreview(row) }) : json({ error: 'Contributor not found' }, 404);
+  if (!row) return json({ error: 'Contributor not found' }, 404);
+  return json({ contributor: { ...adminContributorDraftPreview(row), gallery_images: await contributorGalleryImages(env, row.id as string) } });
 };
 
 const handleUpdateAdminContributor: Handler = async (request, env, params) => {
@@ -7624,7 +7714,12 @@ const handleUpdateAdminContributor: Handler = async (request, env, params) => {
     try { await env.DB.batch(statements); } catch (error) { return contributorDatabaseError(error); }
   }
   const row = await env.DB.prepare('SELECT * FROM contributors WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first<Record<string, any>>();
-  return json({ contributor: adminContributor(row!) });
+  return json({
+    contributor: {
+      ...adminContributor(row!),
+      gallery_images: await contributorGalleryImages(env, params.id),
+    },
+  });
 };
 
 const setAdminContributorPublication = (published: boolean): Handler => async (request, env, params) => {
@@ -7841,7 +7936,7 @@ const handleGetMyPublicProfile: Handler = async (request, env) => {
       WHERE ca.contributor_id = ? AND a.status = 'active'
       ORDER BY ca.display_order, a.name`
   ).bind(contributor.id).all();
-  const [selection, shelf] = await Promise.all([
+  const [selection, shelf, galleryImages] = await Promise.all([
     env.DB.prepare(
       `SELECT COUNT(DISTINCT p.id) AS count
          FROM contributor_accounts ca
@@ -7854,6 +7949,7 @@ const handleGetMyPublicProfile: Handler = async (request, env) => {
           AND p.status = 'Active' AND p.is_public = 1 AND p.shown_in_shop = 1`
     ).bind(contributor.id).first<Record<string, any>>(),
     verifiedShelfSlug(env, ctx.userId),
+    contributorGalleryImages(env, contributor.id),
   ]);
   return json({
     contributor: {
@@ -7862,6 +7958,7 @@ const handleGetMyPublicProfile: Handler = async (request, env) => {
       shelf_slug: shelf,
       selection_count: Number(selection?.count || 0),
       accounts: accounts.results ?? [],
+      gallery_images: galleryImages,
     },
     can_create: false,
   });
@@ -7926,6 +8023,22 @@ const handleUnpublishMyPublicProfile: Handler = async (request, env) => {
   return result.meta.changes
     ? json({ success: true })
     : json({ success: true });
+};
+
+// Self-serve gallery editor: same full-array-replace contract as the admin
+// endpoint, applied immediately (not routed through contributor_profile_drafts
+// -- see the comment on parseGalleryImages above for why).
+const handlePutMyProfileGalleryImages: Handler = async (request, env) => {
+  const ctx = await requireAuthenticatedUser(request, env);
+  if ('error' in ctx) return ctx.error;
+  const contributor = await contributorForUser(env, ctx.userId);
+  if (!contributor) return json({ error: 'Profile not found', code: 'profile_not_found' }, 404);
+  const bodyResult = await contributorJson(request);
+  if (bodyResult instanceof Response) return bodyResult;
+  const parsed = parseGalleryImages((bodyResult as Record<string, unknown>).gallery_images);
+  if (parsed.error) return json({ error: parsed.error }, 400);
+  await env.DB.batch(replaceGalleryImagesStatements(env, contributor.id, parsed.value!));
+  return json({ gallery_images: await contributorGalleryImages(env, contributor.id) });
 };
 
 async function requireContributorSteward(request: Request, env: Env, contributorId: string) {
@@ -8040,6 +8153,25 @@ const handlePutContributorAccounts: Handler = async (request, env, params) => {
   }
   await env.DB.batch(statements);
   return handleGetContributorAccounts(request, env, params);
+};
+
+// Admin gallery editor: a full-array replace, same contract as
+// handlePutContributorAccounts just above (send the whole ordered list, the
+// server rewrites all the rows). Scoped like handleUpdateAdminContributor --
+// the contributor's own home account, not the wider steward set accounts
+// endpoints allow -- because gallery photos are this account's editorial
+// media, not a cross-account collaboration record.
+const handlePutContributorGalleryImages: Handler = async (request, env, params) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  const existing = await env.DB.prepare('SELECT id FROM contributors WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first();
+  if (!existing) return json({ error: 'Contributor not found' }, 404);
+  const bodyResult = await contributorJson(request);
+  if (bodyResult instanceof Response) return bodyResult;
+  const parsed = parseGalleryImages((bodyResult as Record<string, unknown>).gallery_images);
+  if (parsed.error) return json({ error: parsed.error }, 400);
+  await env.DB.batch(replaceGalleryImagesStatements(env, params.id, parsed.value!));
+  return json({ gallery_images: await contributorGalleryImages(env, params.id) });
 };
 
 const handleRequestContributorChanges: Handler = async (request, env, params) => {
@@ -22722,6 +22854,41 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
   });
 };
 
+// Surface 3 / Lane F: "Selected by" on the public product page -- published
+// creators whose public tea selection (profile_favorites) includes this
+// product, each with their own note as the "why" line. Walks the same
+// eligibility chain handleGetPublicContributor's tea_selection query already
+// uses, in the other direction: from a product to the creators who selected
+// it, instead of from a creator to their selected teas. Safe fields only --
+// no cost, no vendor, no exact stock -- same posture as every other public
+// product/contributor read in this file.
+const handleGetProductSelectedBy: Handler = async (_request, env, params) => {
+  const idOrSlug = params.id;
+  if (!idOrSlug) return json({ error: 'Missing product' }, 400);
+  const rows = await env.DB.prepare(
+    `SELECT DISTINCT c.id, c.display_name, c.business_name, pf.note AS why, pf.position
+       FROM products p
+       JOIN product_listings pl ON pl.legacy_product_id = p.id AND pl.account_id = p.account_id
+       JOIN tea_profiles tp ON tp.id = pl.profile_id
+       JOIN profile_favorites pf ON pf.tea_profile_id = tp.id AND pf.is_public = 1
+       JOIN contributors c ON c.id = pf.contributor_id AND ${CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL}
+       JOIN accounts a ON a.id = p.account_id
+      WHERE (p.id = ? OR p.slug = ?)
+        AND p.status = 'Active' AND p.is_public = 1 AND p.shown_in_shop = 1
+        AND pl.status = 'active' AND pl.is_public = 1 AND pl.shown_in_shop = 1
+        AND a.public_enabled = 1 AND a.status = 'active'
+      ORDER BY pf.position ASC
+      LIMIT 6`
+  ).bind(idOrSlug, idOrSlug).all();
+  const selectedBy = (rows.results as Array<Record<string, any>> ?? []).map(row => ({
+    slug: row.id as string,
+    display_name: row.display_name as string,
+    business_name: (row.business_name as string | null) ?? null,
+    why: (row.why as string | null) ?? null,
+  }));
+  return cachedJson({ selected_by: selectedBy }, 60);
+};
+
 const handleGetPublicProfileFavorites: Handler = async (_request, env, params) => {
   const contributor = await env.DB.prepare('SELECT id FROM contributors WHERE id = ? AND is_published = 1')
     .bind(params.slug).first();
@@ -26942,6 +27109,7 @@ const routes: [string, string, Handler][] = [
   // Products
   ['GET', '/api/products/public', handleGetPublicProducts],
   ['GET', '/api/products/public/:id', handleGetPublicProduct],
+  ['GET', '/api/products/public/:id/selected-by', handleGetProductSelectedBy],
   ['GET', '/sitemap-products.xml', handleProductSitemap],
   ['GET', '/api/products', handleGetProducts],
   ['GET', '/api/inventory/summaries', handleGetInventorySummaries],
@@ -27011,6 +27179,7 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/admin/contributors/:id/contact', handlePutAdminContributorContact],
   ['GET', '/api/admin/contributors/:id/accounts', handleGetContributorAccounts],
   ['PUT', '/api/admin/contributors/:id/accounts', handlePutContributorAccounts],
+  ['PUT', '/api/admin/contributors/:id/gallery-images', handlePutContributorGalleryImages],
   ['GET', '/api/customers', handleGetCustomers],
   ['GET', '/api/customers/:id', handleGetCustomer],
   ['GET', '/api/customers/:id/relationships', handleGetCustomerRelationships],
@@ -27392,6 +27561,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/me/profile', handleGetMyProfile],
   ['GET', '/api/me/public-profile', handleGetMyPublicProfile],
   ['PUT', '/api/me/public-profile', handlePutMyPublicProfile],
+  ['PUT', '/api/me/public-profile/gallery-images', handlePutMyProfileGalleryImages],
   ['POST', '/api/me/public-profile/unpublish', handleUnpublishMyPublicProfile],
   ['GET', '/api/me/profile/favorites', handleListMyProfileFavorites],
   ['POST', '/api/me/profile/favorites', handleCreateMyProfileFavorite],
