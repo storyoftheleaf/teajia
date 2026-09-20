@@ -8,7 +8,8 @@ const contributorFixture = {
   now_text: 'Synthetic current-practice text.',
   inspirations: 'Synthetic inspirations text.',
   closing: 'Synthetic closing text.',
-  links: [{ label: 'Fixture reference', url: 'https://example.com/fixture' }],
+  // Typed since migration 0021: a platform and a value, never a label and a url.
+  links: [{ platform: 'website', value: 'https://example.com/fixture', qr_image_url: null }],
 };
 const articleFixture = {
   title: 'Synthetic Publishing Path',
@@ -67,7 +68,7 @@ test('synthetic contributor and article publish through the complete workflow', 
   await page.getByRole('button', { name: 'Create contributor' }).last().click();
   await page.getByLabel('Slug').fill(contributorFixture.id);
   await page.getByLabel('Display name').fill(contributorFixture.display_name);
-  await page.getByLabel('Chinese name').fill('测试作者');
+  await page.getByLabel('Name in own script').fill('测试作者');
   await page.getByLabel('Role').fill(contributorFixture.role);
   await page.getByLabel('Pronouns').fill('they/them');
   await page.getByLabel('Location').fill('Synthetic location');
@@ -87,8 +88,8 @@ test('synthetic contributor and article publish through the complete workflow', 
   await page.getByLabel('Product ID').fill('fixture-product');
   await page.getByLabel('Pouring note').fill('Synthetic pouring note.');
   await page.getByRole('button', { name: 'Add link' }).click();
-  await page.getByLabel('Link 1 label').fill(contributorFixture.links[0].label);
-  await page.getByLabel('Link 1 URL').fill(contributorFixture.links[0].url);
+  await page.getByLabel('Link 1 platform').selectOption(contributorFixture.links[0].platform);
+  await page.getByLabel('Link 1 value').fill(contributorFixture.links[0].value);
   // Host status is not set while creating a contributor any more: it moved to
   // a flag on a per-account association, and that section only appears once the
   // contributor exists. Nothing later in this journey depends on the flag, so
@@ -120,7 +121,8 @@ test('synthetic contributor and article publish through the complete workflow', 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);
 
   await page.goto('/people/publishing-fixture');
-  await expect(page.getByText(contributorFixture.beginnings)).toBeVisible();
+  // The cover carries the first line of the origin as well, so the passage is on the page twice.
+  await expect(page.getByText(contributorFixture.beginnings).first()).toBeVisible();
   await expect(page.getByText(articleFixture.pull_quote)).toBeVisible();
   await expect(page.getByRole('link', { name: /Synthetic Publishing Path/ }).first()).toHaveAttribute('href', '/article/synthetic-publishing-path');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);

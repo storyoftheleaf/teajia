@@ -631,7 +631,7 @@ test.describe('Tea Master profile routes — mobile', () => {
 
     await goto(page, '/people/mei-lin/pay?store=teajia-bali&amount=180000&currency=IDR&reference=TEA-42&t=ab12cd34ef56ab12cd34ef56ab12cd34');
     await expect(page.getByRole('heading', { name: 'Pay Mei Lin' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Choose a transfer method' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Bank transfer' })).toBeVisible();
     await expect(page.getByText('123 456 789')).toBeVisible();
     await expect(page.getByText('IDR 180000')).toBeVisible();
     await expect(page.getByText('This page does not verify or record payment.')).toBeVisible();

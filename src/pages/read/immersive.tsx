@@ -1,41 +1,54 @@
 /**
- * @color-literals. Decided, not deferred.
+ * Superseded 2026-09-20: the Read section is no longer an always-dark surface
+ * by decision. Adrian: "I think the read can be moved into light if someone
+ * switches into light mode." The always-dark decision recorded below (and in
+ * COLOR_RULES.md's "The Read section, decided" section) stood from round nine
+ * until today; it is replaced by this one. The reasoning about WHY a palette
+ * lives here at all, and WHY the oxidation scale and the liquor-colour dots
+ * stay literal, is still correct and kept below. What changed is the premise
+ * that this palette does not participate in the site theme: it now does.
  *
- * Every file in src/pages/read/ carries this marker, and this is the file that
- * says why, because this is the file that owns the palette.
+ * `C` keeps its shape. Seventeen article files, plus the editing chrome
+ * (StoryEditorBar, EditablePhoto, PlateRow, storyEdit), read `C.bg`, `C.gold`,
+ * `C.ink` and so on unchanged. What changed is what each entry resolves to:
+ * every field below is now a CSS custom property reference (`--tj-read-*`,
+ * declared in card-utilities.css), with the dark value pinned to the exact
+ * literal this file has always used and a light value drawn from the site's
+ * own light tokens (parchment ground, espresso ink, aged-bronze gold). Dark
+ * mode is therefore pixel-identical to before; light mode now repaints
+ * instead of showing a night read on white.
  *
- * The Read section is not a themed surface. It is a single dark editorial
- * system, ported pixel-faithfully from the Claude Design mockups, and it stays
- * dark when the rest of the site is on parchment. That is the whole design: an
- * article opens and the site recedes. The `C` block below is its palette, and
- * it is scoped here deliberately rather than reaching for `--tea-*`, because
- * `--tea-bg` on parchment would turn a night read into a white page.
+ * `@color-literals` stays on this file and on every file in this directory,
+ * not as a blanket exemption anymore but for the reason it was always the
+ * narrower, real one: the colours that ARE art direction. The oxidation scale
+ * in LeafToLiquor is a gradient from green leaf to black leaf; the six dots
+ * beside the six colours of tea are what those teas look like; several
+ * articles open on a one-off atmospheric hero gradient tuned to that piece.
+ * Those are measurements of an object or a staged backdrop, in the same sense
+ * a liquor colour is, and they do not have a light variant any more than a
+ * photograph does. The recurring structural gradients (the bordered inset
+ * card, the photo placeholder plate) are NOT that: they are chrome, reused
+ * across a dozen files, so they now route through `--tj-read-card-*` /
+ * `--tj-read-plate-*` / `--tj-read-empty-from` instead.
  *
- * The colours themselves are art direction, which is the second thing that
- * matters here. The oxidation scale in LeafToLiquor is a gradient from green
- * leaf to black leaf; the six dots beside the six colours of tea are what those
- * teas look like. Those are measurements of an object, in the same sense a
- * liquor colour is, and they do not have a dark variant any more than a
- * photograph does.
- *
- * The editing chrome in this folder (StoryEditorBar, EditablePhoto, PlateRow,
- * storyEdit) is covered by the same marker for the same reason: it floats on
- * top of an always-dark page, so it has to match the page rather than the site.
- *
- * Three conditions on the exception, so it stays a decision rather than a
+ * Three conditions still apply, so this stays a decision rather than a
  * loophole:
  *
- *   1. New colour goes in `C` or `ACCENTS` here. A read page that needs a hue
- *      the system does not have adds it to the palette, once, rather than
- *      typing a hex into a component.
- *   2. Text pairs are still measured against this palette's own background,
- *      not the site's. `C.dim` (#80735f) on `C.bg` (#14100b) is 4.09:1, which
- *      is under the floor and is why the site colophon stopped using it. It
- *      survives here only on non-essential marginalia; body and navigation
- *      take `C.taupe` (10.6:1) or `C.warm`.
+ *   1. New colour goes in `C` or `ACCENTS` here, or in the `--tj-read-*`
+ *      block in card-utilities.css if it needs its own light/dark pair. A
+ *      read page that needs a hue the system does not have adds it once,
+ *      rather than typing a hex into a component.
+ *   2. Text pairs are still measured, against this palette's own background,
+ *      in BOTH modes now. Dark: `C.dim` (#80735f) on `C.bg` (#14100b) is
+ *      4.09:1, under the floor, confined to non-essential marginalia; body
+ *      and navigation take `C.taupe` (10.6:1) or `C.warm`. Light: `--tea-
+ *      text-dim` on `--tea-bg` measures 7.4:1, `--tea-text-sec` higher still,
+ *      both above the dark-mode floor because parchment has more headroom
+ *      than espresso does at the dim end.
  *   3. The marker exempts a file that exists. lint-colors.sh blocks this
- *      directory, so a NEW file here fails until someone writes the marker and
- *      means it.
+ *      directory, so a NEW file here fails until someone writes the marker
+ *      and means it, for a colour that is genuinely data about the object
+ *      rather than page chrome.
  *
  * The alternative was to leave 363 lines sitting in a non-blocking notice that
  * nobody was ever going to read, which is not a decision, it is a backlog.
@@ -61,19 +74,24 @@ import { Link } from 'react-router-dom';
 import { isArticleVisible, useIsReadOwner } from './publishGate';
 
 // ─── Palette ─────────────────────────────────────────────────────────────────
-// The design's exact literal values, kept scoped to the immersive reader so the
-// dark editorial palette stays faithful to the mockups regardless of the site
-// theme. `gold` / `goldLt` are driven by a CSS variable so the accent tweak
-// can swap them live.
+// Every field is a CSS custom property reference now, declared in
+// card-utilities.css under `--tj-read-*`. The dark value behind each one is
+// the design's exact literal, unchanged; the light value is drawn from the
+// site's own light tokens, so switching into light mode repaints the reader
+// instead of leaving it stranded dark. `gold` / `goldLt` keep the accent-tweak
+// variable (`--tj-gold` / `--tj-gold-lt`, set by applyAccent) as the first
+// fallback tier, so a per-article accent still overrides theme; the
+// `--tj-read-gold-default` / `-lt-default` pair underneath IS theme-aware and
+// is what a page shows once that override is absent.
 export const C = {
-  bg: '#14100b',
-  ink: '#ede4d4',
-  cream: '#f3ead9',
-  warm: '#e3d6bd',
-  taupe: '#cdc0a8',
-  dim: '#80735f',
-  gold: 'var(--tj-gold,#a8874d)',
-  goldLt: 'var(--tj-gold-lt,#c6a667)',
+  bg: 'var(--tj-read-bg)',
+  ink: 'var(--tj-read-ink)',
+  cream: 'var(--tj-read-cream)',
+  warm: 'var(--tj-read-warm)',
+  taupe: 'var(--tj-read-taupe)',
+  dim: 'var(--tj-read-dim)',
+  gold: 'var(--tj-gold, var(--tj-read-gold-default))',
+  goldLt: 'var(--tj-gold-lt, var(--tj-read-gold-lt-default))',
 } as const;
 
 /**
@@ -115,7 +133,20 @@ export function grainCss(baseFreq = '0.8', size = 120): React.CSSProperties {
 }
 
 // ─── Accent application ──────────────────────────────────────────────────────
+// Every page mounts with `accent === ACCENTS[0]` (AccentSwatches is retired
+// as a no-op, so nothing ever calls this with a different value today). That
+// literal is the sentinel for "no explicit accent chosen": applying it would
+// force `--tj-gold` to the fixed dark bronze on documentElement's inline
+// style, which wins over the theme-aware `--tj-read-gold-default` fallback in
+// C.gold and pins the reader's gold to dark-mode bronze even on a light page.
+// Skipping the no-op case lets C.gold fall through to the fallback and follow
+// theme; a genuine accent override (should the swatch ever come back) still
+// applies exactly as before.
 export function applyAccent(g: string) {
+  if (g === ACCENTS[0]) {
+    clearAccent();
+    return;
+  }
   const root = document.documentElement;
   root.style.setProperty('--tj-gold', g);
   root.style.setProperty('--tj-gold-lt', `color-mix(in oklab, ${g} 68%, #f0e6d0)`);
@@ -197,9 +228,11 @@ export function useReadingProgress(onScroll?: () => void) {
 }
 
 // ─── Page-level effects ──────────────────────────────────────────────────────
-// Locks the site background to the espresso tone while an immersive read is
-// mounted (the rest of the app may be lighter), and injects the keyframes the
-// designs rely on. Restores everything on unmount.
+// Locks the site background to the reader's own ground while an immersive
+// read is mounted, and injects the keyframes the designs rely on. Restores
+// everything on unmount. `C.bg` is a `var(--tj-read-bg)` reference now, not a
+// literal, so this repaints on its own the moment the theme class flips; no
+// extra listener needed.
 export function useImmersiveChrome(accent: string) {
   useEffect(() => {
     const prevBg = document.body.style.background;
@@ -220,14 +253,14 @@ export function useImmersiveChrome(accent: string) {
       @keyframes tjFloatX{ 0%,100%{ transform:translate(-50%,0); } 50%{ transform:translate(-50%,7px); } }
       @keyframes tjFade{ from{ opacity:0; } to{ opacity:1; } }
       @keyframes tjBreath{ 0%,100%{ transform:scale(0.72); opacity:0.45; } 50%{ transform:scale(1); opacity:1; } }
-      .tj-immersive ::selection{ background:rgba(168,135,77,0.28); color:#f3ead9; }
+      .tj-immersive ::selection{ background:rgb(var(--tj-read-gold-rgb) / 0.28); color:var(--tj-read-cream); }
       .tj-tabs{ scrollbar-width:none; }
       .tj-tabs::-webkit-scrollbar{ display:none; }
       .tj-morecard{ transition:border-color 240ms; }
-      .tj-morecard:hover{ border-color:rgba(168,135,77,0.4) !important; }
-      .tj-tab:hover{ color:#ede4d4 !important; }
+      .tj-morecard:hover{ border-color:rgb(var(--tj-read-gold-rgb) / 0.4) !important; }
+      .tj-tab:hover{ color:var(--tj-read-ink) !important; }
       .tj-explore-link{ transition:color 200ms; }
-      .tj-explore-link:hover{ color:var(--tj-gold,#a8874d) !important; }
+      .tj-explore-link:hover{ color:var(--tj-gold, var(--tj-read-gold-default)) !important; }
     `;
     document.head.appendChild(style);
 
@@ -301,15 +334,15 @@ export const ImmersiveNav: React.FC<{
       justifyContent: 'space-between',
       gap: 16,
       padding: '13px clamp(18px,4vw,40px)',
-      background: 'rgba(20,16,11,0.72)',
+      background: 'rgb(var(--tj-read-bg-rgb) / 0.72)',
       backdropFilter: 'blur(14px)',
       WebkitBackdropFilter: 'blur(14px)',
-      borderBottom: '1px solid rgba(168,135,77,0.12)',
+      borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.12)',
     }}
   >
     <Link to={backTo} style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none', color: 'inherit' }}>
       <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
-        <path d="M9.5 3.5L5 7.5l4.5 4" stroke="#a8874d" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M9.5 3.5L5 7.5l4.5 4" stroke={C.gold} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       <span style={{ fontFamily: F.display, fontWeight: 600, fontSize: 18, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.ink }}>
         Teajia
@@ -323,7 +356,7 @@ export const ImmersiveNav: React.FC<{
 );
 
 export const ProgressTrack: React.FC<{ progress: number }> = ({ progress }) => (
-  <div style={{ position: 'absolute', left: 0, bottom: 0, height: 2, width: '100%', background: 'rgba(168,135,77,0.08)' }}>
+  <div style={{ position: 'absolute', left: 0, bottom: 0, height: 2, width: '100%', background: 'rgb(var(--tj-read-gold-rgb) / 0.08)' }}>
     <div
       style={{
         height: '100%',
@@ -380,7 +413,7 @@ export const MoreFooter: React.FC<{ links: MoreLink[] }> = ({ links }) => {
   // three cards each.
   if (visible.length === 0) return null;
   return (
-    <footer style={{ borderTop: '1px solid rgba(168,135,77,0.14)', padding: 'clamp(40px,6vw,72px) clamp(20px,5vw,56px) clamp(64px,9vw,110px)' }}>
+    <footer style={{ borderTop: '1px solid rgb(var(--tj-read-gold-rgb) / 0.14)', padding: 'clamp(40px,6vw,72px) clamp(20px,5vw,56px) clamp(64px,9vw,110px)' }}>
       <div style={{ maxWidth: 1180, margin: '0 auto' }}>
         <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 600, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.gold, marginBottom: 26 }}>
           More from The Art of Tea
@@ -399,17 +432,17 @@ export const MoreFooter: React.FC<{ links: MoreLink[] }> = ({ links }) => {
                 style={{
                   textDecoration: 'none',
                   color: 'inherit',
-                  border: '1px solid rgba(168,135,77,0.16)',
+                  border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.16)',
                   borderRadius: 4,
                   padding: 24,
-                  background: 'linear-gradient(160deg,#1b160f,#15110b)',
+                  background: 'linear-gradient(160deg,var(--tj-read-card-from),var(--tj-read-card-to))',
                   opacity: draft ? 0.5 : 1,
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                   <span style={{ fontFamily: F.mono, fontSize: 9.5, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim }}>{l.kicker}</span>
                   {draft && (
-                    <span style={{ fontFamily: F.mono, fontSize: 8.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.gold, border: '1px solid rgba(168,135,77,0.4)', borderRadius: 2, padding: '1px 5px', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontFamily: F.mono, fontSize: 8.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.gold, border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.4)', borderRadius: 2, padding: '1px 5px', whiteSpace: 'nowrap' }}>
                       Draft
                     </span>
                   )}

@@ -63,7 +63,7 @@ test.describe('creator profile, full (Kenji Tanaka)', () => {
     await expect(rows.nth(1)).toHaveText('Four Houses, One KettleA room full of new drinkers I am quoted in it; it opens at the passage.');
     expect(await wordsSection.innerText()).not.toMatch(/N°|Wrote|Quoted in/);
 
-    // The teas: the collection cover first, then three plain rows with a tinted type and year rubric, then the rest.
+    // The teas: the collection cover first, then three plain rows (name, Chinese name inline, my note; no rubric), then the rest.
     const teas = page.getByTestId('profile-teas');
     const collection = teas.getByTestId('profile-collection');
     await expect(collection).toHaveAttribute('href', '/c/saturday-at-the-house-fixture');
@@ -73,17 +73,19 @@ test.describe('creator profile, full (Kenji Tanaka)', () => {
     await expect(teaRows).toHaveCount(3);
     await expect(teaRows.nth(0)).toContainText('Call of Grace');
     await expect(teaRows.nth(0)).toContainText('A red tea I pour for guests');
-    await expect(teaRows.nth(0)).toContainText('Oolong · 1988');
-    const rubricColor = await teaRows.nth(0).locator('span[style*="color"]').first().evaluate(element => getComputedStyle(element).color);
-    const dimColor = await page.getByTestId('profile-hosting').getByText('Session').evaluate(element => getComputedStyle(element).color);
-    expect(rubricColor).not.toBe(dimColor);
+    // Canvas version 20: no type, no year, no tinted word on the right.
+    await expect(teaRows.nth(0)).not.toContainText('Oolong');
+    await expect(teaRows.nth(0)).not.toContainText('1988');
+    await expect(teaRows.nth(0).locator('span[style*="color"]')).toHaveCount(0);
     await expect(teas.getByRole('link', { name: 'And three more, in the collection' })).toHaveAttribute('href', '/c/saturday-at-the-house-fixture');
 
     // Hosting: one row, linking to the event, dated in words.
     const hosting = page.getByTestId('profile-hosting');
     await expect(hosting.getByRole('link', { name: /Gongfu evening/ })).toHaveAttribute('href', '/event/sbx-kyoto-tasting-fixture');
     await expect(hosting).toContainText('Saturday 10 October, 19:00, at Tanaka Tea House.');
-    await expect(hosting).toContainText('Session');
+    await expect(hosting).toContainText('Four places at the table.');
+    // Canvas version 22: no rubric on the hosting row.
+    await expect(hosting).not.toContainText('Session');
 
     // My table: one row, linking to the store, in his words.
     const house = page.getByTestId('profile-house');
@@ -91,16 +93,18 @@ test.describe('creator profile, full (Kenji Tanaka)', () => {
     await expect(house.getByRole('link', { name: /Tanaka Tea House/ })).toHaveAttribute('href', '/store/tanaka-tea-house');
     await expect(house).toContainText('My shop and sessions in Kyoto, and how to find the door.');
 
-    // Reach me: three plain rows, handle on the left, platform as the rubric, no image and no icon.
+    // Reach me: three plain rows, handle on the left, a first-person dek naming the platform, no rubric, no image and no icon.
     const reach = page.getByTestId('profile-reach');
     const reachRows = reach.getByTestId('profile-reach-row');
     await expect(reachRows).toHaveCount(3);
     await expect(reachRows.nth(0)).toContainText('tanaka_tea_kyoto');
-    await expect(reachRows.nth(0)).toContainText('WeChat');
+    await expect(reachRows.nth(0)).toContainText('On WeChat. Tap to copy my id.');
     await expect(reachRows.nth(1)).toHaveAttribute('href', 'https://www.instagram.com/tanakateahouse/');
-    await expect(reachRows.nth(1)).toContainText('Instagram');
+    await expect(reachRows.nth(1)).toContainText('On Instagram.');
     await expect(reachRows.nth(2)).toHaveAttribute('href', 'https://example.com');
-    await expect(reachRows.nth(2)).toContainText('Website');
+    await expect(reachRows.nth(2)).toContainText('My site.');
+    // No right column anywhere on the page: every rubric slot is the empty span.
+    await expect(page.locator('.tj-people-row > span:last-child:not(:empty)')).toHaveCount(0);
     await expect(reach.locator('img')).toHaveCount(0);
     await expect(reach.locator('svg')).toHaveCount(0);
 

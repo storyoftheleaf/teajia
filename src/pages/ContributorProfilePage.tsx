@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
-import { useTheme } from '../context/ThemeContext';
-import { getTeaLedgerTones } from '../designTokens';
 import { ContributorIdentityMark } from '../components/shared/ContributorIdentityMark';
 import { PLATFORM_NAMES } from '../components/people/PlatformMark';
 import {
@@ -53,7 +51,8 @@ import type {
 // Words, Teas and Pay, no counts, each only when the tea master has it, so
 // fewer cells share the width. Then the groups, each fading and lifting in as
 // it arrives: In my words, Hands on, Words, The teas, Hosting, My table, Reach
-// me. Everything else is a plain row: title, italic dek, caps rubric.
+// me. Everything else is a plain row: title and italic dek. No row on this
+// page carries a right column (canvas versions 20 to 23, 2026-09-20).
 //
 // Every word the tea master says is first person; the labels never speak
 // about them in the third person. Every section is conditional except the
@@ -110,13 +109,14 @@ function wordRows(data: ContributorProfile): WordRow[] {
 
 // ── The teas ──────────────────────────────────────────────────────────────────
 
-/** A plain row: the tea's name, my note as the dek, and the type and year as a rubric tinted with the tea's own colour. */
+/**
+ * A plain row: the tea's name with its Chinese name inline, and my note as
+ * the dek. No rubric. Adrian, canvas version 20 (2026-09-20): no type, no
+ * year, no tinted word on the right; the collection cover above and the
+ * "And N more" line below carry the context.
+ */
 function TeaRow({ tea }: { tea: ContributorTeaSelectionRef }) {
-  const { theme } = useTheme();
-  // getTeaColor's hue for the type, mixed towards the theme's text so it reads on both grounds.
-  const tones = getTeaLedgerTones(tea.type || 'Oolong', theme);
   const origin = (tea.origin ?? '').split(',').map(part => part.trim()).filter(Boolean).slice(0, 2).join(', ');
-  const rubric = [tea.type, tea.year].filter(Boolean).join(' · ');
   return (
     <IndexRow
       to={tea.public_path}
@@ -128,10 +128,6 @@ function TeaRow({ tea }: { tea: ContributorTeaSelectionRef }) {
         </>
       )}
       dek={tea.why || origin || null}
-      rubric={rubric ? (
-        /* color-data: the type word carries the tea's liquor colour. */
-        <span style={{ color: tones.markFg }}>{rubric}</span>
-      ) : undefined}
     />
   );
 }
@@ -152,11 +148,23 @@ function linkLabel(link: ContributorLink): string {
   return link.value;
 }
 
-/** One plain row per link: the handle as the title, the platform as the rubric. WeChat copies on tap, since it has no address to open. */
+/** "On WeChat.", "On Instagram.", "My site.", or "On <label>." for a link with its own name. */
+function reachDek(link: ContributorLink): string {
+  if (link.platform === 'website') return 'My site.';
+  if (link.platform === 'other' && link.label) return `On ${link.label}.`;
+  return `On ${PLATFORM_NAMES[link.platform]}.`;
+}
+
+/**
+ * One plain row per link: the handle as the title and a short first-person
+ * dek naming the platform. No rubric (canvas version 23: the last right
+ * column on the profile is gone). WeChat copies on tap, since it has no
+ * address to open, and its dek says so.
+ */
 function ReachRow({ link }: { link: ContributorLink }) {
   const [copied, setCopied] = useState(false);
   const href = linkHref(link);
-  const rubric = link.platform === 'other' && link.label ? link.label : PLATFORM_NAMES[link.platform];
+  const platform = link.platform === 'other' && link.label ? link.label : PLATFORM_NAMES[link.platform];
   if (link.platform === 'wechat' || !href) {
     const copy = async () => {
       try {
@@ -167,9 +175,9 @@ function ReachRow({ link }: { link: ContributorLink }) {
         setCopied(false);
       }
     };
-    return <IndexRowButton onClick={copy} title={copied ? 'Copied' : link.value} dek={link.platform === 'wechat' ? 'Tap to copy my id.' : undefined} rubric={rubric} ariaLabel={`Copy ${rubric} id ${link.value}`} testId="profile-reach-row" />;
+    return <IndexRowButton onClick={copy} title={copied ? 'Copied' : link.value} dek={`${reachDek(link)} Tap to copy my id.`} ariaLabel={`Copy ${platform} id ${link.value}`} testId="profile-reach-row" />;
   }
-  return <IndexRow to={href} external title={linkLabel(link)} rubric={rubric} ariaLabel={`${rubric}: ${linkLabel(link)}`} testId="profile-reach-row" />;
+  return <IndexRow to={href} external title={linkLabel(link)} dek={reachDek(link)} ariaLabel={`${platform}: ${linkLabel(link)}`} testId="profile-reach-row" />;
 }
 
 function Section({ id, children, testId }: { id?: string; children: ReactNode; testId?: string }) {
@@ -362,11 +370,11 @@ export default function ContributorProfilePage() {
           <Section id="hosting" testId="profile-hosting">
             <div className={SIDE}>
               <GroupHead label="Hosting" />
+              {/* Canvas version 22: no rubric. The title, then the day, time, place and places line as the dek. */}
               <IndexRow
                 to={`/event/${encodeURIComponent(hosting.slug)}`}
                 title={hosting.title}
                 dek={[`${formatEventLong(hosting.event_date)}, at ${hosting.location_name ?? hosting.account_name}.`, hosting.subtitle ? `${hosting.subtitle}.` : null].filter(Boolean).join(' ')}
-                rubric="Session"
               />
             </div>
           </Section>

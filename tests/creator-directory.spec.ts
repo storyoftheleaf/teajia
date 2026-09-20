@@ -2,8 +2,9 @@ import { expect, test } from './fixtures';
 import { collectErrors, meaningfulErrors, mockCreatorApi, noHorizontalOverflow } from './helpers/creatorFixtures';
 
 // /people. The three fixtures render as cover cards: a 140px image on the
-// left (or the identity mark), the kicker, the name with its italic gold
-// surname, one line in their own words. No text sits over an image.
+// left (or the identity mark), the name with its italic gold surname, one
+// line in their own words. No caps label on a card or over the title (canvas
+// version 24). No text sits over an image.
 
 test.describe('the people directory', () => {
   test('renders the three fixtures as cover cards, with the identity mark where there is no photo', async ({ page }) => {
@@ -12,9 +13,10 @@ test.describe('the people directory', () => {
     await page.goto('/people');
     await expect(page.getByRole('heading', { level: 1, name: 'The People of Tea' })).toBeVisible();
     await expect(page.getByRole('heading', { level: 1 }).locator('.italic')).toHaveText('of Tea');
-    await expect(page.getByText('A room of tea masters · three people')).toBeVisible();
+    await expect(page.getByText(/A room of tea masters/)).toHaveCount(0);
     await expect(page.getByText('Each page is theirs, in their own words.')).toBeVisible();
-    await expect(page.getByRole('navigation', { name: 'Site' })).toContainText('People · three tea masters');
+    const eyebrow = page.getByRole('navigation', { name: 'Site' }).locator('span.uppercase').last();
+    await expect(eyebrow).toHaveText(/^people$/i);
 
     const cards = page.getByTestId('people-card');
     await expect(cards).toHaveCount(3);
@@ -26,7 +28,8 @@ test.describe('the people directory', () => {
     const amara = cards.nth(0);
     await expect(amara.getByRole('img', { name: 'Amara Osei identity mark' })).toBeVisible();
     await expect(amara.locator('img')).toHaveCount(0);
-    await expect(amara).toContainText('Tea master · Portland');
+    await expect(amara).not.toContainText('Tea master');
+    await expect(amara).not.toContainText('Portland');
     await expect(amara).toContainText('I am sourcing directly from smallholder gardens this year.');
     await expect(amara.locator('.italic').first()).toHaveText('Osei');
 
@@ -38,7 +41,8 @@ test.describe('the people directory', () => {
     expect(Math.round(cardBox!.height)).toBe(180);
     const nameBox = await kenji.getByText('Kenji Tanaka', { exact: true }).boundingBox();
     expect(nameBox!.x).toBeGreaterThanOrEqual(image!.x + image!.width);
-    await expect(kenji).toContainText('Tea master · host · Kyoto');
+    await expect(kenji).not.toContainText('Tea master');
+    await expect(kenji).not.toContainText('Kyoto');
     await expect(kenji).toContainText('I pour on Saturday evenings at Tanaka Tea House, four guests at most.');
 
     const body = await page.locator('body').innerText();

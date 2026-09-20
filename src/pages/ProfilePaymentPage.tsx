@@ -141,7 +141,7 @@ export default function ProfilePaymentPage() {
       ask.mutate();
     };
     return (
-      <Sheet portrait={access.contributor.portrait_url} closeHref={profileHref} title={`Pay · ${access.contributor.display_name}`} testId="pay-gate">
+      <Sheet portrait={access.contributor.portrait_url} closeHref={profileHref} testId="pay-gate">
         <h1 className="mt-2 font-display text-ui-26 leading-[1.1] text-tea-text">I share my payment details <span className="italic text-tea-readgold">privately</span></h1>
         <p className="mt-2.5 max-w-[36ch] font-body text-ui-14 italic leading-[1.45] text-tea-text-sec">
           They go only to people I have sold tea to. Ask me once; from then on you can open them from my page.
@@ -186,7 +186,7 @@ export default function ProfilePaymentPage() {
       ? 'Two ways. Both come straight to me.'
       : `${visibleCount} ways. All come straight to me.`;
   return (
-    <Sheet portrait={access.contributor.portrait_url} closeHref={profileHref} title={`Pay · ${access.contributor.display_name}`} testId="pay-sheet">
+    <Sheet portrait={access.contributor.portrait_url} closeHref={profileHref} testId="pay-sheet">
       <h1 className="mt-2 font-display text-ui-26 leading-[1.1] text-tea-text">
         {access.contributor.business_name
           ? <>For tea bought <span className="italic text-tea-readgold">at {access.contributor.business_name}</span></>
@@ -194,7 +194,7 @@ export default function ProfilePaymentPage() {
       </h1>
       {visibleCount > 0 && <p className="mt-2 font-body text-ui-13 italic leading-[1.45] text-tea-text-sec">{waysLine}</p>}
       {access.invoice?.invoice_number && (
-        <p className="mt-2 font-sans text-ui-11 uppercase tracking-[0.2em] text-tea-text-dim" data-testid="pay-sheet-invoice">Invoice {access.invoice.invoice_number}</p>
+        <p className="mt-1 font-body text-ui-13 italic leading-[1.45] text-tea-text-sec" data-testid="pay-sheet-invoice">Invoice {access.invoice.invoice_number}.</p>
       )}
       {associationRows.length > 0 && (
         <nav aria-label="Payment account" className="mt-5 flex flex-wrap gap-2">
@@ -225,19 +225,17 @@ function withToken(searchString: string, token: string | null): string {
 }
 
 // The sheet: the portrait dimmed behind, the panel rising from the bottom of
-// the screen with the page ground behind it, close on the left, the person's
-// name across the top in caps.
-function Sheet({ portrait, closeHref, title, children, testId }: { portrait: string | null; closeHref: string; title: string; children: ReactNode; testId?: string }) {
+// the screen with the page ground behind it, and the close mark alone in the
+// head (canvas version 25: no caps line across the top).
+function Sheet({ portrait, closeHref, children, testId }: { portrait: string | null; closeHref: string; children: ReactNode; testId?: string }) {
   return (
     <main className="relative mx-auto min-h-screen w-full max-w-2xl pb-nav-gap-lg" data-testid={testId}>
       <div aria-hidden="true" className="absolute inset-x-0 top-0 h-[320px] overflow-hidden bg-tea-bg">
         {portrait && <img src={portrait} alt="" className="h-full w-full object-cover opacity-35" />}
       </div>
       <section className="relative mt-[220px] border-t bg-tea-surface px-6 pb-8 pt-3" style={GOLD_LINE_STYLE}>
-        <div className="flex min-h-[44px] items-center justify-between">
+        <div className="flex min-h-[44px] items-center">
           <a href={closeHref} aria-label="Close" className="tap-target inline-flex h-11 w-11 items-center justify-start font-sans text-[22px] text-tea-text-sec hover:text-tea-text">×</a>
-          <span className="font-sans text-ui-10 uppercase tracking-[0.26em] text-tea-text-dim">{title}</span>
-          <span className="w-11" />
         </div>
         {children}
       </section>

@@ -17,7 +17,8 @@ test.describe('the pay gate', () => {
     const gate = page.getByTestId('pay-gate');
     await expect(gate).toContainText('I share my payment details privately');
     await expect(gate).toContainText('They go only to people I have sold tea to.');
-    await expect(gate).toContainText('Pay · Kenji Tanaka');
+    // Canvas version 25: the head is the close mark alone, no caps line.
+    await expect(gate).not.toContainText('Pay · Kenji Tanaka');
     const ask = gate.getByTestId('pay-gate-ask');
     await expect(ask).toHaveText('Ask Kenji');
     await expect(gate.getByRole('button')).toHaveCount(1);
@@ -80,8 +81,15 @@ test.describe('the pay gate', () => {
     await expect(sheet).toContainText('For tea bought at Tanaka Tea House');
     await expect(sheet).toContainText('Two ways. Both come straight to me.');
     await expect(sheet).toContainText(KENJI_BANK_DETAIL);
+    // Canvas version 25: a divider per method, plain rows under it, no labels beside the values.
+    await expect(sheet.getByRole('heading', { name: 'Bank transfer' })).toBeVisible();
+    await expect(sheet.getByRole('heading', { name: 'Payment link' })).toBeVisible();
+    await expect(sheet.getByRole('button', { name: 'Copy recipient name' })).toBeVisible();
     await expect(sheet.getByRole('button', { name: 'Copy Bank transfer (Kyoto) details' })).toBeVisible();
     await expect(sheet.getByRole('link', { name: /Open Pay online/ })).toHaveAttribute('href', 'https://example.com/pay/tanaka-tea-house');
+    await expect(sheet).toContainText('Card or wallet, any currency.');
+    const sheetText = await sheet.innerText();
+    for (const label of ['Recipient', 'Account', 'Choose a transfer method', 'External transfer', 'Share this payment page', 'Pay · ']) expect(sheetText).not.toContain(label);
     await expect(page.getByTestId('pay-gate')).toHaveCount(0);
     expect(await noHorizontalOverflow(page)).toBe(true);
     expect(meaningfulErrors(errors), 'console errors on the sheet').toHaveLength(0);

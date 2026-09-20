@@ -73,17 +73,17 @@ const FieldNotesTwoRoomsBali: React.FC = () => {
           justifyContent: 'flex-end',
           overflow: 'hidden',
         }}>
-          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,#2a2017 0%,#1c1610 48%,#14100b 100%)' }} />
+          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,#2a2017 0%,#1c1610 48%,var(--tj-read-bg) 100%)' }} />
           <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 64% 44% at 70% 32%, rgba(214,160,90,0.2), transparent 60%)' }} />
-          <div aria-hidden="true" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-54%)', fontFamily: F.cn, fontWeight: 200, fontSize: 'min(52vw,500px)', lineHeight: 1, color: 'rgba(168,135,77,0.06)' }}>静</div>
+          <div aria-hidden="true" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-54%)', fontFamily: F.cn, fontWeight: 200, fontSize: 'min(52vw,500px)', lineHeight: 1, color: 'rgb(var(--tj-read-gold-rgb) / 0.06)' }}>静</div>
           <svg viewBox="0 0 1200 760" preserveAspectRatio="xMidYMid slice" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-            <g fill="none" stroke="rgba(168,135,77,0.12)" strokeWidth="1.2">
+            <g fill="none" stroke="rgb(var(--tj-read-gold-rgb) / 0.12)" strokeWidth="1.2">
               <path d="M-50 540 C 300 506, 760 520, 1260 484" />
               <path d="M-50 588 C 280 556, 780 568, 1260 532" />
               <path d="M-50 640 C 320 606, 800 620, 1260 580" />
             </g>
           </svg>
-          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(0deg, rgba(20,16,11,0.86), transparent 42%)' }} />
+          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(0deg, rgb(var(--tj-read-bg-rgb) / 0.86), transparent 42%)' }} />
           <div style={{ position: 'relative', zIndex: 1, padding: '0 clamp(24px,6vw,84px) clamp(48px,9vw,110px)', maxWidth: 1000 }}>
             <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.36em', textTransform: 'uppercase', color: C.gold, marginBottom: 24 }}>
               Field Notes, the hills above Ubud, Bali
@@ -98,7 +98,7 @@ const FieldNotesTwoRoomsBali: React.FC = () => {
           {/* scroll indicator */}
           <div aria-hidden="true" style={{ position: 'absolute', bottom: 28, left: '50%', animation: 'tjFloat 3.4s ease-in-out infinite' }}>
             <svg width="13" height="20" viewBox="0 0 13 20" fill="none">
-              <path d="M6.5 1v17M1 12.5l5.5 5.5 5.5-5.5" stroke="#a8874d" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M6.5 1v17M1 12.5l5.5 5.5 5.5-5.5" stroke="var(--tj-gold, var(--tj-read-gold-default))" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
         </header>
@@ -115,13 +115,13 @@ const FieldNotesTwoRoomsBali: React.FC = () => {
         <section style={{ maxWidth: 1180, margin: '0 auto', padding: 'clamp(20px,4vw,40px) clamp(20px,5vw,40px)' }}>
           <div data-reveal style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 'clamp(28px,4vw,44px)' }}>
             <span style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 30, color: C.gold, lineHeight: 1 }}>I</span>
-            <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.22)' }} />
+            <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.22)' }} />
             <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim }}>Rumah Kayu · the jackfruit room</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,300px),1fr))', gap: 'clamp(24px,4vw,56px)', alignItems: 'center' }}>
             {/* Plate I: the brazier */}
             <figure data-reveal style={{ margin: 0 }}>
-              <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgba(168,135,77,0.2)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(160deg,#2a1d10,#14100b 78%)' }}>
+              <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.2)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(160deg,#2a1d10,var(--tj-read-bg) 78%)' }}>
                 <div aria-hidden="true" style={{ ...grainCss('0.8', 120), opacity: 0.08 }} />
                 <svg viewBox="0 0 320 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
                   <g fill="none" stroke="rgba(196,150,86,0.34)" strokeWidth="1.1">
@@ -161,7 +161,7 @@ const FieldNotesTwoRoomsBali: React.FC = () => {
         <section style={{ maxWidth: 1180, margin: '0 auto', padding: 'clamp(40px,6vw,80px) clamp(20px,5vw,40px) clamp(20px,4vw,40px)' }}>
           <div data-reveal style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 'clamp(28px,4vw,44px)' }}>
             <span style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 30, color: C.gold, lineHeight: 1 }}>II</span>
-            <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.22)' }} />
+            <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.22)' }} />
             <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim }}>Taman · the garden room</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,300px),1fr))', gap: 'clamp(24px,4vw,56px)', alignItems: 'center' }}>
@@ -179,7 +179,7 @@ const FieldNotesTwoRoomsBali: React.FC = () => {
             </div>
             {/* Plate II: penjing on stone */}
             <figure data-reveal style={{ margin: 0, order: 1 }}>
-              <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgba(168,135,77,0.2)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(160deg,#1f261c,#14100b 80%)' }}>
+              <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.2)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(160deg,#1f261c,var(--tj-read-bg) 80%)' }}>
                 <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 44% at 50% 26%, rgba(150,180,140,0.22), transparent 62%)' }} />
                 <svg viewBox="0 0 320 400" preserveAspectRatio="xMidYMid meet" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
                   <g fill="none" stroke="rgba(150,180,140,0.5)" strokeWidth="1.4" strokeLinecap="round">
@@ -192,7 +192,7 @@ const FieldNotesTwoRoomsBali: React.FC = () => {
                     <ellipse cx="196" cy="150" rx="30" ry="15" />
                     <ellipse cx="116" cy="140" rx="26" ry="13" />
                   </g>
-                  <g fill="none" stroke="rgba(168,135,77,0.4)" strokeWidth="1.2">
+                  <g fill="none" stroke="rgb(var(--tj-read-gold-rgb) / 0.4)" strokeWidth="1.2">
                     <path d="M108 256 L212 256 L204 286 L116 286 Z" />
                     <line x1="100" y1="256" x2="220" y2="256" />
                   </g>
@@ -212,50 +212,50 @@ const FieldNotesTwoRoomsBali: React.FC = () => {
         <section data-reveal style={{ maxWidth: 1040, margin: '0 auto', padding: 'clamp(40px,6vw,80px) 24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 'clamp(28px,4vw,40px)' }}>
             <span style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 30, color: C.gold, lineHeight: 1 }}>¶</span>
-            <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.22)' }} />
+            <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.22)' }} />
             <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim }}>The two rooms, side by side</span>
           </div>
-          <div style={{ border: '1px solid rgba(168,135,77,0.18)', borderRadius: 4, background: 'linear-gradient(160deg,#1d1810,#15110b)', overflow: 'hidden' }}>
+          <div style={{ border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.18)', borderRadius: 4, background: 'linear-gradient(160deg,var(--tj-read-card-from),var(--tj-read-card-to))', overflow: 'hidden' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '0.7fr 1.15fr 1.15fr' }}>
               {/* header row */}
-              <div style={{ padding: 'clamp(18px,2.4vw,18px) clamp(14px,2.4vw,24px)', borderBottom: '1px solid rgba(168,135,77,0.16)' }} />
-              <div style={{ padding: 'clamp(18px,2.4vw,18px) clamp(14px,2.4vw,24px)', borderBottom: '1px solid rgba(168,135,77,0.16)', borderLeft: '1px solid rgba(168,135,77,0.1)' }}>
+              <div style={{ padding: 'clamp(18px,2.4vw,18px) clamp(14px,2.4vw,24px)', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.16)' }} />
+              <div style={{ padding: 'clamp(18px,2.4vw,18px) clamp(14px,2.4vw,24px)', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.16)', borderLeft: '1px solid rgb(var(--tj-read-gold-rgb) / 0.1)' }}>
                 <div style={{ fontFamily: F.display, fontSize: 21, color: C.cream }}>Rumah Kayu</div>
                 <div style={{ fontFamily: F.ui, fontSize: 9, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.dim, marginTop: 4 }}>The jackfruit room</div>
               </div>
-              <div style={{ padding: 'clamp(18px,2.4vw,18px) clamp(14px,2.4vw,24px)', borderBottom: '1px solid rgba(168,135,77,0.16)', borderLeft: '1px solid rgba(168,135,77,0.1)' }}>
+              <div style={{ padding: 'clamp(18px,2.4vw,18px) clamp(14px,2.4vw,24px)', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.16)', borderLeft: '1px solid rgb(var(--tj-read-gold-rgb) / 0.1)' }}>
                 <div style={{ fontFamily: F.display, fontSize: 21, color: C.cream }}>Taman</div>
                 <div style={{ fontFamily: F.ui, fontSize: 9, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.dim, marginTop: 4 }}>The garden room</div>
               </div>
               {/* Wood row */}
               <div style={{ display: 'contents' }}>
-                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.ui, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.gold, alignSelf: 'center', borderBottom: '1px solid rgba(168,135,77,0.08)' }}>Wood</div>
-                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.body, fontSize: 15, color: C.taupe, borderLeft: '1px solid rgba(168,135,77,0.1)', borderBottom: '1px solid rgba(168,135,77,0.08)' }}>Ancient jackfruit, oiled dark gold</div>
-                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.body, fontSize: 15, color: C.taupe, borderLeft: '1px solid rgba(168,135,77,0.1)', borderBottom: '1px solid rgba(168,135,77,0.08)' }}>Weathered teak &amp; grey bamboo</div>
+                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.ui, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.gold, alignSelf: 'center', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.08)' }}>Wood</div>
+                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.body, fontSize: 15, color: C.taupe, borderLeft: '1px solid rgb(var(--tj-read-gold-rgb) / 0.1)', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.08)' }}>Ancient jackfruit, oiled dark gold</div>
+                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.body, fontSize: 15, color: C.taupe, borderLeft: '1px solid rgb(var(--tj-read-gold-rgb) / 0.1)', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.08)' }}>Weathered teak &amp; grey bamboo</div>
               </div>
               {/* Fire row */}
               <div style={{ display: 'contents' }}>
-                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.ui, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.gold, alignSelf: 'center', borderBottom: '1px solid rgba(168,135,77,0.08)' }}>Fire</div>
-                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.body, fontSize: 15, color: C.taupe, borderLeft: '1px solid rgba(168,135,77,0.1)', borderBottom: '1px solid rgba(168,135,77,0.08)' }}>Charcoal brazier, always lit</div>
-                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.body, fontSize: 15, color: C.taupe, borderLeft: '1px solid rgba(168,135,77,0.1)', borderBottom: '1px solid rgba(168,135,77,0.08)' }}>A clay stove, lit at dusk</div>
+                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.ui, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.gold, alignSelf: 'center', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.08)' }}>Fire</div>
+                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.body, fontSize: 15, color: C.taupe, borderLeft: '1px solid rgb(var(--tj-read-gold-rgb) / 0.1)', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.08)' }}>Charcoal brazier, always lit</div>
+                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.body, fontSize: 15, color: C.taupe, borderLeft: '1px solid rgb(var(--tj-read-gold-rgb) / 0.1)', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.08)' }}>A clay stove, lit at dusk</div>
               </div>
               {/* Green row */}
               <div style={{ display: 'contents' }}>
-                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.ui, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.gold, alignSelf: 'center', borderBottom: '1px solid rgba(168,135,77,0.08)' }}>Green</div>
-                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.body, fontSize: 15, color: C.taupe, borderLeft: '1px solid rgba(168,135,77,0.1)', borderBottom: '1px solid rgba(168,135,77,0.08)' }}>One ancient bonsai, by the door</div>
-                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.body, fontSize: 15, color: C.taupe, borderLeft: '1px solid rgba(168,135,77,0.1)', borderBottom: '1px solid rgba(168,135,77,0.08)' }}>A whole courtyard of penjing</div>
+                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.ui, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.gold, alignSelf: 'center', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.08)' }}>Green</div>
+                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.body, fontSize: 15, color: C.taupe, borderLeft: '1px solid rgb(var(--tj-read-gold-rgb) / 0.1)', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.08)' }}>One ancient bonsai, by the door</div>
+                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.body, fontSize: 15, color: C.taupe, borderLeft: '1px solid rgb(var(--tj-read-gold-rgb) / 0.1)', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.08)' }}>A whole courtyard of penjing</div>
               </div>
               {/* Light row */}
               <div style={{ display: 'contents' }}>
-                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.ui, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.gold, alignSelf: 'center', borderBottom: '1px solid rgba(168,135,77,0.08)' }}>Light</div>
-                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.body, fontSize: 15, color: C.taupe, borderLeft: '1px solid rgba(168,135,77,0.1)', borderBottom: '1px solid rgba(168,135,77,0.08)' }}>Low, amber, almost none</div>
-                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.body, fontSize: 15, color: C.taupe, borderLeft: '1px solid rgba(168,135,77,0.1)', borderBottom: '1px solid rgba(168,135,77,0.08)' }}>Open-air, green and moving</div>
+                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.ui, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.gold, alignSelf: 'center', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.08)' }}>Light</div>
+                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.body, fontSize: 15, color: C.taupe, borderLeft: '1px solid rgb(var(--tj-read-gold-rgb) / 0.1)', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.08)' }}>Low, amber, almost none</div>
+                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.body, fontSize: 15, color: C.taupe, borderLeft: '1px solid rgb(var(--tj-read-gold-rgb) / 0.1)', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.08)' }}>Open-air, green and moving</div>
               </div>
               {/* Pace row */}
               <div style={{ display: 'contents' }}>
                 <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.ui, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.gold, alignSelf: 'center' }}>Pace</div>
-                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.body, fontSize: 15, color: C.taupe, borderLeft: '1px solid rgba(168,135,77,0.1)' }}>Glacial, an hour to a cup</div>
-                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.body, fontSize: 15, color: C.taupe, borderLeft: '1px solid rgba(168,135,77,0.1)' }}>Unhurried, but sociable</div>
+                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.body, fontSize: 15, color: C.taupe, borderLeft: '1px solid rgb(var(--tj-read-gold-rgb) / 0.1)' }}>Glacial, an hour to a cup</div>
+                <div style={{ padding: '16px clamp(14px,2.4vw,24px)', fontFamily: F.body, fontSize: 15, color: C.taupe, borderLeft: '1px solid rgb(var(--tj-read-gold-rgb) / 0.1)' }}>Unhurried, but sociable</div>
               </div>
             </div>
           </div>

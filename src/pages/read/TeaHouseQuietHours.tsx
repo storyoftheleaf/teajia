@@ -61,7 +61,7 @@ const MovementHeader: React.FC<{ numeral: string; label: string; margin?: string
     }}
   >
     <span style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 30, color: C.gold, lineHeight: 1 }}>{numeral}</span>
-    <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.22)' }} />
+    <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.22)' }} />
     <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim }}>{label}</span>
   </div>
 );
@@ -119,7 +119,7 @@ const TeaHouseQuietHours: React.FC = () => {
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,360px),1fr))',
           alignItems: 'stretch',
-          borderBottom: '1px solid rgba(168,135,77,0.14)',
+          borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.14)',
           minHeight: '90vh',
         }}>
           {/* text column */}
@@ -133,7 +133,7 @@ const TeaHouseQuietHours: React.FC = () => {
             <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(16px,2vw,20px)', lineHeight: 1.5, color: C.taupe, margin: '24px 0 0', maxWidth: 460 }}>
               How a homesick cup and a stack of reclaimed timber became a tea house at the far end of the world, told by the two people who made it.
             </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '26px 40px', marginTop: 'clamp(30px,5vw,46px)', paddingTop: 24, borderTop: '1px solid rgba(168,135,77,0.16)' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '26px 40px', marginTop: 'clamp(30px,5vw,46px)', paddingTop: 24, borderTop: '1px solid rgb(var(--tj-read-gold-rgb) / 0.16)' }}>
               {/* Mei */}
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                 <span style={{ width: 9, height: 9, borderRadius: '50%', background: C.gold, marginTop: 7, flex: 'none' }} />
@@ -161,16 +161,16 @@ const TeaHouseQuietHours: React.FC = () => {
           </div>
 
           {/* illustration column */}
-          <div style={{ position: 'relative', order: 1, overflow: 'hidden', minHeight: '48vh', background: 'linear-gradient(155deg,#241d14 0%,#14100b 80%)' }}>
+          <div style={{ position: 'relative', order: 1, overflow: 'hidden', minHeight: '48vh', background: 'linear-gradient(155deg,var(--tj-read-plate-from) 0%,var(--tj-read-bg) 80%)' }}>
             <div aria-hidden="true" style={{ ...grainCss('0.8', 150), opacity: 0.08 }} />
-            <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 64% 50% at 50% 36%, rgba(168,135,77,0.14), transparent 64%)' }} />
-            <div aria-hidden="true" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-54%)', fontFamily: F.cn, fontWeight: 200, fontSize: 'min(40vw,320px)', lineHeight: 1, color: 'rgba(168,135,77,0.06)' }}>茶</div>
+            <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 64% 50% at 50% 36%, rgb(var(--tj-read-gold-rgb) / 0.14), transparent 64%)' }} />
+            <div aria-hidden="true" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-54%)', fontFamily: F.cn, fontWeight: 200, fontSize: 'min(40vw,320px)', lineHeight: 1, color: 'rgb(var(--tj-read-gold-rgb) / 0.06)' }}>茶</div>
             <svg viewBox="0 0 420 420" preserveAspectRatio="xMidYMid meet" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
               {/* tea bowl */}
-              <g fill="none" stroke="rgba(168,135,77,0.34)" strokeWidth="1.2">
+              <g fill="none" stroke="rgb(var(--tj-read-gold-rgb) / 0.34)" strokeWidth="1.2">
                 <ellipse cx="150" cy="232" rx="62" ry="13" />
                 <path d="M92 232 C96 280, 122 300, 150 300 C178 300, 204 280, 208 232" />
-                <ellipse cx="150" cy="214" rx="48" ry="10" stroke="rgba(168,135,77,0.24)" />
+                <ellipse cx="150" cy="214" rx="48" ry="10" stroke="rgb(var(--tj-read-gold-rgb) / 0.24)" />
               </g>
               {/* planer / timber tool */}
               <g fill="none" stroke="rgba(150,180,180,0.3)" strokeWidth="1.2">
@@ -252,7 +252,7 @@ const TeaHouseQuietHours: React.FC = () => {
 
         {/* ── FACT FILE ─────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 1040, margin: '0 auto', padding: 'clamp(40px,6vw,80px) 24px' }}>
-          <div style={{ border: '1px solid rgba(168,135,77,0.2)', borderRadius: 4, background: 'linear-gradient(160deg,#1d1810,#15110b)', padding: 'clamp(24px,4vw,40px)' }}>
+          <div style={{ border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.2)', borderRadius: 4, background: 'linear-gradient(160deg,var(--tj-read-card-from),var(--tj-read-card-to))', padding: 'clamp(24px,4vw,40px)' }}>
             <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 600, letterSpacing: '0.22em', textTransform: 'uppercase', color: C.gold, marginBottom: 24 }}>
               Quiet Hours, in brief
             </div>

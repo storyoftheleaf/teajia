@@ -11,7 +11,7 @@ const fixture = {
   id: 'publishing-fixture', account_id: 'acct-bali', display_name: 'Publishing Fixture', role: 'Writer',
   beginnings: 'Synthetic origin text used only to verify the publishing path.',
   now_text: 'Testing the current-practice field.', now_updated_at: '2026-07-13T09:45:00Z', inspirations: 'Testing inspirations.',
-  closing: 'Synthetic fixture closing.', links: [{ label: 'Fixture', url: 'https://example.com/' }],
+  closing: 'Synthetic fixture closing.', links: [{ platform: 'website', value: 'https://example.com/', qr_image_url: null }],
   face_of_account_id: null, is_published: 1, created_at: '2026-07-12T00:00:00Z', updated_at: '2026-07-12T00:00:00Z',
 };
 
