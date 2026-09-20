@@ -418,6 +418,10 @@ test.describe('Inventory page — scroll regression guard', () => {
       await expect(inventoryActions).toHaveAttribute('aria-expanded', 'true');
     }
     await page.keyboard.press('Escape');
+    // The phone's sheet leaves its full-screen overlay up while it slides
+    // away, and the hit-test below would land on that instead of the ledger.
+    await expect(page.getByRole('dialog', { name: 'Inventory actions' })).toHaveCount(0);
+    await expect(page.locator('.fixed.inset-0.z-modal.backdrop-blur-sm:visible')).toHaveCount(0);
 
     const scrollHost = page.getByTestId('inventory-scroll');
     const before = await Promise.all([primary, purpose, columns].map(row => row.evaluate(el => el.getBoundingClientRect().top)));
@@ -426,16 +430,26 @@ test.describe('Inventory page — scroll regression guard', () => {
     const after = await Promise.all([primary, purpose, columns].map(row => row.evaluate(el => el.getBoundingClientRect().top)));
     expect(Math.abs(after[0] - before[0])).toBeLessThan(1);
     expect(Math.abs(after[1] - before[1])).toBeLessThan(1);
-    expect(after[2]).toBeLessThan(before[2] - 100);
+    // The column names are the third pinned row: the list runs under them.
+    // Up to 2px, not 1: at rest the row sits under the card's 1px top border,
+    // pinned it sits at the scrollport's edge, one pixel higher.
+    expect(Math.abs(after[2] - before[2])).toBeLessThan(2);
+    // Not merely still in the tree at the same coordinates: a row of data
+    // has genuinely scrolled underneath it and it is what is on top there.
+    // Asked at the Product cell, because on a phone the row is wider than
+    // the screen and its own midpoint is off it.
+    const columnsBox = await columns.getByText('Product', { exact: true }).boundingBox();
+    const onTop = await page.evaluate(([x, y]) => {
+      const el = document.elementFromPoint(x, y);
+      return !!el?.closest('[data-testid="inventory-column-row"]');
+    }, [columnsBox!.x + columnsBox!.width / 2, columnsBox!.y + columnsBox!.height / 2] as [number, number]);
+    expect(onTop).toBe(true);
     await shot(page, `${testInfo.project.name}-sticky-navigation`);
 
     if (testInfo.project.name === 'Mobile Chrome') {
-      await expect(scrollHost).toHaveCSS('overflow-x', 'hidden');
-      await scrollHost.evaluate(el => { el.scrollLeft = 200; });
-      expect(await scrollHost.evaluate(el => el.scrollLeft)).toBe(0);
-
-      const ledger = page.getByTestId('inventory-horizontal-scroll');
-      await expect(ledger).toBeVisible();
+      // One scrollport for both axes, so the column row can stay pinned to the
+      // top while the ledger swipes sideways underneath it.
+      const ledger = scrollHost;
       await expect(ledger).toHaveCSS('scrollbar-width', 'none');
 
       const [primaryBeforeX, purposeBeforeX, productBeforeX] = await Promise.all([
@@ -529,15 +543,52 @@ test.describe('Inventory page — scroll regression guard', () => {
 
   test('inventory search suggests sources and category changes clear the query', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name === 'chromium', 'Covered by named desktop and mobile projects');
+    // A phone's Product column is 158px by default and the suggestions open
+    // to the right of the corpus words, past its edge. Widened, as an operator
+    // who dragged the handle would have it, the pinned cell sits under the
+    // list, which is the arrangement the check below exists for.
+    await page.addInitScript(() => {
+      localStorage.setItem('teajia-storage', JSON.stringify({ version: 6, state: { inventoryMobileColWidths: { productName: 300 } } }));
+    });
     await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1500);
     const primary = page.getByTestId('inventory-primary-row');
 
     await primary.getByRole('button', { name: /search inventory/i }).click();
     const search = primary.getByRole('textbox', { name: /search tea or source/i });
+    // "n " sits inside two of the three fixture sources (Chen Family, Mountain
+    // Source), so the list is two rows deep and reaches down over the column
+    // header row beneath the toolbar. One row stops short of it.
+    await search.fill('n ');
+    const suggestions = page.getByLabel('Source suggestions');
+    await expect(suggestions.getByRole('button')).toHaveCount(2);
+    // Visible is not enough: the pinned Product header cell carries a z-index
+    // to cover the columns swiping under it, and it used to cover this list
+    // too. So the check is made where the two overlap, and it is a failure of
+    // the test, not a pass, if they do not.
+    const [listBox, headerBox] = await Promise.all([
+      suggestions.boundingBox(),
+      page.getByTestId('inventory-column-row').first().locator('th').first().boundingBox(),
+    ]);
+    const overlap = {
+      left: Math.max(listBox!.x, headerBox!.x),
+      right: Math.min(listBox!.x + listBox!.width, headerBox!.x + headerBox!.width),
+      top: Math.max(listBox!.y, headerBox!.y),
+      bottom: Math.min(listBox!.y + listBox!.height, headerBox!.y + headerBox!.height),
+    };
+    expect(overlap.right - overlap.left, 'the suggestions no longer reach the Product header, so this check proves nothing').toBeGreaterThan(8);
+    expect(overlap.bottom - overlap.top, 'the suggestions no longer reach the Product header, so this check proves nothing').toBeGreaterThan(4);
+    const covered = await page.evaluate(({ left, right, top, bottom }) => {
+      const y = (top + bottom) / 2;
+      const points = [left + 4, (left + right) / 2, right - 4];
+      return points.filter(x => !document.elementFromPoint(x, y)?.closest('[aria-label="Source suggestions"]')).length;
+    }, overlap);
+    expect(covered, 'the Product header paints over the source suggestions').toBe(0);
+
     await search.fill('Mountain');
-    await expect(page.getByRole('button', { name: /Mountain Source/ }).first()).toBeVisible();
-    await page.getByRole('button', { name: /Mountain Source/ }).first().click();
+    const suggestion = page.getByRole('button', { name: /Mountain Source/ }).first();
+    await expect(suggestion).toBeVisible();
+    await suggestion.click();
     await expect(page).toHaveURL(/vendor=Mountain(?:%20|\+)Source/);
 
     await primary.getByRole('button', { name: /search inventory/i }).click();
