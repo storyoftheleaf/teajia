@@ -9,6 +9,9 @@ import { LogoText } from '../components/Logos/LogoText';
 import { useTheme } from '../context/ThemeContext';
 import { getTeaLedgerTones } from '../designTokens';
 import { useSectionReveal } from '../hooks/useSectionReveal';
+import { StoryEditProvider, type PhotoVal } from './read/storyEdit';
+import EditablePhoto from './read/EditablePhoto';
+import StoryEditorBar from './read/StoryEditorBar';
 import type { PublicProduct } from '../types';
 
 /**
@@ -36,6 +39,9 @@ const PIECE = {
 /** The one photograph the site owns today: Adrian at the table. */
 const TABLE_PHOTO = 'https://res.cloudinary.com/dobbosnda/image/upload/f_auto,q_auto,w_900/v1773837991/2021-06-27_IMG_7745_Original_ehkz30.jpg';
 
+/** The home page's own slug in the story-content store, for the frames it carries. */
+const HOME_SLUG = 'home';
+
 const SHIPPING_LINE = 'Everything ships from Bali. Say where you are and the post is quoted in the same message.';
 
 /** The tea on the table: a featured one if Adrian has flagged one, else the oldest lot on the shelf. */
@@ -56,25 +62,15 @@ const HomeV2Page: React.FC = () => {
   const tea = useMemo(() => pickTea(Array.isArray(products) ? products : []), [products]);
   const shopPrice = useShopPrice();
 
-  // The piece's own cover portrait, the one Adrian drops onto the story page.
-  // The moment it lands there it lands here too; until then the plate shows
-  // the reading room's cover treatment.
-  const { data: storyPhotos } = useQuery({
-    queryKey: ['story-photos', PIECE.slug],
-    queryFn: () => api.storyPhotos.get(PIECE.slug),
+  // The piece's own cover portrait, the one Adrian drops onto the story page
+  // and publishes there. The moment it is live there it is live here; until
+  // then the plate shows the reading room's cover treatment.
+  const { data: pieceContent } = useQuery({
+    queryKey: ['story-content', PIECE.slug, 'published'],
+    queryFn: () => api.storyContent.get(PIECE.slug) as Promise<{ photos?: Record<string, PhotoVal> }>,
     staleTime: 5 * 60 * 1000,
   });
-  const portrait = storyPhotos?.portrait;
-
-  // A photograph saved under the home page's own slug (slot "house") stands
-  // beside the four lines; until one is, the table photograph does, cropped to
-  // the vessel so it is not the consult plate's picture again.
-  const { data: homePhotos } = useQuery({
-    queryKey: ['story-photos', 'home'],
-    queryFn: () => api.storyPhotos.get('home'),
-    staleTime: 5 * 60 * 1000,
-  });
-  const housePhoto = homePhotos?.house;
+  const portrait = pieceContent?.photos?.portrait;
 
   // The colour the tea brews, the same ground the shop's ledger rows carry.
   const { theme } = useTheme();
@@ -159,16 +155,26 @@ const HomeV2Page: React.FC = () => {
       {/* The house: the grounding lines, the live page's own words, set beside
           a photograph instead of floating in the dark. */}
       <div ref={revealHouse.ref} className={revealHouse.className} style={revealHouse.style}>
+      <StoryEditProvider slug={HOME_SLUG}>
       <section
         aria-label="Homepage destinations"
         className="grid grid-cols-1 lg:grid-cols-[var(--teajia-sidebar-w)_1fr_1fr] border-b border-tea-border"
       >
+        {/* The frame is the Read pages' own: signed in as owner, the editor bar
+            turns editing on, a photograph drops or pastes into the frame, the
+            focal point and zoom are set on it, and Publish makes it live. Until
+            one is published the table photograph stands in, cropped to the
+            vessel so it is not the consult plate's picture again. */}
         <div className="relative order-first lg:order-none lg:col-start-3 min-h-[240px] sm:min-h-[320px] lg:min-h-[440px] overflow-hidden bg-tea-surface">
-          {housePhoto ? (
-            <StoryPhoto photo={housePhoto} />
-          ) : (
-            <img src={TABLE_PHOTO} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '88% 45%', transform: 'scale(1.35)', transformOrigin: '88% 45%' }} loading="lazy" />
-          )}
+          <EditablePhoto
+            slot="house"
+            alt="The house"
+            fill
+            placeholderBg="var(--tea-surface)"
+            placeholder={
+              <img src={TABLE_PHOTO} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '88% 45%', transform: 'scale(1.35)', transformOrigin: '88% 45%' }} loading="lazy" />
+            }
+          />
         </div>
         <div className="lg:col-start-2 lg:row-start-1 px-6 sm:px-10 lg:pl-[4rem] lg:pr-12 py-12 sm:py-14 lg:py-20 flex flex-col justify-center">
         <nav className="flex flex-col items-start gap-3 sm:gap-4">
@@ -197,6 +203,8 @@ const HomeV2Page: React.FC = () => {
         </p>
         </div>
       </section>
+      <StoryEditorBar />
+      </StoryEditProvider>
       </div>
 
       {/* The colophon: what the live page's second act says */}
