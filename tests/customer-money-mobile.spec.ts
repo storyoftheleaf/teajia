@@ -28,7 +28,16 @@ import { assertNothingRunsOffScreen } from './helpers/screenEdge';
 const TOKEN = 'A7kQ_customer-tracking-token-000000000001';
 const INVOICE_REF = 'INV-2201';
 const ORDER_REF = 'TJ-1042';
-const PAY_URL = `https://www.teajia.com/people/mei-lin/pay?account=teajia-bali&amount=40.00&currency=USD&reference=${INVOICE_REF}`;
+// Pay is private (migration 0022): every pay link the shop hands out carries a
+// share token, and it is the token that opens the sheet for whoever holds it.
+const SHARE_TOKEN = 'ab12cd34ef56ab12cd34ef56ab12cd34';
+const PAY_URL = `https://www.teajia.com/people/mei-lin/pay?account=teajia-bali&amount=40.00&currency=USD&reference=${INVOICE_REF}&t=${SHARE_TOKEN}`;
+const payAccess = {
+  access: 'open', via: 'link',
+  contributor: { id: 'mei-lin', display_name: 'Mei Lin', business_name: null, portrait_url: null },
+  viewer: { signed_in: false, is_owner: false, request_status: null },
+  invoice: { invoice_number: INVOICE_REF, outstanding_usd: 40 },
+};
 
 /**
  * A tea name at the length the catalogue actually reaches. Anything shorter
@@ -104,6 +113,7 @@ async function goto(page: Page, route: string) {
 test.describe('the pages where a customer handles money', () => {
   test.beforeEach(async ({ page }) => {
     await page.route('**/api/public/people/mei-lin/payment-methods**', route => route.fulfill(json(methods)));
+    await page.route('**/api/public/people/mei-lin/pay-access**', route => route.fulfill(json(payAccess)));
     await page.route(`**/api/inquiries/${TOKEN}`, route => route.fulfill(json(order)));
   });
 
@@ -139,7 +149,7 @@ test.describe('the pages where a customer handles money', () => {
   test('the payment page is unchanged for someone arriving from a message', async ({ page }) => {
     // No key, which is every link sent by hand. This is the majority path and
     // the regression that would matter most.
-    await goto(page, `/people/mei-lin/pay?account=teajia-bali&amount=40.00&currency=USD&reference=${INVOICE_REF}`);
+    await goto(page, `/people/mei-lin/pay?account=teajia-bali&amount=40.00&currency=USD&reference=${INVOICE_REF}&t=${SHARE_TOKEN}`);
     await expect(page.getByRole('heading', { name: 'Pay Mei Lin' })).toBeVisible();
     await expect(page.getByTestId('payment-order-summary')).toHaveCount(0);
     await expect(page.getByText('8830 1194 2201 5567')).toBeVisible();

@@ -601,6 +601,19 @@ test.describe('Tea Master profile routes — mobile', () => {
   });
 
   test('public payment chooser shows recipient methods and display-only context', async ({ page }) => {
+    // Pay is private (migration 0022): the sheet opens only once pay-access
+    // says so. This viewer arrives through a share link, which is how a link
+    // sent by hand behaves.
+    await page.route('**/api/public/people/mei-lin/pay-access**', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        access: 'open', via: 'link',
+        contributor: { id: 'mei-lin', display_name: 'Mei Lin', business_name: null, portrait_url: null },
+        viewer: { signed_in: false, is_owner: false, request_status: null },
+        invoice: null,
+      }),
+    }));
     await page.route('**/api/public/people/mei-lin/payment-methods**', route => route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -616,7 +629,7 @@ test.describe('Tea Master profile routes — mobile', () => {
       }),
     }));
 
-    await goto(page, '/people/mei-lin/pay?store=teajia-bali&amount=180000&currency=IDR&reference=TEA-42');
+    await goto(page, '/people/mei-lin/pay?store=teajia-bali&amount=180000&currency=IDR&reference=TEA-42&t=ab12cd34ef56ab12cd34ef56ab12cd34');
     await expect(page.getByRole('heading', { name: 'Pay Mei Lin' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Choose a transfer method' })).toBeVisible();
     await expect(page.getByText('123 456 789')).toBeVisible();

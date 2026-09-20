@@ -9,17 +9,21 @@ const profileFixture = {
   ], created_at: '2026-01-01', updated_at: '2026-01-01',
 };
 
-test('profile weaves two distinct pull quotes into their editorial positions', async ({ page }) => {
+// The redesigned profile (2026-09-19) puts the first pull quote at the head of
+// "their way with tea" and every article that quotes the person under Words,
+// each row linking into the article. Both quotes are on the page, once each.
+test('profile leads with the first pull quote and lists every quoting article under Words', async ({ page }) => {
   await page.route('**/api/people/publishing-fixture', route => route.fulfill({ json: profileFixture }));
   await page.goto('/people/publishing-fixture');
-  const first = page.getByText('First synthetic quote.'); const second = page.getByText('Second synthetic quote.');
-  await expect(first).toBeVisible(); await expect(second).toBeVisible();
-  await expect(first.locator('xpath=ancestor::blockquote').getByRole('link')).toHaveAttribute('href', '/article/first-source');
-  await expect(second.locator('xpath=ancestor::blockquote').getByRole('link')).toHaveAttribute('href', '/article/second-source');
+  await expect(page.getByTestId('profile-quote')).toContainText('First synthetic quote.');
+  const words = page.getByTestId('profile-words');
+  await expect(words.getByRole('link', { name: /First Source/ })).toHaveAttribute('href', '/article/first-source');
+  await expect(words.getByRole('link', { name: /Second Source/ })).toHaveAttribute('href', '/article/second-source');
+  await expect(words.getByRole('link', { name: /First Source/ })).toContainText('First synthetic quote.');
+  await expect(words.getByRole('link', { name: /Second Source/ })).toContainText('Second synthetic quote.');
   const text = await page.locator('article').innerText();
-  expect(text.indexOf('Synthetic origin.')).toBeLessThan(text.indexOf('First synthetic quote.'));
-  expect(text.indexOf('First synthetic quote.')).toBeLessThan(text.indexOf('Synthetic inspirations.'));
-  expect(text.indexOf('Synthetic inspirations.')).toBeLessThan(text.indexOf('Second synthetic quote.'));
+  expect(text.indexOf('First synthetic quote.')).toBeLessThan(text.indexOf('Synthetic origin.'));
+  expect(text.indexOf('Synthetic origin.')).toBeLessThan(text.indexOf('Second synthetic quote.'));
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);
 });
 
