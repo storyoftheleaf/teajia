@@ -434,7 +434,9 @@ describe('Tea Master route security', () => {
       (id, contributor_id, account_id, method_type, label, recipient_name, is_published)
       VALUES ('pay-one','mei-lin','acc-one','bank_transfer','Bank','Mei Lin',1)`).run();
 
-    const response = await worker.fetch(new Request('https://worker.test/api/public/people/mei-lin/payment-methods?account=acc-one&amount=1e3&currency=ZZZ&reference=%3Cbad%3E'), { DB: db as any } as any);
+    // Pay is private (migration 0022): the sheet opens for the contributor
+    // herself; a stranger meets the gate, which the next test pins.
+    const response = await call(db, '/api/public/people/mei-lin/payment-methods?account=acc-one&amount=1e3&currency=ZZZ&reference=%3Cbad%3E');
     const body = await response.json() as any;
     expect(body.store).toMatchObject({ slug: 'acc-one' });
     expect(body.context).toMatchObject({ amount: null, currency: null, reference: null });
@@ -459,7 +461,12 @@ describe('Tea Master route security', () => {
       has_payment_methods: true,
       payment_accounts: [{ slug: 'mei-selection', name: 'mei-selection' }],
     });
-    const payment = await worker.fetch(new Request('https://worker.test/api/public/people/mei-lin/payment-methods'), { DB: db as any } as any);
+    const stranger = await worker.fetch(new Request('https://worker.test/api/public/people/mei-lin/payment-methods'), { DB: db as any } as any);
+    expect(stranger.status).toBe(403);
+    const gate = await stranger.json() as any;
+    expect(gate).toMatchObject({ code: 'pay_private', access: 'gate', contributor: { display_name: 'Mei Lin' } });
+    expect(JSON.stringify(gate)).not.toContain('Bank');
+    const payment = await call(db, '/api/public/people/mei-lin/payment-methods');
     const body = await payment.json() as any;
     expect(body).toMatchObject({
       has_any_method: true,

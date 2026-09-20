@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Sun, Moon, Calendar, Receipt, UserPlus, Package, Clock, CalendarCheck, AlertTriangle, Zap, UserCheck, Compass, LogIn, Users, Settings, Loader2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icons, SealIcon } from '../Icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useScrollLock } from '../../hooks/useScrollLock';
@@ -23,6 +23,7 @@ import { TastingJournalView } from './TastingJournalView';
 import { CellarView } from './CellarView';
 import { ReaderView } from './ReaderView';
 import { LaunchpadView } from './LaunchpadView';
+import { usePayAccess } from '../profile/PayAccessPanel';
 import { THREADS, profileThreads } from '../TeaDiscovery/threads';
 import { AccountSwitcherChip } from './AccountSwitcherChip';
 import { buildTeaMasterReadiness, type ShopReadinessInput, type TeaMasterReadiness } from '../readiness/teaMasterReadiness';
@@ -750,6 +751,16 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
   // `null` until the read succeeds, so the panel never claims a calm it has
   // not measured. An empty array is a real answer; a failed read is not.
   const attentionItems = attentionLoaded ? attention.items : null;
+
+  // Pay is private: requests to see this person's payment details, answered
+  // here. Null for a reader with no public profile (the worker says 409 and
+  // the hook turns that into "nothing to show").
+  const payAccessQuery = usePayAccess(auth.isAuthenticated);
+  const payAccessMutation = useMutation({
+    mutationFn: async ({ id, decision }: { id: string; decision: 'approve' | 'decline' }): Promise<{ status: string }> =>
+      decision === 'approve' ? api.profile.approvePayAccess(id) : api.profile.declinePayAccess(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['profile', 'pay-access'] }),
+  });
 
   const { data: inboundUnreadCount = 0 } = useQuery({
     queryKey: ['panel-inbound-unread'],
@@ -1491,6 +1502,10 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 nextEvent={nextEvent ?? null}
                 attentionItems={attentionItems}
                 readiness={teaMasterReadiness}
+                payAccess={payAccessQuery.data ?? null}
+                payAccessBusy={payAccessMutation.isPending}
+                onApprovePayAccess={id => payAccessMutation.mutate({ id, decision: 'approve' })}
+                onDeclinePayAccess={id => payAccessMutation.mutate({ id, decision: 'decline' })}
                 onClose={onClose}
                 onOpenJournal={() => setPanelView('journal')}
                 onOpenEvents={() => setPanelView('events')}

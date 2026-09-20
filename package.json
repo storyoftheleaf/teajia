@@ -10,6 +10,7 @@
     "dev:test": "VITE_API_URL=http://localhost:7777 vite",
     "sandbox": "concurrently -n api,site -c magenta,cyan \"npm --prefix worker run sandbox\" \"npm run sandbox:site\"",
     "sandbox:site": "VITE_API_URL=http://localhost:8787 vite --port 7777",
+    "sandbox:offline": "concurrently -n api,site -c magenta,cyan \"npm --prefix worker run sandbox:offline\" \"npm run sandbox:site\"",
     "sandbox:refresh": "npm --prefix worker run sandbox:refresh",
     "sandbox:seed-creators": "npm --prefix worker run sandbox:seed-creators",
     "build": "node scripts/check-required-deployment-config.mjs --if-cloudflare-pages && vite build",

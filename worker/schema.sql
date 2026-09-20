@@ -727,6 +727,45 @@ BEFORE DELETE ON payment_method_audit_events BEGIN
   SELECT RAISE(ABORT, 'payment audit events are immutable');
 END;
 
+-- Pay is private, and approval is permanent (migration 0022). Who may open a
+-- contributor's pay sheet: an ACCOUNT they approved (payment_access_grants,
+-- no revoke, no expiry) or a LINK they handed out (payment_share_links, one
+-- per invoice or one open link per contributor; the token is the capability).
+CREATE TABLE IF NOT EXISTS payment_access_grants (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  contributor_id TEXT NOT NULL REFERENCES contributors(id) ON DELETE CASCADE,
+  grantee_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  granted_via TEXT NOT NULL CHECK (granted_via IN ('request', 'link')),
+  invoice_id TEXT,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved')),
+  requested_at TEXT NOT NULL DEFAULT (datetime('now')),
+  approved_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (contributor_id, grantee_user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_payment_access_grants_contributor
+  ON payment_access_grants(contributor_id, status, requested_at);
+CREATE INDEX IF NOT EXISTS idx_payment_access_grants_grantee
+  ON payment_access_grants(grantee_user_id, contributor_id);
+
+CREATE TABLE IF NOT EXISTS payment_share_links (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  contributor_id TEXT NOT NULL REFERENCES contributors(id) ON DELETE CASCADE,
+  invoice_id TEXT,
+  token TEXT NOT NULL UNIQUE,
+  created_by_user_id TEXT,
+  open_count INTEGER NOT NULL DEFAULT 0 CHECK (open_count >= 0),
+  last_opened_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_payment_share_links_invoice
+  ON payment_share_links(invoice_id) WHERE invoice_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_payment_share_links_contributor_open
+  ON payment_share_links(contributor_id) WHERE invoice_id IS NULL;
+
 -- 5b. Password Reset Tokens Table
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),

@@ -112,7 +112,9 @@ type Page =
   // Original 8 (kept for the renderers we already wrote)
   | { kind: 'body'; head: string; paragraphs: string[]; pageNum: number; pageTotal: number }
   | { kind: 'section'; title: string; numeral: string }
-  | { kind: 'quote'; text: string; attribution?: string; variant?: 'big' | 'minimal' }
+  // anchorId is the DOM id a creator profile links to (quote-<contributor id>);
+  // highlight is set for a moment when the reader arrived on that anchor.
+  | { kind: 'quote'; text: string; attribution?: string; variant?: 'big' | 'minimal'; anchorId?: string; highlight?: boolean }
   | { kind: 'image'; url: string; caption?: string; alt: string; variant?: string; images?: string[] }
   // New block-derived kinds
   | { kind: 'paragraph_styled'; text: string; variant: 'single' | 'double' | 'justified' | 'center' | 'drop_cap' }
@@ -197,6 +199,21 @@ function buildPages(article: DbArticle): Page[] {
       authorSlug,
       date,
       readingTime: article.reading_time_mins,
+    });
+  }
+
+  // 2b. The article's pull quote, when the piece has one, as its own page
+  // straight after the masthead. It carries the anchor a creator profile
+  // links to (quote-<contributor id>), so "Quoted in" lands on the passage
+  // instead of the cover. Nothing else on this page reads articles.pull_quote,
+  // so this is the one place the quote is on screen.
+  const pullQuote = (article.pull_quote ?? '').trim();
+  if (pullQuote) {
+    pages.push({
+      kind: 'quote',
+      text: pullQuote,
+      variant: 'big',
+      anchorId: article.pull_quote_subject ? `quote-${article.pull_quote_subject}` : undefined,
     });
   }
 
@@ -1048,6 +1065,8 @@ const QuotePage: React.FC<{ page: Extract<Page, { kind: 'quote' }> }> = ({ page 
         &ldquo;
       </div>
       <blockquote
+        id={page.anchorId}
+        data-quote-highlight={page.highlight ? 'true' : undefined}
         style={{
           fontFamily: T.display,
           fontStyle: 'italic',
@@ -1056,6 +1075,12 @@ const QuotePage: React.FC<{ page: Extract<Page, { kind: 'quote' }> }> = ({ page 
           lineHeight: 1.32,
           color: T.text,
           margin: 0,
+          // A flat wash of the accent tint while the reader lands on the
+          // passage, then gone. No glow, no glass: the passage is simply lit.
+          padding: '0.2em 0.35em',
+          borderRadius: 4,
+          background: page.highlight ? 'var(--tea-accent-sub)' : 'transparent',
+          transition: 'background 900ms ease-out',
         }}
       >
         {page.text}
@@ -2542,15 +2567,31 @@ export default function ArticlePage() {
   }, [article, articleTeaRows]);
   const total = pages.length;
 
+  // A link from a creator profile ends in #quote-<contributor id>. That page
+  // wins over the remembered position, and it is highlighted for a moment.
+  const anchorIndex = useMemo(() => {
+    const hash = typeof window === 'undefined' ? '' : window.location.hash.replace(/^#/, '');
+    if (!hash) return -1;
+    return pages.findIndex(page => page.kind === 'quote' && page.anchorId === hash);
+  }, [pages]);
+  const [highlightAnchor, setHighlightAnchor] = useState(false);
+  useEffect(() => {
+    if (anchorIndex < 0) return;
+    setHighlightAnchor(true);
+    const timer = window.setTimeout(() => setHighlightAnchor(false), 2600);
+    return () => window.clearTimeout(timer);
+  }, [anchorIndex]);
+
   // Read the restored page index synchronously so we don't start at 0 and
   // then jump (which causes the scroll-snap engine to animate across pages).
   const initialPage = useMemo(() => {
     if (!article) return 0;
+    if (anchorIndex >= 0) return anchorIndex;
     const saved = localStorage.getItem(`teajia_article_${article.id}`);
     if (!saved) return 0;
     const n = parseInt(saved, 10);
     return isNaN(n) || n <= 0 ? 0 : n;
-  }, [article]);
+  }, [article, anchorIndex]);
 
   const [current, setCurrent] = useState(initialPage);
   const [showShare, setShowShare] = useState(false);
@@ -2833,7 +2874,7 @@ export default function ArticlePage() {
                 position: 'relative',
               }}
             >
-              <PageDispatch page={page} />
+              <PageDispatch page={idx === anchorIndex && page.kind === 'quote' ? { ...page, highlight: highlightAnchor } : page} />
             </section>
           ))}
         </div>

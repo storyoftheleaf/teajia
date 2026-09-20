@@ -196,3 +196,45 @@ export interface PaymentOrderSummaryData {
   lines: PaymentOrderLine[];
   placedOn: string | null;
 }
+
+// ── Pay is private, and approval is permanent (migration 0022) ──────────────
+
+/** One row of payment_access_grants as Your Table reads it. */
+export interface PayAccessGrant {
+  id: string;
+  status: 'pending' | 'approved';
+  granted_via: 'request' | 'link';
+  invoice_id: string | null;
+  requested_at: string;
+  approved_at: string | null;
+  user_name: string;
+  user_since: string | null;
+}
+
+export interface PayAccessTable {
+  pending: PayAccessGrant[];
+  approved: PayAccessGrant[];
+  /** The contributor's open share link, once minted. Null until then. */
+  share_link: string | null;
+}
+
+/** What the pay page learns before it asks for a single method. */
+export interface PayAccessResponse {
+  access: 'open' | 'gate';
+  via: 'owner' | 'approved' | 'link' | null;
+  contributor: { id: string; display_name: string; business_name: string | null; portrait_url: string | null };
+  viewer: { signed_in: boolean; is_owner: boolean; request_status: 'pending' | 'approved' | null };
+  /** Set when the link came from an invoice: the sheet names the order. */
+  invoice: { invoice_number: string | null; outstanding_usd: number } | null;
+}
+
+/** The admin's share sheet, from an invoice. */
+export interface InvoicePayLinkShare {
+  url: string;
+  invoice_number: string | null;
+  customer_name: string | null;
+  customer_whatsapp: string | null;
+  recipient_name: string | null;
+  outstanding_usd: number;
+  display_currency: string | null;
+}

@@ -48,7 +48,10 @@ export default function ImmersiveArticlePage() {
         <span className="text-ui-12 tracking-wide">Back</span>
       </button>
       <article className="pb-nav-gap">
-        {article.blocks.map((block, i) => renderBlock(block, i, { onShare: () => setShareOpen(true) }))}
+        {article.blocks.map((block, i) => renderBlock(block, i, {
+          onShare: () => setShareOpen(true),
+          quoteAnchor: article.pull_quote && article.pull_quote_subject ? { text: article.pull_quote, id: `quote-${article.pull_quote_subject}` } : null,
+        }))}
       </article>
       {shareOpen && <SharePanel page={null} article={article} onClose={() => setShareOpen(false)} />}
     </div>

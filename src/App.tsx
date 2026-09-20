@@ -916,6 +916,10 @@ const AppContent = () => {
   // was. On lg the shell's px-10 stays: there the reading is a centred column
   // with room to spare and the outer margin is doing real work.
   const isProductPage = /^\/shop\/product\//.test(location.pathname);
+  // The creator pages (/people, /people/:slug and its pay sheet) are built
+  // edge to edge: the masthead, the photo grid and the tea rows reach the
+  // screen's sides, and every block of words carries its own gutter inside.
+  const isPeopleRoute = /^\/people(\/|$)/.test(location.pathname);
 
   // The sidebar sets --teajia-sidebar-w while it is mounted, and it now mounts
   // on public routes too. This only has to zero the variable where the sidebar
@@ -980,7 +984,7 @@ const AppContent = () => {
         </Suspense>
       ) : (
       <>
-      <main id="main-content" className={`${isFocusedShareRoute || isImmersiveRead ? 'px-0 pb-0' : `${isProductPage ? 'px-0 lg:px-10' : 'px-4 md:px-6 lg:px-10'} pb-nav-gap-lg lg:pb-8`} pt-0 lg:pt-0 min-h-screen w-full flex-1 transition-opacity duration-300`}>
+      <main id="main-content" className={`${isFocusedShareRoute || isImmersiveRead ? 'px-0 pb-0' : `${isProductPage || isPeopleRoute ? 'px-0 lg:px-10' : 'px-4 md:px-6 lg:px-10'} pb-nav-gap-lg lg:pb-8`} pt-0 lg:pt-0 min-h-screen w-full flex-1 transition-opacity duration-300`}>
           <AnimatePresence mode="wait">
           {viewState === 'BROWSE' && (
             <AnimatedRoutes location={displayLocation}>

@@ -11,6 +11,15 @@
       "port": 7777
     },
     {
+      "name": "sandbox-offline",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "sandbox:offline"
+      ],
+      "port": 7777
+    },
+    {
       "name": "vite-frontend",
       "runtimeExecutable": "npm",
       "runtimeArgs": [

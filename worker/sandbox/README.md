@@ -155,3 +155,12 @@ otherwise, and the rebuild now runs that comparison for you.
 - `seed-operator.mjs`: creates the sandbox operator (run by refresh; also standalone)
 - `seed-creator-fixtures.mjs`: creates three placeholder creator profiles (standalone, run after refresh)
 - `*.sql`, `*.json`: the pulled dumps, gitignored and disposable
+
+## Starting it without Infisical
+
+`npm run sandbox` regenerates `worker/.dev.vars` from Infisical on every boot.
+When Infisical has no session in the shell that starts it (an agent's preview
+runner, a machine that is offline), that step hangs on a login prompt and the
+API never comes up. `npm run sandbox:offline` skips the export and boots the
+API with whatever `.dev.vars` already holds, which for the sandbox only needs
+`JWT_SECRET`. Nothing else changes: same database, same ports, same site.

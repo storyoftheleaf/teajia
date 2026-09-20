@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { ProfileEditor } from '../components/profile/ProfileEditor';
 import { ProfileFavoritesEditor } from '../components/profile/ProfileFavoritesEditor';
 import { PaymentMethodsEditor } from '../components/profile/PaymentMethodsEditor';
+import { PayAccessPanel } from '../components/profile/PayAccessPanel';
 import { ProfileShareLinks } from '../components/profile/ProfileShareLinks';
 import { canManageHostedMasterSelection, canStartProfileDraft, primaryTeaMasterAccount, profileReadiness } from '../components/profile/profileDomain';
 import type { FavoriteWrite, PaymentMethodWrite, SelfProfileUpdate } from '../components/profile/types';
@@ -129,6 +130,8 @@ export default function AccountProfilePage() {
               onDelete={async id => { await api.profile.deletePaymentMethod(id); await refreshProfile(); }}
             />
           )}
+
+          <PayAccessPanel contributorName={profile.display_name} canShare={publicPaymentCount > 0} />
 
           <section className="grid gap-5 border-t border-tea-border pt-8 md:grid-cols-2">
             <div>

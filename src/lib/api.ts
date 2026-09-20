@@ -6,6 +6,10 @@ import type {
   ProfileFavorite,
   PublicFavoritesResponse,
   PublicPaymentMethodsResponse,
+  PayAccessGrant,
+  PayAccessResponse,
+  PayAccessTable,
+  InvoicePayLinkShare,
   SelfProfileResponse,
   SelfProfileUpdate,
 } from '../components/profile/types';
@@ -1286,6 +1290,15 @@ async function authedFetch(url: string, init: ApiRequestInit = {}): Promise<any>
   return handleResponse(await authenticatedResponse(url, init));
 }
 
+// A public read that a session may sharpen. With a token in storage it goes
+// through the authenticated path, so the worker can recognise the account;
+// without one it is a plain fetch, and a signed-out visitor sees the public
+// answer rather than an auth error.
+async function optionallyAuthedFetch(url: string): Promise<any> {
+  if (getToken()) return authedFetch(url);
+  return handleResponse(await fetchWithTimeout(url));
+}
+
 async function authedBlobFetch(url: string): Promise<Blob> {
   const response = await authenticatedResponse(url);
   if (!response.ok) {
@@ -1828,6 +1841,12 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ invoice, lineItems }),
       });
+    },
+    // Share pay link, from an invoice. The link already exists once the order
+    // has a live pay URL; this hands it back with the customer's number and
+    // the balance owed, for the share sheet.
+    mintPayLink: async (id: string): Promise<InvoicePayLinkShare> => {
+      return authedFetch(`${API_URL}/api/invoices/${encodeURIComponent(id)}/pay-link`, { method: 'POST', body: '{}' });
     },
     getItems: async (id: string) => {
       return authedFetch(`${API_URL}/api/invoices/${id}/items`)
@@ -4567,6 +4586,31 @@ export const api = {
     deletePaymentMethod: async (id: string): Promise<{ success: true }> => {
       return authedFetch(`${API_URL}/api/me/profile/payment-methods/${encodeURIComponent(id)}`, { method: 'DELETE' });
     },
+    // Pay is private, and approval is permanent (migration 0022). Your Table's
+    // side: who asked, who can see it, the open share link.
+    listPayAccess: async (): Promise<PayAccessTable> => {
+      const data = await authedFetch(`${API_URL}/api/me/pay-access`);
+      const rows = (value: unknown): PayAccessGrant[] => (Array.isArray(value) ? value : []).map((row: any) => ({
+        id: String(row.id),
+        status: row.status === 'approved' ? 'approved' : 'pending',
+        granted_via: row.granted_via === 'link' ? 'link' : 'request',
+        invoice_id: row.invoice_id ?? null,
+        requested_at: String(row.requested_at ?? ''),
+        approved_at: row.approved_at ?? null,
+        user_name: String(row.user_name ?? 'A Teajia account'),
+        user_since: row.user_since ?? null,
+      }));
+      return { pending: rows(data?.pending), approved: rows(data?.approved), share_link: typeof data?.share_link === 'string' ? data.share_link : null };
+    },
+    approvePayAccess: async (grantId: string): Promise<{ status: 'approved' }> => {
+      return authedFetch(`${API_URL}/api/me/pay-access/${encodeURIComponent(grantId)}/approve`, { method: 'POST', body: '{}' });
+    },
+    declinePayAccess: async (grantId: string): Promise<{ status: 'declined' }> => {
+      return authedFetch(`${API_URL}/api/me/pay-access/${encodeURIComponent(grantId)}/decline`, { method: 'POST', body: '{}' });
+    },
+    mintPayShareLink: async (): Promise<{ url: string; created: boolean }> => {
+      return authedFetch(`${API_URL}/api/me/pay-access/share-link`, { method: 'POST', body: '{}' });
+    },
     getPublicFavorites: async (slug: string): Promise<PublicFavoritesResponse> => {
       const [favoritesResponse, contributorResponse] = await Promise.all([
         fetchWithTimeout(`${API_URL}/api/public/people/${encodeURIComponent(slug)}/favorites`).then(handleResponse),
@@ -4597,7 +4641,7 @@ export const api = {
       // that is owed and stays authoritative; `display` is the currency the
       // customer was quoted in, and asks the worker for an approximation of
       // that same money in it. Both are forwarded, never computed here.
-      context?: { amount?: string | null; display?: string | null },
+      context?: { amount?: string | null; display?: string | null; token?: string | null },
     ): Promise<PublicPaymentMethodsResponse> => {
       const params = new URLSearchParams();
       // The public route contract calls this context "account". The current
@@ -4605,8 +4649,12 @@ export const api = {
       if (accountSlug) { params.set('account', accountSlug); params.set('store', accountSlug); }
       if (context?.amount) params.set('amount', context.amount);
       if (context?.display) params.set('display', context.display);
+      // Pay is private: the share token, when the link carried one, is what
+      // opens the sheet for a stranger. A signed-in approved account opens it
+      // through the Authorization header instead, so this read is authed.
+      if (context?.token) params.set('t', context.token);
       const suffix = params.size ? `?${params.toString()}` : '';
-      const data = await fetchWithTimeout(`${API_URL}/api/public/people/${encodeURIComponent(slug)}/payment-methods${suffix}`).then(handleResponse);
+      const data = await optionallyAuthedFetch(`${API_URL}/api/public/people/${encodeURIComponent(slug)}/payment-methods${suffix}`);
       const rows = Array.isArray(data?.methods) ? data.methods : Array.isArray(data?.payment_methods) ? data.payment_methods : [];
       const account = data?.account ?? data?.store ?? data?.resolved_store ?? null;
       const associationRows = Array.isArray(data?.available_accounts)
@@ -4655,6 +4703,33 @@ export const api = {
     getBySlug: async (slug: string) => {
       const res = await fetchWithTimeout(`${API_URL}/api/people/${encodeURIComponent(slug)}`);
       return handleResponse(res);
+    },
+    // The pay page asks this before it asks for a single method: may this
+    // viewer open the sheet, and why. Sends the session when there is one, so
+    // an approved account is recognised, and the share token when the link
+    // carried one, so a stranger holding a link is too.
+    getPayAccess: async (slug: string, token?: string | null): Promise<PayAccessResponse> => {
+      const suffix = token ? `?t=${encodeURIComponent(token)}` : '';
+      const data = await optionallyAuthedFetch(`${API_URL}/api/public/people/${encodeURIComponent(slug)}/pay-access${suffix}`);
+      return {
+        access: data?.access === 'open' ? 'open' : 'gate',
+        via: data?.via ?? null,
+        contributor: {
+          id: String(data?.contributor?.id ?? slug),
+          display_name: String(data?.contributor?.display_name ?? slug),
+          business_name: data?.contributor?.business_name ?? null,
+          portrait_url: data?.contributor?.portrait_url ?? null,
+        },
+        viewer: {
+          signed_in: data?.viewer?.signed_in === true,
+          is_owner: data?.viewer?.is_owner === true,
+          request_status: data?.viewer?.request_status === 'approved' ? 'approved' : data?.viewer?.request_status === 'pending' ? 'pending' : null,
+        },
+        invoice: data?.invoice ? { invoice_number: data.invoice.invoice_number ?? null, outstanding_usd: Number(data.invoice.outstanding_usd || 0) } : null,
+      };
+    },
+    requestPayAccess: async (slug: string): Promise<{ status: 'pending' | 'approved'; grant_id: string }> => {
+      return authedFetch(`${API_URL}/api/public/people/${encodeURIComponent(slug)}/pay-access/request`, { method: 'POST', body: '{}' });
     },
     getRelationshipAudit: async () => {
       return authedFetch(`${API_URL}/api/admin/people/relationship-audit`)

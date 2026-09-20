@@ -272,26 +272,23 @@ export interface Person {
 
 // Contributor - the canonical editorial identity that backs /people/:slug.
 // See docs/ARCHITECTURE.md.
-export interface ContributorLink {
-  label: string;
-  url: string;
-}
-
-// The typed link shape the admin and self-serve editors write (mirrors
-// worker/src/profileDomain.ts's ContributorLink, landed by migration 0021).
-// Distinct from ContributorLink above, which is the flat {label,url} shape
-// the public profile page (ContributorProfilePage.tsx, useContributor.ts)
-// still reads -- retyping that shared interface is a different lane's
-// scope. AdminContributor and ContributorWrite use this one.
+//
+// A link is typed by platform (mirrors worker/src/profileDomain.ts's
+// ContributorLink, landed by migration 0021): a WeChat entry carries an id
+// and may carry a QR image, a website carries an https url, an Instagram
+// entry a handle. The public page reads the same shape the editors write,
+// so there is one link type here, not two.
 export const CONTRIBUTOR_LINK_PLATFORMS = ['wechat', 'instagram', 'website', 'other'] as const;
 export type ContributorLinkPlatform = typeof CONTRIBUTOR_LINK_PLATFORMS[number];
 
-export interface AdminContributorLink {
+export interface ContributorLink {
   platform: ContributorLinkPlatform;
   value: string;
   label?: string;
   qr_image_url: string | null;
 }
+
+export type AdminContributorLink = ContributorLink;
 
 export interface ContributorGalleryImage {
   id?: string;
@@ -305,8 +302,13 @@ export interface ContributorListItem {
   display_name: string;
   chinese_name?: string | null;
   role?: string | null;
+  business_name?: string | null;
   location_line?: string | null;
   avatar_url?: string | null;
+  /** First gallery image, then the portrait. Null means the identity mark fills the card. */
+  card_image_url?: string | null;
+  is_host?: boolean;
+  article_count?: number;
 }
 
 export interface ContributorPullQuote {
@@ -315,6 +317,11 @@ export interface ContributorPullQuote {
   published_at: string;
   article_slug: string;
   article_title: string;
+  article_subtitle?: string | null;
+  cover_image_url?: string | null;
+  reading_time_mins?: number | null;
+  /** DOM id inside the article the quote came from: quote-<contributor id>. */
+  quote_anchor?: string | null;
 }
 
 export interface ContributorArticleRef {
@@ -323,14 +330,57 @@ export interface ContributorArticleRef {
   subtitle?: string | null;
   published_at: string;
   cover_image_url?: string | null;
+  reading_time_mins?: number | null;
+  pull_quote?: string | null;
+  quote_anchor?: string | null;
 }
 
 export interface ContributorFeaturedRef {
   slug: string;
   title: string;
   subtitle?: string | null;
-  author_id: string;
+  author_id: string | null;
   published_at: string;
+  cover_image_url?: string | null;
+  reading_time_mins?: number | null;
+  pull_quote?: string | null;
+  quote_anchor?: string | null;
+}
+
+/** One tea from the person's selection, joined to a live public listing. The
+ *  shop has no product photos, so the row is typographic: vintage, name,
+ *  type and origin, on the liquor ground the shop's ledger row uses. */
+export interface ContributorTeaSelectionRef {
+  tea_profile_id: string;
+  why: string | null;
+  slug: string;
+  name: string;
+  image_url?: string | null;
+  product_name: string;
+  public_path: string;
+  type?: string | null;
+  year?: string | null;
+  chinese_name?: string | null;
+  origin?: string | null;
+}
+
+export interface ContributorHostingRef {
+  slug: string;
+  title: string;
+  subtitle?: string | null;
+  event_date: string;
+  location_name?: string | null;
+  flyer_image_url?: string | null;
+  account_slug: string;
+  account_name: string;
+}
+
+export interface ContributorCollectionRef {
+  slug: string;
+  title: string;
+  note?: string | null;
+  hero_image_url?: string | null;
+  item_count: number;
 }
 
 export interface ContributorProductRef {
@@ -368,6 +418,7 @@ export interface ContributorProfile {
   id: string;
 
   display_name: string;
+  business_name?: string | null;
   chinese_name?: string | null;
   role?: string | null;
   pronouns?: string | null;
@@ -395,10 +446,15 @@ export interface ContributorProfile {
   languages?: string[];
   is_published: 0 | 1;
 
+  gallery_images: ContributorGalleryImage[];
+
   articles: ContributorArticleRef[];
   pull_quotes: ContributorPullQuote[];
   featured_in: ContributorFeaturedRef[];
   products: ContributorProductRef[];
+  tea_selection: ContributorTeaSelectionRef[];
+  collection: ContributorCollectionRef | null;
+  hosting: ContributorHostingRef | null;
   accounts?: ContributorAccountRef[];
   shelf_slug?: string | null;
   has_payment_methods?: boolean;
@@ -407,7 +463,7 @@ export interface ContributorProfile {
   seasonal_line: string | null;
 }
 
-export interface AdminContributor extends Omit<ContributorProfile, 'articles' | 'pull_quotes' | 'featured_in' | 'products' | 'host_account' | 'seasonal_line' | 'links'> {
+export interface AdminContributor extends Omit<ContributorProfile, 'articles' | 'pull_quotes' | 'featured_in' | 'products' | 'host_account' | 'seasonal_line' | 'links' | 'gallery_images' | 'tea_selection' | 'collection' | 'hosting'> {
   account_id: string;
   business_name?: string | null;
   links: AdminContributorLink[];

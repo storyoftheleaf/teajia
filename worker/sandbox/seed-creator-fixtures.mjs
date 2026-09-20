@@ -27,8 +27,33 @@ import { execFileSync } from 'node:child_process';
 
 const ACCOUNT_ID = 'acc_teajia_bali';
 
-/** A fixed, meaningless dev password. Nothing here signs in through the UI. */
-const FIXTURE_PASSWORD_HASH = createHash('sha256').update('creator-fixture-sandbox-only').digest('hex');
+/**
+ * Kenji's own house: a small master account so the profile's "His house"
+ * section and the hosting card have a real store to point at. The Bali
+ * account is the platform, not a tea master's room, so it cannot play the
+ * part (host_account requires kind 'master').
+ */
+const HOUSE_ACCOUNT_ID = 'acc-sbx-tanaka-tea-house';
+
+/**
+ * A fixed, meaningless dev password, the same for all three fixture users:
+ * "creator-fixture". Legacy SHA-256 hex, the shape verifyPasswordHash accepts,
+ * so the pay-gate proof can sign in as Amara (approved) and as Wei Chen (not).
+ */
+const FIXTURE_PASSWORD = 'creator-fixture';
+const FIXTURE_PASSWORD_HASH = createHash('sha256').update(FIXTURE_PASSWORD).digest('hex');
+
+/**
+ * Kenji's open pay link token, fixed so creator-pay-gate.spec.ts can follow
+ * it: 32 hex characters, the shape payAccessDomain.isShareTokenShaped wants.
+ * Sandbox only. A real token is minted by the worker, never typed.
+ */
+const KENJI_SHARE_TOKEN = 'f1e2d3c4b5a6978877665544332211aa';
+const KENJI_SHARE_LINK_ID = 'psl-sbx-kenji-open';
+const AMARA_GRANT_ID = 'pag-sbx-amara-kenji';
+const COLLECTION_ID = 'col-sbx-kenji-saturday';
+const COLLECTION_SLUG = 'saturday-at-the-house-fixture';
+const PUBLICATION_ID = 'cpub-sbx-kenji-saturday';
 
 // -- Fixture identities -----------------------------------------------------
 
@@ -93,6 +118,11 @@ const run = (sql) => {
 // Every fixture row is deleted by its fixed id first, so re-running this
 // script is safe. Children before parents, since not every FK here cascades.
 
+run(`DELETE FROM payment_access_grants WHERE contributor_id IN (${CONTRIBUTOR_IDS.map(q).join(', ')})`);
+run(`DELETE FROM payment_share_links WHERE contributor_id IN (${CONTRIBUTOR_IDS.map(q).join(', ')})`);
+run(`DELETE FROM collection_publications WHERE id = ${q(PUBLICATION_ID)}`);
+run(`DELETE FROM collection_items WHERE collection_id = ${q(COLLECTION_ID)}`);
+run(`DELETE FROM collections WHERE id = ${q(COLLECTION_ID)}`);
 run(`DELETE FROM event_contributors WHERE id = ${q(EVENT_CONTRIBUTOR_ID)}`);
 run(`DELETE FROM events WHERE id = ${q(EVENT_ID)}`);
 run(`DELETE FROM articles WHERE id IN (${q(ARTICLE_WORDS_ID)}, ${q(ARTICLE_FEATURING_ID)})`);
@@ -103,12 +133,15 @@ run(`DELETE FROM contributor_accounts WHERE contributor_id IN (${CONTRIBUTOR_IDS
 run(`DELETE FROM contributors WHERE id IN (${CONTRIBUTOR_IDS.map(q).join(', ')})`);
 run(`DELETE FROM account_members WHERE user_id IN (${USERS.map(u => q(u.id)).join(', ')})`);
 run(`DELETE FROM users WHERE id IN (${USERS.map(u => q(u.id)).join(', ')})`);
+run(`DELETE FROM accounts WHERE id = ${q(HOUSE_ACCOUNT_ID)}`);
 
 // -- 2. Users (contributors.user_id needs a row to point at) -----------------
 
 for (const user of USERS) {
-  run(`INSERT INTO users (id, email, name, password_hash, role, session_version, created_at)
-       VALUES (${q(user.id)}, ${q(user.email)}, ${q(user.name)}, ${q(FIXTURE_PASSWORD_HASH)}, 'user', 0, datetime('now'))`);
+  // email_verified_at is set: sign-in refuses an unverified address, and the
+  // pay-gate proof signs in as two of these three.
+  run(`INSERT INTO users (id, email, name, password_hash, role, session_version, email_verified_at, created_at)
+       VALUES (${q(user.id)}, ${q(user.email)}, ${q(user.name)}, ${q(FIXTURE_PASSWORD_HASH)}, 'user', 0, datetime('now'), datetime('now', '-14 months'))`);
 }
 
 // -- 2b. account_members (validateContributorReferences in worker/src/index.ts
@@ -161,7 +194,7 @@ run(`INSERT INTO contributors (
        beginnings, now_text, inspirations, closing, links, is_published, created_at, updated_at
      ) VALUES (
        ${q('kenji-tanaka')}, ${q(ACCOUNT_ID)}, ${q('sbx-user-kenji-tanaka')}, ${q('Kenji Tanaka')}, ${q('Tanaka Tea House')},
-       ${q('Tea Master, Host')}, ${q('he/him')}, ${q('Kyoto, Japan')}, ${q('2015')},
+       ${q('Tea Master · Host')}, ${q('he/him')}, ${q('Kyoto, Japan')}, ${q('2015')},
        ${q("Trained for six years under a sencha producer in Uji before opening his own room in Kyoto.\n\nThe first tea he ever served a stranger was a badly bruised gyokuro. He still has the notebook page where he wrote down what went wrong.")},
        ${q('Focused this year on teaching, not just pouring: two small classes a month, capped at four guests each.\n\nStill sources most of his sencha from the same two families he started with in 2015.')},
        ${q("A visiting Taiwanese tea master showed him that a tea room does not need to be quiet to be serious.\n\nHis own teacher's rule: never pour a tea you have not tasted that same week.")},
@@ -177,6 +210,13 @@ for (const contributorId of CONTRIBUTOR_IDS) {
   run(`INSERT INTO contributor_accounts (contributor_id, account_id, public_role, is_host, display_order, created_at, updated_at)
        VALUES (${q(contributorId)}, ${q(ACCOUNT_ID)}, ${q('Tea Master')}, 0, 0, datetime('now'), datetime('now'))`);
 }
+
+// 4b. Kenji's house: a public master account he hosts, so "His house" renders.
+run(`INSERT INTO accounts (id, slug, name, kind, status, public_enabled, tagline, location_city, location_country, created_at)
+     VALUES (${q(HOUSE_ACCOUNT_ID)}, ${q('tanaka-tea-house')}, ${q('Tanaka Tea House')}, 'master', 'active', 1,
+       ${q('Small sessions, four guests at most, on Saturday evenings.')}, ${q('Kyoto')}, ${q('Japan')}, datetime('now'))`);
+run(`INSERT INTO contributor_accounts (contributor_id, account_id, public_role, is_host, display_order, created_at, updated_at)
+     VALUES (${q('kenji-tanaka')}, ${q(HOUSE_ACCOUNT_ID)}, ${q('Tea Master')}, 1, 1, datetime('now'), datetime('now'))`);
 
 // -- 5. Gallery images (Kenji only) -------------------------------------------
 
@@ -235,10 +275,12 @@ run(`INSERT INTO payment_methods (
 // rather than assumed to already exist.
 
 run(`INSERT INTO events (
-       id, slug, title, event_date, status, lifecycle_status, public_visibility, account_id
+       id, slug, title, subtitle, event_date, location_name, flyer_image_url, status, lifecycle_status, public_visibility, account_id
      ) VALUES (
-       ${q(EVENT_ID)}, ${q('sbx-kyoto-tasting-fixture')}, ${q('Kyoto Tasting with Kenji Tanaka')},
-       datetime('now', '+30 days'), 'active', 'published', 'public', ${q(ACCOUNT_ID)}
+       ${q(EVENT_ID)}, ${q('sbx-kyoto-tasting-fixture')}, ${q('Gongfu evening')}, ${q('Four places at the table')},
+       datetime('now', '+30 days', 'start of day', '+19 hours'), ${q('Tanaka Tea House')},
+       ${q('https://images.unsplash.com/photo-1563911302283-d2bc129e7570?w=800&q=80')},
+       'active', 'published', 'public', ${q(ACCOUNT_ID)}
      )`);
 
 run(`INSERT INTO event_contributors (id, account_id, event_id, contributor_id, role, is_public, display_order)
@@ -248,23 +290,60 @@ run(`INSERT INTO event_contributors (id, account_id, event_id, contributor_id, r
 //      different fixture creator in subject_ids ("featured in") -------------
 
 run(`INSERT INTO articles (
-       id, account_id, title, subtitle, author_id, slug, status, subject_ids,
+       id, account_id, title, subtitle, author_id, slug, status, subject_ids, cover_image_url, reading_time_mins,
        pull_quote, pull_quote_subject, published_at, created_at, updated_at
      ) VALUES (
        ${q(ARTICLE_WORDS_ID)}, ${q(ACCOUNT_ID)}, ${q('What Three Steeps Taught Me')}, ${q('Notes from the tea room')},
        ${q('kenji-tanaka')}, ${q('kenji-tanaka-words-fixture')}, 'published', ${json(['kenji-tanaka'])},
+       ${q('https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=1200&q=80')}, 6,
        ${q('Tea is not a performance. It is just attention, poured out and shared.')}, ${q('kenji-tanaka')},
        datetime('now', '-3 days'), datetime('now'), datetime('now')
      )`);
 
+// Written by Amara, quoting Kenji: the "Quoted in" row on his page, landing
+// on the passage (#quote-kenji-tanaka), and a "Words" entry on hers.
 run(`INSERT INTO articles (
-       id, account_id, title, subtitle, author_id, slug, status, subject_ids,
-       published_at, created_at, updated_at
+       id, account_id, title, subtitle, author_id, slug, status, subject_ids, cover_image_url, reading_time_mins,
+       pull_quote, pull_quote_subject, published_at, created_at, updated_at
      ) VALUES (
-       ${q(ARTICLE_FEATURING_ID)}, ${q(ACCOUNT_ID)}, ${q('Notes from the Autumn Tasting')}, ${q('A room full of new drinkers')},
-       ${q('kenji-tanaka')}, ${q('featuring-amara-fixture')}, 'published', ${json(['amara-osei'])},
+       ${q(ARTICLE_FEATURING_ID)}, ${q(ACCOUNT_ID)}, ${q('Four Houses, One Kettle')}, ${q('A room full of new drinkers')},
+       ${q('amara-osei')}, ${q('four-houses-one-kettle-fixture')}, 'published', ${json(['kenji-tanaka', 'amara-osei'])},
+       ${q('https://images.unsplash.com/photo-1571934811356-5cc061b6821f?w=1200&q=80')}, 4,
+       ${q('The second steep is the honest one. The first is what the leaf wants you to think.')}, ${q('kenji-tanaka')},
        datetime('now', '-10 days'), datetime('now'), datetime('now')
      )`);
 
+// -- 10. Kenji's collection: the destination the profile's tea section points
+//        at. The same six teas as his selection, published as an open link. --
+
+run(`INSERT INTO collections (id, account_id, title, note, hero_image_url, status, created_by_user_id, curator_user_id, curator_display_name, created_at, updated_at)
+     VALUES (${q(COLLECTION_ID)}, ${q(ACCOUNT_ID)}, ${q('Saturday at the house')},
+       ${q('The six teas Kenji pours on Saturday evenings, in the order he pours them.')},
+       ${q('https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=1200&q=80')},
+       'active', ${q('sbx-user-kenji-tanaka')}, ${q('sbx-user-kenji-tanaka')}, ${q('Kenji Tanaka')}, datetime('now'), datetime('now'))`);
+KENJI_FAVORITE_TEAS.forEach((tea, index) => {
+  // The product behind each tea profile, read from the sandbox's own listings
+  // rather than hardcoded: collection_items points at products, not profiles.
+  run(`INSERT INTO collection_items (id, collection_id, product_id, position, item_note, created_at)
+       SELECT ${q(`ci-sbx-kenji-${index}`)}, ${q(COLLECTION_ID)}, pl.legacy_product_id, ${index}, ${q(tea.note)}, datetime('now')
+         FROM product_listings pl
+        WHERE pl.profile_id = ${q(tea.id)} AND pl.legacy_product_id IS NOT NULL
+        ORDER BY pl.is_curated DESC, pl.updated_at DESC LIMIT 1`);
+});
+run(`INSERT INTO collection_publications (id, collection_id, target_type, target_id, slug, recipients_json, published_at, created_by_user_id)
+     VALUES (${q(PUBLICATION_ID)}, ${q(COLLECTION_ID)}, 'person', NULL, ${q(COLLECTION_SLUG)}, NULL, datetime('now', '-2 days'), ${q('sbx-user-kenji-tanaka')})`);
+
+// -- 11. Pay is private: one approved account and one share link for Kenji --
+// Amara asked from his page and he approved, so signed in as her the pay
+// sheet opens; Wei Chen has no grant, so signed in as him it stays gated.
+
+run(`INSERT INTO payment_access_grants (id, account_id, contributor_id, grantee_user_id, granted_via, status, requested_at, approved_at)
+     VALUES (${q(AMARA_GRANT_ID)}, ${q(ACCOUNT_ID)}, ${q('kenji-tanaka')}, ${q('sbx-user-amara-osei')}, 'request', 'approved',
+       datetime('now', '-9 days'), datetime('now', '-8 days'))`);
+run(`INSERT INTO payment_share_links (id, account_id, contributor_id, invoice_id, token, created_by_user_id, created_at)
+     VALUES (${q(KENJI_SHARE_LINK_ID)}, ${q(ACCOUNT_ID)}, ${q('kenji-tanaka')}, NULL, ${q(KENJI_SHARE_TOKEN)}, ${q('sbx-user-kenji-tanaka')}, datetime('now', '-8 days'))`);
+
 console.log('Creator fixtures seeded: wei-chen (sparse), amara-osei (medium), kenji-tanaka (full).');
+console.log(`Pay is private: Amara's account is approved for Kenji; Kenji's open pay link is /people/kenji-tanaka/pay?t=${KENJI_SHARE_TOKEN}`);
+console.log(`Fixture users sign in with their email and the password "${FIXTURE_PASSWORD}" (sandbox only).`);
 console.log('Placeholder Unsplash images throughout; swap before anything ships public.');

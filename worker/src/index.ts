@@ -85,6 +85,7 @@ import {
   type GalleryImageRow,
   type PaymentMethodRow,
 } from './profileDomain';
+import { decidePayAccess, isShareTokenShaped, mintShareToken, PAY_LINK_PARAM, withShareToken } from './payAccessDomain';
 import {
   deriveWisdomFindings,
   nodeKey,
@@ -792,6 +793,21 @@ async function requireAuthenticatedUser(
   if (authError) return { error: authError };
   const claims = parseToken(token);
   if (!claims) return { error: restError(401, 'Unauthorized', 'auth_invalid') };
+  return { userId: claims.sub, email: claims.email, name: claims.name };
+}
+
+// The same identity, on a route the public may also call. A missing or dead
+// token is "signed out", not an error: the pay gate has to answer a stranger
+// as calmly as it answers an approved account.
+async function optionalAuthenticatedUser(
+  request: Request,
+  env: Env,
+): Promise<{ userId: string; email: string; name: string } | null> {
+  const token = isAuthed(request);
+  if (!token) return null;
+  if (await validateSessionToken(token, env)) return null;
+  const claims = parseToken(token);
+  if (!claims || claims.sub === 'env-admin') return null;
   return { userId: claims.sub, email: claims.email, name: claims.name };
 }
 
@@ -4374,6 +4390,33 @@ async function resolveInvoicePayments(
     storeLinks.add(`${row.contributor_id}::${row.account_id}`);
   }
 
+  // 5. Pay is private: the public pay sheet opens only for an approved account
+  //    or a share link, so an invoice's pay link IS a share link. One token
+  //    per invoice, minted the first time the invoice earns a live link and
+  //    reused on every read after that, so the same order always shares the
+  //    same URL. The row records which contributor's details it opens.
+  const existingLinks = new Map<string, string>();
+  {
+    const linkRows = await env.DB.prepare(
+      `SELECT invoice_id, token FROM payment_share_links
+        WHERE invoice_id IN (${rows.map(() => '?').join(', ')})`
+    ).bind(...rows.map(invoice => invoice.id)).all();
+    for (const row of (linkRows.results ?? []) as Array<Record<string, any>>) {
+      existingLinks.set(row.invoice_id as string, row.token as string);
+    }
+  }
+  const shareTokenFor = async (invoice: PayableInvoice, contributorId: string): Promise<string> => {
+    const known = existingLinks.get(invoice.id);
+    if (known) return known;
+    const token = mintShareToken();
+    await env.DB.prepare(
+      `INSERT INTO payment_share_links (id, account_id, contributor_id, invoice_id, token, created_by_user_id)
+       VALUES (?, ?, ?, ?, ?, NULL)`
+    ).bind(newId('psl'), invoice.account_id, contributorId, invoice.id, token).run();
+    existingLinks.set(invoice.id, token);
+    return token;
+  };
+
   for (const invoice of rows) {
     const userId = recipientByInvoice.get(invoice.id);
     if (!userId) continue;
@@ -4431,14 +4474,14 @@ async function resolveInvoicePayments(
       ...amounts,
       recipient_slug: contributorId,
       recipient_name: recipientName,
-      pay_url: buildPayUrl(
+      pay_url: withShareToken(buildPayUrl(
         env,
         contributorId,
         linked ? ((account?.slug as string | null) ?? null) : null,
         amounts.outstanding_usd,
         invoice.invoice_number ?? null,
         invoice.display_currency ?? null,
-      ),
+      ), await shareTokenFor(invoice, contributorId)),
       has_methods: true,
     });
   }
@@ -22533,7 +22576,13 @@ const handleListPublicContributors: Handler = async (request, env) => {
             (SELECT gi.image_url FROM contributor_gallery_images gi
               WHERE gi.contributor_id = c.id
               ORDER BY gi.position ASC LIMIT 1) AS gallery_card_image_url,
-            c.portrait_url
+            c.portrait_url,
+            (SELECT COUNT(*) FROM articles ar WHERE ar.author_id = c.id AND ar.status = 'published') AS article_count,
+            EXISTS (
+              SELECT 1 FROM contributor_accounts ca WHERE ca.contributor_id = c.id AND ca.is_host = 1
+              UNION ALL
+              SELECT 1 FROM event_contributors ec WHERE ec.contributor_id = c.id AND ec.is_public = 1 AND ec.role IN ('lead_host', 'co_host')
+            ) AS is_host
        FROM contributors c
       WHERE ${CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL}
       ORDER BY c.display_name ASC`
@@ -22552,6 +22601,11 @@ const handleListPublicContributors: Handler = async (request, env) => {
     // placeholder. A contributor with neither has no card image at all --
     // the directory page's own job is to fall back to the initials mark.
     card_image_url: row.gallery_card_image_url ?? row.portrait_url ?? null,
+    // The directory's two filters. A host runs a room or is about to: a hosted
+    // account, or a public lead/co-host role on any event. A writer has at
+    // least one published article of their own.
+    is_host: Number(row.is_host) === 1,
+    article_count: Number(row.article_count || 0),
   }));
 
   return json({ contributors });
@@ -22620,7 +22674,7 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
   // and a second, parallel array with the same rows would just be a second
   // thing to keep in sync.
   const articlesRes = await env.DB.prepare(
-    `SELECT slug, title, subtitle, published_at, cover_image_url, pull_quote, pull_quote_subject
+    `SELECT slug, title, subtitle, published_at, cover_image_url, pull_quote, pull_quote_subject, reading_time_mins
      FROM articles
      WHERE author_id = ? AND status = 'published'
      ORDER BY published_at DESC
@@ -22632,13 +22686,15 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
     subtitle: article.subtitle ?? null,
     published_at: article.published_at,
     cover_image_url: article.cover_image_url ?? null,
+    reading_time_mins: article.reading_time_mins ?? null,
     pull_quote: article.pull_quote ?? null,
     quote_anchor: article.pull_quote_subject ? `quote-${article.pull_quote_subject}` : null,
   }));
   const hasPublishedArticle = words.length > 0;
 
   const pullQuotesRes = await env.DB.prepare(
-    `SELECT pull_quote, author_id, published_at, slug AS article_slug, title AS article_title
+    `SELECT pull_quote, author_id, published_at, slug AS article_slug, title AS article_title,
+            subtitle AS article_subtitle, cover_image_url, reading_time_mins
      FROM articles
      WHERE pull_quote_subject = ?
        AND pull_quote IS NOT NULL
@@ -22656,13 +22712,27 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
 
   const subjectMatch = `%"${slug}"%`;
   const featuredInRes = await env.DB.prepare(
-    `SELECT slug, title, subtitle, author_id, published_at
+    `SELECT slug, title, subtitle, author_id, published_at, cover_image_url, reading_time_mins,
+            pull_quote, pull_quote_subject
      FROM articles
      WHERE subject_ids LIKE ?
        AND status = 'published'
      ORDER BY published_at DESC
      LIMIT 12`
   ).bind(subjectMatch).all();
+  // "Featured in" rows land on the passage about this person when the article
+  // quotes them, and on the top of the piece when it only names them.
+  const featuredIn = (featuredInRes.results as Array<Record<string, any>> ?? []).map(article => ({
+    slug: article.slug,
+    title: article.title,
+    subtitle: article.subtitle ?? null,
+    author_id: article.author_id ?? null,
+    published_at: article.published_at,
+    cover_image_url: article.cover_image_url ?? null,
+    reading_time_mins: article.reading_time_mins ?? null,
+    pull_quote: article.pull_quote_subject === slug ? (article.pull_quote ?? null) : null,
+    quote_anchor: article.pull_quote_subject === slug && article.pull_quote ? `quote-${slug}` : null,
+  }));
 
   const hostAccount = await env.DB.prepare(
     `SELECT a.id, a.slug, a.name, a.tagline, a.public_shop_path, a.location_city, a.location_country
@@ -22701,6 +22771,11 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
        SELECT pf.tea_profile_id, pf.note, pf.position AS favorite_position,
               tp.slug AS tea_slug, tp.name AS tea_name, tp.image_url AS tea_image_url,
               p.product_name, p.given_name,
+              COALESCE(p.type, tp.type) AS tea_type,
+              COALESCE(p.year, tp.harvest_year) AS tea_year,
+              COALESCE(p.chinese_name, tp.chinese_name) AS tea_chinese_name,
+              COALESCE(p.origin_region, tp.origin_region) AS tea_origin_region,
+              COALESCE(p.origin_country, tp.origin_country) AS tea_origin_country,
               a.slug AS account_slug,
               '/shop/product/' || COALESCE(p.slug, pl.legacy_product_id) || '?store=' || a.slug AS public_path,
               ROW_NUMBER() OVER (
@@ -22722,7 +22797,8 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
           AND a.public_enabled = 1 AND a.status = 'active'
      )
      SELECT tea_profile_id, note AS why, tea_slug, tea_name, tea_image_url,
-            COALESCE(given_name, product_name) AS product_name, public_path, favorite_position
+            COALESCE(given_name, product_name) AS product_name, public_path, favorite_position,
+            tea_type, tea_year, tea_chinese_name, tea_origin_region, tea_origin_country
        FROM ranked
       WHERE listing_rank = 1
       ORDER BY favorite_position
@@ -22736,7 +22812,32 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
     image_url: tea.tea_image_url ?? null,
     product_name: tea.product_name,
     public_path: tea.public_path,
+    // The typographic row on the profile: the shop has no product photos, so
+    // the vintage sits on the liquor ground and the type word is tinted.
+    type: tea.tea_type ?? null,
+    year: tea.tea_year != null ? String(tea.tea_year) : null,
+    chinese_name: tea.tea_chinese_name ?? null,
+    origin: [tea.tea_origin_region, tea.tea_origin_country].filter(Boolean).join(', ') || null,
   }));
+
+  // The person's collection: the destination the profile's tea section points
+  // at. A collection this person curated (created or named as curator), still
+  // active, with a live open publication. Newest publication wins. Absent
+  // (null) when there is none, and the page falls back to the favorites list.
+  let personCollection: Record<string, any> | null = null;
+  if (row.user_id) {
+    personCollection = await env.DB.prepare(
+      `SELECT cp.slug, c.title, c.note, c.hero_image_url,
+              (SELECT COUNT(*) FROM collection_items ci WHERE ci.collection_id = c.id) AS item_count
+         FROM collections c
+         JOIN collection_publications cp
+           ON cp.collection_id = c.id AND cp.unpublished_at IS NULL AND cp.target_type = 'person'
+        WHERE c.status = 'active'
+          AND (c.created_by_user_id = ? OR c.curator_user_id = ?)
+        ORDER BY cp.published_at DESC
+        LIMIT 1`
+    ).bind(row.user_id, row.user_id).first() as Record<string, any> | null;
+  }
 
   // Hosting: the next upcoming, fully public event where this person is a
   // lead or co-host (event_contributors.is_public gates it separately from
@@ -22842,9 +22943,16 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
     ...(publicShelf ? { shelf_slug: publicShelf } : {}),
     articles: words,
     pull_quotes: pullQuotes,
-    featured_in: featuredInRes.results ?? [],
+    featured_in: featuredIn,
     products: productsRes.results ?? [],
     tea_selection: teaSelection,
+    collection: personCollection ? {
+      slug: personCollection.slug,
+      title: personCollection.title,
+      note: personCollection.note ?? null,
+      hero_image_url: personCollection.hero_image_url ?? null,
+      item_count: Number(personCollection.item_count || 0),
+    } : null,
     accounts: associationsRes.results ?? [],
     host_account: hostAccount,
     hosting: hostingRow,
@@ -22993,10 +23101,24 @@ async function resolveLocalPaymentAmount(
 }
 
 const handleGetPublicPaymentMethods: Handler = async (request, env, params) => {
-  const contributor = await env.DB.prepare('SELECT id, display_name, portrait_url, avatar_url FROM contributors WHERE id = ? AND is_published = 1')
+  const contributor = await env.DB.prepare('SELECT id, user_id, account_id, display_name, business_name, portrait_url, avatar_url FROM contributors WHERE id = ? AND is_published = 1')
     .bind(params.slug).first<Record<string, any>>();
   if (!contributor) return json({ error: 'Contributor not found' }, 404);
   const url = new URL(request.url);
+  // Pay is private. The bank detail behind this route goes to an approved
+  // account or to whoever holds a share link, and to nobody else. A stranger
+  // gets the gate, with enough of the contributor to ask them, and never a
+  // method. This is the one check that makes "never public" true, so it sits
+  // on the read itself rather than on the page that renders it.
+  const access = await resolvePayAccess(env, contributor, await optionalAuthenticatedUser(request, env), url.searchParams.get(PAY_LINK_PARAM));
+  if (access.decision.access === 'gate') {
+    return json({
+      error: 'Payment details are shared privately',
+      code: 'pay_private',
+      access: 'gate',
+      contributor: publicPayContributor(contributor),
+    }, 403);
+  }
   const accountSlug = url.searchParams.get('account')?.trim() || url.searchParams.get('store')?.trim() || null;
   let account: Record<string, any> | null = null;
   if (accountSlug) {
@@ -23033,6 +23155,291 @@ const handleGetPublicPaymentMethods: Handler = async (request, env, params) => {
     available_accounts: paymentAvailability.accounts,
     payment_methods: methods,
     context: { ...context, display_only: true, local },
+  });
+};
+
+// ── Pay is private, and approval is permanent ─────────────────────────────────
+// Migration 0022. Two doors to a contributor's transfer details: an ACCOUNT
+// they approved (payment_access_grants, no revoke, no expiry) and a LINK they
+// handed out (payment_share_links). The rules are in payAccessDomain.ts; the
+// reads and writes are here. Every write lands in platform_audit_log.
+
+interface PayShareLinkRow {
+  id: string;
+  account_id: string;
+  contributor_id: string;
+  invoice_id: string | null;
+  token: string;
+}
+
+interface PayContributorRow {
+  id: string;
+  user_id: string | null;
+  account_id: string;
+  display_name: string;
+  business_name?: string | null;
+  portrait_url?: string | null;
+  avatar_url?: string | null;
+}
+
+function publicPayContributor(row: Record<string, any>) {
+  return {
+    id: row.id as string,
+    display_name: row.display_name as string,
+    business_name: (row.business_name as string | null) ?? null,
+    portrait_url: (row.portrait_url as string | null) || (row.avatar_url as string | null) || null,
+  };
+}
+
+async function resolvePayAccess(
+  env: Env,
+  contributor: Record<string, any>,
+  viewer: { userId: string; email: string; name: string } | null,
+  rawToken: string | null,
+): Promise<{
+  decision: ReturnType<typeof decidePayAccess>;
+  link: PayShareLinkRow | null;
+  grant: { id: string; status: 'pending' | 'approved' } | null;
+}> {
+  let link: PayShareLinkRow | null = null;
+  if (isShareTokenShaped(rawToken)) {
+    link = await env.DB.prepare(
+      `SELECT id, account_id, contributor_id, invoice_id, token
+         FROM payment_share_links WHERE token = ? AND contributor_id = ?`
+    ).bind(rawToken, contributor.id).first<PayShareLinkRow>();
+  }
+  let grant: { id: string; status: 'pending' | 'approved' } | null = null;
+  if (viewer) {
+    grant = await env.DB.prepare(
+      `SELECT id, status FROM payment_access_grants WHERE contributor_id = ? AND grantee_user_id = ?`
+    ).bind(contributor.id, viewer.userId).first<{ id: string; status: 'pending' | 'approved' }>();
+  }
+  const decision = decidePayAccess({
+    isOwner: Boolean(viewer && contributor.user_id && contributor.user_id === viewer.userId),
+    hasApprovedGrant: grant?.status === 'approved',
+    hasValidLink: Boolean(link),
+  });
+  return { decision, link, grant };
+}
+
+async function loadPayContributor(env: Env, slug: string): Promise<PayContributorRow | null> {
+  return env.DB.prepare(
+    'SELECT id, user_id, account_id, display_name, business_name, portrait_url, avatar_url FROM contributors WHERE id = ? AND is_published = 1'
+  ).bind(slug).first<PayContributorRow>();
+}
+
+// GET /api/public/people/:slug/pay-access[?t=token]
+// The pay page asks this first. It says whether the sheet may open and why,
+// and when it opens through a link that came from an invoice, which invoice.
+// Opening a link while signed in records an approval for that account, so the
+// person never has to ask afterwards: the contributor handed them the link,
+// which is the same decision as approving them.
+const handleGetPayAccess: Handler = async (request, env, params) => {
+  const contributor = await loadPayContributor(env, params.slug);
+  if (!contributor) return json({ error: 'Contributor not found' }, 404);
+  const url = new URL(request.url);
+  const viewer = await optionalAuthenticatedUser(request, env);
+  const { decision, link, grant } = await resolvePayAccess(env, contributor, viewer, url.searchParams.get(PAY_LINK_PARAM));
+
+  let invoice: { invoice_number: string | null; outstanding_usd: number } | null = null;
+  if (link) {
+    await env.DB.prepare(
+      `UPDATE payment_share_links SET open_count = open_count + 1, last_opened_at = datetime('now') WHERE id = ?`
+    ).bind(link.id).run();
+    if (viewer && viewer.userId !== contributor.user_id && grant?.status !== 'approved') {
+      await env.DB.prepare(
+        `INSERT INTO payment_access_grants (id, account_id, contributor_id, grantee_user_id, granted_via, invoice_id, status, approved_at)
+         VALUES (?, ?, ?, ?, 'link', ?, 'approved', datetime('now'))
+         ON CONFLICT(contributor_id, grantee_user_id) DO UPDATE SET
+           status = 'approved',
+           granted_via = 'link',
+           invoice_id = COALESCE(payment_access_grants.invoice_id, excluded.invoice_id),
+           approved_at = datetime('now'),
+           updated_at = datetime('now')`
+      ).bind(newId('pag'), link.account_id, contributor.id, viewer.userId, link.invoice_id).run();
+      await logPlatformAction(env, 'pay_access.granted_via_link', viewer.userId, viewer.email, 'contributor', contributor.id,
+        { link_id: link.id, invoice_id: link.invoice_id }, link.account_id, null);
+    }
+    if (link.invoice_id) {
+      const ledgerInvoice = await loadLedgerInvoice(env, link.invoice_id, link.account_id);
+      if (ledgerInvoice) {
+        const ledger = await loadInvoiceLedgerTotals(env, [ledgerInvoice.id]);
+        const money = invoiceMoney(ledgerInvoice.total_usd, ledgerInvoice.payment_status, ledger.get(ledgerInvoice.id));
+        invoice = { invoice_number: ledgerInvoice.invoice_number, outstanding_usd: money.outstanding_usd };
+      }
+    }
+  }
+
+  return json({
+    access: decision.access,
+    via: decision.via,
+    contributor: publicPayContributor(contributor),
+    viewer: {
+      signed_in: Boolean(viewer),
+      is_owner: decision.via === 'owner',
+      request_status: grant?.status ?? null,
+    },
+    invoice,
+  });
+};
+
+// POST /api/public/people/:slug/pay-access/request
+// The one action on the gate sheet. Needs an account, so the request carries
+// a name the contributor can recognise. Idempotent: asking twice is one row.
+const handleRequestPayAccess: Handler = async (request, env, params) => {
+  const auth = await requireAuthenticatedUser(request, env);
+  if ('error' in auth) return auth.error;
+  const contributor = await loadPayContributor(env, params.slug);
+  if (!contributor) return json({ error: 'Contributor not found' }, 404);
+  if (contributor.user_id && contributor.user_id === auth.userId) {
+    return json({ error: 'This is your own page', code: 'own_page' }, 400);
+  }
+  const existing = await env.DB.prepare(
+    `SELECT id, status FROM payment_access_grants WHERE contributor_id = ? AND grantee_user_id = ?`
+  ).bind(contributor.id, auth.userId).first<{ id: string; status: 'pending' | 'approved' }>();
+  if (existing) return json({ status: existing.status, grant_id: existing.id });
+  const id = newId('pag');
+  await env.DB.prepare(
+    `INSERT INTO payment_access_grants (id, account_id, contributor_id, grantee_user_id, granted_via, status)
+     VALUES (?, ?, ?, ?, 'request', 'pending')`
+  ).bind(id, contributor.account_id, contributor.id, auth.userId).run();
+  await logPlatformAction(env, 'pay_access.requested', auth.userId, auth.email, 'contributor', contributor.id,
+    { grant_id: id }, contributor.account_id, null);
+  return json({ status: 'pending', grant_id: id }, 201);
+};
+
+function openPayShareUrl(env: Env, slug: string, token: string): string {
+  return withShareToken(buildPayUrl(env, slug, null, 0, null, null), token);
+}
+
+// GET /api/me/pay-access
+// Your Table's view: who asked, who can see it, and the contributor's own
+// open share link if one has been minted.
+const handleListMyPayAccess: Handler = async (request, env) => {
+  const owned = await requireOwnContributor(request, env);
+  if ('error' in owned) return owned.error;
+  const [grants, link] = await Promise.all([
+    env.DB.prepare(
+      `SELECT g.id, g.status, g.granted_via, g.invoice_id, g.requested_at, g.approved_at,
+              u.name AS user_name, u.username AS user_username, u.created_at AS user_since
+         FROM payment_access_grants g
+         JOIN users u ON u.id = g.grantee_user_id
+        WHERE g.contributor_id = ?
+        ORDER BY CASE g.status WHEN 'pending' THEN 0 ELSE 1 END, g.requested_at DESC`
+    ).bind(owned.contributor.id).all(),
+    env.DB.prepare(
+      `SELECT token FROM payment_share_links WHERE contributor_id = ? AND invoice_id IS NULL`
+    ).bind(owned.contributor.id).first<{ token: string }>(),
+  ]);
+  const rows = (grants.results ?? []) as Array<Record<string, any>>;
+  const project = (row: Record<string, any>) => ({
+    id: row.id as string,
+    status: row.status as 'pending' | 'approved',
+    granted_via: row.granted_via as 'request' | 'link',
+    invoice_id: (row.invoice_id as string | null) ?? null,
+    requested_at: row.requested_at as string,
+    approved_at: (row.approved_at as string | null) ?? null,
+    user_name: (row.user_name as string | null) || (row.user_username as string | null) || 'A Teajia account',
+    user_since: (row.user_since as string | null) ?? null,
+  });
+  return json({
+    pending: rows.filter(row => row.status === 'pending').map(project),
+    approved: rows.filter(row => row.status === 'approved').map(project),
+    share_link: link ? openPayShareUrl(env, owned.contributor.id as string, link.token) : null,
+  });
+};
+
+// POST /api/me/pay-access/share-link
+// The open link, minted once and returned on every later call. It opens the
+// sheet with the methods only; the invoice links carry an amount.
+const handleMintMyPayShareLink: Handler = async (request, env) => {
+  const owned = await requireOwnContributor(request, env);
+  if ('error' in owned) return owned.error;
+  const contributorId = owned.contributor.id as string;
+  const existing = await env.DB.prepare(
+    `SELECT token FROM payment_share_links WHERE contributor_id = ? AND invoice_id IS NULL`
+  ).bind(contributorId).first<{ token: string }>();
+  if (existing) return json({ url: openPayShareUrl(env, contributorId, existing.token), created: false });
+  const token = mintShareToken();
+  const id = newId('psl');
+  await env.DB.prepare(
+    `INSERT INTO payment_share_links (id, account_id, contributor_id, invoice_id, token, created_by_user_id)
+     VALUES (?, ?, ?, NULL, ?, ?)`
+  ).bind(id, owned.contributor.account_id, contributorId, token, owned.ctx.userId).run();
+  await logPlatformAction(env, 'pay_access.share_link_minted', owned.ctx.userId, owned.ctx.email, 'contributor', contributorId,
+    { link_id: id }, owned.contributor.account_id as string, null);
+  return json({ url: openPayShareUrl(env, contributorId, token), created: true }, 201);
+};
+
+// POST /api/me/pay-access/:id/approve. Permanent: there is no revoke.
+const handleApprovePayAccess: Handler = async (request, env, params) => {
+  const owned = await requireOwnContributor(request, env);
+  if ('error' in owned) return owned.error;
+  const result = await env.DB.prepare(
+    `UPDATE payment_access_grants
+        SET status = 'approved', approved_at = datetime('now'), updated_at = datetime('now')
+      WHERE id = ? AND contributor_id = ? AND status = 'pending'`
+  ).bind(params.id, owned.contributor.id).run();
+  if (!result.meta.changes) return json({ error: 'No pending request with that id' }, 404);
+  await logPlatformAction(env, 'pay_access.approved', owned.ctx.userId, owned.ctx.email, 'payment_access_grant', params.id,
+    { contributor_id: owned.contributor.id }, owned.contributor.account_id as string, null);
+  return json({ status: 'approved', grant_id: params.id });
+};
+
+// POST /api/me/pay-access/:id/decline. The request is removed rather than
+// kept as a third state: status is pending or approved, nothing else, and a
+// declined person may ask again later.
+const handleDeclinePayAccess: Handler = async (request, env, params) => {
+  const owned = await requireOwnContributor(request, env);
+  if ('error' in owned) return owned.error;
+  const result = await env.DB.prepare(
+    `DELETE FROM payment_access_grants WHERE id = ? AND contributor_id = ? AND status = 'pending'`
+  ).bind(params.id, owned.contributor.id).run();
+  if (!result.meta.changes) return json({ error: 'No pending request with that id' }, 404);
+  await logPlatformAction(env, 'pay_access.declined', owned.ctx.userId, owned.ctx.email, 'payment_access_grant', params.id,
+    { contributor_id: owned.contributor.id }, owned.contributor.account_id as string, null);
+  return json({ status: 'declined', grant_id: params.id });
+};
+
+// POST /api/invoices/:id/pay-link
+// The admin's Share pay link. The link already exists the moment the invoice
+// has a live pay URL (resolveInvoicePayments mints it), so this returns it
+// with the pieces the share sheet needs: the customer's WhatsApp number and
+// the amount still owed. Refuses, in words, when there is nothing to share.
+const handleMintInvoicePayLink: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'sell');
+  if ('error' in ctx) return ctx.error;
+  const row = await env.DB.prepare(
+    `SELECT id, account_id, invoice_number, status, payment_status, display_currency,
+            payment_recipient_user_id, sold_by_user_id, shipping_cost_usd, customer_name, customer_whatsapp
+       FROM invoices WHERE id = ? AND account_id = ? AND deleted_at IS NULL`
+  ).bind(params.id, ctx.accountId).first<Record<string, any>>();
+  if (!row) return restError(404, 'Invoice not found', 'invoice_not_found');
+  const payment = await resolveInvoicePayment(env, {
+    id: row.id as string,
+    account_id: row.account_id as string,
+    invoice_number: (row.invoice_number as string | null) ?? null,
+    status: (row.status as string | null) ?? null,
+    payment_status: (row.payment_status as string | null) ?? null,
+    display_currency: (row.display_currency as string | null) ?? null,
+    payment_recipient_user_id: (row.payment_recipient_user_id as string | null) ?? null,
+    sold_by_user_id: (row.sold_by_user_id as string | null) ?? null,
+    shipping_cost_usd: Number(row.shipping_cost_usd || 0),
+  });
+  if (!payment.pay_url) {
+    const reason = payment.has_methods ? 'Nothing is outstanding on this order' : 'The recipient has not published transfer details';
+    return json({ error: reason, code: payment.has_methods ? 'invoice_settled' : 'no_methods', payment }, 409);
+  }
+  await logPlatformAction(env, 'pay_access.invoice_link_shared', ctx.userId, ctx.email, 'invoice', row.id as string,
+    { recipient_slug: payment.recipient_slug }, ctx.accountId, ctx.accountId);
+  return json({
+    url: payment.pay_url,
+    invoice_number: (row.invoice_number as string | null) ?? null,
+    customer_name: (row.customer_name as string | null) ?? null,
+    customer_whatsapp: (row.customer_whatsapp as string | null) ?? null,
+    recipient_name: payment.recipient_name,
+    outstanding_usd: payment.outstanding_usd,
+    display_currency: (row.display_currency as string | null) ?? null,
   });
 };
 
@@ -27625,6 +28032,13 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/people/:slug',   handleGetPublicContributor],
   ['GET', '/api/public/people/:slug/favorites', handleGetPublicProfileFavorites],
   ['GET', '/api/public/people/:slug/payment-methods', handleGetPublicPaymentMethods],
+  ['GET', '/api/public/people/:slug/pay-access', handleGetPayAccess],
+  ['POST', '/api/public/people/:slug/pay-access/request', handleRequestPayAccess],
+  ['GET', '/api/me/pay-access', handleListMyPayAccess],
+  ['POST', '/api/me/pay-access/share-link', handleMintMyPayShareLink],
+  ['POST', '/api/me/pay-access/:id/approve', handleApprovePayAccess],
+  ['POST', '/api/me/pay-access/:id/decline', handleDeclinePayAccess],
+  ['POST', '/api/invoices/:id/pay-link', handleMintInvoicePayLink],
   ['GET', '/api/public/wisdom/states', handleGetPublicWisdomStates],
   ['GET', '/api/public/wisdom/:nodeType/:nodeId/related', handleGetPublicWisdomRelated],
   ['GET', '/api/public/wisdom/:nodeType/:nodeId/state', handleGetPublicWisdomState],

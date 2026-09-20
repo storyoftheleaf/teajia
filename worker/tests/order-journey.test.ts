@@ -466,12 +466,16 @@ describe('the local figure on the pay link', () => {
     expect((await payUrl(db)).searchParams.get('display')).toBeNull();
   });
 
+  // Pay is private (migration 0022): the customer's link carries a share token,
+  // and it is that token, not the URL alone, that opens the sheet. Every read
+  // below follows the link the order page handed out, as the customer would.
   it('converts on the pay page from the live rate, as an approximation with a date', async () => {
     const db = await seedRupiah();
     const url = await payUrl(db);
+    expect(url.searchParams.get('t')).toMatch(/^[0-9a-f]{32}$/);
     const response = await worker.fetch(new Request(
       `https://worker.test/api/public/people/tea-master-j/payment-methods`
-      + `?amount=${url.searchParams.get('amount')}&display=${url.searchParams.get('display')}`,
+      + `?amount=${url.searchParams.get('amount')}&display=${url.searchParams.get('display')}&t=${url.searchParams.get('t')}`,
     ), env(db));
     expect(response.status).toBe(200);
     const body = await response.json() as any;
@@ -487,8 +491,9 @@ describe('the local figure on the pay link', () => {
   it('says nothing rather than guessing when there is no rate to convert with', async () => {
     const db = await seed();
     db.sqlite.prepare("DELETE FROM exchange_rates WHERE currency = 'IDR'").run();
+    const url = await payUrl(db);
     const response = await worker.fetch(new Request(
-      'https://worker.test/api/public/people/tea-master-j/payment-methods?amount=35.00&display=IDR',
+      `https://worker.test/api/public/people/tea-master-j/payment-methods?amount=35.00&display=IDR&t=${url.searchParams.get('t')}`,
     ), env(db));
     const body = await response.json() as any;
     expect(body.context.local).toBeNull();
@@ -496,8 +501,9 @@ describe('the local figure on the pay link', () => {
 
   it('says nothing when the link is already in dollars', async () => {
     const db = await seedRupiah();
+    const url = await payUrl(db);
     const response = await worker.fetch(new Request(
-      'https://worker.test/api/public/people/tea-master-j/payment-methods?amount=35.00&display=USD',
+      `https://worker.test/api/public/people/tea-master-j/payment-methods?amount=35.00&display=USD&t=${url.searchParams.get('t')}`,
     ), env(db));
     expect((await response.json() as any).context.local).toBeNull();
   });

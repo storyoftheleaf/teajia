@@ -263,6 +263,30 @@ Worker secrets live in Infisical (project: Teajia, env: dev). The repo no longer
 
 **Full cross-project pattern docs:** [../i64os/docs/SECRETS.md](../i64os/docs/SECRETS.md) — covers all four projects, the two-Infisical-projects shape, prod boundary, and command cheat sheet.
 
+## Pay is private, and approval is permanent
+
+**Pressing Pay on a creator's page never shows a bank detail to the public.** The transfer details behind
+`GET /api/public/people/:slug/payment-methods` open for exactly three viewers: the contributor, an account
+they approved, and whoever holds a share link. Everyone else gets a 403 with the gate (`code: pay_private`)
+and enough of the person to ask them. The rule is `decidePayAccess` in [worker/src/payAccessDomain.ts](worker/src/payAccessDomain.ts)
+and it sits on the read itself, not on the page that renders it; migration `0022` holds the two tables.
+
+- **An account is approved once, for good.** A visitor presses Pay, meets the gate, and asks (which needs an
+  account, so the request carries a name). The request lands at the contributor's Your Table and under
+  Payment on their profile page, Approve on the right, Decline on the left. There is no revoke and no expiry:
+  the relationship is "has bought tea from me", which does not lapse. Decline removes the request; the person
+  may ask again.
+- **A link is a URL and simply opens.** `payment_share_links.token` rides on the pay URL as `?t=`. One per
+  invoice (minted the first time the invoice earns a live pay link in `resolveInvoicePayments`, so every
+  order shares the same URL and the amount is the balance still owed) and one open link per contributor,
+  from Your Table. Opening a link while signed in records an approval for that account. There is no
+  "I have a link" step anywhere; do not add one.
+- The token is stored as typed, not hashed: the orders list has to print the same link on every read, and what
+  it unlocks is the published methods, which a database leak exposes directly anyway.
+- Enforced by [worker/tests/pay-is-private.test.ts](worker/tests/pay-is-private.test.ts) and
+  `tests/creator-pay-gate.spec.ts`. Sandbox fixtures: Amara's account is approved for Kenji; Kenji's open
+  link is printed by `npm run sandbox:seed-creators`.
+
 ## Local sandbox — how to verify admin work yourself
 
 `npm run dev` points the site at the **live production API**, so anything you

@@ -1,121 +1,125 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ContributorIdentityMark } from '../components/shared/ContributorIdentityMark';
 import { useContributors } from '../hooks/useContributor';
 import type { ContributorListItem } from '../types';
 
-// /people. The directory. v1 is a typeset alphabetical list, not a card
-// grid. The relational map upgrade is deferred (see step 13 in
-// docs/ARCHITECTURE.md).
+// /people. The directory: a room full of people doing the work, not a staff
+// wall. Built to the "Directory · /people" board of the Creator Profiles
+// canvas (2026-09-19): a light title with a subtitle, a three-cell hairline
+// filter row (All with count, Hosts, Writers, the active one underlined in
+// gold), then a two-column grid of cards. Each card is one link: a 4:5 image
+// above the words, never text on the photo; the identity mark fills the same
+// box when a person has no photo yet.
 
-function groupAlphabetical(rows: ContributorListItem[]): Array<[string, ContributorListItem[]]> {
-  const map = new Map<string, ContributorListItem[]>();
-  for (const r of rows) {
-    const letter = (r.display_name?.[0] ?? '#').toUpperCase();
-    const key = /[A-Z]/.test(letter) ? letter : '#';
-    const list = map.get(key) ?? [];
-    list.push(r);
-    map.set(key, list);
-  }
-  for (const list of map.values()) {
-    list.sort((a, b) => a.display_name.localeCompare(b.display_name));
-  }
-  return Array.from(map.entries()).sort(([a], [b]) => {
-    if (a === '#') return 1;
-    if (b === '#') return -1;
-    return a.localeCompare(b);
-  });
+type Filter = 'all' | 'hosts' | 'writers';
+
+const FILTERS: Array<{ key: Filter; label: string }> = [
+  { key: 'all', label: 'All' },
+  { key: 'hosts', label: 'Hosts' },
+  { key: 'writers', label: 'Writers' },
+];
+
+function matches(person: ContributorListItem, filter: Filter): boolean {
+  if (filter === 'hosts') return person.is_host === true;
+  if (filter === 'writers') return (person.article_count ?? 0) > 0;
+  return true;
+}
+
+/** The second line under a name: role, then business or place. */
+function cardLines(person: ContributorListItem): { role: string | null; where: string | null } {
+  const where = [person.business_name, person.location_line?.split(',')[0]?.trim()].filter(Boolean).join(' · ') || null;
+  return { role: person.role ?? null, where };
 }
 
 export default function ContributorsIndexPage() {
   const { data, isLoading } = useContributors();
+  const [filter, setFilter] = useState<Filter>('all');
 
-  const groups = useMemo(() => groupAlphabetical(data ?? []), [data]);
+  const people = useMemo(
+    () => [...(data ?? [])].sort((a, b) => a.display_name.localeCompare(b.display_name)),
+    [data],
+  );
+  const shown = useMemo(() => people.filter(person => matches(person, filter)), [people, filter]);
 
   if (isLoading) return null;
 
-  const isEmpty = !data || data.length === 0;
+  const isEmpty = people.length === 0;
 
   return (
-    <article className="w-full min-h-screen flex-1 mx-auto px-4 md:px-6 lg:px-10 max-w-3xl">
+    <article className="mx-auto w-full max-w-2xl pb-nav-gap-lg" data-testid="people-directory">
       <style>{`
-        @keyframes contribIndexFade {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .contrib-index-heading {
-          opacity: 0;
-          animation: contribIndexFade 600ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .contrib-index-heading {
-            animation: contribIndexFade 200ms ease-out forwards;
-          }
-        }
+        @keyframes contribIndexFade { from { opacity: 0; } to { opacity: 1; } }
+        .contrib-index-heading { opacity: 0; animation: contribIndexFade 600ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+        @media (prefers-reduced-motion: reduce) { .contrib-index-heading { animation: contribIndexFade 200ms ease-out forwards; } }
       `}</style>
 
-      <header className="pt-12 pb-3">
-        <h1 className="contrib-index-heading h2">
-          People
-        </h1>
-        <p className="label-caps text-tea-text-dim mt-1">
-          Contributors, sources, and table-keepers
-        </p>
+      <header className="px-4 pt-12 md:px-6">
+        <h1 className="contrib-index-heading font-display text-[44px] font-light leading-none tracking-[-0.02em] text-tea-text md:text-[56px]">People</h1>
+        <p className="subtitle mt-2.5">Tea masters, hosts and writers on Teajia</p>
       </header>
 
-      {isEmpty ? (
-        <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
-          <p className="subtitle">
-            No profiles yet.
-          </p>
-        </div>
-      ) : (
-        <>
-          <div className="mt-10">
-            {groups.map(([letter, rows], gi) => (
-              <section
-                key={letter}
-                className={gi === 0 ? '' : 'mt-16 md:mt-20'}
+      {!isEmpty && (
+        <nav aria-label="Filter" className="mt-6 grid grid-cols-3 border-y border-tea-border">
+          {FILTERS.map((entry, index) => {
+            const active = entry.key === filter;
+            const count = entry.key === 'all' ? people.length : people.filter(person => matches(person, entry.key)).length;
+            return (
+              <button
+                key={entry.key}
+                type="button"
+                onClick={() => setFilter(entry.key)}
+                aria-pressed={active}
+                className={`-mb-px flex min-h-[52px] items-center justify-center font-sans text-ui-11 uppercase tracking-[0.15em] transition-colors ${index < FILTERS.length - 1 ? 'border-r border-tea-border' : ''} ${active ? 'border-b border-b-tea-gold text-tea-text' : 'text-tea-text-sec hover:text-tea-text'}`}
               >
-                <h2 className="label-caps text-tea-readgold/60 mb-6">
-                  {letter}
-                </h2>
-
-                <ul className="flex flex-col gap-6 md:gap-8">
-                  {rows.map((r) => (
-                    <li key={r.id}>
-                      <Link
-                        to={`/people/${r.id}`}
-                        className="group block"
-                        style={{ textDecoration: 'none' }}
-                      >
-                        <span
-                          className="inline-block border-b border-transparent group-hover:border-tea-gold/40 group-focus-visible:border-tea-gold/40 transition-[border-color] duration-300 text-tea-text"
-                          style={{
-                            fontFamily: 'var(--font-display)',
-                            fontWeight: 400,
-                            fontSize: 'clamp(28px, 3.5vw, 40px)',
-                            lineHeight: 1.05,
-                            letterSpacing: '-0.01em',
-                          }}
-                        >
-                          {r.display_name}
-                        </span>
-                        {r.role && (
-                          <span className="block subtitle text-ui-14 mt-1">
-                            {r.role}
-                          </span>
-                        )}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ))}
-          </div>
-
-          <div className="h-20 md:h-28" />
-        </>
+                {entry.key === 'all' ? `All · ${count}` : entry.label}
+              </button>
+            );
+          })}
+        </nav>
       )}
+
+      <main className="px-4 pt-6 md:px-6">
+        {isEmpty ? (
+          <p className="subtitle py-20 text-center">No profiles yet.</p>
+        ) : shown.length === 0 ? (
+          <p className="subtitle py-16 text-center text-tea-text-sec">Nobody here yet under that filter.</p>
+        ) : (
+          <ul className="grid grid-cols-2 gap-x-4 gap-y-7 md:grid-cols-3">
+            {shown.map(person => {
+              const lines = cardLines(person);
+              return (
+                <li key={person.id}>
+                  <Link to={`/people/${encodeURIComponent(person.id)}`} className="group block text-tea-text" data-testid="people-card">
+                    <span className="block aspect-[4/5] w-full overflow-hidden rounded-[2px] bg-tea-elevated">
+                      {person.card_image_url ? (
+                        <img src={person.card_image_url} alt={person.display_name} loading="lazy" className="h-full w-full object-cover transition-opacity duration-300 group-hover:opacity-90" />
+                      ) : (
+                        <ContributorIdentityMark name={person.display_name} decorative={false} />
+                      )}
+                    </span>
+                    <span className="mt-3 block font-display text-[22px] leading-[1.1] tracking-[-0.01em] transition-colors group-hover:text-tea-gold-lt">{person.display_name}</span>
+                    {(lines.role || lines.where) && (
+                      <span className="mt-1.5 block font-sans text-ui-12 leading-[1.45] text-tea-text-sec">
+                        {lines.role}
+                        {lines.role && lines.where && <br />}
+                        {lines.where}
+                      </span>
+                    )}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        {!isEmpty && (
+          <div className="mt-14 border-t border-tea-border pt-5 pb-16">
+            <span className="font-sans text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec">
+              {people.length === 1 ? '1 person' : `${people.length} people`} · more are invited each season
+            </span>
+          </div>
+        )}
+      </main>
     </article>
   );
 }

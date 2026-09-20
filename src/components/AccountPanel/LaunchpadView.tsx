@@ -5,6 +5,8 @@ import { ADMIN_CONNECTION_ROUTES } from '../navigationConnections';
 import { NeedsAttention, daysWord } from './primitives';
 import type { TeaMasterReadiness } from '../readiness/teaMasterReadiness';
 import type { AttentionItem } from '../../lib/api';
+import type { PayAccessTable } from '../profile/types';
+import { PayAccessRequestRow } from '../profile/PayAccessPanel';
 
 interface LaunchpadTile {
   id: string;
@@ -64,6 +66,16 @@ interface LaunchpadViewProps {
    * a setup aid, not a permanent dashboard.
    */
   readiness?: TeaMasterReadiness | null;
+  /**
+   * Pay is private: who asked to see this person's payment details and who
+   * already can. `null` when the reader has no public profile, or it is not
+   * known yet. The requests get Approve and Decline right here; the rest is a
+   * row into the profile page.
+   */
+  payAccess?: PayAccessTable | null;
+  onApprovePayAccess?: (grantId: string) => void;
+  onDeclinePayAccess?: (grantId: string) => void;
+  payAccessBusy?: boolean;
 
   // Actions
   onClose: () => void;
@@ -238,6 +250,10 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
   nextEvent,
   attentionItems = null,
   readiness = null,
+  payAccess = null,
+  onApprovePayAccess,
+  onDeclinePayAccess,
+  payAccessBusy = false,
   onClose,
   onOpenJournal,
   onOpenEvents,
@@ -538,6 +554,52 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
               the rest are in orders.
             </button>
           )}
+        </section>
+      )}
+
+      {/* ── Payment requests ─────────────────────────────────────────────────
+          Pay is private, and approval is permanent. Someone pressed Pay on this
+          person's page and asked; the answer is given here, once, with Approve
+          on the right and Decline on the left. Under it, the two rows that
+          carry the rest: who can already see it, and the share link. */}
+      {payAccess && (payAccess.pending.length > 0 || payAccess.approved.length > 0 || payAccess.share_link) && (
+        <section className="mb-10" aria-label="Payment details requests" data-testid="table-pay-access">
+          <div className="font-sans text-ui-11 text-tea-text-dim uppercase tracking-[0.18em] mb-2">
+            Payment
+          </div>
+          {payAccess.pending.length > 0 && (
+            <ul className="divide-y divide-tea-border border-t border-tea-border">
+              {payAccess.pending.map(grant => (
+                <PayAccessRequestRow
+                  key={grant.id}
+                  grant={grant}
+                  busy={Boolean(payAccessBusy)}
+                  onApprove={() => onApprovePayAccess?.(grant.id)}
+                  onDecline={() => onDeclinePayAccess?.(grant.id)}
+                />
+              ))}
+            </ul>
+          )}
+          <div className="border-t border-tea-border">
+            <button
+              type="button"
+              onClick={() => { onClose(); navigate('/account/profile#pay-access'); }}
+              className="flex min-h-[52px] w-full items-center justify-between border-b border-tea-border text-left"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
+            >
+              <span className="font-display text-ui-17 text-tea-text">People who can see it</span>
+              <span className="font-sans text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec">{payAccess.approved.length}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => { onClose(); navigate('/account/profile#pay-access'); }}
+              className="flex min-h-[52px] w-full items-center justify-between border-b border-tea-border text-left"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
+            >
+              <span className="font-display text-ui-17 text-tea-text">Share pay link</span>
+              <span className="font-sans text-ui-11 uppercase tracking-[0.15em] text-tea-readgold">From your table or an invoice</span>
+            </button>
+          </div>
         </section>
       )}
 

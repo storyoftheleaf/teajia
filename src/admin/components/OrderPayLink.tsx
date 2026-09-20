@@ -103,10 +103,19 @@ export const OrderPayCopyButton: React.FC<{
   );
 };
 
+/** WhatsApp deep link carrying the pay link, to the customer's number when the order has one. */
+export function payLinkWhatsAppHref(payUrl: string, invoiceNumber?: string | null, phone?: string | null): string {
+  const digits = (phone ?? '').replace(/[^0-9]/g, '');
+  const text = invoiceNumber ? `Here is the pay link for ${invoiceNumber}: ${payUrl}` : `Here is the pay link: ${payUrl}`;
+  return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
+}
+
 interface OrderPayLinkProps {
   payment?: InvoicePayment | null;
   /** Used in the copied-confirmation toast, so the operator knows which order it was. */
   invoiceNumber?: string;
+  /** The customer's WhatsApp number, when the order carries one, so Share opens their chat. */
+  customerWhatsapp?: string | null;
   /**
    * `inline` is the dense card form: the recipient line plus a small labelled
    * copy control. `block` is the detail form used in modals, where there is
@@ -119,6 +128,7 @@ interface OrderPayLinkProps {
 export const OrderPayLink: React.FC<OrderPayLinkProps> = ({
   payment,
   invoiceNumber,
+  customerWhatsapp,
   layout = 'inline',
   className = '',
 }) => {
@@ -158,14 +168,28 @@ export const OrderPayLink: React.FC<OrderPayLinkProps> = ({
       {payUrl ? (
         <>
           <p className="text-ui-11 text-tea-text-sec break-all mt-2">{payUrl}</p>
-          <button
-            type="button"
-            onClick={copy}
-            className="mt-3 w-full py-3 border border-tea-border rounded-xl text-ui-12 uppercase tracking-[0.2em] text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated flex items-center justify-center gap-2 transition-colors"
-          >
-            {copied ? <Check size={14} aria-hidden="true" /> : <Link2 size={14} aria-hidden="true" />}
-            {copied ? 'Pay link copied' : 'Copy pay link'}
-          </button>
+          {/* Pay is private: this link carries a share token, so whoever opens
+              it lands on the transfer details with this order's balance filled
+              in, and no gate. Send it on WhatsApp or copy it; nothing else. */}
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <a
+              href={payLinkWhatsAppHref(payUrl, invoiceNumber, customerWhatsapp)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="cta-solid py-3 rounded-xl text-ui-12 uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-colors"
+              data-testid="pay-link-whatsapp"
+            >
+              Send on WhatsApp
+            </a>
+            <button
+              type="button"
+              onClick={copy}
+              className="py-3 border border-tea-border rounded-xl text-ui-12 uppercase tracking-[0.2em] text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated flex items-center justify-center gap-2 transition-colors"
+            >
+              {copied ? <Check size={14} aria-hidden="true" /> : <Link2 size={14} aria-hidden="true" />}
+              {copied ? 'Copied' : 'Copy pay link'}
+            </button>
+          </div>
         </>
       ) : (
         <p className="text-ui-11 text-tea-text-sec leading-[1.5] mt-2">
