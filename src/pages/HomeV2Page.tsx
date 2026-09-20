@@ -6,6 +6,9 @@ import { api } from '../lib/api';
 import { useShopPrice } from '../components/shop/shopPrice';
 import { usePublicProducts } from '../hooks/usePublicProducts';
 import { LogoText } from '../components/Logos/LogoText';
+import { useTheme } from '../context/ThemeContext';
+import { getTeaLedgerTones } from '../designTokens';
+import { useSectionReveal } from '../hooks/useSectionReveal';
 import type { PublicProduct } from '../types';
 
 /**
@@ -29,6 +32,9 @@ const PIECE = {
   kicker: 'The Lead · N°15 · Conversations over tea',
   dek: 'A porcelain restorer on repair, patience, and how mending what we love mends us in return.',
 };
+
+/** The one photograph the site owns today: Adrian at the table. */
+const TABLE_PHOTO = 'https://res.cloudinary.com/dobbosnda/image/upload/f_auto,q_auto,w_900/v1773837991/2021-06-27_IMG_7745_Original_ehkz30.jpg';
 
 const SHIPPING_LINE = 'Everything ships from Bali. Say where you are and the post is quoted in the same message.';
 
@@ -60,6 +66,25 @@ const HomeV2Page: React.FC = () => {
   });
   const portrait = storyPhotos?.portrait;
 
+  // A photograph saved under the home page's own slug (slot "house") stands
+  // beside the four lines; until one is, the table photograph does, cropped to
+  // the vessel so it is not the consult plate's picture again.
+  const { data: homePhotos } = useQuery({
+    queryKey: ['story-photos', 'home'],
+    queryFn: () => api.storyPhotos.get('home'),
+    staleTime: 5 * 60 * 1000,
+  });
+  const housePhoto = homePhotos?.house;
+
+  // The colour the tea brews, the same ground the shop's ledger rows carry.
+  const { theme } = useTheme();
+  const teaTones = tea ? getTeaLedgerTones(tea.type, theme, 1.6) : null;
+
+  // One soft rise per section, once, as it enters.
+  const revealPlates = useSectionReveal('up');
+  const revealHouse = useSectionReveal('up');
+  const revealColophon = useSectionReveal('up');
+
   // The page breaks out of the main column's gutter, and on desktop out of the
   // column itself, so the plates and their hairlines run from the left edge of
   // the window, behind the floating sidebar, to the right edge. The text
@@ -83,14 +108,12 @@ const HomeV2Page: React.FC = () => {
         >
           Tea deepens with what you bring to the table and what you leave behind.
         </h1>
-        <p className="font-body italic text-ui-14 leading-[1.7] text-tea-text-dim max-w-[480px] mt-6">
-          {SHIPPING_LINE}
-        </p>
       </section>
 
       {/* The three plates. On desktop the lead runs twice the width of the
           other two, so the row reads as a spread with a cover, not three equal
           tiles. */}
+      <div ref={revealPlates.ref} className={revealPlates.className} style={revealPlates.style}>
       <section
         aria-label="On the table"
         className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-[var(--teajia-sidebar-w)_2fr_1fr_1fr] border-t border-b border-tea-border"
@@ -118,8 +141,9 @@ const HomeV2Page: React.FC = () => {
           ) : 'Source your tea.'}
           artwork={tea?.imageUrl ? (
             <img src={tea.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
-          ) : <TeaArtwork />}
+          ) : <TeaArtwork ground={teaTones?.markBg} />}
           artworkLabel={tea?.imageUrl ? undefined : 'The leaf, photographed edge to edge'}
+          wash={teaTones?.wash}
         />
         <Plate
           to="/advise"
@@ -127,20 +151,27 @@ const HomeV2Page: React.FC = () => {
           title={<>Twenty years in <span className="italic text-tea-gold">tea culture.</span></>}
           body="Taiwan, China, Japan, Bali, and beyond. Tea for your practice, your collection, your space."
           foot="Every engagement begins with a conversation"
-          artwork={
-            <img
-              src="https://res.cloudinary.com/dobbosnda/image/upload/f_auto,q_auto,w_900/v1773837991/2021-06-27_IMG_7745_Original_ehkz30.jpg"
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover"
-              loading="lazy"
-            />
-          }
+          artwork={<img src={TABLE_PHOTO} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />}
         />
       </section>
+      </div>
 
-      {/* The house: the grounding lines, exactly as the live page has them */}
-      <section aria-label="Homepage destinations" className="px-6 sm:px-10 lg:px-16 lg:pl-[calc(var(--teajia-sidebar-w)+4rem)] py-14 sm:py-16 lg:py-20">
-        <nav className="flex flex-col items-center gap-3 sm:gap-4 text-center">
+      {/* The house: the grounding lines, the live page's own words, set beside
+          a photograph instead of floating in the dark. */}
+      <div ref={revealHouse.ref} className={revealHouse.className} style={revealHouse.style}>
+      <section
+        aria-label="Homepage destinations"
+        className="grid grid-cols-1 lg:grid-cols-[var(--teajia-sidebar-w)_1fr_1fr] border-b border-tea-border"
+      >
+        <div className="relative order-first lg:order-none lg:col-start-3 min-h-[240px] sm:min-h-[320px] lg:min-h-[440px] overflow-hidden bg-tea-surface">
+          {housePhoto ? (
+            <StoryPhoto photo={housePhoto} />
+          ) : (
+            <img src={TABLE_PHOTO} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '88% 45%', transform: 'scale(1.35)', transformOrigin: '88% 45%' }} loading="lazy" />
+          )}
+        </div>
+        <div className="lg:col-start-2 lg:row-start-1 px-6 sm:px-10 lg:pl-[4rem] lg:pr-12 py-12 sm:py-14 lg:py-20 flex flex-col justify-center">
+        <nav className="flex flex-col items-start gap-3 sm:gap-4">
           {[
             { accent: 'Source', rest: ' your tea.', to: '/shop' },
             { accent: 'Discover', rest: ' the stories.', to: '/read' },
@@ -157,17 +188,20 @@ const HomeV2Page: React.FC = () => {
             </Link>
           ))}
         </nav>
-        <p className="mt-8 sm:mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 font-body text-ui-14 text-tea-text-dim">
+        <p className="mt-8 sm:mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 font-body text-ui-14 text-tea-text-dim">
           <Link to="/events" className="hover:text-tea-text transition-colors">sessions</Link>
           <Link to="/people" className="hover:text-tea-text transition-colors">people</Link>
           <Link to="/wisdom" className="hover:text-tea-text transition-colors">tea wisdom</Link>
           <Link to="/spaces" className="hover:text-tea-text transition-colors">spaces</Link>
           <Link to="/about" className="hover:text-tea-text transition-colors">about</Link>
         </p>
+        </div>
       </section>
+      </div>
 
       {/* The colophon: what the live page's second act says */}
-      <section className="border-t border-tea-border px-6 sm:px-10 lg:px-16 lg:pl-[calc(var(--teajia-sidebar-w)+4rem)] pt-14 sm:pt-16 lg:pt-20 pb-nav-gap-lg lg:pb-20 text-center">
+      <div ref={revealColophon.ref} className={revealColophon.className} style={revealColophon.style}>
+      <section className="px-6 sm:px-10 lg:px-16 lg:pl-[calc(var(--teajia-sidebar-w)+4rem)] pt-14 sm:pt-16 lg:pt-20 pb-nav-gap-lg lg:pb-20 text-center">
         <div className="flex justify-center mb-7">
           <LogoText size="panel" color="var(--tea-text-sec)" />
         </div>
@@ -196,6 +230,9 @@ const HomeV2Page: React.FC = () => {
         <p className="font-body italic mt-3 text-ui-13 tracking-[0.04em] text-tea-text-dim">
           Honor the past. Live in the present. Build for the future.
         </p>
+        <p className="font-body mx-auto mt-6 max-w-[400px] text-ui-13 leading-[1.7] text-tea-text-dim">
+          {SHIPPING_LINE}
+        </p>
         <div className="mx-auto mt-10 w-full max-w-[300px] border-t border-tea-border pt-6">
           <EmailField />
           <p className="font-display italic mt-4 text-base tracking-[0.04em] leading-[1.5] text-tea-text-dim">
@@ -209,6 +246,7 @@ const HomeV2Page: React.FC = () => {
           </p>
         </div>
       </section>
+      </div>
     </div>
   );
 };
@@ -232,6 +270,8 @@ interface PlateProps {
   foot: React.ReactNode;
   artwork: React.ReactNode;
   artworkLabel?: string;
+  /** A tonal ground behind the words, fading out to the right: the tea's own liquor colour. */
+  wash?: string;
 }
 
 /**
@@ -239,7 +279,7 @@ interface PlateProps {
  * neighbours, never a card: the artwork sits flush in the top of the panel and
  * the words sit under it. On the phone the three stack, artwork beside words.
  */
-const Plate: React.FC<PlateProps> = ({ first, to, kicker, title, body, foot, artwork, artworkLabel }) => {
+const Plate: React.FC<PlateProps> = ({ first, to, kicker, title, body, foot, artwork, artworkLabel, wash }) => {
   const [hover, setHover] = useState(false);
   return (
     <Link
@@ -249,14 +289,19 @@ const Plate: React.FC<PlateProps> = ({ first, to, kicker, title, body, foot, art
       className={`group flex flex-row md:flex-col border-b md:border-b-0 md:border-r border-tea-border last:border-b-0 md:last:border-r-0 text-tea-text-sec focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/40 ${first ? 'lg:col-span-2' : ''}`}
     >
       <div className="relative shrink-0 basis-[38%] min-h-[170px] md:basis-auto md:min-h-[300px] lg:min-h-[460px] overflow-hidden bg-tea-surface">
-        {artwork}
+        <div className="absolute inset-0 transition-transform duration-[600ms] ease-out group-hover:scale-[1.02] motion-reduce:transform-none">
+          {artwork}
+        </div>
         {artworkLabel && (
           <span className={`absolute left-4 bottom-3 font-sans text-ui-10 uppercase tracking-[0.18em] text-tea-text-dim ${first ? 'lg:left-[calc(var(--teajia-sidebar-w)+1rem)]' : ''}`}>
             {artworkLabel}
           </span>
         )}
       </div>
-      <div className={`flex-1 px-5 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10 ${first ? 'lg:pl-[calc(var(--teajia-sidebar-w)+2rem)]' : ''}`}>
+      <div
+        className={`flex-1 px-5 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10 ${first ? 'lg:pl-[calc(var(--teajia-sidebar-w)+2rem)]' : ''}`}
+        style={wash ? { background: `linear-gradient(90deg, ${wash} 0%, transparent 78%)` } : undefined}
+      >
         <p className="font-sans text-ui-10 uppercase tracking-[0.26em] text-tea-gold">{kicker}</p>
         <h2
           className={`font-display font-normal mt-3 text-[clamp(26px,2.6vw,38px)] leading-[1.05] transition-colors duration-300 ${hover ? 'text-tea-gold' : 'text-tea-text'}`}
@@ -300,9 +345,9 @@ const PieceArtwork: React.FC = () => (
 );
 
 /** Until the tea has a photograph: the plate that marks where the leaf goes. */
-const TeaArtwork: React.FC = () => (
+const TeaArtwork: React.FC<{ ground?: string }> = ({ ground }) => (
   <>
-    <div aria-hidden="true" className="absolute inset-0" style={{ background: '#26201a', backgroundImage: 'repeating-linear-gradient(135deg, rgba(168,135,77,0.06) 0 9px, transparent 9px 18px)' }} />
+    <div aria-hidden="true" className="absolute inset-0" style={{ background: ground ?? '#26201a', backgroundImage: 'repeating-linear-gradient(135deg, rgba(168,135,77,0.06) 0 9px, transparent 9px 18px)' }} />
     <div aria-hidden="true" className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 60% 55% at 55% 40%, rgba(190,140,70,0.22), transparent 66%)' }} />
   </>
 );
