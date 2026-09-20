@@ -166,13 +166,6 @@ export const useRates = () => {
     // number that moves once a day.
     staleTime: 1000 * 60 * 60,
     initialData: loadLastKnownRates,
-    // The remembered rates are for the first paint, not for the hour. Without
-    // this, React Query dates them "now" and the staleTime above keeps the
-    // shop on whatever this browser last saw, up to an hour, before it asks
-    // the table at all: a rate that went stale in a bad week stays on screen,
-    // banner and all, long after the worker has refreshed it. Dating the
-    // memory at zero asks straight away and only paints from it meanwhile.
-    initialDataUpdatedAt: 0,
   });
 };
 
