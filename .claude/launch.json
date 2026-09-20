@@ -2,6 +2,15 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "v2-preview",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "TEAJIA_API_PROXY=https://api.teajia.com VITE_API_URL=http://localhost:7811 npx vite --port 7811 --strictPort"
+      ],
+      "port": 7811
+    },
+    {
       "name": "sandbox",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
