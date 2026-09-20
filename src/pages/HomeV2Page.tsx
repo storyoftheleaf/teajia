@@ -50,8 +50,10 @@ const HomeV2Page: React.FC = () => {
   const tea = useMemo(() => pickTea(Array.isArray(products) ? products : []), [products]);
   const shopPrice = useShopPrice();
 
+  // The page breaks out of the main column's gutter so the plates and their
+  // hairlines run edge to edge, the way the advise band does.
   return (
-    <div className="w-full bg-tea-bg text-tea-text">
+    <div className="-mx-4 md:-mx-6 lg:-mx-10 bg-tea-bg text-tea-text">
       <Helmet>
         <title>Teajia. Fine Tea &amp; Teaware</title>
         <meta name="description" content="A home for fine tea. Source it, study it, and share it with those who gather around the cup." />
