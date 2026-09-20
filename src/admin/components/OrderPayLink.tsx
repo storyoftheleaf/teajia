@@ -2,6 +2,7 @@ import React from 'react';
 import { Link2, Check } from 'lucide-react';
 import type { InvoicePayment } from '../types';
 import { countWord } from '../../components/people/profileFormat';
+import { GOLD_TEXT_ROW, GOLD_TEXT_STYLE } from '../../components/people/immersive';
 import { useToast } from './Toast';
 
 /**
@@ -186,22 +187,20 @@ export const OrderPayLink: React.FC<OrderPayLinkProps> = ({
           {/* Pay is private: this link carries a share token, so whoever opens
               it lands on the transfer details with this order's balance filled
               in, and no gate. Send it on WhatsApp or copy it; nothing else. */}
-          <div className="mt-3 grid grid-cols-2 gap-2">
+          {/* Canvas version 27: the two actions are rows of plain text in the
+              reading gold with a hairline under each, stacked one per row. */}
+          <div className="mt-3">
             <a
               href={payLinkWhatsAppHref(payUrl, invoiceNumber, customerWhatsapp)}
               target="_blank"
               rel="noopener noreferrer"
-              className="py-3 border border-tea-gold/50 rounded-xl text-ui-12 uppercase tracking-[0.2em] text-tea-readgold hover:text-tea-gold-lt flex items-center justify-center gap-2 transition-colors"
+              className={`${GOLD_TEXT_ROW}`}
+              style={GOLD_TEXT_STYLE}
               data-testid="pay-link-whatsapp"
             >
               Send on WhatsApp
             </a>
-            <button
-              type="button"
-              onClick={copy}
-              className="py-3 border border-tea-border rounded-xl text-ui-12 uppercase tracking-[0.2em] text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated flex items-center justify-center gap-2 transition-colors"
-            >
-              {copied ? <Check size={14} aria-hidden="true" /> : <Link2 size={14} aria-hidden="true" />}
+            <button type="button" onClick={copy} className={`${GOLD_TEXT_ROW}`} style={GOLD_TEXT_STYLE}>
               {copied ? 'Copied' : 'Copy pay link'}
             </button>
           </div>

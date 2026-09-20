@@ -218,8 +218,19 @@ export function Cover({ to, image, imageAlt = '', imageOpacity = 1, fallback, he
   );
 }
 
-/** The gold outline control the pay sheets use: caps, thin gold border, never solid. */
-export const GOLD_OUTLINE = 'inline-flex min-h-[48px] items-center justify-center border px-6 font-sans text-ui-10 uppercase tracking-[0.26em] text-tea-readgold transition-colors hover:text-tea-gold-lt disabled:opacity-60';
-export const GOLD_OUTLINE_STYLE: CSSProperties = { borderColor: GOLD_LINE_HOVER };
+/**
+ * The sheets' actions (canvas version 27): plain Cormorant in the reading
+ * gold with a 1px gold line under, no box, no fill, no caps. Real buttons and
+ * links; only the look is a line of text. Three sizes:
+ * ROW is a full-width action, 22px, 52px tall, the hairline under the whole
+ * row (Ask, Send on WhatsApp, Copy link, Make a pay link). ACTION is the same
+ * type at the right of its row (Approve). INLINE sits beside a fact at 17px,
+ * 44px tall so the tap target holds (Copy, Open).
+ */
+const GOLD_TEXT_BASE = 'border-b bg-transparent font-display leading-none text-tea-readgold transition-colors hover:text-tea-gold-lt disabled:opacity-60';
+export const GOLD_TEXT_ROW = `flex min-h-[52px] w-full items-center justify-start text-left text-[22px] ${GOLD_TEXT_BASE}`;
+export const GOLD_TEXT_ACTION = `inline-flex min-h-[52px] shrink-0 items-center text-[22px] ${GOLD_TEXT_BASE}`;
+export const GOLD_TEXT_INLINE = `inline-flex min-h-[44px] shrink-0 items-center text-ui-17 ${GOLD_TEXT_BASE}`;
+export const GOLD_TEXT_STYLE: CSSProperties = { borderColor: GOLD_LINE_HOVER };
 /** The sheet's top edge, and a cover's border: the thin gold line. */
 export const GOLD_LINE_STYLE: CSSProperties = { borderColor: GOLD_LINE };

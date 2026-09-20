@@ -5,7 +5,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { PaymentChooser } from '../components/profile/PaymentChooser';
 import { buildPaymentPageUrl, isTrackingTokenShaped, normalizeLocalAmount, parsePaymentContext, toPaymentOrderSummary } from '../components/profile/profileDomain';
 import { firstName } from '../components/people/profileFormat';
-import { GOLD_LINE_STYLE, GOLD_OUTLINE, GOLD_OUTLINE_STYLE } from '../components/people/immersive';
+import { GOLD_LINE_STYLE, GOLD_TEXT_ROW, GOLD_TEXT_STYLE } from '../components/people/immersive';
 import { accountSlugFromPayUrl, recipientSlugFromPayUrl } from '../components/shared/paymentClaimDomain';
 import { recallPayOrderToken } from '../components/shared/payOrderHandoff';
 import { useAuth } from '../hooks/useAuth';
@@ -147,7 +147,7 @@ export default function ProfilePaymentPage() {
           They go only to people I have sold tea to. Ask me once; from then on you can open them from my page.
         </p>
         {requested ? (
-          <p className="mt-[22px] flex min-h-[48px] items-center border px-5 font-sans text-ui-10 uppercase tracking-[0.26em] text-tea-text-dim" style={GOLD_LINE_STYLE} role="status" data-testid="pay-gate-asked">
+          <p className="mt-[22px] flex min-h-[52px] items-center border-b font-display text-[22px] leading-none text-tea-text-dim" style={GOLD_LINE_STYLE} role="status" data-testid="pay-gate-asked">
             Asked. It opens here once I approve.
           </p>
         ) : (
@@ -155,8 +155,8 @@ export default function ProfilePaymentPage() {
             type="button"
             onClick={onAsk}
             disabled={ask.isPending}
-            className={`${GOLD_OUTLINE} tap-target mt-[22px] w-full`}
-            style={GOLD_OUTLINE_STYLE}
+            className={`${GOLD_TEXT_ROW} mt-[22px]`}
+            style={GOLD_TEXT_STYLE}
             data-testid="pay-gate-ask"
           >
             {ask.isPending ? 'Asking' : `Ask ${first}`}
