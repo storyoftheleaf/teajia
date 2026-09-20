@@ -166,6 +166,17 @@ export const useRates = () => {
     // number that moves once a day.
     staleTime: 1000 * 60 * 60,
     initialData: loadLastKnownRates,
+    // The remembered rates are for the first paint, not for the hour. Without
+    // this React Query dates them "now", and the hour above covers them: a
+    // browser that has never read the table holds an EMPTY list as fresh data
+    // and does not ask. Measured on 2026-09-21 against the live site with a
+    // brand-new browser: zero requests to the rates endpoint on the home page
+    // and on the shop, nothing cached, so a first-time visitor had no currency
+    // to choose from until something else evicted the query. Dating the memory
+    // at zero asks straight away and only paints from it meanwhile. It is
+    // also why the anchored-navigation test in inventory-scroll.spec.ts was
+    // "known failing": a cold Playwright browser is that first-time visitor.
+    initialDataUpdatedAt: 0,
   });
 };
 

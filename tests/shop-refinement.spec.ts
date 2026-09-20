@@ -69,7 +69,7 @@ async function mockPublicShop(page: Page) {
       return;
     }
     const body = url.includes('/api/network/stores') ? { stores: [] }
-      : url.includes('/api/rates') ? [{ currency: 'USD', rate_to_usd: 1 }]
+      : url.includes('/api/rates') ? [{ currency: 'USD', rate_to_usd: 1, last_updated: new Date().toISOString() }]
         : [];
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
   });

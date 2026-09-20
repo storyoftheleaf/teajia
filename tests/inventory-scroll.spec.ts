@@ -135,8 +135,8 @@ async function mockInventoryApi(page: Page) {
     status: 200,
     contentType: 'application/json',
     body: JSON.stringify([
-      { currency: 'USD', rate_to_usd: 1 },
-      { currency: 'IDR', rate_to_usd: 16000 },
+      { currency: 'USD', rate_to_usd: 1, last_updated: new Date().toISOString() },
+      { currency: 'IDR', rate_to_usd: 16000, last_updated: new Date().toISOString() },
     ]),
   }));
   await page.route('**/api/admin/events', route => route.fulfill({
