@@ -277,6 +277,29 @@ export interface ContributorLink {
   url: string;
 }
 
+// The typed link shape the admin and self-serve editors write (mirrors
+// worker/src/profileDomain.ts's ContributorLink, landed by migration 0021).
+// Distinct from ContributorLink above, which is the flat {label,url} shape
+// the public profile page (ContributorProfilePage.tsx, useContributor.ts)
+// still reads -- retyping that shared interface is a different lane's
+// scope. AdminContributor and ContributorWrite use this one.
+export const CONTRIBUTOR_LINK_PLATFORMS = ['wechat', 'instagram', 'website', 'other'] as const;
+export type ContributorLinkPlatform = typeof CONTRIBUTOR_LINK_PLATFORMS[number];
+
+export interface AdminContributorLink {
+  platform: ContributorLinkPlatform;
+  value: string;
+  label?: string;
+  qr_image_url: string | null;
+}
+
+export interface ContributorGalleryImage {
+  id?: string;
+  image_url: string;
+  caption: string | null;
+  position?: number;
+}
+
 export interface ContributorListItem {
   id: string;
   display_name: string;
@@ -384,8 +407,11 @@ export interface ContributorProfile {
   seasonal_line: string | null;
 }
 
-export interface AdminContributor extends Omit<ContributorProfile, 'articles' | 'pull_quotes' | 'featured_in' | 'products' | 'host_account' | 'seasonal_line'> {
+export interface AdminContributor extends Omit<ContributorProfile, 'articles' | 'pull_quotes' | 'featured_in' | 'products' | 'host_account' | 'seasonal_line' | 'links'> {
   account_id: string;
+  business_name?: string | null;
+  links: AdminContributorLink[];
+  gallery_images?: ContributorGalleryImage[];
   publication_state?: 'draft' | 'awaiting_approval' | 'published' | 'unpublished';
   approval_state?: 'pending' | 'approved' | 'changes_requested';
   reviewer_note?: string | null;
@@ -419,6 +445,7 @@ export interface ContributorWrite {
   id?: string;
   slug?: string;
   display_name?: string;
+  business_name?: string | null;
   chinese_name?: string | null;
   role?: string | null;
   pronouns?: string | null;
@@ -440,7 +467,8 @@ export interface ContributorWrite {
   where_to_find_text?: string | null;
   user_id?: string | null;
   face_of_account_id?: string | null;
-  links?: ContributorLink[];
+  links?: AdminContributorLink[];
+  gallery_images?: ContributorGalleryImage[];
 }
 
 export interface Chapter {

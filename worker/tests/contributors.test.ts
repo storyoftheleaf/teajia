@@ -173,14 +173,26 @@ describe('account-safe contributor administration', () => {
     expect(db.contributors.get('other-writer')?.display_name).toBe('Other Writer');
   });
 
+  // Lane A retyped contributors.links from a flat {label,url} pair to a
+  // platform-typed link (worker/src/profileDomain.ts's normalizeContributorLinks,
+  // migration 0021); this test now writes and reads that shape.
   it('normalizes links and enforces https URLs and the closing limit', async () => {
     const db = new FakeDb();
     await request(db, '/api/admin/contributors', { method: 'POST', body: JSON.stringify({ id: 'writer', display_name: 'Writer' }) });
-    const updated = await request(db, '/api/admin/contributors/writer', { method: 'PUT', body: JSON.stringify({ links: [{ label: ' Site ', url: 'https://example.com' }] }) });
+    const updated = await request(db, '/api/admin/contributors/writer', { method: 'PUT', body: JSON.stringify({ links: [{ platform: 'website', value: 'https://example.com' }] }) });
     expect(updated.status).toBe(200);
-    expect(db.contributors.get('writer')?.links).toBe('[{"label":"Site","url":"https://example.com/"}]');
-    expect((await request(db, '/api/admin/contributors/writer', { method: 'PUT', body: JSON.stringify({ links: [{ label: 'Bad', url: 'http://example.com' }] }) })).status).toBe(400);
+    expect(db.contributors.get('writer')?.links).toBe('[{"platform":"website","value":"https://example.com","qr_image_url":null}]');
+    expect((await request(db, '/api/admin/contributors/writer', { method: 'PUT', body: JSON.stringify({ links: [{ platform: 'website', value: 'http://example.com' }] }) })).status).toBe(400);
+    expect((await request(db, '/api/admin/contributors/writer', { method: 'PUT', body: JSON.stringify({ links: [{ platform: 'carrier-pigeon', value: 'x' }] }) })).status).toBe(400);
     expect((await request(db, '/api/admin/contributors/writer', { method: 'PUT', body: JSON.stringify({ closing: 'x'.repeat(201) }) })).status).toBe(400);
+  });
+
+  it('saves and clears business_name through the same update route as every other field', async () => {
+    const db = new FakeDb();
+    await request(db, '/api/admin/contributors', { method: 'POST', body: JSON.stringify({ id: 'writer', display_name: 'Writer', business_name: 'Cloud Mountain Tea' }) });
+    expect(db.contributors.get('writer')?.business_name).toBe('Cloud Mountain Tea');
+    await request(db, '/api/admin/contributors/writer', { method: 'PUT', body: JSON.stringify({ business_name: null }) });
+    expect(db.contributors.get('writer')?.business_name).toBeNull();
   });
 
   it('rejects publication until beginnings is nonblank, then publishes and unpublishes', async () => {

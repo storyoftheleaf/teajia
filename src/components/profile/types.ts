@@ -1,9 +1,24 @@
 export type ProfilePublicationState = 'draft' | 'awaiting_approval' | 'published' | 'unpublished';
 export type ProfileApprovalState = 'pending' | 'approved' | 'changes_requested';
 
+// Mirrors worker/src/profileDomain.ts's ContributorLink (migration 0021):
+// a platform-typed link rather than a flat {label,url} pair, so a WeChat
+// entry can carry an id plus an optional QR image instead of a URL.
+export const CONTRIBUTOR_LINK_PLATFORMS = ['wechat', 'instagram', 'website', 'other'] as const;
+export type ContributorLinkPlatform = typeof CONTRIBUTOR_LINK_PLATFORMS[number];
+
 export interface ProfileLink {
-  label: string;
-  url: string;
+  platform: ContributorLinkPlatform;
+  value: string;
+  label?: string;
+  qr_image_url: string | null;
+}
+
+export interface ProfileGalleryImage {
+  id?: string;
+  image_url: string;
+  caption: string | null;
+  position?: number;
 }
 
 export interface ProfileAssociation {
@@ -20,6 +35,7 @@ export interface SelfProfile {
   id: string;
   slug: string;
   display_name: string;
+  business_name: string | null;
   chinese_name: string | null;
   beginnings: string | null;
   now_text: string | null;
@@ -28,6 +44,7 @@ export interface SelfProfile {
   avatar_url: string | null;
   portrait_url: string | null;
   links: ProfileLink[];
+  gallery_images: ProfileGalleryImage[];
   publication_state: ProfilePublicationState;
   approval_state: ProfileApprovalState;
   has_pending_draft?: boolean;
@@ -42,6 +59,7 @@ export interface SelfProfile {
 export type SelfProfileUpdate = Pick<
   SelfProfile,
   | 'display_name'
+  | 'business_name'
   | 'chinese_name'
   | 'beginnings'
   | 'now_text'

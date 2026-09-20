@@ -1747,6 +1747,13 @@ export const api = {
       const res = await fetchWithTimeout(`${API_URL}/api/products/public`);
       return handleResponse(res);
     },
+    // Lane F / Surface 3: published creators whose public tea selection
+    // includes this product, each with their own "why" note. Public, no
+    // auth -- same posture as listPublic above.
+    getSelectedBy: async (idOrSlug: string): Promise<{ selected_by: Array<{ slug: string; display_name: string; business_name: string | null; why: string | null }> }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/products/public/${encodeURIComponent(idOrSlug)}/selected-by`);
+      return handleResponse(res);
+    },
     create: async (data: Record<string, any>) => {
       return authedFetch(`${API_URL}/api/products`, {
         method: 'POST',
@@ -4463,6 +4470,7 @@ export const api = {
           id: String(row.id),
           slug: String(row.slug ?? row.id),
           display_name: String(row.display_name ?? ''),
+          business_name: row.business_name ?? null,
           chinese_name: row.chinese_name ?? null,
           beginnings: row.beginnings ?? null,
           now_text: row.now_text ?? null,
@@ -4471,6 +4479,7 @@ export const api = {
           avatar_url: row.avatar_url ?? null,
           portrait_url: row.portrait_url ?? null,
           links: Array.isArray(row.links) ? row.links : [],
+          gallery_images: Array.isArray(row.gallery_images) ? row.gallery_images : [],
           publication_state: row.publication_state ?? (isPublished ? 'published' : 'draft'),
           approval_state: row.approval_state ?? (isPublished ? 'approved' : 'pending'),
           is_published: isPublished,
@@ -4500,6 +4509,12 @@ export const api = {
       formData.append('slot', slot);
       const data = await authedFetch(`${API_URL}/api/me/public-profile/image`, { method: 'POST', body: formData });
       return String(data.url);
+    },
+    updateGalleryImages: async (images: Array<{ id?: string; image_url: string; caption: string | null }>): Promise<{ gallery_images: import('../components/profile/types').ProfileGalleryImage[] }> => {
+      return authedFetch(`${API_URL}/api/me/public-profile/gallery-images`, {
+        method: 'PUT',
+        body: JSON.stringify({ gallery_images: images }),
+      });
     },
     unpublishSelf: async (): Promise<{ success: true }> => {
       return authedFetch(`${API_URL}/api/me/public-profile/unpublish`, { method: 'POST' });
@@ -4683,6 +4698,12 @@ export const api = {
       return authedFetch(`${API_URL}/api/admin/contributors/${encodeURIComponent(contributorId)}/accounts`, {
         method: 'PUT',
         body: JSON.stringify({ accounts }),
+      });
+    },
+    updateContributorGalleryImages: async (contributorId: string, images: Array<{ id?: string; image_url: string; caption: string | null }>): Promise<{ gallery_images: import('../types').ContributorGalleryImage[] }> => {
+      return authedFetch(`${API_URL}/api/admin/contributors/${encodeURIComponent(contributorId)}/gallery-images`, {
+        method: 'PUT',
+        body: JSON.stringify({ gallery_images: images }),
       });
     },
     requestContributorChanges: async (contributorId: string, note: string): Promise<{ contributor: AdminContributor }> => {

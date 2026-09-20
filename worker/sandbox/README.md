@@ -83,6 +83,33 @@ Every rebuild ends by comparing the result against live, table by table and
 column by column, plus every index and trigger. Any difference prints and the
 script exits non-zero. A quiet finish is a measurement, not a hope.
 
+## Creator profile fixtures
+
+`contributors`, `contributor_accounts`, `profile_favorites`, `payment_methods`
+and `contributor_gallery_images` are not on `refresh.mjs`'s copied-table list
+either (same privacy reasoning as `users`/`customers`), so a fresh sandbox has
+zero creators. To see real `/people` and `/people/:slug` pages, seed three
+placeholder creators after building the database:
+
+```bash
+cd "/Users/adrianrasmussen/Documents/Files/2 Areas/Coding/teajia" && npm run sandbox:seed-creators
+```
+
+That inserts three fixed-slug fixtures at three fill levels:
+
+- `wei-chen` -- sparse (portrait + one paragraph, everything else absent)
+- `amara-osei` -- medium (some sections filled, some not, one unpublished payment method)
+- `kenji-tanaka` -- full (gallery, typed links with a WeChat QR image, tea
+  selection, a hosted upcoming event, an authored article with a pull-quote)
+
+Every image URL is a stock Unsplash placeholder, named as such in the script's
+header. The tea-selection rows point at real `product_listings` this sandbox
+copy actually has, queried at seed time rather than hardcoded -- see
+`seed-creator-fixtures.mjs` for the exact filter. Safe to run any time: it
+deletes its own fixture rows by fixed id before re-inserting, so running it
+twice does not duplicate anything. It does not touch `refresh.mjs`'s copied
+tables or its live-vs-repo verification step.
+
 ## Four things that will bite whoever edits the refresh script
 
 1. **The live database contains full-text search tables, and the export endpoint
@@ -126,4 +153,5 @@ otherwise, and the rebuild now runs that comparison for you.
 - `refresh.mjs`: pulls a fresh copy from live and rebuilds everything
 - `check-db.mjs`: refuses to start the API against an empty database (run by `npm run sandbox`)
 - `seed-operator.mjs`: creates the sandbox operator (run by refresh; also standalone)
+- `seed-creator-fixtures.mjs`: creates three placeholder creator profiles (standalone, run after refresh)
 - `*.sql`, `*.json`: the pulled dumps, gitignored and disposable

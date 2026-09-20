@@ -26,6 +26,7 @@ const profile: SelfProfile = {
   id: 'adrian',
   slug: 'adrian',
   display_name: 'Adrian Rasmussen',
+  business_name: null,
   chinese_name: null,
   beginnings: 'Tea sourcing, service, and education from Bali.',
   now_text: null,
@@ -34,6 +35,7 @@ const profile: SelfProfile = {
   avatar_url: null,
   portrait_url: null,
   links: [],
+  gallery_images: [],
   publication_state: 'draft',
   approval_state: 'pending',
   is_published: false,
@@ -85,7 +87,7 @@ const methods: PaymentMethod[] = [
 describe('profile interfaces', () => {
   it('shows draft, approval, and read-only store association states', () => {
     const html = renderToStaticMarkup(
-      <ProfileEditor profile={profile} onSave={async () => {}} onUnpublish={async () => {}} />,
+      <ProfileEditor profile={profile} onSave={async () => {}} onSaveGallery={async () => {}} onUnpublish={async () => {}} />,
     );
 
     expect(html).toContain('Awaiting approval');
@@ -101,6 +103,7 @@ describe('profile interfaces', () => {
       <ProfileEditor
         profile={{ ...profile, publication_state: 'published', approval_state: 'approved', is_published: true }}
         onSave={async () => {}}
+        onSaveGallery={async () => {}}
         onUnpublish={async () => {}}
       />,
     );
@@ -120,7 +123,7 @@ describe('profile interfaces', () => {
       has_pending_draft: true,
     };
     const html = renderToStaticMarkup(
-      <ProfileEditor profile={publishedWithDraft} onSave={async () => {}} onUnpublish={async () => {}} />,
+      <ProfileEditor profile={publishedWithDraft} onSave={async () => {}} onSaveGallery={async () => {}} onUnpublish={async () => {}} />,
     );
 
     expect(html).toContain('Published · public identity');
@@ -133,6 +136,7 @@ describe('profile interfaces', () => {
       <ProfileEditor
         profile={{ ...profile, approval_state: 'changes_requested', publication_state: 'draft', reviewer_note: 'Please add your current location.' }}
         onSave={async () => {}}
+        onSaveGallery={async () => {}}
         onUnpublish={async () => {}}
       />,
     );

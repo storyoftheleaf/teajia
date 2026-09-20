@@ -2,6 +2,10 @@
 
 > This is a small inbox, not the roadmap. The authoritative priorities are [docs/CONSOLIDATED_DIRECTION.md](docs/CONSOLIDATED_DIRECTION.md), and the only active build checklists are in [docs/tracks/](docs/tracks/).
 
+## Soon
+
+- [ ] Creator profiles: a profile-style home for invited creators, connected to articles, shop and Your Table _(band: agent-runnable)_ _(effort: deep)_ → Plan: [creator-profiles.md](todo/plans/creator-profiles.md)
+
 ## Prime-time audit — the ten that matter (2026-09-09)
 
 Ranked in [docs/AUDIT-2026-09.md](docs/AUDIT-2026-09.md). Each line is one root cause; the ids point at the verified findings.
@@ -168,8 +172,7 @@ anybody about it.
   The queue inside the Add Product window reads only notes a customer put forward themselves, which is the model that was just replaced. Customers no longer put anything forward, so it will sit empty and mislead whoever finds it. Its editing controls are good and worth keeping somewhere; the list behind it is the part that is now wrong.
 
 
-- [ ] **A published customer note names a person who has no page to go to.** _(band: you-required)_ _(effort: moderate)_
-  Promoted notes carry a name and a line of detail, both typed by hand at the moment of publishing rather than read from the person. Contributor profiles already exist for tea makers, so the shape is there. Whether a customer becomes a public profile, and what appears on it, is a decision about the shop's relationship to its customers, not a wiring job.
+- [x] **A published customer note names a person who has no page to go to.** — decided as a non-goal, 2026-09-19: quoted customers are explicitly not creators (Adrian's spec for [creator-profiles.md](todo/plans/creator-profiles.md)). Building a stub page for every name a customer note mentions would violate "every section earns its place or disappears." See that plan's "Non-goal" section for the full reasoning.
 
 
 - [ ] **No tea in the shop has a tasting entered, so the record never renders on the live site.** _(band: you-required)_ _(effort: moderate)_

@@ -258,10 +258,13 @@ describe('what the migration must not change', () => {
 });
 
 describe('the migration file itself', () => {
-  it('is the highest-numbered one, so nothing has claimed 0018 as well', () => {
+  it('claims 0018 exactly once, so a later migration cannot collide with this number', () => {
+    // This used to also assert 0018 was the highest-numbered file in the
+    // ledger, which was only ever true the day it was written; migrations
+    // 0019-0021 (creator profiles) landed after it on purpose. The number
+    // is a collision guard, not a claim that nothing else ships later.
     const files = migrationFiles();
     expect(files.filter(f => f.startsWith('0018'))).toEqual(['0018_the_table_stops_saying_free.sql']);
-    expect(files[files.length - 1]).toBe('0018_the_table_stops_saying_free.sql');
   });
 
   it('never drops a table, because dropping products is the destructive version', () => {

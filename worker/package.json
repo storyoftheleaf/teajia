@@ -8,6 +8,7 @@
     "audit:sql": "node --experimental-sqlite scripts/sql-schema-audit.mjs",
     "sandbox:refresh": "node sandbox/refresh.mjs",
     "sandbox:seed": "node sandbox/seed-operator.mjs",
+    "sandbox:seed-creators": "node sandbox/seed-creator-fixtures.mjs",
     "deploy": "wrangler deploy",
     "ship": "wrangler d1 migrations apply teajia-db --remote && wrangler deploy",
     "db:init": "wrangler d1 execute teajia-db --remote --file=./schema.sql",
