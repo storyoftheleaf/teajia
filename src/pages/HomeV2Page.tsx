@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { useShopPrice } from '../components/shop/shopPrice';
+import { usePublicProducts } from '../hooks/usePublicProducts';
 import { LogoText } from '../components/Logos/LogoText';
 import type { PublicProduct } from '../types';
 
@@ -23,6 +24,7 @@ import type { PublicProduct } from '../types';
  */
 
 const PIECE = {
+  slug: 'porcelain-and-tea',
   to: '/read/porcelain-and-tea',
   kicker: 'The Lead · N°15 · Conversations over tea',
   dek: 'A porcelain restorer on repair, patience, and how mending what we love mends us in return.',
@@ -42,13 +44,21 @@ const pickTea = (products: PublicProduct[]): PublicProduct | null => {
 };
 
 const HomeV2Page: React.FC = () => {
-  const { data: products } = useQuery({
-    queryKey: ['products', 'public'],
-    queryFn: () => api.products.listPublic() as Promise<PublicProduct[]>,
-    staleTime: 5 * 60 * 1000,
-  });
+  // The shop's own hook, so the rows arrive normalised. A raw fetch under the
+  // same key showed the tea only when another page had filled the cache first.
+  const { data: products } = usePublicProducts();
   const tea = useMemo(() => pickTea(Array.isArray(products) ? products : []), [products]);
   const shopPrice = useShopPrice();
+
+  // The piece's own cover portrait, the one Adrian drops onto the story page.
+  // The moment it lands there it lands here too; until then the plate shows
+  // the reading room's cover treatment.
+  const { data: storyPhotos } = useQuery({
+    queryKey: ['story-photos', PIECE.slug],
+    queryFn: () => api.storyPhotos.get(PIECE.slug),
+    staleTime: 5 * 60 * 1000,
+  });
+  const portrait = storyPhotos?.portrait;
 
   // The page breaks out of the main column's gutter, and on desktop out of the
   // column itself, so the plates and their hairlines run from the left edge of
@@ -63,23 +73,27 @@ const HomeV2Page: React.FC = () => {
         <meta name="description" content="A home for fine tea. Source it, study it, and share it with those who gather around the cup." />
       </Helmet>
 
-      {/* The statement */}
-      <section className="px-6 sm:px-10 lg:px-16 lg:pl-[calc(var(--teajia-sidebar-w)+4rem)] pt-16 sm:pt-24 lg:pt-32 pb-12 sm:pb-16 lg:pb-20 text-center">
+      {/* The statement: set to the left edge of the reading column, the way a
+          magazine opens, and kept short so the plates' photographs are on the
+          first screen rather than a scroll below it. */}
+      <section className="px-6 sm:px-10 lg:px-16 lg:pl-[calc(var(--teajia-sidebar-w)+4rem)] pt-14 sm:pt-20 lg:pt-24 pb-10 sm:pb-12 lg:pb-14">
         <h1
-          className="font-display font-normal text-tea-text mx-auto max-w-[820px] text-[clamp(34px,4.4vw,64px)] leading-[1.12] tracking-[0.01em]"
+          className="font-display font-normal text-tea-text max-w-[760px] text-[clamp(34px,4.2vw,60px)] leading-[1.1] tracking-[0.01em]"
           style={{ textWrap: 'balance' }}
         >
           Tea deepens with what you bring to the table and what you leave behind.
         </h1>
-        <p className="font-body italic text-ui-14 leading-[1.7] text-tea-text-dim max-w-[560px] mx-auto mt-8">
+        <p className="font-body italic text-ui-14 leading-[1.7] text-tea-text-dim max-w-[480px] mt-6">
           {SHIPPING_LINE}
         </p>
       </section>
 
-      {/* The three plates */}
+      {/* The three plates. On desktop the lead runs twice the width of the
+          other two, so the row reads as a spread with a cover, not three equal
+          tiles. */}
       <section
         aria-label="On the table"
-        className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-[var(--teajia-sidebar-w)_repeat(3,minmax(0,1fr))] border-t border-b border-tea-border"
+        className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-[var(--teajia-sidebar-w)_2fr_1fr_1fr] border-t border-b border-tea-border"
       >
         <Plate
           first
@@ -88,8 +102,8 @@ const HomeV2Page: React.FC = () => {
           title={<>Porcelain <span className="italic text-tea-gold">and Tea</span></>}
           body={PIECE.dek}
           foot={PIECE.kicker}
-          artwork={<PieceArtwork />}
-          artworkLabel="Portrait, at the repair table"
+          artwork={portrait ? <StoryPhoto photo={portrait} /> : <PieceArtwork />}
+          artworkLabel={portrait ? undefined : 'Portrait, at the repair table'}
         />
         <Plate
           to={tea ? `/shop/product/${tea.slug ?? tea.id}` : '/shop'}
@@ -125,7 +139,7 @@ const HomeV2Page: React.FC = () => {
       </section>
 
       {/* The house: the grounding lines, exactly as the live page has them */}
-      <section aria-label="Homepage destinations" className="px-6 sm:px-10 lg:px-16 lg:pl-[calc(var(--teajia-sidebar-w)+4rem)] py-16 sm:py-20 lg:py-28">
+      <section aria-label="Homepage destinations" className="px-6 sm:px-10 lg:px-16 lg:pl-[calc(var(--teajia-sidebar-w)+4rem)] py-14 sm:py-16 lg:py-20">
         <nav className="flex flex-col items-center gap-3 sm:gap-4 text-center">
           {[
             { accent: 'Source', rest: ' your tea.', to: '/shop' },
@@ -143,7 +157,7 @@ const HomeV2Page: React.FC = () => {
             </Link>
           ))}
         </nav>
-        <p className="mt-10 sm:mt-12 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 font-body text-ui-14 text-tea-text-dim">
+        <p className="mt-8 sm:mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 font-body text-ui-14 text-tea-text-dim">
           <Link to="/events" className="hover:text-tea-text transition-colors">sessions</Link>
           <Link to="/people" className="hover:text-tea-text transition-colors">people</Link>
           <Link to="/wisdom" className="hover:text-tea-text transition-colors">tea wisdom</Link>
@@ -153,7 +167,7 @@ const HomeV2Page: React.FC = () => {
       </section>
 
       {/* The colophon: what the live page's second act says */}
-      <section className="border-t border-tea-border px-6 sm:px-10 lg:px-16 lg:pl-[calc(var(--teajia-sidebar-w)+4rem)] pt-16 sm:pt-20 lg:pt-28 pb-nav-gap-lg lg:pb-28 text-center">
+      <section className="border-t border-tea-border px-6 sm:px-10 lg:px-16 lg:pl-[calc(var(--teajia-sidebar-w)+4rem)] pt-14 sm:pt-16 lg:pt-20 pb-nav-gap-lg lg:pb-20 text-center">
         <div className="flex justify-center mb-7">
           <LogoText size="panel" color="var(--tea-text-sec)" />
         </div>
@@ -234,7 +248,7 @@ const Plate: React.FC<PlateProps> = ({ first, to, kicker, title, body, foot, art
       onMouseLeave={() => setHover(false)}
       className={`group flex flex-row md:flex-col border-b md:border-b-0 md:border-r border-tea-border last:border-b-0 md:last:border-r-0 text-tea-text-sec focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/40 ${first ? 'lg:col-span-2' : ''}`}
     >
-      <div className="relative shrink-0 basis-[38%] min-h-[170px] md:basis-auto md:min-h-[300px] lg:min-h-[380px] overflow-hidden bg-tea-surface">
+      <div className="relative shrink-0 basis-[38%] min-h-[170px] md:basis-auto md:min-h-[300px] lg:min-h-[460px] overflow-hidden bg-tea-surface">
         {artwork}
         {artworkLabel && (
           <span className={`absolute left-4 bottom-3 font-sans text-ui-10 uppercase tracking-[0.18em] text-tea-text-dim ${first ? 'lg:left-[calc(var(--teajia-sidebar-w)+1rem)]' : ''}`}>
@@ -253,6 +267,20 @@ const Plate: React.FC<PlateProps> = ({ first, to, kicker, title, body, foot, art
         <p className="font-body mt-5 text-ui-14 text-tea-text-sec">{foot}</p>
       </div>
     </Link>
+  );
+};
+
+/** A photograph saved on a Read story page, drawn with the crop Adrian set there. */
+const StoryPhoto: React.FC<{ photo: { url: string; crop: { scale: number; x: number; y: number } } }> = ({ photo }) => {
+  const focal = `${photo.crop.x * 100}% ${photo.crop.y * 100}%`;
+  return (
+    <img
+      src={photo.url}
+      alt=""
+      className="absolute inset-0 w-full h-full object-cover"
+      style={{ objectPosition: focal, transform: `scale(${photo.crop.scale})`, transformOrigin: focal }}
+      loading="lazy"
+    />
   );
 };
 
