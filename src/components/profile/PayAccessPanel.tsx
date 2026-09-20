@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { GOLD_OUTLINE, GOLD_OUTLINE_STYLE } from '../people/immersive';
+import { countWord } from '../people/profileFormat';
 import { api } from '../../lib/api';
 import type { PayAccessGrant, PayAccessTable } from './types';
 
@@ -31,6 +32,12 @@ export function usePayAccess(enabled: boolean) {
       }
     },
   });
+}
+
+/** "Three so far." The count in words, digits past twelve (canvas version 26: no count on the right). */
+export function soFarLine(n: number): string {
+  const word = countWord(n);
+  return `${word.charAt(0).toUpperCase()}${word.slice(1)} so far.`;
 }
 
 function sinceLine(grant: PayAccessGrant): string {
@@ -108,8 +115,7 @@ export function PayAccessPanel({ contributorName, canShare }: { contributorName:
 
       <div className={`${table.pending.length ? 'mt-2' : 'mt-6'} border-t border-tea-border`}>
         <button type="button" onClick={() => setShowApproved(value => !value)} aria-expanded={showApproved} className="flex min-h-[52px] w-full items-center justify-between border-b border-tea-border text-left" data-testid="pay-access-people">
-          <span className="font-display text-[24px] leading-[1.08] text-tea-text">People who can see it</span>
-          <span className="font-sans text-ui-9 font-medium uppercase tracking-[0.18em] text-tea-text-dim">Approved · {table.approved.length}</span>
+          <span className="min-w-0"><span className="block font-display text-[24px] leading-[1.08] text-tea-text">People who can see it</span><span className="mt-1 block font-body text-ui-13 italic text-tea-text-sec">{soFarLine(table.approved.length)}</span></span>
         </button>
         {showApproved && (
           <ul className="divide-y divide-tea-border border-b border-tea-border" aria-label="People who can see your payment details">
@@ -127,7 +133,6 @@ export function PayAccessPanel({ contributorName, canShare }: { contributorName:
           <div className="border-b border-tea-border py-4" data-testid="pay-access-share">
             <div className="flex items-center justify-between gap-3">
               <span className="font-display text-[24px] leading-[1.08] text-tea-text">Share pay link</span>
-              <span className="font-sans text-ui-9 font-medium uppercase tracking-[0.18em] text-tea-text-dim">Send</span>
             </div>
             {table.share_link ? (
               <>

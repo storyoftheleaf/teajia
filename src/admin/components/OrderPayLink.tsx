@@ -112,6 +112,8 @@ export function payLinkWhatsAppHref(payUrl: string, invoiceNumber?: string | nul
 
 interface OrderPayLinkProps {
   payment?: InvoicePayment | null;
+  /** The customer's name, so the block's one sentence can say who the invoice is for. */
+  customerName?: string | null;
   /** Used in the copied-confirmation toast, so the operator knows which order it was. */
   invoiceNumber?: string;
   /** The customer's WhatsApp number, when the order carries one, so Share opens their chat. */
@@ -128,6 +130,7 @@ interface OrderPayLinkProps {
 export const OrderPayLink: React.FC<OrderPayLinkProps> = ({
   payment,
   invoiceNumber,
+  customerName,
   customerWhatsapp,
   layout = 'inline',
   className = '',
@@ -158,16 +161,20 @@ export const OrderPayLink: React.FC<OrderPayLinkProps> = ({
   }
 
   return (
+    /* Canvas version 26: no caps head. The title, then one sentence naming the
+       invoice, the customer and what is owed, then the link and its two actions. */
     <div className={`bg-tea-surface border border-tea-border rounded-xl p-4 ${className}`}>
-      <h4 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2">Payment link</h4>
-      <p className="text-ui-13 text-tea-text">
-        {recipient
-          ? `Paid to ${recipient}. The customer lands on their transfer details.`
-          : "The customer lands on this store's transfer details."}
+      <p className="font-display text-[24px] leading-[1.08] text-tea-text">Share pay link</p>
+      <p className="mt-1.5 font-body text-ui-13 italic leading-[1.45] text-tea-text-sec">
+        {payUrl
+          ? `${invoiceNumber ? `Invoice ${invoiceNumber}` : 'This invoice'}${customerName?.trim() ? ` for ${customerName.trim()}` : ''}${payment.outstanding_usd > 0 ? `, $${payment.outstanding_usd.toFixed(2)} owed` : ''}. Whoever opens it sees every method ${recipient ? `${recipient} has` : 'this store has'} published, with this invoice's amount filled in.`
+          : recipient
+            ? `Paid to ${recipient}. The customer lands on their transfer details.`
+            : "The customer lands on this store's transfer details."}
       </p>
       {payUrl ? (
         <>
-          <p className="text-ui-11 text-tea-text-sec break-all mt-2">{payUrl}</p>
+          <p className="text-ui-11 text-tea-text-sec break-all mt-3">{payUrl}</p>
           {/* Pay is private: this link carries a share token, so whoever opens
               it lands on the transfer details with this order's balance filled
               in, and no gate. Send it on WhatsApp or copy it; nothing else. */}

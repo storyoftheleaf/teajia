@@ -21,7 +21,8 @@ describe('OrderPayLink', () => {
         }}
       />,
     );
-    expect(html).toContain('Paid to Adrian');
+    expect(html).toContain('Invoice TJ-0001, $84.00 owed. Whoever opens it sees every method Adrian has published');
+    expect(html).not.toContain('Payment link</h4>');
     expect(html).toContain('Copy pay link');
     expect(html).toContain('https://teajia.com/people/adrian/pay?amount=84.00');
   });
