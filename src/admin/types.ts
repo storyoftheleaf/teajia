@@ -161,6 +161,8 @@ export interface InvoicePayment {
   outstanding_usd: number;
   /** How many customer reports are still waiting for Adrian to confirm them. */
   claims_pending: number;
+  /** Distinct teas on the invoice, teaware excluded. Older responses may lack it. */
+  tea_line_count?: number;
 }
 
 /**

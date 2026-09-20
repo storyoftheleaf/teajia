@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link2, Check } from 'lucide-react';
 import type { InvoicePayment } from '../types';
+import { countWord } from '../../components/people/profileFormat';
 import { useToast } from './Toast';
 
 /**
@@ -24,6 +25,13 @@ import { useToast } from './Toast';
 
 /** Where a tea master publishes their transfer details. */
 const METHODS_LOCATION = 'their own profile page, under Payment methods';
+
+/** "three teas", "one tea"; nothing when the count is unknown or zero. */
+function teaCountPhrase(payment: InvoicePayment): string | null {
+  const n = Number(payment.tea_line_count);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return n === 1 ? 'one tea' : `${countWord(n)} teas`;
+}
 
 function recipientOf(payment: InvoicePayment): string | null {
   return payment.recipient_name?.trim() || null;
@@ -167,7 +175,7 @@ export const OrderPayLink: React.FC<OrderPayLinkProps> = ({
       <p className="font-display text-[24px] leading-[1.08] text-tea-text">Share pay link</p>
       <p className="mt-1.5 font-body text-ui-13 italic leading-[1.45] text-tea-text-sec">
         {payUrl
-          ? `${invoiceNumber ? `Invoice ${invoiceNumber}` : 'This invoice'}${customerName?.trim() ? ` for ${customerName.trim()}` : ''}${payment.outstanding_usd > 0 ? `, $${payment.outstanding_usd.toFixed(2)} owed` : ''}. Whoever opens it sees every method ${recipient ? `${recipient} has` : 'this store has'} published, with this invoice's amount filled in.`
+          ? `${invoiceNumber ? `Invoice ${invoiceNumber}` : 'This invoice'}${customerName?.trim() ? ` for ${customerName.trim()}` : ''}${teaCountPhrase(payment) ? `, ${teaCountPhrase(payment)}` : ''}${payment.outstanding_usd > 0 ? `, $${payment.outstanding_usd.toFixed(2)} owed` : ''}. Whoever opens it sees every method ${recipient ? `${recipient} has` : 'this store has'} published, with this invoice's amount filled in.`
           : recipient
             ? `Paid to ${recipient}. The customer lands on their transfer details.`
             : "The customer lands on this store's transfer details."}

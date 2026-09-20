@@ -4196,6 +4196,12 @@ export interface InvoicePaymentInfo {
   outstanding_usd: number;
   /** Rows still sitting at status 'claimed', waiting on the operator. */
   claims_pending: number;
+  /**
+   * How many distinct teas the invoice sells: one per line whose product is
+   * not teaware, a custom line counting as a tea. The admin's share sentence
+   * says "three teas" from this rather than fetching the lines for one word.
+   */
+  tea_line_count: number;
 }
 
 export interface PayableInvoice {
@@ -4229,6 +4235,7 @@ const NO_PAYMENT: InvoicePaymentInfo = {
   paid_usd: 0,
   outstanding_usd: 0,
   claims_pending: 0,
+  tea_line_count: 0,
 };
 
 function appOrigin(env: Env): string {
@@ -4302,6 +4309,24 @@ async function resolveInvoicePayments(
     }
   }
 
+  // 1a. Distinct teas per invoice, one query for the page. Teaware is not a
+  //     tea; a custom line with no product is treated as one.
+  const teaLines = new Map<string, number>();
+  {
+    const ids = rows.map(invoice => invoice.id);
+    const teaRows = await env.DB.prepare(
+      `SELECT li.invoice_id, COUNT(DISTINCT COALESCE(li.product_id, li.id)) AS tea_lines
+         FROM invoice_line_items li
+         LEFT JOIN products p ON p.id = li.product_id
+        WHERE li.invoice_id IN (${ids.map(() => '?').join(', ')})
+          AND (p.id IS NULL OR p.type IS NULL OR p.type != 'Teaware')
+        GROUP BY li.invoice_id`
+    ).bind(...ids).all();
+    for (const row of (teaRows.results ?? []) as Array<Record<string, any>>) {
+      teaLines.set(row.invoice_id as string, Number(row.tea_lines || 0));
+    }
+  }
+
   // 1b. The payment ledger for the same page, in the same fixed query budget.
   //     The money is a fact about the invoice, not about who gets paid, so it
   //     is seeded onto every entry now. Every early return below still carries
@@ -4317,7 +4342,7 @@ async function resolveInvoicePayments(
       invoice.payment_status,
       ledger.get(invoice.id),
     ));
-    resolved.set(invoice.id, { ...NO_PAYMENT, ...money.get(invoice.id)! });
+    resolved.set(invoice.id, { ...NO_PAYMENT, ...money.get(invoice.id)!, tea_line_count: teaLines.get(invoice.id) ?? 0 });
   }
 
   // 2. The invoices' accounts (slug for the ?account= param, owner as the last
@@ -4441,7 +4466,10 @@ async function resolveInvoicePayments(
       methodsByContributor.get(contributorId) ?? [],
       linked ? accountId : null,
     );
-    const amounts = money.get(invoice.id) ?? { total_usd: 0, paid_usd: 0, outstanding_usd: 0, claims_pending: 0 };
+    const amounts = {
+      ...(money.get(invoice.id) ?? { total_usd: 0, paid_usd: 0, outstanding_usd: 0, claims_pending: 0 }),
+      tea_line_count: teaLines.get(invoice.id) ?? 0,
+    };
     if (methods.length === 0) {
       resolved.set(invoice.id, {
         ...amounts,
