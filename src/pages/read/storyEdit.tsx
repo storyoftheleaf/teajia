@@ -252,13 +252,13 @@ const EditSheet: React.FC<{
   useEffect(() => { taRef.current?.focus(); }, []);
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(10,8,5,0.55)' }} />
-      <div style={{ position: 'relative', background: '#15110b', borderTop: '1px solid rgba(168,135,77,0.35)', borderTopLeftRadius: 14, borderTopRightRadius: 14, padding: 14, paddingBottom: 'max(14px, env(safe-area-inset-bottom))', maxHeight: '72vh', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgb(var(--tj-read-bg-rgb) / 0.55)' }} />
+      <div style={{ position: 'relative', background: 'var(--tj-read-card-to)', borderTop: '1px solid rgb(var(--tj-read-gold-rgb) / 0.35)', borderTopLeftRadius: 14, borderTopRightRadius: 14, padding: 14, paddingBottom: 'max(14px, env(safe-area-inset-bottom))', maxHeight: '72vh', display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#a8874d' }}>{label || 'Edit text'}</span>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--tj-gold, var(--tj-read-gold-default))' }}>{label || 'Edit text'}</span>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" onClick={onClose} style={{ minHeight: 44, padding: '0 14px', background: 'transparent', border: '1px solid rgba(168,135,77,0.3)', borderRadius: 4, color: '#cdc0a8', fontFamily: 'var(--font-sans)', fontSize: 12, cursor: 'pointer' }}>cancel</button>
-            <button type="button" onClick={() => onSave(val.trimEnd())} style={{ minHeight: 44, padding: '0 18px', background: '#a8874d', border: 'none', borderRadius: 4, color: '#14100b', fontFamily: 'var(--font-sans)', fontSize: 12, letterSpacing: '0.06em', cursor: 'pointer' }}>done</button>
+            <button type="button" onClick={onClose} style={{ minHeight: 44, padding: '0 14px', background: 'transparent', border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.3)', borderRadius: 4, color: 'var(--tj-read-taupe)', fontFamily: 'var(--font-sans)', fontSize: 12, cursor: 'pointer' }}>cancel</button>
+            <button type="button" onClick={() => onSave(val.trimEnd())} style={{ minHeight: 44, padding: '0 18px', background: 'var(--tj-gold, var(--tj-read-gold-default))', border: 'none', borderRadius: 4, color: 'var(--tj-read-bg)', fontFamily: 'var(--font-sans)', fontSize: 12, letterSpacing: '0.06em', cursor: 'pointer' }}>done</button>
           </div>
         </div>
         <textarea
@@ -266,7 +266,7 @@ const EditSheet: React.FC<{
           value={val}
           onChange={(e) => setVal(e.target.value)}
           rows={multiline ? 6 : 2}
-          style={{ width: '100%', resize: 'none', background: '#1d1810', border: '1px solid rgba(168,135,77,0.25)', borderRadius: 6, color: '#f3ead9', fontFamily: "'Lora',Georgia,serif", fontSize: 17, lineHeight: 1.5, padding: 12, outline: 'none' }}
+          style={{ width: '100%', resize: 'none', background: 'var(--tj-read-card-from)', border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.25)', borderRadius: 6, color: 'var(--tj-read-cream)', fontFamily: "'Lora',Georgia,serif", fontSize: 17, lineHeight: 1.5, padding: 12, outline: 'none' }}
         />
       </div>
     </div>
@@ -300,7 +300,7 @@ export const EditableText: React.FC<{
       <Tag
         className={className}
         onClick={() => openSheet(field, value, !!multiline, field)}
-        style={{ ...style, outline: '1px dashed rgba(168,135,77,0.4)', outlineOffset: 3, borderRadius: 2, cursor: 'pointer', minWidth: 24 }}
+        style={{ ...style, outline: '1px dashed rgb(var(--tj-read-gold-rgb) / 0.4)', outlineOffset: 3, borderRadius: 2, cursor: 'pointer', minWidth: 24 }}
       >
         {value}
       </Tag>
@@ -320,12 +320,12 @@ export const EditableText: React.FC<{
       onKeyDown={(e: React.KeyboardEvent) => {
         if (!multiline && e.key === 'Enter') { e.preventDefault(); (e.currentTarget as HTMLElement).blur(); }
       }}
-      onFocus={(e: React.FocusEvent) => { (e.currentTarget as HTMLElement).style.outline = '1px dashed rgba(168,135,77,0.7)'; }}
-      onMouseOver={(e: React.MouseEvent) => { const el = e.currentTarget as HTMLElement; if (document.activeElement !== el) el.style.outline = '1px dashed rgba(168,135,77,0.35)'; }}
-      onMouseOut={(e: React.MouseEvent) => { const el = e.currentTarget as HTMLElement; if (document.activeElement !== el) el.style.outline = '1px dashed rgba(168,135,77,0)'; }}
+      onFocus={(e: React.FocusEvent) => { (e.currentTarget as HTMLElement).style.outline = '1px dashed rgb(var(--tj-read-gold-rgb) / 0.7)'; }}
+      onMouseOver={(e: React.MouseEvent) => { const el = e.currentTarget as HTMLElement; if (document.activeElement !== el) el.style.outline = '1px dashed rgb(var(--tj-read-gold-rgb) / 0.35)'; }}
+      onMouseOut={(e: React.MouseEvent) => { const el = e.currentTarget as HTMLElement; if (document.activeElement !== el) el.style.outline = '1px dashed rgb(var(--tj-read-gold-rgb) / 0)'; }}
       style={{
         ...style,
-        outline: '1px dashed rgba(168,135,77,0)',
+        outline: '1px dashed rgb(var(--tj-read-gold-rgb) / 0)',
         outlineOffset: 4,
         borderRadius: 2,
         cursor: 'text',

@@ -61,7 +61,7 @@ const ERA_DATA: Era[] = [
   {
     index: 0,
     char: '神',
-    charOpacity: 'rgba(168,135,77,0.055)',
+    charOpacity: 'rgb(var(--tj-read-gold-rgb) / 0.055)',
     kicker: 'c. 2737 BCE · Myth',
     title: 'A leaf, by accident',
     body: (
@@ -71,13 +71,13 @@ const ERA_DATA: Era[] = [
         happy accident, and a medicine.
       </p>
     ),
-    dot: { background: 'var(--tj-gold,#a8874d)', boxShadow: '0 0 0 4px rgba(168,135,77,0.16)' },
+    dot: { background: 'var(--tj-gold,var(--tj-gold, var(--tj-read-gold-default)))', boxShadow: '0 0 0 4px rgb(var(--tj-read-gold-rgb) / 0.16)' },
     dotLabel: '∞, the beginning',
   },
   {
     index: 1,
     char: '唐',
-    charOpacity: 'rgba(168,135,77,0.055)',
+    charOpacity: 'rgb(var(--tj-read-gold-rgb) / 0.055)',
     kicker: '618–907 · Tang Dynasty',
     title: 'Tea becomes an art',
     body: (
@@ -88,13 +88,13 @@ const ERA_DATA: Era[] = [
         A drink becomes a discipline.
       </p>
     ),
-    dot: { background: 'var(--tj-gold,#a8874d)', boxShadow: '0 0 0 4px rgba(168,135,77,0.16)' },
+    dot: { background: 'var(--tj-gold,var(--tj-gold, var(--tj-read-gold-default)))', boxShadow: '0 0 0 4px rgb(var(--tj-read-gold-rgb) / 0.16)' },
     dotLabel: 'c. 760, the Classic of Tea',
   },
   {
     index: 2,
     char: '宋',
-    charOpacity: 'rgba(168,135,77,0.055)',
+    charOpacity: 'rgb(var(--tj-read-gold-rgb) / 0.055)',
     kicker: '960–1279 · Song Dynasty',
     title: 'The whisked cup',
     body: (
@@ -105,13 +105,13 @@ const ERA_DATA: Era[] = [
         and become Japan's matcha.
       </p>
     ),
-    dot: { background: 'var(--tj-gold,#a8874d)', boxShadow: '0 0 0 4px rgba(168,135,77,0.16)' },
+    dot: { background: 'var(--tj-gold,var(--tj-gold, var(--tj-read-gold-default)))', boxShadow: '0 0 0 4px rgb(var(--tj-read-gold-rgb) / 0.16)' },
     dotLabel: 'whisked tea & tea-battles',
   },
   {
     index: 3,
     char: '明',
-    charOpacity: 'rgba(168,135,77,0.055)',
+    charOpacity: 'rgb(var(--tj-read-gold-rgb) / 0.055)',
     kicker: '1368–1644 · Ming Dynasty',
     title: 'The leaf set loose',
     body: (
@@ -121,13 +121,13 @@ const ERA_DATA: Era[] = [
         is the tea we still drink today.
       </p>
     ),
-    dot: { background: 'var(--tj-gold,#a8874d)', boxShadow: '0 0 0 4px rgba(168,135,77,0.16)' },
+    dot: { background: 'var(--tj-gold,var(--tj-gold, var(--tj-read-gold-default)))', boxShadow: '0 0 0 4px rgb(var(--tj-read-gold-rgb) / 0.16)' },
     dotLabel: '1391, loose leaf & the teapot',
   },
   {
     index: 4,
     char: '清',
-    charOpacity: 'rgba(168,135,77,0.055)',
+    charOpacity: 'rgb(var(--tj-read-gold-rgb) / 0.055)',
     kicker: '1644–1912 · Qing & the World',
     title: 'Tea sets sail',
     body: (
@@ -137,13 +137,13 @@ const ERA_DATA: Era[] = [
         Oolong and refined red teas come of age. The leaf becomes the world's drink.
       </p>
     ),
-    dot: { background: 'var(--tj-gold,#a8874d)', boxShadow: '0 0 0 4px rgba(168,135,77,0.16)' },
+    dot: { background: 'var(--tj-gold,var(--tj-gold, var(--tj-read-gold-default)))', boxShadow: '0 0 0 4px rgb(var(--tj-read-gold-rgb) / 0.16)' },
     dotLabel: 'the age of the clippers',
   },
   {
     index: 5,
     char: '今',
-    charOpacity: 'rgba(168,135,77,0.06)',
+    charOpacity: 'rgb(var(--tj-read-gold-rgb) / 0.06)',
     kicker: 'Now · The Slow Return',
     title: 'The leaf comes home',
     body: (
@@ -154,8 +154,8 @@ const ERA_DATA: Era[] = [
       </p>
     ),
     dot: {
-      background: 'var(--tj-gold-lt,#c6a667)',
-      boxShadow: '0 0 0 4px rgba(168,135,77,0.2), 0 0 14px rgba(168,135,77,0.5)',
+      background: 'var(--tj-gold-lt,var(--tj-gold-lt, var(--tj-read-gold-lt-default)))',
+      boxShadow: '0 0 0 4px rgb(var(--tj-read-gold-rgb) / 0.2), 0 0 14px rgb(var(--tj-read-gold-rgb) / 0.5)',
     },
     dotLabel: 'today, your cup',
   },
@@ -463,7 +463,7 @@ const HistoryTenThousandMornings: React.FC = () => {
           padding: 'clamp(40px,7vw,84px) 24px clamp(28px,5vw,52px)',
           overflow: 'hidden',
         }}>
-          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 72% 56% at 50% 30%, rgba(168,135,77,0.12), transparent 62%)' }} />
+          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 72% 56% at 50% 30%, rgb(var(--tj-read-gold-rgb) / 0.12), transparent 62%)' }} />
           <div aria-hidden="true" style={{
             position: 'absolute',
             top: '50%',
@@ -473,7 +473,7 @@ const HistoryTenThousandMornings: React.FC = () => {
             fontWeight: 200,
             fontSize: 'min(54vw,520px)',
             lineHeight: 1,
-            color: 'rgba(168,135,77,0.05)',
+            color: 'rgb(var(--tj-read-gold-rgb) / 0.05)',
             pointerEvents: 'none',
             userSelect: 'none',
           }}>史</div>
@@ -553,7 +553,7 @@ const HistoryTenThousandMornings: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(8px,1.5vw,16px)', flexWrap: 'wrap' }}>
               {ERA_LABELS.map((label, i) => (
                 <React.Fragment key={label}>
-                  {i > 0 && <span aria-hidden="true" style={{ color: 'rgba(168,135,77,0.3)' }}>·</span>}
+                  {i > 0 && <span aria-hidden="true" style={{ color: 'rgb(var(--tj-read-gold-rgb) / 0.3)' }}>·</span>}
                   <button
                     ref={el => { ribbonRefs.current[i] = el; }}
                     data-era={i}
@@ -602,9 +602,9 @@ const HistoryTenThousandMornings: React.FC = () => {
                   display: 'flex',
                   width: 'max-content',
                   height: 'clamp(580px,82vh,720px)',
-                  borderTop: '1px solid rgba(168,135,77,0.14)',
-                  borderBottom: '1px solid rgba(168,135,77,0.14)',
-                  background: 'linear-gradient(180deg,#161109,#14100b)',
+                  borderTop: '1px solid rgb(var(--tj-read-gold-rgb) / 0.14)',
+                  borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.14)',
+                  background: 'linear-gradient(180deg,#161109,var(--tj-read-bg))',
                 }}
               >
                 {/* Faint full-width spine baseline */}
@@ -614,7 +614,7 @@ const HistoryTenThousandMornings: React.FC = () => {
                   right: 0,
                   top: '74%',
                   height: 1,
-                  background: 'rgba(168,135,77,0.18)',
+                  background: 'rgb(var(--tj-read-gold-rgb) / 0.18)',
                 }} />
                 {/* Gold ink fill, drawn rightward as the user scrolls */}
                 <div
@@ -626,8 +626,8 @@ const HistoryTenThousandMornings: React.FC = () => {
                     top: '74%',
                     height: 1,
                     width: 0,
-                    background: `linear-gradient(90deg,${C.gold},var(--tj-gold-lt,#c6a667))`,
-                    boxShadow: '0 0 9px rgba(168,135,77,0.5)',
+                    background: `linear-gradient(90deg,${C.gold},var(--tj-gold-lt,var(--tj-gold-lt, var(--tj-read-gold-lt-default))))`,
+                    boxShadow: '0 0 9px rgb(var(--tj-read-gold-rgb) / 0.5)',
                   }}
                 />
 
@@ -655,8 +655,8 @@ const HistoryTenThousandMornings: React.FC = () => {
                 width: 44,
                 height: 44,
                 borderRadius: '50%',
-                border: '1px solid rgba(168,135,77,0.3)',
-                background: 'rgba(20,16,11,0.7)',
+                border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.3)',
+                background: 'rgb(var(--tj-read-bg-rgb) / 0.7)',
                 backdropFilter: 'blur(8px)',
                 WebkitBackdropFilter: 'blur(8px)',
                 cursor: 'pointer',
@@ -667,7 +667,7 @@ const HistoryTenThousandMornings: React.FC = () => {
               }}
             >
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M9 2L4 7l5 5" stroke="#a8874d" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M9 2L4 7l5 5" stroke="var(--tj-gold, var(--tj-read-gold-default))" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
 
@@ -684,8 +684,8 @@ const HistoryTenThousandMornings: React.FC = () => {
                 width: 44,
                 height: 44,
                 borderRadius: '50%',
-                border: '1px solid rgba(168,135,77,0.3)',
-                background: 'rgba(20,16,11,0.7)',
+                border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.3)',
+                background: 'rgb(var(--tj-read-bg-rgb) / 0.7)',
                 backdropFilter: 'blur(8px)',
                 WebkitBackdropFilter: 'blur(8px)',
                 cursor: 'pointer',
@@ -702,7 +702,7 @@ const HistoryTenThousandMornings: React.FC = () => {
                 fill="none"
                 style={{ animation: 'tjNudge 2.6s ease-in-out infinite' }}
               >
-                <path d="M5 2l5 5-5 5" stroke="#a8874d" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M5 2l5 5-5 5" stroke="var(--tj-gold, var(--tj-read-gold-default))" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
           </div>
@@ -729,7 +729,7 @@ const HistoryTenThousandMornings: React.FC = () => {
         <section style={{ maxWidth: 1040, margin: '0 auto', padding: 'clamp(20px,4vw,40px) 24px clamp(40px,6vw,72px)' }}>
           <div data-reveal style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 34 }}>
             <span style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 30, color: C.gold, lineHeight: 1 }}>三</span>
-            <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.22)' }} />
+            <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.22)' }} />
             <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim }}>
               Three ways to drink the same leaf
             </span>
@@ -742,9 +742,9 @@ const HistoryTenThousandMornings: React.FC = () => {
               { char: '泡', title: 'Steeped · Ming → now', body: 'Whole leaves loose in hot water. The simplest method, and the one that finally conquered the world.' },
             ].map(({ char, title, body }) => (
               <div key={char} data-reveal style={{
-                border: '1px solid rgba(168,135,77,0.16)',
+                border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.16)',
                 borderRadius: 4,
-                background: 'linear-gradient(160deg,#1d1810,#15110b)',
+                background: 'linear-gradient(160deg,var(--tj-read-card-from),var(--tj-read-card-to))',
                 padding: 'clamp(22px,3vw,30px)',
               }}>
                 <div style={{ fontFamily: F.cn, fontSize: 26, color: C.gold, marginBottom: 14 }}>{char}</div>

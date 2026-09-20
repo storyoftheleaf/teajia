@@ -57,16 +57,16 @@ const sectionDivider = (numeral: string, label: string) => (
     }}
   >
     <span style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 30, color: C.gold, lineHeight: 1 }}>{numeral}</span>
-    <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.22)' }} />
+    <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.22)' }} />
     <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim }}>{label}</span>
   </div>
 );
 
 // ─── Clay card ───────────────────────────────────────────────────────────────
 const ClayCard: React.FC<{ bg: string; name: string; cn: string; desc: string }> = ({ bg, name, cn, desc }) => (
-  <div style={{ border: '1px solid rgba(168,135,77,0.16)', borderRadius: 4, background: 'linear-gradient(160deg,#1d1810,#15110b)', padding: 'clamp(22px,3vw,30px)' }}>
+  <div style={{ border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.16)', borderRadius: 4, background: 'linear-gradient(160deg,var(--tj-read-card-from),var(--tj-read-card-to))', padding: 'clamp(22px,3vw,30px)' }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-      <span style={{ width: 30, height: 30, borderRadius: '50%', background: bg, boxShadow: 'inset 0 -4px 8px rgba(0,0,0,0.3), inset 0 4px 6px rgba(255,255,255,0.12), 0 0 0 1px rgba(168,135,77,0.25)', display: 'inline-block' }} />
+      <span style={{ width: 30, height: 30, borderRadius: '50%', background: bg, boxShadow: 'inset 0 -4px 8px rgba(0,0,0,0.3), inset 0 4px 6px rgba(255,255,255,0.12), 0 0 0 1px rgb(var(--tj-read-gold-rgb) / 0.25)', display: 'inline-block' }} />
       <div>
         <div style={{ fontFamily: F.display, fontSize: 23, color: C.ink, lineHeight: 1 }}>{name}</div>
         <div style={{ fontFamily: F.cn, fontSize: 13, color: C.dim }}>{cn}</div>
@@ -104,7 +104,7 @@ const CraftPotThatRemembers: React.FC = () => {
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,360px),1fr))',
           alignItems: 'stretch',
-          borderBottom: '1px solid rgba(168,135,77,0.14)',
+          borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.14)',
           minHeight: '90vh',
         }}>
           {/* text column */}
@@ -119,7 +119,7 @@ const CraftPotThatRemembers: React.FC = () => {
             <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(16px,2vw,20px)', lineHeight: 1.5, color: C.taupe, margin: '24px 0 0', maxWidth: 440 }}>
               A small unglazed teapot from a single town in China drinks in every tea it brews, until, years later, it can make tea from hot water alone.
             </p>
-            <div style={{ marginTop: 'clamp(30px,5vw,46px)', paddingTop: 24, borderTop: '1px solid rgba(168,135,77,0.16)', fontFamily: F.cn, fontSize: 22, color: C.taupe }}>
+            <div style={{ marginTop: 'clamp(30px,5vw,46px)', paddingTop: 24, borderTop: '1px solid rgb(var(--tj-read-gold-rgb) / 0.16)', fontFamily: F.cn, fontSize: 22, color: C.taupe }}>
               紫砂壺{' '}
               <span style={{ fontFamily: F.ui, fontSize: 10.5, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.dim }}>
                zǐshā hú, the purple-sand pot
@@ -128,7 +128,7 @@ const CraftPotThatRemembers: React.FC = () => {
           </div>
 
           {/* illustration column */}
-          <div style={{ position: 'relative', order: 1, overflow: 'hidden', minHeight: '48vh', background: 'linear-gradient(155deg,#2a1d14 0%,#14100b 80%)' }}>
+          <div style={{ position: 'relative', order: 1, overflow: 'hidden', minHeight: '48vh', background: 'linear-gradient(155deg,#2a1d14 0%,var(--tj-read-bg) 80%)' }}>
             <div aria-hidden="true" style={{ ...grainCss('0.8', 150), opacity: 0.08 }} />
             <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 50% at 50% 44%, rgba(176,106,60,0.2), transparent 64%)' }} />
             {/* teapot SVG, xishi form */}
@@ -147,7 +147,7 @@ const CraftPotThatRemembers: React.FC = () => {
                 <path d="M314 224 C 344 222, 356 240, 352 268 C 340 256, 326 250, 312 250" />
               </g>
               {/* shadow ellipse */}
-              <g fill="none" stroke="rgba(168,135,77,0.2)" strokeWidth="1"><ellipse cx="232" cy="324" rx="70" ry="12" /></g>
+              <g fill="none" stroke="rgb(var(--tj-read-gold-rgb) / 0.2)" strokeWidth="1"><ellipse cx="232" cy="324" rx="70" ry="12" /></g>
             </svg>
             <div style={{ position: 'absolute', left: 'clamp(18px,3vw,28px)', bottom: 'clamp(18px,3vw,26px)', fontFamily: F.mono, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim }}>
               A xishi pot, unglazed zisha
@@ -188,7 +188,7 @@ const CraftPotThatRemembers: React.FC = () => {
               </p>
             </div>
             <figure data-reveal style={{ margin: 0 }}>
-              <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgba(168,135,77,0.2)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(160deg,#2c1f14,#14100b 82%)' }}>
+              <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.2)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(160deg,#2c1f14,var(--tj-read-bg) 82%)' }}>
                 <div aria-hidden="true" style={{ ...grainCss('0.7', 90), opacity: 0.1 }} />
                 <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 50% at 46% 40%, rgba(176,106,60,0.26), transparent 64%)' }} />
                 <svg viewBox="0 0 320 400" preserveAspectRatio="xMidYMid meet" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
@@ -216,7 +216,7 @@ const CraftPotThatRemembers: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 'clamp(28px,4vw,40px)' }}>
             {/* Chinese numeral 三 (three) from the design */}
             <span style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 30, color: C.gold, lineHeight: 1 }}>三</span>
-            <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.22)' }} />
+            <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.22)' }} />
             <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim }}>Three clays</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,240px),1fr))', gap: 'clamp(18px,3vw,28px)' }}>
@@ -238,7 +238,7 @@ const CraftPotThatRemembers: React.FC = () => {
         <section style={{ maxWidth: 680, margin: '0 auto', padding: '0 24px' }}>
           <div data-reveal style={{ display: 'flex', alignItems: 'center', gap: 18, margin: 'clamp(20px,4vw,40px) 0 clamp(28px,4vw,40px)' }}>
             <span style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 30, color: C.gold, lineHeight: 1 }}>II</span>
-            <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.22)' }} />
+            <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.22)' }} />
             <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim }}>Seasoning a pot</span>
           </div>
           <p data-reveal style={{ ...pBody, marginBottom: 22 }}>
@@ -254,14 +254,14 @@ const CraftPotThatRemembers: React.FC = () => {
           <div style={{ maxWidth: 680, margin: '0 auto', marginBottom: 'clamp(28px,4vw,40px)' }}>
             <div data-reveal style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
               <span style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 30, color: C.gold, lineHeight: 1 }}>III</span>
-              <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.22)' }} />
+              <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.22)' }} />
               <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim }}>The patina of years</span>
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,300px),1fr))', gap: 'clamp(24px,4vw,52px)', alignItems: 'center' }}>
             {/* illustration, plate II */}
             <figure data-reveal style={{ margin: 0, order: 2 }}>
-              <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgba(168,135,77,0.2)', borderRadius: 3, overflow: 'hidden', background: 'radial-gradient(ellipse 64% 56% at 50% 44%, rgba(176,106,60,0.22), transparent 64%), linear-gradient(160deg,#241a12,#14100b)' }}>
+              <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.2)', borderRadius: 3, overflow: 'hidden', background: 'radial-gradient(ellipse 64% 56% at 50% 44%, rgba(176,106,60,0.22), transparent 64%), linear-gradient(160deg,#241a12,var(--tj-read-bg))' }}>
                 <svg viewBox="0 0 320 400" preserveAspectRatio="xMidYMid meet" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
                   <g fill="none" stroke="rgba(200,150,96,0.6)" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round">
                     <path d="M104 214 C 104 270, 142 300, 190 300 C 238 300, 276 270, 276 214 C 276 192, 262 178, 190 176 C 118 178, 104 192, 104 214 Z" />
@@ -292,7 +292,7 @@ const CraftPotThatRemembers: React.FC = () => {
 
         {/* ── FACT FILE ─────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 1040, margin: '0 auto', padding: 'clamp(30px,5vw,56px) 24px' }}>
-          <div style={{ border: '1px solid rgba(168,135,77,0.2)', borderRadius: 4, background: 'linear-gradient(160deg,#1d1810,#15110b)', padding: 'clamp(24px,4vw,40px)' }}>
+          <div style={{ border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.2)', borderRadius: 4, background: 'linear-gradient(160deg,var(--tj-read-card-from),var(--tj-read-card-to))', padding: 'clamp(24px,4vw,40px)' }}>
             <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 600, letterSpacing: '0.22em', textTransform: 'uppercase', color: C.gold, marginBottom: 24 }}>
               Living with a Yixing pot
             </div>

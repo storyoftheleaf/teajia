@@ -60,7 +60,7 @@ const SectionDivider: React.FC<{ numeral: string; label: string; wideContainer?:
     }}
   >
     <span style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 30, color: C.gold, lineHeight: 1 }}>{numeral}</span>
-    <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.22)' }} />
+    <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.22)' }} />
     <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim }}>{label}</span>
   </div>
 );
@@ -98,7 +98,7 @@ const LegendImmortalsCliff: React.FC = () => {
           overflow: 'hidden',
         }}>
           {/* background gradient layers */}
-          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,#3a2418 0%,#241610 52%,#14100b 100%)' }} />
+          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,#3a2418 0%,#241610 52%,var(--tj-read-bg) 100%)' }} />
           <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 56% 50% at 64% 30%, rgba(190,96,52,0.3), transparent 62%)' }} />
 
           {/* cliff SVG illustration */}
@@ -111,7 +111,7 @@ const LegendImmortalsCliff: React.FC = () => {
               <path d="M-40 430 C 220 398, 420 408, 620 366" />
               <path d="M-40 500 C 240 466, 460 476, 700 432" />
             </g>
-            <g fill="rgba(168,135,77,0.5)">
+            <g fill="rgb(var(--tj-read-gold-rgb) / 0.5)">
               <circle cx="300" cy="206" r="3" />
               <circle cx="334" cy="214" r="3" />
               <circle cx="368" cy="208" r="3" />
@@ -120,7 +120,7 @@ const LegendImmortalsCliff: React.FC = () => {
           </svg>
 
           {/* bottom fade-up vignette */}
-          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(0deg, rgba(20,16,11,0.88), transparent 44%)' }} />
+          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(0deg, rgb(var(--tj-read-bg-rgb) / 0.88), transparent 44%)' }} />
 
           {/* hero text */}
           <div style={{ position: 'relative', zIndex: 1, padding: '0 clamp(24px,6vw,84px) clamp(48px,9vw,110px)', maxWidth: 1000 }}>
@@ -142,7 +142,7 @@ const LegendImmortalsCliff: React.FC = () => {
             style={{ position: 'absolute', bottom: 28, left: '50%', animation: 'tjFloat 3.4s ease-in-out infinite' }}
           >
             <svg width="13" height="20" viewBox="0 0 13 20" fill="none">
-              <path d="M6.5 1v17M1 12.5l5.5 5.5 5.5-5.5" stroke="#a8874d" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M6.5 1v17M1 12.5l5.5 5.5 5.5-5.5" stroke="var(--tj-gold, var(--tj-read-gold-default))" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
         </header>
@@ -163,7 +163,7 @@ const LegendImmortalsCliff: React.FC = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,300px),1fr))', gap: 'clamp(24px,4vw,52px)', alignItems: 'center' }}>
             {/* Plate I: mother bushes */}
             <figure data-reveal style={{ margin: 0, order: 2 }}>
-              <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgba(168,135,77,0.2)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(160deg,#33201a,#14100b 82%)' }}>
+              <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.2)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(160deg,#33201a,var(--tj-read-bg) 82%)' }}>
                 <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 44% at 54% 30%, rgba(190,96,52,0.28), transparent 60%)' }} />
                 <svg viewBox="0 0 320 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
                   <g fill="none" stroke="rgba(190,110,60,0.32)" strokeWidth="1.2">
@@ -209,7 +209,7 @@ const LegendImmortalsCliff: React.FC = () => {
         <section style={{ maxWidth: 680, margin: '0 auto', padding: '0 24px' }}>
           <div data-reveal style={{ display: 'flex', alignItems: 'center', gap: 18, margin: 'clamp(20px,4vw,40px) 0 clamp(28px,4vw,40px)' }}>
             <span style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 30, color: C.gold, lineHeight: 1 }}>II</span>
-            <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.22)' }} />
+            <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.22)' }} />
             <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim }}>The last harvest</span>
           </div>
           <p data-reveal style={{ ...pBody, marginBottom: 22 }}>
@@ -224,7 +224,7 @@ const LegendImmortalsCliff: React.FC = () => {
 
         {/* ── FACT FILE ─────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 1040, margin: '0 auto', padding: 'clamp(40px,6vw,80px) 24px' }}>
-          <div style={{ border: '1px solid rgba(168,135,77,0.2)', borderRadius: 4, background: 'linear-gradient(160deg,#211710,#15110b)', padding: 'clamp(24px,4vw,40px)' }}>
+          <div style={{ border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.2)', borderRadius: 4, background: 'linear-gradient(160deg,var(--tj-read-card-from),var(--tj-read-card-to))', padding: 'clamp(24px,4vw,40px)' }}>
             <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 600, letterSpacing: '0.22em', textTransform: 'uppercase', color: C.gold, marginBottom: 24 }}>
               The mother trees, on the record
             </div>
@@ -243,7 +243,7 @@ const LegendImmortalsCliff: React.FC = () => {
         <section style={{ maxWidth: 1100, margin: '0 auto', padding: '0 clamp(20px,5vw,40px)' }}>
           <div data-reveal style={{ display: 'flex', alignItems: 'center', gap: 18, margin: 'clamp(20px,4vw,40px) 0 clamp(28px,4vw,40px)', maxWidth: 680, marginLeft: 'auto', marginRight: 'auto' }}>
             <span style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 30, color: C.gold, lineHeight: 1 }}>III</span>
-            <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.22)' }} />
+            <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.22)' }} />
             <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim }}>Six bushes, ten thousand children</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,300px),1fr))', gap: 'clamp(24px,4vw,52px)', alignItems: 'center' }}>
@@ -259,10 +259,10 @@ const LegendImmortalsCliff: React.FC = () => {
 
             {/* Plate II: the children */}
             <figure data-reveal style={{ margin: 0 }}>
-              <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgba(168,135,77,0.2)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(160deg,#2a1d12,#14100b 82%)' }}>
+              <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.2)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(160deg,#2a1d12,var(--tj-read-bg) 82%)' }}>
                 <div aria-hidden="true" style={{ ...grainCss('0.8', 120), opacity: 0.07 }} />
                 <svg viewBox="0 0 320 400" preserveAspectRatio="xMidYMid meet" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-                  <g fill="none" stroke="rgba(168,135,77,0.34)" strokeWidth="1.2" strokeLinecap="round">
+                  <g fill="none" stroke="rgb(var(--tj-read-gold-rgb) / 0.34)" strokeWidth="1.2" strokeLinecap="round">
                     <path d="M70 300 C 66 270, 70 250, 84 238 M70 300 C 74 272, 84 256, 98 246" />
                     <path d="M160 310 C 156 276, 160 252, 176 238 M160 310 C 166 280, 180 262, 196 250 M160 310 C 150 280, 134 264, 120 254" />
                     <path d="M250 300 C 246 272, 250 252, 264 240 M250 300 C 256 274, 268 258, 282 248" />

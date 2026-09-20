@@ -113,7 +113,7 @@ const IndexRow: React.FC<{ item: IndexItem; draft?: boolean }> = ({ item, draft 
         alignItems: 'baseline',
         gap: 16,
         padding: hovered ? '15px 6px 15px 14px' : '15px 6px',
-        borderBottom: '1px solid rgba(168,135,77,0.10)',
+        borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.10)',
         textDecoration: 'none',
         color: 'inherit',
         opacity: draft ? 0.5 : 1,
@@ -122,11 +122,11 @@ const IndexRow: React.FC<{ item: IndexItem; draft?: boolean }> = ({ item, draft 
       onMouseOver={() => setHovered(true)}
       onMouseOut={() => setHovered(false)}
     >
-      <span style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.06em', color: hovered ? 'var(--tj-gold-lt,#c6a667)' : 'var(--tj-gold,#a8874d)', paddingTop: 5, transition: 'color 240ms' }}>
+      <span style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.06em', color: hovered ? 'var(--tj-gold-lt,var(--tj-gold-lt, var(--tj-read-gold-lt-default)))' : 'var(--tj-gold,var(--tj-gold, var(--tj-read-gold-default)))', paddingTop: 5, transition: 'color 240ms' }}>
         {item.n}
       </span>
       <span>
-        <span style={{ display: 'block', fontFamily: F.display, fontSize: 'clamp(22px,2.4vw,27px)', lineHeight: 1.08, color: hovered ? '#fff7ea' : '#ede4d4', transition: 'color 240ms' }}>
+        <span style={{ display: 'block', fontFamily: F.display, fontSize: 'clamp(22px,2.4vw,27px)', lineHeight: 1.08, color: hovered ? 'var(--tj-read-hover-ink)' : 'var(--tj-read-ink)', transition: 'color 240ms' }}>
           {item.title}
         </span>
         <span style={{ display: 'block', fontFamily: F.body, fontStyle: 'italic', fontSize: 13, lineHeight: 1.45, color: C.dim, marginTop: 4 }}>
@@ -138,7 +138,7 @@ const IndexRow: React.FC<{ item: IndexItem; draft?: boolean }> = ({ item, draft 
           {item.rubric}
         </span>
         {draft && (
-          <span style={{ fontFamily: F.mono, fontSize: 8.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.gold, border: '1px solid rgba(168,135,77,0.4)', borderRadius: 2, padding: '1px 5px', whiteSpace: 'nowrap' }}>
+          <span style={{ fontFamily: F.mono, fontSize: 8.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.gold, border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.4)', borderRadius: 2, padding: '1px 5px', whiteSpace: 'nowrap' }}>
             Draft
           </span>
         )}
@@ -160,10 +160,10 @@ const GroupBlock: React.FC<{ group: IndexGroup; isAdmin: boolean }> = ({ group, 
         <span style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 24, color: C.gold, lineHeight: 1 }}>
           {group.glyph}
         </span>
-        <span style={{ fontFamily: F.ui, fontSize: 9.5, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: '#9e8f76' }}>
+        <span style={{ fontFamily: F.ui, fontSize: 9.5, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: 'var(--tj-read-dim)' }}>
           {group.label}
         </span>
-        <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.14)' }} />
+        <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.14)' }} />
         <span style={{ fontFamily: F.mono, fontSize: 10, color: C.dim }}>
           {String(visible.length).padStart(2, '0')}
         </span>
@@ -187,11 +187,11 @@ const LeadCover: React.FC = () => {
         flexDirection: 'column',
         justifyContent: 'flex-end',
         minHeight: 'clamp(320px,40vw,400px)',
-        border: `1px solid ${hovered ? 'rgba(168,135,77,0.5)' : 'rgba(168,135,77,0.24)'}`,
+        border: `1px solid ${hovered ? 'rgb(var(--tj-read-gold-rgb) / 0.5)' : 'rgb(var(--tj-read-gold-rgb) / 0.24)'}`,
         overflow: 'hidden',
         textDecoration: 'none',
         color: 'inherit',
-        background: 'linear-gradient(158deg,#2a2620 0%,#1c1810 56%,#14100b 100%)',
+        background: 'linear-gradient(158deg,#2a2620 0%,#1c1810 56%,var(--tj-read-bg) 100%)',
         transition: 'border-color 240ms',
       }}
       onMouseOver={() => setHovered(true)}
@@ -199,29 +199,29 @@ const LeadCover: React.FC = () => {
     >
       <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 64% 56% at 60% 28%, rgba(150,180,180,0.20), transparent 64%)' }} />
       <svg viewBox="0 0 420 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.55 }}>
-        <g fill="none" stroke="rgba(168,135,77,0.26)" strokeWidth="1">
+        <g fill="none" stroke="rgb(var(--tj-read-gold-rgb) / 0.26)" strokeWidth="1">
           <path d="M-20 110 C 120 84, 240 96, 460 56" />
           <path d="M-20 170 C 120 142, 260 154, 460 110" />
           <path d="M-20 230 C 140 198, 280 210, 460 164" />
         </g>
-        <g fill="rgba(168,135,77,0.42)">
+        <g fill="rgb(var(--tj-read-gold-rgb) / 0.42)">
           <circle cx="150" cy="130" r="3" />
           <circle cx="184" cy="138" r="3" />
           <circle cx="218" cy="130" r="3" />
           <circle cx="252" cy="140" r="3" />
         </g>
       </svg>
-      <div aria-hidden="true" style={{ position: 'absolute', right: -18, top: -30, fontFamily: F.cn, fontWeight: 200, fontSize: 230, lineHeight: 1, color: 'rgba(168,135,77,0.08)' }}>茶</div>
-      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(0deg, rgba(20,16,11,0.92), transparent 52%)' }} />
+      <div aria-hidden="true" style={{ position: 'absolute', right: -18, top: -30, fontFamily: F.cn, fontWeight: 200, fontSize: 230, lineHeight: 1, color: 'rgb(var(--tj-read-gold-rgb) / 0.08)' }}>茶</div>
+      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(0deg, rgb(var(--tj-read-bg-rgb) / 0.92), transparent 52%)' }} />
       <div style={{ position: 'relative', padding: 'clamp(24px,3vw,32px)' }}>
         <div style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.26em', textTransform: 'uppercase', color: C.gold, marginBottom: 14 }}>
           The Lead · N°15 · Conversations over tea
         </div>
-        <div style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(34px,4.4vw,46px)', lineHeight: 0.98, color: '#f3ead9' }}>
+        <div style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(34px,4.4vw,46px)', lineHeight: 0.98, color: 'var(--tj-read-cream)' }}>
           Porcelain{' '}
           <span style={{ fontStyle: 'italic', color: C.gold }}>and Tea</span>
         </div>
-        <div style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 14, lineHeight: 1.5, color: '#cdc0a8', marginTop: 14, maxWidth: 330 }}>
+        <div style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 14, lineHeight: 1.5, color: 'var(--tj-read-taupe)', marginTop: 14, maxWidth: 330 }}>
           A porcelain restorer on repair, patience, and how mending what we love mends us in return.
         </div>
       </div>
@@ -249,7 +249,7 @@ const SecondaryCover: React.FC<{
         flexDirection: 'column',
         justifyContent: 'flex-end',
         minHeight: 128,
-        border: `1px solid ${hovered ? 'rgba(168,135,77,0.45)' : 'rgba(168,135,77,0.18)'}`,
+        border: `1px solid ${hovered ? 'rgb(var(--tj-read-gold-rgb) / 0.45)' : 'rgb(var(--tj-read-gold-rgb) / 0.18)'}`,
         overflow: 'hidden',
         textDecoration: 'none',
         color: 'inherit',
@@ -262,12 +262,12 @@ const SecondaryCover: React.FC<{
       <svg viewBox="0 0 420 128" preserveAspectRatio="xMidYMid slice" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: svgOpacity }}>
         {svgPaths}
       </svg>
-      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(0deg, rgba(20,16,11,0.86), transparent 64%)' }} />
+      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(0deg, rgb(var(--tj-read-bg-rgb) / 0.86), transparent 64%)' }} />
       <div style={{ position: 'relative', padding: '16px 18px' }}>
         <div style={{ fontFamily: F.mono, fontSize: 8.5, letterSpacing: '0.22em', textTransform: 'uppercase', color: C.gold, marginBottom: 7 }}>
           {kicker}
         </div>
-        <div style={{ fontFamily: F.display, fontSize: 25, lineHeight: 1, color: '#f3ead9' }}>
+        <div style={{ fontFamily: F.display, fontSize: 25, lineHeight: 1, color: 'var(--tj-read-cream)' }}>
           {title}
         </div>
       </div>
@@ -277,13 +277,13 @@ const SecondaryCover: React.FC<{
 
 // ── Draft placeholder card (Templates Room) ──────────────────────────────────
 const DraftCard: React.FC<{ label: string; title: string; dek: string }> = ({ label, title, dek }) => (
-  <div style={{ position: 'relative', border: '1px dashed rgba(168,135,77,0.35)', padding: 22, opacity: 0.78, overflow: 'hidden' }}>
-    <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'repeating-linear-gradient(135deg, rgba(168,135,77,0.05) 0 7px, transparent 7px 14px)' }} />
+  <div style={{ position: 'relative', border: '1px dashed rgb(var(--tj-read-gold-rgb) / 0.35)', padding: 22, opacity: 0.78, overflow: 'hidden' }}>
+    <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'repeating-linear-gradient(135deg, rgb(var(--tj-read-gold-rgb) / 0.05) 0 7px, transparent 7px 14px)' }} />
     <div style={{ position: 'relative' }}>
       <div style={{ fontFamily: F.mono, fontSize: 8.5, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim, marginBottom: 18 }}>
         {label}
       </div>
-      <div style={{ fontFamily: F.display, fontSize: 23, lineHeight: 1.05, color: '#b6a888', marginBottom: 8 }}>
+      <div style={{ fontFamily: F.display, fontSize: 23, lineHeight: 1.05, color: 'var(--tj-read-taupe)', marginBottom: 8 }}>
         {title}
       </div>
       <div style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 12.5, lineHeight: 1.5, color: C.dim }}>
@@ -351,7 +351,7 @@ const ReadIndex: React.FC = () => {
       <style>{ROOM_RESPONSIVE_STYLE}</style>
 
       {/* NAV, index variant: no back arrow, no owner toggle */}
-      <nav style={{ position: 'sticky', top: 0, zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '13px clamp(18px,4vw,44px)', background: 'rgba(20,16,11,0.72)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', borderBottom: '1px solid rgba(168,135,77,0.12)' }}>
+      <nav style={{ position: 'sticky', top: 0, zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '13px clamp(18px,4vw,44px)', background: 'rgb(var(--tj-read-bg-rgb) / 0.72)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.12)' }}>
         <span style={{ fontFamily: F.display, fontWeight: 600, fontSize: 18, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.ink }}>Teajia</span>
         <span style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim, whiteSpace: 'nowrap' }}>Read · The Art of Tea</span>
         <ProgressTrack progress={progress} />
@@ -361,16 +361,16 @@ const ReadIndex: React.FC = () => {
 
         {/* MASTHEAD */}
         <header style={{ position: 'relative', maxWidth: 1240, margin: '0 auto', padding: 'clamp(54px,9vw,118px) clamp(24px,5vw,56px) clamp(34px,5vw,56px)', overflow: 'hidden' }}>
-          <div aria-hidden="true" style={{ position: 'absolute', top: '-12%', right: '-2%', fontFamily: F.cn, fontWeight: 200, fontSize: 'min(46vw,440px)', lineHeight: 1, color: 'rgba(168,135,77,0.05)', pointerEvents: 'none', userSelect: 'none' }}>茶</div>
+          <div aria-hidden="true" style={{ position: 'absolute', top: '-12%', right: '-2%', fontFamily: F.cn, fontWeight: 200, fontSize: 'min(46vw,440px)', lineHeight: 1, color: 'rgb(var(--tj-read-gold-rgb) / 0.05)', pointerEvents: 'none', userSelect: 'none' }}>茶</div>
           <div style={{ position: 'relative', maxWidth: 760 }}>
             <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.42em', textTransform: 'uppercase', color: C.gold, marginBottom: 26 }}>
               A reading room · {piecesLabel.toLowerCase()}
             </div>
-            <h1 style={{ fontFamily: F.display, fontWeight: 500, fontSize: 'clamp(54px,10vw,124px)', lineHeight: 0.92, letterSpacing: '0.01em', color: '#f3ead9', margin: 0 }}>
+            <h1 style={{ fontFamily: F.display, fontWeight: 500, fontSize: 'clamp(54px,10vw,124px)', lineHeight: 0.92, letterSpacing: '0.01em', color: 'var(--tj-read-cream)', margin: 0 }}>
               The Art{' '}
               <span style={{ fontStyle: 'italic', color: C.gold }}>of Tea</span>
             </h1>
-            <p style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(19px,2.4vw,27px)', lineHeight: 1.45, color: '#cdc0a8', margin: '26px 0 0', maxWidth: 540 }}>
+            <p style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(19px,2.4vw,27px)', lineHeight: 1.45, color: 'var(--tj-read-taupe)', margin: '26px 0 0', maxWidth: 540 }}>
               Long, slow pieces on the people and patience behind the world&rsquo;s oldest drink. Sit. The kettle is on.
             </p>
           </div>
@@ -394,7 +394,7 @@ const ReadIndex: React.FC = () => {
           <section>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, marginBottom: 8 }}>
               <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.26em', textTransform: 'uppercase', color: C.dim }}>Contents</span>
-              <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.18)' }} />
+              <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.18)' }} />
               <span style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.1em', color: C.dim }}>{piecesLabel}</span>
             </div>
             {INDEX_GROUPS.map((group) => (
@@ -444,9 +444,9 @@ const ReadIndex: React.FC = () => {
                 title={<>Quiet <span style={{ fontStyle: 'italic', color: C.gold }}>Hours</span></>}
                 svgOpacity={0.45}
                 bgGradient="linear-gradient(150deg,#22271a,#13120b)"
-                strokeColor="rgba(168,135,77,0.26)"
+                strokeColor="rgb(var(--tj-read-gold-rgb) / 0.26)"
                 svgPaths={
-                  <g fill="none" stroke="rgba(168,135,77,0.26)" strokeWidth="1">
+                  <g fill="none" stroke="rgb(var(--tj-read-gold-rgb) / 0.26)" strokeWidth="1">
                     <path d="M-20 54 C 120 40, 240 48, 460 24" />
                     <path d="M-20 90 C 120 72, 260 80, 460 54" />
                   </g>
@@ -463,14 +463,14 @@ const ReadIndex: React.FC = () => {
 
         {/* TEMPLATES ROOM, owner only, real login gate */}
         {isAdmin && (
-          <section style={{ position: 'relative', borderTop: '1px dashed rgba(168,135,77,0.4)', background: '#100d09', backgroundImage: 'linear-gradient(rgba(168,135,77,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(168,135,77,0.04) 1px, transparent 1px)', backgroundSize: '26px 26px' }}>
+          <section style={{ position: 'relative', borderTop: '1px dashed rgb(var(--tj-read-gold-rgb) / 0.4)', background: 'var(--tj-read-bg)', backgroundImage: 'linear-gradient(rgb(var(--tj-read-gold-rgb) / 0.04) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--tj-read-gold-rgb) / 0.04) 1px, transparent 1px)', backgroundSize: '26px 26px' }}>
             <div style={{ maxWidth: 1240, margin: '0 auto', padding: 'clamp(40px,6vw,72px) clamp(24px,5vw,56px) clamp(48px,7vw,88px)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 8 }}>
                 <span style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.26em', textTransform: 'uppercase', color: C.gold }}>Owner only · Unpublished</span>
-                <span style={{ flex: 1, borderTop: '1px dashed rgba(168,135,77,0.3)' }} />
+                <span style={{ flex: 1, borderTop: '1px dashed rgb(var(--tj-read-gold-rgb) / 0.3)' }} />
                 <span style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.1em', color: C.dim }}>Not on the public page</span>
               </div>
-              <h2 style={{ fontFamily: F.display, fontWeight: 400, fontStyle: 'italic', fontSize: 'clamp(28px,4vw,42px)', lineHeight: 1, color: '#9e8f76', margin: '0 0 8px' }}>
+              <h2 style={{ fontFamily: F.display, fontWeight: 400, fontStyle: 'italic', fontSize: 'clamp(28px,4vw,42px)', lineHeight: 1, color: 'var(--tj-read-dim)', margin: '0 0 8px' }}>
                 The Templates Room
               </h2>
               <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 15, lineHeight: 1.55, color: C.dim, margin: '0 0 32px', maxWidth: 520 }}>

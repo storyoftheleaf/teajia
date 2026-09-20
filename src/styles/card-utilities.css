@@ -184,6 +184,55 @@
   --tea-footer-band: #14100b;
   --tea-footer-ink: #cdc0a8;
   --tea-footer-ink-dim: #b3a283;
+
+  /* The Read section's own palette, 2026-09-20. src/pages/read/immersive.tsx
+     used to own these as literal hex in a `C` object, deliberately outside the
+     site's theme, by decision. That decision is superseded: Adrian wants the
+     reader to follow light mode when a visitor has it switched on. `C` keeps
+     its shape (the seventeen article files still read `C.bg`, `C.gold`, and so
+     on) but every entry now resolves through the variables declared here, so a
+     theme flip repaints the reader instead of leaving it stranded dark.
+
+     Dark values are the exact literals the reader has always used, unchanged.
+     Light values are the site's own light tokens, not invented figures: the
+     warm parchment ground, the espresso ink, the aged-bronze gold. `--tj-gold`
+     and `--tj-gold-lt` (set by applyAccent, above the accent-swatch retirement
+     note in immersive.tsx) still override the gold pair when a per-article
+     accent is active; `--tj-read-gold-default` / `-lt-default` are only the
+     fallback either side of that override. */
+  --tj-read-bg: #14100b;
+  --tj-read-bg-rgb: 20 16 11;
+  --tj-read-ink: #ede4d4;
+  --tj-read-cream: #f3ead9;
+  --tj-read-warm: #e3d6bd;
+  --tj-read-taupe: #cdc0a8;
+  --tj-read-dim: #80735f;
+  --tj-read-gold-default: #a8874d;
+  --tj-read-gold-lt-default: #c6a667;
+  --tj-read-gold-rgb: 168 135 77;
+
+  /* The reader's recurring card and plate gradients (bordered inset panels,
+     photo placeholders). Structural chrome, not art direction, so they follow
+     theme too, unlike the oxidation scale and the liquor-colour dots in
+     LeafToLiquor, which stay literal because they are measurements of an
+     object rather than styling applied to one. */
+  --tj-read-card-from: #1d1810;
+  --tj-read-card-to: #15110b;
+  --tj-read-plate-from: #241d14;
+  --tj-read-plate-to: #120e09;
+  --tj-read-empty-from: #23252a;
+
+  /* `C.taupe`'s own RGB triplet, for the handful of spots that wrote it as an
+     rgba() fade instead of going through C.taupe (ReadIndex's index-row
+     kicker, StoryEditorBar's idle toolbar label, LeafToLiquor's photo
+     caption). Kept as its own token rather than reused off --tj-read-taupe,
+     which is a resolved colour, not an rgb triplet a fade can carry alpha on. */
+  --tj-read-taupe-rgb: 205 192 168;
+  /* ReadIndex's hover-emphasis tier on a title row: brighter than cream in
+     dark mode (there is room above it), gold in light mode (there is not,
+     so hover reads as an accent shift instead of a non-existent brighter
+     white). */
+  --tj-read-hover-ink: #fff7ea;
 }
 
 [data-theme="light"], .light-mode, .light {
@@ -193,6 +242,30 @@
   --tea-gold-solid: #806229;
   --tea-gold-solid-hover: #6e5323;
   --tea-shadow-rgb: 24 19 14;
+
+  /* Read section, light mode. `cream` and `ink` both land on --tea-text:
+     dark mode's brightest-to-primary pair has no room to go brighter than
+     primary ink on parchment. `warm` and `taupe`, the two secondary-emphasis
+     tiers, both land on --tea-text-sec for the same reason. The card and
+     plate gradients flatten onto the site's own surface pair rather than
+     carrying a bespoke light gradient nobody asked for. */
+  --tj-read-bg: var(--tea-bg);
+  --tj-read-bg-rgb: var(--tea-bg-rgb);
+  --tj-read-ink: var(--tea-text);
+  --tj-read-cream: var(--tea-text);
+  --tj-read-warm: var(--tea-text-sec);
+  --tj-read-taupe: var(--tea-text-sec);
+  --tj-read-dim: var(--tea-text-dim);
+  --tj-read-gold-default: var(--tea-gold);
+  --tj-read-gold-lt-default: var(--tea-gold-lt);
+  --tj-read-gold-rgb: var(--tea-gold-rgb);
+  --tj-read-card-from: var(--tea-elevated);
+  --tj-read-card-to: var(--tea-surface);
+  --tj-read-plate-from: var(--tea-elevated);
+  --tj-read-plate-to: var(--tea-surface);
+  --tj-read-empty-from: var(--tea-elevated);
+  --tj-read-taupe-rgb: var(--tea-text-sec-rgb);
+  --tj-read-hover-ink: var(--tea-gold);
 }
 
 /* The one solid buy-button treatment, so a surface cannot opt out of the
