@@ -51,8 +51,8 @@ import type {
 // Words, Teas and Pay, no counts, each only when the tea master has it, so
 // fewer cells share the width. Then the groups, each fading and lifting in as
 // it arrives: In my words, Hands on, Words, The teas, Hosting, My table, Reach
-// me. Everything else is a plain row: title, italic dek, and a caps rubric
-// only where one adds something (a session, a platform); tea rows carry none.
+// me. Everything else is a plain row: title and italic dek. No row on this
+// page carries a right column (canvas versions 20 to 23, 2026-09-20).
 //
 // Every word the tea master says is first person; the labels never speak
 // about them in the third person. Every section is conditional except the
@@ -148,11 +148,23 @@ function linkLabel(link: ContributorLink): string {
   return link.value;
 }
 
-/** One plain row per link: the handle as the title, the platform as the rubric. WeChat copies on tap, since it has no address to open. */
+/** "On WeChat.", "On Instagram.", "My site.", or "On <label>." for a link with its own name. */
+function reachDek(link: ContributorLink): string {
+  if (link.platform === 'website') return 'My site.';
+  if (link.platform === 'other' && link.label) return `On ${link.label}.`;
+  return `On ${PLATFORM_NAMES[link.platform]}.`;
+}
+
+/**
+ * One plain row per link: the handle as the title and a short first-person
+ * dek naming the platform. No rubric (canvas version 23: the last right
+ * column on the profile is gone). WeChat copies on tap, since it has no
+ * address to open, and its dek says so.
+ */
 function ReachRow({ link }: { link: ContributorLink }) {
   const [copied, setCopied] = useState(false);
   const href = linkHref(link);
-  const rubric = link.platform === 'other' && link.label ? link.label : PLATFORM_NAMES[link.platform];
+  const platform = link.platform === 'other' && link.label ? link.label : PLATFORM_NAMES[link.platform];
   if (link.platform === 'wechat' || !href) {
     const copy = async () => {
       try {
@@ -163,9 +175,9 @@ function ReachRow({ link }: { link: ContributorLink }) {
         setCopied(false);
       }
     };
-    return <IndexRowButton onClick={copy} title={copied ? 'Copied' : link.value} dek={link.platform === 'wechat' ? 'Tap to copy my id.' : undefined} rubric={rubric} ariaLabel={`Copy ${rubric} id ${link.value}`} testId="profile-reach-row" />;
+    return <IndexRowButton onClick={copy} title={copied ? 'Copied' : link.value} dek={`${reachDek(link)} Tap to copy my id.`} ariaLabel={`Copy ${platform} id ${link.value}`} testId="profile-reach-row" />;
   }
-  return <IndexRow to={href} external title={linkLabel(link)} rubric={rubric} ariaLabel={`${rubric}: ${linkLabel(link)}`} testId="profile-reach-row" />;
+  return <IndexRow to={href} external title={linkLabel(link)} dek={reachDek(link)} ariaLabel={`${platform}: ${linkLabel(link)}`} testId="profile-reach-row" />;
 }
 
 function Section({ id, children, testId }: { id?: string; children: ReactNode; testId?: string }) {
@@ -358,11 +370,11 @@ export default function ContributorProfilePage() {
           <Section id="hosting" testId="profile-hosting">
             <div className={SIDE}>
               <GroupHead label="Hosting" />
+              {/* Canvas version 22: no rubric. The title, then the day, time, place and places line as the dek. */}
               <IndexRow
                 to={`/event/${encodeURIComponent(hosting.slug)}`}
                 title={hosting.title}
                 dek={[`${formatEventLong(hosting.event_date)}, at ${hosting.location_name ?? hosting.account_name}.`, hosting.subtitle ? `${hosting.subtitle}.` : null].filter(Boolean).join(' ')}
-                rubric="Session"
               />
             </div>
           </Section>
