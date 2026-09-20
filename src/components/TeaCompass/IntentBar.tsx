@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Sparkles, X } from 'lucide-react';
 import type { TeaCompassEntry } from './types';
+import { canonicalCurrency } from '../../lib/currency';
 
 interface DetectedIntent {
   type: 'price' | 'grams' | 'year';
@@ -13,11 +14,6 @@ const PRICE_PATTERN = /(?:(NT\$|NT|USD|\$|¥|CNY|MYR|IDR|HKD|RM|Rp)\s*(\d+(?:[.,
 const GRAMS_PATTERN = /\b(\d+)\s*g(?:rams?)?\b/gi;
 const YEAR_PATTERN = /\b(19[5-9]\d|20[0-2]\d)\b/g;
 
-const CURRENCY_MAP: Record<string, string> = {
-  'NT$': 'NT', 'NT': 'NT', 'USD': 'USD', '$': 'USD', '¥': 'Yuan',
-  'CNY': 'Yuan', 'MYR': 'MYR', 'RM': 'MYR', 'IDR': 'IDR', 'Rp': 'IDR', 'HKD': 'HKD',
-};
-
 function detectIntents(text: string): DetectedIntent[] {
   const intents: DetectedIntent[] = [];
   const seen = new Set<string>();
@@ -29,7 +25,11 @@ function detectIntents(text: string): DetectedIntent[] {
     const sym = match[1] || match[4];
     const raw = (match[2] || match[3]).replace(',', '.');
     const amount = parseFloat(raw);
-    const currency = CURRENCY_MAP[sym] || 'NT';
+    /* Every spelling this bar can see, a bare '$' and the two Southeast Asian
+       shorthands included, is already an alias in the shared map (src/lib/
+       currency.ts). A second copy of that mapping here was a second chance
+       for the shop's key to be missed, so this reads the one map. */
+    const currency = canonicalCurrency(sym) ?? 'NT';
     const key = `price-${amount}-${currency}`;
     if (!seen.has(key) && !isNaN(amount)) {
       seen.add(key);

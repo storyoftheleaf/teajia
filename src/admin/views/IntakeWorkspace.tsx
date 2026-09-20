@@ -17,6 +17,10 @@ import {
   autoMap, loadRememberedMapping, rememberMapping, rowToStaged,
   stagedToProduct, isReadyItem, extractedToStaged,
 } from '../lib/intakeMapping';
+import { enteredCostCell } from '../productUpdatePayload';
+import { plainCostWords } from '../../lib/costRefusalWords';
+import { rateToUsd } from '../../lib/currency';
+import { freightRefusalWords, splitByConvertibleFreight } from '../lib/intakeFreight';
 import { assertSupportedIntakeFile, readXlsxIntakeFile } from '../lib/xlsxIntake';
 import { IntakeChatSheet, type ChatAnswer } from '../components/IntakeChatSheet';
 
@@ -146,7 +150,9 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
           chineseName: String(parsed.chineseName || ''), productName: '',
           type: 'Misc', form: null, year: '',
           originCountry: '', originRegion: '', vendor: '',
-          costAmount: 0, costCurrency: 'UNK',
+          // Null, not 0: a resumed import has not been told a price yet, and 0
+          // would say every one of its teas was free.
+          costAmount: null, costCurrency: 'UNK',
           stockGrams: 0, quantityPurchased: 0, quantityUnits: 0, teawareCategory: '',
           sizeEstimate: 0, description: '', imageUrl: '',
           isPersonal: false, needsReview: true, include: true, order: {},
@@ -193,7 +199,9 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
     switch (answer.field) {
       case 'vendor':          patch.vendor = String(answer.value); break;
       case 'origin_country':  patch.originCountry = String(answer.value); break;
-      case 'price_paid':      patch.costAmount = Number(answer.value) || 0; break;
+      // `Number(x) || 0` here answered "I do not know" with "it was free". An
+      // answer of 0 is kept, because a gift is a real tea.
+      case 'price_paid':      patch.costAmount = enteredCostCell(answer.value); break;
       case 'cost_currency':   patch.costCurrency = String(answer.value); break;
       case 'weight_grams':    patch.stockGrams = Number(answer.value) || 0; break;
       // pack_count, purchase_date, purchase_location and shipping_mode have no
@@ -326,8 +334,11 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
   // ── Shipping proration ──────────────────────────────────────────────────────
   // Spread one total shipping cost across the included items by estimated size:
   // each item's share = shippingTotal × (its size ÷ total size).
-  const rateFor = useCallback((cur: string) => rates.find((r) => r.currency === cur)?.rateToUSD || 1, [rates]);
-  const convert = useCallback((amt: number, from: string, to: string) => (amt / rateFor(from)) * rateFor(to), [rateFor]);
+  /* The share each line carries, and who cannot be given one, in
+     admin/lib/intakeFreight.ts. It answered NaN here, with a comment saying
+     that surfaces as a dash; it did not, it surfaced as a line stored cheaper
+     than it was bought. It lives out there now because a rule nothing can call
+     is a rule nothing can check. */
   const dominantCurrency = useMemo(() => {
     const t: Record<string, number> = {};
     included.forEach((i) => { if (i.costCurrency !== 'UNK') t[i.costCurrency] = (t[i.costCurrency] || 0) + 1; });
@@ -345,33 +356,76 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
     if (included.length === 0 || committing) return;
     setCommitting(true);
     try {
-      const products = included.map((it) =>
-        stagedToProduct(it, convert(shareShip(it), shipCur, it.costCurrency === 'UNK' ? shipCur : it.costCurrency)),
-      );
       const chunk = 50;
       let inserted = 0;
       let skipped = 0;
+      /* Not every skip is a duplicate any more: a line whose sheet named no
+         price is refused by name, so the reasons are collected and shown
+         instead of being counted as something they are not. */
+      const skipReasons = new Set<string>();
+
+      /* A line whose share of the shipping cannot be converted into its own
+         currency is refused here, before anything is sent. Adding it without
+         the share would store the tea cheaper than it was bought and say
+         nothing, which is the same silence a cost of zero used to keep. The
+         line is named by its currency, because that is what the operator has to
+         fix: give the shop a rate for it, or say what the tea was really paid
+         in. Nothing is refused when there is no shipping to spread. */
+      const { priced, unconvertible } = splitByConvertibleFreight(included, shipCur, shareShip, rates);
+      if (unconvertible.size > 0) {
+        skipped += [...unconvertible.values()].reduce((a, b) => a + b, 0);
+        skipReasons.add(freightRefusalWords(unconvertible));
+      }
+      const products = priced.map(({ it, extra }) => stagedToProduct(it, extra));
+      if (products.length === 0) {
+        // Nothing to send, so nothing is cleared. The staged lines stay on
+        // screen with the reason above them, which is the only state from which
+        // the operator can act on it.
+        showToast([...skipReasons].join(' ') || 'Nothing to import.', 'error');
+        return;
+      }
       for (let i = 0; i < products.length; i += chunk) {
         const res: any = await api.products.bulkCreate(products.slice(i, i + chunk), batchId ?? undefined);
         inserted += res?.inserted ?? products.slice(i, i + chunk).length;
         skipped += res?.skipped ?? 0;
+        for (const row of res?.results ?? []) {
+          /* In words, not in column names. The server answers the two doors in
+             its own vocabulary, `cost_amount` and a `(missing: amount)` marker,
+             which is the right contract between two pieces of code and the
+             wrong sentence to put in front of Adrian: it hands him the bug
+             report instead of the thing to do next. `plainCostWords` reads that
+             marker, because which half is missing is a fact only the server
+             has, and says it the way the Add Product form says it. */
+          if (row?.status === 'skipped' && row?.reason) skipReasons.add(plainCostWords(String(row.reason)));
+        }
       }
       if (savePurchaseRecord) {
         // One purchase record per vendor/store, an order sheet routinely spans
         // many stores, so a single PO per file would lump them together wrongly.
-        const rateFor = (cur: string) => rates.find((r) => r.currency === cur)?.rateToUSD || 1;
+        /* This one writes a purchase record, so a rate of 1 does not merely
+           display wrong, it records a yuan total as dollars against a vendor.
+           A line whose currency has no rate contributes nothing to the total
+           rather than contributing a made-up figure. */
+        const rateFor = (cur: string) => rateToUsd(rates, cur);
         const groups = new Map<string, StagedItem[]>();
-        for (const it of included) {
+        // The lines that were actually sent. A tea refused above was not
+        // bought through this import, so it is not in this import's order.
+        for (const { it } of priced) {
           const key = it.vendor.trim() || sourceName(it.sourceId).replace(/\.[^.]+$/, '') || 'Unknown vendor';
           if (!groups.has(key)) groups.set(key, []);
           groups.get(key)!.push(it);
         }
         for (const [vendor, lines] of groups) {
           // nothing to record if there's neither cost nor logistics
-          if (!lines.some((l) => l.costAmount > 0 || Object.keys(l.order).length > 0)) continue;
+          if (!lines.some((l) => (l.costAmount ?? 0) > 0 || Object.keys(l.order).length > 0)) continue;
           const totalUSD = lines.reduce((sum, l) => {
             const qty = l.quantityPurchased || l.quantityUnits || l.stockGrams || 1;
-            return sum + (l.costAmount * qty) / rateFor(l.costCurrency);
+            // A line with no recorded price adds nothing to the order total,
+            // which is what not knowing costs. Same for a line whose currency
+            // the shop cannot resolve.
+            const rate = rateFor(l.costCurrency);
+            if (rate === null) return sum;
+            return sum + ((l.costAmount ?? 0) * qty) / rate;
           }, 0);
           // dominant non-UNK currency for display
           const tally: Record<string, number> = {};
@@ -394,9 +448,15 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
           }).catch(() => null);
         }
       }
+      /* The count, then what to do about it. A toast that only counts skips
+         leaves the operator to guess which lines and why, and "duplicate" was
+         the guess it used to make for every one of them. */
+      const skipNote = skipped > 0
+        ? ` · ${skipped} not added.${skipReasons.size > 0 ? ` ${[...skipReasons].join(' ')}` : ''}`
+        : '';
       showToast(
-        `Added ${inserted} item${inserted !== 1 ? 's' : ''} as drafts${skipped > 0 ? ` · ${skipped} duplicate${skipped !== 1 ? 's' : ''} skipped` : ''}`,
-        'success',
+        `Added ${inserted} item${inserted !== 1 ? 's' : ''} as drafts${skipNote}`,
+        skipped > 0 ? 'error' : 'success',
       );
       onRefresh?.();
       // Close the server draft so it leaves the resume list; failure is silent
@@ -409,7 +469,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
     } finally {
       setCommitting(false);
     }
-  }, [included, committing, batchId, savePurchaseRecord, rates, sourceName, convert, shareShip, shipCur, showToast, onRefresh, navigate, importId]);
+  }, [included, committing, batchId, savePurchaseRecord, rates, sourceName, shareShip, shipCur, showToast, onRefresh, navigate, importId]);
 
   const hasContent = sources.length > 0;
 
@@ -881,7 +941,7 @@ const ItemsTable: React.FC<{
                   <div className="flex items-center gap-2 mt-0.5 text-ui-10 text-tea-text-dim">
                     <span className="truncate">{it.type}</span>
                     {it.vendor && <><span className="opacity-40">·</span><span className="truncate max-w-[140px]">{it.vendor}</span></>}
-                    {it.costAmount > 0 && <><span className="opacity-40">·</span><span className="font-mono">{it.costAmount} {it.costCurrency}</span></>}
+                    {(it.costAmount ?? 0) > 0 && <><span className="opacity-40">·</span><span className="font-mono">{it.costAmount} {it.costCurrency}</span></>}
                     {shippingActive && (
                       <>
                         <span className="opacity-40">·</span>

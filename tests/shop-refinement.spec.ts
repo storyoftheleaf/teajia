@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 
 const PRODUCTS = [
   {
@@ -174,5 +174,27 @@ test.describe('refined public shop', () => {
     await page.goBack();
     await expect(page).toHaveURL(/\/shop\?tab=teaware$/);
     await expect(page.getByRole('heading', { name: 'Field Gaiwan', exact: true })).toBeVisible();
+  });
+
+  test('quotes the same total on the grid and the product page', async ({ page }) => {
+    // The grid used to multiply price per gram by weight directly, leaving
+    // out the $2 handling fee the product page's own ladder, the cart and
+    // the order total all charge through quoteGrams. A reader saw one price
+    // in the grid and a higher one two taps later. The grid's default
+    // weight is 50 g (the store's own default), so that is the weight
+    // compared on both sides: Moonlight White at $0.15/g comes to
+    // 0.15 * 50 + 2 = $9.50, shown as $10, whichever surface names it.
+    const row = page.getByRole('button', { name: 'View Moonlight White' });
+    const gridPrice = (await row.getByTestId('grid-price').textContent())?.trim();
+    expect(gridPrice).toBe('$10');
+
+    await row.click();
+    await expect(page).toHaveURL(/\/shop\/product\/tea-1$/);
+
+    const amountButton = page.locator('.alcove-dock-strip button[aria-expanded]:not(.alcove-dock-cta)');
+    await amountButton.click();
+    const pageTotal = (await page.getByTestId('amount-total-50').textContent())?.trim();
+
+    expect(gridPrice).toBe(`$${pageTotal}`);
   });
 });

@@ -23,6 +23,7 @@ import { LogoEmblem } from './Logos/LogoEmblem';
 import { getSetCoverVariant } from './shop/setCover';
 import { resolvePublicSetItems } from './shop/setContents';
 import { useShopPrice } from './shop/shopPrice';
+import { quoteForDisplay } from '../lib/teaPricing';
 import { useAdminOverlay } from '../hooks/useAdminOverlay';
 import { useScrollRestoration } from '../hooks/useScrollRestoration';
 import { useRates } from '../admin/hooks/useAdminData';
@@ -260,16 +261,33 @@ export const Shop: React.FC<ShopProps> = ({
   const handleAddStarterSet = async (set: StarterSet) => {
     setIsAddingToCart(prev => ({ ...prev, [set.id]: true }));
     await new Promise(resolve => setTimeout(resolve, 300));
-    set.items.forEach(({ itemId }) => {
+    set.items.forEach(({ itemId, quantity }) => {
       const item = allInventory.find(inv => inv.id === itemId);
       if (item && item.stock_g > 0) {
-        const defaultQty = item.category === 'tea' ? 50 : 1;
-        // For tea: price_per_gram is per-gram. For teaware: price_50g is per-unit (legacy name).
-        const pricePerUnit = item.category === 'tea'
-          ? parseFloat(item.price_per_gram || '0')
-          : parseFloat(item.price_50g || '0');
-        const total = pricePerUnit * defaultQty;
-        onAddToCart(item, defaultQty, total);
+        if (item.category === 'tea') {
+          // The same curve the ladder, the cart and the order total read,
+          // for the weight this set item actually names (falling back to
+          // 50g, the same default the "what's inside" list already shows).
+          // Multiplying price per gram by the weight directly used to skip
+          // the $2 handling fee, so a set silently undercharged for every
+          // tea in it, and the "you save" comparison beside it overstated
+          // the saving by the same amount.
+          const pricePerGram = parseFloat(item.price_per_gram || '0');
+          const quote = quoteForDisplay(pricePerGram, quantity || 50, {
+            form: item.form,
+            pieceWeightG: item.pieceWeightG,
+            soldInWholeUnits: item.soldInWholeUnits,
+            stockG: item.stock_g,
+          });
+          onAddToCart(item, quote.grams, Math.ceil(quote.totalUsd));
+        } else {
+          // price_50g is per-unit price for teaware (legacy field name).
+          // Teaware carries no handling fee: it prices per piece with
+          // freight already inside that price.
+          const units = quantity || 1;
+          const pricePerUnit = parseFloat(item.price_50g || '0');
+          onAddToCart(item, units, pricePerUnit * units);
+        }
       }
     });
     setIsAddingToCart(prev => ({ ...prev, [set.id]: false }));
@@ -277,17 +295,26 @@ export const Shop: React.FC<ShopProps> = ({
     setTimeout(() => setAddedProductId(null), 1500);
   };
 
-  // Calculate "retail" total from individual item prices
+  // Calculate "retail" total from individual item prices. Reads through the
+  // same quote the cart above now does, so the "you save" comparison names
+  // an honest saving instead of a strikethrough price that leaves out what
+  // buying each tea separately would actually cost.
   const calcRetailTotal = (set: StarterSet): number => {
     let total = 0;
-    set.items.forEach(({ type, itemId }) => {
+    set.items.forEach(({ type, itemId, quantity }) => {
       const item = allInventory.find(inv => inv.id === itemId);
       if (item) {
         if (type === 'tea') {
-          total += parseFloat(item.price_per_gram || '0') * 50;
+          const pricePerGram = parseFloat(item.price_per_gram || '0');
+          total += quoteForDisplay(pricePerGram, quantity || 50, {
+            form: item.form,
+            pieceWeightG: item.pieceWeightG,
+            soldInWholeUnits: item.soldInWholeUnits,
+            stockG: item.stock_g,
+          }).totalUsd;
         } else {
           // price_50g is per-unit price for teaware (legacy field name)
-          total += parseFloat(item.price_50g || '0');
+          total += parseFloat(item.price_50g || '0') * (quantity || 1);
         }
       }
     });

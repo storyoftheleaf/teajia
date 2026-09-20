@@ -18,22 +18,16 @@ tastingNotes:
   - "velvet body"
 ---
 
-Yiwu Mahei (麻黑) is one of the most celebrated micro-origins within the Yiwu region.
+A ripe puerh (shou) pressed into a cake from old-tree leaf at Mahei village, in the Yiwu tea area of Yunnan.
 
-Gushu (古树) means 'ancient tree,' referring to old-growth tea trees typically over 100 years old. This represents the peak of shou pu-erh production: the most famous origin, the oldest trees, processed as ripe tea.
+## Lore
+
+Mahei 麻黑 is a village inside the Yiwu tea region of Xishuangbanna, Yunnan. Its old-tree leaf is one of the references the tea trade uses when it describes Yiwu material. This cake takes that leaf through the ripe (shou) puerh process.
 
 ## Terroir
 
-Mahei village, Yiwu township, Xishuangbanna, Yunnan. Mahei sits deep in the tea mountains at around 1,300 meters, surrounded by ancient tea forests. The village is known for producing some of the most sought-after and expensive raw material in the pu-erh world.
+Yiwu is a wide tea area in eastern Xishuangbanna, and the name reaches beyond any single village. A village name like Mahei is therefore a narrower claim than a plain Yiwu label. The village sits at roughly 1,300 metres and has old tea forests. Gushu means old-tree: leaf picked from trees far older than the bushes on a plantation.
 
 ## Processing
 
-Ancient-tree leaf from Yiwu Mahei village, wo dui fermented and compressed into 357-gram cakes. The exceptional quality of the raw material creates a fermentation result that transcends typical shou. The large-leaf, old-tree material retains character through the fermentation process.
-
-## Mood
-
-velvet stillness
-
-## Experience
-
-The body is extraordinary. Thick and smooth with a sweetness that coats the entire mouth. The camphor note rises through the sweetness and the mineral backbone holds everything in place. This is what shou pu-erh becomes when you start with the best leaf in Yunnan.
+Shou is Yunnan's dark, wet-piled style of puerh. To make it, the loose starting leaf (called maocha) is heaped damp on the floor. This heap is the wo dui, or wet pile, where heat and microbes ferment the leaf over weeks. The method was developed in Yunnan in the early 1970s. After fermentation, the leaf is pressed into a cake, which is the format here. The brewed liquor is dark, full-bodied, and earthy, and the pile character settles with time.

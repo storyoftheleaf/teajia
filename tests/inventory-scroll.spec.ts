@@ -18,7 +18,7 @@
  * If this fails, see CLAUDE.md > "InventoryView height chain".
  */
 
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';

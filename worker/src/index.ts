@@ -13,7 +13,8 @@ import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type Co
 import { shippingPerGramUsd, resolveShopFreightDefault } from './shippingRate';
 import { FX_FEED_CURRENCY_MAP, refreshedCurrencyName } from './exchangeRateFeed';
 import { SHOP_MARKUP_MULTIPLIER, CURATOR_FALLBACK_MARKUP } from './markup';
-import { costNeedsCurrency, createMissingCost, currencyStated, stampCostCurrencySource, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
+import { costNeedsCurrency, createMissingCost, currencyStated, stampCostCurrencySource, canonicalizeCostCurrency, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
+import { nameProductColumns } from './productDefaults';
 import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 import { deriveConfirmedInvoiceLine, repairCandidate, formatInvoiceNumber, loadUsdRates, amountToUsd } from './invoiceDomain';
@@ -95,7 +96,14 @@ import {
   resolveTeaReferenceIssues,
 } from './teaReferenceIssues';
 import { isTeaType, TEA_TYPES } from '../../src/wisdom/vocabulary';
-import { catalogProductIds, INQUIRY_MAX_NOTE, inquiryRequestFingerprint, isValidTrackingToken, normalizeCartInquiry, redactPublicInquiry, sha256Hex } from './inquiryDomain';
+import { isUnrecordedCurrency } from '../../src/lib/currency';
+import {
+  catalogProductIds, INQUIRY_MAX_CONTACT, INQUIRY_MAX_INTEREST_LABEL, INQUIRY_MAX_INTERESTS,
+  INQUIRY_MAX_LOCATION, INQUIRY_MAX_NAME, INQUIRY_MAX_NOTE, INQUIRY_MAX_PHONE, INQUIRY_MAX_REF_NUMBER,
+  INQUIRY_MAX_REFERRAL, INQUIRY_MAX_REQUEST_BYTES, INQUIRY_MAX_VISION, inquiryFieldTooLong,
+  inquiryRequestFingerprint, isValidTrackingToken, NEWSLETTER_MAX_EMAIL, NEWSLETTER_MAX_REQUEST_BYTES,
+  normalizeCartInquiry, redactPublicInquiry, sha256Hex,
+} from './inquiryDomain';
 
 interface Env {
   DB: D1Database;
@@ -144,7 +152,8 @@ interface Env {
   // Set via `wrangler secret put KEY_ENCRYPTION_SECRET` to any high-entropy string.
   KEY_ENCRYPTION_SECRET?: string;
   // Edge rate limiter for the public MCP. Bound via [[unsafe.bindings]] in
-  // wrangler.toml. Optional so local dev (no binding) still runs.
+  // wrangler.toml, and required: an absent binding refuses the request
+  // rather than running this unauthenticated endpoint with no brake.
   PUBLIC_MCP_LIMITER?: { limit: (opts: { key: string }) => Promise<{ success: boolean }> };
   // Edge rate limiter for auth (login/signup). Same shape as PUBLIC_MCP_LIMITER.
   // Optional so local dev (no binding) still runs; the in-memory checkRateLimit
@@ -156,6 +165,10 @@ interface Env {
   RSVP_LIMITER?: RateLimiterBinding;
   OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
   OAUTH_AUTHORIZE_LIMITER?: RateLimiterBinding;
+  // Edge rate limiter for the public checkout inquiry endpoint (audit SEC-1).
+  INQUIRY_LIMITER?: RateLimiterBinding;
+  // Edge rate limiter for the public newsletter signup (audit SEC-2).
+  NEWSLETTER_LIMITER?: RateLimiterBinding;
   // Scoped machine credential used only by the repository incident-queue exporter.
   INCIDENT_EXPORT_TOKEN?: string;
   WORDFORGE_INTEGRATION_TOKEN?: string;
@@ -1257,7 +1270,7 @@ function buildProductMirrorInserts(
          shop markup rather than carrying a copy of it that can drift. See
          worker/src/markup.ts. */
       fixed_retail_price_usd, markup_multiplier,
-      vendor, vendor_id, cost_amount, cost_currency,
+      vendor, vendor_id, cost_amount, cost_currency, cost_currency_source,
       shipping_rate_per_kg, quantity_purchased, source_compass_entry_id,
       stock_verified_at,
       is_personal, can_reorder, is_public, is_featured, is_curated, is_sample, in_transit,
@@ -1266,7 +1279,7 @@ function buildProductMirrorInserts(
       tasting, tasting_source,
       owner_user_id, shown_in_shop, inventory_purpose, stock_known_at,
       legacy_product_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     `list_${productId}`, accountId, `prof_${productId}`,
     body.stock_grams ?? 0, body.low_stock_threshold ?? 100, body.recheck_stock ?? 0,
@@ -1279,6 +1292,14 @@ function buildProductMirrorInserts(
        reimplemented both halves of the schema default it exists to copy. A row
        that was never told a cost says so. */
     body.cost_amount ?? null, body.cost_currency ?? null,
+    /* The provenance is COPIED from the product row, never re-derived from the
+       currency sitting next to it. The update mirror already carried this
+       column; leaving it off the create mirror meant even a stamped single
+       create produced a listing saying nobody had answered. Copying is also the
+       only correct rule: the compass promotion writes a currency it took from a
+       compass entry and deliberately does not stamp it, and a mirror that read
+       the currency would stamp the listing while the product stayed honest. */
+    body.cost_currency_source ?? null,
     // NULL, not 0: nobody has entered a rate, so pricing applies the shop
     // default. A stored 0 is Adrian saying this one ships free.
     body.shipping_rate_per_kg ?? null, body.quantity_purchased ?? null, body.source_compass_entry_id ?? null,
@@ -1412,11 +1433,34 @@ function restError(
   return json({ error, ...(code ? { code } : {}), ...(details ? { details } : {}) }, status);
 }
 
-async function enforceDurableLimit(binding: RateLimiterBinding | undefined, key: string): Promise<Response | null> {
-  if (!binding) return null; // Wrangler local development has no native binding.
+// Every caller below is declared as an [[unsafe.bindings]] ratelimit entry in
+// wrangler.toml (checked at the same time this refused-on-absence rule was
+// added, audit SEC-5), and miniflare's ratelimit plugin simulates the binding
+// locally too, so an absent binding here is never "this is local dev", it is
+// a deploy that lost its rate limiter. Allowing that silently is what let 25
+// of 25 anonymous inquiry posts through with nothing timing them out.
+// bindingName is only for the log line; it does not change behavior.
+// retryAfterSeconds is optional and, before this helper existed, was only
+// ever sent by the /mcp/public check (10 seconds, matching that binding's
+// wrangler.toml window). No other caller sent Retry-After before this
+// helper folded them together, so the default (no header) keeps the rest
+// of them unchanged; only the /mcp/public caller passes it, to restore that
+// one behavior rather than spread a header nothing else ever carried.
+async function enforceDurableLimit(binding: RateLimiterBinding | undefined, bindingName: string, key: string, retryAfterSeconds?: number): Promise<Response | null> {
+  if (!binding) {
+    console.error(`Rate limiter binding ${bindingName} is not configured; refusing this request rather than allowing unlimited traffic.`);
+    return restError(503, 'Rate limit service unavailable', 'rate_limit_unavailable');
+  }
   try {
     const result = await binding.limit({ key });
-    return result.success ? null : restError(429, 'Too many requests', 'rate_limited');
+    if (result.success) return null;
+    if (retryAfterSeconds) {
+      return new Response(JSON.stringify({ error: 'Too many requests', code: 'rate_limited' }), {
+        status: 429,
+        headers: { 'Content-Type': 'application/json', 'Retry-After': String(retryAfterSeconds) },
+      });
+    }
+    return restError(429, 'Too many requests', 'rate_limited');
   } catch {
     return restError(503, 'Rate limit service unavailable', 'rate_limit_unavailable');
   }
@@ -1541,8 +1585,11 @@ function addPricingFields(product: any, rates: Map<string, number>, shopDefaultP
      'UNK' is the sentinel the admin uses for it. That still converts at 1,
      because that is what it has always meant, not because a rate is missing. */
   const declared = product.cost_currency as string | null | undefined;
-  const unrecorded = !declared || String(declared).trim() === '' || String(declared).toUpperCase() === 'UNK';
-  const rate = unrecorded ? 1 : lookupRateToUsd(rates, declared);
+  // The reading of "nobody said" lives beside the alias map, because the admin
+  // dashboard has to take the same one or the shelf and the dashboard disagree
+  // about the same teas. It was written out here in full, which is how a rule
+  // gets two homes.
+  const rate = isUnrecordedCurrency(declared) ? 1 : lookupRateToUsd(rates, declared);
   const isTeaware = product.type === 'Teaware';
   if (!rate || rate <= 0) {
     return {
@@ -1840,7 +1887,7 @@ const handleVerifySignupEmail: Handler = async (request, env) => {
 // to restart signup for an existing identity.
 const handleResendSignupVerification: Handler = async (request, env) => {
   const verifyIp = request.headers.get('CF-Connecting-IP') || 'unknown';
-  const limited = await enforceDurableLimit(env.VERIFY_LIMITER, `signup-resend:${verifyIp}`);
+  const limited = await enforceDurableLimit(env.VERIFY_LIMITER, 'VERIFY_LIMITER', `signup-resend:${verifyIp}`);
   if (limited) return limited;
 
   const body = await request.json().catch(() => ({})) as { email?: string; signup_token?: string };
@@ -2725,6 +2772,11 @@ const handleCreateProduct: Handler = async (request, env) => {
   /* After the unknown-field check, so `cost_currency_source` is not a field a
      caller may send: it records that this process saw a currency arrive. */
   stampCostCurrencySource(body);
+  /* The shop's own spelling, once, here: 'cny' and 'CNY' both become 'Yuan'
+     before the row or its mirror ever sees them. Order does not matter against
+     the stamp above; it only matters that this runs before the INSERT and
+     before buildProductMirrorInserts, both of which read body.cost_currency. */
+  canonicalizeCostCurrency(body);
   const ownerError = await validateProductOwnerAssignment(env, ctx, body);
   if (ownerError) return ownerError;
   const canPublish = ctx.isPlatform || ctx.role === 'owner' || ctx.bundles.includes('publish');
@@ -2813,6 +2865,11 @@ const handleCreateProduct: Handler = async (request, env) => {
   if (incomingCreateError) return incomingCreateError;
   const id = crypto.randomUUID();
   body.slug = await mintProductSlug(env, body, id);
+  /* Freight, markup and cost are named even when the caller said nothing about
+     them, because the live table answers 0, 2.5 and 0 for a column an INSERT
+     leaves out and every one of those is a decision nobody made. See
+     worker/src/productDefaults.ts. */
+  nameProductColumns(body);
   const cols = Object.keys(body);
   const placeholders = cols.map(() => '?').join(', ');
   const insertProduct = env.DB.prepare(`INSERT INTO products (id, ${cols.join(', ')}) VALUES (?, ${placeholders})`)
@@ -2860,7 +2917,7 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     if (unknownFields.length > 0) {
       return restError(400, 'Unsupported fields for product creation', 'validation_failed', { fields: unknownFields });
     }
-    const capabilityError = validateProductCreateCapabilities(ctx, raw);
+    const capabilityError = validateProductCreateCapabilities(ctx, raw, { costRefusedPerRow: true });
     if (capabilityError) return capabilityError;
     const ownerError = await validateProductOwnerAssignment(env, ctx, raw);
     if (ownerError) return ownerError;
@@ -2918,6 +2975,16 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     delete body.account_id;
     delete body.client_row_id;
     body.account_id = accountId;
+    /* The same stamp the single create writes. Without it an import that named
+       its currency correctly still landed with the column NULL, which is how a
+       row says nobody was ever asked, so `list_unstated_costs` would offer it
+       up and a vendor-wide `set_cost_currency` would rewrite a stated HKD cost
+       to yuan and move that tea's shelf price by the exchange rate. */
+    stampCostCurrencySource(body);
+    // The same canonicalisation the single create runs, per row: a spreadsheet
+    // cell reading 'hkd' or 'cny' is stored as 'HKD' or 'Yuan', the spelling the
+    // exchange table and every other door already agree on.
+    canonicalizeCostCurrency(body);
     // Bulk/structured import is ingestion, not a publication action. Force the
     // product and its listing/profile mirrors private even for account owners
     // and even if an untrusted import payload asks to publish.
@@ -2954,6 +3021,36 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
       results.push({ client_row_id: clientRowId, status: 'skipped', reason: 'A product with this type and name already exists' });
       continue;
     }
+    /* A tea is not added without saying what it cost, asked of the RAW row and
+       before the name is claimed below.
+
+       Raw, because a blank cell arrives as '' and the stripped body no longer
+       shows the difference between a column somebody emptied and one they never
+       mapped; the agent door learned the same lesson, that a guard handed a
+       converted value cannot tell absence from an answer.
+
+       Per row, because this door is a spreadsheet. Refusing the request would
+       throw away every complete row in the file over one empty price cell, and
+       the import screens already carry a per-row reason back to the review
+       surface, so the operator sees which lines still need a figure and the
+       rest of the import lands. The single create refuses the whole request
+       because there a request IS one tea.
+
+       BOTH halves, amount and currency. The currency half was the one still
+       asked for the whole request, and the CSV import writes `UNK` for any
+       currency token its map does not recognise, so a fifty-row file with one
+       unreadable currency cell landed nothing at all and said only that a cost
+       needs a currency. Half a rule per row is not the rule.
+
+       Before the name is claimed, because a row that does not land must not
+       hold its name against a later row in the same file that does say what it
+       cost. */
+    const costRefusal = productCreateCostRefusal(raw);
+    if (costRefusal) {
+      skipped.push(body.product_name || body.given_name || 'unknown');
+      results.push({ client_row_id: clientRowId, status: 'skipped', reason: costRefusal.message });
+      continue;
+    }
     existingByNaturalKey.set(key, body); // Prevent duplicates within the same batch
 
     if (body.quantity_purchased == null) {
@@ -2975,6 +3072,12 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
       if (vendorCache[vkey]) body.vendor_id = vendorCache[vkey];
     }
     body.slug = await mintProductSlug(env, body, id, reservedSlugs);
+    /* After the strip above, not before it. This door builds its body by
+       dropping every null, undefined and empty-string value, so a cleared
+       freight cell arrived as '' and left as nothing at all: the column was
+       omitted, the live table answered 0, and the tea shipped free. There was
+       no way for this door to send a deliberate NULL. Now there is. */
+    nameProductColumns(body);
     const cols = Object.keys(body);
     const placeholders = cols.map(() => '?').join(', ');
     const lineStatements: D1PreparedStatement[] = [
@@ -3086,7 +3189,45 @@ const PRODUCT_CREATE_PUBLICATION_COLUMNS = new Set(
   [...PRODUCT_PUBLICATION_UPDATE_COLUMNS].filter(column => column !== 'is_personal' && column !== 'is_sample'),
 );
 
-function validateProductCreateCapabilities(ctx: AccountCtx, body: Record<string, unknown>): Response | null {
+/**
+ * A tea is not added without saying what it cost, as an HTTP refusal.
+ *
+ * Its own function because the two create doors have to answer differently in
+ * shape while answering identically in substance. The single create refuses the
+ * request. The bulk create refuses the ROW, because a spreadsheet is many teas
+ * and one blank price cell must not throw away the forty-nine rows that did say
+ * what they cost. Same rule, same words, same named half.
+ *
+ * BOTH halves are decided here, and that is the point. The currency half used
+ * to be asked in `validateProductCreateCapabilities` above, for the whole
+ * request, which meant a fifty-row spreadsheet carrying one cell the currency
+ * map could not read was refused entire and landed nothing. The CSV import
+ * writes `UNK` for any currency token it does not recognise, so that was not a
+ * hypothetical row: it is what the import screen sends. One rule cannot be half
+ * per-row and half per-request, so it is one function and both doors call it.
+ */
+function productCreateCostRefusal(
+  body: Record<string, unknown>,
+): { missing: 'amount' | 'currency'; code: string; message: string } | null {
+  const missing = createMissingCost({ amount: body.cost_amount, currency: body.cost_currency });
+  if (!missing) return null;
+  /* The currency half keeps the words and the code it has always answered with,
+     so a client that already reads `cost_currency_required` still reads it, and
+     the row reason and the request error are the same sentence. */
+  const words = missing === 'currency' ? COST_CURRENCY_REQUIRED : COST_REQUIRED_ON_CREATE;
+  const code = missing === 'currency' ? 'cost_currency_required' : 'cost_required';
+  return { missing, code, message: `${words} (missing: ${missing})` };
+}
+
+function validateProductCreateCapabilities(
+  ctx: AccountCtx,
+  body: Record<string, unknown>,
+  /* The bulk door asks for its cost refusal one row at a time, further down,
+     so that a batch is not lost to a single blank cell. Every capability check
+     below still runs here, for every row, before any row is written: the
+     authorisation answer comes first, and it comes for the whole request. */
+  options: { costRefusedPerRow?: boolean } = {},
+): Response | null {
   const supplied = (columns: Set<string>) => [...columns].some(column => Object.prototype.hasOwnProperty.call(body, column));
   const missing = (bundle: Bundle) => !ctx.isPlatform && ctx.role !== 'owner' && !ctx.bundles.includes(bundle);
   if (supplied(PRODUCT_CREATE_STOCK_COLUMNS) && missing('stock')) {
@@ -3095,9 +3236,6 @@ function validateProductCreateCapabilities(ctx: AccountCtx, body: Record<string,
   if (supplied(PRODUCT_CREATE_COMMERCIAL_COLUMNS) && missing('sell')) {
     return restError(403, 'Sell capability required for supplied fields', 'insufficient_bundle', { required_bundle: 'sell' });
   }
-  // Nothing exists yet to inherit a currency from, so the payload has to say.
-  const createCostRefusal = costMissingItsCurrency(body, null);
-  if (createCostRefusal) return createCostRefusal;
   if (supplied(PRODUCT_CREATE_PUBLICATION_COLUMNS) && missing('publish')) {
     return restError(403, 'Publish capability required for supplied fields', 'insufficient_bundle', { required_bundle: 'publish' });
   }
@@ -3120,10 +3258,14 @@ function validateProductCreateCapabilities(ctx: AccountCtx, body: Record<string,
      may not create this product at all should be told that, not handed a list
      of what else their payload was missing: the authorisation answer is the
      true one, and it is the one that does not describe a form they are not
-     allowed to fill in. */
-  const missingCost = createMissingCost({ amount: body.cost_amount, currency: body.cost_currency });
-  if (missingCost) {
-    return restError(400, COST_REQUIRED_ON_CREATE, 'cost_required', { missing: missingCost });
+     allowed to fill in. The currency half is asked here too, for the same
+     reason: it used to run above the capability checks, which told a caller who
+     could not publish what else was wrong with a form they were not allowed to
+     fill in. */
+  if (options.costRefusedPerRow) return null;
+  const costRefusal = productCreateCostRefusal(body);
+  if (costRefusal) {
+    return restError(400, costRefusal.message, costRefusal.code, { missing: costRefusal.missing });
   }
   return null;
 }
@@ -3180,7 +3322,6 @@ async function applyProductUpdate(
     const costRefusal = costMissingItsCurrency(body, existingCost?.cost_currency);
     if (costRefusal) return costRefusal;
   }
-  stampCostCurrencySource(body);
   if (body.inventory_purpose !== undefined || body.is_sample !== undefined || body.is_personal !== undefined) {
     try { Object.assign(body, decodeInventoryPurposeWrite(body)); }
     catch (error) { return json({ error: (error as Error).message }, 400); }
@@ -3222,6 +3363,20 @@ async function applyProductUpdate(
       }, 400);
     }
   }
+  /* After the unknown-field check, exactly as the create path does it, and for
+     two reasons that pull the same way. `cost_currency_source` is in no
+     caller-facing column set, so a caller may not send one: it records that
+     this process saw a currency arrive. And stamping BEFORE the check handed
+     that check a field it was bound to reject, so the three command routes
+     refused any edit that stated a cost currency: a 400 naming
+     `cost_currency_source`, on the very route the product edit panel sends a
+     cost change to. The stamp cannot run before the gate it fails. */
+  stampCostCurrencySource(body);
+  // The same canonicalisation the create doors run, so an edit through the
+  // product edit panel or /commercial cannot re-introduce a raw spelling that
+  // create already refuses to store. Runs before the UPDATE and before
+  // buildProductMirrorStmts, both of which read body.cost_currency.
+  canonicalizeCostCurrency(body);
 
   const ownedProduct = await env.DB.prepare('SELECT id FROM products WHERE id = ? AND account_id = ?')
     .bind(params.id, accountId).first();
@@ -9673,7 +9828,7 @@ const handleGenerateWisdom: Handler = async (request, env) => {
 const handleGenerateChineseName: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${ctx.accountId}:${ctx.userId}:chinese-name`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${ctx.accountId}:${ctx.userId}:chinese-name`);
   if (limited) return limited;
 
   if (!env.ANTHROPIC_API_KEY) {
@@ -9752,7 +9907,7 @@ const handleGenerateChineseName: Handler = async (request, env) => {
 const handleTranscribe: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${ctx.accountId}:${ctx.userId}:transcribe`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${ctx.accountId}:${ctx.userId}:transcribe`);
   if (limited) return limited;
 
   if (!env.GROQ_API_KEY) {
@@ -9830,7 +9985,7 @@ async function transcribePrivateRecording(env: Env, file: File): Promise<{ text:
 const handleRetryTranscription: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${ctx.accountId}:${ctx.userId}:transcribe-retry`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${ctx.accountId}:${ctx.userId}:transcribe-retry`);
   if (limited) return limited;
   if (!env.GROQ_API_KEY) return restError(503, 'Transcription provider unavailable', 'provider_unavailable');
   const row = await env.DB.prepare(
@@ -9901,7 +10056,7 @@ const handleMigrateTasting: Handler = async (request, env) => {
   const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${userId}:migrate-tasting`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${accountId}:${userId}:migrate-tasting`);
   if (limited) return limited;
 
   if (!env.ANTHROPIC_API_KEY) {
@@ -10075,7 +10230,7 @@ const handleUploadImage: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${userId}:upload-image`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${accountId}:${userId}:upload-image`);
   if (limited) return limited;
 
   if (!env.MEDIA_BUCKET) {
@@ -10129,7 +10284,7 @@ const handleUploadImage: Handler = async (request, env) => {
 const handleUploadMyProfileImage: Handler = async (request, env) => {
   const owned = await requireOwnContributor(request, env);
   if ('error' in owned) return owned.error;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${owned.ctx.userId}:profile-image`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${owned.ctx.userId}:profile-image`);
   if (limited) return limited;
   if (!env.MEDIA_BUCKET) return json({ error: 'R2 media bucket not configured' }, 503);
   if (!(request.headers.get('Content-Type') || '').includes('multipart/form-data')) {
@@ -10321,7 +10476,7 @@ const handleEnhanceProductImage: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${userId}:enhance-product-image`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${accountId}:${userId}:enhance-product-image`);
   if (limited) return limited;
 
   if (!env.MEDIA_BUCKET) return json({ error: 'R2 media bucket not configured' }, 503);
@@ -10467,12 +10622,19 @@ const MULTIPART_OVERHEAD_BYTES = 1024 * 1024;
 const IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const AUDIO_MIME_TYPES = new Set(['audio/webm', 'audio/ogg', 'audio/wav', 'audio/x-wav', 'audio/mpeg', 'audio/mp4', 'video/webm']);
 
-function validateContentLength(request: Request, maxFileBytes: number): Response | null {
+// overheadBytes defaults to the multipart wrapper allowance, so every
+// existing multipart caller (image, audio, flyer, venue photo uploads) is
+// unchanged. The two JSON callers (newsletter, inquiry) pass 0: a JSON body
+// has no multipart envelope around it, so the allowance was letting a body
+// over 1 MiB past a cap stated in kilobytes. max_bytes in the 413 always
+// reports maxFileBytes, which is the number actually enforced once the
+// caller's overhead is 0.
+function validateContentLength(request: Request, maxFileBytes: number, overheadBytes: number = MULTIPART_OVERHEAD_BYTES): Response | null {
   const raw = request.headers.get('content-length');
   if (!raw) return null;
   const length = Number(raw);
   if (!Number.isSafeInteger(length) || length < 0) return restError(400, 'Invalid Content-Length', 'invalid_content_length');
-  return length > maxFileBytes + MULTIPART_OVERHEAD_BYTES
+  return length > maxFileBytes + overheadBytes
     ? restError(413, 'Upload too large', 'upload_too_large', { max_bytes: maxFileBytes })
     : null;
 }
@@ -10503,7 +10665,7 @@ const handleExtractFromImage: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${userId}:extract-image`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${accountId}:${userId}:extract-image`);
   if (limited) return limited;
 
   // Prefer Claude (the production ANTHROPIC_API_KEY is live); fall back to
@@ -10847,7 +11009,7 @@ const handleListPublicEvents: Handler = async (_request, env, _params) => {
 
 const handleRSVP: Handler = async (request, env, params) => {
   const rsvpIp = request.headers.get('CF-Connecting-IP') || 'unknown';
-  const limited = await enforceDurableLimit(env.RSVP_LIMITER, `${rsvpIp}:create`);
+  const limited = await enforceDurableLimit(env.RSVP_LIMITER, 'RSVP_LIMITER', `${rsvpIp}:create`);
   if (limited) return limited;
   // Public RSVP — resolve the event's account so all inserts (customer,
   // attendee, activity log) are attributed to the right store.
@@ -11518,7 +11680,7 @@ const handleFindRSVP: Handler = async (request, env, params) => {
   // Rate limit: this endpoint accepts a bare phone number / email, so it must
   // not be brute-forceable. Durable limiter when bound; in-memory fallback.
   const frIp = request.headers.get('CF-Connecting-IP') || 'unknown';
-  const limited = await enforceDurableLimit(env.RSVP_LIMITER, `${frIp}:recover`);
+  const limited = await enforceDurableLimit(env.RSVP_LIMITER, 'RSVP_LIMITER', `${frIp}:recover`);
   if (limited) return limited;
 
   let lookupField: string;
@@ -12698,7 +12860,7 @@ const handleUploadFlyer: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${userId}:upload-flyer`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${accountId}:${userId}:upload-flyer`);
   if (limited) return limited;
 
   if (!env.MEDIA_BUCKET) {
@@ -12912,7 +13074,7 @@ const handleUploadVenuePhoto: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${ctx.userId}:upload-venue-photo`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${accountId}:${ctx.userId}:upload-venue-photo`);
   if (limited) return limited;
   const preReadError = validateContentLength(request, MAX_IMAGE_BYTES);
   if (preReadError) return preReadError;
@@ -12951,8 +13113,16 @@ const handleGetVenueEvents: Handler = async (request, env, params) => {
 // Public: newsletter signup. We tag the subscription with an optional
 // store_slug from the body, and resolve it to account_id for scoping.
 const handleNewsletterSubscribe: Handler = async (request, env) => {
+  const subscribeIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const limited = await enforceDurableLimit(env.NEWSLETTER_LIMITER, 'NEWSLETTER_LIMITER', `newsletter:${subscribeIp}`);
+  if (limited) return limited;
+  const preReadError = validateContentLength(request, NEWSLETTER_MAX_REQUEST_BYTES, 0);
+  if (preReadError) return preReadError;
+
   const body = await request.json() as Record<string, any>;
   const email = (body.email || '').trim().toLowerCase();
+  const emailLengthError = inquiryFieldTooLong('Email', email, NEWSLETTER_MAX_EMAIL);
+  if (emailLengthError) return json({ error: emailLengthError }, 400);
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return json({ error: 'Invalid email address' }, 400);
   }
@@ -12983,8 +13153,14 @@ const handleGetNewsletterSubscribers: Handler = async (request, env) => {
 // ── Cart Inquiries ──────────────────────────────────────────────────────────
 
 const handleCreateInquiry: Handler = async (request, env) => {
+  const inquiryIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const limited = await enforceDurableLimit(env.INQUIRY_LIMITER, 'INQUIRY_LIMITER', `inquiry:${inquiryIp}`);
+  if (limited) return limited;
+  const preReadError = validateContentLength(request, INQUIRY_MAX_REQUEST_BYTES, 0);
+  if (preReadError) return preReadError;
+
   const body = await request.json() as Record<string, any>;
-  const source = typeof body.source === 'string' && body.source.trim() ? body.source.trim() : 'cart';
+  const source = typeof body.source === 'string' && body.source.trim() ? body.source.trim().slice(0, 50) : 'cart';
   const nameValue = body.customer_name || body.name;
   const contactValue = body.customer_contact || body.email;
   const name = typeof nameValue === 'string' ? nameValue.trim() : '';
@@ -12993,6 +13169,10 @@ const handleCreateInquiry: Handler = async (request, env) => {
   if (!name || !contact) {
     return json({ error: 'Name and contact are required' }, 400);
   }
+  const nameError = inquiryFieldTooLong('Name', name, INQUIRY_MAX_NAME);
+  if (nameError) return json({ error: nameError }, 400);
+  const contactError = inquiryFieldTooLong('Contact', contact, INQUIRY_MAX_CONTACT);
+  if (contactError) return json({ error: contactError }, 400);
 
   let itemsStr: string;
   let totalUsd: number;
@@ -13002,9 +13182,34 @@ const handleCreateInquiry: Handler = async (request, env) => {
   if (source === 'consult') {
     const vision = typeof body.vision === 'string' ? body.vision.trim() : '';
     if (!vision) return json({ error: 'Message is required' }, 400);
-    const interests: string[] = Array.isArray(body.interests) ? body.interests : [];
+    const visionError = inquiryFieldTooLong('Message', vision, INQUIRY_MAX_VISION);
+    if (visionError) return json({ error: visionError }, 400);
+
+    const interestsRaw: unknown[] = Array.isArray(body.interests) ? body.interests : [];
+    if (interestsRaw.length > INQUIRY_MAX_INTERESTS) {
+      return json({ error: `Interests may be at most ${INQUIRY_MAX_INTERESTS} items` }, 400);
+    }
+    if (!interestsRaw.every((item) => typeof item === 'string')) {
+      return json({ error: 'Every interest must be text' }, 400);
+    }
+    const interests = interestsRaw as string[];
+    for (const interest of interests) {
+      const interestError = inquiryFieldTooLong('An interest', interest, INQUIRY_MAX_INTEREST_LABEL);
+      if (interestError) return json({ error: interestError }, 400);
+    }
+
     const referral = typeof body.referral === 'string' ? body.referral.trim() : '';
+    const referralError = inquiryFieldTooLong('Referral', referral, INQUIRY_MAX_REFERRAL);
+    if (referralError) return json({ error: referralError }, 400);
+
     const location = typeof body.location === 'string' ? body.location.trim() : '';
+    const locationError = inquiryFieldTooLong('Location', location, INQUIRY_MAX_LOCATION);
+    if (locationError) return json({ error: locationError }, 400);
+
+    const whatsapp = typeof body.whatsapp === 'string' ? body.whatsapp.trim() : '';
+    const whatsappError = inquiryFieldTooLong('WhatsApp', whatsapp, INQUIRY_MAX_PHONE);
+    if (whatsappError) return json({ error: whatsappError }, 400);
+
     const parts = [vision];
     if (interests.length > 0) parts.push(`Interests: ${interests.join(', ')}`);
     if (location) parts.push(`Location: ${location}`);
@@ -13012,7 +13217,7 @@ const handleCreateInquiry: Handler = async (request, env) => {
     message = parts.join('\n\n');
     itemsStr = '[]';
     totalUsd = 0;
-    phone = typeof body.whatsapp === 'string' ? body.whatsapp.trim() || null : null;
+    phone = whatsapp || null;
   } else {
     const normalized = normalizeCartInquiry(body);
     if (!normalized.ok) return json({ error: normalized.error }, 400);
@@ -13021,6 +13226,11 @@ const handleCreateInquiry: Handler = async (request, env) => {
     if (!accountId) return json({ error: 'Store not found' }, 404);
     const tokenHash = await sha256Hex(normalized.value.trackingToken);
     const location = typeof body.customer_location === 'string' ? body.customer_location.trim() : '';
+    const locationError = inquiryFieldTooLong('Location', location, INQUIRY_MAX_LOCATION);
+    if (locationError) return json({ error: locationError }, 400);
+    const phoneCandidate = typeof body.phone === 'string' ? body.phone.trim() : '';
+    const phoneError = inquiryFieldTooLong('Phone', phoneCandidate, INQUIRY_MAX_PHONE);
+    if (phoneError) return json({ error: phoneError }, 400);
     const notes = (typeof body.notes === 'string'
       ? body.notes.trim()
       : typeof body.message === 'string' ? body.message.trim() : '').slice(0, INQUIRY_MAX_NOTE);
@@ -13069,7 +13279,7 @@ const handleCreateInquiry: Handler = async (request, env) => {
 
     const id = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
     message = notes || null;
-    phone = (typeof body.phone === 'string' ? body.phone.trim() : '') || location || null;
+    phone = phoneCandidate || location || null;
     try {
       await env.DB.prepare(
         `INSERT INTO inquiries
@@ -13128,23 +13338,29 @@ const handleCreateInquiry: Handler = async (request, env) => {
     if (!accountId) return json({ error: 'Store not found' }, 404);
   }
   const id = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
-  const refNumber = (typeof body.ref_number === 'string' && body.ref_number.trim()) ? body.ref_number.trim() : null;
+  const rawRefNumber = (typeof body.ref_number === 'string' && body.ref_number.trim()) ? body.ref_number.trim() : null;
+  if (rawRefNumber) {
+    const refNumberError = inquiryFieldTooLong('Order reference', rawRefNumber, INQUIRY_MAX_REF_NUMBER);
+    if (refNumberError) return json({ error: refNumberError }, 400);
+  }
+  const refNumber = rawRefNumber;
+  const currency = typeof body.currency === 'string' && body.currency.trim() ? body.currency.trim().slice(0, 10) : 'USD';
 
   // `source` added in migration 045; `ref_number` added in migration 076. Fall
   // back through older schemas so deployments that haven't migrated yet still work.
   try {
     await env.DB.prepare(
       'INSERT INTO inquiries (id, account_id, name, email, phone, items, total_usd, currency, message, source, ref_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).bind(id, accountId, name, contact, phone, itemsStr, totalUsd, body.currency || 'USD', message, source, refNumber).run();
+    ).bind(id, accountId, name, contact, phone, itemsStr, totalUsd, currency, message, source, refNumber).run();
   } catch (err: any) {
     if (typeof err?.message === 'string' && err.message.includes('ref_number')) {
       await env.DB.prepare(
         'INSERT INTO inquiries (id, account_id, name, email, phone, items, total_usd, currency, message, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-      ).bind(id, accountId, name, contact, phone, itemsStr, totalUsd, body.currency || 'USD', message, source).run();
+      ).bind(id, accountId, name, contact, phone, itemsStr, totalUsd, currency, message, source).run();
     } else if (typeof err?.message === 'string' && err.message.includes('source')) {
       await env.DB.prepare(
         'INSERT INTO inquiries (id, account_id, name, email, phone, items, total_usd, currency, message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-      ).bind(id, accountId, name, contact, phone, itemsStr, totalUsd, body.currency || 'USD', message).run();
+      ).bind(id, accountId, name, contact, phone, itemsStr, totalUsd, currency, message).run();
     } else {
       throw err;
     }
@@ -13158,7 +13374,7 @@ const handleCreateInquiry: Handler = async (request, env) => {
     location: null,
     itemsJson: itemsStr,
     totalUsd,
-    currency: body.currency || 'USD',
+    currency: currency,
     message,
     reference: refNumber || id,
     trackingToken: null,
@@ -13726,6 +13942,11 @@ const handleApproveCellarPlacement: Handler = async (request, env, params) => {
     cost_amount: null,
   };
   body.slug = await mintProductSlug(env, body, productId);
+  /* And the freight rate and markup for the same reason the cost is NULL: this
+     shop did not buy the tea, so it has no rate of its own to carry, and the
+     shop rate is what applies the moment the owner lists it. Omitted, the live
+     table would have said free at 2.5x. */
+  nameProductColumns(body);
   const cols = Object.keys(body);
   const placeholders = cols.map(() => '?').join(', ');
   const insertProduct = env.DB.prepare(
@@ -14536,7 +14757,16 @@ const handlePromoteCompassEntry: Handler = async (request, env, params) => {
     tea_key: entry.tea_key ?? null,
     source_compass_entry_id: entry.id,
   };
+  // The same canonicalisation every other write door runs, so a compass entry
+  // carrying 'cny' or 'hkd' promotes to the shop's own spelling instead of a
+  // currency the exchange table has no row for. No-op when the entry's
+  // currency was never stated, which is what leaves cost_currency NULL above.
+  canonicalizeCostCurrency(cols);
 
+  /* A compass entry records what Adrian saw, not what it cost to bring here. It
+     carries no freight rate and no markup, so both are NULL and the tea follows
+     the shop on each. Omitted they would have been 0 and 2.5. */
+  nameProductColumns(cols);
   const colNames = Object.keys(cols);
   const placeholders = colNames.map(() => '?').join(', ');
   // The unique encounter identity plus one D1 batch makes promotion atomic:
@@ -14723,12 +14953,16 @@ const handleAcceptReceiptProposal: Handler = async (request, env, params) => {
     /* `cost_amount` is named as NULL rather than left out. Left out, the column
        default answers 0, and 0 is a free tea: the draft lands priced at zero
        times three and nobody sees it, because it is created hidden. This door
-       genuinely does not know the cost yet, and NULL is how a row says that. */
+       genuinely does not know the cost yet, and NULL is how a row says that.
+       `shipping_rate_per_kg` and `markup_multiplier` are named for the same
+       reason and were the two this comment used to leave out: the live table
+       answers 0 and 2.5 for a column an INSERT does not mention, which is a tea
+       that ships free at a markup the shop stopped using. */
     statements.push(env.DB.prepare(`INSERT INTO products
       (id, account_id, type, product_name, given_name, slug, status, stock_grams, quantity_units,
        inventory_purpose, is_sample, is_personal, stock_known_at, is_public, shown_in_shop, source_compass_entry_id, owner_user_id,
-       cost_amount)
-      VALUES (?, ?, ?, ?, ?, ?, 'Draft', ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, NULL)`)
+       cost_amount, shipping_rate_per_kg, markup_multiplier)
+      VALUES (?, ?, ?, ?, ?, ?, 'Draft', ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, NULL, NULL, NULL)`)
       .bind(productId, ctx.accountId, type, name, name, slug, inventory.stock_grams ?? 0, inventory.quantity_units,
         inventory.inventory_purpose, inventory.is_sample, inventory.is_personal, now, proposal.compass_entry_id ?? null, ctx.userId));
     statements.push(...buildProductMirrorInserts(env, productId, ctx.accountId, {
@@ -16076,7 +16310,7 @@ async function verifyVerificationCode(code: string, signatureHex: string, secret
 // POST /api/verify/request
 const handleVerifyRequest: Handler = async (request, env) => {
   const verifyIp = request.headers.get('CF-Connecting-IP') || 'unknown';
-  const limited = await enforceDurableLimit(env.VERIFY_LIMITER, verifyIp);
+  const limited = await enforceDurableLimit(env.VERIFY_LIMITER, 'VERIFY_LIMITER', verifyIp);
   if (limited) return limited;
 
   const body = await request.json().catch(() => ({})) as { contact?: string; purpose?: 'signin' | 'event'; method?: 'email' };
@@ -21264,7 +21498,7 @@ const handleRedeemJoinCode: Handler = async (request, env) => {
   // CF-Connecting-IP is Cloudflare-set and unspoofable; never fall back to the
   // client-controlled X-Forwarded-For header for a rate-limit key.
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
-  const limited = await enforceDurableLimit(env.JOIN_CODE_LIMITER, ip);
+  const limited = await enforceDurableLimit(env.JOIN_CODE_LIMITER, 'JOIN_CODE_LIMITER', ip);
   if (limited) return limited;
 
   const body = await request.json() as { code?: string; first_name?: string; email?: string };
@@ -23717,16 +23951,20 @@ const handleImportInboundItems: Handler = async (request, env, params) => {
        leaves the source shop's cost behind, because what THEY paid is not what
        this shop paid and is protected besides. Omitting the column entirely
        would let the default answer 0, which does not read as "we did not copy
-       a cost" but as "this tea was free". */
+       a cost" but as "this tea was free".
+       `shipping_rate_per_kg` and `markup_multiplier` are the same argument and
+       were missing from it. The other shop's freight deal is theirs, so this
+       row carries none and follows Adrian's; left out, the table would have
+       said the tea ships free and prices at 2.5x. */
     const cols = [
       'id', 'account_id', 'status', 'is_public', 'stock_grams', 'fixed_retail_price_usd',
-      'cost_amount',
+      'cost_amount', 'shipping_rate_per_kg', 'markup_multiplier',
       'imported_from_product_id', 'imported_via_publication_id',
       ...COPY_COLS,
     ];
     const vals = [
       id, ctx.accountId, 'Draft', 0, 0, null,
-      null,
+      null, null, null,
       src.id, params.pubId,
       ...COPY_COLS.map(c => src[c] ?? null),
     ];
@@ -24237,7 +24475,8 @@ const handleNetworkCatalog: Handler = async (request, env) => {
         cl.fixed_retail_price_usd AS curator_fixed_retail_usd,
         cl.cost_amount            AS curator_cost_amount,
         cl.cost_currency          AS curator_cost_currency,
-        cl.markup_multiplier      AS curator_markup_multiplier
+        cl.markup_multiplier      AS curator_markup_multiplier,
+        cl.quantity_purchased     AS curator_quantity_purchased
       FROM tea_profiles p
       JOIN accounts a  ON a.id  = p.curated_by_account_id
       JOIN accounts ao ON ao.id = p.originated_by_account_id
@@ -24342,19 +24581,27 @@ const handleNetworkCatalog: Handler = async (request, env) => {
       }
     } else if (p.curator_cost_amount != null && p.curator_cost_amount > 0) {
       // Cost-based: cost_per_gram (in cost_currency) * markup → retail in cost_currency.
-      // Then convert to curator currency for display.
+      // Then convert to curator currency for display. cost_amount is the total
+      // cost for quantity_purchased, the same shape addPricingFields divides
+      // out for the shop's own catalogue, so this must divide by it too before
+      // the markup is applied. A cake bought for 1,200 CNY as 2,000 g of leaf
+      // costs 0.6 CNY a gram, not 1,200: skipping the division here once
+      // quoted a network listing at 2,000 times its real price.
       const costCurrency = (p.curator_cost_currency as string) || 'USD';
       const markup = (p.curator_markup_multiplier as number) ?? CURATOR_FALLBACK_MARKUP;
-      // cost_amount is the total cost for quantity_purchased; without that here,
-      // we treat cost_amount as already per-gram. This matches how the legacy
-      // products API returns it (see addPricingFields). Acceptable for browse.
-      const retailInCostCurrency = (p.curator_cost_amount as number) * markup;
-      const converted = convert(retailInCostCurrency, costCurrency, curatorCurrency);
-      if (converted === null) {
-        retailPricePerGramCurator = retailInCostCurrency;
-        fxUnavailable = true;
-      } else {
-        retailPricePerGramCurator = converted;
+      const quantityPurchased = p.curator_quantity_purchased as number | null;
+      // No recorded quantity means no honest per-gram cost to derive from;
+      // leave the price null rather than treating the total cost as per-gram.
+      if (quantityPurchased && quantityPurchased > 0) {
+        const costPerGramInCostCurrency = (p.curator_cost_amount as number) / quantityPurchased;
+        const retailInCostCurrency = costPerGramInCostCurrency * markup;
+        const converted = convert(retailInCostCurrency, costCurrency, curatorCurrency);
+        if (converted === null) {
+          retailPricePerGramCurator = retailInCostCurrency;
+          fxUnavailable = true;
+        } else {
+          retailPricePerGramCurator = converted;
+        }
       }
     }
 
@@ -24505,12 +24752,20 @@ const handleCarryListing: Handler = async (request, env) => {
   //    id uses lower(hex(randomblob(16))) — same DEFAULT the schema uses; generated inline
   //    in the INSERT rather than via JS crypto to keep id generation in one place (D1).
   //    is_public = 1: carried teas default to publicly listed; partner can hide later.
+  //    cost_amount, shipping_rate_per_kg and markup_multiplier are named as
+  //    NULL. Carrying somebody else's tea says nothing about what this shop
+  //    paid for it, what freight it bore, or how it should be marked up, and
+  //    the live table answers 0, 0 and 2.5 to a column an INSERT leaves out.
+  //    That is a free tea, shipped free, priced at a multiplier the shop
+  //    stopped using. NULL is how the row says nobody has entered anything.
   const insertResult = await env.DB.prepare(`
     INSERT INTO product_listings
       (id, account_id, profile_id, stock_grams, fixed_retail_price_usd,
-       listing_photos, status, is_public, inventory_purpose, stock_known_at)
+       listing_photos, status, is_public, inventory_purpose, stock_known_at,
+       cost_amount, shipping_rate_per_kg, markup_multiplier)
     VALUES
-      (lower(hex(randomblob(16))), ?, ?, ?, ?, ?, 'active', 1, 'working', ?)
+      (lower(hex(randomblob(16))), ?, ?, ?, ?, ?, 'active', 1, 'working', ?,
+       NULL, NULL, NULL)
     RETURNING id
   `).bind(accountId, profileId, stockGrams, fixedRetailPriceUsd, listingPhotos, new Date().toISOString()).first() as
     { id: string } | null;
@@ -25651,11 +25906,21 @@ async function processReceiveSideEffects(
     } else {
       // Auto-create a new listing for the buyer. Defaults: status=active, is_public=1.
       // No price set — buyer will refine on the listing edit page.
+      //
+      // "No price set" has to be written down to be true. cost_amount,
+      // shipping_rate_per_kg and markup_multiplier are named NULL, because the
+      // live table answers 0, 0 and 2.5 for a column an INSERT does not
+      // mention: a wholesale receipt would have landed on the buyer's shelf as
+      // a free tea, shipped free, at a markup nobody chose. What the buyer paid
+      // for this line is on the wholesale order; it is not copied here, because
+      // one number in two places is how the shop came to have four freight
+      // rates at once.
       buyerListingId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
       stmts.push(env.DB.prepare(
         `INSERT INTO product_listings
-           (id, account_id, profile_id, stock_grams, listing_photos, status, is_public)
-         VALUES (?, ?, ?, ?, '[]', 'active', 1)`
+           (id, account_id, profile_id, stock_grams, listing_photos, status, is_public,
+            cost_amount, shipping_rate_per_kg, markup_multiplier)
+         VALUES (?, ?, ?, ?, '[]', 'active', 1, NULL, NULL, NULL)`
       ).bind(buyerListingId, order.buyer_account_id, item.profile_id, grams));
     }
     // Link the order item to whichever buyer listing now holds the stock
@@ -27286,22 +27551,18 @@ export default {
     // Public, unauthenticated, read-only MCP for the shopping public — catalog
     // browse + WhatsApp checkout-link builder. No account data or costs exposed.
     if (url.pathname === '/mcp/public') {
-      // Edge rate limit per client IP. The binding is absent in local dev, so
-      // this is a no-op there; in production it caps abuse at the edge before
-      // any D1 work happens.
-      if (env.PUBLIC_MCP_LIMITER) {
-        const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
-        const { success } = await env.PUBLIC_MCP_LIMITER.limit({ key: ip });
-        if (!success) {
-          return cors(
-            new Response(
-              JSON.stringify({ error: 'rate_limited', message: 'Too many requests. Slow down and try again shortly.' }),
-              { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '10' } },
-            ),
-            corsOrigin,
-          );
-        }
-      }
+      // Edge rate limit per client IP, keyed the same way as every other
+      // durable limiter. This endpoint is public and unauthenticated, so
+      // it had no fallback below it (audit SEC-5, same class as
+      // enforceDurableLimit's absent-binding fix): a missing binding is a
+      // broken deploy, not local dev, and must refuse rather than run the
+      // catalog and checkout-link tools with no brake at all. The 10 second
+      // Retry-After matches this binding's simple = { limit = 60, period =
+      // 10 } window in wrangler.toml, and restores the header the old
+      // inline check sent before it was folded into enforceDurableLimit.
+      const mcpPublicIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+      const mcpPublicLimited = await enforceDurableLimit(env.PUBLIC_MCP_LIMITER, 'PUBLIC_MCP_LIMITER', `public-mcp:${mcpPublicIp}`, 10);
+      if (mcpPublicLimited) return cors(mcpPublicLimited, corsOrigin);
       return cors(await publicMcpFetch(request, env), corsOrigin);
     }
 

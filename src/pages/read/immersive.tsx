@@ -58,6 +58,7 @@
  */
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { isArticleVisible, useIsReadOwner } from './publishGate';
 
 // ─── Palette ─────────────────────────────────────────────────────────────────
 // The design's exact literal values, kept scoped to the immersive reader so the
@@ -345,33 +346,81 @@ export const AccentSwatches: React.FC<{ accent: string; setAccent: (a: string) =
 // ─── "More from The Art of Tea" footer ─────────────────────────────────────
 export type MoreLink = { to: string; kicker: string; title: string; blurb: string };
 
-export const MoreFooter: React.FC<{ links: MoreLink[] }> = ({ links }) => (
-  <footer style={{ borderTop: '1px solid rgba(168,135,77,0.14)', padding: 'clamp(40px,6vw,72px) clamp(20px,5vw,56px) clamp(64px,9vw,110px)' }}>
-    <div style={{ maxWidth: 1180, margin: '0 auto' }}>
-      <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 600, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.gold, marginBottom: 26 }}>
-        More from The Art of Tea
+/**
+ * The rail obeys the same publish gate the route and the index obey.
+ *
+ * Each of the fourteen article pages carries its own hand-curated `moreLinks`
+ * array, written when the piece was designed and long before ten of the
+ * fourteen were held back as drafts. Nothing filtered them, so a live page
+ * advertised unpublished work by title and blurb: /read/porcelain-and-tea
+ * offered Earth Water Fire, The Pot That Remembers and The Rock Remembers, and
+ * /read/atlas and /read/tasting both offered Ten Thousand Mornings. Each of
+ * those cards was also a dead link for a visitor, landing on the not-found
+ * page the route gate had started serving. (JOBC-2, prime-time audit 2026-09.)
+ *
+ * The filter lives here, in the one component every page renders, rather than
+ * in fourteen arrays: a fifteenth page written tomorrow inherits it by using
+ * the component, which is the only version of this fix that survives the next
+ * article being added.
+ */
+export function visibleMoreLinks(links: MoreLink[], isOwner: boolean): MoreLink[] {
+  return links.filter((l) => isArticleVisible(l.to, isOwner));
+}
+
+export const MoreFooter: React.FC<{ links: MoreLink[] }> = ({ links }) => {
+  const isOwner = useIsReadOwner();
+  const visible = visibleMoreLinks(links, isOwner);
+  // Nothing survived the filter, so there is no related reading to offer. Show
+  // no rail at all rather than a heading over an empty grid, and do not
+  // backfill with whatever else happens to be live: this rail is the author's
+  // own choice of what to read next, and a substitute nobody chose is not that.
+  // ReadIndex's GroupBlock takes the same line with a group whose rows are all
+  // drafts. Today this only bites /read/porcelain-and-tea, whose three
+  // companions are all unpublished; the other three live pieces keep two or
+  // three cards each.
+  if (visible.length === 0) return null;
+  return (
+    <footer style={{ borderTop: '1px solid rgba(168,135,77,0.14)', padding: 'clamp(40px,6vw,72px) clamp(20px,5vw,56px) clamp(64px,9vw,110px)' }}>
+      <div style={{ maxWidth: 1180, margin: '0 auto' }}>
+        <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 600, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.gold, marginBottom: 26 }}>
+          More from The Art of Tea
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,260px),1fr))', gap: 'clamp(14px,2vw,22px)' }}>
+          {visible.map((l) => {
+            // Dimmed and tagged for the owner, exactly as ReadIndex marks a
+            // draft row, so the owner can tell at a glance which of these cards
+            // a visitor is not being shown.
+            const draft = !isArticleVisible(l.to, false);
+            return (
+              <Link
+                key={l.to}
+                to={l.to}
+                className="tj-morecard"
+                style={{
+                  textDecoration: 'none',
+                  color: 'inherit',
+                  border: '1px solid rgba(168,135,77,0.16)',
+                  borderRadius: 4,
+                  padding: 24,
+                  background: 'linear-gradient(160deg,#1b160f,#15110b)',
+                  opacity: draft ? 0.5 : 1,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <span style={{ fontFamily: F.mono, fontSize: 9.5, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim }}>{l.kicker}</span>
+                  {draft && (
+                    <span style={{ fontFamily: F.mono, fontSize: 8.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.gold, border: '1px solid rgba(168,135,77,0.4)', borderRadius: 2, padding: '1px 5px', whiteSpace: 'nowrap' }}>
+                      Draft
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontFamily: F.display, fontSize: 25, color: C.ink, lineHeight: 1.1 }}>{l.title}</div>
+                <div style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 13.5, color: C.dim, marginTop: 8 }}>{l.blurb}</div>
+              </Link>
+            );
+          })}
+        </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,260px),1fr))', gap: 'clamp(14px,2vw,22px)' }}>
-        {links.map((l) => (
-          <Link
-            key={l.to}
-            to={l.to}
-            className="tj-morecard"
-            style={{
-              textDecoration: 'none',
-              color: 'inherit',
-              border: '1px solid rgba(168,135,77,0.16)',
-              borderRadius: 4,
-              padding: 24,
-              background: 'linear-gradient(160deg,#1b160f,#15110b)',
-            }}
-          >
-            <div style={{ fontFamily: F.mono, fontSize: 9.5, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim, marginBottom: 12 }}>{l.kicker}</div>
-            <div style={{ fontFamily: F.display, fontSize: 25, color: C.ink, lineHeight: 1.1 }}>{l.title}</div>
-            <div style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 13.5, color: C.dim, marginTop: 8 }}>{l.blurb}</div>
-          </Link>
-        ))}
-      </div>
-    </div>
-  </footer>
-);
+    </footer>
+  );
+};

@@ -12,6 +12,45 @@ export const INQUIRY_MAX_ITEMS = 50;
 export const INQUIRY_MAX_ITEM_NAME = 120;
 export const INQUIRY_MAX_NOTE = 2000;
 
+/**
+ * Caps on the fields that are shared or free text, on either branch
+ * (cart checkout or the advise-page consult form). Nothing here was capped
+ * before the audit that found a 2 MB consult message stored in full: these
+ * numbers give real use generous headroom (the consult form's own copy asks
+ * for "a few sentences") without leaving a field open to abuse.
+ */
+export const INQUIRY_MAX_NAME = 200;
+export const INQUIRY_MAX_CONTACT = 200;
+export const INQUIRY_MAX_REF_NUMBER = 100;
+export const INQUIRY_MAX_LOCATION = 200;
+export const INQUIRY_MAX_PHONE = 50;
+export const INQUIRY_MAX_VISION = 4000;
+export const INQUIRY_MAX_REFERRAL = 200;
+export const INQUIRY_MAX_INTERESTS = 12;
+export const INQUIRY_MAX_INTEREST_LABEL = 80;
+
+/** RFC 5321's own ceiling on a full email address, applied to the newsletter form too. */
+export const NEWSLETTER_MAX_EMAIL = 254;
+
+/**
+ * A pre-read cap on the whole request body, checked from the Content-Length
+ * header before the body is parsed into memory at all. The per-field caps
+ * above still run after parsing and are the real gate on what gets stored;
+ * this one exists so a request that lies about being small cannot make the
+ * worker read a multi-megabyte body into memory just to find that out. Set
+ * with real headroom above the worst legitimate payload (a full cart of
+ * INQUIRY_MAX_ITEMS lines, or the consult form's longest fields), not tight
+ * to it, because it only needs to catch abuse, not shave bytes off a normal
+ * request.
+ */
+export const INQUIRY_MAX_REQUEST_BYTES = 32 * 1024;
+export const NEWSLETTER_MAX_REQUEST_BYTES = 4 * 1024;
+
+/** A field over its cap, named so the caller can say which one. Null when fine. */
+export function inquiryFieldTooLong(field: string, value: string, max: number): string | null {
+  return value.length > max ? `${field} may be at most ${max} characters` : null;
+}
+
 export interface NormalizedCartInquiry {
   storeSlug: string;
   trackingToken: string;
@@ -88,6 +127,8 @@ export function normalizeCartInquiry(body: Record<string, unknown>): CartInquiry
 
   const refNumber = typeof body.ref_number === 'string' ? body.ref_number.trim() : '';
   if (!refNumber) return { ok: false, error: 'Order reference is required' };
+  const refNumberError = inquiryFieldTooLong('Order reference', refNumber, INQUIRY_MAX_REF_NUMBER);
+  if (refNumberError) return { ok: false, error: refNumberError };
 
   const totalUsd = Number(body.total_estimate_usd ?? body.total_usd);
   if (!Number.isFinite(totalUsd) || totalUsd < 0) {

@@ -4,10 +4,10 @@ chineseName: "那卡古树熟茶"
 type: Shou
 form: Cake
 year: Unknown
-origin: "Menghai, Yunnan, China"
-grams: 357
+origin: "Mengsong, Menghai, Yunnan, China"
+grams: 714
 stock: 714
-cost: "135 Yuan"
+cost: "270 Yuan"
 vendor: "Kunming Xiongda"
 restockable: true
 tastingNotes:
@@ -18,22 +18,16 @@ tastingNotes:
   - "clean finish"
 ---
 
-Naka (那卡) is a village in Menghai county known for producing pu-erh with a distinctive, almost floral character unusual for the region.
+A ripe puerh (shou) pressed into a cake from old-tree leaf at Naka, a Lahu village in Mengsong township, Menghai county, Yunnan.
 
-Gushu (ancient tree) material from Naka is prized for its aromatic complexity. Processing this as shou rather than sheng is an unconventional choice that preserves some of Naka's signature character through fermentation.
+## Lore
+
+Naka (那卡) is a Lahu village in Mengsong township, Menghai county, in Xishuangbanna, Yunnan. Its leaf is the tea most associated with the Mengsong tea area and is known throughout Menghai county. Lahu families here also make bamboo-tube tea, a local method of packing fresh leaf into a bamboo tube and roasting it, noted since the Qing period; that tradition is not the format of this cake.
 
 ## Terroir
 
-Naka village, Menghai county, Xishuangbanna, Yunnan. Naka sits at approximately 1,600 meters on Nannuo Mountain, one of the ancient six tea mountains. The Lahu ethnic minority has cultivated tea here for generations, and the ancient gardens are surrounded by forest.
+The village sits on the eastern side of Huazhu Liangzi mountain, at roughly 1,660 metres. It keeps more than 600 mu of continuous old tea gardens (one mu is about 667 square metres). The trees run between roughly 300 and 500 years old. Leaf from trees this age is called gushu, meaning old-tree: picked from trees far older than the bushes of a plantation.
 
 ## Processing
 
-Ancient-tree leaf from Naka village, wo dui fermented and pressed into cake. Naka's naturally aromatic leaf retains some of its distinctive character even through the heavy transformation of shou processing, creating a ripe tea with unusual refinement.
-
-## Mood
-
-quiet fragrance
-
-## Experience
-
-A shou with unexpected grace. The floral note that Naka is famous for survives the fermentation as a ghost, a lightness beneath the earth and sweetness. Cleaner and more refined than most shou. Drinks like a tea that remembers what it used to be.
+This cake is made in the ripe puerh style, called shou in Chinese. Shou is Yunnan's dark, wet-piled tea. The picked leaf is heaped damp so heat and microbes ferment it, a step called wo dui, or wet piling. The method was developed in Yunnan in the early 1970s and turns the leaf dark so the tea is drinkable young. After fermentation the leaf is pressed into a cake. In the cup the liquor pours dark and drinks full-bodied and earthy; because the pile process works the leaf heavily, what carries through in a ripe tea is the quality of the starting material rather than the aromatics of the fresh leaf.

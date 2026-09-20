@@ -96,6 +96,18 @@ describe('MCP OAuth write boundaries', () => {
     expect(await authorize.json()).toMatchObject({ error: 'temporarily_unavailable' });
   });
 
+  it('refuses registration and authorization when their limiter binding is not configured, instead of allowing them', async () => {
+    const db = new OAuthDb();
+    const register = await oauthRegister(new Request('https://api.test/oauth/register', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(registration()) }), { DB: db, JWT_SECRET: 'x' } as any);
+    expect(register.status).toBe(503);
+    expect(await register.json()).toMatchObject({ error: 'temporarily_unavailable' });
+    expect(db.inserts).toBe(0);
+
+    const authorize = await oauthAuthorize(new Request('https://api.test/oauth/authorize?client_id=x'), { DB: db, JWT_SECRET: 'x' } as any);
+    expect(authorize.status).toBe(503);
+    expect(await authorize.json()).toMatchObject({ error: 'temporarily_unavailable' });
+  });
+
   it('rejects unbounded or unsupported registration metadata before inserting', async () => {
     const cases = [
       registration({ client_name: 'x'.repeat(121) }),
@@ -106,14 +118,14 @@ describe('MCP OAuth write boundaries', () => {
     ];
     for (const body of cases) {
       const db = new OAuthDb();
-      const response = await oauthRegister(new Request('https://api.test/oauth/register', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }), { DB: db, JWT_SECRET: 'x' } as any);
+      const response = await oauthRegister(new Request('https://api.test/oauth/register', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }), { DB: db, JWT_SECRET: 'x', OAUTH_REGISTER_LIMITER: new Limiter() } as any);
       expect(response.status).toBe(400);
       expect(db.inserts).toBe(0);
     }
   });
 
   it('reuses an identical registration instead of growing D1 rows', async () => {
-    const db = new OAuthDb(); const env = { DB: db, JWT_SECRET: 'x' } as any;
+    const db = new OAuthDb(); const env = { DB: db, JWT_SECRET: 'x', OAUTH_REGISTER_LIMITER: new Limiter() } as any;
     const make = () => oauthRegister(new Request('https://api.test/oauth/register', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(registration()) }), env);
     const first = await make(); const second = await make();
     expect((await first.json() as any).client_id).toBe((await second.json() as any).client_id);
@@ -123,6 +135,7 @@ describe('MCP OAuth write boundaries', () => {
   it('validates client, registered redirect, response type, PKCE, and field bounds before authorization insert', async () => {
     const db = new OAuthDb();
     db.clients.set('client-1', { id: 'client-1', redirect_uris: JSON.stringify(['https://claude.ai/oauth/callback']), grant_types: '["authorization_code"]', response_types: '["code"]' });
+    const env = { DB: db, JWT_SECRET: 'x', OAUTH_AUTHORIZE_LIMITER: new Limiter() } as any;
     const base = new URLSearchParams({ client_id: 'client-1', redirect_uri: 'https://claude.ai/oauth/callback', response_type: 'code', code_challenge: 'A'.repeat(43), code_challenge_method: 'S256', state: 'state', scope: 'mcp' });
     for (const patch of [
       { client_id: 'missing' },
@@ -136,15 +149,15 @@ describe('MCP OAuth write boundaries', () => {
       { scope: 'admin' },
     ]) {
       const q = new URLSearchParams(base); Object.entries(patch).forEach(([k, v]) => q.set(k, v));
-      const response = await oauthAuthorize(new Request(`https://api.test/oauth/authorize?${q}`), { DB: db, JWT_SECRET: 'x' } as any);
+      const response = await oauthAuthorize(new Request(`https://api.test/oauth/authorize?${q}`), env);
       expect(response.status).toBe(400);
       expect(db.inserts).toBe(0);
     }
 
-    const valid = await oauthAuthorize(new Request(`https://api.test/oauth/authorize?${base}`), { DB: db, JWT_SECRET: 'x' } as any);
+    const valid = await oauthAuthorize(new Request(`https://api.test/oauth/authorize?${base}`), env);
     expect(valid.status).toBe(302);
     expect(db.inserts).toBe(1);
-    const replay = await oauthAuthorize(new Request(`https://api.test/oauth/authorize?${base}`), { DB: db, JWT_SECRET: 'x' } as any);
+    const replay = await oauthAuthorize(new Request(`https://api.test/oauth/authorize?${base}`), env);
     expect(replay.headers.get('location')).toBe(valid.headers.get('location'));
     expect(db.inserts).toBe(1);
   });

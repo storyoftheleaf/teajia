@@ -46,7 +46,6 @@
 - [Wisdom](sheng/wisdom.md) 智慧
 - [Yesheng Wild Tea](sheng/yesheng-wild-tea.md) 野生茶
 - [Yi-Wu Sunshine — Yi-Wu Sheng 2006 (2006)](sheng/yi-wu-sheng-2006-2006.md) 易武生茶
-- [Yiwu Gushu (2008)](sheng/yiwu-gushu-2008.md) 易武古树生普洱
 - [Yuandu Sheng — Raw Puerh 1980s](sheng/yuandu-sheng.md) 原度生
 - [2004 Yiwu Raw Puerh (2004)](sheng/2004-yiwu-raw-puerh.md) 2004年易武生普
 
@@ -64,7 +63,7 @@
 - [Naka Gushu](shou/naka-gushu.md) 那卡古树熟茶
 - [Pasha Village (2015)](shou/pasha-village-2015.md) 帕沙寨熟茶
 - [Qi Zi Bing (2001)](shou/qi-zi-bing-2001.md) 七子饼熟茶
-- [Qiaorui Gong Jin (2009)](shou/qiaorui-gong-jin-2009.md) 乔瑞贡金砖
+- [Nanqiao Ruigong Brick (2009)](shou/qiaorui-gong-jin-2009.md) 南峤瑞贡金砖
 - [Red Mark Cake — Zhong Cha Pai Yuan (1998)](shou/zhong-cha-pai-yuan-1998.md) 中茶牌圆茶
 - [Shou Disk (1990)](shou/shou-disk-1990.md) 熟茶饼
 - [Shou Puerh 1990 (1990)](shou/shou-puerh-1990-1990.md) 熟普洱
@@ -76,6 +75,7 @@
 - [Tuo Cha (1980)](shou/tuo-cha-1980.md) 熟沱
 - [Wan Zhi — Wan Zhi 1980 (1980)](shou/wan-zhi-1980-1980.md) 万枝
 - [Xiao Qing Gan](shou/xiao-qing-gan.md) 小青柑
+- [Yiwu Gushu (2008)](shou/yiwu-gushu-2008.md) 易武古树熟茶
 - [Xiniu Tang Gushu](shou/xiniu-tang-gushu.md) 犀牛塘古树熟茶
 - [Yellow Label Tie Bing (1997)](shou/yellow-label-tie-bing-1997.md) 黄标铁饼熟茶
 - [Yi-Wu Melody — Yiwu Xiaoye Shou (1980s)](shou/yiwu-xiaoye-shou-1980s.md) 易武小叶种熟茶

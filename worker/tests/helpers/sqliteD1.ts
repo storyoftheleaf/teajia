@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DatabaseSync, type StatementSync } from 'node:sqlite';
+import { seedFromMigrations } from './migratedSqlite';
 
 class SqliteStatement {
   private values: unknown[] = [];
@@ -26,12 +27,44 @@ class SqliteStatement {
   }
 }
 
-export class SqliteD1 {
-  readonly sqlite = new DatabaseSync(':memory:');
+/**
+ * Where a test database gets its shape.
+ *
+ * `'schema'` reads `worker/schema.sql`, which is the hand-maintained
+ * description of the database and the right choice for almost everything.
+ *
+ * `'migrations'` replays the migration ledger instead, which is what the live
+ * database was actually built from. Reach for it when the question is what a
+ * column DOES rather than what the file says it does: the two are known to
+ * disagree, and they disagree in the direction that costs money. schema.sql
+ * says `products.shipping_rate_per_kg REAL DEFAULT NULL`; the live column, from
+ * migration 0000, says `DEFAULT 0`, so a test seeded from schema.sql asks a
+ * friendlier question than production does and passes while every new tea ships
+ * free.
+ */
+export type SchemaSource = boolean | 'schema' | 'migrations';
 
-  constructor(loadSchema = true) {
+export class SqliteD1 {
+  readonly sqlite: DatabaseSync;
+
+  /**
+   * @param through with `'migrations'`, the highest migration to apply, as a
+   *        four-character string. Pinning it is how a test keeps asking the
+   *        question it was written for: a guard against a dangerous default
+   *        cannot fail once a later migration has removed that default, and a
+   *        test that cannot fail is not looking at the code.
+   */
+  constructor(schema: SchemaSource = true, through?: string) {
+    if (schema === 'migrations') {
+      this.sqlite = seedFromMigrations({ through }).db;
+      // Back on, having been off for the seed: the 0000 dump lists its tables
+      // alphabetically, so a foreign key can name one that does not exist yet.
+      this.sqlite.exec('PRAGMA foreign_keys = ON');
+      return;
+    }
+    this.sqlite = new DatabaseSync(':memory:');
     this.sqlite.exec('PRAGMA foreign_keys = ON');
-    if (loadSchema) {
+    if (schema) {
       this.sqlite.exec(readFileSync(join(process.cwd(), 'worker/schema.sql'), 'utf8'));
     }
   }

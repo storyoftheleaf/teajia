@@ -14,6 +14,23 @@
 //
 // Humans still get the normal SPA + client-side Helmet title updates; this only
 // changes the first HTML response, which is all a scraper ever reads.
+//
+// STATIC_META alone used to be enough to decide what a /read/* path shows a
+// crawler. It is not, now that the ten drafts among these pages are gated
+// from a human visitor by src/pages/read/publishGate.ts (JOBC-2): before this
+// import, this file injected every draft's real title, description and og:*
+// tags for any crawler or share-card scraper regardless of publish status, so
+// a search result or a WhatsApp preview could name and describe an unreleased
+// piece even though the SPA itself sent that same visitor to ReadNotFound.
+// ARTICLE_LIVE is the single source both sides read now. It lives in
+// src/pages/read/articleLive.ts rather than publishGate.ts itself: this
+// function runs in the Cloudflare Pages Workers runtime, not a browser, and
+// publishGate.ts pulls in React, the Zustand store and the token client
+// (a localStorage read) to build its own React hook, none of which belong in
+// an edge bundle that only needs one plain object. articleLive.ts carries
+// nothing but that object and a pure function, so importing it here adds
+// nothing else to the bundle.
+import { isReadPathPublic } from '../src/pages/read/articleLive';
 
 interface Meta {
   title: string;
@@ -21,6 +38,11 @@ interface Meta {
   image?: string;
   /** Serialized JSON-LD block to append to <head> (already <-escaped). */
   jsonLd?: string;
+  /**
+   * Where the canonical link and og:url should point, when that is not the URL
+   * being requested. Only a draft sets it: see NOT_FOUND_META.
+   */
+  canonicalPath?: string;
 }
 
 const SITE = 'https://www.teajia.com';
@@ -29,7 +51,10 @@ const DEFAULT_IMAGE = `${SITE}/og-image.png`;
 // Per-page meta for the hand-coded /read/* story pages. Titles/descriptions
 // taken verbatim from each story component. Add a line here when a new story
 // ships. Keys are the exact path (no trailing slash).
-const STATIC_META: Record<string, Meta> = {
+//
+// Exported for functions/_middleware.test.ts, which checks this map against
+// ARTICLE_LIVE for every /read/ path they share.
+export const STATIC_META: Record<string, Meta> = {
   '/read': {
     title: 'The Art of Tea · Read · Teajia',
     description: 'An editorial reading room for the world of tea: interviews, visual stories, and field notes.',
@@ -95,6 +120,56 @@ const STATIC_META: Record<string, Meta> = {
     description: 'How a homesick cup and reclaimed timber became a tea house at the far end of the world.',
   },
 };
+
+// What a crawler gets instead of a draft's own meta, for any /read/ path that
+// is not public. Same title and description src/pages/read/ReadNotFound.tsx
+// renders for a human visitor at that same URL, so a search snippet or a
+// share-card preview says the same thing the page itself now says, instead of
+// naming and describing an unpublished piece.
+//
+// `canonicalPath` sends the canonical link and og:url to the Read index rather
+// than to the draft's own URL. Swapping the title and description alone left
+// both of those still saying "this URL is the real, preferred address of a
+// page", which is an invitation to index the draft's address and the thing a
+// crawler most reliably obeys: og:url is also what a share card links back to,
+// so a pasted draft link kept minting a share of itself. A not-found response
+// has no canonical address of its own, and /read is the page that does list
+// everything a visitor may actually read.
+const NOT_FOUND_META: Meta = {
+  title: 'Not found · Teajia',
+  description: 'The page you are looking for does not exist or may have been moved.',
+  canonicalPath: '/read',
+};
+
+/**
+ * The static-page half of onRequest's meta lookup, pulled out on its own so
+ * it can be unit-tested without HTMLRewriter (a Workers-runtime global with
+ * no vitest polyfill; onRequest's own tests never exercised the rewrite path
+ * before this file gated /read/ paths, only the earlier proxy/fail-closed
+ * branches that return before reaching it).
+ *
+ * A Read path that is not public is a draft: this swaps its real meta for the
+ * same not-found meta a human visitor's browser renders there (see
+ * src/pages/read/ReadNotFound.tsx).
+ *
+ * It FAILS CLOSED, which the first version did not. That version asked whether
+ * ARTICLE_LIVE named the path and marked it false, so a path this map carried
+ * and ARTICLE_LIVE had never heard of kept its full title, description and og:*
+ * tags. Adding `/read/unlisted-draft` to STATIC_META with no entry in the live
+ * map left the whole suite green and that path still handing a crawler its real
+ * meta, which is exactly the leak this function was written to close, reached
+ * through the other door. `isReadPathPublic` inverts the question: a path is
+ * shown only if it is marked live or is one of the named exceptions (/read
+ * itself and the leaf-to-liquor routes), and anything else is a draft.
+ */
+export function resolveStaticReadMeta(path: string): Meta | null {
+  const meta = STATIC_META[path] || null;
+  if (!meta) return null;
+  if (path === '/read' || path.startsWith('/read/')) {
+    if (!isReadPathPublic(path)) return NOT_FOUND_META;
+  }
+  return meta;
+}
 
 interface Env { WORKER_ORIGIN?: string }
 
@@ -249,6 +324,17 @@ async function articleMeta(slug: string, workerOrigin: URL): Promise<Meta | null
   }
 }
 
+/**
+ * The address this response should claim as its own, which is the requested
+ * path for every real page and `canonicalPath` for a draft that is being served
+ * not-found meta instead of its own. Exported so the middleware test can assert
+ * the draft case without HTMLRewriter.
+ */
+export function canonicalUrlFor(meta: Meta, path: string): string {
+  const target = meta.canonicalPath ?? path;
+  return `${SITE}${target === '/' ? '' : target}`;
+}
+
 class HeadRewriter {
   constructor(private meta: Meta, private path: string) {}
   // Overwrite the existing tags in place rather than appending duplicates.
@@ -256,12 +342,13 @@ class HeadRewriter {
     const tag = el.tagName;
     const m = this.meta;
     const img = m.image || DEFAULT_IMAGE;
+    const canonical = canonicalUrlFor(m, this.path);
     if (tag === 'title') {
       el.setInnerContent(m.title);
     } else if (tag === 'link') {
       // index.html ships one canonical pointing at the homepage; repoint it.
       if (el.getAttribute('rel') === 'canonical') {
-        el.setAttribute('href', `${SITE}${this.path === '/' ? '' : this.path}`);
+        el.setAttribute('href', canonical);
       }
     } else if (tag === 'meta') {
       const prop = el.getAttribute('property');
@@ -270,7 +357,7 @@ class HeadRewriter {
       else if (prop === 'og:description' || name === 'description' || name === 'twitter:description')
         el.setAttribute('content', m.description);
       else if (prop === 'og:image' || name === 'twitter:image') el.setAttribute('content', img);
-      else if (prop === 'og:url') el.setAttribute('content', `${SITE}${this.path === '/' ? '' : this.path}`);
+      else if (prop === 'og:url') el.setAttribute('content', canonical);
     }
   }
 }
@@ -286,7 +373,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   // Only consider GET navigations to HTML; let assets/api pass straight through.
   if (request.method !== 'GET') return next();
 
-  let meta: Meta | null = STATIC_META[path] || null;
+  let meta: Meta | null = resolveStaticReadMeta(path);
 
   // Dynamic DB-backed article — only pay the API call for crawlers.
   if (!meta && path.startsWith('/article/')) {

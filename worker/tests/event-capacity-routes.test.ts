@@ -87,6 +87,7 @@ async function invoke(db: SqliteD1, path: string, init: RequestInit = {}) {
   const response = await worker.fetch(new Request(`https://test.dev${path}`, init), {
     DB: db,
     JWT_SECRET,
+    RSVP_LIMITER: { limit: async () => ({ success: true }) },
   } as any);
   return { response, body: await response.json() as Record<string, unknown> };
 }

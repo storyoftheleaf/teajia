@@ -33,8 +33,9 @@ import { curationTools } from './mcpTools/curation';
 import { eventsToolModule } from './mcpTools/events';
 import { writingToolModule } from './mcpTools/writing';
 import { costCurrencyTools } from './mcpTools/costCurrency';
-import { costNeedsCurrency, createMissingCost, currencyStated, CURRENCY_SOURCE_STATED, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
-import { REFRESHED_CURRENCIES, refreshedCurrencyName } from './exchangeRateFeed';
+import { resolveShopFreightDefault, shippingPerGramUsd } from './shippingRate';
+import { costNeedsCurrency, createMissingCost, currencyStated, costCurrencySourceFor, CURRENCY_SOURCE_STATED, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
+import { REFRESHED_CURRENCIES, refreshedCurrencyName, isRefreshedCurrency } from './exchangeRateFeed';
 import {
   authorizeInvoiceLines,
   buildSettlementReversalStatements,
@@ -76,7 +77,7 @@ import {
 } from './curateImports';
 // A leaf module shared with index.ts, so no cycle. convert_order_request needs
 // the same tea-versus-teaware rule the REST convert applies to its lines.
-import { isTeaType } from '../../src/wisdom/vocabulary';
+import { isTeaType, normalizeTeaType, TEA_TYPES } from '../../src/wisdom/vocabulary';
 import { mergeProductTasting, readStoredTasting, tastingHasTerms, tastingTermLabel } from './curateImportTasting';
 
 type Env = {
@@ -84,10 +85,13 @@ type Env = {
   JWT_SECRET: string;
   OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
   OAUTH_AUTHORIZE_LIMITER?: RateLimiterBinding;
-  // Not yet provisioned in wrangler.toml — requested from the worker/schema
-  // owner in todo/plans/order-process-notes.md (same [[unsafe.bindings]]
-  // ratelimit pattern as PUBLIC_MCP_LIMITER/OAUTH_REGISTER_LIMITER). Optional
-  // so this file works before and after that binding lands.
+  // Edge rate limiter for the public prepare_order tool, which unlike the
+  // other public tools performs a DB write. Same [[unsafe.bindings]]
+  // ratelimit pattern as PUBLIC_MCP_LIMITER/OAUTH_REGISTER_LIMITER, and now
+  // declared in wrangler.toml. It is typed optional so this module still
+  // compiles when the field is omitted from a narrower test env, but the
+  // check at its call site refuses the request when the binding is actually
+  // absent at runtime (audit SEC-1/SEC-5) rather than allowing it.
   PUBLIC_PREPARE_ORDER_LIMITER?: RateLimiterBinding;
   // The wider Env interface in index.ts has many more fields — only the ones
   // the MCP server actually reads are listed here so this module is portable.
@@ -687,6 +691,31 @@ type NewTeaInput = {
   status: string;
 };
 
+/* A tea is not added without a real type either, for the same reason it is not
+   added without a real cost: `type` used to default an omitted value to 'Tea'
+   and the tool's own description told the model to try 'Pu-erh', and neither
+   word is a tea type. `TEA_TYPES` (worker/src/mcp.ts imports it from the same
+   vocabulary module `authorizeInvoiceLines` checks against, worker/src/
+   teaMasterSales.ts) is Green, White, Yellow, Oolong, Red, Dark, Sheng, Shou,
+   Herbal, so a tea created with the old default looked like an ordinary row
+   right up until the first attempt to sell it, which is where
+   `product_not_sale_eligible` first said no.
+
+   Absence is refused, the same way an absent cost is refused, rather than
+   answered with a guess: a default type is a claim about what a tea IS, and
+   `create_tea` has no more business inventing that than it has inventing a
+   price. A recognised alias (any spelling `normalizeTeaType` already resolves,
+   e.g. 'Black' or 'Wulong') is accepted and stored under its canonical word,
+   because refusing a spelling the vocabulary module itself understands would
+   make this tool stricter than the rule it exists to enforce. Bare 'Pu-erh'
+   stays refused on purpose: the vocabulary module's own comment says it
+   "cannot be resolved to Sheng or Shou without a human", and a tool must not
+   guess what that comment says a person should decide. */
+const TEA_TYPE_REQUIRED =
+  `A tea needs a real type. Send type as one of: ${TEA_TYPES.join(', ')}. `
+  + 'Use Red for Chinese hong cha, and Sheng or Shou rather than a generic puerh label: '
+  + 'puerh alone cannot be resolved without knowing whether it is raw or ripe.';
+
 // ── tool: create_tea (preview / confirm) ──
 //
 // Creates a new tea product. To stay consistent with main's product-creation
@@ -707,6 +736,16 @@ async function toolCreateTea(env: Env, auth: McpAuth, args: any) {
   const productName = String(args?.product_name ?? args?.name ?? '').trim();
   if (!productName) throw new Error('product_name is required');
   const stockGrams = Math.max(0, Math.round(Number(args?.stock_grams ?? args?.grams ?? 0) || 0));
+
+  /* Resolved through the same vocabulary `authorizeInvoiceLines` reads, not
+     asked whether it merely looks like a string. An omitted type used to
+     become 'Tea'; refusing it here is the same choice `createMissingCost`
+     makes for an omitted cost, just below: absence is refused, not guessed. */
+  const rawType = args?.type != null ? String(args.type).trim() : '';
+  const resolvedType = normalizeTeaType(rawType);
+  if (!resolvedType) {
+    throw new Error(`${TEA_TYPE_REQUIRED} (received: ${rawType || 'nothing'})`);
+  }
 
   /* Asked of the RAW argument, before any conversion, and this ordering is the
      whole point. `Number(args?.cost_amount ?? 0) || 0` used to run first, which
@@ -750,7 +789,7 @@ async function toolCreateTea(env: Env, auth: McpAuth, args: any) {
     productName,
     givenName: args?.given_name ? String(args.given_name).trim() : productName,
     chineseName: args?.chinese_name ? String(args.chinese_name).trim() : null,
-    type: args?.type ? String(args.type).trim() : 'Tea',
+    type: resolvedType,
     form: args?.form ? String(args.form).trim() : null,
     year: args?.year != null ? String(args.year).trim() : null,
     originCountry: args?.origin_country ? String(args.origin_country).trim() : null,
@@ -763,8 +802,12 @@ async function toolCreateTea(env: Env, auth: McpAuth, args: any) {
        nobody is looking at a form to notice. Refused below instead; a tea
        created with no cost at all keeps NULL, which is honest. */
     shippingRatePerKg,
+    /* No `.toUpperCase()` before the map. It is redundant, since the lookup
+       lower-cases both sides, and it is what a reader copies to the next door,
+       which is how `update_tea_pricing` came to uppercase and canonicalise
+       nothing at all. */
     costCurrency: currencyStated(args?.cost_currency)
-      ? canonicalCurrency(String(args.cost_currency).trim().toUpperCase())
+      ? canonicalCurrency(String(args.cost_currency).trim())
       : null,
     fixedRetailPriceUsd,
     lowStockThreshold,
@@ -786,7 +829,10 @@ async function toolCreateTea(env: Env, auth: McpAuth, args: any) {
 // tea. Ported inline from index.ts's buildProductMirrorInserts (mcp.ts
 // deliberately does not import index.ts) — kept narrow to the fields create_tea
 // supplies. Teaware is never created through this tool, so no teaware branch.
-function buildCreateTeaMirrorInserts(env: Env, productId: string, m: Extract<PendingMutation, { kind: 'create_tea' }>): D1PreparedStatement[] {
+function buildCreateTeaMirrorInserts(
+  env: Env, productId: string, m: Extract<PendingMutation, { kind: 'create_tea' }>,
+  costCurrencySource: string | null,
+): D1PreparedStatement[] {
   const p = m.product;
   const baseSlug = String(p.productName + (p.year ? `-${p.year}` : '') || productId)
     .toLowerCase().replace(/['']/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -818,11 +864,12 @@ function buildCreateTeaMirrorInserts(env: Env, productId: string, m: Extract<Pen
         id, account_id, profile_id,
         stock_grams, low_stock_threshold,
         fixed_retail_price_usd, markup_multiplier,
-        vendor, cost_amount, cost_currency,
+        vendor, cost_amount, cost_currency, cost_currency_source,
+        shipping_rate_per_kg,
         quantity_purchased,
         is_public, status,
         tasting, legacy_product_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       `list_${productId}`, m.accountId, `prof_${productId}`,
       p.stockGrams, p.lowStockThreshold,
@@ -834,6 +881,17 @@ function buildCreateTeaMirrorInserts(env: Env, productId: string, m: Extract<Pen
          watching. NULL means the listing follows SHOP_MARKUP_MULTIPLIER. */
       p.fixedRetailPriceUsd, null,
       p.vendor, p.costAmount, p.costCurrency,
+      /* Handed in rather than worked out here, so this row and the products row
+         cannot reach different answers about whether the currency was actually
+         stated. The backlog reads products, but a mirror that drifts from it
+         has stopped being a mirror. */
+      costCurrencySource,
+      /* The rate the products row carries, or NULL for the same reason the
+         markup above is NULL. The mirror named the markup and not the freight,
+         so a tea added by voice had a listing that shipped free even when the
+         caller had stated a rate: the live column answers 0 to an INSERT that
+         omits it, and 0 is Adrian saying this one ships for nothing. */
+      p.shippingRatePerKg,
       p.stockGrams,
       1, listingStatus,
       '{}', productId,
@@ -864,18 +922,37 @@ async function commitCreateTea(env: Env, m: Extract<PendingMutation, { kind: 'cr
     low_stock_threshold: m.product.lowStockThreshold,
     fixed_retail_price_usd: m.product.fixedRetailPriceUsd,
   };
-  /* Named only when a rate was given. Left out, the column keeps its NULL,
-     which is what "follow the shop rate" is stored as. Writing NULL explicitly
-     would do the same thing here, but naming a column to say nothing is the
-     habit that put a number on every row in the first place. */
-  if (m.product.shippingRatePerKg !== null) cols.shipping_rate_per_kg = m.product.shippingRatePerKg;
+  /* Named ALWAYS, and NULL when no rate was given.
+     This used to be written only when a rate arrived, on the reasoning that a
+     column left out keeps its NULL. That reasoning was checked against
+     worker/schema.sql, which says `shipping_rate_per_kg REAL DEFAULT NULL`, and
+     the live column says `DEFAULT 0`: created that way by migration 0000 and
+     never rebuilt, because SQLite cannot alter a default in place and the four
+     migrations since only wrote over existing rows. So every tea added by voice
+     landed pinned at zero, which is Adrian saying this one ships free, and its
+     freight never entered the cost basis the x3 multiplies.
+     `markup_multiplier` is the same fault on the other number: the live default
+     is 2.5, which migration 0013 cleared off the whole shelf, and the curator
+     listing path reads the column. Both are stated now, so the row means what
+     it says whatever the table would have answered. Migration 0018 clears the
+     defaults; this line is what makes that a second line of defence. */
+  cols.shipping_rate_per_kg = m.product.shippingRatePerKg;
+  cols.markup_multiplier = null;
+  /* The agent door is exactly the one with no form and nobody watching, and it
+     was writing a currency the caller had stated while leaving the provenance
+     column NULL. NULL means nobody was ever asked, so the tea joined the
+     backlog `set_cost_currency` corrects, and a vendor-wide answer of yuan
+     would have overwritten a stated currency and repriced the tea. Computed
+     once here and handed to the mirror, so the two rows cannot diverge. */
+  const costCurrencySource = costCurrencySourceFor(m.product.costCurrency);
+  if (costCurrencySource) cols.cost_currency_source = costCurrencySource;
   const names = Object.keys(cols);
 
   const stmts: D1PreparedStatement[] = [
     env.DB.prepare(
       `INSERT INTO products (${names.join(', ')}) VALUES (${names.map(() => '?').join(', ')})`
     ).bind(...names.map(name => cols[name])),
-    ...buildCreateTeaMirrorInserts(env, id, m),
+    ...buildCreateTeaMirrorInserts(env, id, m, costCurrencySource),
   ];
 
   if (m.product.stockGrams > 0) {
@@ -1960,7 +2037,15 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
   }
 
   const costAmount: number | null = 'cost_amount' in (args || {}) ? Number(args.cost_amount) : null;
-  const costCurrency: string | null = args?.cost_currency ? String(args.cost_currency).toUpperCase().trim() : null;
+  /* Canonicalised, not uppercased. Uppercasing is what wrote 'CNY' and 'YUAN'
+     onto 22 teas: it turns a valid answer into a label the exchange table has
+     no row for, so the shelf priced them (the worker canonicalises on read)
+     while every admin readout of them fell back to a rate of 1 and showed a
+     yuan cost as dollars. `create_tea` two thousand lines up already did this
+     correctly; this door did not, and it is the one that keeps making them. */
+  const costCurrency: string | null = args?.cost_currency
+    ? canonicalCurrency(String(args.cost_currency).trim())
+    : null;
   const retailPriceUsd: number | null = 'retail_price_usd' in (args || {}) ? Number(args.retail_price_usd) : null;
   const quantityPurchased: number | null = 'quantity_purchased' in (args || {}) ? Math.round(Number(args.quantity_purchased)) : null;
   const year: number | null = hasNewYear ? Math.round(Number(args.year)) : null;
@@ -2001,7 +2086,7 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
     : undefined;
 
   const product = await env.DB.prepare(
-    'SELECT id, given_name, product_name, cost_amount, cost_currency, fixed_retail_price_usd, quantity_purchased, shipping_rate_per_kg FROM products WHERE id = ? AND account_id = ?'
+    'SELECT id, type, given_name, product_name, cost_amount, cost_currency, fixed_retail_price_usd, quantity_purchased, shipping_rate_per_kg FROM products WHERE id = ? AND account_id = ?'
   ).bind(productId, auth.accountId).first() as Record<string, any> | null;
   if (!product) return { error: 'not_found' };
   /* An amount needs a unit. The row's own currency counts, since most calls
@@ -2025,7 +2110,20 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
     // must be converted before comparison or the warning is meaningless for
     // non-USD costs (e.g. a 7.2-Yuan cost is ~$1, not $7.2). Convention:
     // exchange_rates.rate_to_usd is units-per-USD, so USD = amount / rate_to_usd.
+    //
+    // And retail_price_usd is PER GRAM while cost_amount is the TOTAL paid for
+    // quantity_purchased grams, so the total has to be divided by the grams
+    // before the two can be compared. Until 2026-09-09 it was not: a 2,000 g
+    // cake bought for 1,200 yuan was read as 166 dollars a gram instead of
+    // 0.08, and the preview told the operator a 0.50 dollar price was a loss
+    // of 33,000 percent. Same shape addPricingFields divides out in index.ts,
+    // and the same fault handleNetworkCatalog carried (audit MONEY-3). Freight
+    // is in the basis too, as it is everywhere else the shop prices a gram.
     const newCostAmount = costAmount ?? Number(product.cost_amount || 0);
+    const newQuantity = quantityPurchased ?? Number(product.quantity_purchased || 0);
+    const newShippingRatePerKg: number | null = clearFields?.includes('shipping_rate_per_kg')
+      ? null
+      : (shippingRatePerKg ?? product.shipping_rate_per_kg ?? null);
     /* No `?? 'USD'`. A row whose currency nobody ever stated is not a row
        priced in dollars, and a margin warning computed from that guess is a
        confident number about money that is wrong by whatever the exchange rate
@@ -2033,19 +2131,32 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
        is no rate; an unstated currency is the same situation one step earlier. */
     const newCostCurrency = (costCurrency ?? product.cost_currency ?? null) as string | null;
 
-    let costUsd: number | null;
-    if (!currencyStated(newCostCurrency)) {
-      costUsd = null;
-    } else if (newCostCurrency === 'USD') {
-      costUsd = newCostAmount;
-    } else {
-      const rateRow = await env.DB.prepare(
-        'SELECT rate_to_usd FROM exchange_rates WHERE currency = ?'
-      ).bind(newCostCurrency).first() as { rate_to_usd: number } | null;
+    let costUsd: number | null = null;
+    if (currencyStated(newCostCurrency) && newQuantity > 0) {
+      /* One read of the rate table serves both the cost currency and the shop
+         freight rate. Table keys are canonical names ('Yuan', not 'CNY'), which
+         is what stated cost currencies are stored as. */
+      const rateRows = await env.DB.prepare(
+        'SELECT currency, rate_to_usd FROM exchange_rates'
+      ).all() as { results?: Array<{ currency: string; rate_to_usd: number }> };
+      const rates = new Map<string, number>();
+      for (const row of rateRows.results ?? []) {
+        if (Number.isFinite(row.rate_to_usd) && row.rate_to_usd > 0) rates.set(row.currency, row.rate_to_usd);
+      }
+      const rateToUsd = newCostCurrency === 'USD' ? 1 : rates.get(newCostCurrency!);
       // No rate row → skip the warning rather than emit a false one.
-      costUsd = rateRow && Number.isFinite(rateRow.rate_to_usd) && rateRow.rate_to_usd > 0
-        ? newCostAmount / rateRow.rate_to_usd
-        : null;
+      if (rateToUsd) {
+        const account = await env.DB.prepare(
+          'SELECT default_shipping_rate_per_kg, default_shipping_rate_currency FROM accounts WHERE id = ?'
+        ).bind(auth.accountId).first() as { default_shipping_rate_per_kg?: number | null; default_shipping_rate_currency?: string | null } | null;
+        const shopFreight = resolveShopFreightDefault(account, currency => rates.get(currency));
+        costUsd = (newCostAmount / newQuantity) / rateToUsd + shippingPerGramUsd({
+          storedRatePerKg: newShippingRatePerKg,
+          rateToUsd,
+          isTeaware: product.type === 'Teaware',
+          shopDefaultPerKgUsd: shopFreight.perKgUsd,
+        });
+      }
     }
 
     const marginWarning = costUsd !== null && newRetail > 0 && (newRetail - costUsd) / newRetail < 0.3
@@ -5387,11 +5498,20 @@ async function toolUpdateExchangeRate(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const currency = args?.currency ? String(args.currency).toUpperCase().trim() : '';
+  /* Canonicalised, because the row this edits is keyed by the shop's own name.
+     'CNY' is a perfectly good way to say yuan and it used to come back
+     `currency_not_found` while the shop was pricing 22 teas through the 'Yuan'
+     row it could not see. The ISO check runs on what was TYPED, so garbage is
+     still refused; a shop key like 'Yuan' or 'NT' is accepted because the table
+     really does hold it. */
+  const typed = args?.currency ? String(args.currency).trim() : '';
+  const currency = canonicalCurrency(typed) ?? '';
   const rateVsUsd = Number(args?.rate_vs_usd);
   const confirm = args?.confirm ? String(args.confirm) : null;
 
-  if (!currency || !/^[A-Z]{3}$/.test(currency)) throw new Error('currency must be a valid 3-letter ISO code (e.g. CNY, AUD)');
+  if (!currency || (!/^[A-Za-z]{3}$/.test(typed) && !isRefreshedCurrency(currency))) {
+    throw new Error('currency must be a valid 3-letter ISO code (e.g. CNY, AUD) or one of the shop\'s own keys (Yuan, NT)');
+  }
   if (!Number.isFinite(rateVsUsd) || rateVsUsd <= 0) throw new Error('rate_vs_usd must be a positive number (units of currency per 1 USD)');
 
   const existing = await env.DB.prepare(
@@ -5800,7 +5920,14 @@ const TOOL_DEFS = [
         product_name: { type: 'string', description: 'Required display/product name.' },
         given_name: { type: 'string', description: 'Optional shorter name shown in the UI. Defaults to product_name.' },
         chinese_name: { type: 'string' },
-        type: { type: 'string', description: 'Tea type (e.g. "Pu-erh", "Oolong").', default: 'Tea' },
+        type: {
+          type: 'string',
+          enum: [...TEA_TYPES],
+          description:
+            'REQUIRED. One of: Green, White, Yellow, Oolong, Red, Dark, Sheng, Shou, Herbal. There is '
+            + 'deliberately no default. Use Red for Chinese hong cha, and Sheng or Shou rather than a '
+            + 'generic puerh label: a bare "puerh" cannot be resolved to raw or ripe without asking.',
+        },
         form: { type: 'string', description: 'Physical form (e.g. "Cake", "Loose").' },
         year: { type: 'string', description: 'Harvest/production year.' },
         origin_country: { type: 'string' },
@@ -5835,7 +5962,7 @@ const TOOL_DEFS = [
         status: { type: 'string', description: 'Product status (Active, Draft, Archived).', default: 'Active' },
         confirm: { type: 'string', description: 'Confirmation token from the preview response. Omit on first call.' },
       },
-      required: ['product_name', 'cost_amount', 'cost_currency'],
+      required: ['product_name', 'type', 'cost_amount', 'cost_currency'],
     },
   },
   {
@@ -6909,8 +7036,16 @@ function corsJson(data: unknown, status = 200): Response {
   });
 }
 
-async function enforceOAuthLimit(binding: RateLimiterBinding | undefined, request: Request): Promise<Response | null> {
-  if (!binding) return null;
+// Both callers' bindings (OAUTH_REGISTER_LIMITER, OAUTH_AUTHORIZE_LIMITER) are
+// declared in wrangler.toml, so an absent binding here is a broken deploy,
+// not local dev, matching the class fix applied to enforceDurableLimit in
+// index.ts (audit SEC-5). These two endpoints are unauthenticated by design,
+// which is exactly why a silent "let it through" here is not an option.
+async function enforceOAuthLimit(binding: RateLimiterBinding | undefined, bindingName: string, request: Request): Promise<Response | null> {
+  if (!binding) {
+    console.error(`Rate limiter binding ${bindingName} is not configured; refusing this request rather than allowing unlimited traffic.`);
+    return corsJson({ error: 'temporarily_unavailable', error_description: 'Rate limit service unavailable' }, 503);
+  }
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
   try {
     const result = await binding.limit({ key: ip });
@@ -7015,7 +7150,7 @@ export function oauthAuthorizationServerMetadata(request: Request): Response {
 // https://claude.ai/..., etc.), so this does not break legitimate clients.
 export async function oauthRegister(request: Request, env: Env): Promise<Response> {
   if (request.method !== 'POST') return corsJson({ error: 'invalid_request', error_description: 'POST required' }, 405);
-  const limited = await enforceOAuthLimit(env.OAUTH_REGISTER_LIMITER, request);
+  const limited = await enforceOAuthLimit(env.OAUTH_REGISTER_LIMITER, 'OAUTH_REGISTER_LIMITER', request);
   if (limited) return limited;
 
   const declaredLength = Number(request.headers.get('content-length') || 0);
@@ -7120,7 +7255,7 @@ const AUTHORIZE_REQUEST_TTL_MS = 15 * 60 * 1000;
 
 export async function oauthAuthorize(request: Request, env: Env): Promise<Response> {
   if (request.method !== 'GET') return corsJson({ error: 'invalid_request', error_description: 'GET required' }, 405);
-  const limited = await enforceOAuthLimit(env.OAUTH_AUTHORIZE_LIMITER, request);
+  const limited = await enforceOAuthLimit(env.OAUTH_AUTHORIZE_LIMITER, 'OAUTH_AUTHORIZE_LIMITER', request);
   if (limited) return limited;
   const url = new URL(request.url);
   const q = url.searchParams;
@@ -7772,15 +7907,17 @@ function publicRateOk(ip: string): boolean {
 // prepare_order writes an `inquiries` row, unlike the other public tools, so
 // it gets a tighter budget on top of the general PUBLIC_RATE gate above.
 // Two layers, same shapes already used elsewhere in this file/route:
-//   1. In-memory per-isolate map (this Map) — always active today, same
+//   1. In-memory per-isolate map (this Map), always active today, same
 //      best-effort pattern as PUBLIC_RATE. Not a security boundary: it resets
 //      on cold start and doesn't span isolates.
-//   2. An optional durable Cloudflare Rate Limiting binding
-//      (PUBLIC_PREPARE_ORDER_LIMITER), same [[unsafe.bindings]] "ratelimit"
-//      shape and optional-binding pattern as OAUTH_REGISTER_LIMITER /
-//      OAUTH_AUTHORIZE_LIMITER above and PUBLIC_MCP_LIMITER in index.ts. Not
-//      yet provisioned in wrangler.toml (requested in
-//      todo/plans/order-process-notes.md) — engages automatically once it is.
+//   2. A durable Cloudflare Rate Limiting binding (PUBLIC_PREPARE_ORDER_LIMITER),
+//      same [[unsafe.bindings]] "ratelimit" shape as OAUTH_REGISTER_LIMITER /
+//      OAUTH_AUTHORIZE_LIMITER above and INQUIRY_LIMITER / NEWSLETTER_LIMITER
+//      in index.ts, and now declared in wrangler.toml. An absent binding here
+//      is a broken deploy, not local dev (audit SEC-1/SEC-5, the same class
+//      fixed on enforceDurableLimit and enforceOAuthLimit), so
+//      publicPrepareOrderRateCheck refuses the request with 503 rather than
+//      quietly running on the in-memory layer alone.
 const PUBLIC_PREPARE_ORDER_RATE = new Map<string, { count: number; resetAt: number }>();
 const PUBLIC_PREPARE_ORDER_RATE_LIMIT = 5;
 const PUBLIC_PREPARE_ORDER_RATE_WINDOW_MS = 60 * 1000;
@@ -7792,18 +7929,22 @@ function publicPrepareOrderRateOk(ip: string): boolean {
   return e.count <= PUBLIC_PREPARE_ORDER_RATE_LIMIT;
 }
 
-async function publicPrepareOrderRateCheck(env: Env, ip: string): Promise<boolean> {
-  if (!publicPrepareOrderRateOk(ip)) return false;
-  if (env.PUBLIC_PREPARE_ORDER_LIMITER) {
-    try {
-      const { success } = await env.PUBLIC_PREPARE_ORDER_LIMITER.limit({ key: ip });
-      if (!success) return false;
-    } catch {
-      // A rate-limiter service hiccup must not block a real customer's
-      // WhatsApp link — the in-memory gate above already ran.
-    }
+type PublicPrepareOrderRateResult = 'ok' | 'rate_limited' | 'unavailable';
+
+async function publicPrepareOrderRateCheck(env: Env, ip: string): Promise<PublicPrepareOrderRateResult> {
+  if (!publicPrepareOrderRateOk(ip)) return 'rate_limited';
+  if (!env.PUBLIC_PREPARE_ORDER_LIMITER) {
+    console.error('Rate limiter binding PUBLIC_PREPARE_ORDER_LIMITER is not configured; refusing this request rather than allowing unlimited traffic.');
+    return 'unavailable';
   }
-  return true;
+  try {
+    const { success } = await env.PUBLIC_PREPARE_ORDER_LIMITER.limit({ key: ip });
+    if (!success) return 'rate_limited';
+  } catch {
+    // A rate-limiter service hiccup must not block a real customer's
+    // WhatsApp link. The in-memory gate above already ran.
+  }
+  return 'ok';
 }
 
 // prepare_order now performs a best-effort DB write (see publicPrepareOrder),
@@ -7861,10 +8002,15 @@ export async function publicMcpFetch(request: Request, env: Env): Promise<Respon
           case 'search_tea': payload = await publicSearchTea(env, account.id, args); break;
           case 'get_tea': payload = await publicGetTea(env, account.id, args); break;
           case 'browse_catalog': payload = await publicBrowseCatalog(env, account.id, args); break;
-          case 'prepare_order':
-            if (!(await publicPrepareOrderRateCheck(env, ip))) return rpcError(id, -32000, 'Rate limit exceeded for order preparation — slow down.');
+          case 'prepare_order': {
+            const rateResult = await publicPrepareOrderRateCheck(env, ip);
+            if (rateResult === 'unavailable') {
+              return json({ jsonrpc: '2.0', id, error: { code: -32000, message: 'Rate limit service unavailable' } }, 503);
+            }
+            if (rateResult === 'rate_limited') return rpcError(id, -32000, 'Rate limit exceeded for order preparation. Slow down.');
             payload = await publicPrepareOrder(env, account, args);
             break;
+          }
           default: return rpcError(id, -32601, `Unknown tool: ${name}`);
         }
         return rpcResult(id, mcpContent(payload));

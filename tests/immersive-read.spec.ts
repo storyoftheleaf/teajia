@@ -1,14 +1,47 @@
-import { test, expect, Page } from '@playwright/test';
+import { test, expect, Page } from './fixtures';
 
 // Verifies the immersive Read-section long-reads: no overflow, no crash,
 // no 404, no unexpected console errors, plus a screenshot per state.
+//
+// rock-remembers, earth-water-fire and before-the-mist are drafts under the
+// publish gate (src/pages/read/publishGate.ts): a visitor with empty storage
+// now sees ReadNotFound at those URLs, which is the fix for JOBC-2, not a
+// regression this health check should catch. They sign in as an owner so
+// this spec keeps checking what it was built to check, the article content
+// itself, the same way an editor working on the draft actually sees it.
+
+function makeFakeJWT(payload: object): string {
+  const enc = (s: string) => Buffer.from(s).toString('base64url');
+  const h = enc(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+  const p = enc(JSON.stringify(payload));
+  return `${h}.${p}.fakesig`;
+}
+
+const OWNER_TOKEN = makeFakeJWT({
+  sub: 'test-owner-uid',
+  role: 'owner',
+  exp: Math.floor(Date.now() / 1000) + 86400 * 30,
+  active_account_id: 'acct-bali',
+  // account_kind + is_platform_account are what the gate reads: owning some
+  // account is not enough, it has to be Teajia's. See publishGate.ts.
+  memberships: [
+    {
+      account_id: 'acct-bali',
+      account_name: 'Teajia Bali',
+      role: 'owner',
+      slug: 'teajia-bali',
+      account_kind: 'platform',
+      is_platform_account: true,
+    },
+  ],
+});
 
 const ROUTES = [
   { path: '/read', name: 'index' },
   { path: '/read/leaf-to-liquor', name: 'leaf-to-liquor' },
-  { path: '/read/rock-remembers', name: 'rock-remembers' },
-  { path: '/read/earth-water-fire', name: 'earth-water-fire' },
-  { path: '/read/before-the-mist', name: 'before-the-mist' },
+  { path: '/read/rock-remembers', name: 'rock-remembers', draft: true },
+  { path: '/read/earth-water-fire', name: 'earth-water-fire', draft: true },
+  { path: '/read/before-the-mist', name: 'before-the-mist', draft: true },
 ];
 
 async function checkPage(page: Page, name: string) {
@@ -32,6 +65,11 @@ async function checkPage(page: Page, name: string) {
 
 for (const r of ROUTES) {
   test(`immersive ${r.name}`, async ({ page }) => {
+    if (r.draft) {
+      await page.addInitScript((token) => {
+        localStorage.setItem('teajia_token', token);
+      }, OWNER_TOKEN);
+    }
     await page.goto(`http://localhost:7777${r.path}`, { waitUntil: 'networkidle' });
     await page.waitForTimeout(700);
     await checkPage(page, r.name);

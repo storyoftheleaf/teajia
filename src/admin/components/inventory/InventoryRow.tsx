@@ -26,11 +26,12 @@ export interface InventoryRowProps {
   legacyMobileLayout?: boolean;
   /**
    * Units of a tea's cost currency per USD, so the freight column can show
-   * the rate in dollars the way its label promises. Optional, and 1 when
-   * absent, which is right for a USD tea and is the only case a caller
-   * without an exchange table can honestly render.
+   * the rate in dollars the way its label promises. Returns null, and is null
+   * when absent, for a currency the shop has no rate for. Never 1: a caller
+   * without an exchange table cannot convert anything, and pretending the rate
+   * is 1 prints a yuan figure under a dollar heading.
    */
-  costRateToUsd?: (product: Product) => number;
+  costRateToUsd?: (product: Product) => number | null;
   /** The shop's freight rate in USD/kg, for teas that have not entered one. */
   shopFreightPerKgUsd: number;
   rowHeight: number;
@@ -271,7 +272,11 @@ function InventoryRowBase(props: InventoryRowProps) {
          separates a rate this tea owns from one it is borrowing, and the title
          says it in words so it is not carried by a mark alone. */
       case 'shippingRatePerKg': {
-        const shipUsd = shippingRateUsdFor(product.shippingRatePerKg, costRateToUsd?.(product) ?? 1, shopFreightPerKgUsd);
+        /* Null when this tea owns a rate and the shop has no rate for the
+           currency it is quoted in. There is no dollar figure to print, so the
+           cell prints a dash and the title says why, rather than showing the
+           yuan number under a dollar heading. */
+        const shipUsd = shippingRateUsdFor(product.shippingRatePerKg, costRateToUsd?.(product) ?? null, shopFreightPerKgUsd);
         const pinned = product.type !== 'Teaware' && product.shippingRatePerKg != null;
         return (
           <td
@@ -279,12 +284,14 @@ function InventoryRowBase(props: InventoryRowProps) {
             id={cellId(colIndex)}
             title={product.type === 'Teaware'
               ? 'Teaware ships inside its per-piece price'
-              : pinned
-                ? 'Pinned to this tea. Clear it in the edit panel to follow the shop rate.'
-                : 'Following the shop rate'}
+              : shipUsd === null
+                ? `Pinned to this tea in ${product.costCurrency}, and the shop has no rate for that, so it cannot be shown in dollars.`
+                : pinned
+                  ? 'Pinned to this tea. Clear it in the edit panel to follow the shop rate.'
+                  : 'Following the shop rate'}
             className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${numTone}`}
           >
-            <span>{product.type === 'Teaware' ? '—' : fmtNum(shipUsd)}</span>
+            <span>{product.type === 'Teaware' || shipUsd === null ? '—' : fmtNum(shipUsd)}</span>
             {pinned && <span aria-hidden className="ml-1 text-tea-gold">•</span>}
             {pinned && <span className="sr-only"> (pinned to this tea)</span>}
           </td>

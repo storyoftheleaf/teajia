@@ -301,7 +301,11 @@ describe('worker authorization boundaries', () => {
   });
 
   it('bounds provider uploads before and after multipart parsing', async () => {
-    const env = { ...makeEnv({ role: 'staff', bundles: ['catalog'] }), MEDIA_BUCKET: { put: async () => undefined } };
+    const env = {
+      ...makeEnv({ role: 'staff', bundles: ['catalog'] }),
+      MEDIA_BUCKET: { put: async () => undefined },
+      PROVIDER_LIMITER: { limit: async () => ({ success: true }) },
+    };
     const oversized = await authedRequest('/api/upload-image', {
       method: 'POST',
       headers: { 'content-type': 'multipart/form-data; boundary=x', 'content-length': String(12 * 1024 * 1024) },

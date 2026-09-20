@@ -24,6 +24,7 @@ import { buildVarietyDataMap, getTeaVarietySuggestions } from '../../data/teaVar
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { buildProductUpdatePayload } from '../productUpdatePayload';
 import { shopRateInCurrency, shippingRateUsdFor } from '../../lib/shippingRate';
+import { isoCurrencyCode, rateToUsd } from '../../lib/currency';
 import { useShopFreightDefault } from '../hooks/useAdminData';
 import { getThemeColor } from '../themeUtils';
 import { TEA_TYPES } from '../../wisdom';
@@ -99,7 +100,7 @@ const GHOST_INPUT_BASE = 'w-full bg-transparent border-0 border-b-0 hover:border
 const BORDERED_INPUT_BASE = 'admin-input w-full h-9 py-2 px-3 text-ui-14 leading-tight';
 
 export const GhostInput = ({
-  value, onSave, type = 'text', align = 'left', className = '', placeholder = '', inputMode, id, ariaLabel, variant = 'ghost',
+  value, onSave, type = 'text', align = 'left', className = '', placeholder = '', inputMode, id, ariaLabel, variant = 'ghost', disabled = false,
 }: {
   value: string | number;
   onSave: (val: any) => void;
@@ -111,11 +112,15 @@ export const GhostInput = ({
   id?: string;
   ariaLabel?: string;
   variant?: FieldVariant;
+  /** For a field with no honest value to show, such as a freight rate whose
+   *  currency the shop has no rate for. Reads, but cannot be saved. */
+  disabled?: boolean;
 }) => {
   const [localValue, setLocalValue] = useState(value);
   useEffect(() => { setLocalValue(value); }, [value]);
   const [justSaved, setJustSaved] = useState(false);
   const handleBlur = () => {
+    if (disabled) return;
     if (localValue != value) {
       onSave(localValue);
       setJustSaved(true);
@@ -130,6 +135,7 @@ export const GhostInput = ({
     <input
       id={id}
       aria-label={ariaLabel}
+      disabled={disabled}
       type={type}
       /* A zero is a value, not an absence. `localValue || ''` blanked it, so a
          freight rate of zero (Adrian saying this tea ships free) looked exactly
@@ -1148,9 +1154,12 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   const costRateToUsd = useMemo(() => {
     /* 'UNK' rather than 'USD', so a cost with no recorded currency cannot be
        converted and the surface shows a dash. Guessing dollars here is what
-       turned a 1,200 CNY invoice into a $1,200 tea. */
-    const currency = (product?.costCurrency || 'UNK') as Currency;
-    return rates.find(r => r.currency === currency)?.rateToUSD || 1;
+       turned a 1,200 CNY invoice into a $1,200 tea.
+
+       Null rather than 1 for the same reason one step along: 'CNY' is the
+       'Yuan' row spelled differently, and where it genuinely is not in the
+       table there is no figure to show. */
+    return rateToUsd(rates, product?.costCurrency || 'UNK');
   }, [product?.costCurrency, rates]);
 
   // Memoize pricing calc, only recompute when relevant fields change
@@ -1161,9 +1170,11 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
       // The stored rate is in the tea's own cost currency, which is what
       // calculatePricing wants. Nothing recorded means the shop default, and
       // the readout below must show the same freight the shelf is charging.
-      product.shippingRatePerKg ?? shopRateInCurrency(shopFreight.perKgUsd, costRateToUsd),
+      // Null there means no rate for this tea's currency, and calculatePricing
+      // then declines on the same grounds, so the zero never reaches a figure.
+      product.shippingRatePerKg ?? shopRateInCurrency(shopFreight.perKgUsd, costRateToUsd) ?? 0,
       product.quantityPurchased || 0,
-      (product.costCurrency || 'UNK') as Currency,
+      product.costCurrency || 'UNK',
       rates,
       product.type === 'Teaware'
     );
@@ -1568,7 +1579,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                         >
                           <option value="UNK" className="bg-admin-surface text-admin-text">—</option>
                           {['USD', 'NT', 'Yuan', 'IDR', 'JPY', 'MYR', 'HKD'].map(c => (
-                            <option key={c} value={c} className="bg-admin-surface text-admin-text">{c === 'Yuan' ? 'CNY' : c}</option>
+                            <option key={c} value={c} className="bg-admin-surface text-admin-text">{isoCurrencyCode(c)}</option>
                           ))}
                         </select>
                         <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-admin-text-dim/70 pointer-events-none" />
@@ -1608,14 +1619,25 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                           read identically. It sits on the LABEL because
                           FieldCell lays its children out in a row, so anything
                           added beside the input lands next to it and wraps. */}
+                      {/* Disabled, not silently wrong, when the shop has no
+                          rate for this tea's currency. The field is labelled in
+                          dollars and the column stores the tea's own currency,
+                          so without a rate there is nothing to show and nothing
+                          safe to save: multiplying by 1 stored a dollar figure
+                          as though it were yuan and the shelf then charged a
+                          seventh of the freight. */}
                       <GhostInput
                         variant="bordered"
-                        value={shippingRateUsdFor(product.shippingRatePerKg, costRateToUsd, shopFreight.perKgUsd)}
-                        onSave={(val) => handleUpdate(
-                          product.id,
-                          'shippingRatePerKg',
-                          String(val).trim() === '' ? null : (Number(val) || 0) * costRateToUsd,
-                        )}
+                        value={shippingRateUsdFor(product.shippingRatePerKg, costRateToUsd, shopFreight.perKgUsd) ?? ''}
+                        disabled={costRateToUsd === null}
+                        onSave={(val) => {
+                          if (costRateToUsd === null) return;
+                          handleUpdate(
+                            product.id,
+                            'shippingRatePerKg',
+                            String(val).trim() === '' ? null : (Number(val) || 0) * costRateToUsd,
+                          );
+                        }}
                         type="number"
                         className="tabular-nums"
                       />

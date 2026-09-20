@@ -9,6 +9,7 @@ import { api } from '../../lib/api';
 import { useAppStore, selectHasBundle } from '../../lib/store';
 import { useShallow } from 'zustand/react/shallow';
 import { useRates } from '../hooks/useAdminData';
+import { rateToUsd } from '../../lib/currency';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import type { ProfileSuggestableField, ProfileSuggestionFieldDraft } from '../../types';
 
@@ -372,8 +373,19 @@ interface ListingFieldsProps {
   listing: ListingData;
   profile: ProfileData;
   callerCurrency: string;
-  /** Rate of caller currency vs USD (units per USD). 1 means USD or unknown. */
+  /** Rate of caller currency vs USD (units per USD). 1 when the currency IS
+   *  dollars, or when `callerRateResolved` is false and the field is in USD. */
   callerRateToUsd: number;
+  /**
+   * False when the shop has no rate for the partner's currency.
+   *
+   * The field is typed in one currency and the server converts using the label
+   * sent beside it, so an unresolved rate used to show a dollar figure under a
+   * foreign label AND send that label: the operator typed 25 meaning dollars
+   * and the server stored 25 of the other currency. When it is false the field
+   * says USD and sends USD, which is the unit the number is actually in.
+   */
+  callerRateResolved: boolean;
 }
 
 // Inline save confirmation: "Saved · 14:32"
@@ -389,7 +401,9 @@ function useSaveConfirm() {
   return { msg, show };
 }
 
-const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerCurrency, callerRateToUsd }) => {
+const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerCurrency, callerRateToUsd, callerRateResolved }) => {
+  // What the price field is actually denominated in.
+  const priceCurrency = callerRateResolved ? callerCurrency : 'USD';
   const [stockValue, setStockValue] = useState(String(listing.stock_grams ?? ''));
   // The displayed price is in caller currency per 100g, derived from the stored
   // fixed_retail_price_usd (USD per gram). Round to nearest unit so the partner
@@ -451,7 +465,7 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
     lastSaved.current.price = priceValue;
     // Send the partner's local-currency-per-100g amount; server converts to USD/gram
     // via exchange_rates. Avoids the silent-no-conversion bug from earlier.
-    void persist({ price_amount: n, price_currency: callerCurrency });
+    void persist({ price_amount: n, price_currency: priceCurrency });
   };
 
   const saveSample = (next: boolean) => {
@@ -513,7 +527,7 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
         <label className="flex items-baseline gap-4">
           <span className="text-tea-text-sec text-ui-13 w-40 shrink-0">Your retail price</span>
           <div className="flex items-baseline gap-2">
-            <span className="text-tea-text-sec text-ui-13 font-mono shrink-0">{callerCurrency}</span>
+            <span className="text-tea-text-sec text-ui-13 font-mono shrink-0">{priceCurrency}</span>
             <input
               type="number"
               min="0"
@@ -796,11 +810,12 @@ export const PartnerListingEdit: React.FC = () => {
   // Rate: units of caller currency per 1 USD. Used to convert the stored
   // fixed_retail_price_usd into the partner's display currency.
   const ratesQuery = useRates();
-  const callerRateToUsd = (() => {
-    if (callerCurrency === 'USD') return 1;
-    const row = ratesQuery.data?.find(r => r.currency === callerCurrency);
-    return row?.rateToUSD ?? 1;
-  })();
+  /* 1 only for dollars, which really are one to one. Anything else resolves
+     through the shared map, and a currency the shop has no rate for falls back
+     to showing the USD figure rather than the same number under another
+     label. */
+  const callerRateToUsd = callerCurrency === 'USD' ? 1 : (rateToUsd(ratesQuery.data, callerCurrency) ?? 1);
+  const callerRateResolved = callerCurrency === 'USD' || rateToUsd(ratesQuery.data, callerCurrency) !== null;
 
   // ── Data ──────────────────────────────────────────────────────────────────
   const [listing, setListing] = useState<ListingData | null>(null);
@@ -1063,7 +1078,7 @@ export const PartnerListingEdit: React.FC = () => {
         <p className="text-ui-11 uppercase tracking-[0.1em] text-tea-text-dim mb-6">
           Your listing
         </p>
-        <ListingFields listing={listing} profile={profile} callerCurrency={callerCurrency} callerRateToUsd={callerRateToUsd} />
+        <ListingFields listing={listing} profile={profile} callerCurrency={callerCurrency} callerRateToUsd={callerRateToUsd} callerRateResolved={callerRateResolved} />
       </section>
 
       {/* Hairline */}
