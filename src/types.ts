@@ -307,6 +307,8 @@ export interface ContributorListItem {
   avatar_url?: string | null;
   /** First gallery image, then the portrait. Null means the identity mark fills the card. */
   card_image_url?: string | null;
+  /** One line in their own words, for the directory card. */
+  own_line?: string | null;
   is_host?: boolean;
   article_count?: number;
 }

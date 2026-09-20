@@ -587,8 +587,8 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
               className="flex min-h-[52px] w-full items-center justify-between border-b border-tea-border text-left"
               style={{ WebkitTapHighlightColor: 'transparent' }}
             >
-              <span className="font-display text-ui-17 text-tea-text">People who can see it</span>
-              <span className="font-sans text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec">{payAccess.approved.length}</span>
+              <span className="font-display text-[24px] leading-[1.08] text-tea-text">People who can see it</span>
+              <span className="font-sans text-ui-9 font-medium uppercase tracking-[0.18em] text-tea-text-dim">Approved · {payAccess.approved.length}</span>
             </button>
             <button
               type="button"
@@ -596,8 +596,8 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
               className="flex min-h-[52px] w-full items-center justify-between border-b border-tea-border text-left"
               style={{ WebkitTapHighlightColor: 'transparent' }}
             >
-              <span className="font-display text-ui-17 text-tea-text">Share pay link</span>
-              <span className="font-sans text-ui-11 uppercase tracking-[0.15em] text-tea-readgold">From your table or an invoice</span>
+              <span className="min-w-0"><span className="block font-display text-[24px] leading-[1.08] text-tea-text">Share pay link</span><span className="mt-1 block font-body text-ui-13 italic text-tea-text-sec">From your table, or from an invoice.</span></span>
+              <span className="font-sans text-ui-9 font-medium uppercase tracking-[0.18em] text-tea-text-dim">Send</span>
             </button>
           </div>
         </section>

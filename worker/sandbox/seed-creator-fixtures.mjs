@@ -160,7 +160,7 @@ run(`INSERT INTO contributors (
        id, account_id, user_id, display_name, role, now_text, links, is_published, created_at, updated_at
      ) VALUES (
        ${q('wei-chen')}, ${q(ACCOUNT_ID)}, ${q('sbx-user-wei-chen')}, ${q('Wei Chen')}, ${q('Tea Master')},
-       ${q('Started sourcing oolong from Wuyi Shan in 2019. Still learning the mountain every season.')},
+       ${q('I started sourcing oolong from Wuyi Shan in 2019. I am still learning the mountain every season.')},
        ${json([])}, 1, datetime('now'), datetime('now')
      )`);
 run(`UPDATE contributors SET portrait_url = ${q('https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&q=80')} WHERE id = ${q('wei-chen')}`);
@@ -172,9 +172,9 @@ run(`INSERT INTO contributors (
      ) VALUES (
        ${q('amara-osei')}, ${q(ACCOUNT_ID)}, ${q('sbx-user-amara-osei')}, ${q('Amara Osei')}, ${q('Osei Tea Imports')},
        ${q('Tea Master')}, ${q('she/her')}, ${q('Portland, Oregon')},
-       ${q("Grew up drinking gunpowder green at her grandmother's table in Accra, where tea was poured before every hard conversation and after every good one.\n\nMoved to Portland in 2014 and spent three years selling tea at farmers markets before opening a proper shopfront.")},
-       ${q('Sourcing directly from smallholder gardens this year, and slowly building relationships that do not depend on a broker in between.')},
-       ${q("Her first teacher was her grandmother. Her second was a decade of getting steeping times wrong in public.")},
+       ${q("I grew up on gunpowder green at my grandmother's table in Accra, where tea was poured before every hard conversation and after every good one.\n\nI moved to Portland in 2014 and spent three years selling tea at farmers markets before I opened a proper shopfront.")},
+       ${q('I am sourcing directly from smallholder gardens this year, and slowly building relationships that do not depend on a broker in between.')},
+       ${q("My first teacher was my grandmother. My second was a decade of getting steeping times wrong in public.")},
        ${json([{ platform: 'instagram', value: '@amarateas' }])}, 1, datetime('now'), datetime('now')
      )`);
 run(`UPDATE contributors SET portrait_url = ${q('https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=800&q=80')} WHERE id = ${q('amara-osei')}`);
@@ -195,9 +195,9 @@ run(`INSERT INTO contributors (
      ) VALUES (
        ${q('kenji-tanaka')}, ${q(ACCOUNT_ID)}, ${q('sbx-user-kenji-tanaka')}, ${q('Kenji Tanaka')}, ${q('Tanaka Tea House')},
        ${q('Tea Master · Host')}, ${q('he/him')}, ${q('Kyoto, Japan')}, ${q('2015')},
-       ${q("Trained for six years under a sencha producer in Uji before opening his own room in Kyoto.\n\nThe first tea he ever served a stranger was a badly bruised gyokuro. He still has the notebook page where he wrote down what went wrong.")},
-       ${q('Focused this year on teaching, not just pouring: two small classes a month, capped at four guests each.\n\nStill sources most of his sencha from the same two families he started with in 2015.')},
-       ${q("A visiting Taiwanese tea master showed him that a tea room does not need to be quiet to be serious.\n\nHis own teacher's rule: never pour a tea you have not tasted that same week.")},
+       ${q("I trained for six years under a sencha producer in Uji before I opened my own room in Kyoto.\n\nThe first tea I ever served a stranger was a badly bruised gyokuro. I still have the notebook page where I wrote down what went wrong.")},
+       ${q('I pour on Saturday evenings at Tanaka Tea House, four guests at most. This year is about teaching, not just pouring: two small classes a month.\n\nI still source most of my sencha from the same two families I started with in 2015.')},
+       ${q("A visiting Taiwanese tea master showed me that a tea room does not need to be quiet to be serious.\n\nMy own teacher's rule: never pour a tea you have not tasted that same week.")},
        ${q('If you only remember one thing from an afternoon here, let it be how the third steep tasted, not the first.')},
        ${kenjiLinks}, 1, datetime('now'), datetime('now')
      )`);

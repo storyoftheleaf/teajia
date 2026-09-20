@@ -35,7 +35,7 @@ export const weiChen = {
   role: 'Tea Master',
   location_line: null,
   portrait_url: PIXEL,
-  now_text: 'Started sourcing oolong from Wuyi Shan in 2019. Still learning the mountain every season.',
+  now_text: 'I started sourcing oolong from Wuyi Shan in 2019. I am still learning the mountain every season.',
   links: [],
 };
 
@@ -49,9 +49,9 @@ export const amaraOsei = {
   pronouns: 'she/her',
   location_line: 'Portland, Oregon',
   portrait_url: PIXEL,
-  beginnings: 'Grew up drinking gunpowder green at her grandmother\'s table in Accra.\n\nMoved to Portland in 2014.',
-  now_text: 'Sourcing directly from smallholder gardens this year.',
-  inspirations: 'Her first teacher was her grandmother.',
+  beginnings: 'I grew up on gunpowder green at my grandmother\'s table in Accra.\n\nI moved to Portland in 2014.',
+  now_text: 'I am sourcing directly from smallholder gardens this year.',
+  inspirations: 'My first teacher was my grandmother.',
   links: [{ platform: 'instagram', value: '@amarateas', qr_image_url: null }],
   articles: [{ slug: 'four-houses-one-kettle-fixture', title: 'Four Houses, One Kettle', subtitle: 'A room full of new drinkers', published_at: '2026-09-10T00:00:00Z', cover_image_url: PIXEL, reading_time_mins: 4, pull_quote: 'The second steep is the honest one. The first is what the leaf wants you to think.', quote_anchor: 'quote-kenji-tanaka' }],
   tea_selection: [
@@ -72,10 +72,10 @@ export const kenjiTanaka = {
   location_line: 'Kyoto, Japan',
   active_since: '2015',
   portrait_url: PIXEL,
-  beginnings: 'Trained for six years under a sencha producer in Uji before opening his own room in Kyoto.\n\nThe first tea he ever served a stranger was a badly bruised gyokuro.',
-  now_text: 'Focused this year on teaching, not just pouring: two small classes a month, capped at four guests each.\n\nStill sources most of his sencha from the same two families he started with in 2015.',
+  beginnings: 'I trained for six years under a sencha producer in Uji before I opened my own room in Kyoto.\n\nThe first tea I ever served a stranger was a badly bruised gyokuro.',
+  now_text: 'I pour on Saturday evenings at Tanaka Tea House, four guests at most. This year is about teaching, not just pouring.\n\nI still source most of my sencha from the same two families I started with in 2015.',
   now_stamp: 'Autumn 2026',
-  inspirations: 'A visiting Taiwanese tea master showed him that a tea room does not need to be quiet to be serious.',
+  inspirations: 'A visiting Taiwanese tea master showed me that a tea room does not need to be quiet to be serious.',
   closing: 'If you only remember one thing from an afternoon here, let it be how the third steep tasted, not the first.',
   links: [
     { platform: 'wechat', value: 'tanaka_tea_kyoto', qr_image_url: PIXEL },
@@ -120,9 +120,9 @@ export const kenjiTanaka = {
 
 export const directory = {
   contributors: [
-    { id: 'amara-osei', display_name: 'Amara Osei', chinese_name: null, role: 'Tea Master', business_name: 'Osei Tea Imports', location_line: 'Portland, Oregon', avatar_url: null, card_image_url: null, is_host: false, article_count: 1 },
-    { id: 'kenji-tanaka', display_name: 'Kenji Tanaka', chinese_name: null, role: 'Tea Master · Host', business_name: 'Tanaka Tea House', location_line: 'Kyoto, Japan', avatar_url: null, card_image_url: PIXEL, is_host: true, article_count: 1 },
-    { id: 'wei-chen', display_name: 'Wei Chen', chinese_name: null, role: 'Tea Master', business_name: null, location_line: null, avatar_url: null, card_image_url: PIXEL, is_host: false, article_count: 0 },
+    { id: 'amara-osei', display_name: 'Amara Osei', chinese_name: null, role: 'Tea Master', business_name: 'Osei Tea Imports', location_line: 'Portland, Oregon', avatar_url: null, card_image_url: null, own_line: 'I am sourcing directly from smallholder gardens this year.', is_host: false, article_count: 1 },
+    { id: 'kenji-tanaka', display_name: 'Kenji Tanaka', chinese_name: null, role: 'Tea Master · Host', business_name: 'Tanaka Tea House', location_line: 'Kyoto, Japan', avatar_url: null, card_image_url: PIXEL, own_line: 'I pour on Saturday evenings at Tanaka Tea House, four guests at most.', is_host: true, article_count: 1 },
+    { id: 'wei-chen', display_name: 'Wei Chen', chinese_name: null, role: 'Tea Master', business_name: null, location_line: null, avatar_url: null, card_image_url: PIXEL, own_line: 'I started sourcing oolong from Wuyi Shan in 2019.', is_host: false, article_count: 0 },
   ],
 };
 

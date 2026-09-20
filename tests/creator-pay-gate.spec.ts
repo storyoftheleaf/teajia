@@ -15,11 +15,16 @@ test.describe('the pay gate', () => {
     await expect(page).toHaveURL(/\/people\/kenji-tanaka\/pay$/);
 
     const gate = page.getByTestId('pay-gate');
-    await expect(gate).toContainText('Kenji shares payment details privately');
-    await expect(gate).toContainText('Pay Kenji Tanaka');
+    await expect(gate).toContainText('I share my payment details privately');
+    await expect(gate).toContainText('They go only to people I have sold tea to.');
+    await expect(gate).toContainText('Pay · Kenji Tanaka');
     const ask = gate.getByTestId('pay-gate-ask');
-    await expect(ask).toHaveText('Ask Kenji to share them');
+    await expect(ask).toHaveText('Ask Kenji');
     await expect(gate.getByRole('button')).toHaveCount(1);
+    // A gold outline, never solid gold.
+    const style = await ask.evaluate(element => { const c = getComputedStyle(element); return { bg: c.backgroundColor, border: c.borderTopWidth }; });
+    expect(style.bg).toBe('rgba(0, 0, 0, 0)');
+    expect(style.border).toBe('1px');
     await expect(gate.getByRole('link', { name: 'Close' })).toHaveAttribute('href', '/people/kenji-tanaka');
 
     const body = await page.locator('body').innerText();
@@ -62,7 +67,7 @@ test.describe('the pay gate', () => {
     await mockCreatorApi(page, { viewer: 'pending' });
     await signInAs(page);
     await page.goto('/people/kenji-tanaka/pay');
-    await expect(page.getByTestId('pay-gate-asked')).toContainText('Asked. This will open here once Kenji approves.');
+    await expect(page.getByTestId('pay-gate-asked')).toContainText('Asked. It opens here once I approve.');
     await expect(page.getByTestId('pay-gate-ask')).toHaveCount(0);
   });
 
@@ -73,7 +78,7 @@ test.describe('the pay gate', () => {
     await page.goto('/people/kenji-tanaka/pay');
     const sheet = page.getByTestId('pay-sheet');
     await expect(sheet).toContainText('For tea bought at Tanaka Tea House');
-    await expect(sheet).toContainText('Two ways. Both go straight to Kenji.');
+    await expect(sheet).toContainText('Two ways. Both come straight to me.');
     await expect(sheet).toContainText(KENJI_BANK_DETAIL);
     await expect(sheet.getByRole('button', { name: 'Copy Bank transfer (Kyoto) details' })).toBeVisible();
     await expect(sheet.getByRole('link', { name: /Open Pay online/ })).toHaveAttribute('href', 'https://example.com/pay/tanaka-tea-house');
@@ -88,7 +93,7 @@ test.describe('the pay gate', () => {
     await page.goto(`/people/kenji-tanaka/pay?t=${KENJI_SHARE_TOKEN}`);
     const sheet = page.getByTestId('pay-sheet');
     await expect(sheet).toContainText(KENJI_BANK_DETAIL);
-    await expect(sheet).toContainText('You opened this from a link.');
+    await expect(sheet).toContainText('You opened this from my link.');
     await expect(page.getByTestId('pay-gate')).toHaveCount(0);
     expect(calls.some(call => call.startsWith('GET /api/public/people/kenji-tanaka/pay-access') && call.includes(`t=${KENJI_SHARE_TOKEN}`))).toBe(true);
     expect(calls.some(call => call.startsWith('GET /api/public/people/kenji-tanaka/payment-methods') && call.includes(`t=${KENJI_SHARE_TOKEN}`))).toBe(true);

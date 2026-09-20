@@ -1,17 +1,20 @@
 import { expect, test } from './fixtures';
 import { collectErrors, meaningfulErrors, mockCreatorApi, noHorizontalOverflow } from './helpers/creatorFixtures';
 
-// /people. Three fixtures render as cards; the one with no photo shows the
-// identity mark in the same box; no text sits over an image; the filter row
-// narrows to hosts and to writers.
+// /people. The three fixtures render as cover cards: a 140px image on the
+// left (or the identity mark), the kicker, the name with its italic gold
+// surname, one line in their own words. No text sits over an image.
 
 test.describe('the people directory', () => {
-  test('renders the three fixtures as image cards, with the identity mark where there is no photo', async ({ page }) => {
+  test('renders the three fixtures as cover cards, with the identity mark where there is no photo', async ({ page }) => {
     const errors = collectErrors(page);
     await mockCreatorApi(page);
     await page.goto('/people');
-    await expect(page.getByRole('heading', { level: 1, name: 'People' })).toBeVisible();
-    await expect(page.getByText('Tea masters, hosts and writers on Teajia')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'The People of Tea' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 }).locator('.italic')).toHaveText('of Tea');
+    await expect(page.getByText('A room of tea masters · three people')).toBeVisible();
+    await expect(page.getByText('Each page is theirs, in their own words.')).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Site' })).toContainText('People · three tea masters');
 
     const cards = page.getByTestId('people-card');
     await expect(cards).toHaveCount(3);
@@ -19,60 +22,39 @@ test.describe('the people directory', () => {
     await expect(cards.nth(1)).toHaveAttribute('href', '/people/kenji-tanaka');
     await expect(cards.nth(2)).toHaveAttribute('href', '/people/wei-chen');
 
-    // Amara has no photo: the identity mark fills the same 4:5 box.
+    // Amara has no photo: the identity mark fills the 140px box on the left.
     const amara = cards.nth(0);
     await expect(amara.getByRole('img', { name: 'Amara Osei identity mark' })).toBeVisible();
     await expect(amara.locator('img')).toHaveCount(0);
-    await expect(amara).toContainText('Tea Master');
-    await expect(amara).toContainText('Osei Tea Imports · Portland');
+    await expect(amara).toContainText('Tea master · Portland');
+    await expect(amara).toContainText('I am sourcing directly from smallholder gardens this year.');
+    await expect(amara.locator('.italic').first()).toHaveText('Osei');
 
-    // Kenji has a photo, in a 4:5 box.
+    // Kenji has a photo, 140px wide, the card 180px tall, and his words beside it, never over it.
     const kenji = cards.nth(1);
-    const kenjiImage = kenji.locator('img');
-    await expect(kenjiImage).toHaveAttribute('alt', 'Kenji Tanaka');
-    const box = await kenjiImage.boundingBox();
-    expect(Math.abs((box?.height ?? 0) / (box?.width ?? 1) - 1.25)).toBeLessThan(0.05);
-
-    // Never text on the photo: every name starts below its card's image.
-    for (let index = 0; index < 3; index += 1) {
-      const card = cards.nth(index);
-      const imageBox = await card.locator('span').first().boundingBox();
-      const nameBox = await card.getByText(['Amara Osei', 'Kenji Tanaka', 'Wei Chen'][index], { exact: true }).boundingBox();
-      expect(nameBox!.y).toBeGreaterThanOrEqual(imageBox!.y + imageBox!.height);
-    }
+    const image = await kenji.locator('img').boundingBox();
+    const cardBox = await kenji.boundingBox();
+    expect(Math.round(image!.width)).toBe(140);
+    expect(Math.round(cardBox!.height)).toBe(180);
+    const nameBox = await kenji.getByText('Kenji Tanaka', { exact: true }).boundingBox();
+    expect(nameBox!.x).toBeGreaterThanOrEqual(image!.x + image!.width);
+    await expect(kenji).toContainText('Tea master · host · Kyoto');
+    await expect(kenji).toContainText('I pour on Saturday evenings at Tanaka Tea House, four guests at most.');
 
     const body = await page.locator('body').innerText();
-    expect(body.toLowerCase()).toContain('3 people · more are invited each season');
+    expect(body.toLowerCase()).toContain('this season');
+    expect(body).toContain('More are invited each season.');
     expect(body).not.toContain('→');
     expect(await noHorizontalOverflow(page)).toBe(true);
     expect(meaningfulErrors(errors), 'console errors on /people').toHaveLength(0);
     await page.screenshot({ path: 'test-results/creator-directory.png', fullPage: true });
   });
 
-  test('the filter row narrows to hosts and to writers, with the active one underlined in gold', async ({ page }) => {
+  test('every card is one link that opens the person', async ({ page }) => {
     await mockCreatorApi(page);
     await page.goto('/people');
-    const filter = page.getByRole('navigation', { name: 'Filter' });
-    await expect(filter.getByRole('button', { name: 'All · 3' })).toHaveAttribute('aria-pressed', 'true');
-
-    await filter.getByRole('button', { name: 'Hosts' }).click();
-    await expect(page.getByTestId('people-card')).toHaveCount(1);
-    await expect(page.getByTestId('people-card')).toContainText('Kenji Tanaka');
-    const hostsButton = filter.getByRole('button', { name: 'Hosts' });
-    await expect(hostsButton).toHaveAttribute('aria-pressed', 'true');
-    // The active underline carries the gold token's triplet; the inactive cells carry no underline colour of their own.
-    const underline = await hostsButton.evaluate(element => getComputedStyle(element).borderBottomColor);
-    const goldTriplet = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--tea-gold-rgb').trim().split(/\s+/).join(', '));
-    expect(underline.startsWith(`rgb(${goldTriplet}`) || underline.startsWith(`rgba(${goldTriplet}`)).toBe(true);
-    const idle = await filter.getByRole('button', { name: 'Writers' }).evaluate(element => getComputedStyle(element).borderBottomWidth);
-    expect(idle).toBe('0px');
-
-    await filter.getByRole('button', { name: 'Writers' }).click();
-    await expect(page.getByTestId('people-card')).toHaveCount(2);
-    await expect(page.getByTestId('people-card').nth(0)).toContainText('Amara Osei');
-    await expect(page.getByTestId('people-card').nth(1)).toContainText('Kenji Tanaka');
-
-    await filter.getByRole('button', { name: 'All · 3' }).click();
-    await expect(page.getByTestId('people-card')).toHaveCount(3);
+    await page.getByTestId('people-card').nth(1).click();
+    await expect(page).toHaveURL(/\/people\/kenji-tanaka$/);
+    await expect(page.getByRole('heading', { level: 1, name: 'Kenji Tanaka' })).toBeVisible();
   });
 });

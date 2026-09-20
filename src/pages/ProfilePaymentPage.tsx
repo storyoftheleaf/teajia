@@ -5,6 +5,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { PaymentChooser } from '../components/profile/PaymentChooser';
 import { buildPaymentPageUrl, isTrackingTokenShaped, normalizeLocalAmount, parsePaymentContext, toPaymentOrderSummary } from '../components/profile/profileDomain';
 import { firstName } from '../components/people/profileFormat';
+import { GOLD_LINE_STYLE, GOLD_OUTLINE, GOLD_OUTLINE_STYLE } from '../components/people/immersive';
 import { accountSlugFromPayUrl, recipientSlugFromPayUrl } from '../components/shared/paymentClaimDomain';
 import { recallPayOrderToken } from '../components/shared/payOrderHandoff';
 import { useAuth } from '../hooks/useAuth';
@@ -140,33 +141,34 @@ export default function ProfilePaymentPage() {
       ask.mutate();
     };
     return (
-      <Sheet portrait={access.contributor.portrait_url} closeHref={profileHref} title={`Pay ${access.contributor.display_name}`} testId="pay-gate">
-        <h1 className="mt-2 font-display text-ui-26 leading-[1.15] text-tea-text">{first} shares payment details privately</h1>
-        <p className="body-light mt-2 max-w-[40ch] text-ui-15 text-tea-text-sec">
-          Bank and transfer details go only to people {first} has sold tea to. Ask once; approved accounts see them from {first}’s page from then on.
+      <Sheet portrait={access.contributor.portrait_url} closeHref={profileHref} title={`Pay · ${access.contributor.display_name}`} testId="pay-gate">
+        <h1 className="mt-2 font-display text-ui-26 leading-[1.1] text-tea-text">I share my payment details <span className="italic text-tea-readgold">privately</span></h1>
+        <p className="mt-2.5 max-w-[36ch] font-body text-ui-14 italic leading-[1.45] text-tea-text-sec">
+          They go only to people I have sold tea to. Ask me once; from then on you can open them from my page.
         </p>
         {requested ? (
-          <p className="mt-6 flex min-h-[48px] items-center rounded-md bg-tea-accent-sub px-5 font-sans text-ui-13 text-tea-text" role="status" data-testid="pay-gate-asked">
-            Asked. This will open here once {first} approves.
+          <p className="mt-[22px] flex min-h-[48px] items-center border px-5 font-sans text-ui-10 uppercase tracking-[0.26em] text-tea-text-dim" style={GOLD_LINE_STYLE} role="status" data-testid="pay-gate-asked">
+            Asked. It opens here once I approve.
           </p>
         ) : (
           <button
             type="button"
             onClick={onAsk}
             disabled={ask.isPending}
-            className="cta-solid tap-target mt-6 flex min-h-[48px] w-full items-center justify-center rounded-md px-5 font-sans text-ui-13 font-medium tracking-[0.04em] disabled:opacity-60"
+            className={`${GOLD_OUTLINE} tap-target mt-[22px] w-full`}
+            style={GOLD_OUTLINE_STYLE}
             data-testid="pay-gate-ask"
           >
-            {ask.isPending ? 'Asking' : `Ask ${first} to share them`}
+            {ask.isPending ? 'Asking' : `Ask ${first}`}
           </button>
         )}
         {ask.isError && (
           <p role="alert" className="mt-3 font-sans text-ui-12 text-tea-text-sec">{ask.error instanceof Error ? ask.error.message : 'The request could not be sent.'}</p>
         )}
-        <p className="mt-2.5 font-sans text-ui-12 leading-[1.5] text-tea-text-sec">
+        <p className="mt-3 font-sans text-ui-11 leading-[1.5] text-tea-text-dim">
           {signedIn
-            ? `Once ${first} approves, it stays approved.`
-            : `You need an account so ${first} knows who is asking. Sign in or continue with Google first. Once ${first} approves, it stays approved.`}
+            ? 'Once I approve, it stays approved.'
+            : 'You need an account so I know who is asking. Sign in or continue with Google first.'}
         </p>
       </Sheet>
     );
@@ -178,20 +180,21 @@ export default function ProfilePaymentPage() {
   const data = query.data;
   const associationRows = data.contributor.associations ?? [];
   const visibleCount = data.methods.filter(method => method.is_published).length;
-  const forLine = access.contributor.business_name
-    ? `For tea bought at ${access.contributor.business_name}`
-    : `Pay ${access.contributor.display_name}`;
   const waysLine = visibleCount === 1
-    ? `One way. It goes straight to ${first}.`
+    ? 'One way. It comes straight to me.'
     : visibleCount === 2
-      ? `Two ways. Both go straight to ${first}.`
-      : `${visibleCount} ways. All go straight to ${first}.`;
+      ? 'Two ways. Both come straight to me.'
+      : `${visibleCount} ways. All come straight to me.`;
   return (
-    <Sheet portrait={access.contributor.portrait_url} closeHref={profileHref} title={`Pay ${access.contributor.display_name}`} testId="pay-sheet">
-      <h1 className="mt-2 font-display text-ui-26 leading-[1.15] text-tea-text">{forLine}</h1>
-      {visibleCount > 0 && <p className="body-light mt-1.5 text-ui-15 text-tea-text-sec">{waysLine}</p>}
+    <Sheet portrait={access.contributor.portrait_url} closeHref={profileHref} title={`Pay · ${access.contributor.display_name}`} testId="pay-sheet">
+      <h1 className="mt-2 font-display text-ui-26 leading-[1.1] text-tea-text">
+        {access.contributor.business_name
+          ? <>For tea bought <span className="italic text-tea-readgold">at {access.contributor.business_name}</span></>
+          : <>Pay <span className="italic text-tea-readgold">{access.contributor.display_name}</span></>}
+      </h1>
+      {visibleCount > 0 && <p className="mt-2 font-body text-ui-13 italic leading-[1.45] text-tea-text-sec">{waysLine}</p>}
       {access.invoice?.invoice_number && (
-        <p className="mt-2 font-sans text-ui-12 text-tea-text-sec" data-testid="pay-sheet-invoice">Invoice {access.invoice.invoice_number}</p>
+        <p className="mt-2 font-sans text-ui-11 uppercase tracking-[0.2em] text-tea-text-dim" data-testid="pay-sheet-invoice">Invoice {access.invoice.invoice_number}</p>
       )}
       {associationRows.length > 0 && (
         <nav aria-label="Payment account" className="mt-5 flex flex-wrap gap-2">
@@ -205,8 +208,8 @@ export default function ProfilePaymentPage() {
       <div className="mt-6">
         <PaymentChooser contributorName={data.contributor.display_name} methods={data.methods} destination={destination} context={context} local={normalizeLocalAmount(data.context?.local)} accountName={data.account?.name} resolution={data.resolution} summary={summary} />
       </div>
-      <p className="mt-4 font-sans text-ui-12 leading-[1.5] text-tea-text-sec">
-        {first} keeps these up to date.{access.via === 'link' ? ' You opened this from a link.' : access.via === 'approved' ? ' Your account is approved to see them.' : ''}
+      <p className="mt-3.5 font-sans text-ui-11 leading-[1.5] text-tea-text-dim">
+        I keep these up to date myself.{access.via === 'link' ? ' You opened this from my link.' : access.via === 'approved' ? ' Your account is approved to see them.' : ''}
       </p>
     </Sheet>
   );
@@ -230,10 +233,10 @@ function Sheet({ portrait, closeHref, title, children, testId }: { portrait: str
       <div aria-hidden="true" className="absolute inset-x-0 top-0 h-[320px] overflow-hidden bg-tea-bg">
         {portrait && <img src={portrait} alt="" className="h-full w-full object-cover opacity-35" />}
       </div>
-      <section className="relative mt-[220px] rounded-t-[12px] bg-tea-surface px-4 pb-8 pt-3 md:px-6">
+      <section className="relative mt-[220px] border-t bg-tea-surface px-6 pb-8 pt-3" style={GOLD_LINE_STYLE}>
         <div className="flex min-h-[44px] items-center justify-between">
           <a href={closeHref} aria-label="Close" className="tap-target inline-flex h-11 w-11 items-center justify-start font-sans text-[22px] text-tea-text-sec hover:text-tea-text">×</a>
-          <span className="font-sans text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec">{title}</span>
+          <span className="font-sans text-ui-10 uppercase tracking-[0.26em] text-tea-text-dim">{title}</span>
           <span className="w-11" />
         </div>
         {children}

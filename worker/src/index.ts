@@ -22570,9 +22570,18 @@ const CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL =
       SELECT 1 FROM articles ar WHERE ar.author_id = c.id AND ar.status = 'published'
     ))`;
 
+function firstSentenceOf(text: unknown): string | null {
+  if (typeof text !== 'string') return null;
+  const first = text.split(/\n\n+/).map(part => part.trim()).find(Boolean);
+  if (!first) return null;
+  const match = first.match(/^[\s\S]*?[.!?](?=\s|$)/);
+  return (match ? match[0] : first).trim();
+}
+
 const handleListPublicContributors: Handler = async (request, env) => {
   const rows = await env.DB.prepare(
     `SELECT c.id, c.display_name, c.chinese_name, c.role, c.business_name, c.location_line, c.avatar_url,
+            c.now_text, c.beginnings, c.inspirations,
             (SELECT gi.image_url FROM contributor_gallery_images gi
               WHERE gi.contributor_id = c.id
               ORDER BY gi.position ASC LIMIT 1) AS gallery_card_image_url,
@@ -22601,6 +22610,10 @@ const handleListPublicContributors: Handler = async (request, env) => {
     // placeholder. A contributor with neither has no card image at all --
     // the directory page's own job is to fall back to the initials mark.
     card_image_url: row.gallery_card_image_url ?? row.portrait_url ?? null,
+    // One line in the person's own words, for the card: the first sentence of
+    // what they are doing now, else of where they began. The page never
+    // describes them in the third person, so this is theirs, not a summary.
+    own_line: firstSentenceOf(row.now_text) ?? firstSentenceOf(row.beginnings) ?? firstSentenceOf(row.inspirations),
     // The directory's two filters. A host runs a room or is about to: a hosted
     // account, or a public lead/co-host role on any event. A writer has at
     // least one published article of their own.

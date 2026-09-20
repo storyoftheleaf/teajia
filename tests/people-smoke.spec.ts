@@ -9,9 +9,9 @@ const profileFixture = {
   ], created_at: '2026-01-01', updated_at: '2026-01-01',
 };
 
-// The redesigned profile (2026-09-19) puts the first pull quote at the head of
-// "their way with tea" and every article that quotes the person under Words,
-// each row linking into the article. Both quotes are on the page, once each.
+// The redesigned profile (2026-09-20) opens "In my words" with the first
+// pull quote, and lists every article that quotes the person under Words as
+// a plain row that links into the article and never repeats the quote.
 test('profile leads with the first pull quote and lists every quoting article under Words', async ({ page }) => {
   await page.route('**/api/people/publishing-fixture', route => route.fulfill({ json: profileFixture }));
   await page.goto('/people/publishing-fixture');
@@ -19,11 +19,13 @@ test('profile leads with the first pull quote and lists every quoting article un
   const words = page.getByTestId('profile-words');
   await expect(words.getByRole('link', { name: /First Source/ })).toHaveAttribute('href', '/article/first-source');
   await expect(words.getByRole('link', { name: /Second Source/ })).toHaveAttribute('href', '/article/second-source');
-  await expect(words.getByRole('link', { name: /First Source/ })).toContainText('First synthetic quote.');
-  await expect(words.getByRole('link', { name: /Second Source/ })).toContainText('Second synthetic quote.');
-  const text = await page.locator('article').innerText();
-  expect(text.indexOf('First synthetic quote.')).toBeLessThan(text.indexOf('Synthetic origin.'));
-  expect(text.indexOf('Synthetic origin.')).toBeLessThan(text.indexOf('Second synthetic quote.'));
+  // The smoke fixture carries no quote anchor, so the line says only that the person is in the piece.
+  await expect(words).toContainText('I am in it.');
+  await expect(words).not.toContainText('Second synthetic quote.');
+  await expect(words).not.toContainText('Quoted in');
+  // The cover carries the first line of the origin in the person's words; the quote opens the words below it.
+  await expect(page.getByTestId('profile-cover')).toContainText('Synthetic origin.');
+  await expect(page.getByTestId('profile-words-of-mine')).toContainText('Synthetic origin.');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);
 });
 

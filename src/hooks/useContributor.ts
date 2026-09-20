@@ -100,6 +100,7 @@ export const useContributors = () => {
         location_line: r.location_line ?? null,
         avatar_url: r.avatar_url ?? null,
         card_image_url: r.card_image_url ?? null,
+        own_line: typeof r.own_line === 'string' ? r.own_line : null,
         is_host: r.is_host === true,
         article_count: Number(r.article_count || 0),
       }));

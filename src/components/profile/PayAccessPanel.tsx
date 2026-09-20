@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
+import { GOLD_OUTLINE, GOLD_OUTLINE_STYLE } from '../people/immersive';
 import { api } from '../../lib/api';
 import type { PayAccessGrant, PayAccessTable } from './types';
 
@@ -69,7 +70,7 @@ export function PayAccessRequestRow({ grant, onApprove, onDecline, busy }: { gra
       <p className="mt-1 font-sans text-ui-12 text-tea-text-sec">{sinceLine(grant)}</p>
       <div className="mt-3 flex items-center justify-between gap-3">
         <button type="button" onClick={onDecline} disabled={busy} className="tap-target px-1 font-sans text-ui-13 text-tea-text-sec hover:text-tea-text disabled:opacity-60">Decline</button>
-        <button type="button" onClick={onApprove} disabled={busy} className="cta-solid tap-target inline-flex min-h-[44px] items-center justify-center rounded-md px-5 font-sans text-ui-13 font-medium tracking-[0.04em] disabled:opacity-60">Approve</button>
+        <button type="button" onClick={onApprove} disabled={busy} className={`${GOLD_OUTLINE} tap-target px-7`} style={GOLD_OUTLINE_STYLE}>Approve</button>
       </div>
     </li>
   );
@@ -107,8 +108,8 @@ export function PayAccessPanel({ contributorName, canShare }: { contributorName:
 
       <div className={`${table.pending.length ? 'mt-2' : 'mt-6'} border-t border-tea-border`}>
         <button type="button" onClick={() => setShowApproved(value => !value)} aria-expanded={showApproved} className="flex min-h-[52px] w-full items-center justify-between border-b border-tea-border text-left" data-testid="pay-access-people">
-          <span className="font-display text-ui-17 text-tea-text">People who can see it</span>
-          <span className="font-sans text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec">{table.approved.length}</span>
+          <span className="font-display text-[24px] leading-[1.08] text-tea-text">People who can see it</span>
+          <span className="font-sans text-ui-9 font-medium uppercase tracking-[0.18em] text-tea-text-dim">Approved · {table.approved.length}</span>
         </button>
         {showApproved && (
           <ul className="divide-y divide-tea-border border-b border-tea-border" aria-label="People who can see your payment details">
@@ -125,8 +126,8 @@ export function PayAccessPanel({ contributorName, canShare }: { contributorName:
         {canShare && (
           <div className="border-b border-tea-border py-4" data-testid="pay-access-share">
             <div className="flex items-center justify-between gap-3">
-              <span className="font-display text-ui-17 text-tea-text">Share pay link</span>
-              <span className="font-sans text-ui-11 uppercase tracking-[0.15em] text-tea-readgold">Methods only, no amount</span>
+              <span className="font-display text-[24px] leading-[1.08] text-tea-text">Share pay link</span>
+              <span className="font-sans text-ui-9 font-medium uppercase tracking-[0.18em] text-tea-text-dim">Send</span>
             </div>
             {table.share_link ? (
               <>
@@ -136,14 +137,14 @@ export function PayAccessPanel({ contributorName, canShare }: { contributorName:
                   <CopyButton value={table.share_link} label="pay link" testId="pay-access-share-copy" />
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2">
-                  <a href={whatsappShareHref(shareText)} target="_blank" rel="noopener noreferrer" className="cta-solid tap-target inline-flex min-h-[48px] items-center justify-center rounded-md px-4 font-sans text-ui-13 font-medium tracking-[0.04em]">Send on WhatsApp</a>
+                  <a href={whatsappShareHref(shareText)} target="_blank" rel="noopener noreferrer" className={`${GOLD_OUTLINE} tap-target px-4`} style={GOLD_OUTLINE_STYLE}>Send on WhatsApp</a>
                   <CopyButtonWide value={table.share_link} />
                 </div>
               </>
             ) : (
               <>
                 <p className="mt-2 max-w-[48ch] text-ui-12 text-tea-text-sec">Make one link you can send anyone who has bought tea from you. It opens your pay sheet directly, with the methods only. An invoice's link, from the orders list, carries the amount.</p>
-                <button type="button" onClick={() => mint.mutate()} disabled={mint.isPending} className="cta-solid tap-target mt-3 inline-flex min-h-[48px] items-center justify-center rounded-md px-5 font-sans text-ui-13 font-medium tracking-[0.04em] disabled:opacity-60" data-testid="pay-access-share-mint">
+                <button type="button" onClick={() => mint.mutate()} disabled={mint.isPending} className={`${GOLD_OUTLINE} tap-target mt-3`} style={GOLD_OUTLINE_STYLE} data-testid="pay-access-share-mint">
                   {mint.isPending ? 'Making the link' : 'Make a pay link'}
                 </button>
                 {mint.isError && <p role="alert" className="mt-2 text-ui-12 text-tea-text-sec">{mint.error instanceof Error ? mint.error.message : 'The link could not be made.'}</p>}
@@ -168,7 +169,7 @@ function CopyButtonWide({ value }: { value: string }) {
     }
   };
   return (
-    <button type="button" onClick={copy} className="tap-target inline-flex min-h-[48px] items-center justify-center rounded-md bg-tea-accent-sub px-4 font-sans text-ui-13 tracking-[0.04em] text-tea-text hover:text-tea-gold-lt">
+    <button type="button" onClick={copy} className={`${GOLD_OUTLINE} tap-target px-4`} style={GOLD_OUTLINE_STYLE}>
       {copied ? 'Copied' : 'Copy link'}
     </button>
   );

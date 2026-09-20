@@ -176,7 +176,7 @@ export const OrderPayLink: React.FC<OrderPayLinkProps> = ({
               href={payLinkWhatsAppHref(payUrl, invoiceNumber, customerWhatsapp)}
               target="_blank"
               rel="noopener noreferrer"
-              className="cta-solid py-3 rounded-xl text-ui-12 uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-colors"
+              className="py-3 border border-tea-gold/50 rounded-xl text-ui-12 uppercase tracking-[0.2em] text-tea-readgold hover:text-tea-gold-lt flex items-center justify-center gap-2 transition-colors"
               data-testid="pay-link-whatsapp"
             >
               Send on WhatsApp

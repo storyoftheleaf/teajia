@@ -93,3 +93,55 @@ export function galleryPlacement(index: number): { columnSpan: 1 | 2; rowSpan: 1
   if (slot === 0 || slot === 2) return { columnSpan: 1, rowSpan: 2 };
   return { columnSpan: 1, rowSpan: 1 };
 }
+
+/** The first sentence of a passage, for the one line a cover carries. */
+export function firstSentence(text: string | null | undefined): string | null {
+  const first = paragraphsOf(text)[0];
+  if (!first) return null;
+  const match = first.match(/^[\s\S]*?[.!?](?=\s|$)/);
+  return (match ? match[0] : first).trim();
+}
+
+/** The line under a cover, in the person's own words: what they are doing now, else where they began. */
+export function ownLine(person: { now_text?: string | null; beginnings?: string | null; inspirations?: string | null }): string | null {
+  return firstSentence(person.now_text) ?? firstSentence(person.beginnings) ?? firstSentence(person.inspirations);
+}
+
+const NUMBER_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
+
+/** "six teas", "three more": small counts as words, larger ones as digits. */
+export function countWord(n: number): string {
+  return n >= 0 && n < NUMBER_WORDS.length ? NUMBER_WORDS[n] : String(n);
+}
+
+/** The cover kicker: "Tea master · host · Kyoto". Role words lowercased, the city from the location line. */
+export function coverKicker(role: string | null | undefined, locationLine: string | null | undefined): string {
+  const roleParts = (role ?? '').split(/\s*[·,/]\s*/).map(part => part.trim().toLowerCase()).filter(Boolean)
+    .map(part => part.replace(/^tea master$/, 'Tea master'));
+  const city = (locationLine ?? '').split(',')[0]?.trim();
+  return [...roleParts, city].filter(Boolean).join(' · ');
+}
+
+/** "Saturday 10 October, 19:00" for a hosting row's dek; the time only when the date carries one. */
+export function formatEventLong(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const day = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }).replace(',', '');
+  const time = formatEventTime(iso);
+  return time ? `${day}, ${time}` : day;
+}
+
+/** "10 Oct" for the number column of a hosting row. */
+export function formatEventDay(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+/** "19:00" when the date carries a time, else empty. */
+export function formatEventTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const hasTime = /T\d{2}:\d{2}/.test(iso) || / \d{2}:\d{2}/.test(iso);
+  return hasTime ? d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
+}
