@@ -132,6 +132,8 @@ const ForYourSpacePage = lazy(() => import('./pages/ForYourSpacePage'));
 const SpacesPage = lazy(() => import('./pages/SpacesPage'));
 const StartHerePage = lazy(() => import('./pages/StartHerePage'));
 const DiscoverPage = lazy(() => import('./pages/DiscoverPage'));
+// The second home page, worked on beside the live one. Nothing links to it.
+const HomeV2Page = lazy(() => import('./pages/HomeV2Page'));
 const ArticlePage = lazy(() => import('./pages/ArticlePage'));
 const ImmersiveArticlePage = lazy(() => import('./pages/ImmersiveArticlePage'));
 // Immersive long-reads (espresso + gold scrolling articles) for the Read section.
@@ -1178,6 +1180,13 @@ const AppContent = () => {
                     </Suspense>
                   </ErrorBoundary>
                 } />
+                <Route path="/v2" element={
+                  <ErrorBoundary>
+                    <Suspense fallback={<EmblemLoader />}>
+                      <HomeV2Page />
+                    </Suspense>
+                  </ErrorBoundary>
+                } />
                 <Route path="/store-launch-playbook" element={
                   <ErrorBoundary>
                     <Suspense fallback={<EmblemLoader />}>
@@ -1342,8 +1351,8 @@ const AppContent = () => {
           </AnimatePresence>
       </main>
 
-      {/* Global Footer, hidden on Home. Full-bleed; clearance lives inside Footer. */}
-      {viewState === 'BROWSE' && activeSection !== 'HOME' && (
+      {/* Global Footer, hidden on Home and on the second home page. Full-bleed; clearance lives inside Footer. */}
+      {viewState === 'BROWSE' && activeSection !== 'HOME' && displayLocation.pathname !== '/v2' && (
         <Footer />
       )}
       </>
