@@ -851,10 +851,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // needs a real pixel width, and the ledger is narrower than the viewport
   // whenever the action rail is open, so the width is measured rather than
   // assumed to be 100vw.
-  const hScrollRef = useRef<HTMLDivElement>(null);
   const [hScrollClientWidth, setHScrollClientWidth] = useState(0);
   useEffect(() => {
-    const el = hScrollRef.current;
+    const el = scrollContainerRef.current;
     if (!mobileHScroll || !el || typeof ResizeObserver === 'undefined') {
       setHScrollClientWidth(0);
       return;
@@ -2374,11 +2373,27 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           The right margin (room for the action rail / edit panel) lives HERE,
           on the scrolling table only, not on the outer container, so the
           sticky toolbar above keeps its full width and its right-side action
-          cluster never slides under the rail when a row is selected. */}
+          cluster never slides under the rail when a row is selected.
+
+          `isolate` because the navigation plane above is a flex item with a
+          z-index, which makes it a stacking context of its own: anything
+          inside it, however high its z-index, is capped at that plane's
+          level. The pinned Product cell in the ledger below carries z-21 to
+          cover the columns swiping under it, and without this it painted OVER
+          the search's source suggestions. Sealing the ledger's z-values inside
+          the scroll container keeps them where they belong.
+
+          On a phone the ledger is wider than the screen and this container is
+          the one that scrolls it sideways. The column header row is pinned
+          with position:sticky, which only holds against the nearest scrolling
+          ancestor, so a separate horizontal scroller around the table would
+          claim the header and let it scroll away vertically. One scrollport,
+          both axes: the header sticks to the top and the Product cell to the
+          left. The navigation plane is a sibling, so it never moves sideways. */}
       <div
         ref={scrollContainerRef}
         data-testid="inventory-scroll"
-        className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar bg-tea-bg pt-0 md:pt-3 pb-nav-gap transition-all duration-300"
+        className={`flex-1 isolate custom-scrollbar bg-tea-bg pt-0 md:pt-3 pb-nav-gap transition-all duration-300 ${mobileHScroll ? 'overflow-auto overscroll-x-none hide-scrollbar-always' : 'overflow-y-auto overflow-x-hidden'}`}
         style={{ marginRight: contentRightMargin }}
         onScroll={(e) => {
           if (filterType === 'Pending') return;
@@ -2645,16 +2660,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             card border, no rounding (those only chrome a narrow column on a small
             screen and steal width). Desktop keeps the bordered card. */}
         <div ref={tableWrapperRef} className="relative w-full max-w-7xl mx-auto px-0 md:px-4 lg:px-6">
-          <div className="bg-tea-surface border-y md:border border-tea-border md:rounded-xl overflow-hidden md:overflow-visible">
+          <div className="bg-tea-surface border-y md:border border-tea-border md:rounded-xl overflow-visible">
 
-          {/* Only the ledger owns horizontal movement. It has no bounded height,
-              so vertical scrolling remains with inventory-scroll and continues
-              to the viewport bottom behind the floating bottom navigation. */}
-          <div
-            ref={hScrollRef}
-            data-testid={mobileHScroll ? 'inventory-horizontal-scroll' : undefined}
-            className={mobileHScroll ? 'overflow-x-auto overscroll-x-none hide-scrollbar-always' : ''}
-          >
+          {/* Horizontal movement belongs to inventory-scroll (see the note on
+              it). This wrapper is only the ledger's box. */}
+          <div>
           {filterType !== 'Pending' && !glossaryMode && <>
           {/* Top strip, the orienting line: which view + how many (left), with
               stock-history demoted to a quiet trailing link (right) rather than a
@@ -2695,7 +2705,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           {/* --- GROUPED VIEW --- */}
           {groupedProducts ? (
             <div>
-              {/* Table header (sticky), canonical font-serif uppercase tracking-display */}
+              {/* Table header, canonical font-serif uppercase tracking-display.
+                  It is a table of its own here, and a sticky element cannot
+                  leave its containing block, so the pin is on this wrapper:
+                  its block is the whole card, and the header rides over every
+                  group beneath it. */}
+              <div className="sticky top-0 z-20 bg-tea-surface md:bg-tea-bg shadow-[inset_0_-1px_0_var(--tea-border)]">
               <table className="w-full table-fixed border-collapse inv-tight" style={mobileTableStyle}>
                 <colgroup>
                   {renderCols.map(renderColEl)}
@@ -2708,6 +2723,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   </tr>
                 </thead>
               </table>
+              </div>
 
               {/* Grouped sections */}
               {groupedProducts.map(({ key: groupKey, label: groupLabel, items, totalStock, totalRetail, lifecycle }) => {
@@ -2816,8 +2832,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     )}
                 </colgroup>
 
-                {/* Canonical header, auto-aligned: numerics right, others left. */}
-                <thead data-testid="inventory-column-row" data-inventory-header-row className="bg-tea-surface md:bg-tea-bg">
+                {/* Canonical header, auto-aligned: numerics right, others left.
+                    Pinned to the top of the scrollport so the column names
+                    stay over the numbers however far the list runs. The
+                    bottom rule is a shadow rather than the cell border because
+                    collapsed table borders do not travel with a sticky row. */}
+                <thead data-testid="inventory-column-row" data-inventory-header-row className="sticky top-0 z-20 bg-tea-surface md:bg-tea-bg shadow-[inset_0_-1px_0_var(--tea-border)]">
                     <tr>
                         {splitView ? (
                           renderSplitCols.map(col => (
