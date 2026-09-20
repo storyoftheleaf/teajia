@@ -35,7 +35,9 @@ const persister = createSyncStoragePersister({
 // excluded from disk by pure luck and then quietly included again the next time
 // someone renames it. Prefer the exact-match list below for anything whose
 // exclusion actually matters.
-const NEVER_PERSIST = ['auth', 'session', 'me', 'magic'];
+// 'pay-access' is whether THIS viewer may see a tea master's bank details; an
+// approval that lands after the page was cached must not be hidden by disk.
+const NEVER_PERSIST = ['auth', 'session', 'me', 'magic', 'pay-access'];
 // Matched against the FIRST element of the key, exactly. Nothing here reaches
 // disk. 'profile-payment-order' carries a customer's order contents on the
 // public payment page and must not outlive the tab, which is the whole reason
