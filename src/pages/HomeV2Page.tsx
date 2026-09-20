@@ -50,17 +50,21 @@ const HomeV2Page: React.FC = () => {
   const tea = useMemo(() => pickTea(Array.isArray(products) ? products : []), [products]);
   const shopPrice = useShopPrice();
 
-  // The page breaks out of the main column's gutter so the plates and their
-  // hairlines run edge to edge, the way the advise band does.
+  // The page breaks out of the main column's gutter, and on desktop out of the
+  // column itself, so the plates and their hairlines run from the left edge of
+  // the window, behind the floating sidebar, to the right edge. The text
+  // sections pad themselves back past the sidebar so nothing readable sits
+  // under it. --teajia-sidebar-w is what the sidebar sets as it expands and
+  // collapses, so the page follows it live.
   return (
-    <div className="-mx-4 md:-mx-6 lg:-mx-10 bg-tea-bg text-tea-text">
+    <div className="-mx-4 md:-mx-6 lg:-mr-10 lg:ml-[calc(-2.5rem-var(--teajia-sidebar-w))] bg-tea-bg text-tea-text">
       <Helmet>
         <title>Teajia. Fine Tea &amp; Teaware</title>
         <meta name="description" content="A home for fine tea. Source it, study it, and share it with those who gather around the cup." />
       </Helmet>
 
       {/* The statement */}
-      <section className="px-6 sm:px-10 lg:px-16 pt-16 sm:pt-24 lg:pt-32 pb-12 sm:pb-16 lg:pb-20 text-center">
+      <section className="px-6 sm:px-10 lg:px-16 lg:pl-[calc(var(--teajia-sidebar-w)+4rem)] pt-16 sm:pt-24 lg:pt-32 pb-12 sm:pb-16 lg:pb-20 text-center">
         <h1
           className="font-display font-normal text-tea-text mx-auto max-w-[820px] text-[clamp(34px,4.4vw,64px)] leading-[1.12] tracking-[0.01em]"
           style={{ textWrap: 'balance' }}
@@ -75,9 +79,10 @@ const HomeV2Page: React.FC = () => {
       {/* The three plates */}
       <section
         aria-label="On the table"
-        className="grid grid-cols-1 md:grid-cols-3 border-t border-b border-tea-border"
+        className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-[var(--teajia-sidebar-w)_repeat(3,minmax(0,1fr))] border-t border-b border-tea-border"
       >
         <Plate
+          first
           to={PIECE.to}
           kicker="The piece to read"
           title={<>Porcelain <span className="italic text-tea-gold">and Tea</span></>}
@@ -120,7 +125,7 @@ const HomeV2Page: React.FC = () => {
       </section>
 
       {/* The house: the grounding lines, exactly as the live page has them */}
-      <section aria-label="Homepage destinations" className="px-6 sm:px-10 lg:px-16 py-16 sm:py-20 lg:py-28">
+      <section aria-label="Homepage destinations" className="px-6 sm:px-10 lg:px-16 lg:pl-[calc(var(--teajia-sidebar-w)+4rem)] py-16 sm:py-20 lg:py-28">
         <nav className="flex flex-col items-center gap-3 sm:gap-4 text-center">
           {[
             { accent: 'Source', rest: ' your tea.', to: '/shop' },
@@ -148,7 +153,7 @@ const HomeV2Page: React.FC = () => {
       </section>
 
       {/* The colophon: what the live page's second act says */}
-      <section className="border-t border-tea-border px-6 sm:px-10 lg:px-16 pt-16 sm:pt-20 lg:pt-28 pb-nav-gap-lg lg:pb-28 text-center">
+      <section className="border-t border-tea-border px-6 sm:px-10 lg:px-16 lg:pl-[calc(var(--teajia-sidebar-w)+4rem)] pt-16 sm:pt-20 lg:pt-28 pb-nav-gap-lg lg:pb-28 text-center">
         <div className="flex justify-center mb-7">
           <LogoText size="panel" color="var(--tea-text-sec)" />
         </div>
@@ -204,6 +209,8 @@ const teaLine = (tea: PublicProduct): string => {
 };
 
 interface PlateProps {
+  /** The first plate on desktop spans the sidebar's track too: its artwork runs behind the sidebar, its words start past it. */
+  first?: boolean;
   to: string;
   kicker: string;
   title: React.ReactNode;
@@ -218,24 +225,24 @@ interface PlateProps {
  * neighbours, never a card: the artwork sits flush in the top of the panel and
  * the words sit under it. On the phone the three stack, artwork beside words.
  */
-const Plate: React.FC<PlateProps> = ({ to, kicker, title, body, foot, artwork, artworkLabel }) => {
+const Plate: React.FC<PlateProps> = ({ first, to, kicker, title, body, foot, artwork, artworkLabel }) => {
   const [hover, setHover] = useState(false);
   return (
     <Link
       to={to}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      className="group flex flex-row md:flex-col border-b md:border-b-0 md:border-r border-tea-border last:border-b-0 md:last:border-r-0 text-tea-text-sec focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/40"
+      className={`group flex flex-row md:flex-col border-b md:border-b-0 md:border-r border-tea-border last:border-b-0 md:last:border-r-0 text-tea-text-sec focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/40 ${first ? 'lg:col-span-2' : ''}`}
     >
       <div className="relative shrink-0 basis-[38%] min-h-[170px] md:basis-auto md:min-h-[300px] lg:min-h-[380px] overflow-hidden bg-tea-surface">
         {artwork}
         {artworkLabel && (
-          <span className="absolute left-4 bottom-3 font-sans text-ui-10 uppercase tracking-[0.18em] text-tea-text-dim">
+          <span className={`absolute left-4 bottom-3 font-sans text-ui-10 uppercase tracking-[0.18em] text-tea-text-dim ${first ? 'lg:left-[calc(var(--teajia-sidebar-w)+1rem)]' : ''}`}>
             {artworkLabel}
           </span>
         )}
       </div>
-      <div className="flex-1 px-5 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+      <div className={`flex-1 px-5 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10 ${first ? 'lg:pl-[calc(var(--teajia-sidebar-w)+2rem)]' : ''}`}>
         <p className="font-sans text-ui-10 uppercase tracking-[0.26em] text-tea-gold">{kicker}</p>
         <h2
           className={`font-display font-normal mt-3 text-[clamp(26px,2.6vw,38px)] leading-[1.05] transition-colors duration-300 ${hover ? 'text-tea-gold' : 'text-tea-text'}`}
