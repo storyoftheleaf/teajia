@@ -63,7 +63,7 @@ test.describe('creator profile, full (Kenji Tanaka)', () => {
     await expect(rows.nth(1)).toHaveText('Four Houses, One KettleA room full of new drinkers I am quoted in it; it opens at the passage.');
     expect(await wordsSection.innerText()).not.toMatch(/N°|Wrote|Quoted in/);
 
-    // The teas: the collection cover first, then three plain rows with a tinted type and year rubric, then the rest.
+    // The teas: the collection cover first, then three plain rows (name, Chinese name inline, my note; no rubric), then the rest.
     const teas = page.getByTestId('profile-teas');
     const collection = teas.getByTestId('profile-collection');
     await expect(collection).toHaveAttribute('href', '/c/saturday-at-the-house-fixture');
@@ -73,10 +73,10 @@ test.describe('creator profile, full (Kenji Tanaka)', () => {
     await expect(teaRows).toHaveCount(3);
     await expect(teaRows.nth(0)).toContainText('Call of Grace');
     await expect(teaRows.nth(0)).toContainText('A red tea I pour for guests');
-    await expect(teaRows.nth(0)).toContainText('Oolong · 1988');
-    const rubricColor = await teaRows.nth(0).locator('span[style*="color"]').first().evaluate(element => getComputedStyle(element).color);
-    const dimColor = await page.getByTestId('profile-hosting').getByText('Session').evaluate(element => getComputedStyle(element).color);
-    expect(rubricColor).not.toBe(dimColor);
+    // Canvas version 20: no type, no year, no tinted word on the right.
+    await expect(teaRows.nth(0)).not.toContainText('Oolong');
+    await expect(teaRows.nth(0)).not.toContainText('1988');
+    await expect(teaRows.nth(0).locator('span[style*="color"]')).toHaveCount(0);
     await expect(teas.getByRole('link', { name: 'And three more, in the collection' })).toHaveAttribute('href', '/c/saturday-at-the-house-fixture');
 
     // Hosting: one row, linking to the event, dated in words.

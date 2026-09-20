@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
-import { useTheme } from '../context/ThemeContext';
-import { getTeaLedgerTones } from '../designTokens';
 import { ContributorIdentityMark } from '../components/shared/ContributorIdentityMark';
 import { PLATFORM_NAMES } from '../components/people/PlatformMark';
 import {
@@ -53,7 +51,8 @@ import type {
 // Words, Teas and Pay, no counts, each only when the tea master has it, so
 // fewer cells share the width. Then the groups, each fading and lifting in as
 // it arrives: In my words, Hands on, Words, The teas, Hosting, My table, Reach
-// me. Everything else is a plain row: title, italic dek, caps rubric.
+// me. Everything else is a plain row: title, italic dek, and a caps rubric
+// only where one adds something (a session, a platform); tea rows carry none.
 //
 // Every word the tea master says is first person; the labels never speak
 // about them in the third person. Every section is conditional except the
@@ -110,13 +109,14 @@ function wordRows(data: ContributorProfile): WordRow[] {
 
 // ── The teas ──────────────────────────────────────────────────────────────────
 
-/** A plain row: the tea's name, my note as the dek, and the type and year as a rubric tinted with the tea's own colour. */
+/**
+ * A plain row: the tea's name with its Chinese name inline, and my note as
+ * the dek. No rubric. Adrian, canvas version 20 (2026-09-20): no type, no
+ * year, no tinted word on the right; the collection cover above and the
+ * "And N more" line below carry the context.
+ */
 function TeaRow({ tea }: { tea: ContributorTeaSelectionRef }) {
-  const { theme } = useTheme();
-  // getTeaColor's hue for the type, mixed towards the theme's text so it reads on both grounds.
-  const tones = getTeaLedgerTones(tea.type || 'Oolong', theme);
   const origin = (tea.origin ?? '').split(',').map(part => part.trim()).filter(Boolean).slice(0, 2).join(', ');
-  const rubric = [tea.type, tea.year].filter(Boolean).join(' · ');
   return (
     <IndexRow
       to={tea.public_path}
@@ -128,10 +128,6 @@ function TeaRow({ tea }: { tea: ContributorTeaSelectionRef }) {
         </>
       )}
       dek={tea.why || origin || null}
-      rubric={rubric ? (
-        /* color-data: the type word carries the tea's liquor colour. */
-        <span style={{ color: tones.markFg }}>{rubric}</span>
-      ) : undefined}
     />
   );
 }
