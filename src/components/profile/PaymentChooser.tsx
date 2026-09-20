@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { GOLD_OUTLINE, GOLD_OUTLINE_STYLE, GroupHead } from '../people/immersive';
+import { GOLD_TEXT_INLINE, GOLD_TEXT_STYLE, GroupHead } from '../people/immersive';
 import { PaymentOrderSummary } from './PaymentOrderSummary';
 import { formatLocalAmount, localAmountNote } from './profileDomain';
 import type { PaymentContext, PaymentLocalAmount, PaymentMethod, PaymentOrderSummaryData } from './types';
@@ -61,7 +61,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
     }
   };
   return (
-    <button type="button" onClick={copy} className="tap-target shrink-0 font-sans text-ui-12 text-tea-readgold transition-colors hover:text-tea-gold-lt" aria-label={`Copy ${label}`}>
+    <button type="button" onClick={copy} className={`${GOLD_TEXT_INLINE} tap-target`} style={GOLD_TEXT_STYLE} aria-label={`Copy ${label}`}>
       {copied ? 'Copied' : 'Copy'}
     </button>
   );
@@ -85,7 +85,7 @@ function Method({ method }: { method: PaymentMethod }) {
   const word = methodWord(method);
   const dek = method.instructions?.trim() || methodDefaultDek(method);
   const openLink = method.external_url ? (
-    <a href={method.external_url} target="_blank" rel="noopener noreferrer" className={`${GOLD_OUTLINE} tap-target shrink-0 px-5`} style={GOLD_OUTLINE_STYLE} aria-label={`Open ${method.label}`}>Open</a>
+    <a href={method.external_url} target="_blank" rel="noopener noreferrer" className={`${GOLD_TEXT_INLINE} tap-target`} style={GOLD_TEXT_STYLE} aria-label={`Open ${method.label}`}>Open</a>
   ) : null;
 
   if (method.method_type === 'payment_link') {

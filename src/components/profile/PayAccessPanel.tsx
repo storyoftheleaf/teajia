@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
-import { GOLD_OUTLINE, GOLD_OUTLINE_STYLE } from '../people/immersive';
+import { GOLD_TEXT_ACTION, GOLD_TEXT_INLINE, GOLD_TEXT_ROW, GOLD_TEXT_STYLE } from '../people/immersive';
 import { countWord } from '../people/profileFormat';
 import { api } from '../../lib/api';
 import type { PayAccessGrant, PayAccessTable } from './types';
@@ -63,7 +63,7 @@ function CopyButton({ value, label, testId }: { value: string; label: string; te
     }
   };
   return (
-    <button type="button" onClick={copy} data-testid={testId} className="tap-target inline-flex min-h-[36px] items-center rounded-[4px] bg-tea-accent-sub px-3 font-sans text-ui-11 uppercase tracking-[0.15em] text-tea-readgold hover:text-tea-gold-lt" aria-label={`Copy ${label}`}>
+    <button type="button" onClick={copy} data-testid={testId} className={`${GOLD_TEXT_INLINE} tap-target`} style={GOLD_TEXT_STYLE} aria-label={`Copy ${label}`}>
       {copied ? 'Copied' : 'Copy'}
     </button>
   );
@@ -77,7 +77,7 @@ export function PayAccessRequestRow({ grant, onApprove, onDecline, busy }: { gra
       <p className="mt-1 font-sans text-ui-12 text-tea-text-sec">{sinceLine(grant)}</p>
       <div className="mt-3 flex items-center justify-between gap-3">
         <button type="button" onClick={onDecline} disabled={busy} className="tap-target px-1 font-sans text-ui-13 text-tea-text-sec hover:text-tea-text disabled:opacity-60">Decline</button>
-        <button type="button" onClick={onApprove} disabled={busy} className={`${GOLD_OUTLINE} tap-target px-7`} style={GOLD_OUTLINE_STYLE}>Approve</button>
+        <button type="button" onClick={onApprove} disabled={busy} className={`${GOLD_TEXT_ACTION}`} style={GOLD_TEXT_STYLE}>Approve</button>
       </div>
     </li>
   );
@@ -137,19 +137,18 @@ export function PayAccessPanel({ contributorName, canShare }: { contributorName:
             {table.share_link ? (
               <>
                 <p className="mt-2 max-w-[48ch] text-ui-12 text-tea-text-sec">Whoever opens this link sees every payment method you have published. Opening it while signed in approves that account.</p>
-                <div className="mt-3 flex min-h-[48px] items-center gap-2.5 rounded-md bg-tea-bg px-3">
+                {/* Canvas version 27: the link is a plain row, Copy at its end; the two actions stack, one per row. */}
+                <div className="mt-3 flex min-h-[48px] items-center justify-between gap-3 border-b border-tea-border">
                   <span className="min-w-0 flex-1 truncate font-sans text-ui-12 text-tea-text-sec" data-testid="pay-access-share-url">{table.share_link}</span>
                   <CopyButton value={table.share_link} label="pay link" testId="pay-access-share-copy" />
                 </div>
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <a href={whatsappShareHref(shareText)} target="_blank" rel="noopener noreferrer" className={`${GOLD_OUTLINE} tap-target px-4`} style={GOLD_OUTLINE_STYLE}>Send on WhatsApp</a>
-                  <CopyButtonWide value={table.share_link} />
-                </div>
+                <a href={whatsappShareHref(shareText)} target="_blank" rel="noopener noreferrer" className={`${GOLD_TEXT_ROW}`} style={GOLD_TEXT_STYLE}>Send on WhatsApp</a>
+                <CopyButtonWide value={table.share_link} />
               </>
             ) : (
               <>
                 <p className="mt-2 max-w-[48ch] text-ui-12 text-tea-text-sec">Make one link you can send anyone who has bought tea from you. It opens your pay sheet directly, with the methods only. An invoice's link, from the orders list, carries the amount.</p>
-                <button type="button" onClick={() => mint.mutate()} disabled={mint.isPending} className={`${GOLD_OUTLINE} tap-target mt-3`} style={GOLD_OUTLINE_STYLE} data-testid="pay-access-share-mint">
+                <button type="button" onClick={() => mint.mutate()} disabled={mint.isPending} className={`${GOLD_TEXT_ROW} mt-3`} style={GOLD_TEXT_STYLE} data-testid="pay-access-share-mint">
                   {mint.isPending ? 'Making the link' : 'Make a pay link'}
                 </button>
                 {mint.isError && <p role="alert" className="mt-2 text-ui-12 text-tea-text-sec">{mint.error instanceof Error ? mint.error.message : 'The link could not be made.'}</p>}
@@ -174,7 +173,7 @@ function CopyButtonWide({ value }: { value: string }) {
     }
   };
   return (
-    <button type="button" onClick={copy} className={`${GOLD_OUTLINE} tap-target px-4`} style={GOLD_OUTLINE_STYLE}>
+    <button type="button" onClick={copy} className={`${GOLD_TEXT_ROW}`} style={GOLD_TEXT_STYLE}>
       {copied ? 'Copied' : 'Copy link'}
     </button>
   );

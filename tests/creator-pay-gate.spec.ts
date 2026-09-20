@@ -22,10 +22,13 @@ test.describe('the pay gate', () => {
     const ask = gate.getByTestId('pay-gate-ask');
     await expect(ask).toHaveText('Ask Kenji');
     await expect(gate.getByRole('button')).toHaveCount(1);
-    // A gold outline, never solid gold.
-    const style = await ask.evaluate(element => { const c = getComputedStyle(element); return { bg: c.backgroundColor, border: c.borderTopWidth }; });
+    // Canvas version 27: plain text in the reading gold with a line under it. No box, no fill, no caps.
+    const style = await ask.evaluate(element => { const c = getComputedStyle(element); return { bg: c.backgroundColor, top: c.borderTopWidth, bottom: c.borderBottomWidth, caps: c.textTransform, height: element.getBoundingClientRect().height }; });
     expect(style.bg).toBe('rgba(0, 0, 0, 0)');
-    expect(style.border).toBe('1px');
+    expect(style.top).toBe('0px');
+    expect(style.bottom).toBe('1px');
+    expect(style.caps).toBe('none');
+    expect(style.height).toBeGreaterThanOrEqual(52);
     await expect(gate.getByRole('link', { name: 'Close' })).toHaveAttribute('href', '/people/kenji-tanaka');
 
     const body = await page.locator('body').innerText();
@@ -88,6 +91,10 @@ test.describe('the pay gate', () => {
     await expect(sheet.getByRole('button', { name: 'Copy Bank transfer (Kyoto) details' })).toBeVisible();
     await expect(sheet.getByRole('link', { name: /Open Pay online/ })).toHaveAttribute('href', 'https://example.com/pay/tanaka-tea-house');
     await expect(sheet).toContainText('Card or wallet, any currency.');
+    const open = sheet.getByRole('link', { name: /Open Pay online/ });
+    const openStyle = await open.evaluate(element => { const c = getComputedStyle(element); return { bottom: c.borderBottomWidth, top: c.borderTopWidth, caps: c.textTransform, height: element.getBoundingClientRect().height }; });
+    expect(openStyle).toMatchObject({ bottom: '1px', top: '0px', caps: 'none' });
+    expect(openStyle.height).toBeGreaterThanOrEqual(44);
     const sheetText = await sheet.innerText();
     for (const label of ['Recipient', 'Account', 'Choose a transfer method', 'External transfer', 'Share this payment page', 'Pay · ']) expect(sheetText).not.toContain(label);
     await expect(page.getByTestId('pay-gate')).toHaveCount(0);
