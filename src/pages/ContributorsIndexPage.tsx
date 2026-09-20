@@ -1,15 +1,16 @@
 import { useMemo } from 'react';
 import { ContributorIdentityMark } from '../components/shared/ContributorIdentityMark';
-import { Cover, Dek, GroupHead, Kicker, PeopleNav, PeopleRoot, SplitName, useReadingProgress, useReveals } from '../components/people/immersive';
-import { countWord, coverKicker } from '../components/people/profileFormat';
+import { Cover, Dek, GroupHead, PeopleNav, PeopleRoot, SplitName, useReadingProgress, useReveals } from '../components/people/immersive';
+import { coverKicker } from '../components/people/profileFormat';
 import { useContributors } from '../hooks/useContributor';
 
 // /people. The directory, in the Read section's language: the sticky Teajia
-// nav, a kicker, "The People of Tea" with the italic gold second word, an
-// italic dek, then one cover card per person: a 140px image on the left (or
-// the identity mark), the kicker, the name with its italic gold surname, and
-// one line in their own words. Built to the "Directory" board of the Creator
-// Profiles canvas (version 14, 2026-09-20).
+// nav with the eyebrow "People", "The People of Tea" with the italic gold
+// second word, an italic dek, then one cover card per person: a 140px image
+// on the left (or the identity mark), the name with its italic gold surname,
+// and one line in their own words. No caps labels anywhere but the "This
+// season" divider (canvas version 24, 2026-09-20): the role and place still
+// name the card for a screen reader, not for the eye.
 
 export default function ContributorsIndexPage() {
   const { data, isLoading } = useContributors();
@@ -24,15 +25,13 @@ export default function ContributorsIndexPage() {
   if (isLoading) return null;
 
   const count = people.length;
-  const countLabel = count === 1 ? 'one tea master' : `${countWord(count)} tea masters`;
 
   return (
     <PeopleRoot rootRef={rootRef} testId="people-directory">
-      <PeopleNav eyebrow={`People · ${countLabel}`} progress={progress} backTo="/" chevron={false} />
+      <PeopleNav eyebrow="People" progress={progress} backTo="/" chevron={false} />
       <article className="relative z-[1] mx-auto w-full max-w-2xl pb-nav-gap-lg">
         <header className="px-6 pt-10">
-          <Kicker>A room of tea masters · {count === 1 ? 'one person' : `${countWord(count)} people`}</Kicker>
-          <h1 className="mt-3.5 font-display text-[44px] leading-none text-tea-text md:text-[56px]">
+          <h1 className="font-display text-[44px] leading-none text-tea-text md:text-[56px]">
             The People <span className="italic text-tea-readgold">of Tea</span>
           </h1>
           <Dek className="mt-3.5 max-w-[32ch] text-ui-15">The people who pour, pick and teach. Each page is theirs, in their own words.</Dek>
@@ -63,8 +62,7 @@ export default function ContributorsIndexPage() {
                           )}
                         </span>
                         <span className="flex min-w-0 flex-1 flex-col justify-end px-[18px] py-4">
-                          {coverKicker(person.role, person.location_line) && <Kicker size={8.5}>{coverKicker(person.role, person.location_line)}</Kicker>}
-                          <span className="mt-2 block font-display text-ui-26 leading-none text-tea-text"><SplitName name={person.display_name} /></span>
+                          <span className="block font-display text-ui-26 leading-none text-tea-text"><SplitName name={person.display_name} /></span>
                           {person.own_line && (
                             /* Three lines at most, so a long first sentence never pushes the kicker off the top of the card. */
                             <Dek className="mt-2 text-[12.5px]" style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{person.own_line}</Dek>
