@@ -45,7 +45,9 @@ test.describe('creator profile, full (Kenji Tanaka)', () => {
     await expect(page.getByTestId('profile-quote')).toContainText('Tea is not a performance.');
     const mine = page.getByTestId('profile-words-of-mine');
     await expect(mine).toContainText('In my words');
-    await expect(mine).toContainText('I pour on Saturday evenings');
+    // The cover owns the first sentence; the first paragraph here starts with the second (2026-09-21).
+    await expect(mine).not.toContainText('I pour on Saturday evenings');
+    await expect(mine.locator('p').filter({ hasNotText: 'Tea is not a performance.' }).first()).toHaveText(/^This year is about teaching, not just pouring\./);
     await expect(mine).toContainText('I still source most of my sencha');
     await expect(mine).not.toContainText('I trained for six years');
 

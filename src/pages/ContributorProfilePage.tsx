@@ -25,7 +25,7 @@ import {
   galleryPlacement,
   instagramHref,
   ownLine,
-  paragraphsOf,
+  wordsAfterCoverLine,
   websiteLabel,
 } from '../components/people/profileFormat';
 import { useContributor } from '../hooks/useContributor';
@@ -227,11 +227,12 @@ export default function ContributorProfilePage() {
   const kicker = coverKicker(data.role, data.location_line);
   const coverLine = ownLine(data);
 
-  // In my words: the quote, then two paragraphs, now first and then where it began.
+  // In my words: the quote, then two paragraphs, now first and then where it
+  // began, with the sentence the cover already said taken out of the first.
   const quote = data.pull_quotes[0]?.pull_quote
     ?? data.articles.find(article => article.pull_quote)?.pull_quote
     ?? null;
-  const paragraphs = [...paragraphsOf(data.now_text), ...paragraphsOf(data.beginnings), ...paragraphsOf(data.inspirations)].slice(0, 2);
+  const paragraphs = wordsAfterCoverLine(data).slice(0, 2);
   const hasWords = Boolean(quote || paragraphs.length);
 
   const gallery = data.gallery_images;

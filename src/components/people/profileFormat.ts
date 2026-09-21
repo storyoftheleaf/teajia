@@ -96,6 +96,33 @@ export function ownLine(person: { now_text?: string | null; beginnings?: string 
   return firstSentence(person.now_text) ?? firstSentence(person.beginnings) ?? firstSentence(person.inspirations);
 }
 
+/**
+ * The paragraphs under In my words, with the cover line taken out. The cover
+ * owns the first sentence (Adrian, sandbox, 2026-09-21: the same sentence
+ * printed twice in a row); the source paragraph keeps the rest, or is dropped
+ * when that sentence was all of it. Order: now, then beginnings, then
+ * inspirations, as before.
+ */
+export function wordsAfterCoverLine(person: { now_text?: string | null; beginnings?: string | null; inspirations?: string | null }): string[] {
+  const cover = ownLine(person);
+  const sources = [person.now_text, person.beginnings, person.inspirations];
+  const out: string[] = [];
+  let removed = !cover;
+  for (const source of sources) {
+    const paragraphs = paragraphsOf(source);
+    for (const paragraph of paragraphs) {
+      if (!removed && cover && paragraph.startsWith(cover)) {
+        removed = true;
+        const rest = paragraph.slice(cover.length).trim();
+        if (rest) out.push(rest);
+        continue;
+      }
+      out.push(paragraph);
+    }
+  }
+  return out;
+}
+
 const NUMBER_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
 
 /** "six teas", "three more": small counts as words, larger ones as digits. */
