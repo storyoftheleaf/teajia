@@ -51,7 +51,7 @@ const PIECE = {
 };
 
 /** The one photograph the site owns today: Adrian at the table. */
-const TABLE_PHOTO = 'https://res.cloudinary.com/dobbosnda/image/upload/f_auto,q_auto,w_1400/v1773837991/2021-06-27_IMG_7745_Original_ehkz30.jpg';
+const TABLE_PHOTO = 'https://res.cloudinary.com/dobbosnda/image/upload/f_auto,q_auto,w_2000/v1773837991/2021-06-27_IMG_7745_Original_ehkz30.jpg';
 
 /** Stand-ins until the real photographs exist. Unsplash, free to use; never shipped as final. */
 const TEMPLATE = {
@@ -68,8 +68,13 @@ const EDGE = 'lg:pl-[calc(var(--teajia-sidebar-w)+4rem)]';
 
 /** The three sizes. */
 const DISPLAY = 'font-display font-normal text-[clamp(26px,2.5vw,36px)] leading-[1.1] tracking-[0.01em]';
+/** A plate's title: one step up from display, since a plate is a cover. */
+const TITLE = 'font-display font-normal text-[clamp(28px,2.9vw,42px)] leading-[1.06] tracking-[0.005em]';
 const BODY = 'font-body text-ui-16 leading-[1.65]';
 const META = 'font-sans text-ui-12 leading-[1.5] tracking-[0.02em]';
+
+/** One treatment on every photograph, so stand-ins and the night shot read as one set. Applies to the frame, so an owner's own upload gets it too. */
+const PHOTO = '[&_img]:saturate-[.85]';
 
 /** The one spacing unit between movements. */
 const MOVEMENT = 'mt-16 sm:mt-20 lg:mt-24';
@@ -108,7 +113,7 @@ const HomeV2Page: React.FC = () => {
   // what the sidebar sets as it expands and collapses, so the page follows it.
   return (
     <StoryEditProvider slug={HOME_SLUG}>
-    <div className="-mx-4 md:-mx-6 lg:-mr-10 lg:ml-[calc(-2.5rem-var(--teajia-sidebar-w))] bg-tea-bg text-tea-text">
+    <div className="-mx-4 md:-mx-6 lg:-mr-10 lg:ml-[calc(-2.5rem-var(--teajia-sidebar-w))] lg:-mb-8 bg-tea-bg text-tea-text">
       <Helmet>
         <title>Teajia. Fine Tea &amp; Teaware</title>
         <meta name="description" content="A home for fine tea. Source it, study it, and share it with those who gather around the cup." />
@@ -119,22 +124,25 @@ const HomeV2Page: React.FC = () => {
           in as owner, the editor bar turns editing on, a photograph drops,
           pastes or is chosen into it, and Publish makes it live. Until one is
           published the table photograph stands in. */}
-      <section aria-label="Teajia" className="grid grid-cols-1 lg:grid-cols-[var(--teajia-sidebar-w)_1fr_1fr] lg:min-h-[calc(100vh-1.5rem)]">
+      <section aria-label="Teajia" className="grid grid-cols-1 lg:grid-cols-[var(--teajia-sidebar-w)_minmax(0,1.15fr)_minmax(0,1fr)] lg:min-h-[calc(100vh-1.5rem)]">
         <div className={`lg:col-start-2 px-6 sm:px-10 lg:pl-[4rem] lg:pr-16 pt-14 sm:pt-20 lg:pt-0 pb-10 lg:pb-0 flex flex-col justify-center`}>
           <h1
-            className="font-display font-normal text-tea-text max-w-[18ch] text-[clamp(36px,4.2vw,62px)] leading-[1.08] tracking-[0.01em]"
+            className="font-display font-normal text-tea-text max-w-[16ch] text-[clamp(38px,4.6vw,78px)] leading-[1.04] tracking-[0.005em]"
             style={{ textWrap: 'balance' }}
           >
             Tea deepens with what you bring to the table and what you leave behind.
           </h1>
+          <p className={`${BODY} mt-8 max-w-[44ch] text-tea-text-sec`}>
+            A home for fine tea. Source it, study it, share it with those who gather around the cup.
+          </p>
         </div>
-        <div className="relative lg:col-start-3 min-h-[320px] sm:min-h-[420px] lg:min-h-0 overflow-hidden bg-tea-surface">
+        <div className={`relative lg:col-start-3 min-h-[320px] sm:min-h-[420px] lg:min-h-0 overflow-hidden bg-tea-surface ${PHOTO}`}>
           <EditablePhoto
             slot="table"
             alt="At the table"
             fill
             placeholderBg="var(--tea-surface)"
-            placeholder={<img src={TABLE_PHOTO} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '60% 40%' }} />}
+            placeholder={<img src={TABLE_PHOTO} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '68% 64%' }} />}
           />
         </div>
       </section>
@@ -142,10 +150,9 @@ const HomeV2Page: React.FC = () => {
       {/* The table: three plates of equal width. */}
       <section
         aria-label="On the table"
-        className={`${MOVEMENT} grid grid-cols-1 md:grid-cols-3 lg:grid-cols-[var(--teajia-sidebar-w)_1fr_1fr_1fr]`}
+        className={`${MOVEMENT} ${EDGE} grid grid-cols-1 md:grid-cols-3 gap-y-8 md:gap-y-0 md:gap-x-[2px] ${PHOTO}`}
       >
         <Plate
-          first
           index={0}
           to={PIECE.to}
           title={<>Porcelain <span className="italic text-tea-gold">and Tea</span></>}
@@ -177,9 +184,9 @@ const HomeV2Page: React.FC = () => {
           characters large on the right, the house's own picture. */}
       <section
         aria-label="The house"
-        className={`${MOVEMENT} grid grid-cols-1 lg:grid-cols-[var(--teajia-sidebar-w)_1fr_1fr] bg-tea-surface pb-nav-gap-lg lg:pb-0`}
+        className={`${MOVEMENT} grid grid-cols-1 lg:grid-cols-[var(--teajia-sidebar-w)_1fr_1fr] bg-tea-surface`}
       >
-        <div className="lg:col-start-2 px-6 sm:px-10 lg:pl-[4rem] lg:pr-16 pt-14 sm:pt-16 lg:pt-24 pb-12 lg:pb-24 flex flex-col justify-between gap-14">
+        <div className="lg:col-start-2 px-6 sm:px-10 lg:pl-[4rem] lg:pr-16 pt-14 sm:pt-16 lg:pt-24 pb-12 lg:pb-24 flex flex-col justify-center gap-12">
           <nav aria-label="Homepage destinations" className="flex flex-col items-start gap-2">
             {[
               { accent: 'Source', rest: ' your tea.', to: '/shop' },
@@ -210,15 +217,15 @@ const HomeV2Page: React.FC = () => {
             </p>
           </div>
         </div>
-        <div className="lg:col-start-3 bg-tea-elevated px-6 sm:px-10 lg:px-12 py-14 sm:py-16 lg:py-24 flex items-center">
-          <div className="flex flex-wrap gap-x-10 sm:gap-x-12 gap-y-10">
+        <div className="lg:col-start-3 bg-tea-elevated px-6 sm:px-10 lg:px-14 py-14 sm:py-16 lg:py-24 flex items-center">
+          <div className="flex flex-wrap gap-x-10 sm:gap-x-14 lg:gap-x-[clamp(1.5rem,3vw,5rem)] gap-y-10">
             {[
               { zi: '佳', a: 'beauty', b: 'excellence' },
               { zi: '家', a: 'home', b: 'devotion' },
               { zi: '嘉', a: 'praise', b: 'celebration' },
             ].map(c => (
               <div key={c.zi} className="flex flex-col items-start">
-                <span className="text-[80px] sm:text-[96px] lg:text-[clamp(72px,6.4vw,112px)] leading-none text-tea-gold" style={{ fontFamily: "'Ma Shan Zheng', cursive" }}>{c.zi}</span>
+                <span className="text-[80px] sm:text-[104px] lg:text-[clamp(72px,8vw,160px)] leading-none text-tea-gold" style={{ fontFamily: "'Ma Shan Zheng', cursive" }}>{c.zi}</span>
                 <p className={`${META} mt-4 flex flex-col items-start text-tea-text-sec`}>
                   <span>{c.a}</span><span>{c.b}</span>
                 </p>
@@ -243,8 +250,6 @@ const teaLine = (tea: PublicProduct): string => {
 };
 
 interface PlateProps {
-  /** The first plate on desktop spans the sidebar's track too: its photograph runs behind the sidebar, its words start at the page's edge. */
-  first?: boolean;
   /** Position in the row, for the stagger of the one authored entrance. */
   index: number;
   to: string;
@@ -262,7 +267,7 @@ interface PlateProps {
  * authored entrance: each fades up as it comes into view, a beat after the
  * one before. The words do not animate.
  */
-const Plate: React.FC<PlateProps> = ({ first, index, to, title, body, meta, src, crop }) => {
+const Plate: React.FC<PlateProps> = ({ index, to, title, body, meta, src, crop }) => {
   const [hover, setHover] = useState(false);
   const reveal = useSectionReveal('fade');
   const focal = crop ? `${crop.x * 100}% ${crop.y * 100}%` : undefined;
@@ -271,7 +276,7 @@ const Plate: React.FC<PlateProps> = ({ first, index, to, title, body, meta, src,
       to={to}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      className={`group flex flex-row md:flex-col md:border-r border-tea-border md:last:border-r-0 text-tea-text-sec focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/40 ${first ? 'lg:col-span-2' : ''}`}
+      className="group flex flex-row md:flex-col text-tea-text-sec focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/40"
     >
       <div
         ref={reveal.ref}
@@ -286,12 +291,12 @@ const Plate: React.FC<PlateProps> = ({ first, index, to, title, body, meta, src,
           style={crop ? { objectPosition: focal, transform: `scale(${crop.scale})`, transformOrigin: focal } : undefined}
         />
       </div>
-      <div className={`flex-1 px-5 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10 ${first ? 'lg:pl-[calc(var(--teajia-sidebar-w)+4rem)]' : ''}`}>
-        <h2 className={`${DISPLAY} transition-colors duration-300 ${hover ? 'text-tea-gold' : 'text-tea-text'}`}>
+      <div className="flex-1 pl-5 py-6 sm:pl-6 sm:py-8 md:pl-0 md:pr-8 md:py-8">
+        <h2 className={`${TITLE} transition-colors duration-300 ${hover ? 'text-tea-gold' : 'text-tea-text'}`}>
           {title}
         </h2>
-        <p className={`${BODY} mt-4 max-w-[46ch] text-tea-text-sec`}>{body}</p>
-        <p className={`${META} mt-5 text-tea-text-dim`}>{meta}</p>
+        <p className={`${BODY} mt-3 max-w-[44ch] text-tea-text-sec`}>{body}</p>
+        <p className={`${META} mt-3 text-tea-text-dim`}>{meta}</p>
       </div>
     </Link>
   );
