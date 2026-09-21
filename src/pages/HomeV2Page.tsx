@@ -6,8 +6,6 @@ import { api } from '../lib/api';
 import { useShopPrice } from '../components/shop/shopPrice';
 import { usePublicProducts } from '../hooks/usePublicProducts';
 import { LogoText } from '../components/Logos/LogoText';
-import { useTheme } from '../context/ThemeContext';
-import { getTeaLedgerTones } from '../designTokens';
 import { useSectionReveal } from '../hooks/useSectionReveal';
 import { StoryEditProvider, type PhotoVal } from './read/storyEdit';
 import EditablePhoto from './read/EditablePhoto';
@@ -19,21 +17,30 @@ import type { PublicProduct } from '../types';
  * of its own so it can be worked on beside the live page and swapped in when
  * Adrian says so. Nothing links here.
  *
- * One page, not four bands. The statement opens it and its last line sits on
- * the lead photograph; the three plates follow, the lead twice the width and
- * a head taller than the other two; the house lines, the wordmark, the three
- * characters and the email run down one text column beside one tall
- * photograph. No horizontal rules anywhere: the verticals between columns
- * and the photographs' own edges do the dividing. Every line of text starts
- * at the same left edge, four rems past the sidebar.
+ * Three movements, one spacing unit between them, no horizontal rules:
  *
- * Three sizes of type: the display size for anything that is a title or a
- * line to be read as one, the body size for sentences, the meta size for the
- * facts under them. The opener is the one exception and is allowed to be
- * bigger than everything.
+ *   The opener: the statement on the left, the photograph of the table on
+ *   the right, the height of the first screen. The one real photograph the
+ *   site owns, used once, first and large.
  *
- * The site's own nav frames it: the sidebar on desktop, the tab bar on the
- * phone. No bar of its own.
+ *   The table: three plates of equal width, the piece to read, the tea on
+ *   the table, the consult. Each is a photograph with its words under it.
+ *
+ *   The house: on the surface tone, the four grounding lines and the email
+ *   down the left, the three characters large on the right as the house's
+ *   own picture. Identity as image, not decoration.
+ *
+ * Every line of text starts at the same left edge, four rems past the
+ * sidebar. Three sizes of type: display for titles, body for sentences and
+ * for the grounding lines (which keep the live page's face exactly), meta
+ * for the facts under them. The opener alone is bigger.
+ *
+ * STAND-IN PHOTOGRAPHS: the plates carry Unsplash pictures until the real
+ * ones exist, so the structure can be judged with imagery in it. They are
+ * named in TEMPLATE below and nowhere else; each is replaced by the real
+ * photograph the moment one is published (the piece's portrait on its story
+ * page, the tea's image in the admin, the table photograph in the opener's
+ * own frame).
  */
 
 const PIECE = {
@@ -44,7 +51,14 @@ const PIECE = {
 };
 
 /** The one photograph the site owns today: Adrian at the table. */
-const TABLE_PHOTO = 'https://res.cloudinary.com/dobbosnda/image/upload/f_auto,q_auto,w_900/v1773837991/2021-06-27_IMG_7745_Original_ehkz30.jpg';
+const TABLE_PHOTO = 'https://res.cloudinary.com/dobbosnda/image/upload/f_auto,q_auto,w_1400/v1773837991/2021-06-27_IMG_7745_Original_ehkz30.jpg';
+
+/** Stand-ins until the real photographs exist. Unsplash, free to use; never shipped as final. */
+const TEMPLATE = {
+  piece: 'https://images.unsplash.com/photo-1654738209839-571e0ff47323?w=1200&q=75&fit=crop',
+  tea: 'https://images.unsplash.com/photo-1475257026007-0753d5429e10?w=1200&q=75&fit=crop',
+  consult: 'https://images.unsplash.com/photo-1734333107760-7389a4f29af8?w=1200&q=75&fit=crop',
+};
 
 /** The home page's own slug in the story-content store, for the frames it carries. */
 const HOME_SLUG = 'home';
@@ -56,6 +70,9 @@ const EDGE = 'lg:pl-[calc(var(--teajia-sidebar-w)+4rem)]';
 const DISPLAY = 'font-display font-normal text-[clamp(26px,2.5vw,36px)] leading-[1.1] tracking-[0.01em]';
 const BODY = 'font-body text-ui-16 leading-[1.65]';
 const META = 'font-sans text-ui-12 leading-[1.5] tracking-[0.02em]';
+
+/** The one spacing unit between movements. */
+const MOVEMENT = 'mt-16 sm:mt-20 lg:mt-24';
 
 /** The tea on the table: a featured one if Adrian has flagged one, else the oldest lot on the shelf. */
 const pickTea = (products: PublicProduct[]): PublicProduct | null => {
@@ -76,8 +93,7 @@ const HomeV2Page: React.FC = () => {
   const shopPrice = useShopPrice();
 
   // The piece's own cover portrait, the one Adrian drops onto the story page
-  // and publishes there. The moment it is live there it is live here; until
-  // then the plate shows the reading room's cover treatment.
+  // and publishes there. The moment it is live there it is live here.
   const { data: pieceContent } = useQuery({
     queryKey: ['story-content', PIECE.slug, 'published'],
     queryFn: () => api.storyContent.get(PIECE.slug) as Promise<{ photos?: Record<string, PhotoVal> }>,
@@ -85,40 +101,48 @@ const HomeV2Page: React.FC = () => {
   });
   const portrait = pieceContent?.photos?.portrait;
 
-  // The colour the tea brews, the same ground the shop's ledger rows carry.
-  const { theme } = useTheme();
-  const teaTones = tea ? getTeaLedgerTones(tea.type, theme, 1.6) : null;
-
   // The page breaks out of the main column's gutter, and on desktop out of the
   // column itself, so the photographs run from the left edge of the window,
   // behind the floating sidebar, to the right edge. The text pads itself back
   // past the sidebar so nothing readable sits under it. --teajia-sidebar-w is
   // what the sidebar sets as it expands and collapses, so the page follows it.
   return (
+    <StoryEditProvider slug={HOME_SLUG}>
     <div className="-mx-4 md:-mx-6 lg:-mr-10 lg:ml-[calc(-2.5rem-var(--teajia-sidebar-w))] bg-tea-bg text-tea-text">
       <Helmet>
         <title>Teajia. Fine Tea &amp; Teaware</title>
         <meta name="description" content="A home for fine tea. Source it, study it, and share it with those who gather around the cup." />
       </Helmet>
 
-      {/* The statement. Its last line sits on the lead photograph below, so
-          the opener and the plates are one move rather than two bands. */}
-      <section className={`relative z-10 px-6 sm:px-10 lg:px-16 ${EDGE} pt-14 sm:pt-20 lg:pt-24 pb-8 lg:pb-0`}>
-        <h1
-          className="font-display font-normal text-tea-text max-w-[760px] text-[clamp(36px,4.4vw,64px)] leading-[1.08] tracking-[0.01em]"
-          style={{ textWrap: 'balance' }}
-        >
-          Tea deepens with what you bring to the table and what you leave behind.
-        </h1>
+      {/* The opener: the statement beside the photograph of the table, the
+          height of the first screen. The frame is the Read pages' own: signed
+          in as owner, the editor bar turns editing on, a photograph drops,
+          pastes or is chosen into it, and Publish makes it live. Until one is
+          published the table photograph stands in. */}
+      <section aria-label="Teajia" className="grid grid-cols-1 lg:grid-cols-[var(--teajia-sidebar-w)_1fr_1fr] lg:min-h-[calc(100vh-1.5rem)]">
+        <div className={`lg:col-start-2 px-6 sm:px-10 lg:pl-[4rem] lg:pr-16 pt-14 sm:pt-20 lg:pt-0 pb-10 lg:pb-0 flex flex-col justify-center`}>
+          <h1
+            className="font-display font-normal text-tea-text max-w-[18ch] text-[clamp(36px,4.2vw,62px)] leading-[1.08] tracking-[0.01em]"
+            style={{ textWrap: 'balance' }}
+          >
+            Tea deepens with what you bring to the table and what you leave behind.
+          </h1>
+        </div>
+        <div className="relative lg:col-start-3 min-h-[320px] sm:min-h-[420px] lg:min-h-0 overflow-hidden bg-tea-surface">
+          <EditablePhoto
+            slot="table"
+            alt="At the table"
+            fill
+            placeholderBg="var(--tea-surface)"
+            placeholder={<img src={TABLE_PHOTO} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '60% 40%' }} />}
+          />
+        </div>
       </section>
 
-      {/* The three plates. The lead runs twice the width of the other two and
-          a head taller, its photograph starting under the statement's last
-          line; the two beside it sit lower, so the row has a ragged top and a
-          ragged bottom rather than a flat strip. */}
+      {/* The table: three plates of equal width. */}
       <section
         aria-label="On the table"
-        className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-[var(--teajia-sidebar-w)_2fr_1fr_1fr] lg:-mt-10"
+        className={`${MOVEMENT} grid grid-cols-1 md:grid-cols-3 lg:grid-cols-[var(--teajia-sidebar-w)_1fr_1fr_1fr]`}
       >
         <Plate
           first
@@ -127,26 +151,16 @@ const HomeV2Page: React.FC = () => {
           title={<>Porcelain <span className="italic text-tea-gold">and Tea</span></>}
           body={PIECE.dek}
           meta={PIECE.meta}
-          artwork={portrait ? <StoryPhoto photo={portrait} /> : <PieceArtwork />}
-          artworkLabel={portrait ? undefined : 'Portrait, at the repair table'}
-          scrim
+          src={portrait?.url ?? TEMPLATE.piece}
+          crop={portrait?.crop}
         />
         <Plate
           index={1}
           to={tea ? `/shop/product/${tea.slug ?? tea.id}` : '/shop'}
           title={tea ? tea.productName : 'On the shelf'}
           body={tea ? teaLine(tea) : 'Twenty teas, chosen one lot at a time.'}
-          meta={tea ? (
-            <>
-              <span className="font-body text-ui-16 text-tea-text">{shopPrice.total(tea.pricePerGramUSD * 50)}</span>
-              <span className="ml-2">for 50 g · the tea on the table</span>
-            </>
-          ) : 'The tea on the table'}
-          artwork={tea?.imageUrl ? (
-            <img src={tea.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
-          ) : <TeaArtwork ground={teaTones?.markBg} />}
-          artworkLabel={tea?.imageUrl ? undefined : 'The leaf, photographed edge to edge'}
-          wash={teaTones?.wash}
+          meta={tea ? <>The tea on the table · 50 g · <span className="font-body text-ui-16 text-tea-text">{shopPrice.total(tea.pricePerGramUSD * 50)}</span></> : 'The tea on the table'}
+          src={tea?.imageUrl || TEMPLATE.tea}
         />
         <Plate
           index={2}
@@ -154,36 +168,19 @@ const HomeV2Page: React.FC = () => {
           title={<>Twenty years in <span className="italic text-tea-gold">tea culture.</span></>}
           body="Taiwan, China, Japan, Bali, and beyond. Tea for your practice, your collection, your space."
           meta="The consult · every engagement begins with a conversation"
-          artwork={<img src={TABLE_PHOTO} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />}
+          src={TEMPLATE.consult}
         />
       </section>
 
-      {/* The house. One text column, one tall photograph. The four lines,
-          then the wordmark, jiā, the three characters, the mission and the
-          email, all down the same edge; the photograph runs the full height
-          beside them. The frame is the Read pages' own: signed in as owner,
-          the editor bar turns editing on, a photograph drops, pastes or is
-          chosen into it, the focal point and zoom are set, and Publish makes
-          it live. Until one is published the table photograph stands in,
-          cropped to the vessel so it is not the consult plate's picture again. */}
-      <StoryEditProvider slug={HOME_SLUG}>
+      {/* The house: on the surface tone. The grounding lines and the email
+          down the left, exactly as the live page sets them; the three
+          characters large on the right, the house's own picture. */}
       <section
         aria-label="The house"
-        className="grid grid-cols-1 lg:grid-cols-[var(--teajia-sidebar-w)_1fr_1fr] pb-nav-gap-lg lg:pb-0"
+        className={`${MOVEMENT} grid grid-cols-1 lg:grid-cols-[var(--teajia-sidebar-w)_1fr_1fr] bg-tea-surface pb-nav-gap-lg lg:pb-0`}
       >
-        <div className="relative order-first lg:order-none lg:col-start-3 lg:row-start-1 min-h-[260px] sm:min-h-[340px] lg:min-h-0 overflow-hidden bg-tea-surface">
-          <EditablePhoto
-            slot="house"
-            alt="The house"
-            fill
-            placeholderBg="var(--tea-surface)"
-            placeholder={
-              <img src={TABLE_PHOTO} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '88% 45%', transform: 'scale(1.35)', transformOrigin: '88% 45%' }} loading="lazy" />
-            }
-          />
-        </div>
-        <div className={`lg:col-start-2 lg:row-start-1 px-6 sm:px-10 lg:pl-[4rem] lg:pr-16 pt-12 sm:pt-14 lg:pt-20 pb-14 lg:pb-24`}>
-          <nav aria-label="Homepage destinations" className="flex flex-col items-start gap-2 sm:gap-3">
+        <div className="lg:col-start-2 px-6 sm:px-10 lg:pl-[4rem] lg:pr-16 pt-14 sm:pt-16 lg:pt-24 pb-12 lg:pb-24 flex flex-col justify-between gap-14">
+          <nav aria-label="Homepage destinations" className="flex flex-col items-start gap-2">
             {[
               { accent: 'Source', rest: ' your tea.', to: '/shop' },
               { accent: 'Discover', rest: ' the stories.', to: '/read' },
@@ -193,40 +190,16 @@ const HomeV2Page: React.FC = () => {
               <Link
                 key={item.to}
                 to={item.to}
-                className={`group tap-target inline-flex items-baseline gap-1 whitespace-nowrap rounded-md py-0.5 ${DISPLAY} text-tea-text-sec transition-colors duration-300 hover:text-tea-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg`}
+                className={`group tap-target inline-flex items-baseline gap-1 whitespace-nowrap rounded-md py-0.5 ${BODY} tracking-[0.015em] text-tea-text-sec transition-colors duration-300 hover:text-tea-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-surface`}
               >
-                <span className="text-tea-gold">{item.accent}</span>
-                <span className="underline decoration-tea-gold/0 underline-offset-[6px] transition-all duration-300 group-hover:decoration-tea-gold/30">{item.rest}</span>
+                <span className="font-medium text-tea-gold">{item.accent}</span>
+                <span className="underline decoration-tea-gold/0 underline-offset-[4px] transition-all duration-300 group-hover:decoration-tea-gold/30">{item.rest}</span>
               </Link>
             ))}
           </nav>
-
-          <div className="mt-16 sm:mt-20 lg:mt-24">
+          <div className="max-w-[360px]">
             <LogoText size="panel" color="var(--tea-text-sec)" />
-            <p className={`${BODY} italic mt-4 text-tea-text-sec`}>
-              <span className="not-italic font-semibold text-tea-gold">jiā</span> · one sound, three pillars
-            </p>
-            <div className="mt-8 flex flex-wrap gap-x-10 sm:gap-x-14 gap-y-6">
-              {[
-                { zi: '佳', a: 'beauty', b: 'excellence' },
-                { zi: '家', a: 'home', b: 'devotion' },
-                { zi: '嘉', a: 'praise', b: 'celebration' },
-              ].map(c => (
-                <div key={c.zi} className="flex flex-col items-start">
-                  <span className="text-[44px] sm:text-[56px] leading-none text-tea-gold" style={{ fontFamily: "'Ma Shan Zheng', cursive" }}>{c.zi}</span>
-                  <p className={`${META} mt-3 flex flex-col items-start text-tea-text-sec`}>
-                    <span>{c.a}</span><span>{c.b}</span>
-                  </p>
-                </div>
-              ))}
-            </div>
-            <p className={`${BODY} mt-8 max-w-[52ch] text-tea-text-sec`}>
-              A home for fine tea. A place to source it, study it, and share it with those who gather around the cup.
-            </p>
-          </div>
-
-          <div className="mt-12 sm:mt-14 max-w-[360px]">
-            <p className={`${DISPLAY} italic text-tea-text`}>it&apos;s nothing without you</p>
+            <p className={`${DISPLAY} italic mt-6 text-tea-text`}>it&apos;s nothing without you</p>
             <div className="mt-6">
               <EmailField />
             </div>
@@ -237,10 +210,26 @@ const HomeV2Page: React.FC = () => {
             </p>
           </div>
         </div>
+        <div className="lg:col-start-3 bg-tea-elevated px-6 sm:px-10 lg:px-12 py-14 sm:py-16 lg:py-24 flex items-center">
+          <div className="flex flex-wrap gap-x-10 sm:gap-x-12 gap-y-10">
+            {[
+              { zi: '佳', a: 'beauty', b: 'excellence' },
+              { zi: '家', a: 'home', b: 'devotion' },
+              { zi: '嘉', a: 'praise', b: 'celebration' },
+            ].map(c => (
+              <div key={c.zi} className="flex flex-col items-start">
+                <span className="text-[80px] sm:text-[96px] lg:text-[clamp(72px,6.4vw,112px)] leading-none text-tea-gold" style={{ fontFamily: "'Ma Shan Zheng', cursive" }}>{c.zi}</span>
+                <p className={`${META} mt-4 flex flex-col items-start text-tea-text-sec`}>
+                  <span>{c.a}</span><span>{c.b}</span>
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
       <StoryEditorBar />
-      </StoryEditProvider>
     </div>
+    </StoryEditProvider>
   );
 };
 
@@ -254,7 +243,7 @@ const teaLine = (tea: PublicProduct): string => {
 };
 
 interface PlateProps {
-  /** The lead plate on desktop spans the sidebar's track too: its photograph runs behind the sidebar, its words start at the page's edge. */
+  /** The first plate on desktop spans the sidebar's track too: its photograph runs behind the sidebar, its words start at the page's edge. */
   first?: boolean;
   /** Position in the row, for the stagger of the one authored entrance. */
   index: number;
@@ -262,12 +251,9 @@ interface PlateProps {
   title: React.ReactNode;
   body: React.ReactNode;
   meta: React.ReactNode;
-  artwork: React.ReactNode;
-  artworkLabel?: string;
-  /** A tonal ground behind the words, fading out to the right: the tea's own liquor colour. */
-  wash?: string;
-  /** Page tone over the top of the photograph, so the statement's last line reads on it. */
-  scrim?: boolean;
+  src: string;
+  /** The focal point and zoom saved with a story photograph, when it is one. */
+  crop?: { scale: number; x: number; y: number };
 }
 
 /**
@@ -276,41 +262,31 @@ interface PlateProps {
  * authored entrance: each fades up as it comes into view, a beat after the
  * one before. The words do not animate.
  */
-const Plate: React.FC<PlateProps> = ({ first, index, to, title, body, meta, artwork, artworkLabel, wash, scrim }) => {
+const Plate: React.FC<PlateProps> = ({ first, index, to, title, body, meta, src, crop }) => {
   const [hover, setHover] = useState(false);
   const reveal = useSectionReveal('fade');
+  const focal = crop ? `${crop.x * 100}% ${crop.y * 100}%` : undefined;
   return (
     <Link
       to={to}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      className={`group flex flex-row md:flex-col md:border-r border-tea-border md:last:border-r-0 text-tea-text-sec focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/40 ${first ? 'lg:col-span-2' : 'lg:mt-24'}`}
+      className={`group flex flex-row md:flex-col md:border-r border-tea-border md:last:border-r-0 text-tea-text-sec focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/40 ${first ? 'lg:col-span-2' : ''}`}
     >
       <div
         ref={reveal.ref}
-        className={`relative shrink-0 basis-[38%] min-h-[170px] md:basis-auto md:min-h-[300px] ${first ? 'lg:min-h-[560px]' : 'lg:min-h-[400px]'} overflow-hidden bg-tea-surface ${reveal.className}`}
+        className={`relative shrink-0 basis-[38%] min-h-[170px] md:basis-auto md:min-h-[280px] lg:min-h-[400px] overflow-hidden bg-tea-surface ${reveal.className}`}
         style={reveal.style ? { ...reveal.style, transitionDelay: `${index * 120}ms` } : undefined}
       >
-        <div className="absolute inset-0 transition-transform duration-[600ms] ease-out group-hover:scale-[1.02] motion-reduce:transform-none">
-          {artwork}
-        </div>
-        {scrim && (
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 top-0 h-[38%] hidden lg:block"
-            style={{ background: 'linear-gradient(180deg, rgb(var(--tea-bg-rgb)) 0%, rgb(var(--tea-bg-rgb) / 0) 100%)' }}
-          />
-        )}
-        {artworkLabel && (
-          <span className={`absolute left-4 bottom-3 ${META} text-tea-text-dim ${first ? 'lg:left-[calc(var(--teajia-sidebar-w)+4rem)]' : ''}`}>
-            {artworkLabel}
-          </span>
-        )}
+        <img
+          src={src}
+          alt=""
+          loading="lazy"
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-[600ms] ease-out group-hover:scale-[1.02] motion-reduce:transform-none"
+          style={crop ? { objectPosition: focal, transform: `scale(${crop.scale})`, transformOrigin: focal } : undefined}
+        />
       </div>
-      <div
-        className={`flex-1 px-5 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10 ${first ? 'lg:pl-[calc(var(--teajia-sidebar-w)+4rem)]' : ''}`}
-        style={wash ? { background: `linear-gradient(90deg, ${wash} 0%, transparent 78%)` } : undefined}
-      >
+      <div className={`flex-1 px-5 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10 ${first ? 'lg:pl-[calc(var(--teajia-sidebar-w)+4rem)]' : ''}`}>
         <h2 className={`${DISPLAY} transition-colors duration-300 ${hover ? 'text-tea-gold' : 'text-tea-text'}`}>
           {title}
         </h2>
@@ -320,43 +296,6 @@ const Plate: React.FC<PlateProps> = ({ first, index, to, title, body, meta, artw
     </Link>
   );
 };
-
-/** A photograph saved on a Read story page, drawn with the crop Adrian set there. */
-const StoryPhoto: React.FC<{ photo: { url: string; crop: { scale: number; x: number; y: number } } }> = ({ photo }) => {
-  const focal = `${photo.crop.x * 100}% ${photo.crop.y * 100}%`;
-  return (
-    <img
-      src={photo.url}
-      alt=""
-      className="absolute inset-0 w-full h-full object-cover"
-      style={{ objectPosition: focal, transform: `scale(${photo.crop.scale})`, transformOrigin: focal }}
-      loading="lazy"
-    />
-  );
-};
-
-/** Until the porcelain piece has its portrait: the reading room's own cover treatment. */
-const PieceArtwork: React.FC = () => (
-  <>
-    <div aria-hidden="true" className="absolute inset-0" style={{ background: 'linear-gradient(158deg,#2a2620 0%,#1c1810 56%,#14100b 100%)' }} />
-    <div aria-hidden="true" className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 64% 56% at 60% 28%, rgba(150,180,180,0.20), transparent 64%)' }} />
-    <div
-      aria-hidden="true"
-      className="absolute left-1/2 top-[46%] -translate-x-1/2 -translate-y-1/2 leading-none"
-      style={{ fontFamily: "'Noto Serif SC', serif", fontWeight: 200, fontSize: 'min(24vw,200px)', color: 'rgba(168,135,77,0.09)' }}
-    >
-      缘
-    </div>
-  </>
-);
-
-/** Until the tea has a photograph: the plate that marks where the leaf goes. */
-const TeaArtwork: React.FC<{ ground?: string }> = ({ ground }) => (
-  <>
-    <div aria-hidden="true" className="absolute inset-0" style={{ background: ground ?? '#26201a', backgroundImage: 'repeating-linear-gradient(135deg, rgba(168,135,77,0.06) 0 9px, transparent 9px 18px)' }} />
-    <div aria-hidden="true" className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 60% 55% at 55% 40%, rgba(190,140,70,0.22), transparent 66%)' }} />
-  </>
-);
 
 /** The live page's email field: underline only, the word join at the end. */
 const EmailField: React.FC = () => {
