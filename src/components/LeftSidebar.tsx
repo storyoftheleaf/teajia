@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Icons } from './Icons';
-import { LogoEmblem, LogoText } from './Logos';
+import { LogoEmblem } from './Logos';
 import { Section } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../hooks/useAuth';
@@ -13,9 +13,7 @@ import { TYPOGRAPHY_CLASSES } from '../designTokens';
 // stock icons in the admin nav. Browse keeps its hand-drawn brand icons.
 import {
   CalendarBlank, SquaresFour, Briefcase, Leaf, Coffee, Storefront, UsersThree,
-  FolderOpen, CaretLeft, CaretRight, UserCheck,
-  BookOpen, Package, ShoppingCart, Sun, Moon, Stack, Camera, Compass,
-  GearSix, Globe,
+  FolderOpen, UserCheck, BookOpen, Package, Stack, Camera, Compass, GearSix, Globe,
 } from '@phosphor-icons/react';
 import { SampleIcon } from './Icons';
 import { useSampleCartStore } from '../samples/sampleCartStore';
@@ -23,19 +21,15 @@ import { ADMIN_CONNECTION_ROUTES, getVisibleAdminItemIds } from './navigationCon
 
 const PHOSPHOR_WEIGHT = 'light' as const;
 
-// The two rooms of the column. Only one hierarchy is visible at a time; the
-// switch sits centred at the top of the middle pod (a marked button on the
-// collapsed rail).
-const ROOMS: { id: SidebarRoom; label: string }[] = [
-  { id: 'browse', label: 'Browse' },
-  { id: 'manage', label: 'Manage' },
-];
-
-// Both pods and the collapsed rail capsule share the `.nav-pod` recipe in
-// card-utilities.css, the same material as BottomTabBar's floating capsule:
-// same translucent wash, same blur, same keyline, same paper + grain, same
-// shadow. Desktop and mobile navigation read as one object family because
-// they are cut from the same sheet.
+// The two rooms of the desk. Browse is the rail's four words; Manage is a
+// fifth word on the rail that opens the column beside it. Only one hierarchy
+// is visible at a time.
+//
+// The rail wears `.nav-rail` (card-utilities.css): the page's own ground
+// lifted a few percent, one keyline on its right edge, and nothing else. It
+// used to be two floating pods cut from the mobile bar's material, and on a
+// wide dark page two capsules with a 32px shadow read as objects placed on
+// the page rather than part of it. Depth now comes from tone, not effects.
 
 const Hairline: React.FC<{ className?: string }> = ({ className = '' }) => (
   <div className={`h-px bg-tea-border mx-[22px] shrink-0 ${className}`} />
@@ -60,10 +54,9 @@ interface NavItem {
 }
 
 // ── NavRow ─────────────────────────────────────────────────────────────────
-// A single browse/manage row inside the middle pod. Expanded rows are words
-// only (icons stay in the collapsed rail, where words don't fit); the active
-// state is the same gold + glow treatment BottomTabBar uses for its tabs, so
-// desktop and mobile read as one navigation system rather than two designs.
+// A single row inside the Manage column. Words only; the active state is the
+// same gold + glow treatment BottomTabBar uses for its tabs, so desktop and
+// mobile read as one navigation system rather than two designs.
 const NavRow: React.FC<{
   item: NavItem;
   isActive: boolean;
@@ -127,7 +120,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const navigate = useNavigate();
   const currentPath = location.pathname;
   const isAdminRoute = currentPath.startsWith('/admin');
-  const { sidebarCollapsed: collapsed, toggleSidebarCollapsed, activeAccount, sidebarRoom, setSidebarRoom } = useAppStore();
+  const { activeAccount, sidebarRoom, setSidebarRoom } = useAppStore();
   // Bundle gates for the network destinations (Step 2-6 of NETWORK_ROLLOUT_PLAN).
   // Reactive subscriptions so they update when memberships hydrate post-mount.
   const hasCatalog = useAppStore(s => selectHasBundle(s, 'catalog'));
@@ -141,13 +134,6 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const canCreateCollections = auth.user?.canCreateCollections ?? false;
   const sampleCount = useSampleCartStore(s => s.items.length);
 
-  // Sync sidebar width to CSS variable for full-screen panel offsets. The
-  // capsule column's own width IS the aside's width (pod + 12px insets each
-  // side), so this one value is both the aside width and the gap a panel or
-  // the mobile commerce dock needs to clear.
-  useEffect(() => {
-    document.documentElement.style.setProperty('--teajia-sidebar-w', collapsed ? '5rem' : '14.5rem');
-  }, [collapsed]);
 
   // Cart badge pulse on item count increase
   const [badgeAnimating, setBadgeAnimating] = useState(false);
@@ -280,6 +266,14 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const hasSettingsRoute = visibleAdminItems.some(item => item.id === 'settings');
   const hasManageRoom = auth.isAuthenticated && manageItems.length > 0;
   const room: SidebarRoom = hasManageRoom ? sidebarRoom : 'browse';
+  const showPanel = hasManageRoom && room === 'manage';
+
+  // The aside is the rail alone (4.5rem) or rail plus the Manage column
+  // (17rem). Full-screen panels read this to clear it (`.sidebar-inset`), and
+  // App.tsx reads it for the main column's left margin.
+  useEffect(() => {
+    document.documentElement.style.setProperty('--teajia-sidebar-w', showPanel ? '17rem' : '4.5rem');
+  }, [showPanel]);
 
   // Landing on an admin route puts you in the workshop. Picking a room by hand
   // does not navigate, so it survives until the next navigation, at which point
@@ -293,462 +287,215 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     ? [userName, locationLine].filter(Boolean).join(' · ')
     : 'Sign in';
 
-  const railIconClass = (active: boolean) =>
-    `tap-target flex items-center justify-center w-full transition-colors duration-200 ${
-      active ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
-    }`;
-
   // ── Render ────────────────────────────────────────────────────────────────
+  // The desk's navigation is a 72px rail of words against the left edge, and
+  // a 200px column beside it that exists only while Manage is the room. No
+  // pod, no shadow, no radius, no icons: the rail is lifted from the page by
+  // a few percent of tone and one keyline (`.nav-rail`), which is the whole
+  // of its material. Browse has no children, so browse is rail plus page.
+  const railWord = (active: boolean) =>
+    `font-display text-ui-14 lowercase tracking-[0.04em] leading-none transition-colors duration-200 ${
+      active ? 'text-tea-gold font-semibold' : 'text-tea-text-sec hover:text-tea-text'
+    }`;
+  const footWord = 'font-display text-ui-12 lowercase tracking-[0.04em] leading-none text-tea-text-sec hover:text-tea-text transition-colors duration-200';
+  const activeGlow: React.CSSProperties = {
+    filter: 'drop-shadow(0 0 8px rgb(var(--tea-gold-rgb) / 0.75)) drop-shadow(0 0 18px rgb(var(--tea-gold-rgb) / 0.32))',
+  };
 
   return (
     <aside
       data-testid="left-sidebar"
       aria-label="Main navigation"
-      className={`hidden lg:flex flex-col fixed left-0 top-0 h-screen z-sticky select-none transition-all duration-300 ${
-        collapsed ? 'w-20' : 'w-[14.5rem]'
+      className={`hidden lg:flex flex-row fixed left-0 top-0 h-screen z-sticky select-none transition-[width] duration-300 ${
+        showPanel ? 'w-[17rem]' : 'w-[4.5rem]'
       }`}
     >
-      <div className="flex flex-col h-full w-full p-3 gap-[10px]">
+      {/* ── The rail ─────────────────────────────────────────────────────── */}
+      <div className="nav-rail w-[4.5rem] shrink-0 h-full flex flex-col items-center pt-7 pb-6">
+        <button
+          onClick={() => { if (isAdminRoute) { navigate('/'); } else { onNavigate('HOME'); window.scrollTo({ top: 0, behavior: 'smooth' }); } }}
+          className="tap-target flex items-center justify-center group shrink-0"
+          title="Home"
+          aria-label="Home"
+        >
+          <LogoEmblem
+            size={24}
+            color={theme === 'dark' ? '#c0b49a' : '#18130e'}
+            className={`transition-opacity duration-200 ${
+              activeSection === 'HOME' && !isAdminRoute ? 'opacity-100' : 'opacity-70 group-hover:opacity-100'
+            }`}
+          />
+        </button>
 
-        {collapsed ? (
-          // ── Collapsed: one capsule pod, the whole rail ──────────────────
-          <div className="nav-pod rounded-[28px] flex-1 min-h-0 flex flex-col items-center">
-            {/* Brand */}
-            <button
-              onClick={() => { if (isAdminRoute) { navigate('/'); } else { onNavigate('HOME'); window.scrollTo({ top: 0, behavior: 'smooth' }); } }}
-              className="w-full flex items-center justify-center h-[72px] shrink-0 group"
-              title="Home"
-            >
-              <LogoEmblem
-                size={26}
-                color={theme === 'dark' ? '#c0b49a' : '#18130e'}
-                className={`shrink-0 transition-opacity duration-200 ${
-                  activeSection === 'HOME' && !isAdminRoute ? 'opacity-100' : 'opacity-70 group-hover:opacity-100'
-                }`}
-              />
-            </button>
+        <nav className="flex flex-col items-center gap-5 mt-9" aria-label="Browse">
+          {browseItems.map(item => {
+            const isActive = !isAdminRoute && (
+              item.path ? currentPath.startsWith(item.path) : activeSection === item.section
+            );
+            const onClick = () => {
+              if (hasManageRoom) setSidebarRoom('browse');
+              if (item.path) {
+                if (currentPath === item.path) window.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+              }
+              if (!item.section) return;
+              if (!isAdminRoute && item.section === activeSection) {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+              }
+              onNavigate(item.section);
+            };
+            return item.path ? (
+              <Link key={item.id} to={item.path} onClick={onClick} className={`tap-target ${railWord(isActive)}`} style={isActive ? activeGlow : undefined}>
+                {item.label}
+              </Link>
+            ) : (
+              <button key={item.id} onClick={onClick} className={`tap-target ${railWord(isActive)}`} style={isActive ? activeGlow : undefined}>
+                {item.label}
+              </button>
+            );
+          })}
 
-            {/* Search */}
-            <button
-              onClick={onSearchClick}
-              className={railIconClass(false)}
-              style={{ minHeight: 44 }}
-              title="Search (⌘K)"
-              aria-label="Search"
-            >
-              <Icons.Search className="w-[18px] h-[18px]" strokeWidth={1.5} />
-            </button>
+          {hasManageRoom && (
+            <>
+              <span className="block w-5 h-px bg-tea-border" aria-hidden="true" />
+              <button
+                onClick={() => {
+                  setSidebarRoom('manage');
+                  if (!isAdminRoute && manageItems[0]?.path) navigate(manageItems[0].path);
+                }}
+                aria-pressed={room === 'manage'}
+                className={`tap-target ${railWord(room === 'manage')}`}
+                style={room === 'manage' ? activeGlow : undefined}
+              >
+                Manage
+              </button>
+            </>
+          )}
+        </nav>
 
-            {hasManageRoom && (
-              <>
-                <Hairline className="w-6 mx-0 my-2" />
-                <button
-                  onClick={() => setSidebarRoom(room === 'manage' ? 'browse' : 'manage')}
-                  className={railIconClass(true)}
-                  style={{ minHeight: 44 }}
-                  title={room === 'manage' ? 'In Manage, switch to Browse' : 'In Browse, switch to Manage'}
-                  aria-label={room === 'manage' ? 'In Manage, switch to Browse' : 'In Browse, switch to Manage'}
-                >
-                  {room === 'manage'
-                    ? <Briefcase size={18} weight={PHOSPHOR_WEIGHT} />
-                    : <Storefront size={18} weight={PHOSPHOR_WEIGHT} />}
-                </button>
-              </>
+        <div className="flex-1" />
+
+        <nav className="flex flex-col items-center gap-4" aria-label="Utilities">
+          <button onClick={onSearchClick} className={`tap-target ${footWord}`} title="Search (⌘K)">
+            Search
+          </button>
+          <button
+            onClick={onAccountClick}
+            className={`tap-target ${footWord} ${activeSection === 'YOUR_TABLE' ? 'text-tea-gold' : ''}`}
+            title={auth.isAuthenticated ? `Your Table · ${accountMetaLine}` : 'Your Table · Sign in'}
+          >
+            Your Table
+            <span className="sr-only">{accountMetaLine}</span>
+          </button>
+          <button
+            onClick={onCartClick}
+            className={`tap-target ${footWord} flex items-baseline gap-1`}
+            title="Cart"
+            aria-label={cartItemCount > 0 ? `Cart, ${cartItemCount} item${cartItemCount !== 1 ? 's' : ''}` : 'Cart'}
+          >
+            <span>Cart</span>
+            {cartItemCount > 0 && (
+              <span className={`text-ui-11 font-semibold text-tea-gold ${badgeAnimating ? 'cart-badge-pulse' : ''}`} aria-hidden="true">
+                {cartItemCount > 9 ? '9+' : cartItemCount}
+              </span>
             )}
+            {sampleCount > 0 && (
+              <span className="flex items-center gap-0.5 text-ui-10 text-tea-gold/70" aria-hidden="true">
+                <SampleIcon className="w-[9px] h-[9px]" />
+                {sampleCount}
+              </span>
+            )}
+          </button>
+          <Link to="/spaces" className={`tap-target ${footWord} ${currentPath === '/spaces' ? 'text-tea-gold' : ''}`} title="Connections">
+            Connections
+          </Link>
+          {hasSettingsRoute && (
+            <Link to="/admin/settings" className={`tap-target ${footWord} ${currentPath.startsWith('/admin/settings') ? 'text-tea-gold' : ''}`} title="Settings">
+              Settings
+            </Link>
+          )}
+          <button
+            type="button"
+            onClick={(e) => toggleTheme(e)}
+            className={`tap-target ${footWord}`}
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {theme === 'dark' ? 'Light' : 'Dark'}
+          </button>
+        </nav>
+      </div>
 
-            <Hairline className="w-6 mx-0 my-2" />
-
-            {/* Room content, icons only */}
-            <div className="flex-1 min-h-0 w-full overflow-y-auto hide-scrollbar flex flex-col items-center">
-              {room === 'browse' && (
-                <>
-                  {browseItems.map(item => {
-                    const isActive = !isAdminRoute && (
-                      item.path ? currentPath.startsWith(item.path) : activeSection === item.section
-                    );
-                    const onClick = () => {
-                      if (item.path) {
-                        if (currentPath === item.path) window.scrollTo({ top: 0, behavior: 'smooth' });
-                        return;
-                      }
-                      if (!item.section) return;
-                      if (!isAdminRoute && item.section === activeSection) {
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                        return;
-                      }
-                      onNavigate(item.section);
-                    };
-                    return item.path ? (
-                      <Link key={item.id} to={item.path} onClick={onClick} className={railIconClass(isActive)} style={{ minHeight: 44 }} title={item.label} aria-label={item.label}>
-                        {item.icon}
-                      </Link>
-                    ) : (
-                      <button key={item.id} onClick={onClick} className={railIconClass(isActive)} style={{ minHeight: 44 }} title={item.label} aria-label={item.label}>
-                        {item.icon}
-                      </button>
-                    );
-                  })}
-                  <Hairline className="w-6 mx-0 my-2" />
-                  <button
-                    onClick={onCartClick}
-                    className={`relative ${railIconClass(false)}`}
-                    style={{ minHeight: 44 }}
-                    title="Cart"
-                    aria-label={cartItemCount > 0 ? `Cart, ${cartItemCount} item${cartItemCount !== 1 ? 's' : ''}` : 'Cart'}
-                  >
-                    <ShoppingCart size={18} weight={PHOSPHOR_WEIGHT} />
-                    {cartItemCount > 0 && (
-                      <div
-                        className={`absolute top-1 right-2 w-4 h-4 cta-solid text-ui-10 font-bold rounded-full flex items-center justify-center leading-none ${
-                          badgeAnimating ? 'cart-badge-pulse' : ''
-                        }`}
-                        aria-hidden="true"
-                      >
-                        {cartItemCount > 9 ? '9+' : cartItemCount}
-                      </div>
-                    )}
-                  </button>
-                </>
-              )}
-
-              {room === 'manage' && manageItems.map(item => {
+      {/* ── The Manage column: only while Manage is the room ──────────── */}
+      <AnimatePresence initial={false}>
+        {showPanel && (
+          <motion.div
+            key="manage-panel"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+            className="w-[12.5rem] shrink-0 h-full border-r border-tea-border flex flex-col overflow-y-auto hide-scrollbar"
+          >
+            <div className="shrink-0" style={{ padding: '30px 24px 14px' }}>
+              <span className="font-display text-ui-15 font-medium tracking-[0.04em] lowercase text-tea-gold pb-[3px] border-b border-tea-gold">
+                Manage
+              </span>
+            </div>
+            <nav className="flex flex-col flex-1 min-h-0" aria-label="Manage">
+              {manageItems.map((item, index) => {
+                const hasChildren = (item.children?.length ?? 0) > 0;
                 const isAnyChildActive = item.children?.some(c => currentPath === c.path) ?? false;
                 const isParentExact = currentPath === item.path;
-                const isActive = (isParentExact && !isAnyChildActive) || isAnyChildActive;
+                const showActive = isParentExact && !isAnyChildActive;
+                const showChildren = hasChildren && (isParentExact || isAnyChildActive);
+
                 return (
-                  <Link key={item.id} to={item.path!} className={railIconClass(isActive)} style={{ minHeight: 44 }} title={item.label} aria-label={item.label}>
-                    {React.cloneElement(item.icon as React.ReactElement<{ size?: number }>, { size: 18 })}
-                  </Link>
+                  <React.Fragment key={item.id}>
+                    {index > 0 && <Hairline />}
+                    <NavRow
+                      item={item}
+                      isActive={showActive || isAnyChildActive}
+                      minHeight={42}
+                      textClass="font-display text-ui-16 font-medium tracking-[0.04em] leading-[1.3]"
+                      onClick={() => {}}
+                    />
+                    <AnimatePresence initial={false}>
+                      {showChildren && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.18, ease: 'easeInOut' }}
+                          className="overflow-hidden"
+                        >
+                          <div className="flex flex-col border-l border-tea-border" style={{ marginLeft: 28, paddingLeft: 12, paddingBottom: 8 }}>
+                            {item.children!.map(child => (
+                              <Link
+                                key={child.id}
+                                to={child.path}
+                                className={`relative flex items-center min-h-[26px] transition-colors duration-150 ${
+                                  currentPath === child.path ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
+                                }`}
+                              >
+                                <span className={`${TYPOGRAPHY_CLASSES.navSidebarChild} lowercase`}>
+                                  {child.label}
+                                </span>
+                              </Link>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </React.Fragment>
                 );
               })}
-            </div>
-
-            <Hairline className="w-6 mx-0 my-2" />
-
-            {/* Footer marks, icons */}
-            <Link to="/spaces" className={railIconClass(currentPath === '/spaces')} style={{ minHeight: 44 }} title="Connections" aria-label="Connections">
-              <UsersThree size={18} weight={PHOSPHOR_WEIGHT} />
-            </Link>
-            {hasSettingsRoute && (
-              <Link to="/admin/settings" className={railIconClass(currentPath.startsWith('/admin/settings'))} style={{ minHeight: 44 }} title="Settings" aria-label="Settings">
-                <GearSix size={18} weight={PHOSPHOR_WEIGHT} />
-              </Link>
-            )}
-            <button
-              type="button"
-              onClick={(e) => toggleTheme(e)}
-              className={railIconClass(false)}
-              style={{ minHeight: 44 }}
-              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            >
-              {theme === 'dark' ? <Sun size={18} weight={PHOSPHOR_WEIGHT} /> : <Moon size={18} weight={PHOSPHOR_WEIGHT} />}
-            </button>
-            <button
-              type="button"
-              onClick={toggleSidebarCollapsed}
-              className={railIconClass(false)}
-              style={{ minHeight: 44 }}
-              title="Expand sidebar"
-              aria-label="Expand sidebar"
-            >
-              <CaretRight size={16} weight="bold" />
-            </button>
-
-            <Hairline className="w-6 mx-0 my-2" />
-
-            {/* Account, bottom */}
-            <button
-              onClick={onAccountClick}
-              className="w-full flex items-center justify-center pb-3 pt-1 shrink-0 group"
-              title="Your Table"
-              aria-label="Your Table"
-            >
-              <span
-                className={`shrink-0 flex items-center justify-center w-7 h-7 rounded-full border transition-colors duration-200 ${
-                  activeSection === 'YOUR_TABLE' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
-                }`}
-                style={{ borderColor: 'var(--tea-keyline)' }}
-                aria-hidden="true"
-              >
-                {accountInitial ? (
-                  <span className="font-display text-ui-15 leading-none">{accountInitial}</span>
-                ) : (
-                  <Icons.User className="w-[15px] h-[15px]" strokeWidth={1.75} />
-                )}
-              </span>
-            </button>
-          </div>
-        ) : (
-          <>
-            {/* ── Pod 1: brand, room switch, search, the room ───────────── */}
-            <div className="nav-pod rounded-[28px] flex-1 min-h-0 flex flex-col">
-              <button
-                onClick={() => { if (isAdminRoute) { navigate('/'); } else { onNavigate('HOME'); window.scrollTo({ top: 0, behavior: 'smooth' }); } }}
-                className="flex items-center gap-3 group shrink-0"
-                style={{ padding: '16px 22px 12px' }}
-                title="Home"
-              >
-                <LogoEmblem
-                  size={28}
-                  color={theme === 'dark' ? '#c0b49a' : '#18130e'}
-                  className={`shrink-0 transition-opacity duration-200 ${
-                    activeSection === 'HOME' && !isAdminRoute ? 'opacity-100' : 'opacity-70 group-hover:opacity-100'
-                  }`}
-                />
-                <LogoText
-                  size="sm"
-                  color={activeSection === 'HOME' && !isAdminRoute ? 'var(--tea-gold)' : 'var(--tea-text)'}
-                  className="transition-colors duration-200 shrink-0"
-                />
-              </button>
-
-              {hasManageRoom && (
-                <div className="flex gap-[22px] shrink-0" style={{ padding: '2px 24px 14px' }}>
-                  {ROOMS.map(r => (
-                    <button
-                      key={r.id}
-                      onClick={() => setSidebarRoom(r.id)}
-                      aria-pressed={room === r.id}
-                      className={`font-display text-ui-15 font-medium tracking-[0.04em] lowercase pb-[3px] border-b transition-colors duration-200 ${
-                        room === r.id ? 'text-tea-gold border-tea-gold' : 'text-tea-text-dim hover:text-tea-text border-transparent'
-                      }`}
-                    >
-                      {r.label.toLowerCase()}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              <button
-                onClick={onSearchClick}
-                className="flex items-center gap-3 group shrink-0"
-                style={{ minHeight: 44, padding: '0 24px' }}
-                title="Search (⌘K)"
-              >
-                <Icons.Search className="w-4 h-4 text-tea-text-sec group-hover:text-tea-text transition-colors shrink-0" strokeWidth={1.75} />
-                <span className={`${TYPOGRAPHY_CLASSES.accountMeta} text-tea-text-sec group-hover:text-tea-text transition-colors flex-1 text-left`}>
-                  Search
-                </span>
-                <kbd className="text-ui-11 text-tea-text-sec shrink-0">⌘K</kbd>
-              </button>
-
-              <Hairline />
-
-              <motion.div
-                key={room}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.18, ease: 'easeOut' }}
-                className="flex-1 min-h-0 overflow-y-auto hide-scrollbar flex flex-col"
-              >
-                {room === 'browse' && (
-                  <nav className="flex flex-col flex-1 min-h-0">
-                    {browseItems.map((item, index) => {
-                      const isActive = !isAdminRoute && (
-                        item.path ? currentPath.startsWith(item.path) : activeSection === item.section
-                      );
-                      return (
-                        <React.Fragment key={item.id}>
-                          {index > 0 && <Hairline />}
-                          <NavRow
-                            item={item}
-                            isActive={isActive}
-                            minHeight={52}
-                            textClass={TYPOGRAPHY_CLASSES.navSidebar}
-                            onClick={() => {
-                              if (item.path) {
-                                if (currentPath === item.path) {
-                                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                                }
-                                return;
-                              }
-                              if (!item.section) return;
-                              if (!isAdminRoute && item.section === activeSection) {
-                                window.scrollTo({ top: 0, behavior: 'smooth' });
-                                return;
-                              }
-                              onNavigate(item.section);
-                            }}
-                          />
-                        </React.Fragment>
-                      );
-                    })}
-
-                    <div className="flex-1" />
-                    <Hairline />
-
-                    {/* Cart, bottom of the browse room */}
-                    <button
-                      onClick={onCartClick}
-                      className="w-full flex items-center gap-3 justify-between group"
-                      style={{ minHeight: 52, padding: '0 28px' }}
-                      title="Cart"
-                      aria-label={cartItemCount > 0 ? `Cart, ${cartItemCount} item${cartItemCount !== 1 ? 's' : ''}` : 'Cart'}
-                    >
-                      <span className={`${TYPOGRAPHY_CLASSES.navSidebar} lowercase text-tea-text-sec group-hover:text-tea-text transition-colors duration-200`}>
-                        Cart
-                      </span>
-                      <span className="flex items-center gap-2">
-                        {sampleCount > 0 && (
-                          <span className="flex items-center gap-1 text-ui-10 text-tea-gold/70">
-                            <SampleIcon className="w-[10px] h-[10px]" />
-                            {sampleCount}
-                          </span>
-                        )}
-                        {cartItemCount > 0 && (
-                          <span
-                            className={`text-ui-11 font-semibold text-tea-gold ${badgeAnimating ? 'cart-badge-pulse' : ''}`}
-                            aria-hidden="true"
-                          >
-                            {cartItemCount > 9 ? '9+' : cartItemCount}
-                          </span>
-                        )}
-                      </span>
-                    </button>
-                  </nav>
-                )}
-
-                {room === 'manage' && (
-                  <nav className="flex flex-col flex-1 min-h-0">
-                    {manageItems.map((item, index) => {
-                      const hasChildren = (item.children?.length ?? 0) > 0;
-                      const isAnyChildActive = item.children?.some(c => currentPath === c.path) ?? false;
-                      const isParentExact = currentPath === item.path;
-                      const showActive = isParentExact && !isAnyChildActive;
-                      const showChildren = hasChildren && (isParentExact || isAnyChildActive);
-
-                      return (
-                        <React.Fragment key={item.id}>
-                          {index > 0 && <Hairline />}
-                          <NavRow
-                            item={item}
-                            isActive={showActive || isAnyChildActive}
-                            minHeight={42}
-                            textClass="font-display text-ui-16 font-medium tracking-[0.04em] leading-[1.3]"
-                            onClick={() => {}}
-                          />
-
-                          {/* Collapsing the column unmounts the children outright rather
-                              than animating them out: a height transition would render
-                              them clipped to single letters inside the 56px rail for the
-                              length of the exit. */}
-                          <AnimatePresence initial={false}>
-                            {showChildren && (
-                              <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: 'auto', opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.18, ease: 'easeInOut' }}
-                                className="overflow-hidden"
-                              >
-                                <div className="flex flex-col border-l border-tea-border" style={{ marginLeft: 28, paddingLeft: 12, paddingBottom: 8 }}>
-                                  {item.children!.map(child => (
-                                    <Link
-                                      key={child.id}
-                                      to={child.path}
-                                      className={`relative flex items-center min-h-[26px] transition-colors duration-150 ${
-                                        currentPath === child.path ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
-                                      }`}
-                                    >
-                                      <span className={`${TYPOGRAPHY_CLASSES.navSidebarChild} lowercase`}>
-                                        {child.label}
-                                      </span>
-                                    </Link>
-                                  ))}
-                                </div>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </React.Fragment>
-                      );
-                    })}
-                    <div className="flex-1" />
-                  </nav>
-                )}
-              </motion.div>
-            </div>
-
-            {/* ── Pod 2: Your Table, connections + marks ────────────────── */}
-            <div className="nav-pod rounded-[28px] flex flex-col shrink-0">
-              <button
-                onClick={onAccountClick}
-                className="flex items-center gap-3 group"
-                style={{ padding: '16px 22px 14px' }}
-                title="Your Table"
-              >
-                <span
-                  className={`shrink-0 flex items-center justify-center w-7 h-7 rounded-full border transition-colors duration-200 ${
-                    activeSection === 'YOUR_TABLE' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
-                  }`}
-                  style={{ borderColor: 'var(--tea-keyline)' }}
-                  aria-hidden="true"
-                >
-                  {accountInitial ? (
-                    <span className="font-display text-ui-15 leading-none">{accountInitial}</span>
-                  ) : (
-                    <Icons.User className="w-[15px] h-[15px]" strokeWidth={1.75} />
-                  )}
-                </span>
-                <span className="min-w-0 flex-1 text-left flex flex-col gap-0.5">
-                  <span
-                    className={`${TYPOGRAPHY_CLASSES.navSidebar} lowercase block transition-colors duration-200 ${
-                      activeSection === 'YOUR_TABLE' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
-                    }`}
-                  >
-                    Your Table
-                  </span>
-                  <span className={`${TYPOGRAPHY_CLASSES.accountMeta} text-tea-text-sec block truncate`}>
-                    {accountMetaLine}
-                  </span>
-                </span>
-              </button>
-
-              <Hairline />
-
-              <div className="flex items-center justify-between shrink-0" style={{ height: 44, padding: '0 22px' }}>
-                <Link
-                  to="/spaces"
-                  className="tap-target flex items-center justify-center text-tea-text-dim hover:text-tea-text transition-colors duration-200"
-                  title="Connections"
-                  aria-label="Connections"
-                >
-                  <UsersThree size={16} weight={PHOSPHOR_WEIGHT} />
-                </Link>
-                {hasSettingsRoute && (
-                  <Link
-                    to="/admin/settings"
-                    className="tap-target flex items-center justify-center text-tea-text-dim hover:text-tea-text transition-colors duration-200"
-                    title="Settings"
-                    aria-label="Settings"
-                  >
-                    <GearSix size={16} weight={PHOSPHOR_WEIGHT} />
-                  </Link>
-                )}
-                <button
-                  type="button"
-                  onClick={(e) => toggleTheme(e)}
-                  className="tap-target flex items-center justify-center text-tea-text-dim hover:text-tea-text transition-colors duration-200"
-                  title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                  aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                >
-                  {theme === 'dark' ? <Sun size={16} weight={PHOSPHOR_WEIGHT} /> : <Moon size={16} weight={PHOSPHOR_WEIGHT} />}
-                </button>
-                <button
-                  type="button"
-                  onClick={toggleSidebarCollapsed}
-                  className="tap-target flex items-center justify-center text-tea-text-dim hover:text-tea-text transition-colors duration-200"
-                  title="Collapse sidebar"
-                  aria-label="Collapse sidebar"
-                >
-                  <CaretLeft size={16} weight={PHOSPHOR_WEIGHT} />
-                </button>
-              </div>
-            </div>
-          </>
+              <div className="flex-1" />
+            </nav>
+          </motion.div>
         )}
-
-      </div>
+      </AnimatePresence>
     </aside>
   );
 };

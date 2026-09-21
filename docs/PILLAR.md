@@ -34,7 +34,7 @@ There is no card checkout, by decision. A visitor fills a cart, gives a name and
 
 ## What a signed-in person gets
 
-**Your Table** (the emblem, top right on mobile, a pod on desktop) is the person's own room. A visitor sees Discover, Read, Shop, Find a Table. A member sees a day line, a "what needs you" queue if they run a shop, and tiles: steep (tasting journal), sessions, remember (favourites), cellar (tea they own, with grams, placeable at a location), discover, profile, orders, collections, and for owners the Manage room.
+**Your Table** (the emblem, top right on mobile, a word in the rail's foot on desktop) is the person's own room. A visitor sees Discover, Read, Shop, Find a Table. A member sees a day line, a "what needs you" queue if they run a shop, and tiles: steep (tasting journal), sessions, remember (favourites), cellar (tea they own, with grams, placeable at a location), discover, profile, orders, collections, and for owners the Manage room.
 
 The personal records are deliberately separate and stay that way: **Journal** is what you tasted and thought, **Favourites** is what you want, **Cellar** is what you own, **Journey** is where you have been (sessions, teas met, seals). No streaks, no scores, no feed.
 
