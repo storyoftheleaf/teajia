@@ -207,47 +207,53 @@ const HomeV2Page: React.FC = () => {
       </StoryEditProvider>
       </div>
 
-      {/* The colophon: what the live page's second act says */}
+      {/* The colophon: the live page's second act, set on the same grid as the
+          house so the page ends in the voice it opened in. Left: the wordmark,
+          jiā, the three characters in a row, the mission. Right, past a
+          hairline: the email field as a quiet plate of its own. */}
       <div ref={revealColophon.ref} className={revealColophon.className} style={revealColophon.style}>
-      <section className="px-6 sm:px-10 lg:px-16 lg:pl-[calc(var(--teajia-sidebar-w)+4rem)] pt-14 sm:pt-16 lg:pt-20 pb-nav-gap-lg lg:pb-20 text-center">
-        <div className="flex justify-center mb-7">
+      <section
+        aria-label="About Teajia"
+        className="grid grid-cols-1 lg:grid-cols-[var(--teajia-sidebar-w)_1fr_1fr] pb-nav-gap-lg lg:pb-0"
+      >
+        <div className="lg:col-start-2 px-6 sm:px-10 lg:pl-[4rem] lg:pr-12 pt-14 sm:pt-16 lg:pt-20 pb-12 lg:pb-20">
           <LogoText size="panel" color="var(--tea-text-sec)" />
-        </div>
-        <p className="font-body italic text-ui-15 tracking-[0.06em] text-tea-text-sec">
-          <span className="not-italic font-semibold text-tea-gold">jiā</span> · one sound, three pillars
-        </p>
-        <div className="relative mx-auto mt-7 grid w-full max-w-[560px] grid-cols-3 border-y border-tea-border py-5 sm:py-6">
-          <div className="pointer-events-none absolute inset-y-0 left-1/3 w-px bg-tea-border" aria-hidden="true" />
-          <div className="pointer-events-none absolute inset-y-0 left-2/3 w-px bg-tea-border" aria-hidden="true" />
-          {[
-            { zi: '佳', a: 'beauty', b: 'excellence' },
-            { zi: '家', a: 'home', b: 'devotion' },
-            { zi: '嘉', a: 'praise', b: 'celebration' },
-          ].map(c => (
-            <div key={c.zi} className="flex flex-col items-center px-2 sm:px-5">
-              <span className="text-[48px] sm:text-[69px] leading-none text-tea-gold" style={{ fontFamily: "'Ma Shan Zheng', cursive" }}>{c.zi}</span>
-              <p className="font-display mt-3 flex flex-col items-center text-ui-14 sm:text-ui-15 leading-[1.4] tracking-[0.04em] text-tea-text-sec">
-                <span>{c.a}</span><span>{c.b}</span>
-              </p>
-            </div>
-          ))}
-        </div>
-        <p className="font-body mx-auto mt-8 max-w-[440px] text-ui-15 leading-[1.7] text-tea-text-sec">
-          A home for fine tea. A place to source it, study it, and share it with those who gather around the cup.
-        </p>
-        <p className="font-body italic mt-3 text-ui-13 tracking-[0.04em] text-tea-text-dim">
-          Honor the past. Live in the present. Build for the future.
-        </p>
-        <p className="font-body mx-auto mt-6 max-w-[400px] text-ui-13 leading-[1.7] text-tea-text-dim">
-          {SHIPPING_LINE}
-        </p>
-        <div className="mx-auto mt-10 w-full max-w-[300px] border-t border-tea-border pt-6">
-          <EmailField />
-          <p className="font-display italic mt-4 text-base tracking-[0.04em] leading-[1.5] text-tea-text-dim">
-            stay connected<br />
-            <span className="text-tea-text-sec">it&apos;s nothing without you</span>
+          <p className="font-body italic mt-5 text-ui-15 tracking-[0.06em] text-tea-text-sec">
+            <span className="not-italic font-semibold text-tea-gold">jiā</span> · one sound, three pillars
           </p>
-          <p className="font-body mt-6 text-ui-12 text-tea-text-dim">
+          <div className="mt-7 grid grid-cols-3 gap-x-4 sm:gap-x-6 max-w-[440px] border-y border-tea-border py-5 sm:py-6">
+            {[
+              { zi: '佳', a: 'beauty', b: 'excellence' },
+              { zi: '家', a: 'home', b: 'devotion' },
+              { zi: '嘉', a: 'praise', b: 'celebration' },
+            ].map(c => (
+              <div key={c.zi} className="flex flex-col items-start">
+                <span className="text-[44px] sm:text-[56px] leading-none text-tea-gold" style={{ fontFamily: "'Ma Shan Zheng', cursive" }}>{c.zi}</span>
+                <p className="font-display mt-3 flex flex-col items-start text-ui-14 sm:text-ui-15 leading-[1.4] tracking-[0.04em] text-tea-text-sec">
+                  <span>{c.a}</span><span>{c.b}</span>
+                </p>
+              </div>
+            ))}
+          </div>
+          <p className="font-body mt-8 max-w-[440px] text-ui-15 leading-[1.7] text-tea-text-sec">
+            A home for fine tea. A place to source it, study it, and share it with those who gather around the cup.
+          </p>
+          <p className="font-body italic mt-3 text-ui-13 tracking-[0.04em] text-tea-text-dim">
+            Honor the past. Live in the present. Build for the future.
+          </p>
+          <p className="font-body mt-6 max-w-[400px] text-ui-13 leading-[1.7] text-tea-text-dim">
+            {SHIPPING_LINE}
+          </p>
+        </div>
+        <div className="lg:col-start-3 border-t lg:border-t-0 lg:border-l border-tea-border px-6 sm:px-10 lg:px-12 py-12 lg:py-20 flex flex-col justify-center">
+          <p className="font-sans text-ui-10 uppercase tracking-[0.26em] text-tea-gold">Stay connected</p>
+          <p className="font-display italic mt-3 text-[clamp(22px,2vw,28px)] leading-[1.2] text-tea-text">
+            it&apos;s nothing without you
+          </p>
+          <div className="mt-8 w-full max-w-[320px]">
+            <EmailField align="left" />
+          </div>
+          <p className="font-body mt-8 text-ui-12 text-tea-text-dim">
             <Link to="/signup" className="text-tea-gold/80 hover:text-tea-gold transition-colors duration-300">Create an account</Link>
             {' · '}
             <Link to="/signin" className="text-tea-gold/80 hover:text-tea-gold transition-colors duration-300">Sign in</Link>
@@ -361,7 +367,7 @@ const TeaArtwork: React.FC<{ ground?: string }> = ({ ground }) => (
 );
 
 /** The live page's email field: underline only, the word join at the end. */
-const EmailField: React.FC = () => {
+const EmailField: React.FC<{ align?: 'center' | 'left' }> = ({ align = 'center' }) => {
   const [email, setEmail] = useState('');
   const [state, setState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
 
@@ -392,7 +398,7 @@ const EmailField: React.FC = () => {
         placeholder="your email"
         disabled={state === 'sending'}
         aria-label="Email address"
-        className="font-display w-full bg-transparent text-center text-base tracking-[0.04em] text-tea-text outline-none pb-2.5 pl-7 pr-10 placeholder:italic placeholder:text-tea-text-dim disabled:opacity-50 border-0 border-b border-tea-border rounded-none focus:border-tea-gold"
+        className={`font-display w-full bg-transparent text-base tracking-[0.04em] text-tea-text outline-none pb-2.5 pr-10 placeholder:italic placeholder:text-tea-text-dim disabled:opacity-50 border-0 border-b border-tea-border rounded-none focus:border-tea-gold ${align === 'left' ? 'text-left pl-0' : 'text-center pl-7'}`}
       />
       <button
         type="submit"
