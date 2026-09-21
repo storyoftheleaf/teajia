@@ -297,7 +297,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     `font-display text-ui-14 lowercase tracking-[0.04em] leading-none transition-colors duration-200 ${
       active ? 'text-tea-gold font-semibold' : 'text-tea-text-sec hover:text-tea-text'
     }`;
-  const footWord = 'font-display text-ui-12 lowercase tracking-[0.04em] leading-none text-tea-text-sec hover:text-tea-text transition-colors duration-200';
+  const footWord = 'font-display text-ui-13 lowercase tracking-[0.04em] leading-none text-tea-text-sec hover:text-tea-text transition-colors duration-200';
   const activeGlow: React.CSSProperties = {
     filter: 'drop-shadow(0 0 8px rgb(var(--tea-gold-rgb) / 0.75)) drop-shadow(0 0 18px rgb(var(--tea-gold-rgb) / 0.32))',
   };
@@ -346,11 +346,11 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               onNavigate(item.section);
             };
             return item.path ? (
-              <Link key={item.id} to={item.path} onClick={onClick} className={`tap-target ${railWord(isActive)}`} style={isActive ? activeGlow : undefined}>
+              <Link key={item.id} to={item.path} onClick={onClick} className={`nav-rail-word ${railWord(isActive)}`} style={isActive ? activeGlow : undefined}>
                 {item.label}
               </Link>
             ) : (
-              <button key={item.id} onClick={onClick} className={`tap-target ${railWord(isActive)}`} style={isActive ? activeGlow : undefined}>
+              <button key={item.id} onClick={onClick} className={`nav-rail-word ${railWord(isActive)}`} style={isActive ? activeGlow : undefined}>
                 {item.label}
               </button>
             );
@@ -365,7 +365,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   if (!isAdminRoute && manageItems[0]?.path) navigate(manageItems[0].path);
                 }}
                 aria-pressed={room === 'manage'}
-                className={`tap-target ${railWord(room === 'manage')}`}
+                className={`nav-rail-word ${railWord(room === 'manage')}`}
                 style={room === 'manage' ? activeGlow : undefined}
               >
                 Manage
@@ -376,13 +376,13 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
         <div className="flex-1" />
 
-        <nav className="flex flex-col items-center gap-4" aria-label="Utilities">
-          <button onClick={onSearchClick} className={`tap-target ${footWord}`} title="Search (⌘K)">
+        <nav className="flex flex-col items-center gap-[18px]" aria-label="Utilities">
+          <button onClick={onSearchClick} className={`nav-rail-word ${footWord}`} title="Search (⌘K)">
             Search
           </button>
           <button
             onClick={onAccountClick}
-            className={`tap-target ${footWord} ${activeSection === 'YOUR_TABLE' ? 'text-tea-gold' : ''}`}
+            className={`nav-rail-word ${footWord} ${activeSection === 'YOUR_TABLE' ? 'text-tea-gold' : ''}`}
             title={auth.isAuthenticated ? `Your Table · ${accountMetaLine}` : 'Your Table · Sign in'}
           >
             Your Table
@@ -390,7 +390,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           </button>
           <button
             onClick={onCartClick}
-            className={`tap-target ${footWord} flex items-baseline gap-1`}
+            className={`nav-rail-word ${footWord} flex items-baseline gap-1`}
             title="Cart"
             aria-label={cartItemCount > 0 ? `Cart, ${cartItemCount} item${cartItemCount !== 1 ? 's' : ''}` : 'Cart'}
           >
@@ -407,18 +407,18 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               </span>
             )}
           </button>
-          <Link to="/spaces" className={`tap-target ${footWord} ${currentPath === '/spaces' ? 'text-tea-gold' : ''}`} title="Connections">
+          <Link to="/spaces" className={`nav-rail-word ${footWord} ${currentPath === '/spaces' ? 'text-tea-gold' : ''}`} title="Connections">
             Connections
           </Link>
           {hasSettingsRoute && (
-            <Link to="/admin/settings" className={`tap-target ${footWord} ${currentPath.startsWith('/admin/settings') ? 'text-tea-gold' : ''}`} title="Settings">
+            <Link to="/admin/settings" className={`nav-rail-word ${footWord} ${currentPath.startsWith('/admin/settings') ? 'text-tea-gold' : ''}`} title="Settings">
               Settings
             </Link>
           )}
           <button
             type="button"
             onClick={(e) => toggleTheme(e)}
-            className={`tap-target ${footWord}`}
+            className={`nav-rail-word ${footWord}`}
             title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           >

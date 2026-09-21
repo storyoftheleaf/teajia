@@ -3677,6 +3677,24 @@ input[type="number"]::-webkit-outer-spin-button {
   border-right: 1px solid var(--tea-keyline);
 }
 
+/* The rail's words sit close, 14px type on a 20px gap, which is the design
+   Adrian picked off the canvas. `.tap-target` would make each word a 44px box
+   and spread the column down the whole edge, so the hit area grows here by a
+   pseudo-element instead: the full rail width, and half the gap above and
+   below, so the column is one contiguous strip of targets with nothing
+   moved. The rail is desktop only (hidden below lg), pointer territory. */
+.nav-rail-word {
+  position: relative;
+}
+.nav-rail-word::after {
+  content: '';
+  position: absolute;
+  left: -24px;
+  right: -24px;
+  top: -10px;
+  bottom: -10px;
+}
+
 /* The seam. With both halves the same material the join needs stating, and
    one hairline states it without turning the assembly back into two boxes. */
 .commerce-dock::after {
