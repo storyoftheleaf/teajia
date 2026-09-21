@@ -5,7 +5,6 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { useShopPrice } from '../components/shop/shopPrice';
 import { usePublicProducts } from '../hooks/usePublicProducts';
-import { LogoText } from '../components/Logos/LogoText';
 import { useSectionReveal } from '../hooks/useSectionReveal';
 import { StoryEditProvider, type PhotoVal } from './read/storyEdit';
 import EditablePhoto from './read/EditablePhoto';
@@ -46,7 +45,7 @@ import type { PublicProduct } from '../types';
 const PIECE = {
   slug: 'porcelain-and-tea',
   to: '/read/porcelain-and-tea',
-  meta: 'The piece to read · The Lead · N°15 · Conversations over tea',
+  meta: 'The Lead · N°15',
   dek: 'A porcelain restorer on repair, patience, and how mending what we love mends us in return.',
 };
 
@@ -106,6 +105,9 @@ const HomeV2Page: React.FC = () => {
   });
   const portrait = pieceContent?.photos?.portrait;
 
+  // The table photograph enters the way the plates do.
+  const heroReveal = useSectionReveal('fade');
+
   // The page breaks out of the main column's gutter, and on desktop out of the
   // column itself, so the photographs run from the left edge of the window,
   // behind the floating sidebar, to the right edge. The text pads itself back
@@ -124,19 +126,30 @@ const HomeV2Page: React.FC = () => {
           in as owner, the editor bar turns editing on, a photograph drops,
           pastes or is chosen into it, and Publish makes it live. Until one is
           published the table photograph stands in. */}
-      <section aria-label="Teajia" className="grid grid-cols-1 lg:grid-cols-[var(--teajia-sidebar-w)_minmax(0,1.15fr)_minmax(0,1fr)] lg:min-h-[calc(100vh-1.5rem)]">
+      <section aria-label="Teajia" className="grid grid-cols-1 lg:grid-cols-[var(--teajia-sidebar-w)_minmax(0,1.45fr)_minmax(0,1fr)] lg:min-h-[calc(100vh-1.5rem)]">
         <div className={`lg:col-start-2 px-6 sm:px-10 lg:pl-[4rem] lg:pr-16 pt-14 sm:pt-20 lg:pt-0 pb-10 lg:pb-0 flex flex-col justify-center`}>
           <h1
-            className="font-display font-normal text-tea-text max-w-[16ch] text-[clamp(38px,4.6vw,78px)] leading-[1.04] tracking-[0.005em]"
+            className="font-display font-light text-tea-text max-w-[26ch] text-[clamp(38px,3.9vw,66px)] leading-[1.06] tracking-[0.005em]"
             style={{ textWrap: 'balance' }}
           >
-            Tea deepens with what you bring to the table and what you leave behind.
+            Tea deepens with what<br className="hidden xl:inline" /> you bring to the table<br className="hidden xl:inline" /> and what you leave behind.
           </h1>
-          <p className={`${BODY} mt-8 max-w-[44ch] text-tea-text-sec`}>
+          <p className={`${BODY} mt-8 text-tea-text-sec`}>
             A home for fine tea.
           </p>
+          {/* The opener's way in: the live page's own two. Start here goes to
+              the house, where jiā is explained. */}
+          <p className={`${META} mt-5 flex flex-wrap gap-x-5 gap-y-1 text-tea-text-sec`}>
+            <a href="#the-house" className="hover:text-tea-gold transition-colors duration-300">New here? Start here</a>
+            <Link to="/discover" className="hover:text-tea-gold transition-colors duration-300">Discover your tea</Link>
+          </p>
         </div>
-        <div className={`relative lg:col-start-3 min-h-[320px] sm:min-h-[420px] lg:min-h-0 overflow-hidden bg-tea-surface ${PHOTO}`}>
+        <div
+          ref={heroReveal.ref}
+          className={`relative lg:col-start-3 min-h-[320px] sm:min-h-[420px] lg:min-h-0 overflow-hidden bg-tea-surface ${PHOTO} ${heroReveal.className}`}
+          style={heroReveal.style}
+        >
+          <span className={`pointer-events-none absolute left-5 bottom-4 z-10 ${META} text-tea-text-sec`}>At the table, Bali</span>
           <EditablePhoto
             slot="table"
             alt="At the table"
@@ -166,7 +179,7 @@ const HomeV2Page: React.FC = () => {
           to={tea ? `/shop/product/${tea.slug ?? tea.id}` : '/shop'}
           title={tea ? tea.productName : 'On the shelf'}
           body={tea ? teaLine(tea) : 'Twenty teas, chosen one lot at a time.'}
-          meta={tea ? <>The tea on the table · 50 g · <span className="font-body text-ui-16 text-tea-text">{shopPrice.total(tea.pricePerGramUSD * 50)}</span></> : 'The tea on the table'}
+          meta={tea ? <>50 g · <span className="font-body text-ui-16 text-tea-text">{shopPrice.total(tea.pricePerGramUSD * 50)}</span></> : 'On the shelf'}
           src={tea?.imageUrl || TEMPLATE.tea}
         />
         <Plate
@@ -174,7 +187,7 @@ const HomeV2Page: React.FC = () => {
           to="/advise"
           title={<>Twenty years in <span className="italic text-tea-gold">tea culture.</span></>}
           body="Taiwan, China, Japan, Bali, and beyond. Tea for your practice, your collection, your space."
-          meta="The consult · every engagement begins with a conversation"
+          meta="The consult"
           src={TEMPLATE.consult}
         />
       </section>
@@ -183,8 +196,9 @@ const HomeV2Page: React.FC = () => {
           down the left, exactly as the live page sets them; the three
           characters large on the right, the house's own picture. */}
       <section
+        id="the-house"
         aria-label="The house"
-        className={`${MOVEMENT} grid grid-cols-1 lg:grid-cols-[var(--teajia-sidebar-w)_1fr_1fr] bg-tea-surface`}
+        className={`${MOVEMENT} scroll-mt-6 grid grid-cols-1 lg:grid-cols-[var(--teajia-sidebar-w)_1fr_1fr] bg-tea-surface`}
       >
         <div className="lg:col-start-2 px-6 sm:px-10 lg:pl-[4rem] lg:pr-16 pt-14 sm:pt-16 lg:pt-24 pb-12 lg:pb-24 flex flex-col justify-center gap-12">
           <nav aria-label="Homepage destinations" className="flex flex-col items-start gap-2">
@@ -205,8 +219,8 @@ const HomeV2Page: React.FC = () => {
             ))}
           </nav>
           <div className="max-w-[360px]">
-            <LogoText size="panel" color="var(--tea-text-sec)" />
-            <p className={`${DISPLAY} italic mt-6 text-tea-text`}>it&apos;s nothing without you</p>
+            <p className={`${BODY} italic tracking-[0.04em] text-tea-text-dim`}>stay connected</p>
+            <p className={`${DISPLAY} italic mt-1 text-tea-text`}>it&apos;s nothing without you</p>
             <div className="mt-6">
               <EmailField />
             </div>
@@ -227,7 +241,7 @@ const HomeV2Page: React.FC = () => {
           <p className={`${BODY} italic tracking-[0.06em] text-tea-text-sec`}>
             <span className="not-italic font-semibold text-tea-gold">jiā</span> · one sound, three pillars…
           </p>
-          <div className="mt-10 flex flex-wrap gap-x-10 sm:gap-x-14 lg:gap-x-[clamp(1.5rem,3vw,5rem)] gap-y-10">
+          <div className="mt-10 grid grid-cols-3 gap-x-4">
             {[
               { zi: '佳', a: 'beauty', b: 'excellence' },
               { zi: '家', a: 'home', b: 'devotion' },
@@ -291,11 +305,11 @@ const Plate: React.FC<PlateProps> = ({ index, to, title, body, meta, src, crop }
       to={to}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      className="group flex flex-row md:flex-col text-tea-text-sec focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/40"
+      className="group flex flex-row md:flex-col min-h-[220px] md:min-h-0 text-tea-text-sec focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/40"
     >
       <div
         ref={reveal.ref}
-        className={`relative shrink-0 basis-[38%] min-h-[170px] md:basis-auto md:min-h-[280px] lg:min-h-[400px] overflow-hidden bg-tea-surface ${reveal.className}`}
+        className={`relative shrink-0 basis-[45%] min-h-[220px] md:basis-auto md:min-h-[280px] lg:min-h-[400px] overflow-hidden bg-tea-surface ${reveal.className}`}
         style={reveal.style ? { ...reveal.style, transitionDelay: `${index * 120}ms` } : undefined}
       >
         <img
@@ -311,7 +325,7 @@ const Plate: React.FC<PlateProps> = ({ index, to, title, body, meta, src, crop }
           {title}
         </h2>
         <p className={`${BODY} mt-3 max-w-[44ch] text-tea-text-sec`}>{body}</p>
-        <p className={`${META} mt-3 text-tea-text-dim`}>{meta}</p>
+        <p className={`${META} mt-3 text-tea-text-sec`}>{meta}</p>
       </div>
     </Link>
   );
