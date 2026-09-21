@@ -11,12 +11,18 @@ interface ProfileFavoritesEditorProps {
   onUpdate: (teaProfileId: string, favorite: FavoriteWrite) => Promise<void>;
   onDelete: (teaProfileId: string) => Promise<void>;
   onReorder: (teaProfileIds: string[]) => Promise<void>;
+  /** The collection the public favorites became, once named. */
+  collection?: { slug: string; title: string; item_count: number } | null;
+  /** Name the selection, or clear the name to take the collection down. */
+  onSaveCollection?: (title: string | null) => Promise<void>;
 }
 
 const fieldClass = 'w-full rounded-md border border-tea-border bg-tea-surface px-3 py-2.5 text-ui-13 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none focus:ring-2 focus:ring-tea-gold/30';
 
-export function ProfileFavoritesEditor({ favorites, availableTeas = [], onCreate, onUpdate, onDelete, onReorder }: ProfileFavoritesEditorProps) {
+export function ProfileFavoritesEditor({ favorites, availableTeas = [], onCreate, onUpdate, onDelete, onReorder, collection = null, onSaveCollection }: ProfileFavoritesEditorProps) {
   const [items, setItems] = useState(favorites);
+  const [collectionTitle, setCollectionTitle] = useState(collection?.title ?? '');
+  useEffect(() => setCollectionTitle(collection?.title ?? ''), [collection?.title]);
   const [query, setQuery] = useState('');
   const [selectedTeaId, setSelectedTeaId] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -46,6 +52,19 @@ export function ProfileFavoritesEditor({ favorites, availableTeas = [], onCreate
     } catch (cause) {
       setItems(items);
       setError(cause instanceof Error ? cause.message : 'The order could not be saved.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const saveCollection = async () => {
+    if (!onSaveCollection) return;
+    setBusyId('collection');
+    setError(null);
+    try {
+      await onSaveCollection(collectionTitle.trim() || null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'The collection could not be saved.');
     } finally {
       setBusyId(null);
     }
@@ -110,6 +129,30 @@ export function ProfileFavoritesEditor({ favorites, availableTeas = [], onCreate
         <h2 id="favorites-editor-heading" className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Public favorites</h2>
         <p className="mt-1 max-w-[64ch] text-ui-12 text-tea-text-dim">This is your public Tea Master collection, separate from teas privately saved to your account. Entries begin private until you share them.</p>
       </div>
+
+      {onSaveCollection && (
+        <div className="grid gap-3 border-t border-tea-border pt-5 sm:grid-cols-[minmax(0,1fr)_auto]" data-testid="favorites-collection">
+          <label htmlFor="public-favorites-collection-title" className="block">
+            <span className={`${TYPOGRAPHY_CLASSES.label} mb-2 block text-tea-text-sec`}>What I call it</span>
+            <input
+              id="public-favorites-collection-title"
+              maxLength={80}
+              value={collectionTitle}
+              onChange={event => setCollectionTitle(event.target.value)}
+              className={fieldClass}
+              placeholder="A name for the teas below"
+            />
+            <span className="mt-2 block text-ui-12 text-tea-text-dim">
+              {collection
+                ? <>Named, they are a collection with its own page at <a href={`/c/${encodeURIComponent(collection.slug)}`} className="text-tea-gold hover:text-tea-gold-lt">/c/{collection.slug}</a>. Clear the name to take that page down; the teas stay on your profile as a plain selection.</>
+                : 'Named, the public teas below become a collection with its own page, and your profile points at it. Unnamed, your profile still lists them.'}
+            </span>
+          </label>
+          <button type="button" onClick={saveCollection} disabled={busyId === 'collection' || (collectionTitle.trim() === (collection?.title ?? ''))} className="cta-solid tap-target self-start rounded-md px-4 py-2.5 text-ui-13 font-medium transition-transform active:scale-[0.98] disabled:opacity-50 sm:mt-7">
+            {busyId === 'collection' ? 'Saving…' : collection && !collectionTitle.trim() ? 'Take down' : 'Save name'}
+          </button>
+        </div>
+      )}
 
       <div className="grid gap-3 border-y border-tea-border py-5 sm:grid-cols-[minmax(0,1fr)_auto]">
         <div className="relative">

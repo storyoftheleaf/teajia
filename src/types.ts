@@ -396,6 +396,19 @@ export interface ContributorProductRef {
   vouched_by?: string | null;
 }
 
+/** A person on a page that is not theirs: the store's table, an event's hosts. */
+export interface PublicPerson {
+  slug: string;
+  display_name: string;
+  business_name: string | null;
+  /** The store's word for them (contributor_accounts.public_role) or the event's role. */
+  role: string | null;
+  portrait_url: string | null;
+  /** The first sentence of their own words, so the page speaks as them. */
+  own_line: string | null;
+  is_host: boolean;
+}
+
 export interface ContributorHostAccount {
   id: string;
   slug: string;
@@ -906,6 +919,11 @@ export interface Account {
    * never be read as "no": only an explicit false stops a checkout.
    */
   can_be_paid?: boolean;
+  /**
+   * The published people linked to this store, the host first. Served only on
+   * the public store payload. Each speaks in their own first line.
+   */
+  people?: PublicPerson[];
   is_platform_owner?: boolean;
   invoice_prefix?: string;
   // BYOK presence flags (the encrypted secret itself is never sent to the client).

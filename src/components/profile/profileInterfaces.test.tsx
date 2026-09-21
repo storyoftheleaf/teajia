@@ -28,6 +28,8 @@ const profile: SelfProfile = {
   display_name: 'Adrian Rasmussen',
   business_name: null,
   chinese_name: null,
+  inspirations: null,
+  closing: null,
   beginnings: 'Tea sourcing, service, and education from Bali.',
   now_text: null,
   location_line: 'Bali, Indonesia',

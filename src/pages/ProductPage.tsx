@@ -21,6 +21,7 @@ import { LABEL, NUMERAL } from '../components/shared/typeRoles';
 import { quoteGrams, sellUnitOf, wholePieceOf } from '../lib/teaPricing';
 import { useProducts } from '../admin/hooks/useAdminData';
 import { api } from '../lib/api';
+import { GroupHead, IndexRow, SplitName } from '../components/people/immersive';
 
 
 interface ProductPageProps {
@@ -506,18 +507,22 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
       {/* Selected by: quiet, text-only, and absent entirely when nobody has
           publicly favorited this tea -- never a placeholder section. */}
       {selectedBy.length > 0 && (
-        <section aria-label="Selected by" className="mx-5 mt-8 border-t border-tea-border pt-6 lg:mx-10">
-          <p className="font-sans text-ui-11 uppercase tracking-[0.14em] text-tea-text-sec">Selected by</p>
-          <ul className="mt-3 space-y-3">
-            {selectedBy.map(creator => (
-              <li key={creator.slug}>
-                <Link to={`/people/${creator.slug}`} className="text-ui-14 text-tea-text transition-colors hover:text-tea-gold">
-                  {creator.business_name || creator.display_name}
-                </Link>
-                {creator.why && <p className="mt-1 text-ui-13 text-tea-text-sec">{creator.why}</p>}
-              </li>
-            ))}
-          </ul>
+        <section aria-label="Selected by" className="mx-5 mt-4 lg:mx-10" data-testid="product-selected-by">
+          {/* The profile page's own row (2026-09-21): the spaced-caps divider,
+              the name with its italic gold surname, the tea master's own note
+              as the dek, a hairline under. It reads as the person's voice on
+              the tea, which is the whole point of the line. */}
+          <GroupHead label="Selected by" />
+          {selectedBy.map(creator => (
+            <IndexRow
+              key={creator.slug}
+              to={`/people/${encodeURIComponent(creator.slug)}`}
+              title={<SplitName name={creator.display_name} />}
+              dek={creator.why ?? (creator.business_name ? `At ${creator.business_name}.` : undefined)}
+              testId="product-selected-by-row"
+              ariaLabel={`${creator.display_name}, who selected this tea`}
+            />
+          ))}
         </section>
       )}
 

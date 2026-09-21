@@ -4495,6 +4495,8 @@ export const api = {
           chinese_name: row.chinese_name ?? null,
           beginnings: row.beginnings ?? null,
           now_text: row.now_text ?? null,
+          inspirations: row.inspirations ?? null,
+          closing: row.closing ?? null,
           location_line: row.location_line ?? null,
           languages: Array.isArray(row.languages) ? row.languages.filter((item: unknown): item is string => typeof item === 'string') : [],
           avatar_url: row.avatar_url ?? null,
@@ -4509,6 +4511,9 @@ export const api = {
           selection_count: Number.isFinite(Number(row.selection_count)) ? Number(row.selection_count) : 0,
           article_count: Number.isFinite(Number(row.article_count)) ? Number(row.article_count) : 0,
           shelf_slug: row.shelf_slug ?? null,
+          collection: row.collection && typeof row.collection.slug === 'string'
+            ? { slug: String(row.collection.slug), title: String(row.collection.title ?? ''), item_count: Number(row.collection.item_count) || 0 }
+            : null,
           associations: accounts.map((account: any) => ({
             account_id: String(account.account_id ?? account.id ?? ''),
             account_slug: String(account.account_slug ?? account.slug ?? ''),
@@ -4539,6 +4544,10 @@ export const api = {
     },
     unpublishSelf: async (): Promise<{ success: true }> => {
       return authedFetch(`${API_URL}/api/me/public-profile/unpublish`, { method: 'POST' });
+    },
+    /** Name the public favorites and they become a collection with its own page; an empty title takes it down. */
+    updateCollection: async (title: string | null): Promise<{ collection: { slug: string; title: string; item_count: number } | null }> => {
+      return authedFetch(`${API_URL}/api/me/public-profile/collection`, { method: 'PUT', body: JSON.stringify({ title }) });
     },
     listFavorites: async (): Promise<{ favorites: ProfileFavorite[]; available_teas: import('../components/profile/types').FavoriteTea[] }> => {
       const data = await authedFetch(`${API_URL}/api/me/profile/favorites`);

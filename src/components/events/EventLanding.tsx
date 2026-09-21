@@ -8,6 +8,8 @@ import { useParallax } from '../../hooks/useParallax';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import type { TeaEvent, TeaMenuItem } from '../../types/events';
 import AvailabilityBadge from './AvailabilityBadge';
+import { GroupHead, IndexRow, SplitName } from '../people/immersive';
+import type { PublicPerson } from '../../types';
 import EventCountdown from './EventCountdown';
 
 // ── Public Tea Menu Preview ───────────────────────────────────────────────
@@ -91,6 +93,27 @@ const GATHERING_TYPE_LABELS: Record<string, string> = {
   open: 'Open',
   bespoke: 'Bespoke',
 };
+
+/** The role, said by the host: "I lead the evening." Roles are the five the events record. */
+function hostRoleLine(role: string): string | null {
+  switch (role) {
+    case 'lead_host': return 'I lead the session.';
+    case 'co_host': return 'I pour alongside.';
+    case 'guest_host': return 'I am the guest at the table.';
+    case 'photographer': return 'I take the photographs.';
+    case 'author': return 'I write it up.';
+    default: return null;
+  }
+}
+
+function hostRoleWord(role: string): string {
+  switch (role) {
+    case 'lead_host': return 'lead host';
+    case 'co_host': return 'co-host';
+    case 'guest_host': return 'guest host';
+    default: return role.replace(/_/g, ' ');
+  }
+}
 
 function formatEventDate(dateStr: string): { date: string; time: string; day: string } {
   const d = new Date(dateStr);
@@ -672,6 +695,28 @@ const EventLanding: React.FC = () => {
 
         {/* Venue guide, only show for confirmed guests, not on public page */}
         {/* (Venue guide hidden here; full address shown after approval in GuestManagement) */}
+
+        {/* Hosted by: the public hosts, lead first, each in the first
+            person. The reverse door of the profile's Hosting row. */}
+        {(() => {
+          const hosts: Array<PublicPerson & { role: string }> = Array.isArray(ev.hosts) ? ev.hosts : [];
+          if (hosts.length === 0) return null;
+          return (
+            <section className="mb-6" aria-label="Hosted by" data-testid="event-hosts">
+              <GroupHead label="Hosted by" />
+              {hosts.map(host => (
+                <IndexRow
+                  key={`${host.slug}-${host.role}`}
+                  to={`/people/${encodeURIComponent(host.slug)}`}
+                  title={<SplitName name={host.display_name} />}
+                  dek={[hostRoleLine(host.role), host.own_line].filter(Boolean).join(' ') || undefined}
+                  testId="event-host-row"
+                  ariaLabel={`${host.display_name}, ${hostRoleWord(host.role)}`}
+                />
+              ))}
+            </section>
+          );
+        })()}
 
         {/* Footer */}
         <div className="text-center pt-6 pb-12">

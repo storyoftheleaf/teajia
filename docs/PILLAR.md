@@ -19,8 +19,8 @@ The whole public site hangs off four sections, and they are the mobile tab bar, 
 
 Behind those four, reachable but not from the mobile nav:
 
-- **Events** `/events`, `/event/:slug`, `/event/:slug/recap`: live sessions with seats, RSVP, waitlist, a public tea menu, and a recap afterwards. Only signed-in surfaces link here. This is the one genuinely time-bound thing the site has and the public nav does not show it.
-- **People** `/people/:slug`: the tea masters and contributors, each with a profile, favourites, and a private pay page behind a gate. Footer only.
+- **Events** `/events`, `/event/:slug`, `/event/:slug/recap`: live sessions with seats, RSVP, waitlist, a public tea menu, the hosts in their own words, and a recap afterwards. Only signed-in surfaces link here. This is the one genuinely time-bound thing the site has and the public nav does not show it.
+- **People** `/people/:slug`: the tea masters and contributors, each with a profile, favourites (which they can name into a collection with its own page from their own account page), and a private pay page behind a gate. A person also appears on the pages that are not theirs: the store they host (`/store/:slug`, the people at that table), the sessions they host, and the teas they selected. Footer only.
 - **Tea Wisdom** `/wisdom/*`: the reference: cultivars, regions, producers, marks, styles, named teas, tea types. Footer and Craft only.
 - **Spaces** `/spaces`: the network of tea rooms, each with a WhatsApp line. Desktop sidebar only.
 - **Discover** `/discover`: a questionnaire that gives a visitor a level and threads to follow. Linked from the home page.

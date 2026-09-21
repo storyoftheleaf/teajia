@@ -7980,6 +7980,96 @@ async function contributorForUser(env: Env, userId: string) {
   return env.DB.prepare('SELECT * FROM contributors WHERE user_id = ?').bind(userId).first<Record<string, any>>();
 }
 
+interface PersonCollectionRow {
+  collection_id: string;
+  publication_id: string;
+  slug: string;
+  title: string;
+  note: string | null;
+  hero_image_url: string | null;
+  item_count: number;
+  unpublished_at: string | null;
+}
+
+/**
+ * The person's collection: the destination the profile's tea section points
+ * at. A collection this user curated (created or named as curator), still
+ * active, published to a person. Newest publication wins. `live` keeps only
+ * an open publication, which is what the public reads want; the self read and
+ * the self write pass `live: false` so that renaming a collection that was
+ * taken down republishes the same one instead of minting a second.
+ */
+async function personCollectionForUser(env: Env, userId: string | null | undefined, options: { live: boolean } = { live: true }): Promise<PersonCollectionRow | null> {
+  if (!userId) return null;
+  const row = await env.DB.prepare(
+    `SELECT c.id AS collection_id, cp.id AS publication_id, cp.slug, c.title, c.note, c.hero_image_url, cp.unpublished_at,
+            (SELECT COUNT(*) FROM collection_items ci WHERE ci.collection_id = c.id) AS item_count
+       FROM collections c
+       JOIN collection_publications cp
+         ON cp.collection_id = c.id AND cp.target_type = 'person'${options.live ? ' AND cp.unpublished_at IS NULL' : ''}
+      WHERE c.status = 'active'
+        AND (c.created_by_user_id = ? OR c.curator_user_id = ?)
+      ORDER BY (cp.unpublished_at IS NULL) DESC, cp.published_at DESC
+      LIMIT 1`
+  ).bind(userId, userId).first<Record<string, any>>();
+  if (!row) return null;
+  return {
+    collection_id: String(row.collection_id),
+    publication_id: String(row.publication_id),
+    slug: String(row.slug),
+    title: String(row.title),
+    note: (row.note as string | null) ?? null,
+    hero_image_url: (row.hero_image_url as string | null) ?? null,
+    item_count: Number(row.item_count || 0),
+    unpublished_at: (row.unpublished_at as string | null) ?? null,
+  };
+}
+
+/**
+ * Makes the collection's items equal to the tea master's public favorites,
+ * in their order, each carrying the note as the item note. A favorite names
+ * a product directly or a tea profile; a profile resolves to the product
+ * behind its listing, the way the sandbox seed does it. A favorite with no
+ * product behind it (a network tea this shop does not stock) is left out of
+ * the collection, because /c/:slug lists products to buy.
+ */
+async function syncPersonCollectionItems(env: Env, collectionId: string, contributorId: string): Promise<number> {
+  const favorites = await env.DB.prepare(
+    `SELECT pf.note, pf.position,
+            COALESCE(pf.source_product_id,
+              (SELECT pl.legacy_product_id FROM product_listings pl
+                WHERE pl.profile_id = pf.tea_profile_id AND pl.legacy_product_id IS NOT NULL
+                ORDER BY pl.is_curated DESC, pl.updated_at DESC LIMIT 1)) AS product_id
+       FROM profile_favorites pf
+      WHERE pf.contributor_id = ? AND pf.is_public = 1
+      ORDER BY pf.position ASC, pf.created_at ASC`
+  ).bind(contributorId).all<Record<string, any>>();
+  const seen = new Set<string>();
+  const items: Array<{ productId: string; note: string | null }> = [];
+  for (const row of favorites.results ?? []) {
+    const productId = typeof row.product_id === 'string' ? row.product_id : null;
+    if (!productId || seen.has(productId)) continue;
+    seen.add(productId);
+    items.push({ productId, note: (row.note as string | null) ?? null });
+  }
+  await env.DB.batch([
+    env.DB.prepare('DELETE FROM collection_items WHERE collection_id = ?').bind(collectionId),
+    ...items.map((item, position) => env.DB.prepare(
+      `INSERT INTO collection_items (id, collection_id, product_id, position, item_note, created_at)
+       VALUES (?, ?, ?, ?, ?, datetime('now'))`
+    ).bind(crypto.randomUUID(), collectionId, item.productId, position, item.note)),
+    env.DB.prepare("UPDATE collections SET updated_at = datetime('now') WHERE id = ?").bind(collectionId),
+  ]);
+  return items.length;
+}
+
+/** After any change to the favorites: if this person has a collection, its items follow. */
+async function resyncPersonCollection(env: Env, contributor: Record<string, any>): Promise<void> {
+  const existing = await personCollectionForUser(env, contributor.user_id as string | null, { live: false });
+  if (!existing) return;
+  await syncPersonCollectionItems(env, existing.collection_id, String(contributor.id));
+}
+
 async function verifiedShelfSlug(env: Env, userId: string | null | undefined): Promise<string | null> {
   if (!userId) return null;
   try {
@@ -8007,7 +8097,7 @@ const handleGetMyPublicProfile: Handler = async (request, env) => {
       WHERE ca.contributor_id = ? AND a.status = 'active'
       ORDER BY ca.display_order, a.name`
   ).bind(contributor.id).all();
-  const [selection, shelf, galleryImages] = await Promise.all([
+  const [selection, shelf, galleryImages, collection] = await Promise.all([
     env.DB.prepare(
       `SELECT COUNT(DISTINCT p.id) AS count
          FROM contributor_accounts ca
@@ -8021,6 +8111,7 @@ const handleGetMyPublicProfile: Handler = async (request, env) => {
     ).bind(contributor.id).first<Record<string, any>>(),
     verifiedShelfSlug(env, ctx.userId),
     contributorGalleryImages(env, contributor.id),
+    personCollectionForUser(env, ctx.userId, { live: true }),
   ]);
   return json({
     contributor: {
@@ -8030,9 +8121,75 @@ const handleGetMyPublicProfile: Handler = async (request, env) => {
       selection_count: Number(selection?.count || 0),
       accounts: accounts.results ?? [],
       gallery_images: galleryImages,
+      collection: collection ? { slug: collection.slug, title: collection.title, item_count: collection.item_count } : null,
     },
     can_create: false,
   });
+};
+
+// PUT /api/me/public-profile/collection { title }
+// The tea master names their selection, and the six become a collection with
+// its own page: the destination the profile's tea section points at. Until
+// now a collection was admin-made at /admin/collections and published to a
+// person by hand. Here one is made from the public favorites, in their order,
+// each note carried as the item note, and republished under the same slug
+// every time the name changes. An empty title takes the collection down (the
+// publication closes, the rows stay), and the profile falls back to the plain
+// selection list. The items follow the favorites from then on: every favorite
+// write calls resyncPersonCollection.
+const handlePutMyProfileCollection: Handler = async (request, env) => {
+  const owned = await requireOwnContributor(request, env);
+  if ('error' in owned) return owned.error;
+  const { contributor, ctx } = owned;
+  const bodyResult = await contributorJson(request);
+  if (bodyResult instanceof Response) return bodyResult;
+  if (bodyResult.title !== null && bodyResult.title !== undefined && typeof bodyResult.title !== 'string') {
+    return json({ error: 'title must be a string or null' }, 400);
+  }
+  const title = typeof bodyResult.title === 'string' ? bodyResult.title.trim().slice(0, 80) : '';
+  const existing = await personCollectionForUser(env, ctx.userId, { live: false });
+
+  if (!title) {
+    if (existing && !existing.unpublished_at) {
+      await env.DB.prepare("UPDATE collection_publications SET unpublished_at = datetime('now') WHERE id = ?").bind(existing.publication_id).run();
+    }
+    return json({ collection: null });
+  }
+
+  let collectionId: string;
+  let slug: string;
+  if (existing) {
+    collectionId = existing.collection_id;
+    slug = existing.slug;
+    await env.DB.batch([
+      env.DB.prepare("UPDATE collections SET title = ?, curator_display_name = ?, updated_at = datetime('now') WHERE id = ?")
+        .bind(title, contributor.display_name, collectionId),
+      existing.unpublished_at
+        ? env.DB.prepare("UPDATE collection_publications SET unpublished_at = NULL, published_at = datetime('now') WHERE id = ?").bind(existing.publication_id)
+        : env.DB.prepare('SELECT 1'),
+    ]);
+  } else {
+    collectionId = crypto.randomUUID();
+    const base = String(contributor.id);
+    const taken = await env.DB.prepare('SELECT 1 FROM collection_publications WHERE slug = ?').bind(base).first();
+    slug = taken ? `${base}-${crypto.randomUUID().slice(0, 6)}` : base;
+    // The cover is the first photo at work, or the portrait: the profile's
+    // tea section draws it at half opacity under the collection's name.
+    const gallery = await contributorGalleryImages(env, String(contributor.id));
+    const hero = gallery[0]?.image_url ?? (contributor.portrait_url as string | null) ?? null;
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO collections (id, account_id, title, note, hero_image_url, status, created_by_user_id, curator_user_id, curator_display_name, created_at, updated_at)
+         VALUES (?, ?, ?, NULL, ?, 'active', ?, ?, ?, datetime('now'), datetime('now'))`
+      ).bind(collectionId, contributor.account_id, title, hero, ctx.userId, ctx.userId, contributor.display_name),
+      env.DB.prepare(
+        `INSERT INTO collection_publications (id, collection_id, target_type, target_id, slug, recipients_json, published_at, created_by_user_id)
+         VALUES (?, ?, 'person', ?, ?, NULL, datetime('now'), ?)`
+      ).bind(crypto.randomUUID(), collectionId, contributor.id, slug, ctx.userId),
+    ]);
+  }
+  const itemCount = await syncPersonCollectionItems(env, collectionId, String(contributor.id));
+  return json({ collection: { slug, title, item_count: itemCount } });
 };
 
 const handlePutMyPublicProfile: Handler = async (request, env) => {
@@ -8425,6 +8582,7 @@ const handleCreateMyProfileFavorite: Handler = async (request, env) => {
        note = excluded.note, position = excluded.position, is_public = excluded.is_public,
        updated_at = datetime('now')`
   ).bind(owned.contributor.id, teaProfileId, sourceAccountId, sourceProductId, sourceListingId, note, position, isPublic).run();
+  await resyncPersonCollection(env, owned.contributor);
   return json({ success: true }, 201);
 };
 
@@ -8452,6 +8610,7 @@ const handleUpdateMyProfileFavorite: Handler = async (request, env, params) => {
     `UPDATE profile_favorites SET ${fields.join(', ')}, updated_at = datetime('now')
       WHERE contributor_id = ? AND tea_profile_id = ?`
   ).bind(...values, owned.contributor.id, params.teaProfileId).run();
+  if (result.meta.changes) await resyncPersonCollection(env, owned.contributor);
   return result.meta.changes ? json({ success: true }) : json({ error: 'Favorite not found' }, 404);
 };
 
@@ -8460,6 +8619,7 @@ const handleDeleteMyProfileFavorite: Handler = async (request, env, params) => {
   if ('error' in owned) return owned.error;
   const result = await env.DB.prepare('DELETE FROM profile_favorites WHERE contributor_id = ? AND tea_profile_id = ?')
     .bind(owned.contributor.id, params.teaProfileId).run();
+  if (result.meta.changes) await resyncPersonCollection(env, owned.contributor);
   return result.meta.changes ? json({ success: true }) : json({ error: 'Favorite not found' }, 404);
 };
 
@@ -8485,6 +8645,7 @@ const handleOrderMyProfileFavorites: Handler = async (request, env) => {
   await env.DB.batch(ids.map((id, position) => env.DB.prepare(
     'UPDATE profile_favorites SET position = ?, updated_at = datetime(\'now\') WHERE contributor_id = ? AND tea_profile_id = ?'
   ).bind(position, owned.contributor.id, id)));
+  await resyncPersonCollection(env, owned.contributor);
   return json({ success: true });
 };
 
@@ -11084,10 +11245,22 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
   if (event.venue_photos) {
     try { venuePhotos = JSON.parse(event.venue_photos as string); } catch { venuePhotos = []; }
   }
+  // Hosted by: the public event_contributors, lead first, each a published
+  // person. The role travels as the events record it (lead_host, co_host,
+  // guest_host, photographer, author); the page puts it in the host's words.
+  const hostRows = await env.DB.prepare(
+    `SELECT c.id, c.display_name, c.business_name, c.portrait_url, c.now_text, c.beginnings, c.inspirations, ec.role
+       FROM event_contributors ec
+       JOIN contributors c ON c.id = ec.contributor_id
+      WHERE ec.event_id = ? AND ec.is_public = 1 AND ${CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL}
+      ORDER BY CASE ec.role WHEN 'lead_host' THEN 0 WHEN 'co_host' THEN 1 WHEN 'guest_host' THEN 2 ELSE 3 END, ec.display_order ASC`
+  ).bind(event.id).all<Record<string, any>>();
+  const hosts = (hostRows.results ?? []).map(row => ({ ...projectPublicPerson(row), role: String(row.role) }));
   const { account_id: _accountId, ...publicEvent } = event;
 
   return cachedJson({
     ...publicEvent,
+    hosts,
     venue_photos: venuePhotos,
     confirmed_count: confirmedCount,
     offered_count: offeredCount,
@@ -20550,8 +20723,34 @@ const handleGetPublicAccount: Handler = async (_request, env, params) => {
   // rather than letting a customer finish an order into nothing. A plain yes or
   // no: it names no person and no method, so it is safe on a public payload.
   const gap = await storePayabilityGap(env, String(acc.id));
-  return cachedJson({ ...acc, can_be_paid: gap === null }, 300);
+  // The people at this table: every published contributor linked to the
+  // store, the host first. The same rows the profile page reads for "My
+  // table", in the other direction. Public-safe fields only, and the
+  // person's own first line, so the store speaks in their voice, not about them.
+  const peopleRows = await env.DB.prepare(
+    `SELECT c.id, c.display_name, c.business_name, c.portrait_url, c.now_text, c.beginnings, c.inspirations,
+            ca.public_role, ca.is_host
+       FROM contributor_accounts ca
+       JOIN contributors c ON c.id = ca.contributor_id
+      WHERE ca.account_id = ? AND ${CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL}
+      ORDER BY ca.is_host DESC, ca.display_order ASC, c.display_name ASC`
+  ).bind(acc.id).all<Record<string, any>>();
+  const people = (peopleRows.results ?? []).map(projectPublicPerson);
+  return cachedJson({ ...acc, can_be_paid: gap === null, people }, 300);
 };
+
+/** A person on somebody else's page: slug, name, one line in their words. Nothing private. */
+function projectPublicPerson(row: Record<string, any>) {
+  return {
+    slug: String(row.id),
+    display_name: String(row.display_name),
+    business_name: (row.business_name as string | null) ?? null,
+    role: (row.public_role as string | null) ?? (row.role as string | null) ?? null,
+    portrait_url: (row.portrait_url as string | null) ?? null,
+    own_line: firstSentenceOf(row.now_text) ?? firstSentenceOf(row.beginnings) ?? firstSentenceOf(row.inspirations),
+    is_host: row.is_host === 1 || row.is_host === true,
+  };
+}
 
 // Shared helper: fetch public products for an account (mirrors PUBLIC_FIELDS
 // whitelist used by the legacy /api/products/public endpoint).
@@ -22865,20 +23064,7 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
   // at. A collection this person curated (created or named as curator), still
   // active, with a live open publication. Newest publication wins. Absent
   // (null) when there is none, and the page falls back to the favorites list.
-  let personCollection: Record<string, any> | null = null;
-  if (row.user_id) {
-    personCollection = await env.DB.prepare(
-      `SELECT cp.slug, c.title, c.note, c.hero_image_url,
-              (SELECT COUNT(*) FROM collection_items ci WHERE ci.collection_id = c.id) AS item_count
-         FROM collections c
-         JOIN collection_publications cp
-           ON cp.collection_id = c.id AND cp.unpublished_at IS NULL AND cp.target_type = 'person'
-        WHERE c.status = 'active'
-          AND (c.created_by_user_id = ? OR c.curator_user_id = ?)
-        ORDER BY cp.published_at DESC
-        LIMIT 1`
-    ).bind(row.user_id, row.user_id).first() as Record<string, any> | null;
-  }
+  const personCollection: Record<string, any> | null = await personCollectionForUser(env, row.user_id as string | null, { live: true });
 
   // Hosting: the next upcoming, fully public event where this person is a
   // lead or co-host (event_contributors.is_public gates it separately from
@@ -28010,6 +28196,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/me/public-profile', handleGetMyPublicProfile],
   ['PUT', '/api/me/public-profile', handlePutMyPublicProfile],
   ['PUT', '/api/me/public-profile/gallery-images', handlePutMyProfileGalleryImages],
+  ['PUT', '/api/me/public-profile/collection', handlePutMyProfileCollection],
   ['POST', '/api/me/public-profile/unpublish', handleUnpublishMyPublicProfile],
   ['GET', '/api/me/profile/favorites', handleListMyProfileFavorites],
   ['POST', '/api/me/profile/favorites', handleCreateMyProfileFavorite],

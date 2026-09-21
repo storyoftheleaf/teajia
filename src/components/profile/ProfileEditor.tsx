@@ -50,6 +50,8 @@ function toUpdate(profile: SelfProfile): SelfProfileUpdate {
     chinese_name: profile.chinese_name,
     beginnings: profile.beginnings,
     now_text: profile.now_text,
+    inspirations: profile.inspirations,
+    closing: profile.closing,
     location_line: profile.location_line,
     languages: profile.languages,
     avatar_url: profile.avatar_url,
@@ -268,6 +270,17 @@ export function ProfileEditor({ profile, onSave, onSaveGallery, onUnpublish, onU
           <label className="block">
             <span className={labelClass}>Current practice</span>
             <textarea rows={4} value={draft.now_text ?? ''} onChange={event => setField('now_text', event.target.value || null)} className={inputClass} />
+          </label>
+          {/* The public page reads these two and, until 2026-09-21, only an
+              admin could write them. Same words as the page: who taught me,
+              and the last line at its foot. */}
+          <label className="block">
+            <span className={labelClass}>Who taught me</span>
+            <textarea rows={3} value={draft.inspirations ?? ''} onChange={event => setField('inspirations', event.target.value || null)} className={inputClass} placeholder="Teachers, mountains, a cup that changed my mind." />
+          </label>
+          <label className="block">
+            <span className={`${labelClass} flex justify-between`}><span>The last line</span><span>{draft.closing?.length ?? 0}/200</span></span>
+            <input maxLength={200} value={draft.closing ?? ''} onChange={event => setField('closing', event.target.value || null)} className={inputClass} placeholder="What the page leaves the reader with." />
           </label>
         </fieldset>
 
