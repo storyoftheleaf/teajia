@@ -233,9 +233,9 @@ const HomeV2Page: React.FC = () => {
               { zi: '家', a: 'home', b: 'devotion' },
               { zi: '嘉', a: 'praise', b: 'celebration' },
             ].map(c => (
-              <div key={c.zi} className="flex flex-col items-start">
+              <div key={c.zi} className="flex flex-col items-center">
                 <span className="text-[80px] sm:text-[104px] lg:text-[clamp(72px,8vw,160px)] leading-none text-tea-gold" style={{ fontFamily: "'Ma Shan Zheng', cursive" }}>{c.zi}</span>
-                <p className="font-display mt-4 flex flex-col items-start text-ui-15 leading-[1.4] tracking-[0.04em] text-tea-text-sec">
+                <p className="font-display mt-4 flex flex-col items-center text-center text-ui-15 leading-[1.4] tracking-[0.04em] text-tea-text-sec">
                   <span>{c.a}</span><span>{c.b}</span>
                 </p>
               </div>
