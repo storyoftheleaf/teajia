@@ -133,7 +133,7 @@ const HomeV2Page: React.FC = () => {
             Tea deepens with what you bring to the table and what you leave behind.
           </h1>
           <p className={`${BODY} mt-8 max-w-[44ch] text-tea-text-sec`}>
-            A home for fine tea. Source it, study it, share it with those who gather around the cup.
+            A home for fine tea.
           </p>
         </div>
         <div className={`relative lg:col-start-3 min-h-[320px] sm:min-h-[420px] lg:min-h-0 overflow-hidden bg-tea-surface ${PHOTO}`}>
@@ -217,8 +217,17 @@ const HomeV2Page: React.FC = () => {
             </p>
           </div>
         </div>
-        <div className="lg:col-start-3 bg-tea-elevated px-6 sm:px-10 lg:px-14 py-14 sm:py-16 lg:py-24 flex items-center">
-          <div className="flex flex-wrap gap-x-10 sm:gap-x-14 lg:gap-x-[clamp(1.5rem,3vw,5rem)] gap-y-10">
+        {/* What jiā means: the live page's own passage, whole. The two teaser
+            lines, the three characters each with their two words, then the
+            spirit and the motto. This is the introduction, not a decoration. */}
+        <div className="lg:col-start-3 bg-tea-elevated px-6 sm:px-10 lg:px-14 py-14 sm:py-16 lg:py-24 flex flex-col justify-center">
+          <p className={`${BODY} italic tracking-[0.06em] text-tea-text-sec`}>
+            <span className="not-italic font-semibold text-tea-gold">tea</span> · leaf and water
+          </p>
+          <p className={`${BODY} italic tracking-[0.06em] text-tea-text-sec`}>
+            <span className="not-italic font-semibold text-tea-gold">jiā</span> · one sound, three pillars…
+          </p>
+          <div className="mt-10 flex flex-wrap gap-x-10 sm:gap-x-14 lg:gap-x-[clamp(1.5rem,3vw,5rem)] gap-y-10">
             {[
               { zi: '佳', a: 'beauty', b: 'excellence' },
               { zi: '家', a: 'home', b: 'devotion' },
@@ -226,12 +235,18 @@ const HomeV2Page: React.FC = () => {
             ].map(c => (
               <div key={c.zi} className="flex flex-col items-start">
                 <span className="text-[80px] sm:text-[104px] lg:text-[clamp(72px,8vw,160px)] leading-none text-tea-gold" style={{ fontFamily: "'Ma Shan Zheng', cursive" }}>{c.zi}</span>
-                <p className={`${META} mt-4 flex flex-col items-start text-tea-text-sec`}>
+                <p className="font-display mt-4 flex flex-col items-start text-ui-15 leading-[1.4] tracking-[0.04em] text-tea-text-sec">
                   <span>{c.a}</span><span>{c.b}</span>
                 </p>
               </div>
             ))}
           </div>
+          <p className={`${BODY} mt-10 max-w-[44ch] text-tea-text-sec`}>
+            A home for fine tea. A place to source it, study it, and share it with those who gather around the cup.
+          </p>
+          <p className={`${BODY} italic mt-3 tracking-[0.04em] text-tea-text-dim`}>
+            Honor the past. Live in the present. Build for the future.
+          </p>
         </div>
       </section>
       <StoryEditorBar />
