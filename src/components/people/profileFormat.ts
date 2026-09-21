@@ -2,17 +2,6 @@
 // the page files so they can be unit tested and shared without importing a
 // screen.
 
-/** Stable, deterministic issue number from the contributor id. Readers see
- *  the same number every visit because the hash only depends on the slug.
- *  Two-digit zero-padded, never No.00. */
-export function issueNumberFromId(id: string): string {
-  let h = 0;
-  for (let i = 0; i < id.length; i += 1) {
-    h = (h * 31 + id.charCodeAt(i)) | 0;
-  }
-  const n = Math.abs(h) % 99 + 1;
-  return n.toString().padStart(2, '0');
-}
 
 /** Map an ISO date to "Season YYYY". December rolls forward into winter. */
 export function formatSeason(iso: string | null | undefined): string {

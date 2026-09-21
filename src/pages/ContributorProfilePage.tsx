@@ -24,7 +24,6 @@ import {
   formatEventLong,
   galleryPlacement,
   instagramHref,
-  issueNumberFromId,
   ownLine,
   paragraphsOf,
   websiteLabel,
@@ -224,7 +223,6 @@ export default function ContributorProfilePage() {
     );
   }
 
-  const issueNumber = issueNumberFromId(data.id);
   const portrait = data.portrait_url || data.avatar_url || null;
   const kicker = coverKicker(data.role, data.location_line);
   const coverLine = ownLine(data);
@@ -267,7 +265,8 @@ export default function ContributorProfilePage() {
   return (
     <PeopleRoot rootRef={rootRef} testId="creator-profile">
       <StickyChrome>
-        <PeopleNav eyebrow={`People · N°${issueNumber}`} progress={progress} backTo="/people" />
+        {/* Canvas version 28: the person's name, small, in place of an issue number. Nothing on the page numbers them. */}
+        <PeopleNav eyebrow={data.display_name} eyebrowTone="sec" progress={progress} backTo="/people" />
       </StickyChrome>
       <article className="relative z-[1] mx-auto w-full max-w-2xl pb-nav-gap-lg">
 
