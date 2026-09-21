@@ -383,7 +383,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           <button
             onClick={onAccountClick}
             className={`nav-rail-word ${footWord} ${activeSection === 'YOUR_TABLE' ? 'text-tea-gold' : ''}`}
-            title={auth.isAuthenticated ? `Your Table · ${accountMetaLine}` : 'Your Table · Sign in'}
+            title="Your Table"
           >
             Your Table
             <span className="sr-only">{accountMetaLine}</span>
@@ -439,7 +439,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             className="w-[12.5rem] shrink-0 h-full border-r border-tea-border flex flex-col overflow-y-auto hide-scrollbar"
           >
             <div className="shrink-0" style={{ padding: '30px 24px 14px' }}>
-              <span className="font-display text-ui-15 font-medium tracking-[0.04em] lowercase text-tea-gold pb-[3px] border-b border-tea-gold">
+              <span className="font-display text-ui-15 font-medium tracking-[0.04em] lowercase text-tea-gold">
                 Manage
               </span>
             </div>
