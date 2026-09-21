@@ -6,6 +6,7 @@
 
 - [ ] Choose a direction for the home page: refine as is, add a hand-written notice line, put the shelf and the next seat on the table, or open the four doors on the page _(band: you-required)_ _(effort: deep)_ → Plan: [home-page-directions.md](todo/plans/home-page-directions.md)
 - [ ] Creator profiles: a profile-style home for invited creators, connected to articles, shop and Your Table _(band: agent-runnable)_ _(effort: deep)_ → Plan: [creator-profiles.md](todo/plans/creator-profiles.md)
+- [ ] Restyle the tea master's own editing page in the profile's language, seven boards drawn on the canvas, forms stay as they are until then _(band: you-required)_ _(effort: deep)_ → Plan: [tea-master-editing-boards.md](todo/plans/tea-master-editing-boards.md)
 
 ## Prime-time audit — the ten that matter (2026-09-09)
 
