@@ -19,11 +19,18 @@ import type { PublicProduct } from '../types';
  * of its own so it can be worked on beside the live page and swapped in when
  * Adrian says so. Nothing links here.
  *
- * The shape: the site's own headline, then three plates on one line (the
- * piece to read, the tea on the table with its price, the consult), then the
- * four grounding lines as the house, then the colophon the live page already
- * carries (the characters, the email field). The words are the site's words;
- * the only new sentence is the one that says everything ships from Bali.
+ * One page, not four bands. The statement opens it and its last line sits on
+ * the lead photograph; the three plates follow, the lead twice the width and
+ * a head taller than the other two; the house lines, the wordmark, the three
+ * characters and the email run down one text column beside one tall
+ * photograph. No horizontal rules anywhere: the verticals between columns
+ * and the photographs' own edges do the dividing. Every line of text starts
+ * at the same left edge, four rems past the sidebar.
+ *
+ * Three sizes of type: the display size for anything that is a title or a
+ * line to be read as one, the body size for sentences, the meta size for the
+ * facts under them. The opener is the one exception and is allowed to be
+ * bigger than everything.
  *
  * The site's own nav frames it: the sidebar on desktop, the tab bar on the
  * phone. No bar of its own.
@@ -32,7 +39,7 @@ import type { PublicProduct } from '../types';
 const PIECE = {
   slug: 'porcelain-and-tea',
   to: '/read/porcelain-and-tea',
-  kicker: 'The Lead · N°15 · Conversations over tea',
+  meta: 'The piece to read · The Lead · N°15 · Conversations over tea',
   dek: 'A porcelain restorer on repair, patience, and how mending what we love mends us in return.',
 };
 
@@ -42,7 +49,13 @@ const TABLE_PHOTO = 'https://res.cloudinary.com/dobbosnda/image/upload/f_auto,q_
 /** The home page's own slug in the story-content store, for the frames it carries. */
 const HOME_SLUG = 'home';
 
-const SHIPPING_LINE = 'Everything ships from Bali. Say where you are and the post is quoted in the same message.';
+/** The left edge every line of text on the page starts from, on desktop. */
+const EDGE = 'lg:pl-[calc(var(--teajia-sidebar-w)+4rem)]';
+
+/** The three sizes. */
+const DISPLAY = 'font-display font-normal text-[clamp(26px,2.5vw,36px)] leading-[1.1] tracking-[0.01em]';
+const BODY = 'font-body text-ui-16 leading-[1.65]';
+const META = 'font-sans text-ui-12 leading-[1.5] tracking-[0.02em]';
 
 /** The tea on the table: a featured one if Adrian has flagged one, else the oldest lot on the shelf. */
 const pickTea = (products: PublicProduct[]): PublicProduct | null => {
@@ -76,17 +89,11 @@ const HomeV2Page: React.FC = () => {
   const { theme } = useTheme();
   const teaTones = tea ? getTeaLedgerTones(tea.type, theme, 1.6) : null;
 
-  // One soft rise per section, once, as it enters.
-  const revealPlates = useSectionReveal('up');
-  const revealHouse = useSectionReveal('up');
-  const revealColophon = useSectionReveal('up');
-
   // The page breaks out of the main column's gutter, and on desktop out of the
-  // column itself, so the plates and their hairlines run from the left edge of
-  // the window, behind the floating sidebar, to the right edge. The text
-  // sections pad themselves back past the sidebar so nothing readable sits
-  // under it. --teajia-sidebar-w is what the sidebar sets as it expands and
-  // collapses, so the page follows it live.
+  // column itself, so the photographs run from the left edge of the window,
+  // behind the floating sidebar, to the right edge. The text pads itself back
+  // past the sidebar so nothing readable sits under it. --teajia-sidebar-w is
+  // what the sidebar sets as it expands and collapses, so the page follows it.
   return (
     <div className="-mx-4 md:-mx-6 lg:-mr-10 lg:ml-[calc(-2.5rem-var(--teajia-sidebar-w))] bg-tea-bg text-tea-text">
       <Helmet>
@@ -94,47 +101,47 @@ const HomeV2Page: React.FC = () => {
         <meta name="description" content="A home for fine tea. Source it, study it, and share it with those who gather around the cup." />
       </Helmet>
 
-      {/* The statement: set to the left edge of the reading column, the way a
-          magazine opens, and kept short so the plates' photographs are on the
-          first screen rather than a scroll below it. */}
-      <section className="px-6 sm:px-10 lg:px-16 lg:pl-[calc(var(--teajia-sidebar-w)+4rem)] pt-14 sm:pt-20 lg:pt-24 pb-10 sm:pb-12 lg:pb-14">
+      {/* The statement. Its last line sits on the lead photograph below, so
+          the opener and the plates are one move rather than two bands. */}
+      <section className={`relative z-10 px-6 sm:px-10 lg:px-16 ${EDGE} pt-14 sm:pt-20 lg:pt-24 pb-8 lg:pb-0`}>
         <h1
-          className="font-display font-normal text-tea-text max-w-[760px] text-[clamp(34px,4.2vw,60px)] leading-[1.1] tracking-[0.01em]"
+          className="font-display font-normal text-tea-text max-w-[760px] text-[clamp(36px,4.4vw,64px)] leading-[1.08] tracking-[0.01em]"
           style={{ textWrap: 'balance' }}
         >
           Tea deepens with what you bring to the table and what you leave behind.
         </h1>
       </section>
 
-      {/* The three plates. On desktop the lead runs twice the width of the
-          other two, so the row reads as a spread with a cover, not three equal
-          tiles. */}
-      <div ref={revealPlates.ref} className={revealPlates.className} style={revealPlates.style}>
+      {/* The three plates. The lead runs twice the width of the other two and
+          a head taller, its photograph starting under the statement's last
+          line; the two beside it sit lower, so the row has a ragged top and a
+          ragged bottom rather than a flat strip. */}
       <section
         aria-label="On the table"
-        className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-[var(--teajia-sidebar-w)_2fr_1fr_1fr] border-t border-b border-tea-border"
+        className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-[var(--teajia-sidebar-w)_2fr_1fr_1fr] lg:-mt-10"
       >
         <Plate
           first
+          index={0}
           to={PIECE.to}
-          kicker="The piece to read"
           title={<>Porcelain <span className="italic text-tea-gold">and Tea</span></>}
           body={PIECE.dek}
-          foot={PIECE.kicker}
+          meta={PIECE.meta}
           artwork={portrait ? <StoryPhoto photo={portrait} /> : <PieceArtwork />}
           artworkLabel={portrait ? undefined : 'Portrait, at the repair table'}
+          scrim
         />
         <Plate
+          index={1}
           to={tea ? `/shop/product/${tea.slug ?? tea.id}` : '/shop'}
-          kicker="The tea on the table"
           title={tea ? tea.productName : 'On the shelf'}
           body={tea ? teaLine(tea) : 'Twenty teas, chosen one lot at a time.'}
-          foot={tea ? (
-            <span className="font-body text-ui-20 text-tea-text">
-              {shopPrice.total(tea.pricePerGramUSD * 50)}
-              <span className="text-ui-12 text-tea-text-dim ml-2">50 g</span>
-            </span>
-          ) : 'Source your tea.'}
+          meta={tea ? (
+            <>
+              <span className="font-body text-ui-16 text-tea-text">{shopPrice.total(tea.pricePerGramUSD * 50)}</span>
+              <span className="ml-2">for 50 g · the tea on the table</span>
+            </>
+          ) : 'The tea on the table'}
           artwork={tea?.imageUrl ? (
             <img src={tea.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
           ) : <TeaArtwork ground={teaTones?.markBg} />}
@@ -142,30 +149,29 @@ const HomeV2Page: React.FC = () => {
           wash={teaTones?.wash}
         />
         <Plate
+          index={2}
           to="/advise"
-          kicker="The consult"
           title={<>Twenty years in <span className="italic text-tea-gold">tea culture.</span></>}
           body="Taiwan, China, Japan, Bali, and beyond. Tea for your practice, your collection, your space."
-          foot="Every engagement begins with a conversation"
+          meta="The consult · every engagement begins with a conversation"
           artwork={<img src={TABLE_PHOTO} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />}
         />
       </section>
-      </div>
 
-      {/* The house: the grounding lines, the live page's own words, set beside
-          a photograph instead of floating in the dark. */}
-      <div ref={revealHouse.ref} className={revealHouse.className} style={revealHouse.style}>
+      {/* The house. One text column, one tall photograph. The four lines,
+          then the wordmark, jiā, the three characters, the mission and the
+          email, all down the same edge; the photograph runs the full height
+          beside them. The frame is the Read pages' own: signed in as owner,
+          the editor bar turns editing on, a photograph drops, pastes or is
+          chosen into it, the focal point and zoom are set, and Publish makes
+          it live. Until one is published the table photograph stands in,
+          cropped to the vessel so it is not the consult plate's picture again. */}
       <StoryEditProvider slug={HOME_SLUG}>
       <section
-        aria-label="Homepage destinations"
-        className="grid grid-cols-1 lg:grid-cols-[var(--teajia-sidebar-w)_1fr_1fr] border-b border-tea-border"
+        aria-label="The house"
+        className="grid grid-cols-1 lg:grid-cols-[var(--teajia-sidebar-w)_1fr_1fr] pb-nav-gap-lg lg:pb-0"
       >
-        {/* The frame is the Read pages' own: signed in as owner, the editor bar
-            turns editing on, a photograph drops or pastes into the frame, the
-            focal point and zoom are set on it, and Publish makes it live. Until
-            one is published the table photograph stands in, cropped to the
-            vessel so it is not the consult plate's picture again. */}
-        <div className="relative order-first lg:order-none lg:col-start-3 min-h-[240px] sm:min-h-[320px] lg:min-h-[440px] overflow-hidden bg-tea-surface">
+        <div className="relative order-first lg:order-none lg:col-start-3 lg:row-start-1 min-h-[260px] sm:min-h-[340px] lg:min-h-0 overflow-hidden bg-tea-surface">
           <EditablePhoto
             slot="house"
             alt="The house"
@@ -176,91 +182,64 @@ const HomeV2Page: React.FC = () => {
             }
           />
         </div>
-        <div className="lg:col-start-2 lg:row-start-1 px-6 sm:px-10 lg:pl-[4rem] lg:pr-12 py-12 sm:py-14 lg:py-20 flex flex-col justify-center">
-        <nav className="flex flex-col items-start gap-3 sm:gap-4">
-          {[
-            { accent: 'Source', rest: ' your tea.', to: '/shop' },
-            { accent: 'Discover', rest: ' the stories.', to: '/read' },
-            { accent: 'Deepen', rest: ' your practice.', to: '/craft' },
-            { accent: 'Create', rest: ' the spaces to share.', to: '/advise' },
-          ].map(item => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className="group tap-target inline-flex items-baseline gap-1 whitespace-nowrap rounded-md py-0.5 font-body text-ui-20 leading-[1.16] tracking-[0.015em] text-tea-text-sec transition-colors duration-300 hover:text-tea-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg"
-            >
-              <span className="font-medium text-tea-gold">{item.accent}</span>
-              <span className="underline decoration-tea-gold/0 underline-offset-[4px] transition-all duration-300 group-hover:decoration-tea-gold/30">{item.rest}</span>
-            </Link>
-          ))}
-        </nav>
-        <p className="mt-8 sm:mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 font-body text-ui-14 text-tea-text-dim">
-          <Link to="/events" className="hover:text-tea-text transition-colors">sessions</Link>
-          <Link to="/people" className="hover:text-tea-text transition-colors">people</Link>
-          <Link to="/wisdom" className="hover:text-tea-text transition-colors">tea wisdom</Link>
-          <Link to="/spaces" className="hover:text-tea-text transition-colors">spaces</Link>
-          <Link to="/about" className="hover:text-tea-text transition-colors">about</Link>
-        </p>
+        <div className={`lg:col-start-2 lg:row-start-1 px-6 sm:px-10 lg:pl-[4rem] lg:pr-16 pt-12 sm:pt-14 lg:pt-20 pb-14 lg:pb-24`}>
+          <nav aria-label="Homepage destinations" className="flex flex-col items-start gap-2 sm:gap-3">
+            {[
+              { accent: 'Source', rest: ' your tea.', to: '/shop' },
+              { accent: 'Discover', rest: ' the stories.', to: '/read' },
+              { accent: 'Deepen', rest: ' your practice.', to: '/craft' },
+              { accent: 'Create', rest: ' the spaces to share.', to: '/advise' },
+            ].map(item => (
+              <Link
+                key={item.to}
+                to={item.to}
+                className={`group tap-target inline-flex items-baseline gap-1 whitespace-nowrap rounded-md py-0.5 ${DISPLAY} text-tea-text-sec transition-colors duration-300 hover:text-tea-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg`}
+              >
+                <span className="text-tea-gold">{item.accent}</span>
+                <span className="underline decoration-tea-gold/0 underline-offset-[6px] transition-all duration-300 group-hover:decoration-tea-gold/30">{item.rest}</span>
+              </Link>
+            ))}
+          </nav>
+
+          <div className="mt-16 sm:mt-20 lg:mt-24">
+            <LogoText size="panel" color="var(--tea-text-sec)" />
+            <p className={`${BODY} italic mt-4 text-tea-text-sec`}>
+              <span className="not-italic font-semibold text-tea-gold">jiā</span> · one sound, three pillars
+            </p>
+            <div className="mt-8 flex flex-wrap gap-x-10 sm:gap-x-14 gap-y-6">
+              {[
+                { zi: '佳', a: 'beauty', b: 'excellence' },
+                { zi: '家', a: 'home', b: 'devotion' },
+                { zi: '嘉', a: 'praise', b: 'celebration' },
+              ].map(c => (
+                <div key={c.zi} className="flex flex-col items-start">
+                  <span className="text-[44px] sm:text-[56px] leading-none text-tea-gold" style={{ fontFamily: "'Ma Shan Zheng', cursive" }}>{c.zi}</span>
+                  <p className={`${META} mt-3 flex flex-col items-start text-tea-text-sec`}>
+                    <span>{c.a}</span><span>{c.b}</span>
+                  </p>
+                </div>
+              ))}
+            </div>
+            <p className={`${BODY} mt-8 max-w-[52ch] text-tea-text-sec`}>
+              A home for fine tea. A place to source it, study it, and share it with those who gather around the cup.
+            </p>
+          </div>
+
+          <div className="mt-12 sm:mt-14 max-w-[360px]">
+            <p className={`${DISPLAY} italic text-tea-text`}>it&apos;s nothing without you</p>
+            <div className="mt-6">
+              <EmailField />
+            </div>
+            <p className={`${META} mt-6 text-tea-text-dim`}>
+              <Link to="/signup" className="text-tea-gold/80 hover:text-tea-gold transition-colors duration-300">Create an account</Link>
+              {' · '}
+              <Link to="/signin" className="text-tea-gold/80 hover:text-tea-gold transition-colors duration-300">Sign in</Link>
+            </p>
+          </div>
         </div>
       </section>
       <StoryEditorBar />
       </StoryEditProvider>
-      </div>
-
-      {/* The colophon: the live page's second act, set on the same grid as the
-          house so the page ends in the voice it opened in. Left: the wordmark,
-          jiā, the three characters in a row, the mission. Right, past a
-          hairline: the email field as a quiet plate of its own. */}
-      <div ref={revealColophon.ref} className={revealColophon.className} style={revealColophon.style}>
-      <section
-        aria-label="About Teajia"
-        className="grid grid-cols-1 lg:grid-cols-[var(--teajia-sidebar-w)_1fr_1fr] pb-nav-gap-lg lg:pb-0"
-      >
-        <div className="lg:col-start-2 px-6 sm:px-10 lg:pl-[4rem] lg:pr-12 pt-14 sm:pt-16 lg:pt-20 pb-12 lg:pb-20">
-          <LogoText size="panel" color="var(--tea-text-sec)" />
-          <p className="font-body italic mt-5 text-ui-15 tracking-[0.06em] text-tea-text-sec">
-            <span className="not-italic font-semibold text-tea-gold">jiā</span> · one sound, three pillars
-          </p>
-          <div className="mt-7 grid grid-cols-3 gap-x-4 sm:gap-x-6 max-w-[440px] border-y border-tea-border py-5 sm:py-6">
-            {[
-              { zi: '佳', a: 'beauty', b: 'excellence' },
-              { zi: '家', a: 'home', b: 'devotion' },
-              { zi: '嘉', a: 'praise', b: 'celebration' },
-            ].map(c => (
-              <div key={c.zi} className="flex flex-col items-start">
-                <span className="text-[44px] sm:text-[56px] leading-none text-tea-gold" style={{ fontFamily: "'Ma Shan Zheng', cursive" }}>{c.zi}</span>
-                <p className="font-display mt-3 flex flex-col items-start text-ui-14 sm:text-ui-15 leading-[1.4] tracking-[0.04em] text-tea-text-sec">
-                  <span>{c.a}</span><span>{c.b}</span>
-                </p>
-              </div>
-            ))}
-          </div>
-          <p className="font-body mt-8 max-w-[440px] text-ui-15 leading-[1.7] text-tea-text-sec">
-            A home for fine tea. A place to source it, study it, and share it with those who gather around the cup.
-          </p>
-          <p className="font-body italic mt-3 text-ui-13 tracking-[0.04em] text-tea-text-dim">
-            Honor the past. Live in the present. Build for the future.
-          </p>
-          <p className="font-body mt-6 max-w-[400px] text-ui-13 leading-[1.7] text-tea-text-dim">
-            {SHIPPING_LINE}
-          </p>
-        </div>
-        <div className="lg:col-start-3 border-t lg:border-t-0 lg:border-l border-tea-border px-6 sm:px-10 lg:px-12 py-12 lg:py-20 flex flex-col justify-center">
-          <p className="font-sans text-ui-10 uppercase tracking-[0.26em] text-tea-gold">Stay connected</p>
-          <p className="font-display italic mt-3 text-[clamp(22px,2vw,28px)] leading-[1.2] text-tea-text">
-            it&apos;s nothing without you
-          </p>
-          <div className="mt-8 w-full max-w-[320px]">
-            <EmailField align="left" />
-          </div>
-          <p className="font-body mt-8 text-ui-12 text-tea-text-dim">
-            <Link to="/signup" className="text-tea-gold/80 hover:text-tea-gold transition-colors duration-300">Create an account</Link>
-            {' · '}
-            <Link to="/signin" className="text-tea-gold/80 hover:text-tea-gold transition-colors duration-300">Sign in</Link>
-          </p>
-        </div>
-      </section>
-      </div>
     </div>
   );
 };
@@ -275,55 +254,68 @@ const teaLine = (tea: PublicProduct): string => {
 };
 
 interface PlateProps {
-  /** The first plate on desktop spans the sidebar's track too: its artwork runs behind the sidebar, its words start past it. */
+  /** The lead plate on desktop spans the sidebar's track too: its photograph runs behind the sidebar, its words start at the page's edge. */
   first?: boolean;
+  /** Position in the row, for the stagger of the one authored entrance. */
+  index: number;
   to: string;
-  kicker: string;
   title: React.ReactNode;
   body: React.ReactNode;
-  foot: React.ReactNode;
+  meta: React.ReactNode;
   artwork: React.ReactNode;
   artworkLabel?: string;
   /** A tonal ground behind the words, fading out to the right: the tea's own liquor colour. */
   wash?: string;
+  /** Page tone over the top of the photograph, so the statement's last line reads on it. */
+  scrim?: boolean;
 }
 
 /**
- * One plate on the table. A full-height panel, hairline-divided from its
- * neighbours, never a card: the artwork sits flush in the top of the panel and
- * the words sit under it. On the phone the three stack, artwork beside words.
+ * One plate on the table: a photograph with its words under it, a hairline
+ * from its neighbour, never a card. The photographs are the page's one
+ * authored entrance: each fades up as it comes into view, a beat after the
+ * one before. The words do not animate.
  */
-const Plate: React.FC<PlateProps> = ({ first, to, kicker, title, body, foot, artwork, artworkLabel, wash }) => {
+const Plate: React.FC<PlateProps> = ({ first, index, to, title, body, meta, artwork, artworkLabel, wash, scrim }) => {
   const [hover, setHover] = useState(false);
+  const reveal = useSectionReveal('fade');
   return (
     <Link
       to={to}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      className={`group flex flex-row md:flex-col border-b md:border-b-0 md:border-r border-tea-border last:border-b-0 md:last:border-r-0 text-tea-text-sec focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/40 ${first ? 'lg:col-span-2' : ''}`}
+      className={`group flex flex-row md:flex-col md:border-r border-tea-border md:last:border-r-0 text-tea-text-sec focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/40 ${first ? 'lg:col-span-2' : 'lg:mt-24'}`}
     >
-      <div className="relative shrink-0 basis-[38%] min-h-[170px] md:basis-auto md:min-h-[300px] lg:min-h-[460px] overflow-hidden bg-tea-surface">
+      <div
+        ref={reveal.ref}
+        className={`relative shrink-0 basis-[38%] min-h-[170px] md:basis-auto md:min-h-[300px] ${first ? 'lg:min-h-[560px]' : 'lg:min-h-[400px]'} overflow-hidden bg-tea-surface ${reveal.className}`}
+        style={reveal.style ? { ...reveal.style, transitionDelay: `${index * 120}ms` } : undefined}
+      >
         <div className="absolute inset-0 transition-transform duration-[600ms] ease-out group-hover:scale-[1.02] motion-reduce:transform-none">
           {artwork}
         </div>
+        {scrim && (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 top-0 h-[38%] hidden lg:block"
+            style={{ background: 'linear-gradient(180deg, rgb(var(--tea-bg-rgb)) 0%, rgb(var(--tea-bg-rgb) / 0) 100%)' }}
+          />
+        )}
         {artworkLabel && (
-          <span className={`absolute left-4 bottom-3 font-sans text-ui-10 uppercase tracking-[0.18em] text-tea-text-dim ${first ? 'lg:left-[calc(var(--teajia-sidebar-w)+1rem)]' : ''}`}>
+          <span className={`absolute left-4 bottom-3 ${META} text-tea-text-dim ${first ? 'lg:left-[calc(var(--teajia-sidebar-w)+4rem)]' : ''}`}>
             {artworkLabel}
           </span>
         )}
       </div>
       <div
-        className={`flex-1 px-5 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10 ${first ? 'lg:pl-[calc(var(--teajia-sidebar-w)+2rem)]' : ''}`}
+        className={`flex-1 px-5 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10 ${first ? 'lg:pl-[calc(var(--teajia-sidebar-w)+4rem)]' : ''}`}
         style={wash ? { background: `linear-gradient(90deg, ${wash} 0%, transparent 78%)` } : undefined}
       >
-        <p className="font-sans text-ui-10 uppercase tracking-[0.26em] text-tea-gold">{kicker}</p>
-        <h2
-          className={`font-display font-normal mt-3 text-[clamp(26px,2.6vw,38px)] leading-[1.05] transition-colors duration-300 ${hover ? 'text-tea-gold' : 'text-tea-text'}`}
-        >
+        <h2 className={`${DISPLAY} transition-colors duration-300 ${hover ? 'text-tea-gold' : 'text-tea-text'}`}>
           {title}
         </h2>
-        <p className="font-body mt-4 text-ui-14 leading-[1.6] text-tea-text-dim">{body}</p>
-        <p className="font-body mt-5 text-ui-14 text-tea-text-sec">{foot}</p>
+        <p className={`${BODY} mt-4 max-w-[46ch] text-tea-text-sec`}>{body}</p>
+        <p className={`${META} mt-5 text-tea-text-dim`}>{meta}</p>
       </div>
     </Link>
   );
@@ -367,7 +359,7 @@ const TeaArtwork: React.FC<{ ground?: string }> = ({ ground }) => (
 );
 
 /** The live page's email field: underline only, the word join at the end. */
-const EmailField: React.FC<{ align?: 'center' | 'left' }> = ({ align = 'center' }) => {
+const EmailField: React.FC = () => {
   const [email, setEmail] = useState('');
   const [state, setState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
 
@@ -386,7 +378,7 @@ const EmailField: React.FC<{ align?: 'center' | 'left' }> = ({ align = 'center' 
   };
 
   if (state === 'done') {
-    return <p className="font-display text-base tracking-[0.04em] text-tea-gold">you&apos;re on the list.</p>;
+    return <p className={`${BODY} text-tea-gold`}>you&apos;re on the list.</p>;
   }
 
   return (
@@ -398,7 +390,7 @@ const EmailField: React.FC<{ align?: 'center' | 'left' }> = ({ align = 'center' 
         placeholder="your email"
         disabled={state === 'sending'}
         aria-label="Email address"
-        className={`font-display w-full bg-transparent text-base tracking-[0.04em] text-tea-text outline-none pb-2.5 pr-10 placeholder:italic placeholder:text-tea-text-dim disabled:opacity-50 border-0 border-b border-tea-border rounded-none focus:border-tea-gold ${align === 'left' ? 'text-left pl-0' : 'text-center pl-7'}`}
+        className={`font-display w-full bg-transparent text-base tracking-[0.04em] text-tea-text outline-none pb-2.5 pr-10 placeholder:italic placeholder:text-tea-text-dim disabled:opacity-50 border-0 border-b border-tea-border rounded-none focus:border-tea-gold text-left pl-0`}
       />
       <button
         type="submit"
