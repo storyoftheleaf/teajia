@@ -1,0 +1,43 @@
+# Debt list, dated 2026-09-22. `npm run lint:worker-types` runs
+# `tsc -p worker/tsconfig.json` and compares every diagnostic to this file.
+# A signature not listed here fails the build; delete a line in the same commit
+# that fixes that error. Signatures are path:line:code. Duplicate lines count
+# separate diagnostics on the same line (tsc reports 38 total, 35 unique).
+worker/src/curateImportAnalysis.ts:1159:TS2322
+worker/src/curateImportAnalysis.ts:1261:TS18046
+worker/src/curateImportAnalysis.ts:1261:TS18046
+worker/src/curateImportAnalysis.ts:1265:TS2322
+worker/src/curateImportAnalysis.ts:1267:TS2365
+worker/src/curateImportAnalysis.ts:1267:TS2322
+worker/src/curateImportCanonical.ts:270:TS2339
+worker/src/curateImportCanonical.ts:270:TS7006
+worker/src/curateImportCanonical.ts:359:TS2322
+worker/src/curateImports.ts:640:TS2698
+worker/src/curateImports.ts:823:TS2352
+worker/src/curateImports.ts:985:TS2345
+worker/src/curateImports.ts:988:TS2698
+worker/src/curateImports.ts:1042:TS2345
+worker/src/curateImports.ts:1335:TS2322
+worker/src/curateImports.ts:1668:TS2345
+worker/src/eventArticleDraft.ts:49:TS18046
+worker/src/eventArticleDraft.ts:49:TS7006
+worker/src/eventDomain.ts:9:TS2322
+worker/src/index.ts:3039:TS2345
+worker/src/index.ts:3074:TS2345
+worker/src/index.ts:5435:TS2322
+worker/src/index.ts:6387:TS2352
+worker/src/index.ts:6390:TS2352
+worker/src/index.ts:7579:TS2352
+worker/src/index.ts:7592:TS2352
+worker/src/index.ts:7886:TS2339
+worker/src/index.ts:7886:TS2339
+worker/src/index.ts:7923:TS7053
+worker/src/index.ts:7923:TS7053
+worker/src/index.ts:7935:TS7053
+worker/src/index.ts:7936:TS7053
+worker/src/index.ts:11498:TS2322
+worker/src/index.ts:22557:TS2322
+worker/src/index.ts:22601:TS2322
+worker/src/index.ts:23110:TS2352
+worker/src/mcp.ts:809:TS2322
+worker/src/mcp.ts:1842:TS2322

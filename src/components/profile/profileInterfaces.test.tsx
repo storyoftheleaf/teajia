@@ -245,7 +245,7 @@ describe('profile interfaces', () => {
     expect(html).toContain('Indonesian bank transfer');
     expect(html).toContain('180000');
     expect(html).toContain('Tea session');
-    expect(html).toContain('External transfer');
+    expect(html).toContain('Bank transfer');
     expect(html).not.toMatch(/payment (complete|successful|confirmed)/i);
   });
 
@@ -324,7 +324,7 @@ describe('profile interfaces', () => {
     );
 
     expect(html).not.toContain('Private bank');
-    expect(html).toContain('Payment details are not available here yet.');
+    expect(html).toContain('I have not published a way to pay here yet. Ask Adrian Rasmussen directly.');
     expect(html).not.toContain('Share this payment page');
     expect(html).not.toContain('QR code for this Teajia payment page');
   });
