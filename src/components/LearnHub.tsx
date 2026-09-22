@@ -1,14 +1,11 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Helmet } from 'react-helmet-async';
 import { Story } from '../types';
 import { LearnCurriculum } from './LearnCurriculum';
-import { LearnOverview } from './LearnOverview';
+import CraftIndex from '../pages/craft/CraftIndex';
 import { PageHeader } from './shared/PageHeader';
 import type { LibrarySubView } from '../types/library';
 import { Glossary } from './library/Glossary';
-import { Playlists } from './library/Playlists';
-import { Videos } from './library/Videos';
-import { VisualGuides } from './library/VisualGuides';
+import { LearnReadingLists } from './LearnReadingLists';
 import { JourneysView } from './learn/JourneysView';
 import { CommunityWisdomView } from './learn/CommunityWisdomView';
 import { TeaSpacesView } from './learn/TeaSpacesView';
@@ -16,19 +13,28 @@ import { useSubViewNavigation } from '../hooks/useSubViewNavigation';
 import { useScrollRestoration } from '../hooks/useScrollRestoration';
 import { Breadcrumb } from './shared/Breadcrumb';
 
-type LearnView = 'overview' | 'course' | 'glossary' | 'playlists' | 'videos' | 'visual-guides' | 'journeys' | 'wisdom' | 'spaces';
+// Playlists, Videos and Visual Guides were retired with the Craft redesign
+// (no destination in the new index); 'overview' is kept as the sub-view
+// navigation's default key even though the landing is CraftIndex now, since
+// useSubViewNavigation treats it as "no ?v= param" and nothing reads the
+// string past that.
+type LearnView = 'overview' | 'course' | 'glossary' | 'reading' | 'journeys' | 'wisdom' | 'spaces';
 
 const VIEW_LABELS: Record<LearnView, string> = {
   overview: 'Overview',
-  course: 'Go Deeper',
+  course: 'Six Foundations',
   glossary: 'Glossary',
-  playlists: 'Playlists',
-  videos: 'Videos',
-  'visual-guides': 'Visual Guides',
+  reading: 'Reading and Listening',
   journeys: 'Journeys',
-  wisdom: 'Community Wisdom',
+  wisdom: 'Shared Wisdom',
   spaces: 'Tea Spaces',
 };
+
+// A route saved or bookmarked with one of the retired ?v= values (playlists,
+// videos, visual-guides) falls back to the overview rather than rendering
+// nothing: useSubViewNavigation only knows the string was in the URL, not
+// whether this build still has a view for it.
+const KNOWN_VIEWS = new Set<string>(Object.keys(VIEW_LABELS));
 
 interface LearnHubProps {
   onStoryClick: (story: Story) => void;
@@ -79,7 +85,12 @@ export const LearnHub: React.FC<LearnHubProps> = ({
     navigateTo(section as LearnView);
   }, [navigateTo]);
 
-  const breadcrumbSegments = isSubView
+  // A ?v= value this build no longer has a view for (playlists, videos,
+  // visual-guides, from an old link or bookmark) falls back to the landing
+  // rather than rendering nothing.
+  const isKnownSubView = isSubView && KNOWN_VIEWS.has(currentView);
+
+  const breadcrumbSegments = isKnownSubView
     ? [
         { label: 'Craft', onClick: navigateBack },
         { label: VIEW_LABELS[currentView] || currentView },
@@ -96,12 +107,8 @@ export const LearnHub: React.FC<LearnHubProps> = ({
         );
       case 'glossary':
         return <Glossary onBack={navigateBack} />;
-      case 'playlists':
-        return <Playlists onBack={navigateBack} />;
-      case 'videos':
-        return <Videos onBack={navigateBack} />;
-      case 'visual-guides':
-        return <VisualGuides onBack={navigateBack} />;
+      case 'reading':
+        return <LearnReadingLists onBack={navigateBack} />;
       case 'journeys':
         return <JourneysView onBack={navigateBack} />;
       case 'wisdom':
@@ -115,32 +122,25 @@ export const LearnHub: React.FC<LearnHubProps> = ({
 
   return (
     <div className="w-full animate-[fadeIn_0.5s_ease-out]">
-      <Helmet>
-        <title>Craft · Teajia</title>
-        <meta name="description" content="A practitioner toolkit for your tea practice. Courses, glossary, videos, journeys, visual guides, and shared wisdom." />
-      </Helmet>
-      {!isSubView && (
+      {/* CraftIndex carries its own <Helmet>, title/description included, so
+          the landing never renders two competing head blocks. */}
+      {isKnownSubView && (
         <PageHeader title="Craft" onCartClick={onCartClick} onAccountClick={onAccountClick} cartItemCount={cartItemCount} />
       )}
 
       {/* Always reserve breadcrumb height to prevent layout shift */}
-      <div className={`${isSubView ? 'mt-8' : 'mt-0'} min-h-[32px]`}>
-        {isSubView && <Breadcrumb segments={breadcrumbSegments} />}
+      <div className={`${isKnownSubView ? 'mt-8' : 'mt-0'} min-h-[32px]`}>
+        {isKnownSubView && <Breadcrumb segments={breadcrumbSegments} />}
       </div>
       <div
-        className={`max-w-[1400px] mx-auto transition-opacity ${reducedMotion ? '' : 'duration-300'} ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}
+        className={`${isKnownSubView ? 'max-w-[1400px] mx-auto' : ''} transition-opacity ${reducedMotion ? '' : 'duration-300'} ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}
       >
-        {isSubView ? (
+        {isKnownSubView ? (
           <>
             {renderSubView()}
           </>
         ) : (
-          <LearnOverview
-            onStoryClick={onStoryClick}
-            watchedStories={watchedStories}
-            onNavigateTo={handleNavigate}
-            onNavigateToAdvise={onNavigateToAdvise}
-          />
+          <CraftIndex />
         )}
       </div>
     </div>
