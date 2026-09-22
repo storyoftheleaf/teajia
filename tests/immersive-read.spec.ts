@@ -36,12 +36,15 @@ const OWNER_TOKEN = makeFakeJWT({
   ],
 });
 
+// Each entry's title is the Helmet title its own article component sets, so
+// the "did the article actually load" check has something exact to retry
+// against instead of a fixed sleep followed by a one-shot read of body text.
 const ROUTES = [
-  { path: '/read', name: 'index' },
-  { path: '/read/leaf-to-liquor', name: 'leaf-to-liquor' },
-  { path: '/read/rock-remembers', name: 'rock-remembers', draft: true },
-  { path: '/read/earth-water-fire', name: 'earth-water-fire', draft: true },
-  { path: '/read/before-the-mist', name: 'before-the-mist', draft: true },
+  { path: '/read', name: 'index', title: 'The Art of Tea · Read · Teajia' },
+  { path: '/read/leaf-to-liquor', name: 'leaf-to-liquor', title: 'From Leaf to Liquor · Teajia' },
+  { path: '/read/rock-remembers', name: 'rock-remembers', draft: true, title: 'The Rock Remembers · Teajia' },
+  { path: '/read/earth-water-fire', name: 'earth-water-fire', draft: true, title: 'Earth, Water, Fire · Teajia' },
+  { path: '/read/before-the-mist', name: 'before-the-mist', draft: true, title: 'Before the Mist Burns Away · Teajia' },
 ];
 
 async function checkPage(page: Page, name: string) {
@@ -49,10 +52,8 @@ async function checkPage(page: Page, name: string) {
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   page.on('pageerror', (e) => errors.push(String(e)));
 
-  // no error boundary / 404
-  const body = await page.textContent('body');
-  expect(body, `${name}: error boundary`).not.toContain('Something went wrong');
-  expect(body, `${name}: 404`).not.toMatch(/page not found/i);
+  // no error boundary
+  await expect(page.getByText('Something went wrong', { exact: false }), `${name}: error boundary`).toHaveCount(0);
 
   // no horizontal overflow
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
@@ -70,8 +71,14 @@ for (const r of ROUTES) {
         localStorage.setItem('teajia_token', token);
       }, OWNER_TOKEN);
     }
-    await page.goto(`http://localhost:7777${r.path}`, { waitUntil: 'networkidle' });
-    await page.waitForTimeout(700);
+    await page.goto(`http://localhost:7777${r.path}`, { waitUntil: 'domcontentloaded' });
+    // Auto-retrying, the way read-publish-gate.spec.ts checks a page loaded:
+    // the lazy article chunk is not necessarily in by the time navigation
+    // settles, so this polls for the article's own title instead of racing a
+    // fixed sleep. It fails outright if the article never mounts (a crash, or
+    // a draft route that landed on the not-found page instead).
+    await expect(page, `${r.name}: article never rendered (title stuck on something else)`).toHaveTitle(r.title);
+    await expect(page.getByText('Page not found', { exact: true }), `${r.name}: landed on the not-found page`).toHaveCount(0);
     await checkPage(page, r.name);
     await page.screenshot({ path: `test-results/immersive/${r.name}.png`, fullPage: false });
     // scroll to mid + end to trigger reveals
