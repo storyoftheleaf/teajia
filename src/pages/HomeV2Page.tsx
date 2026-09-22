@@ -237,7 +237,7 @@ const HomeV2Page: React.FC = () => {
               ))}
             </ul>
             <p className={`${BODY} mt-12 text-tea-text-sec`}>
-              A home for fine tea. A place to source it, study it, and share it with those who gather around the cup.
+              A home for tea. A place to source it, study it, and share it with those who gather around the cup.
             </p>
             <p className={`${BODY} italic mt-3 tracking-[0.04em] text-tea-text-dim`}>
               Honor the past. Live in the present. Build for the future.
@@ -272,14 +272,14 @@ const HomeV2Page: React.FC = () => {
   );
 };
 
-/** The three facets of jiā, in Adrian's words (2026-09-22). 家 sits in the middle and a step larger: it is the pillar the name rests on. */
+/** The three facets of jiā, in Adrian's words (2026-09-22). Three characters, one size, one sound; the sound is said once in the line above them. */
 const FACETS = [
   { zi: '佳', title: 'Excellence', text: 'With the commitment to doing whatever we do, well.', enter: 'left' as const, delay: 260 },
-  { zi: '家', title: 'Home', text: 'Both the place we live physically and energetically, connected and devoted to who we are, authentically.', enter: 'fade' as const, delay: 0, centre: true },
+  { zi: '家', title: 'Home', text: 'Both the place we live physically and energetically, connected and devoted to who we are, authentically.', enter: 'fade' as const, delay: 0 },
   { zi: '嘉', title: 'Celebration', text: 'And the act of sharing and giving, in reverence to life.', enter: 'right' as const, delay: 420 },
 ];
 
-const Facet: React.FC<(typeof FACETS)[number] & { index: number }> = ({ zi, title, text, enter, delay, centre }) => {
+const Facet: React.FC<(typeof FACETS)[number] & { index: number }> = ({ zi, title, text, enter, delay }) => {
   const reveal = useSectionReveal(enter);
   return (
     <div
@@ -287,15 +287,13 @@ const Facet: React.FC<(typeof FACETS)[number] & { index: number }> = ({ zi, titl
       className={`flex flex-col items-center ${reveal.className}`}
       style={reveal.style ? { ...reveal.style, transitionDelay: `${delay}ms` } : undefined}
     >
-      {/* One box height for all three, so the titles line up under characters of two sizes. */}
       <span
-        className={`flex items-end justify-center h-[72px] sm:h-[120px] lg:h-[clamp(96px,8.6vw,168px)] leading-none text-tea-gold ${centre ? 'text-[72px] sm:text-[120px] lg:text-[clamp(96px,8.6vw,168px)]' : 'text-[60px] sm:text-[100px] lg:text-[clamp(80px,7.2vw,140px)]'}`}
+        className="flex items-end justify-center leading-none text-tea-gold text-[64px] sm:text-[108px] lg:text-[clamp(88px,7.8vw,150px)]"
         style={{ fontFamily: "'Ma Shan Zheng', cursive" }}
       >
         {zi}
       </span>
-      <span className="font-display italic text-ui-15 tracking-[0.04em] mt-3 text-tea-gold">jiā</span>
-      <p className={`${DISPLAY} mt-2 text-tea-text`}>{title}</p>
+      <p className={`${DISPLAY} mt-4 text-tea-text`}>{title}</p>
       <p className={`${BODY} hidden sm:block mt-2 max-w-[30ch] text-tea-text-sec`}>{text}</p>
     </div>
   );
