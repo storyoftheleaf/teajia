@@ -556,3 +556,17 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     exampleUsage: 'Wild tea often has unusual and complex flavor profiles.',
   },
 ];
+
+/**
+ * The deterministic "term of the day" pick, moved here from LearnOverview.tsx
+ * (deleted with the Craft redesign) so the Craft index's Glossary row can read
+ * today's term without keeping a second copy of the same day-of-year math.
+ * Restricted to terms that carry both Chinese characters and a deep dive,
+ * same filter LearnOverview always used, and stable for the whole calendar
+ * day since it is keyed off day-of-year rather than the current instant.
+ */
+export function termOfTheDay(): GlossaryTerm {
+  const termsWithChinese = GLOSSARY_TERMS.filter((t) => t.chineseCharacters && t.deepDive);
+  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+  return termsWithChinese[dayOfYear % termsWithChinese.length] || GLOSSARY_TERMS[0];
+}

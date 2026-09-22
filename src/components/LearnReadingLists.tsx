@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Icons } from './Icons';
 import { CURATED_LISTS, FORMAT_COLORS, FORMAT_ICONS, type CuratedList, type MediaFormat } from '../data/readingListening';
 
+const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-[44px] rounded-md hover:bg-tea-text/5 px-2 -ml-2';
+
 const ICON_MAP: Record<string, React.ReactNode> = {
   Book: <Icons.Book className="w-4 h-4" />,
   Audio: <Icons.Audio className="w-4 h-4" />,
@@ -16,13 +18,22 @@ const getFormatIcon = (format: MediaFormat) => {
   return ICON_MAP[iconName] || <Icons.Book className="w-4 h-4" />;
 };
 
-export const LearnReadingLists: React.FC = () => {
+interface LearnReadingListsProps {
+  onBack: () => void;
+}
+
+export const LearnReadingLists: React.FC<LearnReadingListsProps> = ({ onBack }) => {
   const [activeListId, setActiveListId] = useState<string>(CURATED_LISTS[0]?.id || '');
 
   const activeList = CURATED_LISTS.find(l => l.id === activeListId) as CuratedList | undefined;
 
   return (
     <div>
+      <button onClick={onBack} className={BACK_BTN}>
+        <Icons.Back className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform text-tea-text-sec" />
+        <span className="font-serif text-sm text-tea-text-sec">Learn</span>
+      </button>
+
       {/* List selector pills */}
       <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-4">
         {CURATED_LISTS.map(list => (
