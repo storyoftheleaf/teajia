@@ -159,8 +159,17 @@ test.describe('selected by, on the tea', () => {
     await expect(section.getByText('Selected by')).toBeVisible();
     const rows = page.getByTestId('product-selected-by-row');
     await expect(rows).toHaveCount(2);
+    // The credit names the PERSON, never the shop: the link text is the
+    // display name and the link opens their own page. Kenji's row carries a
+    // business name in the fixture precisely so a regression to
+    // `business_name || display_name` ("Tanaka Tea House") turns this red.
     await expect(rows.nth(0)).toHaveAttribute('href', '/people/kenji-tanaka');
+    await expect(rows.nth(0).locator('.tj-people-title')).toHaveText('Kenji Tanaka');
+    await expect(rows.nth(0)).toHaveAccessibleName('Kenji Tanaka, who selected this tea');
+    await expect(rows.nth(0)).not.toContainText('Tanaka Tea House');
     await expect(rows.nth(0).locator('.italic').first()).toHaveText('Tanaka');
+    await expect(rows.nth(1)).toHaveAttribute('href', '/people/amara-osei');
+    await expect(rows.nth(1).locator('.tj-people-title')).toHaveText('Amara Osei');
     await expect(rows.nth(0)).toContainText('Soft enough for a first guest, deep enough for the last.');
     // No note: the business name stands in, so the row never reads as a bare name.
     await expect(rows.nth(1)).toContainText('At Osei Tea Imports.');
