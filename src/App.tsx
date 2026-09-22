@@ -219,6 +219,7 @@ import type { PanelView } from './components/AccountPanel/types';
 import { GlobalSearch } from './components/shared/GlobalSearch';
 import { LeftSidebar } from './components/LeftSidebar';
 import { BottomTabBar } from './components/BottomTabBar';
+import { SiteMenu } from './components/SiteMenu';
 import { sellUnitOf, wholePieceOf } from './lib/teaPricing';
 import { AdvisePage } from './components/AdvisePage';
 import AboutPage from './AboutPage';
@@ -474,6 +475,8 @@ const AppContent = () => {
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [accountInitialView, setAccountInitialView] = useState<PanelView | undefined>(undefined);
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+  // The phone's site panel, opened from the left end of the bottom bar.
+  const [showSiteMenu, setShowSiteMenu] = useState(false);
 
   // UI Feedback State
   const [toast, setToast] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
@@ -1467,7 +1470,16 @@ const AppContent = () => {
           px-0 layout still keys off isImmersiveRead); their bottom-right accent
           swatches sit above the bar's height so they don't collide. */}
       {!isFocusedShareRoute && (
-        <BottomTabBar activeSection={activeSection} onNavigate={handleNavSection} hidden={isCartOpen} onAccountClick={handleToggleAccount} onAccountClose={handleCloseAccount} isAccountOpen={showAccountModal} onSearchClick={() => { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} onSearchClose={() => setShowGlobalSearch(false)} isSearchOpen={showGlobalSearch} isAdminRoute={isAdminRoute} />
+        <BottomTabBar activeSection={activeSection} onNavigate={handleNavSection} hidden={isCartOpen} onAccountClick={() => { setShowSiteMenu(false); handleToggleAccount(); }} onAccountClose={handleCloseAccount} isAccountOpen={showAccountModal} onMenuClick={() => { if (showSiteMenu) { setShowSiteMenu(false); return; } window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(false); setShowSiteMenu(true); }} onMenuClose={() => setShowSiteMenu(false)} isMenuOpen={showSiteMenu} isAdminRoute={isAdminRoute} />
+      )}
+      {!isFocusedShareRoute && (
+        <SiteMenu
+          isOpen={showSiteMenu}
+          onClose={() => setShowSiteMenu(false)}
+          onSearchClick={() => { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }}
+          onCartClick={handleOpenCart}
+          cartItemCount={cart.length}
+        />
       )}
 
       </div>
