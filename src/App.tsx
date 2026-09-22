@@ -132,8 +132,6 @@ const ForYourSpacePage = lazy(() => import('./pages/ForYourSpacePage'));
 const SpacesPage = lazy(() => import('./pages/SpacesPage'));
 const StartHerePage = lazy(() => import('./pages/StartHerePage'));
 const DiscoverPage = lazy(() => import('./pages/DiscoverPage'));
-// The home page, since 2026-09-22. The old one stays at components/HomePage.tsx, unrouted.
-const HomeV2Page = lazy(() => import('./pages/HomeV2Page'));
 const ArticlePage = lazy(() => import('./pages/ArticlePage'));
 const ImmersiveArticlePage = lazy(() => import('./pages/ImmersiveArticlePage'));
 // Immersive long-reads (espresso + gold scrolling articles) for the Read section.
@@ -224,6 +222,12 @@ import { BottomTabBar } from './components/BottomTabBar';
 import { sellUnitOf, wholePieceOf } from './lib/teaPricing';
 import { AdvisePage } from './components/AdvisePage';
 import AboutPage from './AboutPage';
+// The home page, since 2026-09-22 (the old one stays at components/HomePage.tsx,
+// unrouted). Imported statically, as that one was: it is the route most visitors
+// land on, and behind lazy() the first paint is the shell with the page a round
+// trip behind it. On a phone that is long enough for the smoke test to find 38
+// characters of text where it expects 50.
+import HomeV2Page from './pages/HomeV2Page';
 import Footer from './components/shared/Footer';
 import { ErrorBoundary } from './admin/components/ErrorBoundary';
 import { EmblemLoader } from './components/shared/EmblemLoader';
@@ -1002,9 +1006,7 @@ const AppContent = () => {
                     </ErrorBoundary>
                   ) : (
                   <ErrorBoundary>
-                    <Suspense fallback={<EmblemLoader />}>
-                      <HomeV2Page />
-                    </Suspense>
+                    <HomeV2Page />
                   </ErrorBoundary>
                   )
                 } />
