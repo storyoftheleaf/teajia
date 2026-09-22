@@ -7,6 +7,7 @@
  */
 
 import { test, expect, type Page } from './fixtures';
+import { primaryNav } from './helpers/navigation';
 import { findScreenEdgeOverruns } from './helpers/screenEdge';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -128,7 +129,9 @@ async function goto(page: Page, route: string) {
 }
 
 async function openPanel(page: Page) {
-  await page.locator('button[aria-label="Your Table"]').click();
+  // Both navigations carry a Your Table control now (the rail's is a glyph with
+  // the same accessible name), so ask the one this width is showing.
+  await primaryNav(page).locator('button[aria-label="Your Table"]').click();
   // Wait for panel backdrop to appear
   await page.waitForSelector('.fixed.inset-0', { timeout: 4000 }).catch(() => {});
   await page.waitForTimeout(500);
@@ -266,25 +269,30 @@ test.describe('Account Panel — mobile audit', () => {
     }
   });
 
-  test('orders tile closes the panel and opens order activity for a Sell-capable account', async ({ page }) => {
+  // Your Table is the person's room and Manage is one door. The door is the
+  // tile that has to follow the JWT-confirmed active account: it must not
+  // open a shop the server has not yet confirmed the token for.
+  test('the manage door closes the panel and opens the workshop for an owner', async ({ page }) => {
     await injectAuth(page);
     await goto(page, '/');
     await openPanel(page);
 
-    await page.getByRole('button', { name: /orders/i }).click();
-    await expect(page).toHaveURL(/\/admin\/activity\?tab=orders/);
+    await page.getByRole('button', { name: /^manage/i }).click();
+    await expect(page).toHaveURL(/\/admin\//);
     await expect(page.locator('.fixed.top-0.right-0')).toHaveCount(0);
   });
 
-  test('orders tile is absent without the Sell capability', async ({ page }) => {
+  test('the manage door is absent without a Manage room, and the person\'s orders are not', async ({ page }) => {
     await injectNoSellAuth(page);
     await goto(page, '/');
     await openPanel(page);
 
-    await expect(page.getByRole('button', { name: /orders/i })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^manage/i })).toHaveCount(0);
+    await page.getByRole('button', { name: /^orders/i }).click();
+    await expect(page).toHaveURL(/\/account\/orders/);
   });
 
-  test('orders authority follows the JWT-confirmed active account across a switch', async ({ page }) => {
+  test('the manage door follows the JWT-confirmed active account across a switch', async ({ page }) => {
     let releaseSwitch: (() => void) | undefined;
     const switchStarted = new Promise<void>(resolve => { releaseSwitch = resolve; });
     let bSwitchCount = 0;
@@ -318,7 +326,7 @@ test.describe('Account Panel — mobile audit', () => {
     await goto(page, '/');
     await openPanel(page);
 
-    const orders = page.getByRole('button', { name: /orders/i });
+    const orders = page.getByRole('button', { name: /^manage/i });
     await expect(orders).toBeVisible();
     await page.getByRole('button', { name: /switch account/i }).click();
     await page.getByRole('option', { name: /Member Table/i }).click();

@@ -1,7 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BowlSteam, CalendarBlank, Heart, Tray, ArrowsLeftRight, Wrench, Path, BookOpen, Compass, Package, NotePencil, IdentificationCard, Receipt, Storefront, UsersThree } from '@phosphor-icons/react';
-import { ADMIN_CONNECTION_ROUTES } from '../navigationConnections';
+import { BowlSteam, CalendarBlank, Heart, Tray, ArrowsLeftRight, Wrench, Path, BookOpen, Compass, Package, IdentificationCard, Receipt, Flask, Footprints, GearSix } from '@phosphor-icons/react';
 import { NeedsAttention, daysWord } from './primitives';
 import type { TeaMasterReadiness } from '../readiness/teaMasterReadiness';
 import type { AttentionItem } from '../../lib/api';
@@ -28,15 +27,17 @@ interface LaunchpadViewProps {
   locationLabel: string | null;
 
   // Tier
-  isOwner: boolean;
   /**
-   * The global account type, which is a narrower thing than owning this shop.
-   * An invited tea master owns their table without being platform staff, and
-   * the two tiles gated on this open pages that admit platform staff only.
+   * Whether this person has a Manage room at the active table, as the
+   * navigation sees it, AND the token in hand is scoped to that table. The
+   * second half is what keeps the door from appearing for a table the server
+   * has not yet confirmed after a switch.
    */
+  hasManageRoom: boolean;
+  /** The first Manage room this person may open; where the door leads. */
+  manageEntryPath: string;
+  /** Platform staff only: the walk-throughs and the docs library. */
   isPlatformOwner: boolean;
-  canPublish: boolean;
-  canSell: boolean;
   membershipsCount: number;
 
   // Signals
@@ -235,10 +236,9 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
   roleBadgeLabel,
   accountName,
   locationLabel,
-  isOwner,
+  hasManageRoom,
+  manageEntryPath,
   isPlatformOwner,
-  canPublish,
-  canSell,
   membershipsCount,
   pendingInvoiceCount,
   todayEventCount,
@@ -362,33 +362,50 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
       icon: <IdentificationCard {...ICON_PROPS} />,
       onClick: () => { onClose(); navigate('/account/profile'); },
     },
-    ...(canSell ? [{
+    // The person's own records. Every one of these is theirs, not the shop's:
+    // what they bought, the samples they asked for, where they have been,
+    // and their own name and password. Until 2026-09-22 none of the four had
+    // a door anywhere on the site, while the tile labelled "orders" opened
+    // the shop's sales.
+    {
       id: 'orders',
       verb: 'orders',
-      hint: 'sales & fulfillment',
+      hint: 'what you have bought',
       icon: <Receipt {...ICON_PROPS} />,
-      onClick: () => { onClose(); navigate('/admin/activity?tab=orders'); },
-    } as LaunchpadTile] : []),
-    // Collections are the shareable unit. Curators (publish bundle) get their
-    // create/manage home; everyone else gets their shelf of collections shared
-    // with or saved by them.
-    canPublish ? {
+      onClick: () => { onClose(); navigate('/account/orders'); },
+    },
+    {
+      id: 'samples',
+      verb: 'samples',
+      hint: 'tasting samples',
+      icon: <Flask {...ICON_PROPS} />,
+      onClick: () => { onClose(); navigate('/account/samples'); },
+    },
+    {
+      id: 'journey',
+      verb: 'journey',
+      hint: 'sessions, teas met, seals',
+      icon: <Footprints {...ICON_PROPS} />,
+      onClick: () => { onClose(); navigate('/account/journey'); },
+    },
+    {
       id: 'collections',
       verb: 'collections',
       hint: inboundUnreadCount > 0
         ? inboundUnreadCount === 1 ? 'one share to open' : `${inboundUnreadCount} shares to open`
-        : 'curate & share',
+        : 'shared with you',
       icon: <Tray {...ICON_PROPS} />,
       badge: inboundUnreadCount > 0 ? inboundUnreadCount : undefined,
       accent: inboundUnreadCount > 0,
-      onClick: () => { onClose(); navigate('/admin/collections'); },
-    } as LaunchpadTile : {
-      id: 'collections',
-      verb: 'collections',
-      hint: 'shared with you',
-      icon: <Tray {...ICON_PROPS} />,
       onClick: () => { onClose(); navigate('/account/collections'); },
-    } as LaunchpadTile,
+    },
+    {
+      id: 'account',
+      verb: 'account',
+      hint: 'name, email, password',
+      icon: <GearSix {...ICON_PROPS} />,
+      onClick: () => { onClose(); navigate('/account/settings'); },
+    },
     ...(membershipsCount > 1 ? [{
       id: 'switch',
       verb: 'switch',
@@ -396,9 +413,13 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
       icon: <ArrowsLeftRight {...ICON_PROPS} />,
       onClick: onOpenLocationSwitcher,
     } as LaunchpadTile] : []),
-    ...(isOwner ? [{
-      id: 'workshop',
-      verb: 'workshop',
+    // The one door. Your Table is the person; Manage is the shop. Everything
+    // this tile used to sit beside (orders, write, helpers, table settings,
+    // tea masters, wisdom) lives only in Manage now, under the words the
+    // Manage column uses, so nothing is named twice.
+    ...(hasManageRoom ? [{
+      id: 'manage',
+      verb: 'manage',
       hint: attentionIsShowing
         ? 'tools & records'
         : pendingInvoiceCount > 0
@@ -407,48 +428,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
       icon: <Wrench {...ICON_PROPS} />,
       badge: !attentionIsShowing && pendingInvoiceCount > 0 ? pendingInvoiceCount : undefined,
       accent: !attentionIsShowing && pendingInvoiceCount > 0,
-      onClick: () => { onClose(); navigate('/admin/dashboard'); },
-    } as LaunchpadTile] : []),
-    ...(canPublish ? [{
-      id: 'write',
-      verb: 'write',
-      hint: 'create an article',
-      icon: <NotePencil {...ICON_PROPS} />,
-      onClick: () => { onClose(); navigate('/admin/magazine'); },
-    } as LaunchpadTile] : []),
-    ...(isOwner ? [{
-      // The shop's own record: its name, its contact, its currency, and the
-      // control that opens it to buyers. Reachable from here because the setup
-      // card that used to point at it goes away once setup is finished, and a
-      // tea master still needs to come back and change a tagline in a year.
-      id: 'table-settings',
-      verb: 'table settings',
-      hint: 'your shop\u2019s own details',
-      icon: <Storefront {...ICON_PROPS} />,
-      onClick: () => { onClose(); navigate('/admin/account-settings'); },
-    } as LaunchpadTile] : []),
-    ...(isOwner ? [{
-      // Inviting someone to help was reachable only through screens a tea
-      // master could not open, so in practice nobody could add their own staff.
-      id: 'helpers',
-      verb: 'helpers',
-      hint: 'who can help run this',
-      icon: <UsersThree {...ICON_PROPS} />,
-      onClick: () => { onClose(); navigate('/admin/access'); },
-    } as LaunchpadTile] : []),
-    ...(isOwner ? [{
-      id: 'tea-masters',
-      verb: 'tea masters',
-      hint: 'profiles & associations',
-      icon: <IdentificationCard {...ICON_PROPS} />,
-      onClick: () => { onClose(); navigate(ADMIN_CONNECTION_ROUTES.teaMasters); },
-    } as LaunchpadTile] : []),
-    ...(canPublish ? [{
-      id: 'wisdom',
-      verb: 'wisdom',
-      hint: 'knowledge & relationships',
-      icon: <Compass {...ICON_PROPS} />,
-      onClick: () => { onClose(); navigate(ADMIN_CONNECTION_ROUTES.wisdom); },
+      onClick: () => { onClose(); navigate(manageEntryPath); },
     } as LaunchpadTile] : []),
     // Both destination pages admit platform staff only and say so on arrival,
     // so offering them to a shop owner is offering a door that refuses them.

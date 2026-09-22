@@ -29,54 +29,58 @@ const baseProps = {
   onSignOut: () => undefined,
 };
 
-const render = (isOwner: boolean, canPublish: boolean, canSell = false) => renderToStaticMarkup(
+const render = (tier: { hasManageRoom?: boolean; isPlatformOwner?: boolean } = {}) => renderToStaticMarkup(
   <MemoryRouter>
-    {React.createElement(LaunchpadView, { ...baseProps, isOwner, canPublish, canSell } as never)}
+    {React.createElement(LaunchpadView, {
+      ...baseProps,
+      hasManageRoom: tier.hasManageRoom ?? false,
+      manageEntryPath: '/admin/dashboard',
+      isPlatformOwner: tier.isPlatformOwner ?? false,
+    } as never)}
   </MemoryRouter>,
 );
 
-describe('Launchpad operating-program entrances', () => {
-  it('shows Tea Master stewardship and Wisdom to an owner', () => {
-    const html = render(true, true);
-    expect(html).toContain('tea masters');
-    expect(html).toContain('profiles &amp; associations');
-    expect(html).toContain('knowledge &amp; relationships');
+// Your Table is the person's room. Every tile is theirs, and the shop is one
+// door. Until 2026-09-22 nine of an owner's seventeen tiles opened the Manage
+// area under words the Manage column did not use, while the person's own
+// orders, samples, journey and account pages had no door anywhere.
+describe('Launchpad: the person\'s room', () => {
+  it('gives everyone their own pages, whoever they are', () => {
+    for (const html of [render(), render({ hasManageRoom: true })]) {
+      // Tiles are buttons that navigate, so the markup carries the words, not hrefs.
+      for (const verb of ['orders', 'samples', 'journey', 'account', 'collections']) {
+        expect(html).toContain('>' + verb + '<');
+      }
+      expect(html).toContain('what you have bought');
+      expect(html).toContain('shared with you');
+    }
   });
 
-  it('does not expose owner-only Tea Master stewardship to a reader', () => {
-    const html = render(false, false);
-    expect(html).not.toContain('profiles &amp; associations');
-    expect(html).not.toContain('knowledge &amp; relationships');
-  });
-
-  it('shows Wisdom to a delegated publisher even when they are not an owner or staff role', () => {
-    const html = render(false, true);
-    expect(html).toContain('knowledge &amp; relationships');
-  });
-
-  it('does not treat a staff role without the Publish bundle as Wisdom access', () => {
-    const html = render(false, false);
-    expect(html).not.toContain('knowledge &amp; relationships');
-    expect(html).toContain('shared with you');
-    expect(html).not.toContain('curate &amp; share');
-    expect(html).not.toContain('create an article');
-  });
-
-  it('gives a delegated publisher the publishing entrances regardless of staff tier', () => {
-    const html = render(false, true);
-    expect(html).toContain('curate &amp; share');
-    expect(html).toContain('create an article');
-  });
-
-  it('shows orders to someone with the Sell capability', () => {
-    const html = render(false, false, true);
-    expect(html).toContain('orders');
-    expect(html).toContain('sales &amp; fulfillment');
-  });
-
-  it('does not expose orders without the Sell capability', () => {
-    const html = render(false, false, false);
+  it('never calls the shop\'s sales the person\'s orders', () => {
+    const html = render({ hasManageRoom: true });
+    expect(html).toContain('what you have bought');
     expect(html).not.toContain('sales &amp; fulfillment');
+  });
+
+  it('offers one door to Manage, and nothing else from Manage', () => {
+    const html = render({ hasManageRoom: true });
+    expect(html).toContain('>manage<');
+    expect(html).toContain('all settled');
+    for (const gone of ['create an article', 'curate &amp; share', 'who can help run this', 'your shop', 'profiles &amp; associations', 'knowledge &amp; relationships', 'tools &amp; records']) {
+      expect(html).not.toContain(gone);
+    }
+  });
+
+  it('shows no door at all to someone without a Manage room', () => {
+    const html = render();
+    expect(html).not.toContain('>manage<');
+    expect(html).not.toContain('all settled');
+    expect(html).not.toContain('tools &amp; records');
+  });
+
+  it('keeps the platform tools for platform staff only', () => {
+    expect(render({ isPlatformOwner: true })).toContain('>walk-throughs<');
+    expect(render({ hasManageRoom: true })).not.toContain('>walk-throughs<');
   });
 });
 
@@ -122,9 +126,9 @@ const renderWaiting = (
   <MemoryRouter>
     {React.createElement(LaunchpadView, {
       ...baseProps,
-      isOwner: tier.isOwner ?? false,
-      canPublish: tier.canPublish ?? false,
-      canSell: tier.canSell ?? false,
+      hasManageRoom: tier.isOwner ?? false,
+      manageEntryPath: '/admin/dashboard',
+      isPlatformOwner: false,
       attentionItems,
     } as never)}
   </MemoryRouter>,
@@ -176,7 +180,7 @@ describe('Launchpad: what needs you', () => {
     expect(html).not.toContain('the table is clear.');
   });
 
-  it('stops the workshop tile counting the same shop twice', () => {
+  it('stops the manage door counting the same shop twice', () => {
     const withQueue = renderWaiting(waitingFixture, { isOwner: true, canSell: true });
     expect(withQueue).toContain('tools &amp; records');
     // With no queue showing, the tile keeps its own long-standing voice.
@@ -194,9 +198,9 @@ const renderSetup = (readiness: unknown) => renderToStaticMarkup(
   <MemoryRouter>
     {React.createElement(LaunchpadView, {
       ...baseProps,
-      isOwner: true,
-      canPublish: false,
-      canSell: false,
+      hasManageRoom: true,
+      manageEntryPath: '/admin/dashboard',
+      isPlatformOwner: false,
       readiness,
     } as never)}
   </MemoryRouter>,
