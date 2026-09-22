@@ -1,34 +1,48 @@
 /**
- * The one live/draft map for the Craft index, keyed by each row's href.
+ * The one state map for the Craft index, keyed by each row's own key (not
+ * its href, since two rows, Playlists and Brewing by Tea Type, have no href
+ * at all yet: they are a promise, not a place).
  *
- * Adrian's rule, 2026-09-22, in his words: nothing in Craft was written by
- * him except the glossary, so visitors get the glossary alone, "a taste", and
- * the other rows appear one at a time as he finishes them. A row not listed
- * here, or listed `false`, is a draft: the owner sees it dimmed and tagged,
- * a visitor does not see it at all. Flip a row to `true` here and it is live
- * in the contents, in the numbering and in the cover rail in one edit.
+ * Adrian's rule, 2026-09-22, in his words: "let's look at the six pieces,
+ * but I want there to be images and I want it to be something people are
+ * interested in... Even if it's coming soon, we have an image of what will
+ * be built, then 'coming soon', and in the background the template that
+ * displays what we're building, but it doesn't link in, so people don't get
+ * into the construction side." That gives Craft three states, not two:
  *
- * A /read/* row answers to BOTH this map and `articleLive.ts`: it is live in
- * Craft only when Adrian has said so here AND the piece itself is published
- * in Read. That keeps Craft from ever linking a visitor to an article Read
- * would refuse to show them.
+ *   live  - a real row, a real link, numbered in the contents.
+ *   soon  - a title, a dek and a photo a visitor can see, with no way in.
+ *           The owner still reaches it when it carries an href.
+ *   draft - the owner's own workshop. A visitor never sees the row at all.
  *
- * Import-light on purpose, the same shape as `articleLive.ts`: no React, no
- * store, so a test or an edge function can read the map without pulling in
- * the page.
+ * A key missing from this map reads as 'draft', the same fail-closed
+ * default as articleLive.ts, so a new row cannot go public by being
+ * forgotten. A /read/* row also has to pass isArticleVisible, so Craft can
+ * never link a visitor to an article Read itself would refuse to show them.
+ *
+ * Flip a key here and it moves in one edit: the contents list, the
+ * numbering, and the cover rail all read this one map.
  */
-export const CRAFT_LIVE: Record<string, boolean> = {
-  '/read/ritual': false,
-  '/read/field-study': false,
-  '/read/porcelain-and-tea': false,
-  '/read/craft': false,
-  '/read/tasting': false,
-  '/craft?v=journeys': false,
-  '/discover': false,
-  '/wisdom': false,
-  '/craft?v=glossary': true,
-  '/craft?v=course': false,
-  '/craft?v=reading': false,
-  '/craft?v=spaces': false,
-  '/craft?v=wisdom': false,
+export type CraftState = 'live' | 'soon' | 'draft';
+
+export const CRAFT_STATE: Record<string, CraftState> = {
+  // Brew
+  ritual: 'live',
+  'field-study': 'draft',
+  porcelain: 'live',
+  pot: 'draft',
+  'brew-by-type': 'soon',
+  // Taste
+  tasting: 'live',
+  journeys: 'soon',
+  discover: 'live',
+  // Know
+  reference: 'live',
+  glossary: 'live',
+  foundations: 'soon',
+  reading: 'soon',
+  // Room
+  spaces: 'soon',
+  'shared-wisdom': 'soon',
+  playlists: 'soon',
 };

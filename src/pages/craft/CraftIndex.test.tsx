@@ -17,8 +17,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
-import CraftIndex from './CraftIndex';
-import { CRAFT_LIVE } from './craftLive';
+import CraftIndex, { CRAFT_ROW_KEYS } from './CraftIndex';
+import { CRAFT_STATE } from './craftLive';
 import { GLOSSARY_TERMS } from '../../data/glossary';
 
 const store = vi.hoisted(() => {
@@ -56,79 +56,90 @@ function render(): string {
   );
 }
 
-// Adrian's rule, 2026-09-22: a visitor sees only what he wrote, which today
-// is the glossary alone (see craftLive.ts). Everything else is a draft the
-// owner sees dimmed. When a row is flipped live there, move its title from
-// DRAFT_TITLES to LIVE_TITLES here, on purpose.
-const LIVE_TITLES = ['The Glossary'];
-const DRAFT_TITLES = [
-  'Seven Steeps', 'Water Before Leaf', 'Porcelain and Tea', 'The Pot That Remembers',
-  'The Vocabulary of Taste', 'Three Journeys', 'Discover Your Tea', 'The Tea Reference',
-  'Six Foundations', 'Reading and Listening', 'Six Tea Spaces', 'Shared Wisdom',
-];
+// Adrian's rule, 2026-09-22: a visitor gets three tiers. LIVE_TITLES are real
+// pieces, real links. SOON_TITLES are a photograph and a title with no way
+// in. DRAFT_TITLES are the owner's own workshop, invisible to a visitor.
+// When a row's state changes in craftLive.ts, move its title between these
+// lists here, on purpose.
+const LIVE_TITLES = ['Seven Steeps', 'Porcelain and Tea', 'The Vocabulary of Taste', 'The Tea Reference', 'The Glossary', 'Discover Your Tea'];
+const SOON_TITLES = ['Brewing by Tea Type', 'Playlists', 'Three Journeys', 'Six Foundations', 'Reading and Listening', 'Six Tea Spaces', 'Shared Wisdom'];
+const DRAFT_TITLES = ['Water Before Leaf', 'The Pot That Remembers'];
+
+const LIVE_HREFS = ['/read/ritual', '/read/porcelain-and-tea', '/read/tasting', '/wisdom', '/craft?v=glossary', '/discover'];
+const SOON_HREFS = ['/craft?v=journeys', '/craft?v=course', '/craft?v=reading', '/craft?v=spaces', '/craft?v=wisdom'];
 
 describe('CraftIndex, visitor', () => {
   const html = (() => { signOut(); return render(); })();
 
-  it('shows the glossary and nothing Adrian did not write', () => {
+  it('shows the six finished pieces, as links', () => {
     for (const title of LIVE_TITLES) {
       expect(html, `expected to find "${title}"`).toContain(title);
     }
+    for (const href of LIVE_HREFS) {
+      expect(html, `expected a link to "${href}"`).toContain(`href="${href}"`);
+    }
+  });
+
+  it('shows the seven coming-soon titles, but links none of them', () => {
+    for (const title of SOON_TITLES) {
+      expect(html, `expected to find "${title}"`).toContain(title);
+    }
+    for (const href of SOON_HREFS) {
+      expect(html, `did not expect a link to "${href}" for a visitor`).not.toContain(`href="${href}"`);
+    }
+  });
+
+  it('never shows the owner draft titles', () => {
     for (const title of DRAFT_TITLES) {
       expect(html, `did not expect to find "${title}"`).not.toContain(title);
     }
   });
 
-  it('says one piece, to begin, and numbers it first', () => {
-    expect(html).toContain('one piece, to begin');
-    expect(html).toContain('N°01');
-    expect(html).not.toContain('N°02');
+  it('says six pieces, seven coming, and numbers only the live rows', () => {
+    expect(html).toContain('six pieces');
+    expect(html).toContain('seven coming');
+    expect(html).toContain('coming soon');
+    expect(html).toContain('N°06');
+    expect(html).not.toContain('N°07');
   });
 
-  it('leads the rail with the glossary, and links no draft doorway', () => {
-    expect(html).toContain('href="/craft?v=glossary"');
-    expect(html).not.toContain('href="/wisdom"');
-    expect(html).not.toContain('href="/discover"');
-    expect(html).not.toContain('href="/read/');
-  });
-
-  it('carries no Draft tag and no dimmed row', () => {
-    expect(html).not.toContain('>Draft<');
-    expect(html).not.toContain('opacity:0.5;');
+  it('renders the three Coming soon panels', () => {
+    expect(html).toContain('Playlists');
+    expect(html).toContain('Brewing by Tea Type');
+    expect(html).toContain('Three Journeys');
   });
 });
 
 describe('CraftIndex, the owner', () => {
   const html = (() => { signInAsOwner(); return render(); })();
 
-  it('sees every row, the drafts dimmed and tagged', () => {
-    for (const title of [...LIVE_TITLES, ...DRAFT_TITLES]) {
+  it('sees every row: live, soon and the two drafts', () => {
+    for (const title of [...LIVE_TITLES, ...SOON_TITLES, ...DRAFT_TITLES]) {
       expect(html, `expected to find "${title}"`).toContain(title);
     }
-    expect(html).toContain('opacity:0.5;');
-    expect(html).toContain('>Draft<');
-    // Twelve drafts, so twelve tags, and the one live row carries none.
-    expect(html.split('>Draft<').length - 1).toBe(DRAFT_TITLES.length);
   });
 
-  it('counts thirteen pieces, the glossary plus twelve drafts', () => {
-    expect(html).toContain('thirteen pieces');
+  it('can reach a soon row that carries an href', () => {
+    for (const href of SOON_HREFS) {
+      expect(html, `expected the owner to have a link to "${href}"`).toContain(`href="${href}"`);
+    }
+  });
+
+  it('tags exactly the two drafts, dimmed', () => {
+    expect(html).toContain('opacity:0.5;');
+    expect(html.split('>Draft<').length - 1).toBe(DRAFT_TITLES.length);
   });
 
   signOut();
 });
 
-describe('CraftIndex, the live map names exactly the rows the index carries', () => {
+describe('CraftIndex, the state map names exactly the rows the index carries', () => {
   it('has no orphan key and no unlisted row', () => {
-    signInAsOwner();
-    const html = render();
-    signOut();
-    const rowHrefs = new Set([...html.matchAll(/href="(\/[^"]*)"/g)].map((m) => m[1]));
-    for (const key of Object.keys(CRAFT_LIVE)) {
-      expect(rowHrefs.has(key), `craftLive.ts lists ${key}, which no row links to`).toBe(true);
+    for (const key of Object.keys(CRAFT_STATE)) {
+      expect(CRAFT_ROW_KEYS.includes(key), `craftLive.ts lists "${key}", which no row in the index carries`).toBe(true);
     }
-    for (const href of rowHrefs) {
-      expect(href in CRAFT_LIVE, `${href} is a row with no entry in craftLive.ts, so it can never go live`).toBe(true);
+    for (const key of CRAFT_ROW_KEYS) {
+      expect(key in CRAFT_STATE, `row "${key}" carries no entry in craftLive.ts, so it can never go live`).toBe(true);
     }
   });
 });
@@ -173,12 +184,18 @@ describe('CraftIndex, every href resolves somewhere real', () => {
     return views;
   }
 
-  /** Every relative href in the rendered markup, owner render so drafts count too. */
+  /**
+   * Every relative href on an actual link in the rendered markup, owner
+   * render so every reachable row counts too. Matched on `<a href>`
+   * specifically: React 19 auto-emits `<link rel="preload" as="image"
+   * href="...">` resource hints for the page's `<img>` tags (the cover and
+   * "coming soon" photographs), and those are not navigable routes.
+   */
   function renderedHrefs(): string[] {
     signInAsOwner();
     const html = render();
     signOut();
-    const hrefs = [...html.matchAll(/href="(\/[^"]*)"/g)].map((m) => m[1]);
+    const hrefs = [...html.matchAll(/<a\s[^>]*href="(\/[^"]*)"/g)].map((m) => m[1]);
     return [...new Set(hrefs)];
   }
 
