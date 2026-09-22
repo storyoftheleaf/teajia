@@ -134,9 +134,23 @@ const HomeV2Page: React.FC = () => {
           >
             Tea deepens with what<br className="hidden xl:inline" /> you bring to the table<br className="hidden xl:inline" /> and what you leave behind.
           </h1>
-          <p className={`${BODY} mt-8 text-tea-text-sec`}>
-            A home for fine tea.
-          </p>
+          <nav aria-label="Homepage destinations" className="mt-8 flex flex-col items-start gap-0">
+            {[
+              { accent: 'Source', rest: ' your tea.', to: '/shop' },
+              { accent: 'Discover', rest: ' the stories.', to: '/read' },
+              { accent: 'Deepen', rest: ' your practice.', to: '/craft' },
+              { accent: 'Create', rest: ' the spaces to share.', to: '/advise' },
+            ].map(item => (
+              <Link
+                key={item.to}
+                to={item.to}
+                className={`group tap-target inline-flex items-baseline gap-1 whitespace-nowrap rounded-md py-0 ${BODY} tracking-[0.015em] text-tea-text-sec transition-colors duration-300 hover:text-tea-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg`}
+              >
+                <span className="font-medium text-tea-gold">{item.accent}</span>
+                <span className="underline decoration-tea-gold/0 underline-offset-[4px] transition-all duration-300 group-hover:decoration-tea-gold/30">{item.rest}</span>
+              </Link>
+            ))}
+          </nav>
           {/* The opener's way in: the live page's own two. Start here goes to
               the house, where jiā is explained. */}
           <p className={`${META} mt-5 flex flex-wrap gap-x-5 gap-y-1 text-tea-text-sec`}>
@@ -200,24 +214,7 @@ const HomeV2Page: React.FC = () => {
         aria-label="The house"
         className={`${MOVEMENT} scroll-mt-6 grid grid-cols-1 lg:grid-cols-[var(--teajia-sidebar-w)_1fr_1fr] bg-tea-surface`}
       >
-        <div className="lg:col-start-2 px-6 sm:px-10 lg:pl-[4rem] lg:pr-16 pt-14 sm:pt-16 lg:pt-24 pb-12 lg:pb-24 flex flex-col justify-center gap-12">
-          <nav aria-label="Homepage destinations" className="flex flex-col items-start gap-2">
-            {[
-              { accent: 'Source', rest: ' your tea.', to: '/shop' },
-              { accent: 'Discover', rest: ' the stories.', to: '/read' },
-              { accent: 'Deepen', rest: ' your practice.', to: '/craft' },
-              { accent: 'Create', rest: ' the spaces to share.', to: '/advise' },
-            ].map(item => (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={`group tap-target inline-flex items-baseline gap-1 whitespace-nowrap rounded-md py-0.5 ${BODY} tracking-[0.015em] text-tea-text-sec transition-colors duration-300 hover:text-tea-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-surface`}
-              >
-                <span className="font-medium text-tea-gold">{item.accent}</span>
-                <span className="underline decoration-tea-gold/0 underline-offset-[4px] transition-all duration-300 group-hover:decoration-tea-gold/30">{item.rest}</span>
-              </Link>
-            ))}
-          </nav>
+        <div className="lg:col-start-2 px-6 sm:px-10 lg:pl-[4rem] lg:pr-16 pt-14 sm:pt-16 lg:pt-24 pb-12 lg:pb-24 flex flex-col justify-center">
           <div className="max-w-[360px]">
             <p className={`${BODY} italic tracking-[0.04em] text-tea-text-dim`}>stay connected</p>
             <p className={`${DISPLAY} italic mt-1 text-tea-text`}>it&apos;s nothing without you</p>
