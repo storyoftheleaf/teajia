@@ -13,9 +13,9 @@ import StoryEditorBar from './read/StoryEditorBar';
 import type { PublicProduct } from '../types';
 
 /**
- * The home page. Cover C from the 2026-09-20 round, built beside the old
- * page at /v2 and swapped in on 2026-09-22. The old page stays in
- * components/HomePage.tsx, unrouted, until the next cleanup.
+ * The home page. Cover C from the 2026-09-20 round, built beside the old page
+ * at /v2, swapped in on 2026-09-22, and the page it replaced deleted the same
+ * day.
  *
  * Three movements, one spacing unit between them, no horizontal rules:
  *

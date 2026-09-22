@@ -6,7 +6,6 @@
 
 - [ ] Home page: three real photographs for the plates (the porcelain portrait on its story page, the tea's image in the admin, and the consult) so the Unsplash stand-ins can go _(band: you-required)_ _(effort: quick)_
 - [ ] Home page: flag one tea as featured in the admin so the plate stops picking the oldest lot _(band: you-required)_ _(effort: quick)_
-- [ ] Remove the old home page (components/HomePage.tsx and what only it imports) once the new one has held for a week _(band: agent-runnable)_ _(effort: moderate)_
 - [ ] Real portraits and tea photos for the first creators _(band: you-required)_ _(effort: quick)_
   The seeded creators use stock portraits and the catalogue has no tea photos, so the profile page and the directory cannot be judged on real material until Adrian supplies it. The page itself shipped 2026-09-21 (see the archive); the editor is the line below.
 - [ ] Restyle the tea master's own editing page in the profile's language, seven boards drawn on the canvas, forms stay as they are until then _(band: you-required)_ _(effort: deep)_ → Plan: [tea-master-editing-boards.md](todo/plans/tea-master-editing-boards.md)
