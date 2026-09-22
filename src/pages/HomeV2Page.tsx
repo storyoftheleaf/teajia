@@ -134,6 +134,7 @@ const HomeV2Page: React.FC = () => {
           >
             Tea deepens with what<br className="hidden xl:inline" /> you bring to the table<br className="hidden xl:inline" /> and what you leave behind.
           </h1>
+          {/* No tap-target here: it sets a 44px floor per line, which read as a blank line between each. The 26px line box clears the 24px AA target size on its own. */}
           <nav aria-label="Homepage destinations" className="mt-8 flex flex-col items-start gap-0">
             {[
               { accent: 'Source', rest: ' your tea.', to: '/shop' },
@@ -144,7 +145,7 @@ const HomeV2Page: React.FC = () => {
               <Link
                 key={item.to}
                 to={item.to}
-                className={`group tap-target inline-flex items-baseline gap-1 whitespace-nowrap rounded-md py-0 ${BODY} tracking-[0.015em] text-tea-text-sec transition-colors duration-300 hover:text-tea-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg`}
+                className={`group inline-flex items-baseline gap-1 whitespace-nowrap rounded-md py-0 ${BODY} tracking-[0.015em] text-tea-text-sec transition-colors duration-300 hover:text-tea-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg`}
               >
                 <span className="font-medium text-tea-gold">{item.accent}</span>
                 <span className="underline decoration-tea-gold/0 underline-offset-[4px] transition-all duration-300 group-hover:decoration-tea-gold/30">{item.rest}</span>
