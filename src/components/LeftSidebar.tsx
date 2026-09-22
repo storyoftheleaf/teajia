@@ -327,7 +327,13 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     `font-display text-ui-14 lowercase tracking-[0.04em] leading-none transition-colors duration-200 ${
       active ? 'text-tea-gold font-semibold' : 'text-tea-text-sec hover:text-tea-text'
     }`;
-  const footWord = 'font-display text-ui-13 lowercase tracking-[0.04em] leading-none text-tea-text-sec hover:text-tea-text transition-colors duration-200';
+  // Active is decided here, not appended after: the stylesheet orders
+  // text-tea-gold before text-tea-text-sec, so a gold class tacked on the end
+  // of a string that already carries the secondary colour never wins.
+  const footWord = (active = false) =>
+    `font-display text-ui-13 lowercase tracking-[0.04em] leading-none transition-colors duration-200 ${
+      active ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
+    }`;
   const activeGlow: React.CSSProperties = {
     filter: 'drop-shadow(0 0 8px rgb(var(--tea-gold-rgb) / 0.75)) drop-shadow(0 0 18px rgb(var(--tea-gold-rgb) / 0.32))',
   };
@@ -412,12 +418,12 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         <div className="flex-1" />
 
         <nav className="flex flex-col items-center gap-[18px]" aria-label="Utilities">
-          <button onClick={onSearchClick} className={`nav-rail-word ${footWord}`} title="Search (⌘K)">
+          <button onClick={onSearchClick} className={`nav-rail-word ${footWord()}`} title="Search (⌘K)">
             Search
           </button>
           <button
             onClick={onAccountClick}
-            className={`nav-rail-word ${footWord} ${activeSection === 'YOUR_TABLE' ? 'text-tea-gold' : ''}`}
+            className={`nav-rail-word ${footWord(activeSection === 'YOUR_TABLE')}`}
             title="Your Table"
           >
             Your Table
@@ -425,7 +431,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           </button>
           <button
             onClick={onCartClick}
-            className={`nav-rail-word ${footWord} flex items-baseline gap-1`}
+            className={`nav-rail-word ${footWord()} flex items-baseline gap-1`}
             title="Cart"
             aria-label={cartItemCount > 0 ? `Cart, ${cartItemCount} item${cartItemCount !== 1 ? 's' : ''}` : 'Cart'}
           >
@@ -442,18 +448,21 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               </span>
             )}
           </button>
-          <Link to="/spaces" className={`nav-rail-word ${footWord} ${currentPath === '/spaces' ? 'text-tea-gold' : ''}`} title="Connections">
+          <Link to="/people" className={`nav-rail-word ${footWord(currentPath.startsWith('/people'))}`} title="People">
+            People
+          </Link>
+          <Link to="/spaces" className={`nav-rail-word ${footWord(currentPath === '/spaces')}`} title="Connections">
             Connections
           </Link>
           {hasSettingsRoute && (
-            <Link to="/admin/settings" className={`nav-rail-word ${footWord} ${currentPath.startsWith('/admin/settings') ? 'text-tea-gold' : ''}`} title="Settings">
+            <Link to="/admin/settings" className={`nav-rail-word ${footWord(currentPath.startsWith('/admin/settings'))}`} title="Settings">
               Settings
             </Link>
           )}
           <button
             type="button"
             onClick={(e) => toggleTheme(e)}
-            className={`nav-rail-word ${footWord}`}
+            className={`nav-rail-word ${footWord()}`}
             title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           >
