@@ -152,11 +152,10 @@ const HomeV2Page: React.FC = () => {
               </Link>
             ))}
           </nav>
-          {/* The opener's way in: the live page's own two. Start here goes to
-              the house, where jiā is explained. */}
-          <p className={`${META} mt-5 flex flex-wrap gap-x-5 gap-y-1 text-tea-text-sec`}>
+          {/* The opener's way in. Start here goes to the house, where jiā is
+              explained. Discover your tea lives in Craft now, not here. */}
+          <p className={`${META} mt-5 text-tea-text-sec`}>
             <a href="#the-house" className="hover:text-tea-gold transition-colors duration-300">New here? Start here</a>
-            <Link to="/discover" className="hover:text-tea-gold transition-colors duration-300">Discover your tea</Link>
           </p>
         </div>
         <div

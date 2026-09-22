@@ -225,6 +225,8 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
             { kind: 'view' as const, id: 'glossary' as LearnView, label: 'Glossary', sub: 'The language of tea, demystified', icon: <Icons.Book className="w-5 h-5" />, iconColor: 'text-tea-gold/40' },
             { kind: 'route' as const, to: '/wisdom', label: 'Tea Reference', sub: 'Plants, places, producers, styles and named teas', icon: <Icons.Leaf className="w-5 h-5" />, iconColor: 'text-tea-gold/40' },
             { kind: 'view' as const, id: 'journeys' as LearnView, label: 'Journeys', sub: 'Guided tastings to shape your palate', icon: <Icons.MapPin className="w-5 h-5" />, iconColor: 'text-tea-gold/40' },
+            // Moved here from the home page on 2026-09-22: discovery is craft, not the front door.
+            { kind: 'route' as const, to: '/discover', label: 'Discover your tea', sub: 'A few quiet questions, and where to begin', icon: <Icons.Cup className="w-5 h-5" />, iconColor: 'text-tea-gold/40' },
             { kind: 'view' as const, id: 'playlists' as LearnView, label: 'Playlists', sub: 'Music for tea time', icon: <Icons.Music className="w-5 h-5" />, iconColor: 'text-tea-gold/35' },
             { kind: 'view' as const, id: 'videos' as LearnView, label: 'Videos', sub: 'Watch & learn', icon: <Icons.Film className="w-5 h-5" />, iconColor: 'text-tea-gold/40' },
             { kind: 'view' as const, id: 'visual-guides' as LearnView, label: 'Guides', sub: 'Charts & references', icon: <Icons.Download className="w-5 h-5" />, iconColor: 'text-tea-gold/35' },
