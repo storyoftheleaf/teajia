@@ -120,7 +120,7 @@ const GuestInviteClaimPage: React.FC = () => {
           <p className="text-ui-13 text-tea-text-sec text-center leading-relaxed mb-6">
             You can still request a spot directly:{' '}
             <a
-              href={`/events/${expiredEvent.slug}`}
+              href={`/event/${expiredEvent.slug}`}
               className="link-text hover:opacity-80 transition-opacity"
             >
               check if seats are available
