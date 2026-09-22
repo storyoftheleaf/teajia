@@ -121,14 +121,14 @@ const HomeV2Page: React.FC = () => {
     <div className="-mx-4 md:-mx-6 lg:-mr-10 lg:ml-[calc(-2.5rem-var(--teajia-sidebar-w))] lg:-mb-8 bg-tea-bg text-tea-text">
       <Helmet>
         <title>Teajia. Fine Tea &amp; Teaware</title>
-        <meta name="description" content="A home for tea. Source it, study it, and share it with those who gather around the cup." />
+        <meta name="description" content="Teajia is a home for tea. A place to source, study, and share with those who gather around the leaf." />
         <meta property="og:title" content="Teajia. Fine Tea &amp; Teaware" />
-        <meta property="og:description" content="A home for tea. Source it, study it, and share it with those who gather around the cup." />
+        <meta property="og:description" content="Teajia is a home for tea. A place to source, study, and share with those who gather around the leaf." />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Teajia. Fine Tea &amp; Teaware" />
         <link rel="preload" as="image" href={TABLE_PHOTO} />
-        <meta name="twitter:description" content="A home for tea. Source it, study it, and share it with those who gather around the cup." />
+        <meta name="twitter:description" content="Teajia is a home for tea. A place to source, study, and share with those who gather around the leaf." />
       </Helmet>
 
       {/* The opener: the statement beside the photograph of the table, the
@@ -221,7 +221,10 @@ const HomeV2Page: React.FC = () => {
       <section aria-label="The house" className={`${MOVEMENT} ${EDGE}`}>
         <div className="bg-tea-elevated px-6 sm:px-10 lg:px-16 pt-20 sm:pt-24 lg:pt-28 pb-14 sm:pb-16 lg:pb-20 flex flex-col items-center text-center">
           <LogoText size="panel" color="var(--tea-text)" />
-          <p className={`${BODY} italic mt-6 tracking-[0.06em] text-tea-text-sec`}>
+          <p className={`${BODY} mt-6 max-w-[46ch] text-tea-text-sec`}>
+            Teajia is a home for tea. A place to source, study, and share with those who gather around the leaf.
+          </p>
+          <p className={`${BODY} italic mt-8 tracking-[0.06em] text-tea-text-sec`}>
             <span className="not-italic font-semibold text-tea-gold">tea</span> · leaf and water
           </p>
           <p className={`${BODY} italic tracking-[0.06em] text-tea-text-sec`}>
@@ -241,10 +244,7 @@ const HomeV2Page: React.FC = () => {
                 </li>
               ))}
             </ul>
-            <p className={`${BODY} mt-12 text-tea-text-sec`}>
-              A home for tea. A place to source it, study it, and share it with those who gather around the cup.
-            </p>
-            <p className={`${BODY} italic mt-3 tracking-[0.04em] text-tea-text-dim`}>
+            <p className={`${BODY} italic mt-12 tracking-[0.04em] text-tea-text-dim`}>
               Honor the past. Live in the present. Build for the future.
             </p>
           </div>
@@ -279,9 +279,9 @@ const HomeV2Page: React.FC = () => {
 
 /** The three facets of jiā, in Adrian's words (2026-09-22). Three characters, one size, one sound; the sound is said once in the line above them. */
 const FACETS = [
-  { zi: '佳', title: 'Excellence', text: 'With the commitment to doing whatever we do, well.', enter: 'left' as const, delay: 260 },
-  { zi: '家', title: 'Home', text: 'Both the place we live physically and energetically, connected and devoted to who we are, authentically.', enter: 'fade' as const, delay: 0 },
-  { zi: '嘉', title: 'Celebration', text: 'And the act of sharing and giving, in reverence to life.', enter: 'right' as const, delay: 420 },
+  { zi: '佳', title: 'Excellence', text: 'The commitment to doing everything we do, well.', enter: 'left' as const, delay: 260 },
+  { zi: '家', title: 'Home', text: 'The place we live physically and inside of ourself. Devoted to authenticity.', enter: 'fade' as const, delay: 0 },
+  { zi: '嘉', title: 'Celebration', text: 'The act of sharing, giving and receiving, in reverence.', enter: 'right' as const, delay: 420 },
 ];
 
 const Facet: React.FC<(typeof FACETS)[number] & { index: number }> = ({ zi, title, text, enter, delay }) => {
