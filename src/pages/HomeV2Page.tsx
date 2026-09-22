@@ -118,6 +118,12 @@ const HomeV2Page: React.FC = () => {
       <Helmet>
         <title>Teajia. Fine Tea &amp; Teaware</title>
         <meta name="description" content="A home for fine tea. Source it, study it, and share it with those who gather around the cup." />
+        <meta property="og:title" content="Teajia. Fine Tea &amp; Teaware" />
+        <meta property="og:description" content="A home for fine tea. Source it, study it, and share it with those who gather around the cup." />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Teajia. Fine Tea &amp; Teaware" />
+        <meta name="twitter:description" content="A home for fine tea. Source it, study it, and share it with those who gather around the cup." />
       </Helmet>
 
       {/* The opener: the statement beside the photograph of the table, the
@@ -157,8 +163,8 @@ const HomeV2Page: React.FC = () => {
             <Link to="/start" className="hover:text-tea-gold transition-colors duration-300">New here? Start here</Link>
           </p>
         </div>
-        <div className={`relative lg:col-start-3 min-h-[320px] sm:min-h-[420px] lg:min-h-0 overflow-hidden bg-tea-surface ${PHOTO}`}>
-          <span className={`pointer-events-none absolute left-5 bottom-4 z-10 ${META} text-tea-text-sec`}>At the table, Bali</span>
+        <div className={`relative lg:col-start-3 min-h-[320px] sm:min-h-[60vh] lg:min-h-0 overflow-hidden bg-tea-surface ${PHOTO}`}>
+          <span className={`pointer-events-none absolute left-4 bottom-4 z-10 px-2 py-1 ${META} text-tea-text-sec`} style={{ background: 'rgb(var(--tea-bg-rgb) / 0.55)' }}>At the table, Bali</span>
           <EditablePhoto
             slot="table"
             alt="At the table"
@@ -172,7 +178,7 @@ const HomeV2Page: React.FC = () => {
       {/* The table: three plates of equal width. */}
       <section
         aria-label="On the table"
-        className={`${MOVEMENT} ${EDGE} grid grid-cols-1 md:grid-cols-3 gap-y-8 md:gap-y-0 md:gap-x-[2px] ${PHOTO}`}
+        className={`mt-8 sm:mt-10 lg:mt-12 ${EDGE} grid grid-cols-1 md:grid-cols-3 gap-y-8 md:gap-y-0 md:gap-x-[2px] ${PHOTO}`}
       >
         <Plate
           to={PIECE.to}
@@ -186,7 +192,7 @@ const HomeV2Page: React.FC = () => {
           to={tea ? `/shop/product/${tea.slug ?? tea.id}` : '/shop'}
           title={tea ? tea.productName : 'On the shelf'}
           body={tea ? teaLine(tea) : 'Twenty teas, chosen one lot at a time.'}
-          meta={tea ? <>50 g · <span className="font-body text-ui-16 text-tea-text">{shopPrice.total(tea.pricePerGramUSD * 50)}</span></> : 'On the shelf'}
+          meta={tea ? <>50 g · <span className="text-tea-gold">{shopPrice.total(tea.pricePerGramUSD * 50)}</span></> : 'On the shelf'}
           src={tea?.imageUrl || TEMPLATE.tea}
         />
         <Plate
@@ -250,6 +256,15 @@ const HomeV2Page: React.FC = () => {
             </p>
           </div>
         </div>
+        {/* The footer is hidden on this page, so the way out is one line. */}
+        <p className={`${META} mt-6 pb-2 flex flex-wrap gap-x-5 gap-y-1 text-tea-text-dim`}>
+          <Link to="/events" className="hover:text-tea-text transition-colors">sessions</Link>
+          <Link to="/people" className="hover:text-tea-text transition-colors">people</Link>
+          <Link to="/spaces" className="hover:text-tea-text transition-colors">spaces</Link>
+          <Link to="/about" className="hover:text-tea-text transition-colors">about</Link>
+          <a href="https://instagram.com/teajia.journal" className="hover:text-tea-text transition-colors">instagram</a>
+          <a href="mailto:hello@teajia.com" className="hover:text-tea-text transition-colors">contact</a>
+        </p>
       </section>
       <StoryEditorBar />
     </div>
@@ -320,7 +335,7 @@ const Plate: React.FC<PlateProps> = ({ to, title, body, meta, src, crop }) => {
       onMouseLeave={() => setHover(false)}
       className="group flex flex-row md:flex-col min-h-[220px] md:min-h-0 text-tea-text-sec focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/40"
     >
-      <div className="relative shrink-0 basis-[45%] min-h-[220px] md:basis-auto md:min-h-[280px] lg:min-h-[400px] overflow-hidden bg-tea-surface">
+      <div className="relative shrink-0 basis-[45%] min-h-[220px] md:basis-auto md:min-h-0 md:aspect-[4/3] overflow-hidden bg-tea-surface">
         <img
           src={src}
           alt=""
@@ -330,7 +345,7 @@ const Plate: React.FC<PlateProps> = ({ to, title, body, meta, src, crop }) => {
         />
       </div>
       <div className="flex-1 flex flex-col pl-5 py-6 sm:pl-6 sm:py-8 md:pl-0 md:pr-8 md:py-8">
-        <h2 className={`${TITLE} transition-colors duration-300 ${hover ? 'text-tea-gold' : 'text-tea-text'}`}>
+        <h2 className={`${TITLE} transition-colors duration-300 ${hover ? 'text-tea-gold' : 'text-tea-text'}`} style={{ textWrap: 'balance' }}>
           {title}
         </h2>
         <p className={`${BODY} mt-3 max-w-[44ch] text-tea-text-sec`}>{body}</p>
