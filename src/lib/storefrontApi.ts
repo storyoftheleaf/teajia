@@ -77,6 +77,9 @@ export function normalizeProduct(p: any): PublicProduct {
     isPersonal: !!p.is_personal,
     canReorder: !!p.can_reorder,
     isFeatured: !!p.is_featured,
+    // Position in the shop-published collection, lowest first; undefined when
+    // the tea is in none. Lets one surface pick THE featured tea, not any of them.
+    featuredPosition: p.featured_position == null ? undefined : Number(p.featured_position),
     isOneOfAKind: !p.can_reorder,
     isCurated: !!p.is_curated,
     lore: p.lore || '',

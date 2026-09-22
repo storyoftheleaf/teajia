@@ -83,11 +83,21 @@ const PHOTO = '[&_img]:saturate-[.85]';
 /** The one spacing unit between movements. */
 const MOVEMENT = 'mt-16 sm:mt-20 lg:mt-24';
 
-/** The tea on the table: a featured one if Adrian has flagged one, else the oldest lot on the shelf. */
+/**
+ * The tea on the table.
+ *
+ * Several teas are featured at once, since Featured is the shop's own strip, so
+ * "the first featured one" would be whichever the catalogue happened to return
+ * first. It is the one Adrian put at the top of the shop-published collection:
+ * reorder the collection and this tea changes with it. If none is featured, the
+ * oldest lot on the shelf stands in.
+ */
 const pickTea = (products: PublicProduct[]): PublicProduct | null => {
   const teas = products.filter(p => p.type !== 'Teaware' && !p.teawareCategory && p.status === 'Active' && p.stockGrams > 0);
   if (teas.length === 0) return null;
-  const featured = teas.find(p => p.isFeatured);
+  const featured = teas
+    .filter(p => p.isFeatured)
+    .sort((a, b) => (a.featuredPosition ?? Number.MAX_SAFE_INTEGER) - (b.featuredPosition ?? Number.MAX_SAFE_INTEGER))[0];
   if (featured) return featured;
   const dated = teas.filter(p => typeof p.year === 'number');
   if (dated.length > 0) return dated.slice().sort((a, b) => (a.year as number) - (b.year as number))[0];
