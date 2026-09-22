@@ -4,7 +4,9 @@
 
 ## Soon
 
-- [ ] Choose a direction for the home page: refine as is, add a hand-written notice line, put the shelf and the next seat on the table, or open the four doors on the page _(band: you-required)_ _(effort: deep)_ → Plan: [home-page-directions.md](todo/plans/home-page-directions.md)
+- [ ] Home page: three real photographs for the plates (the porcelain portrait on its story page, the tea's image in the admin, and the consult) so the Unsplash stand-ins can go _(band: you-required)_ _(effort: quick)_
+- [ ] Home page: flag one tea as featured in the admin so the plate stops picking the oldest lot _(band: you-required)_ _(effort: quick)_
+- [ ] Remove the old home page (components/HomePage.tsx and what only it imports) once the new one has held for a week _(band: agent-runnable)_ _(effort: moderate)_
 - [ ] Creator profiles: a profile-style home for invited creators, connected to articles, shop and Your Table _(band: agent-runnable)_ _(effort: deep)_ → Plan: [creator-profiles.md](todo/plans/creator-profiles.md)
 
 ## Prime-time audit — the ten that matter (2026-09-09)

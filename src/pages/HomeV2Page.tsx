@@ -13,9 +13,9 @@ import StoryEditorBar from './read/StoryEditorBar';
 import type { PublicProduct } from '../types';
 
 /**
- * The second home page. Cover C from the 2026-09-20 round, built as a route
- * of its own so it can be worked on beside the live page and swapped in when
- * Adrian says so. Nothing links here.
+ * The home page. Cover C from the 2026-09-20 round, built beside the old
+ * page at /v2 and swapped in on 2026-09-22. The old page stays in
+ * components/HomePage.tsx, unrouted, until the next cleanup.
  *
  * Three movements, one spacing unit between them, no horizontal rules:
  *
@@ -117,13 +117,14 @@ const HomeV2Page: React.FC = () => {
     <div className="-mx-4 md:-mx-6 lg:-mr-10 lg:ml-[calc(-2.5rem-var(--teajia-sidebar-w))] lg:-mb-8 bg-tea-bg text-tea-text">
       <Helmet>
         <title>Teajia. Fine Tea &amp; Teaware</title>
-        <meta name="description" content="A home for fine tea. Source it, study it, and share it with those who gather around the cup." />
+        <meta name="description" content="A home for tea. Source it, study it, and share it with those who gather around the cup." />
         <meta property="og:title" content="Teajia. Fine Tea &amp; Teaware" />
-        <meta property="og:description" content="A home for fine tea. Source it, study it, and share it with those who gather around the cup." />
+        <meta property="og:description" content="A home for tea. Source it, study it, and share it with those who gather around the cup." />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Teajia. Fine Tea &amp; Teaware" />
-        <meta name="twitter:description" content="A home for fine tea. Source it, study it, and share it with those who gather around the cup." />
+        <link rel="preload" as="image" href={TABLE_PHOTO} />
+        <meta name="twitter:description" content="A home for tea. Source it, study it, and share it with those who gather around the cup." />
       </Helmet>
 
       {/* The opener: the statement beside the photograph of the table, the
@@ -170,7 +171,7 @@ const HomeV2Page: React.FC = () => {
             alt="At the table"
             fill
             placeholderBg="var(--tea-surface)"
-            placeholder={<img src={TABLE_PHOTO} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '68% 82%' }} />}
+            placeholder={<img src={TABLE_PHOTO} alt="" fetchPriority="high" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '68% 82%' }} />}
           />
         </div>
       </section>
@@ -249,22 +250,22 @@ const HomeV2Page: React.FC = () => {
             <div className="mt-6">
               <EmailField />
             </div>
-            <p className={`${META} mt-6 text-tea-text-dim`}>
+            <p className={`${META} mt-6 text-tea-text-sec`}>
               <Link to="/signup" className="text-tea-gold/80 hover:text-tea-gold transition-colors duration-300">Create an account</Link>
               {' · '}
               <Link to="/signin" className="text-tea-gold/80 hover:text-tea-gold transition-colors duration-300">Sign in</Link>
             </p>
           </div>
-        </div>
-        {/* The footer is hidden on this page, so the way out is one line. */}
-        <p className={`${META} mt-6 pb-2 flex flex-wrap gap-x-5 gap-y-1 text-tea-text-dim`}>
+          {/* The footer is hidden on this page, so the way out is the panel's last line. */}
+          <p className={`${META} mt-14 flex flex-wrap justify-center gap-x-5 gap-y-1 text-tea-text-sec`}>
           <Link to="/events" className="hover:text-tea-text transition-colors">sessions</Link>
           <Link to="/people" className="hover:text-tea-text transition-colors">people</Link>
           <Link to="/spaces" className="hover:text-tea-text transition-colors">spaces</Link>
           <Link to="/about" className="hover:text-tea-text transition-colors">about</Link>
           <a href="https://instagram.com/teajia.journal" className="hover:text-tea-text transition-colors">instagram</a>
           <a href="mailto:hello@teajia.com" className="hover:text-tea-text transition-colors">contact</a>
-        </p>
+          </p>
+        </div>
       </section>
       <StoryEditorBar />
     </div>
@@ -294,7 +295,7 @@ const Facet: React.FC<(typeof FACETS)[number] & { index: number }> = ({ zi, titl
         {zi}
       </span>
       <p className={`${DISPLAY} mt-4 text-tea-text`}>{title}</p>
-      <p className={`${BODY} hidden sm:block mt-2 max-w-[30ch] text-tea-text-sec`}>{text}</p>
+      <p className={`${BODY} hidden sm:block mt-2 max-w-[34ch] text-tea-text-sec`}>{text}</p>
     </div>
   );
 };
@@ -338,6 +339,7 @@ const Plate: React.FC<PlateProps> = ({ to, title, body, meta, src, crop }) => {
           src={src}
           alt=""
           loading="lazy"
+          decoding="async"
           className="absolute inset-0 w-full h-full object-cover transition-transform duration-[600ms] ease-out group-hover:scale-[1.02] motion-reduce:transform-none"
           style={crop ? { objectPosition: focal, transform: `scale(${crop.scale})`, transformOrigin: focal } : undefined}
         />
@@ -391,7 +393,7 @@ const EmailField: React.FC = () => {
         type="submit"
         disabled={state === 'sending'}
         aria-label="Subscribe"
-        className="tap-target absolute right-0 bottom-1 font-display italic text-ui-12 text-tea-text-dim hover:text-tea-gold transition-colors bg-transparent border-0 cursor-pointer disabled:opacity-50"
+        className="tap-target absolute right-0 bottom-1 font-display italic text-ui-12 text-tea-text-sec hover:text-tea-gold transition-colors bg-transparent border-0 cursor-pointer disabled:opacity-50"
       >
         join
       </button>

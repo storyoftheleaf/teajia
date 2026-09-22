@@ -132,7 +132,7 @@ const ForYourSpacePage = lazy(() => import('./pages/ForYourSpacePage'));
 const SpacesPage = lazy(() => import('./pages/SpacesPage'));
 const StartHerePage = lazy(() => import('./pages/StartHerePage'));
 const DiscoverPage = lazy(() => import('./pages/DiscoverPage'));
-// The second home page, worked on beside the live one. Nothing links to it.
+// The home page, since 2026-09-22. The old one stays at components/HomePage.tsx, unrouted.
 const HomeV2Page = lazy(() => import('./pages/HomeV2Page'));
 const ArticlePage = lazy(() => import('./pages/ArticlePage'));
 const ImmersiveArticlePage = lazy(() => import('./pages/ImmersiveArticlePage'));
@@ -212,7 +212,6 @@ import { ShareModal } from './components/ShareModal';
 import { Icons } from './components/Icons';
 import { CartPanel } from './components/shared/CartPanel';
 import { LearnHub } from './components/LearnHub';
-import { HomePage } from './components/HomePage';
 import { StoryProvider, useStories } from './context/StoryContext';
 import { InventoryProvider, useInventory } from './context/InventoryContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -1006,22 +1005,9 @@ const AppContent = () => {
                     </ErrorBoundary>
                   ) : (
                   <ErrorBoundary>
-                    <HomePage
-                      onNavigateToSection={(section, magazineTab?: 'articles' | 'visual' | 'tea-inspire') => {
-                        setActiveSection(section);
-                        if (magazineTab) {
-                          setMagazineDefaultTab(magazineTab);
-                        }
-                      }}
-                      savedStoryIds={savedStoryIds}
-                      watchedStoryIds={watchedStoryIds}
-                      onCardClick={handleCardClick}
-                      onToggleSave={toggleSave}
-                      onShare={handleShare}
-                      onCartClick={handleOpenCart}
-                      onAccountClick={handleOpenAccount}
-                      cartItemCount={cart.length}
-                    />
+                    <Suspense fallback={<EmblemLoader />}>
+                      <HomeV2Page />
+                    </Suspense>
                   </ErrorBoundary>
                   )
                 } />
@@ -1180,13 +1166,8 @@ const AppContent = () => {
                     </Suspense>
                   </ErrorBoundary>
                 } />
-                <Route path="/v2" element={
-                  <ErrorBoundary>
-                    <Suspense fallback={<EmblemLoader />}>
-                      <HomeV2Page />
-                    </Suspense>
-                  </ErrorBoundary>
-                } />
+                {/* The new home page was built at /v2 before it became home; the old address still lands. */}
+                <Route path="/v2" element={<Navigate to="/" replace />} />
                 <Route path="/store-launch-playbook" element={
                   <ErrorBoundary>
                     <Suspense fallback={<EmblemLoader />}>
@@ -1351,8 +1332,8 @@ const AppContent = () => {
           </AnimatePresence>
       </main>
 
-      {/* Global Footer, hidden on Home and on the second home page. Full-bleed; clearance lives inside Footer. */}
-      {viewState === 'BROWSE' && activeSection !== 'HOME' && displayLocation.pathname !== '/v2' && (
+      {/* Global Footer, hidden on Home. Full-bleed; clearance lives inside Footer. */}
+      {viewState === 'BROWSE' && activeSection !== 'HOME' && (
         <Footer />
       )}
       </>
