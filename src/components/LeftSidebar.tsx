@@ -14,6 +14,7 @@ import { TYPOGRAPHY_CLASSES } from '../designTokens';
 import {
   CalendarBlank, SquaresFour, Briefcase, Leaf, Coffee, Storefront, UsersThree,
   FolderOpen, UserCheck, BookOpen, Package, Stack, Camera, Compass, GearSix, Globe,
+  CaretLeft, CaretRight,
 } from '@phosphor-icons/react';
 import { SampleIcon } from './Icons';
 import { useSampleCartStore } from '../samples/sampleCartStore';
@@ -30,6 +31,26 @@ const PHOSPHOR_WEIGHT = 'light' as const;
 // used to be two floating pods cut from the mobile bar's material, and on a
 // wide dark page two capsules with a 32px shadow read as objects placed on
 // the page rather than part of it. Depth now comes from tone, not effects.
+//
+// The Manage column itself has two states: open (11rem, sized to its own
+// longest label rather than a round number, see the measurement note below)
+// and collapsed to a 3rem icon strip. Collapsing is `sidebarCollapsed` in
+// the store, which used to sit unused; it now means "the Manage column is
+// folded", not "the whole sidebar is". It stays folded across navigation and
+// reloads until the collapse or expand control is clicked, or the rail word
+// "manage" is clicked again, which always re-opens it.
+
+// The narrowest width, in rem, that seats every Manage label (parent or
+// child) on one line. Measured against the real rendered rows, including
+// their padding, margin and border, not just the text: "Collections" is the
+// longest parent at roughly 130px all-in, "Carry from network" the longest
+// child at roughly 167px all-in (that number already carries the column's
+// own 28px/12px child indent). 11rem, 176px, clears both with a few px of
+// breathing room on the right, well inside the 10rem to 12.5rem band Adrian
+// asked for, and narrower than the 12.5rem the column used to run at flat.
+const MANAGE_COLUMN_WIDTH_REM = 11;
+const MANAGE_STRIP_WIDTH_REM = 3;
+const RAIL_WIDTH_REM = 4.5;
 
 const Hairline: React.FC<{ className?: string }> = ({ className = '' }) => (
   <div className={`h-px bg-tea-border mx-[22px] shrink-0 ${className}`} />
@@ -120,7 +141,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const navigate = useNavigate();
   const currentPath = location.pathname;
   const isAdminRoute = currentPath.startsWith('/admin');
-  const { activeAccount, sidebarRoom, setSidebarRoom } = useAppStore();
+  const { activeAccount, sidebarRoom, setSidebarRoom, sidebarCollapsed, toggleSidebarCollapsed } = useAppStore();
   // Bundle gates for the network destinations (Step 2-6 of NETWORK_ROLLOUT_PLAN).
   // Reactive subscriptions so they update when memberships hydrate post-mount.
   const hasCatalog = useAppStore(s => selectHasBundle(s, 'catalog'));
@@ -268,16 +289,24 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const room: SidebarRoom = hasManageRoom ? sidebarRoom : 'browse';
   const showPanel = hasManageRoom && room === 'manage';
 
-  // The aside is the rail alone (4.5rem) or rail plus the Manage column
-  // (17rem). Full-screen panels read this to clear it (`.sidebar-inset`), and
+  // The aside is the rail alone (4.5rem), rail plus the open Manage column
+  // (4.5 + 11 = 15.5rem), or rail plus the collapsed icon strip (4.5 + 3 =
+  // 7.5rem). Full-screen panels read this to clear it (`.sidebar-inset`), and
   // App.tsx reads it for the main column's left margin.
   useEffect(() => {
-    document.documentElement.style.setProperty('--teajia-sidebar-w', showPanel ? '17rem' : '4.5rem');
-  }, [showPanel]);
+    const width = !showPanel
+      ? `${RAIL_WIDTH_REM}rem`
+      : sidebarCollapsed
+        ? `${RAIL_WIDTH_REM + MANAGE_STRIP_WIDTH_REM}rem`
+        : `${RAIL_WIDTH_REM + MANAGE_COLUMN_WIDTH_REM}rem`;
+    document.documentElement.style.setProperty('--teajia-sidebar-w', width);
+  }, [showPanel, sidebarCollapsed]);
 
   // Landing on an admin route puts you in the workshop. Picking a room by hand
   // does not navigate, so it survives until the next navigation, at which point
-  // the room and the route agree again.
+  // the room and the route agree again. Whether the column is collapsed is a
+  // separate axis: arriving here does not touch it, so it stays folded while
+  // Adrian is working if that's how he left it.
   useEffect(() => {
     if (isAdminRoute) setSidebarRoom('manage');
   }, [currentPath, isAdminRoute, setSidebarRoom]);
@@ -289,10 +318,11 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
   // ── Render ────────────────────────────────────────────────────────────────
   // The desk's navigation is a 72px rail of words against the left edge, and
-  // a 200px column beside it that exists only while Manage is the room. No
-  // pod, no shadow, no radius, no icons: the rail is lifted from the page by
-  // a few percent of tone and one keyline (`.nav-rail`), which is the whole
-  // of its material. Browse has no children, so browse is rail plus page.
+  // a 176px column beside it that exists only while Manage is the room and
+  // is not collapsed. No pod, no shadow, no radius: the rail is lifted from
+  // the page by a few percent of tone and one keyline (`.nav-rail`), which is
+  // the whole of its material. Browse has no children, so browse is rail plus
+  // page. Collapsed, the column becomes a 48px strip of icons in its place.
   const railWord = (active: boolean) =>
     `font-display text-ui-14 lowercase tracking-[0.04em] leading-none transition-colors duration-200 ${
       active ? 'text-tea-gold font-semibold' : 'text-tea-text-sec hover:text-tea-text'
@@ -307,7 +337,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       data-testid="left-sidebar"
       aria-label="Main navigation"
       className={`hidden lg:flex flex-row fixed left-0 top-0 h-screen z-sticky select-none transition-[width] duration-300 ${
-        showPanel ? 'w-[17rem]' : 'w-[4.5rem]'
+        !showPanel ? 'w-[4.5rem]' : sidebarCollapsed ? 'w-[7.5rem]' : 'w-[15.5rem]'
       }`}
     >
       {/* ── The rail ─────────────────────────────────────────────────────── */}
@@ -362,6 +392,11 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               <button
                 onClick={() => {
                   setSidebarRoom('manage');
+                  // Clicking "manage" is the one action that always re-opens
+                  // the column, even if it was left collapsed from a prior
+                  // visit. Collapsing itself only happens from its own
+                  // control, so this only ever moves false, never true.
+                  if (sidebarCollapsed) toggleSidebarCollapsed();
                   if (!isAdminRoute && manageItems[0]?.path) navigate(manageItems[0].path);
                 }}
                 aria-pressed={room === 'manage'}
@@ -427,21 +462,72 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         </nav>
       </div>
 
-      {/* ── The Manage column: only while Manage is the room ──────────── */}
-      <AnimatePresence initial={false}>
-        {showPanel && (
+      {/* ── The Manage column: only while Manage is the room, open or
+          collapsed to its icon strip ─────────────────────────────────── */}
+      <AnimatePresence initial={false} mode="wait">
+        {showPanel && (sidebarCollapsed ? (
+          <motion.div
+            key="manage-strip"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+            className="w-[3rem] shrink-0 h-full border-r border-tea-border flex flex-col items-center overflow-y-auto hide-scrollbar"
+          >
+            <div className="shrink-0" style={{ padding: '30px 0 14px' }}>
+              <button
+                type="button"
+                onClick={() => toggleSidebarCollapsed()}
+                className="tap-target flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors duration-200"
+                title="Expand"
+                aria-label="Expand manage column"
+              >
+                <CaretRight size={16} weight={PHOSPHOR_WEIGHT} />
+              </button>
+            </div>
+            <nav className="flex flex-col items-center flex-1 min-h-0 w-full" aria-label="Manage (collapsed)">
+              {manageItems.map(item => {
+                const isAnyChildActive = item.children?.some(c => currentPath === c.path) ?? false;
+                const isParentExact = currentPath === item.path;
+                const isActive = isParentExact || isAnyChildActive;
+                const iconClass = `w-full flex items-center justify-center transition-colors duration-200 ${
+                  isActive ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
+                }`;
+                return item.path ? (
+                  <Link key={item.id} to={item.path} title={item.label} aria-label={item.label} className={iconClass} style={{ minHeight: 42 }}>
+                    {item.icon}
+                  </Link>
+                ) : (
+                  <button key={item.id} onClick={item.action} title={item.label} aria-label={item.label} className={iconClass} style={{ minHeight: 42 }}>
+                    {item.icon}
+                  </button>
+                );
+              })}
+              <div className="flex-1" />
+            </nav>
+          </motion.div>
+        ) : (
           <motion.div
             key="manage-panel"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="w-[12.5rem] shrink-0 h-full border-r border-tea-border flex flex-col overflow-y-auto hide-scrollbar"
+            className="w-[11rem] shrink-0 h-full border-r border-tea-border flex flex-col overflow-y-auto hide-scrollbar"
           >
-            <div className="shrink-0" style={{ padding: '30px 24px 14px' }}>
+            <div className="shrink-0 flex items-center justify-between" style={{ padding: '30px 24px 14px' }}>
               <span className="font-display text-ui-15 font-medium tracking-[0.04em] lowercase text-tea-gold">
                 Manage
               </span>
+              <button
+                type="button"
+                onClick={() => toggleSidebarCollapsed()}
+                className="tap-target flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors duration-200"
+                title="Collapse"
+                aria-label="Collapse manage column"
+              >
+                <CaretLeft size={16} weight={PHOSPHOR_WEIGHT} />
+              </button>
             </div>
             <nav className="flex flex-col flex-1 min-h-0" aria-label="Manage">
               {manageItems.map((item, index) => {
@@ -494,7 +580,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               <div className="flex-1" />
             </nav>
           </motion.div>
-        )}
+        ))}
       </AnimatePresence>
     </aside>
   );
