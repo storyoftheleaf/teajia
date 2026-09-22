@@ -115,7 +115,7 @@ const HomeV2Page: React.FC = () => {
           foot="Every engagement begins with a conversation"
           artwork={
             <img
-              src="https://res.cloudinary.com/dobbosnda/image/upload/f_auto,q_auto,w_900/v1773837991/2021-06-27_IMG_7745_Original_ehkz30.jpg"
+              src="/api/media/site/2021-06-27_IMG_7745_Original_ehkz30.jpg"
               alt=""
               className="absolute inset-0 w-full h-full object-cover"
               loading="lazy"

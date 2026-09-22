@@ -1,16 +1,16 @@
 /**
- * The suite's `test`, with one standing rule: no spec ever fetches from
- * Cloudinary.
+ * The suite's `test`, with one standing rule: no spec ever reads metered R2
+ * media from the deployed service.
  *
- * Every tea and article image on the site is delivered from res.cloudinary.com,
- * and Cloudinary bills delivery bandwidth against the plan's credits. A fresh
+ * Tea and article images are delivered by the same-origin /api/media route.
+ * A fresh
  * browser context (which is every Playwright test) has no cache, so each of
  * the suite's ~48 specs pulls the shelf's artwork again from the origin. In
  * September 2026 the sister suites on mandalacodes and Adrian-Website
  * delivered 70 GB this way in one day and the shared account ran out of free
  * credits. Same rule here, before it happens on this one.
  *
- * So every Cloudinary image request is answered here with a 1x1 transparent
+ * So every media request is answered here with a 1x1 transparent
  * PNG (so `<img>` still fires `load` and naturalWidth is 1), and every video
  * request with an empty body, without either leaving the machine. Nothing in the
  * suite asserts on the pixels of the artwork itself.
@@ -34,7 +34,7 @@ const CORS = { 'access-control-allow-origin': '*' };
 
 export const test = base.extend({
   context: async ({ context }, use) => {
-    await context.route(/https?:\/\/res\.cloudinary\.com\//, (route) => {
+    await context.route(/\/api\/media\//, (route) => {
       /* Decided by what the page asked for, not by the URL: a poster frame is
          an <img> under /video/upload/, and it has to load like any image. An
          empty body for a <video> makes it report an unsupported source and
