@@ -31,7 +31,7 @@ export const LearnReadingLists: React.FC<LearnReadingListsProps> = ({ onBack }) 
     <div>
       <button onClick={onBack} className={BACK_BTN}>
         <Icons.Back className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform text-tea-text-sec" />
-        <span className="font-serif text-sm text-tea-text-sec">Learn</span>
+        <span className="font-serif text-sm text-tea-text-sec">Craft</span>
       </button>
 
       {/* List selector pills */}
