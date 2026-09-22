@@ -46,6 +46,9 @@ const ADMIN_ITEM_ACCESS: Record<string, (access: AdminNavAccess) => boolean> = {
   magazine: access => access.hasPublish,
   wisdom: access => access.hasPublish,
   network: access => access.hasCatalog || access.hasSell,
+  // Members & Access follows the route's own gate, the members bundle, which an
+  // owner holds implicitly.
+  members: access => access.hasMembers || access.isOwnerTier,
   // Settings now lands on the shop's own settings, so it follows the same rule
   // as that screen rather than the one it used to be misrouted to.
   settings: access => access.isOwnerTier,

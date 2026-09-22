@@ -6,19 +6,15 @@ import { LogoEmblem } from './Logos';
 import { Section } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../hooks/useAuth';
-import { useAppStore, selectHasBundle, selectIsOwnerTier } from '../lib/store';
+import { useAppStore } from '../lib/store';
 import type { SidebarRoom } from '../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 // Phosphor (Light weight), refined hairlines, replaces the generic lucide
 // stock icons in the admin nav. Browse keeps its hand-drawn brand icons.
-import {
-  CalendarBlank, SquaresFour, Briefcase, Leaf, Coffee, Storefront, UsersThree,
-  FolderOpen, UserCheck, BookOpen, Package, Stack, Camera, Compass, GearSix, Globe,
-  CaretLeft, CaretRight,
-} from '@phosphor-icons/react';
+import { Stack, CaretLeft, CaretRight } from '@phosphor-icons/react';
 import { SampleIcon } from './Icons';
 import { useSampleCartStore } from '../samples/sampleCartStore';
-import { ADMIN_CONNECTION_ROUTES, getVisibleAdminItemIds } from './navigationConnections';
+import { useManageNav, type ManageItem } from './manageNav';
 
 const PHOSPHOR_WEIGHT = 'light' as const;
 
@@ -56,13 +52,6 @@ const Hairline: React.FC<{ className?: string }> = ({ className = '' }) => (
   <div className={`h-px bg-tea-border mx-[22px] shrink-0 ${className}`} />
 );
 
-interface SubNavItem {
-  id: string;
-  path: string;
-  label: string;
-  icon: React.ReactNode;
-}
-
 interface NavItem {
   id: string;
   label: string;
@@ -71,7 +60,6 @@ interface NavItem {
   path?: string;
   badge?: number;
   action?: () => void;
-  children?: SubNavItem[];
 }
 
 // ── NavRow ─────────────────────────────────────────────────────────────────
@@ -79,7 +67,7 @@ interface NavItem {
 // same gold + glow treatment BottomTabBar uses for its tabs, so desktop and
 // mobile read as one navigation system rather than two designs.
 const NavRow: React.FC<{
-  item: NavItem;
+  item: Pick<NavItem, 'label' | 'path' | 'badge' | 'action'>;
   isActive: boolean;
   onClick: () => void;
   minHeight: number;
@@ -142,17 +130,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const currentPath = location.pathname;
   const isAdminRoute = currentPath.startsWith('/admin');
   const { activeAccount, sidebarRoom, setSidebarRoom, sidebarCollapsed, toggleSidebarCollapsed } = useAppStore();
-  // Bundle gates for the network destinations (Step 2-6 of NETWORK_ROLLOUT_PLAN).
-  // Reactive subscriptions so they update when memberships hydrate post-mount.
-  const hasCatalog = useAppStore(s => selectHasBundle(s, 'catalog'));
-  const hasSell = useAppStore(s => selectHasBundle(s, 'sell'));
-  const hasPublish = useAppStore(s => selectHasBundle(s, 'publish'));
-  const hasStock = useAppStore(s => selectHasBundle(s, 'stock'));
-  const hasGather = useAppStore(s => selectHasBundle(s, 'gather'));
-  const hasMembers = useAppStore(s => selectHasBundle(s, 'members'));
-  const platformRole = useAppStore(s => s.platformRole);
-  const isOwnerTier = useAppStore(selectIsOwnerTier);
-  const canCreateCollections = auth.user?.canCreateCollections ?? false;
+  // The Manage rooms come from one shared list (manageNav.ts) so the phone's
+  // site panel and this column can never disagree about what exists.
+  const manageNav = useManageNav();
   const sampleCount = useSampleCartStore(s => s.items.length);
 
 
@@ -180,88 +160,6 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     { id: 'SHOP',      label: 'Shop',    icon: <Icons.Bag       className="w-[18px] h-[18px]" strokeWidth={1.75} />, section: 'SHOP'      as Section },
   ];
 
-  const adminItems: NavItem[] = [
-    {
-      id: 'dashboard', label: 'Dashboard',
-      icon: <SquaresFour size={18} weight={PHOSPHOR_WEIGHT} />,
-      path: '/admin/dashboard',
-    },
-    {
-      id: 'inventory', label: 'Stock',
-      icon: <Package size={18} weight={PHOSPHOR_WEIGHT} />,
-      path: '/admin/stock',
-      children: [
-        { id: 'catalog',  path: '/admin/catalog',  label: 'Tea Glossary', icon: <Leaf       size={14} weight={PHOSPHOR_WEIGHT} /> },
-        { id: 'teaware',  path: '/admin/teaware',  label: 'Equipment',    icon: <Coffee     size={14} weight={PHOSPHOR_WEIGHT} /> },
-        { id: 'sources',  path: '/admin/sources',  label: 'Sources',      icon: <Storefront size={14} weight={PHOSPHOR_WEIGHT} /> },
-        { id: 'personal', path: '/admin/personal', label: 'Collection',   icon: <UserCheck  size={14} weight={PHOSPHOR_WEIGHT} /> },
-        { id: 'capture',  path: '/admin/capture',  label: 'Quick Capture', icon: <Camera    size={14} weight={PHOSPHOR_WEIGHT} /> },
-        { id: 'compass',  path: '/admin/compass',  label: 'Curate',       icon: <Compass    size={14} weight={PHOSPHOR_WEIGHT} /> },
-        { id: 'tasting-notes', path: '/admin/tasting-notes', label: 'Tasting Notes', icon: <Leaf size={14} weight={PHOSPHOR_WEIGHT} /> },
-        // Carry from the network catalog into your own store. Gated by the
-        // Catalog bundle, admins who can populate their own store. Moved here
-        // from the inventory toolbar so it lives next to the stock destinations.
-        ...(hasCatalog ? [{ id: 'carry', path: '/admin/network?tab=catalog', label: 'Carry from network', icon: <Globe size={14} weight={PHOSPHOR_WEIGHT} /> }] : []),
-      ],
-    },
-    {
-      id: 'collections', label: 'Collections',
-      icon: <Stack size={18} weight={PHOSPHOR_WEIGHT} />,
-      path: '/admin/collections',
-    },
-    {
-      id: 'business', label: 'Business',
-      icon: <Briefcase size={18} weight={PHOSPHOR_WEIGHT} />,
-      path: '/admin/activity',
-      children: [
-        { id: 'activity', path: '/admin/activity', label: 'Activity', icon: <FolderOpen  size={14} weight={PHOSPHOR_WEIGHT} /> },
-        { id: 'people',   path: '/admin/people',   label: 'People',   icon: <UsersThree  size={14} weight={PHOSPHOR_WEIGHT} /> },
-        ...(isOwnerTier ? [{ id: 'contributors', path: ADMIN_CONNECTION_ROUTES.teaMasters, label: 'Tea Masters', icon: <UserCheck size={14} weight={PHOSPHOR_WEIGHT} /> }] : []),
-      ],
-    },
-    {
-      id: 'events', label: 'Events',
-      icon: <CalendarBlank size={18} weight={PHOSPHOR_WEIGHT} />,
-      path: '/admin/events',
-    },
-    {
-      id: 'magazine', label: 'Magazine',
-      icon: <BookOpen size={18} weight={PHOSPHOR_WEIGHT} />,
-      path: '/admin/magazine',
-    },
-    ...(auth.isAdmin || hasPublish ? [{
-      id: 'wisdom', label: 'Wisdom',
-      icon: <Compass size={18} weight={PHOSPHOR_WEIGHT} />,
-      path: ADMIN_CONNECTION_ROUTES.wisdom,
-    }] : []),
-    // Network, single hub entry. Catalog, suggestions, wholesale, adoptions
-    // live inside as tabs. Render only if caller has at least one capability.
-    ...(hasCatalog || hasSell || platformRole ? [{
-      id: 'network', label: 'Network',
-      icon: <Globe size={18} weight={PHOSPHOR_WEIGHT} />,
-      path: '/admin/network',
-    }] : []),
-    {
-      id: 'settings', label: 'Settings',
-      icon: <GearSix size={18} weight={PHOSPHOR_WEIGHT} />,
-      path: '/admin/settings',
-    },
-  ];
-  const visibleAdminItemIds = new Set(getVisibleAdminItemIds(
-    {
-      isAdmin: auth.isAdmin,
-      isOwnerTier,
-      hasCatalog,
-      hasStock,
-      hasSell,
-      hasGather,
-      hasPublish,
-      hasMembers,
-    },
-    adminItems.map(item => item.id),
-  ));
-  const visibleAdminItems = adminItems.filter(item => visibleAdminItemIds.has(item.id));
-
   // Admin sub-items auto-reveal when the parent or one of its children is active.
   // No accordion state, avoids the hidden-active-item bug where a user-collapsed
   // section would hide the highlighted child after internal navigation.
@@ -276,15 +174,15 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   // browse room is the storefront, which on desktop is served by the floating
   // tab bar, so browse here is the way back out to it rather than a second
   // permanent list stacked under the admin one.
-  const curatorItems: NavItem[] = canCreateCollections
-    ? [{ id: 'collections', label: 'Collections', icon: <Stack size={18} weight={PHOSPHOR_WEIGHT} />, path: '/admin/collections' }]
+  const curatorItems: ManageItem[] = manageNav.canCreateCollections
+    ? [{ id: 'collections', label: 'Collections', Icon: Stack, path: '/admin/collections' }]
     : [];
   // Settings leaves the list for the footer strip; it is a destination you
   // reach a few times a month, not one you scan past twenty times a day.
-  const manageItems = visibleAdminItems.length > 0
-    ? visibleAdminItems.filter(item => item.id !== 'settings')
+  const manageItems: ManageItem[] = manageNav.items.length > 0
+    ? manageNav.items.filter(item => item.id !== 'settings')
     : curatorItems;
-  const hasSettingsRoute = visibleAdminItems.some(item => item.id === 'settings');
+  const hasSettingsRoute = manageNav.hasSettingsRoute;
   const hasManageRoom = auth.isAuthenticated && manageItems.length > 0;
   const room: SidebarRoom = hasManageRoom ? sidebarRoom : 'browse';
   const showPanel = hasManageRoom && room === 'manage';
@@ -502,14 +400,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 const iconClass = `w-full flex items-center justify-center transition-colors duration-200 ${
                   isActive ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
                 }`;
-                return item.path ? (
+                return (
                   <Link key={item.id} to={item.path} title={item.label} aria-label={item.label} className={iconClass} style={{ minHeight: 42 }}>
-                    {item.icon}
+                    <item.Icon size={18} weight={PHOSPHOR_WEIGHT} />
                   </Link>
-                ) : (
-                  <button key={item.id} onClick={item.action} title={item.label} aria-label={item.label} className={iconClass} style={{ minHeight: 42 }}>
-                    {item.icon}
-                  </button>
                 );
               })}
               <div className="flex-1" />
