@@ -152,10 +152,10 @@ const HomeV2Page: React.FC = () => {
               </Link>
             ))}
           </nav>
-          {/* The opener's way in. Start here goes to the house, where jiā is
-              explained. Discover your tea lives in Craft now, not here. */}
+          {/* The opener's way in: the Start Here page, six paths into the
+              practice. Discover your tea lives in Craft now, not here. */}
           <p className={`${META} mt-5 text-tea-text-sec`}>
-            <a href="#the-house" className="hover:text-tea-gold transition-colors duration-300">New here? Start here</a>
+            <Link to="/start" className="hover:text-tea-gold transition-colors duration-300">New here? Start here</Link>
           </p>
         </div>
         <div
@@ -210,9 +210,8 @@ const HomeV2Page: React.FC = () => {
           down the left, exactly as the live page sets them; the three
           characters large on the right, the house's own picture. */}
       <section
-        id="the-house"
         aria-label="The house"
-        className={`${MOVEMENT} scroll-mt-6 grid grid-cols-1 lg:grid-cols-[var(--teajia-sidebar-w)_1fr_1fr] bg-tea-surface`}
+        className={`${MOVEMENT} grid grid-cols-1 lg:grid-cols-[var(--teajia-sidebar-w)_1fr_1fr] bg-tea-surface`}
       >
         <div className="lg:col-start-2 px-6 sm:px-10 lg:pl-[4rem] lg:pr-16 pt-14 sm:pt-16 lg:pt-24 pb-12 lg:pb-24 flex flex-col justify-center">
           <div className="max-w-[360px]">
