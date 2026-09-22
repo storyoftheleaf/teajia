@@ -75,6 +75,23 @@ test.describe('the pay gate', () => {
     await expect(page.getByTestId('pay-gate-ask')).toHaveCount(0);
   });
 
+  test('an approval made after the ask shows on the next open, with nothing cleared', async ({ page }) => {
+    // The asked state must never be served from the persisted query cache: a
+    // person who asked, was approved a minute later, and reopens the page has
+    // to see the sheet, not yesterday's gate. Found on the sandbox 2026-09-20.
+    await mockCreatorApi(page, { viewer: 'pending' });
+    await signInAs(page);
+    await page.goto('/people/kenji-tanaka/pay');
+    await expect(page.getByTestId('pay-gate-asked')).toBeVisible();
+    // Let the persister's throttle write whatever it is going to write.
+    await page.waitForTimeout(1500);
+    // Kenji approves: the API now answers open. Later routes win in Playwright.
+    await mockCreatorApi(page, { viewer: 'approved' });
+    await page.reload();
+    await expect(page.getByTestId('pay-sheet')).toBeVisible();
+    await expect(page.getByTestId('pay-gate-asked')).toHaveCount(0);
+  });
+
   test('an approved account opens the sheet and sees the bank detail, with copy beside it', async ({ page }) => {
     const errors = collectErrors(page);
     await mockCreatorApi(page, { viewer: 'approved' });

@@ -158,7 +158,7 @@ export const AdvisePage: React.FC<AdvisePageProps> = ({ onCartClick, onAccountCl
           >
             <div className="relative shrink-0 w-full md:w-[340px]">
               <img
-                src="https://res.cloudinary.com/dobbosnda/image/upload/f_auto,q_auto,w_600/v1773837991/2021-06-27_IMG_7745_Original_ehkz30.jpg"
+                src="/api/media/site/2021-06-27_IMG_7745_Original_ehkz30.jpg"
                 alt=""
                 width={600}
                 height={750}

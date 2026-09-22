@@ -14,10 +14,11 @@ test.describe('creator profile, full (Kenji Tanaka)', () => {
     await page.goto('/people/kenji-tanaka');
     await expect(page.getByRole('heading', { level: 1, name: 'Kenji Tanaka' })).toBeVisible();
 
-    // The nav: back to all people, the wordmark, the issue eyebrow, sticky at the top.
+    // The nav: back to all people, the wordmark, the person's name small on the right (canvas version 28), sticky at the top.
     const nav = page.getByRole('navigation', { name: 'Site' });
     await expect(nav.getByRole('link', { name: 'Back to all people' })).toHaveAttribute('href', '/people');
-    await expect(nav).toContainText(/People · N°\d\d/);
+    await expect(nav.locator('span.uppercase').last()).toHaveText(/^kenji tanaka$/i);
+    expect(await page.locator('body').innerText()).not.toMatch(/N°/);
     expect(await nav.locator('..').evaluate(element => getComputedStyle(element).position)).toBe('sticky');
 
     // The cover: kicker, the name with an italic gold surname, one line in his own words.
@@ -44,7 +45,9 @@ test.describe('creator profile, full (Kenji Tanaka)', () => {
     await expect(page.getByTestId('profile-quote')).toContainText('Tea is not a performance.');
     const mine = page.getByTestId('profile-words-of-mine');
     await expect(mine).toContainText('In my words');
-    await expect(mine).toContainText('I pour on Saturday evenings');
+    // The cover owns the first sentence; the first paragraph here starts with the second (2026-09-21).
+    await expect(mine).not.toContainText('I pour on Saturday evenings');
+    await expect(mine.locator('p').filter({ hasNotText: 'Tea is not a performance.' }).first()).toHaveText(/^This year is about teaching, not just pouring\./);
     await expect(mine).toContainText('I still source most of my sencha');
     await expect(mine).not.toContainText('I trained for six years');
 

@@ -19,8 +19,8 @@ The whole public site hangs off four sections, and they are the mobile tab bar, 
 
 Behind those four, reachable but not from the mobile nav:
 
-- **Events** `/events`, `/event/:slug`, `/event/:slug/recap`: live sessions with seats, RSVP, waitlist, a public tea menu, and a recap afterwards. Only signed-in surfaces link here. This is the one genuinely time-bound thing the site has and the public nav does not show it.
-- **People** `/people/:slug`: the tea masters and contributors, each with a profile, favourites, and a private pay page behind a gate. Footer only.
+- **Events** `/events`, `/event/:slug`, `/event/:slug/recap`: live sessions with seats, RSVP, waitlist, a public tea menu, the hosts in their own words, and a recap afterwards. Only signed-in surfaces link here. This is the one genuinely time-bound thing the site has and the public nav does not show it.
+- **People** `/people/:slug`: the tea masters and contributors, each with a profile, favourites (which they can name into a collection with its own page from their own account page), and a private pay page behind a gate. A person also appears on the pages that are not theirs: the store they host (`/store/:slug`, the people at that table), the sessions they host, and the teas they selected. Footer only.
 - **Tea Wisdom** `/wisdom/*`: the reference: cultivars, regions, producers, marks, styles, named teas, tea types. Footer and Craft only.
 - **Spaces** `/spaces`: the network of tea rooms, each with a WhatsApp line. Desktop sidebar only.
 - **Discover** `/discover`: a questionnaire that gives a visitor a level and threads to follow. Linked from the home page.
@@ -34,7 +34,7 @@ There is no card checkout, by decision. A visitor fills a cart, gives a name and
 
 ## What a signed-in person gets
 
-**Your Table** (the emblem, top right on mobile, a pod on desktop) is the person's own room. A visitor sees Discover, Read, Shop, Find a Table. A member sees a day line, a "what needs you" queue if they run a shop, and tiles: steep (tasting journal), sessions, remember (favourites), cellar (tea they own, with grams, placeable at a location), discover, profile, orders, collections, and for owners the Manage room.
+**Your Table** (the emblem, top right on mobile, a word in the rail's foot on desktop) is the person's own room. A visitor sees Discover, Read, Shop, Find a Table. A member sees a day line, a "what needs you" queue if they run a shop, and tiles: steep (tasting journal), sessions, remember (favourites), cellar (tea they own, with grams, placeable at a location), discover, profile, orders, collections, and for owners the Manage room.
 
 The personal records are deliberately separate and stay that way: **Journal** is what you tasted and thought, **Favourites** is what you want, **Cellar** is what you own, **Journey** is where you have been (sessions, teas met, seals). No streaks, no scores, no feed.
 

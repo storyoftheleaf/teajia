@@ -50,8 +50,9 @@ const PIECE = {
   dek: 'A porcelain restorer on repair, patience, and how mending what we love mends us in return.',
 };
 
-/** The one photograph the site owns today: Adrian at the table. */
-const TABLE_PHOTO = 'https://res.cloudinary.com/dobbosnda/image/upload/f_auto,q_auto,w_2000/v1773837991/2021-06-27_IMG_7745_Original_ehkz30.jpg';
+/** The one photograph the site owns today: Adrian at the table. Served by the
+ *  same-origin media route, as every site image is since main moved off Cloudinary. */
+const TABLE_PHOTO = '/api/media/site/2021-06-27_IMG_7745_Original_ehkz30.jpg';
 
 /** Stand-ins until the real photographs exist. Unsplash, free to use; never shipped as final. */
 const TEMPLATE = {

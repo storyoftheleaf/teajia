@@ -284,7 +284,6 @@ const AppContent = () => {
     updatePublicCartQuantity,
     setIsPublicCartOpen: setIsCartOpen,
     shopStoreSlug,
-    sidebarCollapsed,
   } = useAppStore();
   const { isAdmin, isAuthenticated, isSessionReady, checkSession } = useAuth();
   const syncEnabled = isAuthenticated && isSessionReady;
@@ -966,9 +965,7 @@ const AppContent = () => {
       <div className={`flex-1 min-w-0 min-h-0 flex flex-col relative ${
         isFocusedShareRoute
           ? 'lg:ml-0 lg:max-w-none'
-          : sidebarCollapsed
-            ? 'lg:ml-20 lg:max-w-[calc(100vw-5rem)]'
-            : 'lg:ml-[14.5rem] lg:max-w-[calc(100vw-14.5rem)]'
+          : 'lg:ml-[var(--teajia-sidebar-w)] lg:max-w-[calc(100vw-var(--teajia-sidebar-w))]'
       } transition-[margin,max-width] duration-300`}>
 
       {isAdminRoute ? (

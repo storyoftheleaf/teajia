@@ -3,6 +3,17 @@
 Written 2026-09-19, planning only — no product code in this pass. Branch
 `claude/creator-profiles`, worktree `.claude/worktrees/creator-profiles`.
 
+## Shipped 2026-09-21: the presence beyond the profile page
+
+Commit 5ab99ff3 on main. The store page shows the people at its table (the
+host as the portrait cover, the rest as rows), the event page shows its hosts
+in the first person, the product page's "Selected by" wears the profile's
+row, and the tea master's own page gained "Who taught me", "The last line",
+and "What I call it", which names the public favorites into a collection
+with its own page. Design canvas for the map and the boards:
+https://claude.ai/artifact/J1FyxzXFVQiYpteog1xCRQ (the seven editing boards on
+it were NOT built; Adrian chose the existing plain forms over a restyle).
+
 ## Purpose, in Adrian's words
 
 "A profile style. People like myself as an image. You can learn about me. You

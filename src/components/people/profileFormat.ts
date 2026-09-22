@@ -2,17 +2,6 @@
 // the page files so they can be unit tested and shared without importing a
 // screen.
 
-/** Stable, deterministic issue number from the contributor id. Readers see
- *  the same number every visit because the hash only depends on the slug.
- *  Two-digit zero-padded, never No.00. */
-export function issueNumberFromId(id: string): string {
-  let h = 0;
-  for (let i = 0; i < id.length; i += 1) {
-    h = (h * 31 + id.charCodeAt(i)) | 0;
-  }
-  const n = Math.abs(h) % 99 + 1;
-  return n.toString().padStart(2, '0');
-}
 
 /** Map an ISO date to "Season YYYY". December rolls forward into winter. */
 export function formatSeason(iso: string | null | undefined): string {
@@ -105,6 +94,33 @@ export function firstSentence(text: string | null | undefined): string | null {
 /** The line under a cover, in the person's own words: what they are doing now, else where they began. */
 export function ownLine(person: { now_text?: string | null; beginnings?: string | null; inspirations?: string | null }): string | null {
   return firstSentence(person.now_text) ?? firstSentence(person.beginnings) ?? firstSentence(person.inspirations);
+}
+
+/**
+ * The paragraphs under In my words, with the cover line taken out. The cover
+ * owns the first sentence (Adrian, sandbox, 2026-09-21: the same sentence
+ * printed twice in a row); the source paragraph keeps the rest, or is dropped
+ * when that sentence was all of it. Order: now, then beginnings, then
+ * inspirations, as before.
+ */
+export function wordsAfterCoverLine(person: { now_text?: string | null; beginnings?: string | null; inspirations?: string | null }): string[] {
+  const cover = ownLine(person);
+  const sources = [person.now_text, person.beginnings, person.inspirations];
+  const out: string[] = [];
+  let removed = !cover;
+  for (const source of sources) {
+    const paragraphs = paragraphsOf(source);
+    for (const paragraph of paragraphs) {
+      if (!removed && cover && paragraph.startsWith(cover)) {
+        removed = true;
+        const rest = paragraph.slice(cover.length).trim();
+        if (rest) out.push(rest);
+        continue;
+      }
+      out.push(paragraph);
+    }
+  }
+  return out;
 }
 
 const NUMBER_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];

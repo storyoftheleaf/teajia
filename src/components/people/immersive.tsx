@@ -50,7 +50,7 @@ export function StickyChrome({ children }: { children: ReactNode }) {
 }
 
 /** The nav: back chevron and wordmark on the left, the eyebrow on the right, the gold progress line under it. */
-export function PeopleNav({ eyebrow, progress, backTo, chevron = true }: { eyebrow: string; progress: number; backTo: string; chevron?: boolean }) {
+export function PeopleNav({ eyebrow, progress, backTo, chevron = true, eyebrowTone = 'dim' }: { eyebrow: string; progress: number; backTo: string; chevron?: boolean; /** 'sec' when the eyebrow is a person's name (canvas version 28). */ eyebrowTone?: 'dim' | 'sec' }) {
   return (
     <nav
       aria-label="Site"
@@ -65,7 +65,7 @@ export function PeopleNav({ eyebrow, progress, backTo, chevron = true }: { eyebr
         )}
         <span className="font-display text-ui-17 font-semibold uppercase tracking-[0.14em]">Teajia</span>
       </Link>
-      <span className="whitespace-nowrap font-sans text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim">{eyebrow}</span>
+      <span className={`whitespace-nowrap font-sans text-ui-10 uppercase tracking-[0.2em] ${eyebrowTone === 'sec' ? 'text-tea-text-sec' : 'text-tea-text-dim'}`}>{eyebrow}</span>
       <ProgressTrack progress={progress} />
     </nav>
   );

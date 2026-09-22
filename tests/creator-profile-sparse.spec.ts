@@ -23,6 +23,8 @@ test.describe('creator profile, sparse (Wei Chen)', () => {
     // innerText carries the caps text-transform, so the divider reads "IN MY WORDS".
     expect(lower).toContain('in my words');
     expect(body).toContain('I am still learning the mountain every season.');
+    // The cover line is said once: In my words does not repeat it (2026-09-21).
+    await expect(page.getByTestId('profile-words-of-mine')).not.toContainText('I started sourcing oolong from Wuyi Shan in 2019.');
     expect(lower).not.toContain('coming soon');
     expect(body).not.toContain('Something went wrong');
     expect(body).not.toContain('→');

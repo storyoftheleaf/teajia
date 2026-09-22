@@ -39,6 +39,10 @@ export interface SelfProfile {
   chinese_name: string | null;
   beginnings: string | null;
   now_text: string | null;
+  /** Who taught me: teachers, mountains, a cup that changed my mind. The public page reads it as the third paragraph. */
+  inspirations: string | null;
+  /** The last line, at the foot of the public page. 200 characters at most. */
+  closing: string | null;
   location_line: string | null;
   languages: string[];
   avatar_url: string | null;
@@ -54,6 +58,8 @@ export interface SelfProfile {
   selection_count?: number;
   article_count?: number;
   shelf_slug?: string | null;
+  /** The named collection the profile's tea section points at, once the tea master has named one. */
+  collection?: { slug: string; title: string; item_count: number } | null;
 }
 
 export type SelfProfileUpdate = Pick<
@@ -63,6 +69,8 @@ export type SelfProfileUpdate = Pick<
   | 'chinese_name'
   | 'beginnings'
   | 'now_text'
+  | 'inspirations'
+  | 'closing'
   | 'location_line'
   | 'languages'
   | 'avatar_url'

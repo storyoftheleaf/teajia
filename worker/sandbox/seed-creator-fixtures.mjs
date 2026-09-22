@@ -97,6 +97,7 @@ const KENJI_GALLERY = [
 
 const EVENT_ID = 'evt-sbx-kyoto-tasting';
 const EVENT_CONTRIBUTOR_ID = 'evc-sbx-kenji-lead-host';
+const EVENT_COHOST_ID = 'evc-sbx-amara-co-host';
 const ARTICLE_WORDS_ID = 'art-sbx-kenji-words';
 const ARTICLE_FEATURING_ID = 'art-sbx-featuring-amara';
 
@@ -123,7 +124,7 @@ run(`DELETE FROM payment_share_links WHERE contributor_id IN (${CONTRIBUTOR_IDS.
 run(`DELETE FROM collection_publications WHERE id = ${q(PUBLICATION_ID)}`);
 run(`DELETE FROM collection_items WHERE collection_id = ${q(COLLECTION_ID)}`);
 run(`DELETE FROM collections WHERE id = ${q(COLLECTION_ID)}`);
-run(`DELETE FROM event_contributors WHERE id = ${q(EVENT_CONTRIBUTOR_ID)}`);
+run(`DELETE FROM event_contributors WHERE id IN (${q(EVENT_CONTRIBUTOR_ID)}, ${q(EVENT_COHOST_ID)})`);
 run(`DELETE FROM events WHERE id = ${q(EVENT_ID)}`);
 run(`DELETE FROM articles WHERE id IN (${q(ARTICLE_WORDS_ID)}, ${q(ARTICLE_FEATURING_ID)})`);
 run(`DELETE FROM contributor_gallery_images WHERE contributor_id IN (${CONTRIBUTOR_IDS.map(q).join(', ')})`);
@@ -285,6 +286,10 @@ run(`INSERT INTO events (
 
 run(`INSERT INTO event_contributors (id, account_id, event_id, contributor_id, role, is_public, display_order)
      VALUES (${q(EVENT_CONTRIBUTOR_ID)}, ${q(ACCOUNT_ID)}, ${q(EVENT_ID)}, ${q('kenji-tanaka')}, 'lead_host', 1, 0)`);
+// Amara pours alongside, so the event page's "Hosted by" shows a lead and a
+// co-host; her profile's Hosting row picks the event up too (co_host counts).
+run(`INSERT INTO event_contributors (id, account_id, event_id, contributor_id, role, is_public, display_order)
+     VALUES (${q(EVENT_COHOST_ID)}, ${q(ACCOUNT_ID)}, ${q(EVENT_ID)}, ${q('amara-osei')}, 'co_host', 1, 1)`);
 
 // -- 9. Articles: one self-authored with a pull-quote, one that features a
 //      different fixture creator in subject_ids ("featured in") -------------

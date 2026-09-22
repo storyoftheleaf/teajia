@@ -39,10 +39,16 @@ export default function ProfilePaymentPage() {
   // Keyed on the viewer too: signing in changes the answer, and the page has
   // to notice without a reload.
   const viewerKey = auth.isAuthenticated ? auth.user?.email ?? 'signed-in' : 'signed-out';
+  // Never served stale: an approval can land a minute after the ask, and the
+  // page must show the sheet on the next open. So this query is always fresh,
+  // always refetched on mount, and (by 'pay-access' in the persister's
+  // exclusion list) never written to disk. Found on the sandbox 2026-09-20.
   const accessQuery = useQuery({
     queryKey: ['profile', slug, 'pay-access', shareToken, viewerKey],
     queryFn: () => api.people.getPayAccess(slug, shareToken),
     enabled: Boolean(slug) && auth.isSessionReady,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
   const access = accessQuery.data;
   const open = access?.access === 'open';

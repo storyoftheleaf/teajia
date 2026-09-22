@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { TeaPlaceholder } from '../shop/TeaPlaceholder';
-import { cldUrl, type CldPreset } from '../../lib/cloudinary';
 
 interface CardImageProps {
   src?: string;
@@ -10,8 +9,6 @@ interface CardImageProps {
   onClick?: () => void;
   priority?: boolean;
   teaType?: string;
-  /** Cloudinary transform preset, only applied to Cloudinary-hosted images */
-  cldPreset?: CldPreset;
 }
 
 /**
@@ -26,13 +23,9 @@ export const CardImage: React.FC<CardImageProps> = ({
   onClick,
   priority = false,
   teaType,
-  cldPreset = 'card'
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-
-  // Apply Cloudinary transforms if the image is hosted there
-  const optimizedSrc = src ? cldUrl(src, cldPreset) : undefined;
 
   const aspectClasses = {
     square: 'aspect-square',
@@ -47,11 +40,11 @@ export const CardImage: React.FC<CardImageProps> = ({
       className={`relative w-full ${aspectClasses[aspect]} overflow-hidden bg-tea-elevated/90 cursor-pointer group/img ${className}`}
       onClick={onClick}
     >
-      {optimizedSrc && !hasError ? (
+      {src && !hasError ? (
         <>
           {isLoading && <div className={`absolute inset-0 ${placeholderBg} animate-pulse`} />}
           <img
-            src={optimizedSrc}
+            src={src}
             alt={alt}
             loading={priority ? 'eager' : 'lazy'}
             onLoad={() => setIsLoading(false)}

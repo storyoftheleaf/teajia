@@ -113,6 +113,8 @@ export default function AccountProfilePage() {
               onUpdate={async (teaId, favorite) => { await api.profile.updateFavorite(teaId, favorite); await refreshProfile(); }}
               onDelete={async teaId => { await api.profile.deleteFavorite(teaId); await refreshProfile(); }}
               onReorder={async ids => { await api.profile.reorderFavorites(ids); await refreshProfile(); }}
+              collection={profile.collection ?? null}
+              onSaveCollection={async title => { await api.profile.updateCollection(title); await refreshProfile(); }}
             />
           )}
 
@@ -161,7 +163,7 @@ function NewProfileForm({ name, onCreate }: { name: string; onCreate: (value: Se
   const submit = async (event: React.FormEvent) => {
     event.preventDefault(); setSaving(true); setError(null);
     try {
-      await onCreate({ id: slug, display_name: displayName, business_name: null, beginnings: bio, chinese_name: null, now_text: null, location_line: null, languages: [], avatar_url: null, portrait_url: null, links: [] });
+      await onCreate({ id: slug, display_name: displayName, business_name: null, beginnings: bio, chinese_name: null, now_text: null, inspirations: null, closing: null, location_line: null, languages: [], avatar_url: null, portrait_url: null, links: [] });
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'The profile draft could not be created.'); }
     finally { setSaving(false); }
   };

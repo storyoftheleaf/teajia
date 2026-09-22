@@ -24,9 +24,8 @@ import {
   formatEventLong,
   galleryPlacement,
   instagramHref,
-  issueNumberFromId,
   ownLine,
-  paragraphsOf,
+  wordsAfterCoverLine,
   websiteLabel,
 } from '../components/people/profileFormat';
 import { useContributor } from '../hooks/useContributor';
@@ -224,16 +223,16 @@ export default function ContributorProfilePage() {
     );
   }
 
-  const issueNumber = issueNumberFromId(data.id);
   const portrait = data.portrait_url || data.avatar_url || null;
   const kicker = coverKicker(data.role, data.location_line);
   const coverLine = ownLine(data);
 
-  // In my words: the quote, then two paragraphs, now first and then where it began.
+  // In my words: the quote, then two paragraphs, now first and then where it
+  // began, with the sentence the cover already said taken out of the first.
   const quote = data.pull_quotes[0]?.pull_quote
     ?? data.articles.find(article => article.pull_quote)?.pull_quote
     ?? null;
-  const paragraphs = [...paragraphsOf(data.now_text), ...paragraphsOf(data.beginnings), ...paragraphsOf(data.inspirations)].slice(0, 2);
+  const paragraphs = wordsAfterCoverLine(data).slice(0, 2);
   const hasWords = Boolean(quote || paragraphs.length);
 
   const gallery = data.gallery_images;
@@ -267,7 +266,8 @@ export default function ContributorProfilePage() {
   return (
     <PeopleRoot rootRef={rootRef} testId="creator-profile">
       <StickyChrome>
-        <PeopleNav eyebrow={`People · N°${issueNumber}`} progress={progress} backTo="/people" />
+        {/* Canvas version 28: the person's name, small, in place of an issue number. Nothing on the page numbers them. */}
+        <PeopleNav eyebrow={data.display_name} eyebrowTone="sec" progress={progress} backTo="/people" />
       </StickyChrome>
       <article className="relative z-[1] mx-auto w-full max-w-2xl pb-nav-gap-lg">
 
