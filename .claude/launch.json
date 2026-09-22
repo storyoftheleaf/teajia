@@ -47,6 +47,24 @@
       "port": 8787
     },
     {
+      "name": "v2-sandbox-api",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "cd worker && node sandbox/check-db.mjs && npx wrangler dev --port 8797"
+      ],
+      "port": 8797
+    },
+    {
+      "name": "v2-sandbox-site",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "TEAJIA_API_PROXY=http://localhost:8797 VITE_API_URL= npx vite --port 7812 --strictPort"
+      ],
+      "port": 7812
+    },
+    {
       "name": "sandbox-alt",
       "runtimeExecutable": "npm",
       "runtimeArgs": [

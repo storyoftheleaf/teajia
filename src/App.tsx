@@ -132,8 +132,6 @@ const ForYourSpacePage = lazy(() => import('./pages/ForYourSpacePage'));
 const SpacesPage = lazy(() => import('./pages/SpacesPage'));
 const StartHerePage = lazy(() => import('./pages/StartHerePage'));
 const DiscoverPage = lazy(() => import('./pages/DiscoverPage'));
-// The second home page, worked on beside the live one. Nothing links to it.
-const HomeV2Page = lazy(() => import('./pages/HomeV2Page'));
 const ArticlePage = lazy(() => import('./pages/ArticlePage'));
 const ImmersiveArticlePage = lazy(() => import('./pages/ImmersiveArticlePage'));
 // Immersive long-reads (espresso + gold scrolling articles) for the Read section.
@@ -212,7 +210,6 @@ import { ShareModal } from './components/ShareModal';
 import { Icons } from './components/Icons';
 import { CartPanel } from './components/shared/CartPanel';
 import { LearnHub } from './components/LearnHub';
-import { HomePage } from './components/HomePage';
 import { StoryProvider, useStories } from './context/StoryContext';
 import { InventoryProvider, useInventory } from './context/InventoryContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -225,6 +222,12 @@ import { BottomTabBar } from './components/BottomTabBar';
 import { sellUnitOf, wholePieceOf } from './lib/teaPricing';
 import { AdvisePage } from './components/AdvisePage';
 import AboutPage from './AboutPage';
+// The home page, since 2026-09-22 (the old one stays at components/HomePage.tsx,
+// unrouted). Imported statically, as that one was: it is the route most visitors
+// land on, and behind lazy() the first paint is the shell with the page a round
+// trip behind it. On a phone that is long enough for the smoke test to find 38
+// characters of text where it expects 50.
+import HomeV2Page from './pages/HomeV2Page';
 import Footer from './components/shared/Footer';
 import { ErrorBoundary } from './admin/components/ErrorBoundary';
 import { EmblemLoader } from './components/shared/EmblemLoader';
@@ -1003,22 +1006,7 @@ const AppContent = () => {
                     </ErrorBoundary>
                   ) : (
                   <ErrorBoundary>
-                    <HomePage
-                      onNavigateToSection={(section, magazineTab?: 'articles' | 'visual' | 'tea-inspire') => {
-                        setActiveSection(section);
-                        if (magazineTab) {
-                          setMagazineDefaultTab(magazineTab);
-                        }
-                      }}
-                      savedStoryIds={savedStoryIds}
-                      watchedStoryIds={watchedStoryIds}
-                      onCardClick={handleCardClick}
-                      onToggleSave={toggleSave}
-                      onShare={handleShare}
-                      onCartClick={handleOpenCart}
-                      onAccountClick={handleOpenAccount}
-                      cartItemCount={cart.length}
-                    />
+                    <HomeV2Page />
                   </ErrorBoundary>
                   )
                 } />
@@ -1177,13 +1165,8 @@ const AppContent = () => {
                     </Suspense>
                   </ErrorBoundary>
                 } />
-                <Route path="/v2" element={
-                  <ErrorBoundary>
-                    <Suspense fallback={<EmblemLoader />}>
-                      <HomeV2Page />
-                    </Suspense>
-                  </ErrorBoundary>
-                } />
+                {/* The new home page was built at /v2 before it became home; the old address still lands. */}
+                <Route path="/v2" element={<Navigate to="/" replace />} />
                 <Route path="/store-launch-playbook" element={
                   <ErrorBoundary>
                     <Suspense fallback={<EmblemLoader />}>
@@ -1348,8 +1331,8 @@ const AppContent = () => {
           </AnimatePresence>
       </main>
 
-      {/* Global Footer, hidden on Home and on the second home page. Full-bleed; clearance lives inside Footer. */}
-      {viewState === 'BROWSE' && activeSection !== 'HOME' && displayLocation.pathname !== '/v2' && (
+      {/* Global Footer, hidden on Home. Full-bleed; clearance lives inside Footer. */}
+      {viewState === 'BROWSE' && activeSection !== 'HOME' && (
         <Footer />
       )}
       </>
