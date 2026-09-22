@@ -222,11 +222,10 @@ import { BottomTabBar } from './components/BottomTabBar';
 import { sellUnitOf, wholePieceOf } from './lib/teaPricing';
 import { AdvisePage } from './components/AdvisePage';
 import AboutPage from './AboutPage';
-// The home page, since 2026-09-22 (the old one stays at components/HomePage.tsx,
-// unrouted). Imported statically, as that one was: it is the route most visitors
-// land on, and behind lazy() the first paint is the shell with the page a round
-// trip behind it. On a phone that is long enough for the smoke test to find 38
-// characters of text where it expects 50.
+// The home page. Imported statically, as the page it replaced was: it is the
+// route most visitors land on, and behind lazy() the first paint is the shell
+// with the page a round trip behind it. On a phone that is long enough for the
+// smoke test to find 38 characters of text where it expects 50.
 import HomeV2Page from './pages/HomeV2Page';
 import Footer from './components/shared/Footer';
 import { ErrorBoundary } from './admin/components/ErrorBoundary';
@@ -487,16 +486,6 @@ const AppContent = () => {
     window.addEventListener('openCart', onOpenCartEvent);
     return () => window.removeEventListener('openCart', onOpenCartEvent);
   }, []);
-
-  // Listen for navigate CustomEvent from HomePage sections
-  useEffect(() => {
-    const handleNavigate = (e: Event) => {
-      const section = (e as CustomEvent).detail?.section as Section;
-      if (section) setActiveSection(section);
-    };
-    window.addEventListener('navigate', handleNavigate);
-    return () => window.removeEventListener('navigate', handleNavigate);
-  }, [setActiveSection]);
 
   // Listen for openArticle CustomEvent dispatched from product detail cards
   useEffect(() => {
