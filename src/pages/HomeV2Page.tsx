@@ -106,8 +106,6 @@ const HomeV2Page: React.FC = () => {
   });
   const portrait = pieceContent?.photos?.portrait;
 
-  // The table photograph enters the way the plates do.
-  const heroReveal = useSectionReveal('fade');
 
   // The page breaks out of the main column's gutter, and on desktop out of the
   // column itself, so the photographs run from the left edge of the window,
@@ -127,7 +125,7 @@ const HomeV2Page: React.FC = () => {
           in as owner, the editor bar turns editing on, a photograph drops,
           pastes or is chosen into it, and Publish makes it live. Until one is
           published the table photograph stands in. */}
-      <section aria-label="Teajia" className="grid grid-cols-1 lg:grid-cols-[var(--teajia-sidebar-w)_minmax(0,1.45fr)_minmax(0,1fr)] lg:min-h-[calc(100vh-1.5rem)]">
+      <section aria-label="Teajia" className="grid grid-cols-1 lg:grid-cols-[var(--teajia-sidebar-w)_minmax(0,1.45fr)_minmax(0,1fr)] lg:min-h-[88vh]">
         <div className={`lg:col-start-2 px-6 sm:px-10 lg:pl-[4rem] lg:pr-16 pt-14 sm:pt-20 lg:pt-0 pb-10 lg:pb-0 flex flex-col justify-center`}>
           <h1
             className="font-display font-light text-tea-text max-w-[26ch] text-[clamp(38px,3.9vw,66px)] leading-[1.06] tracking-[0.005em]"
@@ -159,11 +157,7 @@ const HomeV2Page: React.FC = () => {
             <Link to="/start" className="hover:text-tea-gold transition-colors duration-300">New here? Start here</Link>
           </p>
         </div>
-        <div
-          ref={heroReveal.ref}
-          className={`relative lg:col-start-3 min-h-[320px] sm:min-h-[420px] lg:min-h-0 overflow-hidden bg-tea-surface ${PHOTO} ${heroReveal.className}`}
-          style={heroReveal.style}
-        >
+        <div className={`relative lg:col-start-3 min-h-[320px] sm:min-h-[420px] lg:min-h-0 overflow-hidden bg-tea-surface ${PHOTO}`}>
           <span className={`pointer-events-none absolute left-5 bottom-4 z-10 ${META} text-tea-text-sec`}>At the table, Bali</span>
           <EditablePhoto
             slot="table"
@@ -181,7 +175,6 @@ const HomeV2Page: React.FC = () => {
         className={`${MOVEMENT} ${EDGE} grid grid-cols-1 md:grid-cols-3 gap-y-8 md:gap-y-0 md:gap-x-[2px] ${PHOTO}`}
       >
         <Plate
-          index={0}
           to={PIECE.to}
           title={<>Porcelain <span className="italic text-tea-gold">and Tea</span></>}
           body={PIECE.dek}
@@ -190,7 +183,6 @@ const HomeV2Page: React.FC = () => {
           crop={portrait?.crop}
         />
         <Plate
-          index={1}
           to={tea ? `/shop/product/${tea.slug ?? tea.id}` : '/shop'}
           title={tea ? tea.productName : 'On the shelf'}
           body={tea ? teaLine(tea) : 'Twenty teas, chosen one lot at a time.'}
@@ -198,7 +190,6 @@ const HomeV2Page: React.FC = () => {
           src={tea?.imageUrl || TEMPLATE.tea}
         />
         <Plate
-          index={2}
           to="/advise"
           title="Twenty years in tea culture."
           body="Taiwan, China, Japan, Bali, and beyond. Tea for your practice, your collection, your space."
@@ -207,15 +198,46 @@ const HomeV2Page: React.FC = () => {
         />
       </section>
 
-      {/* The house: on the surface tone. The grounding lines and the email
-          down the left, exactly as the live page sets them; the three
-          characters large on the right, the house's own picture. */}
-      <section
-        aria-label="The house"
-        className={`${MOVEMENT} grid grid-cols-1 lg:grid-cols-[var(--teajia-sidebar-w)_1fr_1fr]`}
-      >
-        <div className="lg:col-start-2 px-6 sm:px-10 lg:pl-[4rem] lg:pr-16 pt-14 sm:pt-16 lg:pt-24 pb-12 lg:pb-24 flex flex-col justify-center">
-          <div className="max-w-[360px]">
+      {/* The house: one panel from the reading edge to the window's edge,
+          the only tonal block on the page. What the name is, for someone who
+          has never met the word: the wordmark leads; Adrian's two lines split
+          it into tea and jiā; then jiā three times under three characters,
+          each a facet, in his words; the spirit and the motto; and, last, the
+          way to stay. Nothing is explained; the facets show themselves.
+          Centred, because three pillars are a symmetric idea. The characters
+          enter once, as they do on the live page: 家 first, 佳 and 嘉 from
+          the sides. More air above the wordmark than below the last line. */}
+      <section aria-label="The house" className={`${MOVEMENT} ${EDGE}`}>
+        <div className="bg-tea-elevated px-6 sm:px-10 lg:px-16 pt-20 sm:pt-24 lg:pt-28 pb-14 sm:pb-16 lg:pb-20 flex flex-col items-center text-center">
+          <LogoText size="panel" color="var(--tea-text)" />
+          <p className={`${BODY} italic mt-6 tracking-[0.06em] text-tea-text-sec`}>
+            <span className="not-italic font-semibold text-tea-gold">tea</span> · leaf and water
+          </p>
+          <p className={`${BODY} italic tracking-[0.06em] text-tea-text-sec`}>
+            <span className="not-italic font-semibold text-tea-gold">jiā</span> · one sound, three pillars…
+          </p>
+          <div className="mt-8 w-full max-w-[880px]">
+            <div className="grid grid-cols-3 gap-x-3 sm:gap-x-6">
+              {FACETS.map((c, i) => (
+                <Facet key={c.zi} {...c} index={i} />
+              ))}
+            </div>
+            {/* On the phone the three sentences read as a list under the row, not a tower. */}
+            <ul className="sm:hidden mt-8 flex flex-col gap-4 text-left">
+              {FACETS.map(c => (
+                <li key={c.zi} className={`${BODY} text-tea-text-sec`}>
+                  <span className="font-display text-tea-text">{c.title}. </span>{c.text}
+                </li>
+              ))}
+            </ul>
+            <p className={`${BODY} mt-12 text-tea-text-sec`}>
+              A home for fine tea. A place to source it, study it, and share it with those who gather around the cup.
+            </p>
+            <p className={`${BODY} italic mt-3 tracking-[0.04em] text-tea-text-dim`}>
+              Honor the past. Live in the present. Build for the future.
+            </p>
+          </div>
+          <div className="mt-16 w-full max-w-[360px]">
             <p className={`${BODY} italic tracking-[0.04em] text-tea-text-dim`}>stay connected</p>
             <p className={`${DISPLAY} italic mt-1 text-tea-text`}>it&apos;s nothing without you</p>
             <div className="mt-6">
@@ -227,33 +249,6 @@ const HomeV2Page: React.FC = () => {
               <Link to="/signin" className="text-tea-gold/80 hover:text-tea-gold transition-colors duration-300">Sign in</Link>
             </p>
           </div>
-        </div>
-        {/* What the name is, for someone who has never met the word. The
-            wordmark leads; Adrian's two lines split it into tea and jiā; then
-            jiā three times under three characters, each a facet, in his
-            words. Nothing is explained; the facets show themselves. Centred,
-            because three pillars are a symmetric idea. The characters enter
-            once, as they do on the live page: 家 first, 佳 and 嘉 from the
-            sides. */}
-        <div className="lg:col-start-3 bg-tea-elevated px-6 sm:px-10 lg:px-14 py-14 sm:py-16 lg:py-20 flex flex-col items-center text-center">
-          <LogoText size="panel" color="var(--tea-text)" />
-          <p className={`${BODY} italic mt-6 tracking-[0.06em] text-tea-text-sec`}>
-            <span className="not-italic font-semibold text-tea-gold">tea</span> · leaf and water
-          </p>
-          <p className={`${BODY} italic tracking-[0.06em] text-tea-text-sec`}>
-            <span className="not-italic font-semibold text-tea-gold">jiā</span> · one sound, three pillars…
-          </p>
-          <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-10 w-full max-w-[720px]">
-            {FACETS.map((c, i) => (
-              <Facet key={c.zi} {...c} index={i} />
-            ))}
-          </div>
-          <p className={`${BODY} mt-10 max-w-[44ch] text-tea-text-sec`}>
-            A home for fine tea. A place to source it, study it, and share it with those who gather around the cup.
-          </p>
-          <p className={`${BODY} italic mt-3 tracking-[0.04em] text-tea-text-dim`}>
-            Honor the past. Live in the present. Build for the future.
-          </p>
         </div>
       </section>
       <StoryEditorBar />
@@ -279,14 +274,14 @@ const Facet: React.FC<(typeof FACETS)[number] & { index: number }> = ({ zi, titl
     >
       {/* One box height for all three, so the titles line up under characters of two sizes. */}
       <span
-        className={`flex items-end justify-center h-[104px] sm:h-[120px] lg:h-[clamp(96px,8.6vw,168px)] leading-none text-tea-gold ${centre ? 'text-[104px] sm:text-[120px] lg:text-[clamp(96px,8.6vw,168px)]' : 'text-[88px] sm:text-[100px] lg:text-[clamp(80px,7.2vw,140px)]'}`}
+        className={`flex items-end justify-center h-[72px] sm:h-[120px] lg:h-[clamp(96px,8.6vw,168px)] leading-none text-tea-gold ${centre ? 'text-[72px] sm:text-[120px] lg:text-[clamp(96px,8.6vw,168px)]' : 'text-[60px] sm:text-[100px] lg:text-[clamp(80px,7.2vw,140px)]'}`}
         style={{ fontFamily: "'Ma Shan Zheng', cursive" }}
       >
         {zi}
       </span>
-      <span className={`${META} mt-3 text-tea-gold`}>jiā</span>
+      <span className="font-display italic text-ui-15 tracking-[0.04em] mt-3 text-tea-gold">jiā</span>
       <p className={`${DISPLAY} mt-2 text-tea-text`}>{title}</p>
-      <p className={`${BODY} mt-2 max-w-[24ch] text-tea-text-sec`}>{text}</p>
+      <p className={`${BODY} hidden sm:block mt-2 max-w-[30ch] text-tea-text-sec`}>{text}</p>
     </div>
   );
 };
@@ -301,8 +296,6 @@ const teaLine = (tea: PublicProduct): string => {
 };
 
 interface PlateProps {
-  /** Position in the row, for the stagger of the one authored entrance. */
-  index: number;
   to: string;
   title: React.ReactNode;
   body: React.ReactNode;
@@ -313,14 +306,12 @@ interface PlateProps {
 }
 
 /**
- * One plate on the table: a photograph with its words under it, a hairline
- * from its neighbour, never a card. The photographs are the page's one
- * authored entrance: each fades up as it comes into view, a beat after the
- * one before. The words do not animate.
+ * One plate on the table: a photograph with its words under it, a gutter
+ * from its neighbour, never a card. Nothing here animates on entry: the
+ * page's one authored entrance is the characters in the house.
  */
-const Plate: React.FC<PlateProps> = ({ index, to, title, body, meta, src, crop }) => {
+const Plate: React.FC<PlateProps> = ({ to, title, body, meta, src, crop }) => {
   const [hover, setHover] = useState(false);
-  const reveal = useSectionReveal('fade');
   const focal = crop ? `${crop.x * 100}% ${crop.y * 100}%` : undefined;
   return (
     <Link
@@ -329,11 +320,7 @@ const Plate: React.FC<PlateProps> = ({ index, to, title, body, meta, src, crop }
       onMouseLeave={() => setHover(false)}
       className="group flex flex-row md:flex-col min-h-[220px] md:min-h-0 text-tea-text-sec focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/40"
     >
-      <div
-        ref={reveal.ref}
-        className={`relative shrink-0 basis-[45%] min-h-[220px] md:basis-auto md:min-h-[280px] lg:min-h-[400px] overflow-hidden bg-tea-surface ${reveal.className}`}
-        style={reveal.style ? { ...reveal.style, transitionDelay: `${index * 120}ms` } : undefined}
-      >
+      <div className="relative shrink-0 basis-[45%] min-h-[220px] md:basis-auto md:min-h-[280px] lg:min-h-[400px] overflow-hidden bg-tea-surface">
         <img
           src={src}
           alt=""
@@ -342,12 +329,12 @@ const Plate: React.FC<PlateProps> = ({ index, to, title, body, meta, src, crop }
           style={crop ? { objectPosition: focal, transform: `scale(${crop.scale})`, transformOrigin: focal } : undefined}
         />
       </div>
-      <div className="flex-1 pl-5 py-6 sm:pl-6 sm:py-8 md:pl-0 md:pr-8 md:py-8">
+      <div className="flex-1 flex flex-col pl-5 py-6 sm:pl-6 sm:py-8 md:pl-0 md:pr-8 md:py-8">
         <h2 className={`${TITLE} transition-colors duration-300 ${hover ? 'text-tea-gold' : 'text-tea-text'}`}>
           {title}
         </h2>
         <p className={`${BODY} mt-3 max-w-[44ch] text-tea-text-sec`}>{body}</p>
-        <p className={`${META} mt-3 text-tea-text-sec`}>{meta}</p>
+        <p className={`${META} mt-auto pt-4 text-tea-text-sec`}>{meta}</p>
       </div>
     </Link>
   );
@@ -385,7 +372,7 @@ const EmailField: React.FC = () => {
         placeholder="your email"
         disabled={state === 'sending'}
         aria-label="Email address"
-        className={`font-display w-full bg-transparent text-base tracking-[0.04em] text-tea-text outline-none pb-2.5 pr-10 placeholder:italic placeholder:text-tea-text-dim disabled:opacity-50 border-0 border-b border-tea-border rounded-none focus:border-tea-gold text-left pl-0`}
+        className={`font-display w-full bg-transparent text-base tracking-[0.04em] text-tea-text outline-none pb-2.5 pr-10 placeholder:italic placeholder:text-tea-text-dim disabled:opacity-50 border-0 border-b border-tea-border rounded-none focus:border-tea-gold text-center pl-7`}
       />
       <button
         type="submit"
