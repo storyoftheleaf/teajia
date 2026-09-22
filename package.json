@@ -40,7 +40,7 @@
     "tea-reference:pages:check": "node scripts/tea-reference-markdown/build-pages.mjs --check",
     "tea-reference:website:preview": "node scripts/tea-reference-website-preview/preview-cli.mjs",
     "tea-reference:teajia:preview": "node scripts/tea-reference-website-preview/teajia-preview.mjs",
-    "sandbox:site:alt": "TEAJIA_API_PROXY=http://localhost:8787 VITE_API_URL= vite --port 7788"
+    "sandbox:site:alt": "TEAJIA_API_PROXY=http://localhost:8787 VITE_API_URL=http://localhost:7788 vite --port 7788"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
