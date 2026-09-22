@@ -274,14 +274,28 @@ export function buildInvoiceReservationStatements(env: { DB: D1Database }, input
   invoiceId: string;
   lines: AuthorizedInvoiceLine[];
   expiresAt: string;
+  guard?: {
+    invoiceId: string;
+    claimToken: string;
+    status: string;
+    inventoryDeducted: number;
+  };
 }): D1PreparedStatement[] {
   const quantities = new Map<string, number>();
   for (const line of input.lines) {
     if (!line.product_id) continue;
     quantities.set(line.product_id, (quantities.get(line.product_id) ?? 0) + Number(line.quantity));
   }
+  const guardSql = input.guard
+    ? ` AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ?
+         AND status = ? AND inventory_deducted = ? AND fulfillment_claim_token = ?)`
+    : '';
+  const guardValues = input.guard
+    ? [input.guard.invoiceId, input.accountId, input.guard.status, input.guard.inventoryDeducted, input.guard.claimToken]
+    : [];
   const statements: D1PreparedStatement[] = [
-    env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ? AND account_id = ?').bind(input.invoiceId, input.accountId),
+    env.DB.prepare(`DELETE FROM stock_holds WHERE invoice_id = ? AND account_id = ?${guardSql}`)
+      .bind(input.invoiceId, input.accountId, ...guardValues),
   ];
   for (const [productId, quantity] of quantities) {
     statements.push(env.DB.prepare(
@@ -293,11 +307,11 @@ export function buildInvoiceReservationStatements(env: { DB: D1Database }, input
              AND (h.expires_at IS NULL OR h.expires_at > datetime('now'))
          ), 0) >= ? THEN ? ELSE -1 END,
          ?
-       FROM products p WHERE p.id = ? AND p.account_id = ?`
+       FROM products p WHERE p.id = ? AND p.account_id = ?${guardSql}`
     ).bind(
       crypto.randomUUID(), input.accountId, input.invoiceId, productId,
       input.accountId, productId, input.invoiceId, quantity, quantity, input.expiresAt,
-      productId, input.accountId,
+      productId, input.accountId, ...guardValues,
     ));
   }
   return statements;

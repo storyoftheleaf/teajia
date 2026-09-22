@@ -3,6 +3,9 @@ import {
   deriveConfirmedInvoiceLine,
   invoiceLineTotal,
   repairCandidate,
+  validateRetailInvoiceInput,
+  validateShippingCostUsd,
+  validatePaymentStatusValue,
 } from '../src/invoiceDomain';
 
 describe('invoice line invariant', () => {
@@ -153,5 +156,43 @@ describe('invoice line invariant', () => {
       recommendedPriceUsd: 12,
       catalogUnitPriceUsd: 0.3,
     })).toThrow(RangeError);
+  });
+});
+
+describe('retail invoice write validation', () => {
+  const baseLine = { product_id: 'tea-1', custom_name: null, quantity: 50, price_at_sale: 10 };
+
+  it('accepts a well-formed create payload', () => {
+    expect(validateRetailInvoiceInput({
+      customer_name: 'Buyer',
+      display_currency: 'USD',
+      lineItems: [baseLine],
+    })).toMatchObject({
+      customer_name: 'Buyer',
+      shipping_cost_usd: 0,
+      payment_status: 'unpaid',
+      lineItems: [baseLine],
+    });
+  });
+
+  it('rejects a custom line with no name', () => {
+    expect(() => validateRetailInvoiceInput({
+      customer_name: 'Buyer',
+      display_currency: 'USD',
+      lineItems: [{ product_id: null, custom_name: null, quantity: 1, price_at_sale: 5 }],
+    })).toThrow(/requires product_id or custom_name/);
+  });
+
+  it('rejects non-numeric shipping cost', () => {
+    expect(() => validateShippingCostUsd('free')).toThrow(/must be a number/);
+  });
+
+  it('rejects negative shipping cost', () => {
+    expect(() => validateShippingCostUsd(-1)).toThrow(/must be non-negative/);
+  });
+
+  it('accepts only the three payment statuses the ledger derives', () => {
+    expect(validatePaymentStatusValue('partial')).toBe('partial');
+    expect(() => validatePaymentStatusValue('settled')).toThrow(/must be unpaid, partial, or paid/);
   });
 });
