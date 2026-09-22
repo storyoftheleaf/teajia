@@ -54,11 +54,14 @@ const PIECE = {
  *  same-origin media route, as every site image is since main moved off Cloudinary. */
 const TABLE_PHOTO = '/api/media/site/2021-06-27_IMG_7745_Original_ehkz30.jpg';
 
-/** Stand-ins until the real photographs exist. Unsplash, free to use; never shipped as final. */
+/** Stand-ins until the real photographs exist, served from this site rather
+ *  than hot-linked: the china-dependency scan refuses stock hosts under src/
+ *  and public/, because a customer in China cannot load one. See
+ *  public/home/README.md; they go when the real photographs arrive. */
 const TEMPLATE = {
-  piece: 'https://images.unsplash.com/photo-1654738209839-571e0ff47323?w=1200&q=75&fit=crop',
-  tea: 'https://images.unsplash.com/photo-1475257026007-0753d5429e10?w=1200&q=75&fit=crop',
-  consult: 'https://images.unsplash.com/photo-1734333107760-7389a4f29af8?w=1200&q=75&fit=crop',
+  piece: '/home/standin-piece.webp',
+  tea: '/home/standin-tea.webp',
+  consult: '/home/standin-consult.webp',
 };
 
 /** The home page's own slug in the story-content store, for the frames it carries. */

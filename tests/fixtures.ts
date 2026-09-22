@@ -44,13 +44,6 @@ export const test = base.extend({
       }
       return route.fulfill({ status: 200, contentType: 'image/png', headers: CORS, body: ONE_PIXEL_PNG });
     });
-    /* The home page carries three Unsplash stand-ins until its real
-       photographs exist. They cost nobody money, but every spec that opens
-       "/" would fetch three images off the machine, which is slow and can
-       fail on a bad line. Same stub, same reason. Delete this route when the
-       stand-ins go. */
-    await context.route(/images\.unsplash\.com\//, (route) =>
-      route.fulfill({ status: 200, contentType: 'image/png', headers: CORS, body: ONE_PIXEL_PNG }));
     await use(context);
   },
 });
