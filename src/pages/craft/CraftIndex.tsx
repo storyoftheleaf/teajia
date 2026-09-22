@@ -361,7 +361,7 @@ const GHOST_LINE = 'rgb(var(--tj-read-gold-rgb) / 0.22)';
 const GhostTemplate: React.FC<{ kind: GhostKind }> = ({ kind }) => {
   if (kind === 'playlists') {
     return (
-      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, padding: '16px 18px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 9 }}>
+      <div aria-hidden="true" style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: '38%', padding: '16px 18px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 9 }}>
         {[0, 1, 2, 3].map((i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${GHOST_LINE}`, paddingBottom: 6 }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', border: `1px solid ${GHOST_LINE}` }} />
@@ -373,7 +373,7 @@ const GhostTemplate: React.FC<{ kind: GhostKind }> = ({ kind }) => {
   }
   if (kind === 'brew') {
     return (
-      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, padding: '16px 18px', display: 'grid', gridTemplateRows: 'auto 1fr 1fr', gap: 9 }}>
+      <div aria-hidden="true" style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: '38%', padding: '16px 18px', display: 'grid', gridTemplateRows: 'auto 1fr 1fr', gap: 9 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
           {[0, 1, 2].map((i) => <span key={i} style={{ height: 2, width: '55%', background: GHOST_LINE }} />)}
         </div>
@@ -386,7 +386,7 @@ const GhostTemplate: React.FC<{ kind: GhostKind }> = ({ kind }) => {
     );
   }
   return (
-    <div aria-hidden="true" style={{ position: 'absolute', inset: 0, padding: '16px 18px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 13 }}>
+    <div aria-hidden="true" style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: '38%', padding: '16px 18px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 13 }}>
       {[0.7, 0.55, 0.4].map((w, i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ width: 9, height: 9, border: `1px solid ${GHOST_LINE}` }} />
@@ -425,7 +425,7 @@ const ComingSoonPanel: React.FC<Omit<SoonPanelSpec, 'key'>> = ({ slot, placehold
       <div style={{ fontFamily: F.display, fontSize: 24, lineHeight: 1.06, color: 'var(--tj-read-cream)' }}>
         {title}
       </div>
-      <div style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 13, lineHeight: 1.4, color: 'var(--tj-read-taupe)', marginTop: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+      <div style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 13, lineHeight: 1.4, color: 'var(--tj-read-taupe)', marginTop: 6, maxWidth: '58%' }}>
         {dek}
       </div>
     </div>
@@ -439,7 +439,7 @@ const ComingSoonPanel: React.FC<Omit<SoonPanelSpec, 'key'>> = ({ slot, placehold
 // plain style objects rather than Tailwind classes. ────────────────────────
 const CRAFT_ROOM_RESPONSIVE_STYLE = `
   @media (max-width: 900px) {
-    .tj-craft-room { grid-template-columns: 1fr !important; gap: 48px !important; }
+    .tj-craft-room { grid-template-columns: minmax(0,1fr) !important; gap: 48px !important; }
     .tj-craft-rail { position: static !important; order: -1; }
   }
   .tj-craft-photo img { filter: saturate(0.85); }
