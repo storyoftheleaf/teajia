@@ -123,12 +123,16 @@ test.describe('refined public shop', () => {
     await expect(page.getByRole('button', { name: /Add to order/i })).toHaveCount(0);
 
     const amount = page.locator('.alcove-dock-strip button[aria-expanded]:not(.alcove-dock-cta)');
+    const selectionTotal = page.locator('.alcove-dock-strip .alcove-dock-cta-total').first();
     await expect(amount).toBeVisible();
+    // Grams stay in the amount control; the dollar total lives beside it so the
+    // two never concatenate into something like "50g0.19/g".
+    await expect(amount).toContainText('50g');
+    await expect(amount).not.toContainText('/g');
     // The figure comes off the pricing curve, which folds handling into the
     // total: 50 g of a $0.15/g tea is $7.50 of leaf plus $2, so $9.50 shown as
-    // $10. The rate the buyer actually pays is $0.19 a gram, not the shelf
-    // $0.15, and the list quotes that same effective rate.
-    await expect(amount).toContainText('$10');
+    // $10.
+    await expect(selectionTotal).toContainText('$10');
     expect(await amount.evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
 
     // Choosing an amount chooses it; Add commits it. Both controls are in the
@@ -143,10 +147,9 @@ test.describe('refined public shop', () => {
     await expect(page.locator('.alcove-dock-cta')).toHaveCount(0);
 
     // Add commits once, and the order then carries exactly what the bar showed.
-    const shown = (await amount.textContent()) ?? '';
-    const shownTotal = shown.match(/\$[\d,]+/)?.[0] ?? '';
+    const shownTotal = ((await selectionTotal.textContent()) ?? '').match(/\$[\d,]+/)?.[0] ?? '';
     await page.locator('.alcove-dock-add').click();
-    await expect(page.locator('.alcove-dock-cta')).toContainText(shownTotal);
+    await expect(page.locator('.alcove-dock-cta .alcove-dock-cta-total')).toContainText(shownTotal);
     if ((await page.viewportSize())!.width < 1024) {
       const [barBox, navBox] = await Promise.all([
         page.locator('.alcove-dock-strip').boundingBox(),

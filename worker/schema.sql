@@ -1673,6 +1673,15 @@ CREATE TABLE IF NOT EXISTS event_attendees (
   denial_message TEXT,
   account_id TEXT,
   user_id TEXT REFERENCES users(id),
+  -- DEAD COLUMN, not the live record: nothing in the worker reads or writes
+  -- this. Event money runs through EVT- invoices instead (see
+  -- `invoiceDomain.ts`); this column's only reference anywhere is the CHECK
+  -- constraint test below. It was already read once as though it were the
+  -- live record of what an attendee owes, which sent a piece of unrelated
+  -- work chasing a problem that did not exist. Kept (not dropped, which
+  -- would be a migration) so the CHECK constraint and its test still hold;
+  -- do not start reading or writing it without first confirming the EVT-
+  -- invoice path has actually changed.
   payment_status TEXT NOT NULL DEFAULT 'not_required'
     CHECK(payment_status IN ('not_required','pending','paid','waived','refunded')),
   UNIQUE(event_id, phone_number)

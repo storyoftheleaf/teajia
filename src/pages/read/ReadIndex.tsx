@@ -38,9 +38,11 @@ function isRealArticle(a: { title?: string }): boolean {
 }
 
 // Spell small counts as words for the editorial masthead ("Three pieces"),
-// falling back to digits past the curated set.
+// falling back to digits past the curated set. Exported so the Craft index
+// (built in this same frame) spells its own piece count the same way rather
+// than keeping a second copy of the word list.
 const NUMBER_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen'];
-function numberWord(n: number): string {
+export function numberWord(n: number): string {
   const w = NUMBER_WORDS[n];
   return w ? w.charAt(0).toUpperCase() + w.slice(1) : String(n);
 }

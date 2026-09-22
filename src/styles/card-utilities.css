@@ -3895,6 +3895,16 @@ input[type="number"]::-webkit-outer-spin-button {
   line-height: 1;
   color: var(--tea-text);
 }
+/* The line total for the amount chosen, or the order total on Cart. Grams
+   live in the amount control; dollars live here so the two never concatenate. */
+.alcove-dock-cta-total {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--tea-text);
+  white-space: nowrap;
+}
 .alcove-dock-cta:hover { background: rgb(var(--tea-gold-rgb) / 0.1); }
 /* The block never disappears. It used to hide below 640px, which meant the one
    way into the price list vanished on exactly the screens that have no room to

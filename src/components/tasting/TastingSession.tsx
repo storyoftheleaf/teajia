@@ -1297,7 +1297,13 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
 
       {/* Leaving with unsaved work. Rendered inside the takeover's own stacking
           context rather than portalled to the body, so it cannot end up beneath
-          the panel it belongs to. */}
+          the panel it belongs to. An explicit z-index is what actually
+          guarantees that placement: the sibling panel above animates via
+          `transform`, which gives it a stacking context of its own, and a
+          same-level sibling with no z-index of its own is not reliably
+          ordered against that just by coming later in the DOM. Without this,
+          a control inside the panel (its own `z-[1]`) could still receive the
+          click meant for this prompt's Save. */}
       <AnimatePresence>
         {closePrompt && (
           <motion.div
@@ -1305,7 +1311,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="absolute inset-0 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+            className="absolute inset-0 z-10 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
             onClick={() => setClosePrompt(false)}
           >
             <motion.div
@@ -1354,6 +1360,11 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                     onClick={handleSaveAndClose}
                     disabled={!canSave}
                     data-close-prompt-save
+                    // Distinct from the toolbar's "Save" button, which this
+                    // dialog sits in front of and does not unmount: without a
+                    // name of its own, a person (and an exact-name locator)
+                    // cannot tell the two apart while both are on screen.
+                    aria-label={saveState === 'saving' ? 'Saving and closing' : 'Save and close'}
                     className="tap-target min-h-11 rounded-xl cta-solid px-5 text-ui-13 font-semibold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {saveState === 'saving' ? 'Saving\u2026' : 'Save'}

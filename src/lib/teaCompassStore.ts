@@ -245,7 +245,13 @@ const createdTeaCompassStore = create<TeaCompassState>()(
       draftsByAccount: {},
       lastVendorId: null,
       lastVendorName: null,
-      lastCurrency: 'NT',
+      // Adrian's 2026-09-07 rule: everything is bought and air-freighted from
+      // China, so a fresh session's capture card opens on Yuan, not Taiwan
+      // dollars. Still only a remembered default: `setLastCurrency` only
+      // moves this when the operator actually picks a currency, and
+      // `createEmptyEntry`'s own `touchedFields` gate is what keeps this
+      // value from being sent to the server as a stated currency until then.
+      lastCurrency: 'Yuan',
       encounterContextByAccount: {},
       browseGrouping: 'date',
       browseFilter: 'all',

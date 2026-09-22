@@ -502,6 +502,10 @@ test.describe('Curate field capture preservation', () => {
 
     const close = page.getByRole('button', { name: 'Close', exact: true }).filter({ visible: true });
     const save = page.getByRole('button', { name: 'Save', exact: true });
+    // The "Save this tasting?" dialog's own Save action, distinct from the
+    // toolbar's: the dialog does not unmount the toolbar behind it, so both
+    // buttons are on screen at once once the dialog opens.
+    const saveAndClose = page.getByRole('button', { name: 'Save and close', exact: true });
     await expect(close).toBeVisible();
     await expect(page.getByTestId('bottom-tab-bar')).toBeHidden();
     // Device-scale rounding can report a CSS 44px target as 43.999999px.
@@ -518,11 +522,15 @@ test.describe('Curate field capture preservation', () => {
       await dialog.dismiss();
     });
     await close.click();
-    await expect(save).toBeVisible();
+    await expect(saveAndClose).toBeVisible();
 
-    await save.click();
-    await expect(page.getByText('Tasting Saved', { exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Done', exact: true }).click();
+    // The dialog's Save is a way out (see `handleSaveAndClose` in
+    // TastingSession.tsx): a successful save closes the whole overlay right
+    // away rather than landing on the toolbar save's "Tasting Saved"
+    // confirmation screen, so there is no confirmation text or Done button
+    // to interact with on this path.
+    await saveAndClose.click();
+    await expect(close).toBeHidden();
     await expect.poll(() => page.evaluate(async () => {
       // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
       const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');

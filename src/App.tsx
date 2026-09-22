@@ -219,6 +219,7 @@ import type { PanelView } from './components/AccountPanel/types';
 import { GlobalSearch } from './components/shared/GlobalSearch';
 import { LeftSidebar } from './components/LeftSidebar';
 import { BottomTabBar } from './components/BottomTabBar';
+import { SiteMenu } from './components/SiteMenu';
 import { sellUnitOf, wholePieceOf } from './lib/teaPricing';
 import { AdvisePage } from './components/AdvisePage';
 import AboutPage from './AboutPage';
@@ -304,8 +305,17 @@ const AppContent = () => {
   // normally; pull-to-refresh must stay OFF there or a downward read-scroll
   // from the top gets mistaken for a pull gesture (the page refreshes and the
   // article won't scroll). Computed before the hook so it can gate the listeners.
+  //
+  // The Craft landing (/craft with no ?v= sub-view) is built in the same
+  // full-bleed immersive frame as Read (CraftIndex, its own sticky nav,
+  // document scroll), so it needs the same exemption. A Craft SUB-view
+  // (/craft?v=glossary etc.) is not immersive: it keeps the app shell's
+  // PageHeader, padding and pull-to-refresh, so only the bare landing
+  // qualifies, checked by the absence of the ?v= param rather than by path
+  // alone, since the sub-views share /craft's pathname.
   const isImmersiveReadRoute =
-    location.pathname === '/read' || location.pathname.startsWith('/read/');
+    location.pathname === '/read' || location.pathname.startsWith('/read/') ||
+    (location.pathname === '/craft' && !new URLSearchParams(location.search).has('v'));
   // Pull-to-refresh: re-fetch inventory + invalidate active server queries so
   // public pages (Shop, Magazine, Events) reflect any updates made elsewhere.
   // The hook awaits this promise before hiding the indicator.
@@ -465,6 +475,8 @@ const AppContent = () => {
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [accountInitialView, setAccountInitialView] = useState<PanelView | undefined>(undefined);
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+  // The phone's site panel, opened from the left end of the bottom bar.
+  const [showSiteMenu, setShowSiteMenu] = useState(false);
 
   // UI Feedback State
   const [toast, setToast] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
@@ -889,10 +901,11 @@ const AppContent = () => {
   // recipients who aren't logged in. Public collection links (/c/:slug) belong here
   // too: a sent link should be a clean single-purpose page, not the full app shell.
   const isFocusedShareRoute = location.pathname.startsWith('/share/') || location.pathname.startsWith('/c/');
-  // The four hand-built Read long-reads (/read and /read/*) are full-bleed
-  // editorial experiences with their own sticky nav, reading-progress bar and
-  // bottom-right accent control. They escape the app's content padding and the
-  // floating bottom tab bar (which would otherwise overlap those accent swatches).
+  // The hand-built Read long-reads (/read and /read/*) and the Craft landing
+  // (/craft, built in the same frame) are full-bleed editorial experiences
+  // with their own sticky nav and reading-progress bar. They escape the
+  // app's content padding; see isImmersiveReadRoute above for exactly which
+  // routes qualify.
   //
   // The DB-driven immersive reader at /article/:slug intentionally KEEPS the
   // bottom tab bar: it's where authored articles open and a reader there should
@@ -1457,7 +1470,16 @@ const AppContent = () => {
           px-0 layout still keys off isImmersiveRead); their bottom-right accent
           swatches sit above the bar's height so they don't collide. */}
       {!isFocusedShareRoute && (
-        <BottomTabBar activeSection={activeSection} onNavigate={handleNavSection} hidden={isCartOpen} onAccountClick={handleToggleAccount} onAccountClose={handleCloseAccount} isAccountOpen={showAccountModal} onSearchClick={() => { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} onSearchClose={() => setShowGlobalSearch(false)} isSearchOpen={showGlobalSearch} isAdminRoute={isAdminRoute} />
+        <BottomTabBar activeSection={activeSection} onNavigate={handleNavSection} hidden={isCartOpen} onAccountClick={() => { setShowSiteMenu(false); handleToggleAccount(); }} onAccountClose={handleCloseAccount} isAccountOpen={showAccountModal} onMenuClick={() => { if (showSiteMenu) { setShowSiteMenu(false); return; } window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(false); setShowSiteMenu(true); }} onMenuClose={() => setShowSiteMenu(false)} isMenuOpen={showSiteMenu} isAdminRoute={isAdminRoute} />
+      )}
+      {!isFocusedShareRoute && (
+        <SiteMenu
+          isOpen={showSiteMenu}
+          onClose={() => setShowSiteMenu(false)}
+          onSearchClick={() => { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }}
+          onCartClick={handleOpenCart}
+          cartItemCount={cart.length}
+        />
       )}
 
       </div>

@@ -600,7 +600,18 @@ export function collectionShareUrl(slug: string): string {
 const PROACTIVE_REFRESH_THRESHOLD_SECONDS = 60 * 60 * 24 * 14;
 
 function getToken(): string | null {
-  return localStorage.getItem('teajia_token') || sessionStorage.getItem('teajia_token');
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const fromLocal = localStorage.getItem('teajia_token');
+      if (fromLocal) return fromLocal;
+    }
+    if (typeof sessionStorage !== 'undefined') {
+      return sessionStorage.getItem('teajia_token');
+    }
+  } catch {
+    // iOS private mode and vitest/node have no durable storage.
+  }
+  return null;
 }
 
 export const AUTH_TOKEN_CHANGED_EVENT = 'teajia:auth-token-changed';

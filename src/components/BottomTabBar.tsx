@@ -17,9 +17,9 @@ interface BottomTabBarProps {
   onAccountClick?: () => void;
   onAccountClose?: () => void;
   isAccountOpen?: boolean;
-  onSearchClick?: () => void;
-  onSearchClose?: () => void;
-  isSearchOpen?: boolean;
+  onMenuClick?: () => void;
+  onMenuClose?: () => void;
+  isMenuOpen?: boolean;
   isAdminRoute?: boolean;
 }
 
@@ -30,9 +30,9 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   onAccountClick,
   onAccountClose,
   isAccountOpen = false,
-  onSearchClick,
-  onSearchClose,
-  isSearchOpen = false,
+  onMenuClick,
+  onMenuClose,
+  isMenuOpen = false,
   isAdminRoute = false,
 }) => {
   const navigate = useNavigate();
@@ -97,7 +97,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         transition={{ delay: index * 0.05, duration: 0.25, ease: 'easeOut' }}
         onClick={() => {
           if ('vibrate' in navigator) { navigator.vibrate?.(10); }
-          onSearchClose?.();
+          onMenuClose?.();
           onAccountClose?.();
           navigate(tab.path);
         }}
@@ -135,12 +135,12 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
     },
     onClick: () => {
       if (isOnAdmin) {
-        onSearchClose?.();
+        onMenuClose?.();
         onAccountClose?.();
         navigate('/admin/dashboard');
         return;
       }
-      onSearchClose?.();
+      onMenuClose?.();
       onAccountClose?.();
       // Always return to the home screen. We route on the actual pathname,
       // not the derived section: pages like /discover or /start fall back to
@@ -184,7 +184,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         transition={{ delay: index * 0.05, duration: 0.25, ease: 'easeOut' }}
         onClick={() => {
           if ('vibrate' in navigator) { navigator.vibrate?.(10); }
-          onSearchClose?.();
+          onMenuClose?.();
           if (section.path) {
             if (location.pathname.startsWith(section.path)) {
               window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -251,26 +251,35 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
       >
         <div className="flex w-full px-0 h-full">
 
-          {/* Far left: Search (clean icon, sits inside the floating capsule) */}
+          {/* Far left: the site's door. The bar has seven slots and the site
+              has more than seven places, so this end opens the site panel
+              (search, sessions, people, places, tea wisdom, cart, and the
+              Manage rooms for anyone who has them) the way the right end
+              opens Your Table. Three lines, in the stroke of the person
+              glyph opposite, so the two ends of the bar mirror. */}
           <button
-            onClick={onSearchClick}
+            onClick={() => {
+              if ('vibrate' in navigator) { navigator.vibrate?.(10); }
+              onMenuClick?.();
+            }}
             className="w-12 flex-shrink-0 h-full flex items-center justify-center pl-1 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none transition-colors duration-300"
             style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
-            title="Search"
-            aria-label="Search"
-            aria-pressed={isSearchOpen}
+            title="Menu"
+            aria-label="Menu"
+            aria-pressed={isMenuOpen}
           >
             <svg
               viewBox="0 0 24 24"
-              className={`w-5 h-5 transition-colors duration-300 pointer-events-none ${isSearchOpen ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'}`}
+              className={`w-5 h-5 transition-colors duration-300 pointer-events-none ${isMenuOpen ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'}`}
               fill="none"
               stroke="currentColor"
-              strokeWidth={1.6}
+              strokeWidth={1.75}
               strokeLinecap="round"
               strokeLinejoin="round"
             >
-              <circle cx="11" cy="11" r="7" />
-              <line x1="16.5" y1="16.5" x2="22" y2="22" />
+              <line x1="4" y1="7" x2="20" y2="7" />
+              <line x1="4" y1="12" x2="20" y2="12" />
+              <line x1="4" y1="17" x2="20" y2="17" />
             </svg>
           </button>
 

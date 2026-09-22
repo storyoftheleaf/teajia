@@ -131,3 +131,30 @@ export function schemaObjects(db: DatabaseSync, table: string) {
       ORDER BY type, name`,
   ).all(table) as unknown as Array<{ type: string; name: string; sql: string | null }>;
 }
+
+interface ForeignKeyRow { id: number; seq: number; table: string; from: string; to: string; on_delete: string }
+
+/**
+ * Every table with a foreign key pointing at one of `parents`, read from
+ * `PRAGMA foreign_key_list` rather than hand-typed. A hand-typed list can
+ * claim completeness it does not have: `worker/tests/the-table-stops-saying-
+ * free-migration.test.ts` once named seven children of `products` /
+ * `product_listings` while the pragma finds fifteen edges across thirteen
+ * tables, and the comment beside the seven claimed it was "every table",
+ * which was not true.
+ */
+export function foreignKeyChildren(
+  db: DatabaseSync, parents: string[],
+): Array<{ table: string; from: string; onDelete: string }> {
+  const tables = db.prepare(
+    "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
+  ).all() as unknown as Array<{ name: string }>;
+  const edges: Array<{ table: string; from: string; onDelete: string }> = [];
+  for (const { name } of tables) {
+    const foreignKeys = db.prepare(`PRAGMA foreign_key_list(${name})`).all() as unknown as ForeignKeyRow[];
+    for (const fk of foreignKeys) {
+      if (parents.includes(fk.table)) edges.push({ table: name, from: fk.from, onDelete: fk.on_delete });
+    }
+  }
+  return edges;
+}
