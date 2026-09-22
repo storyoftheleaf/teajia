@@ -18,6 +18,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import CraftIndex from './CraftIndex';
+import { CRAFT_LIVE } from './craftLive';
 import { GLOSSARY_TERMS } from '../../data/glossary';
 
 const store = vi.hoisted(() => {
@@ -55,21 +56,22 @@ function render(): string {
   );
 }
 
-// The two /read/* rows this index carries that are held back as drafts today
-// (see src/pages/read/articleLive.ts). If either is ever flipped live, these
-// two tests' expectations move with it, on purpose.
-const DRAFT_TITLES = ['Water Before Leaf', 'The Pot That Remembers'];
-const LIVE_READ_TITLES = ['Seven Steeps', 'Porcelain and Tea', 'The Vocabulary of Taste'];
-const NON_READ_TITLES = [
-  'Three Journeys', 'Discover Your Tea', 'The Tea Reference', 'The Glossary',
+// Adrian's rule, 2026-09-22: a visitor sees only what he wrote, which today
+// is the glossary alone (see craftLive.ts). Everything else is a draft the
+// owner sees dimmed. When a row is flipped live there, move its title from
+// DRAFT_TITLES to LIVE_TITLES here, on purpose.
+const LIVE_TITLES = ['The Glossary'];
+const DRAFT_TITLES = [
+  'Seven Steeps', 'Water Before Leaf', 'Porcelain and Tea', 'The Pot That Remembers',
+  'The Vocabulary of Taste', 'Three Journeys', 'Discover Your Tea', 'The Tea Reference',
   'Six Foundations', 'Reading and Listening', 'Six Tea Spaces', 'Shared Wisdom',
 ];
 
 describe('CraftIndex, visitor', () => {
   const html = (() => { signOut(); return render(); })();
 
-  it('shows every live and non-read row, and hides both drafts', () => {
-    for (const title of [...LIVE_READ_TITLES, ...NON_READ_TITLES]) {
+  it('shows the glossary and nothing Adrian did not write', () => {
+    for (const title of LIVE_TITLES) {
       expect(html, `expected to find "${title}"`).toContain(title);
     }
     for (const title of DRAFT_TITLES) {
@@ -77,36 +79,58 @@ describe('CraftIndex, visitor', () => {
     }
   });
 
-  it('counts eleven pieces, live rows plus every non-read doorway', () => {
-    expect(html).toContain('eleven pieces');
+  it('says one piece, to begin, and numbers it first', () => {
+    expect(html).toContain('one piece, to begin');
+    expect(html).toContain('N°01');
+    expect(html).not.toContain('N°02');
   });
 
-  it('links the Tea Reference row to /wisdom and Discover Your Tea to /discover', () => {
-    expect(html).toContain('href="/wisdom"');
-    expect(html).toContain('href="/discover"');
+  it('leads the rail with the glossary, and links no draft doorway', () => {
+    expect(html).toContain('href="/craft?v=glossary"');
+    expect(html).not.toContain('href="/wisdom"');
+    expect(html).not.toContain('href="/discover"');
+    expect(html).not.toContain('href="/read/');
+  });
+
+  it('carries no Draft tag and no dimmed row', () => {
+    expect(html).not.toContain('>Draft<');
+    expect(html).not.toContain('opacity:0.5;');
   });
 });
 
 describe('CraftIndex, the owner', () => {
   const html = (() => { signInAsOwner(); return render(); })();
 
-  it('sees the drafts, dimmed and tagged, alongside everything else', () => {
-    for (const title of [...LIVE_READ_TITLES, ...NON_READ_TITLES, ...DRAFT_TITLES]) {
+  it('sees every row, the drafts dimmed and tagged', () => {
+    for (const title of [...LIVE_TITLES, ...DRAFT_TITLES]) {
       expect(html, `expected to find "${title}"`).toContain(title);
     }
-    // Draft rows carry opacity:0.5 and a "Draft" tag; live rows carry
-    // opacity:1. This does not prove WHICH row is dimmed, only that the
-    // draft styling and tag are present at all, which the visitor render
-    // above already proved absent.
-    expect(html).toContain('opacity:0.5');
-    expect(html).toContain('Draft');
+    expect(html).toContain('opacity:0.5;');
+    expect(html).toContain('>Draft<');
+    // Twelve drafts, so twelve tags, and the one live row carries none.
+    expect(html.split('>Draft<').length - 1).toBe(DRAFT_TITLES.length);
   });
 
-  it('counts thirteen pieces, the eleven plus both drafts', () => {
+  it('counts thirteen pieces, the glossary plus twelve drafts', () => {
     expect(html).toContain('thirteen pieces');
   });
 
   signOut();
+});
+
+describe('CraftIndex, the live map names exactly the rows the index carries', () => {
+  it('has no orphan key and no unlisted row', () => {
+    signInAsOwner();
+    const html = render();
+    signOut();
+    const rowHrefs = new Set([...html.matchAll(/href="(\/[^"]*)"/g)].map((m) => m[1]));
+    for (const key of Object.keys(CRAFT_LIVE)) {
+      expect(rowHrefs.has(key), `craftLive.ts lists ${key}, which no row links to`).toBe(true);
+    }
+    for (const href of rowHrefs) {
+      expect(href in CRAFT_LIVE, `${href} is a row with no entry in craftLive.ts, so it can never go live`).toBe(true);
+    }
+  });
 });
 
 describe('CraftIndex, the Glossary row', () => {

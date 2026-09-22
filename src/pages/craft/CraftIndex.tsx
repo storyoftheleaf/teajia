@@ -8,14 +8,18 @@
  * (brewing, tasting, reference, the room they sit in), not the magazine's
  * long reads, and unlike Read, most of its rows point at other parts of the
  * site (a /craft?v= sub-view, /wisdom, /discover) rather than at another
- * /read/* article. Only a /read/* href is subject to the publish gate; every
- * other row is always visible, since it is not a draft, it is a doorway.
+ * /read/* article.
+ *
+ * Every row answers to `craftLive.ts`, Craft's own live/draft map, because
+ * Adrian's rule (2026-09-22) is that a visitor sees only what he wrote: the
+ * glossary to begin with, the rest as each is finished. A /read/* row must
+ * also be published in Read. The owner sees every row, drafts dimmed and
+ * tagged, so the whole workshop is visible to the one person setting it up.
  *
  * Row numbering (N°01…) is NOT baked into the data the way Read's is: it is
  * computed at render time over the rows the current viewer can see, in
- * document order, so a visitor's eleventh piece is really the eleventh piece
- * they can open, and an owner's numbering grows by the two drafts they alone
- * can see.
+ * document order, so a visitor's first piece is really the first piece they
+ * can open, and the owner's numbering runs over the drafts too.
  */
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -27,21 +31,26 @@ import {
 import { isArticleVisible, useIsReadOwner } from '../read/publishGate';
 import { numberWord } from '../read/ReadIndex';
 import { GLOSSARY_TERMS, termOfTheDay } from '../../data/glossary';
+import { CRAFT_LIVE } from './craftLive';
 
-// ── Gate: only a /read/* href is a draft that can be held back. Every other
-// row (a /craft?v= sub-view, /wisdom, /discover) is not part of the Read
-// publish map at all, so asking isArticleVisible about it would read as a
-// draft by the map's fail-closed default. Those rows are always visible. ──
+// ── Gate. A row is live for a visitor when craftLive.ts says so, and, for a
+// /read/* row, when Read publishes the piece as well. The owner sees every
+// row; the ones a visitor would not get are drafts, dimmed and tagged. A row
+// missing from the map reads as a draft, the same fail-closed default as
+// articleLive.ts, so a new row cannot go public by being forgotten. ─────────
 function isCraftReadHref(href: string): boolean {
   return href.startsWith('/read/');
 }
+function craftItemLiveForVisitor(href: string): boolean {
+  if (CRAFT_LIVE[href] !== true) return false;
+  if (isCraftReadHref(href)) return isArticleVisible(href, false);
+  return true;
+}
 function craftItemVisible(href: string, isOwner: boolean): boolean {
-  if (!isCraftReadHref(href)) return true;
-  return isArticleVisible(href, isOwner);
+  return isOwner || craftItemLiveForVisitor(href);
 }
 function craftItemIsDraft(href: string, isOwner: boolean): boolean {
-  if (!isCraftReadHref(href)) return false;
-  return isOwner && !isArticleVisible(href, false);
+  return isOwner && !craftItemLiveForVisitor(href);
 }
 
 // ── Data ──────────────────────────────────────────────────────────────────
@@ -170,12 +179,22 @@ const CraftGroupBlock: React.FC<{ group: CraftGroup; isOwner: boolean; numberByH
   );
 };
 
-// ── Lead cover: Discover Your Tea ────────────────────────────────────────
-const LeadCover: React.FC<{ n: string }> = ({ n }) => {
+// ── Lead cover: the first live row in the rail's order of preference. Today
+// that is the Glossary, the one piece Adrian wrote; Discover Your Tea takes
+// the lead back the day it goes live in craftLive.ts. ──────────────────────
+type CoverSpec = { to: string; kicker: string; title: React.ReactNode; line: string };
+const COVERS: CoverSpec[] = [
+  { to: '/discover', kicker: 'Tool', title: <>Discover <span style={{ fontStyle: 'italic', color: C.gold }}>your tea</span></>, line: 'A few quiet questions, and a first tea to brew tonight.' },
+  { to: '/craft?v=glossary', kicker: 'Terms', title: <>The <span style={{ fontStyle: 'italic', color: C.gold }}>Glossary</span></>, line: 'The language of tea, one word at a time. Start with today’s.' },
+  { to: '/read/ritual', kicker: 'Ritual', title: <>Seven <span style={{ fontStyle: 'italic', color: C.gold }}>Steeps</span></>, line: 'The same leaves, brewed seven ways.' },
+  { to: '/wisdom', kicker: 'Reference', title: <>The Tea <span style={{ fontStyle: 'italic', color: C.gold }}>Reference</span></>, line: 'Cultivars, regions, producers, styles, marks and named teas.' },
+];
+
+const LeadCover: React.FC<{ cover: CoverSpec; n: string }> = ({ cover, n }) => {
   const [hovered, setHovered] = useState(false);
   return (
     <Link
-      to="/discover"
+      to={cover.to}
       style={{
         position: 'relative',
         display: 'flex',
@@ -199,11 +218,10 @@ const LeadCover: React.FC<{ n: string }> = ({ n }) => {
           Start here · {n}
         </div>
         <div style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(34px,4.4vw,46px)', lineHeight: 0.98, color: 'var(--tj-read-cream)' }}>
-          Discover{' '}
-          <span style={{ fontStyle: 'italic', color: C.gold }}>your tea</span>
+          {cover.title}
         </div>
         <div style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 14, lineHeight: 1.5, color: 'var(--tj-read-taupe)', marginTop: 14, maxWidth: 330 }}>
-          A few quiet questions, and a first tea to brew tonight.
+          {cover.line}
         </div>
       </div>
     </Link>
@@ -279,7 +297,14 @@ const CraftIndex: React.FC = () => {
 
   const shownCount = numberByHref.size;
   const piecesLabel = `${numberWord(shownCount)} ${shownCount === 1 ? 'piece' : 'pieces'}`;
+  // "One piece, to begin": the masthead says out loud that the workshop is
+  // opening with a single piece, rather than counting to one in silence.
+  const eyebrowLabel = shownCount === 1 ? `${piecesLabel}, to begin` : piecesLabel;
   const canSee = (href: string) => craftItemVisible(href, isOwner);
+  // The rail shows only covers the viewer can open, lead first, in the
+  // order COVERS prefers, so the owner's rail and a visitor's rail both lead
+  // with something that exists for them.
+  const railCovers = COVERS.filter((cover) => canSee(cover.to));
 
   const rootRef = useReveals([isOwner]);
   const progress = useReadingProgress();
@@ -307,7 +332,7 @@ const CraftIndex: React.FC = () => {
           <div aria-hidden="true" style={{ position: 'absolute', top: '-12%', right: '-2%', fontFamily: F.cn, fontWeight: 200, fontSize: 'min(46vw,440px)', lineHeight: 1, color: 'rgb(var(--tj-read-gold-rgb) / 0.05)', pointerEvents: 'none', userSelect: 'none' }}>茶</div>
           <div style={{ position: 'relative', maxWidth: 760 }}>
             <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.42em', textTransform: 'uppercase', color: C.gold, marginBottom: 26 }}>
-              A workshop · {piecesLabel.toLowerCase()}
+              A workshop · {eyebrowLabel.toLowerCase()}
             </div>
             <h1 style={{ fontFamily: F.display, fontWeight: 500, fontSize: 'clamp(54px,10vw,124px)', lineHeight: 0.92, letterSpacing: '0.01em', color: 'var(--tj-read-cream)', margin: 0 }}>
               The Work{' '}
@@ -351,32 +376,28 @@ const CraftIndex: React.FC = () => {
           </section>
 
           {/* RIGHT: COVER RAIL (sticky) */}
-          <aside className="tj-craft-rail" style={{ position: 'sticky', top: 88, display: (canSee('/discover') || canSee('/read/ritual') || canSee('/wisdom')) ? 'block' : 'none' }}>
+          <aside className="tj-craft-rail" style={{ position: 'sticky', top: 88, display: railCovers.length > 0 ? 'block' : 'none' }}>
             <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.26em', textTransform: 'uppercase', color: C.dim, marginBottom: 18 }}>
               Start here
             </div>
 
-            {canSee('/discover') && <LeadCover n={numberByHref.get('/discover') ?? ''} />}
+            {railCovers[0] && <LeadCover cover={railCovers[0]} n={numberByHref.get(railCovers[0].to) ?? ''} />}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 14 }}>
-              {canSee('/read/ritual') && (
-                <SecondaryCover
-                  to="/read/ritual"
-                  kicker={`Ritual · ${numberByHref.get('/read/ritual') ?? ''}`}
-                  title={<>Seven <span style={{ fontStyle: 'italic', color: C.gold }}>Steeps</span></>}
-                />
-              )}
-              {canSee('/wisdom') && (
-                <SecondaryCover
-                  to="/wisdom"
-                  kicker={`Reference · ${numberByHref.get('/wisdom') ?? ''}`}
-                  title={<>The Tea <span style={{ fontStyle: 'italic', color: C.gold }}>Reference</span></>}
-                />
-              )}
-            </div>
+            {railCovers.length > 1 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 14 }}>
+                {railCovers.slice(1, 3).map((cover) => (
+                  <SecondaryCover
+                    key={cover.to}
+                    to={cover.to}
+                    kicker={`${cover.kicker} · ${numberByHref.get(cover.to) ?? ''}`}
+                    title={cover.title}
+                  />
+                ))}
+              </div>
+            )}
 
             <p style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 16, lineHeight: 1.5, color: C.dim, margin: '22px 2px 0' }}>
-              New pieces are set in type as they are finished. The index below holds them all.
+              New pieces are set in type as they are finished. The contents hold them all.
             </p>
           </aside>
         </div>
