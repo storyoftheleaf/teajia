@@ -9,8 +9,12 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 // encodes its payload into path data that no assertion could read back. Standing
 // in for it with an element that prints the payload is the only way to say, out
 // loud, what the customer's phone camera would be handed.
-vi.mock('qrcode.react', () => ({
-  QRCodeSVG: ({ value }: { value: string }) => <i data-qr-value={value} />,
+vi.mock('../../hooks/useAuth', () => ({
+  useAuth: () => ({
+    isAuthenticated: false,
+    isSessionReady: true,
+    user: null,
+  }),
 }));
 
 import { PaymentChooser } from './PaymentChooser';
@@ -119,10 +123,28 @@ function order(over: Record<string, unknown> = {}) {
 function renderPage(opts: { handoff?: string | null; order?: unknown; search?: string } = {}) {
   if (opts.handoff) sessionStore.set(`teajia:pay-order:${INVOICE_REF}`, opts.handoff);
   const search = opts.search ?? `?account=teajia-bali&amount=40.00&currency=USD&reference=${INVOICE_REF}`;
-  const params = new URLSearchParams(search);
+  const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);
+  const accountSlug = params.get('account') || params.get('store');
+  const shareToken = params.get('t');
+  const ctx = parsePaymentContext(params);
+  const viewerKey = 'signed-out';
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
   client.setQueryData(
-    ['profile', 'adrian', 'public-payment-methods', params.get('account'), params.get('amount'), params.get('display')],
+    ['profile', 'adrian', 'pay-access', shareToken, viewerKey],
+    {
+      access: 'open',
+      via: 'approved',
+      contributor: {
+        display_name: 'Adrian Rasmussen',
+        portrait_url: null,
+        business_name: null,
+      },
+      viewer: { signed_in: false, request_status: null },
+      invoice: null,
+    },
+  );
+  client.setQueryData(
+    ['profile', 'adrian', 'public-payment-methods', accountSlug, ctx.amount, ctx.display, shareToken, viewerKey],
     {
       contributor: {
         display_name: 'Adrian Rasmussen',
@@ -214,7 +236,7 @@ describe('the link a tea master sends by hand is unchanged', () => {
     // Still the whole page it has always been.
     expect(html).toContain('USD 40.00');
     expect(html).toContain('Bank transfer');
-    expect(html).toContain('Share this payment page');
+    expect(html).toContain('data-testid="pay-sheet"');
   });
 
   it('renders the identical page when the browser refuses storage altogether', () => {
@@ -240,10 +262,10 @@ describe('the link a tea master sends by hand is unchanged', () => {
         local={null}
       />,
     );
-    expect(html).not.toContain('Payment details');
+    expect(html).not.toContain('This payment covers');
   });
 
-  it('opens the payment-details band for a summary alone, since that is why the band widened', () => {
+  it('opens the order summary for a summary alone, since that is why the chooser accepts one', () => {
     // Unreachable through the page today, because the handoff is keyed on the
     // reference and a link with no reference recalls no token. It is asserted
     // at the component's own contract so the widened condition is a decision
@@ -258,7 +280,7 @@ describe('the link a tea master sends by hand is unchanged', () => {
         summary={{ lines: [{ name: 'Yiwu Gushu 2019', quantity: '100g' }], placedOn: null }}
       />,
     );
-    expect(html).toContain('Payment details');
+    expect(html).toContain('This payment covers');
     expect(html).toContain('Yiwu Gushu 2019');
   });
 
@@ -317,33 +339,32 @@ describe('mitigation: the token never reaches a sharing surface', () => {
     expect(html).not.toContain('tracking-token');
   });
 
-  it('hands the QR code a payload with no token in it', () => {
+  it('does not render a QR sharing surface whose payload could carry the token', () => {
     const html = renderPage({ handoff: TOKEN, order: order() });
-    const payload = /data-qr-value="([^"]*)"/.exec(html)?.[1] ?? '';
-    expect(payload).toContain('/people/adrian/pay');
-    expect(payload).toContain(`reference=${INVOICE_REF}`);
-    expect(payload).not.toContain(TOKEN);
+    expect(html).not.toContain('data-qr-value');
+    expect(html).not.toContain(TOKEN);
+    const destination = buildPaymentPageUrl('adrian', 'teajia-bali', 'https://teajia.com', context());
+    expect(destination).toContain('/people/adrian/pay');
+    expect(destination).toContain(`reference=${INVOICE_REF}`);
+    expect(destination).not.toContain(TOKEN);
   });
 
-  it('hands the copy-link button the same token-free string the QR code got', () => {
-    // The button keeps its payload in a closure, so it is read off the element
-    // rather than the markup. The QR and the button are fed one variable, and
-    // this is what proves it is still one variable.
-    const tree = PaymentChooser({
-      contributorName: 'Adrian Rasmussen',
-      methods: [method],
-      destination: buildPaymentPageUrl('adrian', 'teajia-bali', 'https://teajia.com', context()),
-      context: context(),
-      local: null,
-      summary: { lines: [{ name: 'Yiwu Gushu 2019', quantity: '100g' }], placedOn: null },
-    });
-    const copies = collect(tree, el => (el.props as { label?: string }).label === 'payment page link');
-    expect(copies).toHaveLength(1);
-    const value = (copies[0].props as { value: string }).value;
-    expect(value).not.toContain(TOKEN);
-    const qrs = collect(tree, el => 'value' in (el.props as object) && !('label' in (el.props as object)));
-    expect(qrs.length).toBeGreaterThan(0);
-    expect((qrs[0].props as { value: string }).value).toBe(value);
+  it('builds one token-free destination for the chooser and the page address', () => {
+    const destination = buildPaymentPageUrl('adrian', 'teajia-bali', 'https://teajia.com', context());
+    expect(destination).not.toContain(TOKEN);
+    const html = renderToStaticMarkup(
+      <PaymentChooser
+        contributorName="Adrian Rasmussen"
+        methods={[method]}
+        destination={destination}
+        context={context()}
+        local={null}
+        summary={{ lines: [{ name: 'Yiwu Gushu 2019', quantity: '100g' }], placedOn: null }}
+      />,
+    );
+    expect(html).toContain('This payment covers');
+    expect(html).not.toContain(TOKEN);
+    expect(destination).toBe(buildPaymentPageUrl('adrian', 'teajia-bali', 'https://teajia.com', context()));
   });
 
   it('keeps the token out of the link builder, so a token in the address is dropped', () => {

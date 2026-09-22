@@ -18,6 +18,8 @@
     "lint:colors": "bash scripts/lint-colors.sh",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
+    "test:src": "vitest run src --exclude='**/*.behavior.test.ts' --exclude='**/.claude/worktrees/**' --exclude='**/.worktrees/**'",
+    "lint:worker-types": "node scripts/worker-typecheck-ratchet.mjs",
     "audit": "node scripts/audit.mjs",
     "audit:shop-catalogue": "node scripts/audit-shop-catalogue.mjs",
     "intake:findings": "node scripts/intake-findings.mjs",

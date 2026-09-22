@@ -122,6 +122,12 @@ jobs:
       - name: Type check
         run: npm run lint
 
+      - name: Worker types (ratcheted)
+        run: npm run lint:worker-types
+
+      - name: Source unit tests
+        run: npm run test:src
+
       - name: Color rules
         run: npm run lint:colors
 
