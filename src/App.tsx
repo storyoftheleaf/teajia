@@ -313,9 +313,15 @@ const AppContent = () => {
   // PageHeader, padding and pull-to-refresh, so only the bare landing
   // qualifies, checked by the absence of the ?v= param rather than by path
   // alone, since the sub-views share /craft's pathname.
+  //
+  // The Advise landing (/advise with no ?v= sub-view) is built in the same
+  // frame (AdviseIndex), for the same reason: its own sticky nav, its own
+  // document scroll. A bare /advise?v= is the owner's unbuilt portfolio
+  // sub-view, still the app shell, so the same no-?v= check applies.
   const isImmersiveReadRoute =
     location.pathname === '/read' || location.pathname.startsWith('/read/') ||
-    (location.pathname === '/craft' && !new URLSearchParams(location.search).has('v'));
+    (location.pathname === '/craft' && !new URLSearchParams(location.search).has('v')) ||
+    (location.pathname === '/advise' && !new URLSearchParams(location.search).has('v'));
   // Pull-to-refresh: re-fetch inventory + invalidate active server queries so
   // public pages (Shop, Magazine, Events) reflect any updates made elsewhere.
   // The hook awaits this promise before hiding the indicator.
@@ -901,11 +907,11 @@ const AppContent = () => {
   // recipients who aren't logged in. Public collection links (/c/:slug) belong here
   // too: a sent link should be a clean single-purpose page, not the full app shell.
   const isFocusedShareRoute = location.pathname.startsWith('/share/') || location.pathname.startsWith('/c/');
-  // The hand-built Read long-reads (/read and /read/*) and the Craft landing
-  // (/craft, built in the same frame) are full-bleed editorial experiences
-  // with their own sticky nav and reading-progress bar. They escape the
-  // app's content padding; see isImmersiveReadRoute above for exactly which
-  // routes qualify.
+  // The hand-built Read long-reads (/read and /read/*), the Craft landing
+  // (/craft) and the Advise landing (/advise), all built in the same frame,
+  // are full-bleed editorial experiences with their own sticky nav and
+  // reading-progress bar. They escape the app's content padding; see
+  // isImmersiveReadRoute above for exactly which routes qualify.
   //
   // The DB-driven immersive reader at /article/:slug intentionally KEEPS the
   // bottom tab bar: it's where authored articles open and a reader there should
