@@ -49,7 +49,7 @@ env:
   # exercises, then delete that test's title from this regex in the same
   # commit. Titles, not file:line, because a line number drifts and a title
   # does not.
-  KNOWN_FAILING_E2E: "tasting overlay exposes Save, clears the global nav, and protects unsaved work|lifecycle sections and personal tasting actions stay distinct|opens a tea into the product page, with one rendering per address|shop toolbar uses compact price controls with liked on the far right|a private section note appears publicly only after edited promotion"
+  KNOWN_FAILING_E2E: "lifecycle sections and personal tasting actions stay distinct|opens a tea into the product page, with one rendering per address|shop toolbar uses compact price controls with liked on the far right|a private section note appears publicly only after edited promotion"
 
 jobs:
   # Skips the suite when a push to main is a PR merge whose tree is byte-for-byte

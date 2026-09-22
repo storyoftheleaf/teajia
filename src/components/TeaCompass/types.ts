@@ -383,7 +383,21 @@ export function compassEntryToProductDraft(entry: TeaCompassEntry): Record<strin
        happen is this function supplying one, because a currency chosen down
        here is chosen where nobody can see it. */
     cost_amount: entry.buyTotal ?? entry.priceAmount ?? null,
-    cost_currency: entry.priceCurrency,
+    /* The currency carries the same rule: an untouched default must never
+       become content. `createEmptyEntry` (and `startNewCapture`, which seeds
+       from `lastCurrency`) stamp every new entry with a currency nobody has
+       chosen yet, so the stored value alone cannot tell a choice from a
+       default, and `touchedFields` is this codebase's existing answer to
+       exactly that question (see `entryHasDeliberateInput`). Sending it
+       unconditionally marked an inherited default as `cost_currency_source:
+       'stated'` on the server, which excluded the row from
+       `list_unstated_costs` for good. A legacy entry with no touch metadata
+       at all falls back to trusting its stored value, the same fallback
+       `entryHasDeliberateInput` uses, so old fragments are not silently
+       stripped of a currency they always carried. */
+    cost_currency: entry.touchedFields === undefined || entry.touchedFields.includes('priceCurrency')
+      ? entry.priceCurrency
+      : undefined,
     vendor: entry.vendorName || '',
     status: 'Draft',
     is_public: false,
@@ -463,7 +477,12 @@ export function createEmptyEntry(category: CompassCategory = 'tea', defaults?: {
     touchedFields: [],
     name: '',
     category,
-    priceCurrency: defaults?.priceCurrency || 'NT',
+    // Adrian's 2026-09-07 rule: everything is bought and air-freighted from
+    // China, so Yuan is the shelf default. This is still an inherited
+    // default the operator has not chosen, so `touchedFields` starting
+    // empty is what keeps `compassEntryToProductDraft` from sending it as a
+    // stated currency until the picker is actually touched.
+    priceCurrency: defaults?.priceCurrency || 'Yuan',
     quantity: 1,
     vendorId: defaults?.vendorId,
     vendorName: defaults?.vendorName,

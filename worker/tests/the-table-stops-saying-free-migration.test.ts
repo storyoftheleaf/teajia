@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
 import {
-  columnDefault, migrationFiles, schemaObjects, seedFromMigrations, splitStatements, tableInfo,
+  columnDefault, foreignKeyChildren, migrationFiles, schemaObjects, seedFromMigrations, splitStatements, tableInfo,
 } from './helpers/migratedSqlite';
 
 /**
@@ -52,16 +52,15 @@ const SHAPES: Array<{ id: string; name: string; rate: number | null; markup: num
   { id: 'p-follows', name: 'Follows the shop', rate: null, markup: null, cost: 120, note: 'what a tea added after this migration looks like' },
 ];
 
-/** Every table that points at these two, so the FK hazard is measured not assumed. */
-const CHILDREN = [
-  { table: 'article_products', onDelete: 'CASCADE' },
-  { table: 'sales_grants', onDelete: 'CASCADE' },
-  { table: 'inventory_receipt_lines', onDelete: 'RESTRICT' },
-  { table: 'curate_receipt_proposals', onDelete: 'SET NULL' },
-  { table: 'profile_favorites', onDelete: 'SET NULL' },
-  { table: 'stock_ledger', onDelete: 'NO ACTION' },
-  { table: 'wholesale_order_items', onDelete: 'NO ACTION' },
-];
+/**
+ * Every table that points at these two, so the FK hazard is measured not
+ * assumed. This used to be a hand-typed list of seven; `PRAGMA
+ * foreign_key_list` finds fifteen edges across thirteen tables (six more,
+ * all no-action), so the list is now derived at test time from the pragma
+ * instead of claimed by hand. See `foreignKeyChildren` in
+ * `./helpers/migratedSqlite`.
+ */
+const PARENTS = ['products', 'product_listings'];
 
 /**
  * The three triggers the LIVE products table carries, verbatim.
@@ -229,6 +228,16 @@ describe('what the migration must not change', () => {
   it('touches no table that points at these two, which the ordinary rebuild would empty', () => {
     const db = seeded();
     try {
+      // Derived from the pragma, not hand-typed, and checked for completeness
+      // before it is trusted: the hand-typed list this replaced named seven
+      // tables while thirteen actually reference products / product_listings.
+      const children = foreignKeyChildren(db, PARENTS);
+      const uniqueTables = [...new Set(children.map(edge => edge.table))];
+      expect(children.length, 'the pragma no longer finds fifteen edges; update this comment and the count below')
+        .toBe(15);
+      expect(uniqueTables.length, 'the pragma no longer finds thirteen child tables; update this comment and the count above')
+        .toBe(13);
+
       db.exec(`
         INSERT INTO articles (id, account_id, slug, title) VALUES ('art-1', 'acc-r', 'a', 'A');
         INSERT INTO article_products (article_id, product_id) VALUES ('art-1', 'p-pinned');
@@ -241,8 +250,8 @@ describe('what the migration must not change', () => {
         INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, account_id)
           VALUES ('led-1', 'p-pinned', 100, 100, 'PURCHASE_RECEIPT', 'acc-r');
       `);
-      const counted = () => Object.fromEntries(CHILDREN.map(child => [
-        child.table, (db.prepare(`SELECT COUNT(*) AS n FROM ${child.table}`).get() as any).n,
+      const counted = () => Object.fromEntries(uniqueTables.map(table => [
+        table, (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as any).n,
       ]));
       const before = counted();
       expect(before.article_products, 'the cascade fixture is empty, so this proves nothing').toBe(1);

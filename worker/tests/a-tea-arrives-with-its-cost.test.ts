@@ -481,10 +481,27 @@ describe('the browser doors, where a blank became a zero before the request left
     const priced = createEmptyEntry('tea');
     priced.name = 'Bought Tea';
     (priced as any).priceAmount = 1200;
+    // Setting the field is not the same as choosing it: the currency only
+    // travels once `touchedFields` says the operator actually picked it,
+    // the same "inherited defaults never become content" rule the prompt
+    // default already follows (see `graduationCurrencyDefault` below). An
+    // untouched currency used to travel unconditionally, which is how an
+    // inherited default got stamped `cost_currency_source: 'stated'` on the
+    // server and excluded from `list_unstated_costs` for good.
     (priced as any).priceCurrency = 'Yuan';
+    priced.touchedFields = ['priceAmount', 'priceCurrency'];
     const pricedDraft = compassEntryToProductDraft(priced as any);
     expect(pricedDraft.cost_amount).toBe(1200);
     expect(pricedDraft.cost_currency).toBe('Yuan');
+
+    // The same figure, untouched, sends no currency at all: the server's own
+    // refusal does the asking rather than an inherited default being recorded
+    // as though it were a decision.
+    const untouched = createEmptyEntry('tea');
+    untouched.name = 'Bought Tea, currency never touched';
+    (untouched as any).priceAmount = 1200;
+    (untouched as any).priceCurrency = 'Yuan';
+    expect(compassEntryToProductDraft(untouched as any).cost_currency).toBeUndefined();
   });
 
   it('the CSV import sends a blank price cell as nothing said, and a typed zero as zero', () => {
@@ -565,13 +582,14 @@ describe('the browser doors, where a blank became a zero before the request left
   });
 
   it('the graduation prompt opens on Yuan unless a currency was actually chosen', () => {
-    /* `createEmptyEntry` stamps every entry `NT`, so the stored value alone
-       cannot tell a choice from a default, and a sample added in the samples
-       screen never passes the capture card's currency picker. `touchedFields`
-       is this codebase's own answer to that question. Yuan otherwise, per
-       Adrian's rule of 2026-09-07 that the shelf is bought in China. */
+    /* `createEmptyEntry` stamps every entry with the shelf's own default
+       (Yuan, Adrian's rule of 2026-09-07 that the shelf is bought in China),
+       so the stored value alone still cannot tell a choice from a default,
+       and a sample added in the samples screen never passes the capture
+       card's currency picker. `touchedFields` is this codebase's own answer
+       to that question. */
     const inherited = createEmptyEntry('tea');
-    expect(inherited.priceCurrency).toBe('NT');
+    expect(inherited.priceCurrency).toBe('Yuan');
     expect(graduationCurrencyDefault(inherited), 'an inherited default was presented as a decision')
       .toBe(GRADUATION_FALLBACK_CURRENCY);
     expect(GRADUATION_FALLBACK_CURRENCY).toBe('Yuan');
