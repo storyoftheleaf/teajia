@@ -17,8 +17,12 @@ import { costNeedsCurrency, createMissingCost, currencyStated, stampCostCurrency
 import { nameProductColumns } from './productDefaults';
 import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
-import { deriveConfirmedInvoiceLine, repairCandidate, formatInvoiceNumber, loadUsdRates, amountToUsd } from './invoiceDomain';
 import {
+  deriveConfirmedInvoiceLine,
+  repairCandidate,
+  formatInvoiceNumber,
+  loadUsdRates,
+  amountToUsd,
   PAYMENT_EPSILON,
   PAYMENT_AMOUNT_CEILING,
   CLAIM_TOLERANCE_USD,
@@ -30,12 +34,19 @@ import {
   loadLedgerInvoice,
   reconcileLedgerWithColumn,
   recomputeInvoicePaymentStatus,
-} from './invoiceDomain';
-import type {
-  InvoiceLedgerTotals,
-  InvoiceMoney,
-  LedgerInvoice,
-  LedgerRecompute,
+  validateRetailInvoiceInput,
+  validateShippingCostUsd,
+  validatePaymentStatusValue,
+  assertInvoiceCustomerBelongsToAccount,
+  claimInvoiceEditLease,
+  releaseInvoiceEditLease,
+  claimInvoiceLinkLease,
+  releaseInvoiceLinkLease,
+  type RetailInvoiceInput,
+  type InvoiceLedgerTotals,
+  type InvoiceMoney,
+  type LedgerInvoice,
+  type LedgerRecompute,
 } from './invoiceDomain';
 import {
   authorizeInvoiceLines,
@@ -5415,6 +5426,10 @@ const handleGetInvoices: Handler = async (request, env) => {
 };
 
 // Canonical invoice-number formatter. ONE source of truth shared across
+function invalidInvoiceResponse(error: unknown): Response {
+  return restError(400, error instanceof Error ? error.message : 'Invalid invoice', 'invalid_invoice');
+}
+
 // handleCreateInvoice, handleSplitInvoice, and (via import) commitRecordSale in
 // mcp.ts so the visible number format never drifts between code paths. Applies
 // consistent 5-digit zero-padding and the account's invoice_prefix (e.g.
@@ -5425,20 +5440,30 @@ const handleCreateInvoice: Handler = async (request, env) => {
   const { accountId } = ctx;
 
   const userEmail = getUserEmail(request);
-  const body = await request.json() as { invoice: Record<string, any>; lineItems: Record<string, any>[] };
-  if (!Array.isArray(body.lineItems) || !body.invoice) return restError(400, 'Invoice and line items are required', 'invalid_invoice');
+  let body: { invoice?: Record<string, unknown>; lineItems?: unknown };
+  try {
+    body = await request.json() as { invoice?: Record<string, unknown>; lineItems?: unknown };
+  } catch (error) {
+    return invalidInvoiceResponse(error);
+  }
+  let input: RetailInvoiceInput;
+  try {
+    const invoice = body?.invoice && typeof body.invoice === 'object' && !Array.isArray(body.invoice) ? body.invoice : {};
+    input = validateRetailInvoiceInput({ ...invoice, lineItems: body?.lineItems });
+    await assertInvoiceCustomerBelongsToAccount(env, accountId, input.customer_id);
+  } catch (error) {
+    return invalidInvoiceResponse(error);
+  }
   const id = crypto.randomUUID();
-  const paymentStatus = body.invoice.payment_status || 'unpaid';
   let authorizedLines: AuthorizedInvoiceLine[];
   try {
     authorizedLines = await authorizeInvoiceLines(env, {
-      accountId, actorUserId: ctx.userId, actorRole: ctx.role, lines: body.lineItems,
+      accountId, actorUserId: ctx.userId, actorRole: ctx.role, lines: input.lineItems,
     });
   } catch (error) { return salesError(error); }
   const stockOwners = [...new Set(authorizedLines.filter(line => line.product_id).map(line => line.stock_owner_user_id))];
   const paymentRecipientUserId = stockOwners.length === 1 ? stockOwners[0] : null;
-  const status = body.invoice.status || 'Pending';
-  if (!['Draft', 'Pending'].includes(status)) return restError(400, 'New invoices must be Draft or Pending', 'invalid_invoice_status');
+  const status = input.status;
 
   // Bump invoice_seq and INSERT, retrying on the active-invoice-number unique
   // index collision (two concurrent creates can race to the same seq, or a
@@ -5471,23 +5496,23 @@ const handleCreateInvoice: Handler = async (request, env) => {
       id,
       accountId,
       invoiceNumber,
-      body.invoice.customer_name,
-      body.invoice.customer_whatsapp || null,
-      body.invoice.customer_id || null,
-      body.invoice.display_currency,
-      body.invoice.shipping_cost_usd || 0,
+      input.customer_name,
+      input.customer_whatsapp,
+      input.customer_id,
+      input.display_currency,
+      input.shipping_cost_usd,
       status,
       0,
-      body.invoice.notes || null,
-      body.invoice.source_event_id || null,
-      paymentStatus,
+      input.notes,
+      input.source_event_id,
+      input.payment_status,
       ctx.userId,
       paymentRecipientUserId,
     );
 
     const logStmt = buildActivityLog(
       env, 'INVOICE_CREATED',
-      `Invoice ${invoiceNumber} created for ${body.invoice.customer_name} (${body.lineItems.length} items)`,
+      `Invoice ${invoiceNumber} created for ${input.customer_name} (${input.lineItems.length} items)`,
       userEmail, 'invoice', id, accountId
     );
 
@@ -5512,7 +5537,7 @@ const handleCreateInvoice: Handler = async (request, env) => {
     return json({ error: 'Could not allocate a unique invoice number — please retry' }, 409);
   }
 
-  await ensureContactRelationship(env, accountId, body.invoice.customer_id, 'buyer', 'workflow', 'invoice', id);
+  await ensureContactRelationship(env, accountId, input.customer_id, 'buyer', 'workflow', 'invoice', id);
 
   return json({ id, invoice_number: invoiceNumber }, 201);
 };
@@ -5659,7 +5684,12 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
-  const body = await request.json() as Record<string, any>;
+  let body: Record<string, any>;
+  try {
+    body = await request.json() as Record<string, any>;
+  } catch (error) {
+    return invalidInvoiceResponse(error);
+  }
   delete body.account_id;
   const invoice = await env.DB.prepare('SELECT id,status,sold_by_user_id FROM invoices WHERE id=? AND account_id=?')
     .bind(params.id, accountId).first() as Record<string, any> | null;
@@ -5667,6 +5697,19 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
   const INVOICE_ALLOWED_COLS = new Set(['customer_name','customer_id','customer_phone','customer_email','status','notes','display_currency','amount_usd','shipping_cost_usd','message_text','payment_status','paid_at','payment_date','due_date','payment_method','currency_rate','source_event_id']);
   const cols = Object.keys(body).filter(k => INVOICE_ALLOWED_COLS.has(k));
   if (cols.length === 0) return json({ success: true });
+  try {
+    if (Object.prototype.hasOwnProperty.call(body, 'customer_id')) {
+      await assertInvoiceCustomerBelongsToAccount(env, accountId, body.customer_id);
+    }
+    if (Object.prototype.hasOwnProperty.call(body, 'shipping_cost_usd')) {
+      body.shipping_cost_usd = validateShippingCostUsd(body.shipping_cost_usd);
+    }
+    if (Object.prototype.hasOwnProperty.call(body, 'payment_status')) {
+      body.payment_status = validatePaymentStatusValue(body.payment_status);
+    }
+  } catch (error) {
+    return invalidInvoiceResponse(error);
+  }
   const sets = cols.map(c => `${c} = ?`).join(', ');
   try {
     const statements: D1PreparedStatement[] = [];
@@ -6387,6 +6430,10 @@ const handleSplitInvoice: Handler = async (request, env) => {
       lines: allItems.results as AuthorizedInvoiceLine[],
     });
   } catch (error) { return salesError(error); }
+
+  const splitClaim = await claimInvoiceEditLease(env, accountId, invoice_id);
+  if (!splitClaim) return restError(409, 'Invoice is no longer available for editing', 'invoice_edit_conflict');
+  const leaseGuard = { invoiceId: invoice_id, claimToken: splitClaim, status: 'Pending', inventoryDeducted: 0 };
   const snapshotItems = allItems.results as AuthorizedInvoiceLine[];
   const movedIds = new Set(line_item_ids);
   const movedItems = snapshotItems.filter(item => item.id && movedIds.has(item.id));
@@ -6413,27 +6460,34 @@ const handleSplitInvoice: Handler = async (request, env) => {
     stmts.push(env.DB.prepare(
       `INSERT INTO invoices
        (id,account_id,invoice_number,customer_name,customer_whatsapp,customer_id,display_currency,shipping_cost_usd,status,inventory_deducted,notes,sold_by_user_id,payment_recipient_user_id)
-       VALUES (?,?,?,?,?,?,?,0,'Pending',0,?,?,?)`
+       SELECT ?, ?, ?, ?, ?, ?, ?, 0, 'Pending', 0, ?, ?, ?
+       WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND status = 'Pending'
+         AND inventory_deducted = 0 AND fulfillment_claim_token = ?)`
     ).bind(newId, accountId, newNumber, invoice.customer_name, invoice.customer_whatsapp, invoice.customer_id,
-      invoice.display_currency, invoice.notes, invoice.sold_by_user_id, movedPaymentRecipient));
+      invoice.display_currency, invoice.notes, invoice.sold_by_user_id, movedPaymentRecipient,
+      invoice_id, accountId, splitClaim));
 
     stmts.push(env.DB.prepare(
-      'UPDATE invoices SET payment_recipient_user_id=? WHERE id=? AND account_id=?'
-    ).bind(remainingPaymentRecipient, invoice_id, accountId));
+      `UPDATE invoices SET payment_recipient_user_id=? WHERE id=? AND account_id=? AND status='Pending'
+       AND inventory_deducted=0 AND fulfillment_claim_token=?`
+    ).bind(remainingPaymentRecipient, invoice_id, accountId, splitClaim));
 
     for (const itemId of line_item_ids) {
       stmts.push(
-        env.DB.prepare('UPDATE invoice_line_items SET invoice_id = ? WHERE id = ? AND account_id = ?')
-          .bind(newId, itemId, accountId)
+        env.DB.prepare(
+          `UPDATE invoice_line_items SET invoice_id = ? WHERE id = ? AND account_id = ? AND invoice_id = ?
+           AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND status = 'Pending'
+             AND inventory_deducted = 0 AND fulfillment_claim_token = ?)`
+        ).bind(newId, itemId, accountId, invoice_id, invoice_id, accountId, splitClaim)
       );
     }
 
     const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
     stmts.push(...buildInvoiceReservationStatements(env, {
-      accountId, invoiceId: invoice_id, lines: remainingItems, expiresAt,
+      accountId, invoiceId: invoice_id, lines: remainingItems, expiresAt, guard: leaseGuard,
     }));
     stmts.push(...buildInvoiceReservationStatements(env, {
-      accountId, invoiceId: newId, lines: movedItems, expiresAt,
+      accountId, invoiceId: newId, lines: movedItems, expiresAt, guard: leaseGuard,
     }));
 
     stmts.push(buildActivityLog(env, 'INVOICE_SPLIT',
@@ -6443,20 +6497,35 @@ const handleSplitInvoice: Handler = async (request, env) => {
       `Invoice ${newNumber} created from split of ${invoice.invoice_number}.`,
       userEmail, 'invoice', newId, accountId));
 
+    const releaseIndex = stmts.length;
+    stmts.push(env.DB.prepare(
+      `UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL
+       WHERE id = ? AND account_id = ? AND status = 'Pending' AND inventory_deducted = 0 AND fulfillment_claim_token = ?`
+    ).bind(invoice_id, accountId, splitClaim));
+
     try {
-      await env.DB.batch(stmts);
+      const results = await env.DB.batch(stmts);
+      if (Number(results[releaseIndex]?.meta?.changes || 0) === 0) {
+        await releaseInvoiceEditLease(env, accountId, invoice_id, splitClaim);
+        return restError(409, 'Invoice changed before the split could be applied', 'invoice_edit_conflict');
+      }
       committed = true;
     } catch (err: any) {
       lastErr = err;
       const msg = String(err?.message || err);
-      if (/insufficient available stock/i.test(msg)) return restError(409, 'Insufficient available stock', 'insufficient_available_stock');
+      if (/insufficient available stock/i.test(msg)) {
+        await releaseInvoiceEditLease(env, accountId, invoice_id, splitClaim);
+        return restError(409, 'Insufficient available stock', 'insufficient_available_stock');
+      }
       if (/UNIQUE|constraint/i.test(msg)) continue; // collision — bump seq and retry
       console.error('handleSplitInvoice batch failed:', err);
+      await releaseInvoiceEditLease(env, accountId, invoice_id, splitClaim);
       return json({ error: 'Split failed — no changes were committed' }, 500);
     }
   }
   if (!committed) {
     console.error('handleSplitInvoice: failed after retries:', lastErr);
+    await releaseInvoiceEditLease(env, accountId, invoice_id, splitClaim);
     return json({ error: 'Could not allocate a unique invoice number — please retry' }, 409);
   }
   await ensureContactRelationship(env, accountId, invoice.customer_id, 'buyer', 'workflow', 'invoice', newId);
@@ -6470,82 +6539,143 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
   const { accountId } = ctx;
 
   const userEmail = getUserEmail(request);
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json() as Record<string, unknown>;
+  } catch (error) {
+    return invalidInvoiceResponse(error);
+  }
+  const ALLOWED_ITEM_UPDATE_FIELDS = new Set([
+    'lineItems', 'shipping_cost_usd', 'customer_name', 'customer_id', 'customer_whatsapp',
+    'display_currency', 'notes', 'source_event_id', 'customer_phone', 'customer_email',
+  ]);
+  const updateKeys = Object.keys(body).filter(key => ALLOWED_ITEM_UPDATE_FIELDS.has(key));
+  if (updateKeys.length === 0) return restError(400, 'No invoice changes provided', 'validation_failed');
+
   const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ? AND account_id = ?')
-    .bind(params.id, accountId).first();
+    .bind(params.id, accountId).first() as Record<string, any> | null;
   if (!invoice) return json({ error: 'Invoice not found' }, 404);
   if (invoice.status !== 'Pending') return json({ error: 'Only Pending invoices can be edited' }, 400);
 
-  const body = await request.json() as {
-    lineItems?: { product_id: string; quantity: number; price_at_sale: number; custom_name?: string }[];
-    shipping_cost_usd?: number;
-    customer_name?: string;
-    customer_id?: string;
-    display_currency?: string;
-    notes?: string;
-  };
+  const hasReplacementLines = Object.prototype.hasOwnProperty.call(body, 'lineItems');
+  const hasCustomerIdUpdate = Object.prototype.hasOwnProperty.call(body, 'customer_id');
+  let lines: unknown = body.lineItems;
+  if (!hasReplacementLines) {
+    const existing = await env.DB.prepare(
+      'SELECT product_id, custom_name, quantity, price_at_sale FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
+    ).bind(params.id, accountId).all();
+    lines = existing.results;
+  }
+
+  let input: RetailInvoiceInput;
+  try {
+    input = validateRetailInvoiceInput({
+      ...invoice,
+      display_currency: invoice.display_currency ?? undefined,
+      shipping_cost_usd: invoice.shipping_cost_usd ?? undefined,
+      status: invoice.status ?? 'Pending',
+      payment_status: invoice.payment_status ?? undefined,
+      ...body,
+      lineItems: lines,
+    });
+    await assertInvoiceCustomerBelongsToAccount(env, accountId, hasCustomerIdUpdate ? input.customer_id : null);
+  } catch (error) {
+    return invalidInvoiceResponse(error);
+  }
+
+  const editClaim = await claimInvoiceEditLease(env, accountId, params.id);
+  if (!editClaim) return restError(409, 'Invoice is no longer available for editing', 'invoice_edit_conflict');
+  const leaseGuard = { invoiceId: params.id, claimToken: editClaim, status: 'Pending', inventoryDeducted: 0 };
 
   const stmts: D1PreparedStatement[] = [];
   let replacementPaymentRecipient: string | null | undefined;
 
-  if (body.lineItems) {
+  if (hasReplacementLines) {
     let authorized: AuthorizedInvoiceLine[];
     try {
-      const seller = await invoiceSellerAuthorizationContext(env, accountId, invoice as Record<string, any>);
+      const seller = await invoiceSellerAuthorizationContext(env, accountId, invoice);
       authorized = await authorizeInvoiceLines(env, {
-        accountId, ...seller, lines: body.lineItems,
+        accountId, ...seller, lines: input.lineItems,
       });
-    } catch (error) { return salesError(error); }
+    } catch (error) {
+      await releaseInvoiceEditLease(env, accountId, params.id, editClaim);
+      return salesError(error);
+    }
     replacementPaymentRecipient = resolvePaymentRecipientUserId(authorized);
     stmts.push(env.DB.prepare(
-      'DELETE FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
-    ).bind(params.id, accountId));
+      `DELETE FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?
+       AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND status = 'Pending'
+         AND inventory_deducted = 0 AND fulfillment_claim_token = ?)`
+    ).bind(params.id, accountId, params.id, accountId, editClaim));
     for (const item of authorized) {
       stmts.push(env.DB.prepare(
         `INSERT INTO invoice_line_items
          (id,account_id,invoice_id,product_id,custom_name,quantity,price_at_sale,stock_owner_user_id,sales_grant_id,owner_share_type,owner_share_value)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?)`
-      ).bind(crypto.randomUUID(), accountId, params.id, item.product_id, item.custom_name ?? null,
-        item.quantity, item.price_at_sale, item.stock_owner_user_id, item.sales_grant_id, item.owner_share_type, item.owner_share_value));
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+         WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND status = 'Pending'
+           AND inventory_deducted = 0 AND fulfillment_claim_token = ?)`
+      ).bind(crypto.randomUUID(), accountId, params.id, item.product_id ?? null, item.custom_name ?? null,
+        item.quantity, item.price_at_sale, item.stock_owner_user_id, item.sales_grant_id,
+        item.owner_share_type, item.owner_share_value, params.id, accountId, editClaim));
     }
     stmts.push(...buildInvoiceReservationStatements(env, {
       accountId, invoiceId: params.id, lines: authorized,
       expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+      guard: leaseGuard,
     }));
   }
 
+  const normalizedValues: Record<string, unknown> = {
+    shipping_cost_usd: input.shipping_cost_usd,
+    customer_name: input.customer_name,
+    customer_id: input.customer_id,
+    customer_whatsapp: input.customer_whatsapp,
+    display_currency: input.display_currency,
+    notes: input.notes,
+    source_event_id: input.source_event_id,
+  };
   const updates: string[] = [];
-  const vals: any[] = [];
-  const ALLOWED_ITEM_UPDATES = new Set(['shipping_cost_usd','customer_name','customer_id','display_currency','notes','customer_phone','customer_email']);
-  for (const [key, val] of Object.entries(body)) {
+  const vals: unknown[] = [];
+  for (const key of updateKeys) {
     if (key === 'lineItems') continue;
-    if (!ALLOWED_ITEM_UPDATES.has(key)) continue;
     updates.push(`${key} = ?`);
-    vals.push(val ?? null);
+    vals.push(normalizedValues[key] ?? body[key] ?? null);
   }
   if (replacementPaymentRecipient !== undefined) {
     updates.push('payment_recipient_user_id = ?');
     vals.push(replacementPaymentRecipient);
   }
   if (updates.length > 0) {
-    stmts.push(
-      env.DB.prepare(`UPDATE invoices SET ${updates.join(', ')} WHERE id = ? AND account_id = ?`)
-        .bind(...vals, params.id, accountId)
-    );
+    stmts.push(env.DB.prepare(
+      `UPDATE invoices SET ${updates.join(', ')} WHERE id = ? AND account_id = ? AND status = 'Pending'
+       AND inventory_deducted = 0 AND fulfillment_claim_token = ?`
+    ).bind(...vals, params.id, accountId, editClaim));
   }
 
   stmts.push(buildActivityLog(env, 'INVOICE_EDITED',
-    `Invoice ${invoice.invoice_number} edited.${body.lineItems ? ` ${body.lineItems.length} line items.` : ''}`,
+    `Invoice ${invoice.invoice_number} edited.${hasReplacementLines ? ` ${input.lineItems.length} line items.` : ''}`,
     userEmail, 'invoice', params.id, accountId));
 
+  const releaseIndex = stmts.length;
+  stmts.push(env.DB.prepare(
+    `UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL
+     WHERE id = ? AND account_id = ? AND status = 'Pending' AND inventory_deducted = 0 AND fulfillment_claim_token = ?`
+  ).bind(params.id, accountId, editClaim));
+
   try {
-    await env.DB.batch(stmts);
+    const results = await env.DB.batch(stmts);
+    if (Number(results[releaseIndex]?.meta?.changes || 0) === 0) {
+      await releaseInvoiceEditLease(env, accountId, params.id, editClaim);
+      return restError(409, 'Invoice changed before the edit could be applied', 'invoice_edit_conflict');
+    }
   } catch (error) {
+    await releaseInvoiceEditLease(env, accountId, params.id, editClaim);
     if (/insufficient available stock/i.test(String((error as Error)?.message || error))) {
       return restError(409, 'Insufficient available stock', 'insufficient_available_stock');
     }
     return salesError(error);
   }
-  await ensureContactRelationship(env, accountId, body.customer_id, 'buyer', 'workflow', 'invoice', params.id);
+  await ensureContactRelationship(env, accountId, hasCustomerIdUpdate ? input.customer_id : null, 'buyer', 'workflow', 'invoice', params.id);
   return json({ success: true });
 };
 
@@ -6560,23 +6690,45 @@ const handleLinkLineItem: Handler = async (request, env) => {
     invoice_id: string; line_item_id: string; product_id: string;
   };
 
-  const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ? AND account_id = ?')
-    .bind(invoice_id, accountId).first();
-  if (!invoice) return json({ error: 'Invoice not found' }, 404);
+  const claimed = await claimInvoiceLinkLease(env, accountId, invoice_id);
+  if (!claimed) {
+    const current = await env.DB.prepare('SELECT status FROM invoices WHERE id = ? AND account_id = ?')
+      .bind(invoice_id, accountId).first() as Record<string, any> | null;
+    if (!current) return json({ error: 'Invoice not found' }, 404);
+    if (!['Draft', 'Pending', 'Filled', 'Void'].includes(String(current.status))) {
+      return json({ error: 'Invoice status cannot be linked' }, 400);
+    }
+    return json({ error: 'Invoice lifecycle change is already in progress' }, 409);
+  }
+  const { claimToken: linkClaim, invoice } = claimed;
 
-  const lineItem = await env.DB.prepare(
-    'SELECT * FROM invoice_line_items WHERE id = ? AND invoice_id = ? AND account_id = ?'
-  ).bind(line_item_id, invoice_id, accountId).first();
-  if (!lineItem) return json({ error: 'Line item not found' }, 404);
+  let lineItem: Record<string, any> | null;
+  let product: Record<string, any> | null;
+  try {
+    lineItem = await env.DB.prepare(
+      'SELECT * FROM invoice_line_items WHERE id = ? AND invoice_id = ? AND account_id = ?'
+    ).bind(line_item_id, invoice_id, accountId).first() as Record<string, any> | null;
+    if (!lineItem) {
+      await releaseInvoiceLinkLease(env, accountId, invoice_id, linkClaim);
+      return json({ error: 'Line item not found' }, 404);
+    }
 
-  const product = await env.DB.prepare(
-    'SELECT id, stock_grams, low_stock_threshold, given_name, product_name, status, source_compass_entry_id FROM products WHERE id = ? AND account_id = ?'
-  ).bind(product_id, accountId).first();
-  if (!product) return json({ error: 'Product not found' }, 404);
+    product = await env.DB.prepare(
+      'SELECT id, stock_grams, low_stock_threshold, given_name, product_name, status, source_compass_entry_id FROM products WHERE id = ? AND account_id = ?'
+    ).bind(product_id, accountId).first() as Record<string, any> | null;
+    if (!product) {
+      await releaseInvoiceLinkLease(env, accountId, invoice_id, linkClaim);
+      return json({ error: 'Product not found' }, 404);
+    }
+  } catch (error) {
+    console.error('handleLinkLineItem input read failed:', error);
+    await releaseInvoiceLinkLease(env, accountId, invoice_id, linkClaim);
+    return json({ error: 'Failed to link line item before any changes were committed' }, 500);
+  }
 
   let authorized: AuthorizedInvoiceLine;
   try {
-    const seller = await invoiceSellerAuthorizationContext(env, accountId, invoice as Record<string, any>);
+    const seller = await invoiceSellerAuthorizationContext(env, accountId, invoice);
     [authorized] = await authorizeInvoiceLines(env, {
       accountId, ...seller,
       lines: [{
@@ -6584,7 +6736,10 @@ const handleLinkLineItem: Handler = async (request, env) => {
         quantity: Number(lineItem.quantity), price_at_sale: Number(lineItem.price_at_sale),
       }],
     });
-  } catch (error) { return salesError(error); }
+  } catch (error) {
+    await releaseInvoiceLinkLease(env, accountId, invoice_id, linkClaim);
+    return salesError(error);
+  }
 
   const stmts: D1PreparedStatement[] = [];
   const current = await env.DB.prepare(
@@ -6599,27 +6754,33 @@ const handleLinkLineItem: Handler = async (request, env) => {
 
   stmts.push(env.DB.prepare(
     `UPDATE invoice_line_items SET product_id=?,custom_name=NULL,stock_owner_user_id=?,sales_grant_id=?,owner_share_type=?,owner_share_value=?
-     WHERE id=? AND invoice_id=? AND account_id=?`
+     WHERE id=? AND invoice_id=? AND account_id=?
+       AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)`
   ).bind(product_id, authorized.stock_owner_user_id, authorized.sales_grant_id, authorized.owner_share_type,
-    authorized.owner_share_value, line_item_id, invoice_id, accountId));
+    authorized.owner_share_value, line_item_id, invoice_id, accountId, invoice_id, accountId, linkClaim));
 
   if (invoice.status === 'Pending') {
     let allAuthorized: AuthorizedInvoiceLine[];
     try {
-      const seller = await invoiceSellerAuthorizationContext(env, accountId, invoice as Record<string, any>);
+      const seller = await invoiceSellerAuthorizationContext(env, accountId, invoice);
       allAuthorized = await authorizeInvoiceLines(env, {
         accountId, ...seller, lines: proposed,
       });
-    } catch (error) { return salesError(error); }
+    } catch (error) {
+      await releaseInvoiceLinkLease(env, accountId, invoice_id, linkClaim);
+      return salesError(error);
+    }
     stmts.push(...buildInvoiceReservationStatements(env, {
       accountId, invoiceId: invoice_id, lines: allAuthorized,
       expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+      guard: { invoiceId: invoice_id, claimToken: linkClaim, status: 'Pending', inventoryDeducted: 0 },
     }));
   }
 
   stmts.push(env.DB.prepare(
-    'UPDATE invoices SET payment_recipient_user_id=? WHERE id=? AND account_id=?'
-  ).bind(resolvePaymentRecipientUserId(recipientLines), invoice_id, accountId));
+    `UPDATE invoices SET payment_recipient_user_id=? WHERE id=? AND account_id=?
+       AND fulfillment_claim_token = ?`
+  ).bind(resolvePaymentRecipientUserId(recipientLines), invoice_id, accountId, linkClaim));
 
   if (invoice.inventory_deducted) {
     const qty = Number(lineItem.quantity) || 0;
@@ -6683,6 +6844,10 @@ const handleLinkLineItem: Handler = async (request, env) => {
     `Invoice ${invoice.invoice_number}: custom item linked to ${productName}.${invoice.inventory_deducted ? ' Stock deducted.' : ''}`,
     userEmail, 'invoice', invoice_id, accountId));
 
+  stmts.push(env.DB.prepare(
+    'UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?'
+  ).bind(invoice_id, accountId, linkClaim));
+
   try {
     await env.DB.batch(stmts);
   } catch (err: any) {
@@ -6696,6 +6861,7 @@ const handleLinkLineItem: Handler = async (request, env) => {
           .bind(qty, product_id, accountId).run();
       } catch (e) { console.error('handleLinkLineItem rollback failed:', e); }
     }
+    await releaseInvoiceLinkLease(env, accountId, invoice_id, linkClaim);
     return json({ error: 'Failed to link line item — no changes were committed' }, 500);
   }
   return json({ success: true, inventory_deducted: !!invoice.inventory_deducted });
