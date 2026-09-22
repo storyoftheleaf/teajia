@@ -6,6 +6,7 @@ import { api } from '../lib/api';
 import { useShopPrice } from '../components/shop/shopPrice';
 import { usePublicProducts } from '../hooks/usePublicProducts';
 import { useSectionReveal } from '../hooks/useSectionReveal';
+import { LogoText } from '../components/Logos/LogoText';
 import { StoryEditProvider, type PhotoVal } from './read/storyEdit';
 import EditablePhoto from './read/EditablePhoto';
 import StoryEditorBar from './read/StoryEditorBar';
@@ -154,7 +155,7 @@ const HomeV2Page: React.FC = () => {
           </nav>
           {/* The opener's way in: the Start Here page, six paths into the
               practice. Discover your tea lives in Craft now, not here. */}
-          <p className={`${META} mt-5 text-tea-text-sec`}>
+          <p className={`${BODY} italic mt-5 text-tea-text-sec`}>
             <Link to="/start" className="hover:text-tea-gold transition-colors duration-300">New here? Start here</Link>
           </p>
         </div>
@@ -169,7 +170,7 @@ const HomeV2Page: React.FC = () => {
             alt="At the table"
             fill
             placeholderBg="var(--tea-surface)"
-            placeholder={<img src={TABLE_PHOTO} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '68% 64%' }} />}
+            placeholder={<img src={TABLE_PHOTO} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '68% 82%' }} />}
           />
         </div>
       </section>
@@ -199,7 +200,7 @@ const HomeV2Page: React.FC = () => {
         <Plate
           index={2}
           to="/advise"
-          title={<>Twenty years in <span className="italic text-tea-gold">tea culture.</span></>}
+          title="Twenty years in tea culture."
           body="Taiwan, China, Japan, Bali, and beyond. Tea for your practice, your collection, your space."
           meta="The consult"
           src={TEMPLATE.consult}
@@ -211,7 +212,7 @@ const HomeV2Page: React.FC = () => {
           characters large on the right, the house's own picture. */}
       <section
         aria-label="The house"
-        className={`${MOVEMENT} grid grid-cols-1 lg:grid-cols-[var(--teajia-sidebar-w)_1fr_1fr] bg-tea-surface`}
+        className={`${MOVEMENT} grid grid-cols-1 lg:grid-cols-[var(--teajia-sidebar-w)_1fr_1fr]`}
       >
         <div className="lg:col-start-2 px-6 sm:px-10 lg:pl-[4rem] lg:pr-16 pt-14 sm:pt-16 lg:pt-24 pb-12 lg:pb-24 flex flex-col justify-center">
           <div className="max-w-[360px]">
@@ -227,28 +228,24 @@ const HomeV2Page: React.FC = () => {
             </p>
           </div>
         </div>
-        {/* What jiā means: the live page's own passage, whole. The two teaser
-            lines, the three characters each with their two words, then the
-            spirit and the motto. This is the introduction, not a decoration. */}
-        <div className="lg:col-start-3 bg-tea-elevated px-6 sm:px-10 lg:px-14 py-14 sm:py-16 lg:py-24 flex flex-col justify-center">
-          <p className={`${BODY} italic tracking-[0.06em] text-tea-text-sec`}>
+        {/* What the name is, for someone who has never met the word. The
+            wordmark leads; Adrian's two lines split it into tea and jiā; then
+            jiā three times under three characters, each a facet, in his
+            words. Nothing is explained; the facets show themselves. Centred,
+            because three pillars are a symmetric idea. The characters enter
+            once, as they do on the live page: 家 first, 佳 and 嘉 from the
+            sides. */}
+        <div className="lg:col-start-3 bg-tea-elevated px-6 sm:px-10 lg:px-14 py-14 sm:py-16 lg:py-20 flex flex-col items-center text-center">
+          <LogoText size="panel" color="var(--tea-text)" />
+          <p className={`${BODY} italic mt-6 tracking-[0.06em] text-tea-text-sec`}>
             <span className="not-italic font-semibold text-tea-gold">tea</span> · leaf and water
           </p>
           <p className={`${BODY} italic tracking-[0.06em] text-tea-text-sec`}>
             <span className="not-italic font-semibold text-tea-gold">jiā</span> · one sound, three pillars…
           </p>
-          <div className="mt-10 grid grid-cols-3 gap-x-4">
-            {[
-              { zi: '佳', a: 'beauty', b: 'excellence' },
-              { zi: '家', a: 'home', b: 'devotion' },
-              { zi: '嘉', a: 'praise', b: 'celebration' },
-            ].map(c => (
-              <div key={c.zi} className="flex flex-col items-center">
-                <span className="text-[80px] sm:text-[104px] lg:text-[clamp(72px,8vw,160px)] leading-none text-tea-gold" style={{ fontFamily: "'Ma Shan Zheng', cursive" }}>{c.zi}</span>
-                <p className="font-display mt-4 flex flex-col items-center text-center text-ui-15 leading-[1.4] tracking-[0.04em] text-tea-text-sec">
-                  <span>{c.a}</span><span>{c.b}</span>
-                </p>
-              </div>
+          <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-10 w-full max-w-[720px]">
+            {FACETS.map((c, i) => (
+              <Facet key={c.zi} {...c} index={i} />
             ))}
           </div>
           <p className={`${BODY} mt-10 max-w-[44ch] text-tea-text-sec`}>
@@ -265,13 +262,42 @@ const HomeV2Page: React.FC = () => {
   );
 };
 
+/** The three facets of jiā, in Adrian's words (2026-09-22). 家 sits in the middle and a step larger: it is the pillar the name rests on. */
+const FACETS = [
+  { zi: '佳', title: 'Excellence', text: 'With the commitment to doing whatever we do, well.', enter: 'left' as const, delay: 260 },
+  { zi: '家', title: 'Home', text: 'Both the place we live physically and energetically, connected and devoted to who we are, authentically.', enter: 'fade' as const, delay: 0, centre: true },
+  { zi: '嘉', title: 'Celebration', text: 'And the act of sharing and giving, in reverence to life.', enter: 'right' as const, delay: 420 },
+];
+
+const Facet: React.FC<(typeof FACETS)[number] & { index: number }> = ({ zi, title, text, enter, delay, centre }) => {
+  const reveal = useSectionReveal(enter);
+  return (
+    <div
+      ref={reveal.ref}
+      className={`flex flex-col items-center ${reveal.className}`}
+      style={reveal.style ? { ...reveal.style, transitionDelay: `${delay}ms` } : undefined}
+    >
+      {/* One box height for all three, so the titles line up under characters of two sizes. */}
+      <span
+        className={`flex items-end justify-center h-[104px] sm:h-[120px] lg:h-[clamp(96px,8.6vw,168px)] leading-none text-tea-gold ${centre ? 'text-[104px] sm:text-[120px] lg:text-[clamp(96px,8.6vw,168px)]' : 'text-[88px] sm:text-[100px] lg:text-[clamp(80px,7.2vw,140px)]'}`}
+        style={{ fontFamily: "'Ma Shan Zheng', cursive" }}
+      >
+        {zi}
+      </span>
+      <span className={`${META} mt-3 text-tea-gold`}>jiā</span>
+      <p className={`${DISPLAY} mt-2 text-tea-text`}>{title}</p>
+      <p className={`${BODY} mt-2 max-w-[24ch] text-tea-text-sec`}>{text}</p>
+    </div>
+  );
+};
+
 /** Origin, year and the last-of-the-lot note, in one line under the tea's name. */
 const teaLine = (tea: PublicProduct): string => {
   const where = [tea.originRegion, tea.originCountry].filter(Boolean).join(', ');
   const when = tea.year ? String(tea.year) : '';
-  const parts = [where, when].filter(Boolean).join(', ');
-  const scarce = tea.isOneOfAKind || tea.stockGrams <= 150 ? ` ${tea.stockGrams} g left, the last of the lot.` : '';
-  return `${parts}.${scarce}`;
+  const origin = where ? `From ${where}${when ? `, ${when}` : ''}.` : (when ? `From ${when}.` : '');
+  const scarce = tea.isOneOfAKind || tea.stockGrams <= 150 ? ` ${tea.stockGrams} grams left, the last of the lot.` : '';
+  return `${origin}${scarce}`.trim();
 };
 
 interface PlateProps {
