@@ -9,15 +9,15 @@ test('shows the three services and the sub-ledger, live rows linked and soon row
   await openAdvise(page);
 
   await expect(page.getByRole('heading', { name: 'The Spaces to Share' })).toBeVisible();
-  await expect(page.getByText('Tea House Design & Curation', { exact: true })).toBeVisible();
-  await expect(page.getByText('Tea Curation & Sourcing', { exact: true })).toBeVisible();
-  await expect(page.getByText('Sessions & Guidance', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Tea House Design & Curation', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Tea Curation & Sourcing', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Sessions & Guidance', exact: true })).toBeVisible();
 
   await expect(page.getByRole('link', { name: /For Your Space/i })).toHaveAttribute('href', '/for-your-space');
 
-  await expect(page.getByText('Selected Projects', { exact: true })).toBeVisible();
-  await expect(page.getByText('Sourcing Journeys', { exact: true })).toBeVisible();
-  await expect(page.getByText('Upcoming Sessions', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Selected Projects, coming soon')).toBeVisible();
+  await expect(page.getByLabel('Sourcing Journeys, coming soon')).toBeVisible();
+  await expect(page.getByLabel('Upcoming Sessions, coming soon')).toBeVisible();
   await expect(page.locator('a[href="/advise?v=projects"]')).toHaveCount(0);
   await expect(page.locator('a[href="/events"]')).toHaveCount(0);
 });

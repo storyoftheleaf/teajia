@@ -562,7 +562,7 @@ const AdviseIndex: React.FC = () => {
             </div>
             <h1 style={{ fontFamily: F.display, fontWeight: 500, fontSize: 'clamp(54px,10vw,124px)', lineHeight: 0.92, letterSpacing: '0.01em', color: 'var(--tj-read-cream)', margin: 0 }}>
               The Spaces{' '}
-              <span style={{ fontStyle: 'italic', color: C.gold }}>to Share</span>
+              <span style={{ fontStyle: 'italic', color: C.gold, whiteSpace: 'nowrap' }}>to Share</span>
             </h1>
             <p style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(19px,2.4vw,27px)', lineHeight: 1.45, color: 'var(--tj-read-taupe)', margin: '26px 0 0', maxWidth: 540 }}>
               Twenty years in tea culture. Taiwan, China, Japan, Bali, and beyond.
