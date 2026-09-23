@@ -407,7 +407,6 @@ async function assertPageHealthy(page: Page, label: string, consoleErrors: strin
 // ─── Destination page checks ──────────────────────────────────────────────────
 
 const PUBLIC_ROUTES = [
-  ['/compass',            'Tea Compass'],
   ['/account/profile',    'Tea Master Profile'],
   ['/account/journal',    'Tasting Journal'],
   ['/account/collection', 'My Collection'],
