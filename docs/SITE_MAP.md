@@ -204,9 +204,9 @@ The phone's admin bar carries four of these words per role (`src/components/admi
 - **Status:** WIRED
 
 ### /read
-- The Read index: the interactive issue, conversations, field notes and long reads, each gated until published (`src/pages/read/articleLive.ts`)
+- The Read index: the interactive issue, conversations, field notes and long reads. A visitor sees only published pieces; a signed-in Teajia owner or editor sees every piece, drafts marked (`src/pages/read/articleLive.ts`)
 - **Sub-routes:**
-  - `/read/leaf-to-liquor` (and `/read/leaf-to-liquor/:template`): From Leaf to Liquor, public at its URL but kept off the index (`tests/read-index-articles.spec.ts`)
+  - `/read/leaf-to-liquor` (and `/read/leaf-to-liquor/:template`): From Leaf to Liquor, published, first in the interactive issue
   - `/read/<article>`: one route per immersive article
   - `/article/:slug`: the editor's articles, full-screen reader
 - **Status:** WIRED
