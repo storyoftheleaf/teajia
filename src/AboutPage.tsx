@@ -199,6 +199,19 @@ export default function AboutPage() {
         </a>
       </section>
 
+      {/* The AI connection. The explainer page had no link from anywhere. */}
+      <section className="mb-16 md:mb-20 border-t border-tea-border pt-8">
+        <p className="body-light mb-4">
+          A shop that runs on Teajia can connect an AI assistant to its own stock, sales and customers, and work them from a conversation.
+        </p>
+        <Link
+          to="/mcp"
+          className="link-text inline-flex items-center gap-2 hover:text-tea-gold-lt transition-colors"
+        >
+          Connect an assistant
+        </Link>
+      </section>
+
     </div>
   );
 }

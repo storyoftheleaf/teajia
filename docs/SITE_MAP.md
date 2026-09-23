@@ -112,7 +112,6 @@ The phone's admin bar carries four of these words per role (`src/components/admi
 | `/s/:sampleId` | SamplePage |  |
 | `/share/:token` | ShareCardPage |  |
 | `/c/:slug` | PublicCollectionPage |  |
-| `/me` | CenterPage |  |
 | `/session/:id` | SessionPage |  |
 | `/join` | JoinPage |  |
 | `/join/:code` | JoinPage |  |
@@ -420,7 +419,6 @@ All public (no auth required).
 | `/t/:token` | Location/account card by token | WIRED |
 | `/journey` | Public journey view (deprecated; see /account/journey) | WIRED |
 | `/compass` | Tea preference quiz (member-gated) | WIRED (sync: PARTIAL) |
-| `/me` | Personal dashboard (member-gated) | PARTIAL (content TBD) |
 
 ---
 
