@@ -297,7 +297,6 @@ const AppContent = () => {
   useTeaDiscoverySync(syncEnabled);
   useCompassSync(syncEnabled);
   useNotesSync(syncEnabled);
-  const showAdminBar = false;
 
   const queryClient = useQueryClient();
   const location = useLocation();
@@ -814,10 +813,13 @@ const AppContent = () => {
   };
 
 
-  // Allow any component to open the account panel via a custom event
+  // Allow any component to open the account panel via a custom event. A
+  // `detail.view` opens it on that view (the sample alcove asks for signup).
   useEffect(() => {
-    const handler = () => {
+    const handler = (event: Event) => {
       window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay'));
+      const view = (event as CustomEvent<{ view?: PanelView } | null>).detail?.view;
+      setAccountInitialView(view);
       setShowAccountModal(true);
     };
     window.addEventListener('open-account-panel', handler);
@@ -966,7 +968,7 @@ const AppContent = () => {
           where the design puts it. The bar is now what it was drawn as: the
           phone's navigation. */}
       {!isFocusedShareRoute && (
-        <LeftSidebar activeSection={activeSection} onNavigate={setActiveSection} onAccountClick={handleOpenAccount} onCartClick={handleOpenCart} onSearchClick={() => { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} cartItemCount={cart.length} topOffset={showAdminBar} />
+        <LeftSidebar activeSection={activeSection} onNavigate={setActiveSection} onAccountClick={handleOpenAccount} onCartClick={handleOpenCart} onSearchClick={() => { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} cartItemCount={cart.length} />
       )}
 
       {/* Main Content Area. Every route now clears the sidebar on the desk,
