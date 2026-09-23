@@ -38,7 +38,7 @@ There is no card checkout, by decision. A visitor fills a cart, gives a name and
 
 The personal records are deliberately separate and stay that way: **Journal** is what you tasted and thought, **Favourites** is what you want, **Cellar** is what you own, **Journey** is where you have been (sessions, teas met, seals). No streaks, no scores, no feed.
 
-**Manage** (`/admin/*`) is the operator's room, grouped Sell (orders, invoices, customers), Source (stock, intake, Curate field sourcing, vendors), Gather (events, tasting sessions, venues), Publish (articles, collections, product stories, Tea Wisdom), Network (carry teas from the network, wholesale, adoptions), and account (members and access, settings, MCP tokens). Every write is gated by one of six capability bundles: catalog, stock, publish, gather, sell, members.
+**Manage** (`/admin/*`) is the operator's room. The column names its rooms, in order: Dashboard; Stock (with Tea Glossary, Capture, Curate, Carry from network); Collections; Orders (invoices and the activity log, for sellers); People (customers and vendors, with Tea Masters for the owner); Events (sessions, tasting events, venues); Magazine (with Tasting Notes); Wisdom; Network (carry teas from the network, wholesale, adoptions); Members; Settings. Each room shows only to someone its route admits, and each route carries one word everywhere it is named, the phone's admin bar included. Every write is gated by one of six capability bundles: catalog, stock, publish, gather, sell, members.
 
 ## How it is built
 

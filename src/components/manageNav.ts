@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react';
 import type { IconProps } from '@phosphor-icons/react';
 import {
-  CalendarBlank, SquaresFour, Briefcase, BookOpen, Package, Stack, Compass, GearSix, Globe, UsersThree,
+  CalendarBlank, SquaresFour, Receipt, AddressBook, BookOpen, Package, Stack, Compass, GearSix, Globe, UsersThree,
 } from '@phosphor-icons/react';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore, selectHasBundle, selectIsOwnerTier } from '../lib/store';
@@ -12,7 +12,9 @@ import { ADMIN_CONNECTION_ROUTES, getVisibleAdminItemIds } from './navigationCon
 // both, with the same word, and neither can drift from the other the way the
 // tool registry and the sidebar once did (Customers vs People, Contributors
 // vs Tea Masters). Visibility is decided by `getVisibleAdminItemIds`, one rule
-// per entry, matching the gate on the route it leads to.
+// per entry, matching the gate on the route it leads to. One word per route:
+// no two rows share a destination and no word leads to two places, which
+// manageNav.oneWord.test.ts holds for this list and the phone's admin bar.
 
 export interface ManageChild {
   id: string;
@@ -48,6 +50,67 @@ export interface ManageNav {
   hasTableRoom: boolean;
 }
 
+/** What the list itself depends on, beyond the per-room gates. */
+export interface ManageListFlags {
+  hasCatalog: boolean;
+  hasSell: boolean;
+  hasPublish: boolean;
+  isAdmin: boolean;
+  isOwnerTier: boolean;
+  platformRole: unknown;
+}
+
+/**
+ * Every Manage room before the gates, as a pure function so the one-word guard
+ * can read the same list the column and the site panel render.
+ */
+export function buildManageItems(f: ManageListFlags): ManageItem[] {
+  return [
+    { id: 'dashboard', label: 'Dashboard', Icon: SquaresFour, path: '/admin/dashboard' },
+    {
+      id: 'inventory', label: 'Stock', Icon: Package, path: '/admin/stock',
+      children: [
+        { id: 'catalog', path: '/admin/catalog', label: 'Tea Glossary' },
+        { id: 'capture', path: '/admin/capture', label: 'Capture' },
+        { id: 'compass', path: '/admin/compass', label: 'Curate' },
+        // Carry from the network catalog into your own store. Gated by the
+        // Catalog bundle, admins who can populate their own store.
+        ...(f.hasCatalog ? [{ id: 'carry', path: '/admin/network?tab=catalog', label: 'Carry from network' }] : []),
+      ],
+    },
+    { id: 'collections', label: 'Collections', Icon: Stack, path: '/admin/collections' },
+    // Orders follows its route's one gate, the sell bundle. It used to sit
+    // under a "Business" parent that showed for five capabilities while the
+    // screen behind it accepted one.
+    { id: 'orders', label: 'Orders', Icon: Receipt, path: '/admin/activity' },
+    // People is its own room so a member who gathers or publishes, and so
+    // cannot open Orders, still reaches the people they work with.
+    {
+      id: 'people', label: 'People', Icon: AddressBook, path: '/admin/people',
+      children: f.isOwnerTier
+        ? [{ id: 'contributors', path: ADMIN_CONNECTION_ROUTES.teaMasters, label: 'Tea Masters' }]
+        : undefined,
+    },
+    { id: 'events', label: 'Events', Icon: CalendarBlank, path: '/admin/events' },
+    {
+      id: 'magazine', label: 'Magazine', Icon: BookOpen, path: '/admin/magazine',
+      children: [
+        // Tasting notes are published words, gated like the magazine itself.
+        { id: 'tasting-notes', path: '/admin/tasting-notes', label: 'Tasting Notes' },
+      ],
+    },
+    ...(f.isAdmin || f.hasPublish ? [{ id: 'wisdom', label: 'Wisdom', Icon: Compass, path: ADMIN_CONNECTION_ROUTES.wisdom }] : []),
+    // Network, single hub entry. Catalog, suggestions, wholesale, adoptions
+    // live inside as tabs. Render only if caller has at least one capability.
+    ...(f.hasCatalog || f.hasSell || f.platformRole ? [{ id: 'network', label: 'Network', Icon: Globe, path: '/admin/network' }] : []),
+    // Who may sign in to this table and what they may do. It was reachable only
+    // through a tile in Your Table, so in practice a tea master could not find
+    // the screen the operator guide told them to go to.
+    { id: 'members', label: 'Members', Icon: UsersThree, path: '/admin/access' },
+    { id: 'settings', label: 'Settings', Icon: GearSix, path: '/admin/settings' },
+  ];
+}
+
 export function useManageNav(): ManageNav {
   const auth = useAuth();
   const hasCatalog = useAppStore(s => selectHasBundle(s, 'catalog'));
@@ -60,44 +123,7 @@ export function useManageNav(): ManageNav {
   const isOwnerTier = useAppStore(selectIsOwnerTier);
   const canCreateCollections = auth.user?.canCreateCollections ?? false;
 
-  const all: ManageItem[] = [
-    { id: 'dashboard', label: 'Dashboard', Icon: SquaresFour, path: '/admin/dashboard' },
-    {
-      id: 'inventory', label: 'Stock', Icon: Package, path: '/admin/stock',
-      children: [
-        { id: 'catalog', path: '/admin/catalog', label: 'Tea Glossary' },
-        { id: 'teaware', path: '/admin/teaware', label: 'Equipment' },
-        { id: 'sources', path: '/admin/sources', label: 'Sources' },
-        { id: 'personal', path: '/admin/personal', label: 'Collection' },
-        { id: 'capture', path: '/admin/capture', label: 'Quick Capture' },
-        { id: 'compass', path: '/admin/compass', label: 'Curate' },
-        { id: 'tasting-notes', path: '/admin/tasting-notes', label: 'Tasting Notes' },
-        // Carry from the network catalog into your own store. Gated by the
-        // Catalog bundle, admins who can populate their own store.
-        ...(hasCatalog ? [{ id: 'carry', path: '/admin/network?tab=catalog', label: 'Carry from network' }] : []),
-      ],
-    },
-    { id: 'collections', label: 'Collections', Icon: Stack, path: '/admin/collections' },
-    {
-      id: 'business', label: 'Business', Icon: Briefcase, path: '/admin/activity',
-      children: [
-        { id: 'activity', path: '/admin/activity', label: 'Activity' },
-        { id: 'people', path: '/admin/people', label: 'People' },
-        ...(isOwnerTier ? [{ id: 'contributors', path: ADMIN_CONNECTION_ROUTES.teaMasters, label: 'Tea Masters' }] : []),
-      ],
-    },
-    { id: 'events', label: 'Events', Icon: CalendarBlank, path: '/admin/events' },
-    { id: 'magazine', label: 'Magazine', Icon: BookOpen, path: '/admin/magazine' },
-    ...(auth.isAdmin || hasPublish ? [{ id: 'wisdom', label: 'Wisdom', Icon: Compass, path: ADMIN_CONNECTION_ROUTES.wisdom }] : []),
-    // Network, single hub entry. Catalog, suggestions, wholesale, adoptions
-    // live inside as tabs. Render only if caller has at least one capability.
-    ...(hasCatalog || hasSell || platformRole ? [{ id: 'network', label: 'Network', Icon: Globe, path: '/admin/network' }] : []),
-    // Who may sign in to this table and what they may do. It was reachable only
-    // through a tile in Your Table, so in practice a tea master could not find
-    // the screen the operator guide told them to go to.
-    { id: 'members', label: 'Members', Icon: UsersThree, path: '/admin/access' },
-    { id: 'settings', label: 'Settings', Icon: GearSix, path: '/admin/settings' },
-  ];
+  const all = buildManageItems({ hasCatalog, hasSell, hasPublish, isAdmin: auth.isAdmin, isOwnerTier, platformRole });
 
   const visibleIds = new Set(getVisibleAdminItemIds(
     { isAdmin: auth.isAdmin, isOwnerTier, hasCatalog, hasStock, hasSell, hasGather, hasPublish, hasMembers },

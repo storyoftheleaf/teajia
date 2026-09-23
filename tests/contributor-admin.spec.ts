@@ -116,7 +116,7 @@ test('list error can retry into the empty state', async ({ page }) => {
 test('empty state offers contributor creation', async ({ page }) => {
   await install(page, []);
   await page.goto('/admin/contributors');
-  await expect(page.getByText('No contributors yet.')).toBeVisible();
+  await expect(page.getByText('No tea masters yet.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Create contributor' }).last()).toBeVisible();
 });
 
@@ -134,7 +134,7 @@ test('uses the reactive active account for host association after an account swi
   test.skip(true, 'Create-time host assignment was replaced by per-account associations; rule covered by unit tests');
   await install(page, []);
   await page.goto('/admin/contributors');
-  await expect(page.getByText('No contributors yet.')).toBeVisible();
+  await expect(page.getByText('No tea masters yet.')).toBeVisible();
   await page.getByRole('button', { name: 'Create contributor' }).last().click();
   await page.evaluate(async () => {
     const { useAppStore } = await import('/src/lib/store.ts');
