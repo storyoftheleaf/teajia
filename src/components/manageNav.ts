@@ -37,6 +37,15 @@ export interface ManageNav {
   hasSettingsRoute: boolean;
   /** The curator bit: may create collections without any other capability. */
   canCreateCollections: boolean;
+  /**
+   * The rooms the ACTIVE TABLE grants, with the legacy platform-staff escape
+   * hatch switched off. The rail may show a platform account every room at
+   * every table; a door that opens onto a shop has to follow the table's own
+   * grant, or a global owner sitting at a table as a member is handed a door
+   * that refuses them on the other side.
+   */
+  tableItems: ManageItem[];
+  hasTableRoom: boolean;
 }
 
 export function useManageNav(): ManageNav {
@@ -95,11 +104,18 @@ export function useManageNav(): ManageNav {
     all.map(item => item.id),
   ));
   const items = all.filter(item => visibleIds.has(item.id));
+  const tableIds = new Set(getVisibleAdminItemIds(
+    { isAdmin: false, isOwnerTier, hasCatalog, hasStock, hasSell, hasGather, hasPublish, hasMembers },
+    all.map(item => item.id),
+  ));
+  const tableItems = all.filter(item => tableIds.has(item.id));
 
   return {
     items,
     hasManageRoom: auth.isAuthenticated && (items.length > 0 || canCreateCollections),
     hasSettingsRoute: items.some(item => item.id === 'settings'),
     canCreateCollections,
+    tableItems,
+    hasTableRoom: auth.isAuthenticated && (tableItems.length > 0 || canCreateCollections),
   };
 }

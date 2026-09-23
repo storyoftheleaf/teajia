@@ -123,7 +123,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   onSearchClick,
   cartItemCount = 0,
 }) => {
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
   const auth = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -177,12 +177,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const curatorItems: ManageItem[] = manageNav.canCreateCollections
     ? [{ id: 'collections', label: 'Collections', Icon: Stack, path: '/admin/collections' }]
     : [];
-  // Settings leaves the list for the footer strip; it is a destination you
-  // reach a few times a month, not one you scan past twenty times a day.
-  const manageItems: ManageItem[] = manageNav.items.length > 0
-    ? manageNav.items.filter(item => item.id !== 'settings')
-    : curatorItems;
-  const hasSettingsRoute = manageNav.hasSettingsRoute;
+  // Settings is a room in the column like any other. It used to sit in the
+  // rail's foot as a word, which made it the one Manage room named outside
+  // Manage; the foot is glyphs and public rooms now.
+  const manageItems: ManageItem[] = manageNav.items.length > 0 ? manageNav.items : curatorItems;
   const hasManageRoom = auth.isAuthenticated && manageItems.length > 0;
   const room: SidebarRoom = hasManageRoom ? sidebarRoom : 'browse';
   const showPanel = hasManageRoom && room === 'manage';
@@ -228,6 +226,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   // Active is decided here, not appended after: the stylesheet orders
   // text-tea-gold before text-tea-text-sec, so a gold class tacked on the end
   // of a string that already carries the secondary colour never wins.
+  const footGlyph = (active = false) =>
+    `flex items-center justify-center transition-colors duration-200 ${
+      active ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
+    }`;
   const footWord = (active = false) =>
     `font-display text-ui-13 lowercase tracking-[0.04em] leading-none transition-colors duration-200 ${
       active ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
@@ -315,32 +317,43 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
         <div className="flex-1" />
 
+        {/* The foot: the three controls the mobile bar also carries, as the
+            same glyphs it uses (search, the person, the bag), then the two
+            public rooms the four words do not cover. Light and dark live in
+            the Your Table header; Settings is a Manage room like any other. */}
         <nav className="flex flex-col items-center gap-[18px]" aria-label="Utilities">
-          <button onClick={onSearchClick} className={`nav-rail-word ${footWord()}`} title="Search (⌘K)">
-            Search
+          <button onClick={onSearchClick} className={`nav-rail-word ${footGlyph()}`} title="Search (⌘K)" aria-label="Search">
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <line x1="16.5" y1="16.5" x2="22" y2="22" />
+            </svg>
           </button>
           <button
             onClick={onAccountClick}
-            className={`nav-rail-word ${footWord(activeSection === 'YOUR_TABLE')}`}
+            className={`nav-rail-word ${footGlyph(activeSection === 'YOUR_TABLE')}`}
             title="Your Table"
+            aria-label="Your Table"
           >
-            Your Table
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+            </svg>
             <span className="sr-only">{accountMetaLine}</span>
           </button>
           <button
             onClick={onCartClick}
-            className={`nav-rail-word ${footWord()} flex items-baseline gap-1`}
+            className={`nav-rail-word ${footGlyph()} relative`}
             title="Cart"
             aria-label={cartItemCount > 0 ? `Cart, ${cartItemCount} item${cartItemCount !== 1 ? 's' : ''}` : 'Cart'}
           >
-            <span>Cart</span>
+            <Icons.Bag className="w-5 h-5" strokeWidth={1.6} aria-hidden="true" />
             {cartItemCount > 0 && (
-              <span className={`text-ui-11 font-semibold text-tea-gold ${badgeAnimating ? 'cart-badge-pulse' : ''}`} aria-hidden="true">
+              <span className={`absolute -top-1.5 -right-2.5 text-ui-10 font-semibold text-tea-gold ${badgeAnimating ? 'cart-badge-pulse' : ''}`} aria-hidden="true">
                 {cartItemCount > 9 ? '9+' : cartItemCount}
               </span>
             )}
             {sampleCount > 0 && (
-              <span className="flex items-center gap-0.5 text-ui-10 text-tea-gold/70" aria-hidden="true">
+              <span className="absolute -bottom-1.5 -right-2.5 flex items-center gap-0.5 text-ui-10 text-tea-gold/70" aria-hidden="true">
                 <SampleIcon className="w-[9px] h-[9px]" />
                 {sampleCount}
               </span>
@@ -349,23 +362,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           <Link to="/people" className={`nav-rail-word ${footWord(currentPath.startsWith('/people'))}`} title="People">
             People
           </Link>
-          <Link to="/spaces" className={`nav-rail-word ${footWord(currentPath === '/spaces')}`} title="Connections">
-            Connections
+          <Link to="/spaces" className={`nav-rail-word ${footWord(currentPath === '/spaces')}`} title="Places">
+            Places
           </Link>
-          {hasSettingsRoute && (
-            <Link to="/admin/settings" className={`nav-rail-word ${footWord(currentPath.startsWith('/admin/settings'))}`} title="Settings">
-              Settings
-            </Link>
-          )}
-          <button
-            type="button"
-            onClick={(e) => toggleTheme(e)}
-            className={`nav-rail-word ${footWord()}`}
-            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-          >
-            {theme === 'dark' ? 'Light' : 'Dark'}
-          </button>
         </nav>
       </div>
 

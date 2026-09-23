@@ -22,6 +22,7 @@ import type { PanelView } from './types';
 import { TastingJournalView } from './TastingJournalView';
 import { CellarView } from './CellarView';
 import { ReaderView } from './ReaderView';
+import { useManageNav } from '../manageNav';
 import { LaunchpadView } from './LaunchpadView';
 import { usePayAccess } from '../profile/PayAccessPanel';
 import { THREADS, profileThreads } from '../TeaDiscovery/threads';
@@ -409,7 +410,10 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
   const inactiveMemberships = memberships.filter(m => m.account_id !== activeAccountId);
   const membershipRole = activeMembership?.role;
   const isStaff = membershipRole === 'staff' || membershipRole === 'owner' || auth.isAdmin;
-  const canPublish = auth.isAdmin || selectHasBundle({ memberships, activeAccountId, platformRole }, 'publish');
+  // The Manage rooms this person may open, from the same list the desktop
+  // column and the phone's site panel read. The panel offers ONE door to
+  // them, and only once the token is confirmed for the active table.
+  const manageNav = useManageNav();
   const canSell = isTokenScopedToAccount(activeAccountId) && (
     activeMembership?.role === 'owner' ||
     selectHasBundle({ memberships, activeAccountId, platformRole }, 'sell')
@@ -1487,10 +1491,9 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 roleBadgeLabel={roleBadgeLabel}
                 accountName={activeAccount?.name ?? null}
                 locationLabel={activeLocationStr || null}
-                isOwner={membershipRole === 'owner' || auth.isAdmin}
+                hasManageRoom={isTokenScopedToAccount(activeAccountId) && manageNav.hasTableRoom}
+                manageEntryPath={manageNav.tableItems[0]?.path ?? '/admin/collections'}
                 isPlatformOwner={auth.isAdmin}
-                canPublish={canPublish}
-                canSell={canSell}
                 membershipsCount={memberships.length}
                 pendingInvoiceCount={pendingCount}
                 todayEventCount={todayEventCount}

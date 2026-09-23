@@ -12,6 +12,9 @@
 - [ ] Real portraits and tea photos for the first creators _(band: you-required)_ _(effort: quick)_
   The seeded creators use stock portraits and the catalogue has no tea photos, so the profile page and the directory cannot be judged on real material until Adrian supplies it. The page itself shipped 2026-09-21 (see the archive); the editor is the line below.
 - [ ] Restyle the tea master's own editing page in the profile's language, seven boards drawn on the canvas, forms stay as they are until then _(band: you-required)_ _(effort: deep)_ → Plan: [tea-master-editing-boards.md](todo/plans/tea-master-editing-boards.md)
+- [ ] Advise: Upcoming Sessions flips itself live when the events API returns a session, instead of the owner flipping adviseLive.ts _(band: agent-runnable)_ _(effort: quick)_
+- [ ] Advise: real photographs for the five slots (the conversation cover, design, sourcing, the two coming-soon panels) so the bare plates go _(band: you-required)_ _(effort: quick)_
+- [ ] Advise: switch on the portfolio (portfolioEnabled in AdvisePage.tsx) and flip projects and journeys live in adviseLive.ts once the ten case studies have photographs _(band: you-required)_ _(effort: moderate)_
 
 ## Prime-time audit — the ten that matter (2026-09-09)
 
@@ -21,6 +24,7 @@ Everything below the ten is in the report's "Later" bucket: false-success delete
 
 ## Untriaged
 
+- [ ] Worker type ratchet is red on main: its baseline pins line numbers in worker/src/index.ts and a merge after pull request 300 moved them, so every pull request since fails the checks lane at that step and the build, colour and worker-test steps behind it are skipped; re-baseline it, or key the baseline on something that survives a line shift _(band: agent-runnable)_ _(effort: quick)_
 - [x] **The `src/` unit suite runs in CI.** _(band: agent-runnable)_ `npm run test:src` runs vitest over `src/` (132 files; `*.behavior.test.ts` excluded because those need Playwright). Wired into the `checks` job in `.github/workflows/playwright.yml`.
 
 - [ ] A browser that once saw an empty rate list keeps it, and the Ship $/kg column then prints the yuan figure as dollars _(band: agent-runnable)_ _(effort: moderate)_
