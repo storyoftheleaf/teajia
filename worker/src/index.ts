@@ -20953,7 +20953,17 @@ async function fetchPublicProductsForAccount(
                  JOIN collection_publications cp ON cp.collection_id = c.id
                 WHERE ci.product_id = p.id
                   AND cp.target_type = 'shop'
-                  AND cp.unpublished_at IS NULL) AS is_featured
+                  AND cp.unpublished_at IS NULL) AS is_featured,
+              /* Where this tea sits in the shop-published collection that
+                 carries it, so a surface showing ONE featured tea can show the
+                 one Adrian put first rather than whichever the catalogue
+                 happens to return first. NULL when it is in none. */
+              (SELECT MIN(ci.position) FROM collection_items ci
+                 JOIN collections c ON c.id = ci.collection_id
+                 JOIN collection_publications cp ON cp.collection_id = c.id
+                WHERE ci.product_id = p.id
+                  AND cp.target_type = 'shop'
+                  AND cp.unpublished_at IS NULL) AS featured_position
        FROM products p
        LEFT JOIN tea_profiles tp ON tp.id = 'prof_' || p.id
        WHERE p.is_public = 1 AND p.shown_in_shop = 1 AND p.status = 'Active' AND p.account_id = ?1${productFilter}

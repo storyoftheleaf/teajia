@@ -783,6 +783,8 @@ export interface PublicProduct {
   isPersonal: boolean;
   canReorder: boolean;
   isFeatured?: boolean;
+  /** Place in the shop-published collection, lowest first. Undefined when not featured. */
+  featuredPosition?: number;
   isOneOfAKind: boolean;
   isCurated?: boolean;
   lore?: string;

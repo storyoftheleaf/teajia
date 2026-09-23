@@ -23,9 +23,9 @@ worker/src/eventArticleDraft.ts:49:TS18046
 worker/src/eventArticleDraft.ts:49:TS7006
 worker/src/eventDomain.ts:9:TS2322
 worker/src/index.ts:11664:TS2322
-worker/src/index.ts:22723:TS2322
-worker/src/index.ts:22767:TS2322
-worker/src/index.ts:23276:TS2352
+worker/src/index.ts:22733:TS2322
+worker/src/index.ts:22777:TS2322
+worker/src/index.ts:23286:TS2352
 worker/src/index.ts:3050:TS2345
 worker/src/index.ts:3085:TS2345
 worker/src/index.ts:6430:TS2352

@@ -81,3 +81,26 @@ test('home does not hijack a manual scroll', async ({ page }) => {
   expect(scrollY).toBeGreaterThan(100);
   expect(scrollY).toBeLessThan(700);
 });
+
+/**
+ * Several teas are featured at once, because Featured is the shop's own strip.
+ * The one on the table is whichever Adrian put FIRST in the shop-published
+ * collection, not whichever the catalogue happens to return first. This feeds
+ * two featured teas in the wrong catalogue order and expects the lower
+ * position to win; with the old "first featured" rule it would show the other.
+ */
+test('the tea on the table is the first in the collection, not the first in the catalogue', async ({ page }) => {
+  const other = { ...TEA, id: 'tea-0', slug: 'not-this-one', given_name: 'Not This One', product_name: 'Not This One', is_featured: 1, featured_position: 7 };
+  const chosen = { ...TEA, is_featured: 1, featured_position: 1 };
+  await page.route('**/api/products/public**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    // "Not This One" comes first in the catalogue, and must still lose.
+    body: JSON.stringify([other, chosen]),
+  }));
+  await page.route('**/api/story-content/**', route => route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
+  await page.route('**/api/rates**', route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
+  await page.goto('/');
+  await page.waitForLoadState('domcontentloaded');
+  await expect(page.getByRole('heading', { name: '1990 Bamboo Leaf Old Tea' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Not This One' })).toHaveCount(0);
+});
