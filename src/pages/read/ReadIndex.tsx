@@ -65,7 +65,6 @@ const INDEX_GROUPS: IndexGroup[] = [
     label: 'The interactive issue',
     glyph: '◇',
     items: [
-      { n: 'N°01', rubric: 'The Art of Tea', title: 'From Leaf to Liquor', dek: 'How a single leaf becomes the six colours of tea.',            href: '/read/leaf-to-liquor' },
       { n: 'N°05', rubric: 'Ritual',    title: 'Seven Steeps',           dek: 'The same leaves, brewed seven ways, scroll to pour.',          href: '/read/ritual' },
       { n: 'N°06', rubric: 'Geography', title: 'A Map of Mountains',     dek: 'An interactive atlas of China’s tea terroir.',             href: '/read/atlas' },
       { n: 'N°07', rubric: 'History',   title: 'Ten Thousand Mornings',  dek: 'Five thousand years of tea, along one moving line.',           href: '/read/history' },
