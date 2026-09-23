@@ -7,6 +7,7 @@ import { useLongPress } from '../hooks/useLongPress';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppStore, selectHasBundle, selectIsOwnerTier } from '../lib/store';
 import { useAuth } from '../hooks/useAuth';
+import { ADMIN_BAR_TABS, type AdminTab } from './adminBarTabs';
 
 
 
@@ -64,28 +65,8 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
     ?? activeAccount?.location_city?.slice(0, 2).toUpperCase()
     ?? null;
 
-  // Admin tab definitions (path-based routing)
-  type AdminTab = { id: string; label: string; path: string };
-  const [adminLeftTabs, adminRightTabs] = ((): [AdminTab[], AdminTab[]] => {
-    if (runsAShop) return [
-      [{ id: 'compass',   label: 'curate',   path: '/admin/compass' },
-       { id: 'inventory', label: 'stock',    path: '/admin/stock' }],
-      [{ id: 'activity',  label: 'sales',    path: '/admin/activity' },
-       { id: 'events',    label: 'events',   path: '/admin/events' }],
-    ];
-    if (isStaff) return [
-      [{ id: 'compass',  label: 'curate',   path: '/admin/compass' },
-       { id: 'activity', label: 'sales',    path: '/admin/activity' }],
-      [{ id: 'events',   label: 'events',   path: '/admin/events' },
-       { id: 'people',   label: 'people',   path: '/admin/people' }],
-    ];
-    return [
-      [{ id: 'compass', label: 'curate',  path: '/admin/compass' },
-       { id: 'samples', label: 'samples', path: '/admin/samples' }],
-      [{ id: 'capture', label: 'capture', path: '/admin/capture' },
-       { id: 'events',  label: 'events',  path: '/admin/events' }],
-    ];
-  })();
+  // Admin tab definitions (path-based routing), one set per role.
+  const [adminLeftTabs, adminRightTabs] = ADMIN_BAR_TABS[runsAShop ? 'shop' : isStaff ? 'staff' : 'member'];
 
   const renderAdminTabButton = (tab: AdminTab, index: number) => {
     const isActive = location.pathname === tab.path || location.pathname.startsWith(tab.path + '/');

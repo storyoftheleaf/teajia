@@ -297,7 +297,6 @@ const AppContent = () => {
   useTeaDiscoverySync(syncEnabled);
   useCompassSync(syncEnabled);
   useNotesSync(syncEnabled);
-  const showAdminBar = false;
 
   const queryClient = useQueryClient();
   const location = useLocation();
@@ -814,10 +813,13 @@ const AppContent = () => {
   };
 
 
-  // Allow any component to open the account panel via a custom event
+  // Allow any component to open the account panel via a custom event. A
+  // `detail.view` opens it on that view (the sample alcove asks for signup).
   useEffect(() => {
-    const handler = () => {
+    const handler = (event: Event) => {
       window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay'));
+      const view = (event as CustomEvent<{ view?: PanelView } | null>).detail?.view;
+      setAccountInitialView(view);
       setShowAccountModal(true);
     };
     window.addEventListener('open-account-panel', handler);
@@ -966,7 +968,7 @@ const AppContent = () => {
           where the design puts it. The bar is now what it was drawn as: the
           phone's navigation. */}
       {!isFocusedShareRoute && (
-        <LeftSidebar activeSection={activeSection} onNavigate={setActiveSection} onAccountClick={handleOpenAccount} onCartClick={handleOpenCart} onSearchClick={() => { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} cartItemCount={cart.length} topOffset={showAdminBar} />
+        <LeftSidebar activeSection={activeSection} onNavigate={setActiveSection} onAccountClick={handleOpenAccount} onCartClick={handleOpenCart} onSearchClick={() => { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} cartItemCount={cart.length} />
       )}
 
       {/* Main Content Area. Every route now clears the sidebar on the desk,
@@ -1174,7 +1176,6 @@ const AppContent = () => {
                   </ErrorBoundary>
                 } />
                 {/* The new home page was built at /v2 before it became home; the old address still lands. */}
-                <Route path="/v2" element={<Navigate to="/" replace />} />
                 <Route path="/store-launch-playbook" element={
                   <ErrorBoundary>
                     <Suspense fallback={<EmblemLoader />}>
@@ -1182,7 +1183,6 @@ const AppContent = () => {
                     </Suspense>
                   </ErrorBoundary>
                 } />
-                <Route path="/stores/playbook" element={<Navigate to="/store-launch-playbook" replace />} />
                 <Route path="/collection" element={
                   <ErrorBoundary>
                     <Suspense fallback={<EmblemLoader />}>
@@ -1244,7 +1244,6 @@ const AppContent = () => {
                 <Route path="/mcp" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><McpPage /></Suspense></ErrorBoundary>} />
                 {/* /compass is admin-only at /admin/compass, public route removed.
                     Members use /account/journal for tasting; Compass is sourcing + ledger only. */}
-                <Route path="/compass" element={<Navigate to="/account/journal" replace />} />
                 <Route path="/account" element={<AccountRouteBridge onOpen={() => handleOpenAccount()} />} />
                 <Route path="/account/journal" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><JournalPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/collection" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><CollectionPage /></Suspense></ErrorBoundary>} />
@@ -1260,10 +1259,14 @@ const AppContent = () => {
                 <Route path="/account/samples" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SampleHistoryPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/docs" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><DeveloperDocsPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/briefing" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><BriefingPage /></Suspense></ErrorBoundary>} />
-                <Route path="/design/tabs" element={<ErrorBoundary><Suspense fallback={null}><TabStyleDemo /></Suspense></ErrorBoundary>} />
-                <Route path="/design/palette-preview" element={<ErrorBoundary><Suspense fallback={null}><PalettePreviewPage /></Suspense></ErrorBoundary>} />
-                <Route path="/design/article-editor" element={<ErrorBoundary><Suspense fallback={null}><ArticleEditorHarness /></Suspense></ErrorBoundary>} />
-                <Route path="/design/system" element={<ErrorBoundary><Suspense fallback={null}><DesignSystemShowcase /></Suspense></ErrorBoundary>} />
+                {/* Design harnesses: reachable while developing (and by the browser
+                    suite, which runs the dev server), never on the live site. */}
+                {import.meta.env.DEV && (<>
+                  <Route path="/design/tabs" element={<ErrorBoundary><Suspense fallback={null}><TabStyleDemo /></Suspense></ErrorBoundary>} />
+                  <Route path="/design/palette-preview" element={<ErrorBoundary><Suspense fallback={null}><PalettePreviewPage /></Suspense></ErrorBoundary>} />
+                  <Route path="/design/article-editor" element={<ErrorBoundary><Suspense fallback={null}><ArticleEditorHarness /></Suspense></ErrorBoundary>} />
+                  <Route path="/design/system" element={<ErrorBoundary><Suspense fallback={null}><DesignSystemShowcase /></Suspense></ErrorBoundary>} />
+                </>)}
                 <Route path="/events" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventsPage /></Suspense></ErrorBoundary>} />
                 <Route path="/event/:slug" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventLanding /></Suspense></ErrorBoundary>} />
                 <Route path="/event/:slug/recap" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventRecapPage /></Suspense></ErrorBoundary>} />

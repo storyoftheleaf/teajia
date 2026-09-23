@@ -84,7 +84,10 @@ test.describe('the site panel', () => {
     const menu = page.getByTestId('site-menu');
     await expect(menu.getByText('Manage', { exact: true })).toBeVisible();
     const rows = await menu.getByRole('link').allInnerTexts();
-    expect(rows.map(r => r.toLowerCase())).toEqual(expect.arrayContaining(['dashboard', 'stock', 'events', 'members', 'settings']));
+    expect(rows.map(r => r.toLowerCase())).toEqual(expect.arrayContaining(['dashboard', 'stock', 'orders', 'people', 'events', 'members', 'settings']));
+    // One word per route: Orders and People are rooms; Business and its Activity child are gone.
+    expect(rows.map(r => r.toLowerCase())).not.toContain('business');
+    expect(rows.map(r => r.toLowerCase())).not.toContain('activity');
     await menu.getByRole('link', { name: 'Members' }).click();
     await expect(page).toHaveURL(/\/admin\/access$/);
   });

@@ -112,7 +112,6 @@ interface LeftSidebarProps {
   onCartClick?: () => void;
   onSearchClick?: () => void;
   cartItemCount?: number;
-  topOffset?: boolean;
 }
 
 export const LeftSidebar: React.FC<LeftSidebarProps> = ({

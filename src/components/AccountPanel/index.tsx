@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Sun, Moon, Calendar, Receipt, UserPlus, Package, Clock, CalendarCheck, AlertTriangle, Zap, UserCheck, Compass, LogIn, Users, Settings, Loader2 } from 'lucide-react';
+import { Sun, Moon, Loader2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -32,19 +32,8 @@ import { usePersonReadiness } from '../readiness/usePersonReadiness';
 
 interface AccountPanelProps {
   onClose: () => void;
-  onNavigateToStory?: (storyId: string) => void;
   initialView?: PanelView;
 }
-
-const CURRENCY_OPTIONS: { code: Currency; label: string; symbol: string }[] = [
-  { code: 'USD', label: 'US Dollar', symbol: '$' },
-  { code: 'NT', label: 'Taiwan Dollar', symbol: 'NT$' },
-  { code: 'Yuan', label: 'Chinese Yuan', symbol: 'CN¥' },
-  { code: 'JPY', label: 'Japanese Yen', symbol: 'JP¥' },
-  { code: 'MYR', label: 'Malaysian Ringgit', symbol: 'RM' },
-  { code: 'IDR', label: 'Indonesian Rupiah', symbol: 'Rp' },
-  { code: 'AUD', label: 'Australian Dollar', symbol: 'A$' },
-];
 
 function getLocationFromSlug(slug: string): string {
   if (slug.includes('bali') || slug.includes('indonesia') || slug.includes('ubud')) return 'Ubud, Bali';
@@ -72,17 +61,6 @@ function getRoleBadgeLabel(role: string | undefined, platformRole: string | null
   if (role === 'owner') return 'Owner';
   if (role === 'staff') return 'Staff';
   return null;
-}
-
-function formatRelativeDate(iso: string): string {
-  const d = new Date(iso);
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffDays = Math.floor(diffMs / 86400000);
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 const AVATAR_KEY = 'teajia_avatar_data_url';
@@ -128,163 +106,7 @@ const ZoneLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </span>
 );
 
-const CardSectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="px-4 py-2.5 border-b border-tea-border bg-tea-surface">
-    <span className="text-ui-11 uppercase tracking-[0.22em] text-tea-text-sec font-medium">{children}</span>
-  </div>
-);
-
-const Item: React.FC<{
-  icon: React.ReactNode;
-  label: string;
-  description: string;
-  onClick: () => void;
-  gold?: boolean;
-  pulse?: boolean;
-  locked?: boolean;
-}> = ({ icon, label, description, onClick, gold, pulse, locked }) => {
-  const [tapped, setTapped] = useState(false);
-
-  const handleClick = () => {
-    if (locked) {
-      setTapped(true);
-      setTimeout(() => setTapped(false), 350);
-    }
-    onClick();
-  };
-
-  return (
-    <button
-      onClick={handleClick}
-      className={`w-full flex items-center gap-3.5 px-4 py-3.5 text-left transition-colors group border-b border-tea-border last:border-0 ${
-        locked
-          ? tapped ? 'opacity-90 bg-tea-gold/10' : 'opacity-75'
-          : 'hover:bg-tea-accent-sub'
-      }`}
-      style={{ WebkitTapHighlightColor: 'transparent' }}
-    >
-      <div className={`shrink-0 ${gold ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text transition-colors'}`}>
-        {icon}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="font-display text-ui-15 text-tea-text leading-tight">{label}</div>
-        <div className="text-ui-12 text-tea-text-dim mt-1 leading-snug">{description}</div>
-      </div>
-      {pulse ? (
-        <span className="relative flex shrink-0">
-          <span className="absolute inline-flex h-2 w-2 rounded-full bg-tea-gold opacity-75 animate-ping" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-tea-gold" />
-        </span>
-      ) : locked ? (
-        <Icons.Lock className={`w-3.5 h-3.5 shrink-0 transition-colors ${tapped ? 'text-tea-gold' : 'text-tea-text-sec'}`} />
-      ) : (
-        <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text-sec group-hover:text-tea-gold transition-colors shrink-0" />
-      )}
-    </button>
-  );
-};
-
-
-const JourneyCard: React.FC<{
-  journey?: { hasLinkedCustomer: boolean; sessionsAttended: number; totalTeas: number; seals: { eventId: string; title: string; date: string; flyerUrl?: string | null }[]; milestones: string[]; teaTypeMap: Record<string, number>; samples?: unknown[]; compass?: unknown[] } | null;
-  onClick: () => void;
-}> = ({ journey, onClick }) => {
-  const topTypes = journey?.teaTypeMap
-    ? Object.entries(journey.teaTypeMap).sort(([, a], [, b]) => b - a).slice(0, 2).map(([t]) => t)
-    : [];
-
-  return (
-    <button
-      onClick={onClick}
-      className="w-full text-left group px-4 py-4 hover:bg-tea-surface/50 transition-colors border-b border-tea-border last:border-0"
-      style={{ WebkitTapHighlightColor: 'transparent' }}
-    >
-      <div className="flex items-start gap-3.5">
-        {/* Circular emblem, mirrors the avatar */}
-        <div className="w-10 h-10 rounded-full bg-tea-gold/10 border border-tea-border flex items-center justify-center shrink-0 group-hover:border-tea-gold/40 transition-colors">
-          <span className="font-serif text-ui-17 text-tea-gold/80 group-hover:text-tea-gold transition-colors leading-none">茶</span>
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2 mb-1">
-            <span className="text-ui-14 font-medium text-tea-text leading-tight">My Journey</span>
-            <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text-sec group-hover:text-tea-gold transition-colors shrink-0" />
-          </div>
-
-          {journey?.hasLinkedCustomer ? (
-            <>
-              {/* Stat line */}
-              <div className="text-ui-12 text-tea-text-sec leading-snug">
-                <span className="font-serif text-tea-text">{journey.sessionsAttended}</span>
-                {' '}gathering{journey.sessionsAttended !== 1 ? 's' : ''}
-                {journey.totalTeas > 0 && (
-                  <span className="text-tea-text-sec"> · {journey.totalTeas} teas</span>
-                )}
-                {(journey.samples?.length ?? 0) > 0 && (
-                  <span className="text-tea-text-sec"> · {journey.samples!.length} sampled</span>
-                )}
-                {(journey.compass?.length ?? 0) > 0 && (
-                  <span className="text-tea-text-sec"> · {journey.compass!.length} in collection</span>
-                )}
-                {topTypes.length > 0 && (
-                  <span className="text-tea-text-sec"> · {topTypes.join(', ')}</span>
-                )}
-              </div>
-
-              {/* Mini seals + milestones */}
-              {(journey.seals.length > 0 || journey.milestones.length > 0) && (
-                <div className="flex items-center gap-1.5 mt-2">
-                  {journey.seals.slice(-5).map(s => (
-                    <div key={s.eventId} className="w-5 h-5 rounded-full border border-tea-border overflow-hidden bg-tea-surface shrink-0">
-                      {s.flyerUrl
-                        ? <img src={s.flyerUrl} alt="" className="w-full h-full object-cover opacity-90" />
-                        : <span className="flex items-center justify-center w-full h-full text-ui-8 font-serif text-tea-gold/80">茶</span>}
-                    </div>
-                  ))}
-                  {journey.milestones.length > 0 && (
-                    <div className="flex items-center gap-1 ml-0.5">
-                      {journey.milestones.slice(-3).map(m => (
-                        <span key={m} className="text-ui-12 font-serif text-tea-gold leading-none">{m}</span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="text-ui-12 text-tea-text-sec leading-snug">
-              Sessions attended, teas experienced, your marks
-            </div>
-          )}
-        </div>
-      </div>
-    </button>
-  );
-};
-
-const QuickAction: React.FC<{
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  badge?: number;
-  gold?: boolean;
-}> = ({ icon, label, onClick, badge, gold }) => (
-  <button
-    onClick={onClick}
-    className="relative flex flex-col items-center gap-2 p-3.5 rounded-xl bg-tea-surface border border-tea-border hover:border-tea-gold/30 hover:bg-tea-elevated transition-colors"
-    style={{ WebkitTapHighlightColor: 'transparent' }}
-  >
-    {!!badge && (
-      <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 text-ui-10 cta-solid rounded-full flex items-center justify-center font-semibold tabular-nums">
-        {badge > 99 ? '99+' : badge}
-      </span>
-    )}
-    <div className={gold ? 'text-tea-gold' : 'text-tea-text-sec'}>{icon}</div>
-    <span className="text-ui-12 text-tea-text font-medium leading-tight text-center">{label}</span>
-  </button>
-);
-
-export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateToStory, initialView }) => {
+export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -433,20 +255,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
   // Cart "new" indicator: added within last 30 min
   const cartIsNew = cartLastAddedAt != null && (Date.now() - cartLastAddedAt) < 30 * 60 * 1000;
 
-  // Compass last result from localStorage
-  const compassProfile = useMemo(() => {
-    try {
-      const raw = localStorage.getItem('teajia_compass_profile') || localStorage.getItem('compass-profile');
-      if (!raw) return null;
-      const parsed = JSON.parse(raw);
-      // Accept { tags: string[] } or { result: string } or array
-      if (parsed?.tags?.length) return parsed.tags.slice(0, 2).join(' · ');
-      if (parsed?.result) return String(parsed.result).slice(0, 30);
-      if (Array.isArray(parsed) && parsed.length) return parsed.slice(0, 2).join(' · ');
-    } catch {}
-    return null;
-  }, []);
-
   // Tea Discovery, the threads that draw them, joined ("Stillness · Quality").
   const dispositionName = teaDiscoveryProfile
     ? profileThreads(teaDiscoveryProfile)
@@ -493,11 +301,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     setShowPassword(false); setCurrentPassword(''); setNewPassword('');
     setConfirmNewPassword(''); setEditName(''); setEditEmail(''); setEditUsername('');
     setPendingSignup(restorePendingSignup()); setVerificationCode(''); setIsEditingSignup(false);
-  };
-
-  const handleOpenCart = () => {
-    onClose();
-    setTimeout(() => window.dispatchEvent(new Event('openCart')), 50);
   };
 
   // ── Location switch ──────────────────────────────────────────────────────────
@@ -720,13 +523,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
   });
 
   const [eventListFilter, setEventListFilter] = useState<'upcoming' | 'open' | 'past'>('upcoming');
-
-  const { data: myJourney } = useQuery({
-    queryKey: ['me-journey'],
-    enabled: auth.isAuthenticated,
-    staleTime: 1000 * 60 * 10,
-    queryFn: () => api.me.journey(),
-  });
 
   // One read, two answers: what is still pending, and whether this shop has ever
   // taken an order at all. The second is a setup question and the first is a
