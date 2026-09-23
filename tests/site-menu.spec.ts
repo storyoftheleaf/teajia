@@ -58,7 +58,7 @@ test.describe('the site panel', () => {
     const menu = page.getByTestId('site-menu');
     await expect(menu).toBeVisible();
     await expect(menu.getByRole('button', { name: 'Search' })).toBeVisible();
-    await expect(menu.getByRole('link')).toHaveText(['Sessions', 'People', 'Places', 'Tea Wisdom']);
+    await expect(menu.getByRole('link')).toHaveText(['Sessions', 'People', 'Places', 'Tea Wisdom', 'About']);
     await expect(menu.getByText('Manage', { exact: true })).toHaveCount(0);
     // The panel sits above the bar, never over it.
     const menuBox = await menu.boundingBox();

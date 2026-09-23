@@ -133,6 +133,16 @@ export const SiteMenu: React.FC<SiteMenuProps> = ({ isOpen, onClose, onSearchCli
                   </span>
                 )}
               </button>
+              {/* About had no door but the footer, which the home page does not show. */}
+              <Link
+                to="/about"
+                onClick={onClose}
+                className={`${ROW_CLASS} ${isActive('/about') ? ROW_ACTIVE : ROW_IDLE}`}
+                style={isActive('/about') ? ACTIVE_GLOW : undefined}
+                aria-current={isActive('/about') ? 'page' : undefined}
+              >
+                About
+              </Link>
 
               {manageNav.hasManageRoom && (
                 <>
