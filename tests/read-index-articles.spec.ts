@@ -22,14 +22,15 @@ test('Read index lists live curated pieces without exposing drafts or queried ar
 
   await page.goto('/read');
 
-  // The four explicitly published pieces in the curated register.
-  for (const href of ['/read/ritual', '/read/atlas', '/read/tasting', '/read/porcelain-and-tea']) {
+  // The published pieces: the four the curated register marks live, and
+  // From Leaf to Liquor, the flagship that is public by construction
+  // (isUngatedReadPath) and so is listed for everyone.
+  for (const href of ['/read/leaf-to-liquor', '/read/ritual', '/read/atlas', '/read/tasting', '/read/porcelain-and-tea']) {
     await expect(page.locator(`a[href="${href}"]`).first()).toBeVisible();
   }
 
   // Draft curated pieces remain owner-only, and the retained article query is
   // not a second publication path into this deliberately curated index.
-  await expect(page.getByText('From Leaf to Liquor', { exact: true })).toHaveCount(0);
   await expect(page.getByText('The Rock Remembers', { exact: true })).toHaveCount(0);
   await expect(page.getByText('A Quiet Steep', { exact: true })).toHaveCount(0);
   await expect(page.getByText('The Water Matters', { exact: true })).toHaveCount(0);
