@@ -21,9 +21,9 @@ export default function AboutPage() {
         <p className="subtitle">Twenty years of tea, distilled into a single curated practice.</p>
       </header>
 
-      {/* Hero image — full-width editorial strip */}
+      {/* Hero image: full-width editorial strip */}
       <div className="aspect-[3/2] md:aspect-[16/7] bg-tea-elevated rounded-xl mb-12 md:mb-16 overflow-hidden border border-tea-border">
-        {/* Photograph slot: "TeajiA — the practice". Left as an empty frame on purpose.
+        {/* Photograph slot: "TeajiA, the practice". Left as an empty frame on purpose.
             Rendering an img with an empty src makes the browser refetch the
             whole page, so the image arrives with the photograph, not before. */}
       </div>
@@ -31,17 +31,17 @@ export default function AboutPage() {
       {/* What TeajiA is */}
       <section className="mb-16 md:mb-20 space-y-6">
         <p className="body-prose first-letter:font-display first-letter:text-[3em] first-letter:leading-[0.9] first-letter:float-left first-letter:mr-2 first-letter:mt-1 first-letter:text-tea-readgold">
-          TeajiA is a space for tea culture — the stories, the craft, the knowledge, and the people who carry it forward. It grew out of more than twenty years spent inside the world of Chinese tea: sourcing from farmers, learning from masters, and building relationships with the artisans who shape the vessels, the leaf, and the practice.
+          TeajiA is a space for tea culture: the stories, the craft, the knowledge, and the people who carry it forward. It grew out of more than twenty years spent inside the world of Chinese tea: sourcing from farmers, learning from masters, and building relationships with the artisans who shape the vessels, the leaf, and the practice.
         </p>
         <p className="body-light">
-          What lives here is the result of that accumulated experience — a magazine for long-form stories and photo essays, a curriculum built from real knowledge passed down through practice, a shop stocked only with teas and teaware we know deeply, and a design practice for creating tea spaces that serve the ritual.
+          What lives here is the result of that accumulated experience: a magazine for long-form stories and photo essays, a curriculum built from real knowledge passed down through practice, a shop stocked only with teas and teaware we know deeply, and a design practice for creating tea spaces that serve the ritual.
         </p>
         <p className="body-light">
-          The work is rooted in Taiwan and mainland China but draws from everywhere tea is taken seriously. Based between Bali and Santa Cruz, TeajiA brings together design, education, and commerce into a single place — not as separate categories, but as parts of the same conversation about how tea fits into a considered life.
+          The work is rooted in Taiwan and mainland China but draws from everywhere tea is taken seriously. Based between Bali and Santa Cruz, TeajiA brings together design, education, and commerce into a single place. Not as separate categories, but as parts of the same conversation about how tea fits into a considered life.
         </p>
       </section>
 
-      {/* Editorial image pair — sourcing / origin context */}
+      {/* Editorial image pair: sourcing / origin context */}
       <div className="mb-16 md:mb-20 grid grid-cols-2 gap-3 md:gap-4">
         <div className="aspect-[4/3] bg-tea-elevated rounded-xl overflow-hidden border border-tea-border">
           {/* Photograph slot: "Origin sourcing". Left as an empty frame on purpose.
@@ -93,7 +93,7 @@ export default function AboutPage() {
               Adrian's path into tea began in Taiwan in the early 2000s, studying under traditional masters who opened the door to a world most outsiders never see. Over two decades, that initial curiosity grew into a full practice: sourcing directly from farmers across Fujian, Yunnan, Wuyi, and Alishan; developing relationships with artisan potters and teaware makers; and building a deep understanding of the terroir, process, and history that gives each tea its character.
             </p>
             <p className="body-light">
-              His background in design and visual art shapes everything he creates — from the way tea is presented to the spaces where it is shared. The intersection of craft and aesthetics is central: a tea room, a curated collection, even a simple tasting session are all exercises in attention and intention.
+              His background in design and visual art shapes everything he creates, from the way tea is presented to the spaces where it is shared. The intersection of craft and aesthetics is central: a tea room, a curated collection, even a simple tasting session are all exercises in attention and intention.
             </p>
             <p className="body-light">
               Today the practice is based between Bali and the United States, with regular sourcing trips to Taiwan and mainland China. Whether designing a tea room for a hospitality client, curating a private collection, or leading a sourcing journey through origin regions, the approach is always the same: listen first, then create something that lasts.
@@ -113,9 +113,9 @@ export default function AboutPage() {
       <section className="mb-16 md:mb-20 border-t border-tea-border pt-10">
         <blockquote className="border-l-2 border-tea-gold pl-4 italic text-tea-text-sec">
           <p className="font-display text-ui-20 md:text-ui-26 leading-relaxed">
-            "Tea is not a product to be optimized. It is a relationship — between farmer, season, and the hands that prepare it."
+            "Tea is not a product to be optimized. It is a relationship between farmer, season, and the hands that prepare it."
           </p>
-          <footer className="label-caps mt-4 not-italic">Adrian — founder</footer>
+          <footer className="label-caps mt-4 not-italic">Adrian, founder</footer>
         </blockquote>
       </section>
 
@@ -127,23 +127,23 @@ export default function AboutPage() {
         </h2>
         <div className="space-y-4">
           <p className="body-light">
-            Everything here comes from direct experience — teas sourced in person, stories told by the people who live them, courses built from decades of study and practice. Nothing is aggregated or abstracted. If it is on the site, someone here has touched it, tasted it, or spent real time understanding it.
+            Everything here comes from direct experience: teas sourced in person, stories told by the people who live them, courses built from decades of study and practice. Nothing is aggregated or abstracted. If it is on the site, someone here has touched it, tasted it, or spent real time understanding it.
           </p>
           <p className="body-light">
-            The sourcing philosophy is simple: go to origin, taste widely, choose carefully. Every tea in the collection has been selected for its character, not just its category. We work directly with small producers — family farms in Wuyi, single-estate gardens in Alishan, artisan workshops in Jingdezhen — because the best teas come from people who care about what they make.
+            The sourcing philosophy is simple: go to origin, taste widely, choose carefully. Every tea in the collection has been selected for its character, not just its category. We work directly with small producers: family farms in Wuyi, single-estate gardens in Alishan, artisan workshops in Jingdezhen. The best teas come from people who care about what they make.
           </p>
           <p className="body-light">
-            The same rigor applies to teaware, to education, and to design work. Premium does not mean precious. It means considered — a respect for materials, process, and the accumulated knowledge of the people who came before.
+            The same rigor applies to teaware, to education, and to design work. Premium does not mean precious. It means considered: a respect for materials, process, and the accumulated knowledge of the people who came before.
           </p>
         </div>
       </section>
 
-      {/* What we do — pillars */}
+      {/* What we do: pillars */}
       <section className="mb-16 md:mb-20 grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
           <h3 className="h3 mb-2">Magazine</h3>
           <p className="body-light">
-            Long-form stories, photo essays, and profiles from inside tea culture. The people, the places, the craft — told with the depth they deserve.
+            Long-form stories, photo essays, and profiles from inside tea culture. The people, the places, the craft, told with the depth they deserve.
           </p>
         </div>
         <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
@@ -172,7 +172,7 @@ export default function AboutPage() {
           Explore the collection
         </h2>
         <p className="body-light max-w-md mx-auto mb-8">
-          Browse our teas and teaware — each one sourced directly and selected for quality, character, and story.
+          Browse our teas and teaware, each one sourced directly and selected for quality, character, and story.
         </p>
         <Link
           to="/shop"
@@ -186,7 +186,7 @@ export default function AboutPage() {
       {/* Studio link */}
       <section className="mb-16 md:mb-20 border-t border-tea-border pt-8">
         <p className="body-light mb-4">
-          TeajiA shares roots with a visual art practice — laser-cut work, oracle cards, and objects that come from the same quiet attention as the tea itself.
+          TeajiA shares roots with a visual art practice: laser-cut work, oracle cards, and objects that come from the same quiet attention as the tea itself.
         </p>
         <a
           href="https://adrianrasmussen.com"
