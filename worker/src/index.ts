@@ -2650,7 +2650,11 @@ const PUBLIC_FIELDS = [
   'id', 'slug', 'type', 'form', 'given_name', 'chinese_name', 'product_name', 'year',
   'origin_country', 'origin_region', 'retail_price_per_gram_usd',
   'fixed_retail_price_usd', 'stock_grams', 'description', 'tasting_notes',
-  'image_url', 'additional_images', 'status', 'is_personal', 'can_reorder', 'is_featured', 'is_curated',
+  // featured_position rides with is_featured: a surface showing ONE featured
+  // tea needs to know which is first, and the query answers it, but this list
+  // is what actually reaches the public. Adding the column without adding it
+  // here strips it silently, which is what happened on 2026-09-23.
+  'image_url', 'additional_images', 'status', 'is_personal', 'can_reorder', 'is_featured', 'featured_position', 'is_curated',
   'lore', 'show_wisdom', 'processing_notes', 'terroir', 'mood', 'experience',
   'material', 'capacity_ml', 'teaware_category', 'quantity_units', 'tasting', 'tasting_source',
   // What one pressed piece weighs. Public because the shop sells the piece:
