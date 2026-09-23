@@ -1,42 +1,37 @@
-# Handoff to fresh chat — conduct the prime-time fixes
+# Handoff to fresh chat: the navigation foundation, one word per route
 
-Open a new chat with this worktree as the working directory (`.claude/worktrees/prime-time-fixes`, branch `claude/prime-time-fixes`) and paste the block below. The copy button on the code fence grabs it cleanly.
+Open a new chat in the Teajia project and paste the block below. The copy button on the code fence grabs it cleanly.
 
 ```
-You are the conductor. Execute todo/plans/prime-time-fixes.md in this worktree: land the eight agent-runnable items from the prime-time audit on main, one commit each, using workers at the model tiers the plan names. You dispatch, review and land; workers never push to main.
+Execute the navigation foundation slice specified in todo/plans/nav-foundation.md. It is the third slice of Direction A from the 2026-09-22 navigation survey; the first two (the two-door bottom bar with the site panel, and Your Table as the person's room with one Manage door) are live on teajia.com.
 
-Before dispatching anything, read in this order:
-1. CLAUDE.md in this project (the money rules, the migration-page rule, the sandbox section).
-2. docs/AUDIT-2026-09.md, the report the plan executes.
-3. todo/plans/prime-time-fixes.md, the plan, including its 2026-09-09 audit deltas at the top.
-4. todo/plans/freight-default-lives-in-the-table.md, for item 1.
-5. The ten lines under "Prime-time audit" in TODO.md.
+Start with git pull origin main so you have the plan file and both shipped slices. Work in your own worktree on a branch; five or six sessions run on this repo at once.
 
-You do not need to re-survey the code. The audit of 2026-09-09 already read every money door, every route, every tool and every workflow, and every finding in the report was reproduced by a second agent. Each worker's first step is still to reproduce its own finding on this checkout before changing anything.
+Before touching code, read in this order:
+1. todo/plans/nav-foundation.md, the audit deltas at the top first.
+2. The "Desktop / mobile layout principles" section of CLAUDE.md, the two bullets dated 2026-09-22.
+3. src/components/manageNav.ts and src/components/navigationConnections.ts, the one list of Manage rooms and its gates.
+4. The survey page for the reasoning, sections "What is actually wrong" and "The shared foundation": https://claude.ai/artifact/VNLJtEDaYFRshPSgMeWk9P
 
-Run it as one Workflow: Chain A runs the four money items in sequence on Opus, each landed on main before the next starts, because they share files. Fan-out B runs the five separate-file items in parallel on Sonnet, each in an isolated worktree. Every item gets an Opus reviewer who reverts the fix and watches the new test go red before you land it. Item 6 waits for Adrian's answer; ask once, with the recommendation, and do not build it until he replies.
+You do not need to re-survey the navigation. Every nav surface, every Your Table tile, every Manage room, every public route and its inbound links were mapped on 2026-09-22 by four agents and the results are in the plan and on the survey page. Re-grep each dead file before deleting it, nothing more.
 
-Two items pause for Adrian: items 1 and 4 each carry a data migration. Publish the walkthrough page, send him the link, and do not push that migration until he has said go. Everything else lands without asking.
+Execute the plan in its four parts, in order: the renames with the one-word guard, the dead code, the routes with no door, the docs. One PR against main, conventional commit messages, no em-dashes anywhere. Where the plan says "default", take the default and name it in the closing report; ask Adrian once, at the end, only about the two routes the plan leaves to him.
 
-The sandbox database in this worktree is already a clean copy of live with migrations through 0016 applied, and worker dependencies are installed; run npm run sandbox to start it. One worker at a time against it. If it gets polluted, npm run sandbox:refresh.
-
-Success per item: the finding no longer reproduces, a test goes red without the fix, npm run test:worker and npm run lint and npm run lint:colors are green after rebasing onto current origin/main, the TODO line moves to todo/archive.md in the same commit, and the commit is on main. Send a clickable sandbox link (http://localhost:7777) for anything Adrian would want to see, with a screenshot.
+Verification is what the plan's last section says and nothing less. Run the browser specs on the managed mock server (plain npx playwright test, port 7777 free), never against a dev server that talks to the live API. Prove the one-word guard goes red before you trust it green. Before saying anything is live, load the live site and paste the check.
 
 Hard rails:
-- No popup questions. One recommendation, one chance to push back.
-- No em-dashes anywhere, including commit messages and tests.
-- No file paths or line numbers in prose to Adrian; identifiers go in code blocks.
-- No icons or emoji. Warm dark tones. The tea tokens only, never white, never gold.
-- Never call api.teajia.com or touch the live database.
-- Never git restore or git checkout a file in the working tree; save a copy and restore from it.
-- The nohup walk-away script is retired; do not propose it.
-- A migration that moves rows is shown to Adrian as a page before it pushes. No exceptions.
+- No popup questions, no em-dashes, no file paths in prose Adrian reads.
+- Never change a nav word beyond what the plan names without asking.
+- The Manage rooms live in manageNav.ts only; never add a second list.
+- Warm dark theme, no icons beside words in the rail or the column.
+- Do not touch worker/ in this slice; the worker type ratchet fails on moved lines.
+- Send a clickable dev-server URL and a screenshot of the open Manage column and the phone's site panel for an owner when ready to look at.
 
-When all eight agent-runnable items are on main, or when one is blocked on Adrian, stop and report: what landed, what is waiting on him and why, with the consequence of waiting. Do not start the "Later" bucket from the report.
+After the slice is merged and proven live, stop and report. Do not start the connections page or any other follow-up.
 ```
 
 ---
 
 ## Context for after (Adrian's reference only, not for the fresh chat)
 
-When the eight land, the money score moves from 3 to roughly 7 and tests-and-CI from 3 to 6. The two things still yours: photographs for 359 products (the shop grid and product page are graded 4 and 5 for that alone), and the vendor yuan backlog, which becomes safe to run once item 5 lands. The report's "Later" bucket is the next audit-shaped session, not this one.
+When this lands, Direction A is complete. What remains from the survey is one design call: the connections page, people and places on one screen, merging the spaces page and Find a Table. The plan for it is todo/plans/connections-page.md. Direction B's "Around you" band and Direction C's fifth word were not chosen and stay on the survey page as the record.
