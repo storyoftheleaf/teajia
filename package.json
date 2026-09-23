@@ -7,6 +7,7 @@
     "dev": "lsof -ti:7777 >/dev/null 2>&1 || (infisical export --env=dev --format=dotenv --path=/ > .env.local && vite)",
     "claude": "infisical run --env=dev --path=/ -- claude",
     "mcp:check": "infisical run --env=dev --path=/ -- node scripts/check-mcp-token.mjs",
+    "mcp:call": "infisical run --env=dev --path=/ -- node scripts/mcp-call.mjs",
     "dev:test": "VITE_API_URL=http://localhost:7777 vite",
     "sandbox": "concurrently -n api,site -c magenta,cyan \"npm --prefix worker run sandbox\" \"npm run sandbox:site\"",
     "sandbox:site": "VITE_API_URL=http://localhost:8787 vite --port 7777",
