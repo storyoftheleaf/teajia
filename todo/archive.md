@@ -2,6 +2,10 @@
 
 Finished work, moved here from TODO.md. Nothing is deleted; lineage is kept.
 
+## Tea names without their year (2026-09-24)
+
+- [x] Take the year out of the six stored tea names (1990 Bamboo Leaf Old Tea, 2004 Yiwu Raw Puerh, 1990 Ripe Puerh Brick, 80s Ginseng Puer, 1998 Small Tuo, 1993 Y562) so the admin matches the shop; the public site already hides it, this is a data migration and needs the before/after page first _(band: agent-runnable)_ _(effort: quick)_ Done 2026-09-24 in migration 0023, approved on the before/after page https://claude.ai/artifact/FFbq8fo78V4UidUK9isB9a.
+
 ## Navigation foundation (2026-09-23)
 
 - [x] Navigation foundation: one word per route, dead nav code out, doorless routes decided, SITE_MAP regenerated, done 2026-09-23 in PRs #309, #310 and #311. Orders and People are rooms (Business and Activity gone), Tasting Notes sits under Magazine, Capture and Tea Masters are one word everywhere; `src/components/manageNav.oneWord.test.ts` holds the rule for the Manage list and the phone admin bar. From Leaf to Liquor is listed on the Read index for everyone (drafts stay owner-only), /me is removed, /mcp is linked from About, /join from Sessions, the /design harnesses are dev-only. "samples" on the phone admin bar is not a clash: it opens Curate with the sample manager open. Plan: [nav-foundation.md](plans/archive/nav-foundation.md).
