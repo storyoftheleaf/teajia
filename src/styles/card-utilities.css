@@ -3913,6 +3913,13 @@ input[type="number"]::-webkit-outer-spin-button {
   .alcove-dock-cta { padding: 0 14px; gap: 2px; }
   .alcove-dock-cta-verb { font-size: 10px; letter-spacing: 0.1em; }
 }
+/* The order bar is fixed, and the site footer comes after the page that owns
+   it, so the bar sat over the footer's last row (copyright and admin) on every
+   tea page. While a bar is on the page, the footer ends above it. The footer's
+   padding is inline, hence the !important. */
+body:has(.commerce-dock) .site-footer {
+  padding-bottom: calc(clamp(28px, 4vw, 40px) + 96px) !important;
+}
 @media (min-width: 1024px) {
   .commerce-dock {
     /* Exactly where the navigation sits on every other width, and exactly the

@@ -61,7 +61,8 @@ test('home carries its three movements and the tea on the table', async ({ page 
   await expect(page.getByRole('link', { name: 'New here? Start here' })).toHaveAttribute('href', '/start');
   // The plates: the piece, the tea from the mocked catalogue with its price for 50 g, the consult.
   await expect(page.getByRole('heading', { name: 'Porcelain and Tea' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '1990 Bamboo Leaf Old Tea' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Bamboo Leaf Old Tea', exact: true })).toBeVisible();
+  // The year sits in the tea's own year slot, never in its name (splitNameYear).
   await expect(page.getByText('50 g ·')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Twenty years in tea culture.' })).toBeVisible();
   // The house: the name split into tea and jiā, three characters, three facets, the way to stay.
@@ -101,6 +102,6 @@ test('the tea on the table is the first in the collection, not the first in the 
   await page.route('**/api/rates**', route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
   await page.goto('/');
   await page.waitForLoadState('domcontentloaded');
-  await expect(page.getByRole('heading', { name: '1990 Bamboo Leaf Old Tea' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Bamboo Leaf Old Tea', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Not This One' })).toHaveCount(0);
 });

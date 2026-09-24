@@ -345,59 +345,18 @@ const SecondaryCover: React.FC<{ to: string; kicker: string; title: React.ReactN
 // soon, we have an image of what will be built, then 'coming soon', and in
 // the background the template that displays what we're building, but it
 // doesn't link in, so people don't get into the construction side." Three
-// panels, one photograph, one ghost sketch of the surface being built, one
-// line of real type. Never a link. ──────────────────────────────────────
-type GhostKind = 'playlists' | 'brew' | 'journeys';
-type SoonPanelSpec = { key: string; slot: string; placeholder: string; title: string; dek: string; ghost: GhostKind };
+// panels, one photograph and one line of real type. Never a link. The ghost
+// sketch of the surface being built was taken out 2026-09-24: under the
+// 2026-09-23 rule for empty plates, nothing is drawn where content is not. ──────────────────────────────────────
+type SoonPanelSpec = { key: string; slot: string; placeholder: string; title: string; dek: string };
 
 const SOON_PANELS: SoonPanelSpec[] = [
-  { key: 'playlists', slot: 'soon-playlists', placeholder: '/home/standin-consult.webp', title: 'Playlists', dek: 'Music for tea time, an hour at a time.', ghost: 'playlists' },
-  { key: 'brew-by-type', slot: 'soon-brew', placeholder: '/home/standin-tea.webp', title: 'Brewing by Tea Type', dek: "Green, white, oolong, black, pu'er, yellow.", ghost: 'brew' },
-  { key: 'journeys', slot: 'soon-journeys', placeholder: '/home/standin-piece.webp', title: 'Three Journeys', dek: 'Guided tastings, step by step, to shape your palate.', ghost: 'journeys' },
+  { key: 'playlists', slot: 'soon-playlists', placeholder: '/home/standin-consult.webp', title: 'Playlists', dek: 'Music for tea time, an hour at a time.' },
+  { key: 'brew-by-type', slot: 'soon-brew', placeholder: '/home/standin-tea.webp', title: 'Brewing by Tea Type', dek: "Green, white, oolong, black, pu'er, yellow." },
+  { key: 'journeys', slot: 'soon-journeys', placeholder: '/home/standin-piece.webp', title: 'Three Journeys', dek: 'Guided tastings, step by step, to shape your palate.' },
 ];
 
-const GHOST_LINE = 'rgb(var(--tj-read-gold-rgb) / 0.22)';
-
-const GhostTemplate: React.FC<{ kind: GhostKind }> = ({ kind }) => {
-  if (kind === 'playlists') {
-    return (
-      <div aria-hidden="true" style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: '38%', padding: '16px 18px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 9 }}>
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${GHOST_LINE}`, paddingBottom: 6 }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', border: `1px solid ${GHOST_LINE}` }} />
-            <span style={{ width: 26, height: 2, background: GHOST_LINE }} />
-          </div>
-        ))}
-      </div>
-    );
-  }
-  if (kind === 'brew') {
-    return (
-      <div aria-hidden="true" style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: '38%', padding: '16px 18px', display: 'grid', gridTemplateRows: 'auto 1fr 1fr', gap: 9 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
-          {[0, 1, 2].map((i) => <span key={i} style={{ height: 2, width: '55%', background: GHOST_LINE }} />)}
-        </div>
-        {[0, 1].map((r) => (
-          <div key={r} style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, borderTop: `1px solid ${GHOST_LINE}`, paddingTop: 7 }}>
-            {[0, 1, 2].map((c) => <span key={c} style={{ height: 2, width: '38%', background: GHOST_LINE }} />)}
-          </div>
-        ))}
-      </div>
-    );
-  }
-  return (
-    <div aria-hidden="true" style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: '38%', padding: '16px 18px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 13 }}>
-      {[0.7, 0.55, 0.4].map((w, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ width: 9, height: 9, border: `1px solid ${GHOST_LINE}` }} />
-          <span style={{ height: 2, width: `${w * 100}%`, background: GHOST_LINE }} />
-        </div>
-      ))}
-    </div>
-  );
-};
-
-const ComingSoonPanel: React.FC<Omit<SoonPanelSpec, 'key'>> = ({ slot, placeholder, title, dek, ghost }) => (
+const ComingSoonPanel: React.FC<Omit<SoonPanelSpec, 'key'>> = ({ slot, placeholder, title, dek }) => (
   <div
     aria-label={`${title}, coming soon`}
     style={{
@@ -417,7 +376,6 @@ const ComingSoonPanel: React.FC<Omit<SoonPanelSpec, 'key'>> = ({ slot, placehold
       />
     </div>
     <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'rgb(var(--tj-read-bg-rgb) / 0.78)' }} />
-    <GhostTemplate kind={ghost} />
     <div style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '16px 18px' }}>
       <div style={{ fontFamily: F.mono, fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase', color: C.gold, marginBottom: 6 }}>
         Coming soon
@@ -615,7 +573,6 @@ const CraftIndex: React.FC = () => {
                       key={panel.key}
                       slot={panel.slot}
                       placeholder={panel.placeholder}
-                      ghost={panel.ghost}
                       title={item?.title ?? panel.title}
                       dek={item?.dek ?? panel.dek}
                     />

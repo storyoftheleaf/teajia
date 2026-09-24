@@ -128,10 +128,14 @@ export const LearnHub: React.FC<LearnHubProps> = ({
         <PageHeader title="Craft" onCartClick={onCartClick} onAccountClick={onAccountClick} cartItemCount={cartItemCount} />
       )}
 
-      {/* Always reserve breadcrumb height to prevent layout shift */}
-      <div className={`${isKnownSubView ? 'mt-8' : 'mt-0'} min-h-[32px]`}>
-        {isKnownSubView && <Breadcrumb segments={breadcrumbSegments} />}
-      </div>
+      {/* Breadcrumb height is reserved on sub-views only. The index has no
+          breadcrumb, and reserving 32px there left a strip of lighter ground
+          above its header that Read and Advise do not have. */}
+      {isKnownSubView && (
+        <div className="mt-8 min-h-[32px]">
+          <Breadcrumb segments={breadcrumbSegments} />
+        </div>
+      )}
       <div
         className={`${isKnownSubView ? 'max-w-[1400px] mx-auto' : ''} transition-opacity ${reducedMotion ? '' : 'duration-300'} ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}
       >

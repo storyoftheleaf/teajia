@@ -226,7 +226,7 @@ export function TeaLedger({
 
                     <div className="min-w-0 flex-1 lg:flex-none lg:w-[300px]">
                       <div className="flex items-center gap-2">
-                        <h3 className="truncate font-display text-ui-17 font-medium leading-tight text-tea-text lg:text-ui-20">
+                        <h3 className="line-clamp-2 font-display text-ui-17 font-medium leading-tight text-tea-text lg:text-ui-20">
                           {item.name}
                         </h3>
                         {isTeajiaFav && <Icons.Seal className="w-2.5 h-2.5 shrink-0 text-tea-gold" />}

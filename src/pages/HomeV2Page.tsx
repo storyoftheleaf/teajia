@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { useShopPrice } from '../components/shop/shopPrice';
+import { quoteForDisplay } from '../lib/teaPricing';
 import { usePublicProducts } from '../hooks/usePublicProducts';
 import { useSectionReveal } from '../hooks/useSectionReveal';
 import { LogoText } from '../components/Logos/LogoText';
@@ -109,6 +110,17 @@ const HomeV2Page: React.FC = () => {
   // same key showed the tea only when another page had filled the cache first.
   const { data: products } = usePublicProducts();
   const tea = useMemo(() => pickTea(Array.isArray(products) ? products : []), [products]);
+  // The same quote the shop row and the product page read for 50 g, handling
+  // fee and whole-unit rounding included. Multiplying the price per gram by 50
+  // here printed $83 on the homepage for a tea the shop sold at $85.
+  const teaQuote = tea
+    ? quoteForDisplay(tea.pricePerGramUSD, 50, {
+        form: tea.form,
+        pieceWeightG: tea.pieceWeightG,
+        soldInWholeUnits: tea.soldInWholeUnits,
+        stockG: tea.stockGrams,
+      })
+    : null;
   const shopPrice = useShopPrice();
 
   // The piece's own cover portrait, the one Adrian drops onto the story page
@@ -205,9 +217,9 @@ const HomeV2Page: React.FC = () => {
         />
         <Plate
           to={tea ? `/shop/product/${tea.slug ?? tea.id}` : '/shop'}
-          title={tea ? tea.productName : 'On the shelf'}
+          title={tea ? (tea.givenName || tea.productName) : 'On the shelf'}
           body={tea ? teaLine(tea) : 'Twenty teas, chosen one lot at a time.'}
-          meta={tea ? <>50 g · <span className="text-tea-gold">{shopPrice.total(tea.pricePerGramUSD * 50)}</span></> : 'On the shelf'}
+          meta={teaQuote ? <>{teaQuote.grams} g · <span className="text-tea-gold">{shopPrice.total(teaQuote.totalUsd)}</span></> : 'On the shelf'}
           src={tea?.imageUrl || TEMPLATE.tea}
         />
         <Plate
@@ -254,20 +266,20 @@ const HomeV2Page: React.FC = () => {
                 </li>
               ))}
             </ul>
-            <p className={`${BODY} italic mt-12 tracking-[0.04em] text-tea-text-dim`}>
+            <p className={`${BODY} italic mt-12 tracking-[0.04em] text-tea-text-sec`}>
               Honor the past. Live in the present. Build for the future.
             </p>
           </div>
           <div className="mt-16 w-full max-w-[360px]">
-            <p className={`${BODY} italic tracking-[0.04em] text-tea-text-dim`}>stay connected</p>
+            <p className={`${BODY} italic tracking-[0.04em] text-tea-text-sec`}>stay connected</p>
             <p className={`${DISPLAY} italic mt-1 text-tea-text`}>it&apos;s nothing without you</p>
             <div className="mt-6">
               <EmailField />
             </div>
             <p className={`${META} mt-6 text-tea-text-sec`}>
-              <Link to="/signup" className="text-tea-gold/80 hover:text-tea-gold transition-colors duration-300">Create an account</Link>
+              <Link to="/signup" className="text-tea-text-sec hover:text-tea-text transition-colors duration-300">Create an account</Link>
               {' · '}
-              <Link to="/signin" className="text-tea-gold/80 hover:text-tea-gold transition-colors duration-300">Sign in</Link>
+              <Link to="/signin" className="text-tea-text-sec hover:text-tea-text transition-colors duration-300">Sign in</Link>
             </p>
           </div>
           {/* The footer is hidden on this page, so the way out is the panel's last line. */}
@@ -290,7 +302,7 @@ const HomeV2Page: React.FC = () => {
 /** The three facets of jiā, in Adrian's words (2026-09-22). Three characters, one size, one sound; the sound is said once in the line above them. */
 const FACETS = [
   { zi: '佳', title: 'Excellence', text: 'The commitment to doing everything we do, well.', enter: 'left' as const, delay: 260 },
-  { zi: '家', title: 'Home', text: 'The place we live physically and inside of ourself. Devoted to authenticity.', enter: 'fade' as const, delay: 0 },
+  { zi: '家', title: 'Home', text: 'The place we live physically and inside of ourselves. Devoted to authenticity.', enter: 'fade' as const, delay: 0 },
   { zi: '嘉', title: 'Celebration', text: 'The act of sharing, giving and receiving, in reverence.', enter: 'right' as const, delay: 420 },
 ];
 

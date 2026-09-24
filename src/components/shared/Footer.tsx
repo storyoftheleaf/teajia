@@ -71,6 +71,7 @@ function FooterLink({ label, to, href }: { label: string; to?: string; href?: st
 export default function Footer() {
   return (
     <footer
+      className="site-footer"
       style={{
         background: 'var(--tea-footer-band)',
         borderTop: `1px solid ${C.hair}`,

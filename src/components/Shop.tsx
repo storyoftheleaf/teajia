@@ -121,7 +121,13 @@ export const Shop: React.FC<ShopProps> = ({
   const [isAddingToCart, setIsAddingToCart] = useState<Record<string, boolean>>({});
   const [addedProductId, setAddedProductId] = useState<string | null>(null);
   const [storePickerOpen, setStorePickerOpen] = useState(false);
-  const scrollRef = useScrollRestoration('scroll-shop');
+  // The page scrolls on the window, not on a container. The list used to sit in
+  // an overflow-y-auto div that never actually scrolled (nothing capped its
+  // height), which made it the scrollport for the sticky filter band: the band
+  // then offset itself by the header's height INSIDE that div, never stuck,
+  // and sat permanently 50px down over the first type heading ("Red"), at
+  // every width. Restoring on the window is also the only mode that restored.
+  useScrollRestoration('scroll-shop', { useWindow: true });
 
   const shopStoreSlug = useAppStore(state => state.shopStoreSlug);
   const setShopStoreSlug = useAppStore(state => state.setShopStoreSlug);
@@ -553,7 +559,7 @@ export const Shop: React.FC<ShopProps> = ({
           mobile: bottom-[calc(56px+env(safe-area-inset-bottom,0px)+12px)]
           desktop: bottom-4 right-4
       */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto max-w-[1400px] mx-auto w-full">
+      <div className="flex-1 max-w-[1400px] mx-auto w-full">
         {isLoading && !isError && (
           (activeTab === 'tea' && teaInventory.length === 0) ||
           (activeTab === 'teaware' && teawareInventory.length === 0)

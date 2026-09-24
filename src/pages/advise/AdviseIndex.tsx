@@ -323,40 +323,14 @@ const AdviseSecondaryCover: React.FC<{
   );
 };
 
-// ── Coming soon strip. Same device Craft uses: a photograph, a ghost sketch
-// of the surface being built, one line of real type, never a link. ────────
-type AdviseGhostKind = 'projects' | 'journeys';
-const ADVISE_GHOST_LINE = 'rgb(var(--tj-read-gold-rgb) / 0.22)';
-
-const AdviseGhostTemplate: React.FC<{ kind: AdviseGhostKind }> = ({ kind }) => {
-  if (kind === 'projects') {
-    return (
-      <div aria-hidden="true" style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: '38%', padding: '16px 18px', display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, alignContent: 'center' }}>
-        {[0, 1, 2].map((i) => (
-          <span key={i} style={{ aspectRatio: '4/5', border: `1px solid ${ADVISE_GHOST_LINE}` }} />
-        ))}
-      </div>
-    );
-  }
-  return (
-    <div aria-hidden="true" style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: '38%', padding: '16px 18px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 13 }}>
-      {[0.7, 0.55, 0.4].map((w, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ width: 9, height: 9, border: `1px solid ${ADVISE_GHOST_LINE}` }} />
-          <span style={{ height: 2, width: `${w * 100}%`, background: ADVISE_GHOST_LINE }} />
-        </div>
-      ))}
-    </div>
-  );
-};
-
-const AdviseComingSoonPanel: React.FC<{ slot: string; title: string; dek: string; ghost: AdviseGhostKind }> = ({ slot, title, dek, ghost }) => (
+// ── Coming soon strip. Same device Craft uses: a photograph and one line of
+// real type, never a link. No ghost sketch: nothing is drawn where content is not. ────────
+const AdviseComingSoonPanel: React.FC<{ slot: string; title: string; dek: string }> = ({ slot, title, dek }) => (
   <div style={{ position: 'relative', minHeight: 150, border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.16)', overflow: 'hidden' }}>
     <div className="tj-advise-photo" style={{ position: 'absolute', inset: 0 }}>
       <EditablePhoto slot={slot} alt="" fill placeholderBg="var(--tj-read-bg)" />
     </div>
     <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'rgb(var(--tj-read-bg-rgb) / 0.78)' }} />
-    <AdviseGhostTemplate kind={ghost} />
     <div style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '16px 18px' }}>
       <div style={{ fontFamily: F.mono, fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase', color: C.gold, marginBottom: 6 }}>
         Coming soon
@@ -518,12 +492,12 @@ const AdviseIndex: React.FC = () => {
 
   const projectsLive = ADVISE_STATE.projects === 'live';
   const soonPanels = useMemo(() => {
-    const panels: { key: string; slot: string; title: string; dek: string; ghost: AdviseGhostKind }[] = [];
+    const panels: { key: string; slot: string; title: string; dek: string }[] = [];
     if (ADVISE_STATE.projects === 'soon') {
-      panels.push({ key: 'projects', slot: 'soon-projects', title: 'Selected Projects', dek: 'Intaaya Resort, a private tea room, an office.', ghost: 'projects' });
+      panels.push({ key: 'projects', slot: 'soon-projects', title: 'Selected Projects', dek: 'Intaaya Resort, a private tea room, an office.' });
     }
     if (ADVISE_STATE.journeys === 'soon') {
-      panels.push({ key: 'journeys', slot: 'soon-journeys', title: 'Sourcing Journeys', dek: 'Taiwan, Yunnan, Fujian.', ghost: 'journeys' });
+      panels.push({ key: 'journeys', slot: 'soon-journeys', title: 'Sourcing Journeys', dek: 'Taiwan, Yunnan, Fujian.' });
     }
     return panels;
   }, []);
@@ -649,7 +623,7 @@ const AdviseIndex: React.FC = () => {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {soonPanels.map((panel) => (
-                    <AdviseComingSoonPanel key={panel.key} slot={panel.slot} title={panel.title} dek={panel.dek} ghost={panel.ghost} />
+                    <AdviseComingSoonPanel key={panel.key} slot={panel.slot} title={panel.title} dek={panel.dek} />
                   ))}
                 </div>
               </div>

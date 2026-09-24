@@ -6,6 +6,7 @@
 import type { Account, PublicProduct, PublicProductType, InventoryItem } from '../types';
 import type { TeaEvent } from '../types/events';
 import { publicProductToInventoryItem } from './adapters';
+import { splitNameYear } from './teaNameYear';
 
 // In production, call the API on the app's own origin (relative paths) so it
 // rides the China-reachable hostname via the Pages Function proxy, see the
@@ -51,6 +52,19 @@ async function fetchJson<T>(path: string): Promise<T> {
  * Two mappings for one payload is one mapping too many.
  */
 export function normalizeProduct(p: any): PublicProduct {
+  // A tea's year lives in the vintage box, never in its name (splitNameYear).
+  // Teaware keeps its name as typed: it has no year box, and an antique's date
+  // is part of what the piece is.
+  const isTeaware = p.type === 'Teaware' || !!p.teaware_category;
+  const keep = (name: string) => ({ name, year: p.year == null ? '' : String(p.year) });
+  const product = isTeaware ? keep(p.product_name || '') : splitNameYear(p.product_name || '', p.year);
+  const given = isTeaware ? keep(p.given_name || '') : splitNameYear(p.given_name || '', product.year);
+  const liftedYear = given.year || product.year;
+  const year = p.year != null && p.year !== ''
+    ? p.year
+    : liftedYear
+      ? (/^\d{4}$/.test(liftedYear) ? Number(liftedYear) : liftedYear)
+      : p.year;
   return {
     id: p.id,
     // Undefined for rows created before the slug migration; links fall back
@@ -60,10 +74,10 @@ export function normalizeProduct(p: any): PublicProduct {
     form: p.form || undefined,
     pieceWeightG: p.piece_weight_g != null ? Number(p.piece_weight_g) : undefined,
     soldInWholeUnits: !!p.sold_in_whole_units,
-    givenName: p.given_name || '',
+    givenName: given.name,
     chineseName: p.chinese_name || '',
-    productName: p.product_name || '',
-    year: p.year,
+    productName: product.name,
+    year,
     originCountry: p.origin_country || '',
     originRegion: p.origin_region || '',
     pricePerGramUSD: Number(p.retail_price_per_gram_usd) || 0,
