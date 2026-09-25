@@ -182,7 +182,7 @@ export function TeaLedger({
                     }
                   }}
                 >
-                  <div className="flex items-center gap-5 py-3 md:py-4">
+                  <div className="flex items-start gap-5 py-3 md:py-4">
                     {/* The vintage on its liquor ground. A tea with no year
                         recorded still gets the ground, so the column never
                         collapses and the list never looks broken. Roughly half
@@ -194,39 +194,31 @@ export function TeaLedger({
                         so the block set the height of every row and read as a
                         box pinned to the margin. At 44 the text sets the row
                         and the block sits inside it. */}
-                    {/* For an owner the vintage block is also the way in to
-                        editing. It used to be a pencil in the row's right-hand
-                        cluster, which cost the tea's name about 28px on a
-                        phone and truncated names that had no other reason to
-                        truncate. The block is already 44px of dead surface
-                        sitting at the head of the row, so it does the job
-                        without spending any width at all. */}
-                    {isAdmin && onAdminEdit ? (
-                      <button
-                        type="button"
-                        style={{ backgroundColor: rowTones.markBg, color: rowTones.markFg }}
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[2px] font-display text-ui-16 font-medium tracking-[0.03em] tabular-nums transition-opacity hover:opacity-80"
-                        onClick={event => {
-                          event.stopPropagation();
-                          onAdminEdit(item.id);
-                        }}
-                        aria-label={`Edit ${item.name}`}
-                      >
-                        {item.year || null}
-                      </button>
-                    ) : (
-                      <div
-                        style={{ backgroundColor: rowTones.markBg, color: rowTones.markFg }}
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[2px] font-display text-ui-16 font-medium tracking-[0.03em] tabular-nums"
-                        aria-hidden="true"
-                      >
-                        {item.year || null}
-                      </div>
-                    )}
+                    {/* The whole vintage block saves the tea. Editing remains
+                        in the lower metadata line for owners, so the year and
+                        heart keep one clear action and the name keeps the
+                        width previously spent on the right-hand heart. */}
+                    <button
+                      type="button"
+                      style={{ backgroundColor: rowTones.markBg }}
+                      className={`tap-target flex min-h-11 w-11 shrink-0 flex-col items-center justify-center gap-0.5 rounded-[2px] border font-display text-ui-16 font-medium tracking-[0.03em] tabular-nums transition-colors ${isFavorite ? 'border-tea-gold text-tea-gold' : 'border-transparent text-tea-text-sec hover:text-tea-gold'}`}
+                      onClick={event => {
+                        event.stopPropagation();
+                        onToggleFavorite(item.id, event);
+                      }}
+                      onKeyDown={event => {
+                        if (event.key === 'Enter' || event.key === ' ') event.stopPropagation();
+                      }}
+                      aria-pressed={isFavorite}
+                      aria-label={isFavorite ? `Unlike ${item.name}` : `Like ${item.name}`}
+                    >
+                      <span>{item.year || '—'}</span>
+                      <Icons.Heart className={`h-3.5 w-3.5 ${isFavorite ? 'text-tea-gold' : 'text-tea-text-dim'}`} filled={isFavorite} aria-hidden="true" />
+                    </button>
 
                     <div className="min-w-0 flex-1 lg:flex-none lg:w-[300px]">
-                      <div className="flex items-center gap-2">
-                        <h3 className="line-clamp-2 font-display text-ui-17 font-medium leading-tight text-tea-text lg:text-ui-20">
+                      <div className="flex min-w-0 items-start gap-2">
+                        <h3 className="min-w-0 break-words whitespace-normal font-display text-ui-17 font-medium leading-tight text-tea-text lg:text-ui-20">
                           {item.name}
                         </h3>
                         {isTeajiaFav && <Icons.Seal className="w-2.5 h-2.5 shrink-0 text-tea-gold" />}
@@ -242,7 +234,8 @@ export function TeaLedger({
                           </span>
                         )}
                       </div>
-                      <div className="mt-1 truncate font-sans text-ui-11 tracking-[0.04em] text-tea-text-sec">
+                      <div className="mt-1 flex min-w-0 flex-wrap items-center gap-y-1 font-sans text-ui-11 tracking-[0.04em] text-tea-text-sec">
+                        <span className="min-w-0 break-words">
                         {showType && (
                           <>
                             <span className="uppercase">{item.type}</span>
@@ -262,6 +255,23 @@ export function TeaLedger({
                             <span className="text-tea-text-dim">{origin.far}</span>
                           </>
                         )}
+                        </span>
+                        {isAdmin && onAdminEdit && (
+                          <button
+                            type="button"
+                            className="tap-target ml-1 inline-flex shrink-0 items-center text-ui-10 text-tea-text-dim hover:text-tea-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
+                            onClick={event => {
+                              event.stopPropagation();
+                              onAdminEdit(item.id);
+                            }}
+                            onKeyDown={event => {
+                              if (event.key === 'Enter' || event.key === ' ') event.stopPropagation();
+                            }}
+                            aria-label={`Edit ${item.name}`}
+                          >
+                            Edit
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -273,9 +283,7 @@ export function TeaLedger({
 
                         The width the shop reclaimed goes to the curator's line
                         rather than to blank space. Desktop only: on a phone
-                        the row stays two lines. Clamped at two lines, which
-                        still fits inside the 52px vintage block, so the row
-                        height is unchanged and no sentence is cut mid-word. */}
+                        the row stays focused on the title and origin. */}
                     {lead && (
                       <p className="hidden min-w-0 flex-1 line-clamp-2 font-body text-ui-13 italic leading-relaxed text-tea-text-sec lg:block">
                         {lead}
@@ -306,22 +314,6 @@ export function TeaLedger({
                           </div>
                         )}
                       </div>
-                      <button
-                        type="button"
-                        onClick={event => onToggleFavorite(item.id, event)}
-                        aria-pressed={isFavorite}
-                        aria-label={isFavorite ? `Unlike ${item.name}` : `Like ${item.name}`}
-                        /* Out on the row's own right edge. It sat a full
-                           gutter in from it, so a column of hearts ran down
-                           the middle of the white space rather than down the
-                           margin, and the price column beside it lost the air
-                           that would have separated the two. The negative
-                           margin spends the row's padding rather than the
-                           tap target, which stays 44px. */
-                        className={`tap-target -mr-2 p-1 transition-colors ${isFavorite ? 'text-tea-text hover:text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}
-                      >
-                        <Icons.Heart className="w-4 h-4" filled={isFavorite} aria-hidden="true" />
-                      </button>
                     </div>
                   </div>
                 </div>

@@ -45,6 +45,7 @@ const NEVER_PERSIST = ['auth', 'session', 'me', 'magic', 'pay-access'];
 const NEVER_PERSIST_KEYS = [
   'customers', 'activity_logs', 'stock_ledger', 'tea-reference-issues',
   'profile-payment-order',
+  'dashboard-attention', 'dashboard-revenue', 'dashboard-rfm',
 ];
 
 const rootElement = document.getElementById('root');
