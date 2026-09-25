@@ -246,6 +246,9 @@ const HomeV2Page: React.FC = () => {
           <p className={`${BODY} italic tracking-[0.06em] text-tea-text-sec`}>
             <span className="not-italic font-semibold text-tea-gold">jiā</span> · one sound, three pillars…
           </p>
+          <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-5 max-w-[34ch] text-tea-text-sec`}>
+            The jiā in Teajia brings together three Chinese characters, each pronounced jiā.
+          </p>
           <div className="mt-12 sm:mt-14 w-full max-w-[980px]">
             <div className="grid grid-cols-1 gap-y-0 sm:grid-cols-3 sm:gap-x-6">
               {FACETS.map((c, i) => (
@@ -285,7 +288,7 @@ const HomeV2Page: React.FC = () => {
   );
 };
 
-/** The three facets of jiā, in Adrian's words (2026-09-22). Three characters, one size, one sound; the sound is said once in the line above them. */
+/** The three facets of jiā, in Adrian's words (2026-09-22), paired with their shared pronunciation. */
 const FACETS = [
   { zi: '佳', title: 'Excellence', text: 'The commitment to doing everything we do, well.', enter: 'left' as const, delay: 260 },
   { zi: '家', title: 'Home', text: 'The place we live physically and inside of ourselves. Devoted to authenticity.', enter: 'fade' as const, delay: 0 },
@@ -300,12 +303,16 @@ const Facet: React.FC<(typeof FACETS)[number] & { index: number }> = ({ zi, titl
       className={`grid grid-cols-[76px_minmax(0,1fr)] gap-x-5 items-center text-left py-8 border-t border-tea-border first:border-t-0 sm:border-0 sm:py-0 sm:flex sm:flex-col sm:items-center sm:text-center ${reveal.className}`}
       style={reveal.style ? { ...reveal.style, transitionDelay: `${delay}ms` } : undefined}
     >
-      <span
-        className="row-span-2 flex items-center justify-center leading-none text-tea-gold text-[64px] sm:text-[108px] lg:text-[clamp(88px,7.8vw,150px)]"
-        style={{ fontFamily: "'Ma Shan Zheng', cursive" }}
-      >
-        {zi}
-      </span>
+      <div className="row-span-2 flex flex-col items-center text-tea-gold">
+        <span
+          lang="zh"
+          className="leading-none text-[64px] sm:text-[108px] lg:text-[clamp(88px,7.8vw,150px)]"
+          style={{ fontFamily: "'Ma Shan Zheng', cursive" }}
+        >
+          {zi}
+        </span>
+        <span className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-2 italic`}>jiā</span>
+      </div>
       <h3 className={`${TYPOGRAPHY_CLASSES.h3} sm:mt-4 sm:text-ui-26 sm:leading-[1.1] lg:text-[clamp(26px,2.5vw,36px)] text-tea-text`}>{title}</h3>
       <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-1 sm:mt-2 max-w-[34ch] text-tea-text-sec`}>{text}</p>
     </div>
