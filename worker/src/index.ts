@@ -1524,6 +1524,33 @@ function cachedJson(data: unknown, maxAge: number, status = 200): Response {
   });
 }
 
+/**
+ * Serve a public GET from this data center's cache, building it only on a miss.
+ *
+ * cachedJson's Cache-Control is not enough on its own: Cloudflare does not cache
+ * what a Worker returns, so its s-maxage was a promise nothing kept. Every shop
+ * visit rebuilt the whole catalogue from D1: 150 KB and 4-13 ms of CPU per
+ * request, measured 2026-09-26, against the Free plan's 10 ms per-request limit,
+ * over which Cloudflare kills the request (error 1102). The key is the path
+ * alone, so a query string cannot force a rebuild; only 200s are stored.
+ * Cache-Control's max-age sets how long an entry lives. CORS is added by the
+ * router after this returns, so one entry serves every origin.
+ */
+async function edgeCached(request: Request, maxAge: number, build: () => Promise<Response>): Promise<Response> {
+  const cache = (globalThis as { caches?: { default?: Cache } }).caches?.default;
+  const url = new URL(request.url);
+  const key = new Request(url.origin + url.pathname, { method: 'GET' });
+  if (cache) {
+    const hit = await cache.match(key).catch(() => undefined);
+    if (hit) return hit;
+  }
+  const response = await build();
+  if (cache && response.status === 200) {
+    await cache.put(key, response.clone()).catch(() => undefined);
+  }
+  return response;
+}
+
 function swrJson(data: unknown, sMaxAge: number, swr: number, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
@@ -2676,9 +2703,9 @@ const PUBLIC_FIELDS = [
 
 // Legacy alias: resolves to Adrian's Bali store. New callers should use
 // /api/s/teajia-bali/products.
-const handleGetPublicProducts: Handler = async (_request, env) => {
-  const products = await fetchPublicProductsForAccount(env, BALI_ACCOUNT_ID);
-  return cachedJson(products, 60);
+const handleGetPublicProducts: Handler = async (request, env) => {
+  return edgeCached(request, 60, async () =>
+    cachedJson(await fetchPublicProductsForAccount(env, BALI_ACCOUNT_ID), 60));
 };
 
 // GET /api/products/public/:id — a single public product (PUBLIC_FIELDS only).
@@ -21002,11 +21029,12 @@ async function fetchPublicProductsForAccount(
 // Short 10s cache so admin tasting edits reflect quickly on the public page;
 // product data changes throughout the day and we don't want a 60s stale window
 // when the owner is actively curating.
-const handleGetPublicAccountProducts: Handler = async (_request, env, params) => {
-  const accountId = await getAccountIdBySlug(env, params.slug);
-  if (!accountId) return json({ error: 'Store not found' }, 404);
-  const products = await fetchPublicProductsForAccount(env, accountId);
-  return cachedJson(products, 10);
+const handleGetPublicAccountProducts: Handler = async (request, env, params) => {
+  return edgeCached(request, 10, async () => {
+    const accountId = await getAccountIdBySlug(env, params.slug);
+    if (!accountId) return json({ error: 'Store not found' }, 404);
+    return cachedJson(await fetchPublicProductsForAccount(env, accountId), 10);
+  });
 };
 
 // GET /api/s/:slug/events — PUBLIC active events for a store
