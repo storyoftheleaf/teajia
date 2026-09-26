@@ -1,6 +1,6 @@
 import { Fragment, type MouseEvent } from 'react';
 import { Leaf } from 'lucide-react';
-import { getTeaLedgerTones } from '../../designTokens';
+import { getTeaLedgerTones, TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { useTheme } from '../../context/ThemeContext';
 import type { InventoryItem } from '../../types';
 import { Icons } from '../Icons';
@@ -183,25 +183,11 @@ export function TeaLedger({
                   }}
                 >
                   <div className="flex items-start gap-5 py-3 md:py-4">
-                    {/* The vintage on its liquor ground. A tea with no year
-                        recorded still gets the ground, so the column never
-                        collapses and the list never looks broken. Roughly half
-                        the catalogue has no year, so the empty case is the
-                        common one, not the exception.
-
-                        Sized to the text beside it rather than above it: at
-                        52px it stood taller than the name and origin together,
-                        so the block set the height of every row and read as a
-                        box pinned to the margin. At 44 the text sets the row
-                        and the block sits inside it. */}
-                    {/* The whole vintage block saves the tea. Editing remains
-                        in the lower metadata line for owners, so the year and
-                        heart keep one clear action and the name keeps the
-                        width previously spent on the right-hand heart. */}
+                    {/* The year keeps its liquor-coloured square. The save label
+                        sits below it, with both sharing one button and tap area. */}
                     <button
                       type="button"
-                      style={{ backgroundColor: rowTones.markBg }}
-                      className={`tap-target flex min-h-11 w-11 shrink-0 flex-col items-center justify-center gap-0.5 rounded-[2px] border font-display text-ui-16 font-medium tracking-[0.03em] tabular-nums transition-colors ${isFavorite ? 'border-tea-gold text-tea-gold' : 'border-transparent text-tea-text-sec hover:text-tea-gold'}`}
+                      className={`group flex w-11 shrink-0 flex-col items-center gap-1.5 rounded-[2px] transition-colors focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-tea-gold ${isFavorite ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-gold'}`}
                       onClick={event => {
                         event.stopPropagation();
                         onToggleFavorite(item.id, event);
@@ -210,10 +196,17 @@ export function TeaLedger({
                         if (event.key === 'Enter' || event.key === ' ') event.stopPropagation();
                       }}
                       aria-pressed={isFavorite}
-                      aria-label={isFavorite ? `Unlike ${item.name}` : `Like ${item.name}`}
+                      aria-label={isFavorite ? `Unsave ${item.name}` : `Save ${item.name}`}
                     >
-                      <span>{item.year || '—'}</span>
-                      <Icons.Heart className={`h-3.5 w-3.5 ${isFavorite ? 'text-tea-gold' : 'text-tea-text-dim'}`} filled={isFavorite} aria-hidden="true" />
+                      <span
+                        style={{ backgroundColor: rowTones.markBg }}
+                        className={`flex h-11 w-11 items-center justify-center rounded-[2px] border font-display text-ui-16 font-medium tabular-nums transition-colors ${isFavorite ? 'border-tea-gold' : 'border-transparent group-hover:border-tea-gold'}`}
+                      >
+                        {item.year || '—'}
+                      </span>
+                      <span className={`${TYPOGRAPHY_CLASSES.label} normal-case tracking-[0.03em]`}>
+                        {isFavorite ? 'Saved' : 'Save'}
+                      </span>
                     </button>
 
                     <div className="min-w-0 flex-1 lg:flex-none lg:w-[300px]">
