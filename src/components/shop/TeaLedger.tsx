@@ -1,6 +1,6 @@
 import { Fragment, type MouseEvent } from 'react';
-import { Leaf } from 'lucide-react';
-import { getTeaLedgerTones, TYPOGRAPHY_CLASSES } from '../../designTokens';
+import { Bookmark, Leaf } from 'lucide-react';
+import { getTeaLedgerTones } from '../../designTokens';
 import { useTheme } from '../../context/ThemeContext';
 import type { InventoryItem } from '../../types';
 import { Icons } from '../Icons';
@@ -183,11 +183,12 @@ export function TeaLedger({
                   }}
                 >
                   <div className="flex items-start gap-5 py-3 md:py-4">
-                    {/* The year keeps its liquor-coloured square. The save label
-                        sits below it, with both sharing one button and tap area. */}
+                    {/* The bookmark occupies the square's corner so saving adds
+                        no height to the row. The whole square is the tap area. */}
                     <button
                       type="button"
-                      className={`group flex w-11 shrink-0 flex-col items-center gap-1.5 rounded-[2px] transition-colors focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-tea-gold ${isFavorite ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-gold'}`}
+                      style={{ backgroundColor: rowTones.markBg }}
+                      className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-[2px] border transition-colors focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-tea-gold ${isFavorite ? 'border-tea-gold text-tea-gold' : 'border-transparent text-tea-text-sec hover:border-tea-gold hover:text-tea-gold'}`}
                       onClick={event => {
                         event.stopPropagation();
                         onToggleFavorite(item.id, event);
@@ -197,16 +198,12 @@ export function TeaLedger({
                       }}
                       aria-pressed={isFavorite}
                       aria-label={isFavorite ? `Unsave ${item.name}` : `Save ${item.name}`}
+                      title={isFavorite ? 'Saved. Click to unsave' : 'Save tea'}
                     >
-                      <span
-                        style={{ backgroundColor: rowTones.markBg }}
-                        className={`flex h-11 w-11 items-center justify-center rounded-[2px] border font-display text-ui-16 font-medium tabular-nums transition-colors ${isFavorite ? 'border-tea-gold' : 'border-transparent group-hover:border-tea-gold'}`}
-                      >
+                      <span className="font-display text-ui-16 font-medium tabular-nums">
                         {item.year || '—'}
                       </span>
-                      <span className={`${TYPOGRAPHY_CLASSES.label} normal-case tracking-[0.03em]`}>
-                        {isFavorite ? 'Saved' : 'Save'}
-                      </span>
+                      <Bookmark className="absolute right-0.5 top-0 h-3 w-2.5" strokeWidth={1.5} fill={isFavorite ? 'currentColor' : 'none'} aria-hidden="true" />
                     </button>
 
                     <div className="min-w-0 flex-1 lg:flex-none lg:w-[300px]">
