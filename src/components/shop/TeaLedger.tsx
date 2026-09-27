@@ -1,6 +1,7 @@
-import { Fragment, type MouseEvent } from 'react';
+import { Fragment, useRef, useState, type MouseEvent } from 'react';
 import { Leaf } from 'lucide-react';
 import { TeaSaveTile } from './TeaSaveTile';
+import { TeaQuickAdd } from './TeaQuickAdd';
 import { getTeaLedgerTones } from '../../designTokens';
 import { useTheme } from '../../context/ThemeContext';
 import type { InventoryItem } from '../../types';
@@ -22,6 +23,7 @@ interface TeaLedgerProps {
   favoriteIds: ReadonlySet<string>;
   onToggleFavorite: (itemId: string, event: MouseEvent) => void;
   onOpenProduct: (item: InventoryItem) => void;
+  onAddToCart?: (item: InventoryItem, grams: number, totalUsd: number) => void;
   isAdmin?: boolean;
   onAdminEdit?: (itemId: string) => void;
 }
@@ -87,10 +89,17 @@ export function TeaLedger({
   favoriteIds,
   onToggleFavorite,
   onOpenProduct,
+  onAddToCart,
   isAdmin = false,
   onAdminEdit,
 }: TeaLedgerProps) {
   const { theme } = useTheme();
+  const [quickAddId, setQuickAddId] = useState<string | null>(null);
+  const addTrigger = useRef<HTMLButtonElement | null>(null);
+  const closeQuickAdd = () => {
+    setQuickAddId(null);
+    addTrigger.current?.focus();
+  };
 
   return (
     <div className="flex flex-col animate-[fadeIn_0.5s_ease-out]">
@@ -164,26 +173,28 @@ export function TeaLedger({
               return (
                 <div
                   key={item.id}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`View ${item.name}`}
                   style={{
                     backgroundImage: `linear-gradient(to right, ${rowTones.wash}, transparent 38%)`,
                   }}
-                  className="-mx-3 px-3 md:-mx-4 md:px-4 border-b border-tea-border transition-colors cursor-pointer hover:bg-tea-text/5 focus:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/30"
-                  onClick={() => onOpenProduct(item)}
+                  className="-mx-3 px-3 md:-mx-4 md:px-4 border-b border-tea-border"
                   /* The ground and the rule reach back across the shop's
                      gutter, so the row is a field the content sits inside
                      rather than a band that begins where the block begins.
                      Same on both sides, so nothing lands on a rule's end. */
-                  onKeyDown={event => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault();
-                      onOpenProduct(item);
-                    }
-                  }}
                 >
-                  <div className="flex items-start gap-2.5 py-3 md:py-4">
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`View ${item.name}`}
+                    className="flex items-start gap-2.5 py-3 md:py-4 transition-colors cursor-pointer hover:bg-tea-text/5 focus:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/30"
+                    onClick={() => onOpenProduct(item)}
+                    onKeyDown={event => {
+                      if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+                        event.preventDefault();
+                        onOpenProduct(item);
+                      }
+                    }}
+                  >
                     <TeaSaveTile
                       year={item.year}
                       name={item.name}
@@ -282,9 +293,26 @@ export function TeaLedger({
                         >
                           {formatPrice(priceAtWeight)}
                         </div>
-                        <div className="num pt-[3px] text-ui-10 tabular-nums text-tea-text-dim">
-                          {displayGrams}g
-                        </div>
+                        {onAddToCart && stockG > 0 && pricePerGram > 0 ? (
+                          <button
+                            type="button"
+                            className="tea-ledger-add tap-target"
+                            aria-label={`Choose amount of ${item.name}`}
+                            aria-expanded={quickAddId === item.id}
+                            aria-controls={`tea-quick-add-${item.id}`}
+                            onClick={event => {
+                              event.stopPropagation();
+                              addTrigger.current = event.currentTarget;
+                              setQuickAddId(current => current === item.id ? null : item.id);
+                            }}
+                            onKeyDown={event => event.stopPropagation()}
+                          >
+                            <span className="num text-ui-10 tabular-nums text-tea-text-dim">{displayGrams}g</span>
+                            <span className="tea-ledger-add-label text-ui-11"><span aria-hidden="true">+</span> Add</span>
+                          </button>
+                        ) : (
+                          <div className="num pt-[3px] text-ui-10 tabular-nums text-tea-text-dim">{displayGrams}g</div>
+                        )}
                         {stockNote && (
                           <div className="mt-0.5 text-ui-9 uppercase tracking-[0.1em] text-tea-gold-lt">
                             {stockNote}
@@ -293,6 +321,20 @@ export function TeaLedger({
                       </div>
                     </div>
                   </div>
+                  {quickAddId === item.id && onAddToCart && (
+                    <div id={`tea-quick-add-${item.id}`} onClick={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()}>
+                      <TeaQuickAdd
+                        item={item}
+                        initialGrams={displayGrams}
+                        formatPrice={formatPrice}
+                        onClose={closeQuickAdd}
+                        onAdd={(tea, grams, totalUsd) => {
+                          onAddToCart(tea, grams, totalUsd);
+                          closeQuickAdd();
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })}
