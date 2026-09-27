@@ -555,6 +555,8 @@ export interface CartItem {
    * when a quantity changes without reaching back into the catalogue.
    */
   wholePieceGrams?: number;
+  /** Smallest sealed unit. Cart edits must keep whole multiples of it. */
+  unitGrams?: number;
   /**
    * The tea's type (Sheng, Red, White...), carried so the order panel can wash
    * each line in the colour that tea brews, the same ground the shop ledger

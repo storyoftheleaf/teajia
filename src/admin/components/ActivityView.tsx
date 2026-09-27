@@ -415,7 +415,7 @@ function InquiriesView({ accountId, accountReady }: { accountId: string | null; 
                 {inq.items.map((item, i) => (
                   <div key={i} className="flex justify-between text-xs">
                     <span className="text-tea-text">{item.name}</span>
-                    <span className="text-tea-text-sec num">{item.quantityGrams ?? item.qty ?? ''}g</span>
+                    <span className="text-tea-text-sec num">{item.packs && item.packs > 1 ? `${item.packs} × ` : ''}{item.packGrams ?? item.quantityGrams ?? item.qty ?? ''}{item.category === 'ware' ? ' pcs' : ' g'}</span>
                   </div>
                 ))}
                 {inq.total_usd != null && (

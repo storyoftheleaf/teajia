@@ -32,6 +32,8 @@ type PublicProps = {
   whatsappNumber?: string;
   contactEmail?: string;
   canBePaid?: boolean;
+  checkoutState?: 'loading' | 'error' | 'ready';
+  onRetryStore?: () => void;
 };
 
 type CartPanelProps = { isOpen: boolean; onClose: () => void } & (AdminProps | PublicProps);
@@ -196,6 +198,8 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
                 whatsappNumber={props.whatsappNumber}
                 contactEmail={props.contactEmail}
                 canBePaid={props.canBePaid}
+                checkoutState={props.checkoutState}
+                onRetryStore={props.onRetryStore}
                 onClose={onClose}
               />
             </div>

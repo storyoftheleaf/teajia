@@ -1,0 +1,278 @@
+import { expect, test, type Page, type Route } from '@playwright/test';
+
+const CART_ITEM = {
+  id: 'checkout-tea', name: 'Moonlight White', variant: '', category: 'tea',
+  storeSlug: 'teajia-bali', storeName: 'Teajia Bali', quantityGrams: 50,
+  packGrams: 25, packs: 2, lineKey: 'checkout-tea:25', pricePerGram: 0.15, totalPrice: 16,
+};
+const PRODUCT = {
+  id: 'checkout-tea', type: 'White', product_name: 'Moonlight White', year: '2024',
+  origin_country: 'China', origin_region: 'Fujian', retail_price_per_gram_usd: 0.15,
+  stock_grams: 500, status: 'Active', description: 'Soft florals.',
+};
+type SubmittedRequest = {
+  tracking_token: string; ref_number: string; source: string; customer_location: string;
+  customer_contact: string; items_json: string;
+  total_estimate_usd: number; currency: string;
+};
+async function json(route: Route, body: unknown, status = 200) {
+  await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
+}
+
+async function prepare(page: Page, options: { canBePaid?: boolean; whatsapp?: boolean; failFirst?: boolean; allowPopup?: boolean; light?: boolean; emptyCart?: boolean } = {}) {
+  const requests: SubmittedRequest[] = [];
+  await page.addInitScript(({ item, allowPopup, light, emptyCart }) => {
+    // Seed once per test context; a reload must exercise the app's saved state.
+    if (!localStorage.getItem('checkout-fixture-seeded')) {
+      localStorage.setItem('teajia-storage', JSON.stringify({ version: 5, state: { publicCart: emptyCart ? [] : [item], currency: 'IDR', shopStoreSlug: 'teajia-bali' } }));
+      localStorage.setItem('checkout-fixture-seeded', 'true');
+    }
+    if (light) localStorage.setItem('teajia_theme', 'light');
+    (window as any).__checkoutPopupCalls = 0;
+    const open = window.open.bind(window);
+    window.open = (...args: Parameters<typeof window.open>) => { (window as any).__checkoutPopupCalls++; return allowPopup ? open(...args) : null; };
+  }, { item: CART_ITEM, allowPopup: !!options.allowPopup, light: !!options.light, emptyCart: !!options.emptyCart });
+  // The popup is real, but its destination never reaches WhatsApp or sends a message.
+  await page.context().route('https://wa.me/**', route => route.fulfill({ status: 200, contentType: 'text/html', body: '<p>WhatsApp handoff captured by local test.</p>' }));
+  await page.route('**/api/**', async route => {
+    const { pathname } = new URL(route.request().url());
+    if (pathname === '/api/inquiries' && route.request().method() === 'POST') {
+      const body = route.request().postDataJSON() as SubmittedRequest;
+      requests.push(body);
+      if (options.failFirst && requests.length === 1) return json(route, { error: 'Could not save your request. Please retry.' }, 503);
+      return json(route, { success: true, id: 'request-1', tracking_token: body.tracking_token, ref_number: body.ref_number, source: body.source, email_sent: false });
+    }
+    if (pathname === '/api/s/teajia-bali') return json(route, {
+      id: 'bali-account', slug: 'teajia-bali', name: 'Teajia Bali', public_enabled: true,
+      can_be_paid: options.canBePaid ?? true, whatsapp_number: options.whatsapp === false ? '' : '6281234567890', contact_email: 'shop@example.com',
+    });
+    if (pathname === '/api/products/public' || pathname === '/api/s/teajia-bali/products') return json(route, [PRODUCT]);
+    if (pathname === '/api/rates') return json(route, [{ currency: 'USD', rate_to_usd: 1 }, { currency: 'IDR', rate_to_usd: 16000 }]);
+    if (pathname.includes('/api/auth/')) return json(route, { error: 'Unauthorized' }, 401);
+    if (pathname === '/api/network/stores') return json(route, { stores: [] });
+    return json(route, []);
+  });
+  return requests;
+}
+
+async function openCart(page: Page) {
+  await page.locator('button[aria-label="Open shopping cart"]:visible, button[aria-label="Cart"]:visible, button[aria-label^="Cart,"]:visible').first().click();
+  await expect(page.getByRole('button', { name: 'Close cart', exact: true })).toBeVisible();
+}
+
+async function beginOrder(page: Page, chooseEmail = true) {
+  await page.goto('/shop', { waitUntil: 'domcontentloaded' });
+  await openCart(page);
+  if (chooseEmail) await page.getByRole('radio', { name: 'Email reply', exact: true }).check();
+  await page.getByLabel('Your name', { exact: true }).fill('Guest Customer');
+  await page.getByLabel('Your email address', { exact: true }).fill('guest@example.com');
+}
+
+async function savedCart(page: Page) {
+  return page.evaluate(() => JSON.parse(localStorage.getItem('teajia-storage')!).state.publicCart);
+}
+
+test.describe('guest public checkout', () => {
+  test('adds from the catalogue into an empty basket and submits the same pack and price', async ({ page }, testInfo) => {
+    const requests = await prepare(page, { emptyCart: true });
+    await page.goto('/shop', { waitUntil: 'domcontentloaded' });
+    const add = page.getByRole('button', { name: /^Add one \d+g pack of Moonlight White,/ });
+    await expect(add).toBeVisible();
+    await expect(add).toHaveAttribute('aria-label', 'Add one 50g pack of Moonlight White, IDR 160k');
+    const advertised = (await add.getAttribute('aria-label'))!.match(/^Add one (\d+)g pack of Moonlight White, (.+)$/)!;
+    expect(await savedCart(page)).toEqual([]);
+    await add.scrollIntoViewIfNeeded();
+    await expect.poll(() => add.evaluate(element => {
+      let opacity = 1;
+      for (let node: Element | null = element; node; node = node.parentElement) opacity *= Number(getComputedStyle(node).opacity);
+      return opacity;
+    })).toBeGreaterThan(0.99);
+    await page.screenshot({ path: testInfo.outputPath('catalogue-quick-add-viewport.png'), animations: 'disabled' });
+    await add.click();
+    // Add stays in the catalogue and carries the full pack quote, including handling.
+    await expect(page).toHaveURL(/\/shop$/);
+    await expect.poll(() => savedCart(page)).toHaveLength(1);
+    const [item] = await savedCart(page);
+    expect(item).toMatchObject({ id: PRODUCT.id, packGrams: Number(advertised[1]), packs: 1, quantityGrams: Number(advertised[1]) });
+    expect(item.totalPrice).toBe(10); // 50g of leaf at $0.15/g plus handling, rounded as quoted.
+    await openCart(page);
+    await expect(page.locator('.cart-toast')).toHaveCount(0);
+    await expect(page.getByRole('combobox', { name: 'Currency', exact: true })).toHaveValue('IDR');
+    await expect(page.locator('#checkout-form')).toContainText(advertised[2]);
+    await expect(page.getByRole('button', { name: 'Close cart', exact: true })).toBeInViewport({ ratio: 1 });
+    await expect.poll(() => page.getByRole('button', { name: 'Close cart', exact: true }).evaluate(element => {
+      let opacity = 1;
+      for (let node: Element | null = element; node; node = node.parentElement) opacity *= Number(getComputedStyle(node).opacity);
+      return opacity;
+    })).toBeGreaterThan(0.99);
+    await page.screenshot({ path: testInfo.outputPath('catalogue-checkout-top-viewport.png'), animations: 'disabled' });
+    await page.getByRole('radio', { name: 'Email reply', exact: true }).check();
+    await page.getByLabel('Your name', { exact: true }).fill('Catalogue Customer');
+    await page.getByLabel('Your email address', { exact: true }).fill('guest@example.com');
+    await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
+    await page.getByLabel('Your email address', { exact: true }).scrollIntoViewIfNeeded();
+    await page.screenshot({ path: testInfo.outputPath('catalogue-email-form-viewport.png'), animations: 'disabled' });
+    await page.getByRole('button', { name: 'Send order request', exact: true }).click();
+    await expect(page.getByRole('region', { name: 'Order request confirmation' })).toBeVisible();
+    expect(requests).toHaveLength(1);
+    expect(requests[0].source).toBe('website');
+    expect(requests[0].currency).toBe('IDR');
+    expect(requests[0].total_estimate_usd).toBe(item.totalPrice);
+    expect(JSON.parse(requests[0].items_json)[0]).toMatchObject({ id: item.id, packGrams: item.packGrams, packs: 1, totalPrice: item.totalPrice });
+    await expect.poll(() => savedCart(page)).toEqual([]);
+  });
+
+  test('orders in Bali on the website without opening WhatsApp or an email app', async ({ page }, testInfo) => {
+    const requests = await prepare(page);
+    await beginOrder(page);
+    await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
+    await page.screenshot({ path: testInfo.outputPath('checkout-form.png'), fullPage: true });
+    await page.getByRole('button', { name: 'Send order request', exact: true }).click();
+    await expect(page.getByRole('region', { name: 'Order request confirmation' })).toBeVisible();
+    await expect(page.getByText('Your request is saved with Teajia Bali.', { exact: true })).toBeInViewport({ ratio: 1 });
+    await page.screenshot({ path: testInfo.outputPath('checkout-receipt.png'), fullPage: true });
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({ source: 'website', customer_location: 'Ubud, Bali, Indonesia', customer_contact: 'guest@example.com' });
+    expect(JSON.parse(requests[0].items_json)[0]).toMatchObject({ packGrams: 25, packs: 2 });
+    expect(await page.evaluate(() => (window as any).__checkoutPopupCalls)).toBe(0);
+    await expect(page.getByRole('link', { name: /View order status/ })).toHaveAttribute('href', `/order/${requests[0].tracking_token}`);
+    await expect(page.getByText('A confirmation email could not be confirmed.', { exact: false })).toBeVisible();
+    await expect.poll(() => savedCart(page)).toEqual([]);
+  });
+
+  test('accepts a pickup request without making the customer invent a shipping location', async ({ page }, testInfo) => {
+    const requests = await prepare(page, { whatsapp: false, light: true });
+    await beginOrder(page, false);
+    await expect(page.getByRole('radio', { name: 'Email reply', exact: true })).toBeChecked();
+    await page.getByLabel('Delivery', { exact: true }).selectOption('bali-pickup');
+    await expect(page.getByLabel('Your area in Bali', { exact: true })).toHaveCount(0);
+    await expect(page.getByRole('radio', { name: 'WhatsApp', exact: true })).toHaveCount(0);
+    await page.screenshot({ path: testInfo.outputPath('checkout-light-form.png'), fullPage: true });
+    await page.getByRole('button', { name: 'Send order request', exact: true }).click();
+    await expect(page.getByRole('region', { name: 'Order request confirmation' })).toBeVisible();
+    expect(requests[0].customer_location).toBe('Pickup requested in Bali, Indonesia');
+  });
+
+  test('saves a WhatsApp request before handing its basket and private link to the popup', async ({ page }) => {
+    const requests = await prepare(page, { allowPopup: true });
+    await page.goto('/shop', { waitUntil: 'domcontentloaded' });
+    await openCart(page);
+    await expect(page.getByRole('radio', { name: 'WhatsApp', exact: true })).toBeChecked();
+    await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
+    await page.getByLabel('Your name', { exact: true }).fill('Guest Customer');
+    await page.getByLabel('Your WhatsApp number', { exact: true }).fill('+6281234567890');
+    const popupOpened = page.context().waitForEvent('page');
+    await page.getByRole('button', { name: 'Continue to WhatsApp', exact: true }).click();
+    const popup = await popupOpened;
+    await popup.waitForURL('https://wa.me/**');
+    expect(requests).toHaveLength(1);
+    expect(requests[0].source).toBe('whatsapp');
+    const destination = new URL(popup.url());
+    expect(destination.pathname).toBe('/6281234567890');
+    const message = destination.searchParams.get('text')!;
+    expect(message).toContain('Moonlight White: 2 × 25g');
+    expect(message).toContain(`Your private order link: ${new URL(page.url()).origin}/order/${requests[0].tracking_token}`);
+    expect(message).toContain('Delivery and the final total will be confirmed by message.');
+    await expect(page.getByText('Your request is saved with Teajia Bali.', { exact: true })).toBeInViewport({ ratio: 1 });
+    await expect(page.getByText('In WhatsApp, press Send to start the conversation.', { exact: false })).toBeVisible();
+    await expect.poll(() => savedCart(page)).toEqual([]);
+    await popup.close();
+  });
+
+  test('keeps a blocked WhatsApp request unsaved until the customer submits through Email reply', async ({ page }) => {
+    const requests = await prepare(page);
+    await page.goto('/shop', { waitUntil: 'domcontentloaded' });
+    await openCart(page);
+    await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
+    await page.getByLabel('Your name', { exact: true }).fill('Guest Customer');
+    await page.getByLabel('Your WhatsApp number', { exact: true }).fill('+6281234567890');
+    await page.getByRole('button', { name: 'Continue to WhatsApp', exact: true }).click();
+    await expect(page.getByRole('alert')).toContainText('WhatsApp could not open');
+    expect(requests).toHaveLength(0);
+    expect(await savedCart(page)).toHaveLength(1);
+    await page.getByRole('radio', { name: 'Email reply', exact: true }).check();
+    await page.getByLabel('Your email address', { exact: true }).fill('guest@example.com');
+    expect(requests).toHaveLength(0);
+    await page.getByRole('button', { name: 'Send order request', exact: true }).click();
+    await expect(page.getByRole('region', { name: 'Order request confirmation' })).toBeVisible();
+    expect(requests).toHaveLength(1);
+    expect(requests[0].source).toBe('website');
+    expect(await page.evaluate(() => (window as any).__checkoutPopupCalls)).toBe(1);
+  });
+
+  test('requires a country internationally and keeps the postcode optional', async ({ page }) => {
+    const requests = await prepare(page);
+    await beginOrder(page);
+    await page.getByLabel('Delivery', { exact: true }).selectOption('international');
+    await page.getByLabel('Town or city', { exact: true }).fill('Melbourne');
+    await page.getByRole('button', { name: 'Send order request', exact: true }).click();
+    await expect(page.getByText('Enter the destination country.', { exact: true })).toBeVisible();
+    expect(requests).toHaveLength(0);
+    await page.getByLabel('Country', { exact: true }).fill('Australia');
+    await page.getByRole('button', { name: 'Send order request', exact: true }).click();
+    await expect(page.getByRole('region', { name: 'Order request confirmation' })).toBeVisible();
+    expect(requests[0].customer_location).toBe('Melbourne, Australia');
+  });
+
+  test('quotes another Indonesian city without asking for a country', async ({ page }) => {
+    const requests = await prepare(page);
+    await beginOrder(page);
+    await page.getByLabel('Delivery', { exact: true }).selectOption('indonesia');
+    await page.getByLabel('Town or city', { exact: true }).fill('Jakarta');
+    await page.getByLabel('Postcode (optional)', { exact: true }).fill('12345');
+    await expect(page.getByLabel('Country', { exact: true })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Send order request', exact: true }).click();
+    await expect(page.getByRole('region', { name: 'Order request confirmation' })).toBeVisible();
+    expect(requests[0].customer_location).toBe('Jakarta 12345, Indonesia');
+  });
+
+  test('keeps the basket after a failed save and reuses its private token after reload', async ({ page }) => {
+    const requests = await prepare(page, { failFirst: true });
+    await beginOrder(page);
+    await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
+    await page.getByRole('button', { name: 'Send order request', exact: true }).click();
+    await expect(page.getByRole('alert')).toContainText('Could not save your request');
+    expect(await savedCart(page)).toHaveLength(1);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await openCart(page);
+    await page.getByRole('radio', { name: 'Email reply', exact: true }).check();
+    await expect(page.getByLabel('Your email address', { exact: true })).toHaveValue('guest@example.com');
+    await page.getByRole('button', { name: 'Send order request', exact: true }).click();
+    await expect(page.getByRole('region', { name: 'Order request confirmation' })).toBeVisible();
+    expect(requests).toHaveLength(2);
+    expect(requests[1].tracking_token).toBe(requests[0].tracking_token);
+    expect(requests[1].ref_number).toBe(requests[0].ref_number);
+    await expect.poll(() => savedCart(page)).toEqual([]);
+  });
+
+  test('retains the receipt link after closing, reopening, and reloading an empty cart', async ({ page }) => {
+    const requests = await prepare(page);
+    await beginOrder(page);
+    await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
+    await page.getByRole('button', { name: 'Send order request', exact: true }).click();
+    await expect(page.getByRole('region', { name: 'Order request confirmation' })).toBeVisible();
+    await page.getByRole('button', { name: 'Continue browsing', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Close cart' })).toHaveCount(0);
+    await openCart(page);
+    const recent = page.getByRole('region', { name: 'Recent requests' });
+    await expect(recent.getByRole('link', { name: requests[0].ref_number })).toHaveAttribute('href', `/order/${requests[0].tracking_token}`);
+    await expect(page.getByText('Your basket is empty.', { exact: true })).toBeVisible();
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await openCart(page);
+    await expect(recent.getByRole('link', { name: requests[0].ref_number })).toHaveAttribute('href', `/order/${requests[0].tracking_token}`);
+    expect(await savedCart(page)).toEqual([]);
+    const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('teajia_recent_order_requests_v1')!));
+    expect(Object.keys(stored[0]).sort()).toEqual(['createdAt', 'reference', 'storeSlug', 'trackingToken']);
+    expect(requests).toHaveLength(1);
+  });
+
+  test('disables submission when the shop explicitly cannot receive payment', async ({ page }) => {
+    const requests = await prepare(page, { canBePaid: false });
+    await beginOrder(page);
+    await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
+    await expect(page.getByText('This store cannot take orders at the moment. Please try again later.', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Send order request', exact: true })).toBeDisabled();
+    expect(requests).toHaveLength(0);
+    expect(await savedCart(page)).toHaveLength(1);
+  });
+});

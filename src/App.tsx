@@ -324,13 +324,17 @@ const AppContent = () => {
     contactStoreSlug,
   });
 
-  const { data: activeStore } = useQuery<Account>({
+  const { data: activeStore, isPending: checkoutStorePending, isError: checkoutStoreError, refetch: retryCheckoutStore } = useQuery<Account>({
     queryKey: ['storefront', 'store', contactStoreSlug],
     queryFn: () => fetchStore(contactStoreSlug as string),
     enabled: shouldFetchStore,
     staleTime: 1000 * 60 * 5,
   });
   const checkoutContactStore = activeStore?.slug === contactStoreSlug ? activeStore : undefined;
+
+  useEffect(() => {
+    if (isCommerceRoute) useAppStore.getState().initializeShopCurrency(browsingStoreSlug);
+  }, [isCommerceRoute, browsingStoreSlug]);
 
   const [magazineDefaultTab, setMagazineDefaultTab] = useState<'articles' | 'visual' | 'tea-inspire'>('articles');
 
@@ -438,6 +442,9 @@ const AppContent = () => {
   // UI Feedback State
   const [toast, setToast] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
   const [cartToast, setCartToast] = useState<{ itemName: string; detail?: string; tone?: CartToastTone; cartCount: number } | null>(null);
+  useEffect(() => {
+    if (isCartOpen) setCartToast(null);
+  }, [isCartOpen]);
   const [flyAnimation, setFlyAnimation] = useState<{ x: number; y: number; image?: string } | null>(null);
 
   // Listen for cart open event from Account section
@@ -557,6 +564,9 @@ const AppContent = () => {
          cart prices it the same way. */
       wholePieceGrams: item.category === 'tea'
         ? (sellUnitOf(item.form, item.pieceWeightG, item.soldInWholeUnits) ?? wholePieceOf(item.form, item.pieceWeightG))?.grams
+        : undefined,
+      unitGrams: item.category === 'tea'
+        ? sellUnitOf(item.form, item.pieceWeightG, item.soldInWholeUnits)?.grams
         : undefined,
       type: item.type,
       image: item.image,
@@ -1376,7 +1386,7 @@ const AppContent = () => {
       {/* Preload indicator moved to Reader's ImagePreloaderProvider scope */}
 
       {/* The add-to-cart confirmation band */}
-      <CartToast
+      {!isCartOpen && <CartToast
         itemName={cartToast?.itemName ?? ''}
         detail={cartToast?.detail}
         tone={cartToast?.tone}
@@ -1384,7 +1394,7 @@ const AppContent = () => {
         isVisible={!!cartToast}
         onViewCart={handleViewCartFromToast}
         onDismiss={dismissCartToast}
-      />
+      />}
 
       {/* Walk-through companion, follows the owner across pages while they
           run and test a flow from the guide. Renders nothing unless active. */}
@@ -1435,6 +1445,8 @@ const AppContent = () => {
          whatsappNumber={checkoutContactStore?.whatsapp_number}
          contactEmail={checkoutContactStore?.contact_email}
          canBePaid={checkoutContactStore?.can_be_paid}
+         checkoutState={checkoutStorePending ? 'loading' : checkoutStoreError || !checkoutContactStore ? 'error' : 'ready'}
+         onRetryStore={() => { void retryCheckoutStore(); }}
       />
     </div>
   );

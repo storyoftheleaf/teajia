@@ -236,6 +236,8 @@ export interface InquiryItem {
   category?: string;
   storeSlug?: string;
   quantityGrams?: number;
+  packGrams?: number;
+  packs?: number;
   qty?: number;
   pricePerGram?: number;
   totalPrice?: number;
@@ -2935,8 +2937,8 @@ export const api = {
       items_json: string;
       total_estimate_usd: number;
       currency: string;
-      source: 'whatsapp' | 'email' | 'copy';
-    }): Promise<{ id: string; ref_number: string; tracking_token: string; source: string; success: true; idempotent?: true }> => {
+      source: 'whatsapp' | 'email' | 'copy' | 'website';
+    }): Promise<{ id: string; ref_number: string; tracking_token: string; source: string; success: true; idempotent?: true; email_sent?: boolean }> => {
       const res = await fetchWithTimeout(`${API_URL}/api/inquiries`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

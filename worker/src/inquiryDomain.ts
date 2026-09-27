@@ -1,4 +1,49 @@
+import { quoteGrams, sellUnitOf, wholePieceOf } from '../../src/lib/teaPricing';
+
 const TRACKING_TOKEN_PATTERN = /^[A-Za-z0-9_-]{32,128}$/;
+
+export function inquiryEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+export function inquiryPhone(value: unknown): string | null {
+  if (typeof value !== 'string' || !/^[+\d\s().-]+$/.test(value.trim())) return null;
+  return value.replace(/\D/g, '').length >= 7 ? value.trim() : null;
+}
+
+export function inquiryPacking(item: Record<string, any>): { packGrams: number; packs: number } | null {
+  const packGrams = item.packGrams ?? item.quantityGrams ?? item.qty;
+  const packs = item.packs ?? 1;
+  if (!Number.isInteger(packGrams) || packGrams <= 0 || packGrams > 9999
+    || !Number.isInteger(packs) || packs < 1 || packs > 99
+    || (item.quantityGrams != null && packGrams * packs !== item.quantityGrams)) return null;
+  return { packGrams, packs };
+}
+
+export function inquiryPackingLabel(item: Record<string, any>): string {
+  const packing = inquiryPacking(item);
+  if (!packing) return '';
+  const amount = item.category === 'ware' ? `${packing.packGrams} pcs` : `${packing.packGrams} g`;
+  return packing.packs > 1 ? `${packing.packs} × ${amount}` : amount;
+}
+
+/** Use the shop's current catalogue and its shared pack arithmetic, never a client price. */
+export function quoteInquiryLine(item: Record<string, any>, product: Record<string, any>): number {
+  const packing = inquiryPacking(item);
+  if (!packing) throw new Error('Invalid pack quantity');
+  const isWare = product.type === 'Teaware';
+  const rawPrice = isWare
+    ? (product.fixed_retail_price_usd ?? product.retail_price_per_gram_usd)
+    : product.retail_price_per_gram_usd;
+  if (rawPrice == null) throw new Error('Product price is unavailable');
+  const price = Number(rawPrice);
+  if (!Number.isFinite(price) || price < 0) throw new Error('Product price is unavailable');
+  if (isWare) return price * packing.packGrams * packing.packs;
+  const unit = sellUnitOf(product.form ?? undefined, product.piece_weight_g ?? undefined, Boolean(product.sold_in_whole_units));
+  if (unit && packing.packGrams % unit.grams !== 0) throw new Error('This tea must be ordered in whole units');
+  const whole = unit ?? wholePieceOf(product.form ?? undefined, product.piece_weight_g ?? undefined);
+  return Math.ceil(quoteGrams(price, packing.packGrams, { wholePieceGrams: whole?.grams }).totalUsd) * packing.packs;
+}
 
 /**
  * Caps on what an unauthenticated caller may file.
@@ -112,6 +157,7 @@ export function normalizeCartInquiry(body: Record<string, unknown>): CartInquiry
       return { ok: false, error: 'Every item must be a valid cart line' };
     }
     const line = item as Record<string, unknown>;
+    if (!inquiryPacking(line)) return { ok: false, error: 'Every item must have valid pack quantities' };
     if (typeof line.name !== 'string' || !line.name.trim()
       || (line.category !== 'tea' && line.category !== 'ware')
       || typeof line.quantityGrams !== 'number' || !Number.isFinite(line.quantityGrams) || line.quantityGrams <= 0

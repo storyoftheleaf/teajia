@@ -1,6 +1,7 @@
 import { Fragment, type MouseEvent } from 'react';
 import { Leaf } from 'lucide-react';
-import { getTeaLedgerTones } from '../../designTokens';
+import { getTeaLedgerTones, TYPOGRAPHY_CLASSES } from '../../designTokens';
+import { teaPurchaseQuote } from '../../lib/shopPurchase';
 import { useTheme } from '../../context/ThemeContext';
 import type { InventoryItem } from '../../types';
 import { Icons } from '../Icons';
@@ -20,6 +21,7 @@ interface TeaLedgerProps {
   favoriteIds: ReadonlySet<string>;
   onToggleFavorite: (itemId: string, event: MouseEvent) => void;
   onOpenProduct: (item: InventoryItem) => void;
+  onAddToCart?: (item: InventoryItem, grams: number, total: number) => void;
   isAdmin?: boolean;
   onAdminEdit?: (itemId: string) => void;
 }
@@ -85,6 +87,7 @@ export function TeaLedger({
   favoriteIds,
   onToggleFavorite,
   onOpenProduct,
+  onAddToCart,
   isAdmin = false,
   onAdminEdit,
 }: TeaLedgerProps) {
@@ -121,8 +124,7 @@ export function TeaLedger({
             {group.items.map(item => {
               const isTeajiaFav = !!item.isFeatured;
               const isFavorite = favoriteIds.has(item.id);
-              const pricePerGram = parseFloat(item.price_per_gram || '0') || 0;
-              const priceAtWeight = Math.round(pricePerGram * priceWeight * 100) / 100;
+              const purchase = teaPurchaseQuote(item, priceWeight);
               const showType = activeType !== 'All' || specialFilter !== 'None';
               const rowTones = showType ? getTeaLedgerTones(item.type, theme) : tones;
 
@@ -160,7 +162,7 @@ export function TeaLedger({
                      rather than a band that begins where the block begins.
                      Same on both sides, so nothing lands on a rule's end. */
                   onKeyDown={event => {
-                    if (event.key === 'Enter' || event.key === ' ') {
+                    if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
                       event.preventDefault();
                       onOpenProduct(item);
                     }
@@ -276,11 +278,24 @@ export function TeaLedger({
                           as figures. */}
                       <div className="min-w-[52px] whitespace-nowrap text-right">
                         <div className="num border-b border-tea-border pb-[3px] text-ui-16 font-medium tabular-nums text-tea-text">
-                          {formatPrice(priceAtWeight)}
+                          {purchase ? formatPrice(purchase.totalUsd) : '\u2014'}
                         </div>
                         <div className="num pt-[3px] text-ui-10 tabular-nums text-tea-text-dim">
-                          {priceWeight}g
+                          {purchase ? `${purchase.grams}g pack` : 'Unavailable'}
                         </div>
+                        {onAddToCart && purchase && (
+                          <button
+                            type="button"
+                            onClick={event => {
+                              event.stopPropagation();
+                              onAddToCart(item, purchase.grams, purchase.totalUsd);
+                            }}
+                            aria-label={`Add one ${purchase.grams}g pack of ${item.name}, ${formatPrice(purchase.totalUsd)}`}
+                            className={`${TYPOGRAPHY_CLASSES.link} tap-target mt-1 min-h-[44px] rounded border border-tea-border bg-tea-surface px-3 text-tea-text transition-colors hover:border-tea-gold hover:bg-tea-accent-sub`}
+                          >
+                            Add
+                          </button>
+                        )}
                         {stockNote && (
                           <div className="mt-0.5 text-ui-9 uppercase tracking-[0.1em] text-tea-gold-lt">
                             {stockNote}
@@ -289,7 +304,7 @@ export function TeaLedger({
                       </div>
                       <button
                         type="button"
-                        onClick={event => onToggleFavorite(item.id, event)}
+                        onClick={event => { event.stopPropagation(); onToggleFavorite(item.id, event); }}
                         aria-pressed={isFavorite}
                         aria-label={isFavorite ? `Unlike ${item.name}` : `Like ${item.name}`}
                         /* Out on the row's own right edge. It sat a full

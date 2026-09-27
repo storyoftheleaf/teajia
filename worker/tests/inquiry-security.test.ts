@@ -433,6 +433,6 @@ describe('a request for a tea the shop does not list', () => {
     }));
 
     expect(response.status).toBe(201);
-    expect(String(db.inquiries[0].message)).toHaveLength(2000);
+    expect(String(db.inquiries[0].message)).toBe(`Shipping location: Denpasar, Indonesia\n\n${'y'.repeat(2000)}`);
   });
 });

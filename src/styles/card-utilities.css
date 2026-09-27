@@ -4507,7 +4507,7 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] {
    Bronze is spent here at 0.06 on one hairline, which is inside the rule that
    bronze marks an edge and is never a wash.
 */
-   `tea-surface` at full strength was still too far from the page. It is only
+/* `tea-surface` at full strength was still too far from the page. It is only
    1.21:1, but a fill that close to the threshold reads bigger than it measures
    once a shadow darkens the page immediately around it, and the seam is what
    the eye picks up. So the fill is mixed 45 percent of the way back toward the
@@ -4607,3 +4607,57 @@ body.cart-panel-open .commerce-dock {
   border-top: 0;
   background: rgb(var(--tea-gold-rgb) / 0.06);
 }
+/* Guest checkout: shared controls stay readable in both shop themes. */
+.checkout-input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid var(--tea-border);
+  background: var(--tea-surface);
+  color: var(--tea-text);
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  font-size: max(16px, 1em);
+}
+.checkout-currency {
+  max-width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--tea-border);
+  background: var(--tea-surface);
+  color: var(--tea-text);
+  border-radius: 0.375rem;
+  padding-inline: 0.5rem;
+}
+.checkout-channel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  color: var(--tea-text);
+}
+.checkout-text-action {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--tea-text-sec);
+  text-decoration: underline;
+  text-decoration-color: var(--tea-border);
+  text-underline-offset: 4px;
+}
+.checkout-tracking-link {
+  display: block;
+  padding-block: 0.75rem;
+  color: var(--tea-text);
+  text-decoration: underline;
+  text-decoration-color: var(--tea-border);
+  text-underline-offset: 4px;
+}
+.checkout-input:focus-visible,
+.checkout-currency:focus-visible,
+.checkout-text-action:focus-visible,
+.checkout-tracking-link:focus-visible {
+  outline: 2px solid var(--tea-gold);
+  outline-offset: 2px;
+}
+.checkout-input::placeholder { color: var(--tea-text-dim); }
+.checkout-text-action:hover { color: var(--tea-text); }

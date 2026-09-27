@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CartItem as PublicCartItemType } from '../../types';
-import { getTeaLedgerTones } from '../../designTokens';
+import { getTeaLedgerTones, TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { useTheme } from '../../context/ThemeContext';
-import { offeredSizes } from '../../lib/teaPricing';
+import { minimumOrderGrams, offeredSizes } from '../../lib/teaPricing';
 import { useShopPrice } from '../shop/shopPrice';
-import { lineKeyOf } from '../../lib/store';
+import { lineKeyOf, normalizeCartPackGrams } from '../../lib/store';
 
 interface CartItemProps {
   item: PublicCartItemType;
@@ -53,6 +53,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
      reading as the single pack it has always been. */
   const packGrams = item.packGrams ?? item.quantityGrams;
   const packs = item.packs ?? 1;
+  const [customGrams, setCustomGrams] = useState(String(packGrams));
   const lineKey = lineKeyOf(item);
 
   // Suppress the variant when it only repeats the product name.
@@ -96,15 +97,17 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
       isTea
         ? offeredSizes(item.pricePerGram, Number.POSITIVE_INFINITY, {
             wholePieceGrams: item.wholePieceGrams,
+            unitGrams: item.unitGrams,
           }).map(q => q.grams)
         : [],
-    [isTea, item.pricePerGram, item.wholePieceGrams],
+    [isTea, item.pricePerGram, item.wholePieceGrams, item.unitGrams],
   );
 
   const onPresetList = presets.includes(packGrams);
   const otherIsLive = showOther || (isTea && !onPresetList);
 
-  const setGrams = (grams: number) => onUpdateQuantity(lineKey, Math.min(9999, Math.max(1, grams)));
+  const minimumGrams = isTea ? minimumOrderGrams(item.unitGrams) : 1;
+  const setGrams = (grams: number) => onUpdateQuantity(lineKey, Math.min(9999, Math.max(minimumGrams, grams)));
   const setPacks = (next: number) => onUpdatePacks(lineKey, Math.min(99, Math.max(1, next)));
 
   /**
@@ -161,39 +164,32 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
       {/* The amount, recessed into the panel ground so the control reads as a
           control.
 
-          One line at rest. It used to be three: a "How big a pack" label with
-          Remove on its far end, a row of weights, and a "How many packs" row
-          with its stepper, which is 128px of control under every tea in the
-          order and put two teas past the bottom of a phone screen. What a
-          reader is doing here nine times out of ten is changing how MANY, so
-          the stepper stays on the line; changing the pack SIZE is the rarer
-          act and lives one tap down, behind the two stacked words that say
-          what pressing them does. */}
+          Pack size and pack count are named separately. Removing a tea stays
+          visible so undoing an addition does not require opening an editor. */}
       <div className="bg-tea-bg rounded-[3px] px-3 py-1">
-        <div className="flex items-center justify-between gap-3">
-          {/* Two tight lines, one word over the other, so the control is as
-              wide as the longer word rather than as wide as the phrase. */}
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0">
           <button
+            type="button"
             onClick={() => setEditOpen(v => !v)}
             aria-expanded={editOpen}
             aria-controls={`edit-qty-${lineKey}`}
             className="tap-target justify-start items-center gap-1.5 -ml-1 px-1 text-left text-tea-text-sec hover:text-tea-text transition-colors"
           >
-            <span className="flex flex-col font-serif italic text-ui-12 leading-[1.05]">
-              <span>Edit</span>
-              <span>quantity</span>
+            <span className={`${TYPOGRAPHY_CLASSES.link} text-tea-text-sec`}>
+              {isTea ? 'Pack size' : 'Details'}
             </span>
             <span aria-hidden="true" className="text-ui-9">{editOpen ? '\u25B4' : '\u25BE'}</span>
           </button>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex min-w-0 max-w-full flex-wrap items-center gap-x-3 gap-y-0">
             {/* The pack this line is built from, stated where the stepper can
                 be read against it: two of a 50g pack, not two of nothing. */}
             {isTea && (
-              <span className="num text-ui-14 text-tea-text-sec">{packGrams}g</span>
+              <span className={`${TYPOGRAPHY_CLASSES.link} text-tea-text-sec`}>{packGrams}g per pack</span>
             )}
             <span className="flex items-center gap-3">
               <button
+                type="button"
                 onClick={() => (isTea ? setPacks(packs - 1) : setGrams(item.quantityGrams - 1))}
                 disabled={isTea && packs <= 1}
                 className="num text-ui-16 text-tea-text-sec transition-colors hover:text-tea-text disabled:text-tea-text-dim disabled:hover:text-tea-text-dim tap-target"
@@ -202,9 +198,10 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
                 &minus;
               </button>
               <span className="num text-ui-17 text-tea-text" aria-live="polite">
-                {isTea ? packs : item.quantityGrams}
+                {isTea ? `${packs} ${packs === 1 ? 'pack' : 'packs'}` : item.quantityGrams}
               </span>
               <button
+                type="button"
                 onClick={() => (isTea ? setPacks(packs + 1) : setGrams(item.quantityGrams + 1))}
                 className="num text-ui-16 text-tea-text-sec hover:text-tea-text transition-colors tap-target"
                 aria-label={isTea ? `One more pack of ${item.name}` : 'Increase quantity'}
@@ -227,6 +224,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
                   const on = g === packGrams;
                   return (
                     <button
+                      type="button"
                       key={g}
                       onClick={() => { setShowOther(false); setGrams(g); }}
                       aria-pressed={on}
@@ -239,7 +237,8 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
                   );
                 })}
                 <button
-                  onClick={() => setShowOther(v => !v)}
+                  type="button"
+                  onClick={() => { setCustomGrams(String(packGrams)); setShowOther(v => !v); }}
                   className={`font-serif min-h-[44px] flex items-center text-ui-14 transition-colors ${
                     otherIsLive ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text'
                   }`}
@@ -251,43 +250,43 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
 
             {isTea && otherIsLive && (
               <div className="flex items-baseline gap-2 pb-1.5">
-                <label htmlFor={`grams-${item.id}`} className="font-serif text-ui-14 text-tea-text-dim">Grams</label>
+                <label htmlFor={`grams-${lineKey}`} className="font-serif text-ui-14 text-tea-text-dim">Grams</label>
                 <input
-                  id={`grams-${item.id}`}
+                  id={`grams-${lineKey}`}
                   type="number"
                   inputMode="numeric"
-                  min={1}
+                  min={minimumGrams}
+                  step={item.unitGrams ?? 1}
                   max={9999}
-                  value={packGrams}
-                  onChange={(e) => {
-                    const v = parseInt(e.target.value, 10);
-                    if (!isNaN(v)) setGrams(v);
-                  }}
-                  onBlur={(e) => {
-                    const v = parseInt(e.target.value, 10);
-                    if (isNaN(v) || v < 1) setGrams(1);
+                  value={customGrams}
+                  onChange={(e) => setCustomGrams(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }}
+                  onBlur={() => {
+                    const value = Number.parseInt(customGrams, 10);
+                    const next = normalizeCartPackGrams(item, value);
+                    setCustomGrams(String(next));
+                    setGrams(next);
                   }}
                   className="num w-[84px] bg-transparent border-0 border-b border-tea-text/50 text-ui-17 text-tea-text text-center py-1 focus:outline-none focus:border-tea-gold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
               </div>
             )}
 
-            <div className="flex items-center justify-between gap-3">
-              {/* What the packs come to together, said only when there is more
-                  than one of them and there is arithmetic to save. */}
-              <span className="num text-ui-12 text-tea-text-dim">
-                {isTea && packs > 1 ? `${packGrams * packs}g in all` : ''}
-              </span>
-              <button
-                onClick={() => onRemove(lineKey)}
-                className="font-serif text-ui-14 text-tea-text-sec hover:text-tea-error transition-colors tap-target justify-end"
-                aria-label={`Remove ${item.name} from cart`}
-              >
-                Remove
-              </button>
-            </div>
           </div>
         )}
+        <div className="flex items-center justify-between gap-3">
+          <span className={`${TYPOGRAPHY_CLASSES.link} text-tea-text-dim`}>
+            {isTea && packs > 1 ? `${packGrams * packs}g in all` : ''}
+          </span>
+          <button
+           type="button"
+            onClick={() => onRemove(lineKey)}
+            className={`${TYPOGRAPHY_CLASSES.link} tap-target justify-end text-tea-text-sec underline underline-offset-4 hover:text-tea-text`}
+            aria-label={`Remove ${item.name} from cart`}
+          >
+            Remove
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -143,7 +143,7 @@ describe('the derived order journey', () => {
     expect(journey.label).toBe('Request received');
     // The promise the old page made on every order at every stage lives here
     // now, where it is still true.
-    expect(journey.detail).toContain('WhatsApp');
+    expect(journey.detail).toContain('contact details you provided');
     expect(journey.at).toBe('2026-07-30T08:00:00Z');
   });
 
@@ -211,7 +211,7 @@ describe('the derived order journey', () => {
     setInvoice(db, { status: 'Filled', fulfilled_at: '2026-08-20T10:00:00.000Z' });
     const journey = await trackedJourney(db);
     expect(journey.stage).toBe('sent');
-    expect(journey.label).toBe('Sent');
+    expect(journey.label).toBe('Fulfilled');
     expect(journey.at).toBe('2026-08-20T10:00:00.000Z');
   });
 
@@ -233,7 +233,7 @@ describe('the derived order journey', () => {
     setInquiry(db, { status: 'shipped' });
     const journey = await trackedJourney(db);
     expect(journey.stage).toBe('sent');
-    expect(journey.label).toBe('Sent');
+    expect(journey.label).toBe('Fulfilled');
   });
 
   it('lets a manual completed close the order, in different words from a cancellation', async () => {
