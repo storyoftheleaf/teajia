@@ -126,3 +126,57 @@ test('failed event detail offers retry and recovers on the same screen', async (
   expect(server.gets()).toBeGreaterThan(1);
   await page.screenshot({ path: testInfo.outputPath('event-recovered.png'), animations: 'disabled' });
 });
+
+
+test('switching events through admin search saves only the selected event briefing', async ({ page }, testInfo) => {
+  const events = ['A', 'B'].map(letter => ({
+    id: `event-${letter.toLowerCase()}`, title: `Briefing Event ${letter}`,
+    slug: `event-${letter.toLowerCase()}`, event_date: '2026-10-12T10:00:00Z',
+    status: 'published', total_capacity: 12,
+    briefing_cards: JSON.stringify([{ text: `Briefing exclusively for ${letter}`, order: 0 }]),
+  }));
+  const saves: { path: string; cards: { text: string; order: number }[] }[] = [];
+  await page.addInitScript(jwt => {
+    localStorage.setItem('teajia_token', jwt);
+    localStorage.setItem('teajia-storage', JSON.stringify({ version: 2, state: {
+      activeAccountId: 'acct-bali', activeUserId: 'editor-1',
+      memberships: [{ account_id: 'acct-bali', account_name: 'Teajia Bali', role: 'owner' }],
+    } }));
+  }, token);
+  await page.route('**/api/**', route => {
+    const path = new URL(route.request().url()).pathname;
+    const event = events.find(candidate => path === `/api/admin/events/${candidate.id}`);
+    if (event && route.request().method() === 'PUT') {
+      const body = route.request().postDataJSON();
+      saves.push({ path, cards: JSON.parse(body.briefing_cards) });
+      event.briefing_cards = body.briefing_cards;
+      return route.fulfill({ json: event });
+    }
+    if (event) return route.fulfill({ json: event });
+    if (path === '/api/admin/events') return route.fulfill({ json: events });
+    if (path.endsWith('/interest')) return route.fulfill({ json: { signups: [] } });
+    if (/\/(attendees|tasting-notes|venues|products|rates|customers)$/.test(path)) return route.fulfill({ json: [] });
+    if (path === '/api/compass/incoming') return route.fulfill({ json: { shares: [] } });
+    return route.fulfill({ json: {} });
+  });
+
+  await page.goto('/admin/events/event-a?tab=briefing');
+  await expect(page.locator('textarea')).toHaveValue('Briefing exclusively for A');
+  await page.locator('textarea').fill('Unsaved changes belonging only to A');
+  // Use the persistent admin search so the event detail stays mounted.
+  // Global Search shares this shortcut; Escape dismisses that overlay.
+  await page.keyboard.press('Control+k');
+  await expect(page.getByRole('dialog', { name: 'Search', exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Search', exact: true })).toHaveCount(0);
+  await page.getByPlaceholder('Search products, customers, events...').fill('Briefing Event B');
+  await page.getByRole('option', { name: /Briefing Event B/ }).click();
+  await expect(page.getByRole('heading', { name: 'Briefing Event B', exact: true })).toBeVisible();
+  await page.getByRole('tab', { name: 'Briefing', exact: true }).click();
+  await expect(page.locator('textarea')).toHaveValue('Briefing exclusively for B');
+  await page.getByRole('button', { name: 'Save Briefing Cards', exact: true }).click();
+  await page.screenshot({ path: testInfo.outputPath('event-b-briefing-saved.png'), animations: 'disabled' });
+  await expect.poll(() => saves).toEqual([{
+    path: '/api/admin/events/event-b', cards: [{ text: 'Briefing exclusively for B', order: 0 }],
+  }]);
+});
