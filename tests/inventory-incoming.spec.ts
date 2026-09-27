@@ -43,7 +43,7 @@ test('Incoming shows expected separately and supports partial receiving', async 
   await page.getByRole('button', { name: 'Receive', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('requires a separate holding or deliberate purpose conversion');
   await expect(page.getByLabel('Quantity received for Spring Oolong')).toHaveValue('30');
-  await page.getByRole('button', { name: 'Receive', exact: true }).click();
+  await page.getByRole('button', { name: 'Retry Receive', exact: true }).click();
   await expect(page.getByText('Expected: 100 g · Current on hand: 85 g · Received here: 50 g · Remaining: 50 g')).toBeVisible();
   expect(listCalls).toBeGreaterThan(1);
   await page.getByRole('button', { name: 'Cancel remaining' }).click();

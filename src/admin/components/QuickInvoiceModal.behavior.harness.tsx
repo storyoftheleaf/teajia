@@ -6,6 +6,8 @@ import type { EligibleSalesProduct } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
 import type { Product } from '../types';
 import { QuickInvoiceModal } from './QuickInvoiceModal';
+import '../../styles/tailwind.css';
+import '../../styles/card-utilities.css';
 
 type PendingRequest = {
   activeAccountId: string | null;

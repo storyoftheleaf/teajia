@@ -1458,8 +1458,9 @@ export const CustomersView = () => {
         await api.customers.updateRelationships(editingCustomer.id, data.relationship_kinds);
         showToast('Contact updated', 'success');
       } else {
-        const created = await api.customers.create(data);
-        if (created?.id) await api.customers.updateRelationships(created.id, data.relationship_kinds);
+        // Create already persists relationship_kinds. A second write could fail
+        // after the contact exists, making Save appear safe to retry as a create.
+        await api.customers.create(data);
         showToast('Contact added', 'success');
       }
       setIsModalOpen(false);

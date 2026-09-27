@@ -19,6 +19,7 @@ import { motion } from 'framer-motion';
 import { api } from '../../lib/api';
 import { useAppStore } from '../store';
 import type { Product } from '../types';
+import { mapAdminProduct } from '../productAdapter';
 
 // ────────────────────────────────────────────────────────
 // Types
@@ -246,7 +247,7 @@ export const ProductStoryView: React.FC = () => {
     queryFn: () => api.products.list(),
     staleTime: 60_000,
   });
-  const products: Product[] = Array.isArray(productsRaw) ? productsRaw : [];
+  const products: Product[] = Array.isArray(productsRaw) ? productsRaw.map(mapAdminProduct) : [];
   const product = products.find(p => p.id === id);
 
   // ── Stock ledger ──────────────────────────────────────

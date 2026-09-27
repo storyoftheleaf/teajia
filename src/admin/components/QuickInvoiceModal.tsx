@@ -8,6 +8,7 @@ import { isTeaType } from '../../wisdom/vocabulary';
 import { Currency, InvoiceDisplayItem, Product, ContactChannel, ContactEntry } from '../types';
 import { useRates } from '../hooks/useAdminData';
 import { formatCurrency } from '../utils';
+import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
 interface QuickLineItem {
   localId: string;
@@ -16,6 +17,11 @@ interface QuickLineItem {
   quantity: number;
   unit: 'g' | 'pcs';
   price: number;
+}
+
+interface SavedInvoice {
+  invoiceNumber: string;
+  share: () => Promise<void>;
 }
 
 export type QuickInvoiceEligibilityStatus = 'loading' | 'ready' | 'error';
@@ -155,6 +161,9 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
   const [productQuery, setProductQuery] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [saving, setSaving] = useState(false);
+  const [savedInvoice, setSavedInvoice] = useState<SavedInvoice | null>(null);
+  const savedInvoiceRef = useRef<SavedInvoice | null>(null);
+  const [shareError, setShareError] = useState<string | null>(null);
   const [loadingRepeat, setLoadingRepeat] = useState(false);
   const [eligibleProducts, setEligibleProducts] = useState<EligibleSalesProduct[]>([]);
   const [eligibilityStatus, setEligibilityStatus] = useState<QuickInvoiceEligibilityStatus>('loading');
@@ -211,6 +220,9 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
 
   useEffect(() => {
     if (!isOpen) return;
+    savedInvoiceRef.current = null;
+    setSavedInvoice(null);
+    setShareError(null);
     // Apply prefill if provided, otherwise reset to defaults
     if (prefill) {
       if (prefill.customerName || prefill.vendorName) setCustomerQuery(prefill.customerName || prefill.vendorName || '');
@@ -417,6 +429,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
   });
 
   const handleSave = async (withPdf = false) => {
+    if (saving || savedInvoiceRef.current) return;
     if (!customerQuery.trim()) {
       showToast('Add a customer name', 'error');
       return;
@@ -432,29 +445,68 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
       return;
     }
     setSaving(true);
+    let created: { invoice_number: string };
     try {
       const { invoice, lineItems: items } = buildPayload();
-      const created = await api.invoices.create(invoice, items);
-
-      if (withPdf) {
-        const pdfItems: InvoiceDisplayItem[] = lineItems.map(li => ({
-          productId: li.productId,
-          customName: li.productId ? undefined : (li.name.trim() || 'Item'),
-          quantity: li.quantity,
-          unit: li.unit,
-          priceAtSale: li.price,
-          product: li.productId ? products.find(p => p.id === li.productId) : undefined,
-        }));
-        await generatePdf(created.invoice_number, customerQuery.trim(), pdfItems);
-      }
-
-      showToast('Invoice created.', 'success');
-      onSuccess();
-      onClose();
+      created = await api.invoices.create(invoice, items);
     } catch (err: any) {
       showToast(`Invoice creation failed: ${err.message}`, 'error');
+      setSaving(false);
+      return;
     }
-    setSaving(false);
+
+    const pdfItems: InvoiceDisplayItem[] = lineItems.map(li => ({
+      productId: li.productId,
+      customName: li.productId ? undefined : (li.name.trim() || 'Item'),
+      quantity: li.quantity,
+      unit: li.unit,
+      priceAtSale: li.price,
+      product: li.productId ? products.find(p => p.id === li.productId) : undefined,
+    }));
+    const saved: SavedInvoice = {
+      invoiceNumber: created.invoice_number,
+      share: () => generatePdf(created.invoice_number, customerQuery.trim(), pdfItems),
+    };
+    savedInvoiceRef.current = saved;
+    setSavedInvoice(saved);
+    onSuccess();
+    showToast(`Invoice ${created.invoice_number} created.`, 'success');
+    if (!withPdf) {
+      setSaving(false);
+      onClose();
+      return;
+    }
+    try {
+      await saved.share();
+      onClose();
+    } catch (err: any) {
+      const message = err?.name === 'AbortError'
+        ? 'Sharing was cancelled.'
+        : `PDF or sharing failed: ${err?.message || 'Unknown error'}`;
+      setShareError(message);
+      showToast(`Invoice ${created.invoice_number} was saved. ${message}`, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const retryShare = async () => {
+    const saved = savedInvoiceRef.current;
+    if (!saved || saving) return;
+    setSaving(true);
+    setShareError(null);
+    try {
+      await saved.share();
+      onClose();
+    } catch (err: any) {
+      const message = err?.name === 'AbortError'
+        ? 'Sharing was cancelled.'
+        : `PDF or sharing failed: ${err?.message || 'Unknown error'}`;
+      setShareError(message);
+      showToast(`Invoice ${saved.invoiceNumber} was saved. ${message}`, 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const generatePdf = async (invoiceNumber: string, customerName: string, items: InvoiceDisplayItem[]) => {
@@ -482,6 +534,19 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
   };
 
   const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+  if (savedInvoice) return (
+    <div className="fixed inset-0 z-modal flex items-end sm:items-center justify-center bg-tea-bg/80 p-4">
+      <div role="dialog" aria-modal="true" aria-label="Invoice saved" className="w-full max-w-md rounded-xl border border-tea-border bg-tea-surface p-6 pb-nav-gap shadow-2xl">
+        <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Invoice {savedInvoice.invoiceNumber} was saved</h2>
+        <p role={shareError ? 'alert' : 'status'} className="mt-3 text-ui-14 text-tea-text-sec">{shareError || 'Ready to share.'} Retrying will share this invoice without creating another.</p>
+        <div className="mt-5 flex flex-wrap justify-end gap-3">
+          <button type="button" onClick={onClose} className="min-h-11 px-4 text-ui-14 text-tea-text-sec hover:text-tea-text">Done</button>
+          <button type="button" onClick={() => void retryShare()} disabled={saving} className="min-h-11 rounded-xl px-4 text-ui-14 cta-solid disabled:opacity-50">{saving ? 'Sharing…' : 'Retry sharing'}</button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div

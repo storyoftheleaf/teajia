@@ -392,16 +392,16 @@ interface ListingFieldsProps {
 function useSaveConfirm() {
   const [msg, setMsg] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const show = useCallback((text: string) => {
+  const show = useCallback((text: string, persistent = false) => {
     setMsg(text);
     if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => setMsg(null), 3000);
+    timerRef.current = persistent ? null : setTimeout(() => setMsg(null), 3000);
   }, []);
   useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
   return { msg, show };
 }
 
-const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerCurrency, callerRateToUsd, callerRateResolved }) => {
+export const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerCurrency, callerRateToUsd, callerRateResolved }) => {
   // What the price field is actually denominated in.
   const priceCurrency = callerRateResolved ? callerCurrency : 'USD';
   const [stockValue, setStockValue] = useState(String(listing.stock_grams ?? ''));
@@ -428,20 +428,29 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
     sample: listing.is_sample,
     note: listing.store_note ?? '',
   });
+  const savingFields = useRef(new Set<string>());
+  const [retrySave, setRetrySave] = useState<(() => void) | null>(null);
 
-  const persist = useCallback(async (patch: {
+  const persist = useCallback(async (field: string, patch: {
     stock_grams?: number;
     price_amount?: number | null;
     price_currency?: string;
     fixed_retail_price_usd?: number | null;
     store_note?: string | null;
     is_sample?: boolean;
-  }) => {
+  }, onSaved: () => void, retry: () => void) => {
+    if (savingFields.current.has(field)) return;
+    savingFields.current.add(field);
+    setRetrySave(null);
     try {
       await api.network.updateListing(listing.id, patch);
+      onSaved();
       showSave('Saved · ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     } catch (err: any) {
-      showSave(err?.message || "Couldn't save. Try again.");
+      showSave(err?.message || "Couldn't save. Try again.", true);
+      setRetrySave(() => retry);
+    } finally {
+      savingFields.current.delete(field);
     }
   }, [listing.id, showSave]);
 
@@ -449,36 +458,34 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
     if (stockValue === lastSaved.current.stock) return;
     const n = Number(stockValue);
     if (!isFinite(n) || n < 0) { showSave('Stock must be ≥ 0'); return; }
-    lastSaved.current.stock = stockValue;
-    void persist({ stock_grams: Math.floor(n) });
+    const value = stockValue;
+    void persist('stock', { stock_grams: Math.floor(n) }, () => { lastSaved.current.stock = value; }, saveStock);
   };
 
   const savePrice = () => {
     if (priceValue === lastSaved.current.price) return;
     if (priceValue.trim() === '') {
-      lastSaved.current.price = '';
-      void persist({ price_amount: null });
+      void persist('price', { price_amount: null }, () => { lastSaved.current.price = ''; }, savePrice);
       return;
     }
     const n = Number(priceValue);
     if (!isFinite(n) || n < 0) { showSave('Price must be ≥ 0'); return; }
-    lastSaved.current.price = priceValue;
+    const value = priceValue;
     // Send the partner's local-currency-per-100g amount; server converts to USD/gram
     // via exchange_rates. Avoids the silent-no-conversion bug from earlier.
-    void persist({ price_amount: n, price_currency: priceCurrency });
+    void persist('price', { price_amount: n, price_currency: priceCurrency }, () => { lastSaved.current.price = value; }, savePrice);
   };
 
   const saveSample = (next: boolean) => {
     if (next === lastSaved.current.sample) return;
-    lastSaved.current.sample = next;
     setSampleAvail(next);
-    void persist({ is_sample: next });
+    void persist('sample', { is_sample: next }, () => { lastSaved.current.sample = next; }, () => saveSample(next));
   };
 
   const saveNote = () => {
     if (storeNote === lastSaved.current.note) return;
-    lastSaved.current.note = storeNote;
-    void persist({ store_note: storeNote || null });
+    const value = storeNote;
+    void persist('note', { store_note: value || null }, () => { lastSaved.current.note = value; }, saveNote);
   };
 
   return (
@@ -606,7 +613,10 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
 
       {/* Autosave feedback */}
       {saveMsg && (
-        <p className="text-tea-text-dim italic text-ui-12 transition-opacity">{saveMsg}</p>
+        <div role={retrySave ? 'alert' : 'status'} className="flex flex-wrap items-center gap-3 text-tea-text-dim italic text-ui-12 transition-opacity">
+          <span>{saveMsg}</span>
+          {retrySave && <button type="button" onClick={retrySave} className="min-h-11 text-tea-gold hover:text-tea-gold-lt not-italic">Retry save</button>}
+        </div>
       )}
     </div>
   );
