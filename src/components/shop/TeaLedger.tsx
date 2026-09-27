@@ -189,6 +189,7 @@ export function TeaLedger({
                       name={item.name}
                       saved={isFavorite}
                       background={rowTones.markBg}
+                      savedColor={rowTones.savedBg}
                       onToggle={event => onToggleFavorite(item.id, event)}
                     />
 

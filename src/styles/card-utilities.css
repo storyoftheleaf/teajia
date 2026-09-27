@@ -4737,7 +4737,7 @@ body.cart-panel-open .commerce-dock {
 }
 .tea-save-tile:hover,
 .tea-save-tile[aria-pressed="true"] {
-  border-color: var(--tea-gold);
+  border-color: var(--tea-save-color);
 }
 .tea-save-tile:focus-visible {
   outline: 2px solid var(--tea-gold);
@@ -4768,8 +4768,12 @@ body.cart-panel-open .commerce-dock {
   text-transform: none;
   letter-spacing: 0;
 }
-.tea-save-tile-action:not(.cta-solid) {
+.tea-save-tile-action {
   color: var(--tea-text-sec);
+}
+.tea-save-tile[aria-pressed="true"] .tea-save-tile-action {
+  background: var(--tea-save-color);
+  color: var(--tea-bg);
 }
 .tea-save-tile-action::before {
   content: '';

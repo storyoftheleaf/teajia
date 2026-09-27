@@ -1,4 +1,4 @@
-import { useState, type MouseEvent } from 'react';
+import { useState, type CSSProperties, type MouseEvent } from 'react';
 import { Check } from '@phosphor-icons/react';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
@@ -7,17 +7,18 @@ interface TeaSaveTileProps {
   name: string;
   saved: boolean;
   background: string;
+  savedColor: string;
   onToggle: (event: MouseEvent<HTMLButtonElement>) => void;
 }
 
 /** The date and action share a single compact tile and a single tap target. */
-export function TeaSaveTile({ year, name, saved, background, onToggle }: TeaSaveTileProps) {
+export function TeaSaveTile({ year, name, saved, background, savedColor, onToggle }: TeaSaveTileProps) {
   const [animateSave, setAnimateSave] = useState(false);
   return (
     <button
       type="button"
       className={`tea-save-tile${saved && animateSave ? ' tea-save-tile-confirm' : ''}`}
-      style={{ backgroundColor: background }}
+      style={{ backgroundColor: background, '--tea-save-color': savedColor } as CSSProperties}
       aria-pressed={saved}
       aria-label={`${saved ? 'Unsave' : 'Save'} ${name}`}
       title={saved ? 'Saved. Click to unsave' : 'Save tea'}
@@ -34,7 +35,7 @@ export function TeaSaveTile({ year, name, saved, background, onToggle }: TeaSave
       }}
     >
       <span className={`tea-save-tile-year${String(year ?? '').length > 4 ? ' tea-save-tile-year-long' : ''}`}>{year || '—'}</span>
-      <span className={`tea-save-tile-action ${TYPOGRAPHY_CLASSES.label}${saved ? ' cta-solid' : ''}`}>
+      <span className={`tea-save-tile-action ${TYPOGRAPHY_CLASSES.label}`}>
         {saved && <Check size={10} weight="bold" aria-hidden="true" />}
         {saved ? 'Saved' : 'Save'}
       </span>
