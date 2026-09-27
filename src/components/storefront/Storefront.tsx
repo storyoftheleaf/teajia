@@ -11,6 +11,9 @@ import { SectionSkeleton } from '../shared/SectionSkeleton';
 import { Icons } from '../Icons';
 import { api } from '../../lib/api';
 import { CONTACT_UNAVAILABLE, resolveContactChannels } from '../../lib/contact';
+import { Cover, Dek, GroupHead, IndexRow, Kicker, SplitName } from '../people/immersive';
+import { ContributorIdentityMark } from '../shared/ContributorIdentityMark';
+import type { PublicPerson } from '../../types';
 
 interface StorefrontProps {
   onAddToCart: (item: InventoryItem, qty: number, total: number) => void;
@@ -208,6 +211,8 @@ export const Storefront: React.FC<StorefrontProps> = ({
         {activeTab === 'contact' && <StorefrontContactSection store={store} />}
       </div>
 
+      {(store.people?.length ?? 0) > 0 && <StorefrontPeopleSection people={store.people!} />}
+
       {/* Network footer */}
       <footer className="border-t border-tea-border mt-8 pt-8 pb-6 text-center">
         <p className="label-caps text-tea-text-dim mb-2">
@@ -221,6 +226,50 @@ export const Storefront: React.FC<StorefrontProps> = ({
         </Link>
       </footer>
     </div>
+  );
+};
+
+// ─── The people at this table ──────────────────────────────────────────────
+// The reverse door of the profile's "My table" row (2026-09-21). The host
+// gets the portrait cover, the one place on the site where words sit on a
+// photo; everyone else linked to the store is a plain row. Each line is the
+// person's own first sentence, never the store talking about them. Absent
+// entirely when nobody published is linked, so a new table reads finished.
+
+const StorefrontPeopleSection: React.FC<{ people: PublicPerson[] }> = ({ people }) => {
+  const [host, ...others] = people[0]?.is_host ? [people[0], ...people.slice(1)] : [null, ...people];
+  return (
+    <section className="mx-auto max-w-2xl px-6" aria-label="At this table" data-testid="store-people">
+      <GroupHead label="At this table" />
+      {host && (
+        <div className="mt-3.5">
+          <Cover
+            to={`/people/${encodeURIComponent(host.slug)}`}
+            image={host.portrait_url}
+            imageAlt={`Portrait of ${host.display_name}`}
+            fallback={<ContributorIdentityMark name={host.display_name} />}
+            height={200}
+            testId="store-people-host"
+            ariaLabel={`${host.display_name}, who hosts this table`}
+          >
+            {host.role && <Kicker className="mb-2">{host.role}</Kicker>}
+            <span className="block font-display text-[30px] leading-[0.98] text-tea-text"><SplitName name={host.display_name} /></span>
+            {host.own_line && <Dek className="mt-2 max-w-[30ch]">{host.own_line}</Dek>}
+          </Cover>
+        </div>
+      )}
+      {others.filter((person): person is PublicPerson => person !== null).map(person => (
+        <IndexRow
+          key={person.slug}
+          to={`/people/${encodeURIComponent(person.slug)}`}
+          title={<SplitName name={person.display_name} />}
+          dek={[person.role ? `${person.role}.` : null, person.own_line].filter(Boolean).join(' ') || undefined}
+          testId="store-people-row"
+          ariaLabel={`${person.display_name}, at this table`}
+        />
+      ))}
+      <Link to="/people" className="tap-target mt-1.5 inline-flex min-h-[44px] items-center font-sans text-[9.5px] uppercase tracking-[0.26em] text-tea-readgold hover:text-tea-gold-lt">All people</Link>
+    </section>
   );
 };
 

@@ -30,7 +30,6 @@ const links: { label: string; to?: string; href?: string }[] = [
   { label: 'Read', to: '/read' },
   { label: 'Craft', to: '/craft' },
   { label: 'Shop', to: '/shop' },
-  { label: 'Learn', to: '/learn' },
   { label: 'Advise', to: '/advise' },
   { label: 'People', to: PUBLIC_REFERENCE_ROUTES.people },
   { label: 'Tea Wisdom', to: PUBLIC_REFERENCE_ROUTES.wisdom },
@@ -72,6 +71,7 @@ function FooterLink({ label, to, href }: { label: string; to?: string; href?: st
 export default function Footer() {
   return (
     <footer
+      className="site-footer"
       style={{
         background: 'var(--tea-footer-band)',
         borderTop: `1px solid ${C.hair}`,

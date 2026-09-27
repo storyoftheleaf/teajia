@@ -170,9 +170,11 @@ export function SectionHeading({ text, effect }: { text: string; effect?: TextEf
   );
 }
 
-export function PullQuote({ text, attribution }: { text: string; attribution?: string }) {
+// `id` is the anchor a creator profile links to (quote-<contributor id>), so a
+// "Quoted in" row can land on the passage rather than the top of the piece.
+export function PullQuote({ text, attribution, id }: { text: string; attribution?: string; id?: string }) {
   return (
-    <section className="py-24 md:py-32 text-center px-6">
+    <section id={id} className="py-24 md:py-32 text-center px-6 scroll-mt-16">
       <Reveal>
         <blockquote className="font-display font-medium italic text-tea-gold-lt leading-[1.18] text-[32px] md:text-[46px] max-w-[760px] mx-auto">
           {text}
@@ -732,7 +734,12 @@ function normalizeHeadingEffect(e?: TextEffect): TextEffect | undefined {
 // Optional render context. The reader page passes onShare so the colophon's
 // "Share a card" pill opens the share-card generator (AR.6). The editor preview
 // omits it, so the pill is inert there (no modal to open in a preview pane).
-export interface RenderBlockContext { onShare?: () => void }
+export interface RenderBlockContext {
+  onShare?: () => void;
+  /** The article's pull quote and the anchor a creator profile links to
+   *  (quote-<contributor id>). The quote block whose text matches gets the id. */
+  quoteAnchor?: { text: string; id: string } | null;
+}
 
 // Maps one ArticleBlock to its section. Visual variants are read off the
 // image/list/recipe/map/tasting blocks. Unmapped block types render nothing;
@@ -753,7 +760,7 @@ export function renderBlock(block: ArticleBlock, index: number, ctx?: RenderBloc
     case 'chapter_divider':
       return <ChapterDivider key={index} number={block.number} title={block.title} subtitle={block.subtitle} />;
     case 'quote':
-      return <PullQuote key={index} text={block.text} attribution={block.attribution} />;
+      return <PullQuote key={index} text={block.text} attribution={block.attribution} id={ctx?.quoteAnchor && ctx.quoteAnchor.text.trim() === block.text.trim() ? ctx.quoteAnchor.id : undefined} />;
     case 'epilogue':
       return <Epilogue key={index} text={block.text} signature={block.signature} />;
     case 'poem':

@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 
 const encode = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');
 const token = `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode({
@@ -11,7 +11,7 @@ const fixture = {
   id: 'publishing-fixture', account_id: 'acct-bali', display_name: 'Publishing Fixture', role: 'Writer',
   beginnings: 'Synthetic origin text used only to verify the publishing path.',
   now_text: 'Testing the current-practice field.', now_updated_at: '2026-07-13T09:45:00Z', inspirations: 'Testing inspirations.',
-  closing: 'Synthetic fixture closing.', links: [{ label: 'Fixture', url: 'https://example.com/' }],
+  closing: 'Synthetic fixture closing.', links: [{ platform: 'website', value: 'https://example.com/', qr_image_url: null }],
   face_of_account_id: null, is_published: 1, created_at: '2026-07-12T00:00:00Z', updated_at: '2026-07-12T00:00:00Z',
 };
 
@@ -116,7 +116,7 @@ test('list error can retry into the empty state', async ({ page }) => {
 test('empty state offers contributor creation', async ({ page }) => {
   await install(page, []);
   await page.goto('/admin/contributors');
-  await expect(page.getByText('No contributors yet.')).toBeVisible();
+  await expect(page.getByText('No tea masters yet.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Create contributor' }).last()).toBeVisible();
 });
 
@@ -134,7 +134,7 @@ test('uses the reactive active account for host association after an account swi
   test.skip(true, 'Create-time host assignment was replaced by per-account associations; rule covered by unit tests');
   await install(page, []);
   await page.goto('/admin/contributors');
-  await expect(page.getByText('No contributors yet.')).toBeVisible();
+  await expect(page.getByText('No tea masters yet.')).toBeVisible();
   await page.getByRole('button', { name: 'Create contributor' }).last().click();
   await page.evaluate(async () => {
     const { useAppStore } = await import('/src/lib/store.ts');

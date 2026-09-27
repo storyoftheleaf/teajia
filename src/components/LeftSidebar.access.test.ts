@@ -26,7 +26,7 @@ const SHOP_OWNER: AdminNavAccess = {
 };
 
 const EVERY_ENTRY = [
-  'dashboard', 'inventory', 'collections', 'business',
+  'dashboard', 'inventory', 'collections', 'orders', 'people',
   'events', 'magazine', 'wisdom', 'network', 'settings',
 ];
 
@@ -54,13 +54,21 @@ describe('what the Manage navigation offers', () => {
     expect(getVisibleAdminItemIds(SHOP_OWNER, EVERY_ENTRY)).toEqual(EVERY_ENTRY);
   });
 
-  it('gives a seller the business entries without the owner-only workshop', () => {
+  it('gives a seller Orders and People without the owner-only workshop', () => {
     const seller: AdminNavAccess = { ...NOTHING, hasSell: true };
     const visible = getVisibleAdminItemIds(seller, EVERY_ENTRY);
-    expect(visible).toContain('business');
+    expect(visible).toContain('orders');
+    expect(visible).toContain('people');
     expect(visible).toContain('network');
     expect(visible).not.toContain('dashboard');
     expect(visible).not.toContain('inventory');
+  });
+
+  it('keeps People for a gatherer, who may not open Orders', () => {
+    const gatherer: AdminNavAccess = { ...NOTHING, hasGather: true };
+    const visible = getVisibleAdminItemIds(gatherer, EVERY_ENTRY);
+    expect(visible).toContain('people');
+    expect(visible).not.toContain('orders');
   });
 
   it('never offers an entry to someone the route behind it would turn away', () => {

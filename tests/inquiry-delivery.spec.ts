@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 test('failed inquiry remains editable and offers a populated email fallback', async ({ page }) => {
   let attempts = 0;

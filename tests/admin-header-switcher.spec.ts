@@ -4,7 +4,7 @@
  * No backend required: API mocked via page.route, fake JWT via localStorage.
  */
 
-import { test, expect, type Page, type BrowserContext } from '@playwright/test';
+import { test, expect, type Page, type BrowserContext } from './fixtures';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';

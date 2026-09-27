@@ -40,21 +40,21 @@ const BeforeTheMist: React.FC = () => {
       <article style={{ position: 'relative', zIndex: 1 }}>
         {/* COVER, full-bleed */}
         <header style={{ position: 'relative', minHeight: '96vh', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden' }}>
-          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,#2c2a24 0%,#1c1812 46%,#14100b 100%)' }} />
+          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,#2c2a24 0%,#1c1812 46%,var(--tj-read-bg) 100%)' }} />
           <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 44% at 64% 30%, rgba(214,196,150,0.22), transparent 60%)' }} />
           <svg viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-            <g fill="none" stroke="rgba(168,135,77,0.16)" strokeWidth="1.2">
+            <g fill="none" stroke="rgb(var(--tj-read-gold-rgb) / 0.16)" strokeWidth="1.2">
               <path d="M-50 560 C 300 500, 700 520, 1260 470" />
               <path d="M-50 610 C 280 552, 720 576, 1260 520" />
               <path d="M-50 662 C 320 606, 760 628, 1260 576" />
               <path d="M-50 716 C 300 660, 740 684, 1260 632" />
             </g>
-            <g fill="none" stroke="rgba(168,135,77,0.1)" strokeWidth="1">
+            <g fill="none" stroke="rgb(var(--tj-read-gold-rgb) / 0.1)" strokeWidth="1">
               <path d="M-50 470 C 360 430, 800 446, 1260 410" />
               <path d="M-50 426 C 340 396, 820 408, 1260 380" />
             </g>
           </svg>
-          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(20,16,11,0.7), transparent 45%), linear-gradient(0deg, rgba(20,16,11,0.85), transparent 40%)' }} />
+          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgb(var(--tj-read-bg-rgb) / 0.7), transparent 45%), linear-gradient(0deg, rgb(var(--tj-read-bg-rgb) / 0.85), transparent 40%)' }} />
           <div style={{ position: 'relative', zIndex: 1, padding: '0 clamp(24px,6vw,84px) clamp(48px,9vw,110px)', maxWidth: 1000 }}>
             <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.36em', textTransform: 'uppercase', color: C.gold, marginBottom: 26 }}>Field Notes: A spring harvest, Yunnan</div>
             <h1 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(50px,9vw,116px)', lineHeight: 0.98, letterSpacing: '-0.015em', color: C.cream, margin: 0 }}>
@@ -65,7 +65,7 @@ const BeforeTheMist: React.FC = () => {
             </p>
           </div>
           <div aria-hidden="true" style={{ position: 'absolute', bottom: 30, left: '50%', transform: 'translate(-50%,0)', animation: 'tjFloatX 3.4s ease-in-out infinite' }}>
-            <svg width="13" height="20" viewBox="0 0 13 20" fill="none"><path d="M6.5 1v17M1 12.5l5.5 5.5 5.5-5.5" stroke="#a8874d" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            <svg width="13" height="20" viewBox="0 0 13 20" fill="none"><path d="M6.5 1v17M1 12.5l5.5 5.5 5.5-5.5" stroke="var(--tj-gold, var(--tj-read-gold-default))" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </div>
         </header>
 
@@ -77,17 +77,17 @@ const BeforeTheMist: React.FC = () => {
 
         {/* PLATE: the climb (full-bleed) */}
         <figure data-reveal style={{ margin: 0 }}>
-          <div style={{ position: 'relative', height: 'clamp(420px,80vh,820px)', overflow: 'hidden', background: 'linear-gradient(180deg,#26241e,#1a1610 60%,#14100b)', borderTop: '1px solid rgba(168,135,77,0.14)', borderBottom: '1px solid rgba(168,135,77,0.14)' }}>
-            <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,#2a2820 0%,#1a1610 70%,#14100b 100%)' }} />
+          <div style={{ position: 'relative', height: 'clamp(420px,80vh,820px)', overflow: 'hidden', background: 'linear-gradient(180deg,#26241e,#1a1610 60%,var(--tj-read-bg))', borderTop: '1px solid rgb(var(--tj-read-gold-rgb) / 0.14)', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.14)' }}>
+            <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,#2a2820 0%,#1a1610 70%,var(--tj-read-bg) 100%)' }} />
             <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 50% 60% at 30% 20%, rgba(214,200,160,0.18), transparent 60%)' }} />
             <svg viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-              <g fill="none" stroke="rgba(168,135,77,0.14)" strokeWidth="1.2">
+              <g fill="none" stroke="rgb(var(--tj-read-gold-rgb) / 0.14)" strokeWidth="1.2">
                 <path d="M-50 520 C 300 470, 760 486, 1260 440" /><path d="M-50 575 C 320 524, 780 540, 1260 494" />
                 <path d="M-50 632 C 300 580, 760 596, 1260 548" /><path d="M-50 692 C 320 638, 800 656, 1260 606" />
               </g>
               <g fill="rgba(40,33,26,0.9)"><path d="M0 800 L0 560 C 200 540, 380 548, 520 600 C 640 644, 760 700, 1200 760 L1200 800 Z" /></g>
             </svg>
-            <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 60%, rgba(20,16,11,0.7))' }} />
+            <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 60%, rgb(var(--tj-read-bg-rgb) / 0.7))' }} />
             <figcaption style={{ position: 'absolute', left: 'clamp(20px,4vw,44px)', bottom: 'clamp(20px,3vw,32px)', display: 'flex', gap: 14, alignItems: 'baseline' }}>
               <span style={figTime}>04:40</span>
               <span style={figCap}>The path up, still in shadow. Mist sits in the folds of the hills.</span>
@@ -99,7 +99,7 @@ const BeforeTheMist: React.FC = () => {
         <section data-reveal style={{ padding: 'clamp(40px,6vw,80px) clamp(20px,5vw,56px)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,260px),1fr))', gap: 'clamp(16px,2.6vw,30px)', maxWidth: 1180, margin: '0 auto' }}>
             <figure style={{ margin: 0 }}>
-              <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgba(168,135,77,0.18)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(160deg,#241d14,#120e09)' }}>
+              <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.18)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(160deg,var(--tj-read-plate-from),var(--tj-read-plate-to))' }}>
                 <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 50% at 50% 40%, rgba(133,159,133,0.16), transparent 64%)' }} />
                 <svg viewBox="0 0 240 300" preserveAspectRatio="xMidYMid meet" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
                   <g fill="none" stroke="rgba(133,159,133,0.5)" strokeWidth="1.2">
@@ -114,10 +114,10 @@ const BeforeTheMist: React.FC = () => {
               <figcaption style={cap}>Two leaves and a bud, the only part that is taken.</figcaption>
             </figure>
             <figure style={{ margin: 0 }}>
-              <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgba(168,135,77,0.18)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(160deg,#241d14,#120e09)' }}>
+              <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.18)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(160deg,var(--tj-read-plate-from),var(--tj-read-plate-to))' }}>
                 <div aria-hidden="true" style={grainCss('0.8', 120)} />
                 <svg viewBox="0 0 240 300" preserveAspectRatio="xMidYMid meet" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-                  <g fill="none" stroke="rgba(168,135,77,0.28)" strokeWidth="1">
+                  <g fill="none" stroke="rgb(var(--tj-read-gold-rgb) / 0.28)" strokeWidth="1">
                     <path d="M70 196 C90 150, 150 150, 170 196" /><path d="M84 196 C98 164, 142 164, 156 196" /><path d="M70 196h100" />
                   </g>
                   <circle cx="120" cy="150" r="3" fill={C.gold} />
@@ -138,8 +138,8 @@ const BeforeTheMist: React.FC = () => {
 
         {/* FULL-BLEED rows */}
         <figure data-reveal style={{ margin: 0 }}>
-          <div style={{ position: 'relative', height: 'clamp(400px,72vh,760px)', overflow: 'hidden', borderTop: '1px solid rgba(168,135,77,0.14)', borderBottom: '1px solid rgba(168,135,77,0.14)' }}>
-            <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,#222a20 0%,#18170f 70%,#14100b 100%)' }} />
+          <div style={{ position: 'relative', height: 'clamp(400px,72vh,760px)', overflow: 'hidden', borderTop: '1px solid rgb(var(--tj-read-gold-rgb) / 0.14)', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.14)' }}>
+            <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,#222a20 0%,#18170f 70%,var(--tj-read-bg) 100%)' }} />
             <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 50% at 70% 24%, rgba(214,200,150,0.16), transparent 58%)' }} />
             <svg viewBox="0 0 1200 760" preserveAspectRatio="xMidYMid slice" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
               <g fill="none" stroke="rgba(133,159,133,0.22)" strokeWidth="1.4">
@@ -147,7 +147,7 @@ const BeforeTheMist: React.FC = () => {
                 <path d="M-60 466 C 320 428, 820 442, 1260 404" /><path d="M-60 528 C 300 484, 800 500, 1260 458" />
                 <path d="M-60 596 C 320 548, 820 566, 1260 520" /><path d="M-60 670 C 300 616, 800 636, 1260 588" />
               </g>
-              <g fill="rgba(168,135,77,0.55)"><circle cx="320" cy="430" r="3.5" /><circle cx="560" cy="486" r="3.5" /><circle cx="760" cy="452" r="3.5" /><circle cx="900" cy="540" r="3.5" /></g>
+              <g fill="rgb(var(--tj-read-gold-rgb) / 0.55)"><circle cx="320" cy="430" r="3.5" /><circle cx="560" cy="486" r="3.5" /><circle cx="760" cy="452" r="3.5" /><circle cx="900" cy="540" r="3.5" /></g>
             </svg>
             <figcaption style={{ position: 'absolute', left: 'clamp(20px,4vw,44px)', bottom: 'clamp(20px,3vw,32px)', display: 'flex', gap: 14, alignItems: 'baseline' }}>
               <span style={figTime}>06:15</span>
@@ -164,9 +164,9 @@ const BeforeTheMist: React.FC = () => {
 
         {/* PLATE: withering */}
         <figure data-reveal style={{ margin: '0 0 clamp(20px,4vw,40px)' }}>
-          <div style={{ position: 'relative', maxWidth: 1100, margin: '0 auto', aspectRatio: '16/9', border: '1px solid rgba(168,135,77,0.18)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(150deg,#241d14,#14100b)' }}>
+          <div style={{ position: 'relative', maxWidth: 1100, margin: '0 auto', aspectRatio: '16/9', border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.18)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(150deg,var(--tj-read-plate-from),var(--tj-read-bg))' }}>
             <div aria-hidden="true" style={{ ...grainCss('0.8', 140), opacity: 0.06 }} />
-            <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'repeating-linear-gradient(96deg, transparent 0 48px, rgba(168,135,77,0.05) 48px 49px)' }} />
+            <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'repeating-linear-gradient(96deg, transparent 0 48px, rgb(var(--tj-read-gold-rgb) / 0.05) 48px 49px)' }} />
             <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 50% 60% at 24% 30%, rgba(214,200,150,0.12), transparent 60%)' }} />
             <figcaption style={{ position: 'absolute', left: 'clamp(18px,3vw,28px)', bottom: 'clamp(16px,3vw,24px)', display: 'flex', gap: 14, alignItems: 'baseline' }}>
               <span style={figTime}>10:00</span>
@@ -178,8 +178,8 @@ const BeforeTheMist: React.FC = () => {
         {/* CLOSING */}
         <section data-reveal style={{ maxWidth: 620, margin: '0 auto', padding: 'clamp(50px,8vw,110px) 24px clamp(40px,6vw,80px)', textAlign: 'center' }}>
           <div style={{ position: 'relative', width: 'clamp(120px,28vw,150px)', aspectRatio: '1/1', margin: '0 auto 40px' }}>
-            <div aria-hidden="true" style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1px solid rgba(168,135,77,0.4)', background: 'radial-gradient(circle at 50% 38%, rgba(168,135,77,0.22), rgba(168,135,77,0.05) 60%, transparent 72%)' }} />
-            <div aria-hidden="true" style={{ position: 'absolute', left: '50%', top: '16%', width: 2, height: '18%', background: 'linear-gradient(transparent,rgba(168,135,77,0.5))', transform: 'translateX(-50%)', animation: 'tjFloat 3s ease-in-out infinite' }} />
+            <div aria-hidden="true" style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.4)', background: 'radial-gradient(circle at 50% 38%, rgb(var(--tj-read-gold-rgb) / 0.22), rgb(var(--tj-read-gold-rgb) / 0.05) 60%, transparent 72%)' }} />
+            <div aria-hidden="true" style={{ position: 'absolute', left: '50%', top: '16%', width: 2, height: '18%', background: 'linear-gradient(transparent,rgb(var(--tj-read-gold-rgb) / 0.5))', transform: 'translateX(-50%)', animation: 'tjFloat 3s ease-in-out infinite' }} />
           </div>
           <p style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(22px,3.6vw,36px)', lineHeight: 1.32, color: C.ink, margin: 0 }}>
             All of it, the climb, the cool, the careful hands, so that months from now, a single cup might taste of this exact morning.

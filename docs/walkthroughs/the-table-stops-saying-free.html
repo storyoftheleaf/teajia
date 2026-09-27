@@ -1,0 +1,408 @@
+<title>The Table Stops Saying Free</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+  :root {
+    --paper:      #EFF0EA;
+    --surface:    #E6E8DF;
+    --ink:        #1B1E19;
+    --ink-2:      #4A5045;
+    --ink-3:      #6E7568;
+    --rule:       #D3D6C9;
+    --rule-firm:  #B9BDAE;
+    --amber:      #8A5E15;
+    --amber-soft: #EADFC5;
+    --moss:       #5A6357;
+    --rust:       #8C4A2F;
+
+    --sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    --cond: "IBM Plex Sans Condensed", "IBM Plex Sans", ui-sans-serif, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #171814;
+      --surface:    #1E211B;
+      --ink:        #E9EBE2;
+      --ink-2:      #B4BAAC;
+      --ink-3:      #8A9083;
+      --rule:       #2E3129;
+      --rule-firm:  #414639;
+      --amber:      #D2A24C;
+      --amber-soft: #33291A;
+      --moss:       #98A190;
+      --rust:       #C4795A;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:      #171814;
+    --surface:    #1E211B;
+    --ink:        #E9EBE2;
+    --ink-2:      #B4BAAC;
+    --ink-3:      #8A9083;
+    --rule:       #2E3129;
+    --rule-firm:  #414639;
+    --amber:      #D2A24C;
+    --amber-soft: #33291A;
+    --moss:       #98A190;
+    --rust:       #C4795A;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0 20px 96px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 940px; margin: 0 auto; }
+  .prose { max-width: 66ch; }
+
+  /* ── masthead ─────────────────────────────────────────────── */
+
+  header { padding: 44px 0 0; }
+
+  .docket {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 22px;
+    align-items: baseline;
+    font-family: var(--cond);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--rule-firm);
+  }
+  .docket .val { font-family: var(--mono); font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--ink-2); }
+
+  h1 {
+    font-family: var(--cond);
+    font-weight: 600;
+    font-size: clamp(30px, 5.2vw, 44px);
+    line-height: 1.08;
+    letter-spacing: -0.012em;
+    text-wrap: balance;
+    margin: 26px 0 0;
+  }
+
+  .standfirst {
+    font-size: 18px;
+    line-height: 1.55;
+    color: var(--ink-2);
+    margin: 14px 0 0;
+    max-width: 60ch;
+  }
+
+  /* ── status strip ─────────────────────────────────────────── */
+
+  .status {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    margin: 32px 0 0;
+    border: 1px solid var(--rule-firm);
+    background: var(--surface);
+  }
+  .status div {
+    flex: 1 1 190px;
+    padding: 14px 18px;
+    border-right: 1px solid var(--rule);
+  }
+  .status div:last-child { border-right: 0; }
+  .status dt {
+    font-family: var(--cond);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 0 0 5px;
+  }
+  .status dd {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── sections ─────────────────────────────────────────────── */
+
+  section { margin: 46px 0 0; }
+
+  h2 {
+    font-family: var(--cond);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 0 0 16px;
+    padding-bottom: 9px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  p { margin: 0 0 15px; }
+  p:last-child { margin-bottom: 0; }
+
+  .lede { font-size: 17px; }
+
+  strong { font-weight: 500; color: var(--ink); }
+  em { font-style: normal; color: var(--amber); font-weight: 500; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.88em;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    padding: 0.08em 0.34em;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+
+  /* ── the table ────────────────────────────────────────────── */
+
+  .scroll { overflow-x: auto; margin: 0 -2px; }
+
+  table {
+    width: 100%;
+    min-width: 640px;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  thead th {
+    font-family: var(--cond);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    text-align: left;
+    padding: 0 12px 9px;
+    border-bottom: 1px solid var(--rule-firm);
+    white-space: nowrap;
+  }
+  thead th.num { text-align: right; }
+
+  tbody td {
+    padding: 11px 12px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: baseline;
+  }
+  tbody tr:last-child td { border-bottom: 1px solid var(--rule-firm); }
+
+  td.shape { color: var(--ink); }
+  td.shape span { display: block; color: var(--ink-3); font-size: 12.5px; line-height: 1.45; margin-top: 2px; }
+
+  td.num {
+    font-family: var(--mono);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: var(--ink-2);
+  }
+  td.num.moved { color: var(--amber); font-weight: 500; }
+
+  .verdict {
+    font-family: var(--cond);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .verdict.cleared { color: var(--amber); }
+  .verdict.kept    { color: var(--moss); }
+
+  /* a hairline down the left of rows the migration changed */
+  tbody tr.moved td:first-child { box-shadow: inset 2px 0 0 var(--amber); }
+
+  .tablenote {
+    font-size: 13.5px;
+    color: var(--ink-3);
+    margin: 14px 0 0;
+    max-width: 66ch;
+  }
+
+  /* ── the two clauses ──────────────────────────────────────── */
+
+  .clauses { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); }
+  .clause { border-top: 2px solid var(--rule-firm); padding-top: 13px; }
+  .clause h3 {
+    font-family: var(--cond);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin: 0 0 8px;
+  }
+  .clause p { font-size: 14.5px; color: var(--ink-2); margin: 0; }
+
+  /* ── the check ────────────────────────────────────────────── */
+
+  .check {
+    border: 1px solid var(--rule-firm);
+    background: var(--surface);
+    padding: 20px 22px;
+  }
+  .check h2 { border-bottom: 0; padding-bottom: 0; margin-bottom: 10px; }
+  .dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--amber);
+    vertical-align: 0.12em;
+    margin: 0 1px;
+  }
+
+  a {
+    color: var(--amber);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+  }
+  a:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+  footer {
+    margin: 52px 0 0;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule);
+    font-size: 13.5px;
+    color: var(--ink-3);
+  }
+  footer a { color: var(--ink-2); }
+</style>
+<div class="wrap">
+  <header>
+    <div class="docket">
+      <span>Migration <span class="val">0018</span></span>
+      <span>Database <span class="val">teajia-db</span></span>
+      <span>Status <span class="val">waiting for your go</span></span>
+      <span>Rows whose value changes <span class="val">0</span></span>
+    </div>
+    <h1>The table stops saying free</h1>
+    <p class="standfirst">
+      When a tea was added without a freight rate, the table filled in 0. Without a markup, 2.5. Without a cost, 0.
+      Three answers nobody gave, each one looking like a decision. This removes the fill-ins. It changes no tea
+      that exists today; it changes what the next tea gets when a door forgets to say.
+    </p>
+    <dl class="status">
+      <div><dt>Freight fill-in</dt><dd>0 &nbsp;·&nbsp; ships free &rarr; none</dd></div>
+      <div><dt>Markup fill-in</dt><dd>2.5 &rarr; none</dd></div>
+      <div><dt>Cost fill-in</dt><dd>0 &nbsp;·&nbsp; a free tea &rarr; none</dd></div>
+      <div><dt>Re-runnable</dt><dd>yes, no-op</dd></div>
+    </dl>
+  </header>
+
+  <section class="prose">
+    <h2>What it changes</h2>
+    <p class="lede">
+      Every fix since the freight rule was written corrected the rows, but none could reach the table's own
+      habit of answering a blank with a number, because this database cannot change a default in place.
+    </p>
+    <p>
+      So nine of the ten ways a tea can enter the shop were still landing <strong>ships free</strong>,
+      <strong>markup 2.5</strong> and, for three of them, <strong>cost 0</strong>, and the inventory list drew a
+      gold dot on the whole shelf claiming you had pinned every one. Measured against a copy of your catalogue:
+      223 dots before, none after.
+    </p>
+    <p>
+      The code half is already on main: all ten doors now say the three fields out loud, so a blank stays blank,
+      the shop rate and the times-three apply, and the inventory list reads a blank as following the shop rate.
+      This migration is the second lock. It removes the fill-ins from the table itself, so a door written next
+      year cannot fall into the same hole.
+    </p>
+    <div class="clauses">
+      <div class="clause">
+        <h3>It changes</h3>
+        <p>What the table answers when a future save leaves freight, markup or cost unsaid: nothing, instead of 0, 2.5 and 0. A blank then reads as blank everywhere.</p>
+      </div>
+      <div class="clause">
+        <h3>It leaves alone</h3>
+        <p>Every existing tea, listing, price, rate, index and trigger. Your customers see the same prices tomorrow as today.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>What it touches, and what it leaves alone</h2>
+    <p class="tablenote" style="margin:0 0 14px">
+      <strong>These are seeded shapes, not your shelf.</strong> Each row was built to the shape of a real tea and every
+      value came back identical. On the sandbox copy (340 teas, 220 partner listings) the whole table was
+      fingerprinted before and after, and the two fingerprints match. Only what an empty field turns into for a
+      tea added tomorrow differs.
+    </p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Shape of the row</th><th class="num">Freight before</th><th class="num">after</th><th class="num">Markup before</th><th class="num">after</th><th class="num">Cost before</th><th class="num">after</th><th>Verdict</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="shape">A tea added with the freight field blank, before the code fix<span>It carries the 0 the table gave it; that 0 stays, and is a separate clean-up if you want one</span></td><td class="num">0</td><td class="num">0</td><td class="num">2.5</td><td class="num">2.5</td><td class="num">0</td><td class="num">0</td><td><span class="verdict kept">Untouched</span></td></tr>
+          <tr><td class="shape">A tea you deliberately set to ship free</td><td class="num">0</td><td class="num">0</td><td class="num">NULL</td><td class="num">NULL</td><td class="num">120</td><td class="num">120</td><td><span class="verdict kept">Untouched</span></td></tr>
+          <tr><td class="shape">A tea pinned at 85</td><td class="num">85</td><td class="num">85</td><td class="num">NULL</td><td class="num">NULL</td><td class="num">120</td><td class="num">120</td><td><span class="verdict kept">Untouched</span></td></tr>
+          <tr><td class="shape">Teaware, where 0 is the true freight</td><td class="num">0</td><td class="num">0</td><td class="num">NULL</td><td class="num">NULL</td><td class="num">40</td><td class="num">40</td><td><span class="verdict kept">Untouched</span></td></tr>
+          <tr><td class="shape">A tea with the markup set to 3 by hand</td><td class="num">NULL</td><td class="num">NULL</td><td class="num">3</td><td class="num">3</td><td class="num">120</td><td class="num">120</td><td><span class="verdict kept">Untouched</span></td></tr>
+          <tr><td class="shape">A gift, cost typed as 0</td><td class="num">NULL</td><td class="num">NULL</td><td class="num">NULL</td><td class="num">NULL</td><td class="num">0</td><td class="num">0</td><td><span class="verdict kept">Untouched</span></td></tr>
+          <tr class="moved"><td class="shape">The next tea a door adds without saying<span>The only thing that moves, and it is not a row yet</span></td><td class="num">0</td><td class="num moved">NULL</td><td class="num">2.5</td><td class="num moved">NULL</td><td class="num">0</td><td class="num moved">NULL</td><td><span class="verdict cleared">Follows the shop</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="tablenote">
+      Partner listings carry the same three fields and were checked the same way: nothing moves. Every index and
+      every trigger on both tables is the same before and after, and every table that points at a tea (article
+      links, sales grants, receipt lines, favourites, ten more) came through byte for byte.
+    </p>
+  </section>
+
+  <section class="prose">
+    <h2>Why it is not the usual rebuild</h2>
+    <p>
+      The textbook way to change a default is to build a new table, copy everything across, and drop the old one.
+      On this database that would have quietly deleted the article-to-tea links and the sales grants and blanked
+      the tea references on receipt proposals and favourites, because the switch that is supposed to pause those
+      cascades is accepted and ignored here. The builder measured that rather than trusting it, and the reviewer
+      measured it again. So the migration rewrites the three columns in place: add a twin with no default, copy
+      the column onto it, drop the original, rename the twin back. Nothing is dropped, so nothing can cascade.
+    </p>
+  </section>
+
+  <section class="check prose">
+    <h2>Your check</h2>
+    <p>
+      <strong>Add a tea</strong> through the Add Product form and leave the freight field empty. In the inventory
+      list its Ship&nbsp;$/kg cell shows the shop rate (about 12.63 today) with no gold dot
+      <span class="dot" aria-hidden="true"></span>, and the hover text says it is following the shop rate.
+      This already holds on main; the migration keeps it true for doors nobody has written yet.
+    </p>
+    <p>
+      <strong>Scan the Ship&nbsp;$/kg column.</strong> Every row showing 0.00 with a dot should be teaware. On the
+      sandbox copy that is 117 rows, all teaware.
+    </p>
+    <p style="margin-bottom:0">
+      <strong>Shop.</strong> Any tea on the public shelf shows the same price it showed yesterday. Say <em>go</em>
+      and this pushes behind the code that is already on main. Say <em>hold</em> and nothing continues to land
+      free while it waits, because every door now names the three fields itself.
+    </p>
+  </section>
+
+  <footer>
+    Twenty-four statements, three columns on two tables. Rehearsed twice against a scratch database built from the
+    migration ledger plus the live triggers, and once against a copy of the sandbox. Guarded by a test that compares
+    every row, index and trigger before and after, and by the defaults registry, which now reads the real default
+    out of the ledger and fails if the written reason and the database disagree. Held on branch
+    prime-time/table-rebuild until you say go.
+  </footer>
+</div>

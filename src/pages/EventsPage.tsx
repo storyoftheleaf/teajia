@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronRight } from 'lucide-react';
 import { api } from '../lib/api';
@@ -243,6 +243,15 @@ const EventsPage: React.FC = () => {
             ))
           )}
         </div>
+
+        {/* The join screen takes the six-digit code a host reads out at a
+            session. It had no door; this is it. */}
+        <p className="mt-10 text-center text-ui-13 text-tea-text-sec">
+          At a session?{' '}
+          <Link to="/join" className="text-tea-gold hover:text-tea-gold-lt transition-colors">
+            Enter its code
+          </Link>
+        </p>
       </div>
     </div>
   );

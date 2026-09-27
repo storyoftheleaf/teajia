@@ -1,4 +1,3 @@
-import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import type { PaymentOrderSummaryData } from './types';
 
 /**
@@ -35,9 +34,9 @@ export function PaymentOrderSummary({ summary }: { summary: PaymentOrderSummaryD
     // below never engages, and on a 375px phone the quantity is pushed clean off
     // the screen. Measured on the live page: the amount sat 208px past the right
     // edge before this class, and inside it after.
-    <div data-testid="payment-order-summary" className="min-w-0 border-t border-tea-border pt-5 sm:col-span-2">
+    <div data-testid="payment-order-summary" className="mt-5 min-w-0">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <p className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-dim`}>This payment covers</p>
+        <p className="font-body text-ui-13 italic leading-[1.45] text-tea-text-sec">This payment covers</p>
         {summary.placedOn && (
           <p className="text-ui-12 text-tea-text-dim">Placed {summary.placedOn}</p>
         )}

@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
+import { columnDefault, migrationFiles, MIGRATIONS_DIR, seedFromMigrations } from './helpers/migratedSqlite';
 
 /**
  * A column default is a decision somebody made once for every row that will
@@ -105,6 +107,137 @@ const UNIT_DEFAULTS: Record<string, string> = {
 function found(pattern: RegExp): string[] {
   return [...schema.matchAll(pattern)].map(m => m[1]);
 }
+
+/**
+ * What the LIVE column actually defaults to, and what the registry claims.
+ *
+ * This is the half the registry was missing, and it is the half that mattered.
+ * Every check above reads `worker/schema.sql`, which is a description of the
+ * database maintained by hand, so a reason written beside a default was only
+ * ever checked against the file that carries the default, never against the
+ * database. `products.shipping_rate_per_kg` was `DEFAULT NULL` in schema.sql and
+ * `DEFAULT 0` in the live table for months. The guard passed all the way
+ * through, because a default that disagrees with its own written reason is
+ * exactly what it could not see.
+ *
+ * `dflt` is what `PRAGMA table_info` reports after every migration has run.
+ * `clearedBy` is filled in once a migration has changed it, and names what the
+ * default WAS: the test replays the ledger up to the migration before that one
+ * and checks the claim, so "0018 removed the default" is verified rather than
+ * asserted, and deleting 0018 turns this red instead of quietly passing.
+ */
+interface LiveDefault {
+  table: string;
+  column: string;
+  /** `PRAGMA table_info(...).dflt_value` today, verbatim. NULL means none. */
+  dflt: string | null;
+  reason: string;
+  /** The migration that changed it, and the value it changed away from. */
+  clearedBy?: { migration: string; was: string };
+}
+
+const CLEARED_BY_0018 = { migration: '0018_the_table_stops_saying_free.sql', was: '' };
+const clearedBy = (was: string) => ({ ...CLEARED_BY_0018, was });
+
+const LIVE_DEFAULTS: LiveDefault[] = [
+  {
+    table: 'products', column: 'shipping_rate_per_kg', dflt: null, clearedBy: clearedBy('0'),
+    reason: '0 on a freight rate is Adrian saying this tea ships free, not "nobody entered one", and it '
+      + 'was the default for every INSERT that did not name the column. schema.sql said NULL here from '
+      + '0007 onward and was wrong the whole time; 0018 made the file true.',
+  },
+  {
+    table: 'products', column: 'markup_multiplier', dflt: null, clearedBy: clearedBy('2.5'),
+    reason: 'The multiplier the shop stopped using. 0013 cleared it off the rows and could not touch the '
+      + 'default; the curator listing path reads the column, so a row carrying it priced differently from '
+      + 'the shelf. NULL now, which reads SHOP_MARKUP_MULTIPLIER.',
+  },
+  {
+    table: 'products', column: 'cost_amount', dflt: null, clearedBy: clearedBy('0'),
+    reason: '0 on an amount is a free tea, not an unrecorded one, and the shelf priced it at zero times '
+      + 'three. Every door already required the cost or named the column NULL; 0018 removed the last way '
+      + 'to reach it.',
+  },
+  {
+    table: 'product_listings', column: 'shipping_rate_per_kg', dflt: null, clearedBy: clearedBy('0'),
+    reason: 'The same rate on the mirror, and the listing is the row a partner shop actually prices from, '
+      + 'so a free-shipping default here reached a second shelf as well as this one.',
+  },
+  {
+    table: 'product_listings', column: 'markup_multiplier', dflt: null, clearedBy: clearedBy('2.5'),
+    reason: 'The same multiplier on the mirror, and this is the copy the curator listing path reads, so a '
+      + 'listing carrying it priced the same tea differently from the shop shelf.',
+  },
+  {
+    table: 'product_listings', column: 'cost_amount', dflt: null, clearedBy: clearedBy('0'),
+    reason: 'The same free tea on the mirror. Carrying a tea, receiving a wholesale order and both create '
+      + 'mirrors reach this column, and a cost of zero times three is a price of zero.',
+  },
+  {
+    table: 'products', column: 'cost_currency', dflt: "'USD'",
+    reason: 'DEBT: a guessed unit on the figure the shelf price is computed from. It cannot simply be '
+      + 'dropped, because a chosen USD and a defaulted USD are the same three letters; 0014 added '
+      + 'cost_currency_source so the unanswered rows are findable, and the default goes when that '
+      + 'backlog reaches zero.',
+  },
+];
+
+describe('the registry says what the LIVE column does, not what a file says', () => {
+  it('reads every registered default out of the migration ledger and finds the claim honest', () => {
+    const { db } = seedFromMigrations();
+    try {
+      const wrong: string[] = [];
+      for (const entry of LIVE_DEFAULTS) {
+        const actual = columnDefault(db, entry.table, entry.column);
+        if (actual !== entry.dflt) {
+          wrong.push(`${entry.table}.${entry.column}: registry says ${entry.dflt ?? 'no default'}, `
+            + `the migrations build ${actual ?? 'no default'}`);
+        }
+      }
+      expect(wrong, 'a default disagrees with the reason written beside it. '
+        + 'Either a migration changed it and the registry was not updated, or the registry is describing '
+        + 'schema.sql rather than the database.').toEqual([]);
+    } finally {
+      db.close();
+    }
+  });
+
+  it('proves each clearedBy claim by replaying the ledger up to the migration before it', () => {
+    const problems: string[] = [];
+    for (const entry of LIVE_DEFAULTS) {
+      if (!entry.clearedBy) continue;
+      const { migration, was } = entry.clearedBy;
+      if (!existsSync(join(MIGRATIONS_DIR, migration))) {
+        problems.push(`${entry.table}.${entry.column} names ${migration}, which does not exist`);
+        continue;
+      }
+      const number = migration.slice(0, 4);
+      const before = migrationFiles().filter(file => file.slice(0, 4) < number).pop();
+      const { db } = seedFromMigrations({ through: (before ?? '0000').slice(0, 4) });
+      try {
+        const actual = columnDefault(db, entry.table, entry.column);
+        if (actual !== was) {
+          problems.push(`${entry.table}.${entry.column}: before ${migration} the default was `
+            + `${actual ?? 'none'}, not the ${was} the registry claims`);
+        }
+        if (actual === entry.dflt) {
+          problems.push(`${entry.table}.${entry.column}: ${migration} is credited with changing the `
+            + 'default and changed nothing');
+        }
+      } finally {
+        db.close();
+      }
+    }
+    expect(problems, 'a migration is credited with a change the ledger does not show').toEqual([]);
+  });
+
+  it('every registered default is carried with a written reason', () => {
+    for (const entry of LIVE_DEFAULTS) {
+      expect(entry.reason.length, `${entry.table}.${entry.column} is registered with no explanation`)
+        .toBeGreaterThan(60);
+    }
+  });
+});
 
 describe('every column default is a decision somebody wrote down', () => {
   it('names every money default, zero included, because 0 on an amount means free', () => {

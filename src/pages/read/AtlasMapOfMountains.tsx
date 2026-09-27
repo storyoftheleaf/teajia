@@ -68,25 +68,25 @@ const DetailPanel: React.FC<{ region: Region }> = ({ region: r }) => (
   <>
     <div style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.2em', color: C.gold, marginBottom: 18 }}>{r.coord}</div>
     <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-      <h2 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(32px,4vw,46px)', lineHeight: 1, color: '#f3ead9', margin: 0 }}>{r.name}</h2>
-      <span style={{ fontFamily: F.cn, fontSize: 24, color: '#cdc0a8' }}>{r.cn}</span>
+      <h2 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(32px,4vw,46px)', lineHeight: 1, color: 'var(--tj-read-cream)', margin: 0 }}>{r.name}</h2>
+      <span style={{ fontFamily: F.cn, fontSize: 24, color: 'var(--tj-read-taupe)' }}>{r.cn}</span>
     </div>
     <div style={{ fontFamily: F.ui, fontSize: 10.5, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.dim, marginTop: 12 }}>{r.area}</div>
-    <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(15px,1.8vw,17px)', lineHeight: 1.66, color: '#cdc0a8', margin: '22px 0 26px' }}>{r.note}</p>
+    <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(15px,1.8vw,17px)', lineHeight: 1.66, color: 'var(--tj-read-taupe)', margin: '22px 0 26px' }}>{r.note}</p>
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '13px 0', borderTop: '1px solid rgba(168,135,77,0.12)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '13px 0', borderTop: '1px solid rgb(var(--tj-read-gold-rgb) / 0.12)' }}>
         <span style={{ fontFamily: F.ui, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.dim }}>Signature</span>
-        <span style={{ fontFamily: F.body, fontSize: 15, color: '#ede4d4', textAlign: 'right' }}>{r.teas}</span>
+        <span style={{ fontFamily: F.body, fontSize: 15, color: 'var(--tj-read-ink)', textAlign: 'right' }}>{r.teas}</span>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '13px 0', borderTop: '1px solid rgba(168,135,77,0.12)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '13px 0', borderTop: '1px solid rgb(var(--tj-read-gold-rgb) / 0.12)' }}>
         <span style={{ fontFamily: F.ui, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.dim }}>Elevation</span>
-        <span style={{ fontFamily: F.body, fontSize: 15, color: '#ede4d4', textAlign: 'right' }}>{r.elev}</span>
+        <span style={{ fontFamily: F.body, fontSize: 15, color: 'var(--tj-read-ink)', textAlign: 'right' }}>{r.elev}</span>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '13px 0', borderTop: '1px solid rgba(168,135,77,0.12)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '13px 0', borderTop: '1px solid rgb(var(--tj-read-gold-rgb) / 0.12)' }}>
         <span style={{ fontFamily: F.ui, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.dim }}>Family</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
           <span style={{ width: 11, height: 11, borderRadius: '50%', background: r.color }} />
-          <span style={{ fontFamily: F.body, fontSize: 15, color: '#ede4d4' }}>{r.type}</span>
+          <span style={{ fontFamily: F.body, fontSize: 15, color: 'var(--tj-read-ink)' }}>{r.type}</span>
         </span>
       </div>
     </div>
@@ -185,9 +185,9 @@ const AtlasMapOfMountains: React.FC = () => {
     style.setAttribute('data-tj-atlas-pulse', '');
     style.textContent = `
       @keyframes tjPulse {
-        0%   { box-shadow: 0 0 0 0   rgba(168,135,77,0.5); }
-        70%  { box-shadow: 0 0 0 13px rgba(168,135,77,0); }
-        100% { box-shadow: 0 0 0 0   rgba(168,135,77,0); }
+        0%   { box-shadow: 0 0 0 0   rgb(var(--tj-read-gold-rgb) / 0.5); }
+        70%  { box-shadow: 0 0 0 13px rgb(var(--tj-read-gold-rgb) / 0); }
+        100% { box-shadow: 0 0 0 0   rgb(var(--tj-read-gold-rgb) / 0); }
       }
     `;
     document.head.appendChild(style);
@@ -204,17 +204,17 @@ const AtlasMapOfMountains: React.FC = () => {
 
         {/* ── COVER ──────────────────────────────────────────────────────────── */}
         <header style={{ position: 'relative', minHeight: '78vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 'clamp(40px,8vw,90px) 24px clamp(30px,5vw,60px)', overflow: 'hidden' }}>
-          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 72% 56% at 50% 32%, rgba(168,135,77,0.12), transparent 62%)' }} />
-          <div aria-hidden="true" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-54%)', fontFamily: F.cn, fontWeight: 200, fontSize: 'min(54vw,520px)', lineHeight: 1, color: 'rgba(168,135,77,0.05)', pointerEvents: 'none', userSelect: 'none' }}>山</div>
+          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 72% 56% at 50% 32%, rgb(var(--tj-read-gold-rgb) / 0.12), transparent 62%)' }} />
+          <div aria-hidden="true" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-54%)', fontFamily: F.cn, fontWeight: 200, fontSize: 'min(54vw,520px)', lineHeight: 1, color: 'rgb(var(--tj-read-gold-rgb) / 0.05)', pointerEvents: 'none', userSelect: 'none' }}>山</div>
           <div style={{ position: 'relative', maxWidth: 820 }}>
             <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.42em', textTransform: 'uppercase', color: C.gold, marginBottom: 28 }}>
               The Geography of Tea &nbsp;·&nbsp; N°06
             </div>
-            <h1 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(46px,9vw,108px)', lineHeight: 0.98, letterSpacing: '-0.015em', color: '#f3ead9', margin: 0 }}>
+            <h1 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(46px,9vw,108px)', lineHeight: 0.98, letterSpacing: '-0.015em', color: 'var(--tj-read-cream)', margin: 0 }}>
               A Map of <span style={{ fontStyle: 'italic', color: C.gold }}>Mountains</span>
             </h1>
             <div aria-hidden="true" style={{ width: 54, height: 1, background: C.gold, opacity: 0.6, margin: '30px auto' }} />
-            <p style={{ fontFamily: F.body, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(16px,2.3vw,21px)', lineHeight: 1.5, color: '#cdc0a8', margin: '0 auto', maxWidth: 560 }}>
+            <p style={{ fontFamily: F.body, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(16px,2.3vw,21px)', lineHeight: 1.5, color: 'var(--tj-read-taupe)', margin: '0 auto', maxWidth: 560 }}>
               Half of what a tea is, it owes to a place. An atlas of the mountains that make the great teas of China, trace a peak to taste it.
             </p>
           </div>
@@ -222,9 +222,9 @@ const AtlasMapOfMountains: React.FC = () => {
 
         {/* ── STANDFIRST ─────────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(36px,6vw,72px) 24px clamp(28px,5vw,52px)' }}>
-          <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: '#ede4d4', margin: 0 }}>
+          <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: 'var(--tj-read-ink)', margin: 0 }}>
             <span style={{ float: 'left', fontFamily: F.display, fontWeight: 600, fontSize: '5em', lineHeight: 0.78, color: C.gold, margin: '8px 16px -4px 0' }}>T</span>
-            he French call it <em style={{ fontStyle: 'italic', color: '#f3ead9' }}>terroir</em>; the Chinese have known it far longer. Altitude, mist, the mineral in the rock, the angle of the morning sun, a tea drinks all of it in before a single leaf is plucked. Move a famous bush a hundred miles and it makes a stranger. Here are the places that cannot be moved.
+            he French call it <em style={{ fontStyle: 'italic', color: 'var(--tj-read-cream)' }}>terroir</em>; the Chinese have known it far longer. Altitude, mist, the mineral in the rock, the angle of the morning sun, a tea drinks all of it in before a single leaf is plucked. Move a famous bush a hundred miles and it makes a stranger. Here are the places that cannot be moved.
           </p>
         </section>
 
@@ -235,15 +235,15 @@ const AtlasMapOfMountains: React.FC = () => {
             {/* ── MAP PLATE ────────────────────────────────────────────────── */}
             <div
               ref={mapRef}
-              style={{ position: 'relative', flex: '1 1 460px', minWidth: 300, aspectRatio: '3/2', border: '1px solid rgba(168,135,77,0.22)', borderRadius: 4, overflow: 'hidden', background: 'linear-gradient(155deg,#1b1812 0%,#14100b 76%)', cursor: 'crosshair' }}
+              style={{ position: 'relative', flex: '1 1 460px', minWidth: 300, aspectRatio: '3/2', border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.22)', borderRadius: 4, overflow: 'hidden', background: 'linear-gradient(155deg,#1b1812 0%,var(--tj-read-bg) 76%)', cursor: 'crosshair' }}
             >
               <svg viewBox="0 0 1000 680" preserveAspectRatio="xMidYMid slice" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
                 {/* parallax layer 0, deepest, factor 26 */}
                 <g ref={mapcharRef}>
-                  <text x="500" y="430" textAnchor="middle" fontFamily="'Noto Serif SC',serif" fontWeight="200" fontSize="440" fill="rgba(168,135,77,0.045)">茶</text>
+                  <text x="500" y="430" textAnchor="middle" fontFamily="'Noto Serif SC',serif" fontWeight="200" fontSize="440" fill="rgb(var(--tj-read-gold-rgb) / 0.045)">茶</text>
                 </g>
                 {/* parallax layer 3, shallowest, factor 5 */}
-                <g ref={gridRef} stroke="rgba(168,135,77,0.07)" strokeWidth="1">
+                <g ref={gridRef} stroke="rgb(var(--tj-read-gold-rgb) / 0.07)" strokeWidth="1">
                   <line x1="200" y1="-40" x2="200" y2="720"/>
                   <line x1="400" y1="-40" x2="400" y2="720"/>
                   <line x1="600" y1="-40" x2="600" y2="720"/>
@@ -253,14 +253,14 @@ const AtlasMapOfMountains: React.FC = () => {
                   <line x1="-40" y1="510" x2="1040" y2="510"/>
                 </g>
                 {/* parallax layer 2, factor 11 */}
-                <g ref={topoRef} fill="none" stroke="rgba(168,135,77,0.16)" strokeWidth="1.2" strokeLinecap="round">
+                <g ref={topoRef} fill="none" stroke="rgb(var(--tj-read-gold-rgb) / 0.16)" strokeWidth="1.2" strokeLinecap="round">
                   <path d="M-60 250 C 220 200, 470 214, 760 178 C 880 164, 980 158, 1060 150"/>
                   <path d="M-60 300 C 200 250, 480 266, 770 228 C 900 212, 1000 206, 1060 198"/>
-                  <path d="M-60 356 C 220 302, 500 320, 780 284 C 910 268, 1000 262, 1060 256" stroke="rgba(168,135,77,0.12)"/>
+                  <path d="M-60 356 C 220 302, 500 320, 780 284 C 910 268, 1000 262, 1060 256" stroke="rgb(var(--tj-read-gold-rgb) / 0.12)"/>
                   <path d="M-60 430 C 240 372, 520 392, 800 352 C 930 334, 1010 330, 1060 326"/>
-                  <path d="M-60 498 C 220 442, 520 462, 810 420 C 940 402, 1010 398, 1060 394" stroke="rgba(168,135,77,0.12)"/>
+                  <path d="M-60 498 C 220 442, 520 462, 810 420 C 940 402, 1010 398, 1060 394" stroke="rgb(var(--tj-read-gold-rgb) / 0.12)"/>
                   <path d="M-60 566 C 240 510, 540 530, 820 490 C 950 472, 1020 468, 1060 464"/>
-                  <path d="M-60 628 C 240 576, 540 596, 830 556 C 960 540, 1020 536, 1060 532" stroke="rgba(168,135,77,0.1)"/>
+                  <path d="M-60 628 C 240 576, 540 596, 830 556 C 960 540, 1020 536, 1060 532" stroke="rgb(var(--tj-read-gold-rgb) / 0.1)"/>
                 </g>
                 {/* parallax layer 1, factor 18 */}
                 <g ref={topo2Ref} fill="none" stroke="rgba(150,180,180,0.1)" strokeWidth="1">
@@ -273,21 +273,21 @@ const AtlasMapOfMountains: React.FC = () => {
               {/* compass */}
               <div aria-hidden="true" style={{ position: 'absolute', top: 'clamp(12px,2.4vw,22px)', right: 'clamp(12px,2.4vw,22px)', width: 'clamp(44px,7vw,64px)', height: 'clamp(44px,7vw,64px)', opacity: 0.7 }}>
                 <svg viewBox="0 0 64 64" style={{ width: '100%', height: '100%' }}>
-                  <g fill="none" stroke="rgba(168,135,77,0.4)" strokeWidth="1">
+                  <g fill="none" stroke="rgb(var(--tj-read-gold-rgb) / 0.4)" strokeWidth="1">
                     <circle cx="32" cy="32" r="28"/>
-                    <circle cx="32" cy="32" r="20" stroke="rgba(168,135,77,0.22)"/>
+                    <circle cx="32" cy="32" r="20" stroke="rgb(var(--tj-read-gold-rgb) / 0.22)"/>
                   </g>
-                  <path d="M32 6 L37 32 L32 30 L27 32 Z" fill="rgba(168,135,77,0.7)"/>
-                  <path d="M32 58 L27 32 L32 34 L37 32 Z" fill="rgba(168,135,77,0.3)"/>
-                  <text x="32" y="20" textAnchor="middle" fontFamily='var(--font-sans)' fontSize="8" fill="#cdc0a8">N</text>
+                  <path d="M32 6 L37 32 L32 30 L27 32 Z" fill="rgb(var(--tj-read-gold-rgb) / 0.7)"/>
+                  <path d="M32 58 L27 32 L32 34 L37 32 Z" fill="rgb(var(--tj-read-gold-rgb) / 0.3)"/>
+                  <text x="32" y="20" textAnchor="middle" fontFamily='var(--font-sans)' fontSize="8" fill="var(--tj-read-taupe)">N</text>
                 </svg>
               </div>
 
               {/* scale bar */}
               <div aria-hidden="true" style={{ position: 'absolute', left: 'clamp(12px,2.4vw,22px)', bottom: 'clamp(12px,2.4vw,20px)', display: 'flex', flexDirection: 'column', gap: 5 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
-                  <span style={{ width: 34, height: 4, background: 'rgba(168,135,77,0.5)' }} />
-                  <span style={{ width: 34, height: 4, background: 'rgba(168,135,77,0.16)' }} />
+                  <span style={{ width: 34, height: 4, background: 'rgb(var(--tj-read-gold-rgb) / 0.5)' }} />
+                  <span style={{ width: 34, height: 4, background: 'rgb(var(--tj-read-gold-rgb) / 0.16)' }} />
                 </div>
                 <span style={{ fontFamily: F.mono, fontSize: 8.5, letterSpacing: '0.12em', color: C.dim }}>0, 500 km</span>
               </div>
@@ -329,10 +329,10 @@ const AtlasMapOfMountains: React.FC = () => {
                           position: 'absolute',
                           inset: 0,
                           borderRadius: '50%',
-                          background: on ? C.gold : 'rgba(168,135,77,0.5)',
+                          background: on ? C.gold : 'rgb(var(--tj-read-gold-rgb) / 0.5)',
                           boxShadow: on
-                            ? '0 0 0 1px var(--tj-gold,#a8874d), 0 0 12px 2px rgba(168,135,77,0.6)'
-                            : '0 0 0 1px rgba(168,135,77,0.4)',
+                            ? '0 0 0 1px var(--tj-gold,var(--tj-gold, var(--tj-read-gold-default))), 0 0 12px 2px rgb(var(--tj-read-gold-rgb) / 0.6)'
+                            : '0 0 0 1px rgb(var(--tj-read-gold-rgb) / 0.4)',
                           transform: on ? 'scale(1.35)' : 'scale(1)',
                           transition: 'transform 320ms, background 320ms',
                           willChange: 'transform',
@@ -346,10 +346,10 @@ const AtlasMapOfMountains: React.FC = () => {
                         fontWeight: 500,
                         letterSpacing: '0.12em',
                         textTransform: 'uppercase',
-                        color: on ? '#f3ead9' : '#9a8b6f',
+                        color: on ? 'var(--tj-read-cream)' : '#9a8b6f',
                         whiteSpace: 'nowrap',
                         transition: 'color 320ms',
-                        textShadow: '0 1px 7px rgba(20,16,11,0.95)',
+                        textShadow: '0 1px 7px rgb(var(--tj-read-bg-rgb) / 0.95)',
                       }}>
                         {r.name}
                       </span>
@@ -379,7 +379,7 @@ const AtlasMapOfMountains: React.FC = () => {
             </div>
 
             {/* ── DETAIL PANEL ─────────────────────────────────────────────── */}
-            <aside style={{ flex: '1 1 300px', minWidth: 280, maxWidth: 420, border: '1px solid rgba(168,135,77,0.18)', borderRadius: 4, background: 'linear-gradient(160deg,#1d1810,#15110b)', padding: 'clamp(24px,3vw,38px)', alignSelf: 'stretch' }}>
+            <aside style={{ flex: '1 1 300px', minWidth: 280, maxWidth: 420, border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.18)', borderRadius: 4, background: 'linear-gradient(160deg,var(--tj-read-card-from),var(--tj-read-card-to))', padding: 'clamp(24px,3vw,38px)', alignSelf: 'stretch' }}>
               <DetailPanel region={activeRegion} />
             </aside>
           </div>
@@ -389,7 +389,7 @@ const AtlasMapOfMountains: React.FC = () => {
         <section data-reveal style={{ maxWidth: 1180, margin: '0 auto', padding: 'clamp(20px,4vw,44px) clamp(20px,5vw,40px) clamp(40px,6vw,64px)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 8 }}>
             <span style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 30, color: C.gold, lineHeight: 1 }}>§</span>
-            <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.22)' }} />
+            <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.22)' }} />
             <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim }}>Index of mountains</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,230px),1fr))', gap: '0 clamp(20px,3vw,40px)' }}>
@@ -404,7 +404,7 @@ const AtlasMapOfMountains: React.FC = () => {
                     textAlign: 'left',
                     background: 'none',
                     border: 'none',
-                    borderTop: '1px solid rgba(168,135,77,0.14)',
+                    borderTop: '1px solid rgb(var(--tj-read-gold-rgb) / 0.14)',
                     cursor: 'pointer',
                     padding: '17px 2px',
                     display: 'flex',
@@ -417,7 +417,7 @@ const AtlasMapOfMountains: React.FC = () => {
                 >
                   <span style={{ width: 11, height: 11, borderRadius: '50%', background: r.color, marginTop: 5, flex: 'none', boxShadow: `0 0 0 3px ${hexA(r.color, 0.12)}` }} />
                   <span style={{ minWidth: 0 }}>
-                    <span style={{ fontFamily: F.display, fontSize: 21, color: '#ede4d4' }}>{r.name}</span>
+                    <span style={{ fontFamily: F.display, fontSize: 21, color: 'var(--tj-read-ink)' }}>{r.name}</span>
                     <span style={{ fontFamily: F.cn, fontSize: 14, color: C.dim, marginLeft: 7 }}>{r.cn}</span>
                     <div style={{ fontFamily: F.ui, fontSize: 9.5, fontWeight: 500, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.dim, marginTop: 5 }}>{r.type}</div>
                   </span>
@@ -429,7 +429,7 @@ const AtlasMapOfMountains: React.FC = () => {
 
         {/* ── PULL QUOTE ─────────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 900, margin: '0 auto', padding: 'clamp(50px,8vw,104px) 24px', textAlign: 'center' }}>
-          <blockquote style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(28px,4.8vw,54px)', lineHeight: 1.18, color: '#f3ead9', margin: '0 auto', maxWidth: 860 }}>
+          <blockquote style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(28px,4.8vw,54px)', lineHeight: 1.18, color: 'var(--tj-read-cream)', margin: '0 auto', maxWidth: 860 }}>
             "A tea carries its mountain the way a wine carries its hill, you are not drinking a leaf, but a place."
           </blockquote>
           <div aria-hidden="true" style={{ width: 40, height: 1, background: C.gold, opacity: 0.5, margin: '34px auto 0' }} />
@@ -439,39 +439,39 @@ const AtlasMapOfMountains: React.FC = () => {
         <section style={{ maxWidth: 1040, margin: '0 auto', padding: 'clamp(20px,4vw,40px) 24px clamp(40px,6vw,72px)' }}>
           <div data-reveal style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 34 }}>
             <span style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 30, color: C.gold, lineHeight: 1 }}>∞</span>
-            <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.22)' }} />
+            <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.22)' }} />
             <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim }}>What the mountain gives</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,300px),1fr))', gap: 'clamp(28px,5vw,56px)', alignItems: 'center' }}>
             <div data-reveal>
-              <p style={{ fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.8, color: '#cdc0a8', margin: '0 0 18px' }}>
+              <p style={{ fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.8, color: 'var(--tj-read-taupe)', margin: '0 0 18px' }}>
                 Height buys a tea its slowness. Up in the cold and cloud, the leaf grows lazily, packing sugars and aromatics into a small, dense bud instead of racing to size. The mist that pools in mountain valleys filters the sun, sparing the leaf its harsher, more bitter compounds.
               </p>
-              <p style={{ fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.8, color: '#cdc0a8', margin: 0 }}>
+              <p style={{ fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.8, color: 'var(--tj-read-taupe)', margin: 0 }}>
                 And the rock itself speaks. Iron, quartz, weathered stone, the root takes up the mountain's minerals and hands them, transformed, to your cup. This is why two gardens an hour apart can taste like different countries.
               </p>
             </div>
-            <figure data-reveal style={{ margin: 0, border: '1px solid rgba(168,135,77,0.18)', borderRadius: 4, background: 'linear-gradient(160deg,#1d1810,#15110b)', padding: 'clamp(22px,3vw,32px)' }}>
+            <figure data-reveal style={{ margin: 0, border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.18)', borderRadius: 4, background: 'linear-gradient(160deg,var(--tj-read-card-from),var(--tj-read-card-to))', padding: 'clamp(22px,3vw,32px)' }}>
               <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.gold, marginBottom: 22 }}>By altitude</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
                   <span style={{ fontFamily: F.mono, fontSize: 11, color: C.gold, width: 78, flex: 'none' }}>1500m+</span>
-                  <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.16)' }} />
-                  <span style={{ fontFamily: F.body, fontSize: 14, color: '#ede4d4' }}>Floral, delicate, slow</span>
+                  <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.16)' }} />
+                  <span style={{ fontFamily: F.body, fontSize: 14, color: 'var(--tj-read-ink)' }}>Floral, delicate, slow</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
                   <span style={{ fontFamily: F.mono, fontSize: 11, color: C.gold, width: 78, flex: 'none' }}>800m</span>
-                  <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.16)' }} />
-                  <span style={{ fontFamily: F.body, fontSize: 14, color: '#ede4d4' }}>Balanced &amp; aromatic</span>
+                  <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.16)' }} />
+                  <span style={{ fontFamily: F.body, fontSize: 14, color: 'var(--tj-read-ink)' }}>Balanced &amp; aromatic</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
                   <span style={{ fontFamily: F.mono, fontSize: 11, color: C.gold, width: 78, flex: 'none' }}>300m</span>
-                  <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.16)' }} />
-                  <span style={{ fontFamily: F.body, fontSize: 14, color: '#ede4d4' }}>Full-bodied, brisk</span>
+                  <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.16)' }} />
+                  <span style={{ fontFamily: F.body, fontSize: 14, color: 'var(--tj-read-ink)' }}>Full-bodied, brisk</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
                   <span style={{ fontFamily: F.mono, fontSize: 11, color: C.dim, width: 78, flex: 'none' }}>lowland</span>
-                  <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.1)' }} />
+                  <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.1)' }} />
                   <span style={{ fontFamily: F.body, fontSize: 14, color: C.dim }}>Quick, plain, plentiful</span>
                 </div>
               </div>
@@ -481,7 +481,7 @@ const AtlasMapOfMountains: React.FC = () => {
 
         {/* ── CLOSING ────────────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(20px,4vw,40px) 24px clamp(40px,6vw,72px)' }}>
-          <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(17px,2.1vw,20px)', lineHeight: 1.72, color: '#cdc0a8', margin: 0 }}>
+          <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(17px,2.1vw,20px)', lineHeight: 1.72, color: 'var(--tj-read-taupe)', margin: 0 }}>
             A map of tea is really a map of patience, of places remote and high enough that the modern hurry never quite arrived. Drink carefully, and the mountain comes with the cup: the cold, the cloud, the stone. Geography you can taste.
           </p>
           <div style={{ marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>

@@ -1,7 +1,7 @@
 // tests/read-button.spec.ts
 // The "Read" control in whichever navigation the width is showing must land on
 // /read (the unified Read section), not the legacy /magazine listing.
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 test('the Read nav button navigates to /read', async ({ page }) => {
   await page.goto('/');

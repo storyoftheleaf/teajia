@@ -32,6 +32,56 @@ export function enteredNumber(value: unknown): number | null {
 }
 
 /**
+ * The words a spreadsheet uses for a cell nobody filled in.
+ *
+ * A person exporting an inventory sheet writes any of these when they do not
+ * know a figure, and every one of them means the same thing as an empty cell.
+ */
+const NOTHING_WRITTEN = new Set(['', 'unknown', 'nan', 'null', 'undefined', 'n/a', '-']);
+
+/**
+ * `enteredNumber`'s rule for an imported cell rather than a typed field.
+ *
+ * The import doors read cells a person wrote by hand, so the text arrives with
+ * a currency symbol, a thousands separator, an approximation mark or a sum
+ * ("4+8" for two bags). Each door wrote its own reader for that, and each one
+ * ended in `|| 0`, so a blank price cell reached the worker as a well formed
+ * zero. Zero is not "unknown", it is FREE: the tea prices at zero times three
+ * and the shelf prints $0.00, which looks exactly like a cheap tea. That is the
+ * same confusion `enteredNumber` exists to stop, arriving through a different
+ * door, and the audit reproduced it end to end with a blank price cell and a
+ * currency of HKD.
+ *
+ * Cleaning the text is what genuinely differs between one sheet and the next.
+ * Deciding whether anything was written is what must not, so it lives here,
+ * once, and both import doors read this copy.
+ *
+ * Nothing written is null. Anything written is the number, ZERO INCLUDED: a
+ * vendor's free sample is a real thing and typing 0 says so.
+ */
+export function enteredCostCell(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  const text = String(value).trim();
+  if (NOTHING_WRITTEN.has(text.toLowerCase())) return null;
+  // "~235" and "≈235" are a person estimating, not a different number.
+  const cleaned = text.replace(/[~≈]/g, '');
+  if (cleaned.includes('+')) {
+    // "4+8" or "3+3+3+3": several bags on one line, added up.
+    let sum = 0;
+    let sawOne = false;
+    for (const part of cleaned.split('+')) {
+      const n = parseFloat(part.replace(/[^0-9.-]/g, ''));
+      if (Number.isFinite(n)) { sum += n; sawOne = true; }
+    }
+    return sawOne ? sum : null;
+  }
+  const n = parseFloat(cleaned.replace(/[^0-9.-]/g, ''));
+  // Not a number at all is not an answer either. It is a typo, and writing it
+  // to a money column would be worse than leaving the field alone.
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
  * Maps one edited field to the snake_case column payload the API expects.
  *
  * Lives in its own module, apart from ProductEditPanel, so a caller can build

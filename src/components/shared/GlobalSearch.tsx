@@ -264,7 +264,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
         subtitle: [ev.subtitle, ev.venue_name].filter(Boolean).join(' . ') || ev.description?.slice(0, 80) || '',
         category: 'Session',
         image: ev.hero_image,
-        action: () => navigateAndClose(`/events/${encodeURIComponent(ev.slug)}`),
+        action: () => navigateAndClose(`/event/${encodeURIComponent(ev.slug)}`),
       };
     });
 

@@ -125,10 +125,9 @@ export function TeaLedger({
               const isTeajiaFav = !!item.isFeatured;
               const isFavorite = favoriteIds.has(item.id);
               const purchase = teaPurchaseQuote(item, priceWeight);
+              const stockG = item.stock_g ?? 0;
               const showType = activeType !== 'All' || specialFilter !== 'None';
               const rowTones = showType ? getTeaLedgerTones(item.type, theme) : tones;
-
-              const stockG = item.stock_g ?? 0;
               // Stock state used to sit inline beside the name, where it
               // competed with the product title on the same baseline. It reads
               // as a qualifier on the price, so it lives under the price.
@@ -212,7 +211,7 @@ export function TeaLedger({
 
                     <div className="min-w-0 flex-1 lg:flex-none lg:w-[300px]">
                       <div className="flex items-center gap-2">
-                        <h3 className="truncate font-display text-ui-17 font-medium leading-tight text-tea-text lg:text-ui-20">
+                        <h3 className="line-clamp-2 font-display text-ui-17 font-medium leading-tight text-tea-text lg:text-ui-20">
                           {item.name}
                         </h3>
                         {isTeajiaFav && <Icons.Seal className="w-2.5 h-2.5 shrink-0 text-tea-gold" />}
@@ -277,7 +276,7 @@ export function TeaLedger({
                           column is about 20px narrower and the figures line up
                           as figures. */}
                       <div className="min-w-[52px] whitespace-nowrap text-right">
-                        <div className="num border-b border-tea-border pb-[3px] text-ui-16 font-medium tabular-nums text-tea-text">
+                        <div data-testid="grid-price" className="num border-b border-tea-border pb-[3px] text-ui-16 font-medium tabular-nums text-tea-text">
                           {purchase ? formatPrice(purchase.totalUsd) : '\u2014'}
                         </div>
                         <div className="num pt-[3px] text-ui-10 tabular-nums text-tea-text-dim">

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { AnimatePresence } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import { useInventory } from '../context/InventoryContext';
 import { useAuth } from '../hooks/useAuth';
 import { Icons } from '../components/Icons';
@@ -17,9 +18,10 @@ import type { Product } from '../admin/types';
 import { useAppStore } from '../lib/store';
 import { buildPublicProductHref, findProductByRouteParam } from '../lib/publicProductNavigation';
 import { LABEL, NUMERAL } from '../components/shared/typeRoles';
-import { sellUnitOf } from '../lib/teaPricing';
+import { quoteGrams, sellUnitOf, wholePieceOf } from '../lib/teaPricing';
 import { useProducts } from '../admin/hooks/useAdminData';
 import { api } from '../lib/api';
+import { GroupHead, IndexRow, SplitName } from '../components/people/immersive';
 
 
 interface ProductPageProps {
@@ -103,6 +105,18 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   useEffect(() => {
     if (item?.id) addRecentlyViewed(item.id);
   }, [item?.id, addRecentlyViewed]);
+
+  // Surface 3 / Lane F: published creators whose public tea selection
+  // includes this product. Public read, so it is safe to fire before the
+  // reader has signed in, and quiet when nobody has selected the tea --
+  // enabled only once an item has resolved, never fired on a 404.
+  const selectedByQuery = useQuery({
+    queryKey: ['product-selected-by', item?.id],
+    queryFn: () => api.products.getSelectedBy(item!.id),
+    enabled: Boolean(item?.id),
+    staleTime: 1000 * 60 * 5,
+  });
+  const selectedBy = selectedByQuery.data?.selected_by ?? [];
 
   // Tasting session (customers) / product tasting editor (admins): same
   // behaviors the shop grids attach to the modal card.
@@ -260,13 +274,26 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   const presets = sellUnit
     ? [1, 2, 3, 4].map(n => n * sellUnit.grams).filter(p => p <= sliderMax)
     : [25, 50, 100, 250].filter(p => p <= sliderMax);
+  // A sealed unit is a whole piece from the curve's own side; a pressed cake,
+  // brick or tuo that is not sold in units is the same fact by weight. Either
+  // way this is the figure `quoteGrams` needs to know when a preset carries no
+  // handling fee.
+  const wholePiece = item.category === 'tea'
+    ? (sellUnit ?? wholePieceOf(item.form, item.pieceWeightG))
+    : undefined;
   const offerCurrency = PUBLISHED_CURRENCY;
   const offerPrice = (usd: number) => usd.toFixed(2);
+  // The same curve the ladder, the cart and the order total read. This graph
+  // used to state cost times grams with no handling fee, so a crawler quoted
+  // a price the page itself does not charge, which is the mismatch schema.org
+  // rich results are built to flag.
+  const quotedTotal = (gramsOffered: number) =>
+    quoteGrams(pricePerGram, gramsOffered, { wholePieceGrams: wholePiece?.grams }).totalUsd;
   const availability = isSoldOut ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock';
   const quantityOffers = presets.map(gramsOffered => ({
     '@type': 'Offer',
     '@id': `${productUrl}#offer-${gramsOffered}g`,
-    price: offerPrice(pricePerGram * gramsOffered),
+    price: offerPrice(quotedTotal(gramsOffered)),
     priceCurrency: offerCurrency,
     // GRM is the UN/CEFACT code for a gram, the unit every control on this
     // page is denominated in.
@@ -277,7 +304,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   }));
   // Sold out or stocked under the smallest preset, there is no quantity to
   // quote, so the page states a price for one gram rather than for nothing.
-  const smallestOfferPrice = offerPrice(pricePerGram * (presets[0] ?? 1));
+  const smallestOfferPrice = offerPrice(quotedTotal(presets[0] ?? 1));
 
   // JSON-LD structured data for SEO. A graph, not a single node: the product,
   // and the plant it is made from, addressed so the plant can be followed.
@@ -326,7 +353,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
               '@type': 'AggregateOffer',
               priceCurrency: offerCurrency,
               lowPrice: smallestOfferPrice,
-              highPrice: offerPrice(pricePerGram * presets[presets.length - 1]),
+              highPrice: offerPrice(quotedTotal(presets[presets.length - 1])),
               offerCount: quantityOffers.length,
               availability,
               offers: quantityOffers,
@@ -476,6 +503,28 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
           />
         )}
       </AnimatePresence>
+
+      {/* Selected by: quiet, text-only, and absent entirely when nobody has
+          publicly favorited this tea -- never a placeholder section. */}
+      {selectedBy.length > 0 && (
+        <section aria-label="Selected by" className="mx-5 mt-4 lg:mx-10" data-testid="product-selected-by">
+          {/* The profile page's own row (2026-09-21): the spaced-caps divider,
+              the name with its italic gold surname, the tea master's own note
+              as the dek, a hairline under. It reads as the person's voice on
+              the tea, which is the whole point of the line. */}
+          <GroupHead label="Selected by" />
+          {selectedBy.map(creator => (
+            <IndexRow
+              key={creator.slug}
+              to={`/people/${encodeURIComponent(creator.slug)}`}
+              title={<SplitName name={creator.display_name} />}
+              dek={creator.why ?? (creator.business_name ? `At ${creator.business_name}.` : undefined)}
+              testId="product-selected-by-row"
+              ariaLabel={`${creator.display_name}, who selected this tea`}
+            />
+          ))}
+        </section>
+      )}
 
       {/* Admin: product tasting editor, same modal used from the admin panel */}
       {adminTastingItem && adminTastingProductShim && (

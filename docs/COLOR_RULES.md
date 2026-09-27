@@ -299,19 +299,23 @@ A term the taxonomy has no colour for gets no swatch. Never invent a grey to sta
 
 **2. The file renders an artifact that leaves the app.** A PNG export or a PDF has no theme to adapt to, and the rasteriser reads computed inline values, so a custom property would bake in whichever theme the sender happened to be using. Put `@color-literals` in the file's header comment with the reason. See `src/components/tasting/TastingCard.tsx`.
 
-**3. The whole surface is theme-independent by design.** Added in round nine for the Read section, and narrower than it sounds: it is not "this page looks better dark". It means the surface does not participate in the site theme at all, has a declared palette of its own, and would be broken rather than restyled by taking `--tea-*`. See the decision recorded below.
+**3. The colour is art direction, not chrome.** Added in round nine for the Read section and narrowed on 2026-09-20. It covers a colour that is a fact about an object or a staged backdrop: the oxidation scale from green leaf to black leaf, the six dots that are the six colours of tea, a one-off hero gradient tuned to one article. Those have no light variant, any more than a photograph does. It does not cover page chrome that happens to sit in the same file. See the decision recorded below.
 
-### The Read section, decided
+### The Read section, decided, and revised
 
-`src/pages/read/**` held 363 of the remaining literals. That is now a decision rather than a backlog item.
+`src/pages/read/**` held 363 of the remaining literals. Round nine made that a decision rather than a backlog item: the Read section was a single always-dark editorial system, ported from mockups, that stayed dark when the rest of the site was on parchment, because `--tea-bg` on parchment turned a night read into a white page.
 
-The Read section is a single always-dark editorial system, ported from mockups, that stays dark when the rest of the site is on parchment. `read/immersive.tsx` owns its palette in a `C` block, deliberately scoped rather than reaching for `--tea-*`, because `--tea-bg` on parchment turns a night read into a white page. Much of the colour there is also art direction in the strict sense: the oxidation gradient in `LeafToLiquor` runs from green leaf to black leaf, and the six dots beside the six colours of tea are what those teas look like. Those are the same kind of fact as a liquor colour.
+**Revised 2026-09-20.** Adrian: "I think the read can be moved into light if someone switches into light mode." The reader now follows the site theme. `read/immersive.tsx` still owns its palette in the `C` block, and the seventeen article files still read `C.bg`, `C.gold`, `C.ink` and so on unchanged. What changed is what each entry resolves to: every field is a custom property (`--tj-read-*`, declared in `card-utilities.css`) whose dark value is pinned to the exact literal the reader always used and whose light value is drawn from the site's own light tokens: parchment ground, espresso ink, aged-bronze gold. Dark mode is pixel-identical to before. Light mode repaints instead of showing a night read on white. `tests/read-light-mode.spec.ts` holds both halves of that: the dark background must equal the old literal, the light one must equal the parchment token.
 
-Every file in that directory carries `@color-literals`, and `immersive.tsx` carries the full reasoning plus three conditions:
+What stays literal, under exception 3, is the colour that is art direction in the strict sense. The oxidation gradient in `LeafToLiquor` runs from green leaf to black leaf, the six dots beside the six colours of tea are what those teas look like, and several articles open on a one-off atmospheric hero gradient tuned to that piece. Those are the same kind of fact as a liquor colour. The recurring structural gradients (the bordered inset card, the photo placeholder plate) are chrome, reused across a dozen files, and route through `--tj-read-card-*`, `--tj-read-plate-*` and `--tj-read-empty-from`.
 
-1. New colour goes in `C` or `ACCENTS`, once, not as a hex in a component.
-2. Text pairs are still measured, against that palette's own background. `C.dim` on `C.bg` is 4.09:1 and is confined to non-essential marginalia; body and navigation take `C.taupe` at 10.6:1.
-3. The marker exempts files that exist. The directory is in the blocking list, so a new file there fails until someone writes the marker and means it.
+Every file in that directory still carries `@color-literals`, for that narrower reason, and `immersive.tsx` carries the full reasoning plus three conditions:
+
+1. New colour goes in `C` or `ACCENTS`, once, or in the `--tj-read-*` block in `card-utilities.css` when it needs a light and dark pair. Never a hex in a component.
+2. Text pairs are measured against that palette's own background, in both modes. Dark: `C.dim` on `C.bg` is 4.09:1 and is confined to non-essential marginalia; body and navigation take `C.taupe` at 10.6:1. Light: the dim text token on parchment measures 7.4:1, so light mode clears the floor the dark end cannot.
+3. The marker exempts files that exist. The directory is in the blocking list, so a new file there fails until someone writes the marker and means it, for a colour that is genuinely data about the object.
+
+One trap that would have defeated the whole change: every article page used to write a fixed dark gold onto the page on load, left over from a retired accent picker. It now writes nothing unless an accent was actually chosen, which today is never.
 
 `ProductPage.tsx` is marked under exception 2 for the same round: its chrome is all tokens, its plate art is drawing on a fixed 1080x1350 frame built to be screenshotted.
 

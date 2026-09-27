@@ -148,6 +148,18 @@ interface CatalogPickerProps {
   orderCurrency: string;
 }
 
+/**
+ * A listing with no recorded quantity purchased returns a null per-gram
+ * price rather than the old total-cost-as-price guess. Nothing entered is
+ * NULL, and a missing price must refuse to be added to the draft, not
+ * silently become 0, which would add the tea at a unit price of zero.
+ */
+export function canAddWholesaleProfile(
+  profile: Pick<NetworkCatalogProfile, 'curator_listing_id' | 'wholesale_price_per_gram_caller'>,
+): boolean {
+  return Boolean(profile.curator_listing_id) && profile.wholesale_price_per_gram_caller != null;
+}
+
 const CatalogPicker: React.FC<CatalogPickerProps> = ({
   onAdd,
   onClose,
@@ -198,6 +210,10 @@ const CatalogPicker: React.FC<CatalogPickerProps> = ({
   }, [profiles, query, existingProfileIds]);
 
   const handleAdd = (profile: NetworkCatalogProfile) => {
+    // Guards the click handler below, and is the last line of defense if
+    // this is ever called some other way: a listing with no recorded price
+    // refuses to be added rather than joining the draft at 0.
+    if (!canAddWholesaleProfile(profile)) return;
     const item: DraftItem = {
       key: `draft-${profile.id}-${Date.now()}`,
       profile_id: profile.id,
@@ -211,8 +227,10 @@ const CatalogPicker: React.FC<CatalogPickerProps> = ({
         profile.chinese_name,
         profile.varietal,
       ) || null,
-      // Catalog endpoint returns per-gram prices; multiply for the per-100g display.
-      unit_price_amount: profile.wholesale_price_per_gram_caller ?? 0,
+      // Catalog endpoint returns per-gram prices; multiply for the per-100g
+      // display. `canAddWholesaleProfile` above already refused a null price,
+      // so this is never standing in for "no price recorded".
+      unit_price_amount: profile.wholesale_price_per_gram_caller as number,
       unit_price_currency: profile.wholesale_currency_caller || orderCurrency,
       retail_amount: profile.retail_price_per_gram_curator,
       retail_currency: profile.retail_currency,
@@ -273,15 +291,21 @@ const CatalogPicker: React.FC<CatalogPickerProps> = ({
             // Disable when the curator has no active listing for this profile.
             // The worker requires supplier_listing_id and would 404 on submit.
             const noSupplierListing = !profile.curator_listing_id;
+            // Disable when the listing has no recorded quantity purchased, so
+            // the catalog returns no per-gram price at all. Nothing entered
+            // is NULL: adding it anyway would join the draft at a unit price
+            // of zero, a free tea nobody priced that way.
+            const noPrice = profile.wholesale_price_per_gram_caller == null;
+            const canAdd = canAddWholesaleProfile(profile);
             return (
               <li key={profile.id}>
                 <button
                   type="button"
-                  onClick={() => !noSupplierListing && handleAdd(profile)}
-                  disabled={noSupplierListing}
-                  className={`w-full text-left py-3 group ${noSupplierListing ? 'cursor-not-allowed opacity-60' : ''}`}
+                  onClick={() => canAdd && handleAdd(profile)}
+                  disabled={!canAdd}
+                  className={`w-full text-left py-3 group ${!canAdd ? 'cursor-not-allowed opacity-60' : ''}`}
                 >
-                  <div className={`font-display text-ui-16 leading-[1.2] ${noSupplierListing ? 'text-tea-text-dim' : 'text-tea-text group-hover:text-tea-gold transition-colors'}`}>
+                  <div className={`font-display text-ui-16 leading-[1.2] ${!canAdd ? 'text-tea-text-dim' : 'text-tea-text group-hover:text-tea-gold transition-colors'}`}>
                     {profile.name}
                   </div>
                   <div className="font-body text-ui-12 text-tea-text-sec mt-0.5 leading-[1.4]">
@@ -293,6 +317,9 @@ const CatalogPicker: React.FC<CatalogPickerProps> = ({
                     ) : null}
                     {noSupplierListing && (
                       <span className="italic ml-2">(supplier has no active listing)</span>
+                    )}
+                    {!noSupplierListing && noPrice && (
+                      <span className="italic ml-2">(no wholesale price recorded)</span>
                     )}
                   </div>
                 </button>

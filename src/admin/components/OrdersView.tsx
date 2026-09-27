@@ -852,6 +852,8 @@ export const OrdersView = () => {
                 <OrderPayLink
                   payment={viewingInvoice.payment}
                   invoiceNumber={viewingInvoice.invoice_number}
+                  customerName={viewingInvoice.customer_name}
+                  customerWhatsapp={viewingInvoice.customer_whatsapp ?? null}
                   layout="block"
                   className="mb-6"
                 />

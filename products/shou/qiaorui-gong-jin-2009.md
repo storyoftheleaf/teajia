@@ -1,13 +1,13 @@
 ---
-productName: "Qiaorui Gong Jin"
-chineseName: "乔瑞贡金砖"
+productName: "Nanqiao Ruigong Brick"
+chineseName: "南峤瑞贡金砖"
 type: Shou
 form: Brick
 year: 2009
 origin: "Menghai, Yunnan, China"
 grams: 1750
-stock: Unknown
-cost: "945 RMB"
+stock: 1750
+cost: "945 Yuan"
 vendor: "Yunan Fam"
 restockable: true
 tastingNotes:
@@ -18,22 +18,16 @@ tastingNotes:
   - "warm finish"
 ---
 
-A 2009 tribute-grade shou pressed into brick form. The 'gong' (贡) designation historically referred to tea produced for imperial tribute, and in modern usage indicates premium quality intended for distinguished recipients.
+A ripe puerh (shou) pressed into a brick in 2009, from Menghai in Yunnan.
 
-Gold brick (jin zhuan) further emphasizes the prestige classification. This large-format pressing has had over fifteen years of aging.
+## Lore
+
+The name Qiaorui Gong Jin (乔瑞贡金砖) breaks into gong (贡), meaning tribute, and jin zhuan, gold brick. Yunnan puerh has a documented history of being sent to the Qing imperial court as tribute tea. Today the word gong survives on labels as a quality reference, not an active imperial designation.
 
 ## Terroir
 
-Yunnan province. Tribute-grade teas historically came from the most respected production areas, typically Menghai or Yiwu region. The specific origin of this production may reflect those traditions.
+Menghai is a county in Xishuangbanna prefecture, southern Yunnan. The area sits at roughly 1,100 to 1,700 metres and grows the large-leaf assamica varietal used for puerh. Menghai is one of the historic puerh counties of Yunnan.
 
 ## Processing
 
-Premium-grade wo dui fermented shou pu-erh, compressed into brick form. The tribute classification suggests careful selection of leaf material and processing. Fifteen years of post-fermentation aging in the brick format, which ages differently than cakes due to its density and shape.
-
-## Mood
-
-quiet abundance
-
-## Experience
-
-Rich and smooth with an aged sweetness that fills the cup. The brick format has preserved the tea well over fifteen years. Clean, dependable, and generous in flavor. The kind of tea you can serve to anyone and know it will be appreciated.
+Ripe puerh, called shou, is Yunnan's dark, wet-piled style. The wo dui method was developed in Yunnan in the early 1970s: damp leaf is heaped so heat and microbes ferment it, turning the tea dark and ready to drink young. A brick is a mould-pressed dense block, one of the old compressed-tea formats alongside the round cake. Dense pressing means the form holds and the leaf ages slowly. This brick was pressed in 2009, making it more than fifteen years old. A ripe puerh of this age class pours a dark liquor and drinks full-bodied and smooth, its earthy pile character settled by time.

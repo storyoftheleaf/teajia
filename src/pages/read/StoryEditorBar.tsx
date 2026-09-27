@@ -35,8 +35,8 @@ const barWrap = (editing: boolean): React.CSSProperties => {
       maxHeight: '76vh',
       overflowY: 'auto',
       padding: editing ? '10px 10px' : 0,
-      background: editing ? 'rgba(20,16,11,0.96)' : 'transparent',
-      border: editing ? '1px solid rgba(168,135,77,0.3)' : 'none',
+      background: editing ? 'rgb(var(--tj-read-bg-rgb) / 0.96)' : 'transparent',
+      border: editing ? '1px solid rgb(var(--tj-read-gold-rgb) / 0.3)' : 'none',
       borderRadius: 10,
       backdropFilter: editing ? 'blur(10px)' : 'none',
       WebkitBackdropFilter: editing ? 'blur(10px)' : 'none',
@@ -54,8 +54,8 @@ const barWrap = (editing: boolean): React.CSSProperties => {
     gap: 8,
     maxWidth: 'min(94vw, 720px)',
     padding: editing ? '10px 12px' : 0,
-    background: editing ? 'rgba(20,16,11,0.94)' : 'transparent',
-    border: editing ? '1px solid rgba(168,135,77,0.3)' : 'none',
+    background: editing ? 'rgb(var(--tj-read-bg-rgb) / 0.94)' : 'transparent',
+    border: editing ? '1px solid rgb(var(--tj-read-gold-rgb) / 0.3)' : 'none',
     borderRadius: 6,
     backdropFilter: editing ? 'blur(10px)' : 'none',
     WebkitBackdropFilter: editing ? 'blur(10px)' : 'none',
@@ -71,9 +71,9 @@ const pill = (active = false): React.CSSProperties => ({
   padding: IS_TOUCH ? '11px 16px' : '8px 14px',
   minHeight: IS_TOUCH ? 44 : undefined,
   borderRadius: 3,
-  border: '1px solid rgba(168,135,77,0.4)',
-  background: active ? '#a8874d' : 'rgba(20,16,11,0.92)',
-  color: active ? '#14100b' : '#cdc0a8',
+  border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.4)',
+  background: active ? 'var(--tj-gold, var(--tj-read-gold-default))' : 'rgb(var(--tj-read-bg-rgb) / 0.92)',
+  color: active ? 'var(--tj-read-bg)' : 'var(--tj-read-taupe)',
   cursor: 'pointer',
   whiteSpace: 'nowrap',
 });
@@ -122,15 +122,15 @@ const StoryEditorBar: React.FC = () => {
             textTransform: 'uppercase',
             padding: '7px 12px',
             borderRadius: 3,
-            border: '1px solid rgba(168,135,77,0.25)',
-            background: 'rgba(20,16,11,0.55)',
-            color: 'rgba(205,192,168,0.75)',
+            border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.25)',
+            background: 'rgb(var(--tj-read-bg-rgb) / 0.55)',
+            color: 'rgb(var(--tj-read-taupe-rgb) / 0.75)',
             cursor: 'pointer',
             backdropFilter: 'blur(6px)',
             WebkitBackdropFilter: 'blur(6px)',
           }}
-          onMouseOver={(e) => { (e.currentTarget as HTMLElement).style.color = '#f3ead9'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(168,135,77,0.6)'; }}
-          onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.color = 'rgba(205,192,168,0.75)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(168,135,77,0.25)'; }}
+          onMouseOver={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--tj-read-cream)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgb(var(--tj-read-gold-rgb) / 0.6)'; }}
+          onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.color = 'rgb(var(--tj-read-taupe-rgb) / 0.75)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgb(var(--tj-read-gold-rgb) / 0.25)'; }}
           title="Owner editing"
         >
           edit
@@ -142,11 +142,11 @@ const StoryEditorBar: React.FC = () => {
   return (
     <div style={barWrap(true)}>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
-        <span style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#a8874d', marginRight: 4 }}>
+        <span style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--tj-gold, var(--tj-read-gold-default))', marginRight: 4 }}>
           Owner ·
         </span>
         {editing && (
-          <span style={{ fontSize: 10, letterSpacing: '0.06em', color: dirty || saving ? '#bfa06a' : '#80735f', background: 'rgba(20,16,11,0.92)', padding: '6px 10px', borderRadius: 3, border: '1px solid rgba(168,135,77,0.2)' }}>
+          <span style={{ fontSize: 10, letterSpacing: '0.06em', color: dirty || saving ? 'var(--tj-gold-lt, var(--tj-read-gold-lt-default))' : 'var(--tj-read-dim)', background: 'rgb(var(--tj-read-bg-rgb) / 0.92)', padding: '6px 10px', borderRadius: 3, border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.2)' }}>
             {status}
           </span>
         )}
@@ -176,7 +176,7 @@ const StoryEditorBar: React.FC = () => {
         {editing && (
           <button
             type="button"
-            style={{ ...pill(false), borderColor: 'rgba(168,135,77,0.7)', color: '#f3ead9' }}
+            style={{ ...pill(false), borderColor: 'rgb(var(--tj-read-gold-rgb) / 0.7)', color: 'var(--tj-read-cream)' }}
             disabled={publishing}
             onClick={async () => { setPublishing(true); try { await publish(); setToast('Published. Live now.'); } catch { setToast('Publish failed. Try again.'); } finally { setPublishing(false); } }}
           >
@@ -194,41 +194,41 @@ const StoryEditorBar: React.FC = () => {
       </div>
 
       {showHistory && (
-        <div style={{ width: 280, maxHeight: 320, overflowY: 'auto', padding: 12, border: '1px solid rgba(168,135,77,0.4)', borderRadius: 4, background: 'rgba(20,16,11,0.97)' }}>
-          <div style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#a8874d', marginBottom: 10 }}>Undo to a past version</div>
+        <div style={{ width: 280, maxHeight: 320, overflowY: 'auto', padding: 12, border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.4)', borderRadius: 4, background: 'rgb(var(--tj-read-bg-rgb) / 0.97)' }}>
+          <div style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--tj-gold, var(--tj-read-gold-default))', marginBottom: 10 }}>Undo to a past version</div>
           {versions.length === 0 && (
-            <div style={{ fontSize: 11, color: '#80735f', lineHeight: 1.5 }}>No past versions yet. They appear here each time you publish.</div>
+            <div style={{ fontSize: 11, color: 'var(--tj-read-dim)', lineHeight: 1.5 }}>No past versions yet. They appear here each time you publish.</div>
           )}
           {versions.map((v) => (
             <button
               key={v.id}
               type="button"
               onClick={async () => { await restore(v.id); setShowHistory(false); }}
-              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 6px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(168,135,77,0.12)', color: '#cdc0a8', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 11 }}
+              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 6px', background: 'transparent', border: 'none', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.12)', color: 'var(--tj-read-taupe)', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 11 }}
             >
               {new Date(v.created_at + 'Z').toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-              <span style={{ color: '#80735f' }}> · restore</span>
+              <span style={{ color: 'var(--tj-read-dim)' }}> · restore</span>
             </button>
           ))}
         </div>
       )}
 
       {showGaps && editing && (
-        <div style={{ width: 280, padding: 12, border: '1px solid rgba(168,135,77,0.4)', borderRadius: 4, background: 'rgba(20,16,11,0.97)' }}>
-          <div style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#a8874d', marginBottom: 10 }}>What still needs a photo</div>
+        <div style={{ width: 280, padding: 12, border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.4)', borderRadius: 4, background: 'rgb(var(--tj-read-bg-rgb) / 0.97)' }}>
+          <div style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--tj-gold, var(--tj-read-gold-default))', marginBottom: 10 }}>What still needs a photo</div>
           {emptyFrames.length === 0 ? (
-            <div style={{ fontSize: 11, color: '#80735f' }}>Every frame has a photo. Nicely done.</div>
+            <div style={{ fontSize: 11, color: 'var(--tj-read-dim)' }}>Every frame has a photo. Nicely done.</div>
           ) : emptyFrames.map((f) => (
             <button key={f.slot} type="button" onClick={() => jumpTo(f.slot)}
-              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 6px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(168,135,77,0.12)', color: '#cdc0a8', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 11 }}>
-              {f.label}<span style={{ color: '#80735f' }}> · jump</span>
+              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 6px', background: 'transparent', border: 'none', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.12)', color: 'var(--tj-read-taupe)', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 11 }}>
+              {f.label}<span style={{ color: 'var(--tj-read-dim)' }}> · jump</span>
             </button>
           ))}
         </div>
       )}
 
       {toast && (
-        <div style={{ alignSelf: IS_TOUCH ? 'stretch' : 'flex-end', textAlign: 'center', padding: '10px 14px', borderRadius: 4, background: 'rgba(168,135,77,0.95)', color: '#14100b', fontFamily: 'var(--font-sans)', fontSize: 12, letterSpacing: '0.06em' }}>
+        <div style={{ alignSelf: IS_TOUCH ? 'stretch' : 'flex-end', textAlign: 'center', padding: '10px 14px', borderRadius: 4, background: 'rgb(var(--tj-read-gold-rgb) / 0.95)', color: 'var(--tj-read-bg)', fontFamily: 'var(--font-sans)', fontSize: 12, letterSpacing: '0.06em' }}>
           {toast}
         </div>
       )}

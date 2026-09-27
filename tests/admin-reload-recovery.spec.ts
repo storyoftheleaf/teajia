@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { expectNoUnhandledCompassApi, installCompassHarness } from './helpers/compassHarness';
 
 test('authenticated admin does not reload repeatedly on stale-build recovery signals', async ({ page }) => {

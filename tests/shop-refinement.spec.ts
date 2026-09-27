@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 
 const PRODUCTS = [
   {
@@ -69,7 +69,7 @@ async function mockPublicShop(page: Page) {
       return;
     }
     const body = url.includes('/api/network/stores') ? { stores: [] }
-      : url.includes('/api/rates') ? [{ currency: 'USD', rate_to_usd: 1 }]
+      : url.includes('/api/rates') ? [{ currency: 'USD', rate_to_usd: 1, last_updated: new Date().toISOString() }]
         : [];
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
   });
@@ -123,12 +123,16 @@ test.describe('refined public shop', () => {
     await expect(page.getByRole('button', { name: /Add to order/i })).toHaveCount(0);
 
     const amount = page.locator('.alcove-dock-strip button[aria-expanded]:not(.alcove-dock-cta)');
+    const selectionTotal = page.locator('.alcove-dock-strip .alcove-dock-cta-total').first();
     await expect(amount).toBeVisible();
+    // Grams stay in the amount control; the dollar total lives beside it so the
+    // two never concatenate into something like "50g0.19/g".
+    await expect(amount).toContainText('50g');
+    await expect(amount).not.toContainText('/g');
     // The figure comes off the pricing curve, which folds handling into the
     // total: 50 g of a $0.15/g tea is $7.50 of leaf plus $2, so $9.50 shown as
-    // $10. The rate the buyer actually pays is $0.19 a gram, not the shelf
-    // $0.15, and the list quotes that same effective rate.
-    await expect(amount).toContainText('$10');
+    // $10.
+    await expect(selectionTotal).toContainText('$10');
     expect(await amount.evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
 
     // Choosing an amount chooses it; Add commits it. Both controls are in the
@@ -143,10 +147,9 @@ test.describe('refined public shop', () => {
     await expect(page.locator('.alcove-dock-cta')).toHaveCount(0);
 
     // Add commits once, and the order then carries exactly what the bar showed.
-    const shown = (await amount.textContent()) ?? '';
-    const shownTotal = shown.match(/\$[\d,]+/)?.[0] ?? '';
+    const shownTotal = ((await selectionTotal.textContent()) ?? '').match(/\$[\d,]+/)?.[0] ?? '';
     await page.locator('.alcove-dock-add').click();
-    await expect(page.locator('.alcove-dock-cta')).toContainText(shownTotal);
+    await expect(page.locator('.alcove-dock-cta .alcove-dock-cta-total')).toContainText(shownTotal);
     if ((await page.viewportSize())!.width < 1024) {
       const [barBox, navBox] = await Promise.all([
         page.locator('.alcove-dock-strip').boundingBox(),
@@ -174,5 +177,27 @@ test.describe('refined public shop', () => {
     await page.goBack();
     await expect(page).toHaveURL(/\/shop\?tab=teaware$/);
     await expect(page.getByRole('heading', { name: 'Field Gaiwan', exact: true })).toBeVisible();
+  });
+
+  test('quotes the same total on the grid and the product page', async ({ page }) => {
+    // The grid used to multiply price per gram by weight directly, leaving
+    // out the $2 handling fee the product page's own ladder, the cart and
+    // the order total all charge through quoteGrams. A reader saw one price
+    // in the grid and a higher one two taps later. The grid's default
+    // weight is 50 g (the store's own default), so that is the weight
+    // compared on both sides: Moonlight White at $0.15/g comes to
+    // 0.15 * 50 + 2 = $9.50, shown as $10, whichever surface names it.
+    const row = page.getByRole('button', { name: 'View Moonlight White' });
+    const gridPrice = (await row.getByTestId('grid-price').textContent())?.trim();
+    expect(gridPrice).toBe('$10');
+
+    await row.click();
+    await expect(page).toHaveURL(/\/shop\/product\/tea-1$/);
+
+    const amountButton = page.locator('.alcove-dock-strip button[aria-expanded]:not(.alcove-dock-cta)');
+    await amountButton.click();
+    const pageTotal = (await page.getByTestId('amount-total-50').textContent())?.trim();
+
+    expect(gridPrice).toBe(`$${pageTotal}`);
   });
 });

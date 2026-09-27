@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { ProfileEditor } from '../components/profile/ProfileEditor';
 import { ProfileFavoritesEditor } from '../components/profile/ProfileFavoritesEditor';
 import { PaymentMethodsEditor } from '../components/profile/PaymentMethodsEditor';
+import { PayAccessPanel } from '../components/profile/PayAccessPanel';
 import { ProfileShareLinks } from '../components/profile/ProfileShareLinks';
 import { canManageHostedMasterSelection, canStartProfileDraft, primaryTeaMasterAccount, profileReadiness } from '../components/profile/profileDomain';
 import type { FavoriteWrite, PaymentMethodWrite, SelfProfileUpdate } from '../components/profile/types';
@@ -95,6 +96,7 @@ export default function AccountProfilePage() {
           <ProfileEditor
             profile={profile}
             onSave={value => updateProfile.mutateAsync(value).then(() => undefined)}
+            onSaveGallery={images => api.profile.updateGalleryImages(images).then(() => refreshProfile()).then(() => undefined)}
             onUnpublish={() => api.profile.unpublishSelf().then(() => refreshProfile()).then(() => undefined)}
             onUploadPortrait={image => api.profile.uploadImage(image, 'portrait')}
           />
@@ -111,6 +113,8 @@ export default function AccountProfilePage() {
               onUpdate={async (teaId, favorite) => { await api.profile.updateFavorite(teaId, favorite); await refreshProfile(); }}
               onDelete={async teaId => { await api.profile.deleteFavorite(teaId); await refreshProfile(); }}
               onReorder={async ids => { await api.profile.reorderFavorites(ids); await refreshProfile(); }}
+              collection={profile.collection ?? null}
+              onSaveCollection={async title => { await api.profile.updateCollection(title); await refreshProfile(); }}
             />
           )}
 
@@ -128,6 +132,8 @@ export default function AccountProfilePage() {
               onDelete={async id => { await api.profile.deletePaymentMethod(id); await refreshProfile(); }}
             />
           )}
+
+          <PayAccessPanel contributorName={profile.display_name} canShare={publicPaymentCount > 0} />
 
           <section className="grid gap-5 border-t border-tea-border pt-8 md:grid-cols-2">
             <div>
@@ -157,7 +163,7 @@ function NewProfileForm({ name, onCreate }: { name: string; onCreate: (value: Se
   const submit = async (event: React.FormEvent) => {
     event.preventDefault(); setSaving(true); setError(null);
     try {
-      await onCreate({ id: slug, display_name: displayName, beginnings: bio, chinese_name: null, now_text: null, location_line: null, languages: [], avatar_url: null, portrait_url: null, links: [] });
+      await onCreate({ id: slug, display_name: displayName, business_name: null, beginnings: bio, chinese_name: null, now_text: null, inspirations: null, closing: null, location_line: null, languages: [], avatar_url: null, portrait_url: null, links: [] });
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'The profile draft could not be created.'); }
     finally { setSaving(false); }
   };

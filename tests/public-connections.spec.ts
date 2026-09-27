@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 test('a cold Tea Master product link loads the owning store and preserves its address', async ({ page }) => {
   await page.addInitScript(() => {

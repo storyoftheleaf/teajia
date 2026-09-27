@@ -17,6 +17,8 @@ second artifact at a new address and the link Adrian already has goes stale.
 | Why it says zero | [why-it-says-zero.html](why-it-says-zero.html) | https://claude.ai/code/artifact/aed27f0a-0743-4492-838f-8a1e10dbd92c |
 | Y562 freight clearance | [y562-freight-clearance.html](y562-freight-clearance.html) | https://claude.ai/code/artifact/547ee5e7-b1db-4d4e-9028-199e7c8d5c53 |
 | The token and its scopes | [the-token-and-its-scopes.html](the-token-and-its-scopes.html) | https://claude.ai/code/artifact/7536e163-0f1d-4493-a95d-20e0dbb4b33f |
+| Yuan is spelled Yuan | [yuan-is-spelled-yuan.html](yuan-is-spelled-yuan.html) | https://claude.ai/code/artifact/48249b8a-5b4c-45a0-b04b-507959ef527d |
+| The table stops saying free | [the-table-stops-saying-free.html](the-table-stops-saying-free.html) | https://claude.ai/code/artifact/f297c792-96b8-4c31-8690-6889a175d7e9 |
 
 The Y562 page is the worked example the migration rule in `CLAUDE.md` points at:
 a migration that moves rows gets a page like that one, and Adrian gets the link,

@@ -7,7 +7,13 @@ import { createEmptySample, createEmptySampleSet, SAMPLE_GRAM_PRESETS, SAMPLE_ST
 import { SampleLabelSheet } from './SampleLabelSheet';
 import type { TeaSample, SampleSet, SampleSetPurpose, SampleStatus } from './types';
 import type { TeaType, TeaCompassEntry } from '../components/TeaCompass/types';
-import { TEA_TYPES, createEmptyEntry, compassEntryToProductDraft, generateTeaKey } from '../components/TeaCompass/types';
+import { TEA_TYPES, createEmptyEntry, generateTeaKey } from '../components/TeaCompass/types';
+import {
+  GRADUATION_FALLBACK_CURRENCY, graduationCurrencyDefault, graduationNeedsCost, graduationPayload,
+} from './graduation';
+import { plainCostWords } from '../lib/costRefusalWords';
+import { enteredNumber } from '../admin/productUpdatePayload';
+import { CURRENCY_LABELS } from '../components/TeaCompass/PricingRow';
 import { useTeaCompassStore } from '../lib/teaCompassStore';
 import { useNotesStore } from '../lib/notesStore';
 import { AutocompleteInput } from '../components/TeaCompass/AutocompleteInput';
@@ -719,6 +725,13 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
   const [ledgerPromptName, setLedgerPromptName] = useState<string | null>(null);
   const [creatingBatch, setCreatingBatch] = useState(false);
   const [newBatchName, setNewBatchName] = useState('');
+  /* The one question a sample cannot answer for itself, asked at the moment it
+     is needed and not a step earlier. Null when nothing is being graduated. */
+  const [costPrompt, setCostPrompt] = useState<
+    { sample: TeaSample; entry: TeaCompassEntry | null; amount: string; currency: string } | null
+  >(null);
+  const [costPromptError, setCostPromptError] = useState(false);
+  const [costPromptSaving, setCostPromptSaving] = useState(false);
 
   // Persisted Zustand state may hydrate after a direct /admin/samples?set=…
   // route renders. Reconcile the requested historical set when it appears.
@@ -846,35 +859,19 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
     navigate(`/admin/compass?entry=${compassEntryId}`);
   }, [navigate]);
 
-  const handleGraduate = useCallback(async (sample: TeaSample) => {
-    if (!window.confirm(`Graduate "${sample.name}" to inventory? This creates a draft product.`)) return;
+  /**
+   * Send the graduation, with whatever cost the operator answered.
+   *
+   * `cost` is null only when the compass entry already recorded a price, which
+   * is the case the prompt is skipped for.
+   */
+  const runGraduation = useCallback(async (
+    sample: TeaSample,
+    entry: TeaCompassEntry | null,
+    cost: { amount: number | null; currency: string } | null,
+  ) => {
     try {
-      const compassEntry = sample.compassEntryId
-        ? compassEntries.find(e => e.id === sample.compassEntryId)
-        : null;
-
-      const payload = compassEntry
-        ? compassEntryToProductDraft(compassEntry)
-        : {
-            given_name: sample.name,
-            chinese_name: sample.chineseName || '',
-            product_name: sample.name,
-            type: sample.type || 'Misc',
-            year: sample.year || null,
-            origin_region: sample.originRegion || '',
-            vendor: sample.sourceName || '',
-            status: 'Draft',
-            is_public: false,
-            is_personal: false,
-            can_reorder: true,
-            stock_grams: 0,
-            cost_amount: 0,
-            cost_currency: 'NT',
-            source_compass_entry_id: sample.compassEntryId || null,
-            tea_key: sample.teaKey || null,
-          };
-
-      const result = await api.products.create(payload);
+      const result = await api.products.create(graduationPayload(sample, entry, cost));
       if (result?.id) {
         updateSample(sample.id, { productId: result.id, status: 'ordered' });
         if (sample.compassEntryId) {
@@ -884,10 +881,63 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
           });
         }
       }
+      return true;
     } catch (err) {
-      alert('Failed to create product. Try again.');
+      /* In the operator's words, not the server's. The refusal that reaches
+         here names a column and which half of the cost was missing, which is
+         the right contract between two pieces of code and the wrong sentence to
+         read off a screen: it hands over the bug report instead of the thing to
+         do next. `plainCostWords` reads the server's marker, because which half
+         is missing is a fact only the server has, and says it the way the Add
+         Product form says it. */
+      const said = err instanceof Error && err.message ? err.message : '';
+      const words = plainCostWords(said);
+      alert(words
+        ? `"${sample.name}" was not added to inventory. ${words}`
+        : `"${sample.name}" was not added to inventory. Check the connection and try again.`);
+      return false;
     }
-  }, [compassEntries, updateSample, updateCompassEntry]);
+  }, [updateSample, updateCompassEntry]);
+
+  const handleGraduate = useCallback(async (sample: TeaSample) => {
+    if (!window.confirm(`Graduate "${sample.name}" to inventory? This creates a draft product.`)) return;
+    const compassEntry = (sample.compassEntryId
+      ? compassEntries.find(e => e.id === sample.compassEntryId)
+      : null) ?? null;
+
+    /* A sample carries a name, a weight and a source, and nothing about what
+       was paid, because nothing was: it arrived in an envelope. It used to send
+       `cost_amount: 0, cost_currency: 'NT'`, two inventions at once, and the
+       shelf sold it at zero times three. Sending nothing instead is honest and
+       the server refuses it by name, which would make every graduation fail. So
+       ask, here, once, and only when the capture card does not already hold the
+       answer. */
+    if (graduationNeedsCost(compassEntry)) {
+      setCostPromptError(false);
+      setCostPrompt({
+        sample,
+        entry: compassEntry,
+        amount: '',
+        currency: graduationCurrencyDefault(compassEntry),
+      });
+      return;
+    }
+    await runGraduation(sample, compassEntry, null);
+  }, [compassEntries, runGraduation]);
+
+  const submitCostPrompt = useCallback(async () => {
+    if (!costPrompt) return;
+    // A typed 0 is an answer, and `enteredNumber` is the rule that keeps it one.
+    const amount = enteredNumber(costPrompt.amount);
+    if (amount === null || amount < 0) {
+      setCostPromptError(true);
+      return;
+    }
+    setCostPromptSaving(true);
+    const landed = await runGraduation(costPrompt.sample, costPrompt.entry, { amount, currency: costPrompt.currency });
+    setCostPromptSaving(false);
+    if (landed) setCostPrompt(null);
+  }, [costPrompt, runGraduation]);
 
   const handleStatusChange = useCallback((sampleId: string, status: SampleStatus) => {
     updateSampleStatus(sampleId, status);
@@ -1529,6 +1579,86 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
           </div>
         </div>
       )}
+
+      {/* What did this cost? Asked once, at the moment the tea goes on the
+          shelf, and only when the capture card does not already hold it. */}
+      <AnimatePresence>
+        {costPrompt && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-modal flex items-end lg:items-center justify-center bg-black/60"
+            onClick={() => { if (!costPromptSaving) setCostPrompt(null); }}
+          >
+            <motion.div
+              initial={{ y: 24, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 24, opacity: 0 }}
+              onClick={(event) => event.stopPropagation()}
+              className="w-full lg:max-w-sm rounded-t-xl lg:rounded-xl border border-tea-border bg-tea-elevated p-4 pb-nav-gap lg:pb-4"
+            >
+              <p className="text-ui-16 text-tea-text">What did this cost?</p>
+              <p className="mt-1 text-ui-12 text-tea-text-sec">
+                {costPrompt.sample.name} goes on the shelf at three times what it cost, so this is the one
+                thing a sample cannot say for itself. Enter 0 if it was a gift.
+              </p>
+
+              <div className="mt-4 flex items-center gap-2">
+                <select
+                  value={costPrompt.currency}
+                  onChange={(event) => setCostPrompt(current => current && { ...current, currency: event.target.value })}
+                  aria-label="Currency"
+                  className="min-h-11 shrink-0 cursor-pointer rounded-md border border-tea-border bg-tea-surface px-2 text-ui-16 text-tea-text outline-none focus:border-tea-gold"
+                >
+                  {Object.entries(CURRENCY_LABELS).filter(([code]) => code !== 'UNK').map(([code, label]) => (
+                    <option key={code} value={code}>{label}</option>
+                  ))}
+                </select>
+                <input
+                  autoFocus
+                  type="number"
+                  inputMode="decimal"
+                  value={costPrompt.amount}
+                  onChange={(event) => {
+                    setCostPromptError(false);
+                    setCostPrompt(current => current && { ...current, amount: event.target.value });
+                  }}
+                  onKeyDown={(event) => { if (event.key === 'Enter') submitCostPrompt(); }}
+                  placeholder="Price paid"
+                  aria-label="Price paid"
+                  aria-invalid={costPromptError}
+                  className={`min-h-11 w-full min-w-0 rounded-md border bg-tea-surface px-3 text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold ${costPromptError ? 'border-tea-gold' : 'border-tea-border'}`}
+                />
+              </div>
+              {costPromptError && (
+                <p className="mt-2 text-ui-12 text-tea-text-sec">
+                  Enter what it cost, or 0 if it was a gift. Leaving it empty is not an answer.
+                </p>
+              )}
+
+              <div className="mt-5 flex items-center justify-between">
+                <button
+                  type="button"
+                  disabled={costPromptSaving}
+                  onClick={() => setCostPrompt(null)}
+                  className="tap-target min-h-11 px-1 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-40"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={costPromptSaving}
+                  onClick={submitCostPrompt}
+                  className="tap-target min-h-11 rounded-md bg-tea-accent-sub px-3 text-ui-12 text-tea-gold hover:bg-tea-gold/10 disabled:opacity-40"
+                >
+                  {costPromptSaving ? 'Adding' : 'Add to inventory'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

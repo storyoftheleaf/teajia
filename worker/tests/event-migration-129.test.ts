@@ -432,6 +432,11 @@ describe('migration 129', () => {
     expect(() => db.exec(`UPDATE events SET lifecycle_status='active' WHERE id='event-one'`)).toThrow(/CHECK/);
     expect(() => db.exec(`UPDATE events SET public_visibility='network' WHERE id='event-one'`)).toThrow(/CHECK/);
     expect(() => db.exec(`UPDATE events SET recap_status='hidden' WHERE id='event-one'`)).toThrow(/CHECK/);
+    // `event_attendees.payment_status` is a DEAD column: nothing in the worker
+    // reads or writes it, event money runs through EVT- invoices instead, and
+    // this assertion is the column's only reference anywhere in the codebase
+    // besides schema.sql itself. It stays only because dropping it is a
+    // migration, not a fix; do not read it as the live record.
     expect(() => db.exec(`UPDATE event_attendees SET payment_status='overdue' WHERE id='attendee-one'`)).toThrow(/CHECK/);
     expect(() => db.exec(`
       INSERT INTO event_party_members(

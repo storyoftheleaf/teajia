@@ -126,7 +126,7 @@ const FamilyPanel: React.FC<{ family: Family }> = ({ family: f }) => (
         </span>
       ))}
     </div>
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, paddingTop: 15, borderTop: '1px solid rgba(168,135,77,0.14)' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, paddingTop: 15, borderTop: '1px solid rgb(var(--tj-read-gold-rgb) / 0.14)' }}>
       <span style={{ fontFamily: F.ui, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.dim }}>Shows in</span>
       <span style={{ fontFamily: F.body, fontSize: 14.5, color: C.taupe, textAlign: 'right' }}>{f.teas}</span>
     </div>
@@ -144,7 +144,7 @@ const FlavorWheel: React.FC<{ activeFam: string; onSelect: (id: string) => void 
   return (
     <svg viewBox="0 0 440 440" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
       {/* outer ring guide */}
-      <circle cx="220" cy="220" r="206" fill="none" stroke="rgba(168,135,77,0.14)" strokeWidth="1" />
+      <circle cx="220" cy="220" r="206" fill="none" stroke="rgb(var(--tj-read-gold-rgb) / 0.14)" strokeWidth="1" />
 
       {FAMILIES.map((f, i) => {
         const a0 = -Math.PI / 2 + i * step + gap;
@@ -183,7 +183,7 @@ const FlavorWheel: React.FC<{ activeFam: string; onSelect: (id: string) => void 
               textAnchor="middle"
               fontFamily="'Cormorant Garamond',serif"
               fontSize={20}
-              fill="#ede4d4"
+              fill="var(--tj-read-ink)"
             >
               {f.en}
             </text>
@@ -222,7 +222,7 @@ const RadarGrid: React.FC = () => {
   return (
     <>
       {rings.map(({ t, pts }) => (
-        <polygon key={t} points={pts} fill="none" stroke={`rgba(168,135,77,${t === 1 ? 0.28 : 0.12})`} strokeWidth="1" />
+        <polygon key={t} points={pts} fill="none" stroke={`rgb(var(--tj-read-gold-rgb) / ${t === 1 ? 0.28 : 0.12})`} strokeWidth="1" />
       ))}
       {RADAR_AXES.map((lab, i) => {
         const a = ang(i);
@@ -233,7 +233,7 @@ const RadarGrid: React.FC = () => {
         const anchor = Math.abs(Math.cos(a)) < 0.3 ? 'middle' : (Math.cos(a) > 0 ? 'start' : 'end');
         return (
           <React.Fragment key={lab}>
-            <line x1={cx} y1={cy} x2={x.toFixed(1)} y2={y.toFixed(1)} stroke="rgba(168,135,77,0.12)" strokeWidth="1" />
+            <line x1={cx} y1={cy} x2={x.toFixed(1)} y2={y.toFixed(1)} stroke="rgb(var(--tj-read-gold-rgb) / 0.12)" strokeWidth="1" />
             <text
               x={lx.toFixed(1)}
               y={(ly + 4).toFixed(1)}
@@ -241,7 +241,7 @@ const RadarGrid: React.FC = () => {
               fontFamily="'Plus Jakarta Sans',sans-serif"
               fontSize={10.5}
               letterSpacing="0.1em"
-              fill="#80735f"
+              fill="var(--tj-read-dim)"
             >
               {lab.toUpperCase()}
             </text>
@@ -295,12 +295,12 @@ const RadarPolygon: React.FC<{ activeVals: number[] }> = ({ activeVals }) => {
     <>
       <polygon
         points={ptsStr}
-        fill={hexA('#a8874d', 0.18)}
-        stroke="var(--tj-gold,#a8874d)"
+        fill={hexA('var(--tj-gold, var(--tj-read-gold-default))', 0.18)}
+        stroke="var(--tj-gold,var(--tj-gold, var(--tj-read-gold-default)))"
         strokeWidth={1.6}
       />
       {currentPts.map((p, i) => (
-        <circle key={i} cx={p[0].toFixed(1)} cy={p[1].toFixed(1)} r={3.2} fill="var(--tj-gold-lt,#c6a667)" />
+        <circle key={i} cx={p[0].toFixed(1)} cy={p[1].toFixed(1)} r={3.2} fill="var(--tj-gold-lt,var(--tj-gold-lt, var(--tj-read-gold-lt-default)))" />
       ))}
     </>
   );
@@ -356,7 +356,7 @@ const TastingVocabularyOfTaste: React.FC = () => {
           padding: 'clamp(40px,7vw,84px) 24px clamp(28px,5vw,52px)',
           overflow: 'hidden',
         }}>
-          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 72% 56% at 50% 32%, rgba(168,135,77,0.12), transparent 62%)' }} />
+          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 72% 56% at 50% 32%, rgb(var(--tj-read-gold-rgb) / 0.12), transparent 62%)' }} />
           <div
             aria-hidden="true"
             style={{
@@ -368,7 +368,7 @@ const TastingVocabularyOfTaste: React.FC = () => {
               fontWeight: 200,
               fontSize: 'min(54vw,520px)',
               lineHeight: 1,
-              color: 'rgba(168,135,77,0.05)',
+              color: 'rgb(var(--tj-read-gold-rgb) / 0.05)',
               pointerEvents: 'none',
               userSelect: 'none',
             }}
@@ -450,7 +450,7 @@ const TastingVocabularyOfTaste: React.FC = () => {
           <div data-reveal style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 30 }}>
             {/* ◎ U+25CE BULLSEYE */}
             <span style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 30, color: C.gold, lineHeight: 1 }}>◎</span>
-            <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.22)' }} />
+            <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.22)' }} />
             <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim }}>A cup, mapped</span>
           </div>
 
@@ -474,8 +474,8 @@ const TastingVocabularyOfTaste: React.FC = () => {
                       key={id}
                       onClick={() => setActiveTea(id)}
                       style={{
-                        background: isActive ? 'var(--tj-gold,#a8874d)' : 'none',
-                        border: `1px solid ${isActive ? 'var(--tj-gold,#a8874d)' : 'rgba(168,135,77,0.3)'}`,
+                        background: isActive ? 'var(--tj-gold,var(--tj-gold, var(--tj-read-gold-default)))' : 'none',
+                        border: `1px solid ${isActive ? 'var(--tj-gold,var(--tj-gold, var(--tj-read-gold-default)))' : 'rgb(var(--tj-read-gold-rgb) / 0.3)'}`,
                         borderRadius: 40,
                         cursor: 'pointer',
                         padding: '8px 16px',
@@ -484,7 +484,7 @@ const TastingVocabularyOfTaste: React.FC = () => {
                         fontWeight: 500,
                         letterSpacing: '0.12em',
                         textTransform: 'uppercase',
-                        color: isActive ? '#14100b' : C.taupe,
+                        color: isActive ? 'var(--tj-read-bg)' : C.taupe,
                         transition: 'all 240ms',
                       }}
                     >

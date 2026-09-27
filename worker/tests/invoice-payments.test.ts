@@ -131,10 +131,24 @@ describe('invoice payment ledger', () => {
     expect(payment.paid_usd).toBe(0);
     expect(payment.outstanding_usd).toBe(35);
     expect(payment.claims_pending).toBe(0);
+    expect(payment.tea_line_count).toBe(1);
     expect(payment.has_methods).toBe(true);
     expect(payAmount(payment.pay_url)).toBe('35.00');
     // The link states USD because invoice amounts are USD columns.
     expect(new URL(payment.pay_url).searchParams.get('currency')).toBe('USD');
+  });
+
+  it('counts the teas on the invoice and leaves teaware out', async () => {
+    const db = await seed();
+    db.sqlite.prepare(`INSERT INTO products (id, account_id, product_name, type) VALUES ('tea-1', ?, 'Shui Xian', 'Oolong')`).run(ACCOUNT);
+    db.sqlite.prepare(`INSERT INTO products (id, account_id, product_name, type) VALUES ('pot-1', ?, 'Zini pot', 'Teaware')`).run(ACCOUNT);
+    db.sqlite.prepare(
+      `INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, quantity, price_at_sale) VALUES
+         ('line-b', ?, ?, 'tea-1', 25, 1), ('line-c', ?, ?, 'pot-1', 1, 40), ('line-d', ?, ?, 'tea-1', 25, 1)`
+    ).run(ACCOUNT, INVOICE, ACCOUNT, INVOICE, ACCOUNT, INVOICE);
+    const payment = await trackedPayment(db);
+    // Da Hong Pao (a custom line) and Shui Xian (twice, one tea); the pot is not a tea.
+    expect(payment.tea_line_count).toBe(2);
   });
 
   it('records a customer report without moving the order toward paid', async () => {

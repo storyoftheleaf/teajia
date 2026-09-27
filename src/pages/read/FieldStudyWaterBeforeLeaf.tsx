@@ -60,7 +60,7 @@ const BoilStage: React.FC<{
   bgStyle: React.CSSProperties;
 }> = ({ cn, name, temp, desc, svgContent, bgStyle }) => (
   <figure style={{ margin: 0 }}>
-    <div style={{ position: 'relative', aspectRatio: '3/4', border: '1px solid rgba(168,135,77,0.18)', borderRadius: 3, overflow: 'hidden', ...bgStyle }}>
+    <div style={{ position: 'relative', aspectRatio: '3/4', border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.18)', borderRadius: 3, overflow: 'hidden', ...bgStyle }}>
       <svg viewBox="0 0 160 213" preserveAspectRatio="xMidYMid meet" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
         {svgContent}
       </svg>
@@ -83,7 +83,7 @@ const TempRow: React.FC<{ dot: string; tea: string; temp: string; why: string; s
     </div>
     <div style={{ padding: '16px 0', alignSelf: 'center', fontFamily: F.mono, fontSize: 12, color: C.gold }}>{temp}</div>
     <div style={{ padding: '16px 0', alignSelf: 'center', fontFamily: F.body, fontSize: 13.5, color: C.dim, lineHeight: 1.5 }}>{why}</div>
-    {!strong && <div style={{ gridColumn: '1/-1', height: 1, background: 'rgba(168,135,77,0.09)' }} />}
+    {!strong && <div style={{ gridColumn: '1/-1', height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.09)' }} />}
   </>
 );
 
@@ -94,7 +94,7 @@ const SectionDivider: React.FC<{ numeral: string; label: string }> = ({ numeral,
     style={{ display: 'flex', alignItems: 'center', gap: 18, margin: 'clamp(20px,4vw,40px) 0 clamp(28px,4vw,40px)' }}
   >
     <span style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 30, color: C.gold, lineHeight: 1 }}>{numeral}</span>
-    <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.22)' }} />
+    <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.22)' }} />
     <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim }}>{label}</span>
   </div>
 );
@@ -124,7 +124,7 @@ const FieldStudyWaterBeforeLeaf: React.FC = () => {
           overflow: 'hidden',
         }}>
           {/* background layers */}
-          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,#15201f 0%,#16140f 55%,#14100b 100%)' }} />
+          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,#15201f 0%,#16140f 55%,var(--tj-read-bg) 100%)' }} />
           <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 44% at 50% 26%, rgba(120,160,160,0.22), transparent 60%)' }} />
 
           {/* concentric ellipses + waterline SVG */}
@@ -136,14 +136,14 @@ const FieldStudyWaterBeforeLeaf: React.FC = () => {
               <ellipse cx="600" cy="300" rx="510" ry="130" />
               <ellipse cx="600" cy="300" rx="680" ry="172" stroke="rgba(150,180,180,0.08)" />
             </g>
-            <g fill="none" stroke="rgba(168,135,77,0.1)" strokeWidth="1">
+            <g fill="none" stroke="rgb(var(--tj-read-gold-rgb) / 0.1)" strokeWidth="1">
               <path d="M-50 560 C 320 532, 760 544, 1260 512" />
               <path d="M-50 612 C 300 584, 800 596, 1260 560" />
             </g>
           </svg>
 
           {/* fade-up from bottom */}
-          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(0deg, rgba(20,16,11,0.86), transparent 44%)' }} />
+          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(0deg, rgb(var(--tj-read-bg-rgb) / 0.86), transparent 44%)' }} />
 
           {/* hero text */}
           <div style={{ position: 'relative', zIndex: 1, padding: '0 clamp(24px,6vw,84px) clamp(48px,9vw,110px)', maxWidth: 1000 }}>
@@ -161,7 +161,7 @@ const FieldStudyWaterBeforeLeaf: React.FC = () => {
           {/* animated scroll indicator */}
           <div aria-hidden="true" style={{ position: 'absolute', bottom: 28, left: '50%', animation: 'tjFloatX 3.4s ease-in-out infinite' }}>
             <svg width="13" height="20" viewBox="0 0 13 20" fill="none">
-              <path d="M6.5 1v17M1 12.5l5.5 5.5 5.5-5.5" stroke="#a8874d" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M6.5 1v17M1 12.5l5.5 5.5 5.5-5.5" stroke="var(--tj-gold, var(--tj-read-gold-default))" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
         </header>
@@ -179,7 +179,7 @@ const FieldStudyWaterBeforeLeaf: React.FC = () => {
         <section style={{ maxWidth: 1100, margin: '0 auto', padding: 'clamp(20px,4vw,40px) clamp(20px,5vw,40px)' }}>
           <div data-reveal style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 'clamp(28px,4vw,40px)', maxWidth: 680, marginLeft: 'auto', marginRight: 'auto' }}>
             <span style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 30, color: C.gold, lineHeight: 1 }}>I</span>
-            <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.22)' }} />
+            <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.22)' }} />
             <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim }}>The forgotten ingredient</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,300px),1fr))', gap: 'clamp(24px,4vw,52px)', alignItems: 'center' }}>
@@ -192,7 +192,7 @@ const FieldStudyWaterBeforeLeaf: React.FC = () => {
               </p>
             </div>
             <figure data-reveal style={{ margin: 0 }}>
-              <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgba(168,135,77,0.2)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(160deg,#1a2422,#14100b 80%)' }}>
+              <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.2)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(160deg,#1a2422,var(--tj-read-bg) 80%)' }}>
                 <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 40% at 50% 24%, rgba(140,175,170,0.2), transparent 60%)' }} />
                 <svg viewBox="0 0 320 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
                   <g fill="none" stroke="rgba(150,180,180,0.4)" strokeWidth="1.2">
@@ -230,17 +230,17 @@ const FieldStudyWaterBeforeLeaf: React.FC = () => {
             The classical hierarchy is simple, and surprisingly close to what modern chemistry would tell you. Soft, living water from high ground, low in minerals, high in oxygen, lets a tea speak. Heavy, still, mineral-laden water muffles it.
           </p>
           <div data-reveal style={{ display: 'flex', flexDirection: 'column', gap: 0, marginBottom: 'clamp(20px,4vw,40px)' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, padding: '18px 0', borderTop: '1px solid rgba(168,135,77,0.18)' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, padding: '18px 0', borderTop: '1px solid rgb(var(--tj-read-gold-rgb) / 0.18)' }}>
               <span style={{ fontFamily: F.mono, fontSize: 12, color: C.gold, width: 28, flexShrink: 0 }}>01</span>
               <span style={{ fontFamily: F.display, fontSize: 24, color: C.ink, width: 'clamp(120px,30%,180px)', flexShrink: 0 }}>Mountain spring</span>
               <span style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 14, lineHeight: 1.5, color: C.dim }}>Soft, oxygenated, alive. The ideal.</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, padding: '18px 0', borderTop: '1px solid rgba(168,135,77,0.1)' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, padding: '18px 0', borderTop: '1px solid rgb(var(--tj-read-gold-rgb) / 0.1)' }}>
               <span style={{ fontFamily: F.mono, fontSize: 12, color: C.gold, width: 28, flexShrink: 0 }}>02</span>
               <span style={{ fontFamily: F.display, fontSize: 24, color: C.ink, width: 'clamp(120px,30%,180px)', flexShrink: 0 }}>River water</span>
               <span style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 14, lineHeight: 1.5, color: C.dim }}>Drawn from the slow middle, away from the banks.</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, padding: '18px 0', borderTop: '1px solid rgba(168,135,77,0.1)', borderBottom: '1px solid rgba(168,135,77,0.18)' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, padding: '18px 0', borderTop: '1px solid rgb(var(--tj-read-gold-rgb) / 0.1)', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.18)' }}>
               <span style={{ fontFamily: F.mono, fontSize: 12, color: C.gold, width: 28, flexShrink: 0 }}>03</span>
               <span style={{ fontFamily: F.display, fontSize: 24, color: C.ink, width: 'clamp(120px,30%,180px)', flexShrink: 0 }}>Well water</span>
               <span style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 14, lineHeight: 1.5, color: C.dim }}>Still and hard, usable, but the last resort.</span>
@@ -254,7 +254,7 @@ const FieldStudyWaterBeforeLeaf: React.FC = () => {
         {/* ── FULL-BLEED: THE BOIL ─────────────────────────────────────── */}
         <section style={{ padding: 'clamp(40px,7vw,90px) 0' }}>
           <figure data-reveal style={{ margin: 0 }}>
-            <div style={{ position: 'relative', padding: 'clamp(40px,6vw,80px) clamp(20px,5vw,56px)', borderTop: '1px solid rgba(168,135,77,0.16)', borderBottom: '1px solid rgba(168,135,77,0.16)', background: 'linear-gradient(180deg,#181d1c,#14100b)' }}>
+            <div style={{ position: 'relative', padding: 'clamp(40px,6vw,80px) clamp(20px,5vw,56px)', borderTop: '1px solid rgb(var(--tj-read-gold-rgb) / 0.16)', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.16)', background: 'linear-gradient(180deg,#181d1c,var(--tj-read-bg))' }}>
               <div style={{ maxWidth: 1080, margin: '0 auto' }}>
                 <div style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.22em', textTransform: 'uppercase', color: C.gold, marginBottom: 10 }}>Plate II, reading the boil</div>
                 <h2 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(28px,4.6vw,48px)', lineHeight: 1.06, color: C.cream, margin: '0 0 12px' }}>The four stages of boiling water</h2>
@@ -269,7 +269,7 @@ const FieldStudyWaterBeforeLeaf: React.FC = () => {
                     name="Crab eyes"
                     temp="~75–80°C"
                     desc="First tiny beads. Right for delicate greens."
-                    bgStyle={{ background: 'linear-gradient(180deg,#1a2120,#14100b)' }}
+                    bgStyle={{ background: 'linear-gradient(180deg,#1a2120,var(--tj-read-bg))' }}
                     svgContent={
                       <>
                         <g fill="rgba(150,180,180,0.6)">
@@ -278,7 +278,7 @@ const FieldStudyWaterBeforeLeaf: React.FC = () => {
                           <circle cx="74" cy="184" r="1.8" />
                           <circle cx="98" cy="166" r="1.5" />
                         </g>
-                        <path d="M44 120 h72" stroke="rgba(168,135,77,0.3)" strokeWidth="1" />
+                        <path d="M44 120 h72" stroke="rgb(var(--tj-read-gold-rgb) / 0.3)" strokeWidth="1" />
                       </>
                     }
                   />
@@ -287,7 +287,7 @@ const FieldStudyWaterBeforeLeaf: React.FC = () => {
                     name="Fish eyes"
                     temp="~80–85°C"
                     desc="Larger, steady bubbles. Whites and yellows."
-                    bgStyle={{ background: 'linear-gradient(180deg,#1a2120,#14100b)' }}
+                    bgStyle={{ background: 'linear-gradient(180deg,#1a2120,var(--tj-read-bg))' }}
                     svgContent={
                       <>
                         <g fill="rgba(150,180,180,0.65)">
@@ -296,7 +296,7 @@ const FieldStudyWaterBeforeLeaf: React.FC = () => {
                           <circle cx="100" cy="160" r="2.6" />
                           <circle cx="70" cy="184" r="2.8" />
                         </g>
-                        <path d="M44 116 h72" stroke="rgba(168,135,77,0.3)" strokeWidth="1" />
+                        <path d="M44 116 h72" stroke="rgb(var(--tj-read-gold-rgb) / 0.3)" strokeWidth="1" />
                       </>
                     }
                   />
@@ -305,7 +305,7 @@ const FieldStudyWaterBeforeLeaf: React.FC = () => {
                     name="String of pearls"
                     temp="~90°C"
                     desc="Ropes of bubbles rising. Oolongs."
-                    bgStyle={{ background: 'linear-gradient(180deg,#1a2120,#14100b)' }}
+                    bgStyle={{ background: 'linear-gradient(180deg,#1a2120,var(--tj-read-bg))' }}
                     svgContent={
                       <>
                         <g fill="rgba(150,180,180,0.7)">
@@ -316,7 +316,7 @@ const FieldStudyWaterBeforeLeaf: React.FC = () => {
                           <circle cx="92" cy="168" r="2.2" />
                           <circle cx="92" cy="152" r="2" />
                         </g>
-                        <path d="M44 120 h72" stroke="rgba(168,135,77,0.3)" strokeWidth="1" />
+                        <path d="M44 120 h72" stroke="rgb(var(--tj-read-gold-rgb) / 0.3)" strokeWidth="1" />
                       </>
                     }
                   />
@@ -325,7 +325,7 @@ const FieldStudyWaterBeforeLeaf: React.FC = () => {
                     name="Raging waves"
                     temp="100°C"
                     desc="A rolling boil. Reds, dark teas, rock oolong."
-                    bgStyle={{ background: 'linear-gradient(180deg,#211a14,#14100b)' }}
+                    bgStyle={{ background: 'linear-gradient(180deg,#211a14,var(--tj-read-bg))' }}
                     svgContent={
                       <>
                         <g fill="rgba(200,150,90,0.55)">
@@ -362,7 +362,7 @@ const FieldStudyWaterBeforeLeaf: React.FC = () => {
 
         {/* ── SECTION IV: Temperature table ───────────────────────────── */}
         <section data-reveal style={{ maxWidth: 760, margin: '0 auto', padding: 'clamp(40px,6vw,72px) 24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', paddingBottom: 16, borderBottom: '1px solid rgba(168,135,77,0.18)', marginBottom: 4 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', paddingBottom: 16, borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.18)', marginBottom: 4 }}>
             <h2 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(24px,3vw,34px)', color: C.cream, margin: 0 }}>Water, by tea</h2>
             <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.dim }}>A rough guide</span>
           </div>
@@ -372,14 +372,14 @@ const FieldStudyWaterBeforeLeaf: React.FC = () => {
             <div style={{ padding: '14px 0 12px', fontFamily: F.ui, fontSize: 9.5, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.dim }}>Temp</div>
             <div style={{ padding: '14px 0 12px', fontFamily: F.ui, fontSize: 9.5, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.dim }}>Why</div>
             {/* top border */}
-            <div style={{ gridColumn: '1/-1', height: 1, background: 'rgba(168,135,77,0.18)' }} />
+            <div style={{ gridColumn: '1/-1', height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.18)' }} />
             {/* data rows */}
             <TempRow dot="#859F85" tea="Green" temp="75–80°" why="Hot water scorches the leaf and turns it bitter." />
             <TempRow dot="#D6D3CD" tea="White / Yellow" temp="80–85°" why="Gentle heat for gentle, downy leaves." />
             <TempRow dot="#C4A484" tea="Oolong" temp="90–95°" why="Hot enough to lift its complex aromatics." />
             <TempRow dot="#A67B70" tea="Red / Dark" temp="95–100°" why="Robust leaves want a full, rolling boil." strong />
             {/* bottom border */}
-            <div style={{ gridColumn: '1/-1', height: 1, background: 'rgba(168,135,77,0.18)' }} />
+            <div style={{ gridColumn: '1/-1', height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.18)' }} />
           </div>
         </section>
 

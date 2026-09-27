@@ -5,7 +5,6 @@
 ## Structure
 
 - `AdminApp.tsx` — admin shell, route table, lazy boundaries, and height chain.
-- `toolRegistry.ts` — operator/staff tool metadata, routes, capability visibility, and grouping.
 - `components/` — shared panels, forms, tables, event/editorial tools, inventory, and Curate UI.
 - `views/` — top-level routed admin destinations.
 - `types.ts` — admin-specific types; shared product/account types live in `src/types.ts`.
@@ -25,7 +24,7 @@
 - Client visibility never replaces Worker authorization.
 - Full-screen admin overlays use `z-modal`, not `z-50`.
 - Keep Cancel/Back/Close placement and the mobile bottom-navigation clearance contract.
-- Register new operator tools in `toolRegistry.ts` and update [`docs/SITE_MAP.md`](../../docs/SITE_MAP.md) when routes change.
+- Register a new Manage room in `src/components/manageNav.ts` (with its gate in `navigationConnections.ts`) and update [`docs/SITE_MAP.md`](../../docs/SITE_MAP.md) when routes change.
 - Routing or navigation-label changes require explicit confirmation.
 
 Open admin and platform cleanup belongs in [`docs/tracks/08-platform-hardening.md`](../../docs/tracks/08-platform-hardening.md), not in copied route inventories.

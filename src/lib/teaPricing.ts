@@ -247,3 +247,37 @@ export function sellUnitOf(
   if (!soldInWholeUnits || !pieceWeightG || pieceWeightG <= 0) return undefined;
   return { label: (form && WHOLE_UNIT_LABEL[form]) || 'Unit', grams: pieceWeightG };
 }
+
+/**
+ * The one figure a reader sees for a chosen weight, wherever it is shown.
+ *
+ * The product page's own ladder, its add-to-order total, and the shop grid
+ * all name a weight and want the same total back for it. Getting there takes
+ * two steps in order: work out whether this tea has a whole piece (a sealed
+ * unit counts as one), then round the weight up to that piece before pricing
+ * it, exactly as the product page's own slider does. A tea sold in sealed
+ * units has no arbitrary gram amount to price, so a chosen weight that falls
+ * between units is rounded up to the next one it can actually send, never
+ * down. Skipping that step is how the grid used to charge for grams nobody
+ * could buy, on top of leaving out the handling fee entirely.
+ */
+export function quoteForDisplay(
+  pricePerGramUsd: number,
+  chosenGrams: number,
+  opts: {
+    form?: string;
+    pieceWeightG?: number;
+    soldInWholeUnits?: boolean;
+    stockG?: number;
+    config?: TeaPricingConfig;
+  } = {},
+): Quote {
+  const sellUnit = sellUnitOf(opts.form, opts.pieceWeightG, opts.soldInWholeUnits);
+  const wholePiece = sellUnit ?? wholePieceOf(opts.form, opts.pieceWeightG, opts.config);
+  const unitGrams = sellUnit?.grams;
+  const stockG = opts.stockG ?? 0;
+  const grams = unitGrams
+    ? snapToUnit(chosenGrams, unitGrams, Math.max(unitGrams, Math.floor(stockG)))
+    : chosenGrams;
+  return quoteGrams(pricePerGramUsd, grams, { wholePieceGrams: wholePiece?.grams, config: opts.config });
+}

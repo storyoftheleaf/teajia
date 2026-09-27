@@ -13,11 +13,16 @@ import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type Co
 import { shippingPerGramUsd, resolveShopFreightDefault } from './shippingRate';
 import { FX_FEED_CURRENCY_MAP, refreshedCurrencyName } from './exchangeRateFeed';
 import { SHOP_MARKUP_MULTIPLIER, CURATOR_FALLBACK_MARKUP } from './markup';
-import { costNeedsCurrency, createMissingCost, currencyStated, stampCostCurrencySource, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
+import { costNeedsCurrency, createMissingCost, currencyStated, stampCostCurrencySource, canonicalizeCostCurrency, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
+import { nameProductColumns } from './productDefaults';
 import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
-import { deriveConfirmedInvoiceLine, repairCandidate, formatInvoiceNumber, loadUsdRates, amountToUsd } from './invoiceDomain';
 import {
+  deriveConfirmedInvoiceLine,
+  repairCandidate,
+  formatInvoiceNumber,
+  loadUsdRates,
+  amountToUsd,
   PAYMENT_EPSILON,
   PAYMENT_AMOUNT_CEILING,
   CLAIM_TOLERANCE_USD,
@@ -29,12 +34,19 @@ import {
   loadLedgerInvoice,
   reconcileLedgerWithColumn,
   recomputeInvoicePaymentStatus,
-} from './invoiceDomain';
-import type {
-  InvoiceLedgerTotals,
-  InvoiceMoney,
-  LedgerInvoice,
-  LedgerRecompute,
+  validateRetailInvoiceInput,
+  validateShippingCostUsd,
+  validatePaymentStatusValue,
+  assertInvoiceCustomerBelongsToAccount,
+  claimInvoiceEditLease,
+  releaseInvoiceEditLease,
+  claimInvoiceLinkLease,
+  releaseInvoiceLinkLease,
+  type RetailInvoiceInput,
+  type InvoiceLedgerTotals,
+  type InvoiceMoney,
+  type LedgerInvoice,
+  type LedgerRecompute,
 } from './invoiceDomain';
 import {
   authorizeInvoiceLines,
@@ -74,12 +86,17 @@ import {
 } from './wisdomVerification';
 import {
   isSupportedPaymentCurrency,
+  normalizeContributorLinks,
   normalizeLanguages,
   parsePublicPaymentContext,
+  parseStoredContributorLinks,
+  projectPublicGalleryImage,
   projectPublicPaymentMethod,
   resolvePublishedPaymentMethods,
+  type GalleryImageRow,
   type PaymentMethodRow,
 } from './profileDomain';
+import { decidePayAccess, isShareTokenShaped, mintShareToken, PAY_LINK_PARAM, withShareToken } from './payAccessDomain';
 import {
   deriveWisdomFindings,
   nodeKey,
@@ -95,7 +112,15 @@ import {
   resolveTeaReferenceIssues,
 } from './teaReferenceIssues';
 import { isTeaType, TEA_TYPES } from '../../src/wisdom/vocabulary';
-import { inquiryEmail, inquiryPhone, inquiryPacking, inquiryPackingLabel, quoteInquiryLine, catalogProductIds, INQUIRY_MAX_NOTE, inquiryRequestFingerprint, isValidTrackingToken, normalizeCartInquiry, redactPublicInquiry, sha256Hex } from './inquiryDomain';
+import { isUnrecordedCurrency } from '../../src/lib/currency';
+import {
+  inquiryEmail, inquiryPhone, inquiryPacking, inquiryPackingLabel, quoteInquiryLine,
+  catalogProductIds, INQUIRY_MAX_CONTACT, INQUIRY_MAX_INTEREST_LABEL, INQUIRY_MAX_INTERESTS,
+  INQUIRY_MAX_LOCATION, INQUIRY_MAX_NAME, INQUIRY_MAX_NOTE, INQUIRY_MAX_PHONE, INQUIRY_MAX_REF_NUMBER,
+  INQUIRY_MAX_REFERRAL, INQUIRY_MAX_REQUEST_BYTES, INQUIRY_MAX_VISION, inquiryFieldTooLong,
+  inquiryRequestFingerprint, isValidTrackingToken, NEWSLETTER_MAX_EMAIL, NEWSLETTER_MAX_REQUEST_BYTES,
+  normalizeCartInquiry, redactPublicInquiry, sha256Hex,
+} from './inquiryDomain';
 
 interface Env {
   DB: D1Database;
@@ -144,7 +169,8 @@ interface Env {
   // Set via `wrangler secret put KEY_ENCRYPTION_SECRET` to any high-entropy string.
   KEY_ENCRYPTION_SECRET?: string;
   // Edge rate limiter for the public MCP. Bound via [[unsafe.bindings]] in
-  // wrangler.toml. Optional so local dev (no binding) still runs.
+  // wrangler.toml, and required: an absent binding refuses the request
+  // rather than running this unauthenticated endpoint with no brake.
   PUBLIC_MCP_LIMITER?: { limit: (opts: { key: string }) => Promise<{ success: boolean }> };
   // Edge rate limiter for auth (login/signup). Same shape as PUBLIC_MCP_LIMITER.
   // Optional so local dev (no binding) still runs; the in-memory checkRateLimit
@@ -156,6 +182,10 @@ interface Env {
   RSVP_LIMITER?: RateLimiterBinding;
   OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
   OAUTH_AUTHORIZE_LIMITER?: RateLimiterBinding;
+  // Edge rate limiter for the public checkout inquiry endpoint (audit SEC-1).
+  INQUIRY_LIMITER?: RateLimiterBinding;
+  // Edge rate limiter for the public newsletter signup (audit SEC-2).
+  NEWSLETTER_LIMITER?: RateLimiterBinding;
   // Scoped machine credential used only by the repository incident-queue exporter.
   INCIDENT_EXPORT_TOKEN?: string;
   WORDFORGE_INTEGRATION_TOKEN?: string;
@@ -778,6 +808,21 @@ async function requireAuthenticatedUser(
   return { userId: claims.sub, email: claims.email, name: claims.name };
 }
 
+// The same identity, on a route the public may also call. A missing or dead
+// token is "signed out", not an error: the pay gate has to answer a stranger
+// as calmly as it answers an approved account.
+async function optionalAuthenticatedUser(
+  request: Request,
+  env: Env,
+): Promise<{ userId: string; email: string; name: string } | null> {
+  const token = isAuthed(request);
+  if (!token) return null;
+  if (await validateSessionToken(token, env)) return null;
+  const claims = parseToken(token);
+  if (!claims || claims.sub === 'env-admin') return null;
+  return { userId: claims.sub, email: claims.email, name: claims.name };
+}
+
 async function requireAccountRole(
   request: Request,
   env: Env,
@@ -1257,7 +1302,7 @@ function buildProductMirrorInserts(
          shop markup rather than carrying a copy of it that can drift. See
          worker/src/markup.ts. */
       fixed_retail_price_usd, markup_multiplier,
-      vendor, vendor_id, cost_amount, cost_currency,
+      vendor, vendor_id, cost_amount, cost_currency, cost_currency_source,
       shipping_rate_per_kg, quantity_purchased, source_compass_entry_id,
       stock_verified_at,
       is_personal, can_reorder, is_public, is_featured, is_curated, is_sample, in_transit,
@@ -1266,7 +1311,7 @@ function buildProductMirrorInserts(
       tasting, tasting_source,
       owner_user_id, shown_in_shop, inventory_purpose, stock_known_at,
       legacy_product_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     `list_${productId}`, accountId, `prof_${productId}`,
     body.stock_grams ?? 0, body.low_stock_threshold ?? 100, body.recheck_stock ?? 0,
@@ -1279,6 +1324,14 @@ function buildProductMirrorInserts(
        reimplemented both halves of the schema default it exists to copy. A row
        that was never told a cost says so. */
     body.cost_amount ?? null, body.cost_currency ?? null,
+    /* The provenance is COPIED from the product row, never re-derived from the
+       currency sitting next to it. The update mirror already carried this
+       column; leaving it off the create mirror meant even a stamped single
+       create produced a listing saying nobody had answered. Copying is also the
+       only correct rule: the compass promotion writes a currency it took from a
+       compass entry and deliberately does not stamp it, and a mirror that read
+       the currency would stamp the listing while the product stayed honest. */
+    body.cost_currency_source ?? null,
     // NULL, not 0: nobody has entered a rate, so pricing applies the shop
     // default. A stored 0 is Adrian saying this one ships free.
     body.shipping_rate_per_kg ?? null, body.quantity_purchased ?? null, body.source_compass_entry_id ?? null,
@@ -1412,11 +1465,34 @@ function restError(
   return json({ error, ...(code ? { code } : {}), ...(details ? { details } : {}) }, status);
 }
 
-async function enforceDurableLimit(binding: RateLimiterBinding | undefined, key: string): Promise<Response | null> {
-  if (!binding) return null; // Wrangler local development has no native binding.
+// Every caller below is declared as an [[unsafe.bindings]] ratelimit entry in
+// wrangler.toml (checked at the same time this refused-on-absence rule was
+// added, audit SEC-5), and miniflare's ratelimit plugin simulates the binding
+// locally too, so an absent binding here is never "this is local dev", it is
+// a deploy that lost its rate limiter. Allowing that silently is what let 25
+// of 25 anonymous inquiry posts through with nothing timing them out.
+// bindingName is only for the log line; it does not change behavior.
+// retryAfterSeconds is optional and, before this helper existed, was only
+// ever sent by the /mcp/public check (10 seconds, matching that binding's
+// wrangler.toml window). No other caller sent Retry-After before this
+// helper folded them together, so the default (no header) keeps the rest
+// of them unchanged; only the /mcp/public caller passes it, to restore that
+// one behavior rather than spread a header nothing else ever carried.
+async function enforceDurableLimit(binding: RateLimiterBinding | undefined, bindingName: string, key: string, retryAfterSeconds?: number): Promise<Response | null> {
+  if (!binding) {
+    console.error(`Rate limiter binding ${bindingName} is not configured; refusing this request rather than allowing unlimited traffic.`);
+    return restError(503, 'Rate limit service unavailable', 'rate_limit_unavailable');
+  }
   try {
     const result = await binding.limit({ key });
-    return result.success ? null : restError(429, 'Too many requests', 'rate_limited');
+    if (result.success) return null;
+    if (retryAfterSeconds) {
+      return new Response(JSON.stringify({ error: 'Too many requests', code: 'rate_limited' }), {
+        status: 429,
+        headers: { 'Content-Type': 'application/json', 'Retry-After': String(retryAfterSeconds) },
+      });
+    }
+    return restError(429, 'Too many requests', 'rate_limited');
   } catch {
     return restError(503, 'Rate limit service unavailable', 'rate_limit_unavailable');
   }
@@ -1447,6 +1523,33 @@ function cachedJson(data: unknown, maxAge: number, status = 200): Response {
       'Cache-Control': `public, max-age=${maxAge}, s-maxage=${maxAge}`,
     },
   });
+}
+
+/**
+ * Serve a public GET from this data center's cache, building it only on a miss.
+ *
+ * cachedJson's Cache-Control is not enough on its own: Cloudflare does not cache
+ * what a Worker returns, so its s-maxage was a promise nothing kept. Every shop
+ * visit rebuilt the whole catalogue from D1: 150 KB and 4-13 ms of CPU per
+ * request, measured 2026-09-26, against the Free plan's 10 ms per-request limit,
+ * over which Cloudflare kills the request (error 1102). The key is the path
+ * alone, so a query string cannot force a rebuild; only 200s are stored.
+ * Cache-Control's max-age sets how long an entry lives. CORS is added by the
+ * router after this returns, so one entry serves every origin.
+ */
+async function edgeCached(request: Request, maxAge: number, build: () => Promise<Response>): Promise<Response> {
+  const cache = (globalThis as { caches?: { default?: Cache } }).caches?.default;
+  const url = new URL(request.url);
+  const key = new Request(url.origin + url.pathname, { method: 'GET' });
+  if (cache) {
+    const hit = await cache.match(key).catch(() => undefined);
+    if (hit) return hit;
+  }
+  const response = await build();
+  if (cache && response.status === 200) {
+    await cache.put(key, response.clone()).catch(() => undefined);
+  }
+  return response;
 }
 
 function swrJson(data: unknown, sMaxAge: number, swr: number, status = 200): Response {
@@ -1541,8 +1644,11 @@ function addPricingFields(product: any, rates: Map<string, number>, shopDefaultP
      'UNK' is the sentinel the admin uses for it. That still converts at 1,
      because that is what it has always meant, not because a rate is missing. */
   const declared = product.cost_currency as string | null | undefined;
-  const unrecorded = !declared || String(declared).trim() === '' || String(declared).toUpperCase() === 'UNK';
-  const rate = unrecorded ? 1 : lookupRateToUsd(rates, declared);
+  // The reading of "nobody said" lives beside the alias map, because the admin
+  // dashboard has to take the same one or the shelf and the dashboard disagree
+  // about the same teas. It was written out here in full, which is how a rule
+  // gets two homes.
+  const rate = isUnrecordedCurrency(declared) ? 1 : lookupRateToUsd(rates, declared);
   const isTeaware = product.type === 'Teaware';
   if (!rate || rate <= 0) {
     return {
@@ -1840,7 +1946,7 @@ const handleVerifySignupEmail: Handler = async (request, env) => {
 // to restart signup for an existing identity.
 const handleResendSignupVerification: Handler = async (request, env) => {
   const verifyIp = request.headers.get('CF-Connecting-IP') || 'unknown';
-  const limited = await enforceDurableLimit(env.VERIFY_LIMITER, `signup-resend:${verifyIp}`);
+  const limited = await enforceDurableLimit(env.VERIFY_LIMITER, 'VERIFY_LIMITER', `signup-resend:${verifyIp}`);
   if (limited) return limited;
 
   const body = await request.json().catch(() => ({})) as { email?: string; signup_token?: string };
@@ -2572,7 +2678,11 @@ const PUBLIC_FIELDS = [
   'id', 'slug', 'type', 'form', 'given_name', 'chinese_name', 'product_name', 'year',
   'origin_country', 'origin_region', 'retail_price_per_gram_usd',
   'fixed_retail_price_usd', 'stock_grams', 'description', 'tasting_notes',
-  'image_url', 'additional_images', 'status', 'is_personal', 'can_reorder', 'is_featured', 'is_curated',
+  // featured_position rides with is_featured: a surface showing ONE featured
+  // tea needs to know which is first, and the query answers it, but this list
+  // is what actually reaches the public. Adding the column without adding it
+  // here strips it silently, which is what happened on 2026-09-23.
+  'image_url', 'additional_images', 'status', 'is_personal', 'can_reorder', 'is_featured', 'featured_position', 'is_curated',
   'lore', 'show_wisdom', 'processing_notes', 'terroir', 'mood', 'experience',
   'material', 'capacity_ml', 'teaware_category', 'quantity_units', 'tasting', 'tasting_source',
   // What one pressed piece weighs. Public because the shop sells the piece:
@@ -2594,9 +2704,9 @@ const PUBLIC_FIELDS = [
 
 // Legacy alias: resolves to Adrian's Bali store. New callers should use
 // /api/s/teajia-bali/products.
-const handleGetPublicProducts: Handler = async (_request, env) => {
-  const products = await fetchPublicProductsForAccount(env, BALI_ACCOUNT_ID);
-  return cachedJson(products, 60);
+const handleGetPublicProducts: Handler = async (request, env) => {
+  return edgeCached(request, 60, async () =>
+    cachedJson(await fetchPublicProductsForAccount(env, BALI_ACCOUNT_ID), 60));
 };
 
 // GET /api/products/public/:id — a single public product (PUBLIC_FIELDS only).
@@ -2725,6 +2835,11 @@ const handleCreateProduct: Handler = async (request, env) => {
   /* After the unknown-field check, so `cost_currency_source` is not a field a
      caller may send: it records that this process saw a currency arrive. */
   stampCostCurrencySource(body);
+  /* The shop's own spelling, once, here: 'cny' and 'CNY' both become 'Yuan'
+     before the row or its mirror ever sees them. Order does not matter against
+     the stamp above; it only matters that this runs before the INSERT and
+     before buildProductMirrorInserts, both of which read body.cost_currency. */
+  canonicalizeCostCurrency(body);
   const ownerError = await validateProductOwnerAssignment(env, ctx, body);
   if (ownerError) return ownerError;
   const canPublish = ctx.isPlatform || ctx.role === 'owner' || ctx.bundles.includes('publish');
@@ -2813,6 +2928,11 @@ const handleCreateProduct: Handler = async (request, env) => {
   if (incomingCreateError) return incomingCreateError;
   const id = crypto.randomUUID();
   body.slug = await mintProductSlug(env, body, id);
+  /* Freight, markup and cost are named even when the caller said nothing about
+     them, because the live table answers 0, 2.5 and 0 for a column an INSERT
+     leaves out and every one of those is a decision nobody made. See
+     worker/src/productDefaults.ts. */
+  nameProductColumns(body);
   const cols = Object.keys(body);
   const placeholders = cols.map(() => '?').join(', ');
   const insertProduct = env.DB.prepare(`INSERT INTO products (id, ${cols.join(', ')}) VALUES (?, ${placeholders})`)
@@ -2860,7 +2980,7 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     if (unknownFields.length > 0) {
       return restError(400, 'Unsupported fields for product creation', 'validation_failed', { fields: unknownFields });
     }
-    const capabilityError = validateProductCreateCapabilities(ctx, raw);
+    const capabilityError = validateProductCreateCapabilities(ctx, raw, { costRefusedPerRow: true });
     if (capabilityError) return capabilityError;
     const ownerError = await validateProductOwnerAssignment(env, ctx, raw);
     if (ownerError) return ownerError;
@@ -2918,6 +3038,16 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     delete body.account_id;
     delete body.client_row_id;
     body.account_id = accountId;
+    /* The same stamp the single create writes. Without it an import that named
+       its currency correctly still landed with the column NULL, which is how a
+       row says nobody was ever asked, so `list_unstated_costs` would offer it
+       up and a vendor-wide `set_cost_currency` would rewrite a stated HKD cost
+       to yuan and move that tea's shelf price by the exchange rate. */
+    stampCostCurrencySource(body);
+    // The same canonicalisation the single create runs, per row: a spreadsheet
+    // cell reading 'hkd' or 'cny' is stored as 'HKD' or 'Yuan', the spelling the
+    // exchange table and every other door already agree on.
+    canonicalizeCostCurrency(body);
     // Bulk/structured import is ingestion, not a publication action. Force the
     // product and its listing/profile mirrors private even for account owners
     // and even if an untrusted import payload asks to publish.
@@ -2954,6 +3084,36 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
       results.push({ client_row_id: clientRowId, status: 'skipped', reason: 'A product with this type and name already exists' });
       continue;
     }
+    /* A tea is not added without saying what it cost, asked of the RAW row and
+       before the name is claimed below.
+
+       Raw, because a blank cell arrives as '' and the stripped body no longer
+       shows the difference between a column somebody emptied and one they never
+       mapped; the agent door learned the same lesson, that a guard handed a
+       converted value cannot tell absence from an answer.
+
+       Per row, because this door is a spreadsheet. Refusing the request would
+       throw away every complete row in the file over one empty price cell, and
+       the import screens already carry a per-row reason back to the review
+       surface, so the operator sees which lines still need a figure and the
+       rest of the import lands. The single create refuses the whole request
+       because there a request IS one tea.
+
+       BOTH halves, amount and currency. The currency half was the one still
+       asked for the whole request, and the CSV import writes `UNK` for any
+       currency token its map does not recognise, so a fifty-row file with one
+       unreadable currency cell landed nothing at all and said only that a cost
+       needs a currency. Half a rule per row is not the rule.
+
+       Before the name is claimed, because a row that does not land must not
+       hold its name against a later row in the same file that does say what it
+       cost. */
+    const costRefusal = productCreateCostRefusal(raw);
+    if (costRefusal) {
+      skipped.push(body.product_name || body.given_name || 'unknown');
+      results.push({ client_row_id: clientRowId, status: 'skipped', reason: costRefusal.message });
+      continue;
+    }
     existingByNaturalKey.set(key, body); // Prevent duplicates within the same batch
 
     if (body.quantity_purchased == null) {
@@ -2975,6 +3135,12 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
       if (vendorCache[vkey]) body.vendor_id = vendorCache[vkey];
     }
     body.slug = await mintProductSlug(env, body, id, reservedSlugs);
+    /* After the strip above, not before it. This door builds its body by
+       dropping every null, undefined and empty-string value, so a cleared
+       freight cell arrived as '' and left as nothing at all: the column was
+       omitted, the live table answered 0, and the tea shipped free. There was
+       no way for this door to send a deliberate NULL. Now there is. */
+    nameProductColumns(body);
     const cols = Object.keys(body);
     const placeholders = cols.map(() => '?').join(', ');
     const lineStatements: D1PreparedStatement[] = [
@@ -3086,7 +3252,45 @@ const PRODUCT_CREATE_PUBLICATION_COLUMNS = new Set(
   [...PRODUCT_PUBLICATION_UPDATE_COLUMNS].filter(column => column !== 'is_personal' && column !== 'is_sample'),
 );
 
-function validateProductCreateCapabilities(ctx: AccountCtx, body: Record<string, unknown>): Response | null {
+/**
+ * A tea is not added without saying what it cost, as an HTTP refusal.
+ *
+ * Its own function because the two create doors have to answer differently in
+ * shape while answering identically in substance. The single create refuses the
+ * request. The bulk create refuses the ROW, because a spreadsheet is many teas
+ * and one blank price cell must not throw away the forty-nine rows that did say
+ * what they cost. Same rule, same words, same named half.
+ *
+ * BOTH halves are decided here, and that is the point. The currency half used
+ * to be asked in `validateProductCreateCapabilities` above, for the whole
+ * request, which meant a fifty-row spreadsheet carrying one cell the currency
+ * map could not read was refused entire and landed nothing. The CSV import
+ * writes `UNK` for any currency token it does not recognise, so that was not a
+ * hypothetical row: it is what the import screen sends. One rule cannot be half
+ * per-row and half per-request, so it is one function and both doors call it.
+ */
+function productCreateCostRefusal(
+  body: Record<string, unknown>,
+): { missing: 'amount' | 'currency'; code: string; message: string } | null {
+  const missing = createMissingCost({ amount: body.cost_amount, currency: body.cost_currency });
+  if (!missing) return null;
+  /* The currency half keeps the words and the code it has always answered with,
+     so a client that already reads `cost_currency_required` still reads it, and
+     the row reason and the request error are the same sentence. */
+  const words = missing === 'currency' ? COST_CURRENCY_REQUIRED : COST_REQUIRED_ON_CREATE;
+  const code = missing === 'currency' ? 'cost_currency_required' : 'cost_required';
+  return { missing, code, message: `${words} (missing: ${missing})` };
+}
+
+function validateProductCreateCapabilities(
+  ctx: AccountCtx,
+  body: Record<string, unknown>,
+  /* The bulk door asks for its cost refusal one row at a time, further down,
+     so that a batch is not lost to a single blank cell. Every capability check
+     below still runs here, for every row, before any row is written: the
+     authorisation answer comes first, and it comes for the whole request. */
+  options: { costRefusedPerRow?: boolean } = {},
+): Response | null {
   const supplied = (columns: Set<string>) => [...columns].some(column => Object.prototype.hasOwnProperty.call(body, column));
   const missing = (bundle: Bundle) => !ctx.isPlatform && ctx.role !== 'owner' && !ctx.bundles.includes(bundle);
   if (supplied(PRODUCT_CREATE_STOCK_COLUMNS) && missing('stock')) {
@@ -3095,9 +3299,6 @@ function validateProductCreateCapabilities(ctx: AccountCtx, body: Record<string,
   if (supplied(PRODUCT_CREATE_COMMERCIAL_COLUMNS) && missing('sell')) {
     return restError(403, 'Sell capability required for supplied fields', 'insufficient_bundle', { required_bundle: 'sell' });
   }
-  // Nothing exists yet to inherit a currency from, so the payload has to say.
-  const createCostRefusal = costMissingItsCurrency(body, null);
-  if (createCostRefusal) return createCostRefusal;
   if (supplied(PRODUCT_CREATE_PUBLICATION_COLUMNS) && missing('publish')) {
     return restError(403, 'Publish capability required for supplied fields', 'insufficient_bundle', { required_bundle: 'publish' });
   }
@@ -3120,10 +3321,14 @@ function validateProductCreateCapabilities(ctx: AccountCtx, body: Record<string,
      may not create this product at all should be told that, not handed a list
      of what else their payload was missing: the authorisation answer is the
      true one, and it is the one that does not describe a form they are not
-     allowed to fill in. */
-  const missingCost = createMissingCost({ amount: body.cost_amount, currency: body.cost_currency });
-  if (missingCost) {
-    return restError(400, COST_REQUIRED_ON_CREATE, 'cost_required', { missing: missingCost });
+     allowed to fill in. The currency half is asked here too, for the same
+     reason: it used to run above the capability checks, which told a caller who
+     could not publish what else was wrong with a form they were not allowed to
+     fill in. */
+  if (options.costRefusedPerRow) return null;
+  const costRefusal = productCreateCostRefusal(body);
+  if (costRefusal) {
+    return restError(400, costRefusal.message, costRefusal.code, { missing: costRefusal.missing });
   }
   return null;
 }
@@ -3180,7 +3385,6 @@ async function applyProductUpdate(
     const costRefusal = costMissingItsCurrency(body, existingCost?.cost_currency);
     if (costRefusal) return costRefusal;
   }
-  stampCostCurrencySource(body);
   if (body.inventory_purpose !== undefined || body.is_sample !== undefined || body.is_personal !== undefined) {
     try { Object.assign(body, decodeInventoryPurposeWrite(body)); }
     catch (error) { return json({ error: (error as Error).message }, 400); }
@@ -3222,6 +3426,20 @@ async function applyProductUpdate(
       }, 400);
     }
   }
+  /* After the unknown-field check, exactly as the create path does it, and for
+     two reasons that pull the same way. `cost_currency_source` is in no
+     caller-facing column set, so a caller may not send one: it records that
+     this process saw a currency arrive. And stamping BEFORE the check handed
+     that check a field it was bound to reject, so the three command routes
+     refused any edit that stated a cost currency: a 400 naming
+     `cost_currency_source`, on the very route the product edit panel sends a
+     cost change to. The stamp cannot run before the gate it fails. */
+  stampCostCurrencySource(body);
+  // The same canonicalisation the create doors run, so an edit through the
+  // product edit panel or /commercial cannot re-introduce a raw spelling that
+  // create already refuses to store. Runs before the UPDATE and before
+  // buildProductMirrorStmts, both of which read body.cost_currency.
+  canonicalizeCostCurrency(body);
 
   const ownedProduct = await env.DB.prepare('SELECT id FROM products WHERE id = ? AND account_id = ?')
     .bind(params.id, accountId).first();
@@ -4021,6 +4239,12 @@ export interface InvoicePaymentInfo {
   outstanding_usd: number;
   /** Rows still sitting at status 'claimed', waiting on the operator. */
   claims_pending: number;
+  /**
+   * How many distinct teas the invoice sells: one per line whose product is
+   * not teaware, a custom line counting as a tea. The admin's share sentence
+   * says "three teas" from this rather than fetching the lines for one word.
+   */
+  tea_line_count: number;
 }
 
 export interface PayableInvoice {
@@ -4054,6 +4278,7 @@ const NO_PAYMENT: InvoicePaymentInfo = {
   paid_usd: 0,
   outstanding_usd: 0,
   claims_pending: 0,
+  tea_line_count: 0,
 };
 
 function appOrigin(env: Env): string {
@@ -4127,6 +4352,24 @@ async function resolveInvoicePayments(
     }
   }
 
+  // 1a. Distinct teas per invoice, one query for the page. Teaware is not a
+  //     tea; a custom line with no product is treated as one.
+  const teaLines = new Map<string, number>();
+  {
+    const ids = rows.map(invoice => invoice.id);
+    const teaRows = await env.DB.prepare(
+      `SELECT li.invoice_id, COUNT(DISTINCT COALESCE(li.product_id, li.id)) AS tea_lines
+         FROM invoice_line_items li
+         LEFT JOIN products p ON p.id = li.product_id
+        WHERE li.invoice_id IN (${ids.map(() => '?').join(', ')})
+          AND (p.id IS NULL OR p.type IS NULL OR p.type != 'Teaware')
+        GROUP BY li.invoice_id`
+    ).bind(...ids).all();
+    for (const row of (teaRows.results ?? []) as Array<Record<string, any>>) {
+      teaLines.set(row.invoice_id as string, Number(row.tea_lines || 0));
+    }
+  }
+
   // 1b. The payment ledger for the same page, in the same fixed query budget.
   //     The money is a fact about the invoice, not about who gets paid, so it
   //     is seeded onto every entry now. Every early return below still carries
@@ -4142,7 +4385,7 @@ async function resolveInvoicePayments(
       invoice.payment_status,
       ledger.get(invoice.id),
     ));
-    resolved.set(invoice.id, { ...NO_PAYMENT, ...money.get(invoice.id)! });
+    resolved.set(invoice.id, { ...NO_PAYMENT, ...money.get(invoice.id)!, tea_line_count: teaLines.get(invoice.id) ?? 0 });
   }
 
   // 2. The invoices' accounts (slug for the ?account= param, owner as the last
@@ -4215,6 +4458,33 @@ async function resolveInvoicePayments(
     storeLinks.add(`${row.contributor_id}::${row.account_id}`);
   }
 
+  // 5. Pay is private: the public pay sheet opens only for an approved account
+  //    or a share link, so an invoice's pay link IS a share link. One token
+  //    per invoice, minted the first time the invoice earns a live link and
+  //    reused on every read after that, so the same order always shares the
+  //    same URL. The row records which contributor's details it opens.
+  const existingLinks = new Map<string, string>();
+  {
+    const linkRows = await env.DB.prepare(
+      `SELECT invoice_id, token FROM payment_share_links
+        WHERE invoice_id IN (${rows.map(() => '?').join(', ')})`
+    ).bind(...rows.map(invoice => invoice.id)).all();
+    for (const row of (linkRows.results ?? []) as Array<Record<string, any>>) {
+      existingLinks.set(row.invoice_id as string, row.token as string);
+    }
+  }
+  const shareTokenFor = async (invoice: PayableInvoice, contributorId: string): Promise<string> => {
+    const known = existingLinks.get(invoice.id);
+    if (known) return known;
+    const token = mintShareToken();
+    await env.DB.prepare(
+      `INSERT INTO payment_share_links (id, account_id, contributor_id, invoice_id, token, created_by_user_id)
+       VALUES (?, ?, ?, ?, ?, NULL)`
+    ).bind(newId('psl'), invoice.account_id, contributorId, invoice.id, token).run();
+    existingLinks.set(invoice.id, token);
+    return token;
+  };
+
   for (const invoice of rows) {
     const userId = recipientByInvoice.get(invoice.id);
     if (!userId) continue;
@@ -4239,7 +4509,10 @@ async function resolveInvoicePayments(
       methodsByContributor.get(contributorId) ?? [],
       linked ? accountId : null,
     );
-    const amounts = money.get(invoice.id) ?? { total_usd: 0, paid_usd: 0, outstanding_usd: 0, claims_pending: 0 };
+    const amounts = {
+      ...(money.get(invoice.id) ?? { total_usd: 0, paid_usd: 0, outstanding_usd: 0, claims_pending: 0 }),
+      tea_line_count: teaLines.get(invoice.id) ?? 0,
+    };
     if (methods.length === 0) {
       resolved.set(invoice.id, {
         ...amounts,
@@ -4272,14 +4545,14 @@ async function resolveInvoicePayments(
       ...amounts,
       recipient_slug: contributorId,
       recipient_name: recipientName,
-      pay_url: buildPayUrl(
+      pay_url: withShareToken(buildPayUrl(
         env,
         contributorId,
         linked ? ((account?.slug as string | null) ?? null) : null,
         amounts.outstanding_usd,
         invoice.invoice_number ?? null,
         invoice.display_currency ?? null,
-      ),
+      ), await shareTokenFor(invoice, contributorId)),
       has_methods: true,
     });
   }
@@ -5185,6 +5458,10 @@ const handleGetInvoices: Handler = async (request, env) => {
 };
 
 // Canonical invoice-number formatter. ONE source of truth shared across
+function invalidInvoiceResponse(error: unknown): Response {
+  return restError(400, error instanceof Error ? error.message : 'Invalid invoice', 'invalid_invoice');
+}
+
 // handleCreateInvoice, handleSplitInvoice, and (via import) commitRecordSale in
 // mcp.ts so the visible number format never drifts between code paths. Applies
 // consistent 5-digit zero-padding and the account's invoice_prefix (e.g.
@@ -5195,20 +5472,30 @@ const handleCreateInvoice: Handler = async (request, env) => {
   const { accountId } = ctx;
 
   const userEmail = getUserEmail(request);
-  const body = await request.json() as { invoice: Record<string, any>; lineItems: Record<string, any>[] };
-  if (!Array.isArray(body.lineItems) || !body.invoice) return restError(400, 'Invoice and line items are required', 'invalid_invoice');
+  let body: { invoice?: Record<string, unknown>; lineItems?: unknown };
+  try {
+    body = await request.json() as { invoice?: Record<string, unknown>; lineItems?: unknown };
+  } catch (error) {
+    return invalidInvoiceResponse(error);
+  }
+  let input: RetailInvoiceInput;
+  try {
+    const invoice = body?.invoice && typeof body.invoice === 'object' && !Array.isArray(body.invoice) ? body.invoice : {};
+    input = validateRetailInvoiceInput({ ...invoice, lineItems: body?.lineItems });
+    await assertInvoiceCustomerBelongsToAccount(env, accountId, input.customer_id);
+  } catch (error) {
+    return invalidInvoiceResponse(error);
+  }
   const id = crypto.randomUUID();
-  const paymentStatus = body.invoice.payment_status || 'unpaid';
   let authorizedLines: AuthorizedInvoiceLine[];
   try {
     authorizedLines = await authorizeInvoiceLines(env, {
-      accountId, actorUserId: ctx.userId, actorRole: ctx.role, lines: body.lineItems,
+      accountId, actorUserId: ctx.userId, actorRole: ctx.role, lines: input.lineItems,
     });
   } catch (error) { return salesError(error); }
   const stockOwners = [...new Set(authorizedLines.filter(line => line.product_id).map(line => line.stock_owner_user_id))];
   const paymentRecipientUserId = stockOwners.length === 1 ? stockOwners[0] : null;
-  const status = body.invoice.status || 'Pending';
-  if (!['Draft', 'Pending'].includes(status)) return restError(400, 'New invoices must be Draft or Pending', 'invalid_invoice_status');
+  const status = input.status;
 
   // Bump invoice_seq and INSERT, retrying on the active-invoice-number unique
   // index collision (two concurrent creates can race to the same seq, or a
@@ -5241,23 +5528,23 @@ const handleCreateInvoice: Handler = async (request, env) => {
       id,
       accountId,
       invoiceNumber,
-      body.invoice.customer_name,
-      body.invoice.customer_whatsapp || null,
-      body.invoice.customer_id || null,
-      body.invoice.display_currency,
-      body.invoice.shipping_cost_usd || 0,
+      input.customer_name,
+      input.customer_whatsapp,
+      input.customer_id,
+      input.display_currency,
+      input.shipping_cost_usd,
       status,
       0,
-      body.invoice.notes || null,
-      body.invoice.source_event_id || null,
-      paymentStatus,
+      input.notes,
+      input.source_event_id,
+      input.payment_status,
       ctx.userId,
       paymentRecipientUserId,
     );
 
     const logStmt = buildActivityLog(
       env, 'INVOICE_CREATED',
-      `Invoice ${invoiceNumber} created for ${body.invoice.customer_name} (${body.lineItems.length} items)`,
+      `Invoice ${invoiceNumber} created for ${input.customer_name} (${input.lineItems.length} items)`,
       userEmail, 'invoice', id, accountId
     );
 
@@ -5282,7 +5569,7 @@ const handleCreateInvoice: Handler = async (request, env) => {
     return json({ error: 'Could not allocate a unique invoice number — please retry' }, 409);
   }
 
-  await ensureContactRelationship(env, accountId, body.invoice.customer_id, 'buyer', 'workflow', 'invoice', id);
+  await ensureContactRelationship(env, accountId, input.customer_id, 'buyer', 'workflow', 'invoice', id);
 
   return json({ id, invoice_number: invoiceNumber }, 201);
 };
@@ -5429,7 +5716,12 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
-  const body = await request.json() as Record<string, any>;
+  let body: Record<string, any>;
+  try {
+    body = await request.json() as Record<string, any>;
+  } catch (error) {
+    return invalidInvoiceResponse(error);
+  }
   delete body.account_id;
   const invoice = await env.DB.prepare('SELECT id,status,sold_by_user_id FROM invoices WHERE id=? AND account_id=?')
     .bind(params.id, accountId).first() as Record<string, any> | null;
@@ -5437,6 +5729,19 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
   const INVOICE_ALLOWED_COLS = new Set(['customer_name','customer_id','customer_phone','customer_email','status','notes','display_currency','amount_usd','shipping_cost_usd','message_text','payment_status','paid_at','payment_date','due_date','payment_method','currency_rate','source_event_id']);
   const cols = Object.keys(body).filter(k => INVOICE_ALLOWED_COLS.has(k));
   if (cols.length === 0) return json({ success: true });
+  try {
+    if (Object.prototype.hasOwnProperty.call(body, 'customer_id')) {
+      await assertInvoiceCustomerBelongsToAccount(env, accountId, body.customer_id);
+    }
+    if (Object.prototype.hasOwnProperty.call(body, 'shipping_cost_usd')) {
+      body.shipping_cost_usd = validateShippingCostUsd(body.shipping_cost_usd);
+    }
+    if (Object.prototype.hasOwnProperty.call(body, 'payment_status')) {
+      body.payment_status = validatePaymentStatusValue(body.payment_status);
+    }
+  } catch (error) {
+    return invalidInvoiceResponse(error);
+  }
   const sets = cols.map(c => `${c} = ?`).join(', ');
   try {
     const statements: D1PreparedStatement[] = [];
@@ -6157,6 +6462,10 @@ const handleSplitInvoice: Handler = async (request, env) => {
       lines: allItems.results as AuthorizedInvoiceLine[],
     });
   } catch (error) { return salesError(error); }
+
+  const splitClaim = await claimInvoiceEditLease(env, accountId, invoice_id);
+  if (!splitClaim) return restError(409, 'Invoice is no longer available for editing', 'invoice_edit_conflict');
+  const leaseGuard = { invoiceId: invoice_id, claimToken: splitClaim, status: 'Pending', inventoryDeducted: 0 };
   const snapshotItems = allItems.results as AuthorizedInvoiceLine[];
   const movedIds = new Set(line_item_ids);
   const movedItems = snapshotItems.filter(item => item.id && movedIds.has(item.id));
@@ -6183,27 +6492,34 @@ const handleSplitInvoice: Handler = async (request, env) => {
     stmts.push(env.DB.prepare(
       `INSERT INTO invoices
        (id,account_id,invoice_number,customer_name,customer_whatsapp,customer_id,display_currency,shipping_cost_usd,status,inventory_deducted,notes,sold_by_user_id,payment_recipient_user_id)
-       VALUES (?,?,?,?,?,?,?,0,'Pending',0,?,?,?)`
+       SELECT ?, ?, ?, ?, ?, ?, ?, 0, 'Pending', 0, ?, ?, ?
+       WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND status = 'Pending'
+         AND inventory_deducted = 0 AND fulfillment_claim_token = ?)`
     ).bind(newId, accountId, newNumber, invoice.customer_name, invoice.customer_whatsapp, invoice.customer_id,
-      invoice.display_currency, invoice.notes, invoice.sold_by_user_id, movedPaymentRecipient));
+      invoice.display_currency, invoice.notes, invoice.sold_by_user_id, movedPaymentRecipient,
+      invoice_id, accountId, splitClaim));
 
     stmts.push(env.DB.prepare(
-      'UPDATE invoices SET payment_recipient_user_id=? WHERE id=? AND account_id=?'
-    ).bind(remainingPaymentRecipient, invoice_id, accountId));
+      `UPDATE invoices SET payment_recipient_user_id=? WHERE id=? AND account_id=? AND status='Pending'
+       AND inventory_deducted=0 AND fulfillment_claim_token=?`
+    ).bind(remainingPaymentRecipient, invoice_id, accountId, splitClaim));
 
     for (const itemId of line_item_ids) {
       stmts.push(
-        env.DB.prepare('UPDATE invoice_line_items SET invoice_id = ? WHERE id = ? AND account_id = ?')
-          .bind(newId, itemId, accountId)
+        env.DB.prepare(
+          `UPDATE invoice_line_items SET invoice_id = ? WHERE id = ? AND account_id = ? AND invoice_id = ?
+           AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND status = 'Pending'
+             AND inventory_deducted = 0 AND fulfillment_claim_token = ?)`
+        ).bind(newId, itemId, accountId, invoice_id, invoice_id, accountId, splitClaim)
       );
     }
 
     const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
     stmts.push(...buildInvoiceReservationStatements(env, {
-      accountId, invoiceId: invoice_id, lines: remainingItems, expiresAt,
+      accountId, invoiceId: invoice_id, lines: remainingItems, expiresAt, guard: leaseGuard,
     }));
     stmts.push(...buildInvoiceReservationStatements(env, {
-      accountId, invoiceId: newId, lines: movedItems, expiresAt,
+      accountId, invoiceId: newId, lines: movedItems, expiresAt, guard: leaseGuard,
     }));
 
     stmts.push(buildActivityLog(env, 'INVOICE_SPLIT',
@@ -6213,20 +6529,35 @@ const handleSplitInvoice: Handler = async (request, env) => {
       `Invoice ${newNumber} created from split of ${invoice.invoice_number}.`,
       userEmail, 'invoice', newId, accountId));
 
+    const releaseIndex = stmts.length;
+    stmts.push(env.DB.prepare(
+      `UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL
+       WHERE id = ? AND account_id = ? AND status = 'Pending' AND inventory_deducted = 0 AND fulfillment_claim_token = ?`
+    ).bind(invoice_id, accountId, splitClaim));
+
     try {
-      await env.DB.batch(stmts);
+      const results = await env.DB.batch(stmts);
+      if (Number(results[releaseIndex]?.meta?.changes || 0) === 0) {
+        await releaseInvoiceEditLease(env, accountId, invoice_id, splitClaim);
+        return restError(409, 'Invoice changed before the split could be applied', 'invoice_edit_conflict');
+      }
       committed = true;
     } catch (err: any) {
       lastErr = err;
       const msg = String(err?.message || err);
-      if (/insufficient available stock/i.test(msg)) return restError(409, 'Insufficient available stock', 'insufficient_available_stock');
+      if (/insufficient available stock/i.test(msg)) {
+        await releaseInvoiceEditLease(env, accountId, invoice_id, splitClaim);
+        return restError(409, 'Insufficient available stock', 'insufficient_available_stock');
+      }
       if (/UNIQUE|constraint/i.test(msg)) continue; // collision — bump seq and retry
       console.error('handleSplitInvoice batch failed:', err);
+      await releaseInvoiceEditLease(env, accountId, invoice_id, splitClaim);
       return json({ error: 'Split failed — no changes were committed' }, 500);
     }
   }
   if (!committed) {
     console.error('handleSplitInvoice: failed after retries:', lastErr);
+    await releaseInvoiceEditLease(env, accountId, invoice_id, splitClaim);
     return json({ error: 'Could not allocate a unique invoice number — please retry' }, 409);
   }
   await ensureContactRelationship(env, accountId, invoice.customer_id, 'buyer', 'workflow', 'invoice', newId);
@@ -6240,82 +6571,143 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
   const { accountId } = ctx;
 
   const userEmail = getUserEmail(request);
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json() as Record<string, unknown>;
+  } catch (error) {
+    return invalidInvoiceResponse(error);
+  }
+  const ALLOWED_ITEM_UPDATE_FIELDS = new Set([
+    'lineItems', 'shipping_cost_usd', 'customer_name', 'customer_id', 'customer_whatsapp',
+    'display_currency', 'notes', 'source_event_id', 'customer_phone', 'customer_email',
+  ]);
+  const updateKeys = Object.keys(body).filter(key => ALLOWED_ITEM_UPDATE_FIELDS.has(key));
+  if (updateKeys.length === 0) return restError(400, 'No invoice changes provided', 'validation_failed');
+
   const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ? AND account_id = ?')
-    .bind(params.id, accountId).first();
+    .bind(params.id, accountId).first() as Record<string, any> | null;
   if (!invoice) return json({ error: 'Invoice not found' }, 404);
   if (invoice.status !== 'Pending') return json({ error: 'Only Pending invoices can be edited' }, 400);
 
-  const body = await request.json() as {
-    lineItems?: { product_id: string; quantity: number; price_at_sale: number; custom_name?: string }[];
-    shipping_cost_usd?: number;
-    customer_name?: string;
-    customer_id?: string;
-    display_currency?: string;
-    notes?: string;
-  };
+  const hasReplacementLines = Object.prototype.hasOwnProperty.call(body, 'lineItems');
+  const hasCustomerIdUpdate = Object.prototype.hasOwnProperty.call(body, 'customer_id');
+  let lines: unknown = body.lineItems;
+  if (!hasReplacementLines) {
+    const existing = await env.DB.prepare(
+      'SELECT product_id, custom_name, quantity, price_at_sale FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
+    ).bind(params.id, accountId).all();
+    lines = existing.results;
+  }
+
+  let input: RetailInvoiceInput;
+  try {
+    input = validateRetailInvoiceInput({
+      ...invoice,
+      display_currency: invoice.display_currency ?? undefined,
+      shipping_cost_usd: invoice.shipping_cost_usd ?? undefined,
+      status: invoice.status ?? 'Pending',
+      payment_status: invoice.payment_status ?? undefined,
+      ...body,
+      lineItems: lines,
+    });
+    await assertInvoiceCustomerBelongsToAccount(env, accountId, hasCustomerIdUpdate ? input.customer_id : null);
+  } catch (error) {
+    return invalidInvoiceResponse(error);
+  }
+
+  const editClaim = await claimInvoiceEditLease(env, accountId, params.id);
+  if (!editClaim) return restError(409, 'Invoice is no longer available for editing', 'invoice_edit_conflict');
+  const leaseGuard = { invoiceId: params.id, claimToken: editClaim, status: 'Pending', inventoryDeducted: 0 };
 
   const stmts: D1PreparedStatement[] = [];
   let replacementPaymentRecipient: string | null | undefined;
 
-  if (body.lineItems) {
+  if (hasReplacementLines) {
     let authorized: AuthorizedInvoiceLine[];
     try {
-      const seller = await invoiceSellerAuthorizationContext(env, accountId, invoice as Record<string, any>);
+      const seller = await invoiceSellerAuthorizationContext(env, accountId, invoice);
       authorized = await authorizeInvoiceLines(env, {
-        accountId, ...seller, lines: body.lineItems,
+        accountId, ...seller, lines: input.lineItems,
       });
-    } catch (error) { return salesError(error); }
+    } catch (error) {
+      await releaseInvoiceEditLease(env, accountId, params.id, editClaim);
+      return salesError(error);
+    }
     replacementPaymentRecipient = resolvePaymentRecipientUserId(authorized);
     stmts.push(env.DB.prepare(
-      'DELETE FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
-    ).bind(params.id, accountId));
+      `DELETE FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?
+       AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND status = 'Pending'
+         AND inventory_deducted = 0 AND fulfillment_claim_token = ?)`
+    ).bind(params.id, accountId, params.id, accountId, editClaim));
     for (const item of authorized) {
       stmts.push(env.DB.prepare(
         `INSERT INTO invoice_line_items
          (id,account_id,invoice_id,product_id,custom_name,quantity,price_at_sale,stock_owner_user_id,sales_grant_id,owner_share_type,owner_share_value)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?)`
-      ).bind(crypto.randomUUID(), accountId, params.id, item.product_id, item.custom_name ?? null,
-        item.quantity, item.price_at_sale, item.stock_owner_user_id, item.sales_grant_id, item.owner_share_type, item.owner_share_value));
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+         WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND status = 'Pending'
+           AND inventory_deducted = 0 AND fulfillment_claim_token = ?)`
+      ).bind(crypto.randomUUID(), accountId, params.id, item.product_id ?? null, item.custom_name ?? null,
+        item.quantity, item.price_at_sale, item.stock_owner_user_id, item.sales_grant_id,
+        item.owner_share_type, item.owner_share_value, params.id, accountId, editClaim));
     }
     stmts.push(...buildInvoiceReservationStatements(env, {
       accountId, invoiceId: params.id, lines: authorized,
       expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+      guard: leaseGuard,
     }));
   }
 
+  const normalizedValues: Record<string, unknown> = {
+    shipping_cost_usd: input.shipping_cost_usd,
+    customer_name: input.customer_name,
+    customer_id: input.customer_id,
+    customer_whatsapp: input.customer_whatsapp,
+    display_currency: input.display_currency,
+    notes: input.notes,
+    source_event_id: input.source_event_id,
+  };
   const updates: string[] = [];
-  const vals: any[] = [];
-  const ALLOWED_ITEM_UPDATES = new Set(['shipping_cost_usd','customer_name','customer_id','display_currency','notes','customer_phone','customer_email']);
-  for (const [key, val] of Object.entries(body)) {
+  const vals: unknown[] = [];
+  for (const key of updateKeys) {
     if (key === 'lineItems') continue;
-    if (!ALLOWED_ITEM_UPDATES.has(key)) continue;
     updates.push(`${key} = ?`);
-    vals.push(val ?? null);
+    vals.push(normalizedValues[key] ?? body[key] ?? null);
   }
   if (replacementPaymentRecipient !== undefined) {
     updates.push('payment_recipient_user_id = ?');
     vals.push(replacementPaymentRecipient);
   }
   if (updates.length > 0) {
-    stmts.push(
-      env.DB.prepare(`UPDATE invoices SET ${updates.join(', ')} WHERE id = ? AND account_id = ?`)
-        .bind(...vals, params.id, accountId)
-    );
+    stmts.push(env.DB.prepare(
+      `UPDATE invoices SET ${updates.join(', ')} WHERE id = ? AND account_id = ? AND status = 'Pending'
+       AND inventory_deducted = 0 AND fulfillment_claim_token = ?`
+    ).bind(...vals, params.id, accountId, editClaim));
   }
 
   stmts.push(buildActivityLog(env, 'INVOICE_EDITED',
-    `Invoice ${invoice.invoice_number} edited.${body.lineItems ? ` ${body.lineItems.length} line items.` : ''}`,
+    `Invoice ${invoice.invoice_number} edited.${hasReplacementLines ? ` ${input.lineItems.length} line items.` : ''}`,
     userEmail, 'invoice', params.id, accountId));
 
+  const releaseIndex = stmts.length;
+  stmts.push(env.DB.prepare(
+    `UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL
+     WHERE id = ? AND account_id = ? AND status = 'Pending' AND inventory_deducted = 0 AND fulfillment_claim_token = ?`
+  ).bind(params.id, accountId, editClaim));
+
   try {
-    await env.DB.batch(stmts);
+    const results = await env.DB.batch(stmts);
+    if (Number(results[releaseIndex]?.meta?.changes || 0) === 0) {
+      await releaseInvoiceEditLease(env, accountId, params.id, editClaim);
+      return restError(409, 'Invoice changed before the edit could be applied', 'invoice_edit_conflict');
+    }
   } catch (error) {
+    await releaseInvoiceEditLease(env, accountId, params.id, editClaim);
     if (/insufficient available stock/i.test(String((error as Error)?.message || error))) {
       return restError(409, 'Insufficient available stock', 'insufficient_available_stock');
     }
     return salesError(error);
   }
-  await ensureContactRelationship(env, accountId, body.customer_id, 'buyer', 'workflow', 'invoice', params.id);
+  await ensureContactRelationship(env, accountId, hasCustomerIdUpdate ? input.customer_id : null, 'buyer', 'workflow', 'invoice', params.id);
   return json({ success: true });
 };
 
@@ -6330,23 +6722,45 @@ const handleLinkLineItem: Handler = async (request, env) => {
     invoice_id: string; line_item_id: string; product_id: string;
   };
 
-  const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ? AND account_id = ?')
-    .bind(invoice_id, accountId).first();
-  if (!invoice) return json({ error: 'Invoice not found' }, 404);
+  const claimed = await claimInvoiceLinkLease(env, accountId, invoice_id);
+  if (!claimed) {
+    const current = await env.DB.prepare('SELECT status FROM invoices WHERE id = ? AND account_id = ?')
+      .bind(invoice_id, accountId).first() as Record<string, any> | null;
+    if (!current) return json({ error: 'Invoice not found' }, 404);
+    if (!['Draft', 'Pending', 'Filled', 'Void'].includes(String(current.status))) {
+      return json({ error: 'Invoice status cannot be linked' }, 400);
+    }
+    return json({ error: 'Invoice lifecycle change is already in progress' }, 409);
+  }
+  const { claimToken: linkClaim, invoice } = claimed;
 
-  const lineItem = await env.DB.prepare(
-    'SELECT * FROM invoice_line_items WHERE id = ? AND invoice_id = ? AND account_id = ?'
-  ).bind(line_item_id, invoice_id, accountId).first();
-  if (!lineItem) return json({ error: 'Line item not found' }, 404);
+  let lineItem: Record<string, any> | null;
+  let product: Record<string, any> | null;
+  try {
+    lineItem = await env.DB.prepare(
+      'SELECT * FROM invoice_line_items WHERE id = ? AND invoice_id = ? AND account_id = ?'
+    ).bind(line_item_id, invoice_id, accountId).first() as Record<string, any> | null;
+    if (!lineItem) {
+      await releaseInvoiceLinkLease(env, accountId, invoice_id, linkClaim);
+      return json({ error: 'Line item not found' }, 404);
+    }
 
-  const product = await env.DB.prepare(
-    'SELECT id, stock_grams, low_stock_threshold, given_name, product_name, status, source_compass_entry_id FROM products WHERE id = ? AND account_id = ?'
-  ).bind(product_id, accountId).first();
-  if (!product) return json({ error: 'Product not found' }, 404);
+    product = await env.DB.prepare(
+      'SELECT id, stock_grams, low_stock_threshold, given_name, product_name, status, source_compass_entry_id FROM products WHERE id = ? AND account_id = ?'
+    ).bind(product_id, accountId).first() as Record<string, any> | null;
+    if (!product) {
+      await releaseInvoiceLinkLease(env, accountId, invoice_id, linkClaim);
+      return json({ error: 'Product not found' }, 404);
+    }
+  } catch (error) {
+    console.error('handleLinkLineItem input read failed:', error);
+    await releaseInvoiceLinkLease(env, accountId, invoice_id, linkClaim);
+    return json({ error: 'Failed to link line item before any changes were committed' }, 500);
+  }
 
   let authorized: AuthorizedInvoiceLine;
   try {
-    const seller = await invoiceSellerAuthorizationContext(env, accountId, invoice as Record<string, any>);
+    const seller = await invoiceSellerAuthorizationContext(env, accountId, invoice);
     [authorized] = await authorizeInvoiceLines(env, {
       accountId, ...seller,
       lines: [{
@@ -6354,7 +6768,10 @@ const handleLinkLineItem: Handler = async (request, env) => {
         quantity: Number(lineItem.quantity), price_at_sale: Number(lineItem.price_at_sale),
       }],
     });
-  } catch (error) { return salesError(error); }
+  } catch (error) {
+    await releaseInvoiceLinkLease(env, accountId, invoice_id, linkClaim);
+    return salesError(error);
+  }
 
   const stmts: D1PreparedStatement[] = [];
   const current = await env.DB.prepare(
@@ -6369,27 +6786,33 @@ const handleLinkLineItem: Handler = async (request, env) => {
 
   stmts.push(env.DB.prepare(
     `UPDATE invoice_line_items SET product_id=?,custom_name=NULL,stock_owner_user_id=?,sales_grant_id=?,owner_share_type=?,owner_share_value=?
-     WHERE id=? AND invoice_id=? AND account_id=?`
+     WHERE id=? AND invoice_id=? AND account_id=?
+       AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)`
   ).bind(product_id, authorized.stock_owner_user_id, authorized.sales_grant_id, authorized.owner_share_type,
-    authorized.owner_share_value, line_item_id, invoice_id, accountId));
+    authorized.owner_share_value, line_item_id, invoice_id, accountId, invoice_id, accountId, linkClaim));
 
   if (invoice.status === 'Pending') {
     let allAuthorized: AuthorizedInvoiceLine[];
     try {
-      const seller = await invoiceSellerAuthorizationContext(env, accountId, invoice as Record<string, any>);
+      const seller = await invoiceSellerAuthorizationContext(env, accountId, invoice);
       allAuthorized = await authorizeInvoiceLines(env, {
         accountId, ...seller, lines: proposed,
       });
-    } catch (error) { return salesError(error); }
+    } catch (error) {
+      await releaseInvoiceLinkLease(env, accountId, invoice_id, linkClaim);
+      return salesError(error);
+    }
     stmts.push(...buildInvoiceReservationStatements(env, {
       accountId, invoiceId: invoice_id, lines: allAuthorized,
       expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+      guard: { invoiceId: invoice_id, claimToken: linkClaim, status: 'Pending', inventoryDeducted: 0 },
     }));
   }
 
   stmts.push(env.DB.prepare(
-    'UPDATE invoices SET payment_recipient_user_id=? WHERE id=? AND account_id=?'
-  ).bind(resolvePaymentRecipientUserId(recipientLines), invoice_id, accountId));
+    `UPDATE invoices SET payment_recipient_user_id=? WHERE id=? AND account_id=?
+       AND fulfillment_claim_token = ?`
+  ).bind(resolvePaymentRecipientUserId(recipientLines), invoice_id, accountId, linkClaim));
 
   if (invoice.inventory_deducted) {
     const qty = Number(lineItem.quantity) || 0;
@@ -6453,6 +6876,10 @@ const handleLinkLineItem: Handler = async (request, env) => {
     `Invoice ${invoice.invoice_number}: custom item linked to ${productName}.${invoice.inventory_deducted ? ' Stock deducted.' : ''}`,
     userEmail, 'invoice', invoice_id, accountId));
 
+  stmts.push(env.DB.prepare(
+    'UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?'
+  ).bind(invoice_id, accountId, linkClaim));
+
   try {
     await env.DB.batch(stmts);
   } catch (err: any) {
@@ -6466,6 +6893,7 @@ const handleLinkLineItem: Handler = async (request, env) => {
           .bind(qty, product_id, accountId).run();
       } catch (e) { console.error('handleLinkLineItem rollback failed:', e); }
     }
+    await releaseInvoiceLinkLease(env, accountId, invoice_id, linkClaim);
     return json({ error: 'Failed to link line item — no changes were committed' }, 500);
   }
   return json({ success: true, inventory_deducted: !!invoice.inventory_deducted });
@@ -7211,7 +7639,13 @@ const handleListAdminContributors: Handler = async (request, env) => {
       ORDER BY co.display_name ASC`
   ).bind(accountId, accountId).all();
 
-  return json({ contributors: (rows.results ?? []).map(row => adminContributorDraftPreview(row as Record<string, any>)) });
+  const galleryByContributor = await contributorGalleryImagesByIds(env, (rows.results ?? []).map(row => (row as Record<string, any>).id as string));
+  return json({
+    contributors: (rows.results ?? []).map(row => ({
+      ...adminContributorDraftPreview(row as Record<string, any>),
+      gallery_images: galleryByContributor.get((row as Record<string, any>).id as string) ?? [],
+    })),
+  });
 };
 
 // Publish-bundle-safe identity choices for article author/subject fields. This
@@ -7231,33 +7665,30 @@ const handleListContributorOptions: Handler = async (request, env) => {
 };
 
 const CONTRIBUTOR_WRITE_FIELDS = [
-  'display_name', 'chinese_name', 'role', 'pronouns', 'location_line', 'active_since',
+  'display_name', 'business_name', 'chinese_name', 'role', 'pronouns', 'location_line', 'active_since',
   'beginnings', 'now_text', 'now_stamp', 'now_updated_at', 'inspirations', 'closing', 'avatar_url',
   'portrait_url', 'portrait_caption', 'voice_clip_url', 'voice_clip_caption',
   'pouring_today_product_id', 'pouring_today_note', 'where_to_find_text', 'user_id',
 ] as const;
 
 const PROFILE_SELF_FIELDS = [
-  'display_name', 'chinese_name', 'pronouns', 'location_line', 'active_since', 'languages',
+  'display_name', 'business_name', 'chinese_name', 'pronouns', 'location_line', 'active_since', 'languages',
   'beginnings', 'now_text', 'now_stamp', 'now_updated_at', 'inspirations', 'closing',
   'avatar_url', 'portrait_url', 'portrait_caption', 'voice_clip_url', 'voice_clip_caption',
   'pouring_today_product_id', 'pouring_today_note', 'where_to_find_text', 'links',
 ] as const;
 
+// Delegates to normalizeContributorLinks (worker/src/profileDomain.ts), the
+// one typed-link validator shared with the public read path
+// (parseStoredContributorLinks) and the Lane A migration. Every write of
+// contributors.links -- admin, self-serve draft, or a fresh profile -- goes
+// through this single function so the column never disagrees with itself
+// about what shape a link is.
 function parseContributorLinks(value: unknown): { value?: string; error?: string } {
   if (value === undefined) return {};
-  if (!Array.isArray(value)) return { error: 'links must be an array' };
-  const normalized: Array<{ label: string; url: string }> = [];
-  for (const item of value) {
-    if (!item || typeof item !== 'object') return { error: 'Each link must have a label and https URL' };
-    const label = typeof (item as any).label === 'string' ? (item as any).label.trim() : '';
-    const rawUrl = typeof (item as any).url === 'string' ? (item as any).url.trim() : '';
-    let url: URL;
-    try { url = new URL(rawUrl); } catch { return { error: 'Each link must have a label and https URL' }; }
-    if (!label || url.protocol !== 'https:') return { error: 'Each link must have a label and https URL' };
-    normalized.push({ label, url: url.toString() });
-  }
-  return { value: JSON.stringify(normalized) };
+  const result = normalizeContributorLinks(value);
+  if (result.error) return { error: result.error };
+  return { value: JSON.stringify(result.value ?? []) };
 }
 
 function parseContributorWrite(body: Record<string, unknown>) {
@@ -7284,6 +7715,84 @@ function adminContributor(row: Record<string, any>) {
   let links: unknown[] = [];
   try { links = JSON.parse(row.links || '[]'); } catch { links = []; }
   return { ...row, links };
+}
+
+// Gallery images (contributor_gallery_images): a row-per-photo collection,
+// the same shape payment_methods and profile_favorites already use. It is
+// applied immediately through its own endpoint rather than folded into the
+// contributor_profile_drafts review flow -- that flow diffs scalar columns
+// on `contributors`, a shape a separate ordered table cannot express, and
+// every other row-per-item collection here (contributor_accounts,
+// payment_methods) already bypasses the draft review the same way.
+const CONTRIBUTOR_GALLERY_IMAGE_LIMIT = 8;
+const GALLERY_CAPTION_LIMIT = 280;
+
+function parseGalleryImages(value: unknown): { value?: Array<{ image_url: string; caption: string | null }>; error?: string } {
+  if (!Array.isArray(value)) return { error: 'gallery_images must be an array' };
+  if (value.length > CONTRIBUTOR_GALLERY_IMAGE_LIMIT) {
+    return { error: `gallery_images may hold at most ${CONTRIBUTOR_GALLERY_IMAGE_LIMIT} photos` };
+  }
+  const normalized: Array<{ image_url: string; caption: string | null }> = [];
+  for (const item of value) {
+    if (!item || typeof item !== 'object') return { error: 'Each gallery image must be an object' };
+    const rawUrl = typeof (item as any).image_url === 'string' ? (item as any).image_url.trim() : '';
+    let url: URL;
+    try { url = new URL(rawUrl); } catch { return { error: 'Each gallery image needs a valid http(s) image_url' }; }
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+      return { error: 'Each gallery image needs a valid http(s) image_url' };
+    }
+    const rawCaption = (item as any).caption;
+    if (rawCaption !== undefined && rawCaption !== null && typeof rawCaption !== 'string') {
+      return { error: 'caption must be a string or null' };
+    }
+    const trimmedCaption = typeof rawCaption === 'string' ? rawCaption.trim() : '';
+    if (trimmedCaption.length > GALLERY_CAPTION_LIMIT) {
+      return { error: `caption must be ${GALLERY_CAPTION_LIMIT} characters or fewer` };
+    }
+    normalized.push({ image_url: url.toString(), caption: trimmedCaption || null });
+  }
+  return { value: normalized };
+}
+
+function replaceGalleryImagesStatements(env: Env, contributorId: string, images: Array<{ image_url: string; caption: string | null }>): D1PreparedStatement[] {
+  const statements: D1PreparedStatement[] = [
+    env.DB.prepare('DELETE FROM contributor_gallery_images WHERE contributor_id = ?').bind(contributorId),
+  ];
+  images.forEach((image, index) => {
+    statements.push(env.DB.prepare(
+      `INSERT INTO contributor_gallery_images (id, contributor_id, image_url, caption, position, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))`
+    ).bind(crypto.randomUUID(), contributorId, image.image_url, image.caption, index));
+  });
+  return statements;
+}
+
+async function contributorGalleryImages(env: Env, contributorId: string) {
+  const rows = await env.DB.prepare(
+    `SELECT id, contributor_id, image_url, caption, position
+       FROM contributor_gallery_images
+      WHERE contributor_id = ?
+      ORDER BY position ASC`
+  ).bind(contributorId).all();
+  return (rows.results as GalleryImageRow[] ?? []).map(projectPublicGalleryImage);
+}
+
+async function contributorGalleryImagesByIds(env: Env, contributorIds: string[]) {
+  const map = new Map<string, ReturnType<typeof projectPublicGalleryImage>[]>();
+  if (!contributorIds.length) return map;
+  const placeholders = contributorIds.map(() => '?').join(', ');
+  const rows = await env.DB.prepare(
+    `SELECT id, contributor_id, image_url, caption, position
+       FROM contributor_gallery_images
+      WHERE contributor_id IN (${placeholders})
+      ORDER BY contributor_id, position ASC`
+  ).bind(...contributorIds).all();
+  for (const row of (rows.results as GalleryImageRow[] ?? [])) {
+    const list = map.get(row.contributor_id) ?? [];
+    list.push(projectPublicGalleryImage(row));
+    map.set(row.contributor_id, list);
+  }
+  return map;
 }
 
 function contributorHostStatements(env: Env, accountId: string, contributorId: string, requestedAccountId: string | null, currentAccountId: string | null) {
@@ -7383,7 +7892,14 @@ const handleCreateAdminContributor: Handler = async (request, env) => {
   }
   try { await env.DB.batch(statements); } catch (error) { return contributorDatabaseError(error); }
   const row = await env.DB.prepare('SELECT * FROM contributors WHERE id = ? AND account_id = ?').bind(id, ctx.accountId).first<Record<string, any>>();
-  return json({ contributor: adminContributor(row || { id, account_id: ctx.accountId, ...parsed.values, is_published: 0 }) }, 201);
+  return json({
+    contributor: {
+      ...adminContributor(row || { id, account_id: ctx.accountId, ...parsed.values, is_published: 0 }),
+      // Nothing to attach yet: a brand-new contributor has no gallery rows
+      // until a follow-up PUT .../gallery-images call creates them.
+      gallery_images: [],
+    },
+  }, 201);
 };
 
 const handleGetAdminContributor: Handler = async (request, env, params) => {
@@ -7408,7 +7924,8 @@ const handleGetAdminContributor: Handler = async (request, env, params) => {
          WHERE ca.contributor_id = co.id AND ca.account_id = ?
       ))`
   ).bind(params.id, ctx.accountId, ctx.accountId).first<Record<string, any>>();
-  return row ? json({ contributor: adminContributorDraftPreview(row) }) : json({ error: 'Contributor not found' }, 404);
+  if (!row) return json({ error: 'Contributor not found' }, 404);
+  return json({ contributor: { ...adminContributorDraftPreview(row), gallery_images: await contributorGalleryImages(env, row.id as string) } });
 };
 
 const handleUpdateAdminContributor: Handler = async (request, env, params) => {
@@ -7466,7 +7983,12 @@ const handleUpdateAdminContributor: Handler = async (request, env, params) => {
     try { await env.DB.batch(statements); } catch (error) { return contributorDatabaseError(error); }
   }
   const row = await env.DB.prepare('SELECT * FROM contributors WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first<Record<string, any>>();
-  return json({ contributor: adminContributor(row!) });
+  return json({
+    contributor: {
+      ...adminContributor(row!),
+      gallery_images: await contributorGalleryImages(env, params.id),
+    },
+  });
 };
 
 const setAdminContributorPublication = (published: boolean): Handler => async (request, env, params) => {
@@ -7656,6 +8178,96 @@ async function contributorForUser(env: Env, userId: string) {
   return env.DB.prepare('SELECT * FROM contributors WHERE user_id = ?').bind(userId).first<Record<string, any>>();
 }
 
+interface PersonCollectionRow {
+  collection_id: string;
+  publication_id: string;
+  slug: string;
+  title: string;
+  note: string | null;
+  hero_image_url: string | null;
+  item_count: number;
+  unpublished_at: string | null;
+}
+
+/**
+ * The person's collection: the destination the profile's tea section points
+ * at. A collection this user curated (created or named as curator), still
+ * active, published to a person. Newest publication wins. `live` keeps only
+ * an open publication, which is what the public reads want; the self read and
+ * the self write pass `live: false` so that renaming a collection that was
+ * taken down republishes the same one instead of minting a second.
+ */
+async function personCollectionForUser(env: Env, userId: string | null | undefined, options: { live: boolean } = { live: true }): Promise<PersonCollectionRow | null> {
+  if (!userId) return null;
+  const row = await env.DB.prepare(
+    `SELECT c.id AS collection_id, cp.id AS publication_id, cp.slug, c.title, c.note, c.hero_image_url, cp.unpublished_at,
+            (SELECT COUNT(*) FROM collection_items ci WHERE ci.collection_id = c.id) AS item_count
+       FROM collections c
+       JOIN collection_publications cp
+         ON cp.collection_id = c.id AND cp.target_type = 'person'${options.live ? ' AND cp.unpublished_at IS NULL' : ''}
+      WHERE c.status = 'active'
+        AND (c.created_by_user_id = ? OR c.curator_user_id = ?)
+      ORDER BY (cp.unpublished_at IS NULL) DESC, cp.published_at DESC
+      LIMIT 1`
+  ).bind(userId, userId).first<Record<string, any>>();
+  if (!row) return null;
+  return {
+    collection_id: String(row.collection_id),
+    publication_id: String(row.publication_id),
+    slug: String(row.slug),
+    title: String(row.title),
+    note: (row.note as string | null) ?? null,
+    hero_image_url: (row.hero_image_url as string | null) ?? null,
+    item_count: Number(row.item_count || 0),
+    unpublished_at: (row.unpublished_at as string | null) ?? null,
+  };
+}
+
+/**
+ * Makes the collection's items equal to the tea master's public favorites,
+ * in their order, each carrying the note as the item note. A favorite names
+ * a product directly or a tea profile; a profile resolves to the product
+ * behind its listing, the way the sandbox seed does it. A favorite with no
+ * product behind it (a network tea this shop does not stock) is left out of
+ * the collection, because /c/:slug lists products to buy.
+ */
+async function syncPersonCollectionItems(env: Env, collectionId: string, contributorId: string): Promise<number> {
+  const favorites = await env.DB.prepare(
+    `SELECT pf.note, pf.position,
+            COALESCE(pf.source_product_id,
+              (SELECT pl.legacy_product_id FROM product_listings pl
+                WHERE pl.profile_id = pf.tea_profile_id AND pl.legacy_product_id IS NOT NULL
+                ORDER BY pl.is_curated DESC, pl.updated_at DESC LIMIT 1)) AS product_id
+       FROM profile_favorites pf
+      WHERE pf.contributor_id = ? AND pf.is_public = 1
+      ORDER BY pf.position ASC, pf.created_at ASC`
+  ).bind(contributorId).all<Record<string, any>>();
+  const seen = new Set<string>();
+  const items: Array<{ productId: string; note: string | null }> = [];
+  for (const row of favorites.results ?? []) {
+    const productId = typeof row.product_id === 'string' ? row.product_id : null;
+    if (!productId || seen.has(productId)) continue;
+    seen.add(productId);
+    items.push({ productId, note: (row.note as string | null) ?? null });
+  }
+  await env.DB.batch([
+    env.DB.prepare('DELETE FROM collection_items WHERE collection_id = ?').bind(collectionId),
+    ...items.map((item, position) => env.DB.prepare(
+      `INSERT INTO collection_items (id, collection_id, product_id, position, item_note, created_at)
+       VALUES (?, ?, ?, ?, ?, datetime('now'))`
+    ).bind(crypto.randomUUID(), collectionId, item.productId, position, item.note)),
+    env.DB.prepare("UPDATE collections SET updated_at = datetime('now') WHERE id = ?").bind(collectionId),
+  ]);
+  return items.length;
+}
+
+/** After any change to the favorites: if this person has a collection, its items follow. */
+async function resyncPersonCollection(env: Env, contributor: Record<string, any>): Promise<void> {
+  const existing = await personCollectionForUser(env, contributor.user_id as string | null, { live: false });
+  if (!existing) return;
+  await syncPersonCollectionItems(env, existing.collection_id, String(contributor.id));
+}
+
 async function verifiedShelfSlug(env: Env, userId: string | null | undefined): Promise<string | null> {
   if (!userId) return null;
   try {
@@ -7683,7 +8295,7 @@ const handleGetMyPublicProfile: Handler = async (request, env) => {
       WHERE ca.contributor_id = ? AND a.status = 'active'
       ORDER BY ca.display_order, a.name`
   ).bind(contributor.id).all();
-  const [selection, shelf] = await Promise.all([
+  const [selection, shelf, galleryImages, collection] = await Promise.all([
     env.DB.prepare(
       `SELECT COUNT(DISTINCT p.id) AS count
          FROM contributor_accounts ca
@@ -7696,6 +8308,8 @@ const handleGetMyPublicProfile: Handler = async (request, env) => {
           AND p.status = 'Active' AND p.is_public = 1 AND p.shown_in_shop = 1`
     ).bind(contributor.id).first<Record<string, any>>(),
     verifiedShelfSlug(env, ctx.userId),
+    contributorGalleryImages(env, contributor.id),
+    personCollectionForUser(env, ctx.userId, { live: true }),
   ]);
   return json({
     contributor: {
@@ -7704,9 +8318,76 @@ const handleGetMyPublicProfile: Handler = async (request, env) => {
       shelf_slug: shelf,
       selection_count: Number(selection?.count || 0),
       accounts: accounts.results ?? [],
+      gallery_images: galleryImages,
+      collection: collection ? { slug: collection.slug, title: collection.title, item_count: collection.item_count } : null,
     },
     can_create: false,
   });
+};
+
+// PUT /api/me/public-profile/collection { title }
+// The tea master names their selection, and the six become a collection with
+// its own page: the destination the profile's tea section points at. Until
+// now a collection was admin-made at /admin/collections and published to a
+// person by hand. Here one is made from the public favorites, in their order,
+// each note carried as the item note, and republished under the same slug
+// every time the name changes. An empty title takes the collection down (the
+// publication closes, the rows stay), and the profile falls back to the plain
+// selection list. The items follow the favorites from then on: every favorite
+// write calls resyncPersonCollection.
+const handlePutMyProfileCollection: Handler = async (request, env) => {
+  const owned = await requireOwnContributor(request, env);
+  if ('error' in owned) return owned.error;
+  const { contributor, ctx } = owned;
+  const bodyResult = await contributorJson(request);
+  if (bodyResult instanceof Response) return bodyResult;
+  if (bodyResult.title !== null && bodyResult.title !== undefined && typeof bodyResult.title !== 'string') {
+    return json({ error: 'title must be a string or null' }, 400);
+  }
+  const title = typeof bodyResult.title === 'string' ? bodyResult.title.trim().slice(0, 80) : '';
+  const existing = await personCollectionForUser(env, ctx.userId, { live: false });
+
+  if (!title) {
+    if (existing && !existing.unpublished_at) {
+      await env.DB.prepare("UPDATE collection_publications SET unpublished_at = datetime('now') WHERE id = ?").bind(existing.publication_id).run();
+    }
+    return json({ collection: null });
+  }
+
+  let collectionId: string;
+  let slug: string;
+  if (existing) {
+    collectionId = existing.collection_id;
+    slug = existing.slug;
+    await env.DB.batch([
+      env.DB.prepare("UPDATE collections SET title = ?, curator_display_name = ?, updated_at = datetime('now') WHERE id = ?")
+        .bind(title, contributor.display_name, collectionId),
+      existing.unpublished_at
+        ? env.DB.prepare("UPDATE collection_publications SET unpublished_at = NULL, published_at = datetime('now') WHERE id = ?").bind(existing.publication_id)
+        : env.DB.prepare('SELECT 1'),
+    ]);
+  } else {
+    collectionId = crypto.randomUUID();
+    const base = String(contributor.id);
+    const taken = await env.DB.prepare('SELECT 1 FROM collection_publications WHERE slug = ?').bind(base).first();
+    slug = taken ? `${base}-${crypto.randomUUID().slice(0, 6)}` : base;
+    // The cover is the first photo at work, or the portrait: the profile's
+    // tea section draws it at half opacity under the collection's name.
+    const gallery = await contributorGalleryImages(env, String(contributor.id));
+    const hero = gallery[0]?.image_url ?? (contributor.portrait_url as string | null) ?? null;
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO collections (id, account_id, title, note, hero_image_url, status, created_by_user_id, curator_user_id, curator_display_name, created_at, updated_at)
+         VALUES (?, ?, ?, NULL, ?, 'active', ?, ?, ?, datetime('now'), datetime('now'))`
+      ).bind(collectionId, contributor.account_id, title, hero, ctx.userId, ctx.userId, contributor.display_name),
+      env.DB.prepare(
+        `INSERT INTO collection_publications (id, collection_id, target_type, target_id, slug, recipients_json, published_at, created_by_user_id)
+         VALUES (?, ?, 'person', ?, ?, NULL, datetime('now'), ?)`
+      ).bind(crypto.randomUUID(), collectionId, contributor.id, slug, ctx.userId),
+    ]);
+  }
+  const itemCount = await syncPersonCollectionItems(env, collectionId, String(contributor.id));
+  return json({ collection: { slug, title, item_count: itemCount } });
 };
 
 const handlePutMyPublicProfile: Handler = async (request, env) => {
@@ -7768,6 +8449,22 @@ const handleUnpublishMyPublicProfile: Handler = async (request, env) => {
   return result.meta.changes
     ? json({ success: true })
     : json({ success: true });
+};
+
+// Self-serve gallery editor: same full-array-replace contract as the admin
+// endpoint, applied immediately (not routed through contributor_profile_drafts
+// -- see the comment on parseGalleryImages above for why).
+const handlePutMyProfileGalleryImages: Handler = async (request, env) => {
+  const ctx = await requireAuthenticatedUser(request, env);
+  if ('error' in ctx) return ctx.error;
+  const contributor = await contributorForUser(env, ctx.userId);
+  if (!contributor) return json({ error: 'Profile not found', code: 'profile_not_found' }, 404);
+  const bodyResult = await contributorJson(request);
+  if (bodyResult instanceof Response) return bodyResult;
+  const parsed = parseGalleryImages((bodyResult as Record<string, unknown>).gallery_images);
+  if (parsed.error) return json({ error: parsed.error }, 400);
+  await env.DB.batch(replaceGalleryImagesStatements(env, contributor.id, parsed.value!));
+  return json({ gallery_images: await contributorGalleryImages(env, contributor.id) });
 };
 
 async function requireContributorSteward(request: Request, env: Env, contributorId: string) {
@@ -7882,6 +8579,25 @@ const handlePutContributorAccounts: Handler = async (request, env, params) => {
   }
   await env.DB.batch(statements);
   return handleGetContributorAccounts(request, env, params);
+};
+
+// Admin gallery editor: a full-array replace, same contract as
+// handlePutContributorAccounts just above (send the whole ordered list, the
+// server rewrites all the rows). Scoped like handleUpdateAdminContributor --
+// the contributor's own home account, not the wider steward set accounts
+// endpoints allow -- because gallery photos are this account's editorial
+// media, not a cross-account collaboration record.
+const handlePutContributorGalleryImages: Handler = async (request, env, params) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  const existing = await env.DB.prepare('SELECT id FROM contributors WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first();
+  if (!existing) return json({ error: 'Contributor not found' }, 404);
+  const bodyResult = await contributorJson(request);
+  if (bodyResult instanceof Response) return bodyResult;
+  const parsed = parseGalleryImages((bodyResult as Record<string, unknown>).gallery_images);
+  if (parsed.error) return json({ error: parsed.error }, 400);
+  await env.DB.batch(replaceGalleryImagesStatements(env, params.id, parsed.value!));
+  return json({ gallery_images: await contributorGalleryImages(env, params.id) });
 };
 
 const handleRequestContributorChanges: Handler = async (request, env, params) => {
@@ -8064,6 +8780,7 @@ const handleCreateMyProfileFavorite: Handler = async (request, env) => {
        note = excluded.note, position = excluded.position, is_public = excluded.is_public,
        updated_at = datetime('now')`
   ).bind(owned.contributor.id, teaProfileId, sourceAccountId, sourceProductId, sourceListingId, note, position, isPublic).run();
+  await resyncPersonCollection(env, owned.contributor);
   return json({ success: true }, 201);
 };
 
@@ -8091,6 +8808,7 @@ const handleUpdateMyProfileFavorite: Handler = async (request, env, params) => {
     `UPDATE profile_favorites SET ${fields.join(', ')}, updated_at = datetime('now')
       WHERE contributor_id = ? AND tea_profile_id = ?`
   ).bind(...values, owned.contributor.id, params.teaProfileId).run();
+  if (result.meta.changes) await resyncPersonCollection(env, owned.contributor);
   return result.meta.changes ? json({ success: true }) : json({ error: 'Favorite not found' }, 404);
 };
 
@@ -8099,6 +8817,7 @@ const handleDeleteMyProfileFavorite: Handler = async (request, env, params) => {
   if ('error' in owned) return owned.error;
   const result = await env.DB.prepare('DELETE FROM profile_favorites WHERE contributor_id = ? AND tea_profile_id = ?')
     .bind(owned.contributor.id, params.teaProfileId).run();
+  if (result.meta.changes) await resyncPersonCollection(env, owned.contributor);
   return result.meta.changes ? json({ success: true }) : json({ error: 'Favorite not found' }, 404);
 };
 
@@ -8124,6 +8843,7 @@ const handleOrderMyProfileFavorites: Handler = async (request, env) => {
   await env.DB.batch(ids.map((id, position) => env.DB.prepare(
     'UPDATE profile_favorites SET position = ?, updated_at = datetime(\'now\') WHERE contributor_id = ? AND tea_profile_id = ?'
   ).bind(position, owned.contributor.id, id)));
+  await resyncPersonCollection(env, owned.contributor);
   return json({ success: true });
 };
 
@@ -9673,7 +10393,7 @@ const handleGenerateWisdom: Handler = async (request, env) => {
 const handleGenerateChineseName: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${ctx.accountId}:${ctx.userId}:chinese-name`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${ctx.accountId}:${ctx.userId}:chinese-name`);
   if (limited) return limited;
 
   if (!env.ANTHROPIC_API_KEY) {
@@ -9752,7 +10472,7 @@ const handleGenerateChineseName: Handler = async (request, env) => {
 const handleTranscribe: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${ctx.accountId}:${ctx.userId}:transcribe`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${ctx.accountId}:${ctx.userId}:transcribe`);
   if (limited) return limited;
 
   if (!env.GROQ_API_KEY) {
@@ -9830,7 +10550,7 @@ async function transcribePrivateRecording(env: Env, file: File): Promise<{ text:
 const handleRetryTranscription: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${ctx.accountId}:${ctx.userId}:transcribe-retry`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${ctx.accountId}:${ctx.userId}:transcribe-retry`);
   if (limited) return limited;
   if (!env.GROQ_API_KEY) return restError(503, 'Transcription provider unavailable', 'provider_unavailable');
   const row = await env.DB.prepare(
@@ -9901,7 +10621,7 @@ const handleMigrateTasting: Handler = async (request, env) => {
   const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${userId}:migrate-tasting`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${accountId}:${userId}:migrate-tasting`);
   if (limited) return limited;
 
   if (!env.ANTHROPIC_API_KEY) {
@@ -10075,7 +10795,7 @@ const handleUploadImage: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${userId}:upload-image`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${accountId}:${userId}:upload-image`);
   if (limited) return limited;
 
   if (!env.MEDIA_BUCKET) {
@@ -10129,7 +10849,7 @@ const handleUploadImage: Handler = async (request, env) => {
 const handleUploadMyProfileImage: Handler = async (request, env) => {
   const owned = await requireOwnContributor(request, env);
   if ('error' in owned) return owned.error;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${owned.ctx.userId}:profile-image`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${owned.ctx.userId}:profile-image`);
   if (limited) return limited;
   if (!env.MEDIA_BUCKET) return json({ error: 'R2 media bucket not configured' }, 503);
   if (!(request.headers.get('Content-Type') || '').includes('multipart/form-data')) {
@@ -10321,7 +11041,7 @@ const handleEnhanceProductImage: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${userId}:enhance-product-image`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${accountId}:${userId}:enhance-product-image`);
   if (limited) return limited;
 
   if (!env.MEDIA_BUCKET) return json({ error: 'R2 media bucket not configured' }, 503);
@@ -10467,12 +11187,19 @@ const MULTIPART_OVERHEAD_BYTES = 1024 * 1024;
 const IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const AUDIO_MIME_TYPES = new Set(['audio/webm', 'audio/ogg', 'audio/wav', 'audio/x-wav', 'audio/mpeg', 'audio/mp4', 'video/webm']);
 
-function validateContentLength(request: Request, maxFileBytes: number): Response | null {
+// overheadBytes defaults to the multipart wrapper allowance, so every
+// existing multipart caller (image, audio, flyer, venue photo uploads) is
+// unchanged. The two JSON callers (newsletter, inquiry) pass 0: a JSON body
+// has no multipart envelope around it, so the allowance was letting a body
+// over 1 MiB past a cap stated in kilobytes. max_bytes in the 413 always
+// reports maxFileBytes, which is the number actually enforced once the
+// caller's overhead is 0.
+function validateContentLength(request: Request, maxFileBytes: number, overheadBytes: number = MULTIPART_OVERHEAD_BYTES): Response | null {
   const raw = request.headers.get('content-length');
   if (!raw) return null;
   const length = Number(raw);
   if (!Number.isSafeInteger(length) || length < 0) return restError(400, 'Invalid Content-Length', 'invalid_content_length');
-  return length > maxFileBytes + MULTIPART_OVERHEAD_BYTES
+  return length > maxFileBytes + overheadBytes
     ? restError(413, 'Upload too large', 'upload_too_large', { max_bytes: maxFileBytes })
     : null;
 }
@@ -10503,7 +11230,7 @@ const handleExtractFromImage: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${userId}:extract-image`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${accountId}:${userId}:extract-image`);
   if (limited) return limited;
 
   // Prefer Claude (the production ANTHROPIC_API_KEY is live); fall back to
@@ -10716,10 +11443,22 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
   if (event.venue_photos) {
     try { venuePhotos = JSON.parse(event.venue_photos as string); } catch { venuePhotos = []; }
   }
+  // Hosted by: the public event_contributors, lead first, each a published
+  // person. The role travels as the events record it (lead_host, co_host,
+  // guest_host, photographer, author); the page puts it in the host's words.
+  const hostRows = await env.DB.prepare(
+    `SELECT c.id, c.display_name, c.business_name, c.portrait_url, c.now_text, c.beginnings, c.inspirations, ec.role
+       FROM event_contributors ec
+       JOIN contributors c ON c.id = ec.contributor_id
+      WHERE ec.event_id = ? AND ec.is_public = 1 AND ${CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL}
+      ORDER BY CASE ec.role WHEN 'lead_host' THEN 0 WHEN 'co_host' THEN 1 WHEN 'guest_host' THEN 2 ELSE 3 END, ec.display_order ASC`
+  ).bind(event.id).all<Record<string, any>>();
+  const hosts = (hostRows.results ?? []).map(row => ({ ...projectPublicPerson(row), role: String(row.role) }));
   const { account_id: _accountId, ...publicEvent } = event;
 
   return cachedJson({
     ...publicEvent,
+    hosts,
     venue_photos: venuePhotos,
     confirmed_count: confirmedCount,
     offered_count: offeredCount,
@@ -10847,7 +11586,7 @@ const handleListPublicEvents: Handler = async (_request, env, _params) => {
 
 const handleRSVP: Handler = async (request, env, params) => {
   const rsvpIp = request.headers.get('CF-Connecting-IP') || 'unknown';
-  const limited = await enforceDurableLimit(env.RSVP_LIMITER, `${rsvpIp}:create`);
+  const limited = await enforceDurableLimit(env.RSVP_LIMITER, 'RSVP_LIMITER', `${rsvpIp}:create`);
   if (limited) return limited;
   // Public RSVP — resolve the event's account so all inserts (customer,
   // attendee, activity log) are attributed to the right store.
@@ -11518,7 +12257,7 @@ const handleFindRSVP: Handler = async (request, env, params) => {
   // Rate limit: this endpoint accepts a bare phone number / email, so it must
   // not be brute-forceable. Durable limiter when bound; in-memory fallback.
   const frIp = request.headers.get('CF-Connecting-IP') || 'unknown';
-  const limited = await enforceDurableLimit(env.RSVP_LIMITER, `${frIp}:recover`);
+  const limited = await enforceDurableLimit(env.RSVP_LIMITER, 'RSVP_LIMITER', `${frIp}:recover`);
   if (limited) return limited;
 
   let lookupField: string;
@@ -12698,7 +13437,7 @@ const handleUploadFlyer: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${userId}:upload-flyer`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${accountId}:${userId}:upload-flyer`);
   if (limited) return limited;
 
   if (!env.MEDIA_BUCKET) {
@@ -12912,7 +13651,7 @@ const handleUploadVenuePhoto: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${ctx.userId}:upload-venue-photo`);
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${accountId}:${ctx.userId}:upload-venue-photo`);
   if (limited) return limited;
   const preReadError = validateContentLength(request, MAX_IMAGE_BYTES);
   if (preReadError) return preReadError;
@@ -12951,8 +13690,16 @@ const handleGetVenueEvents: Handler = async (request, env, params) => {
 // Public: newsletter signup. We tag the subscription with an optional
 // store_slug from the body, and resolve it to account_id for scoping.
 const handleNewsletterSubscribe: Handler = async (request, env) => {
+  const subscribeIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const limited = await enforceDurableLimit(env.NEWSLETTER_LIMITER, 'NEWSLETTER_LIMITER', `newsletter:${subscribeIp}`);
+  if (limited) return limited;
+  const preReadError = validateContentLength(request, NEWSLETTER_MAX_REQUEST_BYTES, 0);
+  if (preReadError) return preReadError;
+
   const body = await request.json() as Record<string, any>;
   const email = (body.email || '').trim().toLowerCase();
+  const emailLengthError = inquiryFieldTooLong('Email', email, NEWSLETTER_MAX_EMAIL);
+  if (emailLengthError) return json({ error: emailLengthError }, 400);
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return json({ error: 'Invalid email address' }, 400);
   }
@@ -12983,8 +13730,14 @@ const handleGetNewsletterSubscribers: Handler = async (request, env) => {
 // ── Cart Inquiries ──────────────────────────────────────────────────────────
 
 const handleCreateInquiry: Handler = async (request, env) => {
+  const inquiryIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const limited = await enforceDurableLimit(env.INQUIRY_LIMITER, 'INQUIRY_LIMITER', `inquiry:${inquiryIp}`);
+  if (limited) return limited;
+  const preReadError = validateContentLength(request, INQUIRY_MAX_REQUEST_BYTES, 0);
+  if (preReadError) return preReadError;
+
   const body = await request.json() as Record<string, any>;
-  const source = typeof body.source === 'string' && body.source.trim() ? body.source.trim() : 'cart';
+  const source = typeof body.source === 'string' && body.source.trim() ? body.source.trim().slice(0, 50) : 'cart';
   const nameValue = body.customer_name || body.name;
   const contactValue = body.customer_contact || body.email;
   const name = typeof nameValue === 'string' ? nameValue.trim() : '';
@@ -12993,6 +13746,10 @@ const handleCreateInquiry: Handler = async (request, env) => {
   if (!name || !contact) {
     return json({ error: 'Name and contact are required' }, 400);
   }
+  const nameError = inquiryFieldTooLong('Name', name, INQUIRY_MAX_NAME);
+  if (nameError) return json({ error: nameError }, 400);
+  const contactError = inquiryFieldTooLong('Contact', contact, INQUIRY_MAX_CONTACT);
+  if (contactError) return json({ error: contactError }, 400);
 
   if (source === 'website' && !inquiryEmail(contact)) {
     return json({ error: 'Enter a valid email address so the store can reply.' }, 400);
@@ -13006,9 +13763,34 @@ const handleCreateInquiry: Handler = async (request, env) => {
   if (source === 'consult') {
     const vision = typeof body.vision === 'string' ? body.vision.trim() : '';
     if (!vision) return json({ error: 'Message is required' }, 400);
-    const interests: string[] = Array.isArray(body.interests) ? body.interests : [];
+    const visionError = inquiryFieldTooLong('Message', vision, INQUIRY_MAX_VISION);
+    if (visionError) return json({ error: visionError }, 400);
+
+    const interestsRaw: unknown[] = Array.isArray(body.interests) ? body.interests : [];
+    if (interestsRaw.length > INQUIRY_MAX_INTERESTS) {
+      return json({ error: `Interests may be at most ${INQUIRY_MAX_INTERESTS} items` }, 400);
+    }
+    if (!interestsRaw.every((item) => typeof item === 'string')) {
+      return json({ error: 'Every interest must be text' }, 400);
+    }
+    const interests = interestsRaw as string[];
+    for (const interest of interests) {
+      const interestError = inquiryFieldTooLong('An interest', interest, INQUIRY_MAX_INTEREST_LABEL);
+      if (interestError) return json({ error: interestError }, 400);
+    }
+
     const referral = typeof body.referral === 'string' ? body.referral.trim() : '';
+    const referralError = inquiryFieldTooLong('Referral', referral, INQUIRY_MAX_REFERRAL);
+    if (referralError) return json({ error: referralError }, 400);
+
     const location = typeof body.location === 'string' ? body.location.trim() : '';
+    const locationError = inquiryFieldTooLong('Location', location, INQUIRY_MAX_LOCATION);
+    if (locationError) return json({ error: locationError }, 400);
+
+    const whatsapp = typeof body.whatsapp === 'string' ? body.whatsapp.trim() : '';
+    const whatsappError = inquiryFieldTooLong('WhatsApp', whatsapp, INQUIRY_MAX_PHONE);
+    if (whatsappError) return json({ error: whatsappError }, 400);
+
     const parts = [vision];
     if (interests.length > 0) parts.push(`Interests: ${interests.join(', ')}`);
     if (location) parts.push(`Location: ${location}`);
@@ -13016,7 +13798,7 @@ const handleCreateInquiry: Handler = async (request, env) => {
     message = parts.join('\n\n');
     itemsStr = '[]';
     totalUsd = 0;
-    phone = typeof body.whatsapp === 'string' ? body.whatsapp.trim() || null : null;
+    phone = whatsapp || null;
   } else {
     const normalized = normalizeCartInquiry(body);
     if (!normalized.ok) return json({ error: normalized.error }, 400);
@@ -13025,6 +13807,11 @@ const handleCreateInquiry: Handler = async (request, env) => {
     if (!accountId) return json({ error: 'Store not found' }, 404);
     const tokenHash = await sha256Hex(normalized.value.trackingToken);
     const location = typeof body.customer_location === 'string' ? body.customer_location.trim() : '';
+    const locationError = inquiryFieldTooLong('Location', location, INQUIRY_MAX_LOCATION);
+    if (locationError) return json({ error: locationError }, 400);
+    const phoneCandidate = typeof body.phone === 'string' ? body.phone.trim() : '';
+    const phoneError = inquiryFieldTooLong('Phone', phoneCandidate, INQUIRY_MAX_PHONE);
+    if (phoneError) return json({ error: phoneError }, 400);
     const notes = (typeof body.notes === 'string'
       ? body.notes.trim()
       : typeof body.message === 'string' ? body.message.trim() : '').slice(0, INQUIRY_MAX_NOTE);
@@ -13077,7 +13864,7 @@ const handleCreateInquiry: Handler = async (request, env) => {
 
     const id = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
     message = [location ? `Shipping location: ${location}` : '', notes].filter(Boolean).join('\n\n') || null;
-    phone = inquiryPhone(body.phone) || inquiryPhone(contact);
+    phone = inquiryPhone(phoneCandidate) || inquiryPhone(contact);
     try {
       await env.DB.prepare(
         `INSERT INTO inquiries
@@ -13137,23 +13924,29 @@ const handleCreateInquiry: Handler = async (request, env) => {
     if (!accountId) return json({ error: 'Store not found' }, 404);
   }
   const id = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
-  const refNumber = (typeof body.ref_number === 'string' && body.ref_number.trim()) ? body.ref_number.trim() : null;
+  const rawRefNumber = (typeof body.ref_number === 'string' && body.ref_number.trim()) ? body.ref_number.trim() : null;
+  if (rawRefNumber) {
+    const refNumberError = inquiryFieldTooLong('Order reference', rawRefNumber, INQUIRY_MAX_REF_NUMBER);
+    if (refNumberError) return json({ error: refNumberError }, 400);
+  }
+  const refNumber = rawRefNumber;
+  const currency = typeof body.currency === 'string' && body.currency.trim() ? body.currency.trim().slice(0, 10) : 'USD';
 
   // `source` added in migration 045; `ref_number` added in migration 076. Fall
   // back through older schemas so deployments that haven't migrated yet still work.
   try {
     await env.DB.prepare(
       'INSERT INTO inquiries (id, account_id, name, email, phone, items, total_usd, currency, message, source, ref_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).bind(id, accountId, name, contact, phone, itemsStr, totalUsd, body.currency || 'USD', message, source, refNumber).run();
+    ).bind(id, accountId, name, contact, phone, itemsStr, totalUsd, currency, message, source, refNumber).run();
   } catch (err: any) {
     if (typeof err?.message === 'string' && err.message.includes('ref_number')) {
       await env.DB.prepare(
         'INSERT INTO inquiries (id, account_id, name, email, phone, items, total_usd, currency, message, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-      ).bind(id, accountId, name, contact, phone, itemsStr, totalUsd, body.currency || 'USD', message, source).run();
+      ).bind(id, accountId, name, contact, phone, itemsStr, totalUsd, currency, message, source).run();
     } else if (typeof err?.message === 'string' && err.message.includes('source')) {
       await env.DB.prepare(
         'INSERT INTO inquiries (id, account_id, name, email, phone, items, total_usd, currency, message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-      ).bind(id, accountId, name, contact, phone, itemsStr, totalUsd, body.currency || 'USD', message).run();
+      ).bind(id, accountId, name, contact, phone, itemsStr, totalUsd, currency, message).run();
     } else {
       throw err;
     }
@@ -13167,7 +13960,7 @@ const handleCreateInquiry: Handler = async (request, env) => {
     location: null,
     itemsJson: itemsStr,
     totalUsd,
-    currency: body.currency || 'USD',
+    currency: currency,
     message,
     reference: refNumber || id,
     trackingToken: null,
@@ -13741,6 +14534,11 @@ const handleApproveCellarPlacement: Handler = async (request, env, params) => {
     cost_amount: null,
   };
   body.slug = await mintProductSlug(env, body, productId);
+  /* And the freight rate and markup for the same reason the cost is NULL: this
+     shop did not buy the tea, so it has no rate of its own to carry, and the
+     shop rate is what applies the moment the owner lists it. Omitted, the live
+     table would have said free at 2.5x. */
+  nameProductColumns(body);
   const cols = Object.keys(body);
   const placeholders = cols.map(() => '?').join(', ');
   const insertProduct = env.DB.prepare(
@@ -14551,7 +15349,16 @@ const handlePromoteCompassEntry: Handler = async (request, env, params) => {
     tea_key: entry.tea_key ?? null,
     source_compass_entry_id: entry.id,
   };
+  // The same canonicalisation every other write door runs, so a compass entry
+  // carrying 'cny' or 'hkd' promotes to the shop's own spelling instead of a
+  // currency the exchange table has no row for. No-op when the entry's
+  // currency was never stated, which is what leaves cost_currency NULL above.
+  canonicalizeCostCurrency(cols);
 
+  /* A compass entry records what Adrian saw, not what it cost to bring here. It
+     carries no freight rate and no markup, so both are NULL and the tea follows
+     the shop on each. Omitted they would have been 0 and 2.5. */
+  nameProductColumns(cols);
   const colNames = Object.keys(cols);
   const placeholders = colNames.map(() => '?').join(', ');
   // The unique encounter identity plus one D1 batch makes promotion atomic:
@@ -14738,12 +15545,16 @@ const handleAcceptReceiptProposal: Handler = async (request, env, params) => {
     /* `cost_amount` is named as NULL rather than left out. Left out, the column
        default answers 0, and 0 is a free tea: the draft lands priced at zero
        times three and nobody sees it, because it is created hidden. This door
-       genuinely does not know the cost yet, and NULL is how a row says that. */
+       genuinely does not know the cost yet, and NULL is how a row says that.
+       `shipping_rate_per_kg` and `markup_multiplier` are named for the same
+       reason and were the two this comment used to leave out: the live table
+       answers 0 and 2.5 for a column an INSERT does not mention, which is a tea
+       that ships free at a markup the shop stopped using. */
     statements.push(env.DB.prepare(`INSERT INTO products
       (id, account_id, type, product_name, given_name, slug, status, stock_grams, quantity_units,
        inventory_purpose, is_sample, is_personal, stock_known_at, is_public, shown_in_shop, source_compass_entry_id, owner_user_id,
-       cost_amount)
-      VALUES (?, ?, ?, ?, ?, ?, 'Draft', ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, NULL)`)
+       cost_amount, shipping_rate_per_kg, markup_multiplier)
+      VALUES (?, ?, ?, ?, ?, ?, 'Draft', ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, NULL, NULL, NULL)`)
       .bind(productId, ctx.accountId, type, name, name, slug, inventory.stock_grams ?? 0, inventory.quantity_units,
         inventory.inventory_purpose, inventory.is_sample, inventory.is_personal, now, proposal.compass_entry_id ?? null, ctx.userId));
     statements.push(...buildProductMirrorInserts(env, productId, ctx.accountId, {
@@ -16091,7 +16902,7 @@ async function verifyVerificationCode(code: string, signatureHex: string, secret
 // POST /api/verify/request
 const handleVerifyRequest: Handler = async (request, env) => {
   const verifyIp = request.headers.get('CF-Connecting-IP') || 'unknown';
-  const limited = await enforceDurableLimit(env.VERIFY_LIMITER, verifyIp);
+  const limited = await enforceDurableLimit(env.VERIFY_LIMITER, 'VERIFY_LIMITER', verifyIp);
   if (limited) return limited;
 
   const body = await request.json().catch(() => ({})) as { contact?: string; purpose?: 'signin' | 'event'; method?: 'email' };
@@ -20135,8 +20946,34 @@ const handleGetPublicAccount: Handler = async (_request, env, params) => {
   // rather than letting a customer finish an order into nothing. A plain yes or
   // no: it names no person and no method, so it is safe on a public payload.
   const gap = await storePayabilityGap(env, String(acc.id));
-  return cachedJson({ ...acc, can_be_paid: gap === null }, 300);
+  // The people at this table: every published contributor linked to the
+  // store, the host first. The same rows the profile page reads for "My
+  // table", in the other direction. Public-safe fields only, and the
+  // person's own first line, so the store speaks in their voice, not about them.
+  const peopleRows = await env.DB.prepare(
+    `SELECT c.id, c.display_name, c.business_name, c.portrait_url, c.now_text, c.beginnings, c.inspirations,
+            ca.public_role, ca.is_host
+       FROM contributor_accounts ca
+       JOIN contributors c ON c.id = ca.contributor_id
+      WHERE ca.account_id = ? AND ${CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL}
+      ORDER BY ca.is_host DESC, ca.display_order ASC, c.display_name ASC`
+  ).bind(acc.id).all<Record<string, any>>();
+  const people = (peopleRows.results ?? []).map(projectPublicPerson);
+  return cachedJson({ ...acc, can_be_paid: gap === null, people }, 300);
 };
+
+/** A person on somebody else's page: slug, name, one line in their words. Nothing private. */
+function projectPublicPerson(row: Record<string, any>) {
+  return {
+    slug: String(row.id),
+    display_name: String(row.display_name),
+    business_name: (row.business_name as string | null) ?? null,
+    role: (row.public_role as string | null) ?? (row.role as string | null) ?? null,
+    portrait_url: (row.portrait_url as string | null) ?? null,
+    own_line: firstSentenceOf(row.now_text) ?? firstSentenceOf(row.beginnings) ?? firstSentenceOf(row.inspirations),
+    is_host: row.is_host === 1 || row.is_host === true,
+  };
+}
 
 // Shared helper: fetch public products for an account (mirrors PUBLIC_FIELDS
 // whitelist used by the legacy /api/products/public endpoint).
@@ -20173,7 +21010,17 @@ async function fetchPublicProductsForAccount(
                  JOIN collection_publications cp ON cp.collection_id = c.id
                 WHERE ci.product_id = p.id
                   AND cp.target_type = 'shop'
-                  AND cp.unpublished_at IS NULL) AS is_featured
+                  AND cp.unpublished_at IS NULL) AS is_featured,
+              /* Where this tea sits in the shop-published collection that
+                 carries it, so a surface showing ONE featured tea can show the
+                 one Adrian put first rather than whichever the catalogue
+                 happens to return first. NULL when it is in none. */
+              (SELECT MIN(ci.position) FROM collection_items ci
+                 JOIN collections c ON c.id = ci.collection_id
+                 JOIN collection_publications cp ON cp.collection_id = c.id
+                WHERE ci.product_id = p.id
+                  AND cp.target_type = 'shop'
+                  AND cp.unpublished_at IS NULL) AS featured_position
        FROM products p
        LEFT JOIN tea_profiles tp ON tp.id = 'prof_' || p.id
        WHERE p.is_public = 1 AND p.shown_in_shop = 1 AND p.status = 'Active' AND p.account_id = ?1${productFilter}
@@ -20208,11 +21055,12 @@ async function fetchPublicProductsForAccount(
 // Short 10s cache so admin tasting edits reflect quickly on the public page;
 // product data changes throughout the day and we don't want a 60s stale window
 // when the owner is actively curating.
-const handleGetPublicAccountProducts: Handler = async (_request, env, params) => {
-  const accountId = await getAccountIdBySlug(env, params.slug);
-  if (!accountId) return json({ error: 'Store not found' }, 404);
-  const products = await fetchPublicProductsForAccount(env, accountId);
-  return cachedJson(products, 10);
+const handleGetPublicAccountProducts: Handler = async (request, env, params) => {
+  return edgeCached(request, 10, async () => {
+    const accountId = await getAccountIdBySlug(env, params.slug);
+    if (!accountId) return json({ error: 'Store not found' }, 404);
+    return cachedJson(await fetchPublicProductsForAccount(env, accountId), 10);
+  });
 };
 
 // GET /api/s/:slug/events — PUBLIC active events for a store
@@ -21289,7 +22137,7 @@ const handleRedeemJoinCode: Handler = async (request, env) => {
   // CF-Connecting-IP is Cloudflare-set and unspoofable; never fall back to the
   // client-controlled X-Forwarded-For header for a rate-limit key.
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
-  const limited = await enforceDurableLimit(env.JOIN_CODE_LIMITER, ip);
+  const limited = await enforceDurableLimit(env.JOIN_CODE_LIMITER, 'JOIN_CODE_LIMITER', ip);
   if (limited) return limited;
 
   const body = await request.json() as { code?: string; first_name?: string; email?: string };
@@ -22166,15 +23014,75 @@ const handleGetPublicArticle: Handler = async (request, env, params) => {
 // GET /api/people/:slug — single profile + woven content.
 // Per docs/ARCHITECTURE.md.
 
+// A contributor is visible here when the profile is explicitly published,
+// OR the moment one of their own articles reaches status='published' -- the
+// auto-publish rule from the creator-profiles plan
+// (todo/plans/creator-profiles.md, Data changes #5). The plan's
+// implementation note points at the article-publish handler flipping
+// contributors.is_published in the same request; that handler is out of
+// this lane's file ownership (Lane B owns only these two handlers, per the
+// plan's build-sequence table), so the rule is applied here, at read time,
+// instead. A published article makes a creator effectively public even if
+// nobody has flipped the flag yet; unpublishing an article never revokes
+// it (one-directional, matches "unpublishing turns bylines back to plain
+// text; articles stay").
+const CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL =
+  `(c.is_published = 1 OR EXISTS (
+      SELECT 1 FROM articles ar WHERE ar.author_id = c.id AND ar.status = 'published'
+    ))`;
+
+function firstSentenceOf(text: unknown): string | null {
+  if (typeof text !== 'string') return null;
+  const first = text.split(/\n\n+/).map(part => part.trim()).find(Boolean);
+  if (!first) return null;
+  const match = first.match(/^[\s\S]*?[.!?](?=\s|$)/);
+  return (match ? match[0] : first).trim();
+}
+
 const handleListPublicContributors: Handler = async (request, env) => {
   const rows = await env.DB.prepare(
-    `SELECT id, display_name, chinese_name, role, location_line, avatar_url
-     FROM contributors
-     WHERE is_published = 1
-     ORDER BY display_name ASC`
+    `SELECT c.id, c.display_name, c.chinese_name, c.role, c.business_name, c.location_line, c.avatar_url,
+            c.now_text, c.beginnings, c.inspirations,
+            (SELECT gi.image_url FROM contributor_gallery_images gi
+              WHERE gi.contributor_id = c.id
+              ORDER BY gi.position ASC LIMIT 1) AS gallery_card_image_url,
+            c.portrait_url,
+            (SELECT COUNT(*) FROM articles ar WHERE ar.author_id = c.id AND ar.status = 'published') AS article_count,
+            EXISTS (
+              SELECT 1 FROM contributor_accounts ca WHERE ca.contributor_id = c.id AND ca.is_host = 1
+              UNION ALL
+              SELECT 1 FROM event_contributors ec WHERE ec.contributor_id = c.id AND ec.is_public = 1 AND ec.role IN ('lead_host', 'co_host')
+            ) AS is_host
+       FROM contributors c
+      WHERE ${CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL}
+      ORDER BY c.display_name ASC`
   ).all();
 
-  return json({ contributors: rows.results ?? [] });
+  const contributors = (rows.results as Array<Record<string, any>> ?? []).map(row => ({
+    id: row.id,
+    display_name: row.display_name,
+    chinese_name: row.chinese_name ?? null,
+    role: row.role ?? null,
+    business_name: row.business_name ?? null,
+    location_line: row.location_line ?? null,
+    avatar_url: row.avatar_url ?? null,
+    // "People in action," not a headshot, per the plan: a gallery photo by
+    // position wins when one exists; the portrait is the fallback, never a
+    // placeholder. A contributor with neither has no card image at all --
+    // the directory page's own job is to fall back to the initials mark.
+    card_image_url: row.gallery_card_image_url ?? row.portrait_url ?? null,
+    // One line in the person's own words, for the card: the first sentence of
+    // what they are doing now, else of where they began. The page never
+    // describes them in the third person, so this is theirs, not a summary.
+    own_line: firstSentenceOf(row.now_text) ?? firstSentenceOf(row.beginnings) ?? firstSentenceOf(row.inspirations),
+    // The directory's two filters. A host runs a room or is about to: a hosted
+    // account, or a public lead/co-host role on any event. A writer has at
+    // least one published article of their own.
+    is_host: Number(row.is_host) === 1,
+    article_count: Number(row.article_count || 0),
+  }));
+
+  return json({ contributors });
 };
 
 async function publicPaymentAvailability(env: Env, contributorId: string): Promise<{
@@ -22225,20 +23133,42 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
   if (!slug) return json({ error: 'Missing slug' }, 400);
 
   const row = await env.DB.prepare(
-    `SELECT * FROM contributors WHERE id = ? AND is_published = 1`
+    `SELECT c.* FROM contributors c WHERE c.id = ? AND ${CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL}`
   ).bind(slug).first() as Record<string, any> | null;
   if (!row) return json({ error: 'Contributor not found' }, 404);
 
+  // "Words": articles this person authored, published only. Each row
+  // carries the article's own pull_quote (if it has one) and a stable
+  // per-quote anchor derived from pull_quote_subject -- the plan's
+  // quote-<contributor_id> DOM id (Data changes #4) -- so a card in this
+  // list can link straight to the highlighted spot inside the article
+  // instead of just the top of the piece. Kept on the existing 'articles'
+  // key rather than a new 'words' key: the already-shipped page reads
+  // data.articles for its Words section today (ContributorProfilePage.tsx),
+  // and a second, parallel array with the same rows would just be a second
+  // thing to keep in sync.
   const articlesRes = await env.DB.prepare(
-    `SELECT slug, title, subtitle, published_at, cover_image_url
+    `SELECT slug, title, subtitle, published_at, cover_image_url, pull_quote, pull_quote_subject, reading_time_mins
      FROM articles
      WHERE author_id = ? AND status = 'published'
      ORDER BY published_at DESC
      LIMIT 24`
   ).bind(slug).all();
+  const words = (articlesRes.results as Array<Record<string, any>> ?? []).map(article => ({
+    slug: article.slug,
+    title: article.title,
+    subtitle: article.subtitle ?? null,
+    published_at: article.published_at,
+    cover_image_url: article.cover_image_url ?? null,
+    reading_time_mins: article.reading_time_mins ?? null,
+    pull_quote: article.pull_quote ?? null,
+    quote_anchor: article.pull_quote_subject ? `quote-${article.pull_quote_subject}` : null,
+  }));
+  const hasPublishedArticle = words.length > 0;
 
   const pullQuotesRes = await env.DB.prepare(
-    `SELECT pull_quote, author_id, published_at, slug AS article_slug, title AS article_title
+    `SELECT pull_quote, author_id, published_at, slug AS article_slug, title AS article_title,
+            subtitle AS article_subtitle, cover_image_url, reading_time_mins
      FROM articles
      WHERE pull_quote_subject = ?
        AND pull_quote IS NOT NULL
@@ -22247,16 +23177,36 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
      ORDER BY published_at DESC
      LIMIT 2`
   ).bind(slug).all();
+  const pullQuotes = (pullQuotesRes.results as Array<Record<string, any>> ?? []).map(quote => ({
+    ...quote,
+    // pull_quote_subject === slug for every row this query can return, so
+    // the anchor is the same "jump to their spot" id on every entry.
+    quote_anchor: `quote-${slug}`,
+  }));
 
   const subjectMatch = `%"${slug}"%`;
   const featuredInRes = await env.DB.prepare(
-    `SELECT slug, title, subtitle, author_id, published_at
+    `SELECT slug, title, subtitle, author_id, published_at, cover_image_url, reading_time_mins,
+            pull_quote, pull_quote_subject
      FROM articles
      WHERE subject_ids LIKE ?
        AND status = 'published'
      ORDER BY published_at DESC
      LIMIT 12`
   ).bind(subjectMatch).all();
+  // "Featured in" rows land on the passage about this person when the article
+  // quotes them, and on the top of the piece when it only names them.
+  const featuredIn = (featuredInRes.results as Array<Record<string, any>> ?? []).map(article => ({
+    slug: article.slug,
+    title: article.title,
+    subtitle: article.subtitle ?? null,
+    author_id: article.author_id ?? null,
+    published_at: article.published_at,
+    cover_image_url: article.cover_image_url ?? null,
+    reading_time_mins: article.reading_time_mins ?? null,
+    pull_quote: article.pull_quote_subject === slug ? (article.pull_quote ?? null) : null,
+    quote_anchor: article.pull_quote_subject === slug && article.pull_quote ? `quote-${slug}` : null,
+  }));
 
   const hostAccount = await env.DB.prepare(
     `SELECT a.id, a.slug, a.name, a.tagline, a.public_shop_path, a.location_city, a.location_country
@@ -22282,6 +23232,100 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
       LIMIT 24`
   ).bind(slug).all();
 
+  // Tea selection: profile_favorites (the notes-per-tea table the plan
+  // names for this) joined to a live, publicly purchasable listing of that
+  // tea profile -- same eligibility filters handleGetPublicProfileFavorites
+  // already applies (published tea, active/public/shown listing and
+  // product, public/active account) so nothing shown here can 404 on
+  // click. Simpler tie-break than that endpoint's full ranking (curated
+  // first, freshest listing next) since this is a compact embed, not the
+  // full favorites page -- five to eight teas per the plan's ceiling.
+  const teaSelectionRes = await env.DB.prepare(
+    `WITH ranked AS (
+       SELECT pf.tea_profile_id, pf.note, pf.position AS favorite_position,
+              tp.slug AS tea_slug, tp.name AS tea_name, tp.image_url AS tea_image_url,
+              p.product_name, p.given_name,
+              COALESCE(p.type, tp.type) AS tea_type,
+              COALESCE(p.year, tp.harvest_year) AS tea_year,
+              COALESCE(p.chinese_name, tp.chinese_name) AS tea_chinese_name,
+              COALESCE(p.origin_region, tp.origin_region) AS tea_origin_region,
+              COALESCE(p.origin_country, tp.origin_country) AS tea_origin_country,
+              a.slug AS account_slug,
+              '/shop/product/' || COALESCE(p.slug, pl.legacy_product_id) || '?store=' || a.slug AS public_path,
+              ROW_NUMBER() OVER (
+                PARTITION BY pf.tea_profile_id
+                ORDER BY pl.is_curated DESC, pl.updated_at DESC, pl.id
+              ) AS listing_rank
+         FROM profile_favorites pf
+         JOIN tea_profiles tp ON tp.id = pf.tea_profile_id
+         JOIN product_listings pl ON pl.profile_id = pf.tea_profile_id
+         JOIN accounts a ON a.id = pl.account_id
+         JOIN products p ON p.id = pl.legacy_product_id AND p.account_id = pl.account_id
+        WHERE pf.contributor_id = ?
+          AND pf.is_public = 1
+          AND tp.network_visible = 1
+          AND tp.status = 'published'
+          AND pl.status = 'active' AND pl.is_public = 1 AND pl.shown_in_shop = 1
+          AND pl.legacy_product_id IS NOT NULL
+          AND p.status = 'Active' AND p.is_public = 1 AND p.shown_in_shop = 1
+          AND a.public_enabled = 1 AND a.status = 'active'
+     )
+     SELECT tea_profile_id, note AS why, tea_slug, tea_name, tea_image_url,
+            COALESCE(given_name, product_name) AS product_name, public_path, favorite_position,
+            tea_type, tea_year, tea_chinese_name, tea_origin_region, tea_origin_country
+       FROM ranked
+      WHERE listing_rank = 1
+      ORDER BY favorite_position
+      LIMIT 8`
+  ).bind(slug).all();
+  const teaSelection = (teaSelectionRes.results as Array<Record<string, any>> ?? []).map(tea => ({
+    tea_profile_id: tea.tea_profile_id,
+    why: tea.why ?? null,
+    slug: tea.tea_slug,
+    name: tea.tea_name,
+    image_url: tea.tea_image_url ?? null,
+    product_name: tea.product_name,
+    public_path: tea.public_path,
+    // The typographic row on the profile: the shop has no product photos, so
+    // the vintage sits on the liquor ground and the type word is tinted.
+    type: tea.tea_type ?? null,
+    year: tea.tea_year != null ? String(tea.tea_year) : null,
+    chinese_name: tea.tea_chinese_name ?? null,
+    origin: [tea.tea_origin_region, tea.tea_origin_country].filter(Boolean).join(', ') || null,
+  }));
+
+  // The person's collection: the destination the profile's tea section points
+  // at. A collection this person curated (created or named as curator), still
+  // active, with a live open publication. Newest publication wins. Absent
+  // (null) when there is none, and the page falls back to the favorites list.
+  const personCollection: Record<string, any> | null = await personCollectionForUser(env, row.user_id as string | null, { live: true });
+
+  // Hosting: the next upcoming, fully public event where this person is a
+  // lead or co-host (event_contributors.is_public gates it separately from
+  // the event's own publication state -- a host can be hidden on an
+  // otherwise public event). Same public-event filters as
+  // handleGetPublicTeaMenu (status/lifecycle_status/public_visibility) plus
+  // the account's own public gate. Absent (null), not an empty object, when
+  // there is no such event -- matches host_account's existing
+  // null-when-absent shape below rather than inventing a second convention.
+  const hostingRow = await env.DB.prepare(
+    `SELECT e.slug, e.title, e.subtitle, e.event_date, e.location_name, e.flyer_image_url,
+            a.slug AS account_slug, a.name AS account_name
+       FROM event_contributors ec
+       JOIN events e ON e.id = ec.event_id AND e.account_id = ec.account_id
+       JOIN accounts a ON a.id = e.account_id
+      WHERE ec.contributor_id = ?
+        AND ec.is_public = 1
+        AND ec.role IN ('lead_host', 'co_host')
+        AND e.status = 'active'
+        AND e.lifecycle_status = 'published'
+        AND e.public_visibility = 'public'
+        AND e.event_date >= datetime('now')
+        AND a.public_enabled = 1 AND a.status = 'active'
+      ORDER BY e.event_date ASC
+      LIMIT 1`
+  ).bind(slug).first() as Record<string, any> | null;
+
   const associationsRes = await env.DB.prepare(
     `SELECT a.id AS account_id, a.slug, a.name, a.kind AS account_kind,
             a.tagline, a.public_shop_path, a.location_city, a.location_country,
@@ -22290,6 +23334,14 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
       WHERE ca.contributor_id = ? AND a.public_enabled = 1 AND a.status = 'active'
       ORDER BY ca.display_order, a.name`
   ).bind(slug).all();
+
+  const galleryRes = await env.DB.prepare(
+    `SELECT id, contributor_id, image_url, caption, position
+       FROM contributor_gallery_images
+      WHERE contributor_id = ?
+      ORDER BY position ASC`
+  ).bind(slug).all();
+  const galleryImages = (galleryRes.results as GalleryImageRow[] ?? []).map(projectPublicGalleryImage);
 
   let seasonalLine: string | null = null;
   if (row.location_line) {
@@ -22312,17 +23364,19 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
 
   let publicLanguages: unknown = [];
   try { publicLanguages = row.languages ? JSON.parse(row.languages as string) : []; } catch { publicLanguages = []; }
-  let publicLinks: unknown[] = [];
-  try { publicLinks = row.links ? JSON.parse(row.links as string) : []; } catch { publicLinks = []; }
+  const publicLinks = parseStoredContributorLinks(row.links as string | null);
 
   const [publicShelf, paymentAvailability] = await Promise.all([
     verifiedShelfSlug(env, row.user_id as string | null),
     publicPaymentAvailability(env, slug),
   ]);
 
+  const effectivelyPublished = row.is_published === 1 || hasPublishedArticle;
+
   return json({
     id: row.id,
     display_name: row.display_name,
+    business_name: row.business_name ?? null,
     chinese_name: row.chinese_name ?? null,
     role: row.role ?? null,
     pronouns: row.pronouns ?? null,
@@ -22343,20 +23397,65 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
     pouring_today_note: row.pouring_today_note ?? null,
     where_to_find_text: row.where_to_find_text ?? null,
     links: publicLinks,
+    gallery_images: galleryImages,
     languages: normalizeLanguages(publicLanguages),
-    is_published: 1,
+    is_published: effectivelyPublished ? 1 : 0,
     contributor_slug: row.id,
     ...(publicShelf ? { shelf_slug: publicShelf } : {}),
-    articles: articlesRes.results ?? [],
-    pull_quotes: pullQuotesRes.results ?? [],
-    featured_in: featuredInRes.results ?? [],
+    articles: words,
+    pull_quotes: pullQuotes,
+    featured_in: featuredIn,
     products: productsRes.results ?? [],
+    tea_selection: teaSelection,
+    collection: personCollection ? {
+      slug: personCollection.slug,
+      title: personCollection.title,
+      note: personCollection.note ?? null,
+      hero_image_url: personCollection.hero_image_url ?? null,
+      item_count: Number(personCollection.item_count || 0),
+    } : null,
     accounts: associationsRes.results ?? [],
     host_account: hostAccount,
+    hosting: hostingRow,
     has_payment_methods: paymentAvailability.hasAnyMethod,
     payment_accounts: paymentAvailability.accounts,
     seasonal_line: seasonalLine,
   });
+};
+
+// Surface 3 / Lane F: "Selected by" on the public product page -- published
+// creators whose public tea selection (profile_favorites) includes this
+// product, each with their own note as the "why" line. Walks the same
+// eligibility chain handleGetPublicContributor's tea_selection query already
+// uses, in the other direction: from a product to the creators who selected
+// it, instead of from a creator to their selected teas. Safe fields only --
+// no cost, no vendor, no exact stock -- same posture as every other public
+// product/contributor read in this file.
+const handleGetProductSelectedBy: Handler = async (_request, env, params) => {
+  const idOrSlug = params.id;
+  if (!idOrSlug) return json({ error: 'Missing product' }, 400);
+  const rows = await env.DB.prepare(
+    `SELECT DISTINCT c.id, c.display_name, c.business_name, pf.note AS why, pf.position
+       FROM products p
+       JOIN product_listings pl ON pl.legacy_product_id = p.id AND pl.account_id = p.account_id
+       JOIN tea_profiles tp ON tp.id = pl.profile_id
+       JOIN profile_favorites pf ON pf.tea_profile_id = tp.id AND pf.is_public = 1
+       JOIN contributors c ON c.id = pf.contributor_id AND ${CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL}
+       JOIN accounts a ON a.id = p.account_id
+      WHERE (p.id = ? OR p.slug = ?)
+        AND p.status = 'Active' AND p.is_public = 1 AND p.shown_in_shop = 1
+        AND pl.status = 'active' AND pl.is_public = 1 AND pl.shown_in_shop = 1
+        AND a.public_enabled = 1 AND a.status = 'active'
+      ORDER BY pf.position ASC
+      LIMIT 6`
+  ).bind(idOrSlug, idOrSlug).all();
+  const selectedBy = (rows.results as Array<Record<string, any>> ?? []).map(row => ({
+    slug: row.id as string,
+    display_name: row.display_name as string,
+    business_name: (row.business_name as string | null) ?? null,
+    why: (row.why as string | null) ?? null,
+  }));
+  return cachedJson({ selected_by: selectedBy }, 60);
 };
 
 const handleGetPublicProfileFavorites: Handler = async (_request, env, params) => {
@@ -22463,10 +23562,24 @@ async function resolveLocalPaymentAmount(
 }
 
 const handleGetPublicPaymentMethods: Handler = async (request, env, params) => {
-  const contributor = await env.DB.prepare('SELECT id, display_name, portrait_url, avatar_url FROM contributors WHERE id = ? AND is_published = 1')
+  const contributor = await env.DB.prepare('SELECT id, user_id, account_id, display_name, business_name, portrait_url, avatar_url FROM contributors WHERE id = ? AND is_published = 1')
     .bind(params.slug).first<Record<string, any>>();
   if (!contributor) return json({ error: 'Contributor not found' }, 404);
   const url = new URL(request.url);
+  // Pay is private. The bank detail behind this route goes to an approved
+  // account or to whoever holds a share link, and to nobody else. A stranger
+  // gets the gate, with enough of the contributor to ask them, and never a
+  // method. This is the one check that makes "never public" true, so it sits
+  // on the read itself rather than on the page that renders it.
+  const access = await resolvePayAccess(env, contributor, await optionalAuthenticatedUser(request, env), url.searchParams.get(PAY_LINK_PARAM));
+  if (access.decision.access === 'gate') {
+    return json({
+      error: 'Payment details are shared privately',
+      code: 'pay_private',
+      access: 'gate',
+      contributor: publicPayContributor(contributor),
+    }, 403);
+  }
   const accountSlug = url.searchParams.get('account')?.trim() || url.searchParams.get('store')?.trim() || null;
   let account: Record<string, any> | null = null;
   if (accountSlug) {
@@ -22503,6 +23616,291 @@ const handleGetPublicPaymentMethods: Handler = async (request, env, params) => {
     available_accounts: paymentAvailability.accounts,
     payment_methods: methods,
     context: { ...context, display_only: true, local },
+  });
+};
+
+// ── Pay is private, and approval is permanent ─────────────────────────────────
+// Migration 0022. Two doors to a contributor's transfer details: an ACCOUNT
+// they approved (payment_access_grants, no revoke, no expiry) and a LINK they
+// handed out (payment_share_links). The rules are in payAccessDomain.ts; the
+// reads and writes are here. Every write lands in platform_audit_log.
+
+interface PayShareLinkRow {
+  id: string;
+  account_id: string;
+  contributor_id: string;
+  invoice_id: string | null;
+  token: string;
+}
+
+interface PayContributorRow {
+  id: string;
+  user_id: string | null;
+  account_id: string;
+  display_name: string;
+  business_name?: string | null;
+  portrait_url?: string | null;
+  avatar_url?: string | null;
+}
+
+function publicPayContributor(row: Record<string, any>) {
+  return {
+    id: row.id as string,
+    display_name: row.display_name as string,
+    business_name: (row.business_name as string | null) ?? null,
+    portrait_url: (row.portrait_url as string | null) || (row.avatar_url as string | null) || null,
+  };
+}
+
+async function resolvePayAccess(
+  env: Env,
+  contributor: Record<string, any>,
+  viewer: { userId: string; email: string; name: string } | null,
+  rawToken: string | null,
+): Promise<{
+  decision: ReturnType<typeof decidePayAccess>;
+  link: PayShareLinkRow | null;
+  grant: { id: string; status: 'pending' | 'approved' } | null;
+}> {
+  let link: PayShareLinkRow | null = null;
+  if (isShareTokenShaped(rawToken)) {
+    link = await env.DB.prepare(
+      `SELECT id, account_id, contributor_id, invoice_id, token
+         FROM payment_share_links WHERE token = ? AND contributor_id = ?`
+    ).bind(rawToken, contributor.id).first<PayShareLinkRow>();
+  }
+  let grant: { id: string; status: 'pending' | 'approved' } | null = null;
+  if (viewer) {
+    grant = await env.DB.prepare(
+      `SELECT id, status FROM payment_access_grants WHERE contributor_id = ? AND grantee_user_id = ?`
+    ).bind(contributor.id, viewer.userId).first<{ id: string; status: 'pending' | 'approved' }>();
+  }
+  const decision = decidePayAccess({
+    isOwner: Boolean(viewer && contributor.user_id && contributor.user_id === viewer.userId),
+    hasApprovedGrant: grant?.status === 'approved',
+    hasValidLink: Boolean(link),
+  });
+  return { decision, link, grant };
+}
+
+async function loadPayContributor(env: Env, slug: string): Promise<PayContributorRow | null> {
+  return env.DB.prepare(
+    'SELECT id, user_id, account_id, display_name, business_name, portrait_url, avatar_url FROM contributors WHERE id = ? AND is_published = 1'
+  ).bind(slug).first<PayContributorRow>();
+}
+
+// GET /api/public/people/:slug/pay-access[?t=token]
+// The pay page asks this first. It says whether the sheet may open and why,
+// and when it opens through a link that came from an invoice, which invoice.
+// Opening a link while signed in records an approval for that account, so the
+// person never has to ask afterwards: the contributor handed them the link,
+// which is the same decision as approving them.
+const handleGetPayAccess: Handler = async (request, env, params) => {
+  const contributor = await loadPayContributor(env, params.slug);
+  if (!contributor) return json({ error: 'Contributor not found' }, 404);
+  const url = new URL(request.url);
+  const viewer = await optionalAuthenticatedUser(request, env);
+  const { decision, link, grant } = await resolvePayAccess(env, contributor, viewer, url.searchParams.get(PAY_LINK_PARAM));
+
+  let invoice: { invoice_number: string | null; outstanding_usd: number } | null = null;
+  if (link) {
+    await env.DB.prepare(
+      `UPDATE payment_share_links SET open_count = open_count + 1, last_opened_at = datetime('now') WHERE id = ?`
+    ).bind(link.id).run();
+    if (viewer && viewer.userId !== contributor.user_id && grant?.status !== 'approved') {
+      await env.DB.prepare(
+        `INSERT INTO payment_access_grants (id, account_id, contributor_id, grantee_user_id, granted_via, invoice_id, status, approved_at)
+         VALUES (?, ?, ?, ?, 'link', ?, 'approved', datetime('now'))
+         ON CONFLICT(contributor_id, grantee_user_id) DO UPDATE SET
+           status = 'approved',
+           granted_via = 'link',
+           invoice_id = COALESCE(payment_access_grants.invoice_id, excluded.invoice_id),
+           approved_at = datetime('now'),
+           updated_at = datetime('now')`
+      ).bind(newId('pag'), link.account_id, contributor.id, viewer.userId, link.invoice_id).run();
+      await logPlatformAction(env, 'pay_access.granted_via_link', viewer.userId, viewer.email, 'contributor', contributor.id,
+        { link_id: link.id, invoice_id: link.invoice_id }, link.account_id, null);
+    }
+    if (link.invoice_id) {
+      const ledgerInvoice = await loadLedgerInvoice(env, link.invoice_id, link.account_id);
+      if (ledgerInvoice) {
+        const ledger = await loadInvoiceLedgerTotals(env, [ledgerInvoice.id]);
+        const money = invoiceMoney(ledgerInvoice.total_usd, ledgerInvoice.payment_status, ledger.get(ledgerInvoice.id));
+        invoice = { invoice_number: ledgerInvoice.invoice_number, outstanding_usd: money.outstanding_usd };
+      }
+    }
+  }
+
+  return json({
+    access: decision.access,
+    via: decision.via,
+    contributor: publicPayContributor(contributor),
+    viewer: {
+      signed_in: Boolean(viewer),
+      is_owner: decision.via === 'owner',
+      request_status: grant?.status ?? null,
+    },
+    invoice,
+  });
+};
+
+// POST /api/public/people/:slug/pay-access/request
+// The one action on the gate sheet. Needs an account, so the request carries
+// a name the contributor can recognise. Idempotent: asking twice is one row.
+const handleRequestPayAccess: Handler = async (request, env, params) => {
+  const auth = await requireAuthenticatedUser(request, env);
+  if ('error' in auth) return auth.error;
+  const contributor = await loadPayContributor(env, params.slug);
+  if (!contributor) return json({ error: 'Contributor not found' }, 404);
+  if (contributor.user_id && contributor.user_id === auth.userId) {
+    return json({ error: 'This is your own page', code: 'own_page' }, 400);
+  }
+  const existing = await env.DB.prepare(
+    `SELECT id, status FROM payment_access_grants WHERE contributor_id = ? AND grantee_user_id = ?`
+  ).bind(contributor.id, auth.userId).first<{ id: string; status: 'pending' | 'approved' }>();
+  if (existing) return json({ status: existing.status, grant_id: existing.id });
+  const id = newId('pag');
+  await env.DB.prepare(
+    `INSERT INTO payment_access_grants (id, account_id, contributor_id, grantee_user_id, granted_via, status)
+     VALUES (?, ?, ?, ?, 'request', 'pending')`
+  ).bind(id, contributor.account_id, contributor.id, auth.userId).run();
+  await logPlatformAction(env, 'pay_access.requested', auth.userId, auth.email, 'contributor', contributor.id,
+    { grant_id: id }, contributor.account_id, null);
+  return json({ status: 'pending', grant_id: id }, 201);
+};
+
+function openPayShareUrl(env: Env, slug: string, token: string): string {
+  return withShareToken(buildPayUrl(env, slug, null, 0, null, null), token);
+}
+
+// GET /api/me/pay-access
+// Your Table's view: who asked, who can see it, and the contributor's own
+// open share link if one has been minted.
+const handleListMyPayAccess: Handler = async (request, env) => {
+  const owned = await requireOwnContributor(request, env);
+  if ('error' in owned) return owned.error;
+  const [grants, link] = await Promise.all([
+    env.DB.prepare(
+      `SELECT g.id, g.status, g.granted_via, g.invoice_id, g.requested_at, g.approved_at,
+              u.name AS user_name, u.username AS user_username, u.created_at AS user_since
+         FROM payment_access_grants g
+         JOIN users u ON u.id = g.grantee_user_id
+        WHERE g.contributor_id = ?
+        ORDER BY CASE g.status WHEN 'pending' THEN 0 ELSE 1 END, g.requested_at DESC`
+    ).bind(owned.contributor.id).all(),
+    env.DB.prepare(
+      `SELECT token FROM payment_share_links WHERE contributor_id = ? AND invoice_id IS NULL`
+    ).bind(owned.contributor.id).first<{ token: string }>(),
+  ]);
+  const rows = (grants.results ?? []) as Array<Record<string, any>>;
+  const project = (row: Record<string, any>) => ({
+    id: row.id as string,
+    status: row.status as 'pending' | 'approved',
+    granted_via: row.granted_via as 'request' | 'link',
+    invoice_id: (row.invoice_id as string | null) ?? null,
+    requested_at: row.requested_at as string,
+    approved_at: (row.approved_at as string | null) ?? null,
+    user_name: (row.user_name as string | null) || (row.user_username as string | null) || 'A Teajia account',
+    user_since: (row.user_since as string | null) ?? null,
+  });
+  return json({
+    pending: rows.filter(row => row.status === 'pending').map(project),
+    approved: rows.filter(row => row.status === 'approved').map(project),
+    share_link: link ? openPayShareUrl(env, owned.contributor.id as string, link.token) : null,
+  });
+};
+
+// POST /api/me/pay-access/share-link
+// The open link, minted once and returned on every later call. It opens the
+// sheet with the methods only; the invoice links carry an amount.
+const handleMintMyPayShareLink: Handler = async (request, env) => {
+  const owned = await requireOwnContributor(request, env);
+  if ('error' in owned) return owned.error;
+  const contributorId = owned.contributor.id as string;
+  const existing = await env.DB.prepare(
+    `SELECT token FROM payment_share_links WHERE contributor_id = ? AND invoice_id IS NULL`
+  ).bind(contributorId).first<{ token: string }>();
+  if (existing) return json({ url: openPayShareUrl(env, contributorId, existing.token), created: false });
+  const token = mintShareToken();
+  const id = newId('psl');
+  await env.DB.prepare(
+    `INSERT INTO payment_share_links (id, account_id, contributor_id, invoice_id, token, created_by_user_id)
+     VALUES (?, ?, ?, NULL, ?, ?)`
+  ).bind(id, owned.contributor.account_id, contributorId, token, owned.ctx.userId).run();
+  await logPlatformAction(env, 'pay_access.share_link_minted', owned.ctx.userId, owned.ctx.email, 'contributor', contributorId,
+    { link_id: id }, owned.contributor.account_id as string, null);
+  return json({ url: openPayShareUrl(env, contributorId, token), created: true }, 201);
+};
+
+// POST /api/me/pay-access/:id/approve. Permanent: there is no revoke.
+const handleApprovePayAccess: Handler = async (request, env, params) => {
+  const owned = await requireOwnContributor(request, env);
+  if ('error' in owned) return owned.error;
+  const result = await env.DB.prepare(
+    `UPDATE payment_access_grants
+        SET status = 'approved', approved_at = datetime('now'), updated_at = datetime('now')
+      WHERE id = ? AND contributor_id = ? AND status = 'pending'`
+  ).bind(params.id, owned.contributor.id).run();
+  if (!result.meta.changes) return json({ error: 'No pending request with that id' }, 404);
+  await logPlatformAction(env, 'pay_access.approved', owned.ctx.userId, owned.ctx.email, 'payment_access_grant', params.id,
+    { contributor_id: owned.contributor.id }, owned.contributor.account_id as string, null);
+  return json({ status: 'approved', grant_id: params.id });
+};
+
+// POST /api/me/pay-access/:id/decline. The request is removed rather than
+// kept as a third state: status is pending or approved, nothing else, and a
+// declined person may ask again later.
+const handleDeclinePayAccess: Handler = async (request, env, params) => {
+  const owned = await requireOwnContributor(request, env);
+  if ('error' in owned) return owned.error;
+  const result = await env.DB.prepare(
+    `DELETE FROM payment_access_grants WHERE id = ? AND contributor_id = ? AND status = 'pending'`
+  ).bind(params.id, owned.contributor.id).run();
+  if (!result.meta.changes) return json({ error: 'No pending request with that id' }, 404);
+  await logPlatformAction(env, 'pay_access.declined', owned.ctx.userId, owned.ctx.email, 'payment_access_grant', params.id,
+    { contributor_id: owned.contributor.id }, owned.contributor.account_id as string, null);
+  return json({ status: 'declined', grant_id: params.id });
+};
+
+// POST /api/invoices/:id/pay-link
+// The admin's Share pay link. The link already exists the moment the invoice
+// has a live pay URL (resolveInvoicePayments mints it), so this returns it
+// with the pieces the share sheet needs: the customer's WhatsApp number and
+// the amount still owed. Refuses, in words, when there is nothing to share.
+const handleMintInvoicePayLink: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'sell');
+  if ('error' in ctx) return ctx.error;
+  const row = await env.DB.prepare(
+    `SELECT id, account_id, invoice_number, status, payment_status, display_currency,
+            payment_recipient_user_id, sold_by_user_id, shipping_cost_usd, customer_name, customer_whatsapp
+       FROM invoices WHERE id = ? AND account_id = ? AND deleted_at IS NULL`
+  ).bind(params.id, ctx.accountId).first<Record<string, any>>();
+  if (!row) return restError(404, 'Invoice not found', 'invoice_not_found');
+  const payment = await resolveInvoicePayment(env, {
+    id: row.id as string,
+    account_id: row.account_id as string,
+    invoice_number: (row.invoice_number as string | null) ?? null,
+    status: (row.status as string | null) ?? null,
+    payment_status: (row.payment_status as string | null) ?? null,
+    display_currency: (row.display_currency as string | null) ?? null,
+    payment_recipient_user_id: (row.payment_recipient_user_id as string | null) ?? null,
+    sold_by_user_id: (row.sold_by_user_id as string | null) ?? null,
+    shipping_cost_usd: Number(row.shipping_cost_usd || 0),
+  });
+  if (!payment.pay_url) {
+    const reason = payment.has_methods ? 'Nothing is outstanding on this order' : 'The recipient has not published transfer details';
+    return json({ error: reason, code: payment.has_methods ? 'invoice_settled' : 'no_methods', payment }, 409);
+  }
+  await logPlatformAction(env, 'pay_access.invoice_link_shared', ctx.userId, ctx.email, 'invoice', row.id as string,
+    { recipient_slug: payment.recipient_slug }, ctx.accountId, ctx.accountId);
+  return json({
+    url: payment.pay_url,
+    invoice_number: (row.invoice_number as string | null) ?? null,
+    customer_name: (row.customer_name as string | null) ?? null,
+    customer_whatsapp: (row.customer_whatsapp as string | null) ?? null,
+    recipient_name: payment.recipient_name,
+    outstanding_usd: payment.outstanding_usd,
+    display_currency: (row.display_currency as string | null) ?? null,
   });
 };
 
@@ -23742,16 +25140,20 @@ const handleImportInboundItems: Handler = async (request, env, params) => {
        leaves the source shop's cost behind, because what THEY paid is not what
        this shop paid and is protected besides. Omitting the column entirely
        would let the default answer 0, which does not read as "we did not copy
-       a cost" but as "this tea was free". */
+       a cost" but as "this tea was free".
+       `shipping_rate_per_kg` and `markup_multiplier` are the same argument and
+       were missing from it. The other shop's freight deal is theirs, so this
+       row carries none and follows Adrian's; left out, the table would have
+       said the tea ships free and prices at 2.5x. */
     const cols = [
       'id', 'account_id', 'status', 'is_public', 'stock_grams', 'fixed_retail_price_usd',
-      'cost_amount',
+      'cost_amount', 'shipping_rate_per_kg', 'markup_multiplier',
       'imported_from_product_id', 'imported_via_publication_id',
       ...COPY_COLS,
     ];
     const vals = [
       id, ctx.accountId, 'Draft', 0, 0, null,
-      null,
+      null, null, null,
       src.id, params.pubId,
       ...COPY_COLS.map(c => src[c] ?? null),
     ];
@@ -24262,7 +25664,8 @@ const handleNetworkCatalog: Handler = async (request, env) => {
         cl.fixed_retail_price_usd AS curator_fixed_retail_usd,
         cl.cost_amount            AS curator_cost_amount,
         cl.cost_currency          AS curator_cost_currency,
-        cl.markup_multiplier      AS curator_markup_multiplier
+        cl.markup_multiplier      AS curator_markup_multiplier,
+        cl.quantity_purchased     AS curator_quantity_purchased
       FROM tea_profiles p
       JOIN accounts a  ON a.id  = p.curated_by_account_id
       JOIN accounts ao ON ao.id = p.originated_by_account_id
@@ -24367,19 +25770,27 @@ const handleNetworkCatalog: Handler = async (request, env) => {
       }
     } else if (p.curator_cost_amount != null && p.curator_cost_amount > 0) {
       // Cost-based: cost_per_gram (in cost_currency) * markup → retail in cost_currency.
-      // Then convert to curator currency for display.
+      // Then convert to curator currency for display. cost_amount is the total
+      // cost for quantity_purchased, the same shape addPricingFields divides
+      // out for the shop's own catalogue, so this must divide by it too before
+      // the markup is applied. A cake bought for 1,200 CNY as 2,000 g of leaf
+      // costs 0.6 CNY a gram, not 1,200: skipping the division here once
+      // quoted a network listing at 2,000 times its real price.
       const costCurrency = (p.curator_cost_currency as string) || 'USD';
       const markup = (p.curator_markup_multiplier as number) ?? CURATOR_FALLBACK_MARKUP;
-      // cost_amount is the total cost for quantity_purchased; without that here,
-      // we treat cost_amount as already per-gram. This matches how the legacy
-      // products API returns it (see addPricingFields). Acceptable for browse.
-      const retailInCostCurrency = (p.curator_cost_amount as number) * markup;
-      const converted = convert(retailInCostCurrency, costCurrency, curatorCurrency);
-      if (converted === null) {
-        retailPricePerGramCurator = retailInCostCurrency;
-        fxUnavailable = true;
-      } else {
-        retailPricePerGramCurator = converted;
+      const quantityPurchased = p.curator_quantity_purchased as number | null;
+      // No recorded quantity means no honest per-gram cost to derive from;
+      // leave the price null rather than treating the total cost as per-gram.
+      if (quantityPurchased && quantityPurchased > 0) {
+        const costPerGramInCostCurrency = (p.curator_cost_amount as number) / quantityPurchased;
+        const retailInCostCurrency = costPerGramInCostCurrency * markup;
+        const converted = convert(retailInCostCurrency, costCurrency, curatorCurrency);
+        if (converted === null) {
+          retailPricePerGramCurator = retailInCostCurrency;
+          fxUnavailable = true;
+        } else {
+          retailPricePerGramCurator = converted;
+        }
       }
     }
 
@@ -24530,12 +25941,20 @@ const handleCarryListing: Handler = async (request, env) => {
   //    id uses lower(hex(randomblob(16))) — same DEFAULT the schema uses; generated inline
   //    in the INSERT rather than via JS crypto to keep id generation in one place (D1).
   //    is_public = 1: carried teas default to publicly listed; partner can hide later.
+  //    cost_amount, shipping_rate_per_kg and markup_multiplier are named as
+  //    NULL. Carrying somebody else's tea says nothing about what this shop
+  //    paid for it, what freight it bore, or how it should be marked up, and
+  //    the live table answers 0, 0 and 2.5 to a column an INSERT leaves out.
+  //    That is a free tea, shipped free, priced at a multiplier the shop
+  //    stopped using. NULL is how the row says nobody has entered anything.
   const insertResult = await env.DB.prepare(`
     INSERT INTO product_listings
       (id, account_id, profile_id, stock_grams, fixed_retail_price_usd,
-       listing_photos, status, is_public, inventory_purpose, stock_known_at)
+       listing_photos, status, is_public, inventory_purpose, stock_known_at,
+       cost_amount, shipping_rate_per_kg, markup_multiplier)
     VALUES
-      (lower(hex(randomblob(16))), ?, ?, ?, ?, ?, 'active', 1, 'working', ?)
+      (lower(hex(randomblob(16))), ?, ?, ?, ?, ?, 'active', 1, 'working', ?,
+       NULL, NULL, NULL)
     RETURNING id
   `).bind(accountId, profileId, stockGrams, fixedRetailPriceUsd, listingPhotos, new Date().toISOString()).first() as
     { id: string } | null;
@@ -25676,11 +27095,21 @@ async function processReceiveSideEffects(
     } else {
       // Auto-create a new listing for the buyer. Defaults: status=active, is_public=1.
       // No price set — buyer will refine on the listing edit page.
+      //
+      // "No price set" has to be written down to be true. cost_amount,
+      // shipping_rate_per_kg and markup_multiplier are named NULL, because the
+      // live table answers 0, 0 and 2.5 for a column an INSERT does not
+      // mention: a wholesale receipt would have landed on the buyer's shelf as
+      // a free tea, shipped free, at a markup nobody chose. What the buyer paid
+      // for this line is on the wholesale order; it is not copied here, because
+      // one number in two places is how the shop came to have four freight
+      // rates at once.
       buyerListingId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
       stmts.push(env.DB.prepare(
         `INSERT INTO product_listings
-           (id, account_id, profile_id, stock_grams, listing_photos, status, is_public)
-         VALUES (?, ?, ?, ?, '[]', 'active', 1)`
+           (id, account_id, profile_id, stock_grams, listing_photos, status, is_public,
+            cost_amount, shipping_rate_per_kg, markup_multiplier)
+         VALUES (?, ?, ?, ?, '[]', 'active', 1, NULL, NULL, NULL)`
       ).bind(buyerListingId, order.buyer_account_id, item.profile_id, grams));
     }
     // Link the order item to whichever buyer listing now holds the stock
@@ -26548,6 +27977,7 @@ const routes: [string, string, Handler][] = [
   // Products
   ['GET', '/api/products/public', handleGetPublicProducts],
   ['GET', '/api/products/public/:id', handleGetPublicProduct],
+  ['GET', '/api/products/public/:id/selected-by', handleGetProductSelectedBy],
   ['GET', '/sitemap-products.xml', handleProductSitemap],
   ['GET', '/api/products', handleGetProducts],
   ['GET', '/api/inventory/summaries', handleGetInventorySummaries],
@@ -26617,6 +28047,7 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/admin/contributors/:id/contact', handlePutAdminContributorContact],
   ['GET', '/api/admin/contributors/:id/accounts', handleGetContributorAccounts],
   ['PUT', '/api/admin/contributors/:id/accounts', handlePutContributorAccounts],
+  ['PUT', '/api/admin/contributors/:id/gallery-images', handlePutContributorGalleryImages],
   ['GET', '/api/customers', handleGetCustomers],
   ['GET', '/api/customers/:id', handleGetCustomer],
   ['GET', '/api/customers/:id/relationships', handleGetCustomerRelationships],
@@ -26998,6 +28429,8 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/me/profile', handleGetMyProfile],
   ['GET', '/api/me/public-profile', handleGetMyPublicProfile],
   ['PUT', '/api/me/public-profile', handlePutMyPublicProfile],
+  ['PUT', '/api/me/public-profile/gallery-images', handlePutMyProfileGalleryImages],
+  ['PUT', '/api/me/public-profile/collection', handlePutMyProfileCollection],
   ['POST', '/api/me/public-profile/unpublish', handleUnpublishMyPublicProfile],
   ['GET', '/api/me/profile/favorites', handleListMyProfileFavorites],
   ['POST', '/api/me/profile/favorites', handleCreateMyProfileFavorite],
@@ -27061,6 +28494,13 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/people/:slug',   handleGetPublicContributor],
   ['GET', '/api/public/people/:slug/favorites', handleGetPublicProfileFavorites],
   ['GET', '/api/public/people/:slug/payment-methods', handleGetPublicPaymentMethods],
+  ['GET', '/api/public/people/:slug/pay-access', handleGetPayAccess],
+  ['POST', '/api/public/people/:slug/pay-access/request', handleRequestPayAccess],
+  ['GET', '/api/me/pay-access', handleListMyPayAccess],
+  ['POST', '/api/me/pay-access/share-link', handleMintMyPayShareLink],
+  ['POST', '/api/me/pay-access/:id/approve', handleApprovePayAccess],
+  ['POST', '/api/me/pay-access/:id/decline', handleDeclinePayAccess],
+  ['POST', '/api/invoices/:id/pay-link', handleMintInvoicePayLink],
   ['GET', '/api/public/wisdom/states', handleGetPublicWisdomStates],
   ['GET', '/api/public/wisdom/:nodeType/:nodeId/related', handleGetPublicWisdomRelated],
   ['GET', '/api/public/wisdom/:nodeType/:nodeId/state', handleGetPublicWisdomState],
@@ -27311,22 +28751,18 @@ export default {
     // Public, unauthenticated, read-only MCP for the shopping public — catalog
     // browse + WhatsApp checkout-link builder. No account data or costs exposed.
     if (url.pathname === '/mcp/public') {
-      // Edge rate limit per client IP. The binding is absent in local dev, so
-      // this is a no-op there; in production it caps abuse at the edge before
-      // any D1 work happens.
-      if (env.PUBLIC_MCP_LIMITER) {
-        const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
-        const { success } = await env.PUBLIC_MCP_LIMITER.limit({ key: ip });
-        if (!success) {
-          return cors(
-            new Response(
-              JSON.stringify({ error: 'rate_limited', message: 'Too many requests. Slow down and try again shortly.' }),
-              { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '10' } },
-            ),
-            corsOrigin,
-          );
-        }
-      }
+      // Edge rate limit per client IP, keyed the same way as every other
+      // durable limiter. This endpoint is public and unauthenticated, so
+      // it had no fallback below it (audit SEC-5, same class as
+      // enforceDurableLimit's absent-binding fix): a missing binding is a
+      // broken deploy, not local dev, and must refuse rather than run the
+      // catalog and checkout-link tools with no brake at all. The 10 second
+      // Retry-After matches this binding's simple = { limit = 60, period =
+      // 10 } window in wrangler.toml, and restores the header the old
+      // inline check sent before it was folded into enforceDurableLimit.
+      const mcpPublicIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+      const mcpPublicLimited = await enforceDurableLimit(env.PUBLIC_MCP_LIMITER, 'PUBLIC_MCP_LIMITER', `public-mcp:${mcpPublicIp}`, 10);
+      if (mcpPublicLimited) return cors(mcpPublicLimited, corsOrigin);
       return cors(await publicMcpFetch(request, env), corsOrigin);
     }
 

@@ -1,9 +1,37 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowDown, ArrowUp, Loader2, Plus, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Loader2, Trash2, X } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
-import type { AdminContributor, ContributorAccountRef, ContributorLink, ContributorWrite } from '../../types';
+import {
+  CONTRIBUTOR_LINK_PLATFORMS,
+  type AdminContributor,
+  type AdminContributorLink,
+  type ContributorAccountRef,
+  type ContributorGalleryImage,
+  type ContributorLinkPlatform,
+  type ContributorWrite,
+} from '../../types';
+
+const GALLERY_IMAGE_LIMIT = 8;
+
+function linkPlatformLabel(platform: ContributorLinkPlatform): string {
+  switch (platform) {
+    case 'wechat': return 'WeChat';
+    case 'instagram': return 'Instagram';
+    case 'website': return 'Website';
+    default: return 'Other';
+  }
+}
+
+function linkValueLabel(platform: ContributorLinkPlatform): string {
+  switch (platform) {
+    case 'wechat': return 'WeChat ID';
+    case 'instagram': return 'Instagram handle';
+    case 'website': return 'Website URL';
+    default: return 'Value';
+  }
+}
 
 type Props = {
   contributor: AdminContributor | null;
@@ -15,10 +43,10 @@ const inputClass = 'min-h-11 w-full rounded-md border border-tea-border bg-tea-b
 const labelClass = 'block text-ui-11 font-medium text-tea-text-sec mb-1.5';
 
 const emptyWrite = (): ContributorWrite => ({
-  id: '', display_name: '', chinese_name: '', role: '', pronouns: '', location_line: '', active_since: '',
+  id: '', display_name: '', business_name: '', chinese_name: '', role: '', pronouns: '', location_line: '', active_since: '',
   beginnings: '', now_text: '', now_stamp: '', now_updated_at: '', inspirations: '', closing: '', avatar_url: '', portrait_url: '',
   portrait_caption: '', voice_clip_url: '', voice_clip_caption: '', pouring_today_product_id: '', pouring_today_note: '',
-  where_to_find_text: '', user_id: '', face_of_account_id: null, links: [],
+  where_to_find_text: '', user_id: '', face_of_account_id: null, links: [], gallery_images: [],
 });
 
 function contributorWrite(contributor: AdminContributor): ContributorWrite {
@@ -154,9 +182,20 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
     if (!form.display_name?.trim()) return 'Display name is required.';
     if ((form.closing?.length ?? 0) > 200) return 'Closing must be 200 characters or fewer.';
     for (const link of form.links ?? []) {
-      if (!link.label.trim()) return 'Every link needs a label.';
-      try { if (new URL(link.url).protocol !== 'https:') return 'Every link must use https.'; }
-      catch { return 'Every link needs a valid https URL.'; }
+      if (!(CONTRIBUTOR_LINK_PLATFORMS as readonly string[]).includes(link.platform)) return 'Choose a platform for every link.';
+      if (!link.value?.trim()) return `Every link needs its ${linkValueLabel(link.platform).toLowerCase()}.`;
+      if (link.platform === 'website') {
+        try { if (new URL(link.value).protocol !== 'https:') return 'A website link needs a valid https URL.'; }
+        catch { return 'A website link needs a valid https URL.'; }
+      }
+      if (link.qr_image_url) {
+        try { new URL(link.qr_image_url); } catch { return 'The QR image URL must be a valid URL.'; }
+      }
+    }
+    if ((form.gallery_images?.length ?? 0) > GALLERY_IMAGE_LIMIT) return `The gallery holds at most ${GALLERY_IMAGE_LIMIT} photos.`;
+    for (const image of form.gallery_images ?? []) {
+      if (!image.image_url?.trim()) return 'Every gallery photo needs an image URL.';
+      if ((image.caption?.length ?? 0) > 280) return 'A gallery caption must be 280 characters or fewer.';
     }
     if (publishing && !form.beginnings?.trim()) return 'Beginnings is required before publication.';
     return null;
@@ -173,7 +212,10 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
         onSaved();
         return;
       }
-      const { face_of_account_id: _legacyHost, ...payload } = form;
+      // gallery_images is its own table, not a column on `contributors`, so
+      // it is never part of this payload -- it saves through its own
+      // endpoint below, the same reason associations save through theirs.
+      const { face_of_account_id: _legacyHost, gallery_images: _gallery, ...payload } = form;
       const result = isNew
         ? await api.people.createContributor(payload)
         : await api.people.updateContributor(persistedContributor.id, payload);
@@ -189,6 +231,12 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
           display_order: index,
         })));
       }
+      // Sent every save, empty array included: a full-array replace is
+      // idempotent, and this is the only way an emptied gallery is ever
+      // recorded as empty rather than left holding its last saved rows.
+      await api.people.updateContributorGalleryImages(id, (form.gallery_images ?? []).map(image => ({
+        id: image.id, image_url: image.image_url, caption: image.caption,
+      })));
       if (publishing) await api.people.publishContributor(id);
       onSaved();
     } catch (caught: any) {
@@ -244,7 +292,23 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
   };
 
   const links = form.links ?? [];
-  const updateLink = (index: number, next: Partial<ContributorLink>) => setField('links', links.map((link, position) => position === index ? { ...link, ...next } : link));
+  const updateLink = (index: number, next: Partial<AdminContributorLink>) => setField('links', links.map((link, position) => position === index ? { ...link, ...next } : link));
+
+  const galleryImages = form.gallery_images ?? [];
+  const addGalleryImage = () => {
+    if (galleryImages.length >= GALLERY_IMAGE_LIMIT) return;
+    setField('gallery_images', [...galleryImages, { image_url: '', caption: null }]);
+  };
+  const updateGalleryImage = (index: number, next: Partial<ContributorGalleryImage>) =>
+    setField('gallery_images', galleryImages.map((image, position) => position === index ? { ...image, ...next } : image));
+  const removeGalleryImage = (index: number) => setField('gallery_images', galleryImages.filter((_, position) => position !== index));
+  const moveGalleryImage = (index: number, nextIndex: number) => {
+    if (nextIndex < 0 || nextIndex >= galleryImages.length) return;
+    const reordered = [...galleryImages];
+    const [moved] = reordered.splice(index, 1);
+    reordered.splice(nextIndex, 0, moved);
+    setField('gallery_images', reordered);
+  };
 
   return (
     <>
@@ -290,7 +354,8 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
               <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {isNew && <label><span className={labelClass}>Slug</span><input className={inputClass} value={form.id ?? ''} onChange={e => setField('id', e.target.value)} placeholder="publishing-fixture" /></label>}
                 <label><span className={labelClass}>Display name</span><input className={inputClass} value={form.display_name ?? ''} onChange={e => setField('display_name', e.target.value)} /></label>
-                <label><span className={labelClass}>Chinese name</span><input className={inputClass} value={form.chinese_name ?? ''} onChange={e => setField('chinese_name', e.target.value)} /></label>
+                <label><span className={labelClass}>Business name</span><input className={inputClass} value={form.business_name ?? ''} onChange={e => setField('business_name', e.target.value)} placeholder="Trades as, if different from the name above" /></label>
+                <label><span className={labelClass}>Name in own script</span><input className={inputClass} value={form.chinese_name ?? ''} onChange={e => setField('chinese_name', e.target.value)} /></label>
                 <label><span className={labelClass}>Role</span><input className={inputClass} value={form.role ?? ''} onChange={e => setField('role', e.target.value)} placeholder="Writer, host, maker" /></label>
                 <label><span className={labelClass}>Pronouns</span><input className={inputClass} value={form.pronouns ?? ''} onChange={e => setField('pronouns', e.target.value)} /></label>
                 <label><span className={labelClass}>Location</span><input className={inputClass} value={form.location_line ?? ''} onChange={e => setField('location_line', e.target.value)} /></label>
@@ -333,10 +398,57 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
             </section>
 
             <section>
-              <div className="flex items-center justify-between gap-3"><h3 className={`${TYPOGRAPHY_CLASSES.label} text-tea-text`}>Links</h3><button type="button" onClick={() => setField('links', [...links, { label: '', url: '' }])} className="tap-target inline-flex items-center gap-1 text-ui-12 text-tea-text-sec hover:text-tea-text"><Plus size={14} /> Add link</button></div>
+              <div className="flex items-center justify-between gap-3">
+                <h3 className={`${TYPOGRAPHY_CLASSES.label} text-tea-text`}>Links</h3>
+                <button type="button" onClick={() => setField('links', [...links, { platform: 'website', value: '', qr_image_url: null }])} className="tap-target text-ui-12 text-tea-text-sec hover:text-tea-text">Add link</button>
+              </div>
               <div className="mt-3 space-y-3">
                 {links.length === 0 && <p className="text-ui-13 text-tea-text-dim">No outbound links.</p>}
-                {links.map((link, index) => <div key={index} className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-[1fr_1.5fr_auto]"><input aria-label={`Link ${index + 1} label`} className={`${inputClass} min-w-0`} value={link.label} onChange={e => updateLink(index, { label: e.target.value })} placeholder="Label" /><input aria-label={`Link ${index + 1} URL`} className={`${inputClass} min-w-0`} value={link.url} onChange={e => updateLink(index, { url: e.target.value })} placeholder="https://" /><button type="button" aria-label={`Remove link ${index + 1}`} onClick={() => setField('links', links.filter((_, position) => position !== index))} className="tap-target justify-self-end p-2 text-tea-text-sec hover:text-tea-text"><Trash2 size={15} /></button></div>)}
+                {links.map((link, index) => (
+                  <div key={index} className="rounded-md border border-tea-border bg-tea-bg p-3">
+                    <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1.4fr)_auto]">
+                      <label>
+                        <span className={labelClass}>Platform</span>
+                        <select aria-label={`Link ${index + 1} platform`} className={inputClass} value={link.platform} onChange={e => updateLink(index, { platform: e.target.value as ContributorLinkPlatform })}>
+                          {CONTRIBUTOR_LINK_PLATFORMS.map(platform => <option key={platform} value={platform}>{linkPlatformLabel(platform)}</option>)}
+                        </select>
+                      </label>
+                      <label>
+                        <span className={labelClass}>{linkValueLabel(link.platform)}</span>
+                        <input aria-label={`Link ${index + 1} value`} className={`${inputClass} min-w-0`} value={link.value} onChange={e => updateLink(index, { value: e.target.value })} placeholder={link.platform === 'website' ? 'https://' : linkValueLabel(link.platform)} />
+                      </label>
+                      <button type="button" aria-label={`Remove link ${index + 1}`} onClick={() => setField('links', links.filter((_, position) => position !== index))} className="tap-target self-end justify-self-end px-2 py-2 text-ui-12 text-tea-text-sec hover:text-tea-text">Remove</button>
+                    </div>
+                    {link.platform === 'wechat' && (
+                      <label className="mt-2 block"><span className={labelClass}>QR image URL (optional)</span><input className={inputClass} value={link.qr_image_url ?? ''} onChange={e => updateLink(index, { qr_image_url: e.target.value || null })} placeholder="https://" /></label>
+                    )}
+                    {link.platform === 'other' && (
+                      <label className="mt-2 block"><span className={labelClass}>Label (optional)</span><input className={inputClass} value={link.label ?? ''} onChange={e => updateLink(index, { label: e.target.value })} placeholder="How this link is described" /></label>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section>
+              <div className="flex items-center justify-between gap-3">
+                <h3 className={`${TYPOGRAPHY_CLASSES.label} text-tea-text`}>Gallery</h3>
+                <button type="button" onClick={addGalleryImage} disabled={galleryImages.length >= GALLERY_IMAGE_LIMIT} className="tap-target text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Add photo</button>
+              </div>
+              <p className="mt-2 text-ui-12 leading-relaxed text-tea-text-sec">Photos of this person at work, ordered. Up to {GALLERY_IMAGE_LIMIT}.</p>
+              <div className="mt-3 space-y-3">
+                {galleryImages.length === 0 && <p className="text-ui-13 text-tea-text-dim">No gallery photos.</p>}
+                {galleryImages.map((image, index) => (
+                  <div key={image.id ?? index} className="rounded-md border border-tea-border bg-tea-bg p-3">
+                    <label><span className={labelClass}>Image URL</span><input aria-label={`Gallery photo ${index + 1} URL`} className={inputClass} value={image.image_url} onChange={e => updateGalleryImage(index, { image_url: e.target.value })} placeholder="https://" /></label>
+                    <label className="mt-2 block"><span className={`${labelClass} flex justify-between`}><span>Caption (optional)</span><span>{image.caption?.length ?? 0}/280</span></span><input aria-label={`Gallery photo ${index + 1} caption`} className={inputClass} maxLength={280} value={image.caption ?? ''} onChange={e => updateGalleryImage(index, { caption: e.target.value || null })} /></label>
+                    <div className="mt-2 flex items-center justify-end gap-4 text-ui-12 text-tea-text-sec">
+                      <button type="button" aria-label={`Move gallery photo ${index + 1} up`} disabled={index === 0} onClick={() => moveGalleryImage(index, index - 1)} className="tap-target hover:text-tea-text disabled:opacity-30">Move up</button>
+                      <button type="button" aria-label={`Move gallery photo ${index + 1} down`} disabled={index === galleryImages.length - 1} onClick={() => moveGalleryImage(index, index + 1)} className="tap-target hover:text-tea-text disabled:opacity-30">Move down</button>
+                      <button type="button" aria-label={`Remove gallery photo ${index + 1}`} onClick={() => removeGalleryImage(index)} className="tap-target hover:text-tea-text">Remove</button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </section>
 

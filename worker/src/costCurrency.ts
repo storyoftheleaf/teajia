@@ -13,6 +13,7 @@
  * ¥1,200 invoice stored as $1,200 prices the tea sevenfold, and nothing objects,
  * because 1200 is a perfectly good number.
  */
+import { canonicalCurrency } from '../../src/lib/currency';
 
 /** The message every door gives, so the same refusal reads the same way. */
 export const COST_CURRENCY_REQUIRED =
@@ -69,18 +70,58 @@ export const CURRENCY_SOURCE_STATED = 'stated';
 export const CURRENCY_SOURCE_RECOVERED = 'recovered';
 
 /**
- * Mark a write as having stated its currency.
+ * What provenance a write carries, given the currency it is writing.
  *
- * Server-side only, and the caller's own value is dropped first: provenance a
- * caller can set is not provenance. `'stated'` has to mean "a currency arrived
+ * This is the one place the answer is decided, because the doors that write a
+ * cost do not share a shape: three build a `body` object of columns, one builds
+ * a bind list, and two are listing mirrors that copy a product row. Each of
+ * them reached its own conclusion before this existed, and the conclusion four
+ * of them reached was silence: a tea imported with a correctly stated HKD cost
+ * landed with the column NULL, which is what "nobody ever answered" is stored
+ * as, so `list_unstated_costs` offered it up and `set_cost_currency` would have
+ * rewritten it to yuan and moved its price by the exchange rate.
+ *
+ * Server-side only, in every form. `'stated'` has to mean "a currency arrived
  * with this write", which is a fact this process observed, not a claim it was
  * handed. The parallel `tasting_source` is deliberately caller-settable because
  * community aggregation needs to say whose voice a tasting is; nothing needs to
  * say that on Adrian's behalf about a currency.
  */
+export function costCurrencySourceFor(currency: unknown): string | null {
+  return currencyStated(currency) ? CURRENCY_SOURCE_STATED : null;
+}
+
+/**
+ * The same answer, stamped onto a column bag on its way to an INSERT or UPDATE.
+ *
+ * The caller's own value is dropped first, for the reason above: provenance a
+ * caller can set is not provenance.
+ */
 export function stampCostCurrencySource(body: Record<string, unknown>): void {
   delete body.cost_currency_source;
-  if (currencyStated(body.cost_currency)) body.cost_currency_source = CURRENCY_SOURCE_STATED;
+  const source = costCurrencySourceFor(body.cost_currency);
+  if (source) body.cost_currency_source = source;
+}
+
+/**
+ * Turn whatever a caller wrote for cost_currency into the shop's own spelling,
+ * in place on the column bag headed for an INSERT or UPDATE.
+ *
+ * `canonicalCurrency` already carries the one alias map (src/lib/currency.ts):
+ * 'cny' and 'CNY' both become 'Yuan', because the exchange table is keyed by
+ * that literal string and anything typed differently reads as a currency with
+ * no rate. This is the single place a write-side column bag is passed through
+ * it, so REST create, bulk create, an ordinary update, and the compass
+ * promotion all store the same spelling for the same money, and the listing
+ * mirror copies whichever one they wrote.
+ *
+ * A currency that was never stated is left alone: canonicalising 'UNK' or a
+ * blank would either invent a spelling for a sentinel or turn nothing into
+ * something, and that question belongs to `currencyStated`, not to this.
+ */
+export function canonicalizeCostCurrency(body: Record<string, unknown>): void {
+  if (!currencyStated(body.cost_currency)) return;
+  body.cost_currency = canonicalCurrency(String(body.cost_currency).trim());
 }
 
 /**

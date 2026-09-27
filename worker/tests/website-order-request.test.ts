@@ -45,7 +45,7 @@ function create(db: SqliteD1, body = payload(), mail = false) {
   return worker.fetch(new Request('https://app.test/api/inquiries', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   }), {
-    DB: db, JWT_SECRET: SECRET,
+    DB: db, JWT_SECRET: SECRET, INQUIRY_LIMITER: { limit: async () => ({ success: true }) },
     ...(mail ? { SENDER_EMAIL: 'store@example.com', RESEND_API_KEY: 'test-key' } : {}),
   } as never, {} as never);
 }
@@ -239,6 +239,17 @@ describe('website order requests', () => {
     expect(due.journey.stage).toBe('awaiting_payment');
     expect(due.payment).toMatchObject({ total_usd: 17, paid_usd: 0, outstanding_usd: 17 });
     expect(new URL(due.payment.pay_url).searchParams.get('amount')).toBe('17.00');
+    const payToken = new URL(due.payment.pay_url).searchParams.get('t');
+    expect(payToken).toMatch(/^[a-f0-9]{32}$/);
+    // The guest's order link opens protected payment details without signing in.
+    const paymentMethods = '/api/public/people/recipient/payment-methods';
+    const blocked = await worker.fetch(new Request(`https://app.test${paymentMethods}`),
+      { DB: db, JWT_SECRET: SECRET } as never, {} as never);
+    expect(blocked.status).toBe(403);
+    const opened = await worker.fetch(new Request(`https://app.test${paymentMethods}?t=${payToken}`),
+      { DB: db, JWT_SECRET: SECRET } as never, {} as never);
+    expect(opened.status).toBe(200);
+    expect(await opened.json()).toMatchObject({ payment_methods: [{ id: 'method', recipient_name: 'Tea house' }] });
 
     // A guest uses only the private tracking token to report a first transfer.
     const reported = await worker.fetch(new Request(`https://app.test/api/orders/${TOKEN}/payment-claim`, {

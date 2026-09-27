@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspens
 import { Routes, Route, Navigate, useLocation, useNavigate, useParams, type Location } from 'react-router-dom';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import { TEA_REFERENCE_ROUTE_PATHS } from './wisdom/reference/previewMode';
+import { useArticleAccess } from './pages/read/publishGate';
 
 // Retry a failed chunk load in place. A transient fetch failure is common on a
 // jumpy/firewalled connection, especially for the large admin bundle.
@@ -57,6 +58,32 @@ function ArticleRouteSwitch() {
   }
   return <ArticlePage />;
 }
+
+// The publish gate for every /read/* article route. `useArticleAccess` reads
+// the same ARTICLE_LIVE map ReadIndex's contents list reads, so a route not
+// marked live there renders ReadNotFound instead of its children for a
+// visitor, and renders normally for a signed-in owner or editor. Before this
+// existed, the fourteen article page components had no gate at all: a route
+// with no `live` entry was still fully public at its own URL. (JOBC-2)
+//
+// `children` is the lazy page element itself; React only mounts a lazy
+// component when it actually renders, so a blocked route never triggers that
+// chunk's fetch, it renders ReadNotFound's own (separately lazy) chunk
+// instead.
+const ArticleGate: React.FC<{ href: string; children: React.ReactNode }> = ({ href, children }) => {
+  const allowed = useArticleAccess(href);
+  if (!allowed) {
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<EmblemLoader />}>
+          <ReadNotFound />
+        </Suspense>
+      </ErrorBoundary>
+    );
+  }
+  return <>{children}</>;
+};
+
 const SharedCollection = lazy(() => import('./components/SharedCollection').then(m => ({ default: m.SharedCollection })));
 const EventLanding = lazy(() => import('./components/events/EventLanding'));
 const EventRecapPage = lazy(() => import('./pages/EventRecapPage'));
@@ -82,7 +109,6 @@ const SharedCollectionsPage = lazy(() => import('./pages/SharedCollectionsPage')
 const SignInPage = lazy(() => import('./pages/SignInPage'));
 const SignUpPage = lazy(() => import('./pages/SignUpPage'));
 const AccountSettingsPage = lazy(() => import('./pages/AccountSettingsPage'));
-const CenterPage = lazy(() => import('./pages/CenterPage'));
 const OrderHistoryPage = lazy(() => import('./pages/OrderHistoryPage'));
 const OrderDetailPage = lazy(() => import('./pages/OrderDetailPage'));
 const SampleHistoryPage = lazy(() => import('./pages/SampleHistoryPage'));
@@ -125,6 +151,7 @@ const RitualSevenSteeps = lazy(() => import('./pages/read/RitualSevenSteeps'));
 const TastingVocabularyOfTaste = lazy(() => import('./pages/read/TastingVocabularyOfTaste'));
 const TeaHouseQuietHours = lazy(() => import('./pages/read/TeaHouseQuietHours'));
 const CraftRenewalPorcelain = lazy(() => import('./pages/read/CraftRenewalPorcelain'));
+const ReadNotFound = lazy(() => import('./pages/read/ReadNotFound'));
 const PublicCollectionPage = lazy(() => import('./pages/PublicCollectionPage'));
 const ContributorProfilePage = lazy(() => import('./pages/ContributorProfilePage'));
 const AccountProfilePage = lazy(() => import('./pages/AccountProfilePage'));
@@ -182,7 +209,6 @@ import { ShareModal } from './components/ShareModal';
 import { Icons } from './components/Icons';
 import { CartPanel } from './components/shared/CartPanel';
 import { LearnHub } from './components/LearnHub';
-import { HomePage } from './components/HomePage';
 import { StoryProvider, useStories } from './context/StoryContext';
 import { InventoryProvider, useInventory } from './context/InventoryContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -192,9 +218,15 @@ import type { PanelView } from './components/AccountPanel/types';
 import { GlobalSearch } from './components/shared/GlobalSearch';
 import { LeftSidebar } from './components/LeftSidebar';
 import { BottomTabBar } from './components/BottomTabBar';
+import { SiteMenu } from './components/SiteMenu';
 import { sellUnitOf, wholePieceOf } from './lib/teaPricing';
 import { AdvisePage } from './components/AdvisePage';
 import AboutPage from './AboutPage';
+// The home page. Imported statically, as the page it replaced was: it is the
+// route most visitors land on, and behind lazy() the first paint is the shell
+// with the page a round trip behind it. On a phone that is long enough for the
+// smoke test to find 38 characters of text where it expects 50.
+import HomeV2Page from './pages/HomeV2Page';
 import Footer from './components/shared/Footer';
 import { ErrorBoundary } from './admin/components/ErrorBoundary';
 import { EmblemLoader } from './components/shared/EmblemLoader';
@@ -255,7 +287,6 @@ const AppContent = () => {
     updatePublicCartQuantity,
     setIsPublicCartOpen: setIsCartOpen,
     shopStoreSlug,
-    sidebarCollapsed,
   } = useAppStore();
   const { isAdmin, isAuthenticated, isSessionReady, checkSession } = useAuth();
   const syncEnabled = isAuthenticated && isSessionReady;
@@ -265,7 +296,6 @@ const AppContent = () => {
   useTeaDiscoverySync(syncEnabled);
   useCompassSync(syncEnabled);
   useNotesSync(syncEnabled);
-  const showAdminBar = false;
 
   const queryClient = useQueryClient();
   const location = useLocation();
@@ -273,8 +303,23 @@ const AppContent = () => {
   // normally; pull-to-refresh must stay OFF there or a downward read-scroll
   // from the top gets mistaken for a pull gesture (the page refreshes and the
   // article won't scroll). Computed before the hook so it can gate the listeners.
+  //
+  // The Craft landing (/craft with no ?v= sub-view) is built in the same
+  // full-bleed immersive frame as Read (CraftIndex, its own sticky nav,
+  // document scroll), so it needs the same exemption. A Craft SUB-view
+  // (/craft?v=glossary etc.) is not immersive: it keeps the app shell's
+  // PageHeader, padding and pull-to-refresh, so only the bare landing
+  // qualifies, checked by the absence of the ?v= param rather than by path
+  // alone, since the sub-views share /craft's pathname.
+  //
+  // The Advise landing (/advise with no ?v= sub-view) is built in the same
+  // frame (AdviseIndex), for the same reason: its own sticky nav, its own
+  // document scroll. A bare /advise?v= is the owner's unbuilt portfolio
+  // sub-view, still the app shell, so the same no-?v= check applies.
   const isImmersiveReadRoute =
-    location.pathname === '/read' || location.pathname.startsWith('/read/');
+    location.pathname === '/read' || location.pathname.startsWith('/read/') ||
+    (location.pathname === '/craft' && !new URLSearchParams(location.search).has('v')) ||
+    (location.pathname === '/advise' && !new URLSearchParams(location.search).has('v'));
   // Pull-to-refresh: re-fetch inventory + invalidate active server queries so
   // public pages (Shop, Magazine, Events) reflect any updates made elsewhere.
   // The hook awaits this promise before hiding the indicator.
@@ -438,6 +483,8 @@ const AppContent = () => {
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [accountInitialView, setAccountInitialView] = useState<PanelView | undefined>(undefined);
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+  // The phone's site panel, opened from the left end of the bottom bar.
+  const [showSiteMenu, setShowSiteMenu] = useState(false);
 
   // UI Feedback State
   const [toast, setToast] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
@@ -453,16 +500,6 @@ const AppContent = () => {
     window.addEventListener('openCart', onOpenCartEvent);
     return () => window.removeEventListener('openCart', onOpenCartEvent);
   }, []);
-
-  // Listen for navigate CustomEvent from HomePage sections
-  useEffect(() => {
-    const handleNavigate = (e: Event) => {
-      const section = (e as CustomEvent).detail?.section as Section;
-      if (section) setActiveSection(section);
-    };
-    window.addEventListener('navigate', handleNavigate);
-    return () => window.removeEventListener('navigate', handleNavigate);
-  }, [setActiveSection]);
 
   // Listen for openArticle CustomEvent dispatched from product detail cards
   useEffect(() => {
@@ -785,10 +822,13 @@ const AppContent = () => {
   };
 
 
-  // Allow any component to open the account panel via a custom event
+  // Allow any component to open the account panel via a custom event. A
+  // `detail.view` opens it on that view (the sample alcove asks for signup).
   useEffect(() => {
-    const handler = () => {
+    const handler = (event: Event) => {
       window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay'));
+      const view = (event as CustomEvent<{ view?: PanelView } | null>).detail?.view;
+      setAccountInitialView(view);
       setShowAccountModal(true);
     };
     window.addEventListener('open-account-panel', handler);
@@ -878,10 +918,11 @@ const AppContent = () => {
   // recipients who aren't logged in. Public collection links (/c/:slug) belong here
   // too: a sent link should be a clean single-purpose page, not the full app shell.
   const isFocusedShareRoute = location.pathname.startsWith('/share/') || location.pathname.startsWith('/c/');
-  // The four hand-built Read long-reads (/read and /read/*) are full-bleed
-  // editorial experiences with their own sticky nav, reading-progress bar and
-  // bottom-right accent control. They escape the app's content padding and the
-  // floating bottom tab bar (which would otherwise overlap those accent swatches).
+  // The hand-built Read long-reads (/read and /read/*), the Craft landing
+  // (/craft) and the Advise landing (/advise), all built in the same frame,
+  // are full-bleed editorial experiences with their own sticky nav and
+  // reading-progress bar. They escape the app's content padding; see
+  // isImmersiveReadRoute above for exactly which routes qualify.
   //
   // The DB-driven immersive reader at /article/:slug intentionally KEEPS the
   // bottom tab bar: it's where authored articles open and a reader there should
@@ -898,6 +939,10 @@ const AppContent = () => {
   // was. On lg the shell's px-10 stays: there the reading is a centred column
   // with room to spare and the outer margin is doing real work.
   const isProductPage = /^\/shop\/product\//.test(location.pathname);
+  // The creator pages (/people, /people/:slug and its pay sheet) are built
+  // edge to edge: the masthead, the photo grid and the tea rows reach the
+  // screen's sides, and every block of words carries its own gutter inside.
+  const isPeopleRoute = /^\/people(\/|$)/.test(location.pathname);
 
   // The sidebar sets --teajia-sidebar-w while it is mounted, and it now mounts
   // on public routes too. This only has to zero the variable where the sidebar
@@ -932,7 +977,7 @@ const AppContent = () => {
           where the design puts it. The bar is now what it was drawn as: the
           phone's navigation. */}
       {!isFocusedShareRoute && (
-        <LeftSidebar activeSection={activeSection} onNavigate={setActiveSection} onAccountClick={handleOpenAccount} onCartClick={handleOpenCart} onSearchClick={() => { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} cartItemCount={cart.length} topOffset={showAdminBar} />
+        <LeftSidebar activeSection={activeSection} onNavigate={setActiveSection} onAccountClick={handleOpenAccount} onCartClick={handleOpenCart} onSearchClick={() => { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} cartItemCount={cart.length} />
       )}
 
       {/* Main Content Area. Every route now clears the sidebar on the desk,
@@ -943,9 +988,7 @@ const AppContent = () => {
       <div className={`flex-1 min-w-0 min-h-0 flex flex-col relative ${
         isFocusedShareRoute
           ? 'lg:ml-0 lg:max-w-none'
-          : sidebarCollapsed
-            ? 'lg:ml-20 lg:max-w-[calc(100vw-5rem)]'
-            : 'lg:ml-[14.5rem] lg:max-w-[calc(100vw-14.5rem)]'
+          : 'lg:ml-[var(--teajia-sidebar-w)] lg:max-w-[calc(100vw-var(--teajia-sidebar-w))]'
       } transition-[margin,max-width] duration-300`}>
 
       {isAdminRoute ? (
@@ -962,7 +1005,7 @@ const AppContent = () => {
         </Suspense>
       ) : (
       <>
-      <main id="main-content" className={`${isFocusedShareRoute || isImmersiveRead ? 'px-0 pb-0' : `${isProductPage ? 'px-0 lg:px-10' : 'px-4 md:px-6 lg:px-10'} pb-nav-gap-lg lg:pb-8`} pt-0 lg:pt-0 min-h-screen w-full flex-1 transition-opacity duration-300`}>
+      <main id="main-content" className={`${isFocusedShareRoute || isImmersiveRead ? 'px-0 pb-0' : `${isProductPage || isPeopleRoute ? 'px-0 lg:px-10' : 'px-4 md:px-6 lg:px-10'} pb-nav-gap-lg lg:pb-8`} pt-0 lg:pt-0 min-h-screen w-full flex-1 transition-opacity duration-300`}>
           <AnimatePresence mode="wait">
           {viewState === 'BROWSE' && (
             <AnimatedRoutes location={displayLocation}>
@@ -982,22 +1025,7 @@ const AppContent = () => {
                     </ErrorBoundary>
                   ) : (
                   <ErrorBoundary>
-                    <HomePage
-                      onNavigateToSection={(section, magazineTab?: 'articles' | 'visual' | 'tea-inspire') => {
-                        setActiveSection(section);
-                        if (magazineTab) {
-                          setMagazineDefaultTab(magazineTab);
-                        }
-                      }}
-                      savedStoryIds={savedStoryIds}
-                      watchedStoryIds={watchedStoryIds}
-                      onCardClick={handleCardClick}
-                      onToggleSave={toggleSave}
-                      onShare={handleShare}
-                      onCartClick={handleOpenCart}
-                      onAccountClick={handleOpenAccount}
-                      cartItemCount={cart.length}
-                    />
+                    <HomeV2Page />
                   </ErrorBoundary>
                   )
                 } />
@@ -1018,48 +1046,79 @@ const AppContent = () => {
                 <Route path="/read/leaf-to-liquor/:template" element={
                   <ErrorBoundary><Suspense fallback={<EmblemLoader />}><LeafToLiquor /></Suspense></ErrorBoundary>
                 } />
+                {/* Every route below is gated: a draft renders ReadNotFound for a
+                    visitor and the article for a signed-in owner or editor. See
+                    ArticleGate above and src/pages/read/publishGate.ts. (JOBC-2) */}
                 <Route path="/read/rock-remembers" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><RockRemembers /></Suspense></ErrorBoundary>
+                  <ArticleGate href="/read/rock-remembers">
+                    <ErrorBoundary><Suspense fallback={<EmblemLoader />}><RockRemembers /></Suspense></ErrorBoundary>
+                  </ArticleGate>
                 } />
                 <Route path="/read/earth-water-fire" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><EarthWaterFire /></Suspense></ErrorBoundary>
+                  <ArticleGate href="/read/earth-water-fire">
+                    <ErrorBoundary><Suspense fallback={<EmblemLoader />}><EarthWaterFire /></Suspense></ErrorBoundary>
+                  </ArticleGate>
                 } />
                 <Route path="/read/before-the-mist" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><BeforeTheMist /></Suspense></ErrorBoundary>
+                  <ArticleGate href="/read/before-the-mist">
+                    <ErrorBoundary><Suspense fallback={<EmblemLoader />}><BeforeTheMist /></Suspense></ErrorBoundary>
+                  </ArticleGate>
                 } />
                 {/* The 10 templates ported from the Tea Article Redesign design project. */}
                 <Route path="/read/atlas" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><AtlasMapOfMountains /></Suspense></ErrorBoundary>
+                  <ArticleGate href="/read/atlas">
+                    <ErrorBoundary><Suspense fallback={<EmblemLoader />}><AtlasMapOfMountains /></Suspense></ErrorBoundary>
+                  </ArticleGate>
                 } />
                 <Route path="/read/craft" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><CraftPotThatRemembers /></Suspense></ErrorBoundary>
+                  <ArticleGate href="/read/craft">
+                    <ErrorBoundary><Suspense fallback={<EmblemLoader />}><CraftPotThatRemembers /></Suspense></ErrorBoundary>
+                  </ArticleGate>
                 } />
                 <Route path="/read/porcelain-and-tea" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><CraftRenewalPorcelain /></Suspense></ErrorBoundary>
+                  <ArticleGate href="/read/porcelain-and-tea">
+                    <ErrorBoundary><Suspense fallback={<EmblemLoader />}><CraftRenewalPorcelain /></Suspense></ErrorBoundary>
+                  </ArticleGate>
                 } />
                 <Route path="/read/essay" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><EssayLongWayToCup /></Suspense></ErrorBoundary>
+                  <ArticleGate href="/read/essay">
+                    <ErrorBoundary><Suspense fallback={<EmblemLoader />}><EssayLongWayToCup /></Suspense></ErrorBoundary>
+                  </ArticleGate>
                 } />
                 <Route path="/read/field-notes" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><FieldNotesTwoRoomsBali /></Suspense></ErrorBoundary>
+                  <ArticleGate href="/read/field-notes">
+                    <ErrorBoundary><Suspense fallback={<EmblemLoader />}><FieldNotesTwoRoomsBali /></Suspense></ErrorBoundary>
+                  </ArticleGate>
                 } />
                 <Route path="/read/field-study" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><FieldStudyWaterBeforeLeaf /></Suspense></ErrorBoundary>
+                  <ArticleGate href="/read/field-study">
+                    <ErrorBoundary><Suspense fallback={<EmblemLoader />}><FieldStudyWaterBeforeLeaf /></Suspense></ErrorBoundary>
+                  </ArticleGate>
                 } />
                 <Route path="/read/history" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><HistoryTenThousandMornings /></Suspense></ErrorBoundary>
+                  <ArticleGate href="/read/history">
+                    <ErrorBoundary><Suspense fallback={<EmblemLoader />}><HistoryTenThousandMornings /></Suspense></ErrorBoundary>
+                  </ArticleGate>
                 } />
                 <Route path="/read/legend" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><LegendImmortalsCliff /></Suspense></ErrorBoundary>
+                  <ArticleGate href="/read/legend">
+                    <ErrorBoundary><Suspense fallback={<EmblemLoader />}><LegendImmortalsCliff /></Suspense></ErrorBoundary>
+                  </ArticleGate>
                 } />
                 <Route path="/read/ritual" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><RitualSevenSteeps /></Suspense></ErrorBoundary>
+                  <ArticleGate href="/read/ritual">
+                    <ErrorBoundary><Suspense fallback={<EmblemLoader />}><RitualSevenSteeps /></Suspense></ErrorBoundary>
+                  </ArticleGate>
                 } />
                 <Route path="/read/tasting" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><TastingVocabularyOfTaste /></Suspense></ErrorBoundary>
+                  <ArticleGate href="/read/tasting">
+                    <ErrorBoundary><Suspense fallback={<EmblemLoader />}><TastingVocabularyOfTaste /></Suspense></ErrorBoundary>
+                  </ArticleGate>
                 } />
                 <Route path="/read/tea-house" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><TeaHouseQuietHours /></Suspense></ErrorBoundary>
+                  <ArticleGate href="/read/tea-house">
+                    <ErrorBoundary><Suspense fallback={<EmblemLoader />}><TeaHouseQuietHours /></Suspense></ErrorBoundary>
+                  </ArticleGate>
                 } />
                 <Route path="/craft" element={
                   <ErrorBoundary>
@@ -1125,6 +1184,7 @@ const AppContent = () => {
                     </Suspense>
                   </ErrorBoundary>
                 } />
+                {/* The new home page was built at /v2 before it became home; the old address still lands. */}
                 <Route path="/store-launch-playbook" element={
                   <ErrorBoundary>
                     <Suspense fallback={<EmblemLoader />}>
@@ -1132,7 +1192,6 @@ const AppContent = () => {
                     </Suspense>
                   </ErrorBoundary>
                 } />
-                <Route path="/stores/playbook" element={<Navigate to="/store-launch-playbook" replace />} />
                 <Route path="/collection" element={
                   <ErrorBoundary>
                     <Suspense fallback={<EmblemLoader />}>
@@ -1194,7 +1253,6 @@ const AppContent = () => {
                 <Route path="/mcp" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><McpPage /></Suspense></ErrorBoundary>} />
                 {/* /compass is admin-only at /admin/compass, public route removed.
                     Members use /account/journal for tasting; Compass is sourcing + ledger only. */}
-                <Route path="/compass" element={<Navigate to="/account/journal" replace />} />
                 <Route path="/account" element={<AccountRouteBridge onOpen={() => handleOpenAccount()} />} />
                 <Route path="/account/journal" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><JournalPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/collection" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><CollectionPage /></Suspense></ErrorBoundary>} />
@@ -1210,10 +1268,14 @@ const AppContent = () => {
                 <Route path="/account/samples" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SampleHistoryPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/docs" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><DeveloperDocsPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/briefing" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><BriefingPage /></Suspense></ErrorBoundary>} />
-                <Route path="/design/tabs" element={<ErrorBoundary><Suspense fallback={null}><TabStyleDemo /></Suspense></ErrorBoundary>} />
-                <Route path="/design/palette-preview" element={<ErrorBoundary><Suspense fallback={null}><PalettePreviewPage /></Suspense></ErrorBoundary>} />
-                <Route path="/design/article-editor" element={<ErrorBoundary><Suspense fallback={null}><ArticleEditorHarness /></Suspense></ErrorBoundary>} />
-                <Route path="/design/system" element={<ErrorBoundary><Suspense fallback={null}><DesignSystemShowcase /></Suspense></ErrorBoundary>} />
+                {/* Design harnesses: reachable while developing (and by the browser
+                    suite, which runs the dev server), never on the live site. */}
+                {import.meta.env.DEV && (<>
+                  <Route path="/design/tabs" element={<ErrorBoundary><Suspense fallback={null}><TabStyleDemo /></Suspense></ErrorBoundary>} />
+                  <Route path="/design/palette-preview" element={<ErrorBoundary><Suspense fallback={null}><PalettePreviewPage /></Suspense></ErrorBoundary>} />
+                  <Route path="/design/article-editor" element={<ErrorBoundary><Suspense fallback={null}><ArticleEditorHarness /></Suspense></ErrorBoundary>} />
+                  <Route path="/design/system" element={<ErrorBoundary><Suspense fallback={null}><DesignSystemShowcase /></Suspense></ErrorBoundary>} />
+                </>)}
                 <Route path="/events" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventsPage /></Suspense></ErrorBoundary>} />
                 <Route path="/event/:slug" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventLanding /></Suspense></ErrorBoundary>} />
                 <Route path="/event/:slug/recap" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventRecapPage /></Suspense></ErrorBoundary>} />
@@ -1226,7 +1288,6 @@ const AppContent = () => {
                 <Route path="/s/:sampleId" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SamplePage /></Suspense></ErrorBoundary>} />
                 <Route path="/share/:token" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><ShareCardPage /></Suspense></ErrorBoundary>} />
                 <Route path="/c/:slug" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><PublicCollectionPage /></Suspense></ErrorBoundary>} />
-                <Route path="/me" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><CenterPage /></Suspense></ErrorBoundary>} />
                 <Route path="/session/:id" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SessionPage /></Suspense></ErrorBoundary>} />
                 <Route path="/join" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><JoinPage /></Suspense></ErrorBoundary>} />
                 <Route path="/join/:code" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><JoinPage /></Suspense></ErrorBoundary>} />
@@ -1426,7 +1487,16 @@ const AppContent = () => {
           px-0 layout still keys off isImmersiveRead); their bottom-right accent
           swatches sit above the bar's height so they don't collide. */}
       {!isFocusedShareRoute && (
-        <BottomTabBar activeSection={activeSection} onNavigate={handleNavSection} hidden={isCartOpen} onAccountClick={handleToggleAccount} onAccountClose={handleCloseAccount} isAccountOpen={showAccountModal} onSearchClick={() => { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} onSearchClose={() => setShowGlobalSearch(false)} isSearchOpen={showGlobalSearch} isAdminRoute={isAdminRoute} />
+        <BottomTabBar activeSection={activeSection} onNavigate={handleNavSection} hidden={isCartOpen} onAccountClick={() => { setShowSiteMenu(false); handleToggleAccount(); }} onAccountClose={handleCloseAccount} isAccountOpen={showAccountModal} onMenuClick={() => { if (showSiteMenu) { setShowSiteMenu(false); return; } window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(false); setShowSiteMenu(true); }} onMenuClose={() => setShowSiteMenu(false)} isMenuOpen={showSiteMenu} isAdminRoute={isAdminRoute} />
+      )}
+      {!isFocusedShareRoute && (
+        <SiteMenu
+          isOpen={showSiteMenu}
+          onClose={() => setShowSiteMenu(false)}
+          onSearchClick={() => { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }}
+          onCartClick={handleOpenCart}
+          cartItemCount={cart.length}
+        />
       )}
 
       </div>

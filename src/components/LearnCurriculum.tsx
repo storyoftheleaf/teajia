@@ -101,12 +101,6 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
     }));
   };
 
-  // Calculate streak
-  const calculateStreak = () => {
-    const watchedCount = Object.values(watchedStories).filter(Boolean).length;
-    return Math.floor(watchedCount / 2) || 0; // Simple streak calculation
-  };
-
   // Get difficulty for a lesson (simulated)
   const getDifficultyLevel = (index: number): 'Beginner' | 'Intermediate' | 'Advanced' => {
     if (index < 2) return 'Beginner';
@@ -134,7 +128,6 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
   // Calculate curriculum-wide progress
   const allLessons = filteredModules.flatMap(m => m.lessons);
   const totalWatched = allLessons.filter(l => watchedStories[l.id]).length;
-  const streak = calculateStreak();
 
   const selectedPathData = selectedPath ? LEARN_PATHS.find(p => p.id === selectedPath) : null;
 
@@ -180,12 +173,6 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
           {allLessons.length > 0 && (
             <div className="flex items-center gap-4 text-xs text-tea-text/50 whitespace-nowrap ml-4">
               <span>{totalWatched}/{allLessons.length} completed</span>
-              {streak > 0 && (
-                <div className="flex items-center gap-1">
-                  <Icons.Lightbulb className="w-4 h-4" />
-                  <span>{streak} day streak</span>
-                </div>
-              )}
             </div>
           )}
         </div>

@@ -11,7 +11,7 @@ export interface AdviseProject {
   work: string;
   result: string;
   featured: boolean;
-  /** Hero image (Cloudinary or asset URL). Falls back to a coloured wash if absent. */
+  /** Hero image URL. Falls back to a coloured wash if absent. */
   heroImage?: string;
   /** Gallery image URLs. The gallery section only renders when this has items. */
   gallery?: string[];

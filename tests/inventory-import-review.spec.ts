@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 
 const enc = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');
 const token = `${enc({ alg: 'HS256', typ: 'JWT' })}.${enc({ sub: 'u1', email: 'owner@test.dev', role: 'owner', platform_role: 'platform_owner', active_account_id: 'acct-bali', memberships: [{ account_id: 'acct-bali', account_name: 'Teajia Bali', role: 'owner', slug: 'teajia-bali' }], exp: Math.floor(Date.now() / 1000) + 86400 })}.sig`;
@@ -8,7 +8,7 @@ async function setup(page: Page) {
   await page.route('**/api/auth/me', route => route.fulfill({ json: { id: 'u1', email: 'owner@test.dev', role: 'owner' } }));
   await page.route('**/api/auth/refresh', route => route.fulfill({ json: { token } }));
   await page.route('**/api/products', route => route.fulfill({ json: [] }));
-  await page.route('**/api/rates', route => route.fulfill({ json: [{ currency: 'USD', rate_to_usd: 1 }] }));
+  await page.route('**/api/rates', route => route.fulfill({ json: [{ currency: 'USD', rate_to_usd: 1, last_updated: new Date().toISOString() }] }));
   await page.route('**/api/accounts/acct-bali', route => route.fulfill({ json: { id: 'acct-bali', name: 'Teajia Bali' } }));
   await page.route('**/api/batches**', route => route.fulfill({ json: [] }));
   for (const endpoint of ['admin/events', 'compass/incoming', 'user/favorites', 'tea-discovery', 'compass/entries', 'tasting-journal', 'notes', 'customers']) {

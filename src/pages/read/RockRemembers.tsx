@@ -71,7 +71,7 @@ const Movement: React.FC<{ numeral: string; label: string; items: { q: string; b
   <section style={{ maxWidth: 680, margin: '0 auto', padding: '0 24px' }}>
     <div data-reveal style={{ display: 'flex', alignItems: 'center', gap: 18, margin: 'clamp(34px,5vw,56px) 0 clamp(30px,4vw,44px)' }}>
       <span style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 30, color: C.gold, lineHeight: 1 }}>{numeral}</span>
-      <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.22)' }} />
+      <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.22)' }} />
       <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim }}>{label}</span>
     </div>
     {items.map((it, i) => (
@@ -97,7 +97,7 @@ const RockRemembers: React.FC = () => {
 
       <article style={{ position: 'relative', zIndex: 1 }}>
         {/* COVER */}
-        <header style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,360px),1fr))', alignItems: 'stretch', borderBottom: '1px solid rgba(168,135,77,0.14)', minHeight: '90vh' }}>
+        <header style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,360px),1fr))', alignItems: 'stretch', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.14)', minHeight: '90vh' }}>
           <div style={{ position: 'relative', order: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 'clamp(36px,6vw,84px) clamp(24px,5vw,72px)' }}>
             <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.34em', textTransform: 'uppercase', color: C.gold, marginBottom: 28 }}>Conversations over Tea</div>
             <h1 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(46px,7vw,92px)', lineHeight: 0.98, letterSpacing: '-0.015em', color: C.cream, margin: 0 }}>
@@ -106,19 +106,19 @@ const RockRemembers: React.FC = () => {
             <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(16px,2vw,20px)', lineHeight: 1.5, color: C.taupe, margin: '26px 0 0', maxWidth: 440 }}>
               High in the Wuyi cliffs, a fourth-generation roaster tends a fire that never quite goes out, and listens for the moment his tea is ready to speak.
             </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 'clamp(30px,5vw,46px)', paddingTop: 24, borderTop: '1px solid rgba(168,135,77,0.16)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 'clamp(30px,5vw,46px)', paddingTop: 24, borderTop: '1px solid rgb(var(--tj-read-gold-rgb) / 0.16)' }}>
               <div>
                 <div style={{ fontFamily: F.display, fontSize: 24, color: C.ink, lineHeight: 1 }}>Chén Wǔ <span style={{ fontFamily: F.cn, color: C.taupe, fontSize: 20 }}>陈武</span></div>
                 <div style={{ fontFamily: F.ui, fontSize: 10.5, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.dim, marginTop: 8 }}>Rock-tea roaster · Wuyishan, Fujian</div>
               </div>
             </div>
           </div>
-          <div style={{ position: 'relative', order: 1, overflow: 'hidden', minHeight: '48vh', background: 'linear-gradient(155deg,#2a2117 0%,#14100b 80%)' }}>
+          <div style={{ position: 'relative', order: 1, overflow: 'hidden', minHeight: '48vh', background: 'linear-gradient(155deg,#2a2117 0%,var(--tj-read-bg) 80%)' }}>
             <div aria-hidden="true" style={{ ...grainCss('0.8', 150), opacity: 0.08 }} />
-            <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 50% at 50% 28%, rgba(168,135,77,0.16), transparent 64%)' }} />
-            <div aria-hidden="true" style={{ position: 'absolute', top: '52%', left: '50%', transform: 'translate(-50%,-50%)', fontFamily: F.cn, fontWeight: 200, fontSize: 'min(38vw,300px)', lineHeight: 1, color: 'rgba(168,135,77,0.07)' }}>陈</div>
-            <div aria-hidden="true" style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '46%', aspectRatio: '3/4', borderRadius: '50% 50% 0 0 / 64% 64% 0 0', border: '1px solid rgba(168,135,77,0.34)', borderBottom: 'none', background: 'linear-gradient(180deg, rgba(168,135,77,0.07), transparent 70%)' }} />
-            <div aria-hidden="true" style={{ position: 'absolute', bottom: '14%', left: '50%', transform: 'translate(-50%,0)', width: '20%', aspectRatio: '1/1', borderRadius: '50%', border: '1px solid rgba(168,135,77,0.4)', background: 'radial-gradient(circle, rgba(168,135,77,0.12), transparent 70%)' }} />
+            <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 50% at 50% 28%, rgb(var(--tj-read-gold-rgb) / 0.16), transparent 64%)' }} />
+            <div aria-hidden="true" style={{ position: 'absolute', top: '52%', left: '50%', transform: 'translate(-50%,-50%)', fontFamily: F.cn, fontWeight: 200, fontSize: 'min(38vw,300px)', lineHeight: 1, color: 'rgb(var(--tj-read-gold-rgb) / 0.07)' }}>陈</div>
+            <div aria-hidden="true" style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '46%', aspectRatio: '3/4', borderRadius: '50% 50% 0 0 / 64% 64% 0 0', border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.34)', borderBottom: 'none', background: 'linear-gradient(180deg, rgb(var(--tj-read-gold-rgb) / 0.07), transparent 70%)' }} />
+            <div aria-hidden="true" style={{ position: 'absolute', bottom: '14%', left: '50%', transform: 'translate(-50%,0)', width: '20%', aspectRatio: '1/1', borderRadius: '50%', border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.4)', background: 'radial-gradient(circle, rgb(var(--tj-read-gold-rgb) / 0.12), transparent 70%)' }} />
             <div style={{ position: 'absolute', left: 'clamp(18px,3vw,28px)', bottom: 'clamp(18px,3vw,26px)', fontFamily: F.mono, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim }}>Portrait, in his roasting room</div>
           </div>
         </header>
@@ -146,11 +146,11 @@ const RockRemembers: React.FC = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,240px),1fr))', gap: 'clamp(14px,2.4vw,26px)', maxWidth: 1180, margin: '0 auto' }}>
             {/* Plate I: cliffs */}
             <figure style={{ margin: 0 }}>
-              <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgba(168,135,77,0.2)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(160deg,#241d14,#120e09)' }}>
+              <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.2)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(160deg,var(--tj-read-plate-from),var(--tj-read-plate-to))' }}>
                 <div aria-hidden="true" style={grainCss('0.8', 120)} />
                 <svg viewBox="0 0 240 300" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-                  <g fill="none" stroke="rgba(168,135,77,0.3)" strokeWidth="1">
-                    <path d="M0 230 L60 120 L110 200 L160 90 L240 210 L240 300 L0 300 Z" fill="rgba(168,135,77,0.05)" />
+                  <g fill="none" stroke="rgb(var(--tj-read-gold-rgb) / 0.3)" strokeWidth="1">
+                    <path d="M0 230 L60 120 L110 200 L160 90 L240 210 L240 300 L0 300 Z" fill="rgb(var(--tj-read-gold-rgb) / 0.05)" />
                     <path d="M0 250 L70 160 L130 220 L190 140 L240 230" />
                   </g>
                 </svg>
@@ -160,9 +160,9 @@ const RockRemembers: React.FC = () => {
             </figure>
             {/* Plate II: charcoal glow */}
             <figure style={{ margin: 0 }}>
-              <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgba(168,135,77,0.2)', borderRadius: 3, overflow: 'hidden', background: 'radial-gradient(ellipse 60% 50% at 50% 70%, rgba(180,90,40,0.18), transparent 65%), #1a1610' }}>
+              <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.2)', borderRadius: 3, overflow: 'hidden', background: 'radial-gradient(ellipse 60% 50% at 50% 70%, rgba(180,90,40,0.18), transparent 65%), #1a1610' }}>
                 <div aria-hidden="true" style={grainCss('0.85', 120)} />
-                <div aria-hidden="true" style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: '54%', aspectRatio: '1/1', borderRadius: '50%', border: '1px solid rgba(168,135,77,0.32)' }} />
+                <div aria-hidden="true" style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: '54%', aspectRatio: '1/1', borderRadius: '50%', border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.32)' }} />
                 <div aria-hidden="true" style={{ position: 'absolute', left: '50%', top: '58%', transform: 'translate(-50%,-50%)', width: '30%', aspectRatio: '1/1', borderRadius: '50%', background: 'radial-gradient(circle, rgba(200,110,40,0.4), transparent 70%)' }} />
                 <div style={plateLabel}>Plate II</div>
               </div>
@@ -170,10 +170,10 @@ const RockRemembers: React.FC = () => {
             </figure>
             {/* Plate III: hands */}
             <figure style={{ margin: 0 }}>
-              <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgba(168,135,77,0.2)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(160deg,#241d14,#120e09)' }}>
+              <div style={{ position: 'relative', aspectRatio: '4/5', border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.2)', borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(160deg,var(--tj-read-plate-from),var(--tj-read-plate-to))' }}>
                 <div aria-hidden="true" style={grainCss('0.8', 120)} />
                 <svg viewBox="0 0 240 300" preserveAspectRatio="xMidYMid meet" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-                  <g fill="none" stroke="rgba(168,135,77,0.34)" strokeWidth="1.1">
+                  <g fill="none" stroke="rgb(var(--tj-read-gold-rgb) / 0.34)" strokeWidth="1.1">
                     <path d="M80 120 C70 160, 75 210, 100 235 C120 215, 130 200, 132 175" />
                     <path d="M132 150 C150 150, 168 165, 170 195 C150 205, 138 200, 130 188" />
                     <path d="M100 235 C110 250, 130 252, 150 244" />
@@ -194,11 +194,11 @@ const RockRemembers: React.FC = () => {
             <blockquote style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(26px,3.6vw,42px)', lineHeight: 1.2, color: C.cream, margin: 0 }}>
               “The hardest skill is knowing when to stop, and then stopping.”
             </blockquote>
-            <div style={{ border: '1px solid rgba(168,135,77,0.2)', borderRadius: 4, background: 'linear-gradient(160deg,#1d1810,#15110b)', padding: 'clamp(24px,3vw,34px)' }}>
+            <div style={{ border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.2)', borderRadius: 4, background: 'linear-gradient(160deg,var(--tj-read-card-from),var(--tj-read-card-to))', padding: 'clamp(24px,3vw,34px)' }}>
               <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 600, letterSpacing: '0.22em', textTransform: 'uppercase', color: C.gold, marginBottom: 20 }}>In Brief</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
                 {[['Region', 'Wuyishan, Fujian'], ['Craft', 'Yánchá · charcoal roast'], ['Generations', 'Four']].map(([k, v]) => (
-                  <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, paddingBottom: 13, borderBottom: '1px solid rgba(168,135,77,0.1)' }}>
+                  <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, paddingBottom: 13, borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.1)' }}>
                     <span style={briefK}>{k}</span><span style={briefV}>{v}</span>
                   </div>
                 ))}
@@ -214,8 +214,8 @@ const RockRemembers: React.FC = () => {
 
         {/* THEIR TEA */}
         <section data-reveal style={{ maxWidth: 1040, margin: '0 auto', padding: 'clamp(30px,5vw,56px) 24px' }}>
-          <div style={{ border: '1px solid rgba(168,135,77,0.18)', borderRadius: 4, background: 'linear-gradient(160deg,#1d1810,#15110b)', padding: 'clamp(24px,4vw,44px)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', paddingBottom: 20, borderBottom: '1px solid rgba(168,135,77,0.12)', marginBottom: 28, flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.18)', borderRadius: 4, background: 'linear-gradient(160deg,var(--tj-read-card-from),var(--tj-read-card-to))', padding: 'clamp(24px,4vw,44px)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', paddingBottom: 20, borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.12)', marginBottom: 28, flexWrap: 'wrap', gap: 8 }}>
               <span style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.gold }}>The tea he poured us</span>
               <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.dim }}>~50% oxidised · medium roast</span>
             </div>
@@ -262,7 +262,7 @@ const Meter: React.FC<{ label: string; value: string; pct: number }> = ({ label,
     <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.taupe, marginBottom: 7 }}>
       <span>{label}</span><span style={{ color: C.dim }}>{value}</span>
     </div>
-    <div style={{ height: 3, background: 'rgba(168,135,77,0.12)', borderRadius: 2 }}>
+    <div style={{ height: 3, background: 'rgb(var(--tj-read-gold-rgb) / 0.12)', borderRadius: 2 }}>
       <div style={{ height: '100%', width: `${pct}%`, background: C.gold, borderRadius: 2 }} />
     </div>
   </div>

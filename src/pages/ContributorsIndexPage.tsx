@@ -1,121 +1,86 @@
 import { useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { ContributorIdentityMark } from '../components/shared/ContributorIdentityMark';
+import { Cover, Dek, GroupHead, PeopleNav, PeopleRoot, SplitName, useReadingProgress, useReveals } from '../components/people/immersive';
+import { coverKicker } from '../components/people/profileFormat';
 import { useContributors } from '../hooks/useContributor';
-import type { ContributorListItem } from '../types';
 
-// /people. The directory. v1 is a typeset alphabetical list, not a card
-// grid. The relational map upgrade is deferred (see step 13 in
-// docs/ARCHITECTURE.md).
-
-function groupAlphabetical(rows: ContributorListItem[]): Array<[string, ContributorListItem[]]> {
-  const map = new Map<string, ContributorListItem[]>();
-  for (const r of rows) {
-    const letter = (r.display_name?.[0] ?? '#').toUpperCase();
-    const key = /[A-Z]/.test(letter) ? letter : '#';
-    const list = map.get(key) ?? [];
-    list.push(r);
-    map.set(key, list);
-  }
-  for (const list of map.values()) {
-    list.sort((a, b) => a.display_name.localeCompare(b.display_name));
-  }
-  return Array.from(map.entries()).sort(([a], [b]) => {
-    if (a === '#') return 1;
-    if (b === '#') return -1;
-    return a.localeCompare(b);
-  });
-}
+// /people. The directory, in the Read section's language: the sticky Teajia
+// nav with the eyebrow "People", "The People of Tea" with the italic gold
+// second word, an italic dek, then one cover card per person: a 140px image
+// on the left (or the identity mark), the name with its italic gold surname,
+// and one line in their own words. No caps labels anywhere but the "This
+// season" divider (canvas version 24, 2026-09-20): the role and place still
+// name the card for a screen reader, not for the eye.
 
 export default function ContributorsIndexPage() {
   const { data, isLoading } = useContributors();
+  const rootRef = useReveals([data?.length]);
+  const progress = useReadingProgress();
 
-  const groups = useMemo(() => groupAlphabetical(data ?? []), [data]);
+  const people = useMemo(
+    () => [...(data ?? [])].sort((a, b) => a.display_name.localeCompare(b.display_name)),
+    [data],
+  );
 
   if (isLoading) return null;
 
-  const isEmpty = !data || data.length === 0;
+  const count = people.length;
 
   return (
-    <article className="w-full min-h-screen flex-1 mx-auto px-4 md:px-6 lg:px-10 max-w-3xl">
-      <style>{`
-        @keyframes contribIndexFade {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .contrib-index-heading {
-          opacity: 0;
-          animation: contribIndexFade 600ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .contrib-index-heading {
-            animation: contribIndexFade 200ms ease-out forwards;
-          }
-        }
-      `}</style>
+    <PeopleRoot rootRef={rootRef} testId="people-directory">
+      <PeopleNav eyebrow="People" progress={progress} backTo="/" chevron={false} />
+      <article className="relative z-[1] mx-auto w-full max-w-2xl pb-nav-gap-lg">
+        <header className="px-6 pt-10">
+          <h1 className="font-display text-[44px] leading-none text-tea-text md:text-[56px]">
+            The People <span className="italic text-tea-readgold">of Tea</span>
+          </h1>
+          <Dek className="mt-3.5 max-w-[32ch] text-ui-15">The people who pour, pick and teach. Each page is theirs, in their own words.</Dek>
+        </header>
 
-      <header className="pt-12 pb-3">
-        <h1 className="contrib-index-heading h2">
-          People
-        </h1>
-        <p className="label-caps text-tea-text-dim mt-1">
-          Contributors, sources, and table-keepers
-        </p>
-      </header>
-
-      {isEmpty ? (
-        <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
-          <p className="subtitle">
-            No profiles yet.
-          </p>
-        </div>
-      ) : (
-        <>
-          <div className="mt-10">
-            {groups.map(([letter, rows], gi) => (
-              <section
-                key={letter}
-                className={gi === 0 ? '' : 'mt-16 md:mt-20'}
-              >
-                <h2 className="label-caps text-tea-readgold/60 mb-6">
-                  {letter}
-                </h2>
-
-                <ul className="flex flex-col gap-6 md:gap-8">
-                  {rows.map((r) => (
-                    <li key={r.id}>
-                      <Link
-                        to={`/people/${r.id}`}
-                        className="group block"
-                        style={{ textDecoration: 'none' }}
-                      >
-                        <span
-                          className="inline-block border-b border-transparent group-hover:border-tea-gold/40 group-focus-visible:border-tea-gold/40 transition-[border-color] duration-300 text-tea-text"
-                          style={{
-                            fontFamily: 'var(--font-display)',
-                            fontWeight: 400,
-                            fontSize: 'clamp(28px, 3.5vw, 40px)',
-                            lineHeight: 1.05,
-                            letterSpacing: '-0.01em',
-                          }}
-                        >
-                          {r.display_name}
+        <main className="px-6">
+          {count === 0 ? (
+            <p className="subtitle mt-10 py-16 text-center text-tea-text-sec">The first pages are being set in type. Come back soon.</p>
+          ) : (
+            <div data-reveal>
+              <GroupHead label="This season" />
+              <ul className="mt-3.5 flex flex-col gap-3.5" aria-label="People">
+                {people.map(person => (
+                  <li key={person.id}>
+                    <Cover
+                      to={`/people/${encodeURIComponent(person.id)}`}
+                      height={180}
+                      className="!flex-row !items-stretch"
+                      testId="people-card"
+                      ariaLabel={`${person.display_name}, ${coverKicker(person.role, person.location_line) || 'tea master'}`}
+                    >
+                      <span className="-m-6 flex h-[180px]">
+                        <span className="relative w-[140px] flex-none overflow-hidden bg-tea-elevated">
+                          {person.card_image_url ? (
+                            <img src={person.card_image_url} alt={person.display_name} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+                          ) : (
+                            <ContributorIdentityMark name={person.display_name} decorative={false} />
+                          )}
                         </span>
-                        {r.role && (
-                          <span className="block subtitle text-ui-14 mt-1">
-                            {r.role}
-                          </span>
-                        )}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ))}
-          </div>
+                        <span className="flex min-w-0 flex-1 flex-col justify-end px-[18px] py-4">
+                          <span className="block font-display text-ui-26 leading-none text-tea-text"><SplitName name={person.display_name} /></span>
+                          {person.own_line && (
+                            /* Three lines at most, so a long first sentence never pushes the kicker off the top of the card. */
+                            <Dek className="mt-2 text-[12.5px]" style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{person.own_line}</Dek>
+                          )}
+                        </span>
+                      </span>
+                    </Cover>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </main>
 
-          <div className="h-20 md:h-28" />
-        </>
-      )}
-    </article>
+        <footer data-reveal className="px-6 pb-16 pt-12 text-center">
+          <Dek className="text-ui-15">More are invited each season.</Dek>
+        </footer>
+      </article>
+    </PeopleRoot>
   );
 }

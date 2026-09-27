@@ -360,6 +360,186 @@ export async function recomputeInvoicePaymentStatus(
   };
 }
 
+// ── Retail invoice write validation ───────────────────────────────────────────
+// Three write paths share these rules: create, generic update, and pending
+// line-item save. customer_id must belong to the writing account; custom lines
+// need a name; shipping_cost_usd must be a non-negative number; payment_status
+// is limited to the three values the ledger derives.
+
+export const INVOICE_PAYMENT_STATUSES = ['unpaid', 'partial', 'paid'] as const;
+export type InvoicePaymentStatus = typeof INVOICE_PAYMENT_STATUSES[number];
+
+export interface RetailInvoiceLineInput {
+  product_id: string | null;
+  custom_name: string | null;
+  quantity: number;
+  price_at_sale: number;
+}
+
+export interface RetailInvoiceInput {
+  customer_name: string;
+  customer_whatsapp: string | null;
+  customer_id: string | null;
+  display_currency: string;
+  shipping_cost_usd: number;
+  status: 'Draft' | 'Pending';
+  notes: string | null;
+  source_event_id: string | null;
+  payment_status: InvoicePaymentStatus;
+  lineItems: RetailInvoiceLineInput[];
+}
+
+function optionalInvoiceText(value: unknown, name: string): string | null {
+  if (value === undefined || value === null || value === '') return null;
+  if (typeof value !== 'string') throw new RangeError(`${name} must be text`);
+  return value.trim() || null;
+}
+
+function requiredInvoiceText(value: unknown, name: string): string {
+  const normalized = optionalInvoiceText(value, name);
+  if (!normalized) throw new RangeError(`${name} is required`);
+  return normalized;
+}
+
+export function validateShippingCostUsd(value: unknown, field = 'shipping_cost_usd'): number {
+  if (value === undefined || value === null) return 0;
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new RangeError(`${field} must be a number`);
+  }
+  requireNonNegative(field, value);
+  return value;
+}
+
+export function validatePaymentStatusValue(value: unknown, field = 'payment_status'): InvoicePaymentStatus {
+  const normalized = value === undefined || value === null ? 'unpaid' : String(value).toLowerCase();
+  if (normalized === 'unpaid' || normalized === 'partial' || normalized === 'paid') return normalized;
+  throw new RangeError(`${field} must be unpaid, partial, or paid`);
+}
+
+export function validateRetailInvoiceInput(input: unknown): RetailInvoiceInput {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw new RangeError('invoice input is required');
+  }
+  const raw = input as Record<string, unknown>;
+  const customerName = requiredInvoiceText(raw.customer_name, 'customer_name');
+  if (!Array.isArray(raw.lineItems) || raw.lineItems.length === 0) {
+    throw new RangeError('lineItems must contain at least one line');
+  }
+
+  const shippingCost = validateShippingCostUsd(raw.shipping_cost_usd);
+  const displayCurrency = requiredInvoiceText(
+    raw.display_currency === undefined ? 'USD' : raw.display_currency,
+    'display_currency',
+  );
+  const status = raw.status === undefined ? 'Pending' : raw.status;
+  if (status !== 'Draft' && status !== 'Pending') throw new RangeError('status must be Draft or Pending');
+  const paymentStatus = validatePaymentStatusValue(raw.payment_status);
+
+  const lineItems = raw.lineItems.map((value, index): RetailInvoiceLineInput => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      throw new RangeError(`lineItems[${index}] must be an object`);
+    }
+    const line = value as Record<string, unknown>;
+    const productId = optionalInvoiceText(line.product_id, `lineItems[${index}].product_id`);
+    const customName = optionalInvoiceText(line.custom_name, `lineItems[${index}].custom_name`);
+    if (!productId && !customName) throw new RangeError(`lineItems[${index}] requires product_id or custom_name`);
+    if (typeof line.quantity !== 'number' || !Number.isFinite(line.quantity) || line.quantity <= 0) {
+      throw new RangeError(`lineItems[${index}].quantity must be a positive finite number`);
+    }
+    if (typeof line.price_at_sale !== 'number') {
+      throw new RangeError(`lineItems[${index}].price_at_sale must be a number`);
+    }
+    requireNonNegative(`lineItems[${index}].price_at_sale`, line.price_at_sale);
+    return { product_id: productId, custom_name: customName, quantity: line.quantity, price_at_sale: line.price_at_sale };
+  });
+
+  return {
+    customer_name: customerName,
+    customer_whatsapp: optionalInvoiceText(raw.customer_whatsapp, 'customer_whatsapp'),
+    customer_id: optionalInvoiceText(raw.customer_id, 'customer_id'),
+    display_currency: displayCurrency,
+    shipping_cost_usd: shippingCost,
+    status,
+    notes: optionalInvoiceText(raw.notes, 'notes'),
+    source_event_id: optionalInvoiceText(raw.source_event_id, 'source_event_id'),
+    payment_status: paymentStatus,
+    lineItems,
+  };
+}
+
+export async function assertInvoiceCustomerBelongsToAccount(
+  env: { DB: D1Database },
+  accountId: string,
+  customerId: string | null | undefined,
+): Promise<void> {
+  if (!customerId) return;
+  const customer = await env.DB.prepare('SELECT id FROM customers WHERE id = ? AND account_id = ?')
+    .bind(customerId, accountId).first();
+  if (!customer) throw new RangeError('customer_id does not belong to this account');
+}
+
+export async function claimInvoiceEditLease(
+  env: { DB: D1Database },
+  accountId: string,
+  invoiceId: string,
+): Promise<string | null> {
+  const claimToken = crypto.randomUUID();
+  const claimed = await env.DB.prepare(
+    `UPDATE invoices SET fulfillment_claim_token = ?, fulfillment_claimed_at = datetime('now')
+     WHERE id = ? AND account_id = ? AND COALESCE(status, 'Pending') = 'Pending' AND inventory_deducted = 0
+       AND (fulfillment_claim_token IS NULL OR fulfillment_claimed_at IS NULL OR fulfillment_claimed_at < datetime('now', '-5 minutes'))
+     RETURNING id`
+  ).bind(claimToken, invoiceId, accountId).first();
+  return claimed ? claimToken : null;
+}
+
+export async function releaseInvoiceEditLease(
+  env: { DB: D1Database },
+  accountId: string,
+  invoiceId: string,
+  claimToken: string,
+): Promise<boolean> {
+  const result = await env.DB.prepare(
+    `UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL
+     WHERE id = ? AND account_id = ? AND status = 'Pending' AND inventory_deducted = 0 AND fulfillment_claim_token = ?`
+  ).bind(invoiceId, accountId, claimToken).run();
+  return Number(result.meta?.changes || 0) > 0;
+}
+
+export async function claimInvoiceLinkLease(
+  env: { DB: D1Database },
+  accountId: string,
+  invoiceId: string,
+): Promise<{ claimToken: string; invoice: Record<string, unknown> } | null> {
+  const claimToken = crypto.randomUUID();
+  const invoice = await env.DB.prepare(
+    `UPDATE invoices SET fulfillment_claim_token = ?, fulfillment_claimed_at = datetime('now')
+     WHERE id = ? AND account_id = ? AND status IN ('Draft', 'Pending', 'Filled', 'Void')
+       AND (fulfillment_claim_token IS NULL OR fulfillment_claimed_at IS NULL OR fulfillment_claimed_at < datetime('now', '-5 minutes'))
+     RETURNING *`
+  ).bind(claimToken, invoiceId, accountId).first() as Record<string, unknown> | null;
+  if (!invoice) return null;
+  return { claimToken, invoice };
+}
+
+export async function releaseInvoiceLinkLease(
+  env: { DB: D1Database },
+  accountId: string,
+  invoiceId: string,
+  claimToken: string,
+): Promise<void> {
+  await env.DB.prepare(
+    'UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?'
+  ).bind(invoiceId, accountId, claimToken).run();
+}
+
+export interface InvoiceEditLeaseGuard {
+  invoiceId: string;
+  claimToken: string;
+  status: string;
+  inventoryDeducted: number;
+}
+
 // ── Turning a quoted amount into the dollars an invoice stores ───────────────
 //
 // Every money column on invoices and invoice_line_items is USD. Prices quoted

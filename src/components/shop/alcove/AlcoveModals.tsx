@@ -100,7 +100,7 @@ export const SampleModal: React.FC<SampleModalProps> = ({
             </p>
             <button
               type="button"
-              onClick={() => { onClose(); window.dispatchEvent(new CustomEvent('openAccountPanel', { detail: { view: 'signup' } })); }}
+              onClick={() => { onClose(); window.dispatchEvent(new CustomEvent('open-account-panel', { detail: { view: 'signup' } })); }}
               className={`alcove-modal-primary ${LABEL} w-full`}
             >
               Sign In / Create Account

@@ -1,160 +1,195 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
-import { ArrowRight } from '@phosphor-icons/react';
-import { PublicFavoritesCollection } from '../components/profile/PublicFavoritesCollection';
-import { PublicIdentityLinks } from '../components/profile/PublicIdentityLinks';
-import { primaryTeaMasterAccount } from '../components/profile/profileDomain';
-import { TYPOGRAPHY_CLASSES } from '../designTokens';
+import { ContributorIdentityMark } from '../components/shared/ContributorIdentityMark';
+import { PLATFORM_NAMES } from '../components/people/PlatformMark';
+import {
+  Cover,
+  Dek,
+  GroupHead,
+  IndexRow,
+  IndexRowButton,
+  Kicker,
+  HubCells,
+  PeopleNav,
+  PeopleRoot,
+  SplitName,
+  StickyChrome,
+  useReadingProgress,
+  useReveals,
+} from '../components/people/immersive';
+import {
+  countWord,
+  coverKicker,
+  formatEventLong,
+  galleryPlacement,
+  instagramHref,
+  ownLine,
+  wordsAfterCoverLine,
+  websiteLabel,
+} from '../components/people/profileFormat';
 import { useContributor } from '../hooks/useContributor';
-import { api } from '../lib/api';
-import { buildPublicProductHref } from '../lib/publicProductNavigation';
-import type { ContributorPullQuote } from '../types';
+import type {
+  ContributorArticleRef,
+  ContributorFeaturedRef,
+  ContributorLink,
+  ContributorProfile,
+  ContributorPullQuote,
+  ContributorTeaSelectionRef,
+} from '../types';
 
-// /people/:slug. Public contributor profile page.
+// /people/:slug. A creator's public page, phone first: the page that goes in
+// an Instagram or WeChat bio. Built to the "Profile" board of the Creator
+// Profiles canvas (version 14, 2026-09-20): the Read section's design and
+// interaction, in the person's own words.
 //
-// See docs/ARCHITECTURE.md for the contributor/account boundary.
-// Sections rendered here: Masthead, Origin, Now, Inspirations, Words,
-// Elsewhere, Closing line. Pull-quotes, Hands on, Hosting, Voice,
-// Pouring today, Where to find them are reserved for later waves.
+// The sticky block at the top is the Teajia nav with the gold reading-progress
+// line, alone. The portrait is a lead cover: thin gold border, fade, kicker,
+// the name with an italic gold surname, one first-person line. Directly under
+// it, the hub: a row of equal bordered cells in the Cinema manner, exactly
+// Words, Teas and Pay, no counts, each only when the tea master has it, so
+// fewer cells share the width. Then the groups, each fading and lifting in as
+// it arrives: In my words, Hands on, Words, The teas, Hosting, My table, Reach
+// me. Everything else is a plain row: title and italic dek. No row on this
+// page carries a right column (canvas versions 20 to 23, 2026-09-20).
+//
+// Every word the tea master says is first person; the labels never speak
+// about them in the third person. Every section is conditional except the
+// cover; a sparse profile keeps only what it has. No arrows anywhere.
 
-const CHINESE_FONT_STACK = "'Ma Shan Zheng','Noto Serif SC',cursive";
+const SIDE = 'px-6';
+const CHINESE_FONT_STACK = "'Noto Serif SC','Cormorant Garamond',serif";
 
-// Stable, deterministic issue number from the contributor id. We don't have
-// a sequential index in the data, but readers see the same number every
-// visit because the hash only depends on the slug. Two-digit zero-padded.
-function issueNumberFromId(id: string): string {
-  let h = 0;
-  for (let i = 0; i < id.length; i += 1) {
-    h = (h * 31 + id.charCodeAt(i)) | 0;
+// ── Words rows ────────────────────────────────────────────────────────────────
+
+interface WordRow {
+  key: string;
+  href: string;
+  title: string;
+  dek: string | null;
+}
+
+function articleHref(slug: string, anchor?: string | null): string {
+  return `/article/${encodeURIComponent(slug)}${anchor ? `#${anchor}` : ''}`;
+}
+
+function wordRows(data: ContributorProfile): WordRow[] {
+  const authored = data.articles.map((article: ContributorArticleRef): WordRow => ({
+    key: `wrote-${article.slug}`,
+    href: articleHref(article.slug),
+    title: article.title,
+    dek: article.subtitle ?? null,
+  }));
+  const authoredSlugs = new Set(data.articles.map(article => article.slug));
+  // A row carries no rubric and never repeats the quote: the article's
+  // subtitle is the dek, and a piece where I am quoted rather than the author
+  // says so inside that line, in my words, and lands on the passage.
+  const passage = 'I am quoted in it; it opens at the passage.';
+  const mention = 'I am in it.';
+  const quoted = data.pull_quotes
+    .filter((quote: ContributorPullQuote) => !authoredSlugs.has(quote.article_slug))
+    .map((quote): WordRow => ({
+      key: `quoted-${quote.article_slug}`,
+      href: articleHref(quote.article_slug, quote.quote_anchor),
+      title: quote.article_title,
+      dek: [quote.article_subtitle, quote.quote_anchor ? passage : mention].filter(Boolean).join(' ') || null,
+    }));
+  const quotedSlugs = new Set(data.pull_quotes.map(quote => quote.article_slug));
+  const featured = data.featured_in
+    .filter((article: ContributorFeaturedRef) => !authoredSlugs.has(article.slug) && !quotedSlugs.has(article.slug))
+    .map((article): WordRow => ({
+      key: `featured-${article.slug}`,
+      href: articleHref(article.slug, article.quote_anchor),
+      title: article.title,
+      dek: [article.subtitle, article.quote_anchor ? passage : mention].filter(Boolean).join(' ') || null,
+    }));
+  return [...authored, ...quoted, ...featured];
+}
+
+// ── The teas ──────────────────────────────────────────────────────────────────
+
+/**
+ * A plain row: the tea's name with its Chinese name inline, and my note as
+ * the dek. No rubric. Adrian, canvas version 20 (2026-09-20): no type, no
+ * year, no tinted word on the right; the collection cover above and the
+ * "And N more" line below carry the context.
+ */
+function TeaRow({ tea }: { tea: ContributorTeaSelectionRef }) {
+  const origin = (tea.origin ?? '').split(',').map(part => part.trim()).filter(Boolean).slice(0, 2).join(', ');
+  return (
+    <IndexRow
+      to={tea.public_path}
+      testId="profile-tea-row"
+      title={(
+        <>
+          {tea.product_name || tea.name}
+          {tea.chinese_name && <span className="ml-2 text-ui-15 text-tea-text-sec" style={{ fontFamily: CHINESE_FONT_STACK }}>{tea.chinese_name}</span>}
+        </>
+      )}
+      dek={tea.why || origin || null}
+    />
+  );
+}
+
+// ── Reach ─────────────────────────────────────────────────────────────────────
+
+function linkHref(link: ContributorLink): string | null {
+  if (link.platform === 'instagram') return instagramHref(link.value);
+  if (link.platform === 'website') return link.value;
+  if (link.platform === 'other') return /^https?:\/\//i.test(link.value) ? link.value : null;
+  return null;
+}
+
+function linkLabel(link: ContributorLink): string {
+  if (link.platform === 'website') return websiteLabel(link.value);
+  if (link.platform === 'instagram') return link.value.startsWith('@') ? link.value : `@${link.value}`;
+  if (link.platform === 'other' && link.label) return link.label;
+  return link.value;
+}
+
+/** "On WeChat.", "On Instagram.", "My site.", or "On <label>." for a link with its own name. */
+function reachDek(link: ContributorLink): string {
+  if (link.platform === 'website') return 'My site.';
+  if (link.platform === 'other' && link.label) return `On ${link.label}.`;
+  return `On ${PLATFORM_NAMES[link.platform]}.`;
+}
+
+/**
+ * One plain row per link: the handle as the title and a short first-person
+ * dek naming the platform. No rubric (canvas version 23: the last right
+ * column on the profile is gone). WeChat copies on tap, since it has no
+ * address to open, and its dek says so.
+ */
+function ReachRow({ link }: { link: ContributorLink }) {
+  const [copied, setCopied] = useState(false);
+  const href = linkHref(link);
+  const platform = link.platform === 'other' && link.label ? link.label : PLATFORM_NAMES[link.platform];
+  if (link.platform === 'wechat' || !href) {
+    const copy = async () => {
+      try {
+        await navigator.clipboard.writeText(link.value);
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 1800);
+      } catch {
+        setCopied(false);
+      }
+    };
+    return <IndexRowButton onClick={copy} title={copied ? 'Copied' : link.value} dek={`${reachDek(link)} Tap to copy my id.`} ariaLabel={`Copy ${platform} id ${link.value}`} testId="profile-reach-row" />;
   }
-  const n = Math.abs(h) % 99 + 1; // 1..99, never No.00
-  return n.toString().padStart(2, '0');
+  return <IndexRow to={href} external title={linkLabel(link)} dek={reachDek(link)} ariaLabel={`${platform}: ${linkLabel(link)}`} testId="profile-reach-row" />;
 }
 
-// Section label: plain noun, Cormorant 400, thin divider above, generous space.
-function SectionLabel({ children }: { children: string }) {
-  return (
-    <div
-      className="border-t border-tea-border pt-6 mb-8"
-      style={{ marginTop: 'clamp(80px, 12vh, 128px)' }}
-    >
-      <h2 className="h3">
-        {children}
-      </h2>
-    </div>
-  );
+function Section({ id, children, testId }: { id?: string; children: ReactNode; testId?: string }) {
+  return <section id={id} data-reveal className="scroll-mt-[96px]" data-testid={testId}>{children}</section>;
 }
 
-// Body paragraphs split on double-newlines. Lora 17 / 1.7 / 60ch on dark.
-function Paragraphs({ text }: { text: string }) {
-  const paras = text.split(/\n\n+/).map((s) => s.trim()).filter(Boolean);
-  return (
-    <>
-      {paras.map((p, i) => (
-        <p
-          key={i}
-          className="body-prose"
-          style={{
-            maxWidth: '60ch',
-            marginBottom: i < paras.length - 1 ? '1.5rem' : 0,
-          }}
-        >
-          {p}
-        </p>
-      ))}
-    </>
-  );
-}
-
-function ContributorPullQuoteBlock({ quote }: { quote?: ContributorPullQuote }) {
-  if (!quote?.pull_quote) return null;
-  return <Reveal>
-    <blockquote className="my-16 border-y border-tea-border py-8 md:my-24 md:py-10">
-      <p className="max-w-[52ch] font-display text-ui-26 font-light leading-snug text-tea-text md:text-[32px]">“{quote.pull_quote}”</p>
-      <cite className="mt-5 block text-ui-12 not-italic text-tea-text-sec">
-        <a href={`/article/${quote.article_slug}`} className="tap-target hover:text-tea-gold">{quote.article_title} →</a>
-      </cite>
-    </blockquote>
-  </Reveal>;
-}
-
-// Map an ISO date to "Season YYYY". Dec rolls forward.
-function formatSeason(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  const m = d.getMonth();
-  const y = d.getFullYear();
-  if (m === 11) return `Winter ${y + 1}`;
-  if (m <= 1) return `Winter ${y}`;
-  if (m <= 4) return `Spring ${y}`;
-  if (m <= 7) return `Summer ${y}`;
-  return `Autumn ${y}`;
-}
-
-// Reveal-on-scroll wrapper. One-shot; collapses to a 200ms opacity fade for
-// users who prefer reduced motion.
-function Reveal({ children }: { children: ReactNode }) {
-  const ref = useRef<HTMLDivElement | null>(null);
-  const [shown, setShown] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    if (typeof IntersectionObserver === 'undefined') {
-      setShown(true);
-      return;
-    }
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setShown(true);
-            io.disconnect();
-          }
-        });
-      },
-      { rootMargin: '0px 0px -10% 0px', threshold: 0.05 }
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-  return (
-    <div
-      ref={ref}
-      className={`transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:duration-200 motion-reduce:transform-none ${
-        shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-      }`}
-    >
-      {children}
-    </div>
-  );
-}
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ContributorProfilePage() {
   const { slug } = useParams<{ slug: string }>();
   const { data, isLoading, isError, error, refetch } = useContributor(slug);
-  const associations = (data?.accounts ?? []).map(account => ({
-    account_id: account.account_id || account.account_slug || account.slug,
-    account_slug: account.account_slug || account.slug,
-    account_name: account.account_name || account.name,
-    public_role: account.public_role ?? null,
-    is_host: Boolean(account.is_host),
-    display_order: account.display_order,
-    account_kind: account.account_kind,
-  }));
-  const primaryAccount = primaryTeaMasterAccount(associations);
-  const publicFavorites = useQuery({
-    queryKey: ['profile', slug, 'public-favorites', 'preview'],
-    queryFn: () => api.profile.getPublicFavorites(slug!),
-    enabled: Boolean(slug && data),
-  });
-  const identityMapping = useQuery({
-    queryKey: ['contributor', slug, 'public-identity-mapping'],
-    queryFn: () => api.people.getBySlug(slug!),
-    enabled: Boolean(slug && data),
-    select: value => ({ shelf_slug: typeof value?.shelf_slug === 'string' ? value.shelf_slug : null }),
-  });
+  const rootRef = useReveals([data?.id]);
+  const progress = useReadingProgress();
 
   useEffect(() => {
     if (data?.display_name) {
@@ -162,319 +197,219 @@ export default function ContributorProfilePage() {
     }
   }, [data?.display_name]);
 
-  if (isLoading) return <article aria-label="Loading Tea Master profile" className="mx-auto min-h-screen w-full max-w-3xl animate-pulse px-4 pt-20 pb-nav-gap-lg md:px-6"><div className="h-4 w-32 rounded-md bg-tea-surface" /><div className="mt-6 h-20 w-3/4 rounded-md bg-tea-surface" /><div className="mt-16 h-72 rounded-md border border-tea-border bg-tea-surface" /></article>;
-
-  if (isError || !data) {
+  if (isLoading) {
     return (
-      <article
-        className="w-full min-h-screen flex-1 mx-auto px-4 md:px-6 max-w-3xl flex items-center justify-center"
-      >
-        <div className="text-center"><p role="alert" className="subtitle">{error instanceof Error ? error.message : 'This profile could not be loaded.'}</p><button type="button" onClick={() => refetch()} className="tap-target mt-5 text-ui-13 text-tea-gold hover:text-tea-gold-lt">Retry</button></div>
-      </article>
+      <PeopleRoot>
+        <div aria-label="Loading profile" className="mx-auto w-full max-w-2xl animate-pulse px-6 pt-6">
+          <div className="h-[420px] w-full bg-tea-surface" />
+          <div className="mt-10 h-4 w-32 bg-tea-surface" />
+          <div className="mt-6 h-40 bg-tea-surface" />
+        </div>
+      </PeopleRoot>
     );
   }
 
-  const issueNumber = issueNumberFromId(data.id);
-  const hasAvailablePayment = data.has_payment_methods === true;
-  const availablePaymentAccountSlug = data.payment_accounts?.[0]?.slug ?? null;
-  const issueLine = data.role
-    ? `No.${issueNumber} · ${data.role}`
-    : `No.${issueNumber}`;
+  if (isError || !data) {
+    return (
+      <PeopleRoot>
+        <PeopleNav eyebrow="People" progress={0} backTo="/people" />
+        <div className="mx-auto flex min-h-[60vh] w-full max-w-2xl items-center justify-center px-6 text-center">
+          <div>
+            <p role="alert" className="subtitle">{error instanceof Error ? error.message : 'This profile could not be loaded.'}</p>
+            <button type="button" onClick={() => refetch()} className="tap-target mt-5 text-ui-13 text-tea-gold hover:text-tea-gold-lt">Retry</button>
+          </div>
+        </div>
+      </PeopleRoot>
+    );
+  }
 
-  // Empty floor: a profile with only a name renders just the masthead and a
-  // single italic line. Reads as editorial reticence, not as a stub.
-  const hasBody = !!(
-    data.beginnings ||
-    data.now_text ||
-    data.inspirations ||
-    data.closing ||
-    (data.articles && data.articles.length > 0) ||
-    (data.products && data.products.length > 0) ||
-    (publicFavorites.data?.favorites.length ?? 0) > 0 ||
-    hasAvailablePayment ||
-    (data.links && data.links.length > 0)
-  );
+  const portrait = data.portrait_url || data.avatar_url || null;
+  const kicker = coverKicker(data.role, data.location_line);
+  const coverLine = ownLine(data);
+
+  // In my words: the quote, then two paragraphs, now first and then where it
+  // began, with the sentence the cover already said taken out of the first.
+  const quote = data.pull_quotes[0]?.pull_quote
+    ?? data.articles.find(article => article.pull_quote)?.pull_quote
+    ?? null;
+  const paragraphs = wordsAfterCoverLine(data).slice(0, 2);
+  const hasWords = Boolean(quote || paragraphs.length);
+
+  const gallery = data.gallery_images;
+  const rows = wordRows(data);
+  const collection = data.collection;
+  const teas = data.tea_selection;
+  const shownTeas = teas.slice(0, 3);
+  const teaCount = collection ? collection.item_count : teas.length;
+  const teasHref = collection ? `/c/${encodeURIComponent(collection.slug)}` : `/people/${encodeURIComponent(data.id)}/favorites`;
+  const moreTeas = Math.max(0, teaCount - shownTeas.length);
+  const hasTeas = Boolean(collection) || teas.length > 0;
+  const hosting = data.hosting;
+  const house = data.host_account
+    ?? (() => {
+      const hostRow = (data.accounts ?? []).find(account => account.is_host) ?? null;
+      return hostRow ? { id: hostRow.account_id ?? '', slug: hostRow.account_slug ?? hostRow.slug ?? '', name: hostRow.account_name ?? hostRow.name ?? '', location_city: hostRow.location_city, location_country: hostRow.location_country } : null;
+    })();
+  const canPay = data.has_payment_methods === true;
+  const payHref = `/people/${encodeURIComponent(data.id)}/pay`;
+  const links = data.links;
+
+  const cells = [
+    rows.length > 0 ? { id: 'words', label: 'Words', href: '#words' } : null,
+    hasTeas ? { id: 'teas', label: 'Teas', href: '#teas' } : null,
+    canPay ? { id: 'pay', label: 'Pay', href: payHref, route: true } : null,
+  ].filter((cell): cell is NonNullable<typeof cell> => cell !== null);
+
+  const collectionTitle = collection?.title ?? '';
+  const [collectionFirst, ...collectionRest] = collectionTitle.split(' ');
 
   return (
-    <article
-      className="w-full min-h-screen flex-1 mx-auto px-4 md:px-6 max-w-3xl pb-nav-gap-lg"
-    >
-      <style>{`
-        @keyframes contribFade {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes contribRise {
-          from { opacity: 0; transform: translateY(12px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .contrib-anim {
-          opacity: 0;
-          animation-fill-mode: forwards;
-          animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
-        }
-        .contrib-issue   { animation: contribFade 600ms 0ms     forwards cubic-bezier(0.2,0.8,0.2,1); }
-        .contrib-name    { animation: contribRise 700ms 80ms    forwards cubic-bezier(0.2,0.8,0.2,1); }
-        .contrib-chinese { animation: contribFade 600ms 220ms   forwards cubic-bezier(0.2,0.8,0.2,1); }
-        .contrib-loc     { animation: contribFade 600ms 320ms   forwards cubic-bezier(0.2,0.8,0.2,1); }
-        .contrib-season  { animation: contribFade 600ms 380ms   forwards cubic-bezier(0.2,0.8,0.2,1); }
-        @media (prefers-reduced-motion: reduce) {
-          .contrib-anim,
-          .contrib-issue,
-          .contrib-name,
-          .contrib-chinese,
-          .contrib-loc,
-          .contrib-season {
-            animation: contribFade 200ms ease-out forwards !important;
-            transform: none !important;
-          }
-        }
-      `}</style>
+    <PeopleRoot rootRef={rootRef} testId="creator-profile">
+      <StickyChrome>
+        {/* Canvas version 28: the person's name, small, in place of an issue number. Nothing on the page numbers them. */}
+        <PeopleNav eyebrow={data.display_name} eyebrowTone="sec" progress={progress} backTo="/people" />
+      </StickyChrome>
+      <article className="relative z-[1] mx-auto w-full max-w-2xl pb-nav-gap-lg">
 
-      {/* ── Masthead ───────────────────────────────────────────────── */}
-      <header className="pt-12 md:pt-20 lg:pt-24">
-        <p
-          className="contrib-anim contrib-issue label-caps text-tea-readgold/60"
-          style={{ letterSpacing: '0.18em' }}
-        >
-          {issueLine}
-        </p>
-
-        <h1
-          className="contrib-anim contrib-name text-tea-text"
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontWeight: 300,
-            fontSize: 'clamp(56px, 9vw, 120px)',
-            letterSpacing: '-0.02em',
-            lineHeight: 0.95,
-            marginTop: 'clamp(16px, 2vh, 28px)',
-          }}
-        >
-          {data.display_name}
-        </h1>
-
-        {data.chinese_name && (
-          <p
-            className="contrib-anim contrib-chinese text-tea-readgold/70"
-            style={{
-              fontFamily: CHINESE_FONT_STACK,
-              fontSize: 'clamp(28px, 3.6vw, 48px)',
-              letterSpacing: '0.08em',
-              lineHeight: 1,
-              marginTop: 'clamp(20px, 2.5vh, 32px)',
-            }}
+        {/* ── The cover ──────────────────────────────────────────────────── */}
+        <header className={`${SIDE} pt-6`}>
+          <Cover
+            to={portrait ?? '#'}
+            image={portrait}
+            imageAlt={`Portrait of ${data.display_name}`}
+            fallback={<ContributorIdentityMark name={data.display_name} />}
+            height={420}
+            testId="profile-cover"
+            ariaLabel={`${data.display_name}, portrait`}
           >
-            {data.chinese_name}
-          </p>
+            {kicker && <Kicker className="mb-3">{kicker}</Kicker>}
+            <h1 className="font-display text-[40px] leading-[0.98] text-tea-text"><SplitName name={data.display_name} /></h1>
+            {data.chinese_name && <p className="mt-2 text-[22px] leading-none tracking-[0.08em] text-tea-readgold" style={{ fontFamily: "'Ma Shan Zheng','Noto Serif SC',cursive" }}>{data.chinese_name}</p>}
+            {coverLine && <Dek className="mt-3 max-w-[30ch] text-ui-14">{coverLine}</Dek>}
+          </Cover>
+          {/* The hub: three cells at most, side by side, sharing the width. */}
+          <HubCells cells={cells} testId="profile-hub" />
+        </header>
+
+        {/* ── In my words ────────────────────────────────────────────────── */}
+        {hasWords && (
+          <Section testId="profile-words-of-mine">
+            <div className={SIDE}>
+              <GroupHead label="In my words" />
+              {quote && <p className="mt-3.5 max-w-[22ch] font-display text-ui-26 font-light leading-[1.2] text-tea-text" data-testid="profile-quote">“{quote}”</p>}
+              {paragraphs.map((paragraph, index) => (
+                <p key={index} className={`font-body text-ui-15 leading-[1.65] text-tea-text ${index === 0 ? 'mt-[18px]' : 'mt-3.5'}`}>{paragraph}</p>
+              ))}
+            </div>
+          </Section>
         )}
 
-        {data.location_line && (
-          <p
-            className="contrib-anim contrib-loc subtitle"
-            style={{
-              maxWidth: '52ch',
-              marginTop: 'clamp(32px, 5vh, 56px)',
-            }}
-          >
-            {data.location_line}
-          </p>
+        {/* ── Hands on ───────────────────────────────────────────────────── */}
+        {gallery.length > 0 && (
+          <Section testId="profile-gallery">
+            <div className={SIDE}>
+              <GroupHead label="Hands on" />
+              <ul className="mt-3.5 grid grid-cols-2 auto-rows-[108px] gap-1 md:auto-rows-[170px]" aria-label="Photos at work">
+                {gallery.map((image, index) => {
+                  const place = galleryPlacement(index);
+                  return (
+                    <li key={image.id ?? `${image.image_url}-${index}`} style={{ gridColumn: place.columnSpan === 2 ? 'span 2' : undefined, gridRow: place.rowSpan === 2 ? 'span 2' : undefined }}>
+                      <img src={image.image_url} alt={image.caption ?? ''} loading="lazy" className="h-full w-full object-cover" />
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </Section>
         )}
 
-        {(data.languages?.length ?? 0) > 0 && <p className="mt-4 text-ui-13 text-tea-text-sec">Languages: {data.languages?.join(' · ')}</p>}
-
-        {data.seasonal_line && (
-          <p
-            className="contrib-anim contrib-season body-light text-ui-14"
-            style={{ marginTop: '12px' }}
-          >
-            {data.seasonal_line}
-          </p>
+        {/* ── Words ──────────────────────────────────────────────────────── */}
+        {rows.length > 0 && (
+          <Section id="words" testId="profile-words">
+            <div className={SIDE}>
+              <GroupHead label="Words" />
+              {rows.map(row => (
+                <IndexRow key={row.key} to={row.href} title={row.title} dek={row.dek} testId="profile-word-row" />
+              ))}
+            </div>
+          </Section>
         )}
 
-        {data.portrait_url || data.avatar_url ? (
-          <figure className="mt-12 w-full max-w-[420px] overflow-hidden rounded-md border border-tea-border bg-tea-surface md:ml-auto md:mt-16 md:w-[58%]">
-            <img src={data.portrait_url || data.avatar_url || ''} alt={`Portrait of ${data.display_name}`} className="aspect-[4/5] h-full w-full object-cover" />
-            {data.portrait_caption && <figcaption className="px-4 py-3 text-ui-12 text-tea-text-dim">{data.portrait_caption}</figcaption>}
-          </figure>
-        ) : null}
-
-        {associations.length > 0 ? (
-          <ul className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-ui-13 text-tea-text-sec" aria-label="Tea Master practice and collaborations">
-            {associations.map(association => (
-              <li key={association.account_slug}>
-                {association.account_kind === 'master' && association.is_host ? 'Tea Master home · ' : association.public_role ? `${association.public_role} at ` : 'Collaborates with '}<a href={`/store/${encodeURIComponent(association.account_slug)}`} className="tap-target border-b border-tea-border text-tea-text hover:border-tea-gold">{association.account_name}</a>
-              </li>
-            ))}
-          </ul>
-        ) : data.host_account ? (
-          <p className="mt-8 text-ui-13 text-tea-text-sec">
-            Host at <a href={data.host_account.public_shop_path || `/?account=${encodeURIComponent(data.host_account.slug)}`} className="tap-target border-b border-tea-border text-tea-text hover:border-tea-gold">{data.host_account.name}</a>
-          </p>
-        ) : null}
-        <PublicIdentityLinks shelfSlug={identityMapping.data?.shelf_slug} subjectName={data.display_name} className="mt-5" />
-      </header>
-
-      {/* ── Editorial body ─────────────────────────────────────────── */}
-      {!hasBody ? (
-        <p
-          className="contrib-anim contrib-season subtitle"
-          style={{
-            marginTop: 'clamp(96px, 16vh, 160px)',
-            marginBottom: 'clamp(64px, 10vh, 120px)',
-          }}
-        >
-          A contributor whose work is on its way.
-        </p>
-      ) : (
-        <>
-          {data.beginnings && (
-            <Reveal>
-              <SectionLabel>Origin</SectionLabel>
-              <Paragraphs text={data.beginnings} />
-            </Reveal>
-          )}
-
-          <ContributorPullQuoteBlock quote={data.pull_quotes[0]} />
-
-          {data.now_text && (
-            <Reveal>
-              <SectionLabel>Now</SectionLabel>
-              <Paragraphs text={data.now_text} />
-              {(data.now_stamp || data.now_updated_at) && (
-                <p className="label-caps text-tea-text-dim mt-4">
-                  {data.now_stamp || (data.now_updated_at ? `Updated ${formatSeason(data.now_updated_at)}` : '')}
-                </p>
+        {/* ── The teas ───────────────────────────────────────────────────── */}
+        {hasTeas && (
+          <Section id="teas" testId="profile-teas">
+            <div className={SIDE}>
+              <GroupHead label="The teas" />
+              {collection && (
+                <div className="mt-3.5">
+                  <Cover to={teasHref} image={collection.hero_image_url} imageOpacity={0.55} height={128} fadeFull testId="profile-collection" ariaLabel={`Open the collection ${collection.title}`}>
+                    <Kicker size={8.5} className="mb-[7px]">My collection · {countWord(collection.item_count)} teas</Kicker>
+                    <span className="block font-display text-[25px] leading-none text-tea-text">
+                      {collectionFirst}
+                      {collectionRest.length > 0 && <> <span className="italic text-tea-readgold">{collectionRest.join(' ')}</span></>}
+                    </span>
+                  </Cover>
+                </div>
               )}
-            </Reveal>
-          )}
+              {shownTeas.length > 0 && (
+                <div>
+                  {shownTeas.map(tea => <TeaRow key={tea.tea_profile_id} tea={tea} />)}
+                </div>
+              )}
+              {moreTeas > 0 && (
+                <a href={teasHref} className="tap-target mt-1.5 inline-flex min-h-[44px] items-center font-sans text-[9.5px] uppercase tracking-[0.26em] text-tea-readgold hover:text-tea-gold-lt">
+                  And {countWord(moreTeas)} more, in the {collection ? 'collection' : 'selection'}
+                </a>
+              )}
+            </div>
+          </Section>
+        )}
 
-          {data.inspirations && (
-            <Reveal>
-              <SectionLabel>Inspirations</SectionLabel>
-              <Paragraphs text={data.inspirations} />
-            </Reveal>
-          )}
+        {/* ── Hosting ────────────────────────────────────────────────────── */}
+        {hosting && (
+          <Section id="hosting" testId="profile-hosting">
+            <div className={SIDE}>
+              <GroupHead label="Hosting" />
+              {/* Canvas version 22: no rubric. The title, then the day, time, place and places line as the dek. */}
+              <IndexRow
+                to={`/event/${encodeURIComponent(hosting.slug)}`}
+                title={hosting.title}
+                dek={[`${formatEventLong(hosting.event_date)}, at ${hosting.location_name ?? hosting.account_name}.`, hosting.subtitle ? `${hosting.subtitle}.` : null].filter(Boolean).join(' ')}
+              />
+            </div>
+          </Section>
+        )}
 
-          <ContributorPullQuoteBlock quote={data.pull_quotes[1]} />
+        {/* ── My table ───────────────────────────────────────────────────── */}
+        {house && (
+          <Section id="house" testId="profile-house">
+            <div className={SIDE}>
+              <GroupHead label="My table" />
+              <IndexRow
+                to={`/store/${encodeURIComponent(house.slug)}`}
+                title={house.name}
+                dek={`My shop and sessions${house.location_city ? ` in ${house.location_city}` : ''}, and how to find the door.`}
+              />
+            </div>
+          </Section>
+        )}
 
-          {data.articles.length > 0 && (
-            <Reveal>
-              <SectionLabel>Words</SectionLabel>
-              <ul className="divide-y divide-tea-border">
-                {data.articles.map((article) => (
-                  <li key={article.slug}>
-                    <a
-                      href={`/article/${article.slug}`}
-                      className="group flex items-baseline gap-6 py-5 px-2 -mx-2 rounded-md hover:bg-tea-accent-sub/40 transition-colors"
-                      style={{ textDecoration: 'none' }}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="font-display text-ui-17 text-tea-text leading-snug" style={{ fontWeight: 400 }}>
-                          {article.title}
-                        </div>
-                        {article.subtitle && (
-                          <div className="text-ui-13 text-tea-text-sec mt-1">
-                            {article.subtitle}
-                          </div>
-                        )}
-                        <div className="label-caps text-tea-text-dim mt-2">
-                          {formatSeason(article.published_at)}
-                        </div>
-                      </div>
-                      <span
-                        className="text-tea-text-dim group-hover:text-tea-readgold transition-colors shrink-0"
-                        aria-hidden="true"
-                        style={{
-                          fontFamily: 'var(--font-display)',
-                          fontSize: 18,
-                          fontWeight: 300,
-                        }}
-                      >
-                        →
-                      </span>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </Reveal>
-          )}
+        {/* ── Reach me ───────────────────────────────────────────────────── */}
+        {links.length > 0 && (
+          <Section id="reach" testId="profile-reach">
+            <div className={SIDE}>
+              <GroupHead label="Reach me" />
+              {links.map((link, index) => <ReachRow key={`${link.platform}-${index}`} link={link} />)}
+            </div>
+          </Section>
+        )}
 
-          {data.products.length > 0 && (
-            <Reveal>
-              <SectionLabel>Tea selection</SectionLabel>
-              <p className="mb-5 text-ui-13 text-tea-text-sec">Visible teas from {primaryAccount?.account_name || `${data.display_name}’s primary Tea Master home`}. Guest collaborations are not included here.</p>
-              <ul className="divide-y divide-tea-border border-y border-tea-border">
-                {data.products.map(product => (
-                  <li key={product.id}>
-                    <a href={buildPublicProductHref(product, primaryAccount?.account_slug)} className="tap-target group grid min-h-[72px] grid-cols-[minmax(0,1fr)_auto] items-center gap-5 py-4 text-tea-text hover:text-tea-gold">
-                      <span className="min-w-0">
-                        <span className="block truncate font-display text-ui-17">{product.given_name || product.product_name}</span>
-                        {product.chinese_name && <span className="mt-1 block text-ui-12 text-tea-text-sec">{product.chinese_name}</span>}
-                      </span>
-                      <ArrowRight size={17} className="transition-transform group-hover:translate-x-1" aria-hidden="true" />
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </Reveal>
-          )}
-
-          {(publicFavorites.data?.favorites.length ?? 0) > 0 && (
-            <Reveal>
-              <SectionLabel>Favorites</SectionLabel>
-              <PublicFavoritesCollection contributorName={data.display_name} favorites={publicFavorites.data?.favorites ?? []} compact />
-              <a href={`/people/${encodeURIComponent(data.id)}/favorites`} className="tap-target mt-5 inline-flex items-center gap-2 text-ui-13 text-tea-gold hover:text-tea-gold-lt">See the full selection <ArrowRight size={16} /></a>
-            </Reveal>
-          )}
-
-          {hasAvailablePayment && (
-            <Reveal>
-              <SectionLabel>Payment</SectionLabel>
-              <div className="flex flex-wrap items-center justify-between gap-5 border-y border-tea-border py-6">
-                <p className={`${TYPOGRAPHY_CLASSES.bodyLight} max-w-[48ch] text-tea-text-sec`}>Transfer details maintained by {data.display_name}, with account-specific methods when available.</p>
-                <a href={`/people/${encodeURIComponent(data.id)}/pay${availablePaymentAccountSlug ? `?account=${encodeURIComponent(availablePaymentAccountSlug)}` : ''}`} className="cta-solid tap-target inline-flex items-center gap-2 rounded-md px-5 py-2.5 text-ui-13">Choose a payment method <ArrowRight size={16} /></a>
-              </div>
-              {associations.length > 1 && <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">{associations.map(association => <a key={association.account_id} href={`/people/${encodeURIComponent(data.id)}/pay?account=${encodeURIComponent(association.account_slug)}`} className="tap-target text-ui-12 text-tea-text-sec hover:text-tea-gold">Pay for {association.account_name}</a>)}</div>}
-            </Reveal>
-          )}
-
-          {data.links.length > 0 && (
-            <Reveal>
-              <SectionLabel>Elsewhere</SectionLabel>
-              <p className="body-prose text-ui-15">
-                {data.links.map((link, i) => (
-                  <span key={`${link.url}-${i}`}>
-                    {i > 0 && <span className="text-tea-text-dim mx-2">·</span>}
-                    <a
-                      href={link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="tap-target inline-flex items-center border-b border-transparent transition-colors hover:border-tea-gold"
-                      style={{ color: 'inherit', textDecoration: 'none' }}
-                    >
-                      {link.label}
-                    </a>
-                  </span>
-                ))}
-              </p>
-            </Reveal>
-          )}
-
-          {data.closing && (
-            <Reveal>
-              <div
-                className="border-l-2 border-tea-gold pl-4"
-                style={{ marginTop: 'clamp(80px, 12vh, 128px)', marginBottom: 'clamp(96px, 16vh, 160px)' }}
-              >
-                <p className="subtitle text-ui-17" style={{ maxWidth: '50ch' }}>
-                  {data.closing}
-                </p>
-              </div>
-            </Reveal>
-          )}
-        </>
-      )}
-    </article>
+        {/* ── Closing ────────────────────────────────────────────────────── */}
+        <footer data-reveal className={`${SIDE} pb-16 pt-14 text-center`}>
+          {data.closing && <Dek className="text-ui-16">{data.closing}</Dek>}
+          <a href="/people" className={`tap-target inline-flex min-h-[44px] items-center font-sans text-[9.5px] uppercase tracking-[0.22em] text-tea-text-dim hover:text-tea-text ${data.closing ? 'mt-5' : ''}`}>All people</a>
+        </footer>
+      </article>
+    </PeopleRoot>
   );
 }

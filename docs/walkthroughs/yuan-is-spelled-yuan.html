@@ -1,0 +1,393 @@
+<title>Yuan is spelled Yuan</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+  :root {
+    --paper:      #EFF0EA;
+    --surface:    #E6E8DF;
+    --ink:        #1B1E19;
+    --ink-2:      #4A5045;
+    --ink-3:      #6E7568;
+    --rule:       #D3D6C9;
+    --rule-firm:  #B9BDAE;
+    --amber:      #8A5E15;
+    --amber-soft: #EADFC5;
+    --moss:       #5A6357;
+    --rust:       #8C4A2F;
+
+    --sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    --cond: "IBM Plex Sans Condensed", "IBM Plex Sans", ui-sans-serif, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #171814;
+      --surface:    #1E211B;
+      --ink:        #E9EBE2;
+      --ink-2:      #B4BAAC;
+      --ink-3:      #8A9083;
+      --rule:       #2E3129;
+      --rule-firm:  #414639;
+      --amber:      #D2A24C;
+      --amber-soft: #33291A;
+      --moss:       #98A190;
+      --rust:       #C4795A;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:      #171814;
+    --surface:    #1E211B;
+    --ink:        #E9EBE2;
+    --ink-2:      #B4BAAC;
+    --ink-3:      #8A9083;
+    --rule:       #2E3129;
+    --rule-firm:  #414639;
+    --amber:      #D2A24C;
+    --amber-soft: #33291A;
+    --moss:       #98A190;
+    --rust:       #C4795A;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0 20px 96px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 940px; margin: 0 auto; }
+  .prose { max-width: 66ch; }
+
+  /* ── masthead ─────────────────────────────────────────────── */
+
+  header { padding: 44px 0 0; }
+
+  .docket {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 22px;
+    align-items: baseline;
+    font-family: var(--cond);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--rule-firm);
+  }
+  .docket .val { font-family: var(--mono); font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--ink-2); }
+
+  h1 {
+    font-family: var(--cond);
+    font-weight: 600;
+    font-size: clamp(30px, 5.2vw, 44px);
+    line-height: 1.08;
+    letter-spacing: -0.012em;
+    text-wrap: balance;
+    margin: 26px 0 0;
+  }
+
+  .standfirst {
+    font-size: 18px;
+    line-height: 1.55;
+    color: var(--ink-2);
+    margin: 14px 0 0;
+    max-width: 60ch;
+  }
+
+  /* ── status strip ─────────────────────────────────────────── */
+
+  .status {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    margin: 32px 0 0;
+    border: 1px solid var(--rule-firm);
+    background: var(--surface);
+  }
+  .status div {
+    flex: 1 1 190px;
+    padding: 14px 18px;
+    border-right: 1px solid var(--rule);
+  }
+  .status div:last-child { border-right: 0; }
+  .status dt {
+    font-family: var(--cond);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 0 0 5px;
+  }
+  .status dd {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── sections ─────────────────────────────────────────────── */
+
+  section { margin: 46px 0 0; }
+
+  h2 {
+    font-family: var(--cond);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 0 0 16px;
+    padding-bottom: 9px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  p { margin: 0 0 15px; }
+  p:last-child { margin-bottom: 0; }
+
+  .lede { font-size: 17px; }
+
+  strong { font-weight: 500; color: var(--ink); }
+  em { font-style: normal; color: var(--amber); font-weight: 500; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.88em;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    padding: 0.08em 0.34em;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+
+  /* ── the table ────────────────────────────────────────────── */
+
+  .scroll { overflow-x: auto; margin: 0 -2px; }
+
+  table {
+    width: 100%;
+    min-width: 640px;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  thead th {
+    font-family: var(--cond);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    text-align: left;
+    padding: 0 12px 9px;
+    border-bottom: 1px solid var(--rule-firm);
+    white-space: nowrap;
+  }
+  thead th.num { text-align: right; }
+
+  tbody td {
+    padding: 11px 12px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: baseline;
+  }
+  tbody tr:last-child td { border-bottom: 1px solid var(--rule-firm); }
+
+  td.shape { color: var(--ink); }
+  td.shape span { display: block; color: var(--ink-3); font-size: 12.5px; line-height: 1.45; margin-top: 2px; }
+
+  td.num {
+    font-family: var(--mono);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: var(--ink-2);
+  }
+  td.num.moved { color: var(--amber); font-weight: 500; }
+
+  .verdict {
+    font-family: var(--cond);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .verdict.cleared { color: var(--amber); }
+  .verdict.kept    { color: var(--moss); }
+
+  /* a hairline down the left of rows the migration changed */
+  tbody tr.moved td:first-child { box-shadow: inset 2px 0 0 var(--amber); }
+
+  .tablenote {
+    font-size: 13.5px;
+    color: var(--ink-3);
+    margin: 14px 0 0;
+    max-width: 66ch;
+  }
+
+  /* ── the two clauses ──────────────────────────────────────── */
+
+  .clauses { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); }
+  .clause { border-top: 2px solid var(--rule-firm); padding-top: 13px; }
+  .clause h3 {
+    font-family: var(--cond);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin: 0 0 8px;
+  }
+  .clause p { font-size: 14.5px; color: var(--ink-2); margin: 0; }
+
+  /* ── the check ────────────────────────────────────────────── */
+
+  .check {
+    border: 1px solid var(--rule-firm);
+    background: var(--surface);
+    padding: 20px 22px;
+  }
+  .check h2 { border-bottom: 0; padding-bottom: 0; margin-bottom: 10px; }
+  .dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--amber);
+    vertical-align: 0.12em;
+    margin: 0 1px;
+  }
+
+  a {
+    color: var(--amber);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+  }
+  a:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+  footer {
+    margin: 52px 0 0;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule);
+    font-size: 13.5px;
+    color: var(--ink-3);
+  }
+  footer a { color: var(--ink-2); }
+</style>
+<div class="wrap">
+  <header>
+    <div class="docket">
+      <span>Migration <span class="val">0017</span></span>
+      <span>Database <span class="val">teajia-db</span></span>
+      <span>Status <span class="val">waiting for your go</span></span>
+      <span>Rows it moves <span class="val">about 22 teas, 17 listings</span></span>
+    </div>
+    <h1>Yuan is spelled Yuan</h1>
+    <p class="standfirst">
+      About 22 teas have their cost recorded as CNY or YUAN. The rate table only knows the word Yuan.
+      This spells them the same way. No price moves: not the shelf, not the cost, not the rate.
+    </p>
+    <dl class="status">
+      <div><dt>What it changes</dt><dd>cost_currency</dd></div>
+      <div><dt>From</dt><dd>CNY, YUAN, cny</dd></div>
+      <div><dt>To</dt><dd>Yuan</dd></div>
+      <div><dt>Re-runnable</dt><dd>yes, no-op</dd></div>
+    </dl>
+  </header>
+
+  <section class="prose">
+    <h2>What it changes</h2>
+    <p class="lede">
+      The shop keeps one exchange table, and yuan sits in it as <strong>Yuan</strong>. A voice tool was saving
+      the currency in capitals, so some teas ended up labelled <strong>CNY</strong> or <strong>YUAN</strong>.
+      The shelf never noticed: the worker knew all three meant the same money and priced them right.
+    </p>
+    <p>
+      The admin did not know. It looked up CNY, found nothing, and treated the cost as dollars. So the
+      dashboard has been counting the 1993 Y562 at <strong>$1,200</strong> instead of <strong>$178</strong>,
+      the retail preview on those teas has shown a dash, and a freight rate pinned to one of them would
+      have read as $85 a kilo instead of $12.63.
+    </p>
+    <p>
+      This corrects the spelling on the rows. The code that made them is already fixed and on main,
+      including the admin's own save routes, so the label cannot come back.
+    </p>
+    <div class="clauses">
+      <div class="clause">
+        <h3>It moves</h3>
+        <p>Any tea or piece of teaware whose currency reads CNY or YUAN, in any casing, on the products table and on the partner listings table.</p>
+      </div>
+      <div class="clause">
+        <h3>It leaves alone</h3>
+        <p>Everything already spelled Yuan. Everything in HKD, NT, USD, IDR, JPY, MYR or AUD. Every tea whose currency nobody ever stated. Every cost amount. Every stated-or-not mark.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>What it touches, and what it leaves alone</h2>
+    <p class="tablenote" style="margin:0 0 14px">
+      <strong>These are seeded shapes, not your shelf.</strong> A session cannot read the live database. Each row
+      was built to the shape of a real tea and the migration was run over it twice. On the sandbox copy the
+      shapes that move cover 18 teas labelled CNY, 4 labelled YUAN and 17 partner listings labelled CNY; live may
+      differ by a tea or two.
+    </p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Shape of the row</th><th>Currency before</th><th>Currency after</th><th class="num">Cost amount</th><th>Verdict</th></tr>
+        </thead>
+        <tbody>
+          <tr class="moved"><td class="shape">1993 Y562, labelled in capitals<span>The sevenfold-error tea from the cost currency rule</span></td><td class="num">CNY</td><td class="num moved">Yuan</td><td class="num">1200</td><td><span class="verdict cleared">Respelled</span></td></tr>
+          <tr class="moved"><td class="shape">Mahei Gushu Red, labelled in capitals</td><td class="num">YUAN</td><td class="num moved">Yuan</td><td class="num">470</td><td><span class="verdict cleared">Respelled</span></td></tr>
+          <tr class="moved"><td class="shape">Small Basket Liu Bao, labelled in lower case<span>The match ignores case, so this is caught too</span></td><td class="num">cny</td><td class="num moved">Yuan</td><td class="num">200</td><td><span class="verdict cleared">Respelled</span></td></tr>
+          <tr class="moved"><td class="shape">Yixing pot, teaware, labelled in capitals<span>Teaware is not exempt; this is about spelling, not freight</span></td><td class="num">CNY</td><td class="num moved">Yuan</td><td class="num">800</td><td><span class="verdict cleared">Respelled</span></td></tr>
+          <tr><td class="shape">Yuandu Sheng, already spelled Yuan</td><td class="num">Yuan</td><td class="num">Yuan</td><td class="num">180</td><td><span class="verdict kept">Untouched</span></td></tr>
+          <tr><td class="shape">Hong Kong lot</td><td class="num">HKD</td><td class="num">HKD</td><td class="num">900</td><td><span class="verdict kept">Untouched</span></td></tr>
+          <tr><td class="shape">A dollar tea</td><td class="num">USD</td><td class="num">USD</td><td class="num">40</td><td><span class="verdict kept">Untouched</span></td></tr>
+          <tr><td class="shape">Dong Ding</td><td class="num">NT</td><td class="num">NT</td><td class="num">2400</td><td><span class="verdict kept">Untouched</span></td></tr>
+          <tr><td class="shape">A tea nobody gave a currency<span>Still waiting for your per-vendor answer; the backlog stays the backlog</span></td><td class="num">USD, defaulted</td><td class="num">USD, defaulted</td><td class="num">300</td><td><span class="verdict kept">Untouched</span></td></tr>
+          <tr><td class="shape">Gaiwan, teaware, no currency</td><td class="num">NULL</td><td class="num">NULL</td><td class="num">NULL</td><td><span class="verdict kept">Untouched</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="tablenote">
+      The same ten shapes were run on the partner listing mirror, and it moved the same four. No amount, no
+      stated-or-not mark and no freight rate is written on any row. Run a second time it changes nothing.
+    </p>
+  </section>
+
+  <section class="check prose">
+    <h2>Your check</h2>
+    <p>
+      <strong>Dashboard.</strong> The currency exposure list shows yuan as one line called Yuan. Before, it was
+      split across Yuan, CNY and YUAN. Total inventory cost drops by about $1,500 across the 22 teas, because
+      they stop being counted as dollars. That is the readout getting truer, not a tea getting cheaper.
+    </p>
+    <p>
+      <strong>Inventory.</strong> Open the 1993 Y562 (Jixing) Black Box. The retail preview shows a price per
+      gram instead of a dash, and its cost currency reads Yuan.
+    </p>
+    <p style="margin-bottom:0">
+      <strong>Shop.</strong> Any of those 22 teas on the public shelf shows the same price it showed yesterday.
+      Say <em>go</em> and this pushes behind the code that is already on main. Say <em>hold</em> and the 22
+      old rows stay as they are until you decide.
+    </p>
+  </section>
+
+  <footer>
+    Two statements bounded to lower(cost_currency) IN ('cny', 'yuan'), rehearsed in a scratch database seeded
+    from the migration ledger, and guarded by a test that fails if the match becomes case-sensitive or ever
+    touches a fifth shape. Held on branch prime-time/currency-labels-r3 until you say go.
+  </footer>
+</div>

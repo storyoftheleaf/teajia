@@ -46,7 +46,7 @@ const SectionDivider: React.FC<{ numeral: string; label: string; marginTop?: str
     }}
   >
     <span style={{ fontFamily: F.cn, fontWeight: 400, fontSize: 26, color: C.gold, lineHeight: 1 }}>{numeral}</span>
-    <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.22)' }} />
+    <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.22)' }} />
     <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim }}>{label}</span>
   </div>
 );
@@ -60,7 +60,7 @@ const CupFigure: React.FC<{ bg: string; title: string; caption: string }> = ({ b
       margin: '0 auto 18px',
       borderRadius: '50%',
       background: bg,
-      boxShadow: '0 0 0 1px rgba(168,135,77,0.3), inset 0 -7px 14px rgba(0,0,0,0.22), inset 0 6px 10px rgba(255,255,255,0.25)',
+      boxShadow: '0 0 0 1px rgb(var(--tj-read-gold-rgb) / 0.3), inset 0 -7px 14px rgba(0,0,0,0.22), inset 0 6px 10px rgba(255,255,255,0.25)',
     }} />
     <div style={{ fontFamily: F.display, fontSize: 21, color: C.ink, marginBottom: 6 }}>{title}</div>
     <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 13.5, lineHeight: 1.55, color: C.dim, margin: 0 }}>{caption}</p>
@@ -95,7 +95,7 @@ const EssayLongWayToCup: React.FC = () => {
           overflow: 'hidden',
         }}>
           {/* radial glow */}
-          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 55% at 50% 32%, rgba(168,135,77,0.12), transparent 62%)' }} />
+          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 55% at 50% 32%, rgb(var(--tj-read-gold-rgb) / 0.12), transparent 62%)' }} />
           {/* ghosted Chinese character */}
           <div aria-hidden="true" style={{
             position: 'absolute',
@@ -106,7 +106,7 @@ const EssayLongWayToCup: React.FC = () => {
             fontWeight: 200,
             fontSize: 'min(58vw,560px)',
             lineHeight: 1,
-            color: 'rgba(168,135,77,0.05)',
+            color: 'rgb(var(--tj-read-gold-rgb) / 0.05)',
             pointerEvents: 'none',
             userSelect: 'none',
           }}>回</div>
@@ -226,7 +226,7 @@ const EssayLongWayToCup: React.FC = () => {
         <section data-reveal style={{ maxWidth: 920, margin: '0 auto', padding: 'clamp(50px,8vw,104px) 24px clamp(30px,5vw,56px)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 'clamp(30px,4vw,44px)' }}>
             <span style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 30, color: C.gold, lineHeight: 1 }}>回</span>
-            <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.22)' }} />
+            <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.22)' }} />
             <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim }}>Three cups</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,220px),1fr))', gap: 'clamp(24px,4vw,44px)' }}>

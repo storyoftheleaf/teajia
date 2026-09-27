@@ -1,5 +1,5 @@
 // tests/immersive-article.spec.ts
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { primaryNav } from './helpers/navigation';
 
 const ARTICLE = {

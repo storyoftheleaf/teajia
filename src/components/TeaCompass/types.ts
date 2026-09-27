@@ -367,8 +367,37 @@ export function compassEntryToProductDraft(entry: TeaCompassEntry): Record<strin
     origin_region: entry.originRegion || '',
     stock_grams: stockGrams,
     quantity_purchased: quantityPurchased,
-    cost_amount: entry.buyTotal ?? entry.priceAmount ?? 0,
-    cost_currency: entry.priceCurrency || 'NT',
+    /* `?? 0` said an entry with no price recorded was a tea that cost nothing,
+       and the server then had a well formed zero to agree with. Null instead,
+       which the server refuses by name, so the operator records the price and
+       promotes again. The worker's own promotion door was given exactly this
+       rule; this is the client half of it.
+
+       The CURRENCY is carried as it stands, deliberately and without a
+       fallback. It is not a guess this function is making: it is a picker,
+       `PricingRow`'s currency select, sitting immediately left of the price
+       input on the capture card, so an operator typing a price sees the unit
+       they are typing it in. That is where the decision is made and where it
+       can be changed. An entry old enough to carry no currency at all sends
+       nothing here, and the server refuses that too, by name. What must never
+       happen is this function supplying one, because a currency chosen down
+       here is chosen where nobody can see it. */
+    cost_amount: entry.buyTotal ?? entry.priceAmount ?? null,
+    /* The currency carries the same rule: an untouched default must never
+       become content. `createEmptyEntry` (and `startNewCapture`, which seeds
+       from `lastCurrency`) stamp every new entry with a currency nobody has
+       chosen yet, so the stored value alone cannot tell a choice from a
+       default, and `touchedFields` is this codebase's existing answer to
+       exactly that question (see `entryHasDeliberateInput`). Sending it
+       unconditionally marked an inherited default as `cost_currency_source:
+       'stated'` on the server, which excluded the row from
+       `list_unstated_costs` for good. A legacy entry with no touch metadata
+       at all falls back to trusting its stored value, the same fallback
+       `entryHasDeliberateInput` uses, so old fragments are not silently
+       stripped of a currency they always carried. */
+    cost_currency: entry.touchedFields === undefined || entry.touchedFields.includes('priceCurrency')
+      ? entry.priceCurrency
+      : undefined,
     vendor: entry.vendorName || '',
     status: 'Draft',
     is_public: false,
@@ -448,7 +477,12 @@ export function createEmptyEntry(category: CompassCategory = 'tea', defaults?: {
     touchedFields: [],
     name: '',
     category,
-    priceCurrency: defaults?.priceCurrency || 'NT',
+    // Adrian's 2026-09-07 rule: everything is bought and air-freighted from
+    // China, so Yuan is the shelf default. This is still an inherited
+    // default the operator has not chosen, so `touchedFields` starting
+    // empty is what keeps `compassEntryToProductDraft` from sending it as a
+    // stated currency until the picker is actually touched.
+    priceCurrency: defaults?.priceCurrency || 'Yuan',
     quantity: 1,
     vendorId: defaults?.vendorId,
     vendorName: defaults?.vendorName,

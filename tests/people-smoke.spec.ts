@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 const profileFixture = {
   id: 'publishing-fixture', account_id: 'acct', display_name: 'Publishing Fixture', role: 'Writer', is_published: 1,
@@ -9,17 +9,25 @@ const profileFixture = {
   ], created_at: '2026-01-01', updated_at: '2026-01-01',
 };
 
-test('profile weaves two distinct pull quotes into their editorial positions', async ({ page }) => {
+// The redesigned profile (2026-09-20) opens "In my words" with the first
+// pull quote, and lists every article that quotes the person under Words as
+// a plain row that links into the article and never repeats the quote.
+test('profile leads with the first pull quote and lists every quoting article under Words', async ({ page }) => {
   await page.route('**/api/people/publishing-fixture', route => route.fulfill({ json: profileFixture }));
   await page.goto('/people/publishing-fixture');
-  const first = page.getByText('First synthetic quote.'); const second = page.getByText('Second synthetic quote.');
-  await expect(first).toBeVisible(); await expect(second).toBeVisible();
-  await expect(first.locator('xpath=ancestor::blockquote').getByRole('link')).toHaveAttribute('href', '/article/first-source');
-  await expect(second.locator('xpath=ancestor::blockquote').getByRole('link')).toHaveAttribute('href', '/article/second-source');
-  const text = await page.locator('article').innerText();
-  expect(text.indexOf('Synthetic origin.')).toBeLessThan(text.indexOf('First synthetic quote.'));
-  expect(text.indexOf('First synthetic quote.')).toBeLessThan(text.indexOf('Synthetic inspirations.'));
-  expect(text.indexOf('Synthetic inspirations.')).toBeLessThan(text.indexOf('Second synthetic quote.'));
+  await expect(page.getByTestId('profile-quote')).toContainText('First synthetic quote.');
+  const words = page.getByTestId('profile-words');
+  await expect(words.getByRole('link', { name: /First Source/ })).toHaveAttribute('href', '/article/first-source');
+  await expect(words.getByRole('link', { name: /Second Source/ })).toHaveAttribute('href', '/article/second-source');
+  // The smoke fixture carries no quote anchor, so the line says only that the person is in the piece.
+  await expect(words).toContainText('I am in it.');
+  await expect(words).not.toContainText('Second synthetic quote.');
+  await expect(words).not.toContainText('Quoted in');
+  // The cover carries the first line of the origin in the person's words; the quote opens the words below it.
+  await expect(page.getByTestId('profile-cover')).toContainText('Synthetic origin.');
+  // The cover owns that sentence, so In my words does not repeat it (2026-09-21).
+  await expect(page.getByTestId('profile-words-of-mine')).not.toContainText('Synthetic origin.');
+  await expect(page.getByTestId('profile-words-of-mine')).toContainText('Synthetic inspirations.');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);
 });
 

@@ -1,9 +1,24 @@
 export type ProfilePublicationState = 'draft' | 'awaiting_approval' | 'published' | 'unpublished';
 export type ProfileApprovalState = 'pending' | 'approved' | 'changes_requested';
 
+// Mirrors worker/src/profileDomain.ts's ContributorLink (migration 0021):
+// a platform-typed link rather than a flat {label,url} pair, so a WeChat
+// entry can carry an id plus an optional QR image instead of a URL.
+export const CONTRIBUTOR_LINK_PLATFORMS = ['wechat', 'instagram', 'website', 'other'] as const;
+export type ContributorLinkPlatform = typeof CONTRIBUTOR_LINK_PLATFORMS[number];
+
 export interface ProfileLink {
-  label: string;
-  url: string;
+  platform: ContributorLinkPlatform;
+  value: string;
+  label?: string;
+  qr_image_url: string | null;
+}
+
+export interface ProfileGalleryImage {
+  id?: string;
+  image_url: string;
+  caption: string | null;
+  position?: number;
 }
 
 export interface ProfileAssociation {
@@ -20,14 +35,20 @@ export interface SelfProfile {
   id: string;
   slug: string;
   display_name: string;
+  business_name: string | null;
   chinese_name: string | null;
   beginnings: string | null;
   now_text: string | null;
+  /** Who taught me: teachers, mountains, a cup that changed my mind. The public page reads it as the third paragraph. */
+  inspirations: string | null;
+  /** The last line, at the foot of the public page. 200 characters at most. */
+  closing: string | null;
   location_line: string | null;
   languages: string[];
   avatar_url: string | null;
   portrait_url: string | null;
   links: ProfileLink[];
+  gallery_images: ProfileGalleryImage[];
   publication_state: ProfilePublicationState;
   approval_state: ProfileApprovalState;
   has_pending_draft?: boolean;
@@ -37,14 +58,19 @@ export interface SelfProfile {
   selection_count?: number;
   article_count?: number;
   shelf_slug?: string | null;
+  /** The named collection the profile's tea section points at, once the tea master has named one. */
+  collection?: { slug: string; title: string; item_count: number } | null;
 }
 
 export type SelfProfileUpdate = Pick<
   SelfProfile,
   | 'display_name'
+  | 'business_name'
   | 'chinese_name'
   | 'beginnings'
   | 'now_text'
+  | 'inspirations'
+  | 'closing'
   | 'location_line'
   | 'languages'
   | 'avatar_url'
@@ -177,4 +203,46 @@ export interface PaymentOrderLine {
 export interface PaymentOrderSummaryData {
   lines: PaymentOrderLine[];
   placedOn: string | null;
+}
+
+// ── Pay is private, and approval is permanent (migration 0022) ──────────────
+
+/** One row of payment_access_grants as Your Table reads it. */
+export interface PayAccessGrant {
+  id: string;
+  status: 'pending' | 'approved';
+  granted_via: 'request' | 'link';
+  invoice_id: string | null;
+  requested_at: string;
+  approved_at: string | null;
+  user_name: string;
+  user_since: string | null;
+}
+
+export interface PayAccessTable {
+  pending: PayAccessGrant[];
+  approved: PayAccessGrant[];
+  /** The contributor's open share link, once minted. Null until then. */
+  share_link: string | null;
+}
+
+/** What the pay page learns before it asks for a single method. */
+export interface PayAccessResponse {
+  access: 'open' | 'gate';
+  via: 'owner' | 'approved' | 'link' | null;
+  contributor: { id: string; display_name: string; business_name: string | null; portrait_url: string | null };
+  viewer: { signed_in: boolean; is_owner: boolean; request_status: 'pending' | 'approved' | null };
+  /** Set when the link came from an invoice: the sheet names the order. */
+  invoice: { invoice_number: string | null; outstanding_usd: number } | null;
+}
+
+/** The admin's share sheet, from an invoice. */
+export interface InvoicePayLinkShare {
+  url: string;
+  invoice_number: string | null;
+  customer_name: string | null;
+  customer_whatsapp: string | null;
+  recipient_name: string | null;
+  outstanding_usd: number;
+  display_currency: string | null;
 }

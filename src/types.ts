@@ -272,9 +272,29 @@ export interface Person {
 
 // Contributor - the canonical editorial identity that backs /people/:slug.
 // See docs/ARCHITECTURE.md.
+//
+// A link is typed by platform (mirrors worker/src/profileDomain.ts's
+// ContributorLink, landed by migration 0021): a WeChat entry carries an id
+// and may carry a QR image, a website carries an https url, an Instagram
+// entry a handle. The public page reads the same shape the editors write,
+// so there is one link type here, not two.
+export const CONTRIBUTOR_LINK_PLATFORMS = ['wechat', 'instagram', 'website', 'other'] as const;
+export type ContributorLinkPlatform = typeof CONTRIBUTOR_LINK_PLATFORMS[number];
+
 export interface ContributorLink {
-  label: string;
-  url: string;
+  platform: ContributorLinkPlatform;
+  value: string;
+  label?: string;
+  qr_image_url: string | null;
+}
+
+export type AdminContributorLink = ContributorLink;
+
+export interface ContributorGalleryImage {
+  id?: string;
+  image_url: string;
+  caption: string | null;
+  position?: number;
 }
 
 export interface ContributorListItem {
@@ -282,8 +302,15 @@ export interface ContributorListItem {
   display_name: string;
   chinese_name?: string | null;
   role?: string | null;
+  business_name?: string | null;
   location_line?: string | null;
   avatar_url?: string | null;
+  /** First gallery image, then the portrait. Null means the identity mark fills the card. */
+  card_image_url?: string | null;
+  /** One line in their own words, for the directory card. */
+  own_line?: string | null;
+  is_host?: boolean;
+  article_count?: number;
 }
 
 export interface ContributorPullQuote {
@@ -292,6 +319,11 @@ export interface ContributorPullQuote {
   published_at: string;
   article_slug: string;
   article_title: string;
+  article_subtitle?: string | null;
+  cover_image_url?: string | null;
+  reading_time_mins?: number | null;
+  /** DOM id inside the article the quote came from: quote-<contributor id>. */
+  quote_anchor?: string | null;
 }
 
 export interface ContributorArticleRef {
@@ -300,14 +332,57 @@ export interface ContributorArticleRef {
   subtitle?: string | null;
   published_at: string;
   cover_image_url?: string | null;
+  reading_time_mins?: number | null;
+  pull_quote?: string | null;
+  quote_anchor?: string | null;
 }
 
 export interface ContributorFeaturedRef {
   slug: string;
   title: string;
   subtitle?: string | null;
-  author_id: string;
+  author_id: string | null;
   published_at: string;
+  cover_image_url?: string | null;
+  reading_time_mins?: number | null;
+  pull_quote?: string | null;
+  quote_anchor?: string | null;
+}
+
+/** One tea from the person's selection, joined to a live public listing. The
+ *  shop has no product photos, so the row is typographic: vintage, name,
+ *  type and origin, on the liquor ground the shop's ledger row uses. */
+export interface ContributorTeaSelectionRef {
+  tea_profile_id: string;
+  why: string | null;
+  slug: string;
+  name: string;
+  image_url?: string | null;
+  product_name: string;
+  public_path: string;
+  type?: string | null;
+  year?: string | null;
+  chinese_name?: string | null;
+  origin?: string | null;
+}
+
+export interface ContributorHostingRef {
+  slug: string;
+  title: string;
+  subtitle?: string | null;
+  event_date: string;
+  location_name?: string | null;
+  flyer_image_url?: string | null;
+  account_slug: string;
+  account_name: string;
+}
+
+export interface ContributorCollectionRef {
+  slug: string;
+  title: string;
+  note?: string | null;
+  hero_image_url?: string | null;
+  item_count: number;
 }
 
 export interface ContributorProductRef {
@@ -319,6 +394,19 @@ export interface ContributorProductRef {
   sourced_by?: string | null;
   roasted_by?: string | null;
   vouched_by?: string | null;
+}
+
+/** A person on a page that is not theirs: the store's table, an event's hosts. */
+export interface PublicPerson {
+  slug: string;
+  display_name: string;
+  business_name: string | null;
+  /** The store's word for them (contributor_accounts.public_role) or the event's role. */
+  role: string | null;
+  portrait_url: string | null;
+  /** The first sentence of their own words, so the page speaks as them. */
+  own_line: string | null;
+  is_host: boolean;
 }
 
 export interface ContributorHostAccount {
@@ -345,6 +433,7 @@ export interface ContributorProfile {
   id: string;
 
   display_name: string;
+  business_name?: string | null;
   chinese_name?: string | null;
   role?: string | null;
   pronouns?: string | null;
@@ -372,10 +461,15 @@ export interface ContributorProfile {
   languages?: string[];
   is_published: 0 | 1;
 
+  gallery_images: ContributorGalleryImage[];
+
   articles: ContributorArticleRef[];
   pull_quotes: ContributorPullQuote[];
   featured_in: ContributorFeaturedRef[];
   products: ContributorProductRef[];
+  tea_selection: ContributorTeaSelectionRef[];
+  collection: ContributorCollectionRef | null;
+  hosting: ContributorHostingRef | null;
   accounts?: ContributorAccountRef[];
   shelf_slug?: string | null;
   has_payment_methods?: boolean;
@@ -384,8 +478,11 @@ export interface ContributorProfile {
   seasonal_line: string | null;
 }
 
-export interface AdminContributor extends Omit<ContributorProfile, 'articles' | 'pull_quotes' | 'featured_in' | 'products' | 'host_account' | 'seasonal_line'> {
+export interface AdminContributor extends Omit<ContributorProfile, 'articles' | 'pull_quotes' | 'featured_in' | 'products' | 'host_account' | 'seasonal_line' | 'links' | 'gallery_images' | 'tea_selection' | 'collection' | 'hosting'> {
   account_id: string;
+  business_name?: string | null;
+  links: AdminContributorLink[];
+  gallery_images?: ContributorGalleryImage[];
   publication_state?: 'draft' | 'awaiting_approval' | 'published' | 'unpublished';
   approval_state?: 'pending' | 'approved' | 'changes_requested';
   reviewer_note?: string | null;
@@ -419,6 +516,7 @@ export interface ContributorWrite {
   id?: string;
   slug?: string;
   display_name?: string;
+  business_name?: string | null;
   chinese_name?: string | null;
   role?: string | null;
   pronouns?: string | null;
@@ -440,7 +538,8 @@ export interface ContributorWrite {
   where_to_find_text?: string | null;
   user_id?: string | null;
   face_of_account_id?: string | null;
-  links?: ContributorLink[];
+  links?: AdminContributorLink[];
+  gallery_images?: ContributorGalleryImage[];
 }
 
 export interface Chapter {
@@ -686,6 +785,8 @@ export interface PublicProduct {
   isPersonal: boolean;
   canReorder: boolean;
   isFeatured?: boolean;
+  /** Place in the shop-published collection, lowest first. Undefined when not featured. */
+  featuredPosition?: number;
   isOneOfAKind: boolean;
   isCurated?: boolean;
   lore?: string;
@@ -822,6 +923,11 @@ export interface Account {
    * never be read as "no": only an explicit false stops a checkout.
    */
   can_be_paid?: boolean;
+  /**
+   * The published people linked to this store, the host first. Served only on
+   * the public store payload. Each speaks in their own first line.
+   */
+  people?: PublicPerson[];
   is_platform_owner?: boolean;
   invoice_prefix?: string;
   // BYOK presence flags (the encrypted secret itself is never sent to the client).

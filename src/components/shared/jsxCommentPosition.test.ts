@@ -1,4 +1,5 @@
 import { readFileSync, readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -43,7 +44,9 @@ function tsxFiles(dir: string): string[] {
   return out;
 }
 
-const SRC = new URL('../../', import.meta.url).pathname;
+// fileURLToPath, not .pathname: .pathname keeps %20, so on a checkout whose
+// path has a space in it the guard found no folder and never ran.
+const SRC = fileURLToPath(new URL('../../', import.meta.url));
 
 /**
  * Child position, detected by what comes BEFORE the comment.

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 test('Incoming shows expected separately and supports partial receiving', async ({ page }) => {
   const enc = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');

@@ -2,7 +2,7 @@
 // Verifies the public Read index respects the curated publication boundary:
 // explicitly live pieces are listed, while drafts and the retained article
 // query are not accidentally exposed in the public register.
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 const PUBLISHED = [
   { id: 'a1', slug: 'a-quiet-steep', title: 'A Quiet Steep', subtitle: 'On the patience of the second infusion.', category: 'Reflection', status: 'published', tags: [], blocks: [], cover_image_url: '', created_at: '2026-06-18', updated_at: '2026-06-18' },
@@ -22,14 +22,15 @@ test('Read index lists live curated pieces without exposing drafts or queried ar
 
   await page.goto('/read');
 
-  // The four explicitly published pieces in the curated register.
-  for (const href of ['/read/ritual', '/read/atlas', '/read/tasting', '/read/porcelain-and-tea']) {
+  // The published pieces: the four the curated register marks live, and
+  // From Leaf to Liquor, the flagship that is public by construction
+  // (isUngatedReadPath) and so is listed for everyone.
+  for (const href of ['/read/leaf-to-liquor', '/read/ritual', '/read/atlas', '/read/tasting', '/read/porcelain-and-tea']) {
     await expect(page.locator(`a[href="${href}"]`).first()).toBeVisible();
   }
 
   // Draft curated pieces remain owner-only, and the retained article query is
   // not a second publication path into this deliberately curated index.
-  await expect(page.getByText('From Leaf to Liquor', { exact: true })).toHaveCount(0);
   await expect(page.getByText('The Rock Remembers', { exact: true })).toHaveCount(0);
   await expect(page.getByText('A Quiet Steep', { exact: true })).toHaveCount(0);
   await expect(page.getByText('The Water Matters', { exact: true })).toHaveCount(0);

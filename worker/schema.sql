@@ -111,15 +111,15 @@ CREATE TABLE IF NOT EXISTS products (
     vendor TEXT,
     stock_grams INTEGER DEFAULT 0,
     stock_movement_guard TEXT,
-    cost_amount REAL DEFAULT 0,
+    cost_amount REAL, -- migration 0018: no default. 0 here is a free tea, not an unrecorded one
     cost_currency TEXT DEFAULT 'USD',
     cost_currency_source TEXT, -- migration 0014: NULL = nobody ever stated the currency, so the DEFAULT above may be a guess
-    shipping_rate_per_kg REAL DEFAULT NULL, -- NULL = unentered, takes the shop default; 0 = Adrian said free
+    shipping_rate_per_kg REAL, -- migration 0018: no default. NULL = unentered, takes the shop rate; 0 = Adrian said free
     quantity_purchased INTEGER,
     session_reserve_grams INTEGER,
     low_stock_threshold INTEGER DEFAULT 100,
     recheck_stock INTEGER DEFAULT 0,
-    markup_multiplier REAL DEFAULT 2.5,
+    markup_multiplier REAL, -- migration 0018: no default. NULL = follows SHOP_MARKUP_MULTIPLIER
     fixed_retail_price_usd REAL,
     is_personal INTEGER DEFAULT 0,
     can_reorder INTEGER DEFAULT 0,
@@ -197,6 +197,7 @@ CREATE TABLE IF NOT EXISTS contributors (
     face_of_account_id TEXT REFERENCES accounts(id),
     contact_customer_id TEXT,
     display_name TEXT NOT NULL,
+    business_name TEXT,
     chinese_name TEXT,
     role TEXT,
     pronouns TEXT,
@@ -217,6 +218,8 @@ CREATE TABLE IF NOT EXISTS contributors (
     pouring_today_product_id TEXT,
     pouring_today_note TEXT,
     where_to_find_text TEXT,
+    -- {platform, value, qr_image_url?}[]; platform is one of wechat, instagram,
+    -- website, other. Migration 0021 rewrote the old {label, url}[] rows.
     links TEXT NOT NULL DEFAULT '[]',
     is_published INTEGER NOT NULL DEFAULT 0,
     unpublished_at TEXT,
@@ -583,13 +586,13 @@ CREATE TABLE IF NOT EXISTS product_listings (
   low_stock_threshold INTEGER DEFAULT 100,
   recheck_stock INTEGER DEFAULT 0,
   fixed_retail_price_usd REAL,
-  markup_multiplier REAL DEFAULT 2.5,
+  markup_multiplier REAL, -- migration 0018: no default. NULL = follows SHOP_MARKUP_MULTIPLIER
   vendor TEXT,
   vendor_id TEXT,
-  cost_amount REAL DEFAULT 0,
+  cost_amount REAL, -- migration 0018: no default. 0 here is a free tea, not an unrecorded one
   cost_currency TEXT DEFAULT 'USD',
   cost_currency_source TEXT, -- migration 0014: NULL = nobody ever stated the currency, so the DEFAULT above may be a guess
-  shipping_rate_per_kg REAL DEFAULT NULL, -- NULL = unentered, takes the shop default; 0 = Adrian said free
+  shipping_rate_per_kg REAL, -- migration 0018: no default. NULL = unentered, takes the shop rate; 0 = Adrian said free
   quantity_purchased INTEGER,
   source_compass_entry_id TEXT,
   stock_verified_at TEXT,
@@ -669,6 +672,22 @@ CREATE TABLE IF NOT EXISTS profile_favorites (
 );
 CREATE INDEX IF NOT EXISTS idx_profile_favorites_public ON profile_favorites(contributor_id, is_public, position);
 
+-- Photos of a tea master at work, not a headshot. One row per image, same
+-- shape as profile_favorites and payment_methods above, so adding or
+-- removing one picture never rewrites the whole set. 3 to 5 images is the
+-- editorial ceiling; the admin editor enforces that, not this table.
+CREATE TABLE IF NOT EXISTS contributor_gallery_images (
+  id TEXT PRIMARY KEY,
+  contributor_id TEXT NOT NULL REFERENCES contributors(id) ON DELETE CASCADE,
+  image_url TEXT NOT NULL,
+  caption TEXT CHECK (caption IS NULL OR length(caption) <= 280),
+  position INTEGER NOT NULL DEFAULT 0 CHECK (position >= 0),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_contributor_gallery_images_contributor
+  ON contributor_gallery_images(contributor_id, position);
+
 CREATE TABLE IF NOT EXISTS payment_methods (
   id TEXT PRIMARY KEY,
   contributor_id TEXT NOT NULL REFERENCES contributors(id) ON DELETE CASCADE,
@@ -707,6 +726,45 @@ CREATE TRIGGER IF NOT EXISTS payment_method_audit_events_immutable_delete
 BEFORE DELETE ON payment_method_audit_events BEGIN
   SELECT RAISE(ABORT, 'payment audit events are immutable');
 END;
+
+-- Pay is private, and approval is permanent (migration 0022). Who may open a
+-- contributor's pay sheet: an ACCOUNT they approved (payment_access_grants,
+-- no revoke, no expiry) or a LINK they handed out (payment_share_links, one
+-- per invoice or one open link per contributor; the token is the capability).
+CREATE TABLE IF NOT EXISTS payment_access_grants (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  contributor_id TEXT NOT NULL REFERENCES contributors(id) ON DELETE CASCADE,
+  grantee_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  granted_via TEXT NOT NULL CHECK (granted_via IN ('request', 'link')),
+  invoice_id TEXT,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved')),
+  requested_at TEXT NOT NULL DEFAULT (datetime('now')),
+  approved_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (contributor_id, grantee_user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_payment_access_grants_contributor
+  ON payment_access_grants(contributor_id, status, requested_at);
+CREATE INDEX IF NOT EXISTS idx_payment_access_grants_grantee
+  ON payment_access_grants(grantee_user_id, contributor_id);
+
+CREATE TABLE IF NOT EXISTS payment_share_links (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  contributor_id TEXT NOT NULL REFERENCES contributors(id) ON DELETE CASCADE,
+  invoice_id TEXT,
+  token TEXT NOT NULL UNIQUE,
+  created_by_user_id TEXT,
+  open_count INTEGER NOT NULL DEFAULT 0 CHECK (open_count >= 0),
+  last_opened_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_payment_share_links_invoice
+  ON payment_share_links(invoice_id) WHERE invoice_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_payment_share_links_contributor_open
+  ON payment_share_links(contributor_id) WHERE invoice_id IS NULL;
 
 -- 5b. Password Reset Tokens Table
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
@@ -1615,6 +1673,15 @@ CREATE TABLE IF NOT EXISTS event_attendees (
   denial_message TEXT,
   account_id TEXT,
   user_id TEXT REFERENCES users(id),
+  -- DEAD COLUMN, not the live record: nothing in the worker reads or writes
+  -- this. Event money runs through EVT- invoices instead (see
+  -- `invoiceDomain.ts`); this column's only reference anywhere is the CHECK
+  -- constraint test below. It was already read once as though it were the
+  -- live record of what an attendee owes, which sent a piece of unrelated
+  -- work chasing a problem that did not exist. Kept (not dropped, which
+  -- would be a migration) so the CHECK constraint and its test still hold;
+  -- do not start reading or writing it without first confirming the EVT-
+  -- invoice path has actually changed.
   payment_status TEXT NOT NULL DEFAULT 'not_required'
     CHECK(payment_status IN ('not_required','pending','paid','waived','refunded')),
   UNIQUE(event_id, phone_number)

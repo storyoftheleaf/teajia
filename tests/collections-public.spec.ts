@@ -8,7 +8,7 @@
  * Happy-path rendering with a seeded publication is a later-phase fixture.
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 const UNKNOWN_SLUG = 'definitely-not-a-real-slug-xyz9';
 

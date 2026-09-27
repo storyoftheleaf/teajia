@@ -44,7 +44,7 @@ const Movement: React.FC<{ numeral: string; label: string; children: React.React
   <section style={{ maxWidth: 680, margin: '0 auto', padding: '0 24px' }}>
     <div data-reveal style={{ display: 'flex', alignItems: 'center', gap: 18, margin: 'clamp(34px,5vw,56px) 0 clamp(30px,4vw,44px)' }}>
       <span style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 30, color: C.gold, lineHeight: 1 }}>{numeral}</span>
-      <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.22)' }} />
+      <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.22)' }} />
       <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim }}>{label}</span>
     </div>
     <div data-reveal>{children}</div>
@@ -72,7 +72,7 @@ const CraftRenewalPorcelain: React.FC = () => {
 
         <article style={{ position: 'relative', zIndex: 1 }}>
           {/* COVER, split portrait + title */}
-          <header style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,360px),1fr))', alignItems: 'stretch', borderBottom: '1px solid rgba(168,135,77,0.14)', minHeight: '90vh' }}>
+          <header style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,360px),1fr))', alignItems: 'stretch', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.14)', minHeight: '90vh' }}>
             <div style={{ position: 'relative', order: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 'clamp(36px,6vw,84px) clamp(24px,5vw,72px)' }}>
               <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.34em', textTransform: 'uppercase', color: C.gold, marginBottom: 28 }}>Conversations over Tea</div>
               <h1 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(44px,6.6vw,88px)', lineHeight: 1.0, letterSpacing: '-0.015em', color: C.cream, margin: 0 }}>
@@ -81,7 +81,7 @@ const CraftRenewalPorcelain: React.FC = () => {
               <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(16px,2vw,20px)', lineHeight: 1.5, color: C.taupe, margin: '26px 0 0', maxWidth: 440 }}>
                 <EditableText field="dek" as="span" multiline>He was holding a broken porcelain lid, studying its crack as if it were a map. A conversation about tea that became a meditation on how we mend what we love.</EditableText>
               </p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 'clamp(30px,5vw,46px)', paddingTop: 24, borderTop: '1px solid rgba(168,135,77,0.16)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 'clamp(30px,5vw,46px)', paddingTop: 24, borderTop: '1px solid rgb(var(--tj-read-gold-rgb) / 0.16)' }}>
                 <div>
                   <div style={{ fontFamily: F.display, fontSize: 24, color: C.ink, lineHeight: 1 }}><EditableText field="subject-name" as="span">Shangyin Qiwu</EditableText> <span style={{ fontFamily: F.cn, color: C.taupe, fontSize: 20 }}>尚隐器物</span></div>
                   <div style={{ fontFamily: F.ui, fontSize: 10.5, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.dim, marginTop: 8 }}><EditableText field="subject-role" as="span">Porcelain restorer · China</EditableText></div>
@@ -89,7 +89,7 @@ const CraftRenewalPorcelain: React.FC = () => {
               </div>
             </div>
             {/* COVER PORTRAIT, drag a real photo in (owner), pan/zoom, save */}
-            <div style={{ position: 'relative', order: 1, overflow: 'hidden', minHeight: '48vh', background: 'linear-gradient(155deg,#23252a 0%,#14100b 80%)' }}>
+            <div style={{ position: 'relative', order: 1, overflow: 'hidden', minHeight: '48vh', background: 'linear-gradient(155deg,var(--tj-read-empty-from) 0%,var(--tj-read-bg) 80%)' }}>
               <EditablePhoto
                 slot="portrait"
                 alt="Shangyin Qiwu at his repair table"
@@ -98,7 +98,7 @@ const CraftRenewalPorcelain: React.FC = () => {
                   <>
                     <div aria-hidden="true" style={{ ...grainCss('0.8', 150), opacity: 0.08 }} />
                     <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 50% at 50% 32%, rgba(150,180,180,0.12), transparent 64%)' }} />
-                    <div aria-hidden="true" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', fontFamily: F.cn, fontWeight: 200, fontSize: 'min(38vw,300px)', lineHeight: 1, color: 'rgba(168,135,77,0.07)' }}>缘</div>
+                    <div aria-hidden="true" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', fontFamily: F.cn, fontWeight: 200, fontSize: 'min(38vw,300px)', lineHeight: 1, color: 'rgb(var(--tj-read-gold-rgb) / 0.07)' }}>缘</div>
                   </>
                 }
               />
@@ -163,11 +163,11 @@ const CraftRenewalPorcelain: React.FC = () => {
               <blockquote style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(26px,3.6vw,42px)', lineHeight: 1.2, color: C.cream, margin: 0 }}>
                 <EditableText field="quote-2" as="span">"We all have shortcomings. We identify, adjust, and solve them, just like restoration."</EditableText>
               </blockquote>
-              <div style={{ border: '1px solid rgba(168,135,77,0.2)', borderRadius: 4, background: 'linear-gradient(160deg,#1d1810,#15110b)', padding: 'clamp(24px,3vw,34px)' }}>
+              <div style={{ border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.2)', borderRadius: 4, background: 'linear-gradient(160deg,var(--tj-read-card-from),var(--tj-read-card-to))', padding: 'clamp(24px,3vw,34px)' }}>
                 <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 600, letterSpacing: '0.22em', textTransform: 'uppercase', color: C.gold, marginBottom: 20 }}>In Brief</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
                   {[['Subject', 'Shangyin Qiwu'], ['Craft', 'Porcelain restoration · lacquer'], ['Place', 'China']].map(([k, v]) => (
-                    <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, paddingBottom: 13, borderBottom: '1px solid rgba(168,135,77,0.1)' }}>
+                    <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, paddingBottom: 13, borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.1)' }}>
                       <span style={briefK}>{k}</span><span style={briefV}>{v}</span>
                     </div>
                   ))}

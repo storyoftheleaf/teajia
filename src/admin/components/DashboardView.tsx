@@ -5,8 +5,23 @@ import type { TooltipProps } from 'recharts';
 import { Loader2, DollarSign, PieChart as PieIcon, MapPin, TrendingUp, AlertCircle, UserPlus, Clock } from 'lucide-react';
 import { Product, Customer } from '../types';
 import { useRates } from '../hooks/useAdminData';
+import { isoCurrencyCode } from '../../lib/currency';
+import { inventoryMetrics } from '../lib/inventoryMetrics';
 import { fmtRecordDollars, fmtPct, fmtNum } from '../../utils/formatNumber';
+import { CURRENCY_NAMES } from '../../utils/currency';
 import { api } from '../../lib/api';
+
+/**
+ * The full name for an ISO code, spelled out beside the code on desktop where
+ * there is room for it. `CURRENCY_NAMES` in `src/utils/currency.ts` is the one
+ * home for the mapping; this only adds the parenthesised, leading-space shape
+ * this one spot wants, and reads back '' for a code the map has no name for
+ * rather than showing a raw key.
+ */
+const currencyFullNameSuffix = (iso: string): string => {
+  const name = (CURRENCY_NAMES as Record<string, string>)[iso];
+  return name ? ` (${name})` : '';
+};
 
 const TooltipWrapper = (props: TooltipProps<number, string>) => (
     <RechartsTooltip
@@ -49,66 +64,13 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
     navigate(`/admin/stock?search=${encodeURIComponent(value)}`);
   }, [navigate]);
 
-  const metrics = useMemo(() => {
-    if (isLoading || products.length === 0) return null;
-
-    let totalCostUSD = 0;
-    let totalRetailUSD = 0;
-    let currencyExposure: Record<string, number> = {};
-    let regionValue: Record<string, number> = {};
-    let typeValue: Record<string, number> = {};
-
-    products.forEach(p => {
-        // Skip archived items for valuation
-        if (p.status === 'Archived') return;
-
-        // 1. Currency Conversion Logic
-        // We use the raw cost_amount stored in the product (in source currency)
-        // Convert it to USD using the *current* real-time rate
-        const rateObj = rates.find(r => r.currency === p.costCurrency);
-        const rateToUSD = rateObj ? rateObj.rateToUSD : 1;
-        
-        // Calculate Cost per gram in USD based on CURRENT rates (removes "weirdness" of stale DB calculations)
-        // Logic: (Total Batch Cost / Total Batch Weight) / Rate
-        const validBatchWeight = p.quantityPurchased > 0 ? p.quantityPurchased : 1;
-        const costPerGramRaw = p.costAmount / validBatchWeight;
-        const costPerGramUSD = costPerGramRaw / rateToUSD;
-        
-        const itemTotalCostUSD = costPerGramUSD * p.stockGrams;
-        const itemTotalRetailUSD = (p.fixedRetailPriceUSD ?? p.pricePerGramUSD) * p.stockGrams;
-
-        totalCostUSD += itemTotalCostUSD;
-        totalRetailUSD += itemTotalRetailUSD;
-
-        // 2. Currency Exposure (Track Raw Spending in USD Terms)
-        // Group by Source Currency to see "How much money do I have trapped in NTD?"
-        const currencyKey = p.costCurrency || 'USD';
-        currencyExposure[currencyKey] = (currencyExposure[currencyKey] || 0) + itemTotalCostUSD;
-
-        // 3. Region Value
-        const region = p.originRegion || 'Unknown';
-        regionValue[region] = (regionValue[region] || 0) + itemTotalRetailUSD;
-
-        // 4. Type Value
-        const type = p.type || 'Misc';
-        typeValue[type] = (typeValue[type] || 0) + itemTotalRetailUSD;
-    });
-
-    return {
-        totalCostUSD,
-        totalRetailUSD,
-        potentialProfit: totalRetailUSD - totalCostUSD,
-        currencyExposure: Object.entries(currencyExposure)
-            .map(([name, value]) => ({ name, value }))
-            .sort((a, b) => b.value - a.value),
-        regionValue: Object.entries(regionValue)
-            .map(([name, value]) => ({ name, value }))
-            .sort((a, b) => b.value - a.value)
-            .slice(0, 8), // Top 8 regions
-        typeValue: Object.entries(typeValue)
-            .map(([name, value]) => ({ name, value }))
-    };
-  }, [products, rates, isLoading]);
+  /* The arithmetic is in admin/lib/inventoryMetrics.ts. It reads two sides
+     with two different rules, and both of them are money, so they live where a
+     test can ask them what they do rather than only read what they say. */
+  const metrics = useMemo(
+    () => (isLoading || products.length === 0 ? null : inventoryMetrics(products, rates)),
+    [products, rates, isLoading],
+  );
 
   const customerMetrics = useMemo(() => {
     if (!customers.length) return null;
@@ -148,6 +110,10 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
     return <div className="p-12 text-center text-tea-text-sec flex justify-center items-center text-ui-13"><Loader2 className="animate-spin mr-2" size={18} /> Analyzing financial data...</div>;
   }
 
+  // How many teas the cost total left out, and in what, for the banner below.
+  const costlessTeaCount = Array.from(metrics.costlessCurrencies.values()).reduce((sum, n) => sum + n, 0);
+  const costlessCurrencyList = Array.from(metrics.costlessCurrencies.keys()).join(', ');
+
   // Colors
   const COLORS_CURRENCY = ['#C8A97E', '#859F85', '#A67B70', '#D4C586', '#8B8C89', '#5C544E'];
   const COLORS_TYPE = ['#C8A97E', '#DBC19D', '#E8E3D9', '#A39B8E', '#5C544E', '#26221D'];
@@ -185,6 +151,29 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
           <p className="text-ui-11 md:text-ui-12 text-tea-text-sec mt-2 md:mt-4 num">Margin: {fmtPct(metrics.totalCostUSD > 0 ? (metrics.potentialProfit / metrics.totalCostUSD) * 100 : 0)}</p>
         </div>
       </div>
+
+      {/* A tea whose cost currency the shop cannot resolve to a rate is left
+          out of Total Asset Cost above rather than priced at a guess, and that
+          silence is the whole reason it needs saying here: every indicator has
+          to be actionable, and a dropped total with nothing on screen is not
+          one. */}
+      {metrics.costlessCurrencies.size > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 bg-tea-elevated border border-tea-border rounded-md">
+          <p className="text-ui-13 text-tea-text-sec leading-[1.5]">
+            <span className="text-tea-text">
+              {costlessTeaCount} {costlessTeaCount === 1 ? 'tea is' : 'teas are'} left out of the cost total:
+            </span>{' '}
+            {costlessCurrencyList} {metrics.costlessCurrencies.size === 1 ? 'has' : 'have'} no rate on file.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate('/admin/currency')}
+            className="tap-target shrink-0 text-ui-13 text-tea-text-sec hover:text-tea-text underline underline-offset-2 text-left"
+          >
+            Set a rate
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
 
@@ -245,18 +234,14 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
                   <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-tea-elevated text-tea-text-sec font-display flex items-center justify-center text-ui-11">
                     {rate.currency}
                   </div>
+                  {/* The ISO code through the shared helper, which is the one
+                      place that knows 'Yuan' is CNY and 'NT' is TWD. It was
+                      written out again here, and a mapping written twice is
+                      the shape that lets the two drift. */}
                   <span className="text-ui-13 md:text-ui-14 text-tea-text">
-                    {rate.currency === 'NT' ? 'TWD' :
-                     rate.currency === 'Yuan' ? 'CNY' :
-                     rate.currency === 'IDR' ? 'IDR' :
-                     rate.currency === 'JPY' ? 'JPY' :
-                     rate.currency === 'MYR' ? 'MYR' : rate.currency}
+                    {isoCurrencyCode(rate.currency)}
                     <span className="hidden md:inline">
-                      {rate.currency === 'NT' ? ' (New Taiwan Dollar)' :
-                       rate.currency === 'Yuan' ? ' (Chinese Yuan)' :
-                       rate.currency === 'IDR' ? ' (Indonesian Rupiah)' :
-                       rate.currency === 'JPY' ? ' (Japanese Yen)' :
-                       rate.currency === 'MYR' ? ' (Malaysian Ringgit)' : ''}
+                      {currencyFullNameSuffix(isoCurrencyCode(rate.currency))}
                     </span>
                   </span>
                 </div>

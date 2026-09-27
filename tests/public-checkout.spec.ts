@@ -1,4 +1,4 @@
-import { expect, test, type Page, type Route } from '@playwright/test';
+import { expect, test, type Page, type Route } from './fixtures';
 
 const CART_ITEM = {
   id: 'checkout-tea', name: 'Moonlight White', variant: '', category: 'tea',

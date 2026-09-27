@@ -8,6 +8,7 @@
 
 | Document | Authority |
 |---|---|
+| [PILLAR.md](PILLAR.md) | What the site is and how it works, in one read; the file every session is pointed at first |
 | [STATE_OF_THE_SITE.md](STATE_OF_THE_SITE.md) | Concise verified snapshot of what exists and what remains |
 | [CONSOLIDATED_DIRECTION.md](CONSOLIDATED_DIRECTION.md) | Current product map and the three active engineering tracks |
 | [LAUNCH_VALIDATION.md](LAUNCH_VALIDATION.md) | **Only canonical checklist for Adrian, operator, editorial, deployed-environment, and other external validation** |

@@ -1,5 +1,11 @@
 import type { ReactNode } from 'react';
-import { HIT_AREA, LABEL } from '../shared/typeRoles';
+import { HIT_AREA } from '../shared/typeRoles';
+
+// The second tier of the shop's tabs, set in the SAME face and tracking as the
+// Tea / Teaware / Sets / Liked row above it, one size down and without the
+// gold. It used the sans label role, so two stacked rows of tabs read as two
+// different systems.
+const SUB_TAB = 'text-ui-11 uppercase tracking-[0.18em]';
 import { TEA_SHOP_VIEWS, type TeaShopView } from './teaShopView';
 
 interface TeaShopViewTabsProps {
@@ -54,7 +60,7 @@ export function TeaShopViewTabs({ active, onChange }: TeaShopViewTabsProps) {
             type="button"
             aria-pressed={isActive}
             onClick={() => onChange(view.id)}
-            className={`${HIT_AREA} ${LABEL} relative py-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 ${
+            className={`${HIT_AREA} ${SUB_TAB} relative py-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 ${
               isActive
                 ? 'text-tea-text'
                 : 'text-tea-text-sec hover:text-tea-text'

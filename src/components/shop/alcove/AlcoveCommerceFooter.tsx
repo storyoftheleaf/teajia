@@ -565,7 +565,10 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
                       </span>
                     </span>
                   )}
-                  <span className={`shrink-0 whitespace-nowrap text-left font-display tabular-nums ${isRail ? 'w-[58px] text-ui-14' : 'w-[64px] text-ui-15'} ${cell.active ? 'text-tea-gold-lt' : 'text-tea-text-sec'}`}>
+                  <span
+                    data-testid={`amount-total-${cell.key}`}
+                    className={`shrink-0 whitespace-nowrap text-left font-display tabular-nums ${isRail ? 'w-[58px] text-ui-14' : 'w-[64px] text-ui-15'} ${cell.active ? 'text-tea-gold-lt' : 'text-tea-text-sec'}`}
+                  >
                     {cell.sub || '\u203A'}
                   </span>
                 </button>
@@ -615,18 +618,8 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
               className="alcove-dock-amount tap-target"
             >
               <span className="shrink-0 font-display text-ui-17 tabular-nums text-tea-text">{activeCell.label}</span>
-              {/* The rate rides the trailing edge of the control, so the two
-                  figures on the bar sit on their own edges: the amount on the
-                  left, what it costs a gram on the right. */}
-              <span className="ml-auto flex min-w-0 shrink items-center gap-1.5 pl-1.5">
-                {dockRate && (
-                  <span className="min-w-0 truncate font-sans text-ui-12 tabular-nums text-tea-text-dim">
-                    {dockRate}
-                  </span>
-                )}
-                <span aria-hidden="true" className="shrink-0 font-sans text-ui-9 text-tea-text-dim">
-                  {amountsOpen ? '\u25B4' : '\u25BE'}
-                </span>
+              <span aria-hidden="true" className="ml-auto shrink-0 font-sans text-ui-9 text-tea-text-dim">
+                {amountsOpen ? '\u25B4' : '\u25BE'}
               </span>
             </button>
           ) : (
@@ -647,6 +640,11 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
               what has already been committed. The order only appears once
               there is one, which is what keeps a 343px bar from carrying four
               controls at the same time. */}
+          {activeCell && (
+            <span className="alcove-dock-cta-total shrink-0 tabular-nums" aria-hidden="true">
+              {resolvedTotal(addTotalUsd)}
+            </span>
+          )}
           <button
             type="button"
             onClick={() => {
@@ -662,12 +660,6 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
             {justAdded ? 'Added' : 'Add'}
           </button>
           {orderTotalUsd > 0 && (
-            /* The way to what has already been committed, and nothing else.
-               It used to lead with the order total, which put a third price on
-               a bar that was already quoting an amount and a rate, and the
-               figure a reader glanced at was as often the tea's as the order's.
-               The order's total belongs in the order, where the lines that
-               make it up are; out here the word is enough. */
             <button
               type="button"
               onClick={onOpenOrder}
@@ -675,6 +667,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
               aria-label={`Open cart, ${resolvedTotal(orderTotalUsd)}`}
             >
               <span className="alcove-dock-cta-verb">Cart</span>
+              <span className="alcove-dock-cta-total tabular-nums">{resolvedTotal(orderTotalUsd)}</span>
             </button>
           )}
         </div>

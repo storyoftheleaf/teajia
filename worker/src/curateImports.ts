@@ -9,6 +9,7 @@ import {
 } from './curateImportEvidence';
 import { CurateImportFinalizeError, finalizeCurateImport, holdingMatchesFinalizeItem, type CurateFinalizeData, type FinalizeReceiptLine } from './curateImportFinalize';
 import { decodeInventoryReceipt, effectiveInventoryPurpose, inventoryPurposeConflict } from './inventoryDomain';
+import { nameProductColumns } from './productDefaults';
 
 export interface CurateImportContext {
   accountId: string;
@@ -1313,6 +1314,13 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
           source_compass_entry_id: compassEntryId,
           owner_user_id: ctx.userId,
         };
+        /* The cost, the freight rate and the markup are named as NULL rather
+           than left out. A Curate import creates the holding first and settles
+           what it cost through the receipt afterwards, so this row genuinely
+           knows none of the three. Left out, the live table answers 0, 0 and
+           2.5: a free tea that ships free at a markup the shop stopped using,
+           landed hidden where nobody would see it. See productDefaults.ts. */
+        nameProductColumns(productValues);
         const productColumns = Object.keys(productValues);
         await env.DB.batch([
           env.DB.prepare(`INSERT OR IGNORE INTO products (id, account_id, ${productColumns.join(', ')}) VALUES (?, ?, ${productColumns.map(() => '?').join(', ')})`)

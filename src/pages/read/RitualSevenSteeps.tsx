@@ -127,9 +127,9 @@ const RitualSevenSteeps: React.FC = () => {
     const d = TEA_SETS['oolong'];
     el.innerHTML = d.colors.map((color, i) => `
       <div style="flex:1 1 64px; display:flex; flex-direction:column; align-items:center; gap:10px; min-width:60px;">
-        <span style="width:clamp(34px,7vw,52px); height:clamp(34px,7vw,52px); border-radius:50%; background:${color}; box-shadow:0 0 0 1px rgba(168,135,77,0.3), inset 0 -6px 12px rgba(0,0,0,0.28), inset 0 5px 9px rgba(255,255,255,0.22);"></span>
-        <span style="font-family:'Noto Serif SC',serif; font-size:17px; color:#cdc0a8; line-height:1;">${CN_NUMS[i]}</span>
-        <span style="font-family:var(--font-sans); font-size:9.5px; letter-spacing:0.08em; color:#80735f;">${d.times[i]}s</span>
+        <span style="width:clamp(34px,7vw,52px); height:clamp(34px,7vw,52px); border-radius:50%; background:${color}; box-shadow:0 0 0 1px rgb(var(--tj-read-gold-rgb) / 0.3), inset 0 -6px 12px rgba(0,0,0,0.28), inset 0 5px 9px rgba(255,255,255,0.22);"></span>
+        <span style="font-family:'Noto Serif SC',serif; font-size:17px; color:var(--tj-read-taupe); line-height:1;">${CN_NUMS[i]}</span>
+        <span style="font-family:var(--font-sans); font-size:9.5px; letter-spacing:0.08em; color:var(--tj-read-dim);">${d.times[i]}s</span>
       </div>`).join('');
   }, []);
 
@@ -149,7 +149,7 @@ const RitualSevenSteeps: React.FC = () => {
       if (!card) return;
       const on = Number(p.getAttribute('data-steep')) === i;
       card.style.opacity     = on ? '1' : '0.4';
-      card.style.borderColor = on ? 'var(--tj-gold,#a8874d)' : 'rgba(168,135,77,0.18)';
+      card.style.borderColor = on ? 'var(--tj-gold,var(--tj-gold, var(--tj-read-gold-default)))' : 'rgb(var(--tj-read-gold-rgb) / 0.18)';
     });
   };
 
@@ -288,8 +288,8 @@ const RitualSevenSteeps: React.FC = () => {
 
         {/* COVER */}
         <header style={{ position: 'relative', minHeight: '90vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 'clamp(40px,8vw,90px) 24px', overflow: 'hidden' }}>
-          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 55% at 50% 30%, rgba(168,135,77,0.13), transparent 62%)' }} />
-          <div aria-hidden="true" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-54%)', fontFamily: F.cn, fontWeight: 200, fontSize: 'min(56vw,540px)', lineHeight: 1, color: 'rgba(168,135,77,0.05)', pointerEvents: 'none', userSelect: 'none' }}>沏</div>
+          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 55% at 50% 30%, rgb(var(--tj-read-gold-rgb) / 0.13), transparent 62%)' }} />
+          <div aria-hidden="true" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-54%)', fontFamily: F.cn, fontWeight: 200, fontSize: 'min(56vw,540px)', lineHeight: 1, color: 'rgb(var(--tj-read-gold-rgb) / 0.05)', pointerEvents: 'none', userSelect: 'none' }}>沏</div>
           <div style={{ position: 'relative', maxWidth: 760 }}>
             <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.42em', textTransform: 'uppercase', color: C.gold, marginBottom: 30 }}>The Ritual of Tea &nbsp;·&nbsp; N°05</div>
             <h1 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(54px,11vw,128px)', lineHeight: 0.96, letterSpacing: '-0.015em', color: C.cream, margin: 0 }}>
@@ -303,7 +303,7 @@ const RitualSevenSteeps: React.FC = () => {
           <div style={{ position: 'absolute', bottom: 38, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, animation: 'tjFloat 3.4s ease-in-out infinite' }}>
             <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.28em', textTransform: 'uppercase', color: C.dim }}>Scroll to pour</span>
             <svg width="13" height="20" viewBox="0 0 13 20" fill="none">
-              <path d="M6.5 1v17M1 12.5l5.5 5.5 5.5-5.5" stroke="#a8874d" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M6.5 1v17M1 12.5l5.5 5.5 5.5-5.5" stroke="var(--tj-gold, var(--tj-read-gold-default))" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
         </header>
@@ -342,8 +342,8 @@ const RitualSevenSteeps: React.FC = () => {
                 />
                 <path d="M64 156 C72 214, 108 244, 150 244 C192 244, 228 214, 236 156 Z" fill="url(#tj-liq-sheen)" />
                 <ellipse cx="150" cy="156" rx="86" ry="14" fill="rgba(255,248,225,0.08)" stroke="rgba(255,248,225,0.30)" strokeWidth="1" />
-                <path d="M58 150 C66 216, 106 250, 150 250 C194 250, 234 216, 242 150" fill="none" stroke="var(--tj-gold,#a8874d)" strokeWidth="1.6" strokeLinecap="round" />
-                <ellipse cx="150" cy="150" rx="92" ry="18" fill="none" stroke="var(--tj-gold,#a8874d)" strokeWidth="1.6" />
+                <path d="M58 150 C66 216, 106 250, 150 250 C194 250, 234 216, 242 150" fill="none" stroke="var(--tj-gold,var(--tj-gold, var(--tj-read-gold-default)))" strokeWidth="1.6" strokeLinecap="round" />
+                <ellipse cx="150" cy="150" rx="92" ry="18" fill="none" stroke="var(--tj-gold,var(--tj-gold, var(--tj-read-gold-default)))" strokeWidth="1.6" />
               </svg>
             </div>
             <div style={{ marginTop: 'clamp(14px,3vw,28px)', textAlign: 'center', minHeight: 128 }}>
@@ -364,7 +364,7 @@ const RitualSevenSteeps: React.FC = () => {
           <div>
             {/* steep 0, starts active */}
             <div data-steep="0" style={{ minHeight: '84vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '8px 0' }}>
-              <div data-steep-card style={{ borderLeft: '2px solid var(--tj-gold,#a8874d)', padding: '6px 0 6px 24px', transition: 'opacity 500ms, border-color 500ms' }}>
+              <div data-steep-card style={{ borderLeft: '2px solid var(--tj-gold,var(--tj-gold, var(--tj-read-gold-default)))', padding: '6px 0 6px 24px', transition: 'opacity 500ms, border-color 500ms' }}>
                 <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, marginBottom: 14 }}>醒茶 · The Awakening</div>
                 <h2 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(28px,4.2vw,42px)', lineHeight: 1.08, color: C.cream, margin: '0 0 18px' }}>First, we wake the leaf</h2>
                 <p style={{ fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.78, color: C.taupe, margin: 0 }}>Boiling water is poured over the dry leaf and tipped away almost at once. It rinses, it warms the pot and cups, and, most of all, it coaxes tightly-rolled leaves to begin to open. We do not drink this water. We simply let the tea know it is time.</p>
@@ -372,7 +372,7 @@ const RitualSevenSteeps: React.FC = () => {
             </div>
             {/* steep 1 */}
             <div data-steep="1" style={{ minHeight: '84vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '8px 0' }}>
-              <div data-steep-card style={{ borderLeft: '2px solid rgba(168,135,77,0.18)', padding: '6px 0 6px 24px', opacity: 0.4, transition: 'opacity 500ms, border-color 500ms' }}>
+              <div data-steep-card style={{ borderLeft: '2px solid rgb(var(--tj-read-gold-rgb) / 0.18)', padding: '6px 0 6px 24px', opacity: 0.4, transition: 'opacity 500ms, border-color 500ms' }}>
                 <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, marginBottom: 14 }}>第一泡 · First Infusion</div>
                 <h2 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(28px,4.2vw,42px)', lineHeight: 1.08, color: C.cream, margin: '0 0 18px' }}>The first true cup</h2>
                 <p style={{ fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.78, color: C.taupe, margin: 0 }}>Ten seconds, no more. The leaf has barely unclenched, and what it gives is all top-notes, the high, volatile aromatics that will never be this loud again. Light in the mouth, but the nose is already full. Drink it quickly; the second cup is already waiting.</p>
@@ -380,7 +380,7 @@ const RitualSevenSteeps: React.FC = () => {
             </div>
             {/* steep 2 */}
             <div data-steep="2" style={{ minHeight: '84vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '8px 0' }}>
-              <div data-steep-card style={{ borderLeft: '2px solid rgba(168,135,77,0.18)', padding: '6px 0 6px 24px', opacity: 0.4, transition: 'opacity 500ms, border-color 500ms' }}>
+              <div data-steep-card style={{ borderLeft: '2px solid rgb(var(--tj-read-gold-rgb) / 0.18)', padding: '6px 0 6px 24px', opacity: 0.4, transition: 'opacity 500ms, border-color 500ms' }}>
                 <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, marginBottom: 14 }}>第二泡 · Second Infusion</div>
                 <h2 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(28px,4.2vw,42px)', lineHeight: 1.08, color: C.cream, margin: '0 0 18px' }}>The body arrives</h2>
                 <p style={{ fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.78, color: C.taupe, margin: 0 }}>Now the leaf is fully open and the liquor thickens. Texture fills the mouth where before there was only scent; sweetness gathers underneath. The tea stops being a fragrance and becomes a drink. This is where most teas first show you who they are.</p>
@@ -388,7 +388,7 @@ const RitualSevenSteeps: React.FC = () => {
             </div>
             {/* steep 3 */}
             <div data-steep="3" style={{ minHeight: '84vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '8px 0' }}>
-              <div data-steep-card style={{ borderLeft: '2px solid rgba(168,135,77,0.18)', padding: '6px 0 6px 24px', opacity: 0.4, transition: 'opacity 500ms, border-color 500ms' }}>
+              <div data-steep-card style={{ borderLeft: '2px solid rgb(var(--tj-read-gold-rgb) / 0.18)', padding: '6px 0 6px 24px', opacity: 0.4, transition: 'opacity 500ms, border-color 500ms' }}>
                 <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, marginBottom: 14 }}>第三泡 · Third Infusion</div>
                 <h2 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(28px,4.2vw,42px)', lineHeight: 1.08, color: C.cream, margin: '0 0 18px' }}>The peak</h2>
                 <p style={{ fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.78, color: C.taupe, margin: 0 }}>Aroma and body meet in the middle and hold hands. Brewers speak of the third and fourth steeps as the heart of a session, nothing is rushing in, nothing is fading yet. If you are sharing this tea with someone, this is the cup you give them.</p>
@@ -396,7 +396,7 @@ const RitualSevenSteeps: React.FC = () => {
             </div>
             {/* steep 4, contains <em> */}
             <div data-steep="4" style={{ minHeight: '84vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '8px 0' }}>
-              <div data-steep-card style={{ borderLeft: '2px solid rgba(168,135,77,0.18)', padding: '6px 0 6px 24px', opacity: 0.4, transition: 'opacity 500ms, border-color 500ms' }}>
+              <div data-steep-card style={{ borderLeft: '2px solid rgb(var(--tj-read-gold-rgb) / 0.18)', padding: '6px 0 6px 24px', opacity: 0.4, transition: 'opacity 500ms, border-color 500ms' }}>
                 <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, marginBottom: 14 }}>第四泡 · Fourth Infusion</div>
                 <h2 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(28px,4.2vw,42px)', lineHeight: 1.08, color: C.cream, margin: '0 0 18px' }}>The finish lengthens</h2>
                 <p style={{ fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.78, color: C.taupe, margin: 0 }}>We add a few seconds to the steep now, asking the leaf for a little more. The front of the cup quietens, but the <em style={{ fontStyle: 'italic', color: C.ink }}>finish</em> opens out, that long after-taste the Chinese call huí gān, the "returning sweetness" that climbs back up the throat once the cup is empty.</p>
@@ -404,7 +404,7 @@ const RitualSevenSteeps: React.FC = () => {
             </div>
             {/* steep 5 */}
             <div data-steep="5" style={{ minHeight: '84vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '8px 0' }}>
-              <div data-steep-card style={{ borderLeft: '2px solid rgba(168,135,77,0.18)', padding: '6px 0 6px 24px', opacity: 0.4, transition: 'opacity 500ms, border-color 500ms' }}>
+              <div data-steep-card style={{ borderLeft: '2px solid rgb(var(--tj-read-gold-rgb) / 0.18)', padding: '6px 0 6px 24px', opacity: 0.4, transition: 'opacity 500ms, border-color 500ms' }}>
                 <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, marginBottom: 14 }}>第五泡 · Fifth Infusion</div>
                 <h2 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(28px,4.2vw,42px)', lineHeight: 1.08, color: C.cream, margin: '0 0 18px' }}>Softening</h2>
                 <p style={{ fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.78, color: C.taupe, margin: 0 }}>The edges round off. What was bright is now mellow; what was structured is now gentle. A good tea does not fall off a cliff here, it descends a long, easy staircase, giving honey and warm minerals where it once gave fire.</p>
@@ -412,7 +412,7 @@ const RitualSevenSteeps: React.FC = () => {
             </div>
             {/* steep 6 */}
             <div data-steep="6" style={{ minHeight: '84vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '8px 0' }}>
-              <div data-steep-card style={{ borderLeft: '2px solid rgba(168,135,77,0.18)', padding: '6px 0 6px 24px', opacity: 0.4, transition: 'opacity 500ms, border-color 500ms' }}>
+              <div data-steep-card style={{ borderLeft: '2px solid rgb(var(--tj-read-gold-rgb) / 0.18)', padding: '6px 0 6px 24px', opacity: 0.4, transition: 'opacity 500ms, border-color 500ms' }}>
                 <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, marginBottom: 14 }}>第六泡 · Sixth Infusion</div>
                 <h2 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(28px,4.2vw,42px)', lineHeight: 1.08, color: C.cream, margin: '0 0 18px' }}>Quiet sweetness</h2>
                 <p style={{ fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.78, color: C.taupe, margin: 0 }}>We steep longer to draw out what remains. The tea is pale now, and unhurried, and quietly sweet, the kind of cup you drink without talking. The leaf has given almost everything it carried down from the mountain.</p>
@@ -420,7 +420,7 @@ const RitualSevenSteeps: React.FC = () => {
             </div>
             {/* steep 7 */}
             <div data-steep="7" style={{ minHeight: '88vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '8px 0' }}>
-              <div data-steep-card style={{ borderLeft: '2px solid rgba(168,135,77,0.18)', padding: '6px 0 6px 24px', opacity: 0.4, transition: 'opacity 500ms, border-color 500ms' }}>
+              <div data-steep-card style={{ borderLeft: '2px solid rgb(var(--tj-read-gold-rgb) / 0.18)', padding: '6px 0 6px 24px', opacity: 0.4, transition: 'opacity 500ms, border-color 500ms' }}>
                 <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, marginBottom: 14 }}>第七泡 · Seventh Infusion</div>
                 <h2 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(28px,4.2vw,42px)', lineHeight: 1.08, color: C.cream, margin: '0 0 18px' }}>A gentle goodbye</h2>
                 <p style={{ fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.78, color: C.taupe, margin: 0 }}>A minute or more in the water for one last, faint cup, clear, soft, almost a memory of tea. A fine leaf could be pushed further still; we choose to stop here, while the ending is sweet. To know when a tea is finished is its own small skill.</p>
@@ -433,7 +433,7 @@ const RitualSevenSteeps: React.FC = () => {
         <section data-reveal style={{ maxWidth: 1080, margin: '0 auto', padding: 'clamp(30px,5vw,56px) 24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 30 }}>
             <span style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 30, color: C.gold, lineHeight: 1 }}>ω</span>
-            <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.22)' }} />
+            <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.22)' }} />
             <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim }}>The session, in colour</span>
           </div>
           <div ref={recapRef} style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 'clamp(10px,2vw,18px)' }} />

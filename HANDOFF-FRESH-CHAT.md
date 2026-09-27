@@ -1,41 +1,37 @@
-# Handoff to fresh chat: finish the Tea knowledge integration
+# Handoff to fresh chat: the navigation foundation, one word per route
 
-Open a new chat in the Teajia project and paste the block below.
+Open a new chat in the Teajia project and paste the block below. The copy button on the code fence grabs it cleanly.
 
 ```
-Execute the final Tea knowledge integration specified in docs/_notes/tea-knowledge-final-integration.md.
+Execute the navigation foundation slice specified in todo/plans/nav-foundation.md. It is the third slice of Direction A from the 2026-09-22 navigation survey; the first two (the two-door bottom bar with the site panel, and Your Table as the person's room with one Manage door) are live on teajia.com.
+
+Start with git pull origin main so you have the plan file and both shipped slices. Work in your own worktree on a branch; five or six sessions run on this repo at once.
 
 Before touching code, read in this order:
-1. AGENTS.md in the Teajia project root.
-2. docs/_notes/wisdom-integration-handoff.md, especially the 2026-08-08 audit deltas.
-3. docs/_notes/tea-knowledge-final-integration.md.
-4. context/knowledge/AI-Philosophy.md in the i64os repository.
-5. context/knowledge/Tea.md in the i64os repository.
+1. todo/plans/nav-foundation.md, the audit deltas at the top first.
+2. The "Desktop / mobile layout principles" section of CLAUDE.md, the two bullets dated 2026-09-22.
+3. src/components/manageNav.ts and src/components/navigationConnections.ts, the one list of Manage rooms and its gates.
+4. The survey page for the reasoning, sections "What is actually wrong" and "The shared foundation": https://claude.ai/artifact/VNLJtEDaYFRshPSgMeWk9P
 
-You do not need to re-survey the branch integration, database migration, public wisdom reference, product-page wisdom band, reference redesign, or old Phase 1.3 endpoint. They were verified complete on 2026-08-08. The Tea domain is not empty. MCP routing supersedes Phase 1.3. Direct knowledge_assimilate writes are forbidden.
+You do not need to re-survey the navigation. Every nav surface, every Your Table tile, every Manage room, every public route and its inbound links were mapped on 2026-09-22 by four agents and the results are in the plan and on the survey page. Re-grep each dead file before deleting it, nothing more.
 
-Execute both bounded parts of the brief:
-1. Build the deterministic, manual, hash-based proposal sync. Preview the complete eligible corpus, prove byte determinism and idempotency, then enqueue at most the first 25 new or changed proposals through capture. Leave them waiting for Adrian's review. Never approve or assimilate them.
-2. Rehearse the live Curate importer with the specified Yunnan Sourcing Yi Bang record. Verify the untouched extracted description and processing notes plus the other required fields, preserve evidence, and abandon the draft without finalizing inventory. If the real record exposes an extraction defect, fix only that path, add a focused regression fixture, deploy the changed surface, repeat the rehearsal, and abandon the replacement draft.
+Execute the plan in its four parts, in order: the renames with the one-word guard, the dead code, the routes with no door, the docs. One PR against main, conventional commit messages, no em-dashes anywhere. Where the plan says "default", take the default and name it in the closing report; ask Adrian once, at the end, only about the two routes the plan leaves to him.
 
-Use isolated branches if both Teajia and i64os change. Do not disturb unrelated changes in either main checkout. For Teajia, run npm run lint, npm run lint:colors, npx vitest run src worker/tests, and npm run build. Run focused i64os tests and its relevant typecheck. Browser-verify the live rehearsal at mobile and desktop widths with no console errors or horizontal overflow. If worker code changes, deploy it manually and verify behavior; do not touch or document any Infisical or Cloudflare token.
+Verification is what the plan's last section says and nothing less. Run the browser specs on the managed mock server (plain npx playwright test, port 7777 free), never against a dev server that talks to the live API. Prove the one-word guard goes red before you trust it green. Before saying anything is live, load the live site and paste the check.
 
 Hard rails:
-- No direct knowledge_assimilate call. capture plus Adrian's review click is the trust boundary.
-- No automatic schedule or permanent sync service. Manual command, preview by default, maximum 25 proposals per apply.
-- No finalizing the vendor import and no creation of products, inventory, receipts, vendors or sourcing runs.
-- No secrets in output, files, logs, commits or handoff notes.
-- No em-dashes in code comments or user-facing copy.
-- Preserve Teajia's quiet design and existing interfaces. This is integration plumbing, not a new user-facing AI feature.
-- Send a clickable dev-server URL when a visible fix is ready to inspect.
+- No popup questions, no em-dashes, no file paths in prose Adrian reads.
+- Never change a nav word beyond what the plan names without asking.
+- The Manage rooms live in manageNav.ts only; never add a second list.
+- Warm dark theme, no icons beside words in the rail or the column.
+- Do not touch worker/ in this slice; the worker type ratchet fails on moved lines.
+- Send a clickable dev-server URL and a screenshot of the open Manage column and the phone's site panel for an owner when ready to look at.
 
-When the first proposal batch is waiting, the real import draft has been verified and abandoned, all checks pass, and any needed deploy is live, stop and report. Do not review captures, populate live cultivar fields, run later batches, repair deployment credentials, or start unrelated inventory work.
+After the slice is merged and proven live, stop and report. Do not start the connections page or any other follow-up.
 ```
 
 ---
 
-## Context for after this handoff lands
+## Context for after (Adrian's reference only, not for the fresh chat)
 
-Adrian can review the first 25 Tea captures, then run later capped batches when ready.
-Populating cultivar pointers on the 192 live products remains a separate curation task.
-The unrelated `wip/inventory-mobile-sheet` branch also remains outside this handoff.
+When this lands, Direction A is complete. What remains from the survey is one design call: the connections page, people and places on one screen, merging the spaces page and Find a Table. The plan for it is todo/plans/connections-page.md. Direction B's "Around you" band and Direction C's fifth word were not chosen and stay on the survey page as the record.
