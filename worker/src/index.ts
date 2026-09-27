@@ -18899,7 +18899,10 @@ async function sendOrderRequestEmails(env: Env, input: {
   reference: string;
   trackingToken: string | null;
 }): Promise<boolean> {
-  if (!env.SENDER_EMAIL || !env.RESEND_API_KEY) return false;
+  if (!env.SENDER_EMAIL || !env.RESEND_API_KEY) {
+    console.warn('order_request_email_unconfigured', { accountId: input.accountId, reference: input.reference });
+    return false;
+  }
 
   const lines = orderRequestLines(input.itemsJson);
   // A consult with nothing in it is a conversation, not an order.
@@ -18959,7 +18962,10 @@ async function sendOrderRequestEmails(env: Env, input: {
       trackingUrl: input.trackingToken ? `${origin}/order/${encodeURIComponent(input.trackingToken)}` : null,
     }), ownerRecipient || undefined);
   }
-  const [, customerSent] = await Promise.all([storeDelivery, customerDelivery]);
+  const [storeSent, customerSent] = await Promise.all([storeDelivery, customerDelivery]);
+  if (!storeSent) {
+    console.warn('order_request_store_email_failed', { accountId: input.accountId, reference: input.reference });
+  }
   return customerSent;
 }
 

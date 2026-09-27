@@ -71,6 +71,12 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
     };
   }, [activeAccountId, setActiveAccount]);
 
+  useEffect(() => {
+    if (!loading && account && window.location.hash === '#order-contacts') {
+      document.getElementById('order-contacts')?.scrollIntoView({ block: 'start' });
+    }
+  }, [loading, account?.id]);
+
   const update = <K extends keyof Account>(key: K, value: Account[K]) => {
     setAccount((prev) => (prev ? { ...prev, [key]: value } : prev));
   };
@@ -245,6 +251,19 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
       )}
 
       <form id="account-profile-form" onSubmit={handleSave} className="space-y-6">
+        <OrderContactsSection
+          whatsappNumber={account.whatsapp_number ?? ''}
+          email={account.contact_email ?? ''}
+          onWhatsAppChange={(value) => update('whatsapp_number', value)}
+          onEmailChange={(value) => update('contact_email', value)}
+          disabled={disabled}
+        />
+        {canEdit && <div className="flex flex-wrap items-center gap-3">
+          <button type="submit" disabled={saving} className={`${TYPOGRAPHY_CLASSES.label} tap-target cta-solid rounded-md px-4 py-2 disabled:opacity-40`}>
+            {saving ? 'Saving…' : 'Save contacts and settings'}
+          </button>
+          {saveMsg && <p role="status" className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text`}>{saveMsg}</p>}
+        </div>}
         {/* Read-only section */}
         <div className="bg-tea-surface rounded-xl border border-tea-border p-5 space-y-4">
           <h2 className="label-caps text-tea-text-dim">
@@ -327,22 +346,6 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
             Commerce
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field
-              label="WhatsApp Number"
-              value={account.whatsapp_number ?? ''}
-              onChange={(v) => update('whatsapp_number', v)}
-              disabled={disabled}
-              placeholder="+614XXXXXXXX"
-              hint="Used for visitor questions and WhatsApp checkout. Include the country code."
-            />
-            <Field
-              label="Contact Email"
-              value={account.contact_email ?? ''}
-              onChange={(v) => update('contact_email', v)}
-              disabled={disabled}
-              placeholder="hello@example.com"
-              hint="Fallback contact for visitors who do not use WhatsApp."
-            />
             <Field
               label="Default Currency"
               value={account.currency_default ?? ''}
@@ -1106,29 +1109,98 @@ function describeRateAge(lastUpdated: string | null | undefined): string {
   return `Rate last refreshed ${days} days ago, so the daily refresh has stopped and this conversion is drifting.`;
 }
 
+interface OrderContactsSectionProps {
+  whatsappNumber: string;
+  email: string;
+  onWhatsAppChange: (value: string) => void;
+  onEmailChange: (value: string) => void;
+  disabled?: boolean;
+}
+
+export const OrderContactsSection: React.FC<OrderContactsSectionProps> = ({
+  whatsappNumber, email, onWhatsAppChange, onEmailChange, disabled,
+}) => (
+  <section id="order-contacts" aria-labelledby="order-contacts-heading" className="scroll-mt-6 bg-tea-surface rounded-xl border border-tea-border p-5 space-y-4">
+    <div>
+      <h2 id="order-contacts-heading" className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Order contacts</h2>
+      <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-2 text-tea-text-sec`}>
+        Set the inbox you use for orders. You can add a business WhatsApp number later.
+      </p>
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <Field
+          id="order-whatsapp"
+          type="tel"
+          label="Business WhatsApp (optional)"
+          value={whatsappNumber}
+          onChange={onWhatsAppChange}
+          disabled={disabled}
+          placeholder="Include the country code"
+          hint="Customers can message this number about orders. Leave it empty until your business number is ready."
+        />
+        <p className={`${TYPOGRAPHY_CLASSES.label} mt-2 text-tea-text-dim`}>
+          {whatsappNumber.trim() ? 'Number entered' : 'WhatsApp not set'}
+        </p>
+      </div>
+      <div>
+        <Field
+          id="order-email"
+          type="email"
+          label="Order email"
+          value={email}
+          onChange={onEmailChange}
+          disabled={disabled}
+          placeholder="Your order inbox"
+          hint="Receives website order-request notifications when email delivery is configured, and customer replies to order acknowledgements."
+        />
+        <p className={`${TYPOGRAPHY_CLASSES.label} mt-2 text-tea-text-dim`}>
+          {email.trim() ? 'Address entered' : 'Order email not set'}
+        </p>
+      </div>
+    </div>
+    <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec`}>
+      Save Changes applies these contacts. Entering an address does not verify email delivery.
+      Saved website requests are also available in Order requests.
+    </p>
+    <div className="flex flex-wrap gap-x-6 gap-y-1">
+      <a href="/admin/activity?tab=inquiries" className={`${TYPOGRAPHY_CLASSES.link} tap-target text-tea-text underline underline-offset-4 hover:text-tea-gold-lt`}>
+        Open order requests <ArrowRight size={14} aria-hidden="true" />
+      </a>
+      <a href="/account/profile" className={`${TYPOGRAPHY_CLASSES.link} tap-target text-tea-text underline underline-offset-4 hover:text-tea-gold-lt`}>
+        Set up payment methods <ArrowRight size={14} aria-hidden="true" />
+      </a>
+    </div>
+  </section>
+);
+
 // ─── Field helpers ────────────────────────────────────────────────────────────
 
 const Field: React.FC<{
+  id?: string;
+  type?: 'text' | 'tel' | 'email';
   label: string;
   value: string;
   onChange: (v: string) => void;
   disabled?: boolean;
   placeholder?: string;
   hint?: string;
-}> = ({ label, value, onChange, disabled, placeholder, hint }) => (
+}> = ({ id, type = 'text', label, value, onChange, disabled, placeholder, hint }) => (
   <div>
-    <label className="label-caps text-tea-text-sec mb-1.5 block">
+    <label htmlFor={id} className="label-caps text-tea-text-sec mb-1.5 block">
       {label}
     </label>
     <input
-      type="text"
+      id={id}
+      type={type}
+      aria-describedby={id && hint ? `${id}-hint` : undefined}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
       placeholder={placeholder}
       className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none disabled:opacity-60"
     />
-    {hint && <p className="mt-1 text-ui-12 text-tea-text-dim leading-[1.5]">{hint}</p>}
+    {hint && <p id={id ? `${id}-hint` : undefined} className="mt-1 text-ui-12 text-tea-text-dim leading-[1.5]">{hint}</p>}
   </div>
 );
 

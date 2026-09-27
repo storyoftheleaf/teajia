@@ -198,7 +198,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
       {placedOrder ? <section className="space-y-5" aria-label="Order request confirmation">
         <div role="status" className="space-y-2">
           <p className={`${T.body} text-tea-text`}>Your request is saved with {storeName}.</p>
-          <p className={`${T.bodyLight} text-tea-text-sec`}>{placedOrder.channel === 'whatsapp' ? 'In WhatsApp, press Send to start the conversation. Your request is already recorded here.' : 'We’ll reply by email to confirm availability, delivery and payment. You can close this window and follow the request using the link below.'}</p>
+          <p className={`${T.bodyLight} text-tea-text-sec`}>{placedOrder.channel === 'whatsapp' ? 'In WhatsApp, press Send to start the conversation. Your request is already recorded here.' : 'We’ll reply by email to confirm stock, delivery and the final total. Pay only after receiving that confirmation.'}</p>
           {placedOrder.channel === 'website' && <p className={`${T.bodyLight} text-tea-text-sec`}>{placedOrder.emailSent ? 'A confirmation email has been sent.' : 'A confirmation email could not be confirmed. Keep your order-status link; your request is still saved.'}</p>}
         </div>
         <a className="checkout-tracking-link" href={recentOrderRequestPath(placedOrder.request)} onClick={onClose}>View order status <span className="block break-all">{placedOrder.request.reference}</span></a>

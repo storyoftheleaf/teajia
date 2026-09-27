@@ -8,6 +8,7 @@ const SECRET = 'website-test-secret';
 const databases: SqliteD1[] = [];
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   databases.splice(0).forEach(db => db.close());
 });
 
@@ -49,11 +50,24 @@ function create(db: SqliteD1, body = payload(), mail = false) {
   } as never, {} as never);
 }
 
-async function convert(db: SqliteD1, id: string) {
+async function admin(db: SqliteD1, path: string, method = 'GET', body?: unknown) {
   const token = await signedToken(SECRET, { sub: 'owner', email: 'owner@test.dev', active_account_id: 'shop', role: 'owner' });
-  return worker.fetch(new Request(`https://app.test/api/inquiries/${id}/convert`, {
-    method: 'POST', headers: { Authorization: `Bearer ${token}`, 'X-Teajia-Account': 'shop' },
+  return worker.fetch(new Request(`https://app.test${path}`, {
+    method,
+    headers: { Authorization: `Bearer ${token}`, 'X-Teajia-Account': 'shop', 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
   }), { DB: db, JWT_SECRET: SECRET } as never, {} as never);
+}
+
+function convert(db: SqliteD1, id: string) {
+  return admin(db, `/api/inquiries/${id}/convert`, 'POST');
+}
+
+async function trackedOrder(db: SqliteD1) {
+  const response = await worker.fetch(new Request(`https://app.test/api/inquiries/${TOKEN}`),
+    { DB: db, JWT_SECRET: SECRET } as never, {} as never);
+  expect(response.status).toBe(200);
+  return response.json() as Promise<any>;
 }
 
 describe('website order requests', () => {
@@ -66,6 +80,7 @@ describe('website order requests', () => {
 
   it('saves once, keeps location apart from contact, and permits delivery-channel retries', async () => {
     const db = seed();
+    const warnings = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const first = await create(db);
     expect(first.status).toBe(201);
     expect(await first.json()).toMatchObject({ success: true, email_sent: false, tracking_token: TOKEN });
@@ -77,6 +92,9 @@ describe('website order requests', () => {
     expect(replay.status).toBe(200);
     expect(await replay.json()).toMatchObject({ idempotent: true });
     expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM inquiries').get()).toEqual({ n: 1 });
+    expect(warnings.mock.calls).toEqual([
+      ['order_request_email_unconfigured', { accountId: 'shop', reference: 'TJ-WEBSITE' }],
+    ]);
   });
 
   it('awaits receipts, carries a private tracking link, and does not resend on retry', async () => {
@@ -107,10 +125,32 @@ describe('website order requests', () => {
 
   it('keeps the saved request when email fails and reports no email success', async () => {
     const db = seed();
+    const warnings = vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 503 })));
     const response = await create(db, payload(), true);
     expect(response.status).toBe(201);
     expect(await response.json()).toMatchObject({ email_sent: false });
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM inquiries').get()).toEqual({ n: 1 });
+    expect(warnings.mock.calls).toEqual([
+      ['order_request_store_email_failed', { accountId: 'shop', reference: 'TJ-WEBSITE' }],
+    ]);
+  });
+
+  it('reports the store notification failure separately from a successful customer receipt', async () => {
+    const db = seed();
+    const warnings = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.stubGlobal('fetch', vi.fn(async (_url, init) => {
+      const { to } = JSON.parse(init.body);
+      return new Response('{}', { status: to === 'guest@example.com' ? 200 : 503 });
+    }));
+    const response = await create(db, payload(), true);
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({ success: true, email_sent: true });
+    // Exact arguments ensure no customer's name, contact, message or private
+    // tracking token is accidentally written to the operational warning log.
+    expect(warnings.mock.calls).toEqual([
+      ['order_request_store_email_failed', { accountId: 'shop', reference: 'TJ-WEBSITE' }],
+    ]);
     expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM inquiries').get()).toEqual({ n: 1 });
   });
 
@@ -159,5 +199,84 @@ describe('website order requests', () => {
     expect(quoteInquiryLine({ ...payload().items[0], packGrams: 100, packs: 2, quantityGrams: 200 }, {
       type: 'Red', retail_price_per_gram_usd: 0.2, form: 'Box', piece_weight_g: 100, sold_in_whole_units: 1,
     })).toBe(40);
+  });
+
+  it('carries one website request through the real admin, payment and fulfillment routes', async () => {
+    const db = seed();
+    // No live network, email provider, accounts or orders participate in this rehearsal.
+    const network = vi.fn(async () => { throw new Error('Unexpected external request'); });
+    vi.stubGlobal('fetch', network);
+
+    const created = await create(db);
+    expect(created.status).toBe(201);
+    const request = await created.json() as any;
+    const inbox = await admin(db, '/api/admin/inquiries');
+    expect(inbox.status).toBe(200);
+    const { inquiries } = await inbox.json() as any;
+    expect(inquiries).toHaveLength(1);
+    expect(inquiries[0]).toMatchObject({
+      id: request.id, source: 'website', email: 'guest@example.com', phone: null,
+      items: [{ id: 'tea', packGrams: 25, packs: 2, quantityGrams: 50, totalPrice: 14 }],
+    });
+    expect(await trackedOrder(db)).toMatchObject({ journey: { stage: 'received' }, payment: null });
+
+    const converted = await convert(db, request.id);
+    expect(converted.status).toBe(200);
+    const { invoice_id: invoiceId } = await converted.json() as any;
+    expect(await trackedOrder(db)).toMatchObject({
+      journey: { stage: 'confirmed' }, payment: { total_usd: 14 },
+    });
+
+    // Staff agrees a $3 delivery amount and sends the draft. No SQL status shortcuts.
+    const sent = await admin(db, `/api/invoices/${invoiceId}`, 'PUT', { status: 'Pending', shipping_cost_usd: 3 });
+    expect(sent.status).toBe(200);
+    const orderList = await admin(db, '/api/invoices');
+    expect(orderList.status).toBe(200);
+    expect(await orderList.json()).toMatchObject([
+      { id: invoiceId, status: 'Pending', shipping_cost_usd: 3, payment: { total_usd: 17 } },
+    ]);
+    const due = await trackedOrder(db);
+    expect(due.journey.stage).toBe('awaiting_payment');
+    expect(due.payment).toMatchObject({ total_usd: 17, paid_usd: 0, outstanding_usd: 17 });
+    expect(new URL(due.payment.pay_url).searchParams.get('amount')).toBe('17.00');
+
+    // A guest uses only the private tracking token to report a first transfer.
+    const reported = await worker.fetch(new Request(`https://app.test/api/orders/${TOKEN}/payment-claim`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': '203.0.113.201' },
+      body: JSON.stringify({ amount: 6, currency: 'USD', method: 'Bank transfer' }),
+    }), { DB: db, JWT_SECRET: SECRET } as never, {} as never);
+    expect(reported.status).toBe(201);
+    const claim = await reported.json() as any;
+    expect(await trackedOrder(db)).toMatchObject({
+      journey: { stage: 'awaiting_payment' }, payment: { paid_usd: 0, outstanding_usd: 17, claims_pending: 1 },
+    });
+    const confirmed = await admin(db, `/api/invoice-payments/${claim.claim_id}/confirm`, 'POST');
+    expect(confirmed.status).toBe(200);
+    const partPaid = await trackedOrder(db);
+    expect(partPaid.journey.stage).toBe('part_paid');
+    expect(partPaid.payment).toMatchObject({ paid_usd: 6, outstanding_usd: 11, claims_pending: 0 });
+    expect(new URL(partPaid.payment.pay_url).searchParams.get('amount')).toBe('11.00');
+
+    const remainder = await admin(db, `/api/invoices/${invoiceId}/payments`, 'POST', {
+      amount_usd: 11, method_label: 'Cash', reference: 'Local rehearsal',
+    });
+    expect(remainder.status).toBe(201);
+    expect(await trackedOrder(db)).toMatchObject({
+      journey: { stage: 'paid' }, payment: { total_usd: 17, paid_usd: 17, outstanding_usd: 0, pay_url: null },
+    });
+
+    const fulfilled = await admin(db, '/api/rpc/fulfill-invoice', 'POST', { invoice_id: invoiceId });
+    expect(fulfilled.status).toBe(200);
+    const complete = await trackedOrder(db);
+    expect(complete).toMatchObject({
+      ref_number: request.ref_number, journey: { stage: 'sent', label: 'Fulfilled' },
+      payment: { total_usd: 17, paid_usd: 17, outstanding_usd: 0, pay_url: null },
+    });
+    expect(JSON.parse(complete.items_json)[0]).toMatchObject({ packGrams: 25, packs: 2, quantityGrams: 50 });
+    expect(db.sqlite.prepare('SELECT stock_grams FROM products WHERE id = ?').get('tea')).toEqual({ stock_grams: 950 });
+    expect((await admin(db, '/api/rpc/fulfill-invoice', 'POST', { invoice_id: invoiceId })).status).toBe(409);
+    expect(db.sqlite.prepare('SELECT stock_grams FROM products WHERE id = ?').get('tea')).toEqual({ stock_grams: 950 });
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM invoices').get()).toEqual({ n: 1 });
+    expect(network).not.toHaveBeenCalled();
   });
 });
