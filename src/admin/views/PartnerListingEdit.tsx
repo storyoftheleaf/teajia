@@ -429,7 +429,9 @@ export const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, 
     note: listing.store_note ?? '',
   });
   const savingFields = useRef(new Set<string>());
+  const [busyFields, setBusyFields] = useState<Set<string>>(new Set());
   const [retrySave, setRetrySave] = useState<(() => void) | null>(null);
+  const latestRetry = useRef<Record<string, () => void>>({});
 
   const persist = useCallback(async (field: string, patch: {
     stock_grams?: number;
@@ -438,9 +440,10 @@ export const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, 
     fixed_retail_price_usd?: number | null;
     store_note?: string | null;
     is_sample?: boolean;
-  }, onSaved: () => void, retry: () => void) => {
+  }, onSaved: () => void) => {
     if (savingFields.current.has(field)) return;
     savingFields.current.add(field);
+    setBusyFields(new Set(savingFields.current));
     setRetrySave(null);
     try {
       await api.network.updateListing(listing.id, patch);
@@ -448,9 +451,12 @@ export const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, 
       showSave('Saved · ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     } catch (err: any) {
       showSave(err?.message || "Couldn't save. Try again.", true);
-      setRetrySave(() => retry);
+      // Resolve the latest field value when Retry is clicked. The value may
+      // have changed after this failed request was sent.
+      setRetrySave(() => () => latestRetry.current[field]?.());
     } finally {
       savingFields.current.delete(field);
+      setBusyFields(new Set(savingFields.current));
     }
   }, [listing.id, showSave]);
 
@@ -459,13 +465,13 @@ export const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, 
     const n = Number(stockValue);
     if (!isFinite(n) || n < 0) { showSave('Stock must be ≥ 0'); return; }
     const value = stockValue;
-    void persist('stock', { stock_grams: Math.floor(n) }, () => { lastSaved.current.stock = value; }, saveStock);
+    void persist('stock', { stock_grams: Math.floor(n) }, () => { lastSaved.current.stock = value; });
   };
 
   const savePrice = () => {
     if (priceValue === lastSaved.current.price) return;
     if (priceValue.trim() === '') {
-      void persist('price', { price_amount: null }, () => { lastSaved.current.price = ''; }, savePrice);
+      void persist('price', { price_amount: null }, () => { lastSaved.current.price = ''; });
       return;
     }
     const n = Number(priceValue);
@@ -473,19 +479,26 @@ export const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, 
     const value = priceValue;
     // Send the partner's local-currency-per-100g amount; server converts to USD/gram
     // via exchange_rates. Avoids the silent-no-conversion bug from earlier.
-    void persist('price', { price_amount: n, price_currency: priceCurrency }, () => { lastSaved.current.price = value; }, savePrice);
+    void persist('price', { price_amount: n, price_currency: priceCurrency }, () => { lastSaved.current.price = value; });
   };
 
   const saveSample = (next: boolean) => {
     if (next === lastSaved.current.sample) return;
     setSampleAvail(next);
-    void persist('sample', { is_sample: next }, () => { lastSaved.current.sample = next; }, () => saveSample(next));
+    void persist('sample', { is_sample: next }, () => { lastSaved.current.sample = next; });
   };
 
   const saveNote = () => {
     if (storeNote === lastSaved.current.note) return;
     const value = storeNote;
-    void persist('note', { store_note: value || null }, () => { lastSaved.current.note = value; }, saveNote);
+    void persist('note', { store_note: value || null }, () => { lastSaved.current.note = value; });
+  };
+
+  latestRetry.current = {
+    stock: saveStock,
+    price: savePrice,
+    sample: () => saveSample(sampleAvail),
+    note: saveNote,
   };
 
   return (
@@ -502,7 +515,8 @@ export const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, 
               value={stockValue}
               onChange={e => setStockValue(e.target.value)}
               onBlur={saveStock}
-              className="w-24 bg-transparent border-b border-tea-border focus:border-tea-gold/60 outline-none font-mono text-ui-14 text-tea-text py-1 text-right transition-colors"
+              disabled={busyFields.has('stock')}
+              className="w-24 bg-transparent border-b border-tea-border focus:border-tea-gold/60 outline-none font-mono text-ui-14 text-tea-text py-1 text-right transition-colors disabled:opacity-50"
             />
             <span className="text-tea-text-sec text-ui-13">g</span>
           </div>
@@ -513,7 +527,8 @@ export const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, 
             <button
               type="button"
               onClick={() => saveSample(true)}
-              className={`text-ui-13 transition-colors ${sampleAvail ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+              disabled={busyFields.has('sample')}
+              className={`text-ui-13 transition-colors disabled:opacity-50 ${sampleAvail ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
             >
               yes
             </button>
@@ -521,7 +536,8 @@ export const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, 
             <button
               type="button"
               onClick={() => saveSample(false)}
-              className={`text-ui-13 transition-colors ${!sampleAvail ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+              disabled={busyFields.has('sample')}
+              className={`text-ui-13 transition-colors disabled:opacity-50 ${!sampleAvail ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
             >
               no
             </button>
@@ -542,7 +558,8 @@ export const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, 
               value={priceValue}
               onChange={e => setPriceValue(e.target.value)}
               onBlur={savePrice}
-              className="w-24 bg-transparent border-b border-tea-border focus:border-tea-gold/60 outline-none font-mono text-ui-14 text-tea-text py-1 text-right transition-colors"
+              disabled={busyFields.has('price')}
+              className="w-24 bg-transparent border-b border-tea-border focus:border-tea-gold/60 outline-none font-mono text-ui-14 text-tea-text py-1 text-right transition-colors disabled:opacity-50"
             />
             <span className="text-tea-text-sec text-ui-13">/100g</span>
           </div>
@@ -561,9 +578,10 @@ export const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, 
         <textarea
           value={storeNote}
           onChange={e => setStoreNote(e.target.value)}
+          disabled={busyFields.has('note')}
           rows={4}
           placeholder="Your voice on this tea. Shown above the curator's description on your storefront."
-          className="w-full bg-transparent border border-tea-border focus:border-tea-gold/40 outline-none font-body text-ui-15 leading-[1.7] text-tea-text px-3 py-2 rounded-[2px] resize-none transition-colors placeholder:text-tea-text-dim placeholder:italic"
+          className="w-full bg-transparent border border-tea-border focus:border-tea-gold/40 outline-none font-body text-ui-15 leading-[1.7] text-tea-text px-3 py-2 rounded-[2px] resize-none transition-colors placeholder:text-tea-text-dim placeholder:italic disabled:opacity-50"
         />
         <div className="flex items-center justify-between mt-1">
           <p className="text-tea-text-dim italic text-ui-12 leading-[1.6]">
@@ -572,7 +590,8 @@ export const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, 
           <button
             type="button"
             onClick={saveNote}
-            className="text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors"
+            disabled={busyFields.has('note')}
+            className="text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-50"
           >
             Save note
           </button>

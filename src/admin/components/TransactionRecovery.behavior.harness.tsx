@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { api } from '../../lib/api';
+import { api, ApiError } from '../../lib/api';
+import { useAppStore } from '../../lib/store';
 import { EditOrderModal } from './EditOrderModal';
 import { IncomingReceiptsPanel } from './inventory/IncomingReceiptsPanel';
 import { ListingFields } from '../views/PartnerListingEdit';
@@ -13,7 +14,14 @@ const orderRequests: OrderRequest[] = [];
 const orderWrites: Array<{ id: string; body: unknown }> = [];
 const receiveCalls: Array<{ lineId: string; quantity: number; key: string }> = [];
 const receivedKeys = new Set<string>();
-let received = 0;
+const receivedByAccount = new Map<string, number>();
+const balanceFor = (account: string | null) => receivedByAccount.get(account || 'no-account') || 0;
+const heldLists: Array<{ account: string | null; resolve: (rows: unknown[]) => void }> = [];
+const heldReceives: Array<{ resolve: () => void }> = [];
+let deferList = false;
+let deferReceive = false;
+let receiveRejectStatus = 0;
+let receiptUnit = 'g';
 let listFails = false;
 let receiveResponseFails = false;
 const toasts: string[] = [];
@@ -28,17 +36,36 @@ Object.assign(api.invoices, {
 Object.assign(api.inventoryReceipts, {
   list: async () => {
     if (listFails) throw new Error('Refresh unavailable');
-    return [{ id: 'receipt-a', vendor_name: 'Fixture vendor', state: 'partially_received', legacy: false, lines: [{
-      id: 'line-a', product_name: 'Fixture tea', expected_quantity: 20,
-      received_quantity: received, cancelled_quantity: 0, current_on_hand: received,
-      unit: 'g', intended_purpose: 'sale',
+    const account = useAppStore.getState().activeAccountId;
+    const rows = [{ id: 'receipt-a', vendor_name: 'Fixture vendor', state: 'partially_received', legacy: false, lines: [{
+      id: 'line-a', product_name: account ? `${account} tea` : 'Fixture tea', expected_quantity: 20,
+      received_quantity: balanceFor(account), cancelled_quantity: 0, current_on_hand: balanceFor(account),
+      unit: receiptUnit, intended_purpose: 'sale',
     }] }];
+    if (deferList) {
+      deferList = false;
+      return new Promise<unknown[]>(resolve => heldLists.push({ account, resolve }));
+    }
+    return rows;
   },
   receive: async (lineId: string, quantity: number, key: string) => {
+    const account = useAppStore.getState().activeAccountId;
     receiveCalls.push({ lineId, quantity, key });
-    if (!receivedKeys.has(key)) { received += quantity; receivedKeys.add(key); }
+    if (receiveRejectStatus) {
+      const status = receiveRejectStatus;
+      receiveRejectStatus = 0;
+      throw new ApiError(`Receive rejected (${status})`, status);
+    }
+    if (deferReceive) {
+      deferReceive = false;
+      await new Promise<void>(resolve => heldReceives.push({ resolve }));
+    }
+    if (!receivedKeys.has(key)) {
+      receivedByAccount.set(account || 'no-account', balanceFor(account) + quantity);
+      receivedKeys.add(key);
+    }
     if (receiveResponseFails) { receiveResponseFails = false; throw new Error('Response lost'); }
-    return { received_quantity: received };
+    return { received_quantity: balanceFor(account) };
   },
 });
 Object.assign(api.network, { updateListing: async (_id: string, patch: unknown) => {
@@ -69,9 +96,26 @@ const testApi = {
   rejectOrder(index: number) { orderRequests[index]?.reject(new Error('Load unavailable')); },
   orderWrites() { return orderWrites; },
   receiveCalls() { return receiveCalls; },
-  received() { return received; },
+  received() { return balanceFor(null); },
+  receivedFor(account: string | null) { return balanceFor(account); },
   failNextReceiveResponse() { receiveResponseFails = true; },
   setListFailure(value: boolean) { listFails = value; },
+  setAccount(id: string | null) { useAppStore.getState().setActiveAccountId(id); },
+  deferNextList() { deferList = true; },
+  heldLists() { return heldLists.map(item => item.account); },
+  resolveList(index: number, productName?: string) {
+    const account = heldLists[index]?.account;
+    heldLists[index]?.resolve([{ id: 'receipt-a', vendor_name: 'Fixture vendor', state: 'partially_received', legacy: false, lines: [{
+      id: 'line-a', product_name: productName || (account ? `${account} tea` : 'Fixture tea'), expected_quantity: 20,
+      received_quantity: 0, cancelled_quantity: 0, current_on_hand: 0, unit: receiptUnit, intended_purpose: 'sale',
+    }] }]);
+  },
+  deferNextReceive() { deferReceive = true; },
+  heldReceives() { return heldReceives.length; },
+  resolveReceive(index: number) { heldReceives[index]?.resolve(); },
+  rejectNextReceive(status: number) { receiveRejectStatus = status; },
+  setReceiptUnit(unit: string) { receiptUnit = unit; },
+  pendingFor(account: string | null) { return sessionStorage.getItem(`teajia:pending-receive:${account || 'no-account'}`); },
   toasts() { return toasts; },
   failListing(count = 1) { listingFailures = count; },
   listingCalls() { return listingCalls; },

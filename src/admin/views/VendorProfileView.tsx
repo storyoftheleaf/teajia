@@ -12,9 +12,10 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { api, type PurchaseOrder } from '../../lib/api';
 import { usePrivateQueryScope } from '../hooks/usePrivateQueryScope';
+import { useRates } from '../hooks/useAdminData';
 import { STATUS_PILL_BASE, STATUS_PILL_VARIANTS, type StatusPillVariant } from '../constants';
 import type { Customer, InventoryReceipt } from '../types';
-import { recordedCost, vendorPurchaseOrders, vendorReceipts, type VendorProductRow } from './vendorProfileData';
+import { recordedCost, vendorEconomics, vendorPurchaseOrders, vendorReceipts, type PricedProductRow, type VendorProductRow } from './vendorProfileData';
 
 // ────────────────────────────────────────────────────────
 // Types
@@ -30,6 +31,10 @@ function formatDate(iso: string): string {
     day: 'numeric',
     year: 'numeric',
   });
+}
+
+function fmt(n: number, decimals = 2): string {
+  return n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
 
 function stockVariant(g: number): { label: string; variant: StatusPillVariant } {
@@ -60,6 +65,7 @@ export const VendorProfileView: React.FC = () => {
   const { vendorId } = useParams<{ vendorId: string }>();
   const navigate = useNavigate();
   const scope = usePrivateQueryScope();
+  const { data: rates } = useRates();
 
   // ── Vendor data ──────────────────────────────────────
   const { data: vendorData, isLoading: vendorLoading } = useQuery<Customer>({
@@ -73,6 +79,12 @@ export const VendorProfileView: React.FC = () => {
   const { data: productsData, isLoading: productsLoading } = useQuery<VendorProductRow[]>({
     queryKey: ['vendor-products', vendorId, ...scope.key],
     queryFn: () => api.customers.getSuppliedProducts(vendorId!),
+    enabled: !!vendorId && scope.ready,
+    staleTime: 60_000,
+  });
+  const { data: pricedProductsData, isLoading: pricedProductsLoading } = useQuery<PricedProductRow[]>({
+    queryKey: ['vendor-priced-products', ...scope.key],
+    queryFn: () => api.products.list(),
     enabled: !!vendorId && scope.ready,
     staleTime: 60_000,
   });
@@ -95,7 +107,10 @@ export const VendorProfileView: React.FC = () => {
   const receipts = vendor ? vendorReceipts(receiptsData ?? [], vendor.name) : [];
   const historyLoading = ordersLoading || receiptsLoading;
   const historyError = ordersError || receiptsError;
-  const recordedCosts = products.filter(p => recordedCost(p) !== null).length;
+  const economics = vendorEconomics(products, pricedProductsData, rates);
+  const money = (value: number | null, decimals = 0) => value == null
+    ? '—'
+    : `$${fmt(value, decimals)}`;
 
   // ────────────────────────────────────────────────────────
   // Render
@@ -195,9 +210,9 @@ export const VendorProfileView: React.FC = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
               { value: String(products.filter(p => p.status !== 'Archived').length), label: 'Products' },
-              { value: String(recordedCosts), label: 'Costs recorded' },
-              { value: historyError ? '—' : historyLoading ? '…' : String(orders.length), label: 'Purchase orders' },
-              { value: historyError ? '—' : historyLoading ? '…' : String(receipts.length), label: 'Receipts' },
+              { value: pricedProductsLoading ? '…' : money(economics.totalCostUsd), label: 'Total cost' },
+              { value: pricedProductsLoading ? '…' : money(economics.avgCostPerGramUsd, 3), label: 'Avg cost/g' },
+              { value: pricedProductsLoading ? '…' : money(economics.stockValueUsd), label: 'Stock value' },
             ].map(({ value, label }) => (
               <div key={label} className="bg-tea-bg border border-tea-border rounded-xl p-4">
                 <div className="font-mono text-ui-28 text-tea-text tabular-nums leading-none">
@@ -290,7 +305,7 @@ export const VendorProfileView: React.FC = () => {
                       {formatDate(order.created_at)}
                     </p>
                   </div>
-                  {Number(order.total_usd) > 0 && (
+                  {order.total_usd != null && Number.isFinite(Number(order.total_usd)) && (
                     <span className="font-mono text-ui-13 text-tea-text tabular-nums">
                       ${Number(order.total_usd).toFixed(2)} USD
                     </span>

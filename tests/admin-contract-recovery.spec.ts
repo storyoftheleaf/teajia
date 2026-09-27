@@ -15,9 +15,11 @@ async function prepare(page: Page) {
     if (pathname === '/api/auth/me') body = { id: 'admin-1', email: 'admin@teajia.com', role: 'owner' };
     if (pathname === '/api/auth/refresh') body = { token };
     if (pathname === '/api/accounts/acct-bali') body = { id: 'acct-bali', name: 'Teajia Bali', slug: 'teajia-bali' };
+    if (pathname === '/api/rates') body = [{ currency: 'Yuan', rate_to_usd: 8, last_updated: new Date().toISOString() }];
     if (pathname === '/api/products') body = [{
       id: 'tea-1', product_name: 'Raw Worker Tea', given_name: 'Story Tea', type: 'Puer',
-      stock_grams: 120, retail_price_per_gram_usd: 0.25, cost_amount: 88, cost_currency: 'CNY', status: 'Active',
+      stock_grams: 500, retail_price_per_gram_usd: 0.25, cost_amount: 88, cost_currency: 'CNY', status: 'Active',
+      cost_currency_source: 'stated', quantity_purchased: 100, quantity_units: null, cost_per_gram_usd: 0.13,
     }];
     if (pathname === '/api/customers/vendor-1') body = { id: 'vendor-1', name: 'Target Vendor', tags: [], contacts: [] };
     if (pathname === '/api/customers/vendor-1/products') body = [{
@@ -26,7 +28,7 @@ async function prepare(page: Page) {
       status: 'Active', cost_amount: 88, cost_currency: 'CNY',
     }];
     if (pathname === '/api/purchase-orders') body = [
-      { id: 'po-1', vendor_id: 'vendor-1', vendor_name: 'Target Vendor', total_usd: 50, status: 'pending', created_at: '2026-09-01' },
+      { id: 'po-1', vendor_id: 'vendor-1', vendor_name: 'Target Vendor', total_usd: 0, status: 'pending', created_at: '2026-09-01' },
       { id: 'po-2', vendor_id: 'vendor-2', vendor_name: 'Target Vendor', total_usd: 90, status: 'pending', created_at: '2026-09-01' },
     ];
     if (pathname === '/api/inventory/receipts') body = [
@@ -54,6 +56,10 @@ for (const viewport of ['Desktop Chrome', 'Mobile Chrome']) {
       await page.goto('/admin/vendors/vendor-1');
       await expect(page.getByText('Vendor Tea')).toBeVisible();
       await expect(page.getByText('88 CNY')).toBeVisible();
+      for (const [label, value] of [['Total cost', '$11'], ['Avg cost/g', '$0.130'], ['Stock value', '$65']]) {
+        await expect(page.getByText(label, { exact: true }).locator('..').getByText(value, { exact: true })).toBeVisible();
+      }
+      await expect(page.getByText('$0.00 USD', { exact: true })).toBeVisible();
       await expect(page.getByText('Purchase order · Target Vendor')).toBeVisible();
       await expect(page.getByText('Inventory receipt')).toBeVisible();
       await expect(page.getByText('SALE-1')).toHaveCount(0);

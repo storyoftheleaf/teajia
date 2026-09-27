@@ -117,6 +117,106 @@ for (const [size, viewport] of Object.entries({ desktop: { width: 1440, height: 
       expect(await call('received')).toBe(20);
     });
 
+    it('rejects invalid amounts before writing an intent, then allows correction after definitive server rejection', async () => {
+      await open();
+      await call('setReceiptUnit', 'unit');
+      await call('setMode', 'receipt');
+      await page.getByText(/Remaining: 20 unit/).waitFor();
+      const quantity = page.getByLabel('Quantity received for Fixture tea');
+      const receive = page.getByRole('button', { name: 'Receive', exact: true });
+      await quantity.fill('-1');
+      expect(await receive.isDisabled()).toBe(true);
+      await quantity.fill('1.5');
+      expect(await receive.isDisabled()).toBe(true);
+      expect(await call('receiveCalls')).toHaveLength(0);
+      expect(await call('pendingFor', null)).toBeNull();
+
+      for (const [status, attempted, corrected] of [[400, '5', '4'], [409, '3', '2']] as const) {
+        await quantity.fill(attempted);
+        await call('rejectNextReceive', status);
+        await receive.click();
+        await page.getByRole('alert').getByText(`Receive rejected (${status})`).waitFor();
+        expect(await call('pendingFor', null)).toBeNull();
+        expect(await quantity.isEnabled()).toBe(true);
+        await quantity.fill(corrected);
+        await receive.click();
+        await page.getByText(new RegExp(`Received here: ${status === 400 ? 4 : 6} unit`)).waitFor();
+      }
+      const calls = await call('receiveCalls') as Array<{ quantity: number; key: string }>;
+      expect(calls.map(item => item.quantity)).toEqual([5, 4, 3, 2]);
+      expect(new Set(calls.map(item => item.key)).size).toBe(4);
+      expect(await call('received')).toBe(6);
+    });
+
+    it('ignores a previous account list response after the account changes', async () => {
+      await open();
+      await call('setAccount', 'account-a');
+      await call('deferNextList');
+      await call('setMode', 'receipt');
+      await expect.poll(() => call('heldLists')).toEqual(['account-a']);
+      await call('setAccount', 'account-b');
+      await page.getByText('account-b tea').waitFor();
+      await call('resolveList', 0);
+      await page.getByText('account-b tea').waitFor();
+      expect(await page.getByText('account-a tea').count()).toBe(0);
+      expect(await page.getByLabel('Quantity received for account-b tea').isEnabled()).toBe(true);
+    });
+
+    it('ignores a list response from an earlier visit to the same account', async () => {
+      await open();
+      await call('setAccount', 'account-a');
+      await call('deferNextList');
+      await call('setMode', 'receipt');
+      await expect.poll(() => call('heldLists')).toEqual(['account-a']);
+      await call('setAccount', 'account-b');
+      await page.getByText('account-b tea').waitFor();
+      await call('setAccount', 'account-a');
+      await page.getByText('account-a tea').waitFor();
+      await call('resolveList', 0, 'stale account-a tea');
+      await page.getByText('account-a tea').waitFor();
+      expect(await page.getByText('stale account-a tea').count()).toBe(0);
+    });
+
+    it('keeps an in-flight receive scoped to its original account', async () => {
+      await open();
+      await call('setAccount', 'account-a');
+      await call('setMode', 'receipt');
+      await page.getByText('account-a tea').waitFor();
+      await page.getByLabel('Quantity received for account-a tea').fill('5');
+      await call('deferNextReceive');
+      await page.getByRole('button', { name: 'Receive', exact: true }).click();
+      await expect.poll(() => call('heldReceives')).toBe(1);
+      expect(await call('pendingFor', 'account-a')).not.toBeNull();
+      await call('setAccount', 'account-b');
+      await page.getByText('account-b tea').waitFor();
+      await call('resolveReceive', 0);
+      await expect.poll(() => call('receivedFor', 'account-a')).toBe(5);
+      expect(await page.getByText('account-a tea').count()).toBe(0);
+      expect(await page.getByText(/Received here: 0 g · Remaining: 20 g/).count()).toBe(1);
+      expect(await call('pendingFor', 'account-a')).not.toBeNull();
+      expect(await call('pendingFor', 'account-b')).toBeNull();
+      expect(await page.getByRole('button', { name: 'Receive', exact: true }).isEnabled()).toBe(true);
+    });
+
+    it('does not let an earlier visit confirm a pending receive after switching away and back', async () => {
+      await open();
+      await call('setAccount', 'account-a');
+      await call('setMode', 'receipt');
+      await page.getByText('account-a tea').waitFor();
+      await call('deferNextReceive');
+      await page.getByRole('button', { name: 'Receive', exact: true }).click();
+      await expect.poll(() => call('heldReceives')).toBe(1);
+      await call('setAccount', 'account-b');
+      await page.getByText('account-b tea').waitFor();
+      await call('setAccount', 'account-a');
+      await page.getByRole('button', { name: 'Retry Receive' }).waitFor();
+      await call('resolveReceive', 0);
+      await expect.poll(() => call('receivedFor', 'account-a')).toBe(20);
+      const pending = JSON.parse(await call('pendingFor', 'account-a') as string);
+      expect(pending.confirmed).toBe(false);
+      expect(await page.getByRole('button', { name: 'Retry Receive' }).isEnabled()).toBe(true);
+    });
+
     it('retries an unchanged partner listing value after a failed save', async () => {
       await open();
       await call('setMode', 'listing');
