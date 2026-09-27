@@ -174,6 +174,9 @@ export const SampleModal: React.FC<SampleModalProps> = ({
 // ─── Custom Amount Modal ──────────────────────────────────────────────────────
 
 interface CustomAmountModalProps {
+  /** Commits a finished choice, never an input preview. */
+  onConfirm?: (grams: number) => void;
+  confirmLabel?: string;
   open: boolean;
   onClose: () => void;
   sliderMax: number;
@@ -202,6 +205,8 @@ interface CustomAmountModalProps {
 export const CustomAmountModal: React.FC<CustomAmountModalProps> = ({
   open,
   onClose,
+  onConfirm,
+  confirmLabel = 'Confirm',
   sliderMax,
   customInput,
   setCustomInput,
@@ -251,6 +256,7 @@ export const CustomAmountModal: React.FC<CustomAmountModalProps> = ({
     const sendable = unit ? snapToUnit(g, unit, sliderMax) : Math.min(g, sliderMax);
     setCustomInput(String(sendable));
     setGrams(sendable);
+    onConfirm?.(sendable);
     onClose();
   };
 
@@ -319,16 +325,11 @@ export const CustomAmountModal: React.FC<CustomAmountModalProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => {
-              const v = parseInt(customInput);
-              if (!isNaN(v) && v >= 5) {
-                setGrams(Math.min(v, sliderMax));
-                onClose();
-              }
-            }}
+            onClick={() => { if (enteredValid) commit(entered); }}
+            disabled={!enteredValid}
             className={`alcove-modal-primary ${LABEL} flex-1`}
           >
-            Confirm
+            {confirmLabel}
           </button>
         </div>
       </div>
