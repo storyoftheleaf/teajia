@@ -392,16 +392,16 @@ interface ListingFieldsProps {
 function useSaveConfirm() {
   const [msg, setMsg] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const show = useCallback((text: string) => {
+  const show = useCallback((text: string, persistent = false) => {
     setMsg(text);
     if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => setMsg(null), 3000);
+    timerRef.current = persistent ? null : setTimeout(() => setMsg(null), 3000);
   }, []);
   useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
   return { msg, show };
 }
 
-const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerCurrency, callerRateToUsd, callerRateResolved }) => {
+export const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerCurrency, callerRateToUsd, callerRateResolved }) => {
   // What the price field is actually denominated in.
   const priceCurrency = callerRateResolved ? callerCurrency : 'USD';
   const [stockValue, setStockValue] = useState(String(listing.stock_grams ?? ''));
@@ -428,20 +428,35 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
     sample: listing.is_sample,
     note: listing.store_note ?? '',
   });
+  const savingFields = useRef(new Set<string>());
+  const [busyFields, setBusyFields] = useState<Set<string>>(new Set());
+  const [retrySave, setRetrySave] = useState<(() => void) | null>(null);
+  const latestRetry = useRef<Record<string, () => void>>({});
 
-  const persist = useCallback(async (patch: {
+  const persist = useCallback(async (field: string, patch: {
     stock_grams?: number;
     price_amount?: number | null;
     price_currency?: string;
     fixed_retail_price_usd?: number | null;
     store_note?: string | null;
     is_sample?: boolean;
-  }) => {
+  }, onSaved: () => void) => {
+    if (savingFields.current.has(field)) return;
+    savingFields.current.add(field);
+    setBusyFields(new Set(savingFields.current));
+    setRetrySave(null);
     try {
       await api.network.updateListing(listing.id, patch);
+      onSaved();
       showSave('Saved · ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     } catch (err: any) {
-      showSave(err?.message || "Couldn't save. Try again.");
+      showSave(err?.message || "Couldn't save. Try again.", true);
+      // Resolve the latest field value when Retry is clicked. The value may
+      // have changed after this failed request was sent.
+      setRetrySave(() => () => latestRetry.current[field]?.());
+    } finally {
+      savingFields.current.delete(field);
+      setBusyFields(new Set(savingFields.current));
     }
   }, [listing.id, showSave]);
 
@@ -449,36 +464,41 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
     if (stockValue === lastSaved.current.stock) return;
     const n = Number(stockValue);
     if (!isFinite(n) || n < 0) { showSave('Stock must be ≥ 0'); return; }
-    lastSaved.current.stock = stockValue;
-    void persist({ stock_grams: Math.floor(n) });
+    const value = stockValue;
+    void persist('stock', { stock_grams: Math.floor(n) }, () => { lastSaved.current.stock = value; });
   };
 
   const savePrice = () => {
     if (priceValue === lastSaved.current.price) return;
     if (priceValue.trim() === '') {
-      lastSaved.current.price = '';
-      void persist({ price_amount: null });
+      void persist('price', { price_amount: null }, () => { lastSaved.current.price = ''; });
       return;
     }
     const n = Number(priceValue);
     if (!isFinite(n) || n < 0) { showSave('Price must be ≥ 0'); return; }
-    lastSaved.current.price = priceValue;
+    const value = priceValue;
     // Send the partner's local-currency-per-100g amount; server converts to USD/gram
     // via exchange_rates. Avoids the silent-no-conversion bug from earlier.
-    void persist({ price_amount: n, price_currency: priceCurrency });
+    void persist('price', { price_amount: n, price_currency: priceCurrency }, () => { lastSaved.current.price = value; });
   };
 
   const saveSample = (next: boolean) => {
     if (next === lastSaved.current.sample) return;
-    lastSaved.current.sample = next;
     setSampleAvail(next);
-    void persist({ is_sample: next });
+    void persist('sample', { is_sample: next }, () => { lastSaved.current.sample = next; });
   };
 
   const saveNote = () => {
     if (storeNote === lastSaved.current.note) return;
-    lastSaved.current.note = storeNote;
-    void persist({ store_note: storeNote || null });
+    const value = storeNote;
+    void persist('note', { store_note: value || null }, () => { lastSaved.current.note = value; });
+  };
+
+  latestRetry.current = {
+    stock: saveStock,
+    price: savePrice,
+    sample: () => saveSample(sampleAvail),
+    note: saveNote,
   };
 
   return (
@@ -495,7 +515,8 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
               value={stockValue}
               onChange={e => setStockValue(e.target.value)}
               onBlur={saveStock}
-              className="w-24 bg-transparent border-b border-tea-border focus:border-tea-gold/60 outline-none font-mono text-ui-14 text-tea-text py-1 text-right transition-colors"
+              disabled={busyFields.has('stock')}
+              className="w-24 bg-transparent border-b border-tea-border focus:border-tea-gold/60 outline-none font-mono text-ui-14 text-tea-text py-1 text-right transition-colors disabled:opacity-50"
             />
             <span className="text-tea-text-sec text-ui-13">g</span>
           </div>
@@ -506,7 +527,8 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
             <button
               type="button"
               onClick={() => saveSample(true)}
-              className={`text-ui-13 transition-colors ${sampleAvail ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+              disabled={busyFields.has('sample')}
+              className={`text-ui-13 transition-colors disabled:opacity-50 ${sampleAvail ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
             >
               yes
             </button>
@@ -514,7 +536,8 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
             <button
               type="button"
               onClick={() => saveSample(false)}
-              className={`text-ui-13 transition-colors ${!sampleAvail ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+              disabled={busyFields.has('sample')}
+              className={`text-ui-13 transition-colors disabled:opacity-50 ${!sampleAvail ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
             >
               no
             </button>
@@ -535,7 +558,8 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
               value={priceValue}
               onChange={e => setPriceValue(e.target.value)}
               onBlur={savePrice}
-              className="w-24 bg-transparent border-b border-tea-border focus:border-tea-gold/60 outline-none font-mono text-ui-14 text-tea-text py-1 text-right transition-colors"
+              disabled={busyFields.has('price')}
+              className="w-24 bg-transparent border-b border-tea-border focus:border-tea-gold/60 outline-none font-mono text-ui-14 text-tea-text py-1 text-right transition-colors disabled:opacity-50"
             />
             <span className="text-tea-text-sec text-ui-13">/100g</span>
           </div>
@@ -554,9 +578,10 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
         <textarea
           value={storeNote}
           onChange={e => setStoreNote(e.target.value)}
+          disabled={busyFields.has('note')}
           rows={4}
           placeholder="Your voice on this tea. Shown above the curator's description on your storefront."
-          className="w-full bg-transparent border border-tea-border focus:border-tea-gold/40 outline-none font-body text-ui-15 leading-[1.7] text-tea-text px-3 py-2 rounded-[2px] resize-none transition-colors placeholder:text-tea-text-dim placeholder:italic"
+          className="w-full bg-transparent border border-tea-border focus:border-tea-gold/40 outline-none font-body text-ui-15 leading-[1.7] text-tea-text px-3 py-2 rounded-[2px] resize-none transition-colors placeholder:text-tea-text-dim placeholder:italic disabled:opacity-50"
         />
         <div className="flex items-center justify-between mt-1">
           <p className="text-tea-text-dim italic text-ui-12 leading-[1.6]">
@@ -565,7 +590,8 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
           <button
             type="button"
             onClick={saveNote}
-            className="text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors"
+            disabled={busyFields.has('note')}
+            className="text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-50"
           >
             Save note
           </button>
@@ -606,7 +632,10 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
 
       {/* Autosave feedback */}
       {saveMsg && (
-        <p className="text-tea-text-dim italic text-ui-12 transition-opacity">{saveMsg}</p>
+        <div role={retrySave ? 'alert' : 'status'} className="flex flex-wrap items-center gap-3 text-tea-text-dim italic text-ui-12 transition-opacity">
+          <span>{saveMsg}</span>
+          {retrySave && <button type="button" onClick={retrySave} className="min-h-11 text-tea-gold hover:text-tea-gold-lt not-italic">Retry save</button>}
+        </div>
       )}
     </div>
   );

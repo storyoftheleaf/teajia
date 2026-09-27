@@ -6,6 +6,8 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 import { HelmetProvider } from 'react-helmet-async';
 import App from './App';
+import { AUTH_TOKEN_CHANGED_EVENT } from './lib/api';
+import { shouldPersistQueryKey } from './lib/queryPersistence';
 import './styles/tailwind.css';
 import './styles/card-utilities.css';
 
@@ -21,31 +23,22 @@ const queryClient = new QueryClient({
   },
 });
 
+// Old snapshots may contain invoices and attendees from before private query
+// filtering existed. Delete that snapshot before the provider can hydrate it.
+const queryStorage = (() => {
+  try { return window.localStorage; } catch { return undefined; }
+})();
+try { queryStorage?.removeItem('teajia-query-cache'); } catch { /* storage blocked */ }
+
 const persister = createSyncStoragePersister({
-  storage: window.localStorage,
-  key: 'teajia-query-cache',
+  storage: queryStorage,
+  key: 'teajia-public-query-cache',
   throttleTime: 1000,
 });
 
-// Don't persist sensitive or auth-shaped queries. Anything containing these
-// substrings in its query key is excluded from disk.
-//
-// Substring matching is a blunt instrument and it has already come close to
-// biting: 'me' matches any key containing the word "payment", so a query can be
-// excluded from disk by pure luck and then quietly included again the next time
-// someone renames it. Prefer the exact-match list below for anything whose
-// exclusion actually matters.
-// 'pay-access' is whether THIS viewer may see a tea master's bank details; an
-// approval that lands after the page was cached must not be hidden by disk.
-const NEVER_PERSIST = ['auth', 'session', 'me', 'magic', 'pay-access'];
-// Matched against the FIRST element of the key, exactly. Nothing here reaches
-// disk. 'profile-payment-order' carries a customer's order contents on the
-// public payment page and must not outlive the tab, which is the whole reason
-// its token is handed over in session storage rather than anywhere durable.
-const NEVER_PERSIST_KEYS = [
-  'customers', 'activity_logs', 'stock_ledger', 'tea-reference-issues',
-  'profile-payment-order',
-];
+// Token replacement, expiry, account switch, and logout all discard private
+// in-memory results. A late response belongs to its old, detached query.
+window.addEventListener(AUTH_TOKEN_CHANGED_EVENT, () => queryClient.clear());
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -63,11 +56,7 @@ root.render(
           maxAge: 1000 * 60 * 60 * 24, // 24h
           dehydrateOptions: {
             shouldDehydrateQuery: (q) => {
-              const keyStr = JSON.stringify(q.queryKey).toLowerCase();
-              const firstKey = Array.isArray(q.queryKey) ? String(q.queryKey[0] ?? '') : '';
-              if (NEVER_PERSIST_KEYS.includes(firstKey)) return false;
-              if (firstKey === 'products' && q.queryKey[1] !== 'public') return false;
-              return q.state.status === 'success' && !NEVER_PERSIST.some(s => keyStr.includes(s));
+              return q.state.status === 'success' && shouldPersistQueryKey(q.queryKey);
             },
           },
         }}

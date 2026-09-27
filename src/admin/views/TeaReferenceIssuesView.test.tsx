@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { TeaReferenceWisdomSwitch } from './WisdomView';
 import type { TeaReferenceIssue } from '../../wisdom/reference/issues';
+import { shouldPersistQueryKey } from '../../lib/queryPersistence';
 
 const SurfaceSwitch = TeaReferenceWisdomSwitch as React.FC<Record<string, unknown>>;
 
@@ -66,7 +67,8 @@ describe('Tea Reference issues integration', () => {
 
   it('keeps private issue queries out of the persisted React Query cache', () => {
     const entrySource = readFileSync(new URL('../../index.tsx', import.meta.url), 'utf8');
-    expect(entrySource).toContain("'tea-reference-issues'");
+    expect(shouldPersistQueryKey(['tea-reference-issues', 'account-1', 'owner-1'])).toBe(false);
+    expect(entrySource).toMatch(/shouldDehydrateQuery:[\s\S]*?shouldPersistQueryKey\(q\.queryKey\)/);
   });
 
   it('groups the open queue by canonical page in deterministic editorial order', async () => {

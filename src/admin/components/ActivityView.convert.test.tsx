@@ -15,6 +15,7 @@ vi.mock('../../lib/store', () => ({
 
 vi.mock('../../lib/api', async importOriginal => ({
   ...await importOriginal<typeof import('../../lib/api')>(),
+  getTokenClaims: () => tokenScope.accountId ? { sub: 'operator', active_account_id: tokenScope.accountId } : null,
   isTokenScopedToAccount: (accountId: string | null) => Boolean(accountId) && tokenScope.accountId === accountId,
 }));
 
@@ -57,7 +58,7 @@ describe('Inquiries convert action', () => {
     appStoreState.activeAccountId = 'acct-1';
     tokenScope.accountId = 'acct-1';
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    client.setQueryData(['admin-inquiries', 'acct-1', 'all'], [
+    client.setQueryData(['admin-inquiries', 'acct-1', 'operator', 0, 'all'], [
       inquiry('a', 'acct-1'),
       inquiry('b', 'acct-1', { converted_invoice_id: 'inv-77' } as Partial<InquiryRecord>),
     ]);
@@ -71,7 +72,7 @@ describe('Inquiries convert action', () => {
     appStoreState.activeAccountId = 'acct-1';
     tokenScope.accountId = 'acct-1';
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    client.setQueryData(['admin-inquiries', 'acct-1', 'all'], [
+    client.setQueryData(['admin-inquiries', 'acct-1', 'operator', 0, 'all'], [
       inquiry('b', 'acct-1', { converted_invoice_id: 'inv-77' } as Partial<InquiryRecord>),
     ]);
     const html = render(client);

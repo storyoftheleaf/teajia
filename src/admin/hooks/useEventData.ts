@@ -1,5 +1,6 @@
-import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
+import { usePrivateQueryScope } from './usePrivateQueryScope';
 import { TeaEvent, EventAttendee, EventNotification, TeaMenuItem, TastingNote, GuestInvite, JourneyData, Venue } from '../../types/events';
 
 export interface PendingAttendee extends EventAttendee {
@@ -29,19 +30,21 @@ const eventsListQueryFn = async () => {
   return (data || []).map(mapEvent) as TeaEvent[];
 };
 
-export const eventsListQueryOptions = {
-  queryKey: ['events'] as const,
+export const eventsListQueryOptions = (scope: readonly [string, string, number]) => ({
+  queryKey: ['events', 'admin', ...scope] as const,
   staleTime: STALE_TIME,
   queryFn: eventsListQueryFn,
-};
+});
 
 // Fetch all events (admin)
 export const useEvents = () => {
-  return useQuery({
-    ...eventsListQueryOptions,
+  const scope = usePrivateQueryScope();
+  const query = useQuery({
+    ...eventsListQueryOptions(scope.key),
+    enabled: scope.ready,
     refetchOnWindowFocus: false,
-    placeholderData: keepPreviousData,
   });
+  return { ...query, data: scope.ready ? query.data : undefined };
 };
 
 // Helper to map raw event row to TeaEvent
@@ -90,26 +93,29 @@ export function mapEvent(e: any): TeaEvent {
 
 // Fetch a single event by ID (admin): dedicated endpoint, no full list fetch
 export const useEvent = (id: string) => {
-  return useQuery({
-    queryKey: ['events', id],
+  const scope = usePrivateQueryScope();
+  const query = useQuery({
+    queryKey: ['events', id, ...scope.key],
     staleTime: STALE_TIME,
     refetchOnWindowFocus: false,
-    enabled: !!id,
+    enabled: !!id && scope.ready,
     queryFn: async () => {
       const e = await api.events.getAdmin(id);
       if (!e) throw new Error('Event not found');
       return mapEvent(e);
     },
   });
+  return { ...query, data: scope.ready ? query.data : undefined };
 };
 
 // Fetch attendees for an event (admin)
 export const useAttendees = (eventId: string) => {
-  return useQuery({
-    queryKey: ['event-attendees', eventId],
+  const scope = usePrivateQueryScope();
+  const query = useQuery({
+    queryKey: ['event-attendees', eventId, ...scope.key],
     staleTime: STALE_TIME,
     refetchOnWindowFocus: false,
-    enabled: !!eventId,
+    enabled: !!eventId && scope.ready,
     queryFn: async () => {
       const data = await api.events.getAttendees(eventId);
       return (data || []).map((a: any) => ({
@@ -149,12 +155,15 @@ export const useAttendees = (eventId: string) => {
       })) as EventAttendee[];
     },
   });
+  return { ...query, data: scope.ready ? query.data : undefined };
 };
 
 // Fetch all pending RSVPs across every event (admin activity view)
 export const usePendingAttendees = () => {
-  return useQuery({
-    queryKey: ['pending-attendees'],
+  const scope = usePrivateQueryScope();
+  const query = useQuery({
+    queryKey: ['pending-attendees', ...scope.key],
+    enabled: scope.ready,
     staleTime: 30_000,
     refetchOnWindowFocus: true,
     queryFn: async () => {
@@ -185,15 +194,17 @@ export const usePendingAttendees = () => {
       })) as PendingAttendee[];
     },
   });
+  return { ...query, data: scope.ready ? query.data : undefined };
 };
 
 // Fetch notifications for an event (admin)
 export const useEventNotifications = (eventId: string) => {
-  return useQuery({
-    queryKey: ['event-notifications', eventId],
+  const scope = usePrivateQueryScope();
+  const query = useQuery({
+    queryKey: ['event-notifications', eventId, ...scope.key],
     staleTime: STALE_TIME,
     refetchOnWindowFocus: false,
-    enabled: !!eventId,
+    enabled: !!eventId && scope.ready,
     queryFn: async () => {
       const data = await api.events.getNotifications(eventId);
       return (data || []).map((n: any) => ({
@@ -209,15 +220,17 @@ export const useEventNotifications = (eventId: string) => {
       })) as EventNotification[];
     },
   });
+  return { ...query, data: scope.ready ? query.data : undefined };
 };
 
 // Fetch tea menu for an event (admin)
 export const useTeaMenu = (eventId: string) => {
-  return useQuery({
-    queryKey: ['event-tea-menu', eventId],
+  const scope = usePrivateQueryScope();
+  const query = useQuery({
+    queryKey: ['event-tea-menu', eventId, ...scope.key],
     staleTime: STALE_TIME,
     refetchOnWindowFocus: false,
-    enabled: !!eventId,
+    enabled: !!eventId && scope.ready,
     queryFn: async () => {
       const data = await api.events.getTeaMenu(eventId);
       return (data || []).map((m: any) => ({
@@ -236,15 +249,17 @@ export const useTeaMenu = (eventId: string) => {
       })) as TeaMenuItem[];
     },
   });
+  return { ...query, data: scope.ready ? query.data : undefined };
 };
 
 // Fetch tasting notes for an event (admin)
 export const useTastingNotes = (eventId: string) => {
-  return useQuery({
-    queryKey: ['event-tasting-notes', eventId],
+  const scope = usePrivateQueryScope();
+  const query = useQuery({
+    queryKey: ['event-tasting-notes', eventId, ...scope.key],
     staleTime: STALE_TIME,
     refetchOnWindowFocus: false,
-    enabled: !!eventId,
+    enabled: !!eventId && scope.ready,
     queryFn: async () => {
       const data = await api.events.getTastingNotes(eventId);
       return (data || []).map((t: any) => ({
@@ -261,6 +276,7 @@ export const useTastingNotes = (eventId: string) => {
       })) as TastingNote[];
     },
   });
+  return { ...query, data: scope.ready ? query.data : undefined };
 };
 
 // V2: Fetch guest invites for an event (admin).
@@ -268,25 +284,29 @@ export const useTastingNotes = (eventId: string) => {
 // The attendees endpoint does NOT return guest_invite_tokens, so this hook returns
 // an empty array until that endpoint is available.
 export const useGuestInvites = (eventId: string) => {
-  return useQuery({
-    queryKey: ['event-guest-invites', eventId],
+  const scope = usePrivateQueryScope();
+  const query = useQuery({
+    queryKey: ['event-guest-invites', eventId, ...scope.key],
     staleTime: STALE_TIME,
     refetchOnWindowFocus: false,
-    enabled: !!eventId,
+    enabled: !!eventId && scope.ready,
     queryFn: async (): Promise<GuestInvite[]> => {
       // Backend does not yet expose guest invites on the attendees endpoint.
       // Return empty array to avoid crashes until a dedicated endpoint is added.
       return [];
     },
   });
+  return { ...query, data: scope.ready ? query.data : undefined };
 };
 
 // Fetch all venues (admin). Single shared cache: EventForm, EventDetail and
 // VenueManager should all consume this rather than calling api.venues.list()
-// independently. Invalidate ['venues'] after a mutation to refresh.
+// independently. Invalidate the ['venues'] prefix after a mutation to refresh.
 export const useVenues = () => {
-  return useQuery({
-    queryKey: ['venues'],
+  const scope = usePrivateQueryScope();
+  const query = useQuery({
+    queryKey: ['venues', ...scope.key],
+    enabled: scope.ready,
     staleTime: STALE_TIME,
     refetchOnWindowFocus: false,
     queryFn: async (): Promise<Venue[]> => {
@@ -294,15 +314,17 @@ export const useVenues = () => {
       return (data || []) as Venue[];
     },
   });
+  return { ...query, data: scope.ready ? query.data : undefined };
 };
 
 // V2: Fetch admin view of a customer's journey summary
 export const useCustomerJourney = (customerId: string) => {
-  return useQuery({
-    queryKey: ['customer-journey', customerId],
+  const scope = usePrivateQueryScope();
+  const query = useQuery({
+    queryKey: ['customer-journey', customerId, ...scope.key],
     staleTime: STALE_TIME,
     refetchOnWindowFocus: false,
-    enabled: !!customerId,
+    enabled: !!customerId && scope.ready,
     queryFn: async () => {
       const data = await api.events.getCustomerJourney(customerId);
       return {
@@ -317,4 +339,5 @@ export const useCustomerJourney = (customerId: string) => {
       } as JourneyData;
     },
   });
+  return { ...query, data: scope.ready ? query.data : undefined };
 };

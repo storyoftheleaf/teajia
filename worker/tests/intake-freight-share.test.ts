@@ -132,11 +132,19 @@ describe('a share of the shipping is added, or the line is refused', () => {
     // Clearing the staged rows after importing none of them takes away the only
     // screen the operator could have fixed them on.
     const src = readFileSync(join(ROOT, 'src/admin/views/IntakeWorkspace.tsx'), 'utf8');
+    const commit = src.indexOf('const commit = useCallback(async () => {');
     const guard = src.indexOf('if (products.length === 0)');
-    // The last one is the commit's own; the earlier two belong to the reset
-    // handlers, which are meant to clear.
-    const clear = src.lastIndexOf('setSources([]); setItems([]);');
-    expect(guard).toBeGreaterThan(-1);
-    expect(clear).toBeGreaterThan(guard);
+    const bulkWrite = src.indexOf('for (let i = 0; i < products.length;', guard);
+    expect(commit).toBeGreaterThan(-1);
+    expect(guard).toBeGreaterThan(commit);
+    expect(bulkWrite).toBeGreaterThan(guard);
+    // The commit cannot close staging before this guard. When there are no
+    // priced products, it shows the refusal and returns before the bulk write
+    // or the success-only finishImport helper can run.
+    expect(src.slice(commit, guard)).not.toMatch(/finishImport\(|setSources\(\[\]\)|setItems\(\[\]\)|navigate\(/);
+    const refusedBranch = src.slice(guard, bulkWrite);
+    expect(refusedBranch).toMatch(/showToast\([^;]+, 'error'\);/);
+    expect(refusedBranch).toMatch(/\breturn;/);
+    expect(refusedBranch).not.toMatch(/finishImport\(|setSources\(\[\]\)|setItems\(\[\]\)|navigate\(/);
   });
 });

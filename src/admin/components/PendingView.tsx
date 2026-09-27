@@ -1,9 +1,9 @@
 import React, { useMemo } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, ArrowRight, CalendarDays, ClipboardList, ExternalLink } from 'lucide-react';
-import { api } from '../../lib/api';
 import { usePendingAttendees, PendingAttendee } from '../hooks/useEventData';
+import { usePendingInvoicesSummary } from '../hooks/usePrivateQueryScope';
 import { ApprovalCard } from './ApprovalCard';
 
 function formatEventDate(dateStr: string): string {
@@ -24,14 +24,7 @@ export const PendingView: React.FC = () => {
 
   const { data: pendingAttendees = [], isLoading: loadingRSVPs } = usePendingAttendees();
 
-  const { data: orders = [], isLoading: loadingOrders } = useQuery({
-    queryKey: ['invoices-pending-summary'],
-    staleTime: 30_000,
-    queryFn: async () => {
-      const data = (await api.invoices.list(200)) as any[];
-      return data.filter((o) => o.status === 'Pending');
-    },
-  });
+  const { data: orders = [], isLoading: loadingOrders } = usePendingInvoicesSummary();
 
   // Group pending RSVPs by eventId: stable unique key, not title+date
   const eventGroups = useMemo(() => {

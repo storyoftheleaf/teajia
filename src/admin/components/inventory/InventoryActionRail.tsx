@@ -88,7 +88,7 @@ export const InventoryActionRail: React.FC<InventoryActionRailProps> = ({
   // otherwise become the containing block and clip the rail off-screen.
   return createPortal(
     <div
-      className={`fixed top-0 bottom-0 z-drawer flex flex-col items-center overflow-y-auto bg-tea-bg transition-transform duration-200 ease-out ${open ? 'translate-x-0' : 'translate-x-full'}`}
+      className={`fixed top-0 bottom-nav pb-3 z-drawer flex flex-col items-center overflow-y-auto bg-tea-bg transition-transform duration-200 ease-out ${open ? 'translate-x-0' : 'translate-x-full'}`}
       style={{
         right: rightOffset,
         width: RAIL_WIDTH,
@@ -101,7 +101,6 @@ export const InventoryActionRail: React.FC<InventoryActionRailProps> = ({
         // any other divider on the page and did not move when the theme did.
         boxShadow: 'inset 1px 0 0 var(--tea-border)',
         paddingTop: 12,
-        paddingBottom: 'calc(12px + env(safe-area-inset-bottom))',
       }}
       role="toolbar"
       aria-label="Selection actions"

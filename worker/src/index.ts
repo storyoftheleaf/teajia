@@ -11398,6 +11398,14 @@ function seatReservationError(result: Exclude<ReservePartySeatsResult, { ok: tru
 
 // ── Event Public Routes ──
 
+// Public visibility controls the host store's event list. The separate network
+// discovery choice controls the platform-wide event list. An unlisted event
+// can still be opened and booked by someone holding its direct link.
+const PUBLIC_EVENT_HOST = "a.status = 'active' AND a.public_enabled = 1";
+const PUBLIC_EVENT_DIRECT = "e.public_visibility IN ('public', 'unlisted')";
+const PUBLIC_EVENT_STORE = "e.public_visibility = 'public'";
+const PUBLIC_EVENT_DISCOVERY = "e.public_visibility = 'public' AND e.network_discovery = 1";
+
 const handleGetEventBySlug: Handler = async (_request, env, params) => {
   const event = await env.DB.prepare(
     `SELECT e.id, e.account_id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date, e.event_end_date,
@@ -11410,7 +11418,8 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
      FROM events e
      JOIN accounts a ON a.id = e.account_id
      LEFT JOIN venues v ON v.id = e.venue_id
-     WHERE e.slug = ? AND e.status = 'active'`
+     WHERE e.slug = ? AND e.status = 'active'
+       AND ${PUBLIC_EVENT_DIRECT} AND ${PUBLIC_EVENT_HOST}`
   ).bind(params.slug).first();
 
   if (!event) return json({ error: 'Event not found' }, 404);
@@ -11566,6 +11575,7 @@ const handleListPublicEvents: Handler = async (_request, env, _params) => {
      WHERE e.status = 'active'
        AND e.event_date >= datetime('now')
        AND a.is_platform_owner = 1
+       AND ${PUBLIC_EVENT_DISCOVERY} AND ${PUBLIC_EVENT_HOST}
      ORDER BY e.event_date ASC
      LIMIT 20`
   ).all();
@@ -11591,8 +11601,10 @@ const handleRSVP: Handler = async (request, env, params) => {
   // Public RSVP — resolve the event's account so all inserts (customer,
   // attendee, activity log) are attributed to the right store.
   const event = await env.DB.prepare(
-    `SELECT id, account_id, total_capacity, claim_window_minutes, requires_approval, lifecycle_status
-     FROM events WHERE slug = ? AND status = 'active'`
+    `SELECT e.id, e.account_id, e.total_capacity, e.claim_window_minutes, e.requires_approval, e.lifecycle_status
+     FROM events e JOIN accounts a ON a.id = e.account_id
+     WHERE e.slug = ? AND e.status = 'active'
+       AND ${PUBLIC_EVENT_DIRECT} AND ${PUBLIC_EVENT_HOST}`
   ).bind(params.slug).first();
 
   if (!event) return json({ error: 'Event not found' }, 404);
@@ -11782,7 +11794,10 @@ const handleRSVP: Handler = async (request, env, params) => {
 
 const handleGetEventAvailability: Handler = async (_request, env, params) => {
   const event = await env.DB.prepare(
-    `SELECT id, account_id, total_capacity FROM events WHERE slug = ? AND status = 'active'`
+    `SELECT e.id, e.account_id, e.total_capacity
+     FROM events e JOIN accounts a ON a.id = e.account_id
+     WHERE e.slug = ? AND e.status = 'active'
+       AND ${PUBLIC_EVENT_DIRECT} AND ${PUBLIC_EVENT_HOST}`
   ).bind(params.slug).first();
 
   if (!event) return json({ error: 'Event not found' }, 404);
@@ -21056,16 +21071,18 @@ async function fetchPublicProductsForAccount(
 // product data changes throughout the day and we don't want a 60s stale window
 // when the owner is actively curating.
 const handleGetPublicAccountProducts: Handler = async (request, env, params) => {
+  // Recheck the store on every request, including edge-cache hits, so closing
+  // a store cannot leave a cached catalogue available for its remaining TTL.
+  const accountId = await getPublicAccountIdBySlug(env, params.slug);
+  if (!accountId) return json({ error: 'Store not found' }, 404);
   return edgeCached(request, 10, async () => {
-    const accountId = await getAccountIdBySlug(env, params.slug);
-    if (!accountId) return json({ error: 'Store not found' }, 404);
     return cachedJson(await fetchPublicProductsForAccount(env, accountId), 10);
   });
 };
 
 // GET /api/s/:slug/events — PUBLIC active events for a store
 const handleGetPublicAccountEvents: Handler = async (_request, env, params) => {
-  const accountId = await getAccountIdBySlug(env, params.slug);
+  const accountId = await getPublicAccountIdBySlug(env, params.slug);
   if (!accountId) return json({ error: 'Store not found' }, 404);
 
   const { results } = await env.DB.prepare(
@@ -21088,6 +21105,7 @@ const handleGetPublicAccountEvents: Handler = async (_request, env, params) => {
        FROM events scoped
      ) a ON a.event_id = e.id
      WHERE e.status = 'active' AND e.account_id = ?
+       AND ${PUBLIC_EVENT_STORE}
      ORDER BY e.event_date ASC`
   ).bind(accountId).all();
   return cachedJson(results, 60);
@@ -24811,10 +24829,12 @@ const handleGetShopCollections: Handler = async (_request, env) => {
             u.name AS curator_user_name
        FROM collection_publications cp
        JOIN collections c ON c.id = cp.collection_id
+       JOIN accounts account ON account.id = c.account_id
        LEFT JOIN users u ON u.id = c.curator_user_id
       WHERE cp.target_type = 'shop'
         AND cp.unpublished_at IS NULL
         AND c.status = 'active'
+        AND account.status = 'active' AND account.public_enabled = 1
       ORDER BY cp.published_at DESC
       LIMIT 20`
   ).all();
@@ -24848,6 +24868,7 @@ const handleGetShopCollections: Handler = async (_request, env) => {
        JOIN products p ON p.id = ci.product_id
       WHERE ci.collection_id IN (${placeholders})
         AND p.status = 'Active'
+        AND p.is_public = 1 AND p.shown_in_shop = 1
       ORDER BY ci.collection_id, ci.position ASC`
   ).bind(...collectionIds).all();
 
@@ -25176,7 +25197,7 @@ const handleImportInboundItems: Handler = async (request, env, params) => {
 // Public — no auth, link-gated by slug.
 const handleGetPublicCollection: Handler = async (_request, env, params) => {
   const pub = await env.DB.prepare(
-    `SELECT id, collection_id, slug, unpublished_at, view_count
+    `SELECT id, collection_id, slug, target_type, unpublished_at, view_count
        FROM collection_publications
       WHERE slug = ?`
   ).bind(params.slug).first();
@@ -25197,10 +25218,15 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
 
   // Account for WhatsApp deep link.
   const account = await env.DB.prepare(
-    `SELECT id, name, whatsapp_number FROM accounts WHERE id = (
+    `SELECT id, name, whatsapp_number, status, public_enabled FROM accounts WHERE id = (
        SELECT account_id FROM collections WHERE id = ?
      )`
   ).bind(pub.collection_id).first();
+  // Shop publications are public discovery. Recipient publications are
+  // deliberately shared links and may include products absent from the shop.
+  if (pub.target_type === 'shop' && (!account || account.status !== 'active' || account.public_enabled !== 1)) {
+    return json({ error: 'No longer available' }, 410);
+  }
 
   const items = await env.DB.prepare(
     `SELECT ci.id, ci.position, ci.item_note,
@@ -25213,8 +25239,9 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
        FROM collection_items ci
        JOIN products p ON p.id = ci.product_id
       WHERE ci.collection_id = ?
+        AND (? = 0 OR (p.is_public = 1 AND p.shown_in_shop = 1))
       ORDER BY ci.position ASC`
-  ).bind(pub.collection_id).all();
+  ).bind(pub.collection_id, pub.target_type === 'shop' ? 1 : 0).all();
 
   const visibleItems = ((items.results ?? []) as any[])
     .filter(i => i.product_status === 'Active')
@@ -27691,11 +27718,24 @@ async function handleCreateIncident(request: Request, env: Env): Promise<Respons
   if (contentLength > 8 * 1024) return json({ error: 'Incident payload exceeds 8 KB' }, 413);
   const claims = parseToken(isAuthed(request)!);
   if (!claims) return json({ error: 'Unauthorized', reason: 'invalid' }, 401);
+  const requestedAccount = request.headers.get('X-Teajia-Account') || claims.active_account_id || null;
+  let accountId: string | null = null;
+  if (requestedAccount) {
+    const ctx = await getActiveAccount(request, env);
+    if ('error' in ctx) return ctx.error;
+    // Platform operators may choose any existing store, but the shared
+    // account resolver does not reject an unknown ID for that role.
+    if (ctx.isPlatform) {
+      const account = await env.DB.prepare('SELECT id FROM accounts WHERE id = ?').bind(ctx.accountId).first();
+      if (!account) return restError(403, 'Account access denied', 'account_access_denied');
+    }
+    accountId = ctx.accountId;
+  }
   try {
     const raw = await request.json();
     const incident = normalizeIncidentInput(raw as Record<string, unknown>);
     const row = await upsertIncident(env.DB, incident, {
-      accountId: request.headers.get('X-Teajia-Account') || claims.active_account_id || null,
+      accountId,
       userId: claims.sub,
     });
     return json({ incident: incidentToApi(row || { id: null, signature: incident.signature }) }, 201);

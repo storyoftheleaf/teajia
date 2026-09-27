@@ -22,10 +22,10 @@ worker/src/curateImports.ts:988:TS2698
 worker/src/eventArticleDraft.ts:49:TS18046
 worker/src/eventArticleDraft.ts:49:TS7006
 worker/src/eventDomain.ts:9:TS2322
-worker/src/index.ts:11696:TS2322
-worker/src/index.ts:22791:TS2322
-worker/src/index.ts:22835:TS2322
-worker/src/index.ts:23344:TS2352
+worker/src/index.ts:11708:TS2322
+worker/src/index.ts:22809:TS2322
+worker/src/index.ts:22853:TS2322
+worker/src/index.ts:23362:TS2352
 worker/src/index.ts:3082:TS2345
 worker/src/index.ts:3117:TS2345
 worker/src/index.ts:6462:TS2352

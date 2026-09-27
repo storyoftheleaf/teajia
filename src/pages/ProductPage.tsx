@@ -21,6 +21,7 @@ import { LABEL, NUMERAL } from '../components/shared/typeRoles';
 import { quoteGrams, sellUnitOf, wholePieceOf } from '../lib/teaPricing';
 import { useProducts } from '../admin/hooks/useAdminData';
 import { api } from '../lib/api';
+import { TYPOGRAPHY_CLASSES } from '../designTokens';
 import { GroupHead, IndexRow, SplitName } from '../components/people/immersive';
 
 
@@ -89,7 +90,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   const persistedStoreSlug = useAppStore(state => state.shopStoreSlug);
   const storeSlug = searchParams.get('store')?.trim() || persistedStoreSlug;
   const shopHref = storeSlug ? `/shop?store=${encodeURIComponent(storeSlug)}` : '/shop';
-  const { inventory, isLoading, refetch: refetchInventory } = useInventory();
+  const { inventory, isLoading, isError: inventoryError, refetch: refetchInventory } = useInventory();
   const { isAdmin, isAuthenticated } = useAuth();
 
   const item = useMemo(() => findProductByRouteParam(inventory, routeKey), [inventory, routeKey]);
@@ -195,6 +196,20 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <EmblemLoader />
+      </div>
+    );
+  }
+
+  if (!item && inventoryError) {
+    return (
+      <div role="alert" className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
+        <h1 className="h2 mb-3">Product unavailable</h1>
+        <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec mb-6 max-w-md`}>
+          We could not load this product right now. Please try again.
+        </p>
+        <button type="button" onClick={() => refetchInventory()} className="cta-solid tap-target rounded-xl px-6 py-3 text-ui-12 uppercase tracking-caps">
+          Try again
+        </button>
       </div>
     );
   }

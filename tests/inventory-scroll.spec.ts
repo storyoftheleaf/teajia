@@ -221,7 +221,9 @@ test.describe('Inventory page — scroll regression guard', () => {
     await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('inventory-stage-published')).toBeVisible();
 
-    await page.locator('tr[data-product-id="test-product-1"]').click();
+    const firstTea = page.locator('tr[data-product-id="test-product-1"]');
+    await firstTea.focus();
+    await firstTea.press('Enter');
     const rail = page.getByRole('toolbar', { name: 'Selection actions' });
     await expect(rail.getByRole('button', { name: 'Record tasting' })).toBeVisible();
     await expect(rail.getByRole('button', { name: 'Edit product tasting profile' })).toBeVisible();
@@ -232,7 +234,9 @@ test.describe('Inventory page — scroll regression guard', () => {
     await expect(page.locator('[data-tasting-session-overlay]')).toBeHidden();
     await rail.getByRole('button', { name: 'Clear', exact: true }).click();
 
-    await page.locator('tr[data-product-id="test-product-2"]').click();
+    const secondTea = page.locator('tr[data-product-id="test-product-2"]');
+    await secondTea.focus();
+    await secondTea.press('Enter');
     await expect(rail.getByRole('button', { name: 'Continue tasting' })).toBeVisible();
     await expect(rail.getByRole('button', { name: 'View personal tasting' })).toBeVisible();
   });
@@ -550,18 +554,20 @@ test.describe('Inventory page — scroll regression guard', () => {
     await page.addInitScript(() => {
       localStorage.setItem('teajia-storage', JSON.stringify({ version: 6, state: { inventoryMobileColWidths: { productName: 300 } } }));
     });
+    await page.route('**/api/products', route => route.fulfill({ json: MOCK_PRODUCTS.map(product => ({
+      ...product, vendor: product.vendor === 'Old Tree Co' ? 'Northern Source' : product.vendor,
+    })) }));
     await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1500);
     const primary = page.getByTestId('inventory-primary-row');
 
     await primary.getByRole('button', { name: /search inventory/i }).click();
     const search = primary.getByRole('textbox', { name: /search tea or source/i });
-    // "n " sits inside two of the three fixture sources (Chen Family, Mountain
-    // Source), so the list is two rows deep and reaches down over the column
-    // header row beneath the toolbar. One row stops short of it.
+    // Chen Family, Mountain Source and Northern Source all contain "n ".
+    // Three realistic matches overlap the header even when purpose tabs wrap.
     await search.fill('n ');
     const suggestions = page.getByLabel('Source suggestions');
-    await expect(suggestions.getByRole('button')).toHaveCount(2);
+    await expect(suggestions.getByRole('button')).toHaveCount(3);
     // Visible is not enough: the pinned Product header cell carries a z-index
     // to cover the columns swiping under it, and it used to cover this list
     // too. So the check is made where the two overlap, and it is a failure of

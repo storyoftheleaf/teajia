@@ -120,6 +120,9 @@ export async function upsertIncident(
 ) {
   const id = crypto.randomUUID();
   const sampleJson = JSON.stringify(incident.sample);
+  // The ledger has a global UNIQUE(signature). Include the verified tenant in
+  // that key so one store's report cannot reopen or escalate another's row.
+  const signature = `${context.accountId ?? '__global__'}:${incident.signature}`.slice(0, 240);
   await db.prepare(`
     INSERT INTO incident_ledger
       (id, signature, category, severity, status, first_seen, last_seen, occurrence_count,
@@ -141,9 +144,9 @@ export async function upsertIncident(
         ELSE incident_ledger.sample_json
       END
   `).bind(
-    id, incident.signature, incident.category, incident.severity,
+    id, signature, incident.category, incident.severity,
     incident.route, incident.method, incident.httpStatus, incident.errorCode,
     incident.safeMessage, incident.deployment, context.accountId ?? null, context.userId ?? null, sampleJson,
   ).run();
-  return db.prepare('SELECT * FROM incident_ledger WHERE signature = ?').bind(incident.signature).first<Record<string, unknown>>();
+  return db.prepare('SELECT * FROM incident_ledger WHERE signature = ?').bind(signature).first<Record<string, unknown>>();
 }

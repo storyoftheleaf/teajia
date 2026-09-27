@@ -1,6 +1,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { chromium, type Browser, type Page } from 'playwright';
 import { createServer, type ViteDevServer } from 'vite';
+import { mkdirSync } from 'node:fs';
 
 let server: ViteDevServer;
 let browser: Browser;
@@ -17,7 +18,8 @@ beforeAll(async () => {
   server = await createServer({
     root: process.cwd(),
     logLevel: 'silent',
-    server: { host: '127.0.0.1', port: 0 },
+    cacheDir: 'node_modules/.vite-quick-invoice-behavior',
+    server: { host: '127.0.0.1', port: 0, strictPort: false, hmr: false },
     plugins: [{
       name: 'quick-invoice-behavior-page',
       configureServer(vite) {
@@ -145,4 +147,33 @@ describe('QuickInvoiceModal linked sales behavior', () => {
     await expect.poll(() => page.getByText('Account B Tea', { exact: true }).count()).toBe(1);
     expect(await page.getByText('Account A Tea', { exact: true }).count()).toBe(0);
   });
+
+  for (const [size, viewport] of Object.entries({ desktop: { width: 1440, height: 900 }, mobile: { width: 390, height: 844 } })) {
+    it(`keeps the committed invoice when native sharing fails and retries only sharing on ${size}`, async () => {
+      await open({ prefill: { customerName: 'Buyer', items: [{ name: 'Custom tea', quantity: 5, unit: 'g', price: 2 }] } });
+      await page.setViewportSize(viewport);
+      await page.evaluate(() => (window as any).quickInvoiceTest.resolveRequest(0, []));
+      await page.evaluate(() => {
+        (window as any).shareCalls = 0;
+        Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => true });
+        Object.defineProperty(navigator, 'share', { configurable: true, value: async () => {
+          (window as any).shareCalls++;
+          if ((window as any).shareCalls === 1) throw new Error('Share unavailable');
+        } });
+      });
+      await page.getByRole('button', { name: 'Save + Share' }).click();
+      await page.getByRole('dialog', { name: 'Invoice saved' }).waitFor({ timeout: 20_000 });
+      await page.getByRole('alert').waitFor({ timeout: 20_000 });
+      const savedMessage = await page.getByRole('alert').innerText();
+      expect(await page.evaluate(() => (window as any).shareCalls), savedMessage).toBe(1); // PDF generation reached native sharing.
+      expect(savedMessage).toContain('Share unavailable');
+      expect(await page.evaluate(() => (window as any).quickInvoiceTest.invoiceCalls().length)).toBe(1);
+      expect(await page.evaluate(() => (window as any).quickInvoiceTest.toasts().some((toast: any) => toast.message.includes('Invoice creation failed')))).toBe(false);
+      mkdirSync('test-results', { recursive: true });
+      await page.screenshot({ path: `test-results/invoice-share-failed-${size}.png`, animations: 'disabled' });
+      await page.getByRole('button', { name: 'Retry sharing' }).click();
+      await expect.poll(() => page.evaluate(() => (window as any).shareCalls)).toBe(2);
+      expect(await page.evaluate(() => (window as any).quickInvoiceTest.invoiceCalls().length)).toBe(1);
+    });
+  }
 });
