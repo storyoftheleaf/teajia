@@ -194,7 +194,7 @@ export function TeaLedger({
 
                     <div className="tea-ledger-identity min-w-0 flex-1 lg:flex-none lg:w-[300px]">
                       <div className="flex min-w-0 items-start gap-2">
-                        <h3 className="min-w-0 break-words whitespace-normal font-display text-ui-17 font-medium leading-tight text-tea-text lg:text-ui-20">
+                        <h3 className="min-w-0 break-words whitespace-normal font-display text-[18px] font-medium leading-tight text-tea-text lg:text-ui-20">
                           {item.name}
                         </h3>
                         {isTeajiaFav && <Icons.Seal className="w-2.5 h-2.5 shrink-0 text-tea-gold" />}
@@ -210,7 +210,7 @@ export function TeaLedger({
                           </span>
                         )}
                       </div>
-                      <div className="mt-1 flex min-w-0 flex-wrap items-center gap-y-1 font-sans text-ui-11 tracking-[0.04em] text-tea-text-sec">
+                      <div className="mt-1 flex min-w-0 flex-wrap items-center gap-y-1 font-sans text-ui-12 tracking-[0.02em] text-tea-text-sec">
                         <span className="min-w-0 break-words">
                         {showType && (
                           <>
