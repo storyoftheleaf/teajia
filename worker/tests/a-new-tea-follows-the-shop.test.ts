@@ -326,9 +326,11 @@ describe('and the admin has to be able to tell the two apart', () => {
 
   it('is what the admin actually uses, so the mapping cannot quietly go back', () => {
     const hook = stripComments(read('../../src/admin/hooks/useAdminData.ts'));
-    expect(hook, 'the admin mapper is collapsing an unset rate to zero again')
+    const adapter = stripComments(read('../../src/admin/productAdapter.ts'));
+    expect(hook).toMatch(/\.map\(mapAdminProduct\)/);
+    expect(adapter, 'the admin mapper is collapsing an unset rate to zero again')
       .not.toMatch(/Number\(\s*p\.shipping_rate_per_kg\s*\)\s*\|\|/);
-    expect(hook, 'the admin mapper stopped going through storedRatePerKg')
+    expect(adapter, 'the admin mapper stopped going through storedRatePerKg')
       .toMatch(/shippingRatePerKg:\s*storedRatePerKg\(/);
   });
 });

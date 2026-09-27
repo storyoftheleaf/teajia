@@ -76,8 +76,8 @@ export const AccountSwitcher: React.FC<Props> = ({ compact = false, direction = 
       await api.accounts.switch(accountId);
       // Re-hydrate memberships + active_account_id from fresh JWT
       hydrateAccountStateFromToken();
-      // Invalidate all cached queries so data re-fetches under new account context
-      queryClient.invalidateQueries();
+      // A previous store's private rows must not survive a failed refetch.
+      queryClient.clear();
     } catch (err) {
       console.error('Account switch failed', err);
     } finally {
