@@ -25,6 +25,7 @@ import { PayOrderAction } from '../shared/PayOrderAction';
 import { rememberPayOrderToken, recallPayOrderToken, sameOriginPayUrl } from '../shared/payOrderHandoff';
 import ProfilePaymentPage from '../../pages/ProfilePaymentPage';
 import { api } from '../../lib/api';
+import { shouldPersistQueryKey } from '../../lib/queryPersistence';
 
 /**
  * The customer's private key, written so that any accidental appearance of it
@@ -157,8 +158,7 @@ function renderPage(opts: { handoff?: string | null; order?: unknown; search?: s
     },
   );
   // Keyed on the reference, matching the page. The token is deliberately NOT
-  // part of this key: the query cache is persisted to local storage, which
-  // outlives the tab the session handoff was chosen to die with.
+  // part of this key, and the private summary is excluded from disk storage.
   if (opts.order !== undefined) client.setQueryData(['profile-payment-order', params.get('reference')], opts.order);
   return renderToStaticMarkup(
     <QueryClientProvider client={client}>
@@ -592,17 +592,16 @@ describe('the order page hands its token to the pay control', () => {
  * The token is handed over in session storage precisely so it dies with the
  * tab. The order it unlocks would undo that if the query cache wrote it to
  * local storage, which survives a browser restart and is shared across tabs.
- * It was excluded only by luck when this shipped: the persist filter rejects
- * any key containing "me", and "payment" contains "me". This asserts the
- * deliberate exclusion instead, so a rename cannot quietly put it on disk.
+ * The app persists only approved public query families. This checks the
+ * exclusion and the provider's use of that policy so a rename cannot quietly
+ * put the order on disk.
  */
 describe('the order summary never reaches durable storage', () => {
   const bootSource = readFileSync(new URL('../../index.tsx', import.meta.url), 'utf8');
 
-  it('is excluded by name rather than by a lucky substring', () => {
-    const exactList = bootSource.match(/const NEVER_PERSIST_KEYS = \[([\s\S]*?)\];/);
-    expect(exactList, 'the exact-match exclusion list has been renamed or removed').not.toBeNull();
-    expect(exactList![1]).toContain('profile-payment-order');
+  it('is excluded by the public-only persistence policy used by the provider', () => {
+    expect(shouldPersistQueryKey(['profile-payment-order', 'TJ-123'])).toBe(false);
+    expect(bootSource).toMatch(/shouldDehydrateQuery:[\s\S]*?shouldPersistQueryKey\(q\.queryKey\)/);
   });
 
   it('keys the lookup on the reference, so the token itself is never cacheable', () => {

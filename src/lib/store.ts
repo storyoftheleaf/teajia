@@ -4,7 +4,7 @@ import { CartItem as AdminCartItem, Currency, Product } from '../admin/types';
 import { Account, AccountMembership, CartItem as PublicCartItem, CustomerTasting, PlatformRole } from '../types';
 import type { TeaDiscoveryProfile } from '../components/TeaDiscovery/types';
 import { canAddToStoreCart } from './publicCartDomain';
-import { quoteGrams } from './teaPricing';
+import { minimumOrderGrams, quoteGrams } from './teaPricing';
 
 /**
  * What one cart line costs.
@@ -47,10 +47,19 @@ const packCountOf = (item: PublicCartItem) => item.packs ?? 1;
 export const cartLineKey = (id: string, packGrams: number) => `${id}|${packGrams}`;
 export const lineKeyOf = (item: PublicCartItem) => item.lineKey ?? cartLineKey(item.id, packSizeOf(item));
 
+/** The amount the editor shows must be the same amount the cart commits. */
+export function normalizeCartPackGrams(item: Pick<PublicCartItem, 'category' | 'unitGrams'>, packGrams: number): number {
+  const minimum = item.category === 'tea' ? minimumOrderGrams(item.unitGrams) : 1;
+  const requested = Number.isFinite(packGrams) ? Math.round(packGrams) : minimum;
+  return item.category === 'tea' && item.unitGrams && item.unitGrams > 0
+    ? Math.min(Math.max(1, Math.floor(9999 / item.unitGrams)) * item.unitGrams, Math.max(1, Math.ceil(requested / item.unitGrams)) * item.unitGrams)
+    : Math.min(9999, Math.max(minimum, requested));
+}
+
 /** A line rebuilt around a pack size and a count, with every derived figure redone. */
 function withPacking(item: PublicCartItem, packGrams: number, packs: number): PublicCartItem {
   const count = Math.min(99, Math.max(1, Math.round(packs)));
-  const size = Math.min(9999, Math.max(1, Math.round(packGrams)));
+  const size = normalizeCartPackGrams(item, packGrams);
   return {
     ...item,
     packGrams: size,
@@ -124,6 +133,8 @@ interface AppState {
   // Global Settings
   currency: Currency;
   setCurrency: (currency: Currency) => void;
+  hasCurrencyPreference: boolean;
+  initializeShopCurrency: (storeSlug: string) => void;
 
   // Admin State
   isDevAdmin: boolean;
@@ -386,14 +397,15 @@ const createdAppStore = create<AppState>()(
           /* Adding the same tea at the same pack size is asking for another
              pack of it, not for a heavier one. At a different size it is a
              different thing to send, so it opens its own row. */
-          const size = packSizeOf(item);
-          const key = cartLineKey(item.id, size);
+          const packed = withPacking(item, packSizeOf(item), packCountOf(item));
+          const size = packSizeOf(packed);
+          const key = lineKeyOf(packed);
           const existing = state.publicCart.find((c) => lineKeyOf(c) === key);
           if (existing) {
             return {
               publicCart: state.publicCart.map((c) =>
                 lineKeyOf(c) === key
-                  ? withPacking(c, size, packCountOf(c) + packCountOf(item))
+                  ? withPacking({ ...c, unitGrams: item.unitGrams ?? c.unitGrams }, size, packCountOf(c) + packCountOf(item))
                   : c
               ),
               cartLastAddedAt: Date.now(),
@@ -451,7 +463,12 @@ const createdAppStore = create<AppState>()(
 
       // Global Settings
       currency: 'USD',
-      setCurrency: (currency) => set({ currency }),
+      hasCurrencyPreference: false,
+      setCurrency: (currency) => set({ currency, hasCurrencyPreference: true }),
+      initializeShopCurrency: (storeSlug) => set((state) => state.hasCurrencyPreference ? state : {
+        currency: storeSlug === 'teajia-bali' ? 'IDR' : state.currency,
+        hasCurrencyPreference: true,
+      }),
 
       // Admin State
       isDevAdmin: false,
@@ -733,6 +750,10 @@ const createdAppStore = create<AppState>()(
     }),
     {
       name: 'teajia-storage',
+      merge: (persisted, current) => {
+        const saved = persisted as Partial<AppState> | undefined;
+        return { ...current, ...saved, hasCurrencyPreference: !!saved?.currency };
+      },
       partialize: (state) => ({
         cart: state.cart,
         cartDirection: state.cartDirection,

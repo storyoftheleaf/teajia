@@ -36,6 +36,9 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [loadedInvoiceId, setLoadedInvoiceId] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [addingProduct, setAddingProduct] = useState(false);
   const [productSearch, setProductSearch] = useState('');
 
@@ -52,6 +55,10 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
 
   useEffect(() => {
     if (!isOpen || !invoice) return;
+    let current = true;
+    setItems([]);
+    setLoadedInvoiceId(null);
+    setLoadError(false);
     setFetching(true);
     setAddingProduct(false);
     setProductSearch('');
@@ -60,6 +67,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
     setNotes(invoice.notes || '');
 
     api.invoices.getItems(invoice.id).then(data => {
+      if (!current) return;
       setItems((data || []).map((item: any) => ({
         id: item.id,
         product_id: item.product_id,
@@ -69,12 +77,16 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
         price_at_sale: Number(item.price_at_sale) || 0,
         custom_name: item.custom_name ?? null,
       })));
+      setLoadedInvoiceId(invoice.id);
       setFetching(false);
     }).catch(() => {
+      if (!current) return;
+      setLoadError(true);
       showToast('Could not load invoice items. Refresh and try again.', 'error');
       setFetching(false);
     });
-  }, [isOpen, invoice]);
+    return () => { current = false; };
+  }, [isOpen, invoice?.id, loadAttempt]);
 
   if (!isOpen) return null;
 
@@ -105,6 +117,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
   const total = items.reduce((sum, item) => sum + item.quantity * item.price_at_sale, 0) + shippingCost;
 
   const handleSave = async () => {
+    if (fetching || loadError || loadedInvoiceId !== invoice?.id) return;
     if (items.length === 0) {
       showToast('Order must have at least one item', 'error');
       return;
@@ -167,8 +180,13 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
         </div>
 
         <div className="px-6 pb-4 flex-1 overflow-y-auto custom-scrollbar">
-          {fetching ? (
+          {fetching || (!loadError && loadedInvoiceId !== invoice?.id) ? (
             <div className="py-8 text-center text-tea-text-sec"><Loader2 className="animate-spin inline" size={20} /></div>
+          ) : loadError ? (
+            <div role="alert" className="py-8 text-center text-tea-text-sec">
+              <p>Could not load this order’s items. No changes can be saved until they load.</p>
+              <button type="button" onClick={() => setLoadAttempt(attempt => attempt + 1)} className="mt-3 min-h-11 px-4 text-tea-gold hover:text-tea-gold-lt">Retry loading items</button>
+            </div>
           ) : (
             <div className="space-y-6">
               <OrderPayLink
@@ -313,7 +331,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
           </button>
           <button
             onClick={handleSave}
-            disabled={loading || fetching || items.length === 0}
+            disabled={loading || fetching || loadError || loadedInvoiceId !== invoice?.id || items.length === 0}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
           >
             {loading ? <Loader2 size={13} className="animate-spin" /> : <Pencil size={13} />} Save Changes

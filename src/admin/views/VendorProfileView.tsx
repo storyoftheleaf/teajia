@@ -6,38 +6,24 @@
  * products.  Not a form, this is an intelligence document.
  */
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Loader2 } from 'lucide-react';
-import { api } from '../../lib/api';
-import { useAppStore } from '../store';
+import { api, type PurchaseOrder } from '../../lib/api';
+import { usePrivateQueryScope } from '../hooks/usePrivateQueryScope';
+import { useRates } from '../hooks/useAdminData';
 import { STATUS_PILL_BASE, STATUS_PILL_VARIANTS, type StatusPillVariant } from '../constants';
-import type { Customer, Product } from '../types';
+import type { Customer, InventoryReceipt } from '../types';
+import { recordedCost, vendorEconomics, vendorPurchaseOrders, vendorReceipts, type PricedProductRow, type VendorProductRow } from './vendorProfileData';
 
 // ────────────────────────────────────────────────────────
 // Types
 // ────────────────────────────────────────────────────────
 
-interface InvoiceRow {
-  id: string;
-  invoice_number: string;
-  customer_name: string;
-  status: string;
-  created_at: string;
-  total?: number;
-}
-
 // ────────────────────────────────────────────────────────
 // Helpers
 // ────────────────────────────────────────────────────────
-
-function fmt(n: number, decimals = 2): string {
-  return n.toLocaleString('en-US', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  });
-}
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {
@@ -45,6 +31,10 @@ function formatDate(iso: string): string {
     day: 'numeric',
     year: 'numeric',
   });
+}
+
+function fmt(n: number, decimals = 2): string {
+  return n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
 
 function stockVariant(g: number): { label: string; variant: StatusPillVariant } {
@@ -74,59 +64,53 @@ const StatusPill: React.FC<{ variant?: StatusPillVariant; children: React.ReactN
 export const VendorProfileView: React.FC = () => {
   const { vendorId } = useParams<{ vendorId: string }>();
   const navigate = useNavigate();
-  useAppStore(); // preserve store subscription parity with prior implementation
+  const scope = usePrivateQueryScope();
+  const { data: rates } = useRates();
 
   // ── Vendor data ──────────────────────────────────────
-  const { data: vendor, isLoading: vendorLoading } = useQuery<Customer>({
-    queryKey: ['vendor', vendorId],
+  const { data: vendorData, isLoading: vendorLoading } = useQuery<Customer>({
+    queryKey: ['vendor', vendorId, ...scope.key],
     queryFn: () => api.customers.get(vendorId!),
-    enabled: !!vendorId,
+    enabled: !!vendorId && scope.ready,
     staleTime: 60_000,
   });
 
   // ── Products linked to this vendor ───────────────────
-  const { data: products = [], isLoading: productsLoading } = useQuery<Product[]>({
-    queryKey: ['vendor-products', vendorId],
+  const { data: productsData, isLoading: productsLoading } = useQuery<VendorProductRow[]>({
+    queryKey: ['vendor-products', vendorId, ...scope.key],
     queryFn: () => api.customers.getSuppliedProducts(vendorId!),
-    enabled: !!vendorId,
+    enabled: !!vendorId && scope.ready,
+    staleTime: 60_000,
+  });
+  const { data: pricedProductsData, isLoading: pricedProductsLoading } = useQuery<PricedProductRow[]>({
+    queryKey: ['vendor-priced-products', ...scope.key],
+    queryFn: () => api.products.list(),
+    enabled: !!vendorId && scope.ready,
     staleTime: 60_000,
   });
 
-  // ── All invoices (we filter client-side by vendor name) ──
-  const { data: invoicesRaw = [] } = useQuery({
-    queryKey: ['invoices-all'],
-    queryFn: () => api.invoices.list(200, 0),
+  const { data: ordersData, isLoading: ordersLoading, isError: ordersError } = useQuery<PurchaseOrder[]>({
+    queryKey: ['purchase-orders', ...scope.key],
+    enabled: scope.ready,
+    queryFn: () => api.purchaseOrders.list(),
     staleTime: 60_000,
   });
-  const invoices: InvoiceRow[] = Array.isArray(invoicesRaw)
-    ? invoicesRaw
-    : (invoicesRaw as any)?.invoices ?? [];
-
-  // ── Summary statistics ───────────────────────────────
-  const stats = useMemo(() => {
-    const activeProducts = products.filter(p => p.status !== 'Archived');
-    const avgCost =
-      activeProducts.length > 0
-        ? activeProducts.reduce((s, p) => s + (p.costPerGramUSD ?? 0), 0) /
-          activeProducts.length
-        : 0;
-    const activeStockValue = activeProducts.reduce(
-      (s, p) => s + (p.stockGrams ?? 0) * (p.costPerGramUSD ?? 0),
-      0,
-    );
-    const totalPurchased = products.reduce((s, p) => s + (p.costAmount ?? 0), 0);
-
-    return { count: activeProducts.length, avgCost, activeStockValue, totalPurchased };
-  }, [products]);
-
-  // ── Filter invoices by vendor name (presentation-only) ─
-  const vendorName = vendor?.name ?? '';
-  const relatedInvoices = useMemo(() => {
-    if (!vendorName) return [];
-    return invoices.filter(inv =>
-      inv.customer_name?.toLowerCase().includes(vendorName.toLowerCase()),
-    );
-  }, [invoices, vendorName]);
+  const { data: receiptsData, isLoading: receiptsLoading, isError: receiptsError } = useQuery<InventoryReceipt[]>({
+    queryKey: ['inventory-receipts-all', ...scope.key],
+    enabled: scope.ready,
+    queryFn: () => api.inventoryReceipts.list(true),
+    staleTime: 60_000,
+  });
+  const vendor = scope.ready ? vendorData : undefined;
+  const products = scope.ready ? productsData ?? [] : [];
+  const orders = vendor ? vendorPurchaseOrders(ordersData ?? [], vendorId!, vendor.name) : [];
+  const receipts = vendor ? vendorReceipts(receiptsData ?? [], vendor.name) : [];
+  const historyLoading = ordersLoading || receiptsLoading;
+  const historyError = ordersError || receiptsError;
+  const economics = vendorEconomics(products, pricedProductsData, rates);
+  const money = (value: number | null, decimals = 0) => value == null
+    ? '—'
+    : `$${fmt(value, decimals)}`;
 
   // ────────────────────────────────────────────────────────
   // Render
@@ -225,10 +209,10 @@ export const VendorProfileView: React.FC = () => {
           <h3 className="h3 mb-4">At a glance</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
-              { value: String(stats.count), label: 'Products' },
-              { value: `$${fmt(stats.totalPurchased, 0)}`, label: 'Total cost' },
-              { value: `$${fmt(stats.avgCost, 3)}`, label: 'Avg cost/g' },
-              { value: `$${fmt(stats.activeStockValue, 0)}`, label: 'Stock value' },
+              { value: String(products.filter(p => p.status !== 'Archived').length), label: 'Products' },
+              { value: pricedProductsLoading ? '…' : money(economics.totalCostUsd), label: 'Total cost' },
+              { value: pricedProductsLoading ? '…' : money(economics.avgCostPerGramUsd, 3), label: 'Avg cost/g' },
+              { value: pricedProductsLoading ? '…' : money(economics.stockValueUsd), label: 'Stock value' },
             ].map(({ value, label }) => (
               <div key={label} className="bg-tea-bg border border-tea-border rounded-xl p-4">
                 <div className="font-mono text-ui-28 text-tea-text tabular-nums leading-none">
@@ -254,15 +238,15 @@ export const VendorProfileView: React.FC = () => {
           ) : (
             <div className="border-t border-tea-border">
               {products.map(p => {
-                const stock = stockVariant(p.stockGrams ?? 0);
+                const stock = p.stock_grams == null ? null : stockVariant(Number(p.stock_grams));
                 return (
                   <div
                     key={p.id}
                     className="flex items-center gap-3 py-3 border-b border-tea-border last:border-0"
                   >
-                    {p.imageUrl ? (
+                    {p.image_url ? (
                       <img
-                        src={p.imageUrl}
+                        src={p.image_url}
                         alt=""
                         className="w-9 h-9 rounded-md object-cover shrink-0"
                       />
@@ -271,19 +255,19 @@ export const VendorProfileView: React.FC = () => {
                     )}
                     <div className="min-w-0 flex-1">
                       <p className="text-ui-13 text-tea-text truncate">
-                        {p.givenName || p.productName}
+                        {p.given_name || p.product_name}
                       </p>
                       <p className="label-caps text-tea-text-dim mt-0.5 truncate">
-                        {[p.type, p.year].filter(Boolean).join(' · ')}
+                        {[p.type, p.origin_region, p.origin_country].filter(Boolean).join(' · ')}
                       </p>
                     </div>
                     <span className="font-mono text-ui-13 text-tea-text-sec tabular-nums">
-                      {(p.stockGrams ?? 0).toLocaleString()}g
+                      {p.stock_grams == null ? 'Stock unrecorded' : `${Number(p.stock_grams).toLocaleString()}g`}
                     </span>
                     <span className="font-mono text-ui-13 text-tea-text-sec tabular-nums">
-                      ${fmt(p.costPerGramUSD ?? 0, 3)}
+                      {recordedCost(p) ?? 'Cost unrecorded'}
                     </span>
-                    <StatusPill variant={stock.variant}>{stock.label}</StatusPill>
+                    {stock && <StatusPill variant={stock.variant}>{stock.label}</StatusPill>}
                   </div>
                 );
               })}
@@ -295,36 +279,49 @@ export const VendorProfileView: React.FC = () => {
         <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
           <div className="flex items-baseline justify-between mb-4">
             <h3 className="h3">Purchase history</h3>
-            <span className="label-caps text-tea-text-dim">{relatedInvoices.length}</span>
+            <span className="label-caps text-tea-text-dim">{historyError ? '—' : historyLoading ? '…' : orders.length + receipts.length}</span>
           </div>
 
-          {relatedInvoices.length === 0 ? (
+          {historyError ? (
+            <p className="text-ui-13 text-tea-text-sec italic">Purchase history unavailable.</p>
+          ) : historyLoading ? (
+            <p className="text-ui-13 text-tea-text-sec italic">Loading purchase history…</p>
+          ) : orders.length === 0 && receipts.length === 0 ? (
             <p className="text-ui-13 text-tea-text-sec italic">
-              No purchase invoices linked to this vendor.
+              No purchase orders or receipts linked to this vendor.
             </p>
           ) : (
             <div className="border-t border-tea-border">
-              {relatedInvoices.map(inv => (
+              {orders.map(order => (
                 <div
-                  key={inv.id}
+                  key={`order:${order.id}`}
                   className="flex items-center justify-between gap-3 py-3 border-b border-tea-border last:border-0"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="font-mono text-ui-13 text-tea-text tabular-nums truncate">
-                      #{inv.invoice_number}
+                      Purchase order · {order.vendor_name}
                     </p>
                     <p className="label-caps text-tea-text-dim mt-0.5">
-                      {formatDate(inv.created_at)}
+                      {formatDate(order.created_at)}
                     </p>
                   </div>
-                  {inv.total != null && (
+                  {order.total_usd != null && Number.isFinite(Number(order.total_usd)) && (
                     <span className="font-mono text-ui-13 text-tea-text tabular-nums">
-                      ${Number(inv.total).toFixed(2)}
+                      ${Number(order.total_usd).toFixed(2)} USD
                     </span>
                   )}
-                  <StatusPill variant={inv.status === 'Filled' ? 'success' : 'draft'}>
-                    {inv.status}
+                  <StatusPill variant={order.status === 'received' ? 'success' : 'draft'}>
+                    {order.status}
                   </StatusPill>
+                </div>
+              ))}
+              {receipts.map(receipt => (
+                <div key={`receipt:${receipt.id}`} className="flex items-center justify-between gap-3 py-3 border-b border-tea-border last:border-0">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-mono text-ui-13 text-tea-text tabular-nums">Inventory receipt</p>
+                    <p className="label-caps text-tea-text-dim mt-0.5">{receipt.lines?.length ?? 0} lines · {receipt.source_kind}</p>
+                  </div>
+                  <StatusPill variant={receipt.state === 'received' ? 'success' : 'draft'}>{receipt.state}</StatusPill>
                 </div>
               ))}
             </div>

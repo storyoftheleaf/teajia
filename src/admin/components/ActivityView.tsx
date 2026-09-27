@@ -6,10 +6,10 @@ import { OrdersView } from './OrdersView';
 import { RecordsView } from './SoldItemsView';
 import { PendingView } from './PendingView';
 import { usePendingAttendees } from '../hooks/useEventData';
+import { usePendingInvoicesSummary, usePrivateQueryScope } from '../hooks/usePrivateQueryScope';
 import {
   api,
   ApiError,
-  AUTH_TOKEN_CHANGED_EVENT,
   isTokenScopedToAccount,
   type InquiryRecord,
   type InquiryStatus,
@@ -27,14 +27,7 @@ interface ActivityViewProps {
 }
 
 function usePendingCount() {
-  const { data: orders = [] } = useQuery({
-    queryKey: ['invoices-pending-summary'],
-    staleTime: 30_000,
-    queryFn: async () => {
-      const data = (await api.invoices.list(200)) as any[];
-      return data.filter((o: any) => o.status === 'Pending');
-    },
-  });
+  const { data: orders = [] } = usePendingInvoicesSummary();
   // Reuse the same hook (same queryKey + queryFn) as PendingView so the cache
   // is never poisoned by a raw-data queryFn registered here first.
   const { data: rsvps = [] } = usePendingAttendees();
@@ -49,18 +42,18 @@ function usePendingCount() {
  * It cannot ride the pending-summary cache above: that query filters to Pending
  * orders, and a report can land on a Filled order that is only part paid.
  */
-function useClaimsPendingCount(accountId: string | null, tokenRevision: number) {
-  const ready = Boolean(accountId) && isTokenScopedToAccount(accountId);
+function useClaimsPendingCount() {
+  const scope = usePrivateQueryScope();
   const { data } = useQuery({
-    queryKey: ['invoices-claims-summary', accountId, tokenRevision],
+    queryKey: ['invoices-claims-summary', ...scope.key],
     staleTime: 60_000,
-    enabled: ready,
+    enabled: scope.ready,
     queryFn: async () => {
       const rows = await api.invoices.list(200);
       return rows.filter(row => (Number(row.payment?.claims_pending) || 0) > 0).length;
     },
   });
-  return ready ? data ?? 0 : 0;
+  return scope.ready ? data ?? 0 : 0;
 }
 
 export const ActivityView: React.FC<ActivityViewProps> = ({ products }) => {
@@ -70,18 +63,11 @@ export const ActivityView: React.FC<ActivityViewProps> = ({ products }) => {
   const setActiveTab = (tab: ActivityTab) => setSearchParams({ tab }, { replace: true });
   const pendingCount = usePendingCount();
   const activeAccountId = useAppStore(state => state.activeAccountId);
-  const [tokenRevision, setTokenRevision] = React.useState(0);
-
-  React.useEffect(() => {
-    const handleTokenChange = () => setTokenRevision(revision => revision + 1);
-    window.addEventListener(AUTH_TOKEN_CHANGED_EVENT, handleTokenChange);
-    return () => window.removeEventListener(AUTH_TOKEN_CHANGED_EVENT, handleTokenChange);
-  }, []);
-
-  const inquiryAccountReady = Boolean(activeAccountId) && isTokenScopedToAccount(activeAccountId);
+  const scope = usePrivateQueryScope();
+  const inquiryAccountReady = scope.ready;
 
   const inquiryCountQuery = useQuery({
-    queryKey: ['inquiries-new-count', activeAccountId, tokenRevision],
+    queryKey: ['inquiries-new-count', ...scope.key],
     staleTime: 60_000,
     enabled: inquiryAccountReady,
     queryFn: async () => {
@@ -93,7 +79,7 @@ export const ActivityView: React.FC<ActivityViewProps> = ({ products }) => {
     },
   });
   const newInquiryCount = !inquiryAccountReady || inquiryCountQuery.isError ? undefined : inquiryCountQuery.data?.length;
-  const claimsPendingCount = useClaimsPendingCount(activeAccountId, tokenRevision);
+  const claimsPendingCount = useClaimsPendingCount();
 
   const tabs: { id: ActivityTab; label: string; icon: React.ReactNode; badge?: number; countUnavailable?: boolean }[] = [
     { id: 'pending', label: 'Pending', icon: <Inbox size={15} />, badge: pendingCount },
@@ -199,6 +185,7 @@ const STATUS_COLORS: Record<InquiryStatus, string> = {
 
 function InquiriesView({ accountId, accountReady }: { accountId: string | null; accountReady: boolean }) {
   const qc = useQueryClient();
+  const scope = usePrivateQueryScope();
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [filter, setFilter] = React.useState<'all' | InquiryStatus>('all');
@@ -210,9 +197,9 @@ function InquiriesView({ accountId, accountReady }: { accountId: string | null; 
   const [convertedHere, setConvertedHere] = React.useState<Record<string, string>>({});
 
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['admin-inquiries', accountId, filter],
+    queryKey: ['admin-inquiries', accountId, scope.key[1], scope.key[2], filter],
     staleTime: 30_000,
-    enabled: accountReady,
+    enabled: accountReady && scope.ready,
     queryFn: async () => {
       const res = await api.inquiries.list(filter === 'all' ? undefined : filter);
       if (res.inquiries.some(inquiry => inquiry.account_id !== accountId)) {
@@ -292,7 +279,7 @@ function InquiriesView({ accountId, accountReady }: { accountId: string | null; 
     updateStatus.reset();
     convert.reset();
     setConvertedHere({});
-  }, [accountId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [accountId, scope.key[1], scope.key[2]]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const submitStatusUpdate = (variables: { id: string; status: InquiryStatus; accountId: string }) => {
     updateStatus.reset();
@@ -415,7 +402,7 @@ function InquiriesView({ accountId, accountReady }: { accountId: string | null; 
                 {inq.items.map((item, i) => (
                   <div key={i} className="flex justify-between text-xs">
                     <span className="text-tea-text">{item.name}</span>
-                    <span className="text-tea-text-sec num">{item.quantityGrams ?? item.qty ?? ''}g</span>
+                    <span className="text-tea-text-sec num">{item.packs && item.packs > 1 ? `${item.packs} × ` : ''}{item.packGrams ?? item.quantityGrams ?? item.qty ?? ''}{item.category === 'ware' ? ' pcs' : ' g'}</span>
                   </div>
                 ))}
                 {inq.total_usd != null && (

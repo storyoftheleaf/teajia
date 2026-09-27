@@ -14,6 +14,7 @@ import { CONTACT_UNAVAILABLE, resolveContactChannels } from '../../lib/contact';
 import { Cover, Dek, GroupHead, IndexRow, Kicker, SplitName } from '../people/immersive';
 import { ContributorIdentityMark } from '../shared/ContributorIdentityMark';
 import type { PublicPerson } from '../../types';
+import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
 interface StorefrontProps {
   onAddToCart: (item: InventoryItem, qty: number, total: number) => void;
@@ -59,6 +60,8 @@ export const Storefront: React.FC<StorefrontProps> = ({
   const {
     data: products = [],
     isLoading: productsLoading,
+    isError: productsError,
+    refetch: refetchProducts,
   } = useQuery<InventoryItem[]>({
     queryKey: ['storefront', 'products', slug],
     queryFn: () => fetchStoreProducts(slug),
@@ -197,6 +200,8 @@ export const Storefront: React.FC<StorefrontProps> = ({
             teaInventory={teaInventory}
             teawareInventory={teawareInventory}
             isLoading={productsLoading}
+            isError={productsError}
+            onRetry={() => refetchProducts()}
             onAddToCart={onAddToCart}
             onCartClick={onCartClick}
             onAccountClick={onAccountClick}
@@ -280,6 +285,8 @@ interface StorefrontShopSectionProps {
   teaInventory: InventoryItem[];
   teawareInventory: InventoryItem[];
   isLoading: boolean;
+  isError: boolean;
+  onRetry: () => void;
   onAddToCart: (item: InventoryItem, qty: number, total: number) => void;
   onCartClick?: () => void;
   onAccountClick?: () => void;
@@ -291,6 +298,8 @@ const StorefrontShopSection: React.FC<StorefrontShopSectionProps> = ({
   teaInventory,
   teawareInventory,
   isLoading,
+  isError,
+  onRetry,
   onAddToCart,
   onCartClick,
   onAccountClick,
@@ -300,6 +309,18 @@ const StorefrontShopSection: React.FC<StorefrontShopSectionProps> = ({
 
   if (isLoading) {
     return <SectionSkeleton variant="shop" />;
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6" role="alert">
+        <h2 className="h3">Products could not be loaded</h2>
+        <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec mt-2`}>Please try again in a moment.</p>
+        <button type="button" onClick={onRetry} className="cta-solid tap-target rounded-xl px-6 py-3 mt-6 text-ui-12 uppercase tracking-caps">
+          Try again
+        </button>
+      </div>
+    );
   }
 
   const hasTea = teaInventory.length > 0;

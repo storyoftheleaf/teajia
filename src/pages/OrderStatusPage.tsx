@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Search } from 'lucide-react';
 import { api } from '../lib/api';
 import { useShopPrice } from '../components/shop/shopPrice';
@@ -8,7 +8,8 @@ import { ReportPaymentAction } from '../components/shared/ReportPaymentAction';
 import { shouldOfferPaymentClaim } from '../components/shared/paymentClaimDomain';
 import { OrderJourneyStatus } from '../components/shared/OrderJourneyStatus';
 import { normalizeJourney, showsPaymentActions } from '../components/shared/orderJourneyDomain';
-import { createAsyncResultGuard } from '../lib/orderTrackingDomain';
+import { createAsyncResultGuard, loadTrackingRequest, trackingItemQuantity } from '../lib/orderTrackingDomain';
+import { TYPOGRAPHY_CLASSES } from '../designTokens';
 
 const inputClass =
   'w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
@@ -20,6 +21,7 @@ const OrderStatusPage: React.FC = () => {
   const [inquiry, setInquiry] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [unavailable, setUnavailable] = useState(false);
   const [lookupToken, setLookupToken] = useState('');
   // Bumped when the customer reports a payment, so the page picks up the
   // pending-claim count the worker now holds rather than the one it loaded with.
@@ -33,27 +35,23 @@ const OrderStatusPage: React.FC = () => {
 
   useEffect(() => {
     if (!trackingToken) {
+      setInquiry(null);
+      setNotFound(false);
+      setUnavailable(false);
       setLoading(false);
       return;
     }
     setLoading(true);
     setNotFound(false);
+    setUnavailable(false);
+    setInquiry(null);
     const guard = createAsyncResultGuard();
-    api.inquiries
-      .getByTrackingToken(trackingToken)
-      .then((data) => {
+    loadTrackingRequest(() => api.inquiries.getByTrackingToken(trackingToken))
+      .then((result) => {
         if (!guard.isCurrent()) return;
-        if (data) {
-          setInquiry(data);
-        } else {
-          setInquiry(null);
-          setNotFound(true);
-        }
-        setLoading(false);
-      })
-      .catch(() => {
-        if (!guard.isCurrent()) return;
-        setNotFound(true);
+        if (result.status === 'found') setInquiry(result.inquiry);
+        setNotFound(result.status === 'missing');
+        setUnavailable(result.status === 'unavailable');
         setLoading(false);
       });
     return () => guard.cancel();
@@ -78,7 +76,8 @@ const OrderStatusPage: React.FC = () => {
 
   let items: any[] = [];
   try {
-    items = inquiry?.items_json ? JSON.parse(inquiry.items_json) : [];
+    const parsed = inquiry?.items_json ? JSON.parse(inquiry.items_json) : [];
+    items = Array.isArray(parsed) ? parsed : [];
   } catch {
     items = [];
   }
@@ -107,7 +106,7 @@ const OrderStatusPage: React.FC = () => {
       {/* Back */}
       <button
         onClick={() => navigate(-1)}
-        className="inline-flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
+        className="tap-target inline-flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
         aria-label="Back"
       >
         <ArrowLeft size={14} />
@@ -116,7 +115,7 @@ const OrderStatusPage: React.FC = () => {
 
       {/* Header */}
       <div>
-        <h1 className="h2">Track your order</h1>
+        <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>Track your order</h1>
         <p className="label-caps text-tea-text-dim mt-1">Order status lookup</p>
       </div>
 
@@ -137,7 +136,7 @@ const OrderStatusPage: React.FC = () => {
           />
           <button
             type="submit"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors whitespace-nowrap"
+            className="tap-target inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors whitespace-nowrap"
           >
             <Search size={14} />
             Look up
@@ -150,26 +149,30 @@ const OrderStatusPage: React.FC = () => {
         )}
       </form>
 
+      {unavailable && (
+        <div role="alert" className="bg-tea-surface border border-tea-border rounded-xl p-5">
+          <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Order status is temporarily unavailable</h2>
+          <p className={`${TYPOGRAPHY_CLASSES.body} text-tea-text-sec mt-2`}>
+            We could not load your order. Keep this link and try again. You do not need to send another request.
+          </p>
+          <button type="button" onClick={() => setReloadKey(key => key + 1)} className="tap-target mt-4 inline-flex px-4 py-2 rounded-md cta-solid text-ui-13">
+            Try again
+          </button>
+        </div>
+      )}
+
       {/* Not found */}
       {notFound && (
         <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
-          <h3 className="h3">Order not found</h3>
+          <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Order not found</h2>
           <p className="text-ui-12 text-tea-text-sec mt-1 leading-relaxed">
-            This private tracking code doesn't exist or hasn't been submitted yet. Double-check the code, or browse the shop and place a new inquiry.
+            We could not find a request for this code. Open the private order link from your saved request or message. If you already sent an order, ask us in that conversation before sending another.
           </p>
-          <div className="mt-4">
-            <Link
-              to="/shop"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
-            >
-              Browse shop
-            </Link>
-          </div>
         </div>
       )}
 
       {/* Invoice block, §21 */}
-      {inquiry && !notFound && (
+      {inquiry && !notFound && !unavailable && (
         <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
           <div className="flex items-baseline justify-between mb-3 flex-wrap gap-2">
             <h3 className="h3">Order {inquiry.ref_number}</h3>
@@ -189,12 +192,12 @@ const OrderStatusPage: React.FC = () => {
           <div className="border-t border-tea-border">
             {items.map((item: any) => (
               <div
-                key={item.id}
+                key={item.lineKey || `${item.id}:${item.packGrams ?? item.quantityGrams}`}
                 className="flex justify-between items-baseline py-2 text-ui-14 text-tea-text border-b border-tea-border last:border-0"
               >
                 <span className="flex-1 truncate">{item.name}</span>
                 <span className="text-tea-text-sec text-ui-13 mx-4 font-mono tabular-nums">
-                  {item.category === 'tea' ? `${item.quantityGrams}g` : `×${item.quantityGrams}`}
+                  {trackingItemQuantity(item)}
                 </span>
                 <span className="font-mono tabular-nums w-20 text-right">
                   {formatStoredUsd(Number(item.totalPrice))}
@@ -205,7 +208,7 @@ const OrderStatusPage: React.FC = () => {
 
           {/* Total */}
           <div className="flex justify-between items-baseline pt-3 mt-2 border-t border-tea-border">
-            <span className="font-display text-ui-17 font-medium text-tea-text">Estimate</span>
+            <span className={`${TYPOGRAPHY_CLASSES.label} text-tea-text`}>Requested tea subtotal</span>
             <span className="font-mono text-ui-17 text-tea-text tabular-nums">
               {formatStoredUsd(Number(inquiry?.total_estimate_usd || 0))}
             </span>

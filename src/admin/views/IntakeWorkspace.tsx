@@ -63,6 +63,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
   const [batchId, setBatchId] = useState<string | null>(null);
   const [committing, setCommitting] = useState(false);
   const [savePurchaseRecord, setSavePurchaseRecord] = useState(true);
+  const [pendingPurchaseRecords, setPendingPurchaseRecords] = useState<Array<Parameters<typeof api.purchaseOrders.create>[0]>>([]);
   const [shippingTotal, setShippingTotal] = useState<number>(0);
   const [shippingCurrency, setShippingCurrency] = useState<string>('');
   const [isDragging, setIsDragging] = useState(false);
@@ -352,8 +353,34 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
   ), [shippingTotal, totalSize]);
 
   // ── Commit ───────────────────────────────────────────────────────────────────
+  const finishImport = useCallback(async () => {
+    onRefresh?.();
+    if (importId) await api.curateImports.abandon(importId).catch(() => null);
+    setSources([]); setItems([]);
+    navigate('/admin/capture');
+  }, [onRefresh, importId, navigate]);
+
+  const retryPurchaseRecords = useCallback(async () => {
+    if (committing || pendingPurchaseRecords.length === 0) return;
+    setCommitting(true);
+    try {
+      for (let i = 0; i < pendingPurchaseRecords.length; i++) {
+        try {
+          await api.purchaseOrders.create(pendingPurchaseRecords[i]);
+        } catch (error: any) {
+          setPendingPurchaseRecords(pendingPurchaseRecords.slice(i));
+          showToast(`Purchase record for ${pendingPurchaseRecords[i].vendor_name} was not confirmed: ${error?.message || 'request failed'}. Inventory items are already saved; retry purchase records only.`, 'error');
+          return;
+        }
+      }
+      setPendingPurchaseRecords([]);
+      showToast('Purchase records saved. Inventory items were already added.', 'success');
+      await finishImport();
+    } finally { setCommitting(false); }
+  }, [committing, pendingPurchaseRecords, showToast, finishImport]);
+
   const commit = useCallback(async () => {
-    if (included.length === 0 || committing) return;
+    if (included.length === 0 || committing || pendingPurchaseRecords.length > 0) return;
     setCommitting(true);
     try {
       const chunk = 50;
@@ -399,6 +426,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
           if (row?.status === 'skipped' && row?.reason) skipReasons.add(plainCostWords(String(row.reason)));
         }
       }
+      const purchaseRecords: Array<Parameters<typeof api.purchaseOrders.create>[0]> = [];
       if (savePurchaseRecord) {
         // One purchase record per vendor/store, an order sheet routinely spans
         // many stores, so a single PO per file would lump them together wrongly.
@@ -432,7 +460,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
           lines.forEach((l) => { if (l.costCurrency !== 'UNK') tally[l.costCurrency] = (tally[l.costCurrency] || 0) + 1; });
           const display = Object.entries(tally).sort((a, b) => b[1] - a[1])[0]?.[0] || 'USD';
           const files = Array.from(new Set(lines.map((l) => sourceName(l.sourceId)))).filter(Boolean).join(', ');
-          await api.purchaseOrders.create({
+          purchaseRecords.push({
             vendor_name: vendor,
             items_json: JSON.stringify(lines.map((l) => ({
               product_name: l.givenName || l.productName,
@@ -445,7 +473,17 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
             display_currency: display,
             status: 'received',
             notes: `Intake${files ? ` from ${files}` : ''}${batchId ? ` · batch ${batchId}` : ''}`,
-          }).catch(() => null);
+          });
+        }
+      }
+      for (let i = 0; i < purchaseRecords.length; i++) {
+        try {
+          await api.purchaseOrders.create(purchaseRecords[i]);
+        } catch (error: any) {
+          setPendingPurchaseRecords(purchaseRecords.slice(i));
+          onRefresh?.();
+          showToast(`Added ${inserted} inventory item${inserted !== 1 ? 's' : ''}, but the purchase record for ${purchaseRecords[i].vendor_name} was not confirmed: ${error?.message || 'request failed'}. Retry purchase records without adding the items again.`, 'error');
+          return;
         }
       }
       /* The count, then what to do about it. A toast that only counts skips
@@ -458,20 +496,15 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
         `Added ${inserted} item${inserted !== 1 ? 's' : ''} as drafts${skipNote}`,
         skipped > 0 ? 'error' : 'success',
       );
-      onRefresh?.();
-      // Close the server draft so it leaves the resume list; failure is silent
-      // because the products landed regardless.
-      if (importId) await api.curateImports.abandon(importId).catch(() => null);
-      setSources([]); setItems([]);
-      navigate('/admin/capture');
+      await finishImport();
     } catch (e: any) {
       showToast(`Import failed: ${e?.message || 'error'}`, 'error');
     } finally {
       setCommitting(false);
     }
-  }, [included, committing, batchId, savePurchaseRecord, rates, sourceName, shareShip, shipCur, showToast, onRefresh, navigate, importId]);
+  }, [included, committing, pendingPurchaseRecords.length, batchId, savePurchaseRecord, rates, sourceName, shareShip, shipCur, showToast, onRefresh, finishImport]);
 
-  const hasContent = sources.length > 0;
+  const hasContent = sources.length > 0 || pendingPurchaseRecords.length > 0;
 
   return (
     <div
@@ -597,6 +630,11 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
       {/* Footer action bar */}
       {hasContent && (
         <div className="flex-shrink-0 glass-panel border-t border-tea-border px-4 md:px-7 pt-3 pb-nav-gap">
+          {pendingPurchaseRecords.length > 0 && (
+            <p role="alert" className="mb-3 text-ui-12 text-tea-text-sec">
+              Inventory items were added. {pendingPurchaseRecords.length} purchase record{pendingPurchaseRecords.length !== 1 ? 's are' : ' is'} still unconfirmed. Retry saves only those records; staged edits will not change the items already added.
+            </p>
+          )}
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
             <div className="flex items-baseline gap-1.5">
               <span className="text-ui-20 font-display text-tea-text leading-none">{counts.total}</span>
@@ -607,6 +645,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
             <button
               type="button"
               onClick={() => setSavePurchaseRecord((v) => !v)}
+              disabled={pendingPurchaseRecords.length > 0}
               className="inline-flex items-center gap-2 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors tap-target"
               aria-pressed={savePurchaseRecord}
             >
@@ -617,13 +656,15 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
             </button>
             <button
               type="button"
-              onClick={commit}
-              disabled={committing || counts.total === 0}
+              onClick={pendingPurchaseRecords.length > 0 ? retryPurchaseRecords : commit}
+              disabled={committing || (pendingPurchaseRecords.length === 0 && counts.total === 0)}
               className="ml-auto pill-active text-ui-13 px-5 py-2 inline-flex items-center gap-2 disabled:opacity-50"
             >
               {committing
                 ? <><Loader2 size={14} className="animate-spin" /> Adding…</>
-                : <><Check size={14} /> Add {counts.total} to inventory <ArrowRight size={13} /></>}
+                : pendingPurchaseRecords.length > 0
+                  ? <><Receipt size={14} /> Retry {pendingPurchaseRecords.length} purchase record{pendingPurchaseRecords.length !== 1 ? 's' : ''}</>
+                  : <><Check size={14} /> Add {counts.total} to inventory <ArrowRight size={13} /></>}
             </button>
           </div>
         </div>

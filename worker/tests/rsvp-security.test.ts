@@ -7,7 +7,10 @@ class RsvpDb {
     const statement = {
       bind: () => statement,
       first: async () => {
-        if (normalized.includes('from events where slug')) return { id: 'event-1', account_id: 'account-1', total_capacity: 10, claim_window_minutes: 30, requires_approval: 0 };
+        // Public RSVP now resolves only active events on active/public hosts.
+        if (normalized.includes('from events e join accounts a') && normalized.includes("a.public_enabled = 1")) {
+          return { id: 'event-1', account_id: 'account-1', total_capacity: 10, claim_window_minutes: 30, requires_approval: 0 };
+        }
         if (normalized.includes('from event_attendees')) return { magic_token: 'bearer-secret', status: 'confirmed' };
         return null;
       },

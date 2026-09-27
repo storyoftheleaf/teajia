@@ -16,6 +16,7 @@ vi.mock('../../lib/store', () => ({
 
 vi.mock('../../lib/api', async importOriginal => ({
   ...await importOriginal<typeof import('../../lib/api')>(),
+  getTokenClaims: () => tokenScope.accountId ? { sub: 'operator', active_account_id: tokenScope.accountId } : null,
   isTokenScopedToAccount: (accountId: string | null) => Boolean(accountId) && tokenScope.accountId === accountId,
 }));
 
@@ -66,9 +67,9 @@ describe('account-scoped inquiry inbox', () => {
     });
     const oldInquiry = inquiry('old-inquiry', 'account-old', 'Previous Account Customer');
     queryClient.setQueryData(['admin-inquiries', 'all'], [oldInquiry]);
-    queryClient.setQueryData(['admin-inquiries', 'account-old', 'all'], [oldInquiry]);
+    queryClient.setQueryData(['admin-inquiries', 'account-old', 'operator', 0, 'all'], [oldInquiry]);
     await queryClient.prefetchQuery({
-      queryKey: ['admin-inquiries', 'account-current', 'all'],
+      queryKey: ['admin-inquiries', 'account-current', 'operator', 0, 'all'],
       queryFn: async () => { throw new Error('Current account unavailable'); },
     });
     activateAccount('account-current');
@@ -93,7 +94,7 @@ describe('account-scoped inquiry inbox', () => {
 
   it('renders no cached rows while the selected account and token scope disagree', () => {
     const queryClient = new QueryClient();
-    queryClient.setQueryData(['admin-inquiries', 'account-current', 'all'], [
+    queryClient.setQueryData(['admin-inquiries', 'account-current', 'operator', 0, 'all'], [
       inquiry('wrong-token-inquiry', 'account-old', 'Wrong Token Customer'),
     ]);
     appStoreState.activeAccountId = 'account-current';
@@ -112,7 +113,7 @@ describe('account-scoped inquiry inbox', () => {
     for (const queryKey of [
       ['inquiries-new-count'],
       ['inquiries-new-count', 'account-current'],
-      ['inquiries-new-count', 'account-current', 0],
+      ['inquiries-new-count', 'account-current', 'operator', 0],
     ]) {
       await queryClient.prefetchQuery({
         queryKey,
@@ -133,7 +134,7 @@ describe('account-scoped inquiry inbox', () => {
     queryClient.setQueryData(['admin-inquiries', 'all'], [
       inquiry('inquiry-one', 'account-current', 'Private Person'),
     ]);
-    queryClient.setQueryData(['admin-inquiries', 'account-current', 'all'], [
+    queryClient.setQueryData(['admin-inquiries', 'account-current', 'operator', 0, 'all'], [
       inquiry('inquiry-one', 'account-current', 'Private Person'),
     ]);
     activateAccount('account-current');

@@ -31,6 +31,7 @@ const SAMPLE: DbArticle = {
 
 export default function ArticleEditorHarness() {
   const [open, setOpen] = useState(true);
+  const newArticle = new URLSearchParams(window.location.search).has('new');
   if (!import.meta.env.DEV) {
     return <div className="min-h-[100dvh] bg-tea-bg flex items-center justify-center text-tea-text-dim">Not available</div>;
   }
@@ -39,7 +40,7 @@ export default function ArticleEditorHarness() {
       <ArticleEditorModal
         isOpen={open}
         onClose={() => setOpen(false)}
-        initialData={SAMPLE}
+        initialData={newArticle ? undefined : SAMPLE}
         onSaved={() => {}}
       />
     </div>

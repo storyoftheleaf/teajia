@@ -24,6 +24,7 @@ import { Product } from './types';
 
 import { useProducts, useRates } from './hooks/useAdminData';
 import { eventsListQueryOptions } from './hooks/useEventData';
+import { usePrivateQueryScope } from './hooks/usePrivateQueryScope';
 import { useAppStore } from './store';
 import { selectHasBundle, selectIsOwnerTier } from '../lib/store';
 
@@ -226,13 +227,14 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
   const canUsePeople = hasSellBundle || hasGatherBundle || hasMembersBundle || hasStockBundle || hasPublishBundle;
 
   // Warm the events list in the background as soon as the user enters admin.
-  // The persisted cache may already have a copy, but this kicks off the
-  // revalidation immediately so the data is fresh by the time they click.
+  // Warm only the current person's store; admin events never persist to disk.
   const queryClient = useQueryClient();
+  const privateScope = usePrivateQueryScope();
+  const [scopeAccount, scopeUser, scopeRevision] = privateScope.key;
   useEffect(() => {
-    if (!isMember) return;
-    queryClient.prefetchQuery(eventsListQueryOptions);
-  }, [isMember, activeAccountId, queryClient]);
+    if (!isMember || !privateScope.ready) return;
+    queryClient.prefetchQuery(eventsListQueryOptions([scopeAccount, scopeUser, scopeRevision]));
+  }, [isMember, privateScope.ready, scopeAccount, scopeUser, scopeRevision, queryClient]);
 
   // Listen for session expiry (401 responses clear the token in api.ts)
   useEffect(() => {

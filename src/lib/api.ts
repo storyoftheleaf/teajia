@@ -240,6 +240,8 @@ export interface InquiryItem {
   category?: string;
   storeSlug?: string;
   quantityGrams?: number;
+  packGrams?: number;
+  packs?: number;
   qty?: number;
   pricePerGram?: number;
   totalPrice?: number;
@@ -1516,6 +1518,14 @@ export interface SampleTastingApiRow {
 }
 
 export const api = {
+  mcpTokens: {
+    list: (): Promise<Array<{ id: string; user_email: string; label: string; token_prefix: string; scopes: string[] | string | null; created_at: string; last_used_at: string | null; revoked_at: string | null }>> =>
+      authedFetch(`${API_URL}/api/admin/mcp-tokens`),
+    mint: (label: string, scopes: string[]): Promise<{ token: string }> =>
+      authedFetch(`${API_URL}/api/admin/mcp-tokens`, { method: 'POST', body: JSON.stringify({ label, scopes }) }),
+    revoke: (id: string): Promise<{ success: boolean }> =>
+      authedFetch(`${API_URL}/api/admin/mcp-tokens/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  },
   publicWisdom: {
     states: async (): Promise<{ states: PublicWisdomNodeState[] }> => {
       const response = await fetchWithTimeout(`${API_URL}/api/public/wisdom/states`);
@@ -1588,7 +1598,7 @@ export const api = {
     list: (includeClosed = false) => authedFetch(`${API_URL}/api/inventory/receipts?include_closed=${includeClosed ? '1' : '0'}`),
     create: (body: Record<string, unknown>, idempotencyKey = crypto.randomUUID()) => authedFetch(`${API_URL}/api/inventory/receipts`, { method: 'POST', body: JSON.stringify({ ...body, idempotency_key: idempotencyKey }), retryTimeouts: true }),
     updateState: (receiptId: string, state: 'ordered' | 'in_transit') => authedFetch(`${API_URL}/api/inventory/receipts/${receiptId}/state`, { method: 'PUT', body: JSON.stringify({ state }), retryTimeouts: true }),
-    receive: (lineId: string, quantity: number, idempotencyKey = crypto.randomUUID()) => authedFetch(`${API_URL}/api/inventory/receipt-lines/${lineId}/receive`, { method: 'POST', body: JSON.stringify({ quantity, idempotency_key: idempotencyKey }), retryTimeouts: true }),
+    receive: (lineId: string, quantity: number, idempotencyKey: string) => authedFetch(`${API_URL}/api/inventory/receipt-lines/${lineId}/receive`, { method: 'POST', body: JSON.stringify({ quantity, idempotency_key: idempotencyKey }), retryTimeouts: true }),
     cancelRemaining: (lineId: string) => authedFetch(`${API_URL}/api/inventory/receipt-lines/${lineId}/cancel-remaining`, { method: 'POST', retryTimeouts: true }),
   },
   inventorySummaries: {
@@ -2493,15 +2503,10 @@ export const api = {
     uploadFlyer: async (file: File | Blob) => {
       const formData = new FormData();
       formData.append('file', file);
-      const token = localStorage.getItem('teajia_token');
-      const headers: Record<string, string> = {};
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-      const res = await fetchWithTimeout(`${API_URL}/api/upload-flyer`, {
+      return authedFetch(`${API_URL}/api/upload-flyer`, {
         method: 'POST',
-        headers,
         body: formData,
       });
-      return handleResponse(res);
     },
   },
 
@@ -2527,13 +2532,9 @@ export const api = {
     uploadPhoto: async (venueId: string, file: File) => {
       const formData = new FormData();
       formData.append('file', file);
-      const token = localStorage.getItem('teajia_token');
-      const headers: Record<string, string> = {};
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-      const res = await fetchWithTimeout(`${API_URL}/api/admin/venues/${venueId}/photos`, {
-        method: 'POST', headers, body: formData,
+      return authedFetch(`${API_URL}/api/admin/venues/${venueId}/photos`, {
+        method: 'POST', body: formData,
       });
-      return handleResponse(res);
     },
     createSpace: async (venueId: string, data: Record<string, any>) => {
       return authedFetch(`${API_URL}/api/admin/venues/${venueId}/spaces`, {
@@ -2974,8 +2975,8 @@ export const api = {
       items_json: string;
       total_estimate_usd: number;
       currency: string;
-      source: 'whatsapp' | 'email' | 'copy';
-    }): Promise<{ id: string; ref_number: string; tracking_token: string; source: string; success: true; idempotent?: true }> => {
+      source: 'whatsapp' | 'email' | 'copy' | 'website';
+    }): Promise<{ id: string; ref_number: string; tracking_token: string; source: string; success: true; idempotent?: true; email_sent?: boolean }> => {
       const res = await fetchWithTimeout(`${API_URL}/api/inquiries`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

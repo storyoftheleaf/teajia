@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { KeyRound, Loader2, Plus } from 'lucide-react';
-import { useAppStore } from '../../lib/store';
-import { fetchWithTimeout, getApiOrigin } from '../../lib/api';
+import { api, getApiOrigin } from '../../lib/api';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
 // MCP tokens, voice/agent control of this account's inventory through the
@@ -49,15 +48,6 @@ const SCOPE_DEFS: ScopeDef[] = [
 
 const API_URL = getApiOrigin();
 
-function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem('teajia_token') || '';
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-  const accountId = useAppStore.getState().activeAccountId;
-  if (accountId) headers['X-Teajia-Account'] = accountId;
-  return headers;
-}
-
 const formatDate = (iso: string | null | undefined): string => {
   if (!iso) return '—';
   const d = new Date(iso);
@@ -74,9 +64,7 @@ export const MCPTokensView: React.FC = () => {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const res = await fetchWithTimeout(`${API_URL}/api/admin/mcp-tokens`, { headers: authHeaders() });
-      if (!res.ok) throw new Error(await res.text());
-      setTokens(await res.json());
+      setTokens(await api.mcpTokens.list());
     } catch (err: any) {
       setError(err?.message || 'Could not load MCP tokens.');
     }
@@ -222,10 +210,7 @@ const TokenRowView: React.FC<TokenRowViewProps> = ({ row, onChange }) => {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetchWithTimeout(`${API_URL}/api/admin/mcp-tokens/${row.id}`, {
-        method: 'DELETE', headers: authHeaders(),
-      });
-      if (!res.ok) throw new Error(await res.text());
+      await api.mcpTokens.revoke(row.id);
       await onChange();
     } catch (err: any) {
       setError(err?.message || 'Could not revoke token.');
@@ -346,11 +331,7 @@ const MintForm: React.FC<MintFormProps> = ({ onCancel, onMinted }) => {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetchWithTimeout(`${API_URL}/api/admin/mcp-tokens`, {
-        method: 'POST', headers: authHeaders(), body: JSON.stringify({ label: trimmed, scopes }),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
+      const data = await api.mcpTokens.mint(trimmed, scopes);
       await onMinted(data.token, trimmed);
     } catch (err: any) {
       setError(err?.message || 'Could not mint token.');

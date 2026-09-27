@@ -50,6 +50,8 @@ export interface WhatsAppMessageOptions {
   currency?: string;
   /** Admin draft prefill URL, appended to inquiry messages so the operator can tap it to open a pre-filled invoice form. */
   adminDraftUrl?: string;
+  /** Private status link for the customer and operator handling this request. */
+  trackingUrl?: string;
   /**
    * The customer's payment page for this order, already built by the worker with
    * the amount, currency, reference and store on it.
@@ -105,17 +107,19 @@ export function buildOrderMessage(opts: WhatsAppMessageOptions): string {
     opts.items.forEach(item => {
       const variant = item.variant ? ` (${item.variant})` : '';
       const packs = item.packs && item.packs > 1 ? `${item.packs} × ` : '';
-      lines.push(`${item.name}${variant}: ${packs}${item.quantity}${item.unit} × ${item.price}`);
+      lines.push(`${item.name}${variant}: ${packs}${item.quantity}${item.unit}, ${item.total}`);
     });
     lines.push('');
-    lines.push(`Total: ${opts.total}`);
+    lines.push(`${opts.items.every(item => item.unit === 'g') ? 'Tea subtotal' : 'Subtotal'}: ${opts.subtotal}`);
+    lines.push('Delivery and the final total will be confirmed by message.');
     if (currencyLine) lines.push(currencyLine);
     lines.push('');
     if (opts.customerName) lines.push(`Name: ${opts.customerName}`);
     if (opts.customerContact) lines.push(`Contact: ${opts.customerContact}`);
-    if (opts.customerLocation) lines.push(`Shipping to: ${opts.customerLocation}`);
+    if (opts.customerLocation) lines.push(`Delivery: ${opts.customerLocation}`);
     if (opts.notes) lines.push('', opts.notes);
     if (opts.ref) lines.push('', `Ref: ${opts.ref}`);
+    if (opts.trackingUrl) lines.push('', `Your private order link: ${opts.trackingUrl}`);
     if (opts.adminDraftUrl) lines.push('', `Draft invoice: ${opts.adminDraftUrl}`);
   } else if (opts.type === 'invoice') {
     lines.push('Teajia Order', '');

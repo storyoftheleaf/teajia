@@ -114,6 +114,7 @@ import {
 import { isTeaType, TEA_TYPES } from '../../src/wisdom/vocabulary';
 import { isUnrecordedCurrency } from '../../src/lib/currency';
 import {
+  inquiryEmail, inquiryPhone, inquiryPacking, inquiryPackingLabel, quoteInquiryLine,
   catalogProductIds, INQUIRY_MAX_CONTACT, INQUIRY_MAX_INTEREST_LABEL, INQUIRY_MAX_INTERESTS,
   INQUIRY_MAX_LOCATION, INQUIRY_MAX_NAME, INQUIRY_MAX_NOTE, INQUIRY_MAX_PHONE, INQUIRY_MAX_REF_NUMBER,
   INQUIRY_MAX_REFERRAL, INQUIRY_MAX_REQUEST_BYTES, INQUIRY_MAX_VISION, inquiryFieldTooLong,
@@ -1524,6 +1525,33 @@ function cachedJson(data: unknown, maxAge: number, status = 200): Response {
   });
 }
 
+/**
+ * Serve a public GET from this data center's cache, building it only on a miss.
+ *
+ * cachedJson's Cache-Control is not enough on its own: Cloudflare does not cache
+ * what a Worker returns, so its s-maxage was a promise nothing kept. Every shop
+ * visit rebuilt the whole catalogue from D1: 150 KB and 4-13 ms of CPU per
+ * request, measured 2026-09-26, against the Free plan's 10 ms per-request limit,
+ * over which Cloudflare kills the request (error 1102). The key is the path
+ * alone, so a query string cannot force a rebuild; only 200s are stored.
+ * Cache-Control's max-age sets how long an entry lives. CORS is added by the
+ * router after this returns, so one entry serves every origin.
+ */
+async function edgeCached(request: Request, maxAge: number, build: () => Promise<Response>): Promise<Response> {
+  const cache = (globalThis as { caches?: { default?: Cache } }).caches?.default;
+  const url = new URL(request.url);
+  const key = new Request(url.origin + url.pathname, { method: 'GET' });
+  if (cache) {
+    const hit = await cache.match(key).catch(() => undefined);
+    if (hit) return hit;
+  }
+  const response = await build();
+  if (cache && response.status === 200) {
+    await cache.put(key, response.clone()).catch(() => undefined);
+  }
+  return response;
+}
+
 function swrJson(data: unknown, sMaxAge: number, swr: number, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
@@ -2676,9 +2704,9 @@ const PUBLIC_FIELDS = [
 
 // Legacy alias: resolves to Adrian's Bali store. New callers should use
 // /api/s/teajia-bali/products.
-const handleGetPublicProducts: Handler = async (_request, env) => {
-  const products = await fetchPublicProductsForAccount(env, BALI_ACCOUNT_ID);
-  return cachedJson(products, 60);
+const handleGetPublicProducts: Handler = async (request, env) => {
+  return edgeCached(request, 60, async () =>
+    cachedJson(await fetchPublicProductsForAccount(env, BALI_ACCOUNT_ID), 60));
 };
 
 // GET /api/products/public/:id — a single public product (PUBLIC_FIELDS only).
@@ -4630,7 +4658,7 @@ function journeyCopy(
       return {
         label: 'Request received',
         detail: 'We have your request. Someone will confirm what is in stock, what it comes to, '
-          + 'and how it reaches you, personally over WhatsApp.',
+          + 'and how it reaches you, using the contact details you provided.',
       };
     case 'confirmed':
       return {
@@ -4659,8 +4687,8 @@ function journeyCopy(
       };
     case 'sent':
       return {
-        label: 'Sent',
-        detail: 'Your order is on its way to you.',
+        label: 'Fulfilled',
+        detail: 'The store has marked your order fulfilled. Follow the delivery or collection arrangements agreed with the store.',
       };
     case 'closed':
       // One stage, two truths. A cancelled order and a finished one are both
@@ -11370,6 +11398,14 @@ function seatReservationError(result: Exclude<ReservePartySeatsResult, { ok: tru
 
 // ── Event Public Routes ──
 
+// Public visibility controls the host store's event list. The separate network
+// discovery choice controls the platform-wide event list. An unlisted event
+// can still be opened and booked by someone holding its direct link.
+const PUBLIC_EVENT_HOST = "a.status = 'active' AND a.public_enabled = 1";
+const PUBLIC_EVENT_DIRECT = "e.public_visibility IN ('public', 'unlisted')";
+const PUBLIC_EVENT_STORE = "e.public_visibility = 'public'";
+const PUBLIC_EVENT_DISCOVERY = "e.public_visibility = 'public' AND e.network_discovery = 1";
+
 const handleGetEventBySlug: Handler = async (_request, env, params) => {
   const event = await env.DB.prepare(
     `SELECT e.id, e.account_id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date, e.event_end_date,
@@ -11382,7 +11418,8 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
      FROM events e
      JOIN accounts a ON a.id = e.account_id
      LEFT JOIN venues v ON v.id = e.venue_id
-     WHERE e.slug = ? AND e.status = 'active'`
+     WHERE e.slug = ? AND e.status = 'active'
+       AND ${PUBLIC_EVENT_DIRECT} AND ${PUBLIC_EVENT_HOST}`
   ).bind(params.slug).first();
 
   if (!event) return json({ error: 'Event not found' }, 404);
@@ -11538,6 +11575,7 @@ const handleListPublicEvents: Handler = async (_request, env, _params) => {
      WHERE e.status = 'active'
        AND e.event_date >= datetime('now')
        AND a.is_platform_owner = 1
+       AND ${PUBLIC_EVENT_DISCOVERY} AND ${PUBLIC_EVENT_HOST}
      ORDER BY e.event_date ASC
      LIMIT 20`
   ).all();
@@ -11563,8 +11601,10 @@ const handleRSVP: Handler = async (request, env, params) => {
   // Public RSVP — resolve the event's account so all inserts (customer,
   // attendee, activity log) are attributed to the right store.
   const event = await env.DB.prepare(
-    `SELECT id, account_id, total_capacity, claim_window_minutes, requires_approval, lifecycle_status
-     FROM events WHERE slug = ? AND status = 'active'`
+    `SELECT e.id, e.account_id, e.total_capacity, e.claim_window_minutes, e.requires_approval, e.lifecycle_status
+     FROM events e JOIN accounts a ON a.id = e.account_id
+     WHERE e.slug = ? AND e.status = 'active'
+       AND ${PUBLIC_EVENT_DIRECT} AND ${PUBLIC_EVENT_HOST}`
   ).bind(params.slug).first();
 
   if (!event) return json({ error: 'Event not found' }, 404);
@@ -11754,7 +11794,10 @@ const handleRSVP: Handler = async (request, env, params) => {
 
 const handleGetEventAvailability: Handler = async (_request, env, params) => {
   const event = await env.DB.prepare(
-    `SELECT id, account_id, total_capacity FROM events WHERE slug = ? AND status = 'active'`
+    `SELECT e.id, e.account_id, e.total_capacity
+     FROM events e JOIN accounts a ON a.id = e.account_id
+     WHERE e.slug = ? AND e.status = 'active'
+       AND ${PUBLIC_EVENT_DIRECT} AND ${PUBLIC_EVENT_HOST}`
   ).bind(params.slug).first();
 
   if (!event) return json({ error: 'Event not found' }, 404);
@@ -13723,6 +13766,10 @@ const handleCreateInquiry: Handler = async (request, env) => {
   const contactError = inquiryFieldTooLong('Contact', contact, INQUIRY_MAX_CONTACT);
   if (contactError) return json({ error: contactError }, 400);
 
+  if (source === 'website' && !inquiryEmail(contact)) {
+    return json({ error: 'Enter a valid email address so the store can reply.' }, 400);
+  }
+
   let itemsStr: string;
   let totalUsd: number;
   let message: string | null;
@@ -13812,6 +13859,10 @@ const handleCreateInquiry: Handler = async (request, env) => {
       }, 200);
     }
 
+    if (source === 'website' && await storePayabilityGap(env, accountId)) {
+      return json({ error: 'This store cannot take orders at the moment. Please try again later.' }, 409);
+    }
+
     // Only catalogue lines are checked against the catalogue. A custom line
     // names a tea the store does not list yet; converting already turns one
     // into a named line at no price, exactly as it does for a retired tea.
@@ -13827,8 +13878,8 @@ const handleCreateInquiry: Handler = async (request, env) => {
     }
 
     const id = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
-    message = notes || null;
-    phone = phoneCandidate || location || null;
+    message = [location ? `Shipping location: ${location}` : '', notes].filter(Boolean).join('\n\n') || null;
+    phone = inquiryPhone(phoneCandidate) || inquiryPhone(contact);
     try {
       await env.DB.prepare(
         `INSERT INTO inquiries
@@ -13841,7 +13892,7 @@ const handleCreateInquiry: Handler = async (request, env) => {
       ).run();
       // Tell the store, and tell the customer. Best-effort: the order is saved
       // either way, and a mail failure must never fail it.
-      sendOrderRequestEmails(env, {
+      const emailSent = await sendOrderRequestEmails(env, {
         accountId,
         source,
         customerName: name,
@@ -13854,8 +13905,9 @@ const handleCreateInquiry: Handler = async (request, env) => {
         message,
         reference: normalized.value.refNumber,
         trackingToken: normalized.value.trackingToken,
-      }).catch(() => { /* non-critical */ });
+      }).catch(() => false);
       return json({
+        email_sent: emailSent,
         id,
         ref_number: normalized.value.refNumber,
         tracking_token: normalized.value.trackingToken,
@@ -13914,7 +13966,7 @@ const handleCreateInquiry: Handler = async (request, env) => {
       throw err;
     }
   }
-  sendOrderRequestEmails(env, {
+  await sendOrderRequestEmails(env, {
     accountId,
     source,
     customerName: name,
@@ -14048,52 +14100,56 @@ const handleConvertInquiry: Handler = async (request, env, params) => {
   }
   if (items.length === 0) return json({ error: 'This request has no items to price' }, 400);
 
-  // Products the shop still carries keep their link and their current price.
-  // Anything that no longer resolves becomes a named custom line at zero, so
-  // nothing is dropped and the operator prices it by hand.
-  const productIds = [...new Set(items.map(item => String(item.id || '')).filter(Boolean))];
-  const productRows = productIds.length
-    ? await env.DB.prepare(
-      `SELECT id, type, fixed_retail_price_usd,
-              COALESCE(given_name, product_name) AS product_name
-         FROM products
-        WHERE account_id = ? AND id IN (${productIds.map(() => '?').join(', ')})`
-    ).bind(accountId, ...productIds).all()
-    : { results: [] as unknown[] };
+  // Use the same catalogue data and pack arithmetic as the storefront. A client
+  // amount is an estimate, never authority to set an invoice's price.
+  const productIds = catalogProductIds(items);
+  const [productRows, rateRows] = await Promise.all([
+    productIds.length ? env.DB.prepare(
+      `SELECT p.*, COALESCE(tp.form, p.form) AS form
+         FROM products p LEFT JOIN tea_profiles tp ON tp.id = 'prof_' || p.id
+        WHERE p.account_id = ? AND p.id IN (${productIds.map(() => '?').join(', ')})`
+    ).bind(accountId, ...productIds).all() : Promise.resolve({ results: [] }),
+    env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates').all(),
+  ]);
+  const rates = new Map<string, number>((rateRows.results as any[]).map(row => [row.currency, row.rate_to_usd]));
+  const shopDefaultPerKgUsd = await shopFreightPerKgUsd(env, accountId, rates);
   const products = new Map<string, Record<string, any>>();
   for (const row of (productRows.results ?? []) as Array<Record<string, any>>) {
-    products.set(row.id as string, row);
+    const priced = addPricingFields(row, rates, shopDefaultPerKgUsd);
+    const currency = String(row.cost_currency || '').trim();
+    const missingRate = currency && currency.toUpperCase() !== 'UNK' && !lookupRateToUsd(rates, currency);
+    // addPricingFields' browse fallback is zero; an invoice must not turn an
+    // unknown cost/rate into a pack charged only for handling.
+    if (row.cost_amount == null || missingRate) priced.retail_price_per_gram_usd = null;
+    products.set(row.id as string, priced);
   }
 
-  const lineItems = items.map(item => {
-    const product = products.get(String(item.id || ''));
-    const rawQuantity = Number(item.quantityGrams ?? item.qty ?? 1);
-    const quantity = Math.max(1, Math.round(Number.isFinite(rawQuantity) ? rawQuantity : 1));
-    const name = String(item.name || product?.product_name || 'Item');
-    if (!product) {
-      return { product_id: null, custom_name: name, quantity, price_at_sale: 0 };
-    }
-    // Same linking rule as the collection-picks path: teas stay linked to the
-    // product row, teaware is carried as a named line.
-    const mayRemainLinked = isTeaType(String(product.type || ''));
-    const catalogPrice = product.fixed_retail_price_usd == null ? null : Number(product.fixed_retail_price_usd);
-    const fallbackPrice = Number(item.pricePerGram);
-    const price = catalogPrice != null && Number.isFinite(catalogPrice)
-      ? catalogPrice
-      : (Number.isFinite(fallbackPrice) && fallbackPrice >= 0 ? fallbackPrice : 0);
-    return {
-      product_id: mayRemainLinked ? (product.id as string) : null,
-      custom_name: mayRemainLinked ? null : (product.product_name as string) || name,
-      quantity,
-      price_at_sale: price,
-    };
-  });
+  let lineItems: Array<{ product_id: string | null; custom_name: string | null; quantity: number; price_at_sale: number }>;
+  try {
+    lineItems = items.map(item => {
+      const packing = inquiryPacking(item);
+      if (!packing) throw new Error('This request contains an invalid pack quantity.');
+      const quantity = packing.packGrams * packing.packs;
+      const product = products.get(String(item.id || ''));
+      const name = String(product?.given_name || product?.product_name || item.name || 'Item');
+      const linked = product && isTeaType(String(product.type || ''));
+      return {
+        product_id: linked ? String(product.id) : null,
+        custom_name: `${name} (${inquiryPackingLabel({ ...item, category: product?.type === 'Teaware' ? 'ware' : item.category })})`,
+        quantity,
+        price_at_sale: product ? quoteInquiryLine(item, product) / quantity : 0,
+      };
+    });
+  } catch (error) {
+    return json({ error: error instanceof Error ? error.message : 'Could not price this request.' }, 400);
+  }
 
   const customerName = String(inquiry.name || 'Customer');
   const contact = String(inquiry.email || '').trim();
   const phone = String(inquiry.phone || '').trim();
-  const contactIsEmail = contact.includes('@');
-  const customerWhatsapp = phone || (contactIsEmail ? null : contact) || null;
+  const contactIsEmail = inquiryEmail(contact);
+  // Older requests put the location in phone. Never use it as a contact.
+  const customerWhatsapp = inquiryPhone(phone) || inquiryPhone(contact);
   const customer = await env.DB.prepare(
     `SELECT id FROM customers
       WHERE account_id = ?
@@ -14107,7 +14163,9 @@ const handleConvertInquiry: Handler = async (request, env, params) => {
 
   const invoiceId = crypto.randomUUID();
   const notes = [
-    `From order request ${inquiry.ref_number || inquiry.id}. Review the prices and send.`,
+    `From order request ${inquiry.ref_number || inquiry.id}. Prices recalculated from the current catalogue; review before sending.`,
+    `Reply to: ${contact}`,
+    ...items.map(item => `${String(item.name || 'Item')}: ${inquiryPackingLabel(item)}`),
     inquiry.message ? `Customer note: ${String(inquiry.message)}` : null,
   ].filter(Boolean).join('\n');
 
@@ -19421,7 +19479,8 @@ async function sendEmail(
   env: Env,
   to: string,
   subject: string,
-  html: string
+  html: string,
+  replyTo?: string,
 ): Promise<boolean> {
   if (!env.SENDER_EMAIL || !env.RESEND_API_KEY) return false;
   try {
@@ -19434,7 +19493,8 @@ async function sendEmail(
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${env.RESEND_API_KEY}`,
       },
-      body: JSON.stringify({ from, to, subject, html }),
+      body: JSON.stringify({ from, to, subject, html, ...(replyTo ? { reply_to: replyTo } : {}) }),
+      signal: AbortSignal.timeout(8000),
     });
     return res.ok;
   } catch {
@@ -19536,11 +19596,9 @@ function orderRequestLines(itemsJson: string): OrderRequestLine[] {
   if (!Array.isArray(parsed)) return [];
   return parsed.filter(item => item && typeof item === 'object').map(item => {
     const line = item as Record<string, unknown>;
-    const grams = Number(line.quantityGrams ?? line.qty ?? 0);
-    const isWare = line.category === 'ware';
     return {
       name: String(line.name || 'Item'),
-      quantity: Number.isFinite(grams) && grams > 0 ? (isWare ? `x${grams}` : `${grams}g`) : '',
+      quantity: inquiryPackingLabel(line),
       amountUsd: Number(line.totalPrice) || 0,
     };
   });
@@ -19635,7 +19693,7 @@ function orderAcknowledgementEmailHtml(input: {
   <p style="font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#9a8672;margin:0 0 32px">Order received</p>
   <p style="font-size:15px;color:#3a2e24;margin:0 0 8px">Hello ${emailEscape(input.customerName)},</p>
   <p style="font-size:14px;color:#7a6a56;line-height:1.6;margin:0 0 24px">
-    Your order request has reached us. Someone will write to you shortly to confirm what is in stock and arrange payment.
+    Your order request has reached us. The store will review availability, then reply with the total and delivery or pickup arrangements before payment is due.
   </p>
   <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #e8e0d4;margin-bottom:24px">
     ${rows}${totalRow}
@@ -19651,8 +19709,8 @@ function orderAcknowledgementEmailHtml(input: {
 </html>`;
 }
 
-// Fire-and-forget from the create-inquiry handler. Never throws: a mail failure
-// must not fail an order that is already saved.
+// Awaited before responding so both delivery attempts can finish. A failed
+// email never undoes a saved request; the result describes the customer receipt.
 async function sendOrderRequestEmails(env: Env, input: {
   accountId: string;
   source: string;
@@ -19666,12 +19724,15 @@ async function sendOrderRequestEmails(env: Env, input: {
   message: string | null;
   reference: string;
   trackingToken: string | null;
-}): Promise<void> {
-  if (!env.SENDER_EMAIL || !env.RESEND_API_KEY) return;
+}): Promise<boolean> {
+  if (!env.SENDER_EMAIL || !env.RESEND_API_KEY) {
+    console.warn('order_request_email_unconfigured', { accountId: input.accountId, reference: input.reference });
+    return false;
+  }
 
   const lines = orderRequestLines(input.itemsJson);
   // A consult with nothing in it is a conversation, not an order.
-  if (input.source === 'consult' && lines.length === 0) return;
+  if (input.source === 'consult' && lines.length === 0) return false;
 
   const [account, rateRow] = await Promise.all([
     env.DB.prepare('SELECT name, contact_email FROM accounts WHERE id = ?')
@@ -19689,6 +19750,8 @@ async function sendOrderRequestEmails(env: Env, input: {
   const contactIsEmail = input.contact.includes('@');
 
   const ownerRecipient = (account?.contact_email || '').trim() || (env.SENDER_EMAIL || '').trim();
+  let storeDelivery = Promise.resolve(false);
+  let customerDelivery = Promise.resolve(false);
   if (ownerRecipient) {
     const contactLines: Array<{ label: string; value: string }> = [];
     if (contactIsEmail) contactLines.push({ label: 'Email', value: input.contact });
@@ -19697,7 +19760,7 @@ async function sendOrderRequestEmails(env: Env, input: {
     if (input.location) contactLines.push({ label: 'Location', value: input.location });
 
     const subject = `${storeName}: order request from ${input.customerName}, ${formatMoney(input.totalUsd * rate, displayCurrency)}`;
-    await sendEmail(env, ownerRecipient, subject, inquiryNotificationEmailHtml({
+    storeDelivery = sendEmail(env, ownerRecipient, subject, inquiryNotificationEmailHtml({
       storeName,
       customerName: input.customerName,
       contactLines,
@@ -19708,11 +19771,11 @@ async function sendOrderRequestEmails(env: Env, input: {
       message: input.message,
       reference: input.reference,
       adminUrl: `${origin}/admin/activity?tab=inquiries`,
-    }));
+    }), contactIsEmail ? input.contact : undefined);
   }
 
   if (contactIsEmail) {
-    await sendEmail(env, input.contact, `${storeName}: we have your order ${input.reference}`, orderAcknowledgementEmailHtml({
+    customerDelivery = sendEmail(env, input.contact, `${storeName}: we have your order ${input.reference}`, orderAcknowledgementEmailHtml({
       storeName,
       customerName: input.customerName,
       lines,
@@ -19723,8 +19786,13 @@ async function sendOrderRequestEmails(env: Env, input: {
       // /order/:ref is keyed by the tracking token, which is the only value
       // that resolves there. The ref number does not.
       trackingUrl: input.trackingToken ? `${origin}/order/${encodeURIComponent(input.trackingToken)}` : null,
-    }));
+    }), ownerRecipient || undefined);
   }
+  const [storeSent, customerSent] = await Promise.all([storeDelivery, customerDelivery]);
+  if (!storeSent) {
+    console.warn('order_request_store_email_failed', { accountId: input.accountId, reference: input.reference });
+  }
+  return customerSent;
 }
 
 
@@ -19832,7 +19900,7 @@ function paymentConfirmedEmailHtml(input: {
       `<td style="padding:6px 0;border-bottom:1px solid #e8e0d4;font-size:14px;color:#3a2e24;text-align:right">${emailEscape(value)}</td></tr>`
     : '');
   const next = settled
-    ? 'Your order is paid in full. We will pack it and write to you again once it is on its way.'
+    ? 'Your order is paid in full. We will write to confirm delivery or pickup arrangements.'
     : `${emailEscape(formatMoney(input.outstandingUsd, 'USD'))} is still due on this order. `
       + 'Send it whenever you are ready and we will confirm that in the same way.';
   return `<!DOCTYPE html>
@@ -21002,16 +21070,19 @@ async function fetchPublicProductsForAccount(
 // Short 10s cache so admin tasting edits reflect quickly on the public page;
 // product data changes throughout the day and we don't want a 60s stale window
 // when the owner is actively curating.
-const handleGetPublicAccountProducts: Handler = async (_request, env, params) => {
-  const accountId = await getAccountIdBySlug(env, params.slug);
+const handleGetPublicAccountProducts: Handler = async (request, env, params) => {
+  // Recheck the store on every request, including edge-cache hits, so closing
+  // a store cannot leave a cached catalogue available for its remaining TTL.
+  const accountId = await getPublicAccountIdBySlug(env, params.slug);
   if (!accountId) return json({ error: 'Store not found' }, 404);
-  const products = await fetchPublicProductsForAccount(env, accountId);
-  return cachedJson(products, 10);
+  return edgeCached(request, 10, async () => {
+    return cachedJson(await fetchPublicProductsForAccount(env, accountId), 10);
+  });
 };
 
 // GET /api/s/:slug/events — PUBLIC active events for a store
 const handleGetPublicAccountEvents: Handler = async (_request, env, params) => {
-  const accountId = await getAccountIdBySlug(env, params.slug);
+  const accountId = await getPublicAccountIdBySlug(env, params.slug);
   if (!accountId) return json({ error: 'Store not found' }, 404);
 
   const { results } = await env.DB.prepare(
@@ -21034,6 +21105,7 @@ const handleGetPublicAccountEvents: Handler = async (_request, env, params) => {
        FROM events scoped
      ) a ON a.event_id = e.id
      WHERE e.status = 'active' AND e.account_id = ?
+       AND ${PUBLIC_EVENT_STORE}
      ORDER BY e.event_date ASC`
   ).bind(accountId).all();
   return cachedJson(results, 60);
@@ -24757,10 +24829,12 @@ const handleGetShopCollections: Handler = async (_request, env) => {
             u.name AS curator_user_name
        FROM collection_publications cp
        JOIN collections c ON c.id = cp.collection_id
+       JOIN accounts account ON account.id = c.account_id
        LEFT JOIN users u ON u.id = c.curator_user_id
       WHERE cp.target_type = 'shop'
         AND cp.unpublished_at IS NULL
         AND c.status = 'active'
+        AND account.status = 'active' AND account.public_enabled = 1
       ORDER BY cp.published_at DESC
       LIMIT 20`
   ).all();
@@ -24794,6 +24868,7 @@ const handleGetShopCollections: Handler = async (_request, env) => {
        JOIN products p ON p.id = ci.product_id
       WHERE ci.collection_id IN (${placeholders})
         AND p.status = 'Active'
+        AND p.is_public = 1 AND p.shown_in_shop = 1
       ORDER BY ci.collection_id, ci.position ASC`
   ).bind(...collectionIds).all();
 
@@ -25122,7 +25197,7 @@ const handleImportInboundItems: Handler = async (request, env, params) => {
 // Public — no auth, link-gated by slug.
 const handleGetPublicCollection: Handler = async (_request, env, params) => {
   const pub = await env.DB.prepare(
-    `SELECT id, collection_id, slug, unpublished_at, view_count
+    `SELECT id, collection_id, slug, target_type, unpublished_at, view_count
        FROM collection_publications
       WHERE slug = ?`
   ).bind(params.slug).first();
@@ -25143,10 +25218,15 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
 
   // Account for WhatsApp deep link.
   const account = await env.DB.prepare(
-    `SELECT id, name, whatsapp_number FROM accounts WHERE id = (
+    `SELECT id, name, whatsapp_number, status, public_enabled FROM accounts WHERE id = (
        SELECT account_id FROM collections WHERE id = ?
      )`
   ).bind(pub.collection_id).first();
+  // Shop publications are public discovery. Recipient publications are
+  // deliberately shared links and may include products absent from the shop.
+  if (pub.target_type === 'shop' && (!account || account.status !== 'active' || account.public_enabled !== 1)) {
+    return json({ error: 'No longer available' }, 410);
+  }
 
   const items = await env.DB.prepare(
     `SELECT ci.id, ci.position, ci.item_note,
@@ -25159,8 +25239,9 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
        FROM collection_items ci
        JOIN products p ON p.id = ci.product_id
       WHERE ci.collection_id = ?
+        AND (? = 0 OR (p.is_public = 1 AND p.shown_in_shop = 1))
       ORDER BY ci.position ASC`
-  ).bind(pub.collection_id).all();
+  ).bind(pub.collection_id, pub.target_type === 'shop' ? 1 : 0).all();
 
   const visibleItems = ((items.results ?? []) as any[])
     .filter(i => i.product_status === 'Active')
@@ -27637,11 +27718,24 @@ async function handleCreateIncident(request: Request, env: Env): Promise<Respons
   if (contentLength > 8 * 1024) return json({ error: 'Incident payload exceeds 8 KB' }, 413);
   const claims = parseToken(isAuthed(request)!);
   if (!claims) return json({ error: 'Unauthorized', reason: 'invalid' }, 401);
+  const requestedAccount = request.headers.get('X-Teajia-Account') || claims.active_account_id || null;
+  let accountId: string | null = null;
+  if (requestedAccount) {
+    const ctx = await getActiveAccount(request, env);
+    if ('error' in ctx) return ctx.error;
+    // Platform operators may choose any existing store, but the shared
+    // account resolver does not reject an unknown ID for that role.
+    if (ctx.isPlatform) {
+      const account = await env.DB.prepare('SELECT id FROM accounts WHERE id = ?').bind(ctx.accountId).first();
+      if (!account) return restError(403, 'Account access denied', 'account_access_denied');
+    }
+    accountId = ctx.accountId;
+  }
   try {
     const raw = await request.json();
     const incident = normalizeIncidentInput(raw as Record<string, unknown>);
     const row = await upsertIncident(env.DB, incident, {
-      accountId: request.headers.get('X-Teajia-Account') || claims.active_account_id || null,
+      accountId,
       userId: claims.sub,
     });
     return json({ incident: incidentToApi(row || { id: null, signature: incident.signature }) }, 201);

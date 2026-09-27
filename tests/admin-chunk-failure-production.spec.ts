@@ -11,6 +11,8 @@ test('a missing production AdminApp chunk settles without a reload loop', async 
   let apiRequests = 0;
   let authMeRequests = 0;
   let adminNavigations = 0;
+  let boot = 0;
+  const apiRequestsByBoot: Record<string, Record<string, number>> = {};
 
   // Both spellings of the same module. A build serves it as
   // /assets/AdminApp-<hash>.js; the dev server serves it unbundled as
@@ -25,12 +27,18 @@ test('a missing production AdminApp chunk settles without a reload loop', async 
   }
   page.on('request', request => {
     const path = new URL(request.url()).pathname;
-    if (path.startsWith('/api/')) apiRequests += 1;
+    if (path.startsWith('/api/')) {
+      apiRequests += 1;
+      const key = String(boot);
+      apiRequestsByBoot[key] ??= {};
+      apiRequestsByBoot[key][path] = (apiRequestsByBoot[key][path] ?? 0) + 1;
+    }
     if (path === '/api/auth/me') authMeRequests += 1;
   });
   page.on('framenavigated', frame => {
     if (frame === page.mainFrame() && new URL(frame.url()).pathname === '/admin/compass') {
       adminNavigations += 1;
+      boot = adminNavigations;
     }
   });
 
@@ -60,21 +68,42 @@ test('a missing production AdminApp chunk settles without a reload loop', async 
   await page.unroute('**/src/admin/AdminApp.tsx*');
   await page.getByRole('button', { name: 'Reload Application' }).click();
   await expect(page.getByRole('tab', { name: 'Source', exact: true })).toHaveAttribute('aria-selected', 'true', { timeout: 30_000 });
+  await page.waitForTimeout(2_000);
   expect(adminNavigations).toBeLessThanOrEqual(settledNavigations + 1);
-  // Two normal app boots measure 41 bounded reads today, not the 24 this cap
-  // was written around. The guard could not say so: the abort above only
-  // matched the built chunk, so in dev nothing ever failed, the error boundary
-  // never appeared, and the test timed out before reaching this line. It has
-  // been blind for as long as that was true, and the traffic grew behind it.
-  //
-  // The growth is duplication, not a loop: the sample repository's hydrate()
-  // and sync() each pull sampleSets.list and samples.list, and the compass sync
-  // pulls samples.list again, so one boot fetches samples four times and sample
-  // sets three. Collapsing that is its own change and is on the TODO; raising
-  // the cap to the measured number with a margin makes the guard live again in
-  // the meantime, and loop-scale traffic is hundreds, so it still catches what
-  // it was written to catch.
-  expect(apiRequests).toBeLessThanOrEqual(48);
+
+  const failedBootCounts = apiRequestsByBoot[String(settledNavigations)] ?? {};
+  const recoveryBoot = settledNavigations + 1;
+  const recoveredCounts = apiRequestsByBoot[String(recoveryBoot)] ?? {};
+  const count = (counts: Record<string, number>, path: string) => counts[path] ?? 0;
+  const bootTotal = (counts: Record<string, number>) => Object.values(counts).reduce((sum, value) => sum + value, 0);
+
+  // The failed shell makes 17 reads and user-triggered Admin recovery makes
+  // 34 on Desktop; Mobile CI reproduced the same 51-call total. On recovery,
+  // samples runs 4 times, sample sets 3 times, products 6 times, and every
+  // other endpoint at most twice. These per-boot budgets
+  // allow normal hydration while catching a repeated boot or endpoint retry;
+  // the old single 48-call ceiling mixed the two different phases and failed
+  // at a stable 50–51 with no navigation, auth or chunk retry loop.
+  expect(bootTotal(failedBootCounts)).toBeLessThanOrEqual(20);
+  expect(bootTotal(recoveredCounts)).toBeLessThanOrEqual(40);
+  expect(apiRequests).toBeLessThanOrEqual(60);
+  expect(count(recoveredCounts, '/api/auth/refresh')).toBeLessThanOrEqual(2);
+  expect(count(recoveredCounts, '/api/auth/me')).toBeLessThanOrEqual(1);
+  expect(count(recoveredCounts, '/api/admin/samples')).toBeLessThanOrEqual(4);
+  expect(count(recoveredCounts, '/api/admin/sample-sets')).toBeLessThanOrEqual(3);
+  expect(count(recoveredCounts, '/api/products')).toBeLessThanOrEqual(6);
+  expect(count(recoveredCounts, '/api/rates')).toBeLessThanOrEqual(2);
+  expect(count(recoveredCounts, '/api/customers')).toBeLessThanOrEqual(2);
+  expect(count(recoveredCounts, '/api/accounts/acct-bali')).toBeLessThanOrEqual(2);
+  expect(count(recoveredCounts, '/api/admin/events')).toBeLessThanOrEqual(2);
+
+  // A completed recovery must settle. A hidden reload/refetch loop continues
+  // growing traffic even when its individual requests fit one boot's budget.
+  const settledApiRequests = apiRequests;
+  // Longer than React Query's 1/2/4-second retry backoff so delayed retries
+  // have time to show up before the no-growth assertion.
+  await page.waitForTimeout(10_000);
+  expect(apiRequests).toBe(settledApiRequests);
 });
 
 test('production retires existing service workers without registering new ones', async ({ page, request }) => {

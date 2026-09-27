@@ -2,10 +2,10 @@ import { Fragment, type MouseEvent } from 'react';
 import { Leaf } from 'lucide-react';
 import { TeaSaveTile } from './TeaSaveTile';
 import { getTeaLedgerTones } from '../../designTokens';
+import { teaPurchaseQuote } from '../../lib/shopPurchase';
 import { useTheme } from '../../context/ThemeContext';
 import type { InventoryItem } from '../../types';
 import { Icons } from '../Icons';
-import { quoteForDisplay } from '../../lib/teaPricing';
 
 export interface TeaLedgerGroup {
   type: string;
@@ -123,25 +123,8 @@ export function TeaLedger({
             {group.items.map(item => {
               const isTeajiaFav = !!item.isFeatured;
               const isFavorite = favoriteIds.has(item.id);
-              const pricePerGram = parseFloat(item.price_per_gram || '0') || 0;
+              const purchase = teaPurchaseQuote(item, priceWeight);
               const stockG = item.stock_g ?? 0;
-              /* The same quote the product page's ladder, cart and order
-                 total already read, for the same weight this row names.
-                 The row used to multiply price per gram by the weight
-                 directly, which left out the handling fee the ladder adds
-                 to every weighed order, so a tea read one price here and a
-                 higher one two taps later. A tea sold in sealed units is
-                 rounded up to the unit it can actually send, the same
-                 rounding the product page's own slider does, so the grams
-                 label below always names a weight the shop can send. */
-              const quote = quoteForDisplay(pricePerGram, priceWeight, {
-                form: item.form,
-                pieceWeightG: item.pieceWeightG,
-                soldInWholeUnits: item.soldInWholeUnits,
-                stockG,
-              });
-              const priceAtWeight = quote.totalUsd;
-              const displayGrams = quote.grams;
               const showType = activeType !== 'All' || specialFilter !== 'None';
               const rowTones = showType ? getTeaLedgerTones(item.type, theme) : tones;
               // Stock state used to sit inline beside the name, where it
@@ -177,7 +160,7 @@ export function TeaLedger({
                      rather than a band that begins where the block begins.
                      Same on both sides, so nothing lands on a rule's end. */
                   onKeyDown={event => {
-                    if (event.key === 'Enter' || event.key === ' ') {
+                    if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
                       event.preventDefault();
                       onOpenProduct(item);
                     }
@@ -276,14 +259,11 @@ export function TeaLedger({
                           column is about 20px narrower and the figures line up
                           as figures. */}
                       <div className="min-w-[52px] whitespace-nowrap text-right">
-                        <div
-                          data-testid="grid-price"
-                          className="num border-b border-tea-border pb-[3px] text-ui-16 font-medium tabular-nums text-tea-text"
-                        >
-                          {formatPrice(priceAtWeight)}
+                        <div data-testid="grid-price" className="num w-full border-b border-tea-border pb-[3px] text-ui-16 font-medium tabular-nums text-tea-text">
+                          {purchase ? formatPrice(purchase.totalUsd) : '\u2014'}
                         </div>
-                        <div className="num pt-[3px] text-ui-10 tabular-nums text-tea-text-dim">
-                          {displayGrams}g
+                        <div className="num flex items-center justify-end gap-1 pt-[3px] text-ui-10 tabular-nums text-tea-text-dim">
+                          {purchase ? `${purchase.grams}g` : 'Unavailable'}
                         </div>
                         {stockNote && (
                           <div className="mt-0.5 text-ui-9 uppercase tracking-[0.1em] text-tea-gold-lt">

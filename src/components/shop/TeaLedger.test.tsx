@@ -40,6 +40,21 @@ function renderLedger(product: InventoryItem, isAdmin = false): string {
 }
 
 describe('TeaLedger year favorite control', () => {
+  it('keeps the shared stock-aware pack quote without offering a one-click purchase', () => {
+    const html = renderLedger(item({ price_per_gram: '0.21', stock_g: 30 }));
+    expect(html).toContain('$9.00');
+    expect(html).toContain('30g');
+    expect(html).not.toContain('Add one');
+    expect(html).not.toContain('Add to cart');
+  });
+
+  it('declines to quote an unavailable tea', () => {
+    const html = renderLedger(item({ stock_g: 0 }));
+    expect(html).toContain('Unavailable');
+    expect(html).toContain('Sold out');
+    expect(html).not.toContain('$');
+  });
+
   it('keeps an unknown year usable and renders the complete, wrapping title', () => {
     const html = renderLedger(item());
 

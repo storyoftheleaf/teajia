@@ -307,14 +307,14 @@ export const OrdersView = () => {
         queryClient.invalidateQueries({ queryKey: ['products'] });
         // Offer WhatsApp status notification
         const inv = confirmState.invoice;
-        if (inv.customer_phone) {
+        if (inv.customer_whatsapp) {
           const items = (inv.items || []).map((it) => ({
-            name: it.product?.givenName || it.product_name || 'Item',
+            name: it.custom_name || it.product?.givenName || it.product_name || 'Item',
             quantity: it.quantity,
             unit: it.product?.type === 'Teaware' ? 'u' : 'g',
             price: '', total: '',
           }));
-          openWhatsAppStatus(inv.customer_phone, {
+          openWhatsAppStatus(inv.customer_whatsapp, {
             status: 'filled',
             ref: inv.invoice_number,
             customerName: inv.customer_name,
@@ -912,7 +912,7 @@ export const OrdersView = () => {
                                         onClick={() => { setViewingInvoice(null); navigate(`/admin/stock?panel=${encodeURIComponent(item.product_id ?? '')}`); }}
                                         className="text-tea-text font-medium hover:text-tea-gold transition-colors text-left truncate block"
                                       >
-                                        {item.given_name || item.product_name || 'Unknown'}
+                                        {item.custom_name || item.given_name || item.product_name || 'Unknown'}
                                       </button>
                                     ) : (
                                       <span className="text-tea-text font-medium">{item.custom_name || item.given_name || 'Custom Item'}</span>
@@ -1027,14 +1027,14 @@ export const OrdersView = () => {
                 )}
 
                 {/* WhatsApp status notification, available for Pending/Filled orders with phone */}
-                {viewingInvoice.customer_phone && viewingInvoice.status !== 'Void' && (
+                {viewingInvoice.customer_whatsapp && viewingInvoice.status !== 'Void' && (
                   <div className="mt-4">
                     <button
                       onClick={() => {
-                        const customerPhone = viewingInvoice.customer_phone;
+                        const customerPhone = viewingInvoice.customer_whatsapp;
                         if (!customerPhone) return;
                         const items = (viewingInvoice.items || []).map((it) => ({
-                          name: it.product?.givenName || it.product_name || 'Item',
+                          name: it.custom_name || it.product?.givenName || it.product_name || 'Item',
                           quantity: it.quantity,
                           unit: it.product?.type === 'Teaware' ? 'u' : 'g',
                           price: '', total: '',
@@ -1064,7 +1064,7 @@ export const OrdersView = () => {
                         const param = buildQuickInvoiceDraftParam({
                           customerName: viewingInvoice.customer_name || undefined,
                           items: (viewingInvoice.items || []).map((it) => ({
-                            name: it.given_name || it.product_name || it.custom_name || 'Item',
+                            name: it.custom_name || it.given_name || it.product_name || 'Item',
                             quantity: it.quantity,
                             unit: it.product?.type === 'Teaware' ? 'pcs' as const : 'g' as const,
                             productId: it.product_id || undefined,
