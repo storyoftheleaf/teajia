@@ -4721,7 +4721,7 @@ body.cart-panel-open .commerce-dock {
   }
 }
 
-/* Date and saving share one tea-coloured object, including the action strip. */
+/* Date and saving share an uninterrupted tea-coloured ground. */
 .tea-save-tile {
   display: flex;
   flex-direction: column;
@@ -4750,10 +4750,10 @@ body.cart-panel-open .commerce-dock {
   align-items: center;
   justify-content: center;
   width: 100%;
-  font-family: 'Cormorant Garamond', 'Cormorant Garamond Fallback', Georgia, serif;
-  font-size: 17px;
+  font-family: 'Lora', 'Lora Fallback', Georgia, serif;
+  font-size: 16px;
   line-height: 1;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: lining-nums tabular-nums;
 }
 .tea-save-tile-action {
   display: flex;
@@ -4763,12 +4763,18 @@ body.cart-panel-open .commerce-dock {
   width: 100%;
   height: 19px;
   flex-shrink: 0;
-  border-top: 1px solid var(--tea-border);
   color: var(--tea-text-sec);
-  background: var(--tea-accent-sub);
+  padding-bottom: 2px;
   text-transform: none;
   letter-spacing: 0;
 }
 .tea-save-tile[aria-pressed="true"] .tea-save-tile-action {
   color: var(--tea-gold);
+}
+
+.tea-ledger-identity {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 50px;
 }

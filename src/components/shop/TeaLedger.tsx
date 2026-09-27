@@ -192,7 +192,7 @@ export function TeaLedger({
                       onToggle={event => onToggleFavorite(item.id, event)}
                     />
 
-                    <div className="min-w-0 flex-1 lg:flex-none lg:w-[300px]">
+                    <div className="tea-ledger-identity min-w-0 flex-1 lg:flex-none lg:w-[300px]">
                       <div className="flex min-w-0 items-start gap-2">
                         <h3 className="min-w-0 break-words whitespace-normal font-display text-ui-17 font-medium leading-tight text-tea-text lg:text-ui-20">
                           {item.name}
