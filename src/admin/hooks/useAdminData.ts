@@ -165,7 +165,12 @@ export const useRates = () => {
     // boundary should still pick the new rate up, so: one hour of cache on a
     // number that moves once a day.
     staleTime: 1000 * 60 * 60,
-    initialData: loadLastKnownRates,
+    initialData: () => {
+      const remembered = loadLastKnownRates();
+      // An empty initial value is considered fresh for staleTime too, which
+      // prevents a first-time shopper from fetching any exchange rates.
+      return remembered.length > 0 ? remembered : undefined;
+    },
     // The remembered rates are for the first paint, not for the hour. Without
     // this React Query dates them "now", and the hour above covers them: a
     // browser that has never read the table holds an EMPTY list as fresh data

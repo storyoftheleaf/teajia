@@ -95,6 +95,30 @@ describe('packing an order line', () => {
     expect(cart()[0].packs).toBe(2);
   });
 
+  it('keeps sealed tea in whole units when its pack size changes', () => {
+    const { addToPublicCart, updatePublicCartQuantity } = useAppStore.getState();
+    addToPublicCart({ ...tea(100), unitGrams: 100, wholePieceGrams: 100 });
+    updatePublicCartQuantity(cartLineKey('tuo', 100), 25);
+    expect(cart()[0]).toMatchObject({ packGrams: 100, quantityGrams: 100, totalPrice: 50 });
+    updatePublicCartQuantity(cartLineKey('tuo', 100), 150);
+    expect(cart()[0]).toMatchObject({ packGrams: 200, quantityGrams: 200, totalPrice: 100 });
+  });
+
+  it('normalizes an incoming sealed amount before matching a cart line', () => {
+    const { addToPublicCart } = useAppStore.getState();
+    addToPublicCart({ ...tea(100), unitGrams: 100, wholePieceGrams: 100 });
+    addToPublicCart({ ...tea(25), unitGrams: 100, wholePieceGrams: 100 });
+    expect(cart()).toHaveLength(1);
+    expect(cart()[0]).toMatchObject({ packGrams: 100, packs: 2, totalPrice: 100 });
+  });
+
+  it('does not let loose tea fall below the shop minimum', () => {
+    const { addToPublicCart, updatePublicCartQuantity } = useAppStore.getState();
+    addToPublicCart(tea(25));
+    updatePublicCartQuantity(cartLineKey('tuo', 25), 1);
+    expect(cart()[0].packGrams).toBe(10);
+  });
+
   it('never drops below one pack', () => {
     const { addToPublicCart, updatePublicCartPacks } = useAppStore.getState();
     addToPublicCart(tea(25));

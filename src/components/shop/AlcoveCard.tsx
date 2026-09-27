@@ -31,7 +31,8 @@ import { TeaReference, type TeaReferenceProduct } from '../wisdom/TeaReference';
 import type { ProductImpression } from './ProductImpressions';
 import { resolveProductResearch } from '../../wisdom/productResearch';
 import { buildPublicProductHref } from '../../lib/publicProductNavigation';
-import { minimumOrderGrams, quoteGrams, sellUnitOf, snapToUnit } from '../../lib/teaPricing';
+import { minimumOrderGrams, quoteGrams, sellUnitOf } from '../../lib/teaPricing';
+import { teaPurchaseQuote } from '../../lib/shopPurchase';
 import { resolveTermLabel } from '../../data/tastingTaxonomy';
 import { resolveLineage } from '../wisdom/TeaLineage';
 import { regionElevationPresentation } from '../../wisdom/regions';
@@ -159,7 +160,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const favorited = favoriteTeas.includes(item.id);
   const tastingCount = useTastingCount(item.id);
   const tastingEntry = useTastingEntry(item.id);
-  const [chosenGrams, setGrams] = useState(50);
+  const [chosenGrams, setGrams] = useState(() => teaPurchaseQuote(item)?.grams ?? 50);
   const [customMode, setCustomMode] = useState(false);
   const [customInput, setCustomInput] = useState('');
   const [added, setAdded] = useState(false);
@@ -209,7 +210,8 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   // The amount actually on offer. A sealed tea rounds whatever was chosen up
   // to the next whole unit here, once, so every price, label and button below
   // reads an amount the shop can send rather than each guarding for itself.
-  const grams = unitGrams ? snapToUnit(chosenGrams, unitGrams, sliderMax) : chosenGrams;
+  const purchase = teaPurchaseQuote(item, chosenGrams);
+  const grams = purchase?.grams ?? sliderMin;
   // Numeric total (base currency), passed to onAddToCart. Display strings
   // are formatted separately; never parse a formatted string back to a number.
   const numericTotal = Math.ceil(quoteGrams(pricePerGram, grams, { wholePieceGrams }).totalUsd);
@@ -244,8 +246,8 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     ? `${formatPrice(pricePerGram, 1)}/g`
     : shopPrice.perGram(quoteGrams(pricePerGram, grams, { wholePieceGrams }).perGramUsd);
 
-  const stockStatus = getStockStatus(item.stock_g);
-  const isSoldOut = stockStatus.level === 'out';
+  const stockStatus = getStockStatus(purchase ? item.stock_g : 0);
+  const isSoldOut = !purchase;
 
   const presets = [25, 50, 100, 250].filter(p => p <= sliderMax);
 
@@ -294,9 +296,10 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   /* Adds exactly what the bar was showing: the bar passes both the weight and
      the total it displayed, so the order can never store a different figure
      from the one the reader agreed to. */
-  const handleAddAmount = (g: number, totalUsd: number) => {
+  const handleAddAmount = (g: number, _totalUsd: number) => {
     if (isSoldOut) return;
-    if (onAddToCart) onAddToCart(item, g, Math.ceil(totalUsd));
+    const chosen = teaPurchaseQuote(item, g);
+    if (onAddToCart && chosen) onAddToCart(item, chosen.grams, chosen.totalUsd);
   };
 
   const handleAdd = () => {
