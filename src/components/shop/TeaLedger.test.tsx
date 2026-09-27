@@ -46,6 +46,7 @@ describe('TeaLedger year favorite control', () => {
     expect(html).toContain('aria-label="Save A Very Long Tea Name That Must Wrap Without Being Cut Off"');
     expect(html).toContain('aria-pressed="false"');
     expect(html).toContain('title="Save tea"');
+    expect(html).toContain('>Save</span>');
     expect(html).toContain('>—</span>');
     expect(html).toContain('A Very Long Tea Name That Must Wrap Without Being Cut Off');
     expect(html).not.toContain('line-clamp-2');
@@ -58,6 +59,7 @@ describe('TeaLedger year favorite control', () => {
     expect(html).toContain('aria-label="Unsave A Very Long Tea Name That Must Wrap Without Being Cut Off"');
     expect(html).toContain('aria-pressed="true"');
     expect(html).toContain('title="Saved. Click to unsave"');
+    expect(html).toContain('Saved</span>');
     expect(html).toContain('1998');
     expect(html).toContain('aria-label="Edit A Very Long Tea Name That Must Wrap Without Being Cut Off"');
     expect(html).not.toContain('line-clamp-2');

@@ -4720,3 +4720,55 @@ body.cart-panel-open .commerce-dock {
     overflow-wrap: anywhere;
   }
 }
+
+/* Date and saving share one tea-coloured object, including the action strip. */
+.tea-save-tile {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: 52px;
+  height: 50px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--tea-border);
+  border-radius: 2px;
+  color: var(--tea-text);
+  transition: border-color 160ms ease, transform 160ms ease;
+}
+.tea-save-tile:hover,
+.tea-save-tile[aria-pressed="true"] {
+  border-color: var(--tea-gold);
+}
+.tea-save-tile:focus-visible {
+  outline: 2px solid var(--tea-gold);
+  outline-offset: 3px;
+}
+.tea-save-tile:active { transform: scale(0.98); }
+.tea-save-tile-year {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  font-family: 'Cormorant Garamond', 'Cormorant Garamond Fallback', Georgia, serif;
+  font-size: 17px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.tea-save-tile-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  height: 19px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--tea-border);
+  color: var(--tea-text-sec);
+  background: var(--tea-accent-sub);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.tea-save-tile[aria-pressed="true"] .tea-save-tile-action {
+  color: var(--tea-gold);
+}

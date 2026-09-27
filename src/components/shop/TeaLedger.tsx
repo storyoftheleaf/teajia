@@ -1,5 +1,6 @@
 import { Fragment, type MouseEvent } from 'react';
-import { Bookmark, Leaf } from 'lucide-react';
+import { Leaf } from 'lucide-react';
+import { TeaSaveTile } from './TeaSaveTile';
 import { getTeaLedgerTones } from '../../designTokens';
 import { useTheme } from '../../context/ThemeContext';
 import type { InventoryItem } from '../../types';
@@ -182,29 +183,14 @@ export function TeaLedger({
                     }
                   }}
                 >
-                  <div className="flex items-start gap-5 py-3 md:py-4">
-                    {/* The bookmark occupies the square's corner so saving adds
-                        no height to the row. The whole square is the tap area. */}
-                    <button
-                      type="button"
-                      style={{ backgroundColor: rowTones.markBg }}
-                      className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-[2px] border transition-colors focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-tea-gold ${isFavorite ? 'border-tea-gold text-tea-gold' : 'border-transparent text-tea-text-sec hover:border-tea-gold hover:text-tea-gold'}`}
-                      onClick={event => {
-                        event.stopPropagation();
-                        onToggleFavorite(item.id, event);
-                      }}
-                      onKeyDown={event => {
-                        if (event.key === 'Enter' || event.key === ' ') event.stopPropagation();
-                      }}
-                      aria-pressed={isFavorite}
-                      aria-label={isFavorite ? `Unsave ${item.name}` : `Save ${item.name}`}
-                      title={isFavorite ? 'Saved. Click to unsave' : 'Save tea'}
-                    >
-                      <span className="font-display text-ui-16 font-medium tabular-nums">
-                        {item.year || '—'}
-                      </span>
-                      <Bookmark className="absolute right-0.5 top-0 h-3 w-2.5" strokeWidth={1.5} fill={isFavorite ? 'currentColor' : 'none'} aria-hidden="true" />
-                    </button>
+                  <div className="flex items-start gap-3 py-3 md:py-4">
+                    <TeaSaveTile
+                      year={item.year}
+                      name={item.name}
+                      saved={isFavorite}
+                      background={rowTones.markBg}
+                      onToggle={event => onToggleFavorite(item.id, event)}
+                    />
 
                     <div className="min-w-0 flex-1 lg:flex-none lg:w-[300px]">
                       <div className="flex min-w-0 items-start gap-2">
