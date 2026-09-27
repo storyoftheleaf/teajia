@@ -21,7 +21,7 @@ interface TeaLedgerProps {
   favoriteIds: ReadonlySet<string>;
   onToggleFavorite: (itemId: string, event: MouseEvent) => void;
   onOpenProduct: (item: InventoryItem) => void;
-  onAddToCart?: (item: InventoryItem, grams: number, total: number) => void;
+  onChooseAmount?: (item: InventoryItem) => void;
   isAdmin?: boolean;
   onAdminEdit?: (itemId: string) => void;
 }
@@ -87,7 +87,7 @@ export function TeaLedger({
   favoriteIds,
   onToggleFavorite,
   onOpenProduct,
-  onAddToCart,
+  onChooseAmount,
   isAdmin = false,
   onAdminEdit,
 }: TeaLedgerProps) {
@@ -144,7 +144,7 @@ export function TeaLedger({
               const origin = splitOrigin(item.origin || '');
               const lead = curatorLine(item);
               const tastingCount = tastingCounts.get(item.id) || 0;
-              const canQuickAdd = Boolean(onAddToCart && purchase);
+              const canQuickAdd = Boolean(onChooseAmount && purchase);
               const PriceControl = canQuickAdd ? 'button' : 'div';
 
               return (
@@ -281,10 +281,11 @@ export function TeaLedger({
                         type={canQuickAdd ? 'button' : undefined}
                         onClick={canQuickAdd ? event => {
                           event.stopPropagation();
-                          onAddToCart!(item, purchase!.grams, purchase!.totalUsd);
+                          onChooseAmount!(item);
                         } : undefined}
-                        aria-label={canQuickAdd ? `Add one ${purchase!.grams}g pack of ${item.name}, ${formatPrice(purchase!.totalUsd)}` : undefined}
-                        title={canQuickAdd ? 'Add to cart' : undefined}
+                        aria-label={canQuickAdd ? `Choose amount for ${item.name}` : undefined}
+                        title={canQuickAdd ? 'Choose amount' : undefined}
+                        aria-haspopup={canQuickAdd ? 'dialog' : undefined}
                         className={`min-w-[52px] whitespace-nowrap text-right ${canQuickAdd ? 'tap-target flex-col items-end justify-center rounded hover:bg-tea-accent-sub focus-visible:outline focus-visible:outline-tea-gold' : ''}`}
                       >
                         <div data-testid="grid-price" className="num w-full border-b border-tea-border pb-[3px] text-ui-16 font-medium tabular-nums text-tea-text">

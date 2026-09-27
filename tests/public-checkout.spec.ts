@@ -19,7 +19,7 @@ async function json(route: Route, body: unknown, status = 200) {
   await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
 }
 
-async function prepare(page: Page, options: { canBePaid?: boolean; whatsapp?: boolean; failFirst?: boolean; allowPopup?: boolean; light?: boolean; emptyCart?: boolean } = {}) {
+async function prepare(page: Page, options: { canBePaid?: boolean; whatsapp?: boolean; failFirst?: boolean; allowPopup?: boolean; light?: boolean; emptyCart?: boolean; product?: Record<string, unknown> } = {}) {
   const requests: SubmittedRequest[] = [];
   await page.addInitScript(({ item, allowPopup, light, emptyCart }) => {
     // Seed once per test context; a reload must exercise the app's saved state.
@@ -46,7 +46,7 @@ async function prepare(page: Page, options: { canBePaid?: boolean; whatsapp?: bo
       id: 'bali-account', slug: 'teajia-bali', name: 'Teajia Bali', public_enabled: true,
       can_be_paid: options.canBePaid ?? true, whatsapp_number: options.whatsapp === false ? '' : '6281234567890', contact_email: 'shop@example.com',
     });
-    if (pathname === '/api/products/public' || pathname === '/api/s/teajia-bali/products') return json(route, [PRODUCT]);
+    if (pathname === '/api/products/public' || pathname === '/api/s/teajia-bali/products') return json(route, [{ ...PRODUCT, ...options.product }]);
     if (pathname === '/api/rates') return json(route, [{ currency: 'USD', rate_to_usd: 1 }, { currency: 'IDR', rate_to_usd: 16000 }]);
     if (pathname.includes('/api/auth/')) return json(route, { error: 'Unauthorized' }, 401);
     if (pathname === '/api/network/stores') return json(route, { stores: [] });
@@ -73,32 +73,32 @@ async function savedCart(page: Page) {
 }
 
 test.describe('guest public checkout', () => {
-  test('adds from the catalogue into an empty basket and submits the same pack and price', async ({ page }, testInfo) => {
+  test('chooses a catalogue amount before adding and submits the same pack and price', async ({ page }, testInfo) => {
     const requests = await prepare(page, { emptyCart: true });
     await page.goto('/shop', { waitUntil: 'domcontentloaded' });
-    const add = page.getByRole('button', { name: /^Add one \d+g pack of Moonlight White,/ });
+    const add = page.getByRole('button', { name: 'Choose amount for Moonlight White', exact: true });
     await expect(add).toBeVisible();
-    await expect(add).toHaveAttribute('aria-label', 'Add one 50g pack of Moonlight White, IDR 160k');
-    const advertised = (await add.getAttribute('aria-label'))!.match(/^Add one (\d+)g pack of Moonlight White, (.+)$/)!;
     expect(await savedCart(page)).toEqual([]);
-    await add.scrollIntoViewIfNeeded();
-    await expect.poll(() => add.evaluate(element => {
-      let opacity = 1;
-      for (let node: Element | null = element; node; node = node.parentElement) opacity *= Number(getComputedStyle(node).opacity);
-      return opacity;
-    })).toBeGreaterThan(0.99);
-    await page.screenshot({ path: testInfo.outputPath('catalogue-quick-add-viewport.png'), animations: 'disabled' });
     await add.click();
-    // Add stays in the catalogue and carries the full pack quote, including handling.
+    const chooser = page.getByRole('dialog', { name: 'Moonlight White', exact: true });
+    await expect(chooser).toBeVisible();
+    expect(await savedCart(page)).toEqual([]);
+    await expect(chooser.getByRole('button', { pressed: true })).toHaveCount(0);
+    await expect(chooser).toContainText('Quantity provides a lower price.');
+    await expect(chooser.getByTestId('amount-total-100')).toHaveText('272k');
+    expect(await chooser.evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
+    await page.screenshot({ path: testInfo.outputPath('catalogue-quantity-picker.png'), animations: 'disabled' });
+    await chooser.getByRole('button', { name: /^100g/ }).click();
+    await expect(chooser).toHaveCount(0);
     await expect(page).toHaveURL(/\/shop$/);
     await expect.poll(() => savedCart(page)).toHaveLength(1);
     const [item] = await savedCart(page);
-    expect(item).toMatchObject({ id: PRODUCT.id, packGrams: Number(advertised[1]), packs: 1, quantityGrams: Number(advertised[1]) });
-    expect(item.totalPrice).toBe(10); // 50g of leaf at $0.15/g plus handling, rounded as quoted.
+    expect(item).toMatchObject({ id: PRODUCT.id, packGrams: 100, packs: 1, quantityGrams: 100 });
+    expect(item.totalPrice).toBe(17);
     await openCart(page);
     await expect(page.locator('.cart-toast')).toHaveCount(0);
     await expect(page.getByRole('combobox', { name: 'Currency', exact: true })).toHaveValue('IDR');
-    await expect(page.locator('#checkout-form')).toContainText(advertised[2]);
+    await expect(page.locator('#checkout-form')).toContainText('IDR 272k');
     await expect(page.getByRole('button', { name: 'Close cart', exact: true })).toBeInViewport({ ratio: 1 });
     await expect.poll(() => page.getByRole('button', { name: 'Close cart', exact: true }).evaluate(element => {
       let opacity = 1;
@@ -151,6 +151,61 @@ test.describe('guest public checkout', () => {
     await page.getByRole('button', { name: 'Send order request', exact: true }).click();
     await expect(page.getByRole('region', { name: 'Order request confirmation' })).toBeVisible();
     expect(requests[0].customer_location).toBe('Pickup requested in Bali, Indonesia');
+  });
+
+  test('catalogue and product page share the same quantity prices, and dismissal adds nothing', async ({ page }) => {
+    await prepare(page, { emptyCart: true });
+    await page.goto('/shop');
+    const opener = page.getByRole('button', { name: 'Choose amount for Moonlight White', exact: true });
+    await opener.click();
+    const chooser = page.getByRole('dialog', { name: 'Moonlight White', exact: true });
+    const prices = await chooser.locator('[data-testid^="amount-total-"]').evaluateAll(nodes => nodes.map(node => [node.getAttribute('data-testid'), node.textContent]));
+    await page.keyboard.press('Escape');
+    await expect(chooser).toHaveCount(0);
+    await expect(opener).toBeFocused();
+    expect(await savedCart(page)).toEqual([]);
+    await page.getByRole('button', { name: 'View Moonlight White', exact: true }).click();
+    await expect(page).toHaveURL(/\/shop\/product\//);
+    await page.locator('.alcove-dock-strip button[aria-expanded]').click();
+    const productList = page.getByRole('group', { name: 'Amount', exact: true });
+    await expect(productList).toBeVisible();
+    expect(await productList.locator('[data-testid^="amount-total-"]').evaluateAll(nodes => nodes.map(node => [node.getAttribute('data-testid'), node.textContent]))).toEqual(prices);
+  });
+
+  test('custom quantity is added only after confirmation', async ({ page }) => {
+    await prepare(page, { emptyCart: true });
+    await page.goto('/shop');
+    await page.getByRole('button', { name: 'Choose amount for Moonlight White', exact: true }).click();
+    await page.getByRole('button', { name: 'Custom amount, including sample sizes', exact: true }).click();
+    const custom = page.getByRole('dialog', { name: 'Custom amount', exact: true });
+    await custom.getByRole('spinbutton', { name: 'Amount in grams' }).fill('75');
+    expect(await savedCart(page)).toEqual([]);
+    await custom.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await expect(page.getByRole('dialog', { name: 'Moonlight White', exact: true })).toBeVisible();
+    expect(await savedCart(page)).toEqual([]);
+    await page.getByRole('button', { name: 'Custom amount, including sample sizes', exact: true }).click();
+    await custom.getByRole('spinbutton', { name: 'Amount in grams' }).fill('999');
+    await expect(custom.getByRole('button', { name: 'Add to cart', exact: true })).toBeDisabled();
+    await custom.getByRole('spinbutton', { name: 'Amount in grams' }).fill('75');
+    await custom.getByRole('button', { name: 'Add to cart', exact: true }).click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    expect(await savedCart(page)).toMatchObject([{ packGrams: 75, packs: 1, quantityGrams: 75, totalPrice: 14 }]);
+  });
+
+  test('sealed tea offers whole units and normalizes a custom quantity before adding', async ({ page }) => {
+    await prepare(page, { emptyCart: true, product: { sold_in_whole_units: 1, piece_weight_g: 100, form: 'Box', stock_grams: 350 } });
+    await page.goto('/shop');
+    await page.getByRole('button', { name: 'Choose amount for Moonlight White', exact: true }).click();
+    const chooser = page.getByRole('dialog', { name: 'Moonlight White', exact: true });
+    await expect(chooser.getByTestId('amount-total-25')).toHaveCount(0);
+    await expect(chooser.getByRole('button', { name: /Two boxes/ })).toBeVisible();
+    await expect(chooser.getByRole('button', { name: /Four boxes/ })).toHaveCount(0);
+    await chooser.getByRole('button', { name: 'A larger number of units' }).click();
+    const custom = page.getByRole('dialog', { name: 'Custom amount', exact: true });
+    await custom.getByRole('spinbutton', { name: 'Amount in grams' }).fill('130');
+    expect(await savedCart(page)).toEqual([]);
+    await custom.getByRole('button', { name: 'Add to cart', exact: true }).click();
+    expect(await savedCart(page)).toMatchObject([{ packGrams: 200, packs: 1, quantityGrams: 200, totalPrice: 30 }]);
   });
 
   test('saves a WhatsApp request before handing its basket and private link to the popup', async ({ page }) => {

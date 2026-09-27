@@ -19,6 +19,7 @@ import { useTastingCounts } from '../hooks/useTastingCount';
 import type { Product } from '../admin/types';
 import { TeaFinder } from './shop/TeaFinder';
 import { TeaLedger } from './shop/TeaLedger';
+import { TeaQuantityPicker } from './shop/TeaQuantityPicker';
 import { TeaShopViewRegion, TeaShopViewTabs } from './shop/TeaShopViewTabs';
 import { BODY, LINK } from './shared/typeRoles';
 import {
@@ -139,6 +140,8 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
 
   // Filter State
+  const [amountItemId, setAmountItemId] = useState<string | null>(null);
+  const amountItem = inventory.find(item => item.id === amountItemId);
   const [activeType, setActiveType] = useState<string>('All');
   const [activeFeeling, setActiveFeeling] = useState<string | null>(null); // feeling term ID from taxonomy
   const [activeRegion, setActiveRegion] = useState<string | null>(null); // region ID from the wisdom base, or a written origin
@@ -962,7 +965,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                favoriteIds={userFavorites}
                onToggleFavorite={handleFavoriteToggle}
                onOpenProduct={openProduct}
-               onAddToCart={onAddToCart}
+               onChooseAmount={onAddToCart ? item => setAmountItemId(item.id) : undefined}
                isAdmin={isAdmin}
                onAdminEdit={onAdminEdit}
              />
@@ -992,6 +995,15 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
             <span>Compare ({compareItems.length})</span>
           </button>
         </div>
+      )}
+
+      {amountItem && onAddToCart && (
+        <TeaQuantityPicker
+          key={amountItem.id}
+          item={amountItem}
+          onAddToCart={onAddToCart}
+          onClose={() => setAmountItemId(null)}
+        />
       )}
 
       {/* Compare Overlay */}

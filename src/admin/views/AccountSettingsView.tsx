@@ -1129,7 +1129,7 @@ export const OrderContactsSection: React.FC<OrderContactsSectionProps> = ({
     <div>
       <h2 id="order-contacts-heading" className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Order contacts</h2>
       <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-2 text-tea-text-sec`}>
-        Set the inbox you use for orders. You can add a business WhatsApp number later.
+        Add your business WhatsApp number for order conversations. Set an order email for customers who cannot use WhatsApp.
       </p>
     </div>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
