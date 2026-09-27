@@ -4731,7 +4731,7 @@ body.cart-panel-open .commerce-dock {
   padding: 0;
   overflow: hidden;
   border: 1px solid var(--tea-border);
-  border-radius: 0;
+  border-radius: 2px;
   color: var(--tea-text);
   transition: border-color 160ms ease, transform 160ms ease;
 }
@@ -4815,41 +4815,6 @@ body.cart-panel-open .commerce-dock {
 .tea-ledger-identity {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: space-between;
   min-height: 52px;
-}
-
-/* Quick add uses the existing price rail, keeping the title's width intact. */
-.tea-ledger-add {
-  width: 100%;
-  flex-direction: column;
-  justify-content: center;
-  gap: 4px;
-  padding: 3px 0 0;
-}
-.tea-ledger-add-label {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  width: 44px;
-  height: 22px;
-  border: 1px solid var(--tea-border);
-  color: var(--tea-text-sec);
-  background: var(--tea-surface);
-}
-.tea-ledger-add:hover .tea-ledger-add-label,
-.tea-ledger-add[aria-expanded="true"] .tea-ledger-add-label {
-  border-color: var(--tea-gold);
-  color: var(--tea-text);
-}
-.tea-ledger-add:focus-visible {
-  outline: 2px solid var(--tea-gold);
-  outline-offset: 2px;
-}
-.tea-quick-add {
-  scroll-margin-bottom: calc(68px + env(safe-area-inset-bottom));
-}
-@media (min-width: 1024px) {
-  .tea-quick-add { scroll-margin-bottom: 16px; }
 }
