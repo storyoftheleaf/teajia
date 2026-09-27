@@ -163,12 +163,29 @@ test('switching events through admin search saves only the selected event briefi
   await page.goto('/admin/events/event-a?tab=briefing');
   await expect(page.locator('textarea')).toHaveValue('Briefing exclusively for A');
   await page.locator('textarea').fill('Unsaved changes belonging only to A');
-  // Use the persistent admin search so the event detail stays mounted.
-  // Global Search shares this shortcut; Escape dismisses that overlay.
+  // The desktop Search button still opens global Search in admin. Ctrl+K
+  // closes it without opening a second panel underneath.
+  if (testInfo.project.name !== 'Mobile Chrome') {
+    await page.getByRole('button', { name: 'Search', exact: true }).click();
+    await expect(page.getByRole('dialog', { name: 'Search', exact: true })).toBeVisible();
+    await page.keyboard.press('Control+k');
+    await expect(page.getByRole('dialog', { name: 'Search', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('dialog', { name: 'Command palette', exact: true })).toHaveCount(0);
+  }
+
+  // The admin shortcut then owns Ctrl+K while moving between event details.
   await page.keyboard.press('Control+k');
-  await expect(page.getByRole('dialog', { name: 'Search', exact: true })).toBeVisible();
-  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Command palette', exact: true })).toBeVisible();
   await expect(page.getByRole('dialog', { name: 'Search', exact: true })).toHaveCount(0);
+  await page.screenshot({ path: testInfo.outputPath('admin-command-palette.png'), animations: 'disabled' });
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Command palette', exact: true })).toHaveCount(0);
+  await page.keyboard.press('Control+k');
+  await expect(page.getByRole('dialog', { name: 'Command palette', exact: true })).toBeVisible();
+  await page.keyboard.press('Control+k');
+  await expect(page.getByRole('dialog', { name: 'Command palette', exact: true })).toHaveCount(0);
+  await page.keyboard.press('Control+k');
+  await expect(page.getByRole('dialog', { name: 'Command palette', exact: true })).toBeVisible();
   await page.getByPlaceholder('Search products, customers, events...').fill('Briefing Event B');
   await page.getByRole('option', { name: /Briefing Event B/ }).click();
   await expect(page.getByRole('heading', { name: 'Briefing Event B', exact: true })).toBeVisible();
