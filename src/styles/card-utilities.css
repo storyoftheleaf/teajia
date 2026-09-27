@@ -4726,8 +4726,8 @@ body.cart-panel-open .commerce-dock {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  width: 52px;
-  height: 50px;
+  width: 54px;
+  height: 52px;
   padding: 0;
   overflow: hidden;
   border: 1px solid var(--tea-border);
@@ -4756,6 +4756,7 @@ body.cart-panel-open .commerce-dock {
   font-variant-numeric: lining-nums tabular-nums;
 }
 .tea-save-tile-action {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4768,6 +4769,17 @@ body.cart-panel-open .commerce-dock {
   text-transform: none;
   letter-spacing: 0;
 }
+.tea-save-tile-action::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 25%;
+  width: 50%;
+  border-top: 1px solid var(--tea-border);
+}
+.tea-save-tile-year-long {
+  font-size: 14px;
+}
 .tea-save-tile[aria-pressed="true"] .tea-save-tile-action {
   color: var(--tea-gold);
 }
@@ -4776,5 +4788,5 @@ body.cart-panel-open .commerce-dock {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 50px;
+  min-height: 52px;
 }

@@ -183,7 +183,7 @@ export function TeaLedger({
                     }
                   }}
                 >
-                  <div className="flex items-start gap-3 py-3 md:py-4">
+                  <div className="flex items-start gap-2.5 py-3 md:py-4">
                     <TeaSaveTile
                       year={item.year}
                       name={item.name}

@@ -28,7 +28,7 @@ export function TeaSaveTile({ year, name, saved, background, onToggle }: TeaSave
         if (event.key === 'Enter' || event.key === ' ') event.stopPropagation();
       }}
     >
-      <span className="tea-save-tile-year">{year || '—'}</span>
+      <span className={`tea-save-tile-year${String(year ?? '').length > 4 ? ' tea-save-tile-year-long' : ''}`}>{year || '—'}</span>
       <span className={`tea-save-tile-action ${TYPOGRAPHY_CLASSES.label}`}>
         {saved && <Check size={10} weight="bold" aria-hidden="true" />}
         {saved ? 'Saved' : 'Save'}
