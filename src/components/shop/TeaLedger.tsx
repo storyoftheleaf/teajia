@@ -1,6 +1,6 @@
 import { Fragment, type MouseEvent } from 'react';
-import { Leaf } from 'lucide-react';
-import { getTeaLedgerTones, TYPOGRAPHY_CLASSES } from '../../designTokens';
+import { Leaf, ShoppingCart } from 'lucide-react';
+import { getTeaLedgerTones } from '../../designTokens';
 import { teaPurchaseQuote } from '../../lib/shopPurchase';
 import { useTheme } from '../../context/ThemeContext';
 import type { InventoryItem } from '../../types';
@@ -144,6 +144,8 @@ export function TeaLedger({
               const origin = splitOrigin(item.origin || '');
               const lead = curatorLine(item);
               const tastingCount = tastingCounts.get(item.id) || 0;
+              const canQuickAdd = Boolean(onAddToCart && purchase);
+              const PriceControl = canQuickAdd ? 'button' : 'div';
 
               return (
                 <div
@@ -275,32 +277,29 @@ export function TeaLedger({
                           the row the part that never changes. Stacked, the
                           column is about 20px narrower and the figures line up
                           as figures. */}
-                      <div className="min-w-[52px] whitespace-nowrap text-right">
-                        <div data-testid="grid-price" className="num border-b border-tea-border pb-[3px] text-ui-16 font-medium tabular-nums text-tea-text">
+                      <PriceControl
+                        type={canQuickAdd ? 'button' : undefined}
+                        onClick={canQuickAdd ? event => {
+                          event.stopPropagation();
+                          onAddToCart!(item, purchase!.grams, purchase!.totalUsd);
+                        } : undefined}
+                        aria-label={canQuickAdd ? `Add one ${purchase!.grams}g pack of ${item.name}, ${formatPrice(purchase!.totalUsd)}` : undefined}
+                        title={canQuickAdd ? 'Add to cart' : undefined}
+                        className={`min-w-[52px] whitespace-nowrap text-right ${canQuickAdd ? 'tap-target flex-col items-end justify-center rounded hover:bg-tea-accent-sub focus-visible:outline focus-visible:outline-tea-gold' : ''}`}
+                      >
+                        <div data-testid="grid-price" className="num w-full border-b border-tea-border pb-[3px] text-ui-16 font-medium tabular-nums text-tea-text">
                           {purchase ? formatPrice(purchase.totalUsd) : '\u2014'}
                         </div>
-                        <div className="num pt-[3px] text-ui-10 tabular-nums text-tea-text-dim">
+                        <div className="num flex items-center justify-end gap-1 pt-[3px] text-ui-10 tabular-nums text-tea-text-dim">
+                          {canQuickAdd && <ShoppingCart className="h-3 w-3" aria-hidden="true" />}
                           {purchase ? `${purchase.grams}g pack` : 'Unavailable'}
                         </div>
-                        {onAddToCart && purchase && (
-                          <button
-                            type="button"
-                            onClick={event => {
-                              event.stopPropagation();
-                              onAddToCart(item, purchase.grams, purchase.totalUsd);
-                            }}
-                            aria-label={`Add one ${purchase.grams}g pack of ${item.name}, ${formatPrice(purchase.totalUsd)}`}
-                            className={`${TYPOGRAPHY_CLASSES.link} tap-target mt-1 min-h-[44px] rounded border border-tea-border bg-tea-surface px-3 text-tea-text transition-colors hover:border-tea-gold hover:bg-tea-accent-sub`}
-                          >
-                            Add
-                          </button>
-                        )}
                         {stockNote && (
                           <div className="mt-0.5 text-ui-9 uppercase tracking-[0.1em] text-tea-gold-lt">
                             {stockNote}
                           </div>
                         )}
-                      </div>
+                      </PriceControl>
                       <button
                         type="button"
                         onClick={event => { event.stopPropagation(); onToggleFavorite(item.id, event); }}
