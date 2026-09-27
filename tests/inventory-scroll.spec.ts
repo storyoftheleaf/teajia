@@ -221,7 +221,9 @@ test.describe('Inventory page — scroll regression guard', () => {
     await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('inventory-stage-published')).toBeVisible();
 
-    await page.locator('tr[data-product-id="test-product-1"]').click();
+    const firstTea = page.locator('tr[data-product-id="test-product-1"]');
+    await firstTea.focus();
+    await firstTea.press('Enter');
     const rail = page.getByRole('toolbar', { name: 'Selection actions' });
     await expect(rail.getByRole('button', { name: 'Record tasting' })).toBeVisible();
     await expect(rail.getByRole('button', { name: 'Edit product tasting profile' })).toBeVisible();
@@ -232,7 +234,9 @@ test.describe('Inventory page — scroll regression guard', () => {
     await expect(page.locator('[data-tasting-session-overlay]')).toBeHidden();
     await rail.getByRole('button', { name: 'Clear', exact: true }).click();
 
-    await page.locator('tr[data-product-id="test-product-2"]').click();
+    const secondTea = page.locator('tr[data-product-id="test-product-2"]');
+    await secondTea.focus();
+    await secondTea.press('Enter');
     await expect(rail.getByRole('button', { name: 'Continue tasting' })).toBeVisible();
     await expect(rail.getByRole('button', { name: 'View personal tasting' })).toBeVisible();
   });

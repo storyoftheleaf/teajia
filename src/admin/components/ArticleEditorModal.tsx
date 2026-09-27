@@ -6,6 +6,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
+import { createArticlePersistence } from '../articlePersistence';
 import {
   EDITABLE_ARTICLE_BLOCK_TYPES,
   getArticleBlockLabel,
@@ -503,8 +504,12 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [publishing, setPublishing] = useState(false);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const persistenceRef = useRef(createArticlePersistence(initialData?.id ?? null, api.articles));
+  const editorVersionRef = useRef(0);
 
   useEffect(() => {
+    editorVersionRef.current += 1;
+    persistenceRef.current = createArticlePersistence(initialData?.id ?? null, api.articles);
     if (autoSaveTimer.current) {
       clearTimeout(autoSaveTimer.current);
       autoSaveTimer.current = null;
@@ -566,23 +571,27 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
   // Save (create or update)
   const save = useCallback(async () => {
     if (!title.trim()) return;
+    if (autoSaveTimer.current) {
+      clearTimeout(autoSaveTimer.current);
+      autoSaveTimer.current = null;
+    }
+    const version = editorVersionRef.current;
     setSaveState('saving');
     try {
-      const payload = buildPayload();
-      if (articleId) {
-        await api.articles.update(articleId, payload);
-      } else {
-        const result = await api.articles.create(payload);
-        if (result?.id) setArticleId(result.id);
-      }
+      const id = await persistenceRef.current.save(buildPayload());
+      if (editorVersionRef.current !== version) return;
+      setArticleId(id);
       setSaveState('saved');
       onSaved?.();
-      setTimeout(() => setSaveState('idle'), 2000);
+      setTimeout(() => {
+        if (editorVersionRef.current === version) setSaveState('idle');
+      }, 2000);
     } catch (err: any) {
+      if (editorVersionRef.current !== version) return;
       setSaveState('idle');
       showToast(err.message || 'Article save failed. Try again.', 'error');
     }
-  }, [articleId, buildPayload, title, onSaved, showToast]);
+  }, [buildPayload, title, onSaved, showToast]);
 
   // Keep a ref to the latest save so the debounced timer never fires a stale
   // closure. Without this, calling scheduleAutoSave() in the same handler that
@@ -609,22 +618,29 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
       showToast('Save the article first', 'error');
       return;
     }
+    if (autoSaveTimer.current) {
+      clearTimeout(autoSaveTimer.current);
+      autoSaveTimer.current = null;
+    }
+    const version = editorVersionRef.current;
+    const nextPublished = status !== 'published';
     setPublishing(true);
+    setSaveState('saving');
     try {
-      if (status === 'published') {
-        await api.articles.unpublish(articleId);
-        setStatus('draft');
-        showToast('Article unpublished', 'info');
-      } else {
-        await api.articles.publish(articleId);
-        setStatus('published');
-        showToast('Article published', 'success');
-      }
+      await persistenceRef.current.setPublished(buildPayload(), nextPublished);
+      if (editorVersionRef.current !== version) return;
+      setStatus(nextPublished ? 'published' : 'draft');
+      showToast(nextPublished ? 'Article published' : 'Article unpublished', nextPublished ? 'success' : 'info');
       onSaved?.();
     } catch (err: any) {
-      showToast(err.message || (status === 'published' ? 'Could not unpublish article. Try again.' : 'Could not publish article. Try again.'), 'error');
+      if (editorVersionRef.current === version) {
+        showToast(err.message || (nextPublished ? 'Could not publish article. Try again.' : 'Could not unpublish article. Try again.'), 'error');
+      }
     } finally {
-      setPublishing(false);
+      if (editorVersionRef.current === version) {
+        setPublishing(false);
+        setSaveState('idle');
+      }
     }
   };
 
@@ -779,7 +795,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
         <button
           onClick={() => { void save(); }}
           aria-label="Save"
-          disabled={saveState === 'saving' || !title.trim()}
+          disabled={saveState === 'saving' || publishing || !title.trim()}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-medium transition-colors disabled:opacity-40 shrink-0"
         >
           {saveState === 'saving' ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}

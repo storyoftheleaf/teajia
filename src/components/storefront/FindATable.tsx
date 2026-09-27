@@ -6,13 +6,6 @@ import type { Account } from '../../types';
 import { fetchNetworkStores } from '../../lib/storefrontApi';
 import { SectionSkeleton } from '../shared/SectionSkeleton';
 import { Icons } from '../Icons';
-import { api } from '../../lib/api';
-
-interface NetworkReview {
-  product_account_id?: string;
-  tea_key?: string;
-  product_id?: string;
-}
 
 export const FindATable: React.FC = () => {
   const { data: stores = [], isLoading, isError } = useQuery<Account[]>({
@@ -24,26 +17,6 @@ export const FindATable: React.FC = () => {
   const [searchName, setSearchName] = useState('');
   const [filterCity, setFilterCity] = useState('');
   const [filterCountry, setFilterCountry] = useState('');
-
-  const { data: reviewsData } = useQuery<{ reviews?: NetworkReview[] }>({
-    queryKey: ['tea-reviews', 'network'],
-    queryFn: () => api.teaReviews.list({ visibility: 'network' }),
-    staleTime: 1000 * 60 * 5,
-  });
-
-  // Count unique teas-with-reviews per account
-  const reviewCountByAccount = useMemo(() => {
-    const counts: Record<string, number> = {};
-    (reviewsData?.reviews ?? []).forEach((r: NetworkReview) => {
-      const acct = r.product_account_id;
-      if (!acct) return;
-      const key = r.tea_key ?? r.product_id ?? '';
-      if (!counts[acct]) counts[acct] = 0;
-      counts[acct] += 1;
-      void key; // tea_key grouping left to detail page
-    });
-    return counts;
-  }, [reviewsData]);
 
   // Derive unique cities and countries
   const cities = useMemo(() => {
@@ -216,8 +189,6 @@ export const FindATable: React.FC = () => {
           <ul className="divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
             {filtered.map(store => {
               const location = [store.location_city, store.location_country].filter(Boolean).join(', ');
-              const reviewCount = reviewCountByAccount[store.id] ?? 0;
-              const statusLabel = reviewCount > 0 ? 'Hosting' : 'Verified';
               return (
                 <li key={store.id}>
                   <Link
@@ -243,9 +214,6 @@ export const FindATable: React.FC = () => {
                         {location || (store.tagline ?? 'A Teajia table')}
                       </p>
                     </div>
-                    <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-caps bg-tea-gold/10 text-tea-readgold ring-1 ring-inset ring-tea-gold/30">
-                      {statusLabel}
-                    </span>
                   </Link>
                 </li>
               );

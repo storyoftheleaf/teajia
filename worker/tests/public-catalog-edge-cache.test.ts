@@ -27,13 +27,21 @@ afterEach(() => {
 });
 
 /** A D1 stand-in with one store, 'shop-one', and an empty shelf; it counts
- *  every query so a cache hit can be told from a rebuild. */
+ *  visibility checks separately from full catalogue builds. */
 function countingDb() {
-  const calls = { queries: 0 };
+  const calls = { queries: 0, visibilityChecks: 0, catalogueBuilds: 0 };
+  let publicStore = true;
   const statement = (sql: string) => {
     const stmt = {
       bind: () => stmt,
-      first: async () => { calls.queries += 1; return /slug/i.test(sql) ? { id: 'acc-one' } : null; },
+      first: async () => {
+        calls.queries += 1;
+        if (/SELECT id FROM accounts WHERE slug/i.test(sql)) {
+          calls.visibilityChecks += 1;
+          return publicStore ? { id: 'acc-one' } : null;
+        }
+        return null;
+      },
       all: async () => { calls.queries += 1; return { results: [] }; },
       run: async () => { calls.queries += 1; return { success: true }; },
     };
@@ -41,26 +49,33 @@ function countingDb() {
   };
   const db = {
     prepare: statement,
-    batch: async (stmts: unknown[]) => { calls.queries += 1; return stmts.map(() => ({ results: [] })); },
+    batch: async (stmts: unknown[]) => {
+      calls.queries += 1;
+      calls.catalogueBuilds += 1;
+      return stmts.map(() => ({ results: [] }));
+    },
   };
-  return { db, calls };
+  return { db, calls, closeStore: () => { publicStore = false; } };
 }
 
 const call = (db: unknown, path: string) =>
   worker.fetch(new Request(`https://worker.test${path}`, { method: 'GET' }), { DB: db } as any);
 
 describe('the public catalogue is built once per cache window, not once per visit', () => {
-  it('serves the second request from the cache without touching D1', async () => {
+  it('rechecks store visibility on a cache hit without rebuilding the catalogue', async () => {
     const { db, calls } = countingDb();
     const first = await call(db, '/api/s/shop-one/products');
     expect(first.status).toBe(200);
     const built = calls.queries;
     expect(built).toBeGreaterThan(0);
+    expect(calls.catalogueBuilds).toBe(1);
 
     const second = await call(db, '/api/s/shop-one/products');
     expect(second.status).toBe(200);
     expect(await second.json()).toEqual([]);
-    expect(calls.queries).toBe(built);
+    expect(calls.queries).toBe(built + 1);
+    expect(calls.visibilityChecks).toBe(2);
+    expect(calls.catalogueBuilds).toBe(1);
   });
 
   it('ignores the query string, so ?anything cannot force a rebuild', async () => {
@@ -68,7 +83,17 @@ describe('the public catalogue is built once per cache window, not once per visi
     await call(db, '/api/s/shop-one/products');
     const built = calls.queries;
     await call(db, '/api/s/shop-one/products?bust=1');
-    expect(calls.queries).toBe(built);
+    expect(calls.queries).toBe(built + 1);
+    expect(calls.catalogueBuilds).toBe(1);
+  });
+
+  it('refuses a cached catalogue after the store closes', async () => {
+    const { db, calls, closeStore } = countingDb();
+    expect((await call(db, '/api/s/shop-one/products')).status).toBe(200);
+    expect(store.size).toBe(1);
+    closeStore();
+    expect((await call(db, '/api/s/shop-one/products')).status).toBe(404);
+    expect(calls.catalogueBuilds).toBe(1);
   });
 
   it('never stores a failure', async () => {

@@ -22,6 +22,7 @@ import { STATUS_PILL_BASE, STATUS_PILL_VARIANTS, type StatusPillVariant } from '
 import { AnchoredMenu } from '../../components/shared/AnchoredMenu';
 import { ArticleEditorModal } from './ArticleEditorModal';
 import type { DbArticle } from '../../types';
+import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
 const statusToVariant = (status: EventStatus): StatusPillVariant => {
   switch (status) {
@@ -286,7 +287,7 @@ export const EventDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { data: event, isLoading, refetch: refetchEvent } = useEvent(id!);
+  const { data: event, isLoading, isPending, isFetching, isError, refetch: refetchEvent } = useEvent(id!);
   const { data: attendees = [], refetch: refetchAttendees } = useAttendees(id!);
 
   const [convertingInterest, setConvertingInterest] = useState(false);
@@ -381,10 +382,28 @@ export const EventDetail: React.FC = () => {
   }, [event?.id]);
 
 
-  if (isLoading || !event) {
+  if (isLoading || (isPending && !isError)) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="animate-spin text-tea-text-sec" size={24} />
+      </div>
+    );
+  }
+  if (isError || !event) {
+    return (
+      <div role="alert" className="mx-auto max-w-2xl p-6 pb-nav-gap">
+        <div className="rounded-xl border border-tea-border bg-tea-surface p-6">
+          <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Event could not be loaded</h2>
+          <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-2 text-tea-text-sec`}>The event may have been removed, or the request failed. Try again or return to events.</p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button type="button" onClick={() => navigate('/admin/events')} className="tap-target rounded-md border border-tea-border px-4 py-2 text-tea-text-sec hover:text-tea-text">
+              Back to events
+            </button>
+            <button type="button" onClick={() => { void refetchEvent(); }} disabled={isFetching} className="tap-target cta-solid rounded-md px-4 py-2 disabled:opacity-50">
+              {isFetching ? 'Trying…' : 'Try again'}
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
