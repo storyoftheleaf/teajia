@@ -51,6 +51,7 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
   const navigate = useNavigate();
   const go = (route: string) => { onClose(); navigate(route); };
 
+  // Width comes from the panel's one column rule (panelColumn in index.tsx).
   return (
     <div>
       {/* ── Hero, the invitation ───────────────────────────────────── */}

@@ -462,7 +462,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
   ];
 
   return (
-    <div className="px-6 lg:px-12 pt-8 pb-12 max-w-[920px] mx-auto w-full">
+    <div className="px-6 lg:px-12 pt-8 pb-12">
 
       {/* ── Identity zone ─────────────────────────────────────────────────── */}
       <div className="flex flex-col items-center text-center mb-10">

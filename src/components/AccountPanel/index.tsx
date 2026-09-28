@@ -670,6 +670,11 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
 
   // Header state
   const isSubView = panelView !== 'main';
+  // One width rule for the whole panel. The panel fills the screen, so any
+  // view left uncapped stretches its buttons edge to edge on desktop. Only
+  // the signed-in launchpad earns a wider stage, for its tile grid.
+  const panelColumn = panelView === 'main' && auth.isAuthenticated ? 'max-w-[920px]' : 'max-w-sm';
+
   const headerTitle =
     panelView === 'location-switcher' ? 'Switch Location' :
     panelView === 'events' ? 'Sessions' :
@@ -870,7 +875,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
           {/* Centered title, absolutely positioned so it ignores sibling width */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[60%] text-center">
             <h2 className="h3 truncate">{headerTitle}</h2>
-            {!isSubView && (
+            {!isSubView && auth.isAuthenticated && (
               <p className="text-ui-10 text-tea-text-sec truncate mt-0.5">
                 {accountContextName ? `Logged in to ${accountContextName}` : 'Logged in to your account'}
               </p>
@@ -911,14 +916,14 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.12, ease: 'easeOut' }}
-            className="relative z-10"
+            className={`relative z-10 w-full mx-auto ${panelColumn}`}
           >
 
             {/* ══════════════════════════════════════════════════════════════
                 SIGN IN VIEW (inline, no navigation away)
             ══════════════════════════════════════════════════════════════ */}
             {panelView === 'signin' && (
-              <div className="px-6 pt-10 pb-6 space-y-5 w-full max-w-sm mx-auto">
+              <div className="px-6 pt-10 pb-6 space-y-5">
                 <div>
                   <h2 className="h2">Welcome back.</h2>
                   <p className="text-ui-13 text-tea-text-sec mt-1.5">Sign in to your Teajia account.</p>
@@ -978,7 +983,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
                 SIGN UP VIEW (inline)
             ══════════════════════════════════════════════════════════════ */}
             {panelView === 'signup' && (
-              <div className="px-6 pt-10 pb-6 space-y-5 w-full max-w-sm mx-auto">
+              <div className="px-6 pt-10 pb-6 space-y-5">
                 {pendingSignup && !isEditingSignup ? (
                   <>
                     <div>

@@ -589,6 +589,9 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="products/:id/story" element={<ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ProductStoryView /></PageTransition></ProtectedRoute>} />
               <Route path="purchase-orders" element={<Navigate to="/admin/people?tab=purchase-orders" replace />} />
               <Route path="team" element={<Navigate to="/admin/access" replace />} />
+              {/* The Manage list calls this room Members, so /admin/members is a
+                  natural address to type. The page lives at /admin/access. */}
+              <Route path="members" element={<Navigate to="/admin/access" replace />} />
               {/* The admin copy of the launch playbook was retired: it repeated the
                   Launch Center step for step, but kept its ticks in the browser, so
                   it could tell someone they were done when they were not. The public
@@ -643,7 +646,11 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                   here. */}
               <Route path="settings" element={<Navigate to="/admin/account-settings" replace />} />
 
-              <Route path="*" element={<Navigate to="home" replace />} />
+              {/* Absolute on purpose. Under React Router 7 a relative target inside a
+                  splat route resolves against the whole unmatched path, so "home"
+                  from /admin/members went to /admin/members/home, which matched
+                  this route again and grew /home/home/home forever. */}
+              <Route path="*" element={<Navigate to="/admin/compass" replace />} />
           </Routes>
         </div>
 

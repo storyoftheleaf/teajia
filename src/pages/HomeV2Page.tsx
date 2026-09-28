@@ -58,10 +58,10 @@ const PIECE = {
 const PIECE_PORTRAIT: PhotoVal = { url: '/home/porcelain-bowl.webp', crop: { scale: 1, x: 0.5, y: 0.5 } };
 
 /** The opener: the teapots laid out on the old wood, shot from above, cropped
- *  in to the pots and cups. A light sepia is baked into the file; the grain is
- *  laid over it live (.photo-grain), because grain baked into a compressed
- *  photo turns to blocks. A site file under public/home, so it ships with the
- *  build and never waits on the API. */
+ *  in to the pots and cups, with a light sepia and faded blacks baked into the
+ *  file. No grain: Adrian chose it without (2026-09-28), since every grain
+ *  tried read as a low-quality photo on screen. A site file under
+ *  public/home, so it ships with the build and never waits on the API. */
 const TABLE_PHOTO = '/home/teapots-sepia.webp';
 
 /** The consult plate: Adrian pouring at the table, from his own library,
@@ -211,10 +211,7 @@ const HomeV2Page: React.FC = () => {
             alt="At the table"
             fill
             placeholderBg="var(--tea-surface)"
-            placeholder={<>
-              <img src={TABLE_PHOTO} alt="" fetchPriority="high" className="absolute inset-0 w-full h-full object-cover object-center lg:object-[50%_8%]" />
-              <div aria-hidden className="photo-grain" />
-            </>}
+            placeholder={<img src={TABLE_PHOTO} alt="" fetchPriority="high" className="absolute inset-0 w-full h-full object-cover object-center lg:object-[50%_8%]" />}
           />
         </div>
       </section>
