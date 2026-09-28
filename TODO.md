@@ -28,6 +28,9 @@ Everything below the ten is in the report's "Later" bucket: false-success delete
 - [ ] Tea Atlas: run `npm run atlas:upload -- --dry-run` once and confirm every source added from the admin (both Books of Tea, Ooika, The Chinese Tea Shop) stays in the rebuilt index _(band: agent-runnable)_ _(effort: quick)_
 - [ ] Tea Atlas: let the owner replace or remove a source added from the admin; today a wrong split can only be republished under a new name _(band: agent-runnable)_ _(effort: moderate)_
 - [ ] Tea Atlas: write Obsidian notes for sources added from the admin, so the vault and the web package stay the same shape _(band: agent-runnable)_ _(effort: moderate)_
+- [ ] Tea Atlas: open teajia.com/tea-atlas signed in and check search, an article and its pictures — the signed-in view has not been seen by anyone yet _(band: you-required)_ _(effort: quick)_
+- [ ] Tea Atlas: bring the design-polish and "drop in a PDF" branches in one at a time, each synced with main before it merges _(band: agent-runnable)_ _(effort: moderate)_ → Notes: [2026-09-28 handoff](todo/handoffs/2026-09-28-goodnight.md)
+- [ ] Tea Atlas: keep the Mac pipeline (`tea-atlas` in ~/builds) separate from the admin "drop in a PDF" tool; to refresh Global Tea Hut, run `tea-atlas` then `npm run atlas:upload` _(band: routine)_ _(effort: quick)_
 
 - [ ] Worker type ratchet is red on main: its baseline pins line numbers in worker/src/index.ts and a merge after pull request 300 moved them, so every pull request since fails the checks lane at that step and the build, colour and worker-test steps behind it are skipped; re-baseline it, or key the baseline on something that survives a line shift _(band: agent-runnable)_ _(effort: quick)_
 - [x] **The `src/` unit suite runs in CI.** _(band: agent-runnable)_ `npm run test:src` runs vitest over `src/` (132 files; `*.behavior.test.ts` excluded because those need Playwright). Wired into the `checks` job in `.github/workflows/playwright.yml`.
