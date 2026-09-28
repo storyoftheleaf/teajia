@@ -241,6 +241,8 @@ import { CartToast, type CartToastTone } from './components/shared/CartToast';
 import { WalkthroughDock } from './components/shared/WalkthroughDock';
 import { ScrollProgressBar, shouldShowGlobalScrollProgress } from './components/shared/ScrollProgressBar';
 import { AnimatedRoutes } from './components/shared/AnimatedRoutes';
+import { SiteNotFound } from './components/SiteNotFound';
+import AtlasGate from './atlas/AtlasGate';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
 
 // View Transitions API feature detection (#46)
@@ -1335,15 +1337,11 @@ const AppContent = () => {
                     </Suspense>
                   </ErrorBoundary>
                 } />
+                {/* Tea Atlas: private library. The gate asks the server and shows
+                    the same 404 below to anyone without access (docs/TEA_ATLAS.md). */}
+                <Route path="/tea-atlas/*" element={<AtlasGate />} />
                 {/* 404 Page */}
-                <Route path="*" element={
-                  <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6 animate-[fadeIn_0.5s_ease-out]">
-                    <h1 className="text-6xl font-serif text-tea-gold mb-4">404</h1>
-                    <p className="text-xl font-serif text-tea-text mb-2">Page not found</p>
-                    <p className="text-sm text-tea-text-sec mb-8 max-w-md">The page you're looking for doesn't exist or may have been moved.</p>
-                    <button onClick={() => setActiveSection('HOME')} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors">Return Home</button>
-                  </div>
-                } />
+                <Route path="*" element={<SiteNotFound onReturnHome={() => setActiveSection('HOME')} />} />
               </Routes>
             </AnimatedRoutes>
           )}

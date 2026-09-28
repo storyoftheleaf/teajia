@@ -147,7 +147,8 @@ async function main() {
     }
     const changed = [...wanted].filter(([key, w]) => state.files[key] !== w.hash && (!INDEX_ONLY || key.startsWith('index/')));
     const removed = INDEX_ONLY ? [] : Object.keys(state.files).filter(key => !wanted.has(key));
-    ok(`${changed.length} to upload, ${removed.length} to remove, ${wanted.size - changed.length} unchanged (${built} index files built)`);
+    const unchanged = [...wanted].filter(([key, w]) => state.files[key] === w.hash).length;
+    ok(`${changed.length} to upload, ${removed.length} to remove, ${unchanged} unchanged${INDEX_ONLY ? ', package files skipped (--index-only)' : ''}`);
 
     if (DRY) {
       for (const [key] of changed.slice(0, 20)) console.log(dim(`  + ${key}`));
