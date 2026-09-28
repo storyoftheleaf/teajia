@@ -77,7 +77,7 @@ function buildCraftGroups(): CraftGroup[] {
       items: [
         { key: 'ritual', rubric: 'ritual', title: 'Seven Steeps', dek: 'The same leaves, brewed seven ways, scroll to pour.', href: '/read/ritual' },
         { key: 'field-study', rubric: 'water', title: 'Water Before Leaf', dek: 'A field study. What the water brings before the tea does.', href: '/read/field-study' },
-        { key: 'porcelain', rubric: 'teaware', title: 'Porcelain and Tea', dek: 'The renewal of a material, and what it does to the cup.', href: '/read/porcelain-and-tea' },
+        { key: 'porcelain', rubric: 'teaware', title: 'Porcelain and Tea', dek: 'Nine out of ten old things are damaged. But these are all marks of history.', href: '/read/porcelain-and-tea' },
         { key: 'pot', rubric: 'teaware', title: 'The Pot That Remembers', dek: 'Yixing clay, seasoning, and one tea per pot.', href: '/read/craft' },
         { key: 'brew-by-type', rubric: 'guides', title: 'Brewing by Tea Type', dek: "Green, white, oolong, black, pu'er, yellow. Leaf, water, time." },
       ],

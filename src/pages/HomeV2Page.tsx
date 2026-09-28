@@ -49,8 +49,12 @@ const PIECE = {
   slug: 'porcelain-and-tea',
   to: '/read/porcelain-and-tea',
   meta: 'The Lead · N°15',
-  dek: 'A porcelain restorer on repair, patience, and how mending what we love mends us in return.',
+  dek: 'When we repair objects, we are also repairing ourselves.',
 };
+
+/** The portrait Porcelain and Tea was built with, shipped as a site file
+ *  (see CraftRenewalPorcelain.tsx). Replaces the stand-in on the lead plate. */
+const PIECE_PORTRAIT: PhotoVal = { url: '/read/porcelain-and-tea/portrait.jpg', crop: { scale: 1, x: 0.5, y: 0.4 } };
 
 /** The one photograph the site owns today: Adrian at the table. Served by the
  *  same-origin media route, as every site image is since main moved off Cloudinary. */
@@ -131,7 +135,9 @@ const HomeV2Page: React.FC = () => {
     queryFn: () => api.storyContent.get(PIECE.slug) as Promise<{ photos?: Record<string, PhotoVal> }>,
     staleTime: 5 * 60 * 1000,
   });
-  const portrait = pieceContent?.photos?.portrait;
+  // A portrait dropped onto the story page and published still wins; until
+  // then the plate shows the portrait the story itself was built with.
+  const portrait = pieceContent?.photos?.portrait ?? PIECE_PORTRAIT;
 
 
   // The page breaks out of the main column's gutter, and on desktop out of the
@@ -213,8 +219,8 @@ const HomeV2Page: React.FC = () => {
           title={<>Porcelain <span className="italic text-tea-gold">and Tea</span></>}
           body={PIECE.dek}
           meta={PIECE.meta}
-          src={portrait?.url ?? TEMPLATE.piece}
-          crop={portrait?.crop}
+          src={portrait.url}
+          crop={portrait.crop}
         />
         <Plate
           to={tea ? `/shop/product/${tea.slug ?? tea.id}` : '/shop'}

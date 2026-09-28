@@ -75,6 +75,10 @@ test('a contributor is created with an uploaded portrait, its focal point, and g
   const ring = dialog.getByRole('button', { name: /Focal point, 50% across and 50% down/ });
   await expect(ring).toBeVisible();
   await expect(dialog.getByLabel('How the page crops it').first().locator('img')).toHaveCount(3);
+  // The whole photo keeps its own width beside the crops. At a 1204px laptop
+  // window it once collapsed to a sliver, too narrow to find a face in.
+  const whole = dialog.getByRole('img', { name: 'Portrait, whole photo' });
+  await expect.poll(async () => (await whole.boundingBox())?.width ?? 0).toBeGreaterThan(150);
 
   // Move the focal point up and left, by keyboard, the way that works everywhere.
   await ring.focus();
@@ -120,6 +124,19 @@ test('a contributor is created with an uploaded portrait, its focal point, and g
   // Nothing was published: the create saved a draft only.
   expect(network.writes.some(write => write.path.endsWith('/publish'))).toBe(false);
   expect(errors.filter(message => !/401|403/.test(message))).toEqual([]);
+});
+
+test('the whole photo stays wide enough to find a face at laptop width', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'Desktop Chrome', 'a laptop window is a desktop case');
+  await page.setViewportSize({ width: 1204, height: 900 });
+  await install(page);
+  await page.goto('/admin/contributors');
+  await page.getByRole('button', { name: 'Create contributor' }).last().click();
+  const dialog = page.getByRole('dialog', { name: 'Create contributor' });
+  await dialog.getByTestId('photo-portrait-file').setInputFiles({ name: 'seated.png', mimeType: 'image/png', buffer: PHOTO });
+  const whole = dialog.getByRole('img', { name: 'Portrait, whole photo' });
+  await expect.poll(async () => (await whole.boundingBox())?.width ?? 0).toBeGreaterThan(150);
+  await page.screenshot({ path: testInfo.outputPath('laptop-width.png') });
 });
 
 test('a failed upload says so and can be tried again without choosing the file twice', async ({ page }) => {

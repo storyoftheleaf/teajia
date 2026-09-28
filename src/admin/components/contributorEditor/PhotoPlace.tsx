@@ -207,8 +207,8 @@ export function PhotoPlace({ name, url, focus, onChange, crops, purpose, emptyHe
           </div>
         </div>
       ) : url ? (
-        <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
-          <div className="min-w-0">
+        <div className="flex flex-col items-start gap-5">
+          <div className="min-w-0 max-w-full">
             <FocusPicker url={url} focus={focus} alt={`${name}, whole photo`} onFocus={css => onChange({ url, focus: css })} />
             <p className="mt-2 font-sans text-ui-12 leading-relaxed text-tea-text-dim">
               {TOUCH ? 'Tap the face' : 'Click the face'}, or drag the ring. That point stays in every crop.
